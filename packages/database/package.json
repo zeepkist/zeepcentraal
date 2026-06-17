@@ -6,6 +6,7 @@
 	"main": "src/index.ts",
 	"types": "src/index.ts",
 	"scripts": {
+		"release": "semantic-release",
 		"dev": "drizzle-kit studio",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate"

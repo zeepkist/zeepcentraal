@@ -82,7 +82,7 @@ export const withModVersionGuard = (app: Elysia) =>
 
 		const outdated = await isModOutdated(modVersion);
 
-		attributes[ATTRIBUTE.outdated] = outdated
+		attributes[ATTRIBUTE.outdated] = outdated;
 		setAttributes(attributes);
 
 		if (outdated) {

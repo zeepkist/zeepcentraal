@@ -5,6 +5,9 @@
 	"type": "module",
 	"main": "src/index.ts",
 	"types": "src/index.ts",
+	"scripts": {
+		"release": "semantic-release"
+	},
 	"exports": {
 		".": {
 			"import": "./src/index.ts"
