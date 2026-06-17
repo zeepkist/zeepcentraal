@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -43,7 +43,7 @@ jobs:
     needs: [quality]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -76,7 +76,7 @@ jobs:
     needs: [build-packages]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download compiled binaries
         uses: actions/download-artifact@v4
@@ -100,7 +100,7 @@ jobs:
           git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
 
       - name: Build server image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.server
@@ -108,7 +108,7 @@ jobs:
           tags: zeepcentraal/server:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build jobs image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.jobs
@@ -116,7 +116,7 @@ jobs:
           tags: zeepcentraal/jobs:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build migrate image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.migrate
@@ -124,7 +124,7 @@ jobs:
           tags: zeepcentraal/migrate:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build import-zsl image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.zsl
