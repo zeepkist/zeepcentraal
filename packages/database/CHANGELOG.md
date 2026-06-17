@@ -1,3 +1,9 @@
+## [@zeepkist/database-v1.2.0](https://github.com/zeepkist/zeepcentraal/compare/database@1.1.2...database@1.2.0) (2026-06-17)
+
+### Features
+
+* convert to distroless docker images ([d316c2d](https://github.com/zeepkist/zeepcentraal/commit/d316c2d854db9635a4eb6c56496fad6f5f9fd32b))
+
 ## [@zeepkist/database-v1.1.2](https://github.com/zeepkist/zeepcentraal/compare/database@1.1.1...database@1.1.2) (2026-06-17)
 
 ### Bug Fixes
