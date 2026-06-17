@@ -4,4 +4,7 @@
 **/.vscode
 **/logs
 **/dist
+!dist/
+!dist/zeepcentraal-server
+!dist/zeepcentraal-jobs
 **/.DS_Store
