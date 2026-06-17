@@ -1,5 +1,6 @@
 module.exports = {
 	branches: ['develop'],
+	// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
 	tagFormat: '${version}',
 	plugins: [
 		[
@@ -27,9 +28,12 @@ module.exports = {
 			},
 		],
 		[
-			'@semantic-release/npm',
+			'@semantic-release/exec',
 			{
-				npmPublish: false,
+
+				prepareCmd:
+					// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
+					'bun pm version ${nextRelease.version} --no-git-tag-version --allow-same-version',
 			},
 		],
 		[
@@ -37,6 +41,7 @@ module.exports = {
 			{
 				assets: ['CHANGELOG.md', 'package.json'],
 				message:
+					// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
 					'chore(release): ${nextRelease.gitTag} [skip ci]\n\n${nextRelease.notes}',
 			},
 		],

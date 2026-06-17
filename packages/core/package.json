@@ -10,9 +10,9 @@
 	},
 	"exports": {
 		".": {
-			"import": "./src/index.ts"
-			,"default": "./src/index.ts"
-			,"main": "./src/index.ts"
+			"import": "./src/index.ts",
+			"default": "./src/index.ts",
+			"main": "./src/index.ts"
 		}
 	},
 	"dependencies": {
