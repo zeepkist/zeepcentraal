@@ -1,3 +1,9 @@
+## [@zeepkist/import-zsl-v1.1.0](https://github.com/zeepkist/zeepcentraal/compare/import-zsl@1.0.0...import-zsl@1.1.0) (2026-06-17)
+
+### Features
+
+* convert to distroless docker images ([d316c2d](https://github.com/zeepkist/zeepcentraal/commit/d316c2d854db9635a4eb6c56496fad6f5f9fd32b))
+
 ## @zeepkist/import-zsl-v1.0.0 (2026-06-17)
 
 ### Features
