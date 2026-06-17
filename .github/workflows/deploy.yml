@@ -11,6 +11,10 @@ permissions:
   packages: write
   pull-requests: write
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   test:
     runs-on: ubuntu-latest
