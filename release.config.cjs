@@ -26,7 +26,7 @@ module.exports = {
 			{
 				releasedLabels: [
 					// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
-					'released<%= nextRelease.channel ? ` on @\${nextRelease.channel}` : "" %> from <%= branch.name %>'
+					'released<%= nextRelease.channel ? ` on @${nextRelease.channel}` : "" %> from <%= branch.name %>',
 				],
 			},
 		],
