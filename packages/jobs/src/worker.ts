@@ -33,6 +33,13 @@ export async function startRunner() {
 		crontabFile: '',
 		taskList: taskList as Parameters<typeof run>[0]['taskList'],
 		noHandleSignals: true,
+		preset: {
+			worker: {
+				localQueue: { size: 10 },
+				completeJobBatchDelay: 100,
+				failJobBatchDelay: 100,
+			},
+		},
 	})
 	console.info(`Job runner started (PID ${process.pid})`)
 }

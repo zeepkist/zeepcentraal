@@ -19,6 +19,8 @@ function recordError(error: unknown) {
 }
 
 export const withErrors = new Elysia().onError(({ code, error }) => {
+	console.error('[server] Error (code=%s):', code, error)
+
 	recordError(error)
 
 	if (error && typeof error === 'object' && 'code' in error && 'status' in error) {
