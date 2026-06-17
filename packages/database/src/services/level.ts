@@ -1,6 +1,6 @@
-import { eq, gte } from 'drizzle-orm';
+import { eq, gte, inArray } from 'drizzle-orm';
 import { db } from '../index';
-import { level, record } from '../schema';
+import { level, levelItem, record } from '../schema';
 
 export async function getLevel(hash: string) {
 	return db.query.level.findFirst({
@@ -16,6 +16,35 @@ export async function getOrInsertLevel(hash: string) {
 
 	const [created] = await db.insert(level).values({ hash }).returning();
 	return created;
+}
+
+export async function getLevelByUuid(uuid: string): Promise<{ id: number } | null> {
+	const existing = await db
+		.select({ id: level.id })
+		.from(level)
+		.innerJoin(levelItem, eq(level.id, levelItem.idLevel))
+		.where(eq(levelItem.fileUid, uuid))
+		.limit(1)
+		.then((rows) => rows[0] ?? null);
+
+	return existing;
+}
+
+export async function getLevelsByUuidsBulk(uuids: string[]) {
+	if (uuids.length === 0) {
+		return new Map<string, { id: number; uuid: string }>();
+	}
+
+	const levels = await db
+		.select({
+			id: level.id,
+			uuid: levelItem.fileUid,
+		})
+		.from(level)
+		.innerJoin(levelItem, eq(level.id, levelItem.idLevel))
+		.where(inArray(levelItem.fileUid, uuids));
+
+	return new Map(levels.map((entry) => [entry.uuid, entry]));
 }
 
 export async function getAllLevelIds(): Promise<number[]> {

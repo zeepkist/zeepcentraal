@@ -29,7 +29,7 @@
     },
     "packages/core": {
       "name": "@zeepkist/core",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@isaacs/ttlcache": "^2.1.1",
         "@lukeed/ms": "^2.0.2",
@@ -39,18 +39,24 @@
     },
     "packages/database": {
       "name": "@zeepkist/database",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
-        "@zeepkist/core": "workspace:*",
         "drizzle-orm": "^0.44.7",
         "postgres": "^3.4.7",
         "semver": "^7.7.2",
         "ulid": "^3.0.2",
       },
     },
+    "packages/import-zsl": {
+      "name": "@zeepkist/import-zsl",
+      "version": "1.0.0",
+      "dependencies": {
+        "@zeepkist/database": "workspace:*",
+      },
+    },
     "packages/jobs": {
       "name": "@zeepkist/jobs",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@zeepkist/core": "workspace:*",
         "@zeepkist/database": "workspace:*",
@@ -60,7 +66,7 @@
     },
     "packages/server": {
       "name": "@zeepkist/server",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@elysiajs/cors": "^1.4.0",
         "@elysiajs/openapi": "~1.4.11",
@@ -461,6 +467,8 @@
     "@zeepkist/core": ["@zeepkist/core@workspace:packages/core"],
 
     "@zeepkist/database": ["@zeepkist/database@workspace:packages/database"],
+
+    "@zeepkist/import-zsl": ["@zeepkist/import-zsl@workspace:packages/import-zsl"],
 
     "@zeepkist/jobs": ["@zeepkist/jobs@workspace:packages/jobs"],
 

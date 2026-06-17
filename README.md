@@ -131,6 +131,8 @@ Build Docker images:
 ```bash
 docker build -f Dockerfile.server -t zeepcentraal-server .
 docker build -f Dockerfile.jobs -t zeepcentraal-jobs .
+docker build -f Dockerfile.migrate -t zeepcentraal-migrate .
+docker build -f Dockerfile.zsl -t zeepcentraal-import-zsl .
 ```
 
 Run Docker images with environment values:
@@ -138,4 +140,13 @@ Run Docker images with environment values:
 ```bash
 docker run --env-file .env -p 3000:3000 zeepcentraal-server
 docker run --env-file .env zeepcentraal-jobs
+docker run --env-file .env zeepcentraal-migrate
+```
+
+Run ZSL import container:
+
+```bash
+git clone --branch data https://github.com/zeepkist/super-league.git super_league_data
+docker build -f Dockerfile.zsl -t zeepcentraal-import-zsl .
+docker run --env-file .env zeepcentraal-import-zsl
 ```

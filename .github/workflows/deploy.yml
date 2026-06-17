@@ -179,3 +179,97 @@ jobs:
             ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.major }}
             ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.major_minor }}
             ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.version }}
+
+  build-migrate:
+    runs-on: ubuntu-latest
+    needs: [test, release]
+    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve migrate image version tags
+        id: migrate_version
+        run: |
+          VERSION="$(bun -e 'const pkg = await Bun.file("packages/database/package.json").json(); console.log(pkg.version);')"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push migrate image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.migrate
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/migrate:latest
+            ghcr.io/${{ github.repository }}/migrate:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/migrate:${{ steps.migrate_version.outputs.major }}
+            ghcr.io/${{ github.repository }}/migrate:${{ steps.migrate_version.outputs.major_minor }}
+            ghcr.io/${{ github.repository }}/migrate:${{ steps.migrate_version.outputs.version }}
+
+  build-import-zsl:
+    runs-on: ubuntu-latest
+    needs: [test, release]
+    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Clone Super League Data
+        run: |
+          git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve import-zsl image version tags
+        id: import_zsl_version
+        run: |
+          VERSION="$(bun -e 'const pkg = await Bun.file("packages/import-zsl/package.json").json(); console.log(pkg.version);')"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push import-zsl image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.zsl
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/import-zsl:latest
+            ghcr.io/${{ github.repository }}/import-zsl:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.major }}
+            ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.major_minor }}
+            ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.version }}

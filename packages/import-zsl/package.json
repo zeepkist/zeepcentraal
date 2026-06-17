@@ -1,0 +1,15 @@
+{
+	"name": "@zeepkist/import-zsl",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"scripts": {
+		"release": "semantic-release",
+		"import": "bun run src/import.ts"
+	},
+	"dependencies": {
+		"@zeepkist/database": "workspace:*"
+	}
+}

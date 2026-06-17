@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 
 const workspaceRoot = process.cwd();
-const packageDirs = ['core', 'database', 'server', 'jobs'] as const;
+const packageDirs = ['core', 'database', 'server', 'jobs', 'import-zsl'] as const;
 
 type PackageRelease = {
 	dir: string;
