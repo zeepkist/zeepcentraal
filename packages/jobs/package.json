@@ -1,0 +1,25 @@
+{
+	"name": "@zeepkist/jobs",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"scripts": {
+		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-jobs src/index.ts"
+	},
+	"exports": {
+		".": {
+			"import": "./src/index.ts"
+		},
+		"./queue": {
+			"import": "./src/queue.ts"
+		}
+	},
+	"dependencies": {
+		"@zeepkist/core": "workspace:*",
+		"@zeepkist/database": "workspace:*",
+		"cron": "^4.3.2",
+		"graphile-worker": "^0.16.6"
+	}
+}

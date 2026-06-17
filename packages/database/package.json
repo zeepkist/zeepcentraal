@@ -1,0 +1,28 @@
+{
+	"name": "@zeepkist/database",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"scripts": {
+		"dev": "drizzle-kit studio",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate"
+	},
+	"exports": {
+		".": {
+			"import": "./src/index.ts"
+		},
+		"./services": {
+			"import": "./src/services/index.ts"
+		}
+	},
+	"dependencies": {
+		"@zeepkist/core": "workspace:*",
+		"drizzle-orm": "^0.44.7",
+		"postgres": "^3.4.7",
+		"semver": "^7.7.2",
+		"ulid": "^3.0.2"
+	}
+}

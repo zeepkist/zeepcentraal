@@ -1,0 +1,21 @@
+{
+	"name": "@zeepkist/core",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"exports": {
+		".": {
+			"import": "./src/index.ts"
+			,"default": "./src/index.ts"
+			,"main": "./src/index.ts"
+		}
+	},
+	"dependencies": {
+		"@isaacs/ttlcache": "^2.1.1",
+		"@lukeed/ms": "^2.0.2",
+		"fast-jwt": "^5.0.6",
+		"zod": "^4.1.5"
+	}
+}

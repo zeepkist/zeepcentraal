@@ -1,0 +1,27 @@
+{
+	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"formatter": {
+		"indentStyle": "tab",
+		"indentWidth": 4,
+		"lineWidth": 100
+	},
+	"linter": {
+		"rules": {
+			"suspicious": {},
+			"complexity": {
+				"useArrowFunction": "info"
+			},
+			"style": {
+				"noParameterAssign": "warn"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single"
+		}
+	},
+	"files": {
+		"includes": ["**", "!**/node_modules", "!**/dist"]
+	}
+}
