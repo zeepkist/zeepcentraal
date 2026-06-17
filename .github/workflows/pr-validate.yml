@@ -106,7 +106,18 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: compiled-binaries
-          path: .
+          path: dist
+
+      - name: Normalize and verify compiled binaries
+        run: |
+          if [ -d dist/dist ]; then
+            mv dist/dist/* dist/
+            rmdir dist/dist
+          fi
+          test -f dist/zeepcentraal-server
+          test -f dist/zeepcentraal-jobs
+          test -f dist/zeepcentraal-migrate
+          test -f dist/zeepcentraal-import-zsl
 
       - name: Clone Super League Data
         run: |
