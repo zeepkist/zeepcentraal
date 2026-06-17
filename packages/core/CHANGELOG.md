@@ -1,3 +1,9 @@
+## [@zeepkist/core-v1.0.2](https://github.com/zeepkist/zeepcentraal/compare/core@1.0.1...core@1.0.2) (2026-06-17)
+
+### Bug Fixes
+
+* **deps:** update dependency fast-jwt to v6 [security] ([#4](https://github.com/zeepkist/zeepcentraal/issues/4)) ([32e5d8a](https://github.com/zeepkist/zeepcentraal/commit/32e5d8a16a7e1229f5d40a961ead1b8668a43026))
+
 ## [@zeepkist/core-v1.0.1](https://github.com/zeepkist/zeepcentraal/compare/core@1.0.0...core@1.0.1) (2026-06-17)
 
 ### Bug Fixes
