@@ -16,9 +16,9 @@
 		}
 	},
 	"dependencies": {
-		"@isaacs/ttlcache": "^2.1.1",
-		"@lukeed/ms": "^2.0.2",
-		"fast-jwt": "^6.2.4",
-		"zod": "^4.1.5"
+		"@isaacs/ttlcache": "~2.1.1",
+		"@lukeed/ms": "~2.0.2",
+		"fast-jwt": "~6.2.4",
+		"zod": "~4.1.5"
 	}
 }

@@ -20,9 +20,13 @@
 		}
 	},
 	"dependencies": {
-		"drizzle-orm": "^0.44.7",
-		"postgres": "^3.4.7",
-		"semver": "^7.7.2",
-		"ulid": "^3.0.2"
+		"drizzle-orm": "~0.44.7",
+		"postgres": "~3.4.7",
+		"semver": "~7.7.2",
+		"ulid": "~3.0.2"
+	},
+	"devDependencies": {
+		"@types/semver": "~7.7.0",
+		"drizzle-kit": "~0.31.5"
 	}
 }

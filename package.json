@@ -1,49 +1,40 @@
 {
-	"name": "@zeepkist/zeepcentraal",
-	"private": true,
-	"type": "module",
-	"workspaces": [
-		"packages/*"
-	],
-	"scripts": {
-		"dev:server": "bun --watch packages/server/src/index.ts",
-		"dev:jobs": "bun --watch packages/jobs/src/index.ts",
-		"build:server": "bun --cwd=packages/server run build",
-		"build:jobs": "bun --cwd=packages/jobs run build",
-		"release:core": "bun --cwd=packages/core run release",
-		"release:database": "bun --cwd=packages/database run release",
-		"release:server": "bun --cwd=packages/server run release",
-		"release:jobs": "bun --cwd=packages/jobs run release",
-		"release:import-zsl": "bun --cwd=packages/import-zsl run release",
-		"release": "bun run release:core && bun run release:database && bun run release:server && bun run release:jobs && bun run release:import-zsl",
-		"db:studio": "bun --cwd=packages/database run dev",
-		"db:generate": "bun --cwd=packages/database run db:generate",
-		"db:migrate": "bun --cwd=packages/database run db:migrate",
-		"typecheck": "tsc --noEmit",
-		"test": "bun test",
-		"lint": "biome check .",
-		"lint:fix": "biome check --write ."
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.3.6",
-		"@semantic-release/changelog": "^6.0.3",
-		"@semantic-release/commit-analyzer": "^13.0.0",
-		"@semantic-release/exec": "^7.1.0",
-		"@semantic-release/git": "^10.0.1",
-		"@semantic-release/release-notes-generator": "^14.1.0",
-		"conventional-changelog-conventionalcommits": "^8.0.0",
-		"@types/bun": "~1.3.2",
-		"@types/semver": "^7.7.0",
-		"drizzle-kit": "^0.31.5",
-		"semantic-release": "^24.2.7",
-		"semantic-release-monorepo": "^8.0.2",
-		"typescript": "^5.9.2"
-	},
-	"dependencies": {
-		"@opentelemetry/exporter-trace-otlp-grpc": "^0.219.0",
-		"@opentelemetry/resources": "^2.8.0",
-		"@opentelemetry/sdk-node": "^0.219.0",
-		"@opentelemetry/semantic-conventions": "^1.41.1",
-		"logixlysia": "^6.5.1"
-	}
+    "name": "@zeepkist/zeepcentraal",
+    "private": true,
+    "type": "module",
+    "workspaces": [
+        "packages/*"
+    ],
+    "scripts": {
+        "dev:server": "bun --watch packages/server/src/index.ts",
+        "dev:jobs": "bun --watch packages/jobs/src/index.ts",
+        "build:server": "bun --cwd=packages/server run build",
+        "build:jobs": "bun --cwd=packages/jobs run build",
+        "release:core": "bun --cwd=packages/core run release",
+        "release:database": "bun --cwd=packages/database run release",
+        "release:server": "bun --cwd=packages/server run release",
+        "release:jobs": "bun --cwd=packages/jobs run release",
+        "release:import-zsl": "bun --cwd=packages/import-zsl run release",
+        "release": "bun run release:core && bun run release:database && bun run release:server && bun run release:jobs && bun run release:import-zsl",
+        "db:studio": "bun --cwd=packages/database run dev",
+        "db:generate": "bun --cwd=packages/database run db:generate",
+        "db:migrate": "bun --cwd=packages/database run db:migrate",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test",
+        "lint": "biome check .",
+        "lint:fix": "biome check --write ."
+    },
+    "devDependencies": {
+        "@biomejs/biome": "~2.3.6",
+        "@semantic-release/changelog": "~6.0.3",
+        "@semantic-release/commit-analyzer": "~13.0.0",
+        "@semantic-release/exec": "~7.1.0",
+        "@semantic-release/git": "~10.0.1",
+        "@semantic-release/release-notes-generator": "~14.1.0",
+        "@types/bun": "~1.3.2",
+        "conventional-changelog-conventionalcommits": "~8.0.0",
+        "semantic-release": "~24.2.7",
+        "semantic-release-monorepo": "~8.0.2",
+        "typescript": "~5.9.2"
+    }
 }
