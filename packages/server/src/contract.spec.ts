@@ -190,7 +190,7 @@ mock.module('@zeepkist/core', () => ({
 			appId: '1440670',
 			apiKey: 'steam-api-key',
 		},
-		otel: { serviceName: 'zeepcentraal-api', collectorUrl: 'http://localhost:4318/v1/traces' },
+		otel: { serviceName: 'zeepcentraal-api', collectorUrl: 'http://localhost:4317' },
 	},
 	jwtProvider: {
 		gtr: 'gtr',

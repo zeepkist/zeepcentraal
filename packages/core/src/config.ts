@@ -48,7 +48,7 @@ const envSchema = z.object({
 	FRONTEND_URL: z.string().default('http://localhost:5173'),
 	BACKEND_URL: z.string().default('http://localhost:3000'),
 	OPENTELEMETRY_SERVICE_NAME: z.string().default('zeepcentraal-api'),
-	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4318/v1/traces'),
+	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4317'),
 });
 
 const parsedEnv = envSchema.parse(process.env);

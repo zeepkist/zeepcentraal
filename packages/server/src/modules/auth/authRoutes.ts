@@ -17,9 +17,9 @@ import {
 	getUser,
 	getUserByDiscordId,
 	insertAuth,
-	isModOutdated,
 } from '@zeepkist/database/services';
 import { t, Elysia } from 'elysia';
+import { withModVersionGuard } from '../../plugins/withModVersionGuard';
 import { V1_ERROR_CODES, handleV1Error } from '../../v1Errors';
 
 function cookieDomain() {
@@ -84,12 +84,10 @@ function errorResponse(status: number, code: number) {
 	return emptyJsonResponse(status, handleV1Error(code));
 }
 
-export const authRoutes = new Elysia({ prefix: '/auth' })
+const gtrAuthRoutes = new Elysia()
+	.use(withModVersionGuard)
 	.post('/login', async ({ body }) => {
 		const { ModVersion, SteamId, AuthenticationTicket } = body;
-		if (await isModOutdated(ModVersion, SteamId)) {
-			return errorResponse(400, V1_ERROR_CODES.AUTH_MOD_OUTDATED);
-		}
 		if (!ModVersion || !SteamId || !AuthenticationTicket) {
 			return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_REQUIRED_FIELDS);
 		}
@@ -139,9 +137,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 	})
 	.post('/refresh', async ({ body }) => {
 		const { ModVersion, SteamId, LoginToken, RefreshToken } = body;
-		if (await isModOutdated(ModVersion, SteamId)) {
-			return errorResponse(400, V1_ERROR_CODES.AUTH_MOD_OUTDATED);
-		}
 		if (!ModVersion || !SteamId || !LoginToken || !RefreshToken) {
 			return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_REQUIRED_FIELDS);
 		}
@@ -189,7 +184,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			LoginToken: t.String(),
 			RefreshToken: t.String(),
 		}),
-	})
+	});
+
+export const authRoutes = new Elysia({ prefix: '/auth' })
+	.use(gtrAuthRoutes)
 	.get('/discord/redirect', () => redirectResponse(getDiscordRedirectUrl()))
 	.get('/discord/callback', async ({ query }) => {
 		const code = query.code as string | undefined;
