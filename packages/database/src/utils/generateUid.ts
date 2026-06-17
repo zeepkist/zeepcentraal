@@ -1,7 +1,7 @@
-import { monotonicFactory } from 'ulid';
+import { monotonicFactory } from 'ulid'
 
-const ulid = monotonicFactory();
+const ulid = monotonicFactory()
 
 export const generateUid = () => {
-	return ulid(Date.now());
-};
+	return ulid(Date.now())
+}

@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
-import { db } from '../index';
-import { zslSeason } from '../schema';
+import { eq } from 'drizzle-orm'
+import { db } from '../index'
+import { zslSeason } from '../schema'
 
 export async function getZslSeasons() {
 	const seasons = await db
@@ -12,15 +12,15 @@ export async function getZslSeasons() {
 			endDate: zslSeason.dateEnded,
 		})
 		.from(zslSeason)
-		.orderBy(zslSeason.id);
+		.orderBy(zslSeason.id)
 
-	return seasons;
+	return seasons
 }
 
 interface GetOrCreateZslSeasonOptions {
-	idPointsStructure: number;
-	startDate: string;
-	endDate: string;
+	idPointsStructure: number
+	startDate: string
+	endDate: string
 }
 
 export async function getOrCreateZslSeason(
@@ -37,19 +37,19 @@ export async function getOrCreateZslSeason(
 		})
 		.from(zslSeason)
 		.where(eq(zslSeason.name, name))
-		.then((rows) => rows[0]);
+		.then((rows) => rows[0])
 
 	if (existingSeason) {
-		return existingSeason;
+		return existingSeason
 	}
 
-	console.warn(`ZSL season "${name}" not found, creating new one`);
+	console.warn(`ZSL season "${name}" not found, creating new one`)
 
-	const dateStarted = new Date(startDate);
-	dateStarted.setUTCHours(18, 0, 0, 0);
+	const dateStarted = new Date(startDate)
+	dateStarted.setUTCHours(18, 0, 0, 0)
 
-	const dateEnded = new Date(endDate);
-	dateEnded.setUTCHours(18, 0, 0, 0);
+	const dateEnded = new Date(endDate)
+	dateEnded.setUTCHours(18, 0, 0, 0)
 
 	const [createdSeason] = await db.transaction(async (tx) => {
 		const inserted = await tx
@@ -60,10 +60,10 @@ export async function getOrCreateZslSeason(
 				dateStarted: dateStarted.toISOString(),
 				dateEnded: dateEnded.toISOString(),
 			})
-			.returning();
+			.returning()
 
-		return inserted;
-	});
+		return inserted
+	})
 
-	return createdSeason;
+	return createdSeason
 }

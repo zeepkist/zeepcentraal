@@ -1,18 +1,18 @@
-import { sql } from 'drizzle-orm';
-import { db } from '../index';
-import { zslLevelResult } from '../schema';
+import { sql } from 'drizzle-orm'
+import { db } from '../index'
+import { zslLevelResult } from '../schema'
 
 interface ZslLevelResultInput {
-	idLevel: number;
-	idUser: number;
-	position: number;
-	points: number;
-	time: number;
+	idLevel: number
+	idUser: number
+	position: number
+	points: number
+	time: number
 }
 
 export async function upsertZslLevelResults(rows: ZslLevelResultInput[]) {
 	if (rows.length === 0) {
-		return;
+		return
 	}
 
 	await db.transaction(async (tx) => {
@@ -26,6 +26,6 @@ export async function upsertZslLevelResults(rows: ZslLevelResultInput[]) {
 					position: sql`EXCLUDED.position`,
 					time: sql`EXCLUDED.time`,
 				},
-			});
-	});
+			})
+	})
 }

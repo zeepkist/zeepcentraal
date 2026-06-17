@@ -1,15 +1,15 @@
-import type { Helpers } from 'graphile-worker';
-import { syncPersonalBests } from './syncPersonalBests';
-import { updateLevelPointsHistoryBatch } from './updateLevelPointsHistoryBatch';
-import { updateLevelPointsHistory } from './updateLevelPointsHistory';
-import { updateLevelScore } from './updateLevelScore';
-import { updateLevelScores } from './updateLevelScores';
-import { updatePlayerScore } from './updatePlayerScore';
-import { updatePlayerScores } from './updatePlayerScores';
-import { updateUserPointsHistoryBatch } from './updateUserPointsHistoryBatch';
-import { updateUserPointsHistory } from './updateUserPointsHistory';
+import type { Helpers } from 'graphile-worker'
+import { syncPersonalBests } from './syncPersonalBests'
+import { updateLevelPointsHistory } from './updateLevelPointsHistory'
+import { updateLevelPointsHistoryBatch } from './updateLevelPointsHistoryBatch'
+import { updateLevelScore } from './updateLevelScore'
+import { updateLevelScores } from './updateLevelScores'
+import { updatePlayerScore } from './updatePlayerScore'
+import { updatePlayerScores } from './updatePlayerScores'
+import { updateUserPointsHistory } from './updateUserPointsHistory'
+import { updateUserPointsHistoryBatch } from './updateUserPointsHistoryBatch'
 
-type GWTask = (payload: unknown, helpers: Helpers) => Promise<void>;
+type GWTask = (payload: unknown, helpers: Helpers) => Promise<void>
 
 // graphile-worker task list — keys must match the task name strings used in addJob()
 export const taskList: Record<string, GWTask> = {
@@ -22,4 +22,4 @@ export const taskList: Record<string, GWTask> = {
 	updatePlayerScores: updatePlayerScores as GWTask,
 	updateUserPointsHistory: updateUserPointsHistory as GWTask,
 	updateUserPointsHistoryBatch: updateUserPointsHistoryBatch as GWTask,
-};
+}

@@ -1,14 +1,14 @@
-import { eq, ne, sql } from 'drizzle-orm';
-import { db } from '../index';
-import { levelPoints, levelPointsHistory } from '../schema';
+import { eq, ne, sql } from 'drizzle-orm'
+import { db } from '../index'
+import { levelPoints, levelPointsHistory } from '../schema'
 
 export async function getTotalLevelPoints() {
 	const totalPoints = await db
 		.select({ count: sql<number>`COUNT(*)` })
 		.from(levelPoints)
-		.then((rows) => Number(rows[0]?.count));
+		.then((rows) => Number(rows[0]?.count))
 
-	return totalPoints ?? 0;
+	return totalPoints ?? 0
 }
 
 export async function getChangedLevelPointsPaginated(offset: number, limit: number) {
@@ -25,7 +25,7 @@ export async function getChangedLevelPointsPaginated(offset: number, limit: numb
 				GROUP BY ${levelPointsHistory.idLevel}
 			)
 		`)
-		.as('latest_history');
+		.as('latest_history')
 
 	return db
 		.select({
@@ -42,18 +42,18 @@ export async function getChangedLevelPointsPaginated(offset: number, limit: numb
 		.innerJoin(latestHistory, eq(levelPoints.idLevel, latestHistory.idLevel))
 		.where(ne(levelPoints.points, latestHistory.points))
 		.offset(offset)
-		.limit(limit);
+		.limit(limit)
 }
 
 interface UpdateLevelPointsPayload {
-	idLevel: number;
-	points: number;
-	rating: number;
-	lengthModifier: number;
-	competitivenessModifier: number;
-	ratingModifier: number;
-	popularityModifier: number;
-	cutPenalty: number;
+	idLevel: number
+	points: number
+	rating: number
+	lengthModifier: number
+	competitivenessModifier: number
+	ratingModifier: number
+	popularityModifier: number
+	cutPenalty: number
 }
 
 export async function upsertLevelPoints({
@@ -66,14 +66,14 @@ export async function upsertLevelPoints({
 	popularityModifier,
 	cutPenalty,
 }: UpdateLevelPointsPayload): Promise<void> {
-	const dateUpdated = new Date().toISOString();
+	const dateUpdated = new Date().toISOString()
 
 	await db.transaction(async (tx) => {
 		const existing = await tx
 			.select({ idLevel: levelPoints.idLevel })
 			.from(levelPoints)
 			.where(eq(levelPoints.idLevel, idLevel))
-			.limit(1);
+			.limit(1)
 
 		if (existing.length > 0) {
 			await tx
@@ -88,7 +88,7 @@ export async function upsertLevelPoints({
 					popularityModifier,
 					cutPenalty,
 				})
-				.where(eq(levelPoints.idLevel, idLevel));
+				.where(eq(levelPoints.idLevel, idLevel))
 		} else {
 			await tx.insert(levelPoints).values({
 				idLevel,
@@ -100,7 +100,7 @@ export async function upsertLevelPoints({
 				ratingModifier,
 				popularityModifier,
 				cutPenalty,
-			});
+			})
 		}
-	});
+	})
 }

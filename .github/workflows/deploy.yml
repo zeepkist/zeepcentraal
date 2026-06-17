@@ -63,21 +63,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run release
 
-      - name: Generate root changelog summary
-        env:
-          RELEASE_FROM_SHA: ${{ github.sha }}
-        run: bun run release:summary
-
-      - name: Commit and push root changelog summary
-        run: |
-          if git diff --quiet -- CHANGELOG.md; then
-            echo "No root changelog changes to commit"
-            exit 0
-          fi
-          git add CHANGELOG.md
-          git commit -m "chore(release): root changelog summary [skip ci]"
-          git push origin HEAD:develop
-
   build-server:
     runs-on: ubuntu-latest
     needs: [test, release]

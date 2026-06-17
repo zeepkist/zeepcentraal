@@ -1,5 +1,5 @@
-import { config } from '@zeepkist/core';
-import { makeWorkerUtils, type WorkerUtils } from 'graphile-worker';
+import { config } from '@zeepkist/core'
+import { makeWorkerUtils, type WorkerUtils } from 'graphile-worker'
 
 const compatibleTasks = new Set([
 	'syncPersonalBests',
@@ -11,26 +11,26 @@ const compatibleTasks = new Set([
 	'updatePlayerScores',
 	'updateUserPointsHistory',
 	'updateUserPointsHistoryBatch',
-]);
+])
 
-let utils: WorkerUtils | null = null;
+let utils: WorkerUtils | null = null
 
 async function getUtils(): Promise<WorkerUtils> {
 	if (!utils) {
-		utils = await makeWorkerUtils({ connectionString: config.databaseUrl });
+		utils = await makeWorkerUtils({ connectionString: config.databaseUrl })
 	}
-	return utils;
+	return utils
 }
 
 export function isCompatibleTask(task: string): boolean {
-	return compatibleTasks.has(task);
+	return compatibleTasks.has(task)
 }
 
 export async function enqueueCompatibleTask(task: string, options: Record<string, unknown>) {
 	if (!isCompatibleTask(task)) {
-		throw new Error(`Unsupported task: ${task}`);
+		throw new Error(`Unsupported task: ${task}`)
 	}
 
-	const workerUtils = await getUtils();
-	await workerUtils.addJob(task, options, { priority: 5, maxAttempts: 1 });
+	const workerUtils = await getUtils()
+	await workerUtils.addJob(task, options, { priority: 5, maxAttempts: 1 })
 }

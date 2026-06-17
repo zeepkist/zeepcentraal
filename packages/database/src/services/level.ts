@@ -1,21 +1,21 @@
-import { eq, gte, inArray } from 'drizzle-orm';
-import { db } from '../index';
-import { level, levelItem, record } from '../schema';
+import { eq, gte, inArray } from 'drizzle-orm'
+import { db } from '../index'
+import { level, levelItem, record } from '../schema'
 
 export async function getLevel(hash: string) {
 	return db.query.level.findFirst({
 		where: eq(level.hash, hash),
-	});
+	})
 }
 
 export async function getOrInsertLevel(hash: string) {
-	const existing = await getLevel(hash);
+	const existing = await getLevel(hash)
 	if (existing) {
-		return existing;
+		return existing
 	}
 
-	const [created] = await db.insert(level).values({ hash }).returning();
-	return created;
+	const [created] = await db.insert(level).values({ hash }).returning()
+	return created
 }
 
 export async function getLevelByUuid(uuid: string): Promise<{ id: number } | null> {
@@ -25,14 +25,14 @@ export async function getLevelByUuid(uuid: string): Promise<{ id: number } | nul
 		.innerJoin(levelItem, eq(level.id, levelItem.idLevel))
 		.where(eq(levelItem.fileUid, uuid))
 		.limit(1)
-		.then((rows) => rows[0] ?? null);
+		.then((rows) => rows[0] ?? null)
 
-	return existing;
+	return existing
 }
 
 export async function getLevelsByUuidsBulk(uuids: string[]) {
 	if (uuids.length === 0) {
-		return new Map<string, { id: number; uuid: string }>();
+		return new Map<string, { id: number; uuid: string }>()
 	}
 
 	const levels = await db
@@ -42,14 +42,14 @@ export async function getLevelsByUuidsBulk(uuids: string[]) {
 		})
 		.from(level)
 		.innerJoin(levelItem, eq(level.id, levelItem.idLevel))
-		.where(inArray(levelItem.fileUid, uuids));
+		.where(inArray(levelItem.fileUid, uuids))
 
-	return new Map(levels.map((entry) => [entry.uuid, entry]));
+	return new Map(levels.map((entry) => [entry.uuid, entry]))
 }
 
 export async function getAllLevelIds(): Promise<number[]> {
-	const levels = await db.select({ id: level.id }).from(level);
-	return levels.map((entry) => entry.id);
+	const levels = await db.select({ id: level.id }).from(level)
+	return levels.map((entry) => entry.id)
 }
 
 export async function getAllLevelIdsWithRecordsSince(recordsSince: Date): Promise<number[]> {
@@ -57,7 +57,7 @@ export async function getAllLevelIdsWithRecordsSince(recordsSince: Date): Promis
 		.select({ id: level.id })
 		.from(level)
 		.innerJoin(record, eq(level.id, record.idLevel))
-		.where(gte(record.dateCreated, recordsSince.toISOString()));
+		.where(gte(record.dateCreated, recordsSince.toISOString()))
 
-	return levels.map((entry) => entry.id);
+	return levels.map((entry) => entry.id)
 }

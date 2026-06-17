@@ -1,10 +1,10 @@
-import { and, eq } from 'drizzle-orm';
-import { db } from '../index';
-import { zslLevel } from '../schema';
+import { and, eq } from 'drizzle-orm'
+import { db } from '../index'
+import { zslLevel } from '../schema'
 
 interface GetZslLevelInput {
-	idRound: number;
-	idLevel: number;
+	idRound: number
+	idLevel: number
 }
 
 export async function getOrCreateZslLevel({ idRound, idLevel }: GetZslLevelInput) {
@@ -12,10 +12,10 @@ export async function getOrCreateZslLevel({ idRound, idLevel }: GetZslLevelInput
 		.select({ id: zslLevel.id })
 		.from(zslLevel)
 		.where(and(eq(zslLevel.idRound, idRound), eq(zslLevel.idLevel, idLevel)))
-		.then((rows) => rows[0]);
+		.then((rows) => rows[0])
 
 	if (existingLevel) {
-		return existingLevel;
+		return existingLevel
 	}
 
 	const [createdLevel] = await db.transaction(async (tx) => {
@@ -25,10 +25,10 @@ export async function getOrCreateZslLevel({ idRound, idLevel }: GetZslLevelInput
 				idRound,
 				idLevel,
 			})
-			.returning();
+			.returning()
 
-		return inserted;
-	});
+		return inserted
+	})
 
-	return createdLevel;
+	return createdLevel
 }

@@ -1,10 +1,11 @@
-import { S3Client } from 'bun';
-import {	WASABI_ACCESSKEY,
+import { S3Client } from 'bun'
+import {
+	WASABI_ACCESSKEY,
 	WASABI_BUCKET,
 	WASABI_ENDPOINT,
 	WASABI_REGION,
 	WASABI_SECRETKEY,
-} from '../config';
+} from '../config'
 
 const client = new S3Client({
 	accessKeyId: WASABI_ACCESSKEY,
@@ -13,16 +14,16 @@ const client = new S3Client({
 	endpoint: WASABI_ENDPOINT,
 	region: WASABI_REGION,
 	acl: 'private',
-});
+})
 
 export async function uploadFile(fileName: string, file: Buffer): Promise<void> {
-	const s3File = client.file(fileName);
+	const s3File = client.file(fileName)
 
 	try {
 		await s3File.write(file, {
 			type: 'application/octet-stream',
-		});
+		})
 	} catch (error) {
-		console.error('Error uploading file to S3:', error);
+		console.error('Error uploading file to S3:', error)
 	}
 }

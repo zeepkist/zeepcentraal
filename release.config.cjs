@@ -30,7 +30,6 @@ module.exports = {
 		[
 			'@semantic-release/exec',
 			{
-
 				prepareCmd:
 					// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
 					'bun pm version ${nextRelease.version} --no-git-tag-version --allow-same-version',
@@ -46,4 +45,4 @@ module.exports = {
 			},
 		],
 	],
-};
+}

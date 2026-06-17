@@ -1,17 +1,17 @@
-import { sql } from 'drizzle-orm';
-import { db } from '../index';
-import { zslRoundResult } from '../schema';
+import { sql } from 'drizzle-orm'
+import { db } from '../index'
+import { zslRoundResult } from '../schema'
 
 interface ZslRoundResultInput {
-	idRound: number;
-	idUser: number;
-	position: number;
-	points: number;
+	idRound: number
+	idUser: number
+	position: number
+	points: number
 }
 
 export async function upsertZslRoundResults(rows: ZslRoundResultInput[]) {
 	if (rows.length === 0) {
-		return;
+		return
 	}
 
 	await db.transaction(async (tx) => {
@@ -24,6 +24,6 @@ export async function upsertZslRoundResults(rows: ZslRoundResultInput[]) {
 					points: sql`EXCLUDED.points`,
 					position: sql`EXCLUDED.position`,
 				},
-			});
-	});
+			})
+	})
 }

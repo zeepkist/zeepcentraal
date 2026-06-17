@@ -1,10 +1,10 @@
-import logixlysia from 'logixlysia';
+import logixlysia from 'logixlysia'
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const logLevels = ['ERROR', 'WARNING'];
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const logLevels = ['ERROR', 'WARNING']
 
 if (!IS_PRODUCTION) {
-	logLevels.push('INFO', 'DEBUG');
+	logLevels.push('INFO', 'DEBUG')
 }
 
 // https://elysiajs.com/plugins/logging
@@ -28,4 +28,4 @@ export const withLogging = logixlysia({
 			level: logLevels,
 		},
 	},
-});
+})

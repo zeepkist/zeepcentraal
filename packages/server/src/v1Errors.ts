@@ -13,7 +13,7 @@ export const V1_ERROR_CODES = {
 	RECORD_SUBMIT_MISSING_PARAMS: 19,
 	RECORD_SUBMIT_FAILED: 20,
 	GENERIC_INVALID_REQUEST: 22,
-} as const;
+} as const
 
 const V1_ERROR_MESSAGES = {
 	[V1_ERROR_CODES.INTERNAL_SERVER_ERROR]: 'Internal server error',
@@ -30,16 +30,16 @@ const V1_ERROR_MESSAGES = {
 	[V1_ERROR_CODES.RECORD_SUBMIT_MISSING_PARAMS]: 'Missing required parameters',
 	[V1_ERROR_CODES.RECORD_SUBMIT_FAILED]: 'Failed to submit record',
 	[V1_ERROR_CODES.GENERIC_INVALID_REQUEST]: 'Invalid request',
-} as const;
+} as const
 
 export class V1HttpError extends Error {
-	readonly code: number;
-	readonly status: number;
+	readonly code: number
+	readonly status: number
 
 	constructor(code: number, status: number) {
-		super(V1_ERROR_MESSAGES[code as keyof typeof V1_ERROR_MESSAGES] ?? 'Internal server error');
-		this.code = code;
-		this.status = status;
+		super(V1_ERROR_MESSAGES[code as keyof typeof V1_ERROR_MESSAGES] ?? 'Internal server error')
+		this.code = code
+		this.status = status
 	}
 }
 
@@ -51,5 +51,5 @@ export function handleV1Error(code: number) {
 				V1_ERROR_MESSAGES[code as keyof typeof V1_ERROR_MESSAGES] ??
 				V1_ERROR_MESSAGES[V1_ERROR_CODES.INTERNAL_SERVER_ERROR],
 		},
-	};
+	}
 }

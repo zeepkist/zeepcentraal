@@ -1,14 +1,14 @@
-import { eq, inArray, sql } from 'drizzle-orm';
-import { db } from '../index';
-import { userPoints } from '../schema';
+import { eq, inArray, sql } from 'drizzle-orm'
+import { db } from '../index'
+import { userPoints } from '../schema'
 
 export async function getTotalUserPoints() {
 	const totalPoints = await db
 		.select({ count: sql<number>`COUNT(*)` })
 		.from(userPoints)
-		.then((rows) => Number(rows[0]?.count));
+		.then((rows) => Number(rows[0]?.count))
 
-	return totalPoints ?? 0;
+	return totalPoints ?? 0
 }
 
 export async function getUserPointsPaginated(offset: number, limit: number) {
@@ -22,7 +22,7 @@ export async function getUserPointsPaginated(offset: number, limit: number) {
 		})
 		.from(userPoints)
 		.limit(limit)
-		.offset(offset);
+		.offset(offset)
 }
 
 export async function upsertUserPoints({
@@ -30,9 +30,9 @@ export async function upsertUserPoints({
 	points,
 	totalPoints,
 }: {
-	idUser: number;
-	points: number;
-	totalPoints: number;
+	idUser: number
+	points: number
+	totalPoints: number
 }): Promise<void> {
 	await db.transaction(async (tx) => {
 		await tx
@@ -50,16 +50,16 @@ export async function upsertUserPoints({
 					totalPoints,
 					dateUpdated: new Date().toISOString(),
 				},
-			});
-	});
+			})
+	})
 }
 
 export async function updateUserRank({
 	idUser,
 	rank,
 }: {
-	idUser: number;
-	rank: number;
+	idUser: number
+	rank: number
 }): Promise<void> {
 	await db.transaction(async (tx) => {
 		await tx
@@ -68,8 +68,8 @@ export async function updateUserRank({
 				rank,
 				dateUpdated: new Date().toISOString(),
 			})
-			.where(eq(userPoints.idUser, idUser));
-	});
+			.where(eq(userPoints.idUser, idUser))
+	})
 }
 
 export async function bulkUpdateUserRanks({
@@ -77,12 +77,12 @@ export async function bulkUpdateUserRanks({
 	points,
 	rank,
 }: {
-	idUsers: number[];
-	points: number;
-	rank: number;
+	idUsers: number[]
+	points: number
+	rank: number
 }): Promise<void> {
 	if (idUsers.length === 0) {
-		return;
+		return
 	}
 
 	await db.transaction(async (tx) => {
@@ -93,6 +93,6 @@ export async function bulkUpdateUserRanks({
 				rank,
 				dateUpdated: new Date().toISOString(),
 			})
-			.where(inArray(userPoints.idUser, idUsers));
-	});
+			.where(inArray(userPoints.idUser, idUsers))
+	})
 }

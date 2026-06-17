@@ -1,31 +1,31 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 function parseDuration(input: string): number {
 	if (/^\d+$/.test(input)) {
-		return Number(input);
+		return Number(input)
 	}
 
-	const match = input.match(/^(\d+)(ms|s|m|h|d)$/);
+	const match = input.match(/^(\d+)(ms|s|m|h|d)$/)
 	if (!match) {
-		throw new Error(`Invalid duration: ${input}`);
+		throw new Error(`Invalid duration: ${input}`)
 	}
 
-	const [, rawValue, unit] = match;
-	const value = Number(rawValue);
+	const [, rawValue, unit] = match
+	const value = Number(rawValue)
 
 	switch (unit) {
 		case 'ms':
-			return value;
+			return value
 		case 's':
-			return value * 1_000;
+			return value * 1_000
 		case 'm':
-			return value * 60_000;
+			return value * 60_000
 		case 'h':
-			return value * 3_600_000;
+			return value * 3_600_000
 		case 'd':
-			return value * 86_400_000;
+			return value * 86_400_000
 		default:
-			throw new Error(`Unsupported duration unit: ${unit}`);
+			throw new Error(`Unsupported duration unit: ${unit}`)
 	}
 }
 
@@ -49,9 +49,9 @@ const envSchema = z.object({
 	BACKEND_URL: z.string().default('http://localhost:3000'),
 	OPENTELEMETRY_SERVICE_NAME: z.string().default('zeepcentraal-api'),
 	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4317'),
-});
+})
 
-const parsedEnv = envSchema.parse(process.env);
+const parsedEnv = envSchema.parse(process.env)
 
 export const config = {
 	nodeEnv: parsedEnv.NODE_ENV,
@@ -85,4 +85,4 @@ export const config = {
 		serviceName: parsedEnv.OPENTELEMETRY_SERVICE_NAME,
 		collectorUrl: parsedEnv.OPENTELEMETRY_COLLECTOR_URL,
 	},
-} as const;
+} as const

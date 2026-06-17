@@ -1,5 +1,11 @@
 {
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
 	"formatter": {
 		"indentStyle": "tab",
 		"indentWidth": 4,
@@ -18,7 +24,8 @@
 	},
 	"javascript": {
 		"formatter": {
-			"quoteStyle": "single"
+			"quoteStyle": "single",
+			"semicolons": "asNeeded"
 		}
 	},
 	"files": {

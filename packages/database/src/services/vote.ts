@@ -1,26 +1,26 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { db } from '../index';
-import { vote } from '../schema';
+import { and, eq, sql } from 'drizzle-orm'
+import { db } from '../index'
+import { vote } from '../schema'
 
 export async function upsertVote(userId: number, levelId: number, value: number) {
 	const existing = await db.query.vote.findFirst({
 		where: and(eq(vote.idUser, userId), eq(vote.idLevel, levelId)),
-	});
+	})
 
 	if (existing) {
 		const [updated] = await db
 			.update(vote)
 			.set({ value, dateUpdated: new Date().toISOString() })
 			.where(eq(vote.id, existing.id))
-			.returning();
-		return updated;
+			.returning()
+		return updated
 	}
 
 	const [created] = await db
 		.insert(vote)
 		.values({ idUser: userId, idLevel: levelId, value })
-		.returning();
-	return created;
+		.returning()
+	return created
 }
 
 export async function getVoteValues({ idLevel }: { idLevel: number }): Promise<number[]> {
@@ -30,7 +30,7 @@ export async function getVoteValues({ idLevel }: { idLevel: number }): Promise<n
 		})
 		.from(vote)
 		.where(eq(vote.idLevel, idLevel))
-		.then((rows) => rows[0]?.values ?? []);
+		.then((rows) => rows[0]?.values ?? [])
 
-	return voteValues;
+	return voteValues
 }

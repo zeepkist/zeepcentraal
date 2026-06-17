@@ -1,5 +1,5 @@
-import { openapi } from '@elysiajs/openapi';
-import { Elysia } from 'elysia';
+import { openapi } from '@elysiajs/openapi'
+import { Elysia } from 'elysia'
 
 export const withDocumentation = new Elysia().use(
 	openapi({
@@ -17,4 +17,4 @@ export const withDocumentation = new Elysia().use(
 			],
 		},
 	}),
-);
+)

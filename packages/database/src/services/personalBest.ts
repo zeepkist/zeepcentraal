@@ -1,11 +1,11 @@
-import { eq, sql } from 'drizzle-orm';
-import { db } from '../index';
-import { levelPoints, personalBestGlobal, record } from '../schema';
+import { eq, sql } from 'drizzle-orm'
+import { db } from '../index'
+import { levelPoints, personalBestGlobal, record } from '../schema'
 
 export async function getUserPersonalBestsWithLevelPointsAndPosition({
 	idUser,
 }: {
-	idUser: number;
+	idUser: number
 }) {
 	const personalBests = await db
 		.select({
@@ -23,9 +23,9 @@ export async function getUserPersonalBestsWithLevelPointsAndPosition({
 		.innerJoin(levelPoints, eq(levelPoints.idLevel, personalBestGlobal.idLevel))
 		.innerJoin(record, eq(record.id, personalBestGlobal.idRecord))
 		.where(eq(personalBestGlobal.idUser, idUser))
-		.orderBy(personalBestGlobal.idLevel);
+		.orderBy(personalBestGlobal.idLevel)
 
-	return personalBests;
+	return personalBests
 }
 
 export async function getPersonalBestCount90thPercentile() {
@@ -45,7 +45,7 @@ export async function getPersonalBestCount90thPercentile() {
 				.groupBy(personalBestGlobal.idLevel)
 				.as('level_pb_counts'),
 		)
-		.execute();
+		.execute()
 
-	return result?.percentile ?? 0;
+	return result?.percentile ?? 0
 }

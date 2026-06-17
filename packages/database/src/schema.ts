@@ -13,8 +13,8 @@ import {
 	unique,
 	uniqueIndex,
 	varchar,
-} from 'drizzle-orm/pg-core';
-import { DEFAULT_VOTE_RATING } from './config';
+} from 'drizzle-orm/pg-core'
+import { DEFAULT_VOTE_RATING } from './config'
 
 export const level = pgTable(
 	'level',
@@ -36,7 +36,7 @@ export const level = pgTable(
 		),
 	},
 	(table) => [unique('level_pk').on(table.hash)],
-);
+)
 
 export const levelItem = pgTable(
 	'level_item',
@@ -78,7 +78,7 @@ export const levelItem = pgTable(
 		}).onDelete('cascade'),
 		index('IX_level_item_level').using('btree', table.idLevel.asc().nullsLast()),
 	],
-);
+)
 
 export const levelMetadata = pgTable(
 	'level_metadata',
@@ -113,7 +113,7 @@ export const levelMetadata = pgTable(
 		}).onDelete('cascade'),
 		index('IX_level_metadata_level').using('btree', table.idLevel.asc().nullsLast()),
 	],
-);
+)
 
 export const levelPoints = pgTable(
 	'level_points',
@@ -149,7 +149,7 @@ export const levelPoints = pgTable(
 		}).onDelete('cascade'),
 		uniqueIndex('UQ_level_points_level').using('btree', table.idLevel.asc().nullsLast()),
 	],
-);
+)
 
 export const levelPointsHistory = pgTable(
 	'level_points_history',
@@ -189,7 +189,7 @@ export const levelPointsHistory = pgTable(
 			table.dateCreated.desc().nullsLast(),
 		),
 	],
-);
+)
 
 export const levelRequest = pgTable(
 	'level_request',
@@ -216,7 +216,7 @@ export const levelRequest = pgTable(
 		index('IX_level_request_hash').using('btree', table.hash.asc().nullsLast()),
 		index('IX_level_request_workshop_id').using('btree', table.workshopId.asc().nullsLast()),
 	],
-);
+)
 
 export const personalBestGlobal = pgTable(
 	'personal_best_global',
@@ -271,7 +271,7 @@ export const personalBestGlobal = pgTable(
 		),
 		index('IX_personal_bests_date_created').using('btree', table.dateCreated.asc().nullsLast()),
 	],
-);
+)
 
 export const userPoints = pgTable(
 	'user_points',
@@ -304,7 +304,7 @@ export const userPoints = pgTable(
 		}).onDelete('cascade'),
 		uniqueIndex('UQ_player_points_user').using('btree', table.idUser.asc().nullsLast()),
 	],
-);
+)
 
 export const userPointsHistory = pgTable(
 	'user_points_history',
@@ -341,7 +341,7 @@ export const userPointsHistory = pgTable(
 			table.dateCreated.desc().nullsLast(),
 		),
 	],
-);
+)
 
 export const auth = pgTable(
 	'auth',
@@ -376,7 +376,7 @@ export const auth = pgTable(
 		}).onDelete('cascade'),
 		index('IX_auth_user').using('btree', table.idUser.asc().nullsLast()),
 	],
-);
+)
 
 export const record = pgTable(
 	'record',
@@ -445,7 +445,7 @@ export const record = pgTable(
 			table.dateCreated.asc().nullsLast(),
 		),
 	],
-);
+)
 
 export const recordMedia = pgTable(
 	'record_media',
@@ -476,7 +476,7 @@ export const recordMedia = pgTable(
 		unique('UQ_record_media_record').on(table.idRecord),
 		index('IX_media_record').using('btree', table.idRecord.asc().nullsLast()),
 	],
-);
+)
 
 export const user = pgTable('user', {
 	id: integer().primaryKey().generatedByDefaultAsIdentity({
@@ -497,7 +497,7 @@ export const user = pgTable('user', {
 	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
 		new Date().toISOString(),
 	),
-});
+})
 
 export const version = pgTable('version', {
 	id: integer().primaryKey().generatedAlwaysAsIdentity({
@@ -516,7 +516,7 @@ export const version = pgTable('version', {
 	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
 		new Date().toISOString(),
 	),
-});
+})
 
 export const favourite = pgTable(
 	'favourite',
@@ -553,7 +553,7 @@ export const favourite = pgTable(
 		index('IX_favorites_level').using('btree', table.idLevel.asc().nullsLast()),
 		index('IX_favorites_user').using('btree', table.idUser.asc().nullsLast()),
 	],
-);
+)
 
 export const vote = pgTable(
 	'vote',
@@ -593,7 +593,7 @@ export const vote = pgTable(
 			table.idLevel.asc().nullsLast(),
 		),
 	],
-);
+)
 
 export const worldRecordGlobal = pgTable(
 	'world_record_global',
@@ -644,7 +644,7 @@ export const worldRecordGlobal = pgTable(
 			table.idRecord.asc().nullsLast(),
 		),
 	],
-);
+)
 
 /**
  * ZSL Points Structure
@@ -676,7 +676,7 @@ export const zslPointsStructure = pgTable('zsl_points_structure', {
 	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
 		new Date().toISOString(),
 	),
-});
+})
 
 /**
  * ZSL Seasons
@@ -710,7 +710,7 @@ export const zslSeason = pgTable(
 			name: 'zsl_season_points_structure_fkey',
 		}).onDelete('cascade'),
 	],
-);
+)
 
 /**
  * ZSL Rounds
@@ -749,7 +749,7 @@ export const zslRound = pgTable(
 		index('IX_zsl_round_workshop_id').using('btree', table.workshopId.asc().nullsLast()),
 		index('IX_zsl_round_event_date').using('btree', table.eventDate.asc().nullsLast()),
 	],
-);
+)
 
 /**
  * ZSL Levels
@@ -788,7 +788,7 @@ export const zslLevel = pgTable(
 		index('IX_zsl_level_round').using('btree', table.idRound.asc().nullsLast()),
 		index('IX_zsl_level_id').using('btree', table.idLevel.asc().nullsLast()),
 	],
-);
+)
 
 /**
  * ZSL Level Results
@@ -837,7 +837,7 @@ export const zslLevelResult = pgTable(
 			table.dateCreated.asc().nullsLast(),
 		),
 	],
-);
+)
 
 /**
  * Round Results
@@ -878,7 +878,7 @@ export const zslRoundResult = pgTable(
 			table.dateCreated.asc().nullsLast(),
 		),
 	],
-);
+)
 
 /**
  * ZSL Season Results
@@ -919,4 +919,4 @@ export const zslSeasonResult = pgTable(
 			table.dateCreated.asc().nullsLast(),
 		),
 	],
-);
+)
