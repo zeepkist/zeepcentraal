@@ -103,7 +103,7 @@ jobs:
       - name: Resolve server image version tags
         id: server_version
         run: |
-          VERSION="$(bun -e \"import fs from 'node:fs'; console.log(JSON.parse(fs.readFileSync('packages/server/package.json', 'utf8')).version);\")"
+          VERSION="$(bun -e 'const pkg = await Bun.file("packages/server/package.json").json(); console.log(pkg.version);')"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
@@ -154,7 +154,7 @@ jobs:
       - name: Resolve jobs image version tags
         id: jobs_version
         run: |
-          VERSION="$(bun -e \"import fs from 'node:fs'; console.log(JSON.parse(fs.readFileSync('packages/jobs/package.json', 'utf8')).version);\")"
+          VERSION="$(bun -e 'const pkg = await Bun.file("packages/jobs/package.json").json(); console.log(pkg.version);')"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
