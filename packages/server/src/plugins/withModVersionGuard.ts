@@ -59,6 +59,7 @@ export const withModVersionGuard = (app: Elysia) =>
 		);
 
 		const attributes: Record<string, string> = {};
+
 		if (zeepkistVersion) {
 			attributes[ATTRIBUTE.zeepkistVersion] = zeepkistVersion;
 		}
@@ -79,10 +80,9 @@ export const withModVersionGuard = (app: Elysia) =>
 			return { modVersion };
 		}
 
-		const outdated = await isModOutdated(modVersion, steamId);
+		const outdated = await isModOutdated(modVersion);
 
-		// Keep V2-compatible value semantics for dashboard continuity.
-		attributes[ATTRIBUTE.outdated] = String(!outdated);
+		attributes[ATTRIBUTE.outdated] = outdated
 		setAttributes(attributes);
 
 		if (outdated) {
