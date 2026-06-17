@@ -85,6 +85,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -96,6 +99,15 @@ jobs:
 
       - name: Build server binary
         run: bun run build:server
+
+      - name: Resolve server image version tags
+        id: server_version
+        run: |
+          VERSION="$(bun -e \"import fs from 'node:fs'; console.log(JSON.parse(fs.readFileSync('packages/server/package.json', 'utf8')).version);\")"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -113,6 +125,9 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/server:latest
             ghcr.io/${{ github.repository }}/server:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/server:${{ steps.server_version.outputs.major }}
+            ghcr.io/${{ github.repository }}/server:${{ steps.server_version.outputs.major_minor }}
+            ghcr.io/${{ github.repository }}/server:${{ steps.server_version.outputs.version }}
 
   build-jobs:
     runs-on: ubuntu-latest
@@ -121,6 +136,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -132,6 +150,15 @@ jobs:
 
       - name: Build jobs binary
         run: bun run build:jobs
+
+      - name: Resolve jobs image version tags
+        id: jobs_version
+        run: |
+          VERSION="$(bun -e \"import fs from 'node:fs'; console.log(JSON.parse(fs.readFileSync('packages/jobs/package.json', 'utf8')).version);\")"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -149,3 +176,6 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/jobs:latest
             ghcr.io/${{ github.repository }}/jobs:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.major }}
+            ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.major_minor }}
+            ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.version }}
