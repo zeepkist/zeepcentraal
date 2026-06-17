@@ -1,3 +1,9 @@
+## [@zeepkist/jobs-v1.0.2](https://github.com/zeepkist/zeepcentraal/compare/jobs@1.0.1...jobs@1.0.2) (2026-06-17)
+
+### Bug Fixes
+
+* update dependencies ([15bb7a9](https://github.com/zeepkist/zeepcentraal/commit/15bb7a99ff8c938c80ff536a6af6f6615ac1e6f2))
+
 ## [@zeepkist/jobs-v1.0.1](https://github.com/zeepkist/zeepcentraal/compare/jobs@1.0.0...jobs@1.0.1) (2026-06-17)
 
 ### Bug Fixes
