@@ -32,8 +32,8 @@ function parseDuration(input: string): number {
 const envSchema = z.object({
 	NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 	DATABASE_URL: z.string().min(1),
-	API_HOST: z.string().default('0.0.0.0'),
-	API_PORT: z.coerce.number().int().positive().default(3000),
+	HOST: z.string().default('0.0.0.0'),
+	PORT: z.coerce.number().int().positive().default(3000),
 	TRIGGER_JOB_TOKEN: z.string().min(1),
 	JWT_SECRET: z.string().min(32),
 	JWT_AUDIENCE: z.string().default('zeepki.st'),
@@ -57,8 +57,8 @@ export const config = {
 	nodeEnv: parsedEnv.NODE_ENV,
 	databaseUrl: parsedEnv.DATABASE_URL,
 	api: {
-		host: parsedEnv.API_HOST,
-		port: parsedEnv.API_PORT,
+		host: parsedEnv.HOST,
+		port: parsedEnv.PORT,
 	},
 	job: {
 		triggerToken: parsedEnv.TRIGGER_JOB_TOKEN,
