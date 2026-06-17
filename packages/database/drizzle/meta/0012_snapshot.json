@@ -1,6 +1,6 @@
 {
-	"id": "4cc16ab0-ed01-4f5f-8902-644c126f53e6",
-	"prevId": "00000000-0000-0000-0000-000000000000",
+	"id": "32ee759c-e5f6-4b74-a21d-be79e8e0b155",
+	"prevId": "64d39166-2d56-477f-b40f-f2c5feb6c1ea",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -61,19 +61,11 @@
 					"primaryKey": false,
 					"notNull": false
 				},
-				"provider": {
-					"name": "provider",
-					"type": "varchar",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "'invalid'"
-				},
 				"date_created": {
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -147,8 +139,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -216,13 +207,7 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {
-				"UQ_favourites_user_level": {
-					"name": "UQ_favourites_user_level",
-					"nullsNotDistinct": false,
-					"columns": ["id_user", "id_level"]
-				}
-			},
+			"uniqueConstraints": {},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false
@@ -258,8 +243,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -391,8 +375,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -502,8 +485,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -579,54 +561,11 @@
 					"primaryKey": false,
 					"notNull": true
 				},
-				"rating": {
-					"name": "rating",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 0.5
-				},
-				"modifier_length": {
-					"name": "modifier_length",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"modifier_competitiveness": {
-					"name": "modifier_competitiveness",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"modifier_rating": {
-					"name": "modifier_rating",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"modifier_popularity": {
-					"name": "modifier_popularity",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"cut_penalty": {
-					"name": "cut_penalty",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
 				"date_created": {
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -702,60 +641,11 @@
 					"primaryKey": false,
 					"notNull": true
 				},
-				"rating": {
-					"name": "rating",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 0.5
-				},
-				"modifier_length": {
-					"name": "modifier_length",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"modifier_competitiveness": {
-					"name": "modifier_competitiveness",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"modifier_rating": {
-					"name": "modifier_rating",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"modifier_popularity": {
-					"name": "modifier_popularity",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
-				"cut_penalty": {
-					"name": "cut_penalty",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true,
-					"default": 1
-				},
 				"date_created": {
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
+					"notNull": true
 				}
 			},
 			"indexes": {
@@ -841,8 +731,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -933,8 +822,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -1068,13 +956,7 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {
-				"UQ_personal_bests_user_level": {
-					"name": "UQ_personal_bests_user_level",
-					"nullsNotDistinct": false,
-					"columns": ["id_user", "id_level"]
-				}
-			},
+			"uniqueConstraints": {},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false
@@ -1130,6 +1012,18 @@
 					"primaryKey": false,
 					"notNull": true
 				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
 				"splits": {
 					"name": "splits",
 					"type": "real[]",
@@ -1139,19 +1033,6 @@
 				"speeds": {
 					"name": "speeds",
 					"type": "real[]",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": false
 				}
@@ -1383,8 +1264,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -1467,6 +1347,18 @@
 					"notNull": true,
 					"default": false
 				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
 				"steam_id": {
 					"name": "steam_id",
 					"type": "bigint",
@@ -1476,19 +1368,6 @@
 				"discord_id": {
 					"name": "discord_id",
 					"type": "bigint",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": false
 				}
@@ -1560,8 +1439,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -1571,8 +1449,8 @@
 				}
 			},
 			"indexes": {
-				"UQ_player_points_user": {
-					"name": "UQ_player_points_user",
+				"IX_player_points_user": {
+					"name": "IX_player_points_user",
 					"columns": [
 						{
 							"expression": "id_user",
@@ -1581,7 +1459,7 @@
 							"nulls": "last"
 						}
 					],
-					"isUnique": true,
+					"isUnique": false,
 					"concurrently": false,
 					"method": "btree",
 					"with": {}
@@ -1662,14 +1540,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
+					"notNull": true
 				}
 			},
 			"indexes": {
@@ -1749,8 +1620,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -1810,8 +1680,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -1906,8 +1775,7 @@
 					"name": "date_created",
 					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
+					"notNull": true
 				},
 				"date_updated": {
 					"name": "date_updated",
@@ -2041,837 +1909,6 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {
-				"UQ_world_records_level": {
-					"name": "UQ_world_records_level",
-					"nullsNotDistinct": false,
-					"columns": ["id_level"]
-				}
-			},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.zsl_level": {
-			"name": "zsl_level",
-			"schema": "",
-			"columns": {
-				"id": {
-					"name": "id",
-					"type": "integer",
-					"primaryKey": true,
-					"notNull": true,
-					"identity": {
-						"type": "always",
-						"name": "zsl_level_id_seq",
-						"schema": "public",
-						"increment": "1",
-						"startWith": "1",
-						"minValue": "1",
-						"maxValue": "2147483647",
-						"cache": "1",
-						"cycle": false
-					}
-				},
-				"id_round": {
-					"name": "id_round",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"id_level": {
-					"name": "id_level",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				}
-			},
-			"indexes": {
-				"IX_zsl_level_round": {
-					"name": "IX_zsl_level_round",
-					"columns": [
-						{
-							"expression": "id_round",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_level_id": {
-					"name": "IX_zsl_level_id",
-					"columns": [
-						{
-							"expression": "id_level",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"zsl_level_round_fkey": {
-					"name": "zsl_level_round_fkey",
-					"tableFrom": "zsl_level",
-					"tableTo": "zsl_round",
-					"columnsFrom": ["id_round"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				},
-				"zsl_level_level_fkey": {
-					"name": "zsl_level_level_fkey",
-					"tableFrom": "zsl_level",
-					"tableTo": "level",
-					"columnsFrom": ["id_level"],
-					"columnsTo": ["id"],
-					"onDelete": "no action",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.zsl_level_result": {
-			"name": "zsl_level_result",
-			"schema": "",
-			"columns": {
-				"id_level": {
-					"name": "id_level",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"id_user": {
-					"name": "id_user",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"id_record": {
-					"name": "id_record",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": false
-				},
-				"position": {
-					"name": "position",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"points": {
-					"name": "points",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"time": {
-					"name": "time",
-					"type": "real",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				}
-			},
-			"indexes": {
-				"IX_zsl_level_result_level": {
-					"name": "IX_zsl_level_result_level",
-					"columns": [
-						{
-							"expression": "id_level",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_level_result_user": {
-					"name": "IX_zsl_level_result_user",
-					"columns": [
-						{
-							"expression": "id_user",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_level_result_record": {
-					"name": "IX_zsl_level_result_record",
-					"columns": [
-						{
-							"expression": "id_record",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_level_result_position": {
-					"name": "IX_zsl_level_result_position",
-					"columns": [
-						{
-							"expression": "position",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_level_result_date_created": {
-					"name": "IX_zsl_level_result_date_created",
-					"columns": [
-						{
-							"expression": "date_created",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"zsl_level_result_level_fkey": {
-					"name": "zsl_level_result_level_fkey",
-					"tableFrom": "zsl_level_result",
-					"tableTo": "zsl_level",
-					"columnsFrom": ["id_level"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				},
-				"zsl_level_result_user_fkey": {
-					"name": "zsl_level_result_user_fkey",
-					"tableFrom": "zsl_level_result",
-					"tableTo": "user",
-					"columnsFrom": ["id_user"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				},
-				"zsl_level_result_record_fkey": {
-					"name": "zsl_level_result_record_fkey",
-					"tableFrom": "zsl_level_result",
-					"tableTo": "record",
-					"columnsFrom": ["id_record"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {
-				"zsl_level_result_id_level_id_user_pk": {
-					"name": "zsl_level_result_id_level_id_user_pk",
-					"columns": ["id_level", "id_user"]
-				}
-			},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.zsl_points_structure": {
-			"name": "zsl_points_structure",
-			"schema": "",
-			"columns": {
-				"id": {
-					"name": "id",
-					"type": "integer",
-					"primaryKey": true,
-					"notNull": true,
-					"identity": {
-						"type": "always",
-						"name": "zsl_points_structure_id_seq",
-						"schema": "public",
-						"increment": "1",
-						"startWith": "1",
-						"minValue": "1",
-						"maxValue": "2147483647",
-						"cache": "1",
-						"cycle": false
-					}
-				},
-				"name": {
-					"name": "name",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"points": {
-					"name": "points",
-					"type": "integer[]",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"minimum_points": {
-					"name": "minimum_points",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"best_of": {
-					"name": "best_of",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				}
-			},
-			"indexes": {},
-			"foreignKeys": {},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.zsl_round": {
-			"name": "zsl_round",
-			"schema": "",
-			"columns": {
-				"id": {
-					"name": "id",
-					"type": "integer",
-					"primaryKey": true,
-					"notNull": true,
-					"identity": {
-						"type": "always",
-						"name": "zsl_round_id_seq",
-						"schema": "public",
-						"increment": "1",
-						"startWith": "1",
-						"minValue": "1",
-						"maxValue": "2147483647",
-						"cache": "1",
-						"cycle": false
-					}
-				},
-				"id_season": {
-					"name": "id_season",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"name": {
-					"name": "name",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"round": {
-					"name": "round",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"workshop_id": {
-					"name": "workshop_id",
-					"type": "bigint",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"event_date": {
-					"name": "event_date",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				}
-			},
-			"indexes": {
-				"IX_zsl_round_season": {
-					"name": "IX_zsl_round_season",
-					"columns": [
-						{
-							"expression": "id_season",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_round_workshop_id": {
-					"name": "IX_zsl_round_workshop_id",
-					"columns": [
-						{
-							"expression": "workshop_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_round_event_date": {
-					"name": "IX_zsl_round_event_date",
-					"columns": [
-						{
-							"expression": "event_date",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"zsl_round_season_fkey": {
-					"name": "zsl_round_season_fkey",
-					"tableFrom": "zsl_round",
-					"tableTo": "zsl_season",
-					"columnsFrom": ["id_season"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {
-				"UQ_zsl_round_season_round": {
-					"name": "UQ_zsl_round_season_round",
-					"nullsNotDistinct": false,
-					"columns": ["id_season", "round"]
-				}
-			},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.zsl_round_result": {
-			"name": "zsl_round_result",
-			"schema": "",
-			"columns": {
-				"id_round": {
-					"name": "id_round",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"id_user": {
-					"name": "id_user",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"position": {
-					"name": "position",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"points": {
-					"name": "points",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				}
-			},
-			"indexes": {
-				"IX_zsl_round_result_round": {
-					"name": "IX_zsl_round_result_round",
-					"columns": [
-						{
-							"expression": "id_round",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_round_result_user": {
-					"name": "IX_zsl_round_result_user",
-					"columns": [
-						{
-							"expression": "id_user",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_round_result_position": {
-					"name": "IX_zsl_round_result_position",
-					"columns": [
-						{
-							"expression": "position",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_round_result_date_created": {
-					"name": "IX_zsl_round_result_date_created",
-					"columns": [
-						{
-							"expression": "date_created",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"zsl_round_result_round_fkey": {
-					"name": "zsl_round_result_round_fkey",
-					"tableFrom": "zsl_round_result",
-					"tableTo": "zsl_round",
-					"columnsFrom": ["id_round"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				},
-				"zsl_round_result_user_fkey": {
-					"name": "zsl_round_result_user_fkey",
-					"tableFrom": "zsl_round_result",
-					"tableTo": "user",
-					"columnsFrom": ["id_user"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {
-				"zsl_round_result_id_round_id_user_pk": {
-					"name": "zsl_round_result_id_round_id_user_pk",
-					"columns": ["id_round", "id_user"]
-				}
-			},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.zsl_season": {
-			"name": "zsl_season",
-			"schema": "",
-			"columns": {
-				"id": {
-					"name": "id",
-					"type": "integer",
-					"primaryKey": true,
-					"notNull": true,
-					"identity": {
-						"type": "always",
-						"name": "zsl_season_id_seq",
-						"schema": "public",
-						"increment": "1",
-						"startWith": "1",
-						"minValue": "1",
-						"maxValue": "2147483647",
-						"cache": "1",
-						"cycle": false
-					}
-				},
-				"id_points_structure": {
-					"name": "id_points_structure",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"name": {
-					"name": "name",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"start_date": {
-					"name": "start_date",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"end_date": {
-					"name": "end_date",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				}
-			},
-			"indexes": {},
-			"foreignKeys": {
-				"zsl_season_points_structure_fkey": {
-					"name": "zsl_season_points_structure_fkey",
-					"tableFrom": "zsl_season",
-					"tableTo": "zsl_points_structure",
-					"columnsFrom": ["id_points_structure"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"policies": {},
-			"checkConstraints": {},
-			"isRLSEnabled": false
-		},
-		"public.zsl_season_result": {
-			"name": "zsl_season_result",
-			"schema": "",
-			"columns": {
-				"id_season": {
-					"name": "id_season",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"id_user": {
-					"name": "id_user",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"position": {
-					"name": "position",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"points": {
-					"name": "points",
-					"type": "integer",
-					"primaryKey": false,
-					"notNull": true
-				},
-				"date_created": {
-					"name": "date_created",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": true,
-					"default": "now()"
-				},
-				"date_updated": {
-					"name": "date_updated",
-					"type": "timestamp with time zone",
-					"primaryKey": false,
-					"notNull": false
-				}
-			},
-			"indexes": {
-				"IX_zsl_season_result_season": {
-					"name": "IX_zsl_season_result_season",
-					"columns": [
-						{
-							"expression": "id_season",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_season_result_user": {
-					"name": "IX_zsl_season_result_user",
-					"columns": [
-						{
-							"expression": "id_user",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_season_result_position": {
-					"name": "IX_zsl_season_result_position",
-					"columns": [
-						{
-							"expression": "position",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
-				"IX_zsl_season_result_date_created": {
-					"name": "IX_zsl_season_result_date_created",
-					"columns": [
-						{
-							"expression": "date_created",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": false,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				}
-			},
-			"foreignKeys": {
-				"zsl_season_result_season_fkey": {
-					"name": "zsl_season_result_season_fkey",
-					"tableFrom": "zsl_season_result",
-					"tableTo": "zsl_season",
-					"columnsFrom": ["id_season"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				},
-				"zsl_season_result_user_fkey": {
-					"name": "zsl_season_result_user_fkey",
-					"tableFrom": "zsl_season_result",
-					"tableTo": "user",
-					"columnsFrom": ["id_user"],
-					"columnsTo": ["id"],
-					"onDelete": "cascade",
-					"onUpdate": "no action"
-				}
-			},
-			"compositePrimaryKeys": {
-				"zsl_season_result_id_season_id_user_pk": {
-					"name": "zsl_season_result_id_season_id_user_pk",
-					"columns": ["id_season", "id_user"]
-				}
-			},
 			"uniqueConstraints": {},
 			"policies": {},
 			"checkConstraints": {},

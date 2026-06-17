@@ -1,0 +1,1711 @@
+{
+	"id": "3b58b427-543c-4329-8525-80657ef771f5",
+	"prevId": "689aea3d-fcb7-4eaa-9734-919fde94c976",
+	"version": "7",
+	"dialect": "postgresql",
+	"tables": {
+		"public.auth": {
+			"name": "auth",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "auth_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"access_token": {
+					"name": "access_token",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"access_token_expiry": {
+					"name": "access_token_expiry",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"refresh_token": {
+					"name": "refresh_token",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"refresh_token_expiry": {
+					"name": "refresh_token_expiry",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"type": {
+					"name": "type",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_auth_user": {
+					"name": "IX_auth_user",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"auth_user_foreign": {
+					"name": "auth_user_foreign",
+					"tableFrom": "auth",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.favorite": {
+			"name": "favorite",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "favorites_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				}
+			},
+			"indexes": {
+				"IX_favorites_level": {
+					"name": "IX_favorites_level",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_favorites_user": {
+					"name": "IX_favorites_user",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"favorite_level_fkey": {
+					"name": "favorite_level_fkey",
+					"tableFrom": "favorite",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"favorites_user_foreign": {
+					"name": "favorites_user_foreign",
+					"tableFrom": "favorite",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.level": {
+			"name": "level",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "always",
+						"name": "level_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"hash": {
+					"name": "hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"level_pk": {
+					"name": "level_pk",
+					"nullsNotDistinct": false,
+					"columns": ["hash"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.level_item": {
+			"name": "level_item",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "always",
+						"name": "level_item_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"workshop_id": {
+					"name": "workshop_id",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"author_id": {
+					"name": "author_id",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"image_url": {
+					"name": "image_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"file_author": {
+					"name": "file_author",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"file_uid": {
+					"name": "file_uid",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"validation_time_author": {
+					"name": "validation_time_author",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"validation_time_gold": {
+					"name": "validation_time_gold",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"validation_time_silver": {
+					"name": "validation_time_silver",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"validation_time_bronze": {
+					"name": "validation_time_bronze",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"deleted": {
+					"name": "deleted",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_level_item_level": {
+					"name": "IX_level_item_level",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"level_item_id_level_fkey": {
+					"name": "level_item_id_level_fkey",
+					"tableFrom": "level_item",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.level_metadata": {
+			"name": "level_metadata",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "always",
+						"name": "level_metadata_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"amount_checkpoints": {
+					"name": "amount_checkpoints",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"amount_finishes": {
+					"name": "amount_finishes",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"amount_blocks": {
+					"name": "amount_blocks",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"type_ground": {
+					"name": "type_ground",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"type_skybox": {
+					"name": "type_skybox",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"blocks": {
+					"name": "blocks",
+					"type": "jsonb",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_level_metadata_level": {
+					"name": "IX_level_metadata_level",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"level_metadata_id_level_fkey": {
+					"name": "level_metadata_id_level_fkey",
+					"tableFrom": "level_metadata",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.level_points": {
+			"name": "level_points",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "level_points_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"points": {
+					"name": "points",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"UQ_level_points_level": {
+					"name": "UQ_level_points_level",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": true,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"level_points_level_fkey": {
+					"name": "level_points_level_fkey",
+					"tableFrom": "level_points",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.level_request": {
+			"name": "level_request",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "requests_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"workshop_id": {
+					"name": "workshop_id",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"uid": {
+					"name": "uid",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"hash": {
+					"name": "hash",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_level_request_hash": {
+					"name": "IX_level_request_hash",
+					"columns": [
+						{
+							"expression": "hash",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_level_request_workshop_id": {
+					"name": "IX_level_request_workshop_id",
+					"columns": [
+						{
+							"expression": "workshop_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.personal_best_global": {
+			"name": "personal_best_global",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "personal_bests_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_record": {
+					"name": "id_record",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_personal_bests_level_user": {
+					"name": "IX_personal_bests_level_user",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_personal_bests_record": {
+					"name": "IX_personal_bests_record",
+					"columns": [
+						{
+							"expression": "id_record",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_personal_bests_user": {
+					"name": "IX_personal_bests_user",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_personal_bests_user_level_record": {
+					"name": "IX_personal_bests_user_level_record",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "id_record",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"personal_best_global_level_fkey": {
+					"name": "personal_best_global_level_fkey",
+					"tableFrom": "personal_best_global",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"personal_bests_global_record_fkey": {
+					"name": "personal_bests_global_record_fkey",
+					"tableFrom": "personal_best_global",
+					"tableTo": "record",
+					"columnsFrom": ["id_record"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"personal_bests_global_user_fkey": {
+					"name": "personal_bests_global_user_fkey",
+					"tableFrom": "personal_best_global",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.record": {
+			"name": "record",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "records_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"time": {
+					"name": "time",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"game_version": {
+					"name": "game_version",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"mod_version": {
+					"name": "mod_version",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"splits": {
+					"name": "splits",
+					"type": "bigint[]",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"speeds": {
+					"name": "speeds",
+					"type": "bigint[]",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_records_id_time": {
+					"name": "IX_records_id_time",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "time",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_records_level": {
+					"name": "IX_records_level",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_records_level_time": {
+					"name": "IX_records_level_time",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "time",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_records_time_id": {
+					"name": "IX_records_time_id",
+					"columns": [
+						{
+							"expression": "time",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_records_user": {
+					"name": "IX_records_user",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"record_level_fkey": {
+					"name": "record_level_fkey",
+					"tableFrom": "record",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"records_user_foreign": {
+					"name": "records_user_foreign",
+					"tableFrom": "record",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.record_media": {
+			"name": "record_media",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "media_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_record": {
+					"name": "id_record",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"ghost_url": {
+					"name": "ghost_url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_media_record": {
+					"name": "IX_media_record",
+					"columns": [
+						{
+							"expression": "id_record",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"media_record_fkey": {
+					"name": "media_record_fkey",
+					"tableFrom": "record_media",
+					"tableTo": "record",
+					"columnsFrom": ["id_record"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {
+				"UQ_record_media_record": {
+					"name": "UQ_record_media_record",
+					"nullsNotDistinct": false,
+					"columns": ["id_record"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.upvote": {
+			"name": "upvote",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "upvotes_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_upvotes_user": {
+					"name": "IX_upvotes_user",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"upvote_level_fkey": {
+					"name": "upvote_level_fkey",
+					"tableFrom": "upvote",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"upvotes_user_foreign": {
+					"name": "upvotes_user_foreign",
+					"tableFrom": "upvote",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.user": {
+			"name": "user",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "users_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"steam_name": {
+					"name": "steam_name",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"banned": {
+					"name": "banned",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": false
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"steam_id": {
+					"name": "steam_id",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"discord_id": {
+					"name": "discord_id",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.user_points": {
+			"name": "user_points",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "player_points_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"points": {
+					"name": "points",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"rank": {
+					"name": "rank",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"world_records": {
+					"name": "world_records",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"default": 0
+				},
+				"total_points": {
+					"name": "total_points",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				}
+			},
+			"indexes": {
+				"IX_player_points_user": {
+					"name": "IX_player_points_user",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"player_points_user_fkey": {
+					"name": "player_points_user_fkey",
+					"tableFrom": "user_points",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "set null",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.version": {
+			"name": "version",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "always",
+						"name": "versions_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"minimum": {
+					"name": "minimum",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"latest": {
+					"name": "latest",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.vote": {
+			"name": "vote",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "always",
+						"name": "vote_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"value": {
+					"name": "value",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {
+				"IX_vote_user_level": {
+					"name": "IX_vote_user_level",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						},
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"vote_id_level_fkey": {
+					"name": "vote_id_level_fkey",
+					"tableFrom": "vote",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"vote_id_user_fkey": {
+					"name": "vote_id_user_fkey",
+					"tableFrom": "vote",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"public.world_record_global": {
+			"name": "world_record_global",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"identity": {
+						"type": "byDefault",
+						"name": "world_records_id_seq",
+						"schema": "public",
+						"increment": "1",
+						"startWith": "1",
+						"minValue": "1",
+						"maxValue": "2147483647",
+						"cache": "1",
+						"cycle": false
+					}
+				},
+				"id_record": {
+					"name": "id_record",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"id_level": {
+					"name": "id_level",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_created": {
+					"name": "date_created",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"id_user": {
+					"name": "id_user",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true
+				}
+			},
+			"indexes": {
+				"IX_world_records_level": {
+					"name": "IX_world_records_level",
+					"columns": [
+						{
+							"expression": "id_level",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_world_records_record": {
+					"name": "IX_world_records_record",
+					"columns": [
+						{
+							"expression": "id_record",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				},
+				"IX_world_records_user": {
+					"name": "IX_world_records_user",
+					"columns": [
+						{
+							"expression": "id_user",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
+				}
+			},
+			"foreignKeys": {
+				"world_record_global_level_fkey": {
+					"name": "world_record_global_level_fkey",
+					"tableFrom": "world_record_global",
+					"tableTo": "level",
+					"columnsFrom": ["id_level"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"world_records_global_record_fkey": {
+					"name": "world_records_global_record_fkey",
+					"tableFrom": "world_record_global",
+					"tableTo": "record",
+					"columnsFrom": ["id_record"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"world_records_global_user_fkey": {
+					"name": "world_records_global_user_fkey",
+					"tableFrom": "world_record_global",
+					"tableTo": "user",
+					"columnsFrom": ["id_user"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
+		}
+	},
+	"enums": {},
+	"schemas": {},
+	"sequences": {},
+	"roles": {},
+	"policies": {},
+	"views": {},
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	}
+}

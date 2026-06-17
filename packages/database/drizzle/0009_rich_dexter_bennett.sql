@@ -1,0 +1,1 @@
+ALTER TABLE "user_points" ALTER COLUMN "world_records" SET NOT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE "level" ADD COLUMN "rating" real DEFAULT 0.5 NOT NULL;
