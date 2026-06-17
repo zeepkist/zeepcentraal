@@ -1,17 +1,141 @@
-# ZeepCentraal API (V3)
+# ZeepCentraal (V3)
 
-This repository is the fresh V3 implementation of the Zeepkist API.
+A Bun workspace monorepo for ZeepCentraal services.
 
-## Goals
+## What This Repository Is
 
-- Preserve V1-compatible endpoint contracts for existing clients/mods.
-- Rebuild on modular Bun workspace packages.
-- Use Elysia, Drizzle, PostgreSQL, OpenTelemetry, JWT, TTL cache.
-- Replace graphile-worker with pg-boss for durable jobs + cron.
+- A modular API backend built with Elysia and Bun.
+- A PostgreSQL-backed data layer using Drizzle ORM.
+- A background processing system using graphile-worker for durable jobs and cron scheduling.
 
-## Workspace
+## Workspace Layout
 
-- `packages/core`: shared config, auth, errors, caching primitives.
-- `packages/database`: Drizzle schema and data services.
-- `packages/server`: Elysia API and route modules.
-- `packages/jobs`: pg-boss worker and scheduled tasks.
+- `packages/core`: shared config, auth, errors, integrations, and utility primitives.
+- `packages/database`: Drizzle schema, migrations, and data services.
+- `packages/server`: HTTP API process (Elysia routes and plugins).
+- `packages/jobs`: background worker process (graphile-worker tasks + cron scheduler).
+
+## Prerequisites
+
+Before you start, install:
+
+- Bun (latest stable): https://bun.sh
+- PostgreSQL (running locally or remotely and reachable from `DATABASE_URL`)
+- Git
+- Docker (optional, only needed for container builds/runs)
+
+## Quick Start
+
+### 1. Clone and install dependencies
+
+```bash
+git clone <repo-url>
+cd zeepcentraal
+bun install
+```
+
+### 2. Create environment file
+
+macOS/Linux:
+
+```bash
+cp .env.example .env
+```
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### 3. Configure required environment values
+
+At minimum, set these values in `.env`:
+
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `TRIGGER_JOB_TOKEN` | Yes | Token used for protected job trigger endpoints |
+| `JWT_SECRET` | Yes | Must be at least 32 characters |
+
+The remaining values in `.env.example` are optional or have defaults, but you should configure them for your environment (Steam, Discord, Wasabi/S3, and OpenTelemetry).
+
+### 4. Apply database migrations
+
+```bash
+bun run db:migrate
+```
+
+If you changed schema and need to generate new migrations first:
+
+```bash
+bun run db:generate
+bun run db:migrate
+```
+
+### 5. Start local development processes
+
+Run API and jobs in separate terminals.
+
+Terminal 1 (API):
+
+```bash
+bun run dev:server
+```
+
+Terminal 2 (jobs):
+
+```bash
+bun run dev:jobs
+```
+
+Health check:
+
+```bash
+curl http://localhost:3000/healthz
+```
+
+Expected response:
+
+```json
+{"status":"ok"}
+```
+
+## Development Commands
+
+| Command | What it does |
+| --- | --- |
+| `bun run dev:server` | Starts API in watch mode |
+| `bun run dev:jobs` | Starts jobs worker in watch mode |
+| `bun run db:studio` | Opens Drizzle Studio |
+| `bun run db:generate` | Generates Drizzle migrations |
+| `bun run db:migrate` | Applies pending migrations |
+| `bun run typecheck` | Runs TypeScript type check |
+| `bun run test` | Runs test suite |
+| `bun run lint` | Runs Biome checks |
+| `bun run lint:fix` | Applies Biome autofixes |
+| `bun run build:server` | Compiles server binary to `dist/` |
+| `bun run build:jobs` | Compiles jobs binary to `dist/` |
+
+## Build and Docker
+
+Build local binaries:
+
+```bash
+bun run build:server
+bun run build:jobs
+```
+
+Build Docker images:
+
+```bash
+docker build -f Dockerfile.server -t zeepcentraal-server .
+docker build -f Dockerfile.jobs -t zeepcentraal-jobs .
+```
+
+Run Docker images with environment values:
+
+```bash
+docker run --env-file .env -p 3000:3000 zeepcentraal-server
+docker run --env-file .env zeepcentraal-jobs
+```
