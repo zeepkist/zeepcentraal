@@ -22,26 +22,11 @@ module.exports = {
 			},
 		],
 		[
-			'@semantic-release/changelog',
+			'@semantic-release/github',
 			{
-				changelogFile: 'CHANGELOG.md',
-			},
-		],
-		[
-			'@semantic-release/exec',
-			{
-				prepareCmd:
-					// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
-					'bun pm version ${nextRelease.version} --no-git-tag-version --allow-same-version',
-			},
-		],
-		[
-			'@semantic-release/git',
-			{
-				assets: ['CHANGELOG.md', 'package.json'],
-				message:
-					// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
-					'chore(release): ${nextRelease.gitTag} [skip ci]\n\n${nextRelease.notes}',
+				successComment: true,
+				failComment: true,
+				releasedLabels: true,
 			},
 		],
 	],

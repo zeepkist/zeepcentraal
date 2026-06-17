@@ -7,7 +7,9 @@ on:
 
 permissions:
   contents: write
+  issues: write
   packages: write
+  pull-requests: write
 
 jobs:
   test:
@@ -83,8 +85,20 @@ jobs:
       - name: Resolve server image version tags
         id: server_version
         run: |
-          VERSION="$(bun -e 'const pkg = await Bun.file("packages/server/package.json").json(); console.log(pkg.version);')"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          git fetch --force --tags origin
+          TAG="$(git tag -l 'server@*' --sort=-v:refname | head -n 1)"
+          if [ -z "$TAG" ]; then
+            echo "No server release tags found (expected pattern: server@x.y.z)." >&2
+            exit 1
+          fi
+          VERSION="${TAG#server@}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+            echo "Invalid semantic version parsed from tag '$TAG'." >&2
+            exit 1
+          fi
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
           echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
@@ -134,8 +148,20 @@ jobs:
       - name: Resolve jobs image version tags
         id: jobs_version
         run: |
-          VERSION="$(bun -e 'const pkg = await Bun.file("packages/jobs/package.json").json(); console.log(pkg.version);')"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          git fetch --force --tags origin
+          TAG="$(git tag -l 'jobs@*' --sort=-v:refname | head -n 1)"
+          if [ -z "$TAG" ]; then
+            echo "No jobs release tags found (expected pattern: jobs@x.y.z)." >&2
+            exit 1
+          fi
+          VERSION="${TAG#jobs@}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+            echo "Invalid semantic version parsed from tag '$TAG'." >&2
+            exit 1
+          fi
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
           echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
@@ -185,8 +211,20 @@ jobs:
       - name: Resolve migrate image version tags
         id: migrate_version
         run: |
-          VERSION="$(bun -e 'const pkg = await Bun.file("packages/database/package.json").json(); console.log(pkg.version);')"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          git fetch --force --tags origin
+          TAG="$(git tag -l 'database@*' --sort=-v:refname | head -n 1)"
+          if [ -z "$TAG" ]; then
+            echo "No database release tags found (expected pattern: database@x.y.z)." >&2
+            exit 1
+          fi
+          VERSION="${TAG#database@}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+            echo "Invalid semantic version parsed from tag '$TAG'." >&2
+            exit 1
+          fi
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
           echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
@@ -240,8 +278,20 @@ jobs:
       - name: Resolve import-zsl image version tags
         id: import_zsl_version
         run: |
-          VERSION="$(bun -e 'const pkg = await Bun.file("packages/import-zsl/package.json").json(); console.log(pkg.version);')"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          git fetch --force --tags origin
+          TAG="$(git tag -l 'import-zsl@*' --sort=-v:refname | head -n 1)"
+          if [ -z "$TAG" ]; then
+            echo "No import-zsl release tags found (expected pattern: import-zsl@x.y.z)." >&2
+            exit 1
+          fi
+          VERSION="${TAG#import-zsl@}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+            echo "Invalid semantic version parsed from tag '$TAG'." >&2
+            exit 1
+          fi
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
           echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
