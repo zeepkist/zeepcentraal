@@ -1,5 +1,7 @@
 FROM gcr.io/distroless/base
 
+LABEL org.opencontainers.image.description="ZeepCentraal background worker for leaderboard updates, score sync, and history jobs."
+
 WORKDIR /app
 
 COPY dist/zeepcentraal-jobs zeepcentraal-jobs

@@ -1,5 +1,7 @@
 FROM gcr.io/distroless/base
 
+LABEL org.opencontainers.image.description="ZeepCentraal API server."
+
 WORKDIR /app
 
 COPY dist/zeepcentraal-server zeepcentraal-server

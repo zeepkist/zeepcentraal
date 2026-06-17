@@ -1,5 +1,7 @@
 FROM gcr.io/distroless/base
 
+LABEL org.opencontainers.image.description="ZeepCentraal database migration runner for applying Drizzle schema migrations."
+
 WORKDIR /app
 
 COPY dist/zeepcentraal-migrate zeepcentraal-migrate

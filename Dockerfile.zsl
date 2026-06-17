@@ -1,5 +1,7 @@
 FROM gcr.io/distroless/base
 
+LABEL org.opencontainers.image.description="ZeepCentraal Super League importer for ingesting and processing ZSL data."
+
 WORKDIR /app
 
 COPY dist/zeepcentraal-import-zsl zeepcentraal-import-zsl

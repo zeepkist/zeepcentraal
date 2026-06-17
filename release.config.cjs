@@ -24,9 +24,10 @@ module.exports = {
 		[
 			'@semantic-release/github',
 			{
-				successComment: true,
-				failComment: true,
-				releasedLabels: true,
+				releasedLabels: [
+					// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
+					'released<%= nextRelease.channel ? ` on @\${nextRelease.channel}` : "" %> from <%= branch.name %>'
+				],
 			},
 		],
 	],
