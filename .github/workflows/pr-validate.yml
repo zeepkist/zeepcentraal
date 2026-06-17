@@ -3,6 +3,9 @@ name: Pull Request Validation
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    branches: [develop]
+    types: [checks_requested]
 
 permissions:
   contents: read
@@ -102,7 +105,7 @@ jobs:
           context: .
           file: Dockerfile.server
           push: false
-          tags: zeepcentraal/server:pr-${{ github.event.pull_request.number }}
+          tags: zeepcentraal/server:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build jobs image (no push)
         uses: docker/build-push-action@v6
@@ -110,7 +113,7 @@ jobs:
           context: .
           file: Dockerfile.jobs
           push: false
-          tags: zeepcentraal/jobs:pr-${{ github.event.pull_request.number }}
+          tags: zeepcentraal/jobs:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build migrate image (no push)
         uses: docker/build-push-action@v6
@@ -118,7 +121,7 @@ jobs:
           context: .
           file: Dockerfile.migrate
           push: false
-          tags: zeepcentraal/migrate:pr-${{ github.event.pull_request.number }}
+          tags: zeepcentraal/migrate:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build import-zsl image (no push)
         uses: docker/build-push-action@v6
@@ -126,4 +129,4 @@ jobs:
           context: .
           file: Dockerfile.zsl
           push: false
-          tags: zeepcentraal/import-zsl:pr-${{ github.event.pull_request.number }}
+          tags: zeepcentraal/import-zsl:pr-${{ github.event.pull_request.number || github.run_id }}
