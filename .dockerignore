@@ -7,4 +7,6 @@
 !dist/
 !dist/zeepcentraal-server
 !dist/zeepcentraal-jobs
+!dist/zeepcentraal-migrate
+!dist/zeepcentraal-import-zsl
 **/.DS_Store

@@ -16,6 +16,7 @@ function resolveSuperLeagueDataPath() {
 	}
 
 	const candidates = [
+		'/data/super_league_data',
 		resolve(process.cwd(), 'super_league_data'),
 		resolve(process.cwd(), '../../super_league_data'),
 	]

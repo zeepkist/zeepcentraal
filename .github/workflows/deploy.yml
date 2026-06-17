@@ -45,11 +45,6 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: Install dependencies
         run: bun install
 
@@ -181,6 +176,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build migrate binary
+        run: bun run build:migrate
+
       - name: Resolve migrate image version tags
         id: migrate_version
         run: |
@@ -229,6 +230,12 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build import-zsl binary
+        run: bun run build:import-zsl
 
       - name: Resolve import-zsl image version tags
         id: import_zsl_version

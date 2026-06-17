@@ -6,6 +6,7 @@
 	"main": "src/index.ts",
 	"types": "src/index.ts",
 	"scripts": {
+		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-import-zsl src/import.ts",
 		"release": "semantic-release",
 		"import": "bun run src/import.ts"
 	},
