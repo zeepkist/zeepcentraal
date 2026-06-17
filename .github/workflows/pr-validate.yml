@@ -100,7 +100,7 @@ jobs:
           git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
 
       - name: Build server image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.server
@@ -108,7 +108,7 @@ jobs:
           tags: zeepcentraal/server:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build jobs image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.jobs
@@ -116,7 +116,7 @@ jobs:
           tags: zeepcentraal/jobs:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build migrate image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.migrate
@@ -124,7 +124,7 @@ jobs:
           tags: zeepcentraal/migrate:pr-${{ github.event.pull_request.number || github.run_id }}
 
       - name: Build import-zsl image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.zsl
