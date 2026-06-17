@@ -21,6 +21,6 @@
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"cron": "~4.3.2",
-		"graphile-worker": "~0.16.6"
+		"graphile-worker": "~0.17.0"
 	}
 }
