@@ -1,7 +1,7 @@
-import logixlysia from 'logixlysia'
+import logixlysia, { type LogLevel} from 'logixlysia'
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
-const logLevels = ['ERROR', 'WARNING']
+const logLevels: LogLevel[] = ['ERROR', 'WARNING']
 
 if (!IS_PRODUCTION) {
 	logLevels.push('INFO', 'DEBUG')
