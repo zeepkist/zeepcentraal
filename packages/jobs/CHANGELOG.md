@@ -1,3 +1,9 @@
+## [@zeepkist/jobs-v1.0.3](https://github.com/zeepkist/zeepcentraal/compare/jobs@1.0.2...jobs@1.0.3) (2026-06-17)
+
+### Bug Fixes
+
+* **deps:** update dependency graphile-worker to ~0.17.0 ([#6](https://github.com/zeepkist/zeepcentraal/issues/6)) ([17715c4](https://github.com/zeepkist/zeepcentraal/commit/17715c40695c0d99d1218e6f39180daad997459d))
+
 ## [@zeepkist/jobs-v1.0.2](https://github.com/zeepkist/zeepcentraal/compare/jobs@1.0.1...jobs@1.0.2) (2026-06-17)
 
 ### Bug Fixes
