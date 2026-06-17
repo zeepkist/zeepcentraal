@@ -1,3 +1,9 @@
+## [@zeepkist/server-v1.0.3](https://github.com/zeepkist/zeepcentraal/compare/server@1.0.2...server@1.0.3) (2026-06-17)
+
+### Bug Fixes
+
+* **deps:** update dependency @opentelemetry/auto-instrumentations-node to ~0.77.0 [security] ([#2](https://github.com/zeepkist/zeepcentraal/issues/2)) ([303dcfc](https://github.com/zeepkist/zeepcentraal/commit/303dcfce4d958e2f413ed00858b91107ea608562))
+
 ## [@zeepkist/server-v1.0.2](https://github.com/zeepkist/zeepcentraal/compare/server@1.0.1...server@1.0.2) (2026-06-17)
 
 ### Bug Fixes
