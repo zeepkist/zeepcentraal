@@ -20,7 +20,7 @@
 	"dependencies": {
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
-		"cron": "~4.3.2",
+		"cron": "~4.4.0",
 		"graphile-worker": "~0.17.0"
 	}
 }
