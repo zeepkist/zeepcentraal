@@ -1,3 +1,9 @@
+## [@zeepkist/database-v1.1.2](https://github.com/zeepkist/zeepcentraal/compare/database@1.1.1...database@1.1.2) (2026-06-17)
+
+### Bug Fixes
+
+* **deps:** update dependency drizzle-orm to ~0.45.0 [security] ([#3](https://github.com/zeepkist/zeepcentraal/issues/3)) ([c43ee41](https://github.com/zeepkist/zeepcentraal/commit/c43ee412c49facddf7f18b7ed8fd456f343830ed))
+
 ## [@zeepkist/database-v1.1.1](https://github.com/zeepkist/zeepcentraal/compare/database@1.1.0...database@1.1.1) (2026-06-17)
 
 ### Bug Fixes
