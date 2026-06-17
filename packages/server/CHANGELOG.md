@@ -1,3 +1,9 @@
+## [@zeepkist/server-v1.1.0](https://github.com/zeepkist/zeepcentraal/compare/server@1.0.3...server@1.1.0) (2026-06-17)
+
+### Features
+
+* use new local queue for graphile-worker jobs ([208fc7f](https://github.com/zeepkist/zeepcentraal/commit/208fc7f577890cf51272d0f25b0b45e87fe1a9ee))
+
 ## [@zeepkist/server-v1.0.3](https://github.com/zeepkist/zeepcentraal/compare/server@1.0.2...server@1.0.3) (2026-06-17)
 
 ### Bug Fixes
