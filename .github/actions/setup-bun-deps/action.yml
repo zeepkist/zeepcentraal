@@ -1,0 +1,30 @@
+name: Setup Bun Dependencies
+description: Setup Bun, restore node_modules cache, and install dependencies on cache miss
+inputs:
+  bun-version:
+    description: Bun version to install
+    required: false
+    default: latest
+runs:
+  using: composite
+  steps:
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - name: Cache Bun node_modules
+      id: bun-node-modules-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules
+          packages/*/node_modules
+        key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-node-modules-
+
+    - name: Install dependencies
+      if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: bun install --frozen-lockfile

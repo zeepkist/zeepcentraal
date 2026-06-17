@@ -21,25 +21,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Typecheck
         run: bun run typecheck
@@ -60,25 +43,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Build all package binaries
         run: |

@@ -22,25 +22,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Typecheck
         run: bun run typecheck
@@ -58,25 +41,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Configure git user
         run: |
@@ -99,25 +65,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Build server binary
         run: bun run build:server
@@ -174,25 +123,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Build jobs binary
         run: bun run build:jobs
@@ -249,25 +181,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Build migrate binary
         run: bun run build:migrate
@@ -328,25 +243,8 @@ jobs:
         run: |
           git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun node_modules
-        id: bun-node-modules-cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            packages/*/node_modules
-          key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-node-modules-
-
-      - name: Install dependencies
-        if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
 
       - name: Build import-zsl binary
         run: bun run build:import-zsl
