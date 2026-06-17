@@ -1,3 +1,9 @@
+## [@zeepkist/core-v1.0.3](https://github.com/zeepkist/zeepcentraal/compare/core@1.0.2...core@1.0.3) (2026-06-17)
+
+### Bug Fixes
+
+* update dependencies ([15bb7a9](https://github.com/zeepkist/zeepcentraal/commit/15bb7a99ff8c938c80ff536a6af6f6615ac1e6f2))
+
 ## [@zeepkist/core-v1.0.2](https://github.com/zeepkist/zeepcentraal/compare/core@1.0.1...core@1.0.2) (2026-06-17)
 
 ### Bug Fixes
