@@ -41,6 +41,7 @@ const state = {
 	deletedRefreshTokens: [] as string[],
 	jobCalls: [] as Array<{ task: string; options: Record<string, unknown> }>,
 	updatedDiscordIds: [] as Array<{ steamId: string; discordId: bigint | null }>,
+	mediaSchedules: [] as Array<{ idRecord: number; ghostData: string }>,
 	userBySteamId: {
 		id: 1,
 		steamId: 12345678901234567n,
@@ -121,6 +122,7 @@ function resetState() {
 	state.deletedRefreshTokens = []
 	state.jobCalls = []
 	state.updatedDiscordIds = []
+	state.mediaSchedules = []
 	state.userBySteamId = {
 		id: 1,
 		steamId: 12345678901234567n,
@@ -191,6 +193,21 @@ mock.module('@zeepkist/core', () => ({
 		AccessToken: 'zeepcentral_access_token',
 		RefreshToken: 'zeepcentral_refresh_token',
 		SteamId: 'zeepcentral_steam_id',
+		OAuthState: 'zeepcentral_oauth_state',
+	},
+	parseCookieHeader: (header = '') =>
+		Object.fromEntries(
+			header
+				.split(';')
+				.map((item: string) => item.trim().split('='))
+				.filter(([key]: string[]) => key),
+		),
+	getCookie: (header: string | undefined, name: string) => {
+		for (const item of (header ?? '').split(';')) {
+			const [key, value] = item.trim().split('=')
+			if (key === name) return value ?? null
+		}
+		return null
 	},
 	config: {
 		api: { host: '0.0.0.0', port: 3000 },
@@ -214,6 +231,11 @@ mock.module('@zeepkist/core', () => ({
 			apiKey: 'steam-api-key',
 		},
 		otel: { serviceName: 'zeepcentraal-api', collectorUrl: 'http://localhost:4317' },
+		http: {
+			corsAllowedOrigins: ['http://localhost:5173'],
+			trustProxy: false,
+			rateLimits: { auth: 10_000, record: 10_000, mutation: 10_000, job: 10_000 },
+		},
 	},
 	jwtProvider: {
 		gtr: 'gtr',
@@ -238,10 +260,12 @@ mock.module('@zeepkist/core', () => ({
 		state.steamAuthSuccess
 			? { success: true, steamId: state.steamAuthSteamId }
 			: { success: false, error: 'Steam auth failed' },
-	getDiscordRedirectUrl: () => 'https://discord.com/oauth2/authorize?mock=1',
+	getDiscordRedirectUrl: (oauthState?: string) =>
+		`https://discord.com/oauth2/authorize?mock=1${oauthState ? `&state=${oauthState}` : ''}`,
 	getDiscordAccessToken: async () => state.discordAccessToken,
 	getDiscordUser: async () => state.discordUser,
-	getSteamRedirectUrl: () => 'https://steamcommunity.com/openid/login?mock=1',
+	getSteamRedirectUrl: (oauthState?: string) =>
+		`https://steamcommunity.com/openid/login?mock=1${oauthState ? `&state=${oauthState}` : ''}`,
 	isSteamLoginSignatureValid: async () => state.steamSignatureValid,
 	verifyAccessToken: (token: string) => {
 		if (token === 'gtr-valid') {
@@ -291,17 +315,25 @@ mock.module('@zeepkist/database/services', () => ({
 		state.insertAuthCalls.push(input)
 		return input
 	},
+	rotateAuth: async (_idUser: number, token: string, input: Record<string, unknown>) => {
+		if (token !== 'existing-refresh' || !state.refreshAuth) {
+			return null
+		}
+		state.deletedRefreshTokens.push(token)
+		state.insertAuthCalls.push(input)
+		return input
+	},
 	getOrInsertLevel: async (hash: string) =>
 		hash === state.level.hash && state.levelExists ? state.level : null,
 	getLevel: async (hash: string) =>
 		hash === state.level.hash && state.levelExists ? state.level : null,
-	insertRecord: async (input: Record<string, unknown>) => ({ ...state.record, ...input }),
-	insertRecordMedia: async (input: Record<string, unknown>) => ({
-		...state.recordMedia,
-		...input,
+	submitRecord: async (input: Record<string, unknown>) => ({
+		record: { ...state.record, ...input },
+		personalBestChanged: true,
 	}),
-	upsertPersonalBest: async () => ({ id: 1 }),
-	upsertWorldRecord: async () => ({ id: 1 }),
+	scheduleRecordMediaUpload: (idRecord: number, ghostData: string) => {
+		state.mediaSchedules.push({ idRecord, ghostData })
+	},
 	upsertVote: async (idUser: number, idLevel: number, value: number) => ({
 		idUser,
 		idLevel,
@@ -324,6 +356,8 @@ mock.module('@zeepkist/jobs/queue', () => ({
 			'updatePlayerScores',
 			'updateUserPointsHistory',
 		].includes(task),
+	isValidTaskPayload: (task: string, options: Record<string, unknown>) =>
+		task !== 'updateLevelScore' || typeof options.idLevel === 'number',
 }))
 
 const { buildServer } = await import('./server')
@@ -350,6 +384,14 @@ async function readBody(response: Response) {
 	}
 }
 
+async function oauthState(path: '/auth/discord/redirect' | '/auth/steam/redirect') {
+	const response = await send(path)
+	const location = new URL(response.headers.get('location') ?? '')
+	const stateValue = location.searchParams.get('state') ?? ''
+	const cookie = response.headers.get('set-cookie')?.split(';')[0] ?? ''
+	return { stateValue, cookie }
+}
+
 test('auth/login returns V1-shaped token payload on success', async () => {
 	const response = await send('/auth/login', {
 		method: 'POST',
@@ -368,6 +410,18 @@ test('auth/login returns V1-shaped token payload on success', async () => {
 		RefreshToken: 'refresh:1',
 		RefreshTokenExpiry: 1900000101,
 	})
+})
+
+test('CORS allows configured website origin and rejects arbitrary origins', async () => {
+	const allowed = await send('/healthz', {
+		headers: { origin: 'http://localhost:5173' },
+	})
+	expect(allowed.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+
+	const rejected = await send('/healthz', {
+		headers: { origin: 'https://attacker.example' },
+	})
+	expect(rejected.headers.get('access-control-allow-origin')).toBeNull()
 })
 
 test('auth/login returns 400 when mod version is outdated', async () => {
@@ -469,7 +523,10 @@ test('auth/discord/redirect returns 302 to Discord', async () => {
 	const response = await send('/auth/discord/redirect')
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('https://discord.com/oauth2/authorize?mock=1')
+	expect(response.headers.get('location')).toContain(
+		'https://discord.com/oauth2/authorize?mock=1',
+	)
+	expect(response.headers.get('location')).toContain('&state=')
 })
 
 test('auth/discord/callback returns 400 when code is missing', async () => {
@@ -481,9 +538,24 @@ test('auth/discord/callback returns 400 when code is missing', async () => {
 	})
 })
 
+test('auth/discord/callback rejects mismatched OAuth state', async () => {
+	const { cookie } = await oauthState('/auth/discord/redirect')
+	const response = await send('/auth/discord/callback?code=good&state=wrong', {
+		headers: { cookie },
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 14, message: 'Not authenticated' },
+	})
+})
+
 test('auth/discord/callback returns 400 when Discord is not linked', async () => {
 	state.userByDiscordId = null
-	const response = await send('/auth/discord/callback?code=good')
+	const { stateValue, cookie } = await oauthState('/auth/discord/redirect')
+	const response = await send(`/auth/discord/callback?code=good&state=${stateValue}`, {
+		headers: { cookie },
+	})
 
 	expect(response.status).toBe(400)
 	expect(await readBody(response)).toEqual({
@@ -492,7 +564,10 @@ test('auth/discord/callback returns 400 when Discord is not linked', async () =>
 })
 
 test('auth/discord/callback returns redirect and cookies on success', async () => {
-	const response = await send('/auth/discord/callback?code=good')
+	const { stateValue, cookie } = await oauthState('/auth/discord/redirect')
+	const response = await send(`/auth/discord/callback?code=good&state=${stateValue}`, {
+		headers: { cookie },
+	})
 
 	expect(response.status).toBe(302)
 	expect(response.headers.get('location')).toBe('http://localhost:5173/auth/callback')
@@ -504,13 +579,18 @@ test('auth/steam/redirect returns 302 to Steam OpenID', async () => {
 	const response = await send('/auth/steam/redirect')
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('https://steamcommunity.com/openid/login?mock=1')
+	expect(response.headers.get('location')).toContain(
+		'https://steamcommunity.com/openid/login?mock=1',
+	)
+	expect(response.headers.get('location')).toContain('&state=')
 })
 
 test('auth/steam/callback returns 401 on invalid signature', async () => {
 	state.steamSignatureValid = false
+	const { stateValue, cookie } = await oauthState('/auth/steam/redirect')
 	const response = await send(
-		'/auth/steam/callback?openid.identity=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F12345678901234567',
+		`/auth/steam/callback?state=${stateValue}&openid.identity=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F12345678901234567`,
+		{ headers: { cookie } },
 	)
 
 	expect(response.status).toBe(401)
@@ -520,8 +600,10 @@ test('auth/steam/callback returns 401 on invalid signature', async () => {
 })
 
 test('auth/steam/callback returns redirect and cookies on success', async () => {
+	const { stateValue, cookie } = await oauthState('/auth/steam/redirect')
 	const response = await send(
-		'/auth/steam/callback?openid.identity=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F12345678901234567',
+		`/auth/steam/callback?state=${stateValue}&openid.identity=https%3A%2F%2Fsteamcommunity.com%2Fopenid%2Fid%2F12345678901234567`,
+		{ headers: { cookie } },
 	)
 
 	expect(response.status).toBe(302)
@@ -586,6 +668,56 @@ test('record/submit returns 200 with empty body on success', async () => {
 
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
+	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
+})
+
+test('record/submit rejects malformed ghost data without changing wire error shape', async () => {
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'not-base64',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 19, message: 'Missing required parameters' },
+	})
+})
+
+test('record/submit rejects banned users', async () => {
+	if (state.userBySteamId) state.userBySteamId.banned = true
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(401)
+	expect(await readBody(response)).toEqual({
+		error: { code: 16, message: 'User not found' },
+	})
 })
 
 test('record/submit returns 401 when authenticated user is missing', async () => {
@@ -683,7 +815,7 @@ test('user/updateDiscordId returns 200 and unlinks discord id when Id is -1', as
 
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
-	expect(state.updatedDiscordIds).toEqual([{ steamId: '12345678901234567', discordId: null }])
+	expect(state.updatedDiscordIds).toEqual([{ steamId: '12345678901234567', discordId: -1n }])
 })
 
 test('job/trigger returns 200 and enqueues a compatible task', async () => {
@@ -715,6 +847,25 @@ test('job/trigger returns 400 for unsupported tasks', async () => {
 		},
 		body: JSON.stringify({
 			Task: 'unknownTask',
+			Options: {},
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 22, message: 'Invalid request' },
+	})
+})
+
+test('job/trigger returns 400 for invalid compatible-task payload', async () => {
+	const response = await send('/job/trigger', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer job-secret',
+		},
+		body: JSON.stringify({
+			Task: 'updateLevelScore',
 			Options: {},
 		}),
 	})

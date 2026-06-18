@@ -48,7 +48,11 @@ export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) =
 	})
 
 	if (idUser) {
-		await helpers.addJob('updatePlayerScore', { idUser })
+		await helpers.addJob(
+			'updatePlayerScore',
+			{ idUser },
+			{ jobKey: `update-player-score:${idUser}` },
+		)
 	}
 
 	helpers.logger.info(`updateLevelScore completed for idLevel=${idLevel}.`)

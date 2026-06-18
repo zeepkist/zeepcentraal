@@ -1,5 +1,5 @@
-import { eq, ne, sql } from 'drizzle-orm'
-import { db } from '../index'
+import { eq, inArray, ne, sql } from 'drizzle-orm'
+import { db } from '../client'
 import { levelPoints, levelPointsHistory } from '../schema'
 
 export async function getTotalLevelPoints() {
@@ -43,6 +43,52 @@ export async function getChangedLevelPointsPaginated(offset: number, limit: numb
 		.where(ne(levelPoints.points, latestHistory.points))
 		.offset(offset)
 		.limit(limit)
+}
+
+export async function getChangedLevelPointIds(): Promise<number[]> {
+	const latestHistory = db
+		.select({
+			idLevel: levelPointsHistory.idLevel,
+			points: levelPointsHistory.points,
+		})
+		.from(levelPointsHistory)
+		.where(sql`
+			(${levelPointsHistory.idLevel}, ${levelPointsHistory.dateCreated}) IN (
+				SELECT ${levelPointsHistory.idLevel}, MAX(${levelPointsHistory.dateCreated})
+				FROM ${levelPointsHistory}
+				GROUP BY ${levelPointsHistory.idLevel}
+			)
+		`)
+		.as('latest_history')
+
+	const rows = await db
+		.select({ idLevel: levelPoints.idLevel })
+		.from(levelPoints)
+		.leftJoin(latestHistory, eq(levelPoints.idLevel, latestHistory.idLevel))
+		.where(
+			sql`${latestHistory.idLevel} IS NULL OR ${levelPoints.points} <> ${latestHistory.points}`,
+		)
+		.orderBy(levelPoints.idLevel)
+	return rows.map((row) => row.idLevel)
+}
+
+export async function getLevelPointsByIds(ids: number[]) {
+	if (ids.length === 0) {
+		return []
+	}
+	return db
+		.select({
+			idLevel: levelPoints.idLevel,
+			points: levelPoints.points,
+			rating: levelPoints.rating,
+			lengthModifier: levelPoints.lengthModifier,
+			competitivenessModifier: levelPoints.competitivenessModifier,
+			ratingModifier: levelPoints.ratingModifier,
+			popularityModifier: levelPoints.popularityModifier,
+			cutPenalty: levelPoints.cutPenalty,
+		})
+		.from(levelPoints)
+		.where(inArray(levelPoints.idLevel, ids))
 }
 
 interface UpdateLevelPointsPayload {

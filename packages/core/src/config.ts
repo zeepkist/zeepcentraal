@@ -38,7 +38,7 @@ const envSchema = z.object({
 	JWT_SECRET: z.string().min(32),
 	JWT_AUDIENCE: z.string().default('zeepki.st'),
 	JWT_ISSUER: z.string().default('https://zeepki.st'),
-	JWT_ACCESS_TTL: z.string().default('5m'),
+	JWT_ACCESS_TTL: z.string().default('15m'),
 	JWT_REFRESH_TTL: z.string().default('7d'),
 	STEAM_APP_ID: z.string().default('1440670'),
 	STEAM_API_KEY: z.string().optional(),
@@ -47,11 +47,27 @@ const envSchema = z.object({
 	DISCORD_REDIRECT_URI: z.string().optional(),
 	FRONTEND_URL: z.string().default('http://localhost:5173'),
 	BACKEND_URL: z.string().default('http://localhost:3000'),
+	CORS_ALLOWED_ORIGINS: z.string().optional(),
+	TRUST_PROXY: z.stringbool().default(false),
+	RATE_LIMIT_AUTH_PER_MINUTE: z.coerce.number().int().positive().default(60),
+	RATE_LIMIT_RECORD_PER_MINUTE: z.coerce.number().int().positive().default(120),
+	RATE_LIMIT_MUTATION_PER_MINUTE: z.coerce.number().int().positive().default(300),
+	RATE_LIMIT_JOB_PER_MINUTE: z.coerce.number().int().positive().default(60),
 	OPENTELEMETRY_SERVICE_NAME: z.string().default('zeepcentraal-api'),
 	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4317'),
 })
 
 const parsedEnv = envSchema.parse(process.env)
+
+if (parsedEnv.NODE_ENV === 'production') {
+	const weakValues = new Set(['replace-me', 'trigger-token', 'job-secret'])
+	if (weakValues.has(parsedEnv.TRIGGER_JOB_TOKEN) || parsedEnv.TRIGGER_JOB_TOKEN.length < 32) {
+		throw new Error('TRIGGER_JOB_TOKEN must contain at least 32 non-placeholder characters')
+	}
+	if (weakValues.has(parsedEnv.JWT_SECRET)) {
+		throw new Error('JWT_SECRET must not use a placeholder value')
+	}
+}
 
 export const config = {
 	nodeEnv: parsedEnv.NODE_ENV,
@@ -81,6 +97,19 @@ export const config = {
 	},
 	frontendUrl: parsedEnv.FRONTEND_URL,
 	backendUrl: parsedEnv.BACKEND_URL,
+	http: {
+		corsAllowedOrigins: (parsedEnv.CORS_ALLOWED_ORIGINS ?? parsedEnv.FRONTEND_URL)
+			.split(',')
+			.map((origin) => origin.trim())
+			.filter(Boolean),
+		trustProxy: parsedEnv.TRUST_PROXY,
+		rateLimits: {
+			auth: parsedEnv.RATE_LIMIT_AUTH_PER_MINUTE,
+			record: parsedEnv.RATE_LIMIT_RECORD_PER_MINUTE,
+			mutation: parsedEnv.RATE_LIMIT_MUTATION_PER_MINUTE,
+			job: parsedEnv.RATE_LIMIT_JOB_PER_MINUTE,
+		},
+	},
 	otel: {
 		serviceName: parsedEnv.OPENTELEMETRY_SERVICE_NAME,
 		collectorUrl: parsedEnv.OPENTELEMETRY_COLLECTOR_URL,

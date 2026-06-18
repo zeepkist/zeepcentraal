@@ -1,9 +1,9 @@
 import {
 	bulkUpdateUserRanks,
 	getAllUsersWithLatestRecordDate,
-	getUserPersonalBestsWithLevelPointsAndPosition,
-	updateUserRank,
-	upsertUserPoints,
+	getUsersPersonalBestsWithLevelPointsAndPosition,
+	updateUserRanks,
+	upsertUserPointsBulk,
 } from '@zeepkist/database'
 import { batchProcess, calculatePlayerPoints } from '../utils'
 import type { TaskHandler } from './types'
@@ -42,29 +42,29 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 
 	const pointsList: PointsList[] = []
 	for (const userBatch of batchProcess(rankedUsers)) {
-		await Promise.all(
-			userBatch.map(async ({ idUser }) => {
-				const personalBests = await getUserPersonalBestsWithLevelPointsAndPosition({
-					idUser,
-				})
-
-				if (personalBests.length === 0) {
-					pointsList.push({ idUser, points: 0 })
-					await upsertUserPoints({ idUser, points: 0, totalPoints: 0 })
-					return
-				}
-
-				const { points, totalPoints } = calculatePlayerPoints(personalBests)
-				pointsList.push({ idUser, points })
-				await upsertUserPoints({ idUser, points, totalPoints })
-			}),
+		const personalBestsByUser = await getUsersPersonalBestsWithLevelPointsAndPosition(
+			userBatch.map(({ idUser }) => idUser),
 		)
+		const pointUpdates = userBatch.map(({ idUser }) => {
+			const personalBests = personalBestsByUser.get(idUser) ?? []
+
+			if (personalBests.length === 0) {
+				pointsList.push({ idUser, points: 0 })
+				return { idUser, points: 0, totalPoints: 0 }
+			}
+
+			const { points, totalPoints } = calculatePlayerPoints(personalBests)
+			pointsList.push({ idUser, points })
+			return { idUser, points, totalPoints }
+		})
+		await upsertUserPointsBulk(pointUpdates)
 	}
 
 	const usersSortedByHighestPoints = pointsList.sort((a, b) => b.points - a.points)
 	let currentRank = 1
 	let previousPoints: number | undefined
 	let actualRank = 1
+	const rankUpdates: Array<{ idUser: number; rank: number }> = []
 
 	for (let index = 0; index < usersSortedByHighestPoints.length; index++) {
 		const userPoint = usersSortedByHighestPoints[index]
@@ -76,10 +76,11 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 			currentRank = actualRank
 		}
 
-		await updateUserRank({ idUser: userPoint.idUser, rank: currentRank })
+		rankUpdates.push({ idUser: userPoint.idUser, rank: currentRank })
 		previousPoints = userPoint.points
 		actualRank++
 	}
+	await updateUserRanks(rankUpdates)
 
 	helpers.logger.info('updatePlayerScores completed.')
 }

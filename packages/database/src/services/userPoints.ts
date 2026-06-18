@@ -1,5 +1,5 @@
-import { eq, inArray, sql } from 'drizzle-orm'
-import { db } from '../index'
+import { inArray, sql } from 'drizzle-orm'
+import { db } from '../client'
 import { userPoints } from '../schema'
 
 export async function getTotalUserPoints() {
@@ -23,6 +23,30 @@ export async function getUserPointsPaginated(offset: number, limit: number) {
 		.from(userPoints)
 		.limit(limit)
 		.offset(offset)
+}
+
+export async function getAllUserPointIds(): Promise<number[]> {
+	const rows = await db
+		.select({ idUser: userPoints.idUser })
+		.from(userPoints)
+		.orderBy(userPoints.idUser)
+	return rows.map((row) => row.idUser)
+}
+
+export async function getUserPointsByIds(ids: number[]) {
+	if (ids.length === 0) {
+		return []
+	}
+	return db
+		.select({
+			idUser: userPoints.idUser,
+			points: userPoints.points,
+			totalPoints: userPoints.totalPoints,
+			rank: userPoints.rank,
+			worldRecords: userPoints.worldRecords,
+		})
+		.from(userPoints)
+		.where(inArray(userPoints.idUser, ids))
 }
 
 export async function upsertUserPoints({
@@ -54,22 +78,40 @@ export async function upsertUserPoints({
 	})
 }
 
-export async function updateUserRank({
-	idUser,
-	rank,
-}: {
-	idUser: number
-	rank: number
-}): Promise<void> {
-	await db.transaction(async (tx) => {
-		await tx
-			.update(userPoints)
-			.set({
-				rank,
-				dateUpdated: new Date().toISOString(),
-			})
-			.where(eq(userPoints.idUser, idUser))
-	})
+export async function upsertUserPointsBulk(
+	entries: Array<{ idUser: number; points: number; totalPoints: number }>,
+) {
+	if (entries.length === 0) {
+		return
+	}
+	const dateUpdated = new Date().toISOString()
+	await db
+		.insert(userPoints)
+		.values(entries.map((entry) => ({ ...entry, dateUpdated })))
+		.onConflictDoUpdate({
+			target: [userPoints.idUser],
+			set: {
+				points: sql`EXCLUDED.points`,
+				totalPoints: sql`EXCLUDED.total_points`,
+				dateUpdated,
+			},
+		})
+}
+
+export async function updateUserRanks(entries: Array<{ idUser: number; rank: number }>) {
+	if (entries.length === 0) {
+		return
+	}
+	const values = sql.join(
+		entries.map((entry) => sql`(${entry.idUser}::integer, ${entry.rank}::integer)`),
+		sql`, `,
+	)
+	await db.execute(sql`
+		UPDATE ${userPoints} AS target
+		SET rank = source.rank, date_updated = NOW()
+		FROM (VALUES ${values}) AS source(id_user, rank)
+		WHERE target.id_user = source.id_user
+	`)
 }
 
 export async function bulkUpdateUserRanks({

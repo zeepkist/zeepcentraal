@@ -16,7 +16,11 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 
 	for (const batchIds of batchProcess(levelIds)) {
 		await helpers.addJobs(
-			batchIds.map((idLevel) => ({ identifier: 'updateLevelScore', payload: { idLevel } })),
+			batchIds.map((idLevel) => ({
+				identifier: 'updateLevelScore',
+				payload: { idLevel },
+				jobKey: `update-level-score:${idLevel}`,
+			})),
 		)
 	}
 

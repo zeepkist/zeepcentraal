@@ -67,11 +67,15 @@ export async function authenticateSteamUser(ticket: string): Promise<SteamTicket
 	}
 }
 
-export function getSteamRedirectUrl() {
+export function getSteamRedirectUrl(state?: string) {
+	const callbackUrl = new URL('/auth/steam/callback', config.backendUrl)
+	if (state) {
+		callbackUrl.searchParams.set('state', state)
+	}
 	const params = new URLSearchParams({
 		'openid.ns': 'http://specs.openid.net/auth/2.0',
 		'openid.mode': 'checkid_setup',
-		'openid.return_to': `${config.backendUrl}/auth/steam/callback`,
+		'openid.return_to': callbackUrl.href,
 		'openid.realm': config.backendUrl,
 		'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
 		'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
@@ -94,6 +98,15 @@ export interface SteamCallbackRequest {
 }
 
 export async function isSteamLoginSignatureValid(query: SteamCallbackRequest): Promise<boolean> {
+	if (
+		query['openid.op_endpoint'] !== 'https://steamcommunity.com/openid/login' ||
+		!query['openid.return_to']?.startsWith(
+			new URL('/auth/steam/callback', config.backendUrl).href,
+		)
+	) {
+		return false
+	}
+
 	const params = new URLSearchParams({
 		...query,
 		'openid.mode': 'check_authentication',

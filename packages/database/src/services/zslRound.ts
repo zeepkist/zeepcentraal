@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import { db } from '../index'
+import { db } from '../client'
 import { zslRound } from '../schema'
 
 interface GetZslRoundInput {

@@ -5,7 +5,7 @@ import { taskList } from './tasks'
 
 export const defaultJobOptions: TaskSpec = {
 	priority: 5,
-	maxAttempts: 1,
+	maxAttempts: 3,
 }
 
 export const priorityJobOptions: TaskSpec = {
@@ -57,7 +57,13 @@ export function startCrons(
 		const job = CronJob.from({
 			cronTime,
 			onTick: () => {
-				void addJob(task, payload, defaultJobOptions)
+				void addJob(task, payload, {
+					...defaultJobOptions,
+					jobKey: `cron:${task}`,
+					jobKeyMode: 'preserve_run_at',
+				}).catch((error) => {
+					console.error(`Cron enqueue failed for ${task}:`, error)
+				})
 			},
 			start: true,
 			timeZone: 'Europe/London',

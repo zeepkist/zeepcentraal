@@ -5,7 +5,7 @@ const DISCORD_AUTHORIZE_URL = `${DISCORD_API_BASE_URL}/oauth2/authorize`
 const DISCORD_TOKEN_URL = `${DISCORD_API_BASE_URL}/oauth2/token`
 const DISCORD_USER_URL = `${DISCORD_API_BASE_URL}/users/@me`
 
-export function getDiscordRedirectUrl() {
+export function getDiscordRedirectUrl(state?: string) {
 	const redirectUri = config.discord.redirectUri ?? `${config.backendUrl}/auth/discord/callback`
 	const params = new URLSearchParams({
 		client_id: config.discord.clientId ?? '',
@@ -13,6 +13,9 @@ export function getDiscordRedirectUrl() {
 		response_type: 'code',
 		scope: 'identify',
 	})
+	if (state) {
+		params.set('state', state)
+	}
 
 	return `${DISCORD_AUTHORIZE_URL}?${params.toString()}`
 }

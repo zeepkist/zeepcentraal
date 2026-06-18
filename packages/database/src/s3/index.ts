@@ -18,12 +18,11 @@ const client = new S3Client({
 
 export async function uploadFile(fileName: string, file: Buffer): Promise<void> {
 	const s3File = client.file(fileName)
+	await s3File.write(file, {
+		type: 'application/octet-stream',
+	})
+}
 
-	try {
-		await s3File.write(file, {
-			type: 'application/octet-stream',
-		})
-	} catch (error) {
-		console.error('Error uploading file to S3:', error)
-	}
+export async function deleteFile(fileName: string): Promise<void> {
+	await client.file(fileName).delete()
 }

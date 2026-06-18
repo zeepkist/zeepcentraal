@@ -6,6 +6,8 @@ import { startCrons, startRunner, stopCrons, stopRunner } from './worker'
 const WORKER_COUNT = 2
 
 if (cluster.isPrimary) {
+	let shuttingDown = false
+	let restartDelayMs = 250
 	process.title = 'zeepcentraal-jobs: primary'
 	// The primary process manages cron scheduling only — no task processing.
 	// Using makeWorkerUtils keeps it lightweight (add-only, no task runner).
@@ -19,14 +21,24 @@ if (cluster.isPrimary) {
 	}
 
 	cluster.on('exit', (worker) => {
+		if (shuttingDown) {
+			return
+		}
 		console.warn(`Job worker ${worker.process.pid} died, restarting...`)
-		cluster.fork()
+		setTimeout(() => cluster.fork(), restartDelayMs)
+		restartDelayMs = Math.min(restartDelayMs * 2, 30_000)
 	})
 
 	async function shutdownPrimary(signal: string) {
+		shuttingDown = true
 		console.info(`Received ${signal}, shutting down jobs primary...`)
 		stopCrons()
+		for (const worker of Object.values(cluster.workers ?? {})) {
+			worker?.process.kill(signal as NodeJS.Signals)
+		}
 		await utils.release()
+		const { closeDatabase } = await import('@zeepkist/database')
+		await closeDatabase()
 		process.exit(0)
 	}
 
@@ -40,6 +52,8 @@ if (cluster.isPrimary) {
 	async function shutdownWorker(signal: string) {
 		console.info(`Job worker ${process.pid} received ${signal}, shutting down...`)
 		await stopRunner()
+		const { closeDatabase } = await import('@zeepkist/database')
+		await closeDatabase()
 		process.exit(0)
 	}
 

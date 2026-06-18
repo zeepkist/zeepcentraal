@@ -231,15 +231,19 @@ authoritative runtime schema. Required values are:
 - `JWT_SECRET` with at least 32 characters.
 
 Other configuration covers host/port, JWT audience/issuer/TTLs, frontend/backend URLs, Steam,
-Discord, Wasabi/S3, and OpenTelemetry. `.env` and `.env.*` are ignored except for `.env.example`.
-Never place real credentials in tracked files, logs, tests, workflow expressions, or documentation.
+Discord, Wasabi/S3, OpenTelemetry, allowed CORS origins, trusted proxy handling, and per-route
+rate limits. Production rejects placeholder or short trigger tokens. `.env` and `.env.*` are
+ignored except for `.env.example`. Never place real credentials in tracked files, logs, tests,
+workflow expressions, or documentation.
 
 ## Tests and code quality
 
 The repository uses Bun Test. Current tests consist of:
 
 - focused JWT behavior tests in `packages/core/src/auth/jwt.spec.ts`;
-- API contract tests in `packages/server/src/contract.spec.ts`.
+- API contract tests in `packages/server/src/contract.spec.ts`;
+- job payload-schema tests in `packages/jobs/src/taskDefinitions.spec.ts`;
+- telemetry URL-redaction tests in `packages/server/src/plugins/withSpanEnrichment.spec.ts`.
 
 The contract suite mocks core, database, and job modules, invokes `app.handle(Request)`, and checks
 status codes, exact V1 response shapes, headers/cookies, redirects, and enqueue/database side
@@ -269,15 +273,14 @@ Use `lint:fix` and `format:fix` only when edits are intended.
   priority.
 - API and jobs worker counts are hard-coded to two. Container CPU limits and horizontal scaling do
   not dynamically change process count.
-- The jobs primary uses in-memory cron timers. Multiple jobs containers will each schedule the same
-  cron entries unless deployment guarantees a single scheduler replica or jobs are deduplicated.
-- The PostgreSQL client is a module-level singleton with a maximum of 20 connections per process.
+- The jobs primary uses in-memory cron timers. Stable Graphile job keys deduplicate overlapping
+  cron enqueues across replicas, but each replica still owns timers.
+- The PostgreSQL client is a module-level singleton with a maximum of 10 connections per process.
   With two API workers and two job workers, connection capacity must be sized per process and per
   replica.
-- API-triggered job payloads are only structurally a record of unknown values at the HTTP
-  boundary. Individual handlers own payload assumptions; malformed values may fail asynchronously.
-- The queue's lazy `WorkerUtils` singleton has no explicit shutdown path in the server process.
-- The API primary and jobs primary always restart exited workers, including repeated crash loops.
+- API-triggered tasks use a shared compatibility allowlist and per-task Zod payload schemas.
+- API and jobs primaries use bounded restart backoff and suppress restarts during shutdown.
+- Application-local rate limits are per worker and per replica, not globally coordinated.
 - Tests strongly cover API compatibility but not SQL behavior, task calculations, cron ownership,
   migration execution, or importer failure modes.
 - The deploy workflow repeats image-version resolution and image publishing logic four times,
@@ -295,6 +298,9 @@ Validation was re-run successfully on June 18, 2026, using Bun 1.3.14:
 
 - `bun install --frozen-lockfile`: passed; 657 installs across 852 packages checked with no changes.
 - `bun run typecheck`: passed.
-- `bun run test`: passed; 28 tests across 2 files, 0 failures.
-- `bun run lint`: passed; 123 files checked with no fixes applied.
-- `bun run format`: passed; 123 files checked with no fixes applied.
+- `bun run test`: passed; 36 tests across 4 files, 0 failures.
+- `bun run lint`: passed; 129 files checked with no fixes applied.
+- `bun run format`: passed; 129 files checked with no fixes applied.
+- all four compiled executable builds passed.
+- `bun audit`: OpenTelemetry advisories cleared; one moderate development-only `esbuild`
+  advisory remains through Drizzle Kit's legacy loader.

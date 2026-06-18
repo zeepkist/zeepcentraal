@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { db } from '../index'
+import { db } from '../client'
 import { zslSeasonResult } from '../schema'
 
 interface ZslSeasonResultInput {

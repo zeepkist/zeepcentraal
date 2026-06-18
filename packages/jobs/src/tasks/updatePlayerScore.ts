@@ -35,5 +35,6 @@ export const updatePlayerScore: TaskHandler<Payload> = async (payload, helpers) 
 		})
 	} catch (error) {
 		helpers.logger.error(`Error updating player score for idUser=${payload.idUser}`, { error })
+		throw error
 	}
 }

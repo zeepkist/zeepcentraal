@@ -1,5 +1,5 @@
-import { desc, eq, inArray, sql } from 'drizzle-orm'
-import { db } from '../index'
+import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm'
+import { db } from '../client'
 import { record, user } from '../schema'
 
 interface SteamUserData {
@@ -12,21 +12,17 @@ async function getSteamUser(steamId: string): Promise<SteamUserData> {
 	if (!apiKey) {
 		throw new Error('Steam API key is not configured.')
 	}
-
-	const url =
-		`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/` +
-		`?key=${apiKey}&steamids=${steamId}`
-	const response = await fetch(url)
+	const response = await fetch(
+		`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${apiKey}&steamids=${steamId}`,
+	)
 	if (!response.ok) {
 		throw new Error('Steam user request failed.')
 	}
-
 	const data = (await response.json()) as { response?: { players?: SteamUserData[] } }
 	const player = data.response?.players?.[0]
 	if (!player) {
 		throw new Error('Steam user not found.')
 	}
-
 	return player
 }
 
@@ -41,24 +37,32 @@ export async function getUser(steamId: string) {
 }
 
 export async function getUserByDiscordId(discordId: string) {
+	const parsedDiscordId = BigInt(discordId)
+	if (parsedDiscordId <= 0n) {
+		return undefined
+	}
 	return db.query.user.findFirst({
-		where: eq(user.discordId, BigInt(discordId)),
+		where: and(eq(user.discordId, parsedDiscordId), gt(user.discordId, 0n)),
 	})
 }
 
 export async function getOrInsertUser(steamId: bigint, steamName?: string) {
-	const resolvedSteamName = steamName ?? (await getSteamUser(steamId.toString())).personaname
 	const existing = await getUserBySteamId(steamId)
 	if (existing) {
 		return existing
 	}
+	const resolvedSteamName = steamName ?? (await getSteamUser(steamId.toString())).personaname
 
 	const [created] = await db
 		.insert(user)
 		.values({ steamId, steamName: resolvedSteamName, banned: false })
+		.onConflictDoNothing({
+			target: user.steamId,
+			where: sql`${user.steamId} IS NOT NULL`,
+		})
 		.returning()
 
-	return created
+	return created ?? getUserBySteamId(steamId)
 }
 
 export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<string, number>> {
@@ -147,7 +151,6 @@ export async function updateDiscordId(steamId: string, discordId: bigint | null)
 		.set({ discordId, dateUpdated: new Date().toISOString() })
 		.where(eq(user.steamId, BigInt(steamId)))
 		.returning()
-
 	return updated
 }
 

@@ -4,6 +4,9 @@ This file applies to the entire repository. Read
 [`.agents/repository-analysis.md`](.agents/repository-analysis.md) for detailed architecture,
 deployment, scheduling, and maintenance context.
 
+Speak like a caveman. Remove all filler words. Keep technical terms, code blocks, and error messages
+exact. Be extremely concise. Use fewest tokens possible. Output only the location, problem, and fix.
+
 ## Repository map
 
 - `packages/core`: environment validation, JWT/cookies, shared errors/types, cache, Steam, Discord.

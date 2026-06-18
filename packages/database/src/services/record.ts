@@ -1,125 +1,113 @@
+import { metrics } from '@opentelemetry/api'
 import { and, eq, sql } from 'drizzle-orm'
+import { db } from '../client'
 import { GHOST_FOLDER } from '../config'
-import { db } from '../index'
-import { uploadFile } from '../s3'
+import { deleteFile, uploadFile } from '../s3'
 import { personalBestGlobal, record, recordMedia, worldRecordGlobal } from '../schema'
 import { generateUid } from '../utils/generateUid'
 
-export async function insertRecord(input: typeof record.$inferInsert) {
-	const [created] = await db.insert(record).values(input).returning()
-	return created
-}
+type RecordInput = typeof record.$inferInsert
+const meter = metrics.getMeter('@zeepkist/database')
+const ghostUploadSuccesses = meter.createCounter('record.ghost_upload.success')
+const ghostUploadFailures = meter.createCounter('record.ghost_upload.failure')
 
-export async function insertRecordMedia({
-	idRecord,
-	ghostData,
-}: {
-	idRecord: number
-	ghostData: string
-}) {
-	const uid = generateUid()
-	const ghostUrl = `${GHOST_FOLDER}/${uid}.bin`
-	void uploadFile(ghostUrl, Buffer.from(ghostData, 'base64'))
-	const [created] = await db
-		.insert(recordMedia)
-		.values({
-			idRecord,
-			ghostUrl,
-			dateCreated: new Date().toISOString(),
-			dateUpdated: new Date().toISOString(),
-		})
-		.returning()
-	return created
-}
+export async function submitRecord(input: RecordInput) {
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(${input.idUser}, ${input.idLevel})`)
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(0, ${input.idLevel})`)
 
-export async function upsertPersonalBest({
-	idUser,
-	idLevel,
-	idRecord,
-	time,
-}: {
-	idUser: number
-	idLevel: number
-	idRecord: number
-	time: number
-}) {
-	const existing = await db
-		.select({
-			id: personalBestGlobal.id,
-			idRecord: personalBestGlobal.idRecord,
-			time: record.time,
-		})
-		.from(personalBestGlobal)
-		.leftJoin(record, eq(personalBestGlobal.idRecord, record.id))
-		.where(and(eq(personalBestGlobal.idUser, idUser), eq(personalBestGlobal.idLevel, idLevel)))
-		.limit(1)
-		.then((rows) => rows[0] ?? null)
+		const [created] = await tx.insert(record).values(input).returning()
+		if (!created) {
+			return null
+		}
 
-	if (!existing || (typeof existing.time === 'number' && existing.time > time)) {
-		const now = new Date().toISOString()
-		const [updated] = await db
-			.update(personalBestGlobal)
-			.set({ idRecord, dateUpdated: now })
+		const existingPersonalBest = await tx
+			.select({ id: personalBestGlobal.id, time: record.time })
+			.from(personalBestGlobal)
+			.innerJoin(record, eq(record.id, personalBestGlobal.idRecord))
 			.where(
-				and(eq(personalBestGlobal.idUser, idUser), eq(personalBestGlobal.idLevel, idLevel)),
+				and(
+					eq(personalBestGlobal.idUser, input.idUser),
+					eq(personalBestGlobal.idLevel, input.idLevel),
+				),
 			)
-			.returning()
+			.limit(1)
+			.then((rows) => rows[0])
 
-		if (updated) {
-			return updated
+		const personalBestChanged =
+			!existingPersonalBest || existingPersonalBest.time > created.time
+		if (personalBestChanged) {
+			const now = new Date().toISOString()
+			await tx
+				.insert(personalBestGlobal)
+				.values({
+					idUser: input.idUser,
+					idLevel: input.idLevel,
+					idRecord: created.id,
+					dateCreated: now,
+					dateUpdated: now,
+				})
+				.onConflictDoUpdate({
+					target: [personalBestGlobal.idUser, personalBestGlobal.idLevel],
+					set: { idRecord: created.id, dateUpdated: now },
+				})
 		}
 
-		const [inserted] = await db
-			.insert(personalBestGlobal)
-			.values({ idUser, idLevel, idRecord, dateCreated: now, dateUpdated: now })
-			.returning()
+		const existingWorldRecord = await tx
+			.select({ id: worldRecordGlobal.id, time: record.time })
+			.from(worldRecordGlobal)
+			.innerJoin(record, eq(record.id, worldRecordGlobal.idRecord))
+			.where(eq(worldRecordGlobal.idLevel, input.idLevel))
+			.limit(1)
+			.then((rows) => rows[0])
 
-		return inserted
-	}
+		if (!existingWorldRecord || existingWorldRecord.time > created.time) {
+			const now = new Date().toISOString()
+			await tx
+				.insert(worldRecordGlobal)
+				.values({
+					idUser: input.idUser,
+					idLevel: input.idLevel,
+					idRecord: created.id,
+					dateCreated: now,
+					dateUpdated: now,
+				})
+				.onConflictDoUpdate({
+					target: worldRecordGlobal.idLevel,
+					set: {
+						idUser: input.idUser,
+						idRecord: created.id,
+						dateUpdated: now,
+					},
+				})
+		}
 
-	return null
+		return { record: created, personalBestChanged }
+	})
 }
 
-export async function upsertWorldRecord({
-	idUser,
-	idLevel,
-	idRecord,
-	time,
-}: {
-	idUser: number
-	idLevel: number
-	idRecord: number
-	time: number
-}) {
-	const existing = await db
-		.select({ id: worldRecordGlobal.id, time: record.time })
-		.from(worldRecordGlobal)
-		.leftJoin(record, eq(worldRecordGlobal.idRecord, record.id))
-		.where(eq(worldRecordGlobal.idLevel, idLevel))
-		.limit(1)
-		.then((rows) => rows[0] ?? null)
-
-	if (!existing || (typeof existing.time === 'number' && existing.time > time)) {
-		const now = new Date().toISOString()
-		const [updated] = await db
-			.update(worldRecordGlobal)
-			.set({ idUser, idRecord, dateUpdated: now })
-			.where(eq(worldRecordGlobal.idLevel, idLevel))
-			.returning()
-
-		if (updated) {
-			return updated
+export function scheduleRecordMediaUpload(idRecord: number, ghostData: string): void {
+	const ghostUrl = `${GHOST_FOLDER}/${generateUid()}.bin`
+	void (async () => {
+		await uploadFile(ghostUrl, Buffer.from(ghostData, 'base64'))
+		try {
+			await db.insert(recordMedia).values({
+				idRecord,
+				ghostUrl,
+				dateCreated: new Date().toISOString(),
+				dateUpdated: new Date().toISOString(),
+			})
+			ghostUploadSuccesses.add(1)
+		} catch (error) {
+			await deleteFile(ghostUrl).catch((deleteError) => {
+				console.error('[ghost] Failed cleanup after media insert failure:', deleteError)
+			})
+			throw error
 		}
-
-		const [inserted] = await db
-			.insert(worldRecordGlobal)
-			.values({ idUser, idLevel, idRecord, dateCreated: now, dateUpdated: now })
-			.returning()
-
-		return inserted
-	}
-
-	return null
+	})().catch((error) => {
+		ghostUploadFailures.add(1)
+		console.error(`[ghost] Upload failed for record ${idRecord}:`, error)
+	})
 }
 
 export async function getPersonalBestsWithRecord({
@@ -129,7 +117,7 @@ export async function getPersonalBestsWithRecord({
 	idLevel: number
 	limit?: number
 }) {
-	const personalBests = await db
+	return db
 		.select({
 			id: record.idLevel,
 			time: record.time,
@@ -140,6 +128,4 @@ export async function getPersonalBestsWithRecord({
 		.where(eq(record.idLevel, idLevel))
 		.orderBy(record.time)
 		.limit(limit)
-
-	return personalBests
 }

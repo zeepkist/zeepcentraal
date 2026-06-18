@@ -1,36 +1,32 @@
-import { config as coreConfig } from '@zeepkist/core'
-import { enqueueCompatibleTask, isCompatibleTask } from '@zeepkist/jobs/queue'
+import { enqueueCompatibleTask, isCompatibleTask, isValidTaskPayload } from '@zeepkist/jobs/queue'
 import { Elysia, t } from 'elysia'
-import { handleV1Error, V1_ERROR_CODES } from '../../v1Errors'
+import { withAuthJob } from '../../plugins/withAuthJob'
+import { withRateLimit } from '../../plugins/withRateLimit'
 
-export const jobRoutes = new Elysia({ prefix: '/job' }).post(
-	'/trigger',
-	async ({ body, request, set }) => {
-		if (request.headers.get('authorization') !== `Bearer ${coreConfig.job.triggerToken}`) {
-			set.status = 401
-			return {
-				error: handleV1Error(V1_ERROR_CODES.AUTH_INVALID_TOKEN).error,
+export const jobRoutes = new Elysia({ prefix: '/job' })
+	.use(withRateLimit('job'))
+	.use(withAuthJob)
+	.post(
+		'/trigger',
+		async ({ body, set }) => {
+			if (!isCompatibleTask(body.Task) || !isValidTaskPayload(body.Task, body.Options)) {
+				set.status = 400
+				return {
+					error: {
+						code: 22,
+						message: 'Invalid request',
+					},
+				}
 			}
-		}
 
-		if (!isCompatibleTask(body.Task)) {
-			set.status = 400
-			return {
-				error: {
-					code: 22,
-					message: 'Invalid request',
-				},
-			}
-		}
-
-		await enqueueCompatibleTask(body.Task, body.Options)
-		set.status = 200
-		return
-	},
-	{
-		body: t.Object({
-			Task: t.String(),
-			Options: t.Record(t.String(), t.Unknown()),
-		}),
-	},
-)
+			await enqueueCompatibleTask(body.Task, body.Options)
+			set.status = 200
+			return
+		},
+		{
+			body: t.Object({
+				Task: t.String(),
+				Options: t.Record(t.String(), t.Unknown()),
+			}),
+		},
+	)

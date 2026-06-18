@@ -1,50 +1,54 @@
-import { type AccessTokenPayload, verifyAccessToken } from '@zeepkist/core'
+import { setAttributes } from '@elysiajs/opentelemetry'
 import {
 	getOrInsertLevel,
 	getUser,
-	insertRecord,
-	insertRecordMedia,
-	upsertPersonalBest,
-	upsertWorldRecord,
+	scheduleRecordMediaUpload,
+	submitRecord,
 } from '@zeepkist/database/services'
 import { enqueueCompatibleTask } from '@zeepkist/jobs/queue'
 import { Elysia, t } from 'elysia'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
+import { withRateLimit } from '../../plugins/withRateLimit'
 
 export const recordRoutes = new Elysia({ prefix: '/record' })
 	.use(withAuthGtr)
+	.use(withRateLimit('record'))
 	.use(withModVersionGuard)
 	.post(
 		'/submit',
-		async ({ headers, body, set }) => {
-			const bearerToken = headers.authorization?.split(' ')[1]
-			if (!bearerToken) {
-				set.status = 400
-				return {
-					error: {
-						code: 14,
-						message: 'Not authenticated',
-					},
-				}
-			}
-
-			let auth: AccessTokenPayload
-			try {
-				auth = verifyAccessToken(bearerToken)
-			} catch {
-				set.status = 401
-				return {
-					error: {
-						code: 15,
-						message: 'Invalid or expired token',
-					},
-				}
-			}
-
+		async ({ auth, body, set, request }) => {
 			const { Level, Time, Splits, Speeds, GhostData, GameVersion, ModVersion } = body
 
-			if (!Level || !Time || !Splits || !Speeds || !GhostData || !GameVersion) {
+			const validBase64 =
+				GhostData.length % 4 === 0 &&
+				/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(GhostData)
+			const validNumbers =
+				Number.isFinite(Time) &&
+				Time > 0 &&
+				Splits.every(Number.isFinite) &&
+				Speeds.every(Number.isFinite)
+
+			setAttributes({
+				'record.request_bytes': Number(request.headers.get('content-length') ?? 0),
+				'record.ghost_base64_bytes': GhostData.length,
+				'record.ghost_decoded_bytes': validBase64
+					? Buffer.byteLength(GhostData, 'base64')
+					: 0,
+				'record.split_count': Splits.length,
+				'record.speed_count': Speeds.length,
+			})
+
+			if (
+				!Level ||
+				!Time ||
+				!Splits ||
+				!Speeds ||
+				!GhostData ||
+				!GameVersion ||
+				!validBase64 ||
+				!validNumbers
+			) {
 				set.status = 400
 				return {
 					error: {
@@ -55,7 +59,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 			}
 
 			const user = await getUser(auth.steamId)
-			if (!user) {
+			if (!user || user.banned) {
 				set.status = 401
 				return {
 					error: {
@@ -76,7 +80,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				}
 			}
 
-			const submittedRecord = await insertRecord({
+			const submitted = await submitRecord({
 				idUser: user.id,
 				idLevel: level.id,
 				time: Time,
@@ -88,7 +92,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				dateUpdated: new Date().toISOString(),
 			})
 
-			if (!submittedRecord) {
+			if (!submitted) {
 				set.status = 400
 				return {
 					error: {
@@ -98,23 +102,9 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				}
 			}
 
-			const [personalBest] = await Promise.all([
-				upsertPersonalBest({
-					idUser: user.id,
-					idLevel: level.id,
-					idRecord: submittedRecord.id,
-					time: Time,
-				}),
-				upsertWorldRecord({
-					idUser: user.id,
-					idLevel: level.id,
-					idRecord: submittedRecord.id,
-					time: Time,
-				}),
-				insertRecordMedia({ idRecord: submittedRecord.id, ghostData: GhostData }),
-			])
+			scheduleRecordMediaUpload(submitted.record.id, GhostData)
 
-			if (personalBest) {
+			if (submitted.personalBestChanged) {
 				await enqueueCompatibleTask('updateLevelScore', {
 					idLevel: level.id,
 					idUser: user.id,

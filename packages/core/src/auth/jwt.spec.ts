@@ -5,7 +5,7 @@ process.env.DATABASE_URL =
 process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'x'.repeat(32)
 process.env.JWT_AUDIENCE = process.env.JWT_AUDIENCE ?? 'zeepki.st'
 process.env.JWT_ISSUER = process.env.JWT_ISSUER ?? 'https://zeepki.st'
-process.env.JWT_ACCESS_TTL = '5m'
+process.env.JWT_ACCESS_TTL = '15m'
 process.env.JWT_REFRESH_TTL = '7d'
 process.env.TRIGGER_JOB_TOKEN = process.env.TRIGGER_JOB_TOKEN ?? 'trigger-token'
 

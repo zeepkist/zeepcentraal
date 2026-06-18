@@ -1,4 +1,4 @@
-import { db } from '../index'
+import { db } from '../client'
 import { type userPoints, userPointsHistory } from '../schema'
 
 type UserPoints = Pick<

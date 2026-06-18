@@ -169,6 +169,13 @@
 			"when": 1754953873454,
 			"tag": "0024_natural_typhoid_mary",
 			"breakpoints": true
+		},
+		{
+			"idx": 25,
+			"version": "7",
+			"when": 1781807919703,
+			"tag": "0025_crazy_maddog",
+			"breakpoints": true
 		}
 	]
 }

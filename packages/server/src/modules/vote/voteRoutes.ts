@@ -1,99 +1,63 @@
-import { type AccessTokenPayload, verifyAccessToken } from '@zeepkist/core'
 import { getLevel, getUser, upsertVote } from '@zeepkist/database/services'
 import { Elysia, t } from 'elysia'
 import { withAuthRequest } from '../../plugins/withAuth'
+import { withRateLimit } from '../../plugins/withRateLimit'
 
-function getCookieToken(cookieHeader?: string): string | null {
-	if (!cookieHeader) {
-		return null
-	}
+export const voteRoutes = new Elysia({ prefix: '/vote' })
+	.use(withAuthRequest)
+	.use(withRateLimit('mutation'))
+	.post(
+		'/submit',
+		async ({ auth, body, set }) => {
+			const { Level, Value } = body
 
-	for (const item of cookieHeader.split(';')) {
-		const [key, ...rest] = item.trim().split('=')
-		if (key === 'zeepcentral_access_token') {
-			return decodeURIComponent(rest.join('='))
-		}
-	}
-
-	return null
-}
-
-export const voteRoutes = new Elysia({ prefix: '/vote' }).use(withAuthRequest).post(
-	'/submit',
-	async ({ headers, body, set }) => {
-		const token = headers.authorization?.split(' ')[1] ?? getCookieToken(headers.cookie)
-		if (!token) {
-			set.status = 400
-			return {
-				error: {
-					code: 14,
-					message: 'Not authenticated',
-				},
+			if (!Level || Value === undefined) {
+				set.status = 400
+				return {
+					error: {
+						code: 17,
+						message: 'Missing required parameters',
+					},
+				}
 			}
-		}
 
-		let auth: AccessTokenPayload
-		try {
-			auth = verifyAccessToken(token)
-		} catch {
-			set.status = 401
-			return {
-				error: {
-					code: 15,
-					message: 'Invalid or expired token',
-				},
+			const user = await getUser(auth.steamId)
+			if (!user || user.banned) {
+				set.status = 401
+				return {
+					error: {
+						code: 16,
+						message: 'User not found',
+					},
+				}
 			}
-		}
 
-		const { Level, Value } = body
-
-		if (!Level || Value === undefined) {
-			set.status = 400
-			return {
-				error: {
-					code: 17,
-					message: 'Missing required parameters',
-				},
+			const level = await getLevel(Level)
+			if (!level) {
+				set.status = 400
+				return {
+					error: {
+						code: 18,
+						message: 'Level not found',
+					},
+				}
 			}
-		}
 
-		const user = await getUser(auth.steamId)
-		if (!user) {
-			set.status = 401
-			return {
-				error: {
-					code: 16,
-					message: 'User not found',
-				},
-			}
-		}
+			await upsertVote(user.id, level.id, Value)
 
-		const level = await getLevel(Level)
-		if (!level) {
-			set.status = 400
-			return {
-				error: {
-					code: 18,
-					message: 'Level not found',
-				},
-			}
-		}
-
-		await upsertVote(user.id, level.id, Value)
-
-		set.status = 200
-		return
-	},
-	{
-		body: t.Object({
-			Level: t.String(),
-			Value: t.Union([
-				t.Literal(-2),
-				t.Literal(-1),
-				t.Literal(0),
-				t.Literal(1),
-				t.Literal(2),
-			]),
-		}),
-	},
-)
+			set.status = 200
+			return
+		},
+		{
+			body: t.Object({
+				Level: t.String(),
+				Value: t.Union([
+					t.Literal(-2),
+					t.Literal(-1),
+					t.Literal(0),
+					t.Literal(1),
+					t.Literal(2),
+				]),
+			}),
+		},
+	)

@@ -1,6 +1,9 @@
+import { timingSafeEqual } from 'node:crypto'
+import { setAttributes } from '@elysiajs/opentelemetry'
 import {
 	authenticateSteamUser,
 	COOKIES,
+	config,
 	generateAccessToken,
 	generateRefreshToken,
 	getDiscordAccessToken,
@@ -9,22 +12,23 @@ import {
 	getSteamRedirectUrl,
 	isSteamLoginSignatureValid,
 	jwtProvider,
+	parseCookieHeader,
 } from '@zeepkist/core'
 import {
-	deleteAuthByRefreshToken,
-	getAuthByUserAndRefreshToken,
 	getOrInsertUser,
 	getUser,
 	getUserByDiscordId,
 	insertAuth,
+	rotateAuth,
 } from '@zeepkist/database/services'
 import { Elysia, t } from 'elysia'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
+import { withRateLimit } from '../../plugins/withRateLimit'
 import { handleV1Error, V1_ERROR_CODES } from '../../v1Errors'
 
 function cookieDomain() {
-	const backendUrl = process.env.BACKEND_URL ?? 'http://localhost:3000'
-	const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173'
+	const backendUrl = config.backendUrl
+	const frontendUrl = config.frontendUrl
 	const isLocal = backendUrl.includes('localhost') || backendUrl.includes('127.0.0.1')
 	return {
 		backendUrl,
@@ -58,6 +62,21 @@ function buildSetCookieHeaders({
 	return [accessCookie, refreshCookie, steamIdCookie]
 }
 
+function stateCookie(value: string, maxAge: number) {
+	const { domain } = cookieDomain()
+	return `${COOKIES.OAuthState}=${encodeURIComponent(value)}; Path=/auth/; Max-Age=${maxAge}; SameSite=Lax; ${domain === 'localhost' ? '' : 'Secure; '}HttpOnly`
+}
+
+function validState(headers: Record<string, string | undefined>, value?: string): boolean {
+	const cookieState = parseCookieHeader(headers.cookie)[COOKIES.OAuthState]
+	if (!cookieState || !value) {
+		return false
+	}
+	const expected = Buffer.from(cookieState)
+	const actual = Buffer.from(value)
+	return expected.length === actual.length && timingSafeEqual(expected, actual)
+}
+
 function redirectResponse(url: string, cookies?: string[]) {
 	const headers = new Headers({ Location: url })
 	for (const cookie of cookies ?? []) {
@@ -85,6 +104,7 @@ function errorResponse(status: number, code: number) {
 }
 
 const gtrAuthRoutes = new Elysia()
+	.use(withRateLimit('auth'))
 	.use(withModVersionGuard)
 	.post(
 		'/login',
@@ -105,6 +125,9 @@ const gtrAuthRoutes = new Elysia()
 			const user = await getOrInsertUser(BigInt(SteamId), SteamId)
 			if (!user) {
 				return errorResponse(500, V1_ERROR_CODES.INTERNAL_SERVER_ERROR)
+			}
+			if (user.banned) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 			const { accessToken, accessTokenExpiry } = generateAccessToken({
 				provider: jwtProvider.gtr,
@@ -151,17 +174,9 @@ const gtrAuthRoutes = new Elysia()
 			if (!user) {
 				return errorResponse(401, V1_ERROR_CODES.AUTH_USER_NOT_FOUND)
 			}
-
-			const auth = await getAuthByUserAndRefreshToken(user.id, RefreshToken)
-			if (
-				!auth ||
-				(auth.refreshTokenExpiry !== null &&
-					Date.now() > Number(auth.refreshTokenExpiry * 1000n))
-			) {
+			if (user.banned) {
 				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
-
-			await deleteAuthByRefreshToken(RefreshToken)
 
 			const { accessToken, accessTokenExpiry } = generateAccessToken({
 				provider: jwtProvider.gtr,
@@ -169,7 +184,7 @@ const gtrAuthRoutes = new Elysia()
 			})
 			const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
 
-			await insertAuth({
+			const rotated = await rotateAuth(user.id, RefreshToken, {
 				idUser: user.id,
 				accessToken,
 				accessTokenExpiry,
@@ -180,6 +195,9 @@ const gtrAuthRoutes = new Elysia()
 				dateCreated: new Date().toISOString(),
 				dateUpdated: new Date().toISOString(),
 			})
+			if (!rotated) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
 
 			return emptyJsonResponse(200, {
 				AccessToken: accessToken,
@@ -200,10 +218,15 @@ const gtrAuthRoutes = new Elysia()
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
 	.use(gtrAuthRoutes)
-	.get('/discord/redirect', () => redirectResponse(getDiscordRedirectUrl()))
-	.get('/discord/callback', async ({ query }) => {
+	.use(withRateLimit('auth'))
+	.get('/discord/redirect', () => {
+		const state = crypto.randomUUID()
+		return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
+	})
+	.get('/discord/callback', async ({ query, headers }) => {
 		const code = query.code as string | undefined
-		if (!code) {
+		const state = query.state as string | undefined
+		if (!code || !validState(headers, state)) {
 			return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
 		}
 
@@ -221,6 +244,13 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 		if (!user?.steamId) {
 			return errorResponse(400, V1_ERROR_CODES.AUTH_DISCORD_NOT_LINKED)
 		}
+		if (user.banned) {
+			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+		}
+		setAttributes({
+			'user.discord_id': discordUser.id,
+			'user.steam_id': user.steamId.toString(),
+		})
 
 		const { accessToken, accessTokenExpiry } = generateAccessToken({
 			provider: jwtProvider.discord,
@@ -248,10 +278,20 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			dateUpdated: new Date().toISOString(),
 		})
 
-		return redirectResponse(new URL('/auth/callback', cookieDomain().frontendUrl).href, cookies)
+		return redirectResponse(new URL('/auth/callback', cookieDomain().frontendUrl).href, [
+			...cookies,
+			stateCookie('', 0),
+		])
 	})
-	.get('/steam/redirect', () => redirectResponse(getSteamRedirectUrl()))
-	.get('/steam/callback', async ({ query }) => {
+	.get('/steam/redirect', () => {
+		const state = crypto.randomUUID()
+		return redirectResponse(getSteamRedirectUrl(state), [stateCookie(state, 300)])
+	})
+	.get('/steam/callback', async ({ query, headers }) => {
+		const state = query.state as string | undefined
+		if (!validState(headers, state)) {
+			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+		}
 		const steamQuery = query as unknown as Parameters<typeof isSteamLoginSignatureValid>[0]
 		if (!(await isSteamLoginSignatureValid(steamQuery))) {
 			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
@@ -267,6 +307,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 		if (!user) {
 			return errorResponse(500, V1_ERROR_CODES.INTERNAL_SERVER_ERROR)
 		}
+		if (user.banned) {
+			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+		}
+		setAttributes({ 'user.steam_id': steamId })
 		const { accessToken, accessTokenExpiry } = generateAccessToken({
 			provider: jwtProvider.steam,
 			steamId,
@@ -292,7 +336,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			dateUpdated: new Date().toISOString(),
 		})
 
-		return redirectResponse(new URL('/auth/callback', cookieDomain().frontendUrl).href, cookies)
+		return redirectResponse(new URL('/auth/callback', cookieDomain().frontendUrl).href, [
+			...cookies,
+			stateCookie('', 0),
+		])
 	})
 	.post('/web/refresh', async ({ headers }) => {
 		const cookies = Object.fromEntries(
@@ -318,17 +365,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 		if (!user) {
 			return errorResponse(404, V1_ERROR_CODES.AUTH_USER_NOT_FOUND)
 		}
-
-		const auth = await getAuthByUserAndRefreshToken(user.id, cookieRefreshToken)
-		if (
-			!auth ||
-			(auth.refreshTokenExpiry !== null &&
-				Date.now() > Number(auth.refreshTokenExpiry * 1000n))
-		) {
+		if (user.banned) {
 			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
 		}
-
-		await deleteAuthByRefreshToken(cookieRefreshToken)
 
 		const { accessToken, accessTokenExpiry } = generateAccessToken({
 			provider: jwtProvider.steam,
@@ -343,7 +382,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			steamId: cookieSteamId,
 		})
 
-		await insertAuth({
+		const rotated = await rotateAuth(user.id, cookieRefreshToken, {
 			idUser: user.id,
 			accessToken,
 			accessTokenExpiry,
@@ -354,6 +393,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			dateCreated: new Date().toISOString(),
 			dateUpdated: new Date().toISOString(),
 		})
+		if (!rotated) {
+			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+		}
 
 		return emptyJsonResponse(200, undefined, nextCookies)
 	})

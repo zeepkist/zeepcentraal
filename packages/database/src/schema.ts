@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import {
 	bigint,
 	boolean,
@@ -358,6 +359,7 @@ export const auth = pgTable(
 		accessToken: text('access_token'),
 		accessTokenExpiry: bigint('access_token_expiry', { mode: 'bigint' }),
 		refreshToken: text('refresh_token'),
+		refreshTokenHash: text('refresh_token_hash'),
 		refreshTokenExpiry: bigint('refresh_token_expiry', { mode: 'bigint' }),
 		type: integer(),
 		provider: varchar().notNull().default('invalid'),
@@ -375,6 +377,9 @@ export const auth = pgTable(
 			name: 'auth_user_foreign',
 		}).onDelete('cascade'),
 		index('IX_auth_user').using('btree', table.idUser.asc().nullsLast()),
+		uniqueIndex('UQ_auth_refresh_token_hash')
+			.on(table.refreshTokenHash)
+			.where(sql`${table.refreshTokenHash} IS NOT NULL`),
 	],
 )
 
@@ -478,26 +483,33 @@ export const recordMedia = pgTable(
 	],
 )
 
-export const user = pgTable('user', {
-	id: integer().primaryKey().generatedByDefaultAsIdentity({
-		name: 'users_id_seq',
-		startWith: 1,
-		increment: 1,
-		minValue: 1,
-		maxValue: 2147483647,
-		cache: 1,
-	}),
-	steamName: varchar('steam_name', { length: 255 }),
-	banned: boolean().default(false).notNull(),
-	steamId: bigint('steam_id', { mode: 'bigint' }),
-	discordId: bigint('discord_id', { mode: 'bigint' }),
-	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
-		.notNull()
-		.defaultNow(),
-	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
-		new Date().toISOString(),
-	),
-})
+export const user = pgTable(
+	'user',
+	{
+		id: integer().primaryKey().generatedByDefaultAsIdentity({
+			name: 'users_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+			maxValue: 2147483647,
+			cache: 1,
+		}),
+		steamName: varchar('steam_name', { length: 255 }),
+		banned: boolean().default(false).notNull(),
+		steamId: bigint('steam_id', { mode: 'bigint' }),
+		discordId: bigint('discord_id', { mode: 'bigint' }),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
+			() => new Date().toISOString(),
+		),
+	},
+	(table) => [
+		uniqueIndex('UQ_user_steam_id').on(table.steamId).where(sql`${table.steamId} IS NOT NULL`),
+		uniqueIndex('UQ_user_discord_id').on(table.discordId).where(sql`${table.discordId} > 0`),
+	],
+)
 
 export const version = pgTable('version', {
 	id: integer().primaryKey().generatedAlwaysAsIdentity({
@@ -592,6 +604,7 @@ export const vote = pgTable(
 			table.idUser.asc().nullsLast(),
 			table.idLevel.asc().nullsLast(),
 		),
+		unique('UQ_vote_user_level').on(table.idUser, table.idLevel),
 	],
 )
 

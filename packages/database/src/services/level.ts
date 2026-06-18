@@ -1,5 +1,5 @@
 import { eq, gte, inArray } from 'drizzle-orm'
-import { db } from '../index'
+import { db } from '../client'
 import { level, levelItem, record } from '../schema'
 
 export async function getLevel(hash: string) {
@@ -9,13 +9,12 @@ export async function getLevel(hash: string) {
 }
 
 export async function getOrInsertLevel(hash: string) {
-	const existing = await getLevel(hash)
-	if (existing) {
-		return existing
-	}
-
-	const [created] = await db.insert(level).values({ hash }).returning()
-	return created
+	const [created] = await db
+		.insert(level)
+		.values({ hash })
+		.onConflictDoNothing({ target: level.hash })
+		.returning()
+	return created ?? getLevel(hash)
 }
 
 export async function getLevelByUuid(uuid: string): Promise<{ id: number } | null> {
@@ -54,7 +53,7 @@ export async function getAllLevelIds(): Promise<number[]> {
 
 export async function getAllLevelIdsWithRecordsSince(recordsSince: Date): Promise<number[]> {
 	const levels = await db
-		.select({ id: level.id })
+		.selectDistinct({ id: level.id })
 		.from(level)
 		.innerJoin(record, eq(level.id, record.idLevel))
 		.where(gte(record.dateCreated, recordsSince.toISOString()))
