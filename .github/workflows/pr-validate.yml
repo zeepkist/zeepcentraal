@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Bun dependencies
         uses: ./.github/actions/setup-bun-deps
@@ -41,7 +41,7 @@ jobs:
     needs: [quality]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Bun dependencies
         uses: ./.github/actions/setup-bun-deps
@@ -69,7 +69,7 @@ jobs:
     needs: [build-packages]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download compiled binaries
         uses: actions/download-artifact@v8
