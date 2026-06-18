@@ -116,8 +116,15 @@ Expected response:
 | `bun run test` | Runs test suite |
 | `bun run lint` | Runs Biome checks |
 | `bun run lint:fix` | Applies Biome autofixes |
+| `bun run lint:staged` | Applies Biome fixes to staged files |
 | `bun run build:server` | Compiles server binary to `dist/` |
 | `bun run build:jobs` | Compiles jobs binary to `dist/` |
+
+## Git Hooks
+
+`bun install` configures a Husky pre-commit hook. Before each commit it applies Biome fixes to
+staged files, then runs the full typecheck and test suite. Use `HUSKY=0` only when an emergency
+bypass is required.
 
 ## Build and Docker
 
