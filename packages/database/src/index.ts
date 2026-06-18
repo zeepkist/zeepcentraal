@@ -7,7 +7,7 @@ function getDatabaseUrl() {
 }
 
 const client = postgres(getDatabaseUrl(), {
-	max: 20,
+	max: 10,
 	idle_timeout: 30,
 })
 
