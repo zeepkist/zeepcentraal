@@ -47,22 +47,29 @@ export async function getUserByDiscordId(discordId: string) {
 }
 
 export async function getOrInsertUser(steamId: bigint, steamName?: string) {
-	const existing = await getUserBySteamId(steamId)
-	if (existing) {
-		return existing
-	}
 	const resolvedSteamName = steamName ?? (await getSteamUser(steamId.toString())).personaname
+	const now = new Date().toISOString()
 
-	const [created] = await db
+	const [upserted] = await db
 		.insert(user)
-		.values({ steamId, steamName: resolvedSteamName, banned: false })
-		.onConflictDoNothing({
+		.values({
+			steamId,
+			steamName: resolvedSteamName,
+			banned: false,
+			dateCreated: now,
+			dateUpdated: now,
+		})
+		.onConflictDoUpdate({
 			target: user.steamId,
 			where: sql`${user.steamId} IS NOT NULL`,
+			set: {
+				steamName: resolvedSteamName,
+				dateUpdated: now,
+			},
 		})
 		.returning()
 
-	return created ?? getUserBySteamId(steamId)
+	return upserted ?? getUserBySteamId(steamId)
 }
 
 export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<string, number>> {
@@ -71,63 +78,51 @@ export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<stri
 		return new Map<string, number>()
 	}
 
-	const existingUsers = await db
-		.select({ id: user.id, steamId: user.steamId })
-		.from(user)
-		.where(
-			inArray(
-				user.steamId,
-				uniqueSteamIds.map((value) => BigInt(value)),
-			),
+	const steamProfiles = await Promise.all(uniqueSteamIds.map((steamId) => getSteamUser(steamId)))
+	const now = new Date().toISOString()
+	const upsertedUsers = await db
+		.insert(user)
+		.values(
+			steamProfiles.map((profile) => ({
+				steamId: BigInt(profile.steamid),
+				steamName: profile.personaname,
+				banned: false,
+				dateCreated: now,
+				dateUpdated: now,
+			})),
 		)
+		.onConflictDoUpdate({
+			target: user.steamId,
+			where: sql`${user.steamId} IS NOT NULL`,
+			set: {
+				steamName: sql`excluded.steam_name`,
+				dateUpdated: now,
+			},
+		})
+		.returning({ id: user.id, steamId: user.steamId })
 
 	const idMap = new Map<string, number>()
-	for (const entry of existingUsers) {
+	for (const entry of upsertedUsers) {
 		if (entry.steamId !== null) {
 			idMap.set(entry.steamId.toString(), entry.id)
 		}
 	}
-	const missingSteamIds = uniqueSteamIds.filter((steamId) => !idMap.has(steamId))
 
-	if (missingSteamIds.length > 0) {
-		const steamProfiles = await Promise.all(
-			missingSteamIds.map((steamId) => getSteamUser(steamId)),
-		)
-
-		const insertedUsers = await db
-			.insert(user)
-			.values(
-				steamProfiles.map((profile) => ({
-					steamId: BigInt(profile.steamid),
-					steamName: profile.personaname,
-					banned: false,
-				})),
+	const unresolvedSteamIds = uniqueSteamIds.filter((steamId) => !idMap.has(steamId))
+	if (unresolvedSteamIds.length > 0) {
+		const resolvedUsers = await db
+			.select({ id: user.id, steamId: user.steamId })
+			.from(user)
+			.where(
+				inArray(
+					user.steamId,
+					unresolvedSteamIds.map((value) => BigInt(value)),
+				),
 			)
-			.onConflictDoNothing()
-			.returning({ id: user.id, steamId: user.steamId })
 
-		for (const insertedUser of insertedUsers) {
-			if (insertedUser.steamId !== null) {
-				idMap.set(insertedUser.steamId.toString(), insertedUser.id)
-			}
-		}
-
-		const unresolvedSteamIds = missingSteamIds.filter((steamId) => !idMap.has(steamId))
-		if (unresolvedSteamIds.length > 0) {
-			const resolvedUsers = await db
-				.select({ id: user.id, steamId: user.steamId })
-				.from(user)
-				.where(
-					inArray(
-						user.steamId,
-						unresolvedSteamIds.map((value) => BigInt(value)),
-					),
-				)
-
-			for (const resolvedUser of resolvedUsers) {
-				if (resolvedUser.steamId !== null) {
-					idMap.set(resolvedUser.steamId.toString(), resolvedUser.id)
-				}
+		for (const resolvedUser of resolvedUsers) {
+			if (resolvedUser.steamId !== null) {
+				idMap.set(resolvedUser.steamId.toString(), resolvedUser.id)
 			}
 		}
 	}

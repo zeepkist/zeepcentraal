@@ -38,6 +38,7 @@ const state = {
 	accessTokenCounter: 0,
 	refreshTokenCounter: 0,
 	insertAuthCalls: [] as Array<Record<string, unknown>>,
+	getOrInsertUserCalls: [] as Array<{ steamId: bigint; steamName?: string }>,
 	deletedRefreshTokens: [] as string[],
 	jobCalls: [] as Array<{ task: string; options: Record<string, unknown> }>,
 	updatedDiscordIds: [] as Array<{ steamId: string; discordId: bigint | null }>,
@@ -119,6 +120,7 @@ function resetState() {
 	state.accessTokenCounter = 0
 	state.refreshTokenCounter = 0
 	state.insertAuthCalls = []
+	state.getOrInsertUserCalls = []
 	state.deletedRefreshTokens = []
 	state.jobCalls = []
 	state.updatedDiscordIds = []
@@ -297,11 +299,14 @@ mock.module('@zeepkist/database', () => ({
 
 mock.module('@zeepkist/database/services', () => ({
 	isModOutdated: async () => state.versionOutdated,
-	getOrInsertUser: async (steamId: bigint, steamName?: string) => ({
-		...(state.userBySteamId ?? { id: 1, steamId, steamName: steamName ?? 'Zeep' }),
-		steamId,
-		steamName: steamName ?? 'Zeep',
-	}),
+	getOrInsertUser: async (steamId: bigint, steamName?: string) => {
+		state.getOrInsertUserCalls.push({ steamId, steamName })
+		return {
+			...(state.userBySteamId ?? { id: 1, steamId, steamName: steamName ?? 'Zeep' }),
+			steamId,
+			steamName: steamName ?? 'Zeep',
+		}
+	},
 	getUser: async (steamId: string) =>
 		steamId === '12345678901234567' ? state.userBySteamId : null,
 	getUserByDiscordId: async (discordId: string) =>
@@ -410,6 +415,9 @@ test('auth/login returns V1-shaped token payload on success', async () => {
 		RefreshToken: 'refresh:1',
 		RefreshTokenExpiry: 1900000101,
 	})
+	expect(state.getOrInsertUserCalls).toEqual([
+		{ steamId: 12345678901234567n, steamName: undefined },
+	])
 })
 
 test('CORS allows configured website origin and rejects arbitrary origins', async () => {
@@ -609,6 +617,9 @@ test('auth/steam/callback returns redirect and cookies on success', async () => 
 	expect(response.status).toBe(302)
 	expect(response.headers.get('location')).toBe('http://localhost:5173/auth/callback')
 	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_refresh_token=')
+	expect(state.getOrInsertUserCalls).toEqual([
+		{ steamId: 12345678901234567n, steamName: undefined },
+	])
 })
 
 test('auth/web/refresh returns 400 when cookies are missing', async () => {

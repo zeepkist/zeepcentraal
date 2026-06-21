@@ -122,7 +122,7 @@ const gtrAuthRoutes = new Elysia()
 				return errorResponse(401, V1_ERROR_CODES.AUTH_STEAM_ID_MISMATCH)
 			}
 
-			const user = await getOrInsertUser(BigInt(SteamId), SteamId)
+			const user = await getOrInsertUser(BigInt(SteamId))
 			if (!user) {
 				return errorResponse(500, V1_ERROR_CODES.INTERNAL_SERVER_ERROR)
 			}
