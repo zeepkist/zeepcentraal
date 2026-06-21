@@ -62,7 +62,7 @@ export async function getOrInsertUser(steamId: bigint, steamName?: string) {
 		})
 		.onConflictDoUpdate({
 			target: user.steamId,
-			where: userSteamIdConflictWhere,
+			targetWhere: userSteamIdConflictWhere,
 			set: {
 				steamName: resolvedSteamName,
 				dateUpdated: now,
@@ -94,7 +94,7 @@ export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<stri
 		)
 		.onConflictDoUpdate({
 			target: user.steamId,
-			where: userSteamIdConflictWhere,
+			targetWhere: userSteamIdConflictWhere,
 			set: {
 				steamName: sql`excluded.steam_name`,
 				dateUpdated: now,
