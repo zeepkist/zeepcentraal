@@ -6,6 +6,7 @@ interface SteamUserData {
 	steamid: string
 	personaname: string
 }
+export const userSteamIdConflictWhere = sql`steam_id IS NOT NULL`
 
 async function getSteamUser(steamId: string): Promise<SteamUserData> {
 	const apiKey = process.env.STEAM_API_KEY
@@ -61,7 +62,7 @@ export async function getOrInsertUser(steamId: bigint, steamName?: string) {
 		})
 		.onConflictDoUpdate({
 			target: user.steamId,
-			where: sql`${user.steamId} IS NOT NULL`,
+			where: userSteamIdConflictWhere,
 			set: {
 				steamName: resolvedSteamName,
 				dateUpdated: now,
@@ -93,7 +94,7 @@ export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<stri
 		)
 		.onConflictDoUpdate({
 			target: user.steamId,
-			where: sql`${user.steamId} IS NOT NULL`,
+			where: userSteamIdConflictWhere,
 			set: {
 				steamName: sql`excluded.steam_name`,
 				dateUpdated: now,
