@@ -150,3 +150,16 @@ export async function upsertLevelPoints({
 		}
 	})
 }
+
+export async function setLevelPointsToZero(idLevel: number): Promise<void> {
+	await db
+		.insert(levelPoints)
+		.values({ idLevel, points: 0 })
+		.onConflictDoUpdate({
+			target: levelPoints.idLevel,
+			set: {
+				points: 0,
+				dateUpdated: new Date().toISOString(),
+			},
+		})
+}

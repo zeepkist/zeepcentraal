@@ -8,7 +8,7 @@
 - [x] SteamCMD jobs runtime
 - [x] GTR `WorkshopId` record contract
 - [x] Minimum GTR version and automatic scan claims
-- [ ] Deleted workshop-item scoring
+- [x] Deleted workshop-item scoring
 - [ ] Full Phase 1 validation
 - [ ] Manual validation by project owner
 

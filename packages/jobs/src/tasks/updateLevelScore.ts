@@ -1,10 +1,12 @@
 import {
+	getLevelWorkshopAvailability,
 	getPersonalBestCount90thPercentile,
 	getPersonalBestsWithRecord,
 	getVoteValues,
+	setLevelPointsToZero,
 	upsertLevelPoints,
 } from '@zeepkist/database'
-import { calculateLevelPoints, calculateVoteRating } from '../utils'
+import { calculateLevelPoints, calculateVoteRating, isLevelScoreEligible } from '../utils'
 import type { TaskHandler } from './types'
 
 type Payload = {
@@ -16,6 +18,20 @@ export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) =
 	const { idLevel, idUser } = payload
 	if (!idLevel) {
 		helpers.logger.warn('updateLevelScore skipped: missing idLevel payload.')
+		return
+	}
+
+	const availability = await getLevelWorkshopAvailability(idLevel)
+	if (!isLevelScoreEligible(availability)) {
+		await setLevelPointsToZero(idLevel)
+		if (idUser) {
+			await helpers.addJob(
+				'updatePlayerScore',
+				{ idUser },
+				{ jobKey: `update-player-score:${idUser}` },
+			)
+		}
+		helpers.logger.info(`updateLevelScore set inaccessible idLevel=${idLevel} to zero.`)
 		return
 	}
 
