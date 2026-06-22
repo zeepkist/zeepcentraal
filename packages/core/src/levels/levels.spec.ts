@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test'
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { parseCsvLevel, parseJsonLevel } from '.'
 
 const csv = [
@@ -44,5 +47,25 @@ describe('legacy level parsing', () => {
 
 	test('rejects malformed CSV blocks', () => {
 		expect(() => parseCsvLevel(`${csv}\n1,2,3`)).toThrow('expected 38')
+	})
+
+	test('matches ZeepSDK legacy hash vectors', () => {
+		const fixtureDirectory = join(import.meta.dir, '../../testdata/legacy-hash')
+		const vectors = readFileSync(join(fixtureDirectory, 'vectors.csv'), 'utf8')
+			.trim()
+			.split(/\r?\n/)
+			.slice(1)
+
+		for (const vector of vectors) {
+			const [fileName, expectedSha1, expectedSha256] = vector.split(',')
+			if (!fileName || !expectedSha1 || !expectedSha256) {
+				throw new Error(`Invalid compatibility vector: ${vector}`)
+			}
+			const bytes = readFileSync(join(fixtureDirectory, fileName))
+			expect(createHash('sha256').update(bytes).digest('hex').toUpperCase()).toBe(
+				expectedSha256,
+			)
+			expect(parseCsvLevel(bytes.toString('utf8')).hash).toBe(expectedSha1)
+		}
 	})
 })

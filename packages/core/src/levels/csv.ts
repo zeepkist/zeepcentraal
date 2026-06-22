@@ -8,7 +8,6 @@ interface ParsedCsvBlock extends CsvBlock {
 	rawPosition: [string, string, string]
 	rawEuler: [string, string, string]
 	rawScale: [string, string, string]
-	rawOptions: string[]
 }
 
 function parseFinite(value: string, label: string): number {
@@ -17,6 +16,32 @@ function parseFinite(value: string, label: string): number {
 		throw new Error(`Invalid ${label}: ${value}`)
 	}
 	return parsed
+}
+
+function formatDecimal(value: string): string {
+	const match = value.trim().match(/^([+-]?)(\d+)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/)
+	if (!match) {
+		throw new Error(`Invalid decimal: ${value}`)
+	}
+	const sign = match[1] === '-' ? '-' : ''
+	const integer = match[2] ?? ''
+	const fraction = match[3] ?? ''
+	const exponent = Number(match[4] ?? 0)
+	const digits = `${integer}${fraction}`
+	const decimalIndex = integer.length + exponent
+	const expanded =
+		decimalIndex <= 0
+			? `0.${'0'.repeat(-decimalIndex)}${digits}`
+			: decimalIndex >= digits.length
+				? `${digits}${'0'.repeat(decimalIndex - digits.length)}`
+				: `${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`
+	const [expandedInteger = '0', expandedFraction] = expanded.split('.')
+	const normalizedInteger = expandedInteger.replace(/^0+(?=\d)/, '')
+	const normalized =
+		expandedFraction === undefined
+			? normalizedInteger
+			: `${normalizedInteger}.${expandedFraction}`
+	return /^0(?:\.0*)?$/.test(normalized) ? normalized : `${sign}${normalized}`
 }
 
 function vector(values: string[], offset: number, label: string): Vector3 {
@@ -69,7 +94,7 @@ function vectorText(values: [string, string, string]): string {
 }
 
 function blockText(block: ParsedCsvBlock): string {
-	return `Id: ${block.Id}, Position: ${vectorText(block.rawPosition)}, Euler: ${vectorText(block.rawEuler)}, Scale: ${vectorText(block.rawScale)}, Paints: ${block.Paints.join(', ')}, Options: ${block.rawOptions.join(', ')}`
+	return `Id: ${block.Id}, Position: ${vectorText(block.rawPosition)}, Euler: ${vectorText(block.rawEuler)}, Scale: ${vectorText(block.rawScale)}, Paints: ${block.Paints.join(', ')}, Options: ${block.Options.join(', ')}`
 }
 
 function calculateHash(skybox: number, ground: number, blocks: ParsedCsvBlock[]): string {
@@ -135,10 +160,9 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 			Scale: vector(values, 7, 'scale'),
 			Paints: paints,
 			Options: options,
-			rawPosition: values.slice(1, 4) as [string, string, string],
-			rawEuler: values.slice(4, 7) as [string, string, string],
-			rawScale: values.slice(7, 10) as [string, string, string],
-			rawOptions,
+			rawPosition: values.slice(1, 4).map(formatDecimal) as [string, string, string],
+			rawEuler: values.slice(4, 7).map(formatDecimal) as [string, string, string],
+			rawScale: values.slice(7, 10).map(formatDecimal) as [string, string, string],
 		})
 	}
 
@@ -161,6 +185,6 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 		amountBlocks: blocks.length,
 		typeGround: ground,
 		typeSkybox: skybox,
-		blocks: blocks.map(({ rawPosition, rawEuler, rawScale, rawOptions, ...block }) => block),
+		blocks: blocks.map(({ rawPosition, rawEuler, rawScale, ...block }) => block),
 	}
 }

@@ -2,7 +2,7 @@
 
 - [x] Database workshop persistence schema and services
 - [x] Core CSV/JSON parsers and legacy hashes
-- [ ] Cross-runtime golden vectors in ZeepSDK and ZeepCentraal
+- [x] Cross-runtime golden vectors in ZeepSDK and ZeepCentraal
 - [ ] Workshop package
 - [ ] Workshop scan jobs
 - [ ] SteamCMD jobs runtime
