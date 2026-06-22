@@ -183,6 +183,13 @@
 			"when": 1782091812382,
 			"tag": "0026_demonic_pestilence",
 			"breakpoints": true
+		},
+		{
+			"idx": 27,
+			"version": "7",
+			"when": 1782164127107,
+			"tag": "0027_require_workshop_aware_gtr_clients",
+			"breakpoints": true
 		}
 	]
 }
