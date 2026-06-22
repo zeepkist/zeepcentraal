@@ -160,6 +160,7 @@ Current application-managed cron schedules use the `Europe/London` timezone:
 
 | Task | Schedule | Purpose |
 | --- | --- | --- |
+| `syncWorkshopCatalog` | `0 1 * * 0` | Sunday workshop update/backfill scan |
 | `updateLevelScores` with `{ all: true }` | `0 1 * * 1` | Weekly full recalculation |
 | `updateLevelScores` with `{ all: false }` | `*/10 * * * *` | Recent-level refresh |
 | `updatePlayerScores` | `5-59/10 * * * *` | Player leaderboard refresh |

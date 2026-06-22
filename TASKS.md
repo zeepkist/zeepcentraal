@@ -4,7 +4,7 @@
 - [x] Core CSV/JSON parsers and legacy hashes
 - [x] Cross-runtime golden vectors in ZeepSDK and ZeepCentraal
 - [x] Workshop package
-- [ ] Workshop scan jobs
+- [x] Workshop scan jobs
 - [ ] SteamCMD jobs runtime
 - [ ] GTR `WorkshopId` record contract
 - [ ] Minimum GTR version and automatic scan claims

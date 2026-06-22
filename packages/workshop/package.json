@@ -8,6 +8,15 @@
 	"exports": {
 		".": {
 			"import": "./src/index.ts"
+		},
+		"./scanner": {
+			"import": "./src/scanner.ts"
+		},
+		"./steam-cmd": {
+			"import": "./src/steamCmd.ts"
+		},
+		"./steam-metadata": {
+			"import": "./src/steamMetadata.ts"
 		}
 	},
 	"dependencies": {

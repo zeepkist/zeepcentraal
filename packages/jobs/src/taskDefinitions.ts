@@ -10,7 +10,13 @@ const batchPayload = z.union([
 ])
 
 export const taskDefinitions = {
+	scanWorkshopItem: {
+		schema: z.looseObject({ workshopId: z.string().regex(/^[1-9]\d*$/) }),
+		compatible: true,
+		maxAttempts: 5,
+	},
 	syncPersonalBests: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
+	syncWorkshopCatalog: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
 	updateLevelPointsHistory: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
 	updateLevelPointsHistoryBatch: { schema: batchPayload, compatible: true, maxAttempts: 3 },
 	updateLevelScore: {

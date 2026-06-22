@@ -31,6 +31,19 @@ export async function enqueueCompatibleTask(task: string, options: Record<string
 	})
 }
 
+export async function enqueueWorkshopScan(workshopId: bigint): Promise<void> {
+	const workerUtils = await getUtils()
+	await workerUtils.addJob(
+		'scanWorkshopItem',
+		{ workshopId: workshopId.toString() },
+		{
+			priority: 5,
+			maxAttempts: taskDefinitions.scanWorkshopItem.maxAttempts,
+			jobKey: `scan-workshop-item:${workshopId}`,
+		},
+	)
+}
+
 export async function closeQueue(): Promise<void> {
 	await utils?.release()
 	utils = null
