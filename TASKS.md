@@ -5,7 +5,7 @@
 - [x] Cross-runtime golden vectors in ZeepSDK and ZeepCentraal
 - [x] Workshop package
 - [x] Workshop scan jobs
-- [ ] SteamCMD jobs runtime
+- [x] SteamCMD jobs runtime
 - [ ] GTR `WorkshopId` record contract
 - [ ] Minimum GTR version and automatic scan claims
 - [ ] Deleted workshop-item scoring

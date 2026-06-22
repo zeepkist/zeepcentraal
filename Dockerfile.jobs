@@ -1,11 +1,12 @@
-FROM gcr.io/distroless/base
+FROM steamcmd/steamcmd:ubuntu-22@sha256:bcae08c23bed25c99479c653c26f8ef3187471438fd2c89f295634e1bbb39ede
 
-LABEL org.opencontainers.image.description="ZeepCentraal background worker for leaderboard updates, score sync, and history jobs."
+LABEL org.opencontainers.image.description="ZeepCentraal background worker with SteamCMD workshop scanning."
 
 WORKDIR /app
 
 COPY dist/zeepcentraal-jobs zeepcentraal-jobs
 
 ENV NODE_ENV=production
+ENV STEAMCMD_PATH=/usr/bin/steamcmd
 
-CMD ["./zeepcentraal-jobs"]
+ENTRYPOINT ["/app/zeepcentraal-jobs"]

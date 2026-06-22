@@ -24,6 +24,7 @@ Before you start, install:
 - PostgreSQL (running locally or remotely and reachable from `DATABASE_URL`)
 - Git
 - Docker (optional, only needed for container builds/runs)
+- SteamCMD (only needed when running workshop jobs outside Docker)
 
 ## Quick Start
 

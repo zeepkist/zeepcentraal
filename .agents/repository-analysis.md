@@ -15,8 +15,9 @@ self-contained Bun executables:
 - `zeepcentraal-migrate`: the Drizzle migration runner.
 - `zeepcentraal-import-zsl`: the Zeepkist Super League data importer.
 
-All executables are packaged separately in shell-less `gcr.io/distroless/base` images. PostgreSQL
-is the shared persistence and job-queue backend.
+Executables are packaged separately. Server, migrate, and importer use shell-less
+`gcr.io/distroless/base`; jobs uses pinned SteamCMD Ubuntu runtime for workshop downloads.
+PostgreSQL is the shared persistence and job-queue backend.
 
 ### Workspace dependency direction
 
@@ -191,13 +192,14 @@ Root scripts compile binaries into `dist/`:
 
 Each Dockerfile copies only the compiled binary plus required runtime data:
 
-- server and jobs copy only their executable;
+- server copies only its executable;
+- jobs copies its executable into a pinned SteamCMD runtime;
 - migrate also copies Drizzle migrations;
 - import-zsl also copies Super League data.
 
-Because the runtime base is distroless, images have no shell, package manager, Bun installation, or
-source tree. Runtime behavior cannot rely on shell scripts, dynamic package installation, or files
-that are not explicitly copied.
+Distroless images have no shell, package manager, Bun installation, or source tree. Jobs runtime
+contains SteamCMD and its OS dependencies. Runtime behavior cannot rely on dynamic package
+installation or files that are not explicitly copied.
 
 `.github/actions/setup-bun-deps/action.yml` installs the requested Bun version (default `latest`),
 caches workspace `node_modules`, and runs `bun install --frozen-lockfile` on a cache miss.
