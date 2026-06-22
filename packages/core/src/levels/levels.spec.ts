@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseCsvLevel, parseJsonLevel } from '.'
+import { parseCsvLevel, parseJsonLevel, parseLevel } from '.'
 
 const csv = [
 	'LevelEditor2,Author,uid-1',
@@ -43,6 +43,19 @@ describe('legacy level parsing', () => {
 		expect(parsed.amountCheckpoints).toBe(1)
 		expect(parsed.amountFinishes).toBe(1)
 		expect(parsed.blocks).toEqual(blocks)
+	})
+
+	test('parses JSON with UTF-8 BOM', () => {
+		const parsed = parseLevel(
+			`\uFEFF${JSON.stringify({
+				level: { UID: 'uid-bom', zeepHash: 'hash-bom' },
+				author: { name: 'Author', StmID: '1' },
+				medals: { author: 1, gold: 2, silver: 3, bronze: 4 },
+				enviro: { skybox: 1, groundMat: -1 },
+				blox: [],
+			})}`,
+		)
+		expect(parsed.hash).toBe('hash-bom')
 	})
 
 	test('rejects malformed CSV blocks', () => {

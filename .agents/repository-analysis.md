@@ -21,7 +21,8 @@ is the shared persistence and job-queue backend.
 ### Workspace dependency direction
 
 ```text
-jobs       <- core + database
+workshop   <- core + database
+jobs       <- core + database + workshop
 server     <- core + database + jobs/queue
 import-zsl <- database
 ```
@@ -35,6 +36,8 @@ The packages have these responsibilities:
   It exposes the root package and the explicit `@zeepkist/database/services` subpath.
 - `packages/jobs`: Graphile Worker task implementations, queue compatibility boundary, scoring
   utilities, cron registration, and worker lifecycle.
+- `packages/workshop`: Steam Web API metadata, SteamCMD downloads, level discovery and parsing,
+  thumbnail upload, and database reconciliation.
 - `packages/server`: Elysia route modules and cross-cutting plugins. It consumes database services
   and only the `@zeepkist/jobs/queue` subpath for enqueueing.
 - `packages/import-zsl`: a one-shot import process for Super League metadata and results.

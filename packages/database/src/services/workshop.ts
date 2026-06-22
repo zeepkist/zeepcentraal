@@ -1,6 +1,8 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
+import { uploadFile } from '../s3'
 import { level, levelItem, levelMetadata, levelRequest } from '../schema'
+import { generateUid } from '../utils/generateUid'
 
 export interface WorkshopLevelInput {
 	hash: string
@@ -23,6 +25,19 @@ export interface WorkshopLevelInput {
 	typeGround: number
 	typeSkybox: number
 	blocks: unknown
+}
+
+export async function uploadWorkshopThumbnail(
+	extension: string,
+	contents: Buffer,
+): Promise<string> {
+	const normalizedExtension = extension.toLowerCase().replace(/[^a-z0-9]/g, '')
+	if (!normalizedExtension) {
+		throw new Error('Workshop thumbnail extension is invalid')
+	}
+	const objectKey = `thumbnails/${generateUid()}.${normalizedExtension}`
+	await uploadFile(objectKey, contents)
+	return objectKey
 }
 
 export async function hasLevelMetadata(idLevel: number): Promise<boolean> {

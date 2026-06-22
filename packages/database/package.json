@@ -18,6 +18,9 @@
 		},
 		"./services": {
 			"import": "./src/services/index.ts"
+		},
+		"./services/workshop": {
+			"import": "./src/services/workshop.ts"
 		}
 	},
 	"dependencies": {

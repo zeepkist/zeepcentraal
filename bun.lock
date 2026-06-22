@@ -81,6 +81,14 @@
         "logixlysia": "~6.5.0",
       },
     },
+    "packages/workshop": {
+      "name": "@zeepkist/workshop",
+      "version": "1.0.0",
+      "dependencies": {
+        "@zeepkist/core": "workspace:*",
+        "@zeepkist/database": "workspace:*",
+      },
+    },
   },
   "overrides": {
     "@opentelemetry/core": "2.8.0",
@@ -487,6 +495,8 @@
     "@zeepkist/jobs": ["@zeepkist/jobs@workspace:packages/jobs"],
 
     "@zeepkist/server": ["@zeepkist/server@workspace:packages/server"],
+
+    "@zeepkist/workshop": ["@zeepkist/workshop@workspace:packages/workshop"],
 
     "acorn": ["acorn@8.17.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg=="],
 

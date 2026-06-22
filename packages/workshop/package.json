@@ -1,0 +1,17 @@
+{
+	"name": "@zeepkist/workshop",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"exports": {
+		".": {
+			"import": "./src/index.ts"
+		}
+	},
+	"dependencies": {
+		"@zeepkist/core": "workspace:*",
+		"@zeepkist/database": "workspace:*"
+	}
+}

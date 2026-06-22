@@ -14,6 +14,7 @@ A Bun workspace monorepo for ZeepCentraal services.
 - `packages/database`: Drizzle schema, migrations, and data services.
 - `packages/server`: HTTP API process (Elysia routes and plugins).
 - `packages/jobs`: background worker process (graphile-worker tasks + cron scheduler).
+- `packages/workshop`: Steam metadata, SteamCMD downloads, parsing, and workshop reconciliation.
 
 ## Prerequisites
 
