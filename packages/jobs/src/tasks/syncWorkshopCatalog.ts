@@ -32,14 +32,14 @@ export const syncWorkshopCatalog: TaskHandler = async (_payload, helpers) => {
 	}
 
 	const workshopIds = [...queue]
-	for (const batch of batchProcess(workshopIds, 100)) {
-		await helpers.addJobs(
-			batch.map((workshopId) => ({
-				identifier: 'scanWorkshopItem',
-				payload: { workshopId: workshopId.toString() },
-				jobKey: `scan-workshop-item:${workshopId}`,
+	for (const batch of batchProcess(workshopIds, 10)) {
+		await helpers.addJob(
+			'scanWorkshopBatch',
+			{ workshopIds: batch.map(String) },
+			{
+				jobKey: `scan-workshop-batch:${batch[0]}:${batch.at(-1)}`,
 				maxAttempts: 5,
-			})),
+			},
 		)
 	}
 	helpers.logger.info(

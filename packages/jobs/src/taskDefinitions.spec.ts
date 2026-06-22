@@ -9,6 +9,11 @@ test('task payload validation accepts compatible legacy shapes', () => {
 	)
 	expect(isValidTaskPayload('updateLevelPointsHistoryBatch', { ids: [1, 2] })).toBe(true)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: '3749321871' })).toBe(true)
+	expect(
+		isValidTaskPayload('scanWorkshopBatch', {
+			workshopIds: ['3006532933', '3749321871'],
+		}),
+	).toBe(true)
 })
 
 test('task payload validation rejects missing required identifiers', () => {
@@ -16,6 +21,11 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(isValidTaskPayload('updatePlayerScore', { idUser: 0 })).toBe(false)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: 3749321871 })).toBe(false)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: '0' })).toBe(false)
+	expect(
+		isValidTaskPayload('scanWorkshopBatch', {
+			workshopIds: Array.from({ length: 11 }, (_, index) => `${index + 1}`),
+		}),
+	).toBe(false)
 })
 
 test('workshop catalog sync runs Sunday at 01:00 Europe/London', () => {

@@ -1,5 +1,6 @@
 import type { Helpers } from 'graphile-worker'
 import type { TaskIdentifier } from '../taskDefinitions'
+import { scanWorkshopBatch } from './scanWorkshopBatch'
 import { scanWorkshopItem } from './scanWorkshopItem'
 import { syncPersonalBests } from './syncPersonalBests'
 import { syncWorkshopCatalog } from './syncWorkshopCatalog'
@@ -16,6 +17,7 @@ type GWTask = (payload: unknown, helpers: Helpers) => Promise<void>
 
 // graphile-worker task list — keys must match the task name strings used in addJob()
 export const taskList = {
+	scanWorkshopBatch: scanWorkshopBatch as GWTask,
 	scanWorkshopItem: scanWorkshopItem as GWTask,
 	syncPersonalBests: syncPersonalBests as GWTask,
 	syncWorkshopCatalog: syncWorkshopCatalog as GWTask,

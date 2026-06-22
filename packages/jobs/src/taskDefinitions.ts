@@ -10,6 +10,16 @@ const batchPayload = z.union([
 ])
 
 export const taskDefinitions = {
+	scanWorkshopBatch: {
+		schema: z.looseObject({
+			workshopIds: z
+				.array(z.string().regex(/^[1-9]\d*$/))
+				.min(1)
+				.max(10),
+		}),
+		compatible: false,
+		maxAttempts: 5,
+	},
 	scanWorkshopItem: {
 		schema: z.looseObject({ workshopId: z.string().regex(/^[1-9]\d*$/) }),
 		compatible: true,
