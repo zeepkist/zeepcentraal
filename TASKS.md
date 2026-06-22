@@ -9,7 +9,7 @@
 - [x] GTR `WorkshopId` record contract
 - [x] Minimum GTR version and automatic scan claims
 - [x] Deleted workshop-item scoring
-- [ ] Full Phase 1 validation
+- [x] Full Phase 1 validation
 - [ ] Manual validation by project owner
 
 Phase 2 must not start before project-owner validation.
