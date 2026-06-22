@@ -29,6 +29,7 @@ export const level = pgTable(
 			cache: 1,
 		}),
 		hash: text().notNull(),
+		adventure: boolean().notNull().default(false),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),
@@ -98,6 +99,7 @@ export const levelMetadata = pgTable(
 		amountBlocks: integer('amount_blocks').notNull(),
 		typeGround: integer('type_ground').notNull(),
 		typeSkybox: integer('type_skybox').notNull(),
+		format: integer().notNull().default(0),
 		blocks: jsonb().notNull(),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -214,6 +216,7 @@ export const levelRequest = pgTable(
 		),
 	},
 	(table) => [
+		unique('UQ_level_request_workshop_id').on(table.workshopId),
 		index('IX_level_request_hash').using('btree', table.hash.asc().nullsLast()),
 		index('IX_level_request_workshop_id').using('btree', table.workshopId.asc().nullsLast()),
 	],
