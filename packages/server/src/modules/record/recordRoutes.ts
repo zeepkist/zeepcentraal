@@ -1,11 +1,14 @@
 import { setAttributes } from '@elysiajs/opentelemetry'
 import {
-	getOrInsertLevel,
+	claimLevelRequest,
+	getOrInsertLevelWithAdventure,
 	getUser,
+	hasLevelMetadata,
+	releaseLevelRequest,
 	scheduleRecordMediaUpload,
 	submitRecord,
 } from '@zeepkist/database/services'
-import { enqueueCompatibleTask } from '@zeepkist/jobs/queue'
+import { enqueueCompatibleTask, enqueueWorkshopScan } from '@zeepkist/jobs/queue'
 import { Elysia, t } from 'elysia'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
@@ -18,7 +21,11 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 	.post(
 		'/submit',
 		async ({ auth, body, set, request }) => {
-			const { Level, Time, Splits, Speeds, GhostData, GameVersion, ModVersion } = body
+			const { Level, WorkshopId, Time, Splits, Speeds, GhostData, GameVersion, ModVersion } =
+				body
+			const validWorkshopId =
+				WorkshopId === undefined ||
+				(/^[1-9]\d*$/.test(WorkshopId) && BigInt(WorkshopId) <= 9223372036854775807n)
 
 			const validBase64 =
 				GhostData.length % 4 === 0 &&
@@ -46,6 +53,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				!Speeds ||
 				!GhostData ||
 				!GameVersion ||
+				!validWorkshopId ||
 				!validBase64 ||
 				!validNumbers
 			) {
@@ -69,7 +77,8 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				}
 			}
 
-			const level = await getOrInsertLevel(Level)
+			const workshopId = WorkshopId === undefined ? undefined : BigInt(WorkshopId)
+			const level = await getOrInsertLevelWithAdventure(Level, workshopId === undefined)
 			if (!level) {
 				set.status = 400
 				return {
@@ -111,12 +120,28 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				})
 			}
 
+			if (workshopId !== undefined && !(await hasLevelMetadata(level.id))) {
+				const claimed = await claimLevelRequest({
+					workshopId,
+					hash: Level,
+				})
+				if (claimed) {
+					try {
+						await enqueueWorkshopScan(workshopId)
+					} catch (error) {
+						await releaseLevelRequest(workshopId)
+						console.error(`Failed to enqueue workshop scan for ${workshopId}:`, error)
+					}
+				}
+			}
+
 			set.status = 200
 			return
 		},
 		{
 			body: t.Object({
 				Level: t.String(),
+				WorkshopId: t.Optional(t.String()),
 				Time: t.Number(),
 				Splits: t.Array(t.Number()),
 				Speeds: t.Array(t.Number()),
