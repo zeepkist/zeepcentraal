@@ -11,8 +11,9 @@ const csv = [
 
 describe('legacy level parsing', () => {
 	test('parses CSV metadata and adventure UID hash', () => {
-		const parsed = parseCsvLevel(csv, true)
+		const parsed = parseCsvLevel(csv, true, 76561198000000000n)
 		expect(parsed.hash).toBe('uid-1')
+		expect(parsed.authorId).toBe(76561198000000000n)
 		expect(parsed.amountCheckpoints).toBe(1)
 		expect(parsed.amountFinishes).toBe(1)
 		expect(parsed.amountBlocks).toBe(2)

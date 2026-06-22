@@ -82,7 +82,7 @@ function calculateHash(skybox: number, ground: number, blocks: ParsedCsvBlock[])
 	return createHash('sha1').update(canonical, 'utf8').digest('hex').toUpperCase()
 }
 
-export function parseCsvLevel(content: string, adventure = false): ParsedLevel {
+export function parseCsvLevel(content: string, adventure = false, authorId = 0n): ParsedLevel {
 	const lines = content.split(/\r?\n/)
 	if (lines.length < 3) {
 		throw new Error('CSV level must contain three metadata rows')
@@ -144,13 +144,13 @@ export function parseCsvLevel(content: string, adventure = false): ParsedLevel {
 
 	const metadataBlocks = blocks.map((block) => ({
 		id: block.Id,
-		alternateEnabled: (block.Options[5] ?? 0) >= 0.5,
+		isCheckpoint: (block.Options[5] ?? 0) >= 0.5,
 	}))
 	return {
 		format: levelFormat.csv,
 		hash: adventure ? uid : calculateHash(skybox, ground, blocks),
 		uid,
-		authorId: 0n,
+		authorId,
 		fileAuthor: first[1] ?? '',
 		validationTimeAuthor: Number.isFinite(validationTime) ? validationTime : 0,
 		validationTimeGold: gold,

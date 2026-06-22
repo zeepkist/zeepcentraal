@@ -31,7 +31,7 @@ export function parseJsonLevel(content: string, adventure = false): ParsedLevel 
 	}
 	const metadataBlocks = blocks.map((block) => ({
 		id: requiredNumber(block.i, 'block id'),
-		alternateEnabled: (block.d as { n?: { ch5?: unknown } } | null | undefined)?.n?.ch5 === 1,
+		isCheckpoint: (block.d as { n?: { ch5?: unknown } } | null | undefined)?.n?.ch5 === 1,
 	}))
 	const rawSteamId = content.match(/"StmID"\s*:\s*"?(\d+)"?/)?.[1]
 	const authorId = rawSteamId ? BigInt(rawSteamId) : 0n

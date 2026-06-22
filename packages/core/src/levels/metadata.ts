@@ -5,14 +5,12 @@ const alternateCheckpointIds = new Set([
 ])
 const finishIds = new Set([2, 1273, 1274, 1412, 1616])
 
-export function countCheckpoints(
-	blocks: Array<{ id: number; alternateEnabled?: boolean }>,
-): number {
+export function countCheckpoints(blocks: Array<{ id: number; isCheckpoint?: boolean }>): number {
 	return blocks.reduce((total, block) => {
 		if (checkpointIds.has(block.id)) {
 			return total + 1
 		}
-		return total + (alternateCheckpointIds.has(block.id) && block.alternateEnabled ? 1 : 0)
+		return total + (alternateCheckpointIds.has(block.id) && block.isCheckpoint ? 1 : 0)
 	}, 0)
 }
 
