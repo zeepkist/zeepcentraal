@@ -1,0 +1,47 @@
+import { describe, expect, test } from 'bun:test'
+import { parseCsvLevel, parseJsonLevel } from '.'
+
+const csv = [
+	'LevelEditor2,Author,uid-1',
+	'0,0,0,0,0,0,0,0',
+	'12.5,20,25,30,1,-1',
+	'22,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
+	'2,1,2,3,4,5,6,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
+].join('\n')
+
+describe('legacy level parsing', () => {
+	test('parses CSV metadata and adventure UID hash', () => {
+		const parsed = parseCsvLevel(csv, true)
+		expect(parsed.hash).toBe('uid-1')
+		expect(parsed.amountCheckpoints).toBe(1)
+		expect(parsed.amountFinishes).toBe(1)
+		expect(parsed.amountBlocks).toBe(2)
+		expect(parsed.typeGround).toBe(-1)
+		expect(parsed.typeSkybox).toBe(1)
+	})
+
+	test('parses JSON metadata and preserves blocks', () => {
+		const blocks = [
+			{ i: 1609, u: 'a', p: {}, r: {}, s: {}, d: { n: { ch5: 1 } } },
+			{ i: 1616, u: 'b', p: {}, r: {}, s: {} },
+		]
+		const parsed = parseJsonLevel(
+			JSON.stringify({
+				level: { UID: 'uid-json', zeepHash: 'legacy-json-hash' },
+				author: { name: 'Author', StmID: '76561198000000000' },
+				medals: { author: 10, gold: 11, silver: 12, bronze: 13 },
+				enviro: { skybox: 2, groundMat: -1 },
+				blox: blocks,
+			}),
+		)
+		expect(parsed.hash).toBe('legacy-json-hash')
+		expect(parsed.authorId).toBe(76561198000000000n)
+		expect(parsed.amountCheckpoints).toBe(1)
+		expect(parsed.amountFinishes).toBe(1)
+		expect(parsed.blocks).toEqual(blocks)
+	})
+
+	test('rejects malformed CSV blocks', () => {
+		expect(() => parseCsvLevel(`${csv}\n1,2,3`)).toThrow('expected 38')
+	})
+})

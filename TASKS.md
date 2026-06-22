@@ -1,7 +1,7 @@
 # Phase 1 Workshop Scanning Restoration
 
 - [x] Database workshop persistence schema and services
-- [ ] Core CSV/JSON parsers and legacy hashes
+- [x] Core CSV/JSON parsers and legacy hashes
 - [ ] Cross-runtime golden vectors in ZeepSDK and ZeepCentraal
 - [ ] Workshop package
 - [ ] Workshop scan jobs
