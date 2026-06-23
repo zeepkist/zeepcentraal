@@ -1,4 +1,4 @@
-import { metrics } from '@opentelemetry/api'
+import { metrics, SpanStatusCode, trace } from '@opentelemetry/api'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { GHOST_FOLDER } from '../config'
@@ -10,6 +10,60 @@ type RecordInput = typeof record.$inferInsert
 const meter = metrics.getMeter('@zeepkist/database')
 const ghostUploadSuccesses = meter.createCounter('record.ghost_upload.success')
 const ghostUploadFailures = meter.createCounter('record.ghost_upload.failure')
+const GHOST_UPLOAD_MAX_ATTEMPTS = 5
+const GHOST_UPLOAD_RETRY_DELAY_MS = 1_000
+
+function wait(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function recordGhostUploadError(
+	error: unknown,
+	attributes: Record<string, string | number | boolean>,
+): void {
+	const span = trace.getActiveSpan()
+	if (!span) {
+		return
+	}
+
+	span.setAttributes(attributes)
+	span.recordException(
+		error instanceof Error
+			? error
+			: new Error(typeof error === 'string' ? error : 'Ghost upload failed'),
+	)
+}
+
+async function uploadGhostFileWithRetry(ghostUrl: string, file: Buffer): Promise<void> {
+	let lastError: unknown
+
+	for (let attempt = 1; attempt <= GHOST_UPLOAD_MAX_ATTEMPTS; attempt++) {
+		try {
+			await uploadFile(ghostUrl, file)
+			return
+		} catch (error) {
+			lastError = error
+			recordGhostUploadError(error, {
+				'record.ghost_upload.attempt': attempt,
+				'record.ghost_upload.max_attempts': GHOST_UPLOAD_MAX_ATTEMPTS,
+				'record.ghost_upload.retrying': attempt < GHOST_UPLOAD_MAX_ATTEMPTS,
+			})
+
+			console.error(
+				`[ghost] Upload attempt ${attempt}/${GHOST_UPLOAD_MAX_ATTEMPTS} failed for ${ghostUrl}:`,
+				error,
+			)
+
+			if (attempt === GHOST_UPLOAD_MAX_ATTEMPTS) {
+				break
+			}
+
+			await wait(GHOST_UPLOAD_RETRY_DELAY_MS)
+		}
+	}
+
+	throw lastError
+}
 
 export async function submitRecord(input: RecordInput) {
 	return db.transaction(async (tx) => {
@@ -89,7 +143,7 @@ export async function submitRecord(input: RecordInput) {
 export function scheduleRecordMediaUpload(idRecord: number, ghostData: string): void {
 	const ghostUrl = `${GHOST_FOLDER}/${generateUid()}.bin`
 	void (async () => {
-		await uploadFile(ghostUrl, Buffer.from(ghostData, 'base64'))
+		await uploadGhostFileWithRetry(ghostUrl, Buffer.from(ghostData, 'base64'))
 		try {
 			await db.insert(recordMedia).values({
 				idRecord,
@@ -105,6 +159,18 @@ export function scheduleRecordMediaUpload(idRecord: number, ghostData: string): 
 			throw error
 		}
 	})().catch((error) => {
+		const span = trace.getActiveSpan()
+		if (span) {
+			span.setStatus({
+				code: SpanStatusCode.ERROR,
+				message: error instanceof Error ? error.message : 'Ghost media upload failed',
+			})
+		}
+		recordGhostUploadError(error, {
+			'record.id': idRecord,
+			'record.ghost_upload.failed': true,
+			'record.ghost_upload.max_attempts': GHOST_UPLOAD_MAX_ATTEMPTS,
+		})
 		ghostUploadFailures.add(1)
 		console.error(`[ghost] Upload failed for record ${idRecord}:`, error)
 	})
