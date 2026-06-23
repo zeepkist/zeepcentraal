@@ -26,6 +26,7 @@
 		"release:server": "bun --cwd=packages/server run release",
 		"release:jobs": "bun --cwd=packages/jobs run release",
 		"release:import-zsl": "bun --cwd=packages/import-zsl run release",
+		"release:workshop": "bun --cwd=packages/workshop run release",
 		"release": "bun run release:core && bun run release:database && bun run release:server && bun run release:jobs && bun run release:import-zsl && bun run release:workshop",
 		"db:studio": "bun --cwd=packages/database run dev",
 		"db:generate": "bun --cwd=packages/database run db:generate",
