@@ -91,7 +91,7 @@ export async function getLevelPointsByIds(ids: number[]) {
 		.where(inArray(levelPoints.idLevel, ids))
 }
 
-interface UpdateLevelPointsPayload {
+export interface UpdateLevelPointsPayload {
 	idLevel: number
 	points: number
 	rating: number
@@ -100,6 +100,30 @@ interface UpdateLevelPointsPayload {
 	ratingModifier: number
 	popularityModifier: number
 	cutPenalty: number
+}
+
+export async function upsertLevelPointsBulk(payloads: UpdateLevelPointsPayload[]): Promise<void> {
+	if (payloads.length === 0) {
+		return
+	}
+
+	const dateUpdated = new Date().toISOString()
+	await db
+		.insert(levelPoints)
+		.values(payloads.map((payload) => ({ ...payload, dateUpdated })))
+		.onConflictDoUpdate({
+			target: levelPoints.idLevel,
+			set: {
+				points: sql`excluded.points`,
+				rating: sql`excluded.rating`,
+				lengthModifier: sql`excluded.modifier_length`,
+				competitivenessModifier: sql`excluded.modifier_competitiveness`,
+				ratingModifier: sql`excluded.modifier_rating`,
+				popularityModifier: sql`excluded.modifier_popularity`,
+				cutPenalty: sql`excluded.cut_penalty`,
+				dateUpdated,
+			},
+		})
 }
 
 export async function upsertLevelPoints({
@@ -149,4 +173,35 @@ export async function upsertLevelPoints({
 			})
 		}
 	})
+}
+
+export async function setLevelPointsToZero(idLevel: number): Promise<void> {
+	await db
+		.insert(levelPoints)
+		.values({ idLevel, points: 0 })
+		.onConflictDoUpdate({
+			target: levelPoints.idLevel,
+			set: {
+				points: 0,
+				dateUpdated: new Date().toISOString(),
+			},
+		})
+}
+
+export async function setLevelPointsToZeroBulk(idLevels: number[]): Promise<void> {
+	if (idLevels.length === 0) {
+		return
+	}
+
+	const dateUpdated = new Date().toISOString()
+	await db
+		.insert(levelPoints)
+		.values(idLevels.map((idLevel) => ({ idLevel, points: 0, dateUpdated })))
+		.onConflictDoUpdate({
+			target: levelPoints.idLevel,
+			set: {
+				points: 0,
+				dateUpdated,
+			},
+		})
 }

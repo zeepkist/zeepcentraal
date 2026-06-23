@@ -1,0 +1,26 @@
+{
+	"name": "@zeepkist/workshop",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"exports": {
+		".": {
+			"import": "./src/index.ts"
+		},
+		"./scanner": {
+			"import": "./src/scanner.ts"
+		},
+		"./steam-cmd": {
+			"import": "./src/steamCmd.ts"
+		},
+		"./steam-metadata": {
+			"import": "./src/steamMetadata.ts"
+		}
+	},
+	"dependencies": {
+		"@zeepkist/core": "workspace:*",
+		"@zeepkist/database": "workspace:*"
+	}
+}

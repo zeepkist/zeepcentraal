@@ -109,8 +109,8 @@ Do not use `lint:fix` or `format:fix` merely to inspect the repository; they rew
 
 - Production outputs are compiled Bun executables in `dist/`; workspace packages are not copied
   into runtime images.
-- Runtime images use `gcr.io/distroless/base`. Do not depend on a shell, package manager, source
-  files, or undeclared runtime assets.
+- Server, migrate, and importer runtime images use `gcr.io/distroless/base`. Jobs uses pinned
+  Debian-based SteamCMD runtime. Do not depend on undeclared runtime assets.
 - Keep binary names synchronized across root scripts, package build scripts, workflow artifacts,
   and Dockerfile `COPY`/`CMD` entries.
 - Keep required non-binary assets synchronized too: Drizzle migrations for `migrate` and Super

@@ -1,5 +1,5 @@
 import { metrics } from '@opentelemetry/api'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { GHOST_FOLDER } from '../config'
 import { deleteFile, uploadFile } from '../s3'
@@ -128,4 +128,43 @@ export async function getPersonalBestsWithRecord({
 		.where(eq(record.idLevel, idLevel))
 		.orderBy(record.time)
 		.limit(limit)
+}
+
+export async function getPersonalBestsWithRecordByLevelIds({
+	idLevels,
+	limit = 10,
+}: {
+	idLevels: number[]
+	limit?: number
+}) {
+	if (idLevels.length === 0) {
+		return []
+	}
+
+	const ranked = db
+		.select({
+			idLevel: record.idLevel,
+			time: record.time,
+			totalCount: sql<number>`COUNT(*) OVER (PARTITION BY ${record.idLevel})`.as(
+				'total_count',
+			),
+			rowNumber:
+				sql<number>`ROW_NUMBER() OVER (PARTITION BY ${record.idLevel} ORDER BY ${record.time}, ${record.id})`.as(
+					'row_number',
+				),
+		})
+		.from(record)
+		.innerJoin(personalBestGlobal, eq(personalBestGlobal.idRecord, record.id))
+		.where(inArray(record.idLevel, idLevels))
+		.as('ranked_personal_bests')
+
+	return db
+		.select({
+			idLevel: ranked.idLevel,
+			time: ranked.time,
+			totalCount: ranked.totalCount,
+		})
+		.from(ranked)
+		.where(lte(ranked.rowNumber, limit))
+		.orderBy(asc(ranked.idLevel), asc(ranked.rowNumber))
 }

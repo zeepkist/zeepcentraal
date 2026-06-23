@@ -1,0 +1,1 @@
+CREATE INDEX "IX_vote_level" ON "vote" USING btree ("id_level");

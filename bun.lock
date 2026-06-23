@@ -56,6 +56,7 @@
       "dependencies": {
         "@zeepkist/core": "workspace:*",
         "@zeepkist/database": "workspace:*",
+        "@zeepkist/workshop": "workspace:*",
         "cron": "~4.4.0",
         "graphile-worker": "~0.17.0",
         "zod": "~4.4.0",
@@ -79,6 +80,14 @@
         "@zeepkist/jobs": "workspace:*",
         "elysia": "~1.4.16",
         "logixlysia": "~6.5.0",
+      },
+    },
+    "packages/workshop": {
+      "name": "@zeepkist/workshop",
+      "version": "1.0.0",
+      "dependencies": {
+        "@zeepkist/core": "workspace:*",
+        "@zeepkist/database": "workspace:*",
       },
     },
   },
@@ -487,6 +496,8 @@
     "@zeepkist/jobs": ["@zeepkist/jobs@workspace:packages/jobs"],
 
     "@zeepkist/server": ["@zeepkist/server@workspace:packages/server"],
+
+    "@zeepkist/workshop": ["@zeepkist/workshop@workspace:packages/workshop"],
 
     "acorn": ["acorn@8.17.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-xRQbDb9BnwDafYNn6Vwl839DYVjqXYb1XVGtWAZ1kcDc6iwAL4hg3B1dZlRiuENFeO2H53gFG3in621AdERVAg=="],
 

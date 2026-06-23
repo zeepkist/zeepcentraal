@@ -15,13 +15,15 @@ self-contained Bun executables:
 - `zeepcentraal-migrate`: the Drizzle migration runner.
 - `zeepcentraal-import-zsl`: the Zeepkist Super League data importer.
 
-All executables are packaged separately in shell-less `gcr.io/distroless/base` images. PostgreSQL
-is the shared persistence and job-queue backend.
+Executables are packaged separately. Server, migrate, and importer use shell-less
+`gcr.io/distroless/base`; jobs uses pinned SteamCMD Ubuntu runtime for workshop downloads.
+PostgreSQL is the shared persistence and job-queue backend.
 
 ### Workspace dependency direction
 
 ```text
-jobs       <- core + database
+workshop   <- core + database
+jobs       <- core + database + workshop
 server     <- core + database + jobs/queue
 import-zsl <- database
 ```
@@ -35,6 +37,8 @@ The packages have these responsibilities:
   It exposes the root package and the explicit `@zeepkist/database/services` subpath.
 - `packages/jobs`: Graphile Worker task implementations, queue compatibility boundary, scoring
   utilities, cron registration, and worker lifecycle.
+- `packages/workshop`: Steam Web API metadata, SteamCMD downloads, level discovery and parsing,
+  thumbnail upload, and database reconciliation.
 - `packages/server`: Elysia route modules and cross-cutting plugins. It consumes database services
   and only the `@zeepkist/jobs/queue` subpath for enqueueing.
 - `packages/import-zsl`: a one-shot import process for Super League metadata and results.
@@ -157,6 +161,7 @@ Current application-managed cron schedules use the `Europe/London` timezone:
 
 | Task | Schedule | Purpose |
 | --- | --- | --- |
+| `syncWorkshopCatalog` | `0 1 * * 0` | Sunday workshop update/backfill scan |
 | `updateLevelScores` with `{ all: true }` | `0 1 * * 1` | Weekly full recalculation |
 | `updateLevelScores` with `{ all: false }` | `*/10 * * * *` | Recent-level refresh |
 | `updatePlayerScores` | `5-59/10 * * * *` | Player leaderboard refresh |
@@ -187,13 +192,14 @@ Root scripts compile binaries into `dist/`:
 
 Each Dockerfile copies only the compiled binary plus required runtime data:
 
-- server and jobs copy only their executable;
+- server copies only its executable;
+- jobs copies its executable into a pinned SteamCMD runtime;
 - migrate also copies Drizzle migrations;
 - import-zsl also copies Super League data.
 
-Because the runtime base is distroless, images have no shell, package manager, Bun installation, or
-source tree. Runtime behavior cannot rely on shell scripts, dynamic package installation, or files
-that are not explicitly copied.
+Distroless images have no shell, package manager, Bun installation, or source tree. Jobs runtime
+contains SteamCMD and its OS dependencies. Runtime behavior cannot rely on dynamic package
+installation or files that are not explicitly copied.
 
 `.github/actions/setup-bun-deps/action.yml` installs the requested Bun version (default `latest`),
 caches workspace `node_modules`, and runs `bun install --frozen-lockfile` on a cache miss.

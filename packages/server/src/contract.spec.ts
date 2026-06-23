@@ -35,12 +35,19 @@ const state = {
 	steamSignatureValid: true,
 	steamUser: { steamid: '12345678901234567', personaname: 'Zeep' },
 	levelExists: true,
+	metadataPresent: false,
+	claimSucceeds: true,
+	scanEnqueueFails: false,
 	accessTokenCounter: 0,
 	refreshTokenCounter: 0,
 	insertAuthCalls: [] as Array<Record<string, unknown>>,
 	getOrInsertUserCalls: [] as Array<{ steamId: bigint; steamName?: string }>,
 	deletedRefreshTokens: [] as string[],
 	jobCalls: [] as Array<{ task: string; options: Record<string, unknown> }>,
+	workshopScanCalls: [] as bigint[],
+	workshopClaims: [] as bigint[],
+	workshopReleases: [] as bigint[],
+	levelAdventureUpdates: [] as boolean[],
 	updatedDiscordIds: [] as Array<{ steamId: string; discordId: bigint | null }>,
 	mediaSchedules: [] as Array<{ idRecord: number; ghostData: string }>,
 	userBySteamId: {
@@ -76,6 +83,7 @@ const state = {
 	level: {
 		id: 10,
 		hash: '61C096367AFC76A1D2E8024AA638F516912444CC',
+		adventure: false,
 		dateCreated: new Date().toISOString(),
 		dateUpdated: new Date().toISOString(),
 	},
@@ -117,12 +125,19 @@ function resetState() {
 	state.steamSignatureValid = true
 	state.steamUser = { steamid: '12345678901234567', personaname: 'Zeep' }
 	state.levelExists = true
+	state.metadataPresent = false
+	state.claimSucceeds = true
+	state.scanEnqueueFails = false
 	state.accessTokenCounter = 0
 	state.refreshTokenCounter = 0
 	state.insertAuthCalls = []
 	state.getOrInsertUserCalls = []
 	state.deletedRefreshTokens = []
 	state.jobCalls = []
+	state.workshopScanCalls = []
+	state.workshopClaims = []
+	state.workshopReleases = []
+	state.levelAdventureUpdates = []
 	state.updatedDiscordIds = []
 	state.mediaSchedules = []
 	state.userBySteamId = {
@@ -158,6 +173,7 @@ function resetState() {
 	state.level = {
 		id: 10,
 		hash: '61C096367AFC76A1D2E8024AA638F516912444CC',
+		adventure: false,
 		dateCreated: new Date().toISOString(),
 		dateUpdated: new Date().toISOString(),
 	}
@@ -328,8 +344,18 @@ mock.module('@zeepkist/database/services', () => ({
 		state.insertAuthCalls.push(input)
 		return input
 	},
-	getOrInsertLevel: async (hash: string) =>
-		hash === state.level.hash && state.levelExists ? state.level : null,
+	getOrInsertLevelWithAdventure: async (hash: string, adventure: boolean) => {
+		state.levelAdventureUpdates.push(adventure)
+		return hash === state.level.hash && state.levelExists ? { ...state.level, adventure } : null
+	},
+	hasLevelMetadata: async () => state.metadataPresent,
+	claimLevelRequest: async ({ workshopId }: { workshopId: bigint }) => {
+		state.workshopClaims.push(workshopId)
+		return state.claimSucceeds
+	},
+	releaseLevelRequest: async (workshopId: bigint) => {
+		state.workshopReleases.push(workshopId)
+	},
 	getLevel: async (hash: string) =>
 		hash === state.level.hash && state.levelExists ? state.level : null,
 	submitRecord: async (input: Record<string, unknown>) => ({
@@ -353,6 +379,12 @@ mock.module('@zeepkist/database/services', () => ({
 mock.module('@zeepkist/jobs/queue', () => ({
 	enqueueCompatibleTask: async (task: string, options: Record<string, unknown>) => {
 		state.jobCalls.push({ task, options })
+	},
+	enqueueWorkshopScan: async (workshopId: bigint) => {
+		if (state.scanEnqueueFails) {
+			throw new Error('queue failed')
+		}
+		state.workshopScanCalls.push(workshopId)
 	},
 	isCompatibleTask: (task: string) =>
 		[
@@ -680,6 +712,108 @@ test('record/submit returns 200 with empty body on success', async () => {
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
 	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
+	expect(state.levelAdventureUpdates).toEqual([true])
+	expect(state.workshopScanCalls).toEqual([])
+})
+
+test('record/submit queues missing workshop metadata with BigInt ID', async () => {
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			WorkshopId: '3749321871',
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.levelAdventureUpdates).toEqual([false])
+	expect(state.workshopClaims).toEqual([3749321871n])
+	expect(state.workshopScanCalls).toEqual([3749321871n])
+})
+
+test('record/submit releases workshop claim when enqueue fails', async () => {
+	state.scanEnqueueFails = true
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			WorkshopId: '3749321871',
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(state.workshopReleases).toEqual([3749321871n])
+})
+
+test('record/submit does not enqueue when concurrent claim already exists', async () => {
+	state.claimSucceeds = false
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			WorkshopId: '3749321871',
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(state.workshopClaims).toEqual([3749321871n])
+	expect(state.workshopScanCalls).toEqual([])
+})
+
+test('record/submit rejects invalid workshop ID with V1 error shape', async () => {
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			WorkshopId: 'not-a-number',
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 19, message: 'Missing required parameters' },
+	})
 })
 
 test('record/submit rejects malformed ghost data without changing wire error shape', async () => {
