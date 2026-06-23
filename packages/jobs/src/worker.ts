@@ -2,15 +2,16 @@ import { config } from '@zeepkist/core'
 import { CronJob } from 'cron'
 import { run, type TaskSpec } from 'graphile-worker'
 import { cronTasks } from './cronTasks'
+import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from './priorities'
 import { taskList } from './tasks'
 
 export const defaultJobOptions: TaskSpec = {
-	priority: 5,
+	priority: DEFAULT_JOB_PRIORITY,
 	maxAttempts: 3,
 }
 
 export const priorityJobOptions: TaskSpec = {
-	priority: 0,
+	priority: PRIORITY_JOB_PRIORITY,
 	maxAttempts: 3,
 }
 
@@ -21,13 +22,15 @@ export async function startRunner() {
 	runner = await run({
 		connectionString: config.databaseUrl,
 		crontabFile: '',
+		concurrency: 14,
+		maxPoolSize: 15,
 		taskList: taskList as Parameters<typeof run>[0]['taskList'],
 		noHandleSignals: true,
 		preset: {
 			worker: {
-				localQueue: { size: 10 },
-				completeJobBatchDelay: 100,
-				failJobBatchDelay: 100,
+				localQueue: { size: 200 },
+				completeJobBatchDelay: 0,
+				failJobBatchDelay: 0,
 			},
 		},
 	})
@@ -49,6 +52,7 @@ export function startCrons(
 			onTick: () => {
 				void addJob(task, payload, {
 					...defaultJobOptions,
+					...('spec' in cronTask ? cronTask.spec : {}),
 					jobKey: `cron:${task}`,
 					jobKeyMode: 'preserve_run_at',
 				}).catch((error) => {

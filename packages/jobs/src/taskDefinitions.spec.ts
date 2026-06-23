@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test'
 import { cronTasks } from './cronTasks'
+import { WORKSHOP_JOB_PRIORITY } from './priorities'
 import { isValidTaskPayload } from './taskDefinitions'
 
 test('task payload validation accepts compatible legacy shapes', () => {
@@ -44,5 +45,6 @@ test('workshop catalog sync runs Sunday at 01:00 Europe/London', () => {
 	expect(cronTasks).toContainEqual({
 		task: 'syncWorkshopCatalog',
 		cronTime: '0 1 * * 0',
+		spec: { priority: WORKSHOP_JOB_PRIORITY },
 	})
 })

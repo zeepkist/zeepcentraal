@@ -1,5 +1,6 @@
 import { config } from '@zeepkist/core'
 import { makeWorkerUtils, type WorkerUtils } from 'graphile-worker'
+import { DEFAULT_JOB_PRIORITY, WORKSHOP_JOB_PRIORITY } from './priorities'
 import { isCompatibleTaskIdentifier, isValidTaskPayload, taskDefinitions } from './taskDefinitions'
 
 export { isValidTaskPayload } from './taskDefinitions'
@@ -26,8 +27,8 @@ export async function enqueueCompatibleTask(task: string, options: Record<string
 
 	const workerUtils = await getUtils()
 	await workerUtils.addJob(task, options, {
-		priority: 5,
-		maxAttempts: taskDefinitions[task].maxAttempts,
+		priority: task === 'scanWorkshopItem' ? WORKSHOP_JOB_PRIORITY : DEFAULT_JOB_PRIORITY,
+		maxAttempts: taskDefinitions[task].maxAttempts ?? 3,
 	})
 }
 
@@ -37,7 +38,7 @@ export async function enqueueWorkshopScan(workshopId: bigint): Promise<void> {
 		'scanWorkshopItem',
 		{ workshopId: workshopId.toString() },
 		{
-			priority: 5,
+			priority: WORKSHOP_JOB_PRIORITY,
 			maxAttempts: taskDefinitions.scanWorkshopItem.maxAttempts,
 			jobKey: `scan-workshop-item:${workshopId}`,
 		},

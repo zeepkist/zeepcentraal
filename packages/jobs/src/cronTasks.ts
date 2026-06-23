@@ -1,6 +1,12 @@
+import { WORKSHOP_JOB_PRIORITY } from './priorities'
+
 export const cronTasks = [
 	// Workshop catalog sync
-	{ task: 'syncWorkshopCatalog', cronTime: '0 1 * * 0' }, // every Sunday at 01:00
+	{
+		task: 'syncWorkshopCatalog',
+		cronTime: '0 1 * * 0',
+		spec: { priority: WORKSHOP_JOB_PRIORITY },
+	}, // every Sunday at 01:00
 	// Weekly full recalculation
 	{ task: 'updateLevelScores', cronTime: '0 1 * * 1', payload: { all: true } }, // every Monday at 01:00
 	// Near-real-time leaderboard updates
