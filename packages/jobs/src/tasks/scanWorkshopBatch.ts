@@ -1,4 +1,5 @@
 import { releaseLevelRequest } from '@zeepkist/database/services/workshop'
+import { createWorkshopRetryJobs, formatWorkshopFailure } from '../utils/createWorkshopRetryJobs'
 import { getWorkshopScanner } from '../workshopScanner'
 import type { TaskHandler } from './types'
 
@@ -26,13 +27,16 @@ export const scanWorkshopBatch: TaskHandler<Payload> = async (payload, helpers) 
 	)
 
 	if (batch.transientFailures.length > 0) {
-		throw new Error(
-			`Transient workshop scan failures: ${batch.transientFailures
-				.map((failure) => failure.workshopId)
-				.join(', ')}`,
+		for (const failure of batch.transientFailures) {
+			helpers.logger.warn(
+				`scanWorkshopBatch isolated transient workshopId=${failure.workshopId}: ${formatWorkshopFailure(failure.error)}`,
+			)
+		}
+		await helpers.addJobs(
+			createWorkshopRetryJobs(batch.transientFailures.map((failure) => failure.workshopId)),
 		)
 	}
 	helpers.logger.info(
-		`scanWorkshopBatch completed ${batch.results.length} items and queued ${levelIds.size} scores.`,
+		`scanWorkshopBatch completed ${batch.results.length} items, queued ${levelIds.size} scores and ${batch.transientFailures.length} isolated retries.`,
 	)
 }
