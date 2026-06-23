@@ -8,6 +8,7 @@ import { updateLevelPointsHistory } from './updateLevelPointsHistory'
 import { updateLevelPointsHistoryBatch } from './updateLevelPointsHistoryBatch'
 import { updateLevelScore } from './updateLevelScore'
 import { updateLevelScores } from './updateLevelScores'
+import { updateLevelScoresBatch } from './updateLevelScoresBatch'
 import { updatePlayerScore } from './updatePlayerScore'
 import { updatePlayerScores } from './updatePlayerScores'
 import { updateUserPointsHistory } from './updateUserPointsHistory'
@@ -25,6 +26,7 @@ export const taskList = {
 	updateLevelPointsHistoryBatch: updateLevelPointsHistoryBatch as GWTask,
 	updateLevelScore: updateLevelScore as GWTask,
 	updateLevelScores: updateLevelScores as GWTask,
+	updateLevelScoresBatch: updateLevelScoresBatch as GWTask,
 	updatePlayerScore: updatePlayerScore as GWTask,
 	updatePlayerScores: updatePlayerScores as GWTask,
 	updateUserPointsHistory: updateUserPointsHistory as GWTask,

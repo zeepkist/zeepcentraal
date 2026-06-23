@@ -42,6 +42,14 @@ export const taskDefinitions = {
 		compatible: true,
 		maxAttempts: 3,
 	},
+	updateLevelScoresBatch: {
+		schema: z.looseObject({
+			ids: z.array(z.number().int().positive()).min(1).max(50),
+			personalBestCountPercentile: z.number().nonnegative(),
+		}),
+		compatible: false,
+		maxAttempts: 3,
+	},
 	updatePlayerScore: {
 		schema: z.looseObject({ idUser: z.number().int().positive() }),
 		compatible: true,

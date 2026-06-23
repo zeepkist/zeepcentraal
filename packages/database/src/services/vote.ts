@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { vote } from '../schema'
 
@@ -24,4 +24,21 @@ export async function getVoteValues({ idLevel }: { idLevel: number }): Promise<n
 		.then((rows) => rows[0]?.values ?? [])
 
 	return voteValues
+}
+
+export async function getVoteValuesByLevelIds(idLevels: number[]): Promise<Map<number, number[]>> {
+	if (idLevels.length === 0) {
+		return new Map()
+	}
+
+	const rows = await db
+		.select({
+			idLevel: vote.idLevel,
+			values: sql<number[]>`ARRAY_AGG(${vote.value}::float8)`.as('values'),
+		})
+		.from(vote)
+		.where(inArray(vote.idLevel, idLevels))
+		.groupBy(vote.idLevel)
+
+	return new Map(rows.map((row) => [row.idLevel, row.values]))
 }

@@ -1,5 +1,9 @@
-import { getAllLevelIds, getAllLevelIdsWithRecordsSince } from '@zeepkist/database'
-import { batchProcess } from '../utils'
+import {
+	getAllLevelIds,
+	getAllLevelIdsWithRecordsSince,
+	getPersonalBestCount90thPercentile,
+} from '@zeepkist/database'
+import { createLevelScoreBatchJobs } from '../utils/createLevelScoreBatchJobs'
 import type { TaskHandler } from './types'
 
 type Payload = {
@@ -13,16 +17,13 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 		: await getAllLevelIdsWithRecordsSince(new Date(Date.now() - 20 * 60 * 1000))
 
 	helpers.logger.info(`updateLevelScores starting with ${levelIds.length} levels (all=${all}).`)
-
-	for (const batchIds of batchProcess(levelIds)) {
-		await helpers.addJobs(
-			batchIds.map((idLevel) => ({
-				identifier: 'updateLevelScore',
-				payload: { idLevel },
-				jobKey: `update-level-score:${idLevel}`,
-			})),
-		)
+	if (levelIds.length === 0) {
+		return
 	}
 
-	helpers.logger.info(`Queued ${levelIds.length} updateLevelScore jobs.`)
+	const personalBestCountPercentile = await getPersonalBestCount90thPercentile()
+	const jobs = createLevelScoreBatchJobs(levelIds, personalBestCountPercentile)
+	await helpers.addJobs(jobs)
+
+	helpers.logger.info(`Queued ${jobs.length} updateLevelScoresBatch jobs.`)
 }

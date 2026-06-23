@@ -607,6 +607,7 @@ export const vote = pgTable(
 			table.idUser.asc().nullsLast(),
 			table.idLevel.asc().nullsLast(),
 		),
+		index('IX_vote_level').using('btree', table.idLevel.asc().nullsLast()),
 		unique('UQ_vote_user_level').on(table.idUser, table.idLevel),
 	],
 )

@@ -234,3 +234,41 @@ export async function getLevelWorkshopAvailability(idLevel: number): Promise<{
 		.groupBy(level.id)
 	return row ?? { adventure: false, itemCount: 0, accessibleItemCount: 0 }
 }
+
+export async function getLevelWorkshopAvailabilities(idLevels: number[]): Promise<
+	Map<
+		number,
+		{
+			adventure: boolean
+			itemCount: number
+			accessibleItemCount: number
+		}
+	>
+> {
+	if (idLevels.length === 0) {
+		return new Map()
+	}
+
+	const rows = await db
+		.select({
+			idLevel: level.id,
+			adventure: level.adventure,
+			itemCount: sql<number>`COUNT(${levelItem.id})::int`,
+			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false)::int`,
+		})
+		.from(level)
+		.leftJoin(levelItem, eq(levelItem.idLevel, level.id))
+		.where(inArray(level.id, idLevels))
+		.groupBy(level.id)
+
+	return new Map(
+		rows.map((row) => [
+			row.idLevel,
+			{
+				adventure: row.adventure,
+				itemCount: row.itemCount,
+				accessibleItemCount: row.accessibleItemCount,
+			},
+		]),
+	)
+}
