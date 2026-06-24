@@ -10,8 +10,8 @@ const serverEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
 	HOST: z.string().default('0.0.0.0'),
 	PORT: z.coerce.number().int().positive().default(3000),
-	TRIGGER_JOB_TOKEN: z.string().min(1),
-	JWT_SECRET: z.string().min(32),
+	TRIGGER_JOB_TOKEN: z.string().min(1).optional(),
+	JWT_SECRET: z.string().min(32).optional(),
 	JWT_AUDIENCE: z.string().default('zeepki.st'),
 	JWT_ISSUER: z.string().default('https://zeepki.st'),
 	JWT_ACCESS_TTL: z.string().default('15m'),
@@ -35,10 +35,24 @@ const serverEnvSchema = z.object({
 
 export function parseServerConfig(env: EnvSource) {
 	const parsedEnv = serverEnvSchema.parse(env)
+	const jwtSecret =
+		parsedEnv.JWT_SECRET ??
+		(parsedEnv.NODE_ENV === 'test' ? 'x'.repeat(32) : parsedEnv.JWT_SECRET)
+	const triggerJobToken =
+		parsedEnv.TRIGGER_JOB_TOKEN ??
+		(parsedEnv.NODE_ENV === 'test' ? 'trigger-token' : parsedEnv.TRIGGER_JOB_TOKEN)
+
+	if (!jwtSecret) {
+		throw new Error('JWT_SECRET is required')
+	}
+	if (!triggerJobToken) {
+		throw new Error('TRIGGER_JOB_TOKEN is required')
+	}
+
 	requireStrongProductionSecrets({
 		nodeEnv: parsedEnv.NODE_ENV,
-		jwtSecret: parsedEnv.JWT_SECRET,
-		triggerJobToken: parsedEnv.TRIGGER_JOB_TOKEN,
+		jwtSecret,
+		triggerJobToken,
 	})
 
 	return {
@@ -48,10 +62,10 @@ export function parseServerConfig(env: EnvSource) {
 			port: parsedEnv.PORT,
 		},
 		job: {
-			triggerToken: parsedEnv.TRIGGER_JOB_TOKEN,
+			triggerToken: triggerJobToken,
 		},
 		jwt: {
-			secret: parsedEnv.JWT_SECRET,
+			secret: jwtSecret,
 			audience: parsedEnv.JWT_AUDIENCE,
 			issuer: parsedEnv.JWT_ISSUER,
 			accessTtlMs: parseDuration(parsedEnv.JWT_ACCESS_TTL),
