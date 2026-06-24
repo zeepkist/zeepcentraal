@@ -10,9 +10,11 @@ export const syncWorkshopCatalog: TaskHandler = async (_payload, helpers) => {
 	const seen = new Set<bigint>()
 	const queue = new Set<bigint>()
 	let cursor: string | undefined
+	let pages = 0
 
 	do {
 		const page = await metadata.listItems(cursor)
+		pages++
 		for (const item of page.items) {
 			seen.add(item.workshopId)
 			const storedUpdate = storedUpdates.get(item.workshopId)
@@ -23,6 +25,9 @@ export const syncWorkshopCatalog: TaskHandler = async (_payload, helpers) => {
 				queue.add(item.workshopId)
 			}
 		}
+		console.info(
+			`syncWorkshopCatalog page ${pages} processed: ${page.items.length} items, ${seen.size} seen, ${queue.size} queued.`,
+		)
 		cursor = page.nextCursor
 	} while (cursor)
 
@@ -33,7 +38,7 @@ export const syncWorkshopCatalog: TaskHandler = async (_payload, helpers) => {
 	}
 
 	const workshopIds = [...queue]
-	for (const batch of batchProcess(workshopIds, 10)) {
+	for (const batch of batchProcess(workshopIds, 20)) {
 		await helpers.addJob(
 			'scanWorkshopBatch',
 			{ workshopIds: batch.map(String) },
