@@ -2,10 +2,10 @@ import { serverConfig } from '@zeepkist/core/config/server'
 import logixlysia, { type LogLevel } from 'logixlysia'
 
 const IS_PRODUCTION = serverConfig.nodeEnv === 'production'
-const logLevels: LogLevel[] = ['ERROR', 'WARNING']
+const logLevels: LogLevel[] = ['ERROR', 'WARNING', 'INFO']
 
 if (!IS_PRODUCTION) {
-	logLevels.push('INFO', 'DEBUG')
+	logLevels.push('DEBUG')
 }
 
 // https://elysiajs.com/plugins/logging
