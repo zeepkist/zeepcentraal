@@ -8,7 +8,7 @@ test('creates isolated workshop retries with stable keys', () => {
 			identifier: 'scanWorkshopItem',
 			payload: { workshopId: '3650825316' },
 			jobKey: 'scan-workshop-item:3650825316',
-			maxAttempts: 5,
+			maxAttempts: 2,
 			priority: WORKSHOP_JOB_PRIORITY,
 		},
 	])

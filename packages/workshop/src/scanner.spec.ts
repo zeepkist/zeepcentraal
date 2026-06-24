@@ -151,7 +151,9 @@ describe('WorkshopScanner', () => {
 	})
 
 	test('adds workshop id and level file name to validation errors', async () => {
-		const directory = await createItem({ block: '1,2,3' })
+		const directory = await createItem({
+			block: 'not-a-number,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
+		})
 		const dependencies = createDependencies(directory)
 		const scanner = new WorkshopScanner(
 			dependencies.metadata,
@@ -167,7 +169,7 @@ describe('WorkshopScanner', () => {
 			const message = (error as Error).message
 			expect(message).toContain('Workshop 3749321871 level Example')
 			expect(message).toContain('Example.zeeplevel')
-			expect(message).toContain('expected 38')
+			expect(message).toContain('Invalid block id')
 		}
 	})
 

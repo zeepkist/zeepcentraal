@@ -5,7 +5,7 @@ export function createWorkshopRetryJobs(workshopIds: bigint[]) {
 		identifier: 'scanWorkshopItem' as const,
 		payload: { workshopId: workshopId.toString() },
 		jobKey: `scan-workshop-item:${workshopId}`,
-		maxAttempts: 5,
+		maxAttempts: 2,
 		priority: WORKSHOP_JOB_PRIORITY,
 	}))
 }

@@ -98,6 +98,10 @@ function vectorText(values: [string, string, string]): string {
 	return `<${values.join(',')}>`
 }
 
+function normalizeBlockValues(values: string[]): string[] {
+	return [...values, ...Array.from({ length: 38 - values.length }, () => '0')]
+}
+
 function blockText(block: ParsedCsvBlock): string {
 	return `Id: ${block.Id}, Position: ${vectorText(block.rawPosition)}, Euler: ${vectorText(block.rawEuler)}, Scale: ${vectorText(block.rawScale)}, Paints: ${block.Paints.join(', ')}, Options: ${block.Options.join(', ')}`
 }
@@ -140,23 +144,18 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 	const ground = parseFinite(validation[5] ?? '', 'ground')
 
 	const blocks: ParsedCsvBlock[] = []
-	for (const [lineIndex, line] of lines.slice(3).entries()) {
+	for (const line of lines.slice(3)) {
 		if (!line.trim()) {
 			continue
 		}
-		const values = line.split(',')
-		if (values.length !== 38) {
-			throw new Error(
-				`CSV block row ${lineIndex + 4} has ${values.length} columns; expected 38`,
-			)
-		}
+		const values = normalizeBlockValues(line.split(','))
 		const id = parseFinite(values[0] ?? '', 'block id')
 		const rawPaints = values.slice(10, 27)
 		const paints = rawPaints.map((value) => {
 			const parsed = parseFinite(value, 'paint')
 			return id === 2279 ? Math.trunc(Math.fround(parsed)) : parsed
 		})
-		const rawOptions = values.slice(27, 38)
+		const rawOptions = values.slice(27)
 		const options = rawOptions.map((value) => Math.fround(parseFinite(value, 'option')))
 		blocks.push({
 			Id: id,

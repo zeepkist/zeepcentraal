@@ -88,8 +88,21 @@ describe('legacy level parsing', () => {
 		expect(parsedJson.validationTimeBronze).toBe(0)
 	})
 
-	test('rejects malformed CSV blocks', () => {
-		expect(() => parseCsvLevel(`${csv}\n1,2,3`)).toThrow('expected 38')
+	test('allows CSV blocks with invalid column counts', () => {
+		const parsedShort = parseCsvLevel(`${csv}\n1,2,3`)
+		expect(parsedShort.amountBlocks).toBe(3)
+		expect(parsedShort.blocks.at(-1)).toMatchObject({
+			Id: 1,
+			Position: { X: 2, Y: 3, Z: 0 },
+		})
+
+		const parsedLong = parseCsvLevel(
+			`${csv}\n${Array.from({ length: 40 }, (_, index) => index).join(',')}`,
+		)
+		expect(parsedLong.amountBlocks).toBe(3)
+		expect(
+			(parsedLong.blocks.at(-1) as { Options: number[] } | undefined)?.Options,
+		).toHaveLength(13)
 	})
 
 	test('matches ZeepSDK legacy hash vectors', () => {
