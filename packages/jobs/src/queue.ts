@@ -1,4 +1,4 @@
-import { config } from '@zeepkist/core'
+import { jobsConfig } from '@zeepkist/core/config'
 import { makeWorkerUtils, type WorkerUtils } from 'graphile-worker'
 import { DEFAULT_JOB_PRIORITY, WORKSHOP_JOB_PRIORITY } from './priorities'
 import { isCompatibleTaskIdentifier, isValidTaskPayload, taskDefinitions } from './taskDefinitions'
@@ -10,7 +10,7 @@ let utilsPromise: Promise<WorkerUtils> | null = null
 
 async function getUtils(): Promise<WorkerUtils> {
 	if (!utils) {
-		utilsPromise ??= makeWorkerUtils({ connectionString: config.databaseUrl })
+		utilsPromise ??= makeWorkerUtils({ connectionString: jobsConfig.databaseUrl })
 		utils = await utilsPromise
 	}
 	return utils

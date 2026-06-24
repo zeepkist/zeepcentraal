@@ -1,12 +1,12 @@
 import cors from '@elysiajs/cors'
-import { config } from '@zeepkist/core'
+import { serverConfig } from '@zeepkist/core/config'
 import { Elysia } from 'elysia'
 
 export const withCors = new Elysia().use(
 	cors({
 		origin: ({ headers }) => {
 			const origin = headers.get('origin')
-			return !origin || config.http.corsAllowedOrigins.includes(origin)
+			return !origin || serverConfig.http.corsAllowedOrigins.includes(origin)
 		},
 		credentials: true,
 	}),

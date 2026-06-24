@@ -1,4 +1,4 @@
-import { config } from '@zeepkist/core'
+import { jobsConfig } from '@zeepkist/core/config'
 import { CronJob } from 'cron'
 import { run, type TaskSpec } from 'graphile-worker'
 import { cronTasks } from './cronTasks'
@@ -20,7 +20,7 @@ const cronJobs: CronJob[] = []
 
 export async function startRunner() {
 	runner = await run({
-		connectionString: config.databaseUrl,
+		connectionString: jobsConfig.databaseUrl,
 		crontabFile: '',
 		concurrency: 14,
 		maxPoolSize: 15,

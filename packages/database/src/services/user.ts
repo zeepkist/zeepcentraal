@@ -1,3 +1,4 @@
+import { databaseConfig } from '@zeepkist/core/config'
 import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { record, user } from '../schema'
@@ -9,7 +10,7 @@ interface SteamUserData {
 export const userSteamIdConflictWhere = sql`steam_id IS NOT NULL`
 
 async function getSteamUser(steamId: string): Promise<SteamUserData> {
-	const apiKey = process.env.STEAM_API_KEY
+	const apiKey = databaseConfig.steam.apiKey
 	if (!apiKey) {
 		throw new Error('Steam API key is not configured.')
 	}

@@ -14,6 +14,9 @@
 			"default": "./src/index.ts",
 			"main": "./src/index.ts"
 		},
+		"./config": {
+			"import": "./src/config/index.ts"
+		},
 		"./levels": {
 			"import": "./src/levels/index.ts"
 		}

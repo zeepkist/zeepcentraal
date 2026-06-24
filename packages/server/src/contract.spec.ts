@@ -2,6 +2,7 @@ import { beforeEach, expect, mock, test } from 'bun:test'
 
 process.env.BACKEND_URL = 'http://localhost:3000'
 process.env.FRONTEND_URL = 'http://localhost:5173'
+process.env.TRIGGER_JOB_TOKEN = 'job-secret'
 
 type MockUser = {
 	id: number

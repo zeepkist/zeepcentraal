@@ -11,6 +11,7 @@
 		"import": "bun run src/import.ts"
 	},
 	"dependencies": {
+		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*"
 	}
 }

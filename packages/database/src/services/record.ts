@@ -1,4 +1,5 @@
 import { metrics, SpanStatusCode, trace } from '@opentelemetry/api'
+import { databaseConfig } from '@zeepkist/core/config'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { GHOST_FOLDER } from '../config'
@@ -7,7 +8,7 @@ import { personalBestGlobal, record, recordMedia, worldRecordGlobal } from '../s
 import { generateUid } from '../utils/generateUid'
 
 type RecordInput = typeof record.$inferInsert
-const meter = metrics.getMeter(process.env.OPENTELEMETRY_SERVICE_NAME ?? 'zeepcentraal')
+const meter = metrics.getMeter(databaseConfig.otel.serviceName)
 const ghostUploadSuccesses = meter.createCounter('record.ghost_upload.success')
 const ghostUploadFailures = meter.createCounter('record.ghost_upload.failure')
 const GHOST_UPLOAD_MAX_ATTEMPTS = 5

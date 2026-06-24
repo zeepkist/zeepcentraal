@@ -1,6 +1,7 @@
+import { serverConfig } from '@zeepkist/core/config'
 import logixlysia, { type LogLevel } from 'logixlysia'
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+const IS_PRODUCTION = serverConfig.nodeEnv === 'production'
 const logLevels: LogLevel[] = ['ERROR', 'WARNING']
 
 if (!IS_PRODUCTION) {

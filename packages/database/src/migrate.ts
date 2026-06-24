@@ -1,33 +1,9 @@
-import { existsSync } from 'node:fs'
-import { isAbsolute, resolve } from 'node:path'
+import { migrateConfig } from '@zeepkist/core/config'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { db } from './index'
 
-function resolvePath(value: string) {
-	if (isAbsolute(value)) {
-		return value
-	}
-
-	return resolve(process.cwd(), value)
-}
-
-function resolveMigrationsFolder() {
-	const configuredPath = process.env.MIGRATIONS_FOLDER
-	if (configuredPath) {
-		return resolvePath(configuredPath)
-	}
-
-	const candidates = [
-		resolve(process.cwd(), 'drizzle'),
-		resolve(process.cwd(), 'packages/database/drizzle'),
-	]
-	const existingPath = candidates.find((candidate) => existsSync(candidate))
-
-	return existingPath ?? candidates[0] ?? resolve(process.cwd(), 'drizzle')
-}
-
 async function main() {
-	const migrationsFolder = resolveMigrationsFolder()
+	const migrationsFolder = migrateConfig.migrationsFolder
 	console.info(`[migrate] applying migrations from ${migrationsFolder}`)
 
 	await migrate(db, { migrationsFolder })

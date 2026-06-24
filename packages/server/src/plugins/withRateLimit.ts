@@ -1,4 +1,5 @@
-import { COOKIES, config, getCookie, verifyAccessToken } from '@zeepkist/core'
+import { COOKIES, getCookie, verifyAccessToken } from '@zeepkist/core'
+import { serverConfig } from '@zeepkist/core/config'
 import type { Elysia } from 'elysia'
 import { handleV1Error, V1_ERROR_CODES } from '../v1Errors'
 
@@ -16,7 +17,7 @@ function clientIp(
 	request: Request,
 	server: { requestIP(request: Request): { address: string } | null } | null,
 ): string {
-	if (config.http.trustProxy) {
+	if (serverConfig.http.trustProxy) {
 		const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
 		if (forwarded) {
 			return forwarded
@@ -65,7 +66,7 @@ export function withRateLimit(bucket: RateLimitBucket) {
 			counter.count++
 			counters.set(key, counter)
 
-			if (counter.count <= config.http.rateLimits[bucket]) {
+			if (counter.count <= serverConfig.http.rateLimits[bucket]) {
 				return
 			}
 

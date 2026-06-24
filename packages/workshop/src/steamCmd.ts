@@ -1,12 +1,13 @@
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { jobsConfig } from '@zeepkist/core/config'
 import type { WorkshopDownload, WorkshopDownloader } from './types'
 
 export class SteamCmdDownloader implements WorkshopDownloader {
 	public constructor(
 		private readonly appId: string,
-		private readonly executable = process.env.STEAMCMD_PATH ?? 'steamcmd',
+		private readonly executable = jobsConfig.steam.cmdPath,
 	) {}
 
 	public async download(workshopIds: bigint[]): Promise<WorkshopDownload> {

@@ -1,5 +1,5 @@
 import cluster from 'node:cluster'
-import { config } from '@zeepkist/core'
+import { jobsConfig } from '@zeepkist/core/config'
 import { makeWorkerUtils } from 'graphile-worker'
 import { startCrons, startRunner, stopCrons, stopRunner } from './worker'
 
@@ -11,7 +11,7 @@ if (cluster.isPrimary) {
 	process.title = 'zeepcentraal-jobs: primary'
 	// The primary process manages cron scheduling only — no task processing.
 	// Using makeWorkerUtils keeps it lightweight (add-only, no task runner).
-	const utils = await makeWorkerUtils({ connectionString: config.databaseUrl })
+	const utils = await makeWorkerUtils({ connectionString: jobsConfig.databaseUrl })
 	startCrons((task, payload, spec) => utils.addJob(task, payload, spec))
 
 	console.info(`Jobs primary (PID ${process.pid}) started, forking ${WORKER_COUNT} workers...`)

@@ -24,7 +24,7 @@ export const withTelemetry = opentelemetry({
 		),
 	],
 	resource: resourceFromAttributes({
-		'deployment.environment': process.env.NODE_ENV || 'development',
+		'deployment.environment': config.nodeEnv,
 		'service.name': config.otelServiceName,
 	}),
 	resourceDetectors: [
