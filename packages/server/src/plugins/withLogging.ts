@@ -8,8 +8,6 @@ if (!IS_PRODUCTION) {
 	logLevels.push('DEBUG')
 }
 
-console.info(`Logging initialized (level: ${logLevels.join(', ')}) for ${serverConfig.nodeEnv}`)
-
 // https://elysiajs.com/plugins/logging
 export const withLogging = logixlysia({
 	config: {
