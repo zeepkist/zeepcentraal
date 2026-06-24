@@ -15,12 +15,15 @@ afterEach(async () => {
 	)
 })
 
-async function createItem({ thumbnail = true } = {}): Promise<string> {
+async function createItem({
+	thumbnail = true,
+	extraThumbnail = false,
+	block = '22,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
+} = {}): Promise<string> {
 	const root = await mkdtemp(join(tmpdir(), 'workshop-scanner-test-'))
 	temporaryDirectories.push(root)
 	const levelDirectory = join(root, 'Example')
 	await mkdir(levelDirectory)
-	const block = '22,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
 	await writeFile(
 		join(levelDirectory, 'Example.zeeplevel'),
 		['LevelEditor2,File Author,file-uid', '0,0,0,0,0,0,0,0', '10,11,12,13,1,-1', block].join(
@@ -29,6 +32,9 @@ async function createItem({ thumbnail = true } = {}): Promise<string> {
 	)
 	if (thumbnail) {
 		await writeFile(join(levelDirectory, 'Example_Thumbnail.jpg'), 'image')
+	}
+	if (extraThumbnail) {
+		await writeFile(join(levelDirectory, 'Example_Thumbnail.jpg.png'), 'image')
 	}
 	return root
 }
@@ -110,7 +116,7 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.cleanups).toBe(1)
 	})
 
-	test('rejects incomplete item before upload or database reconciliation', async () => {
+	test('scans item without thumbnail using empty image URL', async () => {
 		const directory = await createItem({ thumbnail: false })
 		const dependencies = createDependencies(directory)
 		const scanner = new WorkshopScanner(
@@ -119,10 +125,50 @@ describe('WorkshopScanner', () => {
 			dependencies.persistence,
 		)
 
-		expect(scanner.scanWorkshopItem(1n)).rejects.toThrow('has 0 thumbnails')
+		const result = await scanner.scanWorkshopItem(1n)
+
+		expect(result.status).toBe('scanned')
 		expect(dependencies.calls.uploads).toBe(0)
-		expect(dependencies.calls.upserts).toHaveLength(0)
+		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('')
 		expect(dependencies.calls.cleanups).toBe(1)
+	})
+
+	test('prefers jpg thumbnail and ignores extra thumbnails', async () => {
+		const directory = await createItem({ extraThumbnail: true })
+		const dependencies = createDependencies(directory)
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		const result = await scanner.scanWorkshopItem(1n)
+
+		expect(result.status).toBe('scanned')
+		expect(dependencies.calls.uploads).toBe(1)
+		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('thumbnails/generated.jpg')
+		expect(dependencies.calls.cleanups).toBe(1)
+	})
+
+	test('adds workshop id and level file name to validation errors', async () => {
+		const directory = await createItem({ block: '1,2,3' })
+		const dependencies = createDependencies(directory)
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		try {
+			await scanner.scanWorkshopItem(3749321871n)
+			throw new Error('Expected scan to fail')
+		} catch (error) {
+			expect(error).toBeInstanceOf(Error)
+			const message = (error as Error).message
+			expect(message).toContain('Workshop 3749321871 level Example')
+			expect(message).toContain('Example.zeeplevel')
+			expect(message).toContain('expected 38')
+		}
 	})
 
 	test('marks permanent metadata failures deleted without downloading', async () => {

@@ -21,6 +21,17 @@ function requiredNumber(value: unknown, label: string): number {
 	return value
 }
 
+function medalTime(value: unknown): number {
+	if (typeof value === 'number' && Number.isFinite(value)) {
+		return value
+	}
+	if (typeof value === 'string') {
+		const parsed = Number(value)
+		return Number.isFinite(parsed) ? parsed : 0
+	}
+	return 0
+}
+
 export function parseJsonLevel(content: string, adventure = false): ParsedLevel {
 	const parsed = JSON.parse(content) as JsonLevel
 	const uid = parsed.level?.UID
@@ -41,10 +52,10 @@ export function parseJsonLevel(content: string, adventure = false): ParsedLevel 
 		uid,
 		authorId,
 		fileAuthor: parsed.author?.name ?? '',
-		validationTimeAuthor: requiredNumber(parsed.medals?.author, 'author medal'),
-		validationTimeGold: requiredNumber(parsed.medals?.gold, 'gold medal'),
-		validationTimeSilver: requiredNumber(parsed.medals?.silver, 'silver medal'),
-		validationTimeBronze: requiredNumber(parsed.medals?.bronze, 'bronze medal'),
+		validationTimeAuthor: medalTime(parsed.medals?.author),
+		validationTimeGold: medalTime(parsed.medals?.gold),
+		validationTimeSilver: medalTime(parsed.medals?.silver),
+		validationTimeBronze: medalTime(parsed.medals?.bronze),
 		amountCheckpoints: countCheckpoints(metadataBlocks),
 		amountFinishes: countFinishes(metadataBlocks),
 		amountBlocks: blocks.length,

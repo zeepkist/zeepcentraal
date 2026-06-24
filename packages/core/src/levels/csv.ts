@@ -18,6 +18,11 @@ function parseFinite(value: string, label: string): number {
 	return parsed
 }
 
+function parseMedalTime(value: string | undefined): number {
+	const parsed = Number(value)
+	return Number.isFinite(parsed) ? parsed : 0
+}
+
 function formatDecimal(value: string): string {
 	const match = value.trim().match(/^([+-]?)(\d+)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/)
 	if (!match) {
@@ -127,10 +132,10 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 		parseFinite(camera[index] ?? '', `camera[${index}]`)
 	}
 
-	const validationTime = Number(validation[0])
-	const gold = parseFinite(validation[1] ?? '', 'gold time')
-	const silver = parseFinite(validation[2] ?? '', 'silver time')
-	const bronze = parseFinite(validation[3] ?? '', 'bronze time')
+	const validationTime = parseMedalTime(validation[0])
+	const gold = parseMedalTime(validation[1])
+	const silver = parseMedalTime(validation[2])
+	const bronze = parseMedalTime(validation[3])
 	const skybox = parseFinite(validation[4] ?? '', 'skybox')
 	const ground = parseFinite(validation[5] ?? '', 'ground')
 
@@ -176,7 +181,7 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 		uid,
 		authorId,
 		fileAuthor: first[1] ?? '',
-		validationTimeAuthor: Number.isFinite(validationTime) ? validationTime : 0,
+		validationTimeAuthor: validationTime,
 		validationTimeGold: gold,
 		validationTimeSilver: silver,
 		validationTimeBronze: bronze,

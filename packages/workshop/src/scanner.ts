@@ -44,16 +44,12 @@ async function discoverLevels(directory: string): Promise<LevelFiles[]> {
 				continue
 			}
 			const baseName = parse(entry.name).name
-			const thumbnailPrefix = `${baseName}_Thumbnail.`
-			const thumbnails = [...files].filter((name) => name.startsWith(thumbnailPrefix))
-			if (thumbnails.length !== 1) {
-				throw new Error(
-					`Level ${join(currentDirectory, entry.name)} has ${thumbnails.length} thumbnails`,
-				)
-			}
+			const thumbnailName = [...files].find(
+				(name) => name.toLowerCase() === `${baseName.toLowerCase()}_thumbnail.jpg`,
+			)
 			levels.push({
 				levelPath: join(currentDirectory, entry.name),
-				thumbnailPath: join(currentDirectory, thumbnails[0] ?? ''),
+				thumbnailPath: thumbnailName ? join(currentDirectory, thumbnailName) : '',
 				name: baseName,
 			})
 		}
@@ -146,10 +142,12 @@ export class WorkshopScanner {
 			for (const prepared of preparedItems) {
 				const changedLevelIds: number[] = []
 				for (const level of prepared.levels) {
-					const imageUrl = await this.persistence.uploadThumbnail(
-						extname(level.thumbnailPath).slice(1),
-						await readFile(level.thumbnailPath),
-					)
+					const imageUrl = level.thumbnailPath
+						? await this.persistence.uploadThumbnail(
+								extname(level.thumbnailPath).slice(1),
+								await readFile(level.thumbnailPath),
+							)
+						: ''
 					const idLevel = await this.persistence.upsertLevel({
 						...level.parsed,
 						fileUid: level.parsed.uid,
@@ -181,10 +179,23 @@ export class WorkshopScanner {
 	private async prepareItem(item: DownloadedWorkshopItem, creatorId: bigint) {
 		const files = await discoverLevels(item.directory)
 		return Promise.all(
-			files.map(async (file) => ({
-				...file,
-				parsed: parseLevel(await readFile(file.levelPath, 'utf8'), false, creatorId),
-			})),
+			files.map(async (file) => {
+				try {
+					return {
+						...file,
+						parsed: parseLevel(
+							await readFile(file.levelPath, 'utf8'),
+							false,
+							creatorId,
+						),
+					}
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error)
+					throw new Error(
+						`Workshop ${item.workshopId} level ${file.name} (${file.levelPath}) failed validation: ${message}`,
+					)
+				}
+			}),
 		)
 	}
 }

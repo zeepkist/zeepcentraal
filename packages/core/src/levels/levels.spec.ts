@@ -58,6 +58,36 @@ describe('legacy level parsing', () => {
 		expect(parsed.hash).toBe('hash-bom')
 	})
 
+	test('normalizes invalid validation medal times to zero', () => {
+		const parsedCsv = parseCsvLevel(
+			[
+				'LevelEditor2,Author,uid-1',
+				'0,0,0,0,0,0,0,0',
+				'Infinity,Infinity,Infinity,Infinity,1,-1',
+			].join('\n'),
+		)
+
+		expect(parsedCsv.validationTimeAuthor).toBe(0)
+		expect(parsedCsv.validationTimeGold).toBe(0)
+		expect(parsedCsv.validationTimeSilver).toBe(0)
+		expect(parsedCsv.validationTimeBronze).toBe(0)
+
+		const parsedJson = parseJsonLevel(
+			JSON.stringify({
+				level: { UID: 'uid-json', zeepHash: 'legacy-json-hash' },
+				author: { name: 'Author', StmID: '76561198000000000' },
+				medals: { author: 'Infinity', gold: 'Infinity', silver: null, bronze: undefined },
+				enviro: { skybox: 2, groundMat: -1 },
+				blox: [],
+			}),
+		)
+
+		expect(parsedJson.validationTimeAuthor).toBe(0)
+		expect(parsedJson.validationTimeGold).toBe(0)
+		expect(parsedJson.validationTimeSilver).toBe(0)
+		expect(parsedJson.validationTimeBronze).toBe(0)
+	})
+
 	test('rejects malformed CSV blocks', () => {
 		expect(() => parseCsvLevel(`${csv}\n1,2,3`)).toThrow('expected 38')
 	})
