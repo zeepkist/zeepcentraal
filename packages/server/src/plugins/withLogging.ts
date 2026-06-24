@@ -8,6 +8,8 @@ if (!IS_PRODUCTION) {
 	logLevels.push('DEBUG')
 }
 
+console.info(`Logging initialized (level: ${logLevels.join(', ')}) for ${serverConfig.nodeEnv}`)
+
 // https://elysiajs.com/plugins/logging
 export const withLogging = logixlysia({
 	config: {
@@ -28,5 +30,11 @@ export const withLogging = logixlysia({
 		logFilter: {
 			level: logLevels,
 		},
+		requestId: false,
+		slowThreshold: 500,
+		verySlowThreshold: 1000,
+		showContextTree: true,
+		contextDepth: 3,
+		customLogFormat: '{now} {level} {method} {status} {pathname} {duration} {speed} {ip}',
 	},
 })
