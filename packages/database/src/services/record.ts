@@ -7,7 +7,7 @@ import { personalBestGlobal, record, recordMedia, worldRecordGlobal } from '../s
 import { generateUid } from '../utils/generateUid'
 
 type RecordInput = typeof record.$inferInsert
-const meter = metrics.getMeter('@zeepkist/database')
+const meter = metrics.getMeter(process.env.OPENTELEMETRY_SERVICE_NAME ?? 'zeepcentraal')
 const ghostUploadSuccesses = meter.createCounter('record.ghost_upload.success')
 const ghostUploadFailures = meter.createCounter('record.ghost_upload.failure')
 const GHOST_UPLOAD_MAX_ATTEMPTS = 5
