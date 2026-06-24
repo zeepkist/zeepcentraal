@@ -1,4 +1,4 @@
-import { serverConfig } from '@zeepkist/core/config'
+import { serverConfig } from '@zeepkist/core/config/server'
 
 export const config = {
 	host: serverConfig.api.host,

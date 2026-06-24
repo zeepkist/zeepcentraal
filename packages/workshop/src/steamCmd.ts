@@ -1,7 +1,7 @@
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { jobsConfig } from '@zeepkist/core/config'
+import { jobsConfig } from '@zeepkist/core/config/jobs'
 import type { WorkshopDownload, WorkshopDownloader } from './types'
 
 export class SteamCmdDownloader implements WorkshopDownloader {

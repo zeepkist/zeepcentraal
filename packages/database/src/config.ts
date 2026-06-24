@@ -1,4 +1,4 @@
-import { databaseConfig } from '@zeepkist/core/config'
+import { databaseConfig } from '@zeepkist/core/config/database'
 
 export const DEFAULT_VOTE_RATING = 0.5
 

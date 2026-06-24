@@ -1,5 +1,5 @@
 import { metrics, SpanStatusCode, trace } from '@opentelemetry/api'
-import { databaseConfig } from '@zeepkist/core/config'
+import { databaseConfig } from '@zeepkist/core/config/database'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { GHOST_FOLDER } from '../config'

@@ -1,5 +1,5 @@
 import cors from '@elysiajs/cors'
-import { serverConfig } from '@zeepkist/core/config'
+import { serverConfig } from '@zeepkist/core/config/server'
 import { Elysia } from 'elysia'
 
 export const withCors = new Elysia().use(

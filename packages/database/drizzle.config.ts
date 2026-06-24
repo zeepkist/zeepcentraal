@@ -1,4 +1,4 @@
-import { getDatabaseUrlForTooling } from '@zeepkist/core/config'
+import { getDatabaseUrlForTooling } from '@zeepkist/core/config/database'
 import { defineConfig } from 'drizzle-kit'
 
 export default defineConfig({

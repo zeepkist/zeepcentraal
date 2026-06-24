@@ -1,4 +1,4 @@
-import { jobsConfig } from '@zeepkist/core/config'
+import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { CronJob } from 'cron'
 import { run, type TaskSpec } from 'graphile-worker'
 import { cronTasks } from './cronTasks'

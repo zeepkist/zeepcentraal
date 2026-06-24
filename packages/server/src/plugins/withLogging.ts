@@ -1,4 +1,4 @@
-import { serverConfig } from '@zeepkist/core/config'
+import { serverConfig } from '@zeepkist/core/config/server'
 import logixlysia, { type LogLevel } from 'logixlysia'
 
 const IS_PRODUCTION = serverConfig.nodeEnv === 'production'

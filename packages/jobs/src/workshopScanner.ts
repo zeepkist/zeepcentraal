@@ -1,4 +1,4 @@
-import { jobsConfig } from '@zeepkist/core/config'
+import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { WorkshopScanner } from '@zeepkist/workshop/scanner'
 import { SteamCmdDownloader } from '@zeepkist/workshop/steam-cmd'
 import { SteamWebApiMetadata } from '@zeepkist/workshop/steam-metadata'

@@ -1,4 +1,4 @@
-import { serverConfig } from '@zeepkist/core/config'
+import { serverConfig } from '@zeepkist/core/config/server'
 import type { Elysia } from 'elysia'
 import { handleV1Error, V1_ERROR_CODES } from '../v1Errors'
 

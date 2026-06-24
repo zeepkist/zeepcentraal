@@ -1,4 +1,4 @@
-import { jobsConfig } from '@zeepkist/core/config'
+import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { makeWorkerUtils, type WorkerUtils } from 'graphile-worker'
 import { DEFAULT_JOB_PRIORITY, WORKSHOP_JOB_PRIORITY } from './priorities'
 import { isCompatibleTaskIdentifier, isValidTaskPayload, taskDefinitions } from './taskDefinitions'

@@ -1,5 +1,5 @@
 import cluster from 'node:cluster'
-import { jobsConfig } from '@zeepkist/core/config'
+import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { makeWorkerUtils } from 'graphile-worker'
 import { startCrons, startRunner, stopCrons, stopRunner } from './worker'
 

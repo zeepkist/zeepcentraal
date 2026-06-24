@@ -17,6 +17,21 @@
 		"./config": {
 			"import": "./src/config/index.ts"
 		},
+		"./config/database": {
+			"import": "./src/config/database.ts"
+		},
+		"./config/import-zsl": {
+			"import": "./src/config/importZsl.ts"
+		},
+		"./config/jobs": {
+			"import": "./src/config/jobs.ts"
+		},
+		"./config/migrate": {
+			"import": "./src/config/migrate.ts"
+		},
+		"./config/server": {
+			"import": "./src/config/server.ts"
+		},
 		"./levels": {
 			"import": "./src/levels/index.ts"
 		}

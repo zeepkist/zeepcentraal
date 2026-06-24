@@ -1,4 +1,4 @@
-import { migrateConfig } from '@zeepkist/core/config'
+import { migrateConfig } from '@zeepkist/core/config/migrate'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
 import { db } from './index'
 
