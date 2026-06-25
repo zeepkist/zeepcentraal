@@ -10,6 +10,11 @@ const serverEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
 	HOST: z.string().default('0.0.0.0'),
 	PORT: z.coerce.number().int().positive().default(3000),
+	SERVER_MAX_REQUEST_BODY_SIZE: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(32 * 1024 * 1024),
 	TRIGGER_JOB_TOKEN: z.string().min(1).optional(),
 	JWT_SECRET: z.string().min(32).optional(),
 	JWT_AUDIENCE: z.string().default('zeepki.st'),
@@ -60,6 +65,7 @@ export function parseServerConfig(env: EnvSource) {
 		api: {
 			host: parsedEnv.HOST,
 			port: parsedEnv.PORT,
+			maxRequestBodySize: parsedEnv.SERVER_MAX_REQUEST_BODY_SIZE,
 		},
 		job: {
 			triggerToken: triggerJobToken,

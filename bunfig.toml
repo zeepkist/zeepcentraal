@@ -1,3 +1,14 @@
+# lower runtime heap memory. Accept slower peak throughput for smaller containers.
+smol = true
+
+# disable anonymous crash reports/telemetry
+telemetry = false
+
 [run]
 # equivalent to `bun --bun` for all `bun run` commands
 bun = true
+# prevent child processes from surviving a killed bun command
+noOrphans = true
+
+[test]
+smol = true
