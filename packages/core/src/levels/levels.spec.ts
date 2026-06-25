@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseCsvLevel, parseJsonLevel, parseLevel } from '.'
+import { parseCsvLevel, parseJsonLevel, parseJsonLevelV2, parseLevel, parseLevelV2 } from '.'
 
 const csv = [
 	'LevelEditor2,Author,uid-1',
@@ -111,15 +111,52 @@ describe('legacy level parsing', () => {
 			.slice(1)
 
 		for (const vector of vectors) {
-			const [fileName, expectedSha1, expectedSha256] = vector.split(',')
-			if (!fileName || !expectedSha1 || !expectedSha256) {
+			const [fileName, format, expectedZeepHash, expectedSha256, expectedXxh128] =
+				vector.split(',')
+			if (!fileName || !format || !expectedZeepHash || !expectedSha256 || !expectedXxh128) {
 				throw new Error(`Invalid compatibility vector: ${vector}`)
 			}
 			const bytes = readFileSync(join(fixtureDirectory, fileName))
 			expect(createHash('sha256').update(bytes).digest('hex').toUpperCase()).toBe(
 				expectedSha256,
 			)
-			expect(parseCsvLevel(bytes.toString('utf8')).hash).toBe(expectedSha1)
+			const parsed = parseLevelV2(bytes.toString('utf8'))
+			expect(parsed.format === 0 ? 'csv' : 'json').toBe(format)
+			expect(parsed.zeepHash).toBe(expectedZeepHash)
+			expect(parsed.hash).toBe(expectedXxh128)
 		}
+	})
+
+	test('treats JSON zeepHash as untrusted for XXH128', () => {
+		const content = JSON.stringify({
+			level: { UID: 'uid-json', zeepHash: 'legacy-json-hash' },
+			author: { name: 'Author', StmID: '76561198000000000' },
+			medals: { author: 10, gold: 11, silver: 12, bronze: 13 },
+			enviro: { skybox: 2, groundMat: -1 },
+			blox: [{ z: 1, i: 1609, d: { n: { ch5: 1 } } }],
+		})
+		const changedZeepHash = content.replace('legacy-json-hash', 'edited-json-hash')
+		const changedBlock = content.replace('"z":1', '"z":2')
+
+		expect(parseJsonLevelV2(changedZeepHash).hash).toBe(parseJsonLevelV2(content).hash)
+		expect(parseJsonLevelV2(changedBlock).hash).not.toBe(parseJsonLevelV2(content).hash)
+	})
+
+	test('normalizes JSON object key order for XXH128', () => {
+		const base = {
+			level: { UID: 'uid-json', zeepHash: 'legacy-json-hash' },
+			author: { name: 'Author', StmID: '76561198000000000' },
+			medals: { author: 10, gold: 11, silver: 12, bronze: 13 },
+			enviro: { skybox: 2, groundMat: -1 },
+			blox: [{ z: 1, i: 1609, d: { n: { ch5: 1 } } }],
+		}
+		const reordered = {
+			...base,
+			blox: [{ d: { n: { ch5: 1 } }, i: 1609, z: 1 }],
+		}
+
+		expect(parseJsonLevelV2(JSON.stringify(reordered)).hash).toBe(
+			parseJsonLevelV2(JSON.stringify(base)).hash,
+		)
 	})
 })
