@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { extname, join, parse } from 'node:path'
-import { parseLevel } from '@zeepkist/core/levels'
+import { parseLevelV2 } from '@zeepkist/core/levels'
 import {
 	markMissingWorkshopLevelsDeleted,
 	markWorkshopDeleted,
@@ -150,6 +150,8 @@ export class WorkshopScanner {
 						: ''
 					const idLevel = await this.persistence.upsertLevel({
 						...level.parsed,
+						xxHash: level.parsed.hash,
+						hash: level.parsed.zeepHash,
 						fileUid: level.parsed.uid,
 						workshopId: prepared.item.workshopId,
 						authorId: prepared.metadata.creatorId,
@@ -183,7 +185,7 @@ export class WorkshopScanner {
 				try {
 					return {
 						...file,
-						parsed: parseLevel(
+						parsed: parseLevelV2(
 							await readFile(file.levelPath, 'utf8'),
 							false,
 							creatorId,
