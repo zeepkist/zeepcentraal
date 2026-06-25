@@ -40,6 +40,7 @@
 		"@isaacs/ttlcache": "~2.1.1",
 		"@lukeed/ms": "~2.0.2",
 		"fast-jwt": "~6.2.4",
+		"xxhash-addon": "^2.1.0",
 		"zod": "~4.4.0"
 	}
 }
