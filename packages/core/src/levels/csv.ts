@@ -209,9 +209,6 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 
 export function parseCsvLevelV2(content: string, adventure = false, authorId = 0n): ParsedLevelV2 {
 	const parsed = parseCsvLevel(content, adventure, authorId)
-	if (adventure) {
-		return { ...parsed, zeepHash: parsed.hash }
-	}
 
 	const lines = content.split(/\r?\n/)
 	const validation = (lines[2] ?? '').split(',')

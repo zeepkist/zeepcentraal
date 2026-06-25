@@ -60,7 +60,11 @@ function canonicalJsonBlocks(blocks: JsonBlock[]): string {
 		.map((block, index) => ({ block, index, canonical: canonicalJson(block) }))
 		.sort(
 			(left, right) =>
-				left.canonical.localeCompare(right.canonical) || left.index - right.index,
+				(left.canonical < right.canonical
+					? -1
+					: left.canonical > right.canonical
+						? 1
+						: 0) || left.index - right.index,
 		)
 		.map((entry) => entry.canonical)
 		.join(',')}]`
@@ -101,9 +105,6 @@ export function parseJsonLevel(content: string, adventure = false): ParsedLevel 
 
 export function parseJsonLevelV2(content: string, adventure = false): ParsedLevelV2 {
 	const parsed = parseJsonLevel(content, adventure)
-	if (adventure) {
-		return { ...parsed, zeepHash: parsed.hash }
-	}
 	const json = JSON.parse(content) as JsonLevel
 	const blocks = json.blox
 	if (!Array.isArray(blocks)) {
