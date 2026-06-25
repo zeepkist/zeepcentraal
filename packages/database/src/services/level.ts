@@ -48,15 +48,7 @@ export async function getOrInsertLevelWithCanonicalHash({
 }) {
 	const existing = await getLevelByXxHash(xxHash)
 	if (existing) {
-		if (existing.hash === hash && existing.adventure === adventure) {
-			return existing
-		}
-		const [updated] = await db
-			.update(level)
-			.set({ hash, adventure, dateUpdated: new Date().toISOString() })
-			.where(eq(level.id, existing.id))
-			.returning()
-		return updated ?? existing
+		return existing
 	}
 
 	try {

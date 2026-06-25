@@ -361,8 +361,8 @@ mock.module('@zeepkist/database/services', () => ({
 		adventure: boolean
 	}) => {
 		state.levelAdventureUpdates.push(adventure)
-		return hash === state.level.hash && xxHash === state.level.xxHash && state.levelExists
-			? { ...state.level, adventure }
+		return xxHash === state.level.xxHash && state.levelExists
+			? { ...state.level, hash: state.level.hash, adventure: state.level.adventure }
 			: null
 	},
 	hasLevelMetadata: async () => state.metadataPresent,
@@ -732,6 +732,30 @@ test('record/submit returns 200 with empty body on success', async () => {
 	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
 	expect(state.levelAdventureUpdates).toEqual([true])
 	expect(state.workshopScanCalls).toEqual([])
+})
+
+test('record/submit resolves by canonical hash without trusting legacy hash', async () => {
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: 'EDITED_LEGACY_HASH',
+			Hash: state.level.xxHash,
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
 })
 
 test('record/submit queues missing workshop metadata with BigInt ID', async () => {
