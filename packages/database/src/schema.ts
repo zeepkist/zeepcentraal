@@ -29,6 +29,7 @@ export const level = pgTable(
 			cache: 1,
 		}),
 		hash: text().notNull(),
+		xxHash: text('xx_hash'),
 		adventure: boolean().notNull().default(false),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -37,7 +38,12 @@ export const level = pgTable(
 			() => new Date().toISOString(),
 		),
 	},
-	(table) => [unique('level_pk').on(table.hash)],
+	(table) => [
+		index('IX_level_hash').using('btree', table.hash.asc().nullsLast()),
+		uniqueIndex('UQ_level_xx_hash')
+			.using('btree', table.xxHash.asc().nullsLast())
+			.where(sql`${table.xxHash} IS NOT NULL`),
+	],
 )
 
 export const levelItem = pgTable(

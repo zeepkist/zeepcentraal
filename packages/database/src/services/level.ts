@@ -8,12 +8,19 @@ export async function getLevel(hash: string) {
 	})
 }
 
+export async function getLevelByXxHash(xxHash: string) {
+	return db.query.level.findFirst({
+		where: eq(level.xxHash, xxHash),
+	})
+}
+
 export async function getOrInsertLevel(hash: string) {
-	const [created] = await db
-		.insert(level)
-		.values({ hash })
-		.onConflictDoNothing({ target: level.hash })
-		.returning()
+	const existing = await getLevel(hash)
+	if (existing) {
+		return existing
+	}
+
+	const [created] = await db.insert(level).values({ hash }).returning()
 	return created ?? getLevel(hash)
 }
 
@@ -28,6 +35,32 @@ export async function getOrInsertLevelWithAdventure(hash: string, adventure: boo
 		.where(eq(level.id, resolved.id))
 		.returning()
 	return updated ?? resolved
+}
+
+export async function getOrInsertLevelWithCanonicalHash({
+	hash,
+	xxHash,
+	adventure,
+}: {
+	hash: string
+	xxHash: string
+	adventure: boolean
+}) {
+	const existing = await getLevelByXxHash(xxHash)
+	if (existing) {
+		if (existing.hash === hash && existing.adventure === adventure) {
+			return existing
+		}
+		const [updated] = await db
+			.update(level)
+			.set({ hash, adventure, dateUpdated: new Date().toISOString() })
+			.where(eq(level.id, existing.id))
+			.returning()
+		return updated ?? existing
+	}
+
+	const [created] = await db.insert(level).values({ hash, xxHash, adventure }).returning()
+	return created ?? getLevelByXxHash(xxHash)
 }
 
 export async function getLevelByUuid(uuid: string): Promise<{ id: number } | null> {

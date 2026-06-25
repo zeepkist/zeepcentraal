@@ -197,6 +197,13 @@
 			"when": 1782176615365,
 			"tag": "0028_watery_bedlam",
 			"breakpoints": true
+		},
+		{
+			"idx": 29,
+			"version": "7",
+			"when": 1782350900844,
+			"tag": "0029_talented_wither",
+			"breakpoints": true
 		}
 	]
 }
