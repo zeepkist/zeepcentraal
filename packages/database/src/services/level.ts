@@ -59,8 +59,16 @@ export async function getOrInsertLevelWithCanonicalHash({
 		return updated ?? existing
 	}
 
-	const [created] = await db.insert(level).values({ hash, xxHash, adventure }).returning()
-	return created ?? getLevelByXxHash(xxHash)
+	try {
+		const [created] = await db.insert(level).values({ hash, xxHash, adventure }).returning()
+		return created ?? getLevelByXxHash(xxHash)
+	} catch (error) {
+		const concurrent = await getLevelByXxHash(xxHash)
+		if (concurrent) {
+			return concurrent
+		}
+		throw error
+	}
 }
 
 export async function getLevelByUuid(uuid: string): Promise<{ id: number } | null> {

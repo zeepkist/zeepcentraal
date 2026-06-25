@@ -100,13 +100,28 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 					.then((rows) => rows.find((row) => !row.xxHash || row.xxHash === input.xxHash))
 			: undefined
 
-		const [createdLevel] =
-			existingByXxHash || existingByLegacyHash
-				? []
-				: await tx
-						.insert(level)
-						.values({ hash: input.hash, xxHash: input.xxHash, adventure: false })
-						.returning({ id: level.id })
+		let createdLevel: { id: number } | undefined
+		if (!existingByXxHash && !existingByLegacyHash) {
+			try {
+				;[createdLevel] = await tx
+					.insert(level)
+					.values({ hash: input.hash, xxHash: input.xxHash, adventure: false })
+					.returning({ id: level.id })
+			} catch (error) {
+				if (!input.xxHash) {
+					throw error
+				}
+				createdLevel = await tx
+					.select({ id: level.id })
+					.from(level)
+					.where(eq(level.xxHash, input.xxHash))
+					.limit(1)
+					.then((rows) => rows[0])
+				if (!createdLevel) {
+					throw error
+				}
+			}
+		}
 		const idLevel = existingByXxHash?.id ?? existingByLegacyHash?.id ?? createdLevel?.id
 		if (!idLevel) {
 			throw new Error(`Unable to resolve level for hash ${input.hash}`)
