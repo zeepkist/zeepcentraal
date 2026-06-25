@@ -60,11 +60,9 @@ describe('legacy level parsing', () => {
 
 	test('normalizes invalid validation medal times to zero', () => {
 		const parsedCsv = parseCsvLevel(
-			[
-				'LevelEditor2,Author,uid-1',
-				'0,0,0,0,0,0,0,0',
-				'Infinity,Infinity,Infinity,Infinity,1,-1',
-			].join('\n'),
+			['LevelEditor2,Author,uid-1', '0,0,0,0,0,0,0,0', 'NaN,Infinity,NaN,Infinity,1,-1'].join(
+				'\n',
+			),
 		)
 
 		expect(parsedCsv.validationTimeAuthor).toBe(0)
@@ -76,7 +74,7 @@ describe('legacy level parsing', () => {
 			JSON.stringify({
 				level: { UID: 'uid-json', zeepHash: 'legacy-json-hash' },
 				author: { name: 'Author', StmID: '76561198000000000' },
-				medals: { author: 'Infinity', gold: 'Infinity', silver: null, bronze: undefined },
+				medals: { author: 'NaN', gold: 'Infinity', silver: null, bronze: undefined },
 				enviro: { skybox: 2, groundMat: -1 },
 				blox: [],
 			}),
