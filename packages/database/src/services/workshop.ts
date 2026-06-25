@@ -83,25 +83,55 @@ export async function getPendingLevelRequestWorkshopIds(): Promise<bigint[]> {
 export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<number> {
 	return db.transaction(async (tx) => {
 		const now = new Date().toISOString()
-		const existingByXxHash = input.xxHash
-			? await tx
-					.select({ id: level.id })
-					.from(level)
-					.where(eq(level.xxHash, input.xxHash))
-					.limit(1)
-					.then((rows) => rows[0])
-			: undefined
-		const existingByLegacyHash = !existingByXxHash
-			? await tx
-					.select({ id: level.id, xxHash: level.xxHash })
-					.from(level)
-					.where(eq(level.hash, input.hash))
-					.orderBy(asc(level.id))
-					.then((rows) => rows.find((row) => !row.xxHash || row.xxHash === input.xxHash))
-			: undefined
+		const existingItem = await tx
+			.select({
+				id: levelItem.id,
+				idLevel: levelItem.idLevel,
+				deleted: levelItem.deleted,
+				xxHash: level.xxHash,
+			})
+			.from(levelItem)
+			.innerJoin(level, eq(level.id, levelItem.idLevel))
+			.where(
+				and(
+					eq(levelItem.workshopId, input.workshopId),
+					eq(levelItem.fileUid, input.fileUid),
+				),
+			)
+			.orderBy(asc(levelItem.id))
+			.limit(1)
+			.then((rows) => rows[0])
+		const existingItemLevel =
+			existingItem &&
+			!existingItem.deleted &&
+			(!existingItem.xxHash || existingItem.xxHash === input.xxHash)
+				? { id: existingItem.idLevel }
+				: undefined
+		const existingByXxHash =
+			!existingItemLevel && input.xxHash
+				? await tx
+						.select({ id: level.id })
+						.from(level)
+						.where(eq(level.xxHash, input.xxHash))
+						.limit(1)
+						.then((rows) => rows[0])
+				: undefined
+		const existingByLegacyHash =
+			!existingItemLevel && !existingByXxHash
+				? await tx
+						.select({ id: level.id, xxHash: level.xxHash })
+						.from(level)
+						.where(eq(level.hash, input.hash))
+						.orderBy(asc(level.id))
+						.then(
+							(rows) =>
+								rows.find((row) => !row.xxHash) ??
+								rows.find((row) => row.xxHash === input.xxHash),
+						)
+				: undefined
 
 		let createdLevel: { id: number } | undefined
-		if (!existingByXxHash && !existingByLegacyHash) {
+		if (!existingItemLevel && !existingByXxHash && !existingByLegacyHash) {
 			try {
 				;[createdLevel] = await tx
 					.insert(level)
@@ -122,7 +152,11 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 				}
 			}
 		}
-		const idLevel = existingByXxHash?.id ?? existingByLegacyHash?.id ?? createdLevel?.id
+		const idLevel =
+			existingItemLevel?.id ??
+			existingByXxHash?.id ??
+			existingByLegacyHash?.id ??
+			createdLevel?.id
 		if (!idLevel) {
 			throw new Error(`Unable to resolve level for hash ${input.hash}`)
 		}
@@ -167,18 +201,6 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 			})
 		}
 
-		const existingItem = await tx
-			.select({ id: levelItem.id })
-			.from(levelItem)
-			.where(
-				and(
-					eq(levelItem.workshopId, input.workshopId),
-					eq(levelItem.fileUid, input.fileUid),
-				),
-			)
-			.orderBy(asc(levelItem.id))
-			.limit(1)
-			.then((rows) => rows[0])
 		const itemValues = {
 			idLevel,
 			workshopId: input.workshopId,

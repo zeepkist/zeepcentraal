@@ -46,21 +46,40 @@ export async function getOrInsertLevelWithCanonicalHash({
 	xxHash: string
 	adventure: boolean
 }) {
-	const existing = await getLevelByXxHash(xxHash)
-	if (existing) {
-		return existing
-	}
-
-	try {
-		const [created] = await db.insert(level).values({ hash, xxHash, adventure }).returning()
-		return created ?? getLevelByXxHash(xxHash)
-	} catch (error) {
-		const concurrent = await getLevelByXxHash(xxHash)
-		if (concurrent) {
-			return concurrent
+	return db.transaction(async (tx) => {
+		const existingByXxHash = await tx.query.level.findFirst({
+			where: eq(level.xxHash, xxHash),
+		})
+		if (existingByXxHash) {
+			return existingByXxHash
 		}
-		throw error
-	}
+
+		const existingByLegacyHash = await tx.query.level.findFirst({
+			where: eq(level.hash, hash),
+			orderBy: (level, { asc }) => [asc(level.id)],
+		})
+		if (existingByLegacyHash && !existingByLegacyHash.xxHash) {
+			const [updated] = await tx
+				.update(level)
+				.set({ xxHash, adventure, dateUpdated: new Date().toISOString() })
+				.where(eq(level.id, existingByLegacyHash.id))
+				.returning()
+			return updated ?? getLevelByXxHash(xxHash)
+		}
+
+		try {
+			const [created] = await tx.insert(level).values({ hash, xxHash, adventure }).returning()
+			return created ?? getLevelByXxHash(xxHash)
+		} catch (error) {
+			const concurrent = await tx.query.level.findFirst({
+				where: eq(level.xxHash, xxHash),
+			})
+			if (concurrent) {
+				return concurrent
+			}
+			throw error
+		}
+	})
 }
 
 export async function getLevelByUuid(uuid: string): Promise<{ id: number } | null> {

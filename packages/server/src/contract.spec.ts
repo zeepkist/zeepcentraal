@@ -362,7 +362,7 @@ mock.module('@zeepkist/database/services', () => ({
 	}) => {
 		state.levelAdventureUpdates.push(adventure)
 		return xxHash === state.level.xxHash && state.levelExists
-			? { ...state.level, hash: state.level.hash, adventure: state.level.adventure }
+			? { ...state.level, hash, adventure: state.level.adventure }
 			: null
 	},
 	hasLevelMetadata: async () => state.metadataPresent,
