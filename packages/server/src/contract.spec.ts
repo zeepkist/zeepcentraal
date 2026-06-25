@@ -84,6 +84,7 @@ const state = {
 	level: {
 		id: 10,
 		hash: '61C096367AFC76A1D2E8024AA638F516912444CC',
+		xxHash: '0123456789ABCDEF0123456789ABCDEF',
 		adventure: false,
 		dateCreated: new Date().toISOString(),
 		dateUpdated: new Date().toISOString(),
@@ -174,6 +175,7 @@ function resetState() {
 	state.level = {
 		id: 10,
 		hash: '61C096367AFC76A1D2E8024AA638F516912444CC',
+		xxHash: '0123456789ABCDEF0123456789ABCDEF',
 		adventure: false,
 		dateCreated: new Date().toISOString(),
 		dateUpdated: new Date().toISOString(),
@@ -348,6 +350,20 @@ mock.module('@zeepkist/database/services', () => ({
 	getOrInsertLevelWithAdventure: async (hash: string, adventure: boolean) => {
 		state.levelAdventureUpdates.push(adventure)
 		return hash === state.level.hash && state.levelExists ? { ...state.level, adventure } : null
+	},
+	getOrInsertLevelWithCanonicalHash: async ({
+		hash,
+		xxHash,
+		adventure,
+	}: {
+		hash: string
+		xxHash: string
+		adventure: boolean
+	}) => {
+		state.levelAdventureUpdates.push(adventure)
+		return hash === state.level.hash && xxHash === state.level.xxHash && state.levelExists
+			? { ...state.level, adventure }
+			: null
 	},
 	hasLevelMetadata: async () => state.metadataPresent,
 	claimLevelRequest: async ({ workshopId }: { workshopId: bigint }) => {
@@ -701,6 +717,7 @@ test('record/submit returns 200 with empty body on success', async () => {
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
@@ -726,6 +743,7 @@ test('record/submit queues missing workshop metadata with BigInt ID', async () =
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			WorkshopId: '3749321871',
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
@@ -753,6 +771,7 @@ test('record/submit releases workshop claim when enqueue fails', async () => {
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			WorkshopId: '3749321871',
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
@@ -777,6 +796,7 @@ test('record/submit does not enqueue when concurrent claim already exists', asyn
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			WorkshopId: '3749321871',
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
@@ -801,7 +821,32 @@ test('record/submit rejects invalid workshop ID with V1 error shape', async () =
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			WorkshopId: 'not-a-number',
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 19, message: 'Missing required parameters' },
+	})
+})
+
+test('record/submit rejects missing canonical hash with V1 error shape', async () => {
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
@@ -826,6 +871,7 @@ test('record/submit rejects malformed ghost data without changing wire error sha
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
@@ -851,6 +897,7 @@ test('record/submit rejects banned users', async () => {
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
@@ -876,6 +923,7 @@ test('record/submit returns 401 when authenticated user is missing', async () =>
 		},
 		body: JSON.stringify({
 			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],

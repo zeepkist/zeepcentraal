@@ -1,7 +1,7 @@
 import { setAttributes } from '@elysiajs/opentelemetry'
 import {
 	claimLevelRequest,
-	getOrInsertLevelWithAdventure,
+	getOrInsertLevelWithCanonicalHash,
 	getUser,
 	hasLevelMetadata,
 	releaseLevelRequest,
@@ -21,8 +21,18 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 	.post(
 		'/submit',
 		async ({ auth, body, set, request }) => {
-			const { Level, WorkshopId, Time, Splits, Speeds, GhostData, GameVersion, ModVersion } =
-				body
+			const {
+				Level,
+				Hash,
+				WorkshopId,
+				Time,
+				Splits,
+				Speeds,
+				GhostData,
+				GameVersion,
+				ModVersion,
+			} = body
+			const validHash = typeof Hash === 'string' && /^[0-9A-F]{32}$/.test(Hash)
 			const validWorkshopId =
 				WorkshopId === undefined ||
 				(/^[1-9]\d*$/.test(WorkshopId) && BigInt(WorkshopId) <= 9223372036854775807n)
@@ -48,6 +58,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 
 			if (
 				!Level ||
+				!validHash ||
 				!Time ||
 				!Splits ||
 				!Speeds ||
@@ -78,7 +89,11 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 			}
 
 			const workshopId = WorkshopId === undefined ? undefined : BigInt(WorkshopId)
-			const level = await getOrInsertLevelWithAdventure(Level, workshopId === undefined)
+			const level = await getOrInsertLevelWithCanonicalHash({
+				hash: Level,
+				xxHash: Hash as string,
+				adventure: workshopId === undefined,
+			})
 			if (!level) {
 				set.status = 400
 				return {
@@ -141,6 +156,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 		{
 			body: t.Object({
 				Level: t.String(),
+				Hash: t.Optional(t.String()),
 				WorkshopId: t.Optional(t.String()),
 				Time: t.Number(),
 				Splits: t.Array(t.Number()),
