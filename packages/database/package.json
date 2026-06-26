@@ -10,7 +10,8 @@
 		"release": "semantic-release",
 		"dev": "drizzle-kit studio",
 		"db:generate": "drizzle-kit generate",
-		"db:migrate": "drizzle-kit migrate"
+		"db:migrate": "drizzle-kit migrate",
+		"db:migration:adventure-levels": "bun src/scripts/createAdventureLevelMigration.ts"
 	},
 	"exports": {
 		".": {

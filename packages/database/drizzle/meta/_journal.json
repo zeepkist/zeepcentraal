@@ -204,6 +204,20 @@
 			"when": 1782350900844,
 			"tag": "0029_talented_wither",
 			"breakpoints": true
+		},
+		{
+			"idx": 30,
+			"version": "7",
+			"when": 1782499527700,
+			"tag": "0030_adventure_level_backfill",
+			"breakpoints": true
+		},
+		{
+			"idx": 31,
+			"version": "7",
+			"when": 1782505405000,
+			"tag": "0031_require_gtr_1_1_1",
+			"breakpoints": true
 		}
 	]
 }
