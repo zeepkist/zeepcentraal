@@ -57,7 +57,7 @@ jobs:
       - name: Run per-package semantic release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run release
+        run: npm run release
 
   build-server:
     runs-on: ubuntu-latest
