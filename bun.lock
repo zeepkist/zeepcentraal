@@ -83,6 +83,10 @@
         "@zeepkist/jobs": "workspace:*",
         "elysia": "~1.4.16",
         "logixlysia": "~6.5.0",
+        "semver": "~7.8.0",
+      },
+      "devDependencies": {
+        "@types/semver": "~7.7.0",
       },
     },
     "packages/workshop": {

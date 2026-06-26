@@ -734,6 +734,30 @@ test('record/submit returns 200 with empty body on success', async () => {
 	expect(state.workshopScanCalls).toEqual([])
 })
 
+test('record/submit accepts missing canonical hash from pre-1.0.1 clients', async () => {
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.0.0',
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
+	expect(state.levelAdventureUpdates).toEqual([true])
+})
+
 test('record/submit resolves by canonical hash without trusting legacy hash', async () => {
 	const response = await send('/record/submit', {
 		method: 'POST',
@@ -876,7 +900,7 @@ test('record/submit rejects missing canonical hash with V1 error shape', async (
 			Speeds: [100, 200],
 			GhostData: 'Z2hvc3Q=',
 			GameVersion: '1.0.0',
-			ModVersion: '1.0.0',
+			ModVersion: '1.0.1',
 		}),
 	})
 
