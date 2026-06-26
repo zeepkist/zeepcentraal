@@ -4,7 +4,15 @@ import { batchProcess } from '../utils'
 import { getWorkshopMetadata } from '../workshopScanner'
 import type { TaskHandler } from './types'
 
-export const syncWorkshopCatalog: TaskHandler = async (_payload, helpers) => {
+interface SyncWorkshopCatalogPayload {
+	all?: boolean
+}
+
+export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = async (
+	payload,
+	helpers,
+) => {
+	const forceAll = payload.all === true
 	const storedUpdates = await getWorkshopUpdateTimes()
 	const metadata = getWorkshopMetadata()
 	const seen = new Set<bigint>()
@@ -19,6 +27,7 @@ export const syncWorkshopCatalog: TaskHandler = async (_payload, helpers) => {
 			seen.add(item.workshopId)
 			const storedUpdate = storedUpdates.get(item.workshopId)
 			if (
+				forceAll ||
 				!storedUpdate ||
 				new Date(item.updatedAt).getTime() > new Date(storedUpdate).getTime()
 			) {
@@ -50,6 +59,6 @@ export const syncWorkshopCatalog: TaskHandler = async (_payload, helpers) => {
 		)
 	}
 	helpers.logger.info(
-		`syncWorkshopCatalog queued ${workshopIds.length} scans from ${seen.size} catalog items.`,
+		`syncWorkshopCatalog queued ${workshopIds.length} scans from ${seen.size} catalog items${forceAll ? ' (all=true)' : ''}.`,
 	)
 }

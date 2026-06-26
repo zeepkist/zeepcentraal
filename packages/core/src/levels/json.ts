@@ -2,6 +2,8 @@ import { countCheckpoints, countFinishes } from './metadata'
 import { levelFormat, type ParsedLevel, type ParsedLevelV2 } from './types'
 import { xxHash128Hex } from './xxhash'
 
+const presentBlockId = 2264
+
 interface JsonBlock {
 	i: number
 	[key: string]: unknown
@@ -57,6 +59,7 @@ function canonicalJson(value: unknown): string {
 
 function canonicalJsonBlocks(blocks: JsonBlock[]): string {
 	return `[${blocks
+		.filter((block) => block.i !== presentBlockId)
 		.map((block, index) => ({ block, index, canonical: canonicalJson(block) }))
 		.sort(
 			(left, right) =>

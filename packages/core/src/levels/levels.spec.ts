@@ -159,4 +159,22 @@ describe('legacy level parsing', () => {
 			parseJsonLevelV2(JSON.stringify(base)).hash,
 		)
 	})
+
+	test('ignores JSON present blocks for XXH128', () => {
+		const base = {
+			level: { UID: 'uid-json', zeepHash: 'legacy-json-hash' },
+			author: { name: 'Author', StmID: '76561198000000000' },
+			medals: { author: 10, gold: 11, silver: 12, bronze: 13 },
+			enviro: { skybox: 2, groundMat: -1 },
+			blox: [{ z: 1, i: 1609, d: { n: { ch5: 1 } } }],
+		}
+		const withPresentBlock = {
+			...base,
+			blox: [...base.blox, { i: 2264, u: 'present', z: 999 }],
+		}
+
+		expect(parseJsonLevelV2(JSON.stringify(withPresentBlock)).hash).toBe(
+			parseJsonLevelV2(JSON.stringify(base)).hash,
+		)
+	})
 })

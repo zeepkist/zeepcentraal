@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 const emptyPayload = z.looseObject({})
+const syncWorkshopCatalogPayload = z.looseObject({ all: z.boolean().optional() })
 const batchPayload = z.union([
 	z.looseObject({ ids: z.array(z.number().int().positive()).min(1) }),
 	z.looseObject({
@@ -26,7 +27,7 @@ export const taskDefinitions = {
 		maxAttempts: 5,
 	},
 	syncPersonalBests: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
-	syncWorkshopCatalog: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
+	syncWorkshopCatalog: { schema: syncWorkshopCatalogPayload, compatible: true, maxAttempts: 3 },
 	updateLevelPointsHistory: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
 	updateLevelPointsHistoryBatch: { schema: batchPayload, compatible: true, maxAttempts: 3 },
 	updateLevelScore: {
