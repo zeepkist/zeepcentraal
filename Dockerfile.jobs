@@ -4,6 +4,7 @@ LABEL org.opencontainers.image.description="ZeepCentraal background worker with 
 
 WORKDIR /app
 
+COPY dist/jobs-node_modules node_modules
 COPY dist/zeepcentraal-jobs zeepcentraal-jobs
 
 ENV NODE_ENV=production
