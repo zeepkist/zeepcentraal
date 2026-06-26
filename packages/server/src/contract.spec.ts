@@ -811,27 +811,37 @@ test('record/submit queues missing workshop metadata with BigInt ID', async () =
 
 test('record/submit releases workshop claim when enqueue fails', async () => {
 	state.scanEnqueueFails = true
-	const response = await send('/record/submit', {
-		method: 'POST',
-		headers: {
-			'content-type': 'application/json',
-			authorization: 'Bearer gtr-valid',
-		},
-		body: JSON.stringify({
-			Level: state.level.hash,
-			Hash: state.level.xxHash,
-			WorkshopId: '3749321871',
-			Time: 12.345678,
-			Splits: [1.2, 5.6],
-			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
-			GameVersion: '1.0.0',
-			ModVersion: '1.0.0',
-		}),
-	})
+	const originalConsoleError = console.error
+	const loggedErrors: unknown[][] = []
+	console.error = (...args: unknown[]) => {
+		loggedErrors.push(args)
+	}
+	try {
+		const response = await send('/record/submit', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: 'Bearer gtr-valid',
+			},
+			body: JSON.stringify({
+				Level: state.level.hash,
+				Hash: state.level.xxHash,
+				WorkshopId: '3749321871',
+				Time: 12.345678,
+				Splits: [1.2, 5.6],
+				Speeds: [100, 200],
+				GhostData: 'Z2hvc3Q=',
+				GameVersion: '1.0.0',
+				ModVersion: '1.0.0',
+			}),
+		})
 
-	expect(response.status).toBe(200)
-	expect(state.workshopReleases).toEqual([3749321871n])
+		expect(response.status).toBe(200)
+		expect(state.workshopReleases).toEqual([3749321871n])
+		expect(loggedErrors).toHaveLength(1)
+	} finally {
+		console.error = originalConsoleError
+	}
 })
 
 test('record/submit does not enqueue when concurrent claim already exists', async () => {
