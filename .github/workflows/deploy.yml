@@ -41,11 +41,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 26
-
       - name: Setup Bun dependencies
         uses: ./.github/actions/setup-bun-deps
 
@@ -57,7 +52,7 @@ jobs:
       - name: Run per-package semantic release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run release
+        run: bun run release
 
   build-server:
     runs-on: ubuntu-latest

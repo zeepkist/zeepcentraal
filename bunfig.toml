@@ -6,7 +6,7 @@ telemetry = false
 
 [run]
 # equivalent to `bun --bun` for all `bun run` commands
-bun = true
+# bun = true
 # prevent child processes from surviving a killed bun command
 noOrphans = true
 
