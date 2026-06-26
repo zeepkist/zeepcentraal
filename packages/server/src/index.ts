@@ -40,6 +40,8 @@ if (cluster.isPrimary) {
 	app.listen({
 		hostname: config.host,
 		port: config.port,
+		maxRequestBodySize: config.maxRequestBodySize,
+		development: config.nodeEnv !== 'production',
 	})
 
 	console.info(`API worker ${process.pid} listening on ${config.host}:${config.port}`)

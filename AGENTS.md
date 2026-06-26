@@ -1,30 +1,27 @@
-# ZeepCentraal Agent Guide
+# ZeepCentraal agent guide
 
-This file applies to the entire repository. Read
-[`.agents/repository-analysis.md`](.agents/repository-analysis.md) for detailed architecture,
-deployment, scheduling, and maintenance context.
+Applies repo-wide. Style: caveman. Few words. Keep technical terms, code, exact errors. Prefer `location / problem / fix`.
 
-Speak like a caveman. Remove all filler words. Keep technical terms, code blocks, and error messages
-exact. Be extremely concise. Use fewest tokens possible. Output only the location, problem, and fix.
+Read [`.agents/repository-analysis.md`](.agents/repository-analysis.md) only when task needs architecture, deployment, scheduling, or package-boundary context.
 
-## Repository map
+## Map
 
-- `packages/core`: environment validation, JWT/cookies, shared errors/types, cache, Steam, Discord.
-  Keep it independent of other workspace packages.
-- `packages/database`: Drizzle schema, PostgreSQL client, migrations, and database services.
-- `packages/jobs`: Graphile Worker tasks, scoring utilities, queueing, cron scheduling, lifecycle.
-- `packages/server`: Elysia API routes/plugins. Query through database services and enqueue only
-  through `@zeepkist/jobs/queue`.
-- `packages/import-zsl`: one-shot Super League data importer.
-- `.github/workflows` and `Dockerfile.*`: validation, release, binary, and image contracts.
+- `packages/core`: config/env, JWT/cookies, shared errors/types, cache, Steam, Discord. No app-package deps.
+- `packages/database`: Drizzle schema/client/migrations/services.
+- `packages/workshop`: Steam metadata/downloads, level parsing, thumbnails, DB reconciliation.
+- `packages/jobs`: Graphile tasks, scoring, queue, cron, worker lifecycle.
+- `packages/server`: Elysia API/plugins/routes. Use DB services. Enqueue only through `@zeepkist/jobs/queue`.
+- `packages/import-zsl`: one-shot Super League importer.
 
-Respect the dependency direction: `core` and `database` are foundations; `jobs` depends on both;
-`server` depends on `core`, `database`, and the jobs queue subpath; `import-zsl` depends on
-`database`.
+Dependency direction:
 
-## Setup and required checks
+```text
+core, database -> workshop -> jobs
+core, database, jobs/queue -> server
+database -> import-zsl
+```
 
-Use Bun from the repository root:
+## Commands
 
 ```bash
 bun install --frozen-lockfile
@@ -34,7 +31,7 @@ bun run lint
 bun run format
 ```
 
-Build affected executables, or all four when changing shared/build/deployment behavior:
+Build affected executable. Build all after shared/build/deploy changes:
 
 ```bash
 bun run build:server
@@ -43,7 +40,7 @@ bun run build:migrate
 bun run build:import-zsl
 ```
 
-Database commands:
+DB:
 
 ```bash
 bun run db:generate
@@ -51,90 +48,67 @@ bun run db:migrate
 bun run db:studio
 ```
 
-Do not use `lint:fix` or `format:fix` merely to inspect the repository; they rewrite files.
+Do not run `lint:fix`/`format:fix` for inspection; they rewrite files.
 
-## Code conventions
+## Code
 
-- Use ESM and strict TypeScript. Preserve `noUncheckedIndexedAccess` assumptions.
-- Follow Biome: tabs, four-column tab width, single quotes, no unnecessary semicolons, width 100.
-- Let Biome organize imports; use `import type` for type-only imports.
-- Keep package exports intentional. Add or change `package.json` exports when introducing a public
-  workspace import path; do not reach into another package's unexported internals.
-- Prefer focused service and utility functions over duplicating database or scoring logic.
-- Preserve unrelated user changes and generated files outside the task.
+- ESM, strict TS, `noUncheckedIndexedAccess`.
+- Biome: tabs, width 100, single quotes, no unnecessary semicolons, organized imports.
+- Use `import type` for type-only imports.
+- Public workspace imports need `package.json` exports. Do not import unexported internals.
+- Keep service/util functions focused. Do not duplicate DB/scoring logic.
+- Preserve unrelated user/generated changes.
 
-## API changes
+## API
 
-- Compose route modules through `packages/server/src/server.ts` and reuse existing auth, version,
-  telemetry, context, logging, CORS, documentation, and error plugins.
-- Define Elysia `t` schemas for request inputs.
-- Preserve the established V1 contract unless the task explicitly changes it: field casing,
-  numeric error codes, status codes, empty bodies, redirects, cookies, and headers are observable.
-- Use functions from `@zeepkist/database/services`; do not put new Drizzle queries directly in
-  route handlers.
-- Enqueue work through `@zeepkist/jobs/queue`, not a route-local Graphile connection.
-- Add or update `packages/server/src/contract.spec.ts` for endpoint behavior and exact wire shapes.
-- Remember the API runs in two child processes. Process-local state and caches are not shared.
+- Compose routes through `packages/server/src/server.ts`.
+- Use Elysia `t` schemas.
+- Preserve V1 wire contract unless requested: field casing, numeric error codes, status codes, empty success bodies, redirects, cookies, headers.
+- Queries/mutations go in `@zeepkist/database/services`, not route-local Drizzle.
+- Enqueue through `@zeepkist/jobs/queue`.
+- Update `packages/server/src/contract.spec.ts` for observable endpoint changes.
+- API has two child processes. Process-local state/cache not shared.
 
-## Database changes
+## Database
 
-- Treat `packages/database/src/schema.ts` as the schema source of truth.
-- Put reusable reads/writes in `packages/database/src/services` and export them through its barrel.
-- After a schema edit, run `bun run db:generate` and commit all generated SQL, snapshot, and journal
-  changes under `packages/database/drizzle`.
-- Review generated SQL before applying it. Run `bun run db:migrate` only against the intended
-  database.
-- Never edit, reorder, delete, or regenerate an already-applied migration to achieve a new change;
-  add a new migration.
-- Keep PostgreSQL names and existing compatibility constraints stable unless migration requirements
-  explicitly say otherwise.
+- Source of truth: `packages/database/src/schema.ts`.
+- Reusable reads/writes: `packages/database/src/services`, exported through barrel.
+- Schema edit flow: edit schema -> `bun run db:generate` -> review/commit SQL snapshot journal.
+- Never edit/reorder/delete applied migrations. Add new migration.
+- Keep PostgreSQL names/compat constraints stable unless task says otherwise.
 
-## Job changes
+## Jobs
 
-- Every Graphile task identifier must exactly match its key in
-  `packages/jobs/src/tasks/index.ts`.
-- Give task handlers a typed payload using the local `TaskHandler<TPayload>` convention.
-- If an API or external caller may trigger a task, also add it to the compatibility allowlist in
-  `packages/jobs/src/queue.ts` and validate its HTTP-facing behavior.
-- Use `helpers.addJob`/`helpers.addJobs` for fan-out and the shared batching utility for large sets.
-- Set retry, priority, and idempotency behavior deliberately. A retry can repeat partial database
-  effects.
-- Cron timers belong only to the jobs primary process. Worker children process tasks; they must not
-  register duplicate schedules.
-- Cron schedules use `Europe/London`. Account for daylight-saving behavior when changing timing.
-- Jobs run in two worker processes, and multiple container replicas may create additional
-  concurrency.
+- Task key must match `packages/jobs/src/tasks/index.ts`.
+- Handler payloads use local `TaskHandler<TPayload>`.
+- External/API-triggerable task also needs `packages/jobs/src/queue.ts` allowlist + tests.
+- Use `helpers.addJob`/`helpers.addJobs`; use batching utility for large sets.
+- Set retry/priority/idempotency deliberately. Retries can repeat partial DB effects.
+- Cron only in jobs primary. Workers process tasks only.
+- Cron timezone: `Europe/London`.
+- Jobs use two worker processes; replicas add concurrency.
 
-## Builds, containers, and releases
+## Runtime/release
 
-- Production outputs are compiled Bun executables in `dist/`; workspace packages are not copied
-  into runtime images.
-- Server, migrate, and importer runtime images use `gcr.io/distroless/base`. Jobs uses pinned
-  Debian-based SteamCMD runtime. Do not depend on undeclared runtime assets.
-- Keep binary names synchronized across root scripts, package build scripts, workflow artifacts,
-  and Dockerfile `COPY`/`CMD` entries.
-- Keep required non-binary assets synchronized too: Drizzle migrations for `migrate` and Super
-  League data for `import-zsl`.
-- If an image/tag/release name changes, update semantic-release expectations, deployment tag
-  resolution, PR image builds, Dockerfiles, and documentation together.
-- Package-scoped release tags drive image versions. The migrate image uses the `database@*` tag.
+- Production uses compiled Bun executables in `dist/`; source packages not copied.
+- Server/migrate/importer images: `gcr.io/distroless/base`.
+- Jobs image: pinned Debian/SteamCMD runtime.
+- Runtime assets must be explicitly copied: migrations for migrate, ZSL data for import.
+- Keep binary/image/tag names synced across scripts, workflows, Dockerfiles, semantic-release.
+- Package release tags drive images. Migrate image uses `database@*`.
 
 ## Security
 
-- Never commit `.env`, credentials, tokens, database URLs, private user data, or production payloads.
-- Treat `TRIGGER_JOB_TOKEN`, `JWT_SECRET`, OAuth credentials, Steam keys, Wasabi/S3 credentials,
-  and `DATABASE_URL` as secrets.
-- Do not print secrets in logs, tests, fixtures, command output, errors, or documentation.
-- Use obviously fake values in tests and examples.
+- Never commit `.env`, credentials, tokens, DB URLs, private data, production payloads.
+- Secrets: `TRIGGER_JOB_TOKEN`, `JWT_SECRET`, OAuth, Steam, Wasabi/S3, `DATABASE_URL`.
+- Do not print secrets in logs/tests/fixtures/errors/docs.
+- Use fake values in tests/examples.
 
-## Completion checklist
+## Done means
 
-- Add focused Bun tests for changed behavior, including exact API contracts where applicable.
-- Run `bun run typecheck`, `bun run test`, `bun run lint`, and `bun run format`.
-- Build every affected executable; build all four after shared dependency or pipeline changes.
-- For schema changes, review and commit the complete generated migration set.
-- For deployment changes, verify both PR validation and deploy workflow paths plus distroless file
-  availability.
-- Update `README.md`, this guide, or `.agents/repository-analysis.md` when commands, architecture,
-  schedules, configuration, or operational assumptions change.
-- Report any check that could not run and distinguish environment failures from code failures.
+- Focused tests for behavior/API changes.
+- Run typecheck/test/lint/format.
+- Build affected executable(s); all four for shared/build/deploy changes.
+- Schema changes include generated migration set.
+- Deployment changes verify PR + deploy workflow paths and runtime file availability.
+- Report skipped checks with reason: environment vs code.

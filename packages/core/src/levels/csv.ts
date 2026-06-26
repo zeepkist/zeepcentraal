@@ -1,6 +1,13 @@
 import { createHash } from 'node:crypto'
 import { countCheckpoints, countFinishes } from './metadata'
-import { type CsvBlock, levelFormat, type ParsedLevel, type Vector3 } from './types'
+import {
+	type CsvBlock,
+	levelFormat,
+	type ParsedLevel,
+	type ParsedLevelV2,
+	type Vector3,
+} from './types'
+import { xxHash128Hex } from './xxhash'
 
 const presentBlockId = 2264
 
@@ -106,14 +113,20 @@ function blockText(block: ParsedCsvBlock): string {
 	return `Id: ${block.Id}, Position: ${vectorText(block.rawPosition)}, Euler: ${vectorText(block.rawEuler)}, Scale: ${vectorText(block.rawScale)}, Paints: ${block.Paints.join(', ')}, Options: ${block.Options.join(', ')}`
 }
 
-function calculateHash(skybox: number, ground: number, blocks: ParsedCsvBlock[]): string {
+function canonicalCsvContent(skybox: number, ground: number, blocks: ParsedCsvBlock[]): string {
 	const ordered = blocks
 		.filter((block) => block.Id !== presentBlockId)
 		.map((block, index) => ({ block, index }))
 		.sort((left, right) => compareBlocks(left.block, right.block) || left.index - right.index)
 		.map(({ block }) => block)
-	const canonical = [`${skybox}`, `${ground}`, ...ordered.map(blockText), ''].join('\r\n')
-	return createHash('sha1').update(canonical, 'utf8').digest('hex').toUpperCase()
+	return [`${skybox}`, `${ground}`, ...ordered.map(blockText), ''].join('\r\n')
+}
+
+function calculateHash(skybox: number, ground: number, blocks: ParsedCsvBlock[]): string {
+	return createHash('sha1')
+		.update(canonicalCsvContent(skybox, ground, blocks), 'utf8')
+		.digest('hex')
+		.toUpperCase()
 }
 
 export function parseCsvLevel(content: string, adventure = false, authorId = 0n): ParsedLevel {
@@ -174,9 +187,10 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 		id: block.Id,
 		isCheckpoint: (block.Options[5] ?? 0) >= 0.5,
 	}))
+	const zeepHash = adventure ? uid : calculateHash(skybox, ground, blocks)
 	return {
 		format: levelFormat.csv,
-		hash: adventure ? uid : calculateHash(skybox, ground, blocks),
+		hash: zeepHash,
 		uid,
 		authorId,
 		fileAuthor: first[1] ?? '',
@@ -190,5 +204,45 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 		typeGround: ground,
 		typeSkybox: skybox,
 		blocks: blocks.map(({ rawPosition, rawEuler, rawScale, ...block }) => block),
+	}
+}
+
+export function parseCsvLevelV2(content: string, adventure = false, authorId = 0n): ParsedLevelV2 {
+	const parsed = parseCsvLevel(content, adventure, authorId)
+
+	const lines = content.split(/\r?\n/)
+	const validation = (lines[2] ?? '').split(',')
+	const skybox = parseFinite(validation[4] ?? '', 'skybox')
+	const ground = parseFinite(validation[5] ?? '', 'ground')
+	const blocks: ParsedCsvBlock[] = []
+	for (const line of lines.slice(3)) {
+		if (!line.trim()) {
+			continue
+		}
+		const values = normalizeBlockValues(line.split(','))
+		const id = parseFinite(values[0] ?? '', 'block id')
+		const rawPaints = values.slice(10, 27)
+		const paints = rawPaints.map((value) => {
+			const valueParsed = parseFinite(value, 'paint')
+			return id === 2279 ? Math.trunc(Math.fround(valueParsed)) : valueParsed
+		})
+		const rawOptions = values.slice(27)
+		blocks.push({
+			Id: id,
+			Position: vector(values, 1, 'position'),
+			Euler: vector(values, 4, 'euler'),
+			Scale: vector(values, 7, 'scale'),
+			Paints: paints,
+			Options: rawOptions.map((value) => Math.fround(parseFinite(value, 'option'))),
+			rawPosition: values.slice(1, 4).map(formatDecimal) as [string, string, string],
+			rawEuler: values.slice(4, 7).map(formatDecimal) as [string, string, string],
+			rawScale: values.slice(7, 10).map(formatDecimal) as [string, string, string],
+		})
+	}
+
+	return {
+		...parsed,
+		hash: xxHash128Hex(canonicalCsvContent(skybox, ground, blocks)),
+		zeepHash: parsed.hash,
 	}
 }

@@ -4,7 +4,7 @@ import postgres from 'postgres'
 import * as schema from './schema'
 
 export const client = postgres(databaseConfig.databaseUrl, {
-	max: 10,
+	max: 5,
 	idle_timeout: 30,
 })
 

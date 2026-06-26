@@ -9,6 +9,23 @@ test('server config requires server-only secrets', () => {
 	expect(() => parseServerConfig({})).toThrow()
 })
 
+test('server config lowers default request body limit', () => {
+	const config = parseServerConfig({
+		NODE_ENV: 'test',
+	})
+
+	expect(config.api.maxRequestBodySize).toBe(32 * 1024 * 1024)
+})
+
+test('server config accepts custom request body limit', () => {
+	const config = parseServerConfig({
+		NODE_ENV: 'test',
+		SERVER_MAX_REQUEST_BODY_SIZE: '16777216',
+	})
+
+	expect(config.api.maxRequestBodySize).toBe(16 * 1024 * 1024)
+})
+
 test('database config parses without server-only secrets', () => {
 	const config = parseDatabaseConfig({})
 

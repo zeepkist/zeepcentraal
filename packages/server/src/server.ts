@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia'
+import { config } from './config'
 import { authRoutes, jobRoutes, recordRoutes, userRoutes, voteRoutes } from './modules'
 import { withContext } from './plugins/withContext'
 import { withCors } from './plugins/withCors'
@@ -9,7 +10,13 @@ import { withSpanEnrichment } from './plugins/withSpanEnrichment'
 import { withTelemetry } from './plugins/withTelemetry'
 
 export function buildServer() {
-	return new Elysia()
+	return new Elysia({
+		aot: true,
+		precompile: true,
+		serve: {
+			development: config.nodeEnv !== 'production',
+		},
+	})
 		.use(withLogging)
 		.use(withCors)
 		.use(withTelemetry)

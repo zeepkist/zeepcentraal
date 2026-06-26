@@ -35,3 +35,8 @@ export interface ParsedLevel {
 	typeSkybox: number
 	blocks: CsvBlock[] | unknown[]
 }
+
+export interface ParsedLevelV2 extends Omit<ParsedLevel, 'hash'> {
+	hash: string
+	zeepHash: string
+}

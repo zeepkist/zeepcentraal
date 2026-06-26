@@ -111,6 +111,8 @@ describe('WorkshopScanner', () => {
 		})
 		expect(dependencies.calls.upserts).toHaveLength(1)
 		expect(dependencies.calls.upserts[0]?.authorId).toBe(76561198000000000n)
+		expect(dependencies.calls.upserts[0]?.hash).toBe('5B7A81C7A6181599CD15234CA17797BBEBFACBD3')
+		expect(dependencies.calls.upserts[0]?.xxHash).toBe('5FC86C702B3F328B66608DC3C8BFB603')
 		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('thumbnails/generated.jpg')
 		expect(dependencies.calls.markMissing).toEqual(['file-uid'])
 		expect(dependencies.calls.cleanups).toBe(1)
