@@ -1,4 +1,4 @@
-import { getLevel, getUser, upsertVote } from '@zeepkist/database/services'
+import { getLevelByXxHash, getUser, upsertVote } from '@zeepkist/database/services'
 import { Elysia, t } from 'elysia'
 import { withAuthRequest } from '../../plugins/withAuth'
 import { withRateLimit } from '../../plugins/withRateLimit'
@@ -9,9 +9,10 @@ export const voteRoutes = new Elysia({ prefix: '/vote' })
 	.post(
 		'/submit',
 		async ({ auth, body, set }) => {
-			const { Level, Value } = body
+			const { Hash, Value } = body
+			const validHash = typeof Hash === 'string' && /^[0-9A-F]{32}$/.test(Hash)
 
-			if (!Level || Value === undefined) {
+			if (!validHash || Value === undefined) {
 				set.status = 400
 				return {
 					error: {
@@ -32,7 +33,7 @@ export const voteRoutes = new Elysia({ prefix: '/vote' })
 				}
 			}
 
-			const level = await getLevel(Level)
+			const level = await getLevelByXxHash(Hash)
 			if (!level) {
 				set.status = 400
 				return {
@@ -50,7 +51,7 @@ export const voteRoutes = new Elysia({ prefix: '/vote' })
 		},
 		{
 			body: t.Object({
-				Level: t.String(),
+				Hash: t.String(),
 				Value: t.Union([
 					t.Literal(-2),
 					t.Literal(-1),

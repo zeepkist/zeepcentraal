@@ -51,6 +51,7 @@ const state = {
 	levelAdventureUpdates: [] as boolean[],
 	updatedDiscordIds: [] as Array<{ steamId: string; discordId: bigint | null }>,
 	mediaSchedules: [] as Array<{ idRecord: number; ghostData: string }>,
+	voteUpserts: [] as Array<{ idUser: number; idLevel: number; value: number }>,
 	userBySteamId: {
 		id: 1,
 		steamId: 12345678901234567n,
@@ -142,6 +143,7 @@ function resetState() {
 	state.levelAdventureUpdates = []
 	state.updatedDiscordIds = []
 	state.mediaSchedules = []
+	state.voteUpserts = []
 	state.userBySteamId = {
 		id: 1,
 		steamId: 12345678901234567n,
@@ -375,6 +377,8 @@ mock.module('@zeepkist/database/services', () => ({
 	},
 	getLevel: async (hash: string) =>
 		hash === state.level.hash && state.levelExists ? state.level : null,
+	getLevelByXxHash: async (xxHash: string) =>
+		xxHash === state.level.xxHash && state.levelExists ? state.level : null,
 	submitRecord: async (input: Record<string, unknown>) => ({
 		record: { ...state.record, ...input },
 		personalBestChanged: true,
@@ -382,11 +386,14 @@ mock.module('@zeepkist/database/services', () => ({
 	scheduleRecordMediaUpload: (idRecord: number, ghostData: string) => {
 		state.mediaSchedules.push({ idRecord, ghostData })
 	},
-	upsertVote: async (idUser: number, idLevel: number, value: number) => ({
-		idUser,
-		idLevel,
-		value,
-	}),
+	upsertVote: async (idUser: number, idLevel: number, value: number) => {
+		state.voteUpserts.push({ idUser, idLevel, value })
+		return {
+			idUser,
+			idLevel,
+			value,
+		}
+	},
 	updateDiscordId: async (steamId: string, discordId: bigint | null) => {
 		state.updatedDiscordIds.push({ steamId, discordId })
 		return { id: 1, steamId: BigInt(steamId), discordId }
@@ -708,6 +715,167 @@ test('auth/web/refresh returns 200 and refreshed cookies on success', async () =
 	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_access_token=')
 })
 
+test('level/request queues workshop scan when canonical hash is unknown', async () => {
+	state.levelExists = false
+	const response = await send('/level/request', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			WorkshopId: '3749321871',
+			Hash: state.level.xxHash,
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.workshopClaims).toEqual([3749321871n])
+	expect(state.workshopScanCalls).toEqual([3749321871n])
+})
+
+test('level/request does not enqueue when canonical hash already exists', async () => {
+	const response = await send('/level/request', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			WorkshopId: '3749321871',
+			Hash: state.level.xxHash,
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.workshopClaims).toEqual([])
+	expect(state.workshopScanCalls).toEqual([])
+})
+
+test('level/request does not enqueue when concurrent claim already exists', async () => {
+	state.levelExists = false
+	state.claimSucceeds = false
+	const response = await send('/level/request', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			WorkshopId: '3749321871',
+			Hash: state.level.xxHash,
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.workshopClaims).toEqual([3749321871n])
+	expect(state.workshopScanCalls).toEqual([])
+})
+
+test('level/request releases workshop claim when enqueue fails', async () => {
+	state.levelExists = false
+	state.scanEnqueueFails = true
+	const originalConsoleError = console.error
+	const loggedErrors: unknown[][] = []
+	console.error = (...args: unknown[]) => {
+		loggedErrors.push(args)
+	}
+	try {
+		const response = await send('/level/request', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: 'Bearer gtr-valid',
+			},
+			body: JSON.stringify({
+				WorkshopId: '3749321871',
+				Hash: state.level.xxHash,
+			}),
+		})
+
+		expect(response.status).toBe(200)
+		expect(await response.text()).toBe('')
+		expect(state.workshopReleases).toEqual([3749321871n])
+		expect(loggedErrors).toHaveLength(1)
+	} finally {
+		console.error = originalConsoleError
+	}
+})
+
+test('level/request rejects invalid workshop ID with V1 error shape', async () => {
+	const response = await send('/level/request', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			WorkshopId: 'not-a-number',
+			Hash: state.level.xxHash,
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 22, message: 'Invalid request' },
+	})
+})
+
+test('level/request rejects invalid canonical hash with V1 error shape', async () => {
+	const response = await send('/level/request', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			WorkshopId: '3749321871',
+			Hash: state.level.xxHash.toLowerCase(),
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 22, message: 'Invalid request' },
+	})
+})
+
+test('level/request returns 400 when token is missing', async () => {
+	const response = await send('/level/request', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+		},
+		body: JSON.stringify({
+			WorkshopId: '3749321871',
+			Hash: state.level.xxHash,
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toBe('Not authenticated')
+})
+
+test('level/request returns 401 for non-GTR token', async () => {
+	const response = await send('/level/request', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer steam-valid',
+		},
+		body: JSON.stringify({
+			WorkshopId: '3749321871',
+			Hash: state.level.xxHash,
+		}),
+	})
+
+	expect(response.status).toBe(401)
+	expect(await readBody(response)).toBe('Invalid or expired token')
+})
+
 test('record/submit returns 200 with empty body on success', async () => {
 	const response = await send('/record/submit', {
 		method: 'POST',
@@ -1005,16 +1173,17 @@ test('vote/submit returns 200 with empty body on success', async () => {
 			authorization: 'Bearer gtr-valid',
 		},
 		body: JSON.stringify({
-			Level: state.level.hash,
+			Hash: state.level.xxHash,
 			Value: 2,
 		}),
 	})
 
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
+	expect(state.voteUpserts).toEqual([{ idUser: 1, idLevel: state.level.id, value: 2 }])
 })
 
-test('vote/submit returns 400 when level is missing', async () => {
+test('vote/submit returns 400 when canonical hash level is missing', async () => {
 	state.levelExists = false
 	const response = await send('/vote/submit', {
 		method: 'POST',
@@ -1023,7 +1192,7 @@ test('vote/submit returns 400 when level is missing', async () => {
 			authorization: 'Bearer gtr-valid',
 		},
 		body: JSON.stringify({
-			Level: 'missing-level',
+			Hash: state.level.xxHash,
 			Value: 2,
 		}),
 	})
@@ -1032,6 +1201,57 @@ test('vote/submit returns 400 when level is missing', async () => {
 	expect(await readBody(response)).toEqual({
 		error: { code: 18, message: 'Level not found' },
 	})
+})
+
+test('vote/submit rejects missing canonical hash', async () => {
+	const response = await send('/vote/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Value: 2,
+		}),
+	})
+
+	expect(response.status).toBe(422)
+})
+
+test('vote/submit returns 400 when canonical hash is invalid', async () => {
+	const response = await send('/vote/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Hash: state.level.xxHash.toLowerCase(),
+			Value: 2,
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 17, message: 'Missing required parameters' },
+	})
+})
+
+test('vote/submit rejects legacy Level-only body', async () => {
+	const response = await send('/vote/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			Value: 2,
+		}),
+	})
+
+	expect(response.status).toBe(422)
+	expect(state.voteUpserts).toEqual([])
 })
 
 test('user/updateDiscordId returns 200 and links discord id', async () => {

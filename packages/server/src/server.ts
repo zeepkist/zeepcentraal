@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia'
 import { config } from './config'
-import { authRoutes, jobRoutes, recordRoutes, userRoutes, voteRoutes } from './modules'
+import { authRoutes, jobRoutes, levelRoutes, recordRoutes, userRoutes, voteRoutes } from './modules'
 import { withContext } from './plugins/withContext'
 import { withCors } from './plugins/withCors'
 import { withDocumentation } from './plugins/withDocumentation'
@@ -26,6 +26,7 @@ export function buildServer() {
 		.use(withContext)
 		.use(authRoutes)
 		.use(userRoutes)
+		.use(levelRoutes)
 		.use(recordRoutes)
 		.use(voteRoutes)
 		.use(jobRoutes)

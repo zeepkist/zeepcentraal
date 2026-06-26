@@ -33,6 +33,6 @@ export const withLogging = logixlysia({
 		verySlowThreshold: 1000,
 		showContextTree: true,
 		contextDepth: 3,
-		customLogFormat: '{now} {level} {method} {status} {pathname} {duration} {speed} {ip}',
+		customLogFormat: '{now} {level}\t{method}\t{status} {pathname} {duration} {speed} {ip}',
 	},
 })

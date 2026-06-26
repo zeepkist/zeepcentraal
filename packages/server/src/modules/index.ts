@@ -1,5 +1,6 @@
 export * from './auth/authRoutes'
 export * from './job/jobRoutes'
+export * from './level/levelRoutes'
 export * from './record/recordRoutes'
 export * from './user/userRoutes'
 export * from './vote/voteRoutes'
