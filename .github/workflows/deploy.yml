@@ -69,9 +69,7 @@ jobs:
         uses: ./.github/actions/setup-bun-deps
 
       - name: Build server binary
-        run: |
-          bun run build:server
-          bun run package:server-native-deps
+        run: bun run build:server
 
       - name: Resolve server image version tags
         id: server_version
@@ -129,9 +127,7 @@ jobs:
         uses: ./.github/actions/setup-bun-deps
 
       - name: Build jobs binary
-        run: |
-          bun run build:jobs
-          bun run package:jobs-native-deps
+        run: bun run build:jobs
 
       - name: Resolve jobs image version tags
         id: jobs_version

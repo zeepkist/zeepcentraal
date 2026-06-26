@@ -49,9 +49,7 @@ jobs:
       - name: Build all package binaries
         run: |
           bun run build:server
-          bun run package:server-native-deps
           bun run build:jobs
-          bun run package:jobs-native-deps
           bun run build:migrate
           bun run build:import-zsl
 
@@ -62,9 +60,7 @@ jobs:
           if-no-files-found: error
           path: |
             dist/zeepcentraal-server
-            dist/server-node_modules
             dist/zeepcentraal-jobs
-            dist/jobs-node_modules
             dist/zeepcentraal-migrate
             dist/zeepcentraal-import-zsl
 
@@ -88,9 +84,7 @@ jobs:
             rmdir dist/dist
           fi
           test -f dist/zeepcentraal-server
-          test -d dist/server-node_modules
           test -f dist/zeepcentraal-jobs
-          test -d dist/jobs-node_modules
           test -f dist/zeepcentraal-migrate
           test -f dist/zeepcentraal-import-zsl
 

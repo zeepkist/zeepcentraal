@@ -7,7 +7,7 @@
 	"types": "src/index.ts",
 	"scripts": {
 		"release": "semantic-release",
-		"build": "bun build --compile --external xxhash-addon --external node-gyp-build --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-jobs src/index.ts"
+		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-jobs src/index.ts"
 	},
 	"exports": {
 		".": {

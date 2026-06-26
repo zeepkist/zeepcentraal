@@ -4,7 +4,6 @@ LABEL org.opencontainers.image.description="ZeepCentraal API server."
 
 WORKDIR /app
 
-COPY dist/server-node_modules node_modules
 COPY dist/zeepcentraal-server zeepcentraal-server
 
 ENV NODE_ENV=production
