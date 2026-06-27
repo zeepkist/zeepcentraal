@@ -8,6 +8,7 @@ import {
 } from '@zeepkist/database/services'
 import { assignRank } from './assignRank'
 import { SUPER_LEAGUE_DATA } from './config'
+import { toDatabaseLevelFileUid } from './levelUidMap'
 import type { TournamentEvent } from './types'
 
 interface ImportRoundOptions {
@@ -57,7 +58,7 @@ export const importRound = async ({
 		return dbRound
 	}
 
-	const levelUuids = levels.map((level) => level.level)
+	const levelUuids = levels.map((level) => toDatabaseLevelFileUid(level.level))
 	const levelMap = await getLevelsByUuidsBulk(levelUuids)
 
 	const roundRows = assignRank(
@@ -73,11 +74,13 @@ export const importRound = async ({
 
 	for await (const level of levels) {
 		const { level: uuid, standings } = level
-		const dbLevel = levelMap.get(uuid)
+		const databaseUid = toDatabaseLevelFileUid(uuid)
+		const dbLevel = levelMap.get(databaseUid)
 		const dbLevelId = dbLevel?.id
 
 		if (!dbLevelId) {
-			console.warn(`Level "${uuid}" not found, skipping`)
+			const mappedSuffix = databaseUid === uuid ? '' : ` (database UID "${databaseUid}")`
+			console.warn(`Level "${uuid}"${mappedSuffix} not found, skipping`)
 			continue
 		}
 
