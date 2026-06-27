@@ -1,7 +1,6 @@
 import { setAttributes } from '@elysiajs/opentelemetry'
 import {
 	claimLevelRequest,
-	getOrInsertLevelWithAdventure,
 	getOrInsertLevelWithCanonicalHash,
 	getUser,
 	hasLevelMetadata,
@@ -11,14 +10,9 @@ import {
 } from '@zeepkist/database/services'
 import { enqueueCompatibleTask, enqueueWorkshopScan } from '@zeepkist/jobs/queue'
 import { Elysia, t } from 'elysia'
-import { gte } from 'semver'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
-
-function requiresCanonicalHash(modVersion: string) {
-	return gte(modVersion, '1.0.1')
-}
 
 export const recordRoutes = new Elysia({ prefix: '/record' })
 	.use(withAuthGtr)
@@ -38,9 +32,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				GameVersion,
 				ModVersion,
 			} = body
-			const hashRequired = requiresCanonicalHash(ModVersion)
 			const validHash = typeof Hash === 'string' && /^[0-9A-F]{32}$/.test(Hash)
-			const validHashState = hashRequired ? validHash : Hash === undefined || validHash
 			const validWorkshopId =
 				WorkshopId === undefined ||
 				(/^[1-9]\d*$/.test(WorkshopId) && BigInt(WorkshopId) <= 9223372036854775807n)
@@ -66,7 +58,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 
 			if (
 				!Level ||
-				!validHashState ||
+				!validHash ||
 				!Time ||
 				!Splits ||
 				!Speeds ||
@@ -98,13 +90,11 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 
 			const workshopId = WorkshopId === undefined ? undefined : BigInt(WorkshopId)
 			const isAdventure = workshopId === undefined
-			const level = validHash
-				? await getOrInsertLevelWithCanonicalHash({
-						hash: Level,
-						xxHash: Hash as string,
-						adventure: isAdventure,
-					})
-				: await getOrInsertLevelWithAdventure(Level, isAdventure)
+			const level = await getOrInsertLevelWithCanonicalHash({
+				hash: Level,
+				xxHash: Hash,
+				adventure: isAdventure,
+			})
 			if (!level) {
 				set.status = 400
 				return {

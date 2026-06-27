@@ -1,6 +1,6 @@
 {
-	"id": "3a48fb38-7741-40eb-bca8-e5eb9ce7648a",
-	"prevId": "3a48fb38-7741-40eb-bca8-e5eb9ce7648e",
+	"id": "3a48fb38-7741-40eb-bca8-e5eb9ce7648d",
+	"prevId": "3a48fb38-7741-40eb-bca8-e5eb9ce7648c",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -29,7 +29,7 @@
 					"name": "id_user",
 					"type": "integer",
 					"primaryKey": false,
-					"notNull": false
+					"notNull": true
 				},
 				"access_token": {
 					"name": "access_token",
@@ -330,7 +330,6 @@
 						}
 					],
 					"isUnique": true,
-					"where": "\"level\".\"xx_hash\" IS NOT NULL",
 					"concurrently": false,
 					"method": "btree",
 					"with": {}

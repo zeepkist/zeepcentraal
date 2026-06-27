@@ -34,7 +34,7 @@ export interface WorkshopDownloader {
 export interface WorkshopPersistence {
 	upsertLevel(input: {
 		hash: string
-		xxHash?: string
+		xxHash: string
 		workshopId: bigint
 		authorId: bigint
 		name: string

@@ -6,7 +6,7 @@ import { generateUid } from '../utils/generateUid'
 
 export interface WorkshopLevelInput {
 	hash: string
-	xxHash?: string
+	xxHash: string
 	workshopId: bigint
 	authorId: bigint
 	name: string
@@ -102,20 +102,17 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 			.limit(1)
 			.then((rows) => rows[0])
 		const existingItemLevel =
-			existingItem &&
-			!existingItem.deleted &&
-			(!existingItem.xxHash || existingItem.xxHash === input.xxHash)
+			existingItem && !existingItem.deleted && existingItem.xxHash === input.xxHash
 				? { id: existingItem.idLevel }
 				: undefined
-		const existingByXxHash =
-			!existingItemLevel && input.xxHash
-				? await tx
-						.select({ id: level.id })
-						.from(level)
-						.where(eq(level.xxHash, input.xxHash))
-						.limit(1)
-						.then((rows) => rows[0])
-				: undefined
+		const existingByXxHash = !existingItemLevel
+			? await tx
+					.select({ id: level.id })
+					.from(level)
+					.where(eq(level.xxHash, input.xxHash))
+					.limit(1)
+					.then((rows) => rows[0])
+			: undefined
 		const existingByLegacyHash =
 			!existingItemLevel && !existingByXxHash
 				? await tx
@@ -123,11 +120,7 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 						.from(level)
 						.where(eq(level.hash, input.hash))
 						.orderBy(asc(level.id))
-						.then(
-							(rows) =>
-								rows.find((row) => !row.xxHash) ??
-								rows.find((row) => row.xxHash === input.xxHash),
-						)
+						.then((rows) => rows.find((row) => row.xxHash === input.xxHash))
 				: undefined
 
 		let createdLevel: { id: number } | undefined
@@ -138,9 +131,6 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 					.values({ hash: input.hash, xxHash: input.xxHash, adventure: false })
 					.returning({ id: level.id })
 			} catch (error) {
-				if (!input.xxHash) {
-					throw error
-				}
 				createdLevel = await tx
 					.select({ id: level.id })
 					.from(level)

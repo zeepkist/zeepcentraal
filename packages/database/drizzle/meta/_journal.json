@@ -218,6 +218,27 @@
 			"when": 1782505405000,
 			"tag": "0031_require_gtr_1_1_1",
 			"breakpoints": true
+		},
+		{
+			"idx": 32,
+			"version": "7",
+			"when": 1782519843000,
+			"tag": "0032_backfill_required_xx_hash",
+			"breakpoints": true
+		},
+		{
+			"idx": 33,
+			"version": "7",
+			"when": 1782520905000,
+			"tag": "0033_backfill_unknown_deleted_level_items",
+			"breakpoints": true
+		},
+		{
+			"idx": 34,
+			"version": "7",
+			"when": 1782581449156,
+			"tag": "0034_tough_betty_brant",
+			"breakpoints": true
 		}
 	]
 }

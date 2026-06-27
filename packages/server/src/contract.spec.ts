@@ -49,6 +49,8 @@ const state = {
 	workshopClaims: [] as bigint[],
 	workshopReleases: [] as bigint[],
 	levelAdventureUpdates: [] as boolean[],
+	canonicalLevelRequests: [] as Array<{ hash: string; xxHash: string; adventure: boolean }>,
+	canonicalInsertMissingLevel: false,
 	updatedDiscordIds: [] as Array<{ steamId: string; discordId: bigint | null }>,
 	mediaSchedules: [] as Array<{ idRecord: number; ghostData: string }>,
 	voteUpserts: [] as Array<{ idUser: number; idLevel: number; value: number }>,
@@ -141,6 +143,8 @@ function resetState() {
 	state.workshopClaims = []
 	state.workshopReleases = []
 	state.levelAdventureUpdates = []
+	state.canonicalLevelRequests = []
+	state.canonicalInsertMissingLevel = false
 	state.updatedDiscordIds = []
 	state.mediaSchedules = []
 	state.voteUpserts = []
@@ -362,8 +366,10 @@ mock.module('@zeepkist/database/services', () => ({
 		xxHash: string
 		adventure: boolean
 	}) => {
+		state.canonicalLevelRequests.push({ hash, xxHash, adventure })
 		state.levelAdventureUpdates.push(adventure)
-		return xxHash === state.level.xxHash && state.levelExists
+		return xxHash === state.level.xxHash &&
+			(state.levelExists || state.canonicalInsertMissingLevel)
 			? { ...state.level, hash, adventure: state.level.adventure }
 			: null
 	},
@@ -899,10 +905,13 @@ test('record/submit returns 200 with empty body on success', async () => {
 	expect(await response.text()).toBe('')
 	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
 	expect(state.levelAdventureUpdates).toEqual([true])
+	expect(state.canonicalLevelRequests).toEqual([
+		{ hash: state.level.hash, xxHash: state.level.xxHash, adventure: true },
+	])
 	expect(state.workshopScanCalls).toEqual([])
 })
 
-test('record/submit accepts missing canonical hash from pre-1.0.1 clients', async () => {
+test('record/submit rejects missing canonical hash from old clients', async () => {
 	const response = await send('/record/submit', {
 		method: 'POST',
 		headers: {
@@ -920,10 +929,12 @@ test('record/submit accepts missing canonical hash from pre-1.0.1 clients', asyn
 		}),
 	})
 
-	expect(response.status).toBe(200)
-	expect(await response.text()).toBe('')
-	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
-	expect(state.levelAdventureUpdates).toEqual([true])
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 19, message: 'Missing required parameters' },
+	})
+	expect(state.mediaSchedules).toEqual([])
+	expect(state.canonicalLevelRequests).toEqual([])
 })
 
 test('record/submit resolves by canonical hash without trusting legacy hash', async () => {
@@ -948,6 +959,37 @@ test('record/submit resolves by canonical hash without trusting legacy hash', as
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
 	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
+	expect(state.canonicalLevelRequests).toEqual([
+		{ hash: 'EDITED_LEGACY_HASH', xxHash: state.level.xxHash, adventure: true },
+	])
+})
+
+test('record/submit inserts unknown level through canonical hash path', async () => {
+	state.levelExists = false
+	state.canonicalInsertMissingLevel = true
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: 'NEW_LEGACY_HASH',
+			Hash: state.level.xxHash,
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.1.1',
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.canonicalLevelRequests).toEqual([
+		{ hash: 'NEW_LEGACY_HASH', xxHash: state.level.xxHash, adventure: true },
+	])
 })
 
 test('record/submit queues missing workshop metadata with BigInt ID', async () => {
@@ -1086,6 +1128,32 @@ test('record/submit rejects missing canonical hash with V1 error shape', async (
 	expect(await readBody(response)).toEqual({
 		error: { code: 19, message: 'Missing required parameters' },
 	})
+})
+
+test('record/submit rejects invalid canonical hash with V1 error shape', async () => {
+	const response = await send('/record/submit', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({
+			Level: state.level.hash,
+			Hash: state.level.xxHash.toLowerCase(),
+			Time: 12.345678,
+			Splits: [1.2, 5.6],
+			Speeds: [100, 200],
+			GhostData: 'Z2hvc3Q=',
+			GameVersion: '1.0.0',
+			ModVersion: '1.1.1',
+		}),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 19, message: 'Missing required parameters' },
+	})
+	expect(state.canonicalLevelRequests).toEqual([])
 })
 
 test('record/submit rejects malformed ghost data without changing wire error shape', async () => {

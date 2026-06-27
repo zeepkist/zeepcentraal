@@ -14,29 +14,6 @@ export async function getLevelByXxHash(xxHash: string) {
 	})
 }
 
-export async function getOrInsertLevel(hash: string) {
-	const existing = await getLevel(hash)
-	if (existing) {
-		return existing
-	}
-
-	const [created] = await db.insert(level).values({ hash }).returning()
-	return created ?? getLevel(hash)
-}
-
-export async function getOrInsertLevelWithAdventure(hash: string, adventure: boolean) {
-	const resolved = await getOrInsertLevel(hash)
-	if (!resolved || resolved.adventure === adventure) {
-		return resolved
-	}
-	const [updated] = await db
-		.update(level)
-		.set({ adventure, dateUpdated: new Date().toISOString() })
-		.where(eq(level.id, resolved.id))
-		.returning()
-	return updated ?? resolved
-}
-
 export async function getOrInsertLevelWithCanonicalHash({
 	hash,
 	xxHash,
