@@ -10,6 +10,14 @@ interface PersonalBestWithLevelPointsAndPosition {
 }
 
 export function buildUsersPersonalBestsWithLevelPointsAndPositionQuery(idUsers: number[]) {
+	const requestedUserLevels = db.$with('requested_user_levels').as(
+		db
+			.selectDistinct({
+				idLevel: personalBestGlobal.idLevel,
+			})
+			.from(personalBestGlobal)
+			.where(inArray(personalBestGlobal.idUser, idUsers)),
+	)
 	const rankedPersonalBests = db.$with('ranked_personal_bests').as(
 		db
 			.select({
@@ -23,11 +31,17 @@ export function buildUsersPersonalBestsWithLevelPointsAndPositionQuery(idUsers: 
 			})
 			.from(personalBestGlobal)
 			.innerJoin(levelPoints, eq(levelPoints.idLevel, personalBestGlobal.idLevel))
-			.innerJoin(record, eq(record.id, personalBestGlobal.idRecord)),
+			.innerJoin(record, eq(record.id, personalBestGlobal.idRecord))
+			.where(
+				inArray(
+					personalBestGlobal.idLevel,
+					db.select({ idLevel: requestedUserLevels.idLevel }).from(requestedUserLevels),
+				),
+			),
 	)
 
 	return db
-		.with(rankedPersonalBests)
+		.with(requestedUserLevels, rankedPersonalBests)
 		.select()
 		.from(rankedPersonalBests)
 		.where(inArray(rankedPersonalBests.idUser, idUsers))

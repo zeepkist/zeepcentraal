@@ -28,6 +28,7 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 	const unrankedUsers = users.filter(
 		(user) => !user.latestRecordDate || new Date(user.latestRecordDate) < unrankedCutoffDate,
 	)
+
 	const rankedUsers = users.filter(
 		(user) => user.latestRecordDate && new Date(user.latestRecordDate) >= unrankedCutoffDate,
 	)
@@ -41,10 +42,11 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 	}
 
 	const pointsList: PointsList[] = []
+	const personalBestsByUser = await getUsersPersonalBestsWithLevelPointsAndPosition(
+		rankedUsers.map(({ idUser }) => idUser),
+	)
+
 	for (const userBatch of batchProcess(rankedUsers)) {
-		const personalBestsByUser = await getUsersPersonalBestsWithLevelPointsAndPosition(
-			userBatch.map(({ idUser }) => idUser),
-		)
 		const pointUpdates = userBatch.map(({ idUser }) => {
 			const personalBests = personalBestsByUser.get(idUser) ?? []
 
@@ -55,8 +57,10 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 
 			const { points, totalPoints } = calculatePlayerPoints(personalBests)
 			pointsList.push({ idUser, points })
+
 			return { idUser, points, totalPoints }
 		})
+
 		await upsertUserPointsBulk(pointUpdates)
 	}
 
@@ -80,6 +84,7 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 		previousPoints = userPoint.points
 		actualRank++
 	}
+
 	await updateUserRanks(rankUpdates)
 
 	helpers.logger.info('updatePlayerScores completed.')
