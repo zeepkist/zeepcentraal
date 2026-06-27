@@ -15,6 +15,8 @@ interface PointsList {
 	points: number
 }
 
+const PLAYER_SCORE_BATCH_SIZE = 50
+
 export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers) => {
 	const unrankedCutoffDate = new Date()
 	unrankedCutoffDate.setMonth(unrankedCutoffDate.getMonth() - 6)
@@ -42,11 +44,22 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 	}
 
 	const pointsList: PointsList[] = []
-	const personalBestsByUser = await getUsersPersonalBestsWithLevelPointsAndPosition(
-		rankedUsers.map(({ idUser }) => idUser),
-	)
 
-	for (const userBatch of batchProcess(rankedUsers)) {
+	const rankedUserBatches = Array.from(batchProcess(rankedUsers, PLAYER_SCORE_BATCH_SIZE))
+	for (let batchIndex = 0; batchIndex < rankedUserBatches.length; batchIndex++) {
+		const userBatch = rankedUserBatches[batchIndex]
+		if (!userBatch) {
+			continue
+		}
+
+		helpers.logger.info(
+			`Updating player score batch ${batchIndex + 1}/${rankedUserBatches.length} (${userBatch.length} users).`,
+		)
+
+		const personalBestsByUser = await getUsersPersonalBestsWithLevelPointsAndPosition(
+			userBatch.map(({ idUser }) => idUser),
+		)
+
 		const pointUpdates = userBatch.map(({ idUser }) => {
 			const personalBests = personalBestsByUser.get(idUser) ?? []
 
@@ -62,6 +75,10 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 		})
 
 		await upsertUserPointsBulk(pointUpdates)
+
+		helpers.logger.info(
+			`Updated player score batch ${batchIndex + 1}/${rankedUserBatches.length}.`,
+		)
 	}
 
 	const usersSortedByHighestPoints = pointsList.sort((a, b) => b.points - a.points)
