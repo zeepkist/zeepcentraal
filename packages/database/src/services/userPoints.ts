@@ -1,6 +1,12 @@
-import { inArray, sql } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { userPoints } from '../schema'
+
+interface UserPointsInput {
+	idUser: number
+	points: number
+	totalPoints: number
+}
 
 export async function getTotalUserPoints() {
 	const totalPoints = await db
@@ -53,49 +59,94 @@ export async function upsertUserPoints({
 	idUser,
 	points,
 	totalPoints,
-}: {
-	idUser: number
-	points: number
-	totalPoints: number
-}): Promise<void> {
+}: UserPointsInput): Promise<void> {
 	await db.transaction(async (tx) => {
+		const dateUpdated = new Date().toISOString()
+		const [updated] = await tx
+			.update(userPoints)
+			.set({
+				points,
+				totalPoints,
+				dateUpdated,
+			})
+			.where(eq(userPoints.idUser, idUser))
+			.returning({ idUser: userPoints.idUser })
+		if (updated) {
+			return
+		}
+
 		await tx
 			.insert(userPoints)
 			.values({
 				idUser,
 				points,
 				totalPoints,
-				dateUpdated: new Date().toISOString(),
+				dateUpdated,
 			})
 			.onConflictDoUpdate({
 				target: [userPoints.idUser],
 				set: {
 					points,
 					totalPoints,
-					dateUpdated: new Date().toISOString(),
+					dateUpdated,
 				},
 			})
 	})
 }
 
-export async function upsertUserPointsBulk(
-	entries: Array<{ idUser: number; points: number; totalPoints: number }>,
-) {
+function dedupeUserPointsEntries(entries: UserPointsInput[]): UserPointsInput[] {
+	return [...new Map(entries.map((entry) => [entry.idUser, entry])).values()]
+}
+
+export function buildUpdateUserPointsBulkSql(entries: UserPointsInput[], dateUpdated: string) {
+	const values = sql.join(
+		entries.map(
+			(entry) =>
+				sql`(${entry.idUser}::integer, ${entry.points}::integer, ${entry.totalPoints}::integer)`,
+		),
+		sql`, `,
+	)
+	return sql<{ idUser: number }>`
+		UPDATE ${userPoints} AS target
+		SET
+			points = source.points,
+			total_points = source.total_points,
+			date_updated = ${dateUpdated}
+		FROM (VALUES ${values}) AS source(id_user, points, total_points)
+		WHERE target.id_user = source.id_user
+		RETURNING target.id_user AS "idUser"
+	`
+}
+
+export async function upsertUserPointsBulk(entries: UserPointsInput[]) {
 	if (entries.length === 0) {
 		return
 	}
+	const dedupedEntries = dedupeUserPointsEntries(entries)
 	const dateUpdated = new Date().toISOString()
-	await db
-		.insert(userPoints)
-		.values(entries.map((entry) => ({ ...entry, dateUpdated })))
-		.onConflictDoUpdate({
-			target: [userPoints.idUser],
-			set: {
-				points: sql`EXCLUDED.points`,
-				totalPoints: sql`EXCLUDED.total_points`,
-				dateUpdated,
-			},
-		})
+
+	await db.transaction(async (tx) => {
+		const updatedRows = await tx.execute(
+			buildUpdateUserPointsBulkSql(dedupedEntries, dateUpdated),
+		)
+		const updatedUserIds = new Set(updatedRows.map((row) => row.idUser))
+		const missingEntries = dedupedEntries.filter((entry) => !updatedUserIds.has(entry.idUser))
+		if (missingEntries.length === 0) {
+			return
+		}
+
+		await tx
+			.insert(userPoints)
+			.values(missingEntries.map((entry) => ({ ...entry, dateUpdated })))
+			.onConflictDoUpdate({
+				target: [userPoints.idUser],
+				set: {
+					points: sql`EXCLUDED.points`,
+					totalPoints: sql`EXCLUDED.total_points`,
+					dateUpdated,
+				},
+			})
+	})
 }
 
 export async function updateUserRanks(entries: Array<{ idUser: number; rank: number }>) {
