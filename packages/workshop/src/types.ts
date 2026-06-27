@@ -1,6 +1,8 @@
 export interface WorkshopItemMetadata {
 	workshopId: bigint
 	creatorId: bigint
+	name: string
+	imageUrl: string
 	createdAt: string
 	updatedAt: string
 	available: boolean
@@ -36,6 +38,8 @@ export interface WorkshopPersistence {
 		hash: string
 		xxHash: string
 		workshopId: bigint
+		workshopName: string
+		workshopImageUrl: string
 		authorId: bigint
 		name: string
 		imageUrl: string

@@ -4,6 +4,8 @@ interface SteamPublishedFile {
 	result?: number
 	publishedfileid?: string
 	creator?: string
+	title?: string
+	preview_url?: string
 	time_created?: number
 	time_updated?: number
 	visibility?: number
@@ -24,6 +26,8 @@ function parseItem(item: SteamPublishedFile): WorkshopItemMetadata {
 	return {
 		workshopId,
 		creatorId: BigInt(item.creator ?? '0'),
+		name: item.title ?? '',
+		imageUrl: item.preview_url ?? '',
 		createdAt: new Date((item.time_created ?? 0) * 1000).toISOString(),
 		updatedAt: new Date((item.time_updated ?? 0) * 1000).toISOString(),
 		available,
@@ -73,6 +77,8 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 				byId.get(workshopId) ?? {
 					workshopId,
 					creatorId: 0n,
+					name: '',
+					imageUrl: '',
 					createdAt: new Date(0).toISOString(),
 					updatedAt: new Date(0).toISOString(),
 					available: false,

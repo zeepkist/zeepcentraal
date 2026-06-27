@@ -154,6 +154,8 @@ export class WorkshopScanner {
 						hash: level.parsed.zeepHash,
 						fileUid: level.parsed.uid,
 						workshopId: prepared.item.workshopId,
+						workshopName: prepared.metadata.name,
+						workshopImageUrl: prepared.metadata.imageUrl,
 						authorId: prepared.metadata.creatorId,
 						name: level.name,
 						imageUrl,

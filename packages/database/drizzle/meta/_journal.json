@@ -239,6 +239,20 @@
 			"when": 1782581449156,
 			"tag": "0034_tough_betty_brant",
 			"breakpoints": true
+		},
+		{
+			"idx": 35,
+			"version": "7",
+			"when": 1782582267211,
+			"tag": "0035_stormy_vulture",
+			"breakpoints": true
+		},
+		{
+			"idx": 36,
+			"version": "7",
+			"when": 1782584268269,
+			"tag": "0036_parallel_speedball",
+			"breakpoints": true
 		}
 	]
 }

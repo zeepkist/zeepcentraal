@@ -53,6 +53,8 @@ function createDependencies(directory: string, available = true) {
 			{
 				workshopId: workshopId as bigint,
 				creatorId: 76561198000000000n,
+				name: 'Example Workshop Item',
+				imageUrl: 'https://steam.example/workshop-preview.jpg',
 				createdAt: '2023-01-01T00:00:00.000Z',
 				updatedAt: '2023-01-02T00:00:00.000Z',
 				available,
@@ -111,6 +113,10 @@ describe('WorkshopScanner', () => {
 		})
 		expect(dependencies.calls.upserts).toHaveLength(1)
 		expect(dependencies.calls.upserts[0]?.authorId).toBe(76561198000000000n)
+		expect(dependencies.calls.upserts[0]?.workshopName).toBe('Example Workshop Item')
+		expect(dependencies.calls.upserts[0]?.workshopImageUrl).toBe(
+			'https://steam.example/workshop-preview.jpg',
+		)
 		expect(dependencies.calls.upserts[0]?.hash).toBe('5B7A81C7A6181599CD15234CA17797BBEBFACBD3')
 		expect(dependencies.calls.upserts[0]?.xxHash).toBe('5FC86C702B3F328B66608DC3C8BFB603')
 		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('thumbnails/generated.jpg')

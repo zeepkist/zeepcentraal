@@ -82,7 +82,41 @@ export const levelItem = pgTable(
 			foreignColumns: [level.id],
 			name: 'level_item_id_level_fkey',
 		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.workshopId],
+			foreignColumns: [workshopItem.workshopId],
+			name: 'level_item_workshop_item_fkey',
+		}),
+		foreignKey({
+			columns: [table.authorId],
+			foreignColumns: [user.steamId],
+			name: 'level_item_author_fkey',
+		}),
 		index('IX_level_item_level').using('btree', table.idLevel.asc().nullsLast()),
+	],
+)
+
+export const workshopItem = pgTable(
+	'workshop_item',
+	{
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).primaryKey(),
+		authorId: bigint('author_id', { mode: 'bigint' }).notNull(),
+		name: text().notNull(),
+		imageUrl: text('image_url').notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date().toISOString()),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.authorId],
+			foreignColumns: [user.steamId],
+			name: 'workshop_item_author_fkey',
+		}),
 	],
 )
 
@@ -513,7 +547,7 @@ export const user = pgTable(
 		),
 	},
 	(table) => [
-		uniqueIndex('UQ_user_steam_id').on(table.steamId).where(sql`${table.steamId} IS NOT NULL`),
+		uniqueIndex('UQ_user_steam_id').on(table.steamId),
 		uniqueIndex('UQ_user_discord_id').on(table.discordId).where(sql`${table.discordId} > 0`),
 	],
 )

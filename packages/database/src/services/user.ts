@@ -7,9 +7,15 @@ interface SteamUserData {
 	steamid: string
 	personaname: string
 }
-export const userSteamIdConflictWhere = sql`steam_id IS NOT NULL`
-
 async function getSteamUser(steamId: string): Promise<SteamUserData> {
+	const player = await getSteamUserOrUndefined(steamId)
+	if (!player) {
+		throw new Error('Steam user not found.')
+	}
+	return player
+}
+
+async function getSteamUserOrUndefined(steamId: string): Promise<SteamUserData | undefined> {
 	const apiKey = databaseConfig.steam.apiKey
 	if (!apiKey) {
 		throw new Error('Steam API key is not configured.')
@@ -21,11 +27,7 @@ async function getSteamUser(steamId: string): Promise<SteamUserData> {
 		throw new Error('Steam user request failed.')
 	}
 	const data = (await response.json()) as { response?: { players?: SteamUserData[] } }
-	const player = data.response?.players?.[0]
-	if (!player) {
-		throw new Error('Steam user not found.')
-	}
-	return player
+	return data.response?.players?.[0]
 }
 
 export async function getUserBySteamId(steamId: bigint) {
@@ -63,7 +65,6 @@ export async function getOrInsertUser(steamId: bigint, steamName?: string) {
 		})
 		.onConflictDoUpdate({
 			target: user.steamId,
-			targetWhere: userSteamIdConflictWhere,
 			set: {
 				steamName: resolvedSteamName,
 				dateUpdated: now,
@@ -72,6 +73,15 @@ export async function getOrInsertUser(steamId: bigint, steamName?: string) {
 		.returning()
 
 	return upserted ?? getUserBySteamId(steamId)
+}
+
+export async function resolveSteamNameForWorkshopAuthor(steamId: bigint): Promise<string> {
+	const existing = await getUserBySteamId(steamId)
+	if (existing?.steamName && existing.steamName !== 'Unknown') {
+		return existing.steamName
+	}
+
+	return (await getSteamUserOrUndefined(steamId.toString()))?.personaname ?? 'Unknown'
 }
 
 export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<string, number>> {
@@ -95,7 +105,6 @@ export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<stri
 		)
 		.onConflictDoUpdate({
 			target: user.steamId,
-			targetWhere: userSteamIdConflictWhere,
 			set: {
 				steamName: sql`excluded.steam_name`,
 				dateUpdated: now,

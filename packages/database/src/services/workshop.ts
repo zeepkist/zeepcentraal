@@ -1,13 +1,16 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { uploadFile } from '../s3'
-import { level, levelItem, levelMetadata, levelRequest } from '../schema'
+import { level, levelItem, levelMetadata, levelRequest, user, workshopItem } from '../schema'
 import { generateUid } from '../utils/generateUid'
+import { resolveSteamNameForWorkshopAuthor } from './user'
 
 export interface WorkshopLevelInput {
 	hash: string
 	xxHash: string
 	workshopId: bigint
+	workshopName: string
+	workshopImageUrl: string
 	authorId: bigint
 	name: string
 	imageUrl: string
@@ -81,8 +84,44 @@ export async function getPendingLevelRequestWorkshopIds(): Promise<bigint[]> {
 }
 
 export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<number> {
+	const authorSteamName = await resolveSteamNameForWorkshopAuthor(input.authorId)
 	return db.transaction(async (tx) => {
 		const now = new Date().toISOString()
+		await tx
+			.insert(user)
+			.values({
+				steamId: input.authorId,
+				steamName: authorSteamName,
+				discordId: -1n,
+				banned: false,
+				dateCreated: now,
+				dateUpdated: now,
+			})
+			.onConflictDoUpdate({
+				target: user.steamId,
+				set: {
+					steamName: authorSteamName,
+					dateUpdated: now,
+				},
+			})
+
+		await tx
+			.insert(workshopItem)
+			.values({
+				workshopId: input.workshopId,
+				authorId: input.authorId,
+				name: input.workshopName,
+				imageUrl: input.workshopImageUrl,
+			})
+			.onConflictDoUpdate({
+				target: workshopItem.workshopId,
+				set: {
+					authorId: input.authorId,
+					name: input.workshopName,
+					imageUrl: input.workshopImageUrl,
+				},
+			})
+
 		const existingItem = await tx
 			.select({
 				id: levelItem.id,
