@@ -39,7 +39,15 @@ async function createItem({
 	return root
 }
 
-function createDependencies(directory: string, available = true) {
+function createDependencies({
+	directory,
+	available = true,
+	upsertResult = { idLevel: 42, scoreChanged: true },
+}: {
+	directory: string
+	available?: boolean
+	upsertResult?: { idLevel: number; scoreChanged: boolean }
+}) {
 	const calls = {
 		upserts: [] as Array<Record<string, unknown>>,
 		markDeleted: 0,
@@ -76,10 +84,10 @@ function createDependencies(directory: string, available = true) {
 	const persistence: WorkshopPersistence = {
 		upsertLevel: async (input) => {
 			calls.upserts.push(input)
-			return 42
+			return upsertResult
 		},
-		markMissing: async (_workshopId, activeFileUids) => {
-			calls.markMissing = activeFileUids
+		markMissing: async (_workshopId, activeXxHashes) => {
+			calls.markMissing = activeXxHashes
 			return []
 		},
 		markDeleted: async () => {
@@ -97,7 +105,7 @@ function createDependencies(directory: string, available = true) {
 describe('WorkshopScanner', () => {
 	test('parses complete item before reconciling rows', async () => {
 		const directory = await createItem()
-		const dependencies = createDependencies(directory)
+		const dependencies = createDependencies({ directory })
 		const scanner = new WorkshopScanner(
 			dependencies.metadata,
 			dependencies.downloader,
@@ -120,13 +128,13 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.upserts[0]?.hash).toBe('5B7A81C7A6181599CD15234CA17797BBEBFACBD3')
 		expect(dependencies.calls.upserts[0]?.xxHash).toBe('5FC86C702B3F328B66608DC3C8BFB603')
 		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('thumbnails/generated.jpg')
-		expect(dependencies.calls.markMissing).toEqual(['file-uid'])
+		expect(dependencies.calls.markMissing).toEqual(['5FC86C702B3F328B66608DC3C8BFB603'])
 		expect(dependencies.calls.cleanups).toBe(1)
 	})
 
 	test('scans item without thumbnail using empty image URL', async () => {
 		const directory = await createItem({ thumbnail: false })
-		const dependencies = createDependencies(directory)
+		const dependencies = createDependencies({ directory })
 		const scanner = new WorkshopScanner(
 			dependencies.metadata,
 			dependencies.downloader,
@@ -143,7 +151,7 @@ describe('WorkshopScanner', () => {
 
 	test('prefers jpg thumbnail and ignores extra thumbnails', async () => {
 		const directory = await createItem({ extraThumbnail: true })
-		const dependencies = createDependencies(directory)
+		const dependencies = createDependencies({ directory })
 		const scanner = new WorkshopScanner(
 			dependencies.metadata,
 			dependencies.downloader,
@@ -162,7 +170,7 @@ describe('WorkshopScanner', () => {
 		const directory = await createItem({
 			block: 'not-a-number,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
 		})
-		const dependencies = createDependencies(directory)
+		const dependencies = createDependencies({ directory })
 		const scanner = new WorkshopScanner(
 			dependencies.metadata,
 			dependencies.downloader,
@@ -182,7 +190,7 @@ describe('WorkshopScanner', () => {
 	})
 
 	test('marks permanent metadata failures deleted without downloading', async () => {
-		const dependencies = createDependencies('unused', false)
+		const dependencies = createDependencies({ directory: 'unused', available: false })
 		const scanner = new WorkshopScanner(
 			dependencies.metadata,
 			dependencies.downloader,
@@ -195,6 +203,42 @@ describe('WorkshopScanner', () => {
 		expect(result.changedLevelIds).toEqual([7])
 		expect(dependencies.calls.markDeleted).toBe(1)
 		expect(dependencies.calls.downloads).toBe(0)
+	})
+
+	test('does not report unchanged upserted levels as changed', async () => {
+		const directory = await createItem()
+		const dependencies = createDependencies({
+			directory,
+			upsertResult: { idLevel: 42, scoreChanged: false },
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		const result = await scanner.scanWorkshopItem(1n)
+
+		expect(result.status).toBe('scanned')
+		expect(result.changedLevelIds).toEqual([])
+	})
+
+	test('reports reappearing upserted levels as changed', async () => {
+		const directory = await createItem()
+		const dependencies = createDependencies({
+			directory,
+			upsertResult: { idLevel: 42, scoreChanged: true },
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		const result = await scanner.scanWorkshopItem(1n)
+
+		expect(result.status).toBe('scanned')
+		expect(result.changedLevelIds).toEqual([42])
 	})
 })
 

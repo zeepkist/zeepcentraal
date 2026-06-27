@@ -148,7 +148,7 @@ export class WorkshopScanner {
 								await readFile(level.thumbnailPath),
 							)
 						: ''
-					const idLevel = await this.persistence.upsertLevel({
+					const upsertResult = await this.persistence.upsertLevel({
 						...level.parsed,
 						xxHash: level.parsed.hash,
 						hash: level.parsed.zeepHash,
@@ -162,11 +162,13 @@ export class WorkshopScanner {
 						createdAt: prepared.metadata.createdAt,
 						updatedAt: prepared.metadata.updatedAt,
 					})
-					changedLevelIds.push(idLevel)
+					if (upsertResult.scoreChanged) {
+						changedLevelIds.push(upsertResult.idLevel)
+					}
 				}
 				const missing = await this.persistence.markMissing(
 					prepared.item.workshopId,
-					prepared.levels.map((level) => level.parsed.uid),
+					prepared.levels.map((level) => level.parsed.hash),
 				)
 				results.push({
 					workshopId: prepared.item.workshopId,

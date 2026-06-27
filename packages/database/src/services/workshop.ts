@@ -31,6 +31,11 @@ export interface WorkshopLevelInput {
 	blocks: unknown
 }
 
+export interface WorkshopLevelUpsertResult {
+	idLevel: number
+	scoreChanged: boolean
+}
+
 export async function uploadWorkshopThumbnail(
 	extension: string,
 	contents: Buffer,
@@ -83,7 +88,9 @@ export async function getPendingLevelRequestWorkshopIds(): Promise<bigint[]> {
 	return rows.map((row) => row.workshopId)
 }
 
-export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<number> {
+export async function upsertWorkshopLevel(
+	input: WorkshopLevelInput,
+): Promise<WorkshopLevelUpsertResult> {
 	const authorSteamName = await resolveSteamNameForWorkshopAuthor(input.authorId)
 	return db.transaction(async (tx) => {
 		const now = new Date().toISOString()
@@ -122,7 +129,7 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 				},
 			})
 
-		const existingItem = await tx
+		const existingItemByXxHash = await tx
 			.select({
 				id: levelItem.id,
 				idLevel: levelItem.idLevel,
@@ -131,19 +138,35 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 			})
 			.from(levelItem)
 			.innerJoin(level, eq(level.id, levelItem.idLevel))
-			.where(
-				and(
-					eq(levelItem.workshopId, input.workshopId),
-					eq(levelItem.fileUid, input.fileUid),
-				),
-			)
+			.where(and(eq(levelItem.workshopId, input.workshopId), eq(level.xxHash, input.xxHash)))
 			.orderBy(asc(levelItem.id))
 			.limit(1)
 			.then((rows) => rows[0])
+
+		const existingItemByFileUid = !existingItemByXxHash
+			? await tx
+					.select({
+						id: levelItem.id,
+						idLevel: levelItem.idLevel,
+						deleted: levelItem.deleted,
+						xxHash: level.xxHash,
+					})
+					.from(levelItem)
+					.innerJoin(level, eq(level.id, levelItem.idLevel))
+					.where(
+						and(
+							eq(levelItem.workshopId, input.workshopId),
+							eq(levelItem.fileUid, input.fileUid),
+						),
+					)
+					.orderBy(asc(levelItem.id))
+					.limit(1)
+					.then((rows) => rows[0])
+			: undefined
+
+		const existingItem = existingItemByXxHash ?? existingItemByFileUid
 		const existingItemLevel =
-			existingItem && !existingItem.deleted && existingItem.xxHash === input.xxHash
-				? { id: existingItem.idLevel }
-				: undefined
+			existingItem?.xxHash === input.xxHash ? { id: existingItem.idLevel } : undefined
 		const existingByXxHash = !existingItemLevel
 			? await tx
 					.select({ id: level.id })
@@ -253,19 +276,27 @@ export async function upsertWorkshopLevel(input: WorkshopLevelInput): Promise<nu
 			await tx.insert(levelItem).values({ ...itemValues, dateCreated: now })
 		}
 
-		return idLevel
+		return {
+			idLevel,
+			scoreChanged:
+				Boolean(createdLevel) ||
+				!existingItem ||
+				existingItem.deleted ||
+				existingItem.idLevel !== idLevel,
+		}
 	})
 }
 
 export async function markMissingWorkshopLevelsDeleted(
 	workshopId: bigint,
-	activeFileUids: string[],
+	activeXxHashes: string[],
 ): Promise<number[]> {
 	const existing = await db
-		.select({ id: levelItem.id, idLevel: levelItem.idLevel, fileUid: levelItem.fileUid })
+		.select({ id: levelItem.id, idLevel: levelItem.idLevel, xxHash: level.xxHash })
 		.from(levelItem)
-		.where(eq(levelItem.workshopId, workshopId))
-	const missing = existing.filter((item) => !activeFileUids.includes(item.fileUid))
+		.innerJoin(level, eq(level.id, levelItem.idLevel))
+		.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
+	const missing = existing.filter((item) => !activeXxHashes.includes(item.xxHash))
 	if (missing.length === 0) {
 		return []
 	}
@@ -285,11 +316,14 @@ export async function markWorkshopDeleted(workshopId: bigint): Promise<number[]>
 	const rows = await db
 		.selectDistinct({ idLevel: levelItem.idLevel })
 		.from(levelItem)
-		.where(eq(levelItem.workshopId, workshopId))
+		.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
+	if (rows.length === 0) {
+		return []
+	}
 	await db
 		.update(levelItem)
 		.set({ deleted: true, dateUpdated: new Date().toISOString() })
-		.where(eq(levelItem.workshopId, workshopId))
+		.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
 	return rows.map((row) => row.idLevel)
 }
 

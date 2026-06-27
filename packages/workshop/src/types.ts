@@ -58,8 +58,8 @@ export interface WorkshopPersistence {
 		typeGround: number
 		typeSkybox: number
 		blocks: unknown
-	}): Promise<number>
-	markMissing(workshopId: bigint, activeFileUids: string[]): Promise<number[]>
+	}): Promise<{ idLevel: number; scoreChanged: boolean }>
+	markMissing(workshopId: bigint, activeXxHashes: string[]): Promise<number[]>
 	markDeleted(workshopId: bigint): Promise<number[]>
 	uploadThumbnail(extension: string, contents: Buffer): Promise<string>
 }
