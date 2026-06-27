@@ -2,6 +2,7 @@ import { databaseConfig } from '@zeepkist/core/config/database'
 import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { record, user } from '../schema'
+import { resolveBulkSteamNames } from './userSteamNames'
 
 interface SteamUserData {
 	steamid: string
@@ -81,7 +82,11 @@ export async function resolveSteamNameForWorkshopAuthor(steamId: bigint): Promis
 		return existing.steamName
 	}
 
-	return (await getSteamUserOrUndefined(steamId.toString()))?.personaname ?? 'Unknown'
+	try {
+		return (await getSteamUserOrUndefined(steamId.toString()))?.personaname ?? 'Unknown'
+	} catch {
+		return 'Unknown'
+	}
 }
 
 export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<string, number>> {
@@ -90,14 +95,32 @@ export async function getOrInsertUsersBulk(steamIds: string[]): Promise<Map<stri
 		return new Map<string, number>()
 	}
 
-	const steamProfiles = await Promise.all(uniqueSteamIds.map((steamId) => getSteamUser(steamId)))
+	const existingUsers = await db
+		.select({ id: user.id, steamId: user.steamId, steamName: user.steamName })
+		.from(user)
+		.where(
+			inArray(
+				user.steamId,
+				uniqueSteamIds.map((value) => BigInt(value)),
+			),
+		)
+	const steamNames = await resolveBulkSteamNames(
+		uniqueSteamIds,
+		existingUsers.flatMap((entry) =>
+			entry.steamId === null
+				? []
+				: [{ steamId: entry.steamId.toString(), steamName: entry.steamName }],
+		),
+		getSteamUserOrUndefined,
+	)
 	const now = new Date().toISOString()
 	const upsertedUsers = await db
 		.insert(user)
 		.values(
-			steamProfiles.map((profile) => ({
-				steamId: BigInt(profile.steamid),
-				steamName: profile.personaname,
+			uniqueSteamIds.map((steamId) => ({
+				steamId: BigInt(steamId),
+				steamName: steamNames.get(steamId) ?? 'Unknown',
+				discordId: -1n,
 				banned: false,
 				dateCreated: now,
 				dateUpdated: now,
