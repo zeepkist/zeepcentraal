@@ -40,7 +40,7 @@ export const level = pgTable(
 	},
 	(table) => [
 		index('IX_level_hash').using('btree', table.hash.asc().nullsLast()),
-		uniqueIndex('UQ_level_xx_hash').using('btree', table.xxHash.asc().nullsLast()),
+		unique('UQ_level_xx_hash').on(table.xxHash),
 	],
 )
 
