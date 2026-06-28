@@ -30,7 +30,8 @@ test('database config parses without server-only secrets', () => {
 	const config = parseDatabaseConfig({})
 
 	expect(config.databaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
-	expect(config.ghost.folder).toBe('ghosts-dev')
+	expect(config.wasabi.ghostFolder).toBe('ghosts-dev')
+	expect(config.wasabi.thumbnailFolder).toBe('thumbnails-dev')
 })
 
 test('import config preserves super league candidate fallback', () => {

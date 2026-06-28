@@ -7,4 +7,5 @@ export const WASABI_SECRETKEY = databaseConfig.wasabi.secretKey
 export const WASABI_BUCKET = databaseConfig.wasabi.bucket
 export const WASABI_ENDPOINT = databaseConfig.wasabi.endpoint
 export const WASABI_REGION = databaseConfig.wasabi.region
-export const GHOST_FOLDER = databaseConfig.ghost.folder
+export const GHOST_FOLDER = databaseConfig.wasabi.ghostFolder
+export const THUMBNAIL_FOLDER = databaseConfig.wasabi.thumbnailFolder

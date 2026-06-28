@@ -3,6 +3,8 @@ export interface WorkshopItemMetadata {
 	creatorId: bigint
 	name: string
 	imageUrl: string
+	visibility: number
+	fileSize: number
 	createdAt: string
 	updatedAt: string
 	available: boolean
@@ -40,6 +42,8 @@ export interface WorkshopPersistence {
 		workshopId: bigint
 		workshopName: string
 		workshopImageUrl: string
+		workshopVisibility: number
+		workshopFileSize: number
 		authorId: bigint
 		name: string
 		imageUrl: string

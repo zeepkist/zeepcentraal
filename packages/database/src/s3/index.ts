@@ -16,10 +16,14 @@ const client = new S3Client({
 	acl: 'private',
 })
 
-export async function uploadFile(fileName: string, file: Buffer): Promise<void> {
+export async function uploadFile(
+	fileName: string,
+	file: Buffer,
+	contentType = 'application/octet-stream',
+): Promise<void> {
 	const s3File = client.file(fileName)
 	await s3File.write(file, {
-		type: 'application/octet-stream',
+		type: contentType,
 	})
 }
 

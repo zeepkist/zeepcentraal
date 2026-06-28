@@ -9,6 +9,7 @@ interface SteamPublishedFile {
 	time_created?: number
 	time_updated?: number
 	visibility?: number
+	file_size?: number | string
 	banned?: boolean
 }
 
@@ -22,22 +23,19 @@ interface SteamResponse {
 function parseItem(item: SteamPublishedFile): WorkshopItemMetadata {
 	const workshopId = BigInt(item.publishedfileid ?? '0')
 	const result = item.result ?? 0
-	const available = result === 1 && item.visibility === 0 && item.banned !== true
+	const visibility = item.visibility ?? 0
+	const available = result === 1 && item.banned !== true
 	return {
 		workshopId,
 		creatorId: BigInt(item.creator ?? '0'),
 		name: item.title ?? '',
 		imageUrl: item.preview_url ?? '',
+		visibility,
+		fileSize: Number(item.file_size ?? 0),
 		createdAt: new Date((item.time_created ?? 0) * 1000).toISOString(),
 		updatedAt: new Date((item.time_updated ?? 0) * 1000).toISOString(),
 		available,
-		permanentFailure: available
-			? undefined
-			: item.banned
-				? 'banned'
-				: item.visibility !== 0
-					? 'not-public'
-					: `steam-result-${result}`,
+		permanentFailure: available ? undefined : item.banned ? 'banned' : `steam-result-${result}`,
 	}
 }
 
@@ -66,6 +64,7 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 		}
 		const url = new URL('/IPublishedFileService/GetDetails/v1/', this.endpoint)
 		url.searchParams.set('key', this.apiKey)
+		url.searchParams.set('admin_query', 'true')
 		for (const [index, workshopId] of workshopIds.entries()) {
 			url.searchParams.set(`publishedfileids[${index}]`, workshopId.toString())
 		}
@@ -79,6 +78,8 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 					creatorId: 0n,
 					name: '',
 					imageUrl: '',
+					visibility: 0,
+					fileSize: 0,
 					createdAt: new Date(0).toISOString(),
 					updatedAt: new Date(0).toISOString(),
 					available: false,
@@ -96,6 +97,7 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 		url.searchParams.set('creator_appid', this.appId)
 		url.searchParams.set('appid', this.appId)
 		url.searchParams.set('return_metadata', 'true')
+		url.searchParams.set('admin_query', 'true')
 		const response = await getJson(url)
 		const nextCursor = response.response?.next_cursor
 		return {

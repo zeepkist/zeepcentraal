@@ -9,6 +9,7 @@ import {
 	pgTable,
 	primaryKey,
 	real,
+	smallint,
 	text,
 	timestamp,
 	unique,
@@ -103,6 +104,14 @@ export const workshopItem = pgTable(
 		authorId: bigint('author_id', { mode: 'bigint' }).notNull(),
 		name: text().notNull(),
 		imageUrl: text('image_url').notNull(),
+		visibility: smallint().notNull().default(0),
+		fileSize: integer('file_size').notNull().default(0),
+		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(), // workshop item created at
+		updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(), // workshop item updated at
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),

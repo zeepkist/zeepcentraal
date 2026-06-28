@@ -156,6 +156,8 @@ export class WorkshopScanner {
 						workshopId: prepared.item.workshopId,
 						workshopName: prepared.metadata.name,
 						workshopImageUrl: prepared.metadata.imageUrl,
+						workshopVisibility: prepared.metadata.visibility,
+						workshopFileSize: prepared.metadata.fileSize,
 						authorId: prepared.metadata.creatorId,
 						name: level.name,
 						imageUrl,

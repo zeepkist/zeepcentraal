@@ -1,5 +1,6 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
+import { THUMBNAIL_FOLDER } from '../config'
 import { uploadFile } from '../s3'
 import { level, levelItem, levelMetadata, levelRequest, user, workshopItem } from '../schema'
 import { generateUid } from '../utils/generateUid'
@@ -11,6 +12,8 @@ export interface WorkshopLevelInput {
 	workshopId: bigint
 	workshopName: string
 	workshopImageUrl: string
+	workshopVisibility: number
+	workshopFileSize: number
 	authorId: bigint
 	name: string
 	imageUrl: string
@@ -36,6 +39,60 @@ export interface WorkshopLevelUpsertResult {
 	scoreChanged: boolean
 }
 
+interface ExistingWorkshopLevelItem {
+	id: number
+	idLevel: number
+	deleted: boolean
+	xxHash: string
+}
+
+interface ExistingLevel {
+	id: number
+}
+
+export function resolveWorkshopLevelId({
+	inputXxHash,
+	existingItem,
+	existingByXxHash,
+	existingByLegacyHash,
+	createdLevel,
+}: {
+	inputXxHash: string
+	existingItem?: ExistingWorkshopLevelItem
+	existingByXxHash?: ExistingLevel
+	existingByLegacyHash?: ExistingLevel
+	createdLevel?: ExistingLevel
+}): number | undefined {
+	if (existingByXxHash) {
+		return existingByXxHash.id
+	}
+	if (existingItem?.xxHash === inputXxHash) {
+		return existingItem.idLevel
+	}
+	return existingByLegacyHash?.id ?? createdLevel?.id
+}
+
+function getImageExtensionFromContentType(contentType: string | null): string | undefined {
+	const normalized = contentType?.split(';')[0]?.trim().toLowerCase()
+	switch (normalized) {
+		case 'image/jpeg':
+		case 'image/jpg':
+			return 'jpg'
+		case 'image/png':
+			return 'png'
+		case 'image/webp':
+			return 'webp'
+		case 'image/avif':
+			return 'avif'
+		default:
+			return undefined
+	}
+}
+
+function hasPopulatedBlocks(blocks: unknown): boolean {
+	return Array.isArray(blocks) && blocks.length > 0
+}
+
 export async function uploadWorkshopThumbnail(
 	extension: string,
 	contents: Buffer,
@@ -44,8 +101,40 @@ export async function uploadWorkshopThumbnail(
 	if (!normalizedExtension) {
 		throw new Error('Workshop thumbnail extension is invalid')
 	}
-	const objectKey = `thumbnails/${generateUid()}.${normalizedExtension}`
+	const objectKey = `${THUMBNAIL_FOLDER}/${generateUid()}.${normalizedExtension}`
 	await uploadFile(objectKey, contents)
+	return objectKey
+}
+
+async function uploadSteamWorkshopThumbnail({
+	workshopId,
+	imageUrl,
+}: {
+	workshopId: bigint
+	imageUrl: string
+}): Promise<string> {
+	if (!imageUrl) {
+		return ''
+	}
+
+	const response = await fetch(imageUrl)
+	if (!response.ok) {
+		throw new Error(`Steam workshop thumbnail request failed: ${response.status}`)
+	}
+	const contentType = response.headers.get('content-type')
+	const extension = getImageExtensionFromContentType(contentType)
+	if (!extension) {
+		throw new Error(
+			`Steam workshop thumbnail content type is unsupported: ${contentType ?? ''}`,
+		)
+	}
+
+	const objectKey = `${THUMBNAIL_FOLDER}/${workshopId}.${extension}`
+	await uploadFile(
+		objectKey,
+		Buffer.from(await response.arrayBuffer()),
+		contentType ?? `image/${extension}`,
+	)
 	return objectKey
 }
 
@@ -92,6 +181,10 @@ export async function upsertWorkshopLevel(
 	input: WorkshopLevelInput,
 ): Promise<WorkshopLevelUpsertResult> {
 	const authorSteamName = await resolveSteamNameForWorkshopAuthor(input.authorId)
+	const workshopImageUrl = await uploadSteamWorkshopThumbnail({
+		workshopId: input.workshopId,
+		imageUrl: input.workshopImageUrl,
+	})
 	return db.transaction(async (tx) => {
 		const now = new Date().toISOString()
 		await tx
@@ -112,20 +205,35 @@ export async function upsertWorkshopLevel(
 				},
 			})
 
+		const existingWorkshopItem = await tx
+			.select({ visibility: workshopItem.visibility })
+			.from(workshopItem)
+			.where(eq(workshopItem.workshopId, input.workshopId))
+			.limit(1)
+			.then((rows) => rows[0])
+
 		await tx
 			.insert(workshopItem)
 			.values({
 				workshopId: input.workshopId,
 				authorId: input.authorId,
 				name: input.workshopName,
-				imageUrl: input.workshopImageUrl,
+				imageUrl: workshopImageUrl,
+				visibility: input.workshopVisibility,
+				fileSize: input.workshopFileSize,
+				createdAt: input.createdAt,
+				updatedAt: input.updatedAt,
 			})
 			.onConflictDoUpdate({
 				target: workshopItem.workshopId,
 				set: {
 					authorId: input.authorId,
 					name: input.workshopName,
-					imageUrl: input.workshopImageUrl,
+					imageUrl: workshopImageUrl,
+					visibility: input.workshopVisibility,
+					fileSize: input.workshopFileSize,
+					createdAt: input.createdAt,
+					updatedAt: input.updatedAt,
 				},
 			})
 
@@ -165,18 +273,14 @@ export async function upsertWorkshopLevel(
 			: undefined
 
 		const existingItem = existingItemByXxHash ?? existingItemByFileUid
-		const existingItemLevel =
-			existingItem?.xxHash === input.xxHash ? { id: existingItem.idLevel } : undefined
-		const existingByXxHash = !existingItemLevel
-			? await tx
-					.select({ id: level.id })
-					.from(level)
-					.where(eq(level.xxHash, input.xxHash))
-					.limit(1)
-					.then((rows) => rows[0])
-			: undefined
+		const existingByXxHash = await tx
+			.select({ id: level.id })
+			.from(level)
+			.where(eq(level.xxHash, input.xxHash))
+			.limit(1)
+			.then((rows) => rows[0])
 		const existingByLegacyHash =
-			!existingItemLevel && !existingByXxHash
+			!existingByXxHash && existingItem?.xxHash !== input.xxHash
 				? await tx
 						.select({ id: level.id, xxHash: level.xxHash })
 						.from(level)
@@ -186,7 +290,7 @@ export async function upsertWorkshopLevel(
 				: undefined
 
 		let createdLevel: { id: number } | undefined
-		if (!existingItemLevel && !existingByXxHash && !existingByLegacyHash) {
+		if (!existingByXxHash && existingItem?.xxHash !== input.xxHash && !existingByLegacyHash) {
 			try {
 				;[createdLevel] = await tx
 					.insert(level)
@@ -204,32 +308,46 @@ export async function upsertWorkshopLevel(
 				}
 			}
 		}
-		const idLevel =
-			existingItemLevel?.id ??
-			existingByXxHash?.id ??
-			existingByLegacyHash?.id ??
-			createdLevel?.id
+		const idLevel = resolveWorkshopLevelId({
+			inputXxHash: input.xxHash,
+			existingItem,
+			existingByXxHash,
+			existingByLegacyHash,
+			createdLevel,
+		})
 		if (!idLevel) {
 			throw new Error(`Unable to resolve level for hash ${input.hash}`)
+		}
+
+		if (existingByXxHash && existingByXxHash.id !== idLevel) {
+			throw new Error(
+				`Resolved level ${idLevel} conflicts with xxHash ${input.xxHash} owned by level ${existingByXxHash.id}`,
+			)
 		}
 
 		await tx
 			.update(level)
 			.set({
 				hash: input.hash,
-				xxHash: input.xxHash,
 				adventure: false,
 				dateUpdated: now,
 			})
 			.where(eq(level.id, idLevel))
 
 		const existingMetadata = await tx
-			.select({ id: levelMetadata.id })
+			.select({ id: levelMetadata.id, blocks: levelMetadata.blocks })
 			.from(levelMetadata)
 			.where(eq(levelMetadata.idLevel, idLevel))
 			.orderBy(asc(levelMetadata.id))
 			.limit(1)
 			.then((rows) => rows[0])
+		const publicWorkshopItem = input.workshopVisibility === 0
+		const existingMetadataHasBlocks = hasPopulatedBlocks(existingMetadata?.blocks)
+		const metadataBlocks = publicWorkshopItem
+			? input.blocks
+			: existingMetadataHasBlocks
+				? existingMetadata?.blocks
+				: []
 		const metadataValues = {
 			amountCheckpoints: input.amountCheckpoints,
 			amountFinishes: input.amountFinishes,
@@ -237,7 +355,7 @@ export async function upsertWorkshopLevel(
 			typeGround: input.typeGround,
 			typeSkybox: input.typeSkybox,
 			format: input.format,
-			blocks: input.blocks,
+			blocks: metadataBlocks,
 			dateUpdated: now,
 		}
 		if (existingMetadata) {
@@ -282,7 +400,11 @@ export async function upsertWorkshopLevel(
 				Boolean(createdLevel) ||
 				!existingItem ||
 				existingItem.deleted ||
-				existingItem.idLevel !== idLevel,
+				existingItem.idLevel !== idLevel ||
+				Boolean(
+					existingWorkshopItem &&
+						(existingWorkshopItem.visibility === 0) !== publicWorkshopItem,
+				),
 		}
 	})
 }
@@ -338,6 +460,28 @@ export async function getWorkshopUpdateTimes(): Promise<Map<bigint, string>> {
 	return new Map(rows.map((row) => [row.workshopId, row.updatedAt]))
 }
 
+export async function getWorkshopSyncState(): Promise<
+	Map<bigint, { updatedAt: string; activeItemCount: number }>
+> {
+	const rows = await db
+		.select({
+			workshopId: levelItem.workshopId,
+			updatedAt: sql<string>`MAX(${levelItem.updatedAt})`.as('updated_at'),
+			activeItemCount:
+				sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false)::int`.as(
+					'active_item_count',
+				),
+		})
+		.from(levelItem)
+		.groupBy(levelItem.workshopId)
+	return new Map(
+		rows.map((row) => [
+			row.workshopId,
+			{ updatedAt: row.updatedAt, activeItemCount: row.activeItemCount },
+		]),
+	)
+}
+
 export async function getLevelWorkshopAvailability(idLevel: number): Promise<{
 	adventure: boolean
 	itemCount: number
@@ -347,10 +491,11 @@ export async function getLevelWorkshopAvailability(idLevel: number): Promise<{
 		.select({
 			adventure: level.adventure,
 			itemCount: sql<number>`COUNT(${levelItem.id})::int`,
-			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false)::int`,
+			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false AND ${workshopItem.visibility} = 0)::int`,
 		})
 		.from(level)
 		.leftJoin(levelItem, eq(levelItem.idLevel, level.id))
+		.leftJoin(workshopItem, eq(workshopItem.workshopId, levelItem.workshopId))
 		.where(eq(level.id, idLevel))
 		.groupBy(level.id)
 	return row ?? { adventure: false, itemCount: 0, accessibleItemCount: 0 }
@@ -375,10 +520,11 @@ export async function getLevelWorkshopAvailabilities(idLevels: number[]): Promis
 			idLevel: level.id,
 			adventure: level.adventure,
 			itemCount: sql<number>`COUNT(${levelItem.id})::int`,
-			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false)::int`,
+			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false AND ${workshopItem.visibility} = 0)::int`,
 		})
 		.from(level)
 		.leftJoin(levelItem, eq(levelItem.idLevel, level.id))
+		.leftJoin(workshopItem, eq(workshopItem.workshopId, levelItem.workshopId))
 		.where(inArray(level.id, idLevels))
 		.groupBy(level.id)
 

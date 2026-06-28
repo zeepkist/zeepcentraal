@@ -10,6 +10,7 @@ const databaseEnvSchema = z.object({
 	WASABI_ENDPOINT: z.string().default(''),
 	WASABI_REGION: z.string().default(''),
 	GHOST_FOLDER: z.string().default('ghosts-dev'),
+	THUMBNAIL_FOLDER: z.string().default('thumbnails-dev'),
 	STEAM_API_KEY: z.string().optional(),
 	OPENTELEMETRY_SERVICE_NAME: z.string().default('zeepcentraal'),
 })
@@ -34,9 +35,8 @@ export function parseDatabaseConfig(env: EnvSource) {
 			bucket: parsedEnv.WASABI_BUCKET,
 			endpoint: parsedEnv.WASABI_ENDPOINT,
 			region: parsedEnv.WASABI_REGION,
-		},
-		ghost: {
-			folder: parsedEnv.GHOST_FOLDER,
+			ghostFolder: parsedEnv.GHOST_FOLDER,
+			thumbnailFolder: parsedEnv.THUMBNAIL_FOLDER,
 		},
 		steam: {
 			apiKey: parsedEnv.STEAM_API_KEY,

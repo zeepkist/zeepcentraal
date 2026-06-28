@@ -63,6 +63,8 @@ function createDependencies({
 				creatorId: 76561198000000000n,
 				name: 'Example Workshop Item',
 				imageUrl: 'https://steam.example/workshop-preview.jpg',
+				visibility: 0,
+				fileSize: 1234,
 				createdAt: '2023-01-01T00:00:00.000Z',
 				updatedAt: '2023-01-02T00:00:00.000Z',
 				available,
@@ -125,6 +127,8 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.upserts[0]?.workshopImageUrl).toBe(
 			'https://steam.example/workshop-preview.jpg',
 		)
+		expect(dependencies.calls.upserts[0]?.workshopVisibility).toBe(0)
+		expect(dependencies.calls.upserts[0]?.workshopFileSize).toBe(1234)
 		expect(dependencies.calls.upserts[0]?.hash).toBe('5B7A81C7A6181599CD15234CA17797BBEBFACBD3')
 		expect(dependencies.calls.upserts[0]?.xxHash).toBe('5FC86C702B3F328B66608DC3C8BFB603')
 		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('thumbnails/generated.jpg')

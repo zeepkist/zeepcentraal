@@ -1,4 +1,4 @@
-import { getWorkshopUpdateTimes } from '@zeepkist/database/services/workshop'
+import { getWorkshopSyncState } from '@zeepkist/database/services/workshop'
 import { WORKSHOP_JOB_PRIORITY } from '../priorities'
 import { batchProcess } from '../utils'
 import { getWorkshopMetadata } from '../workshopScanner'
@@ -13,7 +13,7 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 	helpers,
 ) => {
 	const forceAll = payload.all === true
-	const storedUpdates = await getWorkshopUpdateTimes()
+	const storedWorkshopState = await getWorkshopSyncState()
 	const metadata = getWorkshopMetadata()
 	const seen = new Set<bigint>()
 	const queue = new Set<bigint>()
@@ -25,11 +25,12 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 		pages++
 		for (const item of page.items) {
 			seen.add(item.workshopId)
-			const storedUpdate = storedUpdates.get(item.workshopId)
+			const storedState = storedWorkshopState.get(item.workshopId)
 			if (
 				forceAll ||
-				!storedUpdate ||
-				new Date(item.updatedAt).getTime() > new Date(storedUpdate).getTime()
+				!storedState ||
+				storedState.activeItemCount === 0 ||
+				new Date(item.updatedAt).getTime() > new Date(storedState.updatedAt).getTime()
 			) {
 				queue.add(item.workshopId)
 			}
@@ -40,8 +41,8 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 		cursor = page.nextCursor
 	} while (cursor)
 
-	for (const workshopId of storedUpdates.keys()) {
-		if (!seen.has(workshopId)) {
+	for (const [workshopId, storedState] of storedWorkshopState) {
+		if (!seen.has(workshopId) && storedState.activeItemCount > 0) {
 			queue.add(workshopId)
 		}
 	}
