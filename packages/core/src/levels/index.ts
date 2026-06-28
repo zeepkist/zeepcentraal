@@ -1,6 +1,7 @@
 export * from './csv'
 export * from './json'
 export * from './types'
+export * from './utils'
 
 import { parseCsvLevel, parseCsvLevelV2 } from './csv'
 import { parseJsonLevel, parseJsonLevelV2 } from './json'

@@ -103,6 +103,34 @@ describe('legacy level parsing', () => {
 		).toHaveLength(13)
 	})
 
+	test('does not let invalid CSV medal metadata affect XXH128', () => {
+		const invalidMedals = csv.replace('12.5,20,25,30,1,-1', 'NaN,Infinity,bad,,1,-1')
+
+		const parsedValid = parseLevelV2(csv)
+		const parsedInvalid = parseLevelV2(invalidMedals)
+
+		expect(parsedInvalid.hash).toBe(parsedValid.hash)
+		expect(parsedInvalid.validationTimeAuthor).toBe(0)
+		expect(parsedInvalid.validationTimeGold).toBe(0)
+		expect(parsedInvalid.validationTimeSilver).toBe(0)
+		expect(parsedInvalid.validationTimeBronze).toBe(0)
+	})
+
+	test('formats CSV option floats like ZeepSDK before hashing', () => {
+		const content = [
+			'LevelEditor2,Author,uid',
+			'0,0,0,0,0,0,0,0',
+			'1,2,3,4,1,-1',
+			'1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.699999988079071,0,0,0,0,0,0,0,0,0,0',
+		].join('\n')
+
+		const parsed = parseLevelV2(content)
+
+		expect(parsed.hash).toBe('B1CD7B68563FF7C438C1F941D5A3DEC8')
+		expect(parsed.zeepHash).toBe('24A50694B73CB0764CBC1AAD15EF67F72507DD44')
+		expect(parsed.faultyServerHash).toBe('F52E934E8E9DD2A8B2035A007E7834DD')
+	})
+
 	test('matches ZeepSDK legacy hash vectors', () => {
 		const fixtureDirectory = join(import.meta.dir, '../../testdata/legacy-hash')
 		const vectors = readFileSync(join(fixtureDirectory, 'vectors.csv'), 'utf8')

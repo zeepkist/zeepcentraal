@@ -39,6 +39,7 @@ export interface WorkshopPersistence {
 	upsertLevel(input: {
 		hash: string
 		xxHash: string
+		faultyServerXxHash?: string
 		workshopId: bigint
 		workshopName: string
 		workshopImageUrl: string

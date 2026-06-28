@@ -39,4 +39,5 @@ export interface ParsedLevel {
 export interface ParsedLevelV2 extends Omit<ParsedLevel, 'hash'> {
 	hash: string
 	zeepHash: string
+	faultyServerHash?: string
 }

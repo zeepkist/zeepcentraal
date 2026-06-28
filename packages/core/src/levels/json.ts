@@ -1,8 +1,7 @@
 import { countCheckpoints, countFinishes } from './metadata'
 import { levelFormat, type ParsedLevel, type ParsedLevelV2 } from './types'
+import { medalTime, numberOrDefault, presentBlockId } from './utils'
 import { xxHash128Hex } from './xxhash'
-
-const presentBlockId = 2264
 
 interface JsonBlock {
 	i: number
@@ -15,24 +14,6 @@ interface JsonLevel {
 	medals?: { author?: number; gold?: number; silver?: number; bronze?: number }
 	enviro?: { skybox?: number; groundMat?: number }
 	blox?: JsonBlock[]
-}
-
-function requiredNumber(value: unknown, label: string): number {
-	if (typeof value !== 'number' || !Number.isFinite(value)) {
-		throw new Error(`JSON level ${label} is invalid`)
-	}
-	return value
-}
-
-function medalTime(value: unknown): number {
-	if (typeof value === 'number' && Number.isFinite(value)) {
-		return value
-	}
-	if (typeof value === 'string') {
-		const parsed = Number(value)
-		return Number.isFinite(parsed) ? parsed : 0
-	}
-	return 0
 }
 
 function canonicalJson(value: unknown): string {
@@ -73,16 +54,30 @@ function canonicalJsonBlocks(blocks: JsonBlock[]): string {
 		.join(',')}]`
 }
 
+export function calculateJsonLevelXxHash(content: string): string {
+	const json = JSON.parse(content) as JsonLevel
+	const blocks = json.blox
+	if (!Array.isArray(blocks)) {
+		throw new Error('JSON level is missing blox')
+	}
+	return xxHash128Hex(canonicalJsonBlocks(blocks))
+}
+
+export function calculateFaultyNormalizedJsonLevelXxHash(content: string): string | undefined {
+	try {
+		return calculateJsonLevelXxHash(content)
+	} catch {
+		return undefined
+	}
+}
+
 export function parseJsonLevel(content: string, adventure = false): ParsedLevel {
 	const parsed = JSON.parse(content) as JsonLevel
-	const uid = parsed.level?.UID
-	const zeepHash = parsed.level?.zeepHash
-	const blocks = parsed.blox
-	if (!uid || !zeepHash || !Array.isArray(blocks)) {
-		throw new Error('JSON level is missing UID, zeepHash, or blox')
-	}
+	const uid = parsed.level?.UID ?? ''
+	const zeepHash = parsed.level?.zeepHash ?? uid
+	const blocks = Array.isArray(parsed.blox) ? parsed.blox : []
 	const metadataBlocks = blocks.map((block) => ({
-		id: requiredNumber(block.i, 'block id'),
+		id: numberOrDefault(block.i),
 		isCheckpoint: (block.d as { n?: { ch5?: unknown } } | null | undefined)?.n?.ch5 === 1,
 	}))
 	const rawSteamId = content.match(/"StmID"\s*:\s*"?(\d+)"?/)?.[1]
@@ -100,22 +95,20 @@ export function parseJsonLevel(content: string, adventure = false): ParsedLevel 
 		amountCheckpoints: countCheckpoints(metadataBlocks),
 		amountFinishes: countFinishes(metadataBlocks),
 		amountBlocks: blocks.length,
-		typeGround: requiredNumber(parsed.enviro?.groundMat, 'ground material'),
-		typeSkybox: requiredNumber(parsed.enviro?.skybox, 'skybox'),
+		typeGround: numberOrDefault(parsed.enviro?.groundMat),
+		typeSkybox: numberOrDefault(parsed.enviro?.skybox),
 		blocks,
 	}
 }
 
 export function parseJsonLevelV2(content: string, adventure = false): ParsedLevelV2 {
 	const parsed = parseJsonLevel(content, adventure)
-	const json = JSON.parse(content) as JsonLevel
-	const blocks = json.blox
-	if (!Array.isArray(blocks)) {
-		throw new Error('JSON level is missing blox')
-	}
+	const hash = calculateJsonLevelXxHash(content)
+	const faultyServerHash = calculateFaultyNormalizedJsonLevelXxHash(content)
 	return {
 		...parsed,
-		hash: xxHash128Hex(canonicalJsonBlocks(blocks)),
+		hash,
 		zeepHash: parsed.hash,
+		faultyServerHash: faultyServerHash === hash ? undefined : faultyServerHash,
 	}
 }

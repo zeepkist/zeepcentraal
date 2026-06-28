@@ -18,6 +18,7 @@ afterEach(async () => {
 async function createItem({
 	thumbnail = true,
 	extraThumbnail = false,
+	validation = '10,11,12,13,1,-1',
 	block = '22,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
 } = {}): Promise<string> {
 	const root = await mkdtemp(join(tmpdir(), 'workshop-scanner-test-'))
@@ -26,9 +27,7 @@ async function createItem({
 	await mkdir(levelDirectory)
 	await writeFile(
 		join(levelDirectory, 'Example.zeeplevel'),
-		['LevelEditor2,File Author,file-uid', '0,0,0,0,0,0,0,0', '10,11,12,13,1,-1', block].join(
-			'\n',
-		),
+		['LevelEditor2,File Author,file-uid', '0,0,0,0,0,0,0,0', validation, block].join('\n'),
 	)
 	if (thumbnail) {
 		await writeFile(join(levelDirectory, 'Example_Thumbnail.jpg'), 'image')
@@ -36,6 +35,13 @@ async function createItem({
 	if (extraThumbnail) {
 		await writeFile(join(levelDirectory, 'Example_Thumbnail.jpg.png'), 'image')
 	}
+	return root
+}
+
+async function createItemWithoutLevelFile(): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), 'workshop-scanner-test-'))
+	temporaryDirectories.push(root)
+	await mkdir(join(root, 'Example'))
 	return root
 }
 
@@ -168,6 +174,41 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.uploads).toBe(1)
 		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('thumbnails/generated.jpg')
 		expect(dependencies.calls.cleanups).toBe(1)
+	})
+
+	test('accepts invalid metadata and stores normalized defaults', async () => {
+		const directory = await createItem({
+			validation: 'NaN,Infinity,not-a-time,,1,-1',
+		})
+		const dependencies = createDependencies({ directory })
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		const result = await scanner.scanWorkshopItem(1n)
+
+		expect(result.status).toBe('scanned')
+		expect(dependencies.calls.upserts[0]?.validationTimeAuthor).toBe(0)
+		expect(dependencies.calls.upserts[0]?.validationTimeGold).toBe(0)
+		expect(dependencies.calls.upserts[0]?.validationTimeSilver).toBe(0)
+		expect(dependencies.calls.upserts[0]?.validationTimeBronze).toBe(0)
+		expect(dependencies.calls.upserts[0]?.xxHash).toBe('5FC86C702B3F328B66608DC3C8BFB603')
+	})
+
+	test('rejects missing .zeeplevel file', async () => {
+		const directory = await createItemWithoutLevelFile()
+		const dependencies = createDependencies({ directory })
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await expect(scanner.scanWorkshopItem(1n)).rejects.toThrow(
+			'Workshop item contains no complete levels',
+		)
 	})
 
 	test('adds workshop id and level file name to validation errors', async () => {
