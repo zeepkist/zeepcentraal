@@ -1,5 +1,7 @@
 import {
+	clearUserPointContributions,
 	getUserPersonalBestsWithLevelPointsAndPosition,
+	upsertUserPointContributionsBulk,
 	upsertUserPoints,
 } from '@zeepkist/database'
 import { calculatePlayerPoints } from '../utils'
@@ -21,18 +23,22 @@ export const updatePlayerScore: TaskHandler<Payload> = async (payload, helpers) 
 		})
 
 		if (personalBests.length === 0) {
+			await clearUserPointContributions([payload.idUser])
 			helpers.logger.info(
 				`updatePlayerScore skipped for idUser=${payload.idUser}; no personal bests found.`,
 			)
 			return
 		}
 
-		const { points, totalPoints } = calculatePlayerPoints(personalBests)
-		await upsertUserPoints({
-			idUser: payload.idUser,
-			points,
-			totalPoints,
-		})
+		const { points, totalPoints, contributions } = calculatePlayerPoints(personalBests)
+		await Promise.all([
+			upsertUserPoints({
+				idUser: payload.idUser,
+				points,
+				totalPoints,
+			}),
+			upsertUserPointContributionsBulk([{ idUser: payload.idUser, contributions }]),
+		])
 	} catch (error) {
 		helpers.logger.error(`Error updating player score for idUser=${payload.idUser}`, { error })
 		throw error

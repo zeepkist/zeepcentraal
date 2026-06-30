@@ -267,6 +267,13 @@
 			"when": 1782603158442,
 			"tag": "0038_uneven_selene",
 			"breakpoints": true
+		},
+		{
+			"idx": 39,
+			"version": "7",
+			"when": 1782859784926,
+			"tag": "0039_thick_shinobi_shaw",
+			"breakpoints": true
 		}
 	]
 }

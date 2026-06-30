@@ -1,11 +1,13 @@
 import {
 	bulkUpdateUserRanks,
+	clearUserPointContributions,
 	getAllUsersWithLatestRecordDate,
 	getUsersPersonalBestsWithLevelPointsAndPosition,
 	updateUserRanks,
+	upsertUserPointContributionsBulk,
 	upsertUserPointsBulk,
 } from '@zeepkist/database'
-import { batchProcess, calculatePlayerPoints } from '../utils'
+import { batchProcess, calculatePlayerPoints, type PlayerPointContribution } from '../utils'
 import type { TaskHandler } from './types'
 
 type Payload = Record<string, never>
@@ -13,6 +15,11 @@ type Payload = Record<string, never>
 interface PointsList {
 	idUser: number
 	points: number
+}
+
+interface ContributionUpdate {
+	idUser: number
+	contributions: PlayerPointContribution[]
 }
 
 const PLAYER_SCORE_BATCH_SIZE = 50
@@ -36,11 +43,13 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 	)
 
 	if (unrankedUsers.length > 0) {
+		const idUsers = unrankedUsers.map((user) => user.idUser)
 		await bulkUpdateUserRanks({
-			idUsers: unrankedUsers.map((user) => user.idUser),
+			idUsers,
 			points: 0,
 			rank: -1,
 		})
+		await clearUserPointContributions(idUsers)
 	}
 
 	const pointsList: PointsList[] = []
@@ -60,21 +69,27 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 			userBatch.map(({ idUser }) => idUser),
 		)
 
+		const contributionUpdates: ContributionUpdate[] = []
 		const pointUpdates = userBatch.map(({ idUser }) => {
 			const personalBests = personalBestsByUser.get(idUser) ?? []
 
 			if (personalBests.length === 0) {
 				pointsList.push({ idUser, points: 0 })
+				contributionUpdates.push({ idUser, contributions: [] })
 				return { idUser, points: 0, totalPoints: 0 }
 			}
 
-			const { points, totalPoints } = calculatePlayerPoints(personalBests)
+			const { points, totalPoints, contributions } = calculatePlayerPoints(personalBests)
 			pointsList.push({ idUser, points })
+			contributionUpdates.push({ idUser, contributions })
 
 			return { idUser, points, totalPoints }
 		})
 
-		await upsertUserPointsBulk(pointUpdates)
+		await Promise.all([
+			upsertUserPointsBulk(pointUpdates),
+			upsertUserPointContributionsBulk(contributionUpdates),
+		])
 
 		helpers.logger.info(
 			`Updated player score batch ${batchIndex + 1}/${rankedUserBatches.length}.`,

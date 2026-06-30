@@ -5,6 +5,7 @@ import { levelPoints, personalBestGlobal, record } from '../schema'
 interface PersonalBestWithLevelPointsAndPosition {
 	idUser: number
 	idLevel: number
+	idRecord: number
 	levelPoints: number
 	position: bigint
 }
@@ -23,6 +24,7 @@ export function buildUsersPersonalBestsWithLevelPointsAndPositionQuery(idUsers: 
 			.select({
 				idUser: personalBestGlobal.idUser,
 				idLevel: personalBestGlobal.idLevel,
+				idRecord: personalBestGlobal.idRecord,
 				levelPoints: levelPoints.points,
 				position:
 					sql<bigint>`RANK() OVER (PARTITION BY ${personalBestGlobal.idLevel} ORDER BY ${record.time})`.as(

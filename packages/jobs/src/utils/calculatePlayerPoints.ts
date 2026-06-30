@@ -1,16 +1,30 @@
 interface PersonalBest {
 	idLevel: number
+	idRecord: number
 	levelPoints: number
 	position: bigint
+}
+
+export interface PlayerPointContribution {
+	idLevel: number
+	idRecord: number
+	contributionRank: number
+	levelPosition: number
+	levelPoints: number
+	levelDecayedPoints: number
+	playerDecayedPoints: number
 }
 
 interface CalculatePlayerPointsResult {
 	points: number
 	totalPoints: number
+	contributions: PlayerPointContribution[]
 }
 
 const GLOBAL_DECAY_FACTOR = 0.95
 const LEVEL_DECAY_FACTOR = 0.985
+export const PLAYER_SCORE_PB_LIMIT = 300
+export const PLAYER_SCORE_CONTRIBUTION_LIMIT = 200
 
 function calculatePlayerPointsDecayed(points: number, position: number, decayFactor: number) {
 	if (position < 1 || !Number.isFinite(points) || points <= 0) {
@@ -24,28 +38,62 @@ function calculatePlayerPointsDecayed(points: number, position: number, decayFac
 export const calculatePlayerPoints = (
 	personalBests: PersonalBest[],
 ): CalculatePlayerPointsResult => {
-	const pointsList: number[] = []
+	const contributions: PlayerPointContribution[] = []
 	const totals = {
 		points: 0,
 		totalPoints: 0,
 	}
 
-	for (const { levelPoints, position } of personalBests) {
+	for (const { idLevel, idRecord, levelPoints, position } of personalBests) {
 		const index = Number(position)
 		if (!Number.isFinite(index) || index < 1 || levelPoints === 0) {
 			continue
 		}
 
-		pointsList.push(calculatePlayerPointsDecayed(levelPoints, index, LEVEL_DECAY_FACTOR))
+		contributions.push({
+			idLevel,
+			idRecord,
+			contributionRank: 0,
+			levelPosition: index,
+			levelPoints,
+			levelDecayedPoints: calculatePlayerPointsDecayed(
+				levelPoints,
+				index,
+				LEVEL_DECAY_FACTOR,
+			),
+			playerDecayedPoints: 0,
+		})
 	}
 
-	for (const [index, points] of pointsList.sort((a, b) => b - a).entries()) {
-		totals.points += calculatePlayerPointsDecayed(points, index + 1, GLOBAL_DECAY_FACTOR)
-		totals.totalPoints += points
+	const rankedContributions = contributions
+		.sort(
+			(a, b) =>
+				b.levelDecayedPoints - a.levelDecayedPoints ||
+				a.idLevel - b.idLevel ||
+				a.idRecord - b.idRecord,
+		)
+		.slice(0, PLAYER_SCORE_PB_LIMIT)
+		.map((contribution, index) => {
+			const contributionRank = index + 1
+			return {
+				...contribution,
+				contributionRank,
+				playerDecayedPoints: calculatePlayerPointsDecayed(
+					contribution.levelDecayedPoints,
+					contributionRank,
+					GLOBAL_DECAY_FACTOR,
+				),
+			}
+		})
+
+	for (const contribution of rankedContributions) {
+		totals.points += contribution.playerDecayedPoints
+		totals.totalPoints += contribution.levelDecayedPoints
 	}
 
 	return {
 		points: Math.round(totals.points),
 		totalPoints: Math.round(totals.totalPoints),
+		contributions: rankedContributions.slice(0, PLAYER_SCORE_CONTRIBUTION_LIMIT),
 	}
 }

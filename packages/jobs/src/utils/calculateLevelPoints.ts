@@ -1,3 +1,9 @@
+/** *
+ * BASE_POINTS * LENGTH_SHORT.MAX * COMPETITIVENESS.MAX * RATING.MAX * POPULARITY.MAX
+ * 2560 	   * 1                * 2                   * 1.5        * 1.3
+ *
+ * Theoretical maximum points for a level is: 9984
+ */
 const BASE_POINTS = 2_560
 const MINIMUM_PBS = 5
 const MODIFIERS = {

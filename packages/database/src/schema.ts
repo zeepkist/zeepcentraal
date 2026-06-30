@@ -357,6 +357,55 @@ export const userPoints = pgTable(
 	],
 )
 
+export const userPointContribution = pgTable(
+	'user_point_contribution',
+	{
+		id: integer().primaryKey().generatedByDefaultAsIdentity({
+			name: 'user_point_contribution_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+			maxValue: 2147483647,
+			cache: 1,
+		}),
+		idUser: integer('id_user').notNull(),
+		idLevel: integer('id_level').notNull(),
+		idRecord: integer('id_record').notNull(),
+		contributionRank: integer('contribution_rank').notNull(),
+		levelPosition: integer('level_position').notNull(),
+		levelPoints: integer('level_points').notNull(),
+		levelDecayedPoints: real('level_decayed_points').notNull(),
+		playerDecayedPoints: real('player_decayed_points').notNull(),
+		dateCalculated: timestamp('date_calculated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'user_point_contribution_user_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idLevel],
+			foreignColumns: [level.id],
+			name: 'user_point_contribution_level_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idRecord],
+			foreignColumns: [record.id],
+			name: 'user_point_contribution_record_fkey',
+		}).onDelete('cascade'),
+		unique('UQ_user_point_contribution_user_level').on(table.idUser, table.idLevel),
+		index('IX_user_point_contribution_user_contribution_rank').using(
+			'btree',
+			table.idUser.asc().nullsLast(),
+			table.contributionRank.asc().nullsLast(),
+		),
+		index('IX_user_point_contribution_level').using('btree', table.idLevel.asc().nullsLast()),
+	],
+)
+
 export const userPointsHistory = pgTable(
 	'user_points_history',
 	{
