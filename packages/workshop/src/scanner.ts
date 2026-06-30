@@ -152,7 +152,6 @@ export class WorkshopScanner {
 						...level.parsed,
 						xxHash: level.parsed.hash,
 						hash: level.parsed.zeepHash,
-						faultyServerXxHash: level.parsed.faultyServerHash,
 						fileUid: level.parsed.uid,
 						workshopId: prepared.item.workshopId,
 						workshopName: prepared.metadata.name,

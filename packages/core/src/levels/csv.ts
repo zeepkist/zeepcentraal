@@ -118,10 +118,6 @@ function blockText(block: ParsedCsvBlock): string {
 	return `Id: ${block.Id}, Position: ${vectorText(block.rawPosition)}, Euler: ${vectorText(block.rawEuler)}, Scale: ${vectorText(block.rawScale)}, Paints: ${block.Paints.join(', ')}, Options: ${block.Options.map(formatSingle).join(', ')}`
 }
 
-function faultyNormalizedBlockText(block: ParsedCsvBlock): string {
-	return `Id: ${block.Id}, Position: ${vectorText(block.rawPosition)}, Euler: ${vectorText(block.rawEuler)}, Scale: ${vectorText(block.rawScale)}, Paints: ${block.Paints.join(', ')}, Options: ${block.Options.join(', ')}`
-}
-
 function canonicalCsvContent(
 	skybox: number,
 	ground: number,
@@ -244,51 +240,6 @@ function parseCsvBlocksForMetadata(lines: string[]): ParsedCsvBlock[] {
 	return blocks
 }
 
-export function calculateFaultyNormalizedCsvLevelXxHash(
-	content: string,
-	adventure = false,
-	authorId = 0n,
-): string | undefined {
-	try {
-		const parsed = parseCsvLevel(content, adventure, authorId)
-		const lines = content.split(/\r?\n/)
-		const validation = (lines[2] ?? '').split(',')
-		const skybox = parseFinite(validation[4] ?? '', 'skybox')
-		const ground = parseFinite(validation[5] ?? '', 'ground')
-		const blocks: ParsedCsvBlock[] = []
-		for (const line of lines.slice(3)) {
-			if (!line.trim()) {
-				continue
-			}
-			const values = normalizeBlockValues(line.split(','))
-			const id = parseFinite(values[0] ?? '', 'block id')
-			const rawPaints = values.slice(10, 27)
-			const paints = rawPaints.map((value) => {
-				const valueParsed = parseFinite(value, 'paint')
-				return id === 2279 ? Math.trunc(Math.fround(valueParsed)) : valueParsed
-			})
-			const rawOptions = values.slice(27)
-			blocks.push({
-				Id: id,
-				Position: vector(values, 1, 'position'),
-				Euler: vector(values, 4, 'euler'),
-				Scale: vector(values, 7, 'scale'),
-				Paints: paints,
-				Options: rawOptions.map((value) => Math.fround(parseFinite(value, 'option'))),
-				rawPosition: values.slice(1, 4).map(formatDecimal) as [string, string, string],
-				rawEuler: values.slice(4, 7).map(formatDecimal) as [string, string, string],
-				rawScale: values.slice(7, 10).map(formatDecimal) as [string, string, string],
-			})
-		}
-		const hash = xxHash128Hex(
-			canonicalCsvContent(skybox, ground, blocks, faultyNormalizedBlockText),
-		)
-		return hash === parsed.hash ? undefined : hash
-	} catch {
-		return undefined
-	}
-}
-
 export function parseCsvLevel(content: string, adventure = false, authorId = 0n): ParsedLevel {
 	const lines = content.split(/\r?\n/)
 	const first = (lines[0] ?? '').split(',')
@@ -344,12 +295,10 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 export function parseCsvLevelV2(content: string, adventure = false, authorId = 0n): ParsedLevelV2 {
 	const parsed = parseCsvLevel(content, adventure, authorId)
 	const hash = calculateCsvLevelXxHash(content)
-	const faultyServerHash = calculateFaultyNormalizedCsvLevelXxHash(content, adventure, authorId)
 
 	return {
 		...parsed,
 		hash,
 		zeepHash: parsed.hash,
-		faultyServerHash: faultyServerHash === hash ? undefined : faultyServerHash,
 	}
 }

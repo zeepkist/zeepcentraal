@@ -63,14 +63,6 @@ export function calculateJsonLevelXxHash(content: string): string {
 	return xxHash128Hex(canonicalJsonBlocks(blocks))
 }
 
-export function calculateFaultyNormalizedJsonLevelXxHash(content: string): string | undefined {
-	try {
-		return calculateJsonLevelXxHash(content)
-	} catch {
-		return undefined
-	}
-}
-
 export function parseJsonLevel(content: string, adventure = false): ParsedLevel {
 	const parsed = JSON.parse(content) as JsonLevel
 	const uid = parsed.level?.UID ?? ''
@@ -104,11 +96,9 @@ export function parseJsonLevel(content: string, adventure = false): ParsedLevel 
 export function parseJsonLevelV2(content: string, adventure = false): ParsedLevelV2 {
 	const parsed = parseJsonLevel(content, adventure)
 	const hash = calculateJsonLevelXxHash(content)
-	const faultyServerHash = calculateFaultyNormalizedJsonLevelXxHash(content)
 	return {
 		...parsed,
 		hash,
 		zeepHash: parsed.hash,
-		faultyServerHash: faultyServerHash === hash ? undefined : faultyServerHash,
 	}
 }

@@ -2,29 +2,13 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { THUMBNAIL_FOLDER } from '../config'
 import { uploadFile } from '../s3'
-import {
-	favourite,
-	level,
-	levelItem,
-	levelMetadata,
-	levelPoints,
-	levelPointsHistory,
-	levelRequest,
-	personalBestGlobal,
-	record,
-	user,
-	vote,
-	workshopItem,
-	worldRecordGlobal,
-	zslLevel,
-} from '../schema'
+import { level, levelItem, levelMetadata, levelRequest, user, workshopItem } from '../schema'
 import { generateUid } from '../utils/generateUid'
 import { resolveSteamNameForWorkshopAuthor } from './user'
 
 export interface WorkshopLevelInput {
 	hash: string
 	xxHash: string
-	faultyServerXxHash?: string
 	workshopId: bigint
 	workshopName: string
 	workshopImageUrl: string
@@ -66,8 +50,6 @@ interface ExistingLevel {
 	id: number
 }
 
-type ExecuteTransaction = Pick<typeof db, 'execute'>
-
 export function resolveWorkshopLevelId({
 	inputXxHash,
 	existingItem,
@@ -88,138 +70,6 @@ export function resolveWorkshopLevelId({
 		return existingItem.idLevel
 	}
 	return existingByLegacyHash?.id ?? createdLevel?.id
-}
-
-async function mergeFaultyLevelIntoCanonical(
-	tx: ExecuteTransaction,
-	{
-		canonicalId,
-		faultyId,
-	}: {
-		canonicalId: number
-		faultyId: number
-	},
-): Promise<void> {
-	if (canonicalId === faultyId) {
-		return
-	}
-
-	const firstLock = Math.min(canonicalId, faultyId)
-	const secondLock = Math.max(canonicalId, faultyId)
-	await tx.execute(sql`SELECT pg_advisory_xact_lock(1, ${firstLock})`)
-	await tx.execute(sql`SELECT pg_advisory_xact_lock(1, ${secondLock})`)
-	await tx.execute(sql`
-		DELETE FROM ${personalBestGlobal}
-		WHERE ${personalBestGlobal.idLevel} IN (${canonicalId}, ${faultyId})
-	`)
-	await tx.execute(sql`
-		DELETE FROM ${worldRecordGlobal}
-		WHERE ${worldRecordGlobal.idLevel} IN (${canonicalId}, ${faultyId})
-	`)
-	await tx.execute(sql`
-		DELETE FROM ${vote} AS bad
-		WHERE bad.id_level = ${faultyId}
-			AND EXISTS (
-				SELECT 1
-				FROM ${vote} AS target
-				WHERE target.id_level = ${canonicalId}
-					AND target.id_user = bad.id_user
-			)
-	`)
-	await tx.execute(sql`
-		UPDATE ${vote}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		DELETE FROM ${favourite} AS bad
-		WHERE bad.id_level = ${faultyId}
-			AND EXISTS (
-				SELECT 1
-				FROM ${favourite} AS target
-				WHERE target.id_level = ${canonicalId}
-					AND target.id_user = bad.id_user
-			)
-	`)
-	await tx.execute(sql`
-		UPDATE ${favourite}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		DELETE FROM ${levelPoints}
-		WHERE id_level = ${faultyId}
-			AND EXISTS (SELECT 1 FROM ${levelPoints} WHERE id_level = ${canonicalId})
-	`)
-	await tx.execute(sql`
-		UPDATE ${levelPoints}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		DELETE FROM ${levelPointsHistory} AS bad
-		WHERE bad.id_level = ${faultyId}
-			AND EXISTS (
-				SELECT 1
-				FROM ${levelPointsHistory} AS target
-				WHERE target.id_level = ${canonicalId}
-					AND target.date_created = bad.date_created
-			)
-	`)
-	await tx.execute(sql`
-		UPDATE ${levelPointsHistory}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		DELETE FROM ${levelMetadata}
-		WHERE id_level = ${faultyId}
-			AND EXISTS (SELECT 1 FROM ${levelMetadata} WHERE id_level = ${canonicalId})
-	`)
-	await tx.execute(sql`
-		UPDATE ${levelMetadata}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		UPDATE ${zslLevel}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		UPDATE ${levelItem}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		UPDATE ${record}
-		SET id_level = ${canonicalId}, date_updated = now()
-		WHERE id_level = ${faultyId}
-	`)
-	await tx.execute(sql`
-		INSERT INTO ${personalBestGlobal} (id_record, id_user, id_level, date_created, date_updated)
-		SELECT DISTINCT ON (${record.idUser})
-			${record.id},
-			${record.idUser},
-			${canonicalId},
-			now(),
-			now()
-		FROM ${record}
-		WHERE ${record.idLevel} = ${canonicalId}
-		ORDER BY ${record.idUser}, ${record.time}, ${record.id}
-	`)
-	await tx.execute(sql`
-		INSERT INTO ${worldRecordGlobal} (id_record, id_user, id_level, date_created, date_updated)
-		SELECT ${record.id}, ${record.idUser}, ${canonicalId}, now(), now()
-		FROM ${record}
-		WHERE ${record.idLevel} = ${canonicalId}
-		ORDER BY ${record.time}, ${record.id}
-		LIMIT 1
-	`)
-	await tx.execute(sql`
-		DELETE FROM ${level}
-		WHERE ${level.id} = ${faultyId}
-	`)
 }
 
 function getImageExtensionFromContentType(contentType: string | null): string | undefined {
@@ -423,41 +273,12 @@ export async function upsertWorkshopLevel(
 			: undefined
 
 		const existingItem = existingItemByXxHash ?? existingItemByFileUid
-		let existingByXxHash = await tx
+		const existingByXxHash = await tx
 			.select({ id: level.id })
 			.from(level)
 			.where(eq(level.xxHash, input.xxHash))
 			.limit(1)
 			.then((rows) => rows[0])
-		const existingByFaultyServerXxHash =
-			input.faultyServerXxHash && input.faultyServerXxHash !== input.xxHash
-				? await tx
-						.select({ id: level.id })
-						.from(level)
-						.where(eq(level.xxHash, input.faultyServerXxHash))
-						.limit(1)
-						.then((rows) => rows[0])
-				: undefined
-		let mergedFaultyLevel = false
-		if (existingByXxHash && existingByFaultyServerXxHash) {
-			await mergeFaultyLevelIntoCanonical(tx, {
-				canonicalId: existingByXxHash.id,
-				faultyId: existingByFaultyServerXxHash.id,
-			})
-			mergedFaultyLevel = existingByXxHash.id !== existingByFaultyServerXxHash.id
-		} else if (!existingByXxHash && existingByFaultyServerXxHash) {
-			await tx
-				.update(level)
-				.set({
-					hash: input.hash,
-					xxHash: input.xxHash,
-					adventure: false,
-					dateUpdated: new Date().toISOString(),
-				})
-				.where(eq(level.id, existingByFaultyServerXxHash.id))
-			existingByXxHash = existingByFaultyServerXxHash
-			mergedFaultyLevel = true
-		}
 		const existingByLegacyHash =
 			!existingByXxHash && existingItem?.xxHash !== input.xxHash
 				? await tx
@@ -577,7 +398,6 @@ export async function upsertWorkshopLevel(
 			idLevel,
 			scoreChanged:
 				Boolean(createdLevel) ||
-				mergedFaultyLevel ||
 				!existingItem ||
 				existingItem.deleted ||
 				existingItem.idLevel !== idLevel ||

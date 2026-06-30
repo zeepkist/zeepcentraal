@@ -128,7 +128,6 @@ describe('legacy level parsing', () => {
 
 		expect(parsed.hash).toBe('B1CD7B68563FF7C438C1F941D5A3DEC8')
 		expect(parsed.zeepHash).toBe('24A50694B73CB0764CBC1AAD15EF67F72507DD44')
-		expect(parsed.faultyServerHash).toBe('F52E934E8E9DD2A8B2035A007E7834DD')
 	})
 
 	test('matches ZeepSDK legacy hash vectors', () => {
