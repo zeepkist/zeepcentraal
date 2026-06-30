@@ -132,7 +132,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 			if (submitted.personalBestChanged) {
 				await enqueueCompatibleTask('updateLevelScore', {
 					idLevel: level.id,
-					idUser: user.id,
+					// idUser: user.id, // temp disable live update of player points updates
 				})
 			}
 
