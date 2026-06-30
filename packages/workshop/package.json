@@ -24,6 +24,10 @@
 	},
 	"dependencies": {
 		"@zeepkist/core": "workspace:*",
-		"@zeepkist/database": "workspace:*"
+		"@zeepkist/database": "workspace:*",
+		"steam-totp": "2.1.2"
+	},
+	"devDependencies": {
+		"@types/steam-totp": "2.1.2"
 	}
 }

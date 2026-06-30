@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import { resolve } from 'node:path'
 import { parseDatabaseConfig } from './database'
 import { parseImportZslConfig } from './importZsl'
+import { parseJobsConfig } from './jobs'
 import { parseMigrateConfig } from './migrate'
 import { parseServerConfig } from './server'
 
@@ -44,6 +45,14 @@ test('migrate config preserves migration candidate fallback', () => {
 	const config = parseMigrateConfig({})
 
 	expect(config.migrationsFolder).toBe(resolve(process.cwd(), 'packages/database/drizzle'))
+})
+
+test('jobs config accepts explicit SteamCMD home', () => {
+	const config = parseJobsConfig({
+		STEAMCMD_HOME: '/steamcmd-home',
+	})
+
+	expect(config.steam.home).toBe('/steamcmd-home')
 })
 
 test('production server config rejects weak secrets', () => {

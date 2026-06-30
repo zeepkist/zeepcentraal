@@ -7,6 +7,10 @@ const jobsEnvSchema = z.object({
 	STEAM_APP_ID: z.string().default('1440670'),
 	STEAM_API_KEY: z.string().optional(),
 	STEAMCMD_PATH: z.string().default('steamcmd'),
+	STEAMCMD_HOME: z.string().optional(),
+	STEAMCMD_USERNAME: z.string().optional(),
+	STEAMCMD_PASSWORD: z.string().optional(),
+	STEAMCMD_SHARED_SECRET: z.string().optional(),
 	GHOST_FOLDER: z.string().default('ghosts-dev'),
 	THUMBNAIL_FOLDER: z.string().default('thumbnails-dev'),
 })
@@ -21,6 +25,10 @@ export function parseJobsConfig(env: EnvSource) {
 			appId: parsedEnv.STEAM_APP_ID,
 			apiKey: parsedEnv.STEAM_API_KEY,
 			cmdPath: parsedEnv.STEAMCMD_PATH,
+			home: parsedEnv.STEAMCMD_HOME,
+			username: parsedEnv.STEAMCMD_USERNAME,
+			password: parsedEnv.STEAMCMD_PASSWORD,
+			sharedSecret: parsedEnv.STEAMCMD_SHARED_SECRET,
 		},
 		wasabi: {
 			ghostFolder: parsedEnv.GHOST_FOLDER,
