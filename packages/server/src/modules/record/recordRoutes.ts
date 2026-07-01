@@ -1,4 +1,5 @@
 import { setAttributes } from '@elysiajs/opentelemetry'
+import { parseGhostStatisticsFromBase64 } from '@zeepkist/core/ghosts'
 import {
 	claimLevelRequest,
 	getOrInsertLevelWithCanonicalHash,
@@ -77,6 +78,19 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				}
 			}
 
+			let ghostStatistics: ReturnType<typeof parseGhostStatisticsFromBase64>
+			try {
+				ghostStatistics = parseGhostStatisticsFromBase64(GhostData)
+			} catch {
+				set.status = 400
+				return {
+					error: {
+						code: 19,
+						message: 'Missing required parameters',
+					},
+				}
+			}
+
 			const user = await getUser(auth.steamId)
 			if (!user || user.banned) {
 				set.status = 401
@@ -105,17 +119,20 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				}
 			}
 
-			const submitted = await submitRecord({
-				idUser: user.id,
-				idLevel: level.id,
-				time: Time,
-				splits: Splits,
-				speeds: Speeds,
-				modVersion: ModVersion,
-				gameVersion: GameVersion,
-				dateCreated: new Date().toISOString(),
-				dateUpdated: new Date().toISOString(),
-			})
+			const submitted = await submitRecord(
+				{
+					idUser: user.id,
+					idLevel: level.id,
+					time: Time,
+					splits: Splits,
+					speeds: Speeds,
+					modVersion: ModVersion,
+					gameVersion: GameVersion,
+					dateCreated: new Date().toISOString(),
+					dateUpdated: new Date().toISOString(),
+				},
+				ghostStatistics,
+			)
 
 			if (!submitted) {
 				set.status = 400

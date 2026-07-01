@@ -381,6 +381,8 @@ mock.module('@zeepkist/database/services', () => ({
 	releaseLevelRequest: async (workshopId: bigint) => {
 		state.workshopReleases.push(workshopId)
 	},
+	getRecordMediaForStatisticBackfill: async () => [],
+	upsertRecordStatistic: async () => {},
 	getLevel: async (hash: string) =>
 		hash === state.level.hash && state.levelExists ? state.level : null,
 	getLevelByXxHash: async (xxHash: string) =>
@@ -895,7 +897,7 @@ test('record/submit returns 200 with empty body on success', async () => {
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),
@@ -903,7 +905,7 @@ test('record/submit returns 200 with empty body on success', async () => {
 
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
-	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
+	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'AQAAAAAAAAA=' }])
 	expect(state.levelAdventureUpdates).toEqual([true])
 	expect(state.canonicalLevelRequests).toEqual([
 		{ hash: state.level.hash, xxHash: state.level.xxHash, adventure: true },
@@ -923,7 +925,7 @@ test('record/submit rejects missing canonical hash from old clients', async () =
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),
@@ -950,7 +952,7 @@ test('record/submit resolves by canonical hash without trusting legacy hash', as
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),
@@ -958,7 +960,7 @@ test('record/submit resolves by canonical hash without trusting legacy hash', as
 
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
-	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'Z2hvc3Q=' }])
+	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'AQAAAAAAAAA=' }])
 	expect(state.canonicalLevelRequests).toEqual([
 		{ hash: 'EDITED_LEGACY_HASH', xxHash: state.level.xxHash, adventure: true },
 	])
@@ -979,7 +981,7 @@ test('record/submit inserts unknown level through canonical hash path', async ()
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.1.1',
 		}),
@@ -1006,7 +1008,7 @@ test('record/submit queues missing workshop metadata with BigInt ID', async () =
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),
@@ -1040,7 +1042,7 @@ test('record/submit releases workshop claim when enqueue fails', async () => {
 				Time: 12.345678,
 				Splits: [1.2, 5.6],
 				Speeds: [100, 200],
-				GhostData: 'Z2hvc3Q=',
+				GhostData: 'AQAAAAAAAAA=',
 				GameVersion: '1.0.0',
 				ModVersion: '1.0.0',
 			}),
@@ -1069,7 +1071,7 @@ test('record/submit does not enqueue when concurrent claim already exists', asyn
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),
@@ -1094,7 +1096,7 @@ test('record/submit rejects invalid workshop ID with V1 error shape', async () =
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),
@@ -1118,7 +1120,7 @@ test('record/submit rejects missing canonical hash with V1 error shape', async (
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.1',
 		}),
@@ -1143,7 +1145,7 @@ test('record/submit rejects invalid canonical hash with V1 error shape', async (
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.1.1',
 		}),
@@ -1195,7 +1197,7 @@ test('record/submit rejects banned users', async () => {
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),
@@ -1221,7 +1223,7 @@ test('record/submit returns 401 when authenticated user is missing', async () =>
 			Time: 12.345678,
 			Splits: [1.2, 5.6],
 			Speeds: [100, 200],
-			GhostData: 'Z2hvc3Q=',
+			GhostData: 'AQAAAAAAAAA=',
 			GameVersion: '1.0.0',
 			ModVersion: '1.0.0',
 		}),

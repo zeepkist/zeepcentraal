@@ -4,8 +4,16 @@ import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { GHOST_FOLDER } from '../config'
 import { deleteFile, uploadFile } from '../s3'
-import { personalBestGlobal, record, recordMedia, worldRecordGlobal } from '../schema'
+import {
+	personalBestGlobal,
+	record,
+	recordMedia,
+	recordStatistic,
+	worldRecordGlobal,
+} from '../schema'
 import { generateUid } from '../utils/generateUid'
+import type { RecordStatisticInput } from './recordStatistic'
+import { buildRecordStatisticValues } from './recordStatistic'
 
 type RecordInput = typeof record.$inferInsert
 const meter = metrics.getMeter(databaseConfig.otel.serviceName)
@@ -66,7 +74,10 @@ async function uploadGhostFileWithRetry(ghostUrl: string, file: Buffer): Promise
 	throw lastError
 }
 
-export async function submitRecord(input: RecordInput) {
+export async function submitRecord(
+	input: RecordInput,
+	statistic?: Omit<RecordStatisticInput, 'idRecord'>,
+) {
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(${input.idUser}, ${input.idLevel})`)
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(0, ${input.idLevel})`)
@@ -74,6 +85,12 @@ export async function submitRecord(input: RecordInput) {
 		const [created] = await tx.insert(record).values(input).returning()
 		if (!created) {
 			return null
+		}
+
+		if (statistic) {
+			await tx
+				.insert(recordStatistic)
+				.values(buildRecordStatisticValues(created.id, statistic))
 		}
 
 		const existingPersonalBest = await tx

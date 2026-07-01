@@ -11,6 +11,15 @@ const batchPayload = z.union([
 ])
 
 export const taskDefinitions = {
+	backfillRecordGhostStatistics: {
+		schema: z.looseObject({
+			ids: z.array(z.number().int().positive()).min(1).optional(),
+			offset: z.number().int().nonnegative().optional(),
+			limit: z.number().int().positive().max(500).optional(),
+		}),
+		compatible: true,
+		maxAttempts: 1,
+	},
 	scanWorkshopBatch: {
 		schema: z.looseObject({
 			workshopIds: z

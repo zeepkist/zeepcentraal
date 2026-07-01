@@ -315,29 +315,19 @@ export const personalBestGlobal = pgTable(
 	],
 )
 
-export const userPoints = pgTable(
-	'user_points',
-	{
-		idUser: integer('id_user').primaryKey(),
-		points: integer().default(0).notNull(),
-		totalPoints: integer('total_points').default(0).notNull(),
-		rank: integer().default(-1).notNull(),
-		worldRecords: integer('world_records').default(0).notNull(),
-		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
-			.notNull()
-			.defaultNow(),
-		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
-			() => new Date().toISOString(),
-		),
-	},
-	(table) => [
-		foreignKey({
-			columns: [table.idUser],
-			foreignColumns: [user.id],
-			name: 'player_points_user_fkey',
-		}).onDelete('cascade'),
-	],
-)
+export const userPoints = pgTable('user_points', {
+	idUser: integer('id_user').primaryKey(),
+	points: integer().default(0).notNull(),
+	totalPoints: integer('total_points').default(0).notNull(),
+	rank: integer().default(-1).notNull(),
+	worldRecords: integer('world_records').default(0).notNull(),
+	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
+		new Date().toISOString(),
+	),
+})
 
 export const userPointContribution = pgTable(
 	'user_point_contribution',
@@ -544,6 +534,62 @@ export const recordMedia = pgTable(
 			name: 'media_record_fkey',
 		}).onDelete('cascade'),
 		index('IX_media_record').using('btree', table.idRecord.asc().nullsLast()),
+	],
+)
+
+export const recordStatistic = pgTable(
+	'record_statistic',
+	{
+		idRecord: integer('id_record').primaryKey(),
+		frameCount: integer('frame_count'),
+		duration: real(),
+		distanceTravelled: real('distance_travelled'),
+		distanceInAir: real('distance_in_air'),
+		distanceOnGround: real('distance_on_ground'),
+		timeInAir: real('time_in_air'),
+		timeOnGround: real('time_on_ground'),
+		averageSpeed: real('average_speed'),
+		topSpeed: real('top_speed'),
+		armsUpCount: integer('arms_up_count'),
+		armsUpTime: real('arms_up_time'),
+		brakeCount: integer('brake_count'),
+		brakeTime: real('brake_time'),
+		turnLeftCount: integer('turn_left_count'),
+		turnLeftTime: real('turn_left_time'),
+		turnRightCount: integer('turn_right_count'),
+		turnRightTime: real('turn_right_time'),
+		hornCount: integer('horn_count'),
+		hornTime: real('horn_time'),
+		soapTime: real('soap_time'),
+		offroadTime: real('offroad_time'),
+		paragliderTime: real('paraglider_time'),
+		distanceOnTarmac: real('distance_on_tarmac'),
+		distanceOnGrass: real('distance_on_grass'),
+		distanceOnSand: real('distance_on_sand'),
+		distanceOnSnow: real('distance_on_snow'),
+		distanceOnIce: real('distance_on_ice'),
+		distanceOnSoap: real('distance_on_soap'),
+		distanceOnMetal: real('distance_on_metal'),
+		timeOnTarmac: real('time_on_tarmac'),
+		timeOnGrass: real('time_on_grass'),
+		timeOnSand: real('time_on_sand'),
+		timeOnSnow: real('time_on_snow'),
+		timeOnIce: real('time_on_ice'),
+		timeOnSoap: real('time_on_soap'),
+		timeOnMetal: real('time_on_metal'),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
+			() => new Date().toISOString(),
+		),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idRecord],
+			foreignColumns: [record.id],
+			name: 'record_statistic_record_fkey',
+		}).onDelete('cascade'),
 	],
 )
 

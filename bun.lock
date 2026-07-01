@@ -24,7 +24,10 @@
       "dependencies": {
         "@isaacs/ttlcache": "~2.1.1",
         "@lukeed/ms": "~2.0.2",
+        "@opentelemetry/api": "~1.9.0",
         "fast-jwt": "~6.2.4",
+        "lzma-purejs": "^0.9.3",
+        "protobufjs": "^8.6.5",
         "xxhash-addon": "^2.1.0",
         "zod": "~4.4.0",
       },
@@ -735,6 +738,8 @@
 
     "aggregate-error": ["aggregate-error@5.0.0", "", { "dependencies": { "clean-stack": "^5.2.0", "indent-string": "^5.0.0" } }, "sha512-gOsf2YwSlleG6IjRYG2A7k0HmBMEo6qVNk9Bp/EaLgAJT5ngH6PXbqa4ItvnEwCm/velL5jAnQgsHsWnjhGmvw=="],
 
+    "amdefine": ["amdefine@0.1.1", "", {}, "sha512-cE/769sItEDt5sSdqmrWMsat+XaA5FJiEou+ZwlY7ef/Jf/517k6nYyUIRPR2o/QbpBg4FiYXj9GyRGNg5f/bg=="],
+
     "ansi-escapes": ["ansi-escapes@7.3.0", "", { "dependencies": { "environment": "^1.0.0" } }, "sha512-BvU8nYgGQBxcmMuEeUEmNTvrMVjJNSH7RgW24vXexN4Ven6qCvy4TntnvlnwnMLTVlcRQQdbRY8NKnaIoeWDNg=="],
 
     "ansi-regex": ["ansi-regex@6.2.2", "", {}, "sha512-Bq3SmSpyFHaWjPk8If9yc6svM8c56dB5BAtW4Qbw5jHTwwXXcTLoRMkpDJp6VL0XzlWaCHTXrkFURMYmD0sLqg=="],
@@ -854,6 +859,8 @@
     "colorette": ["colorette@2.0.20", "", {}, "sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w=="],
 
     "colors": ["colors@1.4.0", "", {}, "sha512-a+UqTh4kgZg/SlGvfbzDHpgRu7AAQOmmqRHJnxhRZICKFUT91brVhNNt58CMWU9PsBbv3PDCZUHbVxuDiH2mtA=="],
+
+    "commander": ["commander@2.0.0", "", {}, "sha512-qebjpyeaA/nJ4w3EO2cV2++/zEkccPnjWogzA2rff+Lk8ILI75vULeTmyd4wPxWdKwtP3J+G39IXVZadh0UHyw=="],
 
     "compare-func": ["compare-func@2.0.0", "", { "dependencies": { "array-ify": "^1.0.0", "dot-prop": "^5.1.0" } }, "sha512-zHig5N+tPWARooBnb0Zx1MFcdfpyJrfTJ3Y5L+IFvUm8rM74hHz66z0gw0x4tijh5CorKkKUCnW82R2vmpeCRA=="],
 
@@ -1259,6 +1266,8 @@
 
     "luxon": ["luxon@3.7.2", "", {}, "sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew=="],
 
+    "lzma-purejs": ["lzma-purejs@0.9.3", "", { "dependencies": { "amdefine": "~0.1.0", "commander": "~2.0.0" }, "bin": { "lzmajs": "./bin/lzmajs" } }, "sha512-6VPTP6dEwoEeXYxK9/9ZsUH8zD/lGdTCKenEv2C4mrZkp111CttGYVVrLTcCY6BM+dnADTMrARnG8PZQctJUeg=="],
+
     "make-asynchronous": ["make-asynchronous@1.1.0", "", { "dependencies": { "p-event": "^6.0.0", "type-fest": "^4.6.0", "web-worker": "^1.5.0" } }, "sha512-ayF7iT+44LXdxJLTrTd3TLQpFDDvPCBxXxbv+pMUSuHA5Q8zyAfwkRP6aHHwNVFBUFWtxAHqwNJxF8vMZLAbVg=="],
 
     "marked": ["marked@15.0.12", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA=="],
@@ -1459,7 +1468,7 @@
 
     "proto-list": ["proto-list@1.2.4", "", {}, "sha512-vtK/94akxsTMhe0/cbfpR+syPuszcuwhqVjJq26CuNDgFGj682oRBXOP5MJpv2r7JtE8MsiepGIqvvOTBwn2vA=="],
 
-    "protobufjs": ["protobufjs@7.6.4", "", { "dependencies": { "@protobufjs/aspromise": "^1.1.2", "@protobufjs/base64": "^1.1.2", "@protobufjs/codegen": "^2.0.5", "@protobufjs/eventemitter": "^1.1.1", "@protobufjs/fetch": "^1.1.1", "@protobufjs/float": "^1.0.2", "@protobufjs/path": "^1.1.2", "@protobufjs/pool": "^1.1.0", "@protobufjs/utf8": "^1.1.1", "@types/node": ">=13.7.0", "long": "^5.3.2" } }, "sha512-RJJPTTpvFfHcWLkIa2JFWK4XvtSzS0yEWDmunqHXli1h3JlkbcQZXDZdcWxv+JK3Xsl5/UFDPZ0iGm7DAengYw=="],
+    "protobufjs": ["protobufjs@8.6.5", "", { "dependencies": { "long": "^5.3.2" } }, "sha512-zeE5LPpencAGXvsxyOYmEgJhxzHY8IsmPAFzstZVhDSVT8QH03q6gMZwZRaQGApevZbAL6u28ugs4CC+YKB2jQ=="],
 
     "proxy-agent": ["proxy-agent@6.5.0", "", { "dependencies": { "agent-base": "^7.1.2", "debug": "^4.3.4", "http-proxy-agent": "^7.0.1", "https-proxy-agent": "^7.0.6", "lru-cache": "^7.14.1", "pac-proxy-agent": "^7.1.0", "proxy-from-env": "^1.1.0", "socks-proxy-agent": "^8.0.5" } }, "sha512-TmatMXdr2KlRiA2CyDu8GqR8EjahTG3aY3nXjdzFyoZbmB8hrBsTyMezhULIXKnC0jpfjlmiZ3+EaCzoInSu/A=="],
 
@@ -1882,6 +1891,8 @@
     "@graphql-tools/merge/@graphql-tools/utils": ["@graphql-tools/utils@11.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^1.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-PtFVG4r8Z2LEBSaPYQMusBiB3o6kjLVJyjCLbnWem/SpSuM21v6LTmgpkXfYU1qpBV2UGsFyuEnSJInl8fR1Ag=="],
 
     "@graphql-tools/schema/@graphql-tools/utils": ["@graphql-tools/utils@11.1.0", "", { "dependencies": { "@graphql-typed-document-node/core": "^3.1.1", "@whatwg-node/promise-helpers": "^1.0.0", "cross-inspect": "1.0.1", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-PtFVG4r8Z2LEBSaPYQMusBiB3o6kjLVJyjCLbnWem/SpSuM21v6LTmgpkXfYU1qpBV2UGsFyuEnSJInl8fR1Ag=="],
+
+    "@grpc/proto-loader/protobufjs": ["protobufjs@7.6.4", "", { "dependencies": { "@protobufjs/aspromise": "^1.1.2", "@protobufjs/base64": "^1.1.2", "@protobufjs/codegen": "^2.0.5", "@protobufjs/eventemitter": "^1.1.1", "@protobufjs/fetch": "^1.1.1", "@protobufjs/float": "^1.0.2", "@protobufjs/path": "^1.1.2", "@protobufjs/pool": "^1.1.0", "@protobufjs/utf8": "^1.1.1", "@types/node": ">=13.7.0", "long": "^5.3.2" } }, "sha512-RJJPTTpvFfHcWLkIa2JFWK4XvtSzS0yEWDmunqHXli1h3JlkbcQZXDZdcWxv+JK3Xsl5/UFDPZ0iGm7DAengYw=="],
 
     "@grpc/proto-loader/yargs": ["yargs@17.7.2", "", { "dependencies": { "cliui": "^8.0.1", "escalade": "^3.1.1", "get-caller-file": "^2.0.5", "require-directory": "^2.1.1", "string-width": "^4.2.3", "y18n": "^5.0.5", "yargs-parser": "^21.1.1" } }, "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w=="],
 
