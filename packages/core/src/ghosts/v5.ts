@@ -2,8 +2,8 @@ import type { DecodedProtobufGhost } from './protobuf'
 import { decodeProtobufGhost, readProtobufFrames } from './protobuf'
 import type { ParsedGhost } from './types'
 
-export function parseV5(buffer: Buffer): ParsedGhost {
-	return parseDecodedV5(decodeProtobufGhost(buffer))
+export async function parseV5(buffer: Buffer): Promise<ParsedGhost> {
+	return parseDecodedV5(await decodeProtobufGhost(buffer))
 }
 
 export function parseDecodedV5(decoded: DecodedProtobufGhost): ParsedGhost {

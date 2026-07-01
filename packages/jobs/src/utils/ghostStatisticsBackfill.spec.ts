@@ -66,8 +66,8 @@ describe('ghost statistics backfill parser', () => {
 		expect(buildGhostUrl('ghosts/example.bin')).toBe('https://cdn.zeepki.st/ghosts/example.bin')
 	})
 
-	test('parses V1 time and position statistics', () => {
-		const stats = parseGhostStatistics(
+	test('parses V1 time and position statistics', async () => {
+		const stats = await parseGhostStatistics(
 			createV1Ghost([
 				{ time: 0, position: [0, 0, 0] },
 				{ time: 1, position: [10, 0, 0] },
@@ -83,8 +83,8 @@ describe('ghost statistics backfill parser', () => {
 		expect(stats?.armsUpCount).toBeNull()
 	})
 
-	test('parses gzipped legacy ghosts', () => {
-		const stats = parseGhostStatistics(
+	test('parses gzipped legacy ghosts', async () => {
+		const stats = await parseGhostStatistics(
 			gzipSync(
 				createV1Ghost([
 					{ time: 0, position: [0, 0, 0] },
@@ -98,8 +98,8 @@ describe('ghost statistics backfill parser', () => {
 		expect(stats?.distanceTravelled).toBe(1)
 	})
 
-	test('parses V3 input transition statistics', () => {
-		const stats = parseGhostStatistics(createV3Ghost(), { deriveLegacy: true })
+	test('parses V3 input transition statistics', async () => {
+		const stats = await parseGhostStatistics(createV3Ghost(), { deriveLegacy: true })
 
 		expect(stats?.armsUpCount).toBe(1)
 		expect(stats?.armsUpTime).toBe(1)
@@ -108,8 +108,8 @@ describe('ghost statistics backfill parser', () => {
 		expect(stats?.turnRightCount).toBe(1)
 	})
 
-	test('ignores movement segment above speed cap', () => {
-		const stats = parseGhostStatistics(
+	test('ignores movement segment above speed cap', async () => {
+		const stats = await parseGhostStatistics(
 			createV1Ghost([
 				{ time: 0, position: [0, 0, 0] },
 				{ time: 1, position: [1_000, 0, 0] },

@@ -3,8 +3,11 @@ import { decodeProtobufGhost, readProtobufFrames } from './protobuf'
 import { validateGhostStatisticPayload } from './statistics'
 import type { ParsedGhost, ParseStatisticsOptions } from './types'
 
-export function parseV6(buffer: Buffer, options?: ParseStatisticsOptions): ParsedGhost {
-	return parseDecodedV6(decodeProtobufGhost(buffer), options)
+export async function parseV6(
+	buffer: Buffer,
+	options?: ParseStatisticsOptions,
+): Promise<ParsedGhost> {
+	return parseDecodedV6(await decodeProtobufGhost(buffer), options)
 }
 
 export function parseDecodedV6(

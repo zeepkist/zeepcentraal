@@ -42,9 +42,9 @@
 	"dependencies": {
 		"@isaacs/ttlcache": "~2.1.1",
 		"@lukeed/ms": "~2.0.2",
+		"@napi-rs/lzma": "^1.4.5",
 		"@opentelemetry/api": "~1.9.0",
 		"fast-jwt": "~6.2.4",
-		"lzma-purejs": "^0.9.3",
 		"protobufjs": "^8.6.5",
 		"xxhash-addon": "^2.1.0",
 		"zod": "~4.4.0"

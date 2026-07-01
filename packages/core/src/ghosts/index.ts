@@ -19,7 +19,10 @@ export { parseV4 } from './v4'
 export { parseV5 } from './v5'
 export { parseV6 } from './v6'
 
-export function parseGhost(buffer: Buffer, options?: ParseStatisticsOptions): ParsedGhost {
+export async function parseGhost(
+	buffer: Buffer,
+	options?: ParseStatisticsOptions,
+): Promise<ParsedGhost> {
 	const payload = isGzip(buffer) ? gunzipSync(buffer) : buffer
 	const rawVersion = payload.length >= 4 ? payload.readInt32LE(0) : 0
 	switch (rawVersion) {
@@ -35,7 +38,7 @@ export function parseGhost(buffer: Buffer, options?: ParseStatisticsOptions): Pa
 			break
 	}
 
-	const decoded = decodeProtobufGhost(buffer)
+	const decoded = await decodeProtobufGhost(buffer)
 	switch (decoded.version) {
 		case 5:
 			return parseDecodedV5(decoded)
@@ -46,11 +49,11 @@ export function parseGhost(buffer: Buffer, options?: ParseStatisticsOptions): Pa
 	}
 }
 
-export function parseGhostStatistics(
+export async function parseGhostStatistics(
 	buffer: Buffer,
 	options?: ParseStatisticsOptions,
-): GhostStatisticValues | undefined {
-	const ghost = parseGhost(buffer, options)
+): Promise<GhostStatisticValues | undefined> {
+	const ghost = await parseGhost(buffer, options)
 	if (ghost.version === 6) {
 		return ghost.statistics
 	}
@@ -60,9 +63,9 @@ export function parseGhostStatistics(
 	return undefined
 }
 
-export function parseGhostStatisticsFromBase64(
+export async function parseGhostStatisticsFromBase64(
 	ghostData: string,
 	options?: ParseStatisticsOptions,
-): GhostStatisticValues | undefined {
+): Promise<GhostStatisticValues | undefined> {
 	return parseGhostStatistics(Buffer.from(ghostData, 'base64'), options)
 }

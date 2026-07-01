@@ -44,16 +44,25 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 		}
 
 		try {
+			helpers.logger.info(`Backfilling ghost statistics for record ${item.idRecord}.`)
+
 			const ghost = await downloadGhost(item.ghostUrl)
-			const statistics = parseGhostStatistics(ghost, { deriveLegacy: true })
+			const statistics = await parseGhostStatistics(ghost, { deriveLegacy: true })
+
 			if (!statistics) {
 				throw new Error('Ghost statistics unavailable')
 			}
+
 			await upsertRecordStatistic({
 				idRecord: item.idRecord,
 				...statistics,
 			})
+
 			updated++
+
+			helpers.logger.info(
+				`Backfilled ghost statistics for record ${item.idRecord}. Updated ${updated} records so far.`,
+			)
 		} catch (error) {
 			failed++
 			helpers.logger.warn(

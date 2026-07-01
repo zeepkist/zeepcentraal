@@ -78,9 +78,9 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				}
 			}
 
-			let ghostStatistics: ReturnType<typeof parseGhostStatisticsFromBase64>
+			let ghostStatistics: Awaited<ReturnType<typeof parseGhostStatisticsFromBase64>>
 			try {
-				ghostStatistics = parseGhostStatisticsFromBase64(GhostData)
+				ghostStatistics = await parseGhostStatisticsFromBase64(GhostData)
 			} catch {
 				set.status = 400
 				return {

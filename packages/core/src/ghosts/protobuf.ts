@@ -1,13 +1,8 @@
-import { createRequire } from 'node:module'
+import { decompress } from '@napi-rs/lzma/lzma'
 import protobuf from 'protobufjs'
 import { finite } from '../utils/finite'
 import { remapByte } from '../utils/remapByte'
 import type { GhostFrame, Vector3 } from './types'
-
-const require = createRequire(import.meta.url)
-const lzma = require('lzma-purejs') as {
-	decompressFile(input: Uint8Array): Uint8Array | number[]
-}
 
 const root = new protobuf.Root()
 const vector3Type = new protobuf.Type('Vector3')
@@ -111,8 +106,8 @@ export type DecodedProtobufGhost = {
 	statistics?: unknown
 }
 
-export function decodeProtobufGhost(buffer: Buffer): DecodedProtobufGhost {
-	const decompressed = Buffer.from(lzma.decompressFile(new Uint8Array(buffer)))
+export async function decodeProtobufGhost(buffer: Buffer): Promise<DecodedProtobufGhost> {
+	const decompressed = await decompress(new Uint8Array(buffer))
 	return ghostType.decode(decompressed) as unknown as DecodedProtobufGhost
 }
 
