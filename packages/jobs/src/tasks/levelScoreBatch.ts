@@ -6,12 +6,19 @@ import {
 	setLevelPointsToZeroBulk,
 	upsertLevelPointsBulk,
 } from '@zeepkist/database'
+import type { Helpers } from 'graphile-worker'
 import { calculateLevelPoints, calculateVoteRating, isLevelScoreEligible } from '../utils'
+import { refreshCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
 
-export async function updateLevelScoreBatch(
-	idLevels: number[],
-	personalBestCountPercentile: number,
-): Promise<{ updated: number; zeroed: number }> {
+export async function updateLevelScoreBatch({
+	idLevels,
+	personalBestCountPercentile,
+	logger,
+}: {
+	idLevels: number[]
+	personalBestCountPercentile: number
+	logger: Helpers['logger']
+}): Promise<{ updated: number; zeroed: number }> {
 	if (idLevels.length === 0) {
 		return { updated: 0, zeroed: 0 }
 	}
@@ -68,5 +75,6 @@ export async function updateLevelScoreBatch(
 	}
 
 	await Promise.all([upsertLevelPointsBulk(updates), setLevelPointsToZeroBulk(zeroIds)])
+	await refreshCachedLevelLeaderboards({ idLevels, logger })
 	return { updated: updates.length, zeroed: zeroIds.length }
 }

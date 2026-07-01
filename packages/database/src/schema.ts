@@ -168,15 +168,7 @@ export const levelMetadata = pgTable(
 export const levelPoints = pgTable(
 	'level_points',
 	{
-		id: integer().primaryKey().generatedByDefaultAsIdentity({
-			name: 'level_points_id_seq',
-			startWith: 1,
-			increment: 1,
-			minValue: 1,
-			maxValue: 2147483647,
-			cache: 1,
-		}),
-		idLevel: integer('id_level').notNull(),
+		idLevel: integer('id_level').primaryKey(),
 		points: integer().notNull(),
 		rating: real().notNull().default(DEFAULT_VOTE_RATING),
 		lengthModifier: real('modifier_length').notNull().default(1.0),
@@ -197,7 +189,6 @@ export const levelPoints = pgTable(
 			foreignColumns: [level.id],
 			name: 'level_points_level_fkey',
 		}).onDelete('cascade'),
-		uniqueIndex('UQ_level_points_level').using('btree', table.idLevel.asc().nullsLast()),
 	],
 )
 
@@ -327,15 +318,7 @@ export const personalBestGlobal = pgTable(
 export const userPoints = pgTable(
 	'user_points',
 	{
-		id: integer().primaryKey().generatedByDefaultAsIdentity({
-			name: 'player_points_id_seq',
-			startWith: 1,
-			increment: 1,
-			minValue: 1,
-			maxValue: 2147483647,
-			cache: 1,
-		}),
-		idUser: integer('id_user').notNull(),
+		idUser: integer('id_user').primaryKey(),
 		points: integer().default(0).notNull(),
 		totalPoints: integer('total_points').default(0).notNull(),
 		rank: integer().default(-1).notNull(),
@@ -353,21 +336,12 @@ export const userPoints = pgTable(
 			foreignColumns: [user.id],
 			name: 'player_points_user_fkey',
 		}).onDelete('cascade'),
-		uniqueIndex('UQ_player_points_user').using('btree', table.idUser.asc().nullsLast()),
 	],
 )
 
 export const userPointContribution = pgTable(
 	'user_point_contribution',
 	{
-		id: integer().primaryKey().generatedByDefaultAsIdentity({
-			name: 'user_point_contribution_id_seq',
-			startWith: 1,
-			increment: 1,
-			minValue: 1,
-			maxValue: 2147483647,
-			cache: 1,
-		}),
 		idUser: integer('id_user').notNull(),
 		idLevel: integer('id_level').notNull(),
 		idRecord: integer('id_record').notNull(),
@@ -396,7 +370,7 @@ export const userPointContribution = pgTable(
 			foreignColumns: [record.id],
 			name: 'user_point_contribution_record_fkey',
 		}).onDelete('cascade'),
-		unique('UQ_user_point_contribution_user_level').on(table.idUser, table.idLevel),
+		primaryKey({ columns: [table.idUser, table.idLevel] }),
 		index('IX_user_point_contribution_user_contribution_rank').using(
 			'btree',
 			table.idUser.asc().nullsLast(),
@@ -554,15 +528,7 @@ export const record = pgTable(
 export const recordMedia = pgTable(
 	'record_media',
 	{
-		id: integer().primaryKey().generatedByDefaultAsIdentity({
-			name: 'media_id_seq',
-			startWith: 1,
-			increment: 1,
-			minValue: 1,
-			maxValue: 2147483647,
-			cache: 1,
-		}),
-		idRecord: integer('id_record').notNull(),
+		idRecord: integer('id_record').primaryKey(),
 		ghostUrl: text('ghost_url'),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -577,7 +543,6 @@ export const recordMedia = pgTable(
 			foreignColumns: [record.id],
 			name: 'media_record_fkey',
 		}).onDelete('cascade'),
-		unique('UQ_record_media_record').on(table.idRecord),
 		index('IX_media_record').using('btree', table.idRecord.asc().nullsLast()),
 	],
 )
@@ -669,14 +634,6 @@ export const favourite = pgTable(
 export const vote = pgTable(
 	'vote',
 	{
-		id: integer().primaryKey().generatedAlwaysAsIdentity({
-			name: 'vote_id_seq',
-			startWith: 1,
-			increment: 1,
-			minValue: 1,
-			maxValue: 2147483647,
-			cache: 1,
-		}),
 		idUser: integer('id_user').notNull(),
 		idLevel: integer('id_level').notNull(),
 		value: integer().notNull(),
@@ -704,7 +661,7 @@ export const vote = pgTable(
 			table.idLevel.asc().nullsLast(),
 		),
 		index('IX_vote_level').using('btree', table.idLevel.asc().nullsLast()),
-		unique('UQ_vote_user_level').on(table.idUser, table.idLevel),
+		primaryKey({ columns: [table.idUser, table.idLevel] }),
 	],
 )
 

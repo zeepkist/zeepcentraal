@@ -15,7 +15,11 @@ export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) =
 	}
 
 	const personalBestCountPercentile = await getPersonalBestCount90thPercentile()
-	await updateLevelScoreBatch([idLevel], personalBestCountPercentile)
+	await updateLevelScoreBatch({
+		idLevels: [idLevel],
+		personalBestCountPercentile,
+		logger: helpers.logger,
+	})
 
 	if (idUser) {
 		await helpers.addJob(

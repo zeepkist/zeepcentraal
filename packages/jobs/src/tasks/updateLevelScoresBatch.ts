@@ -13,7 +13,12 @@ export const updateLevelScoresBatch: TaskHandler<Payload> = async (payload, help
 		return
 	}
 
-	const result = await updateLevelScoreBatch(ids, personalBestCountPercentile)
+	const result = await updateLevelScoreBatch({
+		idLevels: ids,
+		personalBestCountPercentile,
+		logger: helpers.logger,
+	})
+
 	helpers.logger.info(
 		`updateLevelScoresBatch completed ${ids.length} levels (${result.updated} updated, ${result.zeroed} zeroed).`,
 	)

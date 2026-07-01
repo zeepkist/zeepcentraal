@@ -20,6 +20,9 @@
 		"./services": {
 			"import": "./src/services/index.ts"
 		},
+		"./services/personalBest": {
+			"import": "./src/services/personalBest.ts"
+		},
 		"./services/workshop": {
 			"import": "./src/services/workshop.ts"
 		}

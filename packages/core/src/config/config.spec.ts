@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test'
 import { resolve } from 'node:path'
 import { parseDatabaseConfig } from './database'
 import { parseImportZslConfig } from './importZsl'
+import { parseJobsConfig } from './jobs'
 import { parseMigrateConfig } from './migrate'
 import { parseServerConfig } from './server'
 
@@ -32,6 +33,13 @@ test('database config parses without server-only secrets', () => {
 	expect(config.databaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
 	expect(config.wasabi.ghostFolder).toBe('ghosts-dev')
 	expect(config.wasabi.thumbnailFolder).toBe('thumbnails-dev')
+})
+
+test('jobs config keeps Keyv cache in separate schema by default', () => {
+	const config = parseJobsConfig({})
+
+	expect(config.databaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
+	expect(config.keyvSchema).toBe('zeepkist_cache')
 })
 
 test('import config preserves super league candidate fallback', () => {

@@ -2,12 +2,16 @@ import {
 	bulkUpdateUserRanks,
 	clearUserPointContributions,
 	getAllUsersWithLatestRecordDate,
-	getUsersPersonalBestsWithLevelPointsAndPosition,
 	updateUserRanks,
 	upsertUserPointContributionsBulk,
 	upsertUserPointsBulk,
-} from '@zeepkist/database'
+} from '@zeepkist/database/services'
+import {
+	getPersonalBestLevelIdsForUsers,
+	type PersonalBestWithLevelPointsAndPosition,
+} from '@zeepkist/database/services/personalBest'
 import { batchProcess, calculatePlayerPoints, type PlayerPointContribution } from '../utils'
+import { getCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
 import type { TaskHandler } from './types'
 
 type Payload = Record<string, never>
@@ -65,9 +69,26 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 			`Updating player score batch ${batchIndex + 1}/${rankedUserBatches.length} (${userBatch.length} users).`,
 		)
 
-		const personalBestsByUser = await getUsersPersonalBestsWithLevelPointsAndPosition(
-			userBatch.map(({ idUser }) => idUser),
-		)
+		const idUsers = userBatch.map(({ idUser }) => idUser)
+		const idUserSet = new Set(idUsers)
+		const personalBestsByUser = new Map<number, PersonalBestWithLevelPointsAndPosition[]>()
+		const idLevels = await getPersonalBestLevelIdsForUsers(idUsers)
+		const levelLeaderboards = await getCachedLevelLeaderboards({
+			idLevels,
+			logger: helpers.logger,
+		})
+
+		for (const rows of levelLeaderboards.values()) {
+			for (const row of rows) {
+				if (!idUserSet.has(row.idUser)) {
+					continue
+				}
+
+				const entries = personalBestsByUser.get(row.idUser) ?? []
+				entries.push(row)
+				personalBestsByUser.set(row.idUser, entries)
+			}
+		}
 
 		const contributionUpdates: ContributionUpdate[] = []
 		const pointUpdates = userBatch.map(({ idUser }) => {

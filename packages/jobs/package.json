@@ -18,11 +18,13 @@
 		}
 	},
 	"dependencies": {
+		"@keyv/postgres": "6.0.0-beta.4",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"@zeepkist/workshop": "workspace:*",
 		"cron": "~4.4.0",
 		"graphile-worker": "~0.17.0",
+		"keyv": "6.0.0-beta.4",
 		"zod": "~4.4.0"
 	}
 }
