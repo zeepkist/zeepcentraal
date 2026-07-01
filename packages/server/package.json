@@ -23,7 +23,7 @@
 		"@zeepkist/database": "workspace:*",
 		"@zeepkist/jobs": "workspace:*",
 		"elysia": "~1.4.16",
-		"logixlysia": "~6.5.0",
+		"logixlysia": "~6.6.0",
 		"semver": "~7.8.0"
 	},
 	"devDependencies": {
