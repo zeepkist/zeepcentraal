@@ -10,8 +10,8 @@ interface XxHashAddon {
 function loadXxHashAddon(): XxHashAddon {
 	const require = createRequire(import.meta.url)
 	const candidates = [
-		'/app/node_modules/xxhash-addon',
-		join(process.cwd(), 'node_modules', 'xxhash-addon'),
+		'/app/node_modules/xxhash-addon/xxhash-addon.js',
+		join(process.cwd(), 'node_modules', 'xxhash-addon', 'xxhash-addon.js'),
 		'xxhash-addon',
 	]
 	const errors: unknown[] = []

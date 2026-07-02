@@ -16,15 +16,21 @@ RUN set -eux; \
 	mkdir -p /native-node_modules/@napi-rs; \
 	lzma_package="$(find . -path '*/node_modules/@napi-rs/lzma/package.json' -print -quit)"; \
 	xxhash_package="$(find . -path '*/node_modules/xxhash-addon/package.json' -print -quit)"; \
+	node_gyp_build_package="$(find . -path '*/node_modules/node-gyp-build/package.json' -print -quit)"; \
 	test -n "$lzma_package"; \
 	test -n "$xxhash_package"; \
+	test -n "$node_gyp_build_package"; \
 	cp -R "$(dirname "$lzma_package")" /native-node_modules/@napi-rs/lzma; \
 	cp -R "$(dirname "$xxhash_package")" /native-node_modules/xxhash-addon; \
+	cp -R "$(dirname "$node_gyp_build_package")" /native-node_modules/node-gyp-build; \
 	for package_json in $(find . -path '*/node_modules/@napi-rs/lzma-linux-*-gnu/package.json' -print); do \
 		package_dir="$(dirname "$package_json")"; \
 		cp -R "$package_dir" "/native-node_modules/@napi-rs/$(basename "$package_dir")"; \
 		cp "$package_dir"/*.node /native-node_modules/@napi-rs/lzma/; \
 	done; \
+	test -f /native-node_modules/xxhash-addon/xxhash-addon.js; \
+	test -f /native-node_modules/node-gyp-build/index.js; \
+	test -n "$(find /native-node_modules/xxhash-addon/prebuilds/linux-x64 -maxdepth 1 -type f -name '*.glibc.node' -print -quit)"; \
 	test -n "$(find /native-node_modules/@napi-rs/lzma -maxdepth 1 -type f -name 'lzma.linux-*-gnu.node' -print -quit)"; \
 	test -n "$(find /native-node_modules/@napi-rs -maxdepth 1 -type d -name 'lzma-linux-*-gnu' -print -quit)"
 
