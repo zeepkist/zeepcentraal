@@ -28,7 +28,7 @@ RUN set -eux; \
 	test -n "$(find /native-node_modules/@napi-rs/lzma -maxdepth 1 -type f -name 'lzma.linux-*-gnu.node' -print -quit)"; \
 	test -n "$(find /native-node_modules/@napi-rs -maxdepth 1 -type d -name 'lzma-linux-*-gnu' -print -quit)"
 
-FROM gcr.io/distroless/base
+FROM gcr.io/distroless/cc-debian12
 
 LABEL org.opencontainers.image.description="ZeepCentraal API server."
 

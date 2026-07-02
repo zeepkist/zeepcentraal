@@ -8,11 +8,23 @@ interface XxHashAddon {
 }
 
 function loadXxHashAddon(): XxHashAddon {
-	try {
-		return createRequire(join(process.cwd(), 'package.json'))('xxhash-addon') as XxHashAddon
-	} catch {
-		return createRequire(import.meta.url)('xxhash-addon') as XxHashAddon
+	const require = createRequire(import.meta.url)
+	const candidates = [
+		'/app/node_modules/xxhash-addon',
+		join(process.cwd(), 'node_modules', 'xxhash-addon'),
+		'xxhash-addon',
+	]
+	const errors: unknown[] = []
+
+	for (const candidate of candidates) {
+		try {
+			return require(candidate) as XxHashAddon
+		} catch (error) {
+			errors.push(error)
+		}
 	}
+
+	throw new AggregateError(errors, 'Failed to load xxhash-addon')
 }
 
 const { XXHash128 } = loadXxHashAddon()
