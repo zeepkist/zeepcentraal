@@ -309,6 +309,13 @@
 			"when": 1782954259170,
 			"tag": "0044_chemical_sharon_ventura",
 			"breakpoints": true
+		},
+		{
+			"idx": 45,
+			"version": "7",
+			"when": 1782954810403,
+			"tag": "0045_glossy_robin_chapel",
+			"breakpoints": true
 		}
 	]
 }

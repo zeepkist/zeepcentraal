@@ -94,6 +94,22 @@ export const levelItem = pgTable(
 			name: 'level_item_author_fkey',
 		}),
 		index('IX_level_item_level').using('btree', table.idLevel.asc().nullsLast()),
+		index('IX_level_item_workshop_deleted').using(
+			'btree',
+			table.workshopId.asc().nullsLast(),
+			table.deleted.asc().nullsLast(),
+		),
+		index('IX_level_item_workshop_file_uid').using(
+			'btree',
+			table.workshopId.asc().nullsLast(),
+			table.fileUid.asc().nullsLast(),
+		),
+		index('IX_level_item_workshop_level').using(
+			'btree',
+			table.workshopId.asc().nullsLast(),
+			table.idLevel.asc().nullsLast(),
+		),
+		index('IX_level_item_author').using('btree', table.authorId.asc().nullsLast()),
 	],
 )
 
@@ -126,6 +142,7 @@ export const workshopItem = pgTable(
 			foreignColumns: [user.steamId],
 			name: 'workshop_item_author_fkey',
 		}),
+		index('IX_workshop_item_author').using('btree', table.authorId.asc().nullsLast()),
 	],
 )
 
@@ -165,22 +182,32 @@ export const levelMetadata = pgTable(
 	],
 )
 
-export const levelPoints = pgTable('level_points', {
-	idLevel: integer('id_level').primaryKey(),
-	points: integer().notNull(),
-	rating: real().notNull().default(DEFAULT_VOTE_RATING),
-	lengthModifier: real('modifier_length').notNull().default(1.0),
-	competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
-	ratingModifier: real('modifier_rating').notNull().default(1.0),
-	popularityModifier: real('modifier_popularity').notNull().default(1.0),
-	cutPenalty: real('cut_penalty').notNull().default(1.0),
-	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
-		.notNull()
-		.defaultNow(),
-	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
-		new Date().toISOString(),
-	),
-})
+export const levelPoints = pgTable(
+	'level_points',
+	{
+		idLevel: integer('id_level').primaryKey(),
+		points: integer().notNull(),
+		rating: real().notNull().default(DEFAULT_VOTE_RATING),
+		lengthModifier: real('modifier_length').notNull().default(1.0),
+		competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
+		ratingModifier: real('modifier_rating').notNull().default(1.0),
+		popularityModifier: real('modifier_popularity').notNull().default(1.0),
+		cutPenalty: real('cut_penalty').notNull().default(1.0),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
+			() => new Date().toISOString(),
+		),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idLevel],
+			foreignColumns: [level.id],
+			name: 'level_points_level_fkey',
+		}).onDelete('cascade'),
+	],
+)
 
 export const levelPointsHistory = pgTable(
 	'level_points_history',
@@ -246,7 +273,6 @@ export const levelRequest = pgTable(
 	(table) => [
 		unique('UQ_level_request_workshop_id').on(table.workshopId),
 		index('IX_level_request_hash').using('btree', table.hash.asc().nullsLast()),
-		index('IX_level_request_workshop_id').using('btree', table.workshopId.asc().nullsLast()),
 	],
 )
 
@@ -294,30 +320,33 @@ export const personalBestGlobal = pgTable(
 			table.idUser.asc().nullsLast(),
 		),
 		index('IX_personal_bests_record').using('btree', table.idRecord.asc().nullsLast()),
-		index('IX_personal_bests_user').using('btree', table.idUser.asc().nullsLast()),
-		index('IX_personal_bests_user_level_record').using(
-			'btree',
-			table.idUser.asc().nullsLast(),
-			table.idLevel.asc().nullsLast(),
-			table.idRecord.asc().nullsLast(),
-		),
 		index('IX_personal_bests_date_created').using('btree', table.dateCreated.asc().nullsLast()),
 	],
 )
 
-export const userPoints = pgTable('user_points', {
-	idUser: integer('id_user').primaryKey(),
-	points: integer().default(0).notNull(),
-	totalPoints: integer('total_points').default(0).notNull(),
-	rank: integer().default(-1).notNull(),
-	worldRecords: integer('world_records').default(0).notNull(),
-	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
-		.notNull()
-		.defaultNow(),
-	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
-		new Date().toISOString(),
-	),
-})
+export const userPoints = pgTable(
+	'user_points',
+	{
+		idUser: integer('id_user').primaryKey(),
+		points: integer().default(0).notNull(),
+		totalPoints: integer('total_points').default(0).notNull(),
+		rank: integer().default(-1).notNull(),
+		worldRecords: integer('world_records').default(0).notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
+			() => new Date().toISOString(),
+		),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'user_points_user_fkey',
+		}).onDelete('cascade'),
+	],
+)
 
 export const userPointContribution = pgTable(
 	'user_point_contribution',
@@ -357,6 +386,7 @@ export const userPointContribution = pgTable(
 			table.contributionRank.asc().nullsLast(),
 		),
 		index('IX_user_point_contribution_level').using('btree', table.idLevel.asc().nullsLast()),
+		index('IX_user_point_contribution_record').using('btree', table.idRecord.asc().nullsLast()),
 	],
 )
 
@@ -472,36 +502,18 @@ export const record = pgTable(
 			foreignColumns: [user.id],
 			name: 'records_user_foreign',
 		}).onDelete('cascade'),
-		index('IX_records_id_time').using(
+		index('IX_records_level_time_id').using(
 			'btree',
 			table.idLevel.asc().nullsLast(),
 			table.time.asc().nullsLast(),
+			table.id.asc().nullsLast(),
 		),
-		index('IX_records_level').using('btree', table.idLevel.asc().nullsLast()),
-		index('IX_records_level_time').using(
+		index('IX_records_user_date_created').using(
 			'btree',
-			table.idLevel.asc().nullsLast(),
-			table.time.asc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+			table.dateCreated.desc().nullsLast(),
 		),
-		index('IX_records_time_id').using(
-			'btree',
-			table.time.asc().nullsLast(),
-			table.idLevel.asc().nullsLast(),
-		),
-		index('IX_records_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_records_date_created').using('btree', table.dateCreated.asc().nullsLast()),
-		index('IX_records_user_level_time').using(
-			'btree',
-			table.idUser.asc().nullsLast(),
-			table.idLevel.asc().nullsLast(),
-			table.time.asc().nullsLast(),
-		),
-		index('IX_records_user_level_date_created').using(
-			'btree',
-			table.idUser.asc().nullsLast(),
-			table.idLevel.asc().nullsLast(),
-			table.dateCreated.asc().nullsLast(),
-		),
 	],
 )
 
@@ -517,54 +529,70 @@ export const recordMedia = pgTable(
 			() => new Date().toISOString(),
 		),
 	},
-	(table) => [index('IX_media_record').using('btree', table.idRecord.asc().nullsLast())],
+	(table) => [
+		foreignKey({
+			columns: [table.idRecord],
+			foreignColumns: [record.id],
+			name: 'media_record_fkey',
+		}).onDelete('cascade'),
+	],
 )
 
-export const recordStatistic = pgTable('record_statistic', {
-	idRecord: integer('id_record').primaryKey(),
-	frameCount: integer('frame_count'),
-	duration: real(),
-	distanceTravelled: real('distance_travelled'),
-	distanceInAir: real('distance_in_air'),
-	distanceOnGround: real('distance_on_ground'),
-	timeInAir: real('time_in_air'),
-	timeOnGround: real('time_on_ground'),
-	averageSpeed: real('average_speed'),
-	topSpeed: real('top_speed'),
-	armsUpCount: integer('arms_up_count'),
-	armsUpTime: real('arms_up_time'),
-	brakeCount: integer('brake_count'),
-	brakeTime: real('brake_time'),
-	turnLeftCount: integer('turn_left_count'),
-	turnLeftTime: real('turn_left_time'),
-	turnRightCount: integer('turn_right_count'),
-	turnRightTime: real('turn_right_time'),
-	hornCount: integer('horn_count'),
-	hornTime: real('horn_time'),
-	soapTime: real('soap_time'),
-	offroadTime: real('offroad_time'),
-	paragliderTime: real('paraglider_time'),
-	distanceOnTarmac: real('distance_on_tarmac'),
-	distanceOnGrass: real('distance_on_grass'),
-	distanceOnSand: real('distance_on_sand'),
-	distanceOnSnow: real('distance_on_snow'),
-	distanceOnIce: real('distance_on_ice'),
-	distanceOnSoap: real('distance_on_soap'),
-	distanceOnMetal: real('distance_on_metal'),
-	timeOnTarmac: real('time_on_tarmac'),
-	timeOnGrass: real('time_on_grass'),
-	timeOnSand: real('time_on_sand'),
-	timeOnSnow: real('time_on_snow'),
-	timeOnIce: real('time_on_ice'),
-	timeOnSoap: real('time_on_soap'),
-	timeOnMetal: real('time_on_metal'),
-	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
-		.notNull()
-		.defaultNow(),
-	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
-		new Date().toISOString(),
-	),
-})
+export const recordStatistic = pgTable(
+	'record_statistic',
+	{
+		idRecord: integer('id_record').primaryKey(),
+		frameCount: integer('frame_count'),
+		duration: real(),
+		distanceTravelled: real('distance_travelled'),
+		distanceInAir: real('distance_in_air'),
+		distanceOnGround: real('distance_on_ground'),
+		timeInAir: real('time_in_air'),
+		timeOnGround: real('time_on_ground'),
+		averageSpeed: real('average_speed'),
+		topSpeed: real('top_speed'),
+		armsUpCount: integer('arms_up_count'),
+		armsUpTime: real('arms_up_time'),
+		brakeCount: integer('brake_count'),
+		brakeTime: real('brake_time'),
+		turnLeftCount: integer('turn_left_count'),
+		turnLeftTime: real('turn_left_time'),
+		turnRightCount: integer('turn_right_count'),
+		turnRightTime: real('turn_right_time'),
+		hornCount: integer('horn_count'),
+		hornTime: real('horn_time'),
+		soapTime: real('soap_time'),
+		offroadTime: real('offroad_time'),
+		paragliderTime: real('paraglider_time'),
+		distanceOnTarmac: real('distance_on_tarmac'),
+		distanceOnGrass: real('distance_on_grass'),
+		distanceOnSand: real('distance_on_sand'),
+		distanceOnSnow: real('distance_on_snow'),
+		distanceOnIce: real('distance_on_ice'),
+		distanceOnSoap: real('distance_on_soap'),
+		distanceOnMetal: real('distance_on_metal'),
+		timeOnTarmac: real('time_on_tarmac'),
+		timeOnGrass: real('time_on_grass'),
+		timeOnSand: real('time_on_sand'),
+		timeOnSnow: real('time_on_snow'),
+		timeOnIce: real('time_on_ice'),
+		timeOnSoap: real('time_on_soap'),
+		timeOnMetal: real('time_on_metal'),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
+			() => new Date().toISOString(),
+		),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idRecord],
+			foreignColumns: [record.id],
+			name: 'record_statistic_record_fkey',
+		}).onDelete('cascade'),
+	],
+)
 
 export const user = pgTable(
 	'user',
@@ -646,7 +674,6 @@ export const favourite = pgTable(
 		}).onDelete('cascade'),
 		unique('UQ_favourites_user_level').on(table.idUser, table.idLevel),
 		index('IX_favorites_level').using('btree', table.idLevel.asc().nullsLast()),
-		index('IX_favorites_user').using('btree', table.idUser.asc().nullsLast()),
 	],
 )
 
@@ -674,11 +701,6 @@ export const vote = pgTable(
 			foreignColumns: [user.id],
 			name: 'vote_id_user_fkey',
 		}).onDelete('cascade'),
-		index('IX_vote_user_level').using(
-			'btree',
-			table.idUser.asc().nullsLast(),
-			table.idLevel.asc().nullsLast(),
-		),
 		index('IX_vote_level').using('btree', table.idLevel.asc().nullsLast()),
 		primaryKey({ columns: [table.idUser, table.idLevel] }),
 	],
@@ -722,7 +744,6 @@ export const worldRecordGlobal = pgTable(
 			name: 'world_records_global_user_fkey',
 		}).onDelete('cascade'),
 		unique('UQ_world_records_level').on(table.idLevel),
-		index('IX_world_records_level').using('btree', table.idLevel.asc().nullsLast()),
 		index('IX_world_records_record').using('btree', table.idRecord.asc().nullsLast()),
 		index('IX_world_records_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_world_records_date_created').using('btree', table.dateCreated.asc().nullsLast()),
@@ -798,6 +819,10 @@ export const zslSeason = pgTable(
 			foreignColumns: [zslPointsStructure.id],
 			name: 'zsl_season_points_structure_fkey',
 		}).onDelete('cascade'),
+		index('IX_zsl_season_points_structure').using(
+			'btree',
+			table.idPointsStructure.asc().nullsLast(),
+		),
 	],
 )
 
@@ -917,7 +942,6 @@ export const zslLevelResult = pgTable(
 			foreignColumns: [record.id],
 			name: 'zsl_level_result_record_fkey',
 		}).onDelete('cascade'),
-		index('IX_zsl_level_result_level').using('btree', table.idLevel.asc().nullsLast()),
 		index('IX_zsl_level_result_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_zsl_level_result_record').using('btree', table.idRecord.asc().nullsLast()),
 		index('IX_zsl_level_result_position').using('btree', table.position.asc().nullsLast()),
@@ -959,7 +983,6 @@ export const zslRoundResult = pgTable(
 			foreignColumns: [user.id],
 			name: 'zsl_round_result_user_fkey',
 		}).onDelete('cascade'),
-		index('IX_zsl_round_result_round').using('btree', table.idRound.asc().nullsLast()),
 		index('IX_zsl_round_result_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_zsl_round_result_position').using('btree', table.position.asc().nullsLast()),
 		index('IX_zsl_round_result_date_created').using(
@@ -1000,7 +1023,6 @@ export const zslSeasonResult = pgTable(
 			foreignColumns: [user.id],
 			name: 'zsl_season_result_user_fkey',
 		}).onDelete('cascade'),
-		index('IX_zsl_season_result_season').using('btree', table.idSeason.asc().nullsLast()),
 		index('IX_zsl_season_result_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_zsl_season_result_position').using('btree', table.position.asc().nullsLast()),
 		index('IX_zsl_season_result_date_created').using(
