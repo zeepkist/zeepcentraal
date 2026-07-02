@@ -2,7 +2,12 @@ import { decompress } from '@napi-rs/lzma/lzma'
 import protobuf from 'protobufjs'
 import { finite } from '../utils/finite'
 import { remapByte } from '../utils/remapByte'
-import type { GhostFrame, Vector3 } from './types'
+import { InputFlags, SoapboxFlags, SurfaceState } from './enums'
+import { surfacesFromState } from './surfaces'
+import type { GhostFrame, Vector2, Vector3 } from './types'
+
+const POSITION_MULTIPLIER = 100_000
+const ROTATION_MULTIPLIER = 100
 
 const root = new protobuf.Root()
 const vector3Type = new protobuf.Type('Vector3')
@@ -13,6 +18,9 @@ const vector3IntType = new protobuf.Type('Vector3Int')
 	.add(new protobuf.Field('x', 1, 'int32'))
 	.add(new protobuf.Field('y', 2, 'int32'))
 	.add(new protobuf.Field('z', 3, 'int32'))
+const vector2IntType = new protobuf.Type('Vector2Int')
+	.add(new protobuf.Field('x', 1, 'int32'))
+	.add(new protobuf.Field('y', 2, 'int32'))
 const cosmeticsType = new protobuf.Type('Cosmetics')
 	.add(new protobuf.Field('zeepkist', 1, 'int32'))
 	.add(new protobuf.Field('hat', 2, 'int32'))
@@ -34,6 +42,14 @@ const initialFrameType = new protobuf.Type('InitialFrame')
 	.add(new protobuf.Field('steering', 4, 'uint32'))
 	.add(new protobuf.Field('inputFlags', 5, 'int32'))
 	.add(new protobuf.Field('soapboxFlags', 6, 'int32'))
+	.add(new protobuf.Field('groundedWheelState', 7, 'int32'))
+	.add(new protobuf.Field('slippingWheelState', 8, 'int32'))
+	.add(new protobuf.Field('surfaceState', 9, 'int32'))
+	.add(new protobuf.Field('localVelocity', 10, 'Vector3Int'))
+	.add(new protobuf.Field('localAngularVelocity', 11, 'Vector3Int'))
+	.add(new protobuf.Field('localGForce', 12, 'Vector2Int'))
+	.add(new protobuf.Field('parkingBlockState', 13, 'bool'))
+	.add(new protobuf.Field('monorailState', 14, 'bool'))
 const deltaFrameType = new protobuf.Type('DeltaFrame')
 	.add(new protobuf.Field('time', 1, 'float'))
 	.add(new protobuf.Field('position', 2, 'Vector3Int'))
@@ -42,31 +58,14 @@ const deltaFrameType = new protobuf.Type('DeltaFrame')
 	.add(new protobuf.Field('steering', 5, 'uint32'))
 	.add(new protobuf.Field('inputFlags', 6, 'int32'))
 	.add(new protobuf.Field('soapboxFlags', 7, 'int32'))
-const statisticsType = new protobuf.Type('GhostStatistics')
-	.add(new protobuf.Field('frameCount', 1, 'int32'))
-	.add(new protobuf.Field('duration', 2, 'float'))
-	.add(new protobuf.Field('distanceTravelled', 3, 'float'))
-	.add(new protobuf.Field('distanceInAir', 4, 'float'))
-	.add(new protobuf.Field('distanceOnGround', 5, 'float'))
-	.add(new protobuf.Field('timeInAir', 6, 'float'))
-	.add(new protobuf.Field('timeOnGround', 7, 'float'))
-	.add(new protobuf.Field('averageSpeed', 8, 'float'))
-	.add(new protobuf.Field('topSpeed', 9, 'float'))
-	.add(new protobuf.Field('armsUpCount', 10, 'int32'))
-	.add(new protobuf.Field('armsUpTime', 11, 'float'))
-	.add(new protobuf.Field('brakeCount', 12, 'int32'))
-	.add(new protobuf.Field('brakeTime', 13, 'float'))
-	.add(new protobuf.Field('turnLeftCount', 14, 'int32'))
-	.add(new protobuf.Field('turnLeftTime', 15, 'float'))
-	.add(new protobuf.Field('turnRightCount', 16, 'int32'))
-	.add(new protobuf.Field('turnRightTime', 17, 'float'))
-	.add(new protobuf.Field('hornCount', 18, 'int32'))
-	.add(new protobuf.Field('hornTime', 19, 'float'))
-	.add(new protobuf.Field('soapTime', 20, 'float'))
-	.add(new protobuf.Field('offroadTime', 21, 'float'))
-	.add(new protobuf.Field('paragliderTime', 22, 'float'))
-	.add(new protobuf.MapField('surfaceDistance', 23, 'string', 'float'))
-	.add(new protobuf.MapField('surfaceTime', 24, 'string', 'float'))
+	.add(new protobuf.Field('groundedWheelState', 8, 'int32'))
+	.add(new protobuf.Field('slippingWheelState', 9, 'int32'))
+	.add(new protobuf.Field('surfaceState', 10, 'int32'))
+	.add(new protobuf.Field('localVelocity', 11, 'Vector3Int'))
+	.add(new protobuf.Field('localAngularVelocity', 12, 'Vector3Int'))
+	.add(new protobuf.Field('localGForce', 13, 'Vector2Int'))
+	.add(new protobuf.Field('parkingBlockState', 14, 'bool'))
+	.add(new protobuf.Field('monorailState', 15, 'bool'))
 const ghostType = new protobuf.Type('Ghost')
 	.add(new protobuf.Field('version', 1, 'int32'))
 	.add(new protobuf.Field('steamId', 2, 'uint64'))
@@ -75,35 +74,51 @@ const ghostType = new protobuf.Type('Ghost')
 	.add(new protobuf.Field('deltaFrames', 5, 'DeltaFrame', 'repeated'))
 	.add(new protobuf.Field('taggedUsername', 6, 'string'))
 	.add(new protobuf.Field('color', 7, 'string'))
-	.add(new protobuf.Field('statistics', 8, 'GhostStatistics'))
 
 root.define('gtr')
 	.add(vector3Type)
 	.add(vector3IntType)
+	.add(vector2IntType)
 	.add(cosmeticsType)
 	.add(initialFrameType)
 	.add(deltaFrameType)
-	.add(statisticsType)
 	.add(ghostType)
 
 export type DecodedProtobufGhost = {
 	version?: number
 	initialFrame?: {
 		position?: Vector3
+		rotation?: Vector3
 		speed?: number
 		steering?: number
 		inputFlags?: number
 		soapboxFlags?: number
+		groundedWheelState?: number
+		slippingWheelState?: number
+		surfaceState?: number
+		localVelocity?: Vector3
+		localAngularVelocity?: Vector3
+		localGForce?: Vector2
+		parkingBlockState?: boolean
+		monorailState?: boolean
 	}
 	deltaFrames?: Array<{
 		time?: number
 		position?: Vector3
+		rotation?: Vector3
 		speed?: number
 		steering?: number
 		inputFlags?: number
 		soapboxFlags?: number
+		groundedWheelState?: number
+		slippingWheelState?: number
+		surfaceState?: number
+		localVelocity?: Vector3
+		localAngularVelocity?: Vector3
+		localGForce?: Vector2
+		parkingBlockState?: boolean
+		monorailState?: boolean
 	}>
-	statistics?: unknown
 }
 
 export async function decodeProtobufGhost(buffer: Buffer): Promise<DecodedProtobufGhost> {
@@ -117,6 +132,7 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 	}
 	const frames: GhostFrame[] = []
 	let position = decoded.initialFrame.position
+	let rotation = decoded.initialFrame.rotation
 	frames.push(frameFromProtobuf(0, position, decoded.initialFrame))
 	for (const deltaFrame of decoded.deltaFrames) {
 		const delta = deltaFrame.position
@@ -124,11 +140,14 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 			throw new Error('Invalid protobuf ghost frame')
 		}
 		position = {
-			x: position.x + delta.x / 100_000,
-			y: position.y + delta.y / 100_000,
-			z: position.z + delta.z / 100_000,
+			x: position.x + delta.x / POSITION_MULTIPLIER,
+			y: position.y + delta.y / POSITION_MULTIPLIER,
+			z: position.z + delta.z / POSITION_MULTIPLIER,
 		}
-		frames.push(frameFromProtobuf(deltaFrame.time, position, deltaFrame))
+		rotation = deltaFrame.rotation
+			? unscaleVector3(deltaFrame.rotation, ROTATION_MULTIPLIER)
+			: rotation
+		frames.push(frameFromProtobuf(deltaFrame.time, position, deltaFrame, rotation))
 	}
 	return frames
 }
@@ -137,29 +156,83 @@ function frameFromProtobuf(
 	time: number,
 	position: Vector3,
 	source: {
+		rotation?: Vector3
 		speed?: number
 		steering?: number
 		inputFlags?: number
 		soapboxFlags?: number
+		groundedWheelState?: number
+		slippingWheelState?: number
+		surfaceState?: number
+		localVelocity?: Vector3
+		localAngularVelocity?: Vector3
+		localGForce?: Vector2
+		parkingBlockState?: boolean
+		monorailState?: boolean
 	},
+	rotation = source.rotation,
 ): GhostFrame {
 	if (!finite(time, position.x, position.y, position.z)) {
 		throw new Error('Invalid protobuf ghost frame')
 	}
 	const inputFlags = source.inputFlags ?? 0
 	const soapboxFlags = source.soapboxFlags ?? 0
+	const groundedWheelState = source.groundedWheelState
+	const slippingWheelState = source.slippingWheelState
+	const surfaceState = source.surfaceState ?? SurfaceState.Tarmac
 	const hasAnyWheel = (soapboxFlags & (8 | 16 | 32 | 64)) !== 0
 	return {
 		time,
 		position,
+		rotation,
 		speed: source.speed,
 		steering: remapByte(source.steering ?? 128, -1, 1),
-		armsUp: (inputFlags & 1) !== 0,
-		braking: (inputFlags & 2) !== 0,
-		horn: (inputFlags & 4) !== 0,
-		soap: (soapboxFlags & 1) !== 0,
-		offroad: (soapboxFlags & 2) !== 0,
-		paraglider: (soapboxFlags & 4) !== 0,
-		inAir: !hasAnyWheel,
+		armsUp: (inputFlags & InputFlags.ArmsUp) !== 0,
+		braking: (inputFlags & InputFlags.Braking) !== 0,
+		horn: (inputFlags & InputFlags.Horn) !== 0,
+		soap: (soapboxFlags & SoapboxFlags.Soap) !== 0,
+		offroad: (soapboxFlags & SoapboxFlags.Offroad) !== 0,
+		paraglider: (soapboxFlags & SoapboxFlags.Paraglider) !== 0,
+		inAir: typeof groundedWheelState === 'number' ? groundedWheelState === 0 : !hasAnyWheel,
+		wheelState: wheelStateFromSoapboxFlags(soapboxFlags),
+		groundedWheelState,
+		slippingWheelState,
+		surfaceState,
+		surfaces: surfacesFromState(surfaceState),
+		localVelocity: source.localVelocity
+			? unscaleVector3(source.localVelocity, POSITION_MULTIPLIER)
+			: undefined,
+		localAngularVelocity: source.localAngularVelocity
+			? unscaleVector3(source.localAngularVelocity, ROTATION_MULTIPLIER)
+			: undefined,
+		localGForce: source.localGForce
+			? unscaleVector2(source.localGForce, POSITION_MULTIPLIER)
+			: undefined,
+		parkingBlock: source.parkingBlockState,
+		monorail: source.monorailState,
 	}
+}
+
+function unscaleVector3(value: Vector3, multiplier: number): Vector3 {
+	return {
+		x: value.x / multiplier,
+		y: value.y / multiplier,
+		z: value.z / multiplier,
+	}
+}
+
+function unscaleVector2(value: Vector2, multiplier: number): Vector2 {
+	return {
+		x: value.x / multiplier,
+		y: value.y / multiplier,
+	}
+}
+
+function wheelStateFromSoapboxFlags(soapboxFlags: number): number {
+	let value = 0
+	if ((soapboxFlags & SoapboxFlags.FrontLeft) !== 0) value |= 1 << 0
+	if ((soapboxFlags & SoapboxFlags.FrontRight) !== 0) value |= 1 << 1
+	if ((soapboxFlags & SoapboxFlags.RearLeft) !== 0) value |= 1 << 2
+	if ((soapboxFlags & SoapboxFlags.RearRight) !== 0) value |= 1 << 3
+	return value
 }

@@ -1,6 +1,5 @@
 import type { DecodedProtobufGhost } from './protobuf'
 import { decodeProtobufGhost, readProtobufFrames } from './protobuf'
-import { validateGhostStatisticPayload } from './statistics'
 import type { ParsedGhost } from './types'
 
 export async function parseV6(buffer: Buffer): Promise<ParsedGhost> {
@@ -14,6 +13,5 @@ export function parseDecodedV6(decoded: DecodedProtobufGhost): ParsedGhost {
 	return {
 		version: 6,
 		frames: readProtobufFrames(decoded),
-		statistics: validateGhostStatisticPayload(decoded.statistics),
 	}
 }

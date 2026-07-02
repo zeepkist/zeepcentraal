@@ -2,11 +2,13 @@ export const KNOWN_SURFACES = ['tarmac', 'grass', 'sand', 'snow', 'ice', 'soap',
 
 export type KnownSurface = (typeof KNOWN_SURFACES)[number]
 
+export type Vector2 = { x: number; y: number }
 export type Vector3 = { x: number; y: number; z: number }
 
 export type GhostFrame = {
 	time: number
 	position: Vector3
+	rotation?: Vector3
 	speed?: number
 	steering?: number
 	armsUp?: boolean
@@ -17,18 +19,36 @@ export type GhostFrame = {
 	paraglider?: boolean
 	inAir?: boolean
 	surface?: string
+	surfaces?: KnownSurface[]
+	wheelState?: number
+	groundedWheelState?: number
+	slippingWheelState?: number
+	surfaceState?: number
+	localVelocity?: Vector3
+	localAngularVelocity?: Vector3
+	localGForce?: Vector2
+	parkingBlock?: boolean
+	monorail?: boolean
 }
 
 export type GhostStatisticValues = {
 	frameCount: number | null
-	duration: number | null
-	distanceTravelled: number | null
+	time: number | null
+	distance: number | null
 	distanceInAir: number | null
 	distanceOnGround: number | null
+	distanceOn1Wheel: number | null
+	distanceOn2Wheels: number | null
+	distanceOn3Wheels: number | null
+	distanceOn4Wheels: number | null
 	timeInAir: number | null
 	timeOnGround: number | null
+	timeOn1Wheel: number | null
+	timeOn2Wheels: number | null
+	timeOn3Wheels: number | null
+	timeOn4Wheels: number | null
 	averageSpeed: number | null
-	topSpeed: number | null
+	maxSpeed: number | null
 	armsUpCount: number | null
 	armsUpTime: number | null
 	brakeCount: number | null
@@ -39,9 +59,18 @@ export type GhostStatisticValues = {
 	turnRightTime: number | null
 	hornCount: number | null
 	hornTime: number | null
-	soapTime: number | null
-	offroadTime: number | null
-	paragliderTime: number | null
+	distanceSlipping: number | null
+	distanceParaglider: number | null
+	distanceOffroadWheels: number | null
+	distanceSoapWheels: number | null
+	distanceOnMonorail: number | null
+	distanceParked: number | null
+	timeSlipping: number | null
+	timeParaglider: number | null
+	timeOffroadWheels: number | null
+	timeSoapWheels: number | null
+	timeOnMonorail: number | null
+	timeParked: number | null
 	distanceOnTarmac: number | null
 	distanceOnGrass: number | null
 	distanceOnSand: number | null
@@ -56,10 +85,12 @@ export type GhostStatisticValues = {
 	timeOnIce: number | null
 	timeOnSoap: number | null
 	timeOnMetal: number | null
-}
-
-export type ParseStatisticsOptions = {
-	deriveLegacy?: boolean
+	averageVelocity: number | null
+	maxVelocity: number | null
+	averageAngularVelocity: number | null
+	maxAngularVelocity: number | null
+	averageGforce: number | null
+	maxGforce: number | null
 }
 
 export type ParsedGhost = {

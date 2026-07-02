@@ -316,6 +316,13 @@
 			"when": 1782954810403,
 			"tag": "0045_glossy_robin_chapel",
 			"breakpoints": true
+		},
+		{
+			"idx": 46,
+			"version": "7",
+			"when": 1783029334748,
+			"tag": "0046_sticky_shadowcat",
+			"breakpoints": true
 		}
 	]
 }

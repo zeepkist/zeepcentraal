@@ -2,7 +2,7 @@ import { gunzipSync } from 'node:zlib'
 import { isGzip } from '../utils/isGzip'
 import { decodeProtobufGhost } from './protobuf'
 import { calculateGhostStatistics } from './statistics'
-import type { GhostStatisticValues, ParsedGhost, ParseStatisticsOptions } from './types'
+import type { GhostStatisticValues, ParsedGhost } from './types'
 import { parseV1 } from './v1'
 import { parseV2 } from './v2'
 import { parseV3 } from './v3'
@@ -10,8 +10,20 @@ import { parseV4 } from './v4'
 import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
 
-export { calculateGhostStatistics, validateGhostStatisticPayload } from './statistics'
-export type { GhostFrame, GhostStatisticValues, ParsedGhost, ParseStatisticsOptions } from './types'
+export {
+	GroundedWheelState,
+	InputFlags,
+	SlippingWheelState,
+	SoapboxFlags,
+	SurfaceState,
+	WheelFlags,
+} from './enums'
+export {
+	calculateGhostStatistics,
+	emptyGhostStatistics,
+	validateGhostStatisticPayload,
+} from './statistics'
+export type { GhostFrame, GhostStatisticValues, ParsedGhost } from './types'
 export { parseV1 } from './v1'
 export { parseV2 } from './v2'
 export { parseV3 } from './v3'
@@ -48,21 +60,13 @@ export async function parseGhost(buffer: Buffer): Promise<ParsedGhost> {
 
 export async function parseGhostStatistics(
 	buffer: Buffer,
-	options?: ParseStatisticsOptions,
 ): Promise<GhostStatisticValues | undefined> {
 	const ghost = await parseGhost(buffer)
-	if (ghost.version === 6) {
-		return ghost.statistics
-	}
-	if (options?.deriveLegacy) {
-		return calculateGhostStatistics(ghost.frames)
-	}
-	return undefined
+	return calculateGhostStatistics(ghost.frames)
 }
 
 export async function parseGhostStatisticsFromBase64(
 	ghostData: string,
-	options?: ParseStatisticsOptions,
 ): Promise<GhostStatisticValues | undefined> {
-	return parseGhostStatistics(Buffer.from(ghostData, 'base64'), options)
+	return parseGhostStatistics(Buffer.from(ghostData, 'base64'))
 }

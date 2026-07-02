@@ -72,14 +72,13 @@ describe('ghost statistics backfill parser', () => {
 				{ time: 0, position: [0, 0, 0] },
 				{ time: 1, position: [10, 0, 0] },
 			]),
-			{ deriveLegacy: true },
 		)
 
 		expect(stats?.frameCount).toBe(2)
-		expect(stats?.duration).toBe(1)
-		expect(stats?.distanceTravelled).toBe(10)
+		expect(stats?.time).toBe(1)
+		expect(stats?.distance).toBe(10)
 		expect(stats?.averageSpeed).toBe(36)
-		expect(stats?.topSpeed).toBe(36)
+		expect(stats?.maxSpeed).toBe(36)
 		expect(stats?.armsUpCount).toBeNull()
 	})
 
@@ -91,15 +90,14 @@ describe('ghost statistics backfill parser', () => {
 					{ time: 1, position: [1, 0, 0] },
 				]),
 			),
-			{ deriveLegacy: true },
 		)
 
 		expect(stats?.frameCount).toBe(2)
-		expect(stats?.distanceTravelled).toBe(1)
+		expect(stats?.distance).toBe(1)
 	})
 
 	test('parses V3 input transition statistics', async () => {
-		const stats = await parseGhostStatistics(createV3Ghost(), { deriveLegacy: true })
+		const stats = await parseGhostStatistics(createV3Ghost())
 
 		expect(stats?.armsUpCount).toBe(1)
 		expect(stats?.armsUpTime).toBe(1)
@@ -114,11 +112,10 @@ describe('ghost statistics backfill parser', () => {
 				{ time: 0, position: [0, 0, 0] },
 				{ time: 1, position: [1_000, 0, 0] },
 			]),
-			{ deriveLegacy: true },
 		)
 
-		expect(stats?.distanceTravelled).toBe(0)
+		expect(stats?.distance).toBe(0)
 		expect(stats?.averageSpeed).toBe(500)
-		expect(stats?.topSpeed).toBe(500)
+		expect(stats?.maxSpeed).toBe(500)
 	})
 })

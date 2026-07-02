@@ -14,10 +14,16 @@ export const taskDefinitions = {
 	backfillRecordGhostStatistics: {
 		schema: z.looseObject({
 			ids: z.array(z.number().int().positive()).min(1).optional(),
-			offset: z.number().int().nonnegative().optional(),
 			limit: z.number().int().positive().max(500).optional(),
 		}),
 		compatible: true,
+		maxAttempts: 1,
+	},
+	backfillRecordGhostStatisticsBatch: {
+		schema: z.looseObject({
+			ids: z.array(z.number().int().positive()).min(1).max(500),
+		}),
+		compatible: false,
 		maxAttempts: 1,
 	},
 	scanWorkshopBatch: {

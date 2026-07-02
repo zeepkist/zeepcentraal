@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { recordMedia, recordStatistic } from '../schema'
 
@@ -33,14 +33,22 @@ export async function upsertRecordStatistic(input: RecordStatisticInput): Promis
 			target: recordStatistic.idRecord,
 			set: {
 				frameCount: input.frameCount,
-				duration: input.duration,
-				distanceTravelled: input.distanceTravelled,
+				time: input.time,
+				distance: input.distance,
 				distanceInAir: input.distanceInAir,
 				distanceOnGround: input.distanceOnGround,
+				distanceOn1Wheel: input.distanceOn1Wheel,
+				distanceOn2Wheels: input.distanceOn2Wheels,
+				distanceOn3Wheels: input.distanceOn3Wheels,
+				distanceOn4Wheels: input.distanceOn4Wheels,
 				timeInAir: input.timeInAir,
 				timeOnGround: input.timeOnGround,
+				timeOn1Wheel: input.timeOn1Wheel,
+				timeOn2Wheels: input.timeOn2Wheels,
+				timeOn3Wheels: input.timeOn3Wheels,
+				timeOn4Wheels: input.timeOn4Wheels,
 				averageSpeed: input.averageSpeed,
-				topSpeed: input.topSpeed,
+				maxSpeed: input.maxSpeed,
 				armsUpCount: input.armsUpCount,
 				armsUpTime: input.armsUpTime,
 				brakeCount: input.brakeCount,
@@ -51,9 +59,18 @@ export async function upsertRecordStatistic(input: RecordStatisticInput): Promis
 				turnRightTime: input.turnRightTime,
 				hornCount: input.hornCount,
 				hornTime: input.hornTime,
-				soapTime: input.soapTime,
-				offroadTime: input.offroadTime,
-				paragliderTime: input.paragliderTime,
+				distanceSlipping: input.distanceSlipping,
+				distanceParaglider: input.distanceParaglider,
+				distanceOffroadWheels: input.distanceOffroadWheels,
+				distanceSoapWheels: input.distanceSoapWheels,
+				distanceOnMonorail: input.distanceOnMonorail,
+				distanceParked: input.distanceParked,
+				timeSlipping: input.timeSlipping,
+				timeParaglider: input.timeParaglider,
+				timeOffroadWheels: input.timeOffroadWheels,
+				timeSoapWheels: input.timeSoapWheels,
+				timeOnMonorail: input.timeOnMonorail,
+				timeParked: input.timeParked,
 				distanceOnTarmac: input.distanceOnTarmac,
 				distanceOnGrass: input.distanceOnGrass,
 				distanceOnSand: input.distanceOnSand,
@@ -68,25 +85,34 @@ export async function upsertRecordStatistic(input: RecordStatisticInput): Promis
 				timeOnIce: input.timeOnIce,
 				timeOnSoap: input.timeOnSoap,
 				timeOnMetal: input.timeOnMetal,
+				averageVelocity: input.averageVelocity,
+				maxVelocity: input.maxVelocity,
+				averageAngularVelocity: input.averageAngularVelocity,
+				maxAngularVelocity: input.maxAngularVelocity,
+				averageGforce: input.averageGforce,
+				maxGforce: input.maxGforce,
 				dateUpdated: now,
 			},
 		})
 }
 
 export async function getRecordMediaForStatisticBackfill({
-	offset = 0,
 	limit,
 	ids,
+	afterId,
 }: {
-	offset?: number
 	limit: number
 	ids?: number[]
+	afterId?: number
 }) {
 	const conditions = [sql`${recordMedia.ghostUrl} IS NOT NULL`]
 	if (ids && ids.length > 0) {
 		conditions.push(inArray(recordMedia.idRecord, ids))
 	} else {
 		conditions.push(isNull(recordStatistic.idRecord))
+		if (afterId !== undefined) {
+			conditions.push(gt(recordMedia.idRecord, afterId))
+		}
 	}
 
 	return db
@@ -98,6 +124,5 @@ export async function getRecordMediaForStatisticBackfill({
 		.leftJoin(recordStatistic, eq(recordStatistic.idRecord, recordMedia.idRecord))
 		.where(and(...conditions))
 		.orderBy(asc(recordMedia.idRecord))
-		.offset(offset)
 		.limit(limit)
 }
