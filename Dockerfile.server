@@ -24,7 +24,9 @@ RUN set -eux; \
 		package_dir="$(dirname "$package_json")"; \
 		cp -R "$package_dir" "/native-node_modules/@napi-rs/$(basename "$package_dir")"; \
 		cp "$package_dir"/*.node /native-node_modules/@napi-rs/lzma/; \
+		cp "$package_dir"/*.node /native-node_modules/@napi-rs/lzma/lzma.native.node; \
 	done; \
+	test -f /native-node_modules/@napi-rs/lzma/lzma.native.node; \
 	test -n "$(find /native-node_modules/@napi-rs/lzma -maxdepth 1 -type f -name 'lzma.linux-*-gnu.node' -print -quit)"; \
 	test -n "$(find /native-node_modules/@napi-rs -maxdepth 1 -type d -name 'lzma-linux-*-gnu' -print -quit)"
 
@@ -38,6 +40,7 @@ COPY dist/zeepcentraal-server zeepcentraal-server
 COPY --from=native-deps /native-node_modules node_modules
 
 ENV NODE_ENV=production
+ENV NAPI_RS_NATIVE_LIBRARY_PATH=/app/node_modules/@napi-rs/lzma/lzma.native.node
 
 EXPOSE 3000
 
