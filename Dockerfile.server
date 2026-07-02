@@ -21,8 +21,11 @@ RUN set -eux; \
 	cp -R "$(dirname "$lzma_package")" /native-node_modules/@napi-rs/lzma; \
 	cp -R "$(dirname "$xxhash_package")" /native-node_modules/xxhash-addon; \
 	for package_json in $(find . -path '*/node_modules/@napi-rs/lzma-linux-*-gnu/package.json' -print); do \
-		cp -R "$(dirname "$package_json")" "/native-node_modules/@napi-rs/$(basename "$(dirname "$package_json")")"; \
+		package_dir="$(dirname "$package_json")"; \
+		cp -R "$package_dir" "/native-node_modules/@napi-rs/$(basename "$package_dir")"; \
+		cp "$package_dir"/*.node /native-node_modules/@napi-rs/lzma/; \
 	done; \
+	test -n "$(find /native-node_modules/@napi-rs/lzma -maxdepth 1 -type f -name 'lzma.linux-*-gnu.node' -print -quit)"; \
 	test -n "$(find /native-node_modules/@napi-rs -maxdepth 1 -type d -name 'lzma-linux-*-gnu' -print -quit)"
 
 FROM gcr.io/distroless/base
