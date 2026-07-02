@@ -165,32 +165,22 @@ export const levelMetadata = pgTable(
 	],
 )
 
-export const levelPoints = pgTable(
-	'level_points',
-	{
-		idLevel: integer('id_level').primaryKey(),
-		points: integer().notNull(),
-		rating: real().notNull().default(DEFAULT_VOTE_RATING),
-		lengthModifier: real('modifier_length').notNull().default(1.0),
-		competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
-		ratingModifier: real('modifier_rating').notNull().default(1.0),
-		popularityModifier: real('modifier_popularity').notNull().default(1.0),
-		cutPenalty: real('cut_penalty').notNull().default(1.0),
-		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
-			.notNull()
-			.defaultNow(),
-		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
-			() => new Date().toISOString(),
-		),
-	},
-	(table) => [
-		foreignKey({
-			columns: [table.idLevel],
-			foreignColumns: [level.id],
-			name: 'level_points_level_fkey',
-		}).onDelete('cascade'),
-	],
-)
+export const levelPoints = pgTable('level_points', {
+	idLevel: integer('id_level').primaryKey(),
+	points: integer().notNull(),
+	rating: real().notNull().default(DEFAULT_VOTE_RATING),
+	lengthModifier: real('modifier_length').notNull().default(1.0),
+	competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
+	ratingModifier: real('modifier_rating').notNull().default(1.0),
+	popularityModifier: real('modifier_popularity').notNull().default(1.0),
+	cutPenalty: real('cut_penalty').notNull().default(1.0),
+	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
+		new Date().toISOString(),
+	),
+})
 
 export const levelPointsHistory = pgTable(
 	'level_points_history',
@@ -527,71 +517,54 @@ export const recordMedia = pgTable(
 			() => new Date().toISOString(),
 		),
 	},
-	(table) => [
-		foreignKey({
-			columns: [table.idRecord],
-			foreignColumns: [record.id],
-			name: 'media_record_fkey',
-		}).onDelete('cascade'),
-		index('IX_media_record').using('btree', table.idRecord.asc().nullsLast()),
-	],
+	(table) => [index('IX_media_record').using('btree', table.idRecord.asc().nullsLast())],
 )
 
-export const recordStatistic = pgTable(
-	'record_statistic',
-	{
-		idRecord: integer('id_record').primaryKey(),
-		frameCount: integer('frame_count'),
-		duration: real(),
-		distanceTravelled: real('distance_travelled'),
-		distanceInAir: real('distance_in_air'),
-		distanceOnGround: real('distance_on_ground'),
-		timeInAir: real('time_in_air'),
-		timeOnGround: real('time_on_ground'),
-		averageSpeed: real('average_speed'),
-		topSpeed: real('top_speed'),
-		armsUpCount: integer('arms_up_count'),
-		armsUpTime: real('arms_up_time'),
-		brakeCount: integer('brake_count'),
-		brakeTime: real('brake_time'),
-		turnLeftCount: integer('turn_left_count'),
-		turnLeftTime: real('turn_left_time'),
-		turnRightCount: integer('turn_right_count'),
-		turnRightTime: real('turn_right_time'),
-		hornCount: integer('horn_count'),
-		hornTime: real('horn_time'),
-		soapTime: real('soap_time'),
-		offroadTime: real('offroad_time'),
-		paragliderTime: real('paraglider_time'),
-		distanceOnTarmac: real('distance_on_tarmac'),
-		distanceOnGrass: real('distance_on_grass'),
-		distanceOnSand: real('distance_on_sand'),
-		distanceOnSnow: real('distance_on_snow'),
-		distanceOnIce: real('distance_on_ice'),
-		distanceOnSoap: real('distance_on_soap'),
-		distanceOnMetal: real('distance_on_metal'),
-		timeOnTarmac: real('time_on_tarmac'),
-		timeOnGrass: real('time_on_grass'),
-		timeOnSand: real('time_on_sand'),
-		timeOnSnow: real('time_on_snow'),
-		timeOnIce: real('time_on_ice'),
-		timeOnSoap: real('time_on_soap'),
-		timeOnMetal: real('time_on_metal'),
-		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
-			.notNull()
-			.defaultNow(),
-		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
-			() => new Date().toISOString(),
-		),
-	},
-	(table) => [
-		foreignKey({
-			columns: [table.idRecord],
-			foreignColumns: [record.id],
-			name: 'record_statistic_record_fkey',
-		}).onDelete('cascade'),
-	],
-)
+export const recordStatistic = pgTable('record_statistic', {
+	idRecord: integer('id_record').primaryKey(),
+	frameCount: integer('frame_count'),
+	duration: real(),
+	distanceTravelled: real('distance_travelled'),
+	distanceInAir: real('distance_in_air'),
+	distanceOnGround: real('distance_on_ground'),
+	timeInAir: real('time_in_air'),
+	timeOnGround: real('time_on_ground'),
+	averageSpeed: real('average_speed'),
+	topSpeed: real('top_speed'),
+	armsUpCount: integer('arms_up_count'),
+	armsUpTime: real('arms_up_time'),
+	brakeCount: integer('brake_count'),
+	brakeTime: real('brake_time'),
+	turnLeftCount: integer('turn_left_count'),
+	turnLeftTime: real('turn_left_time'),
+	turnRightCount: integer('turn_right_count'),
+	turnRightTime: real('turn_right_time'),
+	hornCount: integer('horn_count'),
+	hornTime: real('horn_time'),
+	soapTime: real('soap_time'),
+	offroadTime: real('offroad_time'),
+	paragliderTime: real('paraglider_time'),
+	distanceOnTarmac: real('distance_on_tarmac'),
+	distanceOnGrass: real('distance_on_grass'),
+	distanceOnSand: real('distance_on_sand'),
+	distanceOnSnow: real('distance_on_snow'),
+	distanceOnIce: real('distance_on_ice'),
+	distanceOnSoap: real('distance_on_soap'),
+	distanceOnMetal: real('distance_on_metal'),
+	timeOnTarmac: real('time_on_tarmac'),
+	timeOnGrass: real('time_on_grass'),
+	timeOnSand: real('time_on_sand'),
+	timeOnSnow: real('time_on_snow'),
+	timeOnIce: real('time_on_ice'),
+	timeOnSoap: real('time_on_soap'),
+	timeOnMetal: real('time_on_metal'),
+	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(() =>
+		new Date().toISOString(),
+	),
+})
 
 export const user = pgTable(
 	'user',

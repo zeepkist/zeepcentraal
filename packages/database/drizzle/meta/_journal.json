@@ -302,6 +302,13 @@
 			"when": 1782944892330,
 			"tag": "0043_romantic_imperial_guard",
 			"breakpoints": true
+		},
+		{
+			"idx": 44,
+			"version": "7",
+			"when": 1782954259170,
+			"tag": "0044_chemical_sharon_ventura",
+			"breakpoints": true
 		}
 	]
 }
