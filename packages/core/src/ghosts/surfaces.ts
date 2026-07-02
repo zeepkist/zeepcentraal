@@ -1,5 +1,5 @@
 import { trace } from '@opentelemetry/api'
-import type { KnownSurface, ParseStatisticsOptions } from './types'
+import type { KnownSurface } from './types'
 import { KNOWN_SURFACES } from './types'
 
 export function normalizeSurface(surface: string): KnownSurface {
@@ -30,7 +30,6 @@ export function addSurfaceValues(
 	source: unknown,
 	field: string,
 	toNumber: (value: unknown, field: string) => number | null,
-	options?: ParseStatisticsOptions,
 ) {
 	if (source === undefined || source === null) {
 		return

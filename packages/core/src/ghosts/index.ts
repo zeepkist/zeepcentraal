@@ -19,10 +19,7 @@ export { parseV4 } from './v4'
 export { parseV5 } from './v5'
 export { parseV6 } from './v6'
 
-export async function parseGhost(
-	buffer: Buffer,
-	options?: ParseStatisticsOptions,
-): Promise<ParsedGhost> {
+export async function parseGhost(buffer: Buffer): Promise<ParsedGhost> {
 	const payload = isGzip(buffer) ? gunzipSync(buffer) : buffer
 	const rawVersion = payload.length >= 4 ? payload.readInt32LE(0) : 0
 	switch (rawVersion) {
@@ -43,7 +40,7 @@ export async function parseGhost(
 		case 5:
 			return parseDecodedV5(decoded)
 		case 6:
-			return parseDecodedV6(decoded, options)
+			return parseDecodedV6(decoded)
 		default:
 			throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
 	}
@@ -53,7 +50,7 @@ export async function parseGhostStatistics(
 	buffer: Buffer,
 	options?: ParseStatisticsOptions,
 ): Promise<GhostStatisticValues | undefined> {
-	const ghost = await parseGhost(buffer, options)
+	const ghost = await parseGhost(buffer)
 	if (ghost.version === 6) {
 		return ghost.statistics
 	}

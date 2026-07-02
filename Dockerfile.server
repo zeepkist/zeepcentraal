@@ -1,3 +1,30 @@
+FROM oven/bun:1.3.14-debian AS native-deps
+
+WORKDIR /app
+
+COPY package.json bun.lock bunfig.toml ./
+COPY packages/core/package.json packages/core/package.json
+COPY packages/database/package.json packages/database/package.json
+COPY packages/graphql/package.json packages/graphql/package.json
+COPY packages/import-zsl/package.json packages/import-zsl/package.json
+COPY packages/jobs/package.json packages/jobs/package.json
+COPY packages/server/package.json packages/server/package.json
+COPY packages/workshop/package.json packages/workshop/package.json
+
+RUN HUSKY=0 bun install --frozen-lockfile
+RUN set -eux; \
+	mkdir -p /native-node_modules/@napi-rs; \
+	lzma_package="$(find . -path '*/node_modules/@napi-rs/lzma/package.json' -print -quit)"; \
+	xxhash_package="$(find . -path '*/node_modules/xxhash-addon/package.json' -print -quit)"; \
+	test -n "$lzma_package"; \
+	test -n "$xxhash_package"; \
+	cp -R "$(dirname "$lzma_package")" /native-node_modules/@napi-rs/lzma; \
+	cp -R "$(dirname "$xxhash_package")" /native-node_modules/xxhash-addon; \
+	for package_json in $(find . -path '*/node_modules/@napi-rs/lzma-linux-*-gnu/package.json' -print); do \
+		cp -R "$(dirname "$package_json")" "/native-node_modules/@napi-rs/$(basename "$(dirname "$package_json")")"; \
+	done; \
+	test -n "$(find /native-node_modules/@napi-rs -maxdepth 1 -type d -name 'lzma-linux-*-gnu' -print -quit)"
+
 FROM gcr.io/distroless/base
 
 LABEL org.opencontainers.image.description="ZeepCentraal API server."
@@ -5,6 +32,7 @@ LABEL org.opencontainers.image.description="ZeepCentraal API server."
 WORKDIR /app
 
 COPY dist/zeepcentraal-server zeepcentraal-server
+COPY --from=native-deps /native-node_modules node_modules
 
 ENV NODE_ENV=production
 

@@ -2,12 +2,7 @@ import { addTransition } from '../utils/addTransition'
 import { distance } from '../utils/distance'
 import { SPEED_CAP_KMH, TURN_DEADZONE } from './constants'
 import { addSurfaceValues, emptySurfaceValues } from './surfaces'
-import type {
-	GhostFrame,
-	GhostStatisticValues,
-	KnownSurface,
-	ParseStatisticsOptions,
-} from './types'
+import type { GhostFrame, GhostStatisticValues, KnownSurface } from './types'
 
 function toNumber(value: unknown, field: string): number | null {
 	if (value === undefined || value === null) {
@@ -27,10 +22,7 @@ function toCount(value: unknown, field: string): number | null {
 	return number
 }
 
-export function validateGhostStatisticPayload(
-	payload: unknown,
-	options?: ParseStatisticsOptions,
-): GhostStatisticValues {
+export function validateGhostStatisticPayload(payload: unknown): GhostStatisticValues {
 	if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
 		throw new Error('Invalid ghost statistic payload')
 	}
@@ -42,15 +34,8 @@ export function validateGhostStatisticPayload(
 		source.surfaceDistance ?? source.surface_distance,
 		'surfaceDistance',
 		toNumber,
-		options,
 	)
-	addSurfaceValues(
-		time,
-		source.surfaceTime ?? source.surface_time,
-		'surfaceTime',
-		toNumber,
-		options,
-	)
+	addSurfaceValues(time, source.surfaceTime ?? source.surface_time, 'surfaceTime', toNumber)
 	return {
 		frameCount: toCount(source.frameCount ?? source.frame_count, 'frameCount'),
 		duration: toNumber(source.duration, 'duration'),
