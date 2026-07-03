@@ -50,6 +50,9 @@ const initialFrameType = new protobuf.Type('InitialFrame')
 	.add(new protobuf.Field('localGForce', 12, 'Vector2Int'))
 	.add(new protobuf.Field('parkingBlockState', 13, 'bool'))
 	.add(new protobuf.Field('monorailState', 14, 'bool'))
+	.add(new protobuf.Field('ragdollState', 15, 'bool'))
+	.add(new protobuf.Field('ragdollPosition', 16, 'Vector3Int'))
+	.add(new protobuf.Field('ragdollRotation', 17, 'Vector3Int'))
 const deltaFrameType = new protobuf.Type('DeltaFrame')
 	.add(new protobuf.Field('time', 1, 'float'))
 	.add(new protobuf.Field('position', 2, 'Vector3Int'))
@@ -66,6 +69,9 @@ const deltaFrameType = new protobuf.Type('DeltaFrame')
 	.add(new protobuf.Field('localGForce', 13, 'Vector2Int'))
 	.add(new protobuf.Field('parkingBlockState', 14, 'bool'))
 	.add(new protobuf.Field('monorailState', 15, 'bool'))
+	.add(new protobuf.Field('ragdollState', 16, 'bool'))
+	.add(new protobuf.Field('ragdollPosition', 17, 'Vector3Int'))
+	.add(new protobuf.Field('ragdollRotation', 18, 'Vector3Int'))
 const ghostType = new protobuf.Type('Ghost')
 	.add(new protobuf.Field('version', 1, 'int32'))
 	.add(new protobuf.Field('steamId', 2, 'uint64'))
@@ -101,6 +107,9 @@ export type DecodedProtobufGhost = {
 		localGForce?: Vector2
 		parkingBlockState?: boolean
 		monorailState?: boolean
+		ragdollState?: boolean
+		ragdollPosition?: Vector3
+		ragdollRotation?: Vector3
 	}
 	deltaFrames?: Array<{
 		time?: number
@@ -118,6 +127,9 @@ export type DecodedProtobufGhost = {
 		localGForce?: Vector2
 		parkingBlockState?: boolean
 		monorailState?: boolean
+		ragdollState?: boolean
+		ragdollPosition?: Vector3
+		ragdollRotation?: Vector3
 	}>
 }
 
@@ -133,7 +145,20 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 	const frames: GhostFrame[] = []
 	let position = decoded.initialFrame.position
 	let rotation = decoded.initialFrame.rotation
-	frames.push(frameFromProtobuf(0, position, decoded.initialFrame))
+	let ragdollActive = decoded.initialFrame.ragdollState === true
+	let ragdollPosition = ragdollActive
+		? requireUnscaledVector3(decoded.initialFrame.ragdollPosition, POSITION_MULTIPLIER)
+		: undefined
+	let ragdollRotation = ragdollActive
+		? requireUnscaledVector3(decoded.initialFrame.ragdollRotation, ROTATION_MULTIPLIER)
+		: undefined
+	frames.push(
+		frameFromProtobuf(0, position, {
+			...decoded.initialFrame,
+			ragdollPosition,
+			ragdollRotation,
+		}),
+	)
 	for (const deltaFrame of decoded.deltaFrames) {
 		const delta = deltaFrame.position
 		if (!delta || typeof deltaFrame.time !== 'number') {
@@ -147,7 +172,38 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 		rotation = deltaFrame.rotation
 			? unscaleVector3(deltaFrame.rotation, ROTATION_MULTIPLIER)
 			: rotation
-		frames.push(frameFromProtobuf(deltaFrame.time, position, deltaFrame, rotation))
+		if (ragdollActive && deltaFrame.ragdollState === false) {
+			throw new Error('Invalid protobuf ghost ragdoll state')
+		}
+		if (deltaFrame.ragdollState === true) {
+			const deltaRagdollPosition = requireUnscaledVector3(
+				deltaFrame.ragdollPosition,
+				POSITION_MULTIPLIER,
+			)
+			const deltaRagdollRotation = requireUnscaledVector3(
+				deltaFrame.ragdollRotation,
+				ROTATION_MULTIPLIER,
+			)
+			ragdollPosition = ragdollActive
+				? addVector3(ragdollPosition, deltaRagdollPosition)
+				: deltaRagdollPosition
+			ragdollRotation = ragdollActive
+				? addVector3(ragdollRotation, deltaRagdollRotation)
+				: deltaRagdollRotation
+			ragdollActive = true
+		}
+		frames.push(
+			frameFromProtobuf(
+				deltaFrame.time,
+				position,
+				{
+					...deltaFrame,
+					ragdollPosition: ragdollActive ? ragdollPosition : undefined,
+					ragdollRotation: ragdollActive ? ragdollRotation : undefined,
+				},
+				rotation,
+			),
+		)
 	}
 	return frames
 }
@@ -169,6 +225,9 @@ function frameFromProtobuf(
 		localGForce?: Vector2
 		parkingBlockState?: boolean
 		monorailState?: boolean
+		ragdollState?: boolean
+		ragdollPosition?: Vector3
+		ragdollRotation?: Vector3
 	},
 	rotation = source.rotation,
 ): GhostFrame {
@@ -210,6 +269,23 @@ function frameFromProtobuf(
 			: undefined,
 		parkingBlock: source.parkingBlockState,
 		monorail: source.monorailState,
+		ragdoll: source.ragdollState,
+		ragdollPosition: source.ragdollPosition,
+		ragdollRotation: source.ragdollRotation,
+	}
+}
+
+function requireUnscaledVector3(value: Vector3 | undefined, multiplier: number): Vector3 {
+	if (!value) throw new Error('Invalid protobuf ghost ragdoll frame')
+	return unscaleVector3(value, multiplier)
+}
+
+function addVector3(left: Vector3 | undefined, right: Vector3): Vector3 {
+	if (!left) throw new Error('Invalid protobuf ghost ragdoll state')
+	return {
+		x: left.x + right.x,
+		y: left.y + right.y,
+		z: left.z + right.z,
 	}
 }
 

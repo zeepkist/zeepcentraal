@@ -18,11 +18,7 @@ export {
 	SurfaceState,
 	WheelFlags,
 } from './enums'
-export {
-	calculateGhostStatistics,
-	emptyGhostStatistics,
-	validateGhostStatisticPayload,
-} from './statistics'
+export { calculateGhostStatistics, emptyGhostStatistics } from './statistics'
 export type { GhostFrame, GhostStatisticValues, ParsedGhost } from './types'
 export { parseV1 } from './v1'
 export { parseV2 } from './v2'

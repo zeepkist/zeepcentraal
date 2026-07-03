@@ -1,36 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { calculateGhostStatistics, SurfaceState, validateGhostStatisticPayload } from './index'
+import { calculateGhostStatistics, SurfaceState } from './index'
 import { parseDecodedV6 } from './v6'
-
-describe('ghost statistic validation', () => {
-	test('maps known surface distance and time to typed fields', () => {
-		const stats = validateGhostStatisticPayload({
-			frameCount: 2,
-			timeInAir: 1,
-			timeOnGround: 2,
-			maxSpeed: 500,
-			surfaceDistance: { sand: 10 },
-			surfaceTime: { sand: 2 },
-		})
-
-		expect(stats.frameCount).toBe(2)
-		expect(stats.timeInAir).toBe(1)
-		expect(stats.timeOnGround).toBe(2)
-		expect(stats.maxSpeed).toBe(500)
-		expect(stats.distanceOnSand).toBe(10)
-		expect(stats.timeOnSand).toBe(2)
-	})
-
-	test('maps unknown surfaces to tarmac', () => {
-		const stats = validateGhostStatisticPayload({
-			surfaceDistance: { lava: 3 },
-			surfaceTime: { lava: 4 },
-		})
-
-		expect(stats.distanceOnTarmac).toBe(3)
-		expect(stats.timeOnTarmac).toBe(4)
-	})
-})
 
 describe('V6 ghost frame parsing', () => {
 	test('maps V6 state ProtoMembers and unscales compressed vectors', () => {
@@ -83,9 +53,102 @@ describe('V6 ghost frame parsing', () => {
 		expect(ghost.frames[1]?.position).toEqual({ x: 1, y: 0, z: 0 })
 		expect(ghost.frames[1]?.rotation).toEqual({ x: 1, y: 2, z: 3 })
 	})
+
+	test('reconstructs one-way V6 ragdoll frames', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				rotation: { x: 0, y: 0, z: 0 },
+				ragdollState: false,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					ragdollState: true,
+					ragdollPosition: { x: 300_000, y: 0, z: 0 },
+					ragdollRotation: { x: 100, y: 200, z: 300 },
+				},
+				{
+					time: 2,
+					position: { x: 100_000, y: 0, z: 0 },
+					ragdollState: true,
+					ragdollPosition: { x: 100_000, y: 0, z: 0 },
+					ragdollRotation: { x: 100, y: 0, z: 0 },
+				},
+			],
+		})
+
+		expect(ghost.frames[0]?.ragdoll).toBe(false)
+		expect(ghost.frames[1]?.ragdollPosition).toEqual({ x: 3, y: 0, z: 0 })
+		expect(ghost.frames[1]?.ragdollRotation).toEqual({ x: 1, y: 2, z: 3 })
+		expect(ghost.frames[2]?.ragdollPosition).toEqual({ x: 4, y: 0, z: 0 })
+		expect(ghost.frames[2]?.ragdollRotation).toEqual({ x: 2, y: 2, z: 3 })
+	})
+
+	test('rejects V6 ragdoll true to false transition', () => {
+		expect(() =>
+			parseDecodedV6({
+				version: 6,
+				initialFrame: {
+					position: { x: 0, y: 0, z: 0 },
+					rotation: { x: 0, y: 0, z: 0 },
+					ragdollState: true,
+					ragdollPosition: { x: 0, y: 0, z: 0 },
+					ragdollRotation: { x: 0, y: 0, z: 0 },
+				},
+				deltaFrames: [
+					{
+						time: 1,
+						position: { x: 100_000, y: 0, z: 0 },
+						ragdollState: false,
+					},
+				],
+			}),
+		).toThrow('Invalid protobuf ghost ragdoll state')
+	})
+
+	test('rejects active V6 ragdoll frame without transform data', () => {
+		expect(() =>
+			parseDecodedV6({
+				version: 6,
+				initialFrame: {
+					position: { x: 0, y: 0, z: 0 },
+					rotation: { x: 0, y: 0, z: 0 },
+					ragdollState: false,
+				},
+				deltaFrames: [
+					{
+						time: 1,
+						position: { x: 100_000, y: 0, z: 0 },
+						ragdollState: true,
+					},
+				],
+			}),
+		).toThrow('Invalid protobuf ghost ragdoll frame')
+	})
 })
 
 describe('ghost statistics calculation', () => {
+	test('maps unknown legacy frame surface to tarmac', () => {
+		const stats = calculateGhostStatistics([
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				surface: 'lava',
+			},
+			{
+				time: 1,
+				position: { x: 10, y: 0, z: 0 },
+				surface: 'lava',
+			},
+		])
+
+		expect(stats.distanceOnTarmac).toBe(10)
+		expect(stats.timeOnTarmac).toBe(1)
+	})
+
 	test('splits V6 mixed surface distance and records state distances', () => {
 		const stats = calculateGhostStatistics([
 			{
@@ -132,5 +195,30 @@ describe('ghost statistics calculation', () => {
 		expect(stats.maxAngularVelocity).toBe(3)
 		expect(stats.averageGforce).toBe(1)
 		expect(stats.maxGforce).toBe(2)
+	})
+
+	test('calculates ragdoll distance and time from ragdoll positions', () => {
+		const stats = calculateGhostStatistics([
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				ragdoll: false,
+			},
+			{
+				time: 1,
+				position: { x: 10, y: 0, z: 0 },
+				ragdoll: true,
+				ragdollPosition: { x: 20, y: 0, z: 0 },
+			},
+			{
+				time: 2,
+				position: { x: 20, y: 0, z: 0 },
+				ragdoll: true,
+				ragdollPosition: { x: 25, y: 0, z: 0 },
+			},
+		])
+
+		expect(stats.distanceRagdoll).toBe(5)
+		expect(stats.timeRagdoll).toBe(1)
 	})
 })

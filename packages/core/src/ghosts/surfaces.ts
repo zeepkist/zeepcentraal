@@ -1,7 +1,9 @@
 import { trace } from '@opentelemetry/api'
 import { SurfaceState } from './enums'
-import type { KnownSurface } from './types'
-import { KNOWN_SURFACES } from './types'
+
+export const KNOWN_SURFACES = ['tarmac', 'grass', 'sand', 'snow', 'ice', 'soap', 'metal'] as const
+
+export type KnownSurface = (typeof KNOWN_SURFACES)[number]
 
 export function normalizeSurface(surface: string): KnownSurface {
 	if ((KNOWN_SURFACES as readonly string[]).includes(surface)) {
@@ -38,24 +40,4 @@ export function surfacesFromState(surfaceState: number): KnownSurface[] {
 		surfaces.unshift('tarmac')
 	}
 	return [...new Set(surfaces)]
-}
-
-export function addSurfaceValues(
-	target: Record<KnownSurface, number>,
-	source: unknown,
-	field: string,
-	toNumber: (value: unknown, field: string) => number | null,
-) {
-	if (source === undefined || source === null) {
-		return
-	}
-	if (typeof source !== 'object' || Array.isArray(source)) {
-		throw new Error(`Invalid ghost statistic ${field}`)
-	}
-	for (const [surface, value] of Object.entries(source)) {
-		const number = toNumber(value, `${field}.${surface}`)
-		if (number !== null) {
-			target[normalizeSurface(surface)] += number
-		}
-	}
 }

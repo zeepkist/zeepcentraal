@@ -1,6 +1,4 @@
-export const KNOWN_SURFACES = ['tarmac', 'grass', 'sand', 'snow', 'ice', 'soap', 'metal'] as const
-
-export type KnownSurface = (typeof KNOWN_SURFACES)[number]
+import type { KnownSurface } from './surfaces'
 
 export type Vector2 = { x: number; y: number }
 export type Vector3 = { x: number; y: number; z: number }
@@ -29,6 +27,9 @@ export type GhostFrame = {
 	localGForce?: Vector2
 	parkingBlock?: boolean
 	monorail?: boolean
+	ragdoll?: boolean
+	ragdollPosition?: Vector3
+	ragdollRotation?: Vector3
 }
 
 export type GhostStatisticValues = {
@@ -65,12 +66,14 @@ export type GhostStatisticValues = {
 	distanceSoapWheels: number | null
 	distanceOnMonorail: number | null
 	distanceParked: number | null
+	distanceRagdoll: number | null
 	timeSlipping: number | null
 	timeParaglider: number | null
 	timeOffroadWheels: number | null
 	timeSoapWheels: number | null
 	timeOnMonorail: number | null
 	timeParked: number | null
+	timeRagdoll: number | null
 	distanceOnTarmac: number | null
 	distanceOnGrass: number | null
 	distanceOnSand: number | null
@@ -96,5 +99,4 @@ export type GhostStatisticValues = {
 export type ParsedGhost = {
 	version: number
 	frames: GhostFrame[]
-	statistics?: GhostStatisticValues
 }
