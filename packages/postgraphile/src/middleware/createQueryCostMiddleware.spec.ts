@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { evaluateQueryCost } from './createQueryCostMiddleware'
+import { createQueryCostEvaluator, evaluateQueryCost } from './createQueryCostMiddleware'
 
 describe('evaluateQueryCost', () => {
 	test('accepts cheap query and returns query cost', async () => {
@@ -53,5 +53,42 @@ describe('evaluateQueryCost', () => {
 				},
 			],
 		})
+	})
+
+	test('caches repeated query cost evaluations', async () => {
+		let misses = 0
+		const evaluate = createQueryCostEvaluator({
+			maxCost: 5000,
+			defaultCollectionSize: 100,
+			onCacheMiss: () => {
+				misses++
+			},
+		})
+
+		await evaluate({ query: '{ level { id } }' })
+		await evaluate({ query: '{ level { id } }' })
+
+		expect(misses).toBe(1)
+	})
+
+	test('query cost cache key respects operationName', async () => {
+		let misses = 0
+		const evaluate = createQueryCostEvaluator({
+			maxCost: 5000,
+			defaultCollectionSize: 100,
+			onCacheMiss: () => {
+				misses++
+			},
+		})
+		const query = `
+			query FirstOperation { level { id } }
+			query SecondOperation { levels(first: 1) { nodes { id } } }
+		`
+
+		await evaluate({ query, operationName: 'FirstOperation' })
+		await evaluate({ query, operationName: 'SecondOperation' })
+		await evaluate({ query, operationName: 'FirstOperation' })
+
+		expect(misses).toBe(2)
 	})
 })

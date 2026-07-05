@@ -36,11 +36,15 @@ describe('buildPostGraphileServer', () => {
 	})
 
 	test('serves Ruru at root', async () => {
-		const response = await createApp().handle(new Request('http://localhost/'))
+		const app = createApp()
+		const response = await app.handle(new Request('http://localhost/'))
+		const secondResponse = await app.handle(new Request('http://localhost/'))
+		const html = await response.text()
 
 		expect(response.status).toBe(200)
 		expect(response.headers.get('content-type')).toContain('text/html')
-		expect(await response.text()).toContain('/ruru-static/')
+		expect(html).toContain('/ruru-static/')
+		expect(await secondResponse.text()).toBe(html)
 	})
 
 	test('redirects graphiql and graphql to root', async () => {

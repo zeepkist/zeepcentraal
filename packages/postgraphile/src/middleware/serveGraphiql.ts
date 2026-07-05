@@ -6,10 +6,12 @@ const ruruConfig = {
 	endpoint: '/',
 }
 
+const ruruHtml = ruruHTML(ruruConfig)
+
 export async function serveGraphiql(request: Request): Promise<Response | null> {
 	const url = new URL(request.url)
 	if (url.pathname === '/' && request.method === 'GET') {
-		return new Response(ruruHTML(ruruConfig), {
+		return new Response(ruruHtml, {
 			headers: {
 				'content-type': 'text/html; charset=utf-8',
 			},

@@ -116,7 +116,7 @@ export class PostGraphileFetchResponse extends PostGraphileResponse {
 	}
 
 	public async toResponse(extraHeaders?: FetchHeadersInit): Promise<Response> {
-		const headers = new Headers(this.headers)
+		const headers = extraHeaders ? new Headers(this.headers) : this.headers
 		if (extraHeaders) {
 			for (const [key, value] of new Headers(extraHeaders).entries()) {
 				headers.set(key, value)
@@ -143,6 +143,15 @@ export class PostGraphileFetchResponse extends PostGraphileResponse {
 }
 
 export async function handlePostGraphileRequest(
+	handler: HttpRequestHandler,
+	request: Request,
+	body: unknown,
+	extraHeaders?: FetchHeadersInit,
+): Promise<Response> {
+	return handlePostGraphileGraphqlRequest(handler, request, body, extraHeaders)
+}
+
+export async function handlePostGraphileGraphqlRequest(
 	handler: HttpRequestHandler,
 	request: Request,
 	body: unknown,

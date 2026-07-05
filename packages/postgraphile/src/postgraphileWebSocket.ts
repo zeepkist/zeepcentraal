@@ -35,6 +35,12 @@ type OperationState = {
 	complete(): void
 }
 
+type WebSocketRuntime = {
+	pluginHook: ReturnType<typeof pluginHookFromOptions>
+	liveSubscribe: typeof subscribe
+	staticValidationRules: readonly (typeof specifiedRules)[number][]
+}
+
 const operations = new WeakMap<ElysiaWebSocket, Map<string, OperationState>>()
 const connectionParams = new WeakMap<ElysiaWebSocket, Record<string, unknown>>()
 
@@ -83,6 +89,7 @@ function isAsyncIterable(value: unknown): value is AsyncIterable<ExecutionResult
 
 async function runOperation(
 	handler: HttpRequestHandler,
+	runtime: WebSocketRuntime,
 	ws: ElysiaWebSocket,
 	id: string,
 	payload: GraphqlPayload,
@@ -94,14 +101,7 @@ async function runOperation(
 	const schema = await handler.getGraphQLSchema()
 	const document = parse(payload.query ?? '')
 	const operation = getOperationAST(document, payload.operationName)
-	const pluginHook = pluginHookFromOptions(handler.options)
-	const validationErrors = validate(
-		schema,
-		document,
-		pluginHook('postgraphile:validationRules:static', specifiedRules, {
-			options: handler.options,
-		}),
-	)
+	const validationErrors = validate(schema, document, runtime.staticValidationRules)
 
 	if (!operation) {
 		throw new Error('Unable to identify operation')
@@ -125,57 +125,61 @@ async function runOperation(
 	}
 	wsOperations.set(id, operationState)
 
-	await handler.withPostGraphileContextFromReqRes(
-		request,
-		nodeResponse,
-		{
-			singleStatement: operation.operation === 'subscription',
-			queryDocumentAst: document,
-			variables: payload.variables,
-			operationName: payload.operationName,
-		},
-		async (contextValue) => {
-			const executeOrSubscribe =
-				operation.operation === 'subscription'
-					? handler.options.live
-						? makeLiveSubscribe({ options: handler.options, pluginHook })
-						: subscribe
-					: execute
-			const result = await (executeOrSubscribe as typeof subscribe)({
-				schema,
-				document,
-				contextValue,
-				variableValues: payload.variables,
+	try {
+		await handler.withPostGraphileContextFromReqRes(
+			request,
+			nodeResponse,
+			{
+				singleStatement: operation.operation === 'subscription',
+				queryDocumentAst: document,
+				variables: payload.variables,
 				operationName: payload.operationName,
-			})
+			},
+			async (contextValue) => {
+				const executeOrSubscribe =
+					operation.operation === 'subscription'
+						? handler.options.live
+							? runtime.liveSubscribe
+							: subscribe
+						: execute
+				const result = await (executeOrSubscribe as typeof subscribe)({
+					schema,
+					document,
+					contextValue,
+					variableValues: payload.variables,
+					operationName: payload.operationName,
+				})
 
-			if (isAsyncIterable(result)) {
-				for await (const item of result) {
-					if (completed) {
-						break
+				if (isAsyncIterable(result)) {
+					for await (const item of result) {
+						if (completed) {
+							break
+						}
+						send(ws, {
+							id,
+							type: protocol === 'graphql-transport-ws' ? 'next' : 'data',
+							payload: item,
+						})
 					}
+				} else {
 					send(ws, {
 						id,
 						type: protocol === 'graphql-transport-ws' ? 'next' : 'data',
-						payload: item,
+						payload: result,
 					})
 				}
-			} else {
-				send(ws, {
-					id,
-					type: protocol === 'graphql-transport-ws' ? 'next' : 'data',
-					payload: result,
-				})
-			}
-		},
-	)
+			},
+		)
+	} finally {
+		operations.get(ws)?.delete(id)
+	}
 
-	operations.get(ws)?.delete(id)
 	send(ws, { id, type: 'complete' })
 }
 
 async function startOperation(
 	handler: HttpRequestHandler,
+	runtime: WebSocketRuntime,
 	ws: ElysiaWebSocket,
 	message: WebSocketMessage,
 ) {
@@ -184,7 +188,7 @@ async function startOperation(
 		message.type === 'subscribe' ? 'graphql-transport-ws' : 'subscriptions-transport-ws'
 
 	try {
-		await runOperation(handler, ws, id, message.payload as GraphqlPayload, protocol)
+		await runOperation(handler, runtime, ws, id, message.payload as GraphqlPayload, protocol)
 	} catch (error) {
 		const response = createResponse(ws)
 		const payload =
@@ -206,6 +210,22 @@ async function startOperation(
 	}
 }
 
+function isGraphqlPayload(payload: unknown): payload is GraphqlPayload {
+	return (
+		!!payload &&
+		typeof payload === 'object' &&
+		typeof (payload as GraphqlPayload).query === 'string'
+	)
+}
+
+function sendProtocolError(ws: ElysiaWebSocket, message: string, id?: string) {
+	send(ws, {
+		...(id ? { id } : {}),
+		type: 'error',
+		payload: [{ message }],
+	})
+}
+
 function stopOperation(ws: ElysiaWebSocket, id: string | undefined) {
 	if (!id) {
 		return
@@ -216,15 +236,36 @@ function stopOperation(ws: ElysiaWebSocket, id: string | undefined) {
 }
 
 export function createPostGraphileWebSocketHandlers(handler: HttpRequestHandler) {
+	const options = handler.options ?? {}
+	const pluginHook = pluginHookFromOptions(options)
+	const runtime: WebSocketRuntime = {
+		pluginHook,
+		liveSubscribe: makeLiveSubscribe({ options, pluginHook }),
+		staticValidationRules: pluginHook('postgraphile:validationRules:static', specifiedRules, {
+			options,
+		}),
+	}
+
 	return {
 		open(ws: ElysiaWebSocket) {
 			operations.set(ws, new Map())
 		},
 		message(ws: ElysiaWebSocket, rawMessage: unknown) {
-			const message =
-				typeof rawMessage === 'string'
-					? (JSON.parse(rawMessage) as WebSocketMessage)
-					: (rawMessage as WebSocketMessage)
+			let message: WebSocketMessage
+			try {
+				message =
+					typeof rawMessage === 'string'
+						? (JSON.parse(rawMessage) as WebSocketMessage)
+						: (rawMessage as WebSocketMessage)
+			} catch {
+				sendProtocolError(ws, 'Invalid WebSocket message JSON')
+				return
+			}
+
+			if (!message || typeof message.type !== 'string') {
+				sendProtocolError(ws, 'Invalid WebSocket message')
+				return
+			}
 
 			switch (message.type) {
 				case 'connection_init':
@@ -236,11 +277,26 @@ export function createPostGraphileWebSocketHandlers(handler: HttpRequestHandler)
 					break
 				case 'subscribe':
 				case 'start':
-					void startOperation(handler, ws, message)
+					if (!isGraphqlPayload(message.payload)) {
+						sendProtocolError(
+							ws,
+							'Invalid GraphQL WebSocket operation payload',
+							message.id,
+						)
+						break
+					}
+					void startOperation(handler, runtime, ws, message)
 					break
 				case 'complete':
 				case 'stop':
 					stopOperation(ws, message.id)
+					break
+				default:
+					sendProtocolError(
+						ws,
+						`Unsupported WebSocket message type: ${message.type}`,
+						message.id,
+					)
 					break
 			}
 		},

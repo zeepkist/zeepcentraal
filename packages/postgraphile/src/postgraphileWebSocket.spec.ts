@@ -12,7 +12,13 @@ import {
 import type { HttpRequestHandler } from 'postgraphile'
 import { createPostGraphileWebSocketHandlers } from './postgraphileWebSocket'
 
-function createSchema() {
+function createSchema(
+	subscribeRecords: () => AsyncIterable<{
+		records: { nodes: Array<{ time: number }> }
+	}> = async function* () {
+		yield { records: { nodes: [{ time: 1234 }] } }
+	},
+) {
 	const recordType = new GraphQLObjectType({
 		name: 'Record',
 		fields: {
@@ -39,9 +45,7 @@ function createSchema() {
 				args: {
 					last: { type: GraphQLInt },
 				},
-				async *subscribe() {
-					yield { records: { nodes: [{ time: 1234 }] } }
-				},
+				subscribe: subscribeRecords,
 				resolve: (payload) => payload.records,
 			},
 		},
@@ -53,11 +57,11 @@ function createSchema() {
 	})
 }
 
-function createHandler(): HttpRequestHandler {
+function createHandler(schema = createSchema()): HttpRequestHandler {
 	return {
 		options: { live: false },
 		async getGraphQLSchema() {
-			return createSchema()
+			return schema
 		},
 		async withPostGraphileContextFromReqRes(
 			_request: IncomingMessage,
@@ -142,5 +146,71 @@ describe('createPostGraphileWebSocketHandlers', () => {
 			id: '1',
 			type: 'complete',
 		})
+	})
+
+	test('returns protocol error for malformed websocket JSON', () => {
+		const handlers = createPostGraphileWebSocketHandlers(createHandler())
+		const { ws, messages } = createWebSocket()
+
+		handlers.open(ws)
+		expect(() => handlers.message(ws, '{')).not.toThrow()
+
+		expect(JSON.parse(messages[0] ?? '{}')).toEqual({
+			type: 'error',
+			payload: [{ message: 'Invalid WebSocket message JSON' }],
+		})
+	})
+
+	test('complete stops active websocket operation before next result', async () => {
+		let releaseResult: () => void = () => {}
+		let contextStarted: () => void = () => {}
+		const contextStartedPromise = new Promise<void>((resolve) => {
+			contextStarted = resolve
+		})
+		const resultReleased = new Promise<void>((resolve) => {
+			releaseResult = resolve
+		})
+		const schema = createSchema(async function* () {
+			await resultReleased
+			yield { records: { nodes: [{ time: 1234 }] } }
+		})
+		const handler = {
+			...createHandler(schema),
+			async withPostGraphileContextFromReqRes(
+				_request: IncomingMessage,
+				_response: ServerResponse,
+				_options: unknown,
+				callback: (context: Record<string, unknown>) => unknown,
+			) {
+				contextStarted()
+				return callback({})
+			},
+		} as unknown as HttpRequestHandler
+		const handlers = createPostGraphileWebSocketHandlers(handler)
+		const { ws, messages } = createWebSocket()
+
+		handlers.open(ws)
+		handlers.message(ws, JSON.stringify({ type: 'connection_init' }))
+		handlers.message(
+			ws,
+			JSON.stringify({
+				id: '1',
+				type: 'subscribe',
+				payload: {
+					query: 'subscription MySubscription { records(last: 1) { nodes { time } } }',
+				},
+			}),
+		)
+		await contextStartedPromise
+		handlers.message(ws, JSON.stringify({ id: '1', type: 'complete' }))
+		releaseResult()
+
+		expect(await waitForMessage(messages, 'complete')).toEqual({
+			id: '1',
+			type: 'complete',
+		})
+		expect(
+			messages.map((raw) => JSON.parse(raw)).some((message) => message.type === 'next'),
+		).toBe(false)
 	})
 })
