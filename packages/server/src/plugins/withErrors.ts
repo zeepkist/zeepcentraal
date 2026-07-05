@@ -1,21 +1,9 @@
-import { SpanStatusCode, trace } from '@opentelemetry/api'
+import { recordSpanError } from '@zeepkist/telemetry'
 import { Elysia } from 'elysia'
 import { handleV1Error, V1_ERROR_CODES, type V1HttpError } from '../v1Errors'
 
 function recordError(error: unknown) {
-	const span = trace.getActiveSpan()
-	if (!span) {
-		return
-	}
-
-	if (error instanceof Error) {
-		span.recordException(error)
-		span.setStatus({ code: SpanStatusCode.ERROR, message: error.message })
-		return
-	}
-
-	span.recordException(new Error(typeof error === 'string' ? error : 'Unhandled server error'))
-	span.setStatus({ code: SpanStatusCode.ERROR })
+	recordSpanError(error)
 }
 
 export const withErrors = new Elysia().onError(({ code, error }) => {

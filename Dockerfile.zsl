@@ -1,5 +1,7 @@
 FROM gcr.io/distroless/base
 
+ARG SERVICE_VERSION=dev
+
 LABEL org.opencontainers.image.description="ZeepCentraal Super League importer for ingesting and processing ZSL data."
 
 WORKDIR /app
@@ -8,6 +10,8 @@ COPY dist/zeepcentraal-import-zsl zeepcentraal-import-zsl
 COPY super_league_data /data/super_league_data
 
 ENV NODE_ENV=production
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-import-zsl
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
 ENV SUPER_LEAGUE_DATA_PATH=/data/super_league_data
 
 CMD ["./zeepcentraal-import-zsl"]

@@ -105,6 +105,8 @@ jobs:
           context: .
           file: Dockerfile.server
           push: true
+          build-args: |
+            SERVICE_VERSION=${{ steps.server_version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}/server:latest
             ghcr.io/${{ github.repository }}/server:${{ github.sha }}
@@ -163,6 +165,8 @@ jobs:
           context: .
           file: Dockerfile.jobs
           push: true
+          build-args: |
+            SERVICE_VERSION=${{ steps.jobs_version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}/jobs:latest
             ghcr.io/${{ github.repository }}/jobs:${{ github.sha }}
@@ -221,6 +225,8 @@ jobs:
           context: .
           file: Dockerfile.migrate
           push: true
+          build-args: |
+            SERVICE_VERSION=${{ steps.migrate_version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}/migrate:latest
             ghcr.io/${{ github.repository }}/migrate:${{ github.sha }}
@@ -283,6 +289,8 @@ jobs:
           context: .
           file: Dockerfile.zsl
           push: true
+          build-args: |
+            SERVICE_VERSION=${{ steps.import_zsl_version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}/import-zsl:latest
             ghcr.io/${{ github.repository }}/import-zsl:${{ github.sha }}
@@ -341,6 +349,8 @@ jobs:
           context: .
           file: Dockerfile.postgraphile
           push: true
+          build-args: |
+            SERVICE_VERSION=${{ steps.postgraphile_version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}/postgraphile:latest
             ghcr.io/${{ github.repository }}/postgraphile:${{ github.sha }}

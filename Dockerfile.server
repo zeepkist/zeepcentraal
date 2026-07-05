@@ -10,6 +10,7 @@ COPY packages/import-zsl/package.json packages/import-zsl/package.json
 COPY packages/jobs/package.json packages/jobs/package.json
 COPY packages/postgraphile/package.json packages/postgraphile/package.json
 COPY packages/server/package.json packages/server/package.json
+COPY packages/telemetry/package.json packages/telemetry/package.json
 COPY packages/workshop/package.json packages/workshop/package.json
 
 RUN HUSKY=0 bun install --frozen-lockfile
@@ -37,6 +38,8 @@ RUN set -eux; \
 
 FROM gcr.io/distroless/cc-debian12
 
+ARG SERVICE_VERSION=dev
+
 LABEL org.opencontainers.image.description="ZeepCentraal API server."
 
 WORKDIR /app
@@ -45,6 +48,8 @@ COPY dist/zeepcentraal-server zeepcentraal-server
 COPY --from=native-deps /native-node_modules node_modules
 
 ENV NODE_ENV=production
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-server
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
 
 EXPOSE 3000
 

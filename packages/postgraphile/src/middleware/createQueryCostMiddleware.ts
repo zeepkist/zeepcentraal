@@ -1,4 +1,10 @@
-import { SpanStatusCode } from '@opentelemetry/api'
+import {
+	getTracer,
+	recordSpanError,
+	recordSpanWarning,
+	setSpanErrorStatus,
+	setSpanOkStatus,
+} from '@zeepkist/telemetry'
 import {
 	type ArgumentNode,
 	type DocumentNode,
@@ -8,7 +14,6 @@ import {
 	type ValueNode,
 } from 'graphql'
 import type { Middleware } from 'koa'
-import { getTracer, recordSpanError, recordSpanWarning } from '../telemetry'
 
 const FLATTENED_FIELDS_NO_DEPTH = new Set([
 	'nodes',
@@ -325,15 +330,12 @@ export function createQueryCostMiddleware(
 					'graphql.queryCost.cost': totalCost,
 					'graphql.queryCost.maxCost': maxCost,
 				})
-				span.setStatus({
-					code: SpanStatusCode.ERROR,
-					message: `Query cost exceeded: ${totalCost} > ${maxCost}`,
-				})
+				setSpanErrorStatus(span, `Query cost exceeded: ${totalCost} > ${maxCost}`)
 				span.end()
 				return
 			}
 
-			span.setStatus({ code: SpanStatusCode.OK })
+			setSpanOkStatus(span)
 
 			try {
 				await next()

@@ -1,5 +1,4 @@
-import { metrics, SpanStatusCode, trace } from '@opentelemetry/api'
-import { databaseConfig } from '@zeepkist/core/config/database'
+import { createCounter, recordSpanError, setActiveSpanErrorStatus } from '@zeepkist/telemetry'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { GHOST_FOLDER } from '../config'
@@ -16,9 +15,8 @@ import type { RecordStatisticInput } from './recordStatistic'
 import { buildRecordStatisticValues } from './recordStatistic'
 
 type RecordInput = typeof record.$inferInsert
-const meter = metrics.getMeter(databaseConfig.otel.serviceName)
-const ghostUploadSuccesses = meter.createCounter('record.ghost_upload.success')
-const ghostUploadFailures = meter.createCounter('record.ghost_upload.failure')
+const ghostUploadSuccesses = createCounter('record.ghost_upload.success', 'zeepcentraal-database')
+const ghostUploadFailures = createCounter('record.ghost_upload.failure', 'zeepcentraal-database')
 const GHOST_UPLOAD_MAX_ATTEMPTS = 5
 const GHOST_UPLOAD_RETRY_DELAY_MS = 1_000
 
@@ -30,17 +28,7 @@ function recordGhostUploadError(
 	error: unknown,
 	attributes: Record<string, string | number | boolean>,
 ): void {
-	const span = trace.getActiveSpan()
-	if (!span) {
-		return
-	}
-
-	span.setAttributes(attributes)
-	span.recordException(
-		error instanceof Error
-			? error
-			: new Error(typeof error === 'string' ? error : 'Ghost upload failed'),
-	)
+	recordSpanError(error, attributes)
 }
 
 async function uploadGhostFileWithRetry(ghostUrl: string, file: Buffer): Promise<void> {
@@ -177,13 +165,9 @@ export function scheduleRecordMediaUpload(idRecord: number, ghostData: string): 
 			throw error
 		}
 	})().catch((error) => {
-		const span = trace.getActiveSpan()
-		if (span) {
-			span.setStatus({
-				code: SpanStatusCode.ERROR,
-				message: error instanceof Error ? error.message : 'Ghost media upload failed',
-			})
-		}
+		setActiveSpanErrorStatus(
+			error instanceof Error ? error.message : 'Ghost media upload failed',
+		)
 		recordGhostUploadError(error, {
 			'record.id': idRecord,
 			'record.ghost_upload.failed': true,

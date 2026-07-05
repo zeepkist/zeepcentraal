@@ -6,6 +6,7 @@ import PgSimplifyInflectorPlugin from '@graphile-contrib/pg-simplify-inflector'
 import bodyParser from '@koa/bodyparser'
 import cors from '@koa/cors'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
+import { startNodeTelemetry, stopNodeTelemetry } from '@zeepkist/telemetry'
 import Koa from 'koa'
 import logger from 'koa-morgan'
 import { postgraphile } from 'postgraphile'
@@ -13,7 +14,6 @@ import ConnectionFilterPlugin from 'postgraphile-plugin-connection-filter'
 import { collectHeaderMetrics } from './middleware/collectHeaderMetrics'
 import { createQueryCostMiddleware } from './middleware/createQueryCostMiddleware'
 import { serveGraphiql } from './middleware/serveGraphiql'
-import { startTelemetry, stopTelemetry } from './otel'
 import { AddCdnToUrlsPlugin } from './plugins/AddCdnToUrlsPlugin'
 import PgFixForeignKeyNamesPlugin from './plugins/FixForeignKeyNamesPlugin'
 import { HideAuthOrderByEnumsPlugin } from './plugins/HideAuthOrderByEnumsPlugin'
@@ -23,7 +23,13 @@ import { PaginationLimitsPlugin } from './plugins/PaginationLimitsPlugin'
 import { SkipByNodeIdFieldsPlugin } from './plugins/SkipByNodeIdFieldsPlugin'
 import { TracePlugin } from './plugins/TracePlugin'
 
-startTelemetry()
+startNodeTelemetry({
+	packageName: 'postgraphile',
+	collectorUrl: postgraphileConfig.otel.collectorUrl,
+	nodeEnv: postgraphileConfig.nodeEnv,
+	serviceName: postgraphileConfig.otel.serviceName,
+	serviceVersion: postgraphileConfig.otel.serviceVersion,
+})
 
 const app = new Koa()
 const plugins = [
@@ -130,7 +136,7 @@ const server = app.listen(postgraphileConfig.port, postgraphileConfig.host, () =
 
 async function shutdown() {
 	server.close()
-	await stopTelemetry()
+	await stopNodeTelemetry()
 	process.exit(0)
 }
 

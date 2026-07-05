@@ -34,7 +34,8 @@ const serverEnvSchema = z.object({
 	RATE_LIMIT_RECORD_PER_MINUTE: z.coerce.number().int().positive().default(120),
 	RATE_LIMIT_MUTATION_PER_MINUTE: z.coerce.number().int().positive().default(300),
 	RATE_LIMIT_JOB_PER_MINUTE: z.coerce.number().int().positive().default(60),
-	OPENTELEMETRY_SERVICE_NAME: z.string().default('zeepcentraal-api'),
+	OPENTELEMETRY_SERVICE_NAME: z.string().optional(),
+	OPENTELEMETRY_SERVICE_VERSION: z.string().optional(),
 	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4317'),
 })
 
@@ -103,6 +104,7 @@ export function parseServerConfig(env: EnvSource) {
 		},
 		otel: {
 			serviceName: parsedEnv.OPENTELEMETRY_SERVICE_NAME,
+			serviceVersion: parsedEnv.OPENTELEMETRY_SERVICE_VERSION,
 			collectorUrl: parsedEnv.OPENTELEMETRY_COLLECTOR_URL,
 		},
 	} as const

@@ -1,5 +1,7 @@
 FROM gcr.io/distroless/base-debian12
 
+ARG SERVICE_VERSION=dev
+
 LABEL org.opencontainers.image.description="ZeepCentraal PostGraphile GraphQL server."
 
 WORKDIR /app
@@ -8,6 +10,8 @@ COPY dist/zeepcentraal-postgraphile zeepcentraal-postgraphile
 
 ENV NODE_ENV=production
 ENV GRAPHILE_TURBO=1
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-postgraphile
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
 
 EXPOSE 5000
 

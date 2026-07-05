@@ -1,40 +1,10 @@
-import { opentelemetry } from '@elysiajs/opentelemetry'
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import {
-	envDetector,
-	hostDetector,
-	osDetector,
-	processDetector,
-	resourceFromAttributes,
-	serviceInstanceIdDetector,
-} from '@opentelemetry/resources'
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base'
+import { createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
 import { config } from '../config'
 
-// https://elysiajs.com/patterns/opentelemetry
-export const withTelemetry = opentelemetry({
+export const withTelemetry = createElysiaTelemetryPlugin({
+	packageName: 'server',
+	collectorUrl: config.otelCollectorUrl,
+	nodeEnv: config.nodeEnv,
 	serviceName: config.otelServiceName,
-	autoDetectResources: true,
-	spanProcessors: [
-		new BatchSpanProcessor(
-			new OTLPTraceExporter({
-				url: config.otelCollectorUrl,
-			}),
-		),
-	],
-	resource: resourceFromAttributes({
-		'deployment.environment': config.nodeEnv,
-		'service.name': config.otelServiceName,
-	}),
-	resourceDetectors: [
-		envDetector,
-		osDetector,
-		processDetector,
-		hostDetector,
-		serviceInstanceIdDetector,
-	],
-	instrumentations: [getNodeAutoInstrumentations()],
+	serviceVersion: config.otelServiceVersion,
 })
-
-// No shutdown function needed - Elysia plugin handles SDK lifecycle

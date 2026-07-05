@@ -1,4 +1,3 @@
-import { setAttributes } from '@elysiajs/opentelemetry'
 import { parseGhostStatisticsFromBase64 } from '@zeepkist/core/ghosts'
 import {
 	claimLevelRequest,
@@ -10,6 +9,7 @@ import {
 	submitRecord,
 } from '@zeepkist/database/services'
 import { enqueueCompatibleTask, enqueueWorkshopScan } from '@zeepkist/jobs/queue'
+import { setActiveSpanAttributes } from '@zeepkist/telemetry'
 import { Elysia, t } from 'elysia'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
@@ -47,7 +47,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				Splits.every(Number.isFinite) &&
 				Speeds.every(Number.isFinite)
 
-			setAttributes({
+			setActiveSpanAttributes({
 				'record.request_bytes': Number(request.headers.get('content-length') ?? 0),
 				'record.ghost_base64_bytes': GhostData.length,
 				'record.ghost_decoded_bytes': validBase64

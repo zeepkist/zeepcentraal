@@ -1,4 +1,4 @@
-import { trace } from '@opentelemetry/api'
+import { addActiveSpanEvent } from '@zeepkist/telemetry'
 import { SurfaceState } from './enums'
 
 export const KNOWN_SURFACES = ['tarmac', 'grass', 'sand', 'snow', 'ice', 'soap', 'metal'] as const
@@ -9,7 +9,7 @@ export function normalizeSurface(surface: string): KnownSurface {
 	if ((KNOWN_SURFACES as readonly string[]).includes(surface)) {
 		return surface as KnownSurface
 	}
-	trace.getActiveSpan()?.addEvent('record.ghost.unknown_surface', {
+	addActiveSpanEvent('record.ghost.unknown_surface', {
 		'record.ghost.surface': surface,
 		'record.ghost.surface_mapped_to': 'tarmac',
 	})

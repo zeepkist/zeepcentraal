@@ -12,7 +12,6 @@ const databaseEnvSchema = z.object({
 	GHOST_FOLDER: z.string().default('ghosts-dev'),
 	THUMBNAIL_FOLDER: z.string().default('thumbnails-dev'),
 	STEAM_API_KEY: z.string().optional(),
-	OPENTELEMETRY_SERVICE_NAME: z.string().default('zeepcentraal'),
 })
 
 export function getDatabaseUrlForTooling(env: EnvSource = process.env): string {
@@ -40,9 +39,6 @@ export function parseDatabaseConfig(env: EnvSource) {
 		},
 		steam: {
 			apiKey: parsedEnv.STEAM_API_KEY,
-		},
-		otel: {
-			serviceName: parsedEnv.OPENTELEMETRY_SERVICE_NAME,
 		},
 	} as const
 }

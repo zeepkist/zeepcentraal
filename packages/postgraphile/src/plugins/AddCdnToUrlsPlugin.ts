@@ -1,6 +1,6 @@
 import { URL } from 'node:url'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import { recordSpanWarning } from '../telemetry'
+import { recordSpanWarning } from '@zeepkist/telemetry'
 import type { GraphileField, GraphilePlugin } from '../types'
 
 const FIELDS = new Set(['ghostUrl', 'imageUrl'])

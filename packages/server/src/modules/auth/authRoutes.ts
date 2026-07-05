@@ -1,5 +1,4 @@
 import { timingSafeEqual } from 'node:crypto'
-import { setAttributes } from '@elysiajs/opentelemetry'
 import {
 	authenticateSteamUser,
 	COOKIES,
@@ -21,6 +20,7 @@ import {
 	insertAuth,
 	rotateAuth,
 } from '@zeepkist/database/services'
+import { setActiveSpanAttributes } from '@zeepkist/telemetry'
 import { Elysia, t } from 'elysia'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
@@ -247,7 +247,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 		if (user.banned) {
 			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
 		}
-		setAttributes({
+		setActiveSpanAttributes({
 			'user.discord_id': discordUser.id,
 			'user.steam_id': user.steamId.toString(),
 		})
@@ -310,7 +310,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 		if (user.banned) {
 			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
 		}
-		setAttributes({ 'user.steam_id': steamId })
+		setActiveSpanAttributes({ 'user.steam_id': steamId })
 		const { accessToken, accessTokenExpiry } = generateAccessToken({
 			provider: jwtProvider.steam,
 			steamId,

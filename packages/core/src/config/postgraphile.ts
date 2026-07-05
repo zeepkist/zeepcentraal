@@ -18,7 +18,8 @@ const postgraphileEnvSchema = z.object({
 	GRAPHQL_DEFAULT_COLLECTION_SIZE: z.coerce.number().int().positive().default(100),
 	CDN_BASE_URL: z.string().optional(),
 	DEBUG: z.string().optional(),
-	OPENTELEMETRY_SERVICE_NAME: z.string().default('graphql-dev'),
+	OPENTELEMETRY_SERVICE_NAME: z.string().optional(),
+	OPENTELEMETRY_SERVICE_VERSION: z.string().optional(),
 	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4317'),
 })
 
@@ -52,6 +53,7 @@ export function parsePostgraphileConfig(env: EnvSource) {
 		allowExplain: Boolean(parsedEnv.DEBUG),
 		otel: {
 			serviceName: parsedEnv.OPENTELEMETRY_SERVICE_NAME,
+			serviceVersion: parsedEnv.OPENTELEMETRY_SERVICE_VERSION,
 			collectorUrl: parsedEnv.OPENTELEMETRY_COLLECTOR_URL,
 		},
 	} as const

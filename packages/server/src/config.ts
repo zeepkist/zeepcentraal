@@ -7,4 +7,5 @@ export const config = {
 	nodeEnv: serverConfig.nodeEnv,
 	otelCollectorUrl: serverConfig.otel.collectorUrl,
 	otelServiceName: serverConfig.otel.serviceName,
+	otelServiceVersion: serverConfig.otel.serviceVersion,
 } as const

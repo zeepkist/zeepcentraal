@@ -1,5 +1,7 @@
 FROM gcr.io/distroless/base
 
+ARG SERVICE_VERSION=dev
+
 LABEL org.opencontainers.image.description="ZeepCentraal database migration runner for applying Drizzle schema migrations."
 
 WORKDIR /app
@@ -8,5 +10,7 @@ COPY dist/zeepcentraal-migrate zeepcentraal-migrate
 COPY packages/database/drizzle drizzle
 
 ENV NODE_ENV=production
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-migrate
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
 
 CMD ["./zeepcentraal-migrate"]

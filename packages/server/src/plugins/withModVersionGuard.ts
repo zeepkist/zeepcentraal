@@ -1,5 +1,5 @@
-import { setAttributes } from '@elysiajs/opentelemetry'
 import { isModOutdated } from '@zeepkist/database/services'
+import { setActiveSpanAttributes } from '@zeepkist/telemetry'
 import type { Elysia } from 'elysia'
 import { handleV1Error, V1_ERROR_CODES } from '../v1Errors'
 
@@ -75,7 +75,7 @@ export const withModVersionGuard = (app: Elysia) =>
 
 		if (!modVersion) {
 			if (Object.keys(attributes).length > 0) {
-				setAttributes(attributes)
+				setActiveSpanAttributes(attributes)
 			}
 			return { modVersion }
 		}
@@ -83,7 +83,7 @@ export const withModVersionGuard = (app: Elysia) =>
 		const outdated = await isModOutdated(modVersion)
 
 		attributes[ATTRIBUTE.outdated] = String(outdated)
-		setAttributes(attributes)
+		setActiveSpanAttributes(attributes)
 
 		if (outdated) {
 			return status(400, handleV1Error(V1_ERROR_CODES.AUTH_MOD_OUTDATED))

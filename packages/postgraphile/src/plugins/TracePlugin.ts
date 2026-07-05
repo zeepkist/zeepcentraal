@@ -1,6 +1,5 @@
-import { SpanStatusCode } from '@opentelemetry/api'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import { getTracer } from '../telemetry'
+import { getTracer, recordSpanError } from '@zeepkist/telemetry'
 import type { GraphileField, GraphilePlugin } from '../types'
 
 export const TracePlugin: GraphilePlugin = (builder) => {
@@ -32,16 +31,13 @@ export const TracePlugin: GraphilePlugin = (builder) => {
 
 						return await originalResolve(parent, args, resolverContext, info)
 					} catch (error) {
-						const message = error instanceof Error ? error.message : String(error)
-						span.recordException(error instanceof Error ? error : new Error(message))
-						span.addEvent('error', {
-							'error.message': message,
-							'graphql.field.name': fieldName,
-						})
-						span.setStatus({
-							code: SpanStatusCode.ERROR,
-							message,
-						})
+						recordSpanError(
+							error,
+							{
+								'graphql.field.name': fieldName,
+							},
+							span,
+						)
 						throw error
 					} finally {
 						span.end()
