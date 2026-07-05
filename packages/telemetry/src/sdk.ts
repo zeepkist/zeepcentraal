@@ -18,19 +18,18 @@ import {
 	resolveTelemetryConfig,
 	type TelemetryConfigInput,
 } from './config'
-import { createNodeAutoInstrumentations } from './instrumentation'
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN)
 
 let sdk: NodeSDK | undefined
 
-function createTraceExporter(collectorUrl: string) {
+export function createTraceExporter(collectorUrl: string) {
 	return new OTLPTraceExporter({
 		url: collectorUrl,
 	})
 }
 
-function createMetricReader(collectorUrl: string) {
+export function createMetricReader(collectorUrl: string) {
 	return new PeriodicExportingMetricReader({
 		exporter: new OTLPMetricExporter({
 			url: collectorUrl,
@@ -39,10 +38,10 @@ function createMetricReader(collectorUrl: string) {
 	})
 }
 
-export function createElysiaTelemetryPlugin(input: TelemetryConfigInput) {
+export function createElysiaTelemetryOptions(input: TelemetryConfigInput) {
 	const config = resolveTelemetryConfig(input)
 
-	return opentelemetry({
+	return {
 		serviceName: config.serviceName,
 		autoDetectResources: true,
 		spanProcessors: [new BatchSpanProcessor(createTraceExporter(config.collectorUrl))],
@@ -55,8 +54,11 @@ export function createElysiaTelemetryPlugin(input: TelemetryConfigInput) {
 			hostDetector,
 			serviceInstanceIdDetector,
 		],
-		instrumentations: [createNodeAutoInstrumentations()],
-	})
+	}
+}
+
+export function createElysiaTelemetryPlugin(input: TelemetryConfigInput) {
+	return opentelemetry(createElysiaTelemetryOptions(input))
 }
 
 export function startNodeTelemetry(input: TelemetryConfigInput) {
@@ -69,7 +71,6 @@ export function startNodeTelemetry(input: TelemetryConfigInput) {
 		resource: resourceFromAttributes(createResourceAttributes(config)),
 		traceExporter: createTraceExporter(config.collectorUrl),
 		metricReaders: [createMetricReader(config.collectorUrl)],
-		instrumentations: [createNodeAutoInstrumentations()],
 	})
 
 	try {

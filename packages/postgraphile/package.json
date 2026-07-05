@@ -16,23 +16,18 @@
 		"@graphile/pg-aggregates": "^0.1.1",
 		"@graphile/pg-pubsub": "^4.14.1",
 		"@graphile/subscriptions-lds": "^4.14.1",
-		"@koa/bodyparser": "^6.0.0",
-		"@koa/cors": "^5.0.0",
+		"@elysiajs/cors": "~1.4.0",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
+		"elysia": "~1.4.16",
 		"graphile-utils": "^4.14.1",
 		"graphql": "^15.10.1",
-		"koa": "^3.0.0",
-		"koa-morgan": "^1.0.1",
+		"logixlysia": "~6.6.0",
 		"postgraphile": "^4.14.1",
 		"postgraphile-plugin-connection-filter": "^2.3.0",
 		"ruru": "2.0.0"
 	},
-	"devDependencies": {
-		"@types/koa": "^2.15.0",
-		"@types/koa__cors": "^5.0.0",
-		"@types/koa-morgan": "^1.0.8"
-	},
+	"devDependencies": {},
 	"peerDependencies": {
 		"graphile-build": "^4.14.1 || ^5.0.0",
 		"graphql": "^15.0.0"

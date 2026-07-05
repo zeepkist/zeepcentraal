@@ -1,5 +1,4 @@
 import { setActiveSpanAttributes } from '@zeepkist/telemetry'
-import type { Middleware } from 'koa'
 
 const HEADERS_TO_COLLECT = [
 	'X-Zeepkist-Version',
@@ -8,18 +7,16 @@ const HEADERS_TO_COLLECT = [
 	'X-Steam-ID',
 ]
 
-export const collectHeaderMetrics: Middleware = async (ctx, next) => {
+export function collectHeaderMetrics(headers: Headers) {
 	const attributes: Record<string, string> = {}
 
 	for (const header of HEADERS_TO_COLLECT) {
-		const value = ctx.headers[header.toLowerCase()]
+		const value = headers.get(header)
 
-		if (typeof value === 'string') {
+		if (value) {
 			attributes[`graphql.header.${header}`] = value
 		}
 	}
 
 	setActiveSpanAttributes(attributes)
-
-	await next()
 }

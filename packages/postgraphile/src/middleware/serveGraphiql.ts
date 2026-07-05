@@ -1,4 +1,3 @@
-import type { Middleware } from 'koa'
 import { ruruHTML } from 'ruru/server'
 import { getStaticFile } from 'ruru/static'
 
@@ -7,36 +6,40 @@ const ruruConfig = {
 	endpoint: '/',
 }
 
-export const serveGraphiql: Middleware = async (ctx, next) => {
-	if (ctx.path === '/' && ctx.method === 'GET') {
-		ctx.type = 'text/html'
-		ctx.body = ruruHTML(ruruConfig)
-		return
+export async function serveGraphiql(request: Request): Promise<Response | null> {
+	const url = new URL(request.url)
+	if (url.pathname === '/' && request.method === 'GET') {
+		return new Response(ruruHTML(ruruConfig), {
+			headers: {
+				'content-type': 'text/html; charset=utf-8',
+			},
+		})
 	}
 
-	if (ctx.path.startsWith(ruruConfig.staticPath)) {
+	if (url.pathname.startsWith(ruruConfig.staticPath)) {
 		const staticFile = await getStaticFile({
 			staticPath: ruruConfig.staticPath,
-			urlPath: ctx.url,
-			acceptEncoding: ctx.headers['accept-encoding'],
+			urlPath: `${url.pathname}${url.search}`,
+			acceptEncoding: request.headers.get('accept-encoding') ?? undefined,
 			disallowDevAssets: true,
 		})
 
 		if (staticFile) {
 			const { etag } = staticFile.headers
 
-			if (etag && ctx.headers['if-none-match'] === etag) {
-				ctx.status = 304
-				ctx.set('etag', etag)
-				return
+			if (etag && request.headers.get('if-none-match') === etag) {
+				return new Response(null, {
+					status: 304,
+					headers: { etag },
+				})
 			}
 
-			ctx.status = 200
-			ctx.set(staticFile.headers)
-			ctx.body = staticFile.content
-			return
+			return new Response(staticFile.content, {
+				status: 200,
+				headers: staticFile.headers,
+			})
 		}
 	}
 
-	await next()
+	return null
 }

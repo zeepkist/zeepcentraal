@@ -1,6 +1,17 @@
 import { describe, expect, test } from 'bun:test'
+import { ProxyTracerProvider, trace } from '@opentelemetry/api'
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base'
 import { createResourceAttributes, resolveTelemetryConfig } from './config'
-import { createNodeAutoInstrumentations } from './instrumentation'
+import { createElysiaTelemetryOptions } from './sdk'
+import { injectTraceHeaders, startActiveSpan, withExtractedTraceContext } from './span'
+
+const tracerProvider = trace.getTracerProvider()
+if (
+	tracerProvider instanceof ProxyTracerProvider &&
+	tracerProvider.getDelegateTracer('zeepcentraal') === undefined
+) {
+	trace.setGlobalTracerProvider(new BasicTracerProvider())
+}
 
 describe('telemetry config', () => {
 	test('defaults local service name from package name', () => {
@@ -43,13 +54,36 @@ describe('telemetry config', () => {
 		})
 	})
 
-	test('runtime-node instrumentation disabled for Bun', () => {
-		const runtimeNodeInstrumentation = createNodeAutoInstrumentations().find(
-			(instrumentation) =>
-				instrumentation.instrumentationName ===
-				'@opentelemetry/instrumentation-runtime-node',
+	test('elysia telemetry options keep gRPC collector URL and no auto instrumentations', () => {
+		const options = createElysiaTelemetryOptions({
+			packageName: 'server',
+			collectorUrl: 'https://ingress.zeepki.st:443',
+			nodeEnv: 'production',
+			serviceName: 'zeepcentraal-server',
+		})
+
+		expect(options.serviceName).toBe('zeepcentraal-server')
+		expect(options.spanProcessors).toHaveLength(1)
+		expect(options.metricReaders).toHaveLength(1)
+		expect(options).not.toHaveProperty('instrumentations')
+	})
+
+	test('propagation injects trace headers from active span', () => {
+		const headers = startActiveSpan('test span', () => injectTraceHeaders())
+		const traceparent = headers.get('traceparent')
+
+		expect(traceparent).toMatch(/^00-[a-f0-9]{32}-[a-f0-9]{16}-0[01]$/)
+	})
+
+	test('propagation extracts inbound trace context', () => {
+		const inboundTraceId = '4bf92f3577b34da6a3ce929d0e0e4736'
+		const injectedHeaders = withExtractedTraceContext(
+			{
+				traceparent: `00-${inboundTraceId}-00f067aa0ba902b7-01`,
+			},
+			() => startActiveSpan('child span', () => injectTraceHeaders()),
 		)
 
-		expect(runtimeNodeInstrumentation).toBeUndefined()
+		expect(injectedHeaders.get('traceparent')).toContain(inboundTraceId)
 	})
 })

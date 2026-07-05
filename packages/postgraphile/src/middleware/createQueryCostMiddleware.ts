@@ -1,6 +1,5 @@
 import {
 	getTracer,
-	recordSpanError,
 	recordSpanWarning,
 	setSpanErrorStatus,
 	setSpanOkStatus,
@@ -13,7 +12,6 @@ import {
 	type SelectionNode,
 	type ValueNode,
 } from 'graphql'
-import type { Middleware } from 'koa'
 
 const FLATTENED_FIELDS_NO_DEPTH = new Set([
 	'nodes',
@@ -37,6 +35,11 @@ type GraphQlBody = {
 	query?: unknown
 	operationName?: unknown
 	variables?: unknown
+}
+
+export type QueryCostResult = {
+	response?: Response
+	cost?: number
 }
 
 function getArgValue(valueNode: ValueNode) {
@@ -219,134 +222,120 @@ export function estimateQueryCost(
 	return Math.ceil(totalCost)
 }
 
-export function createQueryCostMiddleware(
+export async function evaluateQueryCost(
+	body: GraphQlBody | undefined,
 	maxCost = 5000,
 	defaultCollectionSize = 100,
 	includeQueryTraceDetail = false,
-): Middleware {
-	return async (ctx, next) => {
-		const body = ctx.request.body as GraphQlBody | undefined
-		if (ctx.method !== 'POST' || ctx.path !== '/' || typeof body?.query !== 'string') {
-			return next()
+): Promise<QueryCostResult> {
+	if (typeof body?.query !== 'string') {
+		return {}
+	}
+
+	const startTime = performance.now()
+	const tracer = getTracer()
+	const operationName = typeof body.operationName === 'string' ? body.operationName : undefined
+	const { query, variables } = body
+
+	return tracer.startActiveSpan('GraphQL Query Cost Estimation', async (span) => {
+		let document: DocumentNode
+		let parseElapsedMs = 0
+
+		try {
+			const parseStartTime = performance.now()
+			document = parse(query, {
+				noLocation: true,
+				allowLegacySDLEmptyFields: false,
+				allowLegacySDLImplementsInterfaces: false,
+			})
+			parseElapsedMs = performance.now() - parseStartTime
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error)
+			recordSpanWarning('Invalid GraphQL Syntax', {
+				'graphql.operation.name': operationName || 'default',
+				'graphql.error.kind': 'syntax',
+				'graphql.error.message': message,
+			})
+			span.end()
+			return {
+				response: Response.json(
+					{
+						errors: [{ message: 'Invalid GraphQL Syntax', details: message }],
+					},
+					{ status: 400 },
+				),
+			}
 		}
 
-		const startTime = performance.now()
-		const tracer = getTracer()
-		const operationName =
-			typeof body.operationName === 'string' ? body.operationName : undefined
-		const { query, variables } = body
-
-		return tracer.startActiveSpan('GraphQL Query Cost Estimation', async (span) => {
-			let document: DocumentNode
-			let parseElapsedMs = 0
-
-			try {
-				const parseStartTime = performance.now()
-				document = parse(query, {
-					noLocation: true,
-					allowLegacySDLEmptyFields: false,
-					allowLegacySDLImplementsInterfaces: false,
-				})
-				parseElapsedMs = performance.now() - parseStartTime
-			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error)
-				ctx.status = 400
-				ctx.body = {
-					errors: [{ message: 'Invalid GraphQL Syntax', details: message }],
-				}
-				recordSpanWarning('Invalid GraphQL Syntax', {
-					'graphql.operation.name': operationName || 'default',
-				})
-				recordSpanError(error, {
-					'graphql.error.kind': 'syntax',
-				})
+		for (const definition of document.definitions) {
+			if (
+				definition.kind === 'OperationDefinition' &&
+				containsIntrospectionField(definition.selectionSet.selections)
+			) {
 				span.end()
-				return
+				return {}
 			}
+		}
 
-			for (const definition of document.definitions) {
-				if (
-					definition.kind === 'OperationDefinition' &&
-					containsIntrospectionField(definition.selectionSet.selections)
-				) {
-					try {
-						await next()
-					} catch (error) {
-						recordSpanError(error, {
-							'graphql.operation.name': operationName || 'default',
-						})
-						throw error
-					} finally {
-						span.end()
-					}
-					return
-				}
-			}
+		const costStartTime = performance.now()
+		const totalCost = estimateQueryCost(document, operationName, defaultCollectionSize)
+		const costElapsedMs = performance.now() - costStartTime
 
-			const costStartTime = performance.now()
-			const totalCost = estimateQueryCost(document, operationName, defaultCollectionSize)
-			const costElapsedMs = performance.now() - costStartTime
+		const elapsedMs = performance.now() - startTime
 
-			ctx.set('X-Query-Cost', String(totalCost))
+		span.setAttribute('graphql.queryCost.cost', totalCost)
+		span.setAttribute('graphql.queryCost.operationName', operationName || 'default')
+		span.setAttribute('graphql.queryCost.elapsedMs', elapsedMs)
+		span.setAttribute('graphql.queryCost.parseElapsedMs', parseElapsedMs)
+		span.setAttribute('graphql.queryCost.costElapsedMs', costElapsedMs)
+		span.setAttribute('graphql.queryCost.exceeded', totalCost > maxCost)
 
-			const elapsedMs = performance.now() - startTime
+		if (includeQueryTraceDetail) {
+			span.setAttribute('graphql.queryCost.query', query)
 
-			span.setAttribute('graphql.queryCost.cost', totalCost)
-			span.setAttribute('graphql.queryCost.operationName', operationName || 'default')
-			span.setAttribute('graphql.queryCost.elapsedMs', elapsedMs)
-			span.setAttribute('graphql.queryCost.parseElapsedMs', parseElapsedMs)
-			span.setAttribute('graphql.queryCost.costElapsedMs', costElapsedMs)
-			span.setAttribute('graphql.queryCost.exceeded', totalCost > maxCost)
-
-			if (includeQueryTraceDetail) {
-				span.setAttribute('graphql.queryCost.query', query)
-
-				if (variables && typeof variables === 'object') {
-					span.setAttributes(
-						Object.entries(variables).reduce<Record<string, string>>(
-							(acc, [key, value]) => {
-								acc[`graphql.queryCost.variables.${key}`] = JSON.stringify(value)
-								return acc
-							},
-							{},
-						),
-					)
-				}
-			}
-
-			if (totalCost > maxCost) {
-				ctx.status = 400
-				ctx.body = {
-					errors: [
-						{
-							message: 'Query Cost Exceeded',
-							details: `Estimated cost: ${totalCost} > ${maxCost}. Optimsise your query by using pagination, reducing field depth and limiting requested fields per selection to fetch only the data you need.`,
+			if (variables && typeof variables === 'object') {
+				span.setAttributes(
+					Object.entries(variables).reduce<Record<string, string>>(
+						(acc, [key, value]) => {
+							acc[`graphql.queryCost.variables.${key}`] = JSON.stringify(value)
+							return acc
 						},
-					],
-				}
-
-				recordSpanWarning('Query Cost Exceeded', {
-					'graphql.operation.name': operationName || 'default',
-					'graphql.queryCost.cost': totalCost,
-					'graphql.queryCost.maxCost': maxCost,
-				})
-				setSpanErrorStatus(span, `Query cost exceeded: ${totalCost} > ${maxCost}`)
-				span.end()
-				return
+						{},
+					),
+				)
 			}
+		}
 
-			setSpanOkStatus(span)
-
-			try {
-				await next()
-			} catch (error) {
-				recordSpanError(error, {
-					'graphql.operation.name': operationName || 'default',
-				})
-				throw error
-			} finally {
-				span.end()
+		if (totalCost > maxCost) {
+			recordSpanWarning('Query Cost Exceeded', {
+				'graphql.operation.name': operationName || 'default',
+				'graphql.queryCost.cost': totalCost,
+				'graphql.queryCost.maxCost': maxCost,
+			})
+			setSpanErrorStatus(span, `Query cost exceeded: ${totalCost} > ${maxCost}`)
+			span.end()
+			return {
+				response: Response.json(
+					{
+						errors: [
+							{
+								message: 'Query Cost Exceeded',
+								details: `Estimated cost: ${totalCost} > ${maxCost}. Optimsise your query by using pagination, reducing field depth and limiting requested fields per selection to fetch only the data you need.`,
+							},
+						],
+					},
+					{
+						status: 400,
+						headers: {
+							'X-Query-Cost': String(totalCost),
+						},
+					},
+				),
 			}
-		})
-	}
+		}
+
+		setSpanOkStatus(span)
+		span.end()
+		return { cost: totalCost }
+	})
 }

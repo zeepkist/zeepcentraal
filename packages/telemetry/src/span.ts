@@ -1,6 +1,30 @@
-import { type Attributes, metrics, type Span, SpanStatusCode, trace } from '@opentelemetry/api'
+import {
+	type Attributes,
+	context,
+	metrics,
+	propagation,
+	type Span,
+	SpanKind,
+	type SpanOptions,
+	SpanStatusCode,
+	trace,
+} from '@opentelemetry/api'
 
 export type TelemetryAttributes = Attributes
+
+export type TelemetrySpanOptions = {
+	attributes?: TelemetryAttributes
+}
+
+export type TelemetryHttpServerSpanInput = {
+	method: string
+	url: string
+	headers: Headers | Record<string, string | string[] | undefined>
+	route?: string
+	attributes?: TelemetryAttributes
+}
+
+type TelemetryHeadersInit = ConstructorParameters<typeof Headers>[0]
 
 export type TelemetrySpan = {
 	setAttribute(name: string, value: string | number | boolean): void
@@ -11,6 +35,15 @@ export type TelemetrySpan = {
 	setOkStatus(): void
 	updateName(name: string): void
 	end(): void
+}
+
+type TelemetryTracer = {
+	startActiveSpan<T>(spanName: string, callback: (span: TelemetrySpan) => T): T
+	startActiveSpan<T>(
+		spanName: string,
+		options: TelemetrySpanOptions,
+		callback: (span: TelemetrySpan) => T,
+	): T
 }
 
 export type TelemetryCounter = {
@@ -52,14 +85,107 @@ function wrapSpan(span: Span): TelemetrySpan {
 	}
 }
 
-export function getTracer(name = 'zeepcentraal') {
+function toSpanOptions(options?: TelemetrySpanOptions): SpanOptions {
+	return {
+		attributes: options?.attributes,
+	}
+}
+
+function headerCarrier(headers: Headers | Record<string, string | string[] | undefined>) {
+	if (headers instanceof Headers) {
+		return Object.fromEntries(headers.entries())
+	}
+
+	return Object.fromEntries(
+		Object.entries(headers)
+			.filter(([, value]) => value !== undefined)
+			.map(([key, value]) => [key, Array.isArray(value) ? value.join(',') : value]),
+	)
+}
+
+export function getTracer(name = 'zeepcentraal'): TelemetryTracer {
 	const tracer = trace.getTracer(name)
 
 	return {
-		startActiveSpan<T>(spanName: string, callback: (span: TelemetrySpan) => T): T {
-			return tracer.startActiveSpan(spanName, (span) => callback(wrapSpan(span)))
+		startActiveSpan<T>(
+			spanName: string,
+			optionsOrCallback: TelemetrySpanOptions | ((span: TelemetrySpan) => T),
+			callback?: (span: TelemetrySpan) => T,
+		): T {
+			if (typeof optionsOrCallback === 'function') {
+				return tracer.startActiveSpan(spanName, (span) => optionsOrCallback(wrapSpan(span)))
+			}
+
+			if (!callback) {
+				throw new Error('Telemetry span callback is required')
+			}
+
+			return tracer.startActiveSpan(spanName, toSpanOptions(optionsOrCallback), (span) =>
+				callback(wrapSpan(span)),
+			)
 		},
 	}
+}
+
+export function startActiveSpan<T>(spanName: string, callback: (span: TelemetrySpan) => T): T
+export function startActiveSpan<T>(
+	spanName: string,
+	options: TelemetrySpanOptions,
+	callback: (span: TelemetrySpan) => T,
+): T
+export function startActiveSpan<T>(
+	spanName: string,
+	optionsOrCallback: TelemetrySpanOptions | ((span: TelemetrySpan) => T),
+	callback?: (span: TelemetrySpan) => T,
+): T {
+	if (typeof optionsOrCallback === 'function') {
+		return getTracer().startActiveSpan(spanName, optionsOrCallback)
+	}
+
+	if (!callback) {
+		throw new Error('Telemetry span callback is required')
+	}
+
+	return getTracer().startActiveSpan(spanName, optionsOrCallback, callback)
+}
+
+export function injectTraceHeaders(headers?: TelemetryHeadersInit): Headers {
+	const nextHeaders = new Headers(headers)
+	propagation.inject(context.active(), nextHeaders, {
+		set(carrier, key, value) {
+			carrier.set(key, value)
+		},
+	})
+	return nextHeaders
+}
+
+export function withExtractedTraceContext<T>(
+	headers: Headers | Record<string, string | string[] | undefined>,
+	callback: () => T,
+): T {
+	const extractedContext = propagation.extract(context.active(), headerCarrier(headers))
+	return context.with(extractedContext, callback)
+}
+
+export function startHttpServerSpan<T>(
+	input: TelemetryHttpServerSpanInput,
+	callback: (span: TelemetrySpan) => T,
+): T {
+	return withExtractedTraceContext(input.headers, () =>
+		trace.getTracer('zeepcentraal').startActiveSpan(
+			`${input.method} ${input.route ?? new URL(input.url).pathname}`,
+			{
+				kind: SpanKind.SERVER,
+				attributes: {
+					'http.request.method': input.method,
+					'url.full': input.url,
+					'url.path': new URL(input.url).pathname,
+					...input.attributes,
+				},
+			},
+			(span) => callback(wrapSpan(span)),
+		),
+	)
 }
 
 export function getActiveSpan(): TelemetrySpan | undefined {
