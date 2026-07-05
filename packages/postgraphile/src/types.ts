@@ -1,4 +1,4 @@
-import type { GraphQLFieldResolver } from 'graphql'
+import type { GraphQLFieldResolver } from 'postgraphile/graphql'
 
 export type GraphileBuilder = {
 	hook<TValue>(
@@ -26,7 +26,9 @@ export type GraphileField = {
 export type Inflector = {
 	camelCase(value: string): string
 	constantCase(value: string): string
+	coerceToGraphQLName(value: string): string
 	pluralize(value: string): string
+	tableType(codec: unknown): string
 	orderByColumnEnum(...args: unknown[]): string
 	_singularizedTableName(table: PgTable): string
 }

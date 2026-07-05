@@ -29,6 +29,6 @@
 		}
 	},
 	"files": {
-		"includes": ["**", "!**/node_modules", "!**/dist"]
+		"includes": ["**", "!**/node_modules", "!**/dist", "!packages/graphql/schema.graphql"]
 	}
 }

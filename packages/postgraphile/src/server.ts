@@ -3,12 +3,16 @@ import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import { createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
 import { Elysia } from 'elysia'
 import logixlysia from 'logixlysia'
+import { elysiaGrafserv } from './elysiaGrafserv'
 import { createEventStreamHandler, createGraphqlHttpHandler } from './graphqlHttp'
 import { serveGraphiql } from './middleware/serveGraphiql'
 import { createPostGraphileHandler } from './postgraphileOptions'
-import { createPostGraphileWebSocketHandlers } from './postgraphileWebSocket'
 
-export { createPostGraphileHandler, createPostGraphileOptions } from './postgraphileOptions'
+export {
+	createPostGraphileHandler,
+	createPostGraphileOptions,
+	createPostGraphilePreset,
+} from './postgraphileOptions'
 
 function redirectToRoot(request: Request) {
 	return Response.redirect(new URL('/', request.url).toString(), 302)
@@ -35,9 +39,10 @@ const withLogging = postgraphileConfig.requestLogging
 	: new Elysia()
 
 export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
-	const graphqlRoute = createGraphqlHttpHandler(handler)
-	const eventStreamRoute = createEventStreamHandler(handler)
-	const websocketHandlers = createPostGraphileWebSocketHandlers(handler)
+	const server = handler.createServ(elysiaGrafserv)
+	const graphqlRoute = createGraphqlHttpHandler(server)
+	const eventStreamRoute = createEventStreamHandler(server)
+	const websocketHandlers = server.createWebSocketHandlers()
 
 	return new Elysia({
 		aot: true,
@@ -55,7 +60,11 @@ export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 		.get('/graphiql', ({ request }) => redirectToRoot(request))
 		.get('/graphql', ({ request }) => redirectToRoot(request))
 		.all('/ruru-static/*', async ({ request }) => {
-			return (await serveGraphiql(request)) ?? new Response('Not Found', { status: 404 })
+			return (
+				(await server.handleGraphiQLStaticRequest(request)) ??
+				(await serveGraphiql(request)) ??
+				new Response('Not Found', { status: 404 })
+			)
 		})
 		.ws('/', websocketHandlers)
 		.get('/stream', eventStreamRoute)

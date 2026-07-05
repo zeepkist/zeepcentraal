@@ -1,21 +1,30 @@
 import { describe, expect, test } from 'bun:test'
-import type { PostGraphileFetchResponse } from './postgraphileFetchAdapter'
-import { buildPostGraphileServer, createPostGraphileOptions } from './server'
+import { buildPostGraphileServer, createPostGraphilePreset } from './server'
 
 function createApp() {
-	const handler = {
-		async graphqlRouteHandler(response: PostGraphileFetchResponse) {
-			response.setHeader('content-type', 'application/json')
-			response.end('{"data":{"ok":true}}')
+	const server = {
+		createWebSocketHandlers() {
+			return {
+				open() {},
+				message() {},
+				close() {},
+			}
 		},
-		async eventStreamRouteHandler(response: PostGraphileFetchResponse) {
-			const request = response.getNodeServerRequest()
-			request.socket.setTimeout(0)
-			request.socket.setNoDelay(true)
-			request.socket.setKeepAlive(true)
-			response.setHeader('content-type', 'text/event-stream')
-			const stream = response.endWithStream()
-			stream.end('event: test\n\n')
+		async handleGraphQLRequest() {
+			return Response.json({ data: { ok: true } })
+		},
+		async handleEventStreamRequest() {
+			return new Response('event: test\n\n', {
+				headers: { 'content-type': 'text/event-stream' },
+			})
+		},
+		async handleGraphiQLStaticRequest() {
+			return null
+		},
+	}
+	const handler = {
+		createServ() {
+			return server
 		},
 	}
 
@@ -23,9 +32,12 @@ function createApp() {
 }
 
 describe('buildPostGraphileServer', () => {
-	test('disables PostGraphile websocket auto-enhancement under Elysia', () => {
-		expect(createPostGraphileOptions().live).toBe(true)
-		expect(createPostGraphileOptions().websockets).toEqual([])
+	test('configures Grafserv for root graphql route and websocket subscriptions', () => {
+		const preset = createPostGraphilePreset()
+
+		expect(preset.grafserv?.graphqlPath).toBe('/')
+		expect(preset.grafserv?.eventStreamPath).toBe('/stream')
+		expect(preset.grafserv?.websockets).toBe(true)
 	})
 
 	test('serves health check', async () => {
@@ -66,7 +78,7 @@ describe('buildPostGraphileServer', () => {
 		expect(await response.text()).toBe('event: test\n\n')
 	})
 
-	test('passes valid GraphQL post to PostGraphile and sets query cost header', async () => {
+	test('passes valid GraphQL post to Grafserv and sets query cost header', async () => {
 		const response = await createApp().handle(
 			new Request('http://localhost/', {
 				method: 'POST',
