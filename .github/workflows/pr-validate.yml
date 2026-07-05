@@ -52,6 +52,7 @@ jobs:
           bun run build:jobs
           bun run build:migrate
           bun run build:import-zsl
+          bun run build:postgraphile
 
       - name: Upload compiled binaries
         uses: actions/upload-artifact@v7
@@ -63,6 +64,7 @@ jobs:
             dist/zeepcentraal-jobs
             dist/zeepcentraal-migrate
             dist/zeepcentraal-import-zsl
+            dist/zeepcentraal-postgraphile
 
   docker-build:
     runs-on: ubuntu-latest
@@ -87,6 +89,7 @@ jobs:
           test -f dist/zeepcentraal-jobs
           test -f dist/zeepcentraal-migrate
           test -f dist/zeepcentraal-import-zsl
+          test -f dist/zeepcentraal-postgraphile
 
       - name: Clone Super League Data
         run: |
@@ -123,3 +126,11 @@ jobs:
           file: Dockerfile.zsl
           push: false
           tags: zeepcentraal/import-zsl:pr-${{ github.event.pull_request.number || github.run_id }}
+
+      - name: Build postgraphile image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.postgraphile
+          push: false
+          tags: zeepcentraal/postgraphile:pr-${{ github.event.pull_request.number || github.run_id }}

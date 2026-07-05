@@ -289,3 +289,61 @@ jobs:
             ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.major }}
             ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.major_minor }}
             ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.version }}
+
+  build-postgraphile:
+    runs-on: ubuntu-latest
+    needs: [test, release]
+    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Bun dependencies
+        uses: ./.github/actions/setup-bun-deps
+
+      - name: Build postgraphile binary
+        run: bun run build:postgraphile
+
+      - name: Resolve postgraphile image version tags
+        id: postgraphile_version
+        run: |
+          git fetch --force --tags origin
+          TAG="$(git tag -l 'postgraphile@*' --sort=-v:refname | head -n 1)"
+          if [ -z "$TAG" ]; then
+            echo "No postgraphile release tags found (expected pattern: postgraphile@x.y.z)." >&2
+            exit 1
+          fi
+          VERSION="${TAG#postgraphile@}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+            echo "Invalid semantic version parsed from tag '$TAG'." >&2
+            exit 1
+          fi
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push postgraphile image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.postgraphile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/postgraphile:latest
+            ghcr.io/${{ github.repository }}/postgraphile:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/postgraphile:${{ steps.postgraphile_version.outputs.major }}
+            ghcr.io/${{ github.repository }}/postgraphile:${{ steps.postgraphile_version.outputs.major_minor }}
+            ghcr.io/${{ github.repository }}/postgraphile:${{ steps.postgraphile_version.outputs.version }}

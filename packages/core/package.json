@@ -29,6 +29,9 @@
 		"./config/migrate": {
 			"import": "./src/config/migrate.ts"
 		},
+		"./config/postgraphile": {
+			"import": "./src/config/postgraphile.ts"
+		},
 		"./config/server": {
 			"import": "./src/config/server.ts"
 		},

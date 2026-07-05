@@ -1,0 +1,47 @@
+{
+	"name": "@zeepkist/postgraphile",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"scripts": {
+		"release": "semantic-release",
+		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-postgraphile src/index.ts"
+	},
+	"dependencies": {
+		"@graphile-contrib/pg-many-to-many": "^1.0.2",
+		"@graphile-contrib/pg-order-by-related": "^1.0.0",
+		"@graphile-contrib/pg-simplify-inflector": "^6.1.0",
+		"@graphile/pg-aggregates": "^0.1.1",
+		"@graphile/pg-pubsub": "^4.14.1",
+		"@graphile/subscriptions-lds": "^4.14.1",
+		"@koa/bodyparser": "^6.0.0",
+		"@koa/cors": "^5.0.0",
+		"@opentelemetry/api": "~1.9.0",
+		"@opentelemetry/auto-instrumentations-node": "~0.77.0",
+		"@opentelemetry/exporter-metrics-otlp-grpc": "~0.219.0",
+		"@opentelemetry/exporter-trace-otlp-grpc": "~0.219.0",
+		"@opentelemetry/resources": "~2.8.0",
+		"@opentelemetry/sdk-metrics": "~2.8.0",
+		"@opentelemetry/sdk-node": "~0.219.0",
+		"@opentelemetry/semantic-conventions": "~1.41.1",
+		"@zeepkist/core": "workspace:*",
+		"graphile-utils": "^4.14.1",
+		"graphql": "^15.10.1",
+		"koa": "^3.0.0",
+		"koa-morgan": "^1.0.1",
+		"postgraphile": "^4.14.1",
+		"postgraphile-plugin-connection-filter": "^2.3.0",
+		"ruru": "2.0.0"
+	},
+	"devDependencies": {
+		"@types/koa": "^2.15.0",
+		"@types/koa__cors": "^5.0.0",
+		"@types/koa-morgan": "^1.0.8"
+	},
+	"peerDependencies": {
+		"graphile-build": "^4.14.1 || ^5.0.0",
+		"graphql": "^15.0.0"
+	}
+}

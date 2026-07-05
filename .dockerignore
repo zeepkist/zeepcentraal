@@ -9,4 +9,5 @@
 !dist/zeepcentraal-jobs
 !dist/zeepcentraal-migrate
 !dist/zeepcentraal-import-zsl
+!dist/zeepcentraal-postgraphile
 **/.DS_Store
