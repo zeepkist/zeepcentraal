@@ -20,7 +20,7 @@
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
 		"elysia": "~1.4.16",
-		"graphile-utils": "^4.14.1",
+		"graphile-utils": "^5.0.0",
 		"graphql": "^15.10.1",
 		"logixlysia": "~6.6.0",
 		"postgraphile": "^4.14.1",
