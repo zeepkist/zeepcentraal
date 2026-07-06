@@ -39,6 +39,25 @@ jobs:
   build-packages:
     runs-on: ubuntu-latest
     needs: [quality]
+    strategy:
+      fail-fast: true
+      matrix:
+        package:
+          - name: server
+            build_script: build:server
+            binary: zeepcentraal-server
+          - name: jobs
+            build_script: build:jobs
+            binary: zeepcentraal-jobs
+          - name: migrate
+            build_script: build:migrate
+            binary: zeepcentraal-migrate
+          - name: import-zsl
+            build_script: build:import-zsl
+            binary: zeepcentraal-import-zsl
+          - name: postgraphile
+            build_script: build:postgraphile
+            binary: zeepcentraal-postgraphile
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -46,101 +65,72 @@ jobs:
       - name: Setup Bun dependencies
         uses: ./.github/actions/setup-bun-deps
 
-      - name: Build all package binaries
-        run: |
-          bun run build:server
-          bun run build:jobs
-          bun run build:migrate
-          bun run build:import-zsl
-          bun run build:postgraphile
+      - name: Build ${{ matrix.package.name }} binary
+        run: bun run ${{ matrix.package.build_script }}
 
-      - name: Upload compiled binaries
+      - name: Upload ${{ matrix.package.name }} binary
         uses: actions/upload-artifact@v7
         with:
-          name: compiled-binaries
+          name: compiled-binary-${{ matrix.package.name }}
           if-no-files-found: error
-          path: |
-            dist/zeepcentraal-server
-            dist/zeepcentraal-jobs
-            dist/zeepcentraal-migrate
-            dist/zeepcentraal-import-zsl
-            dist/zeepcentraal-postgraphile
+          path: dist/${{ matrix.package.binary }}
 
   docker-build:
     runs-on: ubuntu-latest
     needs: [build-packages]
+    strategy:
+      fail-fast: true
+      matrix:
+        image:
+          - name: server
+            file: Dockerfile.server
+            binary: zeepcentraal-server
+            tag: zeepcentraal/server
+            clone_super_league: false
+          - name: jobs
+            file: Dockerfile.jobs
+            binary: zeepcentraal-jobs
+            tag: zeepcentraal/jobs
+            clone_super_league: false
+          - name: migrate
+            file: Dockerfile.migrate
+            binary: zeepcentraal-migrate
+            tag: zeepcentraal/migrate
+            clone_super_league: false
+          - name: import-zsl
+            file: Dockerfile.zsl
+            binary: zeepcentraal-import-zsl
+            tag: zeepcentraal/import-zsl
+            clone_super_league: true
+          - name: postgraphile
+            file: Dockerfile.postgraphile
+            binary: zeepcentraal-postgraphile
+            tag: zeepcentraal/postgraphile
+            clone_super_league: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Download compiled binaries
+      - name: Download ${{ matrix.image.name }} binary
         uses: actions/download-artifact@v8
         with:
-          name: compiled-binaries
+          name: compiled-binary-${{ matrix.image.name }}
           path: dist
 
-      - name: Normalize and verify compiled binaries
-        run: |
-          if [ -d dist/dist ]; then
-            mv dist/dist/* dist/
-            rmdir dist/dist
-          fi
-          test -f dist/zeepcentraal-server
-          test -f dist/zeepcentraal-jobs
-          test -f dist/zeepcentraal-migrate
-          test -f dist/zeepcentraal-import-zsl
-          test -f dist/zeepcentraal-postgraphile
+      - name: Verify ${{ matrix.image.name }} binary
+        run: test -f dist/${{ matrix.image.binary }}
 
       - name: Clone Super League Data
+        if: ${{ matrix.image.clone_super_league }}
         run: |
           git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
 
-      - name: Build server image (no push)
+      - name: Build ${{ matrix.image.name }} image (no push)
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: Dockerfile.server
+          file: ${{ matrix.image.file }}
           push: false
           build-args: |
             SERVICE_VERSION=pr-${{ github.event.pull_request.number || github.run_id }}
-          tags: zeepcentraal/server:pr-${{ github.event.pull_request.number || github.run_id }}
-
-      - name: Build jobs image (no push)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.jobs
-          push: false
-          build-args: |
-            SERVICE_VERSION=pr-${{ github.event.pull_request.number || github.run_id }}
-          tags: zeepcentraal/jobs:pr-${{ github.event.pull_request.number || github.run_id }}
-
-      - name: Build migrate image (no push)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.migrate
-          push: false
-          build-args: |
-            SERVICE_VERSION=pr-${{ github.event.pull_request.number || github.run_id }}
-          tags: zeepcentraal/migrate:pr-${{ github.event.pull_request.number || github.run_id }}
-
-      - name: Build import-zsl image (no push)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.zsl
-          push: false
-          build-args: |
-            SERVICE_VERSION=pr-${{ github.event.pull_request.number || github.run_id }}
-          tags: zeepcentraal/import-zsl:pr-${{ github.event.pull_request.number || github.run_id }}
-
-      - name: Build postgraphile image (no push)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.postgraphile
-          push: false
-          build-args: |
-            SERVICE_VERSION=pr-${{ github.event.pull_request.number || github.run_id }}
-          tags: zeepcentraal/postgraphile:pr-${{ github.event.pull_request.number || github.run_id }}
+          tags: ${{ matrix.image.tag }}:pr-${{ github.event.pull_request.number || github.run_id }}
