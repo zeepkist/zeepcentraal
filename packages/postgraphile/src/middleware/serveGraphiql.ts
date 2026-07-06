@@ -6,12 +6,30 @@ const ruruConfig = {
 	endpoint: '/',
 }
 
-const ruruHtml = ruruHTML(ruruConfig)
+const ruruHtmlByOrigin = new Map<string, string>()
+
+function getRuruHtml(request: Request) {
+	const url = new URL(request.url)
+	const origin = `${url.protocol}//${url.host}`
+	const cached = ruruHtmlByOrigin.get(origin)
+	if (cached) {
+		return cached
+	}
+
+	const websocketProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+	const html = ruruHTML({
+		...ruruConfig,
+		subscriptions: true,
+		subscriptionEndpoint: `${websocketProtocol}//${url.host}/`,
+	})
+	ruruHtmlByOrigin.set(origin, html)
+	return html
+}
 
 export async function serveGraphiql(request: Request): Promise<Response | null> {
 	const url = new URL(request.url)
 	if (url.pathname === '/' && request.method === 'GET') {
-		return new Response(ruruHtml, {
+		return new Response(getRuruHtml(request), {
 			headers: {
 				'content-type': 'text/html; charset=utf-8',
 			},

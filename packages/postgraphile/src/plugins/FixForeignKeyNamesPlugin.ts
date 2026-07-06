@@ -40,6 +40,13 @@ type PgCodec = {
 const pluralProperNounFieldNames = new Map([
 	['user_points', 'userPoints'],
 	['user_point', 'userPoints'],
+	['level_points', 'levelPoints'],
+	['level_point', 'levelPoints'],
+])
+
+const pluralProperNounRelationFieldRenames = new Map([
+	['userPoint', 'userPoints'],
+	['levelPoint', 'levelPoints'],
 ])
 
 const getCodecName = (codec: unknown) => {
@@ -59,16 +66,24 @@ const pluralProperNounFieldName = (codec: unknown) => {
 const pluralProperNounTableFieldName = (table: PgTable) =>
 	pluralProperNounFieldNames.get(table.name)
 
-const renameUserPointRelationField = <TFieldMap extends Record<string, unknown>>(
+const renamePluralProperNounRelationFields = <TFieldMap extends Record<string, unknown>>(
 	fields: TFieldMap,
 ): TFieldMap => {
-	if (!('userPoint' in fields) || 'userPoints' in fields) {
-		return fields
+	let next: Record<string, unknown> | undefined
+
+	for (const [singularFieldName, pluralFieldName] of pluralProperNounRelationFieldRenames) {
+		if (!(singularFieldName in fields) || pluralFieldName in fields) {
+			continue
+		}
+
+		next ??= { ...fields }
+		next[pluralFieldName] = next[singularFieldName]
+		delete next[singularFieldName]
 	}
 
-	const next: Record<string, unknown> = { ...fields }
-	next.userPoints = next.userPoint
-	delete next.userPoint
+	if (!next) {
+		return fields
+	}
 
 	return next as TFieldMap
 }
@@ -226,10 +241,10 @@ const PgFixForeignKeyNamesPlugin: GraphileConfig.Plugin = {
 	schema: {
 		hooks: {
 			GraphQLObjectType_fields(fields) {
-				return renameUserPointRelationField(fields)
+				return renamePluralProperNounRelationFields(fields)
 			},
 			GraphQLInputObjectType_fields(fields) {
-				return renameUserPointRelationField(fields)
+				return renamePluralProperNounRelationFields(fields)
 			},
 		},
 	},

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { buildSchema } from 'postgraphile/graphql'
 import { buildPostGraphileServer, createPostGraphilePreset } from './server'
 
 function createApp() {
@@ -11,7 +12,10 @@ function createApp() {
 			}
 		},
 		async handleGraphQLRequest() {
-			return Response.json({ data: { ok: true } })
+			return Response.json(
+				{ data: { ok: true } },
+				{ headers: { 'X-GraphQL-Event-Stream': '/graphql/stream' } },
+			)
 		},
 		async handleEventStreamRequest() {
 			return new Response('event: test\n\n', {
@@ -26,6 +30,17 @@ function createApp() {
 		createServ() {
 			return server
 		},
+		getSchema() {
+			return buildSchema(`
+				type Query {
+					ok: Boolean
+				}
+
+				type Subscription {
+					ok: Boolean
+				}
+			`)
+		},
 	}
 
 	return buildPostGraphileServer(handler as never)
@@ -36,7 +51,7 @@ describe('buildPostGraphileServer', () => {
 		const preset = createPostGraphilePreset()
 
 		expect(preset.grafserv?.graphqlPath).toBe('/')
-		expect(preset.grafserv?.eventStreamPath).toBe('/stream')
+		expect(preset.grafserv?.eventStreamPath).toBeUndefined()
 		expect(preset.grafserv?.websockets).toBe(true)
 	})
 
@@ -56,6 +71,7 @@ describe('buildPostGraphileServer', () => {
 		expect(response.status).toBe(200)
 		expect(response.headers.get('content-type')).toContain('text/html')
 		expect(html).toContain('/ruru-static/')
+		expect(html).toContain('"subscriptionEndpoint": "ws://localhost/"')
 		expect(await secondResponse.text()).toBe(html)
 	})
 
@@ -70,12 +86,10 @@ describe('buildPostGraphileServer', () => {
 		expect(graphql.headers.get('location')).toBe('http://localhost/')
 	})
 
-	test('serves PostGraphile event stream route', async () => {
+	test('does not serve PostGraphile event stream route', async () => {
 		const response = await createApp().handle(new Request('http://localhost/stream'))
 
-		expect(response.status).toBe(200)
-		expect(response.headers.get('content-type')).toBe('text/event-stream')
-		expect(await response.text()).toBe('event: test\n\n')
+		expect(response.status).toBe(404)
 	})
 
 	test('passes valid GraphQL post to Grafserv and sets query cost header', async () => {
@@ -89,6 +103,7 @@ describe('buildPostGraphileServer', () => {
 
 		expect(response.status).toBe(200)
 		expect(response.headers.get('X-Query-Cost')).toBeDefined()
+		expect(response.headers.get('X-GraphQL-Event-Stream')).toBeNull()
 		expect(await response.json()).toEqual({ data: { ok: true } })
 	})
 

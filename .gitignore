@@ -6,3 +6,4 @@ coverage/
 dist/
 *.log
 packages/graphql/schema.graphql
+packages/graphql/schema.local.graphql

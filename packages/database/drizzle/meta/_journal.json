@@ -330,6 +330,13 @@
 			"when": 1783032717754,
 			"tag": "0047_quiet_shatterstar",
 			"breakpoints": true
+		},
+		{
+			"idx": 48,
+			"version": "7",
+			"when": 1783038000000,
+			"tag": "0048_live_query_invalidations",
+			"breakpoints": true
 		}
 	]
 }

@@ -10,6 +10,7 @@ type GraphqlHttpConfig = {
 }
 
 const DEFAULT_QUERY_COST_CACHE_SIZE = 500
+const EVENT_STREAM_HEADER = 'X-GraphQL-Event-Stream'
 
 async function parseGraphqlBody(request: Request, body: unknown) {
 	if (request.method !== 'POST') {
@@ -64,12 +65,13 @@ export function createGraphqlHttpHandler(
 			return new Response('Not Found', { status: 404 })
 		}
 
-		if (!queryCost.cost) {
-			return response
+		const headers = new Headers(response.headers)
+		headers.delete(EVENT_STREAM_HEADER)
+
+		if (queryCost.cost) {
+			headers.set('X-Query-Cost', String(queryCost.cost))
 		}
 
-		const headers = new Headers(response.headers)
-		headers.set('X-Query-Cost', String(queryCost.cost))
 		return new Response(response.body, {
 			status: response.status,
 			statusText: response.statusText,

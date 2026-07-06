@@ -12,6 +12,7 @@ export type GraphileHookContext = {
 		fieldName?: string
 		isPgRowSortEnum?: boolean
 		isRootQuery?: boolean
+		isRootSubscription?: boolean
 	}
 }
 

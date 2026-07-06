@@ -10,6 +10,7 @@ import { PostGraphileConnectionFilterPreset } from 'postgraphile-plugin-connecti
 import { AddCdnToUrlsPlugin } from './plugins/AddCdnToUrlsPlugin'
 import PgFixForeignKeyNamesPlugin from './plugins/FixForeignKeyNamesPlugin'
 import { HideAuthOrderByEnumsPlugin } from './plugins/HideAuthOrderByEnumsPlugin'
+import { LiveQueryCompatPlugin } from './plugins/LiveQueryCompatPlugin'
 import PgManyToManyInflectorsPlugin from './plugins/ManyToManyInflectorsPlugin'
 import { PaginationLimitsPlugin } from './plugins/PaginationLimitsPlugin'
 import { SkipByNodeIdFieldsPlugin } from './plugins/SkipByNodeIdFieldsPlugin'
@@ -19,6 +20,9 @@ type PostGraphileRuntimeConfig = {
 	databaseUrl: string
 	allowExplain: boolean
 	nodeEnv: string
+	liveQueries: {
+		enabled: boolean
+	}
 }
 
 const plugins: GraphileConfig.Plugin[] = [
@@ -47,6 +51,7 @@ const plugins: GraphileConfig.Plugin[] = [
 	AddCdnToUrlsPlugin,
 	SkipByNodeIdFieldsPlugin,
 	HideAuthOrderByEnumsPlugin,
+	LiveQueryCompatPlugin,
 ]
 
 export function createPostGraphilePreset(
@@ -65,8 +70,8 @@ export function createPostGraphilePreset(
 				ignoreIndexes: true,
 				allowExplain: config.allowExplain,
 				watchPg: config.nodeEnv !== 'production',
-				subscriptions: true,
-				simpleSubscriptions: true,
+				subscriptions: config.liveQueries.enabled,
+				simpleSubscriptions: false,
 				graphileBuildOptions: {
 					connectionFilterRelations: true,
 				},
@@ -94,14 +99,13 @@ export function createPostGraphilePreset(
 		},
 		grafserv: {
 			graphqlPath: '/',
-			eventStreamPath: '/stream',
 			graphiql: false,
 			graphiqlPath: '/',
 			graphiqlStaticPath: '/ruru-static/',
 			graphqlOverGET: false,
 			graphiqlOnGraphQLGET: false,
 			watch: config.nodeEnv !== 'production',
-			websockets: true,
+			websockets: config.liveQueries.enabled,
 		},
 	}
 }

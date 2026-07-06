@@ -4,7 +4,9 @@ import { createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
 import { Elysia } from 'elysia'
 import logixlysia from 'logixlysia'
 import { elysiaGrafserv } from './elysiaGrafserv'
-import { createEventStreamHandler, createGraphqlHttpHandler } from './graphqlHttp'
+import { createGraphqlHttpHandler } from './graphqlHttp'
+import { createLiveQueryInvalidationPoller } from './liveQueryInvalidationPoller'
+import { createLiveQueryWebSocketHandlers } from './liveQueryWebSocket'
 import { serveGraphiql } from './middleware/serveGraphiql'
 import { createPostGraphileHandler } from './postgraphileOptions'
 
@@ -41,8 +43,32 @@ const withLogging = postgraphileConfig.requestLogging
 export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 	const server = handler.createServ(elysiaGrafserv)
 	const graphqlRoute = createGraphqlHttpHandler(server)
-	const eventStreamRoute = createEventStreamHandler(server)
-	const websocketHandlers = server.createWebSocketHandlers()
+	const poller = createLiveQueryInvalidationPoller(postgraphileConfig.liveQueries)
+	const liveQueryWebSocket = createLiveQueryWebSocketHandlers({
+		schema: Promise.resolve(handler.getSchema()),
+		debounceMs: postgraphileConfig.liveQueries.debounceMs,
+		maxOperations: postgraphileConfig.liveQueries.maxOperations,
+		onActiveChange(active) {
+			if (active) {
+				poller.start(liveQueryWebSocket.invalidate)
+			} else {
+				poller.stop()
+			}
+		},
+		async execute(request, body) {
+			const response = await server.handleGraphQLRequest(request, body)
+			if (!response) {
+				return { errors: [{ message: 'GraphQL response not found' }] }
+			}
+
+			const text = await response.text()
+			try {
+				return JSON.parse(text) as unknown
+			} catch {
+				return { errors: [{ message: text || 'GraphQL response was not JSON' }] }
+			}
+		},
+	})
 
 	return new Elysia({
 		aot: true,
@@ -56,6 +82,7 @@ export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 		.use(withTelemetry)
 		.get('/healthz', () => 'OK')
 		.head('/healthz', () => 'OK')
+		.ws('/', liveQueryWebSocket.handlers)
 		.get('/', ({ request }) => serveGraphiql(request))
 		.get('/graphiql', ({ request }) => redirectToRoot(request))
 		.get('/graphql', ({ request }) => redirectToRoot(request))
@@ -66,8 +93,7 @@ export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 				new Response('Not Found', { status: 404 })
 			)
 		})
-		.ws('/', websocketHandlers)
-		.get('/stream', eventStreamRoute)
 		.post('/', graphqlRoute)
 		.options('/', graphqlRoute)
+		.onStop(() => poller.stop())
 }

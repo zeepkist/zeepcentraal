@@ -16,6 +16,15 @@ const postgraphileEnvSchema = z.object({
 	GRAPHQL_QUERY_TRACE_DETAIL: z.stringbool().default(false),
 	GRAPHQL_MAX_QUERY_COST: z.coerce.number().int().positive().default(5000),
 	GRAPHQL_DEFAULT_COLLECTION_SIZE: z.coerce.number().int().positive().default(100),
+	POSTGRAPHILE_LIVE_QUERIES: z.stringbool().default(true),
+	POSTGRAPHILE_LIVE_QUERY_POLL_MS: z.coerce.number().int().positive().default(250),
+	POSTGRAPHILE_LIVE_QUERY_DEBOUNCE_MS: z.coerce.number().int().positive().default(100),
+	POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS: z.coerce.number().int().positive().default(1000),
+	POSTGRAPHILE_LIVE_QUERY_INVALIDATION_RETENTION_MINUTES: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(60),
 	CDN_BASE_URL: z.string().optional(),
 	DEBUG: z.string().optional(),
 	OPENTELEMETRY_SERVICE_NAME: z.string().optional(),
@@ -49,6 +58,14 @@ export function parsePostgraphileConfig(env: EnvSource) {
 		queryTraceDetail: parsedEnv.GRAPHQL_QUERY_TRACE_DETAIL,
 		maxQueryCost: parsedEnv.GRAPHQL_MAX_QUERY_COST,
 		defaultCollectionSize: parsedEnv.GRAPHQL_DEFAULT_COLLECTION_SIZE,
+		liveQueries: {
+			enabled: parsedEnv.POSTGRAPHILE_LIVE_QUERIES,
+			pollMs: parsedEnv.POSTGRAPHILE_LIVE_QUERY_POLL_MS,
+			debounceMs: parsedEnv.POSTGRAPHILE_LIVE_QUERY_DEBOUNCE_MS,
+			maxOperations: parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS,
+			invalidationRetentionMinutes:
+				parsedEnv.POSTGRAPHILE_LIVE_QUERY_INVALIDATION_RETENTION_MINUTES,
+		},
 		cdnBaseUrl: parsedEnv.CDN_BASE_URL,
 		allowExplain: Boolean(parsedEnv.DEBUG),
 		otel: {
