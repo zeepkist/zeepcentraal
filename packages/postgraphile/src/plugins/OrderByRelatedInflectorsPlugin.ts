@@ -1,5 +1,9 @@
 import type { Inflector, PgTable } from '../types'
 
+function relatedOrderBy(inflector: Inflector, foreignTable: PgTable, orderBy: string) {
+	return inflector.constantCase(`${inflector._singularizedTableName(foreignTable)}_${orderBy}`)
+}
+
 const OrderByRelatedInflectorsPlugin: GraphileConfig.Plugin = {
 	name: 'OrderByRelatedInflectorsPlugin',
 	version: '1.0.0',
@@ -14,9 +18,8 @@ const OrderByRelatedInflectorsPlugin: GraphileConfig.Plugin = {
 				foreignTable: PgTable,
 			) {
 				const orderBy = this.orderByColumnEnum(attr, ascending)
-				const table = this._singularizedTableName(foreignTable)
 
-				return this.constantCase(`${table}_${orderBy}`)
+				return relatedOrderBy(this, foreignTable, orderBy)
 			},
 			orderByRelatedComputedEnum(
 				this: Inflector,
@@ -28,9 +31,8 @@ const OrderByRelatedInflectorsPlugin: GraphileConfig.Plugin = {
 				foreignTable: PgTable,
 			) {
 				const orderBy = this.orderByColumnEnum(pseudoColumnName, proc, ascending)
-				const table = this._singularizedTableName(foreignTable)
 
-				return this.constantCase(`${table}_${orderBy}`)
+				return relatedOrderBy(this, foreignTable, orderBy)
 			},
 			orderByRelatedCountEnum(
 				this: Inflector,
@@ -40,9 +42,8 @@ const OrderByRelatedInflectorsPlugin: GraphileConfig.Plugin = {
 				foreignTable: PgTable,
 			) {
 				const orderBy = `count-${ascending ? 'asc' : 'desc'}`
-				const table = this._singularizedTableName(foreignTable)
 
-				return this.constantCase(`${table}_${orderBy}`)
+				return relatedOrderBy(this, foreignTable, orderBy)
 			},
 			orderByRelatedColumnAggregateEnum(
 				this: Inflector,
@@ -55,9 +56,8 @@ const OrderByRelatedInflectorsPlugin: GraphileConfig.Plugin = {
 				aggregateName: string,
 			) {
 				const orderBy = `${aggregateName}_${this.orderByColumnEnum(attr, ascending)}`
-				const table = this._singularizedTableName(foreignTable)
 
-				return this.constantCase(`${table}_${orderBy}`)
+				return relatedOrderBy(this, foreignTable, orderBy)
 			},
 		} as never,
 		ignoreReplaceIfNotExists: [

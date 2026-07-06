@@ -13,6 +13,8 @@ export type LiveQueryInvalidationPoller = {
 	stop(): void
 }
 
+const PRUNE_EVERY_POLLS = 240
+
 export function createLiveQueryInvalidationPoller(
 	config: LiveQueryInvalidationPollerConfig,
 ): LiveQueryInvalidationPoller {
@@ -42,7 +44,7 @@ export function createLiveQueryInvalidationPoller(
 			}
 
 			pruneCounter += 1
-			if (pruneCounter >= 240) {
+			if (pruneCounter >= PRUNE_EVERY_POLLS) {
 				pruneCounter = 0
 				await pruneLiveQueryInvalidations(config.invalidationRetentionMinutes)
 			}

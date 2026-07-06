@@ -29,6 +29,14 @@
 		}
 	},
 	"files": {
-		"includes": ["**", "!**/node_modules", "!**/dist", "!packages/graphql/schema.graphql"]
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/dist",
+			"!packages/graphql/schema.graphql",
+			"!packages/graphql/schema.local.graphql",
+			"!packages/graphql/schema.v4.graphql",
+			"!packages/graphql/schema.v5.graphql"
+		]
 	}
 }

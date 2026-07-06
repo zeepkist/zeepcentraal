@@ -91,7 +91,6 @@
         "@zeepkist/database": "workspace:*",
         "@zeepkist/telemetry": "workspace:*",
         "elysia": "~1.4.16",
-        "graphql-ws": "^6.0.5",
         "logixlysia": "~6.6.0",
         "postgraphile": "^5.0.3",
         "postgraphile-plugin-connection-filter": "^3.0.1",

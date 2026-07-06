@@ -13,6 +13,7 @@ import { HideAuthOrderByEnumsPlugin } from './plugins/HideAuthOrderByEnumsPlugin
 import { LiveQueryCompatPlugin } from './plugins/LiveQueryCompatPlugin'
 import PgManyToManyInflectorsPlugin from './plugins/ManyToManyInflectorsPlugin'
 import { PaginationLimitsPlugin } from './plugins/PaginationLimitsPlugin'
+import { withIgnoredMissingInflectors } from './plugins/pluginUtils'
 import { SkipByNodeIdFieldsPlugin } from './plugins/SkipByNodeIdFieldsPlugin'
 import { TracePlugin } from './plugins/TracePlugin'
 
@@ -26,24 +27,17 @@ type PostGraphileRuntimeConfig = {
 }
 
 const plugins: GraphileConfig.Plugin[] = [
-	{
-		...PgSimplifyInflectionPlugin,
-		inflection: {
-			...PgSimplifyInflectionPlugin.inflection,
-			ignoreReplaceIfNotExists: [
-				...(PgSimplifyInflectionPlugin.inflection?.ignoreReplaceIfNotExists ?? []),
-				'patchField',
-				'updateByKeysField',
-				'deleteByKeysField',
-				'updateByKeysInputType',
-				'deleteByKeysInputType',
-				'updateNodeField',
-				'deleteNodeField',
-				'updateNodeInputType',
-				'deleteNodeInputType',
-			],
-		},
-	},
+	withIgnoredMissingInflectors(PgSimplifyInflectionPlugin, [
+		'patchField',
+		'updateByKeysField',
+		'deleteByKeysField',
+		'updateByKeysInputType',
+		'deleteByKeysInputType',
+		'updateNodeField',
+		'deleteNodeField',
+		'updateNodeInputType',
+		'deleteNodeInputType',
+	]),
 	PgFixForeignKeyNamesPlugin,
 	PgManyToManyInflectorsPlugin,
 	TracePlugin,

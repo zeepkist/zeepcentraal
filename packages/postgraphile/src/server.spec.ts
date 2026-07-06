@@ -4,23 +4,11 @@ import { buildPostGraphileServer, createPostGraphilePreset } from './server'
 
 function createApp() {
 	const server = {
-		createWebSocketHandlers() {
-			return {
-				open() {},
-				message() {},
-				close() {},
-			}
-		},
 		async handleGraphQLRequest() {
 			return Response.json(
 				{ data: { ok: true } },
 				{ headers: { 'X-GraphQL-Event-Stream': '/graphql/stream' } },
 			)
-		},
-		async handleEventStreamRequest() {
-			return new Response('event: test\n\n', {
-				headers: { 'content-type': 'text/event-stream' },
-			})
 		},
 		async handleGraphiQLStaticRequest() {
 			return null

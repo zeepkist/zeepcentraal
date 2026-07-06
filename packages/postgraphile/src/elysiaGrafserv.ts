@@ -1,29 +1,14 @@
 import { Buffer } from 'node:buffer'
-import { GRAPHQL_TRANSPORT_WS_PROTOCOL, makeServer, type ServerOptions } from 'graphql-ws'
 import {
 	convertHandlerResultToResult,
 	GrafservBase,
 	type GrafservBody,
 	type GrafservConfig,
 	getBodyFromFrameworkBody,
-	makeGraphQLWSConfig,
 	normalizeRequest,
 	processHeaders,
 	type Result,
 } from 'postgraphile/grafserv'
-
-type ElysiaWebSocket = {
-	data: { request: Request }
-	send(message: unknown): unknown
-	close(code?: number, reason?: string): unknown
-}
-
-type ElysiaWebSocketState = {
-	onMessage?(message: string): void
-	onClose?(code?: number, reason?: string): void
-}
-
-const websocketState = new WeakMap<ElysiaWebSocket, ElysiaWebSocketState>()
 
 function headersToRecord(headers: Headers) {
 	const record: Record<string, string> = {}
@@ -159,59 +144,6 @@ export class ElysiaGrafserv extends GrafservBase {
 			statusCode: 200,
 		})
 		return responseFromResult(result)
-	}
-
-	public createWebSocketHandlers() {
-		const graphqlWsServer = makeServer(
-			makeGraphQLWSConfig(this) as ServerOptions<Record<string, unknown>, unknown>,
-		)
-
-		return {
-			open(ws: ElysiaWebSocket) {
-				const request = ws.data.request
-				const protocol =
-					request.headers.get('sec-websocket-protocol') ?? GRAPHQL_TRANSPORT_WS_PROTOCOL
-				const state: ElysiaWebSocketState = {}
-				state.onClose = graphqlWsServer.opened(
-					{
-						protocol,
-						send(data) {
-							ws.send(data)
-						},
-						close(code, reason) {
-							ws.close(code, reason)
-						},
-						onMessage(callback) {
-							state.onMessage = callback
-						},
-					},
-					{ request, socket: ws },
-				)
-				websocketState.set(ws, state)
-			},
-			message(ws: ElysiaWebSocket, rawMessage: unknown) {
-				const state = websocketState.get(ws)
-				if (!state?.onMessage) {
-					return
-				}
-
-				if (typeof rawMessage === 'string') {
-					state.onMessage(rawMessage)
-					return
-				}
-
-				if (rawMessage instanceof ArrayBuffer || ArrayBuffer.isView(rawMessage)) {
-					state.onMessage(new TextDecoder().decode(rawMessage as ArrayBuffer))
-					return
-				}
-
-				state.onMessage(String(rawMessage))
-			},
-			close(ws: ElysiaWebSocket, code?: number, reason?: string) {
-				websocketState.get(ws)?.onClose?.(code, reason)
-				websocketState.delete(ws)
-			},
-		}
 	}
 }
 

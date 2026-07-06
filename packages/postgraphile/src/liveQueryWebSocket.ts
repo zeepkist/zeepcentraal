@@ -1,22 +1,25 @@
+import type { GraphQLSchema } from 'postgraphile/graphql'
+import { prepareLiveQuery } from './liveQueryOperation'
 import {
-	type DocumentNode,
-	type GraphQLSchema,
-	type OperationDefinitionNode,
-	parse,
-	print,
-	validate,
-} from 'postgraphile/graphql'
+	type ClientMessage,
+	createExecutionRequest,
+	type GraphqlPayload,
+	normalizePayload,
+	type ProtocolState,
+	parseMessage,
+	resolveProtocol,
+	selectProtocolHeader,
+	send,
+	sendProtocolError,
+	sendResult,
+	type WebSocketProtocol,
+} from './liveQueryProtocol'
+import { stableStringify } from './stableJson'
 
 type ElysiaWebSocket = {
 	data: { request: Request; liveQueryState?: WebSocketState }
 	send(message: unknown): unknown
 	close(code?: number, reason?: string): unknown
-}
-
-type GraphqlPayload = {
-	query: string
-	variables?: unknown
-	operationName?: string
 }
 
 type LiveOperation = {
@@ -34,6 +37,13 @@ type WebSocketState = {
 	request: Request
 	protocol: WebSocketProtocol
 	operations: Map<string, LiveOperation>
+} & ProtocolState
+
+type WebSocketUpgradeContext = {
+	request: Request
+	set: {
+		headers: Record<string, string | number>
+	}
 }
 
 type LiveQueryWebSocketConfig = {
@@ -42,21 +52,6 @@ type LiveQueryWebSocketConfig = {
 	debounceMs: number
 	maxOperations: number
 	onActiveChange?: (active: boolean) => void
-}
-
-type ClientMessage = {
-	id?: unknown
-	type?: unknown
-	payload?: unknown
-}
-
-type WebSocketProtocol = 'graphql-transport-ws' | 'subscriptions-transport-ws'
-
-type WebSocketUpgradeContext = {
-	request: Request
-	set: {
-		headers: Record<string, string | number>
-	}
 }
 
 export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfig) {
@@ -238,7 +233,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 			return
 		}
 
-		const prepared = await prepareLiveQuery(payload)
+		const prepared = await prepareLiveQuery(schema, payload)
 		if ('error' in prepared) {
 			sendProtocolError(state, message.id, prepared.error)
 			return
@@ -258,208 +253,4 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 		setActiveDelta(1)
 		await executeOperation(state, operation)
 	}
-
-	async function prepareLiveQuery(payload: GraphqlPayload): Promise<PrepareResult> {
-		try {
-			const document = parse(payload.query)
-			const operation = findOperation(document, payload.operationName)
-			if (!operation) {
-				return { error: 'GraphQL operation not found' }
-			}
-
-			if (operation.operation !== 'subscription') {
-				return { error: 'Live query websocket only accepts subscription operations' }
-			}
-
-			const validationErrors = validate(await schema, document)
-			if (validationErrors.length > 0) {
-				return { error: validationErrors[0]?.message ?? 'Invalid GraphQL subscription' }
-			}
-
-			return { query: print(rewriteSubscriptionAsQuery(document, operation)) }
-		} catch (error) {
-			return {
-				error: error instanceof Error ? error.message : 'Invalid GraphQL subscription',
-			}
-		}
-	}
 }
-
-function parseMessage(rawMessage: unknown): ClientMessage | undefined {
-	if (
-		rawMessage &&
-		typeof rawMessage === 'object' &&
-		!(rawMessage instanceof ArrayBuffer) &&
-		!ArrayBuffer.isView(rawMessage)
-	) {
-		return rawMessage as ClientMessage
-	}
-
-	try {
-		const text =
-			typeof rawMessage === 'string'
-				? rawMessage
-				: rawMessage instanceof ArrayBuffer || ArrayBuffer.isView(rawMessage)
-					? new TextDecoder().decode(rawMessage as ArrayBuffer)
-					: String(rawMessage)
-		const value = JSON.parse(text) as ClientMessage
-		return value && typeof value === 'object' ? value : undefined
-	} catch {
-		return undefined
-	}
-}
-
-function normalizePayload(payload: unknown): GraphqlPayload | undefined {
-	if (!payload || typeof payload !== 'object') {
-		return undefined
-	}
-
-	const next = payload as GraphqlPayload
-	if (typeof next.query !== 'string') {
-		return undefined
-	}
-
-	return {
-		query: next.query,
-		variables: next.variables,
-		operationName: typeof next.operationName === 'string' ? next.operationName : undefined,
-	}
-}
-
-function findOperation(document: DocumentNode, operationName: unknown) {
-	const operations = document.definitions.filter(
-		(definition): definition is OperationDefinitionNode =>
-			definition.kind === 'OperationDefinition',
-	)
-
-	if (typeof operationName === 'string') {
-		return operations.find((operation) => operation.name?.value === operationName)
-	}
-
-	return operations.length === 1 ? operations[0] : undefined
-}
-
-function rewriteSubscriptionAsQuery(
-	document: DocumentNode,
-	selectedOperation: OperationDefinitionNode,
-): DocumentNode {
-	return {
-		...document,
-		definitions: document.definitions.map((definition) => {
-			if (definition !== selectedOperation) {
-				return definition
-			}
-
-			return {
-				...definition,
-				operation: 'query',
-			} as OperationDefinitionNode
-		}),
-	}
-}
-
-function createExecutionRequest(request: Request) {
-	const headers = new Headers(request.headers)
-	headers.set('content-type', 'application/json')
-	headers.delete('connection')
-	headers.delete('upgrade')
-	headers.delete('sec-websocket-extensions')
-	headers.delete('sec-websocket-key')
-	headers.delete('sec-websocket-protocol')
-	headers.delete('sec-websocket-version')
-
-	return new Request(new URL('/', request.url).toString(), {
-		method: 'POST',
-		headers,
-	})
-}
-
-function send(state: WebSocketState, message: unknown) {
-	state.ws.send(JSON.stringify(message))
-}
-
-function sendProtocolError(state: WebSocketState, id: string | undefined, message: string) {
-	if (state.protocol === 'subscriptions-transport-ws') {
-		send(state, {
-			...(id ? { id } : null),
-			type: 'error',
-			payload: { message },
-		})
-		return
-	}
-
-	send(state, {
-		...(id ? { id } : null),
-		type: 'error',
-		payload: [{ message }],
-	})
-}
-
-function sendResult(state: WebSocketState, id: string, payload: unknown) {
-	send(state, {
-		id,
-		type: state.protocol === 'subscriptions-transport-ws' ? 'data' : 'next',
-		payload,
-	})
-}
-
-function resolveProtocol(request: Request): WebSocketProtocol {
-	const protocols = getRequestedProtocols(request)
-
-	return protocols.includes('graphql-ws') || protocols.includes('subscriptions-transport-ws')
-		? 'subscriptions-transport-ws'
-		: 'graphql-transport-ws'
-}
-
-function selectProtocolHeader(request: Request): string | undefined {
-	const protocols = getRequestedProtocols(request)
-
-	if (protocols.includes('graphql-transport-ws')) {
-		return 'graphql-transport-ws'
-	}
-
-	if (protocols.includes('graphql-ws')) {
-		return 'graphql-ws'
-	}
-
-	if (protocols.includes('subscriptions-transport-ws')) {
-		return 'subscriptions-transport-ws'
-	}
-
-	return undefined
-}
-
-function getRequestedProtocols(request: Request) {
-	return (request.headers.get('sec-websocket-protocol') ?? '')
-		.split(',')
-		.map((protocol) => protocol.trim())
-		.filter(Boolean)
-}
-
-function stableStringify(value: unknown): string {
-	return JSON.stringify(sortValue(value))
-}
-
-function sortValue(value: unknown): unknown {
-	if (Array.isArray(value)) {
-		return value.map(sortValue)
-	}
-
-	if (!value || typeof value !== 'object') {
-		return value
-	}
-
-	return Object.fromEntries(
-		Object.entries(value)
-			.sort(([left], [right]) => left.localeCompare(right))
-			.map(([key, entryValue]) => [key, sortValue(entryValue)]),
-	)
-}
-
-type PrepareResult =
-	| {
-			query: string
-	  }
-	| {
-			error: string
-	  }

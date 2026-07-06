@@ -1,6 +1,5 @@
 import type { Inflector, PgConstraint, PgTable } from '../types'
-
-const pascalCase = (value: string) => value[0]?.toUpperCase() + value.slice(1)
+import { pascalCase, relationByJunctionFieldName } from './pluginUtils'
 
 type ManyToManyRelationDetails = {
 	junctionTable: {
@@ -90,14 +89,7 @@ const PgManyToManyInflectorsPlugin: GraphileConfig.Plugin = {
 					return junctionRightConstraint.tags.manyToManyFieldName
 				}
 
-				const baseName = this.camelCase(
-					`${this.pluralize(this._singularizedTableName(rightTable))}`,
-				)
-				const suffix = pascalCase(
-					this.camelCase(this._singularizedTableName(junctionTable)),
-				)
-
-				return `${baseName}By${suffix}`
+				return relationByJunctionFieldName(this, rightTable, junctionTable)
 			},
 			manyToManyRelationByKeysSimple(
 				this: Inflector,
@@ -116,14 +108,9 @@ const PgManyToManyInflectorsPlugin: GraphileConfig.Plugin = {
 					return junctionRightConstraint.tags.manyToManySimpleFieldName
 				}
 
-				const baseName = this.camelCase(
-					`${this.pluralize(this._singularizedTableName(rightTable))}-list`,
-				)
-				const suffix = pascalCase(
-					this.camelCase(this._singularizedTableName(junctionTable)),
-				)
-
-				return `${baseName}By${suffix}`
+				return relationByJunctionFieldName(this, rightTable, junctionTable, {
+					simple: true,
+				})
 			},
 		} as never,
 		ignoreReplaceIfNotExists: [

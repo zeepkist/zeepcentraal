@@ -1,5 +1,6 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import type { ElysiaGrafserv } from './elysiaGrafserv'
+import { createGraphqlResponse } from './graphqlResponse'
 import { collectHeaderMetrics } from './middleware/collectHeaderMetrics'
 import { createQueryCostEvaluator } from './middleware/createQueryCostMiddleware'
 
@@ -10,7 +11,6 @@ type GraphqlHttpConfig = {
 }
 
 const DEFAULT_QUERY_COST_CACHE_SIZE = 500
-const EVENT_STREAM_HEADER = 'X-GraphQL-Event-Stream'
 
 async function parseGraphqlBody(request: Request, body: unknown) {
 	if (request.method !== 'POST') {
@@ -65,26 +65,6 @@ export function createGraphqlHttpHandler(
 			return new Response('Not Found', { status: 404 })
 		}
 
-		const headers = new Headers(response.headers)
-		headers.delete(EVENT_STREAM_HEADER)
-
-		if (queryCost.cost) {
-			headers.set('X-Query-Cost', String(queryCost.cost))
-		}
-
-		return new Response(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers,
-		})
-	}
-}
-
-export function createEventStreamHandler(handler: ElysiaGrafserv) {
-	return async ({ request }: { request: Request }) => {
-		return (
-			(await handler.handleEventStreamRequest(request)) ??
-			new Response('Not Found', { status: 404 })
-		)
+		return createGraphqlResponse(response, queryCost.cost)
 	}
 }

@@ -1,4 +1,10 @@
 import type { Inflector, PgTable } from '../types'
+import {
+	getCodecName,
+	getRelation,
+	getTaggedRelationFieldName,
+	type PgRelationDetails,
+} from './pluginUtils'
 
 type AttributeNameDetails = {
 	attributeName: string
@@ -7,34 +13,6 @@ type AttributeNameDetails = {
 		isAnonymous?: boolean
 	}
 	skipRowId?: boolean
-}
-
-type RelationDetails = {
-	registry: {
-		pgRelations: Record<
-			string,
-			Record<
-				string,
-				{
-					remoteResource: { codec: unknown }
-					extensions?: {
-						tags?: { foreignFieldName?: string; foreignSingleFieldName?: string }
-					}
-				}
-			>
-		>
-	}
-	codec: { name: string }
-	relationName: string
-}
-
-type PgCodec = {
-	name?: string
-	extensions?: {
-		tags?: {
-			name?: string
-		}
-	}
 }
 
 const pluralProperNounFieldNames = new Map([
@@ -49,15 +27,6 @@ const pluralProperNounRelationFieldRenames = new Map([
 	['levelPoint', 'levelPoints'],
 ])
 
-const getCodecName = (codec: unknown) => {
-	if (!codec || typeof codec !== 'object') {
-		return undefined
-	}
-
-	const pgCodec = codec as PgCodec
-	return pgCodec.extensions?.tags?.name ?? pgCodec.name
-}
-
 const pluralProperNounFieldName = (codec: unknown) => {
 	const codecName = getCodecName(codec)
 	return codecName ? pluralProperNounFieldNames.get(codecName) : undefined
@@ -65,6 +34,18 @@ const pluralProperNounFieldName = (codec: unknown) => {
 
 const pluralProperNounTableFieldName = (table: PgTable) =>
 	pluralProperNounFieldNames.get(table.name)
+
+const relationFieldName = (details: PgRelationDetails) => {
+	const relation = getRelation(details)
+	if (!relation) {
+		return undefined
+	}
+
+	return (
+		getTaggedRelationFieldName(relation) ??
+		pluralProperNounFieldName(relation.remoteResource.codec)
+	)
+}
 
 const renamePluralProperNounRelationFields = <TFieldMap extends Record<string, unknown>>(
 	fields: TFieldMap,
@@ -154,74 +135,33 @@ const PgFixForeignKeyNamesPlugin: GraphileConfig.Plugin = {
 			},
 			singleRelation(
 				this: Inflector,
-				previous: ((details: RelationDetails) => string) | undefined,
+				previous: ((details: PgRelationDetails) => string) | undefined,
 				_options: GraphileConfig.ResolvedPreset,
-				details: RelationDetails,
+				details: PgRelationDetails,
 			) {
-				const relation =
-					details.registry.pgRelations[details.codec.name]?.[details.relationName]
-
-				if (!relation) {
-					return previous?.(details) ?? ''
-				}
-
-				if (relation.extensions?.tags?.foreignSingleFieldName) {
-					return relation.extensions.tags.foreignSingleFieldName
-				}
-
-				if (relation.extensions?.tags?.foreignFieldName) {
-					return relation.extensions.tags.foreignFieldName
-				}
-
-				const fieldName = pluralProperNounFieldName(relation.remoteResource.codec)
-				if (fieldName) {
-					return fieldName
-				}
-
-				return previous?.(details) ?? ''
+				return relationFieldName(details) ?? previous?.(details) ?? ''
 			},
 			singleRelationBackwards(
 				this: Inflector,
-				previous: ((details: RelationDetails) => string) | undefined,
+				previous: ((details: PgRelationDetails) => string) | undefined,
 				_options: GraphileConfig.ResolvedPreset,
-				details: RelationDetails,
+				details: PgRelationDetails,
 			) {
-				const relation =
-					details.registry.pgRelations[details.codec.name]?.[details.relationName]
-
-				if (!relation) {
-					return previous?.(details) ?? ''
-				}
-
-				if (relation.extensions?.tags?.foreignSingleFieldName) {
-					return relation.extensions.tags.foreignSingleFieldName
-				}
-
-				if (relation.extensions?.tags?.foreignFieldName) {
-					return relation.extensions.tags.foreignFieldName
-				}
-
-				const fieldName = pluralProperNounFieldName(relation.remoteResource.codec)
-				if (fieldName) {
-					return fieldName
-				}
-
-				return previous?.(details) ?? ''
+				return relationFieldName(details) ?? previous?.(details) ?? ''
 			},
 			_manyRelation(
 				this: Inflector,
-				previous: ((details: RelationDetails) => string) | undefined,
+				previous: ((details: PgRelationDetails) => string) | undefined,
 				_options: GraphileConfig.ResolvedPreset,
-				details: RelationDetails,
+				details: PgRelationDetails,
 			) {
-				const relation =
-					details.registry.pgRelations[details.codec.name]?.[details.relationName]
+				const relation = getRelation(details)
 
 				if (!relation) {
 					return previous?.(details) ?? ''
 				}
 
-				if (relation?.extensions?.tags?.foreignFieldName) {
+				if (relation.extensions?.tags?.foreignFieldName) {
 					return relation.extensions.tags.foreignFieldName
 				}
 
