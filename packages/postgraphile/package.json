@@ -10,26 +10,21 @@
 		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-postgraphile src/index.ts"
 	},
 	"dependencies": {
-		"@graphile-contrib/pg-many-to-many": "^1.0.2",
-		"@graphile-contrib/pg-order-by-related": "^1.0.0",
-		"@graphile-contrib/pg-simplify-inflector": "^6.1.0",
-		"@graphile/pg-aggregates": "^0.1.1",
-		"@graphile/pg-pubsub": "^4.14.1",
-		"@graphile/subscriptions-lds": "^4.14.1",
+		"@graphile-contrib/pg-many-to-many": "^2.0.0-rc.2",
+		"@graphile/pg-aggregates": "^0.2.0-rc.2",
+		"@graphile/simplify-inflection": "^8.0.0",
 		"@elysiajs/cors": "~1.4.0",
 		"@zeepkist/core": "workspace:*",
+		"@zeepkist/database": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
 		"elysia": "~1.4.16",
-		"graphile-utils": "^4.14.1",
-		"graphql": "^15.10.1",
 		"logixlysia": "~6.6.0",
-		"postgraphile": "^4.14.1",
-		"postgraphile-plugin-connection-filter": "^2.3.0",
+		"postgraphile": "^5.0.3",
+		"postgraphile-plugin-connection-filter": "^3.0.1",
 		"ruru": "2.0.0"
 	},
 	"devDependencies": {},
 	"peerDependencies": {
-		"graphile-build": "^4.14.1 || ^5.0.0",
-		"graphql": "^15.0.0"
+		"postgraphile": "^5.0.0"
 	}
 }

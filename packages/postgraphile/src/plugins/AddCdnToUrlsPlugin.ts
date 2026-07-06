@@ -1,7 +1,7 @@
 import { URL } from 'node:url'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import { recordSpanWarning } from '@zeepkist/telemetry'
-import type { GraphileField, GraphilePlugin } from '../types'
+import { wrapPlans } from 'postgraphile/utils'
 
 const FIELDS = new Set(['ghostUrl', 'imageUrl'])
 let isCdnBaseUrlInvalid = false
@@ -21,41 +21,47 @@ function getCdnBaseUrl() {
 
 const CDN_BASE_URL = getCdnBaseUrl()
 
-export const AddCdnToUrlsPlugin: GraphilePlugin = (builder) => {
-	builder.hook<GraphileField>('GraphQLObjectType:fields:field', (field, _build, context) => {
+function toCdnUrl(value: unknown, fieldName: string) {
+	if (typeof value !== 'string' || !CDN_BASE_URL) {
+		if (value && isCdnBaseUrlInvalid) {
+			recordSpanWarning('CDN URL base invalid', {
+				'graphql.field.name': fieldName,
+			})
+		}
+
+		return value
+	}
+
+	try {
+		return new URL(value, CDN_BASE_URL).toString()
+	} catch (error) {
+		recordSpanWarning('CDN URL conversion failed', {
+			'graphql.field.name': fieldName,
+			'graphql.cdn.error': error instanceof Error ? error.message : String(error),
+		})
+		return value
+	}
+}
+
+export const AddCdnToUrlsPlugin = wrapPlans(
+	(context, build) => {
 		const { fieldName } = context.scope
 
-		if (!fieldName || !FIELDS.has(fieldName)) {
-			return field
-		}
-
-		const resolve = field.resolve ?? ((parent: Record<string, unknown>) => parent[fieldName])
-
-		return {
-			...field,
-			resolve: async (parent, args, resolverContext, info) => {
-				const originalValue = await resolve(parent, args, resolverContext, info)
-
-				if (typeof originalValue !== 'string' || !CDN_BASE_URL) {
-					if (originalValue && isCdnBaseUrlInvalid) {
-						recordSpanWarning('CDN URL base invalid', {
-							'graphql.field.name': fieldName,
-						})
-					}
-
-					return originalValue
+		return fieldName && FIELDS.has(fieldName)
+			? {
+					fieldName,
+					lambda: build.grafast.lambda,
 				}
-
-				try {
-					return new URL(originalValue, CDN_BASE_URL).toString()
-				} catch (error) {
-					recordSpanWarning('CDN URL conversion failed', {
-						'graphql.field.name': fieldName,
-						'graphql.cdn.error': error instanceof Error ? error.message : String(error),
-					})
-					return originalValue
-				}
-			},
-		}
-	})
-}
+			: null
+	},
+	({ fieldName, lambda }) =>
+		(plan, $source, fieldArgs, info) => {
+			const $value = plan($source, fieldArgs, info)
+			return lambda($value, (value: unknown) => toCdnUrl(value, fieldName))
+		},
+	{
+		name: 'AddCdnToUrlsPlugin',
+		version: '1.0.0',
+		disableResolverEmulationWarnings: true,
+	},
+)

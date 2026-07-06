@@ -1,21 +1,33 @@
 import { describe, expect, test } from 'bun:test'
-import type { PostGraphileFetchResponse } from './postgraphileFetchAdapter'
-import { buildPostGraphileServer, createPostGraphileOptions } from './server'
+import { buildSchema } from 'postgraphile/graphql'
+import { buildPostGraphileServer, createPostGraphilePreset } from './server'
 
 function createApp() {
-	const handler = {
-		async graphqlRouteHandler(response: PostGraphileFetchResponse) {
-			response.setHeader('content-type', 'application/json')
-			response.end('{"data":{"ok":true}}')
+	const server = {
+		async handleGraphQLRequest() {
+			return Response.json(
+				{ data: { ok: true } },
+				{ headers: { 'X-GraphQL-Event-Stream': '/graphql/stream' } },
+			)
 		},
-		async eventStreamRouteHandler(response: PostGraphileFetchResponse) {
-			const request = response.getNodeServerRequest()
-			request.socket.setTimeout(0)
-			request.socket.setNoDelay(true)
-			request.socket.setKeepAlive(true)
-			response.setHeader('content-type', 'text/event-stream')
-			const stream = response.endWithStream()
-			stream.end('event: test\n\n')
+		async handleGraphiQLStaticRequest() {
+			return null
+		},
+	}
+	const handler = {
+		createServ() {
+			return server
+		},
+		getSchema() {
+			return buildSchema(`
+				type Query {
+					ok: Boolean
+				}
+
+				type Subscription {
+					ok: Boolean
+				}
+			`)
 		},
 	}
 
@@ -23,9 +35,12 @@ function createApp() {
 }
 
 describe('buildPostGraphileServer', () => {
-	test('disables PostGraphile websocket auto-enhancement under Elysia', () => {
-		expect(createPostGraphileOptions().live).toBe(true)
-		expect(createPostGraphileOptions().websockets).toEqual([])
+	test('configures Grafserv for root graphql route and websocket subscriptions', () => {
+		const preset = createPostGraphilePreset()
+
+		expect(preset.grafserv?.graphqlPath).toBe('/')
+		expect(preset.grafserv?.eventStreamPath).toBeUndefined()
+		expect(preset.grafserv?.websockets).toBe(true)
 	})
 
 	test('serves health check', async () => {
@@ -44,6 +59,7 @@ describe('buildPostGraphileServer', () => {
 		expect(response.status).toBe(200)
 		expect(response.headers.get('content-type')).toContain('text/html')
 		expect(html).toContain('/ruru-static/')
+		expect(html).toContain('"subscriptionEndpoint": "ws://localhost/"')
 		expect(await secondResponse.text()).toBe(html)
 	})
 
@@ -58,15 +74,13 @@ describe('buildPostGraphileServer', () => {
 		expect(graphql.headers.get('location')).toBe('http://localhost/')
 	})
 
-	test('serves PostGraphile event stream route', async () => {
+	test('does not serve PostGraphile event stream route', async () => {
 		const response = await createApp().handle(new Request('http://localhost/stream'))
 
-		expect(response.status).toBe(200)
-		expect(response.headers.get('content-type')).toBe('text/event-stream')
-		expect(await response.text()).toBe('event: test\n\n')
+		expect(response.status).toBe(404)
 	})
 
-	test('passes valid GraphQL post to PostGraphile and sets query cost header', async () => {
+	test('passes valid GraphQL post to Grafserv and sets query cost header', async () => {
 		const response = await createApp().handle(
 			new Request('http://localhost/', {
 				method: 'POST',
@@ -77,6 +91,7 @@ describe('buildPostGraphileServer', () => {
 
 		expect(response.status).toBe(200)
 		expect(response.headers.get('X-Query-Cost')).toBeDefined()
+		expect(response.headers.get('X-GraphQL-Event-Stream')).toBeNull()
 		expect(await response.json()).toEqual({ data: { ok: true } })
 	})
 

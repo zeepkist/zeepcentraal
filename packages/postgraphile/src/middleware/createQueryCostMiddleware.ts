@@ -11,7 +11,7 @@ import {
 	parse,
 	type SelectionNode,
 	type ValueNode,
-} from 'graphql'
+} from 'postgraphile/graphql'
 
 const FLATTENED_FIELDS_NO_DEPTH = new Set([
 	'nodes',
@@ -319,11 +319,7 @@ export function createQueryCostEvaluator({
 
 				try {
 					const parseStartTime = performance.now()
-					document = parse(query, {
-						noLocation: true,
-						allowLegacySDLEmptyFields: false,
-						allowLegacySDLImplementsInterfaces: false,
-					})
+					document = parse(query, { noLocation: true })
 					parseElapsedMs = performance.now() - parseStartTime
 				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error)

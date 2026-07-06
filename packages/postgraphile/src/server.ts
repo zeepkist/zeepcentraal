@@ -3,12 +3,15 @@ import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import { createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
 import { Elysia } from 'elysia'
 import logixlysia from 'logixlysia'
-import { createEventStreamHandler, createGraphqlHttpHandler } from './graphqlHttp'
 import { serveGraphiql } from './middleware/serveGraphiql'
 import { createPostGraphileHandler } from './postgraphileOptions'
-import { createPostGraphileWebSocketHandlers } from './postgraphileWebSocket'
+import { createPostGraphileRuntime } from './postgraphileRuntime'
 
-export { createPostGraphileHandler, createPostGraphileOptions } from './postgraphileOptions'
+export {
+	createPostGraphileHandler,
+	createPostGraphileOptions,
+	createPostGraphilePreset,
+} from './postgraphileOptions'
 
 function redirectToRoot(request: Request) {
 	return Response.redirect(new URL('/', request.url).toString(), 302)
@@ -35,9 +38,7 @@ const withLogging = postgraphileConfig.requestLogging
 	: new Elysia()
 
 export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
-	const graphqlRoute = createGraphqlHttpHandler(handler)
-	const eventStreamRoute = createEventStreamHandler(handler)
-	const websocketHandlers = createPostGraphileWebSocketHandlers(handler)
+	const runtime = createPostGraphileRuntime(handler)
 
 	return new Elysia({
 		aot: true,
@@ -51,14 +52,12 @@ export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 		.use(withTelemetry)
 		.get('/healthz', () => 'OK')
 		.head('/healthz', () => 'OK')
+		.ws('/', runtime.liveQueryWebSocket)
 		.get('/', ({ request }) => serveGraphiql(request))
 		.get('/graphiql', ({ request }) => redirectToRoot(request))
 		.get('/graphql', ({ request }) => redirectToRoot(request))
-		.all('/ruru-static/*', async ({ request }) => {
-			return (await serveGraphiql(request)) ?? new Response('Not Found', { status: 404 })
-		})
-		.ws('/', websocketHandlers)
-		.get('/stream', eventStreamRoute)
-		.post('/', graphqlRoute)
-		.options('/', graphqlRoute)
+		.all('/ruru-static/*', ({ request }) => runtime.serveRuruStatic(request))
+		.post('/', runtime.graphqlRoute)
+		.options('/', runtime.graphqlRoute)
+		.onStop(runtime.stop)
 }

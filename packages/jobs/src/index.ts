@@ -1,9 +1,13 @@
+import type { Worker } from 'node:cluster'
 import cluster from 'node:cluster'
 import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { makeWorkerUtils } from 'graphile-worker'
 import { startCrons, startRunner, stopCrons, stopRunner } from './worker'
 
 const WORKER_COUNT = 2
+const clusterEvents = cluster as typeof cluster & {
+	on(event: 'exit', listener: (worker: Worker) => void): typeof cluster
+}
 
 if (cluster.isPrimary) {
 	let shuttingDown = false
@@ -20,7 +24,7 @@ if (cluster.isPrimary) {
 		cluster.fork()
 	}
 
-	cluster.on('exit', (worker) => {
+	clusterEvents.on('exit', (worker) => {
 		if (shuttingDown) {
 			return
 		}

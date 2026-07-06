@@ -1,55 +1,125 @@
-import { makeAddInflectorsPlugin } from 'graphile-utils'
 import type { Inflector, PgConstraint, PgTable } from '../types'
+import { pascalCase, relationByJunctionFieldName } from './pluginUtils'
 
-const pascalCase = (value: string) => value[0]?.toUpperCase() + value.slice(1)
+type ManyToManyRelationDetails = {
+	junctionTable: {
+		codec: unknown
+		getRelation(relationName: string): {
+			extensions?: { tags?: { foreignFieldName?: string; manyToManyFieldName?: string } }
+		}
+	}
+	rightTable: { codec: unknown }
+	leftTable?: {
+		getRelation(relationName: string): {
+			extensions?: { tags?: { foreignFieldName?: string } }
+		}
+	}
+	leftRelationName?: string
+	rightRelationName?: string
+}
 
-export default makeAddInflectorsPlugin(
-	{
-		manyToManyRelationByKeys(
-			this: Inflector,
-			_leftKeyAttributes: unknown,
-			_junctionLeftKeyAttributes: unknown,
-			_junctionRightKeyAttributes: unknown,
-			_rightKeyAttributes: unknown,
-			junctionTable: PgTable,
-			rightTable: PgTable,
-			_junctionLeftConstraint: unknown,
-			junctionRightConstraint: PgConstraint,
-		) {
-			if (junctionRightConstraint.tags.manyToManyFieldName) {
-				return junctionRightConstraint.tags.manyToManyFieldName
-			}
+const PgManyToManyInflectorsPlugin: GraphileConfig.Plugin = {
+	name: 'PgManyToManyInflectorsPlugin',
+	version: '1.0.0',
+	inflection: {
+		replace: {
+			_manyToManyRelation(
+				this: Inflector,
+				previous: ((details: ManyToManyRelationDetails) => string) | undefined,
+				_options: GraphileConfig.ResolvedPreset,
+				details: ManyToManyRelationDetails,
+			) {
+				const baseOverride = details.rightRelationName
+					? details.junctionTable.getRelation(details.rightRelationName).extensions?.tags
+							?.manyToManyFieldName
+					: undefined
 
-			const baseName = this.camelCase(
-				`${this.pluralize(this._singularizedTableName(rightTable))}`,
-			)
-			const suffix = pascalCase(this.camelCase(this._singularizedTableName(junctionTable)))
+				if (typeof baseOverride === 'string') {
+					return baseOverride
+				}
 
-			return `${baseName}By${suffix}`
-		},
+				if (!details.rightTable || !details.junctionTable) {
+					return previous?.(details) ?? ''
+				}
 
-		manyToManyRelationByKeysSimple(
-			this: Inflector,
-			_leftKeyAttributes: unknown,
-			_junctionLeftKeyAttributes: unknown,
-			_junctionRightKeyAttributes: unknown,
-			_rightKeyAttributes: unknown,
-			junctionTable: PgTable,
-			rightTable: PgTable,
-			_junctionLeftConstraint: unknown,
-			junctionRightConstraint: PgConstraint,
-		) {
-			if (junctionRightConstraint.tags.manyToManySimpleFieldName) {
-				return junctionRightConstraint.tags.manyToManySimpleFieldName
-			}
+				const baseName = this.camelCase(
+					this.pluralize(this.tableType(details.rightTable.codec)),
+				)
+				const suffix = pascalCase(
+					this.camelCase(this.tableType(details.junctionTable.codec)),
+				)
 
-			const baseName = this.camelCase(
-				`${this.pluralize(this._singularizedTableName(rightTable))}-list`,
-			)
-			const suffix = pascalCase(this.camelCase(this._singularizedTableName(junctionTable)))
+				return `${baseName}By${suffix}`
+			},
+			_manyToManyEdgeRelation(
+				this: Inflector,
+				previous: ((details: ManyToManyRelationDetails) => string) | undefined,
+				_options: GraphileConfig.ResolvedPreset,
+				details: ManyToManyRelationDetails,
+			) {
+				const baseOverride = details.leftRelationName
+					? details.leftTable?.getRelation(details.leftRelationName).extensions?.tags
+							?.foreignFieldName
+					: undefined
 
-			return `${baseName}By${suffix}`
-		},
+				if (typeof baseOverride === 'string') {
+					return baseOverride
+				}
+
+				if (!details.junctionTable) {
+					return previous?.(details) ?? ''
+				}
+
+				return this.camelCase(this.pluralize(this.tableType(details.junctionTable.codec)))
+			},
+			manyToManyRelationByKeys(
+				this: Inflector,
+				_previous: unknown,
+				_options: GraphileConfig.ResolvedPreset,
+				_leftKeyAttributes: unknown,
+				_junctionLeftKeyAttributes: unknown,
+				_junctionRightKeyAttributes: unknown,
+				_rightKeyAttributes: unknown,
+				junctionTable: PgTable,
+				rightTable: PgTable,
+				_junctionLeftConstraint: unknown,
+				junctionRightConstraint: PgConstraint,
+			) {
+				if (junctionRightConstraint.tags.manyToManyFieldName) {
+					return junctionRightConstraint.tags.manyToManyFieldName
+				}
+
+				return relationByJunctionFieldName(this, rightTable, junctionTable)
+			},
+			manyToManyRelationByKeysSimple(
+				this: Inflector,
+				_previous: unknown,
+				_options: GraphileConfig.ResolvedPreset,
+				_leftKeyAttributes: unknown,
+				_junctionLeftKeyAttributes: unknown,
+				_junctionRightKeyAttributes: unknown,
+				_rightKeyAttributes: unknown,
+				junctionTable: PgTable,
+				rightTable: PgTable,
+				_junctionLeftConstraint: unknown,
+				junctionRightConstraint: PgConstraint,
+			) {
+				if (junctionRightConstraint.tags.manyToManySimpleFieldName) {
+					return junctionRightConstraint.tags.manyToManySimpleFieldName
+				}
+
+				return relationByJunctionFieldName(this, rightTable, junctionTable, {
+					simple: true,
+				})
+			},
+		} as never,
+		ignoreReplaceIfNotExists: [
+			'_manyToManyRelation',
+			'_manyToManyEdgeRelation',
+			'manyToManyRelationByKeys',
+			'manyToManyRelationByKeysSimple',
+		] as never,
 	},
-	true,
-)
+}
+
+export default PgManyToManyInflectorsPlugin

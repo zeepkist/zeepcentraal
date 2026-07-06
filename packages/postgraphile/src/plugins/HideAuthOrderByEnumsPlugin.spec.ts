@@ -2,25 +2,19 @@ import { describe, expect, test } from 'bun:test'
 import { HideAuthOrderByEnumsPlugin } from './HideAuthOrderByEnumsPlugin'
 
 function runPlugin(values: Record<string, unknown>, isPgRowSortEnum: boolean) {
-	let callback:
+	const callback = HideAuthOrderByEnumsPlugin.schema?.hooks?.GraphQLEnumType_values as unknown as
 		| ((
 				value: Record<string, unknown>,
-				build: unknown,
-				context: { scope: unknown },
+				build: never,
+				context: never,
 		  ) => Record<string, unknown>)
 		| undefined
-
-	HideAuthOrderByEnumsPlugin({
-		hook(_hookName, registeredCallback) {
-			callback = registeredCallback as typeof callback
-		},
-	})
 
 	if (!callback) {
 		throw new Error('Plugin did not register hook')
 	}
 
-	return callback(values, {}, { scope: { isPgRowSortEnum } })
+	return callback(values, {} as never, { scope: { isPgRowSortEnum } } as never)
 }
 
 describe('HideAuthOrderByEnumsPlugin', () => {

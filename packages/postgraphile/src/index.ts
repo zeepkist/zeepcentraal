@@ -1,6 +1,8 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import { buildPostGraphileServer } from './server'
 
+process.env.GRAPHILE_ENV ??= postgraphileConfig.nodeEnv
+
+const { buildPostGraphileServer } = await import('./server')
 const app = buildPostGraphileServer()
 
 app.listen({

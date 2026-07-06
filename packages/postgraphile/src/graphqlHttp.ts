@@ -1,11 +1,8 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import type { HttpRequestHandler } from 'postgraphile'
+import type { ElysiaGrafserv } from './elysiaGrafserv'
+import { createGraphqlResponse } from './graphqlResponse'
 import { collectHeaderMetrics } from './middleware/collectHeaderMetrics'
 import { createQueryCostEvaluator } from './middleware/createQueryCostMiddleware'
-import {
-	handlePostGraphileRequest,
-	handlePostGraphileRouteRequest,
-} from './postgraphileFetchAdapter'
 
 type GraphqlHttpConfig = {
 	maxQueryCost: number
@@ -42,7 +39,7 @@ async function parseGraphqlBody(request: Request, body: unknown) {
 }
 
 export function createGraphqlHttpHandler(
-	handler: HttpRequestHandler,
+	handler: ElysiaGrafserv,
 	config: GraphqlHttpConfig = postgraphileConfig,
 ) {
 	const evaluateQueryCost = createQueryCostEvaluator({
@@ -63,21 +60,11 @@ export function createGraphqlHttpHandler(
 			return queryCost.response
 		}
 
-		return handlePostGraphileRequest(
-			handler,
-			request,
-			graphqlBody,
-			queryCost.cost ? { 'X-Query-Cost': String(queryCost.cost) } : undefined,
-		)
-	}
-}
-
-export function createEventStreamHandler(handler: HttpRequestHandler) {
-	return async ({ request }: { request: Request }) => {
-		if (!handler.eventStreamRouteHandler) {
+		const response = await handler.handleGraphQLRequest(request, graphqlBody)
+		if (!response) {
 			return new Response('Not Found', { status: 404 })
 		}
 
-		return handlePostGraphileRouteRequest(handler.eventStreamRouteHandler, request, undefined)
+		return createGraphqlResponse(response, queryCost.cost)
 	}
 }
