@@ -3,8 +3,6 @@ name: Pull Request Validation
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-  push:
-    branches-ignore: [develop]
   merge_group:
     branches: [develop]
     types: [checks_requested]
