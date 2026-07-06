@@ -35,6 +35,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):'))
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - core
+          - database
+          - server
+          - jobs
+          - import-zsl
+          - postgraphile
+          - telemetry
+          - workshop
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -52,12 +64,81 @@ jobs:
       - name: Run per-package semantic release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run release
+        run: bun run release:${{ matrix.package }}
 
-  build-server:
+  build-packages:
     runs-on: ubuntu-latest
     needs: [test, release]
     if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - name: server
+            build_script: build:server
+            binary: zeepcentraal-server
+          - name: jobs
+            build_script: build:jobs
+            binary: zeepcentraal-jobs
+          - name: migrate
+            build_script: build:migrate
+            binary: zeepcentraal-migrate
+          - name: import-zsl
+            build_script: build:import-zsl
+            binary: zeepcentraal-import-zsl
+          - name: postgraphile
+            build_script: build:postgraphile
+            binary: zeepcentraal-postgraphile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Build ${{ matrix.package.name }} binary
+        uses: ./.github/actions/build-package-binary
+        with:
+          name: ${{ matrix.package.name }}
+          build-script: ${{ matrix.package.build_script }}
+          binary: ${{ matrix.package.binary }}
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [build-packages]
+    strategy:
+      fail-fast: true
+      matrix:
+        image:
+          - name: server
+            file: Dockerfile.server
+            binary: zeepcentraal-server
+            image_name: server
+            release_tag_prefix: server
+            clone_super_league: false
+          - name: jobs
+            file: Dockerfile.jobs
+            binary: zeepcentraal-jobs
+            image_name: jobs
+            release_tag_prefix: jobs
+            clone_super_league: false
+          - name: migrate
+            file: Dockerfile.migrate
+            binary: zeepcentraal-migrate
+            image_name: migrate
+            release_tag_prefix: database
+            clone_super_league: false
+          - name: import-zsl
+            file: Dockerfile.zsl
+            binary: zeepcentraal-import-zsl
+            image_name: import-zsl
+            release_tag_prefix: import-zsl
+            clone_super_league: true
+          - name: postgraphile
+            file: Dockerfile.postgraphile
+            binary: zeepcentraal-postgraphile
+            image_name: postgraphile
+            release_tag_prefix: postgraphile
+            clone_super_league: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -65,32 +146,72 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
+      - name: Resolve ${{ matrix.image.name }} image version
+        id: image_version
+        uses: ./.github/actions/resolve-image-version
+        with:
+          release-tag-prefix: ${{ matrix.image.release_tag_prefix }}
 
-      - name: Build server binary
-        run: bun run build:server
+      - name: Build ${{ matrix.image.name }} image (no push)
+        uses: ./.github/actions/build-docker-image
+        with:
+          name: ${{ matrix.image.name }}
+          dockerfile: ${{ matrix.image.file }}
+          binary: ${{ matrix.image.binary }}
+          clone-super-league: ${{ matrix.image.clone_super_league }}
+          service-version: ${{ steps.image_version.outputs.version }}
+          push: false
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ github.sha }}
 
-      - name: Resolve server image version tags
-        id: server_version
-        run: |
-          git fetch --force --tags origin
-          TAG="$(git tag -l 'server@*' --sort=-v:refname | head -n 1)"
-          if [ -z "$TAG" ]; then
-            echo "No server release tags found (expected pattern: server@x.y.z)." >&2
-            exit 1
-          fi
-          VERSION="${TAG#server@}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
-            echo "Invalid semantic version parsed from tag '$TAG'." >&2
-            exit 1
-          fi
-          MAJOR="${VERSION%%.*}"
-          REST="${VERSION#*.}"
-          MINOR="${REST%%.*}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
+  docker-publish:
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    strategy:
+      fail-fast: true
+      matrix:
+        image:
+          - name: server
+            file: Dockerfile.server
+            binary: zeepcentraal-server
+            image_name: server
+            release_tag_prefix: server
+            clone_super_league: false
+          - name: jobs
+            file: Dockerfile.jobs
+            binary: zeepcentraal-jobs
+            image_name: jobs
+            release_tag_prefix: jobs
+            clone_super_league: false
+          - name: migrate
+            file: Dockerfile.migrate
+            binary: zeepcentraal-migrate
+            image_name: migrate
+            release_tag_prefix: database
+            clone_super_league: false
+          - name: import-zsl
+            file: Dockerfile.zsl
+            binary: zeepcentraal-import-zsl
+            image_name: import-zsl
+            release_tag_prefix: import-zsl
+            clone_super_league: true
+          - name: postgraphile
+            file: Dockerfile.postgraphile
+            binary: zeepcentraal-postgraphile
+            image_name: postgraphile
+            release_tag_prefix: postgraphile
+            clone_super_league: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Resolve ${{ matrix.image.name }} image version tags
+        id: image_version
+        uses: ./.github/actions/resolve-image-version
+        with:
+          release-tag-prefix: ${{ matrix.image.release_tag_prefix }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -99,261 +220,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push server image
-        uses: docker/build-push-action@v7
+      - name: Publish ${{ matrix.image.name }} image
+        uses: ./.github/actions/build-docker-image
         with:
-          context: .
-          file: Dockerfile.server
+          name: ${{ matrix.image.name }}
+          dockerfile: ${{ matrix.image.file }}
+          binary: ${{ matrix.image.binary }}
+          clone-super-league: ${{ matrix.image.clone_super_league }}
+          service-version: ${{ steps.image_version.outputs.version }}
           push: true
-          build-args: |
-            SERVICE_VERSION=${{ steps.server_version.outputs.version }}
           tags: |
-            ghcr.io/${{ github.repository }}/server:latest
-            ghcr.io/${{ github.repository }}/server:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/server:${{ steps.server_version.outputs.major }}
-            ghcr.io/${{ github.repository }}/server:${{ steps.server_version.outputs.major_minor }}
-            ghcr.io/${{ github.repository }}/server:${{ steps.server_version.outputs.version }}
-
-  build-jobs:
-    runs-on: ubuntu-latest
-    needs: [test, release]
-    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
-
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
-
-      - name: Build jobs binary
-        run: bun run build:jobs
-
-      - name: Resolve jobs image version tags
-        id: jobs_version
-        run: |
-          git fetch --force --tags origin
-          TAG="$(git tag -l 'jobs@*' --sort=-v:refname | head -n 1)"
-          if [ -z "$TAG" ]; then
-            echo "No jobs release tags found (expected pattern: jobs@x.y.z)." >&2
-            exit 1
-          fi
-          VERSION="${TAG#jobs@}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
-            echo "Invalid semantic version parsed from tag '$TAG'." >&2
-            exit 1
-          fi
-          MAJOR="${VERSION%%.*}"
-          REST="${VERSION#*.}"
-          MINOR="${REST%%.*}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push jobs image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.jobs
-          push: true
-          build-args: |
-            SERVICE_VERSION=${{ steps.jobs_version.outputs.version }}
-          tags: |
-            ghcr.io/${{ github.repository }}/jobs:latest
-            ghcr.io/${{ github.repository }}/jobs:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.major }}
-            ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.major_minor }}
-            ghcr.io/${{ github.repository }}/jobs:${{ steps.jobs_version.outputs.version }}
-
-  build-migrate:
-    runs-on: ubuntu-latest
-    needs: [test, release]
-    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
-
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
-
-      - name: Build migrate binary
-        run: bun run build:migrate
-
-      - name: Resolve migrate image version tags
-        id: migrate_version
-        run: |
-          git fetch --force --tags origin
-          TAG="$(git tag -l 'database@*' --sort=-v:refname | head -n 1)"
-          if [ -z "$TAG" ]; then
-            echo "No database release tags found (expected pattern: database@x.y.z)." >&2
-            exit 1
-          fi
-          VERSION="${TAG#database@}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
-            echo "Invalid semantic version parsed from tag '$TAG'." >&2
-            exit 1
-          fi
-          MAJOR="${VERSION%%.*}"
-          REST="${VERSION#*.}"
-          MINOR="${REST%%.*}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push migrate image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.migrate
-          push: true
-          build-args: |
-            SERVICE_VERSION=${{ steps.migrate_version.outputs.version }}
-          tags: |
-            ghcr.io/${{ github.repository }}/migrate:latest
-            ghcr.io/${{ github.repository }}/migrate:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/migrate:${{ steps.migrate_version.outputs.major }}
-            ghcr.io/${{ github.repository }}/migrate:${{ steps.migrate_version.outputs.major_minor }}
-            ghcr.io/${{ github.repository }}/migrate:${{ steps.migrate_version.outputs.version }}
-
-  build-import-zsl:
-    runs-on: ubuntu-latest
-    needs: [test, release]
-    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
-
-      - name: Clone Super League Data
-        run: |
-          git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
-
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
-
-      - name: Build import-zsl binary
-        run: bun run build:import-zsl
-
-      - name: Resolve import-zsl image version tags
-        id: import_zsl_version
-        run: |
-          git fetch --force --tags origin
-          TAG="$(git tag -l 'import-zsl@*' --sort=-v:refname | head -n 1)"
-          if [ -z "$TAG" ]; then
-            echo "No import-zsl release tags found (expected pattern: import-zsl@x.y.z)." >&2
-            exit 1
-          fi
-          VERSION="${TAG#import-zsl@}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
-            echo "Invalid semantic version parsed from tag '$TAG'." >&2
-            exit 1
-          fi
-          MAJOR="${VERSION%%.*}"
-          REST="${VERSION#*.}"
-          MINOR="${REST%%.*}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push import-zsl image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.zsl
-          push: true
-          build-args: |
-            SERVICE_VERSION=${{ steps.import_zsl_version.outputs.version }}
-          tags: |
-            ghcr.io/${{ github.repository }}/import-zsl:latest
-            ghcr.io/${{ github.repository }}/import-zsl:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.major }}
-            ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.major_minor }}
-            ghcr.io/${{ github.repository }}/import-zsl:${{ steps.import_zsl_version.outputs.version }}
-
-  build-postgraphile:
-    runs-on: ubuntu-latest
-    needs: [test, release]
-    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
-
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
-
-      - name: Build postgraphile binary
-        run: bun run build:postgraphile
-
-      - name: Resolve postgraphile image version tags
-        id: postgraphile_version
-        run: |
-          git fetch --force --tags origin
-          TAG="$(git tag -l 'postgraphile@*' --sort=-v:refname | head -n 1)"
-          if [ -z "$TAG" ]; then
-            echo "No postgraphile release tags found (expected pattern: postgraphile@x.y.z)." >&2
-            exit 1
-          fi
-          VERSION="${TAG#postgraphile@}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
-            echo "Invalid semantic version parsed from tag '$TAG'." >&2
-            exit 1
-          fi
-          MAJOR="${VERSION%%.*}"
-          REST="${VERSION#*.}"
-          MINOR="${REST%%.*}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push postgraphile image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: Dockerfile.postgraphile
-          push: true
-          build-args: |
-            SERVICE_VERSION=${{ steps.postgraphile_version.outputs.version }}
-          tags: |
-            ghcr.io/${{ github.repository }}/postgraphile:latest
-            ghcr.io/${{ github.repository }}/postgraphile:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/postgraphile:${{ steps.postgraphile_version.outputs.major }}
-            ghcr.io/${{ github.repository }}/postgraphile:${{ steps.postgraphile_version.outputs.major_minor }}
-            ghcr.io/${{ github.repository }}/postgraphile:${{ steps.postgraphile_version.outputs.version }}
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:latest
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ steps.image_version.outputs.major }}
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ steps.image_version.outputs.major_minor }}
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ steps.image_version.outputs.version }}

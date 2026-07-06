@@ -1,0 +1,28 @@
+name: Build Package Binary
+description: Build one package binary and upload it as a workflow artifact.
+inputs:
+  name:
+    description: Package/image name used for artifact naming.
+    required: true
+  build-script:
+    description: Root package.json build script to run.
+    required: true
+  binary:
+    description: Binary filename expected under dist/.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun dependencies
+      uses: ./.github/actions/setup-bun-deps
+
+    - name: Build ${{ inputs.name }} binary
+      shell: bash
+      run: bun run ${{ inputs.build-script }}
+
+    - name: Upload ${{ inputs.name }} binary
+      uses: actions/upload-artifact@v7
+      with:
+        name: compiled-binary-${{ inputs.name }}
+        if-no-files-found: error
+        path: dist/${{ inputs.binary }}
