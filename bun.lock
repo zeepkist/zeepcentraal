@@ -94,7 +94,7 @@
         "@zeepkist/telemetry": "workspace:*",
         "elysia": "~1.4.16",
         "graphile-utils": "^4.14.1",
-        "graphql": "^15.10.1",
+        "graphql": "^17.0.0",
         "logixlysia": "~6.6.0",
         "postgraphile": "^4.14.1",
         "postgraphile-plugin-connection-filter": "^2.3.0",
@@ -102,7 +102,7 @@
       },
       "peerDependencies": {
         "graphile-build": "^4.14.1 || ^5.0.0",
-        "graphql": "^15.0.0",
+        "graphql": "^15.0.0 || ^17.0.0",
       },
     },
     "packages/server": {
@@ -2228,8 +2228,6 @@
     "@semantic-release/npm/read-pkg": ["read-pkg@10.1.0", "", { "dependencies": { "@types/normalize-package-data": "^2.4.4", "normalize-package-data": "^8.0.0", "parse-json": "^8.3.0", "type-fest": "^5.4.4", "unicorn-magic": "^0.4.0" } }, "sha512-I8g2lArQiP78ll51UeMZojewtYgIRCKCWqZEgOO8c/uefTI+XDXvCSXu3+YNUaTNvZzobrL5+SqHjBrByRRTdg=="],
 
     "@semantic-release/npm/tempy": ["tempy@3.2.0", "", { "dependencies": { "is-stream": "^3.0.0", "temp-dir": "^3.0.0", "type-fest": "^2.12.2", "unique-string": "^3.0.0" } }, "sha512-d79HhZya5Djd7am0q+W4RTsSU+D/aJzM+4Y4AGJGuGlgM2L6sx5ZvOYTmZjqPhrDrV6xJTtRSm1JCLj6V6LHLQ=="],
-
-    "@zeepkist/postgraphile/graphql": ["graphql@15.10.2", "", {}, "sha512-1PRqdDPAmViWr4h1GVBT8RoPZfWSGZa7kDzleTilOfVIslsgf+cia3Nl95v1KDmR4iERPaT7WzQ+tN4MJmbg3w=="],
 
     "bl/readable-stream": ["readable-stream@3.6.2", "", { "dependencies": { "inherits": "^2.0.3", "string_decoder": "^1.1.1", "util-deprecate": "^1.0.1" } }, "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA=="],
 
