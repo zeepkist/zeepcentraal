@@ -97,7 +97,7 @@
         "graphql": "^15.10.1",
         "logixlysia": "~6.6.0",
         "postgraphile": "^4.14.1",
-        "postgraphile-plugin-connection-filter": "^2.3.0",
+        "postgraphile-plugin-connection-filter": "^3.0.0",
         "ruru": "2.0.0",
       },
       "peerDependencies": {
@@ -746,6 +746,8 @@
     "@tokenizer/token": ["@tokenizer/token@0.3.0", "", {}, "sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A=="],
 
     "@tootallnate/quickjs-emscripten": ["@tootallnate/quickjs-emscripten@0.23.0", "", {}, "sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA=="],
+
+    "@tsconfig/node20": ["@tsconfig/node20@20.1.9", "", {}, "sha512-IjlTv1RsvnPtUcjTqtVsZExKVq+KQx4g5pCP5tI7rAs6Xesl2qFwSz/tPDBC4JajkL/MlezBu3gPUwqRHl+RIg=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg=="],
 
@@ -1649,7 +1651,7 @@
 
     "postgraphile-core": ["postgraphile-core@4.14.1", "", { "dependencies": { "graphile-build": "4.14.1", "graphile-build-pg": "4.14.1", "tslib": "^2.0.1" }, "peerDependencies": { "graphql": ">=0.9 <0.14 || ^14.0.2 || ^15.4.0", "pg": ">=6.1.0 <9" } }, "sha512-3U6DAoGUmOikl9dVQhSJcw4cLeG0vQQnvEFw7MR0rvn125c1xdv6UBvamvX0pOzSfz5oBrFRQkZ2LvclAXKyBQ=="],
 
-    "postgraphile-plugin-connection-filter": ["postgraphile-plugin-connection-filter@2.3.0", "", { "dependencies": { "tslib": "^2.3.0" } }, "sha512-TR5bq/NOqqtm4xV3D2Qw+CJo0Hanrx1lqh0KZiU78z8YijcLC0NuT3z0nJyCB842nWbx5Wi6p0S+xmrgzRFNgQ=="],
+    "postgraphile-plugin-connection-filter": ["postgraphile-plugin-connection-filter@3.0.1", "", { "dependencies": { "@tsconfig/node20": "^20.1.4", "tslib": "^2.5.0" }, "peerDependencies": { "postgraphile": "^5.0.3" }, "optionalPeers": ["postgraphile"] }, "sha512-x2SGQIz3u5Rl1gMumtmEa2S6WxmqjDgJIAeKN0ERNrlFsN2NxJc6VF825PP2P+QnpaGl31mQj4VjNSiSJubYlA=="],
 
     "postgres": ["postgres@3.4.9", "", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
 
