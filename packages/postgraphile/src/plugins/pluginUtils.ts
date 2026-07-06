@@ -27,6 +27,13 @@ export type PgRelationDetails = {
 	relationName: string
 }
 
+const pluralProperNounFieldNames = new Map([
+	['user_points', 'userPoints'],
+	['user_point', 'userPoints'],
+	['level_points', 'levelPoints'],
+	['level_point', 'levelPoints'],
+])
+
 export function getCodecName(codec: unknown) {
 	if (!codec || typeof codec !== 'object') {
 		return undefined
@@ -34,6 +41,15 @@ export function getCodecName(codec: unknown) {
 
 	const pgCodec = codec as TaggedPgCodec
 	return pgCodec.extensions?.tags?.name ?? pgCodec.name
+}
+
+export function pluralProperNounFieldName(codec: unknown) {
+	const codecName = getCodecName(codec)
+	return codecName ? pluralProperNounFieldNames.get(codecName) : undefined
+}
+
+export function pluralProperNounTableFieldName(table: PgTable) {
+	return pluralProperNounFieldNames.get(table.name)
 }
 
 export function getRelation(details: PgRelationDetails) {

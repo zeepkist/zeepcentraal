@@ -12,6 +12,7 @@ import PgFixForeignKeyNamesPlugin from './plugins/FixForeignKeyNamesPlugin'
 import { HideAuthOrderByEnumsPlugin } from './plugins/HideAuthOrderByEnumsPlugin'
 import { LiveQueryCompatPlugin } from './plugins/LiveQueryCompatPlugin'
 import PgManyToManyInflectorsPlugin from './plugins/ManyToManyInflectorsPlugin'
+import OrderByRelatedInflectorsPlugin from './plugins/OrderByRelatedInflectorsPlugin'
 import { PaginationLimitsPlugin } from './plugins/PaginationLimitsPlugin'
 import { withIgnoredMissingInflectors } from './plugins/pluginUtils'
 import { SkipByNodeIdFieldsPlugin } from './plugins/SkipByNodeIdFieldsPlugin'
@@ -40,6 +41,7 @@ const plugins: GraphileConfig.Plugin[] = [
 	]),
 	PgFixForeignKeyNamesPlugin,
 	PgManyToManyInflectorsPlugin,
+	OrderByRelatedInflectorsPlugin,
 	TracePlugin,
 	PaginationLimitsPlugin,
 	AddCdnToUrlsPlugin,

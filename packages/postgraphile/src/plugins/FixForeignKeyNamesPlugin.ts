@@ -1,9 +1,10 @@
 import type { Inflector, PgTable } from '../types'
 import {
-	getCodecName,
 	getRelation,
 	getTaggedRelationFieldName,
 	type PgRelationDetails,
+	pluralProperNounFieldName,
+	pluralProperNounTableFieldName,
 } from './pluginUtils'
 
 type AttributeNameDetails = {
@@ -15,25 +16,10 @@ type AttributeNameDetails = {
 	skipRowId?: boolean
 }
 
-const pluralProperNounFieldNames = new Map([
-	['user_points', 'userPoints'],
-	['user_point', 'userPoints'],
-	['level_points', 'levelPoints'],
-	['level_point', 'levelPoints'],
-])
-
 const pluralProperNounRelationFieldRenames = new Map([
 	['userPoint', 'userPoints'],
 	['levelPoint', 'levelPoints'],
 ])
-
-const pluralProperNounFieldName = (codec: unknown) => {
-	const codecName = getCodecName(codec)
-	return codecName ? pluralProperNounFieldNames.get(codecName) : undefined
-}
-
-const pluralProperNounTableFieldName = (table: PgTable) =>
-	pluralProperNounFieldNames.get(table.name)
 
 const relationFieldName = (details: PgRelationDetails) => {
 	const relation = getRelation(details)
