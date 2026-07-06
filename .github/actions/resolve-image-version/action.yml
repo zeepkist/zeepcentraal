@@ -1,0 +1,40 @@
+name: Resolve Image Version
+description: Resolve latest semantic release tag for one image and expose Docker tag parts.
+inputs:
+  release-tag-prefix:
+    description: Release tag prefix, for example server or database.
+    required: true
+outputs:
+  version:
+    description: Full semantic version.
+    value: ${{ steps.resolve.outputs.version }}
+  major:
+    description: Major version.
+    value: ${{ steps.resolve.outputs.major }}
+  major_minor:
+    description: Major/minor version.
+    value: ${{ steps.resolve.outputs.major_minor }}
+runs:
+  using: composite
+  steps:
+    - name: Resolve ${{ inputs.release-tag-prefix }} image version
+      id: resolve
+      shell: bash
+      run: |
+        git fetch --force --tags origin
+        TAG="$(git tag -l '${{ inputs.release-tag-prefix }}@*' --sort=-v:refname | head -n 1)"
+        if [ -z "$TAG" ]; then
+          echo "No ${{ inputs.release-tag-prefix }} release tags found (expected pattern: ${{ inputs.release-tag-prefix }}@x.y.z)." >&2
+          exit 1
+        fi
+        VERSION="${TAG#${{ inputs.release-tag-prefix }}@}"
+        if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+          echo "Invalid semantic version parsed from tag '$TAG'." >&2
+          exit 1
+        fi
+        MAJOR="${VERSION%%.*}"
+        REST="${VERSION#*.}"
+        MINOR="${REST%%.*}"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+        echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"

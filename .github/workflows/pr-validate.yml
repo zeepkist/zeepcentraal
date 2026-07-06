@@ -62,18 +62,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
-
       - name: Build ${{ matrix.package.name }} binary
-        run: bun run ${{ matrix.package.build_script }}
-
-      - name: Upload ${{ matrix.package.name }} binary
-        uses: actions/upload-artifact@v7
+        uses: ./.github/actions/build-package-binary
         with:
-          name: compiled-binary-${{ matrix.package.name }}
-          if-no-files-found: error
-          path: dist/${{ matrix.package.binary }}
+          name: ${{ matrix.package.name }}
+          build-script: ${{ matrix.package.build_script }}
+          binary: ${{ matrix.package.binary }}
 
   docker-build:
     runs-on: ubuntu-latest
@@ -111,26 +105,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Download ${{ matrix.image.name }} binary
-        uses: actions/download-artifact@v8
-        with:
-          name: compiled-binary-${{ matrix.image.name }}
-          path: dist
-
-      - name: Verify ${{ matrix.image.name }} binary
-        run: test -f dist/${{ matrix.image.binary }}
-
-      - name: Clone Super League Data
-        if: ${{ matrix.image.clone_super_league }}
-        run: |
-          git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
-
       - name: Build ${{ matrix.image.name }} image (no push)
-        uses: docker/build-push-action@v7
+        uses: ./.github/actions/build-docker-image
         with:
-          context: .
-          file: ${{ matrix.image.file }}
+          name: ${{ matrix.image.name }}
+          dockerfile: ${{ matrix.image.file }}
+          binary: ${{ matrix.image.binary }}
+          clone-super-league: ${{ matrix.image.clone_super_league }}
+          service-version: pr-${{ github.event.pull_request.number || github.run_id }}
           push: false
-          build-args: |
-            SERVICE_VERSION=pr-${{ github.event.pull_request.number || github.run_id }}
           tags: ${{ matrix.image.tag }}:pr-${{ github.event.pull_request.number || github.run_id }}

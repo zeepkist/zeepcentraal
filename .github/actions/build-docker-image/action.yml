@@ -1,0 +1,53 @@
+name: Build Docker Image
+description: Download one compiled binary and build or publish one Docker image.
+inputs:
+  name:
+    description: Image/package name used for artifact naming.
+    required: true
+  dockerfile:
+    description: Dockerfile path.
+    required: true
+  binary:
+    description: Binary filename expected under dist/.
+    required: true
+  clone-super-league:
+    description: Clone Super League data into Docker build context.
+    required: false
+    default: 'false'
+  service-version:
+    description: SERVICE_VERSION build arg value.
+    required: true
+  push:
+    description: Whether docker/build-push-action should push.
+    required: false
+    default: 'false'
+  tags:
+    description: Docker image tags.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Download ${{ inputs.name }} binary
+      uses: actions/download-artifact@v8
+      with:
+        name: compiled-binary-${{ inputs.name }}
+        path: dist
+
+    - name: Verify ${{ inputs.name }} binary
+      shell: bash
+      run: test -f dist/${{ inputs.binary }}
+
+    - name: Clone Super League Data
+      if: ${{ inputs.clone-super-league == 'true' }}
+      shell: bash
+      run: git clone --depth 1 --branch data https://github.com/zeepkist/super-league.git super_league_data
+
+    - name: Build ${{ inputs.name }} image
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        file: ${{ inputs.dockerfile }}
+        push: ${{ inputs.push }}
+        build-args: |
+          SERVICE_VERSION=${{ inputs.service-version }}
+        tags: ${{ inputs.tags }}
