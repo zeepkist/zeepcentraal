@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.description="ZeepCentraal database migration runn
 
 WORKDIR /app
 
-COPY dist/zeepcentraal-migrate zeepcentraal-migrate
+COPY --chmod=755 dist/zeepcentraal-migrate zeepcentraal-migrate
 COPY packages/database/drizzle drizzle
 
 ENV NODE_ENV=production

@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.description="ZeepCentraal Super League importer f
 
 WORKDIR /app
 
-COPY dist/zeepcentraal-import-zsl zeepcentraal-import-zsl
+COPY --chmod=755 dist/zeepcentraal-import-zsl zeepcentraal-import-zsl
 COPY super_league_data /data/super_league_data
 
 ENV NODE_ENV=production

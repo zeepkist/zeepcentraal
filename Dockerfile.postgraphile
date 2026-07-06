@@ -6,7 +6,7 @@ LABEL org.opencontainers.image.description="ZeepCentraal PostGraphile GraphQL se
 
 WORKDIR /app
 
-COPY dist/zeepcentraal-postgraphile zeepcentraal-postgraphile
+COPY --chmod=755 dist/zeepcentraal-postgraphile zeepcentraal-postgraphile
 
 ENV NODE_ENV=production
 ENV GRAPHILE_TURBO=1
