@@ -1,0 +1,12 @@
+query ZC_Levels($first: Int = 10) {
+	levels(first: $first, orderBy: [DATE_CREATED_DESC]) {
+		nodes {
+			id
+			hash
+			xxHash
+			adventure
+			dateCreated
+		}
+		totalCount
+	}
+}

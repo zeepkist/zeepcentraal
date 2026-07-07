@@ -1,0 +1,18 @@
+FROM gcr.io/distroless/base-debian12:nonroot
+
+ARG SERVICE_VERSION=dev
+
+LABEL org.opencontainers.image.description="ZeepCentraal Nuxt web application."
+
+WORKDIR /app
+
+COPY --chown=nonroot:nonroot dist/zeepcentraal-web zeepcentraal-web
+
+ENV NODE_ENV=production
+ENV NITRO_PORT=4000
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-web
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
+
+EXPOSE 4000
+
+ENTRYPOINT ["./zeepcentraal-web"]

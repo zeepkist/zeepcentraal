@@ -1,0 +1,12 @@
+query ZC_Players($first: Int = 10) {
+	users(first: $first, orderBy: [DATE_CREATED_DESC]) {
+		nodes {
+			id
+			steamId
+			steamName
+			banned
+			dateCreated
+		}
+		totalCount
+	}
+}

@@ -28,15 +28,41 @@
 			"semicolons": "asNeeded"
 		}
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"files": {
 		"includes": [
 			"**",
-			"!**/node_modules",
-			"!**/dist",
+			"!node_modules",
+			"!coverage",
+			"!dist",
+			"!zeepcentraal-web",
 			"!packages/graphql/schema.graphql",
 			"!packages/graphql/schema.local.graphql",
-			"!packages/graphql/schema.v4.graphql",
-			"!packages/graphql/schema.v5.graphql"
+			"!packages/web/.data",
+			"!packages/web/.nuxt",
+			"!packages/web/.output",
+			"!packages/web/app/graphql/generated",
+			"!packages/web/test-results"
 		]
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["packages/web/**/*.vue"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedImports": "off",
+						"noUnusedVariables": "off"
+					},
+					"style": {
+						"useVueMultiWordComponentNames": "off"
+					}
+				}
+			}
+		}
+	]
 }
