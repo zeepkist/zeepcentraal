@@ -211,7 +211,7 @@ describe('WorkshopScanner', () => {
 		)
 	})
 
-	test('adds workshop id and level file name to validation errors', async () => {
+	test('accepts invalid CSV block ids and stores normalized hashes', async () => {
 		const directory = await createItem({
 			block: 'not-a-number,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
 		})
@@ -222,16 +222,11 @@ describe('WorkshopScanner', () => {
 			dependencies.persistence,
 		)
 
-		try {
-			await scanner.scanWorkshopItem(3749321871n)
-			throw new Error('Expected scan to fail')
-		} catch (error) {
-			expect(error).toBeInstanceOf(Error)
-			const message = (error as Error).message
-			expect(message).toContain('Workshop 3749321871 level Example')
-			expect(message).toContain('Example.zeeplevel')
-			expect(message).toContain('Invalid block id')
-		}
+		const result = await scanner.scanWorkshopItem(3749321871n)
+
+		expect(result.status).toBe('scanned')
+		expect(dependencies.calls.upserts[0]?.hash).toBe('CB7E7D2B30617A987B02008F663B2C63F74713C7')
+		expect(dependencies.calls.upserts[0]?.xxHash).toBe('02A8289FA8BDC7FA81642538758D1AA1')
 	})
 
 	test('marks permanent metadata failures deleted without downloading', async () => {

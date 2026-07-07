@@ -16,6 +16,64 @@ interface JsonLevel {
 	blox?: JsonBlock[]
 }
 
+function isJsonIdentifierCharacter(character: string | undefined): boolean {
+	return character !== undefined && /[A-Za-z0-9_$]/.test(character)
+}
+
+function replaceBareToken(content: string, index: number, token: string): string | null {
+	if (!content.startsWith(token, index)) {
+		return null
+	}
+	if (
+		isJsonIdentifierCharacter(content[index - 1]) ||
+		isJsonIdentifierCharacter(content[index + token.length])
+	) {
+		return null
+	}
+	return '0'
+}
+
+function normalizeNonFiniteJsonNumbers(content: string): string {
+	let normalized = ''
+	let inString = false
+	let escaped = false
+	for (let index = 0; index < content.length; index++) {
+		const character = content[index]
+		if (inString) {
+			normalized += character
+			if (escaped) {
+				escaped = false
+			} else if (character === '\\') {
+				escaped = true
+			} else if (character === '"') {
+				inString = false
+			}
+			continue
+		}
+		if (character === '"') {
+			inString = true
+			normalized += character
+			continue
+		}
+		const replacement =
+			replaceBareToken(content, index, '-Infinity') ??
+			replaceBareToken(content, index, 'Infinity') ??
+			replaceBareToken(content, index, 'NaN')
+		if (replacement !== null) {
+			const tokenLength = content.startsWith('-Infinity', index)
+				? '-Infinity'.length
+				: content.startsWith('Infinity', index)
+					? 'Infinity'.length
+					: 'NaN'.length
+			normalized += replacement
+			index += tokenLength - 1
+			continue
+		}
+		normalized += character
+	}
+	return normalized
+}
+
 function canonicalJson(value: unknown): string {
 	if (value === null || typeof value === 'number' || typeof value === 'boolean') {
 		return JSON.stringify(value)
@@ -55,7 +113,7 @@ function canonicalJsonBlocks(blocks: JsonBlock[]): string {
 }
 
 export function calculateJsonLevelXxHash(content: string): string {
-	const json = JSON.parse(content) as JsonLevel
+	const json = JSON.parse(normalizeNonFiniteJsonNumbers(content)) as JsonLevel
 	const blocks = json.blox
 	if (!Array.isArray(blocks)) {
 		throw new Error('JSON level is missing blox')
@@ -64,7 +122,7 @@ export function calculateJsonLevelXxHash(content: string): string {
 }
 
 export function parseJsonLevel(content: string, adventure = false): ParsedLevel {
-	const parsed = JSON.parse(content) as JsonLevel
+	const parsed = JSON.parse(normalizeNonFiniteJsonNumbers(content)) as JsonLevel
 	const uid = parsed.level?.UID ?? ''
 	const zeepHash = parsed.level?.zeepHash ?? uid
 	const blocks = Array.isArray(parsed.blox) ? parsed.blox : []
