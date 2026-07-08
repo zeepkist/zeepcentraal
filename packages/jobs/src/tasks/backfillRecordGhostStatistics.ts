@@ -1,5 +1,6 @@
 import { emptyGhostStatistics, parseGhostStatistics } from '@zeepkist/core/ghosts'
 import {
+	getRecordIdsWithGhostMedia,
 	getRecordMediaForStatisticBackfill,
 	upsertRecordStatistic,
 } from '@zeepkist/database/services'
@@ -37,14 +38,22 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 	let enqueued = 0
 
 	if (payload.ids && payload.ids.length > 0) {
-		const jobs = Array.from(batchProcess(payload.ids, BATCH_SIZE), (ids) => ({
+		const idsWithGhostMedia: number[] = []
+		for (const ids of batchProcess(payload.ids, BATCH_SIZE)) {
+			idsWithGhostMedia.push(...(await getRecordIdsWithGhostMedia(ids)))
+		}
+
+		const jobs = Array.from(batchProcess(idsWithGhostMedia, BATCH_SIZE), (ids) => ({
 			identifier: 'backfillRecordGhostStatisticsBatch',
 			payload: { ids },
 			jobKey: `backfill-record-ghost-statistics:${ids[0]}-${ids.at(-1)}`,
 		}))
-		await helpers.addJobs(jobs)
+		if (jobs.length > 0) {
+			await helpers.addJobs(jobs)
+		}
 		helpers.logger.info('Enqueued targeted record ghost statistics backfill.', {
-			count: payload.ids.length,
+			requested: payload.ids.length,
+			count: idsWithGhostMedia.length,
 			batches: jobs.length,
 		})
 		return
