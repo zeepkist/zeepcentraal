@@ -2,7 +2,14 @@ import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseCsvLevel, parseJsonLevel, parseJsonLevelV2, parseLevel, parseLevelV2 } from '.'
+import {
+	calculateLegacyZeepSdkJsonXxHash,
+	parseCsvLevel,
+	parseJsonLevel,
+	parseJsonLevelV2,
+	parseLevel,
+	parseLevelV2,
+} from '.'
 
 const csv = [
 	'LevelEditor2,Author,uid-1',
@@ -222,20 +229,33 @@ describe('legacy level parsing', () => {
 			.slice(1)
 
 		for (const vector of vectors) {
-			const [fileName, format, expectedZeepHash, expectedSha256, expectedXxh128] =
-				vector.split(',')
-			if (!fileName || !format || !expectedZeepHash || !expectedSha256 || !expectedXxh128) {
-				throw new Error(`Invalid compatibility vector: ${vector}`)
-			}
-			const bytes = readFileSync(join(fixtureDirectory, fileName))
-			expect(createHash('sha256').update(bytes).digest('hex').toUpperCase()).toBe(
+			const [
+				fileName = 'Missing File Name',
+				format,
+				expectedZeepHash,
 				expectedSha256,
-			)
+				expectedXxh128,
+			] = vector.split(',')
+			const bytes = readFileSync(join(fixtureDirectory, fileName))
+			const actualSha256 = createHash('sha256').update(bytes).digest('hex').toUpperCase()
+			if (!fileName || !format || !expectedZeepHash || !expectedSha256 || !expectedXxh128) {
+				throw new Error(`Invalid compatibility vector: ${vector} (SHA256: ${actualSha256})`)
+			}
+			expect(actualSha256).toBe(expectedSha256)
 			const parsed = parseLevelV2(bytes.toString('utf8'))
 			expect(parsed.format === 0 ? 'csv' : 'json').toBe(format)
 			expect(parsed.zeepHash).toBe(expectedZeepHash)
 			expect(parsed.hash).toBe(expectedXxh128)
 		}
+	})
+
+	test('reproduces legacy ZeepSDK exponent hash bug for migration', () => {
+		const content = readFileSync(
+			join(import.meta.dir, '../../testdata/legacy-hash/skull-island.zeeplevel'),
+			'utf8',
+		)
+
+		expect(calculateLegacyZeepSdkJsonXxHash(content)).toBe('B2C01DACE81A0B68D348BBDEBB43E28F')
 	})
 
 	test('treats JSON zeepHash as untrusted for XXH128', () => {

@@ -6,6 +6,7 @@ import type { TaskHandler } from './types'
 
 interface SyncWorkshopCatalogPayload {
 	all?: boolean
+	fixZeepSDKExponentHashes?: boolean
 }
 
 export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = async (
@@ -13,6 +14,7 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 	helpers,
 ) => {
 	const forceAll = payload.all === true
+	const fixZeepSDKExponentHashes = forceAll && payload.fixZeepSDKExponentHashes === true
 	const storedWorkshopState = await getWorkshopSyncState()
 	const metadata = getWorkshopMetadata()
 	const seen = new Set<bigint>()
@@ -51,7 +53,10 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 	for (const batch of batchProcess(workshopIds, 20)) {
 		await helpers.addJob(
 			'scanWorkshopBatch',
-			{ workshopIds: batch.map(String) },
+			{
+				workshopIds: batch.map(String),
+				...(fixZeepSDKExponentHashes ? { fixZeepSDKExponentHashes: true } : {}),
+			},
 			{
 				jobKey: `scan-workshop-batch:${batch[0]}:${batch.at(-1)}`,
 				maxAttempts: 5,
@@ -60,6 +65,6 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 		)
 	}
 	helpers.logger.info(
-		`syncWorkshopCatalog queued ${workshopIds.length} scans from ${seen.size} catalog items${forceAll ? ' (all=true)' : ''}.`,
+		`syncWorkshopCatalog queued ${workshopIds.length} scans from ${seen.size} catalog items${forceAll ? ' (all=true)' : ''}${fixZeepSDKExponentHashes ? ' (fixZeepSDKExponentHashes=true)' : ''}.`,
 	)
 }

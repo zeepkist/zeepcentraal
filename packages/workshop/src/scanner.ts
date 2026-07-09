@@ -1,9 +1,11 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { extname, join, parse } from 'node:path'
-import { parseLevelV2 } from '@zeepkist/core/levels'
+import { calculateLegacyZeepSdkJsonXxHash, levelFormat, parseLevelV2 } from '@zeepkist/core/levels'
+import { canSteamCmdDownloadWorkshopItem } from '@zeepkist/core/steam'
 import {
 	markMissingWorkshopLevelsDeleted,
 	markWorkshopDeleted,
+	mergeZeepSdkExponentHash,
 	uploadWorkshopThumbnail,
 	upsertWorkshopLevel,
 } from '@zeepkist/database/services/workshop'
@@ -14,6 +16,7 @@ import type {
 	WorkshopItemMetadata,
 	WorkshopMetadataAdapter,
 	WorkshopPersistence,
+	WorkshopScanOptions,
 	WorkshopScanResult,
 } from './types'
 
@@ -28,6 +31,7 @@ const databasePersistence: WorkshopPersistence = {
 	markMissing: markMissingWorkshopLevelsDeleted,
 	markDeleted: markWorkshopDeleted,
 	uploadThumbnail: uploadWorkshopThumbnail,
+	mergeZeepSdkExponentHash,
 }
 
 async function discoverLevels(directory: string): Promise<LevelFiles[]> {
@@ -68,8 +72,11 @@ export class WorkshopScanner {
 		private readonly persistence: WorkshopPersistence = databasePersistence,
 	) {}
 
-	public async scanWorkshopItem(workshopId: bigint): Promise<WorkshopScanResult> {
-		const batch = await this.scanWorkshopItems([workshopId], 1)
+	public async scanWorkshopItem(
+		workshopId: bigint,
+		options: WorkshopScanOptions = {},
+	): Promise<WorkshopScanResult> {
+		const batch = await this.scanWorkshopItems([workshopId], 1, options)
 		const failure = batch.transientFailures[0]
 		if (failure) {
 			throw failure.error
@@ -84,19 +91,26 @@ export class WorkshopScanner {
 	public async scanWorkshopItems(
 		workshopIds: bigint[],
 		batchSize = 10,
+		options: WorkshopScanOptions = {},
 	): Promise<WorkshopBatchScanResult> {
 		const metadataItems = await this.metadata.getItems(workshopIds)
 		const results: WorkshopScanResult[] = []
 		const available: WorkshopItemMetadata[] = []
 		for (const metadata of metadataItems) {
-			if (metadata.available) {
-				available.push(metadata)
-			} else {
+			if (!metadata.available) {
 				results.push({
 					workshopId: metadata.workshopId,
 					status: 'permanently-unavailable',
 					changedLevelIds: await this.persistence.markDeleted(metadata.workshopId),
 				})
+			} else if (!canSteamCmdDownloadWorkshopItem(metadata.visibility)) {
+				results.push({
+					workshopId: metadata.workshopId,
+					status: 'inaccessible',
+					changedLevelIds: await this.persistence.markDeleted(metadata.workshopId),
+				})
+			} else {
+				available.push(metadata)
 			}
 		}
 
@@ -105,7 +119,7 @@ export class WorkshopScanner {
 		await downloadBatchesRecursively(
 			available.map((item) => item.workshopId),
 			async (batch) => {
-				results.push(...(await this.scanDownloadedBatch(batch, metadataById)))
+				results.push(...(await this.scanDownloadedBatch(batch, metadataById, options)))
 			},
 			async (workshopId, error) => {
 				transientFailures.push({ workshopId, error })
@@ -118,6 +132,7 @@ export class WorkshopScanner {
 	private async scanDownloadedBatch(
 		workshopIds: bigint[],
 		metadataById: Map<bigint, WorkshopItemMetadata>,
+		options: WorkshopScanOptions,
 	): Promise<WorkshopScanResult[]> {
 		const download = await this.downloader.download(workshopIds)
 		try {
@@ -130,7 +145,7 @@ export class WorkshopScanner {
 					return {
 						item,
 						metadata,
-						levels: await this.prepareItem(item, metadata.creatorId),
+						levels: await this.prepareItem(item, metadata.creatorId, options),
 					}
 				}),
 			)
@@ -167,6 +182,23 @@ export class WorkshopScanner {
 					if (upsertResult.scoreChanged) {
 						changedLevelIds.push(upsertResult.idLevel)
 					}
+					if (
+						options.fixZeepSDKExponentHashes &&
+						level.legacyZeepSdkXxHash &&
+						level.legacyZeepSdkXxHash !== level.parsed.hash &&
+						this.persistence.mergeZeepSdkExponentHash
+					) {
+						const merge = await this.persistence.mergeZeepSdkExponentHash({
+							correctLevelId: upsertResult.idLevel,
+							correctXxHash: level.parsed.hash,
+							badXxHash: level.legacyZeepSdkXxHash,
+							workshopId: prepared.item.workshopId,
+							fileUid: level.parsed.uid,
+						})
+						if (merge.merged) {
+							changedLevelIds.push(...merge.changedLevelIds)
+						}
+					}
 				}
 				const missing = await this.persistence.markMissing(
 					prepared.item.workshopId,
@@ -184,18 +216,29 @@ export class WorkshopScanner {
 		}
 	}
 
-	private async prepareItem(item: DownloadedWorkshopItem, creatorId: bigint) {
+	private async prepareItem(
+		item: DownloadedWorkshopItem,
+		creatorId: bigint,
+		options: WorkshopScanOptions,
+	) {
 		const files = await discoverLevels(item.directory)
 		return Promise.all(
 			files.map(async (file) => {
 				try {
+					const content = await readFile(file.levelPath, 'utf8')
+					const parsed = parseLevelV2(content, false, creatorId)
+					let legacyZeepSdkXxHash: string | undefined
+					if (options.fixZeepSDKExponentHashes && parsed.format === levelFormat.json) {
+						try {
+							legacyZeepSdkXxHash = calculateLegacyZeepSdkJsonXxHash(content)
+						} catch {
+							legacyZeepSdkXxHash = undefined
+						}
+					}
 					return {
 						...file,
-						parsed: parseLevelV2(
-							await readFile(file.levelPath, 'utf8'),
-							false,
-							creatorId,
-						),
+						parsed,
+						legacyZeepSdkXxHash,
 					}
 				} catch (error) {
 					const message = error instanceof Error ? error.message : String(error)

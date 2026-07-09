@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
 const emptyPayload = z.looseObject({})
-const syncWorkshopCatalogPayload = z.looseObject({ all: z.boolean().optional() })
+const syncWorkshopCatalogPayload = z.looseObject({
+	all: z.boolean().optional(),
+	fixZeepSDKExponentHashes: z.boolean().optional(),
+})
 const batchPayload = z.union([
 	z.looseObject({ ids: z.array(z.number().int().positive()).min(1) }),
 	z.looseObject({
@@ -23,7 +26,7 @@ export const taskDefinitions = {
 		schema: z.looseObject({
 			ids: z.array(z.number().int().positive()).min(1).max(500),
 		}),
-		compatible: false,
+		compatible: true,
 		maxAttempts: 1,
 	},
 	scanWorkshopBatch: {
@@ -32,8 +35,9 @@ export const taskDefinitions = {
 				.array(z.string().regex(/^[1-9]\d*$/))
 				.min(1)
 				.max(10),
+			fixZeepSDKExponentHashes: z.boolean().optional(),
 		}),
-		compatible: false,
+		compatible: true,
 		maxAttempts: 5,
 	},
 	scanWorkshopItem: {

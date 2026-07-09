@@ -1,8 +1,20 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { THUMBNAIL_FOLDER } from '../config'
 import { uploadFile } from '../s3'
-import { level, levelItem, levelMetadata, levelRequest, user, workshopItem } from '../schema'
+import {
+	favourite,
+	level,
+	levelItem,
+	levelMetadata,
+	levelRequest,
+	personalBestGlobal,
+	record,
+	user,
+	vote,
+	workshopItem,
+	worldRecordGlobal,
+} from '../schema'
 import { generateUid } from '../utils/generateUid'
 import { resolveSteamNameForWorkshopAuthor } from './user'
 
@@ -37,6 +49,19 @@ export interface WorkshopLevelInput {
 export interface WorkshopLevelUpsertResult {
 	idLevel: number
 	scoreChanged: boolean
+}
+
+export interface ZeepSdkExponentHashMergeInput {
+	correctLevelId: number
+	correctXxHash: string
+	badXxHash: string
+	workshopId: bigint
+	fileUid: string
+}
+
+export interface ZeepSdkExponentHashMergeResult {
+	merged: boolean
+	changedLevelIds: number[]
 }
 
 interface ExistingWorkshopLevelItem {
@@ -406,6 +431,116 @@ export async function upsertWorkshopLevel(
 						(existingWorkshopItem.visibility === 0) !== publicWorkshopItem,
 				),
 		}
+	})
+}
+
+export async function mergeZeepSdkExponentHash({
+	correctLevelId,
+	correctXxHash,
+	badXxHash,
+}: ZeepSdkExponentHashMergeInput): Promise<ZeepSdkExponentHashMergeResult> {
+	if (correctXxHash === badXxHash) {
+		return { merged: false, changedLevelIds: [] }
+	}
+
+	return db.transaction(async (tx) => {
+		const correct = await tx
+			.select({ id: level.id })
+			.from(level)
+			.where(and(eq(level.id, correctLevelId), eq(level.xxHash, correctXxHash)))
+			.limit(1)
+			.then((rows) => rows[0])
+		if (!correct) {
+			return { merged: false, changedLevelIds: [] }
+		}
+
+		const bad = await tx
+			.select({ id: level.id })
+			.from(level)
+			.where(and(eq(level.xxHash, badXxHash), ne(level.id, correctLevelId)))
+			.limit(1)
+			.then((rows) => rows[0])
+		if (!bad) {
+			return { merged: false, changedLevelIds: [] }
+		}
+
+		const [firstLock, secondLock] = [correct.id, bad.id].sort((left, right) => left - right)
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(772001, ${firstLock})`)
+		await tx.execute(sql`SELECT pg_advisory_xact_lock(772001, ${secondLock})`)
+
+		const now = new Date().toISOString()
+		await tx
+			.update(record)
+			.set({ idLevel: correct.id, dateUpdated: now })
+			.where(eq(record.idLevel, bad.id))
+
+		await tx.execute(sql`
+			DELETE FROM ${favourite} AS bad_favourite
+			USING ${favourite} AS correct_favourite
+			WHERE bad_favourite.id_level = ${bad.id}
+				AND correct_favourite.id_level = ${correct.id}
+				AND correct_favourite.id_user = bad_favourite.id_user
+		`)
+		await tx
+			.update(favourite)
+			.set({ idLevel: correct.id, dateUpdated: now })
+			.where(eq(favourite.idLevel, bad.id))
+
+		await tx.execute(sql`
+			DELETE FROM ${vote} AS bad_vote
+			USING ${vote} AS correct_vote
+			WHERE bad_vote.id_level = ${bad.id}
+				AND correct_vote.id_level = ${correct.id}
+				AND correct_vote.id_user = bad_vote.id_user
+		`)
+		await tx
+			.update(vote)
+			.set({ idLevel: correct.id, dateUpdated: now })
+			.where(eq(vote.idLevel, bad.id))
+
+		await tx
+			.delete(personalBestGlobal)
+			.where(inArray(personalBestGlobal.idLevel, [correct.id, bad.id]))
+		await tx.execute(sql`
+			INSERT INTO ${personalBestGlobal} (id_record, id_user, id_level, date_created, date_updated)
+			SELECT DISTINCT ON (${record.idUser})
+				${record.id},
+				${record.idUser},
+				${correct.id},
+				${now},
+				${now}
+			FROM ${record}
+			WHERE ${record.idLevel} = ${correct.id}
+			ORDER BY ${record.idUser}, ${record.time}, ${record.id}
+		`)
+
+		await tx
+			.delete(worldRecordGlobal)
+			.where(inArray(worldRecordGlobal.idLevel, [correct.id, bad.id]))
+		await tx.execute(sql`
+			INSERT INTO ${worldRecordGlobal} (id_record, id_user, id_level, date_created, date_updated)
+			SELECT
+				${record.id},
+				${record.idUser},
+				${correct.id},
+				${now},
+				${now}
+			FROM ${record}
+			WHERE ${record.idLevel} = ${correct.id}
+			ORDER BY ${record.time}, ${record.id}
+			LIMIT 1
+		`)
+
+		const remainingBadRecords = await tx
+			.select({ count: sql<number>`COUNT(*)::int` })
+			.from(record)
+			.where(eq(record.idLevel, bad.id))
+			.then((rows) => rows[0]?.count ?? 0)
+		if (remainingBadRecords === 0) {
+			await tx.delete(level).where(eq(level.id, bad.id))
+		}
+
+		return { merged: true, changedLevelIds: [correct.id] }
 	})
 }
 

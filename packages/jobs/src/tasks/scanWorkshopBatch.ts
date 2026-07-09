@@ -5,11 +5,14 @@ import type { TaskHandler } from './types'
 
 type Payload = {
 	workshopIds: string[]
+	fixZeepSDKExponentHashes?: boolean
 }
 
 export const scanWorkshopBatch: TaskHandler<Payload> = async (payload, helpers) => {
 	const workshopIds = payload.workshopIds.map(BigInt)
-	const batch = await getWorkshopScanner().scanWorkshopItems(workshopIds, 10)
+	const batch = await getWorkshopScanner().scanWorkshopItems(workshopIds, 10, {
+		fixZeepSDKExponentHashes: payload.fixZeepSDKExponentHashes === true,
+	})
 
 	const levelIds = new Set<number>()
 	for (const result of batch.results) {

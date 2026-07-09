@@ -66,11 +66,22 @@ export interface WorkshopPersistence {
 	markMissing(workshopId: bigint, activeXxHashes: string[]): Promise<number[]>
 	markDeleted(workshopId: bigint): Promise<number[]>
 	uploadThumbnail(extension: string, contents: Buffer): Promise<string>
+	mergeZeepSdkExponentHash?(input: {
+		correctLevelId: number
+		correctXxHash: string
+		badXxHash: string
+		workshopId: bigint
+		fileUid: string
+	}): Promise<{ merged: boolean; changedLevelIds: number[] }>
+}
+
+export interface WorkshopScanOptions {
+	fixZeepSDKExponentHashes?: boolean
 }
 
 export interface WorkshopScanResult {
 	workshopId: bigint
-	status: 'scanned' | 'permanently-unavailable'
+	status: 'scanned' | 'permanently-unavailable' | 'inaccessible'
 	changedLevelIds: number[]
 }
 

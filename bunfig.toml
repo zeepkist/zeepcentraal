@@ -10,5 +10,20 @@ telemetry = false
 # prevent child processes from surviving a killed bun command
 noOrphans = true
 
+[install]
+linker = "isolated"
+globalStore = true
+logLevel = "warn"
+# Only install package versions published at least 3 days ago
+minimumReleaseAge = 259200
+
 [test]
 smol = true
+#coverage = true
+#coverageThreshold = 0.9
+coverageSkipTestFiles = true
+#randomize = true
+onlyFailures = true
+
+[test.reporter]
+#dots = true

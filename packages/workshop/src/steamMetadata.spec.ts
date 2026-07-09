@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
+import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
 import { SteamWebApiMetadata } from './steamMetadata'
 
 const originalFetch = globalThis.fetch
@@ -53,7 +54,7 @@ describe('SteamWebApiMetadata', () => {
 
 		expect(urls[0]?.searchParams.get('admin_query')).toBe('true')
 		expect(item?.available).toBe(true)
-		expect(item?.visibility).toBe(1)
+		expect(item?.visibility).toBe(STEAM_VISIBILITY.FriendsOnly)
 		expect(item?.fileSize).toBe(12345)
 		expect(item?.createdAt).toBe('1970-01-01T00:01:40.000Z')
 		expect(item?.updatedAt).toBe('1970-01-01T00:03:20.000Z')
