@@ -17,6 +17,9 @@ import {
 } from '../schema'
 import { generateUid } from '../utils/generateUid'
 import { resolveSteamNameForWorkshopAuthor } from './user'
+import { resolveWorkshopLevelId } from './workshopHelpers'
+
+export { resolveWorkshopLevelId } from './workshopHelpers'
 
 export interface WorkshopLevelInput {
 	hash: string
@@ -62,39 +65,6 @@ export interface ZeepSdkExponentHashMergeInput {
 export interface ZeepSdkExponentHashMergeResult {
 	merged: boolean
 	changedLevelIds: number[]
-}
-
-interface ExistingWorkshopLevelItem {
-	id: number
-	idLevel: number
-	deleted: boolean
-	xxHash: string
-}
-
-interface ExistingLevel {
-	id: number
-}
-
-export function resolveWorkshopLevelId({
-	inputXxHash,
-	existingItem,
-	existingByXxHash,
-	existingByLegacyHash,
-	createdLevel,
-}: {
-	inputXxHash: string
-	existingItem?: ExistingWorkshopLevelItem
-	existingByXxHash?: ExistingLevel
-	existingByLegacyHash?: ExistingLevel
-	createdLevel?: ExistingLevel
-}): number | undefined {
-	if (existingByXxHash) {
-		return existingByXxHash.id
-	}
-	if (existingItem?.xxHash === inputXxHash) {
-		return existingItem.idLevel
-	}
-	return existingByLegacyHash?.id ?? createdLevel?.id
 }
 
 function getImageExtensionFromContentType(contentType: string | null): string | undefined {

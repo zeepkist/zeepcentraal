@@ -17,6 +17,8 @@ minimumReleaseAge = 259200
 
 [test]
 smol = true
+isolate = true
+preload = ["./test/preload.ts"]
 #coverage = true
 #coverageThreshold = 0.9
 coverageSkipTestFiles = true

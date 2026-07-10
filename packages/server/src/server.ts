@@ -7,7 +7,7 @@ import { withDocumentation } from './plugins/withDocumentation'
 import { withErrors } from './plugins/withErrors'
 import { withLogging } from './plugins/withLogging'
 import { withSpanEnrichment } from './plugins/withSpanEnrichment'
-import { withTelemetry } from './plugins/withTelemetry'
+import { createWithTelemetry } from './plugins/withTelemetry'
 
 export function buildServer() {
 	return new Elysia({
@@ -19,7 +19,7 @@ export function buildServer() {
 	})
 		.use(withLogging)
 		.use(withCors)
-		.use(withTelemetry)
+		.use(createWithTelemetry())
 		.use(withSpanEnrichment)
 		.use(withDocumentation)
 		.use(withErrors)

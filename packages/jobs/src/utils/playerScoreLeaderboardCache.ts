@@ -1,9 +1,6 @@
 import KeyvPostgres from '@keyv/postgres'
 import { jobsConfig } from '@zeepkist/core/config/jobs'
-import {
-	getLevelsPersonalBestsWithLevelPointsAndPosition,
-	type PersonalBestWithLevelPointsAndPosition,
-} from '@zeepkist/database/services/personalBest'
+import type { PersonalBestWithLevelPointsAndPosition } from '@zeepkist/database/services/personalBest'
 import type { Helpers } from 'graphile-worker'
 import Keyv from 'keyv'
 
@@ -65,6 +62,13 @@ export function setPlayerScoreLeaderboardCache(cache: PlayerScoreLeaderboardCach
 	playerScoreLeaderboardCache = cache
 }
 
+async function loadLevelLeaderboards(idLevels: number[]) {
+	const { getLevelsPersonalBestsWithLevelPointsAndPosition } = await import(
+		'@zeepkist/database/services/personalBest'
+	)
+	return getLevelsPersonalBestsWithLevelPointsAndPosition(idLevels)
+}
+
 function serializeLeaderboardRows(
 	rows: PlayerScoreLeaderboardRows,
 ): CachedPlayerScoreLeaderboardRow[] {
@@ -87,7 +91,7 @@ export async function getCachedLevelLeaderboards({
 	cache = getPlayerScoreLeaderboardCache(),
 	idLevels,
 	logger,
-	loadLeaderboards = getLevelsPersonalBestsWithLevelPointsAndPosition,
+	loadLeaderboards = loadLevelLeaderboards,
 }: {
 	cache?: PlayerScoreLeaderboardCache
 	idLevels: number[]
@@ -157,7 +161,7 @@ export async function refreshCachedLevelLeaderboards({
 	cache = getPlayerScoreLeaderboardCache(),
 	idLevels,
 	logger,
-	loadLeaderboards = getLevelsPersonalBestsWithLevelPointsAndPosition,
+	loadLeaderboards = loadLevelLeaderboards,
 }: {
 	cache?: PlayerScoreLeaderboardCache
 	idLevels: number[]

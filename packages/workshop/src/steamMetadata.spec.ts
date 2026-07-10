@@ -1,35 +1,11 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
+import { mockJsonFetch } from '../../../test/fetchMock'
 import { SteamWebApiMetadata } from './steamMetadata'
-
-const originalFetch = globalThis.fetch
-
-afterEach(() => {
-	globalThis.fetch = originalFetch
-})
-
-function mockJsonResponse(
-	handler: (url: URL) => {
-		body?: unknown
-		status?: number
-	},
-) {
-	const urls: URL[] = []
-	globalThis.fetch = (async (input) => {
-		const url = new URL(String(input))
-		urls.push(url)
-		const { body = {}, status = 200 } = handler(url)
-		return new Response(JSON.stringify(body), {
-			status,
-			headers: { 'content-type': 'application/json' },
-		})
-	}) as typeof fetch
-	return urls
-}
 
 describe('SteamWebApiMetadata', () => {
 	test('getItems uses admin query and keeps non-public items available', async () => {
-		const urls = mockJsonResponse(() => ({
+		const urls = mockJsonFetch(() => ({
 			body: {
 				response: {
 					publishedfiledetails: [
@@ -61,7 +37,7 @@ describe('SteamWebApiMetadata', () => {
 	})
 
 	test('listItems uses admin query', async () => {
-		const urls = mockJsonResponse(() => ({
+		const urls = mockJsonFetch(() => ({
 			body: {
 				response: {
 					publishedfiledetails: [],
@@ -76,7 +52,7 @@ describe('SteamWebApiMetadata', () => {
 	})
 
 	test('banned and missing items are unavailable', async () => {
-		mockJsonResponse(() => ({
+		mockJsonFetch(() => ({
 			body: {
 				response: {
 					publishedfiledetails: [

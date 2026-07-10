@@ -1,14 +1,9 @@
 import { emptyGhostStatistics, parseGhostStatistics } from '@zeepkist/core/ghosts'
-import {
-	getRecordIdsWithGhostMedia,
-	getRecordMediaForStatisticBackfill,
-	upsertRecordStatistic,
-} from '@zeepkist/database/services'
 import { batchProcess } from '../utils/batchProcess'
+import { buildGhostUrl } from '../utils/ghostStatisticsBackfill'
 import type { TaskHandler } from './types'
 
 const BATCH_SIZE = 500
-const CDN_BASE_URL = 'https://cdn.zeepki.st/'
 
 type Payload = {
 	limit?: number
@@ -17,10 +12,6 @@ type Payload = {
 
 type BatchPayload = {
 	ids: number[]
-}
-
-export function buildGhostUrl(ghostUrl: string): string {
-	return new URL(ghostUrl, CDN_BASE_URL).toString()
 }
 
 async function downloadGhost(ghostUrl: string): Promise<Buffer> {
@@ -32,6 +23,9 @@ async function downloadGhost(ghostUrl: string): Promise<Buffer> {
 }
 
 export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payload, helpers) => {
+	const { getRecordIdsWithGhostMedia, getRecordMediaForStatisticBackfill } = await import(
+		'@zeepkist/database/services'
+	)
 	const limit = payload.limit ?? BATCH_SIZE
 	const batchSize = Math.min(limit, BATCH_SIZE)
 	let afterId: number | undefined
@@ -90,6 +84,9 @@ export const backfillRecordGhostStatisticsBatch: TaskHandler<BatchPayload> = asy
 	payload,
 	helpers,
 ) => {
+	const { getRecordMediaForStatisticBackfill, upsertRecordStatistic } = await import(
+		'@zeepkist/database/services'
+	)
 	const media = await getRecordMediaForStatisticBackfill({
 		limit: BATCH_SIZE,
 		ids: payload.ids,
