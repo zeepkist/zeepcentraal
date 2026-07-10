@@ -11,8 +11,6 @@ telemetry = false
 noOrphans = true
 
 [install]
-linker = "isolated"
-globalStore = true
 logLevel = "warn"
 # Only install package versions published at least 3 days ago
 minimumReleaseAge = 259200
