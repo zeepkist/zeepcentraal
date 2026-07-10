@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { userPointContributionFingerprint } from './userPointContribution'
+import { userPointContributionFingerprint } from './userPointContributionHelpers'
 
 test('user point contribution fingerprint ignores sub-millipoint float noise', () => {
 	const first = userPointContributionFingerprint([

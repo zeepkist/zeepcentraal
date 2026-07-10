@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { resolveWorkshopLevelId } from './workshop'
+import { resolveWorkshopLevelId } from './workshopHelpers'
 
 test('workshop level resolution prefers canonical xxHash row over stale file UID row', () => {
 	const idLevel = resolveWorkshopLevelId({

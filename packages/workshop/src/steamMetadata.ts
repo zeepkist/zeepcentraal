@@ -1,3 +1,4 @@
+import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
 import type { WorkshopCatalogPage, WorkshopItemMetadata, WorkshopMetadataAdapter } from './types'
 
 interface SteamPublishedFile {
@@ -23,7 +24,7 @@ interface SteamResponse {
 function parseItem(item: SteamPublishedFile): WorkshopItemMetadata {
 	const workshopId = BigInt(item.publishedfileid ?? '0')
 	const result = item.result ?? 0
-	const visibility = item.visibility ?? 0
+	const visibility = item.visibility ?? STEAM_VISIBILITY.Public
 	const available = result === 1 && item.banned !== true
 	return {
 		workshopId,
@@ -78,7 +79,7 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 					creatorId: 0n,
 					name: '',
 					imageUrl: '',
-					visibility: 0,
+					visibility: STEAM_VISIBILITY.Public,
 					fileSize: 0,
 					createdAt: new Date(0).toISOString(),
 					updatedAt: new Date(0).toISOString(),

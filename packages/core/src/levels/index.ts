@@ -1,5 +1,6 @@
 export * from './csv'
 export * from './json'
+export * from './legacyZeepSdkHash'
 export * from './types'
 export * from './utils'
 

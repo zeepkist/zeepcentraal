@@ -41,7 +41,7 @@
 		"db:migration:adventure-levels": "bun --bun --cwd=packages/database run db:migration:adventure-levels",
 		"prepare": "husky",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test",
+		"test": "bun test --isolate",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"lint:staged": "lint-staged",

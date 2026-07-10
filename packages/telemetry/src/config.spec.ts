@@ -1,17 +1,19 @@
-import { describe, expect, test } from 'bun:test'
-import { ProxyTracerProvider, trace } from '@opentelemetry/api'
-import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base'
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { createResourceAttributes, resolveTelemetryConfig } from './config'
-import { createElysiaTelemetryOptions } from './sdk'
+import { createElysiaTelemetryOptions, startNodeTelemetry, stopNodeTelemetry } from './sdk'
 import { injectTraceHeaders, startActiveSpan, withExtractedTraceContext } from './span'
 
-const tracerProvider = trace.getTracerProvider()
-if (
-	tracerProvider instanceof ProxyTracerProvider &&
-	tracerProvider.getDelegateTracer('zeepcentraal') === undefined
-) {
-	trace.setGlobalTracerProvider(new BasicTracerProvider())
-}
+beforeAll(() => {
+	startNodeTelemetry({
+		packageName: 'server',
+		collectorUrl: 'http://localhost:4317',
+		nodeEnv: 'test',
+	})
+})
+
+afterAll(async () => {
+	await stopNodeTelemetry()
+})
 
 describe('telemetry config', () => {
 	test('defaults local service name from package name', () => {

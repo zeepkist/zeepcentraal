@@ -2,7 +2,14 @@ import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { parseCsvLevel, parseJsonLevel, parseJsonLevelV2, parseLevel, parseLevelV2 } from '.'
+import {
+	calculateLegacyZeepSdkJsonXxHash,
+	parseCsvLevel,
+	parseJsonLevel,
+	parseJsonLevelV2,
+	parseLevel,
+	parseLevelV2,
+} from '.'
 
 const csv = [
 	'LevelEditor2,Author,uid-1',
@@ -103,6 +110,79 @@ describe('legacy level parsing', () => {
 		).toHaveLength(13)
 	})
 
+	test('hashes CSV NaN block ids as zero', () => {
+		const zeroBlock =
+			'0,1,2,3,4,5,6,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
+		const nanBlock = zeroBlock.replace('0,1,2', 'NaN,1,2')
+		const zeroContent = [
+			'LevelEditor2,Author,uid-zero',
+			'0,0,0,0,0,0,0,0',
+			'1,2,3,4,1,-1',
+			zeroBlock,
+		].join('\n')
+		const nanContent = zeroContent.replace(zeroBlock, nanBlock)
+
+		expect(parseCsvLevel(nanContent).blocks.at(-1)).toMatchObject({ Id: 0 })
+		expect(parseLevelV2(nanContent).zeepHash).toBe(parseLevelV2(zeroContent).zeepHash)
+		expect(parseLevelV2(nanContent).hash).toBe(parseLevelV2(zeroContent).hash)
+	})
+
+	test('retains extra CSV columns in metadata and canonical hash', () => {
+		const block = csv.split('\n')[3] ?? ''
+		const longBlock = `${block},1,2,3,4,5,6`
+		const trimmedContent = [
+			'LevelEditor2,Author,uid-trimmed',
+			'0,0,0,0,0,0,0,0',
+			'1,2,3,4,1,-1',
+			block,
+		].join('\n')
+		const longContent = trimmedContent.replace(block, longBlock)
+
+		expect(
+			(parseCsvLevel(longContent).blocks.at(-1) as { Options: number[] }).Options,
+		).toHaveLength(17)
+		expect(parseLevelV2(longContent).zeepHash).not.toBe(parseLevelV2(trimmedContent).zeepHash)
+		expect(parseLevelV2(longContent).hash).not.toBe(parseLevelV2(trimmedContent).hash)
+	})
+
+	test('uses third CSV metadata column as UID when username contains comma', () => {
+		const content = csv.replace(
+			'LevelEditor2,Author,uid-1',
+			'LevelEditor2,Test, Level,discarded',
+		)
+		const parsed = parseCsvLevel(content)
+
+		expect(parsed.fileAuthor).toBe('Test')
+		expect(parsed.uid).toBe(' Level')
+	})
+
+	test('keeps block-shaped validation row as first block with zero validation defaults', () => {
+		const block = csv.split('\n')[3] ?? ''
+		const content = ['LevelEditor2,Author,uid-block-validation', '0,0,0,0,0,0,0,0', block].join(
+			'\n',
+		)
+		const parsed = parseLevelV2(content)
+
+		expect(parsed.validationTimeAuthor).toBe(0)
+		expect(parsed.validationTimeGold).toBe(0)
+		expect(parsed.validationTimeSilver).toBe(0)
+		expect(parsed.validationTimeBronze).toBe(0)
+		expect(parsed.amountBlocks).toBe(1)
+		expect(parsed.blocks.at(0)).toMatchObject({ Id: 22 })
+	})
+
+	test('pads short CSV validation rows with zero', () => {
+		const content = csv.replace('12.5,20,25,30,1,-1', '12.5,20,25,30,1')
+		const parsed = parseLevelV2(content)
+
+		expect(parsed.validationTimeAuthor).toBe(12.5)
+		expect(parsed.validationTimeGold).toBe(20)
+		expect(parsed.validationTimeSilver).toBe(25)
+		expect(parsed.validationTimeBronze).toBe(30)
+		expect(parsed.typeSkybox).toBe(1)
+		expect(parsed.typeGround).toBe(0)
+	})
+
 	test('does not let invalid CSV medal metadata affect XXH128', () => {
 		const invalidMedals = csv.replace('12.5,20,25,30,1,-1', 'NaN,Infinity,bad,,1,-1')
 
@@ -130,6 +210,17 @@ describe('legacy level parsing', () => {
 		expect(parsed.zeepHash).toBe('24A50694B73CB0764CBC1AAD15EF67F72507DD44')
 	})
 
+	test('normalizes bare JSON NaN medal times to zero', () => {
+		const content =
+			'{"level":{"UID":"uid-json","zeepHash":"legacy-json-hash"},"author":{"name":"Author","StmID":1},"medals":{"author":NaN,"gold":Infinity,"silver":-Infinity,"bronze":10},"enviro":{"skybox":1,"groundMat":-1},"blox":[]}'
+		const parsed = parseJsonLevelV2(content)
+
+		expect(parsed.validationTimeAuthor).toBe(0)
+		expect(parsed.validationTimeGold).toBe(0)
+		expect(parsed.validationTimeSilver).toBe(0)
+		expect(parsed.validationTimeBronze).toBe(10)
+	})
+
 	test('matches ZeepSDK legacy hash vectors', () => {
 		const fixtureDirectory = join(import.meta.dir, '../../testdata/legacy-hash')
 		const vectors = readFileSync(join(fixtureDirectory, 'vectors.csv'), 'utf8')
@@ -138,20 +229,33 @@ describe('legacy level parsing', () => {
 			.slice(1)
 
 		for (const vector of vectors) {
-			const [fileName, format, expectedZeepHash, expectedSha256, expectedXxh128] =
-				vector.split(',')
-			if (!fileName || !format || !expectedZeepHash || !expectedSha256 || !expectedXxh128) {
-				throw new Error(`Invalid compatibility vector: ${vector}`)
-			}
-			const bytes = readFileSync(join(fixtureDirectory, fileName))
-			expect(createHash('sha256').update(bytes).digest('hex').toUpperCase()).toBe(
+			const [
+				fileName = 'Missing File Name',
+				format,
+				expectedZeepHash,
 				expectedSha256,
-			)
+				expectedXxh128,
+			] = vector.split(',')
+			const bytes = readFileSync(join(fixtureDirectory, fileName))
+			const actualSha256 = createHash('sha256').update(bytes).digest('hex').toUpperCase()
+			if (!fileName || !format || !expectedZeepHash || !expectedSha256 || !expectedXxh128) {
+				throw new Error(`Invalid compatibility vector: ${vector} (SHA256: ${actualSha256})`)
+			}
+			expect(actualSha256).toBe(expectedSha256)
 			const parsed = parseLevelV2(bytes.toString('utf8'))
 			expect(parsed.format === 0 ? 'csv' : 'json').toBe(format)
 			expect(parsed.zeepHash).toBe(expectedZeepHash)
 			expect(parsed.hash).toBe(expectedXxh128)
 		}
+	})
+
+	test('reproduces legacy ZeepSDK exponent hash bug for migration', () => {
+		const content = readFileSync(
+			join(import.meta.dir, '../../testdata/legacy-hash/skull-island.zeeplevel'),
+			'utf8',
+		)
+
+		expect(calculateLegacyZeepSdkJsonXxHash(content)).toBe('B2C01DACE81A0B68D348BBDEBB43E28F')
 	})
 
 	test('treats JSON zeepHash as untrusted for XXH128', () => {

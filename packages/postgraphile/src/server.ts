@@ -17,13 +17,19 @@ function redirectToRoot(request: Request) {
 	return Response.redirect(new URL('/', request.url).toString(), 302)
 }
 
-const withTelemetry = createElysiaTelemetryPlugin({
-	packageName: 'postgraphile',
-	collectorUrl: postgraphileConfig.otel.collectorUrl,
-	nodeEnv: postgraphileConfig.nodeEnv,
-	serviceName: postgraphileConfig.otel.serviceName,
-	serviceVersion: postgraphileConfig.otel.serviceVersion,
-})
+function createWithTelemetry() {
+	if (process.env.ZEEPCENTRAAL_TEST === '1') {
+		return new Elysia()
+	}
+
+	return createElysiaTelemetryPlugin({
+		packageName: 'postgraphile',
+		collectorUrl: postgraphileConfig.otel.collectorUrl,
+		nodeEnv: postgraphileConfig.nodeEnv,
+		serviceName: postgraphileConfig.otel.serviceName,
+		serviceVersion: postgraphileConfig.otel.serviceVersion,
+	})
+}
 
 const withLogging = postgraphileConfig.requestLogging
 	? logixlysia({
@@ -49,7 +55,7 @@ export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 	})
 		.use(withLogging)
 		.use(cors())
-		.use(withTelemetry)
+		.use(createWithTelemetry())
 		.get('/healthz', () => 'OK')
 		.head('/healthz', () => 'OK')
 		.ws('/', runtime.liveQueryWebSocket)

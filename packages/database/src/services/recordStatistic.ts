@@ -128,3 +128,16 @@ export async function getRecordMediaForStatisticBackfill({
 		.orderBy(asc(recordMedia.idRecord))
 		.limit(limit)
 }
+
+export async function getRecordIdsWithGhostMedia(ids: number[]): Promise<number[]> {
+	if (ids.length === 0) {
+		return []
+	}
+
+	const media = await getRecordMediaForStatisticBackfill({
+		ids,
+		limit: ids.length,
+	})
+
+	return media.map((item) => item.idRecord)
+}

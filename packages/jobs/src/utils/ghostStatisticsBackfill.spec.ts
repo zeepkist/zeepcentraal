@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { gzipSync } from 'node:zlib'
 import { parseGhostStatistics } from '@zeepkist/core/ghosts'
-import { buildGhostUrl } from '../tasks/backfillRecordGhostStatistics'
+import { buildGhostUrl } from './ghostStatisticsBackfill'
 
 function writeFloat(buffer: Buffer, offset: number, value: number): number {
 	buffer.writeFloatLE(value, offset)

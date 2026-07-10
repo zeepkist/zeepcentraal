@@ -1,13 +1,9 @@
 import { emptyGhostStatistics, parseGhostStatistics } from '@zeepkist/core/ghosts'
-import {
-	getRecordMediaForStatisticBackfill,
-	upsertRecordStatistic,
-} from '@zeepkist/database/services'
 import { batchProcess } from '../utils/batchProcess'
+import { buildGhostUrl } from '../utils/ghostStatisticsBackfill'
 import type { TaskHandler } from './types'
 
 const BATCH_SIZE = 500
-const CDN_BASE_URL = 'https://cdn.zeepki.st/'
 
 type Payload = {
 	limit?: number
@@ -16,10 +12,6 @@ type Payload = {
 
 type BatchPayload = {
 	ids: number[]
-}
-
-export function buildGhostUrl(ghostUrl: string): string {
-	return new URL(ghostUrl, CDN_BASE_URL).toString()
 }
 
 async function downloadGhost(ghostUrl: string): Promise<Buffer> {
@@ -31,20 +23,31 @@ async function downloadGhost(ghostUrl: string): Promise<Buffer> {
 }
 
 export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payload, helpers) => {
+	const { getRecordIdsWithGhostMedia, getRecordMediaForStatisticBackfill } = await import(
+		'@zeepkist/database/services'
+	)
 	const limit = payload.limit ?? BATCH_SIZE
 	const batchSize = Math.min(limit, BATCH_SIZE)
 	let afterId: number | undefined
 	let enqueued = 0
 
 	if (payload.ids && payload.ids.length > 0) {
-		const jobs = Array.from(batchProcess(payload.ids, BATCH_SIZE), (ids) => ({
+		const idsWithGhostMedia: number[] = []
+		for (const ids of batchProcess(payload.ids, BATCH_SIZE)) {
+			idsWithGhostMedia.push(...(await getRecordIdsWithGhostMedia(ids)))
+		}
+
+		const jobs = Array.from(batchProcess(idsWithGhostMedia, BATCH_SIZE), (ids) => ({
 			identifier: 'backfillRecordGhostStatisticsBatch',
 			payload: { ids },
 			jobKey: `backfill-record-ghost-statistics:${ids[0]}-${ids.at(-1)}`,
 		}))
-		await helpers.addJobs(jobs)
+		if (jobs.length > 0) {
+			await helpers.addJobs(jobs)
+		}
 		helpers.logger.info('Enqueued targeted record ghost statistics backfill.', {
-			count: payload.ids.length,
+			requested: payload.ids.length,
+			count: idsWithGhostMedia.length,
 			batches: jobs.length,
 		})
 		return
@@ -81,6 +84,9 @@ export const backfillRecordGhostStatisticsBatch: TaskHandler<BatchPayload> = asy
 	payload,
 	helpers,
 ) => {
+	const { getRecordMediaForStatisticBackfill, upsertRecordStatistic } = await import(
+		'@zeepkist/database/services'
+	)
 	const media = await getRecordMediaForStatisticBackfill({
 		limit: BATCH_SIZE,
 		ids: payload.ids,

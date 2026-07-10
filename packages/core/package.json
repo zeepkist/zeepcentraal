@@ -38,6 +38,9 @@
 		"./levels": {
 			"import": "./src/levels/index.ts"
 		},
+		"./steam": {
+			"import": "./src/steam/index.ts"
+		},
 		"./ghosts": {
 			"import": "./src/ghosts/index.ts"
 		}

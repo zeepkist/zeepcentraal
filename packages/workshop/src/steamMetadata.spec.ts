@@ -1,34 +1,11 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
+import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
+import { mockJsonFetch } from '../../../test/fetchMock'
 import { SteamWebApiMetadata } from './steamMetadata'
-
-const originalFetch = globalThis.fetch
-
-afterEach(() => {
-	globalThis.fetch = originalFetch
-})
-
-function mockJsonResponse(
-	handler: (url: URL) => {
-		body?: unknown
-		status?: number
-	},
-) {
-	const urls: URL[] = []
-	globalThis.fetch = (async (input) => {
-		const url = new URL(String(input))
-		urls.push(url)
-		const { body = {}, status = 200 } = handler(url)
-		return new Response(JSON.stringify(body), {
-			status,
-			headers: { 'content-type': 'application/json' },
-		})
-	}) as typeof fetch
-	return urls
-}
 
 describe('SteamWebApiMetadata', () => {
 	test('getItems uses admin query and keeps non-public items available', async () => {
-		const urls = mockJsonResponse(() => ({
+		const urls = mockJsonFetch(() => ({
 			body: {
 				response: {
 					publishedfiledetails: [
@@ -53,14 +30,14 @@ describe('SteamWebApiMetadata', () => {
 
 		expect(urls[0]?.searchParams.get('admin_query')).toBe('true')
 		expect(item?.available).toBe(true)
-		expect(item?.visibility).toBe(1)
+		expect(item?.visibility).toBe(STEAM_VISIBILITY.FriendsOnly)
 		expect(item?.fileSize).toBe(12345)
 		expect(item?.createdAt).toBe('1970-01-01T00:01:40.000Z')
 		expect(item?.updatedAt).toBe('1970-01-01T00:03:20.000Z')
 	})
 
 	test('listItems uses admin query', async () => {
-		const urls = mockJsonResponse(() => ({
+		const urls = mockJsonFetch(() => ({
 			body: {
 				response: {
 					publishedfiledetails: [],
@@ -75,7 +52,7 @@ describe('SteamWebApiMetadata', () => {
 	})
 
 	test('banned and missing items are unavailable', async () => {
-		mockJsonResponse(() => ({
+		mockJsonFetch(() => ({
 			body: {
 				response: {
 					publishedfiledetails: [

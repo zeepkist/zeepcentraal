@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
 import { downloadBatchesRecursively, WorkshopScanner } from './scanner'
 import type { WorkshopDownloader, WorkshopMetadataAdapter, WorkshopPersistence } from './types'
 
@@ -45,19 +46,35 @@ async function createItemWithoutLevelFile(): Promise<string> {
 	return root
 }
 
+async function createJsonExponentItem(): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), 'workshop-scanner-test-'))
+	temporaryDirectories.push(root)
+	const levelDirectory = join(root, 'Example')
+	await mkdir(levelDirectory)
+	await writeFile(
+		join(levelDirectory, 'Example.zeeplevel'),
+		'{"jsonVersion":3,"level":{"name":"Example","UID":"uid-json-exponent","zeepHash":"legacy-json-exponent"},"author":{"name":"Author","StmID":76561198000000000},"medals":{"author":1,"gold":2,"silver":3,"bronze":4},"enviro":{"skybox":1,"groundMat":-1},"blox":[{"i":1609,"u":"exp","p":{"x":6.41169463E-21,"y":0,"z":0},"r":{"x":0,"y":0,"z":0},"s":{"x":1,"y":1,"z":1},"d":{"n":{"p0":1}}}]}',
+	)
+	await writeFile(join(levelDirectory, 'Example_Thumbnail.jpg'), 'image')
+	return root
+}
+
 function createDependencies({
 	directory,
 	available = true,
+	visibility = STEAM_VISIBILITY.Public,
 	upsertResult = { idLevel: 42, scoreChanged: true },
 }: {
 	directory: string
 	available?: boolean
+	visibility?: number
 	upsertResult?: { idLevel: number; scoreChanged: boolean }
 }) {
 	const calls = {
 		upserts: [] as Array<Record<string, unknown>>,
 		markDeleted: 0,
 		markMissing: [] as string[],
+		merges: [] as Array<Record<string, unknown>>,
 		uploads: 0,
 		cleanups: 0,
 		downloads: 0,
@@ -69,7 +86,7 @@ function createDependencies({
 				creatorId: 76561198000000000n,
 				name: 'Example Workshop Item',
 				imageUrl: 'https://steam.example/workshop-preview.jpg',
-				visibility: 0,
+				visibility,
 				fileSize: 1234,
 				createdAt: '2023-01-01T00:00:00.000Z',
 				updatedAt: '2023-01-02T00:00:00.000Z',
@@ -105,6 +122,10 @@ function createDependencies({
 		uploadThumbnail: async () => {
 			calls.uploads++
 			return 'thumbnails/generated.jpg'
+		},
+		mergeZeepSdkExponentHash: async (input) => {
+			calls.merges.push(input)
+			return { merged: true, changedLevelIds: [input.correctLevelId] }
 		},
 	}
 	return { calls, metadata, downloader, persistence }
@@ -211,7 +232,7 @@ describe('WorkshopScanner', () => {
 		)
 	})
 
-	test('adds workshop id and level file name to validation errors', async () => {
+	test('accepts invalid CSV block ids and stores normalized hashes', async () => {
 		const directory = await createItem({
 			block: 'not-a-number,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
 		})
@@ -222,16 +243,11 @@ describe('WorkshopScanner', () => {
 			dependencies.persistence,
 		)
 
-		try {
-			await scanner.scanWorkshopItem(3749321871n)
-			throw new Error('Expected scan to fail')
-		} catch (error) {
-			expect(error).toBeInstanceOf(Error)
-			const message = (error as Error).message
-			expect(message).toContain('Workshop 3749321871 level Example')
-			expect(message).toContain('Example.zeeplevel')
-			expect(message).toContain('Invalid block id')
-		}
+		const result = await scanner.scanWorkshopItem(3749321871n)
+
+		expect(result.status).toBe('scanned')
+		expect(dependencies.calls.upserts[0]?.hash).toBe('CB7E7D2B30617A987B02008F663B2C63F74713C7')
+		expect(dependencies.calls.upserts[0]?.xxHash).toBe('02A8289FA8BDC7FA81642538758D1AA1')
 	})
 
 	test('marks permanent metadata failures deleted without downloading', async () => {
@@ -249,6 +265,54 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.markDeleted).toBe(1)
 		expect(dependencies.calls.downloads).toBe(0)
 	})
+
+	test('downloads unlisted items', async () => {
+		const directory = await createItem()
+		const dependencies = createDependencies({
+			directory,
+			visibility: STEAM_VISIBILITY.Unlisted,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		const result = await scanner.scanWorkshopItem(1n)
+
+		expect(result.status).toBe('scanned')
+		expect(dependencies.calls.downloads).toBe(1)
+		expect(dependencies.calls.markDeleted).toBe(0)
+		expect(dependencies.calls.upserts[0]?.workshopVisibility).toBe(STEAM_VISIBILITY.Unlisted)
+	})
+
+	for (const [label, visibility] of [
+		['friends-only', STEAM_VISIBILITY.FriendsOnly],
+		['hidden', STEAM_VISIBILITY.Hidden],
+	] as const) {
+		test(`marks ${label} items inaccessible without downloading`, async () => {
+			const dependencies = createDependencies({
+				directory: 'unused',
+				visibility,
+			})
+			const scanner = new WorkshopScanner(
+				dependencies.metadata,
+				dependencies.downloader,
+				dependencies.persistence,
+			)
+
+			const result = await scanner.scanWorkshopItem(1n)
+
+			expect(result).toEqual({
+				workshopId: 1n,
+				status: 'inaccessible',
+				changedLevelIds: [7],
+			})
+			expect(dependencies.calls.markDeleted).toBe(1)
+			expect(dependencies.calls.downloads).toBe(0)
+			expect(dependencies.calls.upserts).toHaveLength(0)
+		})
+	}
 
 	test('does not report unchanged upserted levels as changed', async () => {
 		const directory = await createItem()
@@ -284,6 +348,29 @@ describe('WorkshopScanner', () => {
 
 		expect(result.status).toBe('scanned')
 		expect(result.changedLevelIds).toEqual([42])
+	})
+
+	test('passes legacy ZeepSDK exponent hash from raw downloaded JSON when enabled', async () => {
+		const directory = await createJsonExponentItem()
+		const dependencies = createDependencies({ directory })
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		const result = await scanner.scanWorkshopItem(1n, { fixZeepSDKExponentHashes: true })
+
+		expect(result.changedLevelIds).toEqual([42])
+		expect(dependencies.calls.merges).toEqual([
+			{
+				correctLevelId: 42,
+				correctXxHash: dependencies.calls.upserts[0]?.xxHash,
+				badXxHash: '180F9BCEE2567B31ABB696D6B01FC3E4',
+				workshopId: 1n,
+				fileUid: 'uid-json-exponent',
+			},
+		])
 	})
 })
 

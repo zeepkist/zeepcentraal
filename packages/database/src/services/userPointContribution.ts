@@ -1,6 +1,9 @@
 import { asc, eq, inArray } from 'drizzle-orm'
 import { db } from '../client'
 import { userPointContribution } from '../schema'
+import { userPointContributionFingerprint } from './userPointContributionHelpers'
+
+export { userPointContributionFingerprint } from './userPointContributionHelpers'
 
 export interface UserPointContributionInput {
 	idUser: number
@@ -19,28 +22,6 @@ interface UserPointContributionBatchInput {
 }
 
 const INSERT_BATCH_SIZE = 500
-
-function normalizedPoints(value: number): number {
-	return Math.round(value * 1000)
-}
-
-export function userPointContributionFingerprint(
-	contributions: Omit<UserPointContributionInput, 'idUser'>[],
-): string {
-	return contributions
-		.map((contribution) =>
-			[
-				contribution.idLevel,
-				contribution.idRecord,
-				contribution.contributionRank,
-				contribution.levelPosition,
-				contribution.levelPoints,
-				normalizedPoints(contribution.levelDecayedPoints),
-				normalizedPoints(contribution.playerDecayedPoints),
-			].join(':'),
-		)
-		.join('|')
-}
 
 function chunks<T>(items: T[], size: number): T[][] {
 	const result: T[][] = []

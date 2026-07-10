@@ -12,7 +12,6 @@ import {
 	integerOrDefault,
 	medalTime,
 	numberOrDefault,
-	parseFinite,
 	presentBlockId,
 } from './utils'
 import { xxHash128Hex } from './xxhash'
@@ -26,7 +25,7 @@ interface ParsedCsvBlock extends CsvBlock {
 function formatDecimal(value: string): string {
 	const match = value.trim().match(/^([+-]?)(\d+)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/)
 	if (!match) {
-		throw new Error(`Invalid decimal: ${value}`)
+		return '0'
 	}
 	const sign = match[1] === '-' ? '-' : ''
 	const integer = match[2] ?? ''
@@ -47,14 +46,6 @@ function formatDecimal(value: string): string {
 			? normalizedInteger
 			: `${normalizedInteger}.${expandedFraction}`
 	return /^0(?:\.0*)?$/.test(normalized) ? normalized : `${sign}${normalized}`
-}
-
-function vector(values: string[], offset: number, label: string): Vector3 {
-	return {
-		X: parseFinite(values[offset] ?? '', `${label}.x`),
-		Y: parseFinite(values[offset + 1] ?? '', `${label}.y`),
-		Z: parseFinite(values[offset + 2] ?? '', `${label}.z`),
-	}
 }
 
 function safeVector(values: string[], offset: number): Vector3 {
@@ -114,6 +105,31 @@ function normalizeBlockValues(values: string[]): string[] {
 	return [...values, ...Array.from({ length: 38 - values.length }, () => '0')]
 }
 
+function normalizeRow(values: string[], length: number): string[] {
+	return [
+		...values.slice(0, length),
+		...Array.from({ length: Math.max(0, length - values.length) }, () => '0'),
+	]
+}
+
+function parseCsvContent(content: string): {
+	first: string[]
+	camera: string[]
+	validation: string[]
+	blockLines: string[]
+} {
+	const lines = content.split(/\r?\n/)
+	const first = normalizeRow((lines[0] ?? '').split(','), 3)
+	const camera = normalizeRow((lines[1] ?? '').split(','), 8)
+	const rawValidation = (lines[2] ?? '').split(',')
+	const validationIsBlock = rawValidation.length >= 10
+	const validation = validationIsBlock
+		? ['0', '0', '0', '0', '0', '0']
+		: normalizeRow(rawValidation, 6)
+	const blockLines = validationIsBlock ? lines.slice(2) : lines.slice(3)
+	return { first, camera, validation, blockLines }
+}
+
 function blockText(block: ParsedCsvBlock): string {
 	return `Id: ${block.Id}, Position: ${vectorText(block.rawPosition)}, Euler: ${vectorText(block.rawEuler)}, Scale: ${vectorText(block.rawScale)}, Paints: ${block.Paints.join(', ')}, Options: ${block.Options.map(formatSingle).join(', ')}`
 }
@@ -145,24 +161,21 @@ function parseCsvBlocksForHash(lines: string[]): ParsedCsvBlock[] {
 		if (!line.trim()) {
 			continue
 		}
-		const values = line.split(',')
-		if (values.length !== 38) {
-			throw new Error(`CSV block row has invalid column count: ${values.length}`)
-		}
-		const id = parseFinite(values[0] ?? '', 'block id')
+		const values = normalizeBlockValues(line.split(','))
+		const id = integerOrDefault(values[0])
 		const rawPaints = values.slice(10, 27)
 		const paints = rawPaints.map((value) => {
-			const parsed = parseFinite(value, 'paint')
-			return id === 2279 ? Math.trunc(parsed) : Math.trunc(parsed)
+			const parsed = numberOrDefault(value)
+			return id === 2279 ? Math.trunc(Math.fround(parsed)) : Math.trunc(parsed)
 		})
-		const rawOptions = values.slice(27, 38)
+		const rawOptions = values.slice(27)
 		blocks.push({
 			Id: id,
-			Position: vector(values, 1, 'position'),
-			Euler: vector(values, 4, 'euler'),
-			Scale: vector(values, 7, 'scale'),
+			Position: safeVector(values, 1),
+			Euler: safeVector(values, 4),
+			Scale: safeVector(values, 7),
 			Paints: paints,
-			Options: rawOptions.map((value) => Math.fround(parseFinite(value, 'option'))),
+			Options: rawOptions.map((value) => Math.fround(numberOrDefault(value))),
 			rawPosition: values.slice(1, 4).map(formatDecimal) as [string, string, string],
 			rawEuler: values.slice(4, 7).map(formatDecimal) as [string, string, string],
 			rawScale: values.slice(7, 10).map(formatDecimal) as [string, string, string],
@@ -172,31 +185,17 @@ function parseCsvBlocksForHash(lines: string[]): ParsedCsvBlock[] {
 }
 
 export function calculateCsvLevelXxHash(content: string): string {
-	const lines = content.split(/\r?\n/)
-	if (lines.length < 3) {
-		throw new Error('CSV level must contain three metadata rows')
-	}
-	const validation = (lines[2] ?? '').split(',')
-	if (validation.length !== 6) {
-		throw new Error('CSV level validation row has invalid column count')
-	}
-	const skybox = parseFinite(validation[4] ?? '', 'skybox')
-	const ground = parseFinite(validation[5] ?? '', 'ground')
-	return xxHash128Hex(canonicalCsvContent(skybox, ground, parseCsvBlocksForHash(lines.slice(3))))
+	const { validation, blockLines } = parseCsvContent(content)
+	const skybox = integerOrDefault(validation[4])
+	const ground = integerOrDefault(validation[5])
+	return xxHash128Hex(canonicalCsvContent(skybox, ground, parseCsvBlocksForHash(blockLines)))
 }
 
 function calculateCsvLegacyHash(content: string): string {
-	const lines = content.split(/\r?\n/)
-	if (lines.length < 3) {
-		throw new Error('CSV level must contain three metadata rows')
-	}
-	const validation = (lines[2] ?? '').split(',')
-	if (validation.length !== 6) {
-		throw new Error('CSV level validation row has invalid column count')
-	}
-	const skybox = parseFinite(validation[4] ?? '', 'skybox')
-	const ground = parseFinite(validation[5] ?? '', 'ground')
-	return calculateHash(skybox, ground, parseCsvBlocksForHash(lines.slice(3)))
+	const { validation, blockLines } = parseCsvContent(content)
+	const skybox = integerOrDefault(validation[4])
+	const ground = integerOrDefault(validation[5])
+	return calculateHash(skybox, ground, parseCsvBlocksForHash(blockLines))
 }
 
 function parseCsvBlocksForMetadata(lines: string[]): ParsedCsvBlock[] {
@@ -241,10 +240,7 @@ function parseCsvBlocksForMetadata(lines: string[]): ParsedCsvBlock[] {
 }
 
 export function parseCsvLevel(content: string, adventure = false, authorId = 0n): ParsedLevel {
-	const lines = content.split(/\r?\n/)
-	const first = (lines[0] ?? '').split(',')
-	const camera = (lines[1] ?? '').split(',')
-	const validation = (lines[2] ?? '').split(',')
+	const { first, camera, validation, blockLines } = parseCsvContent(content)
 
 	const uid = first[2] ?? ''
 	for (let index = 0; index < camera.length; index++) {
@@ -258,7 +254,7 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 	const skybox = integerOrDefault(validation[4])
 	const ground = integerOrDefault(validation[5])
 
-	const blocks = parseCsvBlocksForMetadata(lines.slice(3))
+	const blocks = parseCsvBlocksForMetadata(blockLines)
 
 	const metadataBlocks = blocks.map((block) => ({
 		id: block.Id,

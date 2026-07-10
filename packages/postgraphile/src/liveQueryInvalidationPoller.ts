@@ -1,8 +1,3 @@
-import {
-	getMaxLiveQueryInvalidationId,
-	pruneLiveQueryInvalidations,
-} from '@zeepkist/database/services'
-
 type LiveQueryInvalidationPollerConfig = {
 	pollMs: number
 	invalidationRetentionMinutes: number
@@ -32,6 +27,9 @@ export function createLiveQueryInvalidationPoller(
 
 		pollInFlight = true
 		try {
+			const { getMaxLiveQueryInvalidationId, pruneLiveQueryInvalidations } = await import(
+				'@zeepkist/database/services'
+			)
 			const maxId = await getMaxLiveQueryInvalidationId()
 			if (lastSeenId === undefined) {
 				lastSeenId = maxId
