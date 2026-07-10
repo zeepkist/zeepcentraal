@@ -1,33 +1,11 @@
 import graphql from '@rollup/plugin-graphql'
-import tailwindcss from '@tailwindcss/vite'
 
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
 const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
 const productionBackendUrl = 'https://backend.zeepki.st'
-const mdcOptimizeDependencyPrefix = '@nuxtjs/mdc > '
-
-function removeMdcOptimizeDependencyEntries(config: { optimizeDeps?: { include?: string[] } }) {
-	if (!Array.isArray(config.optimizeDeps?.include)) {
-		return
-	}
-
-	config.optimizeDeps.include = config.optimizeDeps.include.filter(
-		(entry) => !entry.startsWith(mdcOptimizeDependencyPrefix),
-	)
-}
-
-function filterMdcOptimizeDepsPlugin() {
-	return {
-		name: 'zc-filter-mdc-optimize-deps',
-		configResolved(config: { optimizeDeps?: { include?: string[] } }) {
-			removeMdcOptimizeDependencyEntries(config)
-		},
-	}
-}
-
 export default defineNuxtConfig({
 	compatibilityDate: '2026-07-06',
-	devtools: { enabled: true },
+	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
 	srcDir: 'app',
 	appConfig: {
@@ -52,10 +30,8 @@ export default defineNuxtConfig({
 	],
 	modules: [
 		'@nuxt/ui',
-		'@nuxtjs/color-mode',
 		'@nuxtjs/i18n',
 		'@nuxtjs/seo',
-		'@nuxtjs/sitemap',
 		'@nuxt/content',
 		'@nuxt/image',
 		'@pinia/nuxt',
@@ -78,14 +54,15 @@ export default defineNuxtConfig({
 		},
 	},
 	vite: {
-		plugins: [filterMdcOptimizeDepsPlugin(), tailwindcss(), graphql()],
+		plugins: [graphql()],
 		optimizeDeps: {
-			include: ['@unhead/schema-org/vue', '@urql/vue', 'graphql-ws', 'vue-chrts'],
-		},
-	},
-	hooks: {
-		'vite:extendConfig'(config) {
-			removeMdcOptimizeDependencyEntries(config)
+			include: [
+				'@nuxt/content > slugify',
+				'@tabler/icons-vue',
+				'@unhead/schema-org/vue',
+				'@urql/vue',
+				'graphql-ws',
+			],
 		},
 	},
 	nitro: {
