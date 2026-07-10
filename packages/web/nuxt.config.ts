@@ -80,7 +80,7 @@ export default defineNuxtConfig({
 	vite: {
 		plugins: [filterMdcOptimizeDepsPlugin(), tailwindcss(), graphql()],
 		optimizeDeps: {
-			include: ['@urql/vue', 'graphql-ws', 'vue-chrts'],
+			include: ['@unhead/schema-org/vue', '@urql/vue', 'graphql-ws', 'vue-chrts'],
 		},
 	},
 	hooks: {
@@ -196,8 +196,17 @@ export default defineNuxtConfig({
 	},
 	app: {
 		head: {
+			title: 'ZeepCentraal',
 			htmlAttrs: { lang: 'en' },
-			link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+			link: [
+				//{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+				{ rel: 'icon', type: 'image/png', href: '/favicon-32x32.png' },
+				{ rel: 'icon', type: 'image/png', href: '/favicon-16x16.png' },
+				{ rel: 'mask-icon', href: '/safari-pinned-tab.svg', color: '#5bbad5' },
+				{ rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+				{ rel: 'manifest', href: '/site.webmanifest' },
+				{ rel: 'shortcut icon', href: '/favicon.ico' },
+			],
 		},
 	},
 })
