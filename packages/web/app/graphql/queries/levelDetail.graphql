@@ -1,0 +1,59 @@
+query ZC_LevelDetail($xxHash: String!) {
+	levelByXxHash(xxHash: $xxHash) {
+		id
+		xxHash
+		hash
+		adventure
+		dateCreated
+		levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
+			nodes {
+				name
+				imageUrl
+				workshopId
+				validationTimeAuthor
+				validationTimeGold
+				validationTimeSilver
+				validationTimeBronze
+				author {
+					id
+					steamId
+					steamName
+				}
+			}
+		}
+		levelPoints {
+			points
+			rating
+			modifierPopularity
+			modifierLength
+			modifierRating
+			modifierCompetitiveness
+		}
+		records(first: 0) {
+			totalCount
+		}
+		personalBestGlobals(first: 0) {
+			totalCount
+		}
+		votes(first: 0) {
+			totalCount
+		}
+		favourites(first: 0) {
+			totalCount
+		}
+		worldRecordGlobal {
+			record {
+				id
+				time
+				dateCreated
+				levelId
+				userId
+			}
+			user {
+				id
+				steamId
+				steamName
+			}
+		}
+	}
+}

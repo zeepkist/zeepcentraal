@@ -1,0 +1,74 @@
+query ZC_DashboardViewerSummary($id: Int!) {
+	user(id: $id) {
+		id
+		steamId
+		steamName
+		records(first: 0) {
+			totalCount
+		}
+		personalBestGlobals(first: 0) {
+			totalCount
+		}
+		worldRecordGlobals(first: 0) {
+			totalCount
+		}
+	}
+}
+
+query ZC_DashboardViewerContent($id: Int!) {
+	user(id: $id) {
+		records(first: 5, orderBy: [DATE_CREATED_DESC]) {
+			nodes {
+				id
+				time
+				dateCreated
+				levelId
+				userId
+				user {
+					steamId
+					steamName
+				}
+				level {
+					xxHash
+					levelItems(
+						first: 1
+						filter: { deleted: { equalTo: false } }
+						orderBy: [UPDATED_AT_DESC]
+					) {
+						nodes {
+							name
+						}
+					}
+				}
+			}
+		}
+		levelItems(first: 6, filter: { deleted: { equalTo: false } }, orderBy: [CREATED_AT_DESC]) {
+			nodes {
+				level {
+					id
+					xxHash
+					adventure
+					dateCreated
+					levelPoints {
+						points
+						rating
+						modifierPopularity
+					}
+					records(first: 0) {
+						totalCount
+					}
+				}
+				name
+				imageUrl
+				author {
+					steamId
+					steamName
+				}
+				validationTimeAuthor
+				validationTimeGold
+				validationTimeSilver
+				validationTimeBronze
+			}
+		}
+	}
+}

@@ -1,7 +1,7 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 
 process.env.BACKEND_URL = 'http://localhost:3000'
-process.env.FRONTEND_URL = 'http://localhost:5173'
+process.env.FRONTEND_URL = 'http://localhost:4000'
 process.env.TRIGGER_JOB_TOKEN = 'job-secret'
 
 type MockUser = {
@@ -215,6 +215,40 @@ function resetState() {
 	}
 }
 
+const mockServerConfig = {
+	nodeEnv: 'test',
+	api: { host: '0.0.0.0', port: 3000, maxRequestBodySize: 32 * 1024 * 1024 },
+	job: { triggerToken: 'job-secret' },
+	jwt: {
+		secret: 'x'.repeat(32),
+		audience: 'zeepki.st',
+		issuer: 'https://zeepki.st',
+		accessTtlMs: 900_000,
+		refreshTtlMs: 2_592_000_000,
+	},
+	backendUrl: 'http://localhost:3000',
+	frontendUrl: 'http://localhost:4000',
+	discord: {
+		clientId: 'discord-client-id',
+		clientSecret: 'discord-client-secret',
+		redirectUri: 'http://localhost:3000/auth/discord/callback',
+	},
+	steam: {
+		appId: '1440670',
+		apiKey: 'steam-api-key',
+	},
+	otel: {
+		serviceName: 'zeepcentraal-api',
+		serviceVersion: undefined,
+		collectorUrl: 'http://localhost:4317',
+	},
+	http: {
+		corsAllowedOrigins: ['http://localhost:4000'],
+		trustProxy: false,
+		rateLimits: { auth: 10_000, record: 10_000, mutation: 10_000, job: 10_000 },
+	},
+}
+
 mock.module('@zeepkist/core', () => ({
 	COOKIES: {
 		AccessToken: 'zeepcentral_access_token',
@@ -236,34 +270,7 @@ mock.module('@zeepkist/core', () => ({
 		}
 		return null
 	},
-	config: {
-		api: { host: '0.0.0.0', port: 3000 },
-		job: { triggerToken: 'job-secret' },
-		jwt: {
-			secret: 'x'.repeat(32),
-			audience: 'zeepki.st',
-			issuer: 'https://zeepki.st',
-			accessTtlMs: 900_000,
-			refreshTtlMs: 2_592_000_000,
-		},
-		backendUrl: 'http://localhost:3000',
-		frontendUrl: 'http://localhost:5173',
-		discord: {
-			clientId: 'discord-client-id',
-			clientSecret: 'discord-client-secret',
-			redirectUri: 'http://localhost:3000/auth/discord/callback',
-		},
-		steam: {
-			appId: '1440670',
-			apiKey: 'steam-api-key',
-		},
-		otel: { serviceName: 'zeepcentraal-api', collectorUrl: 'http://localhost:4317' },
-		http: {
-			corsAllowedOrigins: ['http://localhost:5173'],
-			trustProxy: false,
-			rateLimits: { auth: 10_000, record: 10_000, mutation: 10_000, job: 10_000 },
-		},
-	},
+	config: mockServerConfig,
 	jwtProvider: {
 		gtr: 'gtr',
 		steam: 'steam',
@@ -429,6 +436,8 @@ mock.module('@zeepkist/jobs/queue', () => ({
 		task !== 'updateLevelScore' || typeof options.idLevel === 'number',
 }))
 
+mock.module('@zeepkist/core/config/server', () => ({ serverConfig: mockServerConfig }))
+
 const { buildServer } = await import('./server')
 const app = buildServer()
 
@@ -486,9 +495,9 @@ test('auth/login returns V1-shaped token payload on success', async () => {
 
 test('CORS allows configured website origin and rejects arbitrary origins', async () => {
 	const allowed = await send('/healthz', {
-		headers: { origin: 'http://localhost:5173' },
+		headers: { origin: 'http://localhost:4000' },
 	})
-	expect(allowed.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+	expect(allowed.headers.get('access-control-allow-origin')).toBe('http://localhost:4000')
 
 	const rejected = await send('/healthz', {
 		headers: { origin: 'https://attacker.example' },
@@ -642,7 +651,7 @@ test('auth/discord/callback returns redirect and cookies on success', async () =
 	})
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('http://localhost:5173/auth/callback')
+	expect(response.headers.get('location')).toBe('http://localhost:4000/auth/callback')
 	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_access_token=')
 	expect(await response.text()).toBe('')
 })
@@ -679,7 +688,7 @@ test('auth/steam/callback returns redirect and cookies on success', async () => 
 	)
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('http://localhost:5173/auth/callback')
+	expect(response.headers.get('location')).toBe('http://localhost:4000/auth/callback')
 	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_refresh_token=')
 	expect(state.getOrInsertUserCalls).toEqual([
 		{ steamId: 12345678901234567n, steamName: undefined },

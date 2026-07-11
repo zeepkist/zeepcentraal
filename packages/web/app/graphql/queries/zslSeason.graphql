@@ -1,0 +1,16 @@
+query ZC_ZslSeason($id: Int!) {
+	zslSeason(id: $id) {
+		id
+		name
+		startDate
+		endDate
+		zslRounds(first: 6, orderBy: [ROUND_ASC]) {
+			nodes {
+				id
+				round
+				name
+				eventDate
+			}
+		}
+	}
+}

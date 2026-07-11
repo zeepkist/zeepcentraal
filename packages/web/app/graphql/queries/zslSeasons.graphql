@@ -1,0 +1,34 @@
+query ZC_ZslSeasons($first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+	zslSeasons(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		orderBy: [START_DATE_DESC]
+	) {
+		edges {
+			cursor
+			node {
+				id
+				name
+				startDate
+				endDate
+				zslRounds(first: 6, orderBy: [ROUND_ASC]) {
+					nodes {
+						id
+						round
+						name
+						eventDate
+					}
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

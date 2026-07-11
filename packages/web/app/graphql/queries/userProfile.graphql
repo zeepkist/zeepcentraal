@@ -1,0 +1,28 @@
+query ZC_UserProfile($steamId: BigInt!) {
+	users(first: 1, filter: { steamId: { equalTo: $steamId }, banned: { equalTo: false } }) {
+		nodes {
+			id
+			steamId
+			steamName
+			dateCreated
+			userPoints {
+				points
+				rank
+				totalPoints
+				worldRecords
+			}
+			records(first: 0) {
+				totalCount
+			}
+			personalBestGlobals(first: 0) {
+				totalCount
+			}
+			worldRecordGlobals(first: 0) {
+				totalCount
+			}
+			levelItems(first: 0, filter: { deleted: { equalTo: false } }) {
+				totalCount
+			}
+		}
+	}
+}

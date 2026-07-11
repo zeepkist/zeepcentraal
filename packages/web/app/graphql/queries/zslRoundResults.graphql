@@ -1,0 +1,29 @@
+query ZC_ZslRoundResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+	zslRoundResults(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: { roundId: { equalTo: $id } }
+		orderBy: [POSITION_ASC]
+	) {
+		edges {
+			cursor
+			node {
+				position
+				points
+				user {
+					steamId
+					steamName
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

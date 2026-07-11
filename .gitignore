@@ -7,3 +7,8 @@ dist/
 *.log
 packages/graphql/schema.graphql
 packages/graphql/schema.local.graphql
+packages/web/.data/
+packages/web/.nuxt/
+packages/web/.output/
+packages/web/test-results/
+zeepcentraal-web/

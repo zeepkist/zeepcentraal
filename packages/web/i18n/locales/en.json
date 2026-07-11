@@ -1,0 +1,492 @@
+{
+	"actions": {
+		"locale": "Language",
+		"sidebarCollapse": "Collapse sidebar",
+		"sidebarExpand": "Expand sidebar",
+		"theme": "Theme"
+	},
+	"auth": {
+		"account": "Account",
+		"callback": {
+			"description": "Session refresh in progress.",
+			"title": "Completing sign in"
+		},
+		"discord": "Sign in with Discord",
+		"signIn": "Sign in",
+		"steam": "Sign in with Steam"
+	},
+	"common": {
+		"placeholder": "Foundation placeholder",
+		"adventure": "Adventure",
+		"points": "Points",
+		"records": "Records",
+		"rank": "Rank",
+		"user": "Player",
+		"level": "Level",
+		"time": "Time",
+		"date": "Date",
+		"live": "Live",
+		"loading": "Loading data",
+		"error": "Unable to load data",
+		"empty": "No results found",
+		"previous": "Previous",
+		"next": "Next",
+		"pagination": "Results pagination"
+	},
+	"error": {
+		"action": "Return home",
+		"description": "Requested page failed to load.",
+		"title": "Page error"
+	},
+	"external": {
+		"moddingDiscord": {
+			"label": "Join Zeepkist modding Discord",
+			"short": "Modding Discord"
+		},
+		"officialDiscord": {
+			"label": "Join official Zeepkist Discord",
+			"short": "Discord"
+		},
+		"steam": {
+			"label": "Open Zeepkist on Steam",
+			"short": "Steam"
+		}
+	},
+	"footer": {
+		"copyright": "ZeepCentraal statistics and tools for Zeepkist."
+	},
+	"home": {
+		"portal": {
+			"description": "One SSR-first entry point for records, personal bests, level discovery, tournament results, modding, and developer documentation.",
+			"title": "Track Zeepkist performance from one place"
+		},
+		"stats": {
+			"levels": "Levels",
+			"players": "Players",
+			"records": "Records"
+		}
+	},
+	"nav": {
+		"adventure": "Adventure",
+		"developer": "Developer",
+		"home": "Dashboard",
+		"levels": "Levels",
+		"mods": "Mods",
+		"records": "Records",
+		"users": "Users",
+		"wiki": "Wiki",
+		"zsl": "ZSL"
+	},
+	"navDescriptions": {
+		"adventure": "Adventure seasons and leaderboards.",
+		"developer": "GraphQL usage and integration guides.",
+		"home": "World records and platform overview.",
+		"levels": "Level explorer and leaderboard stats.",
+		"mods": "mod.io and Modkist integration.",
+		"records": "World records and personal bests.",
+		"users": "Player leaderboards and profiles.",
+		"wiki": "Gameplay and modding knowledge base.",
+		"zsl": "Zeepkist Super League results."
+	},
+	"pages": {
+		"adventure": {
+			"description": "Browse adventure seasons, levels, and leaderboards.",
+			"eyebrow": "Adventure mode",
+			"panelDescription": "Season browser and adventure leaderboards land here.",
+			"panelTitle": "Adventure browser",
+			"seo": {
+				"description": "Zeepkist adventure mode seasons and leaderboards.",
+				"title": "Adventure Mode"
+			},
+			"title": "Adventure leaderboards"
+		},
+		"authCallback": {
+			"seo": {
+				"description": "Completing ZeepCentraal sign in.",
+				"title": "Sign In"
+			}
+		},
+		"cosmetics": {
+			"description": "Reference cosmetic items and unlock context.",
+			"eyebrow": "Cosmetics",
+			"panelDescription": "Cosmetic wiki placeholder for structured content.",
+			"panelTitle": "Cosmetic wiki",
+			"seo": {
+				"description": "Zeepkist cosmetics wiki.",
+				"title": "Cosmetics"
+			},
+			"title": "Cosmetic wiki"
+		},
+		"developer": {
+			"description": "Build integrations on top of ZeepCentraal data.",
+			"eyebrow": "Developer portal",
+			"panelDescription": "GraphQL guidance, schemas, examples, and usage patterns.",
+			"panelTitle": "Developer resources",
+			"seo": {
+				"description": "ZeepCentraal developer portal.",
+				"title": "Developer Portal"
+			},
+			"title": "Developer portal"
+		},
+		"graphql": {
+			"description": "Use dedicated GraphQL documents and ZC-prefixed operation names.",
+			"eyebrow": "GraphQL",
+			"panelDescription": "Schema-driven examples and API docs will be built here.",
+			"panelTitle": "GraphQL usage",
+			"seo": {
+				"description": "ZeepCentraal GraphQL usage guide.",
+				"title": "GraphQL Guide"
+			},
+			"title": "GraphQL guide"
+		},
+		"guides": {
+			"description": "Guides for Zeepkist mapping, modding, gameplay, and tools.",
+			"eyebrow": "Guides",
+			"panelDescription": "Nuxt Content guide pages will be grouped here.",
+			"panelTitle": "Guide library",
+			"seo": {
+				"description": "Zeepkist gameplay and modding guides.",
+				"title": "Guides"
+			},
+			"title": "Zeepkist guides"
+		},
+		"home": {
+			"description": "Statistics portal for world records, personal bests, levels, users, tournaments, mods, and guides.",
+			"eyebrow": "ZeepCentraal",
+			"seo": {
+				"description": "ZeepCentraal statistics portal for Zeepkist records, levels, users, tournaments, and modding.",
+				"title": "ZeepCentraal"
+			},
+			"title": "Zeepkist stats hub"
+		},
+		"levels": {
+			"description": "Explore levels, records, validation metadata, and leaderboard context.",
+			"eyebrow": "Level explorer",
+			"panelDescription": "Search, filters, record tables, and level stats land here.",
+			"panelTitle": "Level data",
+			"seo": {
+				"description": "Zeepkist level explorer and leaderboards.",
+				"title": "Levels"
+			},
+			"title": "Levels and leaderboards"
+		},
+		"mods": {
+			"description": "Discover mod.io integrations and Zeepkist modding resources.",
+			"eyebrow": "Mods",
+			"panelDescription": "mod.io browser and Modkist integration will be wired here.",
+			"panelTitle": "Mod integration",
+			"seo": {
+				"description": "Zeepkist mods and mod.io integration.",
+				"title": "Mods"
+			},
+			"title": "Mods and integrations"
+		},
+		"records": {
+			"description": "Track world records, personal bests, and record history.",
+			"eyebrow": "Records",
+			"live": {
+				"description": "This example listens for the latest record over a GraphQL subscription.",
+				"error": "Subscription error",
+				"fields": {
+					"dateCreated": "Created",
+					"id": "Record ID",
+					"levelId": "Level ID",
+					"time": "Time",
+					"userId": "User ID"
+				},
+				"status": {
+					"connecting": "Connecting",
+					"error": "Error",
+					"listening": "Listening"
+				},
+				"title": "Latest record",
+				"waiting": "Listening for the first record update…"
+			},
+			"panelDescription": "Record feed, filters, and comparison tables land here.",
+			"panelTitle": "Record stream",
+			"seo": {
+				"description": "Zeepkist world records and personal bests.",
+				"title": "Records"
+			},
+			"title": "World records and personal bests"
+		},
+		"totd": {
+			"description": "Live track of the week tournament coverage placeholder.",
+			"eyebrow": "Track of the week",
+			"panelDescription": "Live tournament tracking will be wired here.",
+			"panelTitle": "Live tournament",
+			"seo": {
+				"description": "Zeepkist track of the week tournaments.",
+				"title": "Track of the Week"
+			},
+			"title": "Track of the week"
+		},
+		"users": {
+			"description": "Browse players, rankings, personal bests, and score history.",
+			"eyebrow": "Users",
+			"panelDescription": "Player search and user stat pages land here.",
+			"panelTitle": "Player data",
+			"seo": {
+				"description": "Zeepkist player stats and leaderboards.",
+				"title": "Users"
+			},
+			"title": "Users and stats"
+		},
+		"wiki": {
+			"description": "Gameplay, level building, and community reference pages.",
+			"eyebrow": "Wiki",
+			"panelDescription": "Nuxt Content wiki pages land here.",
+			"panelTitle": "Knowledge base",
+			"seo": {
+				"description": "Zeepkist gameplay and level wiki.",
+				"title": "Wiki"
+			},
+			"title": "Zeepkist wiki"
+		},
+		"zsl": {
+			"description": "Tournament seasons, rounds, levels, and standings.",
+			"eyebrow": "Super League",
+			"panelDescription": "ZSL season and round results land here.",
+			"panelTitle": "Tournament results",
+			"seo": {
+				"description": "Zeepkist Super League tournament results.",
+				"title": "ZSL"
+			},
+			"title": "ZSL results"
+		}
+	},
+	"placeholders": {
+		"metrics": {
+			"levels": {
+				"label": "Level data",
+				"value": "Ready"
+			},
+			"players": {
+				"label": "Player data",
+				"value": "Ready"
+			},
+			"records": {
+				"label": "Record data",
+				"value": "Ready"
+			}
+		}
+	},
+	"dashboard": {
+		"hero": {
+			"anonymous": {
+				"eyebrow": "Start racing",
+				"title": "Race, improve, climb.",
+				"description": "Discover Zeepkist, install community tools, and join the live global leaderboards."
+			},
+			"new": {
+				"eyebrow": "Welcome, {name}",
+				"title": "Connect your first run.",
+				"description": "Install ModKist and GTR so completed runs can join ZeepCentraal."
+			},
+			"active": {
+				"eyebrow": "Your racing dashboard",
+				"title": "Welcome back, {name}",
+				"description": "{records} records, {pbs} personal bests, and {wrs} world records submitted."
+			},
+			"steam": "Get Zeepkist",
+			"modkist": "Install ModKist",
+			"gtr": "Install GTR",
+			"profile": "Open profile"
+		},
+		"liveStats": {
+			"title": "ZeepCentraal live",
+			"description": "Current totals update from GraphQL subscriptions."
+		},
+		"popular": {
+			"title": "Popular levels",
+			"description": "Levels with highest current popularity score."
+		},
+		"latest": {
+			"title": "Latest levels",
+			"description": "Newest levels indexed by ZeepCentraal."
+		},
+		"viewerRecords": {
+			"title": "Your recent records",
+			"description": "Latest runs submitted from GTR."
+		},
+		"viewerLevels": {
+			"title": "Your workshop levels",
+			"description": "Latest published levels discovered on Steam Workshop."
+		},
+		"worldRecords": {
+			"title": "Recent world records",
+			"description": "Ten latest global record changes."
+		},
+		"personalBests": {
+			"title": "Recent personal bests",
+			"description": "Ten latest player improvements."
+		},
+		"totals": {
+			"title": "Every kilometre counts",
+			"description": "Totals aggregated from submitted record telemetry.",
+			"kilometres": "Kilometres",
+			"chart": {
+				"distance": "Driven",
+				"air": "Airborne",
+				"ragdoll": "Ragdoll"
+			}
+		},
+		"news": {
+			"title": "Zeepkist announcements",
+			"description": "Latest official Steam news."
+		},
+		"metrics": {
+			"records": "Records",
+			"personalBests": "Personal bests",
+			"worldRecords": "World records",
+			"levels": "Levels",
+			"votes": "Votes",
+			"activePlayers": "Active players (24h)",
+			"distance": "Distance driven",
+			"airtime": "Airtime",
+			"ragdoll": "Ragdoll distance",
+			"horns": "Horn uses",
+			"brakes": "Brake uses"
+		}
+	},
+	"users": {
+		"results": "{count} ranked players",
+		"filters": {
+			"title": "Find players",
+			"search": "Steam name or Steam ID",
+			"sort": "Leaderboard order",
+			"apply": "Apply filters"
+		},
+		"sort": {
+			"rank": "Global rank",
+			"points": "Ranked points",
+			"totalPoints": "Total points",
+			"worldRecords": "World records",
+			"valuable": "Most valuable",
+			"recent": "Most recent"
+		},
+		"columns": {
+			"rankedPoints": "Ranked points",
+			"totalPoints": "Total points",
+			"worldRecords": "World records",
+			"value": "Point value"
+		},
+		"profile": {
+			"notFound": "Player not found",
+			"eyebrow": "Player profile",
+			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
+			"summary": {
+				"title": "Career summary",
+				"description": "Rank, points, records, personal bests, world records, and published levels."
+			},
+			"telemetry": {
+				"title": "Driving telemetry",
+				"description": "Aggregates across every submitted record.",
+				"maxSpeed": "Maximum speed",
+				"maxGforce": "Maximum G-force",
+				"chart": {
+					"distance": "Driven",
+					"air": "Airborne",
+					"ragdoll": "Ragdoll",
+					"paraglider": "Paraglider"
+				}
+			},
+			"worldRecords": {
+				"title": "World records",
+				"description": "Sort by point contribution or record date."
+			},
+			"personalBests": {
+				"title": "Personal bests",
+				"description": "Best non-world-record finishes, ordered by value or date."
+			},
+			"recent": { "title": "Recent records", "description": "Latest 25 submitted runs." }
+		}
+	},
+	"adventure": {
+		"series": "Series {series}",
+		"count": "{count} official Adventure Mode levels"
+	},
+	"developer": {
+		"graphql": {
+			"title": "GraphQL API",
+			"description": "Schema, query examples, pagination, fair use, rate limits, and attribution requirements."
+		}
+	},
+	"zsl": {
+		"season": "ZSL season",
+		"roundCount": "{count} rounds",
+		"seasonDescription": "Six rounds decide the season championship.",
+		"rounds": "Rounds",
+		"roundsDescription": "Open a round for its leaderboard and up to fifteen level results.",
+		"roundNumber": "Round {round}",
+		"roundDescription": "Round leaderboard and level-by-level results.",
+		"levels": "Round levels",
+		"levelsDescription": "Open a level to inspect its complete round leaderboard.",
+		"standings": "Standings",
+		"seasonStandings": "Season points ordered by finishing position.",
+		"roundStandings": "Round points ordered by finishing position.",
+		"levelStandings": "Level times and points ordered by finishing position.",
+		"levelResults": "ZSL level results",
+		"openLevel": "Open global level page",
+		"unknown": "Unknown player"
+	},
+	"levels": {
+		"results": "{count} levels",
+		"filters": {
+			"title": "Find levels",
+			"search": "Name or hash",
+			"author": "Author",
+			"adventure": "Level type",
+			"sort": "Sort by",
+			"apply": "Apply filters",
+			"all": "All levels",
+			"adventureOnly": "Adventure only",
+			"communityOnly": "Community only"
+		},
+		"sort": {
+			"latest": "Latest",
+			"popular": "Most popular",
+			"points": "Highest points",
+			"rating": "Highest rated",
+			"records": "Most records",
+			"votes": "Most votes",
+			"favourites": "Most favourites"
+		},
+		"detail": {
+			"notFound": "Level not found",
+			"seoDescription": "Records, medals, and statistics for {name}.",
+			"medals": {
+				"title": "Medal times",
+				"description": "Official validation targets for this workshop level.",
+				"author": "Author",
+				"gold": "Gold",
+				"silver": "Silver",
+				"bronze": "Bronze"
+			},
+			"worldRecord": {
+				"title": "World record",
+				"description": "Current fastest submitted time."
+			},
+			"stats": {
+				"title": "Level statistics",
+				"description": "Aggregated telemetry from submitted runs.",
+				"maxSpeed": "Maximum speed",
+				"maxGforce": "Maximum G-force",
+				"chart": {
+					"distance": "Driven",
+					"air": "Airborne",
+					"ragdoll": "Ragdoll",
+					"paraglider": "Paraglider"
+				}
+			},
+			"recent": {
+				"title": "Recent records",
+				"description": "Latest submitted runs on this level."
+			},
+			"personalBests": {
+				"title": "Personal best leaderboard",
+				"description": "Current fastest time from each player."
+			}
+		}
+	}
+}

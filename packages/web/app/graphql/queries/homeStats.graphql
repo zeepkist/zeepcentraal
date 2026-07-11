@@ -1,0 +1,11 @@
+query ZC_HomeStats {
+	levels(first: 0) {
+		totalCount
+	}
+	users(first: 0) {
+		totalCount
+	}
+	records(first: 0) {
+		totalCount
+	}
+}

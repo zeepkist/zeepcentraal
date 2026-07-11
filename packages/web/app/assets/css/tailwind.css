@@ -1,0 +1,139 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme static {
+	--color-neutral-500: #171513;
+}
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-border: var(--border);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+}
+
+@layer base {
+	:root {
+		--background: oklch(96% 0 0);
+		--foreground: oklch(18% 0 0);
+		--card: oklch(99% 0 0);
+		--card-foreground: oklch(18% 0 0);
+		--primary: oklch(78% 0.15 91.84);
+		--primary-foreground: oklch(13% 0 0);
+		--secondary: oklch(91% 0 0);
+		--secondary-foreground: oklch(18% 0 0);
+		--muted: oklch(91% 0 0);
+		--muted-foreground: oklch(46% 0 0);
+		--accent: oklch(86.01% 0.173 91.84);
+		--accent-foreground: oklch(13% 0 0);
+		--border: oklch(82% 0 0);
+		--ring: oklch(78% 0.15 91.84);
+		--chart-1: oklch(78% 0.15 91.84);
+		--chart-2: oklch(66% 0.1 91.84);
+		--chart-3: oklch(58% 0 0);
+		--chart-4: oklch(42% 0 0);
+		--chart-5: oklch(28% 0 0);
+	}
+
+	.dark {
+		--background: #0c0a09;
+		--foreground: oklch(96% 0 0);
+		--card: #171513;
+		--card-foreground: oklch(96% 0 0);
+		--primary: #facc15;
+		--primary-foreground: oklch(13% 0 0);
+		--secondary: #292524;
+		--secondary-foreground: oklch(96% 0 0);
+		--muted: #292524;
+		--muted-foreground: oklch(72% 0 0);
+		--accent: #292524;
+		--accent-foreground: oklch(96% 0 0);
+		--border: #292524;
+		--ring: #facc15;
+		--chart-1: #facc15;
+		--chart-2: #22c55e;
+		--chart-3: #14b8a6;
+		--chart-4: oklch(46% 0 0);
+		--chart-5: #f97316;
+		--ui-primary: #facc15;
+		--ui-secondary: #292524;
+		--ui-success: #22c55e;
+		--ui-info: #14b8a6;
+		--ui-warning: #f97316;
+		--ui-bg: #0c0a09;
+		--ui-bg-muted: #171513;
+		--ui-bg-elevated: #171513;
+		--ui-bg-accented: #292524;
+		--ui-bg-inverted: #facc15;
+		--ui-border: #292524;
+		--ui-border-muted: #292524;
+		--ui-border-accented: #292524;
+		--ui-border-inverted: #facc15;
+		--ui-text-dimmed: #78716c;
+		--ui-text-muted: #a8a29e;
+		--ui-text-toned: #d6d3d1;
+		--ui-text: #e7e5e4;
+		--ui-text-highlighted: #fafaf9;
+		--ui-text-inverted: #0c0a09;
+	}
+
+	body {
+		background: var(--background);
+		color: var(--foreground);
+		font-family: "DINish", sans-serif;
+	}
+
+	button:not(:disabled),
+	[role="button"]:not(:disabled) {
+		cursor: pointer;
+	}
+}
+
+:root {
+	--vis-color0: var(--color-chart-1);
+	--vis-color1: var(--color-chart-2);
+	--vis-color2: var(--color-chart-3);
+	--vis-color3: var(--color-chart-4);
+	--vis-color4: var(--color-chart-5);
+	--vis-tooltip-background-color: var(--color-card);
+	--vis-tooltip-border-color: var(--color-border);
+	--vis-tooltip-text-color: var(--color-foreground);
+	--vis-axis-grid-color: var(--color-border);
+	--vis-axis-tick-label-color: var(--color-muted-foreground);
+	--vis-legend-label-color: var(--color-muted-foreground);
+}
+
+@font-face {
+	font-family: "DINish";
+	src: url("https://cdn.zeepki.st/fonts/DINish.woff2") format("woff2");
+}
+
+.tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		scroll-behavior: auto;
+		animation-duration: 0.01ms;
+		animation-iteration-count: 1;
+		transition-duration: 0.01ms;
+	}
+}

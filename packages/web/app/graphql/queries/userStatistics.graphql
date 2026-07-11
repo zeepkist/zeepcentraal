@@ -1,0 +1,24 @@
+query ZC_UserStatistics($userId: Int!) {
+	recordStatistics(first: 0, filter: { record: { userId: { equalTo: $userId } } }) {
+		aggregates {
+			sum {
+				distance
+				time
+				timeInAir
+				distanceInAir
+				distanceRagdoll
+				distanceParaglider
+				hornCount
+				brakeCount
+			}
+			average {
+				averageSpeed
+				averageGforce
+			}
+			max {
+				maxSpeed
+				maxGforce
+			}
+		}
+	}
+}

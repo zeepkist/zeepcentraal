@@ -1,0 +1,12 @@
+query ZC_Leaderboards($first: Int = 10) {
+	records(first: $first, orderBy: [DATE_CREATED_DESC]) {
+		nodes {
+			id
+			levelId
+			userId
+			time
+			dateCreated
+		}
+		totalCount
+	}
+}

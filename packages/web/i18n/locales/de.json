@@ -1,0 +1,259 @@
+{
+	"actions": {
+		"locale": "Sprache",
+		"sidebarCollapse": "Sidebar einklappen",
+		"sidebarExpand": "Sidebar ausklappen",
+		"theme": "Theme"
+	},
+	"auth": {
+		"account": "Account",
+		"callback": {
+			"description": "Session refresh in progress.",
+			"title": "Completing sign in"
+		},
+		"discord": "Sign in with Discord",
+		"signIn": "Sign in",
+		"steam": "Sign in with Steam"
+	},
+	"common": {
+		"placeholder": "Foundation placeholder"
+	},
+	"error": {
+		"action": "Return home",
+		"description": "Requested page failed to load.",
+		"title": "Page error"
+	},
+	"external": {
+		"moddingDiscord": {
+			"label": "Join Zeepkist modding Discord",
+			"short": "Modding Discord"
+		},
+		"officialDiscord": {
+			"label": "Join official Zeepkist Discord",
+			"short": "Discord"
+		},
+		"steam": {
+			"label": "Open Zeepkist on Steam",
+			"short": "Steam"
+		}
+	},
+	"footer": {
+		"copyright": "ZeepCentraal statistics and tools for Zeepkist."
+	},
+	"home": {
+		"portal": {
+			"description": "One SSR-first entry point for records, personal bests, level discovery, tournament results, modding, and developer documentation.",
+			"title": "Track Zeepkist performance from one place"
+		},
+		"stats": {
+			"levels": "Levels",
+			"players": "Players",
+			"records": "Records"
+		}
+	},
+	"nav": {
+		"adventure": "Adventure",
+		"developer": "Developer",
+		"home": "Dashboard",
+		"levels": "Levels",
+		"mods": "Mods",
+		"records": "Records",
+		"users": "Users",
+		"wiki": "Wiki",
+		"zsl": "ZSL"
+	},
+	"navDescriptions": {
+		"adventure": "Adventure seasons and leaderboards.",
+		"developer": "GraphQL usage and integration guides.",
+		"home": "World records and platform overview.",
+		"levels": "Level explorer and leaderboard stats.",
+		"mods": "mod.io and Modkist integration.",
+		"records": "World records and personal bests.",
+		"users": "Player leaderboards and profiles.",
+		"wiki": "Gameplay and modding knowledge base.",
+		"zsl": "Zeepkist Super League results."
+	},
+	"pages": {
+		"adventure": {
+			"description": "Browse adventure seasons, levels, and leaderboards.",
+			"eyebrow": "Adventure mode",
+			"panelDescription": "Season browser and adventure leaderboards land here.",
+			"panelTitle": "Adventure browser",
+			"seo": {
+				"description": "Zeepkist adventure mode seasons and leaderboards.",
+				"title": "Adventure Mode"
+			},
+			"title": "Adventure leaderboards"
+		},
+		"authCallback": {
+			"seo": {
+				"description": "Completing ZeepCentraal sign in.",
+				"title": "Sign In"
+			}
+		},
+		"cosmetics": {
+			"description": "Reference cosmetic items and unlock context.",
+			"eyebrow": "Cosmetics",
+			"panelDescription": "Cosmetic wiki placeholder for structured content.",
+			"panelTitle": "Cosmetic wiki",
+			"seo": {
+				"description": "Zeepkist cosmetics wiki.",
+				"title": "Cosmetics"
+			},
+			"title": "Cosmetic wiki"
+		},
+		"developer": {
+			"description": "Build integrations on top of ZeepCentraal data.",
+			"eyebrow": "Developer portal",
+			"panelDescription": "GraphQL guidance, schemas, examples, and usage patterns.",
+			"panelTitle": "Developer resources",
+			"seo": {
+				"description": "ZeepCentraal developer portal.",
+				"title": "Developer Portal"
+			},
+			"title": "Developer portal"
+		},
+		"graphql": {
+			"description": "Use dedicated GraphQL documents and ZC-prefixed operation names.",
+			"eyebrow": "GraphQL",
+			"panelDescription": "Schema-driven examples and API docs will be built here.",
+			"panelTitle": "GraphQL usage",
+			"seo": {
+				"description": "ZeepCentraal GraphQL usage guide.",
+				"title": "GraphQL Guide"
+			},
+			"title": "GraphQL guide"
+		},
+		"guides": {
+			"description": "Guides for Zeepkist mapping, modding, gameplay, and tools.",
+			"eyebrow": "Guides",
+			"panelDescription": "Nuxt Content guide pages will be grouped here.",
+			"panelTitle": "Guide library",
+			"seo": {
+				"description": "Zeepkist gameplay and modding guides.",
+				"title": "Guides"
+			},
+			"title": "Zeepkist guides"
+		},
+		"home": {
+			"description": "Statistics portal for world records, personal bests, levels, users, tournaments, mods, and guides.",
+			"eyebrow": "ZeepCentraal",
+			"seo": {
+				"description": "ZeepCentraal statistics portal for Zeepkist records, levels, users, tournaments, and modding.",
+				"title": "ZeepCentraal"
+			},
+			"title": "Zeepkist stats hub"
+		},
+		"levels": {
+			"description": "Explore levels, records, validation metadata, and leaderboard context.",
+			"eyebrow": "Level explorer",
+			"panelDescription": "Search, filters, record tables, and level stats land here.",
+			"panelTitle": "Level data",
+			"seo": {
+				"description": "Zeepkist level explorer and leaderboards.",
+				"title": "Levels"
+			},
+			"title": "Levels and leaderboards"
+		},
+		"mods": {
+			"description": "Discover mod.io integrations and Zeepkist modding resources.",
+			"eyebrow": "Mods",
+			"panelDescription": "mod.io browser and Modkist integration will be wired here.",
+			"panelTitle": "Mod integration",
+			"seo": {
+				"description": "Zeepkist mods and mod.io integration.",
+				"title": "Mods"
+			},
+			"title": "Mods and integrations"
+		},
+		"records": {
+			"description": "Track world records, personal bests, and record history.",
+			"eyebrow": "Records",
+			"live": {
+				"description": "Dieses Beispiel empfängt den neuesten Rekord über ein GraphQL-Abonnement.",
+				"error": "Abonnementfehler",
+				"fields": {
+					"dateCreated": "Erstellt",
+					"id": "Rekord-ID",
+					"levelId": "Level-ID",
+					"time": "Zeit",
+					"userId": "Benutzer-ID"
+				},
+				"status": {
+					"connecting": "Verbindung wird hergestellt",
+					"error": "Fehler",
+					"listening": "Live verbunden"
+				},
+				"title": "Neuester Rekord",
+				"waiting": "Warte auf die erste Rekordaktualisierung…"
+			},
+			"panelDescription": "Record feed, filters, and comparison tables land here.",
+			"panelTitle": "Record stream",
+			"seo": {
+				"description": "Zeepkist world records and personal bests.",
+				"title": "Records"
+			},
+			"title": "World records and personal bests"
+		},
+		"totd": {
+			"description": "Live track of the week tournament coverage placeholder.",
+			"eyebrow": "Track of the week",
+			"panelDescription": "Live tournament tracking will be wired here.",
+			"panelTitle": "Live tournament",
+			"seo": {
+				"description": "Zeepkist track of the week tournaments.",
+				"title": "Track of the Week"
+			},
+			"title": "Track of the week"
+		},
+		"users": {
+			"description": "Browse players, rankings, personal bests, and score history.",
+			"eyebrow": "Users",
+			"panelDescription": "Player search and user stat pages land here.",
+			"panelTitle": "Player data",
+			"seo": {
+				"description": "Zeepkist player stats and leaderboards.",
+				"title": "Users"
+			},
+			"title": "Users and stats"
+		},
+		"wiki": {
+			"description": "Gameplay, level building, and community reference pages.",
+			"eyebrow": "Wiki",
+			"panelDescription": "Nuxt Content wiki pages land here.",
+			"panelTitle": "Knowledge base",
+			"seo": {
+				"description": "Zeepkist gameplay and level wiki.",
+				"title": "Wiki"
+			},
+			"title": "Zeepkist wiki"
+		},
+		"zsl": {
+			"description": "Tournament seasons, rounds, levels, and standings.",
+			"eyebrow": "Super League",
+			"panelDescription": "ZSL season and round results land here.",
+			"panelTitle": "Tournament results",
+			"seo": {
+				"description": "Zeepkist Super League tournament results.",
+				"title": "ZSL"
+			},
+			"title": "ZSL results"
+		}
+	},
+	"placeholders": {
+		"metrics": {
+			"levels": {
+				"label": "Level data",
+				"value": "Ready"
+			},
+			"players": {
+				"label": "Player data",
+				"value": "Ready"
+			},
+			"records": {
+				"label": "Record data",
+				"value": "Ready"
+			}
+		}
+	}
+}
