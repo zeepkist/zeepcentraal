@@ -1,0 +1,15 @@
+query ZC_LevelViewerBest($userId: Int!, $levelId: Int!) {
+	personalBestGlobalByUserIdAndLevelId(userId: $userId, levelId: $levelId) {
+		record {
+			id
+			time
+			dateCreated
+			levelId
+			userId
+			user {
+				steamId
+				steamName
+			}
+		}
+	}
+}

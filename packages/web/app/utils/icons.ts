@@ -1,4 +1,5 @@
 import {
+	IconAdjustments,
 	IconBook,
 	IconBrandDiscord,
 	IconBrandSteam,
@@ -16,11 +17,13 @@ import {
 	IconPalette,
 	IconPlug,
 	IconRoute,
+	IconSearch,
 	IconTrophy,
 	IconUsers,
 } from '@tabler/icons-vue'
 
 export const tablerIcons = {
+	adjustments: IconAdjustments,
 	book: IconBook,
 	'brand-discord': IconBrandDiscord,
 	'brand-steam': IconBrandSteam,
@@ -36,6 +39,7 @@ export const tablerIcons = {
 	palette: IconPalette,
 	plug: IconPlug,
 	route: IconRoute,
+	search: IconSearch,
 	'sidebar-collapse': IconLayoutSidebarLeftCollapse,
 	'sidebar-expand': IconLayoutSidebarLeftExpand,
 	trophy: IconTrophy,

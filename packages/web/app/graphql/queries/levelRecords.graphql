@@ -1,0 +1,39 @@
+query ZC_LevelRecords(
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$filter: RecordFilter!
+	$orderBy: [RecordsOrderBy!]
+) {
+	records(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: $filter
+		orderBy: $orderBy
+	) {
+		edges {
+			cursor
+			node {
+				id
+				time
+				dateCreated
+				levelId
+				userId
+				user {
+					steamId
+					steamName
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

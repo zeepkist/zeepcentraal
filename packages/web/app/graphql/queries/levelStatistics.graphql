@@ -1,0 +1,24 @@
+query ZC_LevelStatistics($levelId: Int!) {
+	recordStatistics(first: 0, filter: { record: { levelId: { equalTo: $levelId } } }) {
+		aggregates {
+			sum {
+				distance
+				time
+				timeInAir
+				distanceInAir
+				distanceRagdoll
+				distanceParaglider
+				hornCount
+				brakeCount
+			}
+			average {
+				averageSpeed
+				averageGforce
+			}
+			max {
+				maxSpeed
+				maxGforce
+			}
+		}
+	}
+}

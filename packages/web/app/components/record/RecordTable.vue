@@ -3,7 +3,7 @@
 		<table class="w-full text-left text-sm">
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
-					<th class="px-4 py-3">{{ rankLabel }}</th>
+					<th v-if="showRank" class="px-4 py-3">{{ rankLabel }}</th>
 					<th class="px-4 py-3">{{ userLabel }}</th>
 					<th v-if="showLevel" class="px-4 py-3">{{ levelLabel }}</th>
 					<th class="px-4 py-3">{{ timeLabel }}</th>
@@ -17,7 +17,7 @@
 					class="border-t border-border"
 					:class="record.viewer ? 'bg-primary/10 text-highlighted' : 'bg-card/60'"
 				>
-					<td class="px-4 py-3 tabular-nums">{{ record.rank ?? index + 1 }}</td>
+					<td v-if="showRank" class="px-4 py-3 tabular-nums">{{ record.rank ?? index + 1 }}</td>
 					<td class="px-4 py-3">
 						<NuxtLink v-if="record.userSteamId" :to="`/user/${record.userSteamId}`" class="font-medium hover:text-primary">
 							{{ record.userName ?? record.userSteamId }}
@@ -49,8 +49,9 @@ withDefaults(
 		timeLabel: string
 		dateLabel: string
 		showLevel?: boolean
+		showRank?: boolean
 	}>(),
-	{ showLevel: false },
+	{ showLevel: false, showRank: true },
 )
 
 function formatTime(seconds: number) {

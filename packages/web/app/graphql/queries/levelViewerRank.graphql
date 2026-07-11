@@ -1,0 +1,12 @@
+query ZC_LevelViewerRank($levelId: Int!, $time: Float!) {
+	records(
+		first: 0
+		filter: {
+			levelId: { equalTo: $levelId }
+			personalBestGlobalsExist: true
+			time: { lessThan: $time }
+		}
+	) {
+		totalCount
+	}
+}

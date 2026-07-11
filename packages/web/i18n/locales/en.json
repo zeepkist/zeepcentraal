@@ -348,5 +348,64 @@
 			"horns": "Horn uses",
 			"brakes": "Brake uses"
 		}
+	},
+	"levels": {
+		"results": "{count} levels",
+		"filters": {
+			"title": "Find levels",
+			"search": "Name or hash",
+			"author": "Author",
+			"adventure": "Level type",
+			"sort": "Sort by",
+			"apply": "Apply filters",
+			"all": "All levels",
+			"adventureOnly": "Adventure only",
+			"communityOnly": "Community only"
+		},
+		"sort": {
+			"latest": "Latest",
+			"popular": "Most popular",
+			"points": "Highest points",
+			"rating": "Highest rated",
+			"records": "Most records",
+			"votes": "Most votes",
+			"favourites": "Most favourites"
+		},
+		"detail": {
+			"notFound": "Level not found",
+			"seoDescription": "Records, medals, and statistics for {name}.",
+			"medals": {
+				"title": "Medal times",
+				"description": "Official validation targets for this workshop level.",
+				"author": "Author",
+				"gold": "Gold",
+				"silver": "Silver",
+				"bronze": "Bronze"
+			},
+			"worldRecord": {
+				"title": "World record",
+				"description": "Current fastest submitted time."
+			},
+			"stats": {
+				"title": "Level statistics",
+				"description": "Aggregated telemetry from submitted runs.",
+				"maxSpeed": "Maximum speed",
+				"maxGforce": "Maximum G-force",
+				"chart": {
+					"distance": "Driven",
+					"air": "Airborne",
+					"ragdoll": "Ragdoll",
+					"paraglider": "Paraglider"
+				}
+			},
+			"recent": {
+				"title": "Recent records",
+				"description": "Latest submitted runs on this level."
+			},
+			"personalBests": {
+				"title": "Personal best leaderboard",
+				"description": "Current fastest time from each player."
+			}
+		}
 	}
 }

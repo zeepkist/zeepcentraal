@@ -32,6 +32,42 @@ describe('GraphQL operation conventions', () => {
 		}
 	})
 
+	test('connections use bounded cursor pagination without offsets', () => {
+		const connections = new Set([
+			'levelItems',
+			'levels',
+			'personalBestGlobals',
+			'records',
+			'recordStatistics',
+			'users',
+			'votes',
+			'worldRecordGlobals',
+		])
+
+		for (const file of filesUnder(graphqlDir, '.graphql')) {
+			const document = parse(readFileSync(file, 'utf8'))
+			visit(document, {
+				Field(node) {
+					const argumentNames = new Set(
+						node.arguments?.map((argument) => argument.name.value),
+					)
+					expect(argumentNames.has('offset')).toBe(false)
+					if (connections.has(node.name.value)) {
+						expect(argumentNames.has('first') || argumentNames.has('last')).toBe(true)
+					}
+					for (const argument of node.arguments ?? []) {
+						if (
+							(argument.name.value === 'first' || argument.name.value === 'last') &&
+							argument.value.kind === Kind.INT
+						) {
+							expect(Number(argument.value.value)).toBeLessThanOrEqual(1000)
+						}
+					}
+				},
+			})
+		}
+	})
+
 	test('composables import GraphQL documents instead of inline operations', () => {
 		for (const file of filesUnder(composablesDir, '.ts')) {
 			const source = readFileSync(file, 'utf8')
