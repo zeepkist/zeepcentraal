@@ -13,7 +13,3 @@ export function discordRedirectUrl(baseUrl: string) {
 export function authRefreshUrl(baseUrl: string) {
 	return backendRoute(baseUrl, '/auth/web/refresh')
 }
-
-export function userUrl(baseUrl: string) {
-	return backendRoute(baseUrl, '/user')
-}

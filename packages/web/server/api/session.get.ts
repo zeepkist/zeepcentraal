@@ -1,22 +1,24 @@
+import { Zc_SessionUserDocument } from '../../app/graphql/generated/graphql'
 import type { SessionUser } from '../../app/types/app'
-import { accessTokenRefreshAt, fetchBackendUser, refreshWebAuth } from '../utils/backend'
+import { accessTokenRefreshAt, refreshWebAuth } from '../utils/backend'
+import { fetchGraphql } from '../utils/graphql'
 import { assertSameOrigin } from '../utils/request'
 
-function normalizeUser(user: {
-	Id?: number
-	SteamId?: string
-	SteamName?: string
-	DiscordId?: string | null
-	id?: number
-	steamId?: string
-	steamName?: string
-	discordId?: string | null
-}): SessionUser {
+async function fetchSessionUser(
+	event: Parameters<typeof getCookie>[0],
+): Promise<SessionUser | null> {
+	const steamId = getCookie(event, 'zeepcentral_steam_id')
+	if (!steamId) return null
+
+	const data = await fetchGraphql(Zc_SessionUserDocument, { steamId })
+	const user = data.users?.nodes[0]
+	if (!user) return null
+
 	return {
-		id: user.id ?? user.Id ?? 0,
-		steamId: user.steamId ?? user.SteamId ?? '',
-		steamName: user.steamName ?? user.SteamName,
-		discordId: user.discordId ?? user.DiscordId ?? null,
+		id: user.id,
+		steamId: String(user.steamId),
+		steamName: user.steamName ?? undefined,
+		discordId: user.discordId == null ? null : String(user.discordId),
 	}
 }
 
@@ -32,18 +34,14 @@ export default defineEventHandler(async (event) => {
 	}
 	try {
 		return {
-			user: normalizeUser(
-				(await fetchBackendUser(event)) as Parameters<typeof normalizeUser>[0],
-			),
+			user: await fetchSessionUser(event),
 			refreshAt,
 		}
 	} catch {
 		try {
 			refreshAt = (await refreshWebAuth(event)).refreshAt
 			return {
-				user: normalizeUser(
-					(await fetchBackendUser(event)) as Parameters<typeof normalizeUser>[0],
-				),
+				user: await fetchSessionUser(event),
 				refreshAt,
 			}
 		} catch {

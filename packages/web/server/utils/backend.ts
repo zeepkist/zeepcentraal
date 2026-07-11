@@ -1,4 +1,4 @@
-import { authRefreshUrl, userUrl } from '../../app/utils/auth'
+import { authRefreshUrl } from '../../app/utils/auth'
 
 export function getBackendBaseUrl() {
 	const config = useRuntimeConfig()
@@ -42,11 +42,4 @@ export async function refreshWebAuth(event: Parameters<typeof getHeader>[0]) {
 	})
 	const cookies = forwardBackendCookies(event, response.headers)
 	return { refreshAt: accessTokenRefreshAt(cookies.join(';')) }
-}
-
-export async function fetchBackendUser(event: Parameters<typeof getHeader>[0]) {
-	return await $fetch(userUrl(getBackendBaseUrl()), {
-		headers: getForwardedCookieHeaders(event),
-		credentials: 'include',
-	})
 }

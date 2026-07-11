@@ -17,7 +17,7 @@ export async function fetchGraphql<TData, TVariables>(
 	if (!response.data)
 		throw createError({
 			statusCode: 502,
-			statusMessage: response.errors?.[0]?.message ?? 'GraphQL sitemap request failed',
+			statusMessage: response.errors?.[0]?.message ?? 'GraphQL request failed',
 		})
 	return response.data
 }
