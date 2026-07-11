@@ -3,42 +3,32 @@
 		<DataState
 			:pending="result.fetching.value"
 			:error="result.error.value?.message"
-			:empty="!result.fetching.value && !level"
+			:empty="!result.fetching.value && !season"
 			v-bind="stateLabels"
 		>
-			<template v-if="level">
-				<section class="grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-					<div>
-						<p class="text-sm font-semibold uppercase tracking-widest text-primary">
-							{{ $t('zsl.levelResults') }}
-						</p>
-						<h1 class="mt-2 text-4xl font-black">
-							{{ level.level?.levelItems.nodes[0]?.name ?? $t('common.level') }}
-						</h1>
-						<NuxtLink
-							v-if="level.level"
-							:to="`/level/${level.level.xxHash}`"
-							class="mt-3 inline-block text-primary"
-						>
-							{{ $t('zsl.openLevel') }}
-						</NuxtLink>
-					</div>
-					<NuxtImg
-						v-if="level.level?.levelItems.nodes[0]?.imageUrl"
-						:src="level.level.levelItems.nodes[0].imageUrl"
-						:alt="level.level.levelItems.nodes[0]?.name ?? $t('common.level')"
-						class="aspect-video w-full rounded-2xl object-cover"
+			<template v-if="season">
+				<PageHeader
+					:eyebrow="$t('zsl.season')"
+					:title="season.name"
+					:description="$t('zsl.seasonDescription')"
+				/>
+				<section>
+					<SectionHeader :title="$t('zsl.rounds')" :description="$t('zsl.roundsDescription')" />
+					<ZslRoundGrid
+						:rounds="season.zslRounds.nodes"
+						:link="roundLink"
+						:round-label="$t('zsl.roundNumber')"
 					/>
 				</section>
 				<section :ref="standingsTarget">
-					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.levelStandings')" />
+					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.seasonStandings')" />
 					<DataState
 						:pending="!standingsActive.value || standingsResult.fetching.value"
 						:error="standingsResult.error.value?.message"
 						:empty="standings.length === 0"
 						v-bind="stateLabels"
 					>
-						<ZslStandingsTable :standings="standings" show-time :labels="tableLabels" />
+						<ZslStandingsTable :standings="standings" :labels="tableLabels" />
 					</DataState>
 					<CursorPagination
 						class="mt-4"
@@ -57,20 +47,31 @@
 <script setup lang="ts">
 const route = useRoute()
 const { t } = useI18n()
-const id = computed(() => Number(route.params.levelId))
+const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
+if (parsedSeasonId === null) {
+	throw createError({ statusCode: 404, statusMessage: t('zsl.notFound') })
+}
+const id = computed(() => parsedSeasonId)
 const {
-	level,
 	page,
 	pagination,
 	result,
+	season,
 	standings,
 	standingsActive,
 	standingsResult,
 	standingsTarget,
-} = useZslLevel(id)
+} = useZslSeason(id)
+watchEffect(() => {
+	if (result.fetching.value || result.data.value === undefined) return
+	if (!season.value) {
+		showError(createError({ statusCode: 404, statusMessage: t('zsl.notFound') }))
+	}
+})
+const roundLink = (round: { round: number }) => superLeagueRoundPath(id.value, round.round)
 useSeoMeta({
-	title: () => level.value?.level?.levelItems.nodes[0]?.name,
-	description: () => t('zsl.levelStandings'),
+	title: () => season.value?.name,
+	description: () => t('zsl.seasonDescription'),
 })
 const stateLabels = computed(() => ({
 	loadingLabel: t('common.loading'),
@@ -90,3 +91,4 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 }))
 </script>
+

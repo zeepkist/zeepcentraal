@@ -1,4 +1,9 @@
 import { Zc_SitemapTournamentsDocument } from '../../../app/graphql/generated/graphql'
+import {
+	superLeagueLevelPath,
+	superLeagueRoundPath,
+	superLeagueSeasonPath,
+} from '../../../app/utils/superLeagueRoutes'
 import { fetchGraphql } from '../../utils/graphql'
 export default defineSitemapEventHandler(async () => {
 	const urls = []
@@ -9,17 +14,17 @@ export default defineSitemapEventHandler(async () => {
 		if (!connection) break
 		for (const season of connection.nodes) {
 			urls.push({
-				loc: `/zsl/${season.id}`,
+				loc: superLeagueSeasonPath(season.id),
 				lastmod: String(season.dateUpdated ?? season.dateCreated),
 			})
 			for (const round of season.zslRounds.nodes) {
 				urls.push({
-					loc: `/zsl/${season.id}/${round.id}`,
+					loc: superLeagueRoundPath(season.id, round.round),
 					lastmod: String(round.dateUpdated ?? round.dateCreated),
 				})
 				urls.push(
 					...round.zslLevels.nodes.map((level) => ({
-						loc: `/zsl/${season.id}/${round.id}/${level.id}`,
+						loc: superLeagueLevelPath(season.id, round.round, level.id),
 						lastmod: String(level.dateUpdated ?? level.dateCreated),
 					})),
 				)

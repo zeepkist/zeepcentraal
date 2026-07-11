@@ -26,7 +26,7 @@ export const mainNav: NavItem[] = [
 		icon: 'users',
 	},
 	{
-		to: '/zsl',
+		to: '/super-league',
 		labelKey: 'nav.zsl',
 		descriptionKey: 'navDescriptions.zsl',
 		icon: 'flag',

@@ -486,7 +486,8 @@
 		"levelStandings": "Level times and points ordered by finishing position.",
 		"levelResults": "ZSL level results",
 		"openLevel": "Open global level page",
-		"unknown": "Unknown player"
+		"unknown": "Unknown player",
+		"notFound": "Super League result not found"
 	},
 	"levels": {
 		"results": "{count} levels",

@@ -107,11 +107,18 @@ for (const [path, heading] of [
 	['/wiki', 'Zeepkist wiki'],
 	['/developer', 'Developer portal'],
 	['/developer/graphql', 'GraphQL guide'],
-	['/zsl', 'ZSL results'],
+	['/super-league', 'ZSL results'],
 ] as const) {
 	test(`${path} route renders`, async ({ page }) => {
 		await page.goto(path)
 		await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+	})
+}
+
+for (const path of ['/zsl', '/zsl/7', '/zsl/7/44', '/zsl/7/44/615'] as const) {
+	test(`${path} legacy route is removed`, async ({ page }) => {
+		const response = await page.goto(path)
+		expect(response?.status()).toBe(404)
 	})
 }
 

@@ -3,25 +3,25 @@
 		<DataState
 			:pending="result.fetching.value"
 			:error="result.error.value?.message"
-			:empty="!result.fetching.value && !season"
+			:empty="!result.fetching.value && !round"
 			v-bind="stateLabels"
 		>
-			<template v-if="season">
+			<template v-if="round">
 				<PageHeader
-					:eyebrow="$t('zsl.season')"
-					:title="season.name"
-					:description="$t('zsl.seasonDescription')"
+					:eyebrow="$t('zsl.roundNumber', { round: round.round })"
+					:title="round.name"
+					:description="$t('zsl.roundDescription')"
 				/>
 				<section>
-					<SectionHeader :title="$t('zsl.rounds')" :description="$t('zsl.roundsDescription')" />
-					<ZslRoundGrid
-						:rounds="season.zslRounds.nodes"
-						:link="roundLink"
-						:round-label="$t('zsl.roundNumber')"
+					<SectionHeader :title="$t('zsl.levels')" :description="$t('zsl.levelsDescription')" />
+					<ZslLevelGrid
+						:levels="round.zslLevels.nodes"
+						:link="levelLink"
+						:level-label="$t('common.level')"
 					/>
 				</section>
 				<section :ref="standingsTarget">
-					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.seasonStandings')" />
+					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.roundStandings')" />
 					<DataState
 						:pending="!standingsActive.value || standingsResult.fetching.value"
 						:error="standingsResult.error.value?.message"
@@ -47,21 +47,34 @@
 <script setup lang="ts">
 const route = useRoute()
 const { t } = useI18n()
-const id = computed(() => Number(route.params.seasonId))
+const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
+const parsedRoundNumber = parseSuperLeagueSlug(route.params.roundSlug, 'round')
+if (parsedSeasonId === null || parsedRoundNumber === null) {
+	throw createError({ statusCode: 404, statusMessage: t('zsl.notFound') })
+}
+const seasonId = computed(() => parsedSeasonId)
+const roundNumber = computed(() => parsedRoundNumber)
 const {
 	page,
 	pagination,
 	result,
-	season,
+	round,
 	standings,
 	standingsActive,
 	standingsResult,
 	standingsTarget,
-} = useZslSeason(id)
-const roundLink = (roundId: number) => `/zsl/${id.value}/${roundId}`
+} = useZslRound(seasonId, roundNumber)
+watchEffect(() => {
+	if (result.fetching.value || result.data.value === undefined) return
+	if (!round.value) {
+		showError(createError({ statusCode: 404, statusMessage: t('zsl.notFound') }))
+	}
+})
+const levelLink = (levelId: number) =>
+	superLeagueLevelPath(seasonId.value, roundNumber.value, levelId)
 useSeoMeta({
-	title: () => season.value?.name,
-	description: () => t('zsl.seasonDescription'),
+	title: () => round.value?.name,
+	description: () => t('zsl.roundDescription'),
 })
 const stateLabels = computed(() => ({
 	loadingLabel: t('common.loading'),
