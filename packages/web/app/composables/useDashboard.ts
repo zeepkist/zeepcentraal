@@ -2,10 +2,11 @@ import { useQuery, useSubscription } from '@urql/vue'
 import type { Ref } from 'vue'
 import {
 	Zc_DashboardCriticalDocument,
+	Zc_DashboardHeroStandingDocument,
+	Zc_DashboardHeroSummaryDocument,
 	Zc_DashboardLevelsDocument,
 	Zc_DashboardStatisticsDocument,
 	Zc_DashboardViewerContentDocument,
-	Zc_DashboardViewerSummaryDocument,
 	Zc_RecentPersonalBestsDocument,
 	Zc_RecentWorldRecordsDocument,
 } from '~/graphql/generated/graphql'
@@ -104,9 +105,18 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		pause: computed(() => !levelsPrefetch.active.value),
 	})
 	const viewerQuery = useQuery({
-		query: Zc_DashboardViewerSummaryDocument,
+		query: Zc_DashboardHeroSummaryDocument,
 		variables: computed(() => ({ id: viewerId.value ?? 0 })),
 		pause: computed(() => viewerId.value === undefined),
+	})
+	const latestSeason = computed(() => viewerQuery.data.value?.zslSeasons?.nodes[0])
+	const viewerStandingQuery = useQuery({
+		query: Zc_DashboardHeroStandingDocument,
+		variables: computed(() => ({
+			userId: viewerId.value ?? 0,
+			seasonId: latestSeason.value?.id ?? 0,
+		})),
+		pause: computed(() => viewerId.value === undefined || latestSeason.value === undefined),
 	})
 	const viewerContentQuery = useQuery({
 		query: Zc_DashboardViewerContentDocument,
@@ -140,6 +150,9 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 
 	const dashboard = query.data
 	const viewer = computed(() => viewerQuery.data.value?.user)
+	const viewerStanding = computed(
+		() => viewerStandingQuery.data.value?.zslSeasonResults?.nodes[0],
+	)
 	const popularLevels = computed(
 		() =>
 			(levelsQuery.data.value?.popularLevels?.nodes ?? [])
@@ -186,6 +199,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 
 	return {
 		dashboard,
+		latestSeason,
 		latestLevels,
 		levelsActive: levelsPrefetch.active,
 		levelsQuery,
@@ -207,6 +221,8 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		viewer,
 		viewerActive: viewerPrefetch.active,
 		viewerContentQuery,
+		viewerStanding,
+		viewerStandingQuery,
 		viewerLevels,
 		viewerQuery,
 		viewerRecords,

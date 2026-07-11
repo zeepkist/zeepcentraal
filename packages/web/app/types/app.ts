@@ -117,3 +117,26 @@ export type LocaleOption = {
 	code: string
 	name: string
 }
+
+export type HeroAction = {
+	label: string
+	description?: string
+	href: string
+	icon: string
+	external?: boolean
+	primary?: boolean
+}
+
+export type HeroMetric = {
+	label: string
+	value: string
+	icon: string
+	muted?: boolean
+}
+
+export type HeroPanel = {
+	title: string
+	description: string
+	icon: string
+	features?: string[]
+}

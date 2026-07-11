@@ -156,76 +156,161 @@ const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }
 
 const hero = computed(() => {
 	const viewer = dashboard.viewer.value
+	const latestSeason = dashboard.latestSeason.value
+	const standingResolved =
+		latestSeason === undefined ||
+		dashboard.viewerStandingQuery.data.value !== undefined ||
+		dashboard.viewerStandingQuery.error.value !== undefined
 	const state = resolveDashboardHeroState(
 		Boolean(user.value),
-		dashboard.viewerQuery.data.value !== undefined,
+		dashboard.viewerQuery.data.value !== undefined && standingResolved,
 		viewer?.records?.totalCount,
 	)
 	if (state === 'anonymous') {
 		return {
 			title: t('dashboard.hero.anonymous.title'),
 			description: t('dashboard.hero.anonymous.description'),
-			actions: externalActions(),
+			metrics: [],
+			panel: {
+				title: t('dashboard.hero.anonymous.panel.title'),
+				description: t('dashboard.hero.anonymous.panel.description'),
+				icon: 'brand-steam',
+				features: [
+					t('dashboard.hero.anonymous.panel.features.physics'),
+					t('dashboard.hero.anonymous.panel.features.workshop'),
+					t('dashboard.hero.anonymous.panel.features.community'),
+				],
+			},
+			actions: [
+				{
+					label: t('dashboard.hero.steam'),
+					description: t('dashboard.hero.steamDescription'),
+					href: 'https://store.steampowered.com/app/1440670/Zeepkist/',
+					icon: 'brand-steam',
+					external: true,
+					primary: true,
+				},
+				{
+					label: t('dashboard.hero.setup'),
+					description: t('dashboard.hero.setupDescription'),
+					href: '/wiki/setup-modkist',
+					icon: 'plug-connected',
+				},
+			],
 		}
 	}
-	if (state === 'pending') {
-		return {
-			title: '',
-			description: '',
-			actions: [],
-			pending: true,
-		}
+	if (state === 'pending')
+		return { title: '', description: '', actions: [], metrics: [], pending: true }
+	const currentUser = user.value
+	if (!viewer || !currentUser)
+		return { title: '', description: '', actions: [], metrics: [], pending: true }
+	const leagueHref = latestSeason ? `/super-league/season-${latestSeason.id}` : '/super-league'
+	const leagueAction = {
+		label: t('dashboard.hero.superLeague'),
+		description: latestSeason?.name ?? t('dashboard.hero.superLeagueDescription'),
+		href: leagueHref,
+		icon: 'flag-3',
 	}
 	if (state === 'new-player') {
 		return {
 			title: t('dashboard.hero.new.title', {
-				name: user.value?.steamName ?? user.value?.steamId,
+				name: currentUser.steamName ?? currentUser.steamId,
 			}),
 			description: t('dashboard.hero.new.description'),
-			actions: externalActions().filter((action) => !action.href.includes('steampowered')),
+			metrics: [],
+			panel: {
+				title: t('dashboard.hero.new.panel.title'),
+				description: t('dashboard.hero.new.panel.description'),
+				icon: 'shield-check',
+				features: [
+					t('dashboard.hero.new.panel.features.submit'),
+					t('dashboard.hero.new.panel.features.ghosts'),
+					t('dashboard.hero.new.panel.features.control'),
+				],
+			},
+			actions: [
+				{
+					label: t('dashboard.hero.setup'),
+					description: t('dashboard.hero.new.setupDescription'),
+					href: '/wiki/setup-modkist',
+					icon: 'plug-connected',
+					primary: true,
+				},
+				leagueAction,
+			],
 		}
 	}
+	const points = viewer.userPoints
+	const standing = dashboard.viewerStanding.value
 	return {
 		title: t('dashboard.hero.active.title', {
-			name: user.value?.steamName ?? user.value?.steamId,
+			name: currentUser.steamName ?? currentUser.steamId,
 		}),
-		description: t('dashboard.hero.active.description', {
-			records: viewer.records.totalCount,
-			pbs: viewer.personalBestGlobals.totalCount,
-			wrs: viewer.worldRecordGlobals.totalCount,
-		}),
+		description: t('dashboard.hero.active.description'),
+		metrics: [
+			{
+				label: t('dashboard.hero.metrics.records'),
+				value: numberFormat.format(viewer.records.totalCount),
+				icon: 'flag',
+			},
+			{
+				label: t('dashboard.hero.metrics.personalBests'),
+				value: numberFormat.format(viewer.personalBestGlobals.totalCount),
+				icon: 'trending-up',
+			},
+			{
+				label: t('dashboard.hero.metrics.worldRecords'),
+				value: numberFormat.format(viewer.worldRecordGlobals.totalCount),
+				icon: 'trophy',
+			},
+			{
+				label: t('dashboard.hero.metrics.globalRank'),
+				value: points
+					? `#${numberFormat.format(points.rank)}`
+					: t('dashboard.hero.unranked'),
+				icon: 'world',
+				muted: !points,
+			},
+			{
+				label: t('dashboard.hero.metrics.rankedPoints'),
+				value: numberFormat.format(points?.points ?? 0),
+				icon: 'sparkles',
+			},
+			{
+				label: t('dashboard.hero.metrics.superLeague'),
+				value: standing
+					? t('dashboard.hero.seasonPosition', { position: standing.position })
+					: t('dashboard.hero.unranked'),
+				icon: 'flag-3',
+				muted: !standing,
+			},
+		],
+		panel: {
+			title: t('dashboard.hero.active.panel.title'),
+			description: t('dashboard.hero.active.panel.description', {
+				points: numberFormat.format(points?.totalPoints ?? 0),
+				seasonPoints: numberFormat.format(standing?.points ?? 0),
+			}),
+			icon: 'dashboard',
+		},
 		actions: [
 			{
 				label: t('dashboard.hero.profile'),
-				href: `/user/${user.value?.steamId}`,
+				description: t('dashboard.hero.profileDescription'),
+				href: `/user/${currentUser.steamId}`,
 				icon: 'users',
+				primary: true,
 			},
+			{
+				label: t('dashboard.hero.recentRecords'),
+				description: t('dashboard.hero.recentRecordsDescription'),
+				href: '/records/me',
+				icon: 'clock-bolt',
+			},
+			leagueAction,
 		],
 	}
 })
-
-function externalActions() {
-	return [
-		{
-			label: t('dashboard.hero.steam'),
-			href: 'https://store.steampowered.com/app/1440670/Zeepkist/',
-			icon: 'brand-steam',
-			external: true,
-		},
-		{
-			label: t('dashboard.hero.modkist'),
-			href: 'https://modkist.com/',
-			icon: 'plug',
-			external: true,
-		},
-		{
-			label: t('dashboard.hero.gtr'),
-			href: 'https://mod.io/g/zeepkist/m/zeepkist-gtr',
-			icon: 'trophy',
-			external: true,
-		},
-	]
-}
 
 const liveMetrics = computed(() => {
 	const data = dashboard.dashboard.value

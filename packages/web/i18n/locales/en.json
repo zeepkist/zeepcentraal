@@ -287,24 +287,60 @@
 	"dashboard": {
 		"hero": {
 			"anonymous": {
-				"eyebrow": "Start racing",
 				"title": "Race, improve, climb.",
-				"description": "Discover Zeepkist, install community tools, and join the live global leaderboards."
+				"description": "Discover Zeepkist, master community-made tracks, and join a worldwide time-trial community.",
+				"panel": {
+					"title": "Build your soapbox legacy",
+					"description": "Get Zeepkist on Steam and start chasing faster lines across thousands of tracks.",
+					"features": {
+						"physics": "Physics-driven racing where every input matters",
+						"workshop": "Thousands of community levels through Steam Workshop",
+						"community": "Live records, rankings, and competitive events"
+					}
+				}
 			},
 			"new": {
-				"eyebrow": "Welcome, {name}",
-				"title": "Connect your first run.",
-				"description": "Install ModKist and GTR so completed runs can join ZeepCentraal."
+				"title": "Ready to race, {name}?",
+				"description": "Connect Zeepkist to ZeepCentraal and turn every finish into progress on the global leaderboard.",
+				"setupDescription": "Safe, guided setup for automatic records and ghosts",
+				"panel": {
+					"title": "Start submitting with confidence",
+					"description": "Modkist is Zeepkist’s community mod manager. You stay in control of installed mods, while GTR handles record submission and replay tools.",
+					"features": {
+						"submit": "Automatically submit completed runs to global leaderboards",
+						"ghosts": "Replay personal bests and world records, or load ghosts in bulk",
+						"control": "Manage or remove GTR at any time through Modkist"
+					}
+				}
 			},
 			"active": {
-				"eyebrow": "Your racing dashboard",
 				"title": "Welcome back, {name}",
-				"description": "{records} records, {pbs} personal bests, and {wrs} world records submitted."
+				"description": "Your latest racing progress, rankings, and competition results in one place.",
+				"panel": {
+					"title": "Keep the momentum",
+					"description": "{points} total non-global-decayed points and {seasonPoints} points in the latest Super League season."
+				}
 			},
-			"steam": "Get Zeepkist",
-			"modkist": "Install ModKist",
-			"gtr": "Install GTR",
-			"profile": "Open profile"
+			"steam": "Get Zeepkist on Steam",
+			"steamDescription": "Open the Steam store page",
+			"setup": "Setup Modkist and GTR",
+			"setupDescription": "Prepare record submission and ghost replays",
+			"profile": "View your profile",
+			"profileDescription": "Open your complete player statistics",
+			"recentRecords": "View recent records",
+			"recentRecordsDescription": "Review every submitted run",
+			"superLeague": "Latest Super League standings",
+			"superLeagueDescription": "Browse current season results",
+			"unranked": "Unranked",
+			"seasonPosition": "#{position}",
+			"metrics": {
+				"records": "Records",
+				"personalBests": "Personal bests",
+				"worldRecords": "World records",
+				"globalRank": "Global rank",
+				"rankedPoints": "Ranked points",
+				"superLeague": "Super League"
+			}
 		},
 		"liveStats": {
 			"title": "ZeepCentraal live",
@@ -418,7 +454,10 @@
 				"title": "Personal bests",
 				"description": "Best non-world-record finishes, ordered by value or date."
 			},
-			"recent": { "title": "Recent records", "description": "Latest 25 submitted runs." }
+			"recent": {
+				"title": "Recent records",
+				"description": "Latest 25 submitted runs."
+			}
 		}
 	},
 	"adventure": {

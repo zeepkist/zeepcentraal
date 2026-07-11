@@ -1,4 +1,4 @@
-query ZC_DashboardViewerSummary($id: Int!) {
+query ZC_DashboardHeroSummary($id: Int!) {
 	user(id: $id) {
 		id
 		steamId
@@ -11,6 +11,30 @@ query ZC_DashboardViewerSummary($id: Int!) {
 		}
 		worldRecordGlobals(first: 0) {
 			totalCount
+		}
+		userPoints {
+			rank
+			points
+			totalPoints
+			worldRecords
+		}
+	}
+	zslSeasons(first: 1, orderBy: [START_DATE_DESC]) {
+		nodes {
+			id
+			name
+		}
+	}
+}
+
+query ZC_DashboardHeroStanding($userId: Int!, $seasonId: Int!) {
+	zslSeasonResults(
+		first: 1
+		filter: { userId: { equalTo: $userId }, seasonId: { equalTo: $seasonId } }
+	) {
+		nodes {
+			position
+			points
 		}
 	}
 }
