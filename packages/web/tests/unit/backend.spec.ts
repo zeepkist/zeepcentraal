@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { accessTokenRefreshAt } from '../../app/server/utils/backend'
-import { isCrossOriginRequest } from '../../app/server/utils/request'
+import { accessTokenRefreshAt } from '../../server/utils/backend'
+import { isCrossOriginRequest } from '../../server/utils/request'
 
 describe('web server auth and request guards', () => {
 	test('schedules access refresh one minute before JWT expiry', () => {

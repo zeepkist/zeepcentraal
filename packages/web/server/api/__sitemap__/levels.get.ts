@@ -1,4 +1,4 @@
-import { Zc_SitemapLevelsDocument } from '../../../graphql/generated/graphql'
+import { Zc_SitemapLevelsDocument } from '../../../app/graphql/generated/graphql'
 import { fetchGraphql } from '../../utils/graphql'
 export default defineSitemapEventHandler(async () => {
 	const urls = []

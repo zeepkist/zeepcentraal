@@ -1,4 +1,4 @@
-import { Zc_SitemapTournamentsDocument } from '../../../graphql/generated/graphql'
+import { Zc_SitemapTournamentsDocument } from '../../../app/graphql/generated/graphql'
 import { fetchGraphql } from '../../utils/graphql'
 export default defineSitemapEventHandler(async () => {
 	const urls = []

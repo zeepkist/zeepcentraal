@@ -1,4 +1,4 @@
-import type { SessionUser } from '../../types/app'
+import type { SessionUser } from '../../app/types/app'
 import { accessTokenRefreshAt, fetchBackendUser, refreshWebAuth } from '../utils/backend'
 import { assertSameOrigin } from '../utils/request'
 

@@ -1,4 +1,4 @@
-import { authRefreshUrl, userUrl } from '../../utils/auth'
+import { authRefreshUrl, userUrl } from '../../app/utils/auth'
 
 export function getBackendBaseUrl() {
 	const config = useRuntimeConfig()
