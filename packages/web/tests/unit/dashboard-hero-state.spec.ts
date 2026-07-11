@@ -45,8 +45,8 @@ describe('dashboard hero state', () => {
 		expect(hero).toContain('flex-col justify-center')
 		expect(hero).toContain('lg:absolute')
 		expect(hero).toContain('lg:bottom-0')
-		expect(hero).toContain('color="primary"')
-		expect(hero).toContain('color="secondary"')
+		expect(hero.match(/color="primary"/g)).toHaveLength(2)
+		expect(hero.match(/variant="outline"/g)).toHaveLength(2)
 	})
 
 	it('shows the active state for players with records', () => {
