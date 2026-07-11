@@ -50,6 +50,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 	const client = createClient({
 		url: config.public.graphqlHttpUrl,
 		exchanges,
+		preferGetMethod: false,
 		fetchOptions: () => ({
 			credentials: 'include',
 			headers: import.meta.server ? requestHeaders : undefined,

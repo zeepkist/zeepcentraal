@@ -6,6 +6,7 @@ import { describe, expect, test } from 'vitest'
 
 const graphqlDir = fileURLToPath(new URL('../../app/graphql', import.meta.url))
 const composablesDir = fileURLToPath(new URL('../../app/composables', import.meta.url))
+const urqlPlugin = fileURLToPath(new URL('../../app/plugins/urql.ts', import.meta.url))
 
 function filesUnder(path: string, extension: string): string[] {
 	return readdirSync(path, { withFileTypes: true }).flatMap((entry) => {
@@ -96,5 +97,11 @@ describe('GraphQL operation conventions', () => {
 				expect(source).not.toContain('subscription ZC_')
 			}
 		}
+	})
+
+	test('urql sends GraphQL queries using POST', () => {
+		const source = readFileSync(urqlPlugin, 'utf8')
+
+		expect(source).toContain('preferGetMethod: false')
 	})
 })
