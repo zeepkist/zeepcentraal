@@ -642,7 +642,7 @@ export const user = pgTable(
 		),
 	},
 	(table) => [
-		uniqueIndex('UQ_user_steam_id').on(table.steamId),
+		unique('UQ_user_steam_id').on(table.steamId),
 		uniqueIndex('UQ_user_discord_id').on(table.discordId).where(sql`${table.discordId} > 0`),
 	],
 )

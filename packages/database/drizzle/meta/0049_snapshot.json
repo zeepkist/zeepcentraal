@@ -1,6 +1,6 @@
 {
-	"id": "5fee8c80-0363-4236-8797-c3dda2c56a06",
-	"prevId": "7aa64129-5e87-45c7-8d20-25e76e9fcf3d",
+	"id": "cdcc9a0e-f2ed-40e7-b46a-a5f0ed6995ee",
+	"prevId": "5fee8c80-0363-4236-8797-c3dda2c56a06",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -1819,21 +1819,6 @@
 				}
 			},
 			"indexes": {
-				"UQ_user_steam_id": {
-					"name": "UQ_user_steam_id",
-					"columns": [
-						{
-							"expression": "steam_id",
-							"isExpression": false,
-							"asc": true,
-							"nulls": "last"
-						}
-					],
-					"isUnique": true,
-					"concurrently": false,
-					"method": "btree",
-					"with": {}
-				},
 				"UQ_user_discord_id": {
 					"name": "UQ_user_discord_id",
 					"columns": [
@@ -1853,7 +1838,13 @@
 			},
 			"foreignKeys": {},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
+			"uniqueConstraints": {
+				"UQ_user_steam_id": {
+					"name": "UQ_user_steam_id",
+					"nullsNotDistinct": false,
+					"columns": ["steam_id"]
+				}
+			},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false
