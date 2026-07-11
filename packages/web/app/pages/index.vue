@@ -156,17 +156,30 @@ const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }
 
 const hero = computed(() => {
 	const viewer = dashboard.viewer.value
-	if (!user.value) {
+	const state = resolveDashboardHeroState(
+		Boolean(user.value),
+		dashboard.viewerQuery.data.value !== undefined,
+		viewer?.records?.totalCount,
+	)
+	if (state === 'anonymous') {
 		return {
 			title: t('dashboard.hero.anonymous.title'),
 			description: t('dashboard.hero.anonymous.description'),
 			actions: externalActions(),
 		}
 	}
-	if (!viewer?.records?.totalCount) {
+	if (state === 'pending') {
+		return {
+			title: '',
+			description: '',
+			actions: [],
+			pending: true,
+		}
+	}
+	if (state === 'new-player') {
 		return {
 			title: t('dashboard.hero.new.title', {
-				name: user.value.steamName ?? user.value.steamId,
+				name: user.value?.steamName ?? user.value?.steamId,
 			}),
 			description: t('dashboard.hero.new.description'),
 			actions: externalActions().filter((action) => !action.href.includes('steampowered')),
@@ -174,7 +187,7 @@ const hero = computed(() => {
 	}
 	return {
 		title: t('dashboard.hero.active.title', {
-			name: user.value.steamName ?? user.value.steamId,
+			name: user.value?.steamName ?? user.value?.steamId,
 		}),
 		description: t('dashboard.hero.active.description', {
 			records: viewer.records.totalCount,
@@ -184,7 +197,7 @@ const hero = computed(() => {
 		actions: [
 			{
 				label: t('dashboard.hero.profile'),
-				href: `/user/${user.value.steamId}`,
+				href: `/user/${user.value?.steamId}`,
 				icon: 'users',
 			},
 		],
