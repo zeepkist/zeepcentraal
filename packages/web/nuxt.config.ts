@@ -17,7 +17,7 @@ export default defineNuxtConfig({
 				info: 'teal',
 				warning: 'orange',
 				error: 'red',
-				neutral: 'slate',
+				neutral: 'warm-neutral',
 			},
 		},
 	},

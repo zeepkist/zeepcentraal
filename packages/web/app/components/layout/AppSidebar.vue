@@ -4,8 +4,9 @@
 		collapsible="icon"
 		rail
 		class="[--sidebar-width:17rem]"
+		data-testid="app-sidebar"
 		:ui="{
-			inner: 'bg-neutral-500 divide-transparent',
+			inner: 'bg-warm-neutral-900 divide-transparent',
 			body: 'gap-1 p-3',
 		}"
 	>

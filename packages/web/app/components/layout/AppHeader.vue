@@ -1,5 +1,9 @@
 <template>
-	<UHeader :mode="'drawer'" :ui="{ root: 'bg-neutral-500/75 backdrop-blur' }">
+	<UHeader
+		:mode="'drawer'"
+		data-testid="app-header"
+		:ui="{ root: 'bg-warm-neutral-900/75 backdrop-blur' }"
+	>
 		<template #left>
 			<div class="min-w-0" />
 		</template>
