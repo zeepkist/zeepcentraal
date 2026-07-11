@@ -145,22 +145,14 @@ usePageSeo('home')
 
 const { t } = useI18n()
 const route = useRoute()
-const router = useRouter()
 const session = useSessionStore()
 const user = computed(() => session.user)
 const authCallback = route.query.auth === 'callback'
-const authVerificationFailed = ref(authCallback && !session.user)
+const { verificationFailed: authVerificationFailed } = useAuthCallbackVerification(authCallback)
 const viewerId = computed(() => user.value?.id)
 const dashboard = useDashboard(viewerId)
 const numberFormat = new Intl.NumberFormat()
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
-
-onMounted(async () => {
-	if (!authCallback) return
-	const query = { ...route.query }
-	delete query.auth
-	await router.replace({ query })
-})
 
 const hero = computed(() => {
 	const viewer = dashboard.viewer.value
