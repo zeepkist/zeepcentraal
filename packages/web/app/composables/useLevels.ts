@@ -15,39 +15,68 @@ export const LEVEL_SORTS = {
 	favourites: 'FAVOURITES_COUNT_DESC',
 } as const satisfies Record<string, LevelsOrderBy>
 
+const LEVEL_POINT_SORTS = new Set<LevelsOrderBy>([
+	LEVEL_SORTS.popular,
+	LEVEL_SORTS.points,
+	LEVEL_SORTS.rating,
+])
+
 import type { CursorPage, LevelSummary } from '~/types/app'
 
 export function useLevels() {
 	const route = useRoute()
 	const pagination = useCursorPagination(24)
-	const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
-	const author = ref(typeof route.query.author === 'string' ? route.query.author : '')
-	const adventure = ref(typeof route.query.adventure === 'string' ? route.query.adventure : 'all')
-	const sort = ref(
+	const appliedSearch = computed(() => (typeof route.query.q === 'string' ? route.query.q : ''))
+	const appliedAuthor = computed(() =>
+		typeof route.query.author === 'string' ? route.query.author : '',
+	)
+	const appliedAdventure = computed(() =>
+		typeof route.query.adventure === 'string' ? route.query.adventure : 'all',
+	)
+	const appliedSort = computed<LevelsOrderBy>(() =>
 		(Object.values(LEVEL_SORTS) as readonly string[]).includes(String(route.query.sort))
 			? (route.query.sort as LevelsOrderBy)
 			: LEVEL_SORTS.latest,
 	)
+	const search = ref(appliedSearch.value)
+	const author = ref(appliedAuthor.value)
+	const adventure = ref(appliedAdventure.value)
+	const sort = ref(appliedSort.value)
+
+	watch([appliedSearch, appliedAuthor, appliedAdventure, appliedSort], (values) => {
+		search.value = values[0]
+		author.value = values[1]
+		adventure.value = values[2]
+		sort.value = values[3]
+	})
+
 	const filter = computed<LevelFilter>(() => {
 		const and: LevelFilter[] = [{ levelItems: { some: { deleted: { equalTo: false } } } }]
-		if (search.value) {
+		if (LEVEL_POINT_SORTS.has(appliedSort.value)) {
+			and.push({ levelItemsExist: true, levelPointExists: true })
+		}
+		if (appliedSearch.value) {
 			and.push({
 				or: [
-					{ xxHash: { includesInsensitive: search.value } },
-					{ hash: { includesInsensitive: search.value } },
-					{ levelItems: { some: { name: { includesInsensitive: search.value } } } },
+					{ xxHash: { includesInsensitive: appliedSearch.value } },
+					{ hash: { includesInsensitive: appliedSearch.value } },
+					{
+						levelItems: {
+							some: { name: { includesInsensitive: appliedSearch.value } },
+						},
+					},
 				],
 			})
 		}
-		if (author.value) {
+		if (appliedAuthor.value) {
 			and.push({
 				levelItems: {
-					some: { author: { steamName: { includesInsensitive: author.value } } },
+					some: { author: { steamName: { includesInsensitive: appliedAuthor.value } } },
 				},
 			})
 		}
-		if (adventure.value !== 'all') {
-			and.push({ adventure: { equalTo: adventure.value === 'yes' } })
+		if (appliedAdventure.value !== 'all') {
+			and.push({ adventure: { equalTo: appliedAdventure.value === 'yes' } })
 		}
 		return { and }
 	})
@@ -56,7 +85,7 @@ export function useLevels() {
 		variables: computed(() => ({
 			...pagination.variables.value,
 			filter: filter.value,
-			orderBy: [sort.value],
+			orderBy: [appliedSort.value],
 		})),
 	})
 	const levels = computed(() =>

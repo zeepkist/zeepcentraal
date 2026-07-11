@@ -16,21 +16,30 @@ export const USER_SORTS = {
 export function usePlayers() {
 	const route = useRoute()
 	const pagination = useCursorPagination(50)
-	const search = ref(typeof route.query.q === 'string' ? route.query.q : '')
-	const sort = ref(
+	const appliedSearch = computed(() => (typeof route.query.q === 'string' ? route.query.q : ''))
+	const appliedSort = computed<UserPointsOrderBy>(() =>
 		(Object.values(USER_SORTS) as readonly string[]).includes(String(route.query.sort))
 			? (route.query.sort as UserPointsOrderBy)
 			: USER_SORTS.rank,
 	)
+	const search = ref(appliedSearch.value)
+	const sort = ref(appliedSort.value)
+
+	watch([appliedSearch, appliedSort], (values) => {
+		search.value = values[0]
+		sort.value = values[1]
+	})
+
 	const filter = computed<UserPointFilter>(() => ({
+		...(appliedSort.value === USER_SORTS.rank ? { rank: { notEqualTo: -1 } } : {}),
 		user: {
 			banned: { equalTo: false },
-			...(search.value
+			...(appliedSearch.value
 				? {
 						or: [
-							{ steamName: { includesInsensitive: search.value } },
-							...(/^\d+$/.test(search.value)
-								? [{ steamId: { equalTo: search.value } }]
+							{ steamName: { includesInsensitive: appliedSearch.value } },
+							...(/^\d+$/.test(appliedSearch.value)
+								? [{ steamId: { equalTo: appliedSearch.value } }]
 								: []),
 						],
 					}
@@ -42,7 +51,7 @@ export function usePlayers() {
 		variables: computed(() => ({
 			...pagination.variables.value,
 			filter: filter.value,
-			orderBy: [sort.value],
+			orderBy: [appliedSort.value],
 		})),
 	})
 	const users = computed<UserSummary[]>(() =>
