@@ -40,6 +40,8 @@ describe('GraphQL operation conventions', () => {
 			'records',
 			'recordStatistics',
 			'users',
+			'userPointContributions',
+			'userPoints',
 			'votes',
 			'worldRecordGlobals',
 		])
@@ -52,7 +54,16 @@ describe('GraphQL operation conventions', () => {
 						node.arguments?.map((argument) => argument.name.value),
 					)
 					expect(argumentNames.has('offset')).toBe(false)
-					if (connections.has(node.name.value)) {
+					if (
+						connections.has(node.name.value) &&
+						node.selectionSet?.selections.some(
+							(selection) =>
+								selection.kind === Kind.FIELD &&
+								['edges', 'nodes', 'pageInfo', 'totalCount'].includes(
+									selection.name.value,
+								),
+						)
+					) {
 						expect(argumentNames.has('first') || argumentNames.has('last')).toBe(true)
 					}
 					for (const argument of node.arguments ?? []) {

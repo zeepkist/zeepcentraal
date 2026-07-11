@@ -1,0 +1,54 @@
+query ZC_UserContributions(
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$filter: UserPointContributionFilter!
+) {
+	userPointContributions(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: $filter
+		orderBy: [PLAYER_DECAYED_POINTS_DESC]
+	) {
+		edges {
+			cursor
+			node {
+				contributionRank
+				levelPosition
+				levelPoints
+				levelDecayedPoints
+				playerDecayedPoints
+				dateCalculated
+				record {
+					id
+					time
+					dateCreated
+					levelId
+					userId
+				}
+				level {
+					xxHash
+					levelItems(
+						first: 1
+						filter: { deleted: { equalTo: false } }
+						orderBy: [UPDATED_AT_DESC]
+					) {
+						nodes {
+							name
+						}
+					}
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

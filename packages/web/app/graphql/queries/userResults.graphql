@@ -1,0 +1,53 @@
+query ZC_UserResults(
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$filter: RecordFilter!
+) {
+	records(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: $filter
+		orderBy: [DATE_CREATED_DESC]
+	) {
+		edges {
+			cursor
+			node {
+				id
+				time
+				dateCreated
+				levelId
+				userId
+				level {
+					xxHash
+					levelItems(
+						first: 1
+						filter: { deleted: { equalTo: false } }
+						orderBy: [UPDATED_AT_DESC]
+					) {
+						nodes {
+							name
+						}
+					}
+				}
+				userPointContributions(first: 1) {
+					nodes {
+						playerDecayedPoints
+						levelPosition
+						contributionRank
+					}
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

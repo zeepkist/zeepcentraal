@@ -1,0 +1,39 @@
+query ZC_Users(
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$filter: UserPointFilter
+	$orderBy: [UserPointsOrderBy!]
+) {
+	userPoints(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: $filter
+		orderBy: $orderBy
+	) {
+		edges {
+			cursor
+			node {
+				points
+				rank
+				totalPoints
+				worldRecords
+				user {
+					id
+					steamId
+					steamName
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

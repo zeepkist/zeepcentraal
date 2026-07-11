@@ -349,6 +349,59 @@
 			"brakes": "Brake uses"
 		}
 	},
+	"users": {
+		"results": "{count} ranked players",
+		"filters": {
+			"title": "Find players",
+			"search": "Steam name or Steam ID",
+			"sort": "Leaderboard order",
+			"apply": "Apply filters"
+		},
+		"sort": {
+			"rank": "Global rank",
+			"points": "Ranked points",
+			"totalPoints": "Total points",
+			"worldRecords": "World records",
+			"valuable": "Most valuable",
+			"recent": "Most recent"
+		},
+		"columns": {
+			"rankedPoints": "Ranked points",
+			"totalPoints": "Total points",
+			"worldRecords": "World records",
+			"value": "Point value"
+		},
+		"profile": {
+			"notFound": "Player not found",
+			"eyebrow": "Player profile",
+			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
+			"summary": {
+				"title": "Career summary",
+				"description": "Rank, points, records, personal bests, world records, and published levels."
+			},
+			"telemetry": {
+				"title": "Driving telemetry",
+				"description": "Aggregates across every submitted record.",
+				"maxSpeed": "Maximum speed",
+				"maxGforce": "Maximum G-force",
+				"chart": {
+					"distance": "Driven",
+					"air": "Airborne",
+					"ragdoll": "Ragdoll",
+					"paraglider": "Paraglider"
+				}
+			},
+			"worldRecords": {
+				"title": "World records",
+				"description": "Sort by point contribution or record date."
+			},
+			"personalBests": {
+				"title": "Personal bests",
+				"description": "Best non-world-record finishes, ordered by value or date."
+			},
+			"recent": { "title": "Recent records", "description": "Latest 25 submitted runs." }
+		}
+	},
 	"levels": {
 		"results": "{count} levels",
 		"filters": {

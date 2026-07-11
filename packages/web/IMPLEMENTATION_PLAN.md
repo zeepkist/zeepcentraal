@@ -23,8 +23,8 @@
 
 - [x] Add searchable/filterable level explorer with 24-item cursor pages.
 - [x] Add level detail with medals, WR, aggregate stats, records and PB rank handling.
-- [ ] Add `userPoints` leaderboard with 50-item cursor pages.
-- [ ] Add user totals, driving statistics, valuable/recent WRs and PBs, and recent records.
+- [x] Add `userPoints` leaderboard with 50-item cursor pages.
+- [x] Add user totals, driving statistics, valuable/recent WRs and PBs, and recent records.
 
 ## Adventure, wiki, developer and ZSL
 
