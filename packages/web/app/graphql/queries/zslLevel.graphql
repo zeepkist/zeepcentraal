@@ -1,0 +1,58 @@
+query ZC_ZslLevel($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+	zslLevel(id: $id) {
+		id
+		roundId
+		round {
+			name
+			round
+			seasonId
+			season {
+				name
+			}
+		}
+		level {
+			xxHash
+			levelItems(
+				first: 1
+				filter: { deleted: { equalTo: false } }
+				orderBy: [UPDATED_AT_DESC]
+			) {
+				nodes {
+					name
+					imageUrl
+				}
+			}
+		}
+	}
+	zslLevelResults(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: { levelId: { equalTo: $id } }
+		orderBy: [POSITION_ASC]
+	) {
+		edges {
+			cursor
+			node {
+				position
+				points
+				time
+				user {
+					steamId
+					steamName
+				}
+				record {
+					id
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

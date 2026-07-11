@@ -412,6 +412,24 @@
 			"description": "Schema, query examples, pagination, fair use, rate limits, and attribution requirements."
 		}
 	},
+	"zsl": {
+		"season": "ZSL season",
+		"roundCount": "{count} rounds",
+		"seasonDescription": "Six rounds decide the season championship.",
+		"rounds": "Rounds",
+		"roundsDescription": "Open a round for its leaderboard and up to fifteen level results.",
+		"roundNumber": "Round {round}",
+		"roundDescription": "Round leaderboard and level-by-level results.",
+		"levels": "Round levels",
+		"levelsDescription": "Open a level to inspect its complete round leaderboard.",
+		"standings": "Standings",
+		"seasonStandings": "Season points ordered by finishing position.",
+		"roundStandings": "Round points ordered by finishing position.",
+		"levelStandings": "Level times and points ordered by finishing position.",
+		"levelResults": "ZSL level results",
+		"openLevel": "Open global level page",
+		"unknown": "Unknown player"
+	},
 	"levels": {
 		"results": "{count} levels",
 		"filters": {

@@ -44,6 +44,12 @@ describe('GraphQL operation conventions', () => {
 			'userPoints',
 			'votes',
 			'worldRecordGlobals',
+			'zslLevelResults',
+			'zslLevels',
+			'zslRoundResults',
+			'zslRounds',
+			'zslSeasonResults',
+			'zslSeasons',
 		])
 
 		for (const file of filesUnder(graphqlDir, '.graphql')) {

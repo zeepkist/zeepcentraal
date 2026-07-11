@@ -30,7 +30,7 @@
 
 - [x] Group all `adventure: true` levels into name-derived series.
 - [x] Add multi-page Nuxt Content wiki and GraphQL developer portal.
-- [ ] Add ZSL season, round and level result routes with cursor pagination.
+- [x] Add ZSL season, round and level result routes with cursor pagination.
 
 ## Auth, server, SEO and verification
 

@@ -104,3 +104,11 @@ export type ZslSeasonSummary = {
 	endDate: string
 	rounds: ZslRoundSummary[]
 }
+
+export type ZslStanding = {
+	position: number
+	points: number
+	steamId: string | null
+	steamName: string | null
+	time?: number
+}
