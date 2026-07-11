@@ -1,11 +1,12 @@
 import { refreshWebAuth } from '../../utils/backend'
+import { assertSameOrigin } from '../../utils/request'
 
 export default defineEventHandler(async (event) => {
+	assertSameOrigin(event)
 	try {
-		await refreshWebAuth(event)
-		return null
+		return await refreshWebAuth(event)
 	} catch {
 		setResponseStatus(event, 401)
-		return null
+		return { refreshAt: null }
 	}
 })

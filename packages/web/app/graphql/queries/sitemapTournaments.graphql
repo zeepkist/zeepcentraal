@@ -1,0 +1,27 @@
+query ZC_SitemapTournaments($after: Cursor) {
+	zslSeasons(first: 1000, after: $after, orderBy: [ID_ASC]) {
+		nodes {
+			id
+			dateUpdated
+			dateCreated
+			zslRounds(first: 6, orderBy: [ROUND_ASC]) {
+				nodes {
+					id
+					dateUpdated
+					dateCreated
+					zslLevels(first: 15, orderBy: [ID_ASC]) {
+						nodes {
+							id
+							dateUpdated
+							dateCreated
+						}
+					}
+				}
+			}
+		}
+		pageInfo {
+			endCursor
+			hasNextPage
+		}
+	}
+}

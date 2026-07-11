@@ -1,11 +1,15 @@
 export function usePageSeo(pageKey: string) {
 	const { t } = useI18n()
+	const title = computed(() => t(`pages.${pageKey}.seo.title`))
+	const description = computed(() => t(`pages.${pageKey}.seo.description`))
 
 	useSeoMeta({
-		title: () => t(`pages.${pageKey}.seo.title`),
-		ogTitle: () => t(`pages.${pageKey}.seo.title`),
-		description: () => t(`pages.${pageKey}.seo.description`),
-		ogDescription: () => t(`pages.${pageKey}.seo.description`),
+		title,
+		ogTitle: title,
+		description,
+		ogDescription: description,
 		twitterCard: 'summary_large_image',
 	})
+	useSchemaOrg([defineWebPage({ name: title, description })])
+	defineOgImage('NuxtSeo', { title, description, theme: '#facc15', colorMode: 'dark' })
 }

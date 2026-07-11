@@ -34,13 +34,13 @@
 
 ## Auth, server, SEO and verification
 
-- [ ] Persist normalised Pinia session state and refresh HttpOnly-cookie access before expiry.
-- [ ] Proxy Steam news; add same-origin API checks and GraphQL-backed sitemaps.
-- [ ] Add Nuxt Image, Schema.org, OG images, Nuxt Charts and reduced-motion support.
+- [x] Persist normalised Pinia session state and refresh HttpOnly-cookie access before expiry.
+- [x] Proxy Steam news; add same-origin API checks and GraphQL-backed sitemaps.
+- [x] Add Nuxt Image, Schema.org, OG images, Nuxt Charts and reduced-motion support.
 - [ ] Validate documents, cursor limits, components, auth, E2E routes and production build.
 
 ## Pagination limits
 
-- [ ] Always specify exact `first`/`last`; omitted limit defaults to 100.
-- [ ] Use `first: 0` for aggregate-only connections.
-- [ ] Keep every page/chunk at or below 1,000 items.
+- [x] Always specify exact `first`/`last`; omitted limit defaults to 100.
+- [x] Use `first: 0` for aggregate-only connections.
+- [x] Keep every page/chunk at or below 1,000 items.

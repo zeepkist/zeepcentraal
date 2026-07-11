@@ -1,4 +1,5 @@
 import type { SteamNewsItem } from '../../types/app'
+import { assertSameOrigin } from '../utils/request'
 
 type SteamNewsResponse = {
 	appnews?: {
@@ -25,7 +26,8 @@ function textOnly(value: string) {
 }
 
 export default defineCachedEventHandler(
-	async () => {
+	async (event) => {
+		assertSameOrigin(event)
 		const response = await $fetch<SteamNewsResponse>(
 			'https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/',
 			{

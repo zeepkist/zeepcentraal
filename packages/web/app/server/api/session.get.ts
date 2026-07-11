@@ -1,28 +1,53 @@
 import type { SessionUser } from '../../types/app'
-import { fetchBackendUser } from '../utils/backend'
+import { accessTokenRefreshAt, fetchBackendUser, refreshWebAuth } from '../utils/backend'
+import { assertSameOrigin } from '../utils/request'
+
+function normalizeUser(user: {
+	Id?: number
+	SteamId?: string
+	SteamName?: string
+	DiscordId?: string | null
+	id?: number
+	steamId?: string
+	steamName?: string
+	discordId?: string | null
+}): SessionUser {
+	return {
+		id: user.id ?? user.Id ?? 0,
+		steamId: user.steamId ?? user.SteamId ?? '',
+		steamName: user.steamName ?? user.SteamName,
+		discordId: user.discordId ?? user.DiscordId ?? null,
+	}
+}
 
 export default defineEventHandler(async (event) => {
+	assertSameOrigin(event)
+	let refreshAt = accessTokenRefreshAt(getHeader(event, 'cookie'))
+	if (refreshAt !== null && refreshAt <= Date.now()) {
+		try {
+			refreshAt = (await refreshWebAuth(event)).refreshAt
+		} catch {
+			return { user: null, refreshAt: null }
+		}
+	}
 	try {
-		const user = (await fetchBackendUser(event)) as {
-			Id?: number
-			SteamId?: string
-			SteamName?: string
-			DiscordId?: string | null
-			id?: number
-			steamId?: string
-			steamName?: string
-			discordId?: string | null
+		return {
+			user: normalizeUser(
+				(await fetchBackendUser(event)) as Parameters<typeof normalizeUser>[0],
+			),
+			refreshAt,
 		}
-
-		const normalized: SessionUser = {
-			id: user.id ?? user.Id ?? 0,
-			steamId: user.steamId ?? user.SteamId ?? '',
-			steamName: user.steamName ?? user.SteamName,
-			discordId: user.discordId ?? user.DiscordId ?? null,
-		}
-
-		return { user: normalized }
 	} catch {
-		return { user: null }
+		try {
+			refreshAt = (await refreshWebAuth(event)).refreshAt
+			return {
+				user: normalizeUser(
+					(await fetchBackendUser(event)) as Parameters<typeof normalizeUser>[0],
+				),
+				refreshAt,
+			}
+		} catch {
+			return { user: null, refreshAt: null }
+		}
 	}
 })

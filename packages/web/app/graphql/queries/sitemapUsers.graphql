@@ -1,0 +1,18 @@
+query ZC_SitemapUsers($after: Cursor) {
+	users(
+		first: 1000
+		after: $after
+		filter: { banned: { equalTo: false } }
+		orderBy: [STEAM_ID_ASC]
+	) {
+		nodes {
+			steamId
+			dateUpdated
+			dateCreated
+		}
+		pageInfo {
+			endCursor
+			hasNextPage
+		}
+	}
+}
