@@ -325,14 +325,14 @@
 		"hero": {
 			"anonymous": {
 				"title": "Race, improve, climb.",
-				"description": "Discover Zeepkist, master community-made tracks, and join a worldwide time-trial community.",
+				"description": "Zeepkist is a racing game for 1-4 players or up to 64 online, in which players race down extreme downhill soapbox courses to set the best times possible!",
 				"panel": {
-					"title": "Build your soapbox legacy",
-					"description": "Get Zeepkist on Steam and start chasing faster lines across thousands of tracks.",
+					"title": "Join the Zeepkist community",
+					"description": "Available on Windows, Steam Deck and Linux",
 					"features": {
 						"physics": "Physics-driven racing where every input matters",
 						"workshop": "Thousands of community levels through Steam Workshop",
-						"community": "Live records, rankings, and competitive events"
+						"community": "Persistent online leaderboards with GTR"
 					}
 				},
 				"loginPrompt": {
@@ -344,11 +344,11 @@
 			},
 			"new": {
 				"title": "Ready to race, {name}?",
-				"description": "Connect Zeepkist to ZeepCentraal and turn every finish into progress on the global leaderboard.",
+				"description": "Connect Zeepkist to ZeepCentraal with GTR and turn every finish into progress on the global leaderboard.",
 				"setupDescription": "Safe, guided setup for automatic records and ghosts",
 				"panel": {
 					"title": "Start submitting with confidence",
-					"description": "Modkist is Zeepkist’s community mod manager. You stay in control of installed mods, while GTR handles record submission and replay tools.",
+					"description": "Install ModKist, the mod manager for Zeepkist. All mods are verified and approved by the Zeepkist modding community.",
 					"features": {
 						"submit": "Automatically submit completed runs to global leaderboards",
 						"ghosts": "Replay personal bests and world records, or load ghosts in bulk",
@@ -361,13 +361,13 @@
 				"description": "Your latest racing progress, rankings, and competition results in one place.",
 				"panel": {
 					"title": "Keep the momentum",
-					"description": "{points} total non-global-decayed points and {seasonPoints} points in the latest Super League season."
+					"description": "{points} total points and {seasonPoints} points in the current ZSL season."
 				}
 			},
-			"steam": "Get Zeepkist on Steam",
-			"steamDescription": "Open the Steam store page",
+			"steam": "Buy Zeepkist on Steam",
+			"steamDescription": "Enjoy unlimited Dutchness!",
 			"setup": "Setup Modkist and GTR",
-			"setupDescription": "Prepare record submission and ghost replays",
+			"setupDescription": "to start submitting runs to ZeepCentraal automatically",
 			"profile": "View your profile",
 			"profileDescription": "Open your complete player statistics",
 			"recentRecords": "View recent records",
@@ -386,8 +386,8 @@
 			}
 		},
 		"liveStats": {
-			"title": "ZeepCentraal live",
-			"description": "Current totals update from GraphQL subscriptions."
+			"title": "Tracking Every Record",
+			"description": "Community-powered statistics from GTR record submissions."
 		},
 		"popular": {
 			"title": "Popular levels",

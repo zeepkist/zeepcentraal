@@ -23,7 +23,7 @@
 			</span>
 		</span>
 		<TablerIcon
-			:name="action.external ? 'external-link' : 'arrow-right'"
+			:name="action.external ? 'external-link' : 'chevron-right'"
 			class="size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
 		/>
 	</NuxtLink>

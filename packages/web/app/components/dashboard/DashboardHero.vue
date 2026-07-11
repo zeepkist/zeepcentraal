@@ -55,7 +55,7 @@
 						<span class="font-semibold">{{ loginPrompt.label }}</span>
 						<UButton
 							color="primary"
-							variant="solid"
+							variant="outline"
 							size="sm"
 							@click="$emit('login', 'steam')"
 						>
@@ -64,8 +64,8 @@
 						</UButton>
 						<span class="text-muted-foreground">{{ loginPrompt.orLabel }}</span>
 						<UButton
-							color="secondary"
-							variant="solid"
+							color="primary"
+							variant="outline"
 							size="sm"
 							@click="$emit('login', 'discord')"
 						>

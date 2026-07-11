@@ -7,10 +7,12 @@ import { computed } from 'vue'
 import { type TablerIconName, tablerIcons } from '~/utils/icons'
 
 const props = defineProps<{
-	name: string
+	name: TablerIconName
 }>()
 
-const iconComponent = computed(
-	() => tablerIcons[props.name as TablerIconName] ?? tablerIcons.dashboard,
-)
+if (!tablerIcons[props.name]) {
+	console.warn(`TablerIcon: Icon "${props.name}" not found.`)
+}
+
+const iconComponent = computed(() => tablerIcons[props.name] ?? tablerIcons.dashboard)
 </script>

@@ -259,7 +259,7 @@ const hero = computed(() => {
 			{
 				label: t('dashboard.hero.metrics.personalBests'),
 				value: numberFormat.format(viewer.personalBestGlobals.totalCount),
-				icon: 'trending-up',
+				icon: 'star',
 			},
 			{
 				label: t('dashboard.hero.metrics.worldRecords'),
@@ -322,13 +322,13 @@ const liveMetrics = computed(() => {
 			key: 'records',
 			label: t('dashboard.metrics.records'),
 			value: numberFormat.format(data?.records?.totalCount ?? 0),
-			icon: 'trophy',
+			icon: 'clock-bolt',
 		},
 		{
 			key: 'pbs',
 			label: t('dashboard.metrics.personalBests'),
 			value: numberFormat.format(data?.personalBestGlobals?.totalCount ?? 0),
-			icon: 'dashboard',
+			icon: 'star',
 		},
 		{
 			key: 'wrs',
@@ -346,7 +346,7 @@ const liveMetrics = computed(() => {
 			key: 'votes',
 			label: t('dashboard.metrics.votes'),
 			value: numberFormat.format(data?.votes?.totalCount ?? 0),
-			icon: 'dashboard',
+			icon: 'trending-up',
 		},
 		{
 			key: 'active',
