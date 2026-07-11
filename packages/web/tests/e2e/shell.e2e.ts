@@ -122,6 +122,22 @@ for (const path of ['/zsl', '/zsl/7', '/zsl/7/44', '/zsl/7/44/615'] as const) {
 	})
 }
 
+test('personal records redirects logged-out players', async ({ page }) => {
+	await page.goto('/records/me')
+	await expect(page).toHaveURL('/records')
+})
+
+test('record detail placeholder is noindex', async ({ page }) => {
+	await page.goto('/record/123')
+	await expect(
+		page.getByRole('heading', { name: 'Record details are coming next' }),
+	).toBeVisible()
+	await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+		'content',
+		'noindex, nofollow',
+	)
+})
+
 test('records live subscription renders', async ({ page }) => {
 	await page.goto('/records')
 	await expect(

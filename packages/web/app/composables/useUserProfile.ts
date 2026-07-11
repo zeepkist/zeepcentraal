@@ -128,7 +128,8 @@ export function useUserProfile(steamId: Ref<string>) {
 								levelName:
 									node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
 								rank: node.levelPosition,
-								value: node.playerDecayedPoints,
+								rankedPoints: node.playerDecayedPoints,
+								nonDecayedPoints: node.levelDecayedPoints,
 							},
 						]
 					: [],
@@ -149,7 +150,10 @@ export function useUserProfile(steamId: Ref<string>) {
 								levelName:
 									node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
 								rank: node.userPointContributions.nodes[0]?.levelPosition,
-								value: node.userPointContributions.nodes[0]?.playerDecayedPoints,
+								rankedPoints:
+									node.userPointContributions.nodes[0]?.playerDecayedPoints,
+								nonDecayedPoints:
+									node.userPointContributions.nodes[0]?.levelDecayedPoints,
 							},
 						]
 					: [],

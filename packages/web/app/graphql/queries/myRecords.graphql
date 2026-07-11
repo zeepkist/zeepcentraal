@@ -1,4 +1,12 @@
-query ZC_UserResults(
+query ZC_MyRecordCount($id: Int!) {
+	user(id: $id) {
+		records(first: 0) {
+			totalCount
+		}
+	}
+}
+
+query ZC_MyRecords(
 	$first: Int
 	$after: Cursor
 	$last: Int
@@ -35,10 +43,9 @@ query ZC_UserResults(
 				}
 				userPointContributions(first: 1) {
 					nodes {
+						levelPosition
 						playerDecayedPoints
 						levelDecayedPoints
-						levelPosition
-						contributionRank
 					}
 				}
 			}

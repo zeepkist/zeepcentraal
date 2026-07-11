@@ -32,7 +32,8 @@ export type RecordRow = {
 	levelXxHash?: string | null
 	levelName?: string | null
 	rank?: number | null
-	value?: number | null
+	rankedPoints?: number | null
+	nonDecayedPoints?: number | null
 	worldRecord?: boolean
 	viewer?: boolean
 }

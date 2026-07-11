@@ -266,6 +266,43 @@
 				"title": "ZSL"
 			},
 			"title": "ZSL results"
+		},
+		"myRecords": {
+			"eyebrow": "Your racing history",
+			"title": "Your records",
+			"description": "Review every submitted run, personal best, and world record from newest to oldest.",
+			"seo": {
+				"title": "Your records · ZeepCentraal",
+				"description": "Review your latest Zeepkist records, personal bests, world records, ranks, and ranked points."
+			},
+			"tabs": {
+				"label": "Record view",
+				"recent": "Recent records",
+				"personalBests": "Personal bests",
+				"worldRecords": "World records"
+			},
+			"setup": {
+				"title": "Start building your racing history",
+				"description": "Install Modkist and GTR to submit completed Zeepkist runs automatically, join global leaderboards, and replay personal-best and world-record ghosts.",
+				"action": "Setup Modkist and GTR"
+			},
+			"empty": "No records found in this view.",
+			"table": {
+				"set": "Set",
+				"notRanked": "Not ranked",
+				"nonDecayed": "{points} before global decay",
+				"openRecord": "Open record for {level}"
+			}
+		},
+		"recordDetail": {
+			"title": "Record details are coming next",
+			"description": "Record #{id} has a permanent page. Full telemetry, replay, and comparison tools will appear here.",
+			"back": "Back to records",
+			"notFound": "Record not found",
+			"seo": {
+				"title": "Record #{id} · ZeepCentraal",
+				"description": "ZeepCentraal record detail page."
+			}
 		}
 	},
 	"placeholders": {
