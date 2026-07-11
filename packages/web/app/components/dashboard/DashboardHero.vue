@@ -48,6 +48,21 @@
 						<p class="mt-2 text-xl font-black tabular-nums">{{ metric.value }}</p>
 					</div>
 				</div>
+				<div
+					v-if="loginPrompt"
+					class="mt-7 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/35 p-3 text-sm backdrop-blur-sm"
+				>
+					<span class="font-semibold">{{ loginPrompt.label }}</span>
+					<UButton color="neutral" variant="soft" size="sm" @click="$emit('login', 'steam')">
+						<TablerIcon name="brand-steam" class="size-4" />
+						{{ loginPrompt.steamLabel }}
+					</UButton>
+					<span class="text-muted-foreground">{{ loginPrompt.orLabel }}</span>
+					<UButton color="neutral" variant="soft" size="sm" @click="$emit('login', 'discord')">
+						<TablerIcon name="brand-discord" class="size-4" />
+						{{ loginPrompt.discordLabel }}
+					</UButton>
+				</div>
 			</div>
 			<div
 				v-if="panel"
@@ -86,5 +101,15 @@ defineProps<{
 	metrics?: HeroMetric[]
 	panel?: HeroPanel
 	pending?: boolean
+	loginPrompt?: {
+		label: string
+		steamLabel: string
+		discordLabel: string
+		orLabel: string
+	}
+}>()
+
+defineEmits<{
+	login: [provider: 'steam' | 'discord']
 }>()
 </script>

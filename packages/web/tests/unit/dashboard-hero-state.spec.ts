@@ -31,6 +31,18 @@ describe('dashboard hero state', () => {
 		)
 	})
 
+	it('wires anonymous Steam and Discord login actions through the page', () => {
+		const page = readFileSync(new URL('../../app/pages/index.vue', import.meta.url), 'utf8')
+		const hero = readFileSync(
+			new URL('../../app/components/dashboard/DashboardHero.vue', import.meta.url),
+			'utf8',
+		)
+		expect(page).toContain('<DashboardHero v-bind="hero" @login="login" />')
+		expect(page).toContain('const { login } = useAccountActions()')
+		expect(hero).toContain("$emit('login', 'steam')")
+		expect(hero).toContain("$emit('login', 'discord')")
+	})
+
 	it('shows the active state for players with records', () => {
 		expect(resolveDashboardHeroState(true, true, 1)).toBe('active-player')
 	})

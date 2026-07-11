@@ -9,7 +9,7 @@
 			:description="$t('auth.verificationFailed.description')"
 		/>
 
-		<DashboardHero v-bind="hero" />
+		<DashboardHero v-bind="hero" @login="login" />
 
 		<section aria-labelledby="live-stats-heading">
 			<SectionHeader id="live-stats-heading" :title="$t('dashboard.liveStats.title')" :description="$t('dashboard.liveStats.description')" />
@@ -146,6 +146,7 @@ usePageSeo('home')
 const { t } = useI18n()
 const route = useRoute()
 const session = useSessionStore()
+const { login } = useAccountActions()
 const user = computed(() => session.user)
 const authCallback = route.query.auth === 'callback'
 const { verificationFailed: authVerificationFailed } = useAuthCallbackVerification(authCallback)
@@ -167,6 +168,12 @@ const hero = computed(() => {
 			title: t('dashboard.hero.anonymous.title'),
 			description: t('dashboard.hero.anonymous.description'),
 			metrics: [],
+			loginPrompt: {
+				label: t('dashboard.hero.anonymous.loginPrompt.label'),
+				steamLabel: t('dashboard.hero.anonymous.loginPrompt.steam'),
+				discordLabel: t('dashboard.hero.anonymous.loginPrompt.discord'),
+				orLabel: t('dashboard.hero.anonymous.loginPrompt.or'),
+			},
 			panel: {
 				title: t('dashboard.hero.anonymous.panel.title'),
 				description: t('dashboard.hero.anonymous.panel.description'),

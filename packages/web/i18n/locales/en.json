@@ -334,6 +334,12 @@
 						"workshop": "Thousands of community levels through Steam Workshop",
 						"community": "Live records, rankings, and competitive events"
 					}
+				},
+				"loginPrompt": {
+					"label": "Already have GTR? Login with",
+					"steam": "Steam",
+					"discord": "Discord",
+					"or": "or"
 				}
 			},
 			"new": {
