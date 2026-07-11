@@ -2,22 +2,22 @@
 
 ## Foundation
 
-- [ ] Keep pages/composables responsible for requests; components receive typed data only.
-- [ ] Use generated GraphQL documents from `app/graphql/queries` and `app/graphql/subscriptions`.
-- [ ] Use cursor pagination with exact `first`/`last` values; never use `offset`.
-- [ ] Seed live panels through SSR, then subscribe after hydration.
-- [ ] Keep all interface copy in `i18n/locales/en.json`.
-- [ ] Route non-GraphQL external requests through Nitro server routes.
-- [ ] Add reusable loading, empty, error, metric, level, record, user and pagination components.
+- [x] Keep pages/composables responsible for requests; components receive typed data only.
+- [x] Use generated GraphQL documents from `app/graphql/queries` and `app/graphql/subscriptions`.
+- [x] Use cursor pagination with exact `first`/`last` values; never use `offset`.
+- [x] Seed live panels through SSR, then subscribe after hydration.
+- [x] Keep all interface copy in `i18n/locales/en.json`.
+- [x] Route non-GraphQL external requests through Nitro server routes.
+- [x] Add reusable loading, empty, error, metric, level, record, user and pagination components.
 
 ## Dashboard
 
-- [ ] Show eight popular and eight latest levels.
-- [ ] Show ten recent world records and personal bests through SSR-backed subscriptions.
-- [ ] Show live record, PB, WR, level, vote and rolling 24-hour active-player totals.
-- [ ] Show aggregate distance, airtime, terrain and control statistics with charts.
-- [ ] Proxy and cache five Zeepkist Steam announcements.
-- [ ] Switch hero content for anonymous, new and active logged-in users.
+- [x] Show eight popular and eight latest levels.
+- [x] Show ten recent world records and personal bests through SSR-backed subscriptions.
+- [x] Show live record, PB, WR, level, vote and rolling 24-hour active-player totals.
+- [x] Show aggregate distance, airtime, terrain and control statistics with charts.
+- [x] Proxy and cache five Zeepkist Steam announcements.
+- [x] Switch hero content for anonymous, new and active logged-in users.
 
 ## Levels and users
 

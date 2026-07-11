@@ -16,7 +16,22 @@
 		"steam": "Sign in with Steam"
 	},
 	"common": {
-		"placeholder": "Foundation placeholder"
+		"placeholder": "Foundation placeholder",
+		"adventure": "Adventure",
+		"points": "Points",
+		"records": "Records",
+		"rank": "Rank",
+		"user": "Player",
+		"level": "Level",
+		"time": "Time",
+		"date": "Date",
+		"live": "Live",
+		"loading": "Loading data",
+		"error": "Unable to load data",
+		"empty": "No results found",
+		"previous": "Previous",
+		"next": "Next",
+		"pagination": "Results pagination"
 	},
 	"error": {
 		"action": "Return home",
@@ -254,6 +269,84 @@
 				"label": "Record data",
 				"value": "Ready"
 			}
+		}
+	},
+	"dashboard": {
+		"hero": {
+			"anonymous": {
+				"eyebrow": "Start racing",
+				"title": "Race, improve, climb.",
+				"description": "Discover Zeepkist, install community tools, and join the live global leaderboards."
+			},
+			"new": {
+				"eyebrow": "Welcome, {name}",
+				"title": "Connect your first run.",
+				"description": "Install ModKist and GTR so completed runs can join ZeepCentraal."
+			},
+			"active": {
+				"eyebrow": "Your racing dashboard",
+				"title": "Welcome back, {name}",
+				"description": "{records} records, {pbs} personal bests, and {wrs} world records submitted."
+			},
+			"steam": "Get Zeepkist",
+			"modkist": "Install ModKist",
+			"gtr": "Install GTR",
+			"profile": "Open profile"
+		},
+		"liveStats": {
+			"title": "ZeepCentraal live",
+			"description": "Current totals update from GraphQL subscriptions."
+		},
+		"popular": {
+			"title": "Popular levels",
+			"description": "Levels with highest current popularity score."
+		},
+		"latest": {
+			"title": "Latest levels",
+			"description": "Newest levels indexed by ZeepCentraal."
+		},
+		"viewerRecords": {
+			"title": "Your recent records",
+			"description": "Latest runs submitted from GTR."
+		},
+		"viewerLevels": {
+			"title": "Your workshop levels",
+			"description": "Latest published levels discovered on Steam Workshop."
+		},
+		"worldRecords": {
+			"title": "Recent world records",
+			"description": "Ten latest global record changes."
+		},
+		"personalBests": {
+			"title": "Recent personal bests",
+			"description": "Ten latest player improvements."
+		},
+		"totals": {
+			"title": "Every kilometre counts",
+			"description": "Totals aggregated from submitted record telemetry.",
+			"kilometres": "Kilometres",
+			"chart": {
+				"distance": "Driven",
+				"air": "Airborne",
+				"ragdoll": "Ragdoll"
+			}
+		},
+		"news": {
+			"title": "Zeepkist announcements",
+			"description": "Latest official Steam news."
+		},
+		"metrics": {
+			"records": "Records",
+			"personalBests": "Personal bests",
+			"worldRecords": "World records",
+			"levels": "Levels",
+			"votes": "Votes",
+			"activePlayers": "Active players (24h)",
+			"distance": "Distance driven",
+			"airtime": "Airtime",
+			"ragdoll": "Ragdoll distance",
+			"horns": "Horn uses",
+			"brakes": "Brake uses"
 		}
 	}
 }

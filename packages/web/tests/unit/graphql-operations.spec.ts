@@ -36,7 +36,9 @@ describe('GraphQL operation conventions', () => {
 		for (const file of filesUnder(composablesDir, '.ts')) {
 			const source = readFileSync(file, 'utf8')
 			if (source.includes('useQuery') || source.includes('useSubscription')) {
-				expect(source).toContain('.graphql')
+				expect(
+					source.includes('.graphql') || source.includes('~/graphql/generated/graphql'),
+				).toBe(true)
 				expect(source).not.toContain('query ZC_')
 				expect(source).not.toContain('subscription ZC_')
 			}

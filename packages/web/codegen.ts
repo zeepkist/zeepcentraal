@@ -6,6 +6,7 @@ const config: CodegenConfig = {
 	generates: {
 		'app/graphql/generated/': {
 			preset: 'client',
+			presetConfig: { fragmentMasking: false },
 			config: {
 				useTypeImports: true,
 			},

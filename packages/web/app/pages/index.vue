@@ -1,57 +1,242 @@
 <template>
-	<UContainer class="py-2">
-		<PageHeader
-			:eyebrow="$t('pages.home.eyebrow')"
-			:title="$t('pages.home.title')"
-			:description="$t('pages.home.description')"
-		/>
+	<UContainer class="space-y-8 py-2">
+		<DashboardHero v-bind="hero" />
 
-		<div class="grid gap-4 md:grid-cols-3">
-			<StatCard
-				icon="map"
-				:label="$t('home.stats.levels')"
-				:value="stats.levels"
+		<section aria-labelledby="live-stats-heading">
+			<SectionHeader id="live-stats-heading" :title="$t('dashboard.liveStats.title')" :description="$t('dashboard.liveStats.description')" />
+			<MetricGrid :metrics="liveMetrics" />
+		</section>
+
+		<section aria-labelledby="popular-levels-heading">
+			<SectionHeader id="popular-levels-heading" :title="$t('dashboard.popular.title')" :description="$t('dashboard.popular.description')" />
+			<DataState
+				:pending="dashboard.query.fetching.value"
+				:error="dashboard.query.error.value?.message"
+				:empty="dashboard.popularLevels.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<LevelGrid :levels="dashboard.popularLevels.value" v-bind="levelLabels" />
+			</DataState>
+		</section>
+
+		<section aria-labelledby="latest-levels-heading">
+			<SectionHeader id="latest-levels-heading" :title="$t('dashboard.latest.title')" :description="$t('dashboard.latest.description')" />
+			<LevelGrid :levels="dashboard.latestLevels.value" v-bind="levelLabels" />
+		</section>
+
+		<section v-if="dashboard.viewerRecords.value.length" aria-labelledby="viewer-records-heading">
+			<SectionHeader id="viewer-records-heading" :title="$t('dashboard.viewerRecords.title')" :description="$t('dashboard.viewerRecords.description')" />
+			<RecordTable :records="dashboard.viewerRecords.value" v-bind="recordLabels" show-level />
+		</section>
+
+		<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
+			<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
+			<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="levelLabels" />
+		</section>
+
+		<div class="grid gap-6 xl:grid-cols-2">
+			<DashboardRecordFeed
+				:title="$t('dashboard.worldRecords.title')"
+				:description="$t('dashboard.worldRecords.description')"
+				:live-label="$t('common.live')"
+				:records="dashboard.worldRecordRecords.value"
+				v-bind="recordLabels"
 			/>
-			<StatCard
-				icon="users"
-				:label="$t('home.stats.players')"
-				:value="stats.players"
-			/>
-			<StatCard
-				icon="trophy"
-				:label="$t('home.stats.records')"
-				:value="stats.records"
+			<DashboardRecordFeed
+				:title="$t('dashboard.personalBests.title')"
+				:description="$t('dashboard.personalBests.description')"
+				:live-label="$t('common.live')"
+				:records="dashboard.personalBestRecords.value"
+				v-bind="recordLabels"
 			/>
 		</div>
 
-		<UCard class="mt-4 rounded-lg border-border bg-card/80">
-			<div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
-				<div>
-					<h2 class="text-2xl font-semibold">
-						{{ $t('home.portal.title') }}
-					</h2>
-					<p class="mt-2 text-muted-foreground">
-						{{ $t('home.portal.description') }}
-					</p>
-				</div>
-				<ExternalPromos />
+		<section aria-labelledby="distance-heading">
+			<SectionHeader id="distance-heading" :title="$t('dashboard.totals.title')" :description="$t('dashboard.totals.description')" />
+			<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+				<MetricGrid :metrics="totalMetrics" />
+				<UCard class="rounded-xl border-border bg-card/85">
+					<BarChart :data="distanceChart" :categories="distanceCategories" :height="300" :x-formatter="distanceLabel" />
+				</UCard>
 			</div>
-		</UCard>
+		</section>
+
+		<SteamNewsFeed
+			:title="$t('dashboard.news.title')"
+			:description="$t('dashboard.news.description')"
+			:items="dashboard.news.data.value"
+		/>
 	</UContainer>
 </template>
 
 <script setup lang="ts">
-import { useQuery } from '@urql/vue'
-import ZcHomeStatsQuery from '~/graphql/queries/homeStats.graphql'
-
 usePageSeo('home')
 
-const { data } = useQuery({ query: ZcHomeStatsQuery })
-
+const { t } = useI18n()
+const { user } = await useCurrentUser()
+const viewerId = computed(() => user.value?.id)
+const dashboard = useDashboard(viewerId)
 const numberFormat = new Intl.NumberFormat()
-const stats = computed(() => ({
-	levels: numberFormat.format(data.value?.levels?.totalCount ?? 0),
-	players: numberFormat.format(data.value?.users?.totalCount ?? 0),
-	records: numberFormat.format(data.value?.records?.totalCount ?? 0),
+const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
+
+const hero = computed(() => {
+	const viewer = dashboard.viewer.value
+	if (!user.value) {
+		return {
+			eyebrow: t('dashboard.hero.anonymous.eyebrow'),
+			title: t('dashboard.hero.anonymous.title'),
+			description: t('dashboard.hero.anonymous.description'),
+			actions: externalActions(),
+		}
+	}
+	if (!viewer?.records?.totalCount) {
+		return {
+			eyebrow: t('dashboard.hero.new.eyebrow'),
+			title: t('dashboard.hero.new.title', {
+				name: user.value.steamName ?? user.value.steamId,
+			}),
+			description: t('dashboard.hero.new.description'),
+			actions: externalActions().filter((action) => !action.href.includes('steampowered')),
+		}
+	}
+	return {
+		eyebrow: t('dashboard.hero.active.eyebrow'),
+		title: t('dashboard.hero.active.title', {
+			name: user.value.steamName ?? user.value.steamId,
+		}),
+		description: t('dashboard.hero.active.description', {
+			records: viewer.records.totalCount,
+			pbs: viewer.personalBestGlobals.totalCount,
+			wrs: viewer.worldRecordGlobals.totalCount,
+		}),
+		actions: [
+			{
+				label: t('dashboard.hero.profile'),
+				href: `/user/${user.value.steamId}`,
+				icon: 'users',
+			},
+		],
+	}
+})
+
+function externalActions() {
+	return [
+		{
+			label: t('dashboard.hero.steam'),
+			href: 'https://store.steampowered.com/app/1440670/Zeepkist/',
+			icon: 'brand-steam',
+			external: true,
+		},
+		{
+			label: t('dashboard.hero.modkist'),
+			href: 'https://modkist.com/',
+			icon: 'plug',
+			external: true,
+		},
+		{
+			label: t('dashboard.hero.gtr'),
+			href: 'https://mod.io/g/zeepkist/m/zeepkist-gtr',
+			icon: 'trophy',
+			external: true,
+		},
+	]
+}
+
+const liveMetrics = computed(() => {
+	const data = dashboard.dashboard.value
+	return [
+		{
+			key: 'records',
+			label: t('dashboard.metrics.records'),
+			value: numberFormat.format(data?.records?.totalCount ?? 0),
+			icon: 'trophy',
+		},
+		{
+			key: 'pbs',
+			label: t('dashboard.metrics.personalBests'),
+			value: numberFormat.format(data?.personalBestGlobals?.totalCount ?? 0),
+			icon: 'dashboard',
+		},
+		{
+			key: 'wrs',
+			label: t('dashboard.metrics.worldRecords'),
+			value: numberFormat.format(data?.worldRecordGlobals?.totalCount ?? 0),
+			icon: 'trophy',
+		},
+		{
+			key: 'levels',
+			label: t('dashboard.metrics.levels'),
+			value: numberFormat.format(data?.levels?.totalCount ?? 0),
+			icon: 'map',
+		},
+		{
+			key: 'votes',
+			label: t('dashboard.metrics.votes'),
+			value: numberFormat.format(data?.votes?.totalCount ?? 0),
+			icon: 'dashboard',
+		},
+		{
+			key: 'active',
+			label: t('dashboard.metrics.activePlayers'),
+			value: numberFormat.format(data?.activeRecords?.aggregates?.distinctCount?.userId ?? 0),
+			icon: 'users',
+		},
+	]
+})
+
+const totals = computed(() => dashboard.dashboard.value?.recordStatistics?.aggregates?.sum)
+const totalMetrics = computed(() => [
+	{
+		key: 'distance',
+		label: t('dashboard.metrics.distance'),
+		value: `${oneDecimal.format((totals.value?.distance ?? 0) / 1000)} km`,
+		icon: 'route',
+	},
+	{
+		key: 'airtime',
+		label: t('dashboard.metrics.airtime'),
+		value: `${oneDecimal.format((totals.value?.timeInAir ?? 0) / 3600)} h`,
+		icon: 'dashboard',
+	},
+	{
+		key: 'ragdoll',
+		label: t('dashboard.metrics.ragdoll'),
+		value: `${oneDecimal.format((totals.value?.distanceRagdoll ?? 0) / 1000)} km`,
+		icon: 'route',
+	},
+	{
+		key: 'horns',
+		label: t('dashboard.metrics.horns'),
+		value: numberFormat.format(totals.value?.hornCount ?? 0),
+		icon: 'dashboard',
+	},
+	{
+		key: 'brakes',
+		label: t('dashboard.metrics.brakes'),
+		value: numberFormat.format(totals.value?.brakeCount ?? 0),
+		icon: 'dashboard',
+	},
+])
+const distanceChart = computed(() => [
+	{ key: 'distance', value: (totals.value?.distance ?? 0) / 1000 },
+	{ key: 'air', value: (totals.value?.distanceInAir ?? 0) / 1000 },
+	{ key: 'ragdoll', value: (totals.value?.distanceRagdoll ?? 0) / 1000 },
+])
+const distanceCategories = { value: { name: t('dashboard.totals.kilometres'), color: '#facc15' } }
+const distanceLabel = (index: number) =>
+	t(`dashboard.totals.chart.${distanceChart.value[index]?.key ?? 'distance'}`)
+const levelLabels = computed(() => ({
+	adventureLabel: t('common.adventure'),
+	pointsLabel: t('common.points'),
+	recordsLabel: t('common.records'),
+}))
+const recordLabels = computed(() => ({
+	rankLabel: t('common.rank'),
+	userLabel: t('common.user'),
+	levelLabel: t('common.level'),
+	timeLabel: t('common.time'),
+	dateLabel: t('common.date'),
 }))
 </script>
