@@ -9,9 +9,24 @@
 		</template>
 
 		<template #right>
-			<LocaleSwitcher />
+			<LocaleSwitcher
+				v-if="!session.user"
+				:label="t('actions.locale')"
+				:locale="locale"
+				:options="localeOptions"
+				@select="selectLocale"
+			/>
 			<ThemeToggle />
-			<AuthMenu />
+			<AuthMenu
+				:user="session.user"
+				:locale="locale"
+				:locale-options="localeOptions"
+				:labels="accountLabels"
+				@locale="selectLocale"
+				@logout="logout"
+				@steam="login('steam')"
+				@discord="login('discord')"
+			/>
 		</template>
 
 		<template #body>
@@ -21,12 +36,30 @@
 </template>
 
 <script setup lang="ts">
-const { t } = useI18n()
+import type { LocaleOption } from '~/types/app'
 
-const mobileItems = computed(() =>
-	mainNav.map((item) => ({
-		label: t(item.labelKey),
-		to: item.to,
-	})),
+const { t, locale, locales, setLocale } = useI18n()
+const session = useSessionStore()
+const { login, logout } = useAccountActions()
+
+const localeOptions = computed<LocaleOption[]>(() =>
+	locales.value.map((item) => ({ code: item.code, name: item.name ?? item.code })),
 )
+const accountLabels = computed(() => ({
+	account: t('auth.account'),
+	signIn: t('auth.signIn'),
+	profile: t('auth.profile'),
+	settings: t('auth.settings'),
+	language: t('auth.language'),
+	logout: t('auth.logout'),
+	steam: t('auth.steam'),
+	discord: t('auth.discord'),
+}))
+const mobileItems = computed(() =>
+	mainNav.map((item) => ({ label: t(item.labelKey), to: item.to })),
+)
+
+function selectLocale(code: string) {
+	void setLocale(code)
+}
 </script>

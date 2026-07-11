@@ -112,3 +112,8 @@ export type ZslStanding = {
 	steamName: string | null
 	time?: number
 }
+
+export type LocaleOption = {
+	code: string
+	name: string
+}

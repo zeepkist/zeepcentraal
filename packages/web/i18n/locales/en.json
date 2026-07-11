@@ -7,6 +7,10 @@
 	},
 	"auth": {
 		"account": "Account",
+		"profile": "View profile",
+		"settings": "Settings",
+		"language": "Language",
+		"logout": "Log out",
 		"discord": "Sign in with Discord",
 		"signIn": "Sign in",
 		"steam": "Sign in with Steam",
@@ -210,6 +214,15 @@
 			},
 			"title": "World records and personal bests"
 		},
+		"settings": {
+			"description": "Manage your ZeepCentraal account and connected services.",
+			"eyebrow": "Account",
+			"seo": {
+				"description": "Manage your ZeepCentraal account settings.",
+				"title": "Settings"
+			},
+			"title": "Settings"
+		},
 		"totd": {
 			"description": "Live track of the week tournament coverage placeholder.",
 			"eyebrow": "Track of the week",
@@ -347,6 +360,12 @@
 			"ragdoll": "Ragdoll distance",
 			"horns": "Horn uses",
 			"brakes": "Brake uses"
+		}
+	},
+	"settings": {
+		"account": {
+			"title": "Account settings",
+			"description": "Additional account controls and connected-service settings will appear here."
 		}
 	},
 	"users": {

@@ -13,13 +13,19 @@ import {
 	IconFlag,
 	IconLayoutSidebarLeftCollapse,
 	IconLayoutSidebarLeftExpand,
+	IconLogin2,
+	IconLogout2,
 	IconMap,
 	IconPalette,
 	IconPlug,
 	IconRoute,
 	IconSearch,
+	IconSettings,
 	IconTrophy,
+	IconUser,
+	IconUserCircle,
 	IconUsers,
+	IconWorld,
 } from '@tabler/icons-vue'
 
 export const tablerIcons = {
@@ -35,15 +41,21 @@ export const tablerIcons = {
 	'database-off': IconDatabaseOff,
 	'exclamation-circle': IconExclamationCircle,
 	flag: IconFlag,
+	login: IconLogin2,
+	logout: IconLogout2,
 	map: IconMap,
 	palette: IconPalette,
 	plug: IconPlug,
 	route: IconRoute,
 	search: IconSearch,
+	settings: IconSettings,
 	'sidebar-collapse': IconLayoutSidebarLeftCollapse,
 	'sidebar-expand': IconLayoutSidebarLeftExpand,
 	trophy: IconTrophy,
+	user: IconUser,
+	'user-circle': IconUserCircle,
 	users: IconUsers,
+	world: IconWorld,
 }
 
 export type TablerIconName = keyof typeof tablerIcons
