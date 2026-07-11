@@ -33,7 +33,8 @@ function cookieDomain() {
 	return {
 		backendUrl,
 		frontendUrl,
-		domain: isLocal ? 'localhost' : `.${new URL(frontendUrl).hostname}`,
+		domain: isLocal ? null : `.${new URL(frontendUrl).hostname}`,
+		secure: !isLocal,
 	}
 }
 
@@ -50,21 +51,23 @@ function buildSetCookieHeaders({
 	refreshTokenExpiry: bigint
 	steamId: string
 }) {
-	const { domain } = cookieDomain()
+	const { domain, secure } = cookieDomain()
 	const expiresIn = (expiry: bigint) => Math.max(Number(expiry * 1000n) - Date.now(), 0)
+	const domainAttribute = domain ? `Domain=${domain}; ` : ''
+	const secureAttribute = secure ? 'Secure; ' : ''
 
 	const accessMaxAge = Math.round(expiresIn(accessTokenExpiry) / 1000)
 	const refreshMaxAge = Math.round(expiresIn(refreshTokenExpiry) / 1000)
-	const accessCookie = `${COOKIES.AccessToken}=${encodeURIComponent(accessToken)}; Path=/; Max-Age=${accessMaxAge}; Domain=${domain}; SameSite=Lax; ${domain === 'localhost' ? '' : 'Secure; '}HttpOnly`
-	const refreshCookie = `${COOKIES.RefreshToken}=${encodeURIComponent(refreshToken)}; Path=/; Max-Age=${refreshMaxAge}; Domain=${domain}; SameSite=Lax; ${domain === 'localhost' ? '' : 'Secure; '}HttpOnly`
-	const steamIdCookie = `${COOKIES.SteamId}=${encodeURIComponent(steamId)}; Path=/; Max-Age=${refreshMaxAge}; Domain=${domain}; SameSite=Lax; ${domain === 'localhost' ? '' : 'Secure; '}`
+	const accessCookie = `${COOKIES.AccessToken}=${encodeURIComponent(accessToken)}; Path=/; Max-Age=${accessMaxAge}; ${domainAttribute}SameSite=Lax; ${secureAttribute}HttpOnly`
+	const refreshCookie = `${COOKIES.RefreshToken}=${encodeURIComponent(refreshToken)}; Path=/; Max-Age=${refreshMaxAge}; ${domainAttribute}SameSite=Lax; ${secureAttribute}HttpOnly`
+	const steamIdCookie = `${COOKIES.SteamId}=${encodeURIComponent(steamId)}; Path=/; Max-Age=${refreshMaxAge}; ${domainAttribute}SameSite=Lax; ${secureAttribute}`
 
 	return [accessCookie, refreshCookie, steamIdCookie]
 }
 
 function stateCookie(value: string, maxAge: number) {
-	const { domain } = cookieDomain()
-	return `${COOKIES.OAuthState}=${encodeURIComponent(value)}; Path=/auth/; Max-Age=${maxAge}; SameSite=Lax; ${domain === 'localhost' ? '' : 'Secure; '}HttpOnly`
+	const { secure } = cookieDomain()
+	return `${COOKIES.OAuthState}=${encodeURIComponent(value)}; Path=/auth/; Max-Age=${maxAge}; SameSite=Lax; ${secure ? 'Secure; ' : ''}HttpOnly`
 }
 
 function validState(headers: Record<string, string | undefined>, value?: string): boolean {
@@ -258,13 +261,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			discordId: discordUser.id,
 		})
 		const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
-		const cookies = buildSetCookieHeaders({
-			accessToken,
-			accessTokenExpiry,
-			refreshToken,
-			refreshTokenExpiry,
-			steamId: user.steamId.toString(),
-		})
+		const cookies = [
+			...buildSetCookieHeaders({
+				accessToken,
+				accessTokenExpiry,
+				refreshToken,
+				refreshTokenExpiry,
+				steamId: user.steamId.toString(),
+			}),
+		]
 
 		await insertAuth({
 			idUser: user.id,
@@ -278,7 +283,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			dateUpdated: new Date().toISOString(),
 		})
 
-		return redirectResponse(new URL('/auth/callback', cookieDomain().frontendUrl).href, [
+		return redirectResponse(new URL('/?auth=callback', cookieDomain().frontendUrl).href, [
 			...cookies,
 			stateCookie('', 0),
 		])
@@ -316,13 +321,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			steamId,
 		})
 		const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
-		const cookies = buildSetCookieHeaders({
-			accessToken,
-			accessTokenExpiry,
-			refreshToken,
-			refreshTokenExpiry,
-			steamId,
-		})
+		const cookies = [
+			...buildSetCookieHeaders({
+				accessToken,
+				accessTokenExpiry,
+				refreshToken,
+				refreshTokenExpiry,
+				steamId,
+			}),
+		]
 
 		await insertAuth({
 			idUser: user.id,
@@ -336,7 +343,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			dateUpdated: new Date().toISOString(),
 		})
 
-		return redirectResponse(new URL('/auth/callback', cookieDomain().frontendUrl).href, [
+		return redirectResponse(new URL('/?auth=callback', cookieDomain().frontendUrl).href, [
 			...cookies,
 			stateCookie('', 0),
 		])
@@ -374,13 +381,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			steamId: cookieSteamId,
 		})
 		const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
-		const nextCookies = buildSetCookieHeaders({
-			accessToken,
-			accessTokenExpiry,
-			refreshToken,
-			refreshTokenExpiry,
-			steamId: cookieSteamId,
-		})
+		const nextCookies = [
+			...buildSetCookieHeaders({
+				accessToken,
+				accessTokenExpiry,
+				refreshToken,
+				refreshTokenExpiry,
+				steamId: cookieSteamId,
+			}),
+		]
 
 		const rotated = await rotateAuth(user.id, cookieRefreshToken, {
 			idUser: user.id,

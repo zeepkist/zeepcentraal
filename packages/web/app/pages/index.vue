@@ -1,5 +1,14 @@
 <template>
 	<UContainer class="space-y-8 py-2">
+		<UAlert
+			v-if="authVerificationFailed"
+			data-testid="auth-verification-error"
+			color="error"
+			icon="i-lucide-circle-alert"
+			:title="$t('auth.verificationFailed.title')"
+			:description="$t('auth.verificationFailed.description')"
+		/>
+
 		<DashboardHero v-bind="hero" />
 
 		<section aria-labelledby="live-stats-heading">
@@ -100,7 +109,13 @@
 				<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
 					<MetricGrid :metrics="totalMetrics" />
 					<UCard class="rounded-xl border-border bg-card/85">
-						<BarChart :data="distanceChart" :categories="distanceCategories" :height="300" :x-formatter="distanceLabel" />
+						<BarChart
+							:data="distanceChart"
+							:categories="distanceCategories"
+							:y-axis="['value']"
+							:height="300"
+							:x-formatter="distanceLabel"
+						/>
 					</UCard>
 				</div>
 			</DataState>
@@ -129,11 +144,23 @@
 usePageSeo('home')
 
 const { t } = useI18n()
-const { user } = await useCurrentUser()
+const route = useRoute()
+const router = useRouter()
+const session = useSessionStore()
+const user = computed(() => session.user)
+const authCallback = route.query.auth === 'callback'
+const authVerificationFailed = ref(authCallback && !session.user)
 const viewerId = computed(() => user.value?.id)
 const dashboard = useDashboard(viewerId)
 const numberFormat = new Intl.NumberFormat()
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
+
+onMounted(async () => {
+	if (!authCallback) return
+	const query = { ...route.query }
+	delete query.auth
+	await router.replace({ query })
+})
 
 const hero = computed(() => {
 	const viewer = dashboard.viewer.value

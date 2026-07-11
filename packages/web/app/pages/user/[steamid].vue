@@ -26,7 +26,15 @@
 					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
 						<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
 							<MetricGrid :metrics="telemetryMetrics" />
-							<UCard class="rounded-xl border-border bg-card/85"><BarChart :data="chartData" :categories="chartCategories" :height="280" :x-formatter="chartLabel" /></UCard>
+							<UCard class="rounded-xl border-border bg-card/85">
+								<BarChart
+									:data="chartData"
+									:categories="chartCategories"
+									:y-axis="['value']"
+									:height="280"
+									:x-formatter="chartLabel"
+								/>
+							</UCard>
 						</div>
 					</DataState>
 				</section>

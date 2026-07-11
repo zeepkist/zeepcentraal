@@ -40,6 +40,38 @@ test('theme button is available', async ({ page }) => {
 	await page.getByRole('button', { name: 'Theme' }).click()
 })
 
+test('stale browser session cannot override SSR authentication', async ({ page }) => {
+	const hydrationWarnings: string[] = []
+	page.on('console', (message) => {
+		if (message.type() === 'warning' && message.text().includes('Hydration')) {
+			hydrationWarnings.push(message.text())
+		}
+	})
+	await page.addInitScript(() => {
+		localStorage.setItem(
+			'zeepcentraal_session',
+			JSON.stringify({ id: 1, steamId: '76561198000000000', steamName: 'Stale user' }),
+		)
+	})
+
+	await page.goto('/')
+	await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+	expect(hydrationWarnings).toEqual([])
+})
+
+test('failed OAuth callback reports verification failure and cleans the URL', async ({ page }) => {
+	await page.goto('/?auth=callback')
+	await expect(page.getByTestId('auth-verification-error')).toBeVisible()
+	await expect(page).toHaveURL('/')
+	await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
+})
+
+test('legacy OAuth callback redirects before rendering Vue', async ({ request }) => {
+	const response = await request.get('/auth/callback', { maxRedirects: 0 })
+	expect(response.status()).toBe(302)
+	expect(response.headers().location).toBe('/?auth=callback')
+})
+
 test('brand colours remain stable through hydration', async ({ context, page }) => {
 	const blockClientScripts = (route: Route) =>
 		route.request().resourceType() === 'script' ? route.abort() : route.continue()

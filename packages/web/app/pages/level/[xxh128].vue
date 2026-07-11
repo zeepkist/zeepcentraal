@@ -43,7 +43,13 @@
 						<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
 							<MetricGrid :metrics="statMetrics" />
 							<UCard class="rounded-xl border-border bg-card/85">
-								<BarChart :data="statChart" :categories="statCategories" :height="280" :x-formatter="statLabel" />
+								<BarChart
+									:data="statChart"
+									:categories="statCategories"
+									:y-axis="['value']"
+									:height="280"
+									:x-formatter="statLabel"
+								/>
 							</UCard>
 						</div>
 					</DataState>
@@ -88,7 +94,8 @@ import type { RecordRow } from '~/types/app'
 
 const route = useRoute()
 const { t } = useI18n()
-const { user } = await useCurrentUser()
+const session = useSessionStore()
+const user = computed(() => session.user)
 const xxHash = computed(() => String(route.params.xxh128))
 const viewerId = computed(() => user.value?.id)
 const levelData = useLevelDetail(xxHash, viewerId)

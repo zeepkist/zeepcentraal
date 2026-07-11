@@ -57,7 +57,7 @@ query ZC_DashboardCritical($activeSince: Datetime!) {
 
 query ZC_DashboardLevels {
 	popularLevels: levels(
-		first: 8
+		first: 6
 		filter: { levelPointExists: true, levelItems: { some: { deleted: { equalTo: false } } } }
 		orderBy: [LEVEL_POINTS_MODIFIER_POPULARITY_DESC]
 	) {
@@ -66,7 +66,7 @@ query ZC_DashboardLevels {
 		}
 	}
 	latestLevels: levels(
-		first: 8
+		first: 6
 		filter: { levelItems: { some: { deleted: { equalTo: false } } } }
 		orderBy: [DATE_CREATED_DESC]
 	) {

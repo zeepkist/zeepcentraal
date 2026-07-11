@@ -53,6 +53,9 @@ export default defineNuxtConfig({
 			backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL ?? productionBackendUrl,
 		},
 	},
+	routeRules: {
+		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },
+	},
 	vite: {
 		plugins: [graphql()],
 		optimizeDeps: {

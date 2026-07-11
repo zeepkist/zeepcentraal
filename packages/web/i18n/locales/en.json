@@ -7,13 +7,13 @@
 	},
 	"auth": {
 		"account": "Account",
-		"callback": {
-			"description": "Session refresh in progress.",
-			"title": "Completing sign in"
-		},
 		"discord": "Sign in with Discord",
 		"signIn": "Sign in",
-		"steam": "Sign in with Steam"
+		"steam": "Sign in with Steam",
+		"verificationFailed": {
+			"description": "Your sign-in cookies could not be matched to a current session. Please try signing in again.",
+			"title": "Sign-in verification failed"
+		}
 	},
 	"common": {
 		"placeholder": "Foundation placeholder",
