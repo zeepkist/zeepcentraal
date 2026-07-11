@@ -69,7 +69,9 @@ export type StatisticMetric = {
 	key: string
 	label: string
 	value: string
+	valueLabel?: string
 	icon?: string
+	details?: Array<{ label: string; value: string }>
 }
 
 export type CursorPage = {

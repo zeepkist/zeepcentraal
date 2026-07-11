@@ -27,31 +27,131 @@ fragment ZC_DashboardLevel on Level {
 	}
 }
 
-query ZC_DashboardCritical($activeSince: Datetime!) {
+query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
 	records(first: 0) {
+		totalCount
+	}
+	recordsDay: records(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }) {
+		totalCount
+	}
+	recordsMonth: records(
+		first: 0
+		filter: { dateCreated: { greaterThanOrEqualTo: $monthSince } }
+	) {
 		totalCount
 	}
 	personalBestGlobals(first: 0) {
 		totalCount
 	}
+	personalBestGlobalsDay: personalBestGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $daySince } } }
+	) {
+		totalCount
+	}
+	personalBestGlobalsMonth: personalBestGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $monthSince } } }
+	) {
+		totalCount
+	}
 	worldRecordGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobalsDay: worldRecordGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $daySince } } }
+	) {
+		totalCount
+	}
+	worldRecordGlobalsMonth: worldRecordGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $monthSince } } }
+	) {
 		totalCount
 	}
 	levels(first: 0) {
 		totalCount
 	}
+	levelsDay: levels(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }) {
+		totalCount
+	}
+	levelsMonth: levels(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $monthSince } }) {
+		totalCount
+	}
 	votes(first: 0) {
 		totalCount
 	}
-	activeRecords: records(
+	votesDay: votes(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }) {
+		totalCount
+	}
+	votesMonth: votes(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $monthSince } }) {
+		totalCount
+	}
+	totalUsers: users(first: 0, filter: { banned: { equalTo: false } }) {
+		totalCount
+	}
+	rankedUsers: users(
 		first: 0
-		filter: { dateCreated: { greaterThanOrEqualTo: $activeSince } }
-	) {
-		aggregates {
-			distinctCount {
-				userId
-			}
+		filter: {
+			banned: { equalTo: false }
+			userPointExists: true
+			userPoints: { rank: { notEqualTo: -1 } }
 		}
+	) {
+		totalCount
+	}
+	activeUsersDay: users(
+		first: 0
+		filter: {
+			banned: { equalTo: false }
+			or: [
+				{ records: { some: { dateCreated: { greaterThanOrEqualTo: $daySince } } } }
+				{
+					levelItems: {
+						some: {
+							createdAt: { greaterThanOrEqualTo: $daySince }
+							deleted: { equalTo: false }
+						}
+					}
+				}
+				{
+					zslLevelResults: {
+						some: {
+							level: { round: { eventDate: { greaterThanOrEqualTo: $daySince } } }
+						}
+					}
+				}
+			]
+		}
+	) {
+		totalCount
+	}
+	activeUsersMonth: users(
+		first: 0
+		filter: {
+			banned: { equalTo: false }
+			or: [
+				{ records: { some: { dateCreated: { greaterThanOrEqualTo: $monthSince } } } }
+				{
+					levelItems: {
+						some: {
+							createdAt: { greaterThanOrEqualTo: $monthSince }
+							deleted: { equalTo: false }
+						}
+					}
+				}
+				{
+					zslLevelResults: {
+						some: {
+							level: { round: { eventDate: { greaterThanOrEqualTo: $monthSince } } }
+						}
+					}
+				}
+			]
+		}
+	) {
+		totalCount
 	}
 }
 

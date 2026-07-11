@@ -5,12 +5,14 @@ import {
 	Zc_DashboardHeroStandingDocument,
 	Zc_DashboardHeroSummaryDocument,
 	Zc_DashboardLevelsDocument,
+	Zc_DashboardMetricsLiveDocument,
 	Zc_DashboardStatisticsDocument,
 	Zc_DashboardViewerContentDocument,
 	Zc_RecentPersonalBestsDocument,
 	Zc_RecentWorldRecordsDocument,
 } from '~/graphql/generated/graphql'
 import type { LevelSummary, RecordRow, SteamNewsItem } from '~/types/app'
+import { getDashboardMetricWindows } from '~/utils/dashboardMetrics'
 
 type DashboardRecordLike = {
 	id: number
@@ -87,9 +89,18 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 }
 
 export function useDashboard(viewerId: Ref<number | undefined>) {
-	const activeSince = useState('dashboard-active-since', () =>
-		new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-	)
+	const metricWindows = useState('dashboard-metric-windows', () => getDashboardMetricWindows())
+	let metricWindowTimer: ReturnType<typeof setInterval> | undefined
+	onMounted(() => {
+		const refreshWindows = () => {
+			metricWindows.value = getDashboardMetricWindows()
+		}
+		refreshWindows()
+		metricWindowTimer = setInterval(refreshWindows, 60_000)
+	})
+	onScopeDispose(() => {
+		if (metricWindowTimer) clearInterval(metricWindowTimer)
+	})
 	const levelsPrefetch = useViewportPrefetch()
 	const viewerPrefetch = useViewportPrefetch()
 	const recordsPrefetch = useViewportPrefetch()
@@ -98,7 +109,12 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 
 	const query = useQuery({
 		query: Zc_DashboardCriticalDocument,
-		variables: computed(() => ({ activeSince: activeSince.value })),
+		variables: metricWindows,
+	})
+	const metricsLive = useSubscription({
+		query: Zc_DashboardMetricsLiveDocument,
+		variables: metricWindows,
+		pause: computed(() => import.meta.server),
 	})
 	const levelsQuery = useQuery({
 		query: Zc_DashboardLevelsDocument,
@@ -148,7 +164,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		{ immediate: true },
 	)
 
-	const dashboard = query.data
+	const dashboard = computed(() => metricsLive.data.value?.query ?? query.data.value)
 	const viewer = computed(() => viewerQuery.data.value?.user)
 	const viewerStanding = computed(
 		() => viewerStandingQuery.data.value?.zslSeasonResults?.nodes[0],
@@ -200,6 +216,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	return {
 		dashboard,
 		latestSeason,
+		metricsLive,
 		latestLevels,
 		levelsActive: levelsPrefetch.active,
 		levelsQuery,

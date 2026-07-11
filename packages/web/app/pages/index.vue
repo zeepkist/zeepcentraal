@@ -317,42 +317,80 @@ const hero = computed(() => {
 
 const liveMetrics = computed(() => {
 	const data = dashboard.dashboard.value
+	const details = (day: number | undefined, month: number | undefined) => [
+		{
+			label: t('dashboard.metrics.past24Hours'),
+			value: numberFormat.format(day ?? 0),
+		},
+		{
+			label: t('dashboard.metrics.thisMonth'),
+			value: numberFormat.format(month ?? 0),
+		},
+	]
+	const rankedPlayers = numberFormat.format(data?.rankedUsers?.totalCount ?? 0)
+	const activePlayersDay = numberFormat.format(data?.activeUsersDay?.totalCount ?? 0)
+
 	return [
 		{
 			key: 'records',
 			label: t('dashboard.metrics.records'),
 			value: numberFormat.format(data?.records?.totalCount ?? 0),
 			icon: 'clock-bolt',
+			details: details(data?.recordsDay?.totalCount, data?.recordsMonth?.totalCount),
 		},
 		{
 			key: 'pbs',
 			label: t('dashboard.metrics.personalBests'),
 			value: numberFormat.format(data?.personalBestGlobals?.totalCount ?? 0),
 			icon: 'star',
+			details: details(
+				data?.personalBestGlobalsDay?.totalCount,
+				data?.personalBestGlobalsMonth?.totalCount,
+			),
 		},
 		{
 			key: 'wrs',
 			label: t('dashboard.metrics.worldRecords'),
 			value: numberFormat.format(data?.worldRecordGlobals?.totalCount ?? 0),
 			icon: 'trophy',
+			details: details(
+				data?.worldRecordGlobalsDay?.totalCount,
+				data?.worldRecordGlobalsMonth?.totalCount,
+			),
 		},
 		{
 			key: 'levels',
 			label: t('dashboard.metrics.levels'),
 			value: numberFormat.format(data?.levels?.totalCount ?? 0),
 			icon: 'map',
+			details: details(data?.levelsDay?.totalCount, data?.levelsMonth?.totalCount),
 		},
 		{
 			key: 'votes',
 			label: t('dashboard.metrics.votes'),
 			value: numberFormat.format(data?.votes?.totalCount ?? 0),
 			icon: 'trending-up',
+			details: details(data?.votesDay?.totalCount, data?.votesMonth?.totalCount),
 		},
 		{
-			key: 'active',
-			label: t('dashboard.metrics.activePlayers'),
-			value: numberFormat.format(data?.activeRecords?.aggregates?.distinctCount?.userId ?? 0),
+			key: 'players',
+			label: t('dashboard.metrics.rankedPlayers'),
+			value: `${rankedPlayers} (${activePlayersDay})`,
+			valueLabel: t('dashboard.metrics.rankedPlayersValueLabel', {
+				rankedPlayers,
+				activePlayers: activePlayersDay,
+			}),
 			icon: 'users',
+			details: [
+				{
+					label: t('dashboard.metrics.totalPlayers'),
+					value: numberFormat.format(data?.totalUsers?.totalCount ?? 0),
+				},
+				{
+					label: t('dashboard.metrics.activeThisMonth'),
+					value: numberFormat.format(data?.activeUsersMonth?.totalCount ?? 0),
+				},
+			],
 		},
 	]
 })
