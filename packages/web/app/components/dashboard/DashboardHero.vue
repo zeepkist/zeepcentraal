@@ -24,9 +24,9 @@
 		</div>
 		<div
 			v-else
-			class="hero-enter relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-center"
+			class="hero-enter relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-stretch"
 		>
-			<div class="min-w-0">
+			<div class="flex min-w-0 flex-col">
 				<h1 class="max-w-3xl text-3xl font-black tracking-tight text-balance md:text-5xl">
 					{{ title }}
 				</h1>
@@ -48,20 +48,31 @@
 						<p class="mt-2 text-xl font-black tabular-nums">{{ metric.value }}</p>
 					</div>
 				</div>
-				<div
-					v-if="loginPrompt"
-					class="mt-7 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/35 p-3 text-sm backdrop-blur-sm"
-				>
-					<span class="font-semibold">{{ loginPrompt.label }}</span>
-					<UButton color="neutral" variant="soft" size="sm" @click="$emit('login', 'steam')">
-						<TablerIcon name="brand-steam" class="size-4" />
-						{{ loginPrompt.steamLabel }}
-					</UButton>
-					<span class="text-muted-foreground">{{ loginPrompt.orLabel }}</span>
-					<UButton color="neutral" variant="soft" size="sm" @click="$emit('login', 'discord')">
-						<TablerIcon name="brand-discord" class="size-4" />
-						{{ loginPrompt.discordLabel }}
-					</UButton>
+				<div v-if="loginPrompt" class="mt-7 lg:mt-auto lg:pt-7">
+					<div
+						class="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/35 p-3 text-sm backdrop-blur-sm"
+					>
+						<span class="font-semibold">{{ loginPrompt.label }}</span>
+						<UButton
+							color="primary"
+							variant="solid"
+							size="sm"
+							@click="$emit('login', 'steam')"
+						>
+							<TablerIcon name="brand-steam" class="size-4" />
+							{{ loginPrompt.steamLabel }}
+						</UButton>
+						<span class="text-muted-foreground">{{ loginPrompt.orLabel }}</span>
+						<UButton
+							color="secondary"
+							variant="solid"
+							size="sm"
+							@click="$emit('login', 'discord')"
+						>
+							<TablerIcon name="brand-discord" class="size-4" />
+							{{ loginPrompt.discordLabel }}
+						</UButton>
+					</div>
 				</div>
 			</div>
 			<div

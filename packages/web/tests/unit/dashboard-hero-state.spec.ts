@@ -41,6 +41,10 @@ describe('dashboard hero state', () => {
 		expect(page).toContain('const { login } = useAccountActions()')
 		expect(hero).toContain("$emit('login', 'steam')")
 		expect(hero).toContain("$emit('login', 'discord')")
+		expect(hero).toContain('lg:items-stretch')
+		expect(hero).toContain('lg:mt-auto')
+		expect(hero).toContain('color="primary"')
+		expect(hero).toContain('color="secondary"')
 	})
 
 	it('shows the active state for players with records', () => {
