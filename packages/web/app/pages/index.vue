@@ -166,7 +166,6 @@ const hero = computed(() => {
 	const viewer = dashboard.viewer.value
 	if (!user.value) {
 		return {
-			eyebrow: t('dashboard.hero.anonymous.eyebrow'),
 			title: t('dashboard.hero.anonymous.title'),
 			description: t('dashboard.hero.anonymous.description'),
 			actions: externalActions(),
@@ -174,7 +173,6 @@ const hero = computed(() => {
 	}
 	if (!viewer?.records?.totalCount) {
 		return {
-			eyebrow: t('dashboard.hero.new.eyebrow'),
 			title: t('dashboard.hero.new.title', {
 				name: user.value.steamName ?? user.value.steamId,
 			}),
@@ -183,7 +181,6 @@ const hero = computed(() => {
 		}
 	}
 	return {
-		eyebrow: t('dashboard.hero.active.eyebrow'),
 		title: t('dashboard.hero.active.title', {
 			name: user.value.steamName ?? user.value.steamId,
 		}),
