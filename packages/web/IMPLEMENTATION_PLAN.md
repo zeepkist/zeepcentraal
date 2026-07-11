@@ -37,7 +37,8 @@
 - [x] Persist normalised Pinia session state and refresh HttpOnly-cookie access before expiry.
 - [x] Proxy Steam news; add same-origin API checks and GraphQL-backed sitemaps.
 - [x] Add Nuxt Image, Schema.org, OG images, Nuxt Charts and reduced-motion support.
-- [ ] Validate documents, cursor limits, components, auth, E2E routes and production build.
+- [x] Validate documents, cursor limits, components, auth, unit routes and production build.
+- [ ] Execute Playwright route smoke tests after WSL Chromium system libraries are installed.
 
 ## Pagination limits
 
