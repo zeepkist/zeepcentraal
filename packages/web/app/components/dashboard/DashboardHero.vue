@@ -26,7 +26,7 @@
 			v-else
 			class="hero-enter relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-stretch"
 		>
-			<div class="flex min-w-0 flex-col">
+			<div class="relative flex min-w-0 flex-col justify-center">
 				<h1 class="max-w-3xl text-3xl font-black tracking-tight text-balance md:text-5xl">
 					{{ title }}
 				</h1>
@@ -48,7 +48,7 @@
 						<p class="mt-2 text-xl font-black tabular-nums">{{ metric.value }}</p>
 					</div>
 				</div>
-				<div v-if="loginPrompt" class="mt-7 lg:mt-auto lg:pt-7">
+				<div v-if="loginPrompt" class="mt-7 lg:absolute lg:inset-x-0 lg:bottom-0 lg:mt-0">
 					<div
 						class="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/35 p-3 text-sm backdrop-blur-sm"
 					>
