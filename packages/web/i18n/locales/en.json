@@ -402,6 +402,16 @@
 			"recent": { "title": "Recent records", "description": "Latest 25 submitted runs." }
 		}
 	},
+	"adventure": {
+		"series": "Series {series}",
+		"count": "{count} official Adventure Mode levels"
+	},
+	"developer": {
+		"graphql": {
+			"title": "GraphQL API",
+			"description": "Schema, query examples, pagination, fair use, rate limits, and attribution requirements."
+		}
+	},
 	"levels": {
 		"results": "{count} levels",
 		"filters": {
