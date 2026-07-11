@@ -1,0 +1,17 @@
+<template>
+	<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+		<StatCard
+			v-for="metric in metrics"
+			:key="metric.key"
+			:icon="metric.icon ?? 'dashboard'"
+			:label="metric.label"
+			:value="metric.value"
+		/>
+	</div>
+</template>
+
+<script setup lang="ts">
+import type { StatisticMetric } from '~/types/app'
+
+defineProps<{ metrics: StatisticMetric[] }>()
+</script>

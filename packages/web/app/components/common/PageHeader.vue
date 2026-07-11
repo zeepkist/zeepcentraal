@@ -11,13 +11,6 @@
 				<p class="mt-3 text-base text-muted-foreground md:text-lg">
 					{{ description }}
 				</p>
-				<UBanner color="error" icon="i-lucide-info" title="Error" />
-				<UBanner color="primary" icon="i-lucide-info" title="Primary" />
-				<UBanner color="secondary" icon="i-lucide-info" title="Secondary" />
-				<UBanner color="success" icon="i-lucide-info" title="Success" />
-				<UBanner color="info" icon="i-lucide-info" title="Info" />
-				<UBanner color="warning" icon="i-lucide-info" title="Warning" />
-				<UBanner color="neutral" icon="i-lucide-info" title="Neutral" />
 			</div>
 			<slot name="actions" />
 		</div>
