@@ -104,4 +104,18 @@ describe('GraphQL operation conventions', () => {
 
 		expect(source).toContain('preferGetMethod: false')
 	})
+
+	test('below-fold urql queries use viewport pause gates', () => {
+		for (const file of [
+			'useDashboard.ts',
+			'useLevelDetail.ts',
+			'useUserProfile.ts',
+			'useZsl.ts',
+		]) {
+			const source = readFileSync(join(composablesDir, file), 'utf8')
+			expect(source).toContain('useViewportPrefetch()')
+			expect(source).toContain('pause: computed(')
+			expect(source).toContain('Prefetch.active.value')
+		}
+	})
 })

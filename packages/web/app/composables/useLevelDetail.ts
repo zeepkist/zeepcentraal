@@ -36,6 +36,9 @@ function mapRecord(
 export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undefined>) {
 	const recentPagination = useCursorPagination(25, 'records')
 	const pbPagination = useCursorPagination(25, 'pbs')
+	const statisticsPrefetch = useViewportPrefetch()
+	const recentPrefetch = useViewportPrefetch()
+	const personalBestsPrefetch = useViewportPrefetch()
 	const detail = useQuery({
 		query: Zc_LevelDetailDocument,
 		variables: computed(() => ({ xxHash: xxHash.value })),
@@ -45,7 +48,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	const statistics = useQuery({
 		query: Zc_LevelStatisticsDocument,
 		variables: computed(() => ({ levelId: levelId.value ?? 0 })),
-		pause: computed(() => levelId.value === undefined),
+		pause: computed(() => levelId.value === undefined || !statisticsPrefetch.active.value),
 	})
 	const recent = useQuery({
 		query: Zc_LevelRecordsDocument,
@@ -54,7 +57,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			filter: { levelId: { equalTo: levelId.value ?? 0 } },
 			orderBy: ['DATE_CREATED_DESC' as RecordsOrderBy],
 		})),
-		pause: computed(() => levelId.value === undefined),
+		pause: computed(() => levelId.value === undefined || !recentPrefetch.active.value),
 	})
 	const personalBests = useQuery({
 		query: Zc_LevelRecordsDocument,
@@ -66,12 +69,17 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			},
 			orderBy: ['TIME_ASC' as RecordsOrderBy],
 		})),
-		pause: computed(() => levelId.value === undefined),
+		pause: computed(() => levelId.value === undefined || !personalBestsPrefetch.active.value),
 	})
 	const viewerBest = useQuery({
 		query: Zc_LevelViewerBestDocument,
 		variables: computed(() => ({ userId: viewerId.value ?? 0, levelId: levelId.value ?? 0 })),
-		pause: computed(() => viewerId.value === undefined || levelId.value === undefined),
+		pause: computed(
+			() =>
+				viewerId.value === undefined ||
+				levelId.value === undefined ||
+				!personalBestsPrefetch.active.value,
+		),
 	})
 	const viewerBestRecord = computed(
 		() => viewerBest.data.value?.personalBestGlobalByUserIdAndLevelId?.record,
@@ -83,7 +91,10 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			time: viewerBestRecord.value?.time ?? 0,
 		})),
 		pause: computed(
-			() => viewerBestRecord.value === undefined || viewerBestRecord.value === null,
+			() =>
+				!personalBestsPrefetch.active.value ||
+				viewerBestRecord.value === undefined ||
+				viewerBestRecord.value === null,
 		),
 	})
 
@@ -160,15 +171,21 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	return {
 		detail,
 		level,
+		personalBestsActive: personalBestsPrefetch.active,
 		personalBestPage,
 		personalBestRows,
 		personalBests,
+		personalBestsTarget: personalBestsPrefetch.target,
 		pbPagination,
 		recent,
+		recentActive: recentPrefetch.active,
 		recentPage,
 		recentPagination,
 		recentRows,
+		recentTarget: recentPrefetch.target,
 		statistics,
+		statisticsActive: statisticsPrefetch.active,
+		statisticsTarget: statisticsPrefetch.target,
 		summary,
 		viewerBest,
 		viewerRank,

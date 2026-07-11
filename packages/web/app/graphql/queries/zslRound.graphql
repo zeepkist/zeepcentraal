@@ -1,4 +1,4 @@
-query ZC_ZslRound($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+query ZC_ZslRound($id: Int!) {
 	zslRound(id: $id) {
 		id
 		round
@@ -26,32 +26,5 @@ query ZC_ZslRound($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: C
 				}
 			}
 		}
-	}
-	zslRoundResults(
-		first: $first
-		after: $after
-		last: $last
-		before: $before
-		filter: { roundId: { equalTo: $id } }
-		orderBy: [POSITION_ASC]
-	) {
-		edges {
-			cursor
-			node {
-				position
-				points
-				user {
-					steamId
-					steamName
-				}
-			}
-		}
-		pageInfo {
-			startCursor
-			endCursor
-			hasNextPage
-			hasPreviousPage
-		}
-		totalCount
 	}
 }

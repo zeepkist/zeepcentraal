@@ -1,8 +1,11 @@
 import { useQuery } from '@urql/vue'
 import {
 	Zc_ZslLevelDocument,
+	Zc_ZslLevelResultsDocument,
 	Zc_ZslRoundDocument,
+	Zc_ZslRoundResultsDocument,
 	Zc_ZslSeasonDocument,
+	Zc_ZslSeasonResultsDocument,
 	Zc_ZslSeasonsDocument,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, ZslStanding } from '~/types/app'
@@ -52,42 +55,93 @@ function standing(node: {
 
 export function useZslSeason(id: Ref<number>) {
 	const pagination = useCursorPagination(50, 'season')
+	const standingsPrefetch = useViewportPrefetch()
 	const result = useQuery({
 		query: Zc_ZslSeasonDocument,
+		variables: computed(() => ({ id: id.value })),
+	})
+	const standingsResult = useQuery({
+		query: Zc_ZslSeasonResultsDocument,
 		variables: computed(() => ({ id: id.value, ...pagination.variables.value })),
+		pause: computed(() => !standingsPrefetch.active.value),
 	})
 	const season = computed(() => result.data.value?.zslSeason)
 	const standings = computed(
-		() => result.data.value?.zslSeasonResults?.edges.map(({ node }) => standing(node)) ?? [],
+		() =>
+			standingsResult.data.value?.zslSeasonResults?.edges.map(({ node }) => standing(node)) ??
+			[],
 	)
-	const page = computed(() => pageInfo(result.data.value?.zslSeasonResults?.pageInfo))
-	return { page, pagination, result, season, standings }
+	const page = computed(() => pageInfo(standingsResult.data.value?.zslSeasonResults?.pageInfo))
+	return {
+		page,
+		pagination,
+		result,
+		season,
+		standings,
+		standingsActive: standingsPrefetch.active,
+		standingsResult,
+		standingsTarget: standingsPrefetch.target,
+	}
 }
 
 export function useZslRound(id: Ref<number>) {
 	const pagination = useCursorPagination(50, 'round')
+	const standingsPrefetch = useViewportPrefetch()
 	const result = useQuery({
 		query: Zc_ZslRoundDocument,
+		variables: computed(() => ({ id: id.value })),
+	})
+	const standingsResult = useQuery({
+		query: Zc_ZslRoundResultsDocument,
 		variables: computed(() => ({ id: id.value, ...pagination.variables.value })),
+		pause: computed(() => !standingsPrefetch.active.value),
 	})
 	const round = computed(() => result.data.value?.zslRound)
 	const standings = computed(
-		() => result.data.value?.zslRoundResults?.edges.map(({ node }) => standing(node)) ?? [],
+		() =>
+			standingsResult.data.value?.zslRoundResults?.edges.map(({ node }) => standing(node)) ??
+			[],
 	)
-	const page = computed(() => pageInfo(result.data.value?.zslRoundResults?.pageInfo))
-	return { page, pagination, result, round, standings }
+	const page = computed(() => pageInfo(standingsResult.data.value?.zslRoundResults?.pageInfo))
+	return {
+		page,
+		pagination,
+		result,
+		round,
+		standings,
+		standingsActive: standingsPrefetch.active,
+		standingsResult,
+		standingsTarget: standingsPrefetch.target,
+	}
 }
 
 export function useZslLevel(id: Ref<number>) {
 	const pagination = useCursorPagination(50, 'level')
+	const standingsPrefetch = useViewportPrefetch()
 	const result = useQuery({
 		query: Zc_ZslLevelDocument,
+		variables: computed(() => ({ id: id.value })),
+	})
+	const standingsResult = useQuery({
+		query: Zc_ZslLevelResultsDocument,
 		variables: computed(() => ({ id: id.value, ...pagination.variables.value })),
+		pause: computed(() => !standingsPrefetch.active.value),
 	})
 	const level = computed(() => result.data.value?.zslLevel)
 	const standings = computed(
-		() => result.data.value?.zslLevelResults?.edges.map(({ node }) => standing(node)) ?? [],
+		() =>
+			standingsResult.data.value?.zslLevelResults?.edges.map(({ node }) => standing(node)) ??
+			[],
 	)
-	const page = computed(() => pageInfo(result.data.value?.zslLevelResults?.pageInfo))
-	return { level, page, pagination, result, standings }
+	const page = computed(() => pageInfo(standingsResult.data.value?.zslLevelResults?.pageInfo))
+	return {
+		level,
+		page,
+		pagination,
+		result,
+		standings,
+		standingsActive: standingsPrefetch.active,
+		standingsResult,
+		standingsTarget: standingsPrefetch.target,
+	}
 }

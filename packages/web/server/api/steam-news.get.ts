@@ -1,4 +1,4 @@
-import type { SteamNewsItem } from '../../types/app'
+import type { SteamNewsItem } from '../../app/types/app'
 import { assertSameOrigin } from '../utils/request'
 
 type SteamNewsResponse = {

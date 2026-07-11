@@ -1,10 +1,23 @@
-query ZC_DashboardViewer($id: Int!) {
+query ZC_DashboardViewerSummary($id: Int!) {
 	user(id: $id) {
 		id
 		steamId
 		steamName
-		records(first: 5, orderBy: [DATE_CREATED_DESC]) {
+		records(first: 0) {
 			totalCount
+		}
+		personalBestGlobals(first: 0) {
+			totalCount
+		}
+		worldRecordGlobals(first: 0) {
+			totalCount
+		}
+	}
+}
+
+query ZC_DashboardViewerContent($id: Int!) {
+	user(id: $id) {
+		records(first: 5, orderBy: [DATE_CREATED_DESC]) {
 			nodes {
 				id
 				time
@@ -24,46 +37,6 @@ query ZC_DashboardViewer($id: Int!) {
 					) {
 						nodes {
 							name
-						}
-					}
-				}
-			}
-		}
-		personalBestGlobals(first: 5, orderBy: [DATE_UPDATED_DESC]) {
-			totalCount
-			nodes {
-				record {
-					id
-					time
-					dateCreated
-					levelId
-					userId
-					level {
-						xxHash
-						levelItems(first: 1, filter: { deleted: { equalTo: false } }) {
-							nodes {
-								name
-							}
-						}
-					}
-				}
-			}
-		}
-		worldRecordGlobals(first: 5, orderBy: [DATE_UPDATED_DESC]) {
-			totalCount
-			nodes {
-				record {
-					id
-					time
-					dateCreated
-					levelId
-					userId
-					level {
-						xxHash
-						levelItems(first: 1, filter: { deleted: { equalTo: false } }) {
-							nodes {
-								name
-							}
 						}
 					}
 				}

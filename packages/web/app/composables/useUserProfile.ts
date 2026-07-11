@@ -26,6 +26,10 @@ function cursorPage(
 }
 
 export function useUserProfile(steamId: Ref<string>) {
+	const statisticsPrefetch = useViewportPrefetch()
+	const worldRecordsPrefetch = useViewportPrefetch()
+	const personalBestsPrefetch = useViewportPrefetch()
+	const recentPrefetch = useViewportPrefetch()
 	const profile = useQuery({
 		query: Zc_UserProfileDocument,
 		variables: computed(() => ({ steamId: steamId.value })),
@@ -35,7 +39,7 @@ export function useUserProfile(steamId: Ref<string>) {
 	const statistics = useQuery({
 		query: Zc_UserStatisticsDocument,
 		variables: computed(() => ({ userId: userId.value ?? 0 })),
-		pause: computed(() => userId.value === undefined),
+		pause: computed(() => userId.value === undefined || !statisticsPrefetch.active.value),
 	})
 
 	const recentPagination = useCursorPagination(25, 'recent')
@@ -50,7 +54,12 @@ export function useUserProfile(steamId: Ref<string>) {
 			...wrPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 }, levelPosition: { equalTo: 1 } },
 		})),
-		pause: computed(() => userId.value === undefined || wrSort.value !== 'valuable'),
+		pause: computed(
+			() =>
+				userId.value === undefined ||
+				wrSort.value !== 'valuable' ||
+				!worldRecordsPrefetch.active.value,
+		),
 	})
 	const pbValuable = useQuery({
 		query: Zc_UserContributionsDocument,
@@ -58,7 +67,12 @@ export function useUserProfile(steamId: Ref<string>) {
 			...pbPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 }, levelPosition: { greaterThan: 1 } },
 		})),
-		pause: computed(() => userId.value === undefined || pbSort.value !== 'valuable'),
+		pause: computed(
+			() =>
+				userId.value === undefined ||
+				pbSort.value !== 'valuable' ||
+				!personalBestsPrefetch.active.value,
+		),
 	})
 	const wrRecent = useQuery({
 		query: Zc_UserResultsDocument,
@@ -66,7 +80,12 @@ export function useUserProfile(steamId: Ref<string>) {
 			...wrPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 }, worldRecordGlobalsExist: true },
 		})),
-		pause: computed(() => userId.value === undefined || wrSort.value !== 'recent'),
+		pause: computed(
+			() =>
+				userId.value === undefined ||
+				wrSort.value !== 'recent' ||
+				!worldRecordsPrefetch.active.value,
+		),
 	})
 	const pbRecent = useQuery({
 		query: Zc_UserResultsDocument,
@@ -78,7 +97,12 @@ export function useUserProfile(steamId: Ref<string>) {
 				worldRecordGlobalsExist: false,
 			},
 		})),
-		pause: computed(() => userId.value === undefined || pbSort.value !== 'recent'),
+		pause: computed(
+			() =>
+				userId.value === undefined ||
+				pbSort.value !== 'recent' ||
+				!personalBestsPrefetch.active.value,
+		),
 	})
 	const recent = useQuery({
 		query: Zc_UserResultsDocument,
@@ -86,7 +110,7 @@ export function useUserProfile(steamId: Ref<string>) {
 			...recentPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 } },
 		})),
-		pause: computed(() => userId.value === undefined),
+		pause: computed(() => userId.value === undefined || !recentPrefetch.active.value),
 	})
 
 	const contributionRows = (source: typeof wrValuable) =>
@@ -170,6 +194,8 @@ export function useUserProfile(steamId: Ref<string>) {
 	}
 
 	return {
+		personalBestsActive: personalBestsPrefetch.active,
+		personalBestsTarget: personalBestsPrefetch.target,
 		pbPage,
 		pbPagination,
 		pbResult,
@@ -177,17 +203,23 @@ export function useUserProfile(steamId: Ref<string>) {
 		pbSort,
 		profile,
 		recent,
+		recentActive: recentPrefetch.active,
 		recentPage,
 		recentPagination,
 		recentRows,
+		recentTarget: recentPrefetch.target,
 		setPbSort,
 		setWrSort,
 		statistics,
+		statisticsActive: statisticsPrefetch.active,
+		statisticsTarget: statisticsPrefetch.target,
 		user,
 		wrPage,
 		wrPagination,
 		wrResult,
 		wrRows,
 		wrSort,
+		worldRecordsActive: worldRecordsPrefetch.active,
+		worldRecordsTarget: worldRecordsPrefetch.target,
 	}
 }

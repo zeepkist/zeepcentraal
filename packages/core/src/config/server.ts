@@ -26,7 +26,7 @@ const serverEnvSchema = z.object({
 	DISCORD_CLIENT_ID: z.string().optional(),
 	DISCORD_CLIENT_SECRET: z.string().optional(),
 	DISCORD_REDIRECT_URI: z.string().optional(),
-	FRONTEND_URL: z.string().default('http://localhost:5173'),
+	FRONTEND_URL: z.string().default('http://localhost:3001'),
 	BACKEND_URL: z.string().default('http://localhost:3000'),
 	CORS_ALLOWED_ORIGINS: z.string().optional(),
 	TRUST_PROXY: z.stringbool().default(false),

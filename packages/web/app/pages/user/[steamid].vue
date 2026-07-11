@@ -21,48 +21,56 @@
 					<MetricGrid :metrics="metrics" />
 				</section>
 
-				<section aria-labelledby="profile-telemetry">
+				<section :ref="data.statisticsTarget" aria-labelledby="profile-telemetry">
 					<SectionHeader id="profile-telemetry" :title="$t('users.profile.telemetry.title')" :description="$t('users.profile.telemetry.description')" />
-					<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-						<MetricGrid :metrics="telemetryMetrics" />
-						<UCard class="rounded-xl border-border bg-card/85"><BarChart :data="chartData" :categories="chartCategories" :height="280" :x-formatter="chartLabel" /></UCard>
-					</div>
+					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
+						<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+							<MetricGrid :metrics="telemetryMetrics" />
+							<UCard class="rounded-xl border-border bg-card/85"><BarChart :data="chartData" :categories="chartCategories" :height="280" :x-formatter="chartLabel" /></UCard>
+						</div>
+					</DataState>
 				</section>
 
-				<UserResultsSection
-					id="profile-world-records"
-					:title="$t('users.profile.worldRecords.title')"
-					:description="$t('users.profile.worldRecords.description')"
-					:records="data.wrRows.value"
-					:sort="data.wrSort.value"
-					:pending="wrPending"
-					:page="data.wrPage.value"
-					:labels="resultLabels"
-					:sort-options="resultSortOptions"
-					:pagination-labels="paginationLabels"
-					@update:sort="data.setWrSort"
-					@previous="data.wrPagination.previous(data.wrPage.value)"
-					@next="data.wrPagination.next(data.wrPage.value)"
-				/>
-				<UserResultsSection
-					id="profile-personal-bests"
-					:title="$t('users.profile.personalBests.title')"
-					:description="$t('users.profile.personalBests.description')"
-					:records="data.pbRows.value"
-					:sort="data.pbSort.value"
-					:pending="pbPending"
-					:page="data.pbPage.value"
-					:labels="resultLabels"
-					:sort-options="resultSortOptions"
-					:pagination-labels="paginationLabels"
-					@update:sort="data.setPbSort"
-					@previous="data.pbPagination.previous(data.pbPage.value)"
-					@next="data.pbPagination.next(data.pbPage.value)"
-				/>
+				<div :ref="data.worldRecordsTarget">
+					<UserResultsSection
+						id="profile-world-records"
+						:title="$t('users.profile.worldRecords.title')"
+						:description="$t('users.profile.worldRecords.description')"
+						:records="data.wrRows.value"
+						:sort="data.wrSort.value"
+						:pending="wrPending"
+						:error="data.wrResult.value.error.value?.message"
+						:page="data.wrPage.value"
+						:labels="resultLabels"
+						:sort-options="resultSortOptions"
+						:pagination-labels="paginationLabels"
+						@update:sort="data.setWrSort"
+						@previous="data.wrPagination.previous(data.wrPage.value)"
+						@next="data.wrPagination.next(data.wrPage.value)"
+					/>
+				</div>
+				<div :ref="data.personalBestsTarget">
+					<UserResultsSection
+						id="profile-personal-bests"
+						:title="$t('users.profile.personalBests.title')"
+						:description="$t('users.profile.personalBests.description')"
+						:records="data.pbRows.value"
+						:sort="data.pbSort.value"
+						:pending="pbPending"
+						:error="data.pbResult.value.error.value?.message"
+						:page="data.pbPage.value"
+						:labels="resultLabels"
+						:sort-options="resultSortOptions"
+						:pagination-labels="paginationLabels"
+						@update:sort="data.setPbSort"
+						@previous="data.pbPagination.previous(data.pbPage.value)"
+						@next="data.pbPagination.next(data.pbPage.value)"
+					/>
+				</div>
 
-				<section aria-labelledby="profile-recent">
+				<section :ref="data.recentTarget" aria-labelledby="profile-recent">
 					<SectionHeader id="profile-recent" :title="$t('users.profile.recent.title')" :description="$t('users.profile.recent.description')" />
-					<DataState :pending="data.recent.fetching.value" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
+					<DataState :pending="!data.recentActive.value || data.recent.fetching.value" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
 						<UserResultTable :records="data.recentRows.value" :labels="resultLabels" />
 					</DataState>
 					<CursorPagination class="mt-4" :page="data.recentPage.value" :pending="data.recent.fetching.value" v-bind="paginationLabels" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" />
@@ -192,6 +200,10 @@ const stateLabels = computed(() => ({
 	errorTitle: t('common.error'),
 	emptyTitle: t('common.empty'),
 }))
-const wrPending = computed(() => data.wrResult.value.fetching.value)
-const pbPending = computed(() => data.pbResult.value.fetching.value)
+const wrPending = computed(
+	() => !data.worldRecordsActive.value || data.wrResult.value.fetching.value,
+)
+const pbPending = computed(
+	() => !data.personalBestsActive.value || data.pbResult.value.fetching.value,
+)
 </script>

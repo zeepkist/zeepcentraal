@@ -1,7 +1,7 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 
 process.env.BACKEND_URL = 'http://localhost:3000'
-process.env.FRONTEND_URL = 'http://localhost:5173'
+process.env.FRONTEND_URL = 'http://localhost:3001'
 process.env.TRIGGER_JOB_TOKEN = 'job-secret'
 
 type MockUser = {
@@ -247,7 +247,7 @@ mock.module('@zeepkist/core', () => ({
 			refreshTtlMs: 2_592_000_000,
 		},
 		backendUrl: 'http://localhost:3000',
-		frontendUrl: 'http://localhost:5173',
+		frontendUrl: 'http://localhost:3001',
 		discord: {
 			clientId: 'discord-client-id',
 			clientSecret: 'discord-client-secret',
@@ -259,7 +259,7 @@ mock.module('@zeepkist/core', () => ({
 		},
 		otel: { serviceName: 'zeepcentraal-api', collectorUrl: 'http://localhost:4317' },
 		http: {
-			corsAllowedOrigins: ['http://localhost:5173'],
+			corsAllowedOrigins: ['http://localhost:3001'],
 			trustProxy: false,
 			rateLimits: { auth: 10_000, record: 10_000, mutation: 10_000, job: 10_000 },
 		},
@@ -486,9 +486,9 @@ test('auth/login returns V1-shaped token payload on success', async () => {
 
 test('CORS allows configured website origin and rejects arbitrary origins', async () => {
 	const allowed = await send('/healthz', {
-		headers: { origin: 'http://localhost:5173' },
+		headers: { origin: 'http://localhost:3001' },
 	})
-	expect(allowed.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+	expect(allowed.headers.get('access-control-allow-origin')).toBe('http://localhost:3001')
 
 	const rejected = await send('/healthz', {
 		headers: { origin: 'https://attacker.example' },
@@ -642,7 +642,7 @@ test('auth/discord/callback returns redirect and cookies on success', async () =
 	})
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('http://localhost:5173/auth/callback')
+	expect(response.headers.get('location')).toBe('http://localhost:3001/auth/callback')
 	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_access_token=')
 	expect(await response.text()).toBe('')
 })
@@ -679,7 +679,7 @@ test('auth/steam/callback returns redirect and cookies on success', async () => 
 	)
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('http://localhost:5173/auth/callback')
+	expect(response.headers.get('location')).toBe('http://localhost:3001/auth/callback')
 	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_refresh_token=')
 	expect(state.getOrInsertUserCalls).toEqual([
 		{ steamId: 12345678901234567n, steamName: undefined },

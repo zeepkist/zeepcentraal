@@ -31,25 +31,51 @@
 					<RecordTable :records="worldRecordRows" v-bind="recordLabels" :show-rank="false" />
 				</section>
 
-				<section aria-labelledby="level-stats-heading">
+				<section :ref="levelData.statisticsTarget" aria-labelledby="level-stats-heading">
 					<SectionHeader id="level-stats-heading" :title="$t('levels.detail.stats.title')" :description="$t('levels.detail.stats.description')" />
-					<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-						<MetricGrid :metrics="statMetrics" />
-						<UCard class="rounded-xl border-border bg-card/85">
-							<BarChart :data="statChart" :categories="statCategories" :height="280" :x-formatter="statLabel" />
-						</UCard>
-					</div>
+					<DataState
+						:pending="!levelData.statisticsActive.value || levelData.statistics.fetching.value"
+						:error="levelData.statistics.error.value?.message"
+						:loading-label="$t('common.loading')"
+						:error-title="$t('common.error')"
+						:empty-title="$t('common.empty')"
+					>
+						<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+							<MetricGrid :metrics="statMetrics" />
+							<UCard class="rounded-xl border-border bg-card/85">
+								<BarChart :data="statChart" :categories="statCategories" :height="280" :x-formatter="statLabel" />
+							</UCard>
+						</div>
+					</DataState>
 				</section>
 
-				<section aria-labelledby="recent-records-heading">
+				<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
 					<SectionHeader id="recent-records-heading" :title="$t('levels.detail.recent.title')" :description="$t('levels.detail.recent.description')" />
-					<RecordTable :records="levelData.recentRows.value" v-bind="recordLabels" :show-rank="false" />
+					<DataState
+						:pending="!levelData.recentActive.value || levelData.recent.fetching.value"
+						:error="levelData.recent.error.value?.message"
+						:empty="levelData.recentRows.value.length === 0"
+						:loading-label="$t('common.loading')"
+						:error-title="$t('common.error')"
+						:empty-title="$t('common.empty')"
+					>
+						<RecordTable :records="levelData.recentRows.value" v-bind="recordLabels" :show-rank="false" />
+					</DataState>
 					<CursorPagination class="mt-4" :page="levelData.recentPage.value" :pending="levelData.recent.fetching.value" v-bind="paginationLabels" @previous="levelData.recentPagination.previous(levelData.recentPage.value)" @next="levelData.recentPagination.next(levelData.recentPage.value)" />
 				</section>
 
-				<section aria-labelledby="personal-bests-heading">
+				<section :ref="levelData.personalBestsTarget" aria-labelledby="personal-bests-heading">
 					<SectionHeader id="personal-bests-heading" :title="$t('levels.detail.personalBests.title')" :description="$t('levels.detail.personalBests.description')" />
-					<RecordTable :records="levelData.personalBestRows.value" v-bind="recordLabels" />
+					<DataState
+						:pending="!levelData.personalBestsActive.value || levelData.personalBests.fetching.value || levelData.viewerBest.fetching.value || levelData.viewerRank.fetching.value"
+						:error="levelData.personalBests.error.value?.message || levelData.viewerBest.error.value?.message || levelData.viewerRank.error.value?.message"
+						:empty="levelData.personalBestRows.value.length === 0"
+						:loading-label="$t('common.loading')"
+						:error-title="$t('common.error')"
+						:empty-title="$t('common.empty')"
+					>
+						<RecordTable :records="levelData.personalBestRows.value" v-bind="recordLabels" />
+					</DataState>
 					<CursorPagination class="mt-4" :page="levelData.personalBestPage.value" :pending="levelData.personalBests.fetching.value" v-bind="paginationLabels" @previous="levelData.pbPagination.previous(levelData.personalBestPage.value)" @next="levelData.pbPagination.next(levelData.personalBestPage.value)" />
 				</section>
 			</template>

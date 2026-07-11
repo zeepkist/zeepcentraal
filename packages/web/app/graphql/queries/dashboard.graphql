@@ -27,45 +27,7 @@ fragment ZC_DashboardLevel on Level {
 	}
 }
 
-fragment ZC_DashboardRecord on Record {
-	id
-	time
-	dateCreated
-	levelId
-	userId
-	user {
-		steamId
-		steamName
-	}
-	level {
-		xxHash
-		levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
-			nodes {
-				name
-			}
-		}
-	}
-}
-
-query ZC_Dashboard($activeSince: Datetime!) {
-	popularLevels: levels(
-		first: 8
-		filter: { levelPointExists: true, levelItems: { some: { deleted: { equalTo: false } } } }
-		orderBy: [LEVEL_POINTS_MODIFIER_POPULARITY_DESC]
-	) {
-		nodes {
-			...ZC_DashboardLevel
-		}
-	}
-	latestLevels: levels(
-		first: 8
-		filter: { levelItems: { some: { deleted: { equalTo: false } } } }
-		orderBy: [DATE_CREATED_DESC]
-	) {
-		nodes {
-			...ZC_DashboardLevel
-		}
-	}
+query ZC_DashboardCritical($activeSince: Datetime!) {
 	records(first: 0) {
 		totalCount
 	}
@@ -91,6 +53,30 @@ query ZC_Dashboard($activeSince: Datetime!) {
 			}
 		}
 	}
+}
+
+query ZC_DashboardLevels {
+	popularLevels: levels(
+		first: 8
+		filter: { levelPointExists: true, levelItems: { some: { deleted: { equalTo: false } } } }
+		orderBy: [LEVEL_POINTS_MODIFIER_POPULARITY_DESC]
+	) {
+		nodes {
+			...ZC_DashboardLevel
+		}
+	}
+	latestLevels: levels(
+		first: 8
+		filter: { levelItems: { some: { deleted: { equalTo: false } } } }
+		orderBy: [DATE_CREATED_DESC]
+	) {
+		nodes {
+			...ZC_DashboardLevel
+		}
+	}
+}
+
+query ZC_DashboardStatistics {
 	recordStatistics(first: 0) {
 		aggregates {
 			sum {
@@ -101,20 +87,6 @@ query ZC_Dashboard($activeSince: Datetime!) {
 				timeInAir
 				hornCount
 				brakeCount
-			}
-		}
-	}
-	recentWorldRecords: worldRecordGlobals(first: 10, orderBy: [DATE_UPDATED_DESC]) {
-		nodes {
-			record {
-				...ZC_DashboardRecord
-			}
-		}
-	}
-	recentPersonalBests: personalBestGlobals(first: 10, orderBy: [DATE_UPDATED_DESC]) {
-		nodes {
-			record {
-				...ZC_DashboardRecord
 			}
 		}
 	}

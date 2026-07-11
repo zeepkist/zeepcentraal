@@ -7,11 +7,11 @@
 			<MetricGrid :metrics="liveMetrics" />
 		</section>
 
-		<section aria-labelledby="popular-levels-heading">
+		<section :ref="dashboard.levelsTarget" aria-labelledby="popular-levels-heading">
 			<SectionHeader id="popular-levels-heading" :title="$t('dashboard.popular.title')" :description="$t('dashboard.popular.description')" />
 			<DataState
-				:pending="dashboard.query.fetching.value"
-				:error="dashboard.query.error.value?.message"
+				:pending="!dashboard.levelsActive.value || dashboard.levelsQuery.fetching.value"
+				:error="dashboard.levelsQuery.error.value?.message"
 				:empty="dashboard.popularLevels.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
@@ -23,51 +23,105 @@
 
 		<section aria-labelledby="latest-levels-heading">
 			<SectionHeader id="latest-levels-heading" :title="$t('dashboard.latest.title')" :description="$t('dashboard.latest.description')" />
-			<LevelGrid :levels="dashboard.latestLevels.value" v-bind="levelLabels" />
+			<DataState
+				:pending="!dashboard.levelsActive.value || dashboard.levelsQuery.fetching.value"
+				:error="dashboard.levelsQuery.error.value?.message"
+				:empty="dashboard.latestLevels.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<LevelGrid :levels="dashboard.latestLevels.value" v-bind="levelLabels" />
+			</DataState>
 		</section>
 
-		<section v-if="dashboard.viewerRecords.value.length" aria-labelledby="viewer-records-heading">
-			<SectionHeader id="viewer-records-heading" :title="$t('dashboard.viewerRecords.title')" :description="$t('dashboard.viewerRecords.description')" />
-			<RecordTable :records="dashboard.viewerRecords.value" v-bind="recordLabels" show-level />
-		</section>
-
-		<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
-			<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
-			<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="levelLabels" />
-		</section>
-
-		<div class="grid gap-6 xl:grid-cols-2">
-			<DashboardRecordFeed
-				:title="$t('dashboard.worldRecords.title')"
-				:description="$t('dashboard.worldRecords.description')"
-				:live-label="$t('common.live')"
-				:records="dashboard.worldRecordRecords.value"
-				v-bind="recordLabels"
-			/>
-			<DashboardRecordFeed
-				:title="$t('dashboard.personalBests.title')"
-				:description="$t('dashboard.personalBests.description')"
-				:live-label="$t('common.live')"
-				:records="dashboard.personalBestRecords.value"
-				v-bind="recordLabels"
-			/>
+		<div v-if="user" :ref="dashboard.viewerTarget" class="space-y-8">
+			<DataState
+				:pending="!dashboard.viewerActive.value || dashboard.viewerContentQuery.fetching.value"
+				:error="dashboard.viewerContentQuery.error.value?.message"
+				:empty="dashboard.viewerRecords.value.length === 0 && dashboard.viewerLevels.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<section v-if="dashboard.viewerRecords.value.length" aria-labelledby="viewer-records-heading">
+					<SectionHeader id="viewer-records-heading" :title="$t('dashboard.viewerRecords.title')" :description="$t('dashboard.viewerRecords.description')" />
+					<RecordTable :records="dashboard.viewerRecords.value" v-bind="recordLabels" show-level />
+				</section>
+				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
+					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
+					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="levelLabels" />
+				</section>
+			</DataState>
 		</div>
 
-		<section aria-labelledby="distance-heading">
+		<div :ref="dashboard.recordsTarget">
+			<DataState
+				:pending="!dashboard.recordsActive.value || !dashboard.recordsReady.value"
+				:error="dashboard.worldRecordsLive.error.value?.message || dashboard.personalBestsLive.error.value?.message"
+				:empty="dashboard.worldRecordRecords.value.length === 0 && dashboard.personalBestRecords.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<div class="grid gap-6 xl:grid-cols-2">
+					<DashboardRecordFeed
+						:title="$t('dashboard.worldRecords.title')"
+						:description="$t('dashboard.worldRecords.description')"
+						:live-label="$t('common.live')"
+						:records="dashboard.worldRecordRecords.value"
+						v-bind="recordLabels"
+					/>
+					<DashboardRecordFeed
+						:title="$t('dashboard.personalBests.title')"
+						:description="$t('dashboard.personalBests.description')"
+						:live-label="$t('common.live')"
+						:records="dashboard.personalBestRecords.value"
+						v-bind="recordLabels"
+					/>
+				</div>
+			</DataState>
+		</div>
+
+		<section
+			:ref="dashboard.statisticsTarget"
+			aria-labelledby="distance-heading"
+			data-prefetch="dashboard-statistics"
+		>
 			<SectionHeader id="distance-heading" :title="$t('dashboard.totals.title')" :description="$t('dashboard.totals.description')" />
-			<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-				<MetricGrid :metrics="totalMetrics" />
-				<UCard class="rounded-xl border-border bg-card/85">
-					<BarChart :data="distanceChart" :categories="distanceCategories" :height="300" :x-formatter="distanceLabel" />
-				</UCard>
-			</div>
+			<DataState
+				:pending="!dashboard.statisticsActive.value || dashboard.statisticsQuery.fetching.value"
+				:error="dashboard.statisticsQuery.error.value?.message"
+				:empty="!dashboard.statistics.value?.recordStatistics"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+					<MetricGrid :metrics="totalMetrics" />
+					<UCard class="rounded-xl border-border bg-card/85">
+						<BarChart :data="distanceChart" :categories="distanceCategories" :height="300" :x-formatter="distanceLabel" />
+					</UCard>
+				</div>
+			</DataState>
 		</section>
 
-		<SteamNewsFeed
-			:title="$t('dashboard.news.title')"
-			:description="$t('dashboard.news.description')"
-			:items="dashboard.news.data.value"
-		/>
+		<div :ref="dashboard.newsTarget">
+			<DataState
+				:pending="!dashboard.newsActive.value || dashboard.news.pending.value"
+				:error="dashboard.news.error.value?.message"
+				:empty="dashboard.news.data.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<SteamNewsFeed
+					:title="$t('dashboard.news.title')"
+					:description="$t('dashboard.news.description')"
+					:items="dashboard.news.data.value"
+				/>
+			</DataState>
+		</div>
 	</UContainer>
 </template>
 
@@ -186,7 +240,7 @@ const liveMetrics = computed(() => {
 	]
 })
 
-const totals = computed(() => dashboard.dashboard.value?.recordStatistics?.aggregates?.sum)
+const totals = computed(() => dashboard.statistics.value?.recordStatistics?.aggregates?.sum)
 const totalMetrics = computed(() => [
 	{
 		key: 'distance',

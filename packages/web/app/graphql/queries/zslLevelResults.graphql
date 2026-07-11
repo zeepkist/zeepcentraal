@@ -1,0 +1,33 @@
+query ZC_ZslLevelResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+	zslLevelResults(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: { levelId: { equalTo: $id } }
+		orderBy: [POSITION_ASC]
+	) {
+		edges {
+			cursor
+			node {
+				position
+				points
+				time
+				user {
+					steamId
+					steamName
+				}
+				record {
+					id
+				}
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

@@ -11,5 +11,5 @@ export function usePageSeo(pageKey: string) {
 		twitterCard: 'summary_large_image',
 	})
 	useSchemaOrg([defineWebPage({ name: title, description })])
-	defineOgImage('NuxtSeo', { title, description, theme: '#facc15', colorMode: 'dark' })
+	defineOgImage('NuxtSeo.satori', { title, description, theme: '#facc15', colorMode: 'dark' })
 }
