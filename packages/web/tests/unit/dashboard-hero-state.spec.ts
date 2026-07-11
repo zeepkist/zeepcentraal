@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { resolveDashboardHeroState } from '../../app/utils/dashboardHero'
 
@@ -6,8 +7,17 @@ describe('dashboard hero state', () => {
 		expect(resolveDashboardHeroState(true, false)).toBe('pending')
 	})
 
-	it('only shows the setup state after zero records are confirmed', () => {
+	it('shows setup after viewer summary confirms zero records', () => {
 		expect(resolveDashboardHeroState(true, true, 0)).toBe('new-player')
+	})
+
+	it('gates hero state on viewer summary, not season standing', () => {
+		const page = readFileSync(new URL('../../app/pages/index.vue', import.meta.url), 'utf8')
+		const callStart = page.indexOf('const state = resolveDashboardHeroState(')
+		const callEnd = page.indexOf("if (state === 'anonymous')", callStart)
+		const readinessBlock = page.slice(callStart, callEnd)
+		expect(readinessBlock).toContain('dashboard.viewerQuery.data.value')
+		expect(readinessBlock).not.toContain('viewerStandingQuery')
 	})
 
 	it('shows the active state for players with records', () => {

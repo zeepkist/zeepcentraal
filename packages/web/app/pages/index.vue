@@ -157,13 +157,9 @@ const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }
 const hero = computed(() => {
 	const viewer = dashboard.viewer.value
 	const latestSeason = dashboard.latestSeason.value
-	const standingResolved =
-		latestSeason === undefined ||
-		dashboard.viewerStandingQuery.data.value !== undefined ||
-		dashboard.viewerStandingQuery.error.value !== undefined
 	const state = resolveDashboardHeroState(
 		Boolean(user.value),
-		dashboard.viewerQuery.data.value !== undefined && standingResolved,
+		dashboard.viewerQuery.data.value !== undefined,
 		viewer?.records?.totalCount,
 	)
 	if (state === 'anonymous') {
