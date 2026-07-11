@@ -35,9 +35,10 @@ describe('GraphQL operation conventions', () => {
 	test('composables import GraphQL documents instead of inline operations', () => {
 		for (const file of filesUnder(composablesDir, '.ts')) {
 			const source = readFileSync(file, 'utf8')
-			if (source.includes('useQuery')) {
+			if (source.includes('useQuery') || source.includes('useSubscription')) {
 				expect(source).toContain('.graphql')
 				expect(source).not.toContain('query ZC_')
+				expect(source).not.toContain('subscription ZC_')
 			}
 		}
 	})

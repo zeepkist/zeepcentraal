@@ -169,6 +169,24 @@
 		"records": {
 			"description": "Track world records, personal bests, and record history.",
 			"eyebrow": "Records",
+			"live": {
+				"description": "This example listens for the latest record over a GraphQL subscription.",
+				"error": "Subscription error",
+				"fields": {
+					"dateCreated": "Created",
+					"id": "Record ID",
+					"levelId": "Level ID",
+					"time": "Time",
+					"userId": "User ID"
+				},
+				"status": {
+					"connecting": "Connecting",
+					"error": "Error",
+					"listening": "Listening"
+				},
+				"title": "Latest record",
+				"waiting": "Listening for the first record update…"
+			},
 			"panelDescription": "Record feed, filters, and comparison tables land here.",
 			"panelTitle": "Record stream",
 			"seo": {

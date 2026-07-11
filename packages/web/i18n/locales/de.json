@@ -169,6 +169,24 @@
 		"records": {
 			"description": "Track world records, personal bests, and record history.",
 			"eyebrow": "Records",
+			"live": {
+				"description": "Dieses Beispiel empfängt den neuesten Rekord über ein GraphQL-Abonnement.",
+				"error": "Abonnementfehler",
+				"fields": {
+					"dateCreated": "Erstellt",
+					"id": "Rekord-ID",
+					"levelId": "Level-ID",
+					"time": "Zeit",
+					"userId": "Benutzer-ID"
+				},
+				"status": {
+					"connecting": "Verbindung wird hergestellt",
+					"error": "Fehler",
+					"listening": "Live verbunden"
+				},
+				"title": "Neuester Rekord",
+				"waiting": "Warte auf die erste Rekordaktualisierung…"
+			},
 			"panelDescription": "Record feed, filters, and comparison tables land here.",
 			"panelTitle": "Record stream",
 			"seo": {

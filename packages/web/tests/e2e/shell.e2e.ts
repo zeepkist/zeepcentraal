@@ -18,3 +18,13 @@ test('placeholder route renders', async ({ page }) => {
 
 	await expect(page.getByRole('heading', { name: 'Levels and leaderboards' })).toBeVisible()
 })
+
+test('records live subscription renders', async ({ page }) => {
+	await page.goto('/records')
+
+	await expect(
+		page.getByRole('heading', { name: 'World records and personal bests' }),
+	).toBeVisible()
+	await expect(page.getByRole('heading', { name: 'Latest record' })).toBeVisible()
+	await expect(page.getByRole('status')).toBeVisible()
+})
