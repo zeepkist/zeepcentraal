@@ -198,8 +198,7 @@ const hero = computed(() => {
 	if (state === 'pending')
 		return { title: '', description: '', actions: [], metrics: [], pending: true }
 	const currentUser = user.value
-	if (!viewer || !currentUser)
-		return { title: '', description: '', actions: [], metrics: [], pending: true }
+	if (!currentUser) return { title: '', description: '', actions: [], metrics: [], pending: true }
 	const leagueHref = latestSeason ? `/super-league/season-${latestSeason.id}` : '/super-league'
 	const leagueAction = {
 		label: t('dashboard.hero.superLeague'),
@@ -236,6 +235,7 @@ const hero = computed(() => {
 			],
 		}
 	}
+	if (!viewer) return { title: '', description: '', actions: [], metrics: [], pending: true }
 	const points = viewer.userPoints
 	const standing = dashboard.viewerStanding.value
 	return {
