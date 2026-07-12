@@ -169,24 +169,26 @@ fragment ZC_DashboardMetricCounts on Query {
 
 query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
 	...ZC_DashboardMetricCounts
-	popularLevels: levels(
-		first: 6
-		filter: { levelPointExists: true, levelItems: { some: { deleted: { equalTo: false } } } }
-		orderBy: [LEVEL_POINTS_MODIFIER_POPULARITY_DESC]
-	) {
+	trendingLevels: hotLevelsSince(since: $daySince, first: 6) {
 		nodes {
 			...ZC_DashboardLevel
+			periodRecords: records(
+				first: 0
+				filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }
+			) {
+				totalCount
+			}
 		}
 	}
 }
 
-query ZC_DashboardHotLevels($weekSince: Datetime!) {
-	hotLevels: hotLevelsSince(since: $weekSince, first: 6) {
+query ZC_DashboardHotLevels($since: Datetime!) {
+	levels: hotLevelsSince(since: $since, first: 6) {
 		nodes {
 			...ZC_DashboardLevel
-			weeklyRecords: records(
+			periodRecords: records(
 				first: 0
-				filter: { dateCreated: { greaterThanOrEqualTo: $weekSince } }
+				filter: { dateCreated: { greaterThanOrEqualTo: $since } }
 			) {
 				totalCount
 			}

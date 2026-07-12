@@ -24,6 +24,14 @@ describe('dashboard critical SSR', () => {
 		)
 		expect(page).toContain('dashboard.criticalQuery.fetching.value')
 		expect(page).toContain('dashboard.metrics.value')
+		expect(page).toContain('dashboard.trendingLevels.value')
+		expect(page).toContain('dashboard.popularLevelsQuery.fetching.value')
+		expect(page.indexOf('trending-levels-heading')).toBeLessThan(
+			page.indexOf('popular-levels-heading'),
+		)
+		expect(page.indexOf('popular-levels-heading')).toBeLessThan(
+			page.indexOf('hot-levels-heading'),
+		)
 	})
 
 	it('prefetches hero data only when a verified viewer exists', () => {
@@ -62,13 +70,19 @@ describe('dashboard critical SSR', () => {
 
 	it('keeps remaining non-critical dashboard requests client-only', () => {
 		expect(composable).toContain(
-			'pause: computed(() => import.meta.server || !levelsPrefetch.active.value)',
+			'pause: computed(() => import.meta.server || !hotLevelsPrefetch.active.value)',
 		)
-		expect(composable).toContain('Zc_DashboardHotLevelsDocument')
-		expect(composable).not.toContain('Zc_DashboardLatestLevelsDocument')
 		expect(composable).toContain(
-			'variables: computed(() => ({ weekSince: hotLevelsSince.value }))',
+			'pause: computed(() => import.meta.server || !popularLevelsPrefetch.active.value)',
 		)
+		expect(composable.match(/query: Zc_DashboardHotLevelsDocument/g)).toHaveLength(2)
+		expect(composable).toContain(
+			'variables: computed(() => ({ since: levelWindows.value.weekSince }))',
+		)
+		expect(composable).toContain(
+			'variables: computed(() => ({ since: levelWindows.value.rollingMonthSince }))',
+		)
+		expect(composable).toContain('levelWindows.value = getDashboardLevelWindows()')
 		expect(composable).toMatch(
 			/import\.meta\.server\s*\|\|\s*viewerId\.value === undefined\s*\|\|\s*!viewerPrefetch\.active\.value/,
 		)

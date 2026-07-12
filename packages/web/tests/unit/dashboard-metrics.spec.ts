@@ -3,8 +3,8 @@ import { Kind, parse } from 'graphql'
 import { describe, expect, it } from 'vitest'
 import {
 	formatDashboardMonth,
+	getDashboardLevelWindows,
 	getDashboardMetricWindows,
-	getDashboardWeekSince,
 } from '../../app/utils/dashboardMetrics'
 
 const querySource = readFileSync(
@@ -38,17 +38,11 @@ describe('dashboard metric windows', () => {
 	})
 })
 
-describe('dashboard hot-level week boundary', () => {
-	it('starts summer weeks at London midnight on Monday', () => {
-		expect(getDashboardWeekSince(new Date('2026-07-12T14:30:00.000Z'))).toBe(
-			'2026-07-05T23:00:00.000Z',
-		)
-	})
-
-	it('starts winter weeks at London midnight on Monday', () => {
-		expect(getDashboardWeekSince(new Date('2026-01-15T12:00:00.000Z'))).toBe(
-			'2026-01-12T00:00:00.000Z',
-		)
+describe('dashboard level activity windows', () => {
+	it('uses exact rolling 7-day and 30-day boundaries', () => {
+		const windows = getDashboardLevelWindows(new Date('2026-07-12T14:30:00.000Z'))
+		expect(windows.weekSince).toBe('2026-07-05T14:30:00.000Z')
+		expect(windows.rollingMonthSince).toBe('2026-06-12T14:30:00.000Z')
 	})
 })
 
@@ -59,7 +53,7 @@ it('formats the London metric month using the active locale', () => {
 })
 
 describe('dashboard metric GraphQL', () => {
-	it('uses bounded count connections, six popular levels, and a single subscription root', () => {
+	it('uses count-only metrics and exactly six levels for every activity window', () => {
 		const document = parse(querySource)
 		const metricFragment = document.definitions.find(
 			(definition) =>
@@ -81,21 +75,36 @@ describe('dashboard metric GraphQL', () => {
 			)
 		}
 
-		const query = document.definitions.find(
+		const criticalQuery = document.definitions.find(
 			(definition) =>
 				definition.kind === Kind.OPERATION_DEFINITION &&
 				definition.name?.value === 'ZC_DashboardCritical',
 		)
-		expect(query?.kind).toBe(Kind.OPERATION_DEFINITION)
-		if (query?.kind !== Kind.OPERATION_DEFINITION) return
-		const popularLevels = query.selectionSet.selections.find(
+		expect(criticalQuery?.kind).toBe(Kind.OPERATION_DEFINITION)
+		if (criticalQuery?.kind !== Kind.OPERATION_DEFINITION) return
+		const trendingLevels = criticalQuery.selectionSet.selections.find(
 			(selection) =>
-				selection.kind === Kind.FIELD && selection.alias?.value === 'popularLevels',
+				selection.kind === Kind.FIELD && selection.alias?.value === 'trendingLevels',
 		)
-		if (popularLevels?.kind !== Kind.FIELD) return
+		expect(trendingLevels).toMatchObject({
+			kind: Kind.FIELD,
+			name: { value: 'hotLevelsSince' },
+		})
+		if (trendingLevels?.kind !== Kind.FIELD) return
 		expect(
-			popularLevels.arguments?.find((argument) => argument.name.value === 'first'),
+			trendingLevels.arguments?.find((argument) => argument.name.value === 'first'),
 		).toMatchObject({ value: { kind: Kind.INT, value: '6' } })
+		expect(
+			trendingLevels.arguments?.find((argument) => argument.name.value === 'since'),
+		).toMatchObject({
+			value: { kind: Kind.VARIABLE, name: { value: 'daySince' } },
+		})
+		expect(
+			criticalQuery.selectionSet.selections.some(
+				(selection) =>
+					selection.kind === Kind.FIELD && selection.alias?.value === 'popularLevels',
+			),
+		).toBe(false)
 
 		const hotQuery = document.definitions.find(
 			(definition) =>
@@ -104,38 +113,37 @@ describe('dashboard metric GraphQL', () => {
 		)
 		expect(hotQuery?.kind).toBe(Kind.OPERATION_DEFINITION)
 		if (hotQuery?.kind !== Kind.OPERATION_DEFINITION) return
-		const hotLevels = hotQuery.selectionSet.selections[0]
-		expect(hotLevels).toMatchObject({
+		const activityLevels = hotQuery.selectionSet.selections[0]
+		expect(activityLevels).toMatchObject({
 			kind: Kind.FIELD,
-			alias: { value: 'hotLevels' },
+			alias: { value: 'levels' },
 			name: { value: 'hotLevelsSince' },
 		})
-		if (hotLevels?.kind !== Kind.FIELD) return
+		if (activityLevels?.kind !== Kind.FIELD) return
 		expect(
-			hotLevels.arguments?.find((argument) => argument.name.value === 'first'),
+			activityLevels.arguments?.find((argument) => argument.name.value === 'first'),
 		).toMatchObject({ value: { kind: Kind.INT, value: '6' } })
 		expect(
-			hotLevels.arguments?.find((argument) => argument.name.value === 'since'),
+			activityLevels.arguments?.find((argument) => argument.name.value === 'since'),
 		).toMatchObject({
-			value: { kind: Kind.VARIABLE, name: { value: 'weekSince' } },
+			value: { kind: Kind.VARIABLE, name: { value: 'since' } },
 		})
-		const nodes = hotLevels.selectionSet?.selections.find(
+		const nodes = activityLevels.selectionSet?.selections.find(
 			(selection) => selection.kind === Kind.FIELD && selection.name.value === 'nodes',
 		)
 		if (nodes?.kind !== Kind.FIELD) return
-		const weeklyRecords = nodes.selectionSet?.selections.find(
+		const periodRecords = nodes.selectionSet?.selections.find(
 			(selection) =>
-				selection.kind === Kind.FIELD && selection.alias?.value === 'weeklyRecords',
+				selection.kind === Kind.FIELD && selection.alias?.value === 'periodRecords',
 		)
-		expect(weeklyRecords).toMatchObject({
+		expect(periodRecords).toMatchObject({
 			kind: Kind.FIELD,
 			name: { value: 'records' },
 		})
-		if (weeklyRecords?.kind !== Kind.FIELD) return
+		if (periodRecords?.kind !== Kind.FIELD) return
 		expect(
-			weeklyRecords.arguments?.find((argument) => argument.name.value === 'first'),
+			periodRecords.arguments?.find((argument) => argument.name.value === 'first'),
 		).toMatchObject({ value: { kind: Kind.INT, value: '0' } })
-		expect(querySource).not.toContain('ZC_DashboardLatestLevels')
 
 		const subscription = parse(subscriptionSource).definitions[0]
 		expect(subscription).toMatchObject({

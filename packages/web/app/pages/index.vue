@@ -16,17 +16,45 @@
 			<MetricGrid :metrics="liveMetrics" />
 		</section>
 
-		<section aria-labelledby="popular-levels-heading">
-			<SectionHeader id="popular-levels-heading" :title="$t('dashboard.popular.title')" :description="$t('dashboard.popular.description')" />
+		<section aria-labelledby="trending-levels-heading">
+			<SectionHeader id="trending-levels-heading" :title="$t('dashboard.trendingLevels.title')" :description="$t('dashboard.trendingLevels.description')" />
 			<DataState
 				:pending="dashboard.criticalQuery.fetching.value"
 				:error="dashboard.criticalQuery.error.value?.message"
+				:empty="dashboard.trendingLevels.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<LevelGrid :levels="dashboard.trendingLevels.value" v-bind="dashboardLevelLabels" />
+			</DataState>
+		</section>
+
+		<section :ref="dashboard.popularLevelsTarget" aria-labelledby="popular-levels-heading">
+			<SectionHeader id="popular-levels-heading" :title="$t('dashboard.popular.title')" :description="$t('dashboard.popular.description')" />
+			<DataState
+				:pending="!dashboard.popularLevelsActive.value || dashboard.popularLevelsQuery.fetching.value"
+				:error="dashboard.popularLevelsQuery.error.value?.message"
 				:empty="dashboard.popularLevels.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
 				<LevelGrid :levels="dashboard.popularLevels.value" v-bind="dashboardLevelLabels" />
+			</DataState>
+		</section>
+
+		<section :ref="dashboard.hotLevelsTarget" aria-labelledby="hot-levels-heading">
+			<SectionHeader id="hot-levels-heading" :title="$t('dashboard.hotLevels.title')" :description="$t('dashboard.hotLevels.description')" />
+			<DataState
+				:pending="!dashboard.hotLevelsActive.value || dashboard.hotLevelsQuery.fetching.value"
+				:error="dashboard.hotLevelsQuery.error.value?.message"
+				:empty="dashboard.hotLevels.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<LevelGrid :levels="dashboard.hotLevels.value" v-bind="dashboardLevelLabels" />
 			</DataState>
 		</section>
 
@@ -45,20 +73,6 @@
 				:empty-title="$t('common.empty')"
 			>
 				<SteamNewsFeed :items="dashboard.news.data.value" />
-			</DataState>
-		</section>
-
-		<section :ref="dashboard.hotLevelsTarget" aria-labelledby="hot-levels-heading">
-			<SectionHeader id="hot-levels-heading" :title="$t('dashboard.hotLevels.title')" :description="$t('dashboard.hotLevels.description')" />
-			<DataState
-				:pending="!dashboard.hotLevelsActive.value || dashboard.hotLevelsQuery.fetching.value"
-				:error="dashboard.hotLevelsQuery.error.value?.message"
-				:empty="dashboard.hotLevels.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
-			>
-				<LevelGrid :levels="dashboard.hotLevels.value" v-bind="dashboardLevelLabels" />
 			</DataState>
 		</section>
 

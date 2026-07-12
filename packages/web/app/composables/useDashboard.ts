@@ -9,7 +9,7 @@ import {
 	Zc_DashboardViewerLevelsDocument,
 } from '~/graphql/generated/graphql'
 import type { LevelSummary, SteamNewsItem } from '~/types/app'
-import { getDashboardMetricWindows, getDashboardWeekSince } from '~/utils/dashboardMetrics'
+import { getDashboardLevelWindows, getDashboardMetricWindows } from '~/utils/dashboardMetrics'
 
 type DashboardLevelLike = {
 	id: number
@@ -29,7 +29,7 @@ type DashboardLevelLike = {
 	}
 	levelPoints?: { points: number; rating: number; modifierPopularity: number } | null
 	records?: { totalCount: number }
-	weeklyRecords?: { totalCount: number }
+	periodRecords?: { totalCount: number }
 	personalBestGlobals?: { totalCount: number }
 	worldRecordGlobal?: {
 		record: { time: number } | null
@@ -52,7 +52,7 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 		points: level.levelPoints?.points,
 		rating: level.levelPoints?.rating,
 		popularity: level.levelPoints?.modifierPopularity,
-		recordCount: level.weeklyRecords?.totalCount ?? level.records?.totalCount,
+		recordCount: level.periodRecords?.totalCount ?? level.records?.totalCount,
 		personalBestCount: level.personalBestGlobals?.totalCount,
 		worldRecordTime: level.worldRecordGlobal?.record?.time,
 		worldRecordAuthorName: level.worldRecordGlobal?.user?.steamName,
@@ -74,6 +74,7 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 export function useDashboard(viewerId: Ref<number | undefined>) {
 	const ssrMetricWindows = useState('dashboard-metric-windows', () => getDashboardMetricWindows())
 	const liveMetricWindows = ref({ ...ssrMetricWindows.value })
+	const levelWindows = useState('dashboard-level-windows', () => getDashboardLevelWindows())
 	const metricsSubscriptionActive = ref(false)
 	let metricWindowTimer: ReturnType<typeof setInterval> | undefined
 	onMounted(() => {
@@ -81,14 +82,15 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 			liveMetricWindows.value = getDashboardMetricWindows()
 		}
 		refreshWindows()
+		levelWindows.value = getDashboardLevelWindows()
 		metricsSubscriptionActive.value = true
 		metricWindowTimer = setInterval(refreshWindows, 60_000)
 	})
 	onScopeDispose(() => {
 		if (metricWindowTimer) clearInterval(metricWindowTimer)
 	})
-	const levelsPrefetch = useViewportPrefetch()
-	const hotLevelsSince = useState('dashboard-hot-levels-since', () => getDashboardWeekSince())
+	const hotLevelsPrefetch = useViewportPrefetch()
+	const popularLevelsPrefetch = useViewportPrefetch()
 	const viewerPrefetch = useViewportPrefetch()
 	const statisticsPrefetch = useViewportPrefetch()
 	const newsPrefetch = useViewportPrefetch()
@@ -104,8 +106,13 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	})
 	const hotLevelsQuery = useQuery({
 		query: Zc_DashboardHotLevelsDocument,
-		variables: computed(() => ({ weekSince: hotLevelsSince.value })),
-		pause: computed(() => import.meta.server || !levelsPrefetch.active.value),
+		variables: computed(() => ({ since: levelWindows.value.weekSince })),
+		pause: computed(() => import.meta.server || !hotLevelsPrefetch.active.value),
+	})
+	const popularLevelsQuery = useQuery({
+		query: Zc_DashboardHotLevelsDocument,
+		variables: computed(() => ({ since: levelWindows.value.rollingMonthSince })),
+		pause: computed(() => import.meta.server || !popularLevelsPrefetch.active.value),
 	})
 	const viewerQuery = useQuery({
 		query: Zc_DashboardHeroSummaryDocument,
@@ -146,15 +153,21 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	)
 	const viewer = computed(() => viewerQuery.data.value?.user)
 	const viewerStanding = computed(() => latestSeason.value?.zslSeasonResults.nodes[0])
-	const popularLevels = computed(
+	const trendingLevels = computed(
 		() =>
-			(criticalQuery.data.value?.popularLevels?.nodes ?? [])
+			(criticalQuery.data.value?.trendingLevels?.nodes ?? [])
 				.map(mapLevel)
 				.filter(Boolean) as LevelSummary[],
 	)
 	const hotLevels = computed(
 		() =>
-			(hotLevelsQuery.data.value?.hotLevels?.nodes ?? [])
+			(hotLevelsQuery.data.value?.levels?.nodes ?? [])
+				.map(mapLevel)
+				.filter(Boolean) as LevelSummary[],
+	)
+	const popularLevels = computed(
+		() =>
+			(popularLevelsQuery.data.value?.levels?.nodes ?? [])
 				.map(mapLevel)
 				.filter(Boolean) as LevelSummary[],
 	)
@@ -180,9 +193,9 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	return {
 		criticalQuery,
 		latestSeason,
-		hotLevelsActive: levelsPrefetch.active,
+		hotLevelsActive: hotLevelsPrefetch.active,
 		hotLevelsQuery,
-		hotLevelsTarget: levelsPrefetch.target,
+		hotLevelsTarget: hotLevelsPrefetch.target,
 		metricMonthSince,
 		metrics,
 		metricsLive,
@@ -191,11 +204,15 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		newsActive: newsPrefetch.active,
 		newsTarget: newsPrefetch.target,
 		popularLevels,
+		popularLevelsActive: popularLevelsPrefetch.active,
+		popularLevelsQuery,
+		popularLevelsTarget: popularLevelsPrefetch.target,
 		prefetchCritical,
 		statistics: statisticsQuery.data,
 		statisticsActive: statisticsPrefetch.active,
 		statisticsQuery,
 		statisticsTarget: statisticsPrefetch.target,
+		trendingLevels,
 		viewer,
 		viewerActive: viewerPrefetch.active,
 		viewerLevelsQuery,

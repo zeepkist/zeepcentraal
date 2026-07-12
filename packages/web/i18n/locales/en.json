@@ -371,13 +371,17 @@
 			"title": "Tracking Every Record",
 			"description": "Community-powered statistics from GTR record submissions."
 		},
+		"trendingLevels": {
+			"title": "Trending Levels Today",
+			"description": "Six levels with the most submitted records over the past 24 hours."
+		},
 		"popular": {
-			"title": "Popular levels",
-			"description": "Levels with highest current popularity score."
+			"title": "Popular Levels",
+			"description": "Six levels with the most submitted records over the past 30 days."
 		},
 		"hotLevels": {
 			"title": "Hot Levels This Week",
-			"description": "Six levels with the most submitted records since Monday."
+			"description": "Six levels with the most submitted records over the past 7 days."
 		},
 		"viewerLevels": {
 			"title": "Your workshop levels",
