@@ -379,21 +379,9 @@
 			"title": "Latest levels",
 			"description": "Newest levels indexed by ZeepCentraal."
 		},
-		"viewerRecords": {
-			"title": "Your recent records",
-			"description": "Latest runs submitted from GTR."
-		},
 		"viewerLevels": {
 			"title": "Your workshop levels",
 			"description": "Latest published levels discovered on Steam Workshop."
-		},
-		"worldRecords": {
-			"title": "Recent world records",
-			"description": "Ten latest global record changes."
-		},
-		"personalBests": {
-			"title": "Recent personal bests",
-			"description": "Ten latest player improvements."
 		},
 		"totals": {
 			"title": "Every kilometre counts",

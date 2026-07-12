@@ -93,50 +93,18 @@
 
 		<section v-if="user" :ref="dashboard.viewerTarget">
 			<DataState
-				:pending="!dashboard.viewerActive.value || dashboard.viewerContentQuery.fetching.value"
-				:error="dashboard.viewerContentQuery.error.value?.message"
-				:empty="dashboard.viewerRecords.value.length === 0 && dashboard.viewerLevels.value.length === 0"
+				:pending="!dashboard.viewerActive.value || dashboard.viewerLevelsQuery.fetching.value"
+				:error="dashboard.viewerLevelsQuery.error.value?.message"
+				:empty="dashboard.viewerLevels.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 				class="space-y-8"
 			>
-				<section v-if="dashboard.viewerRecords.value.length" aria-labelledby="viewer-records-heading">
-					<SectionHeader id="viewer-records-heading" :title="$t('dashboard.viewerRecords.title')" :description="$t('dashboard.viewerRecords.description')" />
-					<RecordTable :records="dashboard.viewerRecords.value" v-bind="recordLabels" show-level />
-				</section>
 				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
 					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
 					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="levelLabels" />
 				</section>
-			</DataState>
-		</section>
-
-		<section :ref="dashboard.recordsTarget">
-			<DataState
-				:pending="!dashboard.recordsActive.value || !dashboard.recordsReady.value"
-				:error="dashboard.worldRecordsLive.error.value?.message || dashboard.personalBestsLive.error.value?.message"
-				:empty="dashboard.worldRecordRecords.value.length === 0 && dashboard.personalBestRecords.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
-			>
-				<div class="grid gap-6 xl:grid-cols-2">
-					<DashboardRecordFeed
-						:title="$t('dashboard.worldRecords.title')"
-						:description="$t('dashboard.worldRecords.description')"
-						:live-label="$t('common.live')"
-						:records="dashboard.worldRecordRecords.value"
-						v-bind="recordLabels"
-					/>
-					<DashboardRecordFeed
-						:title="$t('dashboard.personalBests.title')"
-						:description="$t('dashboard.personalBests.description')"
-						:live-label="$t('common.live')"
-						:records="dashboard.personalBestRecords.value"
-						v-bind="recordLabels"
-					/>
-				</div>
 			</DataState>
 		</section>
 	</UContainer>
@@ -447,12 +415,5 @@ const levelLabels = computed(() => ({
 	adventureLabel: t('common.adventure'),
 	pointsLabel: t('common.points'),
 	recordsLabel: t('common.records'),
-}))
-const recordLabels = computed(() => ({
-	rankLabel: t('common.rank'),
-	userLabel: t('common.user'),
-	levelLabel: t('common.level'),
-	timeLabel: t('common.time'),
-	dateLabel: t('common.date'),
 }))
 </script>

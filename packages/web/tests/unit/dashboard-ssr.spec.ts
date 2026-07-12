@@ -60,7 +60,7 @@ describe('dashboard critical SSR', () => {
 		)
 	})
 
-	it('keeps all non-critical dashboard requests client-only', () => {
+	it('keeps remaining non-critical dashboard requests client-only', () => {
 		expect(composable).toContain(
 			'pause: computed(() => import.meta.server || !levelsPrefetch.active.value)',
 		)
@@ -70,11 +70,21 @@ describe('dashboard critical SSR', () => {
 		expect(composable).toContain(
 			'pause: computed(() => import.meta.server || !statisticsPrefetch.active.value)',
 		)
-		expect(
-			composable.match(
-				/pause: computed\(\(\) => import\.meta\.server \|\| !recordsPrefetch\.active\.value\)/g,
-			),
-		).toHaveLength(2)
 		expect(composable).toContain('server: false')
+	})
+
+	it('removes dashboard record feeds while retaining viewer workshop levels', () => {
+		expect(viewerQuery).toContain('query ZC_DashboardViewerLevels')
+		expect(viewerQuery).toContain('levelItems(first: 6')
+		expect(viewerQuery).not.toContain('records(first: 5')
+		expect(composable).toContain('Zc_DashboardViewerLevelsDocument')
+		expect(composable).not.toContain('recordsPrefetch')
+		expect(composable).not.toContain('Zc_RecentPersonalBestsDocument')
+		expect(composable).not.toContain('Zc_RecentWorldRecordsDocument')
+		expect(page).toContain('dashboard.viewerLevels')
+		expect(page).not.toContain('dashboard.viewerRecords')
+		expect(page).not.toContain('dashboard.worldRecords')
+		expect(page).not.toContain('dashboard.personalBests')
+		expect(page).not.toContain('DashboardRecordFeed')
 	})
 })
