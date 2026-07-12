@@ -30,7 +30,12 @@
 			</DataState>
 		</section>
 
-		<section :ref="dashboard.newsTarget">
+		<section :ref="dashboard.newsTarget" aria-labelledby="steam-news-heading">
+			<SectionHeader
+				id="steam-news-heading"
+				:title="$t('dashboard.news.title')"
+				:description="$t('dashboard.news.description')"
+			/>
 			<DataState
 				:pending="!dashboard.newsActive.value || dashboard.news.pending.value"
 				:error="dashboard.news.error.value?.message"
@@ -39,11 +44,7 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
-				<SteamNewsFeed
-					:title="$t('dashboard.news.title')"
-					:description="$t('dashboard.news.description')"
-					:items="dashboard.news.data.value"
-				/>
+				<SteamNewsFeed :items="dashboard.news.data.value" />
 			</DataState>
 		</section>
 

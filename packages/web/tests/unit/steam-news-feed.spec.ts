@@ -5,6 +5,11 @@ const component = readFileSync(
 	new URL('../../app/components/dashboard/SteamNewsFeed.vue', import.meta.url),
 	'utf8',
 )
+const page = readFileSync(new URL('../../app/pages/index.vue', import.meta.url), 'utf8')
+const endpoint = readFileSync(
+	new URL('../../server/api/steam-news.get.ts', import.meta.url),
+	'utf8',
+)
 
 describe('Steam announcement cards', () => {
 	it('makes every announcement a safe external card link', () => {
@@ -14,6 +19,7 @@ describe('Steam announcement cards', () => {
 		expect(component).toContain('target="_blank"')
 		expect(component).toContain('rel="noopener"')
 		expect(component).not.toContain('<article')
+		expect(component).not.toContain('<UCard')
 	})
 
 	it('matches Super League hover and focus interactions', () => {
@@ -32,9 +38,28 @@ describe('Steam announcement cards', () => {
 		expect(component).toContain('v-if="item.author"')
 		expect(component).toContain('{{ item.author }}')
 		expect(component).toContain('<NuxtTime :datetime="item.date" relative />')
-		expect(component).toContain('name="brand-steam"')
 		expect(component).toContain('name="external-link"')
 		expect(component).not.toContain('useFetch')
 		expect(component).not.toContain('$fetch')
+	})
+
+	it('keeps the translated section heading outside loading state', () => {
+		const start = page.indexOf('<section :ref="dashboard.newsTarget"')
+		const end = page.indexOf('</section>', start)
+		const section = page.slice(start, end)
+		expect(section).toContain('aria-labelledby="steam-news-heading"')
+		expect(section).toContain('<SectionHeader')
+		expect(section).toContain(':title="$t(\'dashboard.news.title\')"')
+		expect(section.indexOf('<SectionHeader')).toBeLessThan(section.indexOf('<DataState'))
+		expect(section).toContain('<SteamNewsFeed :items="dashboard.news.data.value" />')
+		expect(component).not.toContain('title: string')
+		expect(component).not.toContain('description: string')
+	})
+
+	it('requests and returns exactly six announcements', () => {
+		expect(endpoint).toContain('count: 6')
+		expect(endpoint).toContain('.slice(0, 6)')
+		expect(endpoint).not.toContain('count: 5')
+		expect(endpoint).not.toContain('.slice(0, 5)')
 	})
 })
