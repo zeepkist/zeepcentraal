@@ -60,6 +60,10 @@ describe('dashboard statistic aggregates', () => {
 		).toHaveLength(2)
 		expect(composable).toContain("minimumModVersion: '1.2.0'")
 	})
+	expect(composable).toContain('daySince: ssrMetricWindows.value.daySince')
+	expect(composable).toContain('monthSince: ssrMetricWindows.value.monthSince')
+	expect(composable).not.toContain('daySince: liveMetricWindows.value.daySince')
+	expect(composable).not.toContain('monthSince: liveMetricWindows.value.monthSince')
 
 	it('requests every displayed sum and average field', () => {
 		for (const field of [

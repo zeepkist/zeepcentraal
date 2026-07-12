@@ -131,8 +131,8 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	const statisticsQuery = useQuery({
 		query: Zc_DashboardStatisticsDocument,
 		variables: computed(() => ({
-			daySince: liveMetricWindows.value.daySince,
-			monthSince: liveMetricWindows.value.monthSince,
+			daySince: ssrMetricWindows.value.daySince,
+			monthSince: ssrMetricWindows.value.monthSince,
 			minimumModVersion: '1.2.0',
 		})),
 		pause: computed(() => import.meta.server || !statisticsPrefetch.active.value),
