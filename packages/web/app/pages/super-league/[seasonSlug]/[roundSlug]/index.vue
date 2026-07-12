@@ -23,7 +23,13 @@
 				<section :ref="standingsTarget">
 					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.roundStandings')" />
 					<DataState
-						:pending="!standingsActive.value || standingsResult.fetching.value"
+						:pending="
+							pagination.isInitialPending(
+								standingsResult.fetching.value,
+								standings.length,
+								standingsActive.value,
+							)
+						"
 						:error="standingsResult.error.value?.message"
 						:empty="standings.length === 0"
 						v-bind="stateLabels"
@@ -94,6 +100,7 @@ const tableLabels = computed(() => ({
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	loadingLabel: t('common.loading'),
 	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),

@@ -7,7 +7,7 @@
 			</aside>
 			<div class="min-w-0 space-y-6">
 				<p class="text-sm text-muted-foreground">{{ $t('users.results', { count: result.data.value?.userPoints?.totalCount ?? 0 }) }}</p>
-				<DataState :pending="result.fetching.value" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
+				<DataState :pending="pagination.isInitialPending(result.fetching.value, users.length)" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
 					<UserLeaderboardTable :users="users" :labels="tableLabels" />
 				</DataState>
 				<CursorPagination :page="page" :can-go-previous="pagination.canGoPrevious(page)" :can-go-next="pagination.canGoNext(page)" :pending="result.fetching.value" v-bind="paginationLabels" @first="pagination.first()" @previous="pagination.previous(page)" @next="pagination.next(page)" @last="pagination.last()" />
@@ -38,6 +38,7 @@ const tableLabels = computed(() => ({
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	loadingLabel: t('common.loading'),
 	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),

@@ -56,6 +56,10 @@ export function canNavigateNext(
 	return page.hasNextPage
 }
 
+export function isInitialPagePending(fetching: boolean, itemCount: number, active = true) {
+	return !active || (fetching && itemCount === 0)
+}
+
 export function useCursorPagination(pageSize: number, namespace = '') {
 	const route = useRoute()
 	const router = useRouter()
@@ -118,6 +122,7 @@ export function useCursorPagination(pageSize: number, namespace = '') {
 		canGoPrevious,
 		direction,
 		first,
+		isInitialPending: isInitialPagePending,
 		isLastPage,
 		last,
 		next,

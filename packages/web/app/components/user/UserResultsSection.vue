@@ -11,10 +11,10 @@
 			/>
 		</div>
 		<DataState
-			:pending="pending"
+			:pending="pending && records.length === 0"
 			:error="error"
 			:empty="records.length === 0"
-			:loading-label="paginationLabels.label"
+			:loading-label="paginationLabels.loadingLabel"
 			:error-title="paginationLabels.label"
 			:empty-title="paginationLabels.label"
 		>
@@ -53,6 +53,7 @@ defineProps<{
 	sortOptions: SortOption[]
 	paginationLabels: {
 		label: string
+		loadingLabel: string
 		firstLabel: string
 		previousLabel: string
 		nextLabel: string

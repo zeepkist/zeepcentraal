@@ -1,6 +1,9 @@
 <template>
-	<nav class="flex flex-wrap items-center justify-between gap-3" :aria-label="label">
-		<div class="flex items-center gap-2">
+	<nav
+		class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3"
+		:aria-label="label"
+	>
+		<div class="flex items-center gap-2 justify-self-start">
 			<UButton
 				color="neutral"
 				variant="soft"
@@ -20,7 +23,18 @@
 				{{ previousLabel }}
 			</UButton>
 		</div>
-		<div class="flex items-center gap-2">
+		<div class="grid min-w-6 place-items-center justify-self-center">
+			<div
+				v-if="pending"
+				class="text-primary"
+				role="status"
+				:aria-label="loadingLabel"
+				aria-live="polite"
+			>
+				<TablerIcon name="loader-2" class="size-5 motion-safe:animate-spin" />
+			</div>
+		</div>
+		<div class="flex items-center gap-2 justify-self-end">
 			<UButton
 				color="neutral"
 				variant="soft"
@@ -52,6 +66,7 @@ defineProps<{
 	canGoNext: boolean
 	pending?: boolean
 	label: string
+	loadingLabel: string
 	firstLabel: string
 	previousLabel: string
 	nextLabel: string

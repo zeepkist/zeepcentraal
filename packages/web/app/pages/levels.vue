@@ -28,7 +28,7 @@
 					<p class="text-sm text-muted-foreground">{{ $t('levels.results', { count: result.data.value?.levels?.totalCount ?? 0 }) }}</p>
 				</div>
 				<DataState
-					:pending="result.fetching.value"
+					:pending="pagination.isInitialPending(result.fetching.value, levels.length)"
 					:error="result.error.value?.message"
 					:empty="levels.length === 0"
 					:loading-label="$t('common.loading')"
@@ -43,6 +43,7 @@
 					:can-go-next="pagination.canGoNext(page)"
 					:pending="result.fetching.value"
 					:label="$t('common.pagination')"
+					:loading-label="$t('common.loading')"
 					:first-label="$t('common.first')"
 					:previous-label="$t('common.previous')"
 					:next-label="$t('common.next')"

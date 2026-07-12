@@ -58,7 +58,13 @@
 				<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
 					<SectionHeader id="recent-records-heading" :title="$t('levels.detail.recent.title')" :description="$t('levels.detail.recent.description')" />
 					<DataState
-						:pending="!levelData.recentActive.value || levelData.recent.fetching.value"
+						:pending="
+							levelData.recentPagination.isInitialPending(
+								levelData.recent.fetching.value,
+								levelData.recentRows.value.length,
+								levelData.recentActive.value,
+							)
+						"
 						:error="levelData.recent.error.value?.message"
 						:empty="levelData.recentRows.value.length === 0"
 						:loading-label="$t('common.loading')"
@@ -73,7 +79,15 @@
 				<section :ref="levelData.personalBestsTarget" aria-labelledby="personal-bests-heading">
 					<SectionHeader id="personal-bests-heading" :title="$t('levels.detail.personalBests.title')" :description="$t('levels.detail.personalBests.description')" />
 					<DataState
-						:pending="!levelData.personalBestsActive.value || levelData.personalBests.fetching.value || levelData.viewerBest.fetching.value || levelData.viewerRank.fetching.value"
+						:pending="
+							levelData.pbPagination.isInitialPending(
+								levelData.personalBests.fetching.value ||
+									levelData.viewerBest.fetching.value ||
+									levelData.viewerRank.fetching.value,
+								levelData.personalBestRows.value.length,
+								levelData.personalBestsActive.value,
+							)
+						"
 						:error="levelData.personalBests.error.value?.message || levelData.viewerBest.error.value?.message || levelData.viewerRank.error.value?.message"
 						:empty="levelData.personalBestRows.value.length === 0"
 						:loading-label="$t('common.loading')"
@@ -192,6 +206,7 @@ const recordLabels = computed(() => ({
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	loadingLabel: t('common.loading'),
 	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),

@@ -23,7 +23,10 @@
 
 		<template v-else>
 			<DataState
-				:pending="data.countResult.fetching.value || data.result.fetching.value"
+				:pending="
+					data.countResult.fetching.value ||
+					data.pagination.isInitialPending(data.result.fetching.value, data.rows.value.length)
+				"
 				:error="data.countResult.error.value?.message || data.result.error.value?.message"
 				:empty="data.rows.value.length === 0"
 				:loading-label="$t('common.loading')"
@@ -97,6 +100,7 @@ const tableLabels = computed(() => ({
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	loadingLabel: t('common.loading'),
 	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),

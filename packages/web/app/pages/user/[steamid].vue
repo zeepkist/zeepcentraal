@@ -86,7 +86,13 @@
 
 				<section :ref="data.recentTarget" aria-labelledby="profile-recent">
 					<SectionHeader id="profile-recent" :title="$t('users.profile.recent.title')" :description="$t('users.profile.recent.description')" />
-					<DataState :pending="!data.recentActive.value || data.recent.fetching.value" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
+					<DataState :pending="
+						data.recentPagination.isInitialPending(
+							data.recent.fetching.value,
+							data.recentRows.value.length,
+							data.recentActive.value,
+						)
+					" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
 						<UserResultTable :records="data.recentRows.value" :labels="resultLabels" />
 					</DataState>
 					<CursorPagination class="mt-4" :page="data.recentPage.value" :can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)" :can-go-next="data.recentPagination.canGoNext(data.recentPage.value)" :pending="data.recent.fetching.value" v-bind="paginationLabels" @first="data.recentPagination.first()" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" @last="data.recentPagination.last()" />
@@ -208,6 +214,7 @@ const resultSortOptions = computed(() => [
 ])
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	loadingLabel: t('common.loading'),
 	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),

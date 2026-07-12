@@ -5,6 +5,7 @@ import {
 	canNavigateNext,
 	canNavigatePrevious,
 	getCursorVariables,
+	isInitialPagePending,
 	replaceCursorQuery,
 } from '../../app/composables/useCursorPagination'
 
@@ -19,6 +20,13 @@ describe('cursor pagination', () => {
 			before: 'start',
 		})
 		expect(getCursorVariables(25, 'stale', 'stale', true)).toEqual({ last: 25 })
+	})
+
+	it('shows initial loading only when no retained page content exists', () => {
+		expect(isInitialPagePending(true, 0)).toBe(true)
+		expect(isInitialPagePending(true, 25)).toBe(false)
+		expect(isInitialPagePending(false, 0)).toBe(false)
+		expect(isInitialPagePending(false, 25, false)).toBe(true)
 	})
 
 	it('replaces direction state atomically for reversible navigation', () => {
@@ -94,5 +102,32 @@ describe('cursor pagination', () => {
 		expect(component.match(/!canGoNext \|\| pending/g)).toHaveLength(2)
 		expect(component).toContain('name="chevrons-left"')
 		expect(component).toContain('name="chevrons-right"')
+		expect(component).toContain('name="loader-2"')
+		expect(component).toContain('motion-safe:animate-spin')
+		expect(component).toContain('role="status"')
+		expect(component).toContain(':aria-label="loadingLabel"')
+	})
+	it('retains content across every paginated query refresh', () => {
+		const pages = [
+			'../../app/pages/levels.vue',
+			'../../app/pages/users.vue',
+			'../../app/pages/records/me.vue',
+			'../../app/pages/super-league/index.vue',
+			'../../app/pages/super-league/[seasonSlug]/index.vue',
+			'../../app/pages/super-league/[seasonSlug]/[roundSlug]/index.vue',
+			'../../app/pages/super-league/[seasonSlug]/[roundSlug]/[levelSlug].vue',
+			'../../app/pages/level/[xxh128].vue',
+			'../../app/pages/user/[steamid].vue',
+		]
+		for (const page of pages) {
+			expect(readFileSync(new URL(page, import.meta.url), 'utf8')).toContain(
+				'isInitialPending(',
+			)
+		}
+		const wrapper = readFileSync(
+			new URL('../../app/components/user/UserResultsSection.vue', import.meta.url),
+			'utf8',
+		)
+		expect(wrapper).toContain('pending && records.length === 0')
 	})
 })
