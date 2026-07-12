@@ -344,6 +344,13 @@
 			"when": 1783770554896,
 			"tag": "0049_lean_doctor_doom",
 			"breakpoints": true
+		},
+		{
+			"idx": 50,
+			"version": "7",
+			"when": 1783871789872,
+			"tag": "0050_hot_levels_since",
+			"breakpoints": true
 		}
 	]
 }
