@@ -39,6 +39,7 @@
 				:labels="tableLabels"
 				:highlighted-record-ids="data.highlightedRecordIds.value"
 				:live-update-label="$t('pages.records.liveUpdate')"
+				:viewer-user-id="session.user?.id"
 				show-player
 				@select="openRecord"
 			/>

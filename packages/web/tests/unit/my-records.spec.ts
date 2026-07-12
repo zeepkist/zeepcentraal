@@ -147,4 +147,24 @@ describe('record history', () => {
 		expect(page).not.toContain('pages.myRecords.sort')
 		expect(page).not.toContain('pages.myRecords.table')
 	})
+
+	it('highlights viewer rows only on global record history', () => {
+		const table = readFileSync(
+			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
+			'utf8',
+		)
+		const globalPage = readFileSync(
+			new URL('../../app/pages/records/index.vue', import.meta.url),
+			'utf8',
+		)
+		const personalPage = readFileSync(
+			new URL('../../app/pages/records/me.vue', import.meta.url),
+			'utf8',
+		)
+		expect(table).toContain('viewerUserId === record.userId')
+		expect(table).toContain("'bg-primary/10 text-highlighted'")
+		expect(table).toContain("'record-history-highlight': highlightedRecordIds?.has(record.id)")
+		expect(globalPage).toContain(':viewer-user-id="session.user?.id"')
+		expect(personalPage).not.toContain('viewer-user-id')
+	})
 })

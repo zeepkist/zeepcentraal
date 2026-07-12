@@ -33,8 +33,11 @@
 				<tr
 					v-for="record in records"
 					:key="record.id"
-					class="group cursor-pointer border-t border-border bg-card/60 transition hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px]"
-					:class="{ 'record-history-highlight': highlightedRecordIds?.has(record.id) }"
+					class="group cursor-pointer border-t border-border transition hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px]"
+					:class="[
+						viewerUserId === record.userId ? 'bg-primary/10 text-highlighted' : 'bg-card/60',
+						{ 'record-history-highlight': highlightedRecordIds?.has(record.id) },
+					]"
 					tabindex="0"
 					:aria-label="labels.openRecord.replace('{level}', record.levelName)"
 					@click="$emit('select', record.id)"
@@ -114,6 +117,7 @@ defineProps<{
 	highlightedRecordIds?: ReadonlySet<number>
 	liveUpdateLabel: string
 	showPlayer?: boolean
+	viewerUserId?: number
 	labels: {
 		level: string
 		player: string
