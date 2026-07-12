@@ -93,7 +93,12 @@
 						/>
 					</td>
 					<td class="px-4 py-3 text-muted-foreground">
-						<NuxtTime :datetime="record.dateCreated" relative />
+						<NuxtTime
+							:datetime="record.dateCreated"
+							relative
+							numeric="auto"
+							relative-style="short"
+						/>
 					</td>
 				</tr>
 			</tbody>
