@@ -23,18 +23,12 @@ query ZC_DashboardHeroSummary($id: Int!) {
 		nodes {
 			id
 			name
-		}
-	}
-}
-
-query ZC_DashboardHeroStanding($userId: Int!, $seasonId: Int!) {
-	zslSeasonResults(
-		first: 1
-		filter: { userId: { equalTo: $userId }, seasonId: { equalTo: $seasonId } }
-	) {
-		nodes {
-			position
-			points
+			zslSeasonResults(first: 1, filter: { userId: { equalTo: $id } }) {
+				nodes {
+					position
+					points
+				}
+			}
 		}
 	}
 }

@@ -27,7 +27,7 @@ fragment ZC_DashboardLevel on Level {
 	}
 }
 
-query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
+fragment ZC_DashboardMetricCounts on Query {
 	records(first: 0) {
 		totalCount
 	}
@@ -155,7 +155,8 @@ query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
 	}
 }
 
-query ZC_DashboardLevels {
+query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
+	...ZC_DashboardMetricCounts
 	popularLevels: levels(
 		first: 6
 		filter: { levelPointExists: true, levelItems: { some: { deleted: { equalTo: false } } } }
@@ -165,6 +166,9 @@ query ZC_DashboardLevels {
 			...ZC_DashboardLevel
 		}
 	}
+}
+
+query ZC_DashboardLatestLevels {
 	latestLevels: levels(
 		first: 6
 		filter: { levelItems: { some: { deleted: { equalTo: false } } } }

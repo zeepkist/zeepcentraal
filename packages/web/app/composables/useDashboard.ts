@@ -2,9 +2,8 @@ import { useQuery, useSubscription } from '@urql/vue'
 import type { Ref } from 'vue'
 import {
 	Zc_DashboardCriticalDocument,
-	Zc_DashboardHeroStandingDocument,
 	Zc_DashboardHeroSummaryDocument,
-	Zc_DashboardLevelsDocument,
+	Zc_DashboardLatestLevelsDocument,
 	Zc_DashboardMetricsLiveDocument,
 	Zc_DashboardStatisticsDocument,
 	Zc_DashboardViewerContentDocument,
@@ -89,13 +88,16 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 }
 
 export function useDashboard(viewerId: Ref<number | undefined>) {
-	const metricWindows = useState('dashboard-metric-windows', () => getDashboardMetricWindows())
+	const ssrMetricWindows = useState('dashboard-metric-windows', () => getDashboardMetricWindows())
+	const liveMetricWindows = ref({ ...ssrMetricWindows.value })
+	const metricsSubscriptionActive = ref(false)
 	let metricWindowTimer: ReturnType<typeof setInterval> | undefined
 	onMounted(() => {
 		const refreshWindows = () => {
-			metricWindows.value = getDashboardMetricWindows()
+			liveMetricWindows.value = getDashboardMetricWindows()
 		}
 		refreshWindows()
+		metricsSubscriptionActive.value = true
 		metricWindowTimer = setInterval(refreshWindows, 60_000)
 	})
 	onScopeDispose(() => {
@@ -107,18 +109,18 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	const statisticsPrefetch = useViewportPrefetch()
 	const newsPrefetch = useViewportPrefetch()
 
-	const query = useQuery({
+	const criticalQuery = useQuery({
 		query: Zc_DashboardCriticalDocument,
-		variables: metricWindows,
+		variables: ssrMetricWindows,
 	})
 	const metricsLive = useSubscription({
 		query: Zc_DashboardMetricsLiveDocument,
-		variables: metricWindows,
-		pause: computed(() => import.meta.server),
+		variables: liveMetricWindows,
+		pause: computed(() => !metricsSubscriptionActive.value),
 	})
-	const levelsQuery = useQuery({
-		query: Zc_DashboardLevelsDocument,
-		pause: computed(() => !levelsPrefetch.active.value),
+	const latestLevelsQuery = useQuery({
+		query: Zc_DashboardLatestLevelsDocument,
+		pause: computed(() => import.meta.server || !levelsPrefetch.active.value),
 	})
 	const viewerQuery = useQuery({
 		query: Zc_DashboardHeroSummaryDocument,
@@ -126,30 +128,25 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		pause: computed(() => viewerId.value === undefined),
 	})
 	const latestSeason = computed(() => viewerQuery.data.value?.zslSeasons?.nodes[0])
-	const viewerStandingQuery = useQuery({
-		query: Zc_DashboardHeroStandingDocument,
-		variables: computed(() => ({
-			userId: viewerId.value ?? 0,
-			seasonId: latestSeason.value?.id ?? 0,
-		})),
-		pause: computed(() => viewerId.value === undefined || latestSeason.value === undefined),
-	})
 	const viewerContentQuery = useQuery({
 		query: Zc_DashboardViewerContentDocument,
 		variables: computed(() => ({ id: viewerId.value ?? 0 })),
-		pause: computed(() => viewerId.value === undefined || !viewerPrefetch.active.value),
+		pause: computed(
+			() =>
+				import.meta.server || viewerId.value === undefined || !viewerPrefetch.active.value,
+		),
 	})
 	const statisticsQuery = useQuery({
 		query: Zc_DashboardStatisticsDocument,
-		pause: computed(() => !statisticsPrefetch.active.value),
+		pause: computed(() => import.meta.server || !statisticsPrefetch.active.value),
 	})
 	const worldRecordsLive = useSubscription({
 		query: Zc_RecentWorldRecordsDocument,
-		pause: computed(() => !recordsPrefetch.active.value),
+		pause: computed(() => import.meta.server || !recordsPrefetch.active.value),
 	})
 	const personalBestsLive = useSubscription({
 		query: Zc_RecentPersonalBestsDocument,
-		pause: computed(() => !recordsPrefetch.active.value),
+		pause: computed(() => import.meta.server || !recordsPrefetch.active.value),
 	})
 	const news = useFetch<SteamNewsItem[]>('/api/steam-news', {
 		default: () => [],
@@ -164,20 +161,18 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		{ immediate: true },
 	)
 
-	const dashboard = computed(() => metricsLive.data.value?.query ?? query.data.value)
+	const metrics = computed(() => metricsLive.data.value?.query ?? criticalQuery.data.value)
 	const viewer = computed(() => viewerQuery.data.value?.user)
-	const viewerStanding = computed(
-		() => viewerStandingQuery.data.value?.zslSeasonResults?.nodes[0],
-	)
+	const viewerStanding = computed(() => latestSeason.value?.zslSeasonResults.nodes[0])
 	const popularLevels = computed(
 		() =>
-			(levelsQuery.data.value?.popularLevels?.nodes ?? [])
+			(criticalQuery.data.value?.popularLevels?.nodes ?? [])
 				.map(mapLevel)
 				.filter(Boolean) as LevelSummary[],
 	)
 	const latestLevels = computed(
 		() =>
-			(levelsQuery.data.value?.latestLevels?.nodes ?? [])
+			(latestLevelsQuery.data.value?.latestLevels?.nodes ?? [])
 				.map(mapLevel)
 				.filter(Boolean) as LevelSummary[],
 	)
@@ -213,21 +208,31 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 				.filter(Boolean) as LevelSummary[],
 	)
 
+	async function prefetchCritical() {
+		if (!import.meta.server) return
+		if (viewerId.value === undefined) {
+			await criticalQuery
+			return
+		}
+		await Promise.all([criticalQuery, viewerQuery])
+	}
+
 	return {
-		dashboard,
+		criticalQuery,
 		latestSeason,
+		latestLevelsActive: levelsPrefetch.active,
+		latestLevelsQuery,
+		latestLevelsTarget: levelsPrefetch.target,
+		metrics,
 		metricsLive,
 		latestLevels,
-		levelsActive: levelsPrefetch.active,
-		levelsQuery,
-		levelsTarget: levelsPrefetch.target,
 		news,
 		newsActive: newsPrefetch.active,
 		newsTarget: newsPrefetch.target,
 		personalBestRecords,
 		personalBestsLive,
 		popularLevels,
-		query,
+		prefetchCritical,
 		recordsActive: recordsPrefetch.active,
 		recordsReady,
 		recordsTarget: recordsPrefetch.target,
@@ -239,7 +244,6 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		viewerActive: viewerPrefetch.active,
 		viewerContentQuery,
 		viewerStanding,
-		viewerStandingQuery,
 		viewerLevels,
 		viewerQuery,
 		viewerRecords,

@@ -30,16 +30,17 @@ describe('dashboard metric windows', () => {
 })
 
 describe('dashboard metric GraphQL', () => {
-	it('uses bounded count-only connections and a single subscription root', () => {
-		const query = parse(querySource).definitions.find(
+	it('uses bounded count connections, six popular levels, and a single subscription root', () => {
+		const document = parse(querySource)
+		const metricFragment = document.definitions.find(
 			(definition) =>
-				definition.kind === Kind.OPERATION_DEFINITION &&
-				definition.name?.value === 'ZC_DashboardCritical',
+				definition.kind === Kind.FRAGMENT_DEFINITION &&
+				definition.name.value === 'ZC_DashboardMetricCounts',
 		)
-		expect(query?.kind).toBe(Kind.OPERATION_DEFINITION)
-		if (query?.kind !== Kind.OPERATION_DEFINITION) return
+		expect(metricFragment?.kind).toBe(Kind.FRAGMENT_DEFINITION)
+		if (metricFragment?.kind !== Kind.FRAGMENT_DEFINITION) return
 
-		for (const field of query.selectionSet.selections) {
+		for (const field of metricFragment.selectionSet.selections) {
 			if (field.kind !== Kind.FIELD) continue
 			expect(
 				field.arguments?.find((argument) => argument.name.value === 'first'),
@@ -51,6 +52,22 @@ describe('dashboard metric GraphQL', () => {
 			)
 		}
 
+		const query = document.definitions.find(
+			(definition) =>
+				definition.kind === Kind.OPERATION_DEFINITION &&
+				definition.name?.value === 'ZC_DashboardCritical',
+		)
+		expect(query?.kind).toBe(Kind.OPERATION_DEFINITION)
+		if (query?.kind !== Kind.OPERATION_DEFINITION) return
+		const popularLevels = query.selectionSet.selections.find(
+			(selection) =>
+				selection.kind === Kind.FIELD && selection.alias?.value === 'popularLevels',
+		)
+		if (popularLevels?.kind !== Kind.FIELD) return
+		expect(
+			popularLevels.arguments?.find((argument) => argument.name.value === 'first'),
+		).toMatchObject({ value: { kind: Kind.INT, value: '6' } })
+
 		const subscription = parse(subscriptionSource).definitions[0]
 		expect(subscription).toMatchObject({
 			kind: Kind.OPERATION_DEFINITION,
@@ -61,6 +78,14 @@ describe('dashboard metric GraphQL', () => {
 		expect(subscription.selectionSet.selections[0]).toMatchObject({
 			kind: Kind.FIELD,
 			name: { value: 'query' },
+			selectionSet: {
+				selections: [
+					{
+						kind: Kind.FRAGMENT_SPREAD,
+						name: { value: 'ZC_DashboardMetricCounts' },
+					},
+				],
+			},
 		})
 	})
 

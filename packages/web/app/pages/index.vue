@@ -16,11 +16,11 @@
 			<MetricGrid :metrics="liveMetrics" />
 		</section>
 
-		<section :ref="dashboard.levelsTarget" aria-labelledby="popular-levels-heading">
+		<section aria-labelledby="popular-levels-heading">
 			<SectionHeader id="popular-levels-heading" :title="$t('dashboard.popular.title')" :description="$t('dashboard.popular.description')" />
 			<DataState
-				:pending="!dashboard.levelsActive.value || dashboard.levelsQuery.fetching.value"
-				:error="dashboard.levelsQuery.error.value?.message"
+				:pending="dashboard.criticalQuery.fetching.value"
+				:error="dashboard.criticalQuery.error.value?.message"
 				:empty="dashboard.popularLevels.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
@@ -30,11 +30,11 @@
 			</DataState>
 		</section>
 
-		<section aria-labelledby="latest-levels-heading">
+		<section :ref="dashboard.latestLevelsTarget" aria-labelledby="latest-levels-heading">
 			<SectionHeader id="latest-levels-heading" :title="$t('dashboard.latest.title')" :description="$t('dashboard.latest.description')" />
 			<DataState
-				:pending="!dashboard.levelsActive.value || dashboard.levelsQuery.fetching.value"
-				:error="dashboard.levelsQuery.error.value?.message"
+				:pending="!dashboard.latestLevelsActive.value || dashboard.latestLevelsQuery.fetching.value"
+				:error="dashboard.latestLevelsQuery.error.value?.message"
 				:empty="dashboard.latestLevels.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
@@ -152,6 +152,7 @@ const authCallback = route.query.auth === 'callback'
 const { verificationFailed: authVerificationFailed } = useAuthCallbackVerification(authCallback)
 const viewerId = computed(() => user.value?.id)
 const dashboard = useDashboard(viewerId)
+await dashboard.prefetchCritical()
 const numberFormat = new Intl.NumberFormat()
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
 
@@ -316,7 +317,7 @@ const hero = computed(() => {
 })
 
 const liveMetrics = computed(() => {
-	const data = dashboard.dashboard.value
+	const data = dashboard.metrics.value
 	const details = (day: number | undefined, month: number | undefined) => [
 		{
 			label: t('dashboard.metrics.past24Hours'),
