@@ -91,7 +91,7 @@
 			</DataState>
 		</section>
 
-		<section v-if="user" :ref="dashboard.viewerTarget" class="space-y-8">
+		<section v-if="user" :ref="dashboard.viewerTarget">
 			<DataState
 				:pending="!dashboard.viewerActive.value || dashboard.viewerContentQuery.fetching.value"
 				:error="dashboard.viewerContentQuery.error.value?.message"
@@ -99,6 +99,7 @@
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
+				class="space-y-8"
 			>
 				<section v-if="dashboard.viewerRecords.value.length" aria-labelledby="viewer-records-heading">
 					<SectionHeader id="viewer-records-heading" :title="$t('dashboard.viewerRecords.title')" :description="$t('dashboard.viewerRecords.description')" />
