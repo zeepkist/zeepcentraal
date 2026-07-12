@@ -71,7 +71,7 @@ const tabOptions = computed(() => [
 	{
 		value: 'personal-bests' as const,
 		label: t('pages.myRecords.tabs.personalBests'),
-		icon: 'trending-up',
+		icon: 'star',
 	},
 	{
 		value: 'world-records' as const,
