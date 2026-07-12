@@ -1,3 +1,4 @@
+import { calculatePlayerPoints, type PlayerPointContribution } from '@zeepkist/core/score'
 import {
 	bulkUpdateUserRanks,
 	clearUserPointContributions,
@@ -10,7 +11,7 @@ import {
 	getPersonalBestLevelIdsForUsers,
 	type PersonalBestWithLevelPointsAndPosition,
 } from '@zeepkist/database/services/personalBest'
-import { batchProcess, calculatePlayerPoints, type PlayerPointContribution } from '../utils'
+import { batchProcess } from '../utils'
 import { getCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
 import type { TaskHandler } from './types'
 

@@ -1,4 +1,4 @@
-interface PersonalBest {
+export interface PersonalBest {
 	idLevel: number
 	idRecord: number
 	levelPoints: number
@@ -15,24 +15,36 @@ export interface PlayerPointContribution {
 	playerDecayedPoints: number
 }
 
-interface CalculatePlayerPointsResult {
+export interface CalculatePlayerPointsResult {
 	points: number
 	totalPoints: number
 	contributions: PlayerPointContribution[]
 }
 
-const GLOBAL_DECAY_FACTOR = 0.95
-const LEVEL_DECAY_FACTOR = 0.985
+export const GLOBAL_DECAY_FACTOR = 0.95
+export const LEVEL_DECAY_FACTOR = 0.985
 export const PLAYER_SCORE_PB_LIMIT = 300
 export const PLAYER_SCORE_CONTRIBUTION_LIMIT = 200
 
-function calculatePlayerPointsDecayed(points: number, position: number, decayFactor: number) {
-	if (position < 1 || !Number.isFinite(points) || points <= 0) {
+export function calculateDecayMultiplier(position: number, decayFactor: number) {
+	if (
+		position < 1 ||
+		!Number.isFinite(position) ||
+		!Number.isFinite(decayFactor) ||
+		decayFactor <= 0
+	) {
 		return 0
 	}
 
-	const decay = decayFactor ** (position - 1)
-	return points * decay
+	return decayFactor ** (position - 1)
+}
+
+function calculatePlayerPointsDecayed(points: number, position: number, decayFactor: number) {
+	if (!Number.isFinite(points) || points <= 0) {
+		return 0
+	}
+
+	return points * calculateDecayMultiplier(position, decayFactor)
 }
 
 export const calculatePlayerPoints = (

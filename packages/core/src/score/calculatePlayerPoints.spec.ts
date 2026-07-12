@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import {
+	calculateDecayMultiplier,
 	calculatePlayerPoints,
+	GLOBAL_DECAY_FACTOR,
+	LEVEL_DECAY_FACTOR,
 	PLAYER_SCORE_CONTRIBUTION_LIMIT,
 	PLAYER_SCORE_PB_LIMIT,
 } from './calculatePlayerPoints'
@@ -59,5 +62,18 @@ describe('calculatePlayerPoints', () => {
 		expect(result.contributions).toHaveLength(PLAYER_SCORE_CONTRIBUTION_LIMIT)
 		expect(result.contributions[0]?.idLevel).toBe(1)
 		expect(result.contributions.at(-1)?.idLevel).toBe(PLAYER_SCORE_CONTRIBUTION_LIMIT)
+	})
+})
+
+describe('calculateDecayMultiplier', () => {
+	test('uses shared level and global decay factors', () => {
+		expect(calculateDecayMultiplier(1, LEVEL_DECAY_FACTOR)).toBe(1)
+		expect(calculateDecayMultiplier(2, LEVEL_DECAY_FACTOR)).toBeCloseTo(0.985)
+		expect(calculateDecayMultiplier(2, GLOBAL_DECAY_FACTOR)).toBeCloseTo(0.95)
+	})
+
+	test('returns zero for invalid positions', () => {
+		expect(calculateDecayMultiplier(0, LEVEL_DECAY_FACTOR)).toBe(0)
+		expect(calculateDecayMultiplier(Number.NaN, LEVEL_DECAY_FACTOR)).toBe(0)
 	})
 })

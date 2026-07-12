@@ -1,10 +1,10 @@
+import { calculatePlayerPoints } from '@zeepkist/core/score'
 import {
 	clearUserPointContributions,
 	getUserPersonalBestsWithLevelPointsAndPosition,
 	upsertUserPointContributionsBulk,
 	upsertUserPoints,
 } from '@zeepkist/database'
-import { calculatePlayerPoints } from '../utils'
 import type { TaskHandler } from './types'
 
 type Payload = {

@@ -1,5 +1,4 @@
 export * from './batchProcess'
 export * from './calculateLevelPoints'
-export * from './calculatePlayerPoints'
 export * from './calculateVoteRating'
 export * from './levelScoreEligibility'
