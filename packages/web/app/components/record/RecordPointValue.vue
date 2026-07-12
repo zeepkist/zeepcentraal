@@ -6,13 +6,13 @@
 		"
 	>
 		<div class="w-full px-4 py-3 tabular-nums" tabindex="0" @keydown.stop>
-			<p class="font-bold">{{ number.format(points) }}</p>
-			<p
-				class="text-xs text-muted-foreground/70"
+			<span class="font-bold">{{ number.format(points) }}</span>
+			<span
+				class="text-xs text-muted-foreground/70 ml-1"
 				:aria-label="decayLabel.replace('{percentage}', percentage.format(decayMultiplier))"
 			>
-				{{ percentage.format(decayMultiplier) }}
-			</p>
+				({{ percentage.format(decayMultiplier) }})
+			</span>
 		</div>
 	</UTooltip>
 	<div v-else-if="points != null" class="w-full px-4 py-3 font-bold tabular-nums">
