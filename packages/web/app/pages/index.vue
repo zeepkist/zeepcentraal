@@ -85,23 +85,12 @@
 			<DataState
 				:pending="!dashboard.statisticsActive.value || dashboard.statisticsQuery.fetching.value"
 				:error="dashboard.statisticsQuery.error.value?.message"
-				:empty="!dashboard.statistics.value?.recordStatistics"
+				:empty="!dashboard.statistics.value?.allTimeStatistics"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
-				<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-					<MetricGrid :metrics="totalMetrics" />
-					<UCard class="rounded-xl border-border bg-card/85">
-						<BarChart
-							:data="distanceChart"
-							:categories="distanceCategories"
-							:y-axis="['value']"
-							:height="300"
-							:x-formatter="distanceLabel"
-						/>
-					</UCard>
-				</div>
+				<DashboardStatisticsPanel :model="statisticsModel" />
 			</DataState>
 		</section>
 
@@ -384,47 +373,8 @@ const liveMetrics = computed(() => {
 	]
 })
 
-const totals = computed(() => dashboard.statistics.value?.recordStatistics?.aggregates?.sum)
-const totalMetrics = computed(() => [
-	{
-		key: 'distance',
-		label: t('dashboard.metrics.distance'),
-		value: `${oneDecimal.format((totals.value?.distance ?? 0) / 1000)} km`,
-		icon: 'route',
-	},
-	{
-		key: 'airtime',
-		label: t('dashboard.metrics.airtime'),
-		value: `${oneDecimal.format((totals.value?.timeInAir ?? 0) / 3600)} h`,
-		icon: 'dashboard',
-	},
-	{
-		key: 'ragdoll',
-		label: t('dashboard.metrics.ragdoll'),
-		value: `${oneDecimal.format((totals.value?.distanceRagdoll ?? 0) / 1000)} km`,
-		icon: 'route',
-	},
-	{
-		key: 'horns',
-		label: t('dashboard.metrics.horns'),
-		value: numberFormat.format(totals.value?.hornCount ?? 0),
-		icon: 'dashboard',
-	},
-	{
-		key: 'brakes',
-		label: t('dashboard.metrics.brakes'),
-		value: numberFormat.format(totals.value?.brakeCount ?? 0),
-		icon: 'dashboard',
-	},
-])
-const distanceChart = computed(() => [
-	{ key: 'distance', value: (totals.value?.distance ?? 0) / 1000 },
-	{ key: 'air', value: (totals.value?.distanceInAir ?? 0) / 1000 },
-	{ key: 'ragdoll', value: (totals.value?.distanceRagdoll ?? 0) / 1000 },
-])
-const distanceCategories = { value: { name: t('dashboard.totals.kilometres'), color: '#facc15' } }
-const distanceLabel = (index: number) =>
-	t(`dashboard.totals.chart.${distanceChart.value[index]?.key ?? 'distance'}`)
+const statisticsModel = useDashboardStatisticsModel(dashboard.statistics, currentMonth)
+
 const levelLabels = computed(() => ({
 	adventureLabel: t('common.adventure'),
 	pointsLabel: t('common.points'),

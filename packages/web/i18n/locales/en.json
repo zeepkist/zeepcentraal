@@ -389,7 +389,83 @@
 		},
 		"totals": {
 			"title": "Every kilometre counts",
-			"description": "Totals aggregated from submitted record telemetry.",
+			"description": "A live look at how the Zeepkist community drives, flies, tumbles and steers.",
+			"empty": "No telemetry is available for this period.",
+			"period": {
+				"title": "Telemetry window",
+				"description": "V6 ghost telemetry from GTR 1.2.0 or newer, switchable between the past 24 hours and current month.",
+				"minimumVersion": "GTR 1.2.0+",
+				"today": "Today"
+			},
+			"distance": {
+				"total": "Total distance",
+				"today": "Distance today",
+				"month": "Distance in {month}"
+			},
+			"surfaceDistance": {
+				"title": "Distance on surfaces",
+				"description": "Where community kilometres were driven."
+			},
+			"surfaceTime": {
+				"title": "Time on surfaces",
+				"description": "How driving time was distributed by surface."
+			},
+			"movementDistance": {
+				"title": "Distance by movement",
+				"description": "Grounded, airborne and ragdoll distance compared."
+			},
+			"movementTime": {
+				"title": "Time by movement",
+				"description": "Grounded, airborne and ragdoll time compared."
+			},
+			"wheelDistance": {
+				"title": "Distance on wheels",
+				"description": "Distance travelled with four through zero wheels in contact."
+			},
+			"steering": {
+				"title": "Steering limits",
+				"description": "Left and right steering inputs.",
+				"left": "Turned left",
+				"right": "Turned right"
+			},
+			"averageSpeed": {
+				"title": "Average speed",
+				"description": "Mean speed across compatible submitted records."
+			},
+			"actions": {
+				"title": "Driver inputs",
+				"description": "Community controls used during compatible records.",
+				"arms": "Arms raised",
+				"brakes": "Brakes",
+				"horns": "Horns"
+			},
+			"surfaces": {
+				"tarmac": "Tarmac",
+				"grass": "Grass",
+				"sand": "Sand",
+				"ice": "Ice",
+				"metal": "Metal",
+				"snow": "Snow",
+				"soap": "Soap"
+			},
+			"movement": {
+				"ground": "On ground",
+				"air": "In air",
+				"ragdoll": "Ragdolling"
+			},
+			"wheels": {
+				"four": "4 wheels",
+				"three": "3 wheels",
+				"two": "2 wheels",
+				"one": "1 wheel",
+				"zero": "0 wheels"
+			},
+			"units": {
+				"kilometres": "km",
+				"hours": "h",
+				"minutes": "min",
+				"kilometresPerHour": "km/h"
+			},
 			"kilometres": "Kilometres",
 			"chart": {
 				"distance": "Driven",

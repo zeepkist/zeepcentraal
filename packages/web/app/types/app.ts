@@ -166,3 +166,55 @@ export type HeroPanel = {
 	icon: string
 	features?: string[]
 }
+
+export type DashboardChartEntry = {
+	key: string
+	label: string
+	value: number
+	formattedValue: string
+	color: string
+}
+
+export type DashboardPeriodData<T> = {
+	today: T
+	month: T
+}
+
+export type DashboardStatisticsMetric = {
+	key: string
+	label: string
+	value: string
+	icon: string
+}
+
+export type DashboardStatisticsChart = {
+	key: string
+	title: string
+	description: string
+	icon: string
+	kind: 'donut' | 'bar'
+	half?: boolean
+	wide?: boolean
+	data: DashboardPeriodData<DashboardChartEntry[]>
+}
+
+export type DashboardStatisticsModel = {
+	distanceMetrics: DashboardStatisticsMetric[]
+	periodSelectorLabel: string
+	periodDescription: string
+	minimumVersionLabel: string
+	todayLabel: string
+	monthLabel: string
+	emptyLabel: string
+	charts: DashboardStatisticsChart[]
+	averageSpeed: {
+		title: string
+		description: string
+		data: DashboardPeriodData<string>
+	}
+	actions: {
+		title: string
+		description: string
+		data: DashboardPeriodData<DashboardStatisticsMetric[]>
+	}
+}

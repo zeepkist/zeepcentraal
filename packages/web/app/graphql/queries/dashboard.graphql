@@ -196,18 +196,101 @@ query ZC_DashboardHotLevels($since: Datetime!) {
 	}
 }
 
-query ZC_DashboardStatistics {
-	recordStatistics(first: 0) {
+fragment ZC_DashboardV6StatisticAggregates on RecordStatisticAggregates {
+	sum {
+		distance
+		distanceInAir
+		distanceOn1Wheel
+		distanceOn2Wheels
+		distanceOn3Wheels
+		distanceOn4Wheels
+		distanceOnGrass
+		distanceOnGround
+		distanceOnIce
+		distanceOnMetal
+		distanceOnSand
+		distanceOnSnow
+		distanceOnSoap
+		distanceOnTarmac
+		distanceRagdoll
+		time
+		timeInAir
+		timeOnGrass
+		timeOnGround
+		timeOnIce
+		timeOnMetal
+		timeOnSand
+		timeOnSnow
+		timeOnSoap
+		timeOnTarmac
+		timeRagdoll
+		turnLeftCount
+		turnRightCount
+		armsUpCount
+		brakeCount
+		hornCount
+	}
+	average {
+		averageSpeed
+	}
+}
+
+query ZC_DashboardStatistics(
+	$daySince: Datetime!
+	$monthSince: Datetime!
+	$minimumModVersion: String!
+) {
+	allTimeStatistics: recordStatistics(first: 0) {
 		aggregates {
 			sum {
 				distance
-				distanceInAir
-				distanceRagdoll
-				time
-				timeInAir
-				hornCount
-				brakeCount
 			}
+		}
+	}
+	dayStatistics: recordStatistics(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $daySince } } }
+	) {
+		aggregates {
+			sum {
+				distance
+			}
+		}
+	}
+	monthStatistics: recordStatistics(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $monthSince } } }
+	) {
+		aggregates {
+			sum {
+				distance
+			}
+		}
+	}
+	v6DayStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				dateCreated: { greaterThanOrEqualTo: $daySince }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
+			}
+		}
+	) {
+		aggregates {
+			...ZC_DashboardV6StatisticAggregates
+		}
+	}
+	v6MonthStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				dateCreated: { greaterThanOrEqualTo: $monthSince }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
+			}
+		}
+	) {
+		aggregates {
+			...ZC_DashboardV6StatisticAggregates
 		}
 	}
 }
