@@ -70,6 +70,10 @@ export type LevelSummary = {
 	rating?: number | null
 	popularity?: number | null
 	recordCount?: number
+	personalBestCount?: number
+	worldRecordTime?: number | null
+	worldRecordAuthorName?: string | null
+	worldRecordAuthorSteamId?: string | null
 	worldRecord?: RecordRow | null
 	medals?: MedalTimes | null
 }

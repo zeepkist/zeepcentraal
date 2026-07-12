@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { Kind, parse } from 'graphql'
 import { describe, expect, it } from 'vitest'
-import { formatDashboardMonth, getDashboardMetricWindows } from '../../app/utils/dashboardMetrics'
+import {
+	formatDashboardMonth,
+	getDashboardMetricWindows,
+	getDashboardWeekSince,
+} from '../../app/utils/dashboardMetrics'
 
 const querySource = readFileSync(
 	new URL('../../app/graphql/queries/dashboard.graphql', import.meta.url),
@@ -31,6 +35,20 @@ describe('dashboard metric windows', () => {
 	it('starts summer months at London midnight across the UTC date boundary', () => {
 		const windows = getDashboardMetricWindows(new Date('2026-07-12T12:00:00.000Z'))
 		expect(windows.monthSince).toBe('2026-06-30T23:00:00.000Z')
+	})
+})
+
+describe('dashboard hot-level week boundary', () => {
+	it('starts summer weeks at London midnight on Monday', () => {
+		expect(getDashboardWeekSince(new Date('2026-07-12T14:30:00.000Z'))).toBe(
+			'2026-07-05T23:00:00.000Z',
+		)
+	})
+
+	it('starts winter weeks at London midnight on Monday', () => {
+		expect(getDashboardWeekSince(new Date('2026-01-15T12:00:00.000Z'))).toBe(
+			'2026-01-12T00:00:00.000Z',
+		)
 	})
 })
 
@@ -78,6 +96,46 @@ describe('dashboard metric GraphQL', () => {
 		expect(
 			popularLevels.arguments?.find((argument) => argument.name.value === 'first'),
 		).toMatchObject({ value: { kind: Kind.INT, value: '6' } })
+
+		const hotQuery = document.definitions.find(
+			(definition) =>
+				definition.kind === Kind.OPERATION_DEFINITION &&
+				definition.name?.value === 'ZC_DashboardHotLevels',
+		)
+		expect(hotQuery?.kind).toBe(Kind.OPERATION_DEFINITION)
+		if (hotQuery?.kind !== Kind.OPERATION_DEFINITION) return
+		const hotLevels = hotQuery.selectionSet.selections[0]
+		expect(hotLevels).toMatchObject({
+			kind: Kind.FIELD,
+			alias: { value: 'hotLevels' },
+			name: { value: 'hotLevelsSince' },
+		})
+		if (hotLevels?.kind !== Kind.FIELD) return
+		expect(
+			hotLevels.arguments?.find((argument) => argument.name.value === 'first'),
+		).toMatchObject({ value: { kind: Kind.INT, value: '6' } })
+		expect(
+			hotLevels.arguments?.find((argument) => argument.name.value === 'since'),
+		).toMatchObject({
+			value: { kind: Kind.VARIABLE, name: { value: 'weekSince' } },
+		})
+		const nodes = hotLevels.selectionSet?.selections.find(
+			(selection) => selection.kind === Kind.FIELD && selection.name.value === 'nodes',
+		)
+		if (nodes?.kind !== Kind.FIELD) return
+		const weeklyRecords = nodes.selectionSet?.selections.find(
+			(selection) =>
+				selection.kind === Kind.FIELD && selection.alias?.value === 'weeklyRecords',
+		)
+		expect(weeklyRecords).toMatchObject({
+			kind: Kind.FIELD,
+			name: { value: 'records' },
+		})
+		if (weeklyRecords?.kind !== Kind.FIELD) return
+		expect(
+			weeklyRecords.arguments?.find((argument) => argument.name.value === 'first'),
+		).toMatchObject({ value: { kind: Kind.INT, value: '0' } })
+		expect(querySource).not.toContain('ZC_DashboardLatestLevels')
 
 		const subscription = parse(subscriptionSource).definitions[0]
 		expect(subscription).toMatchObject({

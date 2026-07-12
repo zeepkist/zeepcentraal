@@ -375,9 +375,9 @@
 			"title": "Popular levels",
 			"description": "Levels with highest current popularity score."
 		},
-		"latest": {
-			"title": "Latest levels",
-			"description": "Newest levels indexed by ZeepCentraal."
+		"hotLevels": {
+			"title": "Hot Levels This Week",
+			"description": "Six levels with the most submitted records since Monday."
 		},
 		"viewerLevels": {
 			"title": "Your workshop levels",
@@ -508,6 +508,12 @@
 	},
 	"levels": {
 		"results": "{count} levels",
+		"card": {
+			"personalBests": "PBs",
+			"worldRecord": "WR",
+			"authorTime": "AT",
+			"by": "by"
+		},
 		"filters": {
 			"title": "Find levels",
 			"search": "Name or hash",

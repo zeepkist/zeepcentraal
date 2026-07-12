@@ -26,7 +26,7 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
-				<LevelGrid :levels="dashboard.popularLevels.value" v-bind="levelLabels" />
+				<LevelGrid :levels="dashboard.popularLevels.value" v-bind="dashboardLevelLabels" />
 			</DataState>
 		</section>
 
@@ -48,17 +48,17 @@
 			</DataState>
 		</section>
 
-		<section :ref="dashboard.latestLevelsTarget" aria-labelledby="latest-levels-heading">
-			<SectionHeader id="latest-levels-heading" :title="$t('dashboard.latest.title')" :description="$t('dashboard.latest.description')" />
+		<section :ref="dashboard.hotLevelsTarget" aria-labelledby="hot-levels-heading">
+			<SectionHeader id="hot-levels-heading" :title="$t('dashboard.hotLevels.title')" :description="$t('dashboard.hotLevels.description')" />
 			<DataState
-				:pending="!dashboard.latestLevelsActive.value || dashboard.latestLevelsQuery.fetching.value"
-				:error="dashboard.latestLevelsQuery.error.value?.message"
-				:empty="dashboard.latestLevels.value.length === 0"
+				:pending="!dashboard.hotLevelsActive.value || dashboard.hotLevelsQuery.fetching.value"
+				:error="dashboard.hotLevelsQuery.error.value?.message"
+				:empty="dashboard.hotLevels.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
-				<LevelGrid :levels="dashboard.latestLevels.value" v-bind="levelLabels" />
+				<LevelGrid :levels="dashboard.hotLevels.value" v-bind="dashboardLevelLabels" />
 			</DataState>
 		</section>
 
@@ -103,7 +103,7 @@
 			>
 				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
 					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
-					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="levelLabels" />
+					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="dashboardLevelLabels" />
 				</section>
 			</DataState>
 		</section>
@@ -415,5 +415,12 @@ const levelLabels = computed(() => ({
 	adventureLabel: t('common.adventure'),
 	pointsLabel: t('common.points'),
 	recordsLabel: t('common.records'),
+}))
+const dashboardLevelLabels = computed(() => ({
+	...levelLabels.value,
+	personalBestsLabel: t('levels.card.personalBests'),
+	worldRecordLabel: t('levels.card.worldRecord'),
+	authorTimeLabel: t('levels.card.authorTime'),
+	byLabel: t('levels.card.by'),
 }))
 </script>

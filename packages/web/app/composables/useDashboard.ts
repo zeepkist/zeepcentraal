@@ -3,13 +3,13 @@ import type { Ref } from 'vue'
 import {
 	Zc_DashboardCriticalDocument,
 	Zc_DashboardHeroSummaryDocument,
-	Zc_DashboardLatestLevelsDocument,
+	Zc_DashboardHotLevelsDocument,
 	Zc_DashboardMetricsLiveDocument,
 	Zc_DashboardStatisticsDocument,
 	Zc_DashboardViewerLevelsDocument,
 } from '~/graphql/generated/graphql'
 import type { LevelSummary, SteamNewsItem } from '~/types/app'
-import { getDashboardMetricWindows } from '~/utils/dashboardMetrics'
+import { getDashboardMetricWindows, getDashboardWeekSince } from '~/utils/dashboardMetrics'
 
 type DashboardLevelLike = {
 	id: number
@@ -29,6 +29,12 @@ type DashboardLevelLike = {
 	}
 	levelPoints?: { points: number; rating: number; modifierPopularity: number } | null
 	records?: { totalCount: number }
+	weeklyRecords?: { totalCount: number }
+	personalBestGlobals?: { totalCount: number }
+	worldRecordGlobal?: {
+		record: { time: number } | null
+		user: { steamId: unknown; steamName: string | null } | null
+	} | null
 }
 
 function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
@@ -46,7 +52,14 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 		points: level.levelPoints?.points,
 		rating: level.levelPoints?.rating,
 		popularity: level.levelPoints?.modifierPopularity,
-		recordCount: level.records?.totalCount,
+		recordCount: level.weeklyRecords?.totalCount ?? level.records?.totalCount,
+		personalBestCount: level.personalBestGlobals?.totalCount,
+		worldRecordTime: level.worldRecordGlobal?.record?.time,
+		worldRecordAuthorName: level.worldRecordGlobal?.user?.steamName,
+		worldRecordAuthorSteamId:
+			level.worldRecordGlobal?.user?.steamId == null
+				? null
+				: String(level.worldRecordGlobal.user.steamId),
 		medals: item
 			? {
 					author: item.validationTimeAuthor,
@@ -75,6 +88,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		if (metricWindowTimer) clearInterval(metricWindowTimer)
 	})
 	const levelsPrefetch = useViewportPrefetch()
+	const hotLevelsSince = useState('dashboard-hot-levels-since', () => getDashboardWeekSince())
 	const viewerPrefetch = useViewportPrefetch()
 	const statisticsPrefetch = useViewportPrefetch()
 	const newsPrefetch = useViewportPrefetch()
@@ -88,8 +102,9 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		variables: liveMetricWindows,
 		pause: computed(() => !metricsSubscriptionActive.value),
 	})
-	const latestLevelsQuery = useQuery({
-		query: Zc_DashboardLatestLevelsDocument,
+	const hotLevelsQuery = useQuery({
+		query: Zc_DashboardHotLevelsDocument,
+		variables: computed(() => ({ weekSince: hotLevelsSince.value })),
 		pause: computed(() => import.meta.server || !levelsPrefetch.active.value),
 	})
 	const viewerQuery = useQuery({
@@ -137,9 +152,9 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 				.map(mapLevel)
 				.filter(Boolean) as LevelSummary[],
 	)
-	const latestLevels = computed(
+	const hotLevels = computed(
 		() =>
-			(latestLevelsQuery.data.value?.latestLevels?.nodes ?? [])
+			(hotLevelsQuery.data.value?.hotLevels?.nodes ?? [])
 				.map(mapLevel)
 				.filter(Boolean) as LevelSummary[],
 	)
@@ -165,13 +180,13 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	return {
 		criticalQuery,
 		latestSeason,
-		latestLevelsActive: levelsPrefetch.active,
-		latestLevelsQuery,
-		latestLevelsTarget: levelsPrefetch.target,
+		hotLevelsActive: levelsPrefetch.active,
+		hotLevelsQuery,
+		hotLevelsTarget: levelsPrefetch.target,
 		metricMonthSince,
 		metrics,
 		metricsLive,
-		latestLevels,
+		hotLevels,
 		news,
 		newsActive: newsPrefetch.active,
 		newsTarget: newsPrefetch.target,

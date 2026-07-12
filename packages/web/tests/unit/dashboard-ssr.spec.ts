@@ -64,6 +64,11 @@ describe('dashboard critical SSR', () => {
 		expect(composable).toContain(
 			'pause: computed(() => import.meta.server || !levelsPrefetch.active.value)',
 		)
+		expect(composable).toContain('Zc_DashboardHotLevelsDocument')
+		expect(composable).not.toContain('Zc_DashboardLatestLevelsDocument')
+		expect(composable).toContain(
+			'variables: computed(() => ({ weekSince: hotLevelsSince.value }))',
+		)
 		expect(composable).toMatch(
 			/import\.meta\.server\s*\|\|\s*viewerId\.value === undefined\s*\|\|\s*!viewerPrefetch\.active\.value/,
 		)

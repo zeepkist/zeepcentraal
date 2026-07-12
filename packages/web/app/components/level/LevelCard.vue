@@ -25,9 +25,35 @@
 				/>
 			</div>
 		</div>
-		<div class="mt-4 flex flex-wrap gap-3 text-xs text-muted-foreground">
-			<span v-if="level.points != null">{{ pointsLabel }}: {{ level.points }}</span>
-			<span v-if="level.recordCount != null">{{ recordsLabel }}: {{ level.recordCount }}</span>
+		<div class="mt-4 grid grid-cols-3 gap-3 text-sm">
+			<div v-if="level.points != null">
+				<p class="text-xs text-muted-foreground">{{ pointsLabel }}</p>
+				<p class="font-semibold tabular-nums text-highlighted">{{ formatNumber(level.points) }}</p>
+			</div>
+			<div v-if="level.recordCount != null">
+				<p class="text-xs text-muted-foreground">{{ recordsLabel }}</p>
+				<p class="font-semibold tabular-nums text-highlighted">
+					{{ formatNumber(level.recordCount) }}
+				</p>
+			</div>
+			<div v-if="personalBestsLabel && level.personalBestCount != null">
+				<p class="text-xs text-muted-foreground">{{ personalBestsLabel }}</p>
+				<p class="font-semibold tabular-nums text-highlighted">
+					{{ formatNumber(level.personalBestCount) }}
+				</p>
+			</div>
+		</div>
+		<div
+			v-if="bestTime != null && bestTimeLabel"
+			class="mt-4 flex items-center justify-between gap-3 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2"
+		>
+			<div class="min-w-0">
+				<p class="text-xs font-semibold uppercase tracking-wide text-primary">{{ bestTimeLabel }}</p>
+				<p v-if="bestTimeAuthor" class="truncate text-xs text-muted-foreground">
+					{{ byLabel ? `${byLabel} ${bestTimeAuthor}` : bestTimeAuthor }}
+				</p>
+			</div>
+			<p class="shrink-0 font-bold tabular-nums text-highlighted">{{ formatTime(bestTime) }}</p>
 		</div>
 	</NuxtLink>
 </template>
@@ -35,10 +61,31 @@
 <script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
 
-defineProps<{
+const props = defineProps<{
 	level: LevelSummary
 	adventureLabel: string
 	pointsLabel: string
 	recordsLabel: string
+	personalBestsLabel?: string
+	worldRecordLabel?: string
+	authorTimeLabel?: string
+	byLabel?: string
 }>()
+
+const { locale } = useI18n()
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
+const bestTime = computed(() => props.level.worldRecordTime ?? props.level.medals?.author)
+const bestTimeAuthor = computed(() => props.level.worldRecordAuthorName ?? props.level.authorName)
+const bestTimeLabel = computed(() =>
+	props.level.worldRecordTime == null ? props.authorTimeLabel : props.worldRecordLabel,
+)
+
+function formatNumber(value: number) {
+	return numberFormat.value.format(value)
+}
+
+function formatTime(seconds: number) {
+	const minutes = Math.floor(seconds / 60)
+	return `${minutes}:${(seconds - minutes * 60).toFixed(3).padStart(6, '0')}`
+}
 </script>

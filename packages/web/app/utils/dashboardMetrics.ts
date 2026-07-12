@@ -55,12 +55,22 @@ function timeZoneOffset(date: Date, timeZone: string): number {
 	return wallClock - Math.floor(date.getTime() / 1000) * 1000
 }
 
-function startOfMonthInTimeZone(date: Date, timeZone: string): Date {
-	const { year, month } = dateParts(date, timeZone)
-	const wallClock = Date.UTC(year, month - 1, 1)
+function wallClockStartInTimeZone(wallClock: number, timeZone: string): Date {
 	let candidate = wallClock - timeZoneOffset(new Date(wallClock), timeZone)
 	candidate = wallClock - timeZoneOffset(new Date(candidate), timeZone)
 	return new Date(candidate)
+}
+
+function startOfMonthInTimeZone(date: Date, timeZone: string): Date {
+	const { year, month } = dateParts(date, timeZone)
+	return wallClockStartInTimeZone(Date.UTC(year, month - 1, 1), timeZone)
+}
+
+function startOfWeekInTimeZone(date: Date, timeZone: string): Date {
+	const { year, month, day } = dateParts(date, timeZone)
+	const wallClockDate = new Date(Date.UTC(year, month - 1, day))
+	const daysSinceMonday = (wallClockDate.getUTCDay() + 6) % 7
+	return wallClockStartInTimeZone(Date.UTC(year, month - 1, day - daysSinceMonday), timeZone)
 }
 
 export function getDashboardMetricWindows(now = new Date()): DashboardMetricWindows {
@@ -68,6 +78,10 @@ export function getDashboardMetricWindows(now = new Date()): DashboardMetricWind
 		daySince: new Date(now.getTime() - DAY_MS).toISOString(),
 		monthSince: startOfMonthInTimeZone(now, DASHBOARD_TIME_ZONE).toISOString(),
 	}
+}
+
+export function getDashboardWeekSince(now = new Date()): string {
+	return startOfWeekInTimeZone(now, DASHBOARD_TIME_ZONE).toISOString()
 }
 
 export function formatDashboardMonth(monthSince: string, locale: string): string {

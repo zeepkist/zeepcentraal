@@ -50,6 +50,18 @@ query ZC_DashboardViewerLevels($id: Int!) {
 					records(first: 0) {
 						totalCount
 					}
+					personalBestGlobals(first: 0) {
+						totalCount
+					}
+					worldRecordGlobal {
+						record {
+							time
+						}
+						user {
+							steamId
+							steamName
+						}
+					}
 				}
 				name
 				imageUrl

@@ -25,6 +25,18 @@ fragment ZC_DashboardLevel on Level {
 	records(first: 0) {
 		totalCount
 	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobal {
+		record {
+			time
+		}
+		user {
+			steamId
+			steamName
+		}
+	}
 }
 
 fragment ZC_DashboardMetricCounts on Query {
@@ -168,14 +180,16 @@ query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
 	}
 }
 
-query ZC_DashboardLatestLevels {
-	latestLevels: levels(
-		first: 6
-		filter: { levelItems: { some: { deleted: { equalTo: false } } } }
-		orderBy: [DATE_CREATED_DESC]
-	) {
+query ZC_DashboardHotLevels($weekSince: Datetime!) {
+	hotLevels: hotLevelsSince(since: $weekSince, first: 6) {
 		nodes {
 			...ZC_DashboardLevel
+			weeklyRecords: records(
+				first: 0
+				filter: { dateCreated: { greaterThanOrEqualTo: $weekSince } }
+			) {
+				totalCount
+			}
 		}
 	}
 }
