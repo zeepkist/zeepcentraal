@@ -278,7 +278,7 @@
 			"empty": "No records found in this view.",
 			"table": {
 				"set": "Set",
-				"notRanked": "Not ranked",
+				"notRanked": "—",
 				"levelPoints": "Level points",
 				"rankedPoints": "Ranked points",
 				"decayPercentage": "{percentage} remaining after decay",
