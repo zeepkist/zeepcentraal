@@ -31,6 +31,14 @@ const chartTooltip = readFileSync(
 	new URL('../../app/components/dashboard/DashboardChartTooltip.vue', import.meta.url),
 	'utf8',
 )
+const donutChart = readFileSync(
+	new URL('../../app/components/dashboard/DashboardDonutChart.vue', import.meta.url),
+	'utf8',
+)
+const driverInputs = readFileSync(
+	new URL('../../app/components/dashboard/DashboardDriverInputsCard.vue', import.meta.url),
+	'utf8',
+)
 
 describe('dashboard statistic aggregates', () => {
 	it('uses five count-only aggregate connections with bounded period filters', () => {
@@ -67,11 +75,11 @@ describe('dashboard statistic aggregates', () => {
 			querySource.match(/modVersion: \{ greaterThanOrEqualTo: \$minimumModVersion \}/g),
 		).toHaveLength(2)
 		expect(composable).toContain("minimumModVersion: '1.2.0'")
+		expect(composable).toContain('daySince: ssrMetricWindows.value.daySince')
+		expect(composable).toContain('monthSince: ssrMetricWindows.value.monthSince')
+		expect(composable).not.toContain('daySince: liveMetricWindows.value.daySince')
+		expect(composable).not.toContain('monthSince: liveMetricWindows.value.monthSince')
 	})
-	expect(composable).toContain('daySince: ssrMetricWindows.value.daySince')
-	expect(composable).toContain('monthSince: ssrMetricWindows.value.monthSince')
-	expect(composable).not.toContain('daySince: liveMetricWindows.value.daySince')
-	expect(composable).not.toContain('monthSince: liveMetricWindows.value.monthSince')
 
 	it('requests every displayed sum and average field', () => {
 		for (const field of [
@@ -104,10 +112,18 @@ describe('dashboard statistic presentation', () => {
 		expect(page).not.toContain('<BarChart')
 		expect(page).not.toContain('totalMetrics')
 		expect(panel).toContain('<DashboardStatisticChartCard')
-		expect(chartCard).toContain('<DonutChart')
+		expect(chartCard).toContain('<DashboardDonutChart')
 		expect(chartCard).toContain('<BarChart')
-		expect(chartCard).toContain("half ? 'half' : 'full'")
-		for (const source of [panel, chartCard, chartLegend, chartTooltip]) {
+		expect(donutChart).toContain('<DonutChart')
+		expect(donutChart).toContain("half ? 'half' : 'full'")
+		for (const source of [
+			panel,
+			chartCard,
+			chartLegend,
+			chartTooltip,
+			donutChart,
+			driverInputs,
+		]) {
 			expect(source).not.toContain('useQuery(')
 			expect(source).not.toContain('useFetch(')
 		}
@@ -117,7 +133,9 @@ describe('dashboard statistic presentation', () => {
 		expect(panel).toContain("period = 'today'")
 		expect(panel).toContain("period = 'month'")
 		expect(chartCard).toContain("matchMedia('(prefers-reduced-motion: reduce)')")
+		expect(donutChart).toContain("matchMedia('(prefers-reduced-motion: reduce)')")
 		expect(chartCard).toContain('reducedMotion.value ? 0 : 650')
+		expect(donutChart).toContain('reducedMotion.value ? 0 : 650')
 		expect(model).toContain('Math.max(')
 		expect(model).toContain('distanceOn4Wheels')
 		expect(model).toContain('distanceOn1Wheel')
@@ -131,9 +149,19 @@ describe('dashboard statistic presentation', () => {
 		expect(chartCard).not.toContain('hover:border-primary')
 		expect(chartCard).not.toContain('hover:-translate')
 		expect(chartCard).toContain('orientation="horizontal"')
-		expect(chartCard).toContain('md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]')
+		expect(donutChart).toContain('md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]')
 		expect(chartCard).toContain('<DashboardChartTooltip')
 		expect(chartCard).toContain('<DashboardChartLegend')
+		expect(donutChart).toContain('--vis-donut-background-color: transparent')
+		expect(donutChart).toContain('--vis-donut-segment-stroke-color: transparent')
+		expect(chartCard).toContain(':categories="barCategories"')
+		expect(chartCard).toContain(':y-axis="barKeys"')
+		expect(chartCard).toContain('hide-x-axis')
+		expect(chartCard).toContain('hide-y-axis')
+		expect(panel).toContain('<DashboardDriverInputsCard')
+		expect(driverInputs).toContain('<DashboardDonutChart')
+		expect(model).toContain('driverInputs: {')
+		expect(model).not.toContain("key: 'steering'")
 		expect(chartTooltip).toContain('entry.formattedValue')
 		expect(chartLegend).toContain('formatPercentage(entry.value)')
 		expect(model).toContain('dashboard.totals.units.metres')

@@ -62,8 +62,20 @@
 			/>
 		</div>
 
-		<div class="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
-			<UCard class="overflow-hidden rounded-2xl border-primary/20 bg-gradient-to-br from-primary/15 to-card shadow-sm">
+		<div class="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+			<DashboardDriverInputsCard
+				:title="model.driverInputs.title"
+				:description="model.driverInputs.description"
+				:icon="model.driverInputs.icon"
+				:steering-entries="model.driverInputs.steering[period]"
+				:steering-total-label="model.driverInputs.steeringTotal[period]"
+				:actions="model.driverInputs.actions[period]"
+				:empty-label="model.emptyLabel"
+			/>
+
+			<UCard
+				class="overflow-hidden rounded-2xl border-primary/20 bg-gradient-to-br from-primary/15 to-card shadow-sm"
+			>
 				<div class="flex h-full flex-col justify-between gap-6">
 					<div class="flex items-start justify-between gap-4">
 						<div>
@@ -77,26 +89,6 @@
 					<p class="text-5xl font-black tabular-nums tracking-tight text-highlighted">
 						{{ model.averageSpeed.data[period] }}
 					</p>
-				</div>
-			</UCard>
-
-			<UCard class="rounded-2xl border-border/80 bg-card shadow-sm">
-				<template #header>
-					<div>
-						<h3 class="font-bold text-highlighted">{{ model.actions.title }}</h3>
-						<p class="mt-1 text-sm text-muted-foreground">{{ model.actions.description }}</p>
-					</div>
-				</template>
-				<div class="grid gap-3 sm:grid-cols-3">
-					<div
-						v-for="metric in model.actions.data[period]"
-						:key="metric.key"
-						class="rounded-xl border border-border/50 bg-muted/30 p-4"
-					>
-						<TablerIcon :name="metric.icon" class="size-5 text-primary" />
-						<p class="mt-4 text-2xl font-black tabular-nums text-highlighted">{{ metric.value }}</p>
-						<p class="mt-1 text-xs text-muted-foreground">{{ metric.label }}</p>
-					</div>
 				</div>
 			</UCard>
 		</div>

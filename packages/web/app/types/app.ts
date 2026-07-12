@@ -213,9 +213,12 @@ export type DashboardStatisticsModel = {
 		description: string
 		data: DashboardPeriodData<string>
 	}
-	actions: {
+	driverInputs: {
 		title: string
 		description: string
-		data: DashboardPeriodData<DashboardStatisticsMetric[]>
+		icon: string
+		steering: DashboardPeriodData<DashboardChartEntry[]>
+		steeringTotal: DashboardPeriodData<string>
+		actions: DashboardPeriodData<DashboardStatisticsMetric[]>
 	}
 }

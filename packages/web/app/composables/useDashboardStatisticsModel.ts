@@ -416,16 +416,6 @@ export function useDashboardStatisticsModel(
 					data: wheelData,
 					total: chartTotal(wheelData, formatDistance),
 				},
-				{
-					key: 'steering',
-					title: t('dashboard.totals.steering.title'),
-					description: t('dashboard.totals.steering.description'),
-					icon: 'arrows-left-right',
-					kind: 'donut',
-					half: true,
-					data: steeringData,
-					total: chartTotal(steeringData, formatCount),
-				},
 			],
 			averageSpeed: {
 				title: t('dashboard.totals.averageSpeed.title'),
@@ -435,10 +425,13 @@ export function useDashboardStatisticsModel(
 					`${oneDecimal.value.format(numeric(v6Month?.average?.averageSpeed))} ${t('dashboard.totals.units.kilometresPerHour')}`,
 				),
 			},
-			actions: {
+			driverInputs: {
 				title: t('dashboard.totals.actions.title'),
 				description: t('dashboard.totals.actions.description'),
-				data: periodData(actionMetrics(v6Day?.sum), actionMetrics(v6Month?.sum)),
+				icon: 'steering-wheel',
+				steering: steeringData,
+				steeringTotal: chartTotal(steeringData, formatCount),
+				actions: periodData(actionMetrics(v6Day?.sum), actionMetrics(v6Month?.sum)),
 			},
 		}
 	})

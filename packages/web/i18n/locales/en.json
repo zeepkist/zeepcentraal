@@ -423,8 +423,6 @@
 				"description": "Distance travelled with four through zero wheels in contact."
 			},
 			"steering": {
-				"title": "Steering limits",
-				"description": "Left and right steering inputs.",
 				"left": "Turned left",
 				"right": "Turned right"
 			},
@@ -434,7 +432,7 @@
 			},
 			"actions": {
 				"title": "Driver inputs",
-				"description": "Community controls used during compatible records.",
+				"description": "Steering direction and community controls used during compatible records.",
 				"arms": "Arms raised",
 				"brakes": "Brakes",
 				"horns": "Horns"
