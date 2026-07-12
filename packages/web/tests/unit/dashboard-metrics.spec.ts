@@ -11,6 +11,11 @@ const subscriptionSource = readFileSync(
 	new URL('../../app/graphql/subscriptions/dashboardMetrics.graphql', import.meta.url),
 	'utf8',
 )
+const dashboardMetricCopy = (
+	JSON.parse(readFileSync(new URL('../../i18n/locales/en.json', import.meta.url), 'utf8')) as {
+		dashboard: { metrics: Record<string, string> }
+	}
+).dashboard.metrics
 
 describe('dashboard metric windows', () => {
 	it('uses an exact rolling 24-hour boundary', () => {
@@ -144,5 +149,17 @@ describe('dashboard metric presentation', () => {
 		)
 		expect(page).not.toContain('dashboard.metrics.thisMonth')
 		expect(page).not.toContain('dashboard.metrics.activeThisMonth')
+		expect(page).toContain('dashboard.metrics.rankedAndTotalPlayers')
+		expect(page).toContain('dashboard.metrics.rankedAndTotalPlayersValueLabel')
+		expect(page).toContain('dashboard.metrics.activeToday')
+		expect(page).toMatch(/value: `\$\{rankedPlayers\} \/ \$\{totalPlayers\}`/)
+		expect(page).not.toMatch(/value: `\$\{rankedPlayers\} \(\$\{activePlayersDay\}\)`/)
+		expect(dashboardMetricCopy).toMatchObject({
+			rankedAndTotalPlayers: 'Ranked players / Total players',
+			activeToday: 'Active today',
+		})
+		expect(dashboardMetricCopy).not.toHaveProperty('rankedPlayers')
+		expect(dashboardMetricCopy).not.toHaveProperty('rankedPlayersValueLabel')
+		expect(dashboardMetricCopy).not.toHaveProperty('totalPlayers')
 	})
 })

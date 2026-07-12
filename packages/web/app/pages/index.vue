@@ -332,6 +332,7 @@ const liveMetrics = computed(() => {
 		},
 	]
 	const rankedPlayers = numberFormat.format(data?.rankedUsers?.totalCount ?? 0)
+	const totalPlayers = numberFormat.format(data?.totalUsers?.totalCount ?? 0)
 	const activePlayersDay = numberFormat.format(data?.activeUsersDay?.totalCount ?? 0)
 
 	return [
@@ -378,17 +379,17 @@ const liveMetrics = computed(() => {
 		},
 		{
 			key: 'players',
-			label: t('dashboard.metrics.rankedPlayers'),
-			value: `${rankedPlayers} (${activePlayersDay})`,
-			valueLabel: t('dashboard.metrics.rankedPlayersValueLabel', {
+			label: t('dashboard.metrics.rankedAndTotalPlayers'),
+			value: `${rankedPlayers} / ${totalPlayers}`,
+			valueLabel: t('dashboard.metrics.rankedAndTotalPlayersValueLabel', {
 				rankedPlayers,
-				activePlayers: activePlayersDay,
+				totalPlayers,
 			}),
 			icon: 'users',
 			details: [
 				{
-					label: t('dashboard.metrics.totalPlayers'),
-					value: numberFormat.format(data?.totalUsers?.totalCount ?? 0),
+					label: t('dashboard.metrics.activeToday'),
+					value: activePlayersDay,
 				},
 				{
 					label: t('dashboard.metrics.activeInMonth', { month: currentMonth.value }),
