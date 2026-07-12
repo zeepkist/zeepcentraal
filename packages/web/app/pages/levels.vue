@@ -41,10 +41,14 @@
 					:page="page"
 					:pending="result.fetching.value"
 					:label="$t('common.pagination')"
+					:first-label="$t('common.first')"
 					:previous-label="$t('common.previous')"
 					:next-label="$t('common.next')"
+					:last-label="$t('common.last')"
+					@first="pagination.first()"
 					@previous="pagination.previous(page)"
 					@next="pagination.next(page)"
+					@last="pagination.last()"
 				/>
 			</div>
 		</div>

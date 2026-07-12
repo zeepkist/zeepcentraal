@@ -1,0 +1,79 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import {
+	type CursorKeys,
+	getCursorVariables,
+	replaceCursorQuery,
+} from '../../app/composables/useCursorPagination'
+
+const keys: CursorKeys = { after: 'after', before: 'before', last: 'last' }
+
+describe('cursor pagination', () => {
+	it('builds first, forward, backward, and last-page variables', () => {
+		expect(getCursorVariables(25)).toEqual({ first: 25 })
+		expect(getCursorVariables(25, 'end')).toEqual({ first: 25, after: 'end' })
+		expect(getCursorVariables(25, undefined, 'start')).toEqual({
+			last: 25,
+			before: 'start',
+		})
+		expect(getCursorVariables(25, 'stale', 'stale', true)).toEqual({ last: 25 })
+	})
+
+	it('replaces direction state atomically for reversible navigation', () => {
+		const forward = replaceCursorQuery({ q: 'search', before: 'old', last: '1' }, keys, {
+			after: 'end',
+		})
+		expect(forward).toEqual({ q: 'search', after: 'end' })
+
+		const backward = replaceCursorQuery(forward, keys, { before: 'start' })
+		expect(backward).toEqual({ q: 'search', before: 'start' })
+
+		const forwardAgain = replaceCursorQuery(backward, keys, { after: 'next-end' })
+		expect(forwardAgain).toEqual({ q: 'search', after: 'next-end' })
+	})
+
+	it('clears state for first and sets marker for last', () => {
+		const current = { sort: 'points', after: 'end' }
+		expect(replaceCursorQuery(current, keys)).toEqual({ sort: 'points' })
+		expect(replaceCursorQuery(current, keys, { last: '1' })).toEqual({
+			sort: 'points',
+			last: '1',
+		})
+	})
+
+	it('preserves filters and other pagination namespaces', () => {
+		expect(
+			replaceCursorQuery(
+				{
+					q: 'player',
+					wrAfter: 'wr-end',
+					pbAfter: 'pb-end',
+					recentBefore: 'recent-start',
+				},
+				{ after: 'wrAfter', before: 'wrBefore', last: 'wrLast' },
+				{ wrBefore: 'wr-start' },
+			),
+		).toEqual({
+			q: 'player',
+			wrBefore: 'wr-start',
+			pbAfter: 'pb-end',
+			recentBefore: 'recent-start',
+		})
+	})
+
+	it('renders and emits all four controls with boundary guards', () => {
+		const component = readFileSync(
+			new URL('../../app/components/common/CursorPagination.vue', import.meta.url),
+			'utf8',
+		)
+		expect(component.match(/<UButton/g)).toHaveLength(4)
+		expect(component).toContain('@click="$emit(\'first\')"')
+		expect(component).toContain('@click="$emit(\'previous\')"')
+		expect(component).toContain('@click="$emit(\'next\')"')
+		expect(component).toContain('@click="$emit(\'last\')"')
+		expect(component.match(/!page\.hasPreviousPage \|\| pending/g)).toHaveLength(2)
+		expect(component.match(/!page\.hasNextPage \|\| pending/g)).toHaveLength(2)
+		expect(component).toContain('name="chevrons-left"')
+		expect(component).toContain('name="chevrons-right"')
+	})
+})

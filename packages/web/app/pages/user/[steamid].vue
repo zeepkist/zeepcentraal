@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0 seconds
+Output:
 <template>
 	<UContainer class="space-y-8 py-2">
 		<DataState
@@ -53,8 +56,10 @@
 						:sort-options="resultSortOptions"
 						:pagination-labels="paginationLabels"
 						@update:sort="data.setWrSort"
+						@first="data.wrPagination.first()"
 						@previous="data.wrPagination.previous(data.wrPage.value)"
 						@next="data.wrPagination.next(data.wrPage.value)"
+						@last="data.wrPagination.last()"
 					/>
 				</div>
 				<div :ref="data.personalBestsTarget">
@@ -71,8 +76,10 @@
 						:sort-options="resultSortOptions"
 						:pagination-labels="paginationLabels"
 						@update:sort="data.setPbSort"
+						@first="data.pbPagination.first()"
 						@previous="data.pbPagination.previous(data.pbPage.value)"
 						@next="data.pbPagination.next(data.pbPage.value)"
+						@last="data.pbPagination.last()"
 					/>
 				</div>
 
@@ -81,7 +88,7 @@
 					<DataState :pending="!data.recentActive.value || data.recent.fetching.value" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
 						<UserResultTable :records="data.recentRows.value" :labels="resultLabels" />
 					</DataState>
-					<CursorPagination class="mt-4" :page="data.recentPage.value" :pending="data.recent.fetching.value" v-bind="paginationLabels" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" />
+					<CursorPagination class="mt-4" :page="data.recentPage.value" :pending="data.recent.fetching.value" v-bind="paginationLabels" @first="data.recentPagination.first()" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" @last="data.recentPagination.last()" />
 				</section>
 			</template>
 		</DataState>
@@ -200,8 +207,10 @@ const resultSortOptions = computed(() => [
 ])
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),
+	lastLabel: t('common.last'),
 }))
 const stateLabels = computed(() => ({
 	loadingLabel: t('common.loading'),

@@ -33,8 +33,10 @@
 		"loading": "Loading data",
 		"error": "Unable to load data",
 		"empty": "No results found",
+		"first": "First",
 		"previous": "Previous",
 		"next": "Next",
+		"last": "Last",
 		"pagination": "Results pagination"
 	},
 	"error": {

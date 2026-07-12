@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0 seconds
+Output:
 <template>
 	<UContainer class="space-y-8 py-2">
 		<PageHeader
@@ -42,8 +45,10 @@
 				:page="data.page.value"
 				:pending="data.result.fetching.value"
 				v-bind="paginationLabels"
+				@first="data.pagination.first()"
 				@previous="data.pagination.previous(data.page.value)"
 				@next="data.pagination.next(data.page.value)"
+				@last="data.pagination.last()"
 			/>
 		</template>
 	</UContainer>
@@ -93,8 +98,10 @@ const tableLabels = computed(() => ({
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),
+	lastLabel: t('common.last'),
 }))
 const openRecord = (recordId: number) => navigateTo(`/record/${recordId}`)
 </script>

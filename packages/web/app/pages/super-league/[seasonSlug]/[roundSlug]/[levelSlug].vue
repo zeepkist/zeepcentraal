@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0 seconds
+Output:
 <template>
 	<UContainer class="space-y-8 py-2">
 		<DataState
@@ -45,8 +48,10 @@
 						:page="page"
 						:pending="!standingsActive.value || standingsResult.fetching.value"
 						v-bind="paginationLabels"
+						@first="pagination.first()"
 						@previous="pagination.previous(page)"
 						@next="pagination.next(page)"
+						@last="pagination.last()"
 					/>
 				</section>
 			</template>
@@ -103,7 +108,9 @@ const tableLabels = computed(() => ({
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),
+	lastLabel: t('common.last'),
 }))
 </script>
