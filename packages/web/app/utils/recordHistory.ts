@@ -37,12 +37,13 @@ export function recordHistoryFilter(
 	sort: RecordHistorySort,
 	userId?: number,
 ) {
-	return {
+	const filter = {
 		...(userId ? { userId: { equalTo: userId } } : {}),
 		...(view === 'personal-bests' ? { personalBestGlobalsExist: true } : {}),
 		...(view === 'world-records' ? { worldRecordGlobalsExist: true } : {}),
 		...(sort === 'latest' ? {} : { userPointContributionsExist: true }),
 	}
+	return Object.keys(filter).length > 0 ? filter : undefined
 }
 
 export function getNewRecordIds(known: ReadonlySet<number>, next: Iterable<number>) {

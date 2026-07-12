@@ -19,6 +19,7 @@ describe('record history', () => {
 	})
 
 	it('includes world records in the personal best view', () => {
+		expect(recordHistoryFilter('recent', 'latest')).toBeUndefined()
 		expect(recordHistoryFilter('personal-bests', 'latest', 42)).toEqual({
 			userId: { equalTo: 42 },
 			personalBestGlobalsExist: true,

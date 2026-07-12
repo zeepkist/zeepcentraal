@@ -40,7 +40,7 @@ query ZC_RecordHistory(
 	$after: Cursor
 	$last: Int
 	$before: Cursor
-	$filter: RecordFilter!
+	$filter: RecordFilter
 	$orderBy: [RecordsOrderBy!]!
 ) {
 	records(
