@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0 seconds
-Output:
 <template>
 	<UContainer class="space-y-8 py-2">
 		<DataState
@@ -70,7 +67,7 @@ Output:
 					>
 						<RecordTable :records="levelData.recentRows.value" v-bind="recordLabels" :show-rank="false" />
 					</DataState>
-					<CursorPagination class="mt-4" :page="levelData.recentPage.value" :pending="levelData.recent.fetching.value" v-bind="paginationLabels" @first="levelData.recentPagination.first()" @previous="levelData.recentPagination.previous(levelData.recentPage.value)" @next="levelData.recentPagination.next(levelData.recentPage.value)" @last="levelData.recentPagination.last()" />
+					<CursorPagination class="mt-4" :page="levelData.recentPage.value" :can-go-previous="levelData.recentPagination.canGoPrevious(levelData.recentPage.value)" :can-go-next="levelData.recentPagination.canGoNext(levelData.recentPage.value)" :pending="levelData.recent.fetching.value" v-bind="paginationLabels" @first="levelData.recentPagination.first()" @previous="levelData.recentPagination.previous(levelData.recentPage.value)" @next="levelData.recentPagination.next(levelData.recentPage.value)" @last="levelData.recentPagination.last()" />
 				</section>
 
 				<section :ref="levelData.personalBestsTarget" aria-labelledby="personal-bests-heading">
@@ -85,7 +82,7 @@ Output:
 					>
 						<RecordTable :records="levelData.personalBestRows.value" v-bind="recordLabels" />
 					</DataState>
-					<CursorPagination class="mt-4" :page="levelData.personalBestPage.value" :pending="levelData.personalBests.fetching.value" v-bind="paginationLabels" @first="levelData.pbPagination.first()" @previous="levelData.pbPagination.previous(levelData.personalBestPage.value)" @next="levelData.pbPagination.next(levelData.personalBestPage.value)" @last="levelData.pbPagination.last()" />
+					<CursorPagination class="mt-4" :page="levelData.personalBestPage.value" :can-go-previous="levelData.pbPagination.canGoPrevious(levelData.personalBestPage.value)" :can-go-next="levelData.pbPagination.canGoNext(levelData.personalBestPage.value)" :pending="levelData.personalBests.fetching.value" v-bind="paginationLabels" @first="levelData.pbPagination.first()" @previous="levelData.pbPagination.previous(levelData.personalBestPage.value)" @next="levelData.pbPagination.next(levelData.personalBestPage.value)" @last="levelData.pbPagination.last()" />
 				</section>
 			</template>
 		</DataState>

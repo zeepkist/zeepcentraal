@@ -39,6 +39,8 @@
 				</DataState>
 				<CursorPagination
 					:page="page"
+					:can-go-previous="pagination.canGoPrevious(page)"
+					:can-go-next="pagination.canGoNext(page)"
 					:pending="result.fetching.value"
 					:label="$t('common.pagination')"
 					:first-label="$t('common.first')"

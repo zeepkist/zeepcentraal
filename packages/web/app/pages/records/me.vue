@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0 seconds
-Output:
 <template>
 	<UContainer class="space-y-8 py-2">
 		<PageHeader
@@ -43,6 +40,8 @@ Output:
 			<CursorPagination
 				class="mt-4"
 				:page="data.page.value"
+				:can-go-previous="data.pagination.canGoPrevious(data.page.value)"
+				:can-go-next="data.pagination.canGoNext(data.page.value)"
 				:pending="data.result.fetching.value"
 				v-bind="paginationLabels"
 				@first="data.pagination.first()"

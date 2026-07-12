@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0 seconds
-Output:
 <template>
 	<UContainer class="py-2">
 		<PageHeader :eyebrow="$t('pages.users.eyebrow')" :title="$t('pages.users.title')" :description="$t('pages.users.description')" />
@@ -13,7 +10,7 @@ Output:
 				<DataState :pending="result.fetching.value" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
 					<UserLeaderboardTable :users="users" :labels="tableLabels" />
 				</DataState>
-				<CursorPagination :page="page" :pending="result.fetching.value" v-bind="paginationLabels" @first="pagination.first()" @previous="pagination.previous(page)" @next="pagination.next(page)" @last="pagination.last()" />
+				<CursorPagination :page="page" :can-go-previous="pagination.canGoPrevious(page)" :can-go-next="pagination.canGoNext(page)" :pending="result.fetching.value" v-bind="paginationLabels" @first="pagination.first()" @previous="pagination.previous(page)" @next="pagination.next(page)" @last="pagination.last()" />
 			</div>
 		</div>
 	</UContainer>

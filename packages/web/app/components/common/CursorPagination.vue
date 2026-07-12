@@ -4,7 +4,7 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!page.hasPreviousPage || pending"
+				:disabled="!canGoPrevious || pending"
 				@click="$emit('first')"
 			>
 				<TablerIcon name="chevrons-left" class="size-4" />
@@ -13,7 +13,7 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!page.hasPreviousPage || pending"
+				:disabled="!canGoPrevious || pending"
 				@click="$emit('previous')"
 			>
 				<TablerIcon name="chevron-left" class="size-4" />
@@ -24,7 +24,7 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!page.hasNextPage || pending"
+				:disabled="!canGoNext || pending"
 				@click="$emit('next')"
 			>
 				{{ nextLabel }}
@@ -33,7 +33,7 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!page.hasNextPage || pending"
+				:disabled="!canGoNext || pending"
 				@click="$emit('last')"
 			>
 				{{ lastLabel }}
@@ -48,6 +48,8 @@ import type { CursorPage } from '~/types/app'
 
 defineProps<{
 	page: CursorPage
+	canGoPrevious: boolean
+	canGoNext: boolean
 	pending?: boolean
 	label: string
 	firstLabel: string

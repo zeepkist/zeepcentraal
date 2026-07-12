@@ -38,6 +38,24 @@ export function replaceCursorQuery(
 	return next
 }
 
+export function canNavigatePrevious(
+	direction: CursorDirection,
+	after: string | undefined,
+	page: CursorPage,
+) {
+	return direction === 'forward' ? after !== undefined : page.hasPreviousPage
+}
+
+export function canNavigateNext(
+	direction: CursorDirection,
+	before: string | undefined,
+	page: CursorPage,
+) {
+	if (direction === 'backward') return before !== undefined
+	if (direction === 'last') return false
+	return page.hasNextPage
+}
+
 export function useCursorPagination(pageSize: number, namespace = '') {
 	const route = useRoute()
 	const router = useRouter()
@@ -63,6 +81,14 @@ export function useCursorPagination(pageSize: number, namespace = '') {
 		return replaceCursorQuery({ ...route.query }, keys, replacement)
 	}
 
+	function canGoPrevious(page: CursorPage) {
+		return canNavigatePrevious(direction.value, after.value, page)
+	}
+
+	function canGoNext(page: CursorPage) {
+		return canNavigateNext(direction.value, before.value, page)
+	}
+
 	async function first() {
 		await router.push({ query: paginationQuery() })
 	}
@@ -72,12 +98,12 @@ export function useCursorPagination(pageSize: number, namespace = '') {
 	}
 
 	async function next(page: CursorPage) {
-		if (!page.hasNextPage || !page.endCursor) return
+		if (!canGoNext(page) || !page.endCursor) return
 		await router.push({ query: paginationQuery({ [afterKey]: page.endCursor }) })
 	}
 
 	async function previous(page: CursorPage) {
-		if (!page.hasPreviousPage || !page.startCursor) return
+		if (!canGoPrevious(page) || !page.startCursor) return
 		await router.push({ query: paginationQuery({ [beforeKey]: page.startCursor }) })
 	}
 
@@ -88,6 +114,8 @@ export function useCursorPagination(pageSize: number, namespace = '') {
 	return {
 		after,
 		before,
+		canGoNext,
+		canGoPrevious,
 		direction,
 		first,
 		isLastPage,

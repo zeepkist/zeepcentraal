@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0 seconds
-Output:
 <template>
 	<UContainer class="space-y-8 py-2">
 		<DataState
@@ -36,6 +33,8 @@ Output:
 					<CursorPagination
 						class="mt-4"
 						:page="page"
+						:can-go-previous="pagination.canGoPrevious(page)"
+						:can-go-next="pagination.canGoNext(page)"
 						:pending="!standingsActive.value || standingsResult.fetching.value"
 						v-bind="paginationLabels"
 						@first="pagination.first()"

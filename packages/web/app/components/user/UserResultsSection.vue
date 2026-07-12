@@ -23,6 +23,8 @@
 		<CursorPagination
 			class="mt-4"
 			:page="page"
+			:can-go-previous="canGoPrevious"
+			:can-go-next="canGoNext"
 			:pending="pending"
 			v-bind="paginationLabels"
 			@first="$emit('first')"
@@ -45,6 +47,8 @@ defineProps<{
 	pending: boolean
 	error?: string | null
 	page: CursorPage
+	canGoPrevious: boolean
+	canGoNext: boolean
 	labels: { rank: string; level: string; time: string; value: string; date: string }
 	sortOptions: SortOption[]
 	paginationLabels: {
