@@ -5,6 +5,7 @@ import {
 	canNavigateNext,
 	canNavigatePrevious,
 	getCursorVariables,
+	isFirstCursorPage,
 	isInitialPagePending,
 	replaceCursorQuery,
 } from '../../app/composables/useCursorPagination'
@@ -20,6 +21,13 @@ describe('cursor pagination', () => {
 			before: 'start',
 		})
 		expect(getCursorVariables(25, 'stale', 'stale', true)).toEqual({ last: 25 })
+	})
+
+	it('identifies only cursor-free non-tail state as first page', () => {
+		expect(isFirstCursorPage()).toBe(true)
+		expect(isFirstCursorPage('after')).toBe(false)
+		expect(isFirstCursorPage(undefined, 'before')).toBe(false)
+		expect(isFirstCursorPage(undefined, undefined, true)).toBe(false)
 	})
 
 	it('shows initial loading only when no retained page content exists', () => {

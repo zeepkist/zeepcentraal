@@ -1,5 +1,8 @@
 <template>
 	<div class="overflow-x-auto rounded-xl border border-border">
+		<span class="sr-only" aria-live="polite">
+			{{ highlightedRecordIds?.size ? liveUpdateLabel : '' }}
+		</span>
 		<table
 			class="w-full table-fixed text-left text-sm"
 			:class="showPlayer ? 'min-w-[75rem]' : 'min-w-[64rem]'"
@@ -31,6 +34,7 @@
 					v-for="record in records"
 					:key="record.id"
 					class="group cursor-pointer border-t border-border bg-card/60 transition hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px]"
+					:class="{ 'record-history-highlight': highlightedRecordIds?.has(record.id) }"
 					tabindex="0"
 					:aria-label="labels.openRecord.replace('{level}', record.levelName)"
 					@click="$emit('select', record.id)"
@@ -102,6 +106,8 @@ import type { RecordHistoryRow } from '~/types/app'
 
 defineProps<{
 	records: RecordHistoryRow[]
+	highlightedRecordIds?: ReadonlySet<number>
+	liveUpdateLabel: string
 	showPlayer?: boolean
 	labels: {
 		level: string

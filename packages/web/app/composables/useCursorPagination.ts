@@ -56,6 +56,10 @@ export function canNavigateNext(
 	return page.hasNextPage
 }
 
+export function isFirstCursorPage(after?: string, before?: string, lastPage = false) {
+	return after === undefined && before === undefined && !lastPage
+}
+
 export function isInitialPagePending(fetching: boolean, itemCount: number, active = true) {
 	return !active || (fetching && itemCount === 0)
 }
@@ -80,8 +84,8 @@ export function useCursorPagination(pageSize: number, namespace = '') {
 	const variables = computed(() =>
 		getCursorVariables(pageSize, after.value, before.value, isLastPage.value),
 	)
-	const isFirstPage = computed(
-		() => after.value === undefined && before.value === undefined && !isLastPage.value,
+	const isFirstPage = computed(() =>
+		isFirstCursorPage(after.value, before.value, isLastPage.value),
 	)
 
 	function paginationQuery(replacement: Record<string, string | undefined> = {}) {

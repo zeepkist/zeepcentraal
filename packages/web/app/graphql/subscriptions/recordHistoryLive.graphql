@@ -1,0 +1,17 @@
+subscription ZC_RecordHistoryLive($filter: RecordFilter!) {
+	records(first: 25, filter: $filter, orderBy: [DATE_CREATED_DESC, ID_DESC]) {
+		edges {
+			cursor
+			node {
+				...ZC_RecordHistoryRow
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

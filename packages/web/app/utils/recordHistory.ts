@@ -44,3 +44,7 @@ export function recordHistoryFilter(
 		...(sort === 'latest' ? {} : { userPointContributionsExist: true }),
 	}
 }
+
+export function getNewRecordIds(known: ReadonlySet<number>, next: Iterable<number>) {
+	return [...next].filter((recordId) => !known.has(recordId))
+}

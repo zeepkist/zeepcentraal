@@ -42,6 +42,8 @@
 				<RecordHistoryTable
 					:records="data.rows.value"
 					:labels="tableLabels"
+					:highlighted-record-ids="data.highlightedRecordIds.value"
+					:live-update-label="$t('pages.records.liveUpdate')"
 					@select="openRecord"
 				/>
 			</DataState>
