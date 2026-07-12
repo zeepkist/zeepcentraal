@@ -79,18 +79,7 @@
 		"records": "Records",
 		"users": "Users",
 		"wiki": "Wiki",
-		"zsl": "ZSL"
-	},
-	"navDescriptions": {
-		"adventure": "Adventure seasons and leaderboards.",
-		"developer": "GraphQL usage and integration guides.",
-		"home": "World records and platform overview.",
-		"levels": "Level explorer and leaderboard stats.",
-		"mods": "mod.io and Modkist integration.",
-		"records": "World records and personal bests.",
-		"users": "Player leaderboards and profiles.",
-		"wiki": "Gameplay and modding knowledge base.",
-		"zsl": "Zeepkist Super League results."
+		"zsl": "Zeepkist Super League"
 	},
 	"pages": {
 		"adventure": {
@@ -259,13 +248,13 @@
 		"zsl": {
 			"description": "Tournament seasons, rounds, levels, and standings.",
 			"eyebrow": "Super League",
-			"panelDescription": "ZSL season and round results land here.",
+			"panelDescription": "Zeepkist Super League season and round results land here.",
 			"panelTitle": "Tournament results",
 			"seo": {
 				"description": "Zeepkist Super League tournament results.",
-				"title": "ZSL"
+				"title": "Zeepkist Super League"
 			},
-			"title": "ZSL results"
+			"title": "Zeepkist Super League Results"
 		},
 		"myRecords": {
 			"eyebrow": "Your racing history",
@@ -518,7 +507,7 @@
 		}
 	},
 	"zsl": {
-		"season": "ZSL season",
+		"season": "Zeepkist Super League",
 		"roundCount": "{count} rounds",
 		"seasonDescription": "Six rounds decide the season championship.",
 		"rounds": "Rounds",
@@ -531,8 +520,8 @@
 		"seasonStandings": "Season points ordered by finishing position.",
 		"roundStandings": "Round points ordered by finishing position.",
 		"levelStandings": "Level times and points ordered by finishing position.",
-		"levelResults": "ZSL level results",
-		"openLevel": "Open global level page",
+		"levelResults": "Zeepkist Super League Level Results",
+		"openLevel": "View level leaderboard",
 		"unknown": "Unknown player",
 		"notFound": "Super League result not found"
 	},

@@ -51,9 +51,6 @@
 					<TablerIcon :name="item.icon ?? 'dashboard'" class="size-5 shrink-0" />
 					<span v-if="state === 'expanded'" class="min-w-0">
 						<span class="block truncate font-medium">{{ $t(item.labelKey) }}</span>
-						<span class="block truncate text-xs text-muted-foreground">
-							{{ $t(item.descriptionKey ?? item.labelKey) }}
-						</span>
 					</span>
 				</NuxtLink>
 			</UTooltip>
