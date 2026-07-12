@@ -1,61 +1,75 @@
 <template>
-	<UCard
-		class="group h-full overflow-hidden rounded-2xl border-border bg-gradient-to-br from-card via-card to-primary/5 transition hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5"
-	>
+	<UCard class="h-full overflow-hidden rounded-2xl border-border/80 bg-gradient-to-br from-card via-card to-primary/5 shadow-sm">
 		<template #header>
 			<div class="flex items-start justify-between gap-4">
 				<div>
 					<h3 class="font-bold text-highlighted">{{ title }}</h3>
 					<p class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
 				</div>
-				<TablerIcon :name="icon" class="size-5 shrink-0 text-primary" />
+				<span class="rounded-lg bg-primary/10 p-2 text-primary">
+					<TablerIcon :name="icon" class="size-5" />
+				</span>
 			</div>
 		</template>
 
-		<div v-if="total > 0" class="space-y-4">
-			<div class="min-h-60">
-				<DonutChart
-					v-if="kind === 'donut'"
-					:data="chartValues"
-					:categories="categories"
-					:radius="half ? 92 : 86"
-					:height="240"
-					:arc-width="half ? 28 : 24"
-					:pad-angle="0.025"
-					:type="half ? 'half' : 'full'"
-					:duration="chartDuration"
-					hide-legend
-				/>
-				<BarChart
-					v-else
-					:data="barData"
-					:categories="barCategories"
-					:y-axis="['value']"
-					:height="240"
-					:x-formatter="xFormatter"
-					:y-formatter="yFormatter"
-					:duration="chartDuration"
-					:radius="6"
-					:bar-padding="0.18"
-					hide-legend
-					x-grid-line
-				/>
+		<div v-if="total > 0">
+			<div v-if="kind === 'donut'" class="grid items-center gap-5 md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]">
+				<div class="relative min-h-56 overflow-hidden rounded-xl bg-gradient-to-br from-primary/5 via-transparent to-secondary/5">
+					<div class="pointer-events-none absolute inset-1/4 rounded-full bg-primary/10 blur-3xl" />
+					<DonutChart
+						:data="chartValues"
+						:categories="categories"
+						:radius="half ? 96 : 88"
+						:height="224"
+						:arc-width="half ? 34 : 30"
+						:pad-angle="0.035"
+						:type="half ? 'half' : 'full'"
+						:duration="chartDuration"
+						:tooltip="tooltipOptions"
+						hide-legend
+					>
+						<div class="flex max-w-32 flex-col items-center text-center">
+							<span class="text-lg font-black tabular-nums leading-tight text-highlighted">{{ totalLabel }}</span>
+						</div>
+						<template #tooltip="{ values }">
+							<DashboardChartTooltip
+								:entry="resolveTooltipEntry(values)"
+								:percentage="formatPercentage(resolveTooltipEntry(values))"
+							/>
+						</template>
+					</DonutChart>
+				</div>
+				<DashboardChartLegend :entries="entries" :total="total" :aria-label="title" />
 			</div>
-			<ul class="grid gap-2 sm:grid-cols-2" :aria-label="title">
-				<li
-					v-for="entry in entries"
-					:key="entry.key"
-					class="flex items-center justify-between gap-3 rounded-lg bg-muted/40 px-3 py-2 text-sm"
-				>
-					<span class="flex min-w-0 items-center gap-2 text-muted-foreground">
-						<span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: entry.color }" />
-						<span class="truncate">{{ entry.label }}</span>
-					</span>
-					<span class="shrink-0 font-semibold tabular-nums text-highlighted">
-						{{ entry.formattedValue }}
-					</span>
-				</li>
-			</ul>
+
+			<div v-else class="space-y-5">
+				<div class="rounded-xl bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 px-2 py-3 sm:px-4">
+					<BarChart
+						:data="barData"
+						:categories="barCategories"
+						:y-axis="['value']"
+						:height="barHeight"
+						orientation="horizontal"
+						:x-formatter="valueAxisFormatter"
+						:y-formatter="categoryAxisFormatter"
+						:duration="chartDuration"
+						:radius="10"
+						:bar-padding="0.3"
+						:padding="{ top: 8, right: 12, bottom: 8, left: 8 }"
+						:tooltip="tooltipOptions"
+						hide-legend
+						x-grid-line
+					>
+						<template #tooltip="{ values }">
+							<DashboardChartTooltip
+								:entry="resolveTooltipEntry(values)"
+								:percentage="formatPercentage(resolveTooltipEntry(values))"
+							/>
+						</template>
+					</BarChart>
+				</div>
+				<DashboardChartLegend :entries="entries" :total="total" :aria-label="title" />
+			</div>
 		</div>
 		<div v-else class="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
 			{{ emptyLabel }}
@@ -74,17 +88,20 @@ const props = withDefaults(
 		kind: 'donut' | 'bar'
 		entries: DashboardChartEntry[]
 		emptyLabel: string
+		totalLabel?: string
 		half?: boolean
 	}>(),
-	{ half: false },
+	{ half: false, totalLabel: '' },
 )
 
+const { locale } = useI18n()
 const reducedMotion = ref(false)
 onMounted(() => {
 	reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 })
 
 const chartDuration = computed(() => (reducedMotion.value ? 0 : 650))
+const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const total = computed(() => props.entries.reduce((sum, entry) => sum + entry.value, 0))
 const chartValues = computed(() => props.entries.map((entry) => entry.value))
 const categories = computed(() =>
@@ -93,16 +110,44 @@ const categories = computed(() =>
 	),
 )
 const barData = computed(() =>
-	props.entries.map((entry) => ({ label: entry.label, value: entry.value })),
+	props.entries.map((entry) => ({ key: entry.key, label: entry.label, value: entry.value })),
 )
 const barCategories = computed(() => ({
-	value: { name: props.title, color: '#facc15' },
+	value: { name: props.title, color: ['#facc15', '#f59e0b'] },
 }))
-const xFormatter = (_value: number | Date, index: number) => props.entries[index]?.label ?? ''
-const compactNumber = new Intl.NumberFormat(undefined, {
-	notation: 'compact',
-	maximumFractionDigits: 1,
-})
-const yFormatter = (value: number | Date) =>
-	typeof value === 'number' ? compactNumber.format(value) : String(value)
+const barHeight = computed(() => Math.max(220, props.entries.length * 48))
+const compactNumber = computed(
+	() =>
+		new Intl.NumberFormat(locale.value, {
+			notation: 'compact',
+			maximumFractionDigits: 1,
+		}),
+)
+const percentageFormat = computed(
+	() =>
+		new Intl.NumberFormat(locale.value, {
+			style: 'percent',
+			maximumFractionDigits: 1,
+		}),
+)
+const valueAxisFormatter = (value: number | Date) =>
+	typeof value === 'number' ? compactNumber.value.format(value) : String(value)
+const categoryAxisFormatter = (_value: number | Date, index?: number) =>
+	props.entries[index ?? -1]?.label ?? ''
+
+function resolveTooltipEntry(values: unknown): DashboardChartEntry | undefined {
+	if (!values || typeof values !== 'object') return undefined
+	const datum = values as Record<string, unknown>
+	const label = typeof datum.label === 'string' ? datum.label : undefined
+	const key = typeof datum.key === 'string' ? datum.key : undefined
+	const index = typeof datum._index === 'number' ? datum._index : undefined
+	return (
+		props.entries.find((entry) => entry.key === key || entry.label === label) ??
+		(index === undefined ? undefined : props.entries[index])
+	)
+}
+
+function formatPercentage(entry?: DashboardChartEntry) {
+	return percentageFormat.value.format(entry && total.value > 0 ? entry.value / total.value : 0)
+}
 </script>

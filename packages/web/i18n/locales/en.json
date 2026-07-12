@@ -462,8 +462,10 @@
 			},
 			"units": {
 				"kilometres": "km",
+				"metres": "m",
 				"hours": "h",
 				"minutes": "min",
+				"seconds": "s",
 				"kilometresPerHour": "km/h"
 			},
 			"kilometres": "Kilometres",

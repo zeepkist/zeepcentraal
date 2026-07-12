@@ -196,6 +196,7 @@ export type DashboardStatisticsChart = {
 	half?: boolean
 	wide?: boolean
 	data: DashboardPeriodData<DashboardChartEntry[]>
+	total: DashboardPeriodData<string>
 }
 
 export type DashboardStatisticsModel = {

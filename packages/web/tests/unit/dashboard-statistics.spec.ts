@@ -23,6 +23,14 @@ const chartCard = readFileSync(
 	new URL('../../app/components/dashboard/DashboardStatisticChartCard.vue', import.meta.url),
 	'utf8',
 )
+const chartLegend = readFileSync(
+	new URL('../../app/components/dashboard/DashboardChartLegend.vue', import.meta.url),
+	'utf8',
+)
+const chartTooltip = readFileSync(
+	new URL('../../app/components/dashboard/DashboardChartTooltip.vue', import.meta.url),
+	'utf8',
+)
 
 describe('dashboard statistic aggregates', () => {
 	it('uses five count-only aggregate connections with bounded period filters', () => {
@@ -99,7 +107,7 @@ describe('dashboard statistic presentation', () => {
 		expect(chartCard).toContain('<DonutChart')
 		expect(chartCard).toContain('<BarChart')
 		expect(chartCard).toContain("half ? 'half' : 'full'")
-		for (const source of [panel, chartCard]) {
+		for (const source of [panel, chartCard, chartLegend, chartTooltip]) {
 			expect(source).not.toContain('useQuery(')
 			expect(source).not.toContain('useFetch(')
 		}
@@ -114,5 +122,22 @@ describe('dashboard statistic presentation', () => {
 		expect(model).toContain('distanceOn4Wheels')
 		expect(model).toContain('distanceOn1Wheel')
 		expect(model).not.toContain('useQuery(')
+	})
+
+	it('uses flat static surfaces, horizontal bars, and exact custom tooltips', () => {
+		expect(panel).not.toContain('rounded-3xl border border-primary/15')
+		expect(panel).not.toContain('hover:border-primary')
+		expect(panel).not.toContain('hover:-translate')
+		expect(chartCard).not.toContain('hover:border-primary')
+		expect(chartCard).not.toContain('hover:-translate')
+		expect(chartCard).toContain('orientation="horizontal"')
+		expect(chartCard).toContain('md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]')
+		expect(chartCard).toContain('<DashboardChartTooltip')
+		expect(chartCard).toContain('<DashboardChartLegend')
+		expect(chartTooltip).toContain('entry.formattedValue')
+		expect(chartLegend).toContain('formatPercentage(entry.value)')
+		expect(model).toContain('dashboard.totals.units.metres')
+		expect(model).toContain('dashboard.totals.units.seconds')
+		expect(model).toContain('maximumFractionDigits: 2')
 	})
 })

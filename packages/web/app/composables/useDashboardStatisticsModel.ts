@@ -18,6 +18,9 @@ export function useDashboardStatisticsModel(
 	const oneDecimal = computed(
 		() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
 	)
+	const twoDecimals = computed(
+		() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }),
+	)
 
 	type StatisticAggregates = Zc_DashboardV6StatisticAggregatesFragment
 	type StatisticSum = NonNullable<StatisticAggregates['sum']>
@@ -34,12 +37,18 @@ export function useDashboardStatisticsModel(
 
 	const numeric = (value: unknown) => Number(value ?? 0)
 	const formatDistance = (metres: number) =>
-		`${oneDecimal.value.format(metres / 1000)} ${t('dashboard.totals.units.kilometres')}`
+		Math.abs(metres) < 1000
+			? `${twoDecimals.value.format(metres)} ${t('dashboard.totals.units.metres')}`
+			: `${twoDecimals.value.format(metres / 1000)} ${t('dashboard.totals.units.kilometres')}`
 	const formatDuration = (seconds: number) =>
 		seconds >= 3600
-			? `${oneDecimal.value.format(seconds / 3600)} ${t('dashboard.totals.units.hours')}`
-			: `${oneDecimal.value.format(seconds / 60)} ${t('dashboard.totals.units.minutes')}`
+			? `${twoDecimals.value.format(seconds / 3600)} ${t('dashboard.totals.units.hours')}`
+			: seconds >= 60
+				? `${twoDecimals.value.format(seconds / 60)} ${t('dashboard.totals.units.minutes')}`
+				: `${twoDecimals.value.format(seconds)} ${t('dashboard.totals.units.seconds')}`
 	const formatCount = (value: number) => numberFormat.value.format(value)
+	const totalEntries = (entries: DashboardChartEntry[]) =>
+		entries.reduce((total, entry) => total + entry.value, 0)
 	const chartEntry = (
 		key: string,
 		label: string,
@@ -311,6 +320,29 @@ export function useDashboardStatisticsModel(
 		const v6Month = data?.v6MonthStatistics?.aggregates
 		const periodData = <T>(today: T, monthValue: T) => ({ today, month: monthValue })
 
+		const surfaceDistanceData = periodData(
+			surfaceDistanceEntries(v6Day?.sum),
+			surfaceDistanceEntries(v6Month?.sum),
+		)
+		const surfaceTimeData = periodData(
+			surfaceTimeEntries(v6Day?.sum),
+			surfaceTimeEntries(v6Month?.sum),
+		)
+		const movementDistanceData = periodData(
+			movementDistanceEntries(v6Day?.sum),
+			movementDistanceEntries(v6Month?.sum),
+		)
+		const movementTimeData = periodData(
+			movementTimeEntries(v6Day?.sum),
+			movementTimeEntries(v6Month?.sum),
+		)
+		const wheelData = periodData(wheelEntries(v6Day?.sum), wheelEntries(v6Month?.sum))
+		const steeringData = periodData(steeringEntries(v6Day?.sum), steeringEntries(v6Month?.sum))
+		const chartTotal = (
+			data: { today: DashboardChartEntry[]; month: DashboardChartEntry[] },
+			formatter: (value: number) => string,
+		) => periodData(formatter(totalEntries(data.today)), formatter(totalEntries(data.month)))
+
 		return {
 			distanceMetrics: [
 				{
@@ -345,10 +377,8 @@ export function useDashboardStatisticsModel(
 					description: t('dashboard.totals.surfaceDistance.description'),
 					icon: 'road',
 					kind: 'donut',
-					data: periodData(
-						surfaceDistanceEntries(v6Day?.sum),
-						surfaceDistanceEntries(v6Month?.sum),
-					),
+					data: surfaceDistanceData,
+					total: chartTotal(surfaceDistanceData, formatDistance),
 				},
 				{
 					key: 'surface-time',
@@ -356,10 +386,8 @@ export function useDashboardStatisticsModel(
 					description: t('dashboard.totals.surfaceTime.description'),
 					icon: 'hourglass',
 					kind: 'donut',
-					data: periodData(
-						surfaceTimeEntries(v6Day?.sum),
-						surfaceTimeEntries(v6Month?.sum),
-					),
+					data: surfaceTimeData,
+					total: chartTotal(surfaceTimeData, formatDuration),
 				},
 				{
 					key: 'movement-distance',
@@ -367,10 +395,8 @@ export function useDashboardStatisticsModel(
 					description: t('dashboard.totals.movementDistance.description'),
 					icon: 'wind',
 					kind: 'bar',
-					data: periodData(
-						movementDistanceEntries(v6Day?.sum),
-						movementDistanceEntries(v6Month?.sum),
-					),
+					data: movementDistanceData,
+					total: chartTotal(movementDistanceData, formatDistance),
 				},
 				{
 					key: 'movement-time',
@@ -378,10 +404,8 @@ export function useDashboardStatisticsModel(
 					description: t('dashboard.totals.movementTime.description'),
 					icon: 'clock',
 					kind: 'bar',
-					data: periodData(
-						movementTimeEntries(v6Day?.sum),
-						movementTimeEntries(v6Month?.sum),
-					),
+					data: movementTimeData,
+					total: chartTotal(movementTimeData, formatDuration),
 				},
 				{
 					key: 'wheels',
@@ -389,7 +413,8 @@ export function useDashboardStatisticsModel(
 					description: t('dashboard.totals.wheelDistance.description'),
 					icon: 'steering-wheel',
 					kind: 'bar',
-					data: periodData(wheelEntries(v6Day?.sum), wheelEntries(v6Month?.sum)),
+					data: wheelData,
+					total: chartTotal(wheelData, formatDistance),
 				},
 				{
 					key: 'steering',
@@ -398,7 +423,8 @@ export function useDashboardStatisticsModel(
 					icon: 'arrows-left-right',
 					kind: 'donut',
 					half: true,
-					data: periodData(steeringEntries(v6Day?.sum), steeringEntries(v6Month?.sum)),
+					data: steeringData,
+					total: chartTotal(steeringData, formatCount),
 				},
 			],
 			averageSpeed: {
