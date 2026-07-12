@@ -36,6 +36,7 @@ describe('personal record views', () => {
 		expect(query).toContain('$after: Cursor')
 		expect(query).toContain('orderBy: [DATE_CREATED_DESC]')
 		expect(query).toContain('contributionRank')
+		expect(query).toContain('levelPoints')
 	})
 
 	it('maps level and global points with their independent decay inputs', () => {
@@ -43,6 +44,7 @@ describe('personal record views', () => {
 			new URL('../../app/composables/useMyRecords.ts', import.meta.url),
 			'utf8',
 		)
+		expect(composable).toContain('levelPoints: contribution?.levelPoints')
 		expect(composable).toContain('levelDecayedPoints: contribution?.levelDecayedPoints')
 		expect(composable).toContain('playerDecayedPoints: contribution?.playerDecayedPoints')
 		expect(composable).toContain(
@@ -56,20 +58,21 @@ describe('personal record views', () => {
 	it('formats localized decay percentages with at most one decimal', () => {
 		expect(createDecayPercentageFormatter('en-GB').format(0.985)).toBe('98.5%')
 		expect(createDecayPercentageFormatter('en-GB').format(0.95 ** 2)).toBe('90.3%')
+		expect(createDecayPercentageFormatter('en-GB', 3, 3).format(0.985)).toBe('98.500%')
 	})
 
-	it('uses six fixed columns while leaving level width flexible', () => {
+	it('uses seven fixed columns while leaving level width flexible', () => {
 		const component = readFileSync(
 			new URL('../../app/components/record/MyRecordTable.vue', import.meta.url),
 			'utf8',
 		)
 		expect(component).toContain('table-fixed')
-		expect(component).toContain('min-w-[56rem]')
-		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(6)
+		expect(component).toContain('min-w-[64rem]')
+		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(7)
 		expect(component).toContain('<col />')
 		expect(component).toContain('w-[6rem]')
 		expect(component).toContain('w-[7rem]')
-		expect(component.match(/w-\[8rem\]/g)).toHaveLength(2)
+		expect(component.match(/w-\[8rem\]/g)).toHaveLength(3)
 		expect(component).toContain('w-[9rem]')
 		expect(component).toContain('block truncate font-bold')
 	})
@@ -84,8 +87,23 @@ describe('personal record views', () => {
 		expect(component).toContain('record.playerDecayedPoints')
 		expect(component).toContain('record.levelDecayMultiplier')
 		expect(component).toContain('record.globalDecayMultiplier')
-		expect(component).toContain('text-xs text-muted-foreground/70')
 		expect(component).not.toContain('nonDecayed')
+	})
+
+	it('shows raw level points and precise decay tooltips', () => {
+		const table = readFileSync(
+			new URL('../../app/components/record/MyRecordTable.vue', import.meta.url),
+			'utf8',
+		)
+		const pointValue = readFileSync(
+			new URL('../../app/components/record/RecordPointValue.vue', import.meta.url),
+			'utf8',
+		)
+		expect(table).toContain('labels.levelPoints')
+		expect(table).toContain('record.levelPoints')
+		expect(pointValue).toContain('<UTooltip')
+		expect(pointValue).toContain('text-xs text-muted-foreground/70')
+		expect(pointValue).toContain('createDecayPercentageFormatter(locale.value, 3, 3)')
 	})
 
 	it('keeps row and level-link navigation independent', () => {

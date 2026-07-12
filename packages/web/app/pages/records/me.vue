@@ -83,6 +83,7 @@ const tableLabels = computed(() => ({
 	level: t('common.level'),
 	rank: t('common.rank'),
 	time: t('common.time'),
+	levelPoints: t('pages.myRecords.table.levelPoints'),
 	points: t('common.points'),
 	rankedPoints: t('pages.myRecords.table.rankedPoints'),
 	date: t('pages.myRecords.table.set'),

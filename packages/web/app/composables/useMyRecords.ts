@@ -70,6 +70,7 @@ export function useMyRecords(userId: Ref<number>, view: Ref<MyRecordView>) {
 					levelName: node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
 					levelPosition: contribution?.levelPosition,
 					contributionRank: contribution?.contributionRank,
+					levelPoints: contribution?.levelPoints,
 					levelDecayedPoints: contribution?.levelDecayedPoints,
 					playerDecayedPoints: contribution?.playerDecayedPoints,
 					levelDecayMultiplier: contribution

@@ -47,6 +47,7 @@ export type MyRecordRow = {
 	levelName: string
 	levelPosition?: number | null
 	contributionRank?: number | null
+	levelPoints?: number | null
 	levelDecayedPoints?: number | null
 	playerDecayedPoints?: number | null
 	levelDecayMultiplier?: number | null

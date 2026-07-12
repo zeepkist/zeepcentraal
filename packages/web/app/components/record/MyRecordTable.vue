@@ -1,10 +1,11 @@
 <template>
 	<div class="overflow-x-auto rounded-xl border border-border">
-		<table class="w-full min-w-[56rem] table-fixed text-left text-sm">
+		<table class="w-full min-w-[64rem] table-fixed text-left text-sm">
 			<colgroup>
 				<col />
 				<col class="w-[6rem]" />
 				<col class="w-[7rem]" />
+				<col class="w-[8rem]" />
 				<col class="w-[8rem]" />
 				<col class="w-[8rem]" />
 				<col class="w-[9rem]" />
@@ -14,6 +15,7 @@
 					<th class="px-4 py-3" scope="col">{{ labels.level }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rank }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.time }}</th>
+					<th class="px-4 py-3" scope="col">{{ labels.levelPoints }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.points }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rankedPoints }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.date }}</th>
@@ -47,41 +49,25 @@
 						<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
 					</td>
 					<td class="px-4 py-3 font-semibold tabular-nums">{{ formatTime(record.time) }}</td>
-					<td class="px-4 py-3 tabular-nums">
-						<template v-if="record.levelDecayedPoints != null">
-							<p class="font-bold">{{ number.format(record.levelDecayedPoints) }}</p>
-							<p
-								v-if="record.levelDecayMultiplier != null"
-								class="text-xs text-muted-foreground/70"
-								:aria-label="
-									labels.decayPercentage.replace(
-										'{percentage}',
-										percentage.format(record.levelDecayMultiplier),
-									)
-								"
-							>
-								{{ percentage.format(record.levelDecayMultiplier) }}
-							</p>
-						</template>
+					<td class="px-4 py-3 font-bold tabular-nums">
+						<span v-if="record.levelPoints != null">{{ number.format(record.levelPoints) }}</span>
 						<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
 					</td>
-					<td class="px-4 py-3 tabular-nums">
-						<template v-if="record.playerDecayedPoints != null">
-							<p class="font-bold">{{ number.format(record.playerDecayedPoints) }}</p>
-							<p
-								v-if="record.globalDecayMultiplier != null"
-								class="text-xs text-muted-foreground/70"
-								:aria-label="
-									labels.decayPercentage.replace(
-										'{percentage}',
-										percentage.format(record.globalDecayMultiplier),
-									)
-								"
-							>
-								{{ percentage.format(record.globalDecayMultiplier) }}
-							</p>
-						</template>
-						<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
+					<td class="p-0">
+						<RecordPointValue
+							:points="record.levelDecayedPoints"
+							:decay-multiplier="record.levelDecayMultiplier"
+							:not-ranked-label="labels.notRanked"
+							:decay-label="labels.decayPercentage"
+						/>
+					</td>
+					<td class="p-0">
+						<RecordPointValue
+							:points="record.playerDecayedPoints"
+							:decay-multiplier="record.globalDecayMultiplier"
+							:not-ranked-label="labels.notRanked"
+							:decay-label="labels.decayPercentage"
+						/>
 					</td>
 					<td class="px-4 py-3 text-muted-foreground">
 						<NuxtTime :datetime="record.dateCreated" relative />
@@ -94,7 +80,6 @@
 
 <script setup lang="ts">
 import type { MyRecordRow } from '~/types/app'
-import { createDecayPercentageFormatter } from '~/utils/decayPercentage'
 
 defineProps<{
 	records: MyRecordRow[]
@@ -102,6 +87,7 @@ defineProps<{
 		level: string
 		rank: string
 		time: string
+		levelPoints: string
 		points: string
 		rankedPoints: string
 		date: string
@@ -115,7 +101,6 @@ defineEmits<{ select: [recordId: number] }>()
 
 const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
-const percentage = computed(() => createDecayPercentageFormatter(locale.value))
 
 function formatTime(seconds: number) {
 	const minutes = Math.floor(seconds / 60)

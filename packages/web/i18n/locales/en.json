@@ -279,6 +279,7 @@
 			"table": {
 				"set": "Set",
 				"notRanked": "Not ranked",
+				"levelPoints": "Level points",
 				"rankedPoints": "Ranked points",
 				"decayPercentage": "{percentage} remaining after decay",
 				"openRecord": "Open record for {level}"
