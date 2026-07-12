@@ -162,6 +162,11 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	)
 
 	const metrics = computed(() => metricsLive.data.value?.query ?? criticalQuery.data.value)
+	const metricMonthSince = computed(() =>
+		metricsLive.data.value?.query
+			? liveMetricWindows.value.monthSince
+			: ssrMetricWindows.value.monthSince,
+	)
 	const viewer = computed(() => viewerQuery.data.value?.user)
 	const viewerStanding = computed(() => latestSeason.value?.zslSeasonResults.nodes[0])
 	const popularLevels = computed(
@@ -223,6 +228,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		latestLevelsActive: levelsPrefetch.active,
 		latestLevelsQuery,
 		latestLevelsTarget: levelsPrefetch.target,
+		metricMonthSince,
 		metrics,
 		metricsLive,
 		latestLevels,

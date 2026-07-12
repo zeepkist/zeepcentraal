@@ -69,3 +69,10 @@ export function getDashboardMetricWindows(now = new Date()): DashboardMetricWind
 		monthSince: startOfMonthInTimeZone(now, DASHBOARD_TIME_ZONE).toISOString(),
 	}
 }
+
+export function formatDashboardMonth(monthSince: string, locale: string): string {
+	return new Intl.DateTimeFormat(locale, {
+		month: 'long',
+		timeZone: DASHBOARD_TIME_ZONE,
+	}).format(new Date(monthSince))
+}

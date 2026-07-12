@@ -143,7 +143,7 @@
 <script setup lang="ts">
 usePageSeo('home')
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const session = useSessionStore()
 const { login } = useAccountActions()
@@ -155,6 +155,9 @@ const dashboard = useDashboard(viewerId)
 await dashboard.prefetchCritical()
 const numberFormat = new Intl.NumberFormat()
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
+const currentMonth = computed(() =>
+	formatDashboardMonth(dashboard.metricMonthSince.value, locale.value),
+)
 
 const hero = computed(() => {
 	const viewer = dashboard.viewer.value
@@ -324,7 +327,7 @@ const liveMetrics = computed(() => {
 			value: numberFormat.format(day ?? 0),
 		},
 		{
-			label: t('dashboard.metrics.thisMonth'),
+			label: currentMonth.value,
 			value: numberFormat.format(month ?? 0),
 		},
 	]
@@ -388,7 +391,7 @@ const liveMetrics = computed(() => {
 					value: numberFormat.format(data?.totalUsers?.totalCount ?? 0),
 				},
 				{
-					label: t('dashboard.metrics.activeThisMonth'),
+					label: t('dashboard.metrics.activeInMonth', { month: currentMonth.value }),
 					value: numberFormat.format(data?.activeUsersMonth?.totalCount ?? 0),
 				},
 			],

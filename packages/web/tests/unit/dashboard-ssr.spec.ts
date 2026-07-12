@@ -53,6 +53,11 @@ describe('dashboard critical SSR', () => {
 			composable.indexOf('onMounted(() => {'),
 		)
 		expect(composable).toContain('metricsLive.data.value?.query ?? criticalQuery.data.value')
+		expect(composable).toContain('? liveMetricWindows.value.monthSince')
+		expect(composable).toContain(': ssrMetricWindows.value.monthSince')
+		expect(page).toContain(
+			'formatDashboardMonth(dashboard.metricMonthSince.value, locale.value)',
+		)
 	})
 
 	it('keeps all non-critical dashboard requests client-only', () => {

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { Kind, parse } from 'graphql'
 import { describe, expect, it } from 'vitest'
-import { getDashboardMetricWindows } from '../../app/utils/dashboardMetrics'
+import { formatDashboardMonth, getDashboardMetricWindows } from '../../app/utils/dashboardMetrics'
 
 const querySource = readFileSync(
 	new URL('../../app/graphql/queries/dashboard.graphql', import.meta.url),
@@ -27,6 +27,12 @@ describe('dashboard metric windows', () => {
 		const windows = getDashboardMetricWindows(new Date('2026-07-12T12:00:00.000Z'))
 		expect(windows.monthSince).toBe('2026-06-30T23:00:00.000Z')
 	})
+})
+
+it('formats the London metric month using the active locale', () => {
+	const monthSince = '2026-05-31T23:00:00.000Z'
+	expect(formatDashboardMonth(monthSince, 'en-GB')).toBe('June')
+	expect(formatDashboardMonth(monthSince, 'fr-FR')).toBe('juin')
 })
 
 describe('dashboard metric GraphQL', () => {
@@ -95,7 +101,7 @@ describe('dashboard metric GraphQL', () => {
 		const dayFilter = querySource.slice(dayStart, monthStart)
 		const monthFilter = querySource.slice(
 			monthStart,
-			querySource.indexOf('\n}\n\nquery ZC_DashboardLevels'),
+			querySource.indexOf('\n}\n\nquery ZC_DashboardCritical'),
 		)
 
 		for (const filter of [dayFilter, monthFilter]) {
@@ -132,5 +138,11 @@ describe('dashboard metric presentation', () => {
 		expect(page).toContain('data?.totalUsers?.totalCount')
 		expect(page).toContain('data?.activeUsersMonth?.totalCount')
 		expect(page).toContain('value: `')
+		expect(page).toContain('label: currentMonth.value')
+		expect(page).toContain(
+			"t('dashboard.metrics.activeInMonth', { month: currentMonth.value })",
+		)
+		expect(page).not.toContain('dashboard.metrics.thisMonth')
+		expect(page).not.toContain('dashboard.metrics.activeThisMonth')
 	})
 })
