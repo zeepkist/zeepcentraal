@@ -192,9 +192,6 @@ export type DashboardStatisticsChart = {
 	title: string
 	description: string
 	icon: string
-	kind: 'donut' | 'bar'
-	half?: boolean
-	wide?: boolean
 	data: DashboardPeriodData<DashboardChartEntry[]>
 	total: DashboardPeriodData<string>
 }

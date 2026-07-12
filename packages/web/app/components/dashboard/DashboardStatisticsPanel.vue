@@ -47,22 +47,34 @@
 		</div>
 
 		<div class="grid gap-5 xl:grid-cols-2">
-			<DashboardStatisticChartCard
+			<UCard
 				v-for="chart in model.charts"
 				:key="chart.key"
-				:title="chart.title"
-				:description="chart.description"
-				:icon="chart.icon"
-				:kind="chart.kind"
-				:half="chart.half"
-				:entries="chart.data[period]"
-				:total-label="chart.total[period]"
-				:empty-label="model.emptyLabel"
-				:class="chart.wide ? 'xl:col-span-2' : undefined"
-			/>
-		</div>
+				class="h-full overflow-hidden rounded-2xl border-border/80 bg-gradient-to-br from-card via-card to-primary/5 shadow-sm"
+			>
+				<template #header>
+					<div class="flex items-start justify-between gap-4">
+						<div>
+							<h3 class="font-bold text-highlighted">{{ chart.title }}</h3>
+							<p class="mt-1 text-sm text-muted-foreground">{{ chart.description }}</p>
+						</div>
+						<span class="rounded-lg bg-primary/10 p-2 text-primary">
+							<TablerIcon :name="chart.icon" class="size-5" />
+						</span>
+					</div>
+				</template>
 
-		<div class="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+				<DashboardDonutChart
+					v-if="chart.data[period].some((entry) => entry.value > 0)"
+					:entries="chart.data[period]"
+					:total-label="chart.total[period]"
+					:aria-label="chart.title"
+				/>
+				<div v-else class="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
+					{{ model.emptyLabel }}
+				</div>
+			</UCard>
+
 			<DashboardDriverInputsCard
 				:title="model.driverInputs.title"
 				:description="model.driverInputs.description"
@@ -72,6 +84,9 @@
 				:actions="model.driverInputs.actions[period]"
 				:empty-label="model.emptyLabel"
 			/>
+		</div>
+
+		<div class="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
 
 			<UCard
 				class="overflow-hidden rounded-2xl border-primary/20 bg-gradient-to-br from-primary/15 to-card shadow-sm"

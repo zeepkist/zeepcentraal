@@ -111,7 +111,8 @@ describe('dashboard statistic presentation', () => {
 		expect(page).toContain('<DashboardStatisticsPanel :model="statisticsModel" />')
 		expect(page).not.toContain('<BarChart')
 		expect(page).not.toContain('totalMetrics')
-		expect(panel).toContain('<DashboardStatisticChartCard')
+		expect(panel).toContain('<DashboardDonutChart')
+		expect(panel).not.toContain('<DashboardStatisticChartCard')
 		expect(chartCard).toContain('<DashboardDonutChart')
 		expect(chartCard).toContain('<BarChart')
 		expect(donutChart).toContain('<DonutChart')
@@ -142,13 +143,16 @@ describe('dashboard statistic presentation', () => {
 		expect(model).not.toContain('useQuery(')
 	})
 
-	it('uses flat static surfaces, horizontal bars, and exact custom tooltips', () => {
+	it('uses flat static donut surfaces and exact custom tooltips', () => {
 		expect(panel).not.toContain('rounded-3xl border border-primary/15')
 		expect(panel).not.toContain('hover:border-primary')
 		expect(panel).not.toContain('hover:-translate')
 		expect(chartCard).not.toContain('hover:border-primary')
 		expect(chartCard).not.toContain('hover:-translate')
-		expect(chartCard).toContain('orientation="horizontal"')
+		expect(panel).not.toContain('<BarChart')
+		expect(panel).not.toContain('<DashboardStatisticChartCard')
+		expect(model).not.toContain("kind: 'bar'")
+		expect(model).not.toContain("kind: 'donut'")
 		expect(donutChart).toContain('md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]')
 		expect(chartCard).toContain('<DashboardChartTooltip')
 		expect(chartCard).toContain('<DashboardChartLegend')
