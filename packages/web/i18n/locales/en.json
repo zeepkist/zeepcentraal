@@ -272,6 +272,12 @@
 				"personalBests": "Personal bests",
 				"worldRecords": "World records"
 			},
+			"sort": {
+				"label": "Sort records",
+				"latest": "Latest",
+				"valuableLevels": "Most valuable levels",
+				"valuablePbs": "Most valuable personal bests"
+			},
 			"setup": {
 				"title": "Start building your racing history",
 				"description": "Install Modkist and GTR to submit completed Zeepkist runs automatically, join global leaderboards, and replay personal-best and world-record ghosts.",

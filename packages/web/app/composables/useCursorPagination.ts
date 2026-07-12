@@ -80,6 +80,9 @@ export function useCursorPagination(pageSize: number, namespace = '') {
 	const variables = computed(() =>
 		getCursorVariables(pageSize, after.value, before.value, isLastPage.value),
 	)
+	const isFirstPage = computed(
+		() => after.value === undefined && before.value === undefined && !isLastPage.value,
+	)
 
 	function paginationQuery(replacement: Record<string, string | undefined> = {}) {
 		return replaceCursorQuery({ ...route.query }, keys, replacement)
@@ -123,6 +126,7 @@ export function useCursorPagination(pageSize: number, namespace = '') {
 		direction,
 		first,
 		isInitialPending: isInitialPagePending,
+		isFirstPage,
 		isLastPage,
 		last,
 		next,

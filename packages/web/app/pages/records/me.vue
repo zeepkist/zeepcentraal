@@ -6,11 +6,16 @@
 			:description="$t('pages.myRecords.description')"
 		/>
 
-		<MyRecordsTabs
-			:model-value="view"
-			:label="$t('pages.myRecords.tabs.label')"
-			:options="tabOptions"
-			@update:model-value="data.setView"
+		<RecordHistoryToolbar
+			:view="view"
+			:view-label="$t('pages.myRecords.tabs.label')"
+			:view-options="tabOptions"
+			:sort="sort"
+			:sort-label="$t('pages.myRecords.sort.label')"
+			:sort-options="sortOptions"
+			sort-id="my-records-sort"
+			@update:view="data.setView"
+			@update:sort="data.setSort"
 		/>
 
 		<RecordSetupPrompt
@@ -64,9 +69,10 @@ if (!session.user) {
 
 const route = useRoute()
 const { t } = useI18n()
-const userId = computed(() => session.user?.id ?? -1)
-const view = computed(() => normalizeMyRecordView(route.query.view))
-const data = useMyRecords(userId, view)
+const userId = computed(() => session.user?.id)
+const view = computed(() => normalizeRecordHistoryView(route.query.view))
+const sort = computed(() => normalizeRecordHistorySort(route.query.sort))
+const data = useMyRecords(userId, view, sort)
 
 useSeoMeta({
 	title: () => t('pages.myRecords.seo.title'),
@@ -85,6 +91,11 @@ const tabOptions = computed(() => [
 		label: t('pages.myRecords.tabs.worldRecords'),
 		icon: 'trophy',
 	},
+])
+const sortOptions = computed(() => [
+	{ value: 'latest' as const, label: t('pages.myRecords.sort.latest') },
+	{ value: 'valuable-levels' as const, label: t('pages.myRecords.sort.valuableLevels') },
+	{ value: 'valuable-pbs' as const, label: t('pages.myRecords.sort.valuablePbs') },
 ])
 const tableLabels = computed(() => ({
 	level: t('common.level'),

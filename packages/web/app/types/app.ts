@@ -38,10 +38,13 @@ export type RecordRow = {
 	viewer?: boolean
 }
 
-export type MyRecordRow = {
+export type RecordHistoryRow = {
 	id: number
 	time: number
 	dateCreated: string
+	userId: number
+	userSteamId?: string | null
+	userName?: string | null
 	levelId: number
 	levelXxHash: string
 	levelName: string

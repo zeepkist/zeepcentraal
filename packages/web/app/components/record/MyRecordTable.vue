@@ -79,10 +79,10 @@
 </template>
 
 <script setup lang="ts">
-import type { MyRecordRow } from '~/types/app'
+import type { RecordHistoryRow } from '~/types/app'
 
 defineProps<{
-	records: MyRecordRow[]
+	records: RecordHistoryRow[]
 	labels: {
 		level: string
 		rank: string

@@ -16,15 +16,15 @@
 </template>
 
 <script setup lang="ts">
-import type { MyRecordView } from '~/utils/myRecords'
+import type { RecordHistoryView } from '~/utils/recordHistory'
 
 defineProps<{
 	label: string
-	modelValue: MyRecordView
-	options: Array<{ value: MyRecordView; label: string; icon: string }>
+	modelValue: RecordHistoryView
+	options: Array<{ value: RecordHistoryView; label: string; icon: string }>
 }>()
 
 defineEmits<{
-	'update:modelValue': [value: MyRecordView]
+	'update:modelValue': [value: RecordHistoryView]
 }>()
 </script>
