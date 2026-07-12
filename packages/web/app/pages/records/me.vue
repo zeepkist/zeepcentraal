@@ -19,7 +19,7 @@
 		/>
 
 		<RecordSetupPrompt
-			v-if="!data.countResult.fetching.value && data.totalRecords.value === 0"
+			v-if="data.hasNoRecords.value"
 			:title="$t('pages.myRecords.setup.title')"
 			:description="$t('pages.myRecords.setup.description')"
 			:action-label="$t('pages.myRecords.setup.action')"

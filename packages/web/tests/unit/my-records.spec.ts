@@ -56,6 +56,8 @@ describe('record history', () => {
 			'utf8',
 		)
 		expect(composable).toContain('useCursorPagination(25, options.namespace)')
+		expect(query).toContain('records(first: 0, filter: { userId: { equalTo: $id } })')
+		expect(query).not.toContain('user(id: $id)')
 		expect(query).toContain('$first: Int')
 		expect(query).toContain('$after: Cursor')
 		expect(query).toContain('$orderBy: [RecordsOrderBy!]!')
@@ -116,6 +118,20 @@ describe('record history', () => {
 		expect(page).toContain('<template v-if="session.user" #actions>')
 		expect(page).toContain('to="/records/me"')
 		expect(page).toContain('show-player')
+	})
+
+	it('shows setup prompt from explicit zero-record count state', () => {
+		const composable = readFileSync(
+			new URL('../../app/composables/useMyRecords.ts', import.meta.url),
+			'utf8',
+		)
+		const page = readFileSync(
+			new URL('../../app/pages/records/me.vue', import.meta.url),
+			'utf8',
+		)
+		expect(composable).toContain('countResult.data.value?.records?.totalCount === 0')
+		expect(page).toContain('v-if="data.hasNoRecords.value"')
+		expect(page).not.toContain('data.totalRecords.value')
 	})
 
 	it('uses global record copy for shared personal history controls', () => {

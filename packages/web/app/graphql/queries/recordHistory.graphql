@@ -1,8 +1,6 @@
 query ZC_MyRecordCount($id: Int!) {
-	user(id: $id) {
-		records(first: 0) {
-			totalCount
-		}
+	records(first: 0, filter: { userId: { equalTo: $id } }) {
+		totalCount
 	}
 }
 

@@ -14,11 +14,11 @@ export function useMyRecords(
 		variables: computed(() => ({ id: userId.value ?? -1 })),
 		pause: computed(() => !userId.value),
 	})
-	const totalRecords = computed(() => countResult.data.value?.user?.records.totalCount)
+	const hasNoRecords = computed(() => countResult.data.value?.records?.totalCount === 0)
 
 	return {
 		...history,
 		countResult,
-		totalRecords,
+		hasNoRecords,
 	}
 }
