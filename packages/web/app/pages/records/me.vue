@@ -8,10 +8,10 @@
 
 		<RecordHistoryToolbar
 			:view="view"
-			:view-label="$t('pages.myRecords.tabs.label')"
+			:view-label="$t('pages.records.tabs.label')"
 			:view-options="tabOptions"
 			:sort="sort"
-			:sort-label="$t('pages.myRecords.sort.label')"
+			:sort-label="$t('pages.records.sort.label')"
 			:sort-options="sortOptions"
 			sort-id="my-records-sort"
 			@update:view="data.setView"
@@ -36,7 +36,7 @@
 				:empty="data.rows.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
-				:empty-title="$t('pages.myRecords.empty')"
+				:empty-title="$t('pages.records.empty')"
 				:skeletons="6"
 			>
 				<RecordHistoryTable
@@ -82,22 +82,22 @@ useSeoMeta({
 })
 
 const tabOptions = computed(() => [
-	{ value: 'recent' as const, label: t('pages.myRecords.tabs.recent'), icon: 'clock-bolt' },
+	{ value: 'recent' as const, label: t('pages.records.tabs.recent'), icon: 'clock-bolt' },
 	{
 		value: 'personal-bests' as const,
-		label: t('pages.myRecords.tabs.personalBests'),
+		label: t('pages.records.tabs.personalBests'),
 		icon: 'star',
 	},
 	{
 		value: 'world-records' as const,
-		label: t('pages.myRecords.tabs.worldRecords'),
+		label: t('pages.records.tabs.worldRecords'),
 		icon: 'trophy',
 	},
 ])
 const sortOptions = computed(() => [
-	{ value: 'latest' as const, label: t('pages.myRecords.sort.latest') },
-	{ value: 'valuable-levels' as const, label: t('pages.myRecords.sort.valuableLevels') },
-	{ value: 'valuable-pbs' as const, label: t('pages.myRecords.sort.valuablePbs') },
+	{ value: 'latest' as const, label: t('pages.records.sort.latest') },
+	{ value: 'valuable-levels' as const, label: t('pages.records.sort.valuableLevels') },
+	{ value: 'valuable-pbs' as const, label: t('pages.records.sort.valuablePbs') },
 ])
 const tableLabels = computed(() => ({
 	level: t('common.level'),
@@ -105,13 +105,13 @@ const tableLabels = computed(() => ({
 	unknownPlayer: t('pages.records.table.unknownPlayer'),
 	rank: t('common.rank'),
 	time: t('common.time'),
-	levelPoints: t('pages.myRecords.table.levelPoints'),
+	levelPoints: t('pages.records.table.levelPoints'),
 	points: t('common.points'),
-	rankedPoints: t('pages.myRecords.table.rankedPoints'),
-	date: t('pages.myRecords.table.set'),
-	notRanked: t('pages.myRecords.table.notRanked'),
-	decayPercentage: t('pages.myRecords.table.decayPercentage'),
-	openRecord: t('pages.myRecords.table.openRecord'),
+	rankedPoints: t('pages.records.table.rankedPoints'),
+	date: t('pages.records.table.set'),
+	notRanked: t('pages.records.table.notRanked'),
+	decayPercentage: t('pages.records.table.decayPercentage'),
+	openRecord: t('pages.records.table.openRecord'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

@@ -117,4 +117,18 @@ describe('record history', () => {
 		expect(page).toContain('to="/records/me"')
 		expect(page).toContain('show-player')
 	})
+
+	it('uses global record copy for shared personal history controls', () => {
+		const page = readFileSync(
+			new URL('../../app/pages/records/me.vue', import.meta.url),
+			'utf8',
+		)
+		expect(page).toContain('pages.records.tabs')
+		expect(page).toContain('pages.records.sort')
+		expect(page).toContain('pages.records.table')
+		expect(page).toContain('pages.records.empty')
+		expect(page).not.toContain('pages.myRecords.tabs')
+		expect(page).not.toContain('pages.myRecords.sort')
+		expect(page).not.toContain('pages.myRecords.table')
+	})
 })
