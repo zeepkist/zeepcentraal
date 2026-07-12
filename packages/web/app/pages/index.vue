@@ -30,6 +30,23 @@
 			</DataState>
 		</section>
 
+		<section :ref="dashboard.newsTarget">
+			<DataState
+				:pending="!dashboard.newsActive.value || dashboard.news.pending.value"
+				:error="dashboard.news.error.value?.message"
+				:empty="dashboard.news.data.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<SteamNewsFeed
+					:title="$t('dashboard.news.title')"
+					:description="$t('dashboard.news.description')"
+					:items="dashboard.news.data.value"
+				/>
+			</DataState>
+		</section>
+
 		<section :ref="dashboard.latestLevelsTarget" aria-labelledby="latest-levels-heading">
 			<SectionHeader id="latest-levels-heading" :title="$t('dashboard.latest.title')" :description="$t('dashboard.latest.description')" />
 			<DataState
@@ -43,54 +60,6 @@
 				<LevelGrid :levels="dashboard.latestLevels.value" v-bind="levelLabels" />
 			</DataState>
 		</section>
-
-		<div v-if="user" :ref="dashboard.viewerTarget" class="space-y-8">
-			<DataState
-				:pending="!dashboard.viewerActive.value || dashboard.viewerContentQuery.fetching.value"
-				:error="dashboard.viewerContentQuery.error.value?.message"
-				:empty="dashboard.viewerRecords.value.length === 0 && dashboard.viewerLevels.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
-			>
-				<section v-if="dashboard.viewerRecords.value.length" aria-labelledby="viewer-records-heading">
-					<SectionHeader id="viewer-records-heading" :title="$t('dashboard.viewerRecords.title')" :description="$t('dashboard.viewerRecords.description')" />
-					<RecordTable :records="dashboard.viewerRecords.value" v-bind="recordLabels" show-level />
-				</section>
-				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
-					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
-					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="levelLabels" />
-				</section>
-			</DataState>
-		</div>
-
-		<div :ref="dashboard.recordsTarget">
-			<DataState
-				:pending="!dashboard.recordsActive.value || !dashboard.recordsReady.value"
-				:error="dashboard.worldRecordsLive.error.value?.message || dashboard.personalBestsLive.error.value?.message"
-				:empty="dashboard.worldRecordRecords.value.length === 0 && dashboard.personalBestRecords.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
-			>
-				<div class="grid gap-6 xl:grid-cols-2">
-					<DashboardRecordFeed
-						:title="$t('dashboard.worldRecords.title')"
-						:description="$t('dashboard.worldRecords.description')"
-						:live-label="$t('common.live')"
-						:records="dashboard.worldRecordRecords.value"
-						v-bind="recordLabels"
-					/>
-					<DashboardRecordFeed
-						:title="$t('dashboard.personalBests.title')"
-						:description="$t('dashboard.personalBests.description')"
-						:live-label="$t('common.live')"
-						:records="dashboard.personalBestRecords.value"
-						v-bind="recordLabels"
-					/>
-				</div>
-			</DataState>
-		</div>
 
 		<section
 			:ref="dashboard.statisticsTarget"
@@ -121,22 +90,53 @@
 			</DataState>
 		</section>
 
-		<div :ref="dashboard.newsTarget">
+		<section v-if="user" :ref="dashboard.viewerTarget" class="space-y-8">
 			<DataState
-				:pending="!dashboard.newsActive.value || dashboard.news.pending.value"
-				:error="dashboard.news.error.value?.message"
-				:empty="dashboard.news.data.value.length === 0"
+				:pending="!dashboard.viewerActive.value || dashboard.viewerContentQuery.fetching.value"
+				:error="dashboard.viewerContentQuery.error.value?.message"
+				:empty="dashboard.viewerRecords.value.length === 0 && dashboard.viewerLevels.value.length === 0"
 				:loading-label="$t('common.loading')"
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
-				<SteamNewsFeed
-					:title="$t('dashboard.news.title')"
-					:description="$t('dashboard.news.description')"
-					:items="dashboard.news.data.value"
-				/>
+				<section v-if="dashboard.viewerRecords.value.length" aria-labelledby="viewer-records-heading">
+					<SectionHeader id="viewer-records-heading" :title="$t('dashboard.viewerRecords.title')" :description="$t('dashboard.viewerRecords.description')" />
+					<RecordTable :records="dashboard.viewerRecords.value" v-bind="recordLabels" show-level />
+				</section>
+				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
+					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
+					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="levelLabels" />
+				</section>
 			</DataState>
-		</div>
+		</section>
+
+		<section :ref="dashboard.recordsTarget">
+			<DataState
+				:pending="!dashboard.recordsActive.value || !dashboard.recordsReady.value"
+				:error="dashboard.worldRecordsLive.error.value?.message || dashboard.personalBestsLive.error.value?.message"
+				:empty="dashboard.worldRecordRecords.value.length === 0 && dashboard.personalBestRecords.value.length === 0"
+				:loading-label="$t('common.loading')"
+				:error-title="$t('common.error')"
+				:empty-title="$t('common.empty')"
+			>
+				<div class="grid gap-6 xl:grid-cols-2">
+					<DashboardRecordFeed
+						:title="$t('dashboard.worldRecords.title')"
+						:description="$t('dashboard.worldRecords.description')"
+						:live-label="$t('common.live')"
+						:records="dashboard.worldRecordRecords.value"
+						v-bind="recordLabels"
+					/>
+					<DashboardRecordFeed
+						:title="$t('dashboard.personalBests.title')"
+						:description="$t('dashboard.personalBests.description')"
+						:live-label="$t('common.live')"
+						:records="dashboard.personalBestRecords.value"
+						v-bind="recordLabels"
+					/>
+				</div>
+			</DataState>
+		</section>
 	</UContainer>
 </template>
 
