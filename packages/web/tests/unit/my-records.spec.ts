@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { createDecayPercentageFormatter } from '../../app/utils/decayPercentage'
 import { normalizeMyRecordView } from '../../app/utils/myRecords'
 
 describe('personal record views', () => {
@@ -24,6 +25,67 @@ describe('personal record views', () => {
 		expect(composable).toContain('personalBestGlobalsExist: true')
 		expect(composable).toContain('worldRecordGlobalsExist: false')
 		expect(composable).toContain('worldRecordGlobalsExist: true')
+	})
+
+	it('requests contribution rank with bounded cursor pagination', () => {
+		const query = readFileSync(
+			new URL('../../app/graphql/queries/myRecords.graphql', import.meta.url),
+			'utf8',
+		)
+		expect(query).toContain('$first: Int')
+		expect(query).toContain('$after: Cursor')
+		expect(query).toContain('orderBy: [DATE_CREATED_DESC]')
+		expect(query).toContain('contributionRank')
+	})
+
+	it('maps level and global points with their independent decay inputs', () => {
+		const composable = readFileSync(
+			new URL('../../app/composables/useMyRecords.ts', import.meta.url),
+			'utf8',
+		)
+		expect(composable).toContain('levelDecayedPoints: contribution?.levelDecayedPoints')
+		expect(composable).toContain('playerDecayedPoints: contribution?.playerDecayedPoints')
+		expect(composable).toContain(
+			'calculateDecayMultiplier(contribution.levelPosition, LEVEL_DECAY_FACTOR)',
+		)
+		expect(composable).toContain('contribution.contributionRank,')
+		expect(composable).toContain('GLOBAL_DECAY_FACTOR,')
+		expect(composable).toContain(': undefined')
+	})
+
+	it('formats localized decay percentages with at most one decimal', () => {
+		expect(createDecayPercentageFormatter('en-GB').format(0.985)).toBe('98.5%')
+		expect(createDecayPercentageFormatter('en-GB').format(0.95 ** 2)).toBe('90.3%')
+	})
+
+	it('uses six fixed columns while leaving level width flexible', () => {
+		const component = readFileSync(
+			new URL('../../app/components/record/MyRecordTable.vue', import.meta.url),
+			'utf8',
+		)
+		expect(component).toContain('table-fixed')
+		expect(component).toContain('min-w-[56rem]')
+		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(6)
+		expect(component).toContain('<col />')
+		expect(component).toContain('w-[6rem]')
+		expect(component).toContain('w-[7rem]')
+		expect(component.match(/w-\[8rem\]/g)).toHaveLength(2)
+		expect(component).toContain('w-[9rem]')
+		expect(component).toContain('block truncate font-bold')
+	})
+
+	it('renders separate point values and subdued decay percentages', () => {
+		const component = readFileSync(
+			new URL('../../app/components/record/MyRecordTable.vue', import.meta.url),
+			'utf8',
+		)
+		expect(component).toContain('labels.rankedPoints')
+		expect(component).toContain('record.levelDecayedPoints')
+		expect(component).toContain('record.playerDecayedPoints')
+		expect(component).toContain('record.levelDecayMultiplier')
+		expect(component).toContain('record.globalDecayMultiplier')
+		expect(component).toContain('text-xs text-muted-foreground/70')
+		expect(component).not.toContain('nonDecayed')
 	})
 
 	it('keeps row and level-link navigation independent', () => {

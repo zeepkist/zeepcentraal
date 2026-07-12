@@ -15,6 +15,7 @@
 		"test:e2e": "bun --bun playwright test"
 	},
 	"dependencies": {
+		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"@nuxt/content": "~3.15.0",
 		"@nuxt/image": "~2.0.0",

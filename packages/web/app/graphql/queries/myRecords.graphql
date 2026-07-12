@@ -44,6 +44,7 @@ query ZC_MyRecords(
 				userPointContributions(first: 1) {
 					nodes {
 						levelPosition
+						contributionRank
 						playerDecayedPoints
 						levelDecayedPoints
 					}

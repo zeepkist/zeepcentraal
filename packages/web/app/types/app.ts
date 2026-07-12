@@ -38,6 +38,21 @@ export type RecordRow = {
 	viewer?: boolean
 }
 
+export type MyRecordRow = {
+	id: number
+	time: number
+	dateCreated: string
+	levelId: number
+	levelXxHash: string
+	levelName: string
+	levelPosition?: number | null
+	contributionRank?: number | null
+	levelDecayedPoints?: number | null
+	playerDecayedPoints?: number | null
+	levelDecayMultiplier?: number | null
+	globalDecayMultiplier?: number | null
+}
+
 export type LevelSummary = {
 	id: number
 	xxHash: string

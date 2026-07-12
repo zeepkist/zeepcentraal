@@ -1,7 +1,12 @@
 import { useQuery } from '@urql/vue'
+import {
+	calculateDecayMultiplier,
+	GLOBAL_DECAY_FACTOR,
+	LEVEL_DECAY_FACTOR,
+} from '@zeepkist/core/score'
 import type { Ref } from 'vue'
 import { Zc_MyRecordCountDocument, Zc_MyRecordsDocument } from '~/graphql/generated/graphql'
-import type { CursorPage, RecordRow } from '~/types/app'
+import type { CursorPage, MyRecordRow } from '~/types/app'
 import type { MyRecordView } from '~/utils/myRecords'
 
 function pageInfo(
@@ -51,7 +56,7 @@ export function useMyRecords(userId: Ref<number>, view: Ref<MyRecordView>) {
 		})),
 		pause: computed(() => userId.value < 1),
 	})
-	const rows = computed<RecordRow[]>(() =>
+	const rows = computed<MyRecordRow[]>(() =>
 		(result.data.value?.records?.edges ?? []).flatMap(({ node }) => {
 			if (!node.level) return []
 			const contribution = node.userPointContributions.nodes[0]
@@ -60,13 +65,22 @@ export function useMyRecords(userId: Ref<number>, view: Ref<MyRecordView>) {
 					id: node.id,
 					time: node.time,
 					dateCreated: String(node.dateCreated),
-					userId: node.userId,
 					levelId: node.levelId,
 					levelXxHash: node.level.xxHash,
 					levelName: node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
-					rank: contribution?.levelPosition,
-					rankedPoints: contribution?.playerDecayedPoints,
-					nonDecayedPoints: contribution?.levelDecayedPoints,
+					levelPosition: contribution?.levelPosition,
+					contributionRank: contribution?.contributionRank,
+					levelDecayedPoints: contribution?.levelDecayedPoints,
+					playerDecayedPoints: contribution?.playerDecayedPoints,
+					levelDecayMultiplier: contribution
+						? calculateDecayMultiplier(contribution.levelPosition, LEVEL_DECAY_FACTOR)
+						: undefined,
+					globalDecayMultiplier: contribution
+						? calculateDecayMultiplier(
+								contribution.contributionRank,
+								GLOBAL_DECAY_FACTOR,
+							)
+						: undefined,
 				},
 			]
 		}),

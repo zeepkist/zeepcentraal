@@ -84,9 +84,10 @@ const tableLabels = computed(() => ({
 	rank: t('common.rank'),
 	time: t('common.time'),
 	points: t('common.points'),
+	rankedPoints: t('pages.myRecords.table.rankedPoints'),
 	date: t('pages.myRecords.table.set'),
 	notRanked: t('pages.myRecords.table.notRanked'),
-	nonDecayed: t('pages.myRecords.table.nonDecayed'),
+	decayPercentage: t('pages.myRecords.table.decayPercentage'),
 	openRecord: t('pages.myRecords.table.openRecord'),
 }))
 const paginationLabels = computed(() => ({
