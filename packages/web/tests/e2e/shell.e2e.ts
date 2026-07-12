@@ -138,15 +138,14 @@ test('record detail placeholder is noindex', async ({ page }) => {
 	)
 })
 
-test('records live subscription renders', async ({ page }) => {
+test('global record history renders', async ({ page }) => {
 	await page.goto('/records')
 	await expect(
 		page.getByRole('heading', { name: 'World records and personal bests' }),
 	).toBeVisible()
-	await expect(page.getByRole('heading', { name: 'Latest record' })).toBeVisible()
-	await expect(page.getByRole('status')).toBeVisible()
+	await expect(page.getByRole('tab', { name: 'Recent records' })).toBeVisible()
+	await expect(page.getByLabel('Sort records')).toBeVisible()
 })
-
 test('dashboard prefetches deferred GraphQL before its section is visible', async ({ page }) => {
 	const requests: Array<{ method: string; operation: string }> = []
 	page.on('request', (request) => {

@@ -1,8 +1,12 @@
 <template>
 	<div class="overflow-x-auto rounded-xl border border-border">
-		<table class="w-full min-w-[64rem] table-fixed text-left text-sm">
+		<table
+			class="w-full table-fixed text-left text-sm"
+			:class="showPlayer ? 'min-w-[75rem]' : 'min-w-[64rem]'"
+		>
 			<colgroup>
 				<col />
+				<col v-if="showPlayer" class="w-[11rem]" />
 				<col class="w-[6rem]" />
 				<col class="w-[7rem]" />
 				<col class="w-[8rem]" />
@@ -13,6 +17,7 @@
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
 					<th class="px-4 py-3" scope="col">{{ labels.level }}</th>
+					<th v-if="showPlayer" class="px-4 py-3" scope="col">{{ labels.player }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rank }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.time }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.levelPoints }}</th>
@@ -41,6 +46,20 @@
 						>
 							{{ record.levelName }}
 						</NuxtLink>
+					</td>
+					<td v-if="showPlayer" class="px-4 py-3">
+						<NuxtLink
+							v-if="record.userSteamId"
+							:to="`/user/${record.userSteamId}`"
+							class="block truncate font-semibold hover:text-primary"
+							@click.stop
+							@keydown.stop
+						>
+							{{ record.userName ?? record.userSteamId }}
+						</NuxtLink>
+						<span v-else class="block truncate text-muted-foreground">
+							{{ record.userName ?? labels.unknownPlayer }}
+						</span>
 					</td>
 					<td class="px-4 py-3 font-bold tabular-nums">
 						<span v-if="record.levelPosition != null">
@@ -83,8 +102,11 @@ import type { RecordHistoryRow } from '~/types/app'
 
 defineProps<{
 	records: RecordHistoryRow[]
+	showPlayer?: boolean
 	labels: {
 		level: string
+		player: string
+		unknownPlayer: string
 		rank: string
 		time: string
 		levelPoints: string

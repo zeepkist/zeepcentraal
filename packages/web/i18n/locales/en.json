@@ -179,26 +179,29 @@
 		"records": {
 			"description": "Track world records, personal bests, and record history.",
 			"eyebrow": "Records",
-			"live": {
-				"description": "This example listens for the latest record over a GraphQL subscription.",
-				"error": "Subscription error",
-				"fields": {
-					"dateCreated": "Created",
-					"id": "Record ID",
-					"levelId": "Level ID",
-					"time": "Time",
-					"userId": "User ID"
-				},
-				"status": {
-					"connecting": "Connecting",
-					"error": "Error",
-					"listening": "Listening"
-				},
-				"title": "Latest record",
-				"waiting": "Listening for the first record update…"
+			"empty": "No records found in this view.",
+			"myRecordsAction": "My records",
+			"tabs": {
+				"label": "Record view",
+				"recent": "Recent records",
+				"personalBests": "Personal bests",
+				"worldRecords": "World records"
 			},
-			"panelDescription": "Record feed, filters, and comparison tables land here.",
-			"panelTitle": "Record stream",
+			"sort": {
+				"label": "Sort records",
+				"latest": "Latest",
+				"valuableLevels": "Most valuable levels",
+				"valuablePbs": "Most valuable personal bests"
+			},
+			"table": {
+				"set": "Set",
+				"notRanked": "—",
+				"unknownPlayer": "Unknown player",
+				"levelPoints": "Level points",
+				"rankedPoints": "Ranked points",
+				"decayPercentage": "{percentage} remaining after decay",
+				"openRecord": "Open record for {level}"
+			},
 			"seo": {
 				"description": "Zeepkist world records and personal bests.",
 				"title": "Records"

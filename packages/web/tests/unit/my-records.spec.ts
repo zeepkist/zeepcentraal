@@ -85,12 +85,12 @@ describe('record history', () => {
 
 	it('keeps seven fixed columns and independent row/level navigation', () => {
 		const component = readFileSync(
-			new URL('../../app/components/record/MyRecordTable.vue', import.meta.url),
+			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
 			'utf8',
 		)
 		expect(component).toContain('table-fixed')
 		expect(component).toContain('min-w-[64rem]')
-		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(7)
+		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(8)
 		expect(component).toContain('<col />')
 		expect(component).toContain('record.levelPoints')
 		expect(component).toContain('record.levelDecayedPoints')
@@ -99,5 +99,21 @@ describe('record history', () => {
 		expect(component).toContain('@keydown.enter.prevent')
 		expect(component).toContain('@keydown.space.prevent')
 		expect(component).toContain('@click.stop')
+	})
+
+	it('renders linked players globally and a personal-history action for authenticated users', () => {
+		const table = readFileSync(
+			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
+			'utf8',
+		)
+		const page = readFileSync(
+			new URL('../../app/pages/records/index.vue', import.meta.url),
+			'utf8',
+		)
+		expect(table).toContain('v-if="showPlayer"')
+		expect(table).toContain('record.userSteamId')
+		expect(page).toContain('<template v-if="session.user" #actions>')
+		expect(page).toContain('to="/records/me"')
+		expect(page).toContain('show-player')
 	})
 })

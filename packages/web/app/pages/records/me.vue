@@ -39,7 +39,7 @@
 				:empty-title="$t('pages.myRecords.empty')"
 				:skeletons="6"
 			>
-				<MyRecordTable
+				<RecordHistoryTable
 					:records="data.rows.value"
 					:labels="tableLabels"
 					@select="openRecord"
@@ -99,6 +99,8 @@ const sortOptions = computed(() => [
 ])
 const tableLabels = computed(() => ({
 	level: t('common.level'),
+	player: t('common.user'),
+	unknownPlayer: t('pages.records.table.unknownPlayer'),
 	rank: t('common.rank'),
 	time: t('common.time'),
 	levelPoints: t('pages.myRecords.table.levelPoints'),
