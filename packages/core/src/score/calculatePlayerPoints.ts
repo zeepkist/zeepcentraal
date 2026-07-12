@@ -6,19 +6,19 @@ export interface PersonalBest {
 }
 
 export interface PlayerPointContribution {
+	contributionRank: number
 	idLevel: number
 	idRecord: number
-	contributionRank: number
-	levelPosition: number
-	levelPoints: number
 	levelDecayedPoints: number
+	levelPoints: number
+	levelPosition: number
 	playerDecayedPoints: number
 }
 
 export interface CalculatePlayerPointsResult {
+	contributions: PlayerPointContribution[]
 	points: number
 	totalPoints: number
-	contributions: PlayerPointContribution[]
 }
 
 export const GLOBAL_DECAY_FACTOR = 0.95

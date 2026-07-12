@@ -1,7 +1,7 @@
 interface ExistingWorkshopLevelItem {
+	deleted: boolean
 	id: number
 	idLevel: number
-	deleted: boolean
 	xxHash: string
 }
 

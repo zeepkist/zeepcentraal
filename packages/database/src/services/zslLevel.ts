@@ -3,8 +3,8 @@ import { db } from '../client'
 import { zslLevel } from '../schema'
 
 interface GetZslLevelInput {
-	idRound: number
 	idLevel: number
+	idRound: number
 }
 
 export async function getOrCreateZslLevel({ idRound, idLevel }: GetZslLevelInput) {

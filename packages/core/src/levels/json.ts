@@ -9,11 +9,11 @@ interface JsonBlock {
 }
 
 interface JsonLevel {
-	level?: { UID?: string; zeepHash?: string }
 	author?: { name?: string; StmID?: number | string }
-	medals?: { author?: number; gold?: number; silver?: number; bronze?: number }
-	enviro?: { skybox?: number; groundMat?: number }
 	blox?: JsonBlock[]
+	enviro?: { skybox?: number; groundMat?: number }
+	level?: { UID?: string; zeepHash?: string }
+	medals?: { author?: number; gold?: number; silver?: number; bronze?: number }
 }
 
 function isJsonIdentifierCharacter(character: string | undefined): boolean {

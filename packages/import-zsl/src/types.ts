@@ -4,10 +4,10 @@ interface EventMetadata {
 }
 
 export interface SeasonMetadata {
-	events: Record<string, EventMetadata>
-	points: number[]
-	finishPoints: number
 	bestOf?: number
+	events: Record<string, EventMetadata>
+	finishPoints: number
+	points: number[]
 }
 
 type SeasonId = string
@@ -15,16 +15,16 @@ type SeasonId = string
 export type SuperLeagueMetadata = Array<[SeasonId, SeasonMetadata]>
 
 interface TournamentUser {
-	username: string
-	totalPoints: number
 	pointsPerRound: number[]
 	steamId: string
+	totalPoints: number
+	username: string
 }
 
 interface TournamentStanding {
+	points: number
 	steamId: string
 	time: number
-	points: number
 	username: string
 }
 
@@ -34,14 +34,14 @@ interface TournamentLevel {
 }
 
 export interface TournamentEvent {
-	users: TournamentUser[]
 	levels: TournamentLevel[]
+	users: TournamentUser[]
 }
 
 export interface SeasonStanding {
-	username: string
-	team: string
-	totalPoints: number
 	pointsPerRound: number[]
 	steamId: string
+	team: string
+	totalPoints: number
+	username: string
 }

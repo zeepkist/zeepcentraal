@@ -1,7 +1,7 @@
 export interface LevelWorkshopAvailability {
+	accessibleItemCount: number
 	adventure: boolean
 	itemCount: number
-	accessibleItemCount: number
 }
 
 export function isLevelScoreEligible(availability: LevelWorkshopAvailability): boolean {

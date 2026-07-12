@@ -3,11 +3,11 @@ import { db } from '../client'
 import { zslRound } from '../schema'
 
 interface GetZslRoundInput {
-	idSeason: number
-	round: number
-	name: string
-	workshopId: string
 	date: string
+	idSeason: number
+	name: string
+	round: number
+	workshopId: string
 }
 
 export async function getOrCreateZslRound({

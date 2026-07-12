@@ -11,25 +11,25 @@ export type PlayerScoreLeaderboardRows = PersonalBestWithLevelPointsAndPosition[
 
 interface PlayerScoreLeaderboardCacheEntry<T> {
 	key: string
-	value: T
 	ttl?: number
+	value: T
 }
 
 interface CachedPlayerScoreLeaderboardRow {
-	idUser: number
 	idLevel: number
 	idRecord: number
+	idUser: number
 	levelPoints: number
 	position: string
 }
 
 export interface PlayerScoreLeaderboardCache {
+	deleteMany(keys: string[]): Promise<boolean[]>
 	get<T>(key: string): Promise<T | undefined>
 	getMany<T>(keys: string[]): Promise<Array<T | undefined>>
+	hasMany(keys: string[]): Promise<boolean[]>
 	set<T>(key: string, value: T, ttl?: number): Promise<boolean>
 	setMany<T>(entries: Array<PlayerScoreLeaderboardCacheEntry<T>>): Promise<boolean[]>
-	hasMany(keys: string[]): Promise<boolean[]>
-	deleteMany(keys: string[]): Promise<boolean[]>
 }
 
 let playerScoreLeaderboardCache: PlayerScoreLeaderboardCache | undefined

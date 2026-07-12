@@ -7,39 +7,38 @@ const adventureAuthorId = '76561198041027402'
 const adventureWorkshopId = '-1'
 
 export interface AdventureMapEntry {
-	uid: string
 	levelName: string
+	uid: string
 }
 
 export interface AdventureMigrationRow {
-	uid: string
-	xxHash: string
-	series: string
-	name: string
-	imageUrl: string
-	validationTimeAuthor: number
-	validationTimeGold: number
-	validationTimeSilver: number
-	validationTimeBronze: number
+	amountBlocks: number
 	amountCheckpoints: number
 	amountFinishes: number
-	amountBlocks: number
+	blocks: unknown[]
+	format: number
+	imageUrl: string
+	name: string
+	series: string
 	typeGround: number
 	typeSkybox: number
-	format: number
-	blocks: unknown[]
+	uid: string
+	validationTimeAuthor: number
+	validationTimeBronze: number
+	validationTimeGold: number
+	validationTimeSilver: number
+	xxHash: string
 }
 
 interface CreateMigrationOptions {
 	adventureRoot: string
+	allowEmpty?: boolean
+	dryRun?: boolean
 	migrationsFolder: string
 	tag?: string
-	dryRun?: boolean
-	allowEmpty?: boolean
 }
 
 interface DrizzleJournal {
-	version: string
 	dialect: string
 	entries: {
 		idx: number
@@ -48,6 +47,7 @@ interface DrizzleJournal {
 		tag: string
 		breakpoints: boolean
 	}[]
+	version: string
 }
 
 function splitCsvLine(line: string): string[] {

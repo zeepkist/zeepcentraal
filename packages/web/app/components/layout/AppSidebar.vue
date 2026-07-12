@@ -24,7 +24,7 @@
 					type="button"
 					class="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
 					:aria-label="$t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')"
-					@click="open = !open"
+					@click="toggleSidebar"
 				>
 					<TablerIcon
 						:name="open ? 'sidebar-collapse' : 'sidebar-expand'"
@@ -64,4 +64,8 @@ import { useLocalStorage } from '@vueuse/core'
 import { mainNav } from '~/utils/navigation'
 
 const open = useLocalStorage('sidebar-open', true)
+
+const toggleSidebar = () => {
+	open.value = !open.value
+}
 </script>

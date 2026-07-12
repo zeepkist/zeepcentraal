@@ -106,6 +106,25 @@
 					</p>
 				</div>
 			</UCard>
+
+			<UCard
+				class="overflow-hidden rounded-2xl border-primary/20 bg-gradient-to-br from-card to-primary/5 shadow-sm"
+			>
+				<div class="flex h-full flex-col justify-between gap-6">
+					<div class="flex items-start justify-between gap-4">
+						<div>
+							<p class="text-sm font-semibold text-primary">{{ model.averageGforce.title }}</p>
+							<p class="mt-1 text-sm text-muted-foreground">
+								{{ model.averageGforce.description }}
+							</p>
+						</div>
+						<TablerIcon name="arrow-narrow-down-dashed" class="size-7 text-primary" />
+					</div>
+					<p class="text-5xl font-black tabular-nums tracking-tight text-highlighted">
+						{{ model.averageGforce.data[period] }}
+					</p>
+				</div>
+			</UCard>
 		</div>
 	</div>
 </template>

@@ -22,7 +22,7 @@
 			/>
 
 			<div v-else class="space-y-5">
-				<div class="rounded-xl bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 px-2 py-3 sm:px-4">
+				<div class="rounded-xl from-primary/5 via-transparent to-secondary/5 px-2 py-3 sm:px-4">
 					<BarChart
 						:data="barData"
 						:categories="barCategories"
@@ -38,7 +38,7 @@
 						hide-x-axis
 						hide-y-axis
 					>
-						<template #tooltip="{ values }">
+						<template #tooltip="{ values }" style="background: transparent">
 							<DashboardChartTooltip :entries="resolveTooltipEntries(values)" :total="total" />
 						</template>
 					</BarChart>

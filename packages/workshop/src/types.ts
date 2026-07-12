@@ -1,14 +1,14 @@
 export interface WorkshopItemMetadata {
-	workshopId: bigint
-	creatorId: bigint
-	name: string
-	imageUrl: string
-	visibility: number
-	fileSize: number
-	createdAt: string
-	updatedAt: string
 	available: boolean
+	createdAt: string
+	creatorId: bigint
+	fileSize: number
+	imageUrl: string
+	name: string
 	permanentFailure?: string
+	updatedAt: string
+	visibility: number
+	workshopId: bigint
 }
 
 export interface WorkshopCatalogPage {
@@ -22,13 +22,13 @@ export interface WorkshopMetadataAdapter {
 }
 
 export interface DownloadedWorkshopItem {
-	workshopId: bigint
 	directory: string
+	workshopId: bigint
 }
 
 export interface WorkshopDownload {
-	items: DownloadedWorkshopItem[]
 	cleanup(): Promise<void>
+	items: DownloadedWorkshopItem[]
 }
 
 export interface WorkshopDownloader {
@@ -36,6 +36,16 @@ export interface WorkshopDownloader {
 }
 
 export interface WorkshopPersistence {
+	markDeleted(workshopId: bigint): Promise<number[]>
+	markMissing(workshopId: bigint, activeXxHashes: string[]): Promise<number[]>
+	mergeZeepSdkExponentHash?(input: {
+		correctLevelId: number
+		correctXxHash: string
+		badXxHash: string
+		workshopId: bigint
+		fileUid: string
+	}): Promise<{ merged: boolean; changedLevelIds: number[] }>
+	uploadThumbnail(extension: string, contents: Buffer): Promise<string>
 	upsertLevel(input: {
 		hash: string
 		xxHash: string
@@ -63,16 +73,6 @@ export interface WorkshopPersistence {
 		typeSkybox: number
 		blocks: unknown
 	}): Promise<{ idLevel: number; scoreChanged: boolean }>
-	markMissing(workshopId: bigint, activeXxHashes: string[]): Promise<number[]>
-	markDeleted(workshopId: bigint): Promise<number[]>
-	uploadThumbnail(extension: string, contents: Buffer): Promise<string>
-	mergeZeepSdkExponentHash?(input: {
-		correctLevelId: number
-		correctXxHash: string
-		badXxHash: string
-		workshopId: bigint
-		fileUid: string
-	}): Promise<{ merged: boolean; changedLevelIds: number[] }>
 }
 
 export interface WorkshopScanOptions {
@@ -80,9 +80,9 @@ export interface WorkshopScanOptions {
 }
 
 export interface WorkshopScanResult {
-	workshopId: bigint
-	status: 'scanned' | 'permanently-unavailable' | 'inaccessible'
 	changedLevelIds: number[]
+	status: 'scanned' | 'permanently-unavailable' | 'inaccessible'
+	workshopId: bigint
 }
 
 export interface WorkshopBatchScanResult {

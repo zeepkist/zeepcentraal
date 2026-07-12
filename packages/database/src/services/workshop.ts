@@ -22,31 +22,31 @@ import { resolveWorkshopLevelId } from './workshopHelpers'
 export { resolveWorkshopLevelId } from './workshopHelpers'
 
 export interface WorkshopLevelInput {
-	hash: string
-	xxHash: string
-	workshopId: bigint
-	workshopName: string
-	workshopImageUrl: string
-	workshopVisibility: number
-	workshopFileSize: number
-	authorId: bigint
-	name: string
-	imageUrl: string
-	fileAuthor: string
-	fileUid: string
-	validationTimeAuthor: number
-	validationTimeGold: number
-	validationTimeSilver: number
-	validationTimeBronze: number
-	createdAt: string
-	updatedAt: string
-	format: number
+	amountBlocks: number
 	amountCheckpoints: number
 	amountFinishes: number
-	amountBlocks: number
+	authorId: bigint
+	blocks: unknown
+	createdAt: string
+	fileAuthor: string
+	fileUid: string
+	format: number
+	hash: string
+	imageUrl: string
+	name: string
 	typeGround: number
 	typeSkybox: number
-	blocks: unknown
+	updatedAt: string
+	validationTimeAuthor: number
+	validationTimeBronze: number
+	validationTimeGold: number
+	validationTimeSilver: number
+	workshopFileSize: number
+	workshopId: bigint
+	workshopImageUrl: string
+	workshopName: string
+	workshopVisibility: number
+	xxHash: string
 }
 
 export interface WorkshopLevelUpsertResult {
@@ -55,16 +55,16 @@ export interface WorkshopLevelUpsertResult {
 }
 
 export interface ZeepSdkExponentHashMergeInput {
+	badXxHash: string
 	correctLevelId: number
 	correctXxHash: string
-	badXxHash: string
-	workshopId: bigint
 	fileUid: string
+	workshopId: bigint
 }
 
 export interface ZeepSdkExponentHashMergeResult {
-	merged: boolean
 	changedLevelIds: number[]
+	merged: boolean
 }
 
 function getImageExtensionFromContentType(contentType: string | null): string | undefined {

@@ -120,8 +120,10 @@
 	--vis-color2: var(--color-chart-3);
 	--vis-color3: var(--color-chart-4);
 	--vis-color4: var(--color-chart-5);
-	--vis-tooltip-background-color: var(--color-card);
-	--vis-tooltip-border-color: var(--color-border);
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-tooltip-background-color: transparent !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-tooltip-border-color: transparent !important;
 	--vis-tooltip-text-color: var(--color-foreground);
 	--vis-axis-grid-color: var(--color-border);
 	--vis-axis-tick-label-color: var(--color-muted-foreground);

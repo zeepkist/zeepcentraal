@@ -231,6 +231,7 @@ fragment ZC_DashboardV6StatisticAggregates on RecordStatisticAggregates {
 		hornCount
 	}
 	average {
+		averageGforce
 		averageSpeed
 	}
 }

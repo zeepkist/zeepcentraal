@@ -1,6 +1,6 @@
 <template>
 	<div class="grid items-center gap-5 md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]">
-		<div class="telemetry-donut relative min-h-56 overflow-hidden rounded-xl bg-gradient-to-br from-primary/5 via-transparent to-secondary/5">
+		<div class="telemetry-donut relative min-h-56 overflow-hidden rounded-xl from-primary/5 via-transparent to-secondary/5">
 			<div class="pointer-events-none absolute inset-1/4 rounded-full bg-primary/10 blur-3xl" />
 			<DonutChart
 				:data="chartValues"

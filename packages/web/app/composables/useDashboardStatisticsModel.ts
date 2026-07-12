@@ -294,13 +294,13 @@ export function useDashboardStatisticsModel(
 				key: 'arms',
 				label: t('dashboard.totals.actions.arms'),
 				value: formatCount(numeric(sum?.armsUpCount)),
-				icon: 'hand-stop',
+				icon: 'arrow-down-from-arc',
 			},
 			{
 				key: 'brakes',
 				label: t('dashboard.totals.actions.brakes'),
 				value: formatCount(numeric(sum?.brakeCount)),
-				icon: 'brake',
+				icon: 'hand-stop',
 			},
 			{
 				key: 'horns',
@@ -418,6 +418,14 @@ export function useDashboardStatisticsModel(
 				data: periodData(
 					`${oneDecimal.value.format(numeric(v6Day?.average?.averageSpeed))} ${t('dashboard.totals.units.kilometresPerHour')}`,
 					`${oneDecimal.value.format(numeric(v6Month?.average?.averageSpeed))} ${t('dashboard.totals.units.kilometresPerHour')}`,
+				),
+			},
+			averageGforce: {
+				title: t('dashboard.totals.averageGforce.title'),
+				description: t('dashboard.totals.averageGforce.description'),
+				data: periodData(
+					`${twoDecimals.value.format(numeric(v6Day?.average?.averageGforce))} ${t('dashboard.totals.units.g')}`,
+					`${twoDecimals.value.format(numeric(v6Month?.average?.averageGforce))} ${t('dashboard.totals.units.g')}`,
 				),
 			},
 			driverInputs: {

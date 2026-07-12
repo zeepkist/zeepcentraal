@@ -5,8 +5,8 @@ import { zslRoundResult } from '../schema'
 interface ZslRoundResultInput {
 	idRound: number
 	idUser: number
-	position: number
 	points: number
+	position: number
 }
 
 export async function upsertZslRoundResults(rows: ZslRoundResultInput[]) {

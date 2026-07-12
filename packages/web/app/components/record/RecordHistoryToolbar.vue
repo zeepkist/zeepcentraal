@@ -7,11 +7,12 @@
 			@update:model-value="$emit('update:view', $event)"
 		/>
 		<div class="min-w-56">
-			<label :for="sortId" class="mb-1.5 block text-sm font-medium text-muted-foreground">
+			<p :id="`${sortId}-label`" class="mb-1.5 block text-sm font-medium text-muted-foreground">
 				{{ sortLabel }}
-			</label>
+			</p>
 			<USelect
 				:id="sortId"
+				:aria-labelledby="`${sortId}-label`"
 				:model-value="sort"
 				:items="sortOptions"
 				class="w-full"

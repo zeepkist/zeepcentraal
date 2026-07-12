@@ -5,7 +5,7 @@
 			decayLabel.replace('{percentage}', precisePercentage.format(decayMultiplier))
 		"
 	>
-		<div class="w-full px-4 py-3 tabular-nums" tabindex="0" @keydown.stop>
+		<div class="w-full px-4 py-3 tabular-nums">
 			<span class="font-bold">{{ number.format(points) }}</span>
 			<span
 				class="text-xs text-muted-foreground/70 ml-1"

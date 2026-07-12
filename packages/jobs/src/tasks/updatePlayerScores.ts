@@ -23,8 +23,8 @@ interface PointsList {
 }
 
 interface ContributionUpdate {
-	idUser: number
 	contributions: PlayerPointContribution[]
+	idUser: number
 }
 
 const PLAYER_SCORE_BATCH_SIZE = 50
