@@ -77,7 +77,14 @@
 							id="split-analysis-heading"
 							:title="$t('levels.detail.splitAnalysis.title')"
 							:description="$t('levels.detail.splitAnalysis.description')"
-						/>
+						>
+							<LevelSplitComparisonToggle
+								v-if="hasViewerSplitComparison"
+								v-model="showViewerSplitComparison"
+								:show-label="splitAnalysisLabels.showMyComparison"
+								:hide-label="splitAnalysisLabels.hideMyComparison"
+							/>
+						</SectionHeader>
 						<DataState
 							:pending="
 								!levelData.splitAnalysisActive.value ||
@@ -96,6 +103,7 @@
 							<LevelSplitAnalysis
 								:analysis="levelData.splitAnalysis.value"
 								:labels="splitAnalysisLabels"
+								:show-viewer-comparison="showViewerSplitComparison"
 							/>
 						</DataState>
 					</section>
@@ -163,6 +171,15 @@ await levelData.prefetchCritical()
 const summary = levelData.summary
 const workshopUrl = computed(() => steamWorkshopItemUrl(summary.value?.workshopId))
 const telemetryModel = useLevelTelemetryModel(levelData.statistics.data)
+const showViewerSplitComparison = ref(false)
+const viewerSplitComparisonId = computed(
+	() =>
+		levelData.splitAnalysis.value.series.find((series) => series.viewerComparison)?.recordId,
+)
+const hasViewerSplitComparison = computed(() => viewerSplitComparisonId.value !== undefined)
+watch(viewerSplitComparisonId, () => {
+	showViewerSplitComparison.value = false
+})
 
 useSeoMeta({
 	title: () =>

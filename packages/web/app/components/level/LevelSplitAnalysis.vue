@@ -1,36 +1,23 @@
 <template>
 	<div class="space-y-4">
-		<div class="flex flex-wrap items-start justify-between gap-3">
-			<div class="flex flex-wrap gap-2">
-				<NuxtLink
-					v-for="player in visibleSeries"
-					:key="player.recordId"
-					:to="player.userSteamId ? `/user/${player.userSteamId}` : `/record/${player.recordId}`"
-					class="flex items-center gap-2 rounded-lg border px-3 py-2 transition hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-					:class="player.viewer ? 'border-primary/50 bg-primary/10' : 'border-border bg-card/70'"
-				>
-					<span
-						class="w-4 shrink-0 border-t-2"
-						:class="player.viewer ? 'border-dotted' : 'border-solid'"
-						:style="{ borderColor: player.color }"
-					/>
-					<span class="text-sm font-semibold text-highlighted">{{ player.userName }}</span>
-					<span class="font-mono text-xs tabular-nums text-muted-foreground">
-						{{ formatTime(player.time) }}
-					</span>
-				</NuxtLink>
-			</div>
-			<UButton
-				v-if="viewerComparison"
-				color="primary"
-				size="sm"
-				:variant="showViewerComparison ? 'soft' : 'outline'"
-				:icon="showViewerComparison ? 'i-tabler-eye-off' : 'i-tabler-eye'"
-				:aria-pressed="showViewerComparison"
-				@click="showViewerComparison = !showViewerComparison"
+		<div class="flex flex-wrap gap-2">
+			<NuxtLink
+				v-for="player in visibleSeries"
+				:key="player.recordId"
+				:to="player.userSteamId ? `/user/${player.userSteamId}` : `/record/${player.recordId}`"
+				class="flex items-center gap-2 rounded-lg border px-3 py-2 transition hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+				:class="player.viewer ? 'border-primary/50 bg-primary/10' : 'border-border bg-card/70'"
 			>
-				{{ showViewerComparison ? labels.hideMyComparison : labels.showMyComparison }}
-			</UButton>
+				<span
+					class="w-4 shrink-0 border-t-2"
+					:class="player.viewer ? 'border-dotted' : 'border-solid'"
+					:style="{ borderColor: player.color }"
+				/>
+				<span class="text-sm font-semibold text-highlighted">{{ player.userName }}</span>
+				<span class="font-mono text-xs tabular-nums text-muted-foreground">
+					{{ formatTime(player.time) }}
+				</span>
+			</NuxtLink>
 		</div>
 
 		<div class="grid gap-4 xl:grid-cols-2">
@@ -101,20 +88,22 @@
 import type { DashboardChartEntry } from '~/types/app'
 import type { LevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
 
-const props = defineProps<{
-	analysis: LevelSplitAnalysis
-	labels: {
-		checkpoint: string
-		deltaTitle: string
-		deltaDescription: string
-		speedTitle: string
-		speedDescription: string
-		secondsUnit: string
-		speedUnit: string
-		showMyComparison: string
-		hideMyComparison: string
-	}
-}>()
+const props = withDefaults(
+	defineProps<{
+		analysis: LevelSplitAnalysis
+		showViewerComparison?: boolean
+		labels: {
+			checkpoint: string
+			deltaTitle: string
+			deltaDescription: string
+			speedTitle: string
+			speedDescription: string
+			secondsUnit: string
+			speedUnit: string
+		}
+	}>(),
+	{ showViewerComparison: false },
+)
 
 const { locale } = useI18n()
 const deltaFormat = computed(
@@ -123,13 +112,9 @@ const deltaFormat = computed(
 const speedFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
 )
-const showViewerComparison = ref(false)
-const viewerComparison = computed(() =>
-	props.analysis.series.find((player) => player.viewerComparison),
-)
 const visibleSeries = computed(() =>
 	props.analysis.series.filter(
-		(player) => !player.viewerComparison || showViewerComparison.value,
+		(player) => !player.viewerComparison || props.showViewerComparison,
 	),
 )
 const categories = computed(() =>
@@ -146,12 +131,6 @@ const lineDashArray = computed(() =>
 )
 const visibleDeltaData = computed(() => selectVisibleData(props.analysis.deltaData))
 const visibleSpeedData = computed(() => selectVisibleData(props.analysis.speedData))
-watch(
-	() => viewerComparison.value?.recordId,
-	() => {
-		showViewerComparison.value = false
-	},
-)
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const chartDuration = ref(0)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }

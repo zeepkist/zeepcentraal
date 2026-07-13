@@ -10,6 +10,11 @@ const component = readFileSync(
 	new URL('../../app/components/level/LevelSplitAnalysis.vue', import.meta.url),
 	'utf8',
 )
+const toggle = readFileSync(
+	new URL('../../app/components/level/LevelSplitComparisonToggle.vue', import.meta.url),
+	'utf8',
+)
+const page = readFileSync(new URL('../../app/pages/level/[xxh128].vue', import.meta.url), 'utf8')
 
 function splitRecord(id: number, time: number) {
 	return {
@@ -89,15 +94,29 @@ describe('level checkpoint analysis', () => {
 		expect(result.series.map((series) => series.recordId)).toEqual([1])
 	})
 
-	it('passes per-series dash arrays to both charts and mirrors the viewer style in the legend', () => {
+	it('passes per-series dash arrays to both charts and mirrors viewer style in the legend', () => {
 		expect(component.match(/:line-dash-array="lineDashArray"/g)).toHaveLength(2)
 		expect(component).toContain('player.viewer ? [2, 4] : []')
 		expect(component).toContain("player.viewer ? 'border-dotted' : 'border-solid'")
-		expect(component).toContain('const showViewerComparison = ref(false)')
-		expect(component).toContain(':aria-pressed="showViewerComparison"')
-		expect(component).toContain('labels.showMyComparison')
-		expect(component).toContain('labels.hideMyComparison')
+		expect(component).toContain('showViewerComparison?: boolean')
+		expect(component).toContain('props.showViewerComparison')
+		expect(component).not.toContain('<UButton')
 		expect(component).toContain(':data="visibleDeltaData"')
 		expect(component).toContain(':data="visibleSpeedData"')
+	})
+
+	it('places comparison toggle in section header and controls appended viewer series', () => {
+		expect(toggle).toContain('<UButton')
+		expect(toggle).toContain(':aria-pressed="modelValue"')
+		expect(toggle).toContain("$emit('update:modelValue', !modelValue)")
+		expect(page).toContain('<LevelSplitComparisonToggle')
+		expect(page).toContain('v-model="showViewerSplitComparison"')
+		expect(page).toContain(':show-viewer-comparison="showViewerSplitComparison"')
+		expect(page.indexOf('<LevelSplitComparisonToggle')).toBeGreaterThan(
+			page.indexOf('id="split-analysis-heading"'),
+		)
+		expect(page.indexOf('<LevelSplitComparisonToggle')).toBeLessThan(
+			page.indexOf('<DataState', page.indexOf('id="split-analysis-heading"')),
+		)
 	})
 })
