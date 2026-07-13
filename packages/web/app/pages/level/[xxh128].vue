@@ -72,6 +72,33 @@
 						/>
 					</DataState>
 				</section>
+				<section :ref="levelData.splitAnalysisTarget" aria-labelledby="split-analysis-heading">
+					<SectionHeader
+						id="split-analysis-heading"
+						:title="$t('levels.detail.splitAnalysis.title')"
+						:description="$t('levels.detail.splitAnalysis.description')"
+					/>
+					<DataState
+						:pending="
+							!levelData.splitAnalysisActive.value ||
+							levelData.splitAnalysisQuery.fetching.value
+						"
+						:error="levelData.splitAnalysisQuery.error.value?.message"
+						:empty="
+							levelData.splitAnalysisActive.value &&
+							!levelData.splitAnalysisQuery.fetching.value &&
+							levelData.splitAnalysis.value.series.length === 0
+						"
+						:loading-label="$t('common.loading')"
+						:error-title="$t('common.error')"
+						:empty-title="$t('levels.detail.splitAnalysis.empty')"
+					>
+						<LevelSplitAnalysis
+							:analysis="levelData.splitAnalysis.value"
+							:labels="splitAnalysisLabels"
+						/>
+					</DataState>
+				</section>
 
 				<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
 					<SectionHeader id="recent-records-heading" :title="$t('levels.detail.recent.title')" :description="$t('levels.detail.recent.description')" />
@@ -173,6 +200,13 @@ const pointMetrics = computed(() => {
 		{ key: 'rating', label: t('levels.detail.pointsHistory.rating'), value: format(points?.modifierRating) },
 	]
 })
+const splitAnalysisLabels = computed(() => ({
+	checkpoint: t('levels.detail.splitAnalysis.checkpoint'),
+	deltaTitle: t('levels.detail.splitAnalysis.deltaTitle'),
+	deltaDescription: t('levels.detail.splitAnalysis.deltaDescription'),
+	speedTitle: t('levels.detail.splitAnalysis.speedTitle'),
+	speedDescription: t('levels.detail.splitAnalysis.speedDescription'),
+}))
 const medalLabels = computed(() => ({
 	author: t('levels.detail.medals.author'),
 	gold: t('levels.detail.medals.gold'),

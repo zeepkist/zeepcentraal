@@ -1,0 +1,23 @@
+query ZC_LevelSplitAnalysis($levelId: Int!) {
+	records(
+		first: 5
+		filter: {
+			levelId: { equalTo: $levelId }
+			personalBestGlobalsExist: true
+			splits: { isNull: false }
+			speeds: { isNull: false }
+		}
+		orderBy: [TIME_ASC, ID_ASC]
+	) {
+		nodes {
+			id
+			time
+			splits
+			speeds
+			user {
+				steamId
+				steamName
+			}
+		}
+	}
+}

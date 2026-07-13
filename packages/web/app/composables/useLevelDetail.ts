@@ -5,12 +5,14 @@ import {
 	Zc_LevelDetailDocument,
 	Zc_LevelPointsHistoryDocument,
 	Zc_LevelRecordsDocument,
+	Zc_LevelSplitAnalysisDocument,
 	Zc_LevelStatisticsDocument,
 	Zc_LevelViewerBestDocument,
 	Zc_LevelViewerRankDocument,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, LevelSummary, LevelWorldRecordSummary, RecordRow } from '~/types/app'
 import { buildLevelPointsHistory, getLevelPointsHistoryWindow } from '~/utils/levelPointsHistory'
+import { buildLevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
 
 function mapRecord(
 	record: {
@@ -40,6 +42,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	const pbPagination = useCursorPagination(25, 'pbs')
 	const pointsHistoryPrefetch = useViewportPrefetch()
 	const statisticsPrefetch = useViewportPrefetch()
+	const splitAnalysisPrefetch = useViewportPrefetch()
 	const pointsHistoryWindow = useState(`level-points-history-window:${xxHash.value}`, () =>
 		getLevelPointsHistoryWindow(),
 	)
@@ -74,6 +77,14 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		variables: computed(() => ({ levelId: levelId.value ?? 0, minimumModVersion: '1.2.0' })),
 		pause: computed(() => levelId.value === undefined || !statisticsPrefetch.active.value),
 	})
+	const splitAnalysisQuery = useQuery({
+		query: Zc_LevelSplitAnalysisDocument,
+		variables: computed(() => ({ levelId: levelId.value ?? 0 })),
+		pause: computed(() => levelId.value === undefined || !splitAnalysisPrefetch.active.value),
+	})
+	const splitAnalysis = computed(() =>
+		buildLevelSplitAnalysis(splitAnalysisQuery.data.value?.records?.nodes ?? []),
+	)
 	const recent = useQuery({
 		query: Zc_LevelRecordsDocument,
 		variables: computed(() => ({
@@ -230,6 +241,10 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		recentPagination,
 		recentRows,
 		recentTarget: recentPrefetch.target,
+		splitAnalysis,
+		splitAnalysisActive: splitAnalysisPrefetch.active,
+		splitAnalysisQuery,
+		splitAnalysisTarget: splitAnalysisPrefetch.target,
 		statistics,
 		statisticsActive: statisticsPrefetch.active,
 		statisticsTarget: statisticsPrefetch.target,
