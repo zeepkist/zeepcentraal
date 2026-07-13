@@ -55,6 +55,14 @@
 			</div>
 			<p class="shrink-0 font-bold tabular-nums text-highlighted">{{ formatTime(bestTime) }}</p>
 		</div>
+		<div
+			v-if="createdLabel"
+			class="mt-4 flex items-center gap-2 text-xs text-muted-foreground"
+		>
+			<TablerIcon name="clock" class="size-4" />
+			<span>{{ createdLabel }}</span>
+			<NuxtTime :datetime="level.dateCreated" relative />
+		</div>
 	</NuxtLink>
 </template>
 
@@ -70,6 +78,7 @@ const props = defineProps<{
 	worldRecordLabel?: string
 	authorTimeLabel?: string
 	byLabel?: string
+	createdLabel?: string
 }>()
 
 const { locale } = useI18n()
