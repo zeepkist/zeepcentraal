@@ -80,38 +80,55 @@
 
 				<div
 					v-if="worldRecord"
-					class="w-full rounded-2xl border border-primary/30 bg-primary/10 p-4 shadow-lg shadow-primary/5"
+					class="group relative isolate w-full overflow-hidden rounded-2xl border border-primary/35 bg-gradient-to-r from-primary/20 via-card/95 to-secondary/10 p-4 shadow-xl shadow-primary/10"
 				>
-					<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-						<p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-primary">
-							<TablerIcon name="trophy" class="size-4" />
-							{{ labels.worldRecord }}
-						</p>
+					<div
+						class="pointer-events-none absolute -right-8 -top-12 size-32 rounded-full bg-primary/20 blur-3xl"
+					/>
+					<div
+						class="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary via-primary/70 to-secondary"
+					/>
+					<div class="relative flex flex-wrap items-center gap-3 sm:flex-nowrap">
+						<span
+							class="grid size-12 shrink-0 place-items-center rounded-xl border border-primary/25 bg-primary/15 text-primary shadow-inner shadow-primary/10"
+						>
+							<TablerIcon name="trophy" class="size-6" />
+						</span>
+						<div class="min-w-0 flex-1">
+							<p class="text-xs font-bold uppercase tracking-[0.16em] text-primary">
+								{{ labels.worldRecord }}
+							</p>
+							<NuxtLink
+								v-if="worldRecord.userSteamId"
+								:to="`/user/${worldRecord.userSteamId}`"
+								class="mt-1 inline-flex max-w-full items-center gap-1.5 truncate text-sm font-semibold text-muted-foreground transition hover:text-primary"
+							>
+								<TablerIcon name="user-star" class="size-4 shrink-0" />
+								<span class="truncate">{{ worldRecord.userName ?? labels.unknownAuthor }}</span>
+							</NuxtLink>
+							<p v-else class="mt-1 truncate text-sm font-semibold text-muted-foreground">
+								{{ worldRecord.userName ?? labels.unknownAuthor }}
+							</p>
+						</div>
 						<NuxtLink
 							:to="`/record/${worldRecord.recordId}`"
-							class="text-3xl font-black tabular-nums text-highlighted transition hover:text-primary"
+							class="shrink-0 rounded-xl border border-primary/20 bg-default/65 px-3 py-2 text-3xl font-black tabular-nums text-highlighted shadow-sm transition hover:border-primary/50 hover:bg-primary/10 hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 						>
 							{{ formatTime(worldRecord.time) }}
 						</NuxtLink>
 					</div>
-					<NuxtLink
-						v-if="worldRecord.userSteamId"
-						:to="`/user/${worldRecord.userSteamId}`"
-						class="mt-2 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-primary"
-					>
-						<TablerIcon name="user-star" class="size-4" />
-						{{ worldRecord.userName ?? labels.unknownAuthor }}
-					</NuxtLink>
-					<p v-else class="mt-2 text-sm text-muted-foreground">
-						{{ worldRecord.userName ?? labels.unknownAuthor }}
-					</p>
 				</div>
 				<div
 					v-else
-					class="w-full rounded-2xl border border-dashed border-border bg-default/70 p-4 text-muted-foreground shadow-sm"
+					class="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-dashed border-border bg-gradient-to-r from-default/80 to-primary/5 p-4 text-muted-foreground shadow-sm"
 				>
-					<p class="font-semibold text-highlighted">{{ labels.noWorldRecordTitle }}</p>
-					<p class="mt-1 text-sm">{{ labels.noWorldRecordDescription }}</p>
+					<span class="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
+						<TablerIcon name="trophy" class="size-5" />
+					</span>
+					<div>
+						<p class="font-semibold text-highlighted">{{ labels.noWorldRecordTitle }}</p>
+						<p class="mt-0.5 text-sm">{{ labels.noWorldRecordDescription }}</p>
+					</div>
 				</div>
 			</div>
 		</div>

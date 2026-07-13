@@ -6,6 +6,10 @@ const detailQuery = readFileSync(
 	new URL('../../app/graphql/queries/levelDetail.graphql', import.meta.url),
 	'utf8',
 )
+const hero = readFileSync(
+	new URL('../../app/components/level/LevelDetailHero.vue', import.meta.url),
+	'utf8',
+)
 const points = readFileSync(
 	new URL('../../app/components/level/LevelPointsInsights.vue', import.meta.url),
 	'utf8',
@@ -68,6 +72,13 @@ describe('compact level detail layout', () => {
 		expect(donut).toContain('compact?: boolean')
 		expect(donut).toContain('props.compact ? 160 : 224')
 		expect(driverInputs).toContain('compact?: boolean')
+	})
+
+	it('uses consistent page rhythm and a visually distinct World Record panel', () => {
+		expect(page).toContain('space-y-8 lg:space-y-10')
+		expect(hero).toContain('bg-gradient-to-r from-primary/20')
+		expect(hero).toContain('shadow-xl shadow-primary/10')
+		expect(hero).toContain('focus-visible:outline-primary')
 	})
 
 	it('places independently paginated record sections side-by-side at xl', () => {
