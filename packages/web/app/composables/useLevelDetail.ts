@@ -8,7 +8,7 @@ import {
 	Zc_LevelViewerBestDocument,
 	Zc_LevelViewerRankDocument,
 } from '~/graphql/generated/graphql'
-import type { CursorPage, LevelSummary, RecordRow } from '~/types/app'
+import type { CursorPage, LevelSummary, LevelWorldRecordSummary, RecordRow } from '~/types/app'
 
 function mapRecord(
 	record: {
@@ -109,11 +109,15 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			imageUrl: item?.imageUrl,
 			authorName: item?.author?.steamName,
 			authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
+			authorId: item?.authorId == null ? null : String(item.authorId),
+			workshopId: item?.workshopId == null ? null : String(item.workshopId),
+			trackLength: value.worldRecordGlobal?.record?.recordStatistic?.distance,
 			adventure: value.adventure,
 			dateCreated: String(value.dateCreated),
 			points: value.levelPoints?.points,
 			rating: value.levelPoints?.rating,
 			recordCount: value.records.totalCount,
+			personalBestCount: value.personalBestGlobals.totalCount,
 			medals: item
 				? {
 						author: item.validationTimeAuthor,
@@ -122,6 +126,16 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 						bronze: item.validationTimeBronze,
 					}
 				: null,
+		}
+	})
+	const worldRecord = computed<LevelWorldRecordSummary | null>(() => {
+		const value = level.value?.worldRecordGlobal
+		if (!value?.record) return null
+		return {
+			recordId: value.record.id,
+			time: value.record.time,
+			userName: value.user?.steamName,
+			userSteamId: value.user?.steamId == null ? null : String(value.user.steamId),
 		}
 	})
 	const recentRows = computed(() =>
@@ -168,9 +182,14 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			: { hasNextPage: false, hasPreviousPage: false },
 	)
 
+	async function prefetchCritical() {
+		if (import.meta.server) await detail
+	}
+
 	return {
 		detail,
 		level,
+		prefetchCritical,
 		personalBestsActive: personalBestsPrefetch.active,
 		personalBestPage,
 		personalBestRows,
@@ -189,5 +208,6 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		summary,
 		viewerBest,
 		viewerRank,
+		worldRecord,
 	}
 }

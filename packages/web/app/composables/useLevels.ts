@@ -177,7 +177,7 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 	})
 	const authorSuggestions = computed<SortOption[]>(() =>
 		(authorSuggestionsResult.data.value?.users?.nodes ?? []).flatMap((user) =>
-			user.steamName ? [{ label: user.steamName, value: user.steamName }] : [],
+			user.steamName ? [{ label: user.steamName, value: String(user.steamId) }] : [],
 		),
 	)
 

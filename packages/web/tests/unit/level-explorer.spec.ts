@@ -133,6 +133,20 @@ describe('level explorer filters', () => {
 		expect(JSON.stringify(anonymous)).not.toContain('worldRecordGlobal')
 	})
 
+	it('filters selected author IDs exactly and keeps text-name fallback', () => {
+		const selected = buildLevelFilter({ ...baseFilter, author: '76561198000000000' })
+		expect(selected.and).toContainEqual({
+			levelItems: { some: { authorId: { equalTo: '76561198000000000' } } },
+		})
+
+		const freeform = buildLevelFilter({ ...baseFilter, author: 'Wipeout' })
+		expect(freeform.and).toContainEqual({
+			levelItems: {
+				some: { author: { steamName: { includesInsensitive: 'Wipeout' } } },
+			},
+		})
+	})
+
 	it('freezes exact rolling popularity windows', () => {
 		const now = new Date('2026-07-13T12:00:00.000Z')
 		const windows = getLevelHotWindows(now)
@@ -166,6 +180,7 @@ describe('level explorer requests and layout', () => {
 		expect(usersQuery).toContain('orderBy: [STEAM_NAME_ASC]')
 		expect(composable).toContain('}, 250)')
 		expect(composable).toContain('debouncedAuthor.value.length < 2')
+		expect(composable).toContain('value: String(user.steamId)')
 	})
 
 	it('renders counts only in filter headers and four explorer columns', () => {

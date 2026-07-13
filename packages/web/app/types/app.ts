@@ -64,6 +64,9 @@ export type LevelSummary = {
 	imageUrl?: string | null
 	authorName?: string | null
 	authorSteamId?: string | null
+	authorId?: string | null
+	workshopId?: string | null
+	trackLength?: number | null
 	adventure: boolean
 	dateCreated: string
 	points?: number | null
@@ -76,6 +79,13 @@ export type LevelSummary = {
 	worldRecordAuthorSteamId?: string | null
 	worldRecord?: RecordRow | null
 	medals?: MedalTimes | null
+}
+
+export type LevelWorldRecordSummary = {
+	recordId: number
+	time: number
+	userName?: string | null
+	userSteamId?: string | null
 }
 
 export type UserSummary = {

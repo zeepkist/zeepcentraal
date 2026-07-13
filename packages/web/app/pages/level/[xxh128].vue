@@ -9,27 +9,25 @@
 			:empty-title="$t('levels.detail.notFound')"
 		>
 			<template v-if="summary">
-				<section class="grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-center">
-					<div>
-						<UBadge v-if="summary.adventure" color="primary" variant="soft">{{ $t('common.adventure') }}</UBadge>
-						<h1 class="mt-3 text-4xl font-black md:text-5xl">{{ summary.name }}</h1>
-						<NuxtLink v-if="summary.authorSteamId" :to="`/user/${summary.authorSteamId}`" class="mt-2 inline-block text-muted-foreground hover:text-primary">
-							{{ summary.authorName }}
-						</NuxtLink>
-						<p class="mt-4 break-all text-sm text-muted-foreground">{{ summary.xxHash }}</p>
-					</div>
-					<NuxtImg v-if="summary.imageUrl" :src="summary.imageUrl" :alt="summary.name" class="aspect-video w-full rounded-2xl object-cover" />
-				</section>
+				<LevelDetailHero
+					:level="summary"
+					:world-record="levelData.worldRecord.value"
+					:workshop-url="workshopUrl"
+					:labels="heroLabels"
+				/>
 
 				<section v-if="summary.medals" aria-labelledby="medals-heading">
 					<SectionHeader id="medals-heading" :title="$t('levels.detail.medals.title')" :description="$t('levels.detail.medals.description')" />
 					<MedalTimes :times="summary.medals" :labels="medalLabels" />
 				</section>
 
-				<section v-if="worldRecordRows.length" aria-labelledby="world-record-heading">
-					<SectionHeader id="world-record-heading" :title="$t('levels.detail.worldRecord.title')" :description="$t('levels.detail.worldRecord.description')" />
-					<RecordTable :records="worldRecordRows" v-bind="recordLabels" :show-rank="false" />
-				</section>
+
+				<AuthorLevelsCta
+					:author-id="summary.authorId"
+					:title="$t('levels.detail.authorCta.title', { author: summary.authorName })"
+					:description="$t('levels.detail.authorCta.description')"
+					:action="$t('levels.detail.authorCta.action')"
+				/>
 
 				<section :ref="levelData.statisticsTarget" aria-labelledby="level-stats-heading">
 					<SectionHeader id="level-stats-heading" :title="$t('levels.detail.stats.title')" :description="$t('levels.detail.stats.description')" />
@@ -104,8 +102,6 @@
 </template>
 
 <script setup lang="ts">
-import type { RecordRow } from '~/types/app'
-
 const route = useRoute()
 const { t } = useI18n()
 const session = useSessionStore()
@@ -113,7 +109,9 @@ const user = computed(() => session.user)
 const xxHash = computed(() => String(route.params.xxh128))
 const viewerId = computed(() => user.value?.id)
 const levelData = useLevelDetail(xxHash, viewerId)
+await levelData.prefetchCritical()
 const summary = levelData.summary
+const workshopUrl = computed(() => steamWorkshopItemUrl(summary.value?.workshopId))
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
 
 useSeoMeta({
@@ -125,23 +123,6 @@ useSeoMeta({
 			: t('pages.levels.seo.description'),
 })
 
-const worldRecordRows = computed<RecordRow[]>(() => {
-	const wr = levelData.level.value?.worldRecordGlobal
-	if (!wr?.record) return []
-	return [
-		{
-			id: wr.record.id,
-			time: wr.record.time,
-			dateCreated: String(wr.record.dateCreated),
-			levelId: wr.record.levelId,
-			userId: wr.record.userId,
-			userSteamId: wr.user?.steamId == null ? null : String(wr.user.steamId),
-			userName: wr.user?.steamName,
-			viewer: viewerId.value === wr.record.userId,
-			worldRecord: true,
-		},
-	]
-})
 const aggregates = computed(() => levelData.statistics.data.value?.recordStatistics?.aggregates)
 const sums = computed(() => aggregates.value?.sum)
 const statMetrics = computed(() => [
@@ -191,6 +172,21 @@ const statChart = computed(() => [
 const statCategories = { value: { name: t('dashboard.totals.kilometres'), color: '#facc15' } }
 const statLabel = (index: number) =>
 	t(`levels.detail.stats.chart.${statChart.value[index]?.key ?? 'distance'}`)
+const heroLabels = computed(() => ({
+	adventure: t('common.adventure'),
+	published: t('levels.detail.hero.published'),
+	unknownAuthor: t('levels.detail.hero.unknownAuthor'),
+	points: t('levels.detail.hero.points'),
+	rating: t('levels.detail.hero.rating'),
+	records: t('common.records'),
+	personalBests: t('dashboard.metrics.personalBests'),
+	trackLength: t('levels.detail.hero.trackLength'),
+	unavailable: t('levels.detail.hero.unavailable'),
+	worldRecord: t('levels.detail.worldRecord.title'),
+	noWorldRecordTitle: t('levels.detail.worldRecord.emptyTitle'),
+	noWorldRecordDescription: t('levels.detail.worldRecord.emptyDescription'),
+	workshopAction: t('levels.detail.hero.workshopAction'),
+}))
 const medalLabels = computed(() => ({
 	author: t('levels.detail.medals.author'),
 	gold: t('levels.detail.medals.gold'),

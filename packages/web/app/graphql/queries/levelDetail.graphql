@@ -2,13 +2,13 @@ query ZC_LevelDetail($xxHash: String!) {
 	levelByXxHash(xxHash: $xxHash) {
 		id
 		xxHash
-		hash
 		adventure
 		dateCreated
 		levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
 			nodes {
 				name
 				imageUrl
+				authorId
 				workshopId
 				validationTimeAuthor
 				validationTimeGold
@@ -24,6 +24,7 @@ query ZC_LevelDetail($xxHash: String!) {
 		levelPoints {
 			points
 			rating
+			cutPenalty
 			modifierPopularity
 			modifierLength
 			modifierRating
@@ -48,6 +49,9 @@ query ZC_LevelDetail($xxHash: String!) {
 				dateCreated
 				levelId
 				userId
+				recordStatistic {
+					distance
+				}
 			}
 			user {
 				id

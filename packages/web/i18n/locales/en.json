@@ -646,7 +646,9 @@
 			},
 			"worldRecord": {
 				"title": "World record",
-				"description": "Current fastest submitted time."
+				"description": "Current fastest submitted time.",
+				"emptyTitle": "No world record yet",
+				"emptyDescription": "Install GTR and submit the first verified run for this level."
 			},
 			"stats": {
 				"title": "Level statistics",
@@ -667,6 +669,20 @@
 			"personalBests": {
 				"title": "Personal best leaderboard",
 				"description": "Current fastest time from each player."
+			},
+			"hero": {
+				"published": "Published",
+				"unknownAuthor": "Unknown creator",
+				"points": "Level points",
+				"rating": "Rating",
+				"trackLength": "Track length",
+				"unavailable": "—",
+				"workshopAction": "Subscribe on Steam Workshop"
+			},
+			"authorCta": {
+				"title": "Enjoyed this level?",
+				"description": "Explore more workshop levels from this creator, sorted by highest points.",
+				"action": "View more levels"
 			}
 		}
 	}

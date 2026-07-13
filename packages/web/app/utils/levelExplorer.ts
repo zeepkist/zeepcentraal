@@ -112,9 +112,12 @@ export function buildLevelFilter(input: {
 		})
 	}
 	if (input.author) {
+		const author = input.author.trim()
 		and.push({
 			levelItems: {
-				some: { author: { steamName: { includesInsensitive: input.author } } },
+				some: /^\d+$/.test(author)
+					? { authorId: { equalTo: author } }
+					: { author: { steamName: { includesInsensitive: author } } },
 			},
 		})
 	}
