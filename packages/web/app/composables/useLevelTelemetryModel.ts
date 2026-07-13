@@ -365,6 +365,14 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 					formatDuration,
 				),
 				chart(
+					'wheels',
+					t('dashboard.totals.wheelDistance.title'),
+					t('levels.detail.stats.wheelDistance'),
+					'steering-wheel',
+					wheels,
+					formatDistance,
+				),
+				chart(
 					'movement-distance',
 					t('dashboard.totals.movementDistance.title'),
 					t('levels.detail.stats.movementDistance'),
@@ -379,14 +387,6 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 					'clock',
 					movementTime,
 					formatDuration,
-				),
-				chart(
-					'wheels',
-					t('dashboard.totals.wheelDistance.title'),
-					t('levels.detail.stats.wheelDistance'),
-					'steering-wheel',
-					wheels,
-					formatDistance,
 				),
 			],
 			driverInputs: {

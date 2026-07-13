@@ -36,7 +36,7 @@
 				</template>
 			</DonutChart>
 		</div>
-		<DashboardChartLegend :entries="entries" :total="total" :aria-label="ariaLabel" />
+		<DashboardChartLegend :entries="entries" :total="total" :aria-label="ariaLabel" :compact="compact" />
 	</div>
 </template>
 

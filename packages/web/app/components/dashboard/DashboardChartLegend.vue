@@ -3,7 +3,8 @@
 		<li
 			v-for="entry in entries"
 			:key="entry.key"
-			class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg border border-border/60 bg-muted/25 px-3 py-2.5 text-sm"
+			class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg border border-border/60 bg-muted/25 px-3 text-sm"
+			:class="props.compact ? 'py-1' : 'py-2.5'"
 		>
 			<span class="size-2.5 rounded-full" :style="{ backgroundColor: entry.color }" />
 			<span class="min-w-0 truncate text-muted-foreground">{{ entry.label }}</span>
@@ -22,6 +23,7 @@ const props = defineProps<{
 	entries: DashboardChartEntry[]
 	total: number
 	ariaLabel: string
+	compact?: boolean
 }>()
 
 const { locale } = useI18n()

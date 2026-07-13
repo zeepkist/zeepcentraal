@@ -124,10 +124,14 @@
 	--vis-tooltip-background-color: transparent !important;
 	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
 	--vis-tooltip-border-color: transparent !important;
-	--vis-tooltip-text-color: var(--color-foreground);
-	--vis-axis-grid-color: var(--color-border);
-	--vis-axis-tick-label-color: var(--color-muted-foreground);
-	--vis-legend-label-color: var(--color-muted-foreground);
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-tooltip-text-color: var(--ui-text) !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-axis-grid-color: var(--ui-border) !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-axis-tick-label-color: var(--ui-text) !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-legend-label-color: var(--ui-text) !important;
 }
 
 @font-face {
