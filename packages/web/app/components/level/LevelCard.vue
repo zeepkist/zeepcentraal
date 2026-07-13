@@ -41,28 +41,6 @@
 				<p class="font-semibold tabular-nums text-highlighted">
 					{{ formatNumber(level.personalBestCount) }}
 				</p>
-				<TablerIcon
-					name="chevron-right"
-					class="size-5 text-muted-foreground transition-transform motion-safe:group-hover:translate-x-1"
-				/>
-			</div>
-		</div>
-		<div class="mt-4 grid grid-cols-3 gap-3 text-sm">
-			<div v-if="level.points != null">
-				<p class="text-xs text-muted-foreground">{{ pointsLabel }}</p>
-				<p class="font-semibold tabular-nums text-highlighted">{{ formatNumber(level.points) }}</p>
-			</div>
-			<div v-if="level.recordCount != null">
-				<p class="text-xs text-muted-foreground">{{ recordsLabel }}</p>
-				<p class="font-semibold tabular-nums text-highlighted">
-					{{ formatNumber(level.recordCount) }}
-				</p>
-			</div>
-			<div v-if="personalBestsLabel && level.personalBestCount != null">
-				<p class="text-xs text-muted-foreground">{{ personalBestsLabel }}</p>
-				<p class="font-semibold tabular-nums text-highlighted">
-					{{ formatNumber(level.personalBestCount) }}
-				</p>
 			</div>
 		</div>
 		<div
