@@ -31,11 +31,11 @@ export default defineCachedEventHandler(
 		const response = await $fetch<SteamNewsResponse>(
 			'https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/',
 			{
-				query: { appid: 1440670, count: 5, maxlength: 500, format: 'json' },
+				query: { appid: 1440670, count: 6, maxlength: 500, format: 'json' },
 				timeout: 5_000,
 			},
 		)
-		return (response.appnews?.newsitems ?? []).slice(0, 5).map(
+		return (response.appnews?.newsitems ?? []).slice(0, 6).map(
 			(item): SteamNewsItem => ({
 				id: item.gid,
 				title: textOnly(item.title),

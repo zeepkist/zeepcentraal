@@ -2,16 +2,16 @@ import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
 import type { WorkshopCatalogPage, WorkshopItemMetadata, WorkshopMetadataAdapter } from './types'
 
 interface SteamPublishedFile {
-	result?: number
-	publishedfileid?: string
+	banned?: boolean
 	creator?: string
-	title?: string
+	file_size?: number | string
 	preview_url?: string
+	publishedfileid?: string
+	result?: number
 	time_created?: number
 	time_updated?: number
+	title?: string
 	visibility?: number
-	file_size?: number | string
-	banned?: boolean
 }
 
 interface SteamResponse {

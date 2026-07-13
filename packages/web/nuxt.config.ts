@@ -17,7 +17,7 @@ export default defineNuxtConfig({
 				info: 'teal',
 				warning: 'orange',
 				error: 'red',
-				neutral: 'slate',
+				neutral: 'warm-neutral',
 			},
 		},
 	},
@@ -52,6 +52,9 @@ export default defineNuxtConfig({
 			graphqlWsUrl: process.env.NUXT_PUBLIC_GRAPHQL_WS_URL ?? productionGraphqlWsUrl,
 			backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL ?? productionBackendUrl,
 		},
+	},
+	routeRules: {
+		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },
 	},
 	vite: {
 		plugins: [graphql()],

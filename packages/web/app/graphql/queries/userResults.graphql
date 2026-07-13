@@ -36,6 +36,7 @@ query ZC_UserResults(
 				userPointContributions(first: 1) {
 					nodes {
 						playerDecayedPoints
+						levelDecayedPoints
 						levelPosition
 						contributionRank
 					}

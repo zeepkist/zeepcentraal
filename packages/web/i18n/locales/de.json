@@ -7,13 +7,13 @@
 	},
 	"auth": {
 		"account": "Account",
-		"callback": {
-			"description": "Session refresh in progress.",
-			"title": "Completing sign in"
-		},
 		"discord": "Sign in with Discord",
 		"signIn": "Sign in",
-		"steam": "Sign in with Steam"
+		"steam": "Sign in with Steam",
+		"verificationFailed": {
+			"description": "Deine Anmelde-Cookies konnten keiner aktuellen Sitzung zugeordnet werden. Bitte melde dich erneut an.",
+			"title": "Anmeldung konnte nicht bestätigt werden"
+		}
 	},
 	"common": {
 		"placeholder": "Foundation placeholder"

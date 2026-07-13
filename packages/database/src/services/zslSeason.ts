@@ -18,9 +18,9 @@ export async function getZslSeasons() {
 }
 
 interface GetOrCreateZslSeasonOptions {
+	endDate: string
 	idPointsStructure: number
 	startDate: string
-	endDate: string
 }
 
 export async function getOrCreateZslSeason(

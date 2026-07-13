@@ -5,8 +5,8 @@ import { zslSeasonResult } from '../schema'
 interface ZslSeasonResultInput {
 	idSeason: number
 	idUser: number
-	position: number
 	points: number
+	position: number
 }
 
 export async function upsertZslSeasonResults(rows: ZslSeasonResultInput[]) {

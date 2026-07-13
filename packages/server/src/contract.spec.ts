@@ -651,8 +651,31 @@ test('auth/discord/callback returns redirect and cookies on success', async () =
 	})
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('http://localhost:4000/auth/callback')
-	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_access_token=')
+	expect(response.headers.get('location')).toBe('http://localhost:4000/?auth=callback')
+	const cookies = response.headers.getSetCookie()
+	const issuedCookies = cookies.filter((cookie) => !cookie.startsWith('zeepcentral_oauth_state='))
+	expect(issuedCookies).toHaveLength(3)
+	expect(issuedCookies.every((cookie) => !cookie.includes('Domain='))).toBe(true)
+	expect(
+		issuedCookies.find((cookie) => cookie.startsWith('zeepcentral_access_token=')),
+	).toContain('HttpOnly')
+	expect(
+		issuedCookies.find((cookie) => cookie.startsWith('zeepcentral_refresh_token=')),
+	).toContain('HttpOnly')
+	expect(
+		issuedCookies.find((cookie) => cookie.startsWith('zeepcentral_steam_id=')),
+	).not.toContain('HttpOnly')
+	expect(cookies.find((cookie) => cookie.startsWith('zeepcentral_oauth_state='))).toContain(
+		'Max-Age=0',
+	)
+	expect(state.insertAuthCalls).toEqual([
+		expect.objectContaining({
+			idUser: 1,
+			provider: 'discord',
+			accessToken: 'discord:12345678901234567:access:1',
+			refreshToken: 'refresh:1',
+		}),
+	])
 	expect(await response.text()).toBe('')
 })
 
@@ -688,10 +711,33 @@ test('auth/steam/callback returns redirect and cookies on success', async () => 
 	)
 
 	expect(response.status).toBe(302)
-	expect(response.headers.get('location')).toBe('http://localhost:4000/auth/callback')
-	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_refresh_token=')
+	expect(response.headers.get('location')).toBe('http://localhost:4000/?auth=callback')
+	const cookies = response.headers.getSetCookie()
+	const issuedCookies = cookies.filter((cookie) => !cookie.startsWith('zeepcentral_oauth_state='))
+	expect(issuedCookies).toHaveLength(3)
+	expect(issuedCookies.every((cookie) => !cookie.includes('Domain='))).toBe(true)
+	expect(
+		issuedCookies.find((cookie) => cookie.startsWith('zeepcentral_access_token=')),
+	).toContain('HttpOnly')
+	expect(
+		issuedCookies.find((cookie) => cookie.startsWith('zeepcentral_refresh_token=')),
+	).toContain('HttpOnly')
+	expect(
+		issuedCookies.find((cookie) => cookie.startsWith('zeepcentral_steam_id=')),
+	).not.toContain('HttpOnly')
+	expect(cookies.find((cookie) => cookie.startsWith('zeepcentral_oauth_state='))).toContain(
+		'Max-Age=0',
+	)
 	expect(state.getOrInsertUserCalls).toEqual([
 		{ steamId: 12345678901234567n, steamName: undefined },
+	])
+	expect(state.insertAuthCalls).toEqual([
+		expect.objectContaining({
+			idUser: 1,
+			provider: 'steam',
+			accessToken: 'steam:12345678901234567:access:1',
+			refreshToken: 'refresh:1',
+		}),
 	])
 })
 

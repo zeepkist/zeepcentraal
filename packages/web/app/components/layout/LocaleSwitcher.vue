@@ -1,29 +1,26 @@
 <template>
-	<USelectMenu
-		v-model="selectedLocale"
-		:items="localeOptions"
-		value-key="code"
-		label-key="name"
-		size="sm"
-		class="w-28"
-		:aria-label="$t('actions.locale')"
-	/>
+	<UDropdownMenu :items="items" :content="{ align: 'end' }">
+		<UButton color="neutral" variant="ghost" size="sm" square :aria-label="label">
+			<TablerIcon name="world" />
+		</UButton>
+	</UDropdownMenu>
 </template>
 
 <script setup lang="ts">
-const { locale, locales, setLocale } = useI18n()
+import type { LocaleOption } from '~/types/app'
 
-const localeOptions = computed(() =>
-	locales.value.map((item) => ({
-		code: item.code,
-		name: item.name ?? item.code,
+const props = defineProps<{
+	label: string
+	locale: string
+	options: LocaleOption[]
+}>()
+const emit = defineEmits<{ select: [code: string] }>()
+const items = computed(() => [
+	props.options.map((option) => ({
+		label: option.name,
+		type: 'checkbox' as const,
+		checked: option.code === props.locale,
+		onSelect: () => emit('select', option.code),
 	})),
-)
-
-const selectedLocale = computed({
-	get: () => locale.value,
-	set: (value: string) => {
-		void setLocale(value)
-	},
-})
+])
 </script>

@@ -3,16 +3,43 @@ import type { SessionUser } from '~/types/app'
 export async function useCurrentUser() {
 	const session = useSessionStore()
 	const refreshAt = useState<number | null>('session-refresh-at', () => null)
-	const { data, pending, refresh } = await useFetch<{
+	const responseCookies = import.meta.server ? useResponseHeader('set-cookie') : null
+	const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+	// OAuth callbacks are cross-site navigations. Avoid proxying their Sec-Fetch-Site header
+	// into the same-origin internal session endpoint; forward only the auth cookie tuple.
+	const request = useFetch<{
 		user: SessionUser | null
 		refreshAt: number | null
-	}>('/api/session', { credentials: 'include' })
+	}>('/api/session', {
+		credentials: 'include',
+		$fetch: import.meta.server ? globalThis.$fetch : undefined,
+		headers: requestHeaders,
+		key: 'current-user',
+		onResponse({ response }) {
+			if (!responseCookies) return
+			const cookies =
+				(
+					response.headers as Headers & { getSetCookie?: () => string[] }
+				).getSetCookie?.() ??
+				(response.headers.get('set-cookie')
+					? [response.headers.get('set-cookie') as string]
+					: [])
+			if (cookies.length === 0) return
+			const current = responseCookies.value
+			const existing = Array.isArray(current) ? current : current ? [current] : []
+			responseCookies.value = [...existing, ...cookies]
+		},
+	})
+	const { data, pending, refresh } = request
+	const user = computed(() => session.user)
 
-	watchEffect(() => {
+	function applySession() {
 		session.pending = pending.value
 		session.setUser(data.value?.user ?? null)
 		refreshAt.value = data.value?.refreshAt ?? null
-	})
+	}
+
+	watchEffect(applySession)
 
 	if (import.meta.client) {
 		let timer: ReturnType<typeof setTimeout> | undefined
@@ -29,6 +56,7 @@ export async function useCurrentUser() {
 					).catch(() => null)
 					refreshAt.value = refreshed?.refreshAt ?? null
 					if (refreshed) await refresh()
+					else session.setUser(null)
 				}, delay)
 			},
 			{ immediate: true },
@@ -38,5 +66,7 @@ export async function useCurrentUser() {
 		})
 	}
 
-	return { refresh, user: computed(() => session.user) }
+	await request
+	applySession()
+	return { refresh, user }
 }

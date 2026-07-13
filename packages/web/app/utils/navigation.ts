@@ -4,55 +4,46 @@ export const mainNav: NavItem[] = [
 	{
 		to: '/',
 		labelKey: 'nav.home',
-		descriptionKey: 'navDescriptions.home',
 		icon: 'dashboard',
 	},
 	{
 		to: '/records',
 		labelKey: 'nav.records',
-		descriptionKey: 'navDescriptions.records',
 		icon: 'trophy',
 	},
 	{
 		to: '/levels',
 		labelKey: 'nav.levels',
-		descriptionKey: 'navDescriptions.levels',
 		icon: 'map',
 	},
 	{
 		to: '/users',
 		labelKey: 'nav.users',
-		descriptionKey: 'navDescriptions.users',
 		icon: 'users',
 	},
 	{
-		to: '/zsl',
+		to: '/super-league',
 		labelKey: 'nav.zsl',
-		descriptionKey: 'navDescriptions.zsl',
 		icon: 'flag',
 	},
 	{
 		to: '/mods',
 		labelKey: 'nav.mods',
-		descriptionKey: 'navDescriptions.mods',
 		icon: 'plug',
 	},
 	{
 		to: '/adventure',
 		labelKey: 'nav.adventure',
-		descriptionKey: 'navDescriptions.adventure',
 		icon: 'route',
 	},
 	{
 		to: '/wiki',
 		labelKey: 'nav.wiki',
-		descriptionKey: 'navDescriptions.wiki',
 		icon: 'book',
 	},
 	{
 		to: '/developer',
 		labelKey: 'nav.developer',
-		descriptionKey: 'navDescriptions.developer',
 		icon: 'code',
 	},
 ]

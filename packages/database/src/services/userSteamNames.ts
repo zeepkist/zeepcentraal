@@ -1,6 +1,6 @@
 interface SteamUserData {
-	steamid: string
 	personaname: string
+	steamid: string
 }
 
 export interface ExistingSteamUser {

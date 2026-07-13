@@ -26,7 +26,15 @@
 					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
 						<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
 							<MetricGrid :metrics="telemetryMetrics" />
-							<UCard class="rounded-xl border-border bg-card/85"><BarChart :data="chartData" :categories="chartCategories" :height="280" :x-formatter="chartLabel" /></UCard>
+							<UCard class="rounded-xl border-border bg-card/85">
+								<BarChart
+									:data="chartData"
+									:categories="chartCategories"
+									:y-axis="['value']"
+									:height="280"
+									:x-formatter="chartLabel"
+								/>
+							</UCard>
 						</div>
 					</DataState>
 				</section>
@@ -41,12 +49,16 @@
 						:pending="wrPending"
 						:error="data.wrResult.value.error.value?.message"
 						:page="data.wrPage.value"
+						:can-go-previous="data.wrPagination.canGoPrevious(data.wrPage.value)"
+						:can-go-next="data.wrPagination.canGoNext(data.wrPage.value)"
 						:labels="resultLabels"
 						:sort-options="resultSortOptions"
 						:pagination-labels="paginationLabels"
 						@update:sort="data.setWrSort"
+						@first="data.wrPagination.first()"
 						@previous="data.wrPagination.previous(data.wrPage.value)"
 						@next="data.wrPagination.next(data.wrPage.value)"
+						@last="data.wrPagination.last()"
 					/>
 				</div>
 				<div :ref="data.personalBestsTarget">
@@ -59,21 +71,31 @@
 						:pending="pbPending"
 						:error="data.pbResult.value.error.value?.message"
 						:page="data.pbPage.value"
+						:can-go-previous="data.pbPagination.canGoPrevious(data.pbPage.value)"
+						:can-go-next="data.pbPagination.canGoNext(data.pbPage.value)"
 						:labels="resultLabels"
 						:sort-options="resultSortOptions"
 						:pagination-labels="paginationLabels"
 						@update:sort="data.setPbSort"
+						@first="data.pbPagination.first()"
 						@previous="data.pbPagination.previous(data.pbPage.value)"
 						@next="data.pbPagination.next(data.pbPage.value)"
+						@last="data.pbPagination.last()"
 					/>
 				</div>
 
 				<section :ref="data.recentTarget" aria-labelledby="profile-recent">
 					<SectionHeader id="profile-recent" :title="$t('users.profile.recent.title')" :description="$t('users.profile.recent.description')" />
-					<DataState :pending="!data.recentActive.value || data.recent.fetching.value" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
+					<DataState :pending="
+						data.recentPagination.isInitialPending(
+							data.recent.fetching.value,
+							data.recentRows.value.length,
+							data.recentActive.value,
+						)
+					" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
 						<UserResultTable :records="data.recentRows.value" :labels="resultLabels" />
 					</DataState>
-					<CursorPagination class="mt-4" :page="data.recentPage.value" :pending="data.recent.fetching.value" v-bind="paginationLabels" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" />
+					<CursorPagination class="mt-4" :page="data.recentPage.value" :can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)" :can-go-next="data.recentPagination.canGoNext(data.recentPage.value)" :pending="data.recent.fetching.value" v-bind="paginationLabels" @first="data.recentPagination.first()" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" @last="data.recentPagination.last()" />
 				</section>
 			</template>
 		</DataState>
@@ -192,8 +214,11 @@ const resultSortOptions = computed(() => [
 ])
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
+	loadingLabel: t('common.loading'),
+	firstLabel: t('common.first'),
 	previousLabel: t('common.previous'),
 	nextLabel: t('common.next'),
+	lastLabel: t('common.last'),
 }))
 const stateLabels = computed(() => ({
 	loadingLabel: t('common.loading'),

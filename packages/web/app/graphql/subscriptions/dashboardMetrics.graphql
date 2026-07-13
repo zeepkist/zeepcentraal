@@ -1,0 +1,5 @@
+subscription ZC_DashboardMetricsLive($daySince: Datetime!, $monthSince: Datetime!) {
+	query {
+		...ZC_DashboardMetricCounts
+	}
+}

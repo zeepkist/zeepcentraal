@@ -2,7 +2,17 @@
 @import "@nuxt/ui";
 
 @theme static {
-	--color-neutral-500: #171513;
+	--color-warm-neutral-50: #fafaf9;
+	--color-warm-neutral-100: #f5f5f4;
+	--color-warm-neutral-200: #e7e5e4;
+	--color-warm-neutral-300: #d6d3d1;
+	--color-warm-neutral-400: #a8a29e;
+	--color-warm-neutral-500: #78716c;
+	--color-warm-neutral-600: #57534e;
+	--color-warm-neutral-700: #44403c;
+	--color-warm-neutral-800: #292524;
+	--color-warm-neutral-900: #171513;
+	--color-warm-neutral-950: #0c0a09;
 }
 
 @theme inline {
@@ -110,8 +120,10 @@
 	--vis-color2: var(--color-chart-3);
 	--vis-color3: var(--color-chart-4);
 	--vis-color4: var(--color-chart-5);
-	--vis-tooltip-background-color: var(--color-card);
-	--vis-tooltip-border-color: var(--color-border);
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-tooltip-background-color: transparent !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-tooltip-border-color: transparent !important;
 	--vis-tooltip-text-color: var(--color-foreground);
 	--vis-axis-grid-color: var(--color-border);
 	--vis-axis-tick-label-color: var(--color-muted-foreground);
@@ -125,6 +137,50 @@
 
 .tabular {
 	font-variant-numeric: tabular-nums;
+}
+
+@keyframes hero-enter {
+	from {
+		opacity: 0;
+		transform: translateY(0.75rem);
+	}
+}
+
+@keyframes hero-orbit {
+	50% {
+		transform: translate3d(-1.5rem, 1rem, 0) scale(1.08);
+	}
+}
+
+@keyframes hero-metric-enter {
+	from {
+		opacity: 0;
+		transform: translateY(0.5rem);
+	}
+}
+
+.hero-enter {
+	animation: hero-enter 500ms ease-out both;
+}
+
+.hero-orbit {
+	animation: hero-orbit 8s ease-in-out infinite;
+}
+
+.hero-metric {
+	animation: hero-metric-enter 400ms ease-out both;
+	animation-delay: var(--metric-delay);
+}
+
+@keyframes record-history-highlight {
+	from {
+		background-color: color-mix(in oklab, var(--primary) 30%, transparent);
+		box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 55%, transparent);
+	}
+}
+
+.record-history-highlight {
+	animation: record-history-highlight 2s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

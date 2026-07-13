@@ -1,11 +1,11 @@
 interface UserPointContributionInput {
-	idUser: number
+	contributionRank: number
 	idLevel: number
 	idRecord: number
-	contributionRank: number
-	levelPosition: number
-	levelPoints: number
+	idUser: number
 	levelDecayedPoints: number
+	levelPoints: number
+	levelPosition: number
 	playerDecayedPoints: number
 }
 

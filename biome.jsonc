@@ -2,7 +2,9 @@
 	"assist": {
 		"actions": {
 			"source": {
-				"organizeImports": "on"
+				"organizeImports": "on",
+				"noDuplicateClasses": "on",
+				"useSortedInterfaceMembers": "on"
 			}
 		}
 	},
@@ -33,6 +35,9 @@
 			"tailwindDirectives": true
 		}
 	},
+	"html": {
+		"experimentalFullSupportEnabled": true
+	},
 	"files": {
 		"includes": [
 			"**",
@@ -59,6 +64,8 @@
 						"noUnusedVariables": "off"
 					},
 					"style": {
+						"useConst": "off",
+						"useImportType": "off",
 						"useVueMultiWordComponentNames": "off"
 					}
 				}

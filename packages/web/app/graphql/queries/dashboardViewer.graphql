@@ -1,4 +1,4 @@
-query ZC_DashboardViewerSummary($id: Int!) {
+query ZC_DashboardHeroSummary($id: Int!) {
 	user(id: $id) {
 		id
 		steamId
@@ -12,36 +12,29 @@ query ZC_DashboardViewerSummary($id: Int!) {
 		worldRecordGlobals(first: 0) {
 			totalCount
 		}
+		userPoints {
+			rank
+			points
+			totalPoints
+			worldRecords
+		}
 	}
-}
-
-query ZC_DashboardViewerContent($id: Int!) {
-	user(id: $id) {
-		records(first: 5, orderBy: [DATE_CREATED_DESC]) {
-			nodes {
-				id
-				time
-				dateCreated
-				levelId
-				userId
-				user {
-					steamId
-					steamName
-				}
-				level {
-					xxHash
-					levelItems(
-						first: 1
-						filter: { deleted: { equalTo: false } }
-						orderBy: [UPDATED_AT_DESC]
-					) {
-						nodes {
-							name
-						}
-					}
+	zslSeasons(first: 1, orderBy: [START_DATE_DESC]) {
+		nodes {
+			id
+			name
+			zslSeasonResults(first: 1, filter: { userId: { equalTo: $id } }) {
+				nodes {
+					position
+					points
 				}
 			}
 		}
+	}
+}
+
+query ZC_DashboardViewerLevels($id: Int!) {
+	user(id: $id) {
 		levelItems(first: 6, filter: { deleted: { equalTo: false } }, orderBy: [CREATED_AT_DESC]) {
 			nodes {
 				level {
@@ -56,6 +49,18 @@ query ZC_DashboardViewerContent($id: Int!) {
 					}
 					records(first: 0) {
 						totalCount
+					}
+					personalBestGlobals(first: 0) {
+						totalCount
+					}
+					worldRecordGlobal {
+						record {
+							time
+						}
+						user {
+							steamId
+							steamName
+						}
 					}
 				}
 				name

@@ -5,8 +5,8 @@ import { zslLevelResult } from '../schema'
 interface ZslLevelResultInput {
 	idLevel: number
 	idUser: number
-	position: number
 	points: number
+	position: number
 	time: number
 }
 

@@ -15,7 +15,7 @@
 					<td class="px-4 py-3 font-bold tabular-nums">{{ record.rank ? `#${record.rank}` : '—' }}</td>
 					<td class="px-4 py-3"><NuxtLink :to="`/level/${record.levelXxHash}`" class="font-semibold hover:text-primary">{{ record.levelName }}</NuxtLink></td>
 					<td class="px-4 py-3 tabular-nums">{{ formatTime(record.time) }}</td>
-					<td class="px-4 py-3 tabular-nums">{{ record.value == null ? '—' : formatNumber(record.value) }}</td>
+					<td class="px-4 py-3 tabular-nums">{{ record.rankedPoints == null ? '—' : formatNumber(record.rankedPoints) }}</td>
 					<td class="px-4 py-3 text-muted-foreground"><NuxtTime :datetime="record.dateCreated" relative /></td>
 				</tr>
 			</tbody>

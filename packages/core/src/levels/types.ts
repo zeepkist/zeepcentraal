@@ -10,30 +10,30 @@ export interface Vector3 {
 }
 
 export interface CsvBlock {
-	Id: number
-	Position: Vector3
 	Euler: Vector3
-	Scale: Vector3
-	Paints: number[]
+	Id: number
 	Options: number[]
+	Paints: number[]
+	Position: Vector3
+	Scale: Vector3
 }
 
 export interface ParsedLevel {
-	format: (typeof levelFormat)[keyof typeof levelFormat]
-	hash: string
-	uid: string
-	authorId: bigint
-	fileAuthor: string
-	validationTimeAuthor: number
-	validationTimeGold: number
-	validationTimeSilver: number
-	validationTimeBronze: number
+	amountBlocks: number
 	amountCheckpoints: number
 	amountFinishes: number
-	amountBlocks: number
+	authorId: bigint
+	blocks: CsvBlock[] | unknown[]
+	fileAuthor: string
+	format: (typeof levelFormat)[keyof typeof levelFormat]
+	hash: string
 	typeGround: number
 	typeSkybox: number
-	blocks: CsvBlock[] | unknown[]
+	uid: string
+	validationTimeAuthor: number
+	validationTimeBronze: number
+	validationTimeGold: number
+	validationTimeSilver: number
 }
 
 export interface ParsedLevelV2 extends Omit<ParsedLevel, 'hash'> {

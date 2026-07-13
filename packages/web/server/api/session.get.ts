@@ -1,51 +1,38 @@
-import { Zc_SessionUserDocument } from '../../app/graphql/generated/graphql'
+import { getRefreshableWebSession, getWebSession } from '@zeepkist/database/services'
 import type { SessionUser } from '../../app/types/app'
-import { accessTokenRefreshAt, refreshWebAuth } from '../utils/backend'
-import { fetchGraphql } from '../utils/graphql'
+import { cookieHeaderFromSetCookies, refreshWebAuth } from '../utils/backend'
 import { assertSameOrigin } from '../utils/request'
+import { resolveVerifiedSession } from '../utils/session'
 
-async function fetchSessionUser(
-	event: Parameters<typeof getCookie>[0],
-): Promise<SessionUser | null> {
-	const steamId = getCookie(event, 'zeepcentral_steam_id')
-	if (!steamId) return null
-
-	const data = await fetchGraphql(Zc_SessionUserDocument, { steamId })
-	const user = data.users?.nodes[0]
-	if (!user) return null
-
+function responseFromSession(session: NonNullable<Awaited<ReturnType<typeof getWebSession>>>) {
+	const user: SessionUser = {
+		id: session.id,
+		steamId: String(session.steamId),
+		steamName: session.steamName ?? undefined,
+		discordId: session.discordId == null ? null : String(session.discordId),
+	}
 	return {
-		id: user.id,
-		steamId: String(user.steamId),
-		steamName: user.steamName ?? undefined,
-		discordId: user.discordId == null ? null : String(user.discordId),
+		user,
+		refreshAt: Number(session.accessTokenExpiry) * 1000 - 60_000,
 	}
 }
 
 export default defineEventHandler(async (event) => {
 	assertSameOrigin(event)
-	let refreshAt = accessTokenRefreshAt(getHeader(event, 'cookie'))
-	if (refreshAt !== null && refreshAt <= Date.now()) {
-		try {
-			refreshAt = (await refreshWebAuth(event)).refreshAt
-		} catch {
-			return { user: null, refreshAt: null }
-		}
+	const cookieHeader = getHeader(event, 'cookie')
+	const resolution = await resolveVerifiedSession(
+		cookieHeader,
+		getWebSession,
+		getRefreshableWebSession,
+		async () => {
+			const refreshed = await refreshWebAuth(event)
+			return cookieHeaderFromSetCookies(refreshed.cookies)
+		},
+	)
+	if (import.meta.dev) {
+		setResponseHeader(event, 'x-zeep-auth-resolution', resolution.reason)
 	}
-	try {
-		return {
-			user: await fetchSessionUser(event),
-			refreshAt,
-		}
-	} catch {
-		try {
-			refreshAt = (await refreshWebAuth(event)).refreshAt
-			return {
-				user: await fetchSessionUser(event),
-				refreshAt,
-			}
-		} catch {
-			return { user: null, refreshAt: null }
-		}
-	}
+	return resolution.session
+		? responseFromSession(resolution.session)
+		: { user: null, refreshAt: null }
 })

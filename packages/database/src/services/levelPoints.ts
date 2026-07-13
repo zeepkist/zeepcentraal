@@ -92,14 +92,14 @@ export async function getLevelPointsByIds(ids: number[]) {
 }
 
 export interface UpdateLevelPointsPayload {
-	idLevel: number
-	points: number
-	rating: number
-	lengthModifier: number
 	competitivenessModifier: number
-	ratingModifier: number
-	popularityModifier: number
 	cutPenalty: number
+	idLevel: number
+	lengthModifier: number
+	points: number
+	popularityModifier: number
+	rating: number
+	ratingModifier: number
 }
 
 export async function upsertLevelPointsBulk(payloads: UpdateLevelPointsPayload[]): Promise<void> {

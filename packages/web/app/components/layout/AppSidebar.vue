@@ -4,8 +4,9 @@
 		collapsible="icon"
 		rail
 		class="[--sidebar-width:17rem]"
+		data-testid="app-sidebar"
 		:ui="{
-			inner: 'bg-neutral-500 divide-transparent',
+			inner: 'bg-warm-neutral-900 divide-transparent',
 			body: 'gap-1 p-3',
 		}"
 	>
@@ -23,7 +24,7 @@
 					type="button"
 					class="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
 					:aria-label="$t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')"
-					@click="open = !open"
+					@click="toggleSidebar"
 				>
 					<TablerIcon
 						:name="open ? 'sidebar-collapse' : 'sidebar-expand'"
@@ -50,9 +51,6 @@
 					<TablerIcon :name="item.icon ?? 'dashboard'" class="size-5 shrink-0" />
 					<span v-if="state === 'expanded'" class="min-w-0">
 						<span class="block truncate font-medium">{{ $t(item.labelKey) }}</span>
-						<span class="block truncate text-xs text-muted-foreground">
-							{{ $t(item.descriptionKey ?? item.labelKey) }}
-						</span>
 					</span>
 				</NuxtLink>
 			</UTooltip>
@@ -66,4 +64,8 @@ import { useLocalStorage } from '@vueuse/core'
 import { mainNav } from '~/utils/navigation'
 
 const open = useLocalStorage('sidebar-open', true)
+
+const toggleSidebar = () => {
+	open.value = !open.value
+}
 </script>

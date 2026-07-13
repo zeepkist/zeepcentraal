@@ -2,12 +2,36 @@
 	<section :aria-labelledby="id">
 		<div class="flex flex-wrap items-end justify-between gap-4">
 			<SectionHeader :id="id" :title="title" :description="description" />
-			<USelect :model-value="sort" :items="sortOptions" class="w-44" :aria-label="labels.value" @update:model-value="$emit('update:sort', String($event) as 'valuable' | 'recent')" />
+			<USelect
+				:model-value="sort"
+				:items="sortOptions"
+				class="w-44"
+				:aria-label="labels.value"
+				@update:model-value="$emit('update:sort', String($event) as 'valuable' | 'recent')"
+			/>
 		</div>
-		<DataState :pending="pending" :error="error" :empty="records.length === 0" :loading-label="paginationLabels.label" :error-title="paginationLabels.label" :empty-title="paginationLabels.label">
+		<DataState
+			:pending="pending && records.length === 0"
+			:error="error"
+			:empty="records.length === 0"
+			:loading-label="paginationLabels.loadingLabel"
+			:error-title="paginationLabels.label"
+			:empty-title="paginationLabels.label"
+		>
 			<UserResultTable :records="records" :labels="labels" />
 		</DataState>
-		<CursorPagination class="mt-4" :page="page" :pending="pending" v-bind="paginationLabels" @previous="$emit('previous')" @next="$emit('next')" />
+		<CursorPagination
+			class="mt-4"
+			:page="page"
+			:can-go-previous="canGoPrevious"
+			:can-go-next="canGoNext"
+			:pending="pending"
+			v-bind="paginationLabels"
+			@first="$emit('first')"
+			@previous="$emit('previous')"
+			@next="$emit('next')"
+			@last="$emit('last')"
+		/>
 	</section>
 </template>
 
@@ -23,13 +47,24 @@ defineProps<{
 	pending: boolean
 	error?: string | null
 	page: CursorPage
+	canGoPrevious: boolean
+	canGoNext: boolean
 	labels: { rank: string; level: string; time: string; value: string; date: string }
 	sortOptions: SortOption[]
-	paginationLabels: { label: string; previousLabel: string; nextLabel: string }
+	paginationLabels: {
+		label: string
+		loadingLabel: string
+		firstLabel: string
+		previousLabel: string
+		nextLabel: string
+		lastLabel: string
+	}
 }>()
 defineEmits<{
 	'update:sort': [value: 'valuable' | 'recent']
+	first: []
 	previous: []
 	next: []
+	last: []
 }>()
 </script>

@@ -5,8 +5,8 @@ import { record, user } from '../schema'
 import { resolveBulkSteamNames } from './userSteamNames'
 
 interface SteamUserData {
-	steamid: string
 	personaname: string
+	steamid: string
 }
 async function getSteamUser(steamId: string): Promise<SteamUserData> {
 	const player = await getSteamUserOrUndefined(steamId)

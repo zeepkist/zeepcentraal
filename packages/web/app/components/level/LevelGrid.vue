@@ -7,6 +7,10 @@
 			:adventure-label="adventureLabel"
 			:points-label="pointsLabel"
 			:records-label="recordsLabel"
+			:personal-bests-label="personalBestsLabel"
+			:world-record-label="worldRecordLabel"
+			:author-time-label="authorTimeLabel"
+			:by-label="byLabel"
 		/>
 	</div>
 </template>
@@ -19,5 +23,9 @@ defineProps<{
 	adventureLabel: string
 	pointsLabel: string
 	recordsLabel: string
+	personalBestsLabel?: string
+	worldRecordLabel?: string
+	authorTimeLabel?: string
+	byLabel?: string
 }>()
 </script>

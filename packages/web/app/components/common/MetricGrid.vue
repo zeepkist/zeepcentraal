@@ -3,9 +3,11 @@
 		<StatCard
 			v-for="metric in metrics"
 			:key="metric.key"
+			:details="metric.details"
 			:icon="metric.icon ?? 'dashboard'"
 			:label="metric.label"
 			:value="metric.value"
+			:value-label="metric.valueLabel"
 		/>
 	</div>
 </template>

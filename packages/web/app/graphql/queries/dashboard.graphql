@@ -25,69 +25,273 @@ fragment ZC_DashboardLevel on Level {
 	records(first: 0) {
 		totalCount
 	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobal {
+		record {
+			time
+		}
+		user {
+			steamId
+			steamName
+		}
+	}
 }
 
-query ZC_DashboardCritical($activeSince: Datetime!) {
+fragment ZC_DashboardMetricCounts on Query {
 	records(first: 0) {
+		totalCount
+	}
+	recordsDay: records(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }) {
+		totalCount
+	}
+	recordsMonth: records(
+		first: 0
+		filter: { dateCreated: { greaterThanOrEqualTo: $monthSince } }
+	) {
 		totalCount
 	}
 	personalBestGlobals(first: 0) {
 		totalCount
 	}
+	personalBestGlobalsDay: personalBestGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $daySince } } }
+	) {
+		totalCount
+	}
+	personalBestGlobalsMonth: personalBestGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $monthSince } } }
+	) {
+		totalCount
+	}
 	worldRecordGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobalsDay: worldRecordGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $daySince } } }
+	) {
+		totalCount
+	}
+	worldRecordGlobalsMonth: worldRecordGlobals(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $monthSince } } }
+	) {
 		totalCount
 	}
 	levels(first: 0) {
 		totalCount
 	}
+	levelsDay: levels(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }) {
+		totalCount
+	}
+	levelsMonth: levels(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $monthSince } }) {
+		totalCount
+	}
 	votes(first: 0) {
 		totalCount
 	}
-	activeRecords: records(
+	votesDay: votes(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }) {
+		totalCount
+	}
+	votesMonth: votes(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $monthSince } }) {
+		totalCount
+	}
+	totalUsers: users(first: 0, filter: { banned: { equalTo: false } }) {
+		totalCount
+	}
+	rankedUsers: users(
 		first: 0
-		filter: { dateCreated: { greaterThanOrEqualTo: $activeSince } }
+		filter: {
+			banned: { equalTo: false }
+			userPointExists: true
+			userPoints: { rank: { notEqualTo: -1 } }
+		}
 	) {
-		aggregates {
-			distinctCount {
-				userId
+		totalCount
+	}
+	activeUsersDay: users(
+		first: 0
+		filter: {
+			banned: { equalTo: false }
+			or: [
+				{ records: { some: { dateCreated: { greaterThanOrEqualTo: $daySince } } } }
+				{
+					levelItems: {
+						some: {
+							createdAt: { greaterThanOrEqualTo: $daySince }
+							deleted: { equalTo: false }
+						}
+					}
+				}
+				{
+					zslLevelResults: {
+						some: {
+							level: { round: { eventDate: { greaterThanOrEqualTo: $daySince } } }
+						}
+					}
+				}
+			]
+		}
+	) {
+		totalCount
+	}
+	activeUsersMonth: users(
+		first: 0
+		filter: {
+			banned: { equalTo: false }
+			or: [
+				{ records: { some: { dateCreated: { greaterThanOrEqualTo: $monthSince } } } }
+				{
+					levelItems: {
+						some: {
+							createdAt: { greaterThanOrEqualTo: $monthSince }
+							deleted: { equalTo: false }
+						}
+					}
+				}
+				{
+					zslLevelResults: {
+						some: {
+							level: { round: { eventDate: { greaterThanOrEqualTo: $monthSince } } }
+						}
+					}
+				}
+			]
+		}
+	) {
+		totalCount
+	}
+}
+
+query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
+	...ZC_DashboardMetricCounts
+	trendingLevels: hotLevelsSince(since: $daySince, first: 6) {
+		nodes {
+			...ZC_DashboardLevel
+			periodRecords: records(
+				first: 0
+				filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }
+			) {
+				totalCount
 			}
 		}
 	}
 }
 
-query ZC_DashboardLevels {
-	popularLevels: levels(
-		first: 8
-		filter: { levelPointExists: true, levelItems: { some: { deleted: { equalTo: false } } } }
-		orderBy: [LEVEL_POINTS_MODIFIER_POPULARITY_DESC]
-	) {
+query ZC_DashboardHotLevels($since: Datetime!) {
+	levels: hotLevelsSince(since: $since, first: 6) {
 		nodes {
 			...ZC_DashboardLevel
-		}
-	}
-	latestLevels: levels(
-		first: 8
-		filter: { levelItems: { some: { deleted: { equalTo: false } } } }
-		orderBy: [DATE_CREATED_DESC]
-	) {
-		nodes {
-			...ZC_DashboardLevel
+			periodRecords: records(
+				first: 0
+				filter: { dateCreated: { greaterThanOrEqualTo: $since } }
+			) {
+				totalCount
+			}
 		}
 	}
 }
 
-query ZC_DashboardStatistics {
-	recordStatistics(first: 0) {
+fragment ZC_DashboardV6StatisticAggregates on RecordStatisticAggregates {
+	sum {
+		distance
+		distanceInAir
+		distanceOn1Wheel
+		distanceOn2Wheels
+		distanceOn3Wheels
+		distanceOn4Wheels
+		distanceOnGrass
+		distanceOnGround
+		distanceOnIce
+		distanceOnMetal
+		distanceOnSand
+		distanceOnSnow
+		distanceOnSoap
+		distanceOnTarmac
+		distanceRagdoll
+		time
+		timeInAir
+		timeOnGrass
+		timeOnGround
+		timeOnIce
+		timeOnMetal
+		timeOnSand
+		timeOnSnow
+		timeOnSoap
+		timeOnTarmac
+		timeRagdoll
+		turnLeftCount
+		turnRightCount
+		armsUpCount
+		brakeCount
+		hornCount
+	}
+	average {
+		averageGforce
+		averageSpeed
+	}
+}
+
+query ZC_DashboardStatistics(
+	$daySince: Datetime!
+	$monthSince: Datetime!
+	$minimumModVersion: String!
+) {
+	allTimeStatistics: recordStatistics(first: 0) {
 		aggregates {
 			sum {
 				distance
-				distanceInAir
-				distanceRagdoll
-				time
-				timeInAir
-				hornCount
-				brakeCount
 			}
+		}
+	}
+	dayStatistics: recordStatistics(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $daySince } } }
+	) {
+		aggregates {
+			sum {
+				distance
+			}
+		}
+	}
+	monthStatistics: recordStatistics(
+		first: 0
+		filter: { record: { dateCreated: { greaterThanOrEqualTo: $monthSince } } }
+	) {
+		aggregates {
+			sum {
+				distance
+			}
+		}
+	}
+	v6DayStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				dateCreated: { greaterThanOrEqualTo: $daySince }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
+			}
+		}
+	) {
+		aggregates {
+			...ZC_DashboardV6StatisticAggregates
+		}
+	}
+	v6MonthStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				dateCreated: { greaterThanOrEqualTo: $monthSince }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
+			}
+		}
+	) {
+		aggregates {
+			...ZC_DashboardV6StatisticAggregates
 		}
 	}
 }

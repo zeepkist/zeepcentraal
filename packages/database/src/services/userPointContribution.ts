@@ -6,19 +6,19 @@ import { userPointContributionFingerprint } from './userPointContributionHelpers
 export { userPointContributionFingerprint } from './userPointContributionHelpers'
 
 export interface UserPointContributionInput {
-	idUser: number
+	contributionRank: number
 	idLevel: number
 	idRecord: number
-	contributionRank: number
-	levelPosition: number
-	levelPoints: number
+	idUser: number
 	levelDecayedPoints: number
+	levelPoints: number
+	levelPosition: number
 	playerDecayedPoints: number
 }
 
 interface UserPointContributionBatchInput {
-	idUser: number
 	contributions: Omit<UserPointContributionInput, 'idUser'>[]
+	idUser: number
 }
 
 const INSERT_BATCH_SIZE = 500

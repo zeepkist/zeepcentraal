@@ -2,7 +2,7 @@ import { useQuery } from '@urql/vue'
 import {
 	Zc_ZslLevelDocument,
 	Zc_ZslLevelResultsDocument,
-	Zc_ZslRoundDocument,
+	Zc_ZslRoundBySeasonAndNumberDocument,
 	Zc_ZslRoundResultsDocument,
 	Zc_ZslSeasonDocument,
 	Zc_ZslSeasonResultsDocument,
@@ -84,19 +84,25 @@ export function useZslSeason(id: Ref<number>) {
 	}
 }
 
-export function useZslRound(id: Ref<number>) {
+export function useZslRound(seasonId: Ref<number>, roundNumber: Ref<number>) {
 	const pagination = useCursorPagination(50, 'round')
 	const standingsPrefetch = useViewportPrefetch()
 	const result = useQuery({
-		query: Zc_ZslRoundDocument,
-		variables: computed(() => ({ id: id.value })),
+		query: Zc_ZslRoundBySeasonAndNumberDocument,
+		variables: computed(() => ({
+			seasonId: seasonId.value,
+			round: roundNumber.value,
+		})),
 	})
+	const round = computed(() => result.data.value?.zslRounds?.nodes[0])
 	const standingsResult = useQuery({
 		query: Zc_ZslRoundResultsDocument,
-		variables: computed(() => ({ id: id.value, ...pagination.variables.value })),
-		pause: computed(() => !standingsPrefetch.active.value),
+		variables: computed(() => ({
+			id: round.value?.id ?? 0,
+			...pagination.variables.value,
+		})),
+		pause: computed(() => round.value === undefined || !standingsPrefetch.active.value),
 	})
-	const round = computed(() => result.data.value?.zslRound)
 	const standings = computed(
 		() =>
 			standingsResult.data.value?.zslRoundResults?.edges.map(({ node }) => standing(node)) ??

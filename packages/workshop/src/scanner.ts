@@ -15,8 +15,8 @@ import type {
 
 interface LevelFiles {
 	levelPath: string
-	thumbnailPath: string
 	name: string
+	thumbnailPath: string
 }
 
 let databasePersistence: WorkshopPersistence | undefined

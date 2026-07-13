@@ -4,7 +4,8 @@ import { assertSameOrigin } from '../../utils/request'
 export default defineEventHandler(async (event) => {
 	assertSameOrigin(event)
 	try {
-		return await refreshWebAuth(event)
+		const { refreshAt } = await refreshWebAuth(event)
+		return { refreshAt }
 	} catch {
 		setResponseStatus(event, 401)
 		return { refreshAt: null }

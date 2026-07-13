@@ -1,13 +1,59 @@
 <template>
-	<nav class="flex items-center justify-between gap-3" :aria-label="label">
-		<UButton color="neutral" variant="soft" :disabled="!page.hasPreviousPage || pending" @click="$emit('previous')">
-			<TablerIcon name="chevron-left" class="size-4" />
-			{{ previousLabel }}
-		</UButton>
-		<UButton color="neutral" variant="soft" :disabled="!page.hasNextPage || pending" @click="$emit('next')">
-			{{ nextLabel }}
-			<TablerIcon name="chevron-right" class="size-4" />
-		</UButton>
+	<nav
+		class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3"
+		:aria-label="label"
+	>
+		<div class="flex items-center gap-2 justify-self-start">
+			<UButton
+				color="neutral"
+				variant="soft"
+				:disabled="!canGoPrevious || pending"
+				@click="$emit('first')"
+			>
+				<TablerIcon name="chevrons-left" class="size-4" />
+				{{ firstLabel }}
+			</UButton>
+			<UButton
+				color="neutral"
+				variant="soft"
+				:disabled="!canGoPrevious || pending"
+				@click="$emit('previous')"
+			>
+				<TablerIcon name="chevron-left" class="size-4" />
+				{{ previousLabel }}
+			</UButton>
+		</div>
+		<div class="grid min-w-6 place-items-center justify-self-center">
+			<div
+				v-if="pending"
+				class="text-primary"
+				role="status"
+				:aria-label="loadingLabel"
+				aria-live="polite"
+			>
+				<TablerIcon name="loader-2" class="size-5 motion-safe:animate-spin" />
+			</div>
+		</div>
+		<div class="flex items-center gap-2 justify-self-end">
+			<UButton
+				color="neutral"
+				variant="soft"
+				:disabled="!canGoNext || pending"
+				@click="$emit('next')"
+			>
+				{{ nextLabel }}
+				<TablerIcon name="chevron-right" class="size-4" />
+			</UButton>
+			<UButton
+				color="neutral"
+				variant="soft"
+				:disabled="!canGoNext || pending"
+				@click="$emit('last')"
+			>
+				{{ lastLabel }}
+				<TablerIcon name="chevrons-right" class="size-4" />
+			</UButton>
+		</div>
 	</nav>
 </template>
 
@@ -16,11 +62,16 @@ import type { CursorPage } from '~/types/app'
 
 defineProps<{
 	page: CursorPage
+	canGoPrevious: boolean
+	canGoNext: boolean
 	pending?: boolean
 	label: string
+	loadingLabel: string
+	firstLabel: string
 	previousLabel: string
 	nextLabel: string
+	lastLabel: string
 }>()
 
-defineEmits<{ previous: []; next: [] }>()
+defineEmits<{ first: []; previous: []; next: []; last: [] }>()
 </script>

@@ -149,6 +149,8 @@
         "@tabler/icons-vue": "~3.44.0",
         "@urql/vue": "~2.1.0",
         "@vee-validate/zod": "~4.15.0",
+        "@zeepkist/core": "workspace:*",
+        "@zeepkist/database": "workspace:*",
         "graphql": "~17.0.0",
         "graphql-ws": "~6.0.0",
         "nuxt": "~4.4.0",

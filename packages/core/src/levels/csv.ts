@@ -17,8 +17,8 @@ import {
 import { xxHash128Hex } from './xxhash'
 
 interface ParsedCsvBlock extends CsvBlock {
-	rawPosition: [string, string, string]
 	rawEuler: [string, string, string]
+	rawPosition: [string, string, string]
 	rawScale: [string, string, string]
 }
 

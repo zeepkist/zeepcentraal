@@ -12,13 +12,13 @@ import { toDatabaseLevelFileUid } from './levelUidMap'
 import type { TournamentEvent } from './types'
 
 interface ImportRoundOptions {
-	seasonName: string
+	eventDate: string
 	idSeason: number
 	name: string
 	round: number
-	workshopId: string
-	eventDate: string
+	seasonName: string
 	userIdMap: Map<string, number>
+	workshopId: string
 }
 
 export const importRound = async ({

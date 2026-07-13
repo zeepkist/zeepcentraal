@@ -1,8 +1,8 @@
 import { config } from '../config'
 
 export interface SteamUserData {
-	steamid: string
 	personaname: string
+	steamid: string
 }
 
 export async function getSteamUser(steamId: string): Promise<SteamUserData> {

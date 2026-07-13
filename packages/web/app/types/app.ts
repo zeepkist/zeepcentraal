@@ -32,9 +32,29 @@ export type RecordRow = {
 	levelXxHash?: string | null
 	levelName?: string | null
 	rank?: number | null
-	value?: number | null
+	rankedPoints?: number | null
+	nonDecayedPoints?: number | null
 	worldRecord?: boolean
 	viewer?: boolean
+}
+
+export type RecordHistoryRow = {
+	id: number
+	time: number
+	dateCreated: string
+	userId: number
+	userSteamId?: string | null
+	userName?: string | null
+	levelId: number
+	levelXxHash: string
+	levelName: string
+	levelPosition?: number | null
+	contributionRank?: number | null
+	levelPoints?: number | null
+	levelDecayedPoints?: number | null
+	playerDecayedPoints?: number | null
+	levelDecayMultiplier?: number | null
+	globalDecayMultiplier?: number | null
 }
 
 export type LevelSummary = {
@@ -50,6 +70,10 @@ export type LevelSummary = {
 	rating?: number | null
 	popularity?: number | null
 	recordCount?: number
+	personalBestCount?: number
+	worldRecordTime?: number | null
+	worldRecordAuthorName?: string | null
+	worldRecordAuthorSteamId?: string | null
 	worldRecord?: RecordRow | null
 	medals?: MedalTimes | null
 }
@@ -68,7 +92,9 @@ export type StatisticMetric = {
 	key: string
 	label: string
 	value: string
+	valueLabel?: string
 	icon?: string
+	details?: Array<{ label: string; value: string }>
 }
 
 export type CursorPage = {
@@ -111,4 +137,85 @@ export type ZslStanding = {
 	steamId: string | null
 	steamName: string | null
 	time?: number
+}
+
+export type LocaleOption = {
+	code: string
+	name: string
+}
+
+export type HeroAction = {
+	label: string
+	description?: string
+	href: string
+	icon: string
+	external?: boolean
+	primary?: boolean
+}
+
+export type HeroMetric = {
+	label: string
+	value: string
+	icon: string
+	muted?: boolean
+}
+
+export type HeroPanel = {
+	title: string
+	description: string
+	icon: string
+	features?: string[]
+}
+
+export type DashboardChartEntry = {
+	key: string
+	label: string
+	value: number
+	formattedValue: string
+	color: string
+}
+
+export type DashboardPeriodData<T> = {
+	today: T
+	month: T
+}
+
+export type DashboardStatisticsMetric = {
+	key: string
+	label: string
+	value: string
+	icon: string
+}
+
+export type DashboardStatisticsChart = {
+	key: string
+	title: string
+	description: string
+	icon: string
+	data: DashboardPeriodData<DashboardChartEntry[]>
+	total: DashboardPeriodData<string>
+}
+
+export type DashboardStatisticsModel = {
+	distanceMetrics: DashboardStatisticsMetric[]
+	periodSelectorLabel: string
+	periodDescription: string
+	minimumVersionLabel: string
+	todayLabel: string
+	monthLabel: string
+	emptyLabel: string
+	charts: DashboardStatisticsChart[]
+	averageSpeed: {
+		title: string
+		description: string
+		data: DashboardPeriodData<string>
+	}
+	driverInputs: {
+		title: string
+		description: string
+		icon: string
+		steering: DashboardPeriodData<DashboardChartEntry[]>
+		steeringTotal: DashboardPeriodData<string>
+		actions: DashboardPeriodData<DashboardStatisticsMetric[]>
+	}
 }

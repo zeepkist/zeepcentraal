@@ -7,6 +7,7 @@ query ZC_SitemapTournaments($after: Cursor) {
 			zslRounds(first: 6, orderBy: [ROUND_ASC]) {
 				nodes {
 					id
+					round
 					dateUpdated
 					dateCreated
 					zslLevels(first: 15, orderBy: [ID_ASC]) {

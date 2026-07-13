@@ -3,9 +3,9 @@ import { db } from '../client'
 import { levelPoints, personalBestGlobal, record } from '../schema'
 
 export interface PersonalBestWithLevelPointsAndPosition {
-	idUser: number
 	idLevel: number
 	idRecord: number
+	idUser: number
 	levelPoints: number
 	position: bigint
 }

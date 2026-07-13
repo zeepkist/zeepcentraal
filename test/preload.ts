@@ -2,9 +2,25 @@ import { mock } from 'bun:test'
 
 process.env.ZEEPCENTRAAL_TEST = '1'
 
-const blockedFetch: typeof fetch = async (input) => {
-	throw new Error(`Unexpected external fetch in unit test: ${String(input)}`)
+const silentConsole = () => {}
+for (const method of ['log', 'info', 'warn', 'error', 'debug'] as const) {
+	Object.defineProperty(console, method, {
+		configurable: true,
+		value: silentConsole,
+		writable: true,
+	})
 }
+
+const blockedFetch = Object.assign(
+	async (input: Parameters<typeof fetch>[0]) => {
+		throw new Error(`Unexpected external fetch in unit test: ${String(input)}`)
+	},
+	{
+		preconnect(input: Parameters<typeof fetch.preconnect>[0]) {
+			throw new Error(`Unexpected external preconnect in unit test: ${String(input)}`)
+		},
+	},
+) satisfies typeof fetch
 
 globalThis.fetch = blockedFetch
 
