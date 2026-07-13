@@ -22,6 +22,7 @@ import {
 	IconFlag,
 	IconFlag3,
 	IconGauge,
+	IconGhost2,
 	IconHandStop,
 	IconHourglass,
 	IconLayoutSidebarLeftCollapse,
@@ -46,6 +47,7 @@ import {
 	IconTrophy,
 	IconUser,
 	IconUserCircle,
+	IconUserStar,
 	IconUsers,
 	IconVolume,
 	IconWind,
@@ -104,6 +106,9 @@ export const tablerIcons = {
 	volume: IconVolume,
 	wind: IconWind,
 	world: IconWorld,
+	'user-star': IconUserStar,
+	'calendar-event': IconCalendarEvent,
+	'ghost-2': IconGhost2,
 }
 
 export type TablerIconName = keyof typeof tablerIcons

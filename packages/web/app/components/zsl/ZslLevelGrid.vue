@@ -4,7 +4,7 @@
 			v-for="entry in levels"
 			:key="entry.id"
 			:to="link(entry.id)"
-			icon="flag-checkered"
+			icon="flag-3"
 			:image-src="entry.level?.levelItems.nodes[0]?.imageUrl"
 			:image-alt="entry.level?.levelItems.nodes[0]?.name ?? levelLabel"
 		>

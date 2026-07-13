@@ -308,7 +308,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 					key: 'runs',
 					label: t('levels.detail.stats.submittedRuns'),
 					value: formatCount(numeric(all?.totalCount)),
-					icon: 'flag-checkered',
+					icon: 'flag-3',
 				},
 				{
 					key: 'telemetry-runs',

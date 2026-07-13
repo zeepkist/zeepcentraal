@@ -697,6 +697,7 @@
 				"competitivenessRatings": {
 					"veryEasy": "Very Easy",
 					"easy": "Easy",
+					"casual": "Casual",
 					"balanced": "Balanced",
 					"competitive": "Competitive",
 					"hard": "Hard",
