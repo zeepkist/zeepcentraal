@@ -37,3 +37,17 @@ query ZC_Users(
 		totalCount
 	}
 }
+
+query ZC_UserSuggestions($search: String!) {
+	users(
+		first: 8
+		filter: { banned: { equalTo: false }, steamName: { includesInsensitive: $search } }
+		orderBy: [STEAM_NAME_ASC]
+	) {
+		nodes {
+			id
+			steamId
+			steamName
+		}
+	}
+}

@@ -507,7 +507,7 @@
 		}
 	},
 	"users": {
-		"results": "{count} ranked players",
+		"results": "{count} players",
 		"filters": {
 			"title": "Find players",
 			"search": "Steam name or Steam ID",
@@ -597,7 +597,8 @@
 			"personalBests": "PBs",
 			"worldRecord": "WR",
 			"authorTime": "AT",
-			"by": "by"
+			"by": "by",
+			"created": "Published"
 		},
 		"filters": {
 			"title": "Find levels",
@@ -608,16 +609,27 @@
 			"apply": "Apply filters",
 			"all": "All levels",
 			"adventureOnly": "Adventure only",
-			"communityOnly": "Community only"
+			"communityOnly": "Community only",
+			"points": "Level points",
+			"rating": "Rating",
+			"personalBest": "Personal best",
+			"worldRecord": "World record",
+			"viewerFilterHint": "Sign in to filter levels by your personal bests and world records.",
+			"viewerAll": "Any",
+			"viewerYes": "Yes",
+			"viewerNo": "No"
 		},
 		"sort": {
 			"latest": "Latest",
-			"popular": "Most popular",
+			"popular": "Most popular all-time",
 			"points": "Highest points",
 			"rating": "Highest rated",
 			"records": "Most records",
 			"votes": "Most votes",
-			"favourites": "Most favourites"
+			"favourites": "Most favourites",
+			"popularYear": "Most popular this year",
+			"popularMonth": "Most popular this month",
+			"popularToday": "Most popular today"
 		},
 		"detail": {
 			"notFound": "Level not found",
