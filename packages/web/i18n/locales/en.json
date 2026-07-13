@@ -590,7 +590,8 @@
 		"openLevel": "View level leaderboard",
 		"unknown": "Unknown player",
 		"notFound": "Super League result not found",
-		"yourStanding": "Your standing"
+		"yourStanding": "Your standing",
+		"viewResults": "View results"
 	},
 	"levels": {
 		"results": "{count} levels",

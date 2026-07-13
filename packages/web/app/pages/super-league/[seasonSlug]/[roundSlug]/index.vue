@@ -18,6 +18,7 @@
 						:levels="round.zslLevels.nodes"
 						:link="levelLink"
 						:level-label="$t('common.level')"
+						:results-label="$t('zsl.viewResults')"
 					/>
 				</section>
 				<section>
@@ -99,6 +100,7 @@ const tableLabels = computed(() => ({
 	points: t('common.points'),
 	unknown: t('zsl.unknown'),
 	yourStanding: t('zsl.yourStanding'),
+	emptyValue: t('pages.records.table.notRanked'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

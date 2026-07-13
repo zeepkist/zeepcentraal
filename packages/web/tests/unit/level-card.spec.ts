@@ -9,6 +9,10 @@ const grid = readFileSync(
 	new URL('../../app/components/level/LevelGrid.vue', import.meta.url),
 	'utf8',
 )
+const zslCard = readFileSync(
+	new URL('../../app/components/zsl/ZslCard.vue', import.meta.url),
+	'utf8',
+)
 const zslGrid = readFileSync(
 	new URL('../../app/components/zsl/ZslLevelGrid.vue', import.meta.url),
 	'utf8',
@@ -16,13 +20,14 @@ const zslGrid = readFileSync(
 
 describe('level card presentation', () => {
 	it('uses shared Super League interaction treatment', () => {
-		for (const source of [card, zslGrid]) {
+		for (const source of [card, zslCard]) {
 			expect(source).toContain('bg-gradient-to-br from-card to-primary/5')
 			expect(source).toContain('hover:border-primary/50')
 			expect(source).toContain('motion-safe:hover:-translate-y-1')
 			expect(source).toContain('motion-safe:group-hover:scale-105')
 			expect(source).toContain('focus-visible:outline-primary')
 		}
+		expect(zslGrid).toContain('<ZslCard')
 	})
 
 	it('renders optional dashboard PB and fastest-time data without requests', () => {

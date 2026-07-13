@@ -1,12 +1,21 @@
 <template>
-	<div class="overflow-x-auto rounded-xl border border-border">
-		<table class="w-full text-left text-sm">
+	<DataTableFrame>
+		<table
+			class="w-full table-fixed text-left text-sm"
+			:class="showTime ? 'min-w-[40rem]' : 'min-w-[32rem]'"
+		>
+			<colgroup>
+				<col class="w-[7rem]" />
+				<col />
+				<col v-if="showTime" class="w-[9rem]" />
+				<col class="w-[8rem]" />
+			</colgroup>
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
-					<th class="px-4 py-3">{{ labels.position }}</th>
-					<th class="px-4 py-3">{{ labels.player }}</th>
-					<th v-if="showTime" class="px-4 py-3">{{ labels.time }}</th>
-					<th class="px-4 py-3">{{ labels.points }}</th>
+					<th class="px-4 py-3" scope="col">{{ labels.position }}</th>
+					<th class="px-4 py-3" scope="col">{{ labels.player }}</th>
+					<th v-if="showTime" class="px-4 py-3" scope="col">{{ labels.time }}</th>
+					<th class="px-4 py-3" scope="col">{{ labels.points }}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -19,28 +28,34 @@
 						row.pinned ? 'border-t-2 border-primary/40' : '',
 					]"
 				>
-					<td class="px-4 py-3 font-black">
-						<span v-if="row.pinned" class="sr-only">{{ labels.yourStanding }}</span>
-						#{{ row.position }}
+					<td class="px-4 py-3 font-black tabular-nums">
+						#{{ number.format(row.position) }}
 					</td>
 					<td class="px-4 py-3">
-						<NuxtLink
-							v-if="row.steamId"
-							:to="`/user/${row.steamId}`"
-							class="font-semibold hover:text-primary"
-						>
-							{{ row.steamName ?? row.steamId }}
-						</NuxtLink>
-						<span v-else>{{ labels.unknown }}</span>
+						<div class="flex min-w-0 items-center gap-2">
+							<NuxtLink
+								v-if="row.steamId"
+								:to="`/user/${row.steamId}`"
+								class="truncate font-semibold hover:text-primary"
+							>
+								{{ row.steamName ?? row.steamId }}
+							</NuxtLink>
+							<span v-else class="truncate text-muted-foreground">{{ labels.unknown }}</span>
+							<UBadge v-if="row.pinned" color="primary" variant="soft" size="sm">
+								{{ labels.yourStanding }}
+							</UBadge>
+						</div>
 					</td>
-					<td v-if="showTime" class="px-4 py-3 tabular-nums">
-						{{ row.time == null ? '—' : formatTime(row.time) }}
+					<td v-if="showTime" class="px-4 py-3 font-semibold tabular-nums">
+						{{ row.time == null ? labels.emptyValue : formatTime(row.time) }}
 					</td>
-					<td class="px-4 py-3 tabular-nums">{{ row.points }}</td>
+					<td class="px-4 py-3 font-bold tabular-nums">
+						{{ number.format(row.points) }}
+					</td>
 				</tr>
 			</tbody>
 		</table>
-	</div>
+	</DataTableFrame>
 </template>
 
 <script setup lang="ts">
@@ -58,10 +73,14 @@ withDefaults(
 			points: string
 			unknown: string
 			yourStanding: string
+			emptyValue: string
 		}
 	}>(),
 	{ showTime: false },
 )
+
+const { locale } = useI18n()
+const number = computed(() => new Intl.NumberFormat(locale.value))
 
 function formatTime(seconds: number) {
 	const minutes = Math.floor(seconds / 60)

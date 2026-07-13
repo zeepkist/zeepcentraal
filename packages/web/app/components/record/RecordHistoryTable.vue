@@ -1,5 +1,5 @@
 <template>
-	<div class="overflow-x-auto rounded-xl border border-border">
+	<DataTableFrame>
 		<span class="sr-only" aria-live="polite">
 			{{ highlightedRecordIds?.size ? liveUpdateLabel : '' }}
 		</span>
@@ -106,7 +106,7 @@
 				</tr>
 			</tbody>
 		</table>
-	</div>
+	</DataTableFrame>
 </template>
 
 <script setup lang="ts">

@@ -1,2 +1,42 @@
-<template><div class="grid gap-5 md:grid-cols-2"><NuxtLink v-for="season in seasons" :key="season.id" :to="superLeagueSeasonPath(season.id)" class="group rounded-2xl border border-border bg-gradient-to-br from-card to-primary/5 p-6 transition hover:-translate-y-1 hover:border-primary/50"><div class="flex items-start justify-between gap-4"><div><p class="text-sm font-semibold uppercase tracking-widest text-primary">{{ seasonLabel }}</p><h2 class="mt-2 text-2xl font-black">{{ season.name }}</h2></div><TablerIcon name="trophy" class="size-7 text-primary" /></div><p class="mt-4 text-sm text-muted-foreground"><NuxtTime :datetime="String(season.startDate)" date-style="medium" /> – <NuxtTime :datetime="String(season.endDate)" date-style="medium" /></p><p class="mt-3 text-sm">{{ roundsLabel.replace('{count}', String(season.zslRounds.nodes.length)) }}</p></NuxtLink></div></template>
-<script setup lang="ts">defineProps<{ seasons: Array<{ id: number; name: string; startDate: unknown; endDate: unknown; zslRounds: { nodes: unknown[] } }>; seasonLabel: string; roundsLabel: string }>()</script>
+<template>
+	<div class="grid gap-4 md:grid-cols-2">
+		<ZslCard
+			v-for="season in seasons"
+			:key="season.id"
+			:to="superLeagueSeasonPath(season.id)"
+			icon="trophy"
+		>
+			<template #title>
+				<h2 class="text-2xl font-black text-highlighted">{{ season.name }}</h2>
+			</template>
+			<template #meta>
+				<div class="flex items-center gap-2">
+					<TablerIcon name="calendar-event" class="size-4 text-primary" />
+					<span>
+						<NuxtTime :datetime="String(season.startDate)" date-style="medium" />
+						–
+						<NuxtTime :datetime="String(season.endDate)" date-style="medium" />
+					</span>
+				</div>
+			</template>
+			<template #footer>
+				<UBadge color="neutral" variant="soft">
+					{{ roundsLabel(season.zslRounds.nodes.length) }}
+				</UBadge>
+			</template>
+		</ZslCard>
+	</div>
+</template>
+
+<script setup lang="ts">
+defineProps<{
+	seasons: Array<{
+		id: number
+		name: string
+		startDate: unknown
+		endDate: unknown
+		zslRounds: { nodes: unknown[] }
+	}>
+	roundsLabel: (count: number) => string
+}>()
+</script>
