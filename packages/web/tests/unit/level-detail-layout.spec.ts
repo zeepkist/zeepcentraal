@@ -1,0 +1,78 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+
+const page = readFileSync(new URL('../../app/pages/level/[xxh128].vue', import.meta.url), 'utf8')
+const detailQuery = readFileSync(
+	new URL('../../app/graphql/queries/levelDetail.graphql', import.meta.url),
+	'utf8',
+)
+const points = readFileSync(
+	new URL('../../app/components/level/LevelPointsInsights.vue', import.meta.url),
+	'utf8',
+)
+const splits = readFileSync(
+	new URL('../../app/components/level/LevelSplitAnalysis.vue', import.meta.url),
+	'utf8',
+)
+const telemetry = readFileSync(
+	new URL('../../app/components/level/LevelTelemetryPanel.vue', import.meta.url),
+	'utf8',
+)
+const donut = readFileSync(
+	new URL('../../app/components/dashboard/DashboardDonutChart.vue', import.meta.url),
+	'utf8',
+)
+const driverInputs = readFileSync(
+	new URL('../../app/components/dashboard/DashboardDriverInputsCard.vue', import.meta.url),
+	'utf8',
+)
+const tooltip = readFileSync(
+	new URL('../../app/components/dashboard/DashboardChartTooltip.vue', import.meta.url),
+	'utf8',
+)
+
+describe('compact level detail layout', () => {
+	it('removes point modifier metrics and their GraphQL fields', () => {
+		for (const field of [
+			'cutPenalty',
+			'modifierCompetitiveness',
+			'modifierLength',
+			'modifierPopularity',
+			'modifierRating',
+		]) {
+			expect(detailQuery).not.toContain(field)
+			expect(page).not.toContain(field)
+		}
+		expect(points).not.toContain('metrics:')
+	})
+
+	it('uses compact shared dashboard tooltips for all three line charts', () => {
+		expect(points).toContain(':height="220"')
+		expect(points).toContain('<DashboardChartTooltip')
+		expect(points).toContain(':show-percentage="false"')
+		expect(splits.match(/:height="220"/g)).toHaveLength(2)
+		expect(splits.match(/<DashboardChartTooltip/g)).toHaveLength(2)
+		expect(splits.match(/:show-percentage="false"/g)).toHaveLength(2)
+		expect(tooltip).toContain('title?: string')
+		expect(tooltip).toContain('showPercentage?: boolean')
+		expect(tooltip).toContain('showPercentage: true')
+	})
+
+	it('uses dense telemetry cards while preserving dashboard defaults', () => {
+		expect(telemetry).toContain('2xl:grid-cols-8')
+		expect(telemetry).toContain('2xl:grid-cols-3')
+		expect(telemetry).toContain('<DashboardDonutChart')
+		expect(telemetry).toContain('compact')
+		expect(telemetry).not.toContain('hover:')
+		expect(donut).toContain('compact?: boolean')
+		expect(donut).toContain('props.compact ? 160 : 224')
+		expect(driverInputs).toContain('compact?: boolean')
+	})
+
+	it('places independently paginated record sections side-by-side at xl', () => {
+		expect(page).toContain('grid gap-8 xl:grid-cols-2 xl:items-start')
+		expect(page.match(/<CursorPagination/g)).toHaveLength(2)
+		expect(page).toContain('levelData.recentPagination')
+		expect(page).toContain('levelData.pbPagination')
+	})
+})

@@ -24,11 +24,6 @@ query ZC_LevelDetail($xxHash: String!) {
 		levelPoints {
 			points
 			rating
-			cutPenalty
-			modifierPopularity
-			modifierLength
-			modifierRating
-			modifierCompetitiveness
 		}
 		records(first: 0) {
 			totalCount

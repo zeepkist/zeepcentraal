@@ -44,7 +44,6 @@
 					>
 						<LevelPointsInsights
 							:history="levelData.pointsHistory.value"
-							:metrics="pointMetrics"
 							:series-label="$t('levels.detail.pointsHistory.series')"
 						/>
 					</DataState>
@@ -100,7 +99,8 @@
 					</DataState>
 				</section>
 
-				<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
+				<div class="grid gap-8 xl:grid-cols-2 xl:items-start">
+					<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
 					<SectionHeader id="recent-records-heading" :title="$t('levels.detail.recent.title')" :description="$t('levels.detail.recent.description')" />
 					<DataState
 						:pending="
@@ -143,6 +143,7 @@
 					</DataState>
 					<CursorPagination class="mt-4" :page="levelData.personalBestPage.value" :can-go-previous="levelData.pbPagination.canGoPrevious(levelData.personalBestPage.value)" :can-go-next="levelData.pbPagination.canGoNext(levelData.personalBestPage.value)" :pending="levelData.personalBests.fetching.value" v-bind="paginationLabels" @first="levelData.pbPagination.first()" @previous="levelData.pbPagination.previous(levelData.personalBestPage.value)" @next="levelData.pbPagination.next(levelData.personalBestPage.value)" @last="levelData.pbPagination.last()" />
 				</section>
+				</div>
 			</template>
 		</DataState>
 	</UContainer>
@@ -150,7 +151,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { locale, t } = useI18n()
+const { t } = useI18n()
 const session = useSessionStore()
 const user = computed(() => session.user)
 const xxHash = computed(() => String(route.params.xxh128))
@@ -185,27 +186,14 @@ const heroLabels = computed(() => ({
 	noWorldRecordDescription: t('levels.detail.worldRecord.emptyDescription'),
 	workshopAction: t('levels.detail.hero.workshopAction'),
 }))
-const pointNumberFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 3 }),
-)
-const pointMetrics = computed(() => {
-	const points = levelData.level.value?.levelPoints
-	const format = (value: number | null | undefined) =>
-		value == null ? t('levels.detail.hero.unavailable') : pointNumberFormat.value.format(value)
-	return [
-		{ key: 'cutPenalty', label: t('levels.detail.pointsHistory.cutPenalty'), value: format(points?.cutPenalty) },
-		{ key: 'competitiveness', label: t('levels.detail.pointsHistory.competitiveness'), value: format(points?.modifierCompetitiveness) },
-		{ key: 'length', label: t('levels.detail.pointsHistory.length'), value: format(points?.modifierLength) },
-		{ key: 'popularity', label: t('levels.detail.pointsHistory.popularity'), value: format(points?.modifierPopularity) },
-		{ key: 'rating', label: t('levels.detail.pointsHistory.rating'), value: format(points?.modifierRating) },
-	]
-})
 const splitAnalysisLabels = computed(() => ({
 	checkpoint: t('levels.detail.splitAnalysis.checkpoint'),
 	deltaTitle: t('levels.detail.splitAnalysis.deltaTitle'),
 	deltaDescription: t('levels.detail.splitAnalysis.deltaDescription'),
 	speedTitle: t('levels.detail.splitAnalysis.speedTitle'),
 	speedDescription: t('levels.detail.splitAnalysis.speedDescription'),
+	secondsUnit: t('dashboard.totals.units.seconds'),
+	speedUnit: t('dashboard.totals.units.kilometresPerHour'),
 }))
 const medalLabels = computed(() => ({
 	author: t('levels.detail.medals.author'),
