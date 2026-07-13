@@ -79,11 +79,18 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	})
 	const splitAnalysisQuery = useQuery({
 		query: Zc_LevelSplitAnalysisDocument,
-		variables: computed(() => ({ levelId: levelId.value ?? 0 })),
+		variables: computed(() => ({
+			levelId: levelId.value ?? 0,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
+		})),
 		pause: computed(() => levelId.value === undefined || !splitAnalysisPrefetch.active.value),
 	})
 	const splitAnalysis = computed(() =>
-		buildLevelSplitAnalysis(splitAnalysisQuery.data.value?.records?.nodes ?? []),
+		buildLevelSplitAnalysis(
+			splitAnalysisQuery.data.value?.records?.nodes ?? [],
+			splitAnalysisQuery.data.value?.viewerPersonalBest?.record,
+		),
 	)
 	const recent = useQuery({
 		query: Zc_LevelRecordsDocument,

@@ -5,9 +5,14 @@
 				v-for="player in analysis.series"
 				:key="player.recordId"
 				:to="player.userSteamId ? `/user/${player.userSteamId}` : `/record/${player.recordId}`"
-				class="flex items-center gap-2 rounded-lg border border-border bg-card/70 px-3 py-2 transition hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+				class="flex items-center gap-2 rounded-lg border px-3 py-2 transition hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+				:class="player.viewer ? 'border-primary/50 bg-primary/10' : 'border-border bg-card/70'"
 			>
-				<span class="size-2 rounded-full" :style="{ backgroundColor: player.color }" />
+				<span
+					class="w-4 shrink-0 border-t-2"
+					:class="player.viewer ? 'border-dotted' : 'border-solid'"
+					:style="{ borderColor: player.color }"
+				/>
 				<span class="text-sm font-semibold text-highlighted">{{ player.userName }}</span>
 				<span class="font-mono text-xs tabular-nums text-muted-foreground">
 					{{ formatTime(player.time) }}
@@ -31,6 +36,7 @@
 					:height="220"
 					:x-formatter="formatCheckpoint"
 					:line-width="3"
+					:line-dash-array="lineDashArray"
 					:duration="chartDuration"
 					:hide-legend="true"
 					:tooltip="tooltipOptions"
@@ -60,6 +66,7 @@
 					:height="220"
 					:x-formatter="formatCheckpoint"
 					:line-width="3"
+					:line-dash-array="lineDashArray"
 					:duration="chartDuration"
 					:hide-legend="true"
 					:tooltip="tooltipOptions"
@@ -110,6 +117,9 @@ const categories = computed(() =>
 	),
 )
 const seriesKeys = computed(() => props.analysis.series.map((player) => player.key))
+const lineDashArray = computed(() =>
+	props.analysis.series.map((player) => (player.viewer ? [2, 4] : [])),
+)
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const chartDuration = ref(0)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }

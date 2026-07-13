@@ -1,4 +1,15 @@
-query ZC_LevelSplitAnalysis($levelId: Int!) {
+fragment ZC_LevelSplitRecord on Record {
+	id
+	time
+	splits
+	speeds
+	user {
+		steamId
+		steamName
+	}
+}
+
+query ZC_LevelSplitAnalysis($levelId: Int!, $viewerId: Int!, $includeViewer: Boolean!) {
 	records(
 		first: 5
 		filter: {
@@ -10,14 +21,14 @@ query ZC_LevelSplitAnalysis($levelId: Int!) {
 		orderBy: [TIME_ASC, ID_ASC]
 	) {
 		nodes {
-			id
-			time
-			splits
-			speeds
-			user {
-				steamId
-				steamName
-			}
+			...ZC_LevelSplitRecord
+		}
+	}
+	viewerPersonalBest: personalBestGlobalByUserIdAndLevelId(userId: $viewerId, levelId: $levelId)
+		@include(if: $includeViewer)
+	{
+		record {
+			...ZC_LevelSplitRecord
 		}
 	}
 }

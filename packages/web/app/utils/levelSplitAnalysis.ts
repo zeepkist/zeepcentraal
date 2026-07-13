@@ -5,6 +5,7 @@ export type LevelSplitSeries = {
 	userSteamId?: string | null
 	time: number
 	color: string
+	viewer: boolean
 	deltas: number[]
 	speeds: number[]
 }
@@ -24,15 +25,22 @@ type RawSplitRecord = {
 	user?: { steamId: unknown; steamName?: string | null } | null
 }
 
-const SERIES_COLORS = ['#facc15', '#38bdf8', '#22c55e', '#f43f5e', '#a78bfa'] as const
+const SERIES_COLORS = ['#facc15', '#38bdf8', '#22c55e', '#f43f5e', '#a78bfa', '#fb923c'] as const
 
 function numericArray(value?: Array<number | null> | null): number[] | null {
 	if (!value?.length || value.some((item) => item == null || !Number.isFinite(item))) return null
 	return value as number[]
 }
 
-export function buildLevelSplitAnalysis(records: RawSplitRecord[]): LevelSplitAnalysis {
-	const normalized = records.flatMap((record) => {
+export function buildLevelSplitAnalysis(
+	records: RawSplitRecord[],
+	viewerRecord?: RawSplitRecord | null,
+): LevelSplitAnalysis {
+	const combinedRecords =
+		viewerRecord && !records.some((record) => record.id === viewerRecord.id)
+			? [...records, viewerRecord]
+			: records
+	const normalized = combinedRecords.flatMap((record) => {
 		const splits = numericArray(record.splits)
 		const speeds = numericArray(record.speeds)
 		return splits && speeds && splits.length === speeds.length
@@ -55,6 +63,7 @@ export function buildLevelSplitAnalysis(records: RawSplitRecord[]): LevelSplitAn
 			userSteamId: record.user?.steamId == null ? null : String(record.user.steamId),
 			time: record.time,
 			color: SERIES_COLORS[index % SERIES_COLORS.length] ?? SERIES_COLORS[0],
+			viewer: record.id === viewerRecord?.id,
 			deltas: splits.map(
 				(split, checkpoint) => split - (fastest.splits[checkpoint] ?? split),
 			),
