@@ -34,6 +34,8 @@ export type RecordRow = {
 	rank?: number | null
 	rankedPoints?: number | null
 	nonDecayedPoints?: number | null
+	points?: number | null
+	pbOrWr?: 'personal-best' | 'world-record' | null
 	worldRecord?: boolean
 	viewer?: boolean
 }

@@ -6,8 +6,10 @@
 					<th v-if="showRank" class="px-4 py-3">{{ rankLabel }}</th>
 					<th class="px-4 py-3">{{ userLabel }}</th>
 					<th v-if="showLevel" class="px-4 py-3">{{ levelLabel }}</th>
+					<th v-if="showPoints" class="px-4 py-3">{{ pointsLabel }}</th>
+					<th v-if="showPbOrWr" class="px-4 py-3">{{ pbOrWrLabel }}</th>
 					<th class="px-4 py-3">{{ timeLabel }}</th>
-					<th class="px-4 py-3">{{ dateLabel }}</th>
+					<th class="px-4 py-3 text-right">{{ dateLabel }}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -29,8 +31,28 @@
 							{{ record.levelName ?? record.levelXxHash }}
 						</NuxtLink>
 					</td>
+					<td v-if="showPoints" class="px-4 py-3 font-semibold tabular-nums">
+						<span v-if="record.points != null">{{ pointNumber.format(record.points) }}</span>
+					</td>
+					<td v-if="showPbOrWr" class="px-4 py-3">
+						<UBadge
+							v-if="record.pbOrWr === 'world-record'"
+							color="primary"
+							variant="soft"
+						>
+							{{ worldRecordLabel }}
+						</UBadge>
+						<UBadge
+							v-else-if="record.pbOrWr === 'personal-best'"
+							color="neutral"
+							variant="soft"
+							class="bg-purple-500/15 text-purple-700 ring-purple-500/25 dark:bg-purple-400/15 dark:text-purple-300 dark:ring-purple-400/25"
+						>
+							{{ personalBestLabel }}
+						</UBadge>
+					</td>
 					<td class="px-4 py-3 font-semibold tabular-nums">{{ formatTime(record.time) }}</td>
-					<td class="px-4 py-3 text-muted-foreground"><NuxtTime :datetime="record.dateCreated" relative /></td>
+					<td class="px-4 py-3 text-muted-foreground text-right"><NuxtTime :datetime="record.dateCreated" relative numeric="auto" relative-style="short" /></td>
 				</tr>
 			</tbody>
 		</table>
@@ -50,8 +72,19 @@ withDefaults(
 		dateLabel: string
 		showLevel?: boolean
 		showRank?: boolean
+		showPoints?: boolean
+		showPbOrWr?: boolean
+		pointsLabel?: string
+		pbOrWrLabel?: string
+		personalBestLabel?: string
+		worldRecordLabel?: string
 	}>(),
 	{ showLevel: false, showRank: true },
+)
+
+const { locale } = useI18n()
+const pointNumber = computed(
+	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
 )
 
 function formatTime(seconds: number) {

@@ -5,6 +5,7 @@ query ZC_LevelRecords(
 	$before: Cursor
 	$filter: RecordFilter!
 	$orderBy: [RecordsOrderBy!]
+	$includeStatus: Boolean!
 ) {
 	records(
 		first: $first
@@ -25,6 +26,12 @@ query ZC_LevelRecords(
 				user {
 					steamId
 					steamName
+				}
+				personalBestGlobals(first: 0) @include(if: $includeStatus) {
+					totalCount
+				}
+				worldRecordGlobals(first: 0) @include(if: $includeStatus) {
+					totalCount
 				}
 			}
 		}

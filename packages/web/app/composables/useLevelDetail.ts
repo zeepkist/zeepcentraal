@@ -3,6 +3,7 @@ import type { Ref } from 'vue'
 import {
 	type RecordsOrderBy,
 	Zc_LevelDetailDocument,
+	Zc_LevelPersonalBestRanksDocument,
 	Zc_LevelPointsHistoryDocument,
 	Zc_LevelRecordsDocument,
 	Zc_LevelSplitAnalysisDocument,
@@ -12,6 +13,11 @@ import {
 } from '~/graphql/generated/graphql'
 import type { CursorPage, LevelSummary, LevelWorldRecordSummary, RecordRow } from '~/types/app'
 import { buildLevelPointsHistory, getLevelPointsHistoryWindow } from '~/utils/levelPointsHistory'
+import {
+	buildLevelPersonalBestRanks,
+	calculateLevelPersonalBestPoints,
+	resolveRecordPbOrWr,
+} from '~/utils/levelRecordRows'
 import { buildLevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
 
 function mapRecord(
@@ -22,6 +28,8 @@ function mapRecord(
 		levelId: number
 		userId: number
 		user?: { steamId: unknown; steamName: string | null } | null
+		personalBestGlobals?: { totalCount: number } | null
+		worldRecordGlobals?: { totalCount: number } | null
 	},
 	viewerId?: number,
 ): RecordRow {
@@ -33,6 +41,7 @@ function mapRecord(
 		userId: record.userId,
 		userSteamId: record.user?.steamId == null ? null : String(record.user.steamId),
 		userName: record.user?.steamName,
+		pbOrWr: resolveRecordPbOrWr(record),
 		viewer: viewerId === record.userId,
 	}
 }
@@ -98,6 +107,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			...recentPagination.variables.value,
 			filter: { levelId: { equalTo: levelId.value ?? 0 } },
 			orderBy: ['DATE_CREATED_DESC' as RecordsOrderBy],
+			includeStatus: true,
 		})),
 		pause: computed(() => levelId.value === undefined || !recentPrefetch.active.value),
 	})
@@ -109,10 +119,39 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 				levelId: { equalTo: levelId.value ?? 0 },
 				personalBestGlobalsExist: true,
 			},
-			orderBy: ['TIME_ASC' as RecordsOrderBy],
+			orderBy: ['TIME_ASC' as RecordsOrderBy, 'ID_ASC' as RecordsOrderBy],
+			includeStatus: false,
 		})),
 		pause: computed(() => levelId.value === undefined || !personalBestsPrefetch.active.value),
 	})
+	const personalBestRecords = computed(() =>
+		(personalBests.data.value?.records?.edges ?? []).map(({ node }) => node),
+	)
+	const personalBestRankWindow = computed(() => {
+		const times = personalBestRecords.value.map((record) => record.time)
+		if (times.length === 0) return null
+		return { minimumTime: Math.min(...times), maximumTime: Math.max(...times) }
+	})
+	const personalBestRanks = useQuery({
+		query: Zc_LevelPersonalBestRanksDocument,
+		variables: computed(() => ({
+			levelId: levelId.value ?? 0,
+			minimumTime: personalBestRankWindow.value?.minimumTime ?? 0,
+			maximumTime: personalBestRankWindow.value?.maximumTime ?? 0,
+		})),
+		pause: computed(
+			() =>
+				levelId.value === undefined ||
+				!personalBestsPrefetch.active.value ||
+				personalBestRankWindow.value === null,
+		),
+	})
+	const personalBestRanksByTime = computed(() =>
+		buildLevelPersonalBestRanks(
+			personalBestRanks.data.value?.fasterPersonalBests?.totalCount,
+			personalBestRanks.data.value?.visiblePersonalBestTimes?.groupedAggregates,
+		),
+	)
 	const viewerBest = useQuery({
 		query: Zc_LevelViewerBestDocument,
 		variables: computed(() => ({ userId: viewerId.value ?? 0, levelId: levelId.value ?? 0 })),
@@ -135,8 +174,10 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		pause: computed(
 			() =>
 				!personalBestsPrefetch.active.value ||
-				viewerBestRecord.value === undefined ||
-				viewerBestRecord.value === null,
+				viewerBestRecord.value == null ||
+				personalBestRecords.value.some(
+					(record) => record.id === viewerBestRecord.value?.id,
+				),
 		),
 	})
 
@@ -186,21 +227,61 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			mapRecord(node, viewerId.value),
 		),
 	)
-	const personalBestRows = computed(() => {
-		const rows = (personalBests.data.value?.records?.edges ?? []).map(({ node }, index) => ({
-			...mapRecord(node, viewerId.value),
-			rank: pbPagination.after.value || pbPagination.before.value ? null : index + 1,
-		}))
+	const nextPersonalBestRows = computed<RecordRow[] | null>(() => {
+		if (
+			personalBests.fetching.value ||
+			personalBestRanks.fetching.value ||
+			viewerBest.fetching.value ||
+			viewerRank.fetching.value
+		) {
+			return null
+		}
+		if (
+			personalBestRecords.value.length > 0 &&
+			personalBestRecords.value.some(
+				(record) => !personalBestRanksByTime.value.has(record.time),
+			)
+		) {
+			return null
+		}
+		if (
+			viewerId.value !== undefined &&
+			personalBestsPrefetch.active.value &&
+			viewerBest.data.value === undefined
+		) {
+			return null
+		}
+
+		const levelPoints = level.value?.levelPoints?.points
+		const rows = personalBestRecords.value.map((record) => {
+			const rank = personalBestRanksByTime.value.get(record.time)
+			return {
+				...mapRecord(record, viewerId.value),
+				rank,
+				points: calculateLevelPersonalBestPoints(levelPoints, rank),
+			}
+		})
 		const own = viewerBestRecord.value
 		if (!own || rows.some((row) => row.id === own.id)) return rows
+		if (viewerRank.data.value === undefined) return null
+		const rank = Number(viewerRank.data.value.records?.totalCount ?? 0) + 1
 		return [
 			...rows,
 			{
 				...mapRecord(own, viewerId.value),
-				rank: Number(viewerRank.data.value?.records?.totalCount ?? 0) + 1,
+				rank,
+				points: calculateLevelPersonalBestPoints(levelPoints, rank),
 			},
 		]
 	})
+	const personalBestRows = shallowRef<RecordRow[]>([])
+	watch(
+		nextPersonalBestRows,
+		(rows) => {
+			if (rows !== null) personalBestRows.value = rows
+		},
+		{ immediate: true },
+	)
 	const recentPage = computed<CursorPage>(() =>
 		recent.data.value?.records?.pageInfo
 			? {
@@ -241,6 +322,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		personalBestPage,
 		personalBestRows,
 		personalBests,
+		personalBestRanks,
 		personalBestsTarget: personalBestsPrefetch.target,
 		pbPagination,
 		recent,

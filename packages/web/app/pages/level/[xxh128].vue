@@ -125,7 +125,12 @@
 								:error-title="$t('common.error')"
 								:empty-title="$t('common.empty')"
 							>
-								<RecordTable :records="levelData.recentRows.value" v-bind="recordLabels" :show-rank="false" />
+								<RecordTable
+									:records="levelData.recentRows.value"
+									v-bind="recordLabels"
+									:show-rank="false"
+									show-pb-or-wr
+								/>
 							</DataState>
 							<CursorPagination class="mt-4" :page="levelData.recentPage.value" :can-go-previous="levelData.recentPagination.canGoPrevious(levelData.recentPage.value)" :can-go-next="levelData.recentPagination.canGoNext(levelData.recentPage.value)" :pending="levelData.recent.fetching.value" v-bind="paginationLabels" @first="levelData.recentPagination.first()" @previous="levelData.recentPagination.previous(levelData.recentPage.value)" @next="levelData.recentPagination.next(levelData.recentPage.value)" @last="levelData.recentPagination.last()" />
 						</section>
@@ -136,21 +141,26 @@
 								:pending="
 									levelData.pbPagination.isInitialPending(
 										levelData.personalBests.fetching.value ||
+											levelData.personalBestRanks.fetching.value ||
 											levelData.viewerBest.fetching.value ||
 											levelData.viewerRank.fetching.value,
 										levelData.personalBestRows.value.length,
 										levelData.personalBestsActive.value,
 									)
 								"
-								:error="levelData.personalBests.error.value?.message || levelData.viewerBest.error.value?.message || levelData.viewerRank.error.value?.message"
+								:error="levelData.personalBests.error.value?.message || levelData.personalBestRanks.error.value?.message || levelData.viewerBest.error.value?.message || levelData.viewerRank.error.value?.message"
 								:empty="levelData.personalBestRows.value.length === 0"
 								:loading-label="$t('common.loading')"
 								:error-title="$t('common.error')"
 								:empty-title="$t('common.empty')"
 							>
-								<RecordTable :records="levelData.personalBestRows.value" v-bind="recordLabels" />
+								<RecordTable
+									:records="levelData.personalBestRows.value"
+									v-bind="recordLabels"
+									show-points
+								/>
 							</DataState>
-							<CursorPagination class="mt-4" :page="levelData.personalBestPage.value" :can-go-previous="levelData.pbPagination.canGoPrevious(levelData.personalBestPage.value)" :can-go-next="levelData.pbPagination.canGoNext(levelData.personalBestPage.value)" :pending="levelData.personalBests.fetching.value" v-bind="paginationLabels" @first="levelData.pbPagination.first()" @previous="levelData.pbPagination.previous(levelData.personalBestPage.value)" @next="levelData.pbPagination.next(levelData.personalBestPage.value)" @last="levelData.pbPagination.last()" />
+							<CursorPagination class="mt-4" :page="levelData.personalBestPage.value" :can-go-previous="levelData.pbPagination.canGoPrevious(levelData.personalBestPage.value)" :can-go-next="levelData.pbPagination.canGoNext(levelData.personalBestPage.value)" :pending="levelData.personalBests.fetching.value || levelData.personalBestRanks.fetching.value" v-bind="paginationLabels" @first="levelData.pbPagination.first()" @previous="levelData.pbPagination.previous(levelData.personalBestPage.value)" @next="levelData.pbPagination.next(levelData.personalBestPage.value)" @last="levelData.pbPagination.last()" />
 						</section>
 					</div>
 				</div>
@@ -229,6 +239,10 @@ const recordLabels = computed(() => ({
 	levelLabel: t('common.level'),
 	timeLabel: t('common.time'),
 	dateLabel: t('common.date'),
+	pointsLabel: t('common.points'),
+	pbOrWrLabel: t('levels.detail.recordTable.pbOrWr'),
+	personalBestLabel: t('levels.detail.recordTable.personalBest'),
+	worldRecordLabel: t('levels.card.worldRecord'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

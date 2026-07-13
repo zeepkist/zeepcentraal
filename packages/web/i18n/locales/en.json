@@ -682,6 +682,10 @@
 				"title": "Personal best leaderboard",
 				"description": "Current fastest time from each player."
 			},
+			"recordTable": {
+				"pbOrWr": "PB / WR",
+				"personalBest": "PB"
+			},
 			"hero": {
 				"published": "Published",
 				"unknownAuthor": "Unknown creator",
