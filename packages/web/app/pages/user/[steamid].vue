@@ -44,8 +44,10 @@
 						:can-go-previous="data.wrPagination.canGoPrevious(data.wrPage.value)"
 						:can-go-next="data.wrPagination.canGoNext(data.wrPage.value)"
 						:labels="resultLabels"
+						:sort-label="$t('levels.filters.sort')"
 						:sort-options="resultSortOptions"
 						:pagination-labels="paginationLabels"
+						show-points
 						@update:sort="data.setWrSort"
 						@first="data.wrPagination.first()"
 						@previous="data.wrPagination.previous(data.wrPage.value)"
@@ -53,42 +55,55 @@
 						@last="data.wrPagination.last()"
 					/>
 				</div>
-				<div :ref="data.personalBestsTarget">
-					<UserResultsSection
-						id="profile-personal-bests"
-						:title="$t('users.profile.personalBests.title')"
-						:description="$t('users.profile.personalBests.description')"
-						:records="data.pbRows.value"
-						:sort="data.pbSort.value"
-						:pending="pbPending"
-						:error="data.pbResult.value.error.value?.message"
-						:page="data.pbPage.value"
-						:can-go-previous="data.pbPagination.canGoPrevious(data.pbPage.value)"
-						:can-go-next="data.pbPagination.canGoNext(data.pbPage.value)"
-						:labels="resultLabels"
-						:sort-options="resultSortOptions"
-						:pagination-labels="paginationLabels"
-						@update:sort="data.setPbSort"
-						@first="data.pbPagination.first()"
-						@previous="data.pbPagination.previous(data.pbPage.value)"
-						@next="data.pbPagination.next(data.pbPage.value)"
-						@last="data.pbPagination.last()"
-					/>
-				</div>
+				<div class="grid gap-8 xl:grid-cols-2 xl:items-start">
+					<div :ref="data.personalBestsTarget">
+						<UserResultsSection
+							id="profile-personal-bests"
+							:title="$t('users.profile.personalBests.title')"
+							:description="$t('users.profile.personalBests.description')"
+							:records="data.pbRows.value"
+							:sort="data.pbSort.value"
+							:sort-label="$t('levels.filters.sort')"
+							:pending="pbPending"
+							:error="data.pbResult.value.error.value?.message"
+							:page="data.pbPage.value"
+							:can-go-previous="data.pbPagination.canGoPrevious(data.pbPage.value)"
+							:can-go-next="data.pbPagination.canGoNext(data.pbPage.value)"
+							:labels="resultLabels"
+							:sort-options="resultSortOptions"
+							:pagination-labels="paginationLabels"
+							show-points
+							show-pb-or-wr
+							@update:sort="data.setPbSort"
+							@first="data.pbPagination.first()"
+							@previous="data.pbPagination.previous(data.pbPage.value)"
+							@next="data.pbPagination.next(data.pbPage.value)"
+							@last="data.pbPagination.last()"
+						/>
+					</div>
 
-				<section :ref="data.recentTarget" aria-labelledby="profile-recent">
-					<SectionHeader id="profile-recent" :title="$t('users.profile.recent.title')" :description="$t('users.profile.recent.description')" />
-					<DataState :pending="
-						data.recentPagination.isInitialPending(
-							data.recent.fetching.value,
-							data.recentRows.value.length,
-							data.recentActive.value,
-						)
-					" :error="data.recent.error.value?.message" :empty="data.recentRows.value.length === 0" v-bind="stateLabels">
-						<UserResultTable :records="data.recentRows.value" :labels="resultLabels" />
-					</DataState>
-					<CursorPagination class="mt-4" :page="data.recentPage.value" :can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)" :can-go-next="data.recentPagination.canGoNext(data.recentPage.value)" :pending="data.recent.fetching.value" v-bind="paginationLabels" @first="data.recentPagination.first()" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" @last="data.recentPagination.last()" />
-				</section>
+					<div :ref="data.recentTarget">
+						<UserResultsSection
+							id="profile-recent"
+							:title="$t('users.profile.recent.title')"
+							:description="$t('users.profile.recent.description')"
+							:records="data.recentRows.value"
+							:pending="recentPending"
+							:error="data.recent.error.value?.message"
+							:page="data.recentPage.value"
+							:can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)"
+							:can-go-next="data.recentPagination.canGoNext(data.recentPage.value)"
+							:labels="resultLabels"
+							:pagination-labels="paginationLabels"
+							:show-rank="false"
+							show-pb-or-wr
+							@first="data.recentPagination.first()"
+							@previous="data.recentPagination.previous(data.recentPage.value)"
+							@next="data.recentPagination.next(data.recentPage.value)"
+							@last="data.recentPagination.last()"
+						/>
+					</div>
+				</div>
 
 				<div :ref="data.levelsTarget" class="grid gap-8 2xl:grid-cols-2 2xl:items-start">
 					<UserLevelCollection
@@ -196,10 +211,16 @@ const heroLabels = computed(() => ({ eyebrow: t('users.profile.eyebrow'), joined
 const historyLabels = computed(() => ({ rankedPoints: t('users.profile.history.rankedPoints'), rankedPointsDescription: t('users.profile.history.rankedPointsDescription'), totalPoints: t('users.profile.history.totalPoints'), totalPointsDescription: t('users.profile.history.totalPointsDescription'), rank: t('users.profile.history.rank'), rankDescription: t('users.profile.history.rankDescription') }))
 const resultLabels = computed(() => ({
 	rank: t('common.rank'),
+	user: t('common.user'),
 	level: t('common.level'),
 	time: t('common.time'),
-	value: t('users.columns.value'),
+	points: t('common.points'),
+	pbOrWr: t('levels.detail.recordTable.pbOrWr'),
+	personalBest: t('levels.detail.recordTable.personalBest'),
+	worldRecord: t('levels.card.worldRecord'),
 	date: t('common.date'),
+	error: t('common.error'),
+	empty: t('common.empty'),
 }))
 const resultSortOptions = computed(() => [
 	{ label: t('users.sort.valuable'), value: 'valuable' },
@@ -237,4 +258,5 @@ const wrPending = computed(
 const pbPending = computed(
 	() => !data.personalBestsActive.value || data.pbResult.value.fetching.value,
 )
+const recentPending = computed(() => !data.recentActive.value || data.recent.fetching.value)
 </script>

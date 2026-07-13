@@ -10,6 +10,7 @@ import {
 } from '~/graphql/generated/graphql'
 import type { CursorPage, LevelSummary, RecordRow, UserProfileSummary } from '~/types/app'
 import { getLevelHotWindows } from '~/utils/levelExplorer'
+import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'
 import { buildUserCareerHistory, getUserCareerHistoryWindow } from '~/utils/userCareerHistory'
 
 function cursorPage(
@@ -165,7 +166,7 @@ export function useUserProfile(steamId: Ref<string>) {
 		query: Zc_UserContributionsDocument,
 		variables: computed(() => ({
 			...pbPagination.variables.value,
-			filter: { userId: { equalTo: userId.value ?? 0 }, levelPosition: { greaterThan: 1 } },
+			filter: { userId: { equalTo: userId.value ?? 0 } },
 		})),
 		pause: computed(
 			() =>
@@ -194,7 +195,6 @@ export function useUserProfile(steamId: Ref<string>) {
 			filter: {
 				userId: { equalTo: userId.value ?? 0 },
 				personalBestGlobalsExist: true,
-				worldRecordGlobalsExist: false,
 			},
 		})),
 		pause: computed(
@@ -228,6 +228,8 @@ export function useUserProfile(steamId: Ref<string>) {
 								levelName:
 									node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
 								rank: node.levelPosition,
+								points: node.playerDecayedPoints,
+								pbOrWr: node.levelPosition === 1 ? 'world-record' : 'personal-best',
 								rankedPoints: node.playerDecayedPoints,
 								nonDecayedPoints: node.levelDecayedPoints,
 							},
@@ -250,6 +252,8 @@ export function useUserProfile(steamId: Ref<string>) {
 								levelName:
 									node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
 								rank: node.userPointContributions.nodes[0]?.levelPosition,
+								points: node.userPointContributions.nodes[0]?.playerDecayedPoints,
+								pbOrWr: resolveRecordPbOrWr(node),
 								rankedPoints:
 									node.userPointContributions.nodes[0]?.playerDecayedPoints,
 								nonDecayedPoints:
@@ -263,15 +267,38 @@ export function useUserProfile(steamId: Ref<string>) {
 	const pbValuableRows = contributionRows(pbValuable)
 	const wrRecentRows = resultRows(wrRecent)
 	const pbRecentRows = resultRows(pbRecent)
-	const recentRows = resultRows(recent)
-	const wrRows = computed(() =>
+	const recentRowsSource = resultRows(recent)
+	const wrRowsSource = computed(() =>
 		wrSort.value === 'valuable' ? wrValuableRows.value : wrRecentRows.value,
 	)
-	const pbRows = computed(() =>
+	const pbRowsSource = computed(() =>
 		pbSort.value === 'valuable' ? pbValuableRows.value : pbRecentRows.value,
 	)
 	const wrResult = computed(() => (wrSort.value === 'valuable' ? wrValuable : wrRecent))
 	const pbResult = computed(() => (pbSort.value === 'valuable' ? pbValuable : pbRecent))
+	function retainRows(rows: ComputedRef<RecordRow[]>, hasSnapshot: ComputedRef<boolean>) {
+		const retained = shallowRef<RecordRow[]>([])
+		watch(
+			[rows, hasSnapshot],
+			([nextRows, ready]) => {
+				if (ready) retained.value = nextRows
+			},
+			{ immediate: true },
+		)
+		return readonly(retained)
+	}
+	const wrRows = retainRows(
+		wrRowsSource,
+		computed(() => wrResult.value.data.value !== undefined),
+	)
+	const pbRows = retainRows(
+		pbRowsSource,
+		computed(() => pbResult.value.data.value !== undefined),
+	)
+	const recentRows = retainRows(
+		recentRowsSource,
+		computed(() => recent.data.value !== undefined),
+	)
 	const wrPage = computed(() =>
 		cursorPage(
 			wrSort.value === 'valuable'

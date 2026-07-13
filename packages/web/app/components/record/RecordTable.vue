@@ -4,7 +4,7 @@
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
 					<th v-if="showRank" class="px-4 py-3">{{ rankLabel }}</th>
-					<th class="px-4 py-3">{{ userLabel }}</th>
+					<th v-if="showUser" class="px-4 py-3">{{ userLabel }}</th>
 					<th v-if="showLevel" class="px-4 py-3">{{ levelLabel }}</th>
 					<th v-if="showPoints" class="px-4 py-3">{{ pointsLabel }}</th>
 					<th v-if="showPbOrWr" class="px-4 py-3">{{ pbOrWrLabel }}</th>
@@ -20,7 +20,7 @@
 					:class="record.viewer ? 'bg-primary/10 text-highlighted' : 'bg-card/60'"
 				>
 					<td v-if="showRank" class="px-4 py-3 tabular-nums">{{ record.rank ?? index + 1 }}</td>
-					<td class="px-4 py-3">
+					<td v-if="showUser" class="px-4 py-3">
 						<NuxtLink v-if="record.userSteamId" :to="`/user/${record.userSteamId}`" class="font-medium hover:text-primary">
 							{{ record.userName ?? record.userSteamId }}
 						</NuxtLink>
@@ -71,6 +71,7 @@ withDefaults(
 		timeLabel: string
 		dateLabel: string
 		showLevel?: boolean
+		showUser?: boolean
 		showRank?: boolean
 		showPoints?: boolean
 		showPbOrWr?: boolean
@@ -79,7 +80,7 @@ withDefaults(
 		personalBestLabel?: string
 		worldRecordLabel?: string
 	}>(),
-	{ showLevel: false, showRank: true },
+	{ showLevel: false, showRank: true, showUser: true },
 )
 
 const { locale } = useI18n()

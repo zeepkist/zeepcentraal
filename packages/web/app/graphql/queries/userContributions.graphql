@@ -11,7 +11,7 @@ query ZC_UserContributions(
 		last: $last
 		before: $before
 		filter: $filter
-		orderBy: [PLAYER_DECAYED_POINTS_DESC]
+		orderBy: [PLAYER_DECAYED_POINTS_DESC, LEVEL_ID_ASC]
 	) {
 		edges {
 			cursor

@@ -590,7 +590,7 @@
 			},
 			"personalBests": {
 				"title": "Personal bests",
-				"description": "Best non-world-record finishes, ordered by value or date."
+				"description": "Current personal bests, including world records, ordered by value or date."
 			},
 			"recent": {
 				"title": "Recent records",

@@ -125,7 +125,6 @@ describe('cursor pagination', () => {
 			'../../app/pages/super-league/[seasonSlug]/[roundSlug]/index.vue',
 			'../../app/pages/super-league/[seasonSlug]/[roundSlug]/[levelSlug].vue',
 			'../../app/pages/level/[xxh128].vue',
-			'../../app/pages/user/[steamid].vue',
 		]
 		for (const page of pages) {
 			expect(readFileSync(new URL(page, import.meta.url), 'utf8')).toContain(
@@ -137,5 +136,10 @@ describe('cursor pagination', () => {
 			'utf8',
 		)
 		expect(wrapper).toContain('pending && records.length === 0')
+		const userPage = readFileSync(
+			new URL('../../app/pages/user/[steamid].vue', import.meta.url),
+			'utf8',
+		)
+		expect(userPage).toContain('<UserResultsSection')
 	})
 })
