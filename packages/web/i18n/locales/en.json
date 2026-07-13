@@ -647,6 +647,7 @@
 			"worldRecord": {
 				"title": "World record",
 				"description": "Current fastest submitted time.",
+				"set": "Set",
 				"emptyTitle": "No world record yet",
 				"emptyDescription": "Install GTR and submit the first verified run for this level."
 			},
@@ -693,6 +694,15 @@
 				"rating": "Rating",
 				"trackLength": "Track length",
 				"competitiveness": "Competitiveness",
+				"competitivenessRatings": {
+					"veryEasy": "Very Easy",
+					"easy": "Easy",
+					"balanced": "Balanced",
+					"competitive": "Competitive",
+					"hard": "Hard",
+					"expert": "Expert",
+					"intense": "Intense"
+				},
 				"unavailable": "—",
 				"workshopAction": "Subscribe on Steam Workshop"
 			},

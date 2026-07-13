@@ -80,17 +80,11 @@
 
 				<div
 					v-if="worldRecord"
-					class="group relative isolate w-full overflow-hidden rounded-2xl border border-primary/35 bg-gradient-to-r from-primary/20 via-card/95 to-secondary/10 p-4 shadow-xl shadow-primary/10"
+					class="w-full rounded-2xl border border-primary/25 bg-default/80 p-4 shadow-sm"
 				>
-					<div
-						class="pointer-events-none absolute -right-8 -top-12 size-32 rounded-full bg-primary/20 blur-3xl"
-					/>
-					<div
-						class="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary via-primary/70 to-secondary"
-					/>
-					<div class="relative flex flex-wrap items-center gap-3 sm:flex-nowrap">
+					<div class="flex flex-wrap items-center gap-3 sm:flex-nowrap">
 						<span
-							class="grid size-12 shrink-0 place-items-center rounded-xl border border-primary/25 bg-primary/15 text-primary shadow-inner shadow-primary/10"
+							class="grid size-11 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary"
 						>
 							<TablerIcon name="trophy" class="size-6" />
 						</span>
@@ -98,17 +92,24 @@
 							<p class="text-xs font-bold uppercase tracking-[0.16em] text-primary">
 								{{ labels.worldRecord }}
 							</p>
-							<NuxtLink
-								v-if="worldRecord.userSteamId"
-								:to="`/user/${worldRecord.userSteamId}`"
-								class="mt-1 inline-flex max-w-full items-center gap-1.5 truncate text-sm font-semibold text-muted-foreground transition hover:text-primary"
-							>
-								<TablerIcon name="user-star" class="size-4 shrink-0" />
-								<span class="truncate">{{ worldRecord.userName ?? labels.unknownAuthor }}</span>
-							</NuxtLink>
-							<p v-else class="mt-1 truncate text-sm font-semibold text-muted-foreground">
-								{{ worldRecord.userName ?? labels.unknownAuthor }}
-							</p>
+							<div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+								<NuxtLink
+									v-if="worldRecord.userSteamId"
+									:to="`/user/${worldRecord.userSteamId}`"
+									class="inline-flex max-w-full items-center gap-1.5 truncate font-semibold transition hover:text-primary"
+								>
+									<TablerIcon name="user-star" class="size-4 shrink-0" />
+									<span class="truncate">{{ worldRecord.userName ?? labels.unknownAuthor }}</span>
+								</NuxtLink>
+								<span v-else class="truncate font-semibold">
+									{{ worldRecord.userName ?? labels.unknownAuthor }}
+								</span>
+								<span class="inline-flex items-center gap-1.5">
+									<TablerIcon name="calendar-event" class="size-4 shrink-0" />
+									{{ labels.worldRecordSet }}
+									<NuxtTime :datetime="worldRecord.dateCreated" relative />
+								</span>
+							</div>
 						</div>
 						<NuxtLink
 							:to="`/record/${worldRecord.recordId}`"
@@ -137,6 +138,8 @@
 
 <script setup lang="ts">
 import type { LevelSummary, LevelWorldRecordSummary } from '~/types/app'
+import type { LevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
+import { getLevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
 
 const props = defineProps<{
 	level: LevelSummary
@@ -152,8 +155,10 @@ const props = defineProps<{
 		personalBests: string
 		trackLength: string
 		competitiveness: string
+		competitivenessRatings: Record<LevelCompetitivenessRating, string>
 		unavailable: string
 		worldRecord: string
+		worldRecordSet: string
 		noWorldRecordTitle: string
 		noWorldRecordDescription: string
 		workshopAction: string
@@ -161,6 +166,9 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
+const competitivenessRating = computed(() =>
+	getLevelCompetitivenessRating(props.level.competitiveness),
+)
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const percentFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { style: 'percent', maximumFractionDigits: 1 }),
@@ -168,16 +176,18 @@ const percentFormat = computed(
 const distanceFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
 )
-const modifierFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 3 }),
-)
 const metrics = computed(() => [
 	{ label: props.labels.points, value: formatNumber(props.level.points) },
 	{ label: props.labels.rating, value: formatRating(props.level.rating) },
 	{ label: props.labels.records, value: formatNumber(props.level.recordCount) },
 	{ label: props.labels.personalBests, value: formatNumber(props.level.personalBestCount) },
 	{ label: props.labels.trackLength, value: formatDistance(props.level.trackLength) },
-	{ label: props.labels.competitiveness, value: formatModifier(props.level.competitiveness) },
+	{
+		label: props.labels.competitiveness,
+		value: competitivenessRating.value
+			? props.labels.competitivenessRatings[competitivenessRating.value]
+			: props.labels.unavailable,
+	},
 ])
 
 function formatNumber(value: number | null | undefined) {
@@ -192,10 +202,6 @@ function formatDistance(value: number | null | undefined) {
 	if (value == null) return props.labels.unavailable
 	if (value >= 1000) return `${distanceFormat.value.format(value / 1000)} km`
 	return `${distanceFormat.value.format(value)} m`
-}
-
-function formatModifier(value: number | null | undefined) {
-	return value == null ? props.labels.unavailable : modifierFormat.value.format(value)
 }
 
 function formatTime(seconds: number) {

@@ -218,6 +218,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		return {
 			recordId: value.record.id,
 			time: value.record.time,
+			dateCreated: String(value.record.dateCreated),
 			userName: value.user?.steamName,
 			userSteamId: value.user?.steamId == null ? null : String(value.user.steamId),
 		}

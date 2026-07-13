@@ -76,8 +76,10 @@ describe('compact level detail layout', () => {
 
 	it('uses consistent page rhythm and a visually distinct World Record panel', () => {
 		expect(page).toContain('space-y-8 lg:space-y-10')
-		expect(hero).toContain('bg-gradient-to-r from-primary/20')
-		expect(hero).toContain('shadow-xl shadow-primary/10')
+		expect(hero).toContain('border border-primary/25 bg-default/80')
+		expect(hero).toContain('shadow-sm')
+		expect(hero).not.toContain('shadow-primary/10')
+		expect(hero).toContain('<NuxtTime :datetime="worldRecord.dateCreated" relative />')
 		expect(hero).toContain('focus-visible:outline-primary')
 	})
 

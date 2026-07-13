@@ -87,6 +87,7 @@ export type LevelSummary = {
 export type LevelWorldRecordSummary = {
 	recordId: number
 	time: number
+	dateCreated: string
 	userName?: string | null
 	userSteamId?: string | null
 }

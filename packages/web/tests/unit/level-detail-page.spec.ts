@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { getLevelCompetitivenessRating } from '../../app/utils/levelCompetitiveness'
 import { steamWorkshopItemUrl } from '../../app/utils/steamWorkshop'
 
 const query = readFileSync(
@@ -44,8 +45,23 @@ describe('level detail hero', () => {
 		expect(hero).toContain('target="_blank"')
 		expect(hero).toContain('rel="noopener"')
 		expect(hero).toContain('labels.competitiveness')
+		expect(hero).toContain('getLevelCompetitivenessRating')
+		expect(hero).toContain('worldRecord.dateCreated')
 		expect(hero).not.toContain('min-h-80')
 		expect(hero).toContain('flex flex-wrap items-center gap-3')
+	})
+
+	it('maps competitiveness modifiers into centered difficulty tiers', () => {
+		expect(getLevelCompetitivenessRating(0.1)).toBe('veryEasy')
+		expect(getLevelCompetitivenessRating(0.5)).toBe('veryEasy')
+		expect(getLevelCompetitivenessRating(0.51)).toBe('easy')
+		expect(getLevelCompetitivenessRating(0.75)).toBe('easy')
+		expect(getLevelCompetitivenessRating(1)).toBe('balanced')
+		expect(getLevelCompetitivenessRating(1.2)).toBe('competitive')
+		expect(getLevelCompetitivenessRating(1.45)).toBe('hard')
+		expect(getLevelCompetitivenessRating(1.75)).toBe('expert')
+		expect(getLevelCompetitivenessRating(2)).toBe('intense')
+		expect(getLevelCompetitivenessRating(Number.NaN)).toBeNull()
 	})
 
 	it('builds canonical Steam Workshop item links', () => {
