@@ -21,6 +21,34 @@
 					<MedalTimes :times="summary.medals" :labels="medalLabels" />
 				</section>
 
+				<section :ref="levelData.pointsHistoryTarget" aria-labelledby="level-points-heading">
+					<SectionHeader
+						id="level-points-heading"
+						:title="$t('levels.detail.pointsHistory.title')"
+						:description="$t('levels.detail.pointsHistory.description')"
+					/>
+					<DataState
+						:pending="
+							!levelData.pointsHistoryActive.value ||
+							levelData.pointsHistoryQuery.fetching.value
+						"
+						:error="levelData.pointsHistoryQuery.error.value?.message"
+						:empty="
+							levelData.pointsHistoryActive.value &&
+							!levelData.pointsHistoryQuery.fetching.value &&
+							levelData.pointsHistory.value.length === 0
+						"
+						:loading-label="$t('common.loading')"
+						:error-title="$t('common.error')"
+						:empty-title="$t('common.empty')"
+					>
+						<LevelPointsInsights
+							:history="levelData.pointsHistory.value"
+							:metrics="pointMetrics"
+							:series-label="$t('levels.detail.pointsHistory.series')"
+						/>
+					</DataState>
+				</section>
 
 				<AuthorLevelsCta
 					:author-id="summary.authorId"
@@ -103,7 +131,7 @@
 
 <script setup lang="ts">
 const route = useRoute()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const session = useSessionStore()
 const user = computed(() => session.user)
 const xxHash = computed(() => String(route.params.xxh128))
@@ -187,6 +215,21 @@ const heroLabels = computed(() => ({
 	noWorldRecordDescription: t('levels.detail.worldRecord.emptyDescription'),
 	workshopAction: t('levels.detail.hero.workshopAction'),
 }))
+const pointNumberFormat = computed(
+	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 3 }),
+)
+const pointMetrics = computed(() => {
+	const points = levelData.level.value?.levelPoints
+	const format = (value: number | null | undefined) =>
+		value == null ? t('levels.detail.hero.unavailable') : pointNumberFormat.value.format(value)
+	return [
+		{ key: 'cutPenalty', label: t('levels.detail.pointsHistory.cutPenalty'), value: format(points?.cutPenalty) },
+		{ key: 'competitiveness', label: t('levels.detail.pointsHistory.competitiveness'), value: format(points?.modifierCompetitiveness) },
+		{ key: 'length', label: t('levels.detail.pointsHistory.length'), value: format(points?.modifierLength) },
+		{ key: 'popularity', label: t('levels.detail.pointsHistory.popularity'), value: format(points?.modifierPopularity) },
+		{ key: 'rating', label: t('levels.detail.pointsHistory.rating'), value: format(points?.modifierRating) },
+	]
+})
 const medalLabels = computed(() => ({
 	author: t('levels.detail.medals.author'),
 	gold: t('levels.detail.medals.gold'),

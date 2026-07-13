@@ -683,6 +683,16 @@
 				"title": "Enjoyed this level?",
 				"description": "Explore more workshop levels from this creator, sorted by highest points.",
 				"action": "View more levels"
+			},
+			"pointsHistory": {
+				"title": "Level points over time",
+				"description": "How this level’s ranked value changed during the past year.",
+				"series": "Level points",
+				"cutPenalty": "Cut penalty",
+				"competitiveness": "Competitiveness",
+				"length": "Length modifier",
+				"popularity": "Popularity modifier",
+				"rating": "Rating modifier"
 			}
 		}
 	}

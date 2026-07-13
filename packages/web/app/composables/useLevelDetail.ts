@@ -3,12 +3,14 @@ import type { Ref } from 'vue'
 import {
 	type RecordsOrderBy,
 	Zc_LevelDetailDocument,
+	Zc_LevelPointsHistoryDocument,
 	Zc_LevelRecordsDocument,
 	Zc_LevelStatisticsDocument,
 	Zc_LevelViewerBestDocument,
 	Zc_LevelViewerRankDocument,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, LevelSummary, LevelWorldRecordSummary, RecordRow } from '~/types/app'
+import { buildLevelPointsHistory, getLevelPointsHistoryWindow } from '~/utils/levelPointsHistory'
 
 function mapRecord(
 	record: {
@@ -36,7 +38,11 @@ function mapRecord(
 export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undefined>) {
 	const recentPagination = useCursorPagination(25, 'records')
 	const pbPagination = useCursorPagination(25, 'pbs')
+	const pointsHistoryPrefetch = useViewportPrefetch()
 	const statisticsPrefetch = useViewportPrefetch()
+	const pointsHistoryWindow = useState(`level-points-history-window:${xxHash.value}`, () =>
+		getLevelPointsHistoryWindow(),
+	)
 	const recentPrefetch = useViewportPrefetch()
 	const personalBestsPrefetch = useViewportPrefetch()
 	const detail = useQuery({
@@ -45,6 +51,24 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	})
 	const level = computed(() => detail.data.value?.levelByXxHash)
 	const levelId = computed(() => level.value?.id)
+	const pointsHistoryQuery = useQuery({
+		query: Zc_LevelPointsHistoryDocument,
+		variables: computed(() => ({
+			levelId: levelId.value ?? 0,
+			since: pointsHistoryWindow.value.since,
+		})),
+		pause: computed(() => levelId.value === undefined || !pointsHistoryPrefetch.active.value),
+	})
+	const pointsHistory = computed(() =>
+		buildLevelPointsHistory({
+			baseline: pointsHistoryQuery.data.value?.baseline?.nodes[0],
+			groups: pointsHistoryQuery.data.value?.history?.groupedAggregates,
+			currentPoints: level.value?.levelPoints?.points,
+			createdAt: String(level.value?.dateCreated ?? pointsHistoryWindow.value.since),
+			since: pointsHistoryWindow.value.since,
+			now: pointsHistoryWindow.value.now,
+		}),
+	)
 	const statistics = useQuery({
 		query: Zc_LevelStatisticsDocument,
 		variables: computed(() => ({ levelId: levelId.value ?? 0 })),
@@ -190,6 +214,10 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		detail,
 		level,
 		prefetchCritical,
+		pointsHistory,
+		pointsHistoryActive: pointsHistoryPrefetch.active,
+		pointsHistoryQuery,
+		pointsHistoryTarget: pointsHistoryPrefetch.target,
 		personalBestsActive: personalBestsPrefetch.active,
 		personalBestPage,
 		personalBestRows,
