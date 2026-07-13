@@ -212,7 +212,7 @@ export type DashboardStatisticsChart = {
 	total: DashboardPeriodData<string>
 }
 
-export type LevelTelemetryChart = {
+export type RecordTelemetryChart = {
 	key: string
 	title: string
 	description: string
@@ -221,11 +221,11 @@ export type LevelTelemetryChart = {
 	totalLabel: string
 }
 
-export type LevelTelemetryModel = {
+export type RecordTelemetryModel = {
 	minimumVersionLabel: string
 	emptyLabel: string
 	overviewMetrics: DashboardStatisticsMetric[]
-	charts: LevelTelemetryChart[]
+	charts: RecordTelemetryChart[]
 	driverInputs: {
 		title: string
 		description: string
@@ -235,6 +235,9 @@ export type LevelTelemetryModel = {
 		actions: DashboardStatisticsMetric[]
 	}
 }
+
+export type LevelTelemetryChart = RecordTelemetryChart
+export type LevelTelemetryModel = RecordTelemetryModel
 
 export type DashboardStatisticsModel = {
 	distanceMetrics: DashboardStatisticsMetric[]

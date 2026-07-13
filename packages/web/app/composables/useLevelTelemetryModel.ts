@@ -3,10 +3,13 @@ import type { Zc_LevelStatisticsQuery } from '~/graphql/generated/graphql'
 import type {
 	DashboardChartEntry,
 	DashboardStatisticsMetric,
-	LevelTelemetryModel,
+	RecordTelemetryModel,
 } from '~/types/app'
 
-export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery | undefined>) {
+export function useRecordTelemetryModel(
+	statistics: Ref<Zc_LevelStatisticsQuery | undefined>,
+	scope: 'level' | 'user' = 'level',
+) {
 	const { locale, t } = useI18n()
 	const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 	const oneDecimal = computed(
@@ -47,7 +50,10 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 		soap: '#ec4899',
 	} as const
 
-	return computed<LevelTelemetryModel>(() => {
+	const scopeT = (key: string) =>
+		t(`${scope === 'user' ? 'users.profile.telemetry' : 'levels.detail.stats'}.${key}`)
+
+	return computed<RecordTelemetryModel>(() => {
 		const data = statistics.value
 		const all = data?.allStatistics
 		const aggregates = data?.v6Statistics?.aggregates
@@ -296,29 +302,29 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 
 		return {
 			minimumVersionLabel: t('dashboard.totals.period.minimumVersion'),
-			emptyLabel: t('levels.detail.stats.empty'),
+			emptyLabel: scopeT('empty'),
 			overviewMetrics: [
 				{
 					key: 'distance',
-					label: t('levels.detail.stats.totalDistance'),
+					label: scopeT('totalDistance'),
 					value: formatDistance(numeric(all?.aggregates?.sum?.distance)),
 					icon: 'route',
 				},
 				{
 					key: 'runs',
-					label: t('levels.detail.stats.submittedRuns'),
+					label: scopeT('submittedRuns'),
 					value: formatCount(numeric(all?.totalCount)),
 					icon: 'flag-3',
 				},
 				{
 					key: 'telemetry-runs',
-					label: t('levels.detail.stats.telemetryRuns'),
+					label: scopeT('telemetryRuns'),
 					value: formatCount(numeric(data?.v6Statistics?.totalCount)),
 					icon: 'ghost-2',
 				},
 				{
 					key: 'time',
-					label: t('levels.detail.stats.totalTime'),
+					label: scopeT('totalTime'),
 					value: formatDuration(numeric(sum?.time)),
 					icon: 'clock',
 				},
@@ -330,7 +336,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 				},
 				{
 					key: 'max-speed',
-					label: t('levels.detail.stats.maxSpeed'),
+					label: scopeT('maxSpeed'),
 					value: `${oneDecimal.value.format(numeric(max?.maxSpeed))} ${t('dashboard.totals.units.kilometresPerHour')}`,
 					icon: 'gauge',
 				},
@@ -342,7 +348,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 				},
 				{
 					key: 'max-g',
-					label: t('levels.detail.stats.maxGforce'),
+					label: scopeT('maxGforce'),
 					value: `${twoDecimals.value.format(numeric(max?.maxGforce))} ${t('dashboard.totals.units.g')}`,
 					icon: 'arrow-narrow-down-dashed',
 				},
@@ -351,7 +357,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 				chart(
 					'surface-distance',
 					t('dashboard.totals.surfaceDistance.title'),
-					t('levels.detail.stats.surfaceDistance'),
+					scopeT('surfaceDistance'),
 					'road',
 					surfaceDistance,
 					formatDistance,
@@ -359,7 +365,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 				chart(
 					'surface-time',
 					t('dashboard.totals.surfaceTime.title'),
-					t('levels.detail.stats.surfaceTime'),
+					scopeT('surfaceTime'),
 					'hourglass',
 					surfaceTime,
 					formatDuration,
@@ -367,7 +373,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 				chart(
 					'wheels',
 					t('dashboard.totals.wheelDistance.title'),
-					t('levels.detail.stats.wheelDistance'),
+					scopeT('wheelDistance'),
 					'steering-wheel',
 					wheels,
 					formatDistance,
@@ -375,7 +381,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 				chart(
 					'movement-distance',
 					t('dashboard.totals.movementDistance.title'),
-					t('levels.detail.stats.movementDistance'),
+					scopeT('movementDistance'),
 					'wind',
 					movementDistance,
 					formatDistance,
@@ -383,7 +389,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 				chart(
 					'movement-time',
 					t('dashboard.totals.movementTime.title'),
-					t('levels.detail.stats.movementTime'),
+					scopeT('movementTime'),
 					'clock',
 					movementTime,
 					formatDuration,
@@ -391,7 +397,7 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 			],
 			driverInputs: {
 				title: t('dashboard.totals.actions.title'),
-				description: t('levels.detail.stats.driverInputs'),
+				description: scopeT('driverInputs'),
 				icon: 'steering-wheel',
 				steering,
 				steeringTotalLabel: formatCount(total(steering)),
@@ -400,3 +406,5 @@ export function useLevelTelemetryModel(statistics: Ref<Zc_LevelStatisticsQuery |
 		}
 	})
 }
+
+export const useLevelTelemetryModel = useRecordTelemetryModel
