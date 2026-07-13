@@ -20,14 +20,13 @@
 						:round-label="$t('zsl.roundNumber')"
 					/>
 				</section>
-				<section :ref="standingsTarget">
+				<section>
 					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.seasonStandings')" />
 					<DataState
 						:pending="
 							pagination.isInitialPending(
 								standingsResult.fetching.value,
 								standings.length,
-								standingsActive.value,
 							)
 						"
 						:error="standingsResult.error.value?.message"
@@ -41,7 +40,7 @@
 						:page="page"
 						:can-go-previous="pagination.canGoPrevious(page)"
 						:can-go-next="pagination.canGoNext(page)"
-						:pending="!standingsActive.value || standingsResult.fetching.value"
+						:pending="standingsResult.fetching.value"
 						v-bind="paginationLabels"
 						@first="pagination.first()"
 						@previous="pagination.previous(page)"
@@ -65,13 +64,13 @@ const id = computed(() => parsedSeasonId)
 const {
 	page,
 	pagination,
+	prefetch,
 	result,
 	season,
 	standings,
-	standingsActive,
 	standingsResult,
-	standingsTarget,
 } = useZslSeason(id)
+await prefetch()
 watchEffect(() => {
 	if (result.fetching.value || result.data.value === undefined) return
 	if (!season.value) {

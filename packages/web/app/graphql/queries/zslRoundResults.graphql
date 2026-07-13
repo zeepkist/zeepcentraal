@@ -1,10 +1,17 @@
-query ZC_ZslRoundResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+query ZC_ZslRoundResults(
+	$seasonId: Int!
+	$round: Int!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+) {
 	zslRoundResults(
 		first: $first
 		after: $after
 		last: $last
 		before: $before
-		filter: { roundId: { equalTo: $id } }
+		filter: { round: { seasonId: { equalTo: $seasonId }, round: { equalTo: $round } } }
 		orderBy: [POSITION_ASC]
 	) {
 		edges {

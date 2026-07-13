@@ -30,14 +30,13 @@
 						class="aspect-video w-full rounded-2xl object-cover"
 					/>
 				</section>
-				<section :ref="standingsTarget">
+				<section>
 					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.levelStandings')" />
 					<DataState
 						:pending="
 							pagination.isInitialPending(
 								standingsResult.fetching.value,
 								standings.length,
-								standingsActive.value,
 							)
 						"
 						:error="standingsResult.error.value?.message"
@@ -51,7 +50,7 @@
 						:page="page"
 						:can-go-previous="pagination.canGoPrevious(page)"
 						:can-go-next="pagination.canGoNext(page)"
-						:pending="!standingsActive.value || standingsResult.fetching.value"
+						:pending="standingsResult.fetching.value"
 						v-bind="paginationLabels"
 						@first="pagination.first()"
 						@previous="pagination.previous(page)"
@@ -78,12 +77,12 @@ const {
 	level,
 	page,
 	pagination,
+	prefetch,
 	result,
 	standings,
-	standingsActive,
 	standingsResult,
-	standingsTarget,
 } = useZslLevel(id)
+await prefetch()
 watchEffect(() => {
 	if (result.fetching.value || result.data.value === undefined) return
 	const entry = level.value
