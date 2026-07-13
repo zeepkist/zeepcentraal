@@ -32,10 +32,9 @@ const tooltip = readFileSync(
 )
 
 describe('compact level detail layout', () => {
-	it('removes point modifier metrics and their GraphQL fields', () => {
+	it('keeps only the requested competitiveness modifier', () => {
 		for (const field of [
 			'cutPenalty',
-			'modifierCompetitiveness',
 			'modifierLength',
 			'modifierPopularity',
 			'modifierRating',
@@ -43,6 +42,7 @@ describe('compact level detail layout', () => {
 			expect(detailQuery).not.toContain(field)
 			expect(page).not.toContain(field)
 		}
+		expect(detailQuery).toContain('modifierCompetitiveness')
 		expect(points).not.toContain('metrics:')
 	})
 
@@ -59,7 +59,8 @@ describe('compact level detail layout', () => {
 	})
 
 	it('uses dense telemetry cards while preserving dashboard defaults', () => {
-		expect(telemetry).toContain('2xl:grid-cols-8')
+		expect(telemetry).toContain('sm:grid-cols-2 xl:grid-cols-4')
+		expect(telemetry).not.toContain('2xl:grid-cols-8')
 		expect(telemetry).toContain('2xl:grid-cols-3')
 		expect(telemetry).toContain('<DashboardDonutChart')
 		expect(telemetry).toContain('compact')

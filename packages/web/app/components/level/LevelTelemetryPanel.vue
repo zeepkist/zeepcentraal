@@ -5,7 +5,7 @@
 			<p class="text-xs text-muted-foreground">{{ description }}</p>
 		</div>
 
-		<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+		<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 			<div
 				v-for="metric in model.overviewMetrics"
 				:key="metric.key"

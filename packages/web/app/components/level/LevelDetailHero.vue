@@ -7,16 +7,9 @@
 			class="relative grid gap-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)] lg:items-stretch"
 		>
 			<div class="flex min-w-0 flex-col justify-center">
-				<div class="flex flex-wrap items-center gap-2">
-					<UBadge v-if="level.adventure" color="primary" variant="soft">
-						{{ labels.adventure }}
-					</UBadge>
-					<div class="flex items-center gap-2 text-sm text-muted-foreground">
-						<TablerIcon name="calendar" class="size-4" />
-						<span>{{ labels.published }}</span>
-						<NuxtTime :datetime="level.dateCreated" relative />
-					</div>
-				</div>
+				<UBadge v-if="level.adventure" class="w-fit" color="primary" variant="soft">
+					{{ labels.adventure }}
+				</UBadge>
 
 				<h1 class="mt-4 text-balance text-4xl font-black tracking-tight text-highlighted md:text-6xl">
 					{{ level.name }}
@@ -48,7 +41,7 @@
 					</div>
 				</div>
 
-				<div class="mt-7 flex flex-wrap gap-3">
+				<div class="mt-7 flex flex-wrap items-center gap-3">
 					<UButton
 						v-if="workshopUrl"
 						:to="workshopUrl"
@@ -61,56 +54,64 @@
 					>
 						{{ labels.workshopAction }}
 					</UButton>
+					<div class="flex items-center gap-2 text-sm text-muted-foreground">
+						<TablerIcon name="calendar" class="size-4" />
+						<span>{{ labels.published }}</span>
+						<NuxtTime :datetime="level.dateCreated" relative />
+					</div>
 				</div>
 			</div>
 
-			<div
-				class="flex min-h-80 flex-col overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg"
-			>
-				<NuxtImg
-					v-if="level.imageUrl"
-					:src="level.imageUrl"
-					:alt="level.name"
-					class="aspect-video w-full object-cover"
-					preload
-				/>
-				<div v-else class="flex aspect-video items-center justify-center bg-muted">
-					<TablerIcon name="photo-off" class="size-12 text-muted-foreground" />
+			<div class="flex min-w-0 flex-col gap-4">
+				<div
+					class="w-full overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg"
+				>
+					<NuxtImg
+						v-if="level.imageUrl"
+						:src="level.imageUrl"
+						:alt="level.name"
+						class="aspect-video w-full object-cover"
+						preload
+					/>
+					<div v-else class="flex aspect-video items-center justify-center bg-muted">
+						<TablerIcon name="photo-off" class="size-12 text-muted-foreground" />
+					</div>
 				</div>
-				<div class="flex flex-1 items-center p-5">
-					<div
-						v-if="worldRecord"
-						class="w-full rounded-xl border border-primary/30 bg-primary/10 p-5 shadow-inner shadow-primary/5"
-					>
+
+				<div
+					v-if="worldRecord"
+					class="w-full rounded-2xl border border-primary/30 bg-primary/10 p-4 shadow-lg shadow-primary/5"
+				>
+					<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 						<p class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-primary">
 							<TablerIcon name="trophy" class="size-4" />
 							{{ labels.worldRecord }}
 						</p>
 						<NuxtLink
 							:to="`/record/${worldRecord.recordId}`"
-							class="mt-2 block text-4xl font-black tabular-nums text-highlighted transition hover:text-primary"
+							class="text-3xl font-black tabular-nums text-highlighted transition hover:text-primary"
 						>
 							{{ formatTime(worldRecord.time) }}
 						</NuxtLink>
-						<NuxtLink
-							v-if="worldRecord.userSteamId"
-							:to="`/user/${worldRecord.userSteamId}`"
-							class="mt-2 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-primary"
-						>
-							<TablerIcon name="user-star" class="size-4" />
-							{{ worldRecord.userName ?? labels.unknownAuthor }}
-						</NuxtLink>
-						<p v-else class="mt-2 text-sm text-muted-foreground">
-							{{ worldRecord.userName ?? labels.unknownAuthor }}
-						</p>
 					</div>
-					<div
-						v-else
-						class="w-full rounded-xl border border-dashed border-border p-5 text-muted-foreground"
+					<NuxtLink
+						v-if="worldRecord.userSteamId"
+						:to="`/user/${worldRecord.userSteamId}`"
+						class="mt-2 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-primary"
 					>
-						<p class="font-semibold text-highlighted">{{ labels.noWorldRecordTitle }}</p>
-						<p class="mt-1 text-sm">{{ labels.noWorldRecordDescription }}</p>
-					</div>
+						<TablerIcon name="user-star" class="size-4" />
+						{{ worldRecord.userName ?? labels.unknownAuthor }}
+					</NuxtLink>
+					<p v-else class="mt-2 text-sm text-muted-foreground">
+						{{ worldRecord.userName ?? labels.unknownAuthor }}
+					</p>
+				</div>
+				<div
+					v-else
+					class="w-full rounded-2xl border border-dashed border-border bg-default/70 p-4 text-muted-foreground shadow-sm"
+				>
+					<p class="font-semibold text-highlighted">{{ labels.noWorldRecordTitle }}</p>
+					<p class="mt-1 text-sm">{{ labels.noWorldRecordDescription }}</p>
 				</div>
 			</div>
 		</div>
@@ -133,6 +134,7 @@ const props = defineProps<{
 		records: string
 		personalBests: string
 		trackLength: string
+		competitiveness: string
 		unavailable: string
 		worldRecord: string
 		noWorldRecordTitle: string
@@ -149,12 +151,16 @@ const percentFormat = computed(
 const distanceFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
 )
+const modifierFormat = computed(
+	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 3 }),
+)
 const metrics = computed(() => [
 	{ label: props.labels.points, value: formatNumber(props.level.points) },
 	{ label: props.labels.rating, value: formatRating(props.level.rating) },
 	{ label: props.labels.records, value: formatNumber(props.level.recordCount) },
 	{ label: props.labels.personalBests, value: formatNumber(props.level.personalBestCount) },
 	{ label: props.labels.trackLength, value: formatDistance(props.level.trackLength) },
+	{ label: props.labels.competitiveness, value: formatModifier(props.level.competitiveness) },
 ])
 
 function formatNumber(value: number | null | undefined) {
@@ -169,6 +175,10 @@ function formatDistance(value: number | null | undefined) {
 	if (value == null) return props.labels.unavailable
 	if (value >= 1000) return `${distanceFormat.value.format(value / 1000)} km`
 	return `${distanceFormat.value.format(value)} m`
+}
+
+function formatModifier(value: number | null | undefined) {
+	return value == null ? props.labels.unavailable : modifierFormat.value.format(value)
 }
 
 function formatTime(seconds: number) {

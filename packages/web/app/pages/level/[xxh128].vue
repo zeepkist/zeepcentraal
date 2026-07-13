@@ -180,6 +180,7 @@ const heroLabels = computed(() => ({
 	records: t('common.records'),
 	personalBests: t('dashboard.metrics.personalBests'),
 	trackLength: t('levels.detail.hero.trackLength'),
+	competitiveness: t('levels.detail.hero.competitiveness'),
 	unavailable: t('levels.detail.hero.unavailable'),
 	worldRecord: t('levels.detail.worldRecord.title'),
 	noWorldRecordTitle: t('levels.detail.worldRecord.emptyTitle'),

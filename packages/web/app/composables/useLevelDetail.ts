@@ -151,6 +151,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			dateCreated: String(value.dateCreated),
 			points: value.levelPoints?.points,
 			rating: value.levelPoints?.rating,
+			competitiveness: value.levelPoints?.modifierCompetitiveness,
 			recordCount: value.records.totalCount,
 			personalBestCount: value.personalBestGlobals.totalCount,
 			medals: item

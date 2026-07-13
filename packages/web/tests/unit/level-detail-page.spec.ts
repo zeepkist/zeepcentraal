@@ -22,6 +22,7 @@ describe('level detail hero', () => {
 		expect(query).toContain('workshopId')
 		expect(query).toContain('levelPoints {')
 		expect(query).toContain('rating')
+		expect(query).toContain('modifierCompetitiveness')
 		expect(query).toContain('recordStatistic {')
 		expect(query).toContain('distance')
 		expect(query).not.toMatch(/^\s*hash\s*$/m)
@@ -42,6 +43,9 @@ describe('level detail hero', () => {
 		expect(hero).not.toContain('xxHash')
 		expect(hero).toContain('target="_blank"')
 		expect(hero).toContain('rel="noopener"')
+		expect(hero).toContain('labels.competitiveness')
+		expect(hero).not.toContain('min-h-80')
+		expect(hero).toContain('flex flex-wrap items-center gap-3')
 	})
 
 	it('builds canonical Steam Workshop item links', () => {

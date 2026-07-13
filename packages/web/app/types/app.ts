@@ -71,6 +71,7 @@ export type LevelSummary = {
 	dateCreated: string
 	points?: number | null
 	rating?: number | null
+	competitiveness?: number | null
 	popularity?: number | null
 	recordCount?: number
 	personalBestCount?: number
