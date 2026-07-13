@@ -29,6 +29,9 @@ const pointSorts = new Set<string>([
 	'LEVEL_POINTS_MODIFIER_POPULARITY_DESC',
 	'LEVEL_POINTS_POINTS_DESC',
 	'LEVEL_POINTS_RATING_DESC',
+	HOT_LEVEL_SORTS.year,
+	HOT_LEVEL_SORTS.month,
+	HOT_LEVEL_SORTS.today,
 ])
 const accessibleCommunityFilter: LevelFilter = {
 	adventure: { equalTo: false },

@@ -142,6 +142,9 @@ describe('level explorer filters', () => {
 		expect(getHotLevelSince(HOT_LEVEL_SORTS.today, windows)).toBe(windows.todaySince)
 		expect(getHotLevelSince(HOT_LEVEL_SORTS.month, windows)).toBe(windows.monthSince)
 		expect(getHotLevelSince(HOT_LEVEL_SORTS.year, windows)).toBe(windows.yearSince)
+		expect(buildLevelFilter({ ...baseFilter, sort: HOT_LEVEL_SORTS.today }).and).toContainEqual(
+			{ levelPointExists: true },
+		)
 	})
 })
 
