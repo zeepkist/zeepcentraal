@@ -575,6 +575,15 @@
 				"rank": "Global rank",
 				"rankDescription": "Lower positions are better."
 			},
+			"levels": {
+				"recentTitle": "Most recent levels",
+				"recentDescription": "Latest workshop levels published by this player.",
+				"popularTitle": "Most popular levels this year",
+				"popularDescription": "Levels attracting the most submitted runs during the past year.",
+				"recordsThisYear": "Records this year",
+				"viewAll": "View all levels",
+				"empty": "No published levels found"
+			},
 			"worldRecords": {
 				"title": "World records",
 				"description": "Sort by point contribution or record date."

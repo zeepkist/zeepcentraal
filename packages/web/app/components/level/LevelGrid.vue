@@ -1,7 +1,10 @@
 <template>
 	<div
 		class="grid gap-4 sm:grid-cols-2"
-		:class="columns === 4 ? 'xl:grid-cols-3 2xl:grid-cols-4' : 'xl:grid-cols-3'"
+		:class="{
+			'xl:grid-cols-3 2xl:grid-cols-4': columns === 4,
+			'xl:grid-cols-3': columns === 3,
+		}"
 	>
 		<LevelCard
 			v-for="level in levels"
@@ -33,7 +36,7 @@ withDefaults(
 		authorTimeLabel?: string
 		byLabel?: string
 		createdLabel?: string
-		columns?: 3 | 4
+		columns?: 2 | 3 | 4
 	}>(),
 	{ columns: 3 },
 )

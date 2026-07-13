@@ -89,6 +89,33 @@
 					</DataState>
 					<CursorPagination class="mt-4" :page="data.recentPage.value" :can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)" :can-go-next="data.recentPagination.canGoNext(data.recentPage.value)" :pending="data.recent.fetching.value" v-bind="paginationLabels" @first="data.recentPagination.first()" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" @last="data.recentPagination.last()" />
 				</section>
+
+				<div :ref="data.levelsTarget" class="grid gap-8 2xl:grid-cols-2 2xl:items-start">
+					<UserLevelCollection
+						id="profile-recent-levels"
+						:title="$t('users.profile.levels.recentTitle')"
+						:description="$t('users.profile.levels.recentDescription')"
+						:action-label="$t('users.profile.levels.viewAll')"
+						:action-to="levelsUrl"
+						:records-label="$t('common.records')"
+						:levels="data.recentLevels.value"
+						:pending="levelsPending"
+						:error="data.levelsQuery.error.value?.message"
+						:labels="levelCollectionLabels"
+					/>
+					<UserLevelCollection
+						id="profile-popular-levels"
+						:title="$t('users.profile.levels.popularTitle')"
+						:description="$t('users.profile.levels.popularDescription')"
+						:action-label="$t('users.profile.levels.viewAll')"
+						:action-to="levelsUrl"
+						:records-label="$t('users.profile.levels.recordsThisYear')"
+						:levels="data.popularLevels.value"
+						:pending="levelsPending"
+						:error="data.levelsQuery.error.value?.message"
+						:labels="levelCollectionLabels"
+					/>
+				</div>
 				</div>
 			</template>
 		</DataState>
@@ -107,6 +134,7 @@ const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const profileUrl = computed(() => steamProfileUrl(steamId.value))
 const workshopProfileUrl = computed(() => steamWorkshopProfileUrl(steamId.value))
+const levelsUrl = computed(() => `/levels?author=${steamId.value}`)
 const telemetryModel = useRecordTelemetryModel(data.statistics.data, 'user')
 
 useSeoMeta({
@@ -190,6 +218,19 @@ const stateLabels = computed(() => ({
 	errorTitle: t('common.error'),
 	emptyTitle: t('common.empty'),
 }))
+const levelCollectionLabels = computed(() => ({
+	loading: t('common.loading'),
+	error: t('common.error'),
+	empty: t('users.profile.levels.empty'),
+	adventure: t('common.adventure'),
+	points: t('common.points'),
+	personalBests: t('levels.card.personalBests'),
+	worldRecord: t('levels.card.worldRecord'),
+	authorTime: t('levels.card.authorTime'),
+	by: t('levels.card.by'),
+	created: t('levels.card.created'),
+}))
+const levelsPending = computed(() => !data.levelsActive.value || data.levelsQuery.fetching.value)
 const wrPending = computed(
 	() => !data.worldRecordsActive.value || data.wrResult.value.fetching.value,
 )
