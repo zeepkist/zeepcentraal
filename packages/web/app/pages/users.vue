@@ -1,19 +1,30 @@
 <template>
-	<UContainer class="py-2">
-		<PageHeader :eyebrow="$t('pages.users.eyebrow')" :title="$t('pages.users.title')" :description="$t('pages.users.description')" />
-		<div class="grid gap-6 lg:grid-cols-[18rem_1fr]">
-			<aside class="h-fit lg:sticky lg:top-4">
-				<UserFilterPanel :title="$t('users.filters.title')" :search="search" :sort="sort" :search-label="$t('users.filters.search')" :sort-label="$t('users.filters.sort')" :apply-label="$t('users.filters.apply')" :sort-options="sortOptions" @update:search="search = $event" @update:sort="sort = $event as UserPointsOrderBy" @apply="applyFilters" />
-			</aside>
-			<div class="min-w-0 space-y-6">
-				<p class="text-sm text-muted-foreground">{{ $t('users.results', { count: result.data.value?.userPoints?.totalCount ?? 0 }) }}</p>
-				<DataState :pending="pagination.isInitialPending(result.fetching.value, users.length)" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
-					<UserLeaderboardTable :users="users" :labels="tableLabels" />
-				</DataState>
-				<CursorPagination :page="page" :can-go-previous="pagination.canGoPrevious(page)" :can-go-next="pagination.canGoNext(page)" :pending="result.fetching.value" v-bind="paginationLabels" @first="pagination.first()" @previous="pagination.previous(page)" @next="pagination.next(page)" @last="pagination.last()" />
-			</div>
+	<ExplorerLayout>
+		<template #header>
+			<PageHeader :eyebrow="$t('pages.users.eyebrow')" :title="$t('pages.users.title')" :description="$t('pages.users.description')" />
+		</template>
+		<template #sidebar>
+			<UserFilterPanel
+				:title="$t('users.filters.title')"
+				:result-count-label="$t('users.results', { count: result.data.value?.userPoints?.totalCount ?? 0 })"
+				:search="search"
+				:sort="sort"
+				:search-label="$t('users.filters.search')"
+				:sort-label="$t('users.filters.sort')"
+				:apply-label="$t('users.filters.apply')"
+				:sort-options="sortOptions"
+				@update:search="search = $event"
+				@update:sort="sort = $event as UserPointsOrderBy"
+				@apply="applyFilters"
+			/>
+		</template>
+		<div class="min-w-0 space-y-6">
+			<DataState :pending="pagination.isInitialPending(result.fetching.value, users.length)" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
+				<UserLeaderboardTable :users="users" :labels="tableLabels" />
+			</DataState>
+			<CursorPagination :page="page" :can-go-previous="pagination.canGoPrevious(page)" :can-go-next="pagination.canGoNext(page)" :pending="result.fetching.value" v-bind="paginationLabels" @first="pagination.first()" @previous="pagination.previous(page)" @next="pagination.next(page)" @last="pagination.last()" />
 		</div>
-	</UContainer>
+	</ExplorerLayout>
 </template>
 
 <script setup lang="ts">
