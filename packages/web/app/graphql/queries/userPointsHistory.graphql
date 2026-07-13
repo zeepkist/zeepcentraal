@@ -1,0 +1,29 @@
+query ZC_UserPointsHistory($userId: Int!, $since: Datetime!) {
+	baseline: userPointsHistories(
+		first: 1
+		filter: { userId: { equalTo: $userId }, dateCreated: { lessThan: $since } }
+		orderBy: [DATE_CREATED_DESC, ID_DESC]
+	) {
+		nodes {
+			dateCreated
+			points
+			totalPoints
+			rank
+		}
+	}
+	history: userPointsHistories(
+		first: 0
+		filter: { userId: { equalTo: $userId }, dateCreated: { greaterThanOrEqualTo: $since } }
+	) {
+		groupedAggregates(groupBy: [DATE_CREATED]) {
+			keys
+			max {
+				points
+				totalPoints
+			}
+			min {
+				rank
+			}
+		}
+	}
+}

@@ -531,6 +531,11 @@
 		"profile": {
 			"notFound": "Player not found",
 			"eyebrow": "Player profile",
+			"joined": "Joined",
+			"globalRank": "Global rank",
+			"unranked": "Unranked",
+			"steamProfile": "Steam profile",
+			"steamWorkshop": "Steam Workshop",
 			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
 			"summary": {
 				"title": "Career summary",
@@ -538,15 +543,37 @@
 			},
 			"telemetry": {
 				"title": "Driving telemetry",
-				"description": "Aggregates across every submitted record.",
+				"description": "All-time driving telemetry across this player's verified records.",
+				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
+				"empty": "No compatible telemetry has been submitted by this player yet.",
+				"totalDistance": "Total distance",
+				"submittedRuns": "Submitted runs",
+				"telemetryRuns": "Telemetry-enabled runs",
+				"totalTime": "Total driving time",
 				"maxSpeed": "Maximum speed",
 				"maxGforce": "Maximum G-force",
+				"surfaceDistance": "Distance driven by surface across this player's records.",
+				"surfaceTime": "Time spent driving on each surface.",
+				"movementDistance": "Grounded, airborne and ragdoll distance.",
+				"movementTime": "Grounded, airborne and ragdoll time.",
+				"wheelDistance": "Distance travelled with four through zero wheels down.",
+				"driverInputs": "Steering direction and controls used across this player's records.",
 				"chart": {
 					"distance": "Driven",
 					"air": "Airborne",
 					"ragdoll": "Ragdoll",
 					"paraglider": "Paraglider"
 				}
+			},
+			"history": {
+				"title": "Career progression",
+				"description": "Rank and point movement during the past year.",
+				"rankedPoints": "Ranked points",
+				"rankedPointsDescription": "Points contributing to the global leaderboard.",
+				"totalPoints": "Total points",
+				"totalPointsDescription": "Full value earned across ranked levels.",
+				"rank": "Global rank",
+				"rankDescription": "Lower positions are better."
 			},
 			"worldRecords": {
 				"title": "World records",

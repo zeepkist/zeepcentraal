@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<UContainer class="py-2">
 		<DataState
 			:pending="data.profile.fetching.value"
 			:error="data.profile.error.value?.message"
@@ -8,34 +8,26 @@
 			:error-title="$t('common.error')"
 			:empty-title="$t('users.profile.notFound')"
 		>
-			<template v-if="user">
-				<section class="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-card to-card p-6 md:p-10">
-					<div class="absolute -right-12 -top-12 size-48 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
-					<p class="text-sm font-semibold uppercase tracking-widest text-primary">{{ $t('users.profile.eyebrow') }}</p>
-					<h1 class="mt-2 text-4xl font-black md:text-5xl">{{ user.steamName ?? steamId }}</h1>
-					<p class="mt-3 text-sm text-muted-foreground">{{ steamId }}</p>
-				</section>
+			<template v-if="user && summary">
+				<div class="space-y-8 lg:space-y-10">
+				<UserDetailHero :user="summary" :profile-url="profileUrl" :workshop-url="workshopProfileUrl" :labels="heroLabels" />
 
 				<section aria-labelledby="profile-summary">
 					<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
 					<MetricGrid :metrics="metrics" />
 				</section>
 
+				<section :ref="data.pointsHistoryTarget" aria-labelledby="profile-history">
+					<SectionHeader id="profile-history" :title="$t('users.profile.history.title')" :description="$t('users.profile.history.description')" />
+					<DataState :pending="!data.pointsHistoryActive.value || data.pointsHistoryQuery.fetching.value" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
+						<UserCareerHistory :history="data.pointsHistory.value" :labels="historyLabels" />
+					</DataState>
+				</section>
+
 				<section :ref="data.statisticsTarget" aria-labelledby="profile-telemetry">
 					<SectionHeader id="profile-telemetry" :title="$t('users.profile.telemetry.title')" :description="$t('users.profile.telemetry.description')" />
-					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
-						<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-							<MetricGrid :metrics="telemetryMetrics" />
-							<UCard class="rounded-xl border-border bg-card/85">
-								<BarChart
-									:data="chartData"
-									:categories="chartCategories"
-									:y-axis="['value']"
-									:height="280"
-									:x-formatter="chartLabel"
-								/>
-							</UCard>
-						</div>
+					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" v-bind="stateLabels">
+						<RecordTelemetryPanel :model="telemetryModel" :description="$t('users.profile.telemetry.telemetryDescription')" />
 					</DataState>
 				</section>
 
@@ -97,6 +89,7 @@
 					</DataState>
 					<CursorPagination class="mt-4" :page="data.recentPage.value" :can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)" :can-go-next="data.recentPagination.canGoNext(data.recentPage.value)" :pending="data.recent.fetching.value" v-bind="paginationLabels" @first="data.recentPagination.first()" @previous="data.recentPagination.previous(data.recentPage.value)" @next="data.recentPagination.next(data.recentPage.value)" @last="data.recentPagination.last()" />
 				</section>
+				</div>
 			</template>
 		</DataState>
 	</UContainer>
@@ -108,9 +101,13 @@ const { t } = useI18n()
 const steamId = computed(() => String(route.params.steamid))
 const data = useUserProfile(steamId)
 const user = data.user
-const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
-const sums = computed(() => data.statistics.data.value?.recordStatistics?.aggregates?.sum)
-const aggregates = computed(() => data.statistics.data.value?.recordStatistics?.aggregates)
+await data.prefetchCritical()
+const summary = data.summary
+const { locale } = useI18n()
+const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
+const profileUrl = computed(() => steamProfileUrl(steamId.value))
+const workshopProfileUrl = computed(() => steamWorkshopProfileUrl(steamId.value))
+const telemetryModel = useRecordTelemetryModel(data.statistics.data, 'user')
 
 useSeoMeta({
 	title: () =>
@@ -126,81 +123,49 @@ const metrics = computed(() => [
 	{
 		key: 'rank',
 		label: t('common.rank'),
-		value: user.value?.userPoints ? `#${number.format(user.value.userPoints.rank)}` : '—',
+		value: user.value?.userPoints && user.value.userPoints.rank > 0 ? `#${number.value.format(user.value.userPoints.rank)}` : t('users.profile.unranked'),
 		icon: 'trophy',
 	},
 	{
 		key: 'points',
 		label: t('users.columns.rankedPoints'),
-		value: number.format(user.value?.userPoints?.points ?? 0),
+		value: number.value.format(user.value?.userPoints?.points ?? 0),
 		icon: 'dashboard',
 	},
 	{
 		key: 'total',
 		label: t('users.columns.totalPoints'),
-		value: number.format(user.value?.userPoints?.totalPoints ?? 0),
+		value: number.value.format(user.value?.userPoints?.totalPoints ?? 0),
 		icon: 'dashboard',
 	},
 	{
 		key: 'records',
 		label: t('common.records'),
-		value: number.format(user.value?.records.totalCount ?? 0),
+		value: number.value.format(user.value?.records.totalCount ?? 0),
 		icon: 'route',
 	},
 	{
 		key: 'pbs',
 		label: t('dashboard.metrics.personalBests'),
-		value: number.format(user.value?.personalBestGlobals.totalCount ?? 0),
+		value: number.value.format(user.value?.personalBestGlobals.totalCount ?? 0),
 		icon: 'users',
 	},
 	{
 		key: 'wrs',
 		label: t('users.columns.worldRecords'),
-		value: number.format(user.value?.worldRecordGlobals.totalCount ?? 0),
+		value: number.value.format(user.value?.worldRecordGlobals.totalCount ?? 0),
 		icon: 'flag',
 	},
 	{
 		key: 'levels',
 		label: t('common.levels'),
-		value: number.format(user.value?.levelItems.totalCount ?? 0),
+		value: number.value.format(user.value?.levelItems.totalCount ?? 0),
 		icon: 'map',
+		to: `/levels?author=${steamId.value}`,
 	},
 ])
-const telemetryMetrics = computed(() => [
-	{
-		key: 'distance',
-		label: t('dashboard.metrics.distance'),
-		value: `${number.format((sums.value?.distance ?? 0) / 1000)} km`,
-		icon: 'route',
-	},
-	{
-		key: 'airtime',
-		label: t('dashboard.metrics.airtime'),
-		value: `${number.format((sums.value?.timeInAir ?? 0) / 3600)} h`,
-		icon: 'dashboard',
-	},
-	{
-		key: 'speed',
-		label: t('users.profile.telemetry.maxSpeed'),
-		value: number.format(aggregates.value?.max?.maxSpeed ?? 0),
-		icon: 'dashboard',
-	},
-	{
-		key: 'gforce',
-		label: t('users.profile.telemetry.maxGforce'),
-		value: number.format(aggregates.value?.max?.maxGforce ?? 0),
-		icon: 'dashboard',
-	},
-])
-const chartData = computed(() => [
-	{ key: 'distance', value: (sums.value?.distance ?? 0) / 1000 },
-	{ key: 'air', value: (sums.value?.distanceInAir ?? 0) / 1000 },
-	{ key: 'ragdoll', value: (sums.value?.distanceRagdoll ?? 0) / 1000 },
-	{ key: 'paraglider', value: (sums.value?.distanceParaglider ?? 0) / 1000 },
-])
-const chartCategories = { value: { name: t('dashboard.totals.kilometres'), color: '#facc15' } }
-const chartLabel = (index: number) =>
-	t(`users.profile.telemetry.chart.${chartData.value[index]?.key ?? 'distance'}`)
+const heroLabels = computed(() => ({ eyebrow: t('users.profile.eyebrow'), joined: t('users.profile.joined'), globalRank: t('users.profile.globalRank'), rankedPoints: t('users.columns.rankedPoints'), totalPoints: t('users.columns.totalPoints'), unranked: t('users.profile.unranked'), steamProfile: t('users.profile.steamProfile'), steamWorkshop: t('users.profile.steamWorkshop') }))
+const historyLabels = computed(() => ({ rankedPoints: t('users.profile.history.rankedPoints'), rankedPointsDescription: t('users.profile.history.rankedPointsDescription'), totalPoints: t('users.profile.history.totalPoints'), totalPointsDescription: t('users.profile.history.totalPointsDescription'), rank: t('users.profile.history.rank'), rankDescription: t('users.profile.history.rankDescription') }))
 const resultLabels = computed(() => ({
 	rank: t('common.rank'),
 	level: t('common.level'),

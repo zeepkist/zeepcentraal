@@ -8,6 +8,7 @@
 			:label="metric.label"
 			:value="metric.value"
 			:value-label="metric.valueLabel"
+			:to="metric.to"
 		/>
 	</div>
 </template>

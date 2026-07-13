@@ -1,23 +1,66 @@
-query ZC_UserStatistics($userId: Int!) {
-	recordStatistics(first: 0, filter: { record: { userId: { equalTo: $userId } } }) {
+query ZC_UserStatistics($userId: Int!, $minimumModVersion: String!) {
+	allStatistics: recordStatistics(
+		first: 0
+		filter: { record: { userId: { equalTo: $userId } } }
+	) {
+		totalCount
 		aggregates {
 			sum {
 				distance
+			}
+		}
+	}
+	v6Statistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
+			}
+		}
+	) {
+		totalCount
+		aggregates {
+			sum {
+				distance
+				distanceInAir
+				distanceOn1Wheel
+				distanceOn2Wheels
+				distanceOn3Wheels
+				distanceOn4Wheels
+				distanceOnGrass
+				distanceOnGround
+				distanceOnIce
+				distanceOnMetal
+				distanceOnSand
+				distanceOnSnow
+				distanceOnSoap
+				distanceOnTarmac
+				distanceRagdoll
 				time
 				timeInAir
-				distanceInAir
-				distanceRagdoll
-				distanceParaglider
-				hornCount
+				timeOnGrass
+				timeOnGround
+				timeOnIce
+				timeOnMetal
+				timeOnSand
+				timeOnSnow
+				timeOnSoap
+				timeOnTarmac
+				timeRagdoll
+				turnLeftCount
+				turnRightCount
+				armsUpCount
 				brakeCount
+				hornCount
 			}
 			average {
-				averageSpeed
 				averageGforce
+				averageSpeed
 			}
 			max {
-				maxSpeed
 				maxGforce
+				maxSpeed
 			}
 		}
 	}

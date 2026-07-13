@@ -1,11 +1,13 @@
 import { useQuery } from '@urql/vue'
 import {
 	Zc_UserContributionsDocument,
+	Zc_UserPointsHistoryDocument,
 	Zc_UserProfileDocument,
 	Zc_UserResultsDocument,
 	Zc_UserStatisticsDocument,
 } from '~/graphql/generated/graphql'
-import type { CursorPage, RecordRow } from '~/types/app'
+import type { CursorPage, RecordRow, UserProfileSummary } from '~/types/app'
+import { buildUserCareerHistory, getUserCareerHistoryWindow } from '~/utils/userCareerHistory'
 
 function cursorPage(
 	info?: {
@@ -27,6 +29,7 @@ function cursorPage(
 
 export function useUserProfile(steamId: Ref<string>) {
 	const statisticsPrefetch = useViewportPrefetch()
+	const historyPrefetch = useViewportPrefetch()
 	const worldRecordsPrefetch = useViewportPrefetch()
 	const personalBestsPrefetch = useViewportPrefetch()
 	const recentPrefetch = useViewportPrefetch()
@@ -36,9 +39,46 @@ export function useUserProfile(steamId: Ref<string>) {
 	})
 	const user = computed(() => profile.data.value?.users?.nodes[0])
 	const userId = computed(() => user.value?.id)
+	const historyWindow = useState(`user-career-history-window:${steamId.value}`, () =>
+		getUserCareerHistoryWindow(),
+	)
+	const summary = computed<UserProfileSummary | null>(() => {
+		const value = user.value
+		if (!value) return null
+		return {
+			id: value.id,
+			steamId: String(value.steamId),
+			steamName: value.steamName,
+			dateCreated: String(value.dateCreated),
+			rank: value.userPoints?.rank ?? null,
+			rankedPoints: value.userPoints?.points ?? 0,
+			totalPoints: value.userPoints?.totalPoints ?? 0,
+			records: value.records.totalCount,
+			personalBests: value.personalBestGlobals.totalCount,
+			worldRecords: value.worldRecordGlobals.totalCount,
+			levels: value.levelItems.totalCount,
+		}
+	})
+	const pointsHistoryQuery = useQuery({
+		query: Zc_UserPointsHistoryDocument,
+		variables: computed(() => ({
+			userId: userId.value ?? 0,
+			since: historyWindow.value.since,
+		})),
+		pause: computed(() => userId.value === undefined || !historyPrefetch.active.value),
+	})
+	const pointsHistory = computed(() =>
+		buildUserCareerHistory({
+			baseline: pointsHistoryQuery.data.value?.baseline?.nodes[0],
+			groups: pointsHistoryQuery.data.value?.history?.groupedAggregates,
+			current: user.value?.userPoints,
+			since: historyWindow.value.since,
+			now: historyWindow.value.now,
+		}),
+	)
 	const statistics = useQuery({
 		query: Zc_UserStatisticsDocument,
-		variables: computed(() => ({ userId: userId.value ?? 0 })),
+		variables: computed(() => ({ userId: userId.value ?? 0, minimumModVersion: '1.2.0' })),
 		pause: computed(() => userId.value === undefined || !statisticsPrefetch.active.value),
 	})
 
@@ -197,6 +237,10 @@ export function useUserProfile(steamId: Ref<string>) {
 		await pbPagination.reset()
 	}
 
+	async function prefetchCritical() {
+		if (import.meta.server) await profile
+	}
+
 	return {
 		personalBestsActive: personalBestsPrefetch.active,
 		personalBestsTarget: personalBestsPrefetch.target,
@@ -205,6 +249,11 @@ export function useUserProfile(steamId: Ref<string>) {
 		pbResult,
 		pbRows,
 		pbSort,
+		pointsHistory,
+		pointsHistoryActive: historyPrefetch.active,
+		pointsHistoryQuery,
+		pointsHistoryTarget: historyPrefetch.target,
+		prefetchCritical,
 		profile,
 		recent,
 		recentActive: recentPrefetch.active,
@@ -217,6 +266,7 @@ export function useUserProfile(steamId: Ref<string>) {
 		statistics,
 		statisticsActive: statisticsPrefetch.active,
 		statisticsTarget: statisticsPrefetch.target,
+		summary,
 		user,
 		wrPage,
 		wrPagination,

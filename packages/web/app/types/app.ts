@@ -109,6 +109,28 @@ export type StatisticMetric = {
 	valueLabel?: string
 	icon?: string
 	details?: Array<{ label: string; value: string }>
+	to?: string
+}
+
+export type UserProfileSummary = {
+	id: number
+	steamId: string
+	steamName: string | null
+	dateCreated: string
+	rank: number | null
+	rankedPoints: number
+	totalPoints: number
+	records: number
+	personalBests: number
+	worldRecords: number
+	levels: number
+}
+
+export type UserCareerHistoryPoint = {
+	date: string
+	rankedPoints: number
+	totalPoints: number
+	rank: number | null
 }
 
 export type CursorPage = {
