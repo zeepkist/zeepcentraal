@@ -88,5 +88,11 @@ describe('compact level detail layout', () => {
 		expect(page.match(/<CursorPagination/g)).toHaveLength(2)
 		expect(page).toContain('levelData.recentPagination')
 		expect(page).toContain('levelData.pbPagination')
+		expect(page).toContain(
+			':pending="!levelData.recentActive.value || levelData.recent.fetching.value"',
+		)
+		expect(page).toContain(
+			':pending="!levelData.personalBestsActive.value || levelData.personalBests.fetching.value || levelData.personalBestRanks.fetching.value"',
+		)
 	})
 })
