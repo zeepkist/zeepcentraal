@@ -33,7 +33,7 @@
 						:empty="standings.length === 0"
 						v-bind="stateLabels"
 					>
-						<ZslStandingsTable :standings="standings" :labels="tableLabels" />
+						<ZslStandingsTable :standings="standings" :viewer-user-id="viewerId" :labels="tableLabels" />
 					</DataState>
 					<CursorPagination
 						class="mt-4"
@@ -56,6 +56,8 @@
 <script setup lang="ts">
 const route = useRoute()
 const { t } = useI18n()
+const session = useSessionStore()
+const viewerId = computed(() => session.user?.id)
 const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
 if (parsedSeasonId === null) {
 	throw createError({ statusCode: 404, statusMessage: t('zsl.notFound') })
@@ -69,7 +71,7 @@ const {
 	season,
 	standings,
 	standingsResult,
-} = useZslSeason(id)
+} = useZslSeason(id, viewerId)
 await prefetch()
 watchEffect(() => {
 	if (result.fetching.value || result.data.value === undefined) return
@@ -93,6 +95,7 @@ const tableLabels = computed(() => ({
 	time: t('common.time'),
 	points: t('common.points'),
 	unknown: t('zsl.unknown'),
+	yourStanding: t('zsl.yourStanding'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

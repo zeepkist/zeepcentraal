@@ -43,7 +43,7 @@
 						:empty="standings.length === 0"
 						v-bind="stateLabels"
 					>
-						<ZslStandingsTable :standings="standings" show-time :labels="tableLabels" />
+						<ZslStandingsTable :standings="standings" :viewer-user-id="viewerId" show-time :labels="tableLabels" />
 					</DataState>
 					<CursorPagination
 						class="mt-4"
@@ -66,6 +66,8 @@
 <script setup lang="ts">
 const route = useRoute()
 const { t } = useI18n()
+const session = useSessionStore()
+const viewerId = computed(() => session.user?.id)
 const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
 const parsedRoundNumber = parseSuperLeagueSlug(route.params.roundSlug, 'round')
 const parsedLevelId = parseSuperLeagueSlug(route.params.levelSlug, 'level')
@@ -81,7 +83,7 @@ const {
 	result,
 	standings,
 	standingsResult,
-} = useZslLevel(id)
+} = useZslLevel(id, viewerId)
 await prefetch()
 watchEffect(() => {
 	if (result.fetching.value || result.data.value === undefined) return
@@ -109,6 +111,7 @@ const tableLabels = computed(() => ({
 	time: t('common.time'),
 	points: t('common.points'),
 	unknown: t('zsl.unknown'),
+	yourStanding: t('zsl.yourStanding'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

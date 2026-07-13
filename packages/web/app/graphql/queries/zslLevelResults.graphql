@@ -1,4 +1,27 @@
-query ZC_ZslLevelResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+fragment ZC_ZslLevelStandingFields on ZslLevelResult {
+	position
+	points
+	userId
+	time
+	user {
+		id
+		steamId
+		steamName
+	}
+	record {
+		id
+	}
+}
+
+query ZC_ZslLevelResults(
+	$id: Int!
+	$viewerId: Int!
+	$includeViewer: Boolean!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+) {
 	zslLevelResults(
 		first: $first
 		after: $after
@@ -10,16 +33,7 @@ query ZC_ZslLevelResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $be
 		edges {
 			cursor
 			node {
-				position
-				points
-				time
-				user {
-					steamId
-					steamName
-				}
-				record {
-					id
-				}
+				...ZC_ZslLevelStandingFields
 			}
 		}
 		pageInfo {
@@ -29,5 +43,13 @@ query ZC_ZslLevelResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $be
 			hasPreviousPage
 		}
 		totalCount
+	}
+	viewerStanding: zslLevelResults(
+		first: 1
+		filter: { levelId: { equalTo: $id }, userId: { equalTo: $viewerId } }
+	) @include(if: $includeViewer) {
+		nodes {
+			...ZC_ZslLevelStandingFields
+		}
 	}
 }

@@ -1,6 +1,19 @@
+fragment ZC_ZslRoundStandingFields on ZslRoundResult {
+	position
+	points
+	userId
+	user {
+		id
+		steamId
+		steamName
+	}
+}
+
 query ZC_ZslRoundResults(
 	$seasonId: Int!
 	$round: Int!
+	$viewerId: Int!
+	$includeViewer: Boolean!
 	$first: Int
 	$after: Cursor
 	$last: Int
@@ -17,12 +30,7 @@ query ZC_ZslRoundResults(
 		edges {
 			cursor
 			node {
-				position
-				points
-				user {
-					steamId
-					steamName
-				}
+				...ZC_ZslRoundStandingFields
 			}
 		}
 		pageInfo {
@@ -32,5 +40,16 @@ query ZC_ZslRoundResults(
 			hasPreviousPage
 		}
 		totalCount
+	}
+	viewerStanding: zslRoundResults(
+		first: 1
+		filter: {
+			round: { seasonId: { equalTo: $seasonId }, round: { equalTo: $round } }
+			userId: { equalTo: $viewerId }
+		}
+	) @include(if: $includeViewer) {
+		nodes {
+			...ZC_ZslRoundStandingFields
+		}
 	}
 }

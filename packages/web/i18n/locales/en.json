@@ -589,7 +589,8 @@
 		"levelResults": "Zeepkist Super League Level Results",
 		"openLevel": "View level leaderboard",
 		"unknown": "Unknown player",
-		"notFound": "Super League result not found"
+		"notFound": "Super League result not found",
+		"yourStanding": "Your standing"
 	},
 	"levels": {
 		"results": "{count} levels",

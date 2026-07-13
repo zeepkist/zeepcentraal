@@ -132,6 +132,8 @@ export type ZslSeasonSummary = {
 }
 
 export type ZslStanding = {
+	userId: number
+	pinned?: boolean
 	position: number
 	points: number
 	steamId: string | null

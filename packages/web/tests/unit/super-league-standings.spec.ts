@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { mergeViewerStanding } from '../../app/composables/useZsl'
+import type { ZslStanding } from '../../app/types/app'
 
 const composable = readFileSync(new URL('../../app/composables/useZsl.ts', import.meta.url), 'utf8')
 const seasonResults = readFileSync(
@@ -12,6 +14,10 @@ const roundResults = readFileSync(
 )
 const levelResults = readFileSync(
 	new URL('../../app/graphql/queries/zslLevelResults.graphql', import.meta.url),
+	'utf8',
+)
+const table = readFileSync(
+	new URL('../../app/components/zsl/ZslStandingsTable.vue', import.meta.url),
 	'utf8',
 )
 const routeFiles = [
@@ -56,5 +62,75 @@ describe('Super League standings loading', () => {
 		expect(composable).toContain('function stageStandings(')
 		expect(composable).toContain('if (fetching.value || !hasData.value) return')
 		expect(composable).toContain('resolved.value ? snapshot.value : rows.value')
+	})
+})
+
+describe('Super League viewer standings', () => {
+	it('requests one authenticated viewer result in each standings operation', () => {
+		for (const query of [seasonResults, roundResults, levelResults]) {
+			expect(query).toContain('$viewerId: Int!')
+			expect(query).toContain('$includeViewer: Boolean!')
+			expect(query).toContain('viewerStanding:')
+			expect(query).toContain('first: 1')
+			expect(query).toContain('userId: { equalTo: $viewerId }')
+			expect(query).toContain('@include(if: $includeViewer)')
+			expect(query).toContain('userId')
+			expect(query).toContain('id')
+		}
+	})
+
+	it('appends an off-page viewer with true result and prevents duplicates', () => {
+		const rows: ZslStanding[] = [
+			{
+				userId: 1,
+				position: 1,
+				points: 100,
+				steamId: 'one',
+				steamName: 'One',
+			},
+		]
+		const viewer = {
+			userId: 42,
+			position: 81,
+			points: 12,
+			user: { steamId: 'viewer', steamName: 'Viewer' },
+		}
+		expect(mergeViewerStanding(rows, viewer)).toEqual([
+			...rows,
+			{
+				userId: 42,
+				position: 81,
+				points: 12,
+				steamId: 'viewer',
+				steamName: 'Viewer',
+				time: undefined,
+				pinned: true,
+			},
+		])
+		expect(
+			mergeViewerStanding(
+				[
+					...rows,
+					{
+						userId: 42,
+						position: 42,
+						points: 42,
+						steamId: 'viewer',
+						steamName: 'Viewer',
+					},
+				],
+				viewer,
+			),
+		).toHaveLength(2)
+	})
+
+	it('passes session identity and highlights viewer rows', () => {
+		for (const page of routeFiles) {
+			expect(page).toContain('const viewerId = computed(() => session.user?.id)')
+			expect(page).toContain(':viewer-user-id="viewerId"')
+		}
+		expect(table).toContain("viewerUserId === row.userId ? 'bg-primary/10 text-highlighted'")
+		expect(table).toContain("row.pinned ? 'border-t-2 border-primary/40'")
+		expect(table).toContain('labels.yourStanding')
 	})
 })
