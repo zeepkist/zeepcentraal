@@ -22,6 +22,7 @@ const LEVEL_POINT_SORTS = new Set<LevelsOrderBy>([
 ])
 
 import type { CursorPage, LevelSummary } from '~/types/app'
+import { buildLevelAvailabilityFilter } from '~/utils/levelExplorer'
 
 export function useLevels() {
 	const route = useRoute()
@@ -51,9 +52,9 @@ export function useLevels() {
 	})
 
 	const filter = computed<LevelFilter>(() => {
-		const and: LevelFilter[] = [{ levelItems: { some: { deleted: { equalTo: false } } } }]
+		const and: LevelFilter[] = [buildLevelAvailabilityFilter(appliedAdventure.value)]
 		if (LEVEL_POINT_SORTS.has(appliedSort.value)) {
-			and.push({ levelItemsExist: true, levelPointExists: true })
+			and.push({ levelPointExists: true })
 		}
 		if (appliedSearch.value) {
 			and.push({
@@ -74,9 +75,6 @@ export function useLevels() {
 					some: { author: { steamName: { includesInsensitive: appliedAuthor.value } } },
 				},
 			})
-		}
-		if (appliedAdventure.value !== 'all') {
-			and.push({ adventure: { equalTo: appliedAdventure.value === 'yes' } })
 		}
 		return { and }
 	})
