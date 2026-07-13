@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import {
 	calculateDecayMultiplier,
 	calculatePlayerPoints,
+	calculatePlayerPointsDecayed,
 	GLOBAL_DECAY_FACTOR,
 	LEVEL_DECAY_FACTOR,
 	PLAYER_SCORE_CONTRIBUTION_LIMIT,
@@ -75,5 +76,19 @@ describe('calculateDecayMultiplier', () => {
 	test('returns zero for invalid positions', () => {
 		expect(calculateDecayMultiplier(0, LEVEL_DECAY_FACTOR)).toBe(0)
 		expect(calculateDecayMultiplier(Number.NaN, LEVEL_DECAY_FACTOR)).toBe(0)
+	})
+})
+
+describe('calculatePlayerPointsDecayed', () => {
+	test('applies level decay to points at leaderboard position', () => {
+		expect(calculatePlayerPointsDecayed(1000, 1, LEVEL_DECAY_FACTOR)).toBe(1000)
+		expect(calculatePlayerPointsDecayed(1000, 2, LEVEL_DECAY_FACTOR)).toBeCloseTo(985)
+	})
+
+	test('returns zero for invalid points and positions', () => {
+		expect(calculatePlayerPointsDecayed(0, 1, LEVEL_DECAY_FACTOR)).toBe(0)
+		expect(calculatePlayerPointsDecayed(Number.NaN, 1, LEVEL_DECAY_FACTOR)).toBe(0)
+		expect(calculatePlayerPointsDecayed(1000, 0, LEVEL_DECAY_FACTOR)).toBe(0)
+		expect(calculatePlayerPointsDecayed(1000, Number.NaN, LEVEL_DECAY_FACTOR)).toBe(0)
 	})
 })
