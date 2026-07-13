@@ -71,7 +71,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	)
 	const statistics = useQuery({
 		query: Zc_LevelStatisticsDocument,
-		variables: computed(() => ({ levelId: levelId.value ?? 0 })),
+		variables: computed(() => ({ levelId: levelId.value ?? 0, minimumModVersion: '1.2.0' })),
 		pause: computed(() => levelId.value === undefined || !statisticsPrefetch.active.value),
 	})
 	const recent = useQuery({

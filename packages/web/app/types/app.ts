@@ -208,6 +208,30 @@ export type DashboardStatisticsChart = {
 	total: DashboardPeriodData<string>
 }
 
+export type LevelTelemetryChart = {
+	key: string
+	title: string
+	description: string
+	icon: string
+	entries: DashboardChartEntry[]
+	totalLabel: string
+}
+
+export type LevelTelemetryModel = {
+	minimumVersionLabel: string
+	emptyLabel: string
+	overviewMetrics: DashboardStatisticsMetric[]
+	charts: LevelTelemetryChart[]
+	driverInputs: {
+		title: string
+		description: string
+		icon: string
+		steering: DashboardChartEntry[]
+		steeringTotalLabel: string
+		actions: DashboardStatisticsMetric[]
+	}
+}
+
 export type DashboardStatisticsModel = {
 	distanceMetrics: DashboardStatisticsMetric[]
 	periodSelectorLabel: string

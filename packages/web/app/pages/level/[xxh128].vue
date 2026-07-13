@@ -66,18 +66,10 @@
 						:error-title="$t('common.error')"
 						:empty-title="$t('common.empty')"
 					>
-						<div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
-							<MetricGrid :metrics="statMetrics" />
-							<UCard class="rounded-xl border-border bg-card/85">
-								<BarChart
-									:data="statChart"
-									:categories="statCategories"
-									:y-axis="['value']"
-									:height="280"
-									:x-formatter="statLabel"
-								/>
-							</UCard>
-						</div>
+						<LevelTelemetryPanel
+							:model="telemetryModel"
+							:description="$t('levels.detail.stats.telemetryDescription')"
+						/>
 					</DataState>
 				</section>
 
@@ -140,7 +132,7 @@ const levelData = useLevelDetail(xxHash, viewerId)
 await levelData.prefetchCritical()
 const summary = levelData.summary
 const workshopUrl = computed(() => steamWorkshopItemUrl(summary.value?.workshopId))
-const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
+const telemetryModel = useLevelTelemetryModel(levelData.statistics.data)
 
 useSeoMeta({
 	title: () =>
@@ -151,55 +143,6 @@ useSeoMeta({
 			: t('pages.levels.seo.description'),
 })
 
-const aggregates = computed(() => levelData.statistics.data.value?.recordStatistics?.aggregates)
-const sums = computed(() => aggregates.value?.sum)
-const statMetrics = computed(() => [
-	{
-		key: 'records',
-		label: t('common.records'),
-		value: String(summary.value?.recordCount ?? 0),
-		icon: 'trophy',
-	},
-	{
-		key: 'pbs',
-		label: t('dashboard.metrics.personalBests'),
-		value: String(levelData.level.value?.personalBestGlobals.totalCount ?? 0),
-		icon: 'users',
-	},
-	{
-		key: 'distance',
-		label: t('dashboard.metrics.distance'),
-		value: `${oneDecimal.format((sums.value?.distance ?? 0) / 1000)} km`,
-		icon: 'route',
-	},
-	{
-		key: 'airtime',
-		label: t('dashboard.metrics.airtime'),
-		value: `${oneDecimal.format((sums.value?.timeInAir ?? 0) / 3600)} h`,
-		icon: 'dashboard',
-	},
-	{
-		key: 'speed',
-		label: t('levels.detail.stats.maxSpeed'),
-		value: oneDecimal.format(aggregates.value?.max?.maxSpeed ?? 0),
-		icon: 'dashboard',
-	},
-	{
-		key: 'gforce',
-		label: t('levels.detail.stats.maxGforce'),
-		value: oneDecimal.format(aggregates.value?.max?.maxGforce ?? 0),
-		icon: 'dashboard',
-	},
-])
-const statChart = computed(() => [
-	{ key: 'distance', value: (sums.value?.distance ?? 0) / 1000 },
-	{ key: 'air', value: (sums.value?.distanceInAir ?? 0) / 1000 },
-	{ key: 'ragdoll', value: (sums.value?.distanceRagdoll ?? 0) / 1000 },
-	{ key: 'paraglider', value: (sums.value?.distanceParaglider ?? 0) / 1000 },
-])
-const statCategories = { value: { name: t('dashboard.totals.kilometres'), color: '#facc15' } }
-const statLabel = (index: number) =>
-	t(`levels.detail.stats.chart.${statChart.value[index]?.key ?? 'distance'}`)
 const heroLabels = computed(() => ({
 	adventure: t('common.adventure'),
 	published: t('levels.detail.hero.published'),

@@ -652,7 +652,7 @@
 			},
 			"stats": {
 				"title": "Level statistics",
-				"description": "Aggregated telemetry from submitted runs.",
+				"description": "All-time driving telemetry from verified records on this level.",
 				"maxSpeed": "Maximum speed",
 				"maxGforce": "Maximum G-force",
 				"chart": {
@@ -660,7 +660,19 @@
 					"air": "Airborne",
 					"ragdoll": "Ragdoll",
 					"paraglider": "Paraglider"
-				}
+				},
+				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
+				"empty": "No compatible telemetry has been submitted for this level yet.",
+				"totalDistance": "Total distance",
+				"submittedRuns": "Submitted runs",
+				"telemetryRuns": "Telemetry-enabled runs",
+				"totalTime": "Total driving time",
+				"surfaceDistance": "Distance driven by surface on this level.",
+				"surfaceTime": "Time spent driving on each surface.",
+				"movementDistance": "Grounded, airborne and ragdoll distance on this level.",
+				"movementTime": "Grounded, airborne and ragdoll time on this level.",
+				"wheelDistance": "Distance travelled with four through zero wheels down.",
+				"driverInputs": "Steering direction and controls used on this level."
 			},
 			"recent": {
 				"title": "Recent records",
