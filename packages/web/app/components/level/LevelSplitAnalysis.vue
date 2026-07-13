@@ -1,23 +1,36 @@
 <template>
 	<div class="space-y-4">
-		<div class="flex flex-wrap gap-2">
-			<NuxtLink
-				v-for="player in analysis.series"
-				:key="player.recordId"
-				:to="player.userSteamId ? `/user/${player.userSteamId}` : `/record/${player.recordId}`"
-				class="flex items-center gap-2 rounded-lg border px-3 py-2 transition hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-				:class="player.viewer ? 'border-primary/50 bg-primary/10' : 'border-border bg-card/70'"
+		<div class="flex flex-wrap items-start justify-between gap-3">
+			<div class="flex flex-wrap gap-2">
+				<NuxtLink
+					v-for="player in visibleSeries"
+					:key="player.recordId"
+					:to="player.userSteamId ? `/user/${player.userSteamId}` : `/record/${player.recordId}`"
+					class="flex items-center gap-2 rounded-lg border px-3 py-2 transition hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+					:class="player.viewer ? 'border-primary/50 bg-primary/10' : 'border-border bg-card/70'"
+				>
+					<span
+						class="w-4 shrink-0 border-t-2"
+						:class="player.viewer ? 'border-dotted' : 'border-solid'"
+						:style="{ borderColor: player.color }"
+					/>
+					<span class="text-sm font-semibold text-highlighted">{{ player.userName }}</span>
+					<span class="font-mono text-xs tabular-nums text-muted-foreground">
+						{{ formatTime(player.time) }}
+					</span>
+				</NuxtLink>
+			</div>
+			<UButton
+				v-if="viewerComparison"
+				color="primary"
+				size="sm"
+				:variant="showViewerComparison ? 'soft' : 'outline'"
+				:icon="showViewerComparison ? 'i-tabler-eye-off' : 'i-tabler-eye'"
+				:aria-pressed="showViewerComparison"
+				@click="showViewerComparison = !showViewerComparison"
 			>
-				<span
-					class="w-4 shrink-0 border-t-2"
-					:class="player.viewer ? 'border-dotted' : 'border-solid'"
-					:style="{ borderColor: player.color }"
-				/>
-				<span class="text-sm font-semibold text-highlighted">{{ player.userName }}</span>
-				<span class="font-mono text-xs tabular-nums text-muted-foreground">
-					{{ formatTime(player.time) }}
-				</span>
-			</NuxtLink>
+				{{ showViewerComparison ? labels.hideMyComparison : labels.showMyComparison }}
+			</UButton>
 		</div>
 
 		<div class="grid gap-4 xl:grid-cols-2">
@@ -30,7 +43,7 @@
 					<p class="mt-1 text-xs text-muted-foreground">{{ labels.deltaDescription }}</p>
 				</template>
 				<LineChart
-					:data="analysis.deltaData"
+					:data="visibleDeltaData"
 					:categories="categories"
 					:y-axis="seriesKeys"
 					:height="220"
@@ -60,7 +73,7 @@
 					<p class="mt-1 text-xs text-muted-foreground">{{ labels.speedDescription }}</p>
 				</template>
 				<LineChart
-					:data="analysis.speedData"
+					:data="visibleSpeedData"
 					:categories="categories"
 					:y-axis="seriesKeys"
 					:height="220"
@@ -98,6 +111,8 @@ const props = defineProps<{
 		speedDescription: string
 		secondsUnit: string
 		speedUnit: string
+		showMyComparison: string
+		hideMyComparison: string
 	}
 }>()
 
@@ -108,17 +123,34 @@ const deltaFormat = computed(
 const speedFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
 )
+const showViewerComparison = ref(false)
+const viewerComparison = computed(() =>
+	props.analysis.series.find((player) => player.viewerComparison),
+)
+const visibleSeries = computed(() =>
+	props.analysis.series.filter(
+		(player) => !player.viewerComparison || showViewerComparison.value,
+	),
+)
 const categories = computed(() =>
 	Object.fromEntries(
-		props.analysis.series.map((player) => [
+		visibleSeries.value.map((player) => [
 			player.key,
 			{ name: player.userName, color: player.color },
 		]),
 	),
 )
-const seriesKeys = computed(() => props.analysis.series.map((player) => player.key))
+const seriesKeys = computed(() => visibleSeries.value.map((player) => player.key))
 const lineDashArray = computed(() =>
-	props.analysis.series.map((player) => (player.viewer ? [2, 4] : [])),
+	visibleSeries.value.map((player) => (player.viewer ? [2, 4] : [])),
+)
+const visibleDeltaData = computed(() => selectVisibleData(props.analysis.deltaData))
+const visibleSpeedData = computed(() => selectVisibleData(props.analysis.speedData))
+watch(
+	() => viewerComparison.value?.recordId,
+	() => {
+		showViewerComparison.value = false
+	},
 )
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const chartDuration = ref(0)
@@ -145,7 +177,7 @@ function resolveTooltipEntries(
 ): DashboardChartEntry[] {
 	if (!values || typeof values !== 'object') return []
 	const datum = values as Record<string, unknown>
-	return props.analysis.series.flatMap((player) => {
+	return visibleSeries.value.flatMap((player) => {
 		const value = datum[player.key]
 		if (typeof value !== 'number') return []
 		const formattedValue =
@@ -160,6 +192,15 @@ function resolveTooltipEntries(
 			formattedValue,
 		}]
 	})
+}
+
+function selectVisibleData(data: Array<Record<string, number>>) {
+	return data.map((point) => ({
+		checkpoint: point.checkpoint ?? 0,
+		...Object.fromEntries(
+			visibleSeries.value.map((player) => [player.key, point[player.key] ?? 0]),
+		),
+	}))
 }
 
 function formatTime(seconds: number) {

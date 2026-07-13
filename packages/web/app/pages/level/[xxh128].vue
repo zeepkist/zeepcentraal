@@ -197,6 +197,8 @@ const splitAnalysisLabels = computed(() => ({
 	speedDescription: t('levels.detail.splitAnalysis.speedDescription'),
 	secondsUnit: t('dashboard.totals.units.seconds'),
 	speedUnit: t('dashboard.totals.units.kilometresPerHour'),
+	showMyComparison: t('levels.detail.splitAnalysis.showMyComparison'),
+	hideMyComparison: t('levels.detail.splitAnalysis.hideMyComparison'),
 }))
 const medalLabels = computed(() => ({
 	author: t('levels.detail.medals.author'),

@@ -6,6 +6,7 @@ export type LevelSplitSeries = {
 	time: number
 	color: string
 	viewer: boolean
+	viewerComparison: boolean
 	deltas: number[]
 	speeds: number[]
 }
@@ -36,10 +37,10 @@ export function buildLevelSplitAnalysis(
 	records: RawSplitRecord[],
 	viewerRecord?: RawSplitRecord | null,
 ): LevelSplitAnalysis {
-	const combinedRecords =
-		viewerRecord && !records.some((record) => record.id === viewerRecord.id)
-			? [...records, viewerRecord]
-			: records
+	const viewerAppended = Boolean(
+		viewerRecord && !records.some((record) => record.id === viewerRecord.id),
+	)
+	const combinedRecords = viewerAppended && viewerRecord ? [...records, viewerRecord] : records
 	const normalized = combinedRecords.flatMap((record) => {
 		const splits = numericArray(record.splits)
 		const speeds = numericArray(record.speeds)
@@ -64,6 +65,7 @@ export function buildLevelSplitAnalysis(
 			time: record.time,
 			color: SERIES_COLORS[index % SERIES_COLORS.length] ?? SERIES_COLORS[0],
 			viewer: record.id === viewerRecord?.id,
+			viewerComparison: viewerAppended && record.id === viewerRecord?.id,
 			deltas: splits.map(
 				(split, checkpoint) => split - (fastest.splits[checkpoint] ?? split),
 			),

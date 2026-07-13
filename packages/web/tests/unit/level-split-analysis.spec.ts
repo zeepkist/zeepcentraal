@@ -66,6 +66,7 @@ describe('level checkpoint analysis', () => {
 		expect(result.series.map((series) => series.recordId)).toEqual([1, 2, 3, 4, 5, 6])
 		expect(result.series.slice(0, 5).every((series) => !series.viewer)).toBe(true)
 		expect(result.series[5]?.viewer).toBe(true)
+		expect(result.series[5]?.viewerComparison).toBe(true)
 	})
 
 	it('marks but does not duplicate a viewer already in the top five', () => {
@@ -75,6 +76,7 @@ describe('level checkpoint analysis', () => {
 		expect(result.series).toHaveLength(5)
 		expect(result.series.map((series) => series.recordId)).toEqual([1, 2, 3, 4, 5])
 		expect(result.series[2]?.viewer).toBe(true)
+		expect(result.series[2]?.viewerComparison).toBe(false)
 	})
 
 	it('excludes malformed and checkpoint-incompatible arrays', () => {
@@ -91,5 +93,11 @@ describe('level checkpoint analysis', () => {
 		expect(component.match(/:line-dash-array="lineDashArray"/g)).toHaveLength(2)
 		expect(component).toContain('player.viewer ? [2, 4] : []')
 		expect(component).toContain("player.viewer ? 'border-dotted' : 'border-solid'")
+		expect(component).toContain('const showViewerComparison = ref(false)')
+		expect(component).toContain(':aria-pressed="showViewerComparison"')
+		expect(component).toContain('labels.showMyComparison')
+		expect(component).toContain('labels.hideMyComparison')
+		expect(component).toContain(':data="visibleDeltaData"')
+		expect(component).toContain(':data="visibleSpeedData"')
 	})
 })

@@ -710,7 +710,9 @@
 				"deltaTitle": "Time gained and lost",
 				"deltaDescription": "Cumulative time difference against the fastest player at each checkpoint.",
 				"speedTitle": "Checkpoint speed",
-				"speedDescription": "Speed carried through each checkpoint, measured in kilometres per hour."
+				"speedDescription": "Speed carried through each checkpoint, measured in kilometres per hour.",
+				"showMyComparison": "Show my comparison",
+				"hideMyComparison": "Hide my comparison"
 			}
 		}
 	}
