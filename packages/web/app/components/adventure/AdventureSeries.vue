@@ -13,6 +13,13 @@ defineProps<{
 	series: AdventureSeries[]
 	seriesLabel: string
 	countLabel: string
-	levelLabels: { adventureLabel: string; pointsLabel: string; recordsLabel: string }
+	levelLabels: {
+		adventureLabel: string
+		pointsLabel: string
+		recordsLabel: string
+		personalBestsLabel: string
+		ratingLabel: string
+		unavailableLabel: string
+	}
 }>()
 </script>

@@ -25,21 +25,33 @@
 				/>
 			</div>
 		</div>
-		<div class="mt-4 grid grid-cols-3 gap-3 text-sm">
-			<div v-if="level.points != null">
+		<div class="mt-4 grid grid-cols-4 gap-2 text-sm">
+			<div class="min-w-0">
 				<p class="text-xs text-muted-foreground">{{ pointsLabel }}</p>
-				<p class="font-semibold tabular-nums text-highlighted">{{ formatNumber(level.points) }}</p>
-			</div>
-			<div v-if="level.recordCount != null">
-				<p class="text-xs text-muted-foreground">{{ recordsLabel }}</p>
 				<p class="font-semibold tabular-nums text-highlighted">
-					{{ formatNumber(level.recordCount) }}
+					{{ level.points == null ? unavailableLabel : formatNumber(level.points) }}
 				</p>
 			</div>
-			<div v-if="personalBestsLabel && level.personalBestCount != null">
+			<div class="min-w-0">
+				<p class="text-xs text-muted-foreground">{{ recordsLabel }}</p>
+				<p class="font-semibold tabular-nums text-highlighted">
+					{{ level.recordCount == null ? unavailableLabel : formatNumber(level.recordCount) }}
+				</p>
+			</div>
+			<div class="min-w-0">
 				<p class="text-xs text-muted-foreground">{{ personalBestsLabel }}</p>
 				<p class="font-semibold tabular-nums text-highlighted">
-					{{ formatNumber(level.personalBestCount) }}
+					{{
+						level.personalBestCount == null
+							? unavailableLabel
+							: formatNumber(level.personalBestCount)
+					}}
+				</p>
+			</div>
+			<div class="min-w-0">
+				<p class="text-xs text-muted-foreground">{{ ratingLabel }}</p>
+				<p class="font-semibold tabular-nums text-highlighted">
+					{{ level.rating == null ? unavailableLabel : ratingFormat.format(level.rating) }}
 				</p>
 			</div>
 		</div>
@@ -78,13 +90,16 @@
 
 <script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
+import { createLevelRatingFormatter } from '~/utils/levelRating'
 
 const props = defineProps<{
 	level: LevelSummary
 	adventureLabel: string
 	pointsLabel: string
 	recordsLabel: string
-	personalBestsLabel?: string
+	personalBestsLabel: string
+	ratingLabel: string
+	unavailableLabel: string
 	worldRecordLabel?: string
 	authorTimeLabel?: string
 	byLabel?: string
@@ -93,6 +108,7 @@ const props = defineProps<{
 
 const { locale } = useI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
+const ratingFormat = computed(() => createLevelRatingFormatter(locale.value))
 const bestTime = computed(() => props.level.worldRecordTime ?? props.level.medals?.author)
 const bestTimeAuthor = computed(() => props.level.worldRecordAuthorName ?? props.level.authorName)
 const bestTimeLabel = computed(() =>

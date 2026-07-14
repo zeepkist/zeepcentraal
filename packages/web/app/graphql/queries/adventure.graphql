@@ -13,6 +13,9 @@ query ZC_AdventureLevels {
 			records(first: 0) {
 				totalCount
 			}
+			personalBestGlobals(first: 0) {
+				totalCount
+			}
 			levelItems(
 				first: 1
 				filter: { deleted: { equalTo: false } }

@@ -14,5 +14,8 @@ const levelLabels = computed(() => ({
 	adventureLabel: t('common.adventure'),
 	pointsLabel: t('common.points'),
 	recordsLabel: t('common.records'),
+	personalBestsLabel: t('levels.card.personalBests'),
+	ratingLabel: t('levels.card.rating'),
+	unavailableLabel: t('levels.card.unavailable'),
 }))
 </script>

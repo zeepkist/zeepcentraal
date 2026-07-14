@@ -383,6 +383,8 @@ const levelLabels = computed(() => ({
 const dashboardLevelLabels = computed(() => ({
 	...levelLabels.value,
 	personalBestsLabel: t('levels.card.personalBests'),
+	ratingLabel: t('levels.card.rating'),
+	unavailableLabel: t('levels.card.unavailable'),
 	worldRecordLabel: t('levels.card.worldRecord'),
 	authorTimeLabel: t('levels.card.authorTime'),
 	byLabel: t('levels.card.by'),

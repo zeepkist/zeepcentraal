@@ -14,6 +14,8 @@
 			:points-label="pointsLabel"
 			:records-label="recordsLabel"
 			:personal-bests-label="personalBestsLabel"
+			:rating-label="ratingLabel"
+			:unavailable-label="unavailableLabel"
 			:world-record-label="worldRecordLabel"
 			:author-time-label="authorTimeLabel"
 			:by-label="byLabel"
@@ -31,7 +33,9 @@ withDefaults(
 		adventureLabel: string
 		pointsLabel: string
 		recordsLabel: string
-		personalBestsLabel?: string
+		personalBestsLabel: string
+		ratingLabel: string
+		unavailableLabel: string
 		worldRecordLabel?: string
 		authorTimeLabel?: string
 		byLabel?: string

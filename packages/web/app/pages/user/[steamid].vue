@@ -396,6 +396,8 @@ const levelCollectionLabels = computed(() => ({
 	adventure: t('common.adventure'),
 	points: t('common.points'),
 	personalBests: t('levels.card.personalBests'),
+	rating: t('levels.card.rating'),
+	unavailable: t('levels.card.unavailable'),
 	worldRecord: t('levels.card.worldRecord'),
 	authorTime: t('levels.card.authorTime'),
 	by: t('levels.card.by'),

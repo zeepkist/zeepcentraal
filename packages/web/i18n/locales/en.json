@@ -696,6 +696,8 @@
 		"results": "{count} levels",
 		"card": {
 			"personalBests": "PBs",
+			"rating": "Rating",
+			"unavailable": "—",
 			"worldRecord": "WR",
 			"authorTime": "AT",
 			"by": "by",

@@ -19,6 +19,8 @@
 				:points-label="labels.points"
 				:records-label="recordsLabel"
 				:personal-bests-label="labels.personalBests"
+				:rating-label="labels.rating"
+				:unavailable-label="labels.unavailable"
 				:world-record-label="labels.worldRecord"
 				:author-time-label="labels.authorTime"
 				:by-label="labels.by"
@@ -49,6 +51,8 @@ withDefaults(defineProps<{
 		adventure: string
 		points: string
 		personalBests: string
+		rating: string
+		unavailable: string
 		worldRecord: string
 		authorTime: string
 		by: string

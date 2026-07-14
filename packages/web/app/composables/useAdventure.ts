@@ -22,6 +22,7 @@ export function useAdventure() {
 				rating: node.levelPoints?.rating,
 				popularity: node.levelPoints?.modifierPopularity,
 				recordCount: node.records.totalCount,
+				personalBestCount: node.personalBestGlobals.totalCount,
 			}
 		}),
 	)
