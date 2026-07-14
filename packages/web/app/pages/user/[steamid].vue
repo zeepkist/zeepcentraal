@@ -12,31 +12,14 @@
 				<div class="space-y-8 lg:space-y-10">
 				<UserDetailHero :user="summary" :profile-url="profileUrl" :workshop-url="workshopProfileUrl" :labels="heroLabels" />
 
-				<div :ref="data.pointsHistoryTarget" class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
-					<section aria-labelledby="profile-history">
+				<div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
+					<div class="min-w-0 space-y-8 lg:space-y-10">
+					<section :ref="data.pointsHistoryTarget" aria-labelledby="profile-history">
 						<SectionHeader id="profile-history" :title="$t('users.profile.history.title')" :description="$t('users.profile.history.description')" />
 						<DataState :pending="!data.pointsHistoryActive.value || data.pointsHistoryQuery.fetching.value" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
 							<UserCareerHistory :history="data.pointsHistory.value" :labels="historyLabels" />
 						</DataState>
 					</section>
-					<div class="space-y-8">
-						<section aria-labelledby="profile-summary">
-							<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
-							<MetricGrid :metrics="metrics" :columns="2" />
-						</section>
-						<UserSuperLeaguePanel
-							id="profile-super-league"
-							:selected-season-id="data.selectedSuperLeagueSeasonId.value"
-							:seasons="superLeagueSeasonOptions"
-							:season="data.superLeagueSeason.value"
-							:standings-to="superLeagueStandingsUrl"
-							:pending="superLeaguePending"
-							:error="superLeagueError"
-							:labels="superLeagueLabels"
-							@update:selected-season-id="data.selectedSuperLeagueSeasonId.value = $event"
-						/>
-					</div>
-				</div>
 
 				<div :ref="data.worldRecordsTarget">
 					<UserResultsSection
@@ -146,6 +129,39 @@
 					:error="data.levelsQuery.error.value?.message"
 					:labels="levelCollectionLabels"
 				/>
+					</div>
+
+					<aside class="space-y-8 lg:space-y-10">
+						<section aria-labelledby="profile-summary">
+							<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
+							<MetricGrid :metrics="metrics" :columns="2" />
+						</section>
+
+						<UserSuperLeaguePanel
+							id="profile-super-league"
+							:selected-season-id="data.selectedSuperLeagueSeasonId.value"
+							:seasons="superLeagueSeasonOptions"
+							:season="data.superLeagueSeason.value"
+							:standings-to="superLeagueStandingsUrl"
+							:pending="superLeaguePending"
+							:error="superLeagueError"
+							:labels="superLeagueLabels"
+							@update:selected-season-id="data.selectedSuperLeagueSeasonId.value = $event"
+						/>
+
+						<UserAchievementShowcase
+							id="profile-achievements"
+							:achievements="achievementPreviews"
+							:labels="achievementLabels"
+						/>
+
+						<UserCosmeticsShowcase
+							id="profile-cosmetics"
+							:progress="cosmeticsPreview"
+							:labels="cosmeticsLabels"
+						/>
+					</aside>
+				</div>
 				</div>
 			</template>
 		</DataState>
@@ -204,6 +220,45 @@ const metrics = computed(() => [
 		to: `/levels?author=${steamId.value}`,
 	},
 ])
+const achievementPreviews = computed(() => [
+	{ key: 'records', label: t('users.profile.achievements.items.records'), icon: 'route' },
+	{
+		key: 'personal-bests',
+		label: t('users.profile.achievements.items.personalBests'),
+		icon: 'user-star',
+	},
+	{
+		key: 'world-records',
+		label: t('users.profile.achievements.items.worldRecords'),
+		icon: 'flag',
+	},
+	{ key: 'fastest-speed', label: t('users.profile.achievements.items.fastestSpeed'), icon: 'gauge' },
+	{ key: 'levels', label: t('users.profile.achievements.items.levels'), icon: 'map' },
+	{
+		key: 'super-league',
+		label: t('users.profile.achievements.items.superLeague'),
+		icon: 'trophy',
+	},
+	{ key: 'points', label: t('users.profile.achievements.items.points'), icon: 'trending-up' },
+	{ key: 'driving', label: t('users.profile.achievements.items.driving'), icon: 'road' },
+	{ key: 'surfaces', label: t('users.profile.achievements.items.surfaces'), icon: 'palette' },
+])
+const cosmeticsPreview = computed(() => ({
+	unlocked: null,
+	total: null,
+	percentage: null,
+	categories: [
+		{ key: 'hats', label: t('users.profile.cosmetics.categories.hats'), icon: 'hat' },
+		{ key: 'glasses', label: t('users.profile.cosmetics.categories.glasses'), icon: 'glasses' },
+		{
+			key: 'skin-colours',
+			label: t('users.profile.cosmetics.categories.skinColours'),
+			icon: 'palette',
+		},
+		{ key: 'soapboxes', label: t('users.profile.cosmetics.categories.soapboxes'), icon: 'car' },
+		{ key: 'wheels', label: t('users.profile.cosmetics.categories.wheels'), icon: 'wheel' },
+	],
+}))
 const telemetryPeriodOptions = computed(() => {
 	const window = data.telemetryWindows.value
 	const month = new Intl.DateTimeFormat(locale.value, {
@@ -260,6 +315,20 @@ const superLeagueLabels = computed(() => ({
 	loading: t('common.loading'),
 	error: t('common.error'),
 	emptyValue: t('pages.records.table.notRanked'),
+}))
+const achievementLabels = computed(() => ({
+	title: t('users.profile.achievements.title'),
+	description: t('users.profile.achievements.description'),
+	comingSoon: t('users.profile.achievements.comingSoon'),
+}))
+const cosmeticsLabels = computed(() => ({
+	title: t('users.profile.cosmetics.title'),
+	description: t('users.profile.cosmetics.description'),
+	progress: t('users.profile.cosmetics.progress'),
+	rarest: t('users.profile.cosmetics.rarest'),
+	mostUsed: t('users.profile.cosmetics.mostUsed'),
+	comingSoon: t('users.profile.cosmetics.comingSoon'),
+	unavailable: t('users.profile.cosmetics.unavailable'),
 }))
 const heroLabels = computed(() => ({ eyebrow: t('users.profile.eyebrow'), joined: t('users.profile.joined'), globalRank: t('users.profile.globalRank'), rankedPoints: t('users.columns.rankedPoints'), totalPoints: t('users.columns.totalPoints'), unranked: t('users.profile.unranked'), steamProfile: t('users.profile.steamProfile'), steamWorkshop: t('users.profile.steamWorkshop') }))
 const historyLabels = computed(() => ({

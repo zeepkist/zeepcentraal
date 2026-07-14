@@ -155,6 +155,27 @@ export type UserSuperLeagueSummary = {
 	rounds: UserSuperLeagueRoundResult[]
 }
 
+export type UserAchievementPreviewItem = {
+	key: string
+	label: string
+	icon: string
+}
+
+export type UserCosmeticCategoryPreview = {
+	key: string
+	label: string
+	icon: string
+	rarest?: string | null
+	mostUsed?: string | null
+}
+
+export type UserCosmeticProgressPreview = {
+	unlocked?: number | null
+	total?: number | null
+	percentage?: number | null
+	categories: UserCosmeticCategoryPreview[]
+}
+
 export type CursorPage = {
 	startCursor?: string | null
 	endCursor?: string | null

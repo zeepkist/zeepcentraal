@@ -555,6 +555,38 @@
 				"noSeasons": "No Super League seasons found",
 				"noResults": "This player did not enter this season."
 			},
+			"achievements": {
+				"title": "Achievements",
+				"description": "Planned badges for racing, building, and competition milestones.",
+				"comingSoon": "Coming soon",
+				"items": {
+					"records": "Records submitted",
+					"personalBests": "Personal bests",
+					"worldRecords": "World records",
+					"fastestSpeed": "Fastest speed",
+					"levels": "Levels created",
+					"superLeague": "League rounds",
+					"points": "Ranked and total points",
+					"driving": "Distance and driving time",
+					"surfaces": "Surface specialist"
+				}
+			},
+			"cosmetics": {
+				"title": "Cosmetics unlocked",
+				"description": "Collection progress and favourite Zeepkist cosmetics.",
+				"progress": "Collection progress",
+				"rarest": "Rarest unlocked",
+				"mostUsed": "Most used this month",
+				"comingSoon": "Cosmetic collection tracking is coming soon.",
+				"unavailable": "Not available",
+				"categories": {
+					"hats": "Hats",
+					"glasses": "Glasses",
+					"skinColours": "Skin colours",
+					"soapboxes": "Soapboxes",
+					"wheels": "Wheels"
+				}
+			},
 			"telemetry": {
 				"title": "Driving telemetry",
 				"description": "All-time driving telemetry across this player's verified records.",
