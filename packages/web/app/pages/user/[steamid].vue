@@ -356,6 +356,7 @@ const historyLabels = computed(() => ({
 	worldRecordsDescription: t('users.profile.history.worldRecordsDescription'),
 	pointsToggleLabel: t('users.profile.history.pointsToggleLabel'),
 	standingToggleLabel: t('users.profile.history.standingToggleLabel'),
+	loading: t('common.loading'),
 }))
 const resultLabels = computed(() => ({
 	rank: t('common.rank'),

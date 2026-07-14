@@ -21,11 +21,22 @@
 					@update:model-value="standingSeries = $event"
 				/>
 			</div>
-			<LineChart :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :y-formatter="series.inverted ? formatRankTick : formatCompactTick" :line-width="3" :hide-legend="true" :duration="duration" :tooltip="tooltipOptions">
-				<template #tooltip="{ values }">
-					<DashboardChartTooltip :entries="tooltipEntries(values, series)" :title="tooltipTitle(values)" :show-percentage="false" />
-				</template>
-			</LineChart>
+			<div class="relative h-[220px]">
+				<div
+					v-if="!hydrated"
+					class="absolute inset-0 grid place-items-center text-primary"
+					role="status"
+					:aria-label="labels.loading"
+				>
+					<TablerIcon name="loader-2" class="size-7 motion-safe:animate-spin" />
+					<span class="sr-only">{{ labels.loading }}</span>
+				</div>
+				<LineChart v-else :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :y-formatter="series.inverted ? formatRankTick : formatCompactTick" :line-width="3" :hide-legend="true" :duration="duration" :tooltip="tooltipOptions">
+					<template #tooltip="{ values }">
+						<DashboardChartTooltip :entries="tooltipEntries(values, series)" :title="tooltipTitle(values)" :show-percentage="false" />
+					</template>
+				</LineChart>
+			</div>
 		</div>
 	</div>
 </template>
@@ -56,6 +67,7 @@ const props = defineProps<{
 		worldRecordsDescription: string
 		pointsToggleLabel: string
 		standingToggleLabel: string
+		loading: string
 	}
 }>()
 const { locale } = useI18n()
@@ -63,11 +75,15 @@ const number = computed(() => new Intl.NumberFormat(locale.value))
 const compactNumber = computed(() => createUserCareerAxisFormatter(locale.value))
 const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeZone: 'Europe/London' }))
 const duration = ref(0)
+const hydrated = ref(false)
 const pointsSeries = ref<PointsSeries>('rankedPoints')
 const standingSeries = ref<StandingSeries>('rank')
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 
-onMounted(() => { if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) duration.value = 500 })
+onMounted(() => {
+	hydrated.value = true
+	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) duration.value = 500
+})
 
 const pointsOptions = computed(() => [
 	{ value: 'rankedPoints' as const, label: props.labels.rankedPoints, icon: 'chart-line' },

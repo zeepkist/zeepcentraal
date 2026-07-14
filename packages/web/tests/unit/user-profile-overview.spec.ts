@@ -180,6 +180,16 @@ describe('user profile overview', () => {
 		expect(careerHistory).toContain('number.value.format(displayValue)')
 	})
 
+	it('reserves chart height while the SSR response hydrates', () => {
+		expect(careerHistory).toContain('class="relative h-[220px]"')
+		expect(careerHistory).toContain('v-if="!hydrated"')
+		expect(careerHistory).toContain('name="loader-2"')
+		expect(careerHistory).toContain('motion-safe:animate-spin')
+		expect(careerHistory).toContain('role="status"')
+		expect(careerHistory).toContain('v-else')
+		expect(page).toContain("loading: t('common.loading')")
+	})
+
 	it('renders profile sections in requested order', () => {
 		const ids = [
 			'profile-history',
