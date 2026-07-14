@@ -50,13 +50,6 @@
 						</DataState>
 					</section>
 
-					<AuthorLevelsCta
-						:author-id="summary.authorId"
-						:title="$t('levels.detail.authorCta.title', { author: summary.authorName })"
-						:description="$t('levels.detail.authorCta.description')"
-						:action="$t('levels.detail.authorCta.action')"
-					/>
-
 					<section :ref="levelData.statisticsTarget" aria-labelledby="level-stats-heading">
 						<SectionHeader id="level-stats-heading" :title="$t('levels.detail.stats.title')" :description="$t('levels.detail.stats.description')" />
 						<DataState
@@ -72,6 +65,14 @@
 							/>
 						</DataState>
 					</section>
+
+					<AuthorLevelsCta
+						:author-id="summary.authorId"
+						:title="$t('levels.detail.authorCta.title', { author: summary.authorName })"
+						:description="$t('levels.detail.authorCta.description')"
+						:action="$t('levels.detail.authorCta.action')"
+					/>
+
 					<section :ref="levelData.splitAnalysisTarget" aria-labelledby="split-analysis-heading">
 						<SectionHeader
 							id="split-analysis-heading"

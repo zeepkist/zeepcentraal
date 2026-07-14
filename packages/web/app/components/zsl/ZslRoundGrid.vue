@@ -8,7 +8,7 @@
 		>
 			<template #eyebrow>
 				<UBadge color="primary" variant="soft">
-					{{ roundLabel.replace('{round}', String(round.round)) }}
+					{{ $t('zsl.roundNumber', { round: round.round }) }}
 				</UBadge>
 			</template>
 			<template #title>
@@ -28,6 +28,5 @@
 defineProps<{
 	rounds: Array<{ id: number; round: number; name: string; eventDate: unknown }>
 	link: (round: { id: number; round: number }) => string
-	roundLabel: string
 }>()
 </script>

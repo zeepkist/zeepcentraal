@@ -17,7 +17,7 @@
 					<slot name="eyebrow" />
 					<slot name="title" />
 				</div>
-				<div class="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+				<div v-if="icon" class="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
 					<TablerIcon :name="icon" class="size-5" />
 				</div>
 			</div>
@@ -38,7 +38,7 @@
 <script setup lang="ts">
 defineProps<{
 	to: string
-	icon: string
+	icon?: string
 	imageSrc?: string | null
 	imageAlt?: string
 }>()

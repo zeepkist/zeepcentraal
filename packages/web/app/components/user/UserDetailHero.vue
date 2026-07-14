@@ -5,7 +5,6 @@
 				<p class="text-sm font-bold uppercase tracking-[0.18em] text-primary">{{ labels.eyebrow }}</p>
 				<h1 class="mt-3 truncate text-4xl font-black tracking-tight text-highlighted md:text-6xl">{{ user.steamName ?? user.steamId }}</h1>
 				<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-					<span class="inline-flex items-center gap-2"><TablerIcon name="brand-steam" class="size-4" />{{ user.steamId }}</span>
 					<span class="inline-flex items-center gap-2"><TablerIcon name="calendar" class="size-4" />{{ labels.joined }} <NuxtTime :datetime="user.dateCreated" relative /></span>
 				</div>
 				<div class="mt-6 flex flex-wrap gap-3">

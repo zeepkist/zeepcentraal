@@ -1,10 +1,11 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<UContainer>
 		<DataState
 			:pending="result.fetching.value"
 			:error="result.error.value?.message"
 			:empty="!result.fetching.value && !level"
 			v-bind="stateLabels"
+			class="space-y-8 py-2"
 		>
 			<template v-if="level">
 				<section class="grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-center">

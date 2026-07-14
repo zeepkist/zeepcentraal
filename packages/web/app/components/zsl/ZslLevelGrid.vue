@@ -1,10 +1,9 @@
 <template>
-	<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+	<div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
 		<ZslCard
 			v-for="entry in levels"
 			:key="entry.id"
 			:to="link(entry.id)"
-			icon="flag-3"
 			:image-src="entry.level?.levelItems.nodes[0]?.imageUrl"
 			:image-alt="entry.level?.levelItems.nodes[0]?.name ?? levelLabel"
 		>

@@ -1,10 +1,11 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<UContainer>
 		<DataState
 			:pending="result.fetching.value"
 			:error="result.error.value?.message"
 			:empty="!result.fetching.value && !round"
 			v-bind="stateLabels"
+			class="space-y-8 py-2"
 		>
 			<template v-if="round">
 				<PageHeader
