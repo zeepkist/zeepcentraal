@@ -45,10 +45,20 @@
 		</div>
 		<div
 			v-if="bestTime != null && bestTimeLabel"
-			class="mt-4 flex items-center justify-between gap-3 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2"
+			class="mt-4 flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
+			:class="{
+				'border-primary/25 bg-primary/10': isWorldRecord,
+				'border-purple-500/25 bg-purple-500/10': !isWorldRecord
+			}"
 		>
 			<div class="min-w-0">
-				<p class="text-xs font-semibold uppercase tracking-wide text-primary">{{ bestTimeLabel }}</p>
+				<p
+					class="text-xs font-semibold uppercase tracking-wide"
+					:class="{
+						'text-primary': isWorldRecord,
+						'text-purple-700 dark:text-purple-300': !isWorldRecord
+					}"
+				>{{ bestTimeLabel }}</p>
 				<p v-if="bestTimeAuthor" class="truncate text-xs text-muted-foreground">
 					{{ byLabel ? `${byLabel} ${bestTimeAuthor}` : bestTimeAuthor }}
 				</p>
@@ -88,6 +98,7 @@ const bestTimeAuthor = computed(() => props.level.worldRecordAuthorName ?? props
 const bestTimeLabel = computed(() =>
 	props.level.worldRecordTime == null ? props.authorTimeLabel : props.worldRecordLabel,
 )
+const isWorldRecord = computed(() => props.level.worldRecordTime != null)
 
 function formatNumber(value: number) {
 	return numberFormat.value.format(value)

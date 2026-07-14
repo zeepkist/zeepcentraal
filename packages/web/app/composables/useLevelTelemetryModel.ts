@@ -371,14 +371,6 @@ export function useRecordTelemetryModel(
 					formatDuration,
 				),
 				chart(
-					'wheels',
-					t('dashboard.totals.wheelDistance.title'),
-					scopeT('wheelDistance'),
-					'steering-wheel',
-					wheels,
-					formatDistance,
-				),
-				chart(
 					'movement-distance',
 					t('dashboard.totals.movementDistance.title'),
 					scopeT('movementDistance'),
@@ -393,6 +385,14 @@ export function useRecordTelemetryModel(
 					'clock',
 					movementTime,
 					formatDuration,
+				),
+				chart(
+					'wheels',
+					t('dashboard.totals.wheelDistance.title'),
+					scopeT('wheelDistance'),
+					'wheel',
+					wheels,
+					formatDistance,
 				),
 			],
 			driverInputs: {

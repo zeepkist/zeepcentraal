@@ -27,6 +27,7 @@
 		"rank": "Rank",
 		"user": "Player",
 		"level": "Level",
+		"levels": "Levels",
 		"time": "Time",
 		"date": "Date",
 		"live": "Live",
@@ -538,12 +539,12 @@
 			"steamWorkshop": "Steam Workshop",
 			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
 			"summary": {
-				"title": "Career summary",
-				"description": "Racing history overview"
+				"title": "Career Summary",
+				"description": "Lifetime racing stats."
 			},
 			"superLeague": {
 				"title": "Super League",
-				"description": "Season standing and round results for this player.",
+				"description": "Season standing and round results.",
 				"season": "Super League season",
 				"viewStandings": "View season standings",
 				"position": "Season position",
@@ -557,7 +558,7 @@
 			},
 			"achievements": {
 				"title": "Achievements",
-				"description": "Planned badges for racing, building, and competition milestones.",
+				"description": "Coming soon",
 				"comingSoon": "Coming soon",
 				"items": {
 					"records": "Records submitted",
@@ -573,7 +574,7 @@
 			},
 			"cosmetics": {
 				"title": "Cosmetics unlocked",
-				"description": "Collection progress and favourite Zeepkist cosmetics.",
+				"description": "Coming soon",
 				"progress": "Collection progress",
 				"rarest": "Rarest unlocked",
 				"mostUsed": "Most used this month",
@@ -588,8 +589,8 @@
 				}
 			},
 			"telemetry": {
-				"title": "Driving telemetry",
-				"description": "All-time driving telemetry across this player's verified records.",
+				"title": "Driving Telemetry",
+				"description": "Ghost replay driving statistics from verified GTR submissions.",
 				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
 				"period": "Period",
 				"allTime": "All-time",
@@ -615,39 +616,39 @@
 				}
 			},
 			"history": {
-				"title": "Career progression",
-				"description": "Rank, points, and world record movement during the past year.",
+				"title": "Career Progression",
+				"description": "Track performance over the past year.",
 				"rankedPoints": "Ranked points",
-				"rankedPointsDescription": "Points contributing to the global leaderboard.",
+				"rankedPointsDescription": "Points contributing toward global rank.",
 				"totalPoints": "Total points",
-				"totalPointsDescription": "Full value earned across ranked levels.",
+				"totalPointsDescription": "All points earned across levels.",
 				"rank": "Global rank",
-				"rankDescription": "Better positions appear higher on the chart.",
+				"rankDescription": "Position on global leaderboard.",
 				"worldRecords": "World records",
-				"worldRecordsDescription": "Current world record count at each scoring snapshot.",
+				"worldRecordsDescription": "World records held over time.",
 				"pointsToggleLabel": "Point history metric",
 				"standingToggleLabel": "Standing history metric"
 			},
 			"levels": {
-				"recentTitle": "Most recent levels",
-				"recentDescription": "Latest workshop levels published by this player.",
-				"popularTitle": "Most popular levels this year",
-				"popularDescription": "Levels attracting the most submitted runs during the past year.",
+				"recentTitle": "Recent Levels",
+				"recentDescription": "Newest level creations on the Steam Workshop.",
+				"popularTitle": "Popular Levels",
+				"popularDescription": "Most-played levels this year.",
 				"recordsThisYear": "Records this year",
 				"viewAll": "View all levels",
 				"empty": "No published levels found"
 			},
 			"worldRecords": {
-				"title": "World records",
-				"description": "Sort by point contribution or record date."
+				"title": "World Records",
+				"description": "Every level where this player holds the fastest submitted time."
 			},
 			"personalBests": {
-				"title": "Personal bests",
-				"description": "Current personal bests, including world records, ordered by value or date."
+				"title": "Personal Bests",
+				"description": "Best time on every level."
 			},
 			"recent": {
-				"title": "Recent records",
-				"description": "Latest 25 submitted runs."
+				"title": "Recent Records",
+				"description": "Latest submitted record times."
 			}
 		}
 	},
