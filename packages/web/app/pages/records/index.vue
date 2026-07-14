@@ -41,7 +41,6 @@
 				:live-update-label="$t('pages.records.liveUpdate')"
 				:viewer-user-id="session.user?.id"
 				show-player
-				@select="openRecord"
 			/>
 		</DataState>
 		<CursorPagination
@@ -109,5 +108,4 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 	lastLabel: t('common.last'),
 }))
-const openRecord = (recordId: number) => navigateTo(`/record/${recordId}`)
 </script>

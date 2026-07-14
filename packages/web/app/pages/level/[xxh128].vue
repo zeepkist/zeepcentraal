@@ -254,6 +254,9 @@ const recordLabels = computed(() => ({
 	pbOrWrLabel: t('levels.detail.recordTable.pbOrWr'),
 	personalBestLabel: t('levels.detail.recordTable.personalBest'),
 	worldRecordLabel: t('levels.card.worldRecord'),
+	openRecordLabel: t('pages.records.table.openRecord', {
+		level: summary.value?.name ?? t('common.level'),
+	}),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

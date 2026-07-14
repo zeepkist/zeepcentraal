@@ -125,6 +125,7 @@ const tableLabels = computed(() => ({
 	time: t('common.time'),
 	points: t('common.points'),
 	levelsPlayed: t('zsl.levelsPlayed'),
+	openPlayer: t('auth.profile'),
 	unknown: t('zsl.unknown'),
 	yourStanding: t('zsl.yourStanding'),
 	emptyValue: t('pages.records.table.notRanked'),

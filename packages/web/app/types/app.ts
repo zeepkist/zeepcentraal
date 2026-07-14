@@ -38,6 +38,7 @@ export type RecordRow = {
 	pbOrWr?: 'personal-best' | 'world-record' | null
 	worldRecord?: boolean
 	viewer?: boolean
+	pinned?: boolean
 }
 
 export type RecordHistoryRow = {

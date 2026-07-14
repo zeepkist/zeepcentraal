@@ -20,7 +20,11 @@
 		</template>
 		<div class="min-w-0 space-y-6">
 			<DataState :pending="pagination.isInitialPending(result.fetching.value, users.length)" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
-				<UserLeaderboardTable :users="users" :labels="tableLabels" />
+				<UserLeaderboardTable
+					:users="users"
+					:viewer-user-id="session.user?.id"
+					:labels="tableLabels"
+				/>
 			</DataState>
 			<CursorPagination :page="page" :can-go-previous="pagination.canGoPrevious(page)" :can-go-next="pagination.canGoNext(page)" :pending="result.fetching.value" v-bind="paginationLabels" @first="pagination.first()" @previous="pagination.previous(page)" @next="pagination.next(page)" @last="pagination.last()" />
 		</div>
@@ -33,6 +37,7 @@ import type { UserPointsOrderBy } from '~/graphql/generated/graphql'
 
 usePageSeo('users')
 const { t } = useI18n()
+const session = useSessionStore()
 const { applyFilters, page, pagination, result, search, sort, users } = usePlayers()
 const sortOptions = computed(() => [
 	{ label: t('users.sort.rank'), value: USER_SORTS.rank },
@@ -46,6 +51,7 @@ const tableLabels = computed(() => ({
 	points: t('users.columns.rankedPoints'),
 	totalPoints: t('users.columns.totalPoints'),
 	worldRecords: t('users.columns.worldRecords'),
+	openPlayer: t('auth.profile'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

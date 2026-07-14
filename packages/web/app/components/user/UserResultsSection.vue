@@ -35,6 +35,7 @@
 				:pb-or-wr-label="labels.pbOrWr"
 				:personal-best-label="labels.personalBest"
 				:world-record-label="labels.worldRecord"
+				:open-record-label="labels.openRecord"
 				:show-rank="showRank"
 				:show-points="showPoints"
 				:show-pb-or-wr="showPbOrWr"
@@ -86,6 +87,7 @@ withDefaults(
 			pbOrWr: string
 			personalBest: string
 			worldRecord: string
+			openRecord: string
 			date: string
 			error: string
 			empty: string

@@ -367,6 +367,7 @@ const resultLabels = computed(() => ({
 	pbOrWr: t('levels.detail.recordTable.pbOrWr'),
 	personalBest: t('levels.detail.recordTable.personalBest'),
 	worldRecord: t('levels.card.worldRecord'),
+	openRecord: t('pages.records.table.openRecord', { level: t('common.level') }),
 	date: t('common.date'),
 	error: t('common.error'),
 	empty: t('common.empty'),

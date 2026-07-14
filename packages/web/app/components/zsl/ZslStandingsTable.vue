@@ -27,54 +27,66 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr
+				<DataTableRow
 					v-for="row in standings"
 					:key="row.userId"
-					class="border-t border-border transition-colors hover:bg-primary/8"
-					:class="[
-						viewerUserId === row.userId ? 'bg-primary/10 text-highlighted' : 'bg-card/60',
-						row.pinned ? 'border-t-2 border-primary/40' : '',
-					]"
+					:viewer="viewerUserId === row.userId"
+					:pinned="row.pinned"
+					:interactive="Boolean(row.steamId)"
 				>
-					<td class="px-4 py-3 font-black tabular-nums">
-						#{{ number.format(row.position) }}
+					<td class="p-0 font-black tabular-nums">
+						<DataTableCellLink
+							:to="userPath(row.steamId)"
+							:aria-label="labels.openPlayer"
+							class="px-4 py-3"
+						>
+							#{{ number.format(row.position) }}
+						</DataTableCellLink>
 					</td>
-					<td class="px-4 py-3">
-						<div class="flex min-w-0 items-center gap-2">
-							<NuxtLink
-								v-if="row.steamId"
-								:to="`/user/${row.steamId}`"
-								class="truncate font-semibold hover:text-primary"
-							>
+					<td class="p-0">
+						<DataTableCellLink
+							:to="userPath(row.steamId)"
+							focusable
+							class="flex min-w-0 items-center gap-2 px-4 py-3"
+						>
+							<span v-if="row.steamId" class="truncate font-semibold group-hover:text-primary">
 								{{ row.steamName ?? row.steamId }}
-							</NuxtLink>
+							</span>
 							<span v-else class="truncate text-muted-foreground">{{ labels.unknown }}</span>
 							<UBadge v-if="row.pinned" color="primary" variant="soft" size="sm">
 								{{ labels.yourStanding }}
 							</UBadge>
-						</div>
+						</DataTableCellLink>
 					</td>
-					<td v-if="showTime" class="px-4 py-3 font-semibold tabular-nums">
-						{{ row.time == null ? labels.emptyValue : formatTime(row.time) }}
+					<td v-if="showTime" class="p-0 font-semibold tabular-nums">
+						<DataTableCellLink :to="userPath(row.steamId)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{ row.time == null ? labels.emptyValue : formatTime(row.time) }}
+						</DataTableCellLink>
 					</td>
-					<td v-if="showLevelsPlayed" class="px-4 py-3 font-semibold tabular-nums">
-						{{ row.levelsPlayed == null ? labels.emptyValue : number.format(row.levelsPlayed) }}
+					<td v-if="showLevelsPlayed" class="p-0 font-semibold tabular-nums">
+						<DataTableCellLink :to="userPath(row.steamId)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{ row.levelsPlayed == null ? labels.emptyValue : number.format(row.levelsPlayed) }}
+						</DataTableCellLink>
 					</td>
 					<td
 						v-for="(_, index) in roundLabels"
 						:key="index"
-						class="px-4 py-3 font-semibold tabular-nums"
+						class="p-0 font-semibold tabular-nums"
 					>
-						{{
-							row.roundPoints?.[index] == null
-								? labels.emptyValue
-								: number.format(row.roundPoints[index] ?? 0)
-						}}
+						<DataTableCellLink :to="userPath(row.steamId)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{
+								row.roundPoints?.[index] == null
+									? labels.emptyValue
+									: number.format(row.roundPoints[index] ?? 0)
+							}}
+						</DataTableCellLink>
 					</td>
-					<td class="px-4 py-3 font-bold tabular-nums">
-						{{ number.format(row.points) }}
+					<td class="p-0 font-bold tabular-nums">
+						<DataTableCellLink :to="userPath(row.steamId)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{ number.format(row.points) }}
+						</DataTableCellLink>
 					</td>
-				</tr>
+				</DataTableRow>
 			</tbody>
 		</table>
 	</DataTableFrame>
@@ -96,6 +108,7 @@ const props = withDefaults(
 			time: string
 			points: string
 			levelsPlayed: string
+			openPlayer: string
 			unknown: string
 			yourStanding: string
 			emptyValue: string
@@ -115,5 +128,9 @@ const tableWidthClass = computed(() => {
 function formatTime(seconds: number) {
 	const minutes = Math.floor(seconds / 60)
 	return `${minutes}:${(seconds - minutes * 60).toFixed(3).padStart(6, '0')}`
+}
+
+function userPath(steamId?: string | null) {
+	return steamId ? `/user/${steamId}` : undefined
 }
 </script>

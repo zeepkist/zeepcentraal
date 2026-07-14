@@ -20,6 +20,10 @@ const table = readFileSync(
 	new URL('../../app/components/zsl/ZslStandingsTable.vue', import.meta.url),
 	'utf8',
 )
+const sharedRow = readFileSync(
+	new URL('../../app/components/common/DataTableRow.vue', import.meta.url),
+	'utf8',
+)
 const routeFiles = [
 	'../../app/pages/super-league/[seasonSlug]/index.vue',
 	'../../app/pages/super-league/[seasonSlug]/[roundSlug]/index.vue',
@@ -170,8 +174,10 @@ describe('Super League viewer standings', () => {
 			expect(page).toContain('const viewerId = computed(() => session.user?.id)')
 			expect(page).toContain(':viewer-user-id="viewerId"')
 		}
-		expect(table).toContain("viewerUserId === row.userId ? 'bg-primary/10 text-highlighted'")
-		expect(table).toContain("row.pinned ? 'border-t-2 border-primary/40'")
+		expect(table).toContain(':viewer="viewerUserId === row.userId"')
+		expect(table).toContain(':pinned="row.pinned"')
+		expect(sharedRow).toContain("viewer ? 'bg-primary/10 text-highlighted' : 'bg-card/60'")
+		expect(sharedRow).toContain("pinned ? 'border-t-2 border-primary/40'")
 		expect(table).toContain('labels.yourStanding')
 	})
 })

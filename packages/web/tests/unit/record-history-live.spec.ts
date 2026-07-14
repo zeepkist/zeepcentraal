@@ -45,6 +45,10 @@ describe('live record history', () => {
 			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
 			'utf8',
 		)
+		const row = readFileSync(
+			new URL('../../app/components/common/DataTableRow.vue', import.meta.url),
+			'utf8',
+		)
 		const composable = readFileSync(
 			new URL('../../app/composables/useRecordHistory.ts', import.meta.url),
 			'utf8',
@@ -53,7 +57,8 @@ describe('live record history', () => {
 			new URL('../../app/assets/css/tailwind.css', import.meta.url),
 			'utf8',
 		)
-		expect(table).toContain("'record-history-highlight': highlightedRecordIds?.has(record.id)")
+		expect(table).toContain(':highlighted="highlightedRecordIds?.has(record.id)"')
+		expect(row).toContain("'record-history-highlight': highlighted")
 		expect(table).toContain('aria-live="polite"')
 		expect(composable).toContain('}, 2_000)')
 		expect(composable).toContain('onScopeDispose(clearHighlights)')

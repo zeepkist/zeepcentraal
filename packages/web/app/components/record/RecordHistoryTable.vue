@@ -30,80 +30,84 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr
+				<DataTableRow
 					v-for="record in records"
 					:key="record.id"
-					class="group cursor-pointer border-t border-border transition hover:bg-primary/8 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-[-2px]"
-					:class="[
-						viewerUserId === record.userId ? 'bg-primary/10 text-highlighted' : 'bg-card/60',
-						{ 'record-history-highlight': highlightedRecordIds?.has(record.id) },
-					]"
-					tabindex="0"
-					:aria-label="labels.openRecord.replace('{level}', record.levelName)"
-					@click="$emit('select', record.id)"
-					@keydown.enter.prevent="$emit('select', record.id)"
-					@keydown.space.prevent="$emit('select', record.id)"
+					:viewer="viewerUserId === record.userId"
+					:highlighted="highlightedRecordIds?.has(record.id)"
+					interactive
 				>
-					<td class="px-4 py-3">
-						<NuxtLink
-							:to="`/level/${record.levelXxHash}`"
-							class="block truncate font-bold hover:text-primary"
-							@click.stop
-							@keydown.stop
+					<td class="p-0">
+						<DataTableCellLink
+							:to="levelPath(record)"
+							focusable
+							class="truncate px-4 py-3 font-bold group-hover:text-primary"
 						>
 							{{ record.levelName }}
-						</NuxtLink>
+						</DataTableCellLink>
 					</td>
-					<td v-if="showPlayer" class="px-4 py-3">
-						<NuxtLink
-							v-if="record.userSteamId"
-							:to="`/user/${record.userSteamId}`"
-							class="block truncate font-semibold hover:text-primary"
-							@click.stop
-							@keydown.stop
+					<td v-if="showPlayer" class="p-0">
+						<DataTableCellLink
+							:to="playerOrRecordPath(record)"
+							:focusable="Boolean(record.userSteamId)"
+							:aria-label="record.userSteamId ? undefined : recordAriaLabel(record)"
+							class="truncate px-4 py-3 font-semibold group-hover:text-primary"
 						>
-							{{ record.userName ?? record.userSteamId }}
-						</NuxtLink>
-						<span v-else class="block truncate text-muted-foreground">
-							{{ record.userName ?? labels.unknownPlayer }}
-						</span>
+							<span :class="record.userSteamId ? '' : 'text-muted-foreground'">
+								{{ record.userName ?? record.userSteamId ?? labels.unknownPlayer }}
+							</span>
+						</DataTableCellLink>
 					</td>
-					<td class="px-4 py-3 font-bold tabular-nums">
-						<span v-if="record.levelPosition != null">
-							#{{ number.format(record.levelPosition) }}
-						</span>
-						<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
+					<td class="p-0 font-bold tabular-nums">
+						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
+							<span v-if="record.levelPosition != null">
+								#{{ number.format(record.levelPosition) }}
+							</span>
+							<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
+						</DataTableCellLink>
 					</td>
-					<td class="px-4 py-3 font-semibold tabular-nums">{{ formatTime(record.time) }}</td>
-					<td class="px-4 py-3 font-bold tabular-nums">
-						<span v-if="record.levelPoints != null">{{ number.format(record.levelPoints) }}</span>
-						<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
+					<td class="p-0 font-semibold tabular-nums">
+						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" focusable class="px-4 py-3">
+							{{ formatTime(record.time) }}
+						</DataTableCellLink>
+					</td>
+					<td class="p-0 font-bold tabular-nums">
+						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
+							<span v-if="record.levelPoints != null">{{ number.format(record.levelPoints) }}</span>
+							<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
+						</DataTableCellLink>
 					</td>
 					<td class="p-0">
-						<RecordPointValue
-							:points="record.levelDecayedPoints"
-							:decay-multiplier="record.levelDecayMultiplier"
-							:not-ranked-label="labels.notRanked"
-							:decay-label="labels.decayPercentage"
-						/>
+						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)">
+							<RecordPointValue
+								:points="record.levelDecayedPoints"
+								:decay-multiplier="record.levelDecayMultiplier"
+								:not-ranked-label="labels.notRanked"
+								:decay-label="labels.decayPercentage"
+							/>
+						</DataTableCellLink>
 					</td>
 					<td class="p-0">
-						<RecordPointValue
-							:points="record.playerDecayedPoints"
-							:decay-multiplier="record.globalDecayMultiplier"
-							:not-ranked-label="labels.notRanked"
-							:decay-label="labels.decayPercentage"
-						/>
+						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)">
+							<RecordPointValue
+								:points="record.playerDecayedPoints"
+								:decay-multiplier="record.globalDecayMultiplier"
+								:not-ranked-label="labels.notRanked"
+								:decay-label="labels.decayPercentage"
+							/>
+						</DataTableCellLink>
 					</td>
-					<td class="px-4 py-3 text-muted-foreground">
-						<NuxtTime
-							:datetime="record.dateCreated"
-							relative
-							numeric="auto"
-							relative-style="short"
-						/>
+					<td class="p-0 text-muted-foreground">
+						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
+							<NuxtTime
+								:datetime="record.dateCreated"
+								relative
+								numeric="auto"
+								relative-style="short"
+							/>
+						</DataTableCellLink>
 					</td>
-				</tr>
+				</DataTableRow>
 			</tbody>
 		</table>
 	</DataTableFrame>
@@ -112,7 +116,7 @@
 <script setup lang="ts">
 import type { RecordHistoryRow } from '~/types/app'
 
-defineProps<{
+const props = defineProps<{
 	records: RecordHistoryRow[]
 	highlightedRecordIds?: ReadonlySet<number>
 	liveUpdateLabel: string
@@ -134,13 +138,27 @@ defineProps<{
 	}
 }>()
 
-defineEmits<{ select: [recordId: number] }>()
-
 const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 
 function formatTime(seconds: number) {
 	const minutes = Math.floor(seconds / 60)
 	return `${minutes}:${(seconds - minutes * 60).toFixed(3).padStart(6, '0')}`
+}
+
+function recordPath(record: RecordHistoryRow) {
+	return `/record/${record.id}`
+}
+
+function levelPath(record: RecordHistoryRow) {
+	return `/level/${record.levelXxHash}`
+}
+
+function playerOrRecordPath(record: RecordHistoryRow) {
+	return record.userSteamId ? `/user/${record.userSteamId}` : recordPath(record)
+}
+
+function recordAriaLabel(record: RecordHistoryRow) {
+	return props.labels.openRecord.replace('{level}', record.levelName)
 }
 </script>

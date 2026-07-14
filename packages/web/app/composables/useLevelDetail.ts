@@ -272,6 +272,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 				...mapRecord(own, viewerId.value),
 				rank,
 				points: calculateLevelPersonalBestPoints(levelPoints, rank),
+				pinned: true,
 			},
 		]
 	})
