@@ -8,6 +8,7 @@
 			:aria-selected="modelValue === option.value"
 			:color="modelValue === option.value ? 'primary' : 'neutral'"
 			:variant="modelValue === option.value ? 'solid' : 'ghost'"
+			:disabled="option.disabled"
 			@click="$emit('update:modelValue', option.value)"
 		>
 			<TablerIcon :name="option.icon" class="size-3.5" />
@@ -20,7 +21,7 @@
 defineProps<{
 	modelValue: T
 	label: string
-	options: Array<{ value: T; label: string; icon: string }>
+	options: Array<{ value: T; label: string; icon: string; disabled?: boolean }>
 }>()
 
 defineEmits<{ 'update:modelValue': [value: T] }>()

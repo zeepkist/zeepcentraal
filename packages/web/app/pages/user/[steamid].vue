@@ -14,14 +14,19 @@
 
 				<div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
 					<div class="min-w-0 space-y-8 lg:space-y-10">
-					<section :ref="data.pointsHistoryTarget" aria-labelledby="profile-history">
+					<section aria-labelledby="profile-history">
 						<SectionHeader id="profile-history" :title="$t('users.profile.history.title')" :description="$t('users.profile.history.description')" />
-						<DataState :pending="!data.pointsHistoryActive.value || data.pointsHistoryQuery.fetching.value" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
-							<UserCareerHistory :history="data.pointsHistory.value" :labels="historyLabels" />
+						<DataState :pending="data.pointsHistoryQuery.fetching.value" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
+							<UserCareerHistory
+								:history="data.pointsHistory.value"
+								:secondary-history="data.secondaryPointsHistory.value"
+								:secondary-ready="data.secondaryPointsHistoryQuery.data.value !== undefined"
+								:labels="historyLabels"
+							/>
 						</DataState>
 					</section>
 
-				<div :ref="data.worldRecordsTarget">
+				<div>
 					<UserResultsSection
 						id="profile-world-records"
 						:title="$t('users.profile.worldRecords.title')"
@@ -204,13 +209,13 @@ const metrics = computed(() => [
 		key: 'pbs',
 		label: t('dashboard.metrics.personalBests'),
 		value: number.value.format(user.value?.personalBestGlobals.totalCount ?? 0),
-		icon: 'users',
+		icon: 'star',
 	},
 	{
 		key: 'wrs',
 		label: t('users.columns.worldRecords'),
 		value: number.value.format(user.value?.worldRecordGlobals.totalCount ?? 0),
-		icon: 'flag',
+		icon: 'trophy',
 	},
 	{
 		key: 'levels',
@@ -225,12 +230,12 @@ const achievementPreviews = computed(() => [
 	{
 		key: 'personal-bests',
 		label: t('users.profile.achievements.items.personalBests'),
-		icon: 'user-star',
+		icon: 'star',
 	},
 	{
 		key: 'world-records',
 		label: t('users.profile.achievements.items.worldRecords'),
-		icon: 'flag',
+		icon: 'trophy',
 	},
 	{ key: 'fastest-speed', label: t('users.profile.achievements.items.fastestSpeed'), icon: 'gauge' },
 	{ key: 'levels', label: t('users.profile.achievements.items.levels'), icon: 'map' },
@@ -286,7 +291,6 @@ const superLeagueStandingsUrl = computed(() =>
 )
 const superLeaguePending = computed(
 	() =>
-		!data.pointsHistoryActive.value ||
 		data.superLeagueSeasonsQuery.fetching.value ||
 		(data.selectedSuperLeagueSeasonId.value !== undefined &&
 			data.superLeagueSeasonQuery.fetching.value),
@@ -386,9 +390,7 @@ const levelCollectionLabels = computed(() => ({
 	created: t('levels.card.created'),
 }))
 const levelsPending = computed(() => !data.levelsActive.value || data.levelsQuery.fetching.value)
-const wrPending = computed(
-	() => !data.worldRecordsActive.value || data.wrResult.value.fetching.value,
-)
+const wrPending = computed(() => data.wrResult.value.fetching.value)
 const pbPending = computed(
 	() => !data.personalBestsActive.value || data.pbResult.value.fetching.value,
 )

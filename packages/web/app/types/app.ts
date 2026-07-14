@@ -129,8 +129,12 @@ export type UserProfileSummary = {
 export type UserCareerHistoryPoint = {
 	date: string
 	rankedPoints: number
-	totalPoints: number
 	rank: number | null
+}
+
+export type UserCareerSecondaryHistoryPoint = {
+	date: string
+	totalPoints: number
 	worldRecords: number
 }
 

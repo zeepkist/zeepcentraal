@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { steamProfileUrl, steamWorkshopProfileUrl } from '../../app/utils/steamProfile'
 import {
 	buildUserCareerHistory,
+	buildUserCareerSecondaryHistory,
+	createUserCareerAxisFormatter,
 	getUserCareerHistoryWindow,
 } from '../../app/utils/userCareerHistory'
 import { getUserTelemetryWindows } from '../../app/utils/userTelemetry'
@@ -13,6 +15,14 @@ const profileQuery = readFileSync(
 )
 const historyQuery = readFileSync(
 	new URL('../../app/graphql/queries/userPointsHistory.graphql', import.meta.url),
+	'utf8',
+)
+const secondaryHistoryQuery = readFileSync(
+	new URL('../../app/graphql/queries/userPointsHistorySecondary.graphql', import.meta.url),
+	'utf8',
+)
+const profileComposable = readFileSync(
+	new URL('../../app/composables/useUserProfile.ts', import.meta.url),
 	'utf8',
 )
 const statisticsQuery = readFileSync(
@@ -72,14 +82,23 @@ describe('user profile overview', () => {
 		expect(statCard).toContain('motion-safe:group-hover:-translate-y-1')
 	})
 
-	it('queries one baseline and grouped history', () => {
+	it('splits SSR career history from post-hydration series', () => {
 		expect(historyQuery).toContain('baseline: userPointsHistories(')
 		expect(historyQuery).toContain('first: 1')
 		expect(historyQuery).toContain('history: userPointsHistories(')
 		expect(historyQuery).toContain('first: 0')
 		expect(historyQuery).toContain('groupedAggregates(groupBy: [DATE_CREATED])')
-		expect(historyQuery).toMatch(/nodes \{[\s\S]*worldRecords/)
-		expect(historyQuery).toMatch(/max \{[\s\S]*worldRecords/)
+		expect(historyQuery).not.toContain('totalPoints')
+		expect(historyQuery).not.toContain('worldRecords')
+		expect(secondaryHistoryQuery).toContain('totalPoints')
+		expect(secondaryHistoryQuery).toContain('worldRecords')
+		expect(profileComposable).toContain('import.meta.server ||')
+		expect(profileComposable).toContain('careerSecondaryActive.value = true')
+		expect(profileComposable).toContain(
+			'await Promise.all([pointsHistoryQuery, superLeagueSeasonsQuery, wrResult.value])',
+		)
+		expect(page).not.toContain('pointsHistoryActive')
+		expect(page).not.toContain('worldRecordsActive')
 	})
 
 	it('queries count-only telemetry for all supported periods', () => {
@@ -130,7 +149,8 @@ describe('user profile overview', () => {
 		expect(careerHistory).toContain("ref<PointsSeries>('rankedPoints')")
 		expect(careerHistory).toContain("ref<StandingSeries>('rank')")
 		expect(careerHistory).toContain("key: 'worldRecords'")
-		expect(careerHistory).toContain('value: point.worldRecords')
+		expect(careerHistory).toContain('props.secondaryHistory.map')
+		expect(careerHistory).toContain('disabled: !props.secondaryReady')
 		expect(careerHistory).toContain('inverted: false')
 		expect(careerHistory.match(/group: 'points'/g)).toHaveLength(2)
 		expect(careerHistory.match(/group: 'standing'/g)).toHaveLength(2)
@@ -138,6 +158,18 @@ describe('user profile overview', () => {
 		expect(chartSeriesTabs).toContain('role="tab"')
 		expect(chartSeriesTabs).toContain(':aria-selected=')
 		expect(chartSeriesTabs).not.toContain('useQuery')
+	})
+
+	it('abbreviates axis values while retaining full tooltip values', () => {
+		const compact = createUserCareerAxisFormatter('en')
+		expect(compact.format(1_000)).toBe('1K')
+		expect(compact.format(1_050)).toBe('1.05K')
+		expect(compact.format(1_000_000)).toBe('1M')
+		expect(compact.format(1_450_000)).toBe('1.45M')
+		expect(compact.format(4_000_000_000)).toBe('4B')
+		expect(careerHistory).toContain('createUserCareerAxisFormatter(locale.value)')
+		expect(careerHistory).toContain('series.inverted ? formatRankTick : formatCompactTick')
+		expect(careerHistory).toContain('number.value.format(displayValue)')
 	})
 
 	it('renders profile sections in requested order', () => {
@@ -175,18 +207,16 @@ describe('user profile overview', () => {
 			baseline: {
 				dateCreated: '2025-07-01T00:00:00.000Z',
 				points: 100,
-				totalPoints: 200,
 				rank: -1,
-				worldRecords: 0,
 			},
 			groups: [
 				{
 					keys: ['2026-01-01T00:00:00.000Z'],
-					max: { points: 150, totalPoints: 300, worldRecords: 3 },
+					max: { points: 150 },
 					min: { rank: 25 },
 				},
 			],
-			current: { points: 175, totalPoints: 350, rank: 20, worldRecords: 2 },
+			current: { points: 175, rank: 20 },
 			since: window.since,
 			now: window.now,
 		})
@@ -194,24 +224,41 @@ describe('user profile overview', () => {
 			{
 				date: window.since,
 				rankedPoints: 100,
-				totalPoints: 200,
 				rank: null,
-				worldRecords: 0,
 			},
 			{
 				date: '2026-01-01T00:00:00.000Z',
 				rankedPoints: 150,
-				totalPoints: 300,
 				rank: 25,
-				worldRecords: 3,
 			},
 			{
 				date: window.now,
 				rankedPoints: 175,
-				totalPoints: 350,
 				rank: 20,
-				worldRecords: 2,
 			},
+		])
+
+		expect(
+			buildUserCareerSecondaryHistory({
+				baseline: {
+					dateCreated: '2025-07-01T00:00:00.000Z',
+					totalPoints: 200,
+					worldRecords: 0,
+				},
+				groups: [
+					{
+						keys: ['2026-01-01T00:00:00.000Z'],
+						max: { totalPoints: 300, worldRecords: 3 },
+					},
+				],
+				current: { totalPoints: 350, worldRecords: 2 },
+				since: window.since,
+				now: window.now,
+			}),
+		).toEqual([
+			{ date: window.since, totalPoints: 200, worldRecords: 0 },
+			{ date: '2026-01-01T00:00:00.000Z', totalPoints: 300, worldRecords: 3 },
+			{ date: window.now, totalPoints: 350, worldRecords: 2 },
 		])
 	})
 })

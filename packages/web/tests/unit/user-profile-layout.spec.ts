@@ -49,8 +49,6 @@ describe('user profile layout', () => {
 
 	it('keeps every deferred section observer on left-column content', () => {
 		for (const target of [
-			'pointsHistoryTarget',
-			'worldRecordsTarget',
 			'statisticsTarget',
 			'personalBestsTarget',
 			'levelsTarget',
@@ -58,6 +56,8 @@ describe('user profile layout', () => {
 		]) {
 			expect(page).toContain(`:ref="data.${target}"`)
 		}
+		expect(page).not.toContain('pointsHistoryTarget')
+		expect(page).not.toContain('worldRecordsTarget')
 	})
 
 	it('renders request-free achievement preview badges in responsive columns', () => {

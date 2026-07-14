@@ -22,6 +22,7 @@ const page = readFileSync(new URL('../../app/pages/user/[steamid].vue', import.m
 describe('user profile Super League panel', () => {
 	it('loads every season and viewer-specific selected-season results', () => {
 		expect(query).toContain('zslSeasons(first: 1000, orderBy: [START_DATE_DESC])')
+		expect(query).toContain('currentSeason: zslSeasons(first: 1, orderBy: [START_DATE_DESC])')
 		expect(query).toContain('pointsStructure {')
 		expect(query).toContain('bestOf')
 		expect(query).toContain(
@@ -89,7 +90,13 @@ describe('user profile Super League panel', () => {
 		expect(component).toContain('round.counted ? number.format(round.points)')
 		expect(composable).toContain('Zc_UserSuperLeagueSeasonsDocument')
 		expect(composable).toContain('Zc_UserSuperLeagueSeasonDocument')
-		expect(composable).toContain('!historyPrefetch.active.value')
+		expect(composable).toContain('currentSuperLeagueSeason')
+		expect(composable).toContain(
+			'selectedSuperLeagueSeasonId.value === currentSuperLeagueSeason.value?.id',
+		)
+		expect(composable).toContain(
+			'await Promise.all([pointsHistoryQuery, superLeagueSeasonsQuery, wrResult.value])',
+		)
 	})
 
 	it('renders below Career Summary with semantic standings link', () => {

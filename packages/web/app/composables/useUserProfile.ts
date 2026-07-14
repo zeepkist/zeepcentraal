@@ -4,6 +4,7 @@ import {
 	type Zc_UserLevelCardFragment,
 	Zc_UserLevelsDocument,
 	Zc_UserPointsHistoryDocument,
+	Zc_UserPointsHistorySecondaryDocument,
 	Zc_UserProfileDocument,
 	Zc_UserResultsDocument,
 	Zc_UserStatisticsDocument,
@@ -13,7 +14,11 @@ import {
 import type { CursorPage, LevelSummary, RecordRow, UserProfileSummary } from '~/types/app'
 import { getLevelHotWindows } from '~/utils/levelExplorer'
 import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'
-import { buildUserCareerHistory, getUserCareerHistoryWindow } from '~/utils/userCareerHistory'
+import {
+	buildUserCareerHistory,
+	buildUserCareerSecondaryHistory,
+	getUserCareerHistoryWindow,
+} from '~/utils/userCareerHistory'
 import { buildUserSuperLeagueSummary } from '~/utils/userSuperLeague'
 import { getUserTelemetryWindows, type UserTelemetryPeriod } from '~/utils/userTelemetry'
 
@@ -73,11 +78,13 @@ function mapUserLevel(
 
 export function useUserProfile(steamId: Ref<string>) {
 	const statisticsPrefetch = useViewportPrefetch()
-	const historyPrefetch = useViewportPrefetch()
 	const levelsPrefetch = useViewportPrefetch()
-	const worldRecordsPrefetch = useViewportPrefetch()
 	const personalBestsPrefetch = useViewportPrefetch()
 	const recentPrefetch = useViewportPrefetch()
+	const careerSecondaryActive = ref(false)
+	onMounted(() => {
+		careerSecondaryActive.value = true
+	})
 	const profile = useQuery({
 		query: Zc_UserProfileDocument,
 		variables: computed(() => ({ steamId: steamId.value })),
@@ -116,7 +123,7 @@ export function useUserProfile(steamId: Ref<string>) {
 			userId: userId.value ?? 0,
 			since: historyWindow.value.since,
 		})),
-		pause: computed(() => userId.value === undefined || !historyPrefetch.active.value),
+		pause: computed(() => userId.value === undefined),
 	})
 	const pointsHistory = computed(() =>
 		buildUserCareerHistory({
@@ -127,13 +134,37 @@ export function useUserProfile(steamId: Ref<string>) {
 			now: historyWindow.value.now,
 		}),
 	)
+	const secondaryPointsHistoryQuery = useQuery({
+		query: Zc_UserPointsHistorySecondaryDocument,
+		variables: computed(() => ({
+			userId: userId.value ?? 0,
+			since: historyWindow.value.since,
+		})),
+		pause: computed(
+			() => import.meta.server || userId.value === undefined || !careerSecondaryActive.value,
+		),
+	})
+	const secondaryPointsHistory = computed(() =>
+		buildUserCareerSecondaryHistory({
+			baseline: secondaryPointsHistoryQuery.data.value?.baseline?.nodes[0],
+			groups: secondaryPointsHistoryQuery.data.value?.history?.groupedAggregates,
+			current: user.value?.userPoints,
+			since: historyWindow.value.since,
+			now: historyWindow.value.now,
+		}),
+	)
 	const superLeagueSeasonsQuery = useQuery({
 		query: Zc_UserSuperLeagueSeasonsDocument,
-		pause: computed(() => userId.value === undefined || !historyPrefetch.active.value),
+		variables: computed(() => ({ userId: userId.value ?? 0 })),
+		pause: computed(() => userId.value === undefined),
 	})
 	const superLeagueSeasons = computed(
 		() => superLeagueSeasonsQuery.data.value?.zslSeasons?.nodes ?? [],
 	)
+	const currentSuperLeagueSeason = computed(() => {
+		const season = superLeagueSeasonsQuery.data.value?.currentSeason?.nodes[0]
+		return season ? buildUserSuperLeagueSummary(season) : null
+	})
 	watch(
 		superLeagueSeasons,
 		(seasons) => {
@@ -156,10 +187,13 @@ export function useUserProfile(steamId: Ref<string>) {
 			() =>
 				userId.value === undefined ||
 				selectedSuperLeagueSeasonId.value === undefined ||
-				!historyPrefetch.active.value,
+				selectedSuperLeagueSeasonId.value === currentSuperLeagueSeason.value?.id,
 		),
 	})
 	const superLeagueSeason = computed(() => {
+		if (selectedSuperLeagueSeasonId.value === currentSuperLeagueSeason.value?.id) {
+			return currentSuperLeagueSeason.value
+		}
 		const season = superLeagueSeasonQuery.data.value?.zslSeason
 		return season?.id === selectedSuperLeagueSeasonId.value
 			? buildUserSuperLeagueSummary(season)
@@ -234,12 +268,7 @@ export function useUserProfile(steamId: Ref<string>) {
 			...wrPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 }, levelPosition: { equalTo: 1 } },
 		})),
-		pause: computed(
-			() =>
-				userId.value === undefined ||
-				wrSort.value !== 'valuable' ||
-				!worldRecordsPrefetch.active.value,
-		),
+		pause: computed(() => userId.value === undefined || wrSort.value !== 'valuable'),
 	})
 	const pbValuable = useQuery({
 		query: Zc_UserContributionsDocument,
@@ -260,12 +289,7 @@ export function useUserProfile(steamId: Ref<string>) {
 			...wrPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 }, worldRecordGlobalsExist: true },
 		})),
-		pause: computed(
-			() =>
-				userId.value === undefined ||
-				wrSort.value !== 'recent' ||
-				!worldRecordsPrefetch.active.value,
-		),
+		pause: computed(() => userId.value === undefined || wrSort.value !== 'recent'),
 	})
 	const pbRecent = useQuery({
 		query: Zc_UserResultsDocument,
@@ -404,7 +428,11 @@ export function useUserProfile(steamId: Ref<string>) {
 	}
 
 	async function prefetchCritical() {
-		if (import.meta.server) await profile
+		if (!import.meta.server) return
+		await profile
+		if (userId.value === undefined) return
+		await Promise.all([pointsHistoryQuery, superLeagueSeasonsQuery, wrResult.value])
+		await nextTick()
 	}
 
 	return {
@@ -416,9 +444,9 @@ export function useUserProfile(steamId: Ref<string>) {
 		pbRows,
 		pbSort,
 		pointsHistory,
-		pointsHistoryActive: historyPrefetch.active,
 		pointsHistoryQuery,
-		pointsHistoryTarget: historyPrefetch.target,
+		secondaryPointsHistory,
+		secondaryPointsHistoryQuery,
 		selectedSuperLeagueSeasonId,
 		superLeagueSeason,
 		superLeagueSeasonQuery,
@@ -452,7 +480,5 @@ export function useUserProfile(steamId: Ref<string>) {
 		wrResult,
 		wrRows,
 		wrSort,
-		worldRecordsActive: worldRecordsPrefetch.active,
-		worldRecordsTarget: worldRecordsPrefetch.target,
 	}
 }
