@@ -7,8 +7,8 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!canGoPrevious || pending"
-				@click="$emit('first')"
+				:disabled="mounted && (!canGoPrevious || pending)"
+				@click="first"
 			>
 				<TablerIcon name="chevrons-left" class="size-4" />
 				{{ firstLabel }}
@@ -16,8 +16,8 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!canGoPrevious || pending"
-				@click="$emit('previous')"
+				:disabled="mounted && (!canGoPrevious || pending)"
+				@click="previous"
 			>
 				<TablerIcon name="chevron-left" class="size-4" />
 				{{ previousLabel }}
@@ -38,8 +38,8 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!canGoNext || pending"
-				@click="$emit('next')"
+				:disabled="mounted && (!canGoNext || pending)"
+				@click="next"
 			>
 				{{ nextLabel }}
 				<TablerIcon name="chevron-right" class="size-4" />
@@ -47,8 +47,8 @@
 			<UButton
 				color="neutral"
 				variant="soft"
-				:disabled="!canGoNext || pending"
-				@click="$emit('last')"
+				:disabled="mounted && (!canGoNext || pending)"
+				@click="last"
 			>
 				{{ lastLabel }}
 				<TablerIcon name="chevrons-right" class="size-4" />
@@ -60,7 +60,7 @@
 <script setup lang="ts">
 import type { CursorPage } from '~/types/app'
 
-defineProps<{
+const props = defineProps<{
 	page: CursorPage
 	canGoPrevious: boolean
 	canGoNext: boolean
@@ -73,5 +73,26 @@ defineProps<{
 	lastLabel: string
 }>()
 
-defineEmits<{ first: []; previous: []; next: []; last: [] }>()
+const emit = defineEmits<{ first: []; previous: []; next: []; last: [] }>()
+const mounted = ref(false)
+
+onMounted(() => {
+	mounted.value = true
+})
+
+function first() {
+	if (props.canGoPrevious && !props.pending) emit('first')
+}
+
+function previous() {
+	if (props.canGoPrevious && !props.pending) emit('previous')
+}
+
+function next() {
+	if (props.canGoNext && !props.pending) emit('next')
+}
+
+function last() {
+	if (props.canGoNext && !props.pending) emit('last')
+}
 </script>
