@@ -23,7 +23,7 @@
 				:author-time-label="labels.authorTime"
 				:by-label="labels.by"
 				:created-label="labels.created"
-				:columns="2"
+				:columns="columns"
 			/>
 		</DataState>
 	</section>
@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
 
-defineProps<{
+withDefaults(defineProps<{
 	id: string
 	title: string
 	description: string
@@ -54,5 +54,6 @@ defineProps<{
 		by: string
 		created: string
 	}
-}>()
+	columns?: 2 | 3 | 4
+}>(), { columns: 3 })
 </script>

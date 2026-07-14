@@ -12,20 +12,23 @@
 				<div class="space-y-8 lg:space-y-10">
 				<UserDetailHero :user="summary" :profile-url="profileUrl" :workshop-url="workshopProfileUrl" :labels="heroLabels" />
 
-				<section aria-labelledby="profile-summary">
-					<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
-					<MetricGrid :metrics="metrics" />
-				</section>
-
-				<section :ref="data.pointsHistoryTarget" aria-labelledby="profile-history">
-					<SectionHeader id="profile-history" :title="$t('users.profile.history.title')" :description="$t('users.profile.history.description')" />
-					<DataState :pending="!data.pointsHistoryActive.value || data.pointsHistoryQuery.fetching.value" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
-						<UserCareerHistory :history="data.pointsHistory.value" :labels="historyLabels" />
-					</DataState>
-				</section>
+				<div :ref="data.pointsHistoryTarget" class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
+					<section aria-labelledby="profile-history">
+						<SectionHeader id="profile-history" :title="$t('users.profile.history.title')" :description="$t('users.profile.history.description')" />
+						<DataState :pending="!data.pointsHistoryActive.value || data.pointsHistoryQuery.fetching.value" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
+							<UserCareerHistory :history="data.pointsHistory.value" :labels="historyLabels" />
+						</DataState>
+					</section>
+					<section aria-labelledby="profile-summary">
+						<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
+						<MetricGrid :metrics="metrics" :columns="2" />
+					</section>
+				</div>
 
 				<section :ref="data.statisticsTarget" aria-labelledby="profile-telemetry">
-					<SectionHeader id="profile-telemetry" :title="$t('users.profile.telemetry.title')" :description="$t('users.profile.telemetry.description')" />
+					<SectionHeader id="profile-telemetry" :title="$t('users.profile.telemetry.title')" :description="$t('users.profile.telemetry.description')">
+						<RecordTelemetryPeriodSelect v-model="data.telemetryPeriod.value" :label="$t('users.profile.telemetry.period')" :items="telemetryPeriodOptions" />
+					</SectionHeader>
 					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" v-bind="stateLabels">
 						<RecordTelemetryPanel :model="telemetryModel" :description="$t('users.profile.telemetry.telemetryDescription')" />
 					</DataState>
@@ -55,7 +58,7 @@
 						@last="data.wrPagination.last()"
 					/>
 				</div>
-				<div class="grid gap-8 xl:grid-cols-2 xl:items-start">
+				<div class="space-y-8 lg:space-y-10">
 					<div :ref="data.personalBestsTarget">
 						<UserResultsSection
 							id="profile-personal-bests"
@@ -73,7 +76,6 @@
 							:sort-options="resultSortOptions"
 							:pagination-labels="paginationLabels"
 							show-points
-							show-pb-or-wr
 							@update:sort="data.setPbSort"
 							@first="data.pbPagination.first()"
 							@previous="data.pbPagination.previous(data.pbPage.value)"
@@ -105,7 +107,7 @@
 					</div>
 				</div>
 
-				<div :ref="data.levelsTarget" class="grid gap-8 2xl:grid-cols-2 2xl:items-start">
+				<div :ref="data.levelsTarget" class="space-y-8 lg:space-y-10">
 					<UserLevelCollection
 						id="profile-recent-levels"
 						:title="$t('users.profile.levels.recentTitle')"
@@ -150,7 +152,7 @@ const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFract
 const profileUrl = computed(() => steamProfileUrl(steamId.value))
 const workshopProfileUrl = computed(() => steamWorkshopProfileUrl(steamId.value))
 const levelsUrl = computed(() => `/levels?author=${steamId.value}`)
-const telemetryModel = useRecordTelemetryModel(data.statistics.data, 'user')
+const telemetryModel = useRecordTelemetryModel(data.selectedStatistics, 'user')
 
 useSeoMeta({
 	title: () =>
@@ -163,24 +165,6 @@ useSeoMeta({
 			: t('pages.users.seo.description'),
 })
 const metrics = computed(() => [
-	{
-		key: 'rank',
-		label: t('common.rank'),
-		value: user.value?.userPoints && user.value.userPoints.rank > 0 ? `#${number.value.format(user.value.userPoints.rank)}` : t('users.profile.unranked'),
-		icon: 'trophy',
-	},
-	{
-		key: 'points',
-		label: t('users.columns.rankedPoints'),
-		value: number.value.format(user.value?.userPoints?.points ?? 0),
-		icon: 'dashboard',
-	},
-	{
-		key: 'total',
-		label: t('users.columns.totalPoints'),
-		value: number.value.format(user.value?.userPoints?.totalPoints ?? 0),
-		icon: 'dashboard',
-	},
 	{
 		key: 'records',
 		label: t('common.records'),
@@ -207,6 +191,23 @@ const metrics = computed(() => [
 		to: `/levels?author=${steamId.value}`,
 	},
 ])
+const telemetryPeriodOptions = computed(() => {
+	const window = data.telemetryWindows.value
+	const month = new Intl.DateTimeFormat(locale.value, {
+		month: 'long',
+		timeZone: USER_TELEMETRY_TIME_ZONE,
+	}).format(new Date(window.monthSince))
+	const year = new Intl.DateTimeFormat(locale.value, {
+		year: 'numeric',
+		timeZone: USER_TELEMETRY_TIME_ZONE,
+	}).format(new Date(window.now))
+	return [
+		{ label: t('users.profile.telemetry.allTime'), value: 'all-time' },
+		{ label: t('users.profile.telemetry.today'), value: 'today' },
+		{ label: month, value: 'month' },
+		{ label: year, value: 'year' },
+	]
+})
 const heroLabels = computed(() => ({ eyebrow: t('users.profile.eyebrow'), joined: t('users.profile.joined'), globalRank: t('users.profile.globalRank'), rankedPoints: t('users.columns.rankedPoints'), totalPoints: t('users.columns.totalPoints'), unranked: t('users.profile.unranked'), steamProfile: t('users.profile.steamProfile'), steamWorkshop: t('users.profile.steamWorkshop') }))
 const historyLabels = computed(() => ({ rankedPoints: t('users.profile.history.rankedPoints'), rankedPointsDescription: t('users.profile.history.rankedPointsDescription'), totalPoints: t('users.profile.history.totalPoints'), totalPointsDescription: t('users.profile.history.totalPointsDescription'), rank: t('users.profile.history.rank'), rankDescription: t('users.profile.history.rankDescription') }))
 const resultLabels = computed(() => ({

@@ -5,6 +5,7 @@ import {
 	buildUserCareerHistory,
 	getUserCareerHistoryWindow,
 } from '../../app/utils/userCareerHistory'
+import { getUserTelemetryWindows } from '../../app/utils/userTelemetry'
 
 const profileQuery = readFileSync(
 	new URL('../../app/graphql/queries/userProfile.graphql', import.meta.url),
@@ -25,6 +26,14 @@ const hero = readFileSync(
 )
 const statCard = readFileSync(
 	new URL('../../app/components/common/StatCard.vue', import.meta.url),
+	'utf8',
+)
+const careerHistory = readFileSync(
+	new URL('../../app/components/user/UserCareerHistory.vue', import.meta.url),
+	'utf8',
+)
+const telemetrySelect = readFileSync(
+	new URL('../../app/components/record/RecordTelemetryPeriodSelect.vue', import.meta.url),
 	'utf8',
 )
 
@@ -59,18 +68,65 @@ describe('user profile overview', () => {
 		expect(statCard).toContain('motion-safe:group-hover:-translate-y-1')
 	})
 
-	it('queries one baseline, grouped history, and count-only telemetry', () => {
+	it('queries one baseline and grouped history', () => {
 		expect(historyQuery).toContain('baseline: userPointsHistories(')
 		expect(historyQuery).toContain('first: 1')
 		expect(historyQuery).toContain('history: userPointsHistories(')
 		expect(historyQuery).toContain('first: 0')
 		expect(historyQuery).toContain('groupedAggregates(groupBy: [DATE_CREATED])')
+	})
+
+	it('queries count-only telemetry for all supported periods', () => {
 		expect(statisticsQuery).toContain('$minimumModVersion: String!')
-		expect(statisticsQuery).toMatch(/allStatistics: recordStatistics\(\s*first: 0/)
-		expect(statisticsQuery).toMatch(/v6Statistics: recordStatistics\(\s*first: 0/)
+		expect(statisticsQuery).toContain('$daySince: Datetime!')
+		expect(statisticsQuery).toContain('$monthSince: Datetime!')
+		expect(statisticsQuery).toContain('$yearSince: Datetime!')
+		for (const alias of [
+			'allStatistics',
+			'dayStatistics',
+			'monthStatistics',
+			'yearStatistics',
+			'v6Statistics',
+			'v6DayStatistics',
+			'v6MonthStatistics',
+			'v6YearStatistics',
+		]) {
+			expect(statisticsQuery).toMatch(new RegExp(`${alias}: recordStatistics\\(\\s*first: 0`))
+		}
 		expect(statisticsQuery).toContain(
 			'modVersion: { greaterThanOrEqualTo: $minimumModVersion }',
 		)
+		expect(statisticsQuery.match(/totalCount/g)?.length).toBe(5)
+	})
+
+	it('uses London calendar boundaries across daylight-saving time', () => {
+		const summer = getUserTelemetryWindows(new Date('2026-07-14T12:00:00.000Z'))
+		expect(summer.daySince).toBe('2026-07-13T23:00:00.000Z')
+		expect(summer.monthSince).toBe('2026-06-30T23:00:00.000Z')
+		expect(summer.yearSince).toBe('2026-01-01T00:00:00.000Z')
+
+		const winter = getUserTelemetryWindows(new Date('2026-01-14T12:00:00.000Z'))
+		expect(winter.daySince).toBe('2026-01-14T00:00:00.000Z')
+		expect(winter.monthSince).toBe('2026-01-01T00:00:00.000Z')
+		expect(winter.yearSince).toBe('2026-01-01T00:00:00.000Z')
+	})
+
+	it('places full-width progression charts beside compact career summary', () => {
+		expect(page).toContain('lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]')
+		expect(page).toContain('<MetricGrid :metrics="metrics" :columns="2" />')
+		expect(careerHistory).toContain('class="space-y-4"')
+		expect(careerHistory).not.toContain('lg:grid-cols-3')
+		expect(careerHistory).toContain('value: -point.rank')
+		expect(careerHistory).toContain('Math.abs(value)')
+	})
+
+	it('offers request-free all-time, daily, monthly, and yearly telemetry periods', () => {
+		expect(telemetrySelect).not.toContain('useQuery')
+		expect(page).toContain("value: 'all-time'")
+		expect(page).toContain("value: 'today'")
+		expect(page).toContain("value: 'month'")
+		expect(page).toContain("value: 'year'")
+		expect(page).toContain('USER_TELEMETRY_TIME_ZONE')
 	})
 
 	it('keeps a rolling year baseline and appends current values', () => {

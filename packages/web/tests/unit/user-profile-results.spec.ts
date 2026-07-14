@@ -70,11 +70,12 @@ describe('user profile record results', () => {
 		expect(table).toContain('bg-purple-500/15')
 	})
 
-	it('aligns selectors and renders PB/recent results side-by-side', () => {
+	it('aligns selectors and renders PB/recent results full-width', () => {
 		expect(section).toContain('<SectionHeader')
 		expect(section).toContain('i-tabler-arrows-sort')
 		expect(section).toContain('class="w-48"')
-		expect(page).toContain('xl:grid-cols-2 xl:items-start')
+		expect(page).not.toContain('xl:grid-cols-2 xl:items-start')
+		expect(page).toContain('<div class="space-y-8 lg:space-y-10">')
 		expect(page).toContain('id="profile-personal-bests"')
 		expect(page).toContain('id="profile-recent"')
 		expect(page).toContain('show-pb-or-wr')

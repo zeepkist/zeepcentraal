@@ -1,14 +1,101 @@
-query ZC_UserStatistics($userId: Int!, $minimumModVersion: String!) {
+fragment ZC_UserStatisticTotals on RecordStatisticsConnection {
+	totalCount
+	aggregates {
+		sum {
+			distance
+		}
+	}
+}
+
+fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
+	sum {
+		distance
+		distanceInAir
+		distanceOn1Wheel
+		distanceOn2Wheels
+		distanceOn3Wheels
+		distanceOn4Wheels
+		distanceOnGrass
+		distanceOnGround
+		distanceOnIce
+		distanceOnMetal
+		distanceOnSand
+		distanceOnSnow
+		distanceOnSoap
+		distanceOnTarmac
+		distanceRagdoll
+		time
+		timeInAir
+		timeOnGrass
+		timeOnGround
+		timeOnIce
+		timeOnMetal
+		timeOnSand
+		timeOnSnow
+		timeOnSoap
+		timeOnTarmac
+		timeRagdoll
+		turnLeftCount
+		turnRightCount
+		armsUpCount
+		brakeCount
+		hornCount
+	}
+	average {
+		averageGforce
+		averageSpeed
+	}
+	max {
+		maxGforce
+		maxSpeed
+	}
+}
+
+query ZC_UserStatistics(
+	$userId: Int!
+	$minimumModVersion: String!
+	$daySince: Datetime!
+	$monthSince: Datetime!
+	$yearSince: Datetime!
+) {
 	allStatistics: recordStatistics(
 		first: 0
 		filter: { record: { userId: { equalTo: $userId } } }
 	) {
-		totalCount
-		aggregates {
-			sum {
-				distance
+		...ZC_UserStatisticTotals
+	}
+	dayStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				dateCreated: { greaterThanOrEqualTo: $daySince }
 			}
 		}
+	) {
+		...ZC_UserStatisticTotals
+	}
+	monthStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				dateCreated: { greaterThanOrEqualTo: $monthSince }
+			}
+		}
+	) {
+		...ZC_UserStatisticTotals
+	}
+	yearStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				dateCreated: { greaterThanOrEqualTo: $yearSince }
+			}
+		}
+	) {
+		...ZC_UserStatisticTotals
 	}
 	v6Statistics: recordStatistics(
 		first: 0
@@ -21,47 +108,52 @@ query ZC_UserStatistics($userId: Int!, $minimumModVersion: String!) {
 	) {
 		totalCount
 		aggregates {
-			sum {
-				distance
-				distanceInAir
-				distanceOn1Wheel
-				distanceOn2Wheels
-				distanceOn3Wheels
-				distanceOn4Wheels
-				distanceOnGrass
-				distanceOnGround
-				distanceOnIce
-				distanceOnMetal
-				distanceOnSand
-				distanceOnSnow
-				distanceOnSoap
-				distanceOnTarmac
-				distanceRagdoll
-				time
-				timeInAir
-				timeOnGrass
-				timeOnGround
-				timeOnIce
-				timeOnMetal
-				timeOnSand
-				timeOnSnow
-				timeOnSoap
-				timeOnTarmac
-				timeRagdoll
-				turnLeftCount
-				turnRightCount
-				armsUpCount
-				brakeCount
-				hornCount
+			...ZC_UserV6StatisticAggregates
+		}
+	}
+	v6DayStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				dateCreated: { greaterThanOrEqualTo: $daySince }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
-			average {
-				averageGforce
-				averageSpeed
+		}
+	) {
+		totalCount
+		aggregates {
+			...ZC_UserV6StatisticAggregates
+		}
+	}
+	v6MonthStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				dateCreated: { greaterThanOrEqualTo: $monthSince }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
-			max {
-				maxGforce
-				maxSpeed
+		}
+	) {
+		totalCount
+		aggregates {
+			...ZC_UserV6StatisticAggregates
+		}
+	}
+	v6YearStatistics: recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				dateCreated: { greaterThanOrEqualTo: $yearSince }
+				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
+		}
+	) {
+		totalCount
+		aggregates {
+			...ZC_UserV6StatisticAggregates
 		}
 	}
 }

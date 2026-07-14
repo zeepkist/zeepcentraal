@@ -1,11 +1,11 @@
 <template>
-	<div class="grid gap-4 lg:grid-cols-3">
+	<div class="space-y-4">
 		<div v-for="series in seriesModels" :key="series.key" class="rounded-2xl border border-border bg-gradient-to-br from-card to-primary/5 p-3 sm:p-4">
 			<div class="mb-2">
 				<h3 class="font-bold text-highlighted">{{ series.title }}</h3>
 				<p class="mt-1 text-xs text-muted-foreground">{{ series.description }}</p>
 			</div>
-			<LineChart :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :line-width="3" :hide-legend="true" :duration="duration" :tooltip="tooltipOptions">
+			<LineChart :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :y-formatter="series.key === 'rank' ? formatRankTick : undefined" :line-width="3" :hide-legend="true" :duration="duration" :tooltip="tooltipOptions">
 				<template #tooltip="{ values }">
 					<DashboardChartTooltip :entries="tooltipEntries(values, series)" :title="tooltipTitle(values)" :show-percentage="false" />
 				</template>
@@ -30,9 +30,10 @@ onMounted(() => { if (!window.matchMedia('(prefers-reduced-motion: reduce)').mat
 const seriesModels = computed(() => [
 	{ key: 'rankedPoints', title: props.labels.rankedPoints, description: props.labels.rankedPointsDescription, color: '#facc15', data: props.history.map((point) => ({ date: point.date, value: point.rankedPoints })) },
 	{ key: 'totalPoints', title: props.labels.totalPoints, description: props.labels.totalPointsDescription, color: '#a855f7', data: props.history.map((point) => ({ date: point.date, value: point.totalPoints })) },
-	{ key: 'rank', title: props.labels.rank, description: props.labels.rankDescription, color: '#38bdf8', data: props.history.flatMap((point) => point.rank == null ? [] : [{ date: point.date, value: point.rank }]) },
+	{ key: 'rank', title: props.labels.rank, description: props.labels.rankDescription, color: '#38bdf8', data: props.history.flatMap((point) => point.rank == null ? [] : [{ date: point.date, value: -point.rank }]) },
 ])
 function formatDate(value?: string) { return value ? date.value.format(new Date(value)) : '' }
+function formatRankTick(value: number | Date) { return typeof value === 'number' ? `#${number.value.format(Math.abs(value))}` : '' }
 function tooltipTitle(values: unknown) { const value = values as { date?: unknown } | null; return typeof value?.date === 'string' ? formatDate(value.date) : '' }
-function tooltipEntries(values: unknown, series: (typeof seriesModels.value)[number]): DashboardChartEntry[] { const value = values as { value?: unknown } | null; return typeof value?.value === 'number' ? [{ key: series.key, label: series.title, value: value.value, color: series.color, formattedValue: series.key === 'rank' ? `#${number.value.format(value.value)}` : number.value.format(value.value) }] : [] }
+function tooltipEntries(values: unknown, series: (typeof seriesModels.value)[number]): DashboardChartEntry[] { const value = values as { value?: unknown } | null; if (typeof value?.value !== 'number') return []; const displayValue = series.key === 'rank' ? Math.abs(value.value) : value.value; return [{ key: series.key, label: series.title, value: displayValue, color: series.color, formattedValue: series.key === 'rank' ? `#${number.value.format(displayValue)}` : number.value.format(displayValue) }] }
 </script>

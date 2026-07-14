@@ -539,12 +539,15 @@
 			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
 			"summary": {
 				"title": "Career summary",
-				"description": "Rank, points, records, personal bests, world records, and published levels."
+				"description": "Records, personal bests, world records, and published levels."
 			},
 			"telemetry": {
 				"title": "Driving telemetry",
 				"description": "All-time driving telemetry across this player's verified records.",
 				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
+				"period": "Period",
+				"allTime": "All-time",
+				"today": "Today",
 				"empty": "No compatible telemetry has been submitted by this player yet.",
 				"totalDistance": "Total distance",
 				"submittedRuns": "Submitted runs",
@@ -573,7 +576,7 @@
 				"totalPoints": "Total points",
 				"totalPointsDescription": "Full value earned across ranked levels.",
 				"rank": "Global rank",
-				"rankDescription": "Lower positions are better."
+				"rankDescription": "Better positions appear higher on the chart."
 			},
 			"levels": {
 				"recentTitle": "Most recent levels",

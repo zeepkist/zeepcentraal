@@ -12,6 +12,7 @@ import type { CursorPage, LevelSummary, RecordRow, UserProfileSummary } from '~/
 import { getLevelHotWindows } from '~/utils/levelExplorer'
 import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'
 import { buildUserCareerHistory, getUserCareerHistoryWindow } from '~/utils/userCareerHistory'
+import { getUserTelemetryWindows, type UserTelemetryPeriod } from '~/utils/userTelemetry'
 
 function cursorPage(
 	info?: {
@@ -84,6 +85,10 @@ export function useUserProfile(steamId: Ref<string>) {
 		getUserCareerHistoryWindow(),
 	)
 	const levelWindows = useState(`user-level-windows:${steamId.value}`, () => getLevelHotWindows())
+	const telemetryWindows = useState(`user-telemetry-windows:${steamId.value}`, () =>
+		getUserTelemetryWindows(),
+	)
+	const telemetryPeriod = ref<UserTelemetryPeriod>('all-time')
 	const summary = computed<UserProfileSummary | null>(() => {
 		const value = user.value
 		if (!value) return null
@@ -120,8 +125,40 @@ export function useUserProfile(steamId: Ref<string>) {
 	)
 	const statistics = useQuery({
 		query: Zc_UserStatisticsDocument,
-		variables: computed(() => ({ userId: userId.value ?? 0, minimumModVersion: '1.2.0' })),
+		variables: computed(() => ({
+			userId: userId.value ?? 0,
+			minimumModVersion: '1.2.0',
+			daySince: telemetryWindows.value.daySince,
+			monthSince: telemetryWindows.value.monthSince,
+			yearSince: telemetryWindows.value.yearSince,
+		})),
 		pause: computed(() => userId.value === undefined || !statisticsPrefetch.active.value),
+	})
+	const selectedStatistics = computed(() => {
+		const value = statistics.data.value
+		if (!value) return undefined
+		if (telemetryPeriod.value === 'today') {
+			return {
+				allStatistics: value.dayStatistics,
+				v6Statistics: value.v6DayStatistics,
+			}
+		}
+		if (telemetryPeriod.value === 'month') {
+			return {
+				allStatistics: value.monthStatistics,
+				v6Statistics: value.v6MonthStatistics,
+			}
+		}
+		if (telemetryPeriod.value === 'year') {
+			return {
+				allStatistics: value.yearStatistics,
+				v6Statistics: value.v6YearStatistics,
+			}
+		}
+		return {
+			allStatistics: value.allStatistics,
+			v6Statistics: value.v6Statistics,
+		}
 	})
 	const levelsQuery = useQuery({
 		query: Zc_UserLevelsDocument,
@@ -351,8 +388,11 @@ export function useUserProfile(steamId: Ref<string>) {
 		setPbSort,
 		setWrSort,
 		statistics,
+		selectedStatistics,
 		statisticsActive: statisticsPrefetch.active,
 		statisticsTarget: statisticsPrefetch.target,
+		telemetryPeriod,
+		telemetryWindows,
 		levelsActive: levelsPrefetch.active,
 		levelsQuery,
 		levelsTarget: levelsPrefetch.target,

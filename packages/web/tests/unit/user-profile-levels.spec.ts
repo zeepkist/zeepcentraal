@@ -45,12 +45,14 @@ describe('user profile level showcases', () => {
 		expect(composable).toContain('level.periodRecords.totalCount')
 	})
 
-	it('reuses request-free level cards in half-width two-column collections', () => {
+	it('reuses request-free level cards in full-width collections', () => {
 		expect(collection).toContain('<LevelGrid')
-		expect(collection).toContain(':columns="2"')
+		expect(collection).toContain(':columns="columns"')
+		expect(collection).toContain('{ columns: 3 }')
 		expect(collection).not.toContain('useQuery')
 		expect(grid).toContain('columns?: 2 | 3 | 4')
-		expect(page).toContain('2xl:grid-cols-2')
+		expect(page).not.toContain('2xl:grid-cols-2')
+		expect(page).toContain('<div :ref="data.levelsTarget" class="space-y-8 lg:space-y-10">')
 		expect(page.match(/<UserLevelCollection/g)).toHaveLength(2)
 	})
 
