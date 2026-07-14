@@ -156,7 +156,7 @@
 			"title": "Zeepkist stats hub"
 		},
 		"levels": {
-			"description": "Explore levels, records, validation metadata, and leaderboard context.",
+			"description": "Explore official and community created levels.",
 			"eyebrow": "Level explorer",
 			"panelDescription": "Search, filters, record tables, and level stats land here.",
 			"panelTitle": "Level data",
@@ -634,7 +634,6 @@
 				"recentDescription": "Newest level creations on the Steam Workshop.",
 				"popularTitle": "Popular Levels",
 				"popularDescription": "Most-played levels this year.",
-				"recordsThisYear": "Records this year",
 				"viewAll": "View all levels",
 				"empty": "No published levels found"
 			},
@@ -739,7 +738,7 @@
 			"seoDescription": "Records, medals, and statistics for {name}.",
 			"medals": {
 				"title": "Medal times",
-				"description": "Official validation targets for this workshop level.",
+				"description": "Author-defined target times to beat.",
 				"author": "Author",
 				"gold": "Gold",
 				"silver": "Silver",

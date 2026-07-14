@@ -92,7 +92,7 @@
 						:description="$t('users.profile.levels.popularDescription')"
 						:action-label="$t('users.profile.levels.viewAll')"
 						:action-to="levelsUrl"
-						:records-label="$t('users.profile.levels.recordsThisYear')"
+						:records-label="$t('common.records')"
 						:levels="data.popularLevels.value"
 						:pending="levelsPending"
 						:error="data.levelsQuery.error.value?.message"
