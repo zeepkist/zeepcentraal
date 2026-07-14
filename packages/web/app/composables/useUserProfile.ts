@@ -99,7 +99,10 @@ export function useUserProfile(steamId: Ref<string>) {
 		getUserTelemetryWindows(),
 	)
 	const telemetryPeriod = ref<UserTelemetryPeriod>('all-time')
-	const selectedSuperLeagueSeasonId = ref<number>()
+	const selectedSuperLeagueSeasonId = useState<number | undefined>(
+		`user-super-league-season:${steamId.value}`,
+		() => undefined,
+	)
 	const summary = computed<UserProfileSummary | null>(() => {
 		const value = user.value
 		if (!value) return null
@@ -153,6 +156,9 @@ export function useUserProfile(steamId: Ref<string>) {
 			now: historyWindow.value.now,
 		}),
 	)
+	const secondaryPointsHistoryReady = computed(
+		() => careerSecondaryActive.value && secondaryPointsHistoryQuery.data.value !== undefined,
+	)
 	const superLeagueSeasonsQuery = useQuery({
 		query: Zc_UserSuperLeagueSeasonsDocument,
 		variables: computed(() => ({ userId: userId.value ?? 0 })),
@@ -175,7 +181,7 @@ export function useUserProfile(steamId: Ref<string>) {
 				selectedSuperLeagueSeasonId.value = seasons[0]?.id
 			}
 		},
-		{ immediate: true },
+		{ immediate: true, flush: 'sync' },
 	)
 	const superLeagueSeasonQuery = useQuery({
 		query: Zc_UserSuperLeagueSeasonDocument,
@@ -386,7 +392,7 @@ export function useUserProfile(steamId: Ref<string>) {
 			([nextRows, ready]) => {
 				if (ready) retained.value = nextRows
 			},
-			{ immediate: true },
+			{ immediate: true, flush: 'sync' },
 		)
 		return readonly(retained)
 	}
@@ -431,7 +437,11 @@ export function useUserProfile(steamId: Ref<string>) {
 		await profile
 		await nextTick()
 		if (userId.value === undefined) return
-		await Promise.all([pointsHistoryQuery, superLeagueSeasonsQuery, wrResult.value])
+		await Promise.all([
+			pointsHistoryQuery.executeQuery(),
+			superLeagueSeasonsQuery.executeQuery(),
+			wrResult.value.executeQuery(),
+		])
 		await nextTick()
 	}
 
@@ -447,6 +457,7 @@ export function useUserProfile(steamId: Ref<string>) {
 		pointsHistoryQuery,
 		secondaryPointsHistory,
 		secondaryPointsHistoryQuery,
+		secondaryPointsHistoryReady,
 		selectedSuperLeagueSeasonId,
 		superLeagueSeason,
 		superLeagueSeasonQuery,

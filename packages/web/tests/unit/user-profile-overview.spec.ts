@@ -98,9 +98,9 @@ describe('user profile overview', () => {
 		expect(secondaryHistoryQuery).toContain('worldRecords')
 		expect(profileComposable).toContain('import.meta.server ||')
 		expect(profileComposable).toContain('careerSecondaryActive.value = true')
-		expect(profileComposable).toContain(
-			'await Promise.all([pointsHistoryQuery, superLeagueSeasonsQuery, wrResult.value])',
-		)
+		expect(profileComposable).toContain('pointsHistoryQuery.executeQuery()')
+		expect(profileComposable).toContain('secondaryPointsHistoryReady')
+		expect(page).toContain(':secondary-ready="data.secondaryPointsHistoryReady.value"')
 		expect(page).not.toContain('pointsHistoryActive')
 		expect(page).not.toContain('worldRecordsActive')
 		expect(page).toContain(':pending="pointsHistoryPending"')

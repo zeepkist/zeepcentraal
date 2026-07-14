@@ -94,9 +94,9 @@ describe('user profile Super League panel', () => {
 		expect(composable).toContain(
 			'selectedSuperLeagueSeasonId.value === currentSuperLeagueSeason.value?.id',
 		)
-		expect(composable).toContain(
-			'await Promise.all([pointsHistoryQuery, superLeagueSeasonsQuery, wrResult.value])',
-		)
+		expect(composable).toContain('superLeagueSeasonsQuery.executeQuery()')
+		expect(composable).toContain('useState<number | undefined>(')
+		expect(composable).toContain("{ immediate: true, flush: 'sync' }")
 		expect(composable).not.toContain('if (!import.meta.server) return')
 		expect(page).toContain('data.superLeagueSeasonsQuery.data.value === undefined')
 		expect(page).toContain('data.superLeagueSeasonQuery.data.value === undefined')

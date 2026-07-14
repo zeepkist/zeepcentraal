@@ -84,8 +84,11 @@ describe('user profile record results', () => {
 	it('retains resolved rows while replacement queries fetch', () => {
 		expect(composable).toContain('function retainRows(')
 		expect(composable).toContain('if (ready) retained.value = nextRows')
+		expect(composable).toContain("{ immediate: true, flush: 'sync' }")
+		expect(composable).toContain('wrResult.value.executeQuery()')
 		expect(section).toContain(':pending="pending && records.length === 0"')
 		expect(section).toContain(':pending="pending"')
+		expect(section).toContain('v-if="records.length > 0"')
 		expect(page).toContain('data.wrResult.value.data.value === undefined')
 	})
 })

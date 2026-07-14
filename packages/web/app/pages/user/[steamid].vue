@@ -20,7 +20,7 @@
 							<UserCareerHistory
 								:history="data.pointsHistory.value"
 								:secondary-history="data.secondaryPointsHistory.value"
-								:secondary-ready="data.secondaryPointsHistoryQuery.data.value !== undefined"
+								:secondary-ready="data.secondaryPointsHistoryReady.value"
 								:labels="historyLabels"
 							/>
 						</DataState>

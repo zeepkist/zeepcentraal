@@ -43,6 +43,7 @@
 			/>
 		</DataState>
 		<CursorPagination
+			v-if="records.length > 0"
 			class="mt-4"
 			:page="page"
 			:can-go-previous="canGoPrevious"
