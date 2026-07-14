@@ -67,6 +67,10 @@ describe('user profile overview', () => {
 		expect(profileQuery).toContain('userPoints {')
 		expect(profileQuery).toContain('levelItems(first: 0')
 		expect(page).toContain('await data.prefetchCritical()')
+		expect(profileComposable).not.toContain('if (!import.meta.server) return')
+		expect(profileComposable).toContain('await profile\n\t\tawait nextTick()')
+		expect(page).toContain(':pending="profilePending"')
+		expect(page).toContain('data.profile.data.value === undefined')
 		expect(page).toContain('<UserDetailHero')
 		expect(page).toContain('/levels?author=')
 		expect(page).toContain('steamId.value')
@@ -99,6 +103,8 @@ describe('user profile overview', () => {
 		)
 		expect(page).not.toContain('pointsHistoryActive')
 		expect(page).not.toContain('worldRecordsActive')
+		expect(page).toContain(':pending="pointsHistoryPending"')
+		expect(page).toContain('data.pointsHistoryQuery.data.value === undefined')
 	})
 
 	it('queries count-only telemetry for all supported periods', () => {

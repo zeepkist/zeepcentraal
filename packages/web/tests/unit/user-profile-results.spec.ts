@@ -86,5 +86,6 @@ describe('user profile record results', () => {
 		expect(composable).toContain('if (ready) retained.value = nextRows')
 		expect(section).toContain(':pending="pending && records.length === 0"')
 		expect(section).toContain(':pending="pending"')
+		expect(page).toContain('data.wrResult.value.data.value === undefined')
 	})
 })

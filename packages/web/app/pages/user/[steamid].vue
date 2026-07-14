@@ -1,7 +1,7 @@
 <template>
 	<UContainer class="py-2">
 		<DataState
-			:pending="data.profile.fetching.value"
+			:pending="profilePending"
 			:error="data.profile.error.value?.message"
 			:empty="!data.profile.fetching.value && !user"
 			:loading-label="$t('common.loading')"
@@ -16,7 +16,7 @@
 					<div class="min-w-0 space-y-8 lg:space-y-10">
 					<section aria-labelledby="profile-history">
 						<SectionHeader id="profile-history" :title="$t('users.profile.history.title')" :description="$t('users.profile.history.description')" />
-						<DataState :pending="data.pointsHistoryQuery.fetching.value" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
+						<DataState :pending="pointsHistoryPending" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
 							<UserCareerHistory
 								:history="data.pointsHistory.value"
 								:secondary-history="data.secondaryPointsHistory.value"
@@ -181,6 +181,14 @@ const data = useUserProfile(steamId)
 const user = data.user
 await data.prefetchCritical()
 const summary = data.summary
+const profilePending = computed(
+	() => data.profile.fetching.value && data.profile.data.value === undefined,
+)
+const pointsHistoryPending = computed(
+	() =>
+		data.pointsHistoryQuery.fetching.value &&
+		data.pointsHistoryQuery.data.value === undefined,
+)
 const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const profileUrl = computed(() => steamProfileUrl(steamId.value))
@@ -291,9 +299,11 @@ const superLeagueStandingsUrl = computed(() =>
 )
 const superLeaguePending = computed(
 	() =>
-		data.superLeagueSeasonsQuery.fetching.value ||
+		(data.superLeagueSeasonsQuery.fetching.value &&
+			data.superLeagueSeasonsQuery.data.value === undefined) ||
 		(data.selectedSuperLeagueSeasonId.value !== undefined &&
-			data.superLeagueSeasonQuery.fetching.value),
+			data.superLeagueSeasonQuery.fetching.value &&
+			data.superLeagueSeasonQuery.data.value === undefined),
 )
 const superLeagueError = computed(
 	() =>
@@ -390,7 +400,10 @@ const levelCollectionLabels = computed(() => ({
 	created: t('levels.card.created'),
 }))
 const levelsPending = computed(() => !data.levelsActive.value || data.levelsQuery.fetching.value)
-const wrPending = computed(() => data.wrResult.value.fetching.value)
+const wrPending = computed(
+	() =>
+		data.wrResult.value.fetching.value && data.wrResult.value.data.value === undefined,
+)
 const pbPending = computed(
 	() => !data.personalBestsActive.value || data.pbResult.value.fetching.value,
 )

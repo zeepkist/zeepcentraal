@@ -428,8 +428,8 @@ export function useUserProfile(steamId: Ref<string>) {
 	}
 
 	async function prefetchCritical() {
-		if (!import.meta.server) return
 		await profile
+		await nextTick()
 		if (userId.value === undefined) return
 		await Promise.all([pointsHistoryQuery, superLeagueSeasonsQuery, wrResult.value])
 		await nextTick()
