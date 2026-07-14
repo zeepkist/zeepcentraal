@@ -59,11 +59,28 @@
 </template>
 
 <script setup lang="ts">
-import { useLocalStorage } from '@vueuse/core'
-
 import { mainNav } from '~/utils/navigation'
+import { parseSidebarOpenPreference } from '~/utils/sidebarPreference'
 
-const open = useLocalStorage('sidebar-open', true)
+const sidebarPreference = useCookie<boolean | null>('sidebar-open', {
+	default: () => null,
+	maxAge: 60 * 60 * 24 * 365,
+	path: '/',
+	sameSite: 'lax',
+})
+const open = ref(sidebarPreference.value ?? true)
+
+watch(open, (value) => {
+	sidebarPreference.value = value
+})
+
+onMounted(() => {
+	if (sidebarPreference.value !== null) return
+	const legacyPreference = parseSidebarOpenPreference(localStorage.getItem('sidebar-open'))
+	if (legacyPreference === null) return
+	open.value = legacyPreference
+	localStorage.removeItem('sidebar-open')
+})
 
 const toggleSidebar = () => {
 	open.value = !open.value

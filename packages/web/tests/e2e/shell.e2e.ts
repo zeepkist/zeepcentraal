@@ -100,6 +100,22 @@ test('brand colours remain stable through hydration', async ({ context, page }) 
 	}
 })
 
+test('collapsed sidebar remains stable through hydration', async ({ context, page }) => {
+	const hydrationWarnings: string[] = []
+	page.on('console', (message) => {
+		if (message.type() === 'warning' && message.text().includes('Hydration')) {
+			hydrationWarnings.push(message.text())
+		}
+	})
+	await context.addCookies([
+		{ name: 'sidebar-open', value: 'false', url: 'http://127.0.0.1:4173' },
+	])
+
+	await page.goto('/')
+	await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible()
+	expect(hydrationWarnings).toEqual([])
+})
+
 for (const [path, heading] of [
 	['/levels', 'Levels and leaderboards'],
 	['/users', 'Users and stats'],
