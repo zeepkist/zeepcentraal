@@ -584,13 +584,17 @@
 			},
 			"history": {
 				"title": "Career progression",
-				"description": "Rank and point movement during the past year.",
+				"description": "Rank, points, and world record movement during the past year.",
 				"rankedPoints": "Ranked points",
 				"rankedPointsDescription": "Points contributing to the global leaderboard.",
 				"totalPoints": "Total points",
 				"totalPointsDescription": "Full value earned across ranked levels.",
 				"rank": "Global rank",
-				"rankDescription": "Better positions appear higher on the chart."
+				"rankDescription": "Better positions appear higher on the chart.",
+				"worldRecords": "World records",
+				"worldRecordsDescription": "Current world record count at each scoring snapshot.",
+				"pointsToggleLabel": "Point history metric",
+				"standingToggleLabel": "Standing history metric"
 			},
 			"levels": {
 				"recentTitle": "Most recent levels",

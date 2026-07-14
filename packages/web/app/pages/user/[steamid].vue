@@ -38,15 +38,6 @@
 					</div>
 				</div>
 
-				<section :ref="data.statisticsTarget" aria-labelledby="profile-telemetry">
-					<SectionHeader id="profile-telemetry" :title="$t('users.profile.telemetry.title')" :description="$t('users.profile.telemetry.description')">
-						<RecordTelemetryPeriodSelect v-model="data.telemetryPeriod.value" :label="$t('users.profile.telemetry.period')" :items="telemetryPeriodOptions" />
-					</SectionHeader>
-					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" v-bind="stateLabels">
-						<RecordTelemetryPanel :model="telemetryModel" :description="$t('users.profile.telemetry.telemetryDescription')" />
-					</DataState>
-				</section>
-
 				<div :ref="data.worldRecordsTarget">
 					<UserResultsSection
 						id="profile-world-records"
@@ -71,68 +62,42 @@
 						@last="data.wrPagination.last()"
 					/>
 				</div>
-				<div class="space-y-8 lg:space-y-10">
-					<div :ref="data.personalBestsTarget">
-						<UserResultsSection
-							id="profile-personal-bests"
-							:title="$t('users.profile.personalBests.title')"
-							:description="$t('users.profile.personalBests.description')"
-							:records="data.pbRows.value"
-							:sort="data.pbSort.value"
-							:sort-label="$t('levels.filters.sort')"
-							:pending="pbPending"
-							:error="data.pbResult.value.error.value?.message"
-							:page="data.pbPage.value"
-							:can-go-previous="data.pbPagination.canGoPrevious(data.pbPage.value)"
-							:can-go-next="data.pbPagination.canGoNext(data.pbPage.value)"
-							:labels="resultLabels"
-							:sort-options="resultSortOptions"
-							:pagination-labels="paginationLabels"
-							show-points
-							@update:sort="data.setPbSort"
-							@first="data.pbPagination.first()"
-							@previous="data.pbPagination.previous(data.pbPage.value)"
-							@next="data.pbPagination.next(data.pbPage.value)"
-							@last="data.pbPagination.last()"
-						/>
-					</div>
 
-					<div :ref="data.recentTarget">
-						<UserResultsSection
-							id="profile-recent"
-							:title="$t('users.profile.recent.title')"
-							:description="$t('users.profile.recent.description')"
-							:records="data.recentRows.value"
-							:pending="recentPending"
-							:error="data.recent.error.value?.message"
-							:page="data.recentPage.value"
-							:can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)"
-							:can-go-next="data.recentPagination.canGoNext(data.recentPage.value)"
-							:labels="resultLabels"
-							:pagination-labels="paginationLabels"
-							:show-rank="false"
-							show-pb-or-wr
-							@first="data.recentPagination.first()"
-							@previous="data.recentPagination.previous(data.recentPage.value)"
-							@next="data.recentPagination.next(data.recentPage.value)"
-							@last="data.recentPagination.last()"
-						/>
-					</div>
+				<section :ref="data.statisticsTarget" aria-labelledby="profile-telemetry">
+					<SectionHeader id="profile-telemetry" :title="$t('users.profile.telemetry.title')" :description="$t('users.profile.telemetry.description')">
+						<RecordTelemetryPeriodSelect v-model="data.telemetryPeriod.value" :label="$t('users.profile.telemetry.period')" :items="telemetryPeriodOptions" />
+					</SectionHeader>
+					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" v-bind="stateLabels">
+						<RecordTelemetryPanel :model="telemetryModel" :description="$t('users.profile.telemetry.telemetryDescription')" />
+					</DataState>
+				</section>
+
+				<div :ref="data.personalBestsTarget">
+					<UserResultsSection
+						id="profile-personal-bests"
+						:title="$t('users.profile.personalBests.title')"
+						:description="$t('users.profile.personalBests.description')"
+						:records="data.pbRows.value"
+						:sort="data.pbSort.value"
+						:sort-label="$t('levels.filters.sort')"
+						:pending="pbPending"
+						:error="data.pbResult.value.error.value?.message"
+						:page="data.pbPage.value"
+						:can-go-previous="data.pbPagination.canGoPrevious(data.pbPage.value)"
+						:can-go-next="data.pbPagination.canGoNext(data.pbPage.value)"
+						:labels="resultLabels"
+						:sort-options="resultSortOptions"
+						:pagination-labels="paginationLabels"
+						show-points
+						@update:sort="data.setPbSort"
+						@first="data.pbPagination.first()"
+						@previous="data.pbPagination.previous(data.pbPage.value)"
+						@next="data.pbPagination.next(data.pbPage.value)"
+						@last="data.pbPagination.last()"
+					/>
 				</div>
 
-				<div :ref="data.levelsTarget" class="space-y-8 lg:space-y-10">
-					<UserLevelCollection
-						id="profile-recent-levels"
-						:title="$t('users.profile.levels.recentTitle')"
-						:description="$t('users.profile.levels.recentDescription')"
-						:action-label="$t('users.profile.levels.viewAll')"
-						:action-to="levelsUrl"
-						:records-label="$t('common.records')"
-						:levels="data.recentLevels.value"
-						:pending="levelsPending"
-						:error="data.levelsQuery.error.value?.message"
-						:labels="levelCollectionLabels"
-					/>
+				<div :ref="data.levelsTarget">
 					<UserLevelCollection
 						id="profile-popular-levels"
 						:title="$t('users.profile.levels.popularTitle')"
@@ -146,6 +111,41 @@
 						:labels="levelCollectionLabels"
 					/>
 				</div>
+
+				<div :ref="data.recentTarget">
+					<UserResultsSection
+						id="profile-recent"
+						:title="$t('users.profile.recent.title')"
+						:description="$t('users.profile.recent.description')"
+						:records="data.recentRows.value"
+						:pending="recentPending"
+						:error="data.recent.error.value?.message"
+						:page="data.recentPage.value"
+						:can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)"
+						:can-go-next="data.recentPagination.canGoNext(data.recentPage.value)"
+						:labels="resultLabels"
+						:pagination-labels="paginationLabels"
+						:show-rank="false"
+						show-pb-or-wr
+						@first="data.recentPagination.first()"
+						@previous="data.recentPagination.previous(data.recentPage.value)"
+						@next="data.recentPagination.next(data.recentPage.value)"
+						@last="data.recentPagination.last()"
+					/>
+				</div>
+
+				<UserLevelCollection
+					id="profile-recent-levels"
+					:title="$t('users.profile.levels.recentTitle')"
+					:description="$t('users.profile.levels.recentDescription')"
+					:action-label="$t('users.profile.levels.viewAll')"
+					:action-to="levelsUrl"
+					:records-label="$t('common.records')"
+					:levels="data.recentLevels.value"
+					:pending="levelsPending"
+					:error="data.levelsQuery.error.value?.message"
+					:labels="levelCollectionLabels"
+				/>
 				</div>
 			</template>
 		</DataState>
@@ -262,7 +262,18 @@ const superLeagueLabels = computed(() => ({
 	emptyValue: t('pages.records.table.notRanked'),
 }))
 const heroLabels = computed(() => ({ eyebrow: t('users.profile.eyebrow'), joined: t('users.profile.joined'), globalRank: t('users.profile.globalRank'), rankedPoints: t('users.columns.rankedPoints'), totalPoints: t('users.columns.totalPoints'), unranked: t('users.profile.unranked'), steamProfile: t('users.profile.steamProfile'), steamWorkshop: t('users.profile.steamWorkshop') }))
-const historyLabels = computed(() => ({ rankedPoints: t('users.profile.history.rankedPoints'), rankedPointsDescription: t('users.profile.history.rankedPointsDescription'), totalPoints: t('users.profile.history.totalPoints'), totalPointsDescription: t('users.profile.history.totalPointsDescription'), rank: t('users.profile.history.rank'), rankDescription: t('users.profile.history.rankDescription') }))
+const historyLabels = computed(() => ({
+	rankedPoints: t('users.profile.history.rankedPoints'),
+	rankedPointsDescription: t('users.profile.history.rankedPointsDescription'),
+	totalPoints: t('users.profile.history.totalPoints'),
+	totalPointsDescription: t('users.profile.history.totalPointsDescription'),
+	rank: t('users.profile.history.rank'),
+	rankDescription: t('users.profile.history.rankDescription'),
+	worldRecords: t('users.profile.history.worldRecords'),
+	worldRecordsDescription: t('users.profile.history.worldRecordsDescription'),
+	pointsToggleLabel: t('users.profile.history.pointsToggleLabel'),
+	standingToggleLabel: t('users.profile.history.standingToggleLabel'),
+}))
 const resultLabels = computed(() => ({
 	rank: t('common.rank'),
 	user: t('common.user'),

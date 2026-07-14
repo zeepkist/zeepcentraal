@@ -32,6 +32,10 @@ const careerHistory = readFileSync(
 	new URL('../../app/components/user/UserCareerHistory.vue', import.meta.url),
 	'utf8',
 )
+const chartSeriesTabs = readFileSync(
+	new URL('../../app/components/common/ChartSeriesTabs.vue', import.meta.url),
+	'utf8',
+)
 const telemetrySelect = readFileSync(
 	new URL('../../app/components/record/RecordTelemetryPeriodSelect.vue', import.meta.url),
 	'utf8',
@@ -74,6 +78,8 @@ describe('user profile overview', () => {
 		expect(historyQuery).toContain('history: userPointsHistories(')
 		expect(historyQuery).toContain('first: 0')
 		expect(historyQuery).toContain('groupedAggregates(groupBy: [DATE_CREATED])')
+		expect(historyQuery).toMatch(/nodes \{[\s\S]*worldRecords/)
+		expect(historyQuery).toMatch(/max \{[\s\S]*worldRecords/)
 	})
 
 	it('queries count-only telemetry for all supported periods', () => {
@@ -120,6 +126,38 @@ describe('user profile overview', () => {
 		expect(careerHistory).toContain('Math.abs(value)')
 	})
 
+	it('combines career series into two accessible toggleable charts', () => {
+		expect(careerHistory).toContain("ref<PointsSeries>('rankedPoints')")
+		expect(careerHistory).toContain("ref<StandingSeries>('rank')")
+		expect(careerHistory).toContain("key: 'worldRecords'")
+		expect(careerHistory).toContain('value: point.worldRecords')
+		expect(careerHistory).toContain('inverted: false')
+		expect(careerHistory.match(/group: 'points'/g)).toHaveLength(2)
+		expect(careerHistory.match(/group: 'standing'/g)).toHaveLength(2)
+		expect(chartSeriesTabs).toContain('role="tablist"')
+		expect(chartSeriesTabs).toContain('role="tab"')
+		expect(chartSeriesTabs).toContain(':aria-selected=')
+		expect(chartSeriesTabs).not.toContain('useQuery')
+	})
+
+	it('renders profile sections in requested order', () => {
+		const ids = [
+			'profile-history',
+			'profile-world-records',
+			'profile-telemetry',
+			'profile-personal-bests',
+			'profile-popular-levels',
+			'profile-recent',
+			'profile-recent-levels',
+		]
+		const positions = ids.map((id) => page.indexOf(`id="${id}"`))
+		expect(positions.every((position) => position >= 0)).toBe(true)
+		expect(positions).toEqual([...positions].sort((left, right) => left - right))
+		expect(page.indexOf(':ref="data.levelsTarget"')).toBeLessThan(
+			page.indexOf('id="profile-popular-levels"'),
+		)
+	})
+
 	it('offers request-free all-time, daily, monthly, and yearly telemetry periods', () => {
 		expect(telemetrySelect).not.toContain('useQuery')
 		expect(page).toContain("value: 'all-time'")
@@ -139,15 +177,16 @@ describe('user profile overview', () => {
 				points: 100,
 				totalPoints: 200,
 				rank: -1,
+				worldRecords: 0,
 			},
 			groups: [
 				{
 					keys: ['2026-01-01T00:00:00.000Z'],
-					max: { points: 150, totalPoints: 300 },
+					max: { points: 150, totalPoints: 300, worldRecords: 3 },
 					min: { rank: 25 },
 				},
 			],
-			current: { points: 175, totalPoints: 350, rank: 20 },
+			current: { points: 175, totalPoints: 350, rank: 20, worldRecords: 2 },
 			since: window.since,
 			now: window.now,
 		})
@@ -157,18 +196,21 @@ describe('user profile overview', () => {
 				rankedPoints: 100,
 				totalPoints: 200,
 				rank: null,
+				worldRecords: 0,
 			},
 			{
 				date: '2026-01-01T00:00:00.000Z',
 				rankedPoints: 150,
 				totalPoints: 300,
 				rank: 25,
+				worldRecords: 3,
 			},
 			{
 				date: window.now,
 				rankedPoints: 175,
 				totalPoints: 350,
 				rank: 20,
+				worldRecords: 2,
 			},
 		])
 	})

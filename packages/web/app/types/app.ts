@@ -131,6 +131,7 @@ export type UserCareerHistoryPoint = {
 	rankedPoints: number
 	totalPoints: number
 	rank: number | null
+	worldRecords: number
 }
 
 export type UserSuperLeagueRoundResult = {

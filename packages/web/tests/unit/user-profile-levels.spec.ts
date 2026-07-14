@@ -52,7 +52,16 @@ describe('user profile level showcases', () => {
 		expect(collection).not.toContain('useQuery')
 		expect(grid).toContain('columns?: 2 | 3 | 4')
 		expect(page).not.toContain('2xl:grid-cols-2')
-		expect(page).toContain('<div :ref="data.levelsTarget" class="space-y-8 lg:space-y-10">')
+		expect(page).toContain('<div :ref="data.levelsTarget">')
+		expect(page.indexOf(':ref="data.levelsTarget"')).toBeLessThan(
+			page.indexOf('id="profile-popular-levels"'),
+		)
+		expect(page.indexOf('id="profile-popular-levels"')).toBeLessThan(
+			page.indexOf('id="profile-recent"'),
+		)
+		expect(page.indexOf('id="profile-recent"')).toBeLessThan(
+			page.indexOf('id="profile-recent-levels"'),
+		)
 		expect(page.match(/<UserLevelCollection/g)).toHaveLength(2)
 	})
 

@@ -9,6 +9,7 @@ query ZC_UserPointsHistory($userId: Int!, $since: Datetime!) {
 			points
 			totalPoints
 			rank
+			worldRecords
 		}
 	}
 	history: userPointsHistories(
@@ -20,6 +21,7 @@ query ZC_UserPointsHistory($userId: Int!, $since: Datetime!) {
 			max {
 				points
 				totalPoints
+				worldRecords
 			}
 			min {
 				rank
