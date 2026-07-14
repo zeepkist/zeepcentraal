@@ -13,7 +13,7 @@ export default defineNuxtConfig({
 		ui: {
 			colors: {
 				primary: 'yellow',
-				secondary: 'warm-neutral',
+				secondary: 'secondary',
 				success: 'green',
 				info: 'teal',
 				warning: 'orange',

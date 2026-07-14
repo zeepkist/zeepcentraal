@@ -13,7 +13,7 @@
 
 		<section aria-labelledby="live-stats-heading">
 			<SectionHeader id="live-stats-heading" :title="$t('dashboard.liveStats.title')" :description="$t('dashboard.liveStats.description')" />
-			<MetricGrid :metrics="liveMetrics" />
+			<MetricGrid :metrics="liveMetrics" :columns="3" />
 		</section>
 
 		<section aria-labelledby="trending-levels-heading">

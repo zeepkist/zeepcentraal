@@ -1,5 +1,12 @@
 <template>
-	<div class="grid gap-4 2xl:grid-cols-2 xl:grid-cols-1" :class="columns === 3 ? 'xl:grid-cols-3' : columns === 1 ? 'xl:grid-cols-1' : undefined">
+	<div
+		class="grid gap-4"
+		:class="{
+			'2xl:grid-cols-3 xl:grid-cols-2': columns === 3,
+			'2xl:grid-cols-2 xl:grid-cols-1': columns === 2,
+			'2xl:grid-cols-1 xl:grid-cols-1': columns === 1,
+		}"
+	>
 		<StatCard
 			v-for="metric in metrics"
 			:key="metric.key"
