@@ -1,31 +1,184 @@
 import { expect, type Page, type Route, test } from '@playwright/test'
 
+const themeTokenNames = [
+	'--background',
+	'--foreground',
+	'--card',
+	'--card-foreground',
+	'--primary',
+	'--primary-foreground',
+	'--secondary',
+	'--secondary-foreground',
+	'--muted',
+	'--muted-foreground',
+	'--accent',
+	'--accent-foreground',
+	'--border',
+	'--ring',
+	'--chart-1',
+	'--chart-2',
+	'--chart-3',
+	'--chart-4',
+	'--chart-5',
+	'--ui-primary',
+	'--ui-secondary',
+	'--ui-success',
+	'--ui-info',
+	'--ui-warning',
+	'--ui-error',
+	'--ui-bg',
+	'--ui-bg-muted',
+	'--ui-bg-elevated',
+	'--ui-bg-accented',
+	'--ui-bg-inverted',
+	'--ui-border',
+	'--ui-border-muted',
+	'--ui-border-accented',
+	'--ui-border-inverted',
+	'--ui-text-dimmed',
+	'--ui-text-muted',
+	'--ui-text-toned',
+	'--ui-text',
+	'--ui-text-highlighted',
+	'--ui-text-inverted',
+] as const
+
+type ThemeTokenName = (typeof themeTokenNames)[number]
+
 type ThemeSnapshot = {
-	header: string
 	mode: boolean
-	sidebar: string
-	warmNeutral900: string
-	warmNeutral950: string
+	tokens: Record<ThemeTokenName, string>
+	utilities: Record<string, string>
+}
+
+const expectedThemeTokens: Record<'dark' | 'light', Record<ThemeTokenName, string>> = {
+	dark: {
+		'--background': '#0c0a09',
+		'--foreground': 'oklch(96% 0 0)',
+		'--card': '#171513',
+		'--card-foreground': 'oklch(96% 0 0)',
+		'--primary': '#facc15',
+		'--primary-foreground': 'oklch(13% 0 0)',
+		'--secondary': '#292524',
+		'--secondary-foreground': 'oklch(96% 0 0)',
+		'--muted': '#292524',
+		'--muted-foreground': 'oklch(72% 0 0)',
+		'--accent': '#292524',
+		'--accent-foreground': 'oklch(96% 0 0)',
+		'--border': '#292524',
+		'--ring': '#facc15',
+		'--chart-1': '#facc15',
+		'--chart-2': '#22c55e',
+		'--chart-3': '#14b8a6',
+		'--chart-4': 'oklch(46% 0 0)',
+		'--chart-5': '#f97316',
+		'--ui-primary': '#facc15',
+		'--ui-secondary': '#292524',
+		'--ui-success': '#22c55e',
+		'--ui-info': '#14b8a6',
+		'--ui-warning': '#f97316',
+		'--ui-error': '#f87171',
+		'--ui-bg': '#0c0a09',
+		'--ui-bg-muted': '#171513',
+		'--ui-bg-elevated': '#171513',
+		'--ui-bg-accented': '#292524',
+		'--ui-bg-inverted': '#facc15',
+		'--ui-border': '#292524',
+		'--ui-border-muted': '#292524',
+		'--ui-border-accented': '#292524',
+		'--ui-border-inverted': '#facc15',
+		'--ui-text-dimmed': '#78716c',
+		'--ui-text-muted': '#a8a29e',
+		'--ui-text-toned': '#d6d3d1',
+		'--ui-text': '#e7e5e4',
+		'--ui-text-highlighted': '#fafaf9',
+		'--ui-text-inverted': '#0c0a09',
+	},
+	light: {
+		'--background': 'oklch(96% 0 0)',
+		'--foreground': 'oklch(18% 0 0)',
+		'--card': 'oklch(99% 0 0)',
+		'--card-foreground': 'oklch(18% 0 0)',
+		'--primary': 'oklch(78% 0.15 91.84)',
+		'--primary-foreground': 'oklch(13% 0 0)',
+		'--secondary': 'oklch(91% 0 0)',
+		'--secondary-foreground': 'oklch(18% 0 0)',
+		'--muted': 'oklch(91% 0 0)',
+		'--muted-foreground': 'oklch(46% 0 0)',
+		'--accent': 'oklch(86.01% 0.173 91.84)',
+		'--accent-foreground': 'oklch(13% 0 0)',
+		'--border': 'oklch(82% 0 0)',
+		'--ring': 'oklch(78% 0.15 91.84)',
+		'--chart-1': 'oklch(78% 0.15 91.84)',
+		'--chart-2': 'oklch(66% 0.1 91.84)',
+		'--chart-3': 'oklch(58% 0 0)',
+		'--chart-4': 'oklch(42% 0 0)',
+		'--chart-5': 'oklch(28% 0 0)',
+		'--ui-primary': '#eab308',
+		'--ui-secondary': '#78716c',
+		'--ui-success': '#22c55e',
+		'--ui-info': '#14b8a6',
+		'--ui-warning': '#f97316',
+		'--ui-error': '#ef4444',
+		'--ui-bg': '#ffffff',
+		'--ui-bg-muted': '#fafaf9',
+		'--ui-bg-elevated': '#f5f5f4',
+		'--ui-bg-accented': '#e7e5e4',
+		'--ui-bg-inverted': '#171513',
+		'--ui-border': '#e7e5e4',
+		'--ui-border-muted': '#e7e5e4',
+		'--ui-border-accented': '#d6d3d1',
+		'--ui-border-inverted': '#171513',
+		'--ui-text-dimmed': '#a8a29e',
+		'--ui-text-muted': '#78716c',
+		'--ui-text-toned': '#57534e',
+		'--ui-text': '#44403c',
+		'--ui-text-highlighted': '#171513',
+		'--ui-text-inverted': '#ffffff',
+	},
 }
 
 async function themeSnapshot(page: Page, mode: 'dark' | 'light') {
 	return page.evaluate(
-		({ expectedMode }) => {
-			const header = document.querySelector<HTMLElement>('[data-testid="app-header"]')
-			const sidebar = document.querySelector<HTMLElement>(
-				'[data-testid="app-sidebar"] [data-slot="inner"]',
-			)
-			if (!header || !sidebar) throw new Error('Theme surfaces are missing')
+		({ expectedMode, tokenNames }) => {
 			const root = getComputedStyle(document.documentElement)
+			const tokens = Object.fromEntries(
+				tokenNames.map((token) => [token, root.getPropertyValue(token).trim()]),
+			) as Record<ThemeTokenName, string>
+			const utilityClasses = {
+				applicationBackground: 'bg-background',
+				applicationCard: 'bg-card',
+				applicationForeground: 'text-foreground',
+				applicationBorder: 'border border-border',
+				nuxtUiDefault: 'bg-default',
+				nuxtUiMuted: 'bg-muted',
+				nuxtUiElevated: 'bg-elevated',
+				nuxtUiAccented: 'bg-accented',
+				nuxtUiText: 'text-default',
+				nuxtUiBorder: 'border border-default',
+			}
+			const utilities = Object.fromEntries(
+				Object.entries(utilityClasses).map(([name, classes]) => {
+					const element = document.createElement('div')
+					element.className = classes
+					document.body.append(element)
+					const style = getComputedStyle(element)
+					const value = classes.includes('bg-')
+						? style.backgroundColor
+						: classes.includes('text-')
+							? style.color
+							: style.borderTopColor
+					element.remove()
+					return [name, value]
+				}),
+			)
 			return {
-				header: getComputedStyle(header).backgroundColor,
 				mode: document.documentElement.classList.contains(expectedMode),
-				sidebar: getComputedStyle(sidebar).backgroundColor,
-				warmNeutral900: root.getPropertyValue('--color-warm-neutral-900').trim(),
-				warmNeutral950: root.getPropertyValue('--color-warm-neutral-950').trim(),
+				tokens,
+				utilities,
 			} satisfies ThemeSnapshot
 		},
-		{ expectedMode: mode },
+		{ expectedMode: mode, tokenNames: themeTokenNames },
 	)
 }
 
@@ -80,6 +233,9 @@ test('brand colours remain stable through hydration', async ({ context, page }) 
 		await context.addCookies([
 			{ name: 'colour_mode', value: mode, url: 'http://127.0.0.1:4173' },
 		])
+		const rawResponse = await context.request.get('/')
+		expect(await rawResponse.text()).toMatch(new RegExp(`<html[^>]*class="${mode}"`))
+
 		await page.route('**/*', blockClientScripts)
 		await page.goto('/')
 		const ssr = await themeSnapshot(page, mode)
@@ -89,15 +245,37 @@ test('brand colours remain stable through hydration', async ({ context, page }) 
 		await page.waitForFunction(() => '__vue_app__' in (document.querySelector('#__nuxt') ?? {}))
 		const hydrated = await themeSnapshot(page, mode)
 
-		expect(ssr).toEqual({
-			header: 'rgba(23, 21, 19, 0.75)',
-			mode: true,
-			sidebar: 'rgb(23, 21, 19)',
-			warmNeutral900: '#171513',
-			warmNeutral950: '#0c0a09',
-		})
+		expect(ssr.mode).toBe(true)
+		expect(ssr.tokens).toEqual(expectedThemeTokens[mode])
 		expect(hydrated).toEqual(ssr)
 	}
+})
+
+test('missing colour preference renders dark fallback before scripts', async ({
+	context,
+	page,
+}) => {
+	await context.clearCookies()
+	const response = await context.request.get('/')
+	expect(await response.text()).toMatch(/<html[^>]*class="dark"/)
+
+	await page.route('**/*', (route) =>
+		route.request().resourceType() === 'script' ? route.abort() : route.continue(),
+	)
+	await page.goto('/')
+	const snapshot = await themeSnapshot(page, 'dark')
+	expect(snapshot.mode).toBe(true)
+	expect(snapshot.tokens).toEqual(expectedThemeTokens.dark)
+})
+
+test('theme toggle switches application and Nuxt UI tokens together', async ({ context, page }) => {
+	await context.addCookies([{ name: 'colour_mode', value: 'dark', url: 'http://127.0.0.1:4173' }])
+	await page.goto('/')
+	await page.getByRole('button', { name: 'Theme' }).click()
+	await expect(page.locator('html')).toHaveClass(/light/)
+
+	const snapshot = await themeSnapshot(page, 'light')
+	expect(snapshot.tokens).toEqual(expectedThemeTokens.light)
 })
 
 test('collapsed sidebar remains stable through hydration', async ({ context, page }) => {

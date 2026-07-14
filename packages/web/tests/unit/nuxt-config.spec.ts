@@ -7,4 +7,9 @@ describe('Nuxt configuration', () => {
 	it('does not inherit generic DEBUG as Nuxt hook timing', () => {
 		expect(nuxtConfig).toContain('\tdebug: false,')
 	})
+
+	it('uses a valid Nuxt UI secondary colour palette', () => {
+		expect(nuxtConfig).toContain("secondary: 'warm-neutral'")
+		expect(nuxtConfig).not.toContain("secondary: 'secondary'")
+	})
 })
