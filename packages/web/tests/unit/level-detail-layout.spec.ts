@@ -65,7 +65,7 @@ describe('compact level detail layout', () => {
 	it('uses dense telemetry cards while preserving dashboard defaults', () => {
 		expect(telemetry).toContain('sm:grid-cols-2 xl:grid-cols-4')
 		expect(telemetry).not.toContain('2xl:grid-cols-8')
-		expect(telemetry).toContain('2xl:grid-cols-3')
+		expect(telemetry).toContain('xl:grid-cols-2')
 		expect(telemetry).toContain('<DashboardDonutChart')
 		expect(telemetry).toContain('compact')
 		expect(telemetry).not.toContain('hover:')
