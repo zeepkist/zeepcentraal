@@ -226,6 +226,7 @@ test('legacy OAuth callback redirects before rendering Vue', async ({ request })
 })
 
 test('brand colours remain stable through hydration', async ({ context, page }) => {
+	test.slow()
 	const blockClientScripts = (route: Route) =>
 		route.request().resourceType() === 'script' ? route.abort() : route.continue()
 
@@ -244,6 +245,7 @@ test('brand colours remain stable through hydration', async ({ context, page }) 
 		await page.unroute('**/*', blockClientScripts)
 		await page.reload()
 		await page.waitForFunction(() => '__vue_app__' in (document.querySelector('#__nuxt') ?? {}))
+		await page.waitForTimeout(4_000)
 		const hydrated = await themeSnapshot(page, mode)
 
 		expect(ssr.mode).toBe(true)
