@@ -163,6 +163,8 @@ describe('user profile overview', () => {
 		expect(chartSeriesTabs).toContain('role="tablist"')
 		expect(chartSeriesTabs).toContain('role="tab"')
 		expect(chartSeriesTabs).toContain(':aria-selected=')
+		expect(chartSeriesTabs).toContain(':disabled="mounted && option.disabled"')
+		expect(chartSeriesTabs).toContain('if (!option.disabled)')
 		expect(chartSeriesTabs).not.toContain('useQuery')
 	})
 

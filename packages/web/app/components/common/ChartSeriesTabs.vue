@@ -8,8 +8,8 @@
 			:aria-selected="modelValue === option.value"
 			:color="modelValue === option.value ? 'primary' : 'neutral'"
 			:variant="modelValue === option.value ? 'solid' : 'ghost'"
-			:disabled="option.disabled"
-			@click="$emit('update:modelValue', option.value)"
+			:disabled="mounted && option.disabled"
+			@click="select(option)"
 		>
 			<TablerIcon :name="option.icon" class="size-3.5" />
 			{{ option.label }}
@@ -18,11 +18,20 @@
 </template>
 
 <script setup lang="ts" generic="T extends string">
-defineProps<{
+const props = defineProps<{
 	modelValue: T
 	label: string
 	options: Array<{ value: T; label: string; icon: string; disabled?: boolean }>
 }>()
 
-defineEmits<{ 'update:modelValue': [value: T] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: T] }>()
+const mounted = ref(false)
+
+onMounted(() => {
+	mounted.value = true
+})
+
+function select(option: (typeof props.options)[number]) {
+	if (!option.disabled) emit('update:modelValue', option.value)
+}
 </script>
