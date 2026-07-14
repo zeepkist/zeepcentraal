@@ -232,8 +232,9 @@ test('brand colours remain stable through hydration', async ({ context, page }) 
 	for (const mode of ['dark', 'light'] as const) {
 		await context.addCookies([
 			{ name: 'colour_mode', value: mode, url: 'http://127.0.0.1:4173' },
+			{ name: 'i18n_redirected', value: 'en', url: 'http://127.0.0.1:4173' },
 		])
-		const rawResponse = await context.request.get('/')
+		const rawResponse = await context.request.get('http://127.0.0.1:4173/')
 		expect(await rawResponse.text()).toMatch(new RegExp(`<html[^>]*class="${mode}"`))
 
 		await page.route('**/*', blockClientScripts)
@@ -256,7 +257,10 @@ test('missing colour preference renders dark fallback before scripts', async ({
 	page,
 }) => {
 	await context.clearCookies()
-	const response = await context.request.get('/')
+	await context.addCookies([
+		{ name: 'i18n_redirected', value: 'en', url: 'http://127.0.0.1:4173' },
+	])
+	const response = await context.request.get('http://127.0.0.1:4173/')
 	expect(await response.text()).toMatch(/<html[^>]*class="dark"/)
 
 	await page.route('**/*', (route) =>
@@ -269,8 +273,12 @@ test('missing colour preference renders dark fallback before scripts', async ({
 })
 
 test('theme toggle switches application and Nuxt UI tokens together', async ({ context, page }) => {
-	await context.addCookies([{ name: 'colour_mode', value: 'dark', url: 'http://127.0.0.1:4173' }])
+	await context.addCookies([
+		{ name: 'colour_mode', value: 'dark', url: 'http://127.0.0.1:4173' },
+		{ name: 'i18n_redirected', value: 'en', url: 'http://127.0.0.1:4173' },
+	])
 	await page.goto('/')
+	await page.waitForFunction(() => '__vue_app__' in (document.querySelector('#__nuxt') ?? {}))
 	await page.getByRole('button', { name: 'Theme' }).click()
 	await expect(page.locator('html')).toHaveClass(/light/)
 
