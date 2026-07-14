@@ -14,6 +14,7 @@
 			<ZslSeasonGrid
 				:seasons="seasons"
 				:rounds-label="roundsLabel"
+				:competitors-label="competitorsLabel"
 			/>
 		</DataState>
 		<CursorPagination
@@ -34,6 +35,7 @@ usePageSeo('zsl')
 const { t } = useI18n()
 const { page, pagination, result, seasons } = useZslSeasons()
 const roundsLabel = (count: number) => t('zsl.roundCount', { count })
+const competitorsLabel = (count: number) => t('zsl.competitorCount', { count })
 const stateLabels = computed(() => ({
 	loadingLabel: t('common.loading'),
 	errorTitle: t('common.error'),

@@ -6,6 +6,14 @@ fragment ZC_ZslRoundStandingFields on ZslRoundResult {
 		id
 		steamId
 		steamName
+		zslLevelResults(
+			first: 0
+			filter: {
+				level: { round: { seasonId: { equalTo: $seasonId }, round: { equalTo: $round } } }
+			}
+		) {
+			totalCount
+		}
 	}
 }
 

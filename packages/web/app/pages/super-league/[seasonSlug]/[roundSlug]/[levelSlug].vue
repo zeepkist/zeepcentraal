@@ -8,29 +8,17 @@
 			class="space-y-8 py-2"
 		>
 			<template v-if="level">
-				<section class="grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-					<div>
-						<p class="text-sm font-semibold uppercase tracking-widest text-primary">
-							{{ $t('zsl.levelResults') }}
-						</p>
-						<h1 class="mt-2 text-4xl font-black">
-							{{ level.level?.levelItems.nodes[0]?.name ?? $t('common.level') }}
-						</h1>
-						<NuxtLink
-							v-if="level.level"
-							:to="`/level/${level.level.xxHash}`"
-							class="mt-3 inline-block text-primary"
-						>
-							{{ $t('zsl.openLevel') }}
-						</NuxtLink>
-					</div>
-					<NuxtImg
-						v-if="level.level?.levelItems.nodes[0]?.imageUrl"
-						:src="level.level.levelItems.nodes[0].imageUrl"
-						:alt="level.level.levelItems.nodes[0]?.name ?? $t('common.level')"
-						class="aspect-video w-full rounded-2xl object-cover"
-					/>
-				</section>
+				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
+				<ZslLevelHero
+					:title="levelTitle"
+					:context="levelContext"
+					:image-src="level.level?.levelItems.nodes[0]?.imageUrl"
+					:level-url="levelUrl"
+					:workshop-url="workshopUrl"
+					:competitor-count="competitorCount"
+					:event-date="level.round?.eventDate"
+					:labels="heroLabels"
+				/>
 				<section>
 					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.levelStandings')" />
 					<DataState
@@ -77,6 +65,7 @@ if (parsedSeasonId === null || parsedRoundNumber === null || parsedLevelId === n
 }
 const id = computed(() => parsedLevelId)
 const {
+	competitorCount,
 	level,
 	page,
 	pagination,
@@ -97,6 +86,33 @@ watchEffect(() => {
 		showError(createError({ statusCode: 404, statusMessage: t('zsl.notFound') }))
 	}
 })
+const levelTitle = computed(
+	() => level.value?.level?.levelItems.nodes[0]?.name ?? t('common.level'),
+)
+const levelUrl = computed(() =>
+	level.value?.level ? `/level/${level.value.level.xxHash}` : undefined,
+)
+const workshopUrl = computed(() =>
+	steamWorkshopItemUrl(level.value?.level?.levelItems.nodes[0]?.workshopId),
+)
+const levelContext = computed(() =>
+	t('zsl.levelContext', {
+		season: level.value?.round?.season?.name ?? t('zsl.season'),
+		round: level.value?.round?.round ?? parsedRoundNumber,
+	}),
+)
+const breadcrumbItems = computed(() => [
+	{ label: t('zsl.seasons'), to: '/super-league' },
+	{
+		label: level.value?.round?.season?.name ?? t('zsl.season'),
+		to: superLeagueSeasonPath(parsedSeasonId),
+	},
+	{
+		label: level.value?.round?.name ?? t('zsl.roundNumber', { round: parsedRoundNumber }),
+		to: superLeagueRoundPath(parsedSeasonId, parsedRoundNumber),
+	},
+	{ label: levelTitle.value },
+])
 useSeoMeta({
 	title: () => level.value?.level?.levelItems.nodes[0]?.name,
 	description: () => t('zsl.levelStandings'),
@@ -111,9 +127,17 @@ const tableLabels = computed(() => ({
 	player: t('common.user'),
 	time: t('common.time'),
 	points: t('common.points'),
+	levelsPlayed: t('zsl.levelsPlayed'),
 	unknown: t('zsl.unknown'),
 	yourStanding: t('zsl.yourStanding'),
 	emptyValue: t('pages.records.table.notRanked'),
+}))
+const heroLabels = computed(() => ({
+	eyebrow: t('zsl.levelResults'),
+	openLevel: t('zsl.openLevel'),
+	workshop: t('zsl.openWorkshop'),
+	competitors: t('zsl.competitors'),
+	playedOn: t('zsl.playedOn'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

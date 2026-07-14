@@ -13,6 +13,9 @@ query ZC_ZslSeasons($first: Int, $after: Cursor, $last: Int, $before: Cursor) {
 				name
 				startDate
 				endDate
+				zslSeasonResults(first: 0) {
+					totalCount
+				}
 				zslRounds(first: 6, orderBy: [ROUND_ASC]) {
 					nodes {
 						id

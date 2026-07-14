@@ -6,6 +6,18 @@ fragment ZC_ZslSeasonStandingFields on ZslSeasonResult {
 		id
 		steamId
 		steamName
+		zslRoundResults(
+			first: 6
+			filter: { round: { seasonId: { equalTo: $id } } }
+			orderBy: [ROUND_ID_ASC]
+		) {
+			nodes {
+				points
+				round {
+					round
+				}
+			}
+		}
 	}
 }
 

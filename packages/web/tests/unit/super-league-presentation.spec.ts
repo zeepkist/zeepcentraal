@@ -34,6 +34,33 @@ const roundQuery = readFileSync(
 	new URL('../../app/graphql/queries/zslRound.graphql', import.meta.url),
 	'utf8',
 )
+const breadcrumbs = readFileSync(
+	new URL('../../app/components/zsl/ZslBreadcrumbs.vue', import.meta.url),
+	'utf8',
+)
+const facts = readFileSync(
+	new URL('../../app/components/zsl/ZslPageFacts.vue', import.meta.url),
+	'utf8',
+)
+const levelHero = readFileSync(
+	new URL('../../app/components/zsl/ZslLevelHero.vue', import.meta.url),
+	'utf8',
+)
+const seasonPage = readFileSync(
+	new URL('../../app/pages/super-league/[seasonSlug]/index.vue', import.meta.url),
+	'utf8',
+)
+const roundPage = readFileSync(
+	new URL('../../app/pages/super-league/[seasonSlug]/[roundSlug]/index.vue', import.meta.url),
+	'utf8',
+)
+const levelPage = readFileSync(
+	new URL(
+		'../../app/pages/super-league/[seasonSlug]/[roundSlug]/[levelSlug].vue',
+		import.meta.url,
+	),
+	'utf8',
+)
 
 describe('Super League card presentation', () => {
 	it('uses one request-free interaction shell for every card type', () => {
@@ -63,6 +90,38 @@ describe('Super League card presentation', () => {
 		expect(levelGrid).not.toContain('xxHash')
 		expect(roundQuery).not.toContain('xxHash')
 	})
+
+	it('provides ancestor navigation on every nested route', () => {
+		for (const page of [seasonPage, roundPage, levelPage]) {
+			expect(page).toContain('<ZslBreadcrumbs')
+			expect(page).toContain("to: '/super-league'")
+		}
+		expect(roundPage).toContain('superLeagueSeasonPath(seasonId.value)')
+		expect(levelPage).toContain('superLeagueSeasonPath(parsedSeasonId)')
+		expect(levelPage).toContain('superLeagueRoundPath(parsedSeasonId, parsedRoundNumber)')
+		expect(breadcrumbs).not.toContain('useQuery(')
+	})
+
+	it('shows competitor and played-date facts without clickable card treatment', () => {
+		expect(seasonGrid).toContain('season.zslSeasonResults.totalCount')
+		expect(seasonPage).toContain(':competitor-count="competitorCount"')
+		expect(roundPage).toContain(':event-date="round.eventDate"')
+		expect(seasonPage).toContain('<template #actions>')
+		expect(roundPage).toContain('<template #actions>')
+		expect(roundPage).toContain('stacked')
+		expect(levelPage).toContain(':competitor-count="competitorCount"')
+		expect(facts).toContain('<NuxtTime')
+		expect(facts).not.toContain('hover:-translate')
+	})
+
+	it('uses dedicated level-style thumbnail and destination actions', () => {
+		expect(levelPage).toContain('<ZslLevelHero')
+		expect(levelPage).toContain('steamWorkshopItemUrl(')
+		expect(levelHero).toContain('<NuxtImg')
+		expect(levelHero).toContain('i-tabler-brand-steam')
+		expect(levelHero).toContain(':to="levelUrl"')
+		expect(levelHero).toContain(':to="workshopUrl"')
+	})
 })
 
 describe('Super League standings presentation', () => {
@@ -79,5 +138,14 @@ describe('Super League standings presentation', () => {
 		expect(standings).toContain('new Intl.NumberFormat(locale.value)')
 		expect(standings).toContain('labels.emptyValue')
 		expect(standings).toContain('row.steamId')
+	})
+
+	it('supports six round scores and compact level participation', () => {
+		expect(standings).toContain('v-for="label in roundLabels"')
+		expect(standings).toContain('row.roundPoints?.[index]')
+		expect(standings).toContain('showLevelsPlayed')
+		expect(standings).toContain('row.levelsPlayed')
+		expect(seasonPage).toContain(':round-labels="roundLabels"')
+		expect(roundPage).toContain('show-levels-played')
 	})
 })

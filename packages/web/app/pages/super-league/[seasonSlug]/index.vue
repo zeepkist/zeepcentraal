@@ -8,11 +8,21 @@
 			class="space-y-8 py-2"
 		>
 			<template v-if="season">
+				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 				<PageHeader
 					:eyebrow="$t('zsl.season')"
 					:title="season.name"
 					:description="$t('zsl.seasonDescription')"
-				/>
+				>
+					<template #actions>
+						<ZslPageFacts
+							class="w-full sm:w-auto sm:min-w-[18rem]"
+							:competitor-count="competitorCount"
+							:labels="factLabels"
+							stacked
+						/>
+					</template>
+				</PageHeader>
 				<section>
 					<SectionHeader :title="$t('zsl.rounds')" :description="$t('zsl.roundsDescription')" />
 					<ZslRoundGrid
@@ -33,7 +43,12 @@
 						:empty="standings.length === 0"
 						v-bind="stateLabels"
 					>
-						<ZslStandingsTable :standings="standings" :viewer-user-id="viewerId" :labels="tableLabels" />
+						<ZslStandingsTable
+							:standings="standings"
+							:viewer-user-id="viewerId"
+							:round-labels="roundLabels"
+							:labels="tableLabels"
+						/>
 					</DataState>
 					<CursorPagination
 						class="mt-4"
@@ -64,6 +79,7 @@ if (parsedSeasonId === null) {
 }
 const id = computed(() => parsedSeasonId)
 const {
+	competitorCount,
 	page,
 	pagination,
 	prefetch,
@@ -80,6 +96,13 @@ watchEffect(() => {
 	}
 })
 const roundLink = (round: { round: number }) => superLeagueRoundPath(id.value, round.round)
+const breadcrumbItems = computed(() => [
+	{ label: t('zsl.seasons'), to: '/super-league' },
+	{ label: season.value?.name ?? t('zsl.season') },
+])
+const roundLabels = computed(() =>
+	Array.from({ length: 6 }, (_, index) => t('zsl.roundShort', { round: index + 1 })),
+)
 useSeoMeta({
 	title: () => season.value?.name,
 	description: () => t('zsl.seasonDescription'),
@@ -94,9 +117,14 @@ const tableLabels = computed(() => ({
 	player: t('common.user'),
 	time: t('common.time'),
 	points: t('common.points'),
+	levelsPlayed: t('zsl.levelsPlayed'),
 	unknown: t('zsl.unknown'),
 	yourStanding: t('zsl.yourStanding'),
 	emptyValue: t('pages.records.table.notRanked'),
+}))
+const factLabels = computed(() => ({
+	competitors: t('zsl.competitors'),
+	playedOn: t('zsl.playedOn'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

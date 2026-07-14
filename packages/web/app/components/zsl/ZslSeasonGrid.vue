@@ -20,9 +20,14 @@
 				</div>
 			</template>
 			<template #footer>
-				<UBadge color="neutral" variant="soft">
-					{{ roundsLabel(season.zslRounds.nodes.length) }}
-				</UBadge>
+				<div class="flex flex-wrap gap-2">
+					<UBadge color="neutral" variant="soft">
+						{{ roundsLabel(season.zslRounds.nodes.length) }}
+					</UBadge>
+					<UBadge color="primary" variant="soft">
+						{{ competitorsLabel(season.zslSeasonResults.totalCount) }}
+					</UBadge>
+				</div>
 			</template>
 		</ZslCard>
 	</div>
@@ -35,8 +40,10 @@ defineProps<{
 		name: string
 		startDate: unknown
 		endDate: unknown
+		zslSeasonResults: { totalCount: number }
 		zslRounds: { nodes: unknown[] }
 	}>
 	roundsLabel: (count: number) => string
+	competitorsLabel: (count: number) => string
 }>()
 </script>

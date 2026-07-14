@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { mergeViewerStanding } from '../../app/composables/useZsl'
 import type { ZslStanding } from '../../app/types/app'
+import { mapSeasonRoundPoints, mergeViewerStanding } from '../../app/utils/zslStandings'
 
 const composable = readFileSync(new URL('../../app/composables/useZsl.ts', import.meta.url), 'utf8')
 const seasonResults = readFileSync(
@@ -48,6 +48,17 @@ describe('Super League standings loading', () => {
 		expect(roundResults).not.toContain('roundId: { equalTo: $id }')
 	})
 
+	it('loads round scores and level participation with bounded nested connections', () => {
+		expect(seasonResults).toContain('zslRoundResults(')
+		expect(seasonResults).toContain('first: 6')
+		expect(seasonResults).toContain('orderBy: [ROUND_ID_ASC]')
+		expect(roundResults).toContain('zslLevelResults(')
+		expect(roundResults).toContain('first: 0')
+		expect(roundResults).toContain(
+			'level: { round: { seasonId: { equalTo: $seasonId }, round: { equalTo: $round } } }',
+		)
+	})
+
 	it('SSR-prefetches details and standings without viewport gates', () => {
 		expect(composable).not.toContain('useViewportPrefetch')
 		expect(composable).toContain('await Promise.all([result, standingsResult])')
@@ -62,6 +73,36 @@ describe('Super League standings loading', () => {
 		expect(composable).toContain('function stageStandings(')
 		expect(composable).toContain('if (fetching.value || !hasData.value) return')
 		expect(composable).toContain('resolved.value ? snapshot.value : rows.value')
+	})
+})
+
+describe('Super League season round points', () => {
+	it('shows only best-of round scores in their six fixed columns', () => {
+		expect(
+			mapSeasonRoundPoints(
+				[
+					{ points: 10, round: { round: 1 } },
+					{ points: 50, round: { round: 2 } },
+					{ points: 20, round: { round: 3 } },
+					{ points: 40, round: { round: 4 } },
+					{ points: 30, round: { round: 5 } },
+					{ points: 5, round: { round: 6 } },
+				],
+				4,
+			),
+		).toEqual([null, 50, 20, 40, 30, null])
+	})
+
+	it('uses earlier round as deterministic best-of tie-breaker', () => {
+		expect(
+			mapSeasonRoundPoints(
+				[
+					{ points: 25, round: { round: 2 } },
+					{ points: 25, round: { round: 1 } },
+				],
+				1,
+			),
+		).toEqual([25, null, null, null, null, null])
 	})
 })
 

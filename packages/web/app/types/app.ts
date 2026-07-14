@@ -219,6 +219,8 @@ export type ZslStanding = {
 	pinned?: boolean
 	position: number
 	points: number
+	levelsPlayed?: number
+	roundPoints?: Array<number | null>
 	steamId: string | null
 	steamName: string | null
 	time?: number

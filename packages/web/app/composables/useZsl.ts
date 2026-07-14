@@ -10,14 +10,7 @@ import {
 	Zc_ZslSeasonsDocument,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, ZslStanding } from '~/types/app'
-
-type StandingNode = {
-	position: number
-	points: number
-	userId: number
-	user?: { steamId: unknown; steamName?: string | null } | null
-	time?: number
-}
+import { mapZslStanding, mergeViewerStanding } from '~/utils/zslStandings'
 
 function pageInfo(
 	info?: {
@@ -35,25 +28,6 @@ function pageInfo(
 				hasPreviousPage: info.hasPreviousPage,
 			}
 		: { hasNextPage: false, hasPreviousPage: false }
-}
-
-function standing(node: StandingNode): ZslStanding {
-	return {
-		userId: node.userId,
-		position: node.position,
-		points: node.points,
-		steamId: node.user ? String(node.user.steamId) : null,
-		steamName: node.user?.steamName ?? null,
-		time: node.time,
-	}
-}
-
-export function mergeViewerStanding(
-	rows: ZslStanding[],
-	viewerNode?: StandingNode | null,
-): ZslStanding[] {
-	if (!viewerNode || rows.some((row) => row.userId === viewerNode.userId)) return rows
-	return [...rows, { ...standing(viewerNode), pinned: true }]
 }
 
 function stageStandings(
@@ -105,9 +79,11 @@ export function useZslSeason(id: Ref<number>, viewerId: Ref<number | undefined>)
 	const season = computed(() => result.data.value?.zslSeason)
 	const incomingStandings = computed(() =>
 		mergeViewerStanding(
-			standingsResult.data.value?.zslSeasonResults?.edges.map(({ node }) => standing(node)) ??
-				[],
+			standingsResult.data.value?.zslSeasonResults?.edges.map(({ node }) =>
+				mapZslStanding(node, season.value?.pointsStructure?.bestOf ?? 6),
+			) ?? [],
 			standingsResult.data.value?.viewerStanding?.nodes[0],
+			season.value?.pointsStructure?.bestOf ?? 6,
 		),
 	)
 	const standings = stageStandings(
@@ -116,10 +92,22 @@ export function useZslSeason(id: Ref<number>, viewerId: Ref<number | undefined>)
 		computed(() => standingsResult.data.value?.zslSeasonResults !== undefined),
 	)
 	const page = computed(() => pageInfo(standingsResult.data.value?.zslSeasonResults?.pageInfo))
+	const competitorCount = computed(
+		() => standingsResult.data.value?.zslSeasonResults?.totalCount ?? 0,
+	)
 	async function prefetch() {
 		if (import.meta.server) await Promise.all([result, standingsResult])
 	}
-	return { page, pagination, prefetch, result, season, standings, standingsResult }
+	return {
+		competitorCount,
+		page,
+		pagination,
+		prefetch,
+		result,
+		season,
+		standings,
+		standingsResult,
+	}
 }
 
 export function useZslRound(
@@ -147,8 +135,9 @@ export function useZslRound(
 	})
 	const incomingStandings = computed(() =>
 		mergeViewerStanding(
-			standingsResult.data.value?.zslRoundResults?.edges.map(({ node }) => standing(node)) ??
-				[],
+			standingsResult.data.value?.zslRoundResults?.edges.map(({ node }) =>
+				mapZslStanding(node),
+			) ?? [],
 			standingsResult.data.value?.viewerStanding?.nodes[0],
 		),
 	)
@@ -158,10 +147,22 @@ export function useZslRound(
 		computed(() => standingsResult.data.value?.zslRoundResults !== undefined),
 	)
 	const page = computed(() => pageInfo(standingsResult.data.value?.zslRoundResults?.pageInfo))
+	const competitorCount = computed(
+		() => standingsResult.data.value?.zslRoundResults?.totalCount ?? 0,
+	)
 	async function prefetch() {
 		if (import.meta.server) await Promise.all([result, standingsResult])
 	}
-	return { page, pagination, prefetch, result, round, standings, standingsResult }
+	return {
+		competitorCount,
+		page,
+		pagination,
+		prefetch,
+		result,
+		round,
+		standings,
+		standingsResult,
+	}
 }
 
 export function useZslLevel(id: Ref<number>, viewerId: Ref<number | undefined>) {
@@ -181,8 +182,9 @@ export function useZslLevel(id: Ref<number>, viewerId: Ref<number | undefined>) 
 	const level = computed(() => result.data.value?.zslLevel)
 	const incomingStandings = computed(() =>
 		mergeViewerStanding(
-			standingsResult.data.value?.zslLevelResults?.edges.map(({ node }) => standing(node)) ??
-				[],
+			standingsResult.data.value?.zslLevelResults?.edges.map(({ node }) =>
+				mapZslStanding(node),
+			) ?? [],
 			standingsResult.data.value?.viewerStanding?.nodes[0],
 		),
 	)
@@ -192,8 +194,20 @@ export function useZslLevel(id: Ref<number>, viewerId: Ref<number | undefined>) 
 		computed(() => standingsResult.data.value?.zslLevelResults !== undefined),
 	)
 	const page = computed(() => pageInfo(standingsResult.data.value?.zslLevelResults?.pageInfo))
+	const competitorCount = computed(
+		() => standingsResult.data.value?.zslLevelResults?.totalCount ?? 0,
+	)
 	async function prefetch() {
 		if (import.meta.server) await Promise.all([result, standingsResult])
 	}
-	return { level, page, pagination, prefetch, result, standings, standingsResult }
+	return {
+		competitorCount,
+		level,
+		page,
+		pagination,
+		prefetch,
+		result,
+		standings,
+		standingsResult,
+	}
 }
