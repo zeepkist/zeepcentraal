@@ -7,11 +7,14 @@ import {
 	Zc_UserProfileDocument,
 	Zc_UserResultsDocument,
 	Zc_UserStatisticsDocument,
+	Zc_UserSuperLeagueSeasonDocument,
+	Zc_UserSuperLeagueSeasonsDocument,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, LevelSummary, RecordRow, UserProfileSummary } from '~/types/app'
 import { getLevelHotWindows } from '~/utils/levelExplorer'
 import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'
 import { buildUserCareerHistory, getUserCareerHistoryWindow } from '~/utils/userCareerHistory'
+import { buildUserSuperLeagueSummary } from '~/utils/userSuperLeague'
 import { getUserTelemetryWindows, type UserTelemetryPeriod } from '~/utils/userTelemetry'
 
 function cursorPage(
@@ -89,6 +92,7 @@ export function useUserProfile(steamId: Ref<string>) {
 		getUserTelemetryWindows(),
 	)
 	const telemetryPeriod = ref<UserTelemetryPeriod>('all-time')
+	const selectedSuperLeagueSeasonId = ref<number>()
 	const summary = computed<UserProfileSummary | null>(() => {
 		const value = user.value
 		if (!value) return null
@@ -123,6 +127,44 @@ export function useUserProfile(steamId: Ref<string>) {
 			now: historyWindow.value.now,
 		}),
 	)
+	const superLeagueSeasonsQuery = useQuery({
+		query: Zc_UserSuperLeagueSeasonsDocument,
+		pause: computed(() => userId.value === undefined || !historyPrefetch.active.value),
+	})
+	const superLeagueSeasons = computed(
+		() => superLeagueSeasonsQuery.data.value?.zslSeasons?.nodes ?? [],
+	)
+	watch(
+		superLeagueSeasons,
+		(seasons) => {
+			if (
+				seasons.length > 0 &&
+				!seasons.some((season) => season.id === selectedSuperLeagueSeasonId.value)
+			) {
+				selectedSuperLeagueSeasonId.value = seasons[0]?.id
+			}
+		},
+		{ immediate: true },
+	)
+	const superLeagueSeasonQuery = useQuery({
+		query: Zc_UserSuperLeagueSeasonDocument,
+		variables: computed(() => ({
+			seasonId: selectedSuperLeagueSeasonId.value ?? 0,
+			userId: userId.value ?? 0,
+		})),
+		pause: computed(
+			() =>
+				userId.value === undefined ||
+				selectedSuperLeagueSeasonId.value === undefined ||
+				!historyPrefetch.active.value,
+		),
+	})
+	const superLeagueSeason = computed(() => {
+		const season = superLeagueSeasonQuery.data.value?.zslSeason
+		return season?.id === selectedSuperLeagueSeasonId.value
+			? buildUserSuperLeagueSummary(season)
+			: null
+	})
 	const statistics = useQuery({
 		query: Zc_UserStatisticsDocument,
 		variables: computed(() => ({
@@ -377,6 +419,11 @@ export function useUserProfile(steamId: Ref<string>) {
 		pointsHistoryActive: historyPrefetch.active,
 		pointsHistoryQuery,
 		pointsHistoryTarget: historyPrefetch.target,
+		selectedSuperLeagueSeasonId,
+		superLeagueSeason,
+		superLeagueSeasonQuery,
+		superLeagueSeasons,
+		superLeagueSeasonsQuery,
 		prefetchCritical,
 		profile,
 		recent,

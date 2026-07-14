@@ -133,6 +133,27 @@ export type UserCareerHistoryPoint = {
 	rank: number | null
 }
 
+export type UserSuperLeagueRoundResult = {
+	id: number
+	round: number
+	name: string
+	eventDate: string
+	position: number
+	points: number
+	counted: boolean
+}
+
+export type UserSuperLeagueSummary = {
+	id: number
+	name: string
+	startDate: string
+	endDate: string
+	bestOf: number
+	position: number | null
+	points: number | null
+	rounds: UserSuperLeagueRoundResult[]
+}
+
 export type CursorPage = {
 	startCursor?: string | null
 	endCursor?: string | null

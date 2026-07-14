@@ -1,0 +1,42 @@
+query ZC_UserSuperLeagueSeasons {
+	zslSeasons(first: 1000, orderBy: [START_DATE_DESC]) {
+		nodes {
+			id
+			name
+			startDate
+			endDate
+		}
+	}
+}
+
+query ZC_UserSuperLeagueSeason($seasonId: Int!, $userId: Int!) {
+	zslSeason(id: $seasonId) {
+		id
+		name
+		startDate
+		endDate
+		pointsStructure {
+			bestOf
+		}
+		zslSeasonResults(first: 1, filter: { userId: { equalTo: $userId } }) {
+			nodes {
+				position
+				points
+			}
+		}
+		zslRounds(first: 6, orderBy: [ROUND_ASC]) {
+			nodes {
+				id
+				round
+				name
+				eventDate
+				zslRoundResults(first: 1, filter: { userId: { equalTo: $userId } }) {
+					nodes {
+						position
+						points
+					}
+				}
+			}
+		}
+	}
+}

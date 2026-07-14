@@ -19,10 +19,23 @@
 							<UserCareerHistory :history="data.pointsHistory.value" :labels="historyLabels" />
 						</DataState>
 					</section>
-					<section aria-labelledby="profile-summary">
-						<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
-						<MetricGrid :metrics="metrics" :columns="2" />
-					</section>
+					<div class="space-y-8">
+						<section aria-labelledby="profile-summary">
+							<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
+							<MetricGrid :metrics="metrics" :columns="2" />
+						</section>
+						<UserSuperLeaguePanel
+							id="profile-super-league"
+							:selected-season-id="data.selectedSuperLeagueSeasonId.value"
+							:seasons="superLeagueSeasonOptions"
+							:season="data.superLeagueSeason.value"
+							:standings-to="superLeagueStandingsUrl"
+							:pending="superLeaguePending"
+							:error="superLeagueError"
+							:labels="superLeagueLabels"
+							@update:selected-season-id="data.selectedSuperLeagueSeasonId.value = $event"
+						/>
+					</div>
 				</div>
 
 				<section :ref="data.statisticsTarget" aria-labelledby="profile-telemetry">
@@ -208,6 +221,46 @@ const telemetryPeriodOptions = computed(() => {
 		{ label: year, value: 'year' },
 	]
 })
+const superLeagueSeasonOptions = computed(() =>
+	data.superLeagueSeasons.value.map((season) => ({ label: season.name, value: season.id })),
+)
+const superLeagueStandingsUrl = computed(() =>
+	data.selectedSuperLeagueSeasonId.value == null
+		? undefined
+		: `/super-league/season-${data.selectedSuperLeagueSeasonId.value}`,
+)
+const superLeaguePending = computed(
+	() =>
+		!data.pointsHistoryActive.value ||
+		data.superLeagueSeasonsQuery.fetching.value ||
+		(data.selectedSuperLeagueSeasonId.value !== undefined &&
+			data.superLeagueSeasonQuery.fetching.value),
+)
+const superLeagueError = computed(
+	() =>
+		data.superLeagueSeasonsQuery.error.value?.message ??
+		data.superLeagueSeasonQuery.error.value?.message,
+)
+const superLeagueLabels = computed(() => ({
+	title: t('users.profile.superLeague.title'),
+	description: t('users.profile.superLeague.description'),
+	season: t('users.profile.superLeague.season'),
+	viewStandings: t('users.profile.superLeague.viewStandings'),
+	position: t('users.profile.superLeague.position'),
+	points: t('users.profile.superLeague.points'),
+	roundsEntered: t('users.profile.superLeague.roundsEntered'),
+	roundResults: t('users.profile.superLeague.roundResults'),
+	bestOf: (count: number) =>
+		t('users.profile.superLeague.bestOf', { count: number.value.format(count) }),
+	round: (round: number) => t('zsl.roundNumber', { round: number.value.format(round) }),
+	excluded: (count: number) =>
+		t('users.profile.superLeague.excluded', { count: number.value.format(count) }),
+	noSeasons: t('users.profile.superLeague.noSeasons'),
+	noResults: t('users.profile.superLeague.noResults'),
+	loading: t('common.loading'),
+	error: t('common.error'),
+	emptyValue: t('pages.records.table.notRanked'),
+}))
 const heroLabels = computed(() => ({ eyebrow: t('users.profile.eyebrow'), joined: t('users.profile.joined'), globalRank: t('users.profile.globalRank'), rankedPoints: t('users.columns.rankedPoints'), totalPoints: t('users.columns.totalPoints'), unranked: t('users.profile.unranked'), steamProfile: t('users.profile.steamProfile'), steamWorkshop: t('users.profile.steamWorkshop') }))
 const historyLabels = computed(() => ({ rankedPoints: t('users.profile.history.rankedPoints'), rankedPointsDescription: t('users.profile.history.rankedPointsDescription'), totalPoints: t('users.profile.history.totalPoints'), totalPointsDescription: t('users.profile.history.totalPointsDescription'), rank: t('users.profile.history.rank'), rankDescription: t('users.profile.history.rankDescription') }))
 const resultLabels = computed(() => ({

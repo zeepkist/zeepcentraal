@@ -541,6 +541,20 @@
 				"title": "Career summary",
 				"description": "Records, personal bests, world records, and published levels."
 			},
+			"superLeague": {
+				"title": "Super League",
+				"description": "Season standing and round results for this player.",
+				"season": "Super League season",
+				"viewStandings": "View season standings",
+				"position": "Season position",
+				"points": "Season points",
+				"roundsEntered": "Rounds entered",
+				"roundResults": "Round results",
+				"bestOf": "Best {count} rounds count",
+				"excluded": "Excluded from season points under best {count} scoring",
+				"noSeasons": "No Super League seasons found",
+				"noResults": "This player did not enter this season."
+			},
 			"telemetry": {
 				"title": "Driving telemetry",
 				"description": "All-time driving telemetry across this player's verified records.",
