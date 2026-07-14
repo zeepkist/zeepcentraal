@@ -1,5 +1,5 @@
 <template>
-	<div class="grid gap-4 sm:grid-cols-2" :class="columns === 3 ? 'xl:grid-cols-3' : undefined">
+	<div class="grid gap-4 2xl:grid-cols-2 xl:grid-cols-1" :class="columns === 3 ? 'xl:grid-cols-3' : columns === 1 ? 'xl:grid-cols-1' : undefined">
 		<StatCard
 			v-for="metric in metrics"
 			:key="metric.key"
@@ -16,5 +16,5 @@
 <script setup lang="ts">
 import type { StatisticMetric } from '~/types/app'
 
-withDefaults(defineProps<{ metrics: StatisticMetric[]; columns?: 2 | 3 }>(), { columns: 3 })
+withDefaults(defineProps<{ metrics: StatisticMetric[]; columns?: 1 | 2 | 3 }>(), { columns: 3 })
 </script>
