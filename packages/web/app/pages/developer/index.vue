@@ -17,7 +17,7 @@ const links = computed(() => [
 		description: t('developer.graphql.description'),
 	},
 	{
-		to: 'https://discord.gg/zeepkist-modding',
+		to: 'https://discord.gg/zEeHqdPQWQ',
 		icon: 'brand-discord' as const,
 		title: t('developer.moddingDiscord.title'),
 		description: t('developer.moddingDiscord.description'),

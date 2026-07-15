@@ -93,12 +93,12 @@ const footerColumns = computed(() => [
 		children: [
 			external(
 				t('external.officialDiscord.short'),
-				'https://discord.gg/zeepkist',
+				'https://discord.gg/WjRuWGRnGp',
 				'brand-discord',
 			),
 			external(
 				t('external.moddingDiscord.short'),
-				'https://discord.gg/zeepkist-modding',
+				'https://discord.gg/zEeHqdPQWQ',
 				'brand-discord',
 			),
 			external(

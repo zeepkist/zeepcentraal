@@ -22,8 +22,8 @@ describe('footer and legal pages', () => {
 		expect(footer).toContain("'/terms'")
 		expect(footer).toContain("'/privacy'")
 		expect(footer).toContain('https://github.com/zeepkist/zeepcentraal')
-		expect(footer).toContain('https://discord.gg/zeepkist')
-		expect(footer).toContain('https://discord.gg/zeepkist-modding')
+		expect(footer).toContain('https://discord.gg/WjRuWGRnGp')
+		expect(footer).toContain('https://discord.gg/zEeHqdPQWQ')
 		expect(footer).toContain("rel: 'noopener noreferrer'")
 	})
 

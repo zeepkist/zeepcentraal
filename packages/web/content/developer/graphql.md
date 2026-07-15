@@ -349,5 +349,5 @@ Deduplicate identical in-flight requests. Do not store failed responses as succe
 Non-personal projects using ZeepCentraal data must display **Powered by ZeepCentraal** in visible product copy and link to [zeepki.st](https://zeepki.st).
 
 ::content-alert{type="reminder" title="Need implementation feedback?"}
-Join the [Zeepkist Modding Discord](https://discord.gg/zeepkist-modding) for help writing mods, reviewing integration ideas, and getting feedback before a public release.
+Join the [Zeepkist Modding Discord](https://discord.gg/zEeHqdPQWQ) for help writing mods, reviewing integration ideas, and getting feedback before a public release.
 ::

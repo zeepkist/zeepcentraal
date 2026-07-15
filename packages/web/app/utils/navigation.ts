@@ -115,12 +115,12 @@ export const externalLinks = [
 	},
 	{
 		key: 'officialDiscord',
-		href: 'https://discord.gg/zeepkist',
+		href: 'https://discord.gg/WjRuWGRnGp',
 		icon: 'brand-discord',
 	},
 	{
 		key: 'moddingDiscord',
-		href: 'https://discord.gg/zeepkist-modding',
+		href: 'https://discord.gg/zEeHqdPQWQ',
 		icon: 'brand-discord',
 	},
 ]

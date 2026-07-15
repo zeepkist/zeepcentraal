@@ -13,7 +13,7 @@
 			:release="prerelease"
 			:title="$t('wikiContent.modkist.prerelease.title')"
 			:description="$t('wikiContent.modkist.prerelease.description')"
-			color="warning"
+			color="primary"
 		/>
 		<div class="flex flex-wrap gap-2">
 			<UButton :to="sourceUrl" target="_blank" rel="noopener noreferrer" color="neutral" variant="soft">
