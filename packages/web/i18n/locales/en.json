@@ -653,7 +653,10 @@
 	},
 	"adventure": {
 		"series": "Series {series}",
-		"count": "{count} official Adventure Mode levels"
+		"count": "{count} official Adventure Mode levels",
+		"tabsLabel": "Adventure series",
+		"countsError": "Series counts could not be loaded.",
+		"notFound": "Adventure series not found"
 	},
 	"developer": {
 		"graphql": {

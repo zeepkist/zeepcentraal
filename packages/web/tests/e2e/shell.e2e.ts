@@ -307,7 +307,7 @@ test('collapsed sidebar remains stable through hydration', async ({ context, pag
 for (const [path, heading] of [
 	['/levels', 'Levels and leaderboards'],
 	['/users', 'Users and stats'],
-	['/adventure', 'Adventure leaderboards'],
+	['/adventure/a', 'Adventure leaderboards'],
 	['/wiki', 'Zeepkist wiki'],
 	['/developer', 'Developer portal'],
 	['/developer/graphql', 'GraphQL guide'],
@@ -318,6 +318,11 @@ for (const [path, heading] of [
 		await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
 	})
 }
+
+test('/adventure redirects to Series A', async ({ page }) => {
+	await page.goto('/adventure')
+	await expect(page).toHaveURL(/\/adventure\/a$/)
+})
 
 for (const path of ['/zsl', '/zsl/7', '/zsl/7/44', '/zsl/7/44/615'] as const) {
 	test(`${path} legacy route is removed`, async ({ page }) => {

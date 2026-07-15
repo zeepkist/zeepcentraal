@@ -1,38 +1,147 @@
 import { useQuery } from '@urql/vue'
-import { Zc_AdventureLevelsDocument } from '~/graphql/generated/graphql'
+import type { InjectionKey, Ref } from 'vue'
+import {
+	type Zc_AdventureLevelCardFragment,
+	Zc_AdventureSeriesCountsDocument,
+	Zc_AdventureSeriesDocument,
+} from '~/graphql/generated/graphql'
 import type { LevelSummary } from '~/types/app'
+import {
+	ADVENTURE_SERIES,
+	type AdventureSeriesSlug,
+	findAdventureSeries,
+	sortAdventureLevels,
+} from '~/utils/adventureSeries'
 
-export type AdventureSeries = { key: string; levels: LevelSummary[] }
+function mapLevel(level: Zc_AdventureLevelCardFragment): LevelSummary {
+	const item = level.levelItems.nodes[0]
+	return {
+		id: level.id,
+		xxHash: level.xxHash,
+		name: item?.name ?? level.xxHash,
+		imageUrl: item?.imageUrl,
+		authorName: item?.author?.steamName,
+		authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
+		adventure: level.adventure,
+		dateCreated: String(level.dateCreated),
+		points: level.levelPoints?.points,
+		rating: level.levelPoints?.rating,
+		popularity: level.levelPoints?.modifierPopularity,
+		recordCount: level.records.totalCount,
+		personalBestCount: level.personalBestGlobals.totalCount,
+		worldRecordTime: level.worldRecordGlobal?.record?.time,
+		worldRecordAuthorName: level.worldRecordGlobal?.user?.steamName,
+		worldRecordAuthorSteamId:
+			level.worldRecordGlobal?.user?.steamId == null
+				? null
+				: String(level.worldRecordGlobal.user.steamId),
+		medals: item
+			? {
+					author: item.validationTimeAuthor,
+					gold: item.validationTimeGold,
+					silver: item.validationTimeSilver,
+					bronze: item.validationTimeBronze,
+				}
+			: null,
+	}
+}
 
-export function useAdventure() {
-	const result = useQuery({ query: Zc_AdventureLevelsDocument, variables: {} })
-	const levels = computed<LevelSummary[]>(() =>
-		(result.data.value?.levels?.nodes ?? []).map((node) => {
-			const item = node.levelItems.nodes[0]
-			return {
-				id: node.id,
-				xxHash: node.xxHash,
-				name: item?.name ?? node.xxHash,
-				imageUrl: item?.imageUrl,
-				authorName: item?.author?.steamName,
-				authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
-				adventure: node.adventure,
-				dateCreated: String(node.dateCreated),
-				points: node.levelPoints?.points,
-				rating: node.levelPoints?.rating,
-				popularity: node.levelPoints?.modifierPopularity,
-				recordCount: node.records.totalCount,
-				personalBestCount: node.personalBestGlobals.totalCount,
-			}
-		}),
-	)
-	const series = computed<AdventureSeries[]>(() => {
-		const groups = new Map<string, LevelSummary[]>()
-		for (const level of levels.value) {
-			const key = /^([A-Z]+)-\d+/i.exec(level.name)?.[1]?.toUpperCase() ?? 'OTHER'
-			groups.set(key, [...(groups.get(key) ?? []), level])
-		}
-		return [...groups].map(([key, groupedLevels]) => ({ key, levels: groupedLevels }))
+export function useAdventure(seriesSlug: Ref<string | undefined>) {
+	const selectedSeries = computed(() => findAdventureSeries(seriesSlug.value))
+	const cache = shallowReactive(new Map<AdventureSeriesSlug, LevelSummary[]>())
+	const queryPaused = computed(() => {
+		const series = selectedSeries.value
+		return series === undefined || cache.has(series.slug)
 	})
-	return { levels, result, series }
+	const countsQuery = useQuery({
+		query: Zc_AdventureSeriesCountsDocument,
+		variables: {},
+		pause: computed(() => selectedSeries.value === undefined),
+		requestPolicy: 'cache-first',
+	})
+	const seriesQuery = useQuery({
+		query: Zc_AdventureSeriesDocument,
+		variables: computed(() => ({ prefix: selectedSeries.value?.prefix ?? '' })),
+		pause: queryPaused,
+		requestPolicy: 'cache-first',
+	})
+
+	function cacheResolvedSeries() {
+		if (seriesQuery.fetching.value || seriesQuery.error.value || !seriesQuery.data.value) return
+		const prefix = seriesQuery.operation.value?.variables.prefix
+		const series = ADVENTURE_SERIES.find((entry) => entry.prefix === prefix)
+		if (!series) return
+		const levels = seriesQuery.data.value.levels.nodes.map(mapLevel)
+		cache.set(series.slug, sortAdventureLevels(levels, series))
+	}
+
+	watch(
+		[seriesQuery.data, seriesQuery.fetching, seriesQuery.error, seriesQuery.operation],
+		cacheResolvedSeries,
+		{ immediate: true },
+	)
+
+	const seriesCounts = computed(() => {
+		const data = countsQuery.data.value
+		return Object.fromEntries(
+			ADVENTURE_SERIES.map((series) => [series.slug, data?.[series.countField]?.totalCount]),
+		) as Record<AdventureSeriesSlug, number | undefined>
+	})
+	const tabs = computed(() =>
+		ADVENTURE_SERIES.map((series) => ({ ...series, count: seriesCounts.value[series.slug] })),
+	)
+	const levels = computed(() => {
+		const series = selectedSeries.value
+		return series ? (cache.get(series.slug) ?? []) : []
+	})
+	const selectedPending = computed(() => {
+		const series = selectedSeries.value
+		const operationMatches = seriesQuery.operation.value?.variables.prefix === series?.prefix
+		return Boolean(
+			series &&
+				!cache.has(series.slug) &&
+				(!operationMatches ||
+					seriesQuery.fetching.value ||
+					seriesQuery.data.value === undefined),
+		)
+	})
+	const selectedError = computed(() => {
+		const series = selectedSeries.value
+		if (!series || cache.has(series.slug)) return undefined
+		return seriesQuery.operation.value?.variables.prefix === series.prefix
+			? seriesQuery.error.value
+			: undefined
+	})
+
+	async function prefetch() {
+		if (!import.meta.server || !selectedSeries.value) return
+		await Promise.all([countsQuery, seriesQuery])
+		cacheResolvedSeries()
+	}
+
+	return {
+		countsQuery,
+		levels,
+		prefetch,
+		selectedError,
+		selectedPending,
+		selectedSeries,
+		seriesCounts,
+		seriesQuery,
+		tabs,
+	}
+}
+
+export type AdventureContext = ReturnType<typeof useAdventure>
+
+const adventureContextKey: InjectionKey<AdventureContext> = Symbol('adventure-context')
+
+export function provideAdventureContext(context: AdventureContext) {
+	provide(adventureContextKey, context)
+}
+
+export function useAdventureContext() {
+	const context = inject(adventureContextKey)
+	if (!context) throw new Error('Adventure context is unavailable')
+	return context
 }

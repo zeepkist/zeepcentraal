@@ -32,7 +32,7 @@ export const mainNav: NavItem[] = [
 		icon: 'plug',
 	},
 	{
-		to: '/adventure',
+		to: '/adventure/a',
 		labelKey: 'nav.adventure',
 		icon: 'route',
 	},

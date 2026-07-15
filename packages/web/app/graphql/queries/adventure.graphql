@@ -1,35 +1,247 @@
-query ZC_AdventureLevels {
-	levels(first: 100, filter: { adventure: { equalTo: true } }, orderBy: [DATE_CREATED_ASC]) {
+fragment ZC_AdventureLevelCard on Level {
+	id
+	xxHash
+	adventure
+	dateCreated
+	levelPoints {
+		points
+		rating
+		modifierPopularity
+	}
+	records(first: 0) {
+		totalCount
+	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobal {
+		record {
+			time
+		}
+		user {
+			steamId
+			steamName
+		}
+	}
+	levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
 		nodes {
-			id
-			xxHash
-			adventure
-			dateCreated
-			levelPoints {
-				points
-				rating
-				modifierPopularity
+			name
+			imageUrl
+			validationTimeAuthor
+			validationTimeGold
+			validationTimeSilver
+			validationTimeBronze
+			author {
+				steamId
+				steamName
 			}
-			records(first: 0) {
-				totalCount
+		}
+	}
+}
+
+query ZC_AdventureSeriesCounts {
+	seriesA: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "A-" } }
 			}
-			personalBestGlobals(first: 0) {
-				totalCount
+		}
+	) {
+		totalCount
+	}
+	seriesB: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "B-" } }
 			}
-			levelItems(
-				first: 1
-				filter: { deleted: { equalTo: false } }
-				orderBy: [UPDATED_AT_DESC]
-			) {
-				nodes {
-					name
-					imageUrl
-					author {
-						steamId
-						steamName
-					}
-				}
+		}
+	) {
+		totalCount
+	}
+	seriesC: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "C-" } }
 			}
+		}
+	) {
+		totalCount
+	}
+	seriesCl: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "CL-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesD: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "D-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesE: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "E-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesEz: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "EZ-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesF: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "F-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesFl: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "FL-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesG: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "G-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesH: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "H-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesI: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "I-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesL: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "L-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesOr: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "OR-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesX: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "X-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesXg: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "XG-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+	seriesY: levels(
+		first: 0
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: "Y-" } }
+			}
+		}
+	) {
+		totalCount
+	}
+}
+
+query ZC_AdventureSeries($prefix: String!) {
+	levels(
+		first: 1000
+		filter: {
+			adventure: { equalTo: true }
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { startsWithInsensitive: $prefix } }
+			}
+		}
+		orderBy: [DATE_CREATED_ASC]
+	) {
+		nodes {
+			...ZC_AdventureLevelCard
 		}
 	}
 }

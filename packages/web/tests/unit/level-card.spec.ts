@@ -74,14 +74,14 @@ describe('level card presentation', () => {
 
 	it('loads PB counts for Adventure level cards', () => {
 		expect(adventureQuery).toContain('personalBestGlobals(first: 0)')
-		expect(adventure).toContain('personalBestCount: node.personalBestGlobals.totalCount')
+		expect(adventure).toContain('personalBestCount: level.personalBestGlobals.totalCount')
 	})
 
 	it('supplies rating and unavailable labels from every LevelGrid context', () => {
 		const contexts = [
 			'../../app/pages/index.vue',
 			'../../app/pages/levels.vue',
-			'../../app/pages/adventure.vue',
+			'../../app/pages/adventure/[series].vue',
 			'../../app/pages/user/[steamid].vue',
 		].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8'))
 		for (const context of contexts) {
