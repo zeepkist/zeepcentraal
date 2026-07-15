@@ -80,7 +80,8 @@ Variables:
 }
 ```
 
-### Send with curl
+::content-code-group{title="Send a request" curl-label="Send with curl" typescript-label="Send with TypeScript"}
+#curl
 
 Save the operation and variables as `request.json`, then send it with explicit client identity:
 
@@ -105,7 +106,7 @@ The request file must include the operation name:
 }
 ```
 
-### Send with TypeScript
+#typescript
 
 ```ts
 const response = await fetch('https://graphql.zeepki.st', {
@@ -136,6 +137,7 @@ if (!response.ok || payload.errors?.length) {
   // Record the operation name, status, query cost, and sanitized errors.
 }
 ```
+::
 
 ## Understand query patterns
 

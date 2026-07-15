@@ -38,6 +38,20 @@ export default defineNuxtConfig({
 		'@pinia/nuxt',
 		'nuxt-charts',
 	],
+	content: {
+		build: {
+			markdown: {
+				highlight: {
+					theme: {
+						default: 'github-dark',
+						dark: 'github-dark',
+						light: 'github-light',
+					},
+					langs: ['graphql', 'json'],
+				},
+			},
+		},
+	},
 	typescript: {
 		strict: true,
 		typeCheck: process.env.NUXT_ENABLE_TYPECHECK === 'true',

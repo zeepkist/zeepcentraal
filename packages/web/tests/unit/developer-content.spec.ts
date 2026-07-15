@@ -80,6 +80,10 @@ describe('Developer Portal content', () => {
 
 	test('uses request-free MDC presentation components', () => {
 		const alert = readFileSync(join(webRoot, 'app/components/content/ContentAlert.vue'), 'utf8')
+		const codeGroup = readFileSync(
+			join(webRoot, 'app/components/content/ContentCodeGroup.vue'),
+			'utf8',
+		)
 		const document = readFileSync(
 			join(webRoot, 'app/components/content/ContentDocument.vue'),
 			'utf8',
@@ -91,11 +95,29 @@ describe('Developer Portal content', () => {
 
 		expect(alert).toContain("type AlertType = 'notice' | 'important' | 'reminder'")
 		expect(alert).toContain('<UAlert')
+		expect(codeGroup).toContain('<UCollapsible')
+		expect(codeGroup).toContain(':default-open="false"')
+		expect(codeGroup).toContain('<UTabs')
 		expect(document).toContain('<UContentToc')
 		expect(document).toContain('lg:sticky lg:top-24')
+		expect(document).toContain('!bg-transparent')
+		expect(document).toContain('!overflow-hidden')
 		expect(resourceCard).toContain("target: '_blank'")
-		for (const source of [alert, document, resourceCard]) {
+		for (const source of [alert, codeGroup, document, resourceCard]) {
 			expect(source).not.toMatch(/useFetch|\$fetch|useQuery/)
 		}
+	})
+
+	test('bundles GraphQL syntax highlighting and collapsed request tabs', () => {
+		const nuxtConfig = readFileSync(join(webRoot, 'nuxt.config.ts'), 'utf8')
+
+		expect(nuxtConfig).toContain("langs: ['graphql', 'json']")
+		expect(nuxtConfig).toContain("dark: 'github-dark'")
+		expect(nuxtConfig).toContain("light: 'github-light'")
+		expect(guide).toContain('::content-code-group{')
+		expect(guide).toContain('curl-label="Send with curl"')
+		expect(guide).toContain('typescript-label="Send with TypeScript"')
+		expect(guide).toContain('#curl')
+		expect(guide).toContain('#typescript')
 	})
 })

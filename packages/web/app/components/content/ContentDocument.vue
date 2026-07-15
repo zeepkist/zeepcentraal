@@ -9,7 +9,7 @@
 
 		<aside
 			v-if="hasTableOfContents"
-			class="order-1 rounded-xl border border-border bg-card/65 p-4 lg:order-2 lg:sticky lg:top-24"
+			class="order-1 min-w-0 overflow-hidden rounded-xl border border-border bg-card/65 p-4 lg:order-2 lg:sticky lg:top-24"
 		>
 			<UContentToc
 				:title="tableOfContentsTitle"
@@ -17,6 +17,16 @@
 				highlight
 				highlight-color="primary"
 				:default-open="false"
+				class="w-full min-w-0"
+				:ui="{
+					root: '!static !mx-0 !max-h-none !min-w-0 !overflow-hidden !bg-transparent !px-0 !backdrop-blur-none',
+					container: '!border-0 !p-0',
+					content: 'min-w-0 max-w-full overflow-hidden',
+					list: 'min-w-0 max-w-full',
+					listWithChildren: 'min-w-0 max-w-full',
+					link: 'min-w-0 max-w-full',
+					linkText: 'truncate',
+				}"
 			/>
 		</aside>
 	</div>
