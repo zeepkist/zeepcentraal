@@ -1,6 +1,6 @@
 <template>
 	<UContainer class="space-y-8 py-2">
-		<PageHeader :eyebrow="$t('pages.developer.eyebrow')" :title="$t('pages.developer.title')" :description="$t('pages.developer.description')" />
+		<PageHeader :title="$t('pages.developer.title')" :description="$t('pages.developer.description')" />
 		<div class="grid gap-4 md:grid-cols-2">
 			<DeveloperResourceCard v-for="link in links" :key="link.to" v-bind="link" />
 		</div>

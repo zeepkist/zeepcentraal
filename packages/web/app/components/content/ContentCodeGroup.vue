@@ -33,6 +33,9 @@
 						<template #typescript>
 							<div :class="contentClasses"><slot name="typescript" /></div>
 						</template>
+						<template #python>
+							<div :class="contentClasses"><slot name="python" /></div>
+						</template>
 					</UTabs>
 				</div>
 			</template>
@@ -44,10 +47,11 @@
 const props = defineProps<{
 	title: string
 	curlLabel: string
+	pythonLabel: string
 	typescriptLabel: string
 }>()
 
-const activeTab = ref<'curl' | 'typescript'>('curl')
+const activeTab = ref<'curl' | 'python' | 'typescript'>('curl')
 const tabs = computed(() => [
 	{ label: props.curlLabel, slot: 'curl' as const, value: 'curl' as const },
 	{
@@ -55,6 +59,7 @@ const tabs = computed(() => [
 		slot: 'typescript' as const,
 		value: 'typescript' as const,
 	},
+	{ label: props.pythonLabel, slot: 'python' as const, value: 'python' as const },
 ])
 const contentClasses =
 	'space-y-4 text-sm leading-6 text-toned [&_p]:m-0 [&_pre]:m-0 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_pre]:p-4 [&_code]:text-xs sm:[&_code]:text-sm'

@@ -47,7 +47,7 @@ export default defineNuxtConfig({
 						dark: 'github-dark',
 						light: 'github-light',
 					},
-					langs: ['graphql', 'json'],
+					langs: ['graphql', 'json', 'python'],
 				},
 			},
 		},

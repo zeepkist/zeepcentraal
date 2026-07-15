@@ -1,7 +1,8 @@
 <template>
 	<ContentPage
 		v-if="document"
-		:eyebrow="$t('pages.wiki.eyebrow')"
+		:breadcrumbs="breadcrumbs"
+		:breadcrumb-label="$t('common.breadcrumbs')"
 		:document="document"
 		:table-of-contents-title="$t('pages.wiki.tableOfContents')"
 		show-table-of-contents
@@ -11,9 +12,15 @@
 <script setup lang="ts">
 const route = useRoute()
 const { t } = useI18n()
+const slugSegments = computed(() => {
+	const slug = route.params.slug
+	return Array.isArray(slug) ? slug : [String(slug)]
+})
+const breadcrumbs = computed(() =>
+	buildAncestorBreadcrumbs('/wiki', t('pages.wiki.breadcrumb'), slugSegments.value),
+)
 const path = computed(
-	() =>
-		`/wiki/${Array.isArray(route.params.slug) ? route.params.slug.join('/') : route.params.slug}`,
+	() => `/wiki/${slugSegments.value.join('/')}`,
 )
 const { data: document } = await useAsyncData(
 	() => `wiki-${path.value}`,

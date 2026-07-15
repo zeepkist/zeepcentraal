@@ -1,6 +1,8 @@
 <template>
 	<UContainer class="py-2">
 		<PageHeader
+			:breadcrumbs="breadcrumbs"
+			:breadcrumb-label="breadcrumbLabel"
 			:eyebrow="$t(`pages.${pageKey}.eyebrow`)"
 			:title="$t(`pages.${pageKey}.title`)"
 			:description="$t(`pages.${pageKey}.description`)"
@@ -45,7 +47,11 @@
 </template>
 
 <script setup lang="ts">
+import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
+
 defineProps<{
+	breadcrumbLabel?: string
+	breadcrumbs?: ContentBreadcrumb[]
 	pageKey: string
 	icon: string
 }>()

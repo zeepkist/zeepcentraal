@@ -80,7 +80,7 @@ Variables:
 }
 ```
 
-::content-code-group{title="Send a request" curl-label="Send with curl" typescript-label="Send with TypeScript"}
+::content-code-group{title="Send a request" curl-label="Send with curl" typescript-label="Send with TypeScript" python-label="Send with Python"}
 #curl
 
 Save the operation and variables as `request.json`, then send it with explicit client identity:
@@ -136,6 +136,52 @@ const queryCost = response.headers.get('X-Query-Cost')
 if (!response.ok || payload.errors?.length) {
   // Record the operation name, status, query cost, and sanitized errors.
 }
+```
+
+#python
+
+Python 3 can send the same named operation using only its standard library:
+
+```python
+import json
+import urllib.error
+import urllib.request
+
+payload = {
+    "operationName": "MyApplication_LevelDirectory",
+    "query": """
+        query MyApplication_LevelDirectory($first: Int!, $after: Cursor) {
+          levels(first: $first, after: $after, orderBy: [LEVEL_POINTS_POINTS_DESC, ID_ASC]) {
+            nodes { xxHash }
+            pageInfo { endCursor hasNextPage }
+            totalCount
+          }
+        }
+    """,
+    "variables": {"first": 6, "after": None},
+}
+
+request = urllib.request.Request(
+    "https://graphql.zeepki.st",
+    data=json.dumps(payload).encode("utf-8"),
+    headers={
+        "Content-Type": "application/json",
+        "X-Client": "my-application-name@1.0.0",
+    },
+    method="POST",
+)
+
+try:
+    with urllib.request.urlopen(request, timeout=15) as response:
+        query_cost = response.headers.get("X-Query-Cost")
+        result = json.load(response)
+except urllib.error.HTTPError as error:
+    query_cost = error.headers.get("X-Query-Cost")
+    result = json.load(error)
+
+if result.get("errors"):
+    # Record the operation name, status, query cost, and sanitized errors.
+    pass
 ```
 ::
 

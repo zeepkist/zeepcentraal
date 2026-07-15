@@ -20,6 +20,7 @@
 		}
 	},
 	"common": {
+		"breadcrumbs": "Breadcrumb navigation",
 		"placeholder": "Foundation placeholder",
 		"adventure": "Adventure",
 		"points": "Points",
@@ -154,6 +155,7 @@
 			"title": "Cosmetic details are coming next"
 		},
 		"developer": {
+			"breadcrumb": "Developer Portal",
 			"description": "Build integrations on top of ZeepCentraal data.",
 			"eyebrow": "Developer portal",
 			"panelDescription": "GraphQL guidance, schemas, examples, and usage patterns.",
@@ -343,6 +345,7 @@
 			"title": "Global Player Leaderboard"
 		},
 		"wiki": {
+			"breadcrumb": "Wiki",
 			"description": "Gameplay, level building, and community reference pages.",
 			"eyebrow": "Wiki",
 			"notFound": "Wiki page not found",

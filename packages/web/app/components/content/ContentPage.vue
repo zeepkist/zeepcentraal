@@ -1,6 +1,11 @@
 <template>
 	<UContainer class="space-y-8 py-2">
-		<PageHeader :eyebrow="eyebrow" :title="document.title" :description="document.description" />
+		<PageHeader
+			:breadcrumbs="breadcrumbs"
+			:breadcrumb-label="breadcrumbLabel"
+			:title="document.title"
+			:description="document.description"
+		/>
 		<ContentDocument
 			:document="document"
 			:show-table-of-contents="showTableOfContents"
@@ -11,6 +16,7 @@
 
 <script setup lang="ts">
 import type { TocLink } from '@nuxt/content'
+import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
 
 type ContentPageDocument = object & {
 	title: string
@@ -23,8 +29,9 @@ type ContentPageDocument = object & {
 }
 
 defineProps<{
+	breadcrumbLabel?: string
+	breadcrumbs?: ContentBreadcrumb[]
 	document: ContentPageDocument
-	eyebrow?: string
 	showTableOfContents?: boolean
 	tableOfContentsTitle?: string
 }>()

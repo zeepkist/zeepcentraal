@@ -1,7 +1,6 @@
 <template>
 	<ContentPage
 		v-if="document"
-		:eyebrow="$t('pages.wiki.eyebrow')"
 		:document="document"
 		:table-of-contents-title="$t('pages.wiki.tableOfContents')"
 		show-table-of-contents
