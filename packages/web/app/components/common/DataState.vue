@@ -7,7 +7,7 @@
 			<template #icon><TablerIcon name="exclamation-circle" /></template>
 		</UAlert>
 		<div v-else-if="empty" class="grid place-items-center gap-3 rounded-xl border border-border p-8 text-center">
-			<TablerIcon name="database-off" class="size-8 text-muted-foreground" />
+			<TablerIcon name="ghost-2" class="size-8 text-muted-foreground" />
 			<p class="font-medium">{{ emptyTitle }}</p>
 		</div>
 		<slot v-else />

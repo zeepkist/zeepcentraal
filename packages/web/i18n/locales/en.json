@@ -86,7 +86,7 @@
 	},
 	"pages": {
 		"adventure": {
-			"description": "Browse adventure seasons, levels, and leaderboards.",
+			"description": "Browse the official Adventure Mode levels in Zeepkist, and view the global leaderboards for each level.",
 			"eyebrow": "Adventure mode",
 			"panelDescription": "Season browser and adventure leaderboards land here.",
 			"panelTitle": "Adventure browser",
