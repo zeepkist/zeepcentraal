@@ -8,6 +8,20 @@
 			<div class="min-w-0" />
 		</template>
 
+		<HeaderOmniSearch
+			id="desktop-omni-search"
+			:query="omniSearch.search.value"
+			:users="omniSearch.users.value"
+			:levels="omniSearch.levels.value"
+			:pending="omniSearch.pending.value"
+			:error="Boolean(omniSearch.error.value)"
+			:locale="locale"
+			:labels="searchLabels"
+			class="w-full min-w-72 max-w-xl"
+			@update:query="omniSearch.search.value = $event"
+			@select="omniSearch.select"
+		/>
+
 		<template #right>
 			<LocaleSwitcher
 				v-if="!session.user"
@@ -30,6 +44,19 @@
 		</template>
 
 		<template #body>
+			<HeaderOmniSearch
+				id="mobile-omni-search"
+				:query="omniSearch.search.value"
+				:users="omniSearch.users.value"
+				:levels="omniSearch.levels.value"
+				:pending="omniSearch.pending.value"
+				:error="Boolean(omniSearch.error.value)"
+				:locale="locale"
+				:labels="searchLabels"
+				class="mb-5 w-full"
+				@update:query="omniSearch.search.value = $event"
+				@select="omniSearch.select"
+			/>
 			<UNavigationMenu :items="mobileItems" orientation="vertical" class="lg:hidden" />
 		</template>
 	</UHeader>
@@ -41,6 +68,7 @@ import type { LocaleOption } from '~/types/app'
 const { t, locale, locales, setLocale } = useI18n()
 const session = useSessionStore()
 const { login, logout } = useAccountActions()
+const omniSearch = useOmniSearch()
 
 const localeOptions = computed<LocaleOption[]>(() =>
 	locales.value.map((item) => ({ code: item.code, name: item.name ?? item.code })),
@@ -54,6 +82,21 @@ const accountLabels = computed(() => ({
 	logout: t('auth.logout'),
 	steam: t('auth.steam'),
 	discord: t('auth.discord'),
+}))
+const searchLabels = computed(() => ({
+	label: t('search.label'),
+	placeholder: t('search.placeholder'),
+	users: t('search.groups.users'),
+	levels: t('search.groups.levels'),
+	rank: t('search.rank'),
+	points: t('common.points'),
+	rating: t('levels.card.rating'),
+	unknownAuthor: t('search.unknownAuthor'),
+	unavailable: t('levels.card.unavailable'),
+	typeMore: t('search.typeMore'),
+	empty: t('search.empty'),
+	loading: t('search.loading'),
+	error: t('search.error'),
 }))
 const mobileItems = computed(() =>
 	mainNav.map((item) => ({ label: t(item.labelKey), to: item.to })),

@@ -103,6 +103,27 @@ export type UserSummary = {
 	worldRecords?: number | null
 }
 
+export type OmniSearchUserResult = {
+	kind: 'user'
+	id: number
+	steamId: string
+	name: string
+	rank: number | null
+}
+
+export type OmniSearchLevelResult = {
+	kind: 'level'
+	id: number
+	xxHash: string
+	name: string
+	authorName: string | null
+	imageUrl: string | null
+	points: number | null
+	rating: number | null
+}
+
+export type OmniSearchResult = OmniSearchUserResult | OmniSearchLevelResult
+
 export type StatisticMetric = {
 	key: string
 	label: string

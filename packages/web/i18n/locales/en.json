@@ -87,6 +87,20 @@
 		"wiki": "Wiki",
 		"zsl": "Zeepkist Super League"
 	},
+	"search": {
+		"empty": "No users or levels found",
+		"error": "Unable to search",
+		"groups": {
+			"levels": "Levels",
+			"users": "Users"
+		},
+		"label": "Search users and levels",
+		"loading": "Searching users and levels",
+		"placeholder": "Search users and levels",
+		"rank": "Rank",
+		"typeMore": "Type at least two characters",
+		"unknownAuthor": "Unknown author"
+	},
 	"pages": {
 		"adventure": {
 			"description": "Browse the official Adventure Mode levels in Zeepkist, and view the global leaderboards for each level.",
