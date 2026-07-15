@@ -5,11 +5,14 @@
 			:title="$t('pages.records.title')"
 			:description="$t('pages.records.description')"
 		>
-			<template v-if="session.user" #actions>
-				<UButton to="/records/me" color="primary" variant="soft">
-					<TablerIcon name="user-circle" class="size-4" />
-					{{ $t('pages.records.myRecordsAction') }}
-				</UButton>
+			<template #actions>
+				<div class="flex flex-wrap items-center justify-end gap-2">
+					<RecordLiveControls :status="data.liveStatus.value" :labels="liveStatusLabels" />
+					<UButton v-if="session.user" to="/records/me" color="primary" variant="soft">
+						<TablerIcon name="user-circle" class="size-4" />
+						{{ $t('pages.records.myRecordsAction') }}
+					</UButton>
+				</div>
 			</template>
 		</PageHeader>
 
@@ -40,6 +43,7 @@
 				:highlighted-record-ids="data.highlightedRecordIds.value"
 				:live-update-label="$t('pages.records.liveUpdate')"
 				:viewer-user-id="session.user?.id"
+				status-mode="all"
 				show-player
 			/>
 		</DataState>
@@ -92,6 +96,9 @@ const tableLabels = computed(() => ({
 	unknownPlayer: t('pages.records.table.unknownPlayer'),
 	rank: t('common.rank'),
 	time: t('common.time'),
+	status: t('pages.records.table.status'),
+	personalBest: t('pages.records.table.personalBest'),
+	worldRecord: t('pages.records.table.worldRecord'),
 	levelPoints: t('pages.records.table.levelPoints'),
 	points: t('common.points'),
 	rankedPoints: t('pages.records.table.rankedPoints'),
@@ -99,6 +106,12 @@ const tableLabels = computed(() => ({
 	notRanked: t('pages.records.table.notRanked'),
 	decayPercentage: t('pages.records.table.decayPercentage'),
 	openRecord: t('pages.records.table.openRecord'),
+}))
+const liveStatusLabels = computed(() => ({
+	connecting: t('pages.records.live.connecting'),
+	live: t('pages.records.live.active'),
+	paused: t('pages.records.live.paused'),
+	error: t('pages.records.live.error'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

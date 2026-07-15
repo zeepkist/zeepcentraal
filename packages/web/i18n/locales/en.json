@@ -221,6 +221,12 @@
 			"empty": "No records found in this view.",
 			"myRecordsAction": "My records",
 			"liveUpdate": "Record history updated with new runs.",
+			"live": {
+				"active": "Live records",
+				"connecting": "Connecting",
+				"paused": "Live updates paused",
+				"error": "Live updates unavailable"
+			},
 			"tabs": {
 				"label": "Record view",
 				"recent": "Recent records",
@@ -240,7 +246,10 @@
 				"levelPoints": "Level points",
 				"rankedPoints": "Ranked points",
 				"decayPercentage": "{percentage} remaining after decay",
-				"openRecord": "Open record for {level}"
+				"openRecord": "Open record for {level}",
+				"status": "PB / WR",
+				"personalBest": "PB",
+				"worldRecord": "WR"
 			},
 			"seo": {
 				"description": "Zeepkist world records and personal bests.",

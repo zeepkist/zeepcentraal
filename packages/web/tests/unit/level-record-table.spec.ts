@@ -18,6 +18,10 @@ const component = readFileSync(
 	new URL('../../app/components/record/RecordTable.vue', import.meta.url),
 	'utf8',
 )
+const statusBadge = readFileSync(
+	new URL('../../app/components/record/RecordStatusBadge.vue', import.meta.url),
+	'utf8',
+)
 const composable = readFileSync(
 	new URL('../../app/composables/useLevelDetail.ts', import.meta.url),
 	'utf8',
@@ -87,11 +91,12 @@ describe('level record tables', () => {
 
 	it('renders locale-formatted points and translated status badges', () => {
 		expect(component).toContain('pointNumber.format(record.points)')
-		expect(component).toContain("record.pbOrWr === 'world-record'")
-		expect(component).toContain('color="primary"')
-		expect(component).toContain("record.pbOrWr === 'personal-best'")
-		expect(component).toContain('bg-purple-500/15')
-		expect(component).toContain('{{ worldRecordLabel }}')
-		expect(component).toContain('{{ personalBestLabel }}')
+		expect(component).toContain('<RecordStatusBadge')
+		expect(statusBadge).toContain("status === 'world-record'")
+		expect(statusBadge).toContain('color="primary"')
+		expect(statusBadge).toContain("status === 'personal-best'")
+		expect(statusBadge).toContain('bg-purple-500/15')
+		expect(statusBadge).toContain('{{ worldRecordLabel }}')
+		expect(statusBadge).toContain('{{ personalBestLabel }}')
 	})
 })

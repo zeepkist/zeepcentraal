@@ -52,21 +52,11 @@
 					</td>
 					<td v-if="showPbOrWr" class="p-0">
 						<DataTableCellLink :to="recordPath(record)" :aria-label="openRecordLabel" class="px-4 py-3">
-							<UBadge
-								v-if="record.pbOrWr === 'world-record'"
-								color="primary"
-								variant="soft"
-							>
-								{{ worldRecordLabel }}
-							</UBadge>
-							<UBadge
-								v-else-if="record.pbOrWr === 'personal-best'"
-								color="neutral"
-								variant="soft"
-								class="bg-purple-500/15 text-purple-700 ring-purple-500/25 dark:bg-purple-400/15 dark:text-purple-300 dark:ring-purple-400/25"
-							>
-								{{ personalBestLabel }}
-							</UBadge>
+							<RecordStatusBadge
+								:status="record.pbOrWr"
+								:personal-best-label="personalBestLabel ?? ''"
+								:world-record-label="worldRecordLabel ?? ''"
+							/>
 						</DataTableCellLink>
 					</td>
 					<td class="p-0 font-semibold tabular-nums">

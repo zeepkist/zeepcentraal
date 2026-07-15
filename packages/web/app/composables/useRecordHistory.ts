@@ -14,6 +14,7 @@ import {
 import type { CursorPage, RecordHistoryRow } from '~/types/app'
 import {
 	getNewRecordIds,
+	getRecordResultStatus,
 	type RecordHistorySort,
 	type RecordHistoryView,
 	recordHistoryFilter,
@@ -64,6 +65,10 @@ function mapRows(edges?: Array<{ node: Zc_RecordHistoryRowFragment }>): RecordHi
 				globalDecayMultiplier: contribution
 					? calculateDecayMultiplier(contribution.contributionRank, GLOBAL_DECAY_FACTOR)
 					: undefined,
+				pbOrWr: getRecordResultStatus(
+					node.personalBestGlobals.totalCount,
+					node.worldRecordGlobals.totalCount,
+				),
 			},
 		]
 	})
@@ -97,14 +102,14 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		})),
 		pause: computed(() => options.userId !== undefined && !options.userId.value),
 	})
-	const liveEnabled = computed(
+	const liveEligible = computed(
 		() =>
-			mounted.value &&
 			options.sort.value === 'latest' &&
 			pagination.isFirstPage.value &&
 			result.data.value?.records !== undefined &&
 			(options.userId === undefined || options.userId.value !== undefined),
 	)
+	const liveEnabled = computed(() => mounted.value && liveEligible.value)
 	const liveKey = computed(() =>
 		JSON.stringify({
 			activation: activation.value,
@@ -123,6 +128,14 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 	const liveSnapshot = computed(() =>
 		live.data.value?.key === liveKey.value ? live.data.value.data.records : undefined,
 	)
+	const liveReady = computed(
+		() => liveEnabled.value && liveSnapshot.value !== undefined && !live.error.value,
+	)
+	const liveStatus = computed(() => {
+		if (!liveEligible.value) return 'paused' as const
+		if (live.error.value) return 'error' as const
+		return liveReady.value ? ('live' as const) : ('connecting' as const)
+	})
 	const records = computed(
 		() => (liveEnabled.value ? liveSnapshot.value : undefined) ?? result.data.value?.records,
 	)
@@ -148,7 +161,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 					next.delete(recordId)
 					highlightedRecordIds.value = next
 					highlightTimers.delete(recordId)
-				}, 2_000),
+				}, 10_000),
 			)
 		}
 	}
@@ -196,6 +209,9 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		highlightedRecordIds,
 		live,
 		liveEnabled,
+		liveEligible,
+		liveReady,
+		liveStatus,
 		orderBy,
 		page,
 		pagination,

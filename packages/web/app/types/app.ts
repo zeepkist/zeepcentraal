@@ -35,11 +35,14 @@ export type RecordRow = {
 	rankedPoints?: number | null
 	nonDecayedPoints?: number | null
 	points?: number | null
-	pbOrWr?: 'personal-best' | 'world-record' | null
+	pbOrWr?: RecordResultStatus | null
 	worldRecord?: boolean
 	viewer?: boolean
 	pinned?: boolean
 }
+
+export type RecordResultStatus = 'personal-best' | 'world-record'
+export type RecordLiveStatus = 'connecting' | 'live' | 'paused' | 'error'
 
 export type RecordHistoryRow = {
 	id: number
@@ -58,6 +61,7 @@ export type RecordHistoryRow = {
 	playerDecayedPoints?: number | null
 	levelDecayMultiplier?: number | null
 	globalDecayMultiplier?: number | null
+	pbOrWr?: RecordResultStatus | null
 }
 
 export type LevelSummary = {

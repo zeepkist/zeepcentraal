@@ -1,4 +1,5 @@
 import type { RecordsOrderBy } from '~/graphql/generated/graphql'
+import type { RecordResultStatus } from '~/types/app'
 
 export const recordHistoryViews = ['recent', 'personal-bests', 'world-records'] as const
 export const recordHistorySorts = ['latest', 'valuable-levels', 'valuable-pbs'] as const
@@ -48,4 +49,13 @@ export function recordHistoryFilter(
 
 export function getNewRecordIds(known: ReadonlySet<number>, next: Iterable<number>) {
 	return [...next].filter((recordId) => !known.has(recordId))
+}
+
+export function getRecordResultStatus(
+	personalBestCount: number,
+	worldRecordCount: number,
+): RecordResultStatus | null {
+	if (worldRecordCount > 0) return 'world-record'
+	if (personalBestCount > 0) return 'personal-best'
+	return null
 }

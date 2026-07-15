@@ -5,13 +5,14 @@
 		</span>
 		<table
 			class="w-full table-fixed text-left text-sm"
-			:class="showPlayer ? 'min-w-[75rem]' : 'min-w-[64rem]'"
+			:class="tableMinWidth"
 		>
 			<colgroup>
 				<col />
 				<col v-if="showPlayer" class="w-[11rem]" />
 				<col class="w-[6rem]" />
 				<col class="w-[7rem]" />
+				<col v-if="showStatus" class="w-[5rem]" />
 				<col class="w-[8rem]" />
 				<col class="w-[8rem]" />
 				<col class="w-[8rem]" />
@@ -23,6 +24,7 @@
 					<th v-if="showPlayer" class="px-4 py-3" scope="col">{{ labels.player }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rank }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.time }}</th>
+					<th v-if="showStatus" class="px-4 py-3" scope="col">{{ labels.status }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.levelPoints }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.points }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rankedPoints }}</th>
@@ -69,6 +71,15 @@
 					<td class="p-0 font-semibold tabular-nums">
 						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" focusable class="px-4 py-3">
 							{{ formatTime(record.time) }}
+						</DataTableCellLink>
+					</td>
+					<td v-if="showStatus" class="p-0">
+						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
+							<RecordStatusBadge
+								:status="visibleStatus(record)"
+								:personal-best-label="labels.personalBest"
+								:world-record-label="labels.worldRecord"
+							/>
 						</DataTableCellLink>
 					</td>
 					<td class="p-0 font-bold tabular-nums">
@@ -122,12 +133,16 @@ const props = defineProps<{
 	liveUpdateLabel: string
 	showPlayer?: boolean
 	viewerUserId?: number
+	statusMode?: 'none' | 'world-record-only' | 'all'
 	labels: {
 		level: string
 		player: string
 		unknownPlayer: string
 		rank: string
 		time: string
+		status: string
+		personalBest: string
+		worldRecord: string
 		levelPoints: string
 		points: string
 		rankedPoints: string
@@ -140,6 +155,16 @@ const props = defineProps<{
 
 const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
+const showStatus = computed(() => props.statusMode !== undefined && props.statusMode !== 'none')
+const tableMinWidth = computed(() => {
+	if (props.showPlayer) return showStatus.value ? 'min-w-[80rem]' : 'min-w-[75rem]'
+	return showStatus.value ? 'min-w-[69rem]' : 'min-w-[64rem]'
+})
+
+function visibleStatus(record: RecordHistoryRow) {
+	if (props.statusMode === 'all') return record.pbOrWr
+	return record.pbOrWr === 'world-record' ? record.pbOrWr : null
+}
 
 function formatTime(seconds: number) {
 	const minutes = Math.floor(seconds / 60)

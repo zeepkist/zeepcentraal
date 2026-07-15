@@ -22,6 +22,10 @@ const table = readFileSync(
 	new URL('../../app/components/record/RecordTable.vue', import.meta.url),
 	'utf8',
 )
+const statusBadge = readFileSync(
+	new URL('../../app/components/record/RecordStatusBadge.vue', import.meta.url),
+	'utf8',
+)
 const page = readFileSync(new URL('../../app/pages/user/[steamid].vue', import.meta.url), 'utf8')
 
 describe('user profile record results', () => {
@@ -65,9 +69,10 @@ describe('user profile record results', () => {
 		expect(section).toContain('<RecordTable')
 		expect(section).toContain(':show-user="false"')
 		expect(table).toContain('v-if="showUser"')
-		expect(table).toContain("record.pbOrWr === 'world-record'")
-		expect(table).toContain("record.pbOrWr === 'personal-best'")
-		expect(table).toContain('bg-purple-500/15')
+		expect(table).toContain('<RecordStatusBadge')
+		expect(statusBadge).toContain("status === 'world-record'")
+		expect(statusBadge).toContain("status === 'personal-best'")
+		expect(statusBadge).toContain('bg-purple-500/15')
 	})
 
 	it('aligns selectors and renders PB/recent results full-width', () => {

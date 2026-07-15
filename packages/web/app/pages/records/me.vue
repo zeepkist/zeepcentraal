@@ -4,7 +4,11 @@
 			:eyebrow="$t('pages.myRecords.eyebrow')"
 			:title="$t('pages.myRecords.title')"
 			:description="$t('pages.myRecords.description')"
-		/>
+		>
+			<template #actions>
+				<RecordLiveControls :status="data.liveStatus.value" :labels="liveStatusLabels" />
+			</template>
+		</PageHeader>
 
 		<RecordHistoryToolbar
 			:view="view"
@@ -44,6 +48,7 @@
 					:labels="tableLabels"
 					:highlighted-record-ids="data.highlightedRecordIds.value"
 					:live-update-label="$t('pages.records.liveUpdate')"
+					:status-mode="view === 'world-records' ? 'none' : 'world-record-only'"
 				/>
 			</DataState>
 			<CursorPagination
@@ -104,6 +109,9 @@ const tableLabels = computed(() => ({
 	unknownPlayer: t('pages.records.table.unknownPlayer'),
 	rank: t('common.rank'),
 	time: t('common.time'),
+	status: t('pages.records.table.worldRecord'),
+	personalBest: t('pages.records.table.personalBest'),
+	worldRecord: t('pages.records.table.worldRecord'),
 	levelPoints: t('pages.records.table.levelPoints'),
 	points: t('common.points'),
 	rankedPoints: t('pages.records.table.rankedPoints'),
@@ -111,6 +119,12 @@ const tableLabels = computed(() => ({
 	notRanked: t('pages.records.table.notRanked'),
 	decayPercentage: t('pages.records.table.decayPercentage'),
 	openRecord: t('pages.records.table.openRecord'),
+}))
+const liveStatusLabels = computed(() => ({
+	connecting: t('pages.records.live.connecting'),
+	live: t('pages.records.live.active'),
+	paused: t('pages.records.live.paused'),
+	error: t('pages.records.live.error'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

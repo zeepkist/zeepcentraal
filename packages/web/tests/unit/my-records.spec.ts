@@ -86,7 +86,7 @@ describe('record history', () => {
 		expect(createDecayPercentageFormatter('en-GB', 3, 3).format(0.985)).toBe('98.500%')
 	})
 
-	it('keeps seven fixed columns and independent row/level navigation', () => {
+	it('keeps fixed columns with optional status and independent row/level navigation', () => {
 		const component = readFileSync(
 			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
 			'utf8',
@@ -97,7 +97,8 @@ describe('record history', () => {
 		)
 		expect(component).toContain('table-fixed')
 		expect(component).toContain('min-w-[64rem]')
-		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(8)
+		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(9)
+		expect(component).toContain('<col v-if="showStatus"')
 		expect(component).toContain('<col />')
 		expect(component).toContain('record.levelPoints')
 		expect(component).toContain('record.levelDecayedPoints')
@@ -124,7 +125,8 @@ describe('record history', () => {
 		)
 		expect(table).toContain('v-if="showPlayer"')
 		expect(table).toContain('record.userSteamId')
-		expect(page).toContain('<template v-if="session.user" #actions>')
+		expect(page).toContain('<template #actions>')
+		expect(page).toContain('<UButton v-if="session.user"')
 		expect(page).toContain('to="/records/me"')
 		expect(page).toContain('show-player')
 	})
