@@ -44,8 +44,15 @@ export function getModPageWindow(page: number, pinnedResult: boolean) {
 	return { limit: MOD_PAGE_SIZE, offset: MOD_PAGE_SIZE - 1 + (page - 2) * MOD_PAGE_SIZE }
 }
 
-const HIDDEN_MOD_TAGS = new Set(['plugin', 'dependency'])
+const HIDDEN_MOD_TAGS = new Set(['plugin', 'dependency', 'humor'])
 
 export function getVisibleModTags(tags: string[], limit = 3): string[] {
-	return tags.filter((tag) => !HIDDEN_MOD_TAGS.has(tag.trim().toLowerCase())).slice(0, limit)
+	return tags
+		.filter((tag) => !HIDDEN_MOD_TAGS.has(tag.trim().toLowerCase()))
+		.sort(
+			(left, right) =>
+				Number(right.trim().toLowerCase() === 'essentials') -
+				Number(left.trim().toLowerCase() === 'essentials'),
+		)
+		.slice(0, limit)
 }

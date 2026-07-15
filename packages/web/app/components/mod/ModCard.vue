@@ -23,7 +23,12 @@
 				<p class="truncate text-sm text-muted-foreground">{{ mod.authorName }}</p>
 			</div>
 			<div class="mt-3 flex min-h-6 flex-wrap gap-1.5">
-				<UBadge v-for="tag in visibleTags" :key="tag" color="neutral" variant="soft">
+				<UBadge
+					v-for="tag in visibleTags"
+					:key="tag"
+					:color="isEssentialsTag(tag) ? 'primary' : 'neutral'"
+					variant="soft"
+				>
 					{{ tag }}
 				</UBadge>
 			</div>
@@ -43,7 +48,7 @@
 			:href="mod.profileUrl"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="absolute right-5 top-[calc(56.25%+2rem)] grid size-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:scale-105 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:group-hover:rotate-90"
+			class="absolute right-6 top-6 grid size-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:scale-105 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:group-hover:rotate-90"
 			:aria-label="`${openModioLabel}: ${mod.name}`"
 		>
 			<TablerIcon name="plus" class="size-5" />
@@ -77,6 +82,7 @@ const sizeFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 }),
 )
 const visibleTags = computed(() => getVisibleModTags(props.mod.tags))
+const isEssentialsTag = (tag: string) => tag.trim().toLowerCase() === 'essentials'
 
 const metrics = computed(() => [
 	{ label: props.versionLabel, value: props.mod.version ?? props.unavailableLabel },

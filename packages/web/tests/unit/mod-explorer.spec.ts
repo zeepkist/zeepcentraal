@@ -110,14 +110,23 @@ describe('private mod.io API boundary', () => {
 })
 
 describe('mod presentation', () => {
-	it('hides Plugin and Dependency system tags from cards', () => {
-		expect(getVisibleModTags(['Plugin', 'Dependency', 'Multiplayer', 'Ghosts'])).toEqual([
-			'Multiplayer',
-			'Ghosts',
-		])
+	it('hides system tags and promotes Essentials to first position', () => {
+		expect(
+			getVisibleModTags([
+				'Plugin',
+				'Humor',
+				'Multiplayer',
+				'Essentials',
+				'Dependency',
+				'Ghosts',
+			]),
+		).toEqual(['Essentials', 'Multiplayer', 'Ghosts'])
 		expect(
 			getVisibleModTags([' dependency ', 'PLUGIN', 'Utility', 'Timing', 'Ghosts', 'Extra']),
 		).toEqual(['Utility', 'Timing', 'Ghosts'])
+		expect(modCard).toContain(":color=\"isEssentialsTag(tag) ? 'primary' : 'neutral'\"")
+		expect(modCard).toContain('class="absolute right-6 top-6')
+		expect(modCard).not.toContain('top-[calc(56.25%+2rem)]')
 	})
 
 	it('uses slug detail links and a separate native mod.io action', () => {
