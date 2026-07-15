@@ -14,10 +14,7 @@
 </template>
 
 <script setup lang="ts">
-const { large } = withDefaults(
-	defineProps<{
-		large?: boolean
-	}>(),
-	{ large: false },
-)
+const { large } = defineProps<{
+	large?: boolean
+}>()
 </script>

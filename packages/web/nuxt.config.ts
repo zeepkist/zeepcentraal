@@ -3,6 +3,7 @@ import graphql from '@rollup/plugin-graphql'
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
 const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
 const productionBackendUrl = 'https://backend.zeepki.st'
+
 export default defineNuxtConfig({
 	compatibilityDate: '2026-07-06',
 	debug: false,
