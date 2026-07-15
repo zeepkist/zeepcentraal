@@ -24,7 +24,8 @@
 					<span
 						class="font-black tabular-nums leading-tight text-highlighted"
 						:class="{
-							'text-lg': !compact,
+							'text-lg': !compact && !half,
+							'text-lg pt-12': !compact && half,
 							'text-sm': compact && !half,
 							'text-sm pt-12': compact && half,
 						}"
