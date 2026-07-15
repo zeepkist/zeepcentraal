@@ -1,13 +1,11 @@
 <template>
-	<UContainer class="space-y-8 py-2">
-		<PageHeader :eyebrow="$t('pages.graphql.eyebrow')" :title="$t('pages.graphql.title')" :description="$t('pages.graphql.description')" />
-		<ContentDocument
-			v-if="document"
+	<ContentPage
+		v-if="document"
+		:eyebrow="$t('pages.graphql.eyebrow')"
 			:document="document"
 			:table-of-contents-title="$t('pages.graphql.tableOfContents')"
 			show-table-of-contents
-		/>
-	</UContainer>
+	/>
 </template>
 <script setup lang="ts">
 const { t } = useI18n()

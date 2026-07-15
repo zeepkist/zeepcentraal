@@ -3,9 +3,11 @@ title: Setup Modkist and GTR
 description: Install Zeepkist's mod manager and enable automatic ZeepCentraal record submission and ghost replay tools.
 ---
 
-# Setup Modkist and GTR
-
 Modkist is a community-built mod manager for Zeepkist. GTR is the gameplay mod that submits completed runs to ZeepCentraal and adds tools for racing against ghosts.
+
+::content-alert{type="notice" title="You stay in control"}
+Modkist lists installed mods in one place. You can disable or remove GTR without reinstalling Zeepkist, and browsing ZeepCentraal never requires a mod.
+::
 
 ## What you get
 
@@ -15,6 +17,10 @@ Modkist is a community-built mod manager for Zeepkist. GTR is the gameplay mod t
 - Mod installation, updates, disabling, and removal from one manager.
 
 ## Install Modkist
+
+::content-alert{type="important" title="Install safely"}
+Close Zeepkist first. Download Modkist from [modkist.com](https://modkist.com/) and review installer prompts before granting access to your game folder.
+::
 
 1. Close Zeepkist before changing installed mods.
 2. Download Modkist from [modkist.com](https://modkist.com/).
@@ -32,6 +38,10 @@ Modkist keeps installed mods visible and manageable. You can disable or remove a
 5. Sign in when GTR prompts you to connect with ZeepCentraal.
 
 You can also review GTR on its [official mod.io page](https://mod.io/g/zeepkist/m/zeepkist-gtr).
+
+::content-alert{type="reminder" title="Keep both tools current"}
+Update Modkist and GTR together before troubleshooting record submission or ghost playback.
+::
 
 ## Confirm record submission
 

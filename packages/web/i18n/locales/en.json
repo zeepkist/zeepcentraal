@@ -345,12 +345,14 @@
 		"wiki": {
 			"description": "Gameplay, level building, and community reference pages.",
 			"eyebrow": "Wiki",
+			"notFound": "Wiki page not found",
 			"panelDescription": "Nuxt Content wiki pages land here.",
 			"panelTitle": "Knowledge base",
 			"seo": {
 				"description": "Zeepkist gameplay and level wiki.",
 				"title": "Wiki"
 			},
+			"tableOfContents": "On this page",
 			"title": "Zeepkist wiki"
 		},
 		"zsl": {

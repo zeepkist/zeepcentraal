@@ -1,8 +1,11 @@
 <template>
-	<UContainer class="space-y-8 py-2">
-		<PageHeader :eyebrow="$t('pages.wiki.eyebrow')" :title="$t('pages.wiki.title')" :description="$t('pages.wiki.description')" />
-		<ContentDocument v-if="document" :document="document" />
-	</UContainer>
+	<ContentPage
+		v-if="document"
+		:eyebrow="$t('pages.wiki.eyebrow')"
+		:document="document"
+		:table-of-contents-title="$t('pages.wiki.tableOfContents')"
+		show-table-of-contents
+	/>
 </template>
 <script setup lang="ts">
 usePageSeo('wiki')
