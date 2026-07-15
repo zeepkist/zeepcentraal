@@ -10,13 +10,12 @@
 			<colgroup>
 				<col />
 				<col v-if="showPlayer" class="w-[11rem]" />
-				<col class="w-[6rem]" />
-				<col class="w-[7rem]" />
-				<col v-if="showStatus" class="w-[5rem]" />
+				<col class="w-[5rem]" />
+				<col class="w-[5rem]" />
+				<col v-if="showStatus" class="w-[4rem]" />
 				<col class="w-[8rem]" />
 				<col class="w-[8rem]" />
-				<col class="w-[8rem]" />
-				<col class="w-[9rem]" />
+				<col class="w-[12rem]" />
 			</colgroup>
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
@@ -24,8 +23,7 @@
 					<th v-if="showPlayer" class="px-4 py-3" scope="col">{{ labels.player }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rank }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.time }}</th>
-					<th v-if="showStatus" class="px-4 py-3" scope="col">{{ labels.status }}</th>
-					<th class="px-4 py-3" scope="col">{{ labels.levelPoints }}</th>
+					<th v-if="showStatus" class="px-4 py-3" scope="col"></th>
 					<th class="px-4 py-3" scope="col">{{ labels.points }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rankedPoints }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.date }}</th>
@@ -80,12 +78,6 @@
 								:personal-best-label="labels.personalBest"
 								:world-record-label="labels.worldRecord"
 							/>
-						</DataTableCellLink>
-					</td>
-					<td class="p-0 font-bold tabular-nums">
-						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
-							<span v-if="record.levelPoints != null">{{ number.format(record.levelPoints) }}</span>
-							<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
 						</DataTableCellLink>
 					</td>
 					<td class="p-0">
