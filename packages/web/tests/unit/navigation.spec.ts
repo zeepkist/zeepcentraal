@@ -46,11 +46,16 @@ describe('navigation model', () => {
 		}
 	})
 
-	test('uses SSR-readable sidebar state and migrates legacy local storage after hydration', () => {
+	test('uses SSR-readable cookie state for sidebar preference', () => {
 		expect(sidebar).toContain("useCookie<boolean | null>('sidebar-open'")
 		expect(sidebar).toContain('const open = ref(sidebarPreference.value ?? true)')
-		expect(sidebar).toContain('onMounted(() => {')
+		expect(sidebar).toContain('sidebarPreference.value = value')
+		expect(sidebar).not.toContain('onMounted(() => {')
 		expect(sidebar).not.toContain('useLocalStorage')
+		expect(sidebar).not.toContain('localStorage')
+	})
+
+	test('parses legacy sidebar preference values', () => {
 		expect(parseSidebarOpenPreference('true')).toBe(true)
 		expect(parseSidebarOpenPreference('false')).toBe(false)
 		expect(parseSidebarOpenPreference('invalid')).toBeNull()
