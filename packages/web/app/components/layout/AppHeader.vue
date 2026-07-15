@@ -6,14 +6,14 @@
 	>
 		<template #left>
 			<div
-				class="grid min-w-0 transition-[grid-template-columns] duration-300 ease-out motion-reduce:transition-none"
+				class="grid min-w-0 transition-[grid-template-columns] duration-150 ease-out motion-reduce:transition-none"
 				:class="sidebarPreference ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'"
 			>
 				<div class="min-w-0 overflow-hidden">
 					<AppLogo
 						:aria-hidden="sidebarPreference"
-						class="min-w-max origin-left transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none"
-						:class="sidebarPreference ? 'pointer-events-none -translate-x-full opacity-0' : 'translate-x-0 opacity-100'"
+						class="min-w-max origin-left transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none"
+						:class="sidebarPreference ? 'pointer-events-none -translate-x-3 opacity-0' : 'translate-x-0 opacity-100'"
 					/>
 				</div>
 			</div>
