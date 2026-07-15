@@ -96,7 +96,7 @@ describe('record history', () => {
 			'utf8',
 		)
 		expect(component).toContain('table-fixed')
-		expect(component).toContain('min-w-[64rem]')
+		expect(component).toContain('min-w-[48rem]')
 		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(8)
 		expect(component).toContain('<col v-if="showStatus"')
 		expect(component).toContain('<col />')
