@@ -13,13 +13,16 @@
 				:result-count-label="$t('mods.results', { count: data?.total ?? 0 })"
 				:search="search"
 				:sort="sort"
+				:essentials-only="essentialsOnly"
 				:search-label="$t('mods.filters.search')"
 				:search-placeholder="$t('mods.filters.searchPlaceholder')"
 				:sort-label="$t('mods.filters.sort')"
+				:essentials-only-label="$t('mods.filters.essentialsOnly')"
 				:apply-label="$t('mods.filters.apply')"
 				:sort-options="sortOptions"
 				@update:search="search = $event"
 				@update:sort="sort = $event as ModSort"
+				@update:essentials-only="essentialsOnly = $event"
 				@apply="applyFilters"
 			/>
 		</template>
@@ -64,6 +67,7 @@ const {
 	applyFilters,
 	data,
 	error,
+	essentialsOnly,
 	first,
 	last,
 	next,

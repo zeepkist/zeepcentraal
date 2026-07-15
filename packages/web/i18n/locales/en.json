@@ -840,6 +840,7 @@
 			"search": "Mod name",
 			"searchPlaceholder": "Search Zeepkist mods",
 			"sort": "Sort by",
+			"essentialsOnly": "Essential mods only",
 			"apply": "Apply filters"
 		},
 		"sort": {

@@ -32,6 +32,10 @@ export function normalizeModPage(value: unknown): number {
 	return Number.isSafeInteger(page) && page > 0 ? page : 1
 }
 
+export function normalizeEssentialsOnly(value: unknown): boolean {
+	return value === true || value === '1' || value === 'true'
+}
+
 export function normalizeModSlug(value: unknown): string | null {
 	if (typeof value !== 'string') return null
 	const slug = value.trim().toLowerCase()

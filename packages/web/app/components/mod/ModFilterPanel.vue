@@ -28,6 +28,11 @@
 					@update:model-value="$emit('update:sort', String($event))"
 				/>
 			</UFormField>
+			<USwitch
+				:model-value="essentialsOnly"
+				:label="essentialsOnlyLabel"
+				@update:model-value="$emit('update:essentialsOnly', Boolean($event))"
+			/>
 			<UButton type="submit" color="primary" block>{{ applyLabel }}</UButton>
 		</form>
 	</UCard>
@@ -41,9 +46,11 @@ defineProps<{
 	resultCountLabel: string
 	search: string
 	sort: string
+	essentialsOnly: boolean
 	searchLabel: string
 	searchPlaceholder: string
 	sortLabel: string
+	essentialsOnlyLabel: string
 	applyLabel: string
 	sortOptions: SortOption[]
 }>()
@@ -51,6 +58,7 @@ defineProps<{
 defineEmits<{
 	'update:search': [value: string]
 	'update:sort': [value: string]
+	'update:essentialsOnly': [value: boolean]
 	apply: []
 }>()
 </script>

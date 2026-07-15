@@ -1,6 +1,11 @@
 import type { CursorPage } from '~/types/app'
 import { MOD_SORTS, type ModListResponse, type ModSort } from '~/types/mod'
-import { normalizeModPage, normalizeModSearch, normalizeModSort } from '~/utils/modExplorer'
+import {
+	normalizeEssentialsOnly,
+	normalizeModPage,
+	normalizeModSearch,
+	normalizeModSort,
+} from '~/utils/modExplorer'
 
 export async function useMods() {
 	const route = useRoute()
@@ -8,19 +13,26 @@ export async function useMods() {
 	const appliedSearch = computed(() => normalizeModSearch(route.query.q))
 	const appliedSort = computed(() => normalizeModSort(route.query.sort))
 	const appliedPage = computed(() => normalizeModPage(route.query.page))
+	const appliedEssentialsOnly = computed(() => normalizeEssentialsOnly(route.query.essential))
 	const search = ref(appliedSearch.value)
 	const sort = ref<ModSort>(appliedSort.value)
+	const essentialsOnly = ref(appliedEssentialsOnly.value)
 
-	watch([appliedSearch, appliedSort], ([nextSearch, nextSort]) => {
-		search.value = nextSearch
-		sort.value = nextSort
-	})
+	watch(
+		[appliedSearch, appliedSort, appliedEssentialsOnly],
+		([nextSearch, nextSort, nextEssential]) => {
+			search.value = nextSearch
+			sort.value = nextSort
+			essentialsOnly.value = nextEssential
+		},
+	)
 
 	const request = await useFetch<ModListResponse>('/api/modio/mods', {
 		query: computed(() => ({
 			q: appliedSearch.value || undefined,
 			sort: appliedSort.value === MOD_SORTS.popular ? undefined : appliedSort.value,
 			page: appliedPage.value === 1 ? undefined : appliedPage.value,
+			essential: appliedEssentialsOnly.value ? '1' : undefined,
 		})),
 		key: 'mod-explorer',
 	})
@@ -49,6 +61,7 @@ export async function useMods() {
 			query: {
 				q: normalizeModSearch(search.value) || undefined,
 				sort: sort.value === MOD_SORTS.popular ? undefined : sort.value,
+				essential: essentialsOnly.value ? '1' : undefined,
 			},
 		})
 	}
@@ -57,6 +70,7 @@ export async function useMods() {
 		applyFilters,
 		data: readonly(retained),
 		error: computed(() => request.error.value?.message ?? null),
+		essentialsOnly,
 		first: () => setPage(1),
 		last: () => setPage(retained.value?.totalPages ?? 1),
 		next: () => setPage(Math.min(appliedPage.value + 1, retained.value?.totalPages ?? 1)),

@@ -8,6 +8,7 @@ import {
 	isEssentialsModTag,
 	MOD_PAGE_SIZE,
 	MODIO_SORTS,
+	normalizeEssentialsOnly,
 	normalizeModPage,
 	normalizeModSearch,
 	normalizeModSlug,
@@ -42,6 +43,9 @@ describe('mod explorer input normalization', () => {
 		expect(normalizeModPage('3')).toBe(3)
 		expect(normalizeModSort('invalid')).toBe(MOD_SORTS.popular)
 		expect(normalizeModSearch(`  ${'a'.repeat(110)}  `)).toHaveLength(100)
+		expect(normalizeEssentialsOnly('1')).toBe(true)
+		expect(normalizeEssentialsOnly('true')).toBe(true)
+		expect(normalizeEssentialsOnly('0')).toBe(false)
 	})
 
 	it('validates canonical slug routes', () => {
@@ -67,11 +71,17 @@ describe('GTR pinning and pagination', () => {
 	})
 
 	it('pins only default popular results and excludes GTR from remaining pages', () => {
-		expect(listEndpoint).toContain("search === '' && sort === 'popular'")
+		expect(listEndpoint).toContain("search === '' && sort === 'popular' && !essentialsOnly")
 		expect(listEndpoint).toContain("'id-not-in': excludedId")
 		expect(listEndpoint).toContain('[mapModioMod(pinnedMod), ...listed]')
 		expect(listEndpoint).toContain('_limit: limit')
 		expect(listEndpoint).toContain('_offset: offset')
+	})
+
+	it('combines Plugin and Essentials tags when the essential filter is active', () => {
+		expect(listEndpoint).toContain("essentialsOnly ? 'Plugin,Essentials' : 'Plugin'")
+		expect(explorerPage).toContain(':essentials-only="essentialsOnly"')
+		expect(explorerPage).toContain('@update:essentials-only="essentialsOnly = $event"')
 	})
 })
 
