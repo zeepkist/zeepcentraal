@@ -167,15 +167,13 @@
 			"title": "Levels and leaderboards"
 		},
 		"mods": {
-			"description": "Discover mod.io integrations and Zeepkist modding resources.",
-			"eyebrow": "Mods",
-			"panelDescription": "mod.io browser and Modkist integration will be wired here.",
-			"panelTitle": "Mod integration",
+			"description": "Find Zeepkist plugins, compare community ratings, and open complete mod details.",
+			"eyebrow": "Mod explorer",
 			"seo": {
-				"description": "Zeepkist mods and mod.io integration.",
-				"title": "Mods"
+				"description": "Browse Zeepkist plugins from mod.io by popularity, rating, downloads, or update date.",
+				"title": "Zeepkist Mods"
 			},
-			"title": "Mods and integrations"
+			"title": "Zeepkist mods"
 		},
 		"records": {
 			"description": "Track world records, personal bests, and record history.",
@@ -832,6 +830,51 @@
 				"showMyComparison": "Show my comparison",
 				"hideMyComparison": "Hide my comparison"
 			}
+		}
+	},
+	"mods": {
+		"results": "{count} mods",
+		"empty": "No mods match these filters.",
+		"filters": {
+			"title": "Find mods",
+			"search": "Mod name",
+			"searchPlaceholder": "Search Zeepkist mods",
+			"sort": "Sort by",
+			"apply": "Apply filters"
+		},
+		"sort": {
+			"popular": "Most popular",
+			"updated": "Recently updated",
+			"newest": "Newest",
+			"downloadsToday": "Most downloaded today",
+			"downloadsTotal": "Most downloaded all-time",
+			"subscribers": "Most subscribers",
+			"rating": "Highest rated",
+			"nameAsc": "Name A–Z",
+			"nameDesc": "Name Z–A"
+		},
+		"card": {
+			"version": "Version",
+			"size": "Size",
+			"downloads": "Downloads",
+			"rating": "Rating",
+			"updated": "Updated",
+			"openModio": "Open on mod.io",
+			"unavailable": "—"
+		},
+		"detail": {
+			"notFound": "Mod not found",
+			"description": "About this mod",
+			"descriptionEmpty": "No description is available for this mod.",
+			"dependencies": "Required mods",
+			"dependenciesDescription": "Install these direct dependencies alongside this mod.",
+			"noDependencies": "This mod has no required dependencies.",
+			"published": "Published",
+			"updated": "Last updated",
+			"subscribers": "Subscribers",
+			"openModio": "View on mod.io",
+			"by": "by {author}",
+			"seoDescription": "Downloads, dependencies, version, and mod.io details for {name}."
 		}
 	}
 }
