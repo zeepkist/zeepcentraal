@@ -9,7 +9,7 @@ Modkist is an easy-to-use mod manager for Zeepkist on Windows, Steam Deck, and L
 Modkist also provides Blueprints that can be imported into the Zeepkist Level Editor with [BlueprintsX](/mod/blueprintsx).
 
 ::content-alert{type="notice" title="You stay in control"}
-Modkist lists installed mods in one place. You can update, subscribe to, or remove GTR without reinstalling Zeepkist.
+Modkist lists installed mods in one place. You can update, install, or remove GTR without reinstalling Zeepkist.
 ::
 
 ## Download Modkist
@@ -47,7 +47,7 @@ The DMG release asset is also available for macOS users who need it.
 
 1. Open Modkist.
 2. Find [**Zeepkist GTR**](/mod/zeepkist-gtr) in the mod browser.
-3. Subscribe to GTR.
+3. Install the GTR mod.
 4. Launch Zeepkist in Modkist or through your normal Steam library.
 
 You can review GTR on its [official mod.io page](https://mod.io/g/zeepkist/m/zeepkist-gtr).
