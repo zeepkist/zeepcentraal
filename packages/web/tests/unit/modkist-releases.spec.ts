@@ -97,7 +97,7 @@ describe('Modkist GitHub releases', () => {
 
 	it('keeps credentials server-only, caches requests, and protects endpoints', () => {
 		expect(clientSource).toContain('useRuntimeConfig().githubToken')
-		expect(clientSource).toContain('authorization: `Bearer ${token}`')
+		expect(clientSource).toContain('authorization: `Bearer $' + '{token}`')
 		expect(clientSource).toContain("getSharedCached('web:github:modkist-releases'")
 		expect(clientSource).toContain("operationName: 'ZeepCentraal_ModkistReleases'")
 		expect(clientSource).toContain('releaseAssets(first: 50)')
