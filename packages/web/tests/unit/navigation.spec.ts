@@ -114,4 +114,15 @@ describe('navigation model', () => {
 		expect(header).toContain('active: isNavigationTargetActive(route.path, item.to)')
 		expect(footer).toContain('active: isNavigationTargetActive(route.path, to)')
 	})
+
+	test('slides the header logo smoothly with reduced-motion support', () => {
+		expect(header).toContain("sidebarPreference ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'")
+		expect(header).toContain('transition-[grid-template-columns]')
+		expect(header).toContain(
+			"sidebarPreference ? 'pointer-events-none -translate-x-full opacity-0' : 'translate-x-0 opacity-100'",
+		)
+		expect(header).toContain('transition-[transform,opacity]')
+		expect(header).toContain('motion-reduce:transition-none')
+		expect(header).toContain(':aria-hidden="sidebarPreference"')
+	})
 })

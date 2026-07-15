@@ -5,7 +5,18 @@
 		:ui="{ root: 'bg-warm-neutral-900/75 backdrop-blur' }"
 	>
 		<template #left>
-			<div class="min-w-0" />
+			<div
+				class="grid min-w-0 transition-[grid-template-columns] duration-300 ease-out motion-reduce:transition-none"
+				:class="sidebarPreference ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'"
+			>
+				<div class="min-w-0 overflow-hidden">
+					<AppLogo
+						:aria-hidden="sidebarPreference"
+						class="min-w-max origin-left transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none"
+						:class="sidebarPreference ? 'pointer-events-none -translate-x-full opacity-0' : 'translate-x-0 opacity-100'"
+					/>
+				</div>
+			</div>
 		</template>
 
 		<HeaderOmniSearch
@@ -65,12 +76,22 @@
 <script setup lang="ts">
 import type { LocaleOption } from '~/types/app'
 import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
+import { parseSidebarOpenPreference } from '~/utils/sidebarPreference'
 
 const { t, locale, locales, setLocale } = useI18n()
 const route = useRoute()
 const session = useSessionStore()
 const { login, logout } = useAccountActions()
 const omniSearch = useOmniSearch()
+const sidebarPreference = useCookie<boolean | null>('sidebar-open', {
+	default: () => null,
+	maxAge: 60 * 60 * 24 * 365,
+	path: '/',
+	sameSite: 'lax',
+})
+
+
+const open = ref(sidebarPreference.value ?? true)
 
 const localeOptions = computed<LocaleOption[]>(() =>
 	locales.value.map((item) => ({ code: item.code, name: item.name ?? item.code })),
@@ -107,6 +128,10 @@ const mobileItems = computed(() =>
 		active: isNavigationTargetActive(route.path, item.to),
 	})),
 )
+
+watch(open, (value) => {
+	sidebarPreference.value = value
+})
 
 function selectLocale(code: string) {
 	void setLocale(code)
