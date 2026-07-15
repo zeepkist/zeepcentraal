@@ -165,14 +165,16 @@
 			"title": "Developer portal"
 		},
 		"graphql": {
-			"description": "Use dedicated GraphQL documents and ZC-prefixed operation names.",
+			"description": "Query ZeepCentraal safely with named operations, bounded pagination, caching, and query-cost awareness.",
 			"eyebrow": "GraphQL",
+			"notFound": "GraphQL guide not found",
 			"panelDescription": "Schema-driven examples and API docs will be built here.",
 			"panelTitle": "GraphQL usage",
 			"seo": {
 				"description": "ZeepCentraal GraphQL usage guide.",
 				"title": "GraphQL Guide"
 			},
+			"tableOfContents": "On this page",
 			"title": "GraphQL guide"
 		},
 		"guides": {
@@ -760,7 +762,11 @@
 	"developer": {
 		"graphql": {
 			"title": "GraphQL API",
-			"description": "Schema, query examples, pagination, fair use, rate limits, and attribution requirements."
+			"description": "Schema, query examples, pagination, query cost, caching, fair use, and attribution requirements."
+		},
+		"moddingDiscord": {
+			"title": "Zeepkist Modding Discord",
+			"description": "Get help writing mods, discuss integrations, and ask the modding community for feedback."
 		}
 	},
 	"zsl": {
