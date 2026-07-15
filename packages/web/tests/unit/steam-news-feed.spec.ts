@@ -62,4 +62,9 @@ describe('Steam announcement cards', () => {
 		expect(endpoint).not.toContain('count: 5')
 		expect(endpoint).not.toContain('.slice(0, 5)')
 	})
+
+	it('uses shared 15-minute external-response caching', () => {
+		expect(endpoint).toContain("getSharedCached('web:steam-news'")
+		expect(endpoint).not.toContain('defineCachedEventHandler')
+	})
 })

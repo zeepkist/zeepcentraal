@@ -48,11 +48,16 @@ export default defineNuxtConfig({
 		},
 	},
 	runtimeConfig: {
+		modioApiKey: process.env.NUXT_MODIO_API_KEY ?? '',
+		modioApiEndpoint: process.env.NUXT_MODIO_API_ENDPOINT ?? 'https://api.mod.io/',
 		public: {
 			graphqlHttpUrl: process.env.NUXT_PUBLIC_GRAPHQL_HTTP_URL ?? productionGraphqlHttpUrl,
 			graphqlWsUrl: process.env.NUXT_PUBLIC_GRAPHQL_WS_URL ?? productionGraphqlWsUrl,
 			backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL ?? productionBackendUrl,
 		},
+	},
+	image: {
+		domains: ['assets.modcdn.io'],
 	},
 	routeRules: {
 		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },

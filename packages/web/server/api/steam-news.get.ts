@@ -1,5 +1,6 @@
 import type { SteamNewsItem } from '../../app/types/app'
 import { assertSameOrigin } from '../utils/request'
+import { getSharedCached } from '../utils/sharedCache'
 
 type SteamNewsResponse = {
 	appnews?: {
@@ -25,9 +26,9 @@ function textOnly(value: string) {
 		.trim()
 }
 
-export default defineCachedEventHandler(
-	async (event) => {
-		assertSameOrigin(event)
+export default defineEventHandler(async (event) => {
+	assertSameOrigin(event)
+	return getSharedCached('web:steam-news', async () => {
 		const response = await $fetch<SteamNewsResponse>(
 			'https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/',
 			{
@@ -47,6 +48,5 @@ export default defineCachedEventHandler(
 				contents: textOnly(item.contents),
 			}),
 		)
-	},
-	{ name: 'steam-news', maxAge: 15 * 60, staleMaxAge: 60 * 60 },
-)
+	})
+})
