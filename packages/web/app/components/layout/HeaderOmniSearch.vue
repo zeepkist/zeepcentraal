@@ -13,11 +13,7 @@
 		clear
 		class="w-full"
 		data-testid="omni-search"
-		:ui="{
-			content: 'w-[min(42rem,calc(100vw-2rem))]',
-			viewport: 'max-h-[min(34rem,70vh)]',
-			item: 'p-0',
-		}"
+		:ui="menuUi"
 		@update:model-value="$emit('update:query', String($event ?? ''))"
 	>
 		<template #leading>
@@ -35,35 +31,35 @@
 		</template>
 
 		<template #item="{ item }">
-			<div v-if="item.kind === 'user'" class="flex w-full items-center gap-3 px-3 py-2.5">
-				<span class="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-					<TablerIcon name="user" class="size-5" />
+			<div v-if="item.kind === 'user'" class="flex w-full items-center gap-2 px-2.5 py-1.5">
+				<span class="grid size-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+					<TablerIcon name="user" class="size-4" />
 				</span>
 				<div class="min-w-0 flex-1">
-					<p class="truncate font-semibold text-highlighted">{{ item.name }}</p>
+					<p class="truncate text-sm font-semibold leading-tight text-highlighted">{{ item.name }}</p>
 					<p v-if="item.rank != null && item.rank > 0" class="text-xs text-muted-foreground">
 						{{ labels.rank }} #{{ numberFormat.format(item.rank) }}
 					</p>
 				</div>
-				<TablerIcon name="chevron-right" class="size-4 text-muted-foreground" />
+				<TablerIcon name="chevron-right" class="size-3.5 text-muted-foreground" />
 			</div>
 
-			<div v-else-if="item.kind === 'level'" class="flex w-full items-center gap-3 px-3 py-2.5">
-				<div class="size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+			<div v-else-if="item.kind === 'level'" class="flex w-full items-center gap-2 px-2.5 py-1.5">
+				<div class="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
 					<NuxtImg
 						v-if="item.imageUrl"
 						:src="item.imageUrl"
 						:alt="item.name"
-						width="48"
-						height="48"
+						width="40"
+						height="40"
 						class="size-full object-cover"
 					/>
 					<span v-else class="grid size-full place-items-center text-muted-foreground">
-						<TablerIcon name="map" class="size-5" />
+						<TablerIcon name="map" class="size-4" />
 					</span>
 				</div>
 				<div class="min-w-0 flex-1">
-					<p class="truncate font-semibold text-highlighted">{{ item.name }}</p>
+					<p class="truncate text-sm font-semibold leading-tight text-highlighted">{{ item.name }}</p>
 					<p class="truncate text-xs text-muted-foreground">
 						{{ item.authorName ?? labels.unknownAuthor }}
 					</p>
@@ -78,7 +74,7 @@
 						{{ labels.rating }}
 					</p>
 				</div>
-				<TablerIcon name="chevron-right" class="size-4 text-muted-foreground" />
+				<TablerIcon name="chevron-right" class="size-3.5 text-muted-foreground" />
 			</div>
 		</template>
 	</UInputMenu>
@@ -132,25 +128,41 @@ const emptyLabel = computed(() => {
 		? props.labels.typeMore
 		: props.labels.empty
 })
-const items = computed<SearchMenuItem[]>(() => {
+const hasBothGroups = computed(() => props.users.length > 0 && props.levels.length > 0)
+const menuUi = computed(() => ({
+	content: 'w-[min(42rem,calc(100vw-2rem))] lg:w-[min(64rem,calc(100vw-3rem))]',
+	viewport: [
+		'max-h-[min(34rem,70vh)] lg:max-h-[min(50rem,85vh)]',
+		hasBothGroups.value ? 'lg:grid lg:grid-cols-2 lg:items-start' : '',
+	],
+	group: [
+		'min-w-0 p-1',
+		hasBothGroups.value
+			? 'lg:p-2 lg:[&+&]:border-l lg:[&+&]:border-border/60'
+			: 'lg:p-2',
+	],
+	label: 'px-2.5 py-1.5 text-xs',
+	item: 'p-0',
+}))
+const items = computed<SearchMenuItem[][]>(() => {
 	if (props.query.trim().length < OMNI_SEARCH_MINIMUM_LENGTH) return []
 	const onSelect = (item: OmniSearchResult) => (event: Event) => {
 		event.preventDefault()
 		emit('select', item)
 	}
-	const entries: SearchMenuItem[] = []
+	const groups: SearchMenuItem[][] = []
 	if (props.users.length > 0) {
-		entries.push({ type: 'label', label: props.labels.users })
-		entries.push(
+		groups.push([
+			{ type: 'label', label: props.labels.users },
 			...props.users.map((user) => ({ ...user, label: user.name, onSelect: onSelect(user) })),
-		)
+		])
 	}
 	if (props.levels.length > 0) {
-		entries.push({ type: 'label', label: props.labels.levels })
-		entries.push(
+		groups.push([
+			{ type: 'label', label: props.labels.levels },
 			...props.levels.map((level) => ({ ...level, label: level.name, onSelect: onSelect(level) })),
-		)
+		])
 	}
-	return entries
+	return groups
 })
 </script>

@@ -78,4 +78,14 @@ describe('header omni-search', () => {
 		expect(component).not.toContain('useQuery(')
 		expect(component).not.toContain('$fetch(')
 	})
+
+	test('uses compact responsive result groups with a taller desktop viewport', () => {
+		expect(component).toContain('computed<SearchMenuItem[][]>')
+		expect(component).toContain('lg:grid lg:grid-cols-2 lg:items-start')
+		expect(component).toContain('lg:max-h-[min(50rem,85vh)]')
+		expect(component).toContain('lg:w-[min(64rem,calc(100vw-3rem))]')
+		expect(component).toContain('gap-2 px-2.5 py-1.5')
+		expect(component).toContain('width="40"')
+		expect(component).toContain('height="40"')
+	})
 })
