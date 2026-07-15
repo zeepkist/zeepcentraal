@@ -1,7 +1,3 @@
-<template>
-	<PagePlaceholder page-key="totd" icon="calendar" />
-</template>
-
 <script setup lang="ts">
-usePageSeo('totd')
+await navigateTo('/totw', { redirectCode: 301, replace: true })
 </script>

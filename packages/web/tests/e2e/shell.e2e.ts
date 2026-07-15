@@ -347,6 +347,29 @@ test('record detail placeholder is noindex', async ({ page }) => {
 	)
 })
 
+for (const [path, heading] of [
+	['/cosmetics', 'Cosmetics are coming next'],
+	['/cosmetic/123', 'Cosmetic details are coming next'],
+	['/totw', 'Track of the Week is coming next'],
+	['/totw/season-1', 'Track of the Week details are coming next'],
+	['/totm', 'Track of the Month is coming next'],
+	['/totm/july-2026', 'Track of the Month details are coming next'],
+] as const) {
+	test(`${path} placeholder is noindex`, async ({ page }) => {
+		await page.goto(path)
+		await expect(page.getByRole('heading', { name: heading })).toBeVisible()
+		await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+			'content',
+			'noindex, nofollow',
+		)
+	})
+}
+
+test('/totd redirects to Track of the Week', async ({ page }) => {
+	await page.goto('/totd')
+	await expect(page).toHaveURL(/\/totw$/)
+})
+
 test('global record history renders', async ({ page }) => {
 	await page.goto('/records')
 	await expect(

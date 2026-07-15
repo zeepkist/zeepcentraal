@@ -37,6 +37,21 @@ export const mainNav: NavItem[] = [
 		icon: 'route',
 	},
 	{
+		to: '/cosmetics',
+		labelKey: 'nav.cosmetics',
+		icon: 'palette',
+	},
+	{
+		to: '/totw',
+		labelKey: 'nav.totw',
+		icon: 'calendar-event',
+	},
+	{
+		to: '/totm',
+		labelKey: 'nav.totm',
+		icon: 'calendar-stats',
+	},
+	{
 		to: '/wiki',
 		labelKey: 'nav.wiki',
 		icon: 'book',
@@ -49,8 +64,9 @@ export const mainNav: NavItem[] = [
 ]
 
 export const secondaryPages: PlaceholderPage[] = [
-	{ to: '/totd', key: 'totd', icon: 'calendar' },
 	{ to: '/cosmetics', key: 'cosmetics', icon: 'palette' },
+	{ to: '/totw', key: 'totw', icon: 'calendar-event' },
+	{ to: '/totm', key: 'totm', icon: 'calendar-stats' },
 	{ to: '/wiki/guides', key: 'guides', icon: 'book' },
 	{ to: '/developer/graphql', key: 'graphql', icon: 'code' },
 ]

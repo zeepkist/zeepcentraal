@@ -75,11 +75,14 @@
 	},
 	"nav": {
 		"adventure": "Adventure",
+		"cosmetics": "Cosmetics",
 		"developer": "Developer",
 		"home": "Dashboard",
 		"levels": "Levels",
 		"mods": "Mods",
 		"records": "Records",
+		"totm": "Track of the Month",
+		"totw": "Track of the Week",
 		"users": "Users",
 		"wiki": "Wiki",
 		"zsl": "Zeepkist Super League"
@@ -103,15 +106,23 @@
 			}
 		},
 		"cosmetics": {
-			"description": "Reference cosmetic items and unlock context.",
-			"eyebrow": "Cosmetics",
-			"panelDescription": "Cosmetic wiki placeholder for structured content.",
-			"panelTitle": "Cosmetic wiki",
+			"back": "Back to dashboard",
+			"description": "Browse Zeepkist cosmetic collections, unlock requirements, and rarity information when the catalogue arrives.",
 			"seo": {
-				"description": "Zeepkist cosmetics wiki.",
+				"description": "ZeepCentraal cosmetic catalogue placeholder.",
 				"title": "Cosmetics"
 			},
-			"title": "Cosmetic wiki"
+			"title": "Cosmetics are coming next"
+		},
+		"cosmeticDetail": {
+			"back": "Back to cosmetics",
+			"description": "Cosmetic #{id} has a permanent page. Unlock requirements, rarity, and collection details will appear here.",
+			"notFound": "Cosmetic not found",
+			"seo": {
+				"description": "ZeepCentraal cosmetic detail placeholder.",
+				"title": "Cosmetic #{id} · ZeepCentraal"
+			},
+			"title": "Cosmetic details are coming next"
 		},
 		"developer": {
 			"description": "Build integrations on top of ZeepCentraal data.",
@@ -217,16 +228,43 @@
 			},
 			"title": "Settings"
 		},
-		"totd": {
-			"description": "Live track of the week tournament coverage placeholder.",
-			"eyebrow": "Track of the week",
-			"panelDescription": "Live tournament tracking will be wired here.",
-			"panelTitle": "Live tournament",
+		"totw": {
+			"back": "Back to dashboard",
+			"description": "Weekly featured tracks, results, and competition history will appear here.",
 			"seo": {
-				"description": "Zeepkist track of the week tournaments.",
+				"description": "ZeepCentraal Track of the Week placeholder.",
 				"title": "Track of the Week"
 			},
-			"title": "Track of the week"
+			"title": "Track of the Week is coming next"
+		},
+		"totwDetail": {
+			"back": "Back to Track of the Week",
+			"description": "Track of the Week event {slug} has a permanent page. Results and featured-level details will appear here.",
+			"notFound": "Track of the Week event not found",
+			"seo": {
+				"description": "ZeepCentraal Track of the Week event placeholder.",
+				"title": "Track of the Week {slug} · ZeepCentraal"
+			},
+			"title": "Track of the Week details are coming next"
+		},
+		"totm": {
+			"back": "Back to dashboard",
+			"description": "Monthly featured tracks, results, and competition history will appear here.",
+			"seo": {
+				"description": "ZeepCentraal Track of the Month placeholder.",
+				"title": "Track of the Month"
+			},
+			"title": "Track of the Month is coming next"
+		},
+		"totmDetail": {
+			"back": "Back to Track of the Month",
+			"description": "Track of the Month event {slug} has a permanent page. Results and featured-level details will appear here.",
+			"notFound": "Track of the Month event not found",
+			"seo": {
+				"description": "ZeepCentraal Track of the Month event placeholder.",
+				"title": "Track of the Month {slug} · ZeepCentraal"
+			},
+			"title": "Track of the Month details are coming next"
 		},
 		"users": {
 			"description": "Search for players, view profiles and inspect player statistics.",
