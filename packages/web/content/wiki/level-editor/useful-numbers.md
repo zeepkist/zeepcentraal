@@ -31,5 +31,5 @@ editPath: wiki/level-editor/useful-numbers.md
 - [Simplified Friction File](https://docs.google.com/spreadsheets/d/1fsbTtPhdYJsPMev7Jg0-DZe9EzjCwoQB0Q3s1zcTYi4/edit?usp=drivesdk)
 - [Tutorial by Readfreak7](https://youtu.be/3AtB6qFgkdg)
 - [20 Tips & Tricks by Roader](https://youtu.be/Xdgin4cfE5I)
-- [Zeepkist mods](https://mod.io/g/zeepkist/)
+- [Zeepkist mods](/mods)
 - [BlueprintsX tutorial by Metalted](https://www.youtube.com/watch?v=wwiqsHtZXzg)

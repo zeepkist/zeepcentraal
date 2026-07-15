@@ -1,10 +1,8 @@
 ---
 title: Zeepkist Gravity
-description: Fan settings that reproduce gravity across the Zeepkist Solar System.
+description: Fan settings that reproduce gravity across the Solar System.
 editPath: wiki/level-editor/zeepkist-gravity.md
 ---
-
-This Zeepkist science reference was shared by **89・Pine Tree** on **23/02/2024 11:43**.
 
 Use a fan underground pointing upward to reproduce these gravity settings:
 

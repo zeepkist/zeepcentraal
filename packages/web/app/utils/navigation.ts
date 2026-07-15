@@ -63,21 +63,6 @@ export const mainNav: NavItem[] = [
 		icon: 'flag',
 	},
 	{
-		to: '/mods',
-		labelKey: 'nav.mods',
-		icon: 'plug',
-	},
-	{
-		to: '/adventure/a',
-		labelKey: 'nav.adventure',
-		icon: 'route',
-	},
-	{
-		to: '/cosmetics',
-		labelKey: 'nav.cosmetics',
-		icon: 'palette',
-	},
-	{
 		to: '/totw',
 		labelKey: 'nav.totw',
 		icon: 'calendar-event',
@@ -86,6 +71,21 @@ export const mainNav: NavItem[] = [
 		to: '/totm',
 		labelKey: 'nav.totm',
 		icon: 'calendar-stats',
+	},
+	{
+		to: '/adventure/a',
+		labelKey: 'nav.adventure',
+		icon: 'route',
+	},
+	{
+		to: '/mods',
+		labelKey: 'nav.mods',
+		icon: 'plug',
+	},
+	{
+		to: '/cosmetics',
+		labelKey: 'nav.cosmetics',
+		icon: 'palette',
 	},
 	{
 		to: '/wiki',

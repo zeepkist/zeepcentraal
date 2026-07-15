@@ -11,14 +11,7 @@
 		}"
 	>
 		<template #header="{ state }">
-			<div v-if="state === 'expanded'" class="flex min-w-0 flex-1 items-center gap-3">
-				<div class="grid size-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-					<span class="text-sm font-black">ZC</span>
-				</div>
-				<span class="truncate text-sm font-semibold text-highlighted">
-					ZeepCentraal
-				</span>
-			</div>
+			<AppLogo v-if="state === 'expanded'" />
 			<UTooltip :text="$t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')" :content="{ side: 'right' }">
 				<button
 					type="button"
@@ -76,14 +69,6 @@ const open = ref(sidebarPreference.value ?? true)
 
 watch(open, (value) => {
 	sidebarPreference.value = value
-})
-
-onMounted(() => {
-	if (sidebarPreference.value !== null) return
-	const legacyPreference = parseSidebarOpenPreference(localStorage.getItem('sidebar-open'))
-	if (legacyPreference === null) return
-	open.value = legacyPreference
-	localStorage.removeItem('sidebar-open')
 })
 
 const toggleSidebar = () => {

@@ -8,18 +8,17 @@ Mods can remove repetitive editor work and make complex builds easier to manage.
 
 ## Recommended tools
 
-- **BlueprintsX:** import, save, reuse, and share groups of editor blocks. Modkist includes Blueprints that BlueprintsX can import.
-- **GridScaler:** scale blocks up or down beyond ordinary editor workflows.
-- **Vertex Snapping:** align geometry using exact vertices.
-- **Level Editor Trails:** inspect and refine racing lines while building.
-- **Area of Effect:** apply changes across groups of blocks.
-- **Podium Preview:** inspect podium placement before publishing.
-- **Save States:** capture useful editor states while experimenting.
+- [**BlueprintsX:**](/mod/blueprintsx) import, save, reuse, and share groups of editor blocks. Modkist includes Blueprints that BlueprintsX can import.
+- [**GridScaler:**](/mod/grid-scaler) scale blocks up or down beyond ordinary editor workflows.
+- [**Vertex Snapper:**](/mod/vertex-snapper) align geometry using exact vertices.
+- [**Level Editor Trails:**](/mod/level-editor-trails) inspect and refine racing lines while building.
+- [**Podium Preview:**](/mod/podium-preview) inspect podium placement before publishing.
+- [**Practice Mode:**](/mod/practicemode) replay your level from anywhere on the level, for testing changes without needing to replay your level from the beginning every time.
 
-Browse available tools in the [ZeepCentraal mod explorer](/mods) or on the [Zeepkist mod.io page](https://mod.io/g/zeepkist/).
+Browse available mods in the [ZeepCentraal mod explorer](/mods).
 
-::content-alert{type="important" title="Add tools gradually"}
-Learn what each mod changes and confirm your level still opens correctly before adding another editor mod.
+::content-alert{type="reminder" title="Add mods gradually"}
+Learn what each mod changes before adding another editor mod.
 ::
 
 ## Useful media

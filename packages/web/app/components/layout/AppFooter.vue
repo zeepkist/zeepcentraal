@@ -5,12 +5,7 @@
 				<UFooterColumns :columns="footerColumns">
 					<template #left>
 						<div class="max-w-sm">
-							<div class="flex items-center gap-3">
-								<span class="grid size-10 place-items-center rounded-lg bg-primary text-primary-foreground">
-									<span class="text-sm font-black">ZC</span>
-								</span>
-								<p class="text-lg font-bold text-highlighted">{{ $t('footer.brand') }}</p>
-							</div>
+							<AppLogo large />
 							<p class="mt-4 text-sm leading-6 text-muted-foreground">
 								{{ $t('footer.description') }}
 							</p>

@@ -30,5 +30,5 @@ The Level Editor shows control tips in the top-left corner when you enter it for
 ::
 
 ::content-alert{type="reminder" title="Save reusable work"}
-Store objects you like in BlueprintsX or separate levels. Reusing proven pieces saves build time and keeps projects consistent.
+Store objects you like in [BlueprintsX](/mod/blueprintsx) or separate levels. Reusing proven pieces saves build time and keeps projects consistent.
 ::

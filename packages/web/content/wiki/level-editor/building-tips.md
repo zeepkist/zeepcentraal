@@ -49,7 +49,7 @@ Use a cylinder with black and white vertical stripes using plastic paint. This t
 - Build the landscape first, then the track layout, and decoration at the end. The track will look like it was already part of the landscape.
 - Make fan particles disappear by making the fan very thin with a very high range. The particles take a long time to reach the end of the effect and reset. Example: fan height at 0.001 and range at 2000.
 - Pro sausage trick: unknown.
-- For a tube effect, use pipes, place them on their side, and squash them slightly. This technique was used in “Emerald Coast Remaster” and “ZSL - Campagne”.
+- For a tube effect, use pipes, place them on their side, and squash them slightly. This technique was used in [“Emerald Coast Remaster”](/level/2101E0122EE6CF551881A99328D70F9D) and [“ZSL - Campagne”](/level/BEF169294CC95DF5369F51F11433A8F8).
 - Reduce polygon count. The farther an object is from racers, the fewer polygons and details it needs.
 
 ::content-alert{type="reminder" title="Test with other players"}
