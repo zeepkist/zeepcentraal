@@ -6,7 +6,7 @@
 			:to="`/mod/${mod.slug}`"
 			class="block h-full p-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
 		>
-			<div class="aspect-video overflow-hidden rounded-lg bg-muted">
+			<div class="relative aspect-video overflow-hidden rounded-lg bg-muted">
 				<NuxtImg
 					v-if="mod.imageUrl"
 					:src="mod.imageUrl"
@@ -17,18 +17,21 @@
 				<div v-else class="grid size-full place-items-center">
 					<TablerIcon name="photo-off" class="size-10 text-muted-foreground" />
 				</div>
+				<UBadge
+					v-if="essentialsTag"
+					color="primary"
+					variant="solid"
+					class="absolute left-2 top-2 shadow-sm"
+				>
+					{{ essentialsTag }}
+				</UBadge>
 			</div>
 			<div class="mt-4 min-w-0 pr-8">
 				<h3 class="truncate text-lg font-semibold text-highlighted">{{ mod.name }}</h3>
 				<p class="truncate text-sm text-muted-foreground">{{ mod.authorName }}</p>
 			</div>
 			<div class="mt-3 flex min-h-6 flex-wrap gap-1.5">
-				<UBadge
-					v-for="tag in visibleTags"
-					:key="tag"
-					:color="isEssentialsTag(tag) ? 'primary' : 'neutral'"
-					variant="soft"
-				>
+				<UBadge v-for="tag in visibleTags" :key="tag" color="neutral" variant="soft">
 					{{ tag }}
 				</UBadge>
 			</div>
@@ -58,7 +61,7 @@
 
 <script setup lang="ts">
 import type { ModSummary } from '~/types/mod'
-import { getVisibleModTags } from '~/utils/modExplorer'
+import { getVisibleModTags, isEssentialsModTag } from '~/utils/modExplorer'
 
 const props = defineProps<{
 	mod: ModSummary
@@ -82,7 +85,7 @@ const sizeFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 }),
 )
 const visibleTags = computed(() => getVisibleModTags(props.mod.tags))
-const isEssentialsTag = (tag: string) => tag.trim().toLowerCase() === 'essentials'
+const essentialsTag = computed(() => props.mod.tags.find(isEssentialsModTag))
 
 const metrics = computed(() => [
 	{ label: props.versionLabel, value: props.mod.version ?? props.unavailableLabel },

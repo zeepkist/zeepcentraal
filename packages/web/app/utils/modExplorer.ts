@@ -46,13 +46,12 @@ export function getModPageWindow(page: number, pinnedResult: boolean) {
 
 const HIDDEN_MOD_TAGS = new Set(['plugin', 'dependency', 'humor'])
 
-export function getVisibleModTags(tags: string[], limit = 3): string[] {
+export function isEssentialsModTag(tag: string): boolean {
+	return tag.trim().toLowerCase() === 'essentials'
+}
+
+export function getVisibleModTags(tags: string[], limit = 2): string[] {
 	return tags
-		.filter((tag) => !HIDDEN_MOD_TAGS.has(tag.trim().toLowerCase()))
-		.sort(
-			(left, right) =>
-				Number(right.trim().toLowerCase() === 'essentials') -
-				Number(left.trim().toLowerCase() === 'essentials'),
-		)
+		.filter((tag) => !HIDDEN_MOD_TAGS.has(tag.trim().toLowerCase()) && !isEssentialsModTag(tag))
 		.slice(0, limit)
 }

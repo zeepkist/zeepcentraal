@@ -5,6 +5,7 @@ import {
 	GTR_MOD_SLUG,
 	getModPageWindow,
 	getVisibleModTags,
+	isEssentialsModTag,
 	MOD_PAGE_SIZE,
 	MODIO_SORTS,
 	normalizeModPage,
@@ -110,7 +111,7 @@ describe('private mod.io API boundary', () => {
 })
 
 describe('mod presentation', () => {
-	it('hides system tags and promotes Essentials to first position', () => {
+	it('hides system and Essentials tags from the two-tag metadata list', () => {
 		expect(
 			getVisibleModTags([
 				'Plugin',
@@ -120,11 +121,14 @@ describe('mod presentation', () => {
 				'Dependency',
 				'Ghosts',
 			]),
-		).toEqual(['Essentials', 'Multiplayer', 'Ghosts'])
+		).toEqual(['Multiplayer', 'Ghosts'])
 		expect(
 			getVisibleModTags([' dependency ', 'PLUGIN', 'Utility', 'Timing', 'Ghosts', 'Extra']),
-		).toEqual(['Utility', 'Timing', 'Ghosts'])
-		expect(modCard).toContain(":color=\"isEssentialsTag(tag) ? 'primary' : 'neutral'\"")
+		).toEqual(['Utility', 'Timing'])
+		expect(isEssentialsModTag(' essentials ')).toBe(true)
+		expect(modCard).toContain('v-if="essentialsTag"')
+		expect(modCard).toContain('class="absolute left-2 top-2 shadow-sm"')
+		expect(modCard).toContain('variant="solid"')
 		expect(modCard).toContain('class="absolute right-6 top-6')
 		expect(modCard).not.toContain('top-[calc(56.25%+2rem)]')
 	})
