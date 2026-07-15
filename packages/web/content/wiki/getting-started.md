@@ -21,7 +21,7 @@ You can explore all public ZeepCentraal pages before installing Modkist or GTR.
 Follow [Setup Modkist and GTR](/wiki/setup-modkist). GTR submits completed runs, keeps personal-best and world-record ghosts available, and supports bulk ghost playback for comparing racing lines.
 
 ::content-alert{type="important" title="Close Zeepkist before changing mods"}
-Install, update, disable, or remove mods while the game is closed. Restart Zeepkist after every mod change.
+Install, update, disable, or remove mods while the game is closed.
 ::
 
 ## Next steps

@@ -157,14 +157,14 @@
 		"developer": {
 			"breadcrumb": "Developer Portal",
 			"description": "Build integrations on top of ZeepCentraal data.",
-			"eyebrow": "Developer portal",
+			"eyebrow": "Developer Portal",
 			"panelDescription": "GraphQL guidance, schemas, examples, and usage patterns.",
 			"panelTitle": "Developer resources",
 			"seo": {
 				"description": "ZeepCentraal developer portal.",
 				"title": "Developer Portal"
 			},
-			"title": "Developer portal"
+			"title": "Developer Portal"
 		},
 		"graphql": {
 			"description": "Query ZeepCentraal safely with named operations, bounded pagination, caching, and query-cost awareness.",
