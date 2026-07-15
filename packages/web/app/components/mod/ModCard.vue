@@ -4,8 +4,10 @@
 	>
 		<NuxtLink
 			:to="`/mod/${mod.slug}`"
-			class="block h-full p-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
-		>
+			:aria-label="mod.name"
+			class="absolute inset-0 z-10 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+		/>
+		<div class="h-full p-4">
 			<div class="relative aspect-video overflow-hidden rounded-lg bg-muted">
 				<NuxtImg
 					v-if="mod.imageUrl"
@@ -26,9 +28,20 @@
 					{{ essentialsTag }}
 				</UBadge>
 			</div>
-			<div class="mt-4 min-w-0 pr-8">
-				<h3 class="truncate text-lg font-semibold text-highlighted">{{ mod.name }}</h3>
-				<p class="truncate text-sm text-muted-foreground">{{ mod.authorName }}</p>
+			<div class="mt-4 flex items-start justify-between gap-3">
+				<div class="min-w-0">
+					<h3 class="truncate text-lg font-semibold text-highlighted">{{ mod.name }}</h3>
+					<p class="truncate text-sm text-muted-foreground">{{ mod.authorName }}</p>
+				</div>
+				<a
+					:href="mod.profileUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="relative z-20 grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:scale-105 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:hover:-translate-y-0.5"
+					:aria-label="`${openModioLabel}: ${mod.name}`"
+				>
+					<TablerIcon name="download" class="size-5" />
+				</a>
 			</div>
 			<div class="mt-3 flex min-h-6 flex-wrap gap-1.5">
 				<UBadge v-for="tag in visibleTags" :key="tag" color="neutral" variant="soft">
@@ -46,16 +59,7 @@
 				<span>{{ updatedLabel }}</span>
 				<NuxtTime :datetime="mod.dateUpdated" relative />
 			</div>
-		</NuxtLink>
-		<a
-			:href="mod.profileUrl"
-			target="_blank"
-			rel="noopener noreferrer"
-			class="absolute right-6 top-6 grid size-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:scale-105 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:group-hover:rotate-90"
-			:aria-label="`${openModioLabel}: ${mod.name}`"
-		>
-			<TablerIcon name="plus" class="size-5" />
-		</a>
+		</div>
 	</article>
 </template>
 

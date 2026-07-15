@@ -129,15 +129,16 @@ describe('mod presentation', () => {
 		expect(modCard).toContain('v-if="essentialsTag"')
 		expect(modCard).toContain('class="absolute left-2 top-2 shadow-sm"')
 		expect(modCard).toContain('variant="solid"')
-		expect(modCard).toContain('class="absolute right-6 top-6')
-		expect(modCard).not.toContain('top-[calc(56.25%+2rem)]')
+		expect(modCard).toContain('class="mt-4 flex items-start justify-between gap-3"')
 	})
 
 	it('uses slug detail links and a separate native mod.io action', () => {
 		expect(modCard).toContain(':to="`/mod/' + '$' + '{mod.slug}`"')
 		expect(modCard).toContain(':href="mod.profileUrl"')
 		expect(modCard).toContain('target="_blank"')
-		expect(modCard).toContain('name="plus"')
+		expect(modCard).toContain('name="download"')
+		expect(modCard).not.toContain('name="plus"')
+		expect(modCard).toContain('class="absolute inset-0 z-10')
 	})
 
 	it('keeps components request-free', () => {
