@@ -45,8 +45,11 @@
 				<NuxtLink
 					:to="item.to"
 					class="group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
-					:class="{ 'justify-center px-2': state === 'collapsed' }"
-					active-class="bg-muted text-primary"
+					:class="{
+						'justify-center px-2': state === 'collapsed',
+						'bg-muted text-primary': isNavigationTargetActive(route.path, item.to),
+					}"
+					:aria-current="isNavigationTargetActive(route.path, item.to) ? 'location' : undefined"
 				>
 					<TablerIcon :name="item.icon ?? 'dashboard'" class="size-5 shrink-0" />
 					<span v-if="state === 'expanded'" class="min-w-0">
@@ -59,9 +62,10 @@
 </template>
 
 <script setup lang="ts">
-import { mainNav } from '~/utils/navigation'
+import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 import { parseSidebarOpenPreference } from '~/utils/sidebarPreference'
 
+const route = useRoute()
 const sidebarPreference = useCookie<boolean | null>('sidebar-open', {
 	default: () => null,
 	maxAge: 60 * 60 * 24 * 365,

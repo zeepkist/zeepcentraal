@@ -1,5 +1,41 @@
 import type { NavItem, PlaceholderPage } from '~/types/app'
 
+export const navigationRouteFamilies: Readonly<Record<string, readonly string[]>> = {
+	'/': ['/'],
+	'/records': ['/records', '/record'],
+	'/levels': ['/levels', '/level'],
+	'/users': ['/users', '/user'],
+	'/super-league': ['/super-league'],
+	'/mods': ['/mods', '/mod'],
+	'/adventure/a': ['/adventure'],
+	'/cosmetics': ['/cosmetics', '/cosmetic'],
+	'/totw': ['/totw'],
+	'/totm': ['/totm'],
+	'/wiki': ['/wiki'],
+	'/developer': ['/developer'],
+}
+
+function normalizeNavigationPath(path: string): string {
+	const pathname = path.split(/[?#]/, 1)[0] || '/'
+	if (pathname === '/') return pathname
+
+	return pathname.replace(/\/+$/, '') || '/'
+}
+
+function matchesRouteRoot(path: string, root: string): boolean {
+	if (root === '/') return path === '/'
+
+	return path === root || path.startsWith(`${root}/`)
+}
+
+export function isNavigationTargetActive(currentPath: string, target: string): boolean {
+	const path = normalizeNavigationPath(currentPath)
+	const normalizedTarget = normalizeNavigationPath(target)
+	const family = navigationRouteFamilies[normalizedTarget] ?? [normalizedTarget]
+
+	return family.some((root) => matchesRouteRoot(path, normalizeNavigationPath(root)))
+}
+
 export const mainNav: NavItem[] = [
 	{
 		to: '/',

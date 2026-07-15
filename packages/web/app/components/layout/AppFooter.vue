@@ -41,16 +41,19 @@
 
 <script setup lang="ts">
 import type { TablerIconName } from '~/utils/icons'
+import { isNavigationTargetActive } from '~/utils/navigation'
 
 type FooterLink = {
 	label: string
 	to: string
 	tablerIcon: TablerIconName
+	active?: boolean
 	target?: '_blank'
 	rel?: string
 }
 
 const { t } = useI18n()
+const route = useRoute()
 const external = (label: string, to: string, tablerIcon: TablerIconName): FooterLink => ({
 	label,
 	to,
@@ -62,6 +65,7 @@ const internal = (label: string, to: string, tablerIcon: TablerIconName): Footer
 	label,
 	to,
 	tablerIcon,
+	active: isNavigationTargetActive(route.path, to),
 })
 const footerColumns = computed(() => [
 	{

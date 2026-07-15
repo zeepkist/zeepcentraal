@@ -64,8 +64,10 @@
 
 <script setup lang="ts">
 import type { LocaleOption } from '~/types/app'
+import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 
 const { t, locale, locales, setLocale } = useI18n()
+const route = useRoute()
 const session = useSessionStore()
 const { login, logout } = useAccountActions()
 const omniSearch = useOmniSearch()
@@ -99,7 +101,11 @@ const searchLabels = computed(() => ({
 	error: t('search.error'),
 }))
 const mobileItems = computed(() =>
-	mainNav.map((item) => ({ label: t(item.labelKey), to: item.to })),
+	mainNav.map((item) => ({
+		label: t(item.labelKey),
+		to: item.to,
+		active: isNavigationTargetActive(route.path, item.to),
+	})),
 )
 
 function selectLocale(code: string) {
