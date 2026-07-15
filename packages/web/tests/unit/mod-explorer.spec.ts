@@ -15,6 +15,7 @@ import {
 	normalizeModSort,
 	normalizeModTags,
 } from '../../app/utils/modExplorer'
+import { shouldShowModkistPromo } from '../../app/utils/modkistPromo'
 import { sanitizeModDescription } from '../../server/utils/sanitizeModDescription'
 
 const listEndpoint = readFileSync(
@@ -38,6 +39,10 @@ const explorerPage = readFileSync(new URL('../../app/pages/mods.vue', import.met
 const detailPage = readFileSync(new URL('../../app/pages/mod/[slug].vue', import.meta.url), 'utf8')
 const modCard = readFileSync(
 	new URL('../../app/components/mod/ModCard.vue', import.meta.url),
+	'utf8',
+)
+const modkistPromoCard = readFileSync(
+	new URL('../../app/components/mod/ModkistPromoCard.vue', import.meta.url),
 	'utf8',
 )
 
@@ -144,6 +149,27 @@ describe('private mod.io API boundary', () => {
 })
 
 describe('mod presentation', () => {
+	it('shows the ModKist prompt only to anonymous players or confirmed zero-record viewers', () => {
+		expect(shouldShowModkistPromo(false, undefined)).toBe(true)
+		expect(shouldShowModkistPromo(true, 0)).toBe(true)
+		expect(shouldShowModkistPromo(true, 1)).toBe(false)
+		expect(shouldShowModkistPromo(true, undefined)).toBe(false)
+		expect(explorerPage).toContain('await recordCountQuery')
+		expect(explorerPage).toContain('v-if="showModkistPromo"')
+	})
+
+	it('places a request-free ModKist download and setup guide below explorer filters', () => {
+		expect(explorerPage.indexOf('<ModkistPromoCard')).toBeGreaterThan(
+			explorerPage.indexOf('<ModFilterPanel'),
+		)
+		expect(explorerPage).toContain('download-href="https://modkist.com/"')
+		expect(explorerPage).toContain('guide-href="/wiki/setup-modkist"')
+		expect(modkistPromoCard).toContain('target="_blank"')
+		expect(modkistPromoCard).not.toContain('useQuery')
+		expect(modkistPromoCard).not.toContain('useFetch')
+		expect(modkistPromoCard).not.toContain('$fetch')
+	})
+
 	it('hides system and Essentials tags from the two-tag metadata list', () => {
 		expect(
 			getVisibleModTags([

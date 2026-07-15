@@ -922,6 +922,13 @@
 	"mods": {
 		"results": "{count} mods",
 		"empty": "No mods match these filters.",
+		"modkistPromo": {
+			"eyebrow": "Zeepkist mod manager",
+			"title": "Discover mods with ModKist",
+			"description": "Install and update Zeepkist mods from one trusted community tool. ModKist keeps setup simple and gives you control over every installed mod.",
+			"download": "Download ModKist",
+			"guide": "View installation guide"
+		},
 		"filters": {
 			"title": "Find mods",
 			"search": "Mod name",
