@@ -89,7 +89,7 @@ describe('Developer Portal content', () => {
 			'utf8',
 		)
 		const resourceCard = readFileSync(
-			join(webRoot, 'app/components/content/DeveloperResourceCard.vue'),
+			join(webRoot, 'app/components/content/ContentResourceCard.vue'),
 			'utf8',
 		)
 
@@ -104,6 +104,9 @@ describe('Developer Portal content', () => {
 		expect(document).toContain('!bg-transparent')
 		expect(document).toContain('!overflow-hidden')
 		expect(resourceCard).toContain("target: '_blank'")
+		expect(resourceCard).toContain('group-hover:border-primary/50')
+		expect(resourceCard).toContain('motion-safe:group-hover:-translate-y-1')
+		expect(resourceCard).not.toContain('shadow-primary')
 		for (const source of [alert, codeGroup, document, resourceCard]) {
 			expect(source).not.toMatch(/useFetch|\$fetch|useQuery/)
 		}

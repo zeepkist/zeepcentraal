@@ -5,7 +5,7 @@
 		class="group block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 	>
 		<UCard
-			class="h-full rounded-xl border-border bg-gradient-to-br from-card via-card/95 to-primary/5 transition duration-300 group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/10 motion-safe:group-hover:-translate-y-1"
+			class="h-full rounded-xl border-border bg-gradient-to-br from-card via-card/95 to-primary/5 transition duration-300 group-hover:border-primary/50 motion-safe:group-hover:-translate-y-1"
 		>
 			<div class="flex h-full items-start gap-4">
 				<span class="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
