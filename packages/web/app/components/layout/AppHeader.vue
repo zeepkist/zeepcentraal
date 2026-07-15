@@ -7,14 +7,19 @@
 		<template #left>
 			<div
 				class="grid min-w-0 transition-[grid-template-columns] duration-150 ease-out motion-reduce:transition-none"
-				:class="sidebarPreference ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'"
+				:class="showHeaderLogo ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'"
 			>
 				<div class="min-w-0 overflow-hidden">
-					<AppLogo
-						:aria-hidden="sidebarPreference"
-						class="min-w-max origin-left transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none"
-						:class="sidebarPreference ? 'pointer-events-none -translate-x-3 opacity-0' : 'translate-x-0 opacity-100'"
-					/>
+					<Transition
+						enter-active-class="transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none"
+						enter-from-class="-translate-x-3 opacity-0"
+						enter-to-class="translate-x-0 opacity-100"
+						leave-active-class="transition-[transform,opacity] duration-75 ease-in motion-reduce:transition-none"
+						leave-from-class="translate-x-0 opacity-100"
+						leave-to-class="-translate-x-2 opacity-0"
+					>
+						<AppLogo v-if="showHeaderLogo" class="min-w-max" />
+					</Transition>
 				</div>
 			</div>
 		</template>
@@ -76,7 +81,6 @@
 <script setup lang="ts">
 import type { LocaleOption } from '~/types/app'
 import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
-import { parseSidebarOpenPreference } from '~/utils/sidebarPreference'
 
 const { t, locale, locales, setLocale } = useI18n()
 const route = useRoute()
@@ -89,9 +93,7 @@ const sidebarPreference = useCookie<boolean | null>('sidebar-open', {
 	path: '/',
 	sameSite: 'lax',
 })
-
-
-const open = ref(sidebarPreference.value ?? true)
+const showHeaderLogo = computed(() => sidebarPreference.value === false)
 
 const localeOptions = computed<LocaleOption[]>(() =>
 	locales.value.map((item) => ({ code: item.code, name: item.name ?? item.code })),
@@ -128,10 +130,6 @@ const mobileItems = computed(() =>
 		active: isNavigationTargetActive(route.path, item.to),
 	})),
 )
-
-watch(open, (value) => {
-	sidebarPreference.value = value
-})
 
 function selectLocale(code: string) {
 	void setLocale(code)

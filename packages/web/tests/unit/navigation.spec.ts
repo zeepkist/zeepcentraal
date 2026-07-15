@@ -121,14 +121,15 @@ describe('navigation model', () => {
 	})
 
 	test('slides the header logo smoothly with reduced-motion support', () => {
-		expect(header).toContain("sidebarPreference ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'")
+		expect(header).toContain("showHeaderLogo ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'")
 		expect(header).toContain('transition-[grid-template-columns]')
-		expect(header).toContain('duration-150 ease-out')
-		expect(header).toContain(
-			"sidebarPreference ? 'pointer-events-none -translate-x-3 opacity-0' : 'translate-x-0 opacity-100'",
-		)
-		expect(header).toContain('transition-[transform,opacity]')
+		expect(header).toContain('<Transition')
+		expect(header).toContain('enter-from-class="-translate-x-3 opacity-0"')
+		expect(header).toContain('leave-to-class="-translate-x-2 opacity-0"')
+		expect(header).toContain('<AppLogo v-if="showHeaderLogo"')
+		expect(header).toContain('sidebarPreference.value === false')
 		expect(header).toContain('motion-reduce:transition-none')
-		expect(header).toContain(':aria-hidden="sidebarPreference"')
+		expect(header).not.toContain('const open = ref(')
+		expect(header).not.toContain('watch(open')
 	})
 })
