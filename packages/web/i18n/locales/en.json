@@ -60,7 +60,22 @@
 		}
 	},
 	"footer": {
-		"copyright": "ZeepCentraal statistics and tools for Zeepkist."
+		"brand": "ZeepCentraal",
+		"columns": {
+			"community": "Community",
+			"discover": "Discover",
+			"explore": "Explore",
+			"legal": "Legal"
+		},
+		"copyrightZeepCentraal": "© 2023 ZeepCentraal — Akane.",
+		"copyrightZeepkist": "Zeepkist © Yannic Geurts.",
+		"description": "Records, rankings, levels, tournaments, mods, and community tools for Zeepkist.",
+		"disclaimer": "ZeepCentraal is not affiliated with Zeepkist, Yannic Geurts, or Steelpan Interactive.",
+		"links": {
+			"github": "GitHub repository",
+			"privacy": "Privacy Policy",
+			"terms": "Terms & Conditions"
+		}
 	},
 	"home": {
 		"portal": {
@@ -233,6 +248,16 @@
 			},
 			"title": "World records and personal bests"
 		},
+		"privacy": {
+			"description": "Learn how ZeepCentraal collects, uses, and protects your personal information.",
+			"eyebrow": "Legal",
+			"notFound": "Privacy Policy not found",
+			"seo": {
+				"description": "Learn how ZeepCentraal collects, uses, and protects personal information.",
+				"title": "Privacy Policy"
+			},
+			"title": "Privacy Policy"
+		},
 		"settings": {
 			"description": "Manage your ZeepCentraal account and connected services.",
 			"eyebrow": "Account",
@@ -241,6 +266,16 @@
 				"title": "Settings"
 			},
 			"title": "Settings"
+		},
+		"terms": {
+			"description": "Understand the rules, responsibilities, and rights when using ZeepCentraal.",
+			"eyebrow": "Legal",
+			"notFound": "Terms & Conditions not found",
+			"seo": {
+				"description": "Read ZeepCentraal Terms & Conditions and user responsibilities.",
+				"title": "Terms & Conditions"
+			},
+			"title": "Terms & Conditions"
 		},
 		"totw": {
 			"back": "Back to dashboard",

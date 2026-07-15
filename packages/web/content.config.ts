@@ -18,6 +18,14 @@ export default defineContentConfig({
 				title: z.string(),
 			}),
 		}),
+		legal: defineCollection({
+			type: 'page',
+			source: 'legal/**/*.md',
+			schema: z.object({
+				description: z.string(),
+				title: z.string(),
+			}),
+		}),
 		news: defineCollection({
 			type: 'page',
 			source: 'news/**/*.md',

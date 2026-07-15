@@ -319,6 +319,17 @@ for (const [path, heading] of [
 	})
 }
 
+for (const [path, heading] of [
+	['/terms', 'Terms & Conditions'],
+	['/privacy', 'Privacy Policy'],
+] as const) {
+	test(`${path} legal document renders`, async ({ page }) => {
+		await page.goto(path)
+		await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+		await expect(page.getByText('Effective Date: 18/08/2025')).toBeVisible()
+	})
+}
+
 test('/adventure redirects to Series A', async ({ page }) => {
 	await page.goto('/adventure')
 	await expect(page).toHaveURL(/\/adventure\/a$/)
