@@ -162,7 +162,7 @@ describe('mod presentation', () => {
 		expect(explorerPage.indexOf('<ModkistPromoCard')).toBeGreaterThan(
 			explorerPage.indexOf('<ModFilterPanel'),
 		)
-		expect(explorerPage).toContain('download-href="https://modkist.com/"')
+		expect(explorerPage).toContain('download-href="/api/downloads/modkist/stable/msi"')
 		expect(explorerPage).toContain('guide-href="/wiki/setup-modkist"')
 		expect(modkistPromoCard).toContain('target="_blank"')
 		expect(modkistPromoCard).not.toContain('useQuery')

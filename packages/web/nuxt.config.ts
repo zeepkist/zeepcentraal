@@ -62,6 +62,7 @@ export default defineNuxtConfig({
 		},
 	},
 	runtimeConfig: {
+		githubToken: process.env.NUXT_GITHUB_TOKEN ?? '',
 		modioApiKey: process.env.NUXT_MODIO_API_KEY ?? '',
 		modioApiEndpoint: process.env.NUXT_MODIO_API_ENDPOINT ?? 'https://api.mod.io/',
 		public: {

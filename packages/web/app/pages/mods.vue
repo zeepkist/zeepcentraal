@@ -38,7 +38,7 @@
 					:title="$t('mods.modkistPromo.title')"
 					:description="$t('mods.modkistPromo.description')"
 					:download-label="$t('mods.modkistPromo.download')"
-					download-href="https://modkist.com/"
+					download-href="/api/downloads/modkist/stable/msi"
 					:guide-label="$t('mods.modkistPromo.guide')"
 					guide-href="/wiki/setup-modkist"
 				/>
