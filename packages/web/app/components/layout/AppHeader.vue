@@ -91,7 +91,9 @@ const sidebarPreference = useCookie<boolean | null>('sidebar-open', {
 	default: () => null,
 	maxAge: 60 * 60 * 24 * 365,
 	path: '/',
+	readonly: true,
 	sameSite: 'lax',
+	watch: false,
 })
 const showHeaderLogo = computed(() => sidebarPreference.value === false)
 
