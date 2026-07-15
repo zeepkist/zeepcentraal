@@ -23,4 +23,14 @@ describe('resolveInitialColourMode', () => {
 		expect(tokenRules).toBeGreaterThan(-1)
 		expect(baseLayer).toBeGreaterThan(tokenRules)
 	})
+
+	it('defines a complete light warm-neutral palette', () => {
+		const lightRule = themeCss.match(/\.light \{(?<declarations>[\s\S]*?)\n\}/)?.groups
+			?.declarations
+
+		expect(lightRule).toBeDefined()
+		for (const shade of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]) {
+			expect(lightRule).toContain(`--color-warm-neutral-${shade}:`)
+		}
+	})
 })
