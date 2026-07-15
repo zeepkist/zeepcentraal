@@ -5,22 +5,20 @@
 		:ui="{ root: 'bg-warm-neutral-900/75 backdrop-blur' }"
 	>
 		<template #left>
-			<div
-				class="grid min-w-0 transition-[grid-template-columns] duration-150 ease-out motion-reduce:transition-none"
-				:class="showHeaderLogo ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'"
-			>
-				<div class="min-w-0 overflow-hidden">
-					<Transition
-						enter-active-class="transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none"
-						enter-from-class="-translate-x-3 opacity-0"
-						enter-to-class="translate-x-0 opacity-100"
-						leave-active-class="transition-[transform,opacity] duration-75 ease-in motion-reduce:transition-none"
-						leave-from-class="translate-x-0 opacity-100"
-						leave-to-class="-translate-x-2 opacity-0"
-					>
-						<AppLogo v-if="showHeaderLogo" class="min-w-max" />
-					</Transition>
-				</div>
+			<div class="relative h-8 w-40 shrink-0 overflow-hidden">
+				<Transition
+					enter-active-class="transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none"
+					enter-from-class="-translate-x-2 opacity-0"
+					enter-to-class="translate-x-0 opacity-100"
+					leave-active-class="transition-[transform,opacity] duration-75 ease-in motion-reduce:transition-none"
+					leave-from-class="translate-x-0 opacity-100"
+					leave-to-class="-translate-x-2 opacity-0"
+				>
+					<AppLogo
+						v-if="showHeaderLogo"
+						class="absolute inset-0 h-8 w-40 transform-gpu will-change-transform"
+					/>
+				</Transition>
 			</div>
 		</template>
 
