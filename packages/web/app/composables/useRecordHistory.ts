@@ -11,7 +11,7 @@ import {
 	type Zc_RecordHistoryLiveSubscription,
 	type Zc_RecordHistoryRowFragment,
 } from '~/graphql/generated/graphql'
-import type { CursorPage, RecordHistoryRow } from '~/types/app'
+import type { CursorPage, RecordHistoryRow, RecordHistoryUpdate } from '~/types/app'
 import {
 	getNewRecordIds,
 	getRecordResultStatus,
@@ -88,6 +88,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 	const mounted = ref(false)
 	const activation = ref(0)
 	const highlightedRecordIds = ref<ReadonlySet<number>>(new Set())
+	const newRecordBatch = shallowRef<RecordHistoryUpdate | null>(null)
 	const highlightTimers = new Map<number, ReturnType<typeof setTimeout>>()
 	const filter = computed(() =>
 		recordHistoryFilter(options.view.value, options.sort.value, options.userId?.value),
@@ -168,6 +169,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 
 	let packetKey: string | undefined
 	let knownRecordIds = new Set<number>()
+	let updateSequence = 0
 	watch(
 		() => live.data.value,
 		(packet) => {
@@ -178,13 +180,24 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 				knownRecordIds = nextIds
 				return
 			}
-			highlight(getNewRecordIds(knownRecordIds, nextIds))
+			const newRecordIds = getNewRecordIds(knownRecordIds, nextIds)
+			highlight(newRecordIds)
+			if (newRecordIds.length > 0) {
+				const added = new Set(newRecordIds)
+				newRecordBatch.value = {
+					sequence: ++updateSequence,
+					records: mapRows(packet.data.records.edges).filter((record) =>
+						added.has(record.id),
+					),
+				}
+			}
 			knownRecordIds = nextIds
 		},
 	)
 	watch(liveKey, () => {
 		packetKey = undefined
 		knownRecordIds = new Set()
+		newRecordBatch.value = null
 		clearHighlights()
 	})
 	watch(liveEnabled, (enabled, wasEnabled) => {
@@ -212,6 +225,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		liveEligible,
 		liveReady,
 		liveStatus,
+		newRecordBatch,
 		orderBy,
 		page,
 		pagination,

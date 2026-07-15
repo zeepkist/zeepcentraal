@@ -225,7 +225,12 @@
 				"active": "Live records",
 				"connecting": "Connecting",
 				"paused": "Live updates paused",
-				"error": "Live updates unavailable"
+				"error": "Live updates unavailable",
+				"enableSound": "Enable record notification sounds",
+				"disableSound": "Disable record notification sounds",
+				"soundOn": "Sound on",
+				"soundOff": "Sound off",
+				"onlyMine": "Only my records"
 			},
 			"tabs": {
 				"label": "Record view",

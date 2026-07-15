@@ -64,6 +64,11 @@ export type RecordHistoryRow = {
 	pbOrWr?: RecordResultStatus | null
 }
 
+export type RecordHistoryUpdate = {
+	sequence: number
+	records: RecordHistoryRow[]
+}
+
 export type LevelSummary = {
 	id: number
 	xxHash: string

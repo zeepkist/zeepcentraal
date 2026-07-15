@@ -7,7 +7,15 @@
 		>
 			<template #actions>
 				<div class="flex flex-wrap items-center justify-end gap-2">
-					<RecordLiveControls :status="data.liveStatus.value" :labels="liveStatusLabels" />
+					<RecordLiveControls
+						:status="data.liveStatus.value"
+						:labels="liveStatusLabels"
+						:sound-enabled="sounds.enabled.value"
+						:show-only-mine="Boolean(session.user)"
+						:only-mine="sounds.onlyMine.value"
+						@update:sound-enabled="sounds.setEnabled"
+						@update:only-mine="sounds.setOnlyMine"
+					/>
 					<UButton v-if="session.user" to="/records/me" color="primary" variant="soft">
 						<TablerIcon name="user-circle" class="size-4" />
 						{{ $t('pages.records.myRecordsAction') }}
@@ -69,6 +77,12 @@ const { t } = useI18n()
 const view = computed(() => normalizeRecordHistoryView(route.query.view))
 const sort = computed(() => normalizeRecordHistorySort(route.query.sort))
 const data = useRecordHistory({ view, sort, namespace: 'records' })
+const viewerUserId = computed(() => session.user?.id)
+const sounds = useRecordNotificationSounds({
+	batch: data.newRecordBatch,
+	viewerUserId,
+	allowOnlyMine: true,
+})
 
 usePageSeo('records')
 
@@ -112,6 +126,11 @@ const liveStatusLabels = computed(() => ({
 	live: t('pages.records.live.active'),
 	paused: t('pages.records.live.paused'),
 	error: t('pages.records.live.error'),
+	enableSound: t('pages.records.live.enableSound'),
+	disableSound: t('pages.records.live.disableSound'),
+	soundOn: t('pages.records.live.soundOn'),
+	soundOff: t('pages.records.live.soundOff'),
+	onlyMine: t('pages.records.live.onlyMine'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
