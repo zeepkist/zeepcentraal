@@ -1,6 +1,7 @@
 ---
 title: Useful Level Editor Numbers
 description: Exact dimensions, angles, positions, and behaviours for Zeepkist building.
+editPath: wiki/level-editor/useful-numbers.md
 ---
 
 ## Spawn and podium behaviour

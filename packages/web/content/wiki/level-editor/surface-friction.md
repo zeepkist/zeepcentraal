@@ -1,6 +1,7 @@
 ---
 title: Surface Friction
 description: Exact Zeepkist friction and wheel side-slip values by surface.
+editPath: wiki/level-editor/surface-friction.md
 ---
 
 Surface physics change acceleration, braking, cornering, and recovery. Use these exact values when comparing paints or designing transitions.

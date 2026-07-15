@@ -5,7 +5,11 @@
 			:breadcrumb-label="breadcrumbLabel"
 			:title="document.title"
 			:description="document.description"
-		/>
+		>
+			<template v-if="document.editPath" #actions>
+				<ContentEditLink :path="document.editPath" />
+			</template>
+		</PageHeader>
 		<ContentDocument
 			:document="document"
 			:show-table-of-contents="showTableOfContents"
@@ -21,6 +25,7 @@ import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
 type ContentPageDocument = object & {
 	title: string
 	description: string
+	editPath?: string
 	body?: {
 		toc?: {
 			links?: TocLink[]

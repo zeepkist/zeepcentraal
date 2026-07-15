@@ -1,6 +1,7 @@
 ---
 title: Getting Started
 description: Install Zeepkist, start racing, and join the Zeepkist community.
+editPath: wiki/getting-started.md
 ---
 
 Zeepkist is a physics-driven soapbox racing game built around official Adventure levels, community Workshop tracks, online multiplayer, time trials, and competitive events. ZeepCentraal lets you browse levels, records, player profiles, and Super League results without installing game modifications.

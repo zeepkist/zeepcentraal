@@ -39,6 +39,7 @@ export default defineContentConfig({
 			source: 'wiki/**/*.md',
 			schema: z.object({
 				description: z.string(),
+				editPath: z.string(),
 				title: z.string(),
 			}),
 		}),

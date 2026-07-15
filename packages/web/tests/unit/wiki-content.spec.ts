@@ -33,6 +33,31 @@ describe('Wiki documentation', () => {
 		expect(existsSync(join(webRoot, 'app/pages/wiki/guides.vue'))).toBe(false)
 	})
 
+	test('provides validated source edit links for every wiki document', () => {
+		const editLink = readFileSync(
+			join(webRoot, 'app/components/content/ContentEditLink.vue'),
+			'utf8',
+		)
+		const contentPage = readFileSync(
+			join(webRoot, 'app/components/content/ContentPage.vue'),
+			'utf8',
+		)
+		const contentConfig = readFileSync(join(webRoot, 'content.config.ts'), 'utf8')
+
+		for (const documentPath of wikiDocuments) {
+			const expectedPath = `wiki/${documentPath}`
+			expect(readWiki(documentPath)).toContain(`editPath: ${expectedPath}`)
+		}
+		expect(editLink).toContain(
+			'https://github.com/zeepkist/zeepcentraal/blob/develop/packages/web/content/',
+		)
+		expect(editLink).toContain('SAFE_CONTENT_PATH')
+		expect(editLink).toContain('new URL(props.path, CONTENT_SOURCE_BASE_URL)')
+		expect(editLink).not.toMatch(/useFetch|\$fetch|useQuery/)
+		expect(contentPage).toContain('<ContentEditLink :path="document.editPath"')
+		expect(contentConfig).toContain('editPath: z.string()')
+	})
+
 	test('embeds the exact Zeepkist introduction through a request-free privacy component', () => {
 		const gettingStarted = readWiki('getting-started.md')
 		const embed = readFileSync(

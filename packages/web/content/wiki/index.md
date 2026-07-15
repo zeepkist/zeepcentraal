@@ -1,6 +1,7 @@
 ---
 title: Zeepkist Wiki
 description: Community reference for racing, level building, and Zeepkist tools.
+editPath: wiki/index.md
 ---
 
 Welcome to the ZeepCentraal knowledge base. Learn how to start racing, join competitive events, install trusted community tools, and build better levels.

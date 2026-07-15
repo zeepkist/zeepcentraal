@@ -1,6 +1,7 @@
 ---
 title: Building Tips & Tricks
 description: Beginner, advanced, and pro techniques for better Zeepkist levels.
+editPath: wiki/level-editor/building-tips.md
 ---
 
 Good tracks combine readable racing lines, consistent flow, useful checkpoints, deliberate scenery, and sensible performance budgets.

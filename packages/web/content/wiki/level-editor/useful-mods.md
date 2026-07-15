@@ -1,6 +1,7 @@
 ---
 title: Useful Level Editor Mods
 description: Community tools that speed up Zeepkist level building and iteration.
+editPath: wiki/level-editor/useful-mods.md
 ---
 
 Mods can remove repetitive editor work and make complex builds easier to manage. Install them through [Modkist](/wiki/setup-modkist) and keep them updated.

@@ -1,6 +1,7 @@
 ---
 title: Light Tricks
 description: Directional-light techniques for colour, scale, and volumetric effects.
+editPath: wiki/level-editor/light-tricks.md
 ---
 
 ::content-alert{type="important" title="Custom lights can cause lag"}

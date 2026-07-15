@@ -1,6 +1,7 @@
 ---
 title: Setup Modkist and GTR
 description: Install Zeepkist's mod manager and enable ZeepCentraal record submission and ghost tools.
+editPath: wiki/setup-modkist.md
 ---
 
 Modkist is an easy-to-use mod manager for Zeepkist on Windows, Steam Deck, and Linux. It uses the mod.io platform for uploading and approving mods. Mods are verified by core Zeepkist mod developers before distribution, and Modkist keeps installed mods updated when you launch it.

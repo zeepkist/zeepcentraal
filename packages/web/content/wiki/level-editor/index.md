@@ -1,6 +1,7 @@
 ---
 title: Level Editor Guides
 description: Practical Zeepkist level-building, physics, and editor references.
+editPath: wiki/level-editor/index.md
 ---
 
 Build readable, enjoyable, and performant Zeepkist tracks with community-tested editor techniques and exact physics references.

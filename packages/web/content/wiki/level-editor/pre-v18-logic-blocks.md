@@ -1,6 +1,7 @@
 ---
 title: Pre-V18 Logic Blocks
 description: Legacy Zeepkist triggers, logic gates, truth tables, and effect gates.
+editPath: wiki/level-editor/pre-v18-logic-blocks.md
 ---
 
 Pre-V18 logic blocks can be triggered by any physics block, including the player, balls, haybales, and rotating signs. Fans do not work as triggers.

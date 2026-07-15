@@ -118,6 +118,7 @@
 		"unknownAuthor": "Unknown author"
 	},
 	"wikiContent": {
+		"edit": "Edit this page",
 		"modkist": {
 			"allReleases": "View all releases",
 			"formats": {
