@@ -15,7 +15,7 @@
 				<col v-if="showStatus" class="w-[4rem]" />
 				<col class="w-[8rem]" />
 				<col class="w-[8rem]" />
-				<col class="w-[12rem]" />
+				<col class="w-[10rem]"/>
 			</colgroup>
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
@@ -26,7 +26,7 @@
 					<th v-if="showStatus" class="px-4 py-3" scope="col"></th>
 					<th class="px-4 py-3" scope="col">{{ labels.points }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.rankedPoints }}</th>
-					<th class="px-4 py-3" scope="col">{{ labels.date }}</th>
+					<th class="px-4 py-3 text-right" scope="col">{{ labels.date }}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -100,7 +100,7 @@
 							/>
 						</DataTableCellLink>
 					</td>
-					<td class="p-0 text-muted-foreground">
+					<td class="p-0 text-muted-foreground text-right">
 						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
 							<NuxtTime
 								:datetime="record.dateCreated"
@@ -149,8 +149,8 @@ const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const showStatus = computed(() => props.statusMode !== undefined && props.statusMode !== 'none')
 const tableMinWidth = computed(() => {
-	if (props.showPlayer) return showStatus.value ? 'min-w-[80rem]' : 'min-w-[75rem]'
-	return showStatus.value ? 'min-w-[69rem]' : 'min-w-[64rem]'
+	if (props.showPlayer) return showStatus.value ? 'min-w-[63rem]' : 'min-w-[59rem]'
+	return showStatus.value ? 'min-w-[52rem]' : 'min-w-[48rem]'
 })
 
 function visibleStatus(record: RecordHistoryRow) {
