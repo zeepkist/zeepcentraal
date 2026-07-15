@@ -14,15 +14,21 @@
 				:search="search"
 				:sort="sort"
 				:essentials-only="essentialsOnly"
+				:tags="tags"
+				:tag-options="tagOptions"
+				:tag-options-pending="tagOptionsPending"
 				:search-label="$t('mods.filters.search')"
 				:search-placeholder="$t('mods.filters.searchPlaceholder')"
 				:sort-label="$t('mods.filters.sort')"
 				:essentials-only-label="$t('mods.filters.essentialsOnly')"
+				:tags-label="$t('mods.filters.tags')"
+				:tags-placeholder="$t('mods.filters.tagsPlaceholder')"
 				:apply-label="$t('mods.filters.apply')"
 				:sort-options="sortOptions"
 				@update:search="search = $event"
 				@update:sort="sort = $event as ModSort"
 				@update:essentials-only="essentialsOnly = $event"
+				@update:tags="tags = $event"
 				@apply="applyFilters"
 			/>
 		</template>
@@ -76,6 +82,9 @@ const {
 	previous,
 	search,
 	sort,
+	tagOptions,
+	tagOptionsPending,
+	tags,
 } = await useMods()
 
 const sortOptions = computed(() => [

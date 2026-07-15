@@ -47,3 +47,7 @@ export type ModDetailResponse = {
 	mod: ModDetail
 	dependencies: ModSummary[]
 }
+
+export type ModTagOptionsResponse = {
+	tags: string[]
+}

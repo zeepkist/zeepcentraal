@@ -2,6 +2,7 @@ import { MOD_SORTS, type ModSort } from '../types/mod'
 
 export const MOD_PAGE_SIZE = 24
 export const GTR_MOD_SLUG = 'zeepkist-gtr'
+export const MAX_MOD_TAG_FILTERS = 10
 
 export const MOD_SORT_VALUES: ReadonlySet<string> = new Set(Object.values(MOD_SORTS))
 
@@ -34,6 +35,21 @@ export function normalizeModPage(value: unknown): number {
 
 export function normalizeEssentialsOnly(value: unknown): boolean {
 	return value === true || value === '1' || value === 'true'
+}
+
+export function normalizeModTags(value: unknown): string[] {
+	const values = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : []
+	const tags = values
+		.flatMap((tag) => (typeof tag === 'string' ? [tag.trim()] : []))
+		.filter((tag) => tag.length > 0 && tag.length <= 50)
+		.filter((tag) => !['plugin', 'dependency', 'essentials'].includes(tag.toLowerCase()))
+
+	const unique = new Map<string, string>()
+	for (const tag of tags) {
+		const key = tag.toLowerCase()
+		if (!unique.has(key)) unique.set(key, tag)
+	}
+	return [...unique.values()].slice(0, MAX_MOD_TAG_FILTERS)
 }
 
 export function normalizeModSlug(value: unknown): string | null {

@@ -13,6 +13,7 @@ import {
 	normalizeModSearch,
 	normalizeModSlug,
 	normalizeModSort,
+	normalizeModTags,
 } from '../../app/utils/modExplorer'
 import { sanitizeModDescription } from '../../server/utils/sanitizeModDescription'
 
@@ -22,6 +23,10 @@ const listEndpoint = readFileSync(
 )
 const detailEndpoint = readFileSync(
 	new URL('../../server/api/modio/mods/[slug].get.ts', import.meta.url),
+	'utf8',
+)
+const tagsEndpoint = readFileSync(
+	new URL('../../server/api/modio/tags.get.ts', import.meta.url),
 	'utf8',
 )
 const modioClient = readFileSync(new URL('../../server/utils/modio.ts', import.meta.url), 'utf8')
@@ -46,6 +51,10 @@ describe('mod explorer input normalization', () => {
 		expect(normalizeEssentialsOnly('1')).toBe(true)
 		expect(normalizeEssentialsOnly('true')).toBe(true)
 		expect(normalizeEssentialsOnly('0')).toBe(false)
+		expect(normalizeModTags('Ghosts, Multiplayer,ghosts,Plugin,Essentials')).toEqual([
+			'Ghosts',
+			'Multiplayer',
+		])
 	})
 
 	it('validates canonical slug routes', () => {
@@ -71,7 +80,9 @@ describe('GTR pinning and pagination', () => {
 	})
 
 	it('pins only default popular results and excludes GTR from remaining pages', () => {
-		expect(listEndpoint).toContain("search === '' && sort === 'popular' && !essentialsOnly")
+		expect(listEndpoint).toContain(
+			"search === '' && sort === 'popular' && !essentialsOnly && tags.length === 0",
+		)
 		expect(listEndpoint).toContain("'id-not-in': excludedId")
 		expect(listEndpoint).toContain('[mapModioMod(pinnedMod), ...listed]')
 		expect(listEndpoint).toContain('_limit: limit')
@@ -79,9 +90,21 @@ describe('GTR pinning and pagination', () => {
 	})
 
 	it('combines Plugin and Essentials tags when the essential filter is active', () => {
-		expect(listEndpoint).toContain("essentialsOnly ? 'Plugin,Essentials' : 'Plugin'")
+		expect(listEndpoint).toContain(
+			"['Plugin', ...(essentialsOnly ? ['Essentials'] : []), ...tags].join(',')",
+		)
 		expect(explorerPage).toContain(':essentials-only="essentialsOnly"')
 		expect(explorerPage).toContain('@update:essentials-only="essentialsOnly = $event"')
+	})
+
+	it('loads cached visible tag options and applies selected tags with AND semantics', () => {
+		expect(tagsEndpoint).toContain('getModioTagOptions()')
+		expect(modioClient).toContain('`v1/games/' + '$' + '{MODIO_GAME_ID}/tags`')
+		expect(modioClient).toContain('.filter((group) => !group.hidden)')
+		expect(explorerPage).toContain(':tag-options="tagOptions"')
+		expect(explorerPage).toContain('@update:tags="tags = $event"')
+		expect(listEndpoint).toContain('...tags].join')
+		expect(listEndpoint).toContain("statusMessage: 'Invalid mod tag filter'")
 	})
 })
 

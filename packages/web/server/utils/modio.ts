@@ -49,6 +49,15 @@ export type ModioListResponse<T> = {
 	result_total?: number
 }
 
+export type ModioTagOption = {
+	name?: string
+	type?: string
+	tags?: string[]
+	hidden?: boolean
+}
+
+const RESERVED_MODIO_TAGS = new Set(['plugin', 'dependency', 'essentials'])
+
 function runtimeConfig() {
 	const config = useRuntimeConfig()
 	const endpoint = String(config.modioApiEndpoint || '').trim()
@@ -91,6 +100,20 @@ export async function requestModio<T>(
 			throw createError({ statusCode: 502, statusMessage: 'mod.io request failed' })
 		}
 	})
+}
+
+export async function getModioTagOptions(): Promise<string[]> {
+	const response = await requestModio<ModioListResponse<ModioTagOption>>(
+		`v1/games/${MODIO_GAME_ID}/tags`,
+		{ _limit: 100 },
+	)
+	const tags = (response.data ?? [])
+		.filter((group) => !group.hidden)
+		.flatMap((group) => group.tags ?? [])
+		.filter((tag) => !RESERVED_MODIO_TAGS.has(tag.trim().toLowerCase()))
+		.sort((left, right) => left.localeCompare(right, 'en', { sensitivity: 'base' }))
+
+	return [...new Set(tags)]
 }
 
 function isoDate(seconds: number | undefined): string {

@@ -28,6 +28,19 @@
 					@update:model-value="$emit('update:sort', String($event))"
 				/>
 			</UFormField>
+			<UFormField :label="tagsLabel">
+				<USelectMenu
+					:model-value="tags"
+					:items="tagOptions"
+					:loading="tagOptionsPending"
+					:placeholder="tagsPlaceholder"
+					class="w-full"
+					value-key="value"
+					multiple
+					clear
+					@update:model-value="$emit('update:tags', Array.isArray($event) ? $event.map(String) : [])"
+				/>
+			</UFormField>
 			<USwitch
 				:model-value="essentialsOnly"
 				:label="essentialsOnlyLabel"
@@ -47,10 +60,15 @@ defineProps<{
 	search: string
 	sort: string
 	essentialsOnly: boolean
+	tags: string[]
+	tagOptions: SortOption[]
+	tagOptionsPending: boolean
 	searchLabel: string
 	searchPlaceholder: string
 	sortLabel: string
 	essentialsOnlyLabel: string
+	tagsLabel: string
+	tagsPlaceholder: string
 	applyLabel: string
 	sortOptions: SortOption[]
 }>()
@@ -59,6 +77,7 @@ defineEmits<{
 	'update:search': [value: string]
 	'update:sort': [value: string]
 	'update:essentialsOnly': [value: boolean]
+	'update:tags': [value: string[]]
 	apply: []
 }>()
 </script>
