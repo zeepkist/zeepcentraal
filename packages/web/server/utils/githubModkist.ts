@@ -5,10 +5,11 @@ import type {
 	ModkistReleaseFormat,
 	ModkistReleases,
 } from '../../app/types/modkist'
+import { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL } from '../../app/types/modkist'
 import { getSharedCached } from './sharedCache'
 
-export const MODKIST_RELEASES_URL = 'https://github.com/Thundernerd/ModkistMKII/releases'
-export const MODKIST_SOURCE_URL = 'https://github.com/Thundernerd/ModkistMKII'
+export { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL }
+
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql'
 
 type GitHubReleaseAsset = {

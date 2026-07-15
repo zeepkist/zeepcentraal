@@ -3,23 +3,27 @@ title: Zeepkist Wiki
 description: Community reference for racing, level building, and Zeepkist tools.
 ---
 
-Welcome to the ZeepCentraal knowledge base. Find practical guides for getting into Zeepkist, installing community tools and tips & tricks for building in the Level Editor.
+Welcome to the ZeepCentraal knowledge base. Learn how to start racing, join competitive events, install trusted community tools, and build better levels.
 
 ::content-alert{type="notice" title="Choose a starting point"}
-New to Zeepkist? Begin with [Getting started](/wiki/getting-started), then follow the [Modkist and GTR setup guide](/wiki/setup-modkist) when you are ready to submit online records.
+New to Zeepkist? Begin with [Getting Started](/wiki/getting-started), then follow [Setup Modkist and GTR](/wiki/setup-modkist) when you are ready to submit online records.
 ::
 
-## Browse
+## Browse the wiki
 
-- [Getting started](/wiki/getting-started): install Zeepkist, explore official and community levels, and find competitive features.
-- [Setup Modkist and GTR](/wiki/setup-modkist): safely install the mod manager, enable GTR, and confirm record submission.
-<!--- [Modding guides](/wiki/guides): practical guides for community tooling.-->
-- [GraphQL developer guide](/developer/graphql): build applications with ZeepCentraal data.
+::content-resource-grid
+  ::content-resource-card{to="/wiki/getting-started" icon="flag" title="Getting Started" description="Install Zeepkist, discover its game modes, and join online competitions."}
+  ::
+  ::content-resource-card{to="/wiki/setup-modkist" icon="package" title="Setup Modkist and GTR" description="Install trusted community mods, submit records, and race against ghosts."}
+  ::
+  ::content-resource-card{to="/wiki/level-editor" icon="road" title="Level Editor Guides" description="Build readable, performant tracks with practical physics and editor references."}
+  ::
+::
 
 ## Explore ZeepCentraal
 
 - Browse [community levels](/levels) or official [Adventure Mode levels](/adventure/a).
-- Follow live [record submissions](/records) and inspect global [player standings](/users).
+- Follow [record submissions](/records) and inspect global [player standings](/users).
 - View [Super League seasons](/super-league) and round results.
 
 ::content-alert{type="reminder" title="Community-maintained documentation"}

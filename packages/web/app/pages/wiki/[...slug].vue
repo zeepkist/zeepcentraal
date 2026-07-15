@@ -10,6 +10,9 @@
 </template>
 
 <script setup lang="ts">
+import { modkistReleasesKey } from '~/composables/useModkistReleasesContext'
+import type { ModkistReleases } from '~/types/modkist'
+
 const route = useRoute()
 const { t } = useI18n()
 const slugSegments = computed(() => {
@@ -26,6 +29,21 @@ const { data: document } = await useAsyncData(
 	() => `wiki-${path.value}`,
 	() => queryCollection('wiki').path(path.value).first(),
 )
+
+const isSetupPage = computed(() => path.value === '/wiki/setup-modkist')
+const releaseQuery = await useFetch<ModkistReleases>('/api/modkist/releases', {
+	key: 'modkist-releases',
+	immediate: isSetupPage.value,
+	server: isSetupPage.value,
+})
+provide(modkistReleasesKey, readonly(releaseQuery.data))
+if (import.meta.client) {
+	watch(isSetupPage, (selected) => {
+		if (selected && !releaseQuery.data.value && releaseQuery.status.value !== 'pending') {
+			void releaseQuery.execute()
+		}
+	})
+}
 if (!document.value) {
 	throw createError({ statusCode: 404, statusMessage: t('pages.wiki.notFound') })
 }

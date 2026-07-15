@@ -117,6 +117,29 @@
 		"typeMore": "Type at least two characters",
 		"unknownAuthor": "Unknown author"
 	},
+	"wikiContent": {
+		"modkist": {
+			"allReleases": "View all releases",
+			"formats": {
+				"appimage": "Linux AppImage",
+				"deb": "Linux DEB",
+				"dmg": "macOS DMG",
+				"msi": "Download for Windows"
+			},
+			"prerelease": {
+				"description": "Try upcoming Modkist changes before their stable release.",
+				"title": "Latest prerelease"
+			},
+			"source": "View source code",
+			"stable": {
+				"description": "Recommended Modkist release for most players.",
+				"title": "Latest stable release"
+			}
+		},
+		"youtube": {
+			"open": "Watch this video on YouTube"
+		}
+	},
 	"pages": {
 		"adventure": {
 			"description": "Browse the official Adventure Mode levels in Zeepkist, and view the global leaderboards for each level.",
