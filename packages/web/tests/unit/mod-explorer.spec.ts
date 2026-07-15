@@ -4,6 +4,7 @@ import { MOD_SORTS } from '../../app/types/mod'
 import {
 	GTR_MOD_SLUG,
 	getModPageWindow,
+	getVisibleModTags,
 	MOD_PAGE_SIZE,
 	MODIO_SORTS,
 	normalizeModPage,
@@ -109,6 +110,16 @@ describe('private mod.io API boundary', () => {
 })
 
 describe('mod presentation', () => {
+	it('hides Plugin and Dependency system tags from cards', () => {
+		expect(getVisibleModTags(['Plugin', 'Dependency', 'Multiplayer', 'Ghosts'])).toEqual([
+			'Multiplayer',
+			'Ghosts',
+		])
+		expect(
+			getVisibleModTags([' dependency ', 'PLUGIN', 'Utility', 'Timing', 'Ghosts', 'Extra']),
+		).toEqual(['Utility', 'Timing', 'Ghosts'])
+	})
+
 	it('uses slug detail links and a separate native mod.io action', () => {
 		expect(modCard).toContain(':to="`/mod/' + '$' + '{mod.slug}`"')
 		expect(modCard).toContain(':href="mod.profileUrl"')

@@ -23,7 +23,7 @@
 				<p class="truncate text-sm text-muted-foreground">{{ mod.authorName }}</p>
 			</div>
 			<div class="mt-3 flex min-h-6 flex-wrap gap-1.5">
-				<UBadge v-for="tag in mod.tags.slice(0, 3)" :key="tag" color="neutral" variant="soft">
+				<UBadge v-for="tag in visibleTags" :key="tag" color="neutral" variant="soft">
 					{{ tag }}
 				</UBadge>
 			</div>
@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import type { ModSummary } from '~/types/mod'
+import { getVisibleModTags } from '~/utils/modExplorer'
 
 const props = defineProps<{
 	mod: ModSummary
@@ -75,6 +76,7 @@ const percentFormat = computed(
 const sizeFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 }),
 )
+const visibleTags = computed(() => getVisibleModTags(props.mod.tags))
 
 const metrics = computed(() => [
 	{ label: props.versionLabel, value: props.mod.version ?? props.unavailableLabel },

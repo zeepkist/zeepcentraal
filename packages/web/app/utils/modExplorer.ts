@@ -43,3 +43,9 @@ export function getModPageWindow(page: number, pinnedResult: boolean) {
 	if (page === 1) return { limit: MOD_PAGE_SIZE - 1, offset: 0 }
 	return { limit: MOD_PAGE_SIZE, offset: MOD_PAGE_SIZE - 1 + (page - 2) * MOD_PAGE_SIZE }
 }
+
+const HIDDEN_MOD_TAGS = new Set(['plugin', 'dependency'])
+
+export function getVisibleModTags(tags: string[], limit = 3): string[] {
+	return tags.filter((tag) => !HIDDEN_MOD_TAGS.has(tag.trim().toLowerCase())).slice(0, limit)
+}
