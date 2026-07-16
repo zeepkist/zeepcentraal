@@ -3,11 +3,15 @@ import { describe, expect, it } from 'vitest'
 
 const rootPackage = JSON.parse(
 	readFileSync(new URL('../../../../package.json', import.meta.url), 'utf8'),
-) as { scripts: Record<string, string> }
+) as {
+	scripts: Record<string, string>
+	patchedDependencies: Record<string, string>
+}
 const webPackage = JSON.parse(
 	readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
 ) as {
 	scripts: Record<string, string>
+	devDependencies: Record<string, string>
 }
 const nuxtConfig = readFileSync(new URL('../../nuxt.config.ts', import.meta.url), 'utf8')
 const buildAction = readFileSync(
@@ -19,25 +23,53 @@ const deployWorkflow = readFileSync(
 	'utf8',
 )
 const webDockerfile = readFileSync(new URL('../../../../Dockerfile.web', import.meta.url), 'utf8')
+const bunCompilePatch = readFileSync(
+	new URL('../../../../patches/nuxt-bun-compile@0.1.32.patch', import.meta.url),
+	'utf8',
+)
 
 describe('web deployment build', () => {
 	it('routes root CI build through standalone deployment compilation', () => {
 		expect(rootPackage.scripts['build:web']).toBe(
 			'bun --bun --cwd=packages/web run build:deployment',
 		)
+		expect(webPackage.scripts['build:deployment']).toContain('NUXT_BUN_COMPILE=true')
+		expect(webPackage.scripts['build:deployment']).toContain('bun --bun nuxt build')
 		expect(webPackage.scripts['build:deployment']).toContain(
-			'--outfile ../../dist/zeepcentraal-web',
+			'test -x ../../dist/zeepcentraal-web',
 		)
-		expect(webPackage.scripts['build:deployment']).toContain('--conditions=production')
-		expect(webPackage.scripts['build:deployment']).toContain("--external 'chromium-bidi/*'")
+		expect(webPackage.scripts['build:deployment']).not.toContain('bun build --compile')
+		expect(webPackage.scripts['build:deployment']).not.toContain('.output/server')
 	})
 
-	it('bundles GraphQL into Nitro output for distroless compilation', () => {
-		expect(nuxtConfig).toMatch(/externals:\s*\{\s*inline:\s*\['graphql'\]/)
+	it('delegates standalone compilation to nuxt-bun-compile', () => {
+		expect(webPackage.devDependencies['nuxt-bun-compile']).toBe('0.1.32')
+		expect(nuxtConfig).toContain("'nuxt-bun-compile'")
+		expect(nuxtConfig).toContain("enabled: process.env.NUXT_BUN_COMPILE === 'true'")
+		expect(nuxtConfig).toContain("outfile: '../../dist/zeepcentraal-web'")
+		expect(nuxtConfig).toContain("target: 'bun-linux-x64'")
+		expect(nuxtConfig).toContain('autoCompile: true')
+		expect(nuxtConfig).not.toContain("serveStatic: 'inline'")
+		expect(nuxtConfig).not.toMatch(/externals:\s*\{\s*inline:/)
 	})
 
-	it('embeds public assets into the standalone server', () => {
-		expect(nuxtConfig).toContain("serveStatic: 'inline'")
+	it('keeps nuxt-bun-compile compatible with Nuxt Content prerendering', () => {
+		expect(rootPackage.patchedDependencies['nuxt-bun-compile@0.1.32']).toBe(
+			'patches/nuxt-bun-compile@0.1.32.patch',
+		)
+		expect(bunCompilePatch).toContain('-      nitroConfig.noExternals = true')
+		expect(bunCompilePatch).toContain('-      nitroConfig.inlineDynamicImports = true')
+		expect(bunCompilePatch).toContain('+      const allExternals = options.extraExternals')
+		expect(bunCompilePatch).toContain('nitroConfig.externals.inline')
+		expect(bunCompilePatch).toContain('"graphql"')
+		expect(bunCompilePatch).toContain('args.push("--external", "chromium-bidi/*")')
+		expect(bunCompilePatch).toContain('args.push("--conditions", "production")')
+		expect(bunCompilePatch).toContain('["install", "--production", "--ignore-scripts"]')
+		expect(bunCompilePatch).toContain('cwd: outputDirectory')
+		expect(bunCompilePatch).toContain('resolve(nuxt.options.rootDir, options.outfile)')
+		expect(bunCompilePatch).toContain(
+			'nitro.options.static || nitro.options.preset === "nitro-prerender"',
+		)
 	})
 
 	it('restores executable permissions after artifact download', () => {

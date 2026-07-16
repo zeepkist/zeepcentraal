@@ -1,0 +1,77 @@
+diff --git a/dist/module.mjs b/dist/module.mjs
+index 34632a513ce35f6616648097c911c5167ceda55c..226cb8056373c0fd6afa5b3ed25d6c77dd593262 100644
+--- a/dist/module.mjs
++++ b/dist/module.mjs
+@@ -1,7 +1,7 @@
+ import { defineNuxtModule, useLogger } from '@nuxt/kit';
+ import { execFileSync } from 'node:child_process';
+ import { statSync, readFileSync } from 'node:fs';
+-import { join } from 'node:path';
++import { join, resolve } from 'node:path';
+ 
+ const VALID_TARGETS = [
+   "bun-linux-x64",
+@@ -69,13 +69,14 @@ const module$1 = defineNuxtModule({
+       if (!isBun) return;
+       logger.info("Configuring Nitro for bun compile");
+       nitroConfig.preset = "bun";
+-      nitroConfig.noExternals = true;
+-      nitroConfig.inlineDynamicImports = true;
+       nitroConfig.serveStatic = "inline";
+       nitroConfig.esbuild = nitroConfig.esbuild || {};
+       nitroConfig.esbuild.options = nitroConfig.esbuild.options || {};
+       nitroConfig.esbuild.options.target = "esnext";
+-      const allExternals = [...DEFAULT_EXTERNALS, ...options.extraExternals];
++      nitroConfig.externals = nitroConfig.externals || {};
++      const inlineExternals = nitroConfig.externals.inline;
++      nitroConfig.externals.inline = Array.isArray(inlineExternals) ? [...inlineExternals, "graphql"] : ["graphql"];
++      const allExternals = options.extraExternals;
+       nitroConfig.commands = nitroConfig.commands || {};
+       nitroConfig.commands.preview = `./${options.outfile}`;
+       nitroConfig.rollupConfig = nitroConfig.rollupConfig || {};
+@@ -89,14 +90,17 @@ const module$1 = defineNuxtModule({
+       }
+       if (options.autoCompile) {
+         nitroConfig.hooks = nitroConfig.hooks || {};
+-        nitroConfig.hooks.compiled = () => {
++        nitroConfig.hooks.compiled = (nitro) => {
++          if (nitro.options.static || nitro.options.preset === "nitro-prerender") return;
+           if (!isBun) {
+             logger.warn("Bun runtime not detected, skipping --compile step. Run with bun to enable.");
+             logger.info("Try running: bun run -b build");
+             logger.info("Read more: https://github.com/jprando/nuxt-bun-compile?tab=readme-ov-file#why-is--b-required");
+             return;
+           }
+-          const outputPath = ".output/server/index.mjs";
++          const outputDirectory = join(nuxt.options.rootDir, ".output/server");
++          const outputPath = "index.mjs";
++          const outputFile = resolve(nuxt.options.rootDir, options.outfile);
+           let bunExecutable = "bun";
+           if (options.bunPath) {
+             try {
+@@ -116,16 +120,22 @@ const module$1 = defineNuxtModule({
+             logger.error(`Invalid target: "${selectedTarget}". Must be one of: ${VALID_TARGETS.join(", ")}`);
+             return;
+           }
+-          const args = ["build", outputPath, "--compile", "--outfile", options.outfile];
++          const args = ["build", outputPath, "--compile", "--outfile", outputFile];
+           args.push("--target", selectedTarget);
++          args.push("--conditions", "production");
++          args.push("--external", "chromium-bidi/*");
+           if (!options.target) {
+             logger.info(`Target auto-detected: ${selectedTarget}`);
+           }
+           logger.info(`Bun v${process.versions.bun} detected, running bun compile step`);
+           logger.info(`Compiling binary: ${bunExecutable} ${args.join(" ")}`);
+           try {
+-            execFileSync(bunExecutable, args, { stdio: "inherit", cwd: nuxt.options.rootDir });
+-            logger.success(`Binary created: ${options.outfile}`);
++            execFileSync(bunExecutable, ["install", "--production", "--ignore-scripts"], {
++              stdio: "inherit",
++              cwd: outputDirectory
++            });
++            execFileSync(bunExecutable, args, { stdio: "inherit", cwd: outputDirectory });
++            logger.success(`Binary created: ${outputFile}`);
+           } catch (err) {
+             logger.error("bun build --compile failed:", err);
+           }

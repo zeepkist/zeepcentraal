@@ -65,5 +65,8 @@
 		"semantic-release": "~25.0.0",
 		"semantic-release-monorepo": "~8.0.2",
 		"typescript": "~7.0.0"
+	},
+	"patchedDependencies": {
+		"nuxt-bun-compile@0.1.32": "patches/nuxt-bun-compile@0.1.32.patch"
 	}
 }

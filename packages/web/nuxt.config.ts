@@ -38,7 +38,14 @@ export default defineNuxtConfig({
 		'@nuxt/image',
 		'@pinia/nuxt',
 		'nuxt-charts',
+		'nuxt-bun-compile',
 	],
+	bunCompile: {
+		enabled: process.env.NUXT_BUN_COMPILE === 'true',
+		outfile: '../../dist/zeepcentraal-web',
+		target: 'bun-linux-x64',
+		autoCompile: true,
+	},
 	content: {
 		build: {
 			markdown: {
@@ -93,10 +100,6 @@ export default defineNuxtConfig({
 	nitro: {
 		preset: 'bun',
 		compressPublicAssets: true,
-		serveStatic: 'inline',
-		externals: {
-			inline: ['graphql'],
-		},
 		esbuild: {
 			options: {
 				target: 'esnext',
