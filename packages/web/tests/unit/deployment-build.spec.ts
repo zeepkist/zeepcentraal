@@ -10,6 +10,10 @@ const webPackage = JSON.parse(
 	scripts: Record<string, string>
 }
 const nuxtConfig = readFileSync(new URL('../../nuxt.config.ts', import.meta.url), 'utf8')
+const buildAction = readFileSync(
+	new URL('../../../../.github/actions/build-package-binary/action.yml', import.meta.url),
+	'utf8',
+)
 
 describe('web deployment build', () => {
 	it('routes root CI build through standalone deployment compilation', () => {
@@ -25,5 +29,19 @@ describe('web deployment build', () => {
 
 	it('bundles GraphQL into Nitro output for distroless compilation', () => {
 		expect(nuxtConfig).toMatch(/externals:\s*\{\s*inline:\s*\['graphql'\]/)
+	})
+
+	it('restores source-aware Nuxt build data for web binaries only', () => {
+		expect(buildAction).toMatch(/if: \$\{\{ inputs\.name == 'web' \}\}/)
+		expect(buildAction).toContain('uses: actions/cache@v6')
+		expect(buildAction).toContain('packages/web/node_modules/.cache/nuxt')
+		expect(buildAction).toContain('packages/web/node_modules/.cache/vite')
+		expect(buildAction).toContain('packages/web/.nuxt/cache')
+		expect(buildAction).toContain('packages/web/.data')
+		expect(buildAction).toContain('packages/web/app/**')
+		expect(buildAction).toContain('packages/core/src/**')
+		expect(buildAction).toContain('packages/database/src/**')
+		expect(buildAction).toContain('restore-keys: |')
+		expect(buildAction).not.toMatch(/^\s+packages\/web\/\.output$/m)
 	})
 })
