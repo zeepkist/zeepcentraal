@@ -61,7 +61,7 @@ describe('Wiki documentation', () => {
 	test('embeds the exact Zeepkist introduction through a request-free privacy component', () => {
 		const gettingStarted = readWiki('getting-started.md')
 		const embed = readFileSync(
-			join(webRoot, 'app/components/content/ContentYouTubeEmbed.vue'),
+			join(webRoot, 'app/components/content/ContentYoutubeEmbed.vue'),
 			'utf8',
 		)
 

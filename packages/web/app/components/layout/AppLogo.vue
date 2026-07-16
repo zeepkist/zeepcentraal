@@ -1,6 +1,6 @@
 <template>
 	<div class="flex min-w-0 flex-1 items-center gap-3">
-		<UAvatar src="/apple-touch-icon.png" alt="ZeepCentraal" :size="large ? 'xl' : 'lg'" class="rounded-none bg-transparent" />
+		<img :src="Logo" alt="ZeepCentraal" class="h-8 w-8 rounded-none bg-transparent" />
 		<span
 			class="text-highlighted"
 			:class="{
@@ -14,6 +14,8 @@
 </template>
 
 <script setup lang="ts">
+import Logo from '@/assets/logo.png'
+
 const { large } = defineProps<{
 	large?: boolean
 }>()
