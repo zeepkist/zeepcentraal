@@ -10,17 +10,17 @@
 		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-server src/index.ts --external @napi-rs/lzma --external @napi-rs/lzma/lzma --external xxhash-addon"
 	},
 	"dependencies": {
-		"@elysiajs/cors": "~1.4.0",
-		"@elysiajs/openapi": "~1.4.11",
+		"@elysiajs/cors": "1.4.2",
+		"@elysiajs/openapi": "1.4.15",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"@zeepkist/jobs": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
-		"elysia": "~1.4.16",
-		"logixlysia": "~6.6.0",
-		"semver": "~7.8.0"
+		"elysia": "1.4.29",
+		"logixlysia": "6.6.0",
+		"semver": "7.8.5"
 	},
 	"devDependencies": {
-		"@types/semver": "~7.7.0"
+		"@types/semver": "7.7.1"
 	}
 }
