@@ -69,6 +69,20 @@ describe('web deployment build', () => {
 		expect(nuxtConfig).not.toMatch(/externals:\s*\{\s*inline:/)
 	})
 
+	it('namespaces client assets for every CI build artifact', () => {
+		const buildRevisionExpression = [
+			'NUXT_BUILD_REVISION: $',
+			'{{ github.sha }}-$',
+			'{{ github.run_id }}-$',
+			'{{ github.run_attempt }}',
+		].join('')
+
+		expect(nuxtConfig).toContain(
+			'buildAssetsDir: getBuildAssetsDir(process.env.NUXT_BUILD_REVISION)',
+		)
+		expect(buildAction).toContain(buildRevisionExpression)
+	})
+
 	it('keeps server-side Nuxt Content storage outside Bun embedded paths', () => {
 		expect(nuxtConfig).toMatch(
 			/content:\s*\{\s*database:\s*\{\s*type:\s*'sqlite',\s*filename:\s*':memory:'/,
@@ -125,6 +139,7 @@ describe('web deployment build', () => {
 		expect(buildAction).not.toContain('packages/web/.nuxt/cache')
 		expect(buildAction).toContain('packages/web/.data')
 		expect(buildAction).toContain('packages/web/app/**')
+		expect(buildAction).toContain('packages/web/config/**')
 		expect(buildAction).toContain('packages/core/src/**')
 		expect(buildAction).toContain('packages/database/src/**')
 		expect(buildAction).toContain('restore-keys: |')

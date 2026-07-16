@@ -1,4 +1,5 @@
 import graphql from '@rollup/plugin-graphql'
+import { getBuildAssetsDir } from './config/buildAssets'
 
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
 const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
@@ -208,6 +209,7 @@ export default defineNuxtConfig({
 		},
 	},
 	app: {
+		buildAssetsDir: getBuildAssetsDir(process.env.NUXT_BUILD_REVISION),
 		head: {
 			title: 'ZeepCentraal',
 			htmlAttrs: { lang: 'en' },

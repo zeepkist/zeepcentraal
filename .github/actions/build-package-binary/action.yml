@@ -24,12 +24,14 @@ runs:
           packages/web/.data
           packages/web/node_modules/.cache/nuxt
           packages/web/node_modules/.cache/vite
-        key: ${{ runner.os }}-${{ runner.arch }}-nuxt-${{ hashFiles('bun.lock', 'package.json', 'packages/web/package.json', 'packages/web/nuxt.config.ts') }}-${{ hashFiles('packages/web/app/**', 'packages/web/content/**', 'packages/web/i18n/**', 'packages/web/public/**', 'packages/web/server/**', 'packages/core/src/**', 'packages/database/src/**') }}
+        key: ${{ runner.os }}-${{ runner.arch }}-nuxt-${{ hashFiles('bun.lock', 'package.json', 'packages/web/package.json', 'packages/web/nuxt.config.ts') }}-${{ hashFiles('packages/web/app/**', 'packages/web/config/**', 'packages/web/content/**', 'packages/web/i18n/**', 'packages/web/public/**', 'packages/web/server/**', 'packages/core/src/**', 'packages/database/src/**') }}
         restore-keys: |
           ${{ runner.os }}-${{ runner.arch }}-nuxt-${{ hashFiles('bun.lock', 'package.json', 'packages/web/package.json', 'packages/web/nuxt.config.ts') }}-
 
     - name: Build ${{ inputs.name }} binary
       shell: bash
+      env:
+        NUXT_BUILD_REVISION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       run: bun run ${{ inputs.build-script }}
 
     - name: Upload ${{ inputs.name }} binary
