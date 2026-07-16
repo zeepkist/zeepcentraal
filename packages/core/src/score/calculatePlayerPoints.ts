@@ -23,8 +23,8 @@ export interface CalculatePlayerPointsResult {
 
 export const GLOBAL_DECAY_FACTOR = 0.95
 export const LEVEL_DECAY_FACTOR = 0.985
-export const PLAYER_SCORE_PB_LIMIT = 300
-export const PLAYER_SCORE_CONTRIBUTION_LIMIT = 200
+export const PLAYER_SCORE_PB_LIMIT = 2000
+export const PLAYER_SCORE_CONTRIBUTION_LIMIT = 2000
 
 export function calculateDecayMultiplier(position: number, decayFactor: number) {
 	if (

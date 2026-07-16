@@ -32,7 +32,7 @@ describe('calculatePlayerPoints', () => {
 		expect(result.contributions[1]?.playerDecayedPoints).toBeCloseTo(935.75)
 	})
 
-	test('caps ranked point calculation to top 300 PBs', () => {
+	test('caps ranked point calculation to configured PB limit', () => {
 		const personalBests = Array.from({ length: PLAYER_SCORE_PB_LIMIT + 1 }, (_, index) => ({
 			idLevel: index + 1,
 			idRecord: index + 10_000,
@@ -47,13 +47,13 @@ describe('calculatePlayerPoints', () => {
 		expect(capped.totalPoints).toBe(PLAYER_SCORE_PB_LIMIT * 100)
 	})
 
-	test('caps contribution output to top 200 PBs', () => {
+	test('caps contribution output to configured contribution limit', () => {
 		const personalBests = Array.from(
 			{ length: PLAYER_SCORE_CONTRIBUTION_LIMIT + 1 },
 			(_, index) => ({
 				idLevel: index + 1,
 				idRecord: index + 10_000,
-				levelPoints: 1000 - index,
+				levelPoints: PLAYER_SCORE_CONTRIBUTION_LIMIT + 1 - index,
 				position: 1n,
 			}),
 		)
