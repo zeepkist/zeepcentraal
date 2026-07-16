@@ -93,6 +93,7 @@ export default defineNuxtConfig({
 	nitro: {
 		preset: 'bun',
 		compressPublicAssets: true,
+		serveStatic: 'inline',
 		externals: {
 			inline: ['graphql'],
 		},

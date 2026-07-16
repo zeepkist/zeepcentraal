@@ -36,6 +36,10 @@ describe('web deployment build', () => {
 		expect(nuxtConfig).toMatch(/externals:\s*\{\s*inline:\s*\['graphql'\]/)
 	})
 
+	it('embeds public assets into the standalone server', () => {
+		expect(nuxtConfig).toContain("serveStatic: 'inline'")
+	})
+
 	it('restores executable permissions after artifact download', () => {
 		expect(webDockerfile).toContain(
 			'COPY --chmod=755 --chown=nonroot:nonroot dist/zeepcentraal-web zeepcentraal-web',
