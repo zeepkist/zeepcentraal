@@ -40,6 +40,15 @@ describe('web deployment build', () => {
 		expect(rootPackage.scripts['build:web']).toBe(
 			'bun --bun --cwd=packages/web run build:deployment',
 		)
+		expect(webPackage.scripts['prepare:nuxt']).toBe('bun --bun nuxt prepare')
+		expect(webPackage.scripts.postinstall).toBe('bun run prepare:nuxt')
+		expect(webPackage.scripts.build.startsWith('bun run prepare:nuxt &&')).toBe(true)
+		const prepareIndex = webPackage.scripts['build:deployment'].indexOf('bun run prepare:nuxt')
+		const buildIndex = webPackage.scripts['build:deployment'].indexOf(
+			'NUXT_BUN_COMPILE=true bun --bun nuxt build',
+		)
+		expect(prepareIndex).toBeGreaterThanOrEqual(0)
+		expect(buildIndex).toBeGreaterThan(prepareIndex)
 		expect(webPackage.scripts['build:deployment']).toContain('NUXT_BUN_COMPILE=true')
 		expect(webPackage.scripts['build:deployment']).toContain('bun --bun nuxt build')
 		expect(webPackage.scripts['build:deployment']).toContain(
@@ -113,7 +122,7 @@ describe('web deployment build', () => {
 		expect(buildAction).toContain('uses: actions/cache@v6')
 		expect(buildAction).toContain('packages/web/node_modules/.cache/nuxt')
 		expect(buildAction).toContain('packages/web/node_modules/.cache/vite')
-		expect(buildAction).toContain('packages/web/.nuxt/cache')
+		expect(buildAction).not.toContain('packages/web/.nuxt/cache')
 		expect(buildAction).toContain('packages/web/.data')
 		expect(buildAction).toContain('packages/web/app/**')
 		expect(buildAction).toContain('packages/core/src/**')

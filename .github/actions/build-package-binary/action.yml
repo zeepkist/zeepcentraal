@@ -22,7 +22,6 @@ runs:
       with:
         path: |
           packages/web/.data
-          packages/web/.nuxt/cache
           packages/web/node_modules/.cache/nuxt
           packages/web/node_modules/.cache/vite
         key: ${{ runner.os }}-${{ runner.arch }}-nuxt-${{ hashFiles('bun.lock', 'package.json', 'packages/web/package.json', 'packages/web/nuxt.config.ts') }}-${{ hashFiles('packages/web/app/**', 'packages/web/content/**', 'packages/web/i18n/**', 'packages/web/public/**', 'packages/web/server/**', 'packages/core/src/**', 'packages/database/src/**') }}
