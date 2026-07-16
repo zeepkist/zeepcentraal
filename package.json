@@ -25,7 +25,7 @@
 		"build:migrate": "bun --cwd=packages/database run build",
 		"build:import-zsl": "bun --cwd=packages/import-zsl run build",
 		"build:postgraphile": "bun --cwd=packages/postgraphile run build",
-		"build:web": "bun --bun --cwd=packages/web run build",
+		"build:web": "bun --bun --cwd=packages/web run build:deployment",
 		"release:core": "bun --cwd=packages/core run release",
 		"release:database": "bun --cwd=packages/database run release",
 		"release:server": "bun --cwd=packages/server run release",

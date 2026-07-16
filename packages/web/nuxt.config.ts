@@ -93,6 +93,9 @@ export default defineNuxtConfig({
 	nitro: {
 		preset: 'bun',
 		compressPublicAssets: true,
+		externals: {
+			inline: ['graphql'],
+		},
 		esbuild: {
 			options: {
 				target: 'esnext',

@@ -6,7 +6,7 @@
 	"scripts": {
 		"release": "semantic-release",
 		"build": "bun --bun nuxt build",
-		"build:deployment": "bun --bun run build && bun --bun install --cwd .output/server --production --ignore-scripts && bun --bun build --compile --target=bun-linux-x64-baseline --minify --sourcemap .output/server/index.mjs --outfile ../../dist/zeepcentraal-web",
+		"build:deployment": "bun --bun run build && bun --bun install --cwd .output/server --production --ignore-scripts && bun --bun build --compile --target=bun-linux-x64-baseline --conditions=production --external 'chromium-bidi/*' --minify --sourcemap .output/server/index.mjs --outfile ../../dist/zeepcentraal-web",
 		"dev": "bun --bun nuxt dev --dotenv ../../.env",
 		"preview": "bun --bun nuxt preview --dotenv ../../.env",
 		"postinstall": "bun --bun nuxt prepare",
