@@ -1,5 +1,6 @@
 import type { Worker } from 'node:cluster'
 import cluster from 'node:cluster'
+import { onceAsync, stopClusterWorkers } from './processLifecycle'
 
 const WORKER_COUNT = 2
 const clusterEvents = cluster as typeof cluster & {
@@ -21,19 +22,28 @@ if (cluster.isPrimary) {
 			return
 		}
 		console.warn(`API worker ${worker.process.pid} died, restarting...`)
-		setTimeout(() => cluster.fork(), restartDelayMs)
+		setTimeout(() => {
+			if (!shuttingDown) {
+				cluster.fork()
+			}
+		}, restartDelayMs)
 		restartDelayMs = Math.min(restartDelayMs * 2, 30_000)
 	})
 
-	const shutdownPrimary = (signal: string) => {
+	const shutdownPrimary = onceAsync(async (signal: NodeJS.Signals) => {
 		shuttingDown = true
 		console.info(`API primary received ${signal}, stopping workers...`)
-		for (const worker of Object.values(cluster.workers ?? {})) {
-			worker?.process.kill(signal as NodeJS.Signals)
+		const workers = Object.values(cluster.workers ?? {}).filter(
+			(worker): worker is Worker => worker !== undefined,
+		)
+		const stoppedCleanly = await stopClusterWorkers(workers, signal)
+		if (!stoppedCleanly) {
+			console.error('API workers did not stop before shutdown timeout; forced termination.')
 		}
-	}
-	process.on('SIGINT', () => shutdownPrimary('SIGINT'))
-	process.on('SIGTERM', () => shutdownPrimary('SIGTERM'))
+		process.exit(stoppedCleanly ? 0 : 1)
+	})
+	process.on('SIGINT', () => void shutdownPrimary('SIGINT'))
+	process.on('SIGTERM', () => void shutdownPrimary('SIGTERM'))
 } else {
 	process.title = 'zeepcentraal-api: worker'
 	const { config } = await import('./config')
@@ -50,16 +60,21 @@ if (cluster.isPrimary) {
 
 	console.info(`API worker ${process.pid} listening on ${config.host}:${config.port}`)
 
-	async function gracefulShutdown(signal: string) {
+	const gracefulShutdown = onceAsync(async (signal: NodeJS.Signals) => {
 		console.info(`API worker ${process.pid} received ${signal}, shutting down...`)
-		await app.stop()
-		const [{ closeQueue }, { closeDatabase }] = await Promise.all([
-			import('@zeepkist/jobs/queue'),
-			import('@zeepkist/database'),
-		])
-		await Promise.all([closeQueue(), closeDatabase()])
-		process.exit(0)
-	}
+		try {
+			await app.stop(true)
+			const [{ closeQueue }, { closeDatabase }] = await Promise.all([
+				import('@zeepkist/jobs/queue'),
+				import('@zeepkist/database'),
+			])
+			await Promise.all([closeQueue(), closeDatabase()])
+			process.exit(0)
+		} catch (error) {
+			console.error(`API worker ${process.pid} failed to shut down cleanly.`, error)
+			process.exit(1)
+		}
+	})
 
 	process.on('SIGINT', () => void gracefulShutdown('SIGINT'))
 	process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'))
