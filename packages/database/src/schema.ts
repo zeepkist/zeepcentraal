@@ -42,6 +42,16 @@ export const level = pgTable(
 	(table) => [
 		index('IX_level_hash').using('btree', table.hash.asc().nullsLast()),
 		unique('UQ_level_xx_hash').on(table.xxHash),
+		index('IX_level_date_created_id').using(
+			'btree',
+			table.dateCreated.desc().nullsLast(),
+			table.id.desc().nullsLast(),
+		),
+		index('IX_level_adventure_date_created_id')
+			.using('btree', table.dateCreated.asc().nullsLast(), table.id.asc().nullsLast())
+			.where(sql`${table.adventure} = true`),
+		index('IX_level_hash_search').using('gin', table.hash.op('gin_trgm_ops')),
+		index('IX_level_xx_hash_search').using('gin', table.xxHash.op('gin_trgm_ops')),
 	],
 )
 
@@ -110,6 +120,24 @@ export const levelItem = pgTable(
 			table.idLevel.asc().nullsLast(),
 		),
 		index('IX_level_item_author').using('btree', table.authorId.asc().nullsLast()),
+		index('IX_level_item_level_updated_active')
+			.using(
+				'btree',
+				table.idLevel.asc().nullsLast(),
+				table.updatedAt.desc().nullsLast(),
+				table.id.desc().nullsLast(),
+			)
+			.where(sql`${table.deleted} = false`),
+		index('IX_level_item_author_created_active')
+			.using(
+				'btree',
+				table.authorId.asc().nullsLast(),
+				table.createdAt.desc().nullsLast(),
+				table.id.desc().nullsLast(),
+				table.idLevel.asc().nullsLast(),
+			)
+			.where(sql`${table.deleted} = false`),
+		index('IX_level_item_name_search').using('gin', table.name.op('gin_trgm_ops')),
 	],
 )
 
@@ -206,6 +234,21 @@ export const levelPoints = pgTable(
 			foreignColumns: [level.id],
 			name: 'level_points_level_fkey',
 		}).onDelete('cascade'),
+		index('IX_level_points_points_level').using(
+			'btree',
+			table.points.desc().nullsLast(),
+			table.idLevel.asc().nullsLast(),
+		),
+		index('IX_level_points_rating_level').using(
+			'btree',
+			table.rating.desc().nullsLast(),
+			table.idLevel.asc().nullsLast(),
+		),
+		index('IX_level_points_popularity_level').using(
+			'btree',
+			table.popularityModifier.desc().nullsLast(),
+			table.idLevel.asc().nullsLast(),
+		),
 	],
 )
 
@@ -345,6 +388,24 @@ export const userPoints = pgTable(
 			foreignColumns: [user.id],
 			name: 'user_points_user_fkey',
 		}).onDelete('cascade'),
+		index('IX_user_points_rank_ranked')
+			.using('btree', table.rank.asc().nullsLast(), table.idUser.asc().nullsLast())
+			.where(sql`${table.rank} <> -1`),
+		index('IX_user_points_points').using(
+			'btree',
+			table.points.desc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+		),
+		index('IX_user_points_total_points').using(
+			'btree',
+			table.totalPoints.desc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+		),
+		index('IX_user_points_world_records').using(
+			'btree',
+			table.worldRecords.desc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+		),
 	],
 )
 
@@ -387,6 +448,20 @@ export const userPointContribution = pgTable(
 		),
 		index('IX_user_point_contribution_level').using('btree', table.idLevel.asc().nullsLast()),
 		index('IX_user_point_contribution_record').using('btree', table.idRecord.asc().nullsLast()),
+		index('IX_user_point_contribution_user_value_level').using(
+			'btree',
+			table.idUser.asc().nullsLast(),
+			table.playerDecayedPoints.desc().nullsLast(),
+			table.idLevel.asc().nullsLast(),
+		),
+		index('IX_user_point_contribution_user_wr_value_level')
+			.using(
+				'btree',
+				table.idUser.asc().nullsLast(),
+				table.playerDecayedPoints.desc().nullsLast(),
+				table.idLevel.asc().nullsLast(),
+			)
+			.where(sql`${table.levelPosition} = 1`),
 	],
 )
 
@@ -508,12 +583,27 @@ export const record = pgTable(
 			table.time.asc().nullsLast(),
 			table.id.asc().nullsLast(),
 		),
-		index('IX_records_user_date_created').using(
+		index('IX_records_level_date_created_id').using(
+			'btree',
+			table.idLevel.asc().nullsLast(),
+			table.dateCreated.desc().nullsLast(),
+			table.id.desc().nullsLast(),
+			table.modVersion.asc().nullsLast(),
+		),
+		index('IX_records_user_date_created_id').using(
 			'btree',
 			table.idUser.asc().nullsLast(),
 			table.dateCreated.desc().nullsLast(),
+			table.id.desc().nullsLast(),
+			table.modVersion.asc().nullsLast(),
 		),
-		index('IX_records_date_created').using('btree', table.dateCreated.asc().nullsLast()),
+		index('IX_records_date_created_id').using(
+			'btree',
+			table.dateCreated.desc().nullsLast(),
+			table.id.desc().nullsLast(),
+			table.idLevel.asc().nullsLast(),
+			table.modVersion.asc().nullsLast(),
+		),
 	],
 )
 
@@ -644,6 +734,7 @@ export const user = pgTable(
 	(table) => [
 		unique('UQ_user_steam_id').on(table.steamId),
 		uniqueIndex('UQ_user_discord_id').on(table.discordId).where(sql`${table.discordId} > 0`),
+		index('IX_user_steam_name_search').using('gin', table.steamName.op('gin_trgm_ops')),
 	],
 )
 
@@ -727,6 +818,7 @@ export const vote = pgTable(
 			name: 'vote_id_user_fkey',
 		}).onDelete('cascade'),
 		index('IX_vote_level').using('btree', table.idLevel.asc().nullsLast()),
+		index('IX_vote_date_created').using('btree', table.dateCreated.desc().nullsLast()),
 		primaryKey({ columns: [table.idUser, table.idLevel] }),
 	],
 )
@@ -970,6 +1062,12 @@ export const zslLevelResult = pgTable(
 		index('IX_zsl_level_result_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_zsl_level_result_record').using('btree', table.idRecord.asc().nullsLast()),
 		index('IX_zsl_level_result_position').using('btree', table.position.asc().nullsLast()),
+		index('IX_zsl_level_result_level_position_user').using(
+			'btree',
+			table.idLevel.asc().nullsLast(),
+			table.position.asc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+		),
 		index('IX_zsl_level_result_date_created').using(
 			'btree',
 			table.dateCreated.asc().nullsLast(),
@@ -1010,6 +1108,12 @@ export const zslRoundResult = pgTable(
 		}).onDelete('cascade'),
 		index('IX_zsl_round_result_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_zsl_round_result_position').using('btree', table.position.asc().nullsLast()),
+		index('IX_zsl_round_result_round_position_user').using(
+			'btree',
+			table.idRound.asc().nullsLast(),
+			table.position.asc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+		),
 		index('IX_zsl_round_result_date_created').using(
 			'btree',
 			table.dateCreated.asc().nullsLast(),
@@ -1050,6 +1154,12 @@ export const zslSeasonResult = pgTable(
 		}).onDelete('cascade'),
 		index('IX_zsl_season_result_user').using('btree', table.idUser.asc().nullsLast()),
 		index('IX_zsl_season_result_position').using('btree', table.position.asc().nullsLast()),
+		index('IX_zsl_season_result_season_position_user').using(
+			'btree',
+			table.idSeason.asc().nullsLast(),
+			table.position.asc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+		),
 		index('IX_zsl_season_result_date_created').using(
 			'btree',
 			table.dateCreated.asc().nullsLast(),
