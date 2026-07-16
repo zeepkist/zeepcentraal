@@ -18,6 +18,7 @@ const deployWorkflow = readFileSync(
 	new URL('../../../../.github/workflows/deploy.yml', import.meta.url),
 	'utf8',
 )
+const webDockerfile = readFileSync(new URL('../../../../Dockerfile.web', import.meta.url), 'utf8')
 
 describe('web deployment build', () => {
 	it('routes root CI build through standalone deployment compilation', () => {
@@ -33,6 +34,13 @@ describe('web deployment build', () => {
 
 	it('bundles GraphQL into Nitro output for distroless compilation', () => {
 		expect(nuxtConfig).toMatch(/externals:\s*\{\s*inline:\s*\['graphql'\]/)
+	})
+
+	it('restores executable permissions after artifact download', () => {
+		expect(webDockerfile).toContain(
+			'COPY --chmod=755 --chown=nonroot:nonroot dist/zeepcentraal-web zeepcentraal-web',
+		)
+		expect(webDockerfile).toContain('ENTRYPOINT ["./zeepcentraal-web"]')
 	})
 
 	it('restores source-aware Nuxt build data for web binaries only', () => {
