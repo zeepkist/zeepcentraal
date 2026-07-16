@@ -57,6 +57,12 @@ jobs:
       - name: Setup Bun dependencies
         uses: ./.github/actions/setup-bun-deps
 
+      - name: Setup release Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+
       - name: Configure git user
         run: |
           git config user.name "${GITHUB_ACTOR}"
