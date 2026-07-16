@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { getNewRecordIds, recordHistoryFilter } from '../../app/utils/recordHistory'
+import {
+	getNewRecordIds,
+	getRecordResultStatus,
+	recordHistoryFilter,
+} from '../../app/utils/recordHistory'
 
 describe('live record history', () => {
 	it('uses same inclusive view filters as static history', () => {
@@ -20,6 +24,12 @@ describe('live record history', () => {
 		expect(subscription).not.toContain('after:')
 		expect(subscription).not.toContain('before:')
 		expect(subscription).toContain('...ZC_RecordHistoryRow')
+		const query = readFileSync(
+			new URL('../../app/graphql/queries/recordHistory.graphql', import.meta.url),
+			'utf8',
+		)
+		expect(query).toContain('personalBestGlobals(first: 0)')
+		expect(query).toContain('worldRecordGlobals(first: 0)')
 	})
 
 	it('activates only after mount for Latest on first page with static data', () => {
@@ -40,9 +50,19 @@ describe('live record history', () => {
 		expect(getNewRecordIds(new Set(), [5, 6])).toEqual([5, 6])
 	})
 
+	it('maps current record status with world-record precedence', () => {
+		expect(getRecordResultStatus(0, 0)).toBeNull()
+		expect(getRecordResultStatus(1, 0)).toBe('personal-best')
+		expect(getRecordResultStatus(1, 1)).toBe('world-record')
+	})
+
 	it('renders and clears highlighted rows with reduced-motion support', () => {
 		const table = readFileSync(
 			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
+			'utf8',
+		)
+		const row = readFileSync(
+			new URL('../../app/components/common/DataTableRow.vue', import.meta.url),
 			'utf8',
 		)
 		const composable = readFileSync(
@@ -53,11 +73,31 @@ describe('live record history', () => {
 			new URL('../../app/assets/css/tailwind.css', import.meta.url),
 			'utf8',
 		)
-		expect(table).toContain("'record-history-highlight': highlightedRecordIds?.has(record.id)")
+		expect(table).toContain(':highlighted="highlightedRecordIds?.has(record.id)"')
+		expect(row).toContain("'record-history-highlight': highlighted")
 		expect(table).toContain('aria-live="polite"')
-		expect(composable).toContain('}, 2_000)')
+		expect(composable).toContain('}, 10_000)')
 		expect(composable).toContain('onScopeDispose(clearHighlights)')
 		expect(css).toContain('@keyframes record-history-highlight')
+		expect(css).toContain('animation: record-history-highlight 10s')
 		expect(css).toContain('@media (prefers-reduced-motion: reduce)')
+	})
+
+	it('reports connecting, live, paused, and error states to request-free controls', () => {
+		const composable = readFileSync(
+			new URL('../../app/composables/useRecordHistory.ts', import.meta.url),
+			'utf8',
+		)
+		const controls = readFileSync(
+			new URL('../../app/components/record/RecordLiveControls.vue', import.meta.url),
+			'utf8',
+		)
+		expect(composable).toContain('const liveEligible = computed(')
+		expect(composable).toContain('const liveReady = computed(')
+		expect(composable).toContain("return 'error' as const")
+		expect(controls).toContain("status === 'live' ? 'success' : 'neutral'")
+		expect(controls).toContain('animate-ping')
+		expect(controls).toContain('motion-reduce:animate-none')
+		expect(controls).not.toContain('useQuery')
 	})
 })

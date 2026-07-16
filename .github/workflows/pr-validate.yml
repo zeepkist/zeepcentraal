@@ -58,6 +58,9 @@ jobs:
           - name: postgraphile
             build_script: build:postgraphile
             binary: zeepcentraal-postgraphile
+          - name: web
+            build_script: build:web
+            binary: zeepcentraal-web
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -100,6 +103,11 @@ jobs:
             file: Dockerfile.postgraphile
             binary: zeepcentraal-postgraphile
             tag: zeepcentraal/postgraphile
+            clone_super_league: false
+          - name: web
+            file: Dockerfile.web
+            binary: zeepcentraal-web
+            tag: zeepcentraal/web
             clone_super_league: false
     steps:
       - name: Checkout code

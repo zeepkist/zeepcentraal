@@ -34,9 +34,15 @@ export type RecordRow = {
 	rank?: number | null
 	rankedPoints?: number | null
 	nonDecayedPoints?: number | null
+	points?: number | null
+	pbOrWr?: RecordResultStatus | null
 	worldRecord?: boolean
 	viewer?: boolean
+	pinned?: boolean
 }
+
+export type RecordResultStatus = 'personal-best' | 'world-record'
+export type RecordLiveStatus = 'connecting' | 'live' | 'paused' | 'error'
 
 export type RecordHistoryRow = {
 	id: number
@@ -55,6 +61,12 @@ export type RecordHistoryRow = {
 	playerDecayedPoints?: number | null
 	levelDecayMultiplier?: number | null
 	globalDecayMultiplier?: number | null
+	pbOrWr?: RecordResultStatus | null
+}
+
+export type RecordHistoryUpdate = {
+	sequence: number
+	records: RecordHistoryRow[]
 }
 
 export type LevelSummary = {
@@ -64,10 +76,14 @@ export type LevelSummary = {
 	imageUrl?: string | null
 	authorName?: string | null
 	authorSteamId?: string | null
+	authorId?: string | null
+	workshopId?: string | null
+	trackLength?: number | null
 	adventure: boolean
 	dateCreated: string
 	points?: number | null
 	rating?: number | null
+	competitiveness?: number | null
 	popularity?: number | null
 	recordCount?: number
 	personalBestCount?: number
@@ -76,6 +92,14 @@ export type LevelSummary = {
 	worldRecordAuthorSteamId?: string | null
 	worldRecord?: RecordRow | null
 	medals?: MedalTimes | null
+}
+
+export type LevelWorldRecordSummary = {
+	recordId: number
+	time: number
+	dateCreated: string
+	userName?: string | null
+	userSteamId?: string | null
 }
 
 export type UserSummary = {
@@ -88,6 +112,27 @@ export type UserSummary = {
 	worldRecords?: number | null
 }
 
+export type OmniSearchUserResult = {
+	kind: 'user'
+	id: number
+	steamId: string
+	name: string
+	rank: number | null
+}
+
+export type OmniSearchLevelResult = {
+	kind: 'level'
+	id: number
+	xxHash: string
+	name: string
+	authorName: string | null
+	imageUrl: string | null
+	points: number | null
+	rating: number | null
+}
+
+export type OmniSearchResult = OmniSearchUserResult | OmniSearchLevelResult
+
 export type StatisticMetric = {
 	key: string
 	label: string
@@ -95,6 +140,75 @@ export type StatisticMetric = {
 	valueLabel?: string
 	icon?: string
 	details?: Array<{ label: string; value: string }>
+	to?: string
+}
+
+export type UserProfileSummary = {
+	id: number
+	steamId: string
+	steamName: string | null
+	dateCreated: string
+	rank: number | null
+	rankedPoints: number
+	totalPoints: number
+	records: number
+	personalBests: number
+	worldRecords: number
+	levels: number
+}
+
+export type UserCareerHistoryPoint = {
+	date: string
+	rankedPoints: number
+	rank: number | null
+}
+
+export type UserCareerSecondaryHistoryPoint = {
+	date: string
+	totalPoints: number
+	worldRecords: number
+}
+
+export type UserSuperLeagueRoundResult = {
+	id: number
+	round: number
+	name: string
+	eventDate: string
+	position: number
+	points: number
+	counted: boolean
+}
+
+export type UserSuperLeagueSummary = {
+	id: number
+	name: string
+	startDate: string
+	endDate: string
+	bestOf: number
+	position: number | null
+	points: number | null
+	rounds: UserSuperLeagueRoundResult[]
+}
+
+export type UserAchievementPreviewItem = {
+	key: string
+	label: string
+	icon: string
+}
+
+export type UserCosmeticCategoryPreview = {
+	key: string
+	label: string
+	icon: string
+	rarest?: string | null
+	mostUsed?: string | null
+}
+
+export type UserCosmeticProgressPreview = {
+	unlocked?: number | null
+	total?: number | null
+	percentage?: number | null
+	categories: UserCosmeticCategoryPreview[]
 }
 
 export type CursorPage = {
@@ -132,8 +246,12 @@ export type ZslSeasonSummary = {
 }
 
 export type ZslStanding = {
+	userId: number
+	pinned?: boolean
 	position: number
 	points: number
+	levelsPlayed?: number
+	roundPoints?: Array<number | null>
 	steamId: string | null
 	steamName: string | null
 	time?: number
@@ -195,6 +313,33 @@ export type DashboardStatisticsChart = {
 	data: DashboardPeriodData<DashboardChartEntry[]>
 	total: DashboardPeriodData<string>
 }
+
+export type RecordTelemetryChart = {
+	key: string
+	title: string
+	description: string
+	icon: string
+	entries: DashboardChartEntry[]
+	totalLabel: string
+}
+
+export type RecordTelemetryModel = {
+	minimumVersionLabel: string
+	emptyLabel: string
+	overviewMetrics: DashboardStatisticsMetric[]
+	charts: RecordTelemetryChart[]
+	driverInputs: {
+		title: string
+		description: string
+		icon: string
+		steering: DashboardChartEntry[]
+		steeringTotalLabel: string
+		actions: DashboardStatisticsMetric[]
+	}
+}
+
+export type LevelTelemetryChart = RecordTelemetryChart
+export type LevelTelemetryModel = RecordTelemetryModel
 
 export type DashboardStatisticsModel = {
 	distanceMetrics: DashboardStatisticsMetric[]

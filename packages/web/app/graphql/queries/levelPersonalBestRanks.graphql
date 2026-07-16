@@ -1,0 +1,27 @@
+query ZC_LevelPersonalBestRanks($levelId: Int!, $minimumTime: Float!, $maximumTime: Float!) {
+	fasterPersonalBests: records(
+		first: 0
+		filter: {
+			levelId: { equalTo: $levelId }
+			personalBestGlobalsExist: true
+			time: { lessThan: $minimumTime }
+		}
+	) {
+		totalCount
+	}
+	visiblePersonalBestTimes: records(
+		first: 0
+		filter: {
+			levelId: { equalTo: $levelId }
+			personalBestGlobalsExist: true
+			time: { greaterThanOrEqualTo: $minimumTime, lessThanOrEqualTo: $maximumTime }
+		}
+	) {
+		groupedAggregates(groupBy: [TIME]) {
+			keys
+			distinctCount {
+				id
+			}
+		}
+	}
+}

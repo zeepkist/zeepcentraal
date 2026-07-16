@@ -2,9 +2,9 @@ import { defineCollection, defineContentConfig, z } from '@nuxt/content'
 
 export default defineContentConfig({
 	collections: {
-		api: defineCollection({
+		developer: defineCollection({
 			type: 'page',
-			source: 'api/**/*.md',
+			source: 'developer/**/*.md',
 			schema: z.object({
 				description: z.string(),
 				title: z.string(),
@@ -13,6 +13,14 @@ export default defineContentConfig({
 		guides: defineCollection({
 			type: 'page',
 			source: 'guides/**/*.md',
+			schema: z.object({
+				description: z.string(),
+				title: z.string(),
+			}),
+		}),
+		legal: defineCollection({
+			type: 'page',
+			source: 'legal/**/*.md',
 			schema: z.object({
 				description: z.string(),
 				title: z.string(),
@@ -31,6 +39,7 @@ export default defineContentConfig({
 			source: 'wiki/**/*.md',
 			schema: z.object({
 				description: z.string(),
+				editPath: z.string(),
 				title: z.string(),
 			}),
 		}),

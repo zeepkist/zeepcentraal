@@ -1,15 +1,40 @@
 ---
-title: Getting started
-description: Start racing and submit Zeepkist records to ZeepCentraal.
+title: Getting Started
+description: Install Zeepkist, start racing, and join the Zeepkist community.
+editPath: wiki/getting-started.md
 ---
 
-# Getting started
+Zeepkist is a physics-driven soapbox racing game built around official Adventure levels, community Workshop tracks, online multiplayer, time trials, and competitive events. ZeepCentraal lets you browse levels, records, player profiles, and Super League results without installing game modifications.
 
-1. Install Zeepkist through Steam.
-2. Install ModKist to manage community mods.
-3. Install GTR to submit records and telemetry to ZeepCentraal.
-4. Sign in with Steam or Discord to view your personalised dashboard.
+::content-youtube-embed{video-id="rk9rMywR1yc" title="Zeepkist introduction, overview, and review"}
+::
 
-## Next steps
+## Install Zeepkist
 
-Explore [Adventure Mode](/adventure), browse [community levels](/levels), or inspect your place on the [global leaderboard](/users).
+1. Purchase and install [Zeepkist through Steam](https://store.steampowered.com/app/1440670/Zeepkist/).
+2. Launch the game and complete some official Adventure Mode levels.
+3. Browse the Steam Workshop when you are ready for community-created tracks.
+4. Go Online to play against other players in rooms of up to 63 other players.
+
+::content-alert{type="notice" title="No mod required to browse"}
+You can explore all of ZeepCentraal and compete in most community events without needing Modkist or GTR installed.
+::
+
+## Find levels and improve
+
+- Start with official [Adventure Mode levels](/adventure/a).
+- Browse [community levels](/levels) by points, rating, popularity, author, or your own PB and WR status.
+- Study level leaderboards and checkpoint analysis to compare your route with faster players.
+- Follow [live record submissions](/records) and inspect the [global player leaderboard](/users).
+
+## Compete online
+
+[Zeepkist Super League](/super-league) and other community tournaments let players compete on scheduled sets of tracks. Super League participation does not require GTR; results are imported independently into ZeepCentraal.
+
+Use the [official Zeepkist Discord](https://discord.gg/WjRuWGRnGp) and [Zeepkist modding Discord](https://discord.gg/zEeHqdPQWQ) to find tournaments, community events, level feedback, and other players.
+
+## Submit your times
+
+When you want automatic online record submission, PB and WR ghost replay, and bulk ghost playback, follow [Setup Modkist and GTR](/wiki/setup-modkist).
+
+GTR submits completed runs to ZeepCentraal when playing in Online mode only. After finishing your first level in an online room with GTR enabled, open [your record history](/records/me) and confirm the run appears.

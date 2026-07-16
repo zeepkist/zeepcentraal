@@ -3,8 +3,10 @@ import graphql from '@rollup/plugin-graphql'
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
 const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
 const productionBackendUrl = 'https://backend.zeepki.st'
+
 export default defineNuxtConfig({
 	compatibilityDate: '2026-07-06',
+	debug: false,
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
 	srcDir: 'app',
@@ -37,6 +39,20 @@ export default defineNuxtConfig({
 		'@pinia/nuxt',
 		'nuxt-charts',
 	],
+	content: {
+		build: {
+			markdown: {
+				highlight: {
+					theme: {
+						default: 'github-dark',
+						dark: 'github-dark',
+						light: 'github-light',
+					},
+					langs: ['graphql', 'json', 'python'],
+				},
+			},
+		},
+	},
 	typescript: {
 		strict: true,
 		typeCheck: process.env.NUXT_ENABLE_TYPECHECK === 'true',
@@ -47,11 +63,17 @@ export default defineNuxtConfig({
 		},
 	},
 	runtimeConfig: {
+		githubToken: process.env.NUXT_GITHUB_TOKEN ?? '',
+		modioApiKey: process.env.NUXT_MODIO_API_KEY ?? '',
+		modioApiEndpoint: process.env.NUXT_MODIO_API_ENDPOINT ?? 'https://api.mod.io/',
 		public: {
 			graphqlHttpUrl: process.env.NUXT_PUBLIC_GRAPHQL_HTTP_URL ?? productionGraphqlHttpUrl,
 			graphqlWsUrl: process.env.NUXT_PUBLIC_GRAPHQL_WS_URL ?? productionGraphqlWsUrl,
 			backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL ?? productionBackendUrl,
 		},
+	},
+	image: {
+		domains: ['assets.modcdn.io'],
 	},
 	routeRules: {
 		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },
@@ -71,6 +93,9 @@ export default defineNuxtConfig({
 	nitro: {
 		preset: 'bun',
 		compressPublicAssets: true,
+		externals: {
+			inline: ['graphql'],
+		},
 		esbuild: {
 			options: {
 				target: 'esnext',

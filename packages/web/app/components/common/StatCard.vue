@@ -1,5 +1,13 @@
 <template>
-	<UCard :ui="{ root: 'rounded-lg border-border bg-card/80' }">
+	<component
+		:is="wrapper"
+		:to="to"
+		:class="to ? 'group block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary' : undefined"
+	>
+	<UCard
+		:ui="{ root: 'rounded-lg border-border bg-card/80' }"
+		:class="to ? 'transition group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/5 motion-safe:group-hover:-translate-y-1' : undefined"
+	>
 		<div class="flex items-start justify-between gap-4">
 			<div class="min-w-0 flex-1">
 				<p class="text-sm text-muted-foreground">
@@ -24,14 +32,18 @@
 			</div>
 		</div>
 	</UCard>
+	</component>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
 	label: string
 	value: string
 	valueLabel?: string
 	icon: string
 	details?: Array<{ label: string; value: string }>
+	to?: string
 }>()
+
+const wrapper = computed(() => (props.to ? resolveComponent('NuxtLink') : 'div'))
 </script>

@@ -5,6 +5,7 @@ query ZC_ZslLevel($id: Int!) {
 		round {
 			name
 			round
+			eventDate
 			seasonId
 			season {
 				name
@@ -20,6 +21,7 @@ query ZC_ZslLevel($id: Int!) {
 				nodes {
 					name
 					imageUrl
+					workshopId
 				}
 			}
 		}

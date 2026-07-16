@@ -1,0 +1,69 @@
+fragment ZC_UserLevelCard on Level {
+	id
+	xxHash
+	adventure
+	dateCreated
+	levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
+		nodes {
+			name
+			imageUrl
+			validationTimeAuthor
+			validationTimeGold
+			validationTimeSilver
+			validationTimeBronze
+			author {
+				steamId
+				steamName
+			}
+		}
+	}
+	levelPoints {
+		points
+		rating
+		modifierPopularity
+	}
+	records(first: 0) {
+		totalCount
+	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobal {
+		record {
+			time
+		}
+		user {
+			steamId
+			steamName
+		}
+	}
+}
+
+query ZC_UserLevels($userId: Int!, $steamId: BigInt!, $since: Datetime!) {
+	recentUser: user(id: $userId) {
+		levelItems(first: 6, filter: { deleted: { equalTo: false } }, orderBy: [CREATED_AT_DESC]) {
+			nodes {
+				level {
+					...ZC_UserLevelCard
+				}
+			}
+		}
+	}
+	popularLevels: hotLevelsSince(
+		first: 6
+		since: $since
+		filter: {
+			levelItems: { some: { authorId: { equalTo: $steamId }, deleted: { equalTo: false } } }
+		}
+	) {
+		nodes {
+			...ZC_UserLevelCard
+			periodRecords: records(
+				first: 0
+				filter: { dateCreated: { greaterThanOrEqualTo: $since } }
+			) {
+				totalCount
+			}
+		}
+	}
+}

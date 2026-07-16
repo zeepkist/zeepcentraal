@@ -25,60 +25,96 @@
 				/>
 			</div>
 		</div>
-		<div class="mt-4 grid grid-cols-3 gap-3 text-sm">
-			<div v-if="level.points != null">
+		<div class="mt-4 grid grid-cols-4 gap-2 text-sm">
+			<div class="min-w-0">
 				<p class="text-xs text-muted-foreground">{{ pointsLabel }}</p>
-				<p class="font-semibold tabular-nums text-highlighted">{{ formatNumber(level.points) }}</p>
-			</div>
-			<div v-if="level.recordCount != null">
-				<p class="text-xs text-muted-foreground">{{ recordsLabel }}</p>
 				<p class="font-semibold tabular-nums text-highlighted">
-					{{ formatNumber(level.recordCount) }}
+					{{ level.points == null ? unavailableLabel : formatNumber(level.points) }}
 				</p>
 			</div>
-			<div v-if="personalBestsLabel && level.personalBestCount != null">
+			<div class="min-w-0">
+				<p class="text-xs text-muted-foreground">{{ recordsLabel }}</p>
+				<p class="font-semibold tabular-nums text-highlighted">
+					{{ level.recordCount == null ? unavailableLabel : formatNumber(level.recordCount) }}
+				</p>
+			</div>
+			<div class="min-w-0">
 				<p class="text-xs text-muted-foreground">{{ personalBestsLabel }}</p>
 				<p class="font-semibold tabular-nums text-highlighted">
-					{{ formatNumber(level.personalBestCount) }}
+					{{
+						level.personalBestCount == null
+							? unavailableLabel
+							: formatNumber(level.personalBestCount)
+					}}
+				</p>
+			</div>
+			<div class="min-w-0">
+				<p class="text-xs text-muted-foreground">{{ ratingLabel }}</p>
+				<p class="font-semibold tabular-nums text-highlighted">
+					{{ level.rating == null ? unavailableLabel : ratingFormat.format(level.rating) }}
 				</p>
 			</div>
 		</div>
 		<div
 			v-if="bestTime != null && bestTimeLabel"
-			class="mt-4 flex items-center justify-between gap-3 rounded-lg border border-primary/15 bg-primary/5 px-3 py-2"
+			class="mt-4 flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
+			:class="{
+				'border-primary/25 bg-primary/10': isWorldRecord,
+				'border-purple-500/25 bg-purple-500/10': !isWorldRecord
+			}"
 		>
 			<div class="min-w-0">
-				<p class="text-xs font-semibold uppercase tracking-wide text-primary">{{ bestTimeLabel }}</p>
+				<p
+					class="text-xs font-semibold uppercase tracking-wide"
+					:class="{
+						'text-primary': isWorldRecord,
+						'text-purple-700 dark:text-purple-300': !isWorldRecord
+					}"
+				>{{ bestTimeLabel }}</p>
 				<p v-if="bestTimeAuthor" class="truncate text-xs text-muted-foreground">
 					{{ byLabel ? `${byLabel} ${bestTimeAuthor}` : bestTimeAuthor }}
 				</p>
 			</div>
 			<p class="shrink-0 font-bold tabular-nums text-highlighted">{{ formatTime(bestTime) }}</p>
 		</div>
+		<div
+			v-if="createdLabel"
+			class="mt-4 flex items-center gap-2 text-xs text-muted-foreground"
+		>
+			<TablerIcon name="clock" class="size-4" />
+			<span>{{ createdLabel }}</span>
+			<NuxtTime :datetime="level.dateCreated" relative />
+		</div>
 	</NuxtLink>
 </template>
 
 <script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
+import { createLevelRatingFormatter } from '~/utils/levelRating'
 
 const props = defineProps<{
 	level: LevelSummary
 	adventureLabel: string
 	pointsLabel: string
 	recordsLabel: string
-	personalBestsLabel?: string
+	personalBestsLabel: string
+	ratingLabel: string
+	unavailableLabel: string
 	worldRecordLabel?: string
 	authorTimeLabel?: string
 	byLabel?: string
+	createdLabel?: string
 }>()
 
 const { locale } = useI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
+const ratingFormat = computed(() => createLevelRatingFormatter(locale.value))
 const bestTime = computed(() => props.level.worldRecordTime ?? props.level.medals?.author)
 const bestTimeAuthor = computed(() => props.level.worldRecordAuthorName ?? props.level.authorName)
 const bestTimeLabel = computed(() =>
 	props.level.worldRecordTime == null ? props.authorTimeLabel : props.worldRecordLabel,
 )
+const isWorldRecord = computed(() => props.level.worldRecordTime != null)
 
 function formatNumber(value: number) {
 	return numberFormat.value.format(value)

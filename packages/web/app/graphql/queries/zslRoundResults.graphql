@@ -1,21 +1,44 @@
-query ZC_ZslRoundResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $before: Cursor) {
+fragment ZC_ZslRoundStandingFields on ZslRoundResult {
+	position
+	points
+	userId
+	user {
+		id
+		steamId
+		steamName
+		zslLevelResults(
+			first: 0
+			filter: {
+				level: { round: { seasonId: { equalTo: $seasonId }, round: { equalTo: $round } } }
+			}
+		) {
+			totalCount
+		}
+	}
+}
+
+query ZC_ZslRoundResults(
+	$seasonId: Int!
+	$round: Int!
+	$viewerId: Int!
+	$includeViewer: Boolean!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+) {
 	zslRoundResults(
 		first: $first
 		after: $after
 		last: $last
 		before: $before
-		filter: { roundId: { equalTo: $id } }
+		filter: { round: { seasonId: { equalTo: $seasonId }, round: { equalTo: $round } } }
 		orderBy: [POSITION_ASC]
 	) {
 		edges {
 			cursor
 			node {
-				position
-				points
-				user {
-					steamId
-					steamName
-				}
+				...ZC_ZslRoundStandingFields
 			}
 		}
 		pageInfo {
@@ -25,5 +48,16 @@ query ZC_ZslRoundResults($id: Int!, $first: Int, $after: Cursor, $last: Int, $be
 			hasPreviousPage
 		}
 		totalCount
+	}
+	viewerStanding: zslRoundResults(
+		first: 1
+		filter: {
+			round: { seasonId: { equalTo: $seasonId }, round: { equalTo: $round } }
+			userId: { equalTo: $viewerId }
+		}
+	) @include(if: $includeViewer) {
+		nodes {
+			...ZC_ZslRoundStandingFields
+		}
 	}
 }

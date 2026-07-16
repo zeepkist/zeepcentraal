@@ -1,5 +1,5 @@
 <template>
-	<div class="overflow-x-auto rounded-xl border border-border">
+	<DataTableFrame>
 		<table class="w-full text-left text-sm">
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
@@ -11,16 +11,41 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr v-for="user in users" :key="user.id" class="border-t border-border bg-card/60 transition-colors hover:bg-primary/5">
-					<td class="px-4 py-3 font-bold tabular-nums">#{{ user.rank ?? '—' }}</td>
-					<td class="px-4 py-3"><NuxtLink :to="`/user/${user.steamId}`" class="font-semibold hover:text-primary">{{ user.steamName }}</NuxtLink></td>
-					<td class="px-4 py-3 tabular-nums">{{ format(user.points) }}</td>
-					<td class="px-4 py-3 tabular-nums">{{ format(user.totalPoints) }}</td>
-					<td class="px-4 py-3 tabular-nums">{{ format(user.worldRecords) }}</td>
-				</tr>
+				<DataTableRow
+					v-for="user in users"
+					:key="user.id"
+					:viewer="viewerUserId === user.id"
+					interactive
+				>
+					<td class="p-0 font-bold tabular-nums">
+						<DataTableCellLink :to="userPath(user)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							#{{ user.rank ?? '—' }}
+						</DataTableCellLink>
+					</td>
+					<td class="p-0">
+						<DataTableCellLink :to="userPath(user)" focusable class="px-4 py-3 font-semibold group-hover:text-primary">
+							{{ user.steamName }}
+						</DataTableCellLink>
+					</td>
+					<td class="p-0 tabular-nums">
+						<DataTableCellLink :to="userPath(user)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{ format(user.points) }}
+						</DataTableCellLink>
+					</td>
+					<td class="p-0 tabular-nums">
+						<DataTableCellLink :to="userPath(user)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{ format(user.totalPoints) }}
+						</DataTableCellLink>
+					</td>
+					<td class="p-0 tabular-nums">
+						<DataTableCellLink :to="userPath(user)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{ format(user.worldRecords) }}
+						</DataTableCellLink>
+					</td>
+				</DataTableRow>
 			</tbody>
 		</table>
-	</div>
+	</DataTableFrame>
 </template>
 
 <script setup lang="ts">
@@ -28,14 +53,18 @@ import type { UserSummary } from '~/types/app'
 
 defineProps<{
 	users: UserSummary[]
+	viewerUserId?: number
 	labels: {
 		rank: string
 		player: string
 		points: string
 		totalPoints: string
 		worldRecords: string
+		openPlayer: string
 	}
 }>()
-const formatter = new Intl.NumberFormat()
-const format = (value?: number | null) => formatter.format(value ?? 0)
+const { locale } = useI18n()
+const formatter = computed(() => new Intl.NumberFormat(locale.value))
+const format = (value?: number | null) => formatter.value.format(value ?? 0)
+const userPath = (user: UserSummary) => `/user/${user.steamId}`
 </script>

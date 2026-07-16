@@ -20,6 +20,7 @@
 		}
 	},
 	"common": {
+		"breadcrumbs": "Breadcrumb navigation",
 		"placeholder": "Foundation placeholder",
 		"adventure": "Adventure",
 		"points": "Points",
@@ -27,6 +28,7 @@
 		"rank": "Rank",
 		"user": "Player",
 		"level": "Level",
+		"levels": "Levels",
 		"time": "Time",
 		"date": "Date",
 		"live": "Live",
@@ -59,7 +61,22 @@
 		}
 	},
 	"footer": {
-		"copyright": "ZeepCentraal statistics and tools for Zeepkist."
+		"brand": "ZeepCentraal",
+		"columns": {
+			"community": "Community",
+			"discover": "Discover",
+			"explore": "Explore",
+			"legal": "Legal"
+		},
+		"copyrightZeepCentraal": "© 2023 ZeepCentraal — Akane.",
+		"copyrightZeepkist": "Zeepkist © Yannic Geurts.",
+		"description": "Records, rankings, levels, tournaments, mods, and community tools for Zeepkist.",
+		"disclaimer": "ZeepCentraal is not affiliated with Zeepkist, Yannic Geurts, or Steelpan Interactive.",
+		"links": {
+			"github": "GitHub repository",
+			"privacy": "Privacy Policy",
+			"terms": "Terms & Conditions"
+		}
 	},
 	"home": {
 		"portal": {
@@ -74,18 +91,59 @@
 	},
 	"nav": {
 		"adventure": "Adventure",
+		"cosmetics": "Cosmetics",
 		"developer": "Developer",
 		"home": "Dashboard",
 		"levels": "Levels",
 		"mods": "Mods",
 		"records": "Records",
+		"totm": "Track of the Month",
+		"totw": "Track of the Week",
 		"users": "Users",
 		"wiki": "Wiki",
 		"zsl": "Zeepkist Super League"
 	},
+	"search": {
+		"empty": "No users or levels found",
+		"error": "Unable to search",
+		"groups": {
+			"levels": "Levels",
+			"users": "Users"
+		},
+		"label": "Search users and levels",
+		"loading": "Searching users and levels",
+		"placeholder": "Search users and levels",
+		"rank": "Rank",
+		"typeMore": "Type at least two characters",
+		"unknownAuthor": "Unknown author"
+	},
+	"wikiContent": {
+		"edit": "Edit this page",
+		"modkist": {
+			"allReleases": "View all releases",
+			"formats": {
+				"appimage": "Linux AppImage",
+				"deb": "Linux DEB",
+				"dmg": "macOS DMG",
+				"msi": "Download for Windows"
+			},
+			"prerelease": {
+				"description": "Try upcoming Modkist changes before their stable release.",
+				"title": "Latest prerelease"
+			},
+			"source": "View source code",
+			"stable": {
+				"description": "Recommended Modkist release for most players.",
+				"title": "Latest stable release"
+			}
+		},
+		"youtube": {
+			"open": "Watch this video on YouTube"
+		}
+	},
 	"pages": {
 		"adventure": {
-			"description": "Browse adventure seasons, levels, and leaderboards.",
+			"description": "Browse the official Adventure Mode levels in Zeepkist, and view the global leaderboards for each level.",
 			"eyebrow": "Adventure mode",
 			"panelDescription": "Season browser and adventure leaderboards land here.",
 			"panelTitle": "Adventure browser",
@@ -102,36 +160,47 @@
 			}
 		},
 		"cosmetics": {
-			"description": "Reference cosmetic items and unlock context.",
-			"eyebrow": "Cosmetics",
-			"panelDescription": "Cosmetic wiki placeholder for structured content.",
-			"panelTitle": "Cosmetic wiki",
+			"back": "Back to dashboard",
+			"description": "Browse Zeepkist cosmetic collections, unlock requirements, and rarity information when the catalogue arrives.",
 			"seo": {
-				"description": "Zeepkist cosmetics wiki.",
+				"description": "ZeepCentraal cosmetic catalogue placeholder.",
 				"title": "Cosmetics"
 			},
-			"title": "Cosmetic wiki"
+			"title": "Cosmetics are coming next"
+		},
+		"cosmeticDetail": {
+			"back": "Back to cosmetics",
+			"description": "Cosmetic #{id} has a permanent page. Unlock requirements, rarity, and collection details will appear here.",
+			"notFound": "Cosmetic not found",
+			"seo": {
+				"description": "ZeepCentraal cosmetic detail placeholder.",
+				"title": "Cosmetic #{id} · ZeepCentraal"
+			},
+			"title": "Cosmetic details are coming next"
 		},
 		"developer": {
+			"breadcrumb": "Developer Portal",
 			"description": "Build integrations on top of ZeepCentraal data.",
-			"eyebrow": "Developer portal",
+			"eyebrow": "Developer Portal",
 			"panelDescription": "GraphQL guidance, schemas, examples, and usage patterns.",
 			"panelTitle": "Developer resources",
 			"seo": {
 				"description": "ZeepCentraal developer portal.",
 				"title": "Developer Portal"
 			},
-			"title": "Developer portal"
+			"title": "Developer Portal"
 		},
 		"graphql": {
-			"description": "Use dedicated GraphQL documents and ZC-prefixed operation names.",
+			"description": "Query ZeepCentraal safely with named operations, bounded pagination, caching, and query-cost awareness.",
 			"eyebrow": "GraphQL",
+			"notFound": "GraphQL guide not found",
 			"panelDescription": "Schema-driven examples and API docs will be built here.",
 			"panelTitle": "GraphQL usage",
 			"seo": {
 				"description": "ZeepCentraal GraphQL usage guide.",
 				"title": "GraphQL Guide"
 			},
+			"tableOfContents": "On this page",
 			"title": "GraphQL guide"
 		},
 		"guides": {
@@ -155,7 +224,7 @@
 			"title": "Zeepkist stats hub"
 		},
 		"levels": {
-			"description": "Explore levels, records, validation metadata, and leaderboard context.",
+			"description": "Explore official and community created levels.",
 			"eyebrow": "Level explorer",
 			"panelDescription": "Search, filters, record tables, and level stats land here.",
 			"panelTitle": "Level data",
@@ -166,15 +235,13 @@
 			"title": "Levels and leaderboards"
 		},
 		"mods": {
-			"description": "Discover mod.io integrations and Zeepkist modding resources.",
-			"eyebrow": "Mods",
-			"panelDescription": "mod.io browser and Modkist integration will be wired here.",
-			"panelTitle": "Mod integration",
+			"description": "Find Zeepkist plugins, compare community ratings, and open complete mod details.",
+			"eyebrow": "Mod explorer",
 			"seo": {
-				"description": "Zeepkist mods and mod.io integration.",
-				"title": "Mods"
+				"description": "Browse Zeepkist plugins from mod.io by popularity, rating, downloads, or update date.",
+				"title": "Zeepkist Mods"
 			},
-			"title": "Mods and integrations"
+			"title": "Zeepkist mods"
 		},
 		"records": {
 			"description": "Track world records, personal bests, and record history.",
@@ -182,6 +249,17 @@
 			"empty": "No records found in this view.",
 			"myRecordsAction": "My records",
 			"liveUpdate": "Record history updated with new runs.",
+			"live": {
+				"active": "Live records",
+				"connecting": "Connecting",
+				"paused": "Live updates paused",
+				"error": "Live updates unavailable",
+				"enableSound": "Enable record notification sounds",
+				"disableSound": "Disable record notification sounds",
+				"soundOn": "Sound on",
+				"soundOff": "Sound off",
+				"onlyMine": "Only my records"
+			},
 			"tabs": {
 				"label": "Record view",
 				"recent": "Recent records",
@@ -201,13 +279,26 @@
 				"levelPoints": "Level points",
 				"rankedPoints": "Ranked points",
 				"decayPercentage": "{percentage} remaining after decay",
-				"openRecord": "Open record for {level}"
+				"openRecord": "Open record for {level}",
+				"status": "PB / WR",
+				"personalBest": "PB",
+				"worldRecord": "WR"
 			},
 			"seo": {
 				"description": "Zeepkist world records and personal bests.",
 				"title": "Records"
 			},
 			"title": "World records and personal bests"
+		},
+		"privacy": {
+			"description": "Learn how ZeepCentraal collects, uses, and protects your personal information.",
+			"eyebrow": "Legal",
+			"notFound": "Privacy Policy not found",
+			"seo": {
+				"description": "Learn how ZeepCentraal collects, uses, and protects personal information.",
+				"title": "Privacy Policy"
+			},
+			"title": "Privacy Policy"
 		},
 		"settings": {
 			"description": "Manage your ZeepCentraal account and connected services.",
@@ -218,16 +309,53 @@
 			},
 			"title": "Settings"
 		},
-		"totd": {
-			"description": "Live track of the week tournament coverage placeholder.",
-			"eyebrow": "Track of the week",
-			"panelDescription": "Live tournament tracking will be wired here.",
-			"panelTitle": "Live tournament",
+		"terms": {
+			"description": "Understand the rules, responsibilities, and rights when using ZeepCentraal.",
+			"eyebrow": "Legal",
+			"notFound": "Terms & Conditions not found",
 			"seo": {
-				"description": "Zeepkist track of the week tournaments.",
+				"description": "Read ZeepCentraal Terms & Conditions and user responsibilities.",
+				"title": "Terms & Conditions"
+			},
+			"title": "Terms & Conditions"
+		},
+		"totw": {
+			"back": "Back to dashboard",
+			"description": "Weekly featured tracks, results, and competition history will appear here.",
+			"seo": {
+				"description": "ZeepCentraal Track of the Week placeholder.",
 				"title": "Track of the Week"
 			},
-			"title": "Track of the week"
+			"title": "Track of the Week is coming next"
+		},
+		"totwDetail": {
+			"back": "Back to Track of the Week",
+			"description": "Track of the Week event {slug} has a permanent page. Results and featured-level details will appear here.",
+			"notFound": "Track of the Week event not found",
+			"seo": {
+				"description": "ZeepCentraal Track of the Week event placeholder.",
+				"title": "Track of the Week {slug} · ZeepCentraal"
+			},
+			"title": "Track of the Week details are coming next"
+		},
+		"totm": {
+			"back": "Back to dashboard",
+			"description": "Monthly featured tracks, results, and competition history will appear here.",
+			"seo": {
+				"description": "ZeepCentraal Track of the Month placeholder.",
+				"title": "Track of the Month"
+			},
+			"title": "Track of the Month is coming next"
+		},
+		"totmDetail": {
+			"back": "Back to Track of the Month",
+			"description": "Track of the Month event {slug} has a permanent page. Results and featured-level details will appear here.",
+			"notFound": "Track of the Month event not found",
+			"seo": {
+				"description": "ZeepCentraal Track of the Month event placeholder.",
+				"title": "Track of the Month {slug} · ZeepCentraal"
+			},
+			"title": "Track of the Month details are coming next"
 		},
 		"users": {
 			"description": "Search for players, view profiles and inspect player statistics.",
@@ -241,14 +369,17 @@
 			"title": "Global Player Leaderboard"
 		},
 		"wiki": {
+			"breadcrumb": "Wiki",
 			"description": "Gameplay, level building, and community reference pages.",
 			"eyebrow": "Wiki",
+			"notFound": "Wiki page not found",
 			"panelDescription": "Nuxt Content wiki pages land here.",
 			"panelTitle": "Knowledge base",
 			"seo": {
 				"description": "Zeepkist gameplay and level wiki.",
 				"title": "Wiki"
 			},
+			"tableOfContents": "On this page",
 			"title": "Zeepkist wiki"
 		},
 		"zsl": {
@@ -507,7 +638,7 @@
 		}
 	},
 	"users": {
-		"results": "{count} ranked players",
+		"results": "{count} players",
 		"filters": {
 			"title": "Find players",
 			"search": "Steam name or Steam ID",
@@ -531,16 +662,82 @@
 		"profile": {
 			"notFound": "Player not found",
 			"eyebrow": "Player profile",
+			"joined": "Joined",
+			"globalRank": "Global rank",
+			"unranked": "Unranked",
+			"steamProfile": "Steam profile",
+			"steamWorkshop": "Steam Workshop",
 			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
 			"summary": {
-				"title": "Career summary",
-				"description": "Rank, points, records, personal bests, world records, and published levels."
+				"title": "Career Summary",
+				"description": "Lifetime racing stats."
+			},
+			"superLeague": {
+				"title": "Super League",
+				"description": "Season standing and round results.",
+				"season": "Super League season",
+				"viewStandings": "View season standings",
+				"position": "Season position",
+				"points": "Season points",
+				"roundsEntered": "Rounds entered",
+				"roundResults": "Round results",
+				"bestOf": "Best {count} rounds count",
+				"excluded": "Excluded from season points under best {count} scoring",
+				"noSeasons": "No Super League seasons found",
+				"noResults": "This player did not enter this season."
+			},
+			"achievements": {
+				"title": "Achievements",
+				"description": "Coming soon",
+				"comingSoon": "Coming soon",
+				"items": {
+					"records": "Records submitted",
+					"personalBests": "Personal bests",
+					"worldRecords": "World records",
+					"fastestSpeed": "Fastest speed",
+					"levels": "Levels created",
+					"superLeague": "League rounds",
+					"points": "Ranked and total points",
+					"driving": "Distance and driving time",
+					"surfaces": "Surface specialist"
+				}
+			},
+			"cosmetics": {
+				"title": "Cosmetics unlocked",
+				"description": "Coming soon",
+				"progress": "Collection progress",
+				"rarest": "Rarest unlocked",
+				"mostUsed": "Most used this month",
+				"comingSoon": "Cosmetic collection tracking is coming soon.",
+				"unavailable": "Not available",
+				"categories": {
+					"hats": "Hats",
+					"glasses": "Glasses",
+					"skinColours": "Skin colours",
+					"soapboxes": "Soapboxes",
+					"wheels": "Wheels"
+				}
 			},
 			"telemetry": {
-				"title": "Driving telemetry",
-				"description": "Aggregates across every submitted record.",
+				"title": "Driving Telemetry",
+				"description": "Ghost replay driving statistics from verified GTR submissions.",
+				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
+				"period": "Period",
+				"allTime": "All-time",
+				"today": "Today",
+				"empty": "No compatible telemetry has been submitted by this player yet.",
+				"totalDistance": "Total distance",
+				"submittedRuns": "Submitted runs",
+				"telemetryRuns": "Telemetry-enabled runs",
+				"totalTime": "Total driving time",
 				"maxSpeed": "Maximum speed",
 				"maxGforce": "Maximum G-force",
+				"surfaceDistance": "Distance driven by surface across this player's records.",
+				"surfaceTime": "Time spent driving on each surface.",
+				"movementDistance": "Grounded, airborne and ragdoll distance.",
+				"movementTime": "Grounded, airborne and ragdoll time.",
+				"wheelDistance": "Distance travelled with four through zero wheels down.",
+				"driverInputs": "Steering direction and controls used across this player's records.",
 				"chart": {
 					"distance": "Driven",
 					"air": "Airborne",
@@ -548,37 +745,72 @@
 					"paraglider": "Paraglider"
 				}
 			},
+			"history": {
+				"title": "Career Progression",
+				"description": "Track performance over the past year.",
+				"rankedPoints": "Ranked points",
+				"rankedPointsDescription": "Points contributing toward global rank.",
+				"totalPoints": "Total points",
+				"totalPointsDescription": "All points earned across levels.",
+				"rank": "Global rank",
+				"rankDescription": "Position on global leaderboard.",
+				"worldRecords": "World records",
+				"worldRecordsDescription": "World records held over time.",
+				"pointsToggleLabel": "Point history metric",
+				"standingToggleLabel": "Standing history metric"
+			},
+			"levels": {
+				"recentTitle": "Recent Levels",
+				"recentDescription": "Newest level creations on the Steam Workshop.",
+				"popularTitle": "Popular Levels",
+				"popularDescription": "Most-played levels this year.",
+				"viewAll": "View all levels",
+				"empty": "No published levels found"
+			},
 			"worldRecords": {
-				"title": "World records",
-				"description": "Sort by point contribution or record date."
+				"title": "World Records",
+				"description": "Every level where this player holds the fastest submitted time."
 			},
 			"personalBests": {
-				"title": "Personal bests",
-				"description": "Best non-world-record finishes, ordered by value or date."
+				"title": "Personal Bests",
+				"description": "Best time on every level."
 			},
 			"recent": {
-				"title": "Recent records",
-				"description": "Latest 25 submitted runs."
+				"title": "Recent Records",
+				"description": "Latest submitted record times."
 			}
 		}
 	},
 	"adventure": {
 		"series": "Series {series}",
-		"count": "{count} official Adventure Mode levels"
+		"count": "{count} official Adventure Mode levels",
+		"tabsLabel": "Adventure series",
+		"countsError": "Series counts could not be loaded.",
+		"notFound": "Adventure series not found"
 	},
 	"developer": {
 		"graphql": {
 			"title": "GraphQL API",
-			"description": "Schema, query examples, pagination, fair use, rate limits, and attribution requirements."
+			"description": "Schema, query examples, pagination, query cost, caching, fair use, and attribution requirements."
+		},
+		"moddingDiscord": {
+			"title": "Zeepkist Modding Discord",
+			"description": "Get help writing mods, discuss integrations, and ask the modding community for feedback."
 		}
 	},
 	"zsl": {
 		"season": "Zeepkist Super League",
+		"seasons": "Seasons",
+		"breadcrumbs": "Super League navigation",
 		"roundCount": "{count} rounds",
+		"competitorCount": "{count} competitors",
+		"competitors": "Competitors",
+		"playedOn": "Played on",
 		"seasonDescription": "Six rounds decide the season championship.",
 		"rounds": "Rounds",
 		"roundsDescription": "Open a round for its leaderboard and up to fifteen level results.",
 		"roundNumber": "Round {round}",
+		"roundShort": "R{round}",
 		"roundDescription": "Round leaderboard and level-by-level results.",
 		"levels": "Round levels",
 		"levelsDescription": "Open a level to inspect its complete round leaderboard.",
@@ -587,17 +819,25 @@
 		"roundStandings": "Round points ordered by finishing position.",
 		"levelStandings": "Level times and points ordered by finishing position.",
 		"levelResults": "Zeepkist Super League Level Results",
+		"levelContext": "{season} · Round {round}",
 		"openLevel": "View level leaderboard",
+		"openWorkshop": "View on Steam Workshop",
+		"levelsPlayed": "Levels played",
 		"unknown": "Unknown player",
-		"notFound": "Super League result not found"
+		"notFound": "Super League result not found",
+		"yourStanding": "Your standing",
+		"viewResults": "View results"
 	},
 	"levels": {
 		"results": "{count} levels",
 		"card": {
 			"personalBests": "PBs",
+			"rating": "Rating",
+			"unavailable": "—",
 			"worldRecord": "WR",
 			"authorTime": "AT",
-			"by": "by"
+			"by": "by",
+			"created": "Published"
 		},
 		"filters": {
 			"title": "Find levels",
@@ -608,23 +848,34 @@
 			"apply": "Apply filters",
 			"all": "All levels",
 			"adventureOnly": "Adventure only",
-			"communityOnly": "Community only"
+			"communityOnly": "Community only",
+			"points": "Level points",
+			"rating": "Rating",
+			"personalBest": "Personal best",
+			"worldRecord": "World record",
+			"viewerFilterHint": "Sign in to filter levels by your personal bests and world records.",
+			"viewerAll": "Any",
+			"viewerYes": "Yes",
+			"viewerNo": "No"
 		},
 		"sort": {
 			"latest": "Latest",
-			"popular": "Most popular",
+			"popular": "Most popular all-time",
 			"points": "Highest points",
 			"rating": "Highest rated",
 			"records": "Most records",
 			"votes": "Most votes",
-			"favourites": "Most favourites"
+			"favourites": "Most favourites",
+			"popularYear": "Most popular this year",
+			"popularMonth": "Most popular this month",
+			"popularToday": "Most popular today"
 		},
 		"detail": {
 			"notFound": "Level not found",
 			"seoDescription": "Records, medals, and statistics for {name}.",
 			"medals": {
 				"title": "Medal times",
-				"description": "Official validation targets for this workshop level.",
+				"description": "Author-defined target times to beat.",
 				"author": "Author",
 				"gold": "Gold",
 				"silver": "Silver",
@@ -632,11 +883,14 @@
 			},
 			"worldRecord": {
 				"title": "World record",
-				"description": "Current fastest submitted time."
+				"description": "Current fastest submitted time.",
+				"set": "Set",
+				"emptyTitle": "No world record yet",
+				"emptyDescription": "Install GTR and submit the first verified run for this level."
 			},
 			"stats": {
 				"title": "Level statistics",
-				"description": "Aggregated telemetry from submitted runs.",
+				"description": "All-time driving telemetry from verified records on this level.",
 				"maxSpeed": "Maximum speed",
 				"maxGforce": "Maximum G-force",
 				"chart": {
@@ -644,7 +898,19 @@
 					"air": "Airborne",
 					"ragdoll": "Ragdoll",
 					"paraglider": "Paraglider"
-				}
+				},
+				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
+				"empty": "No compatible telemetry has been submitted for this level yet.",
+				"totalDistance": "Total distance",
+				"submittedRuns": "Submitted runs",
+				"telemetryRuns": "Telemetry-enabled runs",
+				"totalTime": "Total driving time",
+				"surfaceDistance": "Distance driven by surface on this level.",
+				"surfaceTime": "Time spent driving on each surface.",
+				"movementDistance": "Grounded, airborne and ragdoll distance on this level.",
+				"movementTime": "Grounded, airborne and ragdoll time on this level.",
+				"wheelDistance": "Distance travelled with four through zero wheels down.",
+				"driverInputs": "Steering direction and controls used on this level."
 			},
 			"recent": {
 				"title": "Recent records",
@@ -653,7 +919,108 @@
 			"personalBests": {
 				"title": "Personal best leaderboard",
 				"description": "Current fastest time from each player."
+			},
+			"recordTable": {
+				"pbOrWr": "PB / WR",
+				"personalBest": "PB"
+			},
+			"hero": {
+				"published": "Published",
+				"unknownAuthor": "Unknown creator",
+				"points": "Level points",
+				"rating": "Rating",
+				"trackLength": "Track length",
+				"competitiveness": "Competitiveness",
+				"competitivenessRatings": {
+					"veryEasy": "Very Easy",
+					"easy": "Easy",
+					"casual": "Casual",
+					"balanced": "Balanced",
+					"competitive": "Competitive",
+					"hard": "Hard",
+					"expert": "Expert",
+					"intense": "Intense"
+				},
+				"unavailable": "—",
+				"workshopAction": "Subscribe on Steam Workshop"
+			},
+			"authorCta": {
+				"title": "Enjoyed this level?",
+				"description": "Explore more workshop levels from this creator, sorted by highest points.",
+				"action": "View more levels"
+			},
+			"pointsHistory": {
+				"title": "Level points over time",
+				"description": "How this level’s ranked value changed during the past year.",
+				"series": "Level points"
+			},
+			"splitAnalysis": {
+				"title": "Checkpoint analysis",
+				"description": "Compare split deltas and checkpoint speeds from the five fastest current personal bests.",
+				"empty": "No compatible checkpoint telemetry is available yet.",
+				"checkpoint": "Checkpoint",
+				"deltaTitle": "Time gained and lost",
+				"deltaDescription": "Cumulative time difference against the fastest player at each checkpoint.",
+				"speedTitle": "Checkpoint speed",
+				"speedDescription": "Speed carried through each checkpoint, measured in kilometres per hour.",
+				"showMyComparison": "Show my comparison",
+				"hideMyComparison": "Hide my comparison"
 			}
+		}
+	},
+	"mods": {
+		"results": "{count} mods",
+		"empty": "No mods match these filters.",
+		"modkistPromo": {
+			"eyebrow": "Zeepkist mod manager",
+			"title": "Discover mods with ModKist",
+			"description": "Install and update Zeepkist mods from one trusted community tool. ModKist keeps setup simple and gives you control over every installed mod.",
+			"download": "Download ModKist",
+			"guide": "View installation guide"
+		},
+		"filters": {
+			"title": "Find mods",
+			"search": "Mod name",
+			"searchPlaceholder": "Search Zeepkist mods",
+			"sort": "Sort by",
+			"essentialsOnly": "Essential mods only",
+			"tags": "Tags",
+			"tagsPlaceholder": "Select tags",
+			"apply": "Apply filters"
+		},
+		"sort": {
+			"popular": "Most popular",
+			"updated": "Recently updated",
+			"newest": "Newest",
+			"downloadsToday": "Most downloaded today",
+			"downloadsTotal": "Most downloaded all-time",
+			"subscribers": "Most subscribers",
+			"rating": "Highest rated",
+			"nameAsc": "Name A–Z",
+			"nameDesc": "Name Z–A"
+		},
+		"card": {
+			"version": "Version",
+			"size": "Size",
+			"downloads": "Downloads",
+			"rating": "Rating",
+			"updated": "Updated",
+			"openModio": "Open on mod.io",
+			"unavailable": "—"
+		},
+		"detail": {
+			"notFound": "Mod not found",
+			"description": "About this mod",
+			"descriptionEmpty": "No description is available for this mod.",
+			"dependencies": "Required mods",
+			"dependenciesDescription": "Install these direct dependencies alongside this mod.",
+			"noDependencies": "This mod has no required dependencies.",
+			"published": "Published",
+			"updated": "Last updated",
+			"subscribers": "Subscribers",
+			"openModio": "View on mod.io",
+			"by": "by {author}",
+			"seoDescription": "Downloads, dependencies, version, and mod.io details for {name}."
 		}
 	}
 }

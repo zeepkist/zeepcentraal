@@ -13,7 +13,6 @@ query ZC_ZslRoundBySeasonAndNumber($seasonId: Int!, $round: Int!) {
 				nodes {
 					id
 					level {
-						xxHash
 						levelItems(
 							first: 1
 							filter: { deleted: { equalTo: false } }

@@ -39,7 +39,11 @@ export function calculateDecayMultiplier(position: number, decayFactor: number) 
 	return decayFactor ** (position - 1)
 }
 
-function calculatePlayerPointsDecayed(points: number, position: number, decayFactor: number) {
+export function calculatePlayerPointsDecayed(
+	points: number,
+	position: number,
+	decayFactor: number,
+) {
 	if (!Number.isFinite(points) || points <= 0) {
 		return 0
 	}

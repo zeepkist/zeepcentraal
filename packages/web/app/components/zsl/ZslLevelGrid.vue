@@ -1,2 +1,34 @@
-<template><div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><NuxtLink v-for="entry in levels" :key="entry.id" :to="link(entry.id)" class="group overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><div class="aspect-video overflow-hidden bg-muted"><NuxtImg v-if="entry.level?.levelItems.nodes[0]?.imageUrl" :src="entry.level.levelItems.nodes[0].imageUrl" :alt="entry.level.levelItems.nodes[0]?.name ?? levelLabel" class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105" /></div><div class="flex items-center justify-between gap-3 p-4"><div class="min-w-0"><h3 class="truncate font-bold">{{ entry.level?.levelItems.nodes[0]?.name ?? levelLabel }}</h3><p class="mt-1 truncate text-xs text-muted-foreground">{{ entry.level?.xxHash }}</p></div><TablerIcon name="chevron-right" class="size-5 shrink-0 text-muted-foreground transition-transform motion-safe:group-hover:translate-x-1" /></div></NuxtLink></div></template>
-<script setup lang="ts">defineProps<{ levels: Array<{ id: number; level?: { xxHash: string; levelItems: { nodes: Array<{ name: string; imageUrl?: string | null }> } } | null }>; link: (id: number) => string; levelLabel: string }>()</script>
+<template>
+	<div class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+		<ZslCard
+			v-for="entry in levels"
+			:key="entry.id"
+			:to="link(entry.id)"
+			:image-src="entry.level?.levelItems.nodes[0]?.imageUrl"
+			:image-alt="entry.level?.levelItems.nodes[0]?.name ?? levelLabel"
+		>
+			<template #title>
+				<h3 class="truncate text-lg font-bold text-highlighted">
+					{{ entry.level?.levelItems.nodes[0]?.name ?? levelLabel }}
+				</h3>
+			</template>
+			<template #footer>
+				<span class="font-semibold text-primary">{{ resultsLabel }}</span>
+			</template>
+		</ZslCard>
+	</div>
+</template>
+
+<script setup lang="ts">
+defineProps<{
+	levels: Array<{
+		id: number
+		level?: {
+			levelItems: { nodes: Array<{ name: string; imageUrl?: string | null }> }
+		} | null
+	}>
+	link: (id: number) => string
+	levelLabel: string
+	resultsLabel: string
+}>()
+</script>

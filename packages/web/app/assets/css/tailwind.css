@@ -37,71 +37,105 @@
 	--color-chart-5: var(--chart-5);
 }
 
+:root,
+.dark {
+	--background: #0c0a09;
+	--foreground: oklch(96% 0 0);
+	--card: #171513;
+	--card-foreground: oklch(96% 0 0);
+	--primary: #facc15;
+	--primary-foreground: oklch(13% 0 0);
+	--secondary: #292524;
+	--secondary-foreground: oklch(96% 0 0);
+	--muted: #292524;
+	--muted-foreground: oklch(72% 0 0);
+	--accent: #292524;
+	--accent-foreground: oklch(96% 0 0);
+	--border: #292524;
+	--ring: #facc15;
+	--chart-1: #facc15;
+	--chart-2: #22c55e;
+	--chart-3: #14b8a6;
+	--chart-4: oklch(46% 0 0);
+	--chart-5: #f97316;
+	--ui-primary: #facc15;
+	--ui-secondary: #292524;
+	--ui-success: #22c55e;
+	--ui-info: #14b8a6;
+	--ui-warning: #f97316;
+	--ui-error: #f87171;
+	--ui-bg: #0c0a09;
+	--ui-bg-muted: #171513;
+	--ui-bg-elevated: #171513;
+	--ui-bg-accented: #292524;
+	--ui-bg-inverted: #facc15;
+	--ui-border: #292524;
+	--ui-border-muted: #292524;
+	--ui-border-accented: #292524;
+	--ui-border-inverted: #facc15;
+	--ui-text-dimmed: #78716c;
+	--ui-text-muted: #a8a29e;
+	--ui-text-toned: #d6d3d1;
+	--ui-text: #e7e5e4;
+	--ui-text-highlighted: #fafaf9;
+	--ui-text-inverted: #0c0a09;
+}
+
+.light {
+	--color-warm-neutral-50: #1c1917;
+	--color-warm-neutral-100: #292524;
+	--color-warm-neutral-200: #44403c;
+	--color-warm-neutral-300: #57534e;
+	--color-warm-neutral-400: #78716c;
+	--color-warm-neutral-500: #a8a29e;
+	--color-warm-neutral-600: #d6d3d1;
+	--color-warm-neutral-700: #e7e5e4;
+	--color-warm-neutral-800: #f1efeb;
+	--color-warm-neutral-900: #faf9f7;
+	--color-warm-neutral-950: #ffffff;
+	--background: #f4f1eb;
+	--foreground: #292524;
+	--card: #ffffff;
+	--card-foreground: #292524;
+	--primary: #b77900;
+	--primary-foreground: #1c1917;
+	--secondary: #e7e2da;
+	--secondary-foreground: #292524;
+	--muted: #ece8e1;
+	--muted-foreground: #6b625b;
+	--accent: #fef3c7;
+	--accent-foreground: #422006;
+	--border: #d8d1c7;
+	--ring: #b77900;
+	--chart-1: #b77900;
+	--chart-2: #15803d;
+	--chart-3: #0f766e;
+	--chart-4: #7c3aed;
+	--chart-5: #c2410c;
+	--ui-primary: #b77900;
+	--ui-secondary: #57534e;
+	--ui-success: #15803d;
+	--ui-info: #0f766e;
+	--ui-warning: #c2410c;
+	--ui-error: #dc2626;
+	--ui-bg: #ffffff;
+	--ui-bg-muted: #f7f5f1;
+	--ui-bg-elevated: #ffffff;
+	--ui-bg-accented: #ece8e1;
+	--ui-bg-inverted: #292524;
+	--ui-border: #e2ddd5;
+	--ui-border-muted: #ece8e1;
+	--ui-border-accented: #cfc7bc;
+	--ui-border-inverted: #292524;
+	--ui-text-dimmed: #8a8179;
+	--ui-text-muted: #6b625b;
+	--ui-text-toned: #4f4842;
+	--ui-text: #3b3632;
+	--ui-text-highlighted: #1c1917;
+	--ui-text-inverted: #ffffff;
+}
+
 @layer base {
-	:root {
-		--background: oklch(96% 0 0);
-		--foreground: oklch(18% 0 0);
-		--card: oklch(99% 0 0);
-		--card-foreground: oklch(18% 0 0);
-		--primary: oklch(78% 0.15 91.84);
-		--primary-foreground: oklch(13% 0 0);
-		--secondary: oklch(91% 0 0);
-		--secondary-foreground: oklch(18% 0 0);
-		--muted: oklch(91% 0 0);
-		--muted-foreground: oklch(46% 0 0);
-		--accent: oklch(86.01% 0.173 91.84);
-		--accent-foreground: oklch(13% 0 0);
-		--border: oklch(82% 0 0);
-		--ring: oklch(78% 0.15 91.84);
-		--chart-1: oklch(78% 0.15 91.84);
-		--chart-2: oklch(66% 0.1 91.84);
-		--chart-3: oklch(58% 0 0);
-		--chart-4: oklch(42% 0 0);
-		--chart-5: oklch(28% 0 0);
-	}
-
-	.dark {
-		--background: #0c0a09;
-		--foreground: oklch(96% 0 0);
-		--card: #171513;
-		--card-foreground: oklch(96% 0 0);
-		--primary: #facc15;
-		--primary-foreground: oklch(13% 0 0);
-		--secondary: #292524;
-		--secondary-foreground: oklch(96% 0 0);
-		--muted: #292524;
-		--muted-foreground: oklch(72% 0 0);
-		--accent: #292524;
-		--accent-foreground: oklch(96% 0 0);
-		--border: #292524;
-		--ring: #facc15;
-		--chart-1: #facc15;
-		--chart-2: #22c55e;
-		--chart-3: #14b8a6;
-		--chart-4: oklch(46% 0 0);
-		--chart-5: #f97316;
-		--ui-primary: #facc15;
-		--ui-secondary: #292524;
-		--ui-success: #22c55e;
-		--ui-info: #14b8a6;
-		--ui-warning: #f97316;
-		--ui-bg: #0c0a09;
-		--ui-bg-muted: #171513;
-		--ui-bg-elevated: #171513;
-		--ui-bg-accented: #292524;
-		--ui-bg-inverted: #facc15;
-		--ui-border: #292524;
-		--ui-border-muted: #292524;
-		--ui-border-accented: #292524;
-		--ui-border-inverted: #facc15;
-		--ui-text-dimmed: #78716c;
-		--ui-text-muted: #a8a29e;
-		--ui-text-toned: #d6d3d1;
-		--ui-text: #e7e5e4;
-		--ui-text-highlighted: #fafaf9;
-		--ui-text-inverted: #0c0a09;
-	}
-
 	body {
 		background: var(--background);
 		color: var(--foreground);
@@ -124,10 +158,14 @@
 	--vis-tooltip-background-color: transparent !important;
 	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
 	--vis-tooltip-border-color: transparent !important;
-	--vis-tooltip-text-color: var(--color-foreground);
-	--vis-axis-grid-color: var(--color-border);
-	--vis-axis-tick-label-color: var(--color-muted-foreground);
-	--vis-legend-label-color: var(--color-muted-foreground);
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-tooltip-text-color: var(--ui-text) !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-axis-grid-color: var(--ui-border) !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-axis-tick-label-color: var(--ui-text) !important;
+	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
+	--vis-legend-label-color: var(--ui-text) !important;
 }
 
 @font-face {
@@ -180,7 +218,7 @@
 }
 
 .record-history-highlight {
-	animation: record-history-highlight 2s ease-out both;
+	animation: record-history-highlight 10s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

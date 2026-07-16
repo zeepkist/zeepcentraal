@@ -4,7 +4,16 @@
 			:eyebrow="$t('pages.myRecords.eyebrow')"
 			:title="$t('pages.myRecords.title')"
 			:description="$t('pages.myRecords.description')"
-		/>
+		>
+			<template #actions>
+				<RecordLiveControls
+					:status="data.liveStatus.value"
+					:labels="liveStatusLabels"
+					:sound-enabled="sounds.enabled.value"
+					@update:sound-enabled="sounds.setEnabled"
+				/>
+			</template>
+		</PageHeader>
 
 		<RecordHistoryToolbar
 			:view="view"
@@ -44,7 +53,7 @@
 					:labels="tableLabels"
 					:highlighted-record-ids="data.highlightedRecordIds.value"
 					:live-update-label="$t('pages.records.liveUpdate')"
-					@select="openRecord"
+					:status-mode="view === 'world-records' ? 'none' : 'world-record-only'"
 				/>
 			</DataState>
 			<CursorPagination
@@ -75,6 +84,7 @@ const userId = computed(() => session.user?.id)
 const view = computed(() => normalizeRecordHistoryView(route.query.view))
 const sort = computed(() => normalizeRecordHistorySort(route.query.sort))
 const data = useMyRecords(userId, view, sort)
+const sounds = useRecordNotificationSounds({ batch: data.newRecordBatch })
 
 useSeoMeta({
 	title: () => t('pages.myRecords.seo.title'),
@@ -105,6 +115,9 @@ const tableLabels = computed(() => ({
 	unknownPlayer: t('pages.records.table.unknownPlayer'),
 	rank: t('common.rank'),
 	time: t('common.time'),
+	status: t('pages.records.table.worldRecord'),
+	personalBest: t('pages.records.table.personalBest'),
+	worldRecord: t('pages.records.table.worldRecord'),
 	levelPoints: t('pages.records.table.levelPoints'),
 	points: t('common.points'),
 	rankedPoints: t('pages.records.table.rankedPoints'),
@@ -112,6 +125,17 @@ const tableLabels = computed(() => ({
 	notRanked: t('pages.records.table.notRanked'),
 	decayPercentage: t('pages.records.table.decayPercentage'),
 	openRecord: t('pages.records.table.openRecord'),
+}))
+const liveStatusLabels = computed(() => ({
+	connecting: t('pages.records.live.connecting'),
+	live: t('pages.records.live.active'),
+	paused: t('pages.records.live.paused'),
+	error: t('pages.records.live.error'),
+	enableSound: t('pages.records.live.enableSound'),
+	disableSound: t('pages.records.live.disableSound'),
+	soundOn: t('pages.records.live.soundOn'),
+	soundOff: t('pages.records.live.soundOff'),
+	onlyMine: t('pages.records.live.onlyMine'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
@@ -121,5 +145,4 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 	lastLabel: t('common.last'),
 }))
-const openRecord = (recordId: number) => navigateTo(`/record/${recordId}`)
 </script>

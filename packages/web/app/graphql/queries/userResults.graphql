@@ -11,7 +11,7 @@ query ZC_UserResults(
 		last: $last
 		before: $before
 		filter: $filter
-		orderBy: [DATE_CREATED_DESC]
+		orderBy: [DATE_CREATED_DESC, ID_DESC]
 	) {
 		edges {
 			cursor
@@ -40,6 +40,12 @@ query ZC_UserResults(
 						levelPosition
 						contributionRank
 					}
+				}
+				personalBestGlobals(first: 0) {
+					totalCount
+				}
+				worldRecordGlobals(first: 0) {
+					totalCount
 				}
 			}
 		}

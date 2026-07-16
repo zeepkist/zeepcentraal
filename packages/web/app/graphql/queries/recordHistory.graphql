@@ -31,6 +31,12 @@ fragment ZC_RecordHistoryRow on Record {
 			levelDecayedPoints
 		}
 	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobals(first: 0) {
+		totalCount
+	}
 }
 
 query ZC_RecordHistory(

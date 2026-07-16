@@ -47,6 +47,7 @@ jobs:
           - postgraphile
           - telemetry
           - workshop
+          - web
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -89,6 +90,9 @@ jobs:
           - name: postgraphile
             build_script: build:postgraphile
             binary: zeepcentraal-postgraphile
+          - name: web
+            build_script: build:web
+            binary: zeepcentraal-web
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -138,6 +142,12 @@ jobs:
             binary: zeepcentraal-postgraphile
             image_name: postgraphile
             release_tag_prefix: postgraphile
+            clone_super_league: false
+          - name: web
+            file: Dockerfile.web
+            binary: zeepcentraal-web
+            image_name: web
+            release_tag_prefix: web
             clone_super_league: false
     steps:
       - name: Checkout code
@@ -199,6 +209,12 @@ jobs:
             binary: zeepcentraal-postgraphile
             image_name: postgraphile
             release_tag_prefix: postgraphile
+            clone_super_league: false
+          - name: web
+            file: Dockerfile.web
+            binary: zeepcentraal-web
+            image_name: web
+            release_tag_prefix: web
             clone_super_league: false
     steps:
       - name: Checkout code

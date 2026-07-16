@@ -11,9 +11,10 @@ import {
 	type Zc_RecordHistoryLiveSubscription,
 	type Zc_RecordHistoryRowFragment,
 } from '~/graphql/generated/graphql'
-import type { CursorPage, RecordHistoryRow } from '~/types/app'
+import type { CursorPage, RecordHistoryRow, RecordHistoryUpdate } from '~/types/app'
 import {
 	getNewRecordIds,
+	getRecordResultStatus,
 	type RecordHistorySort,
 	type RecordHistoryView,
 	recordHistoryFilter,
@@ -64,6 +65,10 @@ function mapRows(edges?: Array<{ node: Zc_RecordHistoryRowFragment }>): RecordHi
 				globalDecayMultiplier: contribution
 					? calculateDecayMultiplier(contribution.contributionRank, GLOBAL_DECAY_FACTOR)
 					: undefined,
+				pbOrWr: getRecordResultStatus(
+					node.personalBestGlobals.totalCount,
+					node.worldRecordGlobals.totalCount,
+				),
 			},
 		]
 	})
@@ -83,6 +88,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 	const mounted = ref(false)
 	const activation = ref(0)
 	const highlightedRecordIds = ref<ReadonlySet<number>>(new Set())
+	const newRecordBatch = shallowRef<RecordHistoryUpdate | null>(null)
 	const highlightTimers = new Map<number, ReturnType<typeof setTimeout>>()
 	const filter = computed(() =>
 		recordHistoryFilter(options.view.value, options.sort.value, options.userId?.value),
@@ -97,14 +103,14 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		})),
 		pause: computed(() => options.userId !== undefined && !options.userId.value),
 	})
-	const liveEnabled = computed(
+	const liveEligible = computed(
 		() =>
-			mounted.value &&
 			options.sort.value === 'latest' &&
 			pagination.isFirstPage.value &&
 			result.data.value?.records !== undefined &&
 			(options.userId === undefined || options.userId.value !== undefined),
 	)
+	const liveEnabled = computed(() => mounted.value && liveEligible.value)
 	const liveKey = computed(() =>
 		JSON.stringify({
 			activation: activation.value,
@@ -123,6 +129,14 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 	const liveSnapshot = computed(() =>
 		live.data.value?.key === liveKey.value ? live.data.value.data.records : undefined,
 	)
+	const liveReady = computed(
+		() => liveEnabled.value && liveSnapshot.value !== undefined && !live.error.value,
+	)
+	const liveStatus = computed(() => {
+		if (!liveEligible.value) return 'paused' as const
+		if (live.error.value) return 'error' as const
+		return liveReady.value ? ('live' as const) : ('connecting' as const)
+	})
 	const records = computed(
 		() => (liveEnabled.value ? liveSnapshot.value : undefined) ?? result.data.value?.records,
 	)
@@ -148,13 +162,14 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 					next.delete(recordId)
 					highlightedRecordIds.value = next
 					highlightTimers.delete(recordId)
-				}, 2_000),
+				}, 10_000),
 			)
 		}
 	}
 
 	let packetKey: string | undefined
 	let knownRecordIds = new Set<number>()
+	let updateSequence = 0
 	watch(
 		() => live.data.value,
 		(packet) => {
@@ -165,13 +180,24 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 				knownRecordIds = nextIds
 				return
 			}
-			highlight(getNewRecordIds(knownRecordIds, nextIds))
+			const newRecordIds = getNewRecordIds(knownRecordIds, nextIds)
+			highlight(newRecordIds)
+			if (newRecordIds.length > 0) {
+				const added = new Set(newRecordIds)
+				newRecordBatch.value = {
+					sequence: ++updateSequence,
+					records: mapRows(packet.data.records.edges).filter((record) =>
+						added.has(record.id),
+					),
+				}
+			}
 			knownRecordIds = nextIds
 		},
 	)
 	watch(liveKey, () => {
 		packetKey = undefined
 		knownRecordIds = new Set()
+		newRecordBatch.value = null
 		clearHighlights()
 	})
 	watch(liveEnabled, (enabled, wasEnabled) => {
@@ -196,6 +222,10 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		highlightedRecordIds,
 		live,
 		liveEnabled,
+		liveEligible,
+		liveReady,
+		liveStatus,
+		newRecordBatch,
 		orderBy,
 		page,
 		pagination,

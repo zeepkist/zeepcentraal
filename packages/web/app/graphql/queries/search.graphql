@@ -1,0 +1,69 @@
+query ZC_OmniSearch($search: String!) {
+	rankedUsers: users(
+		first: 6
+		filter: {
+			banned: { equalTo: false }
+			steamName: { includesInsensitive: $search }
+			userPoints: { rank: { greaterThan: 0 } }
+		}
+		orderBy: [USER_POINTS_RANK_ASC, STEAM_NAME_ASC]
+	) {
+		nodes {
+			id
+			steamId
+			steamName
+			userPoints {
+				rank
+			}
+		}
+	}
+	unrankedUsers: users(
+		first: 6
+		filter: {
+			banned: { equalTo: false }
+			steamName: { includesInsensitive: $search }
+			or: [{ userPointExists: false }, { userPoints: { rank: { equalTo: -1 } } }]
+		}
+		orderBy: [STEAM_NAME_ASC]
+	) {
+		nodes {
+			id
+			steamId
+			steamName
+			userPoints {
+				rank
+			}
+		}
+	}
+	levels(
+		first: 8
+		filter: {
+			levelItems: {
+				some: { deleted: { equalTo: false }, name: { includesInsensitive: $search } }
+			}
+		}
+		orderBy: [LEVEL_POINTS_POINTS_DESC, ID_ASC]
+	) {
+		nodes {
+			id
+			xxHash
+			levelItems(
+				first: 1
+				filter: { deleted: { equalTo: false } }
+				orderBy: [UPDATED_AT_DESC]
+			) {
+				nodes {
+					name
+					imageUrl
+					author {
+						steamName
+					}
+				}
+			}
+			levelPoints {
+				points
+				rating
+			}
+		}
+	}
+}

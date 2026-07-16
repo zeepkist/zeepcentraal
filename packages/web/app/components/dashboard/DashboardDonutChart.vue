@@ -1,21 +1,37 @@
 <template>
-	<div class="grid items-center gap-5 md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]">
-		<div class="telemetry-donut relative min-h-56 overflow-hidden rounded-xl from-primary/5 via-transparent to-secondary/5">
+	<div :class="layoutClass">
+		<div
+			class="telemetry-donut relative overflow-hidden rounded-xl from-primary/5 via-transparent to-secondary/5"
+			:class="compact ? 'min-h-40' : 'min-h-56'"
+		>
 			<div class="pointer-events-none absolute inset-1/4 rounded-full bg-primary/10 blur-3xl" />
 			<DonutChart
 				:data="chartValues"
 				:categories="categories"
-				:radius="half ? 96 : 88"
-				:height="224"
-				:arc-width="half ? 34 : 30"
+				:radius="chartRadius"
+				:height="chartHeight"
+				:arc-width="arcWidth"
 				:pad-angle="0.035"
 				:type="half ? 'half' : 'full'"
 				:duration="chartDuration"
 				:tooltip="tooltipOptions"
 				hide-legend
 			>
-				<div class="flex max-w-32 flex-col items-center text-center">
-					<span class="text-lg font-black tabular-nums leading-tight text-highlighted">{{ totalLabel }}</span>
+				<div
+					class="flex flex-col items-center text-center"
+					:class="compact ? 'max-w-24' : 'max-w-32'"
+				>
+					<span
+						class="font-black tabular-nums leading-tight text-highlighted"
+						:class="{
+							'text-lg': !compact && !half,
+							'text-lg pt-12': !compact && half,
+							'text-sm': compact && !half,
+							'text-sm pt-12': compact && half,
+						}"
+					>
+						{{ totalLabel }}
+					</span>
 				</div>
 				<template #tooltip="{ values }">
 					<DashboardChartTooltip
@@ -25,7 +41,7 @@
 				</template>
 			</DonutChart>
 		</div>
-		<DashboardChartLegend :entries="entries" :total="total" :aria-label="ariaLabel" />
+		<DashboardChartLegend :entries="entries" :total="total" :aria-label="ariaLabel" :compact="compact" />
 	</div>
 </template>
 
@@ -38,8 +54,9 @@ const props = withDefaults(
 		totalLabel: string
 		ariaLabel: string
 		half?: boolean
+		compact?: boolean
 	}>(),
-	{ half: false },
+	{ half: false, compact: false },
 )
 
 const reducedMotion = ref(false)
@@ -47,6 +64,14 @@ onMounted(() => {
 	reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 })
 
+const layoutClass = computed(() =>
+	props.compact
+		? 'grid items-center gap-3 sm:grid-cols-[minmax(8rem,0.8fr)_minmax(8rem,1.2fr)]'
+		: 'grid items-center gap-5 md:grid-cols-[minmax(0,0.95fr)_minmax(13rem,1.05fr)]',
+)
+const chartHeight = computed(() => (props.compact ? 160 : 224))
+const chartRadius = computed(() => (props.compact ? (props.half ? 70 : 62) : props.half ? 96 : 88))
+const arcWidth = computed(() => (props.compact ? (props.half ? 26 : 22) : props.half ? 34 : 30))
 const chartDuration = computed(() => (reducedMotion.value ? 0 : 650))
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const total = computed(() => props.entries.reduce((sum, entry) => sum + entry.value, 0))

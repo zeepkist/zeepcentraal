@@ -11,14 +11,7 @@
 		}"
 	>
 		<template #header="{ state }">
-			<div v-if="state === 'expanded'" class="flex min-w-0 flex-1 items-center gap-3">
-				<div class="grid size-9 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-					<span class="text-sm font-black">ZC</span>
-				</div>
-				<span class="truncate text-sm font-semibold text-highlighted">
-					ZeepCentraal
-				</span>
-			</div>
+			<AppLogo v-if="state === 'expanded'" />
 			<UTooltip :text="$t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')" :content="{ side: 'right' }">
 				<button
 					type="button"
@@ -45,8 +38,11 @@
 				<NuxtLink
 					:to="item.to"
 					class="group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
-					:class="{ 'justify-center px-2': state === 'collapsed' }"
-					active-class="bg-muted text-primary"
+					:class="{
+						'justify-center px-2': state === 'collapsed',
+						'bg-muted text-primary': isNavigationTargetActive(route.path, item.to),
+					}"
+					:aria-current="isNavigationTargetActive(route.path, item.to) ? 'location' : undefined"
 				>
 					<TablerIcon :name="item.icon ?? 'dashboard'" class="size-5 shrink-0" />
 					<span v-if="state === 'expanded'" class="min-w-0">
@@ -59,11 +55,21 @@
 </template>
 
 <script setup lang="ts">
-import { useLocalStorage } from '@vueuse/core'
+import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
+import { parseSidebarOpenPreference } from '~/utils/sidebarPreference'
 
-import { mainNav } from '~/utils/navigation'
+const route = useRoute()
+const sidebarPreference = useCookie<boolean | null>('sidebar-open', {
+	default: () => null,
+	maxAge: 60 * 60 * 24 * 365,
+	path: '/',
+	sameSite: 'lax',
+})
+const open = ref(sidebarPreference.value ?? true)
 
-const open = useLocalStorage('sidebar-open', true)
+watch(open, (value) => {
+	sidebarPreference.value = value
+})
 
 const toggleSidebar = () => {
 	open.value = !open.value

@@ -5,11 +5,22 @@
 			:title="$t('pages.records.title')"
 			:description="$t('pages.records.description')"
 		>
-			<template v-if="session.user" #actions>
-				<UButton to="/records/me" color="primary" variant="soft">
-					<TablerIcon name="user-circle" class="size-4" />
-					{{ $t('pages.records.myRecordsAction') }}
-				</UButton>
+			<template #actions>
+				<div class="flex flex-wrap items-center justify-end gap-2">
+					<RecordLiveControls
+						:status="data.liveStatus.value"
+						:labels="liveStatusLabels"
+						:sound-enabled="sounds.enabled.value"
+						:show-only-mine="Boolean(session.user)"
+						:only-mine="sounds.onlyMine.value"
+						@update:sound-enabled="sounds.setEnabled"
+						@update:only-mine="sounds.setOnlyMine"
+					/>
+					<UButton v-if="session.user" to="/records/me" color="primary" variant="soft">
+						<TablerIcon name="user-circle" class="size-4" />
+						{{ $t('pages.records.myRecordsAction') }}
+					</UButton>
+				</div>
 			</template>
 		</PageHeader>
 
@@ -40,8 +51,8 @@
 				:highlighted-record-ids="data.highlightedRecordIds.value"
 				:live-update-label="$t('pages.records.liveUpdate')"
 				:viewer-user-id="session.user?.id"
+				status-mode="all"
 				show-player
-				@select="openRecord"
 			/>
 		</DataState>
 		<CursorPagination
@@ -66,6 +77,12 @@ const { t } = useI18n()
 const view = computed(() => normalizeRecordHistoryView(route.query.view))
 const sort = computed(() => normalizeRecordHistorySort(route.query.sort))
 const data = useRecordHistory({ view, sort, namespace: 'records' })
+const viewerUserId = computed(() => session.user?.id)
+const sounds = useRecordNotificationSounds({
+	batch: data.newRecordBatch,
+	viewerUserId,
+	allowOnlyMine: true,
+})
 
 usePageSeo('records')
 
@@ -93,6 +110,9 @@ const tableLabels = computed(() => ({
 	unknownPlayer: t('pages.records.table.unknownPlayer'),
 	rank: t('common.rank'),
 	time: t('common.time'),
+	status: t('pages.records.table.status'),
+	personalBest: t('pages.records.table.personalBest'),
+	worldRecord: t('pages.records.table.worldRecord'),
 	levelPoints: t('pages.records.table.levelPoints'),
 	points: t('common.points'),
 	rankedPoints: t('pages.records.table.rankedPoints'),
@@ -100,6 +120,17 @@ const tableLabels = computed(() => ({
 	notRanked: t('pages.records.table.notRanked'),
 	decayPercentage: t('pages.records.table.decayPercentage'),
 	openRecord: t('pages.records.table.openRecord'),
+}))
+const liveStatusLabels = computed(() => ({
+	connecting: t('pages.records.live.connecting'),
+	live: t('pages.records.live.active'),
+	paused: t('pages.records.live.paused'),
+	error: t('pages.records.live.error'),
+	enableSound: t('pages.records.live.enableSound'),
+	disableSound: t('pages.records.live.disableSound'),
+	soundOn: t('pages.records.live.soundOn'),
+	soundOff: t('pages.records.live.soundOff'),
+	onlyMine: t('pages.records.live.onlyMine'),
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
@@ -109,5 +140,4 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 	lastLabel: t('common.last'),
 }))
-const openRecord = (recordId: number) => navigateTo(`/record/${recordId}`)
 </script>

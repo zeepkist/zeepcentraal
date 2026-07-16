@@ -4,6 +4,9 @@ query ZC_ZslSeason($id: Int!) {
 		name
 		startDate
 		endDate
+		pointsStructure {
+			bestOf
+		}
 		zslRounds(first: 6, orderBy: [ROUND_ASC]) {
 			nodes {
 				id

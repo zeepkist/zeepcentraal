@@ -86,22 +86,31 @@ describe('record history', () => {
 		expect(createDecayPercentageFormatter('en-GB', 3, 3).format(0.985)).toBe('98.500%')
 	})
 
-	it('keeps seven fixed columns and independent row/level navigation', () => {
+	it('keeps fixed columns with optional status and independent row/level navigation', () => {
 		const component = readFileSync(
 			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
 			'utf8',
 		)
+		const cellLink = readFileSync(
+			new URL('../../app/components/common/DataTableCellLink.vue', import.meta.url),
+			'utf8',
+		)
 		expect(component).toContain('table-fixed')
-		expect(component).toContain('min-w-[64rem]')
+		expect(component).toContain('min-w-[48rem]')
 		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(8)
+		expect(component).toContain('<col v-if="showStatus"')
 		expect(component).toContain('<col />')
-		expect(component).toContain('record.levelPoints')
 		expect(component).toContain('record.levelDecayedPoints')
 		expect(component).toContain('record.playerDecayedPoints')
-		expect(component).toContain('@click="$emit(\'select\', record.id)"')
-		expect(component).toContain('@keydown.enter.prevent')
-		expect(component).toContain('@keydown.space.prevent')
-		expect(component).toContain('@click.stop')
+		expect(component).toContain(':to="levelPath(record)"')
+		expect(component).toContain(':to="playerOrRecordPath(record)"')
+		expect(component).toContain(':to="recordPath(record)"')
+		expect(component).not.toContain('defineEmits')
+		expect(component).not.toContain('@click')
+		expect(component).not.toContain('@keydown')
+		expect(cellLink).toContain('<NuxtLink')
+		expect(cellLink).toContain(':tabindex="focusable ? undefined : -1"')
+		expect(cellLink).not.toContain('@click')
 	})
 
 	it('renders linked players globally and a personal-history action for authenticated users', () => {
@@ -115,7 +124,8 @@ describe('record history', () => {
 		)
 		expect(table).toContain('v-if="showPlayer"')
 		expect(table).toContain('record.userSteamId')
-		expect(page).toContain('<template v-if="session.user" #actions>')
+		expect(page).toContain('<template #actions>')
+		expect(page).toContain('<UButton v-if="session.user"')
 		expect(page).toContain('to="/records/me"')
 		expect(page).toContain('show-player')
 	})
@@ -153,6 +163,10 @@ describe('record history', () => {
 			new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
 			'utf8',
 		)
+		const row = readFileSync(
+			new URL('../../app/components/common/DataTableRow.vue', import.meta.url),
+			'utf8',
+		)
 		const globalPage = readFileSync(
 			new URL('../../app/pages/records/index.vue', import.meta.url),
 			'utf8',
@@ -162,9 +176,12 @@ describe('record history', () => {
 			'utf8',
 		)
 		expect(table).toContain('viewerUserId === record.userId')
-		expect(table).toContain("'bg-primary/10 text-highlighted'")
-		expect(table).toContain("'record-history-highlight': highlightedRecordIds?.has(record.id)")
+		expect(table).toContain(':highlighted="highlightedRecordIds?.has(record.id)"')
+		expect(row).toContain("viewer ? 'bg-primary/10 text-highlighted' : 'bg-card/60'")
+		expect(row).toContain("'record-history-highlight': highlighted")
 		expect(globalPage).toContain(':viewer-user-id="session.user?.id"')
 		expect(personalPage).not.toContain('viewer-user-id')
+		expect(globalPage).not.toContain('@select')
+		expect(personalPage).not.toContain('@select')
 	})
 })

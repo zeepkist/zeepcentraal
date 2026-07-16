@@ -1,3 +1,44 @@
+fragment ZC_LevelExplorerCard on Level {
+	id
+	xxHash
+	adventure
+	dateCreated
+	levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
+		nodes {
+			name
+			imageUrl
+			validationTimeAuthor
+			validationTimeGold
+			validationTimeSilver
+			validationTimeBronze
+			author {
+				steamId
+				steamName
+			}
+		}
+	}
+	levelPoints {
+		points
+		rating
+		modifierPopularity
+	}
+	records(first: 0) {
+		totalCount
+	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobal {
+		record {
+			time
+		}
+		user {
+			steamId
+			steamName
+		}
+	}
+}
+
 query ZC_Levels(
 	$first: Int
 	$after: Cursor
@@ -17,36 +58,39 @@ query ZC_Levels(
 		edges {
 			cursor
 			node {
-				id
-				xxHash
-				adventure
-				dateCreated
-				levelItems(
-					first: 1
-					filter: { deleted: { equalTo: false } }
-					orderBy: [UPDATED_AT_DESC]
-				) {
-					nodes {
-						name
-						imageUrl
-						validationTimeAuthor
-						validationTimeGold
-						validationTimeSilver
-						validationTimeBronze
-						author {
-							steamId
-							steamName
-						}
-					}
-				}
-				levelPoints {
-					points
-					rating
-					modifierPopularity
-				}
-				records(first: 0) {
-					totalCount
-				}
+				...ZC_LevelExplorerCard
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}
+
+query ZC_HotLevels(
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$filter: LevelFilter
+	$since: Datetime!
+) {
+	levels: hotLevelsSince(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: $filter
+		since: $since
+	) {
+		edges {
+			cursor
+			node {
+				...ZC_LevelExplorerCard
 			}
 		}
 		pageInfo {

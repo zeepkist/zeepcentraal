@@ -1,12 +1,24 @@
 <template>
-	<UContainer class="space-y-8 py-2">
-		<PageHeader :eyebrow="$t('pages.graphql.eyebrow')" :title="$t('pages.graphql.title')" :description="$t('pages.graphql.description')" />
-		<ContentDocument v-if="document" :document="document" />
-	</UContainer>
+	<ContentPage
+		v-if="document"
+		:breadcrumbs="breadcrumbs"
+		:breadcrumb-label="$t('common.breadcrumbs')"
+			:document="document"
+			:table-of-contents-title="$t('pages.graphql.tableOfContents')"
+			show-table-of-contents
+	/>
 </template>
 <script setup lang="ts">
+const { t } = useI18n()
+const breadcrumbs = computed(() =>
+	buildAncestorBreadcrumbs('/developer', t('pages.developer.breadcrumb'), ['graphql']),
+)
 usePageSeo('graphql')
 const { data: document } = await useAsyncData('developer-graphql', () =>
-	queryCollection('api').path('/api').first(),
+	queryCollection('developer').path('/developer/graphql').first(),
 )
+
+if (!document.value) {
+	throw createError({ statusCode: 404, statusMessage: t('pages.graphql.notFound') })
+}
 </script>

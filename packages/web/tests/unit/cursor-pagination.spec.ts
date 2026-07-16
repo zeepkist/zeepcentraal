@@ -102,12 +102,15 @@ describe('cursor pagination', () => {
 			'utf8',
 		)
 		expect(component.match(/<UButton/g)).toHaveLength(4)
-		expect(component).toContain('@click="$emit(\'first\')"')
-		expect(component).toContain('@click="$emit(\'previous\')"')
-		expect(component).toContain('@click="$emit(\'next\')"')
-		expect(component).toContain('@click="$emit(\'last\')"')
+		expect(component).toContain('@click="first"')
+		expect(component).toContain('@click="previous"')
+		expect(component).toContain('@click="next"')
+		expect(component).toContain('@click="last"')
 		expect(component.match(/!canGoPrevious \|\| pending/g)).toHaveLength(2)
 		expect(component.match(/!canGoNext \|\| pending/g)).toHaveLength(2)
+		expect(component.match(/mounted &&/g)).toHaveLength(4)
+		expect(component).toContain("if (props.canGoPrevious && !props.pending) emit('first')")
+		expect(component).toContain("if (props.canGoNext && !props.pending) emit('last')")
 		expect(component).toContain('name="chevrons-left"')
 		expect(component).toContain('name="chevrons-right"')
 		expect(component).toContain('name="loader-2"')
@@ -125,7 +128,6 @@ describe('cursor pagination', () => {
 			'../../app/pages/super-league/[seasonSlug]/[roundSlug]/index.vue',
 			'../../app/pages/super-league/[seasonSlug]/[roundSlug]/[levelSlug].vue',
 			'../../app/pages/level/[xxh128].vue',
-			'../../app/pages/user/[steamid].vue',
 		]
 		for (const page of pages) {
 			expect(readFileSync(new URL(page, import.meta.url), 'utf8')).toContain(
@@ -137,5 +139,10 @@ describe('cursor pagination', () => {
 			'utf8',
 		)
 		expect(wrapper).toContain('pending && records.length === 0')
+		const userPage = readFileSync(
+			new URL('../../app/pages/user/[steamid].vue', import.meta.url),
+			'utf8',
+		)
+		expect(userPage).toContain('<UserResultsSection')
 	})
 })
