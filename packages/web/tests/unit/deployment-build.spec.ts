@@ -14,6 +14,10 @@ const buildAction = readFileSync(
 	new URL('../../../../.github/actions/build-package-binary/action.yml', import.meta.url),
 	'utf8',
 )
+const deployWorkflow = readFileSync(
+	new URL('../../../../.github/workflows/deploy.yml', import.meta.url),
+	'utf8',
+)
 
 describe('web deployment build', () => {
 	it('routes root CI build through standalone deployment compilation', () => {
@@ -43,5 +47,19 @@ describe('web deployment build', () => {
 		expect(buildAction).toContain('packages/database/src/**')
 		expect(buildAction).toContain('restore-keys: |')
 		expect(buildAction).not.toMatch(/^\s+packages\/web\/\.output$/m)
+	})
+
+	it('uses a supported Node runtime for semantic-release', () => {
+		const releaseJob = deployWorkflow.slice(
+			deployWorkflow.indexOf('\n  release:\n'),
+			deployWorkflow.indexOf('\n  build-packages:\n'),
+		)
+
+		expect(releaseJob).toContain('uses: actions/setup-node@v7')
+		expect(releaseJob).toContain("node-version: '26'")
+		expect(releaseJob).toContain('package-manager-cache: false')
+		expect(releaseJob.indexOf('Setup release Node')).toBeLessThan(
+			releaseJob.indexOf('Run per-package semantic release'),
+		)
 	})
 })
