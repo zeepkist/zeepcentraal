@@ -53,6 +53,12 @@ describe('web deployment build', () => {
 		expect(nuxtConfig).not.toMatch(/externals:\s*\{\s*inline:/)
 	})
 
+	it('keeps server-side Nuxt Content storage outside Bun embedded paths', () => {
+		expect(nuxtConfig).toMatch(
+			/content:\s*\{\s*database:\s*\{\s*type:\s*'sqlite',\s*filename:\s*':memory:'/,
+		)
+	})
+
 	it('keeps nuxt-bun-compile compatible with Nuxt Content prerendering', () => {
 		expect(rootPackage.patchedDependencies['nuxt-bun-compile@0.1.32']).toBe(
 			'patches/nuxt-bun-compile@0.1.32.patch',

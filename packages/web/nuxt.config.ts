@@ -47,6 +47,10 @@ export default defineNuxtConfig({
 		autoCompile: true,
 	},
 	content: {
+		database: {
+			type: 'sqlite',
+			filename: ':memory:',
+		},
 		build: {
 			markdown: {
 				highlight: {
