@@ -18,11 +18,18 @@ const buildAction = readFileSync(
 	new URL('../../../../.github/actions/build-package-binary/action.yml', import.meta.url),
 	'utf8',
 )
+const setupBunDependenciesAction = readFileSync(
+	new URL('../../../../.github/actions/setup-bun-deps/action.yml', import.meta.url),
+	'utf8',
+)
 const deployWorkflow = readFileSync(
 	new URL('../../../../.github/workflows/deploy.yml', import.meta.url),
 	'utf8',
 )
 const webDockerfile = readFileSync(new URL('../../../../Dockerfile.web', import.meta.url), 'utf8')
+const nativeDependencyDockerfiles = ['jobs', 'server'].map((name) =>
+	readFileSync(new URL(`../../../../Dockerfile.${name}`, import.meta.url), 'utf8'),
+)
 const bunCompilePatch = readFileSync(
 	new URL('../../../../patches/nuxt-bun-compile@0.1.32.patch', import.meta.url),
 	'utf8',
@@ -76,6 +83,22 @@ describe('web deployment build', () => {
 		expect(bunCompilePatch).toContain(
 			'nitro.options.static || nitro.options.preset === "nitro-prerender"',
 		)
+	})
+
+	it('provides root Bun patches to every frozen Docker dependency install', () => {
+		for (const dockerfile of nativeDependencyDockerfiles) {
+			const copyPatches = dockerfile.indexOf('COPY patches/ patches/')
+			const installDependencies = dockerfile.indexOf(
+				'RUN HUSKY=0 bun install --frozen-lockfile',
+			)
+
+			expect(copyPatches).toBeGreaterThanOrEqual(0)
+			expect(installDependencies).toBeGreaterThan(copyPatches)
+		}
+	})
+
+	it('invalidates the dependency cache when Bun patches change', () => {
+		expect(setupBunDependenciesAction).toContain("'patches/**'")
 	})
 
 	it('restores executable permissions after artifact download', () => {

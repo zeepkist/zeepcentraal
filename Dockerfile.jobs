@@ -3,6 +3,7 @@ FROM oven/bun:1.3.14-debian AS native-deps
 WORKDIR /app
 
 COPY package.json bun.lock bunfig.toml ./
+COPY patches/ patches/
 COPY packages/core/package.json packages/core/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/graphql/package.json packages/graphql/package.json
