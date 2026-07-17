@@ -87,11 +87,23 @@ export const taskDefinitions = {
 
 export type TaskIdentifier = keyof typeof taskDefinitions
 
+export type CompatibleTaskIdentifier = {
+	[Identifier in TaskIdentifier]: (typeof taskDefinitions)[Identifier]['compatible'] extends true
+		? Identifier
+		: never
+}[TaskIdentifier]
+
+export const compatibleTaskIdentifiers = Object.freeze(
+	(Object.keys(taskDefinitions) as TaskIdentifier[]).filter(
+		(task): task is CompatibleTaskIdentifier => taskDefinitions[task].compatible,
+	),
+)
+
 export function isTaskIdentifier(task: string): task is TaskIdentifier {
 	return task in taskDefinitions
 }
 
-export function isCompatibleTaskIdentifier(task: string): task is TaskIdentifier {
+export function isCompatibleTaskIdentifier(task: string): task is CompatibleTaskIdentifier {
 	return isTaskIdentifier(task) && taskDefinitions[task].compatible
 }
 

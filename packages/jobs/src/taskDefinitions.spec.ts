@@ -1,7 +1,35 @@
 import { expect, test } from 'bun:test'
 import { cronTasks } from './cronTasks'
 import { WORKSHOP_JOB_PRIORITY } from './priorities'
-import { isValidTaskPayload } from './taskDefinitions'
+import {
+	compatibleTaskIdentifiers,
+	isCompatibleTaskIdentifier,
+	isValidTaskPayload,
+} from './taskDefinitions'
+
+const expectedCompatibleTaskIdentifiers = [
+	'backfillRecordGhostStatistics',
+	'backfillRecordGhostStatisticsBatch',
+	'scanWorkshopBatch',
+	'scanWorkshopItem',
+	'syncPersonalBests',
+	'syncWorkshopCatalog',
+	'updateLevelPointsHistory',
+	'updateLevelPointsHistoryBatch',
+	'updateLevelScore',
+	'updateLevelScores',
+	'updatePlayerScore',
+	'updatePlayerScores',
+	'updateUserPointsHistory',
+	'updateUserPointsHistoryBatch',
+] as const
+
+test('compatible task contract exposes exact API-triggerable task list', () => {
+	expect(compatibleTaskIdentifiers).toEqual(expectedCompatibleTaskIdentifiers)
+	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBatch')
+	expect(isCompatibleTaskIdentifier('updateLevelScoresBatch')).toBe(false)
+	expect(isCompatibleTaskIdentifier('updateLevelScore')).toBe(true)
+})
 
 test('task payload validation accepts compatible legacy shapes', () => {
 	expect(isValidTaskPayload('updateLevelScore', { idLevel: 1, idUser: 2 })).toBe(true)
