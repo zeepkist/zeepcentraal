@@ -140,6 +140,7 @@
 import type { LevelSummary, LevelWorldRecordSummary } from '~/types/app'
 import type { LevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
 import { getLevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
+import { isLevelRatingAvailable } from '~/utils/levelRating'
 
 const props = defineProps<{
 	level: LevelSummary
@@ -178,7 +179,10 @@ const distanceFormat = computed(
 )
 const metrics = computed(() => [
 	{ label: props.labels.points, value: formatNumber(props.level.points) },
-	{ label: props.labels.rating, value: formatRating(props.level.rating) },
+	{
+		label: props.labels.rating,
+		value: formatRating(props.level.rating, props.level.voteCount),
+	},
 	{ label: props.labels.records, value: formatNumber(props.level.recordCount) },
 	{ label: props.labels.personalBests, value: formatNumber(props.level.personalBestCount) },
 	{ label: props.labels.trackLength, value: formatDistance(props.level.trackLength) },
@@ -194,8 +198,10 @@ function formatNumber(value: number | null | undefined) {
 	return value == null ? props.labels.unavailable : numberFormat.value.format(value)
 }
 
-function formatRating(value: number | null | undefined) {
-	return value == null ? props.labels.unavailable : percentFormat.value.format(value)
+function formatRating(value: number | null | undefined, voteCount: number | undefined) {
+	return isLevelRatingAvailable(value, voteCount)
+		? percentFormat.value.format(value)
+		: props.labels.unavailable
 }
 
 function formatDistance(value: number | null | undefined) {

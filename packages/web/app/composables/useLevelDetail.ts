@@ -202,6 +202,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			competitiveness: value.levelPoints?.modifierCompetitiveness,
 			recordCount: value.records.totalCount,
 			personalBestCount: value.personalBestGlobals.totalCount,
+			voteCount: value.votes.totalCount,
 			medals: item
 				? {
 						author: item.validationTimeAuthor,

@@ -64,6 +64,9 @@ query ZC_OmniSearch($search: String!) {
 				points
 				rating
 			}
+			votes(first: 0) {
+				totalCount
+			}
 		}
 	}
 }

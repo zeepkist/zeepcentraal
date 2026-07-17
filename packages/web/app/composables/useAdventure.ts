@@ -29,6 +29,7 @@ function mapLevel(level: Zc_AdventureLevelCardFragment): LevelSummary {
 		popularity: level.levelPoints?.modifierPopularity,
 		recordCount: level.records.totalCount,
 		personalBestCount: level.personalBestGlobals.totalCount,
+		voteCount: level.votes.totalCount,
 		worldRecordTime: level.worldRecordGlobal?.record?.time,
 		worldRecordAuthorName: level.worldRecordGlobal?.user?.steamName,
 		worldRecordAuthorSteamId:

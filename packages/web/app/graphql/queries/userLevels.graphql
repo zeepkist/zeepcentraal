@@ -28,6 +28,9 @@ fragment ZC_UserLevelCard on Level {
 	personalBestGlobals(first: 0) {
 		totalCount
 	}
+	votes(first: 0) {
+		totalCount
+	}
 	worldRecordGlobal {
 		record {
 			time

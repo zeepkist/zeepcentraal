@@ -70,7 +70,11 @@
 						<span class="text-muted-foreground">{{ labels.points }}</span>
 					</p>
 					<p class="text-muted-foreground">
-						{{ item.rating == null ? labels.unavailable : ratingFormat.format(item.rating) }}
+						{{
+							isLevelRatingAvailable(item.rating, item.voteCount)
+								? ratingFormat.format(item.rating)
+								: labels.unavailable
+						}}
 						{{ labels.rating }}
 					</p>
 				</div>
@@ -83,6 +87,7 @@
 <script setup lang="ts">
 import type { InputMenuItem } from '@nuxt/ui'
 import type { OmniSearchLevelResult, OmniSearchResult, OmniSearchUserResult } from '~/types/app'
+import { isLevelRatingAvailable } from '~/utils/levelRating'
 import { OMNI_SEARCH_MINIMUM_LENGTH } from '~/utils/omniSearch'
 
 const props = defineProps<{

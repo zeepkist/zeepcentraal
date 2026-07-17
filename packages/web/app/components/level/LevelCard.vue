@@ -51,7 +51,11 @@
 			<div class="min-w-0">
 				<p class="text-xs text-muted-foreground">{{ ratingLabel }}</p>
 				<p class="font-semibold tabular-nums text-highlighted">
-					{{ level.rating == null ? unavailableLabel : ratingFormat.format(level.rating) }}
+					{{
+						isLevelRatingAvailable(level.rating, level.voteCount)
+							? ratingFormat.format(level.rating)
+							: unavailableLabel
+					}}
 				</p>
 			</div>
 		</div>
@@ -90,7 +94,7 @@
 
 <script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
-import { createLevelRatingFormatter } from '~/utils/levelRating'
+import { createLevelRatingFormatter, isLevelRatingAvailable } from '~/utils/levelRating'
 
 const props = defineProps<{
 	level: LevelSummary

@@ -198,6 +198,7 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 				popularity: node.levelPoints?.modifierPopularity,
 				recordCount: node.records.totalCount,
 				personalBestCount: node.personalBestGlobals.totalCount,
+				voteCount: node.votes.totalCount,
 				worldRecordTime: node.worldRecordGlobal?.record?.time,
 				worldRecordAuthorName: node.worldRecordGlobal?.user?.steamName,
 				worldRecordAuthorSteamId:

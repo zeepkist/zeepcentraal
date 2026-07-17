@@ -28,6 +28,7 @@ describe('header omni-search', () => {
 		expect(query).toContain('rank: { greaterThan: 0 }')
 		expect(query).toContain('{ userPointExists: false }')
 		expect(query).toContain('name: { includesInsensitive: $search }')
+		expect(query).toContain('votes(first: 0)')
 	})
 
 	test('places ranked users first and sorts equal ranks alphabetically', () => {
@@ -60,6 +61,7 @@ describe('header omni-search', () => {
 			imageUrl: null,
 			points,
 			rating: null,
+			voteCount: 0,
 		})
 		const levels = [level(1, 'Zulu', 100), level(2, 'Alpha', 100), level(3, 'Top', 200)]
 
@@ -77,6 +79,7 @@ describe('header omni-search', () => {
 		expect(component).toContain('<NuxtImg')
 		expect(component).not.toContain('useQuery(')
 		expect(component).not.toContain('$fetch(')
+		expect(component).toContain('isLevelRatingAvailable(item.rating, item.voteCount)')
 	})
 
 	test('uses compact responsive result groups with a taller desktop viewport', () => {

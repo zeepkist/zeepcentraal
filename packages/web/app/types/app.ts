@@ -83,6 +83,7 @@ export type LevelSummary = {
 	dateCreated: string
 	points?: number | null
 	rating?: number | null
+	voteCount?: number
 	competitiveness?: number | null
 	popularity?: number | null
 	recordCount?: number
@@ -129,6 +130,7 @@ export type OmniSearchLevelResult = {
 	imageUrl: string | null
 	points: number | null
 	rating: number | null
+	voteCount: number
 }
 
 export type OmniSearchResult = OmniSearchUserResult | OmniSearchLevelResult

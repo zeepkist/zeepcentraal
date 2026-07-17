@@ -4,3 +4,10 @@ export function createLevelRatingFormatter(locale: string) {
 		maximumFractionDigits: 0,
 	})
 }
+
+export function isLevelRatingAvailable(
+	rating: number | null | undefined,
+	voteCount: number | undefined,
+): rating is number {
+	return rating != null && voteCount !== 0
+}

@@ -86,6 +86,7 @@ export function useOmniSearch() {
 					imageUrl: item?.imageUrl ?? null,
 					points: level.levelPoints?.points ?? null,
 					rating: level.levelPoints?.rating ?? null,
+					voteCount: level.votes.totalCount,
 				}
 			}),
 			locale.value,

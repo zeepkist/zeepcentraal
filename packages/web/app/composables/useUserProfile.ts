@@ -59,6 +59,7 @@ function mapUserLevel(
 		popularity: level.levelPoints?.modifierPopularity,
 		recordCount,
 		personalBestCount: level.personalBestGlobals.totalCount,
+		voteCount: level.votes.totalCount,
 		worldRecordTime: level.worldRecordGlobal?.record?.time,
 		worldRecordAuthorName: level.worldRecordGlobal?.user?.steamName,
 		worldRecordAuthorSteamId:

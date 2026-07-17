@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { createLevelRatingFormatter } from '../../app/utils/levelRating'
+import { createLevelRatingFormatter, isLevelRatingAvailable } from '../../app/utils/levelRating'
 
 const card = readFileSync(
 	new URL('../../app/components/level/LevelCard.vue', import.meta.url),
@@ -59,7 +59,7 @@ describe('level card presentation', () => {
 			card.indexOf('{{ ratingLabel }}'),
 		)
 		expect(card).toContain('level.points == null ? unavailableLabel')
-		expect(card).toContain('level.rating == null ? unavailableLabel')
+		expect(card).toContain('isLevelRatingAvailable(level.rating, level.voteCount)')
 		expect(grid).toContain(':rating-label="ratingLabel"')
 		expect(grid).toContain(':unavailable-label="unavailableLabel"')
 	})
@@ -72,9 +72,18 @@ describe('level card presentation', () => {
 		expect(card).toContain('createLevelRatingFormatter(locale.value)')
 	})
 
+	it('shows ratings only when a level has votes', () => {
+		expect(isLevelRatingAvailable(0.5, 0)).toBe(false)
+		expect(isLevelRatingAvailable(0.5, 1)).toBe(true)
+		expect(isLevelRatingAvailable(0.874, 10)).toBe(true)
+		expect(isLevelRatingAvailable(null, 10)).toBe(false)
+	})
+
 	it('loads PB counts for Adventure level cards', () => {
 		expect(adventureQuery).toContain('personalBestGlobals(first: 0)')
+		expect(adventureQuery).toContain('votes(first: 0)')
 		expect(adventure).toContain('personalBestCount: level.personalBestGlobals.totalCount')
+		expect(adventure).toContain('voteCount: level.votes.totalCount')
 	})
 
 	it('supplies rating and unavailable labels from every LevelGrid context', () => {
