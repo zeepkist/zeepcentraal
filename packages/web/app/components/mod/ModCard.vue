@@ -33,15 +33,16 @@
 					<h3 class="truncate text-lg font-semibold text-highlighted">{{ mod.name }}</h3>
 					<p class="truncate text-sm text-muted-foreground">{{ mod.authorName }}</p>
 				</div>
-				<a
-					:href="mod.profileUrl"
+				<NuxtLink
+					:to="mod.profileUrl"
+					external
 					target="_blank"
 					rel="noopener noreferrer"
 					class="relative z-20 grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:scale-105 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:hover:-translate-y-0.5"
 					:aria-label="`${openModioLabel}: ${mod.name}`"
 				>
 					<TablerIcon name="download" class="size-5" />
-				</a>
+				</NuxtLink>
 			</div>
 			<div class="mt-3 flex min-h-6 flex-wrap gap-1.5">
 				<UBadge v-for="tag in visibleTags" :key="tag" color="neutral" variant="soft">
@@ -109,5 +110,4 @@ const metrics = computed(() => [
 				: percentFormat.value.format(props.mod.rating / 100),
 	},
 ])
-
 </script>

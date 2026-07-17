@@ -193,7 +193,8 @@ describe('mod presentation', () => {
 
 	it('uses slug detail links and a separate native mod.io action', () => {
 		expect(modCard).toContain(':to="`/mod/' + '$' + '{mod.slug}`"')
-		expect(modCard).toContain(':href="mod.profileUrl"')
+		expect(modCard).toContain(':to="mod.profileUrl"')
+		expect(modCard).toContain('\n\t\t\t\t\texternal\n')
 		expect(modCard).toContain('target="_blank"')
 		expect(modCard).toContain('name="download"')
 		expect(modCard).not.toContain('name="plus"')

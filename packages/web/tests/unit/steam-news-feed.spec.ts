@@ -13,9 +13,10 @@ const endpoint = readFileSync(
 
 describe('Steam announcement cards', () => {
 	it('makes every announcement a safe external card link', () => {
-		expect(component).toContain('<a')
+		expect(component).toContain('<NuxtLink')
 		expect(component).toContain('v-for="item in items"')
-		expect(component).toContain(':href="item.url"')
+		expect(component).toContain(':to="item.url"')
+		expect(component).toContain('\n\t\t\texternal\n')
 		expect(component).toContain('target="_blank"')
 		expect(component).toContain('rel="noopener"')
 		expect(component).not.toContain('<article')

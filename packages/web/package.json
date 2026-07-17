@@ -26,6 +26,7 @@
 		"@pinia/nuxt": "~0.11.0",
 		"@rollup/plugin-graphql": "3.0.0",
 		"@tabler/icons-vue": "3.44.0",
+		"@takumi-rs/core": "^2.0.0-rc.16",
 		"@urql/vue": "2.1.1",
 		"@vee-validate/zod": "4.15.1",
 		"@zeepkist/core": "workspace:*",

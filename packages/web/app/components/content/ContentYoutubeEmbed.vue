@@ -1,6 +1,7 @@
 <template>
 	<figure class="not-prose my-8 space-y-3">
 		<div class="aspect-video overflow-hidden rounded-xl border border-border bg-muted">
+			<!-- biome-ignore lint/a11y/useIframeTitle: Localized title is provided through required component prop. -->
 			<iframe
 				v-if="embedUrl"
 				:src="embedUrl"
@@ -13,14 +14,15 @@
 			/>
 		</div>
 		<figcaption class="text-center text-sm text-muted-foreground">
-			<a
-				:href="watchUrl"
+			<NuxtLink
+				:to="watchUrl"
+				external
 				target="_blank"
 				rel="noopener noreferrer"
 				class="font-medium text-primary underline underline-offset-4"
 			>
 				{{ $t('wikiContent.youtube.open') }}
-			</a>
+			</NuxtLink>
 		</figcaption>
 	</figure>
 </template>

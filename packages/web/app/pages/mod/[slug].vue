@@ -87,5 +87,9 @@ useSeoMeta({
 	twitterCard: 'summary_large_image',
 })
 useSchemaOrg([defineWebPage({ name: title, description })])
-defineOgImage('NuxtSeo.satori', { title, description, theme: '#facc15', colorMode: 'dark' })
+defineOgImage('ZeepCentraal.takumi', {
+	brand: computed(() => t('common.brand')),
+	title,
+	description,
+})
 </script>

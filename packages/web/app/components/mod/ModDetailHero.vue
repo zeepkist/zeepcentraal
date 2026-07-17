@@ -13,14 +13,15 @@
 				<h1 class="mt-4 text-3xl font-black text-highlighted sm:text-5xl">{{ mod.name }}</h1>
 				<p class="mt-2 text-base text-muted-foreground">
 					<template v-if="mod.authorUrl">
-						<a
-							:href="mod.authorUrl"
+						<NuxtLink
+							:to="mod.authorUrl"
+							external
 							target="_blank"
 							rel="noopener noreferrer"
 							class="font-medium text-primary hover:underline"
 						>
 							{{ byLabel }}
-						</a>
+						</NuxtLink>
 					</template>
 					<span v-else>{{ byLabel }}</span>
 				</p>

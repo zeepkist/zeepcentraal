@@ -89,7 +89,7 @@ export async function requestModio<T>(
 		url.searchParams.set('api_key', apiKey)
 
 		try {
-			return await $fetch<T>(url.toString(), { timeout: 5_000 })
+			return (await $fetch<T>(url.toString(), { timeout: 5_000 })) as T
 		} catch (error) {
 			const status = Number(
 				(error as { status?: number; statusCode?: number }).statusCode ??

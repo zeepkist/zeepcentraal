@@ -68,11 +68,13 @@ export function useAdventure(seriesSlug: Ref<string | undefined>) {
 	})
 
 	function cacheResolvedSeries() {
-		if (seriesQuery.fetching.value || seriesQuery.error.value || !seriesQuery.data.value) return
+		if (seriesQuery.fetching.value || seriesQuery.error.value) return
+		const levelsConnection = seriesQuery.data.value?.levels
+		if (!levelsConnection) return
 		const prefix = seriesQuery.operation.value?.variables.prefix
 		const series = ADVENTURE_SERIES.find((entry) => entry.prefix === prefix)
 		if (!series) return
-		const levels = seriesQuery.data.value.levels.nodes.map(mapLevel)
+		const levels = levelsConnection.nodes.map(mapLevel)
 		cache.set(series.slug, sortAdventureLevels(levels, series))
 	}
 
