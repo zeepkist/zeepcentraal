@@ -1,4 +1,4 @@
-import { emptyGhostStatistics, parseGhostStatistics } from '@zeepkist/core/ghosts'
+import { parseGhostStatistics } from '@zeepkist/core/ghosts'
 import { batchProcess } from '../utils/batchProcess'
 import { buildGhostUrl } from '../utils/ghostStatisticsBackfill'
 import type { TaskHandler } from './types'
@@ -103,7 +103,7 @@ export const backfillRecordGhostStatisticsBatch: TaskHandler<BatchPayload> = asy
 			helpers.logger.info(`Backfilling ghost statistics for record ${item.idRecord}.`)
 
 			const ghost = await downloadGhost(item.ghostUrl)
-			const statistics = (await parseGhostStatistics(ghost)) ?? emptyGhostStatistics()
+			const statistics = await parseGhostStatistics(ghost)
 
 			await upsertRecordStatistic({
 				idRecord: item.idRecord,

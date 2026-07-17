@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNull, or, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { recordMedia, recordStatistic } from '../schema'
 
@@ -32,6 +32,15 @@ export async function upsertRecordStatistic(input: RecordStatisticInput): Promis
 		.onConflictDoUpdate({
 			target: recordStatistic.idRecord,
 			set: {
+				ghostVersion: input.ghostVersion,
+				hasInputData: input.hasInputData,
+				hasAirData: input.hasAirData,
+				hasWheelData: input.hasWheelData,
+				hasSlipData: input.hasSlipData,
+				hasStateData: input.hasStateData,
+				hasSurfaceData: input.hasSurfaceData,
+				hasVelocityData: input.hasVelocityData,
+				hasRagdollData: input.hasRagdollData,
 				frameCount: input.frameCount,
 				time: input.time,
 				distance: input.distance,
@@ -93,6 +102,8 @@ export async function upsertRecordStatistic(input: RecordStatisticInput): Promis
 				maxAngularVelocity: input.maxAngularVelocity,
 				averageGforce: input.averageGforce,
 				maxGforce: input.maxGforce,
+				timeAnyDriverInput: input.timeAnyDriverInput,
+				driverInputTransitionCount: input.driverInputTransitionCount,
 				dateUpdated: now,
 			},
 		})
@@ -111,7 +122,26 @@ export async function getRecordMediaForStatisticBackfill({
 	if (ids && ids.length > 0) {
 		conditions.push(inArray(recordMedia.idRecord, ids))
 	} else {
-		conditions.push(isNull(recordStatistic.idRecord))
+		const incompleteStatistic = or(
+			isNull(recordStatistic.idRecord),
+			isNull(recordStatistic.ghostVersion),
+			isNull(recordStatistic.hasInputData),
+			isNull(recordStatistic.hasAirData),
+			isNull(recordStatistic.hasWheelData),
+			isNull(recordStatistic.hasSlipData),
+			isNull(recordStatistic.hasStateData),
+			isNull(recordStatistic.hasSurfaceData),
+			isNull(recordStatistic.hasVelocityData),
+			isNull(recordStatistic.hasRagdollData),
+			and(
+				eq(recordStatistic.hasInputData, true),
+				or(
+					isNull(recordStatistic.timeAnyDriverInput),
+					isNull(recordStatistic.driverInputTransitionCount),
+				),
+			),
+		)
+		if (incompleteStatistic) conditions.push(incompleteStatistic)
 		if (afterId !== undefined) {
 			conditions.push(gt(recordMedia.idRecord, afterId))
 		}

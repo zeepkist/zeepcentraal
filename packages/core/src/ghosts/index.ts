@@ -54,15 +54,13 @@ export async function parseGhost(buffer: Buffer): Promise<ParsedGhost> {
 	}
 }
 
-export async function parseGhostStatistics(
-	buffer: Buffer,
-): Promise<GhostStatisticValues | undefined> {
+export async function parseGhostStatistics(buffer: Buffer): Promise<GhostStatisticValues> {
 	const ghost = await parseGhost(buffer)
-	return calculateGhostStatistics(ghost.frames)
+	return calculateGhostStatistics(ghost.frames, ghost.version)
 }
 
 export async function parseGhostStatisticsFromBase64(
 	ghostData: string,
-): Promise<GhostStatisticValues | undefined> {
+): Promise<GhostStatisticValues> {
 	return parseGhostStatistics(Buffer.from(ghostData, 'base64'))
 }

@@ -4,8 +4,20 @@ import { SPEED_CAP_KMH, TURN_DEADZONE } from './constants'
 import { emptySurfaceValues, type KnownSurface, normalizeSurface } from './surfaces'
 import type { GhostFrame, GhostStatisticValues, Vector2, Vector3 } from './types'
 
-export function emptyGhostStatistics(frameCount: number | null = null): GhostStatisticValues {
+export function emptyGhostStatistics(
+	frameCount: number | null = null,
+	ghostVersion: number | null = null,
+): GhostStatisticValues {
 	return {
+		ghostVersion,
+		hasInputData: false,
+		hasAirData: false,
+		hasWheelData: false,
+		hasSlipData: false,
+		hasStateData: false,
+		hasSurfaceData: false,
+		hasVelocityData: false,
+		hasRagdollData: false,
 		frameCount,
 		time: null,
 		distance: null,
@@ -67,11 +79,16 @@ export function emptyGhostStatistics(frameCount: number | null = null): GhostSta
 		maxAngularVelocity: null,
 		averageGforce: null,
 		maxGforce: null,
+		timeAnyDriverInput: null,
+		driverInputTransitionCount: null,
 	}
 }
 
-export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticValues {
-	if (frames.length === 0) return emptyGhostStatistics(0)
+export function calculateGhostStatistics(
+	frames: GhostFrame[],
+	ghostVersion: number | null = null,
+): GhostStatisticValues {
+	if (frames.length === 0) return emptyGhostStatistics(0, ghostVersion)
 
 	let totalDistance = 0
 	let distanceInAir = 0
@@ -110,6 +127,7 @@ export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticVa
 	let turnRightTime = 0
 	let hornCount = 0
 	let hornTime = 0
+	let timeAnyDriverInput = 0
 	let timeInAir = 0
 	let timeOnGround = 0
 	const timeOnWheels: Record<1 | 2 | 3 | 4, number> = { 1: 0, 2: 0, 3: 0, 4: 0 }
@@ -131,6 +149,7 @@ export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticVa
 	let hasParkingStats = false
 	let hasMonorailStats = false
 	let hasRagdollStats = false
+	let hasVelocityStats = false
 
 	for (let i = 0; i < frames.length; i++) {
 		const frame = frames[i]
@@ -139,7 +158,10 @@ export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticVa
 			throw new Error('Invalid ghost frame')
 		}
 
-		hasInputStats ||= typeof frame.armsUp === 'boolean' || typeof frame.braking === 'boolean'
+		hasInputStats ||=
+			typeof frame.steering === 'number' ||
+			typeof frame.armsUp === 'boolean' ||
+			typeof frame.braking === 'boolean'
 		hasHornStats ||= typeof frame.horn === 'boolean'
 		hasStateStats ||= hasFrameState(frame)
 		hasAirStats ||= typeof frame.inAir === 'boolean'
@@ -149,6 +171,10 @@ export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticVa
 		hasParkingStats ||= typeof frame.parkingBlock === 'boolean'
 		hasMonorailStats ||= typeof frame.monorail === 'boolean'
 		hasRagdollStats ||= typeof frame.ragdoll === 'boolean'
+		hasVelocityStats ||=
+			frame.localVelocity !== undefined ||
+			frame.localAngularVelocity !== undefined ||
+			frame.localGForce !== undefined
 
 		if (typeof frame.speed === 'number' && Number.isFinite(frame.speed)) {
 			maxSpeed = maxValue(maxSpeed, Math.min(frame.speed, SPEED_CAP_KMH))
@@ -258,6 +284,7 @@ export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticVa
 		if (previous.armsUp) armsUpTime += dt
 		if (previous.braking) brakeTime += dt
 		if (previous.horn) hornTime += dt
+		if (hasAnyDriverInput(previous)) timeAnyDriverInput += dt
 		if (typeof previous.steering === 'number' && previous.steering < -TURN_DEADZONE)
 			turnLeftTime += dt
 		if (typeof previous.steering === 'number' && previous.steering > TURN_DEADZONE)
@@ -280,6 +307,15 @@ export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticVa
 
 	const duration = frames.at(-1)?.time
 	return {
+		ghostVersion,
+		hasInputData: hasInputStats,
+		hasAirData: hasAirStats,
+		hasWheelData: hasWheelStats,
+		hasSlipData: hasSlipStats,
+		hasStateData: hasStateStats,
+		hasSurfaceData: hasSurfaceStats,
+		hasVelocityData: hasVelocityStats,
+		hasRagdollData: hasRagdollStats,
 		frameCount: frames.length,
 		time: typeof duration === 'number' && Number.isFinite(duration) ? duration : null,
 		distance: totalDistance,
@@ -342,7 +378,19 @@ export function calculateGhostStatistics(frames: GhostFrame[]): GhostStatisticVa
 		maxAngularVelocity,
 		averageGforce: gforceTime > 0 ? gforceWeighted / gforceTime : null,
 		maxGforce,
+		timeAnyDriverInput: hasInputStats ? timeAnyDriverInput : null,
+		driverInputTransitionCount: hasInputStats
+			? armsUpCount + brakeCount + turnLeftCount + turnRightCount
+			: null,
 	}
+}
+
+function hasAnyDriverInput(frame: GhostFrame): boolean {
+	return (
+		frame.armsUp === true ||
+		frame.braking === true ||
+		(typeof frame.steering === 'number' && Math.abs(frame.steering) > TURN_DEADZONE)
+	)
 }
 
 function isWheelCount(value: number): value is 1 | 2 | 3 | 4 {

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { calculateGhostStatistics, SurfaceState } from './index'
+import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
 
 describe('V6 ghost frame parsing', () => {
@@ -130,6 +131,72 @@ describe('V6 ghost frame parsing', () => {
 	})
 })
 
+describe('protobuf ghost statistic capabilities', () => {
+	test('maps observed V5 frame fields to statistic capabilities', () => {
+		const ghost = parseDecodedV5({
+			version: 5,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				steering: 128,
+				inputFlags: 0,
+				soapboxFlags: 0,
+				groundedWheelState: 15,
+				slippingWheelState: 0,
+				surfaceState: SurfaceState.Tarmac,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					steering: 255,
+					inputFlags: 1,
+					soapboxFlags: 0,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					surfaceState: SurfaceState.Tarmac,
+				},
+			],
+		})
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(stats).toMatchObject({
+			ghostVersion: 5,
+			hasInputData: true,
+			hasAirData: true,
+			hasWheelData: true,
+			hasSlipData: true,
+			hasStateData: true,
+			hasSurfaceData: true,
+			hasVelocityData: false,
+			hasRagdollData: false,
+		})
+	})
+
+	test('maps observed V6 velocity and ragdoll fields to statistic capabilities', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				localVelocity: { x: 100_000, y: 0, z: 0 },
+				ragdollState: false,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					localVelocity: { x: 100_000, y: 0, z: 0 },
+					ragdollState: false,
+				},
+			],
+		})
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(stats.ghostVersion).toBe(6)
+		expect(stats.hasVelocityData).toBe(true)
+		expect(stats.hasRagdollData).toBe(true)
+	})
+})
+
 describe('ghost statistics calculation', () => {
 	test('maps unknown legacy frame surface to tarmac', () => {
 		const stats = calculateGhostStatistics([
@@ -220,5 +287,91 @@ describe('ghost statistics calculation', () => {
 
 		expect(stats.distanceRagdoll).toBe(5)
 		expect(stats.timeRagdoll).toBe(1)
+	})
+
+	test('reports observed capabilities and driver input union metrics', () => {
+		const stats = calculateGhostStatistics(
+			[
+				{
+					time: 0,
+					position: { x: 0, y: 0, z: 0 },
+					steering: -0.5,
+					armsUp: true,
+					braking: false,
+					inAir: false,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					soap: false,
+					offroad: false,
+					paraglider: false,
+					surfaces: ['tarmac'],
+					localVelocity: { x: 1, y: 0, z: 0 },
+					ragdoll: false,
+				},
+				{
+					time: 1,
+					position: { x: 1, y: 0, z: 0 },
+					steering: 0,
+					armsUp: false,
+					braking: true,
+					inAir: false,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					soap: false,
+					offroad: false,
+					paraglider: false,
+					surfaces: ['tarmac'],
+					localVelocity: { x: 1, y: 0, z: 0 },
+					ragdoll: false,
+				},
+				{
+					time: 2,
+					position: { x: 2, y: 0, z: 0 },
+					steering: 0,
+					armsUp: false,
+					braking: false,
+					inAir: false,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					soap: false,
+					offroad: false,
+					paraglider: false,
+					surfaces: ['tarmac'],
+					localVelocity: { x: 1, y: 0, z: 0 },
+					ragdoll: false,
+				},
+			],
+			6,
+		)
+
+		expect(stats).toMatchObject({
+			ghostVersion: 6,
+			hasInputData: true,
+			hasAirData: true,
+			hasWheelData: true,
+			hasSlipData: true,
+			hasStateData: true,
+			hasSurfaceData: true,
+			hasVelocityData: true,
+			hasRagdollData: true,
+			timeAnyDriverInput: 2,
+			driverInputTransitionCount: 3,
+		})
+	})
+
+	test('keeps unsupported capability metrics null', () => {
+		const stats = calculateGhostStatistics(
+			[
+				{ time: 0, position: { x: 0, y: 0, z: 0 } },
+				{ time: 1, position: { x: 1, y: 0, z: 0 } },
+			],
+			1,
+		)
+
+		expect(stats.ghostVersion).toBe(1)
+		expect(stats.hasInputData).toBe(false)
+		expect(stats.hasAirData).toBe(false)
+		expect(stats.timeAnyDriverInput).toBeNull()
+		expect(stats.driverInputTransitionCount).toBeNull()
 	})
 })

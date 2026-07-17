@@ -33,6 +33,15 @@ export type GhostFrame = {
 }
 
 export type GhostStatisticValues = {
+	ghostVersion: number | null
+	hasInputData: boolean
+	hasAirData: boolean
+	hasWheelData: boolean
+	hasSlipData: boolean
+	hasStateData: boolean
+	hasSurfaceData: boolean
+	hasVelocityData: boolean
+	hasRagdollData: boolean
 	frameCount: number | null
 	time: number | null
 	distance: number | null
@@ -94,6 +103,8 @@ export type GhostStatisticValues = {
 	maxAngularVelocity: number | null
 	averageGforce: number | null
 	maxGforce: number | null
+	timeAnyDriverInput: number | null
+	driverInputTransitionCount: number | null
 }
 
 export type ParsedGhost = {

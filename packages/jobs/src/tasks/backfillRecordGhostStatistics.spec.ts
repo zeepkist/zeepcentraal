@@ -1,8 +1,23 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const getRecordIdsWithGhostMedia = mock(async (_ids: number[]) => [] as number[])
-const getRecordMediaForStatisticBackfill = mock(async () => [])
+const getRecordMediaForStatisticBackfill = mock(
+	async () => [] as Array<{ idRecord: number; ghostUrl: string | null }>,
+)
 const upsertRecordStatistic = mock(async () => {})
+const parseGhostStatistics = mock(async () => ({
+	ghostVersion: 6,
+	hasInputData: true,
+	hasAirData: true,
+	hasWheelData: true,
+	hasSlipData: true,
+	hasStateData: true,
+	hasSurfaceData: true,
+	hasVelocityData: true,
+	hasRagdollData: true,
+	timeAnyDriverInput: 1,
+	driverInputTransitionCount: 2,
+}))
 
 mock.module('@zeepkist/database/services', () => ({
 	getRecordIdsWithGhostMedia,
@@ -10,7 +25,13 @@ mock.module('@zeepkist/database/services', () => ({
 	upsertRecordStatistic,
 }))
 
-const { backfillRecordGhostStatistics } = await import('./backfillRecordGhostStatistics')
+mock.module('@zeepkist/core/ghosts', () => ({ parseGhostStatistics }))
+
+const { backfillRecordGhostStatistics, backfillRecordGhostStatisticsBatch } = await import(
+	'./backfillRecordGhostStatistics'
+)
+
+const blockedFetch = globalThis.fetch
 
 function createHelpers() {
 	return {
@@ -28,6 +49,25 @@ describe('backfillRecordGhostStatistics', () => {
 		getRecordIdsWithGhostMedia.mockReset()
 		getRecordMediaForStatisticBackfill.mockReset()
 		upsertRecordStatistic.mockReset()
+		parseGhostStatistics.mockReset()
+		parseGhostStatistics.mockResolvedValue({
+			ghostVersion: 6,
+			hasInputData: true,
+			hasAirData: true,
+			hasWheelData: true,
+			hasSlipData: true,
+			hasStateData: true,
+			hasSurfaceData: true,
+			hasVelocityData: true,
+			hasRagdollData: true,
+			timeAnyDriverInput: 1,
+			driverInputTransitionCount: 2,
+		})
+		globalThis.fetch = mock(async () => new Response(new Uint8Array([1, 2, 3]))) as never
+	})
+
+	afterEach(() => {
+		globalThis.fetch = blockedFetch
 	})
 
 	test('targeted backfill skips records without ghost media before enqueueing batches', async () => {
@@ -68,6 +108,94 @@ describe('backfillRecordGhostStatistics', () => {
 				count: 0,
 				batches: 0,
 			},
+		)
+	})
+
+	test('normal backfill cursor-paginates incomplete statistics', async () => {
+		getRecordMediaForStatisticBackfill
+			.mockResolvedValueOnce([
+				{ idRecord: 1, ghostUrl: 'ghosts/1.bin' },
+				{ idRecord: 2, ghostUrl: 'ghosts/2.bin' },
+			])
+			.mockResolvedValueOnce([{ idRecord: 5, ghostUrl: 'ghosts/5.bin' }])
+		const helpers = createHelpers()
+
+		await backfillRecordGhostStatistics({ limit: 2 }, helpers as never)
+
+		expect(getRecordMediaForStatisticBackfill).toHaveBeenNthCalledWith(1, {
+			afterId: undefined,
+			limit: 2,
+		})
+		expect(getRecordMediaForStatisticBackfill).toHaveBeenNthCalledWith(2, {
+			afterId: 2,
+			limit: 2,
+		})
+		expect(helpers.addJob).toHaveBeenNthCalledWith(
+			1,
+			'backfillRecordGhostStatisticsBatch',
+			{ ids: [1, 2] },
+			{ jobKey: 'backfill-record-ghost-statistics:1-2' },
+		)
+		expect(helpers.addJob).toHaveBeenNthCalledWith(
+			2,
+			'backfillRecordGhostStatisticsBatch',
+			{ ids: [5] },
+			{ jobKey: 'backfill-record-ghost-statistics:5-5' },
+		)
+	})
+
+	test('batch reparses and upserts complete statistics metadata', async () => {
+		getRecordMediaForStatisticBackfill.mockResolvedValue([
+			{ idRecord: 9, ghostUrl: 'ghosts/record.bin' },
+		])
+		const helpers = createHelpers()
+
+		await backfillRecordGhostStatisticsBatch({ ids: [9] }, helpers as never)
+
+		expect(parseGhostStatistics).toHaveBeenCalledTimes(1)
+		expect(upsertRecordStatistic).toHaveBeenCalledWith({
+			idRecord: 9,
+			ghostVersion: 6,
+			hasInputData: true,
+			hasAirData: true,
+			hasWheelData: true,
+			hasSlipData: true,
+			hasStateData: true,
+			hasSurfaceData: true,
+			hasVelocityData: true,
+			hasRagdollData: true,
+			timeAnyDriverInput: 1,
+			driverInputTransitionCount: 2,
+		})
+	})
+
+	test('batch leaves failed parses eligible for a later retry', async () => {
+		getRecordMediaForStatisticBackfill.mockResolvedValue([
+			{ idRecord: 9, ghostUrl: 'ghosts/record.bin' },
+		])
+		parseGhostStatistics.mockRejectedValue(new Error('invalid ghost'))
+		const helpers = createHelpers()
+
+		await backfillRecordGhostStatisticsBatch({ ids: [9] }, helpers as never)
+
+		expect(upsertRecordStatistic).not.toHaveBeenCalled()
+		expect(helpers.logger.warn).toHaveBeenCalled()
+	})
+
+	test('batch leaves failed downloads eligible for a later retry', async () => {
+		getRecordMediaForStatisticBackfill.mockResolvedValue([
+			{ idRecord: 9, ghostUrl: 'ghosts/record.bin' },
+		])
+		globalThis.fetch = mock(async () => new Response(null, { status: 503 })) as never
+		const helpers = createHelpers()
+
+		await backfillRecordGhostStatisticsBatch({ ids: [9] }, helpers as never)
+
+		expect(parseGhostStatistics).not.toHaveBeenCalled()
+		expect(upsertRecordStatistic).not.toHaveBeenCalled()
+		expect(helpers.logger.warn).toHaveBeenCalledWith(
+			'Failed to backfill ghost statistics for record 9.',
+			expect.objectContaining({ error: expect.any(Error) }),
 		)
 	})
 })
