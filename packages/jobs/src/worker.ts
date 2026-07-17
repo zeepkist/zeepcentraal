@@ -16,9 +16,11 @@ export const priorityJobOptions: TaskSpec = {
 }
 
 let runner: Awaited<ReturnType<typeof run>> | null = null
+let runnerStop: Promise<void> | null = null
 const cronJobs: CronJob[] = []
 
 export async function startRunner() {
+	runnerStop = null
 	runner = await run({
 		connectionString: jobsConfig.databaseUrl,
 		crontabFile: '',
@@ -37,8 +39,19 @@ export async function startRunner() {
 	console.info(`Job runner started (PID ${process.pid})`)
 }
 
-export async function stopRunner() {
-	await runner?.stop()
+export function stopRunner(): Promise<void> {
+	const activeRunner = runner
+	if (!activeRunner) {
+		return Promise.resolve()
+	}
+
+	runnerStop ??= activeRunner.stop().then(() => {
+		if (runner === activeRunner) {
+			runner = null
+		}
+	})
+
+	return runnerStop
 }
 
 export function startCrons(
