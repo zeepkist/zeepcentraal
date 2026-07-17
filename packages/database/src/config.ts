@@ -1,6 +1,7 @@
 import { databaseConfig } from '@zeepkist/core/config/database'
+import { DEFAULT_VOTE_RATING } from '@zeepkist/core/score'
 
-export const DEFAULT_VOTE_RATING = 0.5
+export { DEFAULT_VOTE_RATING }
 
 export const WASABI_ACCESSKEY = databaseConfig.wasabi.accessKey
 export const WASABI_SECRETKEY = databaseConfig.wasabi.secretKey

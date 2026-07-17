@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { vote } from '../schema'
 
@@ -14,19 +14,38 @@ export async function upsertVote(userId: number, levelId: number, value: number)
 	return created
 }
 
-export async function getVoteValues({ idLevel }: { idLevel: number }): Promise<number[]> {
+export async function getVoteValues({
+	idLevel,
+	eligibleBefore,
+}: {
+	idLevel: number
+	eligibleBefore?: string
+}): Promise<number[]> {
 	const voteValues = await db
 		.select({
 			values: sql<number[]>`ARRAY_AGG(${vote.value}::float8)`.as('values'),
 		})
 		.from(vote)
-		.where(eq(vote.idLevel, idLevel))
+		.where(
+			and(
+				eq(vote.idLevel, idLevel),
+				eligibleBefore
+					? lte(
+							sql<string>`COALESCE(${vote.dateUpdated}, ${vote.dateCreated})`,
+							eligibleBefore,
+						)
+					: undefined,
+			),
+		)
 		.then((rows) => rows[0]?.values ?? [])
 
 	return voteValues
 }
 
-export async function getVoteValuesByLevelIds(idLevels: number[]): Promise<Map<number, number[]>> {
+export async function getVoteValuesByLevelIds(
+	idLevels: number[],
+	eligibleBefore?: string,
+): Promise<Map<number, number[]>> {
 	if (idLevels.length === 0) {
 		return new Map()
 	}
@@ -37,7 +56,17 @@ export async function getVoteValuesByLevelIds(idLevels: number[]): Promise<Map<n
 			values: sql<number[]>`ARRAY_AGG(${vote.value}::float8)`.as('values'),
 		})
 		.from(vote)
-		.where(inArray(vote.idLevel, idLevels))
+		.where(
+			and(
+				inArray(vote.idLevel, idLevels),
+				eligibleBefore
+					? lte(
+							sql<string>`COALESCE(${vote.dateUpdated}, ${vote.dateCreated})`,
+							eligibleBefore,
+						)
+					: undefined,
+			),
+		)
 		.groupBy(vote.idLevel)
 
 	return new Map(rows.map((row) => [row.idLevel, row.values]))

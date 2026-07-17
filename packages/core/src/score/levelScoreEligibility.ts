@@ -1,3 +1,4 @@
+/** Workshop availability inputs used to decide whether a level may earn points. */
 export interface LevelWorkshopAvailability {
 	accessibleItemCount: number
 	adventure: boolean

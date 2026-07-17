@@ -1,3 +1,9 @@
+import {
+	calculateLevelPoints,
+	calculateVoteRating,
+	getVoteRatingMaturityCutoff,
+	isLevelScoreEligible,
+} from '@zeepkist/core/score'
 import type { UpdateLevelPointsPayload } from '@zeepkist/database'
 import {
 	getLevelWorkshopAvailabilities,
@@ -7,7 +13,6 @@ import {
 	upsertLevelPointsBulk,
 } from '@zeepkist/database'
 import type { Helpers } from 'graphile-worker'
-import { calculateLevelPoints, calculateVoteRating, isLevelScoreEligible } from '../utils'
 import { refreshCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
 
 export async function updateLevelScoreBatch({
@@ -26,7 +31,7 @@ export async function updateLevelScoreBatch({
 	const [availabilityByLevel, personalBests, voteValuesByLevel] = await Promise.all([
 		getLevelWorkshopAvailabilities(idLevels),
 		getPersonalBestsWithRecordByLevelIds({ idLevels, limit: 50 }),
-		getVoteValuesByLevelIds(idLevels),
+		getVoteValuesByLevelIds(idLevels, getVoteRatingMaturityCutoff()),
 	])
 
 	const personalBestsByLevel = new Map<number, { time: number; totalCount: number }[]>()

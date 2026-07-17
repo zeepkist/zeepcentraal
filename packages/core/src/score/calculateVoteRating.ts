@@ -1,6 +1,22 @@
-const DEFAULT_VOTE_RATING = 0.5
+export const DEFAULT_VOTE_RATING = 0.5
+export const NEGATIVE_VOTE_WEIGHT = 0.75
+export const VOTE_RATING_MATURITY_MS = 7 * 24 * 60 * 60 * 1_000
 const Z = 1
 const Z2 = Z * Z
+
+export function calculateVoteScore(vote: number): number {
+	if (!Number.isFinite(vote)) {
+		return DEFAULT_VOTE_RATING
+	}
+
+	const clampedVote = Math.max(-2, Math.min(2, vote))
+	const weightedVote = clampedVote < 0 ? clampedVote * NEGATIVE_VOTE_WEIGHT : clampedVote
+	return (weightedVote + 2) / 4
+}
+
+export function getVoteRatingMaturityCutoff(now = Date.now()): string {
+	return new Date(now - VOTE_RATING_MATURITY_MS).toISOString()
+}
 
 function wilsonLowerBound(upVotes: number, totalVotes: number): number {
 	if (totalVotes === 0) return 0
@@ -20,7 +36,7 @@ export function calculateVoteRating(votes: number[]): number {
 	let sum = 0
 	for (let index = 0; index < totalVotes; index++) {
 		const vote = votes[index] ?? 0
-		sum += (vote + 2) / 4
+		sum += calculateVoteScore(vote)
 	}
 
 	const average = sum / totalVotes

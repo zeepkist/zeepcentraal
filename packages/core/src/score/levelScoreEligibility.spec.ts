@@ -19,7 +19,7 @@ test('levels with any accessible workshop item remain scoreable', () => {
 	)
 })
 
-test('levels with only deleted workshop items are not scoreable', () => {
+test('levels with only inaccessible workshop items are not scoreable', () => {
 	expect(isLevelScoreEligible({ adventure: false, itemCount: 2, accessibleItemCount: 0 })).toBe(
 		false,
 	)
