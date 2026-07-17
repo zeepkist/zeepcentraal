@@ -1,8 +1,35 @@
+import { isSteamWorkshopItemAccessible } from '@zeepkist/core/steam'
+
 interface ExistingWorkshopLevelItem {
 	deleted: boolean
 	id: number
 	idLevel: number
 	xxHash: string
+}
+
+export function hasWorkshopAccessibilityChanged(
+	previousVisibility: number,
+	nextVisibility: number,
+): boolean {
+	return (
+		isSteamWorkshopItemAccessible(previousVisibility) !==
+		isSteamWorkshopItemAccessible(nextVisibility)
+	)
+}
+
+export function resolveWorkshopMetadataBlocks({
+	existingBlocks,
+	inputBlocks,
+	visibility,
+}: {
+	existingBlocks: unknown
+	inputBlocks: unknown
+	visibility: number
+}): unknown {
+	if (isSteamWorkshopItemAccessible(visibility)) {
+		return inputBlocks
+	}
+	return Array.isArray(existingBlocks) && existingBlocks.length > 0 ? existingBlocks : []
 }
 
 interface ExistingLevel {

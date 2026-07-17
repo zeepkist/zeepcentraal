@@ -1,3 +1,4 @@
+import { STEAM_ACCESSIBLE_VISIBILITIES } from '@zeepkist/core/steam'
 import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { THUMBNAIL_FOLDER } from '../config'
@@ -17,7 +18,11 @@ import {
 } from '../schema'
 import { generateUid } from '../utils/generateUid'
 import { resolveSteamNameForWorkshopAuthor } from './user'
-import { resolveWorkshopLevelId } from './workshopHelpers'
+import {
+	hasWorkshopAccessibilityChanged,
+	resolveWorkshopLevelId,
+	resolveWorkshopMetadataBlocks,
+} from './workshopHelpers'
 
 export { resolveWorkshopLevelId } from './workshopHelpers'
 
@@ -82,10 +87,6 @@ function getImageExtensionFromContentType(contentType: string | null): string | 
 		default:
 			return undefined
 	}
-}
-
-function hasPopulatedBlocks(blocks: unknown): boolean {
-	return Array.isArray(blocks) && blocks.length > 0
 }
 
 export async function uploadWorkshopThumbnail(
@@ -336,13 +337,11 @@ export async function upsertWorkshopLevel(
 			.orderBy(asc(levelMetadata.id))
 			.limit(1)
 			.then((rows) => rows[0])
-		const publicWorkshopItem = input.workshopVisibility === 0
-		const existingMetadataHasBlocks = hasPopulatedBlocks(existingMetadata?.blocks)
-		const metadataBlocks = publicWorkshopItem
-			? input.blocks
-			: existingMetadataHasBlocks
-				? existingMetadata?.blocks
-				: []
+		const metadataBlocks = resolveWorkshopMetadataBlocks({
+			existingBlocks: existingMetadata?.blocks,
+			inputBlocks: input.blocks,
+			visibility: input.workshopVisibility,
+		})
 		const metadataValues = {
 			amountCheckpoints: input.amountCheckpoints,
 			amountFinishes: input.amountFinishes,
@@ -398,7 +397,10 @@ export async function upsertWorkshopLevel(
 				existingItem.idLevel !== idLevel ||
 				Boolean(
 					existingWorkshopItem &&
-						(existingWorkshopItem.visibility === 0) !== publicWorkshopItem,
+						hasWorkshopAccessibilityChanged(
+							existingWorkshopItem.visibility,
+							input.workshopVisibility,
+						),
 				),
 		}
 	})
@@ -596,7 +598,7 @@ export async function getLevelWorkshopAvailability(idLevel: number): Promise<{
 		.select({
 			adventure: level.adventure,
 			itemCount: sql<number>`COUNT(${levelItem.id})::int`,
-			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false AND ${workshopItem.visibility} = 0)::int`,
+			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false AND ${inArray(workshopItem.visibility, [...STEAM_ACCESSIBLE_VISIBILITIES])})::int`,
 		})
 		.from(level)
 		.leftJoin(levelItem, eq(levelItem.idLevel, level.id))
@@ -625,7 +627,7 @@ export async function getLevelWorkshopAvailabilities(idLevels: number[]): Promis
 			idLevel: level.id,
 			adventure: level.adventure,
 			itemCount: sql<number>`COUNT(${levelItem.id})::int`,
-			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false AND ${workshopItem.visibility} = 0)::int`,
+			accessibleItemCount: sql<number>`COUNT(${levelItem.id}) FILTER (WHERE ${levelItem.deleted} = false AND ${inArray(workshopItem.visibility, [...STEAM_ACCESSIBLE_VISIBILITIES])})::int`,
 		})
 		.from(level)
 		.leftJoin(levelItem, eq(levelItem.idLevel, level.id))
