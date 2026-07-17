@@ -3566,24 +3566,75 @@ type LevelMinAggregates {
 }
 
 type LevelPoint implements Node {
+  airSampleSize: Int
+  bestPassiveGap: Float
+  bestPassiveRank: Int
+  competitivenessScore: Float
   cutPenalty: Float!
   dateCreated: Datetime!
   dateUpdated: Datetime
+  driverEngagementScore: Float
+  inputCoverage: Float
+  inputSampleSize: Int
+  leaderboardAnomalyScore: Float
+  leaderboardConfidence: Float
 
   """Reads a single `Level` that is related to this `LevelPoint`."""
   level: Level
   levelId: Int!
   modifierCompetitiveness: Float!
+  modifierAfk: Float
   modifierLength: Float!
   modifierPopularity: Float!
   modifierRating: Float!
+  matureVoteCount: Int
 
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
   points: Int!
+  participationScore: Float
+  passivePlaySeverity: Float
+  passiveRunRatio: Float
+  passiveTop10Share: Float
+  pathConsistencyScore: Float
+  q25SteeringShare: Float
+  ragdollSampleSize: Int
   rating: Float!
+  routeConsistencyScore: Float
+  sampleSize: Int
+  speedConsistencyScore: Float
+  stateSampleSize: Int
+  slipSampleSize: Int
+  surfaceDiversityScore: Float
+  surfaceSampleSize: Int
+  telemetryAnomalyScore: Float
+  top10Spread: Float
+  top50Spread: Float
+  top5Spread: Float
+  typicalAirTimeShare: Float
+  typicalAverageAngularVelocity: Float
+  typicalAverageGforce: Float
+  typicalAverageSpeed: Float
+  typicalDistance: Float
+  typicalGroundTimeShare: Float
+  typicalMaxSpeed: Float
+  typicalRagdollShare: Float
+  typicalSlipShare: Float
+  velocitySampleSize: Int
+  wheelSampleSize: Int
+  worldRecordDifficultyScore: Float
+  worldRecordExcluded: Boolean
+  worldRecordMargin: Float
+  worldRecordOptimizationScore: Float
+  wrChallengerCount: Int
+  zeroControlRatio: Float
+  lowSteeringRatio: Float
+  medianArmsUpShare: Float
+  medianBrakeShare: Float
+  medianControlTransitionRate: Float
+  medianSteeringShare: Float
 }
 
 type LevelPointAggregates {
@@ -10330,7 +10381,17 @@ type RecordStatistic implements Node {
   distanceRagdoll: Float
   distanceSlipping: Float
   distanceSoapWheels: Float
+  driverInputTransitionCount: Int
   frameCount: Int
+  ghostVersion: Int
+  hasAirData: Boolean
+  hasInputData: Boolean
+  hasRagdollData: Boolean
+  hasSlipData: Boolean
+  hasStateData: Boolean
+  hasSurfaceData: Boolean
+  hasVelocityData: Boolean
+  hasWheelData: Boolean
   hornCount: Int
   hornTime: Float
   maxAngularVelocity: Float
@@ -10367,6 +10428,7 @@ type RecordStatistic implements Node {
   timeRagdoll: Float
   timeSlipping: Float
   timeSoapWheels: Float
+  timeAnyDriverInput: Float
   turnLeftCount: Int
   turnLeftTime: Float
   turnRightCount: Int

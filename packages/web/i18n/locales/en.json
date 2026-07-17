@@ -912,6 +912,90 @@
 				"wheelDistance": "Distance travelled with four through zero wheels down.",
 				"driverInputs": "Steering direction and controls used on this level."
 			},
+			"scoreBreakdown": {
+				"title": "How level points are calculated",
+				"description": "Competitive results, participation, mature votes and passive-play evidence behind this level’s ranked value.",
+				"groups": {
+					"score": {
+						"title": "Score signals",
+						"description": "Bounded factors that directly influence awarded level points."
+					},
+					"evidence": {
+						"title": "Evidence quality",
+						"description": "Sample coverage used to establish confidence in each score signal."
+					},
+					"leaderboard": {
+						"title": "Leaderboard challenge",
+						"description": "Time spreads, challengers and anomaly checks around the World Record."
+					},
+					"driving": {
+						"title": "Driving characteristics",
+						"description": "Descriptive telemetry hints that do not increase level points."
+					}
+				},
+				"metrics": {
+					"sampleSize": "Personal best sample",
+					"leaderboardConfidence": "Leaderboard confidence",
+					"inputSampleSize": "Input sample",
+					"inputCoverage": "Input coverage",
+					"airSampleSize": "Air sample",
+					"wheelSampleSize": "Wheel sample",
+					"slipSampleSize": "Slip sample",
+					"ragdollSampleSize": "Ragdoll sample",
+					"stateSampleSize": "State sample",
+					"surfaceSampleSize": "Surface sample",
+					"velocitySampleSize": "Velocity sample",
+					"competitivenessScore": "Competitiveness",
+					"worldRecordDifficultyScore": "World Record difficulty",
+					"participationScore": "Participation",
+					"voteAdjustment": "Mature-vote factor",
+					"passivePlaySeverity": "Passive-play evidence",
+					"afkModifier": "Passive-play factor",
+					"passiveRunRatio": "Passive-run share",
+					"passiveTop10Share": "Passive top-ten share",
+					"bestPassiveRank": "Best passive rank",
+					"bestPassiveGap": "Best passive gap",
+					"driverEngagementScore": "Driver engagement",
+					"worldRecordMargin": "World Record margin",
+					"top5Spread": "Top-five spread",
+					"top10Spread": "Top-ten spread",
+					"top50Spread": "Top-50 spread",
+					"wrChallengerCount": "World Record challengers",
+					"worldRecordOptimizationScore": "World Record optimization",
+					"leaderboardAnomalyScore": "Leaderboard anomaly",
+					"telemetryAnomalyScore": "Telemetry anomaly",
+					"worldRecordExcluded": "World Record review status",
+					"pathConsistencyScore": "Path consistency",
+					"speedConsistencyScore": "Speed consistency",
+					"routeConsistencyScore": "Route consistency",
+					"surfaceDiversityScore": "Surface diversity",
+					"matureVoteCount": "Mature votes",
+					"typicalDistance": "Typical distance",
+					"typicalAverageSpeed": "Typical average speed",
+					"typicalMaxSpeed": "Typical maximum speed",
+					"typicalAirTimeShare": "Typical airtime",
+					"typicalGroundTimeShare": "Typical ground time",
+					"typicalSlipShare": "Typical slipping",
+					"typicalRagdollShare": "Typical ragdolling",
+					"typicalAverageAngularVelocity": "Typical angular velocity",
+					"typicalAverageGforce": "Typical G-force",
+					"medianSteeringShare": "Median steering time",
+					"q25SteeringShare": "Lower-quartile steering time",
+					"lowSteeringRatio": "Low-steering runs",
+					"zeroControlRatio": "Zero-control runs",
+					"medianBrakeShare": "Median brake time",
+					"medianArmsUpShare": "Median arms-up time",
+					"medianControlTransitionRate": "Control transitions"
+				},
+				"unavailable": "-",
+				"notAvailable": "N/A",
+				"included": "Used for scoring",
+				"excluded": "Excluded from scoring",
+				"units": {
+					"radiansPerSecond": "rad/s",
+					"perSecond": "/s"
+				}
+			},
 			"recent": {
 				"title": "Recent records",
 				"description": "Latest submitted runs on this level."
