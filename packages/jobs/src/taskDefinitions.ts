@@ -53,12 +53,16 @@ export const taskDefinitions = {
 		schema: z.looseObject({
 			idLevel: z.number().int().positive(),
 			idUser: z.number().int().positive().optional(),
+			reportOnly: z.boolean().optional(),
 		}),
 		compatible: true,
 		maxAttempts: 3,
 	},
 	updateLevelScores: {
-		schema: z.looseObject({ all: z.boolean().optional() }),
+		schema: z.looseObject({
+			all: z.boolean().optional(),
+			reportOnly: z.boolean().optional(),
+		}),
 		compatible: true,
 		maxAttempts: 3,
 	},
@@ -66,6 +70,7 @@ export const taskDefinitions = {
 		schema: z.looseObject({
 			ids: z.array(z.number().int().positive()).min(1).max(50),
 			personalBestCountPercentile: z.number().nonnegative(),
+			reportOnly: z.boolean().optional(),
 		}),
 		compatible: false,
 		maxAttempts: 3,

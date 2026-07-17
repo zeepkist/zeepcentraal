@@ -5,6 +5,7 @@ import type { TaskHandler } from './types'
 type Payload = {
 	idLevel?: number
 	idUser?: number
+	reportOnly?: boolean
 }
 
 export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) => {
@@ -18,6 +19,7 @@ export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) =
 	await updateLevelScoreBatch({
 		idLevels: [idLevel],
 		personalBestCountPercentile,
+		reportOnly: payload.reportOnly,
 		logger: helpers.logger,
 	})
 

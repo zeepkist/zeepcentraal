@@ -8,6 +8,7 @@ import type { TaskHandler } from './types'
 
 type Payload = {
 	all?: boolean
+	reportOnly?: boolean
 }
 
 export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) => {
@@ -22,7 +23,11 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 	}
 
 	const personalBestCountPercentile = await getPersonalBestCount90thPercentile()
-	const jobs = createLevelScoreBatchJobs(levelIds, personalBestCountPercentile)
+	const jobs = createLevelScoreBatchJobs(
+		levelIds,
+		personalBestCountPercentile,
+		payload.reportOnly,
+	)
 	await helpers.addJobs(jobs)
 
 	helpers.logger.info(`Queued ${jobs.length} updateLevelScoresBatch jobs.`)

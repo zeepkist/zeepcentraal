@@ -5,6 +5,8 @@ import { isValidTaskPayload } from './taskDefinitions'
 
 test('task payload validation accepts compatible legacy shapes', () => {
 	expect(isValidTaskPayload('updateLevelScore', { idLevel: 1, idUser: 2 })).toBe(true)
+	expect(isValidTaskPayload('updateLevelScore', { idLevel: 1, reportOnly: true })).toBe(true)
+	expect(isValidTaskPayload('updateLevelScores', { all: true, reportOnly: true })).toBe(true)
 	expect(isValidTaskPayload('updateLevelPointsHistoryBatch', { offset: 0, limit: 200 })).toBe(
 		true,
 	)
