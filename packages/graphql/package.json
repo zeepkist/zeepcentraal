@@ -12,7 +12,7 @@
 		"publish": "bun scripts/publish.ts"
 	},
 	"devDependencies": {
-		"@graphql-hive/cli": "0.60.3",
+		"@graphql-hive/cli": "0.60.2",
 		"@graphql-inspector/cli": "6.0.8",
 		"graphql": "17.0.2"
 	}
