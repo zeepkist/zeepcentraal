@@ -11,6 +11,7 @@ import {
 import { enqueueCompatibleTask, enqueueWorkshopScan } from '@zeepkist/jobs/queue'
 import { setActiveSpanAttributes } from '@zeepkist/telemetry'
 import { Elysia, t } from 'elysia'
+import { GTR_BEARER_SECURITY, OPENAPI_TAG } from '../../openapi'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
@@ -173,15 +174,34 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 		},
 		{
 			body: t.Object({
-				Level: t.String(),
-				Hash: t.Optional(t.String()),
-				WorkshopId: t.Optional(t.String()),
-				Time: t.Number(),
-				Splits: t.Array(t.Number()),
-				Speeds: t.Array(t.Number()),
-				GhostData: t.String(),
-				GameVersion: t.String(),
-				ModVersion: t.String(),
+				Level: t.String({ description: 'Canonical legacy level hash.' }),
+				Hash: t.Optional(
+					t.String({ description: 'Uppercase 32-character XXH128 level hash.' }),
+				),
+				WorkshopId: t.Optional(
+					t.String({
+						description:
+							'Positive Steam Workshop file ID. Omit for Adventure Mode levels.',
+					}),
+				),
+				Time: t.Number({ description: 'Completed record time in seconds.' }),
+				Splits: t.Array(t.Number(), {
+					description: 'Cumulative checkpoint split times in seconds.',
+				}),
+				Speeds: t.Array(t.Number(), {
+					description: 'Recorded checkpoint speeds corresponding to `Splits`.',
+				}),
+				GhostData: t.String({ description: 'Base64-encoded GTR ghost replay.' }),
+				GameVersion: t.String({ description: 'Zeepkist game version.' }),
+				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
 			}),
+			detail: {
+				operationId: 'submitRecord',
+				summary: 'Submit a GTR record',
+				description:
+					'Validates and stores a completed run, checkpoint data, telemetry statistics, and ghost replay.',
+				security: GTR_BEARER_SECURITY,
+				tags: [OPENAPI_TAG.record],
+			},
 		},
 	)

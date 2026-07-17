@@ -22,6 +22,7 @@ import {
 } from '@zeepkist/database/services'
 import { setActiveSpanAttributes } from '@zeepkist/telemetry'
 import { Elysia, t } from 'elysia'
+import { OPENAPI_TAG } from '../../openapi'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
 import { handleV1Error, V1_ERROR_CODES } from '../../v1Errors'
@@ -159,10 +160,19 @@ const gtrAuthRoutes = new Elysia()
 		},
 		{
 			body: t.Object({
-				ModVersion: t.String(),
-				SteamId: t.String(),
-				AuthenticationTicket: t.String(),
+				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
+				SteamId: t.String({ description: 'SteamID64 belonging to the player.' }),
+				AuthenticationTicket: t.String({
+					description: 'Steam authentication session ticket encoded by the GTR client.',
+				}),
 			}),
+			detail: {
+				operationId: 'loginGtr',
+				summary: 'Sign in with a Steam authentication ticket',
+				description:
+					'Validates a Steam authentication ticket and returns a GTR access-token and refresh-token pair.',
+				tags: [OPENAPI_TAG.auth],
+			},
 		},
 	)
 	.post(
@@ -211,200 +221,270 @@ const gtrAuthRoutes = new Elysia()
 		},
 		{
 			body: t.Object({
-				ModVersion: t.String(),
-				SteamId: t.String(),
-				LoginToken: t.String(),
-				RefreshToken: t.String(),
+				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
+				SteamId: t.String({ description: 'SteamID64 belonging to the player.' }),
+				LoginToken: t.String({
+					description: 'Current GTR login token retained for V1 client compatibility.',
+				}),
+				RefreshToken: t.String({ description: 'Current GTR refresh token.' }),
 			}),
+			detail: {
+				operationId: 'refreshGtrSession',
+				summary: 'Refresh a GTR session',
+				description:
+					'Rotates the supplied GTR refresh token and returns a new access-token and refresh-token pair.',
+				tags: [OPENAPI_TAG.auth],
+			},
 		},
 	)
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
 	.use(gtrAuthRoutes)
 	.use(withRateLimit('auth'))
-	.get('/discord/redirect', () => {
-		const state = crypto.randomUUID()
-		return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
-	})
-	.get('/discord/callback', async ({ query, headers }) => {
-		const code = query.code as string | undefined
-		const state = query.state as string | undefined
-		if (!code || !validState(headers, state)) {
-			return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
-		}
+	.get(
+		'/discord/redirect',
+		() => {
+			const state = crypto.randomUUID()
+			return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
+		},
+		{
+			detail: {
+				operationId: 'startDiscordLogin',
+				summary: 'Start Discord sign-in',
+				description:
+					'Sets a short-lived OAuth state cookie and redirects the browser to Discord.',
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
+	)
+	.get(
+		'/discord/callback',
+		async ({ query, headers }) => {
+			const code = query.code as string | undefined
+			const state = query.state as string | undefined
+			if (!code || !validState(headers, state)) {
+				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
+			}
 
-		const discordAccessToken = await getDiscordAccessToken(code)
-		if (!discordAccessToken) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
+			const discordAccessToken = await getDiscordAccessToken(code)
+			if (!discordAccessToken) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
 
-		const discordUser = await getDiscordUser(discordAccessToken)
-		if (!discordUser) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
+			const discordUser = await getDiscordUser(discordAccessToken)
+			if (!discordUser) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
 
-		const user = await getUserByDiscordId(discordUser.id)
-		if (!user?.steamId) {
-			return errorResponse(400, V1_ERROR_CODES.AUTH_DISCORD_NOT_LINKED)
-		}
-		if (user.banned) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
-		setActiveSpanAttributes({
-			'user.discord_id': discordUser.id,
-			'user.steam_id': user.steamId.toString(),
-		})
+			const user = await getUserByDiscordId(discordUser.id)
+			if (!user?.steamId) {
+				return errorResponse(400, V1_ERROR_CODES.AUTH_DISCORD_NOT_LINKED)
+			}
+			if (user.banned) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
+			setActiveSpanAttributes({
+				'user.discord_id': discordUser.id,
+				'user.steam_id': user.steamId.toString(),
+			})
 
-		const { accessToken, accessTokenExpiry } = generateAccessToken({
-			provider: jwtProvider.discord,
-			steamId: user.steamId.toString(),
-			discordId: discordUser.id,
-		})
-		const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
-		const cookies = [
-			...buildSetCookieHeaders({
-				accessToken,
-				accessTokenExpiry,
-				refreshToken,
-				refreshTokenExpiry,
+			const { accessToken, accessTokenExpiry } = generateAccessToken({
+				provider: jwtProvider.discord,
 				steamId: user.steamId.toString(),
-			}),
-		]
-
-		await insertAuth({
-			idUser: user.id,
-			accessToken,
-			accessTokenExpiry,
-			refreshToken,
-			refreshTokenExpiry,
-			type: 0,
-			provider: jwtProvider.discord,
-			dateCreated: new Date().toISOString(),
-			dateUpdated: new Date().toISOString(),
-		})
-
-		return redirectResponse(new URL('/?auth=callback', cookieDomain().frontendUrl).href, [
-			...cookies,
-			stateCookie('', 0),
-		])
-	})
-	.get('/steam/redirect', () => {
-		const state = crypto.randomUUID()
-		return redirectResponse(getSteamRedirectUrl(state), [stateCookie(state, 300)])
-	})
-	.get('/steam/callback', async ({ query, headers }) => {
-		const state = query.state as string | undefined
-		if (!validState(headers, state)) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
-		const steamQuery = query as unknown as Parameters<typeof isSteamLoginSignatureValid>[0]
-		if (!(await isSteamLoginSignatureValid(steamQuery))) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
-
-		const steamIdentity = query['openid.identity'] as string | undefined
-		const steamId = steamIdentity?.split('/').pop()
-		if (!steamId) {
-			return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
-		}
-
-		const user = await getOrInsertUser(BigInt(steamId))
-		if (!user) {
-			return errorResponse(500, V1_ERROR_CODES.INTERNAL_SERVER_ERROR)
-		}
-		if (user.banned) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
-		setActiveSpanAttributes({ 'user.steam_id': steamId })
-		const { accessToken, accessTokenExpiry } = generateAccessToken({
-			provider: jwtProvider.steam,
-			steamId,
-		})
-		const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
-		const cookies = [
-			...buildSetCookieHeaders({
-				accessToken,
-				accessTokenExpiry,
-				refreshToken,
-				refreshTokenExpiry,
-				steamId,
-			}),
-		]
-
-		await insertAuth({
-			idUser: user.id,
-			accessToken,
-			accessTokenExpiry,
-			refreshToken,
-			refreshTokenExpiry,
-			type: 0,
-			provider: jwtProvider.steam,
-			dateCreated: new Date().toISOString(),
-			dateUpdated: new Date().toISOString(),
-		})
-
-		return redirectResponse(new URL('/?auth=callback', cookieDomain().frontendUrl).href, [
-			...cookies,
-			stateCookie('', 0),
-		])
-	})
-	.post('/web/refresh', async ({ headers }) => {
-		const cookies = Object.fromEntries(
-			(headers.cookie ?? '')
-				.split(';')
-				.map((item) => item.trim())
-				.filter(Boolean)
-				.map((item) => {
-					const [key, ...rest] = item.split('=')
-					return [key, decodeURIComponent(rest.join('='))]
+				discordId: discordUser.id,
+			})
+			const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
+			const cookies = [
+				...buildSetCookieHeaders({
+					accessToken,
+					accessTokenExpiry,
+					refreshToken,
+					refreshTokenExpiry,
+					steamId: user.steamId.toString(),
 				}),
-		) as Record<string, string>
+			]
 
-		const cookieAccessToken = cookies[COOKIES.AccessToken]
-		const cookieRefreshToken = cookies[COOKIES.RefreshToken]
-		const cookieSteamId = cookies[COOKIES.SteamId]
-
-		if (!cookieAccessToken || !cookieRefreshToken || !cookieSteamId) {
-			return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
-		}
-
-		const user = await getUser(cookieSteamId)
-		if (!user) {
-			return errorResponse(404, V1_ERROR_CODES.AUTH_USER_NOT_FOUND)
-		}
-		if (user.banned) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
-
-		const { accessToken, accessTokenExpiry } = generateAccessToken({
-			provider: jwtProvider.steam,
-			steamId: cookieSteamId,
-		})
-		const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
-		const nextCookies = [
-			...buildSetCookieHeaders({
+			await insertAuth({
+				idUser: user.id,
 				accessToken,
 				accessTokenExpiry,
 				refreshToken,
 				refreshTokenExpiry,
+				type: 0,
+				provider: jwtProvider.discord,
+				dateCreated: new Date().toISOString(),
+				dateUpdated: new Date().toISOString(),
+			})
+
+			return redirectResponse(new URL('/?auth=callback', cookieDomain().frontendUrl).href, [
+				...cookies,
+				stateCookie('', 0),
+			])
+		},
+		{
+			detail: {
+				operationId: 'completeDiscordLogin',
+				summary: 'Complete Discord sign-in',
+				description:
+					'Validates the Discord OAuth callback, creates browser session cookies, and redirects to ZeepCentraal.',
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
+	)
+	.get(
+		'/steam/redirect',
+		() => {
+			const state = crypto.randomUUID()
+			return redirectResponse(getSteamRedirectUrl(state), [stateCookie(state, 300)])
+		},
+		{
+			detail: {
+				operationId: 'startSteamLogin',
+				summary: 'Start Steam sign-in',
+				description:
+					'Sets a short-lived OAuth state cookie and redirects the browser to Steam.',
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
+	)
+	.get(
+		'/steam/callback',
+		async ({ query, headers }) => {
+			const state = query.state as string | undefined
+			if (!validState(headers, state)) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
+			const steamQuery = query as unknown as Parameters<typeof isSteamLoginSignatureValid>[0]
+			if (!(await isSteamLoginSignatureValid(steamQuery))) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
+
+			const steamIdentity = query['openid.identity'] as string | undefined
+			const steamId = steamIdentity?.split('/').pop()
+			if (!steamId) {
+				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
+			}
+
+			const user = await getOrInsertUser(BigInt(steamId))
+			if (!user) {
+				return errorResponse(500, V1_ERROR_CODES.INTERNAL_SERVER_ERROR)
+			}
+			if (user.banned) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
+			setActiveSpanAttributes({ 'user.steam_id': steamId })
+			const { accessToken, accessTokenExpiry } = generateAccessToken({
+				provider: jwtProvider.steam,
+				steamId,
+			})
+			const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
+			const cookies = [
+				...buildSetCookieHeaders({
+					accessToken,
+					accessTokenExpiry,
+					refreshToken,
+					refreshTokenExpiry,
+					steamId,
+				}),
+			]
+
+			await insertAuth({
+				idUser: user.id,
+				accessToken,
+				accessTokenExpiry,
+				refreshToken,
+				refreshTokenExpiry,
+				type: 0,
+				provider: jwtProvider.steam,
+				dateCreated: new Date().toISOString(),
+				dateUpdated: new Date().toISOString(),
+			})
+
+			return redirectResponse(new URL('/?auth=callback', cookieDomain().frontendUrl).href, [
+				...cookies,
+				stateCookie('', 0),
+			])
+		},
+		{
+			detail: {
+				operationId: 'completeSteamLogin',
+				summary: 'Complete Steam sign-in',
+				description:
+					'Validates the Steam OpenID callback, creates browser session cookies, and redirects to ZeepCentraal.',
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
+	)
+	.post(
+		'/web/refresh',
+		async ({ headers }) => {
+			const cookies = Object.fromEntries(
+				(headers.cookie ?? '')
+					.split(';')
+					.map((item) => item.trim())
+					.filter(Boolean)
+					.map((item) => {
+						const [key, ...rest] = item.split('=')
+						return [key, decodeURIComponent(rest.join('='))]
+					}),
+			) as Record<string, string>
+
+			const cookieAccessToken = cookies[COOKIES.AccessToken]
+			const cookieRefreshToken = cookies[COOKIES.RefreshToken]
+			const cookieSteamId = cookies[COOKIES.SteamId]
+
+			if (!cookieAccessToken || !cookieRefreshToken || !cookieSteamId) {
+				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
+			}
+
+			const user = await getUser(cookieSteamId)
+			if (!user) {
+				return errorResponse(404, V1_ERROR_CODES.AUTH_USER_NOT_FOUND)
+			}
+			if (user.banned) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
+
+			const { accessToken, accessTokenExpiry } = generateAccessToken({
+				provider: jwtProvider.steam,
 				steamId: cookieSteamId,
-			}),
-		]
+			})
+			const { refreshToken, refreshTokenExpiry } = generateRefreshToken()
+			const nextCookies = [
+				...buildSetCookieHeaders({
+					accessToken,
+					accessTokenExpiry,
+					refreshToken,
+					refreshTokenExpiry,
+					steamId: cookieSteamId,
+				}),
+			]
 
-		const rotated = await rotateAuth(user.id, cookieRefreshToken, {
-			idUser: user.id,
-			accessToken,
-			accessTokenExpiry,
-			refreshToken,
-			refreshTokenExpiry,
-			type: 0,
-			provider: jwtProvider.steam,
-			dateCreated: new Date().toISOString(),
-			dateUpdated: new Date().toISOString(),
-		})
-		if (!rotated) {
-			return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
-		}
+			const rotated = await rotateAuth(user.id, cookieRefreshToken, {
+				idUser: user.id,
+				accessToken,
+				accessTokenExpiry,
+				refreshToken,
+				refreshTokenExpiry,
+				type: 0,
+				provider: jwtProvider.steam,
+				dateCreated: new Date().toISOString(),
+				dateUpdated: new Date().toISOString(),
+			})
+			if (!rotated) {
+				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
 
-		return emptyJsonResponse(200, undefined, nextCookies)
-	})
+			return emptyJsonResponse(200, undefined, nextCookies)
+		},
+		{
+			detail: {
+				operationId: 'refreshWebSession',
+				summary: 'Refresh a browser session',
+				description:
+					'Rotates browser access and refresh cookies. Requires the complete ZeepCentraal session cookie set.',
+				security: [{ webSession: [] }],
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
+	)

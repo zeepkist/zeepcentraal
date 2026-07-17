@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import { config } from './config'
 import { authRoutes, jobRoutes, levelRoutes, recordRoutes, userRoutes, voteRoutes } from './modules'
+import { OPENAPI_TAG } from './openapi'
 import { withContext } from './plugins/withContext'
 import { withCors } from './plugins/withCors'
 import { withDocumentation } from './plugins/withDocumentation'
@@ -30,9 +31,21 @@ export function buildServer() {
 		.use(recordRoutes)
 		.use(voteRoutes)
 		.use(jobRoutes)
-		.get('/favicon.ico', ({ set }) => {
-			set.status = 204
-			return
+		.get(
+			'/favicon.ico',
+			({ set }) => {
+				set.status = 204
+				return
+			},
+			{ detail: { hide: true } },
+		)
+		.get('/healthz', () => ({ status: 'ok' }), {
+			detail: {
+				operationId: 'getHealth',
+				summary: 'Check API health',
+				description:
+					'Returns a lightweight readiness response when the API process is available.',
+				tags: [OPENAPI_TAG.system],
+			},
 		})
-		.get('/healthz', () => ({ status: 'ok' }))
 }

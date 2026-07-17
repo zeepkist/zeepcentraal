@@ -5,6 +5,7 @@ import {
 } from '@zeepkist/database/services'
 import { enqueueWorkshopScan } from '@zeepkist/jobs/queue'
 import { Elysia, t } from 'elysia'
+import { GTR_BEARER_SECURITY, OPENAPI_TAG } from '../../openapi'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withRateLimit } from '../../plugins/withRateLimit'
 import { handleV1Error, V1_ERROR_CODES } from '../../v1Errors'
@@ -50,8 +51,16 @@ export const levelRoutes = new Elysia({ prefix: '/level' })
 		},
 		{
 			body: t.Object({
-				WorkshopId: t.String(),
-				Hash: t.String(),
+				WorkshopId: t.String({ description: 'Positive Steam Workshop file ID.' }),
+				Hash: t.String({ description: 'Uppercase 32-character XXH128 level hash.' }),
 			}),
+			detail: {
+				operationId: 'requestLevel',
+				summary: 'Request level metadata',
+				description:
+					'Queues a Steam Workshop metadata scan when the supplied canonical level hash is not known.',
+				security: GTR_BEARER_SECURITY,
+				tags: [OPENAPI_TAG.level],
+			},
 		},
 	)

@@ -505,6 +505,61 @@ test('CORS allows configured website origin and rejects arbitrary origins', asyn
 	expect(rejected.headers.get('access-control-allow-origin')).toBeNull()
 })
 
+test('OpenAPI document groups every public operation by category', async () => {
+	type OpenApiOperation = {
+		operationId?: string
+		summary?: string
+		tags?: string[]
+	}
+	type OpenApiDocument = {
+		components?: { securitySchemes?: Record<string, unknown> }
+		paths: Record<string, Record<string, OpenApiOperation>>
+		tags?: Array<{ description?: string; name: string }>
+	}
+
+	const response = await send('/openapi/json')
+	expect(response.status).toBe(200)
+	const document = (await response.json()) as OpenApiDocument
+	const expectedOperations = {
+		'POST /auth/login': ['loginGtr', 'auth'],
+		'POST /auth/refresh': ['refreshGtrSession', 'auth'],
+		'GET /auth/discord/redirect': ['startDiscordLogin', 'auth'],
+		'GET /auth/discord/callback': ['completeDiscordLogin', 'auth'],
+		'GET /auth/steam/redirect': ['startSteamLogin', 'auth'],
+		'GET /auth/steam/callback': ['completeSteamLogin', 'auth'],
+		'POST /auth/web/refresh': ['refreshWebSession', 'auth'],
+		'POST /user/updateSteamName': ['updateSteamName', 'user'],
+		'POST /user/updateDiscordId': ['updateDiscordId', 'user'],
+		'POST /level/request': ['requestLevel', 'level'],
+		'POST /record/submit': ['submitRecord', 'record'],
+		'POST /vote/submit': ['submitVote', 'vote'],
+		'POST /job/trigger': ['triggerJob', 'job'],
+		'GET /healthz': ['getHealth', 'system'],
+	} as const
+
+	for (const [route, [operationId, tag]] of Object.entries(expectedOperations)) {
+		const [method, path] = route.split(' ') as [string, string]
+		const operation = document.paths[path]?.[method.toLowerCase()]
+		expect(operation, `${route} should be present`).toBeDefined()
+		expect(operation?.operationId).toBe(operationId)
+		expect(operation?.summary).toBeTruthy()
+		expect(operation?.tags).toEqual([tag])
+	}
+
+	const documentedTags = new Map(document.tags?.map((tag) => [tag.name, tag.description]))
+	for (const tag of ['auth', 'user', 'level', 'record', 'vote', 'job', 'system']) {
+		expect(documentedTags.get(tag)).toBeTruthy()
+	}
+
+	expect(Object.keys(document.components?.securitySchemes ?? {}).sort()).toEqual([
+		'accessToken',
+		'gtrBearerAuth',
+		'jobBearerAuth',
+		'webSession',
+	])
+	expect(document.paths['/favicon.ico']).toBeUndefined()
+})
+
 test('auth/login returns 400 when mod version is outdated', async () => {
 	state.versionOutdated = true
 	const response = await send('/auth/login', {
