@@ -99,6 +99,19 @@ describe('GraphQL operation conventions', () => {
 		}
 	})
 
+	test('literal filters contain at least one field', () => {
+		for (const file of filesUnder(graphqlDir, '.graphql')) {
+			const document = parse(readFileSync(file, 'utf8'))
+
+			visit(document, {
+				Argument(node) {
+					if (node.name.value !== 'filter' || node.value.kind !== Kind.OBJECT) return
+					expect(node.value.fields.length).toBeGreaterThan(0)
+				},
+			})
+		}
+	})
+
 	test('urql sends GraphQL queries using POST', () => {
 		const source = readFileSync(urqlPlugin, 'utf8')
 

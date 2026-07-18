@@ -1,0 +1,152 @@
+fragment ZC_GhostComparisonRecord on Record {
+	id
+	time
+	dateCreated
+	dateUpdated
+	levelId
+	userId
+	user {
+		id
+		steamId
+		steamName
+	}
+	recordMedia {
+		ghostUrl
+		dateCreated
+		dateUpdated
+	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	worldRecordGlobals(first: 0) {
+		totalCount
+	}
+}
+
+fragment ZC_RecordStatistic on RecordStatistic {
+	armsUpCount
+	armsUpTime
+	averageAngularVelocity
+	averageGforce
+	averageSpeed
+	averageVelocity
+	brakeCount
+	brakeTime
+	dateCreated
+	dateUpdated
+	distance
+	distanceInAir
+	distanceOffroadWheels
+	distanceOn1Wheel
+	distanceOn2Wheels
+	distanceOn3Wheels
+	distanceOn4Wheels
+	distanceOnGrass
+	distanceOnGround
+	distanceOnIce
+	distanceOnMetal
+	distanceOnMonorail
+	distanceOnSand
+	distanceOnSnow
+	distanceOnSoap
+	distanceOnTarmac
+	distanceParaglider
+	distanceParked
+	distanceRagdoll
+	distanceSlipping
+	distanceSoapWheels
+	driverInputTransitionCount
+	frameCount
+	ghostVersion
+	hasAirData
+	hasInputData
+	hasRagdollData
+	hasSlipData
+	hasStateData
+	hasSurfaceData
+	hasVelocityData
+	hasWheelData
+	hornCount
+	hornTime
+	maxAngularVelocity
+	maxGforce
+	maxSpeed
+	maxVelocity
+	nodeId
+	recordId
+	time
+	timeAnyDriverInput
+	timeInAir
+	timeOffroadWheels
+	timeOn1Wheel
+	timeOn2Wheels
+	timeOn3Wheels
+	timeOn4Wheels
+	timeOnGrass
+	timeOnGround
+	timeOnIce
+	timeOnMetal
+	timeOnMonorail
+	timeOnSand
+	timeOnSnow
+	timeOnSoap
+	timeOnTarmac
+	timeParaglider
+	timeParked
+	timeRagdoll
+	timeSlipping
+	timeSoapWheels
+	turnLeftCount
+	turnLeftTime
+	turnRightCount
+	turnRightTime
+}
+
+query ZC_RecordDetail($recordId: Int!) {
+	record(id: $recordId) {
+		...ZC_GhostComparisonRecord
+		gameVersion
+		modVersion
+		splits
+		speeds
+		level {
+			id
+			xxHash
+			levelItems(
+				first: 1
+				filter: { deleted: { equalTo: false } }
+				orderBy: [UPDATED_AT_DESC]
+			) {
+				nodes {
+					name
+					imageUrl
+					authorId
+					workshopId
+					author {
+						id
+						steamId
+						steamName
+					}
+				}
+			}
+			worldRecordGlobal {
+				record {
+					...ZC_GhostComparisonRecord
+				}
+			}
+		}
+		recordStatistic {
+			...ZC_RecordStatistic
+		}
+		userPointContributions(first: 1) {
+			nodes {
+				contributionRank
+				dateCalculated
+				levelDecayedPoints
+				levelPoints
+				levelPosition
+				playerDecayedPoints
+			}
+		}
+	}
+}
