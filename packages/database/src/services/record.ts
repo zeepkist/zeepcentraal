@@ -210,6 +210,16 @@ export async function getPersonalBestsWithRecordByLevelIds({
 		return []
 	}
 
+	return buildPersonalBestsWithRecordByLevelIdsQuery({ idLevels, limit })
+}
+
+export function buildPersonalBestsWithRecordByLevelIdsQuery({
+	idLevels,
+	limit = 10,
+}: {
+	idLevels: number[]
+	limit?: number
+}) {
 	const ranked = db
 		.select({
 			idRecord: record.id,
@@ -219,7 +229,9 @@ export async function getPersonalBestsWithRecordByLevelIds({
 			dateCreated: record.dateCreated,
 			splits: record.splits,
 			speeds: record.speeds,
-			statisticTime: recordStatistic.time,
+			statisticTime: sql<number | null>`${recordStatistic.time}`
+				.mapWith(recordStatistic.time)
+				.as('statistic_time'),
 			distance: recordStatistic.distance,
 			averageSpeed: recordStatistic.averageSpeed,
 			maxSpeed: recordStatistic.maxSpeed,
