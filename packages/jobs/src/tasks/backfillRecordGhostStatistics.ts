@@ -28,7 +28,7 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 	)
 	const limit = payload.limit ?? BATCH_SIZE
 	const batchSize = Math.min(limit, BATCH_SIZE)
-	let afterId: number | undefined
+	let beforeId: number | undefined
 	let enqueued = 0
 
 	if (payload.ids && payload.ids.length > 0) {
@@ -55,7 +55,7 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 
 	while (true) {
 		const media = await getRecordMediaForStatisticBackfill({
-			afterId,
+			beforeId,
 			limit: batchSize,
 		})
 		if (media.length === 0) break
@@ -70,7 +70,7 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 			},
 		)
 		enqueued += media.length
-		afterId = media.at(-1)?.idRecord
+		beforeId = media.at(-1)?.idRecord
 		if (media.length < batchSize) break
 	}
 

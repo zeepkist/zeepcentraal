@@ -111,36 +111,36 @@ describe('backfillRecordGhostStatistics', () => {
 		)
 	})
 
-	test('normal backfill cursor-paginates incomplete statistics', async () => {
+	test('normal backfill cursor-paginates incomplete statistics from highest ID to lowest', async () => {
 		getRecordMediaForStatisticBackfill
 			.mockResolvedValueOnce([
-				{ idRecord: 1, ghostUrl: 'ghosts/1.bin' },
+				{ idRecord: 5, ghostUrl: 'ghosts/5.bin' },
 				{ idRecord: 2, ghostUrl: 'ghosts/2.bin' },
 			])
-			.mockResolvedValueOnce([{ idRecord: 5, ghostUrl: 'ghosts/5.bin' }])
+			.mockResolvedValueOnce([{ idRecord: 1, ghostUrl: 'ghosts/1.bin' }])
 		const helpers = createHelpers()
 
 		await backfillRecordGhostStatistics({ limit: 2 }, helpers as never)
 
 		expect(getRecordMediaForStatisticBackfill).toHaveBeenNthCalledWith(1, {
-			afterId: undefined,
+			beforeId: undefined,
 			limit: 2,
 		})
 		expect(getRecordMediaForStatisticBackfill).toHaveBeenNthCalledWith(2, {
-			afterId: 2,
+			beforeId: 2,
 			limit: 2,
 		})
 		expect(helpers.addJob).toHaveBeenNthCalledWith(
 			1,
 			'backfillRecordGhostStatisticsBatch',
-			{ ids: [1, 2] },
-			{ jobKey: 'backfill-record-ghost-statistics:1-2' },
+			{ ids: [5, 2] },
+			{ jobKey: 'backfill-record-ghost-statistics:5-2' },
 		)
 		expect(helpers.addJob).toHaveBeenNthCalledWith(
 			2,
 			'backfillRecordGhostStatisticsBatch',
-			{ ids: [5] },
-			{ jobKey: 'backfill-record-ghost-statistics:5-5' },
+			{ ids: [1] },
+			{ jobKey: 'backfill-record-ghost-statistics:1-1' },
 		)
 	})
 

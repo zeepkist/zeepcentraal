@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, isNull, or, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { recordMedia, recordStatistic } from '../schema'
 
@@ -112,11 +112,11 @@ export async function upsertRecordStatistic(input: RecordStatisticInput): Promis
 export async function getRecordMediaForStatisticBackfill({
 	limit,
 	ids,
-	afterId,
+	beforeId,
 }: {
 	limit: number
 	ids?: number[]
-	afterId?: number
+	beforeId?: number
 }) {
 	const conditions = [sql`${recordMedia.ghostUrl} IS NOT NULL`]
 	if (ids && ids.length > 0) {
@@ -142,8 +142,8 @@ export async function getRecordMediaForStatisticBackfill({
 			),
 		)
 		if (incompleteStatistic) conditions.push(incompleteStatistic)
-		if (afterId !== undefined) {
-			conditions.push(gt(recordMedia.idRecord, afterId))
+		if (beforeId !== undefined) {
+			conditions.push(lt(recordMedia.idRecord, beforeId))
 		}
 	}
 
@@ -155,7 +155,7 @@ export async function getRecordMediaForStatisticBackfill({
 		.from(recordMedia)
 		.leftJoin(recordStatistic, eq(recordStatistic.idRecord, recordMedia.idRecord))
 		.where(and(...conditions))
-		.orderBy(asc(recordMedia.idRecord))
+		.orderBy(desc(recordMedia.idRecord))
 		.limit(limit)
 }
 

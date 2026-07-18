@@ -3,6 +3,7 @@ import type { SQL } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 
 let whereCondition: SQL | undefined
+let orderByExpression: SQL | undefined
 let conflictSet: Record<string, unknown> | undefined
 
 function createSelectBuilder() {
@@ -13,7 +14,10 @@ function createSelectBuilder() {
 			whereCondition = condition
 			return builder
 		}),
-		orderBy: mock(() => builder),
+		orderBy: mock((expression: SQL) => {
+			orderByExpression = expression
+			return builder
+		}),
 		limit: mock(async () => []),
 	}
 	return builder
@@ -43,15 +47,18 @@ const { getRecordMediaForStatisticBackfill, upsertRecordStatistic } = await impo
 describe('record statistic backfill selection', () => {
 	beforeEach(() => {
 		whereCondition = undefined
+		orderByExpression = undefined
 		conflictSet = undefined
 		db.select.mockClear()
 		db.insert.mockClear()
 	})
 
 	test('selects absent or incomplete statistics without treating unsupported values as missing', async () => {
-		await getRecordMediaForStatisticBackfill({ limit: 500, afterId: 10 })
+		await getRecordMediaForStatisticBackfill({ limit: 500, beforeId: 10 })
 
-		const query = new PgDialect().sqlToQuery(whereCondition as SQL)
+		const dialect = new PgDialect()
+		const query = dialect.sqlToQuery(whereCondition as SQL)
+		const orderBy = dialect.sqlToQuery(orderByExpression as SQL)
 		expect(query.sql).toContain('"record_statistic"."id_record" is null')
 		expect(query.sql).toContain('"record_statistic"."ghost_version" is null')
 		expect(query.sql).toContain('"record_statistic"."has_input_data" is null')
@@ -60,7 +67,8 @@ describe('record statistic backfill selection', () => {
 		expect(query.sql).toContain('"record_statistic"."time_any_driver_input" is null')
 		expect(query.sql).toContain('"record_statistic"."driver_input_transition_count" is null')
 		expect(query.sql).not.toContain('"record_statistic"."distance_in_air" is null')
-		expect(query.sql).toContain('"record_media"."id_record" >')
+		expect(query.sql).toContain('"record_media"."id_record" <')
+		expect(orderBy.sql).toBe('"record_media"."id_record" desc')
 	})
 
 	test('targeted selection forces requested records regardless of completeness', async () => {
