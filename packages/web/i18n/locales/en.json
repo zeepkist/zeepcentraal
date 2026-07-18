@@ -539,9 +539,9 @@
 				"description": "Compare where time and speed change between the selected record and compatible comparison ghosts.",
 				"checkpoint": "Checkpoint",
 				"deltaTitle": "Time gained and lost",
-				"deltaDescription": "Cumulative time difference against the selected record at each checkpoint.",
+				"deltaDescription": "Cumulative time difference against the selected record at each checkpoint and the finish.",
 				"speedTitle": "Checkpoint speed",
-				"speedDescription": "Speed recorded at each checkpoint reveals stronger entries and exits."
+				"speedDescription": "Speed recorded at each checkpoint and at the finish where ghost telemetry is available."
 			},
 			"analysis": {
 				"telemetry": {
@@ -1313,7 +1313,7 @@
 				"empty": "No compatible checkpoint telemetry is available yet.",
 				"checkpoint": "Checkpoint",
 				"deltaTitle": "Time gained and lost",
-				"deltaDescription": "Cumulative time difference against the fastest player at each checkpoint.",
+				"deltaDescription": "Cumulative time difference against the fastest player at each checkpoint and the finish.",
 				"speedTitle": "Checkpoint speed",
 				"speedDescription": "Speed carried through each checkpoint, measured in kilometres per hour.",
 				"showMyComparison": "Show my comparison",

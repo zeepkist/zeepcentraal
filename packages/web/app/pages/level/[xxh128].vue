@@ -241,6 +241,7 @@ const heroLabels = computed(() => ({
 }))
 const splitAnalysisLabels = computed(() => ({
 	checkpoint: t('levels.detail.splitAnalysis.checkpoint'),
+	finish: t('common.finish'),
 	deltaTitle: t('levels.detail.splitAnalysis.deltaTitle'),
 	deltaDescription: t('levels.detail.splitAnalysis.deltaDescription'),
 	speedTitle: t('levels.detail.splitAnalysis.speedTitle'),

@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { buildLevelSplitAnalysis } from '../../app/utils/levelSplitAnalysis'
+import {
+	buildLevelSplitAnalysis,
+	resolveGhostFinishSpeed,
+} from '../../app/utils/levelSplitAnalysis'
 
 const query = readFileSync(
 	new URL('../../app/graphql/queries/levelSplitAnalysis.graphql', import.meta.url),
@@ -20,7 +23,7 @@ function splitRecord(id: number, time: number) {
 	return {
 		id,
 		time,
-		splits: [time / 2, time],
+		splits: [time * 0.4, time * 0.75],
 		speeds: [100 - id, 110 - id],
 		user: { steamId: String(id), steamName: `Player ${id}` },
 	}
@@ -42,25 +45,58 @@ describe('level checkpoint analysis', () => {
 			{
 				id: 1,
 				time: 10,
-				splits: [4, 10],
+				splits: [4, 8],
 				speeds: [80, 90],
 				user: { steamId: '1', steamName: 'Fast' },
 			},
 			{
 				id: 2,
 				time: 11,
-				splits: [4.5, 11],
+				splits: [4.5, 8.5],
 				speeds: [75, 85],
 				user: { steamId: '2', steamName: 'Close' },
 			},
 		])
-		expect(result.series[0]?.deltas).toEqual([0, 0])
-		expect(result.series[1]?.deltas).toEqual([0.5, 1])
+		expect(result.checkpointCount).toBe(2)
+		expect(result.series[0]?.deltas).toEqual([0, 0, 0])
+		expect(result.series[1]?.deltas).toEqual([0.5, 0.5, 1])
 		expect(result.deltaData).toEqual([
 			{ checkpoint: 1, record_1: 0, record_2: 0.5 },
-			{ checkpoint: 2, record_1: 0, record_2: 1 },
+			{ checkpoint: 2, record_1: 0, record_2: 0.5 },
+			{ checkpoint: 3, record_1: 0, record_2: 1 },
 		])
 		expect(result.speedData[1]).toEqual({ checkpoint: 2, record_1: 90, record_2: 85 })
+		expect(result.speedData).toHaveLength(2)
+	})
+
+	it('adds finish speed only when supplied and never fabricates missing values', () => {
+		const result = buildLevelSplitAnalysis([
+			{ id: 1, time: 10, splits: [4, 8], speeds: [80, 90], finishSpeed: 95 },
+			{ id: 2, time: 11, splits: [4.5, 9], speeds: null },
+		])
+
+		expect(result.speedData).toHaveLength(3)
+		expect(result.speedData[0]).toEqual({ checkpoint: 1, record_1: 80 })
+		expect(result.speedData[1]).toEqual({ checkpoint: 2, record_1: 90 })
+		expect(result.speedData[2]).toEqual({ checkpoint: 3, record_1: 95 })
+		expect(result.speedData.some((point) => point.record_2 === 0)).toBe(false)
+	})
+
+	it('reads exact finish speed from the final parsed ghost frame', () => {
+		expect(resolveGhostFinishSpeed([{ speed: 80 }, { speed: 95.5 }])).toBe(95.5)
+		expect(resolveGhostFinishSpeed([{ speed: 80 }, {}])).toBeNull()
+		expect(resolveGhostFinishSpeed([])).toBeNull()
+	})
+
+	it('renders finish analysis for levels without intermediate checkpoints', () => {
+		const result = buildLevelSplitAnalysis([
+			{ id: 1, time: 10, splits: [], speeds: [], finishSpeed: 95 },
+			{ id: 2, time: 11, splits: [], speeds: [], finishSpeed: null },
+		])
+
+		expect(result.checkpointCount).toBe(0)
+		expect(result.deltaData).toEqual([{ checkpoint: 1, record_1: 0, record_2: 1 }])
+		expect(result.speedData).toEqual([{ checkpoint: 1, record_1: 95 }])
 	})
 
 	it('appends a compatible viewer PB after the top five and marks it for dotted rendering', () => {
@@ -84,14 +120,15 @@ describe('level checkpoint analysis', () => {
 		expect(result.series[2]?.viewerComparison).toBe(false)
 	})
 
-	it('excludes malformed and checkpoint-incompatible arrays', () => {
+	it('excludes malformed and checkpoint-incompatible splits without requiring speeds', () => {
 		const result = buildLevelSplitAnalysis([
 			{ id: 1, time: 10, splits: [4, 10], speeds: [80, 90] },
 			{ id: 2, time: 11, splits: [4, 8, 11], speeds: [80, 85, 90] },
 			{ id: 3, time: 12, splits: [5, null], speeds: [75, 80] },
 			{ id: 4, time: 13, splits: [5, 13], speeds: [75] },
 		])
-		expect(result.series.map((series) => series.recordId)).toEqual([1])
+		expect(result.series.map((series) => series.recordId)).toEqual([1, 4])
+		expect(result.series[1]?.speeds).toEqual([null, null, null])
 	})
 
 	it('passes per-series dash arrays to both charts and mirrors viewer style in the legend', () => {
@@ -103,6 +140,9 @@ describe('level checkpoint analysis', () => {
 		expect(component).not.toContain('<UButton')
 		expect(component).toContain(':data="visibleDeltaData"')
 		expect(component).toContain(':data="visibleSpeedData"')
+		expect(component).toContain('finish: string')
+		expect(component).toContain('props.labels.finish')
+		expect(component).not.toContain('point[player.key] ?? 0')
 	})
 
 	it('places comparison toggle in section header and controls appended viewer series', () => {

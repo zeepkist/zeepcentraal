@@ -162,7 +162,7 @@
 <script setup lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
 import { buildGhostSlipEvents, buildGhostTimelineEvents } from '~/utils/ghostAnalysis'
-import { buildLevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
+import { buildLevelSplitAnalysis, resolveGhostFinishSpeed } from '~/utils/levelSplitAnalysis'
 import { buildRecordAirControlRuns, buildRecordDriftRuns } from '~/utils/recordGhostAnalysis'
 
 definePageMeta({ key: (route) => String(route.params.recordId) })
@@ -252,6 +252,7 @@ const checkpointAnalysis = computed(() =>
 			time: value.time,
 			splits: value.splits,
 			speeds: value.speeds,
+			finishSpeed: resolveGhostFinishSpeed(playback.parsed.get(value.recordId)?.frames ?? []),
 			user: { steamId: value.userSteamId, steamName: value.userName },
 		})),
 	),
