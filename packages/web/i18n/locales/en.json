@@ -15,13 +15,12 @@
 		"signIn": "Sign in",
 		"steam": "Sign in with Steam",
 		"verificationFailed": {
-			"description": "Your sign-in cookies could not be matched to a current session. Please try signing in again.",
-			"title": "Sign-in verification failed"
+			"description": "Your sign-in attempt failed. Please try signing in again.",
+			"title": "Sign-in failed"
 		}
 	},
 	"common": {
 		"breadcrumbs": "Breadcrumb navigation",
-		"placeholder": "Foundation placeholder",
 		"adventure": "Adventure",
 		"points": "Points",
 		"records": "Records",
@@ -46,7 +45,8 @@
 		"remove": "Remove",
 		"unavailable": "—",
 		"personalBest": "PB",
-		"worldRecord": "WR"
+		"worldRecord": "WR",
+		"unknownAuthor": "Unknown author"
 	},
 	"error": {
 		"action": "Return home",
@@ -59,7 +59,7 @@
 			"short": "Modding Discord"
 		},
 		"officialDiscord": {
-			"label": "Join official Zeepkist Discord",
+			"label": "Join Official Zeepkist Discord",
 			"short": "Zeepkist Discord"
 		},
 		"steam": {
@@ -77,23 +77,12 @@
 		},
 		"copyrightZeepCentraal": "© 2023 ZeepCentraal — Akane.",
 		"copyrightZeepkist": "Zeepkist © Yannic Geurts.",
-		"description": "Records, rankings, levels, tournaments, mods, and community tools for Zeepkist.",
+		"description": "Your complete Zeepkist companion for racing, building and competing.",
 		"disclaimer": "ZeepCentraal is not affiliated with Zeepkist, Yannic Geurts, or Steelpan Interactive.",
 		"links": {
-			"github": "GitHub repository",
+			"github": "GitHub Repository",
 			"privacy": "Privacy Policy",
 			"terms": "Terms & Conditions"
-		}
-	},
-	"home": {
-		"portal": {
-			"description": "One SSR-first entry point for records, personal bests, level discovery, tournament results, modding, and developer documentation.",
-			"title": "Track Zeepkist performance from one place"
-		},
-		"stats": {
-			"levels": "Levels",
-			"players": "Players",
-			"records": "Records"
 		}
 	},
 	"nav": {
@@ -119,10 +108,7 @@
 		},
 		"label": "Search users and levels",
 		"loading": "Searching users and levels",
-		"placeholder": "Search users and levels",
-		"rank": "Rank",
-		"typeMore": "Type at least two characters",
-		"unknownAuthor": "Unknown author"
+		"typeMore": "Type at least two characters"
 	},
 	"wikiContent": {
 		"edit": "Edit this page",
@@ -150,10 +136,8 @@
 	},
 	"pages": {
 		"adventure": {
-			"description": "Browse the official Adventure Mode levels in Zeepkist, and view the global leaderboards for each level.",
-			"eyebrow": "Adventure mode",
-			"panelDescription": "Season browser and adventure leaderboards land here.",
-			"panelTitle": "Adventure browser",
+			"description": "Browse every official Adventure Mode level and compete on global leaderboards",
+			"eyebrow": "Adventure Mode",
 			"seo": {
 				"description": "Zeepkist adventure mode seasons and leaderboards.",
 				"title": "Adventure Mode"
@@ -427,7 +411,7 @@
 				"record": "Record #{id}",
 				"recordTime": "Finish time",
 				"set": "Set",
-				"gameVersion": "Game / mod",
+				"gameVersion": "Game version",
 				"modVersion": "GTR version",
 				"ghostVersion": "Ghost format",
 				"levelRank": "Level rank",
@@ -592,12 +576,12 @@
 					"at": "at",
 					"duration": "for",
 					"kinds": {
-						"armsUp": "Arms up (ground or contact unknown)",
-						"braking": "Braking (ground or contact unknown)",
+						"armsUp": "Arms up",
+						"braking": "Braking",
 						"airArmsUp": "Air arms up",
 						"airBraking": "Air braking",
-						"airSteeringLeft": "Air steering left",
-						"airSteeringRight": "Air steering right",
+						"airSteeringLeft": "Air steer left",
+						"airSteeringRight": "Air steer right",
 						"horn": "Horn",
 						"paraglider": "Paraglider",
 						"soap": "Soap wheels",

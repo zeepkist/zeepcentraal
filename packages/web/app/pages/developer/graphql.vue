@@ -3,9 +3,9 @@
 		v-if="document"
 		:breadcrumbs="breadcrumbs"
 		:breadcrumb-label="$t('common.breadcrumbs')"
-			:document="document"
-			:table-of-contents-title="$t('pages.graphql.tableOfContents')"
-			show-table-of-contents
+		:document="document"
+		:table-of-contents-title="$t('pages.graphql.tableOfContents')"
+		show-table-of-contents
 	/>
 </template>
 <script setup lang="ts">
