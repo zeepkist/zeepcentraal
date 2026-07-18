@@ -952,6 +952,12 @@
 			"steamProfile": "Steam profile",
 			"steamWorkshop": "Steam Workshop",
 			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
+			"tabs": {
+				"label": "Player profile sections",
+				"career": "Career",
+				"records": "Records",
+				"workshopLevels": "Workshop Levels"
+			},
 			"summary": {
 				"title": "Career Summary",
 				"description": "Lifetime racing stats."
@@ -1157,6 +1163,11 @@
 		"detail": {
 			"notFound": "Level not found",
 			"seoDescription": "Records, medals, and statistics for {name}.",
+			"tabs": {
+				"label": "Level detail sections",
+				"records": "Records",
+				"telemetry": "Telemetry"
+			},
 			"medals": {
 				"title": "Medal times",
 				"description": "Author-defined target times to beat.",

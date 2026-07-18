@@ -22,18 +22,6 @@
 						<MedalTimes :times="summary.medals" :labels="medalLabels" />
 					</section>
 
-					<section aria-labelledby="score-breakdown-heading">
-						<SectionHeader
-							id="score-breakdown-heading"
-							:title="$t('levels.detail.scoreBreakdown.title')"
-							:description="$t('levels.detail.scoreBreakdown.description')"
-						/>
-						<LevelScoreBreakdown
-							:model="levelData.scoreInsights.value"
-							:labels="scoreBreakdownLabels"
-						/>
-					</section>
-
 					<section :ref="levelData.pointsHistoryTarget" aria-labelledby="level-points-heading">
 						<SectionHeader
 							id="level-points-heading"
@@ -61,29 +49,6 @@
 							/>
 						</DataState>
 					</section>
-
-					<section :ref="levelData.statisticsTarget" aria-labelledby="level-stats-heading">
-						<SectionHeader id="level-stats-heading" :title="$t('levels.detail.stats.title')" :description="$t('levels.detail.stats.description')" />
-						<DataState
-							:pending="!levelData.statisticsActive.value || levelData.statistics.fetching.value"
-							:error="levelData.statistics.error.value?.message"
-							:loading-label="$t('common.loading')"
-							:error-title="$t('common.error')"
-							:empty-title="$t('common.empty')"
-						>
-							<LevelTelemetryPanel
-								:model="telemetryModel"
-								:description="$t('levels.detail.stats.telemetryDescription')"
-							/>
-						</DataState>
-					</section>
-
-					<AuthorLevelsCta
-						:author-id="summary.authorId"
-						:title="$t('levels.detail.authorCta.title', { author: summary.authorName })"
-						:description="$t('levels.detail.authorCta.description')"
-						:action="$t('levels.detail.authorCta.action')"
-					/>
 
 					<section :ref="levelData.splitAnalysisTarget" aria-labelledby="split-analysis-heading">
 						<SectionHeader
@@ -121,61 +86,161 @@
 						</DataState>
 					</section>
 
-					<div class="grid gap-8 xl:grid-cols-2 xl:items-start">
-						<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
-							<SectionHeader id="recent-records-heading" :title="$t('levels.detail.recent.title')" :description="$t('levels.detail.recent.description')" />
-							<DataState
-								:pending="
-									levelData.recentPagination.isInitialPending(
-										levelData.recent.fetching.value,
-										levelData.recentRows.value.length,
-										levelData.recentActive.value,
-									)
-								"
-								:error="levelData.recent.error.value?.message"
-								:empty="levelData.recentRows.value.length === 0"
-								:loading-label="$t('common.loading')"
-								:error-title="$t('common.error')"
-								:empty-title="$t('common.empty')"
-							>
-								<RecordTable
-									:records="levelData.recentRows.value"
-									v-bind="recordLabels"
-									:show-rank="false"
-									show-pb-or-wr
-								/>
-							</DataState>
-							<CursorPagination class="mt-4" :page="levelData.recentPage.value" :can-go-previous="levelData.recentPagination.canGoPrevious(levelData.recentPage.value)" :can-go-next="levelData.recentPagination.canGoNext(levelData.recentPage.value)" :pending="!levelData.recentActive.value || levelData.recent.fetching.value" v-bind="paginationLabels" @first="levelData.recentPagination.first()" @previous="levelData.recentPagination.previous(levelData.recentPage.value)" @next="levelData.recentPagination.next(levelData.recentPage.value)" @last="levelData.recentPagination.last()" />
-						</section>
+					<AuthorLevelsCta
+						:author-id="summary.authorId"
+						:title="$t('levels.detail.authorCta.title', { author: summary.authorName })"
+						:description="$t('levels.detail.authorCta.description')"
+						:action="$t('levels.detail.authorCta.action')"
+					/>
 
-						<section :ref="levelData.personalBestsTarget" aria-labelledby="personal-bests-heading">
-							<SectionHeader id="personal-bests-heading" :title="$t('levels.detail.personalBests.title')" :description="$t('levels.detail.personalBests.description')" />
-							<DataState
-								:pending="
-									levelData.pbPagination.isInitialPending(
-										levelData.personalBests.fetching.value ||
-											levelData.personalBestRanks.fetching.value ||
-											levelData.viewerBest.fetching.value ||
-											levelData.viewerRank.fetching.value,
-										levelData.personalBestRows.value.length,
-										levelData.personalBestsActive.value,
-									)
-								"
-								:error="levelData.personalBests.error.value?.message || levelData.personalBestRanks.error.value?.message || levelData.viewerBest.error.value?.message || levelData.viewerRank.error.value?.message"
-								:empty="levelData.personalBestRows.value.length === 0"
-								:loading-label="$t('common.loading')"
-								:error-title="$t('common.error')"
-								:empty-title="$t('common.empty')"
+					<DetailSectionTabs
+						v-model="activeDetailTab"
+						:items="detailTabs"
+						:label="$t('levels.detail.tabs.label')"
+					>
+						<template #records>
+							<section
+								:ref="levelData.personalBestsTarget"
+								aria-labelledby="personal-bests-heading"
 							>
-								<RecordTable
-									:records="levelData.personalBestRows.value"
-									v-bind="recordLabels"
-									show-points
+								<SectionHeader
+									id="personal-bests-heading"
+									:title="$t('levels.detail.personalBests.title')"
+									:description="$t('levels.detail.personalBests.description')"
 								/>
-							</DataState>
-							<CursorPagination class="mt-4" :page="levelData.personalBestPage.value" :can-go-previous="levelData.pbPagination.canGoPrevious(levelData.personalBestPage.value)" :can-go-next="levelData.pbPagination.canGoNext(levelData.personalBestPage.value)" :pending="!levelData.personalBestsActive.value || levelData.personalBests.fetching.value || levelData.personalBestRanks.fetching.value" v-bind="paginationLabels" @first="levelData.pbPagination.first()" @previous="levelData.pbPagination.previous(levelData.personalBestPage.value)" @next="levelData.pbPagination.next(levelData.personalBestPage.value)" @last="levelData.pbPagination.last()" />
-						</section>
-					</div>
+								<DataState
+									:pending="
+										levelData.pbPagination.isInitialPending(
+											levelData.personalBests.fetching.value ||
+												levelData.personalBestRanks.fetching.value ||
+												levelData.viewerBest.fetching.value ||
+												levelData.viewerRank.fetching.value,
+											levelData.personalBestRows.value.length,
+											levelData.personalBestsActive.value,
+										)
+									"
+									:error="levelData.personalBests.error.value?.message || levelData.personalBestRanks.error.value?.message || levelData.viewerBest.error.value?.message || levelData.viewerRank.error.value?.message"
+									:empty="levelData.personalBestRows.value.length === 0"
+									:loading-label="$t('common.loading')"
+									:error-title="$t('common.error')"
+									:empty-title="$t('common.empty')"
+								>
+									<RecordTable
+										:records="levelData.personalBestRows.value"
+										v-bind="recordLabels"
+										show-points
+									/>
+								</DataState>
+								<CursorPagination
+									class="mt-4"
+									:page="levelData.personalBestPage.value"
+									:can-go-previous="
+										levelData.pbPagination.canGoPrevious(levelData.personalBestPage.value)
+									"
+									:can-go-next="
+										levelData.pbPagination.canGoNext(levelData.personalBestPage.value)
+									"
+									:pending="
+										!levelData.personalBestsActive.value ||
+										levelData.personalBests.fetching.value ||
+										levelData.personalBestRanks.fetching.value
+									"
+									v-bind="paginationLabels"
+									@first="levelData.pbPagination.first()"
+									@previous="
+										levelData.pbPagination.previous(levelData.personalBestPage.value)
+									"
+									@next="levelData.pbPagination.next(levelData.personalBestPage.value)"
+									@last="levelData.pbPagination.last()"
+								/>
+							</section>
+
+							<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
+								<SectionHeader
+									id="recent-records-heading"
+									:title="$t('levels.detail.recent.title')"
+									:description="$t('levels.detail.recent.description')"
+								/>
+								<DataState
+									:pending="
+										levelData.recentPagination.isInitialPending(
+											levelData.recent.fetching.value,
+											levelData.recentRows.value.length,
+											levelData.recentActive.value,
+										)
+									"
+									:error="levelData.recent.error.value?.message"
+									:empty="levelData.recentRows.value.length === 0"
+									:loading-label="$t('common.loading')"
+									:error-title="$t('common.error')"
+									:empty-title="$t('common.empty')"
+								>
+									<RecordTable
+										:records="levelData.recentRows.value"
+										v-bind="recordLabels"
+										:show-rank="false"
+										show-pb-or-wr
+									/>
+								</DataState>
+								<CursorPagination
+									class="mt-4"
+									:page="levelData.recentPage.value"
+									:can-go-previous="
+										levelData.recentPagination.canGoPrevious(levelData.recentPage.value)
+									"
+									:can-go-next="
+										levelData.recentPagination.canGoNext(levelData.recentPage.value)
+									"
+									:pending="
+										!levelData.recentActive.value || levelData.recent.fetching.value
+									"
+									v-bind="paginationLabels"
+									@first="levelData.recentPagination.first()"
+									@previous="
+										levelData.recentPagination.previous(levelData.recentPage.value)
+									"
+									@next="levelData.recentPagination.next(levelData.recentPage.value)"
+									@last="levelData.recentPagination.last()"
+								/>
+							</section>
+						</template>
+
+						<template #telemetry>
+							<section :ref="levelData.statisticsTarget" aria-labelledby="level-stats-heading">
+								<SectionHeader
+									id="level-stats-heading"
+									:title="$t('levels.detail.stats.title')"
+									:description="$t('levels.detail.stats.description')"
+								/>
+								<DataState
+									:pending="
+										!levelData.statisticsActive.value || levelData.statistics.fetching.value
+									"
+									:error="levelData.statistics.error.value?.message"
+									:loading-label="$t('common.loading')"
+									:error-title="$t('common.error')"
+									:empty-title="$t('common.empty')"
+								>
+									<LevelTelemetryPanel
+										:model="telemetryModel"
+										:description="$t('levels.detail.stats.telemetryDescription')"
+									/>
+								</DataState>
+							</section>
+
+							<section aria-labelledby="score-breakdown-heading">
+								<SectionHeader
+									id="score-breakdown-heading"
+									:title="$t('levels.detail.scoreBreakdown.title')"
+									:description="$t('levels.detail.scoreBreakdown.description')"
+								/>
+								<LevelScoreBreakdown
+									:model="levelData.scoreInsights.value"
+									:labels="scoreBreakdownLabels"
+								/>
+							</section>
+						</template>
+					</DetailSectionTabs>
 				</div>
 			</template>
 		</DataState>
@@ -195,6 +260,12 @@ const summary = levelData.summary
 const workshopUrl = computed(() => steamWorkshopItemUrl(summary.value?.workshopId))
 const telemetryModel = useLevelTelemetryModel(levelData.statistics.data)
 const showViewerSplitComparison = ref(false)
+type LevelDetailTab = 'records' | 'telemetry'
+const activeDetailTab = ref<LevelDetailTab>('records')
+const detailTabs = computed(() => [
+	{ value: 'records' as const, label: t('levels.detail.tabs.records') },
+	{ value: 'telemetry' as const, label: t('levels.detail.tabs.telemetry') },
+])
 const viewerSplitComparisonId = computed(
 	() =>
 		levelData.splitAnalysis.value.series.find((series) => series.viewerComparison)?.recordId,
