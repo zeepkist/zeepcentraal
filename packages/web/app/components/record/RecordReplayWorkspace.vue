@@ -1,6 +1,6 @@
 <template>
 	<div class="space-y-4">
-		<div v-if="ghosts.length === 0" class="grid aspect-video min-h-80 place-items-center rounded-2xl border border-border bg-card/60 p-6 text-center">
+		<div v-if="active && ghosts.length === 0" class="grid aspect-video min-h-80 place-items-center rounded-2xl border border-border bg-card/60 p-6 text-center">
 			<div>
 				<TablerIcon
 					:class="loading ? 'animate-spin text-primary motion-reduce:animate-none' : 'text-muted'"
@@ -12,7 +12,7 @@
 			</div>
 		</div>
 		<GhostPlaybackViewer
-			v-else
+			v-else-if="active"
 			ref="viewer"
 			:ghosts="ghosts"
 			:level-blocks="levelBlocks"
@@ -25,13 +25,17 @@
 			:following="following"
 			:frame-rate="frameRate"
 			:quality="quality"
+			:bulk-mode="bulkMode"
+			:bulk-ghost-count="states.size"
+			:detailed-record-ids="followRecordIdList"
+			:scene-revision="sceneRevision"
 			:labels="labels.viewer"
 			@update:current-time="currentTime = $event"
 			@update:playing="setPlaying"
 			@update:following="following = $event"
 		/>
 		<GhostPlaybackControls
-			v-if="ghosts.length"
+			v-if="active && ghosts.length"
 			v-model:current-time="currentTime"
 			:playing="playing"
 			v-model:playback-rate="playbackRate"
@@ -47,13 +51,13 @@
 			<template #settings><slot name="settings" /></template>
 		</GhostPlaybackControls>
 		<GhostComparisonLegend
-			v-if="ghosts.length"
-			:ghosts="ghosts"
+			v-if="active && followGhosts.length"
+			:ghosts="followGhosts"
 			:selected-record-id="selectedRecordId"
 			@select="select"
 		/>
 		<UAlert
-			v-if="failedCount"
+			v-if="active && failedCount"
 			color="warning"
 			icon="i-tabler-alert-triangle"
 			:title="labels.failedTitle"
@@ -81,11 +85,16 @@ import type {
 } from '~/types/ghost'
 import { resolveGhostPlaybackStartTime } from '~/utils/ghostScene'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelBlocks: GhostLevelBlock[]
 	states: Map<number, GhostLoadState>
-	primaryRecordId: number
+	primaryRecordId?: number | null
+	followRecordIds?: number[]
+	active?: boolean
+	bulkMode?: boolean
+	loadingWhenEmpty?: boolean
+	sceneRevision?: number | string
 	frameRate: 30 | 60
 	quality: 'performance' | 'balanced' | 'quality'
 	labels: {
@@ -118,7 +127,13 @@ const props = defineProps<{
 			frameRoute: string
 		}
 	}
-}>()
+}>(), {
+	active: true,
+	bulkMode: false,
+	loadingWhenEmpty: true,
+	primaryRecordId: null,
+	sceneRevision: 0,
+})
 
 const emit = defineEmits<{
 	retry: [recordIds: number[]]
@@ -134,6 +149,25 @@ const cameraMode = ref<GhostCameraMode>('orbit')
 const following = ref(true)
 const selectedRecordId = ref<number | null>(props.primaryRecordId)
 const duration = computed(() => Math.max(0, ...props.ghosts.map(({ record }) => record.time)))
+const followGhosts = computed(() => {
+	if (props.followRecordIds === undefined) return props.ghosts
+	const byId = new Map(props.ghosts.map((ghost) => [ghost.record.recordId, ghost]))
+	const ordered = props.followRecordIds.flatMap((recordId) => {
+		const ghost = byId.get(recordId)
+		return ghost ? [ghost] : []
+	})
+	const orderedIds = new Set(ordered.map(({ record }) => record.recordId))
+	const remaining = props.ghosts
+		.filter(({ record }) => !orderedIds.has(record.recordId))
+		.toSorted(
+			(left, right) =>
+				left.record.time - right.record.time || left.record.recordId - right.record.recordId,
+		)
+	return [...ordered, ...remaining].slice(0, 12)
+})
+const followRecordIdList = computed(() =>
+	followGhosts.value.map(({ record }) => record.recordId),
+)
 const failedCount = computed(
 	() => [...props.states.values()].filter((state) => state.status === 'error').length,
 )
@@ -143,13 +177,29 @@ const failedRecordIds = computed(() =>
 		.map(([recordId]) => recordId),
 )
 const loading = computed(
-	() => props.states.size === 0 || [...props.states.values()].some((state) => state.status === 'loading'),
+	() =>
+		(props.loadingWhenEmpty && props.states.size === 0) ||
+		[...props.states.values()].some((state) => state.status === 'loading'),
 )
 
 watch(
 	() => props.primaryRecordId,
 	(value) => {
-		selectedRecordId.value = value
+		if (value !== null && value !== undefined) selectedRecordId.value = value
+	},
+)
+watch(
+	() => followGhosts.value.map(({ record }) => record.recordId),
+	(recordIds) => {
+		if (selectedRecordId.value !== null && recordIds.includes(selectedRecordId.value)) return
+		selectedRecordId.value = recordIds[0] ?? null
+	},
+	{ immediate: true },
+)
+watch(
+	() => props.active,
+	(active) => {
+		if (!active) playing.value = false
 	},
 )
 watch(duration, (value) => {

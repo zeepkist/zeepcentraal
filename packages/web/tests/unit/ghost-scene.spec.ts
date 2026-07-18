@@ -6,9 +6,12 @@ import {
 	interpolateGhostFrame,
 	orthographicWorldUnitsPerPixel,
 	perspectiveWorldUnitsPerPixel,
+	planGhostVisualReconciliation,
 	rebaseGhostPosition,
 	resolveGhostDisplayPosition,
 	resolveGhostPlaybackStartTime,
+	resolveGhostTrailSampleLimit,
+	sampleGhostTrailFrames,
 } from '../../app/utils/ghostScene'
 
 describe('ghost scene', () => {
@@ -122,5 +125,53 @@ describe('ghost scene', () => {
 		const fourth = calculateGhostLabelWorldOffset(0.5, 24, 3)
 
 		expect(fourth).toBeGreaterThan(first)
+	})
+
+	it('allocates quality-dependent bulk trail budgets without exceeding per-ghost caps', () => {
+		expect(resolveGhostTrailSampleLimit('performance', 200, true)).toBe(250)
+		expect(resolveGhostTrailSampleLimit('balanced', 200, true)).toBe(600)
+		expect(resolveGhostTrailSampleLimit('quality', 200, true)).toBe(1_200)
+		expect(resolveGhostTrailSampleLimit('performance', 3, true)).toBe(4_000)
+		expect(resolveGhostTrailSampleLimit('balanced', 1_000, true)).toBe(128)
+	})
+
+	it('preserves existing per-ghost trail caps outside bulk playback', () => {
+		expect(resolveGhostTrailSampleLimit('performance', 200, false)).toBe(4_000)
+		expect(resolveGhostTrailSampleLimit('balanced', 200, false)).toBe(12_000)
+		expect(resolveGhostTrailSampleLimit('quality', 200, false)).toBe(30_000)
+	})
+
+	it('preserves trail endpoints while uniformly sampling frames', () => {
+		const frames = Array.from({ length: 1_001 }, (_, index) => index)
+		const sampled = sampleGhostTrailFrames(frames, 128)
+
+		expect(sampled).toHaveLength(128)
+		expect(sampled[0]).toBe(0)
+		expect(sampled.at(-1)).toBe(1_000)
+		expect(sampleGhostTrailFrames(frames, 2)).toEqual([0, 1_000])
+	})
+
+	it('reconciles keyed ghost visuals and recreates only changed modes or identities', () => {
+		expect(
+			planGhostVisualReconciliation(
+				[
+					{ recordId: 1, detailed: true, revision: 'one' },
+					{ recordId: 2, detailed: false, revision: 'two' },
+					{ recordId: 3, detailed: false, revision: 'three' },
+				],
+				[
+					{ recordId: 1, detailed: true, revision: 'one' },
+					{ recordId: 2, detailed: true, revision: 'two' },
+					{ recordId: 4, detailed: false, revision: 'four' },
+				],
+			),
+		).toEqual({
+			create: [
+				{ recordId: 2, detailed: true, revision: 'two' },
+				{ recordId: 4, detailed: false, revision: 'four' },
+			],
+			remove: [3, 2],
+			retain: [1],
+		})
 	})
 })

@@ -55,34 +55,43 @@ import {
 	interpolateGhostFrame,
 	orthographicWorldUnitsPerPixel,
 	perspectiveWorldUnitsPerPixel,
+	planGhostVisualReconciliation,
 	rebaseGhostPosition,
 	resolveGhostDisplayPosition,
+	resolveGhostTrailSampleLimit,
+	sampleGhostTrailFrames,
 } from '~/utils/ghostScene'
 
 type RenderQuality = 'performance' | 'balanced' | 'quality'
 
 type GhostVisual = {
 	ghost: LoadedPlaybackGhost
+	detailed: boolean
+	revision: string
 	group: THREE.Group
-	label: HTMLElement
-	labelObject: CSS2DObject
+	label: HTMLElement | null
+	labelObject: CSS2DObject | null
 	labelStagger: number
 	trail: Line2
 	trailGeometry: LineGeometry
 	trailMaterial: LineMaterial
 	trailTimes: number[]
-	chassis: THREE.Mesh
-	driver: THREE.Mesh
+	chassis: THREE.Mesh | null
+	driver: THREE.Mesh | null
 	arms: THREE.Mesh[]
 	brakeLights: THREE.Mesh[]
-	paraglider: THREE.Mesh
-	ragdoll: THREE.Mesh
+	paraglider: THREE.Mesh | null
+	ragdoll: THREE.Mesh | null
 	wheels: THREE.Mesh[]
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelBlocks: GhostLevelBlock[]
+	detailedRecordIds?: number[]
+	bulkMode?: boolean
+	bulkGhostCount?: number
+	sceneRevision?: number | string
 	currentTime: number
 	playing: boolean
 	playbackRate: number
@@ -102,7 +111,10 @@ const props = defineProps<{
 		unavailableTitle: string
 		unavailableDescription: string
 	}
-}>()
+}>(), {
+	bulkMode: false,
+	sceneRevision: 0,
+})
 
 const emit = defineEmits<{
 	'update:currentTime': [value: number]
@@ -141,13 +153,43 @@ onMounted(() => {
 
 watch(
 	() => props.ghosts,
-	() => createGhosts(),
+	() => {
+		if (props.bulkMode) reconcileGhosts()
+		else createGhosts()
+	},
 	{ deep: false },
 )
 
 watch(
+	() => [props.bulkMode, props.detailedRecordIds] as const,
+	() => {
+		if (props.bulkMode) reconcileGhosts()
+		else createGhosts()
+	},
+	{ deep: false },
+)
+
+watch(
+	() => props.sceneRevision,
+	() => {
+		if (props.bulkMode) reconcileGhosts()
+		else createGhosts()
+	},
+)
+
+watch(
+	() => props.bulkGhostCount,
+	() => {
+		if (props.bulkMode) refreshBulkTrails()
+	},
+)
+
+watch(
 	() => props.levelBlocks,
-	() => createLevelGeometry(),
+	() => {
+		if (props.bulkMode) createGhosts()
+		else createLevelGeometry()
+	},
 	{ deep: false },
 )
 
@@ -165,6 +207,7 @@ watch(
 	() => props.quality,
 	() => {
 		configureRendererQuality()
+		if (props.bulkMode) refreshBulkTrails()
 		resize()
 	},
 )
@@ -253,46 +296,143 @@ function createGhosts() {
 	for (const visual of visuals.values()) disposeVisual(visual)
 	visuals.clear()
 	removeNamedObject('ghost-grid')
-	grid = buildGhostGrid(
-		props.ghosts.map(({ ghost }) =>
-			ghost.frames.map((frame) => ({
-				...frame,
-				position: resolveGhostDisplayPosition(frame),
-			})),
-		),
-	)
+	grid = buildSceneGrid()
 	createGrid(grid)
 	createLevelGeometry()
 
 	for (const [visualIndex, loaded] of props.ghosts.entries()) {
-		const soapbox = createSoapbox(loaded)
-		const { group } = soapbox
-		const label = document.createElement('div')
-		label.className =
-			'pointer-events-none whitespace-nowrap rounded-md border bg-default/90 px-2 py-1 text-xs font-bold text-highlighted shadow-sm backdrop-blur'
-		label.textContent = loaded.identity.label
-		label.style.borderColor = loaded.identity.bodyColor
-		const labelObject = new CSS2DObject(label)
-		labelObject.position.set(0, 2.8, 0)
-
-		const { trail, geometry, material, times } = createTrail(loaded)
-		scene.add(group, trail, labelObject)
-		visuals.set(loaded.record.recordId, {
-			ghost: loaded,
-			group,
-			label,
-			labelObject,
-			labelStagger: visualIndex % 4,
-			trail,
-			trailGeometry: geometry,
-			trailMaterial: material,
-			trailTimes: times,
-			...soapbox,
-		})
+		addGhostVisual(loaded, visualIndex)
 	}
 	updateSelection()
 	resize()
 	frameRoute()
+}
+
+function buildSceneGrid() {
+	if (props.bulkMode) {
+		if (props.levelBlocks.length > 0) {
+			return buildGhostGrid([
+				props.levelBlocks.map((block, index) => ({ time: index, position: block.position })),
+			])
+		}
+		const first = props.ghosts[0]
+		return buildGhostGrid(first ? [resolveDisplayFrames(first)] : [])
+	}
+	return buildGhostGrid(props.ghosts.map(resolveDisplayFrames))
+}
+
+function resolveDisplayFrames({ ghost }: LoadedPlaybackGhost) {
+	return ghost.frames.map((frame) => ({
+		...frame,
+		position: resolveGhostDisplayPosition(frame),
+	}))
+}
+
+function reconcileGhosts() {
+	if (!scene) return
+	if (!grid) {
+		grid = buildSceneGrid()
+		createGrid(grid)
+		createLevelGeometry()
+	}
+	const desired = props.ghosts.map((loaded) => ({
+		recordId: loaded.record.recordId,
+		detailed: isDetailedGhost(loaded.record.recordId),
+		revision: visualRevision(loaded),
+	}))
+	const reconciliation = planGhostVisualReconciliation(
+		[...visuals.values()].map((visual) => ({
+			recordId: visual.ghost.record.recordId,
+			detailed: visual.detailed,
+			revision: visual.revision,
+		})),
+		desired,
+	)
+	for (const recordId of reconciliation.remove) {
+		const visual = visuals.get(recordId)
+		if (!visual) continue
+		disposeVisual(visual)
+		visuals.delete(recordId)
+	}
+	const desiredCreates = new Set(reconciliation.create.map(({ recordId }) => recordId))
+	for (const [visualIndex, loaded] of props.ghosts.entries()) {
+		if (desiredCreates.has(loaded.record.recordId)) addGhostVisual(loaded, visualIndex)
+		else {
+			const visual = visuals.get(loaded.record.recordId)
+			if (visual) visual.labelStagger = visualIndex % 4
+		}
+	}
+	updateSelection()
+	resize()
+}
+
+function addGhostVisual(loaded: LoadedPlaybackGhost, visualIndex: number) {
+	if (!scene) return
+	const detailed = isDetailedGhost(loaded.record.recordId)
+	const soapbox = detailed ? createSoapbox(loaded) : createLightweightMarker(loaded)
+	const { group } = soapbox
+	const label = detailed ? createGhostLabel(loaded) : null
+	const labelObject = label ? new CSS2DObject(label) : null
+	labelObject?.position.set(0, 2.8, 0)
+
+	const { trail, geometry, material, times } = createTrail(loaded)
+	scene.add(group, trail)
+	if (labelObject) scene.add(labelObject)
+	visuals.set(loaded.record.recordId, {
+		ghost: loaded,
+		detailed,
+		revision: visualRevision(loaded),
+		group,
+		label,
+		labelObject,
+		labelStagger: visualIndex % 4,
+		trail,
+		trailGeometry: geometry,
+		trailMaterial: material,
+		trailTimes: times,
+		...soapbox,
+	})
+}
+
+function refreshBulkTrails() {
+	if (!scene || !grid) return
+	for (const visual of visuals.values()) {
+		visual.trailGeometry.dispose()
+		visual.trailMaterial.dispose()
+		scene.remove(visual.trail)
+		const { trail, geometry, material, times } = createTrail(visual.ghost)
+		visual.trail = trail
+		visual.trailGeometry = geometry
+		visual.trailMaterial = material
+		visual.trailTimes = times
+		scene.add(trail)
+	}
+	resize()
+}
+
+function createGhostLabel(loaded: LoadedPlaybackGhost) {
+	const label = document.createElement('div')
+	label.className =
+		'pointer-events-none whitespace-nowrap rounded-md border bg-default/90 px-2 py-1 text-xs font-bold text-highlighted shadow-sm backdrop-blur'
+	label.textContent = loaded.identity.label
+	label.style.borderColor = loaded.identity.bodyColor
+	return label
+}
+
+function isDetailedGhost(recordId: number) {
+	return !props.bulkMode || props.detailedRecordIds === undefined || props.detailedRecordIds.includes(recordId)
+}
+
+function visualRevision(loaded: LoadedPlaybackGhost) {
+	return [
+		loaded.record.mediaRevision ?? '',
+		loaded.ghost.version,
+		loaded.ghost.frames.length,
+		loaded.identity.label,
+		loaded.identity.bodyColor,
+		loaded.identity.isWorldRecord,
+		loaded.identity.userRunOrdinal ?? '',
+	].join(':')
 }
 
 function createLevelGeometry() {
@@ -399,23 +539,43 @@ function createSoapbox(loaded: LoadedPlaybackGhost) {
 	return { group, chassis, driver, arms, brakeLights, paraglider, ragdoll, wheels }
 }
 
+function createLightweightMarker(loaded: LoadedPlaybackGhost) {
+	const group = new THREE.Group()
+	group.name = `ghost-${loaded.record.recordId}`
+	const marker = new THREE.Mesh(
+		new THREE.SphereGeometry(0.55, 8, 6),
+		new THREE.MeshBasicMaterial({
+			color: new THREE.Color(loaded.identity.bodyColor),
+			transparent: true,
+			opacity: loaded.identity.isWorldRecord ? 0.95 : 0.78,
+		}),
+	)
+	marker.position.y = 0.55
+	group.add(marker)
+	return {
+		group,
+		chassis: null,
+		driver: null,
+		arms: [],
+		brakeLights: [],
+		paraglider: null,
+		ragdoll: null,
+		wheels: [],
+	}
+}
+
 function createTrail(loaded: LoadedPlaybackGhost) {
-	const maximum = props.quality === 'performance' ? 4_000 : props.quality === 'balanced' ? 12_000 : 30_000
-	const step = Math.max(1, Math.ceil(loaded.ghost.frames.length / maximum))
+	const ghostCount = props.bulkMode
+		? Math.max(props.ghosts.length, props.bulkGhostCount ?? 0)
+		: props.ghosts.length
+	const maximum = resolveGhostTrailSampleLimit(props.quality, ghostCount, props.bulkMode)
 	const positions: number[] = []
 	const times: number[] = []
-	for (let index = 0; index < loaded.ghost.frames.length; index += step) {
-		const frame = loaded.ghost.frames[index]
-		if (!frame || !grid) continue
+	for (const frame of sampleGhostTrailFrames(loaded.ghost.frames, maximum)) {
+		if (!grid) continue
 		const position = rebaseGhostPosition(resolveGhostDisplayPosition(frame), grid.origin)
 		positions.push(position.x, position.y + 0.1, position.z)
 		times.push(frame.time)
-	}
-	const finalFrame = loaded.ghost.frames.at(-1)
-	if (finalFrame && times.at(-1) !== finalFrame.time && grid) {
-		const position = rebaseGhostPosition(resolveGhostDisplayPosition(finalFrame), grid.origin)
-		positions.push(position.x, position.y + 0.1, position.z)
-		times.push(finalFrame.time)
 	}
 	const geometry = new LineGeometry()
 	geometry.setPositions(positions)
@@ -509,8 +669,17 @@ function updateGhosts() {
 		const next = rebaseGhostPosition(resolveGhostDisplayPosition(frame), grid.origin)
 		const previous = visual.group.position.clone()
 		visual.group.position.set(next.x, next.y, next.z)
-		updateLabelPosition(visual, next)
-		if (ragdollActive) {
+		if (visual.label && visual.labelObject) updateLabelPosition(visual, next)
+		if (!visual.detailed) {
+			if (frame.orientation) {
+				visual.group.quaternion.set(
+					-frame.orientation.x,
+					-frame.orientation.y,
+					frame.orientation.z,
+					frame.orientation.w,
+				)
+			}
+		} else if (ragdollActive) {
 			visual.group.quaternion.identity()
 		} else if (frame.orientation) {
 			visual.group.quaternion.set(
@@ -520,10 +689,12 @@ function updateGhosts() {
 				frame.orientation.w,
 			)
 		}
-		visual.chassis.visible = !ragdollActive
-		visual.driver.visible = !ragdollActive
-		visual.ragdoll.visible = ragdollActive
-		visual.ragdoll.position.set(0, 0, 0)
+		if (visual.chassis) visual.chassis.visible = !ragdollActive
+		if (visual.driver) visual.driver.visible = !ragdollActive
+		if (visual.ragdoll) {
+			visual.ragdoll.visible = ragdollActive
+			visual.ragdoll.position.set(0, 0, 0)
+		}
 		for (const [index, arm] of visual.arms.entries()) {
 			arm.visible = !ragdollActive
 			arm.rotation.z = frame.armsUp ? (index === 0 ? -1.15 : 1.15) : 0
@@ -531,8 +702,8 @@ function updateGhosts() {
 		for (const light of visual.brakeLights) {
 			light.visible = !ragdollActive && frame.braking === true
 		}
-		visual.paraglider.visible = !ragdollActive && frame.paraglider === true
-		if (ragdollActive) {
+		if (visual.paraglider) visual.paraglider.visible = !ragdollActive && frame.paraglider === true
+		if (ragdollActive && visual.ragdoll) {
 			if (frame.ragdollRotation) {
 				visual.ragdoll.rotation.set(
 					THREE.MathUtils.degToRad(-frame.ragdollRotation.x),
@@ -566,7 +737,7 @@ function updateGhosts() {
 function updateLabelPosition(visual: GhostVisual, position: { x: number; y: number; z: number }) {
 	const camera = activeCamera()
 	const host = canvasHost.value
-	if (!camera || !host) return
+	if (!camera || !host || !visual.label || !visual.labelObject) return
 	const viewportHeight = Math.max(1, host.clientHeight)
 	const worldUnitsPerPixel =
 		camera instanceof THREE.PerspectiveCamera
@@ -592,10 +763,12 @@ function updateSelection() {
 	for (const visual of visuals.values()) {
 		const selected = visual.ghost.record.recordId === props.selectedRecordId
 		visual.group.scale.setScalar(selected ? 1.08 : 1)
-		visual.label.style.zIndex = selected ? '3' : visual.ghost.identity.isWorldRecord ? '2' : '1'
-		visual.label.style.boxShadow = selected
-			? `0 0 0 2px ${visual.ghost.identity.bodyColor}`
-			: ''
+		if (visual.label) {
+			visual.label.style.zIndex = selected ? '3' : visual.ghost.identity.isWorldRecord ? '2' : '1'
+			visual.label.style.boxShadow = selected
+				? `0 0 0 2px ${visual.ghost.identity.bodyColor}`
+				: ''
+		}
 	}
 }
 
@@ -668,8 +841,9 @@ function disposeVisual(visual: GhostVisual) {
 	visual.group.traverse(disposeObject)
 	visual.trailGeometry.dispose()
 	visual.trailMaterial.dispose()
-	visual.label.remove()
-	scene?.remove(visual.group, visual.trail, visual.labelObject)
+	visual.label?.remove()
+	scene?.remove(visual.group, visual.trail)
+	if (visual.labelObject) scene?.remove(visual.labelObject)
 }
 
 function disposeObject(object: THREE.Object3D) {

@@ -8,6 +8,84 @@ const MINIMUM_LABEL_WORLD_OFFSET = 4.5
 const LABEL_GAP_PIXELS = 24
 const LABEL_STAGGER_PIXELS = 10
 
+export type GhostSceneQuality = 'performance' | 'balanced' | 'quality'
+
+export type GhostVisualDescriptor = {
+	recordId: number
+	detailed: boolean
+	revision: string
+}
+
+export type GhostVisualReconciliation = {
+	create: GhostVisualDescriptor[]
+	remove: number[]
+	retain: number[]
+}
+
+const GHOST_TRAIL_TOTAL_BUDGET: Record<GhostSceneQuality, number> = {
+	performance: 50_000,
+	balanced: 120_000,
+	quality: 240_000,
+}
+
+const GHOST_TRAIL_PER_GHOST_CAP: Record<GhostSceneQuality, number> = {
+	performance: 4_000,
+	balanced: 12_000,
+	quality: 30_000,
+}
+
+const MINIMUM_GHOST_TRAIL_SAMPLES = 128
+
+export function resolveGhostTrailSampleLimit(
+	quality: GhostSceneQuality,
+	ghostCount: number,
+	bulkMode: boolean,
+): number {
+	const perGhostCap = GHOST_TRAIL_PER_GHOST_CAP[quality]
+	if (!bulkMode) return perGhostCap
+	const safeGhostCount = Math.max(1, Math.floor(ghostCount))
+	return Math.min(
+		perGhostCap,
+		Math.max(
+			MINIMUM_GHOST_TRAIL_SAMPLES,
+			Math.floor(GHOST_TRAIL_TOTAL_BUDGET[quality] / safeGhostCount),
+		),
+	)
+}
+
+export function sampleGhostTrailFrames<T>(frames: readonly T[], maximum: number): T[] {
+	const sampleCount = Math.min(frames.length, Math.max(0, Math.floor(maximum)))
+	if (sampleCount === 0) return []
+	if (sampleCount === 1) return [frames[0] as T]
+	return Array.from({ length: sampleCount }, (_, sampleIndex) => {
+		const index = Math.round((sampleIndex * (frames.length - 1)) / (sampleCount - 1))
+		return frames[index] as T
+	})
+}
+
+export function planGhostVisualReconciliation(
+	existing: readonly GhostVisualDescriptor[],
+	desired: readonly GhostVisualDescriptor[],
+): GhostVisualReconciliation {
+	const existingById = new Map(existing.map((item) => [item.recordId, item]))
+	const desiredIds = new Set(desired.map(({ recordId }) => recordId))
+	const remove = existing
+		.filter((item) => !desiredIds.has(item.recordId))
+		.map(({ recordId }) => recordId)
+	const create: GhostVisualDescriptor[] = []
+	const retain: number[] = []
+
+	for (const item of desired) {
+		const current = existingById.get(item.recordId)
+		if (!current || current.detailed !== item.detailed || current.revision !== item.revision) {
+			create.push(item)
+			if (current) remove.push(item.recordId)
+		} else retain.push(item.recordId)
+	}
+
+	return { create, remove, retain }
+}
+
 export function buildGhostGrid(paths: readonly (readonly GhostPlaybackFrame[])[]): GhostGridModel {
 	const positions = paths.flatMap((frames) => frames.map(({ position }) => position))
 	const bounds = calculateBounds(positions)
