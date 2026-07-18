@@ -143,15 +143,17 @@ export default defineNuxtConfig({
 				files: ['en.json'],
 				isCatchallLocale: true,
 			},
+			/*
 			{
 				code: 'de',
 				language: 'de-DE',
 				name: 'Deutsch',
 				files: ['en.json', 'de.json'],
 			},
-			{ code: 'ja', language: 'ja-JP', name: '日本語', files: ['en.json'] },
-			{ code: 'nl', language: 'nl-NL', name: 'Nederlands', files: ['en.json'] },
-			{ code: 'no', language: 'no-NO', name: 'Norsk', files: ['en.json'] },
+			*/
+			//{ code: 'ja', language: 'ja-JP', name: '日本語', files: ['en.json'] },
+			//{ code: 'nl', language: 'nl-NL', name: 'Nederlands', files: ['en.json'] },
+			//{ code: 'no', language: 'no-NO', name: 'Norsk', files: ['en.json'] },
 		],
 		detectBrowserLanguage: {
 			useCookie: true,
