@@ -99,7 +99,7 @@ const props = withDefaults(
 
 const { locale } = useI18n()
 const chartDuration = ref(0)
-const focusedSeriesKey = ref<string | null>(null)
+const focusedSeriesKey = ref<string | null>('primary')
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const chartHeight = 240

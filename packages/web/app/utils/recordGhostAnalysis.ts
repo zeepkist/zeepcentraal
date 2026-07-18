@@ -131,8 +131,8 @@ const METRIC_RESOLVERS: Record<
 	'g-force': (frame) => vectorMagnitude(frame.localGForce),
 }
 
-const TELEMETRY_SAMPLE_RATE_HZ = 5
-const TELEMETRY_MAXIMUM_POINTS = 300
+const TELEMETRY_SAMPLE_RATE_HZ = 10
+const TELEMETRY_MAXIMUM_POINTS = 600
 
 export function buildRecordTelemetryCharts(
 	ghosts: readonly LoadedPlaybackGhost[],
