@@ -1,13 +1,13 @@
 import { describe, expect, mock, test } from 'bun:test'
-import { main, runSendHttp } from './send-http'
+import { main, runSendHttp } from './jobs-trigger.ts'
 import type {
 	ConfirmPromptOptions,
 	PromptAdapter,
 	SelectPromptOptions,
 	TextPromptOptions,
-} from './utils/prompts'
-import { PromptCancelledError } from './utils/prompts'
-import type { JobTriggerProgress, JobTriggerUi } from './utils/ui'
+} from './utils/prompts.ts'
+import { PromptCancelledError } from './utils/prompts.ts'
+import type { JobTriggerProgress, JobTriggerUi } from './utils/ui.ts'
 
 class ScriptedPrompt implements PromptAdapter {
 	readonly #selections: unknown[]

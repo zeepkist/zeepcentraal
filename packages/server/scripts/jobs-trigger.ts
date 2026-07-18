@@ -7,14 +7,14 @@ import {
 	type JobTriggerTarget,
 	resolveBackendUrl,
 	sendJobTriggerRequest,
-} from './utils/http'
-import { collectJobOptions, jobChoices } from './utils/jobs'
+} from './utils/http.ts'
+import { collectJobOptions, jobChoices } from './utils/jobs.ts'
 import {
 	createClackPromptAdapter,
 	isPromptCancelledError,
 	type PromptAdapter,
-} from './utils/prompts'
-import { createClackUi, type JobTriggerUi } from './utils/ui'
+} from './utils/prompts.ts'
+import { createClackUi, type JobTriggerUi } from './utils/ui.ts'
 
 type SendHttpEnvironment = JobTriggerEnvironment & {
 	TRIGGER_JOB_TOKEN?: string
