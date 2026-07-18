@@ -127,6 +127,12 @@ describe('job option collection', () => {
 				texts: ['250'],
 			}),
 		).toEqual({ limit: 250 })
+		expect(
+			await collect('backfillRecordGhostStatistics', {
+				selections: ['v5'],
+				texts: ['500'],
+			}),
+		).toEqual({ limit: 500, reparseGhostVersion: 5 })
 	})
 
 	test('enforces ghost and Workshop API limits during collection', async () => {

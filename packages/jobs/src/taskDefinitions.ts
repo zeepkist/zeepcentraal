@@ -15,10 +15,15 @@ const batchPayload = z.union([
 
 export const taskDefinitions = {
 	backfillRecordGhostStatistics: {
-		schema: z.looseObject({
-			ids: z.array(z.number().int().positive()).min(1).optional(),
-			limit: z.number().int().positive().max(500).optional(),
-		}),
+		schema: z
+			.looseObject({
+				ids: z.array(z.number().int().positive()).min(1).optional(),
+				limit: z.number().int().positive().max(500).optional(),
+				reparseGhostVersion: z.literal(5).optional(),
+			})
+			.refine((payload) => !(payload.ids && payload.reparseGhostVersion !== undefined), {
+				message: 'Targeted IDs cannot be combined with ghost-version reparsing',
+			}),
 		compatible: true,
 		maxAttempts: 1,
 	},

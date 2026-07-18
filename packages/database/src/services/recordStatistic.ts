@@ -113,35 +113,41 @@ export async function getRecordMediaForStatisticBackfill({
 	limit,
 	ids,
 	beforeId,
+	reparseGhostVersion,
 }: {
 	limit: number
 	ids?: number[]
 	beforeId?: number
+	reparseGhostVersion?: number
 }) {
 	const conditions = [sql`${recordMedia.ghostUrl} IS NOT NULL`]
 	if (ids && ids.length > 0) {
 		conditions.push(inArray(recordMedia.idRecord, ids))
 	} else {
-		const incompleteStatistic = or(
-			isNull(recordStatistic.idRecord),
-			isNull(recordStatistic.ghostVersion),
-			isNull(recordStatistic.hasInputData),
-			isNull(recordStatistic.hasAirData),
-			isNull(recordStatistic.hasWheelData),
-			isNull(recordStatistic.hasSlipData),
-			isNull(recordStatistic.hasStateData),
-			isNull(recordStatistic.hasSurfaceData),
-			isNull(recordStatistic.hasVelocityData),
-			isNull(recordStatistic.hasRagdollData),
-			and(
-				eq(recordStatistic.hasInputData, true),
-				or(
-					isNull(recordStatistic.timeAnyDriverInput),
-					isNull(recordStatistic.driverInputTransitionCount),
+		if (reparseGhostVersion !== undefined) {
+			conditions.push(eq(recordStatistic.ghostVersion, reparseGhostVersion))
+		} else {
+			const incompleteStatistic = or(
+				isNull(recordStatistic.idRecord),
+				isNull(recordStatistic.ghostVersion),
+				isNull(recordStatistic.hasInputData),
+				isNull(recordStatistic.hasAirData),
+				isNull(recordStatistic.hasWheelData),
+				isNull(recordStatistic.hasSlipData),
+				isNull(recordStatistic.hasStateData),
+				isNull(recordStatistic.hasSurfaceData),
+				isNull(recordStatistic.hasVelocityData),
+				isNull(recordStatistic.hasRagdollData),
+				and(
+					eq(recordStatistic.hasInputData, true),
+					or(
+						isNull(recordStatistic.timeAnyDriverInput),
+						isNull(recordStatistic.driverInputTransitionCount),
+					),
 				),
-			),
-		)
-		if (incompleteStatistic) conditions.push(incompleteStatistic)
+			)
+			if (incompleteStatistic) conditions.push(incompleteStatistic)
+		}
 		if (beforeId !== undefined) {
 			conditions.push(lt(recordMedia.idRecord, beforeId))
 		}

@@ -8,6 +8,7 @@ const BATCH_SIZE = 500
 type Payload = {
 	limit?: number
 	ids?: number[]
+	reparseGhostVersion?: 5
 }
 
 type BatchPayload = {
@@ -57,6 +58,9 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 		const media = await getRecordMediaForStatisticBackfill({
 			beforeId,
 			limit: batchSize,
+			...(payload.reparseGhostVersion === undefined
+				? {}
+				: { reparseGhostVersion: payload.reparseGhostVersion }),
 		})
 		if (media.length === 0) break
 		const ids = media.map((item) => item.idRecord)
@@ -66,7 +70,7 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 				ids,
 			},
 			{
-				jobKey: `backfill-record-ghost-statistics:${ids[0]}-${ids.at(-1)}`,
+				jobKey: `backfill-record-ghost-statistics${payload.reparseGhostVersion === undefined ? '' : `:v${payload.reparseGhostVersion}`}:${ids[0]}-${ids.at(-1)}`,
 			},
 		)
 		enqueued += media.length
@@ -77,6 +81,9 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 	helpers.logger.info('Enqueued record ghost statistics backfill batches.', {
 		enqueued,
 		batchSize,
+		...(payload.reparseGhostVersion === undefined
+			? {}
+			: { reparseGhostVersion: payload.reparseGhostVersion }),
 	})
 }
 

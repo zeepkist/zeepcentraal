@@ -58,6 +58,12 @@ test('task payload validation accepts compatible legacy shapes', () => {
 			workshopIds: ['3006532933', '3749321871'],
 		}),
 	).toBe(true)
+	expect(
+		isValidTaskPayload('backfillRecordGhostStatistics', {
+			reparseGhostVersion: 5,
+			limit: 500,
+		}),
+	).toBe(true)
 })
 
 test('task payload validation rejects missing required identifiers', () => {
@@ -78,6 +84,17 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(
 		isValidTaskPayload('scanWorkshopBatch', {
 			workshopIds: Array.from({ length: 11 }, (_, index) => `${index + 1}`),
+		}),
+	).toBe(false)
+	expect(
+		isValidTaskPayload('backfillRecordGhostStatistics', {
+			reparseGhostVersion: 6,
+		}),
+	).toBe(false)
+	expect(
+		isValidTaskPayload('backfillRecordGhostStatistics', {
+			ids: [1],
+			reparseGhostVersion: 5,
 		}),
 	).toBe(false)
 })

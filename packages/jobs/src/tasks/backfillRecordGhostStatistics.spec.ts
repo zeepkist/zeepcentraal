@@ -144,6 +144,42 @@ describe('backfillRecordGhostStatistics', () => {
 		)
 	})
 
+	test('V5 repair cursor-paginates only V5 rows with distinct batch job keys', async () => {
+		getRecordMediaForStatisticBackfill
+			.mockResolvedValueOnce([
+				{ idRecord: 9, ghostUrl: 'ghosts/9.bin' },
+				{ idRecord: 7, ghostUrl: 'ghosts/7.bin' },
+			])
+			.mockResolvedValueOnce([])
+		const helpers = createHelpers()
+
+		await backfillRecordGhostStatistics({ limit: 2, reparseGhostVersion: 5 }, helpers as never)
+
+		expect(getRecordMediaForStatisticBackfill).toHaveBeenNthCalledWith(1, {
+			beforeId: undefined,
+			limit: 2,
+			reparseGhostVersion: 5,
+		})
+		expect(getRecordMediaForStatisticBackfill).toHaveBeenNthCalledWith(2, {
+			beforeId: 7,
+			limit: 2,
+			reparseGhostVersion: 5,
+		})
+		expect(helpers.addJob).toHaveBeenCalledWith(
+			'backfillRecordGhostStatisticsBatch',
+			{ ids: [9, 7] },
+			{ jobKey: 'backfill-record-ghost-statistics:v5:9-7' },
+		)
+		expect(helpers.logger.info).toHaveBeenCalledWith(
+			'Enqueued record ghost statistics backfill batches.',
+			{
+				enqueued: 2,
+				batchSize: 2,
+				reparseGhostVersion: 5,
+			},
+		)
+	})
+
 	test('batch reparses and upserts complete statistics metadata', async () => {
 		getRecordMediaForStatisticBackfill.mockResolvedValue([
 			{ idRecord: 9, ghostUrl: 'ghosts/record.bin' },

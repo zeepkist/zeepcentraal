@@ -53,6 +53,11 @@ async function collectBackfillOptions(prompt: PromptAdapter): Promise<JobOptions
 				label: 'Incomplete records',
 				hint: 'Scan for records missing ghost statistics',
 			},
+			{
+				value: 'v5',
+				label: 'Reparse V5 statistics',
+				hint: 'Repair V5 rows previously populated with V6-only telemetry',
+			},
 			{ value: 'ids', label: 'Record IDs', hint: 'Force-process selected records' },
 		],
 		initialValue: 'incomplete',
@@ -71,7 +76,10 @@ async function collectBackfillOptions(prompt: PromptAdapter): Promise<JobOptions
 		initialValue: '500',
 		validate: integerValidator('Limit', { maximum: 500 }),
 	})
-	return { limit: parseBoundedPositiveSafeInteger(limit, 500, 'Limit') }
+	return {
+		limit: parseBoundedPositiveSafeInteger(limit, 500, 'Limit'),
+		...(mode === 'v5' ? { reparseGhostVersion: 5 } : {}),
+	}
 }
 
 async function collectGhostBatchOptions(prompt: PromptAdapter): Promise<JobOptions> {
@@ -220,7 +228,7 @@ export const jobPromptDefinitions = {
 	backfillRecordGhostStatistics: {
 		category: 'Ghosts',
 		label: 'Backfill record ghost statistics',
-		description: 'Find incomplete records or force selected record IDs',
+		description: 'Find incomplete records, repair V5 rows, or force selected record IDs',
 		collectOptions: collectBackfillOptions,
 	},
 	backfillRecordGhostStatisticsBatch: {

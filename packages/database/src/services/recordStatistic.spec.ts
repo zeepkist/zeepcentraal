@@ -80,6 +80,21 @@ describe('record statistic backfill selection', () => {
 		expect(query.params).toEqual(expect.arrayContaining([3, 7]))
 	})
 
+	test('selects only existing statistics from requested ghost version for repair', async () => {
+		await getRecordMediaForStatisticBackfill({
+			limit: 500,
+			beforeId: 100,
+			reparseGhostVersion: 5,
+		})
+
+		const query = new PgDialect().sqlToQuery(whereCondition as SQL)
+		expect(query.sql).toContain('"record_statistic"."ghost_version" =')
+		expect(query.sql).not.toContain('"record_statistic"."ghost_version" is null')
+		expect(query.sql).not.toContain('"record_statistic"."has_input_data" is null')
+		expect(query.sql).toContain('"record_media"."id_record" <')
+		expect(query.params).toContain(5)
+	})
+
 	test('upsert refreshes provenance, capabilities, and driver input metrics', async () => {
 		await upsertRecordStatistic({
 			idRecord: 42,
