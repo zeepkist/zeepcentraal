@@ -54,6 +54,7 @@ describe('level detail hero', () => {
 	})
 
 	it('maps competitiveness modifiers into centered difficulty tiers', () => {
+		expect(page).toContain("casual: t('levels.detail.hero.competitivenessRatings.casual')")
 		expect(getLevelCompetitivenessRating(0.1)).toBe('veryEasy')
 		expect(getLevelCompetitivenessRating(0.5)).toBe('veryEasy')
 		expect(getLevelCompetitivenessRating(0.51)).toBe('easy')

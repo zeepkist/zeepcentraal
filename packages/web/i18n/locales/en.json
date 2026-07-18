@@ -20,6 +20,7 @@
 		}
 	},
 	"common": {
+		"brand": "ZeepCentraal",
 		"breadcrumbs": "Breadcrumb navigation",
 		"adventure": "Adventure",
 		"points": "Points",
@@ -30,8 +31,6 @@
 		"levels": "Levels",
 		"time": "Time",
 		"finish": "Finish",
-		"date": "Date",
-		"live": "Live",
 		"loading": "Loading data",
 		"error": "Unable to load data",
 		"empty": "No results found",
@@ -63,12 +62,10 @@
 			"short": "Zeepkist Discord"
 		},
 		"steam": {
-			"label": "Open Zeepkist on Steam",
-			"short": "Steam"
+			"label": "Open Zeepkist on Steam"
 		}
 	},
 	"footer": {
-		"brand": "ZeepCentraal",
 		"columns": {
 			"community": "Community",
 			"discover": "Discover",
@@ -144,12 +141,6 @@
 			},
 			"title": "Adventure leaderboards"
 		},
-		"authCallback": {
-			"seo": {
-				"description": "Completing ZeepCentraal sign in.",
-				"title": "Sign In"
-			}
-		},
 		"cosmetics": {
 			"back": "Back to dashboard",
 			"description": "Browse Zeepkist cosmetic collections, unlock requirements, and rarity information when the catalogue arrives.",
@@ -172,9 +163,6 @@
 		"developer": {
 			"breadcrumb": "Developer Portal",
 			"description": "Build integrations on top of ZeepCentraal data.",
-			"eyebrow": "Developer Portal",
-			"panelDescription": "GraphQL guidance, schemas, examples, and usage patterns.",
-			"panelTitle": "Developer resources",
 			"seo": {
 				"description": "ZeepCentraal developer portal.",
 				"title": "Developer Portal"
@@ -182,43 +170,22 @@
 			"title": "Developer Portal"
 		},
 		"graphql": {
-			"description": "Query ZeepCentraal safely with named operations, bounded pagination, caching, and query-cost awareness.",
-			"eyebrow": "GraphQL",
 			"notFound": "GraphQL guide not found",
-			"panelDescription": "Schema-driven examples and API docs will be built here.",
-			"panelTitle": "GraphQL usage",
 			"seo": {
 				"description": "ZeepCentraal GraphQL usage guide.",
 				"title": "GraphQL Guide"
 			},
-			"tableOfContents": "On this page",
-			"title": "GraphQL guide"
-		},
-		"guides": {
-			"description": "Guides for Zeepkist mapping, modding, gameplay, and tools.",
-			"eyebrow": "Guides",
-			"panelDescription": "Nuxt Content guide pages will be grouped here.",
-			"panelTitle": "Guide library",
-			"seo": {
-				"description": "Zeepkist gameplay and modding guides.",
-				"title": "Guides"
-			},
-			"title": "Zeepkist guides"
+			"tableOfContents": "On this page"
 		},
 		"home": {
-			"description": "Statistics portal for world records, personal bests, levels, users, tournaments, mods, and guides.",
-			"eyebrow": "ZeepCentraal",
 			"seo": {
 				"description": "ZeepCentraal statistics portal for Zeepkist records, levels, users, tournaments, and modding.",
 				"title": "ZeepCentraal"
-			},
-			"title": "Zeepkist stats hub"
+			}
 		},
 		"levels": {
 			"description": "Explore official and community created levels.",
 			"eyebrow": "Level explorer",
-			"panelDescription": "Search, filters, record tables, and level stats land here.",
-			"panelTitle": "Level data",
 			"seo": {
 				"description": "Zeepkist level explorer and leaderboards.",
 				"title": "Levels"
@@ -353,8 +320,6 @@
 		"users": {
 			"description": "Search for players, view profiles and inspect player statistics.",
 			"eyebrow": "Users",
-			"panelDescription": "Player search and user stat pages land here.",
-			"panelTitle": "Player data",
 			"seo": {
 				"description": "Zeepkist player stats and leaderboards.",
 				"title": "Global Player Leaderboard"
@@ -363,23 +328,16 @@
 		},
 		"wiki": {
 			"breadcrumb": "Wiki",
-			"description": "Gameplay, level building, and community reference pages.",
-			"eyebrow": "Wiki",
 			"notFound": "Wiki page not found",
-			"panelDescription": "Nuxt Content wiki pages land here.",
-			"panelTitle": "Knowledge base",
 			"seo": {
 				"description": "Zeepkist gameplay and level wiki.",
 				"title": "Wiki"
 			},
-			"tableOfContents": "On this page",
-			"title": "Zeepkist wiki"
+			"tableOfContents": "On this page"
 		},
 		"zsl": {
 			"description": "Tournament seasons, rounds, levels and standings.",
 			"eyebrow": "Super League",
-			"panelDescription": "Zeepkist Super League season and round results land here.",
-			"panelTitle": "Tournament results",
 			"seo": {
 				"description": "Zeepkist Super League tournament results.",
 				"title": "Zeepkist Super League"
@@ -401,9 +359,6 @@
 			}
 		},
 		"recordDetail": {
-			"title": "Record analysis",
-			"description": "Replay, compare, and understand every part of this run.",
-			"back": "Back to records",
 			"notFound": "Record not found",
 			"unknownPlayer": "Unknown player",
 			"unknownLevel": "Unknown level",
@@ -686,22 +641,6 @@
 			}
 		}
 	},
-	"placeholders": {
-		"metrics": {
-			"levels": {
-				"label": "Level data",
-				"value": "Ready"
-			},
-			"players": {
-				"label": "Player data",
-				"value": "Ready"
-			},
-			"records": {
-				"label": "Record data",
-				"value": "Ready"
-			}
-		}
-	},
 	"dashboard": {
 		"hero": {
 			"anonymous": {
@@ -871,12 +810,6 @@
 				"metresPerSecond": "m/s",
 				"radiansPerSecond": "rad/s",
 				"g": "G"
-			},
-			"kilometres": "Kilometres",
-			"chart": {
-				"distance": "Driven",
-				"air": "Airborne",
-				"ragdoll": "Ragdoll"
 			}
 		},
 		"news": {
@@ -893,12 +826,7 @@
 			"rankedAndTotalPlayersValueLabel": "{rankedPlayers} ranked players out of {totalPlayers} total players",
 			"past24Hours": "Past 24 hours",
 			"activeToday": "Active today",
-			"activeInMonth": "Active in {month}",
-			"distance": "Distance driven",
-			"airtime": "Airtime",
-			"ragdoll": "Ragdoll distance",
-			"horns": "Horn uses",
-			"brakes": "Brake uses"
+			"activeInMonth": "Active in {month}"
 		}
 	},
 	"settings": {
@@ -924,8 +852,7 @@
 		"columns": {
 			"rankedPoints": "Ranked points",
 			"totalPoints": "Total points",
-			"worldRecords": "World records",
-			"value": "Point value"
+			"worldRecords": "World records"
 		},
 		"profile": {
 			"notFound": "Player not found",
@@ -1011,13 +938,7 @@
 				"movementDistance": "Grounded, airborne and ragdoll distance.",
 				"movementTime": "Grounded, airborne and ragdoll time.",
 				"wheelDistance": "Distance travelled with four through zero wheels down.",
-				"driverInputs": "Steering direction and controls used across this player's records.",
-				"chart": {
-					"distance": "Driven",
-					"air": "Airborne",
-					"ragdoll": "Ragdoll",
-					"paraglider": "Paraglider"
-				}
+				"driverInputs": "Steering direction and controls used across this player's records."
 			},
 			"history": {
 				"title": "Career Progression",
@@ -1176,7 +1097,6 @@
 				"searchLabel": "Player name",
 				"searchPlaceholder": "Search players",
 				"searching": "Searching players",
-				"noPersonalBest": "No playable PB",
 				"activeTitle": "Active ghosts",
 				"activeCount": "{count} ghosts selected",
 				"progress": "{loaded} loaded · {loading} loading · {failed} failed",
@@ -1186,8 +1106,7 @@
 				"bulkTitle": "Bulk playback active",
 				"bulkDescription": "Individual ghost editing is locked above 10 active ghosts. Load another preset or clear every ghost to change the set.",
 				"followLimit": "The 12 fastest selected ghosts can be followed. Remaining ghosts use lightweight markers and racing trails.",
-				"unknownPlayer": "Unknown player",
-				"unavailable": "Unavailable"
+				"unknownPlayer": "Unknown player"
 			},
 			"medals": {
 				"title": "Medal times",
@@ -1199,7 +1118,6 @@
 			},
 			"worldRecord": {
 				"title": "World record",
-				"description": "Current fastest submitted time.",
 				"set": "Set",
 				"emptyTitle": "No world record yet",
 				"emptyDescription": "Install GTR and submit the first verified run for this level."
@@ -1209,12 +1127,6 @@
 				"description": "All-time driving telemetry from verified records on this level.",
 				"maxSpeed": "Maximum speed",
 				"maxGforce": "Maximum G-force",
-				"chart": {
-					"distance": "Driven",
-					"air": "Airborne",
-					"ragdoll": "Ragdoll",
-					"paraglider": "Paraglider"
-				},
 				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
 				"empty": "No compatible telemetry has been submitted for this level yet.",
 				"totalDistance": "Total distance",

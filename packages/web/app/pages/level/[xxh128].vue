@@ -472,6 +472,7 @@ const heroLabels = computed(() => ({
 	competitivenessRatings: {
 		veryEasy: t('levels.detail.hero.competitivenessRatings.veryEasy'),
 		easy: t('levels.detail.hero.competitivenessRatings.easy'),
+		casual: t('levels.detail.hero.competitivenessRatings.casual'),
 		balanced: t('levels.detail.hero.competitivenessRatings.balanced'),
 		competitive: t('levels.detail.hero.competitivenessRatings.competitive'),
 		hard: t('levels.detail.hero.competitivenessRatings.hard'),
