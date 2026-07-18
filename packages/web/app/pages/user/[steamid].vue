@@ -209,7 +209,7 @@
 									:title="$t('users.profile.levels.recentTitle')"
 									:description="$t('users.profile.levels.recentDescription')"
 									:action-label="$t('users.profile.levels.viewAll')"
-									:action-to="levelsUrl"
+									:action-to="recentLevelsUrl"
 									:records-label="$t('common.records')"
 									:levels="data.recentLevels.value"
 									:pending="levelsPending"
@@ -246,6 +246,9 @@ const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFract
 const profileUrl = computed(() => steamProfileUrl(steamId.value))
 const workshopProfileUrl = computed(() => steamWorkshopProfileUrl(steamId.value))
 const levelsUrl = computed(() => `/levels?author=${steamId.value}`)
+const recentLevelsUrl = computed(
+	() => `/levels?author=${steamId.value}&sort=DATE_CREATED_DESC`,
+)
 const telemetryModel = useRecordTelemetryModel(data.selectedStatistics, 'user')
 type UserProfileTab = 'career' | 'records' | 'workshop'
 const activeTab = ref<UserProfileTab>('career')

@@ -63,8 +63,11 @@ describe('user profile level showcases', () => {
 		expect(page.match(/<UserLevelCollection/g)).toHaveLength(2)
 	})
 
-	it('links both collections to default author-filtered level results', () => {
+	it('links popular levels to default author results and recent levels to latest results', () => {
 		expect(page).toContain('const levelsUrl = computed(() => `/levels?author=')
+		expect(page).toContain('const recentLevelsUrl = computed(')
+		expect(page).toContain('&sort=DATE_CREATED_DESC')
+		expect(page).toContain(':action-to="recentLevelsUrl"')
 		expect(page).not.toContain('levels?authorName=')
 	})
 })
