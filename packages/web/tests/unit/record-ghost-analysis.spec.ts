@@ -94,6 +94,33 @@ describe('record ghost analysis', () => {
 		expect(charts.find((chart) => chart.key === 'speed')?.data[2]?.['record-1']).toBe(95)
 	})
 
+	it('samples telemetry at 5 Hz by default while preserving aligned interpolation', () => {
+		const first = loaded(1, [frame(0, 0, { speed: 0 }), frame(1, 10, { speed: 100 })])
+		const second = loaded(2, [frame(0, 0, { speed: 100 }), frame(1, 10, { speed: 0 })])
+		const speed = buildRecordTelemetryCharts([first, second]).find(
+			(chart) => chart.key === 'speed',
+		)
+
+		expect(speed?.data).toHaveLength(6)
+		expect(speed?.data.map((point) => point.elapsed)).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1])
+		expect(speed?.data[1]).toMatchObject({ 'record-1': 20, 'record-2': 80 })
+		expect(speed?.data.at(-1)).toMatchObject({
+			elapsed: 1,
+			'record-1': 100,
+			'record-2': 0,
+		})
+	})
+
+	it('caps default telemetry samples at 300 and preserves both endpoints', () => {
+		const speed = buildRecordTelemetryCharts([
+			loaded(1, [frame(0, 0, { speed: 20 }), frame(100, 1000, { speed: 120 })]),
+		]).find((chart) => chart.key === 'speed')
+
+		expect(speed?.data).toHaveLength(300)
+		expect(speed?.data[0]).toMatchObject({ elapsed: 0, 'record-1': 20 })
+		expect(speed?.data.at(-1)).toMatchObject({ elapsed: 100, 'record-1': 120 })
+	})
+
 	it('groups contiguous events into timeline lanes', () => {
 		const lanes = buildRecordTimelineLanes([
 			frame(0, 0, { braking: true, groundedWheelState: 15 }),
@@ -297,6 +324,34 @@ describe('record ghost analysis', () => {
 		expect(driftSource).toContain('<BarChart')
 		expect(driftSource).toContain('<DashboardChartTooltip')
 		expect(driftSource).toContain('color: props.primaryColor')
+	})
+
+	it('supports accessible shared focus and directional steering axes', () => {
+		const source = readFileSync(
+			new URL('../../app/components/record/RecordTelemetryCharts.vue', import.meta.url),
+			'utf8',
+		)
+
+		expect(source).toContain('type="button"')
+		expect(source).toContain(':aria-pressed="focusedSeriesKey === series.key"')
+		expect(source).toContain('@click="toggleSeriesFocus(series.key)"')
+		expect(source).toContain('focus-visible:ring-2')
+		expect(source).toContain('const focusedSeriesKey = ref<string | null>(null)')
+		expect(source).toContain('focusedSeriesKey.value === seriesKey ? null : seriesKey')
+		expect(source).toContain(
+			'if (!chartHasFocusedSeries(chart) || seriesKey === focusedSeriesKey.value) return color',
+		)
+		expect(source).toContain('colorWithOpacity(color, 0.25)')
+		expect(source).toContain(':y-domain="yDomain(chart)"')
+		expect(source).toContain(':y-explicit-ticks="yExplicitTicks(chart)"')
+		expect(source).toContain("chart.key === 'steering' ? [-1, 1] : undefined")
+		expect(source).toContain("chart.key === 'steering' ? [-1, 0, 1] : undefined")
+		expect(source).toContain('props.labels.steeringLeftLabel')
+		expect(source).toContain('props.labels.steeringRightLabel')
+		expect(source).toContain('color: series.color')
+		expect(source.slice(source.indexOf('function tooltipEntries'))).not.toContain(
+			'focusedSeriesKey',
+		)
 	})
 
 	it('uses an air-control comparison table with collapsed secondary effects', () => {

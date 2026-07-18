@@ -18,6 +18,10 @@ export type RecordAnalysisLabels = {
 		primary: string
 		emptyLabel: string
 		secondsUnit: string
+		focusSeriesLabel: (player: string) => string
+		clearFocusLabel: (player: string) => string
+		steeringLeftLabel: string
+		steeringRightLabel: string
 		config: Record<
 			RecordTelemetryMetricKey,
 			{
@@ -152,6 +156,12 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 			primary: telemetry('primary'),
 			emptyLabel: telemetry('empty'),
 			secondsUnit: t('dashboard.totals.units.seconds'),
+			focusSeriesLabel: (player) =>
+				t('pages.recordDetail.analysis.telemetry.focusSeries', { player }),
+			clearFocusLabel: (player) =>
+				t('pages.recordDetail.analysis.telemetry.clearFocus', { player }),
+			steeringLeftLabel: telemetry('steeringLeft'),
+			steeringRightLabel: telemetry('steeringRight'),
 			config: {
 				speed: {
 					title: telemetry('speed.title'),

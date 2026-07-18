@@ -22,9 +22,11 @@
 				:data="chart.data"
 				:categories="categories(chart)"
 				:y-axis="chart.series.map((series) => series.key)"
+				:y-domain="yDomain(chart)"
+				:y-explicit-ticks="yExplicitTicks(chart)"
 				:height="chartHeight"
 				:x-formatter="(index: number) => formatElapsed(chart.data[index]?.elapsed)"
-				:y-formatter="(value: number | Date) => formatAxisValue(value, chart.config)"
+				:y-formatter="(value: number | Date) => formatAxisValue(value, chart)"
 				:line-width="3"
 				:line-dash-array="chart.series.map((series) => (series.dashed ? [3, 5] : []))"
 				:duration="chartDuration"
@@ -43,14 +45,22 @@
 				<li
 					v-for="series in chart.series"
 					:key="series.key"
-					class="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/25 px-2.5 py-1 text-xs text-muted-foreground"
 				>
-					<span
-						class="w-4 border-t-2"
-						:class="series.dashed ? 'border-dashed' : 'border-solid'"
-						:style="{ borderColor: series.color }"
-					/>
-					<span class="max-w-40 truncate">{{ series.label }}</span>
+					<button
+						type="button"
+						class="flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs transition-[background-color,border-color,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+						:class="legendButtonClass(series.key, chart)"
+						:aria-label="legendButtonLabel(series.key, series.label)"
+						:aria-pressed="focusedSeriesKey === series.key"
+						@click="toggleSeriesFocus(series.key)"
+					>
+						<span
+							class="w-4 border-t-2"
+							:class="series.dashed ? 'border-dashed' : 'border-solid'"
+							:style="{ borderColor: series.color }"
+						/>
+						<span class="max-w-40 truncate">{{ series.label }}</span>
+					</button>
 				</li>
 			</ul>
 		</UCard>
@@ -89,6 +99,7 @@ const props = withDefaults(
 
 const { locale } = useI18n()
 const chartDuration = ref(0)
+const focusedSeriesKey = ref<string | null>(null)
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const chartHeight = 240
@@ -121,14 +132,73 @@ const visibleCharts = computed<VisibleChart[]>(() =>
 	}),
 )
 
+watch(charts, (nextCharts) => {
+	if (
+		focusedSeriesKey.value &&
+		!nextCharts.some((chart) =>
+			chart.series.some((series) => series.key === focusedSeriesKey.value),
+		)
+	) {
+		focusedSeriesKey.value = null
+	}
+})
+
 onMounted(() => {
 	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) chartDuration.value = 500
 })
 
 function categories(chart: VisibleChart) {
 	return Object.fromEntries(
-		chart.series.map((series) => [series.key, { name: series.label, color: series.color }]),
+		chart.series.map((series) => [
+			series.key,
+			{ name: series.label, color: chartSeriesColor(series.key, series.color, chart) },
+		]),
 	)
+}
+
+function chartHasFocusedSeries(chart: VisibleChart) {
+	return (
+		focusedSeriesKey.value !== null &&
+		chart.series.some((series) => series.key === focusedSeriesKey.value)
+	)
+}
+
+function chartSeriesColor(seriesKey: string, color: string, chart: VisibleChart) {
+	if (!chartHasFocusedSeries(chart) || seriesKey === focusedSeriesKey.value) return color
+	return colorWithOpacity(color, 0.25)
+}
+
+function colorWithOpacity(color: string, opacity: number) {
+	const alpha = Math.round(Math.max(0, Math.min(1, opacity)) * 255)
+		.toString(16)
+		.padStart(2, '0')
+	const shortHex = /^#([\da-f])([\da-f])([\da-f])$/i.exec(color)
+	if (shortHex) {
+		return `#${shortHex[1]}${shortHex[1]}${shortHex[2]}${shortHex[2]}${shortHex[3]}${shortHex[3]}${alpha}`
+	}
+	if (/^#[\da-f]{8}$/i.test(color)) return `${color.slice(0, 7)}${alpha}`
+	if (/^#[\da-f]{6}$/i.test(color)) return `${color}${alpha}`
+	return `color-mix(in srgb, ${color} ${opacity * 100}%, transparent)`
+}
+
+function toggleSeriesFocus(seriesKey: string) {
+	focusedSeriesKey.value = focusedSeriesKey.value === seriesKey ? null : seriesKey
+}
+
+function legendButtonLabel(seriesKey: string, seriesLabel: string) {
+	return focusedSeriesKey.value === seriesKey
+		? props.labels.clearFocusLabel(seriesLabel)
+		: props.labels.focusSeriesLabel(seriesLabel)
+}
+
+function legendButtonClass(seriesKey: string, chart: VisibleChart) {
+	if (focusedSeriesKey.value === seriesKey) {
+		return 'border-primary/60 bg-primary/10 text-highlighted'
+	}
+	if (chartHasFocusedSeries(chart)) {
+		return 'border-border/50 bg-muted/20 text-muted-foreground opacity-50 hover:opacity-75'
+	}
+	return 'border-border/60 bg-muted/25 text-muted-foreground hover:border-primary/40 hover:text-highlighted'
 }
 
 function formatElapsed(value?: number) {
@@ -146,8 +216,21 @@ function numberFormat(config: RecordTelemetryChartConfig) {
 	})
 }
 
-function formatAxisValue(value: number | Date, config: RecordTelemetryChartConfig) {
-	return typeof value === 'number' ? numberFormat(config).format(value) : ''
+function formatAxisValue(value: number | Date, chart: VisibleChart) {
+	if (typeof value !== 'number') return ''
+	if (chart.key === 'steering') {
+		if (value === -1) return props.labels.steeringLeftLabel
+		if (value === 1) return props.labels.steeringRightLabel
+	}
+	return numberFormat(chart.config).format(value)
+}
+
+function yDomain(chart: VisibleChart): [number | undefined, number | undefined] | undefined {
+	return chart.key === 'steering' ? [-1, 1] : undefined
+}
+
+function yExplicitTicks(chart: VisibleChart): number[] | undefined {
+	return chart.key === 'steering' ? [-1, 0, 1] : undefined
 }
 
 function tooltipTitle(values: unknown) {

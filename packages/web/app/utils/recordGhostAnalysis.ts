@@ -131,9 +131,12 @@ const METRIC_RESOLVERS: Record<
 	'g-force': (frame) => vectorMagnitude(frame.localGForce),
 }
 
+const TELEMETRY_SAMPLE_RATE_HZ = 5
+const TELEMETRY_MAXIMUM_POINTS = 300
+
 export function buildRecordTelemetryCharts(
 	ghosts: readonly LoadedPlaybackGhost[],
-	maximumPoints = 600,
+	maximumPoints = TELEMETRY_MAXIMUM_POINTS,
 ): RecordTelemetryChartData[] {
 	return buildRecordTelemetryChartsFromSources(
 		ghosts.map((ghost) => ({
@@ -146,7 +149,7 @@ export function buildRecordTelemetryCharts(
 
 export function buildRecordTelemetryChartsFromSources(
 	sources: readonly RecordAnalysisFrameSource[],
-	maximumPoints = 600,
+	maximumPoints = TELEMETRY_MAXIMUM_POINTS,
 ): RecordTelemetryChartData[] {
 	const series = sources.map(({ frames: _frames, ...entry }) => entry)
 	return (Object.keys(METRIC_RESOLVERS) as RecordTelemetryMetricKey[]).map((key) => ({
@@ -380,7 +383,10 @@ function buildMetricData(
 ): Array<Record<string, number>> {
 	const maximumDuration = Math.max(0, ...sources.map((source) => source.frames.at(-1)?.time ?? 0))
 	if (maximumDuration <= 0 || maximumPoints <= 0) return []
-	const frameCount = Math.max(2, Math.min(maximumPoints, Math.ceil(maximumDuration * 10) + 1))
+	const frameCount = Math.max(
+		2,
+		Math.min(maximumPoints, Math.ceil(maximumDuration * TELEMETRY_SAMPLE_RATE_HZ) + 1),
+	)
 	return Array.from({ length: frameCount }, (_, index) => {
 		const elapsed = (index / (frameCount - 1)) * maximumDuration
 		const point: Record<string, number> = { elapsed }

@@ -553,6 +553,10 @@
 				"telemetry": {
 					"primary": "Selected record",
 					"empty": "N/A",
+					"focusSeries": "Focus {player} across telemetry charts",
+					"clearFocus": "Clear focus on {player}",
+					"steeringLeft": "Left",
+					"steeringRight": "Right",
 					"speed": {
 						"title": "Speed over time",
 						"description": "Compare acceleration and speed at the same elapsed time. Use route trails and checkpoints to confirm matching track sections."
