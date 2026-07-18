@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import protobuf from 'protobufjs'
-import { parseGhostBrowser } from './browser'
+import { decompressGzipBrowser, parseGhostBrowser } from './browser'
 import { decodeProtobufGhostPayload, readProtobufMetadata } from './protobuf'
 import { parseV1 } from './v1'
 import { parseV4 } from './v4'
@@ -167,5 +167,12 @@ describe('ghost playback parsing', () => {
 
 		expect(raw.frames[0]?.rotation).toEqual({ x: 1, y: 2, z: 3 })
 		expect(gzip.frames[0]?.rotation).toEqual({ x: 1, y: 2, z: 3 })
+	})
+
+	test('bounds native browser gzip decompression output', async () => {
+		const compressed = Bun.gzipSync(new Uint8Array(1_024))
+		await expect(decompressGzipBrowser(compressed, 128)).rejects.toThrow(
+			'Ghost replay exceeds decompression limit',
+		)
 	})
 })

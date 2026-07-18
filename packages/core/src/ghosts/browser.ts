@@ -38,13 +38,35 @@ export async function parseGhostBrowser(
 	}
 }
 
-export async function decompressGzipBrowser(buffer: Uint8Array): Promise<ArrayBuffer> {
+export async function decompressGzipBrowser(
+	buffer: Uint8Array,
+	maximumOutputBytes = 256 * 1024 * 1024,
+): Promise<ArrayBuffer> {
 	if (typeof DecompressionStream === 'undefined') {
 		throw new Error('Browser does not support gzip decompression')
 	}
 	const source = new Blob([copyArrayBuffer(buffer)]).stream()
 	const decompressed = source.pipeThrough(new DecompressionStream('gzip'))
-	return new Response(decompressed).arrayBuffer()
+	const reader = decompressed.getReader()
+	const chunks: Uint8Array[] = []
+	let totalBytes = 0
+	while (true) {
+		const { done, value } = await reader.read()
+		if (done) break
+		totalBytes += value.byteLength
+		if (totalBytes > maximumOutputBytes) {
+			await reader.cancel('Ghost replay exceeds decompression limit')
+			throw new Error('Ghost replay exceeds decompression limit')
+		}
+		chunks.push(value)
+	}
+	const output = new Uint8Array(totalBytes)
+	let offset = 0
+	for (const chunk of chunks) {
+		output.set(chunk, offset)
+		offset += chunk.byteLength
+	}
+	return output.buffer
 }
 
 function parseLegacyGhost(buffer: Uint8Array, version: number): ParsedGhost | null {
