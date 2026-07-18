@@ -752,18 +752,50 @@ export type LevelMetadatumVarianceSampleAggregateFilter = {
 
 /** A filter to be used against `LevelPoint` object types. All fields are combined with a logical ‘and.’ */
 export type LevelPointFilter = {
+  /** Filter by the object’s `airSampleSize` field. */
+  airSampleSize?: IntFilter | null | undefined;
   /** Checks for all expressions in this list. */
   and?: Array<LevelPointFilter> | null | undefined;
+  /** Filter by the object’s `bestPassiveGap` field. */
+  bestPassiveGap?: FloatFilter | null | undefined;
+  /** Filter by the object’s `bestPassiveRank` field. */
+  bestPassiveRank?: IntFilter | null | undefined;
+  /** Filter by the object’s `competitivenessScore` field. */
+  competitivenessScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `cutPenalty` field. */
   cutPenalty?: FloatFilter | null | undefined;
   /** Filter by the object’s `dateCreated` field. */
   dateCreated?: DatetimeFilter | null | undefined;
   /** Filter by the object’s `dateUpdated` field. */
   dateUpdated?: DatetimeFilter | null | undefined;
+  /** Filter by the object’s `driverEngagementScore` field. */
+  driverEngagementScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `inputCoverage` field. */
+  inputCoverage?: FloatFilter | null | undefined;
+  /** Filter by the object’s `inputSampleSize` field. */
+  inputSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `leaderboardAnomalyScore` field. */
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `leaderboardConfidence` field. */
+  leaderboardConfidence?: FloatFilter | null | undefined;
   /** Filter by the object’s `level` relation. */
   level?: LevelFilter | null | undefined;
   /** Filter by the object’s `levelId` field. */
   levelId?: IntFilter | null | undefined;
+  /** Filter by the object’s `lowSteeringRatio` field. */
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  /** Filter by the object’s `matureVoteCount` field. */
+  matureVoteCount?: IntFilter | null | undefined;
+  /** Filter by the object’s `medianArmsUpShare` field. */
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `medianBrakeShare` field. */
+  medianBrakeShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `medianControlTransitionRate` field. */
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  /** Filter by the object’s `medianSteeringShare` field. */
+  medianSteeringShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `modifierAfk` field. */
+  modifierAfk?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierCompetitiveness` field. */
   modifierCompetitiveness?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierLength` field. */
@@ -776,10 +808,80 @@ export type LevelPointFilter = {
   not?: LevelPointFilter | null | undefined;
   /** Checks for any expressions in this list. */
   or?: Array<LevelPointFilter> | null | undefined;
+  /** Filter by the object’s `participationScore` field. */
+  participationScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `passivePlaySeverity` field. */
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  /** Filter by the object’s `passiveRunRatio` field. */
+  passiveRunRatio?: FloatFilter | null | undefined;
+  /** Filter by the object’s `passiveTop10Share` field. */
+  passiveTop10Share?: FloatFilter | null | undefined;
+  /** Filter by the object’s `pathConsistencyScore` field. */
+  pathConsistencyScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `points` field. */
   points?: IntFilter | null | undefined;
+  /** Filter by the object’s `q25SteeringShare` field. */
+  q25SteeringShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `ragdollSampleSize` field. */
+  ragdollSampleSize?: IntFilter | null | undefined;
   /** Filter by the object’s `rating` field. */
   rating?: FloatFilter | null | undefined;
+  /** Filter by the object’s `routeConsistencyScore` field. */
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `sampleSize` field. */
+  sampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `slipSampleSize` field. */
+  slipSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `speedConsistencyScore` field. */
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `stateSampleSize` field. */
+  stateSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `surfaceDiversityScore` field. */
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `surfaceSampleSize` field. */
+  surfaceSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `telemetryAnomalyScore` field. */
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `top5Spread` field. */
+  top5Spread?: FloatFilter | null | undefined;
+  /** Filter by the object’s `top10Spread` field. */
+  top10Spread?: FloatFilter | null | undefined;
+  /** Filter by the object’s `top50Spread` field. */
+  top50Spread?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAirTimeShare` field. */
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAverageAngularVelocity` field. */
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAverageGforce` field. */
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAverageSpeed` field. */
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalDistance` field. */
+  typicalDistance?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalGroundTimeShare` field. */
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalMaxSpeed` field. */
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalRagdollShare` field. */
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalSlipShare` field. */
+  typicalSlipShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `velocitySampleSize` field. */
+  velocitySampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `wheelSampleSize` field. */
+  wheelSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `worldRecordDifficultyScore` field. */
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `worldRecordExcluded` field. */
+  worldRecordExcluded?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `worldRecordMargin` field. */
+  worldRecordMargin?: FloatFilter | null | undefined;
+  /** Filter by the object’s `worldRecordOptimizationScore` field. */
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `wrChallengerCount` field. */
+  wrChallengerCount?: IntFilter | null | undefined;
+  /** Filter by the object’s `zeroControlRatio` field. */
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 /** A filter to be used against aggregates of `LevelPointsHistory` object types. */
@@ -807,47 +909,180 @@ export type LevelPointsHistoryAggregatesFilter = {
 };
 
 export type LevelPointsHistoryAverageAggregateFilter = {
+  airSampleSize?: BigFloatFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: BigFloatFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: BigFloatFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: BigFloatFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: BigFloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: BigFloatFilter | null | undefined;
+  slipSampleSize?: BigFloatFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: BigFloatFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: BigFloatFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: BigFloatFilter | null | undefined;
+  wheelSampleSize?: BigFloatFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: BigFloatFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryDistinctCountAggregateFilter = {
+  airSampleSize?: BigIntFilter | null | undefined;
+  bestPassiveGap?: BigIntFilter | null | undefined;
+  bestPassiveRank?: BigIntFilter | null | undefined;
+  competitivenessScore?: BigIntFilter | null | undefined;
   cutPenalty?: BigIntFilter | null | undefined;
   dateCreated?: BigIntFilter | null | undefined;
   dateUpdated?: BigIntFilter | null | undefined;
+  driverEngagementScore?: BigIntFilter | null | undefined;
   id?: BigIntFilter | null | undefined;
+  inputCoverage?: BigIntFilter | null | undefined;
+  inputSampleSize?: BigIntFilter | null | undefined;
+  leaderboardAnomalyScore?: BigIntFilter | null | undefined;
+  leaderboardConfidence?: BigIntFilter | null | undefined;
   levelId?: BigIntFilter | null | undefined;
+  lowSteeringRatio?: BigIntFilter | null | undefined;
+  matureVoteCount?: BigIntFilter | null | undefined;
+  medianArmsUpShare?: BigIntFilter | null | undefined;
+  medianBrakeShare?: BigIntFilter | null | undefined;
+  medianControlTransitionRate?: BigIntFilter | null | undefined;
+  medianSteeringShare?: BigIntFilter | null | undefined;
+  modifierAfk?: BigIntFilter | null | undefined;
   modifierCompetitiveness?: BigIntFilter | null | undefined;
   modifierLength?: BigIntFilter | null | undefined;
   modifierPopularity?: BigIntFilter | null | undefined;
   modifierRating?: BigIntFilter | null | undefined;
+  participationScore?: BigIntFilter | null | undefined;
+  passivePlaySeverity?: BigIntFilter | null | undefined;
+  passiveRunRatio?: BigIntFilter | null | undefined;
+  passiveTop10Share?: BigIntFilter | null | undefined;
+  pathConsistencyScore?: BigIntFilter | null | undefined;
   points?: BigIntFilter | null | undefined;
+  q25SteeringShare?: BigIntFilter | null | undefined;
+  ragdollSampleSize?: BigIntFilter | null | undefined;
   rating?: BigIntFilter | null | undefined;
+  routeConsistencyScore?: BigIntFilter | null | undefined;
+  sampleSize?: BigIntFilter | null | undefined;
+  slipSampleSize?: BigIntFilter | null | undefined;
+  speedConsistencyScore?: BigIntFilter | null | undefined;
+  stateSampleSize?: BigIntFilter | null | undefined;
+  surfaceDiversityScore?: BigIntFilter | null | undefined;
+  surfaceSampleSize?: BigIntFilter | null | undefined;
+  telemetryAnomalyScore?: BigIntFilter | null | undefined;
+  top5Spread?: BigIntFilter | null | undefined;
+  top10Spread?: BigIntFilter | null | undefined;
+  top50Spread?: BigIntFilter | null | undefined;
+  typicalAirTimeShare?: BigIntFilter | null | undefined;
+  typicalAverageAngularVelocity?: BigIntFilter | null | undefined;
+  typicalAverageGforce?: BigIntFilter | null | undefined;
+  typicalAverageSpeed?: BigIntFilter | null | undefined;
+  typicalDistance?: BigIntFilter | null | undefined;
+  typicalGroundTimeShare?: BigIntFilter | null | undefined;
+  typicalMaxSpeed?: BigIntFilter | null | undefined;
+  typicalRagdollShare?: BigIntFilter | null | undefined;
+  typicalSlipShare?: BigIntFilter | null | undefined;
+  velocitySampleSize?: BigIntFilter | null | undefined;
+  wheelSampleSize?: BigIntFilter | null | undefined;
+  worldRecordDifficultyScore?: BigIntFilter | null | undefined;
+  worldRecordExcluded?: BigIntFilter | null | undefined;
+  worldRecordMargin?: BigIntFilter | null | undefined;
+  worldRecordOptimizationScore?: BigIntFilter | null | undefined;
+  wrChallengerCount?: BigIntFilter | null | undefined;
+  zeroControlRatio?: BigIntFilter | null | undefined;
 };
 
 /** A filter to be used against `LevelPointsHistory` object types. All fields are combined with a logical ‘and.’ */
 export type LevelPointsHistoryFilter = {
+  /** Filter by the object’s `airSampleSize` field. */
+  airSampleSize?: IntFilter | null | undefined;
   /** Checks for all expressions in this list. */
   and?: Array<LevelPointsHistoryFilter> | null | undefined;
+  /** Filter by the object’s `bestPassiveGap` field. */
+  bestPassiveGap?: FloatFilter | null | undefined;
+  /** Filter by the object’s `bestPassiveRank` field. */
+  bestPassiveRank?: IntFilter | null | undefined;
+  /** Filter by the object’s `competitivenessScore` field. */
+  competitivenessScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `cutPenalty` field. */
   cutPenalty?: FloatFilter | null | undefined;
   /** Filter by the object’s `dateCreated` field. */
   dateCreated?: DatetimeFilter | null | undefined;
   /** Filter by the object’s `dateUpdated` field. */
   dateUpdated?: DatetimeFilter | null | undefined;
+  /** Filter by the object’s `driverEngagementScore` field. */
+  driverEngagementScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `id` field. */
   id?: IntFilter | null | undefined;
+  /** Filter by the object’s `inputCoverage` field. */
+  inputCoverage?: FloatFilter | null | undefined;
+  /** Filter by the object’s `inputSampleSize` field. */
+  inputSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `leaderboardAnomalyScore` field. */
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `leaderboardConfidence` field. */
+  leaderboardConfidence?: FloatFilter | null | undefined;
   /** Filter by the object’s `level` relation. */
   level?: LevelFilter | null | undefined;
   /** Filter by the object’s `levelId` field. */
   levelId?: IntFilter | null | undefined;
+  /** Filter by the object’s `lowSteeringRatio` field. */
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  /** Filter by the object’s `matureVoteCount` field. */
+  matureVoteCount?: IntFilter | null | undefined;
+  /** Filter by the object’s `medianArmsUpShare` field. */
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `medianBrakeShare` field. */
+  medianBrakeShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `medianControlTransitionRate` field. */
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  /** Filter by the object’s `medianSteeringShare` field. */
+  medianSteeringShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `modifierAfk` field. */
+  modifierAfk?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierCompetitiveness` field. */
   modifierCompetitiveness?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierLength` field. */
@@ -860,94 +1095,514 @@ export type LevelPointsHistoryFilter = {
   not?: LevelPointsHistoryFilter | null | undefined;
   /** Checks for any expressions in this list. */
   or?: Array<LevelPointsHistoryFilter> | null | undefined;
+  /** Filter by the object’s `participationScore` field. */
+  participationScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `passivePlaySeverity` field. */
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  /** Filter by the object’s `passiveRunRatio` field. */
+  passiveRunRatio?: FloatFilter | null | undefined;
+  /** Filter by the object’s `passiveTop10Share` field. */
+  passiveTop10Share?: FloatFilter | null | undefined;
+  /** Filter by the object’s `pathConsistencyScore` field. */
+  pathConsistencyScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `points` field. */
   points?: IntFilter | null | undefined;
+  /** Filter by the object’s `q25SteeringShare` field. */
+  q25SteeringShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `ragdollSampleSize` field. */
+  ragdollSampleSize?: IntFilter | null | undefined;
   /** Filter by the object’s `rating` field. */
   rating?: FloatFilter | null | undefined;
+  /** Filter by the object’s `routeConsistencyScore` field. */
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `sampleSize` field. */
+  sampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `slipSampleSize` field. */
+  slipSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `speedConsistencyScore` field. */
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `stateSampleSize` field. */
+  stateSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `surfaceDiversityScore` field. */
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `surfaceSampleSize` field. */
+  surfaceSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `telemetryAnomalyScore` field. */
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `top5Spread` field. */
+  top5Spread?: FloatFilter | null | undefined;
+  /** Filter by the object’s `top10Spread` field. */
+  top10Spread?: FloatFilter | null | undefined;
+  /** Filter by the object’s `top50Spread` field. */
+  top50Spread?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAirTimeShare` field. */
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAverageAngularVelocity` field. */
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAverageGforce` field. */
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalAverageSpeed` field. */
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalDistance` field. */
+  typicalDistance?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalGroundTimeShare` field. */
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalMaxSpeed` field. */
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalRagdollShare` field. */
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `typicalSlipShare` field. */
+  typicalSlipShare?: FloatFilter | null | undefined;
+  /** Filter by the object’s `velocitySampleSize` field. */
+  velocitySampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `wheelSampleSize` field. */
+  wheelSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `worldRecordDifficultyScore` field. */
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `worldRecordExcluded` field. */
+  worldRecordExcluded?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `worldRecordMargin` field. */
+  worldRecordMargin?: FloatFilter | null | undefined;
+  /** Filter by the object’s `worldRecordOptimizationScore` field. */
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `wrChallengerCount` field. */
+  wrChallengerCount?: IntFilter | null | undefined;
+  /** Filter by the object’s `zeroControlRatio` field. */
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryMaxAggregateFilter = {
+  airSampleSize?: IntFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: IntFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: IntFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: IntFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: IntFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: IntFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: IntFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: IntFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: IntFilter | null | undefined;
+  slipSampleSize?: IntFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: IntFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: IntFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: IntFilter | null | undefined;
+  wheelSampleSize?: IntFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: IntFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryMinAggregateFilter = {
+  airSampleSize?: IntFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: IntFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: IntFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: IntFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: IntFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: IntFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: IntFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: IntFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: IntFilter | null | undefined;
+  slipSampleSize?: IntFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: IntFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: IntFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: IntFilter | null | undefined;
+  wheelSampleSize?: IntFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: IntFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryStddevPopulationAggregateFilter = {
+  airSampleSize?: BigFloatFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: BigFloatFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: BigFloatFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: BigFloatFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: BigFloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: BigFloatFilter | null | undefined;
+  slipSampleSize?: BigFloatFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: BigFloatFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: BigFloatFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: BigFloatFilter | null | undefined;
+  wheelSampleSize?: BigFloatFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: BigFloatFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryStddevSampleAggregateFilter = {
+  airSampleSize?: BigFloatFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: BigFloatFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: BigFloatFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: BigFloatFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: BigFloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: BigFloatFilter | null | undefined;
+  slipSampleSize?: BigFloatFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: BigFloatFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: BigFloatFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: BigFloatFilter | null | undefined;
+  wheelSampleSize?: BigFloatFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: BigFloatFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistorySumAggregateFilter = {
+  airSampleSize?: BigIntFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: BigIntFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: BigIntFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: BigIntFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigIntFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: BigIntFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigIntFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: BigIntFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: BigIntFilter | null | undefined;
+  slipSampleSize?: BigIntFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: BigIntFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: BigIntFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: BigIntFilter | null | undefined;
+  wheelSampleSize?: BigIntFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: BigIntFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryVariancePopulationAggregateFilter = {
+  airSampleSize?: BigFloatFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: BigFloatFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: BigFloatFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: BigFloatFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: BigFloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: BigFloatFilter | null | undefined;
+  slipSampleSize?: BigFloatFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: BigFloatFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: BigFloatFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: BigFloatFilter | null | undefined;
+  wheelSampleSize?: BigFloatFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: BigFloatFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryVarianceSampleAggregateFilter = {
+  airSampleSize?: BigFloatFilter | null | undefined;
+  bestPassiveGap?: FloatFilter | null | undefined;
+  bestPassiveRank?: BigFloatFilter | null | undefined;
+  competitivenessScore?: FloatFilter | null | undefined;
   cutPenalty?: FloatFilter | null | undefined;
+  driverEngagementScore?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
+  inputCoverage?: FloatFilter | null | undefined;
+  inputSampleSize?: BigFloatFilter | null | undefined;
+  leaderboardAnomalyScore?: FloatFilter | null | undefined;
+  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
+  lowSteeringRatio?: FloatFilter | null | undefined;
+  matureVoteCount?: BigFloatFilter | null | undefined;
+  medianArmsUpShare?: FloatFilter | null | undefined;
+  medianBrakeShare?: FloatFilter | null | undefined;
+  medianControlTransitionRate?: FloatFilter | null | undefined;
+  medianSteeringShare?: FloatFilter | null | undefined;
+  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
   modifierPopularity?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
+  participationScore?: FloatFilter | null | undefined;
+  passivePlaySeverity?: FloatFilter | null | undefined;
+  passiveRunRatio?: FloatFilter | null | undefined;
+  passiveTop10Share?: FloatFilter | null | undefined;
+  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
+  q25SteeringShare?: FloatFilter | null | undefined;
+  ragdollSampleSize?: BigFloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
+  routeConsistencyScore?: FloatFilter | null | undefined;
+  sampleSize?: BigFloatFilter | null | undefined;
+  slipSampleSize?: BigFloatFilter | null | undefined;
+  speedConsistencyScore?: FloatFilter | null | undefined;
+  stateSampleSize?: BigFloatFilter | null | undefined;
+  surfaceDiversityScore?: FloatFilter | null | undefined;
+  surfaceSampleSize?: BigFloatFilter | null | undefined;
+  telemetryAnomalyScore?: FloatFilter | null | undefined;
+  top5Spread?: FloatFilter | null | undefined;
+  top10Spread?: FloatFilter | null | undefined;
+  top50Spread?: FloatFilter | null | undefined;
+  typicalAirTimeShare?: FloatFilter | null | undefined;
+  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
+  typicalAverageGforce?: FloatFilter | null | undefined;
+  typicalAverageSpeed?: FloatFilter | null | undefined;
+  typicalDistance?: FloatFilter | null | undefined;
+  typicalGroundTimeShare?: FloatFilter | null | undefined;
+  typicalMaxSpeed?: FloatFilter | null | undefined;
+  typicalRagdollShare?: FloatFilter | null | undefined;
+  typicalSlipShare?: FloatFilter | null | undefined;
+  velocitySampleSize?: BigFloatFilter | null | undefined;
+  wheelSampleSize?: BigFloatFilter | null | undefined;
+  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  worldRecordMargin?: FloatFilter | null | undefined;
+  worldRecordOptimizationScore?: FloatFilter | null | undefined;
+  wrChallengerCount?: BigFloatFilter | null | undefined;
+  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 /** A filter to be used against many `Favourite` object types. All fields are combined with a logical ‘and.’ */
@@ -1446,18 +2101,60 @@ export type LevelsOrderBy =
   | 'LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_GROUND_DESC'
   | 'LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_SKYBOX_ASC'
   | 'LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_SKYBOX_DESC'
+  | 'LEVEL_POINTS_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_CUT_PENALTY_DESC'
   | 'LEVEL_POINTS_DATE_CREATED_ASC'
   | 'LEVEL_POINTS_DATE_CREATED_DESC'
   | 'LEVEL_POINTS_DATE_UPDATED_ASC'
   | 'LEVEL_POINTS_DATE_UPDATED_DESC'
+  | 'LEVEL_POINTS_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_LENGTH_ASC'
@@ -1466,22 +2163,122 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ZERO_CONTROL_RATIO_DESC'
   | 'LEVEL_POINTS_HISTORIES_COUNT_ASC'
   | 'LEVEL_POINTS_HISTORIES_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_CUT_PENALTY_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_CREATED_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_CREATED_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_UPDATED_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_UPDATED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_LENGTH_ASC'
@@ -1490,16 +2287,118 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_EXCLUDED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_EXCLUDED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_LENGTH_ASC'
@@ -1508,16 +2407,116 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_LENGTH_ASC'
@@ -1526,16 +2525,116 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_LENGTH_ASC'
@@ -1544,16 +2643,116 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_LENGTH_ASC'
@@ -1562,16 +2761,116 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_LENGTH_ASC'
@@ -1580,16 +2879,116 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_LENGTH_ASC'
@@ -1598,16 +2997,116 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_AIR_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_AIR_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_GAP_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_GAP_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_RANK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_RANK_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVENESS_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVENESS_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_CUT_PENALTY_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_DRIVER_ENGAGEMENT_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_DRIVER_ENGAGEMENT_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEVEL_ID_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_LENGTH_ASC'
@@ -1616,12 +3115,102 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_POINTS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RATING_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ZERO_CONTROL_RATIO_DESC'
   | 'LEVEL_POINTS_ID_LEVEL_ASC'
   | 'LEVEL_POINTS_ID_LEVEL_DESC'
+  | 'LEVEL_POINTS_INPUT_COVERAGE_ASC'
+  | 'LEVEL_POINTS_INPUT_COVERAGE_DESC'
+  | 'LEVEL_POINTS_INPUT_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_INPUT_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_LEADERBOARD_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_LEADERBOARD_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_LEADERBOARD_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_LEADERBOARD_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_LOW_STEERING_RATIO_ASC'
+  | 'LEVEL_POINTS_LOW_STEERING_RATIO_DESC'
+  | 'LEVEL_POINTS_MATURE_VOTE_COUNT_ASC'
+  | 'LEVEL_POINTS_MATURE_VOTE_COUNT_DESC'
+  | 'LEVEL_POINTS_MEDIAN_ARMS_UP_SHARE_ASC'
+  | 'LEVEL_POINTS_MEDIAN_ARMS_UP_SHARE_DESC'
+  | 'LEVEL_POINTS_MEDIAN_BRAKE_SHARE_ASC'
+  | 'LEVEL_POINTS_MEDIAN_BRAKE_SHARE_DESC'
+  | 'LEVEL_POINTS_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
+  | 'LEVEL_POINTS_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
+  | 'LEVEL_POINTS_MEDIAN_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_MEDIAN_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_MODIFIER_AFK_ASC'
+  | 'LEVEL_POINTS_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_MODIFIER_COMPETITIVENESS_DESC'
   | 'LEVEL_POINTS_MODIFIER_LENGTH_ASC'
@@ -1630,10 +3219,80 @@ export type LevelsOrderBy =
   | 'LEVEL_POINTS_MODIFIER_POPULARITY_DESC'
   | 'LEVEL_POINTS_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_MODIFIER_RATING_DESC'
+  | 'LEVEL_POINTS_PARTICIPATION_SCORE_ASC'
+  | 'LEVEL_POINTS_PARTICIPATION_SCORE_DESC'
+  | 'LEVEL_POINTS_PASSIVE_PLAY_SEVERITY_ASC'
+  | 'LEVEL_POINTS_PASSIVE_PLAY_SEVERITY_DESC'
+  | 'LEVEL_POINTS_PASSIVE_RUN_RATIO_ASC'
+  | 'LEVEL_POINTS_PASSIVE_RUN_RATIO_DESC'
+  | 'LEVEL_POINTS_PASSIVE_TOP_10_SHARE_ASC'
+  | 'LEVEL_POINTS_PASSIVE_TOP_10_SHARE_DESC'
+  | 'LEVEL_POINTS_PATH_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_POINTS_ASC'
   | 'LEVEL_POINTS_POINTS_DESC'
+  | 'LEVEL_POINTS_Q25_STEERING_SHARE_ASC'
+  | 'LEVEL_POINTS_Q25_STEERING_SHARE_DESC'
+  | 'LEVEL_POINTS_RAGDOLL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_RAGDOLL_SAMPLE_SIZE_DESC'
   | 'LEVEL_POINTS_RATING_ASC'
   | 'LEVEL_POINTS_RATING_DESC'
+  | 'LEVEL_POINTS_ROUTE_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_ROUTE_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_SLIP_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_SLIP_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_SPEED_CONSISTENCY_SCORE_ASC'
+  | 'LEVEL_POINTS_SPEED_CONSISTENCY_SCORE_DESC'
+  | 'LEVEL_POINTS_STATE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_STATE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_SURFACE_DIVERSITY_SCORE_ASC'
+  | 'LEVEL_POINTS_SURFACE_DIVERSITY_SCORE_DESC'
+  | 'LEVEL_POINTS_SURFACE_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_SURFACE_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_TELEMETRY_ANOMALY_SCORE_ASC'
+  | 'LEVEL_POINTS_TELEMETRY_ANOMALY_SCORE_DESC'
+  | 'LEVEL_POINTS_TOP_5_SPREAD_ASC'
+  | 'LEVEL_POINTS_TOP_5_SPREAD_DESC'
+  | 'LEVEL_POINTS_TOP_10_SPREAD_ASC'
+  | 'LEVEL_POINTS_TOP_10_SPREAD_DESC'
+  | 'LEVEL_POINTS_TOP_50_SPREAD_ASC'
+  | 'LEVEL_POINTS_TOP_50_SPREAD_DESC'
+  | 'LEVEL_POINTS_TYPICAL_AIR_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_TYPICAL_AIR_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
+  | 'LEVEL_POINTS_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
+  | 'LEVEL_POINTS_TYPICAL_AVERAGE_GFORCE_ASC'
+  | 'LEVEL_POINTS_TYPICAL_AVERAGE_GFORCE_DESC'
+  | 'LEVEL_POINTS_TYPICAL_AVERAGE_SPEED_ASC'
+  | 'LEVEL_POINTS_TYPICAL_AVERAGE_SPEED_DESC'
+  | 'LEVEL_POINTS_TYPICAL_DISTANCE_ASC'
+  | 'LEVEL_POINTS_TYPICAL_DISTANCE_DESC'
+  | 'LEVEL_POINTS_TYPICAL_GROUND_TIME_SHARE_ASC'
+  | 'LEVEL_POINTS_TYPICAL_GROUND_TIME_SHARE_DESC'
+  | 'LEVEL_POINTS_TYPICAL_MAX_SPEED_ASC'
+  | 'LEVEL_POINTS_TYPICAL_MAX_SPEED_DESC'
+  | 'LEVEL_POINTS_TYPICAL_RAGDOLL_SHARE_ASC'
+  | 'LEVEL_POINTS_TYPICAL_RAGDOLL_SHARE_DESC'
+  | 'LEVEL_POINTS_TYPICAL_SLIP_SHARE_ASC'
+  | 'LEVEL_POINTS_TYPICAL_SLIP_SHARE_DESC'
+  | 'LEVEL_POINTS_VELOCITY_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_VELOCITY_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_WHEEL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_WHEEL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
+  | 'LEVEL_POINTS_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_WORLD_RECORD_EXCLUDED_ASC'
+  | 'LEVEL_POINTS_WORLD_RECORD_EXCLUDED_DESC'
+  | 'LEVEL_POINTS_WORLD_RECORD_MARGIN_ASC'
+  | 'LEVEL_POINTS_WORLD_RECORD_MARGIN_DESC'
+  | 'LEVEL_POINTS_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
+  | 'LEVEL_POINTS_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
+  | 'LEVEL_POINTS_WR_CHALLENGER_COUNT_ASC'
+  | 'LEVEL_POINTS_WR_CHALLENGER_COUNT_DESC'
+  | 'LEVEL_POINTS_ZERO_CONTROL_RATIO_ASC'
+  | 'LEVEL_POINTS_ZERO_CONTROL_RATIO_DESC'
   | 'NATURAL'
   | 'PERSONAL_BEST_GLOBALS_AVERAGE_ID_ASC'
   | 'PERSONAL_BEST_GLOBALS_AVERAGE_ID_DESC'
@@ -2391,8 +4050,28 @@ export type RecordStatisticFilter = {
   distanceSlipping?: FloatFilter | null | undefined;
   /** Filter by the object’s `distanceSoapWheels` field. */
   distanceSoapWheels?: FloatFilter | null | undefined;
+  /** Filter by the object’s `driverInputTransitionCount` field. */
+  driverInputTransitionCount?: IntFilter | null | undefined;
   /** Filter by the object’s `frameCount` field. */
   frameCount?: IntFilter | null | undefined;
+  /** Filter by the object’s `ghostVersion` field. */
+  ghostVersion?: IntFilter | null | undefined;
+  /** Filter by the object’s `hasAirData` field. */
+  hasAirData?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `hasInputData` field. */
+  hasInputData?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `hasRagdollData` field. */
+  hasRagdollData?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `hasSlipData` field. */
+  hasSlipData?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `hasStateData` field. */
+  hasStateData?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `hasSurfaceData` field. */
+  hasSurfaceData?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `hasVelocityData` field. */
+  hasVelocityData?: BooleanFilter | null | undefined;
+  /** Filter by the object’s `hasWheelData` field. */
+  hasWheelData?: BooleanFilter | null | undefined;
   /** Filter by the object’s `hornCount` field. */
   hornCount?: IntFilter | null | undefined;
   /** Filter by the object’s `hornTime` field. */
@@ -2415,6 +4094,8 @@ export type RecordStatisticFilter = {
   recordId?: IntFilter | null | undefined;
   /** Filter by the object’s `time` field. */
   time?: FloatFilter | null | undefined;
+  /** Filter by the object’s `timeAnyDriverInput` field. */
+  timeAnyDriverInput?: FloatFilter | null | undefined;
   /** Filter by the object’s `timeInAir` field. */
   timeInAir?: FloatFilter | null | undefined;
   /** Filter by the object’s `timeOffroadWheels` field. */
