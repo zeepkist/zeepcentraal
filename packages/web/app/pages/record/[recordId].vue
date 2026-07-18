@@ -115,7 +115,9 @@
 								:description="$t('pages.recordDetail.telemetry.versionDescription')"
 							/>
 						</section>
+					</template>
 
+					<template #charts>
 						<RecordTelemetryCharts
 							v-if="primaryGhost"
 							:ghost="primaryGhost"
@@ -123,6 +125,12 @@
 							:primary-color="primaryVisualColor"
 							:labels="analysisLabels.telemetry"
 						/>
+						<div
+							v-else
+							class="grid min-h-40 place-items-center rounded-2xl border border-dashed border-border bg-card/40 px-6 text-center text-sm text-muted-foreground"
+						>
+							{{ $t('pages.recordDetail.analysis.tabs.unavailable') }}
+						</div>
 					</template>
 
 					<template #analysis>
@@ -446,6 +454,7 @@ const analysisLabels = computed(() => createRecordAnalysisLabels(t))
 const analysisTabLabels = computed(() => ({
 	label: t('pages.recordDetail.analysis.tabs.label'),
 	telemetry: t('pages.recordDetail.analysis.tabs.telemetry'),
+	charts: t('pages.recordDetail.analysis.tabs.charts'),
 	analysis: t('pages.recordDetail.analysis.tabs.analysis'),
 	improvement: t('pages.recordDetail.analysis.tabs.improvement'),
 }))

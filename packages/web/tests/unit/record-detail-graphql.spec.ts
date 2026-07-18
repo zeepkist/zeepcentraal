@@ -160,10 +160,20 @@ describe('record detail GraphQL', () => {
 		expect(timelineIndex).toBeGreaterThan(comparisonIndex)
 		expect(tabsIndex).toBeGreaterThan(timelineIndex)
 		expect(recordPage).toContain('<template #telemetry>')
+		expect(recordPage).toContain('<template #charts>')
 		expect(recordPage).toContain('<template #analysis>')
 		expect(recordPage).toContain('<template #improvement>')
+		expect(recordPage.indexOf('<RecordTelemetryCharts')).toBeGreaterThan(
+			recordPage.indexOf('<template #charts>'),
+		)
+		expect(recordPage.indexOf('<RecordTelemetryCharts')).toBeLessThan(
+			recordPage.indexOf('<template #analysis>'),
+		)
 		expect(analysisTabs).toContain('<UTabs')
-		expect(analysisTabs).toContain("ref<'telemetry' | 'analysis' | 'improvement'>('telemetry')")
+		expect(analysisTabs).toContain('<template #charts>')
+		expect(analysisTabs).toContain(
+			"ref<'telemetry' | 'charts' | 'analysis' | 'improvement'>('telemetry')",
+		)
 		expect(analysisTabs).not.toMatch(/\$fetch|useFetch|useAsyncData|useQuery/)
 	})
 

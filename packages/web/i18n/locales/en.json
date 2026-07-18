@@ -546,6 +546,7 @@
 				"tabs": {
 					"label": "Record analysis sections",
 					"telemetry": "Telemetry",
+					"charts": "Charts",
 					"analysis": "Analysis",
 					"improvement": "Improvement opportunities",
 					"unavailable": "No decoded ghost data is available for this section."

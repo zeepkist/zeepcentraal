@@ -15,6 +15,9 @@
 			<template #telemetry>
 				<div class="space-y-8"><slot name="telemetry" /></div>
 			</template>
+			<template #charts>
+				<div class="space-y-8"><slot name="charts" /></div>
+			</template>
 			<template #analysis>
 				<div class="space-y-8"><slot name="analysis" /></div>
 			</template>
@@ -30,14 +33,16 @@ const props = defineProps<{
 	labels: {
 		label: string
 		telemetry: string
+		charts: string
 		analysis: string
 		improvement: string
 	}
 }>()
 
-const activeTab = ref<'telemetry' | 'analysis' | 'improvement'>('telemetry')
+const activeTab = ref<'telemetry' | 'charts' | 'analysis' | 'improvement'>('telemetry')
 const items = computed(() => [
 	{ label: props.labels.telemetry, slot: 'telemetry' as const, value: 'telemetry' as const },
+	{ label: props.labels.charts, slot: 'charts' as const, value: 'charts' as const },
 	{ label: props.labels.analysis, slot: 'analysis' as const, value: 'analysis' as const },
 	{
 		label: props.labels.improvement,
