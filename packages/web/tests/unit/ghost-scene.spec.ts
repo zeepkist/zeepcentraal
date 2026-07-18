@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { GhostPlaybackFrame } from '../../app/types/ghost'
 import {
 	buildGhostGrid,
+	calculateGhostLabelWorldOffset,
 	interpolateGhostFrame,
+	orthographicWorldUnitsPerPixel,
+	perspectiveWorldUnitsPerPixel,
 	rebaseGhostPosition,
 } from '../../app/utils/ghostScene'
 
@@ -44,5 +47,43 @@ describe('ghost scene', () => {
 			speed: 20,
 			steering: 0,
 		})
+	})
+
+	it('increases label world clearance as perspective camera moves away', () => {
+		const close = calculateGhostLabelWorldOffset(
+			perspectiveWorldUnitsPerPixel(20, 48, 720),
+			24,
+			0,
+		)
+		const distant = calculateGhostLabelWorldOffset(
+			perspectiveWorldUnitsPerPixel(500, 48, 720),
+			24,
+			0,
+		)
+
+		expect(close).toBe(2.8)
+		expect(distant).toBeGreaterThan(close)
+	})
+
+	it('increases label clearance when orthographic camera zooms out', () => {
+		const close = calculateGhostLabelWorldOffset(
+			orthographicWorldUnitsPerPixel(80, 2, 720),
+			24,
+			0,
+		)
+		const distant = calculateGhostLabelWorldOffset(
+			orthographicWorldUnitsPerPixel(800, 1, 720),
+			24,
+			0,
+		)
+
+		expect(distant).toBeGreaterThan(close)
+	})
+
+	it('staggered labels keep increasing world-up clearance', () => {
+		const first = calculateGhostLabelWorldOffset(0.5, 24, 0)
+		const fourth = calculateGhostLabelWorldOffset(0.5, 24, 3)
+
+		expect(fourth).toBeGreaterThan(first)
 	})
 })

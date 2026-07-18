@@ -50,7 +50,14 @@ import type {
 	GhostLevelBlock,
 	LoadedPlaybackGhost,
 } from '~/types/ghost'
-import { buildGhostGrid, interpolateGhostFrame, rebaseGhostPosition } from '~/utils/ghostScene'
+import {
+	buildGhostGrid,
+	calculateGhostLabelWorldOffset,
+	interpolateGhostFrame,
+	orthographicWorldUnitsPerPixel,
+	perspectiveWorldUnitsPerPixel,
+	rebaseGhostPosition,
+} from '~/utils/ghostScene'
 
 type RenderQuality = 'performance' | 'balanced' | 'quality'
 
@@ -58,6 +65,8 @@ type GhostVisual = {
 	ghost: LoadedPlaybackGhost
 	group: THREE.Group
 	label: HTMLElement
+	labelObject: CSS2DObject
+	labelStagger: number
 	trail: Line2
 	trailGeometry: LineGeometry
 	trailMaterial: LineMaterial
@@ -257,15 +266,16 @@ function createGhosts() {
 		label.textContent = loaded.identity.label
 		label.style.borderColor = loaded.identity.bodyColor
 		const labelObject = new CSS2DObject(label)
-		labelObject.position.set(0, 2.8 + (visualIndex % 4) * 0.35, 0)
-		group.add(labelObject)
+		labelObject.position.set(0, 2.8, 0)
 
 		const { trail, geometry, material, times } = createTrail(loaded)
-		scene.add(group, trail)
+		scene.add(group, trail, labelObject)
 		visuals.set(loaded.record.recordId, {
 			ghost: loaded,
 			group,
 			label,
+			labelObject,
+			labelStagger: visualIndex % 4,
 			trail,
 			trailGeometry: geometry,
 			trailMaterial: material,
@@ -491,6 +501,7 @@ function updateGhosts() {
 		const next = rebaseGhostPosition(frame.position, grid.origin)
 		const previous = visual.group.position.clone()
 		visual.group.position.set(next.x, next.y, next.z)
+		updateLabelPosition(visual, next)
 		if (frame.orientation) {
 			visual.group.quaternion.set(
 				-frame.orientation.x,
@@ -541,6 +552,31 @@ function updateGhosts() {
 		activeCamera()?.position.add(selectedDelta)
 		controls.target.add(selectedDelta)
 	}
+}
+
+function updateLabelPosition(visual: GhostVisual, position: { x: number; y: number; z: number }) {
+	const camera = activeCamera()
+	const host = canvasHost.value
+	if (!camera || !host) return
+	const viewportHeight = Math.max(1, host.clientHeight)
+	const worldUnitsPerPixel =
+		camera instanceof THREE.PerspectiveCamera
+			? perspectiveWorldUnitsPerPixel(
+				camera.position.distanceTo(visual.group.position),
+				camera.fov,
+				viewportHeight,
+			)
+			: orthographicWorldUnitsPerPixel(
+				camera.top - camera.bottom,
+				camera.zoom,
+				viewportHeight,
+			)
+	const offset = calculateGhostLabelWorldOffset(
+		worldUnitsPerPixel,
+		visual.label.offsetHeight,
+		visual.labelStagger,
+	)
+	visual.labelObject.position.set(position.x, position.y + offset, position.z)
 }
 
 function updateSelection() {
@@ -624,7 +660,7 @@ function disposeVisual(visual: GhostVisual) {
 	visual.trailGeometry.dispose()
 	visual.trailMaterial.dispose()
 	visual.label.remove()
-	scene?.remove(visual.group, visual.trail)
+	scene?.remove(visual.group, visual.trail, visual.labelObject)
 }
 
 function disposeObject(object: THREE.Object3D) {

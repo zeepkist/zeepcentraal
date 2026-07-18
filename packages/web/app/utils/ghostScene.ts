@@ -4,6 +4,9 @@ const CELL_SIZE = 16 as const
 const MAJOR_EVERY = 4 as const
 const MARGIN = CELL_SIZE * MAJOR_EVERY
 const MINIMUM_EXTENT = 256
+const MINIMUM_LABEL_WORLD_OFFSET = 2.8
+const LABEL_GAP_PIXELS = 12
+const LABEL_STAGGER_PIXELS = 8
 
 export function buildGhostGrid(paths: readonly (readonly GhostPlaybackFrame[])[]): GhostGridModel {
 	const positions = paths.flatMap((frames) => frames.map(({ position }) => position))
@@ -89,6 +92,37 @@ export function interpolateGhostFrame(
 				? left.steering
 				: lerp(left.steering, right.steering, ratio),
 	}
+}
+
+export function perspectiveWorldUnitsPerPixel(
+	distance: number,
+	verticalFovDegrees: number,
+	viewportHeight: number,
+): number {
+	if (distance <= 0 || verticalFovDegrees <= 0 || viewportHeight <= 0) return 0
+	const verticalFovRadians = (verticalFovDegrees * Math.PI) / 180
+	return (2 * distance * Math.tan(verticalFovRadians / 2)) / viewportHeight
+}
+
+export function orthographicWorldUnitsPerPixel(
+	verticalSpan: number,
+	zoom: number,
+	viewportHeight: number,
+): number {
+	if (verticalSpan <= 0 || zoom <= 0 || viewportHeight <= 0) return 0
+	return verticalSpan / zoom / viewportHeight
+}
+
+export function calculateGhostLabelWorldOffset(
+	worldUnitsPerPixel: number,
+	labelHeight: number,
+	staggerIndex: number,
+): number {
+	const clearancePixels =
+		Math.max(0, labelHeight) / 2 +
+		LABEL_GAP_PIXELS +
+		Math.max(0, staggerIndex) * LABEL_STAGGER_PIXELS
+	return Math.max(MINIMUM_LABEL_WORLD_OFFSET, Math.max(0, worldUnitsPerPixel) * clearancePixels)
 }
 
 function calculateBounds(positions: readonly GhostVector3[]) {
