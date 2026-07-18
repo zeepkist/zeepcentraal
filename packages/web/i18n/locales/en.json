@@ -606,6 +606,7 @@
 					"title": "Air control analysis",
 					"description": "Compare how every loaded ghost controls rotation, lift, and orientation while all four wheels are airborne.",
 					"primary": "Selected record",
+					"detailsTitle": "Detailed air-control effects",
 					"observed": "Observed telemetry correlation; use the replay and racing line before treating it as a time-saving recommendation.",
 					"airborneDuration": "Airborne time",
 					"airSteering": "Air steering",

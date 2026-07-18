@@ -122,6 +122,24 @@ describe('record ghost analysis', () => {
 		expect(summary.driftCount).toBe(1)
 	})
 
+	it('keeps zero-slip comparisons available beside a run with detected slip', () => {
+		const drifting = loaded(1, [
+			frame(0, 0, { slippingWheelState: 1, speed: 100 }),
+			frame(0.2, 3, { slippingWheelState: 1, speed: 90 }),
+			frame(0.4, 6, { slippingWheelState: 0, speed: 80 }),
+		])
+		const clean = loaded(2, [
+			frame(0, 0, { slippingWheelState: 0, speed: 100 }),
+			frame(0.2, 3, { slippingWheelState: 0, speed: 100 }),
+			frame(0.4, 6, { slippingWheelState: 0, speed: 100 }),
+		])
+		const runs = buildRecordDriftRuns([drifting, clean])
+
+		expect(runs).toHaveLength(2)
+		expect(runs[0]?.eventCount).toBe(1)
+		expect(runs[1]).toMatchObject({ recordId: 2, eventCount: 0, totalDuration: 0 })
+	})
+
 	it('emits semantic coaching signals without presentation copy', () => {
 		const primary = loaded(1, [
 			frame(0, 0, { slippingWheelState: 1, speed: 100, steering: 0 }),
@@ -276,23 +294,77 @@ describe('record ghost analysis', () => {
 		)
 		expect(chartSource).toContain('<DashboardChartTooltip')
 		expect(chartSource).toContain('color: props.primaryColor')
+		expect(driftSource).toContain('<BarChart')
+		expect(driftSource).toContain('<DashboardChartTooltip')
 		expect(driftSource).toContain('color: props.primaryColor')
 	})
 
-	it('uses compact air-control rows without nested control cards', () => {
+	it('uses an air-control comparison table with collapsed secondary effects', () => {
 		const source = readFileSync(
 			new URL('../../app/components/record/RecordAirControlAnalysis.vue', import.meta.url),
 			'utf8',
 		)
 
-		expect(source).toContain('divide-y divide-border/70')
-		expect(source).toContain('sm:grid-cols-2 xl:grid-cols-4')
-		expect(source).toContain('formatEventSummary(run.braking)')
-		expect(source).toContain('formatEventSummary(run.armsUp)')
-		expect(source).toContain('formatEventSummary(run.steeringLeft)')
-		expect(source).toContain('formatEventSummary(run.steeringRight)')
-		expect(source).not.toContain('v-for="control in controlsFor(run)"')
-		expect(source).not.toContain('bg-linear-to-br')
+		expect(source).toContain('<table')
+		expect(source).toContain('<thead')
+		expect(source).toContain('<tbody')
+		expect(source).toContain('<UCollapsible')
+		expect(source).toContain('labels.detailsTitle')
+		expect(source).toContain('labels.labels.airborneDuration')
+		expect(source).toContain('labels.controls.braking.title')
+		expect(source).toContain('labels.controls.armsUp.title')
+		expect(source).toContain('labels.labels.airSteering')
+		expect(source).toContain(':default-open="false"')
+		expect(source).toContain('formatEventCount(run.braking)')
+		expect(source).toContain('formatAirborneShare(run.braking)')
+		expect(source).toContain('formatEventCount(run.armsUp)')
+		expect(source).toContain('formatAirborneShare(run.armsUp)')
+		expect(source).toContain('formatCompactEventSummary(run.steeringLeft)')
+		expect(source).toContain('formatCompactEventSummary(run.steeringRight)')
+		expect(source).toContain('run.medianBrakeAngularVelocityReduction')
+		expect(source).toContain('run.medianBrakeUprightImprovement')
+		expect(source).toContain('run.medianArmsUpVerticalTravel')
+		expect(source).toContain('run.medianArmsUpUprightImprovement')
+		expect(source).toContain('run.medianSteeringLeftRotation')
+		expect(source).toContain('run.medianSteeringLeftRotationRate')
+		expect(source).toContain('run.medianSteeringRightRotation')
+		expect(source).toContain('run.medianSteeringRightRotationRate')
+		expect(source).toContain(':class="run.isPrimary')
+		expect(source).toContain(':style="{ backgroundColor: run.color }"')
+		expect(source).toContain('{{ labels.observedLabel }}')
+		expect(source).not.toContain('sm:grid-cols-2 xl:grid-cols-4')
+	})
+
+	it('combines drift comparison bars with a compact semantic summary table', () => {
+		const source = readFileSync(
+			new URL('../../app/components/record/RecordDriftAnalysis.vue', import.meta.url),
+			'utf8',
+		)
+
+		expect(source).toContain('<BarChart')
+		expect(source).toContain('orientation="horizontal"')
+		expect(source).toContain('stacked')
+		expect(source).toContain(':y-formatter="formatRunAxis"')
+		expect(source).toContain('<DashboardChartTooltip')
+		expect(source).toContain(':title="comparisonTooltipTitle(values)"')
+		expect(source).toContain('<table')
+		expect(source).toContain('<thead')
+		expect(source).toContain('<tbody')
+		expect(source).toContain('labels.labels.eventCount')
+		expect(source).toContain('labels.labels.totalDuration')
+		expect(source).toContain('labels.labels.totalDistance')
+		expect(source).toContain('labels.labels.speedRetention')
+		expect(source).toContain('labels.labels.worstRetention')
+		expect(source).toContain(':style="{ backgroundColor: run.color }"')
+		expect(source).toMatch(/run\.recordId\s*===\s*primaryRun\?\.recordId/)
+		expect(source).toContain("'bg-primary/10 text-highlighted'")
+		expect(source).toContain('runs.value.map((run, runIndex)')
+		expect(source).toContain('runIndex,')
+		expect(source).toContain('Object.fromEntries(')
+		expect(source).toContain('? run.totalDuration : 0')
+		expect(source).not.toContain('primaryMetrics')
+		expect(source).not.toContain('hide-y-axis')
+		expect(source).not.toContain('xl:grid-cols-[minmax(0,1.25fr)_minmax(16rem,0.75fr)]')
 	})
 
 	it('marks unsupported persisted telemetry groups unavailable', () => {

@@ -11,77 +11,99 @@
 		</div>
 
 		<div v-if="runs.some((run) => run.eventCount > 0)" class="space-y-5 p-4">
-			<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-				<div
-					v-for="metric in primaryMetrics"
-					:key="metric.key"
-					class="rounded-xl border border-border/70 bg-card/60 p-3"
-				>
-					<div class="flex items-start justify-between gap-2">
-						<div class="min-w-0">
-							<p class="truncate text-xs font-medium text-muted-foreground">{{ metric.label }}</p>
-							<p class="mt-1 text-xl font-black tabular-nums tracking-tight text-highlighted">
-								{{ metric.value }}
-							</p>
-						</div>
-						<TablerIcon :name="metric.icon" class="size-4 shrink-0 text-primary" />
-					</div>
-				</div>
-			</div>
-
-			<div v-if="runs.length > 1" class="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(16rem,0.75fr)]">
-				<div class="rounded-xl border border-border/70 bg-card/45 p-3">
-					<h4 class="mb-2 text-sm font-bold text-highlighted">{{ labels.comparisonTitle }}</h4>
+			<div class="space-y-3">
+				<h4 class="text-sm font-bold text-highlighted">{{ labels.comparisonTitle }}</h4>
+				<div class="px-1">
 					<BarChart
 						:data="comparisonData"
 						:categories="comparisonCategories"
-						:y-axis="runs.map((run) => `record-${run.recordId}`)"
-						:height="Math.max(150, runs.length * 38)"
+						:y-axis="runKeys"
+						:y-formatter="formatRunAxis"
+						:y-num-ticks="runs.length"
+						:y-axis-config="runAxisConfig"
+						:height="Math.max(96, runs.length * 48)"
 						orientation="horizontal"
+						stacked
 						:duration="chartDuration"
-						:radius="8"
-						:bar-padding="0.22"
+						:radius="7"
+						:bar-padding="0.28"
+						:padding="{ top: 4, right: 12, bottom: 4, left: 156 }"
 						:tooltip="tooltipOptions"
 						hide-legend
 						hide-x-axis
-						hide-y-axis
 					>
 						<template #tooltip="{ values }">
 							<DashboardChartTooltip
 								:entries="comparisonTooltipEntries(values)"
+								:title="comparisonTooltipTitle(values)"
 								:show-percentage="false"
 							/>
 						</template>
 					</BarChart>
 				</div>
 
-				<ul class="space-y-2" :aria-label="labels.comparisonTitle">
-					<li
-						v-for="run in runs"
-						:key="run.recordId"
-						class="rounded-xl border border-border/70 bg-card/60 p-3"
-					>
-						<div class="flex items-center gap-2">
-							<span class="size-2.5 rounded-full" :style="{ backgroundColor: run.color }" />
-							<span class="min-w-0 flex-1 truncate text-sm font-semibold text-highlighted">
-								{{ run.label }}
-							</span>
-							<span class="text-xs tabular-nums text-muted-foreground">
-								{{ formatDuration(run.totalDuration) }}
-							</span>
-						</div>
-						<div class="mt-2 grid grid-cols-2 gap-2 text-xs">
-							<span class="text-muted-foreground">{{ labels.labels.eventCount }}</span>
-							<span class="text-right font-semibold tabular-nums text-highlighted">
-								{{ integerFormat.format(run.eventCount) }}
-							</span>
-							<span class="text-muted-foreground">{{ labels.labels.speedRetention }}</span>
-							<span class="text-right font-semibold tabular-nums text-highlighted">
-								{{ formatPercentage(run.averageSpeedRetention) }}
-							</span>
-						</div>
-					</li>
-				</ul>
+				<div class="overflow-x-auto border-y border-border/70">
+					<table class="w-full min-w-180 border-collapse text-sm">
+						<thead class="bg-muted/45 text-xs text-muted-foreground">
+							<tr>
+								<th scope="col" class="px-3 py-2 text-left font-semibold">
+									{{ labels.labels.run }}
+								</th>
+								<th scope="col" class="px-3 py-2 text-right font-semibold">
+									{{ labels.labels.eventCount }}
+								</th>
+								<th scope="col" class="px-3 py-2 text-right font-semibold">
+									{{ labels.labels.totalDuration }}
+								</th>
+								<th scope="col" class="px-3 py-2 text-right font-semibold">
+									{{ labels.labels.totalDistance }}
+								</th>
+								<th scope="col" class="px-3 py-2 text-right font-semibold">
+									{{ labels.labels.speedRetention }}
+								</th>
+								<th scope="col" class="px-3 py-2 text-right font-semibold">
+									{{ labels.labels.worstRetention }}
+								</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-border/70">
+							<tr
+								v-for="run in runs"
+								:key="run.recordId"
+								:class="
+									run.recordId === primaryRun?.recordId
+										? 'bg-primary/10 text-highlighted'
+										: 'bg-card/40'
+								"
+							>
+								<th scope="row" class="max-w-60 px-3 py-2.5 text-left font-semibold">
+									<span class="flex items-center gap-2">
+										<span
+											class="size-2.5 shrink-0 rounded-full"
+											:style="{ backgroundColor: run.color }"
+										/>
+										<span class="truncate">{{ run.label }}</span>
+									</span>
+								</th>
+								<td class="px-3 py-2.5 text-right tabular-nums">
+									{{ integerFormat.format(run.eventCount) }}
+								</td>
+								<td class="px-3 py-2.5 text-right tabular-nums">
+									{{ formatDuration(run.totalDuration) }}
+								</td>
+								<td class="px-3 py-2.5 text-right tabular-nums">
+									{{ formatDistance(run.totalDistance) }}
+								</td>
+								<td class="px-3 py-2.5 text-right tabular-nums">
+									{{ formatPercentage(run.averageSpeedRetention) }}
+								</td>
+								<td class="px-3 py-2.5 text-right tabular-nums">
+									{{ formatPercentage(run.worstSpeedRetention) }}
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 			</div>
 
 			<div v-if="primaryRun?.events.length" class="space-y-2">
@@ -146,6 +168,13 @@ const percentageFormat = computed(
 )
 const chartDuration = ref(0)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
+const runAxisConfig = {
+	tickTextAlign: 'right' as const,
+	tickTextFitMode: 'trim' as const,
+	tickTextFontSize: '12px',
+	tickTextTrimType: 'end' as const,
+	tickTextWidth: 136,
+}
 const runs = computed<RecordDriftRun[]>(() => [
 	{
 		recordId: 0,
@@ -162,39 +191,18 @@ const runs = computed<RecordDriftRun[]>(() => [
 	...(props.comparisonRuns ?? buildRecordDriftRuns(props.comparisons ?? [])),
 ])
 const primaryRun = computed(() => runs.value[0])
-const primaryMetrics = computed(() => {
-	const run = primaryRun.value
-	if (!run) return []
-	return [
-		{
-			key: 'events',
-			label: props.labels.labels.eventCount,
-			value: integerFormat.value.format(run.eventCount),
-			icon: 'wind',
-		},
-		{
-			key: 'duration',
-			label: props.labels.labels.totalDuration,
-			value: formatDuration(run.totalDuration),
-			icon: 'clock',
-		},
-		{
-			key: 'distance',
-			label: props.labels.labels.totalDistance,
-			value: formatDistance(run.totalDistance),
-			icon: 'route',
-		},
-		{
-			key: 'retention',
-			label: props.labels.labels.worstRetention,
-			value: formatPercentage(run.worstSpeedRetention),
-			icon: 'gauge',
-		},
-	]
-})
-const comparisonData = computed(() => [
-	Object.fromEntries(runs.value.map((run) => [`record-${run.recordId}`, run.totalDuration])),
-])
+const runKeys = computed(() => runs.value.map((run) => `record-${run.recordId}`))
+const comparisonData = computed(() =>
+	runs.value.map((run, runIndex) => ({
+		runIndex,
+		...Object.fromEntries(
+			runKeys.value.map((key) => [
+				key,
+				key === `record-${run.recordId}` ? run.totalDuration : 0,
+			]),
+		),
+	})),
+)
 const comparisonCategories = computed(() =>
 	Object.fromEntries(
 		runs.value.map((run) => [
@@ -226,15 +234,61 @@ function formatPercentage(value: number | null) {
 	return value === null ? props.labels.unavailableLabel : percentageFormat.value.format(value)
 }
 
+function formatRunAxis(value: number | Date) {
+	if (typeof value !== 'number') return ''
+	return runs.value[Math.round(value)]?.label ?? ''
+}
+
 function comparisonTooltipEntries(values: unknown): DashboardChartEntry[] {
-	if (!values || typeof values !== 'object') return []
-	const datum = values as Record<string, unknown>
-	return runs.value.flatMap((run) => {
-		const key = `record-${run.recordId}`
-		const value = datum[key]
-		if (typeof value !== 'number') return []
-		return [{ key, label: run.label, value, color: run.color, formattedValue: formatDuration(value) }]
-	})
+	const run = comparisonTooltipRun(values)
+	if (!run) return []
+	return [
+		{
+			key: 'events',
+			label: props.labels.labels.eventCount,
+			value: run.eventCount,
+			color: run.color,
+			formattedValue: integerFormat.value.format(run.eventCount),
+		},
+		{
+			key: 'duration',
+			label: props.labels.labels.totalDuration,
+			value: run.totalDuration,
+			color: run.color,
+			formattedValue: formatDuration(run.totalDuration),
+		},
+		{
+			key: 'distance',
+			label: props.labels.labels.totalDistance,
+			value: run.totalDistance,
+			color: run.color,
+			formattedValue: formatDistance(run.totalDistance),
+		},
+		{
+			key: 'average-retention',
+			label: props.labels.labels.speedRetention,
+			value: run.averageSpeedRetention ?? 0,
+			color: run.color,
+			formattedValue: formatPercentage(run.averageSpeedRetention),
+		},
+		{
+			key: 'worst-retention',
+			label: props.labels.labels.worstRetention,
+			value: run.worstSpeedRetention ?? 0,
+			color: run.color,
+			formattedValue: formatPercentage(run.worstSpeedRetention),
+		},
+	]
+}
+
+function comparisonTooltipTitle(values: unknown) {
+	return comparisonTooltipRun(values)?.label ?? ''
+}
+
+function comparisonTooltipRun(values: unknown) {
+	if (!values || typeof values !== 'object') return null
+	const runIndex = (values as Record<string, unknown>).runIndex
+	return typeof runIndex === 'number' ? (runs.value[runIndex] ?? null) : null
 }
 
 function averageRetention(events: readonly GhostSlipEvent[]) {

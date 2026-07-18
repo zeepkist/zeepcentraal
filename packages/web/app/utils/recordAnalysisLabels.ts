@@ -47,9 +47,11 @@ export type RecordAnalysisLabels = {
 		description: string
 		icon: string
 		primary: string
+		detailsTitle: string
 		unavailableLabel: string
 		observedLabel: string
 		labels: {
+			run: string
 			airborneDuration: string
 			airSteering: string
 			left: string
@@ -86,6 +88,7 @@ export type RecordAnalysisLabels = {
 		primary: string
 		unavailableLabel: string
 		labels: {
+			run: string
 			eventCount: string
 			totalDuration: string
 			totalDistance: string
@@ -253,9 +256,11 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 			description: airControl('description'),
 			icon: 'plane-tilt',
 			primary: airControl('primary'),
+			detailsTitle: airControl('detailsTitle'),
 			unavailableLabel: t('common.unavailable'),
 			observedLabel: airControl('observed'),
 			labels: {
+				run: t('pages.recordDetail.telemetry.submittedRuns'),
 				airborneDuration: airControl('airborneDuration'),
 				airSteering: airControl('airSteering'),
 				left: airControl('left'),
@@ -308,6 +313,7 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 			primary: drift('primary'),
 			unavailableLabel: t('common.unavailable'),
 			labels: {
+				run: t('pages.recordDetail.telemetry.submittedRuns'),
 				eventCount: drift('eventCount'),
 				totalDuration: drift('totalDuration'),
 				totalDistance: drift('totalDistance'),
