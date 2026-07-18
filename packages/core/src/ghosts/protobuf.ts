@@ -1,7 +1,7 @@
 import protobuf from 'protobufjs'
 import { finite } from '../utils/finite'
 import { remapByte } from '../utils/remapByte'
-import { InputFlags, SoapboxFlags, SurfaceState } from './enums'
+import { InputFlags, SoapboxFlags } from './enums'
 import { hasAnyCosmetic, normalizeGhostColor, optionalCosmeticId } from './metadata'
 import { unityEulerToQuaternion } from './orientation'
 import { surfacesFromState } from './surfaceState'
@@ -173,10 +173,15 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 	if (!decoded.initialFrame?.position || !decoded.deltaFrames) {
 		throw new Error('Invalid protobuf ghost')
 	}
+	if (decoded.version !== 5 && decoded.version !== 6) {
+		throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
+	}
+	const version = decoded.version
+	const hasExtendedTelemetry = version === 6
 	const frames: GhostFrame[] = []
 	let position = decoded.initialFrame.position
 	let rotation = decoded.initialFrame.rotation
-	let ragdollActive = decoded.initialFrame.ragdollState === true
+	let ragdollActive = hasExtendedTelemetry && decoded.initialFrame.ragdollState === true
 	let ragdollPosition = ragdollActive
 		? requireUnscaledVector3(decoded.initialFrame.ragdollPosition, POSITION_MULTIPLIER)
 		: undefined
@@ -184,11 +189,16 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 		? requireUnscaledVector3(decoded.initialFrame.ragdollRotation, ROTATION_MULTIPLIER)
 		: undefined
 	frames.push(
-		frameFromProtobuf(0, position, {
-			...decoded.initialFrame,
-			ragdollPosition,
-			ragdollRotation,
-		}),
+		frameFromProtobuf(
+			0,
+			position,
+			{
+				...decoded.initialFrame,
+				ragdollPosition,
+				ragdollRotation,
+			},
+			version,
+		),
 	)
 	for (const deltaFrame of decoded.deltaFrames) {
 		const delta = deltaFrame.position
@@ -203,10 +213,10 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 		rotation = deltaFrame.rotation
 			? unscaleVector3(deltaFrame.rotation, ROTATION_MULTIPLIER)
 			: rotation
-		if (ragdollActive && deltaFrame.ragdollState === false) {
+		if (hasExtendedTelemetry && ragdollActive && deltaFrame.ragdollState === false) {
 			throw new Error('Invalid protobuf ghost ragdoll state')
 		}
-		if (deltaFrame.ragdollState === true) {
+		if (hasExtendedTelemetry && deltaFrame.ragdollState === true) {
 			const deltaRagdollPosition = requireUnscaledVector3(
 				deltaFrame.ragdollPosition,
 				POSITION_MULTIPLIER,
@@ -232,6 +242,7 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 					ragdollPosition: ragdollActive ? ragdollPosition : undefined,
 					ragdollRotation: ragdollActive ? ragdollRotation : undefined,
 				},
+				version,
 				rotation,
 			),
 		)
@@ -285,6 +296,7 @@ function frameFromProtobuf(
 		ragdollPosition?: Vector3
 		ragdollRotation?: Vector3
 	},
+	version: 5 | 6,
 	rotation = source.rotation,
 ): GhostFrame {
 	if (
@@ -295,10 +307,10 @@ function frameFromProtobuf(
 	}
 	const inputFlags = source.inputFlags ?? 0
 	const soapboxFlags = source.soapboxFlags ?? 0
-	const groundedWheelState = source.groundedWheelState
-	const slippingWheelState = source.slippingWheelState
-	const surfaceState = source.surfaceState ?? SurfaceState.Tarmac
-	const hasAnyWheel = (soapboxFlags & (8 | 16 | 32 | 64)) !== 0
+	const hasExtendedTelemetry = version === 6
+	const groundedWheelState = hasExtendedTelemetry ? source.groundedWheelState : undefined
+	const slippingWheelState = hasExtendedTelemetry ? source.slippingWheelState : undefined
+	const surfaceState = hasExtendedTelemetry ? source.surfaceState : undefined
 	return {
 		time,
 		position,
@@ -312,26 +324,29 @@ function frameFromProtobuf(
 		soap: (soapboxFlags & SoapboxFlags.Soap) !== 0,
 		offroad: (soapboxFlags & SoapboxFlags.Offroad) !== 0,
 		paraglider: (soapboxFlags & SoapboxFlags.Paraglider) !== 0,
-		inAir: typeof groundedWheelState === 'number' ? groundedWheelState === 0 : !hasAnyWheel,
+		inAir: typeof groundedWheelState === 'number' ? groundedWheelState === 0 : undefined,
 		wheelState: wheelStateFromSoapboxFlags(soapboxFlags),
 		groundedWheelState,
 		slippingWheelState,
 		surfaceState,
-		surfaces: surfacesFromState(surfaceState),
-		localVelocity: source.localVelocity
-			? unscaleVector3(source.localVelocity, POSITION_MULTIPLIER)
-			: undefined,
-		localAngularVelocity: source.localAngularVelocity
-			? unscaleVector3(source.localAngularVelocity, ROTATION_MULTIPLIER)
-			: undefined,
-		localGForce: source.localGForce
-			? unscaleVector2(source.localGForce, POSITION_MULTIPLIER)
-			: undefined,
-		parkingBlock: source.parkingBlockState,
-		monorail: source.monorailState,
-		ragdoll: source.ragdollState,
-		ragdollPosition: source.ragdollPosition,
-		ragdollRotation: source.ragdollRotation,
+		surfaces: typeof surfaceState === 'number' ? surfacesFromState(surfaceState) : undefined,
+		localVelocity:
+			hasExtendedTelemetry && source.localVelocity
+				? unscaleVector3(source.localVelocity, POSITION_MULTIPLIER)
+				: undefined,
+		localAngularVelocity:
+			hasExtendedTelemetry && source.localAngularVelocity
+				? unscaleVector3(source.localAngularVelocity, ROTATION_MULTIPLIER)
+				: undefined,
+		localGForce:
+			hasExtendedTelemetry && source.localGForce
+				? unscaleVector2(source.localGForce, POSITION_MULTIPLIER)
+				: undefined,
+		parkingBlock: hasExtendedTelemetry ? source.parkingBlockState : undefined,
+		monorail: hasExtendedTelemetry ? source.monorailState : undefined,
+		ragdoll: hasExtendedTelemetry ? source.ragdollState : undefined,
+		ragdollPosition: hasExtendedTelemetry ? source.ragdollPosition : undefined,
+		ragdollRotation: hasExtendedTelemetry ? source.ragdollRotation : undefined,
 	}
 }
 

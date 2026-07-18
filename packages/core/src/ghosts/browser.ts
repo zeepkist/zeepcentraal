@@ -7,6 +7,8 @@ import { parseV2 } from './v2'
 import { parseV3 } from './v3'
 import { parseV4 } from './v4'
 
+export { TURN_DEADZONE } from './constants'
+
 export type GhostBrowserDecompressor = (buffer: Uint8Array) => Promise<ArrayBuffer | Uint8Array>
 
 export type GhostBrowserParseOptions = {

@@ -13,6 +13,7 @@ import { parseV4 } from './v4'
 import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
 
+export { TURN_DEADZONE } from './constants'
 export {
 	GroundedWheelState,
 	InputFlags,

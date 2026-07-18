@@ -1,4 +1,5 @@
 export { detectGhostCapabilities } from './capabilities'
+export { TURN_DEADZONE } from './constants'
 export {
 	GroundedWheelState,
 	InputFlags,

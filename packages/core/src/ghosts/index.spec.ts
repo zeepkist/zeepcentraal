@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { calculateGhostStatistics, SurfaceState } from './index'
+import { calculateGhostStatistics, SoapboxFlags, SurfaceState } from './index'
 import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
 
@@ -132,17 +132,25 @@ describe('V6 ghost frame parsing', () => {
 })
 
 describe('protobuf ghost statistic capabilities', () => {
-	test('maps observed V5 frame fields to statistic capabilities', () => {
+	test('retains V5 inputs and wheel existence without fabricating V6 telemetry', () => {
 		const ghost = parseDecodedV5({
 			version: 5,
 			initialFrame: {
 				position: { x: 0, y: 0, z: 0 },
+				speed: 120,
 				steering: 128,
 				inputFlags: 0,
-				soapboxFlags: 0,
+				soapboxFlags:
+					SoapboxFlags.Soap |
+					SoapboxFlags.FrontLeft |
+					SoapboxFlags.FrontRight |
+					SoapboxFlags.RearLeft |
+					SoapboxFlags.RearRight,
 				groundedWheelState: 15,
 				slippingWheelState: 0,
 				surfaceState: SurfaceState.Tarmac,
+				localVelocity: { x: 100_000, y: 0, z: 0 },
+				parkingBlockState: true,
 			},
 			deltaFrames: [
 				{
@@ -150,26 +158,58 @@ describe('protobuf ghost statistic capabilities', () => {
 					position: { x: 100_000, y: 0, z: 0 },
 					steering: 255,
 					inputFlags: 1,
-					soapboxFlags: 0,
+					soapboxFlags: SoapboxFlags.FrontLeft | SoapboxFlags.RearLeft,
 					groundedWheelState: 15,
 					slippingWheelState: 0,
 					surfaceState: SurfaceState.Tarmac,
+					localVelocity: { x: 100_000, y: 0, z: 0 },
+					parkingBlockState: true,
 				},
 			],
 		})
+		expect(ghost.frames[0]).toMatchObject({
+			speed: 120,
+			armsUp: false,
+			braking: false,
+			horn: false,
+			soap: true,
+			wheelState: 15,
+		})
+		expect(ghost.frames[0]?.inAir).toBeUndefined()
+		expect(ghost.frames[0]?.groundedWheelState).toBeUndefined()
+		expect(ghost.frames[0]?.slippingWheelState).toBeUndefined()
+		expect(ghost.frames[0]?.surfaces).toBeUndefined()
+		expect(ghost.frames[0]?.localVelocity).toBeUndefined()
+		expect(ghost.frames[0]?.parkingBlock).toBeUndefined()
 		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
 
 		expect(stats).toMatchObject({
 			ghostVersion: 5,
 			hasInputData: true,
-			hasAirData: true,
-			hasWheelData: true,
-			hasSlipData: true,
+			hasAirData: false,
+			hasWheelData: false,
+			hasSlipData: false,
 			hasStateData: true,
-			hasSurfaceData: true,
+			hasSurfaceData: false,
 			hasVelocityData: false,
 			hasRagdollData: false,
 		})
+	})
+
+	test('uses only V6 grounded-wheel bitsets to identify airborne frames', () => {
+		for (const groundedWheelState of [0, 1, 2, 4, 8, 15]) {
+			const ghost = parseDecodedV6({
+				version: 6,
+				initialFrame: {
+					position: { x: 0, y: 0, z: 0 },
+					groundedWheelState,
+				},
+				deltaFrames: [],
+			})
+
+			expect(ghost.frames[0]?.inAir).toBe(groundedWheelState === 0)
+			expect(ghost.frames[0]?.groundedWheelState).toBe(groundedWheelState)
+		}
 	})
 
 	test('maps observed V6 velocity and ragdoll fields to statistic capabilities', () => {
