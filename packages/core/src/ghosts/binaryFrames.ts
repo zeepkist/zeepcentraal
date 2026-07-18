@@ -1,15 +1,25 @@
 import { finite } from '../utils/finite'
 import { BinaryReader } from './binaryReader'
-import type { GhostFrame } from './types'
+import { emptyGhostMetadata, legacyGhostMetadata } from './metadata'
+import { unityEulerToQuaternion } from './orientation'
+import type { GhostFrame, GhostMetadata } from './types'
 
-export function readBinaryFrames(buffer: Buffer, version: 1 | 2 | 3): GhostFrame[] {
+export type LegacyBinaryGhost = {
+	metadata: GhostMetadata
+	frames: GhostFrame[]
+}
+
+export function readBinaryGhost(buffer: Uint8Array, version: 1 | 2 | 3): LegacyBinaryGhost {
 	const reader = new BinaryReader(buffer)
 	reader.readInt32()
+	let metadata = emptyGhostMetadata()
 	if (version >= 2) {
-		reader.readUInt64()
-		reader.readInt32()
-		reader.readInt32()
-		reader.readInt32()
+		metadata = legacyGhostMetadata(
+			reader.readUInt64(),
+			reader.readInt32(),
+			reader.readInt32(),
+			reader.readInt32(),
+		)
 	}
 
 	const frameCount = reader.readInt32()
@@ -17,14 +27,17 @@ export function readBinaryFrames(buffer: Buffer, version: 1 | 2 | 3): GhostFrame
 	for (let i = 0; i < frameCount; i++) {
 		const time = reader.readFloat()
 		const position = { x: reader.readFloat(), y: reader.readFloat(), z: reader.readFloat() }
-		reader.readFloat()
-		reader.readFloat()
-		reader.readFloat()
-		if (!finite(time, position.x, position.y, position.z)) {
+		const rotation = { x: reader.readFloat(), y: reader.readFloat(), z: reader.readFloat() }
+		if (!finite(time, position.x, position.y, position.z, rotation.x, rotation.y, rotation.z)) {
 			throw new Error('Invalid ghost frame')
 		}
 
-		const frame: GhostFrame = { time, position }
+		const frame: GhostFrame = {
+			time,
+			position,
+			rotation,
+			orientation: unityEulerToQuaternion(rotation),
+		}
 		if (version >= 3) {
 			frame.steering = reader.readFloat()
 			if (!Number.isFinite(frame.steering)) {
@@ -36,5 +49,5 @@ export function readBinaryFrames(buffer: Buffer, version: 1 | 2 | 3): GhostFrame
 		frames.push(frame)
 	}
 
-	return frames
+	return { metadata, frames }
 }

@@ -1,12 +1,49 @@
-import type { KnownSurface } from './surfaces'
+import type { KnownSurface } from './surfaceState'
 
 export type Vector2 = { x: number; y: number }
 export type Vector3 = { x: number; y: number; z: number }
+export type Quaternion = { x: number; y: number; z: number; w: number }
+
+export type GhostCosmetics = {
+	zeepkist: number | null
+	frontWheels: number | null
+	rearWheels: number | null
+	paraglider: number | null
+	horn: number | null
+	hat: number | null
+	glasses: number | null
+	colorBody: number | null
+	colorLeftArm: number | null
+	colorRightArm: number | null
+	colorLeftLeg: number | null
+	colorRightLeg: number | null
+	color: number | null
+}
+
+export type GhostMetadata = {
+	steamId: string | null
+	taggedUsername: string | null
+	color: string | null
+	cosmetics: GhostCosmetics | null
+}
+
+export type GhostCapabilities = {
+	input: boolean
+	air: boolean
+	wheels: boolean
+	slipping: boolean
+	state: boolean
+	surfaces: boolean
+	velocity: boolean
+	ragdoll: boolean
+	orientation: boolean
+}
 
 export type GhostFrame = {
 	time: number
 	position: Vector3
 	rotation?: Vector3
+	orientation?: Quaternion
 	speed?: number
 	steering?: number
 	armsUp?: boolean
@@ -109,5 +146,7 @@ export type GhostStatisticValues = {
 
 export type ParsedGhost = {
 	version: number
+	metadata: GhostMetadata
+	capabilities: GhostCapabilities
 	frames: GhostFrame[]
 }

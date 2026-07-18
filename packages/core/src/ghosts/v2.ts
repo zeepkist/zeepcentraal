@@ -1,9 +1,13 @@
-import { readBinaryFrames } from './binaryFrames'
+import { readBinaryGhost } from './binaryFrames'
+import { detectGhostCapabilities } from './capabilities'
 import type { ParsedGhost } from './types'
 
-export function parseV2(buffer: Buffer): ParsedGhost {
+export function parseV2(buffer: Uint8Array): ParsedGhost {
+	const { metadata, frames } = readBinaryGhost(buffer, 2)
 	return {
 		version: 2,
-		frames: readBinaryFrames(buffer, 2),
+		metadata,
+		capabilities: detectGhostCapabilities(frames),
+		frames,
 	}
 }

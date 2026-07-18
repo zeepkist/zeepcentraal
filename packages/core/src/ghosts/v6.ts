@@ -1,17 +1,11 @@
 import type { DecodedProtobufGhost } from './protobuf'
-import { decodeProtobufGhost, readProtobufFrames } from './protobuf'
+import { decodeNativeProtobufGhost } from './protobufNative'
+import { parseDecodedV6 } from './protobufVersions'
 import type { ParsedGhost } from './types'
 
-export async function parseV6(buffer: Buffer): Promise<ParsedGhost> {
-	return parseDecodedV6(await decodeProtobufGhost(buffer))
+export async function parseV6(buffer: Uint8Array): Promise<ParsedGhost> {
+	return parseDecodedV6(await decodeNativeProtobufGhost(buffer))
 }
 
-export function parseDecodedV6(decoded: DecodedProtobufGhost): ParsedGhost {
-	if (decoded.version !== 6) {
-		throw new Error(`Invalid V6 ghost version ${decoded.version}`)
-	}
-	return {
-		version: 6,
-		frames: readProtobufFrames(decoded),
-	}
-}
+export type { DecodedProtobufGhost }
+export { parseDecodedV6 }
