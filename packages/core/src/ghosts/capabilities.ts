@@ -1,6 +1,10 @@
 import type { GhostCapabilities, GhostFrame } from './types'
 
-export function detectGhostCapabilities(frames: GhostFrame[]): GhostCapabilities {
+export function detectGhostCapabilities(
+	frames: GhostFrame[],
+	ghostVersion?: number,
+): GhostCapabilities {
+	const hasExtendedTelemetry = ghostVersion !== undefined && ghostVersion >= 6
 	return {
 		input: frames.some(
 			(frame) =>
@@ -11,7 +15,9 @@ export function detectGhostCapabilities(frames: GhostFrame[]): GhostCapabilities
 		),
 		air: frames.some((frame) => typeof frame.inAir === 'boolean'),
 		wheels: frames.some((frame) => typeof frame.groundedWheelState === 'number'),
-		slipping: frames.some((frame) => typeof frame.slippingWheelState === 'number'),
+		slipping:
+			hasExtendedTelemetry ||
+			frames.some((frame) => typeof frame.slippingWheelState === 'number'),
 		state: frames.some(
 			(frame) =>
 				typeof frame.soap === 'boolean' ||
@@ -29,7 +35,7 @@ export function detectGhostCapabilities(frames: GhostFrame[]): GhostCapabilities
 				frame.localAngularVelocity !== undefined ||
 				frame.localGForce !== undefined,
 		),
-		ragdoll: frames.some((frame) => typeof frame.ragdoll === 'boolean'),
+		ragdoll: hasExtendedTelemetry || frames.some((frame) => typeof frame.ragdoll === 'boolean'),
 		orientation: frames.some((frame) => frame.orientation !== undefined),
 	}
 }

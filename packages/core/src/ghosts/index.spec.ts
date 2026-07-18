@@ -212,6 +212,33 @@ describe('protobuf ghost statistic capabilities', () => {
 		}
 	})
 
+	test('keeps omitted zero-state V6 slip and inactive ragdoll telemetry available', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				groundedWheelState: 15,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					groundedWheelState: 15,
+				},
+			],
+		})
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(ghost.capabilities.slipping).toBe(true)
+		expect(ghost.capabilities.ragdoll).toBe(true)
+		expect(stats.hasSlipData).toBe(true)
+		expect(stats.hasRagdollData).toBe(true)
+		expect(stats.distanceSlipping).toBe(0)
+		expect(stats.timeSlipping).toBe(0)
+		expect(stats.distanceRagdoll).toBe(0)
+		expect(stats.timeRagdoll).toBe(0)
+	})
+
 	test('maps observed V6 velocity and ragdoll fields to statistic capabilities', () => {
 		const ghost = parseDecodedV6({
 			version: 6,

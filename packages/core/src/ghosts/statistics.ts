@@ -144,11 +144,11 @@ export function calculateGhostStatistics(
 	let hasStateStats = false
 	let hasAirStats = false
 	let hasWheelStats = false
-	let hasSlipStats = false
+	let hasSlipStats = ghostVersion !== null && ghostVersion >= 6
 	let hasSurfaceStats = false
 	let hasParkingStats = false
 	let hasMonorailStats = false
-	let hasRagdollStats = false
+	let hasRagdollStats = ghostVersion !== null && ghostVersion >= 6
 	let hasVelocityStats = false
 
 	for (let i = 0; i < frames.length; i++) {

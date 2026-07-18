@@ -22,7 +22,7 @@ function parseDecodedProtobufGhost(decoded: DecodedProtobufGhost, version: 5 | 6
 	return {
 		version,
 		metadata: readProtobufMetadata(decoded),
-		capabilities: detectGhostCapabilities(frames),
+		capabilities: detectGhostCapabilities(frames, version),
 		frames,
 	}
 }
