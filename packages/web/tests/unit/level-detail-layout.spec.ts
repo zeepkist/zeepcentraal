@@ -95,15 +95,31 @@ describe('compact level detail layout', () => {
 		expect(tabsIndex).toBeGreaterThan(authorCtaIndex)
 	})
 
-	it('uses local records and telemetry tabs with records selected by default', () => {
+	it('uses local Records, Telemetry, and Ghosts Explorer tabs with Records selected by default', () => {
 		expect(page).toContain('v-model="activeDetailTab"')
 		expect(page).toContain(':items="detailTabs"')
 		expect(page).toContain(':label="$t(\'levels.detail.tabs.label\')"')
 		expect(page).toContain('<template #records>')
 		expect(page).toContain('<template #telemetry>')
-		expect(page).toContain("type LevelDetailTab = 'records' | 'telemetry'")
+		expect(page).toContain('<template #ghosts>')
+		expect(page).toContain("type LevelDetailTab = 'records' | 'telemetry' | 'ghosts'")
 		expect(page).toContain("ref<LevelDetailTab>('records')")
 		expect(page).not.toMatch(/useRouteQuery|route\.query.*tab|navigateTo\([^)]*tab/)
+	})
+
+	it('gates Ghosts Explorer requests and playback behind its selected tab', () => {
+		const ghostsIndex = page.indexOf('<template #ghosts>')
+		const pickerIndex = page.indexOf('<LevelGhostExplorerPicker')
+		const replayIndex = page.indexOf('<RecordReplayWorkspace')
+
+		expect(pickerIndex).toBeGreaterThan(ghostsIndex)
+		expect(replayIndex).toBeGreaterThan(pickerIndex)
+		expect(page).toContain("activeDetailTab.value === 'ghosts'")
+		expect(page).toContain('active: ghostExplorerActive')
+		expect(page).toContain('useRecordLevelGeometry(ghostLevelId, ghostExplorerActive)')
+		expect(page).toContain(':active="ghostExplorerActive"')
+		expect(page).toContain(':follow-record-ids="ghostFollowRecordIds"')
+		expect(page).toContain(':loading-when-empty="ghostExplorer.defaultsQuery.fetching.value"')
 	})
 
 	it('stacks independently paginated personal bests before recent records', () => {

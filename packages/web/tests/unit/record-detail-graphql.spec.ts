@@ -14,6 +14,10 @@ const detailQuery = readFileSync(
 	new URL('../../app/graphql/queries/recordDetail.graphql', import.meta.url),
 	'utf8',
 )
+const ghostRecordSourceFragment = readFileSync(
+	new URL('../../app/graphql/queries/ghostRecordSource.graphql', import.meta.url),
+	'utf8',
+)
 const comparisonsQuery = readFileSync(
 	new URL('../../app/graphql/queries/recordComparisons.graphql', import.meta.url),
 	'utf8',
@@ -36,6 +40,10 @@ const recordPage = readFileSync(
 )
 const replayWorkspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
+	'utf8',
+)
+const comparisonPicker = readFileSync(
+	new URL('../../app/components/record/RecordComparisonPicker.vue', import.meta.url),
 	'utf8',
 )
 const analysisTabs = readFileSync(
@@ -66,7 +74,9 @@ describe('record detail GraphQL', () => {
 	it('keeps record operations valid against current schema', () => {
 		const errors = validate(
 			schema,
-			parse(`${detailQuery}\n${comparisonsQuery}\n${geometryQuery}`),
+			parse(
+				`${ghostRecordSourceFragment}\n${detailQuery}\n${comparisonsQuery}\n${geometryQuery}`,
+			),
 		)
 		expect(errors.map((error) => error.message)).toEqual([])
 	})
@@ -136,6 +146,17 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain('key: (route) => String(route.params.recordId)')
 		expect(recordPage).toContain('<ClientOnly>')
 		expect(recordPage).toContain('.slice(0, 10)')
+	})
+
+	it('preserves record-page comparison selection and rendering limits', () => {
+		expect(recordPage).toContain('parseComparisonIds(route.query.compare)')
+		expect(recordPage).toContain('compare: normalized.length ? normalized.join')
+		expect(recordPage).toContain('.slice(0, 11)')
+		expect(recordPage).toContain('@toggle="toggleComparison"')
+		expect(recordPage).toContain('@select-top="selectTopPlayers"')
+		expect(recordPage).toContain('@select-owner="selectOwnerRuns"')
+		expect(comparisonPicker).toContain('const presetCounts = [3, 5, 10] as const')
+		expect(replayWorkspace).toContain('loadingWhenEmpty: true')
 	})
 
 	it('renders comparison-aware airborne control analysis', () => {
