@@ -16,6 +16,9 @@ fragment ZC_RecordHistoryRow on Record {
 	}
 	level {
 		xxHash
+		levelPoints {
+			points
+		}
 		levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
 			nodes {
 				name

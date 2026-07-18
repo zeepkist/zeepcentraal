@@ -130,7 +130,7 @@
 									:sort-label="$t('levels.filters.sort')"
 									:sort-options="resultSortOptions"
 									:pagination-labels="paginationLabels"
-									show-points
+									status-mode="none"
 									@update:sort="data.setWrSort"
 									@first="data.wrPagination.first()"
 									@previous="data.wrPagination.previous(data.wrPage.value)"
@@ -154,7 +154,7 @@
 										:labels="resultLabels"
 										:sort-options="resultSortOptions"
 										:pagination-labels="paginationLabels"
-										show-points
+										status-mode="world-record-only"
 										@update:sort="data.setPbSort"
 										@first="data.pbPagination.first()"
 										@previous="data.pbPagination.previous(data.pbPage.value)"
@@ -176,8 +176,7 @@
 										:can-go-next="data.recentPagination.canGoNext(data.recentPage.value)"
 										:labels="resultLabels"
 										:pagination-labels="paginationLabels"
-										:show-rank="false"
-										show-pb-or-wr
+										status-mode="all"
 										@first="data.recentPagination.first()"
 										@previous="data.recentPagination.previous(data.recentPage.value)"
 										@next="data.recentPagination.next(data.recentPage.value)"
@@ -422,21 +421,29 @@ const historyLabels = computed(() => ({
 }))
 const resultLabels = computed(() => ({
 	rank: t('common.rank'),
-	user: t('common.user'),
 	level: t('common.level'),
+	player: t('common.user'),
+	unknownPlayer: t('pages.records.table.unknownPlayer'),
 	time: t('common.time'),
+	status: t('pages.records.table.status'),
 	points: t('common.points'),
-	pbOrWr: t('levels.detail.recordTable.pbOrWr'),
-	personalBest: t('levels.detail.recordTable.personalBest'),
-	worldRecord: t('levels.card.worldRecord'),
+	pointsHelp: t('pages.records.table.pointsHelp'),
+	rankedPoints: t('pages.records.table.rankedPoints'),
+	rankedPointsHelp: t('pages.records.table.rankedPointsHelp'),
+	levelPoints: t('pages.records.table.levelPoints'),
+	personalBest: t('pages.records.table.personalBest'),
+	worldRecord: t('pages.records.table.worldRecord'),
 	openRecord: t('pages.records.table.openRecord', { level: t('common.level') }),
-	date: t('common.date'),
+	date: t('pages.records.table.set'),
+	notRanked: t('pages.records.table.notRanked'),
+	decayPercentage: t('pages.records.table.decayPercentage'),
 	error: t('common.error'),
 	empty: t('common.empty'),
 }))
 const resultSortOptions = computed(() => [
-	{ label: t('users.sort.valuable'), value: 'valuable' },
-	{ label: t('users.sort.recent'), value: 'recent' },
+	{ label: t('pages.records.sort.latest'), value: 'latest' as const },
+	{ label: t('pages.records.sort.valuablePbs'), value: 'valuable-pbs' as const },
+	{ label: t('pages.records.sort.valuableLevels'), value: 'valuable-levels' as const },
 ])
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

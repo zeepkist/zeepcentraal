@@ -5,6 +5,7 @@ import {
 	LEVEL_DECAY_FACTOR,
 } from '@zeepkist/core/score'
 import type { Ref } from 'vue'
+import { useRecordRankFallback } from '~/composables/useRecordRankFallback'
 import {
 	Zc_RecordHistoryDocument,
 	Zc_RecordHistoryLiveDocument,
@@ -56,7 +57,7 @@ function mapRows(edges?: Array<{ node: Zc_RecordHistoryRowFragment }>): RecordHi
 				levelName: node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
 				levelPosition: contribution?.levelPosition,
 				contributionRank: contribution?.contributionRank,
-				levelPoints: contribution?.levelPoints,
+				levelPoints: contribution?.levelPoints ?? node.level.levelPoints?.points,
 				levelDecayedPoints: contribution?.levelDecayedPoints,
 				playerDecayedPoints: contribution?.playerDecayedPoints,
 				levelDecayMultiplier: contribution
@@ -140,7 +141,8 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 	const records = computed(
 		() => (liveEnabled.value ? liveSnapshot.value : undefined) ?? result.data.value?.records,
 	)
-	const rows = computed(() => mapRows(records.value?.edges))
+	const rawRows = computed(() => mapRows(records.value?.edges))
+	const rows = useRecordRankFallback(rawRows)
 	const page = computed(() => pageInfo(records.value?.pageInfo))
 
 	function clearHighlights() {

@@ -1,0 +1,12 @@
+query ZC_RecordPersonalBestRank($levelId: Int!, $time: Float!) {
+	fasterPersonalBests: records(
+		first: 0
+		filter: {
+			levelId: { equalTo: $levelId }
+			personalBestGlobalsExist: true
+			time: { lessThan: $time }
+		}
+	) {
+		totalCount
+	}
+}

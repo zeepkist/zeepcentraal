@@ -1,5 +1,11 @@
 import { useQuery } from '@urql/vue'
 import {
+	calculateDecayMultiplier,
+	GLOBAL_DECAY_FACTOR,
+	LEVEL_DECAY_FACTOR,
+} from '@zeepkist/core/score'
+import {
+	type UserPointContributionsOrderBy,
 	Zc_UserContributionsDocument,
 	type Zc_UserLevelCardFragment,
 	Zc_UserLevelsDocument,
@@ -11,9 +17,10 @@ import {
 	Zc_UserSuperLeagueSeasonDocument,
 	Zc_UserSuperLeagueSeasonsDocument,
 } from '~/graphql/generated/graphql'
-import type { CursorPage, LevelSummary, RecordRow, UserProfileSummary } from '~/types/app'
+import type { CursorPage, LevelSummary, RecordHistoryRow, UserProfileSummary } from '~/types/app'
 import { getLevelHotWindows } from '~/utils/levelExplorer'
 import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'
+import type { RecordHistorySort } from '~/utils/recordHistory'
 import {
 	buildUserCareerHistory,
 	buildUserCareerSecondaryHistory,
@@ -266,27 +273,33 @@ export function useUserProfile(steamId: Ref<string>) {
 	const recentPagination = useCursorPagination(25, 'recent')
 	const wrPagination = useCursorPagination(25, 'wr')
 	const pbPagination = useCursorPagination(25, 'pb')
-	const wrSort = ref<'valuable' | 'recent'>('valuable')
-	const pbSort = ref<'valuable' | 'recent'>('valuable')
+	const wrSort = ref<RecordHistorySort>('valuable-pbs')
+	const pbSort = ref<RecordHistorySort>('valuable-pbs')
+	const contributionOrderBy = (sort: RecordHistorySort): UserPointContributionsOrderBy[] =>
+		sort === 'valuable-levels'
+			? ['LEVEL_POINTS_DESC', 'RECORD_ID_DESC']
+			: ['PLAYER_DECAYED_POINTS_DESC', 'RECORD_ID_DESC']
 
 	const wrValuable = useQuery({
 		query: Zc_UserContributionsDocument,
 		variables: computed(() => ({
 			...wrPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 }, levelPosition: { equalTo: 1 } },
+			orderBy: contributionOrderBy(wrSort.value),
 		})),
-		pause: computed(() => userId.value === undefined || wrSort.value !== 'valuable'),
+		pause: computed(() => userId.value === undefined || wrSort.value === 'latest'),
 	})
 	const pbValuable = useQuery({
 		query: Zc_UserContributionsDocument,
 		variables: computed(() => ({
 			...pbPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 } },
+			orderBy: contributionOrderBy(pbSort.value),
 		})),
 		pause: computed(
 			() =>
 				userId.value === undefined ||
-				pbSort.value !== 'valuable' ||
+				pbSort.value === 'latest' ||
 				!personalBestsPrefetch.active.value,
 		),
 	})
@@ -296,7 +309,7 @@ export function useUserProfile(steamId: Ref<string>) {
 			...wrPagination.variables.value,
 			filter: { userId: { equalTo: userId.value ?? 0 }, worldRecordGlobalsExist: true },
 		})),
-		pause: computed(() => userId.value === undefined || wrSort.value !== 'recent'),
+		pause: computed(() => userId.value === undefined || wrSort.value !== 'latest'),
 	})
 	const pbRecent = useQuery({
 		query: Zc_UserResultsDocument,
@@ -310,7 +323,7 @@ export function useUserProfile(steamId: Ref<string>) {
 		pause: computed(
 			() =>
 				userId.value === undefined ||
-				pbSort.value !== 'recent' ||
+				pbSort.value !== 'latest' ||
 				!personalBestsPrefetch.active.value,
 		),
 	})
@@ -324,7 +337,7 @@ export function useUserProfile(steamId: Ref<string>) {
 	})
 
 	const contributionRows = (source: typeof wrValuable) =>
-		computed<RecordRow[]>(() =>
+		computed<RecordHistoryRow[]>(() =>
 			(source.data.value?.userPointContributions?.edges ?? []).flatMap(({ node }) =>
 				node.record && node.level
 					? [
@@ -333,45 +346,71 @@ export function useUserProfile(steamId: Ref<string>) {
 								time: node.record.time,
 								dateCreated: String(node.record.dateCreated),
 								userId: node.record.userId,
+								userSteamId: steamId.value,
+								userName: user.value?.steamName,
 								levelId: node.record.levelId,
 								levelXxHash: node.level.xxHash,
 								levelName:
 									node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
-								rank: node.levelPosition,
-								points: node.playerDecayedPoints,
+								levelPosition: node.levelPosition,
+								contributionRank: node.contributionRank,
+								levelPoints: node.levelPoints,
+								levelDecayedPoints: node.levelDecayedPoints,
+								playerDecayedPoints: node.playerDecayedPoints,
+								levelDecayMultiplier: calculateDecayMultiplier(
+									node.levelPosition,
+									LEVEL_DECAY_FACTOR,
+								),
+								globalDecayMultiplier: calculateDecayMultiplier(
+									node.contributionRank,
+									GLOBAL_DECAY_FACTOR,
+								),
 								pbOrWr: node.levelPosition === 1 ? 'world-record' : 'personal-best',
-								rankedPoints: node.playerDecayedPoints,
-								nonDecayedPoints: node.levelDecayedPoints,
 							},
 						]
 					: [],
 			),
 		)
 	const resultRows = (source: typeof recent) =>
-		computed<RecordRow[]>(() =>
-			(source.data.value?.records?.edges ?? []).flatMap(({ node }) =>
-				node.level
-					? [
-							{
-								id: node.id,
-								time: node.time,
-								dateCreated: String(node.dateCreated),
-								userId: node.userId,
-								levelId: node.levelId,
-								levelXxHash: node.level.xxHash,
-								levelName:
-									node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
-								rank: node.userPointContributions.nodes[0]?.levelPosition,
-								points: node.userPointContributions.nodes[0]?.playerDecayedPoints,
-								pbOrWr: resolveRecordPbOrWr(node),
-								rankedPoints:
-									node.userPointContributions.nodes[0]?.playerDecayedPoints,
-								nonDecayedPoints:
-									node.userPointContributions.nodes[0]?.levelDecayedPoints,
-							},
-						]
-					: [],
-			),
+		computed<RecordHistoryRow[]>(() =>
+			(source.data.value?.records?.edges ?? []).flatMap(({ node }) => {
+				if (!node.level) return []
+				const status = resolveRecordPbOrWr(node)
+				const contribution = status ? node.userPointContributions.nodes[0] : undefined
+				return [
+					{
+						id: node.id,
+						time: node.time,
+						dateCreated: String(node.dateCreated),
+						userId: node.userId,
+						userSteamId: steamId.value,
+						userName: user.value?.steamName,
+						levelId: node.levelId,
+						levelXxHash: node.level.xxHash,
+						levelName: node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
+						levelPosition: contribution?.levelPosition,
+						contributionRank: contribution?.contributionRank,
+						levelPoints: contribution?.levelPoints ?? node.level.levelPoints?.points,
+						levelDecayedPoints: contribution?.levelDecayedPoints,
+						playerDecayedPoints: contribution?.playerDecayedPoints,
+						levelDecayMultiplier:
+							contribution?.levelPosition == null
+								? undefined
+								: calculateDecayMultiplier(
+										contribution.levelPosition,
+										LEVEL_DECAY_FACTOR,
+									),
+						globalDecayMultiplier:
+							contribution?.contributionRank == null
+								? undefined
+								: calculateDecayMultiplier(
+										contribution.contributionRank,
+										GLOBAL_DECAY_FACTOR,
+									),
+						pbOrWr: status,
+					},
+				]
+			}),
 		)
 	const wrValuableRows = contributionRows(wrValuable)
 	const pbValuableRows = contributionRows(pbValuable)
@@ -379,15 +418,18 @@ export function useUserProfile(steamId: Ref<string>) {
 	const pbRecentRows = resultRows(pbRecent)
 	const recentRowsSource = resultRows(recent)
 	const wrRowsSource = computed(() =>
-		wrSort.value === 'valuable' ? wrValuableRows.value : wrRecentRows.value,
+		wrSort.value === 'latest' ? wrRecentRows.value : wrValuableRows.value,
 	)
 	const pbRowsSource = computed(() =>
-		pbSort.value === 'valuable' ? pbValuableRows.value : pbRecentRows.value,
+		pbSort.value === 'latest' ? pbRecentRows.value : pbValuableRows.value,
 	)
-	const wrResult = computed(() => (wrSort.value === 'valuable' ? wrValuable : wrRecent))
-	const pbResult = computed(() => (pbSort.value === 'valuable' ? pbValuable : pbRecent))
-	function retainRows(rows: ComputedRef<RecordRow[]>, hasSnapshot: ComputedRef<boolean>) {
-		const retained = shallowRef<RecordRow[]>([])
+	const wrResult = computed(() => (wrSort.value === 'latest' ? wrRecent : wrValuable))
+	const pbResult = computed(() => (pbSort.value === 'latest' ? pbRecent : pbValuable))
+	const wrRowsResolved = useRecordRankFallback(wrRowsSource)
+	const pbRowsResolved = useRecordRankFallback(pbRowsSource)
+	const recentRowsResolved = useRecordRankFallback(recentRowsSource)
+	function retainRows(rows: ComputedRef<RecordHistoryRow[]>, hasSnapshot: ComputedRef<boolean>) {
+		const retained = shallowRef<RecordHistoryRow[]>([])
 		watch(
 			[rows, hasSnapshot],
 			([nextRows, ready]) => {
@@ -398,38 +440,38 @@ export function useUserProfile(steamId: Ref<string>) {
 		return readonly(retained)
 	}
 	const wrRows = retainRows(
-		wrRowsSource,
+		wrRowsResolved,
 		computed(() => wrResult.value.data.value !== undefined),
 	)
 	const pbRows = retainRows(
-		pbRowsSource,
+		pbRowsResolved,
 		computed(() => pbResult.value.data.value !== undefined),
 	)
 	const recentRows = retainRows(
-		recentRowsSource,
+		recentRowsResolved,
 		computed(() => recent.data.value !== undefined),
 	)
 	const wrPage = computed(() =>
 		cursorPage(
-			wrSort.value === 'valuable'
+			wrSort.value !== 'latest'
 				? wrValuable.data.value?.userPointContributions?.pageInfo
 				: wrRecent.data.value?.records?.pageInfo,
 		),
 	)
 	const pbPage = computed(() =>
 		cursorPage(
-			pbSort.value === 'valuable'
+			pbSort.value !== 'latest'
 				? pbValuable.data.value?.userPointContributions?.pageInfo
 				: pbRecent.data.value?.records?.pageInfo,
 		),
 	)
 	const recentPage = computed(() => cursorPage(recent.data.value?.records?.pageInfo))
 
-	async function setWrSort(value: 'valuable' | 'recent') {
+	async function setWrSort(value: RecordHistorySort) {
 		wrSort.value = value
 		await wrPagination.reset()
 	}
-	async function setPbSort(value: 'valuable' | 'recent') {
+	async function setPbSort(value: RecordHistorySort) {
 		pbSort.value = value
 		await pbPagination.reset()
 	}
