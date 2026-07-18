@@ -1,7 +1,21 @@
-import { eq, getTableColumns, inArray, sql } from 'drizzle-orm'
+import { eq, getTableColumns, inArray, type SQLWrapper, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { levelPoints, levelPointsHistory } from '../schema'
 import { sanitizeLevelPointRealValues } from './levelPointRealValues'
+
+const LATEST_HISTORY_ALIAS = 'latest_history'
+const latestHistoryRow = sql.identifier(LATEST_HISTORY_ALIAS)
+
+function levelPointHistoryChanged(latestHistoryIdLevel: SQLWrapper) {
+	return sql<boolean>`
+		${latestHistoryIdLevel} IS NULL
+		OR (
+			(to_jsonb(${levelPoints}) - 'id_level' - 'date_created' - 'date_updated')
+			IS DISTINCT FROM
+			(to_jsonb(${latestHistoryRow}) - 'id' - 'id_level' - 'date_created' - 'date_updated')
+		)
+	`
+}
 
 const unavailableLevelPointMetrics = {
 	sampleSize: null,
@@ -87,17 +101,14 @@ export async function getChangedLevelPointsPaginated(offset: number, limit: numb
 				GROUP BY ${levelPointsHistory.idLevel}
 			)
 		`)
-		.as('latest_history')
+		.as(LATEST_HISTORY_ALIAS)
 
 	return db
 		.select({ ...getTableColumns(levelPoints) })
 		.from(levelPoints)
-		.innerJoin(latestHistory, eq(levelPoints.idLevel, latestHistory.idLevel))
-		.where(sql<boolean>`
-			(to_jsonb(${levelPoints}) - 'id_level' - 'date_created' - 'date_updated')
-			IS DISTINCT FROM
-			(to_jsonb(${latestHistory}) - 'id' - 'id_level' - 'date_created' - 'date_updated')
-		`)
+		.leftJoin(latestHistory, eq(levelPoints.idLevel, latestHistory.idLevel))
+		.where(levelPointHistoryChanged(latestHistory.idLevel))
+		.orderBy(levelPoints.idLevel)
 		.offset(offset)
 		.limit(limit)
 }
@@ -113,22 +124,13 @@ export async function getChangedLevelPointIds(): Promise<number[]> {
 				GROUP BY ${levelPointsHistory.idLevel}
 			)
 		`)
-		.as('latest_history')
+		.as(LATEST_HISTORY_ALIAS)
 
 	const rows = await db
 		.select({ idLevel: levelPoints.idLevel })
 		.from(levelPoints)
 		.leftJoin(latestHistory, eq(levelPoints.idLevel, latestHistory.idLevel))
-		.where(
-			sql<boolean>`
-				${latestHistory.idLevel} IS NULL
-				OR (
-					(to_jsonb(${levelPoints}) - 'id_level' - 'date_created' - 'date_updated')
-					IS DISTINCT FROM
-					(to_jsonb(${latestHistory}) - 'id' - 'id_level' - 'date_created' - 'date_updated')
-				)
-			`,
-		)
+		.where(levelPointHistoryChanged(latestHistory.idLevel))
 		.orderBy(levelPoints.idLevel)
 	return rows.map((row) => row.idLevel)
 }
