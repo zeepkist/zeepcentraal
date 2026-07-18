@@ -16,5 +16,7 @@ export function mapGhostRecordSource(record: Zc_GhostComparisonRecordFragment): 
 		mediaRevision: mediaRevision == null ? null : String(mediaRevision),
 		isWorldRecord: record.worldRecordGlobals.totalCount > 0,
 		isPersonalBest: record.personalBestGlobals.totalCount > 0,
+		splits: record.splits,
+		speeds: record.speeds,
 	}
 }

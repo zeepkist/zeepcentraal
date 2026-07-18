@@ -30,6 +30,10 @@ const comparisonsComposable = readFileSync(
 	new URL('../../app/composables/useRecordComparisons.ts', import.meta.url),
 	'utf8',
 )
+const recordPage = readFileSync(
+	new URL('../../app/pages/record/[recordId].vue', import.meta.url),
+	'utf8',
+)
 const schema = buildSchema(
 	readFileSync(new URL('../../../graphql/schema.graphql', import.meta.url), 'utf8'),
 )
@@ -101,5 +105,12 @@ describe('record detail GraphQL', () => {
 		expect(comparisonsComposable).toContain('RECORD_COMPARISON_SEARCH_DEBOUNCE_MS = 250')
 		expect(comparisonsComposable).toContain('import.meta.server ||')
 		expect(comparisonsComposable).toContain('!hydrated.value ||')
+	})
+
+	it('SSR-prefetches record detail and remounts when record route changes', () => {
+		expect(recordPage).toContain('await recordData.prefetchCritical()')
+		expect(recordPage).toContain('key: (route) => String(route.params.recordId)')
+		expect(recordPage).toContain('<ClientOnly>')
+		expect(recordPage).toContain('.slice(0, 10)')
 	})
 })

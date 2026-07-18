@@ -378,11 +378,13 @@ export type RecordTelemetryChart = {
 	icon: string
 	entries: DashboardChartEntry[]
 	totalLabel: string
+	unavailable?: boolean
 }
 
 export type RecordTelemetryModel = {
 	minimumVersionLabel: string
 	emptyLabel: string
+	unavailableLabel: string
 	overviewMetrics: DashboardStatisticsMetric[]
 	charts: RecordTelemetryChart[]
 	driverInputs: {
@@ -392,6 +394,7 @@ export type RecordTelemetryModel = {
 		steering: DashboardChartEntry[]
 		steeringTotalLabel: string
 		actions: DashboardStatisticsMetric[]
+		unavailable?: boolean
 	}
 }
 

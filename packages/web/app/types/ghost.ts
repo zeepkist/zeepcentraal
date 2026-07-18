@@ -88,6 +88,8 @@ export type GhostRecordSource = {
 	mediaRevision: string | null
 	isWorldRecord: boolean
 	isPersonalBest: boolean
+	splits?: Array<number | null> | null
+	speeds?: Array<number | null> | null
 }
 
 export type GhostVisualIdentity = {

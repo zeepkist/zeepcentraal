@@ -3,6 +3,8 @@ fragment ZC_GhostComparisonRecord on Record {
 	time
 	dateCreated
 	dateUpdated
+	splits
+	speeds
 	levelId
 	userId
 	user {

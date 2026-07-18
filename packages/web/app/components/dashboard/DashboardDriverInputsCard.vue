@@ -23,7 +23,13 @@
 			</div>
 		</template>
 
-		<div :class="compact ? 'space-y-3' : 'space-y-5'">
+		<div
+			v-if="unavailable"
+			class="flex min-h-40 items-center justify-center text-sm font-semibold text-muted-foreground"
+		>
+			{{ unavailableLabel }}
+		</div>
+		<div v-else :class="compact ? 'space-y-3' : 'space-y-5'">
 			<DashboardDonutChart
 				v-if="steeringTotal > 0"
 				:entries="steeringEntries"
@@ -75,9 +81,11 @@ const props = withDefaults(
 		steeringTotalLabel: string
 		actions: DashboardStatisticsMetric[]
 		emptyLabel: string
+		unavailable?: boolean
+		unavailableLabel?: string
 		compact?: boolean
 	}>(),
-	{ compact: false },
+	{ compact: false, unavailable: false, unavailableLabel: '' },
 )
 
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-4 sm:p-4' }
