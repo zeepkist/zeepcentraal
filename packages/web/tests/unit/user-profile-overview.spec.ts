@@ -190,19 +190,23 @@ describe('user profile overview', () => {
 		expect(page).toContain("loading: t('common.loading')")
 	})
 
-	it('renders profile sections in requested order', () => {
-		const ids = [
-			'profile-history',
-			'profile-world-records',
-			'profile-telemetry',
-			'profile-personal-bests',
-			'profile-popular-levels',
-			'profile-recent',
-			'profile-recent-levels',
-		]
-		const positions = ids.map((id) => page.indexOf(`id="${id}"`))
-		expect(positions.every((position) => position >= 0)).toBe(true)
-		expect(positions).toEqual([...positions].sort((left, right) => left - right))
+	it('renders profile sections in their requested tab groups', () => {
+		const career = ['profile-history', 'profile-telemetry'].map((id) =>
+			page.indexOf(`id="${id}"`),
+		)
+		const records = ['profile-world-records', 'profile-personal-bests', 'profile-recent'].map(
+			(id) => page.indexOf(`id="${id}"`),
+		)
+		const workshop = ['profile-popular-levels', 'profile-recent-levels'].map((id) =>
+			page.indexOf(`id="${id}"`),
+		)
+		expect(career).toEqual([...career].sort((left, right) => left - right))
+		expect(records).toEqual([...records].sort((left, right) => left - right))
+		expect(workshop).toEqual([...workshop].sort((left, right) => left - right))
+		expect(page).toContain('<template #career>')
+		expect(page).toContain('<template #records>')
+		expect(page).toContain('<template #workshop>')
+		expect(page).toContain('id="profile-world-records"')
 		expect(page.indexOf(':ref="data.levelsTarget"')).toBeLessThan(
 			page.indexOf('id="profile-popular-levels"'),
 		)

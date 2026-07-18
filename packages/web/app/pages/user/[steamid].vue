@@ -10,163 +10,215 @@
 		>
 			<template v-if="user && summary">
 				<div class="space-y-8 lg:space-y-10">
-				<UserDetailHero :user="summary" :profile-url="profileUrl" :workshop-url="workshopProfileUrl" :labels="heroLabels" />
-
-				<div class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start">
-					<div class="min-w-0 space-y-8 lg:space-y-10">
-					<section aria-labelledby="profile-history">
-						<SectionHeader id="profile-history" :title="$t('users.profile.history.title')" :description="$t('users.profile.history.description')" />
-						<DataState :pending="pointsHistoryPending" :error="data.pointsHistoryQuery.error.value?.message" :empty="data.pointsHistory.value.length === 0" v-bind="stateLabels">
-							<UserCareerHistory
-								:history="data.pointsHistory.value"
-								:secondary-history="data.secondaryPointsHistory.value"
-								:secondary-ready="data.secondaryPointsHistoryReady.value"
-								:labels="historyLabels"
-							/>
-						</DataState>
-					</section>
-
-				<div>
-					<UserResultsSection
-						id="profile-world-records"
-						:title="$t('users.profile.worldRecords.title')"
-						:description="$t('users.profile.worldRecords.description')"
-						:records="data.wrRows.value"
-						:sort="data.wrSort.value"
-						:pending="wrPending"
-						:error="data.wrResult.value.error.value?.message"
-						:page="data.wrPage.value"
-						:can-go-previous="data.wrPagination.canGoPrevious(data.wrPage.value)"
-						:can-go-next="data.wrPagination.canGoNext(data.wrPage.value)"
-						:labels="resultLabels"
-						:sort-label="$t('levels.filters.sort')"
-						:sort-options="resultSortOptions"
-						:pagination-labels="paginationLabels"
-						show-points
-						@update:sort="data.setWrSort"
-						@first="data.wrPagination.first()"
-						@previous="data.wrPagination.previous(data.wrPage.value)"
-						@next="data.wrPagination.next(data.wrPage.value)"
-						@last="data.wrPagination.last()"
+					<UserDetailHero
+						:user="summary"
+						:profile-url="profileUrl"
+						:workshop-url="workshopProfileUrl"
+						:labels="heroLabels"
 					/>
-				</div>
 
-				<section :ref="data.statisticsTarget" aria-labelledby="profile-telemetry">
-					<SectionHeader id="profile-telemetry" :title="$t('users.profile.telemetry.title')" :description="$t('users.profile.telemetry.description')">
-						<RecordTelemetryPeriodSelect v-model="data.telemetryPeriod.value" :label="$t('users.profile.telemetry.period')" :items="telemetryPeriodOptions" />
-					</SectionHeader>
-					<DataState :pending="!data.statisticsActive.value || data.statistics.fetching.value" :error="data.statistics.error.value?.message" v-bind="stateLabels">
-						<RecordTelemetryPanel :model="telemetryModel" :description="$t('users.profile.telemetry.telemetryDescription')" />
-					</DataState>
-				</section>
+					<DetailSectionTabs
+						v-model="activeTab"
+						:items="profileTabs"
+						:label="$t('users.profile.tabs.label')"
+					>
+						<template #career>
+							<div
+								class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start"
+							>
+								<div class="min-w-0 space-y-8 lg:space-y-10">
+									<section aria-labelledby="profile-history">
+										<SectionHeader
+											id="profile-history"
+											:title="$t('users.profile.history.title')"
+											:description="$t('users.profile.history.description')"
+										/>
+										<DataState
+											:pending="pointsHistoryPending"
+											:error="data.pointsHistoryQuery.error.value?.message"
+											:empty="data.pointsHistory.value.length === 0"
+											v-bind="stateLabels"
+										>
+											<UserCareerHistory
+												:history="data.pointsHistory.value"
+												:secondary-history="data.secondaryPointsHistory.value"
+												:secondary-ready="data.secondaryPointsHistoryReady.value"
+												:labels="historyLabels"
+											/>
+										</DataState>
+									</section>
 
-				<div :ref="data.personalBestsTarget">
-					<UserResultsSection
-						id="profile-personal-bests"
-						:title="$t('users.profile.personalBests.title')"
-						:description="$t('users.profile.personalBests.description')"
-						:records="data.pbRows.value"
-						:sort="data.pbSort.value"
-						:sort-label="$t('levels.filters.sort')"
-						:pending="pbPending"
-						:error="data.pbResult.value.error.value?.message"
-						:page="data.pbPage.value"
-						:can-go-previous="data.pbPagination.canGoPrevious(data.pbPage.value)"
-						:can-go-next="data.pbPagination.canGoNext(data.pbPage.value)"
-						:labels="resultLabels"
-						:sort-options="resultSortOptions"
-						:pagination-labels="paginationLabels"
-						show-points
-						@update:sort="data.setPbSort"
-						@first="data.pbPagination.first()"
-						@previous="data.pbPagination.previous(data.pbPage.value)"
-						@next="data.pbPagination.next(data.pbPage.value)"
-						@last="data.pbPagination.last()"
-					/>
-				</div>
+									<section
+										:ref="data.statisticsTarget"
+										aria-labelledby="profile-telemetry"
+									>
+										<SectionHeader
+											id="profile-telemetry"
+											:title="$t('users.profile.telemetry.title')"
+											:description="$t('users.profile.telemetry.description')"
+										>
+											<RecordTelemetryPeriodSelect
+												v-model="data.telemetryPeriod.value"
+												:label="$t('users.profile.telemetry.period')"
+												:items="telemetryPeriodOptions"
+											/>
+										</SectionHeader>
+										<DataState
+											:pending="!data.statisticsActive.value || data.statistics.fetching.value"
+											:error="data.statistics.error.value?.message"
+											v-bind="stateLabels"
+										>
+											<RecordTelemetryPanel
+												:model="telemetryModel"
+												:description="$t('users.profile.telemetry.telemetryDescription')"
+											/>
+										</DataState>
+									</section>
+								</div>
 
-				<div :ref="data.levelsTarget">
-					<UserLevelCollection
-						id="profile-popular-levels"
-						:title="$t('users.profile.levels.popularTitle')"
-						:description="$t('users.profile.levels.popularDescription')"
-						:action-label="$t('users.profile.levels.viewAll')"
-						:action-to="levelsUrl"
-						:records-label="$t('common.records')"
-						:levels="data.popularLevels.value"
-						:pending="levelsPending"
-						:error="data.levelsQuery.error.value?.message"
-						:labels="levelCollectionLabels"
-					/>
-				</div>
+								<aside class="space-y-8 lg:space-y-10">
+									<section aria-labelledby="profile-summary">
+										<SectionHeader
+											id="profile-summary"
+											:title="$t('users.profile.summary.title')"
+											:description="$t('users.profile.summary.description')"
+										/>
+										<MetricGrid :metrics="metrics" :columns="2" />
+									</section>
 
-				<div :ref="data.recentTarget">
-					<UserResultsSection
-						id="profile-recent"
-						:title="$t('users.profile.recent.title')"
-						:description="$t('users.profile.recent.description')"
-						:records="data.recentRows.value"
-						:pending="recentPending"
-						:error="data.recent.error.value?.message"
-						:page="data.recentPage.value"
-						:can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)"
-						:can-go-next="data.recentPagination.canGoNext(data.recentPage.value)"
-						:labels="resultLabels"
-						:pagination-labels="paginationLabels"
-						:show-rank="false"
-						show-pb-or-wr
-						@first="data.recentPagination.first()"
-						@previous="data.recentPagination.previous(data.recentPage.value)"
-						@next="data.recentPagination.next(data.recentPage.value)"
-						@last="data.recentPagination.last()"
-					/>
-				</div>
+									<UserSuperLeaguePanel
+										id="profile-super-league"
+										:selected-season-id="data.selectedSuperLeagueSeasonId.value"
+										:seasons="superLeagueSeasonOptions"
+										:season="data.superLeagueSeason.value"
+										:standings-to="superLeagueStandingsUrl"
+										:pending="superLeaguePending"
+										:error="superLeagueError"
+										:labels="superLeagueLabels"
+										@update:selected-season-id="data.selectedSuperLeagueSeasonId.value = $event"
+									/>
 
-				<UserLevelCollection
-					id="profile-recent-levels"
-					:title="$t('users.profile.levels.recentTitle')"
-					:description="$t('users.profile.levels.recentDescription')"
-					:action-label="$t('users.profile.levels.viewAll')"
-					:action-to="levelsUrl"
-					:records-label="$t('common.records')"
-					:levels="data.recentLevels.value"
-					:pending="levelsPending"
-					:error="data.levelsQuery.error.value?.message"
-					:labels="levelCollectionLabels"
-				/>
-					</div>
+									<UserAchievementShowcase
+										id="profile-achievements"
+										:achievements="achievementPreviews"
+										:labels="achievementLabels"
+									/>
 
-					<aside class="space-y-8 lg:space-y-10">
-						<section aria-labelledby="profile-summary">
-							<SectionHeader id="profile-summary" :title="$t('users.profile.summary.title')" :description="$t('users.profile.summary.description')" />
-							<MetricGrid :metrics="metrics" :columns="2" />
-						</section>
+									<UserCosmeticsShowcase
+										id="profile-cosmetics"
+										:progress="cosmeticsPreview"
+										:labels="cosmeticsLabels"
+									/>
+								</aside>
+							</div>
+						</template>
 
-						<UserSuperLeaguePanel
-							id="profile-super-league"
-							:selected-season-id="data.selectedSuperLeagueSeasonId.value"
-							:seasons="superLeagueSeasonOptions"
-							:season="data.superLeagueSeason.value"
-							:standings-to="superLeagueStandingsUrl"
-							:pending="superLeaguePending"
-							:error="superLeagueError"
-							:labels="superLeagueLabels"
-							@update:selected-season-id="data.selectedSuperLeagueSeasonId.value = $event"
-						/>
+						<template #records>
+							<div class="space-y-8 lg:space-y-10">
+								<UserResultsSection
+									id="profile-world-records"
+									:title="$t('users.profile.worldRecords.title')"
+									:description="$t('users.profile.worldRecords.description')"
+									:records="data.wrRows.value"
+									:sort="data.wrSort.value"
+									:pending="wrPending"
+									:error="data.wrResult.value.error.value?.message"
+									:page="data.wrPage.value"
+									:can-go-previous="data.wrPagination.canGoPrevious(data.wrPage.value)"
+									:can-go-next="data.wrPagination.canGoNext(data.wrPage.value)"
+									:labels="resultLabels"
+									:sort-label="$t('levels.filters.sort')"
+									:sort-options="resultSortOptions"
+									:pagination-labels="paginationLabels"
+									show-points
+									@update:sort="data.setWrSort"
+									@first="data.wrPagination.first()"
+									@previous="data.wrPagination.previous(data.wrPage.value)"
+									@next="data.wrPagination.next(data.wrPage.value)"
+									@last="data.wrPagination.last()"
+								/>
 
-						<UserAchievementShowcase
-							id="profile-achievements"
-							:achievements="achievementPreviews"
-							:labels="achievementLabels"
-						/>
+								<div :ref="data.personalBestsTarget">
+									<UserResultsSection
+										id="profile-personal-bests"
+										:title="$t('users.profile.personalBests.title')"
+										:description="$t('users.profile.personalBests.description')"
+										:records="data.pbRows.value"
+										:sort="data.pbSort.value"
+										:sort-label="$t('levels.filters.sort')"
+										:pending="pbPending"
+										:error="data.pbResult.value.error.value?.message"
+										:page="data.pbPage.value"
+										:can-go-previous="data.pbPagination.canGoPrevious(data.pbPage.value)"
+										:can-go-next="data.pbPagination.canGoNext(data.pbPage.value)"
+										:labels="resultLabels"
+										:sort-options="resultSortOptions"
+										:pagination-labels="paginationLabels"
+										show-points
+										@update:sort="data.setPbSort"
+										@first="data.pbPagination.first()"
+										@previous="data.pbPagination.previous(data.pbPage.value)"
+										@next="data.pbPagination.next(data.pbPage.value)"
+										@last="data.pbPagination.last()"
+									/>
+								</div>
 
-						<UserCosmeticsShowcase
-							id="profile-cosmetics"
-							:progress="cosmeticsPreview"
-							:labels="cosmeticsLabels"
-						/>
-					</aside>
-				</div>
+								<div :ref="data.recentTarget">
+									<UserResultsSection
+										id="profile-recent"
+										:title="$t('users.profile.recent.title')"
+										:description="$t('users.profile.recent.description')"
+										:records="data.recentRows.value"
+										:pending="recentPending"
+										:error="data.recent.error.value?.message"
+										:page="data.recentPage.value"
+										:can-go-previous="data.recentPagination.canGoPrevious(data.recentPage.value)"
+										:can-go-next="data.recentPagination.canGoNext(data.recentPage.value)"
+										:labels="resultLabels"
+										:pagination-labels="paginationLabels"
+										:show-rank="false"
+										show-pb-or-wr
+										@first="data.recentPagination.first()"
+										@previous="data.recentPagination.previous(data.recentPage.value)"
+										@next="data.recentPagination.next(data.recentPage.value)"
+										@last="data.recentPagination.last()"
+									/>
+								</div>
+							</div>
+						</template>
+
+						<template #workshop>
+							<div class="space-y-8 lg:space-y-10">
+								<div :ref="data.levelsTarget">
+									<UserLevelCollection
+										id="profile-popular-levels"
+										:title="$t('users.profile.levels.popularTitle')"
+										:description="$t('users.profile.levels.popularDescription')"
+										:action-label="$t('users.profile.levels.viewAll')"
+										:action-to="levelsUrl"
+										:records-label="$t('common.records')"
+										:levels="data.popularLevels.value"
+										:pending="levelsPending"
+										:error="data.levelsQuery.error.value?.message"
+										:labels="levelCollectionLabels"
+									/>
+								</div>
+
+								<UserLevelCollection
+									id="profile-recent-levels"
+									:title="$t('users.profile.levels.recentTitle')"
+									:description="$t('users.profile.levels.recentDescription')"
+									:action-label="$t('users.profile.levels.viewAll')"
+									:action-to="levelsUrl"
+									:records-label="$t('common.records')"
+									:levels="data.recentLevels.value"
+									:pending="levelsPending"
+									:error="data.levelsQuery.error.value?.message"
+									:labels="levelCollectionLabels"
+								/>
+							</div>
+						</template>
+					</DetailSectionTabs>
 				</div>
 			</template>
 		</DataState>
@@ -195,6 +247,13 @@ const profileUrl = computed(() => steamProfileUrl(steamId.value))
 const workshopProfileUrl = computed(() => steamWorkshopProfileUrl(steamId.value))
 const levelsUrl = computed(() => `/levels?author=${steamId.value}`)
 const telemetryModel = useRecordTelemetryModel(data.selectedStatistics, 'user')
+type UserProfileTab = 'career' | 'records' | 'workshop'
+const activeTab = ref<UserProfileTab>('career')
+const profileTabs = computed<Array<{ label: string; value: UserProfileTab }>>(() => [
+	{ label: t('users.profile.tabs.career'), value: 'career' },
+	{ label: t('users.profile.tabs.records'), value: 'records' },
+	{ label: t('users.profile.tabs.workshopLevels'), value: 'workshop' },
+])
 
 useSeoMeta({
 	title: () =>
