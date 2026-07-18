@@ -65,7 +65,7 @@
 				</div>
 				<UButton v-if="selected.length" color="neutral" variant="ghost" size="sm" @click="$emit('clear')">{{ labels.clear }}</UButton>
 			</div>
-			<div v-if="selected.length" class="mt-4 space-y-2">
+			<div v-if="selected.length" class="mt-4 grid gap-2 sm:grid-cols-2">
 				<div v-for="record in selected" :key="record.recordId" class="flex items-center gap-3 rounded-xl border border-border bg-default/55 p-3">
 					<div class="min-w-0 flex-1">
 						<p class="truncate font-semibold text-highlighted">{{ record.userName ?? labels.unknownPlayer }}</p>

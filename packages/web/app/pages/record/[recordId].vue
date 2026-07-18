@@ -87,46 +87,7 @@
 					/>
 				</section>
 
-				<RecordCapabilityNotice
-					v-if="primaryGhost"
-					:version="primaryGhost.version"
-					:capabilities="primaryGhost.capabilities"
-					:labels="capabilityLabels"
-				/>
-
-				<section
-					v-if="checkpointAnalysis.series.length"
-					aria-labelledby="checkpoint-analysis-heading"
-				>
-					<SectionHeader
-						id="checkpoint-analysis-heading"
-						:title="$t('pages.recordDetail.checkpoints.title')"
-						:description="$t('pages.recordDetail.checkpoints.description')"
-					/>
-					<LevelSplitAnalysis :analysis="checkpointAnalysis" :labels="checkpointLabels" />
-				</section>
-
-				<section v-if="record.recordStatistic" aria-labelledby="record-statistics-heading">
-					<SectionHeader
-						id="record-statistics-heading"
-						:title="$t('pages.recordDetail.telemetry.title')"
-						:description="$t('pages.recordDetail.telemetry.description')"
-					/>
-					<RecordTelemetryPanel
-						:model="statisticTelemetry"
-						:description="$t('pages.recordDetail.telemetry.versionDescription')"
-					/>
-				</section>
-
-				<RecordTelemetryCharts
-					v-if="primaryGhost"
-					:ghost="primaryGhost"
-					:comparisons="comparisonGhosts"
-					:labels="analysisLabels.telemetry"
-				/>
-
 				<RecordEventTimeline
-					v-if="primaryGhost"
 					:events="timelineEvents"
 					:duration="source.time"
 					:current-time="replayTime"
@@ -134,26 +95,80 @@
 					@seek="seekAnalysisEvent"
 				/>
 
-				<RecordAirControlAnalysis
-					v-if="primaryGhost"
-					:runs="airControlRuns"
-					:labels="analysisLabels.airControl"
-				/>
+				<RecordAnalysisTabs :labels="analysisTabLabels">
+					<template #telemetry>
+						<RecordCapabilityNotice
+							v-if="primaryGhost"
+							:version="primaryGhost.version"
+							:capabilities="primaryGhost.capabilities"
+							:labels="capabilityLabels"
+						/>
 
-				<RecordDriftAnalysis
-					v-if="primaryGhost"
-					:events="slipEvents"
-					:comparison-runs="comparisonDriftRuns"
-					:labels="analysisLabels.drift"
-					@seek="seekAnalysisEvent"
-				/>
+						<section v-if="record.recordStatistic" aria-labelledby="record-statistics-heading">
+							<SectionHeader
+								id="record-statistics-heading"
+								:title="$t('pages.recordDetail.telemetry.title')"
+								:description="$t('pages.recordDetail.telemetry.description')"
+							/>
+							<RecordTelemetryPanel
+								:model="statisticTelemetry"
+								:description="$t('pages.recordDetail.telemetry.versionDescription')"
+							/>
+						</section>
 
-				<RecordCoachingInsights
-					v-if="primaryGhost"
-					:insights="coachingInsights"
-					:labels="analysisLabels.coaching"
-					@seek="seekAnalysisEvent"
-				/>
+						<RecordTelemetryCharts
+							v-if="primaryGhost"
+							:ghost="primaryGhost"
+							:comparisons="comparisonGhosts"
+							:primary-color="primaryVisualColor"
+							:labels="analysisLabels.telemetry"
+						/>
+					</template>
+
+					<template #analysis>
+						<section
+							v-if="checkpointAnalysis.series.length"
+							aria-labelledby="checkpoint-analysis-heading"
+						>
+							<SectionHeader
+								id="checkpoint-analysis-heading"
+								:title="$t('pages.recordDetail.checkpoints.title')"
+								:description="$t('pages.recordDetail.checkpoints.description')"
+							/>
+							<LevelSplitAnalysis :analysis="checkpointAnalysis" :labels="checkpointLabels" />
+						</section>
+
+						<RecordAirControlAnalysis
+							v-if="primaryGhost"
+							:runs="airControlRuns"
+							:labels="analysisLabels.airControl"
+						/>
+
+						<RecordDriftAnalysis
+							v-if="primaryGhost"
+							:events="slipEvents"
+							:comparison-runs="comparisonDriftRuns"
+							:primary-color="primaryVisualColor"
+							:labels="analysisLabels.drift"
+							@seek="seekAnalysisEvent"
+						/>
+					</template>
+
+					<template #improvement>
+						<RecordCoachingInsights
+							v-if="primaryGhost"
+							:insights="coachingInsights"
+							:labels="analysisLabels.coaching"
+							@seek="seekAnalysisEvent"
+						/>
+						<div
+							v-else
+							class="grid min-h-40 place-items-center rounded-2xl border border-dashed border-border bg-card/40 px-6 text-center text-sm text-muted-foreground"
+						>
+							{{ $t('pages.recordDetail.analysis.tabs.unavailable') }}
+						</div>
+					</template>
+				</RecordAnalysisTabs>
 			</div>
 		</DataState>
 	</UContainer>
@@ -238,6 +253,12 @@ const replayWorkspace = useTemplateRef('replayWorkspace')
 const replaySection = useTemplateRef('replaySection')
 const replayTime = ref(0)
 const primaryGhost = computed(() => playback.parsed.get(recordId) ?? null)
+const primaryLoadedGhost = computed(() =>
+	playback.loaded.value.find(({ record: value }) => value.recordId === recordId),
+)
+const primaryVisualColor = computed(
+	() => primaryLoadedGhost.value?.identity.bodyColor ?? primaryColor.value,
+)
 const recordStatistic = computed(() => record.value?.recordStatistic)
 const statisticTelemetry = useSingleRecordTelemetryModel(recordStatistic)
 const comparisonGhosts = computed(() => playback.loaded.value.filter(({ record: value }) => value.recordId !== recordId))
@@ -250,6 +271,9 @@ const checkpointAnalysis = computed(() =>
 		playbackSources.value.map((value) => ({
 			id: value.recordId,
 			time: value.time,
+			color: playback.loaded.value.find(
+				({ record: loadedRecord }) => loadedRecord.recordId === value.recordId,
+			)?.identity.bodyColor,
 			splits: value.splits,
 			speeds: value.speeds,
 			finishSpeed: resolveGhostFinishSpeed(playback.parsed.get(value.recordId)?.frames ?? []),
@@ -336,7 +360,6 @@ const replayLabels = computed(() => ({
 	failedDescription: (count: number) => t('pages.recordDetail.replay.failedDescription', { count }),
 	retry: t('pages.recordDetail.replay.retry'),
 	viewer: {
-		grid: t('pages.recordDetail.replay.grid'),
 		frameRate: (value: number) => t('pages.recordDetail.replay.frameRate', { value }),
 		approximateGeometry: t('pages.recordDetail.replay.approximateGeometry'),
 		emptyTitle: t('pages.recordDetail.replay.emptyTitle'),
@@ -402,6 +425,12 @@ const comparisonLabels = computed(() => ({
 
 const capabilityLabels = computed(() => createRecordCapabilityLabels(t))
 const analysisLabels = computed(() => createRecordAnalysisLabels(t))
+const analysisTabLabels = computed(() => ({
+	label: t('pages.recordDetail.analysis.tabs.label'),
+	telemetry: t('pages.recordDetail.analysis.tabs.telemetry'),
+	analysis: t('pages.recordDetail.analysis.tabs.analysis'),
+	improvement: t('pages.recordDetail.analysis.tabs.improvement'),
+}))
 const checkpointLabels = computed(() => ({
 	checkpoint: t('pages.recordDetail.checkpoints.checkpoint'),
 	finish: t('common.finish'),

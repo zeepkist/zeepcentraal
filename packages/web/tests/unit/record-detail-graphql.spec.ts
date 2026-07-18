@@ -38,6 +38,14 @@ const replayWorkspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
 	'utf8',
 )
+const analysisTabs = readFileSync(
+	new URL('../../app/components/record/RecordAnalysisTabs.vue', import.meta.url),
+	'utf8',
+)
+const playbackViewer = readFileSync(
+	new URL('../../app/components/record/GhostPlaybackViewer.client.vue', import.meta.url),
+	'utf8',
+)
 const schema = buildSchema(
 	readFileSync(new URL('../../../graphql/schema.graphql', import.meta.url), 'utf8'),
 )
@@ -124,6 +132,29 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain('buildRecordAirControlRuns(playback.loaded.value, recordId)')
 	})
 
+	it('uses selected ghost identity colour across record analysis charts', () => {
+		expect(recordPage).toContain('primaryLoadedGhost.value?.identity.bodyColor')
+		expect(recordPage.match(/:primary-color="primaryVisualColor"/g)).toHaveLength(2)
+		expect(recordPage).toContain('color: playback.loaded.value.find(')
+		expect(recordPage).toContain(')?.identity.bodyColor')
+	})
+
+	it('keeps event timeline visible before request-free analysis tabs', () => {
+		const comparisonIndex = recordPage.indexOf('id="comparison-heading"')
+		const timelineIndex = recordPage.indexOf('<RecordEventTimeline')
+		const tabsIndex = recordPage.indexOf('<RecordAnalysisTabs')
+
+		expect(comparisonIndex).toBeGreaterThan(-1)
+		expect(timelineIndex).toBeGreaterThan(comparisonIndex)
+		expect(tabsIndex).toBeGreaterThan(timelineIndex)
+		expect(recordPage).toContain('<template #telemetry>')
+		expect(recordPage).toContain('<template #analysis>')
+		expect(recordPage).toContain('<template #improvement>')
+		expect(analysisTabs).toContain('<UTabs')
+		expect(analysisTabs).toContain("ref<'telemetry' | 'analysis' | 'improvement'>('telemetry')")
+		expect(analysisTabs).not.toMatch(/\$fetch|useFetch|useAsyncData|useQuery/)
+	})
+
 	it('pauses event seeks and scrolls the replay into view accessibly', () => {
 		expect(recordPage).toContain('ref="replaySection"')
 		expect(recordPage.match(/@seek="seekAnalysisEvent"/g)).toHaveLength(3)
@@ -131,5 +162,16 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain("window.matchMedia('(prefers-reduced-motion: reduce)')")
 		expect(recordPage).toContain('scrollIntoView({')
 		expect(replayWorkspace).toContain('if (options.pause) playing.value = false')
+	})
+
+	it('restarts completed playback and follows active ragdoll positions', () => {
+		expect(replayWorkspace.match(/@update:playing="setPlaying"/g)).toHaveLength(2)
+		expect(replayWorkspace).not.toContain('v-model:playing="playing"')
+		expect(replayWorkspace).toContain(
+			'resolveGhostPlaybackStartTime(currentTime.value, duration.value)',
+		)
+		expect(playbackViewer).toContain('resolveGhostDisplayPosition(frame)')
+		expect(playbackViewer).toContain('visual.chassis.visible = !ragdollActive')
+		expect(playbackViewer).toContain('visual.ragdoll.position.set(0, 0, 0)')
 	})
 })

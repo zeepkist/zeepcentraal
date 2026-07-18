@@ -21,6 +21,7 @@ export type LevelSplitAnalysis = {
 type RawSplitRecord = {
 	id: number
 	time: number
+	color?: string | null
 	splits?: Array<number | null> | null
 	speeds?: Array<number | null> | null
 	finishSpeed?: number | null
@@ -72,7 +73,7 @@ export function buildLevelSplitAnalysis(
 			userName: record.user?.steamName ?? String(record.user?.steamId ?? record.id),
 			userSteamId: record.user?.steamId == null ? null : String(record.user.steamId),
 			time: record.time,
-			color: SERIES_COLORS[index % SERIES_COLORS.length] ?? SERIES_COLORS[0],
+			color: record.color ?? SERIES_COLORS[index % SERIES_COLORS.length] ?? SERIES_COLORS[0],
 			viewer: record.id === viewerRecord?.id,
 			viewerComparison: viewerAppended && record.id === viewerRecord?.id,
 			deltas: [...splits, record.time].map((split, checkpoint) => {

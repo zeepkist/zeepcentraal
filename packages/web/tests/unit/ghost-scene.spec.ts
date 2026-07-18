@@ -7,6 +7,8 @@ import {
 	orthographicWorldUnitsPerPixel,
 	perspectiveWorldUnitsPerPixel,
 	rebaseGhostPosition,
+	resolveGhostDisplayPosition,
+	resolveGhostPlaybackStartTime,
 } from '../../app/utils/ghostScene'
 
 describe('ghost scene', () => {
@@ -49,6 +51,41 @@ describe('ghost scene', () => {
 		})
 	})
 
+	it('interpolates active ragdoll positions for smooth playback', () => {
+		const frames: GhostPlaybackFrame[] = [
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				ragdoll: true,
+				ragdollPosition: { x: 10, y: 2, z: 4 },
+			},
+			{
+				time: 2,
+				position: { x: 0, y: 0, z: 0 },
+				ragdoll: true,
+				ragdollPosition: { x: 20, y: 6, z: 8 },
+			},
+		]
+
+		expect(interpolateGhostFrame(frames, 1)?.ragdollPosition).toEqual({ x: 15, y: 4, z: 6 })
+	})
+
+	it('uses reported ragdoll position only while ragdoll is active', () => {
+		const position = { x: 1, y: 2, z: 3 }
+		const ragdollPosition = { x: 8, y: 9, z: 10 }
+
+		expect(resolveGhostDisplayPosition({ time: 0, position, ragdollPosition })).toBe(position)
+		expect(
+			resolveGhostDisplayPosition({ time: 0, position, ragdoll: true, ragdollPosition }),
+		).toBe(ragdollPosition)
+	})
+
+	it('restarts playback from zero at the completed timeline', () => {
+		expect(resolveGhostPlaybackStartTime(30, 30)).toBe(0)
+		expect(resolveGhostPlaybackStartTime(29.9998, 30)).toBe(0)
+		expect(resolveGhostPlaybackStartTime(12, 30)).toBe(12)
+	})
+
 	it('increases label world clearance as perspective camera moves away', () => {
 		const close = calculateGhostLabelWorldOffset(
 			perspectiveWorldUnitsPerPixel(20, 48, 720),
@@ -61,7 +98,7 @@ describe('ghost scene', () => {
 			0,
 		)
 
-		expect(close).toBe(2.8)
+		expect(close).toBe(4.5)
 		expect(distant).toBeGreaterThan(close)
 	})
 

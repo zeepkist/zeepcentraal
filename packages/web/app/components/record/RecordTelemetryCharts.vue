@@ -77,11 +77,15 @@ type RecordTelemetryChartConfig = RecordAnalysisLabels['telemetry']['config'][ke
 
 type VisibleChart = RecordTelemetryChartData & { config: RecordTelemetryChartConfig }
 
-const props = defineProps<{
-	ghost: ParsedPlaybackGhost
-	comparisons: LoadedPlaybackGhost[]
-	labels: RecordAnalysisLabels['telemetry']
-}>()
+const props = withDefaults(
+	defineProps<{
+		ghost: ParsedPlaybackGhost
+		comparisons: LoadedPlaybackGhost[]
+		primaryColor?: string
+		labels: RecordAnalysisLabels['telemetry']
+	}>(),
+	{ primaryColor: '#facc15' },
+)
 
 const { locale } = useI18n()
 const chartDuration = ref(0)
@@ -94,7 +98,7 @@ const charts = computed(() =>
 			key: 'primary',
 			recordId: 0,
 			label: props.labels.primary,
-			color: '#facc15',
+			color: props.primaryColor,
 			dashed: false,
 			frames: props.ghost.frames,
 		},

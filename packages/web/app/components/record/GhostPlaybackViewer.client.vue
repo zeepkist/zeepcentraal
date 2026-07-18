@@ -6,7 +6,6 @@
 		<div ref="canvasHost" class="absolute inset-0" />
 		<div ref="labelHost" class="pointer-events-none absolute inset-0 overflow-hidden" />
 		<div class="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">
-			<UBadge color="neutral" variant="soft">{{ labels.grid }}</UBadge>
 			<UBadge color="neutral" variant="soft">{{ labels.frameRate(frameRate) }}</UBadge>
 			<UBadge v-if="levelBlocks.length" color="neutral" variant="soft">
 				{{ labels.approximateGeometry }}
@@ -57,6 +56,7 @@ import {
 	orthographicWorldUnitsPerPixel,
 	perspectiveWorldUnitsPerPixel,
 	rebaseGhostPosition,
+	resolveGhostDisplayPosition,
 } from '~/utils/ghostScene'
 
 type RenderQuality = 'performance' | 'balanced' | 'quality'
@@ -71,6 +71,7 @@ type GhostVisual = {
 	trailGeometry: LineGeometry
 	trailMaterial: LineMaterial
 	trailTimes: number[]
+	chassis: THREE.Mesh
 	driver: THREE.Mesh
 	arms: THREE.Mesh[]
 	brakeLights: THREE.Mesh[]
@@ -92,7 +93,6 @@ const props = defineProps<{
 	frameRate: 30 | 60
 	quality: RenderQuality
 	labels: {
-		grid: string
 		frameRate: (value: number) => string
 		approximateGeometry: string
 		emptyTitle: string
@@ -253,7 +253,14 @@ function createGhosts() {
 	for (const visual of visuals.values()) disposeVisual(visual)
 	visuals.clear()
 	removeNamedObject('ghost-grid')
-	grid = buildGhostGrid(props.ghosts.map(({ ghost }) => ghost.frames))
+	grid = buildGhostGrid(
+		props.ghosts.map(({ ghost }) =>
+			ghost.frames.map((frame) => ({
+				...frame,
+				position: resolveGhostDisplayPosition(frame),
+			})),
+		),
+	)
 	createGrid(grid)
 	createLevelGeometry()
 
@@ -389,7 +396,7 @@ function createSoapbox(loaded: LoadedPlaybackGhost) {
 		group.add(wheel)
 		wheels.push(wheel)
 	}
-	return { group, driver, arms, brakeLights, paraglider, ragdoll, wheels }
+	return { group, chassis, driver, arms, brakeLights, paraglider, ragdoll, wheels }
 }
 
 function createTrail(loaded: LoadedPlaybackGhost) {
@@ -400,13 +407,13 @@ function createTrail(loaded: LoadedPlaybackGhost) {
 	for (let index = 0; index < loaded.ghost.frames.length; index += step) {
 		const frame = loaded.ghost.frames[index]
 		if (!frame || !grid) continue
-		const position = rebaseGhostPosition(frame.position, grid.origin)
+		const position = rebaseGhostPosition(resolveGhostDisplayPosition(frame), grid.origin)
 		positions.push(position.x, position.y + 0.1, position.z)
 		times.push(frame.time)
 	}
 	const finalFrame = loaded.ghost.frames.at(-1)
 	if (finalFrame && times.at(-1) !== finalFrame.time && grid) {
-		const position = rebaseGhostPosition(finalFrame.position, grid.origin)
+		const position = rebaseGhostPosition(resolveGhostDisplayPosition(finalFrame), grid.origin)
 		positions.push(position.x, position.y + 0.1, position.z)
 		times.push(finalFrame.time)
 	}
@@ -498,11 +505,14 @@ function updateGhosts() {
 	for (const visual of visuals.values()) {
 		const frame = interpolateGhostFrame(visual.ghost.ghost.frames, props.currentTime)
 		if (!frame) continue
-		const next = rebaseGhostPosition(frame.position, grid.origin)
+		const ragdollActive = frame.ragdoll === true
+		const next = rebaseGhostPosition(resolveGhostDisplayPosition(frame), grid.origin)
 		const previous = visual.group.position.clone()
 		visual.group.position.set(next.x, next.y, next.z)
 		updateLabelPosition(visual, next)
-		if (frame.orientation) {
+		if (ragdollActive) {
+			visual.group.quaternion.identity()
+		} else if (frame.orientation) {
 			visual.group.quaternion.set(
 				-frame.orientation.x,
 				-frame.orientation.y,
@@ -510,21 +520,19 @@ function updateGhosts() {
 				frame.orientation.w,
 			)
 		}
-		visual.driver.visible = frame.ragdoll !== true
-		visual.ragdoll.visible = frame.ragdoll === true
+		visual.chassis.visible = !ragdollActive
+		visual.driver.visible = !ragdollActive
+		visual.ragdoll.visible = ragdollActive
+		visual.ragdoll.position.set(0, 0, 0)
 		for (const [index, arm] of visual.arms.entries()) {
-			arm.visible = frame.ragdoll !== true
+			arm.visible = !ragdollActive
 			arm.rotation.z = frame.armsUp ? (index === 0 ? -1.15 : 1.15) : 0
 		}
-		for (const light of visual.brakeLights) light.visible = frame.braking === true
-		visual.paraglider.visible = frame.paraglider === true
-		if (frame.ragdoll && frame.ragdollPosition) {
-			const ragdollPosition = rebaseGhostPosition(frame.ragdollPosition, grid.origin)
-			visual.ragdoll.position.set(
-				ragdollPosition.x - next.x,
-				ragdollPosition.y - next.y,
-				ragdollPosition.z - next.z,
-			)
+		for (const light of visual.brakeLights) {
+			light.visible = !ragdollActive && frame.braking === true
+		}
+		visual.paraglider.visible = !ragdollActive && frame.paraglider === true
+		if (ragdollActive) {
 			if (frame.ragdollRotation) {
 				visual.ragdoll.rotation.set(
 					THREE.MathUtils.degToRad(-frame.ragdollRotation.x),
@@ -535,6 +543,7 @@ function updateGhosts() {
 		}
 		const wheelColor = frame.soap ? 0xec4899 : frame.offroad ? 0x84cc16 : 0x171513
 		for (const [index, wheel] of visual.wheels.entries()) {
+			wheel.visible = !ragdollActive
 			const wheelMaterial = wheel.material as THREE.MeshStandardMaterial
 			wheelMaterial.color.setHex(wheelColor)
 			const grounded =

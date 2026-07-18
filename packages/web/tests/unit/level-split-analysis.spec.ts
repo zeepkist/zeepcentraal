@@ -69,6 +69,20 @@ describe('level checkpoint analysis', () => {
 		expect(result.speedData).toHaveLength(2)
 	})
 
+	it('preserves supplied ghost colours for record analysis charts', () => {
+		const result = buildLevelSplitAnalysis([
+			{
+				id: 1,
+				time: 10,
+				color: '#12ab34',
+				splits: [4, 8],
+				speeds: [80, 90],
+			},
+		])
+
+		expect(result.series[0]?.color).toBe('#12ab34')
+	})
+
 	it('adds finish speed only when supplied and never fabricates missing values', () => {
 		const result = buildLevelSplitAnalysis([
 			{ id: 1, time: 10, splits: [4, 8], speeds: [80, 90], finishSpeed: 95 },

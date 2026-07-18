@@ -32,6 +32,8 @@ export function useSingleRecordTelemetryModel(
 		const base = baseModel.value
 		if (!value) return base
 		const unavailable = t('common.unavailable')
+		const hasExtendedEventTelemetry =
+			typeof value.ghostVersion === 'number' && value.ghostVersion >= 6
 		const overviewAvailability: Record<string, boolean> = {
 			distance: value.distance != null,
 			runs: true,
@@ -45,8 +47,14 @@ export function useSingleRecordTelemetryModel(
 		const chartAvailability: Record<string, boolean> = {
 			'surface-distance': value.hasSurfaceData === true,
 			'surface-time': value.hasSurfaceData === true,
-			'movement-distance': value.hasAirData === true || value.hasRagdollData === true,
-			'movement-time': value.hasAirData === true || value.hasRagdollData === true,
+			'movement-distance':
+				hasExtendedEventTelemetry ||
+				value.hasAirData === true ||
+				value.hasRagdollData === true,
+			'movement-time':
+				hasExtendedEventTelemetry ||
+				value.hasAirData === true ||
+				value.hasRagdollData === true,
 			wheels: value.hasWheelData === true,
 		}
 		return {

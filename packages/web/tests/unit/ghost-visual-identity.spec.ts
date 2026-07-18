@@ -105,4 +105,38 @@ describe('ghost visual identity', () => {
 		expect(normalizeGhostColor('#12AB34')).toBeNull()
 		expect(sanitizeGhostUsername('<color=#fff>Player</color>')).toBe('Player')
 	})
+
+	it('uses ghost colour for selected record and primary fallback when absent', () => {
+		const withGhostColor = buildGhostVisualIdentities(
+			[
+				{
+					record: record({ recordId: 10 }),
+					ghost: {
+						metadata: {
+							steamId: '76561198000000001',
+							taggedUsername: null,
+							color: '#12ab34ff',
+							cosmetics: null,
+						},
+					},
+				},
+			],
+			labels,
+			'en',
+			'#facc15',
+			['#38bdf8'],
+			10,
+		)
+		const withoutGhostColor = buildGhostVisualIdentities(
+			[{ record: record({ recordId: 10 }) }],
+			labels,
+			'en',
+			'#facc15',
+			['#38bdf8'],
+			10,
+		)
+
+		expect(withGhostColor[0]?.bodyColor).toBe('#12ab34')
+		expect(withoutGhostColor[0]?.bodyColor).toBe('#facc15')
+	})
 })

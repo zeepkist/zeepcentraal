@@ -51,6 +51,9 @@ export type RecordAnalysisLabels = {
 		observedLabel: string
 		labels: {
 			airborneDuration: string
+			airSteering: string
+			left: string
+			right: string
 			events: string
 			airborneShare: string
 			angularVelocityReduction: string
@@ -209,7 +212,7 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 				'air-arms-up': {
 					label: events('kinds.airArmsUp'),
 					description: airControl('controls.armsUp.description'),
-					icon: 'arrow-up-from-arc',
+					icon: 'arrow-down-from-arc',
 					color: '#8b5cf6',
 				},
 				'air-braking': {
@@ -254,6 +257,9 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 			observedLabel: airControl('observed'),
 			labels: {
 				airborneDuration: airControl('airborneDuration'),
+				airSteering: airControl('airSteering'),
+				left: airControl('left'),
+				right: airControl('right'),
 				events: airControl('events'),
 				airborneShare: airControl('airborneShare'),
 				angularVelocityReduction: airControl('angularVelocityReduction'),
@@ -271,7 +277,7 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 				armsUp: {
 					title: airControl('controls.armsUp.title'),
 					description: airControl('controls.armsUp.description'),
-					icon: 'arrow-up-from-arc',
+					icon: 'arrow-down-from-arc',
 				},
 				steeringLeft: {
 					title: airControl('controls.steeringLeft.title'),

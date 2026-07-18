@@ -124,12 +124,16 @@ import type { GhostSlipEvent, LoadedPlaybackGhost } from '~/types/ghost'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import { buildRecordDriftRuns, type RecordDriftRun } from '~/utils/recordGhostAnalysis'
 
-const props = defineProps<{
-	events: GhostSlipEvent[]
-	comparisonRuns?: RecordDriftRun[]
-	comparisons?: LoadedPlaybackGhost[]
-	labels: RecordAnalysisLabels['drift']
-}>()
+const props = withDefaults(
+	defineProps<{
+		events: GhostSlipEvent[]
+		comparisonRuns?: RecordDriftRun[]
+		comparisons?: LoadedPlaybackGhost[]
+		primaryColor?: string
+		labels: RecordAnalysisLabels['drift']
+	}>(),
+	{ primaryColor: '#facc15' },
+)
 
 const emit = defineEmits<{ seek: [time: number] }>()
 const { locale } = useI18n()
@@ -146,7 +150,7 @@ const runs = computed<RecordDriftRun[]>(() => [
 	{
 		recordId: 0,
 		label: props.labels.primary,
-		color: '#facc15',
+		color: props.primaryColor,
 		dashed: false,
 		events: props.events,
 		eventCount: props.events.length,

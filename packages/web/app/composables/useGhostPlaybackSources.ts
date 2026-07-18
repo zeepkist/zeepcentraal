@@ -37,6 +37,7 @@ export function useGhostPlaybackSources(options: GhostPlaybackSourceOptions) {
 			options.locale.value,
 			options.primaryColor.value,
 			options.fallbackPalette,
+			options.sources.value[0]?.recordId,
 		)
 		const identityById = new Map(identities.map((identity) => [identity.recordId, identity]))
 		return inputs.flatMap(({ record, ghost }) => {

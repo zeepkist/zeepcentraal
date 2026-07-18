@@ -4,9 +4,9 @@ const CELL_SIZE = 16 as const
 const MAJOR_EVERY = 4 as const
 const MARGIN = CELL_SIZE * MAJOR_EVERY
 const MINIMUM_EXTENT = 256
-const MINIMUM_LABEL_WORLD_OFFSET = 2.8
-const LABEL_GAP_PIXELS = 12
-const LABEL_STAGGER_PIXELS = 8
+const MINIMUM_LABEL_WORLD_OFFSET = 4.5
+const LABEL_GAP_PIXELS = 24
+const LABEL_STAGGER_PIXELS = 10
 
 export function buildGhostGrid(paths: readonly (readonly GhostPlaybackFrame[])[]): GhostGridModel {
 	const positions = paths.flatMap((frames) => frames.map(({ position }) => position))
@@ -91,7 +91,25 @@ export function interpolateGhostFrame(
 			left.steering == null || right.steering == null
 				? left.steering
 				: lerp(left.steering, right.steering, ratio),
+		ragdollPosition:
+			left.ragdollPosition == null || right.ragdollPosition == null
+				? left.ragdollPosition
+				: lerpVector3(left.ragdollPosition, right.ragdollPosition, ratio),
 	}
+}
+
+export function resolveGhostDisplayPosition(frame: GhostPlaybackFrame): GhostVector3 {
+	return frame.ragdoll === true && frame.ragdollPosition != null
+		? frame.ragdollPosition
+		: frame.position
+}
+
+export function resolveGhostPlaybackStartTime(currentTime: number, duration: number): number {
+	const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0
+	const safeCurrentTime = Number.isFinite(currentTime)
+		? Math.min(safeDuration, Math.max(0, currentTime))
+		: 0
+	return safeCurrentTime >= safeDuration - 0.0005 ? 0 : safeCurrentTime
 }
 
 export function perspectiveWorldUnitsPerPixel(
@@ -182,4 +200,12 @@ function ceilTo(value: number, step: number) {
 
 function lerp(start: number, end: number, ratio: number) {
 	return start + (end - start) * ratio
+}
+
+function lerpVector3(start: GhostVector3, end: GhostVector3, ratio: number): GhostVector3 {
+	return {
+		x: lerp(start.x, end.x, ratio),
+		y: lerp(start.y, end.y, ratio),
+		z: lerp(start.z, end.z, ratio),
+	}
 }

@@ -1,21 +1,19 @@
 <template>
-	<section class="overflow-hidden rounded-2xl border border-border bg-linear-to-br from-card to-primary/5">
+	<section class="overflow-hidden rounded-2xl border border-border bg-card/60">
 		<header class="flex flex-wrap items-start justify-between gap-3 border-b border-border/80 p-4">
 			<div>
 				<h3 class="font-bold text-highlighted">{{ labels.title }}</h3>
 				<p class="mt-1 text-xs text-muted-foreground">{{ labels.description }}</p>
 			</div>
-			<span class="rounded-lg bg-primary/10 p-1.5 text-primary">
-				<TablerIcon :name="labels.icon" class="size-4" />
-			</span>
+			<TablerIcon :name="labels.icon" class="size-5 shrink-0 text-primary" />
 		</header>
 
-		<div v-if="runs.length > 0" class="space-y-3 p-4">
+		<div v-if="runs.length > 0" class="divide-y divide-border/70">
 			<article
 				v-for="run in runs"
 				:key="run.recordId"
-				class="rounded-xl border p-3"
-				:class="run.isPrimary ? 'border-primary/40 bg-primary/5' : 'border-border/70 bg-card/55'"
+				class="p-4"
+				:class="run.isPrimary ? 'bg-primary/5' : undefined"
 			>
 				<header class="flex flex-wrap items-center gap-2">
 					<span class="size-2.5 rounded-full" :style="{ backgroundColor: run.color }" />
@@ -25,50 +23,109 @@
 					<UBadge v-if="run.isPrimary" color="primary" variant="soft" size="xs">
 						{{ labels.primary }}
 					</UBadge>
-					<div v-if="run.available" class="text-xs tabular-nums text-muted-foreground">
-						{{ labels.labels.airborneDuration }}
-						<span class="ml-1 font-semibold text-highlighted">
-							{{ formatDuration(run.airborneDuration) }}
-						</span>
-					</div>
 				</header>
 
-				<div v-if="run.available" class="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-4">
-					<div
-						v-for="control in controlsFor(run)"
-						:key="control.key"
-						class="rounded-lg border border-border/60 bg-muted/20 p-3"
-					>
-						<div class="flex items-start gap-2">
-							<TablerIcon :name="control.icon" class="mt-0.5 size-4 shrink-0 text-primary" />
-							<div class="min-w-0">
-								<h5 class="text-xs font-bold text-highlighted">{{ control.title }}</h5>
-								<p class="mt-0.5 text-[0.7rem] leading-relaxed text-muted-foreground">
-									{{ control.description }}
-								</p>
-							</div>
-						</div>
-
-						<dl class="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-xs">
-							<template v-for="metric in control.metrics" :key="metric.label">
-								<dt class="truncate text-muted-foreground">{{ metric.label }}</dt>
-								<dd class="text-right font-semibold tabular-nums text-highlighted">
-									{{ metric.value }}
-								</dd>
-							</template>
-						</dl>
+				<dl v-if="run.available" class="mt-4 grid gap-x-5 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
+					<div>
+						<dt class="text-xs font-medium text-muted-foreground">
+							{{ labels.labels.airborneDuration }}
+						</dt>
+						<dd class="mt-1 text-lg font-black tabular-nums text-highlighted">
+							{{ formatDuration(run.airborneDuration) }}
+						</dd>
 					</div>
-				</div>
 
-				<div v-else class="mt-3 rounded-lg bg-muted/25 px-3 py-4 text-center text-sm text-muted-foreground">
-					{{ labels.unavailableLabel }}
-				</div>
+					<div>
+						<dt class="flex items-center gap-1.5 text-xs font-bold text-highlighted">
+							<TablerIcon :name="labels.controls.braking.icon" class="size-4 text-primary" />
+							{{ labels.controls.braking.title }}
+							<UTooltip :text="labels.controls.braking.description">
+								<TablerIcon
+									name="info-circle"
+									class="size-3.5 text-muted-foreground"
+									:aria-label="labels.controls.braking.description"
+								/>
+							</UTooltip>
+						</dt>
+						<dd class="mt-1 text-sm font-semibold tabular-nums text-highlighted">
+							{{ formatEventSummary(run.braking) }}
+						</dd>
+						<dd class="mt-1 text-xs leading-5 text-muted-foreground">
+							{{ labels.labels.angularVelocityReduction }}
+							<span class="font-medium tabular-nums text-toned">
+								{{ formatMetric(run.medianBrakeAngularVelocityReduction, labels.units.radiansPerSecond) }}
+							</span>
+							<br />
+							{{ labels.labels.uprightImprovement }}
+							<span class="font-medium tabular-nums text-toned">
+								{{ formatAngle(run.medianBrakeUprightImprovement) }}
+							</span>
+						</dd>
+					</div>
+
+					<div>
+						<dt class="flex items-center gap-1.5 text-xs font-bold text-highlighted">
+							<TablerIcon :name="labels.controls.armsUp.icon" class="size-4 text-primary" />
+							{{ labels.controls.armsUp.title }}
+							<UTooltip :text="labels.controls.armsUp.description">
+								<TablerIcon
+									name="info-circle"
+									class="size-3.5 text-muted-foreground"
+									:aria-label="labels.controls.armsUp.description"
+								/>
+							</UTooltip>
+						</dt>
+						<dd class="mt-1 text-sm font-semibold tabular-nums text-highlighted">
+							{{ formatEventSummary(run.armsUp) }}
+						</dd>
+						<dd class="mt-1 text-xs leading-5 text-muted-foreground">
+							{{ labels.labels.verticalTravel }}
+							<span class="font-medium tabular-nums text-toned">
+								{{ formatMetric(run.medianArmsUpVerticalTravel, labels.units.metres) }}
+							</span>
+							<br />
+							{{ labels.labels.uprightImprovement }}
+							<span class="font-medium tabular-nums text-toned">
+								{{ formatAngle(run.medianArmsUpUprightImprovement) }}
+							</span>
+						</dd>
+					</div>
+
+					<div>
+						<dt class="flex items-center gap-1.5 text-xs font-bold text-highlighted">
+							<TablerIcon name="steering-wheel" class="size-4 text-primary" />
+							{{ labels.labels.airSteering }}
+						</dt>
+						<dd class="mt-1 space-y-1 text-xs leading-5 text-muted-foreground">
+							<div>
+								<span class="font-medium text-toned">{{ labels.labels.left }}</span>
+								· {{ formatEventSummary(run.steeringLeft) }}<br />
+								{{ labels.labels.rotation }}
+								<span class="tabular-nums text-toned">{{ formatAngle(run.medianSteeringLeftRotation) }}</span>
+								· {{ labels.labels.rotationRate }}
+								<span class="tabular-nums text-toned">{{ formatAngularRate(run.medianSteeringLeftRotationRate) }}</span>
+							</div>
+							<div>
+								<span class="font-medium text-toned">{{ labels.labels.right }}</span>
+								· {{ formatEventSummary(run.steeringRight) }}<br />
+								{{ labels.labels.rotation }}
+								<span class="tabular-nums text-toned">{{ formatAngle(run.medianSteeringRightRotation) }}</span>
+								· {{ labels.labels.rotationRate }}
+								<span class="tabular-nums text-toned">{{ formatAngularRate(run.medianSteeringRightRotationRate) }}</span>
+							</div>
+						</dd>
+					</div>
+				</dl>
+
+				<p v-else class="mt-3 text-sm text-muted-foreground">{{ labels.unavailableLabel }}</p>
 			</article>
 
-			<p class="text-xs leading-relaxed text-muted-foreground">{{ labels.observedLabel }}</p>
+			<p class="px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+				{{ labels.observedLabel }}
+			</p>
 		</div>
 
-		<div v-else class="grid min-h-40 place-items-center px-6 text-sm text-muted-foreground">
+		<div v-else class="grid min-h-32 place-items-center px-6 text-sm text-muted-foreground">
 			{{ labels.unavailableLabel }}
 		</div>
 	</section>
@@ -95,88 +152,12 @@ const percentageFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { style: 'percent', maximumFractionDigits: 1 }),
 )
 
-function controlsFor(run: RecordAirControlRun) {
-	return [
-		{
-			key: 'braking',
-			...props.labels.controls.braking,
-			metrics: [
-				...eventMetrics(run.braking),
-				{
-					label: props.labels.labels.angularVelocityReduction,
-					value: formatMetric(
-						run.medianBrakeAngularVelocityReduction,
-						props.labels.units.radiansPerSecond,
-					),
-				},
-				{
-					label: props.labels.labels.uprightImprovement,
-					value: formatAngle(run.medianBrakeUprightImprovement),
-				},
-			],
-		},
-		{
-			key: 'arms-up',
-			...props.labels.controls.armsUp,
-			metrics: [
-				...eventMetrics(run.armsUp),
-				{
-					label: props.labels.labels.verticalTravel,
-					value: formatMetric(run.medianArmsUpVerticalTravel, props.labels.units.metres),
-				},
-				{
-					label: props.labels.labels.uprightImprovement,
-					value: formatAngle(run.medianArmsUpUprightImprovement),
-				},
-			],
-		},
-		{
-			key: 'steering-left',
-			...props.labels.controls.steeringLeft,
-			metrics: [
-				...eventMetrics(run.steeringLeft),
-				{
-					label: props.labels.labels.rotation,
-					value: formatAngle(run.medianSteeringLeftRotation),
-				},
-				{
-					label: props.labels.labels.rotationRate,
-					value: formatAngularRate(run.medianSteeringLeftRotationRate),
-				},
-			],
-		},
-		{
-			key: 'steering-right',
-			...props.labels.controls.steeringRight,
-			metrics: [
-				...eventMetrics(run.steeringRight),
-				{
-					label: props.labels.labels.rotation,
-					value: formatAngle(run.medianSteeringRightRotation),
-				},
-				{
-					label: props.labels.labels.rotationRate,
-					value: formatAngularRate(run.medianSteeringRightRotationRate),
-				},
-			],
-		},
-	]
-}
-
-function eventMetrics(summary: RecordAirControlEventSummary) {
-	return [
-		{
-			label: props.labels.labels.events,
-			value: integerFormat.value.format(summary.eventCount),
-		},
-		{
-			label: props.labels.labels.airborneShare,
-			value:
-				summary.airborneShare === null
-					? props.labels.unavailableLabel
-					: percentageFormat.value.format(summary.airborneShare),
-		},
-	]
+function formatEventSummary(summary: RecordAirControlEventSummary) {
+	const share =
+		summary.airborneShare === null
+			? props.labels.unavailableLabel
+			: percentageFormat.value.format(summary.airborneShare)
+	return `${props.labels.labels.events} ${integerFormat.value.format(summary.eventCount)} · ${props.labels.labels.airborneShare} ${share}`
 }
 
 function formatDuration(value: number | null) {

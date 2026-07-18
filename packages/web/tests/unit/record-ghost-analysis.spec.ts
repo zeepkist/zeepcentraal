@@ -257,6 +257,7 @@ describe('record ghost analysis', () => {
 			'RecordCoachingInsights.vue',
 			'RecordCapabilityNotice.vue',
 			'RecordAirControlAnalysis.vue',
+			'RecordAnalysisTabs.vue',
 		]
 		for (const file of files) {
 			const source = readFileSync(
@@ -269,7 +270,29 @@ describe('record ghost analysis', () => {
 			new URL('../../app/components/record/RecordTelemetryCharts.vue', import.meta.url),
 			'utf8',
 		)
+		const driftSource = readFileSync(
+			new URL('../../app/components/record/RecordDriftAnalysis.vue', import.meta.url),
+			'utf8',
+		)
 		expect(chartSource).toContain('<DashboardChartTooltip')
+		expect(chartSource).toContain('color: props.primaryColor')
+		expect(driftSource).toContain('color: props.primaryColor')
+	})
+
+	it('uses compact air-control rows without nested control cards', () => {
+		const source = readFileSync(
+			new URL('../../app/components/record/RecordAirControlAnalysis.vue', import.meta.url),
+			'utf8',
+		)
+
+		expect(source).toContain('divide-y divide-border/70')
+		expect(source).toContain('sm:grid-cols-2 xl:grid-cols-4')
+		expect(source).toContain('formatEventSummary(run.braking)')
+		expect(source).toContain('formatEventSummary(run.armsUp)')
+		expect(source).toContain('formatEventSummary(run.steeringLeft)')
+		expect(source).toContain('formatEventSummary(run.steeringRight)')
+		expect(source).not.toContain('v-for="control in controlsFor(run)"')
+		expect(source).not.toContain('bg-linear-to-br')
 	})
 
 	it('marks unsupported persisted telemetry groups unavailable', () => {
@@ -283,6 +306,8 @@ describe('record ghost analysis', () => {
 		)
 
 		expect(modelSource).toContain("'surface-distance': value.hasSurfaceData === true")
+		expect(modelSource).toContain('value.ghostVersion >= 6')
+		expect(modelSource).toMatch(/hasExtendedEventTelemetry\s*\|\|\s*value\.hasAirData/)
 		expect(modelSource).toContain('wheels: value.hasWheelData === true')
 		expect(modelSource).toContain('unavailable: value.hasInputData !== true')
 		expect(panelSource).toContain('v-if="chart.unavailable"')

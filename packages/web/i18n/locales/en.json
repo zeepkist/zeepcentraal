@@ -439,7 +439,6 @@
 				"failedTitle": "Some replays could not be loaded",
 				"failedDescription": "{count} replay could not be downloaded or decoded. Other comparisons remain available. | {count} replays could not be downloaded or decoded. Other comparisons remain available.",
 				"retry": "Retry failed replays",
-				"grid": "16 m Zeepkist grid",
 				"frameRate": "{value} FPS",
 				"approximateGeometry": "Approximate level geometry",
 				"emptyTitle": "No playable ghost",
@@ -544,6 +543,13 @@
 				"speedDescription": "Speed recorded at each checkpoint and at the finish where ghost telemetry is available."
 			},
 			"analysis": {
+				"tabs": {
+					"label": "Record analysis sections",
+					"telemetry": "Telemetry",
+					"analysis": "Analysis",
+					"improvement": "Improvement opportunities",
+					"unavailable": "No decoded ghost data is available for this section."
+				},
 				"telemetry": {
 					"primary": "Selected record",
 					"empty": "N/A",
@@ -602,6 +608,9 @@
 					"primary": "Selected record",
 					"observed": "Observed telemetry correlation; use the replay and racing line before treating it as a time-saving recommendation.",
 					"airborneDuration": "Airborne time",
+					"airSteering": "Air steering",
+					"left": "Left",
+					"right": "Right",
 					"events": "Events",
 					"airborneShare": "Share of airborne time",
 					"angularVelocityReduction": "Rotation reduction",

@@ -21,6 +21,7 @@ export function buildGhostVisualIdentities(
 	locale: string,
 	primaryColor: string,
 	fallbackPalette: readonly string[],
+	primaryRecordId = inputs[0]?.record.recordId,
 ): GhostVisualIdentity[] {
 	const grouped = new Map<string, GhostIdentityInput[]>()
 	for (const input of inputs) {
@@ -45,6 +46,7 @@ export function buildGhostVisualIdentities(
 				input,
 				primaryColor,
 				fallbackPalette,
+				input.record.recordId === primaryRecordId,
 			)
 			identities.set(input.record.recordId, {
 				recordId: input.record.recordId,
@@ -115,12 +117,14 @@ function resolveGhostColor(
 	input: GhostIdentityInput,
 	primaryColor: string,
 	fallbackPalette: readonly string[],
+	isPrimary: boolean,
 ): Pick<GhostVisualIdentity, 'bodyColor' | 'colorSource'> {
 	if (input.record.isWorldRecord) {
 		return { bodyColor: primaryColor, colorSource: 'world-record' }
 	}
 	const ghostColor = normalizeGhostColor(input.ghost?.metadata.color)
 	if (ghostColor) return { bodyColor: ghostColor, colorSource: 'ghost' }
+	if (isPrimary) return { bodyColor: primaryColor, colorSource: 'fallback' }
 	const palette = fallbackPalette.length > 0 ? fallbackPalette : ['#38bdf8']
 	return {
 		bodyColor: palette[stableHash(stableUserKey(input.record)) % palette.length] ?? '#38bdf8',

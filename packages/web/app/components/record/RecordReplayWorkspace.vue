@@ -27,18 +27,19 @@
 			:quality="quality"
 			:labels="labels.viewer"
 			@update:current-time="currentTime = $event"
-			@update:playing="playing = $event"
+			@update:playing="setPlaying"
 			@update:following="following = $event"
 		/>
 		<GhostPlaybackControls
 			v-if="ghosts.length"
 			v-model:current-time="currentTime"
-			v-model:playing="playing"
+			:playing="playing"
 			v-model:playback-rate="playbackRate"
 			v-model:loop="loop"
 			v-model:camera-mode="cameraMode"
 			:duration="duration"
 			:labels="labels.controls"
+			@update:playing="setPlaying"
 			@step="step"
 			@follow="viewer?.followSelected()"
 			@frame-route="viewer?.frameRoute()"
@@ -78,6 +79,7 @@ import type {
 	GhostLoadState,
 	LoadedPlaybackGhost,
 } from '~/types/ghost'
+import { resolveGhostPlaybackStartTime } from '~/utils/ghostScene'
 
 const props = defineProps<{
 	ghosts: LoadedPlaybackGhost[]
@@ -93,7 +95,6 @@ const props = defineProps<{
 		failedDescription: (count: number) => string
 		retry: string
 		viewer: {
-			grid: string
 			frameRate: (value: number) => string
 			approximateGeometry: string
 			emptyTitle: string
@@ -178,6 +179,11 @@ function step(direction: -1 | 1) {
 function seek(time: number, options: { pause?: boolean } = {}) {
 	currentTime.value = Math.min(duration.value, Math.max(0, time))
 	if (options.pause) playing.value = false
+}
+
+function setPlaying(value: boolean) {
+	if (value) currentTime.value = resolveGhostPlaybackStartTime(currentTime.value, duration.value)
+	playing.value = value
 }
 
 defineExpose({ seek })
