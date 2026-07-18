@@ -1,15 +1,5 @@
 <template>
 	<div class="overflow-hidden rounded-2xl border border-border bg-linear-to-br from-card to-primary/5">
-		<div class="flex flex-wrap items-start justify-between gap-3 border-b border-border/80 p-4">
-			<div>
-				<h3 class="font-bold text-highlighted">{{ labels.title }}</h3>
-				<p class="mt-1 text-xs text-muted-foreground">{{ labels.description }}</p>
-			</div>
-			<span class="rounded-lg bg-primary/10 p-1.5 text-primary">
-				<TablerIcon :name="labels.icon" class="size-4" />
-			</span>
-		</div>
-
 		<div v-if="runs.some((run) => run.eventCount > 0)" class="space-y-5 p-4">
 			<div class="space-y-3">
 				<h4 class="text-sm font-bold text-highlighted">{{ labels.comparisonTitle }}</h4>

@@ -138,29 +138,47 @@
 							<LevelSplitAnalysis :analysis="checkpointAnalysis" :labels="checkpointLabels" />
 						</section>
 
-						<RecordAirControlAnalysis
-							v-if="primaryGhost"
-							:runs="airControlRuns"
-							:labels="analysisLabels.airControl"
-						/>
+						<section v-if="primaryGhost" aria-labelledby="air-control-analysis-heading">
+							<SectionHeader
+								id="air-control-analysis-heading"
+								:title="analysisLabels.airControl.title"
+								:description="analysisLabels.airControl.description"
+							/>
+							<RecordAirControlAnalysis
+								:runs="airControlRuns"
+								:labels="analysisLabels.airControl"
+							/>
+						</section>
 
-						<RecordDriftAnalysis
-							v-if="primaryGhost"
-							:events="slipEvents"
-							:comparison-runs="comparisonDriftRuns"
-							:primary-color="primaryVisualColor"
-							:labels="analysisLabels.drift"
-							@seek="seekAnalysisEvent"
-						/>
+						<section v-if="primaryGhost" aria-labelledby="drift-analysis-heading">
+							<SectionHeader
+								id="drift-analysis-heading"
+								:title="analysisLabels.drift.title"
+								:description="analysisLabels.drift.description"
+							/>
+							<RecordDriftAnalysis
+								:events="slipEvents"
+								:comparison-runs="comparisonDriftRuns"
+								:primary-color="primaryVisualColor"
+								:labels="analysisLabels.drift"
+								@seek="seekAnalysisEvent"
+							/>
+						</section>
 					</template>
 
 					<template #improvement>
-						<RecordCoachingInsights
-							v-if="primaryGhost"
-							:insights="coachingInsights"
-							:labels="analysisLabels.coaching"
-							@seek="seekAnalysisEvent"
-						/>
+						<section v-if="primaryGhost" aria-labelledby="coaching-insights-heading">
+							<SectionHeader
+								id="coaching-insights-heading"
+								:title="analysisLabels.coaching.title"
+								:description="analysisLabels.coaching.description"
+							/>
+							<RecordCoachingInsights
+								:insights="coachingInsights"
+								:labels="analysisLabels.coaching"
+								@seek="seekAnalysisEvent"
+							/>
+						</section>
 						<div
 							v-else
 							class="grid min-h-40 place-items-center rounded-2xl border border-dashed border-border bg-card/40 px-6 text-center text-sm text-muted-foreground"

@@ -46,6 +46,18 @@ const playbackViewer = readFileSync(
 	new URL('../../app/components/record/GhostPlaybackViewer.client.vue', import.meta.url),
 	'utf8',
 )
+const airControlAnalysis = readFileSync(
+	new URL('../../app/components/record/RecordAirControlAnalysis.vue', import.meta.url),
+	'utf8',
+)
+const driftAnalysis = readFileSync(
+	new URL('../../app/components/record/RecordDriftAnalysis.vue', import.meta.url),
+	'utf8',
+)
+const coachingInsights = readFileSync(
+	new URL('../../app/components/record/RecordCoachingInsights.vue', import.meta.url),
+	'utf8',
+)
 const schema = buildSchema(
 	readFileSync(new URL('../../../graphql/schema.graphql', import.meta.url), 'utf8'),
 )
@@ -153,6 +165,24 @@ describe('record detail GraphQL', () => {
 		expect(analysisTabs).toContain('<UTabs')
 		expect(analysisTabs).toContain("ref<'telemetry' | 'analysis' | 'improvement'>('telemetry')")
 		expect(analysisTabs).not.toMatch(/\$fetch|useFetch|useAsyncData|useQuery/)
+	})
+
+	it('renders analysis titles through page-level section headers', () => {
+		for (const id of [
+			'air-control-analysis-heading',
+			'drift-analysis-heading',
+			'coaching-insights-heading',
+		]) {
+			expect(recordPage).toContain(`aria-labelledby="${id}"`)
+			expect(recordPage).toContain(`id="${id}"`)
+		}
+		expect(recordPage).toContain(':title="analysisLabels.airControl.title"')
+		expect(recordPage).toContain(':title="analysisLabels.drift.title"')
+		expect(recordPage).toContain(':title="analysisLabels.coaching.title"')
+		for (const component of [airControlAnalysis, driftAnalysis, coachingInsights]) {
+			expect(component).not.toContain('{{ labels.title }}')
+			expect(component).not.toContain('{{ labels.description }}')
+		}
 	})
 
 	it('pauses event seeks and scrolls the replay into view accessibly', () => {

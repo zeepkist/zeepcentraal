@@ -1,13 +1,5 @@
 <template>
 	<section class="overflow-hidden rounded-2xl border border-border bg-card/60">
-		<header class="flex flex-wrap items-start justify-between gap-3 border-b border-border/80 p-4">
-			<div>
-				<h3 class="font-bold text-highlighted">{{ labels.title }}</h3>
-				<p class="mt-1 text-xs text-muted-foreground">{{ labels.description }}</p>
-			</div>
-			<TablerIcon :name="labels.icon" class="size-5 shrink-0 text-primary" />
-		</header>
-
 		<div v-if="runs.length > 0">
 			<div class="overflow-x-auto">
 				<table class="w-full min-w-3xl table-fixed border-collapse text-left">
