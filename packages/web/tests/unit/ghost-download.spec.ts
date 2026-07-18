@@ -55,6 +55,15 @@ describe('direct ghost downloads', () => {
 		)
 	})
 
+	it('resolves stored relative ghost paths against configured CDN', () => {
+		expect(assertAllowedGhostUrl('ghosts/example.bin', allowed).href).toBe(
+			'https://cdn.zeepki.st/ghosts/example.bin',
+		)
+		expect(() => assertAllowedGhostUrl('//attacker.example/ghost', allowed)).toThrow(
+			'not trusted',
+		)
+	})
+
 	it('downloads directly, parses before caching, then reads raw bytes from cache', async () => {
 		let fetchCount = 0
 		const fetch = async () => {

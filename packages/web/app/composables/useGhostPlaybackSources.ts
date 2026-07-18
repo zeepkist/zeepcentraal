@@ -16,10 +16,14 @@ export type GhostPlaybackSourceOptions = {
 }
 
 export function useGhostPlaybackSources(options: GhostPlaybackSourceOptions) {
+	const maximumConcurrentLoads = 3
 	const config = useRuntimeConfig()
 	const states = reactive(new Map<number, GhostLoadState>())
 	const parsed = shallowReactive(new Map<number, ParsedPlaybackGhost>())
-	const requested = new Set<number>()
+	const requested = new Map<number, string>()
+	const generations = new Map<number, number>()
+	const loadWaiters: Array<() => void> = []
+	let activeLoads = 0
 	const allowedOrigins = parseGhostCdnOrigins(String(config.public.ghostCdnOrigins))
 
 	const loaded = computed<LoadedPlaybackGhost[]>(() => {
@@ -45,22 +49,38 @@ export function useGhostPlaybackSources(options: GhostPlaybackSourceOptions) {
 		() => options.sources.value,
 		(sources) => {
 			if (import.meta.server) return
+			const activeIds = new Set(sources.map(({ recordId }) => recordId))
+			for (const recordId of requested.keys()) {
+				if (activeIds.has(recordId)) continue
+				requested.delete(recordId)
+				states.delete(recordId)
+				parsed.delete(recordId)
+				generations.set(recordId, (generations.get(recordId) ?? 0) + 1)
+			}
 			for (const source of sources) {
-				if (!requested.has(source.recordId)) void load(source)
+				if (requested.get(source.recordId) !== sourceKey(source)) void load(source)
 			}
 		},
 		{ immediate: true },
 	)
 
 	async function load(source: GhostRecordSource) {
-		requested.add(source.recordId)
+		const key = sourceKey(source)
+		const generation = (generations.get(source.recordId) ?? 0) + 1
+		generations.set(source.recordId, generation)
+		requested.set(source.recordId, key)
 		if (!source.ghostUrl) {
-			states.set(source.recordId, { status: 'error', message: 'missing-ghost' })
+			if (isCurrent(source.recordId, key, generation)) {
+				states.set(source.recordId, { status: 'error', message: 'missing-ghost' })
+			}
 			return
 		}
 		states.set(source.recordId, { status: 'loading', progress: 'queued', source: null })
+		await acquireLoadSlot()
 		try {
+			if (!isCurrent(source.recordId, key, generation)) return
 			const { parseGhostInWorker } = await import('~/composables/useGhostParserWorker.client')
+			if (!isCurrent(source.recordId, key, generation)) return
 			states.set(source.recordId, {
 				status: 'loading',
 				progress: 'decompressing',
@@ -69,6 +89,7 @@ export function useGhostPlaybackSources(options: GhostPlaybackSourceOptions) {
 			const result = await loadGhostBinary(source, allowedOrigins, {
 				parse: parseGhostInWorker,
 			})
+			if (!isCurrent(source.recordId, key, generation)) return
 			parsed.set(source.recordId, result.ghost)
 			states.set(source.recordId, {
 				status: 'loaded',
@@ -76,10 +97,13 @@ export function useGhostPlaybackSources(options: GhostPlaybackSourceOptions) {
 				byteLength: result.byteLength,
 			})
 		} catch (error) {
+			if (!isCurrent(source.recordId, key, generation)) return
 			states.set(source.recordId, {
 				status: 'error',
 				message: error instanceof Error ? error.message : String(error),
 			})
+		} finally {
+			releaseLoadSlot()
 		}
 	}
 
@@ -90,5 +114,27 @@ export function useGhostPlaybackSources(options: GhostPlaybackSourceOptions) {
 		void load(source)
 	}
 
+	function isCurrent(recordId: number, key: string, generation: number) {
+		return requested.get(recordId) === key && generations.get(recordId) === generation
+	}
+
+	async function acquireLoadSlot() {
+		if (activeLoads < maximumConcurrentLoads) {
+			activeLoads++
+			return
+		}
+		await new Promise<void>((resolve) => loadWaiters.push(resolve))
+	}
+
+	function releaseLoadSlot() {
+		const next = loadWaiters.shift()
+		if (next) next()
+		else activeLoads--
+	}
+
 	return { loaded, parsed, retry, states }
+}
+
+function sourceKey(source: GhostRecordSource) {
+	return `${source.ghostUrl ?? ''}:${source.mediaRevision ?? source.dateCreated}`
 }

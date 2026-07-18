@@ -39,7 +39,13 @@
 		"previous": "Previous",
 		"next": "Next",
 		"last": "Last",
-		"pagination": "Results pagination"
+		"pagination": "Results pagination",
+		"auto": "Auto",
+		"clear": "Clear",
+		"remove": "Remove",
+		"unavailable": "—",
+		"personalBest": "PB",
+		"worldRecord": "WR"
 	},
 	"error": {
 		"action": "Return home",
@@ -408,13 +414,233 @@
 			}
 		},
 		"recordDetail": {
-			"title": "Record details are coming next",
-			"description": "Record #{id} has a permanent page. Full telemetry, replay, and comparison tools will appear here.",
+			"title": "Record analysis",
+			"description": "Replay, compare, and understand every part of this run.",
 			"back": "Back to records",
 			"notFound": "Record not found",
+			"unknownPlayer": "Unknown player",
+			"unknownLevel": "Unknown level",
+			"hero": {
+				"record": "Record #{id}",
+				"recordTime": "Finish time",
+				"set": "Set",
+				"gameVersion": "Game / mod",
+				"modVersion": "GTR version",
+				"ghostVersion": "Ghost format",
+				"levelRank": "Level rank",
+				"rankedPoints": "Ranked points"
+			},
+			"replay": {
+				"title": "Ghost replay",
+				"description": "Inspect lines, inputs, speed, and positioning from any angle. Replays download directly from ZeepCentraal's public CDN and stay cached on this device.",
+				"loadingTitle": "Preparing ghost replay",
+				"loadingDescription": "Downloading and decoding compressed ghost data in your browser.",
+				"failedTitle": "Some replays could not be loaded",
+				"failedDescription": "{count} replay could not be downloaded or decoded. Other comparisons remain available. | {count} replays could not be downloaded or decoded. Other comparisons remain available.",
+				"retry": "Retry failed replays",
+				"grid": "16 m Zeepkist grid",
+				"frameRate": "{value} FPS",
+				"approximateGeometry": "Approximate level geometry",
+				"emptyTitle": "No playable ghost",
+				"emptyDescription": "This record does not include compatible ghost data.",
+				"contextLostTitle": "3D renderer paused",
+				"contextLostDescription": "Browser lost its WebGL context. Playback resumes when the renderer is restored.",
+				"unavailableTitle": "3D replay unavailable",
+				"unavailableDescription": "This browser or device could not start a WebGL renderer. Telemetry analysis remains available.",
+				"labels": {
+					"worldRecord": "{name} (WR)",
+					"personalBest": "{name} (PB)",
+					"ordinal": "{name} ({ordinal})"
+				},
+				"controls": {
+					"play": "Play replay",
+					"pause": "Pause replay",
+					"timeline": "Replay position",
+					"previousFrame": "Previous ghost frame",
+					"nextFrame": "Next ghost frame",
+					"speed": "Playback speed",
+					"loop": "Loop replay",
+					"orbit": "Orbit",
+					"isometric": "Isometric",
+					"follow": "Follow selected ghost",
+					"frameRoute": "Frame full route"
+				}
+			},
+			"performance": {
+				"open": "Ghost playback settings",
+				"title": "Playback quality",
+				"description": "Global settings are saved on this device.",
+				"frameRate": "Frame rate",
+				"quality": "Render quality",
+				"fps30": "30 FPS",
+				"fps60": "60 FPS",
+				"performance": "Performance",
+				"balanced": "Balanced",
+				"qualityHigh": "High quality",
+				"cache": "Offline ghost cache",
+				"cacheValue": "{entries} ghosts · {size}",
+				"clearCache": "Clear"
+			},
+			"comparisons": {
+				"title": "Compare runs",
+				"description": "Overlay the World Record, leading Personal Bests, your own best, another player's best, or this driver's fastest runs.",
+				"quickComparisons": "Quick comparisons",
+				"quickDescription": "Add the most relevant benchmark in one click.",
+				"myPersonalBest": "My PB",
+				"presets": "Comparison sets",
+				"presetsDescription": "Replace current comparisons with a focused group.",
+				"topPlayers": "Top {count} PBs",
+				"ownerRuns": "Driver's fastest {count}",
+				"searchLabel": "Find a player's PB",
+				"searchPlaceholder": "Search player name",
+				"noPersonalBest": "No PB on this level",
+				"selected": "Selected ghosts",
+				"selectedCount": "{count} of 10 comparison slots used",
+				"noneSelected": "Add another run to overlay its path and telemetry."
+			},
+			"telemetry": {
+				"notAvailable": "N/A",
+				"title": "Run telemetry",
+				"description": "Recorded totals reveal where this run spent time, carried speed, and used each control.",
+				"versionDescription": "Fields depend on ghost format and GTR version. Missing capability data is not estimated.",
+				"empty": "N/A",
+				"totalDistance": "Distance driven",
+				"submittedRuns": "Run",
+				"telemetryRuns": "Telemetry sample",
+				"totalTime": "Driving time",
+				"maxSpeed": "Maximum speed",
+				"maxGforce": "Maximum G-force",
+				"surfaceDistance": "Distance travelled on each detected surface.",
+				"surfaceTime": "Time spent on each detected surface.",
+				"movementDistance": "Ground, air, and ragdoll distance for this run.",
+				"movementTime": "Ground, air, and ragdoll time for this run.",
+				"wheelDistance": "Distance split by grounded wheel count.",
+				"driverInputs": "Steering changes and driver actions during this run."
+			},
+			"capabilities": {
+				"title": "Some replay analysis is unavailable",
+				"description": "Ghost format V{version} predates some telemetry channels. Available data remains accurate; unsupported fields are not estimated.",
+				"featuresLabel": "Ghost telemetry capabilities",
+				"features": {
+					"inputs": "Driver inputs",
+					"air": "Air state",
+					"wheels": "Wheel contact",
+					"slip": "Wheel slip",
+					"state": "Soapbox state",
+					"surfaces": "Surfaces",
+					"velocity": "Velocity and forces",
+					"ragdoll": "Ragdoll",
+					"orientation": "3D orientation"
+				}
+			},
+			"checkpoints": {
+				"title": "Checkpoint analysis",
+				"description": "Compare where time and speed change between the selected record and compatible comparison ghosts.",
+				"checkpoint": "Checkpoint",
+				"deltaTitle": "Time gained and lost",
+				"deltaDescription": "Cumulative time difference against the selected record at each checkpoint.",
+				"speedTitle": "Checkpoint speed",
+				"speedDescription": "Speed recorded at each checkpoint reveals stronger entries and exits."
+			},
+			"analysis": {
+				"telemetry": {
+					"primary": "Selected record",
+					"empty": "N/A",
+					"speed": {
+						"title": "Speed over time",
+						"description": "Compare acceleration and speed at the same elapsed time. Use route trails and checkpoints to confirm matching track sections."
+					},
+					"steering": {
+						"title": "Steering over time",
+						"description": "See steering direction, corrections, and stable low-input sections."
+					},
+					"lateralVelocity": {
+						"title": "Lateral velocity",
+						"description": "Sideways movement highlights slides, drifts, and line corrections."
+					},
+					"longitudinalVelocity": {
+						"title": "Forward velocity",
+						"description": "Forward momentum makes acceleration and speed loss easy to compare."
+					},
+					"angularVelocity": {
+						"title": "Angular velocity",
+						"description": "Rotation intensity exposes sharp corrections and unstable sections."
+					},
+					"gForce": {
+						"title": "G-force",
+						"description": "Force peaks reveal impacts, compression, and aggressive direction changes."
+					}
+				},
+				"events": {
+					"title": "Run event timeline",
+					"description": "Jump directly to driver inputs, wheel states, surface changes, and special soapbox states.",
+					"empty": "No supported events were recorded for this ghost format.",
+					"at": "at",
+					"duration": "for",
+					"kinds": {
+						"armsUp": "Arms up",
+						"braking": "Braking",
+						"horn": "Horn",
+						"paraglider": "Paraglider",
+						"soap": "Soap wheels",
+						"offroad": "Off-road wheels",
+						"airborne": "Airborne",
+						"slipping": "Wheel slip",
+						"ragdoll": "Ragdoll",
+						"parking": "Parked",
+						"monorail": "Monorail"
+					}
+				},
+				"drift": {
+					"title": "Skid and drift analysis",
+					"description": "Measure slip duration, path length, and speed retained through every detected slide.",
+					"empty": "No meaningful wheel-slip events were detected.",
+					"comparisonTitle": "Slip time comparison",
+					"eventsTitle": "Detected slip events",
+					"primary": "Selected record",
+					"eventCount": "Events",
+					"totalDuration": "Slip time",
+					"totalDistance": "Slip distance",
+					"speedRetention": "Average retention",
+					"worstRetention": "Worst retention",
+					"distance": "Distance"
+				},
+				"coaching": {
+					"title": "Improvement opportunities",
+					"description": "Evidence-based hints point to strengths and sections worth reviewing. They are guidance, not definitive driving judgements.",
+					"empty": "No clear coaching signals were detected in available telemetry.",
+					"insights": {
+						"strongSpeedRetention": {
+							"title": "Strong drift speed retention",
+							"description": "This slide retained {value} of entry speed. Review this line as a strength."
+						},
+						"driftSpeedLoss": {
+							"title": "Speed lost while sliding",
+							"description": "This slide retained {value} of entry speed. A smoother line or smaller correction may help."
+						},
+						"longDrift": {
+							"title": "Long wheel-slip section",
+							"description": "Wheel slip continued for {value}. Compare line and steering against a faster ghost."
+						},
+						"lateBraking": {
+							"title": "Heavy high-speed braking",
+							"description": "Braking began near {value}. Check whether an earlier, shorter input preserves exit speed."
+						},
+						"lowInputSection": {
+							"title": "Low-input section",
+							"description": "No meaningful steering, brake, or arms-up input was detected for {value}. Review whether a more active line helps."
+						},
+						"comparisonSpeedDeficit": {
+							"title": "Comparison carries more speed",
+							"description": "Fastest comparison averaged {value} more speed at matched route progress. Inspect entry line and prior exit."
+						}
+					}
+				}
+			},
 			"seo": {
 				"title": "Record #{id} · ZeepCentraal",
-				"description": "ZeepCentraal record detail page."
+				"description": "Replay and analyse a Zeepkist record with telemetry and ghost comparisons.",
+				"recordDescription": "Replay {player}'s record on {level}, inspect telemetry, and compare racing lines."
 			}
 		}
 	},
@@ -600,6 +826,8 @@
 				"minutes": "min",
 				"seconds": "s",
 				"kilometresPerHour": "km/h",
+				"metresPerSecond": "m/s",
+				"radiansPerSecond": "rad/s",
 				"g": "G"
 			},
 			"kilometres": "Kilometres",

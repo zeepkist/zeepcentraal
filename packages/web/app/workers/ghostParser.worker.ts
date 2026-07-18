@@ -12,13 +12,23 @@ type ParseResponse =
 	| { id: number; ok: false; error: string }
 
 let wasmPromise: Promise<unknown> | null = null
+let parseQueue: Promise<void> = Promise.resolve()
 
-self.onmessage = async ({ data }: MessageEvent<ParseRequest>) => {
+self.onmessage = ({ data }: MessageEvent<ParseRequest>) => {
+	parseQueue = parseQueue.then(
+		() => parseRequest(data),
+		() => parseRequest(data),
+	)
+}
+
+async function parseRequest(data: ParseRequest) {
 	try {
-		wasmPromise ??= initWasm()
-		await wasmPromise
 		const ghost = await parseGhostBrowser(data.buffer, {
-			decompressLzma: async (buffer) => decompress(buffer, { memLimit: 256 * 1024 * 1024 }),
+			decompressLzma: async (buffer) => {
+				wasmPromise ??= initWasm()
+				await wasmPromise
+				return decompress(buffer, { memLimit: 256 * 1024 * 1024 })
+			},
 		})
 		self.postMessage({ id: data.id, ok: true, ghost } satisfies ParseResponse)
 	} catch (error) {

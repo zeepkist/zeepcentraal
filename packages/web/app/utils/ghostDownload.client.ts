@@ -4,7 +4,7 @@ import {
 	deleteGhostBinary,
 	getGhostBinary,
 	putGhostBinary,
-} from '~/utils/ghostBinaryCache.client'
+} from './ghostBinaryCache.client'
 
 const MAXIMUM_GHOST_BYTES = 64 * 1024 * 1024
 const inFlight = new Map<string, Promise<LoadedGhostBinary>>()
@@ -31,7 +31,9 @@ export function parseGhostCdnOrigins(value: string): Set<string> {
 }
 
 export function assertAllowedGhostUrl(value: string, allowedOrigins: ReadonlySet<string>): URL {
-	const url = new URL(value)
+	const baseOrigin = allowedOrigins.values().next().value
+	if (!baseOrigin) throw new Error('No trusted ghost download origin is configured')
+	const url = new URL(value, `${baseOrigin}/`)
 	if (url.protocol !== 'https:' && !(import.meta.dev && url.protocol === 'http:')) {
 		throw new Error('Ghost download URL must use HTTPS')
 	}
