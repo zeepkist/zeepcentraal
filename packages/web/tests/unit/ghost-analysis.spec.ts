@@ -50,4 +50,81 @@ describe('ghost analysis', () => {
 			peakSteering: 0.75,
 		})
 	})
+
+	it('splits airborne controls using exact grounded wheel bits', () => {
+		const frames: GhostPlaybackFrame[] = [
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				groundedWheelState: 1,
+				braking: true,
+				armsUp: true,
+			},
+			{
+				time: 0.1,
+				position: { x: 1, y: 1, z: 0 },
+				groundedWheelState: 0,
+				braking: true,
+				armsUp: true,
+				steering: -0.11,
+			},
+			{
+				time: 0.2,
+				position: { x: 2, y: 1, z: 0 },
+				groundedWheelState: 16,
+				steering: 0.11,
+			},
+		]
+		const events = buildGhostTimelineEvents(frames, 0)
+
+		expect(events.filter(({ kind }) => kind === 'braking')).toHaveLength(1)
+		expect(events.filter(({ kind }) => kind === 'arms-up')).toHaveLength(1)
+		expect(events.filter(({ kind }) => kind === 'air-braking')).toHaveLength(1)
+		expect(events.filter(({ kind }) => kind === 'air-arms-up')).toHaveLength(1)
+		expect(events.filter(({ kind }) => kind === 'air-steering-left')).toHaveLength(1)
+		expect(events.filter(({ kind }) => kind === 'air-steering-right')).toHaveLength(1)
+		expect(events.filter(({ kind }) => kind === 'airborne')).toHaveLength(1)
+	})
+
+	it('does not infer airborne controls without wheel-contact evidence', () => {
+		const frames: GhostPlaybackFrame[] = [
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				inAir: true,
+				braking: true,
+				armsUp: true,
+				steering: 1,
+			},
+		]
+		const kinds = buildGhostTimelineEvents(frames).map(({ kind }) => kind)
+
+		expect(kinds).toContain('braking')
+		expect(kinds).toContain('arms-up')
+		expect(kinds).not.toContain('airborne')
+		expect(kinds).not.toContain('air-braking')
+		expect(kinds).not.toContain('air-arms-up')
+		expect(kinds).not.toContain('air-steering-right')
+	})
+
+	it('uses strict steering deadzone boundaries for airborne rotation', () => {
+		const frames: GhostPlaybackFrame[] = [
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				groundedWheelState: 0,
+				steering: -0.1,
+			},
+			{
+				time: 0.1,
+				position: { x: 1, y: 0, z: 0 },
+				groundedWheelState: 0,
+				steering: 0.1,
+			},
+		]
+		const kinds = buildGhostTimelineEvents(frames).map(({ kind }) => kind)
+
+		expect(kinds).not.toContain('air-steering-left')
+		expect(kinds).not.toContain('air-steering-right')
+	})
 })

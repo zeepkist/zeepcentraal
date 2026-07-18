@@ -113,4 +113,10 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain('<ClientOnly>')
 		expect(recordPage).toContain('.slice(0, 10)')
 	})
+
+	it('renders comparison-aware airborne control analysis', () => {
+		expect(recordPage).toContain('<RecordAirControlAnalysis')
+		expect(recordPage).toContain(':runs="airControlRuns"')
+		expect(recordPage).toContain('buildRecordAirControlRuns(playback.loaded.value, recordId)')
+	})
 })

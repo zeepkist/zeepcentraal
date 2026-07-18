@@ -124,7 +124,15 @@ function formatElapsed(value: number) {
 }
 
 function eventTooltip(event: GhostTimelineEvent, kind: GhostEventKind) {
-	return `${props.labels.config[kind].label} · ${props.labels.atLabel} ${formatElapsed(event.start)} · ${props.labels.durationLabel} ${formatElapsed(event.duration)}`
+	const config = props.labels.config[kind]
+	return [
+		config.label,
+		config.description,
+		`${props.labels.atLabel} ${formatElapsed(event.start)}`,
+		`${props.labels.durationLabel} ${formatElapsed(event.duration)}`,
+	]
+		.filter(Boolean)
+		.join(' · ')
 }
 
 function eventStyle(event: GhostTimelineEvent, kind: GhostEventKind) {

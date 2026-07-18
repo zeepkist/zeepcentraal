@@ -130,6 +130,12 @@
 					@seek="replayWorkspace?.seek($event)"
 				/>
 
+				<RecordAirControlAnalysis
+					v-if="primaryGhost"
+					:runs="airControlRuns"
+					:labels="analysisLabels.airControl"
+				/>
+
 				<RecordDriftAnalysis
 					v-if="primaryGhost"
 					:events="slipEvents"
@@ -153,7 +159,7 @@
 import type { GhostRecordSource } from '~/types/ghost'
 import { buildGhostSlipEvents, buildGhostTimelineEvents } from '~/utils/ghostAnalysis'
 import { buildLevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
-import { buildRecordDriftRuns } from '~/utils/recordGhostAnalysis'
+import { buildRecordAirControlRuns, buildRecordDriftRuns } from '~/utils/recordGhostAnalysis'
 
 definePageMeta({ key: (route) => String(route.params.recordId) })
 
@@ -233,6 +239,7 @@ const comparisonGhosts = computed(() => playback.loaded.value.filter(({ record: 
 const timelineEvents = computed(() => buildGhostTimelineEvents(primaryGhost.value?.frames ?? []))
 const slipEvents = computed(() => buildGhostSlipEvents(primaryGhost.value?.frames ?? []))
 const comparisonDriftRuns = computed(() => buildRecordDriftRuns(comparisonGhosts.value))
+const airControlRuns = computed(() => buildRecordAirControlRuns(playback.loaded.value, recordId))
 const checkpointAnalysis = computed(() =>
 	buildLevelSplitAnalysis(
 		playbackSources.value.map((value) => ({
@@ -380,6 +387,7 @@ const capabilityLabels = computed(() => createRecordCapabilityLabels(t))
 const analysisLabels = computed(() => createRecordAnalysisLabels(t))
 const checkpointLabels = computed(() => ({
 	checkpoint: t('pages.recordDetail.checkpoints.checkpoint'),
+	finish: t('common.finish'),
 	deltaTitle: t('pages.recordDetail.checkpoints.deltaTitle'),
 	deltaDescription: t('pages.recordDetail.checkpoints.deltaDescription'),
 	speedTitle: t('pages.recordDetail.checkpoints.speedTitle'),

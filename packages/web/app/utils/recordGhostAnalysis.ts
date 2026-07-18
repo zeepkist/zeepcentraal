@@ -6,7 +6,12 @@ import type {
 	LoadedPlaybackGhost,
 	ParsedPlaybackGhost,
 } from '~/types/ghost'
-import { buildGhostSlipEvents, buildGhostTimelineEvents, pathDistance } from './ghostAnalysis'
+import {
+	buildGhostSlipEvents,
+	buildGhostTimelineEvents,
+	isAirborneFrame,
+	pathDistance,
+} from './ghostAnalysis'
 
 export type RecordTelemetryMetricKey =
 	| 'speed'
@@ -66,6 +71,34 @@ export type RecordAnalysisSummary = {
 	eventCount: number
 	driftCount: number
 	driftDuration: number
+}
+
+export type RecordAirControlEventSummary = {
+	eventCount: number
+	duration: number
+	airborneShare: number | null
+}
+
+export type RecordAirControlRun = {
+	recordId: number
+	label: string
+	color: string
+	dashed: boolean
+	isPrimary: boolean
+	available: boolean
+	airborneDuration: number | null
+	braking: RecordAirControlEventSummary
+	armsUp: RecordAirControlEventSummary
+	steeringLeft: RecordAirControlEventSummary
+	steeringRight: RecordAirControlEventSummary
+	medianBrakeAngularVelocityReduction: number | null
+	medianBrakeUprightImprovement: number | null
+	medianArmsUpVerticalTravel: number | null
+	medianArmsUpUprightImprovement: number | null
+	medianSteeringLeftRotation: number | null
+	medianSteeringLeftRotationRate: number | null
+	medianSteeringRightRotation: number | null
+	medianSteeringRightRotationRate: number | null
 }
 
 export type RecordCoachingSignalKind =
@@ -182,6 +215,69 @@ export function buildRecordAnalysisSummary(ghost: LoadedPlaybackGhost): RecordAn
 		eventCount: events.length,
 		driftCount: drifts.length,
 		driftDuration: drifts.reduce((total, event) => total + event.duration, 0),
+	}
+}
+
+export function buildRecordAirControlRuns(
+	ghosts: readonly LoadedPlaybackGhost[],
+	primaryRecordId = ghosts[0]?.record.recordId,
+): RecordAirControlRun[] {
+	return ghosts.map((ghost) =>
+		buildRecordAirControlRun(ghost, ghost.record.recordId === primaryRecordId),
+	)
+}
+
+export function buildRecordAirControlRun(
+	ghost: LoadedPlaybackGhost,
+	isPrimary = false,
+): RecordAirControlRun {
+	const frames = ghost.ghost.frames
+	const available = frames.some((frame) => typeof frame.groundedWheelState === 'number')
+	const timeline = available ? buildGhostTimelineEvents(frames) : []
+	const airborneDuration = available
+		? durationOf(timeline.filter((event) => event.kind === 'airborne'))
+		: null
+	const brakingEvents = timeline.filter((event) => event.kind === 'air-braking')
+	const armsUpEvents = timeline.filter((event) => event.kind === 'air-arms-up')
+	const steeringLeftEvents = timeline.filter((event) => event.kind === 'air-steering-left')
+	const steeringRightEvents = timeline.filter((event) => event.kind === 'air-steering-right')
+	const brakeAngularVelocityReductions = brakingEvents.flatMap((event) => {
+		const start = boundaryMedian(frames, event, 'start', (frame) =>
+			vectorMagnitude(frame.localAngularVelocity),
+		)
+		const end = boundaryMedian(frames, event, 'end', (frame) =>
+			vectorMagnitude(frame.localAngularVelocity),
+		)
+		return start === null || end === null ? [] : [start - end]
+	})
+	const brakeUprightImprovements = eventUprightImprovements(frames, brakingEvents)
+	const armsUpVerticalTravel = armsUpEvents.flatMap((event) => {
+		const start = frames[event.startFrame]?.position.y
+		const end = frames[event.endFrame]?.position.y
+		return Number.isFinite(start) && Number.isFinite(end)
+			? [(end as number) - (start as number)]
+			: []
+	})
+	const armsUpUprightImprovements = eventUprightImprovements(frames, armsUpEvents)
+	const leftRotation = eventRotations(frames, steeringLeftEvents)
+	const rightRotation = eventRotations(frames, steeringRightEvents)
+	return {
+		...toAnalysisSeries(ghost),
+		isPrimary,
+		available,
+		airborneDuration,
+		braking: summarizeAirEvents(brakingEvents, airborneDuration),
+		armsUp: summarizeAirEvents(armsUpEvents, airborneDuration),
+		steeringLeft: summarizeAirEvents(steeringLeftEvents, airborneDuration),
+		steeringRight: summarizeAirEvents(steeringRightEvents, airborneDuration),
+		medianBrakeAngularVelocityReduction: medianOrNull(brakeAngularVelocityReductions),
+		medianBrakeUprightImprovement: medianOrNull(brakeUprightImprovements),
+		medianArmsUpVerticalTravel: medianOrNull(armsUpVerticalTravel),
+		medianArmsUpUprightImprovement: medianOrNull(armsUpUprightImprovements),
+		medianSteeringLeftRotation: medianOrNull(leftRotation.map((value) => value.angle)),
+		medianSteeringLeftRotationRate: medianOrNull(leftRotation.map((value) => value.rate)),
+		medianSteeringRightRotation: medianOrNull(rightRotation.map((value) => value.angle)),
+		medianSteeringRightRotationRate: medianOrNull(rightRotation.map((value) => value.rate)),
 	}
 }
 
@@ -488,6 +584,11 @@ function buildLowInputSections(frames: readonly GhostPlaybackFrame[]) {
 	const sections: Array<{ start: number; end: number }> = []
 	let start: number | null = null
 	for (const frame of frames) {
+		if (isAirborneFrame(frame)) {
+			if (start !== null && frame.time - start >= 2) sections.push({ start, end: frame.time })
+			start = null
+			continue
+		}
 		const passive =
 			Math.abs(frame.steering ?? 0) <= 0.01 &&
 			frame.armsUp !== true &&
@@ -503,6 +604,94 @@ function buildLowInputSections(frames: readonly GhostPlaybackFrame[]) {
 	const end = frames.at(-1)?.time ?? 0
 	if (start !== null && end - start >= 2) sections.push({ start, end })
 	return sections
+}
+
+function summarizeAirEvents(
+	events: readonly GhostTimelineEvent[],
+	airborneDuration: number | null,
+): RecordAirControlEventSummary {
+	const duration = durationOf(events)
+	return {
+		eventCount: events.length,
+		duration,
+		airborneShare:
+			airborneDuration !== null && airborneDuration > 0
+				? Math.min(1, duration / airborneDuration)
+				: null,
+	}
+}
+
+function durationOf(events: readonly GhostTimelineEvent[]): number {
+	return events.reduce((total, event) => total + event.duration, 0)
+}
+
+function boundaryMedian(
+	frames: readonly GhostPlaybackFrame[],
+	event: GhostTimelineEvent,
+	boundary: 'start' | 'end',
+	resolve: (frame: GhostPlaybackFrame) => number | null,
+): number | null {
+	const minimumTime = boundary === 'start' ? event.start : Math.max(event.start, event.end - 0.1)
+	const maximumTime = boundary === 'start' ? Math.min(event.end, event.start + 0.1) : event.end
+	const values = frames
+		.slice(event.startFrame, event.endFrame + 1)
+		.filter((frame) => frame.time >= minimumTime && frame.time <= maximumTime)
+		.flatMap((frame) => {
+			const value = resolve(frame)
+			return value === null ? [] : [value]
+		})
+	return medianOrNull(values)
+}
+
+function eventUprightImprovements(
+	frames: readonly GhostPlaybackFrame[],
+	events: readonly GhostTimelineEvent[],
+): number[] {
+	return events.flatMap((event) => {
+		const start = boundaryMedian(frames, event, 'start', uprightAngle)
+		const end = boundaryMedian(frames, event, 'end', uprightAngle)
+		return start === null || end === null ? [] : [start - end]
+	})
+}
+
+function eventRotations(
+	frames: readonly GhostPlaybackFrame[],
+	events: readonly GhostTimelineEvent[],
+): Array<{ angle: number; rate: number }> {
+	return events.flatMap((event) => {
+		const start = frames[event.startFrame]?.orientation
+		const end = frames[event.endFrame]?.orientation
+		if (!start || !end || event.duration <= 0) return []
+		const startLength = Math.hypot(start.x, start.y, start.z, start.w)
+		const endLength = Math.hypot(end.x, end.y, end.z, end.w)
+		if (startLength <= 0 || endLength <= 0) return []
+		const dot = Math.abs(
+			(start.x * end.x + start.y * end.y + start.z * end.z + start.w * end.w) /
+				(startLength * endLength),
+		)
+		const angle = 2 * Math.acos(Math.min(1, Math.max(-1, dot)))
+		return Number.isFinite(angle) ? [{ angle, rate: angle / event.duration }] : []
+	})
+}
+
+function uprightAngle(frame: GhostPlaybackFrame): number | null {
+	const orientation = frame.orientation
+	if (!orientation) return null
+	const length = Math.hypot(orientation.x, orientation.y, orientation.z, orientation.w)
+	if (length <= 0) return null
+	const x = orientation.x / length
+	const z = orientation.z / length
+	const worldUpY = 1 - 2 * (x * x + z * z)
+	return Math.acos(Math.min(1, Math.max(-1, worldUpY)))
+}
+
+function medianOrNull(values: readonly number[]): number | null {
+	const finite = values.filter(Number.isFinite).toSorted((left, right) => left - right)
+	if (finite.length === 0) return null
+	const middle = Math.floor(finite.length / 2)
+	return finite.length % 2 === 0
+		? ((finite[middle - 1] ?? 0) + (finite[middle] ?? 0)) / 2
+		: (finite[middle] ?? null)
 }
 
 function vectorMagnitude(value?: { x: number; y: number; z?: number } | null) {

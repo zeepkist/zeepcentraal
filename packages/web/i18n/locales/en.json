@@ -30,6 +30,7 @@
 		"level": "Level",
 		"levels": "Levels",
 		"time": "Time",
+		"finish": "Finish",
 		"date": "Date",
 		"live": "Live",
 		"loading": "Loading data",
@@ -578,8 +579,12 @@
 					"at": "at",
 					"duration": "for",
 					"kinds": {
-						"armsUp": "Arms up",
-						"braking": "Braking",
+						"armsUp": "Arms up (ground or contact unknown)",
+						"braking": "Braking (ground or contact unknown)",
+						"airArmsUp": "Air arms up",
+						"airBraking": "Air braking",
+						"airSteeringLeft": "Air steering left",
+						"airSteeringRight": "Air steering right",
 						"horn": "Horn",
 						"paraglider": "Paraglider",
 						"soap": "Soap wheels",
@@ -589,6 +594,42 @@
 						"ragdoll": "Ragdoll",
 						"parking": "Parked",
 						"monorail": "Monorail"
+					}
+				},
+				"airControl": {
+					"title": "Air control analysis",
+					"description": "Compare how every loaded ghost controls rotation, lift, and orientation while all four wheels are airborne.",
+					"primary": "Selected record",
+					"observed": "Observed telemetry correlation; use the replay and racing line before treating it as a time-saving recommendation.",
+					"airborneDuration": "Airborne time",
+					"events": "Events",
+					"airborneShare": "Share of airborne time",
+					"angularVelocityReduction": "Rotation reduction",
+					"uprightImprovement": "Upright improvement",
+					"verticalTravel": "Vertical travel",
+					"rotation": "Rotation",
+					"rotationRate": "Rotation rate",
+					"controls": {
+						"braking": {
+							"title": "Air braking",
+							"description": "Braking in the air does not slow forward travel. It reduces angular rotation."
+						},
+						"armsUp": {
+							"title": "Air arms up",
+							"description": "Arms up adds lift and helps straighten the soapbox toward an upright orientation."
+						},
+						"steeringLeft": {
+							"title": "Air steering left",
+							"description": "Left steering rotates the soapbox while all four wheels are airborne."
+						},
+						"steeringRight": {
+							"title": "Air steering right",
+							"description": "Right steering rotates the soapbox while all four wheels are airborne."
+						}
+					},
+					"units": {
+						"degrees": "°",
+						"degreesPerSecond": "°/s"
 					}
 				},
 				"drift": {

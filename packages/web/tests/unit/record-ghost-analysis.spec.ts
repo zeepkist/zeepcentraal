@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { GhostPlaybackFrame, LoadedPlaybackGhost } from '../../app/types/ghost'
 import {
+	buildRecordAirControlRuns,
 	buildRecordAnalysisSummary,
 	buildRecordCoachingSignals,
 	buildRecordDriftRuns,
@@ -95,10 +96,10 @@ describe('record ghost analysis', () => {
 
 	it('groups contiguous events into timeline lanes', () => {
 		const lanes = buildRecordTimelineLanes([
-			frame(0, 0, { braking: true, inAir: false }),
-			frame(0.1, 1, { braking: true, inAir: true }),
-			frame(0.2, 2, { braking: false, inAir: true }),
-			frame(0.3, 3, { braking: false, inAir: false }),
+			frame(0, 0, { braking: true, groundedWheelState: 15 }),
+			frame(0.1, 1, { braking: true, groundedWheelState: 0 }),
+			frame(0.2, 2, { braking: false, groundedWheelState: 0 }),
+			frame(0.3, 3, { braking: false, groundedWheelState: 15 }),
 		])
 
 		expect(lanes.find((lane) => lane.kind === 'braking')?.events).toHaveLength(1)
@@ -132,6 +133,87 @@ describe('record ghost analysis', () => {
 
 		expect(kinds).toContain('drift-speed-loss')
 		expect(kinds).toContain('low-input-section')
+	})
+
+	it('summarizes airborne input effects for every loaded ghost', () => {
+		const halfTurn = Math.sin(Math.PI / 4)
+		const first = loaded(1, [
+			frame(0, 0, {
+				groundedWheelState: 0,
+				braking: true,
+				armsUp: true,
+				steering: -0.5,
+				localAngularVelocity: { x: 0, y: 4, z: 0 },
+				orientation: { x: halfTurn, y: 0, z: 0, w: halfTurn },
+			}),
+			frame(0.1, 1, {
+				groundedWheelState: 0,
+				braking: true,
+				armsUp: true,
+				steering: -0.5,
+				localAngularVelocity: { x: 0, y: 2, z: 0 },
+				orientation: { x: 0, y: 0, z: halfTurn, w: halfTurn },
+				position: { x: 1, y: 2, z: 0 },
+			}),
+			frame(0.2, 2, {
+				groundedWheelState: 0,
+				braking: true,
+				armsUp: true,
+				steering: -0.5,
+				localAngularVelocity: { x: 0, y: 0, z: 0 },
+				orientation: { x: 0, y: 0, z: 0, w: 1 },
+				position: { x: 2, y: 4, z: 0 },
+			}),
+			frame(0.3, 3, { groundedWheelState: 15, braking: false, armsUp: false }),
+		])
+		const unsupported = loaded(2, [frame(0, 0), frame(1, 1)])
+		const runs = buildRecordAirControlRuns([first, unsupported], 1)
+
+		expect(runs).toHaveLength(2)
+		expect(runs[0]).toMatchObject({
+			isPrimary: true,
+			available: true,
+			airborneDuration: 0.2,
+			braking: { eventCount: 1, duration: 0.2, airborneShare: 1 },
+			armsUp: { eventCount: 1, duration: 0.2, airborneShare: 1 },
+			steeringLeft: { eventCount: 1, duration: 0.2, airborneShare: 1 },
+		})
+		expect(runs[0]?.medianBrakeAngularVelocityReduction).toBe(2)
+		expect(runs[0]?.medianArmsUpVerticalTravel).toBe(4)
+		expect(runs[0]?.medianSteeringLeftRotation).toBeCloseTo(Math.PI / 2)
+		expect(runs[0]?.medianSteeringLeftRotationRate).toBeCloseTo(Math.PI / 2 / 0.2)
+		expect(runs[1]).toMatchObject({ available: false, airborneDuration: null })
+	})
+
+	it('excludes airborne braking and flight from ground coaching signals', () => {
+		const primary = loaded(1, [
+			frame(0, 0, { speed: 100, steering: 0, groundedWheelState: 15 }),
+			frame(2, 10, {
+				speed: 100,
+				steering: 0,
+				groundedWheelState: 0,
+				braking: true,
+			}),
+			frame(3, 20, {
+				speed: 100,
+				steering: 0,
+				groundedWheelState: 0,
+				braking: true,
+			}),
+			frame(4, 30, { speed: 100, steering: 0, groundedWheelState: 15 }),
+			frame(6, 40, { speed: 100, steering: 0, groundedWheelState: 15 }),
+		])
+		const signals = buildRecordCoachingSignals(primary)
+
+		expect(signals.some(({ kind }) => kind === 'late-braking')).toBe(false)
+		const lowInput = signals.filter(({ kind }) => kind === 'low-input-section')
+		expect(lowInput).toHaveLength(2)
+		expect(lowInput).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ start: 0, end: 2 }),
+				expect.objectContaining({ start: 4, end: 6 }),
+			]),
+		)
 	})
 
 	it('keeps a comparison speed deficit that reaches finish', () => {
@@ -174,6 +256,7 @@ describe('record ghost analysis', () => {
 			'RecordDriftAnalysis.vue',
 			'RecordCoachingInsights.vue',
 			'RecordCapabilityNotice.vue',
+			'RecordAirControlAnalysis.vue',
 		]
 		for (const file of files) {
 			const source = readFileSync(

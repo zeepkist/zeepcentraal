@@ -37,7 +37,41 @@ export type RecordAnalysisLabels = {
 		atLabel: string
 		durationLabel: string
 		secondsUnit: string
-		config: Record<GhostEventKind, { label: string; icon: string; color: string }>
+		config: Record<
+			GhostEventKind,
+			{ label: string; description?: string; icon: string; color: string }
+		>
+	}
+	airControl: {
+		title: string
+		description: string
+		icon: string
+		primary: string
+		unavailableLabel: string
+		observedLabel: string
+		labels: {
+			airborneDuration: string
+			events: string
+			airborneShare: string
+			angularVelocityReduction: string
+			uprightImprovement: string
+			verticalTravel: string
+			rotation: string
+			rotationRate: string
+		}
+		controls: {
+			braking: { title: string; description: string; icon: string }
+			armsUp: { title: string; description: string; icon: string }
+			steeringLeft: { title: string; description: string; icon: string }
+			steeringRight: { title: string; description: string; icon: string }
+		}
+		units: {
+			seconds: string
+			metres: string
+			degrees: string
+			degreesPerSecond: string
+			radiansPerSecond: string
+		}
 	}
 	drift: {
 		title: string
@@ -101,6 +135,7 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 	const events = (key: string) => t(`pages.recordDetail.analysis.events.${key}`)
 	const drift = (key: string) => t(`pages.recordDetail.analysis.drift.${key}`)
 	const coaching = (key: string) => t(`pages.recordDetail.analysis.coaching.${key}`)
+	const airControl = (key: string) => t(`pages.recordDetail.analysis.airControl.${key}`)
 	const insight = (key: string) => ({
 		title: coaching(`insights.${key}.title`),
 		description: (value: string) =>
@@ -171,6 +206,30 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 					color: '#a78bfa',
 				},
 				braking: { label: events('kinds.braking'), icon: 'hand-stop', color: '#f43f5e' },
+				'air-arms-up': {
+					label: events('kinds.airArmsUp'),
+					description: airControl('controls.armsUp.description'),
+					icon: 'arrow-up-from-arc',
+					color: '#8b5cf6',
+				},
+				'air-braking': {
+					label: events('kinds.airBraking'),
+					description: airControl('controls.braking.description'),
+					icon: 'rotate-clockwise-2',
+					color: '#e11d48',
+				},
+				'air-steering-left': {
+					label: events('kinds.airSteeringLeft'),
+					description: airControl('controls.steeringLeft.description'),
+					icon: 'rotate-2',
+					color: '#60a5fa',
+				},
+				'air-steering-right': {
+					label: events('kinds.airSteeringRight'),
+					description: airControl('controls.steeringRight.description'),
+					icon: 'rotate-clockwise-2',
+					color: '#2dd4bf',
+				},
 				horn: { label: events('kinds.horn'), icon: 'volume', color: '#f59e0b' },
 				paraglider: {
 					label: events('kinds.paraglider'),
@@ -184,6 +243,53 @@ export function createRecordAnalysisLabels(t: Translate): RecordAnalysisLabels {
 				ragdoll: { label: events('kinds.ragdoll'), icon: 'run', color: '#ef4444' },
 				parking: { label: events('kinds.parking'), icon: 'parking', color: '#64748b' },
 				monorail: { label: events('kinds.monorail'), icon: 'train', color: '#14b8a6' },
+			},
+		},
+		airControl: {
+			title: airControl('title'),
+			description: airControl('description'),
+			icon: 'plane-tilt',
+			primary: airControl('primary'),
+			unavailableLabel: t('common.unavailable'),
+			observedLabel: airControl('observed'),
+			labels: {
+				airborneDuration: airControl('airborneDuration'),
+				events: airControl('events'),
+				airborneShare: airControl('airborneShare'),
+				angularVelocityReduction: airControl('angularVelocityReduction'),
+				uprightImprovement: airControl('uprightImprovement'),
+				verticalTravel: airControl('verticalTravel'),
+				rotation: airControl('rotation'),
+				rotationRate: airControl('rotationRate'),
+			},
+			controls: {
+				braking: {
+					title: airControl('controls.braking.title'),
+					description: airControl('controls.braking.description'),
+					icon: 'hand-stop',
+				},
+				armsUp: {
+					title: airControl('controls.armsUp.title'),
+					description: airControl('controls.armsUp.description'),
+					icon: 'arrow-up-from-arc',
+				},
+				steeringLeft: {
+					title: airControl('controls.steeringLeft.title'),
+					description: airControl('controls.steeringLeft.description'),
+					icon: 'rotate-2',
+				},
+				steeringRight: {
+					title: airControl('controls.steeringRight.title'),
+					description: airControl('controls.steeringRight.description'),
+					icon: 'rotate-clockwise-2',
+				},
+			},
+			units: {
+				seconds: t('dashboard.totals.units.seconds'),
+				metres: t('dashboard.totals.units.metres'),
+				degrees: airControl('units.degrees'),
+				degreesPerSecond: airControl('units.degreesPerSecond'),
+				radiansPerSecond: t('dashboard.totals.units.radiansPerSecond'),
 			},
 		},
 		drift: {

@@ -144,6 +144,10 @@ export type GhostLevelBlock = {
 export type GhostEventKind =
 	| 'arms-up'
 	| 'braking'
+	| 'air-arms-up'
+	| 'air-braking'
+	| 'air-steering-left'
+	| 'air-steering-right'
 	| 'horn'
 	| 'paraglider'
 	| 'soap'

@@ -1,3 +1,4 @@
+import { TURN_DEADZONE } from '@zeepkist/core/ghosts/browser'
 import type {
 	GhostEventKind,
 	GhostPlaybackFrame,
@@ -8,18 +9,38 @@ import type {
 type EventPredicate = (frame: GhostPlaybackFrame) => boolean
 
 const EVENT_PREDICATES: ReadonlyArray<[GhostEventKind, EventPredicate]> = [
-	['arms-up', (frame) => frame.armsUp === true],
-	['braking', (frame) => frame.braking === true],
+	['arms-up', (frame) => frame.armsUp === true && !isAirborneFrame(frame)],
+	['braking', (frame) => frame.braking === true && !isAirborneFrame(frame)],
+	['air-arms-up', (frame) => frame.armsUp === true && isAirborneFrame(frame)],
+	['air-braking', (frame) => frame.braking === true && isAirborneFrame(frame)],
+	[
+		'air-steering-left',
+		(frame) =>
+			isAirborneFrame(frame) &&
+			typeof frame.steering === 'number' &&
+			frame.steering < -TURN_DEADZONE,
+	],
+	[
+		'air-steering-right',
+		(frame) =>
+			isAirborneFrame(frame) &&
+			typeof frame.steering === 'number' &&
+			frame.steering > TURN_DEADZONE,
+	],
 	['horn', (frame) => frame.horn === true],
 	['paraglider', (frame) => frame.paraglider === true],
 	['soap', (frame) => frame.soap === true],
 	['offroad', (frame) => frame.offroad === true],
-	['airborne', (frame) => frame.inAir === true],
+	['airborne', isAirborneFrame],
 	['slipping', (frame) => (frame.slippingWheelState ?? 0) !== 0],
 	['ragdoll', (frame) => frame.ragdoll === true],
 	['parking', (frame) => frame.parkingBlock === true],
 	['monorail', (frame) => frame.monorail === true],
 ]
+
+export function isAirborneFrame(frame: GhostPlaybackFrame): boolean {
+	return typeof frame.groundedWheelState === 'number' && (frame.groundedWheelState & 0x0f) === 0
+}
 
 export function buildGhostTimelineEvents(
 	frames: readonly GhostPlaybackFrame[],
