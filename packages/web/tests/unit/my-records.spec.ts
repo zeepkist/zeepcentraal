@@ -97,9 +97,9 @@ describe('record history', () => {
 		)
 		expect(component).toContain('table-fixed')
 		expect(component).toContain('min-w-[48rem]')
-		expect(component.match(/<col(?:\s|\/)/g)).toHaveLength(8)
-		expect(component).toContain('<col v-if="showStatus"')
-		expect(component).toContain('<col />')
+		expect(component).toContain('v-for="column in columns"')
+		expect(component).toContain('getRecordHistoryColumns({')
+		expect(component).toContain('showStatus: showStatus.value')
 		expect(component).toContain('record.levelDecayedPoints')
 		expect(component).toContain('record.playerDecayedPoints')
 		expect(component).toContain(':to="levelPath(record)"')
@@ -122,7 +122,8 @@ describe('record history', () => {
 			new URL('../../app/pages/records/index.vue', import.meta.url),
 			'utf8',
 		)
-		expect(table).toContain('v-if="showPlayer"')
+		expect(table).toContain("column === 'player'")
+		expect(table).toContain('showPlayer?: boolean')
 		expect(table).toContain('record.userSteamId')
 		expect(page).toContain('<template #actions>')
 		expect(page).toContain('<UButton v-if="session.user"')

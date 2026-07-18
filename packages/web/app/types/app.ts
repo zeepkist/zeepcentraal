@@ -62,6 +62,7 @@ export type RecordHistoryRow = {
 	levelDecayMultiplier?: number | null
 	globalDecayMultiplier?: number | null
 	pbOrWr?: RecordResultStatus | null
+	pinned?: boolean
 }
 
 export type RecordHistoryUpdate = {
