@@ -34,6 +34,10 @@ const recordPage = readFileSync(
 	new URL('../../app/pages/record/[recordId].vue', import.meta.url),
 	'utf8',
 )
+const replayWorkspace = readFileSync(
+	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
+	'utf8',
+)
 const schema = buildSchema(
 	readFileSync(new URL('../../../graphql/schema.graphql', import.meta.url), 'utf8'),
 )
@@ -118,5 +122,14 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain('<RecordAirControlAnalysis')
 		expect(recordPage).toContain(':runs="airControlRuns"')
 		expect(recordPage).toContain('buildRecordAirControlRuns(playback.loaded.value, recordId)')
+	})
+
+	it('pauses event seeks and scrolls the replay into view accessibly', () => {
+		expect(recordPage).toContain('ref="replaySection"')
+		expect(recordPage.match(/@seek="seekAnalysisEvent"/g)).toHaveLength(3)
+		expect(recordPage).toContain('seek(time, { pause: true })')
+		expect(recordPage).toContain("window.matchMedia('(prefers-reduced-motion: reduce)')")
+		expect(recordPage).toContain('scrollIntoView({')
+		expect(replayWorkspace).toContain('if (options.pause) playing.value = false')
 	})
 })

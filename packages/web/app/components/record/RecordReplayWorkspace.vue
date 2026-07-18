@@ -175,8 +175,9 @@ function step(direction: -1 | 1) {
 	}
 }
 
-function seek(time: number) {
+function seek(time: number, options: { pause?: boolean } = {}) {
 	currentTime.value = Math.min(duration.value, Math.max(0, time))
+	if (options.pause) playing.value = false
 }
 
 defineExpose({ seek })

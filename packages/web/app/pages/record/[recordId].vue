@@ -22,7 +22,11 @@
 					:labels="heroLabels"
 				/>
 
-				<section aria-labelledby="replay-heading">
+				<section
+					ref="replaySection"
+					class="scroll-mt-20 lg:scroll-mt-24"
+					aria-labelledby="replay-heading"
+				>
 					<SectionHeader
 						id="replay-heading"
 						:title="$t('pages.recordDetail.replay.title')"
@@ -127,7 +131,7 @@
 					:duration="source.time"
 					:current-time="replayTime"
 					:labels="analysisLabels.events"
-					@seek="replayWorkspace?.seek($event)"
+					@seek="seekAnalysisEvent"
 				/>
 
 				<RecordAirControlAnalysis
@@ -141,14 +145,14 @@
 					:events="slipEvents"
 					:comparison-runs="comparisonDriftRuns"
 					:labels="analysisLabels.drift"
-					@seek="replayWorkspace?.seek($event)"
+					@seek="seekAnalysisEvent"
 				/>
 
 				<RecordCoachingInsights
 					v-if="primaryGhost"
 					:insights="coachingInsights"
 					:labels="analysisLabels.coaching"
-					@seek="replayWorkspace?.seek($event)"
+					@seek="seekAnalysisEvent"
 				/>
 			</div>
 		</DataState>
@@ -231,6 +235,7 @@ const playback = useGhostPlaybackSources({
 })
 const performance = useGhostPerformancePreferences()
 const replayWorkspace = useTemplateRef('replayWorkspace')
+const replaySection = useTemplateRef('replaySection')
 const replayTime = ref(0)
 const primaryGhost = computed(() => playback.parsed.get(recordId) ?? null)
 const recordStatistic = computed(() => record.value?.recordStatistic)
@@ -283,6 +288,17 @@ function selectTopPlayers(count: number) {
 
 function selectOwnerRuns(count: number) {
 	setComparisonIds(comparisons.catalog.value.ownerRuns.slice(0, count).map(({ recordId: id }) => id))
+}
+
+function seekAnalysisEvent(time: number) {
+	replayWorkspace.value?.seek(time, { pause: true })
+	void nextTick(() => {
+		const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+		replaySection.value?.scrollIntoView({
+			behavior: reducedMotion ? 'auto' : 'smooth',
+			block: 'start',
+		})
+	})
 }
 
 useSeoMeta({
