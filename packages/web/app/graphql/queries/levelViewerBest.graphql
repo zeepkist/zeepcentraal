@@ -10,6 +10,15 @@ query ZC_LevelViewerBest($userId: Int!, $levelId: Int!) {
 				steamId
 				steamName
 			}
+			userPointContributions(first: 1) {
+				nodes {
+					levelPosition
+					contributionRank
+					levelPoints
+					levelDecayedPoints
+					playerDecayedPoints
+				}
+			}
 		}
 	}
 }

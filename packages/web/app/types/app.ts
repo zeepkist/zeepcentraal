@@ -21,26 +21,6 @@ export type SessionUser = {
 
 export type MedalTimes = { author: number; gold: number; silver: number; bronze: number }
 
-export type RecordRow = {
-	id: number
-	time: number
-	dateCreated: string
-	userId: number
-	userSteamId?: string | null
-	userName?: string | null
-	levelId: number
-	levelXxHash?: string | null
-	levelName?: string | null
-	rank?: number | null
-	rankedPoints?: number | null
-	nonDecayedPoints?: number | null
-	points?: number | null
-	pbOrWr?: RecordResultStatus | null
-	worldRecord?: boolean
-	viewer?: boolean
-	pinned?: boolean
-}
-
 export type RecordResultStatus = 'personal-best' | 'world-record'
 export type RecordLiveStatus = 'connecting' | 'live' | 'paused' | 'error'
 
@@ -92,7 +72,6 @@ export type LevelSummary = {
 	worldRecordTime?: number | null
 	worldRecordAuthorName?: string | null
 	worldRecordAuthorSteamId?: string | null
-	worldRecord?: RecordRow | null
 	medals?: MedalTimes | null
 }
 

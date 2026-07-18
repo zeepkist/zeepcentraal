@@ -113,22 +113,26 @@
 										levelData.pbPagination.isInitialPending(
 											levelData.personalBests.fetching.value ||
 												levelData.personalBestRanks.fetching.value ||
-												levelData.viewerBest.fetching.value ||
-												levelData.viewerRank.fetching.value,
+												levelData.viewerBest.fetching.value,
 											levelData.personalBestRows.value.length,
 											levelData.personalBestsActive.value,
 										)
 									"
-									:error="levelData.personalBests.error.value?.message || levelData.personalBestRanks.error.value?.message || levelData.viewerBest.error.value?.message || levelData.viewerRank.error.value?.message"
+									:error="levelData.personalBests.error.value?.message || levelData.personalBestRanks.error.value?.message || levelData.viewerBest.error.value?.message"
 									:empty="levelData.personalBestRows.value.length === 0"
 									:loading-label="$t('common.loading')"
 									:error-title="$t('common.error')"
 									:empty-title="$t('common.empty')"
 								>
-									<RecordTable
+									<RecordHistoryTable
 										:records="levelData.personalBestRows.value"
-										v-bind="recordLabels"
-										show-points
+										:labels="recordLabels"
+										:viewer-user-id="viewerId"
+										:show-level="false"
+										live-update-label=""
+										rank-first
+										show-player
+										status-mode="none"
 									/>
 								</DataState>
 								<CursorPagination
@@ -175,11 +179,15 @@
 									:error-title="$t('common.error')"
 									:empty-title="$t('common.empty')"
 								>
-									<RecordTable
+									<RecordHistoryTable
 										:records="levelData.recentRows.value"
-										v-bind="recordLabels"
-										:show-rank="false"
-										show-pb-or-wr
+										:labels="recordLabels"
+										:viewer-user-id="viewerId"
+										:show-level="false"
+										live-update-label=""
+										rank-first
+										show-player
+										status-mode="all"
 									/>
 								</DataState>
 								<CursorPagination
@@ -425,16 +433,23 @@ const scoreBreakdownLabels = computed(() => ({
 	},
 }))
 const recordLabels = computed(() => ({
-	rankLabel: t('common.rank'),
-	userLabel: t('common.user'),
-	levelLabel: t('common.level'),
-	timeLabel: t('common.time'),
-	dateLabel: t('common.date'),
-	pointsLabel: t('common.points'),
-	pbOrWrLabel: t('levels.detail.recordTable.pbOrWr'),
-	personalBestLabel: t('levels.detail.recordTable.personalBest'),
-	worldRecordLabel: t('levels.card.worldRecord'),
-	openRecordLabel: t('pages.records.table.openRecord', {
+	rank: t('common.rank'),
+	player: t('common.user'),
+	level: t('common.level'),
+	unknownPlayer: t('pages.records.table.unknownPlayer'),
+	time: t('common.time'),
+	status: t('pages.records.table.status'),
+	points: t('common.points'),
+	pointsHelp: t('pages.records.table.pointsHelp'),
+	rankedPoints: t('pages.records.table.rankedPoints'),
+	rankedPointsHelp: t('pages.records.table.rankedPointsHelp'),
+	levelPoints: t('pages.records.table.levelPoints'),
+	personalBest: t('pages.records.table.personalBest'),
+	worldRecord: t('pages.records.table.worldRecord'),
+	date: t('pages.records.table.set'),
+	notRanked: t('pages.records.table.notRanked'),
+	decayPercentage: t('pages.records.table.decayPercentage'),
+	openRecord: t('pages.records.table.openRecord', {
 		level: summary.value?.name ?? t('common.level'),
 	}),
 }))

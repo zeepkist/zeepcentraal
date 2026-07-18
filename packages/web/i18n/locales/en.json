@@ -935,9 +935,7 @@
 			"rank": "Global rank",
 			"points": "Ranked points",
 			"totalPoints": "Total points",
-			"worldRecords": "World records",
-			"valuable": "Most valuable",
-			"recent": "Most recent"
+			"worldRecords": "World records"
 		},
 		"columns": {
 			"rankedPoints": "Ranked points",
@@ -1300,10 +1298,6 @@
 			"personalBests": {
 				"title": "Personal best leaderboard",
 				"description": "Current fastest time from each player."
-			},
-			"recordTable": {
-				"pbOrWr": "PB / WR",
-				"personalBest": "PB"
 			},
 			"hero": {
 				"published": "Published",

@@ -1,4 +1,9 @@
 import { useQuery } from '@urql/vue'
+import {
+	calculateDecayMultiplier,
+	GLOBAL_DECAY_FACTOR,
+	LEVEL_DECAY_FACTOR,
+} from '@zeepkist/core/score'
 import type { Ref } from 'vue'
 import {
 	type RecordsOrderBy,
@@ -9,14 +14,13 @@ import {
 	Zc_LevelSplitAnalysisDocument,
 	Zc_LevelStatisticsDocument,
 	Zc_LevelViewerBestDocument,
-	Zc_LevelViewerRankDocument,
 } from '~/graphql/generated/graphql'
 import type {
 	CursorPage,
 	LevelScoreInsights,
 	LevelSummary,
 	LevelWorldRecordSummary,
-	RecordRow,
+	RecordHistoryRow,
 } from '~/types/app'
 import { buildLevelPointsHistory, getLevelPointsHistoryWindow } from '~/utils/levelPointsHistory'
 import {
@@ -39,11 +43,29 @@ function mapRecord(
 		levelId: number
 		userId: number
 		user?: { steamId: unknown; steamName: string | null } | null
+		userPointContributions?: {
+			nodes: Array<{
+				levelPosition: number
+				contributionRank: number
+				levelPoints: number
+				levelDecayedPoints: number
+				playerDecayedPoints: number
+			}>
+		} | null
 		personalBestGlobals?: { totalCount: number } | null
 		worldRecordGlobals?: { totalCount: number } | null
 	},
-	viewerId?: number,
-): RecordRow {
+	levelXxHash: string,
+	levelName: string,
+	baseLevelPoints: number | null | undefined,
+	assumePersonalBest = false,
+): RecordHistoryRow {
+	const status = assumePersonalBest
+		? record.userPointContributions?.nodes[0]?.levelPosition === 1
+			? 'world-record'
+			: 'personal-best'
+		: resolveRecordPbOrWr(record)
+	const contribution = status ? record.userPointContributions?.nodes[0] : undefined
 	return {
 		id: record.id,
 		time: record.time,
@@ -52,8 +74,23 @@ function mapRecord(
 		userId: record.userId,
 		userSteamId: record.user?.steamId == null ? null : String(record.user.steamId),
 		userName: record.user?.steamName,
-		pbOrWr: resolveRecordPbOrWr(record),
-		viewer: viewerId === record.userId,
+		levelXxHash,
+		levelName,
+		levelPosition: contribution?.levelPosition,
+		contributionRank: contribution?.contributionRank,
+		levelPoints: contribution?.levelPoints ?? baseLevelPoints,
+		levelDecayedPoints: contribution?.levelDecayedPoints,
+		playerDecayedPoints: contribution?.playerDecayedPoints,
+		levelDecayMultiplier:
+			contribution?.levelPosition == null
+				? undefined
+				: calculateDecayMultiplier(contribution.levelPosition, LEVEL_DECAY_FACTOR),
+		globalDecayMultiplier:
+			contribution?.contributionRank == null
+				? undefined
+				: calculateDecayMultiplier(contribution.contributionRank, GLOBAL_DECAY_FACTOR),
+		pbOrWr: status,
+		pinned: false,
 	}
 }
 
@@ -74,6 +111,14 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	})
 	const level = computed(() => detail.data.value?.levelByXxHash)
 	const levelId = computed(() => level.value?.id)
+	const mapLevelRecord = (record: Parameters<typeof mapRecord>[0], assumePersonalBest = false) =>
+		mapRecord(
+			record,
+			level.value?.xxHash ?? xxHash.value,
+			level.value?.levelItems.nodes[0]?.name ?? level.value?.xxHash ?? xxHash.value,
+			level.value?.levelPoints?.points,
+			assumePersonalBest,
+		)
 	const pointsHistoryQuery = useQuery({
 		query: Zc_LevelPointsHistoryDocument,
 		variables: computed(() => ({
@@ -176,21 +221,6 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	const viewerBestRecord = computed(
 		() => viewerBest.data.value?.personalBestGlobalByUserIdAndLevelId?.record,
 	)
-	const viewerRank = useQuery({
-		query: Zc_LevelViewerRankDocument,
-		variables: computed(() => ({
-			levelId: levelId.value ?? 0,
-			time: viewerBestRecord.value?.time ?? 0,
-		})),
-		pause: computed(
-			() =>
-				!personalBestsPrefetch.active.value ||
-				viewerBestRecord.value == null ||
-				personalBestRecords.value.some(
-					(record) => record.id === viewerBestRecord.value?.id,
-				),
-		),
-	})
 
 	const summary = computed<LevelSummary | null>(() => {
 		const value = level.value
@@ -295,17 +325,15 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			userSteamId: value.user?.steamId == null ? null : String(value.user.steamId),
 		}
 	})
-	const recentRows = computed(() =>
-		(recent.data.value?.records?.edges ?? []).map(({ node }) =>
-			mapRecord(node, viewerId.value),
-		),
+	const recentRowsSource = computed(() =>
+		(recent.data.value?.records?.edges ?? []).map(({ node }) => mapLevelRecord(node)),
 	)
-	const nextPersonalBestRows = computed<RecordRow[] | null>(() => {
+	const recentRows = useRecordRankFallback(recentRowsSource)
+	const nextPersonalBestRows = computed<RecordHistoryRow[] | null>(() => {
 		if (
 			personalBests.fetching.value ||
 			personalBestRanks.fetching.value ||
-			viewerBest.fetching.value ||
-			viewerRank.fetching.value
+			viewerBest.fetching.value
 		) {
 			return null
 		}
@@ -328,34 +356,37 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		const levelPoints = level.value?.levelPoints?.points
 		const rows = personalBestRecords.value.map((record) => {
 			const rank = personalBestRanksByTime.value.get(record.time)
+			const mapped = mapLevelRecord(record, true)
 			return {
-				...mapRecord(record, viewerId.value),
-				rank,
-				points: calculateLevelPersonalBestPoints(levelPoints, rank),
+				...mapped,
+				levelPosition: rank,
+				levelPoints: mapped.levelPoints ?? levelPoints,
+				levelDecayedPoints:
+					mapped.levelDecayedPoints ??
+					calculateLevelPersonalBestPoints(levelPoints, rank),
+				levelDecayMultiplier:
+					rank == null ? undefined : calculateDecayMultiplier(rank, LEVEL_DECAY_FACTOR),
 			}
 		})
 		const own = viewerBestRecord.value
 		if (!own || rows.some((row) => row.id === own.id)) return rows
-		if (viewerRank.data.value === undefined) return null
-		const rank = Number(viewerRank.data.value.records?.totalCount ?? 0) + 1
 		return [
 			...rows,
 			{
-				...mapRecord(own, viewerId.value),
-				rank,
-				points: calculateLevelPersonalBestPoints(levelPoints, rank),
+				...mapLevelRecord(own, true),
 				pinned: true,
 			},
 		]
 	})
-	const personalBestRows = shallowRef<RecordRow[]>([])
+	const personalBestRowsSource = shallowRef<RecordHistoryRow[]>([])
 	watch(
 		nextPersonalBestRows,
 		(rows) => {
-			if (rows !== null) personalBestRows.value = rows
+			if (rows !== null) personalBestRowsSource.value = rows
 		},
 		{ immediate: true },
 	)
+	const personalBestRows = useRecordRankFallback(personalBestRowsSource)
 	const recentPage = computed<CursorPage>(() =>
 		recent.data.value?.records?.pageInfo
 			? {
@@ -415,7 +446,6 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		statisticsTarget: statisticsPrefetch.target,
 		summary,
 		viewerBest,
-		viewerRank,
 		worldRecord,
 	}
 }
