@@ -295,6 +295,25 @@ describe('calculateLevelPoints', () => {
 		expect(result.factors.passivePlayFactor).toBeGreaterThan(0.999)
 	})
 
+	test('normalizes passive severity when its AFK modifier has no numeric effect', () => {
+		const passiveTime = 60 * (1 + 22.586598918483972)
+		const result = calculateLevelPoints({
+			personalBests: personalBests(31, (index) =>
+				index === 30
+					? {
+							time: passiveTime,
+							telemetry: passiveTelemetry({ time: passiveTime }),
+						}
+					: { telemetry: activeTelemetry({ time: 60 + index * 0.25 }) },
+			),
+			personalBestCount: 31,
+		})
+
+		expect(result.metrics.passivePlaySeverity).toBe(0)
+		expect(result.metrics.afkModifier).toBe(1)
+		expect(result.factors.passivePlayFactor).toBe(1)
+	})
+
 	test('returns descriptive telemetry without duplicating four-wheel share', () => {
 		const result = calculateLevelPoints({
 			personalBests: personalBests(5, () => ({

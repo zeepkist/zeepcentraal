@@ -578,13 +578,15 @@ const calculatePassivePlay = (
 		? clamp(2 ** (-Math.log(bestPassive.time / leaderTime) / Math.log1p(0.02)))
 		: 0
 	const inputConfidence = inputCoverage ** 2 * smoothstep(clamp((inputRuns.length - 5) / 25))
-	const severity =
+	const rawSeverity =
 		inputRuns.length > 0
 			? clamp(inputConfidence * (0.6 * bestPassiveCloseness + 0.4 * (passiveTop10Share ?? 0)))
 			: null
+	const factor = 1 - 0.3 * (rawSeverity ?? 0)
+	const severity = rawSeverity !== null && factor === 1 ? 0 : rawSeverity
 
 	return {
-		factor: 1 - 0.3 * (severity ?? 0),
+		factor,
 		severity,
 		inputRuns,
 		inputCoverage,

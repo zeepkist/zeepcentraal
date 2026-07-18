@@ -25,4 +25,14 @@ describe('level point persistence', () => {
 		expect(service).toContain("- 'id' - 'id_level' - 'date_created' - 'date_updated'")
 		expect(service).not.toContain('levelPoints.points, latestHistory.points')
 	})
+
+	test('sanitizes PostgreSQL real values on bulk and single upserts', () => {
+		expect(service.match(/sanitizeLevelPointRealValues/g)).toHaveLength(3)
+		expect(service).toContain(
+			'payloads.map((payload) => sanitizeLevelPointRealValues({ ...payload, dateUpdated }))',
+		)
+		expect(service).toContain(
+			'const { idLevel, ...values } = sanitizeLevelPointRealValues({ ...payload, dateUpdated })',
+		)
+	})
 })

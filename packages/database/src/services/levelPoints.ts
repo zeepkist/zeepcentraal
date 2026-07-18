@@ -1,6 +1,7 @@
 import { eq, getTableColumns, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { levelPoints, levelPointsHistory } from '../schema'
+import { sanitizeLevelPointRealValues } from './levelPointRealValues'
 
 const unavailableLevelPointMetrics = {
 	sampleSize: null,
@@ -155,7 +156,9 @@ export async function upsertLevelPointsBulk(payloads: UpdateLevelPointsPayload[]
 	const dateUpdated = new Date().toISOString()
 	await db
 		.insert(levelPoints)
-		.values(payloads.map((payload) => ({ ...payload, dateUpdated })))
+		.values(
+			payloads.map((payload) => sanitizeLevelPointRealValues({ ...payload, dateUpdated })),
+		)
 		.onConflictDoUpdate({
 			target: levelPoints.idLevel,
 			set: {
@@ -223,8 +226,8 @@ export async function upsertLevelPointsBulk(payloads: UpdateLevelPointsPayload[]
 }
 
 export async function upsertLevelPoints(payload: UpdateLevelPointsPayload): Promise<void> {
-	const { idLevel, ...values } = payload
 	const dateUpdated = new Date().toISOString()
+	const { idLevel, ...values } = sanitizeLevelPointRealValues({ ...payload, dateUpdated })
 
 	await db.transaction(async (tx) => {
 		const existing = await tx
@@ -234,18 +237,11 @@ export async function upsertLevelPoints(payload: UpdateLevelPointsPayload): Prom
 			.limit(1)
 
 		if (existing.length > 0) {
-			await tx
-				.update(levelPoints)
-				.set({
-					...values,
-					dateUpdated,
-				})
-				.where(eq(levelPoints.idLevel, idLevel))
+			await tx.update(levelPoints).set(values).where(eq(levelPoints.idLevel, idLevel))
 		} else {
 			await tx.insert(levelPoints).values({
 				idLevel,
 				...values,
-				dateUpdated,
 			})
 		}
 	})
