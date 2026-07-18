@@ -65,6 +65,14 @@
 					</ClientOnly>
 				</section>
 
+				<RecordEventTimeline
+					:events="timelineEvents"
+					:duration="source.time"
+					:current-time="replayTime"
+					:labels="analysisLabels.events"
+					@seek="seekAnalysisEvent"
+				/>
+
 				<section aria-labelledby="comparison-heading">
 					<SectionHeader
 						id="comparison-heading"
@@ -86,14 +94,6 @@
 						@clear="setComparisonIds([])"
 					/>
 				</section>
-
-				<RecordEventTimeline
-					:events="timelineEvents"
-					:duration="source.time"
-					:current-time="replayTime"
-					:labels="analysisLabels.events"
-					@seek="seekAnalysisEvent"
-				/>
 
 				<RecordAnalysisTabs :labels="analysisTabLabels">
 					<template #telemetry>

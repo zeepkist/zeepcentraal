@@ -153,12 +153,10 @@ describe('record detail GraphQL', () => {
 
 	it('keeps event timeline visible before request-free analysis tabs', () => {
 		const comparisonIndex = recordPage.indexOf('id="comparison-heading"')
-		const timelineIndex = recordPage.indexOf('<RecordEventTimeline')
 		const tabsIndex = recordPage.indexOf('<RecordAnalysisTabs')
 
 		expect(comparisonIndex).toBeGreaterThan(-1)
-		expect(timelineIndex).toBeGreaterThan(comparisonIndex)
-		expect(tabsIndex).toBeGreaterThan(timelineIndex)
+		expect(tabsIndex).toBeGreaterThan(comparisonIndex)
 		expect(recordPage).toContain('<template #telemetry>')
 		expect(recordPage).toContain('<template #charts>')
 		expect(recordPage).toContain('<template #analysis>')

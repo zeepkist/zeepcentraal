@@ -545,10 +545,10 @@
 			"analysis": {
 				"tabs": {
 					"label": "Record analysis sections",
-					"telemetry": "Telemetry",
-					"charts": "Charts",
-					"analysis": "Analysis",
-					"improvement": "Improvement opportunities",
+					"telemetry": "Basic Telemetry",
+					"charts": "Advanced Telemetry",
+					"analysis": "Ghost Analysis",
+					"improvement": "Improvement Opportunities",
 					"unavailable": "No decoded ghost data is available for this section."
 				},
 				"telemetry": {
@@ -584,7 +584,7 @@
 					}
 				},
 				"events": {
-					"title": "Run event timeline",
+					"title": "Event timeline",
 					"description": "Jump directly to driver inputs, wheel states, surface changes, and special soapbox states.",
 					"empty": "No supported events were recorded for this ghost format.",
 					"at": "at",
