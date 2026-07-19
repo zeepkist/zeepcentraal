@@ -25,16 +25,16 @@ jobs:
         uses: ./.github/actions/setup-bun-deps
 
       - name: Typecheck
-        run: bun run typecheck
+        run: bun --bun run typecheck
 
       - name: Run tests
-        run: bun run test
+        run: bun --bun run test
 
       - name: Run lint
-        run: bun run lint
+        run: bun --bun run lint
 
       - name: Run format check
-        run: bun run format
+        run: bun --bun run format
 
   build-packages:
     runs-on: ubuntu-latest

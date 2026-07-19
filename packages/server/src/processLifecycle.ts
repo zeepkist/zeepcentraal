@@ -1,9 +1,9 @@
 export interface ClusterWorkerLike {
 	isDead(): boolean
-	off(event: 'exit', listener: () => void): unknown
-	once(event: 'exit', listener: () => void): unknown
 	process: {
 		kill(signal: NodeJS.Signals): boolean
+		off(event: 'exit', listener: () => void): unknown
+		once(event: 'exit', listener: () => void): unknown
 	}
 }
 
@@ -44,7 +44,7 @@ export async function stopClusterWorkers(
 			}
 		}
 		exitListeners.set(worker, onExit)
-		worker.once('exit', onExit)
+		worker.process.once('exit', onExit)
 		if (worker.isDead()) {
 			onExit()
 		}
@@ -67,7 +67,7 @@ export async function stopClusterWorkers(
 	}
 
 	for (const [worker, listener] of exitListeners) {
-		worker.off('exit', listener)
+		worker.process.off('exit', listener)
 	}
 
 	if (!stoppedCleanly) {

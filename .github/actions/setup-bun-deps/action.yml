@@ -1,17 +1,11 @@
 name: Setup Bun Dependencies
-description: Setup Bun, restore node_modules cache, and install dependencies on cache miss
-inputs:
-  bun-version:
-    description: Bun version to install
-    required: false
-    default: latest
+description: Setup pinned Bun, restore an exact node_modules cache, and install on cache miss
 runs:
   using: composite
   steps:
     - name: Set up Bun
+      id: bun_setup
       uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: ${{ inputs.bun-version }}
 
     - name: Cache Bun node_modules
       id: bun-node-modules-cache
@@ -20,9 +14,7 @@ runs:
         path: |
           node_modules
           packages/*/node_modules
-        key: ${{ runner.os }}-bun-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json', 'patches/**') }}
-        restore-keys: |
-          ${{ runner.os }}-bun-node-modules-
+        key: ${{ runner.os }}-${{ runner.arch }}-bun-${{ steps.bun_setup.outputs.bun-version }}-node-modules-${{ hashFiles('bun.lock', 'package.json', 'packages/*/package.json', 'patches/**') }}
 
     - name: Install dependencies
       if: steps.bun-node-modules-cache.outputs.cache-hit != 'true'
