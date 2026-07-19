@@ -4,7 +4,7 @@
 		:breadcrumbs="breadcrumbs"
 		:breadcrumb-label="$t('common.breadcrumbs')"
 		:document="document"
-		:table-of-contents-title="$t('pages.graphql.tableOfContents')"
+		:table-of-contents-title="$t('common.tableOfContents')"
 		show-table-of-contents
 	/>
 </template>

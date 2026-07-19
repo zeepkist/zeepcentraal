@@ -235,7 +235,7 @@ const selectedRecordIds = computed(() => parseComparisonIds(route.query.compare)
 const comparisons = useRecordComparisons({ levelId, ownerId, viewerId, selectedRecordIds })
 const levelGeometry = useRecordLevelGeometry(levelId)
 const contribution = computed(() => record.value?.userPointContributions.nodes[0] ?? null)
-const levelName = computed(() => levelItem.value?.name ?? t('pages.recordDetail.unknownLevel'))
+const levelName = computed(() => levelItem.value?.name ?? t('common.unknownLevel'))
 
 const sourceRegistry = computed(() => {
 	const values = [
@@ -265,7 +265,7 @@ const primaryColor = ref('#facc15')
 const playback = useGhostPlaybackSources({
 	sources: playbackSources,
 	identityLabels: {
-		unknownPlayer: t('pages.recordDetail.unknownPlayer'),
+		unknownPlayer: t('common.unknownPlayer'),
 		worldRecord: (name) => t('pages.recordDetail.replay.labels.worldRecord', { name }),
 		personalBest: (name) => t('pages.recordDetail.replay.labels.personalBest', { name }),
 		ordinal: (name, ordinal) => t('pages.recordDetail.replay.labels.ordinal', { name, ordinal }),
@@ -353,11 +353,15 @@ function seekAnalysisEvent(time: number) {
 }
 
 useSeoMeta({
-	title: () => t('pages.recordDetail.seo.title', { id: recordId }),
+	title: () => t('pages.recordDetail.seo.title', {
+		id: recordId,
+		player: record.value.user?.steamName ?? t('common.unknownPlayer'),
+		level: levelName.value,
+	}),
 	description: () =>
 		record.value
 			? t('pages.recordDetail.seo.recordDescription', {
-				player: record.value.user?.steamName ?? t('pages.recordDetail.unknownPlayer'),
+				player: record.value.user?.steamName ?? t('common.unknownPlayer'),
 				level: levelName.value,
 			})
 			: t('pages.recordDetail.seo.description'),
@@ -369,13 +373,13 @@ const heroLabels = computed(() => ({
 	personalBest: t('common.personalBest'),
 	record: (id: number) => t('pages.recordDetail.hero.record', { id }),
 	recordTime: t('pages.recordDetail.hero.recordTime'),
-	unknownPlayer: t('pages.recordDetail.unknownPlayer'),
-	set: t('pages.recordDetail.hero.set'),
-	gameVersion: t('pages.recordDetail.hero.gameVersion'),
-	modVersion: t('pages.recordDetail.hero.modVersion'),
-	ghostVersion: t('pages.recordDetail.hero.ghostVersion'),
-	levelRank: t('pages.recordDetail.hero.levelRank'),
-	rankedPoints: t('pages.recordDetail.hero.rankedPoints'),
+	unknownPlayer: t('common.unknownPlayer'),
+	set: t('common.set'),
+	gameVersion: t('common.gameVersion'),
+	modVersion: t('common.modVersion'),
+	ghostVersion: t('common.ghostVersion'),
+	levelRank: t('common.levelRank'),
+	rankedPoints: t('common.rankedPoints'),
 	unavailable: t('common.unavailable'),
 }))
 
@@ -417,8 +421,8 @@ const performanceLabels = computed(() => ({
 	frameRate: t('pages.recordDetail.performance.frameRate'),
 	quality: t('pages.recordDetail.performance.quality'),
 	auto: t('common.auto'),
-	fps30: t('pages.recordDetail.performance.fps30'),
-	fps60: t('pages.recordDetail.performance.fps60'),
+	fps30: t('pages.recordDetail.replay.frameRate', { value: 30 }),
+	fps60: t('pages.recordDetail.replay.frameRate', { value: 60 }),
 	performance: t('pages.recordDetail.performance.performance'),
 	balanced: t('pages.recordDetail.performance.balanced'),
 	qualityHigh: t('pages.recordDetail.performance.qualityHigh'),
@@ -446,7 +450,7 @@ const comparisonLabels = computed(() => ({
 	clear: t('common.clear'),
 	remove: t('common.remove'),
 	noneSelected: t('pages.recordDetail.comparisons.noneSelected'),
-	unknownPlayer: t('pages.recordDetail.unknownPlayer'),
+	unknownPlayer: t('common.unknownPlayer'),
 }))
 
 const capabilityLabels = computed(() => createRecordCapabilityLabels(t))

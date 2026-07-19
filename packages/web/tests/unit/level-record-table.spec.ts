@@ -122,7 +122,7 @@ describe('level record tables', () => {
 		expect(page).toContain('status-mode="none"')
 		expect(page).toContain('status-mode="all"')
 		expect(page).toContain("points: t('common.points')")
-		expect(page).toContain("rankedPoints: t('pages.records.table.rankedPoints')")
+		expect(page).toContain("rankedPoints: t('common.rankedPoints')")
 		expect(component).toContain("column === 'points'")
 		expect(component).toContain("column === 'rankedPoints'")
 		expect(component).toContain('<RecordStatusBadge')

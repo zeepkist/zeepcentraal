@@ -2,7 +2,7 @@
 	<ContentPage
 		v-if="document"
 		:document="document"
-		:table-of-contents-title="$t('pages.wiki.tableOfContents')"
+		:table-of-contents-title="$t('common.tableOfContents')"
 		show-table-of-contents
 	/>
 </template>

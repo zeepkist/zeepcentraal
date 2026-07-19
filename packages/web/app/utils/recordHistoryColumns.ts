@@ -28,9 +28,9 @@ export function getRecordHistoryColumns({
 	return [
 		...(rankFirst ? (['rank'] as const) : []),
 		...entityColumns,
+		...(showStatus ? (['status'] as const) : []),
 		...(!rankFirst ? (['rank'] as const) : []),
 		'time',
-		...(showStatus ? (['status'] as const) : []),
 		'points',
 		'rankedPoints',
 		'date',

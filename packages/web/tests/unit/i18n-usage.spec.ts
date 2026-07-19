@@ -114,9 +114,7 @@ function scopedTelemetryKeys(sources: SourceFile[]): string[] {
 	)
 	return [
 		...prefixes.flatMap((prefix) => suffixes.map((suffix) => `${prefix}.${suffix}`)),
-		...(source.includes("scopeT('notAvailable')")
-			? ['pages.recordDetail.telemetry.notAvailable']
-			: []),
+		...(source.includes("scopeT('notAvailable')") ? ['common.notAvailable'] : []),
 	]
 }
 

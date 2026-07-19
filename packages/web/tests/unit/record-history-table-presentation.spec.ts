@@ -9,9 +9,9 @@ describe('record history table presentation', () => {
 		expect(getRecordHistoryColumns({ showPlayer: true, showStatus: true })).toEqual([
 			'level',
 			'player',
+			'status',
 			'rank',
 			'time',
-			'status',
 			'points',
 			'rankedPoints',
 			'date',

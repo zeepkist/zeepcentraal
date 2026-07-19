@@ -131,7 +131,7 @@ const tableLabels = computed(() => ({
 	openPlayer: t('auth.profile'),
 	unknown: t('zsl.unknown'),
 	yourStanding: t('zsl.yourStanding'),
-	emptyValue: t('pages.records.table.notRanked'),
+	emptyValue: t('common.unavailable'),
 }))
 const heroLabels = computed(() => ({
 	eyebrow: t('zsl.levelResults'),
