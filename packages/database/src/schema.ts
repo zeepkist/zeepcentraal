@@ -6,6 +6,9 @@ import {
 	index,
 	integer,
 	jsonb,
+	pgPolicy,
+	pgRole,
+	pgSchema,
 	pgTable,
 	primaryKey,
 	real,
@@ -17,6 +20,14 @@ import {
 	varchar,
 } from 'drizzle-orm/pg-core'
 import { DEFAULT_VOTE_RATING } from './config'
+
+export const zcPrivate = pgSchema('zc_private')
+
+export const zeepCentraalGraphqlRole = pgRole('zeepcentraal_graphql', {
+	createDb: false,
+	createRole: false,
+	inherit: false,
+})
 
 export const level = pgTable(
 	'level',
@@ -52,8 +63,13 @@ export const level = pgTable(
 			.where(sql`${table.adventure} = true`),
 		index('IX_level_hash_search').using('gin', table.hash.op('gin_trgm_ops')),
 		index('IX_level_xx_hash_search').using('gin', table.xxHash.op('gin_trgm_ops')),
+		pgPolicy('graphql_select_visible_level', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.id})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const levelItem = pgTable(
 	'level_item',
@@ -138,8 +154,13 @@ export const levelItem = pgTable(
 			)
 			.where(sql`${table.deleted} = false`),
 		index('IX_level_item_name_search').using('gin', table.name.op('gin_trgm_ops')),
+		pgPolicy('graphql_select_visible_level_item', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level_item(${table.id})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const workshopItem = pgTable(
 	'workshop_item',
@@ -171,8 +192,13 @@ export const workshopItem = pgTable(
 			name: 'workshop_item_author_fkey',
 		}),
 		index('IX_workshop_item_author').using('btree', table.authorId.asc().nullsLast()),
+		pgPolicy('graphql_select_visible_workshop_item', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_workshop_item(${table.workshopId})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const levelMetadata = pgTable(
 	'level_metadata',
@@ -207,8 +233,13 @@ export const levelMetadata = pgTable(
 			name: 'level_metadata_id_level_fkey',
 		}).onDelete('cascade'),
 		index('IX_level_metadata_level').using('btree', table.idLevel.asc().nullsLast()),
+		pgPolicy('graphql_select_visible_level_metadata', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+		}),
 	],
-)
+).enableRLS()
 
 const levelPointDiagnosticColumns = () => ({
 	sampleSize: integer('sample_size'),
@@ -304,8 +335,13 @@ export const levelPoints = pgTable(
 			table.popularityModifier.desc().nullsLast(),
 			table.idLevel.asc().nullsLast(),
 		),
+		pgPolicy('graphql_select_visible_level_points', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const levelPointsHistory = pgTable(
 	'level_points_history',
@@ -345,8 +381,13 @@ export const levelPointsHistory = pgTable(
 			table.idLevel.asc().nullsLast(),
 			table.dateCreated.desc().nullsLast(),
 		),
+		pgPolicy('graphql_select_visible_level_points_history', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const levelRequest = pgTable(
 	'level_request',
@@ -420,8 +461,13 @@ export const personalBestGlobal = pgTable(
 		),
 		index('IX_personal_bests_record').using('btree', table.idRecord.asc().nullsLast()),
 		index('IX_personal_bests_date_created').using('btree', table.dateCreated.asc().nullsLast()),
+		pgPolicy('graphql_select_visible_personal_best', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel}) AND zc_private.is_visible_record(${table.idRecord})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const userPoints = pgTable(
 	'user_points',
@@ -518,8 +564,13 @@ export const userPointContribution = pgTable(
 				table.idLevel.asc().nullsLast(),
 			)
 			.where(sql`${table.levelPosition} = 1`),
+		pgPolicy('graphql_select_visible_user_point_contribution', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel}) AND zc_private.is_visible_record(${table.idRecord})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const userPointsHistory = pgTable(
 	'user_points_history',
@@ -660,8 +711,13 @@ export const record = pgTable(
 			table.idLevel.asc().nullsLast(),
 			table.modVersion.asc().nullsLast(),
 		),
+		pgPolicy('graphql_select_visible_record', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const recordMedia = pgTable(
 	'record_media',
@@ -681,8 +737,13 @@ export const recordMedia = pgTable(
 			foreignColumns: [record.id],
 			name: 'media_record_fkey',
 		}).onDelete('cascade'),
+		pgPolicy('graphql_select_visible_record_media', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_record(${table.idRecord})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const recordStatistic = pgTable(
 	'record_statistic',
@@ -773,8 +834,13 @@ export const recordStatistic = pgTable(
 			foreignColumns: [record.id],
 			name: 'record_statistic_record_fkey',
 		}).onDelete('cascade'),
+		pgPolicy('graphql_select_visible_record_statistic', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_record(${table.idRecord})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const user = pgTable(
 	'user',
@@ -857,8 +923,13 @@ export const favourite = pgTable(
 		}).onDelete('cascade'),
 		unique('UQ_favourites_user_level').on(table.idUser, table.idLevel),
 		index('IX_favorites_level').using('btree', table.idLevel.asc().nullsLast()),
+		pgPolicy('graphql_select_visible_favourite', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const vote = pgTable(
 	'vote',
@@ -887,8 +958,13 @@ export const vote = pgTable(
 		index('IX_vote_level').using('btree', table.idLevel.asc().nullsLast()),
 		index('IX_vote_date_created').using('btree', table.dateCreated.desc().nullsLast()),
 		primaryKey({ columns: [table.idUser, table.idLevel] }),
+		pgPolicy('graphql_select_visible_vote', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+		}),
 	],
-)
+).enableRLS()
 
 export const worldRecordGlobal = pgTable(
 	'world_record_global',
@@ -937,8 +1013,13 @@ export const worldRecordGlobal = pgTable(
 			table.idLevel.asc().nullsLast(),
 			table.idRecord.asc().nullsLast(),
 		),
+		pgPolicy('graphql_select_visible_world_record', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_level(${table.idLevel}) AND zc_private.is_visible_record(${table.idRecord})`,
+		}),
 	],
-)
+).enableRLS()
 
 /**
  * ZSL Points Structure
@@ -1085,8 +1166,13 @@ export const zslLevel = pgTable(
 		}),
 		index('IX_zsl_level_round').using('btree', table.idRound.asc().nullsLast()),
 		index('IX_zsl_level_id').using('btree', table.idLevel.asc().nullsLast()),
+		pgPolicy('graphql_select_visible_zsl_level', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_zsl_level(${table.id})`,
+		}),
 	],
-)
+).enableRLS()
 
 /**
  * ZSL Level Results
@@ -1139,8 +1225,13 @@ export const zslLevelResult = pgTable(
 			'btree',
 			table.dateCreated.asc().nullsLast(),
 		),
+		pgPolicy('graphql_select_visible_zsl_level_result', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.is_visible_zsl_level(${table.idLevel})`,
+		}),
 	],
-)
+).enableRLS()
 
 /**
  * Round Results
