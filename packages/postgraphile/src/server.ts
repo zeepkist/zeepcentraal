@@ -10,7 +10,9 @@ import { createPostGraphileRuntime } from './postgraphileRuntime'
 export {
 	createPostGraphileHandler,
 	createPostGraphileOptions,
+	createPostGraphilePgServiceOptions,
 	createPostGraphilePreset,
+	createPostGraphileV4Options,
 } from './postgraphileOptions'
 
 function redirectToRoot(request: Request) {

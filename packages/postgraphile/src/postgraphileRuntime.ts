@@ -19,7 +19,10 @@ export function createPostGraphileRuntime(
 	config: PostGraphileRuntimeConfig = postgraphileConfig,
 ) {
 	const server = handler.createServ(elysiaGrafserv)
-	const poller = createLiveQueryInvalidationPoller(config.liveQueries)
+	const poller = createLiveQueryInvalidationPoller({
+		...config.liveQueries,
+		databaseUrl: config.databaseUrl,
+	})
 	const liveQueryWebSocket = createLiveQueryWebSocketHandlers({
 		schema: Promise.resolve(handler.getSchema()),
 		debounceMs: config.liveQueries.debounceMs,
@@ -46,8 +49,8 @@ export function createPostGraphileRuntime(
 				new Response('Not Found', { status: 404 })
 			)
 		},
-		stop() {
-			poller.stop()
+		async stop() {
+			await poller.dispose()
 		},
 	}
 }

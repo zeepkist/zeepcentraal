@@ -1,6 +1,19 @@
 import { describe, expect, test } from 'bun:test'
 import { buildSchema } from 'postgraphile/graphql'
-import { buildPostGraphileServer, createPostGraphilePreset } from './server'
+import {
+	buildPostGraphileServer,
+	createPostGraphilePgServiceOptions,
+	createPostGraphilePreset,
+	createPostGraphileV4Options,
+} from './server'
+
+const postgraphileRuntimeConfig = {
+	databaseUrl: 'postgres://zeepcentraal_graphql:secret@database:5432/zeepkist',
+	superuserDatabaseUrl: 'postgres://postgres:secret@database:5432/zeepkist',
+	allowExplain: false,
+	nodeEnv: 'production',
+	liveQueries: { enabled: true },
+}
 
 function createApp() {
 	const server = {
@@ -35,6 +48,27 @@ function createApp() {
 }
 
 describe('buildPostGraphileServer', () => {
+	test('respects database grants and never configures a production superuser pool', () => {
+		expect(createPostGraphileV4Options(postgraphileRuntimeConfig).ignoreRBAC).toBe(false)
+		expect(createPostGraphilePgServiceOptions(postgraphileRuntimeConfig)).toEqual({
+			connectionString: postgraphileRuntimeConfig.databaseUrl,
+			schemas: ['public'],
+		})
+	})
+
+	test('uses a distinct superuser connection only for development schema watching', () => {
+		expect(
+			createPostGraphilePgServiceOptions({
+				...postgraphileRuntimeConfig,
+				nodeEnv: 'development',
+			}),
+		).toEqual({
+			connectionString: postgraphileRuntimeConfig.databaseUrl,
+			superuserConnectionString: postgraphileRuntimeConfig.superuserDatabaseUrl,
+			schemas: ['public'],
+		})
+	})
+
 	test('configures Grafserv for root graphql route and websocket subscriptions', () => {
 		const preset = createPostGraphilePreset()
 

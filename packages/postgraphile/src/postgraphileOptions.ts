@@ -20,10 +20,40 @@ import { TracePlugin } from './plugins/TracePlugin'
 
 type PostGraphileRuntimeConfig = {
 	databaseUrl: string
+	superuserDatabaseUrl?: string
 	allowExplain: boolean
 	nodeEnv: string
 	liveQueries: {
 		enabled: boolean
+	}
+}
+
+export function createPostGraphileV4Options(config: PostGraphileRuntimeConfig) {
+	return {
+		disableDefaultMutations: true,
+		dynamicJson: false,
+		extendedErrors: ['hint', 'detail', 'errcode'],
+		ignoreRBAC: false,
+		setofFunctionsContainNulls: false,
+		simpleCollections: 'omit' as const,
+		ignoreIndexes: true,
+		allowExplain: config.allowExplain,
+		watchPg: config.nodeEnv !== 'production',
+		subscriptions: config.liveQueries.enabled,
+		simpleSubscriptions: false,
+		graphileBuildOptions: {
+			connectionFilterRelations: true,
+		},
+	}
+}
+
+export function createPostGraphilePgServiceOptions(config: PostGraphileRuntimeConfig) {
+	return {
+		connectionString: config.databaseUrl,
+		...(config.nodeEnv !== 'production' && config.superuserDatabaseUrl
+			? { superuserConnectionString: config.superuserDatabaseUrl }
+			: {}),
+		schemas: ['public'],
 	}
 }
 
@@ -56,34 +86,13 @@ export function createPostGraphilePreset(
 	return {
 		extends: [
 			PostGraphileAmberPreset,
-			makeV4Preset({
-				disableDefaultMutations: true,
-				dynamicJson: false,
-				extendedErrors: ['hint', 'detail', 'errcode'],
-				ignoreRBAC: true,
-				setofFunctionsContainNulls: false,
-				simpleCollections: 'omit',
-				ignoreIndexes: true,
-				allowExplain: config.allowExplain,
-				watchPg: config.nodeEnv !== 'production',
-				subscriptions: config.liveQueries.enabled,
-				simpleSubscriptions: false,
-				graphileBuildOptions: {
-					connectionFilterRelations: true,
-				},
-			}),
+			makeV4Preset(createPostGraphileV4Options(config)),
 			PostGraphileConnectionFilterPreset,
 			PgManyToManyPreset,
 			PgAggregatesPreset,
 		],
 		plugins,
-		pgServices: [
-			makePgService({
-				connectionString: config.databaseUrl,
-				superuserConnectionString: config.databaseUrl,
-				schemas: ['public'],
-			}),
-		],
+		pgServices: [makePgService(createPostGraphilePgServiceOptions(config))],
 		grafast: {
 			explain: config.allowExplain,
 		},

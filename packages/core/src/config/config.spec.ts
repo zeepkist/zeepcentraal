@@ -4,6 +4,7 @@ import { parseDatabaseConfig } from './database'
 import { parseImportZslConfig } from './importZsl'
 import { parseJobsConfig } from './jobs'
 import { parseMigrateConfig } from './migrate'
+import { parsePostgraphileConfig } from './postgraphile'
 import { parseServerConfig } from './server'
 
 test('server config requires server-only secrets', () => {
@@ -52,6 +53,31 @@ test('migrate config preserves migration candidate fallback', () => {
 	const config = parseMigrateConfig({})
 
 	expect(config.migrationsFolder).toBe(resolve(process.cwd(), 'packages/database/drizzle'))
+})
+
+test('postgraphile config accepts a separate development schema-watch connection', () => {
+	const config = parsePostgraphileConfig({
+		NODE_ENV: 'development',
+		POSTGRAPHILE_DATABASE_URL: 'postgres://zeepcentraal_graphql:secret@localhost:5432/zeepkist',
+		DATABASE_URL: 'postgres://postgres:secret@localhost:5432/zeepkist',
+		POSTGRAPHILE_SUPERUSER_DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/zeepkist',
+	})
+
+	expect(config.databaseUrl).toBe(
+		'postgres://zeepcentraal_graphql:secret@localhost:5432/zeepkist',
+	)
+	expect(config.superuserDatabaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
+})
+
+test('postgraphile config rejects a superuser connection in production', () => {
+	expect(() =>
+		parsePostgraphileConfig({
+			NODE_ENV: 'production',
+			DATABASE_URL: 'postgres://zeepcentraal_graphql:secret@database:5432/zeepkist',
+			POSTGRAPHILE_SUPERUSER_DATABASE_URL:
+				'postgres://postgres:postgres@database:5432/zeepkist',
+		}),
+	).toThrow('POSTGRAPHILE_SUPERUSER_DATABASE_URL is forbidden in production')
 })
 
 test('production server config rejects weak secrets', () => {

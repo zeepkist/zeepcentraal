@@ -3,7 +3,9 @@ import { type EnvSource, nodeEnvSchema } from './shared'
 
 const postgraphileEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
+	POSTGRAPHILE_DATABASE_URL: z.string().min(1).optional(),
 	DATABASE_URL: z.string().min(1).optional(),
+	POSTGRAPHILE_SUPERUSER_DATABASE_URL: z.string().min(1).optional(),
 	DB_USERNAME: z.string().min(1).optional(),
 	DB_PASSWORD: z.string().optional(),
 	DB_HOST: z.string().min(1).optional(),
@@ -33,6 +35,10 @@ const postgraphileEnvSchema = z.object({
 })
 
 function resolveDatabaseUrl(env: z.infer<typeof postgraphileEnvSchema>): string {
+	if (env.POSTGRAPHILE_DATABASE_URL) {
+		return env.POSTGRAPHILE_DATABASE_URL
+	}
+
 	if (env.DATABASE_URL) {
 		return env.DATABASE_URL
 	}
@@ -47,12 +53,19 @@ function resolveDatabaseUrl(env: z.infer<typeof postgraphileEnvSchema>): string 
 
 export function parsePostgraphileConfig(env: EnvSource) {
 	const parsedEnv = postgraphileEnvSchema.parse(env)
+	if (
+		parsedEnv.NODE_ENV === 'production' &&
+		parsedEnv.POSTGRAPHILE_SUPERUSER_DATABASE_URL !== undefined
+	) {
+		throw new Error('POSTGRAPHILE_SUPERUSER_DATABASE_URL is forbidden in production')
+	}
 
 	return {
 		nodeEnv: parsedEnv.NODE_ENV,
 		host: parsedEnv.POSTGRAPHILE_HOST,
 		port: parsedEnv.POSTGRAPHILE_PORT,
 		databaseUrl: resolveDatabaseUrl(parsedEnv),
+		superuserDatabaseUrl: parsedEnv.POSTGRAPHILE_SUPERUSER_DATABASE_URL,
 		requestLogging: parsedEnv.POSTGRAPHILE_REQUEST_LOGGING,
 		fieldTracing: parsedEnv.GRAPHQL_FIELD_TRACING,
 		queryTraceDetail: parsedEnv.GRAPHQL_QUERY_TRACE_DETAIL,

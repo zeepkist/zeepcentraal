@@ -1,36 +1,72 @@
+import postgres from 'postgres'
+
 type LiveQueryInvalidationPollerConfig = {
+	databaseUrl: string
 	pollMs: number
 	invalidationRetentionMinutes: number
+}
+
+export type LiveQueryInvalidationStore = {
+	getMaxId(): Promise<bigint>
+	prune(retentionMinutes: number): Promise<void>
+	close(): Promise<void>
 }
 
 export type LiveQueryInvalidationPoller = {
 	start(onInvalidate: () => void): void
 	stop(): void
+	dispose(): Promise<void>
 }
 
 const PRUNE_EVERY_POLLS = 240
 
+export function createLiveQueryInvalidationStore(databaseUrl: string): LiveQueryInvalidationStore {
+	const client = postgres(databaseUrl, {
+		max: 1,
+		idle_timeout: 30,
+	})
+
+	return {
+		async getMaxId() {
+			const rows = await client<{ id: string }[]>`
+				select coalesce(max(id), 0)::text as id
+				from public.live_query_invalidations
+			`
+
+			return BigInt(rows[0]?.id ?? '0')
+		},
+		async prune(retentionMinutes) {
+			await client`
+				delete from public.live_query_invalidations
+				where created_at < now() - make_interval(mins => ${retentionMinutes})
+			`
+		},
+		async close() {
+			await client.end({ timeout: 5 })
+		},
+	}
+}
+
 export function createLiveQueryInvalidationPoller(
 	config: LiveQueryInvalidationPollerConfig,
+	providedStore?: LiveQueryInvalidationStore,
 ): LiveQueryInvalidationPoller {
+	let store = providedStore
 	let interval: Timer | undefined
 	let onInvalidate: (() => void) | undefined
 	let lastSeenId: bigint | undefined
-	let pollInFlight = false
+	let activePoll: Promise<void> | undefined
 	let pruneCounter = 0
 	let warned = false
 
-	async function poll() {
-		if (pollInFlight) {
-			return
-		}
+	function getStore() {
+		store ??= createLiveQueryInvalidationStore(config.databaseUrl)
+		return store
+	}
 
-		pollInFlight = true
+	async function poll() {
 		try {
-			const { getMaxLiveQueryInvalidationId, pruneLiveQueryInvalidations } = await import(
-				'@zeepkist/database/services'
-			)
-			const maxId = await getMaxLiveQueryInvalidationId()
+			const maxId = await getStore().getMaxId()
 			if (lastSeenId === undefined) {
 				lastSeenId = maxId
 				return
@@ -44,16 +80,24 @@ export function createLiveQueryInvalidationPoller(
 			pruneCounter += 1
 			if (pruneCounter >= PRUNE_EVERY_POLLS) {
 				pruneCounter = 0
-				await pruneLiveQueryInvalidations(config.invalidationRetentionMinutes)
+				await getStore().prune(config.invalidationRetentionMinutes)
 			}
 		} catch (error) {
 			if (!warned) {
 				warned = true
 				console.warn('[postgraphile] live query invalidation polling failed', error)
 			}
-		} finally {
-			pollInFlight = false
 		}
+	}
+
+	function runPoll() {
+		if (activePoll) {
+			return
+		}
+
+		activePoll = poll().finally(() => {
+			activePoll = undefined
+		})
 	}
 
 	return {
@@ -63,8 +107,8 @@ export function createLiveQueryInvalidationPoller(
 				return
 			}
 
-			void poll()
-			interval = setInterval(() => void poll(), config.pollMs)
+			runPoll()
+			interval = setInterval(runPoll, config.pollMs)
 		},
 		stop() {
 			if (!interval) {
@@ -74,6 +118,11 @@ export function createLiveQueryInvalidationPoller(
 			clearInterval(interval)
 			interval = undefined
 			lastSeenId = undefined
+		},
+		async dispose() {
+			this.stop()
+			await activePoll
+			await store?.close()
 		},
 	}
 }

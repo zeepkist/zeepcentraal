@@ -2,6 +2,11 @@ import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 
 process.env.GRAPHILE_ENV ??= postgraphileConfig.nodeEnv
 
+if (postgraphileConfig.nodeEnv === 'production') {
+	const { assertRestrictedGraphqlDatabaseRole } = await import('./databaseRoleAudit')
+	await assertRestrictedGraphqlDatabaseRole(postgraphileConfig.databaseUrl)
+}
+
 const { buildPostGraphileServer } = await import('./server')
 const app = buildPostGraphileServer()
 
