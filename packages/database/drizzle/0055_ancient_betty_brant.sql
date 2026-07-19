@@ -26,6 +26,15 @@ ALTER TABLE "zc_private"."visible_workshop_item" ADD CONSTRAINT "graphql_visible
 CREATE INDEX "IX_graphql_visible_level_item_level" ON "zc_private"."visible_level_item" USING btree ("id_level");--> statement-breakpoint
 CREATE INDEX "IX_graphql_visible_level_item_workshop" ON "zc_private"."visible_level_item" USING btree ("workshop_id");--> statement-breakpoint
 
+-- Prevent writes from landing between the snapshot and trigger installation. Reads remain
+-- available while migration builds the owner-maintained visibility state.
+LOCK TABLE
+	public.level,
+	public.level_item,
+	public.workshop_item,
+	public.record
+IN SHARE ROW EXCLUSIVE MODE;--> statement-breakpoint
+
 -- Build a transactionally consistent visibility snapshot before replacing the policies. The
 -- record counter contains only levels with records; absence therefore means zero records.
 INSERT INTO zc_private.level_record_count (id_level, record_count)

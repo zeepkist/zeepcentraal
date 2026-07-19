@@ -32,11 +32,15 @@ describe('GraphQL visibility allowlist migration', () => {
 	})
 
 	test('backfills exact public visibility matrix before replacing policies', () => {
+		const lockPosition = migration.indexOf('LOCK TABLE\n\tpublic.level,')
 		const backfillPosition = migration.indexOf(
 			'INSERT INTO zc_private.level_record_count (id_level, record_count)',
 		)
 		const policyPosition = migration.indexOf('ALTER POLICY "graphql_select_visible_level"')
 
+		expect(lockPosition).toBeGreaterThan(-1)
+		expect(lockPosition).toBeLessThan(backfillPosition)
+		expect(migration).toContain('public.record\nIN SHARE ROW EXCLUSIVE MODE')
 		expect(backfillPosition).toBeGreaterThan(-1)
 		expect(backfillPosition).toBeLessThan(policyPosition)
 		expect(migration).toContain('candidate_level.adventure = true')
