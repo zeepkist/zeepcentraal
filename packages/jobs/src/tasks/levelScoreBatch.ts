@@ -1,5 +1,5 @@
 import {
-	calculateLevelPoints,
+	calculateLevelPointsV2 as calculateLevelPoints,
 	calculateVoteRating,
 	getVoteRatingMaturityCutoff,
 	isLevelScoreEligible,

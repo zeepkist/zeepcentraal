@@ -99,7 +99,7 @@ test('persists explainable score and telemetry metrics', async () => {
 		slipSampleSize: 0,
 		ragdollSampleSize: 0,
 		matureVoteCount: 2,
-		modifierAfk: null,
+		modifierAfk: 0.9,
 		passivePlaySeverity: null,
 		worldRecordExcluded: false,
 	})
