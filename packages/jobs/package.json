@@ -15,6 +15,9 @@
 		},
 		"./queue": {
 			"import": "./src/queue.ts"
+		},
+		"./task-definitions": {
+			"import": "./src/taskDefinitions.ts"
 		}
 	},
 	"dependencies": {

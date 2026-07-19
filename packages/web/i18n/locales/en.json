@@ -15,23 +15,24 @@
 		"signIn": "Sign in",
 		"steam": "Sign in with Steam",
 		"verificationFailed": {
-			"description": "Your sign-in cookies could not be matched to a current session. Please try signing in again.",
-			"title": "Sign-in verification failed"
+			"description": "Your sign-in attempt failed. Please try signing in again.",
+			"title": "Sign-in failed"
 		}
 	},
 	"common": {
+		"brand": "ZeepCentraal",
 		"breadcrumbs": "Breadcrumb navigation",
-		"placeholder": "Foundation placeholder",
 		"adventure": "Adventure",
 		"points": "Points",
+		"levelPoints": "Level points",
 		"records": "Records",
 		"rank": "Rank",
+		"rankedPoints": "Ranked points",
 		"user": "Player",
 		"level": "Level",
 		"levels": "Levels",
 		"time": "Time",
-		"date": "Date",
-		"live": "Live",
+		"finish": "Finish",
 		"loading": "Loading data",
 		"error": "Unable to load data",
 		"empty": "No results found",
@@ -39,7 +40,23 @@
 		"previous": "Previous",
 		"next": "Next",
 		"last": "Last",
-		"pagination": "Results pagination"
+		"pagination": "Results pagination",
+		"auto": "Auto",
+		"clear": "Clear",
+		"remove": "Remove",
+		"unavailable": "—",
+		"notAvailable": "N/A",
+		"personalBest": "PB",
+		"worldRecord": "WR",
+		"unknownAuthor": "Unknown author",
+		"unknownPlayer": "Unknown player",
+		"unknownLevel": "Unknown level",
+		"tableOfContents": "On this page",
+		"set": "Set",
+		"gameVersion": "Game version",
+		"modVersion": "GTR version",
+		"ghostVersion": "Ghost format",
+		"levelRank": "Level rank"
 	},
 	"error": {
 		"action": "Return home",
@@ -52,16 +69,14 @@
 			"short": "Modding Discord"
 		},
 		"officialDiscord": {
-			"label": "Join official Zeepkist Discord",
+			"label": "Join Official Zeepkist Discord",
 			"short": "Zeepkist Discord"
 		},
 		"steam": {
-			"label": "Open Zeepkist on Steam",
-			"short": "Steam"
+			"label": "Open Zeepkist on Steam"
 		}
 	},
 	"footer": {
-		"brand": "ZeepCentraal",
 		"columns": {
 			"community": "Community",
 			"discover": "Discover",
@@ -70,23 +85,12 @@
 		},
 		"copyrightZeepCentraal": "© 2023 ZeepCentraal — Akane.",
 		"copyrightZeepkist": "Zeepkist © Yannic Geurts.",
-		"description": "Records, rankings, levels, tournaments, mods, and community tools for Zeepkist.",
+		"description": "Your complete Zeepkist companion for racing, building and competing.",
 		"disclaimer": "ZeepCentraal is not affiliated with Zeepkist, Yannic Geurts, or Steelpan Interactive.",
 		"links": {
-			"github": "GitHub repository",
+			"github": "GitHub Repository",
 			"privacy": "Privacy Policy",
 			"terms": "Terms & Conditions"
-		}
-	},
-	"home": {
-		"portal": {
-			"description": "One SSR-first entry point for records, personal bests, level discovery, tournament results, modding, and developer documentation.",
-			"title": "Track Zeepkist performance from one place"
-		},
-		"stats": {
-			"levels": "Levels",
-			"players": "Players",
-			"records": "Records"
 		}
 	},
 	"nav": {
@@ -112,10 +116,7 @@
 		},
 		"label": "Search users and levels",
 		"loading": "Searching users and levels",
-		"placeholder": "Search users and levels",
-		"rank": "Rank",
-		"typeMore": "Type at least two characters",
-		"unknownAuthor": "Unknown author"
+		"typeMore": "Type at least two characters"
 	},
 	"wikiContent": {
 		"edit": "Edit this page",
@@ -143,21 +144,13 @@
 	},
 	"pages": {
 		"adventure": {
-			"description": "Browse the official Adventure Mode levels in Zeepkist, and view the global leaderboards for each level.",
-			"eyebrow": "Adventure mode",
-			"panelDescription": "Season browser and adventure leaderboards land here.",
-			"panelTitle": "Adventure browser",
+			"description": "Browse every official Adventure Mode level and compete on global leaderboards",
+			"eyebrow": "Adventure Mode",
 			"seo": {
-				"description": "Zeepkist adventure mode seasons and leaderboards.",
+				"description": "Zeepkist Adventure Mode leaderboards.",
 				"title": "Adventure Mode"
 			},
 			"title": "Adventure leaderboards"
-		},
-		"authCallback": {
-			"seo": {
-				"description": "Completing ZeepCentraal sign in.",
-				"title": "Sign In"
-			}
 		},
 		"cosmetics": {
 			"back": "Back to dashboard",
@@ -174,16 +167,13 @@
 			"notFound": "Cosmetic not found",
 			"seo": {
 				"description": "ZeepCentraal cosmetic detail placeholder.",
-				"title": "Cosmetic #{id} · ZeepCentraal"
+				"title": "Cosmetic #{id}"
 			},
 			"title": "Cosmetic details are coming next"
 		},
 		"developer": {
 			"breadcrumb": "Developer Portal",
 			"description": "Build integrations on top of ZeepCentraal data.",
-			"eyebrow": "Developer Portal",
-			"panelDescription": "GraphQL guidance, schemas, examples, and usage patterns.",
-			"panelTitle": "Developer resources",
 			"seo": {
 				"description": "ZeepCentraal developer portal.",
 				"title": "Developer Portal"
@@ -191,62 +181,40 @@
 			"title": "Developer Portal"
 		},
 		"graphql": {
-			"description": "Query ZeepCentraal safely with named operations, bounded pagination, caching, and query-cost awareness.",
-			"eyebrow": "GraphQL",
 			"notFound": "GraphQL guide not found",
-			"panelDescription": "Schema-driven examples and API docs will be built here.",
-			"panelTitle": "GraphQL usage",
 			"seo": {
 				"description": "ZeepCentraal GraphQL usage guide.",
 				"title": "GraphQL Guide"
-			},
-			"tableOfContents": "On this page",
-			"title": "GraphQL guide"
-		},
-		"guides": {
-			"description": "Guides for Zeepkist mapping, modding, gameplay, and tools.",
-			"eyebrow": "Guides",
-			"panelDescription": "Nuxt Content guide pages will be grouped here.",
-			"panelTitle": "Guide library",
-			"seo": {
-				"description": "Zeepkist gameplay and modding guides.",
-				"title": "Guides"
-			},
-			"title": "Zeepkist guides"
+			}
 		},
 		"home": {
-			"description": "Statistics portal for world records, personal bests, levels, users, tournaments, mods, and guides.",
-			"eyebrow": "ZeepCentraal",
 			"seo": {
-				"description": "ZeepCentraal statistics portal for Zeepkist records, levels, users, tournaments, and modding.",
-				"title": "ZeepCentraal"
-			},
-			"title": "Zeepkist stats hub"
+				"description": "ZeepCentraal portal for Zeepkist records, levels, users, tournaments and modding.",
+				"title": "Zeepkist Levels and Online Records"
+			}
 		},
 		"levels": {
 			"description": "Explore official and community created levels.",
-			"eyebrow": "Level explorer",
-			"panelDescription": "Search, filters, record tables, and level stats land here.",
-			"panelTitle": "Level data",
+			"eyebrow": "Level Explorer",
 			"seo": {
-				"description": "Zeepkist level explorer and leaderboards.",
+				"description": "Explore Zeepkist levels, global leaderboards, medal times, statistics, records, authors and workshop details.",
 				"title": "Levels"
 			},
-			"title": "Levels and leaderboards"
+			"title": "Levels"
 		},
 		"mods": {
-			"description": "Find Zeepkist plugins, compare community ratings, and open complete mod details.",
-			"eyebrow": "Mod explorer",
+			"description": "Discover Zeepkist mods available on Modkist.",
+			"eyebrow": "Mod Explorer",
 			"seo": {
-				"description": "Browse Zeepkist plugins from mod.io by popularity, rating, downloads, or update date.",
+				"description": "Browse Zeepkist mods from mod.io by popularity, rating, downloads, update date and more downloadable through Modkist.",
 				"title": "Zeepkist Mods"
 			},
-			"title": "Zeepkist mods"
+			"title": "Zeepkist Mods"
 		},
 		"records": {
-			"description": "Track world records, personal bests, and record history.",
+			"description": "Track world records, personal bests, recent submissions and record history.",
 			"eyebrow": "Records",
-			"empty": "No records found in this view.",
+			"empty": "No records found.",
 			"myRecordsAction": "My records",
 			"liveUpdate": "Record history updated with new runs.",
 			"live": {
@@ -273,29 +241,24 @@
 				"valuablePbs": "Most valuable personal bests"
 			},
 			"table": {
-				"set": "Set",
-				"notRanked": "—",
-				"unknownPlayer": "Unknown player",
-				"levelPoints": "Level points",
-				"rankedPoints": "Ranked points",
-				"decayPercentage": "{percentage} remaining after decay",
+				"pointsHelp": "Points earned from this level based on leaderboard position.",
+				"rankedPointsHelp": "Points contributing toward global ranking. Each PB is weighted by its strength compared to the player's other PBs.",
+				"decayPercentage": "Remaining after decay",
 				"openRecord": "Open record for {level}",
-				"status": "PB / WR",
-				"personalBest": "PB",
-				"worldRecord": "WR"
+				"status": ""
 			},
 			"seo": {
-				"description": "Zeepkist world records and personal bests.",
+				"description": "Track world records, personal bests, recent submissions and record history.",
 				"title": "Records"
 			},
 			"title": "World records and personal bests"
 		},
 		"privacy": {
-			"description": "Learn how ZeepCentraal collects, uses, and protects your personal information.",
+			"description": "Learn how ZeepCentraal collects, uses and protects your personal information.",
 			"eyebrow": "Legal",
 			"notFound": "Privacy Policy not found",
 			"seo": {
-				"description": "Learn how ZeepCentraal collects, uses, and protects personal information.",
+				"description": "Learn how ZeepCentraal collects, uses and protects personal information.",
 				"title": "Privacy Policy"
 			},
 			"title": "Privacy Policy"
@@ -310,7 +273,7 @@
 			"title": "Settings"
 		},
 		"terms": {
-			"description": "Understand the rules, responsibilities, and rights when using ZeepCentraal.",
+			"description": "Understand the rules, responsibilities and rights when using ZeepCentraal.",
 			"eyebrow": "Legal",
 			"notFound": "Terms & Conditions not found",
 			"seo": {
@@ -321,7 +284,7 @@
 		},
 		"totw": {
 			"back": "Back to dashboard",
-			"description": "Weekly featured tracks, results, and competition history will appear here.",
+			"description": "Weekly featured tracks, results and competition history will appear here.",
 			"seo": {
 				"description": "ZeepCentraal Track of the Week placeholder.",
 				"title": "Track of the Week"
@@ -340,7 +303,7 @@
 		},
 		"totm": {
 			"back": "Back to dashboard",
-			"description": "Monthly featured tracks, results, and competition history will appear here.",
+			"description": "Monthly featured tracks, results and competition history will appear here.",
 			"seo": {
 				"description": "ZeepCentraal Track of the Month placeholder.",
 				"title": "Track of the Month"
@@ -358,10 +321,8 @@
 			"title": "Track of the Month details are coming next"
 		},
 		"users": {
-			"description": "Search for players, view profiles and inspect player statistics.",
+			"description": "Search for players, view profiles and discover their best records.",
 			"eyebrow": "Users",
-			"panelDescription": "Player search and user stat pages land here.",
-			"panelTitle": "Player data",
 			"seo": {
 				"description": "Zeepkist player stats and leaderboards.",
 				"title": "Global Player Leaderboard"
@@ -370,23 +331,15 @@
 		},
 		"wiki": {
 			"breadcrumb": "Wiki",
-			"description": "Gameplay, level building, and community reference pages.",
-			"eyebrow": "Wiki",
 			"notFound": "Wiki page not found",
-			"panelDescription": "Nuxt Content wiki pages land here.",
-			"panelTitle": "Knowledge base",
 			"seo": {
-				"description": "Zeepkist gameplay and level wiki.",
+				"description": "Zeepkist gameplay and Level Editor wiki.",
 				"title": "Wiki"
-			},
-			"tableOfContents": "On this page",
-			"title": "Zeepkist wiki"
+			}
 		},
 		"zsl": {
-			"description": "Tournament seasons, rounds, levels and standings.",
+			"description": "Zeepkist Super League tournament results, standings and history.",
 			"eyebrow": "Super League",
-			"panelDescription": "Zeepkist Super League season and round results land here.",
-			"panelTitle": "Tournament results",
 			"seo": {
 				"description": "Zeepkist Super League tournament results.",
 				"title": "Zeepkist Super League"
@@ -396,41 +349,286 @@
 		"myRecords": {
 			"eyebrow": "Your racing history",
 			"title": "Your records",
-			"description": "Review every submitted run, personal best, and world record from newest to oldest.",
+			"description": "Review your latest Zeepkist records, personal bests and world records.",
 			"seo": {
-				"title": "Your records · ZeepCentraal",
-				"description": "Review your latest Zeepkist records, personal bests, world records, ranks, and ranked points."
+				"title": "Your Records",
+				"description": "Review your latest Zeepkist records, personal bests and world records."
 			},
 			"setup": {
 				"title": "Start building your racing history",
-				"description": "Install Modkist and GTR to submit completed Zeepkist runs automatically, join global leaderboards, and replay personal-best and world-record ghosts.",
+				"description": "Install Modkist and GTR to submit completed Zeepkist runs automatically, join global leaderboards and replay personal-best and world-record ghosts.",
 				"action": "Setup Modkist and GTR"
 			}
 		},
 		"recordDetail": {
-			"title": "Record details are coming next",
-			"description": "Record #{id} has a permanent page. Full telemetry, replay, and comparison tools will appear here.",
-			"back": "Back to records",
 			"notFound": "Record not found",
+			"hero": {
+				"record": "Record #{id}",
+				"recordTime": "Finish time"
+			},
+			"replay": {
+				"title": "Ghost replay",
+				"description": "Inspect lines, inputs, speed and positioning from any angle.",
+				"loadingTitle": "Preparing ghost replay…",
+				"loadingDescription": "Downloading ghost data…",
+				"failedTitle": "Some replays could not be loaded",
+				"failedDescription": "{count} replay could not be downloaded or decoded. Other comparisons remain available.",
+				"retry": "Retry failed replays",
+				"frameRate": "{value} FPS",
+				"approximateGeometry": "Approximate level geometry",
+				"emptyTitle": "No playable ghost",
+				"emptyDescription": "No ghost data available.",
+				"contextLostTitle": "3D renderer paused",
+				"contextLostDescription": "The WebGL context was lost. Reload the page to restore 3D replay.",
+				"unavailableTitle": "3D ghost replay unavailable",
+				"unavailableDescription": "Your browser does not support WebGL or has disabled it. Ghost replay is unavailable.",
+				"labels": {
+					"worldRecord": "{name} (WR)",
+					"personalBest": "{name} (PB)",
+					"ordinal": "{name} ({ordinal})"
+				},
+				"controls": {
+					"play": "Play replay",
+					"pause": "Pause replay",
+					"timeline": "Replay position",
+					"previousFrame": "Previous ghost frame",
+					"nextFrame": "Next ghost frame",
+					"speed": "Playback speed",
+					"loop": "Loop replay",
+					"orbit": "Orbit",
+					"isometric": "Isometric",
+					"follow": "Follow selected ghost",
+					"frameRoute": "Frame full route"
+				}
+			},
+			"performance": {
+				"open": "Ghost playback settings",
+				"title": "Playback quality",
+				"description": "Global settings are saved on this device.",
+				"frameRate": "Frame rate",
+				"quality": "Render quality",
+				"performance": "Performance",
+				"balanced": "Balanced",
+				"qualityHigh": "High quality",
+				"cache": "Offline ghost cache",
+				"cacheValue": "{entries} ghosts · {size}",
+				"clearCache": "Clear"
+			},
+			"comparisons": {
+				"title": "Compare runs",
+				"description": "Overlay the World Record, leading Personal Bests, your own best, another player's best, or this player's fastest runs.",
+				"quickComparisons": "Quick comparisons",
+				"quickDescription": "Add the most relevant benchmark in one click.",
+				"myPersonalBest": "My PB",
+				"presets": "Comparison sets",
+				"presetsDescription": "Replace current comparisons with a focused group.",
+				"topPlayers": "Top {count} PBs",
+				"ownerRuns": "Player's fastest {count}",
+				"searchLabel": "Find a player's PB",
+				"searchPlaceholder": "Search player name",
+				"noPersonalBest": "No PB on this level",
+				"selected": "Selected ghosts",
+				"selectedCount": "{count} of 10 comparison slots used",
+				"noneSelected": "Add another run to overlay its path and telemetry."
+			},
+			"telemetry": {
+				"title": "Run telemetry",
+				"description": "Recorded totals reveal where this run spent time, carried speed, and used each control.",
+				"versionDescription": "Fields depend on ghost format and GTR version. Missing capability data is not estimated.",
+				"empty": "N/A",
+				"totalDistance": "Distance driven",
+				"submittedRuns": "Run",
+				"telemetryRuns": "Telemetry sample",
+				"totalTime": "Driving time",
+				"maxSpeed": "Maximum speed",
+				"maxGforce": "Maximum G-force",
+				"surfaceDistance": "Distance travelled on each detected surface.",
+				"surfaceTime": "Time spent on each detected surface.",
+				"movementDistance": "Ground, air and ragdoll distance for this run.",
+				"movementTime": "Ground, air and ragdoll time for this run.",
+				"wheelDistance": "Distance split by grounded wheel count.",
+				"driverInputs": "Steering changes and player actions during this run."
+			},
+			"capabilities": {
+				"title": "Some replay analysis is unavailable",
+				"description": "Ghost format V{version} does not support some telemetry. Available data remains accurate; unsupported fields are not estimated.",
+				"featuresLabel": "Ghost telemetry capabilities",
+				"features": {
+					"inputs": "Driver inputs",
+					"air": "Air state",
+					"wheels": "Wheel contact",
+					"slip": "Wheel slip",
+					"state": "Soapbox state",
+					"surfaces": "Surfaces",
+					"velocity": "Velocity and forces",
+					"ragdoll": "Ragdoll",
+					"orientation": "3D orientation"
+				}
+			},
+			"checkpoints": {
+				"title": "Checkpoint analysis",
+				"description": "Compare where time and speed change between the selected record and compatible comparison ghosts.",
+				"checkpoint": "Checkpoint",
+				"deltaTitle": "Time gained and lost",
+				"deltaDescription": "Cumulative time difference against the selected record at each checkpoint and the finish.",
+				"speedTitle": "Checkpoint speed",
+				"speedDescription": "Speed recorded at each checkpoint and at the finish."
+			},
+			"analysis": {
+				"tabs": {
+					"label": "Record analysis sections",
+					"telemetry": "Basic Telemetry",
+					"charts": "Advanced Telemetry",
+					"analysis": "Ghost Analysis",
+					"improvement": "Improvement Opportunities",
+					"unavailable": "No ghost data is available for this section."
+				},
+				"telemetry": {
+					"primary": "Selected record",
+					"empty": "N/A",
+					"focusSeries": "Focus {player} across telemetry charts",
+					"clearFocus": "Clear focus on {player}",
+					"steeringLeft": "Left",
+					"steeringRight": "Right",
+					"speed": {
+						"title": "Speed over time",
+						"description": "Compare acceleration and speed at the same elapsed time. Use route trails and checkpoints to confirm matching track sections."
+					},
+					"steering": {
+						"title": "Steering over time",
+						"description": "See steering direction, corrections and stable low-input sections."
+					},
+					"lateralVelocity": {
+						"title": "Lateral velocity",
+						"description": "Sideways movement highlights slides, drifts and line corrections."
+					},
+					"longitudinalVelocity": {
+						"title": "Forward velocity",
+						"description": "Forward momentum makes acceleration and speed loss easy to compare."
+					},
+					"angularVelocity": {
+						"title": "Angular velocity",
+						"description": "Rotation intensity exposes sharp corrections and unstable sections."
+					},
+					"gForce": {
+						"title": "G-force",
+						"description": "Force peaks reveal impacts, compression and aggressive direction changes."
+					}
+				},
+				"events": {
+					"title": "Event timeline",
+					"description": "Jump directly to driver inputs, wheel states, surface changes and special soapbox states.",
+					"empty": "No events were recorded by this record.",
+					"at": "at",
+					"duration": "for",
+					"kinds": {
+						"armsUp": "Arms up",
+						"braking": "Braking",
+						"airArmsUp": "Air arms up",
+						"airBraking": "Air braking",
+						"airSteeringLeft": "Air steer left",
+						"airSteeringRight": "Air steer right",
+						"horn": "Horn",
+						"paraglider": "Paraglider",
+						"soap": "Soap wheels",
+						"offroad": "Off-road wheels",
+						"airborne": "Airborne",
+						"slipping": "Wheel slip",
+						"ragdoll": "Ragdoll",
+						"parking": "Parked",
+						"monorail": "Monorail"
+					}
+				},
+				"airControl": {
+					"title": "Air control analysis",
+					"description": "Compare how every loaded ghost controls rotation, lift and orientation while all four wheels are airborne.",
+					"primary": "Selected record",
+					"detailsTitle": "Detailed air-control effects",
+					"observed": "Observed telemetry correlation; use the replay and racing line before treating it as a time-saving recommendation.",
+					"airborneDuration": "Airborne time",
+					"airSteering": "Air steering",
+					"left": "Left",
+					"right": "Right",
+					"events": "Events",
+					"airborneShare": "Share of airborne time",
+					"angularVelocityReduction": "Rotation reduction",
+					"uprightImprovement": "Upright improvement",
+					"verticalTravel": "Vertical travel",
+					"rotation": "Rotation",
+					"rotationRate": "Rotation rate",
+					"controls": {
+						"braking": {
+							"title": "Air braking",
+							"description": "Braking in the air does not slow forward travel. It reduces angular rotation."
+						},
+						"armsUp": {
+							"title": "Air arms up",
+							"description": "Arms up adds lift and helps straighten the soapbox toward an upright orientation."
+						},
+						"steeringLeft": {
+							"title": "Air steering left",
+							"description": "Left steering rotates the soapbox while all four wheels are airborne."
+						},
+						"steeringRight": {
+							"title": "Air steering right",
+							"description": "Right steering rotates the soapbox while all four wheels are airborne."
+						}
+					},
+					"units": {
+						"degrees": "°",
+						"degreesPerSecond": "°/s"
+					}
+				},
+				"drift": {
+					"title": "Skid and drift analysis",
+					"description": "Measure slip duration, path length and speed retained through every detected slide.",
+					"empty": "No meaningful wheel-slip events were detected.",
+					"comparisonTitle": "Slip time comparison",
+					"eventsTitle": "Detected slip events",
+					"primary": "Selected record",
+					"eventCount": "Events",
+					"totalDuration": "Slip time",
+					"totalDistance": "Slip distance",
+					"speedRetention": "Average retention",
+					"worstRetention": "Worst retention",
+					"distance": "Distance"
+				},
+				"coaching": {
+					"title": "Improvement opportunities",
+					"description": "Evidence-based hints point to strengths and sections worth reviewing. They are guidance, not definitive driving judgements.",
+					"empty": "No clear coaching signals were detected in available telemetry.",
+					"insights": {
+						"strongSpeedRetention": {
+							"title": "Strong drift speed retention",
+							"description": "This slide retained {value} of entry speed. A smoother line or smaller correction may help."
+						},
+						"driftSpeedLoss": {
+							"title": "Speed lost while sliding",
+							"description": "This slide retained {value} of entry speed. A smoother line or smaller correction may help."
+						},
+						"longDrift": {
+							"title": "Long wheel-slip section",
+							"description": "Wheel slip continued for {value}. Compare line and steering against a faster ghost."
+						},
+						"lateBraking": {
+							"title": "Heavy high-speed braking",
+							"description": "Braking began near {value}. Check whether an earlier, shorter input preserves exit speed."
+						},
+						"lowInputSection": {
+							"title": "Low-input section",
+							"description": "No meaningful player input was detected for {value}. Potentially an AFK section or a missed opportunity to correct line and speed."
+						},
+						"comparisonSpeedDeficit": {
+							"title": "Comparison carries more speed",
+							"description": "Fastest comparison averaged {value} more speed at this section. Check line, braking and steering against the comparison."
+						}
+					}
+				}
+			},
 			"seo": {
-				"title": "Record #{id} · ZeepCentraal",
-				"description": "ZeepCentraal record detail page."
-			}
-		}
-	},
-	"placeholders": {
-		"metrics": {
-			"levels": {
-				"label": "Level data",
-				"value": "Ready"
-			},
-			"players": {
-				"label": "Player data",
-				"value": "Ready"
-			},
-			"records": {
-				"label": "Record data",
-				"value": "Ready"
+				"title": "Record #{id} on {level} by {player}",
+				"description": "Replay and analyse a Zeepkist record with telemetry and ghost comparisons.",
+				"recordDescription": "Replay {player}'s record on {level}, inspect telemetry and compare racing lines."
 			}
 		}
 	},
@@ -504,19 +702,19 @@
 		},
 		"trendingLevels": {
 			"title": "Trending Levels Today",
-			"description": "Six levels with the most submitted records over the past 24 hours."
+			"description": "Levels with the most submitted records over the past 24 hours."
 		},
 		"popular": {
 			"title": "Popular Levels",
-			"description": "Six levels with the most submitted records over the past 30 days."
+			"description": "Levels with the most submitted records over the past 30 days."
 		},
 		"hotLevels": {
 			"title": "Hot Levels This Week",
-			"description": "Six levels with the most submitted records over the past 7 days."
+			"description": "Levels with the most submitted records over the past 7 days."
 		},
 		"viewerLevels": {
 			"title": "Your workshop levels",
-			"description": "Latest published levels discovered on Steam Workshop."
+			"description": "Your latest published levels discovered on Steam Workshop."
 		},
 		"totals": {
 			"title": "Every kilometre counts",
@@ -524,7 +722,7 @@
 			"empty": "No telemetry is available for this period.",
 			"period": {
 				"title": "Telemetry window",
-				"description": "V6 ghost telemetry from GTR 1.2.0 or newer, switchable between the past 24 hours and current month.",
+				"description": "V6 ghost telemetry from GTR 1.2.0 or newer.",
 				"minimumVersion": "GTR 1.2.0+",
 				"today": "Today"
 			},
@@ -600,13 +798,9 @@
 				"minutes": "min",
 				"seconds": "s",
 				"kilometresPerHour": "km/h",
+				"metresPerSecond": "m/s",
+				"radiansPerSecond": "rad/s",
 				"g": "G"
-			},
-			"kilometres": "Kilometres",
-			"chart": {
-				"distance": "Driven",
-				"air": "Airborne",
-				"ragdoll": "Ragdoll"
 			}
 		},
 		"news": {
@@ -623,12 +817,7 @@
 			"rankedAndTotalPlayersValueLabel": "{rankedPlayers} ranked players out of {totalPlayers} total players",
 			"past24Hours": "Past 24 hours",
 			"activeToday": "Active today",
-			"activeInMonth": "Active in {month}",
-			"distance": "Distance driven",
-			"airtime": "Airtime",
-			"ragdoll": "Ragdoll distance",
-			"horns": "Horn uses",
-			"brakes": "Brake uses"
+			"activeInMonth": "Active in {month}"
 		}
 	},
 	"settings": {
@@ -649,15 +838,12 @@
 			"rank": "Global rank",
 			"points": "Ranked points",
 			"totalPoints": "Total points",
-			"worldRecords": "World records",
-			"valuable": "Most valuable",
-			"recent": "Most recent"
+			"worldRecords": "World records"
 		},
 		"columns": {
 			"rankedPoints": "Ranked points",
 			"totalPoints": "Total points",
-			"worldRecords": "World records",
-			"value": "Point value"
+			"worldRecords": "World records"
 		},
 		"profile": {
 			"notFound": "Player not found",
@@ -668,6 +854,12 @@
 			"steamProfile": "Steam profile",
 			"steamWorkshop": "Steam Workshop",
 			"seoDescription": "Records, points, published levels, and telemetry for {name}.",
+			"tabs": {
+				"label": "Player profile sections",
+				"career": "Career",
+				"records": "Records",
+				"workshopLevels": "Workshop Levels"
+			},
 			"summary": {
 				"title": "Career Summary",
 				"description": "Lifetime racing stats."
@@ -737,13 +929,7 @@
 				"movementDistance": "Grounded, airborne and ragdoll distance.",
 				"movementTime": "Grounded, airborne and ragdoll time.",
 				"wheelDistance": "Distance travelled with four through zero wheels down.",
-				"driverInputs": "Steering direction and controls used across this player's records.",
-				"chart": {
-					"distance": "Driven",
-					"air": "Airborne",
-					"ragdoll": "Ragdoll",
-					"paraglider": "Paraglider"
-				}
+				"driverInputs": "Steering direction and controls used across this player's records."
 			},
 			"history": {
 				"title": "Career Progression",
@@ -791,11 +977,11 @@
 	"developer": {
 		"graphql": {
 			"title": "GraphQL API",
-			"description": "Schema, query examples, pagination, query cost, caching, fair use, and attribution requirements."
+			"description": "Schema, query examples, pagination, query cost, caching, fair use and attribution requirements."
 		},
 		"moddingDiscord": {
 			"title": "Zeepkist Modding Discord",
-			"description": "Get help writing mods, discuss integrations, and ask the modding community for feedback."
+			"description": "Get help writing mods, discuss integrations and ask the modding community for feedback."
 		}
 	},
 	"zsl": {
@@ -873,6 +1059,46 @@
 		"detail": {
 			"notFound": "Level not found",
 			"seoDescription": "Records, medals, and statistics for {name}.",
+			"tabs": {
+				"label": "Level detail sections",
+				"records": "Records",
+				"telemetry": "Telemetry",
+				"ghosts": "Ghosts Explorer"
+			},
+			"ghostExplorer": {
+				"title": "Ghosts Explorer",
+				"description": "Load racing lines from the World Record, leading Personal Bests, individual players, or batches of up to 200 records.",
+				"quickTitle": "Quick ghosts",
+				"quickDescription": "Add the current benchmarks without replacing your selection.",
+				"worldRecord": "World Record",
+				"viewerPersonalBest": "My Personal Best",
+				"presetsTitle": "Replay presets",
+				"presetsDescription": "Replace active ghosts with a complete comparison set. Your PB and the World Record stay pinned when available.",
+				"topPersonalBests": "Top Personal Bests",
+				"topPersonalBestsDescription": "Current fastest player times on this level.",
+				"fastestRecords": "Fastest records",
+				"fastestRecordsDescription": "Fastest submitted runs, including historical records.",
+				"viewerFastestRecords": "My fastest records",
+				"viewerFastestRecordsDescription": "Your fastest submitted runs on this level.",
+				"countLabel": "Ghost count",
+				"loadPreset": "Load ghosts",
+				"loadingPreset": "Loading ghosts",
+				"searchTitle": "Add a player's PB",
+				"searchDescription": "Search for a player with a Personal Best on this level.",
+				"searchLabel": "Player name",
+				"searchPlaceholder": "Search players",
+				"searching": "Searching players",
+				"activeTitle": "Active ghosts",
+				"activeCount": "{count} ghosts selected",
+				"progress": "{loaded} loaded · {loading} loading · {failed} failed",
+				"noneSelected": "Choose a preset or add a ghost to begin replaying this level.",
+				"clearAll": "Clear all",
+				"remove": "Remove ghost",
+				"bulkTitle": "Bulk playback active",
+				"bulkDescription": "Individual ghost editing is locked above 10 active ghosts. Load another preset or clear every ghost to change the set.",
+				"followLimit": "The 12 fastest selected ghosts can be followed. Remaining ghosts use lightweight markers and racing trails.",
+				"unknownPlayer": "Unknown player"
+			},
 			"medals": {
 				"title": "Medal times",
 				"description": "Author-defined target times to beat.",
@@ -883,7 +1109,6 @@
 			},
 			"worldRecord": {
 				"title": "World record",
-				"description": "Current fastest submitted time.",
 				"set": "Set",
 				"emptyTitle": "No world record yet",
 				"emptyDescription": "Install GTR and submit the first verified run for this level."
@@ -893,12 +1118,6 @@
 				"description": "All-time driving telemetry from verified records on this level.",
 				"maxSpeed": "Maximum speed",
 				"maxGforce": "Maximum G-force",
-				"chart": {
-					"distance": "Driven",
-					"air": "Airborne",
-					"ragdoll": "Ragdoll",
-					"paraglider": "Paraglider"
-				},
 				"telemetryDescription": "Surface, movement and input breakdowns require GTR 1.2.0 or newer.",
 				"empty": "No compatible telemetry has been submitted for this level yet.",
 				"totalDistance": "Total distance",
@@ -912,17 +1131,97 @@
 				"wheelDistance": "Distance travelled with four through zero wheels down.",
 				"driverInputs": "Steering direction and controls used on this level."
 			},
+			"scoreBreakdown": {
+				"title": "How level points are calculated",
+				"description": "Competitive results, participation, mature votes and passive-play evidence behind this level’s ranked value.",
+				"groups": {
+					"score": {
+						"title": "Score signals",
+						"description": "Bounded factors that directly influence awarded level points."
+					},
+					"evidence": {
+						"title": "Evidence quality",
+						"description": "Sample coverage used to establish confidence in each score signal."
+					},
+					"leaderboard": {
+						"title": "Leaderboard challenge",
+						"description": "Time spreads, challengers and anomaly checks around the World Record."
+					},
+					"driving": {
+						"title": "Driving characteristics",
+						"description": "Descriptive telemetry hints that do not increase level points."
+					}
+				},
+				"metrics": {
+					"sampleSize": "Personal best sample",
+					"leaderboardConfidence": "Leaderboard confidence",
+					"inputSampleSize": "Input sample",
+					"inputCoverage": "Input coverage",
+					"airSampleSize": "Air sample",
+					"wheelSampleSize": "Wheel sample",
+					"slipSampleSize": "Slip sample",
+					"ragdollSampleSize": "Ragdoll sample",
+					"stateSampleSize": "State sample",
+					"surfaceSampleSize": "Surface sample",
+					"velocitySampleSize": "Velocity sample",
+					"competitivenessScore": "Competitiveness",
+					"worldRecordDifficultyScore": "World Record difficulty",
+					"participationScore": "Participation",
+					"voteAdjustment": "Mature-vote factor",
+					"passivePlaySeverity": "Passive-play evidence",
+					"afkModifier": "Passive-play factor",
+					"passiveRunRatio": "Passive-run share",
+					"passiveTop10Share": "Passive top-ten share",
+					"bestPassiveRank": "Best passive rank",
+					"bestPassiveGap": "Best passive gap",
+					"driverEngagementScore": "Driver engagement",
+					"worldRecordMargin": "World Record margin",
+					"top5Spread": "Top-five spread",
+					"top10Spread": "Top-ten spread",
+					"top50Spread": "Top-50 spread",
+					"wrChallengerCount": "World Record challengers",
+					"worldRecordOptimizationScore": "World Record optimization",
+					"leaderboardAnomalyScore": "Leaderboard anomaly",
+					"telemetryAnomalyScore": "Telemetry anomaly",
+					"worldRecordExcluded": "World Record review status",
+					"pathConsistencyScore": "Path consistency",
+					"speedConsistencyScore": "Speed consistency",
+					"routeConsistencyScore": "Route consistency",
+					"surfaceDiversityScore": "Surface diversity",
+					"matureVoteCount": "Mature votes",
+					"typicalDistance": "Typical distance",
+					"typicalAverageSpeed": "Typical average speed",
+					"typicalMaxSpeed": "Typical maximum speed",
+					"typicalAirTimeShare": "Typical airtime",
+					"typicalGroundTimeShare": "Typical ground time",
+					"typicalSlipShare": "Typical slipping",
+					"typicalRagdollShare": "Typical ragdolling",
+					"typicalAverageAngularVelocity": "Typical angular velocity",
+					"typicalAverageGforce": "Typical G-force",
+					"medianSteeringShare": "Median steering time",
+					"q25SteeringShare": "Lower-quartile steering time",
+					"lowSteeringRatio": "Low-steering runs",
+					"zeroControlRatio": "Zero-control runs",
+					"medianBrakeShare": "Median brake time",
+					"medianArmsUpShare": "Median arms-up time",
+					"medianControlTransitionRate": "Control transitions"
+				},
+				"unavailable": "-",
+				"notAvailable": "N/A",
+				"included": "Used for scoring",
+				"excluded": "Excluded from scoring",
+				"units": {
+					"radiansPerSecond": "rad/s",
+					"perSecond": "/s"
+				}
+			},
 			"recent": {
 				"title": "Recent records",
 				"description": "Latest submitted runs on this level."
 			},
 			"personalBests": {
-				"title": "Personal best leaderboard",
+				"title": "Leaderboard",
 				"description": "Current fastest time from each player."
-			},
-			"recordTable": {
-				"pbOrWr": "PB / WR",
-				"personalBest": "PB"
 			},
 			"hero": {
 				"published": "Published",
@@ -960,7 +1259,7 @@
 				"empty": "No compatible checkpoint telemetry is available yet.",
 				"checkpoint": "Checkpoint",
 				"deltaTitle": "Time gained and lost",
-				"deltaDescription": "Cumulative time difference against the fastest player at each checkpoint.",
+				"deltaDescription": "Cumulative time difference against the fastest player at each checkpoint and the finish.",
 				"speedTitle": "Checkpoint speed",
 				"speedDescription": "Speed carried through each checkpoint, measured in kilometres per hour.",
 				"showMyComparison": "Show my comparison",

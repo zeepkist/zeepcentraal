@@ -4,6 +4,7 @@ import type { TaskHandler } from './types'
 type Payload = {
 	ids?: number[]
 	personalBestCountPercentile?: number
+	reportOnly?: boolean
 }
 
 export const updateLevelScoresBatch: TaskHandler<Payload> = async (payload, helpers) => {
@@ -16,10 +17,11 @@ export const updateLevelScoresBatch: TaskHandler<Payload> = async (payload, help
 	const result = await updateLevelScoreBatch({
 		idLevels: ids,
 		personalBestCountPercentile,
+		reportOnly: payload.reportOnly,
 		logger: helpers.logger,
 	})
 
 	helpers.logger.info(
-		`updateLevelScoresBatch completed ${ids.length} levels (${result.updated} updated, ${result.zeroed} zeroed).`,
+		`updateLevelScoresBatch completed ${ids.length} levels (${result.updated} updated, ${result.zeroed} zeroed, ${result.reported} reported).`,
 	)
 }

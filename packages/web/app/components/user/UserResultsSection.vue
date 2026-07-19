@@ -12,7 +12,7 @@
 					icon="i-tabler-arrows-sort"
 					class="w-48"
 					:aria-label="sortLabel"
-					@update:model-value="$emit('update:sort', String($event) as 'valuable' | 'recent')"
+					@update:model-value="$emit('update:sort', String($event) as RecordHistorySort)"
 				/>
 			</div>
 		</SectionHeader>
@@ -24,22 +24,12 @@
 			:error-title="labels.error"
 			:empty-title="labels.empty"
 		>
-			<RecordTable
+			<RecordHistoryTable
 				:records="records"
-				:rank-label="labels.rank"
-				:user-label="labels.user"
-				:level-label="labels.level"
-				:time-label="labels.time"
-				:date-label="labels.date"
-				:points-label="labels.points"
-				:pb-or-wr-label="labels.pbOrWr"
-				:personal-best-label="labels.personalBest"
-				:world-record-label="labels.worldRecord"
-				:open-record-label="labels.openRecord"
-				:show-rank="showRank"
-				:show-points="showPoints"
-				:show-pb-or-wr="showPbOrWr"
-				:show-user="false"
+				:labels="labels"
+				:status-mode="statusMode"
+				live-update-label=""
+				rank-first
 				show-level
 			/>
 		</DataState>
@@ -60,39 +50,45 @@
 </template>
 
 <script setup lang="ts">
-import type { CursorPage, RecordRow, SortOption } from '~/types/app'
+import type { CursorPage, RecordHistoryRow, SortOption } from '~/types/app'
+import type { RecordHistorySort } from '~/utils/recordHistory'
 
 withDefaults(
 	defineProps<{
 		id: string
 		title: string
 		description: string
-		records: RecordRow[]
-		sort?: 'valuable' | 'recent'
+		records: RecordHistoryRow[]
+		sort?: RecordHistorySort
 		sortLabel?: string
 		pending: boolean
 		error?: string | null
 		page: CursorPage
 		canGoPrevious: boolean
 		canGoNext: boolean
-		showRank?: boolean
-		showPoints?: boolean
-		showPbOrWr?: boolean
+		statusMode?: 'none' | 'world-record-only' | 'all'
 		labels: {
 			rank: string
-			user: string
 			level: string
+			player: string
+			unknownPlayer: string
 			time: string
+			status: string
 			points: string
-			pbOrWr: string
+			pointsHelp: string
+			rankedPoints: string
+			rankedPointsHelp: string
+			levelPoints: string
 			personalBest: string
 			worldRecord: string
 			openRecord: string
 			date: string
+			notRanked: string
+			decayPercentage: string
 			error: string
 			empty: string
 		}
-		sortOptions?: SortOption[]
+		sortOptions?: SortOption<RecordHistorySort>[]
 		paginationLabels: {
 			label: string
 			loadingLabel: string
@@ -102,10 +98,10 @@ withDefaults(
 			lastLabel: string
 		}
 	}>(),
-	{ showRank: true },
+	{},
 )
 defineEmits<{
-	'update:sort': [value: 'valuable' | 'recent']
+	'update:sort': [value: RecordHistorySort]
 	first: []
 	previous: []
 	next: []

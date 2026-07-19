@@ -8,6 +8,7 @@ import {
 	record,
 	recordMedia,
 	recordStatistic,
+	user,
 	worldRecordGlobal,
 } from '../schema'
 import { generateUid } from '../utils/generateUid'
@@ -209,10 +210,62 @@ export async function getPersonalBestsWithRecordByLevelIds({
 		return []
 	}
 
+	return buildPersonalBestsWithRecordByLevelIdsQuery({ idLevels, limit })
+}
+
+export function buildPersonalBestsWithRecordByLevelIdsQuery({
+	idLevels,
+	limit = 10,
+}: {
+	idLevels: number[]
+	limit?: number
+}) {
 	const ranked = db
 		.select({
+			idRecord: record.id,
+			idUser: record.idUser,
 			idLevel: record.idLevel,
 			time: record.time,
+			dateCreated: record.dateCreated,
+			splits: record.splits,
+			speeds: record.speeds,
+			statisticTime: sql<number | null>`${recordStatistic.time}`
+				.mapWith(recordStatistic.time)
+				.as('statistic_time'),
+			distance: recordStatistic.distance,
+			averageSpeed: recordStatistic.averageSpeed,
+			maxSpeed: recordStatistic.maxSpeed,
+			timeInAir: recordStatistic.timeInAir,
+			timeOnGround: recordStatistic.timeOnGround,
+			timeSlipping: recordStatistic.timeSlipping,
+			timeRagdoll: recordStatistic.timeRagdoll,
+			averageAngularVelocity: recordStatistic.averageAngularVelocity,
+			averageGforce: recordStatistic.averageGforce,
+			timeOnTarmac: recordStatistic.timeOnTarmac,
+			timeOnGrass: recordStatistic.timeOnGrass,
+			timeOnSand: recordStatistic.timeOnSand,
+			timeOnSnow: recordStatistic.timeOnSnow,
+			timeOnIce: recordStatistic.timeOnIce,
+			timeOnSoap: recordStatistic.timeOnSoap,
+			timeOnMetal: recordStatistic.timeOnMetal,
+			turnLeftCount: recordStatistic.turnLeftCount,
+			turnLeftTime: recordStatistic.turnLeftTime,
+			turnRightCount: recordStatistic.turnRightCount,
+			turnRightTime: recordStatistic.turnRightTime,
+			brakeCount: recordStatistic.brakeCount,
+			brakeTime: recordStatistic.brakeTime,
+			armsUpCount: recordStatistic.armsUpCount,
+			armsUpTime: recordStatistic.armsUpTime,
+			driverInputTransitionCount: recordStatistic.driverInputTransitionCount,
+			timeAnyDriverInput: recordStatistic.timeAnyDriverInput,
+			hasInputData: recordStatistic.hasInputData,
+			hasAirData: recordStatistic.hasAirData,
+			hasWheelData: recordStatistic.hasWheelData,
+			hasSlipData: recordStatistic.hasSlipData,
+			hasStateData: recordStatistic.hasStateData,
+			hasSurfaceData: recordStatistic.hasSurfaceData,
+			hasVelocityData: recordStatistic.hasVelocityData,
+			hasRagdollData: recordStatistic.hasRagdollData,
 			totalCount: sql<number>`COUNT(*) OVER (PARTITION BY ${record.idLevel})`.as(
 				'total_count',
 			),
@@ -223,13 +276,55 @@ export async function getPersonalBestsWithRecordByLevelIds({
 		})
 		.from(record)
 		.innerJoin(personalBestGlobal, eq(personalBestGlobal.idRecord, record.id))
-		.where(inArray(record.idLevel, idLevels))
+		.innerJoin(user, eq(user.id, record.idUser))
+		.leftJoin(recordStatistic, eq(recordStatistic.idRecord, record.id))
+		.where(and(inArray(record.idLevel, idLevels), eq(user.banned, false)))
 		.as('ranked_personal_bests')
 
 	return db
 		.select({
+			idRecord: ranked.idRecord,
+			idUser: ranked.idUser,
 			idLevel: ranked.idLevel,
 			time: ranked.time,
+			dateCreated: ranked.dateCreated,
+			splits: ranked.splits,
+			speeds: ranked.speeds,
+			statisticTime: ranked.statisticTime,
+			distance: ranked.distance,
+			averageSpeed: ranked.averageSpeed,
+			maxSpeed: ranked.maxSpeed,
+			timeInAir: ranked.timeInAir,
+			timeOnGround: ranked.timeOnGround,
+			timeSlipping: ranked.timeSlipping,
+			timeRagdoll: ranked.timeRagdoll,
+			averageAngularVelocity: ranked.averageAngularVelocity,
+			averageGforce: ranked.averageGforce,
+			timeOnTarmac: ranked.timeOnTarmac,
+			timeOnGrass: ranked.timeOnGrass,
+			timeOnSand: ranked.timeOnSand,
+			timeOnSnow: ranked.timeOnSnow,
+			timeOnIce: ranked.timeOnIce,
+			timeOnSoap: ranked.timeOnSoap,
+			timeOnMetal: ranked.timeOnMetal,
+			turnLeftCount: ranked.turnLeftCount,
+			turnLeftTime: ranked.turnLeftTime,
+			turnRightCount: ranked.turnRightCount,
+			turnRightTime: ranked.turnRightTime,
+			brakeCount: ranked.brakeCount,
+			brakeTime: ranked.brakeTime,
+			armsUpCount: ranked.armsUpCount,
+			armsUpTime: ranked.armsUpTime,
+			driverInputTransitionCount: ranked.driverInputTransitionCount,
+			timeAnyDriverInput: ranked.timeAnyDriverInput,
+			hasInputData: ranked.hasInputData,
+			hasAirData: ranked.hasAirData,
+			hasWheelData: ranked.hasWheelData,
+			hasSlipData: ranked.hasSlipData,
+			hasStateData: ranked.hasStateData,
+			hasSurfaceData: ranked.hasSurfaceData,
+			hasVelocityData: ranked.hasVelocityData,
+			hasRagdollData: ranked.hasRagdollData,
 			totalCount: ranked.totalCount,
 		})
 		.from(ranked)

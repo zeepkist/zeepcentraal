@@ -94,6 +94,7 @@ const props = withDefaults(
 		showViewerComparison?: boolean
 		labels: {
 			checkpoint: string
+			finish: string
 			deltaTitle: string
 			deltaDescription: string
 			speedTitle: string
@@ -139,14 +140,18 @@ onMounted(() => {
 })
 
 function formatCheckpoint(index: number) {
-	return `${props.labels.checkpoint} ${index + 1}`
+	return index >= props.analysis.checkpointCount
+		? props.labels.finish
+		: `${props.labels.checkpoint} ${index + 1}`
 }
 
 function resolveTooltipTitle(values: unknown) {
 	if (!values || typeof values !== 'object') return ''
 	const checkpoint = (values as Record<string, unknown>).checkpoint
 	return typeof checkpoint === 'number'
-		? `${props.labels.checkpoint} ${checkpoint}`
+		? checkpoint > props.analysis.checkpointCount
+			? props.labels.finish
+			: `${props.labels.checkpoint} ${checkpoint}`
 		: ''
 }
 
@@ -177,7 +182,10 @@ function selectVisibleData(data: Array<Record<string, number>>) {
 	return data.map((point) => ({
 		checkpoint: point.checkpoint ?? 0,
 		...Object.fromEntries(
-			visibleSeries.value.map((player) => [player.key, point[player.key] ?? 0]),
+			visibleSeries.value.flatMap((player) => {
+				const value = point[player.key]
+				return typeof value === 'number' ? [[player.key, value]] : []
+			}),
 		),
 	}))
 }

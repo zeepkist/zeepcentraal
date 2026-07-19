@@ -8,7 +8,7 @@ import type {
 
 export function useRecordTelemetryModel(
 	statistics: Ref<Zc_LevelStatisticsQuery | undefined>,
-	scope: 'level' | 'user' = 'level',
+	scope: 'level' | 'user' | 'record' = 'level',
 ) {
 	const { locale, t } = useI18n()
 	const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
@@ -50,8 +50,15 @@ export function useRecordTelemetryModel(
 		soap: '#ec4899',
 	} as const
 
-	const scopeT = (key: string) =>
-		t(`${scope === 'user' ? 'users.profile.telemetry' : 'levels.detail.stats'}.${key}`)
+	const scopeT = (key: string) => {
+		const prefix =
+			scope === 'user'
+				? 'users.profile.telemetry'
+				: scope === 'record'
+					? 'pages.recordDetail.telemetry'
+					: 'levels.detail.stats'
+		return t(`${prefix}.${key}`)
+	}
 
 	return computed<RecordTelemetryModel>(() => {
 		const data = statistics.value
@@ -303,6 +310,7 @@ export function useRecordTelemetryModel(
 		return {
 			minimumVersionLabel: t('dashboard.totals.period.minimumVersion'),
 			emptyLabel: scopeT('empty'),
+			unavailableLabel: scope === 'record' ? scopeT('notAvailable') : t('common.unavailable'),
 			overviewMetrics: [
 				{
 					key: 'distance',

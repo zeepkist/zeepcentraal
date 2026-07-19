@@ -1,0 +1,85 @@
+query ZC_LevelGhostDefaults($levelId: Int!, $viewerId: Int!, $includeViewer: Boolean!) {
+	level(id: $levelId) {
+		id
+	}
+	worldRecord: records(
+		first: 1
+		filter: {
+			levelId: { equalTo: $levelId }
+			worldRecordGlobalsExist: true
+			recordMedia: { ghostUrl: { isNull: false } }
+			recordMediaExists: true
+		}
+		orderBy: [TIME_ASC, ID_ASC]
+	) {
+		nodes {
+			...ZC_GhostComparisonRecord
+		}
+	}
+	viewerPersonalBest: records(
+		first: 1
+		filter: {
+			levelId: { equalTo: $levelId }
+			userId: { equalTo: $viewerId }
+			personalBestGlobalsExist: true
+			recordMedia: { ghostUrl: { isNull: false } }
+			recordMediaExists: true
+		}
+		orderBy: [TIME_ASC, ID_ASC]
+	) @include(if: $includeViewer) {
+		nodes {
+			...ZC_GhostComparisonRecord
+		}
+	}
+}
+
+query ZC_LevelGhostPreset($first: Int!, $filter: RecordFilter!) {
+	records(first: $first, filter: $filter, orderBy: [TIME_ASC, ID_ASC]) {
+		nodes {
+			...ZC_GhostComparisonRecord
+		}
+	}
+}
+
+query ZC_LevelGhostUserSearch($levelId: Int!, $search: String!) {
+	users(
+		first: 8
+		filter: {
+			banned: { equalTo: false }
+			steamName: { includesInsensitive: $search }
+			personalBestGlobals: {
+				some: {
+					levelId: { equalTo: $levelId }
+					record: {
+						recordMedia: { ghostUrl: { isNull: false } }
+						recordMediaExists: true
+					}
+				}
+			}
+		}
+		orderBy: [STEAM_NAME_ASC, ID_ASC]
+	) {
+		nodes {
+			id
+			steamId
+			steamName
+			personalBestGlobals(
+				first: 1
+				filter: {
+					levelId: { equalTo: $levelId }
+					record: {
+						recordMedia: { ghostUrl: { isNull: false } }
+						recordMediaExists: true
+					}
+				}
+				orderBy: [ID_ASC]
+			) {
+				nodes {
+					record {
+						...ZC_GhostComparisonRecord
+					}
+				}
+			}
+		}
+	}
+}

@@ -1,4 +1,4 @@
-import { emptyGhostStatistics, parseGhostStatistics } from '@zeepkist/core/ghosts'
+import { parseGhostStatistics } from '@zeepkist/core/ghosts'
 import { batchProcess } from '../utils/batchProcess'
 import { buildGhostUrl } from '../utils/ghostStatisticsBackfill'
 import type { TaskHandler } from './types'
@@ -8,6 +8,7 @@ const BATCH_SIZE = 500
 type Payload = {
 	limit?: number
 	ids?: number[]
+	reparseGhostVersion?: 5
 }
 
 type BatchPayload = {
@@ -28,7 +29,7 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 	)
 	const limit = payload.limit ?? BATCH_SIZE
 	const batchSize = Math.min(limit, BATCH_SIZE)
-	let afterId: number | undefined
+	let beforeId: number | undefined
 	let enqueued = 0
 
 	if (payload.ids && payload.ids.length > 0) {
@@ -55,8 +56,11 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 
 	while (true) {
 		const media = await getRecordMediaForStatisticBackfill({
-			afterId,
+			beforeId,
 			limit: batchSize,
+			...(payload.reparseGhostVersion === undefined
+				? {}
+				: { reparseGhostVersion: payload.reparseGhostVersion }),
 		})
 		if (media.length === 0) break
 		const ids = media.map((item) => item.idRecord)
@@ -66,17 +70,20 @@ export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payloa
 				ids,
 			},
 			{
-				jobKey: `backfill-record-ghost-statistics:${ids[0]}-${ids.at(-1)}`,
+				jobKey: `backfill-record-ghost-statistics${payload.reparseGhostVersion === undefined ? '' : `:v${payload.reparseGhostVersion}`}:${ids[0]}-${ids.at(-1)}`,
 			},
 		)
 		enqueued += media.length
-		afterId = media.at(-1)?.idRecord
+		beforeId = media.at(-1)?.idRecord
 		if (media.length < batchSize) break
 	}
 
 	helpers.logger.info('Enqueued record ghost statistics backfill batches.', {
 		enqueued,
 		batchSize,
+		...(payload.reparseGhostVersion === undefined
+			? {}
+			: { reparseGhostVersion: payload.reparseGhostVersion }),
 	})
 }
 
@@ -103,7 +110,7 @@ export const backfillRecordGhostStatisticsBatch: TaskHandler<BatchPayload> = asy
 			helpers.logger.info(`Backfilling ghost statistics for record ${item.idRecord}.`)
 
 			const ghost = await downloadGhost(item.ghostUrl)
-			const statistics = (await parseGhostStatistics(ghost)) ?? emptyGhostStatistics()
+			const statistics = await parseGhostStatistics(ghost)
 
 			await upsertRecordStatistic({
 				idRecord: item.idRecord,

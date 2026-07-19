@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { calculateGhostStatistics, SurfaceState } from './index'
+import { calculateGhostStatistics, SoapboxFlags, SurfaceState } from './index'
+import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
 
 describe('V6 ghost frame parsing', () => {
@@ -130,6 +131,139 @@ describe('V6 ghost frame parsing', () => {
 	})
 })
 
+describe('protobuf ghost statistic capabilities', () => {
+	test('retains V5 inputs and wheel existence without fabricating V6 telemetry', () => {
+		const ghost = parseDecodedV5({
+			version: 5,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				speed: 120,
+				steering: 128,
+				inputFlags: 0,
+				soapboxFlags:
+					SoapboxFlags.Soap |
+					SoapboxFlags.FrontLeft |
+					SoapboxFlags.FrontRight |
+					SoapboxFlags.RearLeft |
+					SoapboxFlags.RearRight,
+				groundedWheelState: 15,
+				slippingWheelState: 0,
+				surfaceState: SurfaceState.Tarmac,
+				localVelocity: { x: 100_000, y: 0, z: 0 },
+				parkingBlockState: true,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					steering: 255,
+					inputFlags: 1,
+					soapboxFlags: SoapboxFlags.FrontLeft | SoapboxFlags.RearLeft,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					surfaceState: SurfaceState.Tarmac,
+					localVelocity: { x: 100_000, y: 0, z: 0 },
+					parkingBlockState: true,
+				},
+			],
+		})
+		expect(ghost.frames[0]).toMatchObject({
+			speed: 120,
+			armsUp: false,
+			braking: false,
+			horn: false,
+			soap: true,
+			wheelState: 15,
+		})
+		expect(ghost.frames[0]?.inAir).toBeUndefined()
+		expect(ghost.frames[0]?.groundedWheelState).toBeUndefined()
+		expect(ghost.frames[0]?.slippingWheelState).toBeUndefined()
+		expect(ghost.frames[0]?.surfaces).toBeUndefined()
+		expect(ghost.frames[0]?.localVelocity).toBeUndefined()
+		expect(ghost.frames[0]?.parkingBlock).toBeUndefined()
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(stats).toMatchObject({
+			ghostVersion: 5,
+			hasInputData: true,
+			hasAirData: false,
+			hasWheelData: false,
+			hasSlipData: false,
+			hasStateData: true,
+			hasSurfaceData: false,
+			hasVelocityData: false,
+			hasRagdollData: false,
+		})
+	})
+
+	test('uses only V6 grounded-wheel bitsets to identify airborne frames', () => {
+		for (const groundedWheelState of [0, 1, 2, 4, 8, 15]) {
+			const ghost = parseDecodedV6({
+				version: 6,
+				initialFrame: {
+					position: { x: 0, y: 0, z: 0 },
+					groundedWheelState,
+				},
+				deltaFrames: [],
+			})
+
+			expect(ghost.frames[0]?.inAir).toBe(groundedWheelState === 0)
+			expect(ghost.frames[0]?.groundedWheelState).toBe(groundedWheelState)
+		}
+	})
+
+	test('keeps omitted zero-state V6 slip and inactive ragdoll telemetry available', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				groundedWheelState: 15,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					groundedWheelState: 15,
+				},
+			],
+		})
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(ghost.capabilities.slipping).toBe(true)
+		expect(ghost.capabilities.ragdoll).toBe(true)
+		expect(stats.hasSlipData).toBe(true)
+		expect(stats.hasRagdollData).toBe(true)
+		expect(stats.distanceSlipping).toBe(0)
+		expect(stats.timeSlipping).toBe(0)
+		expect(stats.distanceRagdoll).toBe(0)
+		expect(stats.timeRagdoll).toBe(0)
+	})
+
+	test('maps observed V6 velocity and ragdoll fields to statistic capabilities', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				localVelocity: { x: 100_000, y: 0, z: 0 },
+				ragdollState: false,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					localVelocity: { x: 100_000, y: 0, z: 0 },
+					ragdollState: false,
+				},
+			],
+		})
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(stats.ghostVersion).toBe(6)
+		expect(stats.hasVelocityData).toBe(true)
+		expect(stats.hasRagdollData).toBe(true)
+	})
+})
+
 describe('ghost statistics calculation', () => {
 	test('maps unknown legacy frame surface to tarmac', () => {
 		const stats = calculateGhostStatistics([
@@ -220,5 +354,91 @@ describe('ghost statistics calculation', () => {
 
 		expect(stats.distanceRagdoll).toBe(5)
 		expect(stats.timeRagdoll).toBe(1)
+	})
+
+	test('reports observed capabilities and driver input union metrics', () => {
+		const stats = calculateGhostStatistics(
+			[
+				{
+					time: 0,
+					position: { x: 0, y: 0, z: 0 },
+					steering: -0.5,
+					armsUp: true,
+					braking: false,
+					inAir: false,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					soap: false,
+					offroad: false,
+					paraglider: false,
+					surfaces: ['tarmac'],
+					localVelocity: { x: 1, y: 0, z: 0 },
+					ragdoll: false,
+				},
+				{
+					time: 1,
+					position: { x: 1, y: 0, z: 0 },
+					steering: 0,
+					armsUp: false,
+					braking: true,
+					inAir: false,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					soap: false,
+					offroad: false,
+					paraglider: false,
+					surfaces: ['tarmac'],
+					localVelocity: { x: 1, y: 0, z: 0 },
+					ragdoll: false,
+				},
+				{
+					time: 2,
+					position: { x: 2, y: 0, z: 0 },
+					steering: 0,
+					armsUp: false,
+					braking: false,
+					inAir: false,
+					groundedWheelState: 15,
+					slippingWheelState: 0,
+					soap: false,
+					offroad: false,
+					paraglider: false,
+					surfaces: ['tarmac'],
+					localVelocity: { x: 1, y: 0, z: 0 },
+					ragdoll: false,
+				},
+			],
+			6,
+		)
+
+		expect(stats).toMatchObject({
+			ghostVersion: 6,
+			hasInputData: true,
+			hasAirData: true,
+			hasWheelData: true,
+			hasSlipData: true,
+			hasStateData: true,
+			hasSurfaceData: true,
+			hasVelocityData: true,
+			hasRagdollData: true,
+			timeAnyDriverInput: 2,
+			driverInputTransitionCount: 3,
+		})
+	})
+
+	test('keeps unsupported capability metrics null', () => {
+		const stats = calculateGhostStatistics(
+			[
+				{ time: 0, position: { x: 0, y: 0, z: 0 } },
+				{ time: 1, position: { x: 1, y: 0, z: 0 } },
+			],
+			1,
+		)
+
+		expect(stats.ghostVersion).toBe(1)
+		expect(stats.hasInputData).toBe(false)
+		expect(stats.hasAirData).toBe(false)
+		expect(stats.timeAnyDriverInput).toBeNull()
+		expect(stats.driverInputTransitionCount).toBeNull()
 	})
 })

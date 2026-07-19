@@ -1,0 +1,84 @@
+query ZC_RecordComparisonCatalog(
+	$levelId: Int!
+	$ownerId: Int!
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
+	topPersonalBests: records(
+		first: 10
+		filter: {
+			levelId: { equalTo: $levelId }
+			personalBestGlobalsExist: true
+			recordMedia: { ghostUrl: { isNull: false } }
+			recordMediaExists: true
+		}
+		orderBy: [TIME_ASC, ID_ASC]
+	) {
+		nodes {
+			...ZC_GhostComparisonRecord
+		}
+	}
+	ownerRuns: records(
+		first: 10
+		filter: {
+			levelId: { equalTo: $levelId }
+			userId: { equalTo: $ownerId }
+			recordMedia: { ghostUrl: { isNull: false } }
+			recordMediaExists: true
+		}
+		orderBy: [TIME_ASC, ID_ASC]
+	) {
+		nodes {
+			...ZC_GhostComparisonRecord
+		}
+	}
+	viewerPersonalBest: personalBestGlobalByUserIdAndLevelId(levelId: $levelId, userId: $viewerId)
+		@include(if: $includeViewer)
+	{
+		record {
+			...ZC_GhostComparisonRecord
+		}
+	}
+}
+
+query ZC_RecordComparisonRecords($levelId: Int!, $recordIds: [Int!]!) {
+	records(
+		first: 10
+		filter: {
+			id: { in: $recordIds }
+			levelId: { equalTo: $levelId }
+			recordMedia: { ghostUrl: { isNull: false } }
+			recordMediaExists: true
+		}
+		orderBy: [TIME_ASC, ID_ASC]
+	) {
+		nodes {
+			...ZC_GhostComparisonRecord
+		}
+	}
+}
+
+query ZC_RecordComparisonUserSearch($levelId: Int!, $search: String!) {
+	users(
+		first: 8
+		filter: { banned: { equalTo: false }, steamName: { includesInsensitive: $search } }
+		orderBy: [STEAM_NAME_ASC, ID_ASC]
+	) {
+		nodes {
+			id
+			steamId
+			steamName
+			personalBestGlobals(
+				first: 1
+				filter: { levelId: { equalTo: $levelId } }
+				orderBy: [ID_ASC]
+			) {
+				nodes {
+					record {
+						...ZC_GhostComparisonRecord
+					}
+				}
+			}
+		}
+	}
+}

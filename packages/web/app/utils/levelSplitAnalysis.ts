@@ -8,7 +8,7 @@ export type LevelSplitSeries = {
 	viewer: boolean
 	viewerComparison: boolean
 	deltas: number[]
-	speeds: number[]
+	speeds: Array<number | null>
 }
 
 export type LevelSplitAnalysis = {
@@ -21,16 +21,26 @@ export type LevelSplitAnalysis = {
 type RawSplitRecord = {
 	id: number
 	time: number
+	color?: string | null
 	splits?: Array<number | null> | null
 	speeds?: Array<number | null> | null
+	finishSpeed?: number | null
 	user?: { steamId: unknown; steamName?: string | null } | null
 }
 
 const SERIES_COLORS = ['#facc15', '#38bdf8', '#22c55e', '#f43f5e', '#a78bfa', '#fb923c'] as const
 
 function numericArray(value?: Array<number | null> | null): number[] | null {
-	if (!value?.length || value.some((item) => item == null || !Number.isFinite(item))) return null
+	if (!value || value.some((item) => item == null || !Number.isFinite(item))) return null
 	return value as number[]
+}
+
+function finiteOrNull(value: number | null | undefined): number | null {
+	return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+export function resolveGhostFinishSpeed(frames: ReadonlyArray<{ speed?: number }>): number | null {
+	return finiteOrNull(frames.at(-1)?.speed)
 }
 
 export function buildLevelSplitAnalysis(
@@ -43,45 +53,55 @@ export function buildLevelSplitAnalysis(
 	const combinedRecords = viewerAppended && viewerRecord ? [...records, viewerRecord] : records
 	const normalized = combinedRecords.flatMap((record) => {
 		const splits = numericArray(record.splits)
-		const speeds = numericArray(record.speeds)
-		return splits && speeds && splits.length === speeds.length
-			? [{ record, splits, speeds }]
-			: []
+		return splits ? [{ record, splits }] : []
 	})
 	const fastest = normalized[0]
 	if (!fastest) return { checkpointCount: 0, series: [], deltaData: [], speedData: [] }
 
-	const compatible = normalized.filter(
-		(item) =>
-			item.splits.length === fastest.splits.length &&
-			item.speeds.length === fastest.speeds.length,
-	)
-	const series = compatible.map(
-		({ record, splits, speeds }, index): LevelSplitSeries => ({
+	const checkpointCount = fastest.splits.length
+	const compatible = normalized.filter((item) => item.splits.length === checkpointCount)
+	const series = compatible.map(({ record, splits }, index): LevelSplitSeries => {
+		const checkpointSpeeds = numericArray(record.speeds)
+		const speeds =
+			checkpointSpeeds?.length === checkpointCount
+				? checkpointSpeeds
+				: Array<number | null>(checkpointCount).fill(null)
+
+		return {
 			key: `record_${record.id}`,
 			recordId: record.id,
 			userName: record.user?.steamName ?? String(record.user?.steamId ?? record.id),
 			userSteamId: record.user?.steamId == null ? null : String(record.user.steamId),
 			time: record.time,
-			color: SERIES_COLORS[index % SERIES_COLORS.length] ?? SERIES_COLORS[0],
+			color: record.color ?? SERIES_COLORS[index % SERIES_COLORS.length] ?? SERIES_COLORS[0],
 			viewer: record.id === viewerRecord?.id,
 			viewerComparison: viewerAppended && record.id === viewerRecord?.id,
-			deltas: splits.map(
-				(split, checkpoint) => split - (fastest.splits[checkpoint] ?? split),
-			),
-			speeds,
-		}),
-	)
-	const data = (field: 'deltas' | 'speeds') =>
-		Array.from({ length: fastest.splits.length }, (_, checkpoint) => ({
+			deltas: [...splits, record.time].map((split, checkpoint) => {
+				const fastestTime =
+					checkpoint === checkpointCount
+						? fastest.record.time
+						: (fastest.splits[checkpoint] ?? split)
+				return split - fastestTime
+			}),
+			speeds: [...speeds, finiteOrNull(record.finishSpeed)],
+		}
+	})
+	const data = (field: 'deltas' | 'speeds', length: number) =>
+		Array.from({ length }, (_, checkpoint) => ({
 			checkpoint: checkpoint + 1,
-			...Object.fromEntries(series.map((item) => [item.key, item[field][checkpoint] ?? 0])),
+			...Object.fromEntries(
+				series.flatMap((item) => {
+					const value = item[field][checkpoint]
+					return typeof value === 'number' ? [[item.key, value]] : []
+				}),
+			),
 		}))
+	const hasFinishSpeed = series.some((item) => item.speeds[checkpointCount] != null)
 
 	return {
-		checkpointCount: fastest.splits.length,
+		checkpointCount,
 		series,
-		deltaData: data('deltas'),
-		speedData: data('speeds'),
+		deltaData: data('deltas', checkpointCount + 1),
+		speedData: data('speeds', checkpointCount + (hasFinishSpeed ? 1 : 0)),
 	}
 }

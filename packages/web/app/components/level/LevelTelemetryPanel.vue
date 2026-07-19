@@ -45,8 +45,14 @@
 						</span>
 					</div>
 				</template>
+				<div
+					v-if="chart.unavailable"
+					class="flex min-h-40 items-center justify-center text-sm font-semibold text-muted-foreground"
+				>
+					{{ model.unavailableLabel }}
+				</div>
 				<DashboardDonutChart
-					v-if="chart.entries.some((entry) => entry.value > 0)"
+					v-else-if="chart.entries.some((entry) => entry.value > 0)"
 					:entries="chart.entries"
 					:total-label="chart.totalLabel"
 					:aria-label="chart.title"
@@ -65,6 +71,8 @@
 				:steering-total-label="model.driverInputs.steeringTotalLabel"
 				:actions="model.driverInputs.actions"
 				:empty-label="model.emptyLabel"
+				:unavailable="model.driverInputs.unavailable"
+				:unavailable-label="model.unavailableLabel"
 				compact
 			/>
 		</div>

@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest'
+import { parseLevelGeometryBlocks } from '../../app/utils/ghostLevelGeometry'
+
+describe('parseLevelGeometryBlocks', () => {
+	it('maps CSV level metadata vectors', () => {
+		expect(
+			parseLevelGeometryBlocks([
+				{
+					Id: 42,
+					Position: { X: 16, Y: 2, Z: -8 },
+					Euler: { X: 0, Y: 90, Z: 0 },
+					Scale: { X: 2, Y: 1, Z: 4 },
+				},
+			]),
+		).toEqual([
+			{
+				id: 42,
+				position: { x: 16, y: 2, z: -8 },
+				rotation: { x: 0, y: 90, z: 0 },
+				scale: { x: 2, y: 1, z: 4 },
+			},
+		])
+	})
+
+	it('maps compact JSON level metadata and rejects malformed entries', () => {
+		expect(
+			parseLevelGeometryBlocks([
+				{ i: 7, p: [1, 2, 3], r: [4, 5, 6], s: [0.5, 1, 2] },
+				{ i: 8 },
+			]),
+		).toEqual([
+			{
+				id: 7,
+				position: { x: 1, y: 2, z: 3 },
+				rotation: { x: 4, y: 5, z: 6 },
+				scale: { x: 0.5, y: 1, z: 2 },
+			},
+		])
+	})
+})

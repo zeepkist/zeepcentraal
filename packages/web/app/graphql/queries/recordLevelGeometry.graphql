@@ -1,0 +1,12 @@
+query ZC_RecordLevelGeometry($levelId: Int!) {
+	level(id: $levelId) {
+		levelMetadata(first: 1, orderBy: [DATE_UPDATED_DESC, ID_DESC]) {
+			nodes {
+				blocks
+				format
+				typeGround
+				typeSkybox
+			}
+		}
+	}
+}

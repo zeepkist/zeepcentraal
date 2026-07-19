@@ -1,5 +1,5 @@
 import { calculatePlayerPointsDecayed, LEVEL_DECAY_FACTOR } from '@zeepkist/core/score'
-import type { RecordRow } from '~/types/app'
+import type { RecordResultStatus } from '~/types/app'
 
 type RankAggregate = {
 	keys?: Array<string | null> | null
@@ -38,7 +38,7 @@ export function buildLevelPersonalBestRanks(
 	return ranks
 }
 
-export function resolveRecordPbOrWr(record: RecordStatusRelations): RecordRow['pbOrWr'] {
+export function resolveRecordPbOrWr(record: RecordStatusRelations): RecordResultStatus | null {
 	if ((record.worldRecordGlobals?.totalCount ?? 0) > 0) return 'world-record'
 	if ((record.personalBestGlobals?.totalCount ?? 0) > 0) return 'personal-best'
 	return null

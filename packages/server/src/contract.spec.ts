@@ -53,6 +53,7 @@ const state = {
 	canonicalInsertMissingLevel: false,
 	updatedDiscordIds: [] as Array<{ steamId: string; discordId: bigint | null }>,
 	mediaSchedules: [] as Array<{ idRecord: number; ghostData: string }>,
+	recordStatistics: [] as Array<Record<string, unknown> | undefined>,
 	voteUpserts: [] as Array<{ idUser: number; idLevel: number; value: number }>,
 	userBySteamId: {
 		id: 1,
@@ -147,6 +148,7 @@ function resetState() {
 	state.canonicalInsertMissingLevel = false
 	state.updatedDiscordIds = []
 	state.mediaSchedules = []
+	state.recordStatistics = []
 	state.voteUpserts = []
 	state.userBySteamId = {
 		id: 1,
@@ -394,10 +396,13 @@ mock.module('@zeepkist/database/services', () => ({
 		hash === state.level.hash && state.levelExists ? state.level : null,
 	getLevelByXxHash: async (xxHash: string) =>
 		xxHash === state.level.xxHash && state.levelExists ? state.level : null,
-	submitRecord: async (input: Record<string, unknown>) => ({
-		record: { ...state.record, ...input },
-		personalBestChanged: true,
-	}),
+	submitRecord: async (input: Record<string, unknown>, statistic?: Record<string, unknown>) => {
+		state.recordStatistics.push(statistic)
+		return {
+			record: { ...state.record, ...input },
+			personalBestChanged: true,
+		}
+	},
 	scheduleRecordMediaUpload: (idRecord: number, ghostData: string) => {
 		state.mediaSchedules.push({ idRecord, ghostData })
 	},
@@ -1016,6 +1021,21 @@ test('record/submit returns 200 with empty body on success', async () => {
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
 	expect(state.mediaSchedules).toEqual([{ idRecord: 20, ghostData: 'AQAAAAAAAAA=' }])
+	expect(state.recordStatistics).toEqual([
+		expect.objectContaining({
+			ghostVersion: 1,
+			hasInputData: false,
+			hasAirData: false,
+			hasWheelData: false,
+			hasSlipData: false,
+			hasStateData: false,
+			hasSurfaceData: false,
+			hasVelocityData: false,
+			hasRagdollData: false,
+			timeAnyDriverInput: null,
+			driverInputTransitionCount: null,
+		}),
+	])
 	expect(state.levelAdventureUpdates).toEqual([true])
 	expect(state.canonicalLevelRequests).toEqual([
 		{ hash: state.level.hash, xxHash: state.level.xxHash, adventure: true },

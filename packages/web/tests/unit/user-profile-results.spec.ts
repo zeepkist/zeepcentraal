@@ -19,7 +19,7 @@ const section = readFileSync(
 	'utf8',
 )
 const table = readFileSync(
-	new URL('../../app/components/record/RecordTable.vue', import.meta.url),
+	new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
 	'utf8',
 )
 const statusBadge = readFileSync(
@@ -37,9 +37,13 @@ describe('user profile record results', () => {
 	})
 
 	it('uses deterministic valuable and recent ordering', () => {
-		expect(contributionsQuery).toContain('orderBy: [PLAYER_DECAYED_POINTS_DESC, LEVEL_ID_ASC]')
+		expect(contributionsQuery).toContain('$orderBy: [UserPointContributionsOrderBy!]!')
+		expect(contributionsQuery).toContain('orderBy: $orderBy')
+		expect(composable).toContain("['PLAYER_DECAYED_POINTS_DESC', 'RECORD_ID_DESC']")
+		expect(composable).toContain("['LEVEL_POINTS_DESC', 'RECORD_ID_DESC']")
 		expect(resultsQuery).toContain('orderBy: [DATE_CREATED_DESC, ID_DESC]')
 		expect(composable).toContain('useCursorPagination(25,')
+		expect(composable).toContain("ref<RecordHistorySort>('valuable-pbs')")
 	})
 
 	it('loads current PB and WR relations with WR precedence', () => {
@@ -65,10 +69,12 @@ describe('user profile record results', () => {
 		).toBeNull()
 	})
 
-	it('reuses RecordTable without player column and exposes shared status styles', () => {
-		expect(section).toContain('<RecordTable')
-		expect(section).toContain(':show-user="false"')
-		expect(table).toContain('v-if="showUser"')
+	it('reuses RecordHistoryTable with level and rank-first presentation', () => {
+		expect(section).toContain('<RecordHistoryTable')
+		expect(section).toContain('rank-first')
+		expect(section).toContain('show-level')
+		expect(section).not.toContain('show-player')
+		expect(table).toContain('rankFirst')
 		expect(table).toContain('<RecordStatusBadge')
 		expect(statusBadge).toContain("status === 'world-record'")
 		expect(statusBadge).toContain("status === 'personal-best'")
@@ -83,7 +89,25 @@ describe('user profile record results', () => {
 		expect(page).toContain('<div class="space-y-8 lg:space-y-10">')
 		expect(page).toContain('id="profile-personal-bests"')
 		expect(page).toContain('id="profile-recent"')
-		expect(page).toContain('show-pb-or-wr')
+		expect(page).toContain('status-mode="none"')
+		expect(page).toContain('status-mode="world-record-only"')
+		expect(page).toContain('status-mode="all"')
+		expect(page).toContain("value: 'latest' as const")
+		expect(page).toContain("value: 'valuable-pbs' as const")
+		expect(page).toContain("value: 'valuable-levels' as const")
+	})
+
+	it('maps complete contribution points and resolves missing current PB ranks', () => {
+		expect(resultsQuery).toContain('levelPoints {')
+		expect(resultsQuery).toContain('points')
+		expect(composable).toContain('levelPosition: contribution?.levelPosition')
+		expect(composable).toContain('contributionRank: contribution?.contributionRank')
+		expect(composable).toContain('levelDecayedPoints: contribution?.levelDecayedPoints')
+		expect(composable).toContain('playerDecayedPoints: contribution?.playerDecayedPoints')
+		expect(composable).toContain('calculateDecayMultiplier(')
+		expect(composable).toContain('useRecordRankFallback(wrRowsSource)')
+		expect(composable).toContain('useRecordRankFallback(pbRowsSource)')
+		expect(composable).toContain('useRecordRankFallback(recentRowsSource)')
 	})
 
 	it('retains resolved rows while replacement queries fetch', () => {

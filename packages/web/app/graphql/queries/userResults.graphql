@@ -23,6 +23,9 @@ query ZC_UserResults(
 				userId
 				level {
 					xxHash
+					levelPoints {
+						points
+					}
 					levelItems(
 						first: 1
 						filter: { deleted: { equalTo: false } }
@@ -35,6 +38,7 @@ query ZC_UserResults(
 				}
 				userPointContributions(first: 1) {
 					nodes {
+						levelPoints
 						playerDecayedPoints
 						levelDecayedPoints
 						levelPosition

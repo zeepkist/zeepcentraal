@@ -1,22 +1,30 @@
 import { finite } from '../utils/finite'
 import { remapByte } from '../utils/remapByte'
 import { BinaryReader } from './binaryReader'
-import type { GhostFrame, ParsedGhost, Vector3 } from './types'
+import { detectGhostCapabilities } from './capabilities'
+import { legacyGhostMetadata } from './metadata'
+import { normalizeQuaternion } from './orientation'
+import type { GhostFrame, ParsedGhost, Quaternion, Vector3 } from './types'
 
-export function parseV4(buffer: Buffer): ParsedGhost {
+export function parseV4(buffer: Uint8Array): ParsedGhost {
+	const { metadata, frames } = readV4Ghost(buffer)
 	return {
 		version: 4,
-		frames: readV4Frames(buffer),
+		metadata,
+		capabilities: detectGhostCapabilities(frames),
+		frames,
 	}
 }
 
-function readV4Frames(buffer: Buffer): GhostFrame[] {
+function readV4Ghost(buffer: Uint8Array) {
 	const reader = new BinaryReader(buffer)
 	reader.readInt32()
-	reader.readUInt64()
-	reader.readInt32()
-	reader.readInt32()
-	reader.readInt32()
+	const metadata = legacyGhostMetadata(
+		reader.readUInt64(),
+		reader.readInt32(),
+		reader.readInt32(),
+		reader.readInt32(),
+	)
 	const precision = reader.readByte()
 	if (precision === 0) {
 		throw new Error('Invalid V4 ghost precision')
@@ -39,10 +47,13 @@ function readV4Frames(buffer: Buffer): GhostFrame[] {
 				z: currentPosition.z + reader.readInt16() / 10_000,
 			}
 		}
-		reader.readInt16()
-		reader.readInt16()
-		reader.readInt16()
-		reader.readInt16()
+		const rotationScale = full ? 10_000 : 30_000
+		const orientation: Quaternion = normalizeQuaternion({
+			x: reader.readInt16() / rotationScale,
+			y: reader.readInt16() / rotationScale,
+			z: reader.readInt16() / rotationScale,
+			w: reader.readInt16() / rotationScale,
+		})
 		const steering = remapByte(reader.readByte(), -1, 1)
 		const flags = reader.readByte()
 		if (!finite(time, position.x, position.y, position.z)) {
@@ -52,11 +63,12 @@ function readV4Frames(buffer: Buffer): GhostFrame[] {
 		frames.push({
 			time,
 			position,
+			orientation,
 			steering,
 			armsUp: (flags & 1) !== 0,
 			braking: (flags & 2) !== 0,
 		})
 	}
 
-	return frames
+	return { metadata, frames }
 }

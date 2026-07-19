@@ -3,30 +3,35 @@
 		<span class="sr-only" aria-live="polite">
 			{{ highlightedRecordIds?.size ? liveUpdateLabel : '' }}
 		</span>
-		<table
-			class="w-full table-fixed text-left text-sm"
-			:class="tableMinWidth"
-		>
+		<table class="w-full table-fixed text-left text-sm" :class="tableMinWidth">
 			<colgroup>
-				<col />
-				<col v-if="showPlayer" class="w-[11rem]" />
-				<col class="w-[5rem]" />
-				<col class="w-[5rem]" />
-				<col v-if="showStatus" class="w-[4rem]" />
-				<col class="w-[8rem]" />
-				<col class="w-[8rem]" />
-				<col class="w-[10rem]"/>
+				<col
+					v-for="column in columns"
+					:key="column"
+					:class="columnWidth(column)"
+				/>
 			</colgroup>
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
-					<th class="px-4 py-3" scope="col">{{ labels.level }}</th>
-					<th v-if="showPlayer" class="px-4 py-3" scope="col">{{ labels.player }}</th>
-					<th class="px-4 py-3" scope="col">{{ labels.rank }}</th>
-					<th class="px-4 py-3" scope="col">{{ labels.time }}</th>
-					<th v-if="showStatus" class="px-4 py-3" scope="col"></th>
-					<th class="px-4 py-3" scope="col">{{ labels.points }}</th>
-					<th class="px-4 py-3" scope="col">{{ labels.rankedPoints }}</th>
-					<th class="px-4 py-3 text-right" scope="col">{{ labels.date }}</th>
+					<th
+						v-for="column in columns"
+						:key="column"
+						class="px-4 py-3"
+						:class="column === 'date' ? 'text-right' : ''"
+						scope="col"
+					>
+						<RecordPointsHeader
+							v-if="column === 'points'"
+							:label="labels.points"
+							:help="labels.pointsHelp"
+						/>
+						<RecordPointsHeader
+							v-else-if="column === 'rankedPoints'"
+							:label="labels.rankedPoints"
+							:help="labels.rankedPointsHelp"
+						/>
+						<template v-else>{{ columnLabel(column) }}</template>
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -34,82 +39,102 @@
 					v-for="record in records"
 					:key="record.id"
 					:viewer="viewerUserId === record.userId"
+					:pinned="record.pinned"
 					:highlighted="highlightedRecordIds?.has(record.id)"
 					interactive
 				>
-					<td class="p-0">
-						<DataTableCellLink
-							:to="levelPath(record)"
-							focusable
-							class="truncate px-4 py-3 font-bold group-hover:text-primary"
-						>
-							{{ record.levelName }}
-						</DataTableCellLink>
-					</td>
-					<td v-if="showPlayer" class="p-0">
-						<DataTableCellLink
-							:to="playerOrRecordPath(record)"
-							:focusable="Boolean(record.userSteamId)"
-							:aria-label="record.userSteamId ? undefined : recordAriaLabel(record)"
-							class="truncate px-4 py-3 font-semibold group-hover:text-primary"
-						>
-							<span :class="record.userSteamId ? '' : 'text-muted-foreground'">
-								{{ record.userName ?? record.userSteamId ?? labels.unknownPlayer }}
-							</span>
-						</DataTableCellLink>
-					</td>
-					<td class="p-0 font-bold tabular-nums">
-						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
-							<span v-if="record.levelPosition != null">
-								#{{ number.format(record.levelPosition) }}
-							</span>
-							<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
-						</DataTableCellLink>
-					</td>
-					<td class="p-0 font-semibold tabular-nums">
-						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" focusable class="px-4 py-3">
-							{{ formatTime(record.time) }}
-						</DataTableCellLink>
-					</td>
-					<td v-if="showStatus" class="p-0">
-						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
-							<RecordStatusBadge
-								:status="visibleStatus(record)"
-								:personal-best-label="labels.personalBest"
-								:world-record-label="labels.worldRecord"
-							/>
-						</DataTableCellLink>
-					</td>
-					<td class="p-0">
-						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)">
-							<RecordPointValue
-								:points="record.levelDecayedPoints"
-								:decay-multiplier="record.levelDecayMultiplier"
-								:not-ranked-label="labels.notRanked"
-								:decay-label="labels.decayPercentage"
-							/>
-						</DataTableCellLink>
-					</td>
-					<td class="p-0">
-						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)">
-							<RecordPointValue
-								:points="record.playerDecayedPoints"
-								:decay-multiplier="record.globalDecayMultiplier"
-								:not-ranked-label="labels.notRanked"
-								:decay-label="labels.decayPercentage"
-							/>
-						</DataTableCellLink>
-					</td>
-					<td class="p-0 text-muted-foreground text-right">
-						<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)" class="px-4 py-3">
-							<NuxtTime
-								:datetime="record.dateCreated"
-								relative
-								numeric="auto"
-								relative-style="short"
-							/>
-						</DataTableCellLink>
-					</td>
+					<template v-for="column in columns" :key="column">
+						<td v-if="column === 'level'" class="p-0">
+							<DataTableCellLink
+								:to="levelPath(record)"
+								focusable
+								class="truncate px-4 py-3 font-bold group-hover:text-primary"
+							>
+								{{ record.levelName }}
+							</DataTableCellLink>
+						</td>
+						<td v-else-if="column === 'player'" class="p-0">
+							<DataTableCellLink
+								:to="playerOrRecordPath(record)"
+								:focusable="Boolean(record.userSteamId)"
+								:aria-label="record.userSteamId ? undefined : recordAriaLabel(record)"
+								class="truncate px-4 py-3 font-semibold group-hover:text-primary"
+							>
+								<span :class="record.userSteamId ? '' : 'text-muted-foreground'">
+									{{ record.userName ?? record.userSteamId ?? labels.unknownPlayer }}
+								</span>
+							</DataTableCellLink>
+						</td>
+						<td v-else-if="column === 'rank'" class="p-0 font-bold tabular-nums">
+							<DataTableCellLink
+								:to="recordPath(record)"
+								:aria-label="recordAriaLabel(record)"
+								class="px-4 py-3"
+							>
+								<span v-if="record.levelPosition != null">
+									#{{ number.format(record.levelPosition) }}
+								</span>
+								<span v-else class="text-muted-foreground">{{ labels.notRanked }}</span>
+							</DataTableCellLink>
+						</td>
+						<td v-else-if="column === 'time'" class="p-0 font-semibold tabular-nums">
+							<DataTableCellLink
+								:to="recordPath(record)"
+								:aria-label="recordAriaLabel(record)"
+								focusable
+								class="px-4 py-3"
+							>
+								{{ formatTime(record.time) }}
+							</DataTableCellLink>
+						</td>
+						<td v-else-if="column === 'status'" class="p-0">
+							<DataTableCellLink
+								:to="recordPath(record)"
+								:aria-label="recordAriaLabel(record)"
+								class="px-4 py-3"
+							>
+								<RecordStatusBadge
+									:status="visibleStatus(record)"
+									:personal-best-label="labels.personalBest"
+									:world-record-label="labels.worldRecord"
+								/>
+							</DataTableCellLink>
+						</td>
+						<td v-else-if="column === 'points'" class="p-0">
+							<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)">
+								<RecordPointValue
+									:points="record.levelDecayedPoints"
+									:decay-multiplier="record.levelDecayMultiplier"
+									:not-ranked-label="labels.notRanked"
+									:decay-label="labels.decayPercentage"
+								/>
+							</DataTableCellLink>
+						</td>
+						<td v-else-if="column === 'rankedPoints'" class="p-0">
+							<DataTableCellLink :to="recordPath(record)" :aria-label="recordAriaLabel(record)">
+								<RecordPointValue
+									:points="record.playerDecayedPoints"
+									:decay-multiplier="record.globalDecayMultiplier"
+									:not-ranked-label="labels.notRanked"
+									:decay-label="labels.decayPercentage"
+								/>
+							</DataTableCellLink>
+						</td>
+						<td v-else class="p-0 text-right text-muted-foreground">
+							<DataTableCellLink
+								:to="recordPath(record)"
+								:aria-label="recordAriaLabel(record)"
+								class="px-4 py-3"
+							>
+								<NuxtTime
+									:datetime="record.dateCreated"
+									relative
+									numeric="auto"
+									relative-style="short"
+								/>
+							</DataTableCellLink>
+						</td>
+					</template>
 				</DataTableRow>
 			</tbody>
 		</table>
@@ -118,40 +143,85 @@
 
 <script setup lang="ts">
 import type { RecordHistoryRow } from '~/types/app'
+import {
+	getRecordHistoryColumns,
+	type RecordHistoryColumn,
+} from '~/utils/recordHistoryColumns'
 
-const props = defineProps<{
-	records: RecordHistoryRow[]
-	highlightedRecordIds?: ReadonlySet<number>
-	liveUpdateLabel: string
-	showPlayer?: boolean
-	viewerUserId?: number
-	statusMode?: 'none' | 'world-record-only' | 'all'
-	labels: {
-		level: string
-		player: string
-		unknownPlayer: string
-		rank: string
-		time: string
-		status: string
-		personalBest: string
-		worldRecord: string
-		levelPoints: string
-		points: string
-		rankedPoints: string
-		date: string
-		notRanked: string
-		decayPercentage: string
-		openRecord: string
-	}
-}>()
+const props = withDefaults(
+	defineProps<{
+		records: RecordHistoryRow[]
+		highlightedRecordIds?: ReadonlySet<number>
+		liveUpdateLabel: string
+		showLevel?: boolean
+		showPlayer?: boolean
+		rankFirst?: boolean
+		viewerUserId?: number
+		statusMode?: 'none' | 'world-record-only' | 'all'
+		labels: {
+			level: string
+			player: string
+			unknownPlayer: string
+			rank: string
+			time: string
+			status: string
+			personalBest: string
+			worldRecord: string
+			levelPoints: string
+			points: string
+			pointsHelp?: string
+			rankedPoints: string
+			rankedPointsHelp?: string
+			date: string
+			notRanked: string
+			decayPercentage: string
+			openRecord: string
+		}
+	}>(),
+	{
+		showLevel: true,
+		showPlayer: false,
+		rankFirst: false,
+		statusMode: 'none',
+	},
+)
 
 const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
-const showStatus = computed(() => props.statusMode !== undefined && props.statusMode !== 'none')
+const showStatus = computed(() => props.statusMode !== 'none')
+const columns = computed(() =>
+	getRecordHistoryColumns({
+		showLevel: props.showLevel,
+		showPlayer: props.showPlayer,
+		rankFirst: props.rankFirst,
+		showStatus: showStatus.value,
+	}),
+)
 const tableMinWidth = computed(() => {
-	if (props.showPlayer) return showStatus.value ? 'min-w-[63rem]' : 'min-w-[59rem]'
+	if (props.showLevel && props.showPlayer) {
+		return showStatus.value ? 'min-w-[63rem]' : 'min-w-[59rem]'
+	}
 	return showStatus.value ? 'min-w-[52rem]' : 'min-w-[48rem]'
 })
+
+function columnWidth(column: RecordHistoryColumn) {
+	if (column === 'player' && props.showLevel) return 'w-[11rem]'
+	if (column === 'rank') return 'w-[5rem]'
+	if (column === 'time') return 'w-[5rem]'
+	if (column === 'status') return 'w-[4rem]'
+	if (column === 'points' || column === 'rankedPoints') return 'w-[8rem]'
+	if (column === 'date') return 'w-[10rem]'
+	return undefined
+}
+
+function columnLabel(column: RecordHistoryColumn) {
+	if (column === 'level') return props.labels.level
+	if (column === 'player') return props.labels.player
+	if (column === 'rank') return props.labels.rank
+	if (column === 'time') return props.labels.time
+	if (column === 'status') return props.labels.status
+	return props.labels.date
+}
 
 function visibleStatus(record: RecordHistoryRow) {
 	if (props.statusMode === 'all') return record.pbOrWr

@@ -46,6 +46,12 @@
 		},
 		"./ghosts": {
 			"import": "./src/ghosts/index.ts"
+		},
+		"./ghosts/browser": {
+			"import": "./src/ghosts/browser.ts"
+		},
+		"./ghosts/shared": {
+			"import": "./src/ghosts/shared.ts"
 		}
 	},
 	"dependencies": {

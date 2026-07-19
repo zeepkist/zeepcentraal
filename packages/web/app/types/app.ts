@@ -21,26 +21,6 @@ export type SessionUser = {
 
 export type MedalTimes = { author: number; gold: number; silver: number; bronze: number }
 
-export type RecordRow = {
-	id: number
-	time: number
-	dateCreated: string
-	userId: number
-	userSteamId?: string | null
-	userName?: string | null
-	levelId: number
-	levelXxHash?: string | null
-	levelName?: string | null
-	rank?: number | null
-	rankedPoints?: number | null
-	nonDecayedPoints?: number | null
-	points?: number | null
-	pbOrWr?: RecordResultStatus | null
-	worldRecord?: boolean
-	viewer?: boolean
-	pinned?: boolean
-}
-
 export type RecordResultStatus = 'personal-best' | 'world-record'
 export type RecordLiveStatus = 'connecting' | 'live' | 'paused' | 'error'
 
@@ -62,6 +42,7 @@ export type RecordHistoryRow = {
 	levelDecayMultiplier?: number | null
 	globalDecayMultiplier?: number | null
 	pbOrWr?: RecordResultStatus | null
+	pinned?: boolean
 }
 
 export type RecordHistoryUpdate = {
@@ -91,7 +72,6 @@ export type LevelSummary = {
 	worldRecordTime?: number | null
 	worldRecordAuthorName?: string | null
 	worldRecordAuthorSteamId?: string | null
-	worldRecord?: RecordRow | null
 	medals?: MedalTimes | null
 }
 
@@ -101,6 +81,61 @@ export type LevelWorldRecordSummary = {
 	dateCreated: string
 	userName?: string | null
 	userSteamId?: string | null
+}
+
+export type LevelScoreInsights = {
+	sampleSize?: number | null
+	leaderboardConfidence?: number | null
+	inputSampleSize?: number | null
+	inputCoverage?: number | null
+	airSampleSize?: number | null
+	wheelSampleSize?: number | null
+	slipSampleSize?: number | null
+	ragdollSampleSize?: number | null
+	stateSampleSize?: number | null
+	surfaceSampleSize?: number | null
+	velocitySampleSize?: number | null
+	competitivenessScore?: number | null
+	worldRecordDifficultyScore?: number | null
+	participationScore?: number | null
+	voteAdjustment?: number | null
+	passivePlaySeverity?: number | null
+	afkModifier?: number | null
+	passiveRunRatio?: number | null
+	passiveTop10Share?: number | null
+	bestPassiveRank?: number | null
+	bestPassiveGap?: number | null
+	driverEngagementScore?: number | null
+	worldRecordMargin?: number | null
+	top5Spread?: number | null
+	top10Spread?: number | null
+	top50Spread?: number | null
+	wrChallengerCount?: number | null
+	worldRecordOptimizationScore?: number | null
+	leaderboardAnomalyScore?: number | null
+	telemetryAnomalyScore?: number | null
+	worldRecordExcluded?: boolean | null
+	pathConsistencyScore?: number | null
+	speedConsistencyScore?: number | null
+	routeConsistencyScore?: number | null
+	surfaceDiversityScore?: number | null
+	matureVoteCount?: number | null
+	typicalDistance?: number | null
+	typicalAverageSpeed?: number | null
+	typicalMaxSpeed?: number | null
+	typicalAirTimeShare?: number | null
+	typicalGroundTimeShare?: number | null
+	typicalSlipShare?: number | null
+	typicalRagdollShare?: number | null
+	typicalAverageAngularVelocity?: number | null
+	typicalAverageGforce?: number | null
+	medianSteeringShare?: number | null
+	q25SteeringShare?: number | null
+	lowSteeringRatio?: number | null
+	zeroControlRatio?: number | null
+	medianBrakeShare?: number | null
+	medianArmsUpShare?: number | null
+	medianControlTransitionRate?: number | null
 }
 
 export type UserSummary = {
@@ -323,11 +358,13 @@ export type RecordTelemetryChart = {
 	icon: string
 	entries: DashboardChartEntry[]
 	totalLabel: string
+	unavailable?: boolean
 }
 
 export type RecordTelemetryModel = {
 	minimumVersionLabel: string
 	emptyLabel: string
+	unavailableLabel: string
 	overviewMetrics: DashboardStatisticsMetric[]
 	charts: RecordTelemetryChart[]
 	driverInputs: {
@@ -337,6 +374,7 @@ export type RecordTelemetryModel = {
 		steering: DashboardChartEntry[]
 		steeringTotalLabel: string
 		actions: DashboardStatisticsMetric[]
+		unavailable?: boolean
 	}
 }
 

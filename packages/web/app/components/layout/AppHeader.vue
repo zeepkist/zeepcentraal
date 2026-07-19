@@ -110,13 +110,13 @@ const accountLabels = computed(() => ({
 }))
 const searchLabels = computed(() => ({
 	label: t('search.label'),
-	placeholder: t('search.placeholder'),
+	placeholder: t('search.label'),
 	users: t('search.groups.users'),
 	levels: t('search.groups.levels'),
-	rank: t('search.rank'),
+	rank: t('common.rank'),
 	points: t('common.points'),
 	rating: t('levels.card.rating'),
-	unknownAuthor: t('search.unknownAuthor'),
+	unknownAuthor: t('common.unknownAuthor'),
 	unavailable: t('levels.card.unavailable'),
 	typeMore: t('search.typeMore'),
 	empty: t('search.empty'),

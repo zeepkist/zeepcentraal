@@ -36,17 +36,13 @@ const tooltip = readFileSync(
 )
 
 describe('compact level detail layout', () => {
-	it('keeps only the requested competitiveness modifier', () => {
-		for (const field of [
-			'cutPenalty',
-			'modifierLength',
-			'modifierPopularity',
-			'modifierRating',
-		]) {
+	it('keeps only score-relevant legacy modifiers', () => {
+		for (const field of ['cutPenalty', 'modifierLength', 'modifierPopularity']) {
 			expect(detailQuery).not.toContain(field)
 			expect(page).not.toContain(field)
 		}
 		expect(detailQuery).toContain('modifierCompetitiveness')
+		expect(detailQuery).toContain('modifierRating')
 		expect(points).not.toContain('metrics:')
 	})
 
@@ -83,16 +79,77 @@ describe('compact level detail layout', () => {
 		expect(hero).toContain('focus-visible:outline-primary')
 	})
 
-	it('places independently paginated record sections side-by-side at xl', () => {
-		expect(page).toContain('grid gap-8 xl:grid-cols-2 xl:items-start')
+	it('keeps overview sections visible above the detail tabs in the requested order', () => {
+		const heroIndex = page.indexOf('<LevelDetailHero')
+		const medalsIndex = page.indexOf('aria-labelledby="medals-heading"')
+		const pointsIndex = page.indexOf('aria-labelledby="level-points-heading"')
+		const splitsIndex = page.indexOf('aria-labelledby="split-analysis-heading"')
+		const authorCtaIndex = page.indexOf('<AuthorLevelsCta')
+		const tabsIndex = page.indexOf('<DetailSectionTabs')
+
+		expect(heroIndex).toBeGreaterThan(-1)
+		expect(medalsIndex).toBeGreaterThan(heroIndex)
+		expect(pointsIndex).toBeGreaterThan(medalsIndex)
+		expect(splitsIndex).toBeGreaterThan(pointsIndex)
+		expect(authorCtaIndex).toBeGreaterThan(splitsIndex)
+		expect(tabsIndex).toBeGreaterThan(authorCtaIndex)
+	})
+
+	it('uses local Records, Telemetry, and Ghosts Explorer tabs with Records selected by default', () => {
+		expect(page).toContain('v-model="activeDetailTab"')
+		expect(page).toContain(':items="detailTabs"')
+		expect(page).toContain(':label="$t(\'levels.detail.tabs.label\')"')
+		expect(page).toContain('<template #records>')
+		expect(page).toContain('<template #telemetry>')
+		expect(page).toContain('<template #ghosts>')
+		expect(page).toContain("type LevelDetailTab = 'records' | 'telemetry' | 'ghosts'")
+		expect(page).toContain("ref<LevelDetailTab>('records')")
+		expect(page).not.toMatch(/useRouteQuery|route\.query.*tab|navigateTo\([^)]*tab/)
+	})
+
+	it('gates Ghosts Explorer requests and playback behind its selected tab', () => {
+		const ghostsIndex = page.indexOf('<template #ghosts>')
+		const pickerIndex = page.indexOf('<LevelGhostExplorerPicker')
+		const replayIndex = page.indexOf('<RecordReplayWorkspace')
+
+		expect(pickerIndex).toBeGreaterThan(ghostsIndex)
+		expect(replayIndex).toBeGreaterThan(pickerIndex)
+		expect(page).toContain("activeDetailTab.value === 'ghosts'")
+		expect(page).toContain('active: ghostExplorerActive')
+		expect(page).toContain('useRecordLevelGeometry(ghostLevelId, ghostExplorerActive)')
+		expect(page).toContain(':active="ghostExplorerActive"')
+		expect(page).toContain(':follow-record-ids="ghostFollowRecordIds"')
+		expect(page).toContain(':loading-when-empty="ghostExplorer.defaultsQuery.fetching.value"')
+	})
+
+	it('stacks independently paginated personal bests before recent records', () => {
+		const recordsIndex = page.indexOf('<template #records>')
+		const personalBestsIndex = page.indexOf('aria-labelledby="personal-bests-heading"')
+		const recentIndex = page.indexOf('aria-labelledby="recent-records-heading"')
+		const telemetryIndex = page.indexOf('<template #telemetry>')
+
+		expect(personalBestsIndex).toBeGreaterThan(recordsIndex)
+		expect(recentIndex).toBeGreaterThan(personalBestsIndex)
+		expect(telemetryIndex).toBeGreaterThan(recentIndex)
+		expect(page).not.toContain('grid gap-8 xl:grid-cols-2 xl:items-start')
 		expect(page.match(/<CursorPagination/g)).toHaveLength(2)
 		expect(page).toContain('levelData.recentPagination')
 		expect(page).toContain('levelData.pbPagination')
+		expect(page).toContain('!levelData.recentActive.value || levelData.recent.fetching.value')
+		expect(page).toContain('!levelData.personalBestsActive.value ||')
+		expect(page).toContain('levelData.personalBestRanks.fetching.value')
+	})
+
+	it('keeps telemetry viewport-deferred and places scoring after statistics', () => {
+		const telemetryIndex = page.indexOf('<template #telemetry>')
+		const statisticsIndex = page.indexOf('aria-labelledby="level-stats-heading"')
+		const scoreIndex = page.indexOf('aria-labelledby="score-breakdown-heading"')
+
+		expect(statisticsIndex).toBeGreaterThan(telemetryIndex)
+		expect(scoreIndex).toBeGreaterThan(statisticsIndex)
+		expect(page).toContain(':ref="levelData.statisticsTarget"')
 		expect(page).toContain(
-			':pending="!levelData.recentActive.value || levelData.recent.fetching.value"',
-		)
-		expect(page).toContain(
-			':pending="!levelData.personalBestsActive.value || levelData.personalBests.fetching.value || levelData.personalBestRanks.fetching.value"',
+			'!levelData.statisticsActive.value || levelData.statistics.fetching.value',
 		)
 	})
 })

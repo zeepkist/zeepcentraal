@@ -1,10 +1,40 @@
 import { expect, test } from 'bun:test'
 import { cronTasks } from './cronTasks'
 import { WORKSHOP_JOB_PRIORITY } from './priorities'
-import { isValidTaskPayload } from './taskDefinitions'
+import {
+	compatibleTaskIdentifiers,
+	isCompatibleTaskIdentifier,
+	isValidTaskPayload,
+} from './taskDefinitions'
+
+const expectedCompatibleTaskIdentifiers = [
+	'backfillRecordGhostStatistics',
+	'backfillRecordGhostStatisticsBatch',
+	'scanWorkshopBatch',
+	'scanWorkshopItem',
+	'syncPersonalBests',
+	'syncWorkshopCatalog',
+	'updateLevelPointsHistory',
+	'updateLevelPointsHistoryBatch',
+	'updateLevelScore',
+	'updateLevelScores',
+	'updatePlayerScore',
+	'updatePlayerScores',
+	'updateUserPointsHistory',
+	'updateUserPointsHistoryBatch',
+] as const
+
+test('compatible task contract exposes exact API-triggerable task list', () => {
+	expect(compatibleTaskIdentifiers).toEqual(expectedCompatibleTaskIdentifiers)
+	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBatch')
+	expect(isCompatibleTaskIdentifier('updateLevelScoresBatch')).toBe(false)
+	expect(isCompatibleTaskIdentifier('updateLevelScore')).toBe(true)
+})
 
 test('task payload validation accepts compatible legacy shapes', () => {
 	expect(isValidTaskPayload('updateLevelScore', { idLevel: 1, idUser: 2 })).toBe(true)
+	expect(isValidTaskPayload('updateLevelScore', { idLevel: 1, reportOnly: true })).toBe(true)
+	expect(isValidTaskPayload('updateLevelScores', { all: true, reportOnly: true })).toBe(true)
 	expect(isValidTaskPayload('updateLevelPointsHistoryBatch', { offset: 0, limit: 200 })).toBe(
 		true,
 	)
@@ -28,6 +58,12 @@ test('task payload validation accepts compatible legacy shapes', () => {
 			workshopIds: ['3006532933', '3749321871'],
 		}),
 	).toBe(true)
+	expect(
+		isValidTaskPayload('backfillRecordGhostStatistics', {
+			reparseGhostVersion: 5,
+			limit: 500,
+		}),
+	).toBe(true)
 })
 
 test('task payload validation rejects missing required identifiers', () => {
@@ -48,6 +84,17 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(
 		isValidTaskPayload('scanWorkshopBatch', {
 			workshopIds: Array.from({ length: 11 }, (_, index) => `${index + 1}`),
+		}),
+	).toBe(false)
+	expect(
+		isValidTaskPayload('backfillRecordGhostStatistics', {
+			reparseGhostVersion: 6,
+		}),
+	).toBe(false)
+	expect(
+		isValidTaskPayload('backfillRecordGhostStatistics', {
+			ids: [1],
+			reparseGhostVersion: 5,
 		}),
 	).toBe(false)
 })

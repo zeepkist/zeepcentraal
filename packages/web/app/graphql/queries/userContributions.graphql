@@ -4,6 +4,7 @@ query ZC_UserContributions(
 	$last: Int
 	$before: Cursor
 	$filter: UserPointContributionFilter!
+	$orderBy: [UserPointContributionsOrderBy!]!
 ) {
 	userPointContributions(
 		first: $first
@@ -11,7 +12,7 @@ query ZC_UserContributions(
 		last: $last
 		before: $before
 		filter: $filter
-		orderBy: [PLAYER_DECAYED_POINTS_DESC, LEVEL_ID_ASC]
+		orderBy: $orderBy
 	) {
 		edges {
 			cursor

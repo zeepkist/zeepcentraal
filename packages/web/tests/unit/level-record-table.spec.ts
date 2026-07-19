@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
 	buildLevelPersonalBestRanks,
@@ -14,8 +14,12 @@ const ranksQuery = readFileSync(
 	new URL('../../app/graphql/queries/levelPersonalBestRanks.graphql', import.meta.url),
 	'utf8',
 )
+const viewerBestQuery = readFileSync(
+	new URL('../../app/graphql/queries/levelViewerBest.graphql', import.meta.url),
+	'utf8',
+)
 const component = readFileSync(
-	new URL('../../app/components/record/RecordTable.vue', import.meta.url),
+	new URL('../../app/components/record/RecordHistoryTable.vue', import.meta.url),
 	'utf8',
 )
 const statusBadge = readFileSync(
@@ -74,23 +78,53 @@ describe('level record tables', () => {
 		expect(ranksQuery).toContain('lessThanOrEqualTo: $maximumTime')
 		expect(ranksQuery).toContain('groupedAggregates(groupBy: [TIME])')
 		expect(ranksQuery).not.toContain('offset:')
+		expect(recordsQuery).toContain('userPointContributions(first: 1)')
+		expect(viewerBestQuery).toContain('userPointContributions(first: 1)')
+		for (const field of [
+			'levelPosition',
+			'contributionRank',
+			'levelPoints',
+			'levelDecayedPoints',
+			'playerDecayedPoints',
+		]) {
+			expect(recordsQuery).toContain(field)
+			expect(viewerBestQuery).toContain(field)
+		}
 	})
 
-	it('stages exact PB points and enables each table column independently', () => {
+	it('stages exact PB points, retains the viewer, and resolves missing ranks', () => {
 		expect(composable).toContain(
 			"orderBy: ['TIME_ASC' as RecordsOrderBy, 'ID_ASC' as RecordsOrderBy]",
 		)
 		expect(composable).toContain('includeStatus: true')
 		expect(composable).toContain('includeStatus: false')
+		expect(composable).toContain('mapped.levelDecayedPoints ??')
 		expect(composable).toContain('calculateLevelPersonalBestPoints(levelPoints, rank)')
-		expect(composable).toContain('const personalBestRows = shallowRef<RecordRow[]>([])')
-		expect(page).toContain('show-pb-or-wr')
-		expect(page).toContain('show-points')
-		expect(page).toContain("pointsLabel: t('common.points')")
+		expect(composable).toContain(
+			'const personalBestRowsSource = shallowRef<RecordHistoryRow[]>([])',
+		)
+		expect(composable).toContain('useRecordRankFallback(personalBestRowsSource)')
+		expect(composable).toContain('useRecordRankFallback(recentRowsSource)')
+		expect(composable).toContain('pinned: true')
+		expect(composable).not.toContain('Zc_LevelViewerRankDocument')
+		expect(
+			existsSync(
+				new URL('../../app/graphql/queries/levelViewerRank.graphql', import.meta.url),
+			),
+		).toBe(false)
 	})
 
-	it('renders locale-formatted points and translated status badges', () => {
-		expect(component).toContain('pointNumber.format(record.points)')
+	it('uses rank-first player tables with requested badge modes and point columns', () => {
+		expect(page.match(/<RecordHistoryTable/g)).toHaveLength(2)
+		expect(page.match(/rank-first/g)).toHaveLength(2)
+		expect(page.match(/show-player/g)).toHaveLength(2)
+		expect(page.match(/:show-level="false"/g)).toHaveLength(2)
+		expect(page).toContain('status-mode="none"')
+		expect(page).toContain('status-mode="all"')
+		expect(page).toContain("points: t('common.points')")
+		expect(page).toContain("rankedPoints: t('common.rankedPoints')")
+		expect(component).toContain("column === 'points'")
+		expect(component).toContain("column === 'rankedPoints'")
 		expect(component).toContain('<RecordStatusBadge')
 		expect(statusBadge).toContain("status === 'world-record'")
 		expect(statusBadge).toContain('color="primary"')

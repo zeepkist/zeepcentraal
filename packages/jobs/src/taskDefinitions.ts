@@ -15,10 +15,15 @@ const batchPayload = z.union([
 
 export const taskDefinitions = {
 	backfillRecordGhostStatistics: {
-		schema: z.looseObject({
-			ids: z.array(z.number().int().positive()).min(1).optional(),
-			limit: z.number().int().positive().max(500).optional(),
-		}),
+		schema: z
+			.looseObject({
+				ids: z.array(z.number().int().positive()).min(1).optional(),
+				limit: z.number().int().positive().max(500).optional(),
+				reparseGhostVersion: z.literal(5).optional(),
+			})
+			.refine((payload) => !(payload.ids && payload.reparseGhostVersion !== undefined), {
+				message: 'Targeted IDs cannot be combined with ghost-version reparsing',
+			}),
 		compatible: true,
 		maxAttempts: 1,
 	},
@@ -53,12 +58,16 @@ export const taskDefinitions = {
 		schema: z.looseObject({
 			idLevel: z.number().int().positive(),
 			idUser: z.number().int().positive().optional(),
+			reportOnly: z.boolean().optional(),
 		}),
 		compatible: true,
 		maxAttempts: 3,
 	},
 	updateLevelScores: {
-		schema: z.looseObject({ all: z.boolean().optional() }),
+		schema: z.looseObject({
+			all: z.boolean().optional(),
+			reportOnly: z.boolean().optional(),
+		}),
 		compatible: true,
 		maxAttempts: 3,
 	},
@@ -66,6 +75,7 @@ export const taskDefinitions = {
 		schema: z.looseObject({
 			ids: z.array(z.number().int().positive()).min(1).max(50),
 			personalBestCountPercentile: z.number().nonnegative(),
+			reportOnly: z.boolean().optional(),
 		}),
 		compatible: false,
 		maxAttempts: 3,
@@ -82,11 +92,23 @@ export const taskDefinitions = {
 
 export type TaskIdentifier = keyof typeof taskDefinitions
 
+export type CompatibleTaskIdentifier = {
+	[Identifier in TaskIdentifier]: (typeof taskDefinitions)[Identifier]['compatible'] extends true
+		? Identifier
+		: never
+}[TaskIdentifier]
+
+export const compatibleTaskIdentifiers = Object.freeze(
+	(Object.keys(taskDefinitions) as TaskIdentifier[]).filter(
+		(task): task is CompatibleTaskIdentifier => taskDefinitions[task].compatible,
+	),
+)
+
 export function isTaskIdentifier(task: string): task is TaskIdentifier {
 	return task in taskDefinitions
 }
 
-export function isCompatibleTaskIdentifier(task: string): task is TaskIdentifier {
+export function isCompatibleTaskIdentifier(task: string): task is CompatibleTaskIdentifier {
 	return isTaskIdentifier(task) && taskDefinitions[task].compatible
 }
 
