@@ -379,6 +379,13 @@
 			"when": 1784476584746,
 			"tag": "0054_early_millenium_guard",
 			"breakpoints": true
+		},
+		{
+			"idx": 55,
+			"version": "7",
+			"when": 1784483958271,
+			"tag": "0055_ancient_betty_brant",
+			"breakpoints": true
 		}
 	]
 }

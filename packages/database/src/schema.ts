@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import {
 	bigint,
 	boolean,
@@ -22,6 +23,24 @@ import {
 import { DEFAULT_VOTE_RATING } from './config'
 
 export const zcPrivate = pgSchema('zc_private')
+
+const policyAllowsVisibleLevel = (idLevel: AnyPgColumn) => sql`EXISTS (
+	SELECT 1
+	FROM zc_private.visible_level AS graphql_visible_level
+	WHERE graphql_visible_level.id_level = ${idLevel}
+)`
+
+const policyAllowsVisibleRecord = (idRecord: AnyPgColumn) => sql`EXISTS (
+	SELECT 1
+	FROM zc_private.visible_record AS graphql_visible_record
+	WHERE graphql_visible_record.id_record = ${idRecord}
+)`
+
+const policyAllowsVisibleZslLevel = (idZslLevel: AnyPgColumn) => sql`EXISTS (
+	SELECT 1
+	FROM zc_private.visible_zsl_level AS graphql_visible_zsl_level
+	WHERE graphql_visible_zsl_level.id_zsl_level = ${idZslLevel}
+)`
 
 export const zeepCentraalGraphqlRole = pgRole('zeepcentraal_graphql', {
 	createDb: false,
@@ -66,7 +85,7 @@ export const level = pgTable(
 		pgPolicy('graphql_select_visible_level', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.id})`,
+			using: policyAllowsVisibleLevel(table.id),
 		}),
 	],
 ).enableRLS()
@@ -157,7 +176,11 @@ export const levelItem = pgTable(
 		pgPolicy('graphql_select_visible_level_item', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level_item(${table.id})`,
+			using: sql`EXISTS (
+				SELECT 1
+				FROM zc_private.visible_level_item AS graphql_visible_level_item
+				WHERE graphql_visible_level_item.id_level_item = ${table.id}
+			)`,
 		}),
 	],
 ).enableRLS()
@@ -195,7 +218,11 @@ export const workshopItem = pgTable(
 		pgPolicy('graphql_select_visible_workshop_item', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_workshop_item(${table.workshopId})`,
+			using: sql`EXISTS (
+				SELECT 1
+				FROM zc_private.visible_workshop_item AS graphql_visible_workshop_item
+				WHERE graphql_visible_workshop_item.workshop_id = ${table.workshopId}
+			)`,
 		}),
 	],
 ).enableRLS()
@@ -236,7 +263,7 @@ export const levelMetadata = pgTable(
 		pgPolicy('graphql_select_visible_level_metadata', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+			using: policyAllowsVisibleLevel(table.idLevel),
 		}),
 	],
 ).enableRLS()
@@ -338,7 +365,7 @@ export const levelPoints = pgTable(
 		pgPolicy('graphql_select_visible_level_points', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+			using: policyAllowsVisibleLevel(table.idLevel),
 		}),
 	],
 ).enableRLS()
@@ -384,7 +411,7 @@ export const levelPointsHistory = pgTable(
 		pgPolicy('graphql_select_visible_level_points_history', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+			using: policyAllowsVisibleLevel(table.idLevel),
 		}),
 	],
 ).enableRLS()
@@ -464,7 +491,7 @@ export const personalBestGlobal = pgTable(
 		pgPolicy('graphql_select_visible_personal_best', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel}) AND zc_private.is_visible_record(${table.idRecord})`,
+			using: sql`${policyAllowsVisibleLevel(table.idLevel)} AND ${policyAllowsVisibleRecord(table.idRecord)}`,
 		}),
 	],
 ).enableRLS()
@@ -567,7 +594,7 @@ export const userPointContribution = pgTable(
 		pgPolicy('graphql_select_visible_user_point_contribution', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel}) AND zc_private.is_visible_record(${table.idRecord})`,
+			using: sql`${policyAllowsVisibleLevel(table.idLevel)} AND ${policyAllowsVisibleRecord(table.idRecord)}`,
 		}),
 	],
 ).enableRLS()
@@ -714,7 +741,7 @@ export const record = pgTable(
 		pgPolicy('graphql_select_visible_record', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+			using: policyAllowsVisibleLevel(table.idLevel),
 		}),
 	],
 ).enableRLS()
@@ -740,7 +767,7 @@ export const recordMedia = pgTable(
 		pgPolicy('graphql_select_visible_record_media', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_record(${table.idRecord})`,
+			using: policyAllowsVisibleRecord(table.idRecord),
 		}),
 	],
 ).enableRLS()
@@ -837,7 +864,7 @@ export const recordStatistic = pgTable(
 		pgPolicy('graphql_select_visible_record_statistic', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_record(${table.idRecord})`,
+			using: policyAllowsVisibleRecord(table.idRecord),
 		}),
 	],
 ).enableRLS()
@@ -926,7 +953,7 @@ export const favourite = pgTable(
 		pgPolicy('graphql_select_visible_favourite', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+			using: policyAllowsVisibleLevel(table.idLevel),
 		}),
 	],
 ).enableRLS()
@@ -961,7 +988,7 @@ export const vote = pgTable(
 		pgPolicy('graphql_select_visible_vote', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel})`,
+			using: policyAllowsVisibleLevel(table.idLevel),
 		}),
 	],
 ).enableRLS()
@@ -1016,7 +1043,7 @@ export const worldRecordGlobal = pgTable(
 		pgPolicy('graphql_select_visible_world_record', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_level(${table.idLevel}) AND zc_private.is_visible_record(${table.idRecord})`,
+			using: sql`${policyAllowsVisibleLevel(table.idLevel)} AND ${policyAllowsVisibleRecord(table.idRecord)}`,
 		}),
 	],
 ).enableRLS()
@@ -1169,7 +1196,7 @@ export const zslLevel = pgTable(
 		pgPolicy('graphql_select_visible_zsl_level', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_zsl_level(${table.id})`,
+			using: policyAllowsVisibleZslLevel(table.id),
 		}),
 	],
 ).enableRLS()
@@ -1228,7 +1255,7 @@ export const zslLevelResult = pgTable(
 		pgPolicy('graphql_select_visible_zsl_level_result', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`zc_private.is_visible_zsl_level(${table.idLevel})`,
+			using: policyAllowsVisibleZslLevel(table.idLevel),
 		}),
 	],
 ).enableRLS()
@@ -1324,3 +1351,113 @@ export const zslSeasonResult = pgTable(
 		),
 	],
 )
+
+/**
+ * Owner-maintained GraphQL visibility state.
+ *
+ * These tables live outside PostGraphile's exposed schema. Database triggers keep them in sync
+ * with level, Workshop, and record changes so RLS policies can use indexed semi-joins instead of
+ * evaluating nested SECURITY DEFINER predicates once per protected row.
+ */
+export const graphqlLevelRecordCount = zcPrivate.table(
+	'level_record_count',
+	{
+		idLevel: integer('id_level').primaryKey(),
+		recordCount: bigint('record_count', { mode: 'bigint' }).notNull(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idLevel],
+			foreignColumns: [level.id],
+			name: 'graphql_level_record_count_level_fkey',
+		}).onDelete('cascade'),
+	],
+)
+
+export const graphqlVisibleLevel = zcPrivate.table(
+	'visible_level',
+	{
+		idLevel: integer('id_level').primaryKey(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idLevel],
+			foreignColumns: [level.id],
+			name: 'graphql_visible_level_level_fkey',
+		}).onDelete('cascade'),
+	],
+)
+
+export const graphqlVisibleLevelItem = zcPrivate.table(
+	'visible_level_item',
+	{
+		idLevelItem: integer('id_level_item').primaryKey(),
+		idLevel: integer('id_level').notNull(),
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idLevelItem],
+			foreignColumns: [levelItem.id],
+			name: 'graphql_visible_level_item_item_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idLevel],
+			foreignColumns: [level.id],
+			name: 'graphql_visible_level_item_level_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.workshopId],
+			foreignColumns: [workshopItem.workshopId],
+			name: 'graphql_visible_level_item_workshop_fkey',
+		}).onDelete('cascade'),
+		index('IX_graphql_visible_level_item_level').using(
+			'btree',
+			table.idLevel.asc().nullsLast(),
+		),
+		index('IX_graphql_visible_level_item_workshop').using(
+			'btree',
+			table.workshopId.asc().nullsLast(),
+		),
+	],
+)
+
+export const graphqlVisibleWorkshopItem = zcPrivate.table(
+	'visible_workshop_item',
+	{
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).primaryKey(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.workshopId],
+			foreignColumns: [workshopItem.workshopId],
+			name: 'graphql_visible_workshop_item_workshop_fkey',
+		}).onDelete('cascade'),
+	],
+)
+
+export const graphqlVisibleRecord = zcPrivate
+	.view('visible_record', {
+		idRecord: integer('id_record').notNull(),
+		idLevel: integer('id_level').notNull(),
+	})
+	.with({ securityBarrier: true })
+	.as(sql`
+		SELECT visible_record.id AS id_record, visible_record.id_level
+		FROM public.record AS visible_record
+		INNER JOIN zc_private.visible_level AS visible_level
+			ON visible_level.id_level = visible_record.id_level
+	`)
+
+export const graphqlVisibleZslLevel = zcPrivate
+	.view('visible_zsl_level', {
+		idZslLevel: integer('id_zsl_level').notNull(),
+		idLevel: integer('id_level').notNull(),
+	})
+	.with({ securityBarrier: true })
+	.as(sql`
+		SELECT visible_zsl_level.id AS id_zsl_level, visible_zsl_level.id_level
+		FROM public.zsl_level AS visible_zsl_level
+		INNER JOIN zc_private.visible_level AS visible_level
+			ON visible_level.id_level = visible_zsl_level.id_level
+	`)
