@@ -12,6 +12,7 @@
 		"dev:jobs": "bun --watch packages/jobs/src/index.ts",
 		"dev:postgraphile": "bun --watch packages/postgraphile/src/index.ts",
 		"dev:web": "bun --bun --cwd=packages/web run dev",
+		"graphql:smoke": "bun --cwd=packages/postgraphile run smoke:web",
 		"jobs:trigger": "bun packages/server/scripts/jobs-trigger.ts",
 		"build:server": "bun --cwd=packages/server run build",
 		"build:jobs": "bun --cwd=packages/jobs run build",
