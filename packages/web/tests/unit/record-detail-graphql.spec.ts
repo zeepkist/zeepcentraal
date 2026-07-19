@@ -148,6 +148,15 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain('.slice(0, 10)')
 	})
 
+	it('keeps SSR metadata safe when a record is unavailable', () => {
+		expect(recordPage).toContain('record.value?.user?.steamName')
+		expect(recordPage).toContain('const value = record.value')
+		expect(recordPage).not.toContain('record.value.user')
+		expect(recordPage.indexOf('if (import.meta.server && !record.value')).toBeLessThan(
+			recordPage.indexOf('useSeoMeta({'),
+		)
+	})
+
 	it('preserves record-page comparison selection and rendering limits', () => {
 		expect(recordPage).toContain('parseComparisonIds(route.query.compare)')
 		expect(recordPage).toContain('compare: normalized.length ? normalized.join')

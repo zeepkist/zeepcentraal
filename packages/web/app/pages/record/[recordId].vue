@@ -355,16 +355,18 @@ function seekAnalysisEvent(time: number) {
 useSeoMeta({
 	title: () => t('pages.recordDetail.seo.title', {
 		id: recordId,
-		player: record.value.user?.steamName ?? t('common.unknownPlayer'),
+		player: record.value?.user?.steamName ?? t('common.unknownPlayer'),
 		level: levelName.value,
 	}),
-	description: () =>
-		record.value
+	description: () => {
+		const value = record.value
+		return value
 			? t('pages.recordDetail.seo.recordDescription', {
-				player: record.value.user?.steamName ?? t('common.unknownPlayer'),
+				player: value.user?.steamName ?? t('common.unknownPlayer'),
 				level: levelName.value,
 			})
-			: t('pages.recordDetail.seo.description'),
+			: t('pages.recordDetail.seo.description')
+	},
 })
 useSchemaOrg([defineWebPage({ name: () => t('pages.recordDetail.seo.title', { id: recordId }) })])
 
