@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { buildSchema } from 'postgraphile/graphql'
+import type { ReadinessService } from './readiness'
 import {
 	buildPostGraphileServer,
 	createPostGraphilePgServiceOptions,
@@ -12,10 +13,25 @@ const postgraphileRuntimeConfig = {
 	superuserDatabaseUrl: 'postgres://postgres:secret@database:5432/zeepkist',
 	allowExplain: false,
 	nodeEnv: 'production',
+	databaseTimeouts: {
+		connectMs: 5000,
+		statementMs: 15000,
+		lockMs: 3000,
+		idleTransactionMs: 30000,
+	},
 	liveQueries: { enabled: true },
 }
 
-function createApp() {
+function createReadiness(ok = true): ReadinessService {
+	return {
+		async check() {
+			return { ok }
+		},
+		async dispose() {},
+	}
+}
+
+function createApp(readiness = createReadiness()) {
 	const server = {
 		async handleGraphQLRequest() {
 			return Response.json(
@@ -44,7 +60,7 @@ function createApp() {
 		},
 	}
 
-	return buildPostGraphileServer(handler as never)
+	return buildPostGraphileServer(handler as never, readiness)
 }
 
 describe('buildPostGraphileServer', () => {
@@ -52,6 +68,13 @@ describe('buildPostGraphileServer', () => {
 		expect(createPostGraphileV4Options(postgraphileRuntimeConfig).ignoreRBAC).toBe(false)
 		expect(createPostGraphilePgServiceOptions(postgraphileRuntimeConfig)).toEqual({
 			connectionString: postgraphileRuntimeConfig.databaseUrl,
+			poolConfig: {
+				application_name: 'zeepcentraal-postgraphile',
+				connectionTimeoutMillis: 5000,
+				statement_timeout: 15000,
+				lock_timeout: 3000,
+				idle_in_transaction_session_timeout: 30000,
+			},
 			schemas: ['public'],
 		})
 	})
@@ -64,9 +87,34 @@ describe('buildPostGraphileServer', () => {
 			}),
 		).toEqual({
 			connectionString: postgraphileRuntimeConfig.databaseUrl,
+			poolConfig: {
+				application_name: 'zeepcentraal-postgraphile',
+				connectionTimeoutMillis: 5000,
+				statement_timeout: 15000,
+				lock_timeout: 3000,
+				idle_in_transaction_session_timeout: 30000,
+			},
 			superuserConnectionString: postgraphileRuntimeConfig.superuserDatabaseUrl,
 			schemas: ['public'],
 		})
+	})
+
+	test('serves database-backed readiness separately from liveness', async () => {
+		const ready = await createApp(createReadiness(true)).handle(
+			new Request('http://localhost/readyz'),
+		)
+		const unavailableApp = createApp(createReadiness(false))
+		const unavailable = await unavailableApp.handle(new Request('http://localhost/readyz'))
+		const liveness = await unavailableApp.handle(new Request('http://localhost/healthz'))
+
+		expect(ready.status).toBe(200)
+		expect(await ready.text()).toBe('OK')
+		expect(ready.headers.get('cache-control')).toBe('no-store')
+		expect(unavailable.status).toBe(503)
+		expect(await unavailable.text()).toBe('Not Ready')
+		expect(unavailable.headers.get('retry-after')).toBe('1')
+		expect(liveness.status).toBe(200)
+		expect(await liveness.text()).toBe('OK')
 	})
 
 	test('configures Grafserv for root graphql route and websocket subscriptions', () => {

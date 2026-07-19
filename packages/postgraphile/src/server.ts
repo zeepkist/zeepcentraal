@@ -6,6 +6,7 @@ import logixlysia from 'logixlysia'
 import { serveGraphiql } from './middleware/serveGraphiql'
 import { createPostGraphileHandler } from './postgraphileOptions'
 import { createPostGraphileRuntime } from './postgraphileRuntime'
+import { createReadinessService, type ReadinessService } from './readiness'
 
 export {
 	createPostGraphileHandler,
@@ -33,6 +34,17 @@ function createWithTelemetry() {
 	})
 }
 
+async function readinessResponse(readiness: ReadinessService, head = false) {
+	const result = await readiness.check()
+	return new Response(head ? null : result.ok ? 'OK' : 'Not Ready', {
+		status: result.ok ? 200 : 503,
+		headers: {
+			'Cache-Control': 'no-store',
+			...(result.ok ? {} : { 'Retry-After': '1' }),
+		},
+	})
+}
+
 const withLogging = postgraphileConfig.requestLogging
 	? logixlysia({
 			config: {
@@ -45,8 +57,14 @@ const withLogging = postgraphileConfig.requestLogging
 		})
 	: new Elysia()
 
-export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
+export function buildPostGraphileServer(
+	handler = createPostGraphileHandler(),
+	providedReadiness?: ReadinessService,
+) {
 	const runtime = createPostGraphileRuntime(handler)
+	const readiness =
+		providedReadiness ??
+		createReadinessService(runtime.readinessProbe, postgraphileConfig.readiness)
 
 	return new Elysia({
 		aot: true,
@@ -60,6 +78,8 @@ export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 		.use(createWithTelemetry())
 		.get('/healthz', () => 'OK')
 		.head('/healthz', () => 'OK')
+		.get('/readyz', () => readinessResponse(readiness))
+		.head('/readyz', () => readinessResponse(readiness, true))
 		.ws('/', runtime.liveQueryWebSocket)
 		.get('/', ({ request }) => serveGraphiql(request))
 		.get('/graphiql', ({ request }) => redirectToRoot(request))
@@ -67,5 +87,7 @@ export function buildPostGraphileServer(handler = createPostGraphileHandler()) {
 		.all('/ruru-static/*', ({ request }) => runtime.serveRuruStatic(request))
 		.post('/', runtime.graphqlRoute)
 		.options('/', runtime.graphqlRoute)
-		.onStop(runtime.stop)
+		.onStop(async () => {
+			await Promise.all([runtime.stop(), readiness.dispose()])
+		})
 }

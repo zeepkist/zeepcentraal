@@ -4,6 +4,12 @@ type LiveQueryInvalidationPollerConfig = {
 	databaseUrl: string
 	pollMs: number
 	invalidationRetentionMinutes: number
+	databaseTimeouts: {
+		connectMs: number
+		statementMs: number
+		lockMs: number
+		idleTransactionMs: number
+	}
 }
 
 export type LiveQueryInvalidationStore = {
@@ -20,10 +26,23 @@ export type LiveQueryInvalidationPoller = {
 
 const PRUNE_EVERY_POLLS = 240
 
-export function createLiveQueryInvalidationStore(databaseUrl: string): LiveQueryInvalidationStore {
+export function createLiveQueryInvalidationStore({
+	databaseTimeouts,
+	databaseUrl,
+}: Pick<
+	LiveQueryInvalidationPollerConfig,
+	'databaseTimeouts' | 'databaseUrl'
+>): LiveQueryInvalidationStore {
 	const client = postgres(databaseUrl, {
 		max: 1,
 		idle_timeout: 30,
+		connect_timeout: Math.max(1, Math.ceil(databaseTimeouts.connectMs / 1000)),
+		connection: {
+			application_name: 'zeepcentraal-postgraphile-live-query',
+			statement_timeout: databaseTimeouts.statementMs,
+			lock_timeout: databaseTimeouts.lockMs,
+			idle_in_transaction_session_timeout: databaseTimeouts.idleTransactionMs,
+		},
 	})
 
 	return {
@@ -60,7 +79,7 @@ export function createLiveQueryInvalidationPoller(
 	let warned = false
 
 	function getStore() {
-		store ??= createLiveQueryInvalidationStore(config.databaseUrl)
+		store ??= createLiveQueryInvalidationStore(config)
 		return store
 	}
 

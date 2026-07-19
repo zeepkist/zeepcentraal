@@ -24,6 +24,12 @@ test('live-query poller uses its injected restricted-role store and closes it on
 			databaseUrl: 'postgres://zeepcentraal_graphql:secret@database:5432/zeepkist',
 			pollMs: 60_000,
 			invalidationRetentionMinutes: 60,
+			databaseTimeouts: {
+				connectMs: 5000,
+				statementMs: 15000,
+				lockMs: 3000,
+				idleTransactionMs: 30000,
+			},
 		},
 		store,
 	)

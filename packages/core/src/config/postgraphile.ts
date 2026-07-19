@@ -14,6 +14,16 @@ const postgraphileEnvSchema = z.object({
 	POSTGRAPHILE_HOST: z.string().default('0.0.0.0'),
 	POSTGRAPHILE_PORT: z.coerce.number().int().positive().default(5000),
 	POSTGRAPHILE_REQUEST_LOGGING: z.stringbool().default(false),
+	POSTGRAPHILE_DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+	POSTGRAPHILE_DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
+	POSTGRAPHILE_DATABASE_LOCK_TIMEOUT_MS: z.coerce.number().int().positive().default(3000),
+	POSTGRAPHILE_DATABASE_IDLE_TRANSACTION_TIMEOUT_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(30000),
+	POSTGRAPHILE_READINESS_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
+	POSTGRAPHILE_READINESS_CACHE_MS: z.coerce.number().int().nonnegative().default(1000),
 	GRAPHQL_FIELD_TRACING: z.stringbool().default(false),
 	GRAPHQL_QUERY_TRACE_DETAIL: z.stringbool().default(false),
 	GRAPHQL_MAX_QUERY_COST: z.coerce.number().int().positive().default(5000),
@@ -67,6 +77,16 @@ export function parsePostgraphileConfig(env: EnvSource) {
 		databaseUrl: resolveDatabaseUrl(parsedEnv),
 		superuserDatabaseUrl: parsedEnv.POSTGRAPHILE_SUPERUSER_DATABASE_URL,
 		requestLogging: parsedEnv.POSTGRAPHILE_REQUEST_LOGGING,
+		databaseTimeouts: {
+			connectMs: parsedEnv.POSTGRAPHILE_DATABASE_CONNECT_TIMEOUT_MS,
+			statementMs: parsedEnv.POSTGRAPHILE_DATABASE_STATEMENT_TIMEOUT_MS,
+			lockMs: parsedEnv.POSTGRAPHILE_DATABASE_LOCK_TIMEOUT_MS,
+			idleTransactionMs: parsedEnv.POSTGRAPHILE_DATABASE_IDLE_TRANSACTION_TIMEOUT_MS,
+		},
+		readiness: {
+			timeoutMs: parsedEnv.POSTGRAPHILE_READINESS_TIMEOUT_MS,
+			cacheMs: parsedEnv.POSTGRAPHILE_READINESS_CACHE_MS,
+		},
 		fieldTracing: parsedEnv.GRAPHQL_FIELD_TRACING,
 		queryTraceDetail: parsedEnv.GRAPHQL_QUERY_TRACE_DETAIL,
 		maxQueryCost: parsedEnv.GRAPHQL_MAX_QUERY_COST,

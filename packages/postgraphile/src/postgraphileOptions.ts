@@ -23,6 +23,12 @@ type PostGraphileRuntimeConfig = {
 	superuserDatabaseUrl?: string
 	allowExplain: boolean
 	nodeEnv: string
+	databaseTimeouts: {
+		connectMs: number
+		statementMs: number
+		lockMs: number
+		idleTransactionMs: number
+	}
 	liveQueries: {
 		enabled: boolean
 	}
@@ -50,6 +56,13 @@ export function createPostGraphileV4Options(config: PostGraphileRuntimeConfig) {
 export function createPostGraphilePgServiceOptions(config: PostGraphileRuntimeConfig) {
 	return {
 		connectionString: config.databaseUrl,
+		poolConfig: {
+			application_name: 'zeepcentraal-postgraphile',
+			connectionTimeoutMillis: config.databaseTimeouts.connectMs,
+			statement_timeout: config.databaseTimeouts.statementMs,
+			lock_timeout: config.databaseTimeouts.lockMs,
+			idle_in_transaction_session_timeout: config.databaseTimeouts.idleTransactionMs,
+		},
 		...(config.nodeEnv !== 'production' && config.superuserDatabaseUrl
 			? { superuserConnectionString: config.superuserDatabaseUrl }
 			: {}),

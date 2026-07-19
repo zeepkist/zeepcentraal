@@ -67,6 +67,33 @@ test('postgraphile config accepts a separate development schema-watch connection
 		'postgres://zeepcentraal_graphql:secret@localhost:5432/zeepkist',
 	)
 	expect(config.superuserDatabaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
+	expect(config.databaseTimeouts).toEqual({
+		connectMs: 5000,
+		statementMs: 15000,
+		lockMs: 3000,
+		idleTransactionMs: 30000,
+	})
+	expect(config.readiness).toEqual({ timeoutMs: 2000, cacheMs: 1000 })
+})
+
+test('postgraphile config accepts bounded database and readiness timeouts', () => {
+	const config = parsePostgraphileConfig({
+		NODE_ENV: 'test',
+		POSTGRAPHILE_DATABASE_CONNECT_TIMEOUT_MS: '2500',
+		POSTGRAPHILE_DATABASE_STATEMENT_TIMEOUT_MS: '12000',
+		POSTGRAPHILE_DATABASE_LOCK_TIMEOUT_MS: '1500',
+		POSTGRAPHILE_DATABASE_IDLE_TRANSACTION_TIMEOUT_MS: '20000',
+		POSTGRAPHILE_READINESS_TIMEOUT_MS: '750',
+		POSTGRAPHILE_READINESS_CACHE_MS: '250',
+	})
+
+	expect(config.databaseTimeouts).toEqual({
+		connectMs: 2500,
+		statementMs: 12000,
+		lockMs: 1500,
+		idleTransactionMs: 20000,
+	})
+	expect(config.readiness).toEqual({ timeoutMs: 750, cacheMs: 250 })
 })
 
 test('postgraphile config rejects a superuser connection in production', () => {
