@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
 	bigint,
 	boolean,
+	doublePrecision,
 	foreignKey,
 	index,
 	integer,
@@ -44,6 +45,7 @@ export const level = pgTable(
 		xxHash: text('xx_hash').notNull(),
 		adventure: boolean().notNull().default(false),
 		hasRecords: boolean('has_records').notNull().default(false),
+		recordCount: bigint('record_count', { mode: 'number' }).notNull().default(0),
 		publiclyVisible: boolean('publicly_visible').notNull().default(false),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -95,6 +97,7 @@ export const levelItem = pgTable(
 		validationTimeBronze: real('validation_time_bronze').notNull(),
 		deleted: boolean().notNull(),
 		publiclyVisible: boolean('publicly_visible').notNull().default(false),
+		rtmSampleKey: doublePrecision('rtm_sample_key').notNull().default(sql`random()`),
 		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(), // workshop level created at
 		updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).notNull(), // workshop level updated at
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
@@ -166,6 +169,9 @@ export const levelItem = pgTable(
 		index('IX_level_item_public_workshop')
 			.using('btree', table.workshopId.asc().nullsLast(), table.id.asc().nullsLast())
 			.where(sql`${table.publiclyVisible} = true`),
+		index('IX_level_item_public_rtm_sample')
+			.using('btree', table.rtmSampleKey.asc().nullsLast(), table.id.asc().nullsLast())
+			.where(sql`${table.publiclyVisible} = true AND ${table.deleted} = false`),
 		pgPolicy('graphql_select_visible_level_item', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
@@ -710,6 +716,11 @@ export const record = pgTable(
 			table.id.desc().nullsLast(),
 			table.idLevel.asc().nullsLast(),
 			table.modVersion.asc().nullsLast(),
+		),
+		index('IX_records_hot_levels_date_level').using(
+			'btree',
+			table.dateCreated.desc().nullsLast(),
+			table.idLevel.asc().nullsLast(),
 		),
 	],
 )

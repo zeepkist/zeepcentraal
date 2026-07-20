@@ -254,6 +254,60 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		const friendsRecord = await insertRecord(levelIds.get('friends') as number, 63)
 		const hiddenRecord = await insertRecord(levelIds.get('hidden') as number, 64)
 
+		const initialRecordCounts = await sql<{ id: number; recordCount: bigint }[]>`
+			SELECT id, record_count AS "recordCount"
+			FROM public.level
+			WHERE id = ANY(${sql.array([
+				levelIds.get('unlisted') as number,
+				levelIds.get('public') as number,
+				levelIds.get('friends') as number,
+				levelIds.get('hidden') as number,
+			])}::integer[])
+			ORDER BY id
+		`
+		assertEqual(
+			initialRecordCounts.map((row) => [row.id, row.recordCount]),
+			[
+				[levelIds.get('unlisted'), 2n],
+				[levelIds.get('public'), 1n],
+				[levelIds.get('friends'), 1n],
+				[levelIds.get('hidden'), 1n],
+			].sort(([left], [right]) => Number(left) - Number(right)),
+			'persisted record counts after inserts',
+		)
+
+		const movedRecord = await insertRecord(levelIds.get('orphan') as number, 65)
+		await sql`
+			UPDATE public.record
+			SET id_level = ${levelIds.get('deleted-only') as number}
+			WHERE id = ${movedRecord}
+		`
+		const countsAfterMove = await sql<{ id: number; recordCount: bigint }[]>`
+			SELECT id, record_count AS "recordCount"
+			FROM public.level
+			WHERE id = ANY(${sql.array([
+				levelIds.get('orphan') as number,
+				levelIds.get('deleted-only') as number,
+			])}::integer[])
+			ORDER BY id
+		`
+		assertEqual(
+			countsAfterMove.map((row) => [row.id, row.recordCount]),
+			[
+				[levelIds.get('orphan'), 0n],
+				[levelIds.get('deleted-only'), 1n],
+			].sort(([left], [right]) => Number(left) - Number(right)),
+			'persisted record counts after move',
+		)
+		await sql`DELETE FROM public.record WHERE id = ${movedRecord}`
+		const [countAfterDelete] = await sql<{ recordCount: bigint; hasRecords: boolean }[]>`
+			SELECT record_count AS "recordCount", has_records AS "hasRecords"
+			FROM public.level
+			WHERE id = ${levelIds.get('deleted-only') as number}
+		`
+		assertEqual(countAfterDelete?.recordCount, 0n, 'persisted record count after delete')
+		assertEqual(countAfterDelete?.hasRecords, true, 'sticky record history after delete')
+
 		await sql`
 				INSERT INTO public.record_media (id_record, ghost_url)
 				VALUES
@@ -377,14 +431,22 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 				FROM public.hot_levels_since(now() - interval '1 day')
 				WHERE id = ANY(${sql.array(allFixtureLevelIds)}::integer[])
 			`
-		const publicRandomTrack = await sql<{ idLevel: number }[]>`
-				SELECT id_level AS "idLevel"
+		const publicRandomTrack = await sql<{ idLevel: number; numRecords: bigint }[]>`
+				SELECT id_level AS "idLevel", num_records AS "numRecords"
 				FROM public.z_rtm(p_min_author_time => 91001, p_max_author_time => 91001)
 			`
 		const hiddenRandomTrack = await sql<{ idLevel: number }[]>`
 				SELECT id_level AS "idLevel"
 				FROM public.z_rtm(p_min_author_time => 91004, p_max_author_time => 91004)
 			`
+		const [sampleSummary] = await sql<{ total: bigint; distinctTotal: bigint }[]>`
+			SELECT count(*) AS total, count(DISTINCT sampled_track.id) AS "distinctTotal"
+			FROM public.z_rtm(p_sample_size => 2) AS sampled_track
+		`
+		const exactCountTrack = await sql<{ idLevel: number; numRecords: bigint }[]>`
+			SELECT id_level AS "idLevel", num_records AS "numRecords"
+			FROM public.z_rtm(p_min_records => 2, p_max_records => 2)
+		`
 		await resetRole(sql)
 
 		assertLength(visibleUnlisted, 1, 'Unlisted level after first record')
@@ -443,7 +505,35 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 			[levelIds.get('public') as number],
 			'zRtm public level visibility',
 		)
+		assertEqual(publicRandomTrack[0]?.numRecords, 1n, 'zRtm persisted record count')
 		assertLength(hiddenRandomTrack, 0, 'zRtm hidden level visibility')
+		assertEqual(sampleSummary?.total, 2n, 'zRtm sample limit')
+		assertEqual(sampleSummary?.distinctTotal, 2n, 'zRtm sample uniqueness')
+		assertEqual(
+			exactCountTrack.map((row) => [row.idLevel, row.numRecords]),
+			[[levelIds.get('unlisted'), 2n]],
+			'zRtm exact record-count filter',
+		)
+
+		const [zRtmSecurity] = await sql<
+			{ owner: string; securityDefiner: boolean; settings: string[] | null }[]
+		>`
+			SELECT
+				function_owner.rolname AS owner,
+				function_definition.prosecdef AS "securityDefiner",
+				function_definition.proconfig AS settings
+			FROM pg_catalog.pg_proc AS function_definition
+			INNER JOIN pg_catalog.pg_roles AS function_owner
+				ON function_owner.oid = function_definition.proowner
+			WHERE function_definition.oid = 'public.z_rtm(real, real, integer, integer, bigint[], text[], integer, integer, integer, integer, integer, integer, integer, integer, integer)'::regprocedure
+		`
+		assertEqual(zRtmSecurity?.securityDefiner, true, 'zRtm security definer')
+		assertEqual(zRtmSecurity?.owner === 'zeepcentraal_graphql', false, 'zRtm trusted owner')
+		assertEqual(
+			zRtmSecurity?.settings?.includes('row_security=off'),
+			true,
+			'zRtm row-security guard',
+		)
 
 		await setGraphqlRole(sql)
 		const visibleItems = await sql<{ id: number }[]>`
@@ -533,12 +623,13 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 			1,
 			'Unlisted metadata remains public after final record',
 		)
-		const [stickyUnlistedLevel] = await sql<{ hasRecords: boolean }[]>`
-			SELECT has_records AS "hasRecords"
+		const [stickyUnlistedLevel] = await sql<{ hasRecords: boolean; recordCount: bigint }[]>`
+			SELECT has_records AS "hasRecords", record_count AS "recordCount"
 			FROM public.level
 			WHERE id = ${levelIds.get('unlisted') as number}
 		`
 		assertEqual(stickyUnlistedLevel?.hasRecords, true, 'sticky record history')
+		assertEqual(stickyUnlistedLevel?.recordCount, 0n, 'exact count after final record deletion')
 
 		await sql`DELETE FROM public.level_item WHERE id = ${itemIds.deletedOnly}`
 		await sql`DELETE FROM public.workshop_item WHERE workshop_id = -990000000000105`
@@ -554,9 +645,71 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 	}
 }
 
+export const verifyConcurrentRecordCounts = async (databaseUrl: string) => {
+	const sql = postgres(databaseUrl, { max: 20 })
+	const fixtureSuffix = `${process.pid}-${Date.now()}`
+	const fixtureSteamId = -990000000100000 - process.pid
+	let fixtureLevelId: number | undefined
+	let fixtureUserId: number | undefined
+
+	try {
+		const [fixtureUser] = await sql<{ id: number }[]>`
+			INSERT INTO public."user" (steam_name, steam_id, banned)
+			VALUES ('Record-count concurrency', ${fixtureSteamId}, false)
+			RETURNING id
+		`
+		const [fixtureLevel] = await sql<{ id: number }[]>`
+			INSERT INTO public.level (hash, xx_hash, adventure, publicly_visible)
+			VALUES (
+				${`record-count-concurrency-${fixtureSuffix}`},
+				${`record-count-concurrency-${fixtureSuffix}`},
+				false,
+				true
+			)
+			RETURNING id
+		`
+		if (!fixtureUser || !fixtureLevel) throw new Error('Failed to create concurrency fixtures')
+		fixtureUserId = fixtureUser.id
+		fixtureLevelId = fixtureLevel.id
+
+		await Promise.all(
+			Array.from(
+				{ length: 20 },
+				(_, index) => sql`
+					INSERT INTO public.record (id_user, time, game_version, id_level, mod_version)
+					VALUES (${fixtureUser.id}, ${60 + index / 100}, 'test', ${fixtureLevel.id}, '1.2.0')
+				`,
+			),
+		)
+
+		const [summary] = await sql<{ persistedCount: bigint; actualCount: bigint }[]>`
+			SELECT
+				candidate_level.record_count AS "persistedCount",
+				(
+					SELECT count(*)
+					FROM public.record AS submitted_record
+					WHERE submitted_record.id_level = candidate_level.id
+				) AS "actualCount"
+			FROM public.level AS candidate_level
+			WHERE candidate_level.id = ${fixtureLevel.id}
+		`
+		assertEqual(summary?.persistedCount, 20n, 'concurrent persisted record count')
+		assertEqual(summary?.actualCount, 20n, 'concurrent actual record count')
+	} finally {
+		if (fixtureLevelId !== undefined) {
+			await sql`DELETE FROM public.level WHERE id = ${fixtureLevelId}`
+		}
+		if (fixtureUserId !== undefined) {
+			await sql`DELETE FROM public."user" WHERE id = ${fixtureUserId}`
+		}
+		await sql.end()
+	}
+}
+
 if (import.meta.main) {
 	const databaseUrl = process.env.DATABASE_URL
 	if (!databaseUrl) throw new Error('DATABASE_URL is required')
 	await verifyGraphqlVisibility(databaseUrl)
+	await verifyConcurrentRecordCounts(databaseUrl)
 	console.log('GraphQL visibility integration verification passed')
 }

@@ -393,6 +393,13 @@
 			"when": 1784507594078,
 			"tag": "0056_fair_famine",
 			"breakpoints": true
+		},
+		{
+			"idx": 57,
+			"version": "7",
+			"when": 1784585790945,
+			"tag": "0057_broad_swordsman",
+			"breakpoints": true
 		}
 	]
 }
