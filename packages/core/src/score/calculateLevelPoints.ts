@@ -829,7 +829,7 @@ export function calculateLevelPoints(
 		MAX_LEVEL_POINTS *
 			factors.lengthFactor *
 			factors.competitiveMerit *
-			factors.participationFactor *
+			// factors.participationFactor *
 			factors.voteFactor *
 			factors.passivePlayFactor,
 	)
