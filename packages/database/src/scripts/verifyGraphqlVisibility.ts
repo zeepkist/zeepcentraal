@@ -147,6 +147,12 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 				workshopId: '-990000000000107',
 				name: 'RLS Adventure Hidden Item',
 			}),
+			adventureDeleted: await insertLevelItem(sql, {
+				levelId: levelIds.get('adventure') as number,
+				workshopId: '-990000000000107',
+				name: 'RLS Adventure Deleted Item',
+				deleted: true,
+			}),
 			public: await insertLevelItem(sql, {
 				levelId: levelIds.get('public') as number,
 				workshopId: '-990000000000101',
@@ -188,24 +194,42 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 			}),
 		}
 
+		for (const levelId of levelIds.values()) {
+			await sql`
+				INSERT INTO public.level_metadata (
+					id_level,
+					amount_checkpoints,
+					amount_finishes,
+					amount_blocks,
+					type_ground,
+					type_skybox,
+					blocks
+				)
+				VALUES (${levelId}, 1, 1, 1, 0, 0, '[]'::jsonb)
+			`
+		}
+
 		const allFixtureLevelIds = [...levelIds.values()]
 		await setGraphqlRole(sql)
-		const initialVisibleLevels = await sql<{ id: number }[]>`
-				SELECT id
+		const initialLevels = await sql<{ id: number; publiclyVisible: boolean }[]>`
+				SELECT id, publicly_visible AS "publiclyVisible"
 				FROM public.level
 				WHERE id = ANY(${sql.array(allFixtureLevelIds)}::integer[])
 				ORDER BY id
 			`
 		await resetRole(sql)
 		assertEqual(
-			initialVisibleLevels.map((row) => row.id).sort(),
-			[
-				levelIds.get('adventure'),
-				levelIds.get('orphan'),
-				levelIds.get('public'),
-				levelIds.get('aliases'),
-			].sort(),
-			'initial level visibility',
+			initialLevels.map((row) => row.id).sort(),
+			allFixtureLevelIds.sort(),
+			'all level shells remain visible',
+		)
+		assertEqual(
+			initialLevels
+				.filter((row) => row.publiclyVisible)
+				.map((row) => row.id)
+				.sort(),
+			[levelIds.get('adventure'), levelIds.get('public'), levelIds.get('aliases')].sort(),
+			'initial discovery visibility',
 		)
 
 		const insertRecord = async (levelId: number, time: number) => {
@@ -306,6 +330,7 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 				SELECT id
 				FROM public.level
 				WHERE id = ${levelIds.get('unlisted') as number}
+					AND publicly_visible = true
 			`
 		const visibleRecords = await sql<{ id: number }[]>`
 				SELECT id
@@ -342,6 +367,11 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 			FROM public.zsl_level_result
 			WHERE id_level = ANY(${sql.array([publicZslLevel.id, hiddenZslLevel.id])}::integer[])
 		`
+		const visibleMetadata = await sql<{ idLevel: number }[]>`
+			SELECT id_level AS "idLevel"
+			FROM public.level_metadata
+			WHERE id_level = ANY(${sql.array(allFixtureLevelIds)}::integer[])
+		`
 		const hotFixtureLevels = await sql<{ id: number }[]>`
 				SELECT id
 				FROM public.hot_levels_since(now() - interval '1 day')
@@ -359,39 +389,49 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 
 		assertLength(visibleUnlisted, 1, 'Unlisted level after first record')
 		assertEqual(
-			visibleRecords.map((row) => row.id),
-			[publicRecord],
+			visibleRecords.map((row) => row.id).sort(),
+			[publicRecord, friendsRecord, hiddenRecord].sort(),
 			'visible records',
 		)
 		assertEqual(
-			visibleMedia.map((row) => row.idRecord),
-			[publicRecord],
+			visibleMedia.map((row) => row.idRecord).sort(),
+			[publicRecord, hiddenRecord].sort(),
 			'visible media',
 		)
 		assertEqual(
-			visibleStatistics.map((row) => row.idRecord),
-			[publicRecord],
+			visibleStatistics.map((row) => row.idRecord).sort(),
+			[publicRecord, hiddenRecord].sort(),
 			'visible statistics',
 		)
 		assertEqual(
-			visiblePersonalBests.map((row) => row.idRecord),
-			[publicRecord],
+			visiblePersonalBests.map((row) => row.idRecord).sort(),
+			[publicRecord, hiddenRecord].sort(),
 			'visible personal bests',
 		)
 		assertEqual(
-			visibleWorldRecords.map((row) => row.idRecord),
-			[publicRecord],
+			visibleWorldRecords.map((row) => row.idRecord).sort(),
+			[publicRecord, hiddenRecord].sort(),
 			'visible world records',
 		)
 		assertEqual(
-			visibleZslLevels.map((row) => row.id),
-			[publicZslLevel.id],
+			visibleZslLevels.map((row) => row.id).sort(),
+			[publicZslLevel.id, hiddenZslLevel.id].sort(),
 			'visible ZSL levels',
 		)
 		assertEqual(
-			visibleZslResults.map((row) => row.idLevel),
-			[publicZslLevel.id],
+			visibleZslResults.map((row) => row.idLevel).sort(),
+			[publicZslLevel.id, hiddenZslLevel.id].sort(),
 			'visible ZSL level results',
+		)
+		assertEqual(
+			visibleMetadata.map((row) => row.idLevel).sort(),
+			[
+				levelIds.get('adventure'),
+				levelIds.get('public'),
+				levelIds.get('unlisted'),
+				levelIds.get('aliases'),
+			].sort(),
+			'visible level metadata',
 		)
 		assertEqual(
 			hotFixtureLevels.map((row) => row.id).sort(),
@@ -421,19 +461,63 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		await resetRole(sql)
 		assertEqual(
 			visibleItems.map((row) => row.id).sort(),
-			[itemIds.public, itemIds.unlisted, itemIds.aliasPublic].sort(),
+			[
+				itemIds.adventureHidden,
+				itemIds.adventureDeleted,
+				itemIds.public,
+				itemIds.unlisted,
+				itemIds.aliasPublic,
+			].sort(),
 			'level-item alias isolation',
 		)
 		assertEqual(
 			visibleWorkshops.map((row) => row.workshopId).sort(),
-			[-990000000000101n, -990000000000102n, -990000000000106n].sort(),
+			[
+				-990000000000101n,
+				-990000000000102n,
+				-990000000000105n,
+				-990000000000106n,
+				-990000000000107n,
+			].sort(),
 			'Workshop visibility',
 		)
+
+		await sql`
+			UPDATE public.workshop_item
+			SET visibility = 2
+			WHERE workshop_id = -990000000000101
+		`
+		await setGraphqlRole(sql)
+		const metadataAfterHiddenTransition = await sql`
+			SELECT id_level
+			FROM public.level_metadata
+			WHERE id_level = ${levelIds.get('public') as number}
+		`
+		const itemAfterHiddenTransition = await sql`
+			SELECT id
+			FROM public.level_item
+			WHERE id = ${itemIds.public}
+		`
+		const recordAfterHiddenTransition = await sql`
+			SELECT id
+			FROM public.record
+			WHERE id = ${publicRecord}
+		`
+		await resetRole(sql)
+		assertLength(metadataAfterHiddenTransition, 0, 'metadata after Public to Hidden transition')
+		assertLength(itemAfterHiddenTransition, 0, 'level item after Public to Hidden transition')
+		assertLength(recordAfterHiddenTransition, 1, 'record after Public to Hidden transition')
+
+		await sql`
+			UPDATE public.workshop_item
+			SET visibility = 0
+			WHERE workshop_id = -990000000000101
+		`
 
 		await sql`DELETE FROM public.record WHERE id = ${firstUnlistedRecord}`
 		await setGraphqlRole(sql)
 		const visibleAfterNonFinalDelete = await sql`
-				SELECT id FROM public.level WHERE id = ${levelIds.get('unlisted') as number}
+				SELECT id FROM public.level_item WHERE id = ${itemIds.unlisted}
 			`
 		await resetRole(sql)
 		assertLength(visibleAfterNonFinalDelete, 1, 'Unlisted level after non-final record')
@@ -441,10 +525,20 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		await sql`DELETE FROM public.record WHERE id = ${secondUnlistedRecord}`
 		await setGraphqlRole(sql)
 		const visibleAfterFinalDelete = await sql`
-				SELECT id FROM public.level WHERE id = ${levelIds.get('unlisted') as number}
+				SELECT id FROM public.level_item WHERE id = ${itemIds.unlisted}
 			`
 		await resetRole(sql)
-		assertLength(visibleAfterFinalDelete, 0, 'Unlisted level after final record')
+		assertLength(
+			visibleAfterFinalDelete,
+			1,
+			'Unlisted metadata remains public after final record',
+		)
+		const [stickyUnlistedLevel] = await sql<{ hasRecords: boolean }[]>`
+			SELECT has_records AS "hasRecords"
+			FROM public.level
+			WHERE id = ${levelIds.get('unlisted') as number}
+		`
+		assertEqual(stickyUnlistedLevel?.hasRecords, true, 'sticky record history')
 
 		await sql`DELETE FROM public.level_item WHERE id = ${itemIds.deletedOnly}`
 		await sql`DELETE FROM public.workshop_item WHERE workshop_id = -990000000000105`

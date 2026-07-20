@@ -1,6 +1,7 @@
 import { useQuery } from '@urql/vue'
 import { Zc_OmniSearchDocument } from '~/graphql/generated/graphql'
 import type { OmniSearchLevelResult, OmniSearchResult, OmniSearchUserResult } from '~/types/app'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 import {
 	OMNI_SEARCH_DEBOUNCE_MS,
 	OMNI_SEARCH_MINIMUM_LENGTH,
@@ -81,7 +82,7 @@ export function useOmniSearch() {
 					kind: 'level' as const,
 					id: level.id,
 					xxHash: level.xxHash,
-					name: item?.name ?? level.xxHash,
+					name: getLevelDisplayName(item?.name, level.xxHash),
 					authorName: item?.author?.steamName ?? null,
 					imageUrl: item?.imageUrl ?? null,
 					points: level.levelPoints?.points ?? null,

@@ -70,6 +70,6 @@ describe('mergeZeepSdkExponentHash', () => {
 		expect(result).toEqual({ merged: true, changedLevelIds: [10] })
 		expect(tx.update).toHaveBeenCalledTimes(3)
 		expect(tx.delete).toHaveBeenCalledTimes(3)
-		expect(tx.execute).toHaveBeenCalledTimes(6)
+		expect(tx.execute).toHaveBeenCalledTimes(7)
 	})
 })

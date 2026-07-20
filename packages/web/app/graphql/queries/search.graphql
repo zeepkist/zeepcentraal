@@ -38,6 +38,7 @@ query ZC_OmniSearch($search: String!) {
 	levels(
 		first: 8
 		filter: {
+			publiclyVisible: { equalTo: true }
 			levelItems: {
 				some: { deleted: { equalTo: false }, name: { includesInsensitive: $search } }
 			}

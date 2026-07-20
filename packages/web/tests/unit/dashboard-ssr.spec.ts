@@ -94,7 +94,9 @@ describe('dashboard critical SSR', () => {
 
 	it('removes dashboard record feeds while retaining viewer workshop levels', () => {
 		expect(viewerQuery).toContain('query ZC_DashboardViewerLevels')
-		expect(viewerQuery).toContain('levelItems(first: 6')
+		expect(viewerQuery).toContain('levelItems(')
+		expect(viewerQuery).toContain('first: 6')
+		expect(viewerQuery).toContain('level: { publiclyVisible: { equalTo: true } }')
 		expect(viewerQuery).not.toContain('records(first: 5')
 		expect(composable).toContain('Zc_DashboardViewerLevelsDocument')
 		expect(composable).not.toContain('recordsPrefetch')

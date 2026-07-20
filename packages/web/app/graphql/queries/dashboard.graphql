@@ -85,13 +85,25 @@ fragment ZC_DashboardMetricCounts on Query {
 	) {
 		totalCount
 	}
-	levels(first: 0) {
+	levels(first: 0, filter: { publiclyVisible: { equalTo: true } }) {
 		totalCount
 	}
-	levelsDay: levels(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $daySince } }) {
+	levelsDay: levels(
+		first: 0
+		filter: {
+			publiclyVisible: { equalTo: true }
+			dateCreated: { greaterThanOrEqualTo: $daySince }
+		}
+	) {
 		totalCount
 	}
-	levelsMonth: levels(first: 0, filter: { dateCreated: { greaterThanOrEqualTo: $monthSince } }) {
+	levelsMonth: levels(
+		first: 0
+		filter: {
+			publiclyVisible: { equalTo: true }
+			dateCreated: { greaterThanOrEqualTo: $monthSince }
+		}
+	) {
 		totalCount
 	}
 	votes(first: 0) {
@@ -172,7 +184,11 @@ fragment ZC_DashboardMetricCounts on Query {
 
 query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
 	...ZC_DashboardMetricCounts
-	trendingLevels: hotLevelsSince(since: $daySince, first: 6) {
+	trendingLevels: hotLevelsSince(
+		since: $daySince
+		first: 6
+		filter: { publiclyVisible: { equalTo: true } }
+	) {
 		nodes {
 			...ZC_DashboardLevel
 			periodRecords: records(
@@ -186,7 +202,11 @@ query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
 }
 
 query ZC_DashboardHotLevels($since: Datetime!) {
-	levels: hotLevelsSince(since: $since, first: 6) {
+	levels: hotLevelsSince(
+		since: $since
+		first: 6
+		filter: { publiclyVisible: { equalTo: true } }
+	) {
 		nodes {
 			...ZC_DashboardLevel
 			periodRecords: records(

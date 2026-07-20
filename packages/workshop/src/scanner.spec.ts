@@ -72,7 +72,11 @@ function createDependencies({
 }) {
 	const calls = {
 		upserts: [] as Array<Record<string, unknown>>,
-		markDeleted: 0,
+		markDeleted: [] as Array<{
+			preserveAdventure: boolean
+			workshopId: bigint
+			workshopVisibility: number
+		}>,
 		markMissing: [] as string[],
 		merges: [] as Array<Record<string, unknown>>,
 		uploads: 0,
@@ -115,8 +119,8 @@ function createDependencies({
 			calls.markMissing = activeXxHashes
 			return []
 		},
-		markDeleted: async () => {
-			calls.markDeleted++
+		markDeleted: async (workshopId, workshopVisibility, preserveAdventure) => {
+			calls.markDeleted.push({ preserveAdventure, workshopId, workshopVisibility })
 			return [7]
 		},
 		uploadThumbnail: async () => {
@@ -262,7 +266,13 @@ describe('WorkshopScanner', () => {
 
 		expect(result.status).toBe('permanently-unavailable')
 		expect(result.changedLevelIds).toEqual([7])
-		expect(dependencies.calls.markDeleted).toBe(1)
+		expect(dependencies.calls.markDeleted).toEqual([
+			{
+				preserveAdventure: false,
+				workshopId: 2n,
+				workshopVisibility: STEAM_VISIBILITY.Hidden,
+			},
+		])
 		expect(dependencies.calls.downloads).toBe(0)
 	})
 
@@ -282,7 +292,7 @@ describe('WorkshopScanner', () => {
 
 		expect(result.status).toBe('scanned')
 		expect(dependencies.calls.downloads).toBe(1)
-		expect(dependencies.calls.markDeleted).toBe(0)
+		expect(dependencies.calls.markDeleted).toEqual([])
 		expect(dependencies.calls.upserts[0]?.workshopVisibility).toBe(STEAM_VISIBILITY.Unlisted)
 	})
 
@@ -308,7 +318,9 @@ describe('WorkshopScanner', () => {
 				status: 'inaccessible',
 				changedLevelIds: [7],
 			})
-			expect(dependencies.calls.markDeleted).toBe(1)
+			expect(dependencies.calls.markDeleted).toEqual([
+				{ preserveAdventure: true, workshopId: 1n, workshopVisibility: visibility },
+			])
 			expect(dependencies.calls.downloads).toBe(0)
 			expect(dependencies.calls.upserts).toHaveLength(0)
 		})

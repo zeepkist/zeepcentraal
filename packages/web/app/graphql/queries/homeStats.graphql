@@ -1,5 +1,5 @@
 query ZC_HomeStats {
-	levels(first: 0) {
+	levels(first: 0, filter: { publiclyVisible: { equalTo: true } }) {
 		totalCount
 	}
 	users(first: 0) {

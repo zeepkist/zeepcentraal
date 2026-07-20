@@ -10,6 +10,7 @@ import {
 } from '~/graphql/generated/graphql'
 import type { LevelSummary, SteamNewsItem } from '~/types/app'
 import { getDashboardLevelWindows, getDashboardMetricWindows } from '~/utils/dashboardMetrics'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 
 type DashboardLevelLike = {
 	id: number
@@ -44,7 +45,7 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 	return {
 		id: level.id,
 		xxHash: level.xxHash,
-		name: item?.name ?? level.xxHash,
+		name: getLevelDisplayName(item?.name, level.xxHash),
 		imageUrl: item?.imageUrl,
 		authorName: item?.author?.steamName,
 		authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),

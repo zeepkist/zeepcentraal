@@ -13,7 +13,7 @@
 					:record="source"
 					:level-hash="record.level.xxHash"
 					:level-name="levelName"
-					:image-url="levelItem?.imageUrl"
+					:image-url="publicLevelItem?.imageUrl"
 					:game-version="record.gameVersion"
 					:mod-version="record.modVersion"
 					:ghost-version="record.recordStatistic?.ghostVersion"
@@ -203,6 +203,7 @@
 <script setup lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
 import { buildGhostSlipEvents, buildGhostTimelineEvents } from '~/utils/ghostAnalysis'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { buildLevelSplitAnalysis, resolveGhostFinishSpeed } from '~/utils/levelSplitAnalysis'
 import { buildRecordAirControlRuns, buildRecordDriftRuns } from '~/utils/recordGhostAnalysis'
 
@@ -235,7 +236,12 @@ const selectedRecordIds = computed(() => parseComparisonIds(route.query.compare)
 const comparisons = useRecordComparisons({ levelId, ownerId, viewerId, selectedRecordIds })
 const levelGeometry = useRecordLevelGeometry(levelId)
 const contribution = computed(() => record.value?.userPointContributions.nodes[0] ?? null)
-const levelName = computed(() => levelItem.value?.name ?? t('common.unknownLevel'))
+const publicLevelItem = computed(() =>
+	record.value?.level?.publiclyVisible ? levelItem.value : null,
+)
+const levelName = computed(() =>
+	getLevelDisplayName(publicLevelItem.value?.name, record.value?.level?.xxHash ?? ''),
+)
 
 const sourceRegistry = computed(() => {
 	const values = [
@@ -353,6 +359,8 @@ function seekAnalysisEvent(time: number) {
 }
 
 useSeoMeta({
+	robots: () =>
+		record.value?.level?.publiclyVisible === false ? 'noindex, nofollow' : 'index, follow',
 	title: () => t('pages.recordDetail.seo.title', {
 		id: recordId,
 		player: record.value?.user?.steamName ?? t('common.unknownPlayer'),

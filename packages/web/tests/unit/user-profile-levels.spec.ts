@@ -23,9 +23,11 @@ const page = readFileSync(new URL('../../app/pages/user/[steamid].vue', import.m
 describe('user profile level showcases', () => {
 	it('requests exactly six recent non-deleted workshop levels', () => {
 		expect(query).toContain('recentUser: user(id: $userId)')
-		expect(query).toMatch(
-			/levelItems\(first: 6, filter: \{ deleted: \{ equalTo: false \} \}, orderBy: \[CREATED_AT_DESC\]\)/,
-		)
+		expect(query).toContain('levelItems(')
+		expect(query).toContain('first: 6')
+		expect(query).toContain('deleted: { equalTo: false }')
+		expect(query).toContain('level: { publiclyVisible: { equalTo: true } }')
+		expect(query).toContain('orderBy: [CREATED_AT_DESC]')
 	})
 
 	it('requests exactly six author-filtered hot levels over rolling year', () => {

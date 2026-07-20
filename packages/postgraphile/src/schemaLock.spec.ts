@@ -23,6 +23,34 @@ describe('PostGraphile schema lock', () => {
 		expect(publishedSchema).toContain('zRtm(')
 	})
 
+	test('published schema exposes discovery visibility without internal persistence state', async () => {
+		const publishedSchema = buildSchema(
+			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),
+		)
+		const fields = (typeName: string) => {
+			const type = publishedSchema.getType(typeName)
+			if (!type || !('getFields' in type)) throw new Error(`Missing object type ${typeName}`)
+			return Object.keys(type.getFields())
+		}
+
+		expect(fields('Level')).toContain('publiclyVisible')
+		expect(fields('Level')).not.toContain('hasRecords')
+		for (const typeName of ['LevelItem', 'LevelMetadatum', 'WorkshopItem']) {
+			expect(fields(typeName)).not.toContain('publiclyVisible')
+		}
+		for (const typeName of [
+			'LevelDistinctCountAggregates',
+			'LevelItemDistinctCountAggregates',
+			'LevelMetadatumDistinctCountAggregates',
+			'WorkshopItemDistinctCountAggregates',
+		]) {
+			expect(fields(typeName)).not.toContain('hasRecords')
+			if (typeName !== 'LevelDistinctCountAggregates') {
+				expect(fields(typeName)).not.toContain('publiclyVisible')
+			}
+		}
+	})
+
 	test('matches published GraphQL schema when schema lock is enabled', async () => {
 		if (process.env.POSTGRAPHILE_SCHEMA_LOCK !== '1') {
 			return

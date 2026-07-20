@@ -2,6 +2,7 @@ query ZC_LevelDetail($xxHash: String!) {
 	levelByXxHash(xxHash: $xxHash) {
 		id
 		xxHash
+		publiclyVisible
 		adventure
 		dateCreated
 		levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {

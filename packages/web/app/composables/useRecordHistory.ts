@@ -13,6 +13,7 @@ import {
 	type Zc_RecordHistoryRowFragment,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, RecordHistoryRow, RecordHistoryUpdate } from '~/types/app'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 import {
 	getNewRecordIds,
 	getRecordResultStatus,
@@ -54,7 +55,10 @@ function mapRows(edges?: Array<{ node: Zc_RecordHistoryRowFragment }>): RecordHi
 				userName: node.user?.steamName,
 				levelId: node.levelId,
 				levelXxHash: node.level.xxHash,
-				levelName: node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
+				levelName: getLevelDisplayName(
+					node.level.levelItems.nodes[0]?.name,
+					node.level.xxHash,
+				),
 				levelPosition: contribution?.levelPosition,
 				contributionRank: contribution?.contributionRank,
 				levelPoints: contribution?.levelPoints ?? node.level.levelPoints?.points,

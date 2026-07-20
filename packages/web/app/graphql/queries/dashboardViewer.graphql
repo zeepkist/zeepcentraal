@@ -35,7 +35,11 @@ query ZC_DashboardHeroSummary($id: Int!) {
 
 query ZC_DashboardViewerLevels($id: Int!) {
 	user(id: $id) {
-		levelItems(first: 6, filter: { deleted: { equalTo: false } }, orderBy: [CREATED_AT_DESC]) {
+		levelItems(
+			first: 6
+			filter: { deleted: { equalTo: false }, level: { publiclyVisible: { equalTo: true } } }
+			orderBy: [CREATED_AT_DESC]
+		) {
 			nodes {
 				level {
 					id

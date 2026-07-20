@@ -15,14 +15,14 @@
 					{{ level.name }}
 				</h1>
 				<NuxtLink
-					v-if="level.authorId"
+					v-if="level.publiclyVisible && level.authorId"
 					:to="`/user/${level.authorId}`"
 					class="mt-3 inline-flex w-fit items-center gap-2 text-lg text-muted-foreground transition hover:text-primary"
 				>
 					<TablerIcon name="user" class="size-5" />
 					{{ level.authorName ?? labels.unknownAuthor }}
 				</NuxtLink>
-				<p v-else class="mt-3 text-lg text-muted-foreground">
+				<p v-else-if="level.publiclyVisible" class="mt-3 text-lg text-muted-foreground">
 					{{ level.authorName ?? labels.unknownAuthor }}
 				</p>
 
@@ -43,7 +43,7 @@
 
 				<div class="mt-7 flex flex-wrap items-center gap-3">
 					<UButton
-						v-if="workshopUrl"
+						v-if="level.publiclyVisible && workshopUrl"
 						:to="workshopUrl"
 						target="_blank"
 						rel="noopener"
@@ -64,6 +64,7 @@
 
 			<div class="flex min-w-0 flex-col gap-4">
 				<div
+					v-if="level.publiclyVisible"
 					class="w-full overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg"
 				>
 					<NuxtImg

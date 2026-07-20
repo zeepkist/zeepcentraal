@@ -1,6 +1,7 @@
-import { eq, gte, inArray } from 'drizzle-orm'
+import { eq, gte, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
-import { level, levelItem, record } from '../schema'
+import { level, levelItem, record, workshopItem } from '../schema'
+import { resolveAdventureStatus } from './levelHelpers'
 
 export async function getLevel(hash: string) {
 	return db.query.level.findFirst({
@@ -24,11 +25,48 @@ export async function getOrInsertLevelWithCanonicalHash({
 	adventure: boolean
 }) {
 	return db.transaction(async (tx) => {
+		const updateExistingLevel = async (
+			existing: typeof level.$inferSelect,
+			nextXxHash?: string,
+		): Promise<typeof level.$inferSelect> => {
+			const nextAdventure = resolveAdventureStatus(existing.adventure, adventure)
+			if (nextXxHash === undefined && nextAdventure === existing.adventure) {
+				return existing
+			}
+
+			// Workshop writes lock workshop_item before updating level. Match that order here so an
+			// Adventure promotion cannot deadlock with a concurrent Workshop refresh. Sorting makes
+			// aliases spanning multiple Workshop items deterministic.
+			await tx.execute(sql`
+				SELECT ${workshopItem.workshopId}
+				FROM ${workshopItem}
+				WHERE EXISTS (
+					SELECT 1
+					FROM ${levelItem}
+					WHERE ${levelItem.idLevel} = ${existing.id}
+						AND ${levelItem.workshopId} = ${workshopItem.workshopId}
+				)
+				ORDER BY ${workshopItem.workshopId}
+				FOR UPDATE
+			`)
+
+			const [updated] = await tx
+				.update(level)
+				.set({
+					...(nextXxHash === undefined ? {} : { xxHash: nextXxHash }),
+					adventure: nextAdventure,
+					dateUpdated: new Date().toISOString(),
+				})
+				.where(eq(level.id, existing.id))
+				.returning()
+			return updated ?? existing
+		}
+
 		const existingByXxHash = await tx.query.level.findFirst({
 			where: eq(level.xxHash, xxHash),
 		})
 		if (existingByXxHash) {
-			return existingByXxHash
+			return updateExistingLevel(existingByXxHash)
 		}
 
 		const existingByLegacyHash = await tx.query.level.findFirst({
@@ -36,26 +74,25 @@ export async function getOrInsertLevelWithCanonicalHash({
 			orderBy: (level, { asc }) => [asc(level.id)],
 		})
 		if (existingByLegacyHash && !existingByLegacyHash.xxHash) {
-			const [updated] = await tx
-				.update(level)
-				.set({ xxHash, adventure, dateUpdated: new Date().toISOString() })
-				.where(eq(level.id, existingByLegacyHash.id))
-				.returning()
-			return updated ?? getLevelByXxHash(xxHash)
+			return updateExistingLevel(existingByLegacyHash, xxHash)
 		}
 
-		try {
-			const [created] = await tx.insert(level).values({ hash, xxHash, adventure }).returning()
-			return created ?? getLevelByXxHash(xxHash)
-		} catch (error) {
-			const concurrent = await tx.query.level.findFirst({
-				where: eq(level.xxHash, xxHash),
-			})
-			if (concurrent) {
-				return concurrent
-			}
-			throw error
+		const [created] = await tx
+			.insert(level)
+			.values({ hash, xxHash, adventure })
+			.onConflictDoNothing({ target: level.xxHash })
+			.returning()
+		if (created) {
+			return created
 		}
+
+		const concurrent = await tx.query.level.findFirst({
+			where: eq(level.xxHash, xxHash),
+		})
+		if (concurrent) {
+			return updateExistingLevel(concurrent)
+		}
+		throw new Error(`Unable to resolve level for xxHash ${xxHash}`)
 	})
 }
 

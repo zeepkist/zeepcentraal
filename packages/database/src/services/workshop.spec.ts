@@ -1,10 +1,38 @@
 import { expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
 import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
 import {
 	hasWorkshopAccessibilityChanged,
 	resolveWorkshopLevelId,
 	resolveWorkshopMetadataBlocks,
+	shouldDeleteWorkshopLevelItem,
 } from './workshopHelpers'
+
+const workshopServiceSource = readFileSync(new URL('./workshop.ts', import.meta.url), 'utf8')
+
+test('workshop refresh preserves existing Adventure status while new levels default false', () => {
+	expect(workshopServiceSource).toContain(
+		'.values({ hash: input.hash, xxHash: input.xxHash, adventure: false })',
+	)
+
+	const refreshStart = workshopServiceSource.indexOf('await tx\n\t\t\t.update(level)')
+	const metadataStart = workshopServiceSource.indexOf('const existingMetadata', refreshStart)
+	expect(refreshStart).toBeGreaterThan(-1)
+	expect(metadataStart).toBeGreaterThan(refreshStart)
+	expect(workshopServiceSource.slice(refreshStart, metadataStart)).not.toContain('adventure:')
+})
+
+test('concurrent canonical level insert does not abort Workshop transaction', () => {
+	const insertStart = workshopServiceSource.indexOf('let createdLevel:')
+	const resolutionStart = workshopServiceSource.indexOf(
+		'const idLevel = resolveWorkshopLevelId',
+		insertStart,
+	)
+	const source = workshopServiceSource.slice(insertStart, resolutionStart)
+
+	expect(source).toContain('.onConflictDoNothing({ target: level.xxHash })')
+	expect(source).not.toContain('catch (error)')
+})
 
 test('workshop accessibility treats public and unlisted as equivalent', () => {
 	expect(
@@ -56,6 +84,64 @@ test('inaccessible workshop levels preserve existing metadata blocks', () => {
 			visibility: STEAM_VISIBILITY.FriendsOnly,
 		}),
 	).toEqual([])
+})
+
+test('private visibility preserves Adventure aliases and removes community aliases', () => {
+	expect(shouldDeleteWorkshopLevelItem({ adventure: true, preserveAdventure: true })).toBe(false)
+	expect(shouldDeleteWorkshopLevelItem({ adventure: false, preserveAdventure: true })).toBe(true)
+})
+
+test('permanently unavailable workshops remove Adventure and community aliases', () => {
+	expect(shouldDeleteWorkshopLevelItem({ adventure: true, preserveAdventure: false })).toBe(true)
+	expect(shouldDeleteWorkshopLevelItem({ adventure: false, preserveAdventure: false })).toBe(true)
+})
+
+test('workshop deletion paths lock parent Workshop row before changing aliases', () => {
+	for (const functionName of ['markMissingWorkshopLevelsDeleted', 'markWorkshopDeleted']) {
+		const start = workshopServiceSource.indexOf(`export async function ${functionName}`)
+		const nextExport = workshopServiceSource.indexOf('\nexport async function ', start + 1)
+		const source = workshopServiceSource.slice(
+			start,
+			nextExport === -1 ? workshopServiceSource.length : nextExport,
+		)
+		const lock = source.indexOf('FOR UPDATE')
+		const itemUpdate = source.indexOf('.update(levelItem)')
+
+		expect(start).toBeGreaterThan(-1)
+		expect(source).toContain('db.transaction')
+		expect(lock).toBeGreaterThan(-1)
+		expect(itemUpdate).toBeGreaterThan(lock)
+	}
+})
+
+test('hash merge locks every linked Workshop before moving records or deleting levels', () => {
+	const start = workshopServiceSource.indexOf('export async function mergeZeepSdkExponentHash')
+	const end = workshopServiceSource.indexOf(
+		'\nexport async function markMissingWorkshopLevelsDeleted',
+		start,
+	)
+	const source = workshopServiceSource.slice(start, end)
+	const workshopLock = source.indexOf('FOR UPDATE')
+	const recordMove = source.indexOf('.update(record)')
+	const levelDelete = source.indexOf('.delete(level)')
+
+	expect(source).toMatch(/ORDER BY \$\{workshopItem\.workshopId\}/)
+	expect(source).toMatch(/\$\{levelItem\.idLevel\} IN \(\$\{correct\.id\}, \$\{bad\.id\}\)/)
+	expect(workshopLock).toBeGreaterThan(-1)
+	expect(recordMove).toBeGreaterThan(workshopLock)
+	expect(levelDelete).toBeGreaterThan(workshopLock)
+})
+
+test('private workshop deletion joins levels before applying Adventure preservation', () => {
+	const start = workshopServiceSource.indexOf('export async function markWorkshopDeleted')
+	const source = workshopServiceSource.slice(start)
+	const visibilityUpdate = source.indexOf('.set({ visibility: workshopVisibility })')
+	const aliasDelete = source.indexOf('.update(levelItem)')
+
+	expect(source).toContain('.innerJoin(level, eq(level.id, levelItem.idLevel))')
+	expect(source).toContain('shouldDeleteWorkshopLevelItem({')
+	expect(visibilityUpdate).toBeGreaterThan(-1)
+	expect(aliasDelete).toBeGreaterThan(visibilityUpdate)
 })
 
 test('workshop level resolution prefers canonical xxHash row over stale file UID row', () => {

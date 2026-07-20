@@ -87,6 +87,7 @@ query ZC_RecordDetail($recordId: Int!) {
 		level {
 			id
 			xxHash
+			publiclyVisible
 			levelItems(
 				first: 1
 				filter: { deleted: { equalTo: false } }

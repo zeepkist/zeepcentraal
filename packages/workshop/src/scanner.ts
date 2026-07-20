@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { extname, join, parse } from 'node:path'
 import { calculateLegacyZeepSdkJsonXxHash, levelFormat, parseLevelV2 } from '@zeepkist/core/levels'
-import { canSteamCmdDownloadWorkshopItem } from '@zeepkist/core/steam'
+import { canSteamCmdDownloadWorkshopItem, STEAM_VISIBILITY } from '@zeepkist/core/steam'
 import type {
 	DownloadedWorkshopItem,
 	WorkshopBatchScanResult,
@@ -107,13 +107,21 @@ export class WorkshopScanner {
 				results.push({
 					workshopId: metadata.workshopId,
 					status: 'permanently-unavailable',
-					changedLevelIds: await persistence.markDeleted(metadata.workshopId),
+					changedLevelIds: await persistence.markDeleted(
+						metadata.workshopId,
+						STEAM_VISIBILITY.Hidden,
+						false,
+					),
 				})
 			} else if (!canSteamCmdDownloadWorkshopItem(metadata.visibility)) {
 				results.push({
 					workshopId: metadata.workshopId,
 					status: 'inaccessible',
-					changedLevelIds: await persistence.markDeleted(metadata.workshopId),
+					changedLevelIds: await persistence.markDeleted(
+						metadata.workshopId,
+						metadata.visibility,
+						true,
+					),
 				})
 			} else {
 				available.push(metadata)

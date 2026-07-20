@@ -22,6 +22,7 @@ import {
 	hasWorkshopAccessibilityChanged,
 	resolveWorkshopLevelId,
 	resolveWorkshopMetadataBlocks,
+	shouldDeleteWorkshopLevelItem,
 } from './workshopHelpers'
 
 export { resolveWorkshopLevelId } from './workshopHelpers'
@@ -287,12 +288,12 @@ export async function upsertWorkshopLevel(
 
 		let createdLevel: { id: number } | undefined
 		if (!existingByXxHash && existingItem?.xxHash !== input.xxHash && !existingByLegacyHash) {
-			try {
-				;[createdLevel] = await tx
-					.insert(level)
-					.values({ hash: input.hash, xxHash: input.xxHash, adventure: false })
-					.returning({ id: level.id })
-			} catch (error) {
+			;[createdLevel] = await tx
+				.insert(level)
+				.values({ hash: input.hash, xxHash: input.xxHash, adventure: false })
+				.onConflictDoNothing({ target: level.xxHash })
+				.returning({ id: level.id })
+			if (!createdLevel) {
 				createdLevel = await tx
 					.select({ id: level.id })
 					.from(level)
@@ -300,7 +301,7 @@ export async function upsertWorkshopLevel(
 					.limit(1)
 					.then((rows) => rows[0])
 				if (!createdLevel) {
-					throw error
+					throw new Error(`Unable to resolve level for xxHash ${input.xxHash}`)
 				}
 			}
 		}
@@ -325,7 +326,6 @@ export async function upsertWorkshopLevel(
 			.update(level)
 			.set({
 				hash: input.hash,
-				adventure: false,
 				dateUpdated: now,
 			})
 			.where(eq(level.id, idLevel))
@@ -439,6 +439,18 @@ export async function mergeZeepSdkExponentHash({
 		const [firstLock, secondLock] = [correct.id, bad.id].sort((left, right) => left - right)
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(772001, ${firstLock})`)
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(772001, ${secondLock})`)
+		await tx.execute(sql`
+			SELECT ${workshopItem.workshopId}
+			FROM ${workshopItem}
+			WHERE EXISTS (
+				SELECT 1
+				FROM ${levelItem}
+				WHERE ${levelItem.workshopId} = ${workshopItem.workshopId}
+					AND ${levelItem.idLevel} IN (${correct.id}, ${bad.id})
+			)
+			ORDER BY ${workshopItem.workshopId}
+			FOR UPDATE
+		`)
 
 		const now = new Date().toISOString()
 		await tx
@@ -520,40 +532,81 @@ export async function markMissingWorkshopLevelsDeleted(
 	workshopId: bigint,
 	activeXxHashes: string[],
 ): Promise<number[]> {
-	const existing = await db
-		.select({ id: levelItem.id, idLevel: levelItem.idLevel, xxHash: level.xxHash })
-		.from(levelItem)
-		.innerJoin(level, eq(level.id, levelItem.idLevel))
-		.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
-	const missing = existing.filter((item) => !activeXxHashes.includes(item.xxHash))
-	if (missing.length === 0) {
-		return []
-	}
-	await db
-		.update(levelItem)
-		.set({ deleted: true, dateUpdated: new Date().toISOString() })
-		.where(
-			inArray(
-				levelItem.id,
-				missing.map((item) => item.id),
-			),
-		)
-	return [...new Set(missing.map((item) => item.idLevel))]
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`
+			SELECT ${workshopItem.workshopId}
+			FROM ${workshopItem}
+			WHERE ${workshopItem.workshopId} = ${workshopId}
+			FOR UPDATE
+		`)
+
+		const existing = await tx
+			.select({ id: levelItem.id, idLevel: levelItem.idLevel, xxHash: level.xxHash })
+			.from(levelItem)
+			.innerJoin(level, eq(level.id, levelItem.idLevel))
+			.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
+		const missing = existing.filter((item) => !activeXxHashes.includes(item.xxHash))
+		if (missing.length === 0) {
+			return []
+		}
+		await tx
+			.update(levelItem)
+			.set({ deleted: true, dateUpdated: new Date().toISOString() })
+			.where(
+				inArray(
+					levelItem.id,
+					missing.map((item) => item.id),
+				),
+			)
+		return [...new Set(missing.map((item) => item.idLevel))]
+	})
 }
 
-export async function markWorkshopDeleted(workshopId: bigint): Promise<number[]> {
-	const rows = await db
-		.selectDistinct({ idLevel: levelItem.idLevel })
-		.from(levelItem)
-		.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
-	if (rows.length === 0) {
-		return []
-	}
-	await db
-		.update(levelItem)
-		.set({ deleted: true, dateUpdated: new Date().toISOString() })
-		.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
-	return rows.map((row) => row.idLevel)
+export async function markWorkshopDeleted(
+	workshopId: bigint,
+	workshopVisibility: number,
+	preserveAdventure: boolean,
+): Promise<number[]> {
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`
+			SELECT ${workshopItem.workshopId}
+			FROM ${workshopItem}
+			WHERE ${workshopItem.workshopId} = ${workshopId}
+			FOR UPDATE
+		`)
+
+		// Persist Steam visibility before deleting child rows. Visibility triggers remain the
+		// security authority; this service only records the latest observed source state.
+		await tx
+			.update(workshopItem)
+			.set({ visibility: workshopVisibility })
+			.where(eq(workshopItem.workshopId, workshopId))
+
+		const rows = await tx
+			.select({ id: levelItem.id, idLevel: levelItem.idLevel, adventure: level.adventure })
+			.from(levelItem)
+			.innerJoin(level, eq(level.id, levelItem.idLevel))
+			.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
+		const rowsToDelete = rows.filter((row) =>
+			shouldDeleteWorkshopLevelItem({
+				adventure: row.adventure,
+				preserveAdventure,
+			}),
+		)
+		if (rowsToDelete.length === 0) {
+			return []
+		}
+		await tx
+			.update(levelItem)
+			.set({ deleted: true, dateUpdated: new Date().toISOString() })
+			.where(
+				inArray(
+					levelItem.id,
+					rowsToDelete.map((row) => row.id),
+				),
+			)
+		return [...new Set(rowsToDelete.map((row) => row.idLevel))]
+	})
 }
 
 export async function getWorkshopUpdateTimes(): Promise<Map<bigint, string>> {

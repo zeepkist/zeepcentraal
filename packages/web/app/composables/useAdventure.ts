@@ -12,13 +12,14 @@ import {
 	findAdventureSeries,
 	sortAdventureLevels,
 } from '~/utils/adventureSeries'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 
 function mapLevel(level: Zc_AdventureLevelCardFragment): LevelSummary {
 	const item = level.levelItems.nodes[0]
 	return {
 		id: level.id,
 		xxHash: level.xxHash,
-		name: item?.name ?? level.xxHash,
+		name: getLevelDisplayName(item?.name, level.xxHash),
 		imageUrl: item?.imageUrl,
 		authorName: item?.author?.steamName,
 		authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),

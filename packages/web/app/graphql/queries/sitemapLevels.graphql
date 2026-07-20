@@ -1,5 +1,10 @@
 query ZC_SitemapLevels($after: Cursor) {
-	levels(first: 1000, after: $after, orderBy: [XX_HASH_ASC]) {
+	levels(
+		first: 1000
+		after: $after
+		filter: { publiclyVisible: { equalTo: true } }
+		orderBy: [XX_HASH_ASC]
+	) {
 		nodes {
 			xxHash
 			dateUpdated

@@ -53,6 +53,7 @@ export type RecordHistoryUpdate = {
 export type LevelSummary = {
 	id: number
 	xxHash: string
+	publiclyVisible?: boolean
 	name: string
 	imageUrl?: string | null
 	authorName?: string | null

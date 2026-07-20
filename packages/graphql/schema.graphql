@@ -1106,6 +1106,7 @@ type Level implements Node {
     """The method to use when ordering `PersonalBestGlobal`."""
     orderBy: [PersonalBestGlobalsOrderBy!] = [PRIMARY_KEY_ASC]
   ): PersonalBestGlobalsConnection!
+  publiclyVisible: Boolean!
 
   """Reads and enables pagination through a set of `Record`."""
   records(
@@ -1660,6 +1661,9 @@ input LevelCondition {
   """Checks for equality with the object’s `id` field."""
   id: Int
 
+  """Checks for equality with the object’s `publiclyVisible` field."""
+  publiclyVisible: Boolean
+
   """Checks for equality with the object’s `xxHash` field."""
   xxHash: String
 }
@@ -1679,6 +1683,9 @@ type LevelDistinctCountAggregates {
 
   """Distinct count of id across the matching connection"""
   id: BigInt
+
+  """Distinct count of publiclyVisible across the matching connection"""
+  publiclyVisible: BigInt
 
   """Distinct count of xxHash across the matching connection"""
   xxHash: BigInt
@@ -1748,6 +1755,9 @@ input LevelFilter {
   """Some related `personalBestGlobals` exist."""
   personalBestGlobalsExist: Boolean
 
+  """Filter by the object’s `publiclyVisible` field."""
+  publiclyVisible: BooleanFilter
+
   """Filter by the object’s `records` relation."""
   records: LevelToManyRecordFilter
 
@@ -1792,6 +1802,7 @@ enum LevelGroupBy {
   DATE_UPDATED_TRUNCATED_TO_DAY
   DATE_UPDATED_TRUNCATED_TO_HOUR
   HASH
+  PUBLICLY_VISIBLE
 }
 
 input LevelHavingAverageInput {
@@ -13340,6 +13351,8 @@ enum LevelsOrderBy {
   PERSONAL_BEST_GLOBALS_VARIANCE_SAMPLE_USER_ID_DESC
   PRIMARY_KEY_ASC
   PRIMARY_KEY_DESC
+  PUBLICLY_VISIBLE_ASC
+  PUBLICLY_VISIBLE_DESC
   RECORDS_AVERAGE_ID_ASC
   RECORDS_AVERAGE_ID_DESC
   RECORDS_AVERAGE_LEVEL_ID_ASC

@@ -87,6 +87,7 @@
 					</section>
 
 					<AuthorLevelsCta
+						v-if="summary.publiclyVisible"
 						:author-id="summary.authorId"
 						:title="$t('levels.detail.authorCta.title', { author: summary.authorName })"
 						:description="$t('levels.detail.authorCta.description')"
@@ -353,7 +354,11 @@ const viewerId = computed(() => user.value?.id)
 const levelData = useLevelDetail(xxHash, viewerId)
 await levelData.prefetchCritical()
 const summary = levelData.summary
-const workshopUrl = computed(() => steamWorkshopItemUrl(summary.value?.workshopId))
+const workshopUrl = computed(() =>
+	summary.value?.publiclyVisible
+		? steamWorkshopItemUrl(summary.value.workshopId)
+		: undefined,
+)
 const telemetryModel = useLevelTelemetryModel(levelData.statistics.data)
 const showViewerSplitComparison = ref(false)
 type LevelDetailTab = 'records' | 'telemetry' | 'ghosts'
@@ -451,6 +456,7 @@ watch(viewerSplitComparisonId, () => {
 })
 
 useSeoMeta({
+	robots: () => (summary.value?.publiclyVisible === false ? 'noindex, nofollow' : 'index, follow'),
 	title: () =>
 		summary.value ? `${summary.value.name} · ZeepCentraal` : t('pages.levels.seo.title'),
 	description: () =>

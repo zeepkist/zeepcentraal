@@ -99,7 +99,10 @@ export function buildLevelFilter(input: {
 	worldRecord: ViewerLevelFilter
 	viewerId?: number
 }): LevelFilter {
-	const and: LevelFilter[] = [buildLevelAvailabilityFilter(input.type)]
+	const and: LevelFilter[] = [
+		{ publiclyVisible: { equalTo: true } },
+		buildLevelAvailabilityFilter(input.type),
+	]
 	let requiresLevelPoints = pointSorts.has(input.sort)
 
 	if (input.search) {

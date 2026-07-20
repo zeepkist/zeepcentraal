@@ -44,7 +44,11 @@ fragment ZC_UserLevelCard on Level {
 
 query ZC_UserLevels($userId: Int!, $steamId: BigInt!, $since: Datetime!) {
 	recentUser: user(id: $userId) {
-		levelItems(first: 6, filter: { deleted: { equalTo: false } }, orderBy: [CREATED_AT_DESC]) {
+		levelItems(
+			first: 6
+			filter: { deleted: { equalTo: false }, level: { publiclyVisible: { equalTo: true } } }
+			orderBy: [CREATED_AT_DESC]
+		) {
 			nodes {
 				level {
 					...ZC_UserLevelCard
@@ -56,6 +60,7 @@ query ZC_UserLevels($userId: Int!, $steamId: BigInt!, $since: Datetime!) {
 		first: 6
 		since: $since
 		filter: {
+			publiclyVisible: { equalTo: true }
 			levelItems: { some: { authorId: { equalTo: $steamId }, deleted: { equalTo: false } } }
 		}
 	) {

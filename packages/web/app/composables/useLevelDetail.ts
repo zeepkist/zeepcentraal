@@ -22,6 +22,7 @@ import type {
 	LevelWorldRecordSummary,
 	RecordHistoryRow,
 } from '~/types/app'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { buildLevelPointsHistory, getLevelPointsHistoryWindow } from '~/utils/levelPointsHistory'
 import {
 	buildLevelPersonalBestRanks,
@@ -115,7 +116,10 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		mapRecord(
 			record,
 			level.value?.xxHash ?? xxHash.value,
-			level.value?.levelItems.nodes[0]?.name ?? level.value?.xxHash ?? xxHash.value,
+			getLevelDisplayName(
+				level.value?.publiclyVisible ? level.value.levelItems.nodes[0]?.name : undefined,
+				level.value?.xxHash ?? xxHash.value,
+			),
 			level.value?.levelPoints?.points,
 			assumePersonalBest,
 		)
@@ -225,11 +229,12 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	const summary = computed<LevelSummary | null>(() => {
 		const value = level.value
 		if (!value) return null
-		const item = value.levelItems.nodes[0]
+		const item = value.publiclyVisible ? value.levelItems.nodes[0] : undefined
 		return {
 			id: value.id,
 			xxHash: value.xxHash,
-			name: item?.name ?? value.xxHash,
+			publiclyVisible: value.publiclyVisible,
+			name: getLevelDisplayName(item?.name, value.xxHash),
 			imageUrl: item?.imageUrl,
 			authorName: item?.author?.steamName,
 			authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),

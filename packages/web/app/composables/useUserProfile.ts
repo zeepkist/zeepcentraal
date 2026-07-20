@@ -18,6 +18,7 @@ import {
 	Zc_UserSuperLeagueSeasonsDocument,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, LevelSummary, RecordHistoryRow, UserProfileSummary } from '~/types/app'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { getLevelHotWindows } from '~/utils/levelExplorer'
 import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'
 import type { RecordHistorySort } from '~/utils/recordHistory'
@@ -55,7 +56,7 @@ function mapUserLevel(
 	return {
 		id: level.id,
 		xxHash: level.xxHash,
-		name: item?.name ?? level.xxHash,
+		name: getLevelDisplayName(item?.name, level.xxHash),
 		imageUrl: item?.imageUrl,
 		authorName: item?.author?.steamName,
 		authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
@@ -350,8 +351,10 @@ export function useUserProfile(steamId: Ref<string>) {
 								userName: user.value?.steamName,
 								levelId: node.record.levelId,
 								levelXxHash: node.level.xxHash,
-								levelName:
-									node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
+								levelName: getLevelDisplayName(
+									node.level.levelItems.nodes[0]?.name,
+									node.level.xxHash,
+								),
 								levelPosition: node.levelPosition,
 								contributionRank: node.contributionRank,
 								levelPoints: node.levelPoints,
@@ -387,7 +390,10 @@ export function useUserProfile(steamId: Ref<string>) {
 						userName: user.value?.steamName,
 						levelId: node.levelId,
 						levelXxHash: node.level.xxHash,
-						levelName: node.level.levelItems.nodes[0]?.name ?? node.level.xxHash,
+						levelName: getLevelDisplayName(
+							node.level.levelItems.nodes[0]?.name,
+							node.level.xxHash,
+						),
 						levelPosition: contribution?.levelPosition,
 						contributionRank: contribution?.contributionRank,
 						levelPoints: contribution?.levelPoints ?? node.level.levelPoints?.points,

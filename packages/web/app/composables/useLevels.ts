@@ -7,6 +7,7 @@ import {
 	Zc_UserSuggestionsDocument,
 } from '~/graphql/generated/graphql'
 import type { CursorPage, LevelSummary, SortOption } from '~/types/app'
+import { getLevelDisplayName } from '~/utils/levelDisplay'
 import {
 	buildLevelFilter,
 	getHotLevelSince,
@@ -187,7 +188,7 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 			return {
 				id: node.id,
 				xxHash: node.xxHash,
-				name: item?.name ?? node.xxHash,
+				name: getLevelDisplayName(item?.name, node.xxHash),
 				imageUrl: item?.imageUrl,
 				authorName: item?.author?.steamName,
 				authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
