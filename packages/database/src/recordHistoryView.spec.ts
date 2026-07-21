@@ -11,6 +11,10 @@ const scorePerformanceMigration = readFileSync(
 	new URL('../drizzle/0062_abnormal_charles_xavier.sql', import.meta.url),
 	'utf8',
 )
+const contributionPerformanceMigration = readFileSync(
+	new URL('../drizzle/0063_set_based_contribution_projection.sql', import.meta.url),
+	'utf8',
+)
 
 describe('record history read model', () => {
 	test('uses one indexed projection source before mutable display joins', () => {
@@ -82,8 +86,10 @@ describe('record history read model', () => {
 			'id',
 		])
 		expect(columnNames('IX_record_history_index_level_projection')).toEqual(['level_id'])
+		expect(columnNames('IX_record_history_index_record')).toEqual(['id'])
 
 		for (const index of indexes) {
+			if (index.config.name === 'IX_record_history_index_record') continue
 			for (const column of index.config.columns) {
 				if (
 					!('name' in column) ||
@@ -93,6 +99,38 @@ describe('record history read model', () => {
 					continue
 				expect(column.indexConfig).toMatchObject({ order: 'desc', nulls: 'first' })
 			}
+		}
+	})
+
+	test('synchronizes contribution projection changes as transition-table sets', () => {
+		expect(contributionPerformanceMigration).toContain(
+			'CREATE INDEX IF NOT EXISTS "IX_record_history_index_record"',
+		)
+		expect(contributionPerformanceMigration).toContain(
+			'CREATE OR REPLACE FUNCTION zc_private.sync_record_history_contributions',
+		)
+		expect(contributionPerformanceMigration).toContain('FROM unnest(p_record_ids)')
+		expect(contributionPerformanceMigration).toContain('UPDATE zc_private.record_history_index')
+		expect(contributionPerformanceMigration).toContain('IS DISTINCT FROM ROW(')
+		expect(contributionPerformanceMigration).toContain('FROM new_contributions')
+		expect(contributionPerformanceMigration).toContain('FROM old_contributions')
+
+		for (const triggerFunction of [
+			'tg_sync_record_history_contribution_insert',
+			'tg_sync_record_history_contribution_delete',
+			'tg_sync_record_history_contribution_update',
+		]) {
+			const functionStart = contributionPerformanceMigration.indexOf(
+				`CREATE OR REPLACE FUNCTION zc_private.${triggerFunction}`,
+			)
+			const functionEnd = contributionPerformanceMigration.indexOf(
+				'--> statement-breakpoint',
+				functionStart,
+			)
+			const functionBody = contributionPerformanceMigration.slice(functionStart, functionEnd)
+			expect(functionBody).toContain('sync_record_history_contributions')
+			expect(functionBody).not.toContain('LOOP')
+			expect(functionBody).not.toContain('sync_record_history(record_id)')
 		}
 	})
 

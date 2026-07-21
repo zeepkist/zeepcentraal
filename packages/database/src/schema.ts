@@ -1037,6 +1037,7 @@ export const recordHistoryIndex = zcPrivate.table(
 			'CK_record_history_index_view',
 			sql`${table.historyView} IN ('recent', 'personal-bests', 'world-records')`,
 		),
+		index('IX_record_history_index_record').using('btree', table.id.asc().nullsLast()),
 		index('IX_record_history_index_latest').using(
 			'btree',
 			table.historyView.asc().nullsLast(),

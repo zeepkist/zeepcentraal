@@ -9,7 +9,7 @@ test('user contribution lock targets are sorted and unique', () => {
 	expect(sortedUniqueUserIds([9, 2, 9, 4, 2])).toEqual([2, 4, 9])
 })
 
-test('comparison and replacement share advisory-lock transaction', () => {
+test('comparison and delta persistence share advisory-lock transaction', () => {
 	const service = readFileSync(new URL('./userPointContribution.ts', import.meta.url), 'utf8')
 	const transactionStart = service.indexOf('await db.transaction(async (tx) => {')
 	const lock = service.indexOf(
@@ -17,18 +17,16 @@ test('comparison and replacement share advisory-lock transaction', () => {
 		transactionStart,
 	)
 	const read = service.indexOf('const existingRows = await tx', lock)
-	const deletion = service.indexOf('await tx\n\t\t\t.delete(userPointContribution)', read)
-	const insertion = service.indexOf(
-		'await tx.insert(userPointContribution).values(batch)',
-		deletion,
-	)
+	const insertion = service.indexOf('.onConflictDoUpdate({', read)
+	const deletion = service.indexOf('await tx.delete(userPointContribution).where', insertion)
 
 	expect(transactionStart).toBeGreaterThan(-1)
 	expect(lock).toBeGreaterThan(transactionStart)
 	expect(read).toBeGreaterThan(lock)
-	expect(deletion).toBeGreaterThan(read)
-	expect(insertion).toBeGreaterThan(deletion)
-	expect(service).toContain('const INSERT_BATCH_SIZE = 500')
+	expect(insertion).toBeGreaterThan(read)
+	expect(deletion).toBeGreaterThan(insertion)
+	expect(service).toContain('const WRITE_BATCH_SIZE = 5000')
+	expect(service).toContain('IS DISTINCT FROM ROW(')
 	expect(service).not.toContain('const existingRows = await db')
 })
 

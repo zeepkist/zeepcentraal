@@ -9,6 +9,7 @@ describe('playerScoreJobOptions', () => {
 	test('serializes full and single-user jobs on one queue', () => {
 		expect(playerScoreJobOptions('updatePlayerScores', {})).toEqual({
 			jobKey: UPDATE_PLAYER_SCORES_JOB_KEY,
+			jobKeyMode: 'unsafe_dedupe',
 			queueName: PLAYER_SCORE_QUEUE_NAME,
 		})
 		expect(playerScoreJobOptions('updatePlayerScore', { idUser: 42 })).toEqual({

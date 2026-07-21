@@ -117,6 +117,7 @@ test('full player scoring uses serialized contribution queue', () => {
 		cronTime: '5-59/10 * * * *',
 		spec: {
 			jobKey: UPDATE_PLAYER_SCORES_JOB_KEY,
+			jobKeyMode: 'unsafe_dedupe',
 			queueName: PLAYER_SCORE_QUEUE_NAME,
 		},
 	})

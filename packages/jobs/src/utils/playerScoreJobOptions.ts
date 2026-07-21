@@ -4,10 +4,11 @@ export const UPDATE_PLAYER_SCORES_JOB_KEY = 'update-player-scores'
 export function playerScoreJobOptions(
 	task: string,
 	payload: Record<string, unknown>,
-): { jobKey?: string; queueName?: string } {
+): { jobKey?: string; jobKeyMode?: 'unsafe_dedupe'; queueName?: string } {
 	if (task === 'updatePlayerScores') {
 		return {
 			jobKey: UPDATE_PLAYER_SCORES_JOB_KEY,
+			jobKeyMode: 'unsafe_dedupe',
 			queueName: PLAYER_SCORE_QUEUE_NAME,
 		}
 	}

@@ -17,6 +17,8 @@ export const updatePlayerScore: TaskHandler<Payload> = async (payload, helpers) 
 		helpers.logger.warn('updatePlayerScore skipped: missing idUser payload.')
 		return
 	}
+	const taskStartedAt = Date.now()
+	helpers.logger.info(`updatePlayerScore started for idUser=${payload.idUser}.`)
 
 	try {
 		const personalBests = await getUserPersonalBestsWithLevelPointsAndPosition({
@@ -27,6 +29,7 @@ export const updatePlayerScore: TaskHandler<Payload> = async (payload, helpers) 
 			await clearUserPointContributions([payload.idUser])
 			helpers.logger.info(
 				`updatePlayerScore skipped for idUser=${payload.idUser}; no personal bests found.`,
+				{ totalMs: Date.now() - taskStartedAt },
 			)
 			return
 		}
@@ -40,9 +43,13 @@ export const updatePlayerScore: TaskHandler<Payload> = async (payload, helpers) 
 			}),
 			upsertUserPointContributionsBulk([{ idUser: payload.idUser, contributions }]),
 		])
+		helpers.logger.info(`updatePlayerScore completed for idUser=${payload.idUser}.`, {
+			totalMs: Date.now() - taskStartedAt,
+		})
 	} catch (error) {
 		helpers.logger.error(`Error updating player score for idUser=${payload.idUser}`, {
 			idUsers: [payload.idUser],
+			totalMs: Date.now() - taskStartedAt,
 			postgres: getPostgresErrorMetadata(error),
 		})
 		throw error

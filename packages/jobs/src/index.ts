@@ -2,6 +2,7 @@ import type { Worker } from 'node:cluster'
 import cluster from 'node:cluster'
 import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { makeWorkerUtils } from 'graphile-worker'
+import { recoverOrphanedPlayerScoreQueueLock } from './utils/recoverOrphanedPlayerScoreQueueLock'
 import { startCrons, startRunner, stopCrons, stopRunner } from './worker'
 
 const WORKER_COUNT = 2
@@ -15,6 +16,18 @@ if (cluster.isPrimary) {
 	process.title = 'zeepcentraal-jobs: primary'
 	// The primary process manages cron scheduling only — no task processing.
 	// Using makeWorkerUtils keeps it lightweight (add-only, no task runner).
+	const recoveredQueueLocks = await recoverOrphanedPlayerScoreQueueLock()
+	for (const recovered of recoveredQueueLocks) {
+		const lockedAt =
+			recovered.lockedAt instanceof Date
+				? recovered.lockedAt.getTime()
+				: Date.parse(recovered.lockedAt)
+		console.warn('Recovered orphaned Graphile player-score queue lock.', {
+			queueName: recovered.queueName,
+			lockedBy: recovered.lockedBy,
+			lockAgeMs: Math.max(0, Date.now() - lockedAt),
+		})
+	}
 	const utils = await makeWorkerUtils({ connectionString: jobsConfig.databaseUrl })
 	startCrons((task, payload, spec) => utils.addJob(task, payload, spec))
 

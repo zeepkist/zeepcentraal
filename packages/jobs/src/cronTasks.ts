@@ -20,6 +20,7 @@ export const cronTasks = [
 		cronTime: '5-59/10 * * * *',
 		spec: {
 			jobKey: UPDATE_PLAYER_SCORES_JOB_KEY,
+			jobKeyMode: 'unsafe_dedupe' as const,
 			queueName: PLAYER_SCORE_QUEUE_NAME,
 		},
 	}, // every 10 minutes, offset by 5 minutes

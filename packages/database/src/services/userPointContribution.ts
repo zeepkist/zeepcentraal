@@ -27,18 +27,36 @@ interface UserPointContributionBatchInput {
 	idUser: number
 }
 
-const INSERT_BATCH_SIZE = 500
+// Nine bound values per contribution; 5,000 stays below PostgreSQL's parameter limit.
+const WRITE_BATCH_SIZE = 5000
 export const USER_POINT_CONTRIBUTION_LOCK_NAMESPACE = 1_516_438_864
+export const USER_POINT_CONTRIBUTION_LOCK_BUCKETS = 64
+
+function contributionLockIds(idUsers: readonly number[]): number[] {
+	return sortedUniqueUserIds(
+		idUsers.map(
+			(idUser) =>
+				((idUser % USER_POINT_CONTRIBUTION_LOCK_BUCKETS) +
+					USER_POINT_CONTRIBUTION_LOCK_BUCKETS) %
+				USER_POINT_CONTRIBUTION_LOCK_BUCKETS,
+		),
+	)
+}
 
 async function acquireUserContributionLocks(
 	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
 	idUsers: readonly number[],
 ): Promise<void> {
-	for (const idUser of sortedUniqueUserIds(idUsers)) {
-		await tx.execute(
-			sql`SELECT pg_advisory_xact_lock(${USER_POINT_CONTRIBUTION_LOCK_NAMESPACE}, ${idUser})`,
+	const lockIds = contributionLockIds(idUsers)
+	if (lockIds.length === 0) return
+	await tx.execute(sql`
+		SELECT pg_advisory_xact_lock(
+			${USER_POINT_CONTRIBUTION_LOCK_NAMESPACE},
+			locked_user.id_user
 		)
-	}
+		FROM unnest(${sql.param(lockIds)}::integer[]) AS locked_user(id_user)
+		ORDER BY locked_user.id_user
+	`)
 }
 
 function chunks<T>(items: T[], size: number): T[][] {
@@ -97,7 +115,18 @@ export async function upsertUserPointContributionsBulk(
 		)
 		if (changedEntries.length === 0) return
 
-		const changedUserIds = changedEntries.map((entry) => entry.idUser)
+		const changedUserIds = new Set(changedEntries.map((entry) => entry.idUser))
+		const desiredKeys = new Set(
+			changedEntries.flatMap((entry) =>
+				entry.contributions.map(
+					(contribution) => `${entry.idUser}:${contribution.idLevel}`,
+				),
+			),
+		)
+		const removedRows = existingRows.filter(
+			(row) =>
+				changedUserIds.has(row.idUser) && !desiredKeys.has(`${row.idUser}:${row.idLevel}`),
+		)
 		const now = new Date().toISOString()
 		const rows = changedEntries.flatMap((entry) =>
 			entry.contributions.map((contribution) => ({
@@ -107,12 +136,47 @@ export async function upsertUserPointContributionsBulk(
 			})),
 		)
 
-		await tx
-			.delete(userPointContribution)
-			.where(inArray(userPointContribution.idUser, changedUserIds))
+		for (const batch of chunks(rows, WRITE_BATCH_SIZE)) {
+			await tx
+				.insert(userPointContribution)
+				.values(batch)
+				.onConflictDoUpdate({
+					target: [userPointContribution.idUser, userPointContribution.idLevel],
+					set: {
+						idRecord: sql`EXCLUDED.id_record`,
+						contributionRank: sql`EXCLUDED.contribution_rank`,
+						levelPosition: sql`EXCLUDED.level_position`,
+						levelPoints: sql`EXCLUDED.level_points`,
+						levelDecayedPoints: sql`EXCLUDED.level_decayed_points`,
+						playerDecayedPoints: sql`EXCLUDED.player_decayed_points`,
+						dateCalculated: sql`EXCLUDED.date_calculated`,
+					},
+					where: sql`ROW(
+						${userPointContribution.idRecord},
+						${userPointContribution.contributionRank},
+						${userPointContribution.levelPosition},
+						${userPointContribution.levelPoints},
+						${userPointContribution.levelDecayedPoints},
+						${userPointContribution.playerDecayedPoints}
+					) IS DISTINCT FROM ROW(
+						EXCLUDED.id_record,
+						EXCLUDED.contribution_rank,
+						EXCLUDED.level_position,
+						EXCLUDED.level_points,
+						EXCLUDED.level_decayed_points,
+						EXCLUDED.player_decayed_points
+					)`,
+				})
+		}
 
-		for (const batch of chunks(rows, INSERT_BATCH_SIZE)) {
-			await tx.insert(userPointContribution).values(batch)
+		for (const batch of chunks(removedRows, WRITE_BATCH_SIZE)) {
+			const keys = sql.join(
+				batch.map((row) => sql`(${row.idUser}::integer, ${row.idLevel}::integer)`),
+				sql`, `,
+			)
+			await tx.delete(userPointContribution).where(sql`
+				(${userPointContribution.idUser}, ${userPointContribution.idLevel}) IN (${keys})
+			`)
 		}
 	})
 }

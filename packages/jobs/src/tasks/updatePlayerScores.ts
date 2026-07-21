@@ -31,12 +31,33 @@ interface ContributionUpdate {
 const PLAYER_SCORE_BATCH_SIZE = 50
 
 export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers) => {
+	const taskStartedAt = Date.now()
+	helpers.logger.info('updatePlayerScores started.')
+	try {
+		await recalculatePlayerScores(helpers, taskStartedAt)
+	} catch (error) {
+		helpers.logger.error('updatePlayerScores failed.', {
+			totalMs: Date.now() - taskStartedAt,
+			postgres: getPostgresErrorMetadata(error),
+		})
+		throw error
+	}
+}
+
+async function recalculatePlayerScores(
+	helpers: Parameters<TaskHandler<Payload>>[1],
+	taskStartedAt: number,
+): Promise<void> {
 	const unrankedCutoffDate = new Date()
 	unrankedCutoffDate.setMonth(unrankedCutoffDate.getMonth() - 6)
 
+	const discoveryStartedAt = Date.now()
 	const users = await getAllUsersWithLatestRecordDate()
 	if (users.length === 0) {
-		helpers.logger.info('No users found with personal bests.')
+		helpers.logger.info('No users found with personal bests.', {
+			discoveryMs: Date.now() - discoveryStartedAt,
+			totalMs: Date.now() - taskStartedAt,
+		})
 		return
 	}
 
@@ -47,15 +68,31 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 	const rankedUsers = users.filter(
 		(user) => user.latestRecordDate && new Date(user.latestRecordDate) >= unrankedCutoffDate,
 	)
+	helpers.logger.info('Discovered users for player-score recalculation.', {
+		discoveryMs: Date.now() - discoveryStartedAt,
+		totalUsers: users.length,
+		rankedUsers: rankedUsers.length,
+		unrankedUsers: unrankedUsers.length,
+	})
 
 	if (unrankedUsers.length > 0) {
+		const inactiveStartedAt = Date.now()
 		const idUsers = unrankedUsers.map((user) => user.idUser)
+		const rankResetStartedAt = Date.now()
 		await bulkUpdateUserRanks({
 			idUsers,
 			points: 0,
 			rank: -1,
 		})
+		const rankResetMs = Date.now() - rankResetStartedAt
+		const contributionClearStartedAt = Date.now()
 		await clearUserPointContributions(idUsers)
+		helpers.logger.info('Reset inactive player scores.', {
+			users: idUsers.length,
+			rankResetMs,
+			contributionClearMs: Date.now() - contributionClearStartedAt,
+			totalMs: Date.now() - inactiveStartedAt,
+		})
 	}
 
 	const pointsList: PointsList[] = []
@@ -74,11 +111,15 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 		const idUsers = userBatch.map(({ idUser }) => idUser)
 		const idUserSet = new Set(idUsers)
 		const personalBestsByUser = new Map<number, PersonalBestWithLevelPointsAndPosition[]>()
+		const levelDiscoveryStartedAt = Date.now()
 		const idLevels = await getPersonalBestLevelIdsForUsers(idUsers)
+		const levelDiscoveryMs = Date.now() - levelDiscoveryStartedAt
+		const leaderboardStartedAt = Date.now()
 		const levelLeaderboards = await getCachedLevelLeaderboards({
 			idLevels,
 			logger: helpers.logger,
 		})
+		const leaderboardMs = Date.now() - leaderboardStartedAt
 
 		for (const rows of levelLeaderboards.values()) {
 			for (const row of rows) {
@@ -92,6 +133,7 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 			}
 		}
 
+		const calculationStartedAt = Date.now()
 		const contributionUpdates: ContributionUpdate[] = []
 		const pointUpdates = userBatch.map(({ idUser }) => {
 			const personalBests = personalBestsByUser.get(idUser) ?? []
@@ -109,14 +151,27 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 			return { idUser, points, totalPoints }
 		})
 
+		const calculationMs = Date.now() - calculationStartedAt
+		const persistenceStartedAt = Date.now()
+		let contributionPersistenceMs = 0
+		let userPointsPersistenceMs = 0
 		try {
 			await Promise.all([
-				upsertUserPointsBulk(pointUpdates),
-				upsertUserPointContributionsBulk(contributionUpdates),
+				(async () => {
+					const startedAt = Date.now()
+					await upsertUserPointsBulk(pointUpdates)
+					userPointsPersistenceMs = Date.now() - startedAt
+				})(),
+				(async () => {
+					const startedAt = Date.now()
+					await upsertUserPointContributionsBulk(contributionUpdates)
+					contributionPersistenceMs = Date.now() - startedAt
+				})(),
 			])
 		} catch (error) {
 			helpers.logger.error('Player score batch persistence failed.', {
 				idUsers,
+				persistenceMs: Date.now() - persistenceStartedAt,
 				postgres: getPostgresErrorMetadata(error),
 			})
 			throw error
@@ -124,6 +179,17 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 
 		helpers.logger.info(
 			`Updated player score batch ${batchIndex + 1}/${rankedUserBatches.length}.`,
+			{
+				users: userBatch.length,
+				levels: idLevels.length,
+				levelDiscoveryMs,
+				leaderboardMs,
+				calculationMs,
+				userPointsPersistenceMs,
+				contributionPersistenceMs,
+				persistenceMs: Date.now() - persistenceStartedAt,
+				totalMs: Date.now() - taskStartedAt,
+			},
 		)
 	}
 
@@ -148,7 +214,12 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 		actualRank++
 	}
 
+	const rankUpdateStartedAt = Date.now()
 	await updateUserRanks(rankUpdates)
 
-	helpers.logger.info('updatePlayerScores completed.')
+	helpers.logger.info('updatePlayerScores completed.', {
+		rankedUsers: rankUpdates.length,
+		rankUpdateMs: Date.now() - rankUpdateStartedAt,
+		totalMs: Date.now() - taskStartedAt,
+	})
 }

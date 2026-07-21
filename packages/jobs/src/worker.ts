@@ -4,6 +4,7 @@ import { run, type TaskSpec } from 'graphile-worker'
 import { cronTasks } from './cronTasks'
 import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from './priorities'
 import { taskList } from './tasks'
+import { cronJobOptions } from './utils/cronJobOptions'
 
 export const defaultJobOptions: TaskSpec = {
 	priority: DEFAULT_JOB_PRIORITY,
@@ -60,20 +61,15 @@ export function startCrons(
 	for (const cronTask of cronTasks) {
 		const { task, cronTime } = cronTask
 		const payload = 'payload' in cronTask ? cronTask.payload : {}
+		const cronSpec: TaskSpec = 'spec' in cronTask ? cronTask.spec : {}
 		const job = CronJob.from({
 			cronTime,
 			onTick: () => {
-				void addJob(task, payload, {
-					...defaultJobOptions,
-					...('spec' in cronTask ? cronTask.spec : {}),
-					jobKey:
-						'spec' in cronTask && 'jobKey' in cronTask.spec
-							? cronTask.spec.jobKey
-							: `cron:${task}`,
-					jobKeyMode: 'preserve_run_at',
-				}).catch((error) => {
-					console.error(`Cron enqueue failed for ${task}:`, error)
-				})
+				void addJob(task, payload, cronJobOptions(task, defaultJobOptions, cronSpec)).catch(
+					(error) => {
+						console.error(`Cron enqueue failed for ${task}:`, error)
+					},
+				)
 			},
 			start: true,
 			timeZone: 'Europe/London',
