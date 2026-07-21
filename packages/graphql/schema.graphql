@@ -14607,6 +14607,43 @@ type Query implements Node {
   """Get a single `Record`."""
   record(id: Int!): Record
 
+  """Reads and enables pagination through a set of `RecordHistoryEntry`."""
+  recordHistoryEntries(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RecordHistoryEntryCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RecordHistoryEntryFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `RecordHistoryEntry`."""
+    orderBy: [RecordHistoryEntriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): RecordHistoryEntriesConnection
+
+  """Get a single `RecordHistoryEntry`."""
+  recordHistoryEntry(historyView: String!, id: Int!): RecordHistoryEntry
+
   """Get a single `RecordMedia`."""
   recordMedia(recordId: Int!): RecordMedia
 
@@ -16108,6 +16145,806 @@ input RecordHavingVarianceSampleInput {
   levelId: HavingIntFilter
   time: HavingFloatFilter
   userId: HavingIntFilter
+}
+
+"""A connection to a list of `RecordHistoryEntry` values."""
+type RecordHistoryEntriesConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: RecordHistoryEntryAggregates
+
+  """
+  A list of edges which contains the `RecordHistoryEntry` and cursor to aid in pagination.
+  """
+  edges: [RecordHistoryEntriesEdge!]!
+
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `RecordHistoryEntry` for these aggregates.
+    """
+    groupBy: [RecordHistoryEntryGroupBy!]!
+
+    """Conditions on the grouped aggregates."""
+    having: RecordHistoryEntryHavingInput
+  ): [RecordHistoryEntryAggregates!]
+
+  """A list of `RecordHistoryEntry` objects."""
+  nodes: [RecordHistoryEntry!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `RecordHistoryEntry` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+"""A `RecordHistoryEntry` edge in the connection."""
+type RecordHistoryEntriesEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `RecordHistoryEntry` at the end of the edge."""
+  node: RecordHistoryEntry!
+}
+
+"""Methods to use when ordering `RecordHistoryEntry`."""
+enum RecordHistoryEntriesOrderBy {
+  CONTRIBUTION_RANK_ASC
+  CONTRIBUTION_RANK_DESC
+  DATE_CREATED_ASC
+  DATE_CREATED_DESC
+  HAS_CONTRIBUTION_ASC
+  HAS_CONTRIBUTION_DESC
+  HISTORY_VIEW_ASC
+  HISTORY_VIEW_DESC
+  ID_ASC
+  ID_DESC
+  IS_PERSONAL_BEST_ASC
+  IS_PERSONAL_BEST_DESC
+  IS_WORLD_RECORD_ASC
+  IS_WORLD_RECORD_DESC
+  LEVEL_DECAYED_POINTS_ASC
+  LEVEL_DECAYED_POINTS_DESC
+  LEVEL_ID_ASC
+  LEVEL_ID_DESC
+  LEVEL_NAME_ASC
+  LEVEL_NAME_DESC
+  LEVEL_POINTS_ASC
+  LEVEL_POINTS_DESC
+  LEVEL_POSITION_ASC
+  LEVEL_POSITION_DESC
+  LEVEL_XX_HASH_ASC
+  LEVEL_XX_HASH_DESC
+  NATURAL
+  PLAYER_DECAYED_POINTS_ASC
+  PLAYER_DECAYED_POINTS_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  TIME_ASC
+  TIME_DESC
+  USER_ID_ASC
+  USER_ID_DESC
+  USER_NAME_ASC
+  USER_NAME_DESC
+  USER_STEAM_ID_ASC
+  USER_STEAM_ID_DESC
+}
+
+type RecordHistoryEntry implements Node {
+  contributionRank: Int
+  dateCreated: Datetime
+  hasContribution: Boolean
+  historyView: String!
+  id: Int!
+  isPersonalBest: Boolean
+  isWorldRecord: Boolean
+  levelDecayedPoints: Float
+  levelId: Int
+  levelName: String
+  levelPoints: Int
+  levelPosition: Int
+  levelXxHash: String
+
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  playerDecayedPoints: Float
+  time: Float
+  userId: Int
+  userName: String
+  userSteamId: BigInt
+}
+
+type RecordHistoryEntryAggregates {
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: RecordHistoryEntryAverageAggregates
+
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: RecordHistoryEntryDistinctCountAggregates
+  keys: [String]
+
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: RecordHistoryEntryMaxAggregates
+
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: RecordHistoryEntryMinAggregates
+
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: RecordHistoryEntryStddevPopulationAggregates
+
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: RecordHistoryEntryStddevSampleAggregates
+
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: RecordHistoryEntrySumAggregates
+
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: RecordHistoryEntryVariancePopulationAggregates
+
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: RecordHistoryEntryVarianceSampleAggregates
+}
+
+type RecordHistoryEntryAverageAggregates {
+  """Mean average of contributionRank across the matching connection"""
+  contributionRank: BigFloat
+
+  """Mean average of id across the matching connection"""
+  id: BigFloat
+
+  """Mean average of levelDecayedPoints across the matching connection"""
+  levelDecayedPoints: Float
+
+  """Mean average of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """Mean average of levelPoints across the matching connection"""
+  levelPoints: BigFloat
+
+  """Mean average of levelPosition across the matching connection"""
+  levelPosition: BigFloat
+
+  """Mean average of playerDecayedPoints across the matching connection"""
+  playerDecayedPoints: Float
+
+  """Mean average of time across the matching connection"""
+  time: Float
+
+  """Mean average of userId across the matching connection"""
+  userId: BigFloat
+
+  """Mean average of userSteamId across the matching connection"""
+  userSteamId: BigFloat
+}
+
+"""
+A condition to be used against `RecordHistoryEntry` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input RecordHistoryEntryCondition {
+  """Checks for equality with the object’s `contributionRank` field."""
+  contributionRank: Int
+
+  """Checks for equality with the object’s `dateCreated` field."""
+  dateCreated: Datetime
+
+  """Checks for equality with the object’s `hasContribution` field."""
+  hasContribution: Boolean
+
+  """Checks for equality with the object’s `historyView` field."""
+  historyView: String
+
+  """Checks for equality with the object’s `id` field."""
+  id: Int
+
+  """Checks for equality with the object’s `isPersonalBest` field."""
+  isPersonalBest: Boolean
+
+  """Checks for equality with the object’s `isWorldRecord` field."""
+  isWorldRecord: Boolean
+
+  """Checks for equality with the object’s `levelDecayedPoints` field."""
+  levelDecayedPoints: Float
+
+  """Checks for equality with the object’s `levelId` field."""
+  levelId: Int
+
+  """Checks for equality with the object’s `levelName` field."""
+  levelName: String
+
+  """Checks for equality with the object’s `levelPoints` field."""
+  levelPoints: Int
+
+  """Checks for equality with the object’s `levelPosition` field."""
+  levelPosition: Int
+
+  """Checks for equality with the object’s `levelXxHash` field."""
+  levelXxHash: String
+
+  """Checks for equality with the object’s `playerDecayedPoints` field."""
+  playerDecayedPoints: Float
+
+  """Checks for equality with the object’s `time` field."""
+  time: Float
+
+  """Checks for equality with the object’s `userId` field."""
+  userId: Int
+
+  """Checks for equality with the object’s `userName` field."""
+  userName: String
+
+  """Checks for equality with the object’s `userSteamId` field."""
+  userSteamId: BigInt
+}
+
+type RecordHistoryEntryDistinctCountAggregates {
+  """Distinct count of contributionRank across the matching connection"""
+  contributionRank: BigInt
+
+  """Distinct count of dateCreated across the matching connection"""
+  dateCreated: BigInt
+
+  """Distinct count of hasContribution across the matching connection"""
+  hasContribution: BigInt
+
+  """Distinct count of historyView across the matching connection"""
+  historyView: BigInt
+
+  """Distinct count of id across the matching connection"""
+  id: BigInt
+
+  """Distinct count of isPersonalBest across the matching connection"""
+  isPersonalBest: BigInt
+
+  """Distinct count of isWorldRecord across the matching connection"""
+  isWorldRecord: BigInt
+
+  """Distinct count of levelDecayedPoints across the matching connection"""
+  levelDecayedPoints: BigInt
+
+  """Distinct count of levelId across the matching connection"""
+  levelId: BigInt
+
+  """Distinct count of levelName across the matching connection"""
+  levelName: BigInt
+
+  """Distinct count of levelPoints across the matching connection"""
+  levelPoints: BigInt
+
+  """Distinct count of levelPosition across the matching connection"""
+  levelPosition: BigInt
+
+  """Distinct count of levelXxHash across the matching connection"""
+  levelXxHash: BigInt
+
+  """Distinct count of playerDecayedPoints across the matching connection"""
+  playerDecayedPoints: BigInt
+
+  """Distinct count of time across the matching connection"""
+  time: BigInt
+
+  """Distinct count of userId across the matching connection"""
+  userId: BigInt
+
+  """Distinct count of userName across the matching connection"""
+  userName: BigInt
+
+  """Distinct count of userSteamId across the matching connection"""
+  userSteamId: BigInt
+}
+
+"""
+A filter to be used against `RecordHistoryEntry` object types. All fields are combined with a logical ‘and.’
+"""
+input RecordHistoryEntryFilter {
+  """Checks for all expressions in this list."""
+  and: [RecordHistoryEntryFilter!]
+
+  """Filter by the object’s `contributionRank` field."""
+  contributionRank: IntFilter
+
+  """Filter by the object’s `dateCreated` field."""
+  dateCreated: DatetimeFilter
+
+  """Filter by the object’s `hasContribution` field."""
+  hasContribution: BooleanFilter
+
+  """Filter by the object’s `historyView` field."""
+  historyView: StringFilter
+
+  """Filter by the object’s `id` field."""
+  id: IntFilter
+
+  """Filter by the object’s `isPersonalBest` field."""
+  isPersonalBest: BooleanFilter
+
+  """Filter by the object’s `isWorldRecord` field."""
+  isWorldRecord: BooleanFilter
+
+  """Filter by the object’s `levelDecayedPoints` field."""
+  levelDecayedPoints: FloatFilter
+
+  """Filter by the object’s `levelId` field."""
+  levelId: IntFilter
+
+  """Filter by the object’s `levelName` field."""
+  levelName: StringFilter
+
+  """Filter by the object’s `levelPoints` field."""
+  levelPoints: IntFilter
+
+  """Filter by the object’s `levelPosition` field."""
+  levelPosition: IntFilter
+
+  """Filter by the object’s `levelXxHash` field."""
+  levelXxHash: StringFilter
+
+  """Negates the expression."""
+  not: RecordHistoryEntryFilter
+
+  """Checks for any expressions in this list."""
+  or: [RecordHistoryEntryFilter!]
+
+  """Filter by the object’s `playerDecayedPoints` field."""
+  playerDecayedPoints: FloatFilter
+
+  """Filter by the object’s `time` field."""
+  time: FloatFilter
+
+  """Filter by the object’s `userId` field."""
+  userId: IntFilter
+
+  """Filter by the object’s `userName` field."""
+  userName: StringFilter
+
+  """Filter by the object’s `userSteamId` field."""
+  userSteamId: BigIntFilter
+}
+
+"""
+Grouping methods for `RecordHistoryEntry` for usage during aggregation.
+"""
+enum RecordHistoryEntryGroupBy {
+  CONTRIBUTION_RANK
+  DATE_CREATED
+  DATE_CREATED_TRUNCATED_TO_DAY
+  DATE_CREATED_TRUNCATED_TO_HOUR
+  HAS_CONTRIBUTION
+  HISTORY_VIEW
+  ID
+  IS_PERSONAL_BEST
+  IS_WORLD_RECORD
+  LEVEL_DECAYED_POINTS
+  LEVEL_ID
+  LEVEL_NAME
+  LEVEL_POINTS
+  LEVEL_POSITION
+  LEVEL_XX_HASH
+  PLAYER_DECAYED_POINTS
+  TIME
+  USER_ID
+  USER_NAME
+  USER_STEAM_ID
+}
+
+input RecordHistoryEntryHavingAverageInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+input RecordHistoryEntryHavingDistinctCountInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+"""Conditions for `RecordHistoryEntry` aggregates."""
+input RecordHistoryEntryHavingInput {
+  AND: [RecordHistoryEntryHavingInput!]
+  OR: [RecordHistoryEntryHavingInput!]
+  average: RecordHistoryEntryHavingAverageInput
+  distinctCount: RecordHistoryEntryHavingDistinctCountInput
+  max: RecordHistoryEntryHavingMaxInput
+  min: RecordHistoryEntryHavingMinInput
+  stddevPopulation: RecordHistoryEntryHavingStddevPopulationInput
+  stddevSample: RecordHistoryEntryHavingStddevSampleInput
+  sum: RecordHistoryEntryHavingSumInput
+  variancePopulation: RecordHistoryEntryHavingVariancePopulationInput
+  varianceSample: RecordHistoryEntryHavingVarianceSampleInput
+}
+
+input RecordHistoryEntryHavingMaxInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+input RecordHistoryEntryHavingMinInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+input RecordHistoryEntryHavingStddevPopulationInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+input RecordHistoryEntryHavingStddevSampleInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+input RecordHistoryEntryHavingSumInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+input RecordHistoryEntryHavingVariancePopulationInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+input RecordHistoryEntryHavingVarianceSampleInput {
+  contributionRank: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelDecayedPoints: HavingFloatFilter
+  levelId: HavingIntFilter
+  levelPoints: HavingIntFilter
+  levelPosition: HavingIntFilter
+  playerDecayedPoints: HavingFloatFilter
+  time: HavingFloatFilter
+  userId: HavingIntFilter
+  userSteamId: HavingBigintFilter
+}
+
+type RecordHistoryEntryMaxAggregates {
+  """Maximum of contributionRank across the matching connection"""
+  contributionRank: Int
+
+  """Maximum of id across the matching connection"""
+  id: Int
+
+  """Maximum of levelDecayedPoints across the matching connection"""
+  levelDecayedPoints: Float
+
+  """Maximum of levelId across the matching connection"""
+  levelId: Int
+
+  """Maximum of levelPoints across the matching connection"""
+  levelPoints: Int
+
+  """Maximum of levelPosition across the matching connection"""
+  levelPosition: Int
+
+  """Maximum of playerDecayedPoints across the matching connection"""
+  playerDecayedPoints: Float
+
+  """Maximum of time across the matching connection"""
+  time: Float
+
+  """Maximum of userId across the matching connection"""
+  userId: Int
+
+  """Maximum of userSteamId across the matching connection"""
+  userSteamId: BigInt
+}
+
+type RecordHistoryEntryMinAggregates {
+  """Minimum of contributionRank across the matching connection"""
+  contributionRank: Int
+
+  """Minimum of id across the matching connection"""
+  id: Int
+
+  """Minimum of levelDecayedPoints across the matching connection"""
+  levelDecayedPoints: Float
+
+  """Minimum of levelId across the matching connection"""
+  levelId: Int
+
+  """Minimum of levelPoints across the matching connection"""
+  levelPoints: Int
+
+  """Minimum of levelPosition across the matching connection"""
+  levelPosition: Int
+
+  """Minimum of playerDecayedPoints across the matching connection"""
+  playerDecayedPoints: Float
+
+  """Minimum of time across the matching connection"""
+  time: Float
+
+  """Minimum of userId across the matching connection"""
+  userId: Int
+
+  """Minimum of userSteamId across the matching connection"""
+  userSteamId: BigInt
+}
+
+type RecordHistoryEntryStddevPopulationAggregates {
+  """
+  Population standard deviation of contributionRank across the matching connection
+  """
+  contributionRank: BigFloat
+
+  """Population standard deviation of id across the matching connection"""
+  id: BigFloat
+
+  """
+  Population standard deviation of levelDecayedPoints across the matching connection
+  """
+  levelDecayedPoints: Float
+
+  """
+  Population standard deviation of levelId across the matching connection
+  """
+  levelId: BigFloat
+
+  """
+  Population standard deviation of levelPoints across the matching connection
+  """
+  levelPoints: BigFloat
+
+  """
+  Population standard deviation of levelPosition across the matching connection
+  """
+  levelPosition: BigFloat
+
+  """
+  Population standard deviation of playerDecayedPoints across the matching connection
+  """
+  playerDecayedPoints: Float
+
+  """Population standard deviation of time across the matching connection"""
+  time: Float
+
+  """Population standard deviation of userId across the matching connection"""
+  userId: BigFloat
+
+  """
+  Population standard deviation of userSteamId across the matching connection
+  """
+  userSteamId: BigFloat
+}
+
+type RecordHistoryEntryStddevSampleAggregates {
+  """
+  Sample standard deviation of contributionRank across the matching connection
+  """
+  contributionRank: BigFloat
+
+  """Sample standard deviation of id across the matching connection"""
+  id: BigFloat
+
+  """
+  Sample standard deviation of levelDecayedPoints across the matching connection
+  """
+  levelDecayedPoints: Float
+
+  """Sample standard deviation of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """
+  Sample standard deviation of levelPoints across the matching connection
+  """
+  levelPoints: BigFloat
+
+  """
+  Sample standard deviation of levelPosition across the matching connection
+  """
+  levelPosition: BigFloat
+
+  """
+  Sample standard deviation of playerDecayedPoints across the matching connection
+  """
+  playerDecayedPoints: Float
+
+  """Sample standard deviation of time across the matching connection"""
+  time: Float
+
+  """Sample standard deviation of userId across the matching connection"""
+  userId: BigFloat
+
+  """
+  Sample standard deviation of userSteamId across the matching connection
+  """
+  userSteamId: BigFloat
+}
+
+type RecordHistoryEntrySumAggregates {
+  """Sum of contributionRank across the matching connection"""
+  contributionRank: BigInt!
+
+  """Sum of id across the matching connection"""
+  id: BigInt!
+
+  """Sum of levelDecayedPoints across the matching connection"""
+  levelDecayedPoints: Float!
+
+  """Sum of levelId across the matching connection"""
+  levelId: BigInt!
+
+  """Sum of levelPoints across the matching connection"""
+  levelPoints: BigInt!
+
+  """Sum of levelPosition across the matching connection"""
+  levelPosition: BigInt!
+
+  """Sum of playerDecayedPoints across the matching connection"""
+  playerDecayedPoints: Float!
+
+  """Sum of time across the matching connection"""
+  time: Float!
+
+  """Sum of userId across the matching connection"""
+  userId: BigInt!
+
+  """Sum of userSteamId across the matching connection"""
+  userSteamId: BigFloat!
+}
+
+type RecordHistoryEntryVariancePopulationAggregates {
+  """Population variance of contributionRank across the matching connection"""
+  contributionRank: BigFloat
+
+  """Population variance of id across the matching connection"""
+  id: BigFloat
+
+  """
+  Population variance of levelDecayedPoints across the matching connection
+  """
+  levelDecayedPoints: Float
+
+  """Population variance of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """Population variance of levelPoints across the matching connection"""
+  levelPoints: BigFloat
+
+  """Population variance of levelPosition across the matching connection"""
+  levelPosition: BigFloat
+
+  """
+  Population variance of playerDecayedPoints across the matching connection
+  """
+  playerDecayedPoints: Float
+
+  """Population variance of time across the matching connection"""
+  time: Float
+
+  """Population variance of userId across the matching connection"""
+  userId: BigFloat
+
+  """Population variance of userSteamId across the matching connection"""
+  userSteamId: BigFloat
+}
+
+type RecordHistoryEntryVarianceSampleAggregates {
+  """Sample variance of contributionRank across the matching connection"""
+  contributionRank: BigFloat
+
+  """Sample variance of id across the matching connection"""
+  id: BigFloat
+
+  """Sample variance of levelDecayedPoints across the matching connection"""
+  levelDecayedPoints: Float
+
+  """Sample variance of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """Sample variance of levelPoints across the matching connection"""
+  levelPoints: BigFloat
+
+  """Sample variance of levelPosition across the matching connection"""
+  levelPosition: BigFloat
+
+  """Sample variance of playerDecayedPoints across the matching connection"""
+  playerDecayedPoints: Float
+
+  """Sample variance of time across the matching connection"""
+  time: Float
+
+  """Sample variance of userId across the matching connection"""
+  userId: BigFloat
+
+  """Sample variance of userSteamId across the matching connection"""
+  userSteamId: BigFloat
 }
 
 """
@@ -21745,6 +22582,43 @@ type Subscription {
 
   """Get a single `Record`."""
   record(id: Int!): Record
+
+  """Reads and enables pagination through a set of `RecordHistoryEntry`."""
+  recordHistoryEntries(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RecordHistoryEntryCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RecordHistoryEntryFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `RecordHistoryEntry`."""
+    orderBy: [RecordHistoryEntriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): RecordHistoryEntriesConnection
+
+  """Get a single `RecordHistoryEntry`."""
+  recordHistoryEntry(historyView: String!, id: Int!): RecordHistoryEntry
 
   """Get a single `RecordMedia`."""
   recordMedia(recordId: Int!): RecordMedia

@@ -400,6 +400,20 @@
 			"when": 1784585790945,
 			"tag": "0057_broad_swordsman",
 			"breakpoints": true
+		},
+		{
+			"idx": 58,
+			"version": "7",
+			"when": 1784592769184,
+			"tag": "0058_rainy_iceman",
+			"breakpoints": true
+		},
+		{
+			"idx": 59,
+			"version": "7",
+			"when": 1784597031379,
+			"tag": "0059_lethal_lila_cheney",
+			"breakpoints": true
 		}
 	]
 }

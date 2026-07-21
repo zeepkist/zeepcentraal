@@ -1,4 +1,4 @@
-import type { RecordsOrderBy } from '~/graphql/generated/graphql'
+import type { RecordHistoryEntriesOrderBy } from '~/graphql/generated/graphql'
 import type { RecordResultStatus } from '~/types/app'
 
 export const recordHistoryViews = ['recent', 'personal-bests', 'world-records'] as const
@@ -19,16 +19,12 @@ export function normalizeRecordHistorySort(value: unknown): RecordHistorySort {
 		: 'latest'
 }
 
-export function recordHistoryOrder(sort: RecordHistorySort): RecordsOrderBy[] {
+export function recordHistoryOrder(sort: RecordHistorySort): RecordHistoryEntriesOrderBy[] {
 	if (sort === 'valuable-levels') {
-		return ['USER_POINT_CONTRIBUTIONS_MAX_LEVEL_POINTS_DESC', 'DATE_CREATED_DESC', 'ID_DESC']
+		return ['LEVEL_POINTS_DESC', 'DATE_CREATED_DESC', 'ID_DESC']
 	}
 	if (sort === 'valuable-pbs') {
-		return [
-			'USER_POINT_CONTRIBUTIONS_MAX_PLAYER_DECAYED_POINTS_DESC',
-			'DATE_CREATED_DESC',
-			'ID_DESC',
-		]
+		return ['PLAYER_DECAYED_POINTS_DESC', 'DATE_CREATED_DESC', 'ID_DESC']
 	}
 	return ['DATE_CREATED_DESC', 'ID_DESC']
 }
@@ -39,12 +35,11 @@ export function recordHistoryFilter(
 	userId?: number,
 ) {
 	const filter = {
+		historyView: { equalTo: view },
 		...(userId ? { userId: { equalTo: userId } } : {}),
-		...(view === 'personal-bests' ? { personalBestGlobalsExist: true } : {}),
-		...(view === 'world-records' ? { worldRecordGlobalsExist: true } : {}),
-		...(sort === 'latest' ? {} : { userPointContributionsExist: true }),
+		...(sort === 'latest' ? {} : { hasContribution: { equalTo: true } }),
 	}
-	return Object.keys(filter).length > 0 ? filter : undefined
+	return filter
 }
 
 export function getNewRecordIds(known: ReadonlySet<number>, next: Iterable<number>) {

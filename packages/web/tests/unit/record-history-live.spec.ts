@@ -9,8 +9,8 @@ import {
 describe('live record history', () => {
 	it('uses same inclusive view filters as static history', () => {
 		expect(recordHistoryFilter('personal-bests', 'latest', 42)).toEqual({
+			historyView: { equalTo: 'personal-bests' },
 			userId: { equalTo: 42 },
-			personalBestGlobalsExist: true,
 		})
 	})
 
@@ -19,7 +19,7 @@ describe('live record history', () => {
 			new URL('../../app/graphql/subscriptions/recordHistoryLive.graphql', import.meta.url),
 			'utf8',
 		)
-		expect(subscription).toContain('records(first: 25')
+		expect(subscription).toContain('recordHistoryEntries(first: 25')
 		expect(subscription).toContain('orderBy: [DATE_CREATED_DESC, ID_DESC]')
 		expect(subscription).not.toContain('after:')
 		expect(subscription).not.toContain('before:')
@@ -28,8 +28,9 @@ describe('live record history', () => {
 			new URL('../../app/graphql/queries/recordHistory.graphql', import.meta.url),
 			'utf8',
 		)
-		expect(query).toContain('personalBestGlobals(first: 0)')
-		expect(query).toContain('worldRecordGlobals(first: 0)')
+		expect(query).toContain('isPersonalBest')
+		expect(query).toContain('isWorldRecord')
+		expect(query.slice(query.indexOf('query ZC_RecordHistory('))).not.toContain('totalCount')
 	})
 
 	it('activates only after mount for Latest on first page with static data', () => {
@@ -39,7 +40,7 @@ describe('live record history', () => {
 		)
 		expect(composable).toContain("options.sort.value === 'latest'")
 		expect(composable).toContain('pagination.isFirstPage.value')
-		expect(composable).toContain('result.data.value?.records !== undefined')
+		expect(composable).toContain('result.data.value?.recordHistoryEntries !== undefined')
 		expect(composable).toContain('onMounted(() =>')
 		expect(composable).toContain('import.meta.server || !liveEnabled.value')
 		expect(composable).toContain('liveSnapshot.value')

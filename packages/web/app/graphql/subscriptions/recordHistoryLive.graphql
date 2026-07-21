@@ -1,5 +1,5 @@
-subscription ZC_RecordHistoryLive($filter: RecordFilter) {
-	records(first: 25, filter: $filter, orderBy: [DATE_CREATED_DESC, ID_DESC]) {
+subscription ZC_RecordHistoryLive($filter: RecordHistoryEntryFilter) {
+	recordHistoryEntries(first: 25, filter: $filter, orderBy: [DATE_CREATED_DESC, ID_DESC]) {
 		edges {
 			cursor
 			node {
@@ -12,6 +12,5 @@ subscription ZC_RecordHistoryLive($filter: RecordFilter) {
 			hasNextPage
 			hasPreviousPage
 		}
-		totalCount
 	}
 }

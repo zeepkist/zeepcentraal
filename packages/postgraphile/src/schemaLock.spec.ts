@@ -51,6 +51,34 @@ describe('PostGraphile schema lock', () => {
 		}
 	})
 
+	test('published schema exposes flattened read-only record history', async () => {
+		const publishedSchema = buildSchema(
+			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),
+		)
+		const query = publishedSchema.getQueryType()?.getFields()
+		const subscription = publishedSchema.getSubscriptionType()?.getFields()
+		const entry = publishedSchema.getType('RecordHistoryEntry')
+
+		expect(query?.recordHistoryEntries).toBeDefined()
+		expect(subscription?.recordHistoryEntries).toBeDefined()
+		expect(entry && 'getFields' in entry ? Object.keys(entry.getFields()) : []).toEqual(
+			expect.arrayContaining([
+				'historyView',
+				'id',
+				'userSteamId',
+				'levelXxHash',
+				'levelName',
+				'levelPosition',
+				'contributionRank',
+				'levelPoints',
+				'levelDecayedPoints',
+				'playerDecayedPoints',
+				'isPersonalBest',
+				'isWorldRecord',
+			]),
+		)
+	})
+
 	test('matches published GraphQL schema when schema lock is enabled', async () => {
 		if (process.env.POSTGRAPHILE_SCHEMA_LOCK !== '1') {
 			return

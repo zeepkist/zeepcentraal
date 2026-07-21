@@ -19,30 +19,33 @@ describe('record history', () => {
 	})
 
 	it('includes world records in the personal best view', () => {
-		expect(recordHistoryFilter('recent', 'latest')).toBeUndefined()
+		expect(recordHistoryFilter('recent', 'latest')).toEqual({
+			historyView: { equalTo: 'recent' },
+		})
 		expect(recordHistoryFilter('personal-bests', 'latest', 42)).toEqual({
+			historyView: { equalTo: 'personal-bests' },
 			userId: { equalTo: 42 },
-			personalBestGlobalsExist: true,
 		})
 		expect(recordHistoryFilter('world-records', 'latest')).toEqual({
-			worldRecordGlobalsExist: true,
+			historyView: { equalTo: 'world-records' },
 		})
 	})
 
 	it('uses deterministic latest and contribution value ordering', () => {
 		expect(recordHistoryOrder('latest')).toEqual(['DATE_CREATED_DESC', 'ID_DESC'])
 		expect(recordHistoryOrder('valuable-levels')).toEqual([
-			'USER_POINT_CONTRIBUTIONS_MAX_LEVEL_POINTS_DESC',
+			'LEVEL_POINTS_DESC',
 			'DATE_CREATED_DESC',
 			'ID_DESC',
 		])
 		expect(recordHistoryOrder('valuable-pbs')).toEqual([
-			'USER_POINT_CONTRIBUTIONS_MAX_PLAYER_DECAYED_POINTS_DESC',
+			'PLAYER_DECAYED_POINTS_DESC',
 			'DATE_CREATED_DESC',
 			'ID_DESC',
 		])
 		expect(recordHistoryFilter('recent', 'valuable-levels')).toEqual({
-			userPointContributionsExist: true,
+			historyView: { equalTo: 'recent' },
+			hasContribution: { equalTo: true },
 		})
 	})
 
@@ -60,7 +63,8 @@ describe('record history', () => {
 		expect(query).not.toContain('user(id: $id)')
 		expect(query).toContain('$first: Int')
 		expect(query).toContain('$after: Cursor')
-		expect(query).toContain('$orderBy: [RecordsOrderBy!]!')
+		expect(query).toContain('$orderBy: [RecordHistoryEntriesOrderBy!]!')
+		expect(query).toContain('recordHistoryEntries(')
 		expect(query).toContain('orderBy: $orderBy')
 		expect(query).toContain('contributionRank')
 		expect(query).toContain('levelPoints')
@@ -71,13 +75,13 @@ describe('record history', () => {
 			new URL('../../app/composables/useRecordHistory.ts', import.meta.url),
 			'utf8',
 		)
-		expect(composable).toContain('levelPoints: contribution?.levelPoints')
-		expect(composable).toContain('levelDecayedPoints: contribution?.levelDecayedPoints')
-		expect(composable).toContain('playerDecayedPoints: contribution?.playerDecayedPoints')
+		expect(composable).toContain('levelPoints: node.levelPoints')
+		expect(composable).toContain('levelDecayedPoints: node.levelDecayedPoints')
+		expect(composable).toContain('playerDecayedPoints: node.playerDecayedPoints')
 		expect(composable).toContain(
-			'calculateDecayMultiplier(contribution.levelPosition, LEVEL_DECAY_FACTOR)',
+			'calculateDecayMultiplier(node.levelPosition, LEVEL_DECAY_FACTOR)',
 		)
-		expect(composable).toContain('contribution.contributionRank,')
+		expect(composable).toContain('node.contributionRank,')
 		expect(composable).toContain('GLOBAL_DECAY_FACTOR,')
 	})
 

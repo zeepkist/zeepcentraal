@@ -4,42 +4,24 @@ query ZC_MyRecordCount($id: Int!) {
 	}
 }
 
-fragment ZC_RecordHistoryRow on Record {
+fragment ZC_RecordHistoryRow on RecordHistoryEntry {
 	id
 	time
 	dateCreated
 	levelId
 	userId
-	user {
-		steamId
-		steamName
-	}
-	level {
-		xxHash
-		levelPoints {
-			points
-		}
-		levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
-			nodes {
-				name
-			}
-		}
-	}
-	userPointContributions(first: 1) {
-		nodes {
-			levelPosition
-			contributionRank
-			levelPoints
-			playerDecayedPoints
-			levelDecayedPoints
-		}
-	}
-	personalBestGlobals(first: 0) {
-		totalCount
-	}
-	worldRecordGlobals(first: 0) {
-		totalCount
-	}
+	userSteamId
+	userName
+	levelXxHash
+	levelName
+	levelPosition
+	contributionRank
+	levelPoints
+	playerDecayedPoints
+	levelDecayedPoints
+	isPersonalBest
+	isWorldRecord
+	hasContribution
 }
 
 query ZC_RecordHistory(
@@ -47,10 +29,10 @@ query ZC_RecordHistory(
 	$after: Cursor
 	$last: Int
 	$before: Cursor
-	$filter: RecordFilter
-	$orderBy: [RecordsOrderBy!]!
+	$filter: RecordHistoryEntryFilter
+	$orderBy: [RecordHistoryEntriesOrderBy!]!
 ) {
-	records(
+	recordHistoryEntries(
 		first: $first
 		after: $after
 		last: $last
@@ -70,6 +52,5 @@ query ZC_RecordHistory(
 			hasNextPage
 			hasPreviousPage
 		}
-		totalCount
 	}
 }

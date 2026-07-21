@@ -123,6 +123,6 @@ describe('record rank fallback', () => {
 		expect(rankQuery).toContain('personalBestGlobalsExist: true')
 		expect(rankQuery).toContain('time: { lessThan: $time }')
 		expect(rankQuery).not.toContain('nodes {')
-		expect(historyQuery).toMatch(/levelPoints\s*\{\s*points\s*\}/)
+		expect(historyQuery).toMatch(/\n\tlevelPoints\n/)
 	})
 })

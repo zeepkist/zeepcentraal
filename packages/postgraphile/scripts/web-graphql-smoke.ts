@@ -93,7 +93,7 @@ export async function runWebGraphqlSmoke({
 	const windows = smokeTimeWindows(now)
 	const metricWindows = { daySince: windows.daySince, monthSince: windows.monthSince }
 	const recordHistory = await execute('ZC_RecordHistory', {
-		filter: { user: { banned: { equalTo: false } } },
+		filter: { historyView: { equalTo: 'recent' } },
 		first: 1,
 		orderBy: ['DATE_CREATED_DESC', 'ID_DESC'],
 	})
@@ -213,15 +213,13 @@ function smokeTimeWindows(now: Date) {
 }
 
 function readRecordSeed(data: unknown): PublicRecordSeed {
-	const node = requireFirstEdgeNode(data, ['records'])
-	const level = requireObjectAtPath(node, ['level'])
-	const user = requireObjectAtPath(node, ['user'])
+	const node = requireFirstEdgeNode(data, ['recordHistoryEntries'])
 	return {
 		levelId: requireScalar(node, 'levelId', 'number') as number,
 		recordId: requireScalar(node, 'id', 'number') as number,
-		steamId: requireScalar(user, 'steamId', 'string') as string,
+		steamId: requireScalar(node, 'userSteamId', 'string') as string,
 		userId: requireScalar(node, 'userId', 'number') as number,
-		xxHash: requireScalar(level, 'xxHash', 'string') as string,
+		xxHash: requireScalar(node, 'levelXxHash', 'string') as string,
 	}
 }
 

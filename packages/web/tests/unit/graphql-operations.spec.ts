@@ -38,6 +38,7 @@ describe('GraphQL operation conventions', () => {
 			'levelItems',
 			'levels',
 			'personalBestGlobals',
+			'recordHistoryEntries',
 			'records',
 			'recordStatistics',
 			'users',

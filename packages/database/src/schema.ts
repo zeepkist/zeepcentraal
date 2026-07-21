@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
 	bigint,
 	boolean,
+	check,
 	doublePrecision,
 	foreignKey,
 	index,
@@ -11,6 +12,7 @@ import {
 	pgRole,
 	pgSchema,
 	pgTable,
+	pgView,
 	primaryKey,
 	real,
 	smallint,
@@ -166,6 +168,14 @@ export const levelItem = pgTable(
 				table.id.desc().nullsLast(),
 			)
 			.where(sql`${table.publiclyVisible} = true`),
+		index('IX_level_item_public_level_updated_active')
+			.using(
+				'btree',
+				table.idLevel.asc().nullsLast(),
+				table.updatedAt.desc().nullsLast(),
+				table.id.desc().nullsLast(),
+			)
+			.where(sql`${table.publiclyVisible} = true AND ${table.deleted} = false`),
 		index('IX_level_item_public_workshop')
 			.using('btree', table.workshopId.asc().nullsLast(), table.id.asc().nullsLast())
 			.where(sql`${table.publiclyVisible} = true`),
@@ -566,6 +576,22 @@ export const userPointContribution = pgTable(
 			table.idUser.asc().nullsLast(),
 			table.playerDecayedPoints.desc().nullsLast(),
 			table.idLevel.asc().nullsLast(),
+		),
+		index('IX_user_point_contribution_player_value_record').using(
+			'btree',
+			table.playerDecayedPoints.desc().nullsLast(),
+			table.idRecord.desc().nullsLast(),
+		),
+		index('IX_user_point_contribution_level_value_record').using(
+			'btree',
+			table.levelPoints.desc().nullsLast(),
+			table.idRecord.desc().nullsLast(),
+		),
+		index('IX_user_point_contribution_user_level_value_record').using(
+			'btree',
+			table.idUser.asc().nullsLast(),
+			table.levelPoints.desc().nullsLast(),
+			table.idRecord.desc().nullsLast(),
 		),
 		index('IX_user_point_contribution_user_wr_value_level')
 			.using(
@@ -1001,6 +1027,144 @@ export const worldRecordGlobal = pgTable(
 		),
 	],
 )
+
+export const recordHistoryIndex = zcPrivate.table(
+	'record_history_index',
+	{
+		historyView: text('history_view').notNull(),
+		id: integer().notNull(),
+		time: real().notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' }).notNull(),
+		levelId: integer('level_id').notNull(),
+		userId: integer('user_id').notNull(),
+		levelPosition: integer('level_position'),
+		contributionRank: integer('contribution_rank'),
+		levelPoints: integer('level_points'),
+		levelDecayedPoints: real('level_decayed_points'),
+		playerDecayedPoints: real('player_decayed_points'),
+		isPersonalBest: boolean('is_personal_best').notNull().default(false),
+		isWorldRecord: boolean('is_world_record').notNull().default(false),
+		hasContribution: boolean('has_contribution').notNull().default(false),
+	},
+	(table) => [
+		primaryKey({ columns: [table.historyView, table.id] }),
+		foreignKey({
+			columns: [table.id],
+			foreignColumns: [record.id],
+			name: 'record_history_index_record_fkey',
+		}).onDelete('cascade'),
+		check(
+			'CK_record_history_index_view',
+			sql`${table.historyView} IN ('recent', 'personal-bests', 'world-records')`,
+		),
+		index('IX_record_history_index_latest').using(
+			'btree',
+			table.historyView.asc().nullsLast(),
+			table.dateCreated.desc().nullsFirst(),
+			table.id.desc().nullsFirst(),
+		),
+		index('IX_record_history_index_user_latest').using(
+			'btree',
+			table.historyView.asc().nullsLast(),
+			table.userId.asc().nullsLast(),
+			table.dateCreated.desc().nullsFirst(),
+			table.id.desc().nullsFirst(),
+		),
+		index('IX_record_history_index_player_value').using(
+			'btree',
+			table.historyView.asc().nullsLast(),
+			table.hasContribution.asc().nullsLast(),
+			table.playerDecayedPoints.desc().nullsFirst(),
+			table.dateCreated.desc().nullsFirst(),
+			table.id.desc().nullsFirst(),
+		),
+		index('IX_record_history_index_user_player_value').using(
+			'btree',
+			table.historyView.asc().nullsLast(),
+			table.userId.asc().nullsLast(),
+			table.hasContribution.asc().nullsLast(),
+			table.playerDecayedPoints.desc().nullsFirst(),
+			table.dateCreated.desc().nullsFirst(),
+			table.id.desc().nullsFirst(),
+		),
+		index('IX_record_history_index_level_value').using(
+			'btree',
+			table.historyView.asc().nullsLast(),
+			table.hasContribution.asc().nullsLast(),
+			table.levelPoints.desc().nullsFirst(),
+			table.dateCreated.desc().nullsFirst(),
+			table.id.desc().nullsFirst(),
+		),
+		index('IX_record_history_index_user_level_value').using(
+			'btree',
+			table.historyView.asc().nullsLast(),
+			table.userId.asc().nullsLast(),
+			table.hasContribution.asc().nullsLast(),
+			table.levelPoints.desc().nullsFirst(),
+			table.dateCreated.desc().nullsFirst(),
+			table.id.desc().nullsFirst(),
+		),
+	],
+)
+
+const recordHistoryEntryColumns = {
+	historyView: text('history_view').notNull(),
+	id: integer().notNull(),
+	time: real().notNull(),
+	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' }).notNull(),
+	levelId: integer('level_id').notNull(),
+	userId: integer('user_id').notNull(),
+	userSteamId: bigint('user_steam_id', { mode: 'bigint' }),
+	userName: varchar('user_name', { length: 255 }),
+	levelXxHash: text('level_xx_hash').notNull(),
+	levelName: text('level_name'),
+	levelPosition: integer('level_position'),
+	contributionRank: integer('contribution_rank'),
+	levelPoints: integer('level_points'),
+	levelDecayedPoints: real('level_decayed_points'),
+	playerDecayedPoints: real('player_decayed_points'),
+	isPersonalBest: boolean('is_personal_best').notNull(),
+	isWorldRecord: boolean('is_world_record').notNull(),
+	hasContribution: boolean('has_contribution').notNull(),
+}
+
+const recordHistoryEntryProjection = sql`
+	SELECT
+		history_entry.history_view,
+		history_entry.id,
+		history_entry.time,
+		history_entry.date_created,
+		history_entry.level_id,
+		history_entry.user_id,
+		record_user.steam_id AS user_steam_id,
+		record_user.steam_name AS user_name,
+		record_level.xx_hash AS level_xx_hash,
+		visible_level_item.name AS level_name,
+		history_entry.level_position,
+		history_entry.contribution_rank,
+		history_entry.level_points,
+		history_entry.level_decayed_points,
+		history_entry.player_decayed_points,
+		history_entry.is_personal_best,
+		history_entry.is_world_record,
+		history_entry.has_contribution
+	FROM zc_private.record_history_index AS history_entry
+	INNER JOIN public."user" AS record_user ON record_user.id = history_entry.user_id
+	INNER JOIN public.level AS record_level ON record_level.id = history_entry.level_id
+	LEFT JOIN LATERAL (
+		SELECT candidate_level_item.name
+		FROM public.level_item AS candidate_level_item
+		WHERE candidate_level_item.id_level = history_entry.level_id
+			AND candidate_level_item.publicly_visible = true
+			AND candidate_level_item.deleted = false
+		ORDER BY candidate_level_item.updated_at DESC, candidate_level_item.id DESC
+		LIMIT 1
+	) AS visible_level_item ON true
+`
+
+export const recordHistoryEntry = pgView('record_history_entry', recordHistoryEntryColumns)
+	.with({ securityInvoker: true })
+	.as(recordHistoryEntryProjection)
 
 /**
  * ZSL Points Structure

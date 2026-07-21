@@ -43,36 +43,42 @@ function pageInfo(
 
 function mapRows(edges?: Array<{ node: Zc_RecordHistoryRowFragment }>): RecordHistoryRow[] {
 	return (edges ?? []).flatMap(({ node }) => {
-		if (!node.level) return []
-		const contribution = node.userPointContributions.nodes[0]
+		if (
+			node.time == null ||
+			node.dateCreated == null ||
+			node.levelId == null ||
+			node.userId == null ||
+			node.levelXxHash == null
+		) {
+			return []
+		}
 		return [
 			{
 				id: node.id,
 				time: node.time,
 				dateCreated: String(node.dateCreated),
 				userId: node.userId,
-				userSteamId: node.user?.steamId ? String(node.user.steamId) : null,
-				userName: node.user?.steamName,
+				userSteamId: node.userSteamId ? String(node.userSteamId) : null,
+				userName: node.userName,
 				levelId: node.levelId,
-				levelXxHash: node.level.xxHash,
-				levelName: getLevelDisplayName(
-					node.level.levelItems.nodes[0]?.name,
-					node.level.xxHash,
-				),
-				levelPosition: contribution?.levelPosition,
-				contributionRank: contribution?.contributionRank,
-				levelPoints: contribution?.levelPoints ?? node.level.levelPoints?.points,
-				levelDecayedPoints: contribution?.levelDecayedPoints,
-				playerDecayedPoints: contribution?.playerDecayedPoints,
-				levelDecayMultiplier: contribution
-					? calculateDecayMultiplier(contribution.levelPosition, LEVEL_DECAY_FACTOR)
-					: undefined,
-				globalDecayMultiplier: contribution
-					? calculateDecayMultiplier(contribution.contributionRank, GLOBAL_DECAY_FACTOR)
-					: undefined,
+				levelXxHash: node.levelXxHash,
+				levelName: getLevelDisplayName(node.levelName, node.levelXxHash),
+				levelPosition: node.levelPosition,
+				contributionRank: node.contributionRank,
+				levelPoints: node.levelPoints,
+				levelDecayedPoints: node.levelDecayedPoints,
+				playerDecayedPoints: node.playerDecayedPoints,
+				levelDecayMultiplier:
+					node.hasContribution && node.levelPosition != null
+						? calculateDecayMultiplier(node.levelPosition, LEVEL_DECAY_FACTOR)
+						: undefined,
+				globalDecayMultiplier:
+					node.hasContribution && node.contributionRank != null
+						? calculateDecayMultiplier(node.contributionRank, GLOBAL_DECAY_FACTOR)
+						: undefined,
 				pbOrWr: getRecordResultStatus(
-					node.personalBestGlobals.totalCount,
-					node.worldRecordGlobals.totalCount,
+					node.isPersonalBest ? 1 : 0,
+					node.isWorldRecord ? 1 : 0,
 				),
 			},
 		]
@@ -112,7 +118,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		() =>
 			options.sort.value === 'latest' &&
 			pagination.isFirstPage.value &&
-			result.data.value?.records !== undefined &&
+			result.data.value?.recordHistoryEntries !== undefined &&
 			(options.userId === undefined || options.userId.value !== undefined),
 	)
 	const liveEnabled = computed(() => mounted.value && liveEligible.value)
@@ -132,7 +138,9 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		(_previous: LivePacket | undefined, data): LivePacket => ({ key: liveKey.value, data }),
 	)
 	const liveSnapshot = computed(() =>
-		live.data.value?.key === liveKey.value ? live.data.value.data.records : undefined,
+		live.data.value?.key === liveKey.value
+			? live.data.value.data.recordHistoryEntries
+			: undefined,
 	)
 	const liveReady = computed(
 		() => liveEnabled.value && liveSnapshot.value !== undefined && !live.error.value,
@@ -143,7 +151,9 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		return liveReady.value ? ('live' as const) : ('connecting' as const)
 	})
 	const records = computed(
-		() => (liveEnabled.value ? liveSnapshot.value : undefined) ?? result.data.value?.records,
+		() =>
+			(liveEnabled.value ? liveSnapshot.value : undefined) ??
+			result.data.value?.recordHistoryEntries,
 	)
 	const rawRows = computed(() => mapRows(records.value?.edges))
 	const rows = useRecordRankFallback(rawRows)
@@ -179,8 +189,10 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 	watch(
 		() => live.data.value,
 		(packet) => {
-			if (!packet || packet.key !== liveKey.value || !packet.data.records) return
-			const nextIds = new Set(packet.data.records.edges.map(({ node }) => node.id))
+			if (!packet || packet.key !== liveKey.value || !packet.data.recordHistoryEntries) return
+			const nextIds = new Set(
+				packet.data.recordHistoryEntries.edges.map(({ node }) => node.id),
+			)
 			if (packetKey !== packet.key) {
 				packetKey = packet.key
 				knownRecordIds = nextIds
@@ -192,7 +204,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 				const added = new Set(newRecordIds)
 				newRecordBatch.value = {
 					sequence: ++updateSequence,
-					records: mapRows(packet.data.records.edges).filter((record) =>
+					records: mapRows(packet.data.recordHistoryEntries.edges).filter((record) =>
 						added.has(record.id),
 					),
 				}
