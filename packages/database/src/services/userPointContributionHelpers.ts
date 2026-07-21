@@ -13,6 +13,10 @@ function normalizedPoints(value: number): number {
 	return Math.round(value * 1000)
 }
 
+export function sortedUniqueUserIds(idUsers: readonly number[]): number[] {
+	return [...new Set(idUsers)].toSorted((left, right) => left - right)
+}
+
 export function userPointContributionFingerprint(
 	contributions: Omit<UserPointContributionInput, 'idUser'>[],
 ): string {

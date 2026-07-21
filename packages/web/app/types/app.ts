@@ -67,7 +67,6 @@ export type LevelSummary = {
 	rating?: number | null
 	voteCount?: number
 	competitiveness?: number | null
-	popularity?: number | null
 	recordCount?: number
 	personalBestCount?: number
 	worldRecordTime?: number | null
@@ -85,58 +84,21 @@ export type LevelWorldRecordSummary = {
 }
 
 export type LevelScoreInsights = {
-	sampleSize?: number | null
-	leaderboardConfidence?: number | null
-	inputSampleSize?: number | null
-	inputCoverage?: number | null
-	airSampleSize?: number | null
-	wheelSampleSize?: number | null
-	slipSampleSize?: number | null
-	ragdollSampleSize?: number | null
-	stateSampleSize?: number | null
-	surfaceSampleSize?: number | null
-	velocitySampleSize?: number | null
-	competitivenessScore?: number | null
-	worldRecordDifficultyScore?: number | null
-	participationScore?: number | null
+	competitiveMerit?: number | null
+	complexityConfidence?: number | null
+	complexityScore?: number | null
+	evidenceModifier?: number | null
+	fieldStrength?: number | null
+	lengthModifier?: number | null
+	qualityModifier?: number | null
+	qualityScore?: number | null
+	skillAlignment?: number | null
+	skillConfidence?: number | null
+	skillSampleSize?: number | null
+	skillScore?: number | null
+	skillSeparation?: number | null
 	voteAdjustment?: number | null
-	passivePlaySeverity?: number | null
-	afkModifier?: number | null
-	passiveRunRatio?: number | null
-	passiveTop10Share?: number | null
-	bestPassiveRank?: number | null
-	bestPassiveGap?: number | null
-	driverEngagementScore?: number | null
-	worldRecordMargin?: number | null
-	top5Spread?: number | null
-	top10Spread?: number | null
-	top50Spread?: number | null
-	wrChallengerCount?: number | null
-	worldRecordOptimizationScore?: number | null
-	leaderboardAnomalyScore?: number | null
-	telemetryAnomalyScore?: number | null
 	worldRecordExcluded?: boolean | null
-	pathConsistencyScore?: number | null
-	speedConsistencyScore?: number | null
-	routeConsistencyScore?: number | null
-	surfaceDiversityScore?: number | null
-	matureVoteCount?: number | null
-	typicalDistance?: number | null
-	typicalAverageSpeed?: number | null
-	typicalMaxSpeed?: number | null
-	typicalAirTimeShare?: number | null
-	typicalGroundTimeShare?: number | null
-	typicalSlipShare?: number | null
-	typicalRagdollShare?: number | null
-	typicalAverageAngularVelocity?: number | null
-	typicalAverageGforce?: number | null
-	medianSteeringShare?: number | null
-	q25SteeringShare?: number | null
-	lowSteeringRatio?: number | null
-	zeroControlRatio?: number | null
-	medianBrakeShare?: number | null
-	medianArmsUpShare?: number | null
-	medianControlTransitionRate?: number | null
 }
 
 export type UserSummary = {

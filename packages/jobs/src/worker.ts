@@ -66,7 +66,10 @@ export function startCrons(
 				void addJob(task, payload, {
 					...defaultJobOptions,
 					...('spec' in cronTask ? cronTask.spec : {}),
-					jobKey: `cron:${task}`,
+					jobKey:
+						'spec' in cronTask && 'jobKey' in cronTask.spec
+							? cronTask.spec.jobKey
+							: `cron:${task}`,
 					jobKeyMode: 'preserve_run_at',
 				}).catch((error) => {
 					console.error(`Cron enqueue failed for ${task}:`, error)

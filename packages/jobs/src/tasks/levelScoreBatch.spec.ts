@@ -6,19 +6,23 @@ let personalBestRows: unknown[] = []
 let matureVotes = new Map<number, number[]>()
 
 const getLevelWorkshopAvailabilities = mock(async () => availability)
-const getLevelPointsByIds = mock(async () => [{ idLevel: 1, points: 100 }])
-const getPersonalBestsWithRecordByLevelIds = mock(async () => personalBestRows)
+const getLevelPointValuesByIds = mock(async () => [{ idLevel: 1, points: 100 }])
+const getLevelSkillMetricsByLevelIds = mock(async () => new Map())
+const getV2ScorePersonalBestsByLevelIds = mock(async () => personalBestRows)
 const getVoteValuesByLevelIds = mock(
 	async (_idLevels: number[], _eligibleBefore?: string) => matureVotes,
 )
-const setLevelPointsToZeroBulk = mock(async (_ids: number[]) => {})
-const upsertLevelPointsBulk = mock(async (_updates: unknown[]) => {})
+const setLevelPointsToZeroBulk = mock(async (ids: number[]) => ids)
+const upsertLevelPointsBulk = mock(async (updates: Array<{ idLevel: number }>) =>
+	updates.map((update) => update.idLevel),
+)
 const refreshCachedLevelLeaderboards = mock(async () => {})
 
 mock.module('@zeepkist/database', () => ({
 	getLevelWorkshopAvailabilities,
-	getLevelPointsByIds,
-	getPersonalBestsWithRecordByLevelIds,
+	getLevelPointValuesByIds,
+	getLevelSkillMetricsByLevelIds,
+	getV2ScorePersonalBestsByLevelIds,
 	getVoteValuesByLevelIds,
 	setLevelPointsToZeroBulk,
 	upsertLevelPointsBulk,
@@ -35,8 +39,9 @@ beforeEach(() => {
 	personalBestRows = []
 	matureVotes = new Map()
 	getLevelWorkshopAvailabilities.mockClear()
-	getLevelPointsByIds.mockClear()
-	getPersonalBestsWithRecordByLevelIds.mockClear()
+	getLevelPointValuesByIds.mockClear()
+	getLevelSkillMetricsByLevelIds.mockClear()
+	getV2ScorePersonalBestsByLevelIds.mockClear()
 	getVoteValuesByLevelIds.mockClear()
 	setLevelPointsToZeroBulk.mockClear()
 	upsertLevelPointsBulk.mockClear()
@@ -44,12 +49,13 @@ beforeEach(() => {
 })
 
 test('loads only votes unchanged for at least seven days', async () => {
+	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
 	const before = Date.now()
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
 		personalBestCountPercentile: 0,
-		logger: {} as never,
+		logger: { info: mock(() => {}) } as never,
 	})
 
 	const after = Date.now()
@@ -61,7 +67,7 @@ test('loads only votes unchanged for at least seven days', async () => {
 	expect(cutoff).toBeLessThanOrEqual(after - VOTE_RATING_MATURITY_MS)
 })
 
-test('persists explainable score and telemetry metrics', async () => {
+test('persists only retained V2 score fields', async () => {
 	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
 	personalBestRows = [
 		{
@@ -84,27 +90,69 @@ test('persists explainable score and telemetry metrics', async () => {
 	await updateLevelScoreBatch({
 		idLevels: [1],
 		personalBestCountPercentile: 100,
-		logger: {} as never,
+		logger: { info: mock(() => {}) } as never,
 	})
 
 	const updates = upsertLevelPointsBulk.mock.calls[0]?.[0] as Array<Record<string, unknown>>
 	expect(updates).toHaveLength(1)
+	expect(Object.keys(updates[0] ?? {}).toSorted()).toEqual([
+		'competitiveMerit',
+		'competitivenessModifier',
+		'complexityConfidence',
+		'complexityScore',
+		'evidenceModifier',
+		'fieldStrength',
+		'idLevel',
+		'lengthModifier',
+		'points',
+		'qualityModifier',
+		'qualityScore',
+		'rating',
+		'ratingModifier',
+		'skillAlignment',
+		'skillConfidence',
+		'skillSampleSize',
+		'skillScore',
+		'skillSeparation',
+		'worldRecordExcluded',
+	])
 	expect(updates[0]).toMatchObject({
+		complexityScore: 0.5,
+		evidenceModifier: expect.any(Number),
 		idLevel: 1,
-		sampleSize: 1,
-		inputSampleSize: 0,
-		inputCoverage: 0,
-		airSampleSize: 0,
-		wheelSampleSize: 0,
-		slipSampleSize: 0,
-		ragdollSampleSize: 0,
-		matureVoteCount: 2,
-		modifierAfk: null,
-		passivePlaySeverity: null,
+		qualityModifier: expect.any(Number),
+		skillScore: 0.5,
 		worldRecordExcluded: false,
 	})
-	expect(updates[0]?.competitivenessModifier).toBeNumber()
-	expect(updates[0]).not.toHaveProperty('scoreVersion')
+})
+
+test('skips score evidence reads for unavailable levels', async () => {
+	availability = new Map([[1, { adventure: false, itemCount: 1, accessibleItemCount: 0 }]])
+
+	await updateLevelScoreBatch({
+		idLevels: [1],
+		personalBestCountPercentile: 100,
+		logger: { info: mock(() => {}) } as never,
+	})
+
+	expect(getV2ScorePersonalBestsByLevelIds).not.toHaveBeenCalled()
+	expect(getLevelSkillMetricsByLevelIds).not.toHaveBeenCalled()
+	expect(getVoteValuesByLevelIds).not.toHaveBeenCalled()
+	expect(setLevelPointsToZeroBulk).toHaveBeenCalledWith([1])
+})
+
+test('refreshes cached leaderboards only when awarded points change', async () => {
+	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
+	getLevelPointValuesByIds.mockImplementationOnce(async () => [{ idLevel: 1, points: 0 }])
+
+	await updateLevelScoreBatch({
+		idLevels: [1],
+		personalBestCountPercentile: 100,
+		logger: { info: mock(() => {}) } as never,
+	})
+
+	expect(upsertLevelPointsBulk).toHaveBeenCalledTimes(1)
+	expect(refreshCachedLevelLeaderboards).not.toHaveBeenCalled()
 })
 
 test('report-only mode logs proposed deltas without writing scores', async () => {
@@ -133,7 +181,7 @@ test('report-only mode logs proposed deltas without writing scores', async () =>
 	})
 
 	expect(result).toEqual({ updated: 0, zeroed: 0, reported: 1 })
-	expect(getLevelPointsByIds).toHaveBeenCalledWith([1])
+	expect(getLevelPointValuesByIds).toHaveBeenCalledWith([1])
 	expect(upsertLevelPointsBulk).not.toHaveBeenCalled()
 	expect(setLevelPointsToZeroBulk).not.toHaveBeenCalled()
 	expect(refreshCachedLevelLeaderboards).not.toHaveBeenCalled()

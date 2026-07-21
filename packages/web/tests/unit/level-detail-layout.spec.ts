@@ -36,13 +36,20 @@ const tooltip = readFileSync(
 )
 
 describe('compact level detail layout', () => {
-	it('keeps only score-relevant legacy modifiers', () => {
-		for (const field of ['cutPenalty', 'modifierLength', 'modifierPopularity']) {
+	it('keeps only active V2 and metric-only modifiers', () => {
+		for (const field of ['cutPenalty', 'modifierPopularity']) {
 			expect(detailQuery).not.toContain(field)
 			expect(page).not.toContain(field)
 		}
-		expect(detailQuery).toContain('modifierCompetitiveness')
-		expect(detailQuery).toContain('modifierRating')
+		for (const field of [
+			'modifierLength',
+			'modifierEvidence',
+			'modifierQuality',
+			'modifierRating',
+			'modifierCompetitiveness',
+		]) {
+			expect(detailQuery).toContain(field)
+		}
 		expect(points).not.toContain('metrics:')
 	})
 

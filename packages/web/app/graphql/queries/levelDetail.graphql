@@ -25,59 +25,22 @@ query ZC_LevelDetail($xxHash: String!) {
 		levelPoints {
 			points
 			rating
+			modifierLength
 			modifierCompetitiveness
+			modifierEvidence
+			modifierQuality
 			modifierRating
-			sampleSize
-			leaderboardConfidence
-			inputSampleSize
-			inputCoverage
-			airSampleSize
-			wheelSampleSize
-			slipSampleSize
-			ragdollSampleSize
-			stateSampleSize
-			surfaceSampleSize
-			velocitySampleSize
-			competitivenessScore
-			worldRecordDifficultyScore
-			participationScore
-			passivePlaySeverity
-			modifierAfk
-			passiveRunRatio
-			passiveTop10Share
-			bestPassiveRank
-			bestPassiveGap
-			driverEngagementScore
-			worldRecordMargin
-			top5Spread
-			top10Spread
-			top50Spread
-			wrChallengerCount
-			worldRecordOptimizationScore
-			leaderboardAnomalyScore
-			telemetryAnomalyScore
+			competitiveMerit
+			complexityConfidence
+			complexityScore
+			fieldStrength
+			qualityScore
+			skillAlignment
+			skillConfidence
+			skillSampleSize
+			skillScore
+			skillSeparation
 			worldRecordExcluded
-			pathConsistencyScore
-			speedConsistencyScore
-			routeConsistencyScore
-			surfaceDiversityScore
-			matureVoteCount
-			typicalDistance
-			typicalAverageSpeed
-			typicalMaxSpeed
-			typicalAirTimeShare
-			typicalGroundTimeShare
-			typicalSlipShare
-			typicalRagdollShare
-			typicalAverageAngularVelocity
-			typicalAverageGforce
-			medianSteeringShare
-			q25SteeringShare
-			lowSteeringRatio
-			zeroControlRatio
-			medianBrakeShare
-			medianArmsUpShare
-			medianControlTransitionRate
 		}
 		records(first: 0) {
 			totalCount

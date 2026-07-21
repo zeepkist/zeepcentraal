@@ -1,5 +1,36 @@
 import { expect, test } from 'bun:test'
-import { userPointContributionFingerprint } from './userPointContributionHelpers'
+import { readFileSync } from 'node:fs'
+import {
+	sortedUniqueUserIds,
+	userPointContributionFingerprint,
+} from './userPointContributionHelpers'
+
+test('user contribution lock targets are sorted and unique', () => {
+	expect(sortedUniqueUserIds([9, 2, 9, 4, 2])).toEqual([2, 4, 9])
+})
+
+test('comparison and replacement share advisory-lock transaction', () => {
+	const service = readFileSync(new URL('./userPointContribution.ts', import.meta.url), 'utf8')
+	const transactionStart = service.indexOf('await db.transaction(async (tx) => {')
+	const lock = service.indexOf(
+		'await acquireUserContributionLocks(tx, idUsers)',
+		transactionStart,
+	)
+	const read = service.indexOf('const existingRows = await tx', lock)
+	const deletion = service.indexOf('await tx\n\t\t\t.delete(userPointContribution)', read)
+	const insertion = service.indexOf(
+		'await tx.insert(userPointContribution).values(batch)',
+		deletion,
+	)
+
+	expect(transactionStart).toBeGreaterThan(-1)
+	expect(lock).toBeGreaterThan(transactionStart)
+	expect(read).toBeGreaterThan(lock)
+	expect(deletion).toBeGreaterThan(read)
+	expect(insertion).toBeGreaterThan(deletion)
+	expect(service).toContain('const INSERT_BATCH_SIZE = 500')
+	expect(service).not.toContain('const existingRows = await db')
+})
 
 test('user point contribution fingerprint ignores sub-millipoint float noise', () => {
 	const first = userPointContributionFingerprint([

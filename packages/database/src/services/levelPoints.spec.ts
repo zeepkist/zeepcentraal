@@ -7,16 +7,16 @@ const service = readFileSync(new URL('./levelPoints.ts', import.meta.url), 'utf8
 const schema = readFileSync(new URL('../schema.ts', import.meta.url), 'utf8')
 
 describe('level point persistence', () => {
-	test('persists every telemetry capability sample size', () => {
+	test('excludes legacy V1 diagnostics from active persistence', () => {
 		for (const field of [
-			'airSampleSize',
-			'wheelSampleSize',
-			'slipSampleSize',
-			'ragdollSampleSize',
+			'popularityModifier',
+			'cutPenalty',
+			'passivePlaySeverity',
+			'sampleSize',
+			'typicalDistance',
 		]) {
-			expect(schema).toContain(`${field}: integer(`)
-			expect(service).toContain(`${field}: null`)
-			expect(service).toContain(`${field}: sql\`excluded.`)
+			expect(schema).not.toContain(`${field}:`)
+			expect(service).not.toContain(`${field}:`)
 		}
 	})
 
@@ -41,13 +41,16 @@ describe('level point persistence', () => {
 		expect(service.match(/\.orderBy\(levelPoints\.idLevel\)/g)).toHaveLength(2)
 	})
 
-	test('sanitizes PostgreSQL real values on bulk and single upserts', () => {
-		expect(service.match(/sanitizeLevelPointRealValues/g)).toHaveLength(3)
+	test('sanitizes PostgreSQL real values through guarded bulk upserts', () => {
+		expect(service.match(/sanitizeLevelPointRealValues/g)).toHaveLength(2)
 		expect(service).toContain(
 			'payloads.map((payload) => sanitizeLevelPointRealValues({ ...payload, dateUpdated }))',
 		)
+		expect(service).toContain('where: levelPointUpsertChanged')
+		expect(service).toContain('where: zeroLevelPointUpsertChanged')
 		expect(service).toContain(
-			'const { idLevel, ...values } = sanitizeLevelPointRealValues({ ...payload, dateUpdated })',
+			"to_jsonb(excluded) - 'id_level' - 'date_created' - 'date_updated'",
 		)
+		expect(service).toContain('excluded.world_record_excluded')
 	})
 })

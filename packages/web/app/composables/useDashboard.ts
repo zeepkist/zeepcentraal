@@ -28,7 +28,7 @@ type DashboardLevelLike = {
 			author: { steamId: unknown; steamName: string | null } | null
 		}>
 	}
-	levelPoints?: { points: number; rating: number; modifierPopularity: number } | null
+	levelPoints?: { points: number; rating: number } | null
 	records?: { totalCount: number }
 	periodRecords?: { totalCount: number }
 	personalBestGlobals?: { totalCount: number }
@@ -53,7 +53,6 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 		dateCreated: String(level.dateCreated),
 		points: level.levelPoints?.points,
 		rating: level.levelPoints?.rating,
-		popularity: level.levelPoints?.modifierPopularity,
 		recordCount: level.periodRecords?.totalCount ?? level.records?.totalCount,
 		personalBestCount: level.personalBestGlobals?.totalCount,
 		voteCount: level.votes?.totalCount,

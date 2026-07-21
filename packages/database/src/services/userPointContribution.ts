@@ -1,9 +1,15 @@
-import { asc, eq, inArray } from 'drizzle-orm'
+import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { userPointContribution } from '../schema'
-import { userPointContributionFingerprint } from './userPointContributionHelpers'
+import {
+	sortedUniqueUserIds,
+	userPointContributionFingerprint,
+} from './userPointContributionHelpers'
 
-export { userPointContributionFingerprint } from './userPointContributionHelpers'
+export {
+	sortedUniqueUserIds,
+	userPointContributionFingerprint,
+} from './userPointContributionHelpers'
 
 export interface UserPointContributionInput {
 	contributionRank: number
@@ -22,6 +28,18 @@ interface UserPointContributionBatchInput {
 }
 
 const INSERT_BATCH_SIZE = 500
+export const USER_POINT_CONTRIBUTION_LOCK_NAMESPACE = 1_516_438_864
+
+async function acquireUserContributionLocks(
+	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+	idUsers: readonly number[],
+): Promise<void> {
+	for (const idUser of sortedUniqueUserIds(idUsers)) {
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(${USER_POINT_CONTRIBUTION_LOCK_NAMESPACE}, ${idUser})`,
+		)
+	}
+}
 
 function chunks<T>(items: T[], size: number): T[][] {
 	const result: T[][] = []
@@ -38,57 +56,57 @@ export async function upsertUserPointContributionsBulk(
 		return
 	}
 
-	const idUsers = [...new Set(entries.map((entry) => entry.idUser))]
-	const existingRows = await db
-		.select({
-			idUser: userPointContribution.idUser,
-			idLevel: userPointContribution.idLevel,
-			idRecord: userPointContribution.idRecord,
-			contributionRank: userPointContribution.contributionRank,
-			levelPosition: userPointContribution.levelPosition,
-			levelPoints: userPointContribution.levelPoints,
-			levelDecayedPoints: userPointContribution.levelDecayedPoints,
-			playerDecayedPoints: userPointContribution.playerDecayedPoints,
-		})
-		.from(userPointContribution)
-		.where(inArray(userPointContribution.idUser, idUsers))
-		.orderBy(asc(userPointContribution.idUser), asc(userPointContribution.contributionRank))
-
-	const existingByUser = new Map<number, Omit<UserPointContributionInput, 'idUser'>[]>()
-	for (const row of existingRows) {
-		const rows = existingByUser.get(row.idUser) ?? []
-		rows.push({
-			idLevel: row.idLevel,
-			idRecord: row.idRecord,
-			contributionRank: row.contributionRank,
-			levelPosition: row.levelPosition,
-			levelPoints: row.levelPoints,
-			levelDecayedPoints: row.levelDecayedPoints,
-			playerDecayedPoints: row.playerDecayedPoints,
-		})
-		existingByUser.set(row.idUser, rows)
-	}
-
-	const changedEntries = entries.filter(
-		(entry) =>
-			userPointContributionFingerprint(existingByUser.get(entry.idUser) ?? []) !==
-			userPointContributionFingerprint(entry.contributions),
-	)
-	if (changedEntries.length === 0) {
-		return
-	}
-
-	const changedUserIds = changedEntries.map((entry) => entry.idUser)
-	const now = new Date().toISOString()
-	const rows = changedEntries.flatMap((entry) =>
-		entry.contributions.map((contribution) => ({
-			idUser: entry.idUser,
-			...contribution,
-			dateCalculated: now,
-		})),
-	)
-
 	await db.transaction(async (tx) => {
+		const idUsers = sortedUniqueUserIds(entries.map((entry) => entry.idUser))
+		await acquireUserContributionLocks(tx, idUsers)
+
+		const existingRows = await tx
+			.select({
+				idUser: userPointContribution.idUser,
+				idLevel: userPointContribution.idLevel,
+				idRecord: userPointContribution.idRecord,
+				contributionRank: userPointContribution.contributionRank,
+				levelPosition: userPointContribution.levelPosition,
+				levelPoints: userPointContribution.levelPoints,
+				levelDecayedPoints: userPointContribution.levelDecayedPoints,
+				playerDecayedPoints: userPointContribution.playerDecayedPoints,
+			})
+			.from(userPointContribution)
+			.where(inArray(userPointContribution.idUser, idUsers))
+			.orderBy(asc(userPointContribution.idUser), asc(userPointContribution.contributionRank))
+
+		const existingByUser = new Map<number, Omit<UserPointContributionInput, 'idUser'>[]>()
+		for (const row of existingRows) {
+			const rows = existingByUser.get(row.idUser) ?? []
+			rows.push({
+				idLevel: row.idLevel,
+				idRecord: row.idRecord,
+				contributionRank: row.contributionRank,
+				levelPosition: row.levelPosition,
+				levelPoints: row.levelPoints,
+				levelDecayedPoints: row.levelDecayedPoints,
+				playerDecayedPoints: row.playerDecayedPoints,
+			})
+			existingByUser.set(row.idUser, rows)
+		}
+
+		const changedEntries = entries.filter(
+			(entry) =>
+				userPointContributionFingerprint(existingByUser.get(entry.idUser) ?? []) !==
+				userPointContributionFingerprint(entry.contributions),
+		)
+		if (changedEntries.length === 0) return
+
+		const changedUserIds = changedEntries.map((entry) => entry.idUser)
+		const now = new Date().toISOString()
+		const rows = changedEntries.flatMap((entry) =>
+			entry.contributions.map((contribution) => ({
+				idUser: entry.idUser,
+				...contribution,
+				dateCalculated: now,
+			})),
+		)
+
 		await tx
 			.delete(userPointContribution)
 			.where(inArray(userPointContribution.idUser, changedUserIds))
@@ -103,7 +121,11 @@ export async function clearUserPointContributions(idUsers: number[]): Promise<vo
 	if (idUsers.length === 0) {
 		return
 	}
-	await db.delete(userPointContribution).where(inArray(userPointContribution.idUser, idUsers))
+	await db.transaction(async (tx) => {
+		const lockIds = sortedUniqueUserIds(idUsers)
+		await acquireUserContributionLocks(tx, lockIds)
+		await tx.delete(userPointContribution).where(inArray(userPointContribution.idUser, lockIds))
+	})
 }
 
 export async function getUserPointContributions(idUser: number) {

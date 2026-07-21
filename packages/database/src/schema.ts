@@ -278,57 +278,17 @@ export const levelMetadata = pgTable(
 ).enableRLS()
 
 const levelPointDiagnosticColumns = () => ({
-	sampleSize: integer('sample_size'),
-	leaderboardConfidence: real('leaderboard_confidence'),
-	inputSampleSize: integer('input_sample_size'),
-	inputCoverage: real('input_coverage'),
-	airSampleSize: integer('air_sample_size'),
-	wheelSampleSize: integer('wheel_sample_size'),
-	slipSampleSize: integer('slip_sample_size'),
-	ragdollSampleSize: integer('ragdoll_sample_size'),
-	stateSampleSize: integer('state_sample_size'),
-	surfaceSampleSize: integer('surface_sample_size'),
-	velocitySampleSize: integer('velocity_sample_size'),
-	competitivenessScore: real('competitiveness_score'),
-	worldRecordDifficultyScore: real('world_record_difficulty_score'),
-	participationScore: real('participation_score'),
-	passivePlaySeverity: real('passive_play_severity'),
-	modifierAfk: real('modifier_afk'),
-	passiveRunRatio: real('passive_run_ratio'),
-	passiveTop10Share: real('passive_top_10_share'),
-	bestPassiveRank: integer('best_passive_rank'),
-	bestPassiveGap: real('best_passive_gap'),
-	driverEngagementScore: real('driver_engagement_score'),
-	worldRecordMargin: real('world_record_margin'),
-	top5Spread: real('top_5_spread'),
-	top10Spread: real('top_10_spread'),
-	top50Spread: real('top_50_spread'),
-	wrChallengerCount: integer('wr_challenger_count'),
-	worldRecordOptimizationScore: real('world_record_optimization_score'),
-	leaderboardAnomalyScore: real('leaderboard_anomaly_score'),
-	telemetryAnomalyScore: real('telemetry_anomaly_score'),
+	competitiveMerit: real('competitive_merit'),
+	complexityConfidence: real('complexity_confidence'),
+	complexityScore: real('complexity_score'),
+	fieldStrength: real('field_strength'),
+	qualityScore: real('quality_score'),
+	skillAlignment: real('skill_alignment'),
+	skillConfidence: real('skill_confidence'),
+	skillSampleSize: integer('skill_sample_size'),
+	skillScore: real('skill_score'),
+	skillSeparation: real('skill_separation'),
 	worldRecordExcluded: boolean('world_record_excluded'),
-	pathConsistencyScore: real('path_consistency_score'),
-	speedConsistencyScore: real('speed_consistency_score'),
-	routeConsistencyScore: real('route_consistency_score'),
-	surfaceDiversityScore: real('surface_diversity_score'),
-	matureVoteCount: integer('mature_vote_count'),
-	typicalDistance: real('typical_distance'),
-	typicalAverageSpeed: real('typical_average_speed'),
-	typicalMaxSpeed: real('typical_max_speed'),
-	typicalAirTimeShare: real('typical_air_time_share'),
-	typicalGroundTimeShare: real('typical_ground_time_share'),
-	typicalSlipShare: real('typical_slip_share'),
-	typicalRagdollShare: real('typical_ragdoll_share'),
-	typicalAverageAngularVelocity: real('typical_average_angular_velocity'),
-	typicalAverageGforce: real('typical_average_gforce'),
-	medianSteeringShare: real('median_steering_share'),
-	q25SteeringShare: real('q25_steering_share'),
-	lowSteeringRatio: real('low_steering_ratio'),
-	zeroControlRatio: real('zero_control_ratio'),
-	medianBrakeShare: real('median_brake_share'),
-	medianArmsUpShare: real('median_arms_up_share'),
-	medianControlTransitionRate: real('median_control_transition_rate'),
 })
 
 export const levelPoints = pgTable(
@@ -339,9 +299,9 @@ export const levelPoints = pgTable(
 		rating: real().notNull().default(DEFAULT_VOTE_RATING),
 		lengthModifier: real('modifier_length').notNull().default(1.0),
 		competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
+		evidenceModifier: real('modifier_evidence').notNull().default(1.0),
+		qualityModifier: real('modifier_quality').notNull().default(1.0),
 		ratingModifier: real('modifier_rating').notNull().default(1.0),
-		popularityModifier: real('modifier_popularity').notNull().default(1.0),
-		cutPenalty: real('cut_penalty').notNull().default(1.0),
 		...levelPointDiagnosticColumns(),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -366,11 +326,6 @@ export const levelPoints = pgTable(
 			table.rating.desc().nullsLast(),
 			table.idLevel.asc().nullsLast(),
 		),
-		index('IX_level_points_popularity_level').using(
-			'btree',
-			table.popularityModifier.desc().nullsLast(),
-			table.idLevel.asc().nullsLast(),
-		),
 	],
 )
 
@@ -390,9 +345,9 @@ export const levelPointsHistory = pgTable(
 		rating: real().notNull().default(DEFAULT_VOTE_RATING),
 		lengthModifier: real('modifier_length').notNull().default(1.0),
 		competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
+		evidenceModifier: real('modifier_evidence').notNull().default(1.0),
+		qualityModifier: real('modifier_quality').notNull().default(1.0),
 		ratingModifier: real('modifier_rating').notNull().default(1.0),
-		popularityModifier: real('modifier_popularity').notNull().default(1.0),
-		cutPenalty: real('cut_penalty').notNull().default(1.0),
 		...levelPointDiagnosticColumns(),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -893,6 +848,31 @@ export const user = pgTable(
 	],
 )
 
+export const playerSkillAggregate = pgTable(
+	'player_skill_aggregate',
+	{
+		idUser: integer('id_user').primaryKey(),
+		placementSum: doublePrecision('placement_sum').notNull(),
+		eligibleLevelCount: integer('eligible_level_count').notNull(),
+		skill: real().notNull(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'player_skill_aggregate_user_fkey',
+		}).onDelete('cascade'),
+		index('IX_player_skill_aggregate_skill_user').using(
+			'btree',
+			table.skill.desc().nullsLast(),
+			table.idUser.asc().nullsLast(),
+		),
+	],
+)
+
 export const version = pgTable('version', {
 	id: integer().primaryKey().generatedAlwaysAsIdentity({
 		name: 'versions_id_seq',
@@ -1104,6 +1084,11 @@ export const recordHistoryIndex = zcPrivate.table(
 			table.dateCreated.desc().nullsFirst(),
 			table.id.desc().nullsFirst(),
 		),
+		index('IX_record_history_index_level_projection')
+			.using('btree', table.levelId.asc().nullsLast())
+			.where(
+				sql`${table.hasContribution} = false AND (${table.isPersonalBest} OR ${table.isWorldRecord})`,
+			),
 	],
 )
 

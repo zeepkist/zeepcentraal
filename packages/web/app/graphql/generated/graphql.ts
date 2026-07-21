@@ -754,136 +754,56 @@ export type LevelMetadatumVarianceSampleAggregateFilter = {
 
 /** A filter to be used against `LevelPoint` object types. All fields are combined with a logical ‘and.’ */
 export type LevelPointFilter = {
-  /** Filter by the object’s `airSampleSize` field. */
-  airSampleSize?: IntFilter | null | undefined;
   /** Checks for all expressions in this list. */
   and?: Array<LevelPointFilter> | null | undefined;
-  /** Filter by the object’s `bestPassiveGap` field. */
-  bestPassiveGap?: FloatFilter | null | undefined;
-  /** Filter by the object’s `bestPassiveRank` field. */
-  bestPassiveRank?: IntFilter | null | undefined;
-  /** Filter by the object’s `competitivenessScore` field. */
-  competitivenessScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `cutPenalty` field. */
-  cutPenalty?: FloatFilter | null | undefined;
+  /** Filter by the object’s `competitiveMerit` field. */
+  competitiveMerit?: FloatFilter | null | undefined;
+  /** Filter by the object’s `complexityConfidence` field. */
+  complexityConfidence?: FloatFilter | null | undefined;
+  /** Filter by the object’s `complexityScore` field. */
+  complexityScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `dateCreated` field. */
   dateCreated?: DatetimeFilter | null | undefined;
   /** Filter by the object’s `dateUpdated` field. */
   dateUpdated?: DatetimeFilter | null | undefined;
-  /** Filter by the object’s `driverEngagementScore` field. */
-  driverEngagementScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `inputCoverage` field. */
-  inputCoverage?: FloatFilter | null | undefined;
-  /** Filter by the object’s `inputSampleSize` field. */
-  inputSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `leaderboardAnomalyScore` field. */
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `leaderboardConfidence` field. */
-  leaderboardConfidence?: FloatFilter | null | undefined;
+  /** Filter by the object’s `fieldStrength` field. */
+  fieldStrength?: FloatFilter | null | undefined;
   /** Filter by the object’s `level` relation. */
   level?: LevelFilter | null | undefined;
   /** Filter by the object’s `levelId` field. */
   levelId?: IntFilter | null | undefined;
-  /** Filter by the object’s `lowSteeringRatio` field. */
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  /** Filter by the object’s `matureVoteCount` field. */
-  matureVoteCount?: IntFilter | null | undefined;
-  /** Filter by the object’s `medianArmsUpShare` field. */
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `medianBrakeShare` field. */
-  medianBrakeShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `medianControlTransitionRate` field. */
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  /** Filter by the object’s `medianSteeringShare` field. */
-  medianSteeringShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `modifierAfk` field. */
-  modifierAfk?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierCompetitiveness` field. */
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  /** Filter by the object’s `modifierEvidence` field. */
+  modifierEvidence?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierLength` field. */
   modifierLength?: FloatFilter | null | undefined;
-  /** Filter by the object’s `modifierPopularity` field. */
-  modifierPopularity?: FloatFilter | null | undefined;
+  /** Filter by the object’s `modifierQuality` field. */
+  modifierQuality?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierRating` field. */
   modifierRating?: FloatFilter | null | undefined;
   /** Negates the expression. */
   not?: LevelPointFilter | null | undefined;
   /** Checks for any expressions in this list. */
   or?: Array<LevelPointFilter> | null | undefined;
-  /** Filter by the object’s `participationScore` field. */
-  participationScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `passivePlaySeverity` field. */
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  /** Filter by the object’s `passiveRunRatio` field. */
-  passiveRunRatio?: FloatFilter | null | undefined;
-  /** Filter by the object’s `passiveTop10Share` field. */
-  passiveTop10Share?: FloatFilter | null | undefined;
-  /** Filter by the object’s `pathConsistencyScore` field. */
-  pathConsistencyScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `points` field. */
   points?: IntFilter | null | undefined;
-  /** Filter by the object’s `q25SteeringShare` field. */
-  q25SteeringShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `ragdollSampleSize` field. */
-  ragdollSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `qualityScore` field. */
+  qualityScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `rating` field. */
   rating?: FloatFilter | null | undefined;
-  /** Filter by the object’s `routeConsistencyScore` field. */
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `sampleSize` field. */
-  sampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `slipSampleSize` field. */
-  slipSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `speedConsistencyScore` field. */
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `stateSampleSize` field. */
-  stateSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `surfaceDiversityScore` field. */
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `surfaceSampleSize` field. */
-  surfaceSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `telemetryAnomalyScore` field. */
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `top5Spread` field. */
-  top5Spread?: FloatFilter | null | undefined;
-  /** Filter by the object’s `top10Spread` field. */
-  top10Spread?: FloatFilter | null | undefined;
-  /** Filter by the object’s `top50Spread` field. */
-  top50Spread?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAirTimeShare` field. */
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAverageAngularVelocity` field. */
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAverageGforce` field. */
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAverageSpeed` field. */
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalDistance` field. */
-  typicalDistance?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalGroundTimeShare` field. */
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalMaxSpeed` field. */
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalRagdollShare` field. */
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalSlipShare` field. */
-  typicalSlipShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `velocitySampleSize` field. */
-  velocitySampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `wheelSampleSize` field. */
-  wheelSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `worldRecordDifficultyScore` field. */
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillAlignment` field. */
+  skillAlignment?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillConfidence` field. */
+  skillConfidence?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillSampleSize` field. */
+  skillSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `skillScore` field. */
+  skillScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillSeparation` field. */
+  skillSeparation?: FloatFilter | null | undefined;
   /** Filter by the object’s `worldRecordExcluded` field. */
   worldRecordExcluded?: BooleanFilter | null | undefined;
-  /** Filter by the object’s `worldRecordMargin` field. */
-  worldRecordMargin?: FloatFilter | null | undefined;
-  /** Filter by the object’s `worldRecordOptimizationScore` field. */
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `wrChallengerCount` field. */
-  wrChallengerCount?: IntFilter | null | undefined;
-  /** Filter by the object’s `zeroControlRatio` field. */
-  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 /** A filter to be used against aggregates of `LevelPointsHistory` object types. */
@@ -911,700 +831,260 @@ export type LevelPointsHistoryAggregatesFilter = {
 };
 
 export type LevelPointsHistoryAverageAggregateFilter = {
-  airSampleSize?: BigFloatFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: BigFloatFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: BigFloatFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: BigFloatFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: BigFloatFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: BigFloatFilter | null | undefined;
-  slipSampleSize?: BigFloatFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: BigFloatFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: BigFloatFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: BigFloatFilter | null | undefined;
-  wheelSampleSize?: BigFloatFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: BigFloatFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: BigFloatFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryDistinctCountAggregateFilter = {
-  airSampleSize?: BigIntFilter | null | undefined;
-  bestPassiveGap?: BigIntFilter | null | undefined;
-  bestPassiveRank?: BigIntFilter | null | undefined;
-  competitivenessScore?: BigIntFilter | null | undefined;
-  cutPenalty?: BigIntFilter | null | undefined;
+  competitiveMerit?: BigIntFilter | null | undefined;
+  complexityConfidence?: BigIntFilter | null | undefined;
+  complexityScore?: BigIntFilter | null | undefined;
   dateCreated?: BigIntFilter | null | undefined;
   dateUpdated?: BigIntFilter | null | undefined;
-  driverEngagementScore?: BigIntFilter | null | undefined;
+  fieldStrength?: BigIntFilter | null | undefined;
   id?: BigIntFilter | null | undefined;
-  inputCoverage?: BigIntFilter | null | undefined;
-  inputSampleSize?: BigIntFilter | null | undefined;
-  leaderboardAnomalyScore?: BigIntFilter | null | undefined;
-  leaderboardConfidence?: BigIntFilter | null | undefined;
   levelId?: BigIntFilter | null | undefined;
-  lowSteeringRatio?: BigIntFilter | null | undefined;
-  matureVoteCount?: BigIntFilter | null | undefined;
-  medianArmsUpShare?: BigIntFilter | null | undefined;
-  medianBrakeShare?: BigIntFilter | null | undefined;
-  medianControlTransitionRate?: BigIntFilter | null | undefined;
-  medianSteeringShare?: BigIntFilter | null | undefined;
-  modifierAfk?: BigIntFilter | null | undefined;
   modifierCompetitiveness?: BigIntFilter | null | undefined;
+  modifierEvidence?: BigIntFilter | null | undefined;
   modifierLength?: BigIntFilter | null | undefined;
-  modifierPopularity?: BigIntFilter | null | undefined;
+  modifierQuality?: BigIntFilter | null | undefined;
   modifierRating?: BigIntFilter | null | undefined;
-  participationScore?: BigIntFilter | null | undefined;
-  passivePlaySeverity?: BigIntFilter | null | undefined;
-  passiveRunRatio?: BigIntFilter | null | undefined;
-  passiveTop10Share?: BigIntFilter | null | undefined;
-  pathConsistencyScore?: BigIntFilter | null | undefined;
   points?: BigIntFilter | null | undefined;
-  q25SteeringShare?: BigIntFilter | null | undefined;
-  ragdollSampleSize?: BigIntFilter | null | undefined;
+  qualityScore?: BigIntFilter | null | undefined;
   rating?: BigIntFilter | null | undefined;
-  routeConsistencyScore?: BigIntFilter | null | undefined;
-  sampleSize?: BigIntFilter | null | undefined;
-  slipSampleSize?: BigIntFilter | null | undefined;
-  speedConsistencyScore?: BigIntFilter | null | undefined;
-  stateSampleSize?: BigIntFilter | null | undefined;
-  surfaceDiversityScore?: BigIntFilter | null | undefined;
-  surfaceSampleSize?: BigIntFilter | null | undefined;
-  telemetryAnomalyScore?: BigIntFilter | null | undefined;
-  top5Spread?: BigIntFilter | null | undefined;
-  top10Spread?: BigIntFilter | null | undefined;
-  top50Spread?: BigIntFilter | null | undefined;
-  typicalAirTimeShare?: BigIntFilter | null | undefined;
-  typicalAverageAngularVelocity?: BigIntFilter | null | undefined;
-  typicalAverageGforce?: BigIntFilter | null | undefined;
-  typicalAverageSpeed?: BigIntFilter | null | undefined;
-  typicalDistance?: BigIntFilter | null | undefined;
-  typicalGroundTimeShare?: BigIntFilter | null | undefined;
-  typicalMaxSpeed?: BigIntFilter | null | undefined;
-  typicalRagdollShare?: BigIntFilter | null | undefined;
-  typicalSlipShare?: BigIntFilter | null | undefined;
-  velocitySampleSize?: BigIntFilter | null | undefined;
-  wheelSampleSize?: BigIntFilter | null | undefined;
-  worldRecordDifficultyScore?: BigIntFilter | null | undefined;
+  skillAlignment?: BigIntFilter | null | undefined;
+  skillConfidence?: BigIntFilter | null | undefined;
+  skillSampleSize?: BigIntFilter | null | undefined;
+  skillScore?: BigIntFilter | null | undefined;
+  skillSeparation?: BigIntFilter | null | undefined;
   worldRecordExcluded?: BigIntFilter | null | undefined;
-  worldRecordMargin?: BigIntFilter | null | undefined;
-  worldRecordOptimizationScore?: BigIntFilter | null | undefined;
-  wrChallengerCount?: BigIntFilter | null | undefined;
-  zeroControlRatio?: BigIntFilter | null | undefined;
 };
 
 /** A filter to be used against `LevelPointsHistory` object types. All fields are combined with a logical ‘and.’ */
 export type LevelPointsHistoryFilter = {
-  /** Filter by the object’s `airSampleSize` field. */
-  airSampleSize?: IntFilter | null | undefined;
   /** Checks for all expressions in this list. */
   and?: Array<LevelPointsHistoryFilter> | null | undefined;
-  /** Filter by the object’s `bestPassiveGap` field. */
-  bestPassiveGap?: FloatFilter | null | undefined;
-  /** Filter by the object’s `bestPassiveRank` field. */
-  bestPassiveRank?: IntFilter | null | undefined;
-  /** Filter by the object’s `competitivenessScore` field. */
-  competitivenessScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `cutPenalty` field. */
-  cutPenalty?: FloatFilter | null | undefined;
+  /** Filter by the object’s `competitiveMerit` field. */
+  competitiveMerit?: FloatFilter | null | undefined;
+  /** Filter by the object’s `complexityConfidence` field. */
+  complexityConfidence?: FloatFilter | null | undefined;
+  /** Filter by the object’s `complexityScore` field. */
+  complexityScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `dateCreated` field. */
   dateCreated?: DatetimeFilter | null | undefined;
   /** Filter by the object’s `dateUpdated` field. */
   dateUpdated?: DatetimeFilter | null | undefined;
-  /** Filter by the object’s `driverEngagementScore` field. */
-  driverEngagementScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `fieldStrength` field. */
+  fieldStrength?: FloatFilter | null | undefined;
   /** Filter by the object’s `id` field. */
   id?: IntFilter | null | undefined;
-  /** Filter by the object’s `inputCoverage` field. */
-  inputCoverage?: FloatFilter | null | undefined;
-  /** Filter by the object’s `inputSampleSize` field. */
-  inputSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `leaderboardAnomalyScore` field. */
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `leaderboardConfidence` field. */
-  leaderboardConfidence?: FloatFilter | null | undefined;
   /** Filter by the object’s `level` relation. */
   level?: LevelFilter | null | undefined;
   /** Filter by the object’s `levelId` field. */
   levelId?: IntFilter | null | undefined;
-  /** Filter by the object’s `lowSteeringRatio` field. */
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  /** Filter by the object’s `matureVoteCount` field. */
-  matureVoteCount?: IntFilter | null | undefined;
-  /** Filter by the object’s `medianArmsUpShare` field. */
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `medianBrakeShare` field. */
-  medianBrakeShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `medianControlTransitionRate` field. */
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  /** Filter by the object’s `medianSteeringShare` field. */
-  medianSteeringShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `modifierAfk` field. */
-  modifierAfk?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierCompetitiveness` field. */
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  /** Filter by the object’s `modifierEvidence` field. */
+  modifierEvidence?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierLength` field. */
   modifierLength?: FloatFilter | null | undefined;
-  /** Filter by the object’s `modifierPopularity` field. */
-  modifierPopularity?: FloatFilter | null | undefined;
+  /** Filter by the object’s `modifierQuality` field. */
+  modifierQuality?: FloatFilter | null | undefined;
   /** Filter by the object’s `modifierRating` field. */
   modifierRating?: FloatFilter | null | undefined;
   /** Negates the expression. */
   not?: LevelPointsHistoryFilter | null | undefined;
   /** Checks for any expressions in this list. */
   or?: Array<LevelPointsHistoryFilter> | null | undefined;
-  /** Filter by the object’s `participationScore` field. */
-  participationScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `passivePlaySeverity` field. */
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  /** Filter by the object’s `passiveRunRatio` field. */
-  passiveRunRatio?: FloatFilter | null | undefined;
-  /** Filter by the object’s `passiveTop10Share` field. */
-  passiveTop10Share?: FloatFilter | null | undefined;
-  /** Filter by the object’s `pathConsistencyScore` field. */
-  pathConsistencyScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `points` field. */
   points?: IntFilter | null | undefined;
-  /** Filter by the object’s `q25SteeringShare` field. */
-  q25SteeringShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `ragdollSampleSize` field. */
-  ragdollSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `qualityScore` field. */
+  qualityScore?: FloatFilter | null | undefined;
   /** Filter by the object’s `rating` field. */
   rating?: FloatFilter | null | undefined;
-  /** Filter by the object’s `routeConsistencyScore` field. */
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `sampleSize` field. */
-  sampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `slipSampleSize` field. */
-  slipSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `speedConsistencyScore` field. */
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `stateSampleSize` field. */
-  stateSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `surfaceDiversityScore` field. */
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `surfaceSampleSize` field. */
-  surfaceSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `telemetryAnomalyScore` field. */
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `top5Spread` field. */
-  top5Spread?: FloatFilter | null | undefined;
-  /** Filter by the object’s `top10Spread` field. */
-  top10Spread?: FloatFilter | null | undefined;
-  /** Filter by the object’s `top50Spread` field. */
-  top50Spread?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAirTimeShare` field. */
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAverageAngularVelocity` field. */
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAverageGforce` field. */
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalAverageSpeed` field. */
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalDistance` field. */
-  typicalDistance?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalGroundTimeShare` field. */
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalMaxSpeed` field. */
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalRagdollShare` field. */
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `typicalSlipShare` field. */
-  typicalSlipShare?: FloatFilter | null | undefined;
-  /** Filter by the object’s `velocitySampleSize` field. */
-  velocitySampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `wheelSampleSize` field. */
-  wheelSampleSize?: IntFilter | null | undefined;
-  /** Filter by the object’s `worldRecordDifficultyScore` field. */
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillAlignment` field. */
+  skillAlignment?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillConfidence` field. */
+  skillConfidence?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillSampleSize` field. */
+  skillSampleSize?: IntFilter | null | undefined;
+  /** Filter by the object’s `skillScore` field. */
+  skillScore?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skillSeparation` field. */
+  skillSeparation?: FloatFilter | null | undefined;
   /** Filter by the object’s `worldRecordExcluded` field. */
   worldRecordExcluded?: BooleanFilter | null | undefined;
-  /** Filter by the object’s `worldRecordMargin` field. */
-  worldRecordMargin?: FloatFilter | null | undefined;
-  /** Filter by the object’s `worldRecordOptimizationScore` field. */
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  /** Filter by the object’s `wrChallengerCount` field. */
-  wrChallengerCount?: IntFilter | null | undefined;
-  /** Filter by the object’s `zeroControlRatio` field. */
-  zeroControlRatio?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryMaxAggregateFilter = {
-  airSampleSize?: IntFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: IntFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: IntFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: IntFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: IntFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: IntFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: IntFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: IntFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: IntFilter | null | undefined;
-  slipSampleSize?: IntFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: IntFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: IntFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: IntFilter | null | undefined;
-  wheelSampleSize?: IntFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: IntFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: IntFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryMinAggregateFilter = {
-  airSampleSize?: IntFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: IntFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: IntFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: IntFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: IntFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: IntFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: IntFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: IntFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: IntFilter | null | undefined;
-  slipSampleSize?: IntFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: IntFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: IntFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: IntFilter | null | undefined;
-  wheelSampleSize?: IntFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: IntFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: IntFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryStddevPopulationAggregateFilter = {
-  airSampleSize?: BigFloatFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: BigFloatFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: BigFloatFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: BigFloatFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: BigFloatFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: BigFloatFilter | null | undefined;
-  slipSampleSize?: BigFloatFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: BigFloatFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: BigFloatFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: BigFloatFilter | null | undefined;
-  wheelSampleSize?: BigFloatFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: BigFloatFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: BigFloatFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryStddevSampleAggregateFilter = {
-  airSampleSize?: BigFloatFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: BigFloatFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: BigFloatFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: BigFloatFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: BigFloatFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: BigFloatFilter | null | undefined;
-  slipSampleSize?: BigFloatFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: BigFloatFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: BigFloatFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: BigFloatFilter | null | undefined;
-  wheelSampleSize?: BigFloatFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: BigFloatFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: BigFloatFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistorySumAggregateFilter = {
-  airSampleSize?: BigIntFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: BigIntFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: BigIntFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: BigIntFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigIntFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: BigIntFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigIntFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: BigIntFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: BigIntFilter | null | undefined;
-  slipSampleSize?: BigIntFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: BigIntFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: BigIntFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: BigIntFilter | null | undefined;
-  wheelSampleSize?: BigIntFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: BigIntFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: BigIntFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryVariancePopulationAggregateFilter = {
-  airSampleSize?: BigFloatFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: BigFloatFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: BigFloatFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: BigFloatFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: BigFloatFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: BigFloatFilter | null | undefined;
-  slipSampleSize?: BigFloatFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: BigFloatFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: BigFloatFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: BigFloatFilter | null | undefined;
-  wheelSampleSize?: BigFloatFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: BigFloatFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: BigFloatFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 export type LevelPointsHistoryVarianceSampleAggregateFilter = {
-  airSampleSize?: BigFloatFilter | null | undefined;
-  bestPassiveGap?: FloatFilter | null | undefined;
-  bestPassiveRank?: BigFloatFilter | null | undefined;
-  competitivenessScore?: FloatFilter | null | undefined;
-  cutPenalty?: FloatFilter | null | undefined;
-  driverEngagementScore?: FloatFilter | null | undefined;
+  competitiveMerit?: FloatFilter | null | undefined;
+  complexityConfidence?: FloatFilter | null | undefined;
+  complexityScore?: FloatFilter | null | undefined;
+  fieldStrength?: FloatFilter | null | undefined;
   id?: BigFloatFilter | null | undefined;
-  inputCoverage?: FloatFilter | null | undefined;
-  inputSampleSize?: BigFloatFilter | null | undefined;
-  leaderboardAnomalyScore?: FloatFilter | null | undefined;
-  leaderboardConfidence?: FloatFilter | null | undefined;
   levelId?: BigFloatFilter | null | undefined;
-  lowSteeringRatio?: FloatFilter | null | undefined;
-  matureVoteCount?: BigFloatFilter | null | undefined;
-  medianArmsUpShare?: FloatFilter | null | undefined;
-  medianBrakeShare?: FloatFilter | null | undefined;
-  medianControlTransitionRate?: FloatFilter | null | undefined;
-  medianSteeringShare?: FloatFilter | null | undefined;
-  modifierAfk?: FloatFilter | null | undefined;
   modifierCompetitiveness?: FloatFilter | null | undefined;
+  modifierEvidence?: FloatFilter | null | undefined;
   modifierLength?: FloatFilter | null | undefined;
-  modifierPopularity?: FloatFilter | null | undefined;
+  modifierQuality?: FloatFilter | null | undefined;
   modifierRating?: FloatFilter | null | undefined;
-  participationScore?: FloatFilter | null | undefined;
-  passivePlaySeverity?: FloatFilter | null | undefined;
-  passiveRunRatio?: FloatFilter | null | undefined;
-  passiveTop10Share?: FloatFilter | null | undefined;
-  pathConsistencyScore?: FloatFilter | null | undefined;
   points?: BigFloatFilter | null | undefined;
-  q25SteeringShare?: FloatFilter | null | undefined;
-  ragdollSampleSize?: BigFloatFilter | null | undefined;
+  qualityScore?: FloatFilter | null | undefined;
   rating?: FloatFilter | null | undefined;
-  routeConsistencyScore?: FloatFilter | null | undefined;
-  sampleSize?: BigFloatFilter | null | undefined;
-  slipSampleSize?: BigFloatFilter | null | undefined;
-  speedConsistencyScore?: FloatFilter | null | undefined;
-  stateSampleSize?: BigFloatFilter | null | undefined;
-  surfaceDiversityScore?: FloatFilter | null | undefined;
-  surfaceSampleSize?: BigFloatFilter | null | undefined;
-  telemetryAnomalyScore?: FloatFilter | null | undefined;
-  top5Spread?: FloatFilter | null | undefined;
-  top10Spread?: FloatFilter | null | undefined;
-  top50Spread?: FloatFilter | null | undefined;
-  typicalAirTimeShare?: FloatFilter | null | undefined;
-  typicalAverageAngularVelocity?: FloatFilter | null | undefined;
-  typicalAverageGforce?: FloatFilter | null | undefined;
-  typicalAverageSpeed?: FloatFilter | null | undefined;
-  typicalDistance?: FloatFilter | null | undefined;
-  typicalGroundTimeShare?: FloatFilter | null | undefined;
-  typicalMaxSpeed?: FloatFilter | null | undefined;
-  typicalRagdollShare?: FloatFilter | null | undefined;
-  typicalSlipShare?: FloatFilter | null | undefined;
-  velocitySampleSize?: BigFloatFilter | null | undefined;
-  wheelSampleSize?: BigFloatFilter | null | undefined;
-  worldRecordDifficultyScore?: FloatFilter | null | undefined;
-  worldRecordMargin?: FloatFilter | null | undefined;
-  worldRecordOptimizationScore?: FloatFilter | null | undefined;
-  wrChallengerCount?: BigFloatFilter | null | undefined;
-  zeroControlRatio?: FloatFilter | null | undefined;
+  skillAlignment?: FloatFilter | null | undefined;
+  skillConfidence?: FloatFilter | null | undefined;
+  skillSampleSize?: BigFloatFilter | null | undefined;
+  skillScore?: FloatFilter | null | undefined;
+  skillSeparation?: FloatFilter | null | undefined;
 };
 
 /** A filter to be used against many `Favourite` object types. All fields are combined with a logical ‘and.’ */
@@ -2103,1198 +1583,398 @@ export type LevelsOrderBy =
   | 'LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_GROUND_DESC'
   | 'LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_SKYBOX_ASC'
   | 'LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_SKYBOX_DESC'
-  | 'LEVEL_POINTS_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_COMPLEXITY_SCORE_DESC'
   | 'LEVEL_POINTS_DATE_CREATED_ASC'
   | 'LEVEL_POINTS_DATE_CREATED_DESC'
   | 'LEVEL_POINTS_DATE_UPDATED_ASC'
   | 'LEVEL_POINTS_DATE_UPDATED_DESC'
-  | 'LEVEL_POINTS_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_DRIVER_ENGAGEMENT_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_FIELD_STRENGTH_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_AVERAGE_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_AVERAGE_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_SEPARATION_DESC'
   | 'LEVEL_POINTS_HISTORIES_COUNT_ASC'
   | 'LEVEL_POINTS_HISTORIES_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_CUT_PENALTY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPLEXITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_CREATED_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_CREATED_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_UPDATED_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DATE_UPDATED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SEPARATION_DESC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_EXCLUDED_ASC'
   | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_EXCLUDED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ZERO_CONTROL_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MAX_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MAX_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MAX_ZERO_CONTROL_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MAX_SKILL_SEPARATION_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_MIN_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_MIN_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_MIN_ZERO_CONTROL_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_MIN_SKILL_SEPARATION_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ZERO_CONTROL_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SEPARATION_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ZERO_CONTROL_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SEPARATION_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_SUM_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_SUM_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_SUM_ZERO_CONTROL_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_SUM_SKILL_SEPARATION_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ZERO_CONTROL_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_AIR_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_AIR_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_GAP_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_GAP_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_RANK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_BEST_PASSIVE_RANK_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVENESS_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVENESS_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_CUT_PENALTY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_CUT_PENALTY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_DRIVER_ENGAGEMENT_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_DRIVER_ENGAGEMENT_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SEPARATION_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVE_MERIT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVE_MERIT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPLEXITY_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPLEXITY_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPLEXITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPLEXITY_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_FIELD_STRENGTH_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_FIELD_STRENGTH_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEADERBOARD_CONFIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEVEL_ID_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEVEL_ID_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_POINTS_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_POINTS_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RATING_ASC'
   | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_RATING_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ZERO_CONTROL_RATIO_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_SEPARATION_DESC'
   | 'LEVEL_POINTS_ID_LEVEL_ASC'
   | 'LEVEL_POINTS_ID_LEVEL_DESC'
-  | 'LEVEL_POINTS_INPUT_COVERAGE_ASC'
-  | 'LEVEL_POINTS_INPUT_COVERAGE_DESC'
-  | 'LEVEL_POINTS_INPUT_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_INPUT_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_LEADERBOARD_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_LEADERBOARD_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_LEADERBOARD_CONFIDENCE_ASC'
-  | 'LEVEL_POINTS_LEADERBOARD_CONFIDENCE_DESC'
-  | 'LEVEL_POINTS_LOW_STEERING_RATIO_ASC'
-  | 'LEVEL_POINTS_LOW_STEERING_RATIO_DESC'
-  | 'LEVEL_POINTS_MATURE_VOTE_COUNT_ASC'
-  | 'LEVEL_POINTS_MATURE_VOTE_COUNT_DESC'
-  | 'LEVEL_POINTS_MEDIAN_ARMS_UP_SHARE_ASC'
-  | 'LEVEL_POINTS_MEDIAN_ARMS_UP_SHARE_DESC'
-  | 'LEVEL_POINTS_MEDIAN_BRAKE_SHARE_ASC'
-  | 'LEVEL_POINTS_MEDIAN_BRAKE_SHARE_DESC'
-  | 'LEVEL_POINTS_MEDIAN_CONTROL_TRANSITION_RATE_ASC'
-  | 'LEVEL_POINTS_MEDIAN_CONTROL_TRANSITION_RATE_DESC'
-  | 'LEVEL_POINTS_MEDIAN_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_MEDIAN_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_MODIFIER_AFK_ASC'
-  | 'LEVEL_POINTS_MODIFIER_AFK_DESC'
   | 'LEVEL_POINTS_MODIFIER_COMPETITIVENESS_ASC'
   | 'LEVEL_POINTS_MODIFIER_COMPETITIVENESS_DESC'
+  | 'LEVEL_POINTS_MODIFIER_EVIDENCE_ASC'
+  | 'LEVEL_POINTS_MODIFIER_EVIDENCE_DESC'
   | 'LEVEL_POINTS_MODIFIER_LENGTH_ASC'
   | 'LEVEL_POINTS_MODIFIER_LENGTH_DESC'
-  | 'LEVEL_POINTS_MODIFIER_POPULARITY_ASC'
-  | 'LEVEL_POINTS_MODIFIER_POPULARITY_DESC'
+  | 'LEVEL_POINTS_MODIFIER_QUALITY_ASC'
+  | 'LEVEL_POINTS_MODIFIER_QUALITY_DESC'
   | 'LEVEL_POINTS_MODIFIER_RATING_ASC'
   | 'LEVEL_POINTS_MODIFIER_RATING_DESC'
-  | 'LEVEL_POINTS_PARTICIPATION_SCORE_ASC'
-  | 'LEVEL_POINTS_PARTICIPATION_SCORE_DESC'
-  | 'LEVEL_POINTS_PASSIVE_PLAY_SEVERITY_ASC'
-  | 'LEVEL_POINTS_PASSIVE_PLAY_SEVERITY_DESC'
-  | 'LEVEL_POINTS_PASSIVE_RUN_RATIO_ASC'
-  | 'LEVEL_POINTS_PASSIVE_RUN_RATIO_DESC'
-  | 'LEVEL_POINTS_PASSIVE_TOP_10_SHARE_ASC'
-  | 'LEVEL_POINTS_PASSIVE_TOP_10_SHARE_DESC'
-  | 'LEVEL_POINTS_PATH_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_PATH_CONSISTENCY_SCORE_DESC'
   | 'LEVEL_POINTS_POINTS_ASC'
   | 'LEVEL_POINTS_POINTS_DESC'
-  | 'LEVEL_POINTS_Q25_STEERING_SHARE_ASC'
-  | 'LEVEL_POINTS_Q25_STEERING_SHARE_DESC'
-  | 'LEVEL_POINTS_RAGDOLL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_RAGDOLL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_QUALITY_SCORE_ASC'
+  | 'LEVEL_POINTS_QUALITY_SCORE_DESC'
   | 'LEVEL_POINTS_RATING_ASC'
   | 'LEVEL_POINTS_RATING_DESC'
-  | 'LEVEL_POINTS_ROUTE_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_ROUTE_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_SLIP_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_SLIP_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_SPEED_CONSISTENCY_SCORE_ASC'
-  | 'LEVEL_POINTS_SPEED_CONSISTENCY_SCORE_DESC'
-  | 'LEVEL_POINTS_STATE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_STATE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_SURFACE_DIVERSITY_SCORE_ASC'
-  | 'LEVEL_POINTS_SURFACE_DIVERSITY_SCORE_DESC'
-  | 'LEVEL_POINTS_SURFACE_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_SURFACE_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_TELEMETRY_ANOMALY_SCORE_ASC'
-  | 'LEVEL_POINTS_TELEMETRY_ANOMALY_SCORE_DESC'
-  | 'LEVEL_POINTS_TOP_5_SPREAD_ASC'
-  | 'LEVEL_POINTS_TOP_5_SPREAD_DESC'
-  | 'LEVEL_POINTS_TOP_10_SPREAD_ASC'
-  | 'LEVEL_POINTS_TOP_10_SPREAD_DESC'
-  | 'LEVEL_POINTS_TOP_50_SPREAD_ASC'
-  | 'LEVEL_POINTS_TOP_50_SPREAD_DESC'
-  | 'LEVEL_POINTS_TYPICAL_AIR_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_TYPICAL_AIR_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_TYPICAL_AVERAGE_ANGULAR_VELOCITY_ASC'
-  | 'LEVEL_POINTS_TYPICAL_AVERAGE_ANGULAR_VELOCITY_DESC'
-  | 'LEVEL_POINTS_TYPICAL_AVERAGE_GFORCE_ASC'
-  | 'LEVEL_POINTS_TYPICAL_AVERAGE_GFORCE_DESC'
-  | 'LEVEL_POINTS_TYPICAL_AVERAGE_SPEED_ASC'
-  | 'LEVEL_POINTS_TYPICAL_AVERAGE_SPEED_DESC'
-  | 'LEVEL_POINTS_TYPICAL_DISTANCE_ASC'
-  | 'LEVEL_POINTS_TYPICAL_DISTANCE_DESC'
-  | 'LEVEL_POINTS_TYPICAL_GROUND_TIME_SHARE_ASC'
-  | 'LEVEL_POINTS_TYPICAL_GROUND_TIME_SHARE_DESC'
-  | 'LEVEL_POINTS_TYPICAL_MAX_SPEED_ASC'
-  | 'LEVEL_POINTS_TYPICAL_MAX_SPEED_DESC'
-  | 'LEVEL_POINTS_TYPICAL_RAGDOLL_SHARE_ASC'
-  | 'LEVEL_POINTS_TYPICAL_RAGDOLL_SHARE_DESC'
-  | 'LEVEL_POINTS_TYPICAL_SLIP_SHARE_ASC'
-  | 'LEVEL_POINTS_TYPICAL_SLIP_SHARE_DESC'
-  | 'LEVEL_POINTS_VELOCITY_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_VELOCITY_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_WHEEL_SAMPLE_SIZE_ASC'
-  | 'LEVEL_POINTS_WHEEL_SAMPLE_SIZE_DESC'
-  | 'LEVEL_POINTS_WORLD_RECORD_DIFFICULTY_SCORE_ASC'
-  | 'LEVEL_POINTS_WORLD_RECORD_DIFFICULTY_SCORE_DESC'
+  | 'LEVEL_POINTS_SKILL_ALIGNMENT_ASC'
+  | 'LEVEL_POINTS_SKILL_ALIGNMENT_DESC'
+  | 'LEVEL_POINTS_SKILL_CONFIDENCE_ASC'
+  | 'LEVEL_POINTS_SKILL_CONFIDENCE_DESC'
+  | 'LEVEL_POINTS_SKILL_SAMPLE_SIZE_ASC'
+  | 'LEVEL_POINTS_SKILL_SAMPLE_SIZE_DESC'
+  | 'LEVEL_POINTS_SKILL_SCORE_ASC'
+  | 'LEVEL_POINTS_SKILL_SCORE_DESC'
+  | 'LEVEL_POINTS_SKILL_SEPARATION_ASC'
+  | 'LEVEL_POINTS_SKILL_SEPARATION_DESC'
   | 'LEVEL_POINTS_WORLD_RECORD_EXCLUDED_ASC'
   | 'LEVEL_POINTS_WORLD_RECORD_EXCLUDED_DESC'
-  | 'LEVEL_POINTS_WORLD_RECORD_MARGIN_ASC'
-  | 'LEVEL_POINTS_WORLD_RECORD_MARGIN_DESC'
-  | 'LEVEL_POINTS_WORLD_RECORD_OPTIMIZATION_SCORE_ASC'
-  | 'LEVEL_POINTS_WORLD_RECORD_OPTIMIZATION_SCORE_DESC'
-  | 'LEVEL_POINTS_WR_CHALLENGER_COUNT_ASC'
-  | 'LEVEL_POINTS_WR_CHALLENGER_COUNT_DESC'
-  | 'LEVEL_POINTS_ZERO_CONTROL_RATIO_ASC'
-  | 'LEVEL_POINTS_ZERO_CONTROL_RATIO_DESC'
   | 'NATURAL'
   | 'PERSONAL_BEST_GLOBALS_AVERAGE_ID_ASC'
   | 'PERSONAL_BEST_GLOBALS_AVERAGE_ID_DESC'
@@ -3850,6 +2530,28 @@ export type PersonalBestGlobalVarianceSampleAggregateFilter = {
   levelId?: BigFloatFilter | null | undefined;
   recordId?: BigFloatFilter | null | undefined;
   userId?: BigFloatFilter | null | undefined;
+};
+
+/** A filter to be used against `PlayerSkillAggregate` object types. All fields are combined with a logical ‘and.’ */
+export type PlayerSkillAggregateFilter = {
+  /** Checks for all expressions in this list. */
+  and?: Array<PlayerSkillAggregateFilter> | null | undefined;
+  /** Filter by the object’s `dateUpdated` field. */
+  dateUpdated?: DatetimeFilter | null | undefined;
+  /** Filter by the object’s `eligibleLevelCount` field. */
+  eligibleLevelCount?: IntFilter | null | undefined;
+  /** Negates the expression. */
+  not?: PlayerSkillAggregateFilter | null | undefined;
+  /** Checks for any expressions in this list. */
+  or?: Array<PlayerSkillAggregateFilter> | null | undefined;
+  /** Filter by the object’s `placementSum` field. */
+  placementSum?: FloatFilter | null | undefined;
+  /** Filter by the object’s `skill` field. */
+  skill?: FloatFilter | null | undefined;
+  /** Filter by the object’s `user` relation. */
+  user?: UserFilter | null | undefined;
+  /** Filter by the object’s `userId` field. */
+  userId?: IntFilter | null | undefined;
 };
 
 /** A filter to be used against aggregates of `Record` object types. */
@@ -4869,6 +3571,10 @@ export type UserFilter = {
   personalBestGlobals?: UserToManyPersonalBestGlobalFilter | null | undefined;
   /** Some related `personalBestGlobals` exist. */
   personalBestGlobalsExist?: boolean | null | undefined;
+  /** Filter by the object’s `playerSkillAggregate` relation. */
+  playerSkillAggregate?: PlayerSkillAggregateFilter | null | undefined;
+  /** A related `playerSkillAggregate` exists. */
+  playerSkillAggregateExists?: boolean | null | undefined;
   /** Filter by the object’s `records` relation. */
   records?: UserToManyRecordFilter | null | undefined;
   /** Some related `records` exist. */
@@ -6598,7 +5304,7 @@ export type ZslSeasonVarianceSampleAggregateFilter = {
   pointsStructureId?: BigFloatFilter | null | undefined;
 };
 
-export type Zc_AdventureLevelCardFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> } };
+export type Zc_AdventureLevelCardFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> } };
 
 export type Zc_AdventureSeriesCountsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -6610,9 +5316,9 @@ export type Zc_AdventureSeriesQueryVariables = Exact<{
 }>;
 
 
-export type Zc_AdventureSeriesQuery = { levels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> } }> } | null };
+export type Zc_AdventureSeriesQuery = { levels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> } }> } | null };
 
-export type Zc_DashboardLevelFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null };
+export type Zc_DashboardLevelFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null };
 
 export type Zc_DashboardMetricCountsFragment = { records: { totalCount: number } | null, recordsDay: { totalCount: number } | null, recordsMonth: { totalCount: number } | null, personalBestGlobals: { totalCount: number } | null, personalBestGlobalsDay: { totalCount: number } | null, personalBestGlobalsMonth: { totalCount: number } | null, worldRecordGlobals: { totalCount: number } | null, worldRecordGlobalsDay: { totalCount: number } | null, worldRecordGlobalsMonth: { totalCount: number } | null, levels: { totalCount: number } | null, levelsDay: { totalCount: number } | null, levelsMonth: { totalCount: number } | null, votes: { totalCount: number } | null, votesDay: { totalCount: number } | null, votesMonth: { totalCount: number } | null, totalUsers: { totalCount: number } | null, rankedUsers: { totalCount: number } | null, activeUsersDay: { totalCount: number } | null, activeUsersMonth: { totalCount: number } | null };
 
@@ -6622,14 +5328,14 @@ export type Zc_DashboardCriticalQueryVariables = Exact<{
 }>;
 
 
-export type Zc_DashboardCriticalQuery = { trendingLevels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, periodRecords: { totalCount: number }, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null }> } | null, records: { totalCount: number } | null, recordsDay: { totalCount: number } | null, recordsMonth: { totalCount: number } | null, personalBestGlobals: { totalCount: number } | null, personalBestGlobalsDay: { totalCount: number } | null, personalBestGlobalsMonth: { totalCount: number } | null, worldRecordGlobals: { totalCount: number } | null, worldRecordGlobalsDay: { totalCount: number } | null, worldRecordGlobalsMonth: { totalCount: number } | null, levels: { totalCount: number } | null, levelsDay: { totalCount: number } | null, levelsMonth: { totalCount: number } | null, votes: { totalCount: number } | null, votesDay: { totalCount: number } | null, votesMonth: { totalCount: number } | null, totalUsers: { totalCount: number } | null, rankedUsers: { totalCount: number } | null, activeUsersDay: { totalCount: number } | null, activeUsersMonth: { totalCount: number } | null };
+export type Zc_DashboardCriticalQuery = { trendingLevels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, periodRecords: { totalCount: number }, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null }> } | null, records: { totalCount: number } | null, recordsDay: { totalCount: number } | null, recordsMonth: { totalCount: number } | null, personalBestGlobals: { totalCount: number } | null, personalBestGlobalsDay: { totalCount: number } | null, personalBestGlobalsMonth: { totalCount: number } | null, worldRecordGlobals: { totalCount: number } | null, worldRecordGlobalsDay: { totalCount: number } | null, worldRecordGlobalsMonth: { totalCount: number } | null, levels: { totalCount: number } | null, levelsDay: { totalCount: number } | null, levelsMonth: { totalCount: number } | null, votes: { totalCount: number } | null, votesDay: { totalCount: number } | null, votesMonth: { totalCount: number } | null, totalUsers: { totalCount: number } | null, rankedUsers: { totalCount: number } | null, activeUsersDay: { totalCount: number } | null, activeUsersMonth: { totalCount: number } | null };
 
 export type Zc_DashboardHotLevelsQueryVariables = Exact<{
   since: unknown;
 }>;
 
 
-export type Zc_DashboardHotLevelsQuery = { levels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, periodRecords: { totalCount: number }, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null }> } | null };
+export type Zc_DashboardHotLevelsQuery = { levels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, periodRecords: { totalCount: number }, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null }> } | null };
 
 export type Zc_DashboardV6StatisticAggregatesFragment = { sum: { distance: number, distanceInAir: number, distanceOn1Wheel: number, distanceOn2Wheels: number, distanceOn3Wheels: number, distanceOn4Wheels: number, distanceOnGrass: number, distanceOnGround: number, distanceOnIce: number, distanceOnMetal: number, distanceOnSand: number, distanceOnSnow: number, distanceOnSoap: number, distanceOnTarmac: number, distanceRagdoll: number, time: number, timeInAir: number, timeOnGrass: number, timeOnGround: number, timeOnIce: number, timeOnMetal: number, timeOnSand: number, timeOnSnow: number, timeOnSoap: number, timeOnTarmac: number, timeRagdoll: number, turnLeftCount: unknown, turnRightCount: unknown, armsUpCount: unknown, brakeCount: unknown, hornCount: unknown } | null, average: { averageGforce: number | null, averageSpeed: number | null } | null };
 
@@ -6654,7 +5360,7 @@ export type Zc_DashboardViewerLevelsQueryVariables = Exact<{
 }>;
 
 
-export type Zc_DashboardViewerLevelsQuery = { user: { levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, level: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } | null, author: { steamId: unknown, steamName: string | null } | null }> } } | null };
+export type Zc_DashboardViewerLevelsQuery = { user: { levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, level: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } | null, author: { steamId: unknown, steamName: string | null } | null }> } } | null };
 
 export type Zc_GhostComparisonRecordFragment = { id: number, time: number, dateCreated: unknown, dateUpdated: unknown, splits: Array<number | null> | null, speeds: Array<number | null> | null, levelId: number, userId: number, user: { id: number, steamId: unknown, steamName: string | null } | null, recordMedia: { ghostUrl: string | null, dateCreated: unknown, dateUpdated: unknown } | null, personalBestGlobals: { totalCount: number }, worldRecordGlobals: { totalCount: number } };
 
@@ -6675,7 +5381,7 @@ export type Zc_LevelDetailQueryVariables = Exact<{
 }>;
 
 
-export type Zc_LevelDetailQuery = { levelByXxHash: { id: number, xxHash: string, publiclyVisible: boolean, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, authorId: unknown, workshopId: unknown, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { id: number, steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierCompetitiveness: number, modifierRating: number, sampleSize: number | null, leaderboardConfidence: number | null, inputSampleSize: number | null, inputCoverage: number | null, airSampleSize: number | null, wheelSampleSize: number | null, slipSampleSize: number | null, ragdollSampleSize: number | null, stateSampleSize: number | null, surfaceSampleSize: number | null, velocitySampleSize: number | null, competitivenessScore: number | null, worldRecordDifficultyScore: number | null, participationScore: number | null, passivePlaySeverity: number | null, modifierAfk: number | null, passiveRunRatio: number | null, passiveTop10Share: number | null, bestPassiveRank: number | null, bestPassiveGap: number | null, driverEngagementScore: number | null, worldRecordMargin: number | null, top5Spread: number | null, top10Spread: number | null, top50Spread: number | null, wrChallengerCount: number | null, worldRecordOptimizationScore: number | null, leaderboardAnomalyScore: number | null, telemetryAnomalyScore: number | null, worldRecordExcluded: boolean | null, pathConsistencyScore: number | null, speedConsistencyScore: number | null, routeConsistencyScore: number | null, surfaceDiversityScore: number | null, matureVoteCount: number | null, typicalDistance: number | null, typicalAverageSpeed: number | null, typicalMaxSpeed: number | null, typicalAirTimeShare: number | null, typicalGroundTimeShare: number | null, typicalSlipShare: number | null, typicalRagdollShare: number | null, typicalAverageAngularVelocity: number | null, typicalAverageGforce: number | null, medianSteeringShare: number | null, q25SteeringShare: number | null, lowSteeringRatio: number | null, zeroControlRatio: number | null, medianBrakeShare: number | null, medianArmsUpShare: number | null, medianControlTransitionRate: number | null } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, favourites: { totalCount: number }, worldRecordGlobal: { record: { id: number, time: number, dateCreated: unknown, levelId: number, userId: number, recordStatistic: { distance: number | null } | null } | null, user: { id: number, steamId: unknown, steamName: string | null } | null } | null } | null };
+export type Zc_LevelDetailQuery = { levelByXxHash: { id: number, xxHash: string, publiclyVisible: boolean, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, authorId: unknown, workshopId: unknown, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { id: number, steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierLength: number, modifierCompetitiveness: number, modifierEvidence: number, modifierQuality: number, modifierRating: number, competitiveMerit: number | null, complexityConfidence: number | null, complexityScore: number | null, fieldStrength: number | null, qualityScore: number | null, skillAlignment: number | null, skillConfidence: number | null, skillSampleSize: number | null, skillScore: number | null, skillSeparation: number | null, worldRecordExcluded: boolean | null } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, favourites: { totalCount: number }, worldRecordGlobal: { record: { id: number, time: number, dateCreated: unknown, levelId: number, userId: number, recordStatistic: { distance: number | null } | null } | null, user: { id: number, steamId: unknown, steamName: string | null } | null } | null } | null };
 
 export type Zc_LevelGhostDefaultsQueryVariables = Exact<{
   levelId: number;
@@ -6759,7 +5465,7 @@ export type Zc_LevelViewerBestQueryVariables = Exact<{
 
 export type Zc_LevelViewerBestQuery = { personalBestGlobalByUserIdAndLevelId: { record: { id: number, time: number, dateCreated: unknown, levelId: number, userId: number, user: { steamId: unknown, steamName: string | null } | null, userPointContributions: { nodes: Array<{ levelPosition: number, contributionRank: number, levelPoints: number, levelDecayedPoints: number, playerDecayedPoints: number }> } } | null } | null };
 
-export type Zc_LevelExplorerCardFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null };
+export type Zc_LevelExplorerCardFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null };
 
 export type Zc_LevelsQueryVariables = Exact<{
   first?: number | null | undefined;
@@ -6771,7 +5477,7 @@ export type Zc_LevelsQueryVariables = Exact<{
 }>;
 
 
-export type Zc_LevelsQuery = { levels: { totalCount: number, edges: Array<{ cursor: unknown, node: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } }>, pageInfo: { startCursor: unknown, endCursor: unknown, hasNextPage: boolean, hasPreviousPage: boolean } } | null };
+export type Zc_LevelsQuery = { levels: { totalCount: number, edges: Array<{ cursor: unknown, node: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } }>, pageInfo: { startCursor: unknown, endCursor: unknown, hasNextPage: boolean, hasPreviousPage: boolean } } | null };
 
 export type Zc_HotLevelsQueryVariables = Exact<{
   first?: number | null | undefined;
@@ -6783,7 +5489,7 @@ export type Zc_HotLevelsQueryVariables = Exact<{
 }>;
 
 
-export type Zc_HotLevelsQuery = { levels: { totalCount: number, edges: Array<{ cursor: unknown, node: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } }>, pageInfo: { startCursor: unknown, endCursor: unknown, hasNextPage: boolean, hasPreviousPage: boolean } } | null };
+export type Zc_HotLevelsQuery = { levels: { totalCount: number, edges: Array<{ cursor: unknown, node: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } }>, pageInfo: { startCursor: unknown, endCursor: unknown, hasNextPage: boolean, hasPreviousPage: boolean } } | null };
 
 export type Zc_PlayersQueryVariables = Exact<{
   first?: number | null | undefined;
@@ -6903,7 +5609,7 @@ export type Zc_UserContributionsQueryVariables = Exact<{
 
 export type Zc_UserContributionsQuery = { userPointContributions: { totalCount: number, edges: Array<{ cursor: unknown, node: { contributionRank: number, levelPosition: number, levelPoints: number, levelDecayedPoints: number, playerDecayedPoints: number, dateCalculated: unknown, record: { id: number, time: number, dateCreated: unknown, levelId: number, userId: number } | null, level: { xxHash: string, levelItems: { nodes: Array<{ name: string }> } } | null } }>, pageInfo: { startCursor: unknown, endCursor: unknown, hasNextPage: boolean, hasPreviousPage: boolean } } | null };
 
-export type Zc_UserLevelCardFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null };
+export type Zc_UserLevelCardFragment = { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null };
 
 export type Zc_UserLevelsQueryVariables = Exact<{
   userId: number;
@@ -6912,7 +5618,7 @@ export type Zc_UserLevelsQueryVariables = Exact<{
 }>;
 
 
-export type Zc_UserLevelsQuery = { recentUser: { levelItems: { nodes: Array<{ level: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } | null }> } } | null, popularLevels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, periodRecords: { totalCount: number }, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number, modifierPopularity: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null }> } | null };
+export type Zc_UserLevelsQuery = { recentUser: { levelItems: { nodes: Array<{ level: { id: number, xxHash: string, adventure: boolean, dateCreated: unknown, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null } | null }> } } | null, popularLevels: { nodes: Array<{ id: number, xxHash: string, adventure: boolean, dateCreated: unknown, periodRecords: { totalCount: number }, levelItems: { nodes: Array<{ name: string, imageUrl: string, validationTimeAuthor: number, validationTimeGold: number, validationTimeSilver: number, validationTimeBronze: number, author: { steamId: unknown, steamName: string | null } | null }> }, levelPoints: { points: number, rating: number } | null, records: { totalCount: number }, personalBestGlobals: { totalCount: number }, votes: { totalCount: number }, worldRecordGlobal: { record: { time: number } | null, user: { steamId: unknown, steamName: string | null } | null } | null }> } | null };
 
 export type Zc_UserPointsHistoryQueryVariables = Exact<{
   userId: number;
@@ -7090,31 +5796,31 @@ export type Zc_RecordHistoryLiveSubscriptionVariables = Exact<{
 
 export type Zc_RecordHistoryLiveSubscription = { recordHistoryEntries: { edges: Array<{ cursor: unknown, node: { id: number, time: number | null, dateCreated: unknown, levelId: number | null, userId: number | null, userSteamId: unknown, userName: string | null, levelXxHash: string | null, levelName: string | null, levelPosition: number | null, contributionRank: number | null, levelPoints: number | null, playerDecayedPoints: number | null, levelDecayedPoints: number | null, isPersonalBest: boolean | null, isWorldRecord: boolean | null, hasContribution: boolean | null } }>, pageInfo: { startCursor: unknown, endCursor: unknown, hasNextPage: boolean, hasPreviousPage: boolean } } | null };
 
-export const Zc_AdventureLevelCardFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_AdventureLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_AdventureLevelCardFragment, unknown>;
-export const Zc_DashboardLevelFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardLevel"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardLevelFragment, unknown>;
+export const Zc_AdventureLevelCardFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_AdventureLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_AdventureLevelCardFragment, unknown>;
+export const Zc_DashboardLevelFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardLevel"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardLevelFragment, unknown>;
 export const Zc_DashboardMetricCountsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardMetricCounts"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Query"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"recordsDay"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"recordsMonth"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"personalBestGlobalsDay"},"name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"personalBestGlobalsMonth"},"name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"worldRecordGlobalsDay"},"name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"worldRecordGlobalsMonth"},"name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"levelsDay"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"levelsMonth"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"votesDay"},"name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"votesMonth"},"name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"totalUsers"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"rankedUsers"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"userPointExists"},"value":{"kind":"BooleanValue","value":true}},{"kind":"ObjectField","name":{"kind":"Name","value":"userPoints"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"rank"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"notEqualTo"},"value":{"kind":"IntValue","value":"-1"}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"activeUsersDay"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"or"},"value":{"kind":"ListValue","values":[{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"records"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"createdAt"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"zslLevelResults"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"eventDate"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}]}}]}}]}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"activeUsersMonth"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"or"},"value":{"kind":"ListValue","values":[{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"records"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"createdAt"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"zslLevelResults"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"eventDate"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}]}}]}}]}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardMetricCountsFragment, unknown>;
 export const Zc_DashboardV6StatisticAggregatesFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardV6StatisticAggregates"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"RecordStatisticAggregates"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}},{"kind":"Field","name":{"kind":"Name","value":"distanceInAir"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn1Wheel"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn2Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn3Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn4Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"distanceRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"timeInAir"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"timeRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"turnLeftCount"}},{"kind":"Field","name":{"kind":"Name","value":"turnRightCount"}},{"kind":"Field","name":{"kind":"Name","value":"armsUpCount"}},{"kind":"Field","name":{"kind":"Name","value":"brakeCount"}},{"kind":"Field","name":{"kind":"Name","value":"hornCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"average"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"averageGforce"}},{"kind":"Field","name":{"kind":"Name","value":"averageSpeed"}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardV6StatisticAggregatesFragment, unknown>;
 export const Zc_GhostComparisonRecordFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"recordMedia"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ghostUrl"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_GhostComparisonRecordFragment, unknown>;
 export const Zc_LevelSplitRecordFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelSplitRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]} as unknown as DocumentNode<Zc_LevelSplitRecordFragment, unknown>;
-export const Zc_LevelExplorerCardFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelExplorerCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelExplorerCardFragment, unknown>;
+export const Zc_LevelExplorerCardFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelExplorerCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelExplorerCardFragment, unknown>;
 export const Zc_RecordStatisticFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_RecordStatistic"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"RecordStatistic"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"armsUpCount"}},{"kind":"Field","name":{"kind":"Name","value":"armsUpTime"}},{"kind":"Field","name":{"kind":"Name","value":"averageAngularVelocity"}},{"kind":"Field","name":{"kind":"Name","value":"averageGforce"}},{"kind":"Field","name":{"kind":"Name","value":"averageSpeed"}},{"kind":"Field","name":{"kind":"Name","value":"averageVelocity"}},{"kind":"Field","name":{"kind":"Name","value":"brakeCount"}},{"kind":"Field","name":{"kind":"Name","value":"brakeTime"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"distance"}},{"kind":"Field","name":{"kind":"Name","value":"distanceInAir"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOffroadWheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn1Wheel"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn2Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn3Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn4Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnMonorail"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"distanceParaglider"}},{"kind":"Field","name":{"kind":"Name","value":"distanceParked"}},{"kind":"Field","name":{"kind":"Name","value":"distanceRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"distanceSlipping"}},{"kind":"Field","name":{"kind":"Name","value":"distanceSoapWheels"}},{"kind":"Field","name":{"kind":"Name","value":"driverInputTransitionCount"}},{"kind":"Field","name":{"kind":"Name","value":"frameCount"}},{"kind":"Field","name":{"kind":"Name","value":"ghostVersion"}},{"kind":"Field","name":{"kind":"Name","value":"hasAirData"}},{"kind":"Field","name":{"kind":"Name","value":"hasInputData"}},{"kind":"Field","name":{"kind":"Name","value":"hasRagdollData"}},{"kind":"Field","name":{"kind":"Name","value":"hasSlipData"}},{"kind":"Field","name":{"kind":"Name","value":"hasStateData"}},{"kind":"Field","name":{"kind":"Name","value":"hasSurfaceData"}},{"kind":"Field","name":{"kind":"Name","value":"hasVelocityData"}},{"kind":"Field","name":{"kind":"Name","value":"hasWheelData"}},{"kind":"Field","name":{"kind":"Name","value":"hornCount"}},{"kind":"Field","name":{"kind":"Name","value":"hornTime"}},{"kind":"Field","name":{"kind":"Name","value":"maxAngularVelocity"}},{"kind":"Field","name":{"kind":"Name","value":"maxGforce"}},{"kind":"Field","name":{"kind":"Name","value":"maxSpeed"}},{"kind":"Field","name":{"kind":"Name","value":"maxVelocity"}},{"kind":"Field","name":{"kind":"Name","value":"nodeId"}},{"kind":"Field","name":{"kind":"Name","value":"recordId"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"timeAnyDriverInput"}},{"kind":"Field","name":{"kind":"Name","value":"timeInAir"}},{"kind":"Field","name":{"kind":"Name","value":"timeOffroadWheels"}},{"kind":"Field","name":{"kind":"Name","value":"timeOn1Wheel"}},{"kind":"Field","name":{"kind":"Name","value":"timeOn2Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"timeOn3Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"timeOn4Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnMonorail"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"timeParaglider"}},{"kind":"Field","name":{"kind":"Name","value":"timeParked"}},{"kind":"Field","name":{"kind":"Name","value":"timeRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"timeSlipping"}},{"kind":"Field","name":{"kind":"Name","value":"timeSoapWheels"}},{"kind":"Field","name":{"kind":"Name","value":"turnLeftCount"}},{"kind":"Field","name":{"kind":"Name","value":"turnLeftTime"}},{"kind":"Field","name":{"kind":"Name","value":"turnRightCount"}},{"kind":"Field","name":{"kind":"Name","value":"turnRightTime"}}]}}]} as unknown as DocumentNode<Zc_RecordStatisticFragment, unknown>;
 export const Zc_RecordHistoryRowFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_RecordHistoryRow"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"RecordHistoryEntry"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"userSteamId"}},{"kind":"Field","name":{"kind":"Name","value":"userName"}},{"kind":"Field","name":{"kind":"Name","value":"levelXxHash"}},{"kind":"Field","name":{"kind":"Name","value":"levelName"}},{"kind":"Field","name":{"kind":"Name","value":"levelPosition"}},{"kind":"Field","name":{"kind":"Name","value":"contributionRank"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"}},{"kind":"Field","name":{"kind":"Name","value":"playerDecayedPoints"}},{"kind":"Field","name":{"kind":"Name","value":"levelDecayedPoints"}},{"kind":"Field","name":{"kind":"Name","value":"isPersonalBest"}},{"kind":"Field","name":{"kind":"Name","value":"isWorldRecord"}},{"kind":"Field","name":{"kind":"Name","value":"hasContribution"}}]}}]} as unknown as DocumentNode<Zc_RecordHistoryRowFragment, unknown>;
-export const Zc_UserLevelCardFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_UserLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserLevelCardFragment, unknown>;
+export const Zc_UserLevelCardFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_UserLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserLevelCardFragment, unknown>;
 export const Zc_UserStatisticTotalsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_UserStatisticTotals"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"RecordStatisticsConnection"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserStatisticTotalsFragment, unknown>;
 export const Zc_UserV6StatisticAggregatesFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_UserV6StatisticAggregates"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"RecordStatisticAggregates"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}},{"kind":"Field","name":{"kind":"Name","value":"distanceInAir"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn1Wheel"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn2Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn3Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn4Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"distanceRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"timeInAir"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"timeRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"turnLeftCount"}},{"kind":"Field","name":{"kind":"Name","value":"turnRightCount"}},{"kind":"Field","name":{"kind":"Name","value":"armsUpCount"}},{"kind":"Field","name":{"kind":"Name","value":"brakeCount"}},{"kind":"Field","name":{"kind":"Name","value":"hornCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"average"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"averageGforce"}},{"kind":"Field","name":{"kind":"Name","value":"averageSpeed"}}]}},{"kind":"Field","name":{"kind":"Name","value":"max"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"maxGforce"}},{"kind":"Field","name":{"kind":"Name","value":"maxSpeed"}}]}}]}}]} as unknown as DocumentNode<Zc_UserV6StatisticAggregatesFragment, unknown>;
 export const Zc_ZslLevelStandingFieldsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_ZslLevelStandingFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ZslLevelResult"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"position"}},{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<Zc_ZslLevelStandingFieldsFragment, unknown>;
 export const Zc_ZslRoundStandingFieldsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_ZslRoundStandingFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ZslRoundResult"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"position"}},{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}},{"kind":"Field","name":{"kind":"Name","value":"zslLevelResults"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"seasonId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"seasonId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"round"}}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_ZslRoundStandingFieldsFragment, unknown>;
 export const Zc_ZslSeasonStandingFieldsFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_ZslSeasonStandingFields"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ZslSeasonResult"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"position"}},{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}},{"kind":"Field","name":{"kind":"Name","value":"zslRoundResults"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"seasonId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"ROUND_ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"round"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"round"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_ZslSeasonStandingFieldsFragment, unknown>;
 export const Zc_AdventureSeriesCountsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_AdventureSeriesCounts"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"seriesA"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"A-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesB"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"B-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesC"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"C-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesCl"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"CL-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesD"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"D-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesE"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"E-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesEz"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"EZ-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesF"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"F-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesFl"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"FL-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesG"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"G-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesH"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"H-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesI"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"I-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesL"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"L-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesOr"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"OR-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesX"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"X-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesXg"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"XG-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"seriesY"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"StringValue","value":"Y-","block":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_AdventureSeriesCountsQuery, Zc_AdventureSeriesCountsQueryVariables>;
-export const Zc_AdventureSeriesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_AdventureSeries"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"prefix"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1000"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"Variable","name":{"kind":"Name","value":"prefix"}}}]}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_AdventureLevelCard"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_AdventureLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_AdventureSeriesQuery, Zc_AdventureSeriesQueryVariables>;
-export const Zc_DashboardCriticalDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardCritical"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardMetricCounts"}},{"kind":"Field","alias":{"kind":"Name","value":"trendingLevels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardLevel"}},{"kind":"Field","alias":{"kind":"Name","value":"periodRecords"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardMetricCounts"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Query"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"recordsDay"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"recordsMonth"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"personalBestGlobalsDay"},"name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"personalBestGlobalsMonth"},"name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"worldRecordGlobalsDay"},"name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"worldRecordGlobalsMonth"},"name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"levelsDay"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"levelsMonth"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"votesDay"},"name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"votesMonth"},"name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"totalUsers"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"rankedUsers"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"userPointExists"},"value":{"kind":"BooleanValue","value":true}},{"kind":"ObjectField","name":{"kind":"Name","value":"userPoints"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"rank"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"notEqualTo"},"value":{"kind":"IntValue","value":"-1"}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"activeUsersDay"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"or"},"value":{"kind":"ListValue","values":[{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"records"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"createdAt"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"zslLevelResults"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"eventDate"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}]}}]}}]}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"activeUsersMonth"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"or"},"value":{"kind":"ListValue","values":[{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"records"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"createdAt"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"zslLevelResults"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"eventDate"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}]}}]}}]}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardLevel"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardCriticalQuery, Zc_DashboardCriticalQueryVariables>;
-export const Zc_DashboardHotLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardHotLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"levels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardLevel"}},{"kind":"Field","alias":{"kind":"Name","value":"periodRecords"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardLevel"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardHotLevelsQuery, Zc_DashboardHotLevelsQueryVariables>;
+export const Zc_AdventureSeriesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_AdventureSeries"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"prefix"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1000"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"adventure"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"startsWithInsensitive"},"value":{"kind":"Variable","name":{"kind":"Name","value":"prefix"}}}]}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_AdventureLevelCard"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_AdventureLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_AdventureSeriesQuery, Zc_AdventureSeriesQueryVariables>;
+export const Zc_DashboardCriticalDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardCritical"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardMetricCounts"}},{"kind":"Field","alias":{"kind":"Name","value":"trendingLevels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardLevel"}},{"kind":"Field","alias":{"kind":"Name","value":"periodRecords"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardMetricCounts"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Query"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"recordsDay"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"recordsMonth"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"personalBestGlobalsDay"},"name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"personalBestGlobalsMonth"},"name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"worldRecordGlobalsDay"},"name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"worldRecordGlobalsMonth"},"name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"levelsDay"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"levelsMonth"},"name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"votesDay"},"name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"votesMonth"},"name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"totalUsers"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"rankedUsers"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"userPointExists"},"value":{"kind":"BooleanValue","value":true}},{"kind":"ObjectField","name":{"kind":"Name","value":"userPoints"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"rank"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"notEqualTo"},"value":{"kind":"IntValue","value":"-1"}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"activeUsersDay"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"or"},"value":{"kind":"ListValue","values":[{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"records"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"createdAt"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"zslLevelResults"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"eventDate"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}]}}]}}]}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"activeUsersMonth"},"name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"or"},"value":{"kind":"ListValue","values":[{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"records"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"createdAt"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]},{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"zslLevelResults"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"round"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"eventDate"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}]}}]}}]}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardLevel"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardCriticalQuery, Zc_DashboardCriticalQueryVariables>;
+export const Zc_DashboardHotLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardHotLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"levels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}},{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardLevel"}},{"kind":"Field","alias":{"kind":"Name","value":"periodRecords"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardLevel"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardHotLevelsQuery, Zc_DashboardHotLevelsQueryVariables>;
 export const Zc_DashboardStatisticsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardStatistics"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"minimumModVersion"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"allTimeStatistics"},"name":{"kind":"Name","value":"recordStatistics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"dayStatistics"},"name":{"kind":"Name","value":"recordStatistics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"monthStatistics"},"name":{"kind":"Name","value":"recordStatistics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"v6DayStatistics"},"name":{"kind":"Name","value":"recordStatistics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"daySince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"modVersion"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"minimumModVersion"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardV6StatisticAggregates"}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"v6MonthStatistics"},"name":{"kind":"Name","value":"recordStatistics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"monthSince"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"modVersion"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"minimumModVersion"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_DashboardV6StatisticAggregates"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_DashboardV6StatisticAggregates"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"RecordStatisticAggregates"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}},{"kind":"Field","name":{"kind":"Name","value":"distanceInAir"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn1Wheel"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn2Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn3Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn4Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"distanceRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"timeInAir"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"timeRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"turnLeftCount"}},{"kind":"Field","name":{"kind":"Name","value":"turnRightCount"}},{"kind":"Field","name":{"kind":"Name","value":"armsUpCount"}},{"kind":"Field","name":{"kind":"Name","value":"brakeCount"}},{"kind":"Field","name":{"kind":"Name","value":"hornCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"average"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"averageGforce"}},{"kind":"Field","name":{"kind":"Name","value":"averageSpeed"}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardStatisticsQuery, Zc_DashboardStatisticsQueryVariables>;
 export const Zc_DashboardHeroSummaryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardHeroSummary"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"user"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"userPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rank"}},{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"totalPoints"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecords"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"zslSeasons"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"START_DATE_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"zslSeasonResults"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"userId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"position"}},{"kind":"Field","name":{"kind":"Name","value":"points"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardHeroSummaryQuery, Zc_DashboardHeroSummaryQueryVariables>;
-export const Zc_DashboardViewerLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardViewerLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"user"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"CREATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"level"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardViewerLevelsQuery, Zc_DashboardViewerLevelsQueryVariables>;
+export const Zc_DashboardViewerLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_DashboardViewerLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"user"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"CREATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"level"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_DashboardViewerLevelsQuery, Zc_DashboardViewerLevelsQueryVariables>;
 export const Zc_HomeStatsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_HomeStats"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_HomeStatsQuery, Zc_HomeStatsQueryVariables>;
 export const Zc_LeaderboardsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_Leaderboards"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}},"defaultValue":{"kind":"IntValue","value":"10"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_LeaderboardsQuery, Zc_LeaderboardsQueryVariables>;
-export const Zc_LevelDetailDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelDetail"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"xxHash"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levelByXxHash"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"xxHash"},"value":{"kind":"Variable","name":{"kind":"Name","value":"xxHash"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"publiclyVisible"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"authorId"}},{"kind":"Field","name":{"kind":"Name","value":"workshopId"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierCompetitiveness"}},{"kind":"Field","name":{"kind":"Name","value":"modifierRating"}},{"kind":"Field","name":{"kind":"Name","value":"sampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"leaderboardConfidence"}},{"kind":"Field","name":{"kind":"Name","value":"inputSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"inputCoverage"}},{"kind":"Field","name":{"kind":"Name","value":"airSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"wheelSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"slipSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"ragdollSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"stateSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"surfaceSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"velocitySampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"competitivenessScore"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordDifficultyScore"}},{"kind":"Field","name":{"kind":"Name","value":"participationScore"}},{"kind":"Field","name":{"kind":"Name","value":"passivePlaySeverity"}},{"kind":"Field","name":{"kind":"Name","value":"modifierAfk"}},{"kind":"Field","name":{"kind":"Name","value":"passiveRunRatio"}},{"kind":"Field","name":{"kind":"Name","value":"passiveTop10Share"}},{"kind":"Field","name":{"kind":"Name","value":"bestPassiveRank"}},{"kind":"Field","name":{"kind":"Name","value":"bestPassiveGap"}},{"kind":"Field","name":{"kind":"Name","value":"driverEngagementScore"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordMargin"}},{"kind":"Field","name":{"kind":"Name","value":"top5Spread"}},{"kind":"Field","name":{"kind":"Name","value":"top10Spread"}},{"kind":"Field","name":{"kind":"Name","value":"top50Spread"}},{"kind":"Field","name":{"kind":"Name","value":"wrChallengerCount"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordOptimizationScore"}},{"kind":"Field","name":{"kind":"Name","value":"leaderboardAnomalyScore"}},{"kind":"Field","name":{"kind":"Name","value":"telemetryAnomalyScore"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordExcluded"}},{"kind":"Field","name":{"kind":"Name","value":"pathConsistencyScore"}},{"kind":"Field","name":{"kind":"Name","value":"speedConsistencyScore"}},{"kind":"Field","name":{"kind":"Name","value":"routeConsistencyScore"}},{"kind":"Field","name":{"kind":"Name","value":"surfaceDiversityScore"}},{"kind":"Field","name":{"kind":"Name","value":"matureVoteCount"}},{"kind":"Field","name":{"kind":"Name","value":"typicalDistance"}},{"kind":"Field","name":{"kind":"Name","value":"typicalAverageSpeed"}},{"kind":"Field","name":{"kind":"Name","value":"typicalMaxSpeed"}},{"kind":"Field","name":{"kind":"Name","value":"typicalAirTimeShare"}},{"kind":"Field","name":{"kind":"Name","value":"typicalGroundTimeShare"}},{"kind":"Field","name":{"kind":"Name","value":"typicalSlipShare"}},{"kind":"Field","name":{"kind":"Name","value":"typicalRagdollShare"}},{"kind":"Field","name":{"kind":"Name","value":"typicalAverageAngularVelocity"}},{"kind":"Field","name":{"kind":"Name","value":"typicalAverageGforce"}},{"kind":"Field","name":{"kind":"Name","value":"medianSteeringShare"}},{"kind":"Field","name":{"kind":"Name","value":"q25SteeringShare"}},{"kind":"Field","name":{"kind":"Name","value":"lowSteeringRatio"}},{"kind":"Field","name":{"kind":"Name","value":"zeroControlRatio"}},{"kind":"Field","name":{"kind":"Name","value":"medianBrakeShare"}},{"kind":"Field","name":{"kind":"Name","value":"medianArmsUpShare"}},{"kind":"Field","name":{"kind":"Name","value":"medianControlTransitionRate"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"favourites"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"recordStatistic"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelDetailQuery, Zc_LevelDetailQueryVariables>;
+export const Zc_LevelDetailDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelDetail"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"xxHash"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levelByXxHash"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"xxHash"},"value":{"kind":"Variable","name":{"kind":"Name","value":"xxHash"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"publiclyVisible"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"authorId"}},{"kind":"Field","name":{"kind":"Name","value":"workshopId"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierLength"}},{"kind":"Field","name":{"kind":"Name","value":"modifierCompetitiveness"}},{"kind":"Field","name":{"kind":"Name","value":"modifierEvidence"}},{"kind":"Field","name":{"kind":"Name","value":"modifierQuality"}},{"kind":"Field","name":{"kind":"Name","value":"modifierRating"}},{"kind":"Field","name":{"kind":"Name","value":"competitiveMerit"}},{"kind":"Field","name":{"kind":"Name","value":"complexityConfidence"}},{"kind":"Field","name":{"kind":"Name","value":"complexityScore"}},{"kind":"Field","name":{"kind":"Name","value":"fieldStrength"}},{"kind":"Field","name":{"kind":"Name","value":"qualityScore"}},{"kind":"Field","name":{"kind":"Name","value":"skillAlignment"}},{"kind":"Field","name":{"kind":"Name","value":"skillConfidence"}},{"kind":"Field","name":{"kind":"Name","value":"skillSampleSize"}},{"kind":"Field","name":{"kind":"Name","value":"skillScore"}},{"kind":"Field","name":{"kind":"Name","value":"skillSeparation"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordExcluded"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"favourites"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"recordStatistic"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelDetailQuery, Zc_LevelDetailQueryVariables>;
 export const Zc_LevelGhostDefaultsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelGhostDefaults"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"viewerId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"includeViewer"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"level"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}},{"kind":"Field","alias":{"kind":"Name","value":"worldRecord"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"worldRecordGlobalsExist"},"value":{"kind":"BooleanValue","value":true}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMedia"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"ghostUrl"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMediaExists"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"TIME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"viewerPersonalBest"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"userId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"viewerId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"personalBestGlobalsExist"},"value":{"kind":"BooleanValue","value":true}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMedia"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"ghostUrl"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMediaExists"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"TIME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"includeViewer"}}}]}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"recordMedia"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ghostUrl"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_LevelGhostDefaultsQuery, Zc_LevelGhostDefaultsQueryVariables>;
 export const Zc_LevelGhostPresetDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelGhostPreset"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"RecordFilter"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"TIME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"recordMedia"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ghostUrl"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_LevelGhostPresetQuery, Zc_LevelGhostPresetQueryVariables>;
 export const Zc_LevelGhostUserSearchDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelGhostUserSearch"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"search"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"8"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"steamName"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"includesInsensitive"},"value":{"kind":"Variable","name":{"kind":"Name","value":"search"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"personalBestGlobals"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"recordMedia"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"ghostUrl"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMediaExists"},"value":{"kind":"BooleanValue","value":true}}]}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"STEAM_NAME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"recordMedia"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"ghostUrl"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMediaExists"},"value":{"kind":"BooleanValue","value":true}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"recordMedia"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ghostUrl"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_LevelGhostUserSearchQuery, Zc_LevelGhostUserSearchQueryVariables>;
@@ -7124,8 +5830,8 @@ export const Zc_LevelRecordsDocument = {"kind":"Document","definitions":[{"kind"
 export const Zc_LevelSplitAnalysisDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelSplitAnalysis"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"viewerId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"includeViewer"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"5"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"personalBestGlobalsExist"},"value":{"kind":"BooleanValue","value":true}},{"kind":"ObjectField","name":{"kind":"Name","value":"splits"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"speeds"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"TIME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_LevelSplitRecord"}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"viewerPersonalBest"},"name":{"kind":"Name","value":"personalBestGlobalByUserIdAndLevelId"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"userId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"viewerId"}}},{"kind":"Argument","name":{"kind":"Name","value":"levelId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"includeViewer"}}}]}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_LevelSplitRecord"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelSplitRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]} as unknown as DocumentNode<Zc_LevelSplitAnalysisQuery, Zc_LevelSplitAnalysisQueryVariables>;
 export const Zc_LevelStatisticsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelStatistics"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"minimumModVersion"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"allStatistics"},"name":{"kind":"Name","value":"recordStatistics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}}]}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"v6Statistics"},"name":{"kind":"Name","value":"recordStatistics"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"record"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"modVersion"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"minimumModVersion"}}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"aggregates"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"sum"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"distance"}},{"kind":"Field","name":{"kind":"Name","value":"distanceInAir"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn1Wheel"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn2Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn3Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOn4Wheels"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"distanceOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"distanceRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"timeInAir"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGrass"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnGround"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnIce"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnMetal"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSand"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSnow"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnSoap"}},{"kind":"Field","name":{"kind":"Name","value":"timeOnTarmac"}},{"kind":"Field","name":{"kind":"Name","value":"timeRagdoll"}},{"kind":"Field","name":{"kind":"Name","value":"turnLeftCount"}},{"kind":"Field","name":{"kind":"Name","value":"turnRightCount"}},{"kind":"Field","name":{"kind":"Name","value":"armsUpCount"}},{"kind":"Field","name":{"kind":"Name","value":"brakeCount"}},{"kind":"Field","name":{"kind":"Name","value":"hornCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"average"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"averageGforce"}},{"kind":"Field","name":{"kind":"Name","value":"averageSpeed"}}]}},{"kind":"Field","name":{"kind":"Name","value":"max"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"maxGforce"}},{"kind":"Field","name":{"kind":"Name","value":"maxSpeed"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelStatisticsQuery, Zc_LevelStatisticsQueryVariables>;
 export const Zc_LevelViewerBestDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_LevelViewerBest"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobalByUserIdAndLevelId"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"userId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}},{"kind":"Argument","name":{"kind":"Name","value":"levelId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"userPointContributions"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levelPosition"}},{"kind":"Field","name":{"kind":"Name","value":"contributionRank"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"}},{"kind":"Field","name":{"kind":"Name","value":"levelDecayedPoints"}},{"kind":"Field","name":{"kind":"Name","value":"playerDecayedPoints"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelViewerBestQuery, Zc_LevelViewerBestQueryVariables>;
-export const Zc_LevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_Levels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"last"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"before"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"LevelFilter"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"orderBy"}},"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"LevelsOrderBy"}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"last"},"value":{"kind":"Variable","name":{"kind":"Name","value":"last"}}},{"kind":"Argument","name":{"kind":"Name","value":"before"},"value":{"kind":"Variable","name":{"kind":"Name","value":"before"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"Variable","name":{"kind":"Name","value":"orderBy"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_LevelExplorerCard"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startCursor"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"hasPreviousPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelExplorerCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelsQuery, Zc_LevelsQueryVariables>;
-export const Zc_HotLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_HotLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"last"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"before"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"LevelFilter"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"levels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"last"},"value":{"kind":"Variable","name":{"kind":"Name","value":"last"}}},{"kind":"Argument","name":{"kind":"Name","value":"before"},"value":{"kind":"Variable","name":{"kind":"Name","value":"before"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_LevelExplorerCard"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startCursor"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"hasPreviousPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelExplorerCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_HotLevelsQuery, Zc_HotLevelsQueryVariables>;
+export const Zc_LevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_Levels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"last"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"before"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"LevelFilter"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"orderBy"}},"type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"LevelsOrderBy"}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"last"},"value":{"kind":"Variable","name":{"kind":"Name","value":"last"}}},{"kind":"Argument","name":{"kind":"Name","value":"before"},"value":{"kind":"Variable","name":{"kind":"Name","value":"before"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"Variable","name":{"kind":"Name","value":"orderBy"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_LevelExplorerCard"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startCursor"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"hasPreviousPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelExplorerCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_LevelsQuery, Zc_LevelsQueryVariables>;
+export const Zc_HotLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_HotLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"last"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"before"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"LevelFilter"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"levels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"last"},"value":{"kind":"Variable","name":{"kind":"Name","value":"last"}}},{"kind":"Argument","name":{"kind":"Name","value":"before"},"value":{"kind":"Variable","name":{"kind":"Name","value":"before"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_LevelExplorerCard"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startCursor"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"hasPreviousPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_LevelExplorerCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_HotLevelsQuery, Zc_HotLevelsQueryVariables>;
 export const Zc_PlayersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_Players"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}},"defaultValue":{"kind":"IntValue","value":"10"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}},{"kind":"Field","name":{"kind":"Name","value":"banned"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_PlayersQuery, Zc_PlayersQueryVariables>;
 export const Zc_RecordComparisonCatalogDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_RecordComparisonCatalog"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"ownerId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"viewerId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"includeViewer"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"topPersonalBests"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"10"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"personalBestGlobalsExist"},"value":{"kind":"BooleanValue","value":true}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMedia"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"ghostUrl"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMediaExists"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"TIME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"ownerRuns"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"10"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"userId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"ownerId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMedia"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"ghostUrl"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMediaExists"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"TIME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"viewerPersonalBest"},"name":{"kind":"Name","value":"personalBestGlobalByUserIdAndLevelId"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"levelId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}},{"kind":"Argument","name":{"kind":"Name","value":"userId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"viewerId"}}}],"directives":[{"kind":"Directive","name":{"kind":"Name","value":"include"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"if"},"value":{"kind":"Variable","name":{"kind":"Name","value":"includeViewer"}}}]}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"recordMedia"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ghostUrl"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_RecordComparisonCatalogQuery, Zc_RecordComparisonCatalogQueryVariables>;
 export const Zc_RecordComparisonRecordsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_RecordComparisonRecords"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"recordIds"}},"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"10"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"in"},"value":{"kind":"Variable","name":{"kind":"Name","value":"recordIds"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"levelId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMedia"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"ghostUrl"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"isNull"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"recordMediaExists"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"TIME_ASC"},{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_GhostComparisonRecord"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Record"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"splits"}},{"kind":"Field","name":{"kind":"Name","value":"speeds"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}},{"kind":"Field","name":{"kind":"Name","value":"recordMedia"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"ghostUrl"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_RecordComparisonRecordsQuery, Zc_RecordComparisonRecordsQueryVariables>;
@@ -7140,7 +5846,7 @@ export const Zc_SitemapLevelsDocument = {"kind":"Document","definitions":[{"kind
 export const Zc_SitemapTournamentsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_SitemapTournaments"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"zslSeasons"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1000"}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"zslRounds"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"ROUND_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"round"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"zslLevels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"15"}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}}]}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_SitemapTournamentsQuery, Zc_SitemapTournamentsQueryVariables>;
 export const Zc_SitemapUsersDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_SitemapUsers"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1000"}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"STEAM_ID_ASC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"dateUpdated"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_SitemapUsersQuery, Zc_SitemapUsersQueryVariables>;
 export const Zc_UserContributionsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_UserContributions"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"first"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"last"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"before"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Cursor"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserPointContributionFilter"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"orderBy"}},"type":{"kind":"NonNullType","type":{"kind":"ListType","type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UserPointContributionsOrderBy"}}}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userPointContributions"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"Variable","name":{"kind":"Name","value":"first"}}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}},{"kind":"Argument","name":{"kind":"Name","value":"last"},"value":{"kind":"Variable","name":{"kind":"Name","value":"last"}}},{"kind":"Argument","name":{"kind":"Name","value":"before"},"value":{"kind":"Variable","name":{"kind":"Name","value":"before"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"Variable","name":{"kind":"Name","value":"orderBy"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"contributionRank"}},{"kind":"Field","name":{"kind":"Name","value":"levelPosition"}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"}},{"kind":"Field","name":{"kind":"Name","value":"levelDecayedPoints"}},{"kind":"Field","name":{"kind":"Name","value":"playerDecayedPoints"}},{"kind":"Field","name":{"kind":"Name","value":"dateCalculated"}},{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"time"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelId"}},{"kind":"Field","name":{"kind":"Name","value":"userId"}}]}},{"kind":"Field","name":{"kind":"Name","value":"level"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"startCursor"}},{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}},{"kind":"Field","name":{"kind":"Name","value":"hasPreviousPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]} as unknown as DocumentNode<Zc_UserContributionsQuery, Zc_UserContributionsQueryVariables>;
-export const Zc_UserLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_UserLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"steamId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"BigInt"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"recentUser"},"name":{"kind":"Name","value":"user"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"CREATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"level"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_UserLevelCard"}}]}}]}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"popularLevels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"authorId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"steamId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_UserLevelCard"}},{"kind":"Field","alias":{"kind":"Name","value":"periodRecords"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_UserLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}},{"kind":"Field","name":{"kind":"Name","value":"modifierPopularity"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserLevelsQuery, Zc_UserLevelsQueryVariables>;
+export const Zc_UserLevelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_UserLevels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"steamId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"BigInt"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"recentUser"},"name":{"kind":"Name","value":"user"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"level"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"CREATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"level"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_UserLevelCard"}}]}}]}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"popularLevels"},"name":{"kind":"Name","value":"hotLevelsSince"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"since"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"publiclyVisible"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":true}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"levelItems"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"some"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"authorId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"steamId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"ZC_UserLevelCard"}},{"kind":"Field","alias":{"kind":"Name","value":"periodRecords"},"name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ZC_UserLevelCard"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Level"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"xxHash"}},{"kind":"Field","name":{"kind":"Name","value":"adventure"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"UPDATED_AT_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeAuthor"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeGold"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeSilver"}},{"kind":"Field","name":{"kind":"Name","value":"validationTimeBronze"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rating"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobal"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"record"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"time"}}]}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserLevelsQuery, Zc_UserLevelsQueryVariables>;
 export const Zc_UserPointsHistoryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_UserPointsHistory"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"baseline"},"name":{"kind":"Name","value":"userPointsHistories"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"userId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"lessThan"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED_DESC"},{"kind":"EnumValue","value":"ID_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rank"}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"history"},"name":{"kind":"Name","value":"userPointsHistories"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"userId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"groupedAggregates"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"groupBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"keys"}},{"kind":"Field","name":{"kind":"Name","value":"max"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}}]}},{"kind":"Field","name":{"kind":"Name","value":"min"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"rank"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserPointsHistoryQuery, Zc_UserPointsHistoryQueryVariables>;
 export const Zc_UserPointsHistorySecondaryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_UserPointsHistorySecondary"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"userId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"since"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Datetime"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","alias":{"kind":"Name","value":"baseline"},"name":{"kind":"Name","value":"userPointsHistories"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"userId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"lessThan"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}},{"kind":"Argument","name":{"kind":"Name","value":"orderBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED_DESC"},{"kind":"EnumValue","value":"ID_DESC"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"totalPoints"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecords"}}]}}]}},{"kind":"Field","alias":{"kind":"Name","value":"history"},"name":{"kind":"Name","value":"userPointsHistories"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"userId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"userId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"dateCreated"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"greaterThanOrEqualTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"since"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"groupedAggregates"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"groupBy"},"value":{"kind":"ListValue","values":[{"kind":"EnumValue","value":"DATE_CREATED"}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"keys"}},{"kind":"Field","name":{"kind":"Name","value":"max"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalPoints"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecords"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserPointsHistorySecondaryQuery, Zc_UserPointsHistorySecondaryQueryVariables>;
 export const Zc_UserProfileDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ZC_UserProfile"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"steamId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"BigInt"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"users"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"1"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"steamId"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"Variable","name":{"kind":"Name","value":"steamId"}}}]}},{"kind":"ObjectField","name":{"kind":"Name","value":"banned"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"nodes"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"steamId"}},{"kind":"Field","name":{"kind":"Name","value":"steamName"}},{"kind":"Field","name":{"kind":"Name","value":"dateCreated"}},{"kind":"Field","name":{"kind":"Name","value":"userPoints"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"points"}},{"kind":"Field","name":{"kind":"Name","value":"rank"}},{"kind":"Field","name":{"kind":"Name","value":"totalPoints"}},{"kind":"Field","name":{"kind":"Name","value":"worldRecords"}}]}},{"kind":"Field","name":{"kind":"Name","value":"records"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"personalBestGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"worldRecordGlobals"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"levelItems"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"0"}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"deleted"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"equalTo"},"value":{"kind":"BooleanValue","value":false}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}}]}}]}}]}}]} as unknown as DocumentNode<Zc_UserProfileQuery, Zc_UserProfileQueryVariables>;

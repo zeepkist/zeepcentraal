@@ -196,7 +196,6 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 				dateCreated: String(node.dateCreated),
 				points: node.levelPoints?.points,
 				rating: node.levelPoints?.rating,
-				popularity: node.levelPoints?.modifierPopularity,
 				recordCount: node.records.totalCount,
 				personalBestCount: node.personalBestGlobals.totalCount,
 				voteCount: node.votes.totalCount,

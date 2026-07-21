@@ -1,4 +1,5 @@
 import { getPersonalBestCount90thPercentile } from '@zeepkist/database'
+import { playerScoreJobOptions } from '../utils/playerScoreJobOptions'
 import { updateLevelScoreBatch } from './levelScoreBatch'
 import type { TaskHandler } from './types'
 
@@ -27,7 +28,7 @@ export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) =
 		await helpers.addJob(
 			'updatePlayerScore',
 			{ idUser },
-			{ jobKey: `update-player-score:${idUser}` },
+			playerScoreJobOptions('updatePlayerScore', { idUser }),
 		)
 	}
 

@@ -27,7 +27,6 @@ function mapLevel(level: Zc_AdventureLevelCardFragment): LevelSummary {
 		dateCreated: String(level.dateCreated),
 		points: level.levelPoints?.points,
 		rating: level.levelPoints?.rating,
-		popularity: level.levelPoints?.modifierPopularity,
 		recordCount: level.records.totalCount,
 		personalBestCount: level.personalBestGlobals.totalCount,
 		voteCount: level.votes.totalCount,

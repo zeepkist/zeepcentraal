@@ -20,7 +20,6 @@ fragment ZC_LevelExplorerCard on Level {
 	levelPoints {
 		points
 		rating
-		modifierPopularity
 	}
 	records(first: 0) {
 		totalCount

@@ -41,16 +41,7 @@
 import type { LevelScoreInsights } from '~/types/app'
 
 type MetricKey = keyof LevelScoreInsights
-type MetricFormat =
-	| 'boolean'
-	| 'decimal'
-	| 'distance'
-	| 'gforce'
-	| 'integer'
-	| 'percentage'
-	| 'rank'
-	| 'rate'
-	| 'speed'
+type MetricFormat = 'boolean' | 'decimal' | 'integer' | 'percentage'
 
 type MetricDefinition = {
 	key: MetricKey
@@ -58,7 +49,7 @@ type MetricDefinition = {
 	format: MetricFormat
 }
 
-type GroupKey = 'score' | 'evidence' | 'leaderboard' | 'driving'
+type GroupKey = 'score' | 'evidence' | 'skill'
 
 const props = defineProps<{
 	model: LevelScoreInsights
@@ -69,14 +60,6 @@ const props = defineProps<{
 		notAvailable: string
 		included: string
 		excluded: string
-		units: {
-			metres: string
-			kilometres: string
-			kilometresPerHour: string
-			gforce: string
-			radiansPerSecond: string
-			perSecond: string
-		}
 	}
 }>()
 
@@ -99,12 +82,12 @@ const groups = computed(() => [
 		icon: 'chart-dots-3',
 		...props.labels.groups.score,
 		metrics: [
-			metric('competitivenessScore', 'percentage'),
-			metric('worldRecordDifficultyScore', 'percentage'),
-			metric('participationScore', 'percentage'),
+			metric('qualityScore', 'percentage'),
+			metric('complexityScore', 'percentage'),
+			metric('skillScore', 'percentage'),
+			metric('lengthModifier', 'percentage'),
+			metric('qualityModifier', 'percentage'),
 			metric('voteAdjustment', 'percentage'),
-			metric('afkModifier', 'percentage'),
-			metric('passivePlaySeverity', 'percentage'),
 		],
 	},
 	{
@@ -112,66 +95,22 @@ const groups = computed(() => [
 		icon: 'database-search',
 		...props.labels.groups.evidence,
 		metrics: [
-			metric('sampleSize', 'integer'),
-			metric('leaderboardConfidence', 'percentage'),
-			metric('inputSampleSize', 'integer'),
-			metric('inputCoverage', 'percentage'),
-			metric('airSampleSize', 'integer'),
-			metric('wheelSampleSize', 'integer'),
-			metric('slipSampleSize', 'integer'),
-			metric('ragdollSampleSize', 'integer'),
-			metric('stateSampleSize', 'integer'),
-			metric('surfaceSampleSize', 'integer'),
-			metric('velocitySampleSize', 'integer'),
-			metric('matureVoteCount', 'integer'),
-		],
-	},
-	{
-		key: 'leaderboard' as const,
-		icon: 'trophy',
-		...props.labels.groups.leaderboard,
-		metrics: [
-			metric('worldRecordMargin', 'percentage'),
-			metric('top5Spread', 'percentage'),
-			metric('top10Spread', 'percentage'),
-			metric('top50Spread', 'percentage'),
-			metric('wrChallengerCount', 'integer'),
-			metric('worldRecordOptimizationScore', 'percentage'),
+			metric('evidenceModifier', 'percentage'),
+			metric('complexityConfidence', 'percentage'),
+			metric('skillConfidence', 'percentage'),
+			metric('skillSampleSize', 'integer'),
 			metric('worldRecordExcluded', 'boolean'),
-			metric('leaderboardAnomalyScore', 'percentage'),
-			metric('telemetryAnomalyScore', 'percentage'),
-			metric('passiveRunRatio', 'percentage'),
-			metric('passiveTop10Share', 'percentage'),
-			metric('bestPassiveRank', 'rank'),
-			metric('bestPassiveGap', 'percentage'),
 		],
 	},
 	{
-		key: 'driving' as const,
-		icon: 'steering-wheel',
-		...props.labels.groups.driving,
+		key: 'skill' as const,
+		icon: 'trophy',
+		...props.labels.groups.skill,
 		metrics: [
-			metric('driverEngagementScore', 'percentage'),
-			metric('pathConsistencyScore', 'percentage'),
-			metric('speedConsistencyScore', 'percentage'),
-			metric('routeConsistencyScore', 'percentage'),
-			metric('surfaceDiversityScore', 'percentage'),
-			metric('typicalDistance', 'distance'),
-			metric('typicalAverageSpeed', 'speed'),
-			metric('typicalMaxSpeed', 'speed'),
-			metric('typicalAirTimeShare', 'percentage'),
-			metric('typicalGroundTimeShare', 'percentage'),
-			metric('typicalSlipShare', 'percentage'),
-			metric('typicalRagdollShare', 'percentage'),
-			metric('typicalAverageAngularVelocity', 'rate'),
-			metric('typicalAverageGforce', 'gforce'),
-			metric('medianSteeringShare', 'percentage'),
-			metric('q25SteeringShare', 'percentage'),
-			metric('lowSteeringRatio', 'percentage'),
-			metric('zeroControlRatio', 'percentage'),
-			metric('medianBrakeShare', 'percentage'),
-			metric('medianArmsUpShare', 'percentage'),
-			metric('medianControlTransitionRate', 'rate'),
+			metric('skillAlignment', 'percentage'),
+			metric('skillSeparation', 'percentage'),
+			metric('fieldStrength', 'percentage'),
+			metric('competitiveMerit', 'percentage'),
 		],
 	},
 ])
@@ -194,18 +133,6 @@ function formatMetric(metric: MetricDefinition) {
 			return percentageFormat.value.format(value)
 		case 'integer':
 			return integerFormat.value.format(value)
-		case 'rank':
-			return `#${integerFormat.value.format(value)}`
-		case 'distance':
-			return value >= 1000
-				? `${numberFormat.value.format(value / 1000)} ${props.labels.units.kilometres}`
-				: `${numberFormat.value.format(value)} ${props.labels.units.metres}`
-		case 'speed':
-			return `${numberFormat.value.format(value)} ${props.labels.units.kilometresPerHour}`
-		case 'gforce':
-			return `${numberFormat.value.format(value)} ${props.labels.units.gforce}`
-		case 'rate':
-			return `${numberFormat.value.format(value)} ${metric.key === 'typicalAverageAngularVelocity' ? props.labels.units.radiansPerSecond : props.labels.units.perSecond}`
 		default:
 			return numberFormat.value.format(value)
 	}

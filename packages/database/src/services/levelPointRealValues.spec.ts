@@ -9,7 +9,7 @@ const payload = {
 
 describe('level point PostgreSQL real values', () => {
 	test('discovers real fields from the level points schema', () => {
-		expect(levelPointRealFields).toContain('passivePlaySeverity')
+		expect(levelPointRealFields).toContain('complexityScore')
 		expect(levelPointRealFields).toContain('rating')
 		expect(levelPointRealFields).not.toContain('points')
 	})
@@ -18,28 +18,28 @@ describe('level point PostgreSQL real values', () => {
 		expect(
 			sanitizeLevelPointRealValues({
 				...payload,
-				passivePlaySeverity: 5.383155362571492e-49,
-				leaderboardAnomalyScore: -5.383155362571492e-49,
+				complexityScore: 5.383155362571492e-49,
+				skillSeparation: -5.383155362571492e-49,
 			}),
 		).toMatchObject({
-			passivePlaySeverity: 0,
-			leaderboardAnomalyScore: 0,
+			complexityScore: 0,
+			skillSeparation: 0,
 		})
 	})
 
 	test('preserves null, undefined, zero, and representable values', () => {
 		const sanitized = sanitizeLevelPointRealValues({
 			...payload,
-			passivePlaySeverity: null,
-			leaderboardAnomalyScore: undefined,
-			telemetryAnomalyScore: 0,
-			worldRecordMargin: 1e-20,
+			competitiveMerit: null,
+			complexityConfidence: undefined,
+			qualityScore: 0,
+			skillAlignment: 1e-20,
 		})
 
-		expect(sanitized.passivePlaySeverity).toBeNull()
-		expect(sanitized.leaderboardAnomalyScore).toBeUndefined()
-		expect(sanitized.telemetryAnomalyScore).toBe(0)
-		expect(sanitized.worldRecordMargin).toBe(1e-20)
+		expect(sanitized.competitiveMerit).toBeNull()
+		expect(sanitized.complexityConfidence).toBeUndefined()
+		expect(sanitized.qualityScore).toBe(0)
+		expect(sanitized.skillAlignment).toBe(1e-20)
 	})
 
 	test.each([
@@ -48,16 +48,16 @@ describe('level point PostgreSQL real values', () => {
 		['-Infinity', Number.NEGATIVE_INFINITY],
 		['overflow', 3.5e38],
 	] as const)('rejects %s with level and field context', (_label, value) => {
-		expect(() =>
-			sanitizeLevelPointRealValues({ ...payload, passivePlaySeverity: value }),
-		).toThrow(`level_points.passivePlaySeverity for level ${payload.idLevel}`)
+		expect(() => sanitizeLevelPointRealValues({ ...payload, complexityScore: value })).toThrow(
+			`level_points.complexityScore for level ${payload.idLevel}`,
+		)
 	})
 
 	test('does not mutate source payload', () => {
-		const source = { ...payload, passivePlaySeverity: 5.383155362571492e-49 }
+		const source = { ...payload, complexityScore: 5.383155362571492e-49 }
 		const sanitized = sanitizeLevelPointRealValues(source)
 
-		expect(source.passivePlaySeverity).toBe(5.383155362571492e-49)
-		expect(sanitized.passivePlaySeverity).toBe(0)
+		expect(source.complexityScore).toBe(5.383155362571492e-49)
+		expect(sanitized.complexityScore).toBe(0)
 	})
 })

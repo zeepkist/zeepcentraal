@@ -6,6 +6,10 @@ import {
 	isCompatibleTaskIdentifier,
 	isValidTaskPayload,
 } from './taskDefinitions'
+import {
+	PLAYER_SCORE_QUEUE_NAME,
+	UPDATE_PLAYER_SCORES_JOB_KEY,
+} from './utils/playerScoreJobOptions'
 
 const expectedCompatibleTaskIdentifiers = [
 	'backfillRecordGhostStatistics',
@@ -104,5 +108,16 @@ test('workshop catalog sync runs Sunday at 01:00 Europe/London', () => {
 		task: 'syncWorkshopCatalog',
 		cronTime: '0 1 * * 0',
 		spec: { priority: WORKSHOP_JOB_PRIORITY },
+	})
+})
+
+test('full player scoring uses serialized contribution queue', () => {
+	expect(cronTasks).toContainEqual({
+		task: 'updatePlayerScores',
+		cronTime: '5-59/10 * * * *',
+		spec: {
+			jobKey: UPDATE_PLAYER_SCORES_JOB_KEY,
+			queueName: PLAYER_SCORE_QUEUE_NAME,
+		},
 	})
 })

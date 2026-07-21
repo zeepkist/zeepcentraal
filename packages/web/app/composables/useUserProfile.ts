@@ -64,7 +64,6 @@ function mapUserLevel(
 		dateCreated: String(level.dateCreated),
 		points: level.levelPoints?.points,
 		rating: level.levelPoints?.rating,
-		popularity: level.levelPoints?.modifierPopularity,
 		recordCount,
 		personalBestCount: level.personalBestGlobals.totalCount,
 		voteCount: level.votes.totalCount,

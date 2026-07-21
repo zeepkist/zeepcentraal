@@ -1,6 +1,5 @@
 import {
-	//calculateLevelPointsV2 as calculateLevelPoints,
-	calculateLevelPoints,
+	calculateLevelPointsV2 as calculateLevelPoints,
 	calculateVoteRating,
 	getVoteRatingMaturityCutoff,
 	isLevelScoreEligible,
@@ -9,9 +8,10 @@ import {
 } from '@zeepkist/core/score'
 import type { UpdateLevelPointsPayload } from '@zeepkist/database'
 import {
-	getLevelPointsByIds,
+	getLevelPointValuesByIds,
+	getLevelSkillMetricsByLevelIds,
 	getLevelWorkshopAvailabilities,
-	getPersonalBestsWithRecordByLevelIds,
+	getV2ScorePersonalBestsByLevelIds,
 	getVoteValuesByLevelIds,
 	setLevelPointsToZeroBulk,
 	upsertLevelPointsBulk,
@@ -19,34 +19,14 @@ import {
 import type { Helpers } from 'graphile-worker'
 import { refreshCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
 
-type PersonalBestRow = Awaited<ReturnType<typeof getPersonalBestsWithRecordByLevelIds>>[number]
+type PersonalBestRow = Awaited<ReturnType<typeof getV2ScorePersonalBestsByLevelIds>>[number]
 
 function mapTelemetry(row: PersonalBestRow): LevelScoreTelemetry | null {
-	const hasStatistic =
-		row.statisticTime !== null ||
-		row.distance !== null ||
-		row.hasInputData !== null ||
-		row.hasStateData !== null
+	const hasStatistic = row.statisticTime !== null || row.hasInputData !== null
 	if (!hasStatistic) return null
 
 	return {
 		time: row.statisticTime,
-		distance: row.distance,
-		averageSpeed: row.averageSpeed,
-		maxSpeed: row.maxSpeed,
-		timeInAir: row.timeInAir,
-		timeOnGround: row.timeOnGround,
-		timeSlipping: row.timeSlipping,
-		timeRagdoll: row.timeRagdoll,
-		averageAngularVelocity: row.averageAngularVelocity,
-		averageGforce: row.averageGforce,
-		timeOnTarmac: row.timeOnTarmac,
-		timeOnGrass: row.timeOnGrass,
-		timeOnSand: row.timeOnSand,
-		timeOnSnow: row.timeOnSnow,
-		timeOnIce: row.timeOnIce,
-		timeOnSoap: row.timeOnSoap,
-		timeOnMetal: row.timeOnMetal,
 		turnLeftCount: row.turnLeftCount,
 		turnLeftTime: row.turnLeftTime,
 		turnRightCount: row.turnRightCount,
@@ -56,15 +36,7 @@ function mapTelemetry(row: PersonalBestRow): LevelScoreTelemetry | null {
 		armsUpCount: row.armsUpCount,
 		armsUpTime: row.armsUpTime,
 		driverInputTransitionCount: row.driverInputTransitionCount,
-		timeAnyDriverInput: row.timeAnyDriverInput,
 		hasInputData: row.hasInputData,
-		hasAirData: row.hasAirData,
-		hasWheelData: row.hasWheelData,
-		hasSlipData: row.hasSlipData,
-		hasStateData: row.hasStateData,
-		hasSurfaceData: row.hasSurfaceData,
-		hasVelocityData: row.hasVelocityData,
-		hasRagdollData: row.hasRagdollData,
 	}
 }
 
@@ -72,10 +44,7 @@ function mapPersonalBest(row: PersonalBestRow): LevelScorePersonalBest {
 	return {
 		time: row.time,
 		dateCreated: row.dateCreated,
-		splits: row.splits?.map((time, index) => ({
-			time,
-			speed: row.speeds?.[index] ?? null,
-		})),
+		splits: row.splits?.map((time) => ({ time })),
 		telemetry: mapTelemetry(row),
 	}
 }
@@ -94,12 +63,42 @@ export async function updateLevelScoreBatch({
 	if (idLevels.length === 0) {
 		return { updated: 0, zeroed: 0, reported: 0 }
 	}
+	const startedAt = Date.now()
+	const timings: Record<string, number> = {}
+	const timed = async <T>(name: string, operation: () => Promise<T>): Promise<T> => {
+		const phaseStartedAt = Date.now()
+		try {
+			return await operation()
+		} finally {
+			timings[`${name}Ms`] = Date.now() - phaseStartedAt
+		}
+	}
 
-	const [availabilityByLevel, personalBests, voteValuesByLevel] = await Promise.all([
+	const availabilityByLevel = await timed('availability', () =>
 		getLevelWorkshopAvailabilities(idLevels),
-		getPersonalBestsWithRecordByLevelIds({ idLevels, limit: 50 }),
-		getVoteValuesByLevelIds(idLevels, getVoteRatingMaturityCutoff()),
-	])
+	)
+	const eligibleIds = idLevels.filter((idLevel) =>
+		isLevelScoreEligible(
+			availabilityByLevel.get(idLevel) ?? {
+				adventure: false,
+				itemCount: 0,
+				accessibleItemCount: 0,
+			},
+		),
+	)
+	const zeroIds = idLevels.filter((idLevel) => !eligibleIds.includes(idLevel))
+	const [personalBests, skillMetricsByLevel, voteValuesByLevel] =
+		eligibleIds.length > 0
+			? await Promise.all([
+					timed('personalBests', () =>
+						getV2ScorePersonalBestsByLevelIds({ idLevels: eligibleIds, limit: 50 }),
+					),
+					timed('skillMetrics', () => getLevelSkillMetricsByLevelIds(eligibleIds)),
+					timed('votes', () =>
+						getVoteValuesByLevelIds(eligibleIds, getVoteRatingMaturityCutoff()),
+					),
+				])
+			: [[], new Map(), new Map()]
 
 	const personalBestsByLevel = new Map<number, PersonalBestRow[]>()
 	for (const personalBest of personalBests) {
@@ -108,20 +107,10 @@ export async function updateLevelScoreBatch({
 		personalBestsByLevel.set(personalBest.idLevel, entries)
 	}
 
-	const zeroIds: number[] = []
 	const updates: UpdateLevelPointsPayload[] = []
+	const calculationStartedAt = Date.now()
 
-	for (const idLevel of idLevels) {
-		const availability = availabilityByLevel.get(idLevel) ?? {
-			adventure: false,
-			itemCount: 0,
-			accessibleItemCount: 0,
-		}
-		if (!isLevelScoreEligible(availability)) {
-			zeroIds.push(idLevel)
-			continue
-		}
-
+	for (const idLevel of eligibleIds) {
 		const levelPersonalBests = personalBestsByLevel.get(idLevel) ?? []
 		const matureVotes = voteValuesByLevel.get(idLevel) ?? []
 		const rating = calculateVoteRating(matureVotes)
@@ -129,6 +118,7 @@ export async function updateLevelScoreBatch({
 			personalBests: levelPersonalBests.map(mapPersonalBest),
 			personalBestCount: Number(levelPersonalBests.at(0)?.totalCount ?? 0),
 			eligibleLevelP90PersonalBestCount: personalBestCountPercentile,
+			skill: skillMetricsByLevel.get(idLevel) ?? null,
 			voteRating: rating,
 			matureVoteCount: matureVotes.length,
 		})
@@ -139,68 +129,31 @@ export async function updateLevelScoreBatch({
 			points: score.points,
 			rating,
 			lengthModifier: factors.lengthFactor,
-			competitivenessModifier: 0.1 + 1.9 * factors.competitiveMerit,
+			competitivenessModifier: score.modifiers.competitivenessModifier,
+			evidenceModifier: factors.evidenceFactor,
+			qualityModifier: factors.qualityFactor,
 			ratingModifier: factors.voteFactor,
-			popularityModifier: factors.participationFactor,
-			cutPenalty: 1,
-			sampleSize: metrics.sampleSize,
-			leaderboardConfidence: metrics.leaderboardConfidence,
-			inputSampleSize: metrics.inputSampleSize,
-			inputCoverage: metrics.inputCoverage,
-			airSampleSize: metrics.airSampleSize,
-			wheelSampleSize: metrics.wheelSampleSize,
-			slipSampleSize: metrics.slipSampleSize,
-			ragdollSampleSize: metrics.ragdollSampleSize,
-			stateSampleSize: metrics.stateSampleSize,
-			surfaceSampleSize: metrics.surfaceSampleSize,
-			velocitySampleSize: metrics.velocitySampleSize,
-			competitivenessScore: metrics.competitivenessScore,
-			worldRecordDifficultyScore: metrics.worldRecordDifficultyScore,
-			participationScore: metrics.participationScore,
-			passivePlaySeverity: metrics.passivePlaySeverity,
-			modifierAfk: metrics.afkModifier,
-			passiveRunRatio: metrics.passiveRunRatio,
-			passiveTop10Share: metrics.passiveTop10Share,
-			bestPassiveRank: metrics.bestPassiveRank,
-			bestPassiveGap: metrics.bestPassiveGap,
-			driverEngagementScore: metrics.driverEngagementScore,
-			worldRecordMargin: metrics.worldRecordMargin,
-			top5Spread: metrics.top5Spread,
-			top10Spread: metrics.top10Spread,
-			top50Spread: metrics.top50Spread,
-			wrChallengerCount: metrics.wrChallengerCount,
-			worldRecordOptimizationScore: metrics.worldRecordOptimizationScore,
-			leaderboardAnomalyScore: metrics.leaderboardAnomalyScore,
-			telemetryAnomalyScore: metrics.telemetryAnomalyScore,
+			competitiveMerit: metrics.competitiveMerit,
+			complexityConfidence: metrics.complexityConfidence,
+			complexityScore: metrics.complexityScore,
+			fieldStrength: metrics.fieldStrength,
 			worldRecordExcluded: metrics.worldRecordExcluded,
-			pathConsistencyScore: metrics.pathConsistencyScore,
-			speedConsistencyScore: metrics.speedConsistencyScore,
-			routeConsistencyScore: metrics.routeConsistencyScore,
-			surfaceDiversityScore: metrics.surfaceDiversityScore,
-			matureVoteCount: metrics.matureVoteCount,
-			typicalDistance: metrics.typicalDistance,
-			typicalAverageSpeed: metrics.typicalAverageSpeed,
-			typicalMaxSpeed: metrics.typicalMaxSpeed,
-			typicalAirTimeShare: metrics.typicalAirTimeShare,
-			typicalGroundTimeShare: metrics.typicalGroundTimeShare,
-			typicalSlipShare: metrics.typicalSlipShare,
-			typicalRagdollShare: metrics.typicalRagdollShare,
-			typicalAverageAngularVelocity: metrics.typicalAverageAngularVelocity,
-			typicalAverageGforce: metrics.typicalAverageGforce,
-			medianSteeringShare: metrics.medianSteeringShare,
-			q25SteeringShare: metrics.q25SteeringShare,
-			lowSteeringRatio: metrics.lowSteeringRatio,
-			zeroControlRatio: metrics.zeroControlRatio,
-			medianBrakeShare: metrics.medianBrakeShare,
-			medianArmsUpShare: metrics.medianArmsUpShare,
-			medianControlTransitionRate: metrics.medianControlTransitionRate,
+			qualityScore: metrics.qualityScore,
+			skillAlignment: metrics.skillAlignment,
+			skillConfidence: metrics.skillConfidence,
+			skillSampleSize: metrics.skillSampleSize,
+			skillScore: metrics.skillScore,
+			skillSeparation: metrics.skillSeparation,
 		})
 	}
+	timings.calculationMs = Date.now() - calculationStartedAt
+
+	const currentLevelPoints = await timed('currentPoints', () =>
+		getLevelPointValuesByIds(idLevels),
+	)
+	const currentByLevel = new Map(currentLevelPoints.map((entry) => [entry.idLevel, entry.points]))
 
 	if (reportOnly) {
-		const currentByLevel = new Map(
-			(await getLevelPointsByIds(idLevels)).map((entry) => [entry.idLevel, entry.points]),
-		)
 		logger.info('Calculated report-only level scores.', {
 			levels: updates.map((update) => {
 				const currentPoints = currentByLevel.get(update.idLevel) ?? null
@@ -209,16 +162,59 @@ export async function updateLevelScoreBatch({
 					currentPoints,
 					proposedPoints: update.points,
 					delta: currentPoints === null ? null : update.points - currentPoints,
-					passivePlaySeverity: update.passivePlaySeverity,
+					complexityScore: update.complexityScore,
+					evidenceFactor: update.evidenceModifier,
+					lengthFactor: update.lengthModifier,
+					qualityScore: update.qualityScore,
+					skillConfidence: update.skillConfidence,
+					skillScore: update.skillScore,
+					voteFactor: update.ratingModifier,
 					worldRecordExcluded: update.worldRecordExcluded,
 				}
 			}),
 			zeroedLevelIds: zeroIds,
 		})
+		logger.info('Level score batch timings.', {
+			...timings,
+			totalMs: Date.now() - startedAt,
+			requested: idLevels.length,
+			eligible: eligibleIds.length,
+			zeroed: zeroIds.length,
+			persisted: 0,
+			pointChanged: 0,
+			refreshed: 0,
+			reportOnly: true,
+		})
 		return { updated: 0, zeroed: 0, reported: updates.length + zeroIds.length }
 	}
 
-	await Promise.all([upsertLevelPointsBulk(updates), setLevelPointsToZeroBulk(zeroIds)])
-	await refreshCachedLevelLeaderboards({ idLevels, logger })
-	return { updated: updates.length, zeroed: zeroIds.length, reported: 0 }
+	const proposedPoints = new Map(updates.map((update) => [update.idLevel, update.points]))
+	for (const idLevel of zeroIds) proposedPoints.set(idLevel, 0)
+	const pointChangedIds = idLevels.filter(
+		(idLevel) =>
+			!currentByLevel.has(idLevel) ||
+			currentByLevel.get(idLevel) !== proposedPoints.get(idLevel),
+	)
+	const [updatedIds, zeroedIds] = await timed('persistence', () =>
+		Promise.all([upsertLevelPointsBulk(updates), setLevelPointsToZeroBulk(zeroIds)]),
+	)
+	if (pointChangedIds.length > 0) {
+		await timed('cacheRefresh', () =>
+			refreshCachedLevelLeaderboards({ idLevels: pointChangedIds, logger }),
+		)
+	} else {
+		timings.cacheRefreshMs = 0
+	}
+	logger.info('Level score batch timings.', {
+		...timings,
+		totalMs: Date.now() - startedAt,
+		requested: idLevels.length,
+		eligible: eligibleIds.length,
+		zeroed: zeroIds.length,
+		persisted: updatedIds.length + zeroedIds.length,
+		pointChanged: pointChangedIds.length,
+		refreshed: pointChangedIds.length,
+		reportOnly: false,
+	})
+	return { updated: updatedIds.length, zeroed: zeroedIds.length, reported: 0 }
 }

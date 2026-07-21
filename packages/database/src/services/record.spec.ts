@@ -16,7 +16,8 @@ mock.module('@zeepkist/telemetry', () => ({
 	setActiveSpanErrorStatus: () => {},
 }))
 
-const { buildPersonalBestsWithRecordByLevelIdsQuery } = await import('./record')
+const { buildPersonalBestsWithRecordByLevelIdsQuery, buildV2ScorePersonalBestsByLevelIdsQuery } =
+	await import('./record')
 
 describe('level score personal best query', () => {
 	test('aliases statistic duration separately from record time', () => {
@@ -28,5 +29,27 @@ describe('level score personal best query', () => {
 		expect(query.sql).toContain('"record_statistic"."time" as "statistic_time"')
 		expect(query.sql).toContain('"speeds", "statistic_time", "distance"')
 		expect(query.sql).not.toContain('"speeds", "time", "distance"')
+	})
+
+	test('limits before joining only V2 input telemetry', () => {
+		const query = buildV2ScorePersonalBestsByLevelIdsQuery({
+			idLevels: [1],
+			limit: 50,
+		}).toSQL().sql
+
+		expect(query).toContain('ranked_v2_score_personal_bests')
+		expect(query).toContain('left join "record_statistic"')
+		expect(query).toContain('"driver_input_transition_count"')
+		expect(query).toContain('"has_input_data"')
+		for (const excluded of [
+			'"speeds"',
+			'"distance"',
+			'"average_speed"',
+			'"time_in_air"',
+			'"time_on_tarmac"',
+			'"has_surface_data"',
+		]) {
+			expect(query).not.toContain(excluded)
+		}
 	})
 })

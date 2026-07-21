@@ -13,6 +13,7 @@ import {
 } from '@zeepkist/database/services/personalBest'
 import { batchProcess } from '../utils'
 import { getCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
+import { getPostgresErrorMetadata } from '../utils/postgresError'
 import type { TaskHandler } from './types'
 
 type Payload = Record<string, never>
@@ -108,10 +109,18 @@ export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers
 			return { idUser, points, totalPoints }
 		})
 
-		await Promise.all([
-			upsertUserPointsBulk(pointUpdates),
-			upsertUserPointContributionsBulk(contributionUpdates),
-		])
+		try {
+			await Promise.all([
+				upsertUserPointsBulk(pointUpdates),
+				upsertUserPointContributionsBulk(contributionUpdates),
+			])
+		} catch (error) {
+			helpers.logger.error('Player score batch persistence failed.', {
+				idUsers,
+				postgres: getPostgresErrorMetadata(error),
+			})
+			throw error
+		}
 
 		helpers.logger.info(
 			`Updated player score batch ${batchIndex + 1}/${rankedUserBatches.length}.`,

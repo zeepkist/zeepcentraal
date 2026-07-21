@@ -49,7 +49,6 @@ query ZC_DashboardViewerLevels($id: Int!) {
 					levelPoints {
 						points
 						rating
-						modifierPopularity
 					}
 					records(first: 0) {
 						totalCount

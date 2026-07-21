@@ -5,6 +5,7 @@ import {
 	upsertUserPointContributionsBulk,
 	upsertUserPoints,
 } from '@zeepkist/database'
+import { getPostgresErrorMetadata } from '../utils/postgresError'
 import type { TaskHandler } from './types'
 
 type Payload = {
@@ -40,7 +41,10 @@ export const updatePlayerScore: TaskHandler<Payload> = async (payload, helpers) 
 			upsertUserPointContributionsBulk([{ idUser: payload.idUser, contributions }]),
 		])
 	} catch (error) {
-		helpers.logger.error(`Error updating player score for idUser=${payload.idUser}`, { error })
+		helpers.logger.error(`Error updating player score for idUser=${payload.idUser}`, {
+			idUsers: [payload.idUser],
+			postgres: getPostgresErrorMetadata(error),
+		})
 		throw error
 	}
 }

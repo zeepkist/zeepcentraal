@@ -7,6 +7,10 @@ const migration = readFileSync(
 	new URL('../drizzle/0059_lethal_lila_cheney.sql', import.meta.url),
 	'utf8',
 )
+const scorePerformanceMigration = readFileSync(
+	new URL('../drizzle/0062_abnormal_charles_xavier.sql', import.meta.url),
+	'utf8',
+)
 
 describe('record history read model', () => {
 	test('uses one indexed projection source before mutable display joins', () => {
@@ -77,6 +81,7 @@ describe('record history read model', () => {
 			'date_created',
 			'id',
 		])
+		expect(columnNames('IX_record_history_index_level_projection')).toEqual(['level_id'])
 
 		for (const index of indexes) {
 			for (const column of index.config.columns) {
@@ -89,6 +94,16 @@ describe('record history read model', () => {
 				expect(column.indexConfig).toMatchObject({ order: 'desc', nulls: 'first' })
 			}
 		}
+	})
+
+	test('indexes and skips unchanged level-point projection writes', () => {
+		expect(scorePerformanceMigration).toContain(
+			'CREATE INDEX IF NOT EXISTS "IX_record_history_index_level_projection"',
+		)
+		expect(scorePerformanceMigration).toContain('OLD.points IS NOT DISTINCT FROM NEW.points')
+		expect(scorePerformanceMigration).toContain('level_points IS DISTINCT FROM NEW.points')
+		expect(scorePerformanceMigration).toContain('has_contribution = false')
+		expect(scorePerformanceMigration).toContain('(is_personal_best OR is_world_record)')
 	})
 
 	test('exposes only publicly visible active level metadata', () => {

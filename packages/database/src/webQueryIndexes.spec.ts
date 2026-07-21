@@ -112,7 +112,6 @@ describe('web GraphQL query indexes', () => {
 		const expected = [
 			[levelPoints, 'IX_level_points_points_level'],
 			[levelPoints, 'IX_level_points_rating_level'],
-			[levelPoints, 'IX_level_points_popularity_level'],
 			[userPointContribution, 'IX_user_point_contribution_user_value_level'],
 			[userPointContribution, 'IX_user_point_contribution_player_value_record'],
 			[userPointContribution, 'IX_user_point_contribution_level_value_record'],

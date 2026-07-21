@@ -83,7 +83,16 @@ export interface LevelScoreInput {
 	personalBestCount?: number
 	/** Best current personal bests. More than 50 entries are ignored. */
 	personalBests: readonly LevelScorePersonalBest[]
+	/** Independent cross-map player-skill observations for this level. */
+	skill?: LevelScoreSkillMetrics | null
 	voteRating?: number | null
+}
+
+export interface LevelScoreSkillMetrics {
+	alignment: number | null
+	fieldStrength: number | null
+	ratedPlayerCount: number
+	separation: number | null
 }
 
 /** Temporary adapter input retained while jobs migrate to rich PB records. */
@@ -95,6 +104,13 @@ export interface LegacyLevelScoreInput {
 }
 
 export interface LevelScoreFactors {
+	evidenceFactor: number
+	lengthFactor: number
+	qualityFactor: number
+	voteFactor: number
+}
+
+export interface LegacyLevelScoreFactors {
 	competitiveMerit: number
 	lengthFactor: number
 	participationFactor: number
@@ -113,13 +129,17 @@ export interface LevelScoreTelemetrySampleCounts {
 	wheel: number
 }
 
-export interface LevelScoreMetrics {
+export interface LegacyLevelScoreMetrics {
 	afkModifier: number | null
 	airSampleSize: number
 	bestPassiveGap: number | null
 	bestPassiveRank: number | null
+	competitiveMerit: number | null
 	competitivenessScore: number | null
+	complexityConfidence: number | null
+	complexityScore: number | null
 	driverEngagementScore: number | null
+	fieldStrength: number | null
 	inputCoverage: number | null
 	inputSampleSize: number
 	leaderboardAnomalyScore: number | null
@@ -137,9 +157,15 @@ export interface LevelScoreMetrics {
 	pathConsistencyScore: number | null
 	personalBestCount: number
 	q25SteeringShare: number | null
+	qualityScore: number | null
 	ragdollSampleSize: number
 	routeConsistencyScore: number | null
 	sampleSize: number
+	skillAlignment: number | null
+	skillConfidence: number | null
+	skillSampleSize: number | null
+	skillScore: number | null
+	skillSeparation: number | null
 	slipSampleSize: number
 	speedConsistencyScore: number | null
 	stateSampleSize: number
@@ -169,21 +195,48 @@ export interface LevelScoreMetrics {
 	zeroControlRatio: number | null
 }
 
+export interface LevelScoreMetrics {
+	competitiveMerit: number | null
+	complexityConfidence: number | null
+	complexityScore: number | null
+	fieldStrength: number | null
+	qualityScore: number | null
+	skillAlignment: number | null
+	skillConfidence: number | null
+	skillSampleSize: number | null
+	skillScore: number | null
+	skillSeparation: number | null
+	worldRecordExcluded: boolean | null
+}
+
+export interface LevelScoreModifiers {
+	competitivenessModifier: number
+	evidenceModifier: number
+	lengthModifier: number
+	qualityModifier: number
+	ratingModifier: number
+}
+
+export interface LegacyLevelScoreModifiers extends LevelScoreModifiers {
+	cutPenalty: number
+	popularityModifier: number
+}
+
 export interface LevelScoreResult {
 	factors: LevelScoreFactors
 	metrics: LevelScoreMetrics
-	/** Existing names retained for current database/job compatibility. */
-	modifiers: {
-		lengthModifier: number
-		competitivenessModifier: number
-		ratingModifier: number
-		popularityModifier: number
-		cutPenalty: number
-	}
+	modifiers: LevelScoreModifiers
 	points: number
 }
 
-interface NormalizedInput {
+export interface LegacyLevelScoreResult {
+	factors: LegacyLevelScoreFactors
+	metrics: LegacyLevelScoreMetrics
+	modifiers: LegacyLevelScoreModifiers
+	points: number
+}
+
+export interface NormalizedLevelScoreInput {
 	eligibleLevelP90PersonalBestCount: number | null
 	matureVoteCount: number | null
 	personalBestCount: number
@@ -281,7 +334,9 @@ export const calculateLevelLengthFactor = (medianTopTenTime: number | null): num
 	return 0.75
 }
 
-const normalizeInput = (input: LevelScoreInput | LegacyLevelScoreInput): NormalizedInput => {
+const normalizeInput = (
+	input: LevelScoreInput | LegacyLevelScoreInput,
+): NormalizedLevelScoreInput => {
 	if ('topTimes' in input) {
 		const personalBests = input.topTimes
 			.filter((time) => isFiniteNumber(time) && time > 0)
@@ -456,6 +511,42 @@ const resolveEffectivePersonalBests = (
 	return { actualWorldRecordAnomaly, effectivePersonalBests }
 }
 
+export interface PreparedLevelScoreInput {
+	allPersonalBests: LevelScorePersonalBest[]
+	anomaly: ReturnType<typeof calculateWorldRecordAnomaly>
+	normalized: NormalizedLevelScoreInput
+	personalBests: LevelScorePersonalBest[]
+}
+
+export interface LegacyLevelScoreObservations {
+	competitiveMerit: number
+	competitivenessModifier: number
+	competitivenessScore: number | null
+	leaderboardConfidence: number
+	voteFactor: number
+	worldRecordChallengers: number | null
+	worldRecordDifficultyScore: number | null
+	worldRecordExcluded: boolean | null
+	worldRecordOptimizationScore: number | null
+}
+
+export const prepareLevelScoreInput = (
+	input: LevelScoreInput | LegacyLevelScoreInput,
+): PreparedLevelScoreInput => {
+	const normalized = normalizeInput(input)
+	const allPersonalBests = normalized.personalBests
+		.toSorted((left, right) => left.time - right.time)
+		.slice(0, LEVEL_SCORE_PERSONAL_BEST_LIMIT)
+	const { actualWorldRecordAnomaly: anomaly, effectivePersonalBests } =
+		resolveEffectivePersonalBests(allPersonalBests)
+	return {
+		allPersonalBests,
+		anomaly,
+		normalized,
+		personalBests: [...effectivePersonalBests],
+	}
+}
+
 const calculateChallengers = (
 	personalBests: readonly LevelScorePersonalBest[],
 	leaderTime: number,
@@ -490,6 +581,51 @@ const calculateWorldRecordDifficulty = (
 		score: 0.5 + (raw - 0.5) * leaderboardConfidence,
 		optimization,
 		challengers,
+	}
+}
+
+export const calculateLegacyLevelScoreObservations = (
+	prepared: PreparedLevelScoreInput,
+): LegacyLevelScoreObservations => {
+	const { allPersonalBests, anomaly, normalized, personalBests } = prepared
+	const leader = personalBests[0]
+	if (!leader) {
+		return {
+			competitiveMerit: 0.5,
+			competitivenessModifier: 1.05,
+			competitivenessScore: null,
+			leaderboardConfidence: 0,
+			voteFactor: 1,
+			worldRecordChallengers: null,
+			worldRecordDifficultyScore: null,
+			worldRecordExcluded: allPersonalBests.length > 0 ? anomaly.excluded : null,
+			worldRecordOptimizationScore: null,
+		}
+	}
+
+	const leaderboardConfidence = smoothstep(clamp((normalized.personalBestCount - 5) / 45))
+	const rawCompetitiveness = weightedTightness(personalBests, leader.time, COMPETITIVENESS_RANKS)
+	const competitivenessScore = 0.5 + (rawCompetitiveness - 0.5) * leaderboardConfidence
+	const worldRecordDifficulty = calculateWorldRecordDifficulty(
+		personalBests,
+		leaderboardConfidence,
+	)
+	const competitiveMerit = 0.65 * competitivenessScore + 0.35 * worldRecordDifficulty.score
+	const voteFactor =
+		normalized.matureVoteCount === 0 || normalized.voteRating === null
+			? 1
+			: clamp(0.95 + clamp(normalized.voteRating) * 0.1, 0.95, 1.05)
+
+	return {
+		competitiveMerit,
+		competitivenessModifier: 0.1 + 1.9 * competitiveMerit,
+		competitivenessScore,
+		leaderboardConfidence,
+		voteFactor,
+		worldRecordChallengers: worldRecordDifficulty.challengers,
+		worldRecordDifficultyScore: worldRecordDifficulty.score,
+		worldRecordExcluded: anomaly.excluded,
+		worldRecordOptimizationScore: worldRecordDifficulty.optimization,
 	}
 }
 
@@ -706,22 +842,18 @@ const emptyTelemetryCounts = (): LevelScoreTelemetrySampleCounts => ({
 
 export function calculateLevelPoints(
 	input: LevelScoreInput | LegacyLevelScoreInput,
-): LevelScoreResult {
-	const normalized = normalizeInput(input)
-	const allPersonalBests = normalized.personalBests
-		.toSorted((left, right) => left.time - right.time)
-		.slice(0, LEVEL_SCORE_PERSONAL_BEST_LIMIT)
-	const { actualWorldRecordAnomaly: anomaly, effectivePersonalBests } =
-		resolveEffectivePersonalBests(allPersonalBests)
-	const personalBests = [...effectivePersonalBests]
+): LegacyLevelScoreResult {
+	const prepared = prepareLevelScoreInput(input)
+	const { allPersonalBests, anomaly, normalized, personalBests } = prepared
+	const observations = calculateLegacyLevelScoreObservations(prepared)
 	const leader = personalBests[0]
 
 	if (!leader) {
 		const factors = {
 			lengthFactor: 1,
-			competitiveMerit: 0.5,
+			competitiveMerit: observations.competitiveMerit,
 			participationFactor: 0.75,
-			voteFactor: 1,
+			voteFactor: observations.voteFactor,
 			passivePlayFactor: 1,
 		}
 		return {
@@ -732,6 +864,9 @@ export function calculateLevelPoints(
 				personalBestCount: normalized.personalBestCount,
 				leaderboardConfidence: 0,
 				competitivenessScore: null,
+				competitiveMerit: null,
+				complexityConfidence: null,
+				complexityScore: null,
 				worldRecordDifficultyScore: null,
 				participationScore:
 					normalized.eligibleLevelP90PersonalBestCount === null ? null : 0,
@@ -752,6 +887,7 @@ export function calculateLevelPoints(
 				bestPassiveRank: null,
 				bestPassiveGap: null,
 				driverEngagementScore: null,
+				fieldStrength: null,
 				worldRecordMargin: null,
 				top5Spread: null,
 				top10Spread: null,
@@ -768,11 +904,17 @@ export function calculateLevelPoints(
 				surfaceDiversityScore: null,
 				medianSteeringShare: null,
 				q25SteeringShare: null,
+				qualityScore: null,
 				lowSteeringRatio: null,
 				zeroControlRatio: null,
 				medianBrakeShare: null,
 				medianArmsUpShare: null,
 				medianControlTransitionRate: null,
+				skillAlignment: null,
+				skillConfidence: null,
+				skillSampleSize: null,
+				skillScore: null,
+				skillSeparation: null,
 				typicalDistance: null,
 				typicalAverageSpeed: null,
 				typicalMaxSpeed: null,
@@ -785,8 +927,10 @@ export function calculateLevelPoints(
 				telemetrySampleCounts: emptyTelemetryCounts(),
 			},
 			modifiers: {
+				evidenceModifier: 1,
 				lengthModifier: factors.lengthFactor,
-				competitivenessModifier: 0.1 + 1.9 * factors.competitiveMerit,
+				competitivenessModifier: observations.competitivenessModifier,
+				qualityModifier: 1,
 				ratingModifier: 1,
 				popularityModifier: 0.75,
 				cutPenalty: 1,
@@ -794,14 +938,9 @@ export function calculateLevelPoints(
 		}
 	}
 
-	const leaderboardConfidence = smoothstep(clamp((normalized.personalBestCount - 5) / 45))
-	const rawCompetitiveness = weightedTightness(personalBests, leader.time, COMPETITIVENESS_RANKS)
-	const competitivenessScore = 0.5 + (rawCompetitiveness - 0.5) * leaderboardConfidence
-	const worldRecordDifficulty = calculateWorldRecordDifficulty(
-		personalBests,
-		leaderboardConfidence,
-	)
-	const competitiveMerit = 0.65 * competitivenessScore + 0.35 * worldRecordDifficulty.score
+	const leaderboardConfidence = observations.leaderboardConfidence
+	const competitivenessScore = observations.competitivenessScore ?? 0.5
+	const competitiveMerit = observations.competitiveMerit
 	const lengthFactor = calculateLevelLengthFactor(
 		median(personalBests.slice(0, 10).map((personalBest) => personalBest.time)),
 	)
@@ -812,13 +951,10 @@ export function calculateLevelPoints(
 			? clamp(Math.log1p(normalized.personalBestCount) / Math.log1p(participationReference))
 			: null
 	const participationFactor = participationScore === null ? 1 : 0.75 + 0.25 * participationScore
-	const voteFactor =
-		normalized.matureVoteCount === 0 || normalized.voteRating === null
-			? 1
-			: clamp(0.95 + clamp(normalized.voteRating) * 0.1, 0.95, 1.05)
+	const voteFactor = observations.voteFactor
 	const passive = calculatePassivePlay(personalBests, leader.time)
 
-	const factors: LevelScoreFactors = {
+	const factors: LegacyLevelScoreFactors = {
 		lengthFactor,
 		competitiveMerit,
 		participationFactor,
@@ -860,7 +996,10 @@ export function calculateLevelPoints(
 			personalBestCount: normalized.personalBestCount,
 			leaderboardConfidence,
 			competitivenessScore,
-			worldRecordDifficultyScore: worldRecordDifficulty.score,
+			competitiveMerit,
+			complexityConfidence: null,
+			complexityScore: null,
+			worldRecordDifficultyScore: observations.worldRecordDifficultyScore,
 			participationScore,
 			matureVoteCount: normalized.matureVoteCount,
 			airSampleSize: telemetryCounts.air,
@@ -882,6 +1021,7 @@ export function calculateLevelPoints(
 				inputRuns.map((run) => run.activity),
 				0.25,
 			),
+			fieldStrength: null,
 			worldRecordMargin:
 				allPersonalBests[0] && allPersonalBests[1]
 					? allPersonalBests[1].time / allPersonalBests[0].time - 1
@@ -889,8 +1029,8 @@ export function calculateLevelPoints(
 			top5Spread: spreadAtRank(personalBests, leader.time, 5),
 			top10Spread: spreadAtRank(personalBests, leader.time, 10),
 			top50Spread: spreadAtRank(personalBests, leader.time, 50),
-			wrChallengerCount: worldRecordDifficulty.challengers,
-			worldRecordOptimizationScore: worldRecordDifficulty.optimization,
+			wrChallengerCount: observations.worldRecordChallengers,
+			worldRecordOptimizationScore: observations.worldRecordOptimizationScore,
 			leaderboardAnomalyScore: anomaly.leaderboardScore,
 			telemetryAnomalyScore: anomaly.telemetryScore,
 			worldRecordExcluded: anomaly.excluded,
@@ -903,6 +1043,7 @@ export function calculateLevelPoints(
 				inputRuns.map((run) => run.steeringShare),
 				0.25,
 			),
+			qualityScore: null,
 			lowSteeringRatio:
 				inputRuns.length > 0
 					? inputRuns.filter((run) => run.steeringShare <= 0.01).length / inputRuns.length
@@ -919,6 +1060,11 @@ export function calculateLevelPoints(
 			medianBrakeShare: median(inputRuns.map((run) => run.brakeShare)),
 			medianArmsUpShare: median(inputRuns.map((run) => run.armsUpShare)),
 			medianControlTransitionRate: median(inputRuns.map((run) => run.transitionRate)),
+			skillAlignment: null,
+			skillConfidence: null,
+			skillSampleSize: null,
+			skillScore: null,
+			skillSeparation: null,
 			typicalDistance: median(distances),
 			typicalAverageSpeed: median(averageSpeeds),
 			typicalMaxSpeed: typicalTelemetryValue(personalBests, null, 'maxSpeed'),
@@ -947,8 +1093,10 @@ export function calculateLevelPoints(
 			telemetrySampleCounts: telemetryCounts,
 		},
 		modifiers: {
+			evidenceModifier: 1,
 			lengthModifier: factors.lengthFactor,
-			competitivenessModifier: 0.1 + 1.9 * factors.competitiveMerit,
+			competitivenessModifier: observations.competitivenessModifier,
+			qualityModifier: 1,
 			ratingModifier: factors.voteFactor,
 			popularityModifier: factors.participationFactor,
 			cutPenalty: 1,

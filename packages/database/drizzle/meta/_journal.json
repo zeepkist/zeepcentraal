@@ -414,6 +414,27 @@
 			"when": 1784597031379,
 			"tag": "0059_lethal_lila_cheney",
 			"breakpoints": true
+		},
+		{
+			"idx": 60,
+			"version": "7",
+			"when": 1784662652006,
+			"tag": "0060_organic_beast",
+			"breakpoints": true
+		},
+		{
+			"idx": 61,
+			"version": "7",
+			"when": 1784666082047,
+			"tag": "0061_fast_lilith",
+			"breakpoints": true
+		},
+		{
+			"idx": 62,
+			"version": "7",
+			"when": 1784669374440,
+			"tag": "0062_abnormal_charles_xavier",
+			"breakpoints": true
 		}
 	]
 }

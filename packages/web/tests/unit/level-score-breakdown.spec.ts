@@ -13,65 +13,35 @@ const component = readFileSync(
 const locale = readFileSync(new URL('../../i18n/locales/en.json', import.meta.url), 'utf8')
 
 const scoreFields = [
-	'sampleSize',
-	'leaderboardConfidence',
-	'inputSampleSize',
-	'inputCoverage',
-	'airSampleSize',
-	'wheelSampleSize',
-	'slipSampleSize',
-	'ragdollSampleSize',
-	'stateSampleSize',
-	'surfaceSampleSize',
-	'velocitySampleSize',
-	'competitivenessScore',
-	'worldRecordDifficultyScore',
-	'participationScore',
-	'passivePlaySeverity',
-	'modifierAfk',
-	'passiveRunRatio',
-	'passiveTop10Share',
-	'bestPassiveRank',
-	'bestPassiveGap',
-	'driverEngagementScore',
-	'worldRecordMargin',
-	'top5Spread',
-	'top10Spread',
-	'top50Spread',
-	'wrChallengerCount',
-	'worldRecordOptimizationScore',
-	'leaderboardAnomalyScore',
-	'telemetryAnomalyScore',
+	'modifierLength',
+	'modifierCompetitiveness',
+	'modifierEvidence',
+	'modifierQuality',
+	'modifierRating',
+	'competitiveMerit',
+	'complexityConfidence',
+	'complexityScore',
+	'fieldStrength',
+	'qualityScore',
+	'skillAlignment',
+	'skillConfidence',
+	'skillSampleSize',
+	'skillScore',
+	'skillSeparation',
 	'worldRecordExcluded',
-	'pathConsistencyScore',
-	'speedConsistencyScore',
-	'routeConsistencyScore',
-	'surfaceDiversityScore',
-	'matureVoteCount',
-	'typicalDistance',
-	'typicalAverageSpeed',
-	'typicalMaxSpeed',
-	'typicalAirTimeShare',
-	'typicalGroundTimeShare',
-	'typicalSlipShare',
-	'typicalRagdollShare',
-	'typicalAverageAngularVelocity',
-	'typicalAverageGforce',
-	'medianSteeringShare',
-	'q25SteeringShare',
-	'lowSteeringRatio',
-	'zeroControlRatio',
-	'medianBrakeShare',
-	'medianArmsUpShare',
-	'medianControlTransitionRate',
 ] as const
 
 describe('level score breakdown', () => {
-	it('requests every persisted score and descriptive signal', () => {
+	it('requests exact retained score and selectivity signals', () => {
 		for (const field of scoreFields) expect(query).toMatch(new RegExp(`\\n\\s+${field}\\n`))
-		expect(query).toContain('modifierRating')
-		expect(query).not.toContain('typicalFourWheelShare')
-		expect(query).not.toContain('scoreVersion')
+		for (const field of [
+			'modifierPopularity',
+			'sampleSize',
+			'passivePlaySeverity',
+			'scoreVersion',
+		]) {
+			expect(query).not.toContain(field)
+		}
 	})
 
 	it('renders through a request-free data-fed component', () => {

@@ -213,6 +213,70 @@ export async function getPersonalBestsWithRecordByLevelIds({
 	return buildPersonalBestsWithRecordByLevelIdsQuery({ idLevels, limit })
 }
 
+export async function getV2ScorePersonalBestsByLevelIds({
+	idLevels,
+	limit = 50,
+}: {
+	idLevels: number[]
+	limit?: number
+}) {
+	if (idLevels.length === 0) return []
+	return buildV2ScorePersonalBestsByLevelIdsQuery({ idLevels, limit })
+}
+
+export function buildV2ScorePersonalBestsByLevelIdsQuery({
+	idLevels,
+	limit = 50,
+}: {
+	idLevels: number[]
+	limit?: number
+}) {
+	const ranked = db
+		.select({
+			idRecord: record.id,
+			idLevel: record.idLevel,
+			time: record.time,
+			dateCreated: record.dateCreated,
+			splits: record.splits,
+			totalCount: sql<number>`COUNT(*) OVER (PARTITION BY ${record.idLevel})`.as(
+				'total_count',
+			),
+			rowNumber:
+				sql<number>`ROW_NUMBER() OVER (PARTITION BY ${record.idLevel} ORDER BY ${record.time}, ${record.id})`.as(
+					'row_number',
+				),
+		})
+		.from(record)
+		.innerJoin(personalBestGlobal, eq(personalBestGlobal.idRecord, record.id))
+		.innerJoin(user, eq(user.id, record.idUser))
+		.where(and(inArray(record.idLevel, idLevels), eq(user.banned, false)))
+		.as('ranked_v2_score_personal_bests')
+
+	return db
+		.select({
+			idLevel: ranked.idLevel,
+			time: ranked.time,
+			dateCreated: ranked.dateCreated,
+			splits: ranked.splits,
+			totalCount: ranked.totalCount,
+			statisticTime: recordStatistic.time,
+			turnLeftCount: recordStatistic.turnLeftCount,
+			turnLeftTime: recordStatistic.turnLeftTime,
+			turnRightCount: recordStatistic.turnRightCount,
+			turnRightTime: recordStatistic.turnRightTime,
+			brakeCount: recordStatistic.brakeCount,
+			brakeTime: recordStatistic.brakeTime,
+			armsUpCount: recordStatistic.armsUpCount,
+			armsUpTime: recordStatistic.armsUpTime,
+			driverInputTransitionCount: recordStatistic.driverInputTransitionCount,
+			hasInputData: recordStatistic.hasInputData,
+		})
+		.from(ranked)
+		.leftJoin(recordStatistic, eq(recordStatistic.idRecord, ranked.idRecord))
+		.where(lte(ranked.rowNumber, limit))
+		.orderBy(asc(ranked.idLevel), asc(ranked.rowNumber))
+}
+
 export function buildPersonalBestsWithRecordByLevelIdsQuery({
 	idLevels,
 	limit = 10,
