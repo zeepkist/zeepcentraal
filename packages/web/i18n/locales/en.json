@@ -147,10 +147,10 @@
 			"description": "Explore other tournaments.",
 			"next": "Next Tournament",
 			"noCurrent": "No active tournament",
-			"noNext": "No upcoming tournament",
+			"noNext": "No next tournament",
 			"noPrevious": "No previous tournament",
 			"previous": "Previous Tournament",
-			"title": "Other tournaments",
+			"title": "Other Tournaments",
 			"viewCountdown": "View tournament countdown"
 		},
 		"notFound": "Tournament not found",
