@@ -14,6 +14,7 @@ import {
 import { generateUid } from '../utils/generateUid'
 import type { RecordStatisticInput } from './recordStatistic'
 import { buildRecordStatisticValues } from './recordStatistic'
+import { recordTrackTournamentResults } from './trackTournament'
 
 type RecordInput = typeof record.$inferInsert
 const ghostUploadSuccesses = createCounter('record.ghost_upload.success', 'zeepcentraal-database')
@@ -70,11 +71,15 @@ export async function submitRecord(
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(${input.idUser}, ${input.idLevel})`)
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(0, ${input.idLevel})`)
+		const [clock] = await tx.execute<{ accepted_at: string }>(
+			sql`SELECT clock_timestamp()::text AS accepted_at`,
+		)
 
 		const [created] = await tx.insert(record).values(input).returning()
 		if (!created) {
 			return null
 		}
+		if (!clock) throw new Error('Failed to capture record acceptance time')
 
 		if (statistic) {
 			await tx
@@ -142,6 +147,14 @@ export async function submitRecord(
 					},
 				})
 		}
+
+		await recordTrackTournamentResults(tx, {
+			acceptedAt: clock.accepted_at,
+			idLevel: created.idLevel,
+			idRecord: created.id,
+			idUser: created.idUser,
+			time: created.time,
+		})
 
 		return { record: created, personalBestChanged }
 	})

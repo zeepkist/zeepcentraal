@@ -706,6 +706,139 @@ export const record = pgTable(
 	],
 )
 
+/** Weekly/monthly featured-track competitions. Type 0 = weekly, 1 = monthly. */
+export const trackTournament = pgTable(
+	'track_tournament',
+	{
+		id: integer().primaryKey().generatedAlwaysAsIdentity({
+			name: 'track_tournament_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+			maxValue: 2147483647,
+			cache: 1,
+		}),
+		type: integer().notNull(),
+		slug: text().notNull(),
+		idLevel: integer('id_level').notNull(),
+		startAt: timestamp('start_at', { withTimezone: true, mode: 'string' }).notNull(),
+		endAt: timestamp('end_at', { withTimezone: true, mode: 'string' }).notNull(),
+		finalizedAt: timestamp('finalized_at', { withTimezone: true, mode: 'string' }),
+		pointsVersion: integer('points_version').notNull().default(1),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
+			() => new Date().toISOString(),
+		),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idLevel],
+			foreignColumns: [level.id],
+			name: 'track_tournament_level_fkey',
+		}),
+		check('CK_track_tournament_type', sql`${table.type} IN (0, 1)`),
+		check('CK_track_tournament_period', sql`${table.endAt} > ${table.startAt}`),
+		check('CK_track_tournament_points_version', sql`${table.pointsVersion} = 1`),
+		unique('UQ_track_tournament_type_level').on(table.type, table.idLevel),
+		unique('UQ_track_tournament_type_start').on(table.type, table.startAt),
+		unique('UQ_track_tournament_type_slug').on(table.type, table.slug),
+		index('IX_track_tournament_type_id').using(
+			'btree',
+			table.type.asc().nullsLast(),
+			table.id.desc().nullsFirst(),
+		),
+		index('IX_track_tournament_level_period').using(
+			'btree',
+			table.idLevel.asc().nullsLast(),
+			table.startAt.asc().nullsLast(),
+			table.endAt.asc().nullsLast(),
+		),
+		pgPolicy('graphql_select_visible_track_tournament', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`EXISTS (
+				SELECT 1 FROM public.level AS graphql_visible_level
+				WHERE graphql_visible_level.id = ${table.idLevel}
+					AND graphql_visible_level.publicly_visible = true
+			)`,
+		}),
+	],
+).enableRLS()
+
+/** Best submitted record for one user during one featured-track competition. */
+export const trackTournamentResult = pgTable(
+	'track_tournament_result',
+	{
+		idTournament: integer('id_tournament').notNull(),
+		idUser: integer('id_user').notNull(),
+		idRecord: integer('id_record').notNull(),
+		time: real().notNull(),
+		rank: integer().notNull(),
+		points: integer().notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' }).$onUpdate(
+			() => new Date().toISOString(),
+		),
+	},
+	(table) => [
+		primaryKey({ columns: [table.idTournament, table.idUser] }),
+		foreignKey({
+			columns: [table.idTournament],
+			foreignColumns: [trackTournament.id],
+			name: 'track_tournament_result_tournament_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'track_tournament_result_user_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idRecord],
+			foreignColumns: [record.id],
+			name: 'track_tournament_result_record_fkey',
+		}),
+		check('CK_track_tournament_result_rank', sql`${table.rank} > 0`),
+		check(
+			'CK_track_tournament_result_points',
+			sql`${table.points} >= 2 AND MOD(${table.points}, 2) = 0`,
+		),
+		index('IX_track_tournament_result_tournament_rank').using(
+			'btree',
+			table.idTournament.asc().nullsLast(),
+			table.rank.asc().nullsLast(),
+			table.time.asc().nullsLast(),
+			table.idRecord.asc().nullsLast(),
+		),
+		index('IX_track_tournament_result_record').using('btree', table.idRecord.asc().nullsLast()),
+		pgPolicy('graphql_select_visible_track_tournament_result', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`
+				EXISTS (
+					SELECT 1
+					FROM public.track_tournament AS visible_tournament
+					INNER JOIN public.level AS graphql_visible_level
+						ON graphql_visible_level.id = visible_tournament.id_level
+						AND graphql_visible_level.publicly_visible = true
+					WHERE visible_tournament.id = ${table.idTournament}
+				)
+				AND EXISTS (
+					SELECT 1
+					FROM public.record AS graphql_visible_record
+					INNER JOIN public.level AS graphql_record_level
+						ON graphql_record_level.id = graphql_visible_record.id_level
+						AND graphql_record_level.publicly_visible = true
+					WHERE graphql_visible_record.id = ${table.idRecord}
+				)
+			`,
+		}),
+	],
+).enableRLS()
+
 export const recordMedia = pgTable(
 	'record_media',
 	{

@@ -1,0 +1,72 @@
+import { describe, expect, test } from 'vitest'
+import {
+	formatTournamentDelta,
+	formatTournamentPeriod,
+	nextTournamentBoundary,
+} from '../../app/utils/tournament'
+import { selectTournamentNotificationKind } from '../../app/utils/tournamentNotification'
+
+describe('nextTournamentBoundary', () => {
+	test('returns Monday 06:00 UTC for weekly tournaments', () => {
+		expect(nextTournamentBoundary(0, new Date('2026-07-22T12:00:00Z')).toISOString()).toBe(
+			'2026-07-27T06:00:00.000Z',
+		)
+		expect(nextTournamentBoundary(0, new Date('2026-07-27T05:00:00Z')).toISOString()).toBe(
+			'2026-07-27T06:00:00.000Z',
+		)
+		expect(nextTournamentBoundary(0, new Date('2026-07-27T06:04:00Z')).toISOString()).toBe(
+			'2026-07-27T06:00:00.000Z',
+		)
+		expect(nextTournamentBoundary(0, new Date('2026-07-27T06:06:00Z')).toISOString()).toBe(
+			'2026-08-03T06:00:00.000Z',
+		)
+	})
+
+	test('returns first-day 06:00 UTC for monthly tournaments', () => {
+		expect(nextTournamentBoundary(1, new Date('2026-07-22T12:00:00Z')).toISOString()).toBe(
+			'2026-08-01T06:00:00.000Z',
+		)
+		expect(nextTournamentBoundary(1, new Date('2026-08-01T06:04:00Z')).toISOString()).toBe(
+			'2026-08-01T06:00:00.000Z',
+		)
+	})
+})
+
+describe('formatTournamentPeriod', () => {
+	const weekly = ({ year, week }: { year: number; week: number }) => `${year} Week ${week}`
+
+	test('formats weekly slugs through translated label callback', () => {
+		expect(formatTournamentPeriod(0, '2026-w01', 'en', weekly)).toBe('2026 Week 1')
+		expect(formatTournamentPeriod(0, '2027-w53', 'en', weekly)).toBe('2027 Week 53')
+	})
+
+	test('formats monthly slugs with localized month names', () => {
+		expect(formatTournamentPeriod(1, '2026-01', 'en', weekly)).toBe('January 2026')
+		expect(formatTournamentPeriod(1, '2026-07', 'en', weekly)).toBe('July 2026')
+	})
+
+	test('falls back to malformed raw slugs', () => {
+		expect(formatTournamentPeriod(0, '2026-w00', 'en', weekly)).toBe('2026-w00')
+		expect(formatTournamentPeriod(1, '2026-13', 'en', weekly)).toBe('2026-13')
+	})
+})
+
+describe('formatTournamentDelta', () => {
+	test('uses positive gaps from first place and hides tied leaders', () => {
+		expect(formatTournamentDelta(42.123, 42.123)).toBeNull()
+		expect(formatTournamentDelta(42.1234, 42.123)).toBeNull()
+		expect(formatTournamentDelta(42.246, 42.123)).toBe('+0.123')
+	})
+
+	test('uses race-time formatting for gaps of at least one minute', () => {
+		expect(formatTournamentDelta(112.123, 42.123)).toBe('+1:10.000')
+	})
+})
+
+test('plays only highest tournament placement chime in a batch', () => {
+	expect(selectTournamentNotificationKind([])).toBeNull()
+	expect(selectTournamentNotificationKind([40, 12])).toBe('record')
+	expect(selectTournamentNotificationKind([8, 3])).toBe('third')
+	expect(selectTournamentNotificationKind([3, 2])).toBe('second')
+	expect(selectTournamentNotificationKind([3, 1, 2])).toBe('first')
+})

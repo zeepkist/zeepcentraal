@@ -33,6 +33,7 @@
 		"db:studio": "bun --bun --cwd=packages/database run dev",
 		"db:generate": "bun --bun --cwd=packages/database run db:generate",
 		"db:migrate": "bun --bun --cwd=packages/database run db:migrate",
+		"db:seed:tournaments:local": "bun --cwd=packages/database run db:seed:tournaments:local",
 		"db:migration:adventure-levels": "bun --bun --cwd=packages/database run db:migration:adventure-levels",
 		"prepare": "husky",
 		"typecheck": "tsc --noEmit",

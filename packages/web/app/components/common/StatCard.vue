@@ -14,7 +14,7 @@
 					{{ label }}
 				</p>
 				<p :aria-label="valueLabel" class="tabular mt-2 text-3xl font-bold">
-					{{ value }}
+					<slot name="value">{{ value }}</slot>
 				</p>
 				<dl v-if="details?.length" class="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
 					<div v-for="detail in details" :key="detail.label" class="min-w-0">
@@ -38,7 +38,7 @@
 <script setup lang="ts">
 const props = defineProps<{
 	label: string
-	value: string
+	value?: string
 	valueLabel?: string
 	icon: string
 	details?: Array<{ label: string; value: string }>

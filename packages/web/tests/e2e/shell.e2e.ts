@@ -394,10 +394,6 @@ test('record detail placeholder is noindex', async ({ page }) => {
 for (const [path, heading] of [
 	['/cosmetics', 'Cosmetics are coming next'],
 	['/cosmetic/123', 'Cosmetic details are coming next'],
-	['/totw', 'Track of the Week is coming next'],
-	['/totw/season-1', 'Track of the Week details are coming next'],
-	['/totm', 'Track of the Month is coming next'],
-	['/totm/july-2026', 'Track of the Month details are coming next'],
 ] as const) {
 	test(`${path} placeholder is noindex`, async ({ page }) => {
 		await page.goto(path)
@@ -406,6 +402,27 @@ for (const [path, heading] of [
 			'content',
 			'noindex, nofollow',
 		)
+	})
+}
+
+for (const [path, title] of [
+	['/totw', 'Track of the Week'],
+	['/totm', 'Track of the Month'],
+] as const) {
+	test(`${path} renders active tournament or scheduled countdown`, async ({ page }) => {
+		await page.goto(path)
+		await expect(page.getByText(title, { exact: true }).first()).toBeVisible()
+		await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+			'content',
+			'index, follow',
+		)
+	})
+}
+
+for (const path of ['/totw/season-1', '/totm/july-2026'] as const) {
+	test(`${path} rejects non-canonical tournament slug`, async ({ page }) => {
+		const response = await page.goto(path)
+		expect(response?.status()).toBe(404)
 	})
 }
 

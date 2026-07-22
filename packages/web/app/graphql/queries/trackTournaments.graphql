@@ -1,0 +1,242 @@
+fragment ZC_TrackTournamentLevel on Level {
+	id
+	xxHash
+	adventure
+	publiclyVisible
+	dateCreated
+	levelPoints {
+		points
+		rating
+	}
+	levelItems(
+		first: 1
+		filter: { deleted: { equalTo: false } }
+		orderBy: [UPDATED_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			name
+			imageUrl
+			authorId
+			workshopId
+			author {
+				steamId
+				steamName
+			}
+		}
+	}
+}
+
+fragment ZC_TrackTournamentStanding on TrackTournamentResult {
+	tournamentId
+	userId
+	recordId
+	time
+	rank
+	points
+	user {
+		steamId
+		steamName
+	}
+	record {
+		...ZC_GhostComparisonRecord
+	}
+}
+
+fragment ZC_TrackTournamentSummary on TrackTournament {
+	id
+	type
+	slug
+	startAt
+	endAt
+	finalizedAt
+	dateCreated
+	dateUpdated
+	level {
+		...ZC_TrackTournamentLevel
+	}
+	trackTournamentResults(first: 3, orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]) {
+		totalCount
+		nodes {
+			...ZC_TrackTournamentStanding
+		}
+	}
+}
+
+query ZC_TrackTournamentIndex(
+	$type: Int!
+	$now: Datetime!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+) {
+	active: trackTournaments(
+		first: 1
+		filter: {
+			type: { equalTo: $type }
+			startAt: { lessThanOrEqualTo: $now }
+			endAt: { greaterThan: $now }
+			finalizedAt: { isNull: true }
+		}
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_TrackTournamentSummary
+		}
+	}
+	future: trackTournaments(
+		first: 1
+		filter: { type: { equalTo: $type }, startAt: { greaterThan: $now } }
+		orderBy: [START_AT_ASC, ID_ASC]
+	) {
+		nodes {
+			...ZC_TrackTournamentSummary
+		}
+	}
+	history: trackTournaments(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: { type: { equalTo: $type }, endAt: { lessThanOrEqualTo: $now } }
+		orderBy: [ID_DESC]
+	) {
+		edges {
+			cursor
+			node {
+				...ZC_TrackTournamentSummary
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+	}
+}
+
+query ZC_TrackTournamentDetail(
+	$type: Int!
+	$slug: String!
+	$viewerId: Int!
+	$includeViewer: Boolean!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+) {
+	tournament: trackTournamentByTypeAndSlug(type: $type, slug: $slug) {
+		...ZC_TrackTournamentSummary
+		leaderboard: trackTournamentResults(
+			first: $first
+			after: $after
+			last: $last
+			before: $before
+			orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]
+		) {
+			edges {
+				cursor
+				node {
+					...ZC_TrackTournamentStanding
+				}
+			}
+			pageInfo {
+				startCursor
+				endCursor
+				hasNextPage
+				hasPreviousPage
+			}
+			totalCount
+		}
+		viewerStanding: trackTournamentResults(first: 1, filter: { userId: { equalTo: $viewerId } })
+			@include(if: $includeViewer)
+		{
+			nodes {
+				...ZC_TrackTournamentStanding
+			}
+		}
+		updateFeed: trackTournamentResults(
+			first: 200
+			orderBy: [DATE_UPDATED_DESC, RECORD_ID_DESC]
+		) {
+			nodes {
+				...ZC_TrackTournamentStanding
+			}
+		}
+	}
+}
+
+query ZC_TrackTournamentNavigation($type: Int!, $startAt: Datetime!, $now: Datetime!) {
+	previous: trackTournaments(
+		first: 1
+		filter: { type: { equalTo: $type }, startAt: { lessThan: $startAt } }
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_TrackTournamentSummary
+		}
+	}
+	current: trackTournaments(
+		first: 1
+		filter: {
+			type: { equalTo: $type }
+			startAt: { lessThanOrEqualTo: $now }
+			endAt: { greaterThan: $now }
+			finalizedAt: { isNull: true }
+		}
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_TrackTournamentSummary
+		}
+	}
+	next: trackTournaments(
+		first: 1
+		filter: { type: { equalTo: $type }, startAt: { greaterThan: $startAt } }
+		orderBy: [START_AT_ASC, ID_ASC]
+	) {
+		nodes {
+			...ZC_TrackTournamentSummary
+		}
+	}
+}
+
+subscription ZC_TrackTournamentLive($id: Int!, $viewerId: Int!, $includeViewer: Boolean!) {
+	trackTournament(id: $id) {
+		id
+		leaderboard: trackTournamentResults(
+			first: 50
+			orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]
+		) {
+			edges {
+				cursor
+				node {
+					...ZC_TrackTournamentStanding
+				}
+			}
+			pageInfo {
+				startCursor
+				endCursor
+				hasNextPage
+				hasPreviousPage
+			}
+			totalCount
+		}
+		viewerStanding: trackTournamentResults(first: 1, filter: { userId: { equalTo: $viewerId } })
+			@include(if: $includeViewer)
+		{
+			nodes {
+				...ZC_TrackTournamentStanding
+			}
+		}
+		updateFeed: trackTournamentResults(
+			first: 200
+			orderBy: [DATE_UPDATED_DESC, RECORD_ID_DESC]
+		) {
+			nodes {
+				...ZC_TrackTournamentStanding
+			}
+		}
+	}
+}

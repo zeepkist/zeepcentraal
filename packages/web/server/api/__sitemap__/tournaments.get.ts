@@ -1,9 +1,14 @@
-import { Zc_SitemapTournamentsDocument } from '../../../app/graphql/generated/graphql'
+import type { Zc_SitemapTrackTournamentsQuery } from '../../../app/graphql/generated/graphql'
+import {
+	Zc_SitemapTournamentsDocument,
+	Zc_SitemapTrackTournamentsDocument,
+} from '../../../app/graphql/generated/graphql'
 import {
 	superLeagueLevelPath,
 	superLeagueRoundPath,
 	superLeagueSeasonPath,
 } from '../../../app/utils/superLeagueRoutes'
+import { tournamentPath } from '../../../app/utils/tournament'
 import { fetchGraphql } from '../../utils/graphql'
 export default defineSitemapEventHandler(async () => {
 	const urls = []
@@ -30,6 +35,26 @@ export default defineSitemapEventHandler(async () => {
 				)
 			}
 		}
+		after = connection.pageInfo.hasNextPage ? String(connection.pageInfo.endCursor) : undefined
+	} while (after)
+
+	after = undefined
+	const now = new Date().toISOString()
+	do {
+		const data: Zc_SitemapTrackTournamentsQuery = await fetchGraphql(
+			Zc_SitemapTrackTournamentsDocument,
+			{ after, now },
+		)
+		const connection = data.trackTournaments
+		if (!connection) break
+		urls.push(
+			...connection.nodes
+				.filter((tournament) => tournament.type === 0 || tournament.type === 1)
+				.map((tournament) => ({
+					loc: tournamentPath(tournament.type as 0 | 1, tournament.slug),
+					lastmod: String(tournament.dateUpdated ?? tournament.dateCreated),
+				})),
+		)
 		after = connection.pageInfo.hasNextPage ? String(connection.pageInfo.endCursor) : undefined
 	} while (after)
 	return urls

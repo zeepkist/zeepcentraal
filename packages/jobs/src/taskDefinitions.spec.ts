@@ -122,6 +122,26 @@ test('workshop catalog sync runs Sunday at 01:00 Europe/London', () => {
 	})
 })
 
+test('track tournaments rotate at exact UTC boundaries with distinct keys', () => {
+	expect(cronTasks).toContainEqual({
+		task: 'rotateTrackTournament',
+		cronTime: '0 6 * * 1',
+		payload: { type: 0 },
+		timeZone: 'UTC',
+		spec: { jobKey: 'cron:rotateTrackTournament:weekly' },
+	})
+	expect(cronTasks).toContainEqual({
+		task: 'rotateTrackTournament',
+		cronTime: '0 6 1 * *',
+		payload: { type: 1 },
+		timeZone: 'UTC',
+		spec: { jobKey: 'cron:rotateTrackTournament:monthly' },
+	})
+	expect(isValidTaskPayload('rotateTrackTournament', { type: 0 })).toBe(true)
+	expect(isValidTaskPayload('rotateTrackTournament', { type: 2 })).toBe(false)
+	expect(isCompatibleTaskIdentifier('rotateTrackTournament')).toBe(false)
+})
+
 test('full player scoring uses serialized contribution queue', () => {
 	expect(cronTasks).toContainEqual({
 		task: 'updatePlayerScores',

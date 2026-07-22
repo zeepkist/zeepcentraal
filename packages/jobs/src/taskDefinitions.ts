@@ -58,6 +58,11 @@ export const taskDefinitions = {
 		compatible: true,
 		maxAttempts: 5,
 	},
+	rotateTrackTournament: {
+		schema: z.looseObject({ type: z.union([z.literal(0), z.literal(1)]) }),
+		compatible: false,
+		maxAttempts: 3,
+	},
 	syncPersonalBests: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
 	syncWorkshopCatalog: { schema: syncWorkshopCatalogPayload, compatible: true, maxAttempts: 3 },
 	updateLevelPointsHistory: { schema: emptyPayload, compatible: true, maxAttempts: 3 },

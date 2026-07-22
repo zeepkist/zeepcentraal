@@ -117,6 +117,69 @@
 		"loading": "Searching users and levels",
 		"typeMore": "Type at least two characters"
 	},
+	"tournaments": {
+		"backToActive": "Back to active tournament",
+		"byAuthor": "by {author}",
+		"competitors": "Competitors",
+		"delta": "Delta",
+		"endedAt": "Ended",
+		"endDate": "End Date",
+		"finalized": "Final Results",
+		"ghosts": {
+			"description": "View ghost replays of tournament entries and compare racing lines.",
+			"hide": "Hide ghosts",
+			"load": "Load {count} ghosts",
+			"missing": "{count} ghosts are missing.",
+			"show": "Show ghosts",
+			"title": "Ghost Explorer"
+		},
+		"history": "Past Tournaments",
+		"historyDescription": "Browse past tournament results and standings.",
+		"leaderboard": "Leaderboard",
+		"leaderboardDescription": "Records submitted during this tournament period.",
+		"live": "Live",
+		"livePaused": "Live updates paused",
+		"liveUpdates": "Live updates",
+		"noHistory": "No previous tournaments",
+		"noResults": "No records submitted yet. Download the tournament level and submit your best time to appear on the leaderboard.",
+		"navigation": {
+			"current": "Active Tournament",
+			"description": "Explore other tournaments.",
+			"next": "Next Tournament",
+			"noCurrent": "No active tournament",
+			"noNext": "No upcoming tournament",
+			"noPrevious": "No previous tournament",
+			"previous": "Previous Tournament",
+			"title": "Other tournaments",
+			"viewCountdown": "View tournament countdown"
+		},
+		"notFound": "Tournament not found",
+		"openLevel": "View level",
+		"participants": "{count} competitors",
+		"player": "Player",
+		"playlists": {
+			"downloadAll": "Download all tournaments",
+			"downloadFormat": "Download all {format}",
+			"downloadTournament": "Download tournament playlist",
+			"moreDownloads": "More playlist downloads"
+		},
+		"podium": "Podium",
+		"podiumDescription": "Top 3 fastest times for this tournament period.",
+		"points": "Points",
+		"pointsValue": "{points} points",
+		"rank": "Rank",
+		"seoDescription": "{title} level, live leaderboard, results and past tournaments.",
+		"soundOff": "Sound off",
+		"soundOn": "Sound on",
+		"startDate": "Start date",
+		"startingInDays": "Tournament starts in {days} days",
+		"startingSoon": "Tournament starting soon",
+		"time": "Time",
+		"timeRemaining": "Time remaining",
+		"unknownPlayer": "Unknown player",
+		"weeklyPeriod": "{year} Week {week}",
+		"yourStanding": "You"
+	},
 	"wikiContent": {
 		"edit": "Edit this page",
 		"modkist": {
@@ -282,42 +345,10 @@
 			"title": "Terms & Conditions"
 		},
 		"totw": {
-			"back": "Back to dashboard",
-			"description": "Weekly featured tracks, results and competition history will appear here.",
-			"seo": {
-				"description": "ZeepCentraal Track of the Week placeholder.",
-				"title": "Track of the Week"
-			},
-			"title": "Track of the Week is coming next"
-		},
-		"totwDetail": {
-			"back": "Back to Track of the Week",
-			"description": "Track of the Week event {slug} has a permanent page. Results and featured-level details will appear here.",
-			"notFound": "Track of the Week event not found",
-			"seo": {
-				"description": "ZeepCentraal Track of the Week event placeholder.",
-				"title": "Track of the Week {slug} · ZeepCentraal"
-			},
-			"title": "Track of the Week details are coming next"
+			"title": "Track of the Week"
 		},
 		"totm": {
-			"back": "Back to dashboard",
-			"description": "Monthly featured tracks, results and competition history will appear here.",
-			"seo": {
-				"description": "ZeepCentraal Track of the Month placeholder.",
-				"title": "Track of the Month"
-			},
-			"title": "Track of the Month is coming next"
-		},
-		"totmDetail": {
-			"back": "Back to Track of the Month",
-			"description": "Track of the Month event {slug} has a permanent page. Results and featured-level details will appear here.",
-			"notFound": "Track of the Month event not found",
-			"seo": {
-				"description": "ZeepCentraal Track of the Month event placeholder.",
-				"title": "Track of the Month {slug} · ZeepCentraal"
-			},
-			"title": "Track of the Month details are coming next"
+			"title": "Track of the Month"
 		},
 		"users": {
 			"description": "Search for players, view profiles and discover their best records.",

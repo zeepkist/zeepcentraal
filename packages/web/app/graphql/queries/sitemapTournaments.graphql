@@ -26,3 +26,23 @@ query ZC_SitemapTournaments($after: Cursor) {
 		}
 	}
 }
+
+query ZC_SitemapTrackTournaments($after: Cursor, $now: Datetime!) {
+	trackTournaments(
+		first: 1000
+		after: $after
+		filter: { startAt: { lessThanOrEqualTo: $now } }
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			type
+			slug
+			dateUpdated
+			dateCreated
+		}
+		pageInfo {
+			endCursor
+			hasNextPage
+		}
+	}
+}

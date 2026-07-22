@@ -11,6 +11,7 @@
 		"dev": "drizzle-kit studio",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
+		"db:seed:tournaments:local": "bun --env-file ../../.env src/scripts/seedLocalTrackTournaments.ts",
 		"db:migration:adventure-levels": "bun src/scripts/createAdventureLevelMigration.ts",
 		"db:verify-graphql-visibility": "bun src/scripts/verifyGraphqlVisibility.ts"
 	},

@@ -62,6 +62,7 @@ export function startCrons(
 		const { task, cronTime } = cronTask
 		const payload = 'payload' in cronTask ? cronTask.payload : {}
 		const cronSpec: TaskSpec = 'spec' in cronTask ? cronTask.spec : {}
+		const timeZone = 'timeZone' in cronTask ? cronTask.timeZone : 'Europe/London'
 		const job = CronJob.from({
 			cronTime,
 			onTick: () => {
@@ -72,10 +73,10 @@ export function startCrons(
 				)
 			},
 			start: true,
-			timeZone: 'Europe/London',
+			timeZone,
 		})
 		cronJobs.push(job)
-		console.info(`Cron registered: ${task} (${cronTime})`)
+		console.info(`Cron registered: ${task} (${cronTime}, ${timeZone})`)
 	}
 }
 

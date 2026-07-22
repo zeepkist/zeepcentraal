@@ -1,0 +1,83 @@
+import { describe, expect, test } from 'bun:test'
+import {
+	calculateTrackTournamentPoints,
+	getTrackTournamentPeriod,
+	isTrackTournamentBoundary,
+	TRACK_TOURNAMENT_TYPE,
+} from './trackTournamentHelpers'
+
+describe('track tournament periods', () => {
+	test('uses Monday 06:00 UTC weekly boundaries and ISO slugs', () => {
+		const period = getTrackTournamentPeriod(
+			TRACK_TOURNAMENT_TYPE.weekly,
+			new Date('2026-07-22T12:00:00Z'),
+		)
+		expect(period.start.toISOString()).toBe('2026-07-20T06:00:00.000Z')
+		expect(period.end.toISOString()).toBe('2026-07-27T06:00:00.000Z')
+		expect(period.slug).toBe('2026-w30')
+	})
+
+	test('uses first-day 06:00 UTC monthly boundaries', () => {
+		const period = getTrackTournamentPeriod(
+			TRACK_TOURNAMENT_TYPE.monthly,
+			new Date('2026-07-01T05:59:59Z'),
+		)
+		expect(period.start.toISOString()).toBe('2026-06-01T06:00:00.000Z')
+		expect(period.end.toISOString()).toBe('2026-07-01T06:00:00.000Z')
+		expect(period.slug).toBe('2026-06')
+	})
+
+	test('recognizes only scheduled UTC boundary hours', () => {
+		expect(
+			isTrackTournamentBoundary(
+				TRACK_TOURNAMENT_TYPE.weekly,
+				new Date('2026-07-20T06:00:00Z'),
+			),
+		).toBe(true)
+		expect(
+			isTrackTournamentBoundary(
+				TRACK_TOURNAMENT_TYPE.weekly,
+				new Date('2026-07-22T06:00:00Z'),
+			),
+		).toBe(false)
+		expect(
+			isTrackTournamentBoundary(
+				TRACK_TOURNAMENT_TYPE.monthly,
+				new Date('2026-08-01T06:00:00Z'),
+			),
+		).toBe(true)
+	})
+})
+
+test('ceil-rounds tournament curve upward to even points', () => {
+	expect([1, 10, 50, 100, 160].map(calculateTrackTournamentPoints)).toEqual([
+		1000, 694, 136, 18, 2,
+	])
+})
+
+describe('track tournament transaction SQL', () => {
+	const source = Bun.file(new URL('./trackTournament.ts', import.meta.url)).text()
+
+	test('keeps fixed top-quartile quality threshold before same-type exclusion', async () => {
+		const sql = await source
+		expect(sql.indexOf('PERCENTILE_CONT(0.75)')).toBeLessThan(
+			sql.indexOf('FROM $' + '{trackTournament} AS used_tournament'),
+		)
+		expect(sql).toContain('used_tournament.type = $' + '{type}')
+	})
+
+	test('uses half-open active windows, improvement-only upserts, and shared ranking', async () => {
+		const sql = await source
+		expect(sql).toContain('isNull(trackTournament.finalizedAt)')
+		expect(sql).toContain('lte(trackTournament.startAt, input.acceptedAt)')
+		expect(sql).toContain('gt(trackTournament.endAt, input.acceptedAt)')
+		expect(sql).toContain('EXCLUDED.time < $' + '{trackTournamentResult.time}')
+		expect(sql).toContain('RANK() OVER')
+	})
+
+	test('serializes finalization and selection against record insertion without backfill', async () => {
+		const sql = await source
+		expect(sql.match(/pg_advisory_xact_lock\(0, \$\{/g)).toHaveLength(2)
+		expect(sql).not.toContain('backfillTrackTournamentResults')
+	})
+})

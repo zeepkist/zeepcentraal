@@ -4,6 +4,7 @@ import {
 	backfillRecordGhostStatistics,
 	backfillRecordGhostStatisticsBatch,
 } from './backfillRecordGhostStatistics'
+import { rotateTrackTournament } from './rotateTrackTournament'
 import { scanWorkshopBatch } from './scanWorkshopBatch'
 import { scanWorkshopItem } from './scanWorkshopItem'
 import { syncPersonalBests } from './syncPersonalBests'
@@ -26,6 +27,7 @@ export const taskList = {
 	backfillRecordGhostStatisticsBatch: backfillRecordGhostStatisticsBatch as GWTask,
 	scanWorkshopBatch: scanWorkshopBatch as GWTask,
 	scanWorkshopItem: scanWorkshopItem as GWTask,
+	rotateTrackTournament: rotateTrackTournament as GWTask,
 	syncPersonalBests: syncPersonalBests as GWTask,
 	syncWorkshopCatalog: syncWorkshopCatalog as GWTask,
 	updateLevelPointsHistory: updateLevelPointsHistory as GWTask,

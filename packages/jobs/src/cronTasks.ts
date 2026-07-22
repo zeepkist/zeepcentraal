@@ -5,6 +5,20 @@ import {
 } from './utils/playerScoreJobOptions'
 
 export const cronTasks = [
+	{
+		task: 'rotateTrackTournament',
+		cronTime: '0 6 * * 1',
+		payload: { type: 0 },
+		timeZone: 'UTC',
+		spec: { jobKey: 'cron:rotateTrackTournament:weekly' },
+	},
+	{
+		task: 'rotateTrackTournament',
+		cronTime: '0 6 1 * *',
+		payload: { type: 1 },
+		timeZone: 'UTC',
+		spec: { jobKey: 'cron:rotateTrackTournament:monthly' },
+	},
 	// Workshop catalog sync
 	{
 		task: 'syncWorkshopCatalog',

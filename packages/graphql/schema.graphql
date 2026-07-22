@@ -1278,6 +1278,32 @@ type Level implements Node {
     """The method to use when ordering `ZslRound`."""
     orderBy: [ZslRoundsOrderBy!] = [PRIMARY_KEY_ASC]
   ): LevelZslRoundsByZslLevelManyToManyConnection!
+  """Reads and enables pagination through a set of `TrackTournament`."""
+  trackTournaments(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournament`."""
+    orderBy: [TrackTournamentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentsConnection!
 }
 
 type LevelAggregates {
@@ -1430,6 +1456,10 @@ input LevelFilter {
   zslLevels: LevelToManyZslLevelFilter
   """Some related `zslLevels` exist."""
   zslLevelsExist: Boolean
+  """Filter by the object’s `trackTournaments` relation."""
+  trackTournaments: LevelToManyTrackTournamentFilter
+  """Some related `trackTournaments` exist."""
+  trackTournamentsExist: Boolean
 }
 
 """Grouping methods for `Level` for usage during aggregation."""
@@ -8820,6 +8850,68 @@ type Query implements Node {
     """The method to use when ordering `ZslSeason`."""
     orderBy: [ZslSeasonsOrderBy!] = [PRIMARY_KEY_ASC]
   ): ZslSeasonsConnection
+  """Get a single `TrackTournament`."""
+  trackTournament(id: Int!): TrackTournament
+  """Get a single `TrackTournament`."""
+  trackTournamentByTypeAndLevelId(levelId: Int!, type: Int!): TrackTournament
+  """Get a single `TrackTournament`."""
+  trackTournamentByTypeAndSlug(slug: String!, type: Int!): TrackTournament
+  """Get a single `TrackTournament`."""
+  trackTournamentByTypeAndStartAt(startAt: Datetime!, type: Int!): TrackTournament
+  """Get a single `TrackTournamentResult`."""
+  trackTournamentResult(tournamentId: Int!, userId: Int!): TrackTournamentResult
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection
+  """Reads and enables pagination through a set of `TrackTournament`."""
+  trackTournaments(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournament`."""
+    orderBy: [TrackTournamentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentsConnection
 }
 
 type Record implements Node {
@@ -9131,6 +9223,84 @@ type Record implements Node {
     """The method to use when ordering `ZslLevel`."""
     orderBy: [ZslLevelsOrderBy!] = [PRIMARY_KEY_ASC]
   ): RecordZslLevelsByZslLevelResultManyToManyConnection!
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection!
+  """Reads and enables pagination through a set of `TrackTournament`."""
+  trackTournamentsByTrackTournamentResult(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournament`."""
+    orderBy: [TrackTournamentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): RecordTrackTournamentsByTrackTournamentResultManyToManyConnection!
+  """Reads and enables pagination through a set of `User`."""
+  usersByTrackTournamentResult(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: UserFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): RecordUsersByTrackTournamentResultManyToManyConnection!
 }
 
 type RecordAggregates {
@@ -9339,6 +9509,10 @@ input RecordFilter {
   zslLevelResults: RecordToManyZslLevelResultFilter
   """Some related `zslLevelResults` exist."""
   zslLevelResultsExist: Boolean
+  """Filter by the object’s `trackTournamentResults` relation."""
+  trackTournamentResults: RecordToManyTrackTournamentResultFilter
+  """Some related `trackTournamentResults` exist."""
+  trackTournamentResultsExist: Boolean
 }
 
 """Grouping methods for `Record` for usage during aggregation."""
@@ -15305,6 +15479,68 @@ type Subscription {
     """The method to use when ordering `ZslSeason`."""
     orderBy: [ZslSeasonsOrderBy!] = [PRIMARY_KEY_ASC]
   ): ZslSeasonsConnection
+  """Get a single `TrackTournament`."""
+  trackTournament(id: Int!): TrackTournament
+  """Get a single `TrackTournament`."""
+  trackTournamentByTypeAndLevelId(levelId: Int!, type: Int!): TrackTournament
+  """Get a single `TrackTournament`."""
+  trackTournamentByTypeAndSlug(slug: String!, type: Int!): TrackTournament
+  """Get a single `TrackTournament`."""
+  trackTournamentByTypeAndStartAt(startAt: Datetime!, type: Int!): TrackTournament
+  """Get a single `TrackTournamentResult`."""
+  trackTournamentResult(tournamentId: Int!, userId: Int!): TrackTournamentResult
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection
+  """Reads and enables pagination through a set of `TrackTournament`."""
+  trackTournaments(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournament`."""
+    orderBy: [TrackTournamentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentsConnection
 }
 
 type User implements Node {
@@ -15999,6 +16235,84 @@ type User implements Node {
     """The method to use when ordering `ZslSeason`."""
     orderBy: [ZslSeasonsOrderBy!] = [PRIMARY_KEY_ASC]
   ): UserZslSeasonsByZslSeasonResultManyToManyConnection!
+  """Reads and enables pagination through a set of `Record`."""
+  recordsByTrackTournamentResult(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RecordCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RecordFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `Record`."""
+    orderBy: [RecordsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserRecordsByTrackTournamentResultManyToManyConnection!
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection!
+  """Reads and enables pagination through a set of `TrackTournament`."""
+  trackTournamentsByTrackTournamentResult(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournament`."""
+    orderBy: [TrackTournamentsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserTrackTournamentsByTrackTournamentResultManyToManyConnection!
 }
 
 type UserAggregates {
@@ -16167,6 +16481,10 @@ input UserFilter {
   zslSeasonResults: UserToManyZslSeasonResultFilter
   """Some related `zslSeasonResults` exist."""
   zslSeasonResultsExist: Boolean
+  """Filter by the object’s `trackTournamentResults` relation."""
+  trackTournamentResults: UserToManyTrackTournamentResultFilter
+  """Some related `trackTournamentResults` exist."""
+  trackTournamentResultsExist: Boolean
 }
 
 """Grouping methods for `User` for usage during aggregation."""
@@ -26735,4 +27053,1776 @@ enum ZslSeasonsOrderBy {
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_SEASON_ID_DESC
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_USER_ID_ASC
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_USER_ID_DESC
+}
+
+"""
+A filter to be used against many `TrackTournament` object types. All fields are combined with a logical ‘and.’
+"""
+input LevelToManyTrackTournamentFilter {
+  """Aggregates across related `TrackTournament` match the filter criteria."""
+  aggregates: TrackTournamentAggregatesFilter
+  """
+  Every related `TrackTournament` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: TrackTournamentFilter
+  """
+  No related `TrackTournament` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: TrackTournamentFilter
+  """
+  Some related `TrackTournament` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: TrackTournamentFilter
+}
+
+"""
+A filter to be used against many `TrackTournamentResult` object types. All fields are combined with a logical ‘and.’
+"""
+input RecordToManyTrackTournamentResultFilter {
+  """
+  Aggregates across related `TrackTournamentResult` match the filter criteria.
+  """
+  aggregates: TrackTournamentResultAggregatesFilter
+  """
+  Every related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: TrackTournamentResultFilter
+  """
+  No related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: TrackTournamentResultFilter
+  """
+  Some related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: TrackTournamentResultFilter
+}
+
+"""
+A connection to a list of `TrackTournament` values, with data from `TrackTournamentResult`.
+"""
+type RecordTrackTournamentsByTrackTournamentResultManyToManyConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: TrackTournamentAggregates
+  """
+  A list of edges which contains the `TrackTournament`, info from the `TrackTournamentResult`, and the cursor to aid in pagination.
+  """
+  edges: [RecordTrackTournamentsByTrackTournamentResultManyToManyEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `TrackTournament` for these aggregates.
+    """
+    groupBy: [TrackTournamentGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: TrackTournamentHavingInput
+  ): [TrackTournamentAggregates!]
+  """A list of `TrackTournament` objects."""
+  nodes: [TrackTournament!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """
+  The count of *all* `TrackTournament` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+"""
+A `TrackTournament` edge in the connection, with data from `TrackTournamentResult`.
+"""
+type RecordTrackTournamentsByTrackTournamentResultManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `TrackTournament` at the end of the edge."""
+  node: TrackTournament!
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection!
+}
+
+"""
+A connection to a list of `User` values, with data from `TrackTournamentResult`.
+"""
+type RecordUsersByTrackTournamentResultManyToManyConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: UserAggregates
+  """
+  A list of edges which contains the `User`, info from the `TrackTournamentResult`, and the cursor to aid in pagination.
+  """
+  edges: [RecordUsersByTrackTournamentResultManyToManyEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `User` for these aggregates."""
+    groupBy: [UserGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: UserHavingInput
+  ): [UserAggregates!]
+  """A list of `User` objects."""
+  nodes: [User!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `User` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""
+A `User` edge in the connection, with data from `TrackTournamentResult`.
+"""
+type RecordUsersByTrackTournamentResultManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `User` at the end of the edge."""
+  node: User!
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection!
+}
+
+type TrackTournament implements Node {
+  dateCreated: Datetime!
+  dateUpdated: Datetime
+  endAt: Datetime!
+  finalizedAt: Datetime
+  id: Int!
+  """Reads a single `Level` that is related to this `TrackTournament`."""
+  level: Level
+  levelId: Int!
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  pointsVersion: Int!
+  """Reads and enables pagination through a set of `Record`."""
+  recordsByTrackTournamentResult(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: RecordCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: RecordFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `Record`."""
+    orderBy: [RecordsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentRecordsByTrackTournamentResultManyToManyConnection!
+  slug: String!
+  startAt: Datetime!
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection!
+  type: Int!
+  """Reads and enables pagination through a set of `User`."""
+  usersByTrackTournamentResult(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: UserFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentUsersByTrackTournamentResultManyToManyConnection!
+}
+
+type TrackTournamentAggregates {
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: TrackTournamentAverageAggregates
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: TrackTournamentDistinctCountAggregates
+  keys: [String]
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: TrackTournamentMaxAggregates
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: TrackTournamentMinAggregates
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: TrackTournamentStddevPopulationAggregates
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: TrackTournamentStddevSampleAggregates
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: TrackTournamentSumAggregates
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: TrackTournamentVariancePopulationAggregates
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: TrackTournamentVarianceSampleAggregates
+}
+
+"""
+A filter to be used against aggregates of `TrackTournament` object types.
+"""
+input TrackTournamentAggregatesFilter {
+  """Mean average aggregate over matching `TrackTournament` objects."""
+  average: TrackTournamentAverageAggregateFilter
+  """Distinct count aggregate over matching `TrackTournament` objects."""
+  distinctCount: TrackTournamentDistinctCountAggregateFilter
+  """
+  A filter that must pass for the relevant `TrackTournament` object to be included within the aggregate.
+  """
+  filter: TrackTournamentFilter
+  """Maximum aggregate over matching `TrackTournament` objects."""
+  max: TrackTournamentMaxAggregateFilter
+  """Minimum aggregate over matching `TrackTournament` objects."""
+  min: TrackTournamentMinAggregateFilter
+  """
+  Population standard deviation aggregate over matching `TrackTournament` objects.
+  """
+  stddevPopulation: TrackTournamentStddevPopulationAggregateFilter
+  """
+  Sample standard deviation aggregate over matching `TrackTournament` objects.
+  """
+  stddevSample: TrackTournamentStddevSampleAggregateFilter
+  """Sum aggregate over matching `TrackTournament` objects."""
+  sum: TrackTournamentSumAggregateFilter
+  """Population variance aggregate over matching `TrackTournament` objects."""
+  variancePopulation: TrackTournamentVariancePopulationAggregateFilter
+  """Sample variance aggregate over matching `TrackTournament` objects."""
+  varianceSample: TrackTournamentVarianceSampleAggregateFilter
+}
+
+input TrackTournamentAverageAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  pointsVersion: BigFloatFilter
+  type: BigFloatFilter
+}
+
+type TrackTournamentAverageAggregates {
+  """Mean average of id across the matching connection"""
+  id: BigFloat
+  """Mean average of levelId across the matching connection"""
+  levelId: BigFloat
+  """Mean average of pointsVersion across the matching connection"""
+  pointsVersion: BigFloat
+  """Mean average of type across the matching connection"""
+  type: BigFloat
+}
+
+"""
+A condition to be used against `TrackTournament` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input TrackTournamentCondition {
+  """Checks for equality with the object’s `dateCreated` field."""
+  dateCreated: Datetime
+  """Checks for equality with the object’s `dateUpdated` field."""
+  dateUpdated: Datetime
+  """Checks for equality with the object’s `endAt` field."""
+  endAt: Datetime
+  """Checks for equality with the object’s `finalizedAt` field."""
+  finalizedAt: Datetime
+  """Checks for equality with the object’s `id` field."""
+  id: Int
+  """Checks for equality with the object’s `levelId` field."""
+  levelId: Int
+  """Checks for equality with the object’s `pointsVersion` field."""
+  pointsVersion: Int
+  """Checks for equality with the object’s `slug` field."""
+  slug: String
+  """Checks for equality with the object’s `startAt` field."""
+  startAt: Datetime
+  """Checks for equality with the object’s `type` field."""
+  type: Int
+}
+
+input TrackTournamentDistinctCountAggregateFilter {
+  dateCreated: BigIntFilter
+  dateUpdated: BigIntFilter
+  endAt: BigIntFilter
+  finalizedAt: BigIntFilter
+  id: BigIntFilter
+  levelId: BigIntFilter
+  pointsVersion: BigIntFilter
+  slug: BigIntFilter
+  startAt: BigIntFilter
+  type: BigIntFilter
+}
+
+type TrackTournamentDistinctCountAggregates {
+  """Distinct count of dateCreated across the matching connection"""
+  dateCreated: BigInt
+  """Distinct count of dateUpdated across the matching connection"""
+  dateUpdated: BigInt
+  """Distinct count of endAt across the matching connection"""
+  endAt: BigInt
+  """Distinct count of finalizedAt across the matching connection"""
+  finalizedAt: BigInt
+  """Distinct count of id across the matching connection"""
+  id: BigInt
+  """Distinct count of levelId across the matching connection"""
+  levelId: BigInt
+  """Distinct count of pointsVersion across the matching connection"""
+  pointsVersion: BigInt
+  """Distinct count of slug across the matching connection"""
+  slug: BigInt
+  """Distinct count of startAt across the matching connection"""
+  startAt: BigInt
+  """Distinct count of type across the matching connection"""
+  type: BigInt
+}
+
+"""
+A filter to be used against `TrackTournament` object types. All fields are combined with a logical ‘and.’
+"""
+input TrackTournamentFilter {
+  """Checks for all expressions in this list."""
+  and: [TrackTournamentFilter!]
+  """Filter by the object’s `dateCreated` field."""
+  dateCreated: DatetimeFilter
+  """Filter by the object’s `dateUpdated` field."""
+  dateUpdated: DatetimeFilter
+  """Filter by the object’s `endAt` field."""
+  endAt: DatetimeFilter
+  """Filter by the object’s `finalizedAt` field."""
+  finalizedAt: DatetimeFilter
+  """Filter by the object’s `id` field."""
+  id: IntFilter
+  """Filter by the object’s `level` relation."""
+  level: LevelFilter
+  """Filter by the object’s `levelId` field."""
+  levelId: IntFilter
+  """Negates the expression."""
+  not: TrackTournamentFilter
+  """Checks for any expressions in this list."""
+  or: [TrackTournamentFilter!]
+  """Filter by the object’s `pointsVersion` field."""
+  pointsVersion: IntFilter
+  """Filter by the object’s `slug` field."""
+  slug: StringFilter
+  """Filter by the object’s `startAt` field."""
+  startAt: DatetimeFilter
+  """Filter by the object’s `trackTournamentResults` relation."""
+  trackTournamentResults: TrackTournamentToManyTrackTournamentResultFilter
+  """Some related `trackTournamentResults` exist."""
+  trackTournamentResultsExist: Boolean
+  """Filter by the object’s `type` field."""
+  type: IntFilter
+}
+
+"""Grouping methods for `TrackTournament` for usage during aggregation."""
+enum TrackTournamentGroupBy {
+  DATE_CREATED
+  DATE_CREATED_TRUNCATED_TO_DAY
+  DATE_CREATED_TRUNCATED_TO_HOUR
+  DATE_UPDATED
+  DATE_UPDATED_TRUNCATED_TO_DAY
+  DATE_UPDATED_TRUNCATED_TO_HOUR
+  END_AT
+  END_AT_TRUNCATED_TO_DAY
+  END_AT_TRUNCATED_TO_HOUR
+  FINALIZED_AT
+  FINALIZED_AT_TRUNCATED_TO_DAY
+  FINALIZED_AT_TRUNCATED_TO_HOUR
+  LEVEL_ID
+  POINTS_VERSION
+  SLUG
+  START_AT
+  START_AT_TRUNCATED_TO_DAY
+  START_AT_TRUNCATED_TO_HOUR
+  TYPE
+}
+
+input TrackTournamentHavingAverageInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentHavingDistinctCountInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+"""Conditions for `TrackTournament` aggregates."""
+input TrackTournamentHavingInput {
+  AND: [TrackTournamentHavingInput!]
+  OR: [TrackTournamentHavingInput!]
+  average: TrackTournamentHavingAverageInput
+  distinctCount: TrackTournamentHavingDistinctCountInput
+  max: TrackTournamentHavingMaxInput
+  min: TrackTournamentHavingMinInput
+  stddevPopulation: TrackTournamentHavingStddevPopulationInput
+  stddevSample: TrackTournamentHavingStddevSampleInput
+  sum: TrackTournamentHavingSumInput
+  variancePopulation: TrackTournamentHavingVariancePopulationInput
+  varianceSample: TrackTournamentHavingVarianceSampleInput
+}
+
+input TrackTournamentHavingMaxInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentHavingMinInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentHavingStddevPopulationInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentHavingStddevSampleInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentHavingSumInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentHavingVariancePopulationInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentHavingVarianceSampleInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  endAt: HavingDatetimeFilter
+  finalizedAt: HavingDatetimeFilter
+  id: HavingIntFilter
+  levelId: HavingIntFilter
+  pointsVersion: HavingIntFilter
+  startAt: HavingDatetimeFilter
+  type: HavingIntFilter
+}
+
+input TrackTournamentMaxAggregateFilter {
+  id: IntFilter
+  levelId: IntFilter
+  pointsVersion: IntFilter
+  type: IntFilter
+}
+
+type TrackTournamentMaxAggregates {
+  """Maximum of id across the matching connection"""
+  id: Int
+  """Maximum of levelId across the matching connection"""
+  levelId: Int
+  """Maximum of pointsVersion across the matching connection"""
+  pointsVersion: Int
+  """Maximum of type across the matching connection"""
+  type: Int
+}
+
+input TrackTournamentMinAggregateFilter {
+  id: IntFilter
+  levelId: IntFilter
+  pointsVersion: IntFilter
+  type: IntFilter
+}
+
+type TrackTournamentMinAggregates {
+  """Minimum of id across the matching connection"""
+  id: Int
+  """Minimum of levelId across the matching connection"""
+  levelId: Int
+  """Minimum of pointsVersion across the matching connection"""
+  pointsVersion: Int
+  """Minimum of type across the matching connection"""
+  type: Int
+}
+
+"""
+A connection to a list of `Record` values, with data from `TrackTournamentResult`.
+"""
+type TrackTournamentRecordsByTrackTournamentResultManyToManyConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: RecordAggregates
+  """
+  A list of edges which contains the `Record`, info from the `TrackTournamentResult`, and the cursor to aid in pagination.
+  """
+  edges: [TrackTournamentRecordsByTrackTournamentResultManyToManyEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `Record` for these aggregates."""
+    groupBy: [RecordGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: RecordHavingInput
+  ): [RecordAggregates!]
+  """A list of `Record` objects."""
+  nodes: [Record!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `Record` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""
+A `Record` edge in the connection, with data from `TrackTournamentResult`.
+"""
+type TrackTournamentRecordsByTrackTournamentResultManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `Record` at the end of the edge."""
+  node: Record!
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection!
+}
+
+type TrackTournamentResult implements Node {
+  dateCreated: Datetime!
+  dateUpdated: Datetime
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  points: Int!
+  rank: Int!
+  """
+  Reads a single `Record` that is related to this `TrackTournamentResult`.
+  """
+  record: Record
+  recordId: Int!
+  time: Float!
+  """
+  Reads a single `TrackTournament` that is related to this `TrackTournamentResult`.
+  """
+  tournament: TrackTournament
+  tournamentId: Int!
+  """Reads a single `User` that is related to this `TrackTournamentResult`."""
+  user: User
+  userId: Int!
+}
+
+type TrackTournamentResultAggregates {
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: TrackTournamentResultAverageAggregates
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: TrackTournamentResultDistinctCountAggregates
+  keys: [String]
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: TrackTournamentResultMaxAggregates
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: TrackTournamentResultMinAggregates
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: TrackTournamentResultStddevPopulationAggregates
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: TrackTournamentResultStddevSampleAggregates
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: TrackTournamentResultSumAggregates
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: TrackTournamentResultVariancePopulationAggregates
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: TrackTournamentResultVarianceSampleAggregates
+}
+
+"""
+A filter to be used against aggregates of `TrackTournamentResult` object types.
+"""
+input TrackTournamentResultAggregatesFilter {
+  """Mean average aggregate over matching `TrackTournamentResult` objects."""
+  average: TrackTournamentResultAverageAggregateFilter
+  """
+  Distinct count aggregate over matching `TrackTournamentResult` objects.
+  """
+  distinctCount: TrackTournamentResultDistinctCountAggregateFilter
+  """
+  A filter that must pass for the relevant `TrackTournamentResult` object to be included within the aggregate.
+  """
+  filter: TrackTournamentResultFilter
+  """Maximum aggregate over matching `TrackTournamentResult` objects."""
+  max: TrackTournamentResultMaxAggregateFilter
+  """Minimum aggregate over matching `TrackTournamentResult` objects."""
+  min: TrackTournamentResultMinAggregateFilter
+  """
+  Population standard deviation aggregate over matching `TrackTournamentResult` objects.
+  """
+  stddevPopulation: TrackTournamentResultStddevPopulationAggregateFilter
+  """
+  Sample standard deviation aggregate over matching `TrackTournamentResult` objects.
+  """
+  stddevSample: TrackTournamentResultStddevSampleAggregateFilter
+  """Sum aggregate over matching `TrackTournamentResult` objects."""
+  sum: TrackTournamentResultSumAggregateFilter
+  """
+  Population variance aggregate over matching `TrackTournamentResult` objects.
+  """
+  variancePopulation: TrackTournamentResultVariancePopulationAggregateFilter
+  """
+  Sample variance aggregate over matching `TrackTournamentResult` objects.
+  """
+  varianceSample: TrackTournamentResultVarianceSampleAggregateFilter
+}
+
+input TrackTournamentResultAverageAggregateFilter {
+  points: BigFloatFilter
+  rank: BigFloatFilter
+  recordId: BigFloatFilter
+  time: FloatFilter
+  tournamentId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type TrackTournamentResultAverageAggregates {
+  """Mean average of points across the matching connection"""
+  points: BigFloat
+  """Mean average of rank across the matching connection"""
+  rank: BigFloat
+  """Mean average of recordId across the matching connection"""
+  recordId: BigFloat
+  """Mean average of time across the matching connection"""
+  time: Float
+  """Mean average of tournamentId across the matching connection"""
+  tournamentId: BigFloat
+  """Mean average of userId across the matching connection"""
+  userId: BigFloat
+}
+
+"""
+A condition to be used against `TrackTournamentResult` object types. All fields
+are tested for equality and combined with a logical ‘and.’
+"""
+input TrackTournamentResultCondition {
+  """Checks for equality with the object’s `dateCreated` field."""
+  dateCreated: Datetime
+  """Checks for equality with the object’s `dateUpdated` field."""
+  dateUpdated: Datetime
+  """Checks for equality with the object’s `points` field."""
+  points: Int
+  """Checks for equality with the object’s `rank` field."""
+  rank: Int
+  """Checks for equality with the object’s `recordId` field."""
+  recordId: Int
+  """Checks for equality with the object’s `time` field."""
+  time: Float
+  """Checks for equality with the object’s `tournamentId` field."""
+  tournamentId: Int
+  """Checks for equality with the object’s `userId` field."""
+  userId: Int
+}
+
+input TrackTournamentResultDistinctCountAggregateFilter {
+  dateCreated: BigIntFilter
+  dateUpdated: BigIntFilter
+  points: BigIntFilter
+  rank: BigIntFilter
+  recordId: BigIntFilter
+  time: BigIntFilter
+  tournamentId: BigIntFilter
+  userId: BigIntFilter
+}
+
+type TrackTournamentResultDistinctCountAggregates {
+  """Distinct count of dateCreated across the matching connection"""
+  dateCreated: BigInt
+  """Distinct count of dateUpdated across the matching connection"""
+  dateUpdated: BigInt
+  """Distinct count of points across the matching connection"""
+  points: BigInt
+  """Distinct count of rank across the matching connection"""
+  rank: BigInt
+  """Distinct count of recordId across the matching connection"""
+  recordId: BigInt
+  """Distinct count of time across the matching connection"""
+  time: BigInt
+  """Distinct count of tournamentId across the matching connection"""
+  tournamentId: BigInt
+  """Distinct count of userId across the matching connection"""
+  userId: BigInt
+}
+
+"""
+A filter to be used against `TrackTournamentResult` object types. All fields are combined with a logical ‘and.’
+"""
+input TrackTournamentResultFilter {
+  """Checks for all expressions in this list."""
+  and: [TrackTournamentResultFilter!]
+  """Filter by the object’s `dateCreated` field."""
+  dateCreated: DatetimeFilter
+  """Filter by the object’s `dateUpdated` field."""
+  dateUpdated: DatetimeFilter
+  """Negates the expression."""
+  not: TrackTournamentResultFilter
+  """Checks for any expressions in this list."""
+  or: [TrackTournamentResultFilter!]
+  """Filter by the object’s `points` field."""
+  points: IntFilter
+  """Filter by the object’s `rank` field."""
+  rank: IntFilter
+  """Filter by the object’s `record` relation."""
+  record: RecordFilter
+  """Filter by the object’s `recordId` field."""
+  recordId: IntFilter
+  """Filter by the object’s `time` field."""
+  time: FloatFilter
+  """Filter by the object’s `tournament` relation."""
+  tournament: TrackTournamentFilter
+  """Filter by the object’s `tournamentId` field."""
+  tournamentId: IntFilter
+  """Filter by the object’s `user` relation."""
+  user: UserFilter
+  """Filter by the object’s `userId` field."""
+  userId: IntFilter
+}
+
+"""
+Grouping methods for `TrackTournamentResult` for usage during aggregation.
+"""
+enum TrackTournamentResultGroupBy {
+  DATE_CREATED
+  DATE_CREATED_TRUNCATED_TO_DAY
+  DATE_CREATED_TRUNCATED_TO_HOUR
+  DATE_UPDATED
+  DATE_UPDATED_TRUNCATED_TO_DAY
+  DATE_UPDATED_TRUNCATED_TO_HOUR
+  POINTS
+  RANK
+  RECORD_ID
+  TIME
+  TOURNAMENT_ID
+  USER_ID
+}
+
+input TrackTournamentResultHavingAverageInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultHavingDistinctCountInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+"""Conditions for `TrackTournamentResult` aggregates."""
+input TrackTournamentResultHavingInput {
+  AND: [TrackTournamentResultHavingInput!]
+  OR: [TrackTournamentResultHavingInput!]
+  average: TrackTournamentResultHavingAverageInput
+  distinctCount: TrackTournamentResultHavingDistinctCountInput
+  max: TrackTournamentResultHavingMaxInput
+  min: TrackTournamentResultHavingMinInput
+  stddevPopulation: TrackTournamentResultHavingStddevPopulationInput
+  stddevSample: TrackTournamentResultHavingStddevSampleInput
+  sum: TrackTournamentResultHavingSumInput
+  variancePopulation: TrackTournamentResultHavingVariancePopulationInput
+  varianceSample: TrackTournamentResultHavingVarianceSampleInput
+}
+
+input TrackTournamentResultHavingMaxInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultHavingMinInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultHavingStddevPopulationInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultHavingStddevSampleInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultHavingSumInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultHavingVariancePopulationInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultHavingVarianceSampleInput {
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+  points: HavingIntFilter
+  rank: HavingIntFilter
+  recordId: HavingIntFilter
+  time: HavingFloatFilter
+  tournamentId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input TrackTournamentResultMaxAggregateFilter {
+  points: IntFilter
+  rank: IntFilter
+  recordId: IntFilter
+  time: FloatFilter
+  tournamentId: IntFilter
+  userId: IntFilter
+}
+
+type TrackTournamentResultMaxAggregates {
+  """Maximum of points across the matching connection"""
+  points: Int
+  """Maximum of rank across the matching connection"""
+  rank: Int
+  """Maximum of recordId across the matching connection"""
+  recordId: Int
+  """Maximum of time across the matching connection"""
+  time: Float
+  """Maximum of tournamentId across the matching connection"""
+  tournamentId: Int
+  """Maximum of userId across the matching connection"""
+  userId: Int
+}
+
+input TrackTournamentResultMinAggregateFilter {
+  points: IntFilter
+  rank: IntFilter
+  recordId: IntFilter
+  time: FloatFilter
+  tournamentId: IntFilter
+  userId: IntFilter
+}
+
+type TrackTournamentResultMinAggregates {
+  """Minimum of points across the matching connection"""
+  points: Int
+  """Minimum of rank across the matching connection"""
+  rank: Int
+  """Minimum of recordId across the matching connection"""
+  recordId: Int
+  """Minimum of time across the matching connection"""
+  time: Float
+  """Minimum of tournamentId across the matching connection"""
+  tournamentId: Int
+  """Minimum of userId across the matching connection"""
+  userId: Int
+}
+
+input TrackTournamentResultStddevPopulationAggregateFilter {
+  points: BigFloatFilter
+  rank: BigFloatFilter
+  recordId: BigFloatFilter
+  time: FloatFilter
+  tournamentId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type TrackTournamentResultStddevPopulationAggregates {
+  """Population standard deviation of points across the matching connection"""
+  points: BigFloat
+  """Population standard deviation of rank across the matching connection"""
+  rank: BigFloat
+  """
+  Population standard deviation of recordId across the matching connection
+  """
+  recordId: BigFloat
+  """Population standard deviation of time across the matching connection"""
+  time: Float
+  """
+  Population standard deviation of tournamentId across the matching connection
+  """
+  tournamentId: BigFloat
+  """Population standard deviation of userId across the matching connection"""
+  userId: BigFloat
+}
+
+input TrackTournamentResultStddevSampleAggregateFilter {
+  points: BigFloatFilter
+  rank: BigFloatFilter
+  recordId: BigFloatFilter
+  time: FloatFilter
+  tournamentId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type TrackTournamentResultStddevSampleAggregates {
+  """Sample standard deviation of points across the matching connection"""
+  points: BigFloat
+  """Sample standard deviation of rank across the matching connection"""
+  rank: BigFloat
+  """Sample standard deviation of recordId across the matching connection"""
+  recordId: BigFloat
+  """Sample standard deviation of time across the matching connection"""
+  time: Float
+  """
+  Sample standard deviation of tournamentId across the matching connection
+  """
+  tournamentId: BigFloat
+  """Sample standard deviation of userId across the matching connection"""
+  userId: BigFloat
+}
+
+input TrackTournamentResultSumAggregateFilter {
+  points: BigIntFilter
+  rank: BigIntFilter
+  recordId: BigIntFilter
+  time: FloatFilter
+  tournamentId: BigIntFilter
+  userId: BigIntFilter
+}
+
+type TrackTournamentResultSumAggregates {
+  """Sum of points across the matching connection"""
+  points: BigInt!
+  """Sum of rank across the matching connection"""
+  rank: BigInt!
+  """Sum of recordId across the matching connection"""
+  recordId: BigInt!
+  """Sum of time across the matching connection"""
+  time: Float!
+  """Sum of tournamentId across the matching connection"""
+  tournamentId: BigInt!
+  """Sum of userId across the matching connection"""
+  userId: BigInt!
+}
+
+input TrackTournamentResultVariancePopulationAggregateFilter {
+  points: BigFloatFilter
+  rank: BigFloatFilter
+  recordId: BigFloatFilter
+  time: FloatFilter
+  tournamentId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type TrackTournamentResultVariancePopulationAggregates {
+  """Population variance of points across the matching connection"""
+  points: BigFloat
+  """Population variance of rank across the matching connection"""
+  rank: BigFloat
+  """Population variance of recordId across the matching connection"""
+  recordId: BigFloat
+  """Population variance of time across the matching connection"""
+  time: Float
+  """Population variance of tournamentId across the matching connection"""
+  tournamentId: BigFloat
+  """Population variance of userId across the matching connection"""
+  userId: BigFloat
+}
+
+input TrackTournamentResultVarianceSampleAggregateFilter {
+  points: BigFloatFilter
+  rank: BigFloatFilter
+  recordId: BigFloatFilter
+  time: FloatFilter
+  tournamentId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type TrackTournamentResultVarianceSampleAggregates {
+  """Sample variance of points across the matching connection"""
+  points: BigFloat
+  """Sample variance of rank across the matching connection"""
+  rank: BigFloat
+  """Sample variance of recordId across the matching connection"""
+  recordId: BigFloat
+  """Sample variance of time across the matching connection"""
+  time: Float
+  """Sample variance of tournamentId across the matching connection"""
+  tournamentId: BigFloat
+  """Sample variance of userId across the matching connection"""
+  userId: BigFloat
+}
+
+"""A connection to a list of `TrackTournamentResult` values."""
+type TrackTournamentResultsConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: TrackTournamentResultAggregates
+  """
+  A list of edges which contains the `TrackTournamentResult` and cursor to aid in pagination.
+  """
+  edges: [TrackTournamentResultsEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `TrackTournamentResult` for these aggregates.
+    """
+    groupBy: [TrackTournamentResultGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: TrackTournamentResultHavingInput
+  ): [TrackTournamentResultAggregates!]
+  """A list of `TrackTournamentResult` objects."""
+  nodes: [TrackTournamentResult!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """
+  The count of *all* `TrackTournamentResult` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+"""A `TrackTournamentResult` edge in the connection."""
+type TrackTournamentResultsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `TrackTournamentResult` at the end of the edge."""
+  node: TrackTournamentResult!
+}
+
+"""Methods to use when ordering `TrackTournamentResult`."""
+enum TrackTournamentResultsOrderBy {
+  DATE_CREATED_ASC
+  DATE_CREATED_DESC
+  DATE_UPDATED_ASC
+  DATE_UPDATED_DESC
+  NATURAL
+  POINTS_ASC
+  POINTS_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  RANK_ASC
+  RANK_DESC
+  RECORD_ID_ASC
+  RECORD_ID_DESC
+  TIME_ASC
+  TIME_DESC
+  TOURNAMENT_ID_ASC
+  TOURNAMENT_ID_DESC
+  USER_ID_ASC
+  USER_ID_DESC
+}
+
+input TrackTournamentStddevPopulationAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  pointsVersion: BigFloatFilter
+  type: BigFloatFilter
+}
+
+type TrackTournamentStddevPopulationAggregates {
+  """Population standard deviation of id across the matching connection"""
+  id: BigFloat
+  """
+  Population standard deviation of levelId across the matching connection
+  """
+  levelId: BigFloat
+  """
+  Population standard deviation of pointsVersion across the matching connection
+  """
+  pointsVersion: BigFloat
+  """Population standard deviation of type across the matching connection"""
+  type: BigFloat
+}
+
+input TrackTournamentStddevSampleAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  pointsVersion: BigFloatFilter
+  type: BigFloatFilter
+}
+
+type TrackTournamentStddevSampleAggregates {
+  """Sample standard deviation of id across the matching connection"""
+  id: BigFloat
+  """Sample standard deviation of levelId across the matching connection"""
+  levelId: BigFloat
+  """
+  Sample standard deviation of pointsVersion across the matching connection
+  """
+  pointsVersion: BigFloat
+  """Sample standard deviation of type across the matching connection"""
+  type: BigFloat
+}
+
+input TrackTournamentSumAggregateFilter {
+  id: BigIntFilter
+  levelId: BigIntFilter
+  pointsVersion: BigIntFilter
+  type: BigIntFilter
+}
+
+type TrackTournamentSumAggregates {
+  """Sum of id across the matching connection"""
+  id: BigInt!
+  """Sum of levelId across the matching connection"""
+  levelId: BigInt!
+  """Sum of pointsVersion across the matching connection"""
+  pointsVersion: BigInt!
+  """Sum of type across the matching connection"""
+  type: BigInt!
+}
+
+"""
+A filter to be used against many `TrackTournamentResult` object types. All fields are combined with a logical ‘and.’
+"""
+input TrackTournamentToManyTrackTournamentResultFilter {
+  """
+  Aggregates across related `TrackTournamentResult` match the filter criteria.
+  """
+  aggregates: TrackTournamentResultAggregatesFilter
+  """
+  Every related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: TrackTournamentResultFilter
+  """
+  No related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: TrackTournamentResultFilter
+  """
+  Some related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: TrackTournamentResultFilter
+}
+
+"""
+A connection to a list of `User` values, with data from `TrackTournamentResult`.
+"""
+type TrackTournamentUsersByTrackTournamentResultManyToManyConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: UserAggregates
+  """
+  A list of edges which contains the `User`, info from the `TrackTournamentResult`, and the cursor to aid in pagination.
+  """
+  edges: [TrackTournamentUsersByTrackTournamentResultManyToManyEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `User` for these aggregates."""
+    groupBy: [UserGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: UserHavingInput
+  ): [UserAggregates!]
+  """A list of `User` objects."""
+  nodes: [User!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `User` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""
+A `User` edge in the connection, with data from `TrackTournamentResult`.
+"""
+type TrackTournamentUsersByTrackTournamentResultManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  dateCreated: Datetime!
+  dateUpdated: Datetime
+  """The `User` at the end of the edge."""
+  node: User!
+  points: Int!
+  rank: Int!
+  recordId: Int!
+  time: Float!
+}
+
+input TrackTournamentVariancePopulationAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  pointsVersion: BigFloatFilter
+  type: BigFloatFilter
+}
+
+type TrackTournamentVariancePopulationAggregates {
+  """Population variance of id across the matching connection"""
+  id: BigFloat
+  """Population variance of levelId across the matching connection"""
+  levelId: BigFloat
+  """Population variance of pointsVersion across the matching connection"""
+  pointsVersion: BigFloat
+  """Population variance of type across the matching connection"""
+  type: BigFloat
+}
+
+input TrackTournamentVarianceSampleAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  pointsVersion: BigFloatFilter
+  type: BigFloatFilter
+}
+
+type TrackTournamentVarianceSampleAggregates {
+  """Sample variance of id across the matching connection"""
+  id: BigFloat
+  """Sample variance of levelId across the matching connection"""
+  levelId: BigFloat
+  """Sample variance of pointsVersion across the matching connection"""
+  pointsVersion: BigFloat
+  """Sample variance of type across the matching connection"""
+  type: BigFloat
+}
+
+"""A connection to a list of `TrackTournament` values."""
+type TrackTournamentsConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: TrackTournamentAggregates
+  """
+  A list of edges which contains the `TrackTournament` and cursor to aid in pagination.
+  """
+  edges: [TrackTournamentsEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `TrackTournament` for these aggregates.
+    """
+    groupBy: [TrackTournamentGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: TrackTournamentHavingInput
+  ): [TrackTournamentAggregates!]
+  """A list of `TrackTournament` objects."""
+  nodes: [TrackTournament!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """
+  The count of *all* `TrackTournament` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+"""A `TrackTournament` edge in the connection."""
+type TrackTournamentsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `TrackTournament` at the end of the edge."""
+  node: TrackTournament!
+}
+
+"""Methods to use when ordering `TrackTournament`."""
+enum TrackTournamentsOrderBy {
+  DATE_CREATED_ASC
+  DATE_CREATED_DESC
+  DATE_UPDATED_ASC
+  DATE_UPDATED_DESC
+  END_AT_ASC
+  END_AT_DESC
+  FINALIZED_AT_ASC
+  FINALIZED_AT_DESC
+  ID_ASC
+  ID_DESC
+  LEVEL_ID_ASC
+  LEVEL_ID_DESC
+  NATURAL
+  POINTS_VERSION_ASC
+  POINTS_VERSION_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  SLUG_ASC
+  SLUG_DESC
+  START_AT_ASC
+  START_AT_DESC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_AVERAGE_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_COUNT_ASC
+  TRACK_TOURNAMENT_RESULTS_COUNT_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_DATE_CREATED_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_DATE_CREATED_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_DATE_UPDATED_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_DATE_UPDATED_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_DISTINCT_COUNT_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_MAX_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_MAX_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_MAX_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_MAX_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_MAX_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_MAX_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_MAX_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_MAX_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_MAX_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_MAX_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_MAX_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_MAX_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_MIN_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_MIN_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_MIN_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_MIN_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_MIN_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_MIN_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_MIN_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_MIN_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_MIN_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_MIN_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_MIN_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_MIN_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_POPULATION_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_STDDEV_SAMPLE_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_SUM_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_SUM_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_SUM_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_SUM_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_SUM_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_SUM_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_SUM_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_SUM_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_SUM_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_SUM_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_SUM_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_SUM_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_POPULATION_USER_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_POINTS_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_POINTS_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_RANK_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_RANK_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_RECORD_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_RECORD_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_TIME_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_TIME_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_TOURNAMENT_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_TOURNAMENT_ID_DESC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_USER_ID_ASC
+  TRACK_TOURNAMENT_RESULTS_VARIANCE_SAMPLE_USER_ID_DESC
+  TYPE_ASC
+  TYPE_DESC
+}
+
+"""
+A connection to a list of `Record` values, with data from `TrackTournamentResult`.
+"""
+type UserRecordsByTrackTournamentResultManyToManyConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: RecordAggregates
+  """
+  A list of edges which contains the `Record`, info from the `TrackTournamentResult`, and the cursor to aid in pagination.
+  """
+  edges: [UserRecordsByTrackTournamentResultManyToManyEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `Record` for these aggregates."""
+    groupBy: [RecordGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: RecordHavingInput
+  ): [RecordAggregates!]
+  """A list of `Record` objects."""
+  nodes: [Record!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `Record` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""
+A `Record` edge in the connection, with data from `TrackTournamentResult`.
+"""
+type UserRecordsByTrackTournamentResultManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `Record` at the end of the edge."""
+  node: Record!
+  """Reads and enables pagination through a set of `TrackTournamentResult`."""
+  trackTournamentResults(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: TrackTournamentResultCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: TrackTournamentResultFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `TrackTournamentResult`."""
+    orderBy: [TrackTournamentResultsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): TrackTournamentResultsConnection!
+}
+
+"""
+A filter to be used against many `TrackTournamentResult` object types. All fields are combined with a logical ‘and.’
+"""
+input UserToManyTrackTournamentResultFilter {
+  """
+  Aggregates across related `TrackTournamentResult` match the filter criteria.
+  """
+  aggregates: TrackTournamentResultAggregatesFilter
+  """
+  Every related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: TrackTournamentResultFilter
+  """
+  No related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: TrackTournamentResultFilter
+  """
+  Some related `TrackTournamentResult` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: TrackTournamentResultFilter
+}
+
+"""
+A connection to a list of `TrackTournament` values, with data from `TrackTournamentResult`.
+"""
+type UserTrackTournamentsByTrackTournamentResultManyToManyConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: TrackTournamentAggregates
+  """
+  A list of edges which contains the `TrackTournament`, info from the `TrackTournamentResult`, and the cursor to aid in pagination.
+  """
+  edges: [UserTrackTournamentsByTrackTournamentResultManyToManyEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `TrackTournament` for these aggregates.
+    """
+    groupBy: [TrackTournamentGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: TrackTournamentHavingInput
+  ): [TrackTournamentAggregates!]
+  """A list of `TrackTournament` objects."""
+  nodes: [TrackTournament!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """
+  The count of *all* `TrackTournament` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+"""
+A `TrackTournament` edge in the connection, with data from `TrackTournamentResult`.
+"""
+type UserTrackTournamentsByTrackTournamentResultManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  dateCreated: Datetime!
+  dateUpdated: Datetime
+  """The `TrackTournament` at the end of the edge."""
+  node: TrackTournament!
+  points: Int!
+  rank: Int!
+  recordId: Int!
+  time: Float!
 }
