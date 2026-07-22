@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, lte, sql } from 'drizzle-orm'
+import { and, eq, isNull, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { trackTournament, trackTournamentResult } from '../schema'
 import {
@@ -13,6 +13,7 @@ export * from './trackTournamentHelpers'
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 export const TRACK_TOURNAMENT_LOCK_NAMESPACE = 1_953_744_431
+export const TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE = 1_953_744_432
 
 async function rerankTrackTournaments(
 	tx: DatabaseTransaction,
@@ -60,25 +61,35 @@ async function rerankTrackTournaments(
 export async function recordTrackTournamentResults(
 	tx: DatabaseTransaction,
 	input: { acceptedAt: string; idLevel: number; idRecord: number; idUser: number; time: number },
-): Promise<void> {
-	const tournaments = await tx
-		.select({ id: trackTournament.id })
-		.from(trackTournament)
-		.where(
-			and(
-				eq(trackTournament.idLevel, input.idLevel),
-				isNull(trackTournament.finalizedAt),
-				lte(trackTournament.startAt, input.acceptedAt),
-				gt(trackTournament.endAt, input.acceptedAt),
-			),
+): Promise<boolean> {
+	const tournaments = await tx.execute<{ id: number; existing_time: number | null }>(sql`
+		SELECT tournament.id, existing_result.time AS existing_time
+		FROM ${trackTournament} AS tournament
+		LEFT JOIN ${trackTournamentResult} AS existing_result
+			ON existing_result.id_tournament = tournament.id
+			AND existing_result.id_user = ${input.idUser}
+		WHERE tournament.id_level = ${input.idLevel}
+			AND tournament.finalized_at IS NULL
+			AND tournament.start_at <= ${input.acceptedAt}
+			AND tournament.end_at > ${input.acceptedAt}
+		ORDER BY tournament.id
+	`)
+	const potentialImprovements = tournaments.filter(
+		(tournament) => tournament.existing_time === null || tournament.existing_time > input.time,
+	)
+	if (potentialImprovements.length === 0) return false
+
+	for (const tournament of potentialImprovements) {
+		await tx.execute(
+			sql`SELECT pg_advisory_xact_lock(${TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE}, ${tournament.id})`,
 		)
-	if (tournaments.length === 0) return
+	}
 
 	const now = new Date().toISOString()
-	await tx
+	const changed = await tx
 		.insert(trackTournamentResult)
 		.values(
-			tournaments.map((tournament) => ({
+			potentialImprovements.map((tournament) => ({
 				idTournament: tournament.id,
 				idUser: input.idUser,
 				idRecord: input.idRecord,
@@ -98,11 +109,11 @@ export async function recordTrackTournamentResults(
 			},
 			where: sql`EXCLUDED.time < ${trackTournamentResult.time}`,
 		})
+		.returning({ idTournament: trackTournamentResult.idTournament })
 
-	await rerankTrackTournaments(
-		tx,
-		tournaments.map((tournament) => tournament.id),
-	)
+	const changedTournamentIds = changed.map((result) => result.idTournament)
+	await rerankTrackTournaments(tx, changedTournamentIds)
+	return changedTournamentIds.length > 0
 }
 
 async function selectTrackTournamentLevel(tx: DatabaseTransaction, type: TrackTournamentType) {

@@ -1,4 +1,9 @@
-import { createCounter, recordSpanError, setActiveSpanErrorStatus } from '@zeepkist/telemetry'
+import {
+	createCounter,
+	recordSpanError,
+	setActiveSpanErrorStatus,
+	startActiveSpan,
+} from '@zeepkist/telemetry'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { GHOST_FOLDER } from '../config'
@@ -24,6 +29,20 @@ const GHOST_UPLOAD_RETRY_DELAY_MS = 1_000
 
 function wait(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function traceRecordPhase<T>(name: string, task: () => Promise<T>): Promise<T> {
+	return startActiveSpan(name, async (span) => {
+		try {
+			return await task()
+		} catch (error) {
+			span.recordException(error)
+			span.setErrorStatus(error instanceof Error ? error.message : String(error))
+			throw error
+		} finally {
+			span.end()
+		}
+	})
 }
 
 function recordGhostUploadError(
@@ -68,96 +87,100 @@ export async function submitRecord(
 	input: RecordInput,
 	statistic?: Omit<RecordStatisticInput, 'idRecord'>,
 ) {
-	return db.transaction(async (tx) => {
-		await tx.execute(sql`SELECT pg_advisory_xact_lock(${input.idUser}, ${input.idLevel})`)
-		await tx.execute(sql`SELECT pg_advisory_xact_lock(0, ${input.idLevel})`)
-		const [clock] = await tx.execute<{ accepted_at: string }>(
-			sql`SELECT clock_timestamp()::text AS accepted_at`,
-		)
-
-		const [created] = await tx.insert(record).values(input).returning()
-		if (!created) {
-			return null
-		}
-		if (!clock) throw new Error('Failed to capture record acceptance time')
-
-		if (statistic) {
-			await tx
-				.insert(recordStatistic)
-				.values(buildRecordStatisticValues(created.id, statistic))
-		}
-
-		const existingPersonalBest = await tx
-			.select({ id: personalBestGlobal.id, time: record.time })
-			.from(personalBestGlobal)
-			.innerJoin(record, eq(record.id, personalBestGlobal.idRecord))
-			.where(
-				and(
-					eq(personalBestGlobal.idUser, input.idUser),
-					eq(personalBestGlobal.idLevel, input.idLevel),
-				),
+	return traceRecordPhase('record.submit.transaction', () =>
+		db.transaction(async (tx) => {
+			const [clock] = await traceRecordPhase('record.submit.lock_wait', () =>
+				tx.execute<{ accepted_at: string }>(sql`
+					WITH user_lock AS MATERIALIZED (
+						SELECT pg_advisory_xact_lock(${input.idUser}, ${input.idLevel})
+					), level_lock AS MATERIALIZED (
+						SELECT pg_advisory_xact_lock_shared(0, ${input.idLevel})
+						FROM user_lock
+					)
+					SELECT clock_timestamp()::text AS accepted_at
+					FROM level_lock
+				`),
 			)
-			.limit(1)
-			.then((rows) => rows[0])
 
-		const personalBestChanged =
-			!existingPersonalBest || existingPersonalBest.time > created.time
-		if (personalBestChanged) {
+			const [created] = await traceRecordPhase('record.submit.insert_and_projection', () =>
+				tx.insert(record).values(input).returning(),
+			)
+			if (!created) {
+				return null
+			}
+			if (!clock) throw new Error('Failed to capture record acceptance time')
+
+			if (statistic) {
+				await traceRecordPhase('record.submit.statistics', () =>
+					tx
+						.insert(recordStatistic)
+						.values(buildRecordStatisticValues(created.id, statistic)),
+				)
+			}
+
 			const now = new Date().toISOString()
-			await tx
-				.insert(personalBestGlobal)
-				.values({
-					idUser: input.idUser,
-					idLevel: input.idLevel,
-					idRecord: created.id,
-					dateCreated: now,
-					dateUpdated: now,
-				})
-				.onConflictDoUpdate({
-					target: [personalBestGlobal.idUser, personalBestGlobal.idLevel],
-					set: { idRecord: created.id, dateUpdated: now },
-				})
-		}
-
-		const existingWorldRecord = await tx
-			.select({ id: worldRecordGlobal.id, time: record.time })
-			.from(worldRecordGlobal)
-			.innerJoin(record, eq(record.id, worldRecordGlobal.idRecord))
-			.where(eq(worldRecordGlobal.idLevel, input.idLevel))
-			.limit(1)
-			.then((rows) => rows[0])
-
-		if (!existingWorldRecord || existingWorldRecord.time > created.time) {
-			const now = new Date().toISOString()
-			await tx
-				.insert(worldRecordGlobal)
-				.values({
-					idUser: input.idUser,
-					idLevel: input.idLevel,
-					idRecord: created.id,
-					dateCreated: now,
-					dateUpdated: now,
-				})
-				.onConflictDoUpdate({
-					target: worldRecordGlobal.idLevel,
-					set: {
+			const personalBestRows = await traceRecordPhase('record.submit.personal_best', () =>
+				tx
+					.insert(personalBestGlobal)
+					.values({
 						idUser: input.idUser,
+						idLevel: input.idLevel,
 						idRecord: created.id,
+						dateCreated: now,
 						dateUpdated: now,
-					},
-				})
-		}
+					})
+					.onConflictDoUpdate({
+						target: [personalBestGlobal.idUser, personalBestGlobal.idLevel],
+						set: { idRecord: created.id, dateUpdated: now },
+						where: sql`(
+							SELECT current_record.time
+							FROM ${record} AS current_record
+							WHERE current_record.id = ${personalBestGlobal.idRecord}
+						) > ${created.time}`,
+					})
+					.returning({ id: personalBestGlobal.id }),
+			)
+			const personalBestChanged = personalBestRows.length > 0
 
-		await recordTrackTournamentResults(tx, {
-			acceptedAt: clock.accepted_at,
-			idLevel: created.idLevel,
-			idRecord: created.id,
-			idUser: created.idUser,
-			time: created.time,
-		})
+			await traceRecordPhase('record.submit.world_record', () =>
+				tx
+					.insert(worldRecordGlobal)
+					.values({
+						idUser: input.idUser,
+						idLevel: input.idLevel,
+						idRecord: created.id,
+						dateCreated: now,
+						dateUpdated: now,
+					})
+					.onConflictDoUpdate({
+						target: worldRecordGlobal.idLevel,
+						set: {
+							idUser: input.idUser,
+							idRecord: created.id,
+							dateUpdated: now,
+						},
+						where: sql`(
+							SELECT current_record.time
+							FROM ${record} AS current_record
+							WHERE current_record.id = ${worldRecordGlobal.idRecord}
+						) > ${created.time}`,
+					})
+					.returning({ id: worldRecordGlobal.id }),
+			)
 
-		return { record: created, personalBestChanged }
-	})
+			const tournamentResultChanged = await traceRecordPhase('record.submit.tournament', () =>
+				recordTrackTournamentResults(tx, {
+					acceptedAt: clock.accepted_at,
+					idLevel: created.idLevel,
+					idRecord: created.id,
+					idUser: created.idUser,
+					time: created.time,
+				}),
+			)
+
+			return { record: created, personalBestChanged, tournamentResultChanged }
+		}),
+	)
 }
 
 export function scheduleRecordMediaUpload(idRecord: number, ghostData: string): void {

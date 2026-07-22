@@ -45,6 +45,7 @@ const state = {
 	getOrInsertUserCalls: [] as Array<{ steamId: bigint; steamName?: string }>,
 	deletedRefreshTokens: [] as string[],
 	jobCalls: [] as Array<{ task: string; options: Record<string, unknown> }>,
+	jobEnqueueGate: null as Promise<void> | null,
 	workshopScanCalls: [] as bigint[],
 	workshopClaims: [] as bigint[],
 	workshopReleases: [] as bigint[],
@@ -140,6 +141,7 @@ function resetState() {
 	state.getOrInsertUserCalls = []
 	state.deletedRefreshTokens = []
 	state.jobCalls = []
+	state.jobEnqueueGate = null
 	state.workshopScanCalls = []
 	state.workshopClaims = []
 	state.workshopReleases = []
@@ -387,6 +389,10 @@ mock.module('@zeepkist/database/services', () => ({
 		state.workshopClaims.push(workshopId)
 		return state.claimSucceeds
 	},
+	claimMissingLevelMetadataRequest: async ({ workshopId }: { workshopId: bigint }) => {
+		if (!state.metadataPresent) state.workshopClaims.push(workshopId)
+		return !state.metadataPresent && state.claimSucceeds
+	},
 	releaseLevelRequest: async (workshopId: bigint) => {
 		state.workshopReleases.push(workshopId)
 	},
@@ -401,6 +407,7 @@ mock.module('@zeepkist/database/services', () => ({
 		return {
 			record: { ...state.record, ...input },
 			personalBestChanged: true,
+			tournamentResultChanged: false,
 		}
 	},
 	scheduleRecordMediaUpload: (idRecord: number, ghostData: string) => {
@@ -422,6 +429,7 @@ mock.module('@zeepkist/database/services', () => ({
 
 mock.module('@zeepkist/jobs/queue', () => ({
 	enqueueCompatibleTask: async (task: string, options: Record<string, unknown>) => {
+		if (state.jobEnqueueGate) await state.jobEnqueueGate
 		state.jobCalls.push({ task, options })
 	},
 	enqueueWorkshopScan: async (workshopId: bigint) => {
@@ -1041,6 +1049,42 @@ test('record/submit returns 200 with empty body on success', async () => {
 		{ hash: state.level.hash, xxHash: state.level.xxHash, adventure: true },
 	])
 	expect(state.workshopScanCalls).toEqual([])
+	await Bun.sleep(0)
+	expect(state.jobCalls).toEqual([{ task: 'updateLevelScore', options: { idLevel: 10 } }])
+})
+
+test('record/submit does not await level-score enqueue', async () => {
+	let releaseEnqueue = () => {}
+	state.jobEnqueueGate = new Promise<void>((resolve) => {
+		releaseEnqueue = resolve
+	})
+	const response = await Promise.race([
+		send('/record/submit', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: 'Bearer gtr-valid',
+			},
+			body: JSON.stringify({
+				Level: state.level.hash,
+				Hash: state.level.xxHash,
+				Time: 12.345678,
+				Splits: [1.2, 5.6],
+				Speeds: [100, 200],
+				GhostData: 'AQAAAAAAAAA=',
+				GameVersion: '1.0.0',
+				ModVersion: '1.0.0',
+			}),
+		}),
+		Bun.sleep(100).then(() => null),
+	])
+
+	expect(response).not.toBeNull()
+	expect(response?.status).toBe(200)
+	expect(state.jobCalls).toEqual([])
+	releaseEnqueue()
+	await Bun.sleep(0)
+	expect(state.jobCalls).toEqual([{ task: 'updateLevelScore', options: { idLevel: 10 } }])
 })
 
 test('record/submit rejects missing canonical hash from old clients', async () => {
@@ -1146,12 +1190,12 @@ test('record/submit queues missing workshop metadata with BigInt ID', async () =
 
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
-	expect(state.levelAdventureUpdates).toEqual([false])
+	expect(state.levelAdventureUpdates).toEqual([])
 	expect(state.workshopClaims).toEqual([3749321871n])
 	expect(state.workshopScanCalls).toEqual([3749321871n])
 })
 
-test('record/submit releases workshop claim when enqueue fails', async () => {
+test('record/submit keeps durable workshop claim when asynchronous enqueue fails', async () => {
 	state.scanEnqueueFails = true
 	const originalConsoleError = console.error
 	const loggedErrors: unknown[][] = []
@@ -1179,7 +1223,9 @@ test('record/submit releases workshop claim when enqueue fails', async () => {
 		})
 
 		expect(response.status).toBe(200)
-		expect(state.workshopReleases).toEqual([3749321871n])
+		await Bun.sleep(0)
+		expect(state.workshopClaims).toEqual([3749321871n])
+		expect(state.workshopReleases).toEqual([])
 		expect(loggedErrors).toHaveLength(1)
 	} finally {
 		console.error = originalConsoleError

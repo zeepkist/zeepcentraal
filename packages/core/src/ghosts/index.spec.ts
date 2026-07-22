@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { calculateGhostStatistics, SoapboxFlags, SurfaceState } from './index'
+import { type DecodedProtobufGhost, iterateProtobufFrames } from './protobuf'
+import { calculateGhostStatisticsFromIterable } from './statistics'
 import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
 
@@ -132,6 +134,83 @@ describe('V6 ghost frame parsing', () => {
 })
 
 describe('protobuf ghost statistic capabilities', () => {
+	test('streaming V5 statistics match full reconstructed frame statistics', () => {
+		const decoded: DecodedProtobufGhost = {
+			version: 5,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				speed: 100,
+				steering: 128,
+				inputFlags: 0,
+				soapboxFlags: SoapboxFlags.Soap | SoapboxFlags.FrontLeft,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					speed: 120,
+					steering: 255,
+					inputFlags: 1,
+					soapboxFlags: SoapboxFlags.Paraglider,
+				},
+			],
+		}
+		const full = parseDecodedV5(decoded)
+
+		expect(calculateGhostStatisticsFromIterable(iterateProtobufFrames(decoded), 5)).toEqual(
+			calculateGhostStatistics(full.frames, full.version),
+		)
+	})
+
+	test('streaming V6 statistics match full reconstructed frame statistics', () => {
+		const decoded: DecodedProtobufGhost = {
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				rotation: { x: 0, y: 0, z: 0 },
+				speed: 100,
+				steering: 128,
+				inputFlags: 0,
+				soapboxFlags: SoapboxFlags.FrontLeft | SoapboxFlags.RearLeft,
+				groundedWheelState: 15,
+				slippingWheelState: 1,
+				surfaceState: SurfaceState.Grass,
+				localVelocity: { x: 100_000, y: 0, z: 0 },
+				ragdollState: false,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					speed: 120,
+					steering: 255,
+					inputFlags: 1,
+					soapboxFlags: SoapboxFlags.Paraglider,
+					groundedWheelState: 0,
+					slippingWheelState: 0,
+					surfaceState: SurfaceState.Tarmac,
+					localVelocity: { x: 200_000, y: 0, z: 0 },
+					ragdollState: true,
+					ragdollPosition: { x: 100_000, y: 0, z: 0 },
+					ragdollRotation: { x: 0, y: 0, z: 0 },
+				},
+				{
+					time: 2,
+					position: { x: 100_000, y: 0, z: 0 },
+					groundedWheelState: 15,
+					ragdollState: true,
+					ragdollPosition: { x: 100_000, y: 0, z: 0 },
+					ragdollRotation: { x: 0, y: 0, z: 0 },
+				},
+			],
+		}
+		const full = parseDecodedV6(decoded)
+
+		expect(calculateGhostStatisticsFromIterable(iterateProtobufFrames(decoded), 6)).toEqual(
+			calculateGhostStatistics(full.frames, full.version),
+		)
+	})
+
 	test('retains V5 inputs and wheel existence without fabricating V6 telemetry', () => {
 		const ghost = parseDecodedV5({
 			version: 5,

@@ -170,6 +170,10 @@ export function readProtobufMetadata(decoded: DecodedProtobufGhost): GhostMetada
 }
 
 export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] {
+	return [...iterateProtobufFrames(decoded)]
+}
+
+export function* iterateProtobufFrames(decoded: DecodedProtobufGhost): Generator<GhostFrame> {
 	if (!decoded.initialFrame?.position || !decoded.deltaFrames) {
 		throw new Error('Invalid protobuf ghost')
 	}
@@ -178,7 +182,6 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 	}
 	const version = decoded.version
 	const hasExtendedTelemetry = version === 6
-	const frames: GhostFrame[] = []
 	let position = decoded.initialFrame.position
 	let rotation = decoded.initialFrame.rotation
 	let ragdollActive = hasExtendedTelemetry && decoded.initialFrame.ragdollState === true
@@ -188,17 +191,15 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 	let ragdollRotation = ragdollActive
 		? requireUnscaledVector3(decoded.initialFrame.ragdollRotation, ROTATION_MULTIPLIER)
 		: undefined
-	frames.push(
-		frameFromProtobuf(
-			0,
-			position,
-			{
-				...decoded.initialFrame,
-				ragdollPosition,
-				ragdollRotation,
-			},
-			version,
-		),
+	yield frameFromProtobuf(
+		0,
+		position,
+		{
+			...decoded.initialFrame,
+			ragdollPosition,
+			ragdollRotation,
+		},
+		version,
 	)
 	for (const deltaFrame of decoded.deltaFrames) {
 		const delta = deltaFrame.position
@@ -233,21 +234,18 @@ export function readProtobufFrames(decoded: DecodedProtobufGhost): GhostFrame[] 
 				: deltaRagdollRotation
 			ragdollActive = true
 		}
-		frames.push(
-			frameFromProtobuf(
-				deltaFrame.time,
-				position,
-				{
-					...deltaFrame,
-					ragdollPosition: ragdollActive ? ragdollPosition : undefined,
-					ragdollRotation: ragdollActive ? ragdollRotation : undefined,
-				},
-				version,
-				rotation,
-			),
+		yield frameFromProtobuf(
+			deltaFrame.time,
+			position,
+			{
+				...deltaFrame,
+				ragdollPosition: ragdollActive ? ragdollPosition : undefined,
+				ragdollRotation: ragdollActive ? ragdollRotation : undefined,
+			},
+			version,
+			rotation,
 		)
 	}
-	return frames
 }
 
 function protobufCosmetics(value: DecodedProtobufGhost['cosmetics']): GhostCosmetics {

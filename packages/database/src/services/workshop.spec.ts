@@ -10,6 +10,29 @@ import {
 
 const workshopServiceSource = readFileSync(new URL('./workshop.ts', import.meta.url), 'utf8')
 
+test('record submission claims missing metadata in one durable query', () => {
+	const start = workshopServiceSource.indexOf(
+		'export async function claimMissingLevelMetadataRequest',
+	)
+	const end = workshopServiceSource.indexOf('\nexport async function ', start + 1)
+	const source = workshopServiceSource.slice(start, end)
+
+	expect(source).toContain('INSERT INTO $' + '{levelRequest} (workshop_id, hash)')
+	expect(source).toContain('WHERE NOT EXISTS')
+	expect(source).toContain('FROM $' + '{levelMetadata}')
+	expect(source).toContain('ON CONFLICT (workshop_id) DO NOTHING')
+})
+
+test('pending level request recovery uses bounded cursor pages', () => {
+	const start = workshopServiceSource.indexOf('export async function getPendingLevelRequests')
+	const source = workshopServiceSource.slice(start)
+
+	expect(source).toContain('afterId = 0')
+	expect(source).toContain('limit = 1_000')
+	expect(source).toContain('orderBy(levelRequest.id)')
+	expect(source).toContain('.limit(limit)')
+})
+
 test('workshop refresh preserves existing Adventure status while new levels default false', () => {
 	expect(workshopServiceSource).toContain(
 		'.values({ hash: input.hash, xxHash: input.xxHash, adventure: false })',

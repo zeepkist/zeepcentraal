@@ -5,6 +5,7 @@ import {
 } from './utils/playerScoreJobOptions'
 
 export const cronTasks = [
+	{ task: 'recoverLevelRequests', cronTime: '* * * * *' },
 	{
 		task: 'rotateTrackTournament',
 		cronTime: '0 6 * * 1',

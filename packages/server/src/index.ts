@@ -48,8 +48,10 @@ if (cluster.isPrimary) {
 	process.title = 'zeepcentraal-api: worker'
 	const { config } = await import('./config')
 	const { buildServer } = await import('./server')
+	const { initializeQueue } = await import('@zeepkist/jobs/queue')
 
 	const app = buildServer()
+	await initializeQueue()
 
 	app.listen({
 		hostname: config.host,

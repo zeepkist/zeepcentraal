@@ -14,6 +14,12 @@ mock.module('@zeepkist/telemetry', () => ({
 	createCounter: () => ({ add: () => {} }),
 	recordSpanError: () => {},
 	setActiveSpanErrorStatus: () => {},
+	startActiveSpan: (_name: string, callback: (span: Record<string, () => void>) => unknown) =>
+		callback({
+			recordException: () => {},
+			setErrorStatus: () => {},
+			end: () => {},
+		}),
 }))
 
 const { buildPersonalBestsWithRecordByLevelIdsQuery, buildV2ScorePersonalBestsByLevelIdsQuery } =
@@ -51,5 +57,20 @@ describe('level score personal best query', () => {
 		]) {
 			expect(query).not.toContain(excluded)
 		}
+	})
+})
+
+describe('record submission transaction', () => {
+	const source = Bun.file(new URL('./record.ts', import.meta.url)).text()
+
+	test('uses ordered shared level locking and conditional PB/WR upserts', async () => {
+		const text = await source
+		expect(text).toContain('WITH user_lock AS MATERIALIZED')
+		expect(text).toContain('pg_advisory_xact_lock_shared(0, $' + '{input.idLevel})')
+		expect(text).toContain('FROM level_lock')
+		expect(text).toContain('WHERE current_record.id = $' + '{personalBestGlobal.idRecord}')
+		expect(text).toContain('WHERE current_record.id = $' + '{worldRecordGlobal.idRecord}')
+		expect(text).not.toContain('existingPersonalBest')
+		expect(text).not.toContain('existingWorldRecord')
 	})
 })

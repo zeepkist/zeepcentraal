@@ -163,6 +163,29 @@ export async function claimLevelRequest({
 	return Boolean(claimed)
 }
 
+export async function claimMissingLevelMetadataRequest({
+	idLevel,
+	workshopId,
+	hash,
+}: {
+	idLevel: number
+	workshopId: bigint
+	hash: string
+}): Promise<boolean> {
+	const claimed = await db.execute<{ id: number }>(sql`
+		INSERT INTO ${levelRequest} (workshop_id, hash)
+		SELECT ${workshopId}, ${hash}
+		WHERE NOT EXISTS (
+			SELECT 1
+			FROM ${levelMetadata}
+			WHERE ${levelMetadata.idLevel} = ${idLevel}
+		)
+		ON CONFLICT (workshop_id) DO NOTHING
+		RETURNING id
+	`)
+	return claimed.length > 0
+}
+
 export async function releaseLevelRequest(workshopId: bigint): Promise<void> {
 	await db.delete(levelRequest).where(eq(levelRequest.workshopId, workshopId))
 }
@@ -173,6 +196,21 @@ export async function getPendingLevelRequestWorkshopIds(): Promise<bigint[]> {
 		.from(levelRequest)
 		.orderBy(levelRequest.id)
 	return rows.map((row) => row.workshopId)
+}
+
+export async function getPendingLevelRequests({
+	afterId = 0,
+	limit = 1_000,
+}: {
+	afterId?: number
+	limit?: number
+} = {}): Promise<Array<{ id: number; workshopId: bigint }>> {
+	return db
+		.select({ id: levelRequest.id, workshopId: levelRequest.workshopId })
+		.from(levelRequest)
+		.where(sql`${levelRequest.id} > ${afterId}`)
+		.orderBy(levelRequest.id)
+		.limit(limit)
 }
 
 export async function findWorkshopLevelAuthorByXxHash(

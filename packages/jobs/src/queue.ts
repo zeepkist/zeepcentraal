@@ -17,6 +17,10 @@ async function getUtils(): Promise<WorkerUtils> {
 	return utils
 }
 
+export async function initializeQueue(): Promise<void> {
+	await getUtils()
+}
+
 export function isCompatibleTask(task: string): boolean {
 	return isCompatibleTaskIdentifier(task)
 }

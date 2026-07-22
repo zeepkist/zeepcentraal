@@ -42,6 +42,7 @@ export const taskDefinitions = {
 		compatible: true,
 		maxAttempts: 1,
 	},
+	recoverLevelRequests: { schema: emptyPayload, compatible: false, maxAttempts: 3 },
 	scanWorkshopBatch: {
 		schema: z.looseObject({
 			workshopIds: z

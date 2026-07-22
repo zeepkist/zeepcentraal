@@ -68,10 +68,12 @@ describe('track tournament transaction SQL', () => {
 
 	test('uses half-open active windows, improvement-only upserts, and shared ranking', async () => {
 		const sql = await source
-		expect(sql).toContain('isNull(trackTournament.finalizedAt)')
-		expect(sql).toContain('lte(trackTournament.startAt, input.acceptedAt)')
-		expect(sql).toContain('gt(trackTournament.endAt, input.acceptedAt)')
+		expect(sql).toContain('tournament.finalized_at IS NULL')
+		expect(sql).toContain('tournament.start_at <= $' + '{input.acceptedAt}')
+		expect(sql).toContain('tournament.end_at > $' + '{input.acceptedAt}')
 		expect(sql).toContain('EXCLUDED.time < $' + '{trackTournamentResult.time}')
+		expect(sql).toContain('potentialImprovements.length === 0')
+		expect(sql).toContain('TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE')
 		expect(sql).toContain('RANK() OVER')
 	})
 

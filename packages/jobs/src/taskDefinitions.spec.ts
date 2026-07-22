@@ -115,6 +115,7 @@ test('task payload validation rejects missing required identifiers', () => {
 })
 
 test('workshop catalog sync runs Sunday at 01:00 Europe/London', () => {
+	expect(cronTasks).toContainEqual({ task: 'recoverLevelRequests', cronTime: '* * * * *' })
 	expect(cronTasks).toContainEqual({
 		task: 'syncWorkshopCatalog',
 		cronTime: '0 1 * * 0',

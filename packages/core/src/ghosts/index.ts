@@ -3,8 +3,9 @@ import { isGzip } from '../utils/isGzip'
 import { detectGhostCapabilities } from './capabilities'
 import { normalizeGhostColor } from './metadata'
 import { normalizeQuaternion, unityEulerToQuaternion } from './orientation'
+import { iterateProtobufFrames } from './protobuf'
 import { decodeNativeProtobufGhost } from './protobufNative'
-import { calculateGhostStatistics } from './statistics'
+import { calculateGhostStatistics, calculateGhostStatisticsFromIterable } from './statistics'
 import type { GhostStatisticValues, ParsedGhost } from './types'
 import { parseV1 } from './v1'
 import { parseV2 } from './v2'
@@ -70,8 +71,18 @@ export async function parseGhost(buffer: Buffer): Promise<ParsedGhost> {
 }
 
 export async function parseGhostStatistics(buffer: Buffer): Promise<GhostStatisticValues> {
-	const ghost = await parseGhost(buffer)
-	return calculateGhostStatistics(ghost.frames, ghost.version)
+	const payload = isGzip(buffer) ? gunzipSync(buffer) : buffer
+	const rawVersion = payload.length >= 4 ? payload.readInt32LE(0) : 0
+	if (rawVersion >= 1 && rawVersion <= 4) {
+		const ghost = await parseGhost(buffer)
+		return calculateGhostStatistics(ghost.frames, ghost.version)
+	}
+
+	const decoded = await decodeNativeProtobufGhost(buffer)
+	if (decoded.version !== 5 && decoded.version !== 6) {
+		throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
+	}
+	return calculateGhostStatisticsFromIterable(iterateProtobufFrames(decoded), decoded.version)
 }
 
 export async function parseGhostStatisticsFromBase64(

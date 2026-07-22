@@ -4,6 +4,7 @@ import {
 	backfillRecordGhostStatistics,
 	backfillRecordGhostStatisticsBatch,
 } from './backfillRecordGhostStatistics'
+import { recoverLevelRequests } from './recoverLevelRequests'
 import { rotateTrackTournament } from './rotateTrackTournament'
 import { scanWorkshopBatch } from './scanWorkshopBatch'
 import { scanWorkshopItem } from './scanWorkshopItem'
@@ -25,6 +26,7 @@ type GWTask = (payload: unknown, helpers: Helpers) => Promise<void>
 export const taskList = {
 	backfillRecordGhostStatistics: backfillRecordGhostStatistics as GWTask,
 	backfillRecordGhostStatisticsBatch: backfillRecordGhostStatisticsBatch as GWTask,
+	recoverLevelRequests: recoverLevelRequests as GWTask,
 	scanWorkshopBatch: scanWorkshopBatch as GWTask,
 	scanWorkshopItem: scanWorkshopItem as GWTask,
 	rotateTrackTournament: rotateTrackTournament as GWTask,

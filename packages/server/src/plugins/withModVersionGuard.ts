@@ -1,5 +1,5 @@
 import { isModOutdated } from '@zeepkist/database/services'
-import { setActiveSpanAttributes } from '@zeepkist/telemetry'
+import { setActiveSpanAttributes, startActiveSpan } from '@zeepkist/telemetry'
 import type { Elysia } from 'elysia'
 import { handleV1Error, V1_ERROR_CODES } from '../v1Errors'
 
@@ -7,26 +7,18 @@ const HEADER = {
 	zeepkistVersion: 'x-zeepkist-version',
 	zeepkistMajorVersion: 'x-zeepkist-major-version',
 	gtrVersion: 'x-gtr-version',
-	steamId: 'x-steam-id',
 } as const
 
 const ATTRIBUTE = {
 	zeepkistVersion: 'mod.zeepkistVersion',
 	zeepkistMajorVersion: 'mod.zeepkistMajorVersion',
 	version: 'mod.version',
-	steamId: 'mod.steamId',
 	outdated: 'mod.outdated',
 } as const
 
 type GuardPayload = {
 	ModVersion?: string
 	GameVersion?: string
-	SteamId?: string
-}
-
-type GuardAuth = {
-	steamId?: string
-	steamid?: string
 }
 
 function firstString(...values: unknown[]): string | undefined {
@@ -43,20 +35,12 @@ export const withModVersionGuard = (app: Elysia) =>
 	app.derive(async (context) => {
 		const { body, headers, status } = context
 		const payload = (body ?? {}) as GuardPayload
-		const authPayload = ((context as { auth?: GuardAuth }).auth ?? {}) as GuardAuth
-
 		const zeepkistVersion = firstString(headers[HEADER.zeepkistVersion])
 		const zeepkistMajorVersion = firstString(
 			headers[HEADER.zeepkistMajorVersion],
 			payload.GameVersion,
 		)
 		const modVersion = firstString(headers[HEADER.gtrVersion], payload.ModVersion)
-		const steamId = firstString(
-			headers[HEADER.steamId],
-			payload.SteamId,
-			authPayload.steamId,
-			authPayload.steamid,
-		)
 
 		const attributes: Record<string, string> = {}
 
@@ -69,9 +53,6 @@ export const withModVersionGuard = (app: Elysia) =>
 		if (modVersion) {
 			attributes[ATTRIBUTE.version] = modVersion
 		}
-		if (steamId) {
-			attributes[ATTRIBUTE.steamId] = steamId
-		}
 
 		if (!modVersion) {
 			if (Object.keys(attributes).length > 0) {
@@ -80,7 +61,13 @@ export const withModVersionGuard = (app: Elysia) =>
 			return { modVersion }
 		}
 
-		const outdated = await isModOutdated(modVersion)
+		const outdated = await startActiveSpan('mod.version_guard', async (span) => {
+			try {
+				return await isModOutdated(modVersion)
+			} finally {
+				span.end()
+			}
+		})
 
 		attributes[ATTRIBUTE.outdated] = String(outdated)
 		setActiveSpanAttributes(attributes)

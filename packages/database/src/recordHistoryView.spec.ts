@@ -15,6 +15,10 @@ const contributionPerformanceMigration = readFileSync(
 	new URL('../drizzle/0063_set_based_contribution_projection.sql', import.meta.url),
 	'utf8',
 )
+const submitPerformanceMigration = readFileSync(
+	new URL('../drizzle/0067_record_history_submit_projection.sql', import.meta.url),
+	'utf8',
+)
 
 describe('record history read model', () => {
 	test('uses one indexed projection source before mutable display joins', () => {
@@ -142,6 +146,18 @@ describe('record history read model', () => {
 		expect(scorePerformanceMigration).toContain('level_points IS DISTINCT FROM NEW.points')
 		expect(scorePerformanceMigration).toContain('has_contribution = false')
 		expect(scorePerformanceMigration).toContain('(is_personal_best OR is_world_record)')
+	})
+
+	test('uses direct record inserts and set-based relation refreshes', () => {
+		expect(submitPerformanceMigration).toContain(
+			'CREATE OR REPLACE FUNCTION zc_private.sync_record_history_records',
+		)
+		expect(submitPerformanceMigration).toContain('FROM unnest(p_record_ids)')
+		expect(submitPerformanceMigration).toContain('FROM new_records AS new_record')
+		expect(submitPerformanceMigration).toContain('REFERENCING NEW TABLE AS new_relations')
+		expect(submitPerformanceMigration).toContain('REFERENCING OLD TABLE AS old_relations')
+		expect(submitPerformanceMigration).not.toContain('FOR EACH ROW')
+		expect(submitPerformanceMigration).not.toContain('LOOP')
 	})
 
 	test('exposes only publicly visible active level metadata', () => {

@@ -88,8 +88,13 @@ export function calculateGhostStatistics(
 	frames: GhostFrame[],
 	ghostVersion: number | null = null,
 ): GhostStatisticValues {
-	if (frames.length === 0) return emptyGhostStatistics(0, ghostVersion)
+	return calculateGhostStatisticsFromIterable(frames, ghostVersion)
+}
 
+export function calculateGhostStatisticsFromIterable(
+	frames: Iterable<GhostFrame>,
+	ghostVersion: number | null = null,
+): GhostStatisticValues {
 	let totalDistance = 0
 	let distanceInAir = 0
 	let distanceOnGround = 0
@@ -150,11 +155,12 @@ export function calculateGhostStatistics(
 	let hasMonorailStats = false
 	let hasRagdollStats = ghostVersion !== null && ghostVersion >= 6
 	let hasVelocityStats = false
+	let frameCount = 0
+	let previous: GhostFrame | undefined
 
-	for (let i = 0; i < frames.length; i++) {
-		const frame = frames[i]
-		const previous = frames[i - 1]
-		if (!frame || !Number.isFinite(frame.time) || !isFiniteVector3(frame.position)) {
+	for (const frame of frames) {
+		frameCount++
+		if (!Number.isFinite(frame.time) || !isFiniteVector3(frame.position)) {
 			throw new Error('Invalid ghost frame')
 		}
 
@@ -207,9 +213,15 @@ export function calculateGhostStatistics(
 		turnLeftCount = addTransition(turnLeft, wasTurnLeft, turnLeftCount)
 		turnRightCount = addTransition(turnRight, wasTurnRight, turnRightCount)
 
-		if (!previous) continue
+		if (!previous) {
+			previous = frame
+			continue
+		}
 		const dt = frame.time - previous.time
-		if (!Number.isFinite(dt) || dt <= 0) continue
+		if (!Number.isFinite(dt) || dt <= 0) {
+			previous = frame
+			continue
+		}
 
 		const segmentDistance = distance(previous.position, frame.position)
 		const impliedSpeed = (segmentDistance / dt) * 3.6
@@ -303,9 +315,12 @@ export function calculateGhostStatistics(
 		if (previous.parkingBlock) timeParked += dt
 		if (previous.ragdoll) timeRagdoll += dt
 		addSegmentToSurfaces(surfaceTime, getFrameSurfaces(previous), dt)
+		previous = frame
 	}
 
-	const duration = frames.at(-1)?.time
+	if (frameCount === 0) return emptyGhostStatistics(0, ghostVersion)
+
+	const duration = previous?.time
 	return {
 		ghostVersion,
 		hasInputData: hasInputStats,
@@ -316,7 +331,7 @@ export function calculateGhostStatistics(
 		hasSurfaceData: hasSurfaceStats,
 		hasVelocityData: hasVelocityStats,
 		hasRagdollData: hasRagdollStats,
-		frameCount: frames.length,
+		frameCount,
 		time: typeof duration === 'number' && Number.isFinite(duration) ? duration : null,
 		distance: totalDistance,
 		distanceInAir: hasAirStats ? distanceInAir : null,
