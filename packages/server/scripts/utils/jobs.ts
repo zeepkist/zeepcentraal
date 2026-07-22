@@ -120,12 +120,24 @@ async function collectWorkshopItemOptions(prompt: PromptAdapter): Promise<JobOpt
 }
 
 async function collectWorkshopCatalogOptions(prompt: PromptAdapter): Promise<JobOptions> {
-	const all = await prompt.confirm({
-		message: 'Scan every catalog item?',
-		initialValue: false,
+	const scope = await prompt.select({
+		message: 'Choose Workshop catalog scan scope',
+		options: [
+			{ value: 'stale', label: 'Stale items', hint: 'Scan new, changed, or missing items' },
+			{ value: 'all', label: 'Every item', hint: 'Force a full Workshop catalog rescan' },
+			{
+				value: 'repair-zsl',
+				label: 'ZSL author repair',
+				hint: 'Force packs uploaded by Akane and correct their level authors',
+			},
+		],
+		initialValue: 'stale',
 	})
-	if (!all) {
+	if (scope === 'stale') {
 		return {}
+	}
+	if (scope === 'repair-zsl') {
+		return { repairZslAuthors: true }
 	}
 
 	const fixHashes = await prompt.confirm({

@@ -36,6 +36,7 @@ export interface WorkshopDownloader {
 }
 
 export interface WorkshopPersistence {
+	findLevelAuthorByXxHash(xxHash: string, excludedAuthorId: bigint): Promise<bigint | undefined>
 	markDeleted(
 		workshopId: bigint,
 		workshopVisibility: number,
@@ -59,6 +60,7 @@ export interface WorkshopPersistence {
 		workshopVisibility: number
 		workshopFileSize: number
 		authorId: bigint
+		levelAuthorId: bigint
 		name: string
 		imageUrl: string
 		fileAuthor: string

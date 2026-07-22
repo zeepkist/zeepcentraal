@@ -1,4 +1,5 @@
 import { getWorkshopSyncState } from '@zeepkist/database/services/workshop'
+import { ZSL_WORKSHOP_AUTHOR_ID } from '@zeepkist/workshop'
 import { WORKSHOP_JOB_PRIORITY } from '../priorities'
 import { batchProcess } from '../utils'
 import { getWorkshopMetadata } from '../workshopScanner'
@@ -7,6 +8,7 @@ import type { TaskHandler } from './types'
 interface SyncWorkshopCatalogPayload {
 	all?: boolean
 	fixZeepSDKExponentHashes?: boolean
+	repairZslAuthors?: true
 }
 
 export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = async (
@@ -14,6 +16,7 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 	helpers,
 ) => {
 	const forceAll = payload.all === true
+	const repairZslAuthors = payload.repairZslAuthors === true
 	const fixZeepSDKExponentHashes = forceAll && payload.fixZeepSDKExponentHashes === true
 	const storedWorkshopState = await getWorkshopSyncState()
 	const metadata = getWorkshopMetadata()
@@ -27,6 +30,12 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 		pages++
 		for (const item of page.items) {
 			seen.add(item.workshopId)
+			if (repairZslAuthors) {
+				if (item.creatorId === ZSL_WORKSHOP_AUTHOR_ID) {
+					queue.add(item.workshopId)
+				}
+				continue
+			}
 			const storedState = storedWorkshopState.get(item.workshopId)
 			if (
 				forceAll ||
@@ -43,9 +52,11 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 		cursor = page.nextCursor
 	} while (cursor)
 
-	for (const [workshopId, storedState] of storedWorkshopState) {
-		if (!seen.has(workshopId) && storedState.activeItemCount > 0) {
-			queue.add(workshopId)
+	if (!repairZslAuthors) {
+		for (const [workshopId, storedState] of storedWorkshopState) {
+			if (!seen.has(workshopId) && storedState.activeItemCount > 0) {
+				queue.add(workshopId)
+			}
 		}
 	}
 
@@ -65,6 +76,6 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 		)
 	}
 	helpers.logger.info(
-		`syncWorkshopCatalog queued ${workshopIds.length} scans from ${seen.size} catalog items${forceAll ? ' (all=true)' : ''}${fixZeepSDKExponentHashes ? ' (fixZeepSDKExponentHashes=true)' : ''}.`,
+		`syncWorkshopCatalog queued ${workshopIds.length} scans from ${seen.size} catalog items${forceAll ? ' (all=true)' : ''}${fixZeepSDKExponentHashes ? ' (fixZeepSDKExponentHashes=true)' : ''}${repairZslAuthors ? ' (repairZslAuthors=true)' : ''}.`,
 	)
 }

@@ -39,6 +39,7 @@ export interface WorkshopLevelInput {
 	format: number
 	hash: string
 	imageUrl: string
+	levelAuthorId: bigint
 	name: string
 	typeGround: number
 	typeSkybox: number
@@ -174,10 +175,31 @@ export async function getPendingLevelRequestWorkshopIds(): Promise<bigint[]> {
 	return rows.map((row) => row.workshopId)
 }
 
+export async function findWorkshopLevelAuthorByXxHash(
+	xxHash: string,
+	excludedAuthorId: bigint,
+): Promise<bigint | undefined> {
+	const row = await db
+		.select({ authorId: levelItem.authorId })
+		.from(levelItem)
+		.innerJoin(level, eq(level.id, levelItem.idLevel))
+		.where(and(eq(level.xxHash, xxHash), ne(levelItem.authorId, excludedAuthorId)))
+		.orderBy(asc(levelItem.deleted), asc(levelItem.id))
+		.limit(1)
+		.then((rows) => rows[0])
+	return row?.authorId
+}
+
 export async function upsertWorkshopLevel(
 	input: WorkshopLevelInput,
 ): Promise<WorkshopLevelUpsertResult> {
-	const authorSteamName = await resolveSteamNameForWorkshopAuthor(input.authorId)
+	const authorIds = [...new Set([input.authorId, input.levelAuthorId])]
+	const authors = await Promise.all(
+		authorIds.map(async (steamId) => ({
+			steamId,
+			steamName: await resolveSteamNameForWorkshopAuthor(steamId),
+		})),
+	)
 	const workshopImageUrl = await uploadSteamWorkshopThumbnail({
 		workshopId: input.workshopId,
 		imageUrl: input.workshopImageUrl,
@@ -186,18 +208,20 @@ export async function upsertWorkshopLevel(
 		const now = new Date().toISOString()
 		await tx
 			.insert(user)
-			.values({
-				steamId: input.authorId,
-				steamName: authorSteamName,
-				discordId: -1n,
-				banned: false,
-				dateCreated: now,
-				dateUpdated: now,
-			})
+			.values(
+				authors.map(({ steamId, steamName }) => ({
+					steamId,
+					steamName,
+					discordId: -1n,
+					banned: false,
+					dateCreated: now,
+					dateUpdated: now,
+				})),
+			)
 			.onConflictDoUpdate({
 				target: user.steamId,
 				set: {
-					steamName: authorSteamName,
+					steamName: sql`excluded.steam_name`,
 					dateUpdated: now,
 				},
 			})
@@ -368,7 +392,7 @@ export async function upsertWorkshopLevel(
 		const itemValues = {
 			idLevel,
 			workshopId: input.workshopId,
-			authorId: input.authorId,
+			authorId: input.levelAuthorId,
 			name: input.name,
 			imageUrl: input.imageUrl,
 			fileAuthor: input.fileAuthor,

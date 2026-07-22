@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
-import { downloadBatchesRecursively, WorkshopScanner } from './scanner'
+import { downloadBatchesRecursively, WorkshopScanner, ZSL_WORKSHOP_AUTHOR_ID } from './scanner'
 import type { WorkshopDownloader, WorkshopMetadataAdapter, WorkshopPersistence } from './types'
 
 const temporaryDirectories: string[] = []
@@ -59,14 +59,55 @@ async function createJsonExponentItem(): Promise<string> {
 	return root
 }
 
+async function createMixedZslItem(): Promise<string> {
+	const root = await createItem({ thumbnail: false })
+	const jsonDirectory = join(root, 'Json Example')
+	await mkdir(jsonDirectory)
+	await writeFile(
+		join(jsonDirectory, 'Json Example.zeeplevel'),
+		JSON.stringify({
+			jsonVersion: 3,
+			level: { name: 'Json Example', UID: 'json-uid', zeepHash: 'json-zeep-hash' },
+			author: { name: 'JSON Author', StmID: '76561198033333333' },
+			medals: { author: 1, gold: 2, silver: 3, bronze: 4 },
+			enviro: { skybox: 1, groundMat: -1 },
+			blox: [],
+		}),
+	)
+	return root
+}
+
+async function createJsonItemWithoutSteamId(): Promise<string> {
+	const root = await mkdtemp(join(tmpdir(), 'workshop-scanner-test-'))
+	temporaryDirectories.push(root)
+	const levelDirectory = join(root, 'Example')
+	await mkdir(levelDirectory)
+	await writeFile(
+		join(levelDirectory, 'Example.zeeplevel'),
+		JSON.stringify({
+			jsonVersion: 3,
+			level: { name: 'Example', UID: 'json-uid', zeepHash: 'json-zeep-hash' },
+			author: { name: 'Unknown Author' },
+			medals: { author: 1, gold: 2, silver: 3, bronze: 4 },
+			enviro: { skybox: 1, groundMat: -1 },
+			blox: [],
+		}),
+	)
+	return root
+}
+
 function createDependencies({
 	directory,
 	available = true,
+	creatorId = 76561198000000000n,
+	foundLevelAuthorId,
 	visibility = STEAM_VISIBILITY.Public,
 	upsertResult = { idLevel: 42, scoreChanged: true },
 }: {
 	directory: string
 	available?: boolean
+	creatorId?: bigint
+	foundLevelAuthorId?: bigint
 	visibility?: number
 	upsertResult?: { idLevel: number; scoreChanged: boolean }
 }) {
@@ -79,6 +120,7 @@ function createDependencies({
 		}>,
 		markMissing: [] as string[],
 		merges: [] as Array<Record<string, unknown>>,
+		authorLookups: [] as Array<{ excludedAuthorId: bigint; xxHash: string }>,
 		uploads: 0,
 		cleanups: 0,
 		downloads: 0,
@@ -87,7 +129,7 @@ function createDependencies({
 		getItems: async ([workshopId]) => [
 			{
 				workshopId: workshopId as bigint,
-				creatorId: 76561198000000000n,
+				creatorId,
 				name: 'Example Workshop Item',
 				imageUrl: 'https://steam.example/workshop-preview.jpg',
 				visibility,
@@ -111,6 +153,10 @@ function createDependencies({
 		},
 	}
 	const persistence: WorkshopPersistence = {
+		findLevelAuthorByXxHash: async (xxHash, excludedAuthorId) => {
+			calls.authorLookups.push({ xxHash, excludedAuthorId })
+			return foundLevelAuthorId
+		},
 		upsertLevel: async (input) => {
 			calls.upserts.push(input)
 			return upsertResult
@@ -154,6 +200,8 @@ describe('WorkshopScanner', () => {
 		})
 		expect(dependencies.calls.upserts).toHaveLength(1)
 		expect(dependencies.calls.upserts[0]?.authorId).toBe(76561198000000000n)
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(76561198000000000n)
+		expect(dependencies.calls.authorLookups).toEqual([])
 		expect(dependencies.calls.upserts[0]?.workshopName).toBe('Example Workshop Item')
 		expect(dependencies.calls.upserts[0]?.workshopImageUrl).toBe(
 			'https://steam.example/workshop-preview.jpg',
@@ -165,6 +213,128 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.upserts[0]?.imageUrl).toBe('thumbnails/generated.jpg')
 		expect(dependencies.calls.markMissing).toEqual(['5FC86C702B3F328B66608DC3C8BFB603'])
 		expect(dependencies.calls.cleanups).toBe(1)
+	})
+
+	test('uses matching existing author for CSV levels in ZSL packs', async () => {
+		const directory = await createItem()
+		const dependencies = createDependencies({
+			directory,
+			creatorId: ZSL_WORKSHOP_AUTHOR_ID,
+			foundLevelAuthorId: 76561198011111111n,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await scanner.scanWorkshopItem(1n)
+
+		expect(dependencies.calls.authorLookups).toEqual([
+			{
+				xxHash: '5FC86C702B3F328B66608DC3C8BFB603',
+				excludedAuthorId: ZSL_WORKSHOP_AUTHOR_ID,
+			},
+		])
+		expect(dependencies.calls.upserts[0]?.authorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(76561198011111111n)
+	})
+
+	test('falls back to ZSL uploader when CSV author cannot be resolved', async () => {
+		const directory = await createItem()
+		const dependencies = createDependencies({
+			directory,
+			creatorId: ZSL_WORKSHOP_AUTHOR_ID,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await scanner.scanWorkshopItem(1n)
+
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
+	})
+
+	test('uses file SteamID for JSON levels in ZSL packs', async () => {
+		const directory = await createJsonExponentItem()
+		const dependencies = createDependencies({
+			directory,
+			creatorId: ZSL_WORKSHOP_AUTHOR_ID,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await scanner.scanWorkshopItem(1n)
+
+		expect(dependencies.calls.authorLookups).toEqual([])
+		expect(dependencies.calls.upserts[0]?.authorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(76561198000000000n)
+	})
+
+	test('keeps Workshop uploader as JSON level author outside ZSL', async () => {
+		const directory = await createJsonExponentItem()
+		const dependencies = createDependencies({
+			directory,
+			creatorId: 76561198022222222n,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await scanner.scanWorkshopItem(1n)
+
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(76561198022222222n)
+	})
+
+	test('falls back to ZSL uploader when JSON SteamID is missing', async () => {
+		const directory = await createJsonItemWithoutSteamId()
+		const dependencies = createDependencies({
+			directory,
+			creatorId: ZSL_WORKSHOP_AUTHOR_ID,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await scanner.scanWorkshopItem(1n)
+
+		expect(dependencies.calls.authorLookups).toEqual([])
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
+	})
+
+	test('resolves CSV and JSON authors independently in mixed ZSL packs', async () => {
+		const directory = await createMixedZslItem()
+		const dependencies = createDependencies({
+			directory,
+			creatorId: ZSL_WORKSHOP_AUTHOR_ID,
+			foundLevelAuthorId: 76561198011111111n,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await scanner.scanWorkshopItem(1n)
+
+		expect(
+			Object.fromEntries(
+				dependencies.calls.upserts.map((input) => [input.name, input.levelAuthorId]),
+			),
+		).toEqual({
+			Example: 76561198011111111n,
+			'Json Example': 76561198033333333n,
+		})
+		expect(dependencies.calls.authorLookups).toHaveLength(1)
 	})
 
 	test('scans item without thumbnail using empty image URL', async () => {

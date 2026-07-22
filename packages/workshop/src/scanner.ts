@@ -19,12 +19,15 @@ interface LevelFiles {
 	thumbnailPath: string
 }
 
+export const ZSL_WORKSHOP_AUTHOR_ID = 76561198031919228n
+
 let databasePersistence: WorkshopPersistence | undefined
 
 async function getDatabasePersistence(): Promise<WorkshopPersistence> {
 	if (!databasePersistence) {
 		const service = await import('@zeepkist/database/services/workshop')
 		databasePersistence = {
+			findLevelAuthorByXxHash: service.findWorkshopLevelAuthorByXxHash,
 			upsertLevel: service.upsertWorkshopLevel,
 			markMissing: service.markMissingWorkshopLevelsDeleted,
 			markDeleted: service.markWorkshopDeleted,
@@ -174,6 +177,13 @@ export class WorkshopScanner {
 			for (const prepared of preparedItems) {
 				const changedLevelIds: number[] = []
 				for (const level of prepared.levels) {
+					const levelAuthorId = await this.resolveLevelAuthor(
+						prepared.metadata.creatorId,
+						level.parsed.authorId,
+						level.parsed.format,
+						level.parsed.hash,
+						persistence,
+					)
 					const imageUrl = level.thumbnailPath
 						? await persistence.uploadThumbnail(
 								extname(level.thumbnailPath).slice(1),
@@ -191,6 +201,7 @@ export class WorkshopScanner {
 						workshopVisibility: prepared.metadata.visibility,
 						workshopFileSize: prepared.metadata.fileSize,
 						authorId: prepared.metadata.creatorId,
+						levelAuthorId,
 						name: level.name,
 						imageUrl,
 						createdAt: prepared.metadata.createdAt,
@@ -231,6 +242,25 @@ export class WorkshopScanner {
 		} finally {
 			await download.cleanup()
 		}
+	}
+
+	private async resolveLevelAuthor(
+		workshopAuthorId: bigint,
+		fileAuthorId: bigint,
+		format: number,
+		xxHash: string,
+		persistence: WorkshopPersistence,
+	): Promise<bigint> {
+		if (workshopAuthorId !== ZSL_WORKSHOP_AUTHOR_ID) {
+			return workshopAuthorId
+		}
+		if (format === levelFormat.json) {
+			return fileAuthorId > 0n ? fileAuthorId : workshopAuthorId
+		}
+		return (
+			(await persistence.findLevelAuthorByXxHash(xxHash, ZSL_WORKSHOP_AUTHOR_ID)) ??
+			workshopAuthorId
+		)
 	}
 
 	private async prepareItem(

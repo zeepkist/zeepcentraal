@@ -51,6 +51,7 @@ test('task payload validation accepts compatible legacy shapes', () => {
 	).toBe(true)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: '3749321871' })).toBe(true)
 	expect(isValidTaskPayload('syncWorkshopCatalog', { all: true })).toBe(true)
+	expect(isValidTaskPayload('syncWorkshopCatalog', { repairZslAuthors: true })).toBe(true)
 	expect(
 		isValidTaskPayload('syncWorkshopCatalog', {
 			all: true,
@@ -76,6 +77,16 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: 3749321871 })).toBe(false)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: '0' })).toBe(false)
 	expect(isValidTaskPayload('syncWorkshopCatalog', { all: 'true' })).toBe(false)
+	expect(isValidTaskPayload('syncWorkshopCatalog', { repairZslAuthors: false })).toBe(false)
+	expect(isValidTaskPayload('syncWorkshopCatalog', { all: true, repairZslAuthors: true })).toBe(
+		false,
+	)
+	expect(
+		isValidTaskPayload('syncWorkshopCatalog', {
+			fixZeepSDKExponentHashes: true,
+			repairZslAuthors: true,
+		}),
+	).toBe(false)
 	expect(isValidTaskPayload('syncWorkshopCatalog', { fixZeepSDKExponentHashes: 'true' })).toBe(
 		false,
 	)

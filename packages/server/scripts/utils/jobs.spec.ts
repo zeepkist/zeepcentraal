@@ -96,7 +96,7 @@ describe('job option collection', () => {
 			['backfillRecordGhostStatisticsBatch', { texts: ['1, 2'] }],
 			['scanWorkshopItem', { texts: ['3749321871'] }],
 			['scanWorkshopBatch', { texts: ['3006532933 3749321871'], confirmations: [false] }],
-			['syncWorkshopCatalog', { confirmations: [false] }],
+			['syncWorkshopCatalog', { selections: ['stale'] }],
 			['syncPersonalBests', {}],
 			['updateLevelScore', { texts: ['12'], confirmations: [false, false] }],
 			['updateLevelScores', { confirmations: [false, false] }],
@@ -155,14 +155,27 @@ describe('job option collection', () => {
 		).rejects.toThrow('at most 10')
 	})
 
-	test('omits disabled flags and only offers hash repair for full catalog scans', async () => {
-		expect(await collect('syncWorkshopCatalog', { confirmations: [false] })).toEqual({})
-		expect(await collect('syncWorkshopCatalog', { confirmations: [true, false] })).toEqual({
+	test('collects stale, full, and ZSL repair Workshop scopes', async () => {
+		expect(await collect('syncWorkshopCatalog', { selections: ['stale'] })).toEqual({})
+		expect(
+			await collect('syncWorkshopCatalog', {
+				selections: ['all'],
+				confirmations: [false],
+			}),
+		).toEqual({
 			all: true,
 		})
-		expect(await collect('syncWorkshopCatalog', { confirmations: [true, true] })).toEqual({
+		expect(
+			await collect('syncWorkshopCatalog', {
+				selections: ['all'],
+				confirmations: [true],
+			}),
+		).toEqual({
 			all: true,
 			fixZeepSDKExponentHashes: true,
+		})
+		expect(await collect('syncWorkshopCatalog', { selections: ['repair-zsl'] })).toEqual({
+			repairZslAuthors: true,
 		})
 	})
 

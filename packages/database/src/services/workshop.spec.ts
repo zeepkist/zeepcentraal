@@ -22,6 +22,26 @@ test('workshop refresh preserves existing Adventure status while new levels defa
 	expect(workshopServiceSource.slice(refreshStart, metadataStart)).not.toContain('adventure:')
 })
 
+test('Workshop and level authors are persisted separately', () => {
+	expect(workshopServiceSource).toContain('authorId: input.authorId,')
+	expect(workshopServiceSource).toContain('authorId: input.levelAuthorId,')
+	expect(workshopServiceSource).toContain(
+		'const authorIds = [...new Set([input.authorId, input.levelAuthorId])]',
+	)
+})
+
+test('CSV author lookup prefers oldest active non-excluded level item', () => {
+	const start = workshopServiceSource.indexOf(
+		'export async function findWorkshopLevelAuthorByXxHash',
+	)
+	const end = workshopServiceSource.indexOf('\nexport async function upsertWorkshopLevel', start)
+	const source = workshopServiceSource.slice(start, end)
+
+	expect(source).toContain('eq(level.xxHash, xxHash)')
+	expect(source).toContain('ne(levelItem.authorId, excludedAuthorId)')
+	expect(source).toContain('.orderBy(asc(levelItem.deleted), asc(levelItem.id))')
+})
+
 test('concurrent canonical level insert does not abort Workshop transaction', () => {
 	const insertStart = workshopServiceSource.indexOf('let createdLevel:')
 	const resolutionStart = workshopServiceSource.indexOf(

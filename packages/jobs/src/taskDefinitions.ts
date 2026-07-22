@@ -1,10 +1,18 @@
 import { z } from 'zod'
 
 const emptyPayload = z.looseObject({})
-const syncWorkshopCatalogPayload = z.looseObject({
-	all: z.boolean().optional(),
-	fixZeepSDKExponentHashes: z.boolean().optional(),
-})
+const syncWorkshopCatalogPayload = z
+	.looseObject({
+		all: z.boolean().optional(),
+		fixZeepSDKExponentHashes: z.boolean().optional(),
+		repairZslAuthors: z.literal(true).optional(),
+	})
+	.refine(
+		(payload) =>
+			!payload.repairZslAuthors ||
+			(payload.all !== true && payload.fixZeepSDKExponentHashes !== true),
+		{ message: 'ZSL author repair cannot be combined with full-catalog options' },
+	)
 const batchPayload = z.union([
 	z.looseObject({ ids: z.array(z.number().int().positive()).min(1) }),
 	z.looseObject({
