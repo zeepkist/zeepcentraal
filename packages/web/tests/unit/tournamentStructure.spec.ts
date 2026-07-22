@@ -40,9 +40,18 @@ describe('shared tournament web implementation', () => {
 
 	test('presents tournament dates, live remaining time, competitors, and friendly periods', () => {
 		const event = source('app/components/tournament/TournamentEvent.vue')
+		const composable = source('app/composables/useTrackTournaments.ts')
 		const card = source('app/components/tournament/TournamentCard.vue')
 		const query = source('app/graphql/queries/trackTournaments.graphql')
+		const liveOperation = query.slice(query.indexOf('subscription ZC_TrackTournamentLive'))
 		expect(event).toContain("$t('tournaments.competitors')")
+		expect(event).toContain(':value="numberFormat.format(totalCount)"')
+		expect(event).not.toContain('numberFormat.format(tournament.participantCount)')
+		expect(composable).toContain(
+			'const totalCount = computed(() => connection.value?.totalCount ?? 0)',
+		)
+		expect(composable).toContain('pagination.isFirstPage.value')
+		expect(liveOperation).toMatch(/leaderboard: trackTournamentResults[\s\S]*?totalCount/)
 		expect(event).toContain(':datetime="tournament.startAt"')
 		expect(event).toContain('<NuxtTime :datetime="tournament.endAt" relative />')
 		expect(event).not.toContain('time-zone="UTC"')

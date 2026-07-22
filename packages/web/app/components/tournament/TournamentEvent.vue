@@ -68,7 +68,7 @@
 						<div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 							<StatCard
 								:label="$t('tournaments.competitors')"
-								:value="numberFormat.format(tournament.participantCount)"
+								:value="numberFormat.format(totalCount)"
 								icon="users-group"
 							/>
 							<StatCard :label="$t('tournaments.startDate')" icon="calendar-event">
@@ -230,6 +230,7 @@ const {
 	prefetch,
 	result,
 	standings,
+	totalCount,
 	tournament,
 	updateFeed,
 } = useTrackTournamentDetail(props.type, slug, viewerId, props.detailPage ?? false)
