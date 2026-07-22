@@ -26,7 +26,7 @@ describe('web GraphQL RLS smoke utilities', () => {
 		const catalog = await loadOperationCatalog(webGraphqlDirectory)
 		const schema = await loadPublishedSchema(publishedSchemaPath)
 
-		expect(catalog.operations.size).toBe(58)
+		expect(catalog.operations.size).toBe(60)
 		expect(
 			[...catalog.operations.keys()].filter((name) => name.startsWith('ZC_')),
 		).toHaveLength(60)
