@@ -940,6 +940,13 @@
 					"wheels": "Wheels"
 				}
 			},
+			"votingDistribution": {
+				"title": "Voting distribution",
+				"description": "How this player rates levels.",
+				"ariaLabel": "Player vote distribution",
+				"empty": "This player has not voted on any levels yet.",
+				"total": "{count} votes"
+			},
 			"telemetry": {
 				"title": "Driving Telemetry",
 				"description": "Ghost replay driving statistics from verified GTR submissions.",
@@ -1175,6 +1182,13 @@
 					"skill": {
 						"title": "Skill selectivity",
 						"description": "Independent player-skill agreement, separation and field strength. Competitive merit remains observation-only."
+					},
+					"votes": {
+						"title": "Player votes",
+						"description": "How players rated this level.",
+						"ariaLabel": "Level vote distribution",
+						"empty": "No players have voted on this level yet.",
+						"total": "{count} votes"
 					}
 				},
 				"metrics": {

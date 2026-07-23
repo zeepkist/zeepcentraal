@@ -23,6 +23,15 @@ query ZC_UserProfile($steamId: BigInt!) {
 			levelItems(first: 0, filter: { deleted: { equalTo: false } }) {
 				totalCount
 			}
+			votes(first: 0) {
+				groupedAggregates(groupBy: VALUE) {
+					keys
+					sum {
+						value
+					}
+				}
+				totalCount
+			}
 		}
 	}
 }

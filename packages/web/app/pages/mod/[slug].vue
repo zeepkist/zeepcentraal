@@ -79,7 +79,7 @@ const description = computed(() =>
 		: t('pages.mods.seo.description'),
 )
 useSeoMeta({
-	title: () => `${title.value} · ZeepCentraal`,
+	title: () => title.value,
 	description,
 	ogTitle: title,
 	ogDescription: description,

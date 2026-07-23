@@ -49,6 +49,12 @@ query ZC_LevelDetail($xxHash: String!) {
 			totalCount
 		}
 		votes(first: 0) {
+			groupedAggregates(groupBy: VALUE) {
+				keys
+				sum {
+					value
+				}
+			}
 			totalCount
 		}
 		favourites(first: 0) {

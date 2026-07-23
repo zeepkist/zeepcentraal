@@ -109,6 +109,20 @@
 										:progress="cosmeticsPreview"
 										:labels="cosmeticsLabels"
 									/>
+
+									<section aria-labelledby="profile-voting-distribution">
+										<SectionHeader
+											id="profile-voting-distribution"
+											:title="$t('users.profile.votingDistribution.title')"
+											:description="$t('users.profile.votingDistribution.description')"
+										/>
+										<div class="rounded-xl border border-border bg-card/70 p-4">
+											<VoteDistributionChart
+												:counts="data.voteDistribution.value"
+												:labels="votingDistributionLabels"
+											/>
+										</div>
+									</section>
 								</aside>
 							</div>
 						</template>
@@ -260,7 +274,7 @@ const profileTabs = computed<Array<{ label: string; value: UserProfileTab }>>(()
 useSeoMeta({
 	title: () =>
 		user.value
-			? `${user.value.steamName ?? steamId.value} · ZeepCentraal`
+			? user.value.steamName ?? steamId.value
 			: t('pages.users.seo.title'),
 	description: () =>
 		user.value
@@ -404,6 +418,14 @@ const cosmeticsLabels = computed(() => ({
 	mostUsed: t('users.profile.cosmetics.mostUsed'),
 	comingSoon: t('users.profile.cosmetics.comingSoon'),
 	unavailable: t('users.profile.cosmetics.unavailable'),
+}))
+const votingDistributionLabels = computed(() => ({
+	ariaLabel: t('users.profile.votingDistribution.ariaLabel'),
+	empty: t('users.profile.votingDistribution.empty'),
+	total: (count: number) =>
+		t('users.profile.votingDistribution.total', {
+			count: number.value.format(count),
+		}),
 }))
 const heroLabels = computed(() => ({ eyebrow: t('users.profile.eyebrow'), joined: t('users.profile.joined'), globalRank: t('users.profile.globalRank'), rankedPoints: t('users.columns.rankedPoints'), totalPoints: t('users.columns.totalPoints'), unranked: t('users.profile.unranked'), steamProfile: t('users.profile.steamProfile'), steamWorkshop: t('users.profile.steamWorkshop') }))
 const historyLabels = computed(() => ({

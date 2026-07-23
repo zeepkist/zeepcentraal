@@ -212,6 +212,16 @@ describe('user profile overview', () => {
 		)
 	})
 
+	it('places a separate voting distribution section after cosmetics', () => {
+		const cosmeticsIndex = page.indexOf('id="profile-cosmetics"')
+		const votesIndex = page.indexOf('id="profile-voting-distribution"')
+
+		expect(cosmeticsIndex).toBeGreaterThan(-1)
+		expect(votesIndex).toBeGreaterThan(cosmeticsIndex)
+		expect(page).toContain('<VoteDistributionChart')
+		expect(page).toContain(':counts="data.voteDistribution.value"')
+	})
+
 	it('offers request-free all-time, daily, monthly, and yearly telemetry periods', () => {
 		expect(telemetrySelect).not.toContain('useQuery')
 		expect(page).toContain("value: 'all-time'")

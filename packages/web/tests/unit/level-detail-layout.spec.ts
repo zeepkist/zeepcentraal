@@ -22,6 +22,10 @@ const telemetry = readFileSync(
 	new URL('../../app/components/level/LevelTelemetryPanel.vue', import.meta.url),
 	'utf8',
 )
+const scoreBreakdown = readFileSync(
+	new URL('../../app/components/level/LevelScoreBreakdown.vue', import.meta.url),
+	'utf8',
+)
 const donut = readFileSync(
 	new URL('../../app/components/dashboard/DashboardDonutChart.vue', import.meta.url),
 	'utf8',
@@ -158,5 +162,12 @@ describe('compact level detail layout', () => {
 		expect(page).toContain(
 			'!levelData.statisticsActive.value || levelData.statistics.fetching.value',
 		)
+	})
+
+	it('adds vote distribution as the fourth score breakdown card', () => {
+		expect(scoreBreakdown).toContain('v-for="group in groups"')
+		expect(scoreBreakdown).toContain('<VoteDistributionChart')
+		expect(scoreBreakdown).toContain('labels.groups.votes.title')
+		expect(page).toContain(':vote-counts="levelData.voteDistribution.value"')
 	})
 })

@@ -245,6 +245,7 @@
 								/>
 								<LevelScoreBreakdown
 									:model="levelData.scoreInsights.value"
+									:vote-counts="levelData.voteDistribution.value"
 									:labels="scoreBreakdownLabels"
 								/>
 							</section>
@@ -458,7 +459,7 @@ watch(viewerSplitComparisonId, () => {
 useSeoMeta({
 	robots: () => (summary.value?.publiclyVisible === false ? 'noindex, nofollow' : 'index, follow'),
 	title: () =>
-		summary.value ? `${summary.value.name} · ZeepCentraal` : t('pages.levels.seo.title'),
+		summary.value ? summary.value.name : t('pages.levels.seo.title'),
 	description: () =>
 		summary.value
 			? t('levels.detail.seoDescription', { name: summary.value.name })
@@ -510,6 +511,7 @@ const medalLabels = computed(() => ({
 	silver: t('levels.detail.medals.silver'),
 	bronze: t('levels.detail.medals.bronze'),
 }))
+const voteNumberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const scoreBreakdownLabels = computed(() => ({
 	groups: {
 		score: {
@@ -523,6 +525,10 @@ const scoreBreakdownLabels = computed(() => ({
 		skill: {
 			title: t('levels.detail.scoreBreakdown.groups.skill.title'),
 			description: t('levels.detail.scoreBreakdown.groups.skill.description'),
+		},
+		votes: {
+			title: t('levels.detail.scoreBreakdown.groups.votes.title'),
+			description: t('levels.detail.scoreBreakdown.groups.votes.description'),
 		},
 	},
 	metrics: {
@@ -541,6 +547,14 @@ const scoreBreakdownLabels = computed(() => ({
 		skillSeparation: t('levels.detail.scoreBreakdown.metrics.skillSeparation'),
 		voteAdjustment: t('levels.detail.scoreBreakdown.metrics.voteAdjustment'),
 		worldRecordExcluded: t('levels.detail.scoreBreakdown.metrics.worldRecordExcluded'),
+	},
+	voteDistribution: {
+		ariaLabel: t('levels.detail.scoreBreakdown.groups.votes.ariaLabel'),
+		empty: t('levels.detail.scoreBreakdown.groups.votes.empty'),
+		total: (count: number) =>
+			t('levels.detail.scoreBreakdown.groups.votes.total', {
+				count: voteNumberFormat.value.format(count),
+			}),
 	},
 	unavailable: t('levels.detail.scoreBreakdown.unavailable'),
 	notAvailable: t('levels.detail.scoreBreakdown.notAvailable'),

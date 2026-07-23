@@ -34,11 +34,32 @@
 				{{ labels.notAvailable }}
 			</div>
 		</section>
+
+		<section
+			class="rounded-2xl border border-border/80 bg-gradient-to-br from-card via-card to-primary/5 p-4 shadow-sm sm:p-5"
+		>
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<h3 class="font-bold text-highlighted">{{ labels.groups.votes.title }}</h3>
+					<p class="mt-1 text-sm text-muted-foreground">
+						{{ labels.groups.votes.description }}
+					</p>
+				</div>
+				<span class="rounded-lg bg-primary/10 p-2 text-primary">
+					<TablerIcon name="chart-donut-4" class="size-5" />
+				</span>
+			</div>
+
+			<div class="mt-4">
+				<VoteDistributionChart :counts="voteCounts" :labels="labels.voteDistribution" />
+			</div>
+		</section>
 	</div>
 </template>
 
 <script setup lang="ts">
 import type { LevelScoreInsights } from '~/types/app'
+import type { VoteDistributionCounts } from '~/utils/voteDistribution'
 
 type MetricKey = keyof LevelScoreInsights
 type MetricFormat = 'boolean' | 'decimal' | 'integer' | 'percentage'
@@ -49,13 +70,19 @@ type MetricDefinition = {
 	format: MetricFormat
 }
 
-type GroupKey = 'score' | 'evidence' | 'skill'
+type GroupKey = 'score' | 'evidence' | 'skill' | 'votes'
 
 const props = defineProps<{
 	model: LevelScoreInsights
+	voteCounts: VoteDistributionCounts
 	labels: {
 		groups: Record<GroupKey, { title: string; description: string }>
 		metrics: Record<MetricKey, string>
+		voteDistribution: {
+			ariaLabel: string
+			empty: string
+			total: (count: number) => string
+		}
 		unavailable: string
 		notAvailable: string
 		included: string

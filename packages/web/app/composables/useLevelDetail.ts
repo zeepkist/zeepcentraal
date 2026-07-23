@@ -30,6 +30,7 @@ import {
 	resolveRecordPbOrWr,
 } from '~/utils/levelRecordRows'
 import { buildLevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
+import { buildVoteDistributionCounts } from '~/utils/voteDistribution'
 
 type LevelScoreInsightsSource = LevelScoreInsights & {
 	modifierRating?: number | null
@@ -278,6 +279,12 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			worldRecordExcluded: points?.worldRecordExcluded,
 		}
 	})
+	const voteDistribution = computed(() =>
+		buildVoteDistributionCounts(
+			level.value?.votes.groupedAggregates,
+			level.value?.votes.totalCount ?? 0,
+		),
+	)
 	const worldRecord = computed<LevelWorldRecordSummary | null>(() => {
 		const value = level.value?.worldRecordGlobal
 		if (!value?.record) return null
@@ -410,6 +417,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		statisticsTarget: statisticsPrefetch.target,
 		summary,
 		viewerBest,
+		voteDistribution,
 		worldRecord,
 	}
 }

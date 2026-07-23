@@ -29,6 +29,7 @@ import {
 } from '~/utils/userCareerHistory'
 import { buildUserSuperLeagueSummary } from '~/utils/userSuperLeague'
 import { getUserTelemetryWindows, type UserTelemetryPeriod } from '~/utils/userTelemetry'
+import { buildVoteDistributionCounts } from '~/utils/voteDistribution'
 
 function cursorPage(
 	info?: {
@@ -128,6 +129,12 @@ export function useUserProfile(steamId: Ref<string>) {
 			levels: value.levelItems.totalCount,
 		}
 	})
+	const voteDistribution = computed(() =>
+		buildVoteDistributionCounts(
+			user.value?.votes.groupedAggregates,
+			user.value?.votes.totalCount ?? 0,
+		),
+	)
 	const pointsHistoryQuery = useQuery({
 		query: Zc_UserPointsHistoryDocument,
 		variables: computed(() => ({
@@ -534,6 +541,7 @@ export function useUserProfile(steamId: Ref<string>) {
 		recentLevels,
 		summary,
 		user,
+		voteDistribution,
 		wrPage,
 		wrPagination,
 		wrResult,
