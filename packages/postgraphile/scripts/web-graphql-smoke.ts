@@ -100,8 +100,9 @@ export async function runWebGraphqlSmoke({
 	const record = readRecordSeed(recordHistory)
 
 	await execute('ZC_Levels', {
-		first: 1,
-		orderBy: ['LEVEL_POINTS_POINTS_DESC', 'ID_ASC'],
+		filter: { and: [{ publiclyVisible: { equalTo: true } }] },
+		first: 24,
+		orderBy: ['LEVEL_POINTS_POINTS_DESC'],
 	})
 	await execute('ZC_Users', { first: 1, orderBy: ['RANK_ASC', 'USER_ID_ASC'] })
 	await execute('ZC_OmniSearch', { search: 'ze' })

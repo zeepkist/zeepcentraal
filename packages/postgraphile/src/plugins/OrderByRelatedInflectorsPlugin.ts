@@ -139,6 +139,10 @@ const OrderByRelatedInflectorsPlugin: GraphileConfig.Plugin = {
 					if (!relationFieldName) {
 						continue
 					}
+					const nulls =
+						relation.remoteResource.name === 'level_points'
+							? ('LAST' as const)
+							: undefined
 
 					for (const [attributeName, attribute] of Object.entries(
 						relation.remoteResource.codec.attributes,
@@ -168,6 +172,7 @@ const OrderByRelatedInflectorsPlugin: GraphileConfig.Plugin = {
 												codec: attribute.codec,
 												direction,
 												nullable: true,
+												...(nulls ? { nulls } : {}),
 											})
 										},
 									},
@@ -190,6 +195,7 @@ type RelatedOrderSelect = {
 		codec: unknown
 		direction: 'ASC' | 'DESC'
 		nullable: boolean
+		nulls?: 'FIRST' | 'LAST'
 	}): void
 }
 

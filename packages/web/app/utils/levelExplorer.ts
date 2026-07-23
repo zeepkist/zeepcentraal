@@ -25,25 +25,11 @@ export type LevelHotWindows = {
 const DAY_MS = 24 * 60 * 60 * 1000
 const MONTH_MS = 30 * DAY_MS
 const YEAR_MS = 365 * DAY_MS
-const pointSorts = new Set<string>([
-	'LEVEL_POINTS_MODIFIER_POPULARITY_DESC',
-	'LEVEL_POINTS_POINTS_DESC',
-	'LEVEL_POINTS_RATING_DESC',
-	HOT_LEVEL_SORTS.year,
-	HOT_LEVEL_SORTS.month,
-	HOT_LEVEL_SORTS.today,
-])
-const accessibleCommunityFilter: LevelFilter = {
-	adventure: { equalTo: false },
-	levelItems: { some: { deleted: { equalTo: false } } },
-}
 
-export function buildLevelAvailabilityFilter(type: string): LevelFilter {
+export function buildLevelAvailabilityFilter(type: string): LevelFilter | undefined {
 	if (type === 'yes') return { adventure: { equalTo: true } }
-	if (type === 'no') return accessibleCommunityFilter
-	return {
-		or: [{ adventure: { equalTo: true } }, accessibleCommunityFilter],
-	}
+	if (type === 'no') return { adventure: { equalTo: false } }
+	return undefined
 }
 
 export function normalizeLevelRange(
@@ -99,11 +85,9 @@ export function buildLevelFilter(input: {
 	worldRecord: ViewerLevelFilter
 	viewerId?: number
 }): LevelFilter {
-	const and: LevelFilter[] = [
-		{ publiclyVisible: { equalTo: true } },
-		buildLevelAvailabilityFilter(input.type),
-	]
-	let requiresLevelPoints = pointSorts.has(input.sort)
+	const and: LevelFilter[] = [{ publiclyVisible: { equalTo: true } }]
+	const availability = buildLevelAvailabilityFilter(input.type)
+	if (availability) and.push(availability)
 
 	if (input.search) {
 		and.push({
@@ -131,17 +115,18 @@ export function buildLevelFilter(input: {
 			greaterThanOrEqualTo: input.points[0],
 			lessThanOrEqualTo: input.points[1],
 		}
-		requiresLevelPoints = true
 	}
 	if (input.rating[0] !== LEVEL_RATING_MIN || input.rating[1] !== LEVEL_RATING_MAX) {
 		levelPoints.rating = {
 			greaterThanOrEqualTo: input.rating[0] / 100,
 			lessThanOrEqualTo: input.rating[1] / 100,
 		}
-		requiresLevelPoints = true
 	}
-	if (Object.keys(levelPoints).length > 0) and.push({ levelPoints })
-	if (requiresLevelPoints) and.push({ levelPointExists: true })
+	const hasLevelPointFilter = Object.keys(levelPoints).length > 0
+	if (hasLevelPointFilter) and.push({ levelPoints })
+	if (isHotLevelSort(input.sort) && !hasLevelPointFilter) {
+		and.push({ levelPointExists: true })
+	}
 
 	if (input.viewerId && input.personalBest !== 'all') {
 		and.push({

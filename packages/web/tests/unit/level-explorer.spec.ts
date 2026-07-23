@@ -43,23 +43,14 @@ describe('level availability filters', () => {
 		})
 	})
 
-	it('requires an accessible workshop item for community levels', () => {
+	it('uses persisted visibility when selecting community levels', () => {
 		expect(buildLevelAvailabilityFilter('no')).toEqual({
 			adventure: { equalTo: false },
-			levelItems: { some: { deleted: { equalTo: false } } },
 		})
 	})
 
-	it('combines official and accessible community levels by default', () => {
-		expect(buildLevelAvailabilityFilter('all')).toEqual({
-			or: [
-				{ adventure: { equalTo: true } },
-				{
-					adventure: { equalTo: false },
-					levelItems: { some: { deleted: { equalTo: false } } },
-				},
-			],
-		})
+	it('uses persisted visibility without an extra availability filter by default', () => {
+		expect(buildLevelAvailabilityFilter('all')).toBeUndefined()
 	})
 })
 
@@ -91,7 +82,13 @@ describe('level explorer filters', () => {
 				rating: { greaterThanOrEqualTo: 0.25, lessThanOrEqualTo: 0.9 },
 			},
 		})
-		expect(bounded.and).toContainEqual({ levelPointExists: true })
+		expect(bounded.and).not.toContainEqual({ levelPointExists: true })
+	})
+
+	it('builds default points request from persisted visibility only', () => {
+		expect(buildLevelFilter({ ...baseFilter, sort: 'LEVEL_POINTS_POINTS_DESC' })).toEqual({
+			and: [{ publiclyVisible: { equalTo: true } }],
+		})
 	})
 
 	it('builds authenticated PB and WR filters without fabricating anonymous filters', () => {
@@ -159,6 +156,13 @@ describe('level explorer filters', () => {
 		expect(buildLevelFilter({ ...baseFilter, sort: HOT_LEVEL_SORTS.today }).and).toContainEqual(
 			{ levelPointExists: true },
 		)
+		expect(
+			buildLevelFilter({
+				...baseFilter,
+				sort: HOT_LEVEL_SORTS.today,
+				points: [100, 500],
+			}).and,
+		).not.toContainEqual({ levelPointExists: true })
 	})
 })
 

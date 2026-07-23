@@ -104,6 +104,19 @@ describe('OrderByRelatedInflectorsPlugin', () => {
 								},
 							},
 						},
+						userPointsByTheirIdUser: {
+							isUnique: true,
+							remoteResource: {
+								name: 'user_points',
+								codec: {
+									attributes: {
+										points: {
+											codec: { hasNaturalOrdering: true },
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -125,14 +138,17 @@ describe('OrderByRelatedInflectorsPlugin', () => {
 		}
 
 		values.LEVEL_POINTS_POINTS_ASC?.extensions?.grafast?.apply?.(select)
+		values.USER_POINTS_POINTS_ASC?.extensions?.grafast?.apply?.(select)
 
 		expect(values.LEVEL_POINTS_POINTS_ASC).toBeDefined()
 		expect(values.LEVEL_POINTS_POINTS_DESC).toBeDefined()
 		expect(values.LEVEL_POINTS_BLOCKS_ASC).toBeUndefined()
-		expect(orderCalls).toHaveLength(1)
+		expect(orderCalls).toHaveLength(2)
 		expect(orderCalls[0]).toMatchObject({
 			direction: 'ASC',
 			nullable: true,
+			nulls: 'LAST',
 		})
+		expect(orderCalls[1]).not.toHaveProperty('nulls')
 	})
 })

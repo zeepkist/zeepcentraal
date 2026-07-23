@@ -25,7 +25,6 @@ import {
 
 export const LEVEL_SORTS = {
 	latest: 'DATE_CREATED_DESC',
-	popular: 'LEVEL_POINTS_MODIFIER_POPULARITY_DESC',
 	points: 'LEVEL_POINTS_POINTS_DESC',
 	rating: 'LEVEL_POINTS_RATING_DESC',
 	records: 'RECORDS_COUNT_DESC',

@@ -115,13 +115,12 @@ const adventureOptions = computed(() => [
 	{ label: t('levels.filters.communityOnly'), value: 'no' },
 ])
 const sortOptions = computed(() => [
+	{ label: t('levels.sort.latest'), value: LEVEL_SORTS.latest },
 	{ label: t('levels.sort.points'), value: LEVEL_SORTS.points },
 	{ label: t('levels.sort.rating'), value: LEVEL_SORTS.rating },
-	{ label: t('levels.sort.popular'), value: LEVEL_SORTS.popular },
 	{ label: t('levels.sort.popularYear'), value: LEVEL_SORTS.hotYear },
 	{ label: t('levels.sort.popularMonth'), value: LEVEL_SORTS.hotMonth },
 	{ label: t('levels.sort.popularToday'), value: LEVEL_SORTS.hotToday },
-	{ label: t('levels.sort.latest'), value: LEVEL_SORTS.latest },
 	{ label: t('levels.sort.records'), value: LEVEL_SORTS.records },
 	{ label: t('levels.sort.votes'), value: LEVEL_SORTS.votes },
 	{ label: t('levels.sort.favourites'), value: LEVEL_SORTS.favourites },
