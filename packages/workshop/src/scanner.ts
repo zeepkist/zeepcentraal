@@ -179,8 +179,6 @@ export class WorkshopScanner {
 				for (const level of prepared.levels) {
 					const levelAuthorId = await this.resolveLevelAuthor(
 						prepared.metadata.creatorId,
-						level.parsed.authorId,
-						level.parsed.format,
 						level.parsed.hash,
 						persistence,
 					)
@@ -246,16 +244,11 @@ export class WorkshopScanner {
 
 	private async resolveLevelAuthor(
 		workshopAuthorId: bigint,
-		fileAuthorId: bigint,
-		format: number,
 		xxHash: string,
 		persistence: WorkshopPersistence,
 	): Promise<bigint> {
 		if (workshopAuthorId !== ZSL_WORKSHOP_AUTHOR_ID) {
 			return workshopAuthorId
-		}
-		if (format === levelFormat.json) {
-			return fileAuthorId > 0n ? fileAuthorId : workshopAuthorId
 		}
 		return (
 			(await persistence.findLevelAuthorByXxHash(xxHash, ZSL_WORKSHOP_AUTHOR_ID)) ??

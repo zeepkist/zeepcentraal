@@ -1,5 +1,10 @@
 import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
-import type { WorkshopCatalogPage, WorkshopItemMetadata, WorkshopMetadataAdapter } from './types'
+import type {
+	WorkshopCatalogPage,
+	WorkshopItemMetadata,
+	WorkshopMetadataAdapter,
+	WorkshopUserItemPage,
+} from './types'
 
 interface SteamPublishedFile {
 	banned?: boolean
@@ -18,6 +23,8 @@ interface SteamResponse {
 	response?: {
 		next_cursor?: string
 		publishedfiledetails?: SteamPublishedFile[]
+		startindex?: number
+		total?: number
 	}
 }
 
@@ -104,6 +111,37 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 		return {
 			items: (response.response?.publishedfiledetails ?? []).map(parseItem),
 			nextCursor: nextCursor && nextCursor !== cursor ? nextCursor : undefined,
+		}
+	}
+
+	public async listUserItemIds(
+		uploaderId: bigint,
+		page = 1,
+		limit = 100,
+	): Promise<WorkshopUserItemPage> {
+		const url = new URL('/IPublishedFileService/GetUserFiles/v1/', this.endpoint)
+		url.searchParams.set('key', this.apiKey)
+		url.searchParams.set('steamid', uploaderId.toString())
+		url.searchParams.set('appid', this.appId)
+		url.searchParams.set('creator_appid', this.appId)
+		url.searchParams.set('page', page.toString())
+		url.searchParams.set('numperpage', limit.toString())
+		url.searchParams.set('type', 'myfiles')
+		url.searchParams.set('admin_query', 'true')
+		const response = await getJson(url)
+		const details = response.response?.publishedfiledetails ?? []
+		const workshopIds = details.flatMap((item) =>
+			item.publishedfileid ? [BigInt(item.publishedfileid)] : [],
+		)
+		const total = response.response?.total
+		const startIndex = response.response?.startindex ?? (page - 1) * limit + 1
+		const hasNextPage =
+			total === undefined
+				? workshopIds.length === limit
+				: startIndex - 1 + workshopIds.length < total
+		return {
+			workshopIds,
+			nextPage: hasNextPage ? page + 1 : undefined,
 		}
 	}
 }

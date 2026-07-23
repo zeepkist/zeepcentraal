@@ -16,9 +16,19 @@ export interface WorkshopCatalogPage {
 	nextCursor?: string
 }
 
+export interface WorkshopUserItemPage {
+	nextPage?: number
+	workshopIds: bigint[]
+}
+
 export interface WorkshopMetadataAdapter {
 	getItems(workshopIds: bigint[]): Promise<WorkshopItemMetadata[]>
 	listItems(cursor?: string, limit?: number): Promise<WorkshopCatalogPage>
+	listUserItemIds(
+		uploaderId: bigint,
+		page?: number,
+		limit?: number,
+	): Promise<WorkshopUserItemPage>
 }
 
 export interface DownloadedWorkshopItem {
@@ -36,7 +46,7 @@ export interface WorkshopDownloader {
 }
 
 export interface WorkshopPersistence {
-	findLevelAuthorByXxHash(xxHash: string, excludedAuthorId: bigint): Promise<bigint | undefined>
+	findLevelAuthorByXxHash(xxHash: string, excludedUploaderId: bigint): Promise<bigint | undefined>
 	markDeleted(
 		workshopId: bigint,
 		workshopVisibility: number,

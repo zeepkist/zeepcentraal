@@ -215,13 +215,20 @@ export async function getPendingLevelRequests({
 
 export async function findWorkshopLevelAuthorByXxHash(
 	xxHash: string,
-	excludedAuthorId: bigint,
+	excludedUploaderId: bigint,
 ): Promise<bigint | undefined> {
 	const row = await db
 		.select({ authorId: levelItem.authorId })
 		.from(levelItem)
 		.innerJoin(level, eq(level.id, levelItem.idLevel))
-		.where(and(eq(level.xxHash, xxHash), ne(levelItem.authorId, excludedAuthorId)))
+		.innerJoin(workshopItem, eq(workshopItem.workshopId, levelItem.workshopId))
+		.where(
+			and(
+				eq(level.xxHash, xxHash),
+				ne(levelItem.authorId, excludedUploaderId),
+				ne(workshopItem.authorId, excludedUploaderId),
+			),
+		)
 		.orderBy(asc(levelItem.deleted), asc(levelItem.id))
 		.limit(1)
 		.then((rows) => rows[0])

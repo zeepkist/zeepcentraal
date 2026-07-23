@@ -18,41 +18,49 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 	const forceAll = payload.all === true
 	const repairZslAuthors = payload.repairZslAuthors === true
 	const fixZeepSDKExponentHashes = forceAll && payload.fixZeepSDKExponentHashes === true
-	const storedWorkshopState = await getWorkshopSyncState()
 	const metadata = getWorkshopMetadata()
 	const seen = new Set<bigint>()
 	const queue = new Set<bigint>()
-	let cursor: string | undefined
 	let pages = 0
 
-	do {
-		const page = await metadata.listItems(cursor)
-		pages++
-		for (const item of page.items) {
-			seen.add(item.workshopId)
-			if (repairZslAuthors) {
-				if (item.creatorId === ZSL_WORKSHOP_AUTHOR_ID) {
+	if (repairZslAuthors) {
+		let pageNumber: number | undefined = 1
+		do {
+			const page = await metadata.listUserItemIds(ZSL_WORKSHOP_AUTHOR_ID, pageNumber)
+			pages++
+			for (const workshopId of page.workshopIds) {
+				seen.add(workshopId)
+				queue.add(workshopId)
+			}
+			console.info(
+				`syncWorkshopCatalog ZSL page ${pages} processed: ${page.workshopIds.length} items, ${seen.size} seen, ${queue.size} queued.`,
+			)
+			pageNumber = page.nextPage
+		} while (pageNumber)
+	} else {
+		const storedWorkshopState = await getWorkshopSyncState()
+		let cursor: string | undefined
+		do {
+			const page = await metadata.listItems(cursor)
+			pages++
+			for (const item of page.items) {
+				seen.add(item.workshopId)
+				const storedState = storedWorkshopState.get(item.workshopId)
+				if (
+					forceAll ||
+					!storedState ||
+					storedState.activeItemCount === 0 ||
+					new Date(item.updatedAt).getTime() > new Date(storedState.updatedAt).getTime()
+				) {
 					queue.add(item.workshopId)
 				}
-				continue
 			}
-			const storedState = storedWorkshopState.get(item.workshopId)
-			if (
-				forceAll ||
-				!storedState ||
-				storedState.activeItemCount === 0 ||
-				new Date(item.updatedAt).getTime() > new Date(storedState.updatedAt).getTime()
-			) {
-				queue.add(item.workshopId)
-			}
-		}
-		console.info(
-			`syncWorkshopCatalog page ${pages} processed: ${page.items.length} items, ${seen.size} seen, ${queue.size} queued.`,
-		)
-		cursor = page.nextCursor
-	} while (cursor)
+			console.info(
+				`syncWorkshopCatalog page ${pages} processed: ${page.items.length} items, ${seen.size} seen, ${queue.size} queued.`,
+			)
+			cursor = page.nextCursor
+		} while (cursor)
 
-	if (!repairZslAuthors) {
 		for (const [workshopId, storedState] of storedWorkshopState) {
 			if (!seen.has(workshopId) && storedState.activeItemCount > 0) {
 				queue.add(workshopId)

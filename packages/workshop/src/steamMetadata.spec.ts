@@ -51,6 +51,43 @@ describe('SteamWebApiMetadata', () => {
 		expect(urls[0]?.searchParams.get('admin_query')).toBe('true')
 	})
 
+	test('listUserItemIds uses uploader-specific endpoint and paginates bigint IDs', async () => {
+		const urls = mockJsonFetch((url) => {
+			const page = Number(url.searchParams.get('page'))
+			return {
+				body: {
+					response: {
+						total: 3,
+						startindex: page === 1 ? 1 : 3,
+						publishedfiledetails:
+							page === 1
+								? [
+										{ publishedfileid: '3756492110' },
+										{ publishedfileid: '3752353489' },
+									]
+								: [{ publishedfileid: '2798571210' }],
+					},
+				},
+			}
+		})
+		const metadata = new SteamWebApiMetadata('key', '1440670', 'https://steam.test')
+
+		const first = await metadata.listUserItemIds(76561198031919228n, 1, 2)
+		const second = await metadata.listUserItemIds(76561198031919228n, first.nextPage, 2)
+
+		expect(urls[0]?.pathname).toBe('/IPublishedFileService/GetUserFiles/v1/')
+		expect(urls[0]?.searchParams.get('steamid')).toBe('76561198031919228')
+		expect(urls[0]?.searchParams.get('appid')).toBe('1440670')
+		expect(urls[0]?.searchParams.get('creator_appid')).toBe('1440670')
+		expect(urls[0]?.searchParams.get('type')).toBe('myfiles')
+		expect(urls[0]?.searchParams.get('admin_query')).toBe('true')
+		expect(first).toEqual({
+			workshopIds: [3756492110n, 3752353489n],
+			nextPage: 2,
+		})
+		expect(second).toEqual({ workshopIds: [2798571210n], nextPage: undefined })
+	})
+
 	test('banned and missing items are unavailable', async () => {
 		mockJsonFetch(() => ({
 			body: {

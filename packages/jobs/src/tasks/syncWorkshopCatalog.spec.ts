@@ -10,6 +10,10 @@ let catalogItems = [
 	},
 ]
 const listItems = mock(async () => ({ items: catalogItems }))
+let userItemPages = new Map<number, { nextPage?: number; workshopIds: bigint[] }>()
+const listUserItemIds = mock(async (_uploaderId: bigint, page = 1) => {
+	return userItemPages.get(page) ?? { workshopIds: [] }
+})
 
 mock.module('@zeepkist/database/services/workshop', () => ({
 	getWorkshopSyncState,
@@ -18,6 +22,7 @@ mock.module('@zeepkist/database/services/workshop', () => ({
 mock.module('../workshopScanner', () => ({
 	getWorkshopMetadata: () => ({
 		listItems,
+		listUserItemIds,
 	}),
 	getWorkshopScanner: () => {
 		throw new Error('getWorkshopScanner should not be called by syncWorkshopCatalog')
@@ -49,30 +54,51 @@ describe('syncWorkshopCatalog', () => {
 		]
 		getWorkshopSyncState.mockClear()
 		listItems.mockClear()
+		listUserItemIds.mockClear()
+		userItemPages = new Map()
 	})
 
-	test('repair mode queues only ZSL uploader items', async () => {
+	test('repair mode lists only ZSL uploader items across user pages', async () => {
 		workshopSyncState = new Map([
 			[999n, { activeItemCount: 1, updatedAt: '2020-01-01T00:00:00.000Z' }],
 		])
-		catalogItems = [
-			...catalogItems,
-			{
-				workshopId: 200n,
-				creatorId: 76561198031919228n,
-				updatedAt: '2020-01-01T00:00:00.000Z',
-			},
-		]
+		userItemPages = new Map([
+			[1, { workshopIds: [200n], nextPage: 2 }],
+			[2, { workshopIds: [201n] }],
+		])
 		const helpers = createHelpers()
 
 		await syncWorkshopCatalog({ repairZslAuthors: true }, helpers as never)
 
+		expect(listItems).not.toHaveBeenCalled()
+		expect(getWorkshopSyncState).not.toHaveBeenCalled()
+		expect(listUserItemIds).toHaveBeenNthCalledWith(1, 76561198031919228n, 1)
+		expect(listUserItemIds).toHaveBeenNthCalledWith(2, 76561198031919228n, 2)
 		expect(helpers.addJob).toHaveBeenCalledTimes(1)
 		expect(helpers.addJob).toHaveBeenCalledWith(
 			'scanWorkshopBatch',
-			{ workshopIds: ['200'] },
+			{ workshopIds: ['200', '201'] },
 			{
-				jobKey: 'scan-workshop-batch:200:200',
+				jobKey: 'scan-workshop-batch:200:201',
+				maxAttempts: 5,
+				priority: 100,
+			},
+		)
+	})
+
+	test('ordinary catalog sync does not use uploader-specific listing', async () => {
+		const helpers = createHelpers()
+
+		await syncWorkshopCatalog({}, helpers as never)
+
+		expect(listUserItemIds).not.toHaveBeenCalled()
+		expect(listItems).toHaveBeenCalledTimes(1)
+		expect(getWorkshopSyncState).toHaveBeenCalledTimes(1)
+		expect(helpers.addJob).toHaveBeenCalledWith(
+			'scanWorkshopBatch',
+			{ workshopIds: ['100'] },
+			{
+				jobKey: 'scan-workshop-batch:100:100',
 				maxAttempts: 5,
 				priority: 100,
 			},

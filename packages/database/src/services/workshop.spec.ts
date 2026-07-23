@@ -53,7 +53,7 @@ test('Workshop and level authors are persisted separately', () => {
 	)
 })
 
-test('CSV author lookup prefers oldest active non-excluded level item', () => {
+test('ZSL author lookup excludes Akane levels and prefers oldest active candidate', () => {
 	const start = workshopServiceSource.indexOf(
 		'export async function findWorkshopLevelAuthorByXxHash',
 	)
@@ -61,7 +61,11 @@ test('CSV author lookup prefers oldest active non-excluded level item', () => {
 	const source = workshopServiceSource.slice(start, end)
 
 	expect(source).toContain('eq(level.xxHash, xxHash)')
-	expect(source).toContain('ne(levelItem.authorId, excludedAuthorId)')
+	expect(source).toContain(
+		'.innerJoin(workshopItem, eq(workshopItem.workshopId, levelItem.workshopId))',
+	)
+	expect(source).toContain('ne(levelItem.authorId, excludedUploaderId)')
+	expect(source).toContain('ne(workshopItem.authorId, excludedUploaderId)')
 	expect(source).toContain('.orderBy(asc(levelItem.deleted), asc(levelItem.id))')
 })
 

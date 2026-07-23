@@ -53,7 +53,7 @@ async function createJsonExponentItem(): Promise<string> {
 	await mkdir(levelDirectory)
 	await writeFile(
 		join(levelDirectory, 'Example.zeeplevel'),
-		'{"jsonVersion":3,"level":{"name":"Example","UID":"uid-json-exponent","zeepHash":"legacy-json-exponent"},"author":{"name":"Author","StmID":76561198000000000},"medals":{"author":1,"gold":2,"silver":3,"bronze":4},"enviro":{"skybox":1,"groundMat":-1},"blox":[{"i":1609,"u":"exp","p":{"x":6.41169463E-21,"y":0,"z":0},"r":{"x":0,"y":0,"z":0},"s":{"x":1,"y":1,"z":1},"d":{"n":{"p0":1}}}]}',
+		'{"jsonVersion":3,"level":{"name":"Example","UID":"uid-json-exponent","zeepHash":"legacy-json-exponent"},"author":{"name":"Author","StmID":76561198896246340},"medals":{"author":1,"gold":2,"silver":3,"bronze":4},"enviro":{"skybox":1,"groundMat":-1},"blox":[{"i":1609,"u":"exp","p":{"x":6.41169463E-21,"y":0,"z":0},"r":{"x":0,"y":0,"z":0},"s":{"x":1,"y":1,"z":1},"d":{"n":{"p0":1}}}]}',
 	)
 	await writeFile(join(levelDirectory, 'Example_Thumbnail.jpg'), 'image')
 	return root
@@ -120,7 +120,7 @@ function createDependencies({
 		}>,
 		markMissing: [] as string[],
 		merges: [] as Array<Record<string, unknown>>,
-		authorLookups: [] as Array<{ excludedAuthorId: bigint; xxHash: string }>,
+		authorLookups: [] as Array<{ excludedUploaderId: bigint; xxHash: string }>,
 		uploads: 0,
 		cleanups: 0,
 		downloads: 0,
@@ -140,6 +140,7 @@ function createDependencies({
 			},
 		],
 		listItems: async () => ({ items: [] }),
+		listUserItemIds: async () => ({ workshopIds: [] }),
 	}
 	const downloader: WorkshopDownloader = {
 		download: async ([workshopId]) => {
@@ -153,8 +154,8 @@ function createDependencies({
 		},
 	}
 	const persistence: WorkshopPersistence = {
-		findLevelAuthorByXxHash: async (xxHash, excludedAuthorId) => {
-			calls.authorLookups.push({ xxHash, excludedAuthorId })
+		findLevelAuthorByXxHash: async (xxHash, excludedUploaderId) => {
+			calls.authorLookups.push({ xxHash, excludedUploaderId })
 			return foundLevelAuthorId
 		},
 		upsertLevel: async (input) => {
@@ -233,7 +234,7 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.authorLookups).toEqual([
 			{
 				xxHash: '5FC86C702B3F328B66608DC3C8BFB603',
-				excludedAuthorId: ZSL_WORKSHOP_AUTHOR_ID,
+				excludedUploaderId: ZSL_WORKSHOP_AUTHOR_ID,
 			},
 		])
 		expect(dependencies.calls.upserts[0]?.authorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
@@ -257,7 +258,27 @@ describe('WorkshopScanner', () => {
 		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
 	})
 
-	test('uses file SteamID for JSON levels in ZSL packs', async () => {
+	test('uses matching existing author instead of rounded JSON SteamID in ZSL packs', async () => {
+		const directory = await createJsonExponentItem()
+		const dependencies = createDependencies({
+			directory,
+			creatorId: ZSL_WORKSHOP_AUTHOR_ID,
+			foundLevelAuthorId: 76561198896246339n,
+		})
+		const scanner = new WorkshopScanner(
+			dependencies.metadata,
+			dependencies.downloader,
+			dependencies.persistence,
+		)
+
+		await scanner.scanWorkshopItem(1n)
+
+		expect(dependencies.calls.authorLookups).toHaveLength(1)
+		expect(dependencies.calls.upserts[0]?.authorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(76561198896246339n)
+	})
+
+	test('falls back to ZSL uploader instead of rounded JSON SteamID without a match', async () => {
 		const directory = await createJsonExponentItem()
 		const dependencies = createDependencies({
 			directory,
@@ -271,9 +292,8 @@ describe('WorkshopScanner', () => {
 
 		await scanner.scanWorkshopItem(1n)
 
-		expect(dependencies.calls.authorLookups).toEqual([])
-		expect(dependencies.calls.upserts[0]?.authorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
-		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(76561198000000000n)
+		expect(dependencies.calls.authorLookups).toHaveLength(1)
+		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
 	})
 
 	test('keeps Workshop uploader as JSON level author outside ZSL', async () => {
@@ -307,11 +327,11 @@ describe('WorkshopScanner', () => {
 
 		await scanner.scanWorkshopItem(1n)
 
-		expect(dependencies.calls.authorLookups).toEqual([])
+		expect(dependencies.calls.authorLookups).toHaveLength(1)
 		expect(dependencies.calls.upserts[0]?.levelAuthorId).toBe(ZSL_WORKSHOP_AUTHOR_ID)
 	})
 
-	test('resolves CSV and JSON authors independently in mixed ZSL packs', async () => {
+	test('resolves CSV and JSON authors through matching existing level items', async () => {
 		const directory = await createMixedZslItem()
 		const dependencies = createDependencies({
 			directory,
@@ -332,9 +352,9 @@ describe('WorkshopScanner', () => {
 			),
 		).toEqual({
 			Example: 76561198011111111n,
-			'Json Example': 76561198033333333n,
+			'Json Example': 76561198011111111n,
 		})
-		expect(dependencies.calls.authorLookups).toHaveLength(1)
+		expect(dependencies.calls.authorLookups).toHaveLength(2)
 	})
 
 	test('scans item without thumbnail using empty image URL', async () => {
