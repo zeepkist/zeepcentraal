@@ -245,6 +245,7 @@
 								/>
 								<LevelScoreBreakdown
 									:model="levelData.scoreInsights.value"
+									:points="summary.points"
 									:vote-counts="levelData.voteDistribution.value"
 									:labels="scoreBreakdownLabels"
 								/>
@@ -513,22 +514,30 @@ const medalLabels = computed(() => ({
 }))
 const voteNumberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const scoreBreakdownLabels = computed(() => ({
-	groups: {
-		score: {
-			title: t('levels.detail.scoreBreakdown.groups.score.title'),
-			description: t('levels.detail.scoreBreakdown.groups.score.description'),
+	stages: {
+		complexity: {
+			title: t('levels.detail.scoreBreakdown.stages.complexity.title'),
+			description: t('levels.detail.scoreBreakdown.stages.complexity.description'),
 		},
 		evidence: {
-			title: t('levels.detail.scoreBreakdown.groups.evidence.title'),
-			description: t('levels.detail.scoreBreakdown.groups.evidence.description'),
+			title: t('levels.detail.scoreBreakdown.stages.evidence.title'),
+			description: t('levels.detail.scoreBreakdown.stages.evidence.description'),
 		},
 		skill: {
-			title: t('levels.detail.scoreBreakdown.groups.skill.title'),
-			description: t('levels.detail.scoreBreakdown.groups.skill.description'),
+			title: t('levels.detail.scoreBreakdown.stages.skill.title'),
+			description: t('levels.detail.scoreBreakdown.stages.skill.description'),
+		},
+		quality: {
+			title: t('levels.detail.scoreBreakdown.stages.quality.title'),
+			description: t('levels.detail.scoreBreakdown.stages.quality.description'),
+		},
+		length: {
+			title: t('levels.detail.scoreBreakdown.stages.length.title'),
+			description: t('levels.detail.scoreBreakdown.stages.length.description'),
 		},
 		votes: {
-			title: t('levels.detail.scoreBreakdown.groups.votes.title'),
-			description: t('levels.detail.scoreBreakdown.groups.votes.description'),
+			title: t('levels.detail.scoreBreakdown.stages.votes.title'),
+			description: t('levels.detail.scoreBreakdown.stages.votes.description'),
 		},
 	},
 	metrics: {
@@ -548,14 +557,38 @@ const scoreBreakdownLabels = computed(() => ({
 		voteAdjustment: t('levels.detail.scoreBreakdown.metrics.voteAdjustment'),
 		worldRecordExcluded: t('levels.detail.scoreBreakdown.metrics.worldRecordExcluded'),
 	},
+	formula: {
+		base: t('levels.detail.scoreBreakdown.formula.base'),
+		result: t('levels.detail.scoreBreakdown.formula.result'),
+		points: t('levels.detail.scoreBreakdown.formula.points'),
+		summary: (values: {
+			base: string
+			quality: string
+			evidence: string
+			length: string
+			votes: string
+			result: string
+		}) => t('levels.detail.scoreBreakdown.formula.summary', values),
+	},
+	votes: {
+		title: t('levels.detail.scoreBreakdown.votes.title'),
+		description: t('levels.detail.scoreBreakdown.votes.description'),
+	},
+	diagnostics: {
+		title: t('levels.detail.scoreBreakdown.diagnostics.title'),
+		description: t('levels.detail.scoreBreakdown.diagnostics.description'),
+		observationOnly: t('levels.detail.scoreBreakdown.diagnostics.observationOnly'),
+	},
 	voteDistribution: {
-		ariaLabel: t('levels.detail.scoreBreakdown.groups.votes.ariaLabel'),
-		empty: t('levels.detail.scoreBreakdown.groups.votes.empty'),
+		ariaLabel: t('levels.detail.scoreBreakdown.votes.ariaLabel'),
+		empty: t('levels.detail.scoreBreakdown.votes.empty'),
 		total: (count: number) =>
-			t('levels.detail.scoreBreakdown.groups.votes.total', {
+			t('levels.detail.scoreBreakdown.votes.total', {
 				count: voteNumberFormat.value.format(count),
 			}),
 	},
+	confidence: t('levels.detail.scoreBreakdown.confidence'),
+	inspector: t('levels.detail.scoreBreakdown.inspector'),
 	unavailable: t('levels.detail.scoreBreakdown.unavailable'),
 	notAvailable: t('levels.detail.scoreBreakdown.notAvailable'),
 	included: t('levels.detail.scoreBreakdown.included'),

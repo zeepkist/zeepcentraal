@@ -164,10 +164,14 @@ describe('compact level detail layout', () => {
 		)
 	})
 
-	it('adds vote distribution as the fourth score breakdown card', () => {
-		expect(scoreBreakdown).toContain('v-for="group in groups"')
+	it('renders score breakdown as a full-width reactor with integrated vote distribution', () => {
+		expect(scoreBreakdown).toContain('class="points-reactor')
+		expect(scoreBreakdown).toContain('class="reactor-map"')
+		expect(scoreBreakdown).toContain('class="reactor-inspector')
 		expect(scoreBreakdown).toContain('<VoteDistributionChart')
-		expect(scoreBreakdown).toContain('labels.groups.votes.title')
+		expect(scoreBreakdown).toContain('labels.votes.title')
+		expect(scoreBreakdown).not.toContain('v-for="group in groups"')
+		expect(page).toContain(':points="summary.points"')
 		expect(page).toContain(':vote-counts="levelData.voteDistribution.value"')
 	})
 })

@@ -1169,30 +1169,53 @@
 			},
 			"scoreBreakdown": {
 				"title": "How level points are calculated",
-				"description": "Execution complexity, independent player-skill selectivity, evidence, length and mature votes behind this level’s ranked value.",
-				"groups": {
-					"score": {
-						"title": "Award score",
-						"description": "Quality scores and active modifiers that directly affect awarded level points."
+				"description": "See exactly how each level earns its score, with every factor and calculation.",
+				"stages": {
+					"complexity": {
+						"title": "Execution complexity",
+						"description": "Telemetry from top runs measures sustained control use and input transitions."
 					},
 					"evidence": {
-						"title": "Evidence quality",
-						"description": "Leaderboard and telemetry coverage controlling confidence and sparse-map protection."
+						"title": "Evidence",
+						"description": "Credible leaderboard depth protects sparse levels from receiving an inflated score."
 					},
 					"skill": {
 						"title": "Skill selectivity",
-						"description": "Independent player-skill agreement, separation and field strength. Competitive merit remains observation-only."
+						"description": "Rated-player results measure whether stronger players consistently perform better."
+					},
+					"quality": {
+						"title": "Quality",
+						"description": "Execution complexity and skill selectivity combine equally into the quality factor."
+					},
+					"length": {
+						"title": "Length",
+						"description": "Median completion time from top runs adjusts the score for level duration."
 					},
 					"votes": {
-						"title": "Player votes",
-						"description": "How players rated this level.",
-						"ariaLabel": "Level vote distribution",
-						"empty": "No players have voted on this level yet.",
-						"total": "{count} votes"
+						"title": "Mature votes",
+						"description": "Community voting applies a bounded adjustment once enough votes exist."
 					}
 				},
+				"formula": {
+					"base": "Maximum score",
+					"result": "Calculated",
+					"points": "level points",
+					"summary": "{base} base points multiplied by quality {quality}, evidence {evidence}, length {length}, and votes {votes}, resulting in {result} level points."
+				},
+				"votes": {
+					"title": "Player vote mix",
+					"description": "Distribution feeding the mature-vote factor above.",
+					"ariaLabel": "Level vote distribution",
+					"empty": "No players have voted on this level yet.",
+					"total": "{count} votes"
+				},
+				"diagnostics": {
+					"title": "Scoring diagnostics",
+					"description": "Useful leaderboard observations shown for context. These values do not enter the points multiplication path.",
+					"observationOnly": "Observation only"
+				},
 				"metrics": {
-					"competitiveMerit": "Competitive merit (observation)",
+					"competitiveMerit": "Competitive merit",
 					"complexityConfidence": "Complexity confidence",
 					"complexityScore": "Execution complexity",
 					"evidenceModifier": "Evidence factor",
@@ -1206,8 +1229,10 @@
 					"skillScore": "Player-skill selectivity",
 					"skillSeparation": "Skill separation",
 					"voteAdjustment": "Mature-vote factor",
-					"worldRecordExcluded": "World Record anomaly result"
+					"worldRecordExcluded": "WR anomaly"
 				},
+				"confidence": "Confidence",
+				"inspector": "Factor",
 				"unavailable": "-",
 				"notAvailable": "N/A",
 				"included": "Used for scoring",

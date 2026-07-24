@@ -17,7 +17,6 @@ import {
 } from '~/graphql/generated/graphql'
 import type {
 	CursorPage,
-	LevelScoreInsights,
 	LevelSummary,
 	LevelWorldRecordSummary,
 	RecordHistoryRow,
@@ -29,12 +28,9 @@ import {
 	calculateLevelPersonalBestPoints,
 	resolveRecordPbOrWr,
 } from '~/utils/levelRecordRows'
+import { mapLevelScoreInsights } from '~/utils/levelScoreInsights'
 import { buildLevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
 import { buildVoteDistributionCounts } from '~/utils/voteDistribution'
-
-type LevelScoreInsightsSource = LevelScoreInsights & {
-	modifierRating?: number | null
-}
 
 function mapRecord(
 	record: {
@@ -259,26 +255,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 				: null,
 		}
 	})
-	const scoreInsights = computed<LevelScoreInsights>(() => {
-		const points = level.value?.levelPoints as LevelScoreInsightsSource | null | undefined
-		return {
-			competitiveMerit: points?.competitiveMerit,
-			complexityConfidence: points?.complexityConfidence,
-			complexityScore: points?.complexityScore,
-			evidenceModifier: points?.evidenceModifier,
-			fieldStrength: points?.fieldStrength,
-			lengthModifier: points?.lengthModifier,
-			qualityModifier: points?.qualityModifier,
-			qualityScore: points?.qualityScore,
-			skillAlignment: points?.skillAlignment,
-			skillConfidence: points?.skillConfidence,
-			skillSampleSize: points?.skillSampleSize,
-			skillScore: points?.skillScore,
-			skillSeparation: points?.skillSeparation,
-			voteAdjustment: points?.modifierRating,
-			worldRecordExcluded: points?.worldRecordExcluded,
-		}
-	})
+	const scoreInsights = computed(() => mapLevelScoreInsights(level.value?.levelPoints))
 	const voteDistribution = computed(() =>
 		buildVoteDistributionCounts(
 			level.value?.votes.groupedAggregates,
