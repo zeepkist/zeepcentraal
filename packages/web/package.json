@@ -13,7 +13,7 @@
 		"prepare:nuxt": "bun --bun nuxt prepare",
 		"stage:takumi-addon": "bun scripts/stage-takumi-native-addon.ts",
 		"codegen": "bun --bun graphql-codegen --config codegen.ts",
-		"typecheck": "bun --bun node_modules/.bin/vue-tsc --noEmit -p tsconfig.json",
+		"typecheck": "nuxt typecheck",
 		"test": "bun --bun vitest run",
 		"test:e2e": "bun --bun playwright test"
 	},
@@ -35,7 +35,7 @@
 		"graphql": "17.0.2",
 		"graphql-ws": "6.1.0",
 		"lzma-wasm": "^1.0.7",
-		"nuxt": "4.4.8",
+		"nuxt": "^4.5.0",
 		"nuxt-charts": "2.1.4",
 		"pinia": "~3.0.0",
 		"sanitize-html": "2.17.6",
@@ -46,6 +46,7 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@golar/vue": "0.1.10",
 		"@graphql-codegen/cli": "7.2.0",
 		"@graphql-codegen/client-preset": "6.1.0",
 		"@iconify-json/lucide": "~1.2.117",
@@ -54,7 +55,6 @@
 		"@types/three": "^0.185.1",
 		"@vue/test-utils": "2.4.11",
 		"nuxt-bun-compile": "0.1.32",
-		"vitest": "4.1.10",
-		"vue-tsc": "3.3.7"
+		"vitest": "4.1.10"
 	}
 }

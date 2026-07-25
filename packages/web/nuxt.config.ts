@@ -6,11 +6,15 @@ const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
 const productionBackendUrl = 'https://backend.zeepki.st'
 
 export default defineNuxtConfig({
-	compatibilityDate: '2026-07-06',
+	compatibilityDate: '2026-07-25',
 	debug: process.env.NUXT_DEBUG === 'true',
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
 	srcDir: 'app',
+	experimental: {
+		ssrStreaming: true,
+		watcher: 'builder',
+	},
 	appConfig: {
 		ui: {
 			colors: {
