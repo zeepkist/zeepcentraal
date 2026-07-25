@@ -22,7 +22,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { findAdventureSeries } from '~/utils/adventureSeries'
 
 const route = useRoute()

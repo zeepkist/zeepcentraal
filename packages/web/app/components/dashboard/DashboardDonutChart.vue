@@ -45,7 +45,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 
 const props = withDefaults(

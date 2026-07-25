@@ -9,7 +9,7 @@
 	</NuxtLink>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TournamentSummary } from '~/types/tournament'
 import { formatTournamentPeriod, tournamentPath } from '~/utils/tournament'
 

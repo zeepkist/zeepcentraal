@@ -201,7 +201,7 @@
 	</DataState>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TrackTournamentType } from '~/types/tournament'
 import {
 	formatTournamentPeriod,

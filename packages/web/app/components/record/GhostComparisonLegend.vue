@@ -26,7 +26,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LoadedPlaybackGhost } from '~/types/ghost'
 
 defineProps<{

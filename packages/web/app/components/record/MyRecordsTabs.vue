@@ -15,7 +15,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { RecordHistoryView } from '~/utils/recordHistory'
 
 defineProps<{

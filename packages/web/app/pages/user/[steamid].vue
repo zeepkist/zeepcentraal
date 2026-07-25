@@ -238,7 +238,7 @@
 	</UContainer>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 const route = useRoute()
 const { t } = useI18n()
 const steamId = computed(() => String(route.params.steamid))

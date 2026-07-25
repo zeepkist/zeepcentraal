@@ -49,7 +49,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { CursorPage, RecordHistoryRow, SortOption } from '~/types/app'
 import type { RecordHistorySort } from '~/utils/recordHistory'
 

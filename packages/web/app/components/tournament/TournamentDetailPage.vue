@@ -4,7 +4,7 @@
 	</UContainer>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TrackTournamentType } from '~/types/tournament'
 
 defineProps<{ type: TrackTournamentType; title: string }>()

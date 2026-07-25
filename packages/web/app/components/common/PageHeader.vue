@@ -22,7 +22,7 @@
 	</header>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
 
 defineProps<{

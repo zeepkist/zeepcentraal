@@ -6,7 +6,7 @@
 		</div>
 	</UContainer>
 </template>
-<script setup lang="ts">
+<script setup vapor lang="ts">
 usePageSeo('developer')
 const { t } = useI18n()
 const links = computed(() => [

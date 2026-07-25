@@ -22,7 +22,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { SortOption } from '~/types/app'
 import type { RecordHistorySort, RecordHistoryView } from '~/utils/recordHistory'
 

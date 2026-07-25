@@ -22,7 +22,7 @@
 	</section>
 </template>
 
-<script setup lang="ts" generic="T extends string">
+<script setup vapor lang="ts" generic="T extends string">
 import type { DetailSectionTabItem } from '~/types/detailTabs'
 
 const props = defineProps<{

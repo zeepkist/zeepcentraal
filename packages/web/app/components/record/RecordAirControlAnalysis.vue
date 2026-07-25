@@ -256,7 +256,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import type {
 	RecordAirControlEventSummary,

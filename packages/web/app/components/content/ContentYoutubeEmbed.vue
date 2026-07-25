@@ -27,7 +27,7 @@
 	</figure>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 const props = defineProps<{
 	title: string
 	videoId: string

@@ -236,7 +236,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { MAX_LEVEL_POINTS } from '@zeepkist/core/score'
 import type { LevelScoreInsights } from '~/types/app'
 import type { VoteDistributionCounts } from '~/utils/voteDistribution'

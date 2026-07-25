@@ -12,7 +12,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 const props = defineProps<{ title: string; startAt: string; backTo?: string }>()
 const now = ref(Date.now())
 let timer: ReturnType<typeof setInterval> | undefined

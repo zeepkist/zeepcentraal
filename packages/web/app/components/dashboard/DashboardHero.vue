@@ -102,7 +102,7 @@
 	</UCard>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { HeroAction, HeroMetric, HeroPanel } from '~/types/app'
 
 defineProps<{

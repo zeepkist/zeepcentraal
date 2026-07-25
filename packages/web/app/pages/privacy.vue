@@ -8,7 +8,7 @@
 	/>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 const { t } = useI18n()
 const { data: document } = await useAsyncData('legal-privacy', () =>
 	queryCollection('legal').path('/legal/privacy').first(),

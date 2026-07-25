@@ -32,7 +32,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TocLink } from '@nuxt/content'
 
 type ContentValue = object & {

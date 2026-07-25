@@ -93,7 +93,7 @@
 	</UCard>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { SortOption } from '~/types/app'
 
 defineProps<{

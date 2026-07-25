@@ -36,7 +36,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
 import type { TournamentStanding } from '~/types/tournament'
 

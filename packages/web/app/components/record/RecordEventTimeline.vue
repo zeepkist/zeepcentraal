@@ -83,7 +83,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { GhostEventKind, GhostTimelineEvent } from '~/types/ghost'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import type { RecordTimelineLane } from '~/utils/recordGhostAnalysis'

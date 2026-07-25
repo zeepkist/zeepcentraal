@@ -72,7 +72,7 @@
 	</UContainer>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 const session = useSessionStore()
 if (!session.user) {
 	await navigateTo('/records', { replace: true })

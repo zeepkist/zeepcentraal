@@ -46,7 +46,7 @@
 	</nav>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TournamentNavigation, TrackTournamentType } from '~/types/tournament'
 import { tournamentPath } from '~/utils/tournament'
 

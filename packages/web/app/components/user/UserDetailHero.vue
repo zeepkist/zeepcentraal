@@ -30,7 +30,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { UserProfileSummary } from '~/types/app'
 
 const props = defineProps<{

@@ -17,7 +17,7 @@
 	</div>
 </template>
 
-<script setup lang="ts" generic="T extends string">
+<script setup vapor lang="ts" generic="T extends string">
 const props = defineProps<{
 	modelValue: T
 	label: string

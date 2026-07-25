@@ -28,7 +28,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL } from '~/types/modkist'
 
 const releases = useModkistReleasesContext()

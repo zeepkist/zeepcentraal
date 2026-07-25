@@ -129,7 +129,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardStatisticsModel } from '~/types/app'
 
 defineProps<{ model: DashboardStatisticsModel }>()

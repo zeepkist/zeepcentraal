@@ -22,7 +22,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { UserAchievementPreviewItem } from '~/types/app'
 
 defineProps<{
