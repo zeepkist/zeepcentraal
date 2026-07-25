@@ -35,8 +35,19 @@ runs:
       run: bun run ${{ inputs.build-script }}
 
     - name: Upload ${{ inputs.name }} binary
+      if: ${{ inputs.name != 'web' }}
       uses: actions/upload-artifact@v7
       with:
         name: compiled-binary-${{ inputs.name }}
         if-no-files-found: error
         path: dist/${{ inputs.binary }}
+
+    - name: Upload web binary and native runtime
+      if: ${{ inputs.name == 'web' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: compiled-binary-${{ inputs.name }}
+        if-no-files-found: error
+        path: |
+          dist/${{ inputs.binary }}
+          dist/node_modules/@takumi-rs/core-linux-x64-gnu

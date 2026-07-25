@@ -7,6 +7,7 @@ LABEL org.opencontainers.image.description="ZeepCentraal Nuxt web application."
 WORKDIR /app
 
 COPY --chmod=755 --chown=nonroot:nonroot dist/zeepcentraal-web zeepcentraal-web
+COPY --chown=nonroot:nonroot dist/node_modules/@takumi-rs/core-linux-x64-gnu node_modules/@takumi-rs/core-linux-x64-gnu
 
 ENV NODE_ENV=production
 ENV NITRO_PORT=4000

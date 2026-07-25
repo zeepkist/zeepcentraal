@@ -179,6 +179,14 @@ export default defineNuxtConfig({
 	},
 	ogImage: {
 		enabled: true,
+		compatibility: {
+			prerender: {
+				browser: false,
+			},
+		},
+		security: {
+			restrictRuntimeImagesToOrigin: true,
+		},
 	},
 	linkChecker: {
 		enabled: false,

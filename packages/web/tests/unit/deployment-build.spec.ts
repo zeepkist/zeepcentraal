@@ -18,6 +18,10 @@ const buildAction = readFileSync(
 	new URL('../../../../.github/actions/build-package-binary/action.yml', import.meta.url),
 	'utf8',
 )
+const buildDockerImageAction = readFileSync(
+	new URL('../../../../.github/actions/build-docker-image/action.yml', import.meta.url),
+	'utf8',
+)
 const setupBunDependenciesAction = readFileSync(
 	new URL('../../../../.github/actions/setup-bun-deps/action.yml', import.meta.url),
 	'utf8',
@@ -34,6 +38,10 @@ const bunCompilePatch = readFileSync(
 	new URL('../../../../patches/nuxt-bun-compile@0.1.32.patch', import.meta.url),
 	'utf8',
 )
+const stageTakumiNativeAddonScript = readFileSync(
+	new URL('../../scripts/stage-takumi-native-addon.ts', import.meta.url),
+	'utf8',
+)
 
 describe('web deployment build', () => {
 	it('routes root CI build through standalone deployment compilation', () => {
@@ -47,8 +55,16 @@ describe('web deployment build', () => {
 		const buildIndex = webPackage.scripts['build:deployment'].indexOf(
 			'NUXT_BUN_COMPILE=true bun --bun nuxt build',
 		)
+		const stageAddonIndex = webPackage.scripts['build:deployment'].indexOf(
+			'bun run stage:takumi-addon',
+		)
+		const verifyBinaryIndex = webPackage.scripts['build:deployment'].indexOf(
+			'test -x ../../dist/zeepcentraal-web',
+		)
 		expect(prepareIndex).toBeGreaterThanOrEqual(0)
 		expect(buildIndex).toBeGreaterThan(prepareIndex)
+		expect(stageAddonIndex).toBeGreaterThan(buildIndex)
+		expect(verifyBinaryIndex).toBeGreaterThan(stageAddonIndex)
 		expect(webPackage.scripts['build:deployment']).toContain('NUXT_BUN_COMPILE=true')
 		expect(webPackage.scripts['build:deployment']).toContain('bun --bun nuxt build')
 		expect(webPackage.scripts['build:deployment']).toContain(
@@ -56,6 +72,27 @@ describe('web deployment build', () => {
 		)
 		expect(webPackage.scripts['build:deployment']).not.toContain('bun build --compile')
 		expect(webPackage.scripts['build:deployment']).not.toContain('.output/server')
+	})
+
+	it('stages the Takumi Linux native addon beside the compiled executable', () => {
+		expect(webPackage.scripts['stage:takumi-addon']).toBe(
+			'bun scripts/stage-takumi-native-addon.ts',
+		)
+		expect(stageTakumiNativeAddonScript).toContain(
+			"const packageName = '@takumi-rs/core-linux-x64-gnu'",
+		)
+		expect(stageTakumiNativeAddonScript).toContain(
+			"const nativeBinding = 'core.linux-x64-gnu.node'",
+		)
+		expect(stageTakumiNativeAddonScript).toContain(
+			['../.output/server/node_modules/', '$', '{packageName}'].join(''),
+		)
+		expect(stageTakumiNativeAddonScript).toContain(
+			['../../../dist/node_modules/', '$', '{packageName}'].join(''),
+		)
+		expect(stageTakumiNativeAddonScript).toContain(
+			'cpSync(sourceDirectory, destinationDirectory, { recursive: true })',
+		)
 	})
 
 	it('delegates standalone compilation to nuxt-bun-compile', () => {
@@ -124,10 +161,19 @@ describe('web deployment build', () => {
 		expect(setupBunDependenciesAction).toContain("'patches/**'")
 	})
 
-	it('restores executable permissions after artifact download', () => {
+	it('ships the Takumi native addon in the web artifact and container', () => {
+		expect(buildAction).toMatch(/if: \$\{\{ inputs\.name == 'web' \}\}/)
+		expect(buildAction).toContain('dist/node_modules/@takumi-rs/core-linux-x64-gnu')
+		expect(buildDockerImageAction).toContain(
+			'test -f dist/node_modules/@takumi-rs/core-linux-x64-gnu/core.linux-x64-gnu.node',
+		)
 		expect(webDockerfile).toContain(
 			'COPY --chmod=755 --chown=nonroot:nonroot dist/zeepcentraal-web zeepcentraal-web',
 		)
+		expect(webDockerfile).toContain(
+			'COPY --chown=nonroot:nonroot dist/node_modules/@takumi-rs/core-linux-x64-gnu node_modules/@takumi-rs/core-linux-x64-gnu',
+		)
+		expect(webDockerfile).toContain('WORKDIR /app')
 		expect(webDockerfile).toContain('ENTRYPOINT ["./zeepcentraal-web"]')
 	})
 

@@ -37,6 +37,11 @@ runs:
       shell: bash
       run: test -f dist/${{ inputs.binary }}
 
+    - name: Verify web native runtime
+      if: ${{ inputs.name == 'web' }}
+      shell: bash
+      run: test -f dist/node_modules/@takumi-rs/core-linux-x64-gnu/core.linux-x64-gnu.node
+
     - name: Clone Super League Data
       if: ${{ inputs.clone-super-league == 'true' }}
       shell: bash
