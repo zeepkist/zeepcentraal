@@ -12,7 +12,7 @@ export default defineNuxtConfig({
 	ssr: true,
 	srcDir: 'app',
 	experimental: {
-		ssrStreaming: true,
+		ssrStreaming: false,
 		watcher: 'builder',
 	},
 	appConfig: {

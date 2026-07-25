@@ -57,11 +57,11 @@
 	"dependencies": {
 		"@isaacs/ttlcache": "~2.1.1",
 		"@lukeed/ms": "~2.0.2",
-		"@napi-rs/lzma": "^1.4.5",
+		"@napi-rs/lzma": "~1.5.1",
 		"@zeepkist/telemetry": "workspace:*",
 		"fast-jwt": "~6.2.4",
-		"protobufjs": "^8.6.5",
-		"xxhash-addon": "^2.1.0",
+		"protobufjs": "~8.7.1",
+		"xxhash-addon": "~2.1.0",
 		"zod": "~4.4.0"
 	}
 }
