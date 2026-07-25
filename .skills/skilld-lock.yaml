@@ -1,0 +1,43 @@
+skills:
+  vue:
+    packageName: vue
+    version: "2026-06-23T00:14:36.000Z"
+    repo: antfu/skills
+    source: registry
+    syncedAt: 2026-07-25
+    generator: curator
+  nuxt:
+    packageName: nuxt
+    version: "2026-06-23T00:14:36.000Z"
+    repo: antfu/skills
+    source: registry
+    syncedAt: 2026-07-25
+    generator: curator
+  pinia:
+    packageName: pinia
+    version: "2026-06-23T00:14:36.000Z"
+    repo: antfu/skills
+    source: registry
+    syncedAt: 2026-07-25
+    generator: curator
+  tailwindcss:
+    packageName: tailwindcss
+    version: "2026-06-10T04:56:54.000Z"
+    repo: hairyf/skills
+    source: registry
+    syncedAt: 2026-07-25
+    generator: curator
+  zod-skilld:
+    packageName: zod
+    version: 4.4.3
+    repo: colinhacks/zod
+    source: "https://github.com/colinhacks/zod/tree/v4.4.3/docs"
+    syncedAt: 2026-07-25
+    generator: skilld
+  drizzle-orm-skilld:
+    packageName: drizzle-orm
+    version: 0.45.2
+    repo: drizzle-team/drizzle-orm
+    source: "https://orm.drizzle.team/**"
+    syncedAt: 2026-07-25
+    generator: skilld

@@ -36,6 +36,7 @@
 		"db:seed:tournaments:local": "bun --cwd=packages/database run db:seed:tournaments:local",
 		"db:migration:adventure-levels": "bun --bun --cwd=packages/database run db:migration:adventure-levels",
 		"prepare": "husky",
+		"prepare:skilld": "bunx skilld prepare || true",
 		"typecheck": "tsc --noEmit",
 		"test": "bun test --isolate",
 		"lint": "biome check .",
@@ -48,7 +49,7 @@
 		"*": "biome check --write --no-errors-on-unmatched"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.0",
+		"@biomejs/biome": "2.5.5",
 		"@semantic-release/commit-analyzer": "13.0.1",
 		"@semantic-release/github": "12.0.9",
 		"@semantic-release/release-notes-generator": "14.1.1",
@@ -56,9 +57,10 @@
 		"better-sqlite3": "12.11.1",
 		"conventional-changelog-conventionalcommits": "10.2.1",
 		"husky": "9.1.7",
-		"lint-staged": "17.0.8",
-		"semantic-release": "25.0.7",
+		"lint-staged": "17.1.0",
+		"semantic-release": "25.0.8",
 		"semantic-release-monorepo": "8.0.2",
+		"skilld": "^2.0.0",
 		"typescript": "6.0.3"
 	},
 	"patchedDependencies": {

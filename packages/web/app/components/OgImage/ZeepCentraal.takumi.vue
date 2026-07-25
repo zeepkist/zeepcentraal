@@ -2,10 +2,7 @@
 	<div
 		class="relative flex size-full flex-col justify-center overflow-hidden bg-warm-neutral-950 px-18 text-warm-neutral-50"
 	>
-		<div
-			class="absolute inset-0"
-			style="background-image: radial-gradient(circle at 85% 20%, rgba(250, 204, 21, 0.2), transparent 38%), radial-gradient(circle at 10% 90%, rgba(250, 204, 21, 0.1), transparent 32%)"
-		/>
+		<div class="absolute inset-0" />
 		<div class="relative flex flex-col gap-8">
 			<div class="flex items-center gap-4 text-[30px] font-bold tracking-tight text-[#facc15]">
 				<span class="h-3 w-16 rounded-full bg-[#facc15]" />

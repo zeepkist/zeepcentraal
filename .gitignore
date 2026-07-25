@@ -11,3 +11,6 @@ packages/web/.nuxt/
 packages/web/.output/
 packages/web/test-results/
 zeepcentraal-web/
+
+# Skilld references (recreated by `skilld install`)
+.skilld

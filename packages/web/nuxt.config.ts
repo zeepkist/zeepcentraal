@@ -7,7 +7,7 @@ const productionBackendUrl = 'https://backend.zeepki.st'
 
 export default defineNuxtConfig({
 	compatibilityDate: '2026-07-06',
-	debug: false,
+	debug: process.env.NUXT_DEBUG === 'true',
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
 	srcDir: 'app',
@@ -179,13 +179,8 @@ export default defineNuxtConfig({
 	},
 	ogImage: {
 		enabled: true,
-		compatibility: {
-			prerender: {
-				browser: false,
-			},
-		},
 		security: {
-			restrictRuntimeImagesToOrigin: true,
+			//restrictRuntimeImagesToOrigin: true,
 		},
 	},
 	linkChecker: {
