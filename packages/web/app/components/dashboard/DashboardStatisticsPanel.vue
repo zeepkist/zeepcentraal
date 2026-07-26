@@ -68,7 +68,7 @@
 					v-if="chart.data[period].some((entry) => entry.value > 0)"
 					:entries="chart.data[period]"
 					:total-label="chart.total[period]"
-					:aria-label="chart.title"
+					:ariaLabel="chart.title"
 				/>
 				<div v-else class="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
 					{{ model.emptyLabel }}

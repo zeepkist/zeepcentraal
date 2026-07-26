@@ -1,4 +1,5 @@
 import type { GhostEventKind } from '~/types/ghost'
+import type { TablerIconName } from './icons'
 import type { RecordCoachingSignal, RecordTelemetryMetricKey } from './recordGhostAnalysis'
 
 type Translate = {
@@ -27,7 +28,7 @@ export type RecordAnalysisLabels = {
 			{
 				title: string
 				description: string
-				icon: string
+				icon: TablerIconName
 				unit: string
 				maximumFractionDigits: number
 			}
@@ -36,20 +37,20 @@ export type RecordAnalysisLabels = {
 	events: {
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		emptyLabel: string
 		atLabel: string
 		durationLabel: string
 		secondsUnit: string
 		config: Record<
 			GhostEventKind,
-			{ label: string; description?: string; icon: string; color: string }
+			{ label: string; description?: string; icon: TablerIconName; color: string }
 		>
 	}
 	airControl: {
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		primary: string
 		detailsTitle: string
 		unavailableLabel: string
@@ -69,10 +70,10 @@ export type RecordAnalysisLabels = {
 			rotationRate: string
 		}
 		controls: {
-			braking: { title: string; description: string; icon: string }
-			armsUp: { title: string; description: string; icon: string }
-			steeringLeft: { title: string; description: string; icon: string }
-			steeringRight: { title: string; description: string; icon: string }
+			braking: { title: string; description: string; icon: TablerIconName }
+			armsUp: { title: string; description: string; icon: TablerIconName }
+			steeringLeft: { title: string; description: string; icon: TablerIconName }
+			steeringRight: { title: string; description: string; icon: TablerIconName }
 		}
 		units: {
 			seconds: string
@@ -85,7 +86,7 @@ export type RecordAnalysisLabels = {
 	drift: {
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		emptyLabel: string
 		comparisonTitle: string
 		eventsTitle: string
@@ -105,7 +106,7 @@ export type RecordAnalysisLabels = {
 	coaching: {
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		emptyLabel: string
 		unavailableLabel: string
 		secondsUnit: string
@@ -115,7 +116,7 @@ export type RecordAnalysisLabels = {
 			{
 				title: string
 				description: (value: string) => string
-				icon: string
+				icon: TablerIconName
 			}
 		>
 	}

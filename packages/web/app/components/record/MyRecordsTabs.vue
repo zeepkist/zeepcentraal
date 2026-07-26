@@ -16,12 +16,13 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { TablerIconName } from '~/utils/icons'
 import type { RecordHistoryView } from '~/utils/recordHistory'
 
 defineProps<{
 	label: string
 	modelValue: RecordHistoryView
-	options: Array<{ value: RecordHistoryView; label: string; icon: string }>
+	options: Array<{ value: RecordHistoryView; label: string; icon: TablerIconName }>
 }>()
 
 defineEmits<{

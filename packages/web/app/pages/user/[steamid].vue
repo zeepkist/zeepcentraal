@@ -239,6 +239,12 @@
 </template>
 
 <script setup vapor lang="ts">
+import type {
+	StatisticMetric,
+	UserAchievementPreviewItem,
+	UserCosmeticProgressPreview,
+} from '~/types/app'
+
 const route = useRoute()
 const { t } = useI18n()
 const steamId = computed(() => String(route.params.steamid))
@@ -281,7 +287,7 @@ useSeoMeta({
 			? t('users.profile.seoDescription', { name: user.value.steamName ?? steamId.value })
 			: t('pages.users.seo.description'),
 })
-const metrics = computed(() => [
+const metrics = computed<StatisticMetric[]>(() => [
 	{
 		key: 'records',
 		label: t('common.records'),
@@ -308,7 +314,7 @@ const metrics = computed(() => [
 		to: `/levels?author=${steamId.value}`,
 	},
 ])
-const achievementPreviews = computed(() => [
+const achievementPreviews = computed<UserAchievementPreviewItem[]>(() => [
 	{ key: 'records', label: t('users.profile.achievements.items.records'), icon: 'route' },
 	{
 		key: 'personal-bests',
@@ -331,7 +337,7 @@ const achievementPreviews = computed(() => [
 	{ key: 'driving', label: t('users.profile.achievements.items.driving'), icon: 'road' },
 	{ key: 'surfaces', label: t('users.profile.achievements.items.surfaces'), icon: 'palette' },
 ])
-const cosmeticsPreview = computed(() => ({
+const cosmeticsPreview = computed<UserCosmeticProgressPreview>(() => ({
 	unlocked: null,
 	total: null,
 	percentage: null,

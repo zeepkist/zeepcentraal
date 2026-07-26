@@ -36,11 +36,13 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { TablerIconName } from '~/utils/icons'
+
 const props = defineProps<{
 	label: string
 	value?: string
 	valueLabel?: string
-	icon: string
+	icon: TablerIconName
 	details?: Array<{ label: string; value: string }>
 	to?: string
 }>()

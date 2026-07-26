@@ -163,6 +163,7 @@
         "tailwindcss": "~4.3.3",
         "three": "~0.185.1",
         "vue": "~3.5.40",
+        "vue-router": "~5.2.0",
         "zod": "~4.4.3",
       },
       "devDependencies": {

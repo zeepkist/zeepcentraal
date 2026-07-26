@@ -31,10 +31,15 @@
 				:color="format === 'msi' ? color : 'neutral'"
 				:variant="format === 'msi' ? 'solid' : 'soft'"
 				block
+				:class="{
+					'font-bold': format === 'msi',
+				}"
 			>
 				<TablerIcon name="download" class="size-4" />
 				<span class="truncate">{{ $t(`wikiContent.modkist.formats.${format}`) }}</span>
-				<span v-if="release?.assets[format]" class="ml-auto text-xs opacity-70">
+				<span v-if="release?.assets[format]" class="ml-auto text-xs opacity-70" :class="{
+					'font-black': format === 'msi',
+				}">
 					{{ formatSize(release.assets[format].size) }}
 				</span>
 			</UButton>

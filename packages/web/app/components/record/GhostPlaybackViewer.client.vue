@@ -382,7 +382,6 @@ function addGhostVisual(loaded: LoadedPlaybackGhost, visualIndex: number) {
 		ghost: loaded,
 		detailed,
 		revision: visualRevision(loaded),
-		group,
 		label,
 		labelObject,
 		labelStagger: visualIndex % 4,

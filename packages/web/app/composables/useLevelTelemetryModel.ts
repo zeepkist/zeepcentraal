@@ -282,7 +282,7 @@ export function useRecordTelemetryModel(
 			key: string,
 			title: string,
 			description: string,
-			icon: string,
+			icon: DashboardStatisticsMetric['icon'],
 			entries: DashboardChartEntry[],
 			formatter: (value: number) => string,
 		) => ({ key, title, description, icon, entries, totalLabel: formatter(total(entries)) })

@@ -1,4 +1,5 @@
 import type { NavItem, PlaceholderPage } from '~/types/app'
+import type { TablerIconName } from './icons'
 
 export const navigationRouteFamilies: Readonly<Record<string, readonly string[]>> = {
 	'/': ['/'],
@@ -123,4 +124,4 @@ export const externalLinks = [
 		href: 'https://discord.gg/zEeHqdPQWQ',
 		icon: 'brand-discord',
 	},
-]
+] satisfies Array<{ key: string; href: string; icon: TablerIconName }>

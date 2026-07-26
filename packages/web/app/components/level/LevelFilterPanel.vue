@@ -28,7 +28,7 @@
 				/>
 			</UFormField>
 			<UFormField :label="adventureLabel">
-				<USelect :model-value="adventure" :items="adventureOptions" class="w-full" @update:model-value="$emit('update:adventure', String($event))" />
+				<USelect :model-value="adventure" :items="adventureOptions" class="w-full" @update:model-value="$emit('update:adventure', String($event) as LevelTypeFilter)" />
 			</UFormField>
 			<UFormField>
 				<template #label>
@@ -70,7 +70,7 @@
 					:items="viewerFilterOptions"
 					:disabled="viewerFiltersDisabled"
 					class="w-full"
-					@update:model-value="$emit('update:personalBest', String($event))"
+					@update:model-value="$emit('update:personalBest', String($event) as ViewerLevelFilter)"
 				/>
 			</UFormField>
 			<UFormField :label="worldRecordLabel">
@@ -79,14 +79,14 @@
 					:items="viewerFilterOptions"
 					:disabled="viewerFiltersDisabled"
 					class="w-full"
-					@update:model-value="$emit('update:worldRecord', String($event))"
+					@update:model-value="$emit('update:worldRecord', String($event) as ViewerLevelFilter)"
 				/>
 			</UFormField>
 			<p v-if="viewerFiltersDisabled" class="-mt-2 text-xs text-muted-foreground">
 				{{ viewerFiltersDisabledLabel }}
 			</p>
 			<UFormField :label="sortLabel">
-				<USelect :model-value="sort" :items="sortOptions" class="w-full" @update:model-value="$emit('update:sort', String($event))" />
+				<USelect :model-value="sort" :items="sortOptions" class="w-full" @update:model-value="$emit('update:sort', String($event) as LevelSort)" />
 			</UFormField>
 			<UButton color="primary" block @click="$emit('apply')">{{ applyLabel }}</UButton>
 		</div>
@@ -94,7 +94,9 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { LevelSort } from '~/composables/useLevels'
 import type { SortOption } from '~/types/app'
+import type { LevelTypeFilter, ViewerLevelFilter } from '~/utils/levelExplorer'
 
 defineProps<{
 	title: string
@@ -103,12 +105,12 @@ defineProps<{
 	author: string
 	authorSuggestions: SortOption[]
 	authorSuggestionsPending: boolean
-	adventure: string
+	adventure: LevelTypeFilter
 	points: [number, number]
 	rating: [number, number]
-	personalBest: string
-	worldRecord: string
-	sort: string
+	personalBest: ViewerLevelFilter
+	worldRecord: ViewerLevelFilter
+	sort: LevelSort
 	searchLabel: string
 	authorLabel: string
 	adventureLabel: string
@@ -124,20 +126,20 @@ defineProps<{
 	pointsMaximum: number
 	ratingMinimum: number
 	ratingMaximum: number
-	adventureOptions: SortOption[]
-	viewerFilterOptions: SortOption[]
-	sortOptions: SortOption[]
+	adventureOptions: SortOption<LevelTypeFilter>[]
+	viewerFilterOptions: SortOption<ViewerLevelFilter>[]
+	sortOptions: SortOption<LevelSort>[]
 }>()
 
 defineEmits<{
 	'update:search': [value: string]
 	'update:author': [value: string]
-	'update:adventure': [value: string]
+	'update:adventure': [value: LevelTypeFilter]
 	'update:points': [value: [number, number]]
 	'update:rating': [value: [number, number]]
-	'update:personalBest': [value: string]
-	'update:worldRecord': [value: string]
-	'update:sort': [value: string]
+	'update:personalBest': [value: ViewerLevelFilter]
+	'update:worldRecord': [value: ViewerLevelFilter]
+	'update:sort': [value: LevelSort]
 	apply: []
 }>()
 

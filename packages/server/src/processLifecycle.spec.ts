@@ -2,26 +2,21 @@ import { describe, expect, test } from 'bun:test'
 import { EventEmitter } from 'node:events'
 import { type ClusterWorkerLike, onceAsync, stopClusterWorkers } from './processLifecycle'
 
-class FakeWorkerProcess extends EventEmitter {
+class FakeWorker extends EventEmitter implements ClusterWorkerLike {
+	dead = false
 	signals: NodeJS.Signals[] = []
 
-	kill(signal: NodeJS.Signals) {
+	kill(signal: NodeJS.Signals = 'SIGTERM') {
 		this.signals.push(signal)
-		return true
-	}
-}
-
-class FakeWorker implements ClusterWorkerLike {
-	dead = false
-	process = new FakeWorkerProcess()
-
-	isDead() {
-		return this.dead
 	}
 
 	exit() {
 		this.dead = true
-		this.process.emit('exit')
+		this.emit('exit')
+	}
+
+	isDead() {
+		return this.dead
 	}
 }
 
@@ -48,17 +43,17 @@ describe('stopClusterWorkers', () => {
 		workers[1]?.exit()
 
 		expect(await stopping).toBe(true)
-		expect(workers[0]?.process.signals).toEqual(['SIGINT'])
-		expect(workers[1]?.process.signals).toEqual(['SIGINT'])
-		expect(workers[0]?.process.listenerCount('exit')).toBe(0)
-		expect(workers[1]?.process.listenerCount('exit')).toBe(0)
+		expect(workers[0]?.signals).toEqual(['SIGINT'])
+		expect(workers[1]?.signals).toEqual(['SIGINT'])
+		expect(workers[0]?.listenerCount('exit')).toBe(0)
+		expect(workers[1]?.listenerCount('exit')).toBe(0)
 	})
 
 	test('force kills workers after shutdown timeout', async () => {
 		const worker = new FakeWorker()
 
 		expect(await stopClusterWorkers([worker], 'SIGTERM', 1)).toBe(false)
-		expect(worker.process.signals).toEqual(['SIGTERM', 'SIGKILL'])
-		expect(worker.process.listenerCount('exit')).toBe(0)
+		expect(worker.signals).toEqual(['SIGTERM', 'SIGKILL'])
+		expect(worker.listenerCount('exit')).toBe(0)
 	})
 })

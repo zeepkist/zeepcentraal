@@ -1,10 +1,8 @@
 export interface ClusterWorkerLike {
 	isDead(): boolean
-	process: {
-		kill(signal: NodeJS.Signals): boolean
-		off(event: 'exit', listener: () => void): unknown
-		once(event: 'exit', listener: () => void): unknown
-	}
+	kill(signal?: NodeJS.Signals): void
+	off(event: 'exit', listener: () => void): unknown
+	once(event: 'exit', listener: () => void): unknown
 }
 
 export const PRIMARY_SHUTDOWN_TIMEOUT_MS = 10_000
@@ -44,14 +42,14 @@ export async function stopClusterWorkers(
 			}
 		}
 		exitListeners.set(worker, onExit)
-		worker.process.once('exit', onExit)
+		worker.once('exit', onExit)
 		if (worker.isDead()) {
 			onExit()
 		}
 	}
 
 	for (const worker of pendingWorkers) {
-		worker.process.kill(signal)
+		worker.kill(signal)
 	}
 
 	let timeout: ReturnType<typeof setTimeout> | undefined
@@ -67,12 +65,12 @@ export async function stopClusterWorkers(
 	}
 
 	for (const [worker, listener] of exitListeners) {
-		worker.process.off('exit', listener)
+		worker.off('exit', listener)
 	}
 
 	if (!stoppedCleanly) {
 		for (const worker of pendingWorkers) {
-			worker.process.kill('SIGKILL')
+			worker.kill('SIGKILL')
 		}
 	}
 

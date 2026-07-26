@@ -40,9 +40,9 @@
 				@update:adventure="adventure = $event"
 				@update:points="points = $event"
 				@update:rating="rating = $event"
-				@update:personal-best="personalBest = $event as ViewerLevelFilter"
-				@update:world-record="worldRecord = $event as ViewerLevelFilter"
-				@update:sort="sort = $event as LevelSort"
+				@update:personal-best="personalBest = $event"
+				@update:world-record="worldRecord = $event"
+				@update:sort="sort = $event"
 				@apply="applyFilters"
 			/>
 		</template>
@@ -79,11 +79,13 @@
 
 <script setup vapor lang="ts">
 import { LEVEL_SORTS, type LevelSort } from '~/composables/useLevels'
+import type { SortOption } from '~/types/app'
 import {
 	LEVEL_POINTS_MAX,
 	LEVEL_POINTS_MIN,
 	LEVEL_RATING_MAX,
 	LEVEL_RATING_MIN,
+	type LevelTypeFilter,
 	type ViewerLevelFilter,
 } from '~/utils/levelExplorer'
 
@@ -109,12 +111,12 @@ const {
 	sort,
 	worldRecord,
 } = explorer
-const adventureOptions = computed(() => [
+const adventureOptions = computed<SortOption<LevelTypeFilter>[]>(() => [
 	{ label: t('levels.filters.all'), value: 'all' },
 	{ label: t('levels.filters.adventureOnly'), value: 'yes' },
 	{ label: t('levels.filters.communityOnly'), value: 'no' },
 ])
-const sortOptions = computed(() => [
+const sortOptions = computed<SortOption<LevelSort>[]>(() => [
 	{ label: t('levels.sort.latest'), value: LEVEL_SORTS.latest },
 	{ label: t('levels.sort.points'), value: LEVEL_SORTS.points },
 	{ label: t('levels.sort.rating'), value: LEVEL_SORTS.rating },
@@ -125,7 +127,7 @@ const sortOptions = computed(() => [
 	{ label: t('levels.sort.votes'), value: LEVEL_SORTS.votes },
 	{ label: t('levels.sort.favourites'), value: LEVEL_SORTS.favourites },
 ])
-const viewerFilterOptions = computed(() => [
+const viewerFilterOptions = computed<SortOption<ViewerLevelFilter>[]>(() => [
 	{ label: t('levels.filters.viewerAll'), value: 'all' },
 	{ label: t('levels.filters.viewerYes'), value: 'yes' },
 	{ label: t('levels.filters.viewerNo'), value: 'no' },

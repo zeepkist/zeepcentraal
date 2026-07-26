@@ -26,7 +26,11 @@ export async function useCurrentUser() {
 					: [])
 			if (cookies.length === 0) return
 			const current = responseCookies.value
-			const existing = Array.isArray(current) ? current : current ? [current] : []
+			const existing = Array.isArray(current)
+				? current.map(String)
+				: current == null
+					? []
+					: [String(current)]
 			responseCookies.value = [...existing, ...cookies]
 		},
 	})

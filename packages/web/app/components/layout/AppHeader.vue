@@ -132,6 +132,7 @@ const mobileItems = computed(() =>
 )
 
 function selectLocale(code: string) {
-	void setLocale(code)
+	if (!locales.value.some((locale) => locale.code === code)) return
+	void setLocale(code as Parameters<typeof setLocale>[0])
 }
 </script>

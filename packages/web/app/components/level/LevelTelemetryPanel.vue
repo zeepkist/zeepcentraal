@@ -55,7 +55,7 @@
 					v-else-if="chart.entries.some((entry) => entry.value > 0)"
 					:entries="chart.entries"
 					:total-label="chart.totalLabel"
-					:aria-label="chart.title"
+					:ariaLabel="chart.title"
 					compact
 				/>
 				<div v-else class="flex min-h-40 items-center justify-center text-sm text-muted-foreground">

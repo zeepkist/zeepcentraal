@@ -114,6 +114,28 @@
 </template>
 
 <script setup vapor lang="ts">
+import type {
+	HeroAction,
+	HeroMetric,
+	HeroPanel,
+	StatisticMetric,
+} from '~/types/app'
+
+type DashboardHeroModel = {
+	title: string
+	description: string
+	actions: HeroAction[]
+	metrics?: HeroMetric[]
+	panel?: HeroPanel
+	pending?: boolean
+	loginPrompt?: {
+		label: string
+		steamLabel: string
+		discordLabel: string
+		orLabel: string
+	}
+}
+
 usePageSeo('home')
 
 const { t, locale } = useI18n()
@@ -132,7 +154,7 @@ const currentMonth = computed(() =>
 	formatDashboardMonth(dashboard.metricMonthSince.value, locale.value),
 )
 
-const hero = computed(() => {
+const hero = computed<DashboardHeroModel>(() => {
 	const viewer = dashboard.viewer.value
 	const latestSeason = dashboard.latestSeason.value
 	const state = resolveDashboardHeroState(
@@ -184,7 +206,7 @@ const hero = computed(() => {
 	const currentUser = user.value
 	if (!currentUser) return { title: '', description: '', actions: [], metrics: [], pending: true }
 	const leagueHref = latestSeason ? `/super-league/season-${latestSeason.id}` : '/super-league'
-	const leagueAction = {
+	const leagueAction: HeroAction = {
 		label: t('dashboard.hero.superLeague'),
 		description: latestSeason?.name ?? t('dashboard.hero.superLeagueDescription'),
 		href: leagueHref,
@@ -292,7 +314,7 @@ const hero = computed(() => {
 	}
 })
 
-const liveMetrics = computed(() => {
+const liveMetrics = computed<StatisticMetric[]>(() => {
 	const data = dashboard.metrics.value
 	const details = (day: number | undefined, month: number | undefined) => [
 		{

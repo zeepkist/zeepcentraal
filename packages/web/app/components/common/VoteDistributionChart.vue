@@ -3,7 +3,7 @@
 		v-if="total > 0"
 		:entries="entries"
 		:total-label="labels.total(total)"
-		:aria-label="labels.ariaLabel"
+		:ariaLabel="labels.ariaLabel"
 		compact
 	/>
 	<div

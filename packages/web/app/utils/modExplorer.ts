@@ -70,7 +70,7 @@ export function isEssentialsModTag(tag: string): boolean {
 	return tag.trim().toLowerCase() === 'essentials'
 }
 
-export function getVisibleModTags(tags: string[], limit = 2): string[] {
+export function getVisibleModTags(tags: readonly string[], limit = 2): string[] {
 	return tags
 		.filter((tag) => !HIDDEN_MOD_TAGS.has(tag.trim().toLowerCase()) && !isEssentialsModTag(tag))
 		.slice(0, limit)

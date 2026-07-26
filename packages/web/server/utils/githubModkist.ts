@@ -109,7 +109,7 @@ function normalizeRelease(release: GitHubRelease | null | undefined): ModkistRel
 		return null
 	}
 
-	const assets: ModkistRelease['assets'] = {}
+	const assets: Partial<Record<ModkistReleaseFormat, ModkistReleaseAsset>> = {}
 	for (const candidate of release.releaseAssets?.nodes ?? []) {
 		if (!candidate?.name) continue
 		const format = assetFormat(candidate.name)

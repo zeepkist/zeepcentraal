@@ -24,12 +24,13 @@
 
 <script setup vapor lang="ts">
 import type { SortOption } from '~/types/app'
+import type { TablerIconName } from '~/utils/icons'
 import type { RecordHistorySort, RecordHistoryView } from '~/utils/recordHistory'
 
 defineProps<{
 	view: RecordHistoryView
 	viewLabel: string
-	viewOptions: Array<{ value: RecordHistoryView; label: string; icon: string }>
+	viewOptions: Array<{ value: RecordHistoryView; label: string; icon: TablerIconName }>
 	sort: RecordHistorySort
 	sortLabel: string
 	sortOptions: SortOption<RecordHistorySort>[]

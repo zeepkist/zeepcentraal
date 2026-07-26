@@ -36,9 +36,11 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { TablerIconName } from '~/utils/icons'
+
 defineProps<{
 	to: string
-	icon?: string
+	icon?: TablerIconName
 	imageSrc?: string | null
 	imageAlt?: string
 }>()

@@ -73,6 +73,9 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { TablerIconName } from '~/utils/icons'
+import type { RecordHistoryView } from '~/utils/recordHistory'
+
 const session = useSessionStore()
 if (!session.user) {
 	await navigateTo('/records', { replace: true })
@@ -91,7 +94,9 @@ useSeoMeta({
 	description: () => t('pages.myRecords.seo.description'),
 })
 
-const tabOptions = computed(() => [
+const tabOptions = computed<
+	Array<{ value: RecordHistoryView; label: string; icon: TablerIconName }>
+>(() => [
 	{ value: 'recent' as const, label: t('pages.records.tabs.recent'), icon: 'clock-bolt' },
 	{
 		value: 'personal-bests' as const,

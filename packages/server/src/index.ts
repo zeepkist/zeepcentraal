@@ -1,10 +1,9 @@
-import type { Worker } from 'node:cluster'
 import cluster from 'node:cluster'
-import { onceAsync, stopClusterWorkers } from './processLifecycle'
+import { type ClusterWorkerLike, onceAsync, stopClusterWorkers } from './processLifecycle'
 
 const WORKER_COUNT = 2
 const clusterEvents = cluster as typeof cluster & {
-	on(event: 'exit', listener: (worker: Worker) => void): typeof cluster
+	on(event: 'exit', listener: (worker: cluster.Worker) => void): typeof cluster
 }
 
 if (cluster.isPrimary) {
@@ -33,9 +32,9 @@ if (cluster.isPrimary) {
 	const shutdownPrimary = onceAsync(async (signal: NodeJS.Signals) => {
 		shuttingDown = true
 		console.info(`API primary received ${signal}, stopping workers...`)
-		const workers = Object.values(cluster.workers ?? {}).filter(
-			(worker): worker is Worker => worker !== undefined,
-		)
+		const workers = Object.values(cluster.workers ?? {})
+			.filter((worker): worker is cluster.Worker => worker !== undefined)
+			.map((worker) => worker as cluster.Worker & ClusterWorkerLike)
 		const stoppedCleanly = await stopClusterWorkers(workers, signal)
 		if (!stoppedCleanly) {
 			console.error('API workers did not stop before shutdown timeout; forced termination.')
