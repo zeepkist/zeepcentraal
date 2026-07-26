@@ -54,7 +54,7 @@
 	</USidebar>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 import { parseSidebarOpenPreference } from '~/utils/sidebarPreference'
 

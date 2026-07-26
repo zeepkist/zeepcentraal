@@ -19,7 +19,7 @@
 	</DataTableFrame>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TournamentStanding } from '~/types/tournament'
 import { formatTournamentDelta, formatTournamentTime } from '~/utils/tournament'
 

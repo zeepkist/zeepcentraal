@@ -9,7 +9,7 @@
 	/>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { modkistReleasesKey } from '~/composables/useModkistReleasesContext'
 import type { ModkistReleases } from '~/types/modkist'
 
@@ -36,7 +36,8 @@ const releaseQuery = await useFetch<ModkistReleases>('/api/modkist/releases', {
 	immediate: isSetupPage.value,
 	server: isSetupPage.value,
 })
-provide(modkistReleasesKey, readonly(releaseQuery.data))
+const releases = computed(() => releaseQuery.data.value ?? null)
+provide(modkistReleasesKey, releases)
 if (import.meta.client) {
 	watch(isSetupPage, (selected) => {
 		if (selected && !releaseQuery.data.value && releaseQuery.status.value !== 'pending') {

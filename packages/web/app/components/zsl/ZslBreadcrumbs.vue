@@ -18,7 +18,7 @@
 	</nav>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 defineProps<{
 	label: string
 	items: Array<{ label: string; to?: string }>

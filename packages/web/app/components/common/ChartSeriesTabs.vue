@@ -17,11 +17,13 @@
 	</div>
 </template>
 
-<script setup lang="ts" generic="T extends string">
+<script setup vapor lang="ts" generic="T extends string">
+import type { TablerIconName } from '~/utils/icons'
+
 const props = defineProps<{
 	modelValue: T
 	label: string
-	options: Array<{ value: T; label: string; icon: string; disabled?: boolean }>
+	options: Array<{ value: T; label: string; icon: TablerIconName; disabled?: boolean }>
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: T] }>()

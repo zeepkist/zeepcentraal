@@ -236,9 +236,10 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { MAX_LEVEL_POINTS } from '@zeepkist/core/score'
 import type { LevelScoreInsights } from '~/types/app'
+import type { TablerIconName } from '~/utils/icons'
 import type { VoteDistributionCounts } from '~/utils/voteDistribution'
 
 type MetricKey = keyof LevelScoreInsights
@@ -255,7 +256,7 @@ type StageDefinition = {
 	key: StageKey
 	title: string
 	description: string
-	icon: string
+	icon: TablerIconName
 	value: number | null | undefined
 	confidence?: number | null
 	metrics: MetricDefinition[]
@@ -455,7 +456,9 @@ function findStage(key: StageKey) {
 	return stage
 }
 
-function isAvailable(value: number | boolean | null | undefined) {
+function isAvailable(
+	value: number | boolean | null | undefined,
+): value is number | boolean {
 	return typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))
 }
 

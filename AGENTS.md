@@ -2,10 +2,8 @@
 
 Applies repo-wide. Style: caveman. Few words. Keep technical terms, code, exact errors. Prefer `location / problem / fix`.
 
-<!-- skilld -->
 Before modifying code, check .agents/skills/ for relevant skills.
 Read the SKILL.md for any matching package before proceeding.
-<!-- /skilld -->
 
 Read [`.agents/repository-analysis.md`](.agents/repository-analysis.md) only when task needs architecture, deployment, scheduling, or package-boundary context.
 

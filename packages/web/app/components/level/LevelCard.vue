@@ -92,7 +92,7 @@
 	</NuxtLink>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LevelSummary } from '~/types/app'
 import { createLevelRatingFormatter, isLevelRatingAvailable } from '~/utils/levelRating'
 

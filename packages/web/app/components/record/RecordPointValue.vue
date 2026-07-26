@@ -23,7 +23,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { createDecayPercentageFormatter } from '~/utils/decayPercentage'
 
 defineProps<{

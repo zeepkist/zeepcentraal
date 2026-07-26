@@ -1,4 +1,6 @@
 import { expect, test } from 'bun:test'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
 	assertLocalTournamentSeedAllowed,
 	LOCAL_TOURNAMENT_LEVEL_XX_HASH,
@@ -33,10 +35,11 @@ test('local tournament seed accepts loopback databases only outside production',
 
 test('local demo hash stays outside migrations', async () => {
 	const glob = new Bun.Glob('*.sql')
-	for await (const path of glob.scan(new URL('../../drizzle', import.meta.url).pathname)) {
-		expect(
-			await Bun.file(new URL(`../../drizzle/${path}`, import.meta.url)).text(),
-		).not.toContain(LOCAL_TOURNAMENT_LEVEL_XX_HASH)
+	const migrationsDirectory = fileURLToPath(new URL('../../drizzle/', import.meta.url))
+	for await (const path of glob.scan(migrationsDirectory)) {
+		expect(await Bun.file(join(migrationsDirectory, path)).text()).not.toContain(
+			LOCAL_TOURNAMENT_LEVEL_XX_HASH,
+		)
 	}
 })
 

@@ -76,7 +76,7 @@
 	</ExplorerLayout>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { useQuery } from '@urql/vue'
 import { Zc_MyRecordCountDocument } from '~/graphql/generated/graphql'
 import { MOD_SORTS, type ModSort } from '~/types/mod'

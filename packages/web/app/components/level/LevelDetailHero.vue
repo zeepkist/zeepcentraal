@@ -137,7 +137,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LevelSummary, LevelWorldRecordSummary } from '~/types/app'
 import type { LevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
 import { getLevelCompetitivenessRating } from '~/utils/levelCompetitiveness'

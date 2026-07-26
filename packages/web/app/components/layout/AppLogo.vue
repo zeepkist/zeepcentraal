@@ -13,7 +13,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import Logo from '@/assets/logo.png'
 
 const { large } = defineProps<{

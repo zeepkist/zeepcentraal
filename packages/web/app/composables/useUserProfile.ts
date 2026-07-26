@@ -449,7 +449,7 @@ export function useUserProfile(steamId: Ref<string>) {
 			},
 			{ immediate: true, flush: 'sync' },
 		)
-		return readonly(retained)
+		return shallowReadonly(retained)
 	}
 	const wrRows = retainRows(
 		wrRowsResolved,

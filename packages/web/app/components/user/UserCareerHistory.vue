@@ -41,12 +41,13 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type {
 	DashboardChartEntry,
 	UserCareerHistoryPoint,
 	UserCareerSecondaryHistoryPoint,
 } from '~/types/app'
+import type { TablerIconName } from '~/utils/icons'
 import { createUserCareerAxisFormatter } from '~/utils/userCareerHistory'
 
 type PointsSeries = 'rankedPoints' | 'totalPoints'
@@ -85,7 +86,9 @@ onMounted(() => {
 	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) duration.value = 500
 })
 
-const pointsOptions = computed(() => [
+const pointsOptions = computed<
+	Array<{ value: PointsSeries; label: string; icon: TablerIconName; disabled?: boolean }>
+>(() => [
 	{ value: 'rankedPoints' as const, label: props.labels.rankedPoints, icon: 'chart-line' },
 	{
 		value: 'totalPoints' as const,
@@ -95,7 +98,9 @@ const pointsOptions = computed(() => [
 	},
 ])
 
-const standingOptions = computed(() => [
+const standingOptions = computed<
+	Array<{ value: StandingSeries; label: string; icon: TablerIconName; disabled?: boolean }>
+>(() => [
 	{ value: 'rank' as const, label: props.labels.rank, icon: 'laurel-wreath-1' },
 	{
 		value: 'worldRecords' as const,

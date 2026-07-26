@@ -14,7 +14,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import MED_Author from '~/assets/medals/MED_Author.png'
 import MED_Bronze from '~/assets/medals/MED_Bronze.png'
 import MED_Gold from '~/assets/medals/MED_Gold2.png'

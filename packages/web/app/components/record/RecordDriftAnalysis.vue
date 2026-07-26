@@ -12,7 +12,7 @@
 						:y-num-ticks="runs.length"
 						:y-axis-config="runAxisConfig"
 						:height="Math.max(96, runs.length * 48)"
-						orientation="horizontal"
+						:orientation="Orientation.Horizontal"
 						stacked
 						:duration="chartDuration"
 						:radius="7"
@@ -130,7 +130,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 import type { GhostSlipEvent, LoadedPlaybackGhost } from '~/types/ghost'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
@@ -182,7 +182,7 @@ const runs = computed<RecordDriftRun[]>(() => [
 ])
 const primaryRun = computed(() => runs.value[0])
 const runKeys = computed(() => runs.value.map((run) => `record-${run.recordId}`))
-const comparisonData = computed(() =>
+const comparisonData = computed<Array<Record<string, number>>>(() =>
 	runs.value.map((run, runIndex) => ({
 		runIndex,
 		...Object.fromEntries(

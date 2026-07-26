@@ -11,18 +11,18 @@
 		"smoke:web": "bun scripts/web-graphql-smoke.ts"
 	},
 	"dependencies": {
-		"@graphile-contrib/pg-many-to-many": "2.0.0-rc.2",
-		"@graphile/pg-aggregates": "0.2.0-rc.2",
-		"@graphile/simplify-inflection": "8.0.0",
-		"@elysiajs/cors": "1.4.2",
+		"@graphile-contrib/pg-many-to-many": "~2.0.0-rc.2",
+		"@graphile/pg-aggregates": "~0.2.0-rc.2",
+		"@graphile/simplify-inflection": "~8.0.0",
+		"@elysiajs/cors": "~1.4.2",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
-		"elysia": "1.4.29",
-		"logixlysia": "6.6.0",
-		"postgraphile": "5.1.0",
-		"postgraphile-plugin-connection-filter": "3.0.2",
+		"elysia": "~1.4.29",
+		"logixlysia": "~6.6.0",
+		"postgraphile": "~5.1.0",
+		"postgraphile-plugin-connection-filter": "~3.0.2",
 		"postgres": "~3.4.7",
-		"ruru": "2.0.1"
+		"ruru": "~2.0.1"
 	},
 	"devDependencies": {}
 }

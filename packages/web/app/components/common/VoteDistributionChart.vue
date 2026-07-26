@@ -3,7 +3,7 @@
 		v-if="total > 0"
 		:entries="entries"
 		:total-label="labels.total(total)"
-		:aria-label="labels.ariaLabel"
+		:ariaLabel="labels.ariaLabel"
 		compact
 	/>
 	<div
@@ -14,7 +14,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 import {
 	VOTE_DISTRIBUTION_VALUES,

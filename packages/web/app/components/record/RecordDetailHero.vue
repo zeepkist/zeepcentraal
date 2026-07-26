@@ -64,7 +64,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
 
 const props = defineProps<{

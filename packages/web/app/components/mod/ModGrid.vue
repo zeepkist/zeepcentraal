@@ -4,11 +4,11 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { ModSummary } from '~/types/mod'
 
 defineProps<{
-	mods: ModSummary[]
+	mods: readonly ModSummary[]
 	labels: {
 		versionLabel: string
 		sizeLabel: string

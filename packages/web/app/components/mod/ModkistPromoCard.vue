@@ -23,6 +23,7 @@
 			<div class="grid gap-2">
 				<UButton
 					:to="downloadHref"
+					external
 					target="_blank"
 					rel="noopener noreferrer"
 					color="primary"
@@ -40,7 +41,7 @@
 	</UCard>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 defineProps<{
 	eyebrow: string
 	title: string

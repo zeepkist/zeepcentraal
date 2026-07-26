@@ -13,7 +13,7 @@
 	</UButton>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 const CONTENT_SOURCE_BASE_URL =
 	'https://github.com/zeepkist/zeepcentraal/blob/develop/packages/web/content/'
 const SAFE_CONTENT_PATH = /^wiki\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)*[a-z0-9]+(?:-[a-z0-9]+)*\.md$/

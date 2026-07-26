@@ -69,7 +69,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { ModDetail } from '~/types/mod'
 
 const props = defineProps<{

@@ -17,6 +17,6 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { externalLinks } from '~/utils/navigation'
 </script>

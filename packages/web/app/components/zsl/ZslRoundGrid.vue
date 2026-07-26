@@ -24,7 +24,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 defineProps<{
 	rounds: Array<{ id: number; round: number; name: string; eventDate: unknown }>
 	link: (round: { id: number; round: number }) => string

@@ -17,7 +17,7 @@
 				v-if="kind === 'donut'"
 				:entries="entries"
 				:total-label="totalLabel"
-				:aria-label="title"
+				:ariaLabel="title"
 				:half="half"
 			/>
 
@@ -28,7 +28,7 @@
 						:categories="barCategories"
 						:y-axis="barKeys"
 						:height="barHeight"
-						orientation="horizontal"
+						:orientation="Orientation.Horizontal"
 						:duration="chartDuration"
 						:radius="10"
 						:bar-padding="0.22"
@@ -43,7 +43,7 @@
 						</template>
 					</BarChart>
 				</div>
-				<DashboardChartLegend :entries="entries" :total="total" :aria-label="title" />
+				<DashboardChartLegend :entries="entries" :total="total" :ariaLabel="title" />
 			</div>
 		</div>
 		<div v-else class="flex min-h-72 items-center justify-center text-sm text-muted-foreground">
@@ -52,14 +52,15 @@
 	</UCard>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
+import type { TablerIconName } from '~/utils/icons'
 
 const props = withDefaults(
 	defineProps<{
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		kind: 'donut' | 'bar'
 		entries: DashboardChartEntry[]
 		emptyLabel: string

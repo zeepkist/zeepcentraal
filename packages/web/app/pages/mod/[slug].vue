@@ -31,7 +31,7 @@
 	</UContainer>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { ModDetailResponse } from '~/types/mod'
 import { normalizeModSlug } from '~/utils/modExplorer'
 

@@ -1,14 +1,16 @@
+import type { TablerIconName } from '~/utils/icons'
+
 export type NavItem = {
 	to: string
 	labelKey: string
 	descriptionKey?: string
-	icon?: string
+	icon?: TablerIconName
 	children?: NavItem[]
 }
 
 export type PlaceholderPage = {
 	key: string
-	icon: string
+	icon: TablerIconName
 	to: string
 }
 
@@ -138,7 +140,7 @@ export type StatisticMetric = {
 	label: string
 	value: string
 	valueLabel?: string
-	icon?: string
+	icon?: TablerIconName
 	details?: Array<{ label: string; value: string }>
 	to?: string
 }
@@ -193,13 +195,13 @@ export type UserSuperLeagueSummary = {
 export type UserAchievementPreviewItem = {
 	key: string
 	label: string
-	icon: string
+	icon: TablerIconName
 }
 
 export type UserCosmeticCategoryPreview = {
 	key: string
 	label: string
-	icon: string
+	icon: TablerIconName
 	rarest?: string | null
 	mostUsed?: string | null
 }
@@ -266,7 +268,7 @@ export type HeroAction = {
 	label: string
 	description?: string
 	href: string
-	icon: string
+	icon: TablerIconName
 	external?: boolean
 	primary?: boolean
 }
@@ -274,14 +276,14 @@ export type HeroAction = {
 export type HeroMetric = {
 	label: string
 	value: string
-	icon: string
+	icon: TablerIconName
 	muted?: boolean
 }
 
 export type HeroPanel = {
 	title: string
 	description: string
-	icon: string
+	icon: TablerIconName
 	features?: string[]
 }
 
@@ -302,14 +304,14 @@ export type DashboardStatisticsMetric = {
 	key: string
 	label: string
 	value: string
-	icon: string
+	icon: TablerIconName
 }
 
 export type DashboardStatisticsChart = {
 	key: string
 	title: string
 	description: string
-	icon: string
+	icon: TablerIconName
 	data: DashboardPeriodData<DashboardChartEntry[]>
 	total: DashboardPeriodData<string>
 }
@@ -318,7 +320,7 @@ export type RecordTelemetryChart = {
 	key: string
 	title: string
 	description: string
-	icon: string
+	icon: TablerIconName
 	entries: DashboardChartEntry[]
 	totalLabel: string
 	unavailable?: boolean
@@ -333,7 +335,7 @@ export type RecordTelemetryModel = {
 	driverInputs: {
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		steering: DashboardChartEntry[]
 		steeringTotalLabel: string
 		actions: DashboardStatisticsMetric[]
@@ -358,10 +360,15 @@ export type DashboardStatisticsModel = {
 		description: string
 		data: DashboardPeriodData<string>
 	}
+	averageGforce: {
+		title: string
+		description: string
+		data: DashboardPeriodData<string>
+	}
 	driverInputs: {
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		steering: DashboardPeriodData<DashboardChartEntry[]>
 		steeringTotal: DashboardPeriodData<string>
 		actions: DashboardPeriodData<DashboardStatisticsMetric[]>

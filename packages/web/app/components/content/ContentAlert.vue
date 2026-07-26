@@ -17,7 +17,7 @@
 	</UAlert>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TablerIconName } from '~/utils/icons'
 
 type AlertType = 'notice' | 'important' | 'reminder'

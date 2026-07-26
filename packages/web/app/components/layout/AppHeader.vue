@@ -76,7 +76,7 @@
 	</UHeader>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LocaleOption } from '~/types/app'
 import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 
@@ -132,6 +132,7 @@ const mobileItems = computed(() =>
 )
 
 function selectLocale(code: string) {
-	void setLocale(code)
+	if (!locales.value.some((locale) => locale.code === code)) return
+	void setLocale(code as Parameters<typeof setLocale>[0])
 }
 </script>

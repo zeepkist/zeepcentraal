@@ -399,7 +399,7 @@ describe('record ghost analysis', () => {
 		)
 
 		expect(source).toContain('<BarChart')
-		expect(source).toContain('orientation="horizontal"')
+		expect(source).toContain(':orientation="Orientation.Horizontal"')
 		expect(source).toContain('stacked')
 		expect(source).toContain(':y-formatter="formatRunAxis"')
 		expect(source).toContain('<DashboardChartTooltip')

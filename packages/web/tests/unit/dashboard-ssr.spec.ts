@@ -20,7 +20,7 @@ describe('dashboard critical SSR', () => {
 	it('awaits critical data before creating rendered dashboard models', () => {
 		expect(page).toContain('await dashboard.prefetchCritical()')
 		expect(page.indexOf('await dashboard.prefetchCritical()')).toBeLessThan(
-			page.indexOf('const hero = computed('),
+			page.indexOf('const hero = computed'),
 		)
 		expect(page).toContain('dashboard.criticalQuery.fetching.value')
 		expect(page).toContain('dashboard.metrics.value')

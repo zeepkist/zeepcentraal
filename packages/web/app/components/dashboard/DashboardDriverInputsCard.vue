@@ -34,7 +34,7 @@
 				v-if="steeringTotal > 0"
 				:entries="steeringEntries"
 				:total-label="steeringTotalLabel"
-				:aria-label="title"
+				:ariaLabel="title"
 				:compact="compact"
 				half
 			/>
@@ -69,14 +69,15 @@
 	</UCard>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry, DashboardStatisticsMetric } from '~/types/app'
+import type { TablerIconName } from '~/utils/icons'
 
 const props = withDefaults(
 	defineProps<{
 		title: string
 		description: string
-		icon: string
+		icon: TablerIconName
 		steeringEntries: DashboardChartEntry[]
 		steeringTotalLabel: string
 		actions: DashboardStatisticsMetric[]

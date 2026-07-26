@@ -13,7 +13,7 @@
 			:release="prerelease"
 			:title="$t('wikiContent.modkist.prerelease.title')"
 			:description="$t('wikiContent.modkist.prerelease.description')"
-			color="primary"
+			color="warning"
 		/>
 		<div class="flex flex-wrap gap-2">
 			<UButton :to="sourceUrl" target="_blank" rel="noopener noreferrer" color="neutral" variant="soft">
@@ -28,7 +28,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL } from '~/types/modkist'
 
 const releases = useModkistReleasesContext()

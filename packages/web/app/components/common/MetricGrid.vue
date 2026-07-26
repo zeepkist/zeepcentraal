@@ -20,7 +20,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { StatisticMetric } from '~/types/app'
 
 withDefaults(defineProps<{ metrics: StatisticMetric[]; columns?: 1 | 2 | 3 }>(), { columns: 3 })

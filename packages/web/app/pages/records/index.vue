@@ -70,7 +70,10 @@
 	</UContainer>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
+import type { TablerIconName } from '~/utils/icons'
+import type { RecordHistoryView } from '~/utils/recordHistory'
+
 const session = useSessionStore()
 const route = useRoute()
 const { t } = useI18n()
@@ -86,7 +89,9 @@ const sounds = useRecordNotificationSounds({
 
 usePageSeo('records')
 
-const tabOptions = computed(() => [
+const tabOptions = computed<
+	Array<{ value: RecordHistoryView; label: string; icon: TablerIconName }>
+>(() => [
 	{ value: 'recent' as const, label: t('pages.records.tabs.recent'), icon: 'clock-bolt' },
 	{
 		value: 'personal-bests' as const,

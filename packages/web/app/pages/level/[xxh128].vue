@@ -340,7 +340,7 @@
 	</UContainer>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LevelGhostPresetCount, LevelGhostPresetKind } from '~/types/levelGhostExplorer'
 import {
 	buildLevelGhostFollowRecordIds,

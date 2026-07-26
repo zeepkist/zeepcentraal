@@ -31,16 +31,16 @@ describe('collectHeaderMetrics', () => {
 		})
 	})
 
-	test.each([
-		'my-application-name',
-		'my-application-name@1.0.0',
-	])('collects valid X-Client identity %s', (clientIdentity) => {
-		collectHeaderMetrics(new Headers({ 'X-Client': clientIdentity }))
+	test.each(['my-application-name', 'my-application-name@1.0.0'])(
+		'collects valid X-Client identity %s',
+		(clientIdentity) => {
+			collectHeaderMetrics(new Headers({ 'X-Client': clientIdentity }))
 
-		expect(setActiveSpanAttributes).toHaveBeenCalledWith({
-			'graphql.header.X-Client': clientIdentity,
-		})
-	})
+			expect(setActiveSpanAttributes).toHaveBeenCalledWith({
+				'graphql.header.X-Client': clientIdentity,
+			})
+		},
+	)
 
 	test.each([
 		'My-Application',

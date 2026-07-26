@@ -54,7 +54,7 @@
 	</UPopover>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type {
 	GhostFrameRate,
 	GhostPerformancePreferences,

@@ -13,41 +13,41 @@ export const MOD_SORTS = {
 export type ModSort = (typeof MOD_SORTS)[keyof typeof MOD_SORTS]
 
 export type ModSummary = {
-	id: number
-	slug: string
-	name: string
-	summary: string
-	authorName: string
-	authorUrl: string | null
-	imageUrl: string | null
-	profileUrl: string
-	version: string | null
-	fileSize: number | null
-	dateUpdated: string
-	dateLive: string
-	tags: string[]
-	downloads: number
-	subscribers: number
-	rating: number | null
+	readonly id: number
+	readonly slug: string
+	readonly name: string
+	readonly summary: string
+	readonly authorName: string
+	readonly authorUrl: string | null
+	readonly imageUrl: string | null
+	readonly profileUrl: string
+	readonly version: string | null
+	readonly fileSize: number | null
+	readonly dateUpdated: string
+	readonly dateLive: string
+	readonly tags: readonly string[]
+	readonly downloads: number
+	readonly subscribers: number
+	readonly rating: number | null
 }
 
 export type ModDetail = ModSummary & {
-	descriptionHtml: string
+	readonly descriptionHtml: string
 }
 
 export type ModListResponse = {
-	items: ModSummary[]
-	page: number
-	pageSize: number
-	total: number
-	totalPages: number
+	readonly items: readonly ModSummary[]
+	readonly page: number
+	readonly pageSize: number
+	readonly total: number
+	readonly totalPages: number
 }
 
 export type ModDetailResponse = {
-	mod: ModDetail
-	dependencies: ModSummary[]
+	readonly mod: ModDetail
+	readonly dependencies: readonly ModSummary[]
 }
 
 export type ModTagOptionsResponse = {
-	tags: string[]
+	readonly tags: readonly string[]
 }

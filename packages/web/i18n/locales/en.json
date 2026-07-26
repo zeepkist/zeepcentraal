@@ -185,7 +185,7 @@
 		"modkist": {
 			"allReleases": "View all releases",
 			"formats": {
-				"appimage": "Linux AppImage",
+				"appimage": "Linux AppImage (Portable)",
 				"deb": "Linux DEB",
 				"dmg": "macOS DMG",
 				"msi": "Download for Windows"

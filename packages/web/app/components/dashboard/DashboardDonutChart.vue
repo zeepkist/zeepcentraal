@@ -12,7 +12,7 @@
 				:height="chartHeight"
 				:arc-width="arcWidth"
 				:pad-angle="0.035"
-				:type="half ? 'half' : 'full'"
+				:type="half ? DonutType.Half : DonutType.Full"
 				:duration="chartDuration"
 				:tooltip="tooltipOptions"
 				hide-legend
@@ -41,11 +41,11 @@
 				</template>
 			</DonutChart>
 		</div>
-		<DashboardChartLegend :entries="entries" :total="total" :aria-label="ariaLabel" :compact="compact" />
+		<DashboardChartLegend :entries="entries" :total="total" :ariaLabel="ariaLabel" :compact="compact" />
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 
 const props = withDefaults(

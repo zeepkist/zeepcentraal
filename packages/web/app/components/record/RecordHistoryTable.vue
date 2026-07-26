@@ -141,7 +141,7 @@
 	</DataTableFrame>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { RecordHistoryRow } from '~/types/app'
 import {
 	getRecordHistoryColumns,

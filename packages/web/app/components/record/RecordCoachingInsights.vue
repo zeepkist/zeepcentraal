@@ -44,14 +44,15 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
+import type { TablerIconName } from '~/utils/icons'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import type { RecordCoachingSignal } from '~/utils/recordGhostAnalysis'
 
 type RecordCoachingInsight = {
 	id: string
 	tone: 'positive' | 'warning' | 'info'
-	icon: string
+	icon: TablerIconName
 	title: string
 	description: string
 	metric?: string | null

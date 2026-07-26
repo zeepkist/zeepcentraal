@@ -46,8 +46,9 @@
 	</nav>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { TournamentNavigation, TrackTournamentType } from '~/types/tournament'
+import type { TablerIconName } from '~/utils/icons'
 import { tournamentPath } from '~/utils/tournament'
 
 const props = defineProps<{
@@ -56,7 +57,15 @@ const props = defineProps<{
 }>()
 const { t } = useI18n()
 
-const items = computed(() => [
+const items = computed<
+	Array<{
+		key: 'previous' | 'current' | 'next'
+		label: string
+		icon: TablerIconName
+		tournament: TournamentNavigation['previous']
+		to: string | undefined
+	}>
+>(() => [
 	{
 		key: 'previous' as const,
 		label: t('tournaments.navigation.previous'),

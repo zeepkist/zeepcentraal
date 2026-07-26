@@ -30,7 +30,7 @@
 		/>
 	</UContainer>
 </template>
-<script setup lang="ts">
+<script setup vapor lang="ts">
 usePageSeo('zsl')
 const { t } = useI18n()
 const { page, pagination, result, seasons } = useZslSeasons()

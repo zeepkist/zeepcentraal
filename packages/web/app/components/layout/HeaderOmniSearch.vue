@@ -84,7 +84,7 @@
 	</UInputMenu>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { InputMenuItem } from '@nuxt/ui'
 import type { OmniSearchLevelResult, OmniSearchResult, OmniSearchUserResult } from '~/types/app'
 import { isLevelRatingAvailable } from '~/utils/levelRating'

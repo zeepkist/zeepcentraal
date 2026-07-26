@@ -272,7 +272,7 @@ export function useLevelGhostExplorer(options: UseLevelGhostExplorerOptions) {
 	}
 
 	return {
-		activeSources: readonly(activeSources),
+		activeSources: shallowReadonly(activeSources),
 		addSource,
 		bulkLocked,
 		canAddIndividual,

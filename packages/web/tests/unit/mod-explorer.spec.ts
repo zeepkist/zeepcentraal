@@ -165,6 +165,7 @@ describe('mod presentation', () => {
 		expect(explorerPage).toContain('download-href="/api/downloads/modkist/stable/msi"')
 		expect(explorerPage).toContain('guide-href="/wiki/setup-modkist"')
 		expect(modkistPromoCard).toContain('target="_blank"')
+		expect(modkistPromoCard).toContain('\n\t\t\t\t\texternal\n')
 		expect(modkistPromoCard).not.toContain('useQuery')
 		expect(modkistPromoCard).not.toContain('useFetch')
 		expect(modkistPromoCard).not.toContain('$fetch')

@@ -40,7 +40,7 @@
 						v-if="distribution.entries.some((entry) => entry.value > 0)"
 						:entries="distribution.entries"
 						:total-label="distribution.totalLabel"
-						:aria-label="distribution.title"
+						:ariaLabel="distribution.title"
 						compact
 					/>
 					<div v-else class="grid min-h-40 place-items-center text-sm text-muted-foreground">
@@ -52,14 +52,15 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry, DashboardStatisticsMetric } from '~/types/app'
+import type { TablerIconName } from '~/utils/icons'
 
 export type RecordTelemetryDistribution = {
 	key: string
 	title: string
 	description: string
-	icon: string
+	icon: TablerIconName
 	entries: DashboardChartEntry[]
 	totalLabel: string
 }

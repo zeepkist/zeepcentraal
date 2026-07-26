@@ -31,7 +31,7 @@
 	</ExplorerLayout>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { USER_SORTS } from '~/composables/usePlayers'
 import type { UserPointsOrderBy } from '~/graphql/generated/graphql'
 

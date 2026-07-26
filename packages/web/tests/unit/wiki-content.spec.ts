@@ -165,6 +165,7 @@ describe('Wiki documentation', () => {
 		expect(setup).toContain('cargo install zeeper')
 		expect(setup).toContain('https://crates.io/crates/zeeper')
 		expect(panel).toContain('/api/downloads/modkist/$' + '{channel}/$' + '{format}')
+		expect(panel).toContain('\n\t\t\t\texternal\n')
 		expect(panel).toContain("['msi', 'appimage', 'deb', 'dmg']")
 		for (const source of [downloads, panel])
 			expect(source).not.toMatch(/useFetch|\$fetch|useQuery/)

@@ -87,7 +87,7 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { UserSuperLeagueSummary } from '~/types/app'
 
 defineProps<{

@@ -2,7 +2,7 @@
 	<component :is="iconComponent" aria-hidden="true" class="size-5 shrink-0" />
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { computed } from 'vue'
 import { type TablerIconName, tablerIcons } from '~/utils/icons'
 

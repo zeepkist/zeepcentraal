@@ -109,6 +109,8 @@ describe('Adventure nested routes', () => {
 		expect(parent).toContain('await adventure.prefetch()')
 		expect(child).toContain('<LevelGrid')
 		expect(child).toContain('useAdventureContext()')
+		expect(child).toContain('<script setup lang="ts">')
+		expect(child).not.toContain('<script setup vapor')
 	})
 
 	it('uses native route tabs with counts and no prefetch', () => {

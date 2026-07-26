@@ -16,7 +16,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import treeTrickOne from '~/assets/wiki/tree-trick-1.jpg'
 import treeTrickTwo from '~/assets/wiki/tree-trick-2.jpg'
 import treeTrickThree from '~/assets/wiki/tree-trick-3.jpg'

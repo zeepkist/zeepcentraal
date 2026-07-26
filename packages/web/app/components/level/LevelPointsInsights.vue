@@ -22,7 +22,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 import type { LevelPointHistoryPoint } from '~/utils/levelPointsHistory'
 

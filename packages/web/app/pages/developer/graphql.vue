@@ -8,7 +8,7 @@
 		show-table-of-contents
 	/>
 </template>
-<script setup lang="ts">
+<script setup vapor lang="ts">
 const { t } = useI18n()
 const breadcrumbs = computed(() =>
 	buildAncestorBreadcrumbs('/developer', t('pages.developer.breadcrumb'), ['graphql']),

@@ -24,7 +24,7 @@
 	</div>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LevelSummary } from '~/types/app'
 
 withDefaults(

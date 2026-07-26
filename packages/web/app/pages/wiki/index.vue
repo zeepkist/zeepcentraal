@@ -6,7 +6,7 @@
 		show-table-of-contents
 	/>
 </template>
-<script setup lang="ts">
+<script setup vapor lang="ts">
 usePageSeo('wiki')
 const { data: document } = await useAsyncData('wiki-index', () =>
 	queryCollection('wiki').path('/wiki').first(),
