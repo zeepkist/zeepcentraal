@@ -69,7 +69,7 @@ jobs:
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No release history found.
+            echo "::notice::No release history found."
           fi
 
       - name: Run semantic release
