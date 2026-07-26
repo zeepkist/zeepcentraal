@@ -1,7 +1,6 @@
 <template>
 	<figure class="not-prose my-8 space-y-3">
 		<div class="aspect-video overflow-hidden rounded-xl border border-border bg-muted">
-			<!-- biome-ignore lint/a11y/useIframeTitle: Localized title is provided through required component prop. -->
 			<iframe
 				v-if="embedUrl"
 				:src="embedUrl"
