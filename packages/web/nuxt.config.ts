@@ -43,14 +43,7 @@ export default defineNuxtConfig({
 		'@nuxt/image',
 		'@pinia/nuxt',
 		'nuxt-charts',
-		'nuxt-bun-compile',
 	],
-	bunCompile: {
-		enabled: process.env.NUXT_BUN_COMPILE === 'true',
-		outfile: '../../dist/zeepcentraal-web',
-		target: 'bun-linux-x64',
-		autoCompile: true,
-	},
 	content: {
 		database: {
 			type: 'sqlite',

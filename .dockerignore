@@ -11,3 +11,5 @@
 !dist/zeepcentraal-import-zsl
 !dist/zeepcentraal-postgraphile
 **/.DS_Store
+!packages/web/.output/
+!packages/web/.output/**

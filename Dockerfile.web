@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM oven/bun:1.3.14-distroless
 
 ARG SERVICE_VERSION=dev
 
@@ -6,8 +6,7 @@ LABEL org.opencontainers.image.description="ZeepCentraal Nuxt web application."
 
 WORKDIR /app
 
-COPY --chmod=755 --chown=nonroot:nonroot dist/zeepcentraal-web zeepcentraal-web
-COPY --chown=nonroot:nonroot dist/node_modules/@takumi-rs/core-linux-x64-gnu node_modules/@takumi-rs/core-linux-x64-gnu
+COPY --chown=65532:65532 packages/web/.output .output
 
 ENV NODE_ENV=production
 ENV NITRO_PORT=4000
@@ -16,4 +15,6 @@ ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
 
 EXPOSE 4000
 
-ENTRYPOINT ["./zeepcentraal-web"]
+USER 65532:65532
+
+ENTRYPOINT ["bun", "--bun", ".output/server/index.mjs"]

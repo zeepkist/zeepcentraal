@@ -1,5 +1,5 @@
 name: Build Docker Image
-description: Download one compiled binary and build or publish one Docker image.
+description: Download one package output and build or publish one Docker image.
 inputs:
   name:
     description: Image/package name used for artifact naming.
@@ -7,8 +7,11 @@ inputs:
   dockerfile:
     description: Dockerfile path.
     required: true
-  binary:
-    description: Binary filename expected under dist/.
+  artifact-download-path:
+    description: Directory where package output should be downloaded.
+    required: true
+  expected-path:
+    description: File expected after package output download.
     required: true
   clone-super-league:
     description: Clone Super League data into Docker build context.
@@ -27,20 +30,17 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Download ${{ inputs.name }} binary
+    - name: Download ${{ inputs.name }} output
       uses: actions/download-artifact@v8
       with:
-        name: compiled-binary-${{ inputs.name }}
-        path: dist
+        name: package-output-${{ inputs.name }}
+        path: ${{ inputs.artifact-download-path }}
 
-    - name: Verify ${{ inputs.name }} binary
+    - name: Verify ${{ inputs.name }} output
       shell: bash
-      run: test -f dist/${{ inputs.binary }}
-
-    - name: Verify web native runtime
-      if: ${{ inputs.name == 'web' }}
-      shell: bash
-      run: test -f dist/node_modules/@takumi-rs/core-linux-x64-gnu/core.linux-x64-gnu.node
+      env:
+        EXPECTED_PATH: ${{ inputs.expected-path }}
+      run: test -f "$EXPECTED_PATH"
 
     - name: Clone Super League Data
       if: ${{ inputs.clone-super-league == 'true' }}

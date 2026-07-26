@@ -19,7 +19,7 @@
 		"build:migrate": "bun --cwd=packages/database run build",
 		"build:import-zsl": "bun --cwd=packages/import-zsl run build",
 		"build:postgraphile": "bun --cwd=packages/postgraphile run build",
-		"build:web": "bun --bun --cwd=packages/web run build:deployment",
+		"build:web": "bun --bun --cwd=packages/web run build",
 		"release": "semantic-release",
 		"db:studio": "bun --bun --cwd=packages/database run dev",
 		"db:generate": "bun --bun --cwd=packages/database run db:generate",
@@ -57,8 +57,5 @@
 		"semantic-release": "~25.0.8",
 		"skills": "~1.5.20",
 		"typescript": "~7.0.2"
-	},
-	"patchedDependencies": {
-		"nuxt-bun-compile@0.1.32": "patches/nuxt-bun-compile@0.1.32.patch"
 	}
 }

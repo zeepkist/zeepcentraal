@@ -45,32 +45,39 @@ jobs:
         package:
           - name: server
             build_script: build:server
-            binary: zeepcentraal-server
+            artifact_path: dist/zeepcentraal-server
+            include_hidden_files: false
           - name: jobs
             build_script: build:jobs
-            binary: zeepcentraal-jobs
+            artifact_path: dist/zeepcentraal-jobs
+            include_hidden_files: false
           - name: migrate
             build_script: build:migrate
-            binary: zeepcentraal-migrate
+            artifact_path: dist/zeepcentraal-migrate
+            include_hidden_files: false
           - name: import-zsl
             build_script: build:import-zsl
-            binary: zeepcentraal-import-zsl
+            artifact_path: dist/zeepcentraal-import-zsl
+            include_hidden_files: false
           - name: postgraphile
             build_script: build:postgraphile
-            binary: zeepcentraal-postgraphile
+            artifact_path: dist/zeepcentraal-postgraphile
+            include_hidden_files: false
           - name: web
             build_script: build:web
-            binary: zeepcentraal-web
+            artifact_path: packages/web/.output/
+            include_hidden_files: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Build ${{ matrix.package.name }} binary
-        uses: ./.github/actions/build-package-binary
+      - name: Build ${{ matrix.package.name }} output
+        uses: ./.github/actions/build-package-output
         with:
           name: ${{ matrix.package.name }}
           build-script: ${{ matrix.package.build_script }}
-          binary: ${{ matrix.package.binary }}
+          artifact-path: ${{ matrix.package.artifact_path }}
+          include-hidden-files: ${{ matrix.package.include_hidden_files }}
 
   docker-build:
     runs-on: ubuntu-latest
@@ -81,32 +88,38 @@ jobs:
         image:
           - name: server
             file: Dockerfile.server
-            binary: zeepcentraal-server
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-server
             tag: zeepcentraal/server
             clone_super_league: false
           - name: jobs
             file: Dockerfile.jobs
-            binary: zeepcentraal-jobs
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-jobs
             tag: zeepcentraal/jobs
             clone_super_league: false
           - name: migrate
             file: Dockerfile.migrate
-            binary: zeepcentraal-migrate
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-migrate
             tag: zeepcentraal/migrate
             clone_super_league: false
           - name: import-zsl
             file: Dockerfile.zsl
-            binary: zeepcentraal-import-zsl
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-import-zsl
             tag: zeepcentraal/import-zsl
             clone_super_league: true
           - name: postgraphile
             file: Dockerfile.postgraphile
-            binary: zeepcentraal-postgraphile
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-postgraphile
             tag: zeepcentraal/postgraphile
             clone_super_league: false
           - name: web
             file: Dockerfile.web
-            binary: zeepcentraal-web
+            artifact_download_path: packages/web/.output
+            expected_path: packages/web/.output/server/index.mjs
             tag: zeepcentraal/web
             clone_super_league: false
     steps:
@@ -118,7 +131,8 @@ jobs:
         with:
           name: ${{ matrix.image.name }}
           dockerfile: ${{ matrix.image.file }}
-          binary: ${{ matrix.image.binary }}
+          artifact-download-path: ${{ matrix.image.artifact_download_path }}
+          expected-path: ${{ matrix.image.expected_path }}
           clone-super-league: ${{ matrix.image.clone_super_league }}
           service-version: pr-${{ github.event.pull_request.number || github.run_id }}
           push: false

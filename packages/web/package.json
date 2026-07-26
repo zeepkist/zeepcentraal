@@ -4,12 +4,10 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun run prepare:nuxt && bun --bun nuxt build",
-		"build:deployment": "rm -f ../../dist/zeepcentraal-web && bun run prepare:nuxt && NUXT_BUN_COMPILE=true bun --bun nuxt build && bun run stage:takumi-addon && test -x ../../dist/zeepcentraal-web",
 		"dev": "bun --bun nuxt dev --dotenv ../../.env",
 		"preview": "bun --bun nuxt preview --dotenv ../../.env",
 		"postinstall": "bun run prepare:nuxt",
 		"prepare:nuxt": "bun --bun nuxt prepare",
-		"stage:takumi-addon": "bun scripts/stage-takumi-native-addon.ts",
 		"codegen": "bun --bun graphql-codegen --config codegen.ts",
 		"typecheck": "nuxt typecheck",
 		"test": "bun --bun vitest run",
@@ -52,7 +50,6 @@
 		"@types/sanitize-html": "~2.16.1",
 		"@types/three": "~0.185.1",
 		"@vue/test-utils": "~2.4.11",
-		"nuxt-bun-compile": "0.1.32",
 		"vitest": "~4.1.10"
 	}
 }

@@ -1,5 +1,5 @@
-name: Build Package Binary
-description: Build one package binary and upload it as a workflow artifact.
+name: Build Package Output
+description: Build one package output and upload it as a workflow artifact.
 inputs:
   name:
     description: Package/image name used for artifact naming.
@@ -7,9 +7,13 @@ inputs:
   build-script:
     description: Root package.json build script to run.
     required: true
-  binary:
-    description: Binary filename expected under dist/.
+  artifact-path:
+    description: File or directory produced by the package build.
     required: true
+  include-hidden-files:
+    description: Whether hidden files and directories belong in the artifact.
+    required: false
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -28,26 +32,16 @@ runs:
         restore-keys: |
           ${{ runner.os }}-${{ runner.arch }}-nuxt-${{ hashFiles('bun.lock', 'package.json', 'packages/web/package.json', 'packages/web/nuxt.config.ts') }}-
 
-    - name: Build ${{ inputs.name }} binary
+    - name: Build ${{ inputs.name }} output
       shell: bash
       env:
         NUXT_BUILD_REVISION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       run: bun run ${{ inputs.build-script }}
 
-    - name: Upload ${{ inputs.name }} binary
-      if: ${{ inputs.name != 'web' }}
+    - name: Upload ${{ inputs.name }} output
       uses: actions/upload-artifact@v7
       with:
-        name: compiled-binary-${{ inputs.name }}
+        name: package-output-${{ inputs.name }}
         if-no-files-found: error
-        path: dist/${{ inputs.binary }}
-
-    - name: Upload web binary and native runtime
-      if: ${{ inputs.name == 'web' }}
-      uses: actions/upload-artifact@v7
-      with:
-        name: compiled-binary-${{ inputs.name }}
-        if-no-files-found: error
-        path: |
-          dist/${{ inputs.binary }}
-          dist/node_modules/@takumi-rs/core-linux-x64-gnu
+        include-hidden-files: ${{ inputs.include-hidden-files }}
+        path: ${{ inputs.artifact-path }}

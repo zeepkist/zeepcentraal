@@ -5,7 +5,7 @@ const rootPackage = JSON.parse(
 	readFileSync(new URL('../../../../package.json', import.meta.url), 'utf8'),
 ) as {
 	scripts: Record<string, string>
-	patchedDependencies: Record<string, string>
+	patchedDependencies?: Record<string, string>
 }
 const webPackage = JSON.parse(
 	readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
@@ -13,9 +13,10 @@ const webPackage = JSON.parse(
 	scripts: Record<string, string>
 	devDependencies: Record<string, string>
 }
+const bunLock = readFileSync(new URL('../../../../bun.lock', import.meta.url), 'utf8')
 const nuxtConfig = readFileSync(new URL('../../nuxt.config.ts', import.meta.url), 'utf8')
 const buildAction = readFileSync(
-	new URL('../../../../.github/actions/build-package-binary/action.yml', import.meta.url),
+	new URL('../../../../.github/actions/build-package-output/action.yml', import.meta.url),
 	'utf8',
 )
 const buildDockerImageAction = readFileSync(
@@ -26,84 +27,37 @@ const setupBunDependenciesAction = readFileSync(
 	new URL('../../../../.github/actions/setup-bun-deps/action.yml', import.meta.url),
 	'utf8',
 )
+const prWorkflow = readFileSync(
+	new URL('../../../../.github/workflows/pr-validate.yml', import.meta.url),
+	'utf8',
+)
 const deployWorkflow = readFileSync(
 	new URL('../../../../.github/workflows/deploy.yml', import.meta.url),
 	'utf8',
 )
 const webDockerfile = readFileSync(new URL('../../../../Dockerfile.web', import.meta.url), 'utf8')
+const dockerIgnore = readFileSync(new URL('../../../../.dockerignore', import.meta.url), 'utf8')
 const nativeDependencyDockerfiles = ['jobs', 'server'].map((name) =>
 	readFileSync(new URL(`../../../../Dockerfile.${name}`, import.meta.url), 'utf8'),
 )
-const bunCompilePatch = readFileSync(
-	new URL('../../../../patches/nuxt-bun-compile@0.1.32.patch', import.meta.url),
-	'utf8',
-)
-const stageTakumiNativeAddonScript = readFileSync(
-	new URL('../../scripts/stage-takumi-native-addon.ts', import.meta.url),
-	'utf8',
-)
 
 describe('web deployment build', () => {
-	it('routes root CI build through standalone deployment compilation', () => {
-		expect(rootPackage.scripts['build:web']).toBe(
-			'bun --bun --cwd=packages/web run build:deployment',
-		)
+	it('builds the standard Nitro output', () => {
+		expect(rootPackage.scripts['build:web']).toBe('bun --bun --cwd=packages/web run build')
+		expect(webPackage.scripts.build).toBe('bun run prepare:nuxt && bun --bun nuxt build')
 		expect(webPackage.scripts['prepare:nuxt']).toBe('bun --bun nuxt prepare')
 		expect(webPackage.scripts.postinstall).toBe('bun run prepare:nuxt')
-		expect(webPackage.scripts.build.startsWith('bun run prepare:nuxt &&')).toBe(true)
-		const prepareIndex = webPackage.scripts['build:deployment'].indexOf('bun run prepare:nuxt')
-		const buildIndex = webPackage.scripts['build:deployment'].indexOf(
-			'NUXT_BUN_COMPILE=true bun --bun nuxt build',
-		)
-		const stageAddonIndex = webPackage.scripts['build:deployment'].indexOf(
-			'bun run stage:takumi-addon',
-		)
-		const verifyBinaryIndex = webPackage.scripts['build:deployment'].indexOf(
-			'test -x ../../dist/zeepcentraal-web',
-		)
-		expect(prepareIndex).toBeGreaterThanOrEqual(0)
-		expect(buildIndex).toBeGreaterThan(prepareIndex)
-		expect(stageAddonIndex).toBeGreaterThan(buildIndex)
-		expect(verifyBinaryIndex).toBeGreaterThan(stageAddonIndex)
-		expect(webPackage.scripts['build:deployment']).toContain('NUXT_BUN_COMPILE=true')
-		expect(webPackage.scripts['build:deployment']).toContain('bun --bun nuxt build')
-		expect(webPackage.scripts['build:deployment']).toContain(
-			'test -x ../../dist/zeepcentraal-web',
-		)
-		expect(webPackage.scripts['build:deployment']).not.toContain('bun build --compile')
-		expect(webPackage.scripts['build:deployment']).not.toContain('.output/server')
+		expect(webPackage.scripts['build:deployment']).toBeUndefined()
+		expect(webPackage.scripts['stage:takumi-addon']).toBeUndefined()
 	})
 
-	it('stages the Takumi Linux native addon beside the compiled executable', () => {
-		expect(webPackage.scripts['stage:takumi-addon']).toBe(
-			'bun scripts/stage-takumi-native-addon.ts',
-		)
-		expect(stageTakumiNativeAddonScript).toContain(
-			"const packageName = '@takumi-rs/core-linux-x64-gnu'",
-		)
-		expect(stageTakumiNativeAddonScript).toContain(
-			"const nativeBinding = 'core.linux-x64-gnu.node'",
-		)
-		expect(stageTakumiNativeAddonScript).toContain(
-			['../.output/server/node_modules/', '$', '{packageName}'].join(''),
-		)
-		expect(stageTakumiNativeAddonScript).toContain(
-			['../../../dist/node_modules/', '$', '{packageName}'].join(''),
-		)
-		expect(stageTakumiNativeAddonScript).toContain(
-			'cpSync(sourceDirectory, destinationDirectory, { recursive: true })',
-		)
-	})
-
-	it('delegates standalone compilation to nuxt-bun-compile', () => {
-		expect(webPackage.devDependencies['nuxt-bun-compile']).toBe('0.1.32')
-		expect(nuxtConfig).toContain("'nuxt-bun-compile'")
-		expect(nuxtConfig).toContain("enabled: process.env.NUXT_BUN_COMPILE === 'true'")
-		expect(nuxtConfig).toContain("outfile: '../../dist/zeepcentraal-web'")
-		expect(nuxtConfig).toContain("target: 'bun-linux-x64'")
-		expect(nuxtConfig).toContain('autoCompile: true')
-		expect(nuxtConfig).not.toContain("serveStatic: 'inline'")
-		expect(nuxtConfig).not.toMatch(/externals:\s*\{\s*inline:/)
+	it('uses the Bun Nitro preset without standalone compilation', () => {
+		expect(nuxtConfig).toContain("preset: 'bun'")
+		expect(nuxtConfig).not.toContain("'nuxt-bun-compile'")
+		expect(nuxtConfig).not.toContain('bunCompile:')
+		expect(webPackage.devDependencies['nuxt-bun-compile']).toBeUndefined()
+		expect(rootPackage.patchedDependencies?.['nuxt-bun-compile@0.1.32']).toBeUndefined()
+		expect(bunLock).not.toContain('nuxt-bun-compile')
 	})
 
 	it('namespaces client assets for every CI build artifact', () => {
@@ -120,64 +74,67 @@ describe('web deployment build', () => {
 		expect(buildAction).toContain(buildRevisionExpression)
 	})
 
-	it('keeps server-side Nuxt Content storage outside Bun embedded paths', () => {
+	it('keeps server-side Nuxt Content storage in memory', () => {
 		expect(nuxtConfig).toMatch(
 			/content:\s*\{\s*database:\s*\{\s*type:\s*'sqlite',\s*filename:\s*':memory:'/,
 		)
 	})
 
-	it('keeps nuxt-bun-compile compatible with Nuxt Content prerendering', () => {
-		expect(rootPackage.patchedDependencies['nuxt-bun-compile@0.1.32']).toBe(
-			'patches/nuxt-bun-compile@0.1.32.patch',
-		)
-		expect(bunCompilePatch).toContain('-      nitroConfig.noExternals = true')
-		expect(bunCompilePatch).toContain('-      nitroConfig.inlineDynamicImports = true')
-		expect(bunCompilePatch).toContain('+      const allExternals = options.extraExternals')
-		expect(bunCompilePatch).toContain('nitroConfig.externals.inline')
-		expect(bunCompilePatch).toContain('"graphql"')
-		expect(bunCompilePatch).toContain('args.push("--external", "chromium-bidi/*")')
-		expect(bunCompilePatch).toContain('args.push("--conditions", "production")')
-		expect(bunCompilePatch).toContain('["install", "--production", "--ignore-scripts"]')
-		expect(bunCompilePatch).toContain('cwd: outputDirectory')
-		expect(bunCompilePatch).toContain('resolve(nuxt.options.rootDir, options.outfile)')
-		expect(bunCompilePatch).toContain(
-			'nitro.options.static || nitro.options.preset === "nitro-prerender"',
-		)
-	})
+	it('uploads declared package outputs without web-native special cases', () => {
+		expect(buildAction).toContain('name: Build Package Output')
+		expect(buildAction).toContain('artifact-path:')
+		expect(buildAction).toContain('include-hidden-files:')
+		expect(buildAction).toContain(['name: package-output-', '$', '{{ inputs.name }}'].join(''))
+		expect(buildAction).toContain(['path: ', '$', '{{ inputs.artifact-path }}'].join(''))
+		expect(buildAction).not.toContain('compiled-binary')
+		expect(buildAction).not.toContain('@takumi-rs/core-linux')
 
-	it('provides root Bun patches to every frozen Docker dependency install', () => {
-		for (const dockerfile of nativeDependencyDockerfiles) {
-			const copyPatches = dockerfile.indexOf('COPY patches/ patches/')
-			const installDependencies = dockerfile.indexOf(
-				'RUN HUSKY=0 bun install --frozen-lockfile',
-			)
-
-			expect(copyPatches).toBeGreaterThanOrEqual(0)
-			expect(installDependencies).toBeGreaterThan(copyPatches)
+		for (const workflow of [prWorkflow, deployWorkflow]) {
+			expect(workflow).toContain('uses: ./.github/actions/build-package-output')
+			expect(workflow).toContain('artifact_path: packages/web/.output/')
+			expect(workflow).toContain('include_hidden_files: true')
+			expect(workflow).not.toContain('binary: zeepcentraal-web')
 		}
 	})
 
-	it('invalidates the dependency cache when Bun patches change', () => {
-		expect(setupBunDependenciesAction).toContain("'patches/**'")
-	})
-
-	it('ships the Takumi native addon in the web artifact and container', () => {
-		expect(buildAction).toMatch(/if: \$\{\{ inputs\.name == 'web' \}\}/)
-		expect(buildAction).toContain('dist/node_modules/@takumi-rs/core-linux-x64-gnu')
+	it('downloads each package output to its declared runtime path', () => {
+		expect(buildDockerImageAction).toContain('artifact-download-path:')
+		expect(buildDockerImageAction).toContain('expected-path:')
 		expect(buildDockerImageAction).toContain(
-			'test -f dist/node_modules/@takumi-rs/core-linux-x64-gnu/core.linux-x64-gnu.node',
+			['name: package-output-', '$', '{{ inputs.name }}'].join(''),
 		)
-		expect(webDockerfile).toContain(
-			'COPY --chmod=755 --chown=nonroot:nonroot dist/zeepcentraal-web zeepcentraal-web',
+		expect(buildDockerImageAction).toContain(
+			['path: ', '$', '{{ inputs.artifact-download-path }}'].join(''),
 		)
-		expect(webDockerfile).toContain(
-			'COPY --chown=nonroot:nonroot dist/node_modules/@takumi-rs/core-linux-x64-gnu node_modules/@takumi-rs/core-linux-x64-gnu',
-		)
-		expect(webDockerfile).toContain('WORKDIR /app')
-		expect(webDockerfile).toContain('ENTRYPOINT ["./zeepcentraal-web"]')
+		expect(buildDockerImageAction).toContain('run: test -f "$EXPECTED_PATH"')
+		expect(buildDockerImageAction).not.toContain('compiled-binary')
+		expect(buildDockerImageAction).not.toContain('@takumi-rs/core-linux')
+
+		for (const workflow of [prWorkflow, deployWorkflow]) {
+			expect(workflow).toContain('artifact_download_path: packages/web/.output')
+			expect(workflow).toContain('expected_path: packages/web/.output/server/index.mjs')
+		}
 	})
 
-	it('restores source-aware Nuxt build data for web binaries only', () => {
+	it('runs the complete Nitro output with pinned Bun as non-root', () => {
+		expect(webDockerfile).toContain('FROM oven/bun:1.3.14-distroless')
+		expect(webDockerfile).toContain('COPY --chown=65532:65532 packages/web/.output .output')
+		expect(webDockerfile).toContain('USER 65532:65532')
+		expect(webDockerfile).toContain('ENTRYPOINT ["bun", "--bun", ".output/server/index.mjs"]')
+		expect(webDockerfile).not.toContain('dist/zeepcentraal-web')
+		expect(webDockerfile).not.toContain('@takumi-rs/core-linux')
+		expect(dockerIgnore).toContain('!packages/web/.output/')
+		expect(dockerIgnore).toContain('!packages/web/.output/**')
+	})
+
+	it('removes patch-only dependency plumbing', () => {
+		for (const dockerfile of nativeDependencyDockerfiles) {
+			expect(dockerfile).not.toContain('COPY patches/ patches/')
+		}
+		expect(setupBunDependenciesAction).not.toContain("'patches/**'")
+	})
+
+	it('restores source-aware Nuxt build data for web outputs only', () => {
 		expect(buildAction).toMatch(/if: \$\{\{ inputs\.name == 'web' \}\}/)
 		expect(buildAction).toContain('uses: actions/cache@v6')
 		expect(buildAction).toContain('packages/web/node_modules/.cache/nuxt')
@@ -189,24 +146,19 @@ describe('web deployment build', () => {
 		expect(buildAction).toContain('packages/core/src/**')
 		expect(buildAction).toContain('packages/database/src/**')
 		expect(buildAction).toContain('restore-keys: |')
-		expect(buildAction).not.toMatch(/^\s+packages\/web\/\.output$/m)
 	})
 
-	it('uses one release version for every published image', () => {
-		const githubSha = ['$', '{{ github.sha }}'].join('')
-		const releaseVersion = ['$', '{{ needs.release.outputs.version }}'].join('')
-		const releaseVersionOrSha = ['$', '{{ needs.release.outputs.version || github.sha }}'].join(
-			'',
+	it('uses a supported Node runtime for semantic-release', () => {
+		const releaseJob = deployWorkflow.slice(
+			deployWorkflow.indexOf('\n  release:\n'),
+			deployWorkflow.indexOf('\n  build-packages:\n'),
 		)
-		const releaseMajorMinor = ['$', '{{ needs.release.outputs.major_minor }}'].join('')
 
-		expect(deployWorkflow).not.toContain('release_tag_prefix')
-		expect(deployWorkflow).not.toContain('resolve-image-version')
-		expect(deployWorkflow).not.toContain('github.ref_name')
-		expect(deployWorkflow).toContain(`ref: ${githubSha}`)
-		expect(deployWorkflow).toContain("if: needs.release.outputs.version != ''")
-		expect(deployWorkflow).toContain(`service-version: ${releaseVersionOrSha}`)
-		expect(deployWorkflow).toContain(`service-version: ${releaseVersion}`)
-		expect(deployWorkflow).toContain(releaseMajorMinor)
+		expect(releaseJob).toContain('uses: actions/setup-node@v7')
+		expect(releaseJob).toContain("node-version: '26'")
+		expect(releaseJob).toContain('package-manager-cache: false')
+		expect(releaseJob.indexOf('Setup release Node')).toBeLessThan(
+			releaseJob.indexOf('Run semantic release'),
+		)
 	})
 })
