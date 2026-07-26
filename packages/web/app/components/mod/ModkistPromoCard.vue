@@ -23,6 +23,7 @@
 			<div class="grid gap-2">
 				<UButton
 					:to="downloadHref"
+					external
 					target="_blank"
 					rel="noopener noreferrer"
 					color="primary"

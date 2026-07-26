@@ -25,6 +25,7 @@
 				v-for="format in visibleFormats"
 				:key="format"
 				:to="`/api/downloads/modkist/${channel}/${format}`"
+				external
 				target="_blank"
 				rel="noopener noreferrer"
 				:color="format === 'msi' ? color : 'neutral'"
