@@ -36,7 +36,6 @@
 		"db:seed:tournaments:local": "bun --cwd=packages/database run db:seed:tournaments:local",
 		"db:migration:adventure-levels": "bun --bun --cwd=packages/database run db:migration:adventure-levels",
 		"prepare": "husky",
-		"prepare:skilld": "bunx skilld prepare || true",
 		"typecheck": "golar",
 		"typecheck:web": "bun --cwd=packages/web run typecheck",
 		"test": "bun test --isolate",
@@ -46,7 +45,8 @@
 		"format": "biome format .",
 		"format:fix": "biome format --write .",
 		"dedupe": "bunlock-dedupe",
-		"dedupe:fix": "bunlock-dedupe --fix"
+		"dedupe:fix": "bunlock-dedupe --fix",
+		"skill:add": "skills add"
 	},
 	"lint-staged": {
 		"*": "biome check --write --no-errors-on-unmatched"
@@ -65,7 +65,7 @@
 		"lint-staged": "~17.1.1",
 		"semantic-release": "~25.0.8",
 		"semantic-release-monorepo": "~8.0.2",
-		"skilld": "~2.0.0",
+		"skills": "~1.5.20",
 		"typescript": "~7.0.2"
 	},
 	"patchedDependencies": {
