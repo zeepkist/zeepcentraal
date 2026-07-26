@@ -122,6 +122,10 @@ Expected response:
 | `bun run build:server` | Compiles server binary to `dist/` |
 | `bun run build:jobs` | Compiles jobs binary to `dist/` |
 
+## Releases
+
+`bun run release` versions the whole monorepo from conventional commits.
+
 ## Git Hooks
 
 `bun install` configures a Husky pre-commit hook. Before each commit it applies Biome fixes to

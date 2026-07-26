@@ -1,12 +1,10 @@
 {
 	"name": "@zeepkist/graphql",
-	"version": "1.0.0",
 	"private": true,
 	"type": "module",
 	"main": "src/index.ts",
 	"types": "src/index.ts",
 	"scripts": {
-		"release": "semantic-release",
 		"introspect": "bunx --bun graphql-inspector introspect https://graphql.zeepki.st --write schema.graphql",
 		"introspect:local": "bunx --bun graphql-inspector introspect http://localhost:5000 --write schema.graphql",
 		"publish": "bun scripts/publish.ts"

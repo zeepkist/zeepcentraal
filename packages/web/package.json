@@ -1,10 +1,8 @@
 {
 	"name": "@zeepkist/web",
-	"version": "1.0.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"release": "semantic-release",
 		"build": "bun run prepare:nuxt && bun --bun nuxt build",
 		"build:deployment": "rm -f ../../dist/zeepcentraal-web && bun run prepare:nuxt && NUXT_BUN_COMPILE=true bun --bun nuxt build && bun run stage:takumi-addon && test -x ../../dist/zeepcentraal-web",
 		"dev": "bun --bun nuxt dev --dotenv ../../.env",
