@@ -34,25 +34,16 @@ jobs:
   release:
     runs-on: ubuntu-latest
     needs: [test]
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'chore(release):'))
-    strategy:
-      fail-fast: false
-      matrix:
-        package:
-          - core
-          - database
-          - server
-          - jobs
-          - import-zsl
-          - postgraphile
-          - telemetry
-          - workshop
-          - web
+    outputs:
+      version: ${{ steps.release_version.outputs.version }}
+      major: ${{ steps.release_version.outputs.major }}
+      major_minor: ${{ steps.release_version.outputs.major_minor }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.sha }}
 
       - name: Setup Bun dependencies
         uses: ./.github/actions/setup-bun-deps
@@ -68,15 +59,46 @@ jobs:
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
 
-      - name: Run per-package semantic release
+      - name: Check release history
+        id: release_history
+        shell: bash
+        run: |
+          git fetch --force --tags origin
+          TAG="$(git tag -l --merged "$GITHUB_SHA" --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          if [ -n "$TAG" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No release history found.
+          fi
+
+      - name: Run semantic release
+        if: steps.release_history.outputs.exists == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run release:${{ matrix.package }}
+        run: bun run release
+
+      - name: Resolve release version
+        id: release_version
+        shell: bash
+        run: |
+          git fetch --force --tags origin
+          VERSION="$(git tag -l --points-at "$GITHUB_SHA" --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ -z "$VERSION" ]; then
+            echo "major=" >> "$GITHUB_OUTPUT"
+            echo "major_minor=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          MAJOR="${VERSION%%.*}"
+          REST="${VERSION#*.}"
+          MINOR="${REST%%.*}"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
 
   build-packages:
     runs-on: ubuntu-latest
     needs: [test, release]
-    if: always() && needs.test.result == 'success' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -103,7 +125,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
 
       - name: Build ${{ matrix.package.name }} binary
         uses: ./.github/actions/build-package-binary
@@ -114,7 +136,7 @@ jobs:
 
   docker-build:
     runs-on: ubuntu-latest
-    needs: [build-packages]
+    needs: [build-packages, release]
     strategy:
       fail-fast: true
       matrix:
@@ -123,50 +145,37 @@ jobs:
             file: Dockerfile.server
             binary: zeepcentraal-server
             image_name: server
-            release_tag_prefix: server
             clone_super_league: false
           - name: jobs
             file: Dockerfile.jobs
             binary: zeepcentraal-jobs
             image_name: jobs
-            release_tag_prefix: jobs
             clone_super_league: false
           - name: migrate
             file: Dockerfile.migrate
             binary: zeepcentraal-migrate
             image_name: migrate
-            release_tag_prefix: database
             clone_super_league: false
           - name: import-zsl
             file: Dockerfile.zsl
             binary: zeepcentraal-import-zsl
             image_name: import-zsl
-            release_tag_prefix: import-zsl
             clone_super_league: true
           - name: postgraphile
             file: Dockerfile.postgraphile
             binary: zeepcentraal-postgraphile
             image_name: postgraphile
-            release_tag_prefix: postgraphile
             clone_super_league: false
           - name: web
             file: Dockerfile.web
             binary: zeepcentraal-web
             image_name: web
-            release_tag_prefix: web
             clone_super_league: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
-
-      - name: Resolve ${{ matrix.image.name }} image version
-        id: image_version
-        uses: ./.github/actions/resolve-image-version
-        with:
-          release-tag-prefix: ${{ matrix.image.release_tag_prefix }}
+          ref: ${{ github.sha }}
 
       - name: Build ${{ matrix.image.name }} image (no push)
         uses: ./.github/actions/build-docker-image
@@ -175,13 +184,14 @@ jobs:
           dockerfile: ${{ matrix.image.file }}
           binary: ${{ matrix.image.binary }}
           clone-super-league: ${{ matrix.image.clone_super_league }}
-          service-version: ${{ steps.image_version.outputs.version }}
+          service-version: ${{ needs.release.outputs.version || github.sha }}
           push: false
           tags: ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ github.sha }}
 
   docker-publish:
     runs-on: ubuntu-latest
-    needs: [docker-build]
+    needs: [docker-build, release]
+    if: needs.release.outputs.version != ''
     strategy:
       fail-fast: true
       matrix:
@@ -190,50 +200,37 @@ jobs:
             file: Dockerfile.server
             binary: zeepcentraal-server
             image_name: server
-            release_tag_prefix: server
             clone_super_league: false
           - name: jobs
             file: Dockerfile.jobs
             binary: zeepcentraal-jobs
             image_name: jobs
-            release_tag_prefix: jobs
             clone_super_league: false
           - name: migrate
             file: Dockerfile.migrate
             binary: zeepcentraal-migrate
             image_name: migrate
-            release_tag_prefix: database
             clone_super_league: false
           - name: import-zsl
             file: Dockerfile.zsl
             binary: zeepcentraal-import-zsl
             image_name: import-zsl
-            release_tag_prefix: import-zsl
             clone_super_league: true
           - name: postgraphile
             file: Dockerfile.postgraphile
             binary: zeepcentraal-postgraphile
             image_name: postgraphile
-            release_tag_prefix: postgraphile
             clone_super_league: false
           - name: web
             file: Dockerfile.web
             binary: zeepcentraal-web
             image_name: web
-            release_tag_prefix: web
             clone_super_league: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
-
-      - name: Resolve ${{ matrix.image.name }} image version tags
-        id: image_version
-        uses: ./.github/actions/resolve-image-version
-        with:
-          release-tag-prefix: ${{ matrix.image.release_tag_prefix }}
+          ref: ${{ github.sha }}
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -249,11 +246,11 @@ jobs:
           dockerfile: ${{ matrix.image.file }}
           binary: ${{ matrix.image.binary }}
           clone-super-league: ${{ matrix.image.clone_super_league }}
-          service-version: ${{ steps.image_version.outputs.version }}
+          service-version: ${{ needs.release.outputs.version }}
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:latest
             ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ steps.image_version.outputs.major }}
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ steps.image_version.outputs.major_minor }}
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ steps.image_version.outputs.version }}
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ needs.release.outputs.major }}
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ needs.release.outputs.major_minor }}
+            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ needs.release.outputs.version }}

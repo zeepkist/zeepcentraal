@@ -192,17 +192,21 @@ describe('web deployment build', () => {
 		expect(buildAction).not.toMatch(/^\s+packages\/web\/\.output$/m)
 	})
 
-	it('uses a supported Node runtime for semantic-release', () => {
-		const releaseJob = deployWorkflow.slice(
-			deployWorkflow.indexOf('\n  release:\n'),
-			deployWorkflow.indexOf('\n  build-packages:\n'),
+	it('uses one release version for every published image', () => {
+		const githubSha = ['$', '{{ github.sha }}'].join('')
+		const releaseVersion = ['$', '{{ needs.release.outputs.version }}'].join('')
+		const releaseVersionOrSha = ['$', '{{ needs.release.outputs.version || github.sha }}'].join(
+			'',
 		)
+		const releaseMajorMinor = ['$', '{{ needs.release.outputs.major_minor }}'].join('')
 
-		expect(releaseJob).toContain('uses: actions/setup-node@v7')
-		expect(releaseJob).toContain("node-version: '26'")
-		expect(releaseJob).toContain('package-manager-cache: false')
-		expect(releaseJob.indexOf('Setup release Node')).toBeLessThan(
-			releaseJob.indexOf('Run per-package semantic release'),
-		)
+		expect(deployWorkflow).not.toContain('release_tag_prefix')
+		expect(deployWorkflow).not.toContain('resolve-image-version')
+		expect(deployWorkflow).not.toContain('github.ref_name')
+		expect(deployWorkflow).toContain(`ref: ${githubSha}`)
+		expect(deployWorkflow).toContain("if: needs.release.outputs.version != ''")
+		expect(deployWorkflow).toContain(`service-version: ${releaseVersionOrSha}`)
+		expect(deployWorkflow).toContain(`service-version: ${releaseVersion}`)
+		expect(deployWorkflow).toContain(releaseMajorMinor)
 	})
 })

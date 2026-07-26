@@ -1,12 +1,10 @@
 {
 	"name": "@zeepkist/server",
-	"version": "1.1.0",
 	"private": true,
 	"type": "module",
 	"main": "src/index.ts",
 	"types": "src/index.ts",
 	"scripts": {
-		"release": "semantic-release",
 		"jobs:trigger": "bun --env-file=../../.env scripts/jobs-trigger.ts",
 		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-server src/index.ts --external @napi-rs/lzma --external @napi-rs/lzma/lzma --external xxhash-addon"
 	},
