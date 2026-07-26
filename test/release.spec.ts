@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 
 const repositoryRoot = new URL('../', import.meta.url)
 const releaseConfig = readFileSync(new URL('release.config.cjs', repositoryRoot), 'utf8')
+const deployWorkflow = readFileSync(new URL('.github/workflows/deploy.yml', repositoryRoot), 'utf8')
 const packageNames = [
 	'core',
 	'database',
@@ -37,6 +38,22 @@ describe('unified releases', () => {
 		expect(rootPackage.devDependencies?.['semantic-release-monorepo']).toBeUndefined()
 		expect(releaseConfig).toContain("branches: ['develop']")
 		expect(releaseConfig).toContain(["tagFormat: '", '$', "{version}'"].join(''))
+	})
+
+	test('always runs semantic-release in the develop deployment workflow', () => {
+		const releaseJob = deployWorkflow.slice(
+			deployWorkflow.indexOf('\n  release:\n'),
+			deployWorkflow.indexOf('\n  build-packages:\n'),
+		)
+		const semanticReleaseStep = releaseJob.slice(
+			releaseJob.indexOf('      - name: Run semantic release'),
+			releaseJob.indexOf('      - name: Resolve release version'),
+		)
+
+		expect(deployWorkflow).toContain('branches: [develop]')
+		expect(releaseJob).not.toContain('Check release history')
+		expect(semanticReleaseStep).toContain('run: bun run release')
+		expect(semanticReleaseStep).not.toContain('if:')
 	})
 
 	test('keeps private workspace packages outside independent release streams', () => {

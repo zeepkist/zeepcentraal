@@ -59,21 +59,7 @@ jobs:
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
 
-      - name: Check release history
-        id: release_history
-        shell: bash
-        run: |
-          git fetch --force --tags origin
-          TAG="$(git tag -l --merged "$GITHUB_SHA" --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
-          if [ -n "$TAG" ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No release history found."
-          fi
-
       - name: Run semantic release
-        if: steps.release_history.outputs.exists == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run release
