@@ -1,7 +1,7 @@
 {
 	"name": "@zeepkist/zeepcentraal",
 	"private": true,
-	"packageManager": "bun@1.4.0",
+	"packageManager": "bun@1.3.14",
 	"type": "module",
 	"workspaces": [
 		"packages/*"
