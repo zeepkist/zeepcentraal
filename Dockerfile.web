@@ -1,4 +1,5 @@
-FROM oven/bun:1.3.14-distroless
+# Takumi's native renderer requires libgcc_s.so.1, which Bun's distroless image omits.
+FROM oven/bun:1.3.14-slim
 
 ARG SERVICE_VERSION=dev
 
