@@ -13,7 +13,7 @@
 	"dependencies": {
 		"@graphile-contrib/pg-many-to-many": "~2.0.0-rc.2",
 		"@graphile/pg-aggregates": "~0.2.0-rc.2",
-		"@graphile/simplify-inflection": "~8.0.0",
+		"@graphile/simplify-inflection": "~9.0.0",
 		"@elysiajs/cors": "~1.4.2",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
