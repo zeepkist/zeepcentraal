@@ -116,7 +116,10 @@ describe('dashboard statistic presentation', () => {
 		expect(chartCard).toContain('<DashboardDonutChart')
 		expect(chartCard).toContain('<BarChart')
 		expect(donutChart).toContain('<DonutChart')
-		expect(donutChart).toContain('half ? DonutType.Half : DonutType.Full')
+		expect(donutChart).toContain("import type { DonutType } from '#imports'")
+		expect(donutChart).toContain("computed(() => (props.half ? 'half' : 'full') as DonutType)")
+		expect(donutChart).not.toContain('DonutType.Half')
+		expect(donutChart).not.toContain('DonutType.Full')
 		for (const source of [
 			panel,
 			chartCard,

@@ -12,7 +12,7 @@
 				:height="chartHeight"
 				:arc-width="arcWidth"
 				:pad-angle="0.035"
-				:type="half ? DonutType.Half : DonutType.Full"
+				:type="donutType"
 				:duration="chartDuration"
 				:tooltip="tooltipOptions"
 				hide-legend
@@ -46,6 +46,7 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { DonutType } from '#imports'
 import type { DashboardChartEntry } from '~/types/app'
 
 const props = withDefaults(
@@ -72,6 +73,7 @@ const layoutClass = computed(() =>
 const chartHeight = computed(() => (props.compact ? 160 : 224))
 const chartRadius = computed(() => (props.compact ? (props.half ? 70 : 62) : props.half ? 96 : 88))
 const arcWidth = computed(() => (props.compact ? (props.half ? 26 : 22) : props.half ? 34 : 30))
+const donutType = computed(() => (props.half ? 'half' : 'full') as DonutType)
 const chartDuration = computed(() => (reducedMotion.value ? 0 : 650))
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const total = computed(() => props.entries.reduce((sum, entry) => sum + entry.value, 0))
