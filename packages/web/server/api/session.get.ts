@@ -1,6 +1,6 @@
 import { getRefreshableWebSession, getWebSession } from '@zeepkist/database/services'
+import { hasCompleteWebAuthCookieTuple } from '#shared/authCookies'
 import type { SessionUser } from '../../app/types/app'
-import { hasCompleteWebAuthCookieTuple } from '../../shared/authCookies'
 import { cookieHeaderFromSetCookies, refreshWebAuth } from '../utils/backend'
 import { assertSameOrigin } from '../utils/request'
 import { resolveVerifiedSession } from '../utils/session'

@@ -1,5 +1,5 @@
+import { webAuthCookieNames } from '#shared/authCookies'
 import { authRefreshUrl } from '../../app/utils/auth'
-import { webAuthCookieNames } from '../../shared/authCookies'
 
 export type SessionCookies = {
 	steamId: string

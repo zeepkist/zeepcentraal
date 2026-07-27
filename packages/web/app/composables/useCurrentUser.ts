@@ -1,5 +1,5 @@
+import { hasCompleteWebAuthCookieTuple } from '#shared/authCookies'
 import type { SessionUser } from '~/types/app'
-import { hasCompleteWebAuthCookieTuple } from '../../shared/authCookies'
 
 export async function useCurrentUser() {
 	const session = useSessionStore()

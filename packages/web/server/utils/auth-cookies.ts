@@ -1,6 +1,6 @@
-import { webAuthCookieNames } from '../../shared/authCookies'
+import { webAuthCookieNames } from '#shared/authCookies'
 
-export { webAuthCookieNames } from '../../shared/authCookies'
+export { webAuthCookieNames } from '#shared/authCookies'
 
 export function webAuthCookieDomain(hostname: string) {
 	return hostname === 'zeepki.st' || hostname.endsWith('.zeepki.st') ? '.zeepki.st' : undefined
