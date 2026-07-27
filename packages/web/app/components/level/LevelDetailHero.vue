@@ -1,8 +1,7 @@
 <template>
 	<section
-		class="level-hero relative isolate overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-card via-card to-primary/10 p-5 shadow-xl shadow-primary/5 sm:p-7 lg:p-9"
+		class="level-hero relative isolate overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-card via-card to-primary/10 p-5 shadow-sm shadow-primary/5 sm:p-7 lg:p-9"
 	>
-		<div class="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-primary/15 blur-3xl" />
 		<div
 			class="relative grid gap-7 lg:grid-cols-[minmax(0,1.25fr)_minmax(22rem,0.75fr)] lg:items-stretch"
 		>

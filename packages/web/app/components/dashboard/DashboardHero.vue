@@ -2,8 +2,6 @@
 	<UCard
 		class="relative overflow-hidden rounded-3xl border-primary/25 bg-linear-to-br from-primary/20 via-card to-card"
 	>
-		<div class="absolute -right-24 -top-24 size-72 rounded-full bg-primary/10" />
-		<div class="absolute -bottom-32 left-1/3 size-64 rounded-full bg-secondary/10 blur-3xl" />
 		<div
 			v-if="pending"
 			class="relative grid min-h-80 animate-pulse gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-center"

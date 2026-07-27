@@ -7,7 +7,7 @@
 			external
 			target="_blank"
 			rel="noopener"
-			class="group flex min-h-48 flex-col rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 p-5 transition duration-300 hover:border-primary/50 hover:bg-primary/10 hover:shadow-lg hover:shadow-primary/10 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-safe:hover:-translate-y-1"
+			class="group flex min-h-48 flex-col rounded-xl border border-border bg-linear-to-br from-card to-primary/5 p-5 transition duration-300 hover:border-primary/50 hover:bg-primary/10 hover:shadow-sm hover:shadow-primary/10 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-safe:hover:-translate-y-1"
 		>
 			<div class="flex items-start justify-between gap-3">
 				<span
