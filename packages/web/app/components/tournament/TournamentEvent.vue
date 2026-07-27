@@ -56,8 +56,14 @@
 									v-if="tournament.level.imageUrl"
 									:src="tournament.level.imageUrl"
 									:alt="tournament.level.name"
+									format="avif"
+									width="1600"
+									height="900"
+									sizes="100vw lg:40vw"
 									class="aspect-video w-full object-cover"
+									loading="eager"
 									preload
+									fetchpriority="high"
 								/>
 								<div v-else class="flex aspect-video items-center justify-center bg-muted">
 									<TablerIcon name="photo-off" class="size-12 text-muted-foreground" />
@@ -250,7 +256,7 @@ watchEffect(() => {
 const future = computed(() =>
 	Boolean(tournament.value && Date.parse(tournament.value.startAt) > Date.now()),
 )
-const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
+const numberFormat = computed(() => getNumberFormatter(locale.value))
 const periodLabel = computed(() =>
 	tournament.value
 		? formatTournamentPeriod(tournament.value.type, tournament.value.slug, locale.value, (period) =>

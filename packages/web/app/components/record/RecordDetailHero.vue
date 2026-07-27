@@ -55,7 +55,19 @@
 			</div>
 
 			<div class="overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg">
-				<NuxtImg v-if="imageUrl" :src="imageUrl" :alt="levelName" class="aspect-video w-full object-cover" preload />
+				<NuxtImg
+					v-if="imageUrl"
+					:src="imageUrl"
+					:alt="levelName"
+					format="avif"
+					width="1600"
+					height="900"
+					sizes="100vw lg:40vw"
+					class="aspect-video w-full object-cover"
+					loading="eager"
+					preload
+					fetchpriority="high"
+				/>
 				<div v-else class="flex aspect-video items-center justify-center bg-muted">
 					<TablerIcon name="photo-off" class="size-12 text-muted-foreground" />
 				</div>
@@ -66,6 +78,7 @@
 
 <script setup vapor lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 
 const props = defineProps<{
 	record: GhostRecordSource
@@ -94,7 +107,7 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
-const numberFormat = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
+const numberFormat = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
 const metrics = computed(() => [
 	{ label: props.labels.levelRank, value: props.levelRank ? `#${numberFormat.value.format(props.levelRank)}` : props.labels.unavailable },
 	{ label: props.labels.rankedPoints, value: formatNumber(props.rankedPoints) },

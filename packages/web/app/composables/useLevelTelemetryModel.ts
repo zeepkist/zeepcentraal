@@ -5,19 +5,16 @@ import type {
 	DashboardStatisticsMetric,
 	RecordTelemetryModel,
 } from '~/types/app'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 
 export function useRecordTelemetryModel(
 	statistics: Ref<Zc_LevelStatisticsQuery | undefined>,
 	scope: 'level' | 'user' | 'record' = 'level',
 ) {
 	const { locale, t } = useI18n()
-	const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
-	const oneDecimal = computed(
-		() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
-	)
-	const twoDecimals = computed(
-		() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }),
-	)
+	const numberFormat = computed(() => getNumberFormatter(locale.value))
+	const oneDecimal = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
+	const twoDecimals = computed(() => getNumberFormatter(locale.value, 'two-decimal'))
 	const numeric = (value: unknown) => Number(value ?? 0)
 	const formatDistance = (metres: number) =>
 		Math.abs(metres) < 1000

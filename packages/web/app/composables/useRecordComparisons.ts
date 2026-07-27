@@ -1,5 +1,5 @@
 import { useQuery } from '@urql/vue'
-import type { Ref } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
 import {
 	Zc_RecordComparisonCatalogDocument,
 	Zc_RecordComparisonRecordsDocument,
@@ -19,6 +19,7 @@ export type UseRecordComparisonsOptions = {
 	ownerId: Ref<number | undefined>
 	viewerId: Ref<number | undefined>
 	selectedRecordIds: Ref<readonly number[]>
+	active?: MaybeRefOrGetter<boolean>
 }
 
 function isRecordId(value: number): boolean {
@@ -39,6 +40,7 @@ export function useRecordComparisons(options: UseRecordComparisonsOptions) {
 	const hydrated = ref(false)
 	const search = ref('')
 	const debouncedSearch = ref('')
+	const active = computed(() => toValue(options.active ?? true))
 	const selectedRecordIds = computed(() =>
 		normalizeComparisonRecordIds(options.selectedRecordIds.value),
 	)
@@ -49,11 +51,11 @@ export function useRecordComparisons(options: UseRecordComparisonsOptions) {
 	})
 
 	watch(
-		search,
-		(value) => {
+		[search, active],
+		([value, isActive]) => {
 			if (debounceTimer) clearTimeout(debounceTimer)
 			debouncedSearch.value = ''
-			if (import.meta.server) return
+			if (import.meta.server || !isActive) return
 			const normalized = value.trim()
 			if (normalized.length < RECORD_COMPARISON_SEARCH_MINIMUM_LENGTH) return
 			debounceTimer = setTimeout(() => {
@@ -78,6 +80,7 @@ export function useRecordComparisons(options: UseRecordComparisonsOptions) {
 		pause: computed(
 			() =>
 				import.meta.server ||
+				!active.value ||
 				!hydrated.value ||
 				options.levelId.value === undefined ||
 				options.ownerId.value === undefined,
@@ -92,6 +95,7 @@ export function useRecordComparisons(options: UseRecordComparisonsOptions) {
 		pause: computed(
 			() =>
 				import.meta.server ||
+				!active.value ||
 				!hydrated.value ||
 				options.levelId.value === undefined ||
 				selectedRecordIds.value.length === 0,
@@ -106,6 +110,7 @@ export function useRecordComparisons(options: UseRecordComparisonsOptions) {
 		pause: computed(
 			() =>
 				import.meta.server ||
+				!active.value ||
 				!hydrated.value ||
 				options.levelId.value === undefined ||
 				debouncedSearch.value.length < RECORD_COMPARISON_SEARCH_MINIMUM_LENGTH,

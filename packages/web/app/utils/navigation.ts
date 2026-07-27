@@ -37,7 +37,7 @@ export function isNavigationTargetActive(currentPath: string, target: string): b
 	return family.some((root) => matchesRouteRoot(path, normalizeNavigationPath(root)))
 }
 
-export const mainNav: NavItem[] = [
+const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 	{
 		to: '/',
 		labelKey: 'nav.home',
@@ -99,6 +99,11 @@ export const mainNav: NavItem[] = [
 		icon: 'code',
 	},
 ]
+
+export const mainNav: NavItem[] = mainNavItems.map((item) => ({
+	...item,
+	prefetchOn: 'interaction',
+}))
 
 export const secondaryPages: PlaceholderPage[] = [
 	{ to: '/cosmetics', key: 'cosmetics', icon: 'palette' },

@@ -34,10 +34,15 @@ const comparisonsComposable = readFileSync(
 	new URL('../../app/composables/useRecordComparisons.ts', import.meta.url),
 	'utf8',
 )
-const recordPage = readFileSync(
+const recordRoute = readFileSync(
 	new URL('../../app/pages/record/[recordId].vue', import.meta.url),
 	'utf8',
 )
+const recordExperience = readFileSync(
+	new URL('../../app/components/record/RecordGhostExperience.client.vue', import.meta.url),
+	'utf8',
+)
+const recordPage = `${recordRoute}\n${recordExperience}`.replaceAll('<Lazy', '<')
 const replayWorkspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
 	'utf8',
@@ -146,6 +151,8 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain('key: (route) => String(route.params.recordId)')
 		expect(recordPage).toContain('<ClientOnly>')
 		expect(recordPage).toContain('.slice(0, 10)')
+		expect(recordRoute).toContain("{ rootMargin: '25% 0px' }")
+		expect(recordRoute).toContain('<LazyRecordGhostExperience')
 	})
 
 	it('keeps SSR metadata safe when a record is unavailable', () => {
@@ -199,9 +206,8 @@ describe('record detail GraphQL', () => {
 		)
 		expect(analysisTabs).toContain('<UTabs')
 		expect(analysisTabs).toContain('<template #charts>')
-		expect(analysisTabs).toContain(
-			"ref<'telemetry' | 'charts' | 'analysis' | 'improvement'>('telemetry')",
-		)
+		expect(analysisTabs).toContain('defineModel<RecordAnalysisTab>')
+		expect(analysisTabs).toContain("activeTab === 'charts'")
 		expect(analysisTabs).not.toMatch(/\$fetch|useFetch|useAsyncData|useQuery/)
 	})
 

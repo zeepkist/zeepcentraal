@@ -30,7 +30,10 @@ const composable = readFileSync(
 	new URL('../../app/composables/useLevelDetail.ts', import.meta.url),
 	'utf8',
 )
-const page = readFileSync(new URL('../../app/pages/level/[xxh128].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/level/[xxh128].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
 
 describe('level record tables', () => {
 	it('builds exact competition ranks from a deep cursor-page aggregate window', () => {

@@ -1,4 +1,5 @@
 import { authRefreshUrl } from '../../app/utils/auth'
+import { webAuthCookieNames } from '../../shared/authCookies'
 
 export type SessionCookies = {
 	steamId: string
@@ -17,11 +18,13 @@ export function getForwardedCookieHeaders(event: Parameters<typeof getHeader>[0]
 }
 
 export function accessTokenExpiresAt(cookieHeader?: string | null) {
+	const accessTokenCookieName = webAuthCookieNames[0]
+	const prefix = `${accessTokenCookieName}=`
 	const token = cookieHeader
 		?.split(';')
 		.map((item) => item.trim())
-		.find((item) => item.startsWith('zeepcentral_access_token='))
-		?.slice('zeepcentral_access_token='.length)
+		.find((item) => item.startsWith(prefix))
+		?.slice(prefix.length)
 	const payload = token?.split('.')[1]
 	if (!payload) return null
 	try {
@@ -55,9 +58,10 @@ export function readSessionCookies(cookieHeader?: string | null): SessionCookies
 			return null
 		}
 	}
-	const steamId = cookies.zeepcentral_steam_id
-	const accessToken = cookies.zeepcentral_access_token
-	const refreshToken = cookies.zeepcentral_refresh_token
+	const [accessTokenName, refreshTokenName, steamIdName] = webAuthCookieNames
+	const steamId = cookies[steamIdName]
+	const accessToken = cookies[accessTokenName]
+	const refreshToken = cookies[refreshTokenName]
 	return steamId && accessToken && refreshToken ? { steamId, accessToken, refreshToken } : null
 }
 

@@ -1,8 +1,6 @@
-export const webAuthCookieNames = [
-	'zeepcentral_access_token',
-	'zeepcentral_refresh_token',
-	'zeepcentral_steam_id',
-] as const
+import { webAuthCookieNames } from '../../shared/authCookies'
+
+export { webAuthCookieNames } from '../../shared/authCookies'
 
 export function webAuthCookieDomain(hostname: string) {
 	return hostname === 'zeepki.st' || hostname.endsWith('.zeepki.st') ? '.zeepki.st' : undefined

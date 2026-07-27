@@ -14,7 +14,7 @@ const component = readFileSync(
 	'utf8',
 )
 const composable = readFileSync(
-	new URL('../../app/composables/useUserProfile.ts', import.meta.url),
+	new URL('../../app/composables/useUserSuperLeague.ts', import.meta.url),
 	'utf8',
 )
 const page = readFileSync(new URL('../../app/pages/user/[steamid].vue', import.meta.url), 'utf8')
@@ -94,10 +94,10 @@ describe('user profile Super League panel', () => {
 		expect(composable).toContain(
 			'selectedSuperLeagueSeasonId.value === currentSuperLeagueSeason.value?.id',
 		)
-		expect(composable).toContain('superLeagueSeasonsQuery.executeQuery()')
+		expect(composable).toContain('!toValue(active)')
 		expect(composable).toContain('useState<number | undefined>(')
 		expect(composable).toContain("{ immediate: true, flush: 'sync' }")
-		expect(composable).not.toContain('if (!import.meta.server) return')
+		expect(composable).toContain('import.meta.server ||')
 		expect(page).toContain('data.superLeagueSeasonsQuery.data.value === undefined')
 		expect(page).toContain('data.superLeagueSeasonQuery.data.value === undefined')
 	})

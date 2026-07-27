@@ -5,7 +5,7 @@ import urql, {
 	ssrExchange,
 	subscriptionExchange,
 } from '@urql/vue'
-import { createClient as createWsClient } from 'graphql-ws'
+import type { Client as GraphqlWsClient, SubscribePayload } from 'graphql-ws'
 
 export default defineNuxtPlugin((nuxtApp) => {
 	const config = useRuntimeConfig()
@@ -24,9 +24,13 @@ export default defineNuxtPlugin((nuxtApp) => {
 	const exchanges = [cacheExchange, ssr, fetchExchange]
 
 	if (import.meta.client) {
-		const wsClient = createWsClient({
-			url: config.public.graphqlWsUrl,
-		})
+		let wsClientPromise: Promise<GraphqlWsClient> | undefined
+		const getWsClient = () => {
+			wsClientPromise ??= import('graphql-ws').then(({ createClient: createWsClient }) =>
+				createWsClient({ url: config.public.graphqlWsUrl }),
+			)
+			return wsClientPromise
+		}
 
 		exchanges.splice(
 			2,
@@ -35,11 +39,26 @@ export default defineNuxtPlugin((nuxtApp) => {
 				forwardSubscription(request) {
 					return {
 						subscribe(sink) {
-							const unsubscribe = wsClient.subscribe(
-								request as Parameters<typeof wsClient.subscribe>[0],
-								sink,
-							)
-							return { unsubscribe }
+							let cancelled = false
+							let unsubscribe: (() => void) | undefined
+							void getWsClient()
+								.then((wsClient) => {
+									if (cancelled) return
+									unsubscribe = wsClient.subscribe(
+										request as SubscribePayload,
+										sink,
+									)
+									if (cancelled) unsubscribe()
+								})
+								.catch((error: unknown) => {
+									if (!cancelled) sink.error?.(error)
+								})
+							return {
+								unsubscribe() {
+									cancelled = true
+									unsubscribe?.()
+								},
+							}
 						},
 					}
 				},

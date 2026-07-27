@@ -2,7 +2,7 @@
 	<UCard
 		class="relative overflow-hidden rounded-3xl border-primary/25 bg-linear-to-br from-primary/20 via-card to-card"
 	>
-		<div class="hero-orbit absolute -right-24 -top-24 size-72 rounded-full bg-primary/15 blur-3xl" />
+		<div class="absolute -right-24 -top-24 size-72 rounded-full bg-primary/10" />
 		<div class="absolute -bottom-32 left-1/3 size-64 rounded-full bg-secondary/10 blur-3xl" />
 		<div
 			v-if="pending"
@@ -24,7 +24,7 @@
 		</div>
 		<div
 			v-else
-			class="hero-enter relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-stretch"
+			class="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.72fr)] lg:items-stretch"
 		>
 			<div class="relative flex min-w-0 flex-col justify-center">
 				<h1 class="max-w-3xl text-3xl font-black tracking-tight text-balance md:text-5xl">
@@ -33,11 +33,10 @@
 				<p class="mt-4 max-w-2xl text-lg text-muted-foreground">{{ description }}</p>
 				<div v-if="metrics?.length" class="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
 					<div
-						v-for="(metric, index) in metrics"
+						v-for="metric in metrics"
 						:key="metric.label"
-						class="hero-metric rounded-xl border border-border/60 bg-background/45 p-3 backdrop-blur-sm"
+						class="rounded-xl border border-border/60 bg-background/45 p-3 backdrop-blur-sm"
 						:class="{ 'opacity-65': metric.muted }"
-						:style="{ '--metric-delay': `${index * 55}ms` }"
 					>
 						<div
 							class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"

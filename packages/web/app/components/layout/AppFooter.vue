@@ -45,6 +45,7 @@ type FooterLink = {
 	active?: boolean
 	target?: '_blank'
 	rel?: string
+	prefetchOn?: 'interaction'
 }
 
 const { t } = useI18n()
@@ -61,6 +62,7 @@ const internal = (label: string, to: string, tablerIcon: TablerIconName): Footer
 	to,
 	tablerIcon,
 	active: isNavigationTargetActive(route.path, to),
+	prefetchOn: 'interaction',
 })
 const footerColumns = computed(() => [
 	{

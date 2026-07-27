@@ -142,7 +142,7 @@ describe('cursor pagination', () => {
 		const userPage = readFileSync(
 			new URL('../../app/pages/user/[steamid].vue', import.meta.url),
 			'utf8',
-		)
+		).replaceAll('<Lazy', '<')
 		expect(userPage).toContain('<UserResultsSection')
 	})
 })

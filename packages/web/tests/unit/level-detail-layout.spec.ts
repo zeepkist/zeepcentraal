@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const page = readFileSync(new URL('../../app/pages/level/[xxh128].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/level/[xxh128].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
+const ghostTab = readFileSync(
+	new URL('../../app/components/level/LevelGhostExplorerTab.client.vue', import.meta.url),
+	'utf8',
+)
 const detailQuery = readFileSync(
 	new URL('../../app/graphql/queries/levelDetail.graphql', import.meta.url),
 	'utf8',
@@ -120,17 +127,21 @@ describe('compact level detail layout', () => {
 
 	it('gates Ghosts Explorer requests and playback behind its selected tab', () => {
 		const ghostsIndex = page.indexOf('<template #ghosts>')
-		const pickerIndex = page.indexOf('<LevelGhostExplorerPicker')
-		const replayIndex = page.indexOf('<RecordReplayWorkspace')
+		const tabIndex = page.indexOf('<LevelGhostExplorerTab')
+		const pickerIndex = ghostTab.indexOf('<LevelGhostExplorerPicker')
+		const replayIndex = ghostTab.indexOf('<LazyRecordReplayWorkspace')
 
-		expect(pickerIndex).toBeGreaterThan(ghostsIndex)
+		expect(tabIndex).toBeGreaterThan(ghostsIndex)
+		expect(pickerIndex).toBeGreaterThan(-1)
 		expect(replayIndex).toBeGreaterThan(pickerIndex)
 		expect(page).toContain("activeDetailTab.value === 'ghosts'")
-		expect(page).toContain('active: ghostExplorerActive')
-		expect(page).toContain('useRecordLevelGeometry(ghostLevelId, ghostExplorerActive)')
+		expect(ghostTab).toContain('active,')
+		expect(ghostTab).toContain('useRecordLevelGeometry(levelId, active)')
 		expect(page).toContain(':active="ghostExplorerActive"')
-		expect(page).toContain(':follow-record-ids="ghostFollowRecordIds"')
-		expect(page).toContain(':loading-when-empty="ghostExplorer.defaultsQuery.fetching.value"')
+		expect(ghostTab).toContain(':follow-record-ids="ghostFollowRecordIds"')
+		expect(ghostTab).toContain(
+			':loading-when-empty="ghostExplorer.defaultsQuery.fetching.value"',
+		)
 	})
 
 	it('stacks independently paginated personal bests before recent records', () => {

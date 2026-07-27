@@ -13,6 +13,10 @@
 					v-if="mod.imageUrl"
 					:src="mod.imageUrl"
 					:alt="mod.name"
+					format="avif"
+					width="1600"
+					height="900"
+					sizes="100vw sm:50vw xl:33vw 2xl:25vw"
 					class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
 					loading="lazy"
 				/>
@@ -66,6 +70,7 @@
 
 <script setup vapor lang="ts">
 import type { ModSummary } from '~/types/mod'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 import { getVisibleModTags, isEssentialsModTag } from '~/utils/modExplorer'
 
 const props = defineProps<{
@@ -81,13 +86,13 @@ const props = defineProps<{
 
 const { locale } = useI18n()
 const compactFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { notation: 'compact', maximumFractionDigits: 1 }),
+	() => getNumberFormatter(locale.value, 'compact-one-decimal'),
 )
 const percentFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { style: 'percent', maximumFractionDigits: 0 }),
+	() => getNumberFormatter(locale.value, 'percent-integer'),
 )
 const sizeFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 }),
+	() => getNumberFormatter(locale.value, 'megabyte-one-decimal'),
 )
 const visibleTags = computed(() => getVisibleModTags(props.mod.tags))
 const essentialsTag = computed(() => props.mod.tags.find(isEssentialsModTag))

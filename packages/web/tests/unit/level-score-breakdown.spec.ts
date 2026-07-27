@@ -5,7 +5,10 @@ const query = readFileSync(
 	new URL('../../app/graphql/queries/levelDetail.graphql', import.meta.url),
 	'utf8',
 )
-const page = readFileSync(new URL('../../app/pages/level/[xxh128].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/level/[xxh128].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
 const component = readFileSync(
 	new URL('../../app/components/level/LevelScoreBreakdown.vue', import.meta.url),
 	'utf8',

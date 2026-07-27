@@ -25,11 +25,22 @@ const profileComposable = readFileSync(
 	new URL('../../app/composables/useUserProfile.ts', import.meta.url),
 	'utf8',
 )
+const careerComposable = readFileSync(
+	new URL('../../app/composables/useUserCareer.ts', import.meta.url),
+	'utf8',
+)
+const summaryComposable = readFileSync(
+	new URL('../../app/composables/useUserProfileSummary.ts', import.meta.url),
+	'utf8',
+)
 const statisticsQuery = readFileSync(
 	new URL('../../app/graphql/queries/userStatistics.graphql', import.meta.url),
 	'utf8',
 )
-const page = readFileSync(new URL('../../app/pages/user/[steamid].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/user/[steamid].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
 const hero = readFileSync(
 	new URL('../../app/components/user/UserDetailHero.vue', import.meta.url),
 	'utf8',
@@ -66,9 +77,10 @@ describe('user profile overview', () => {
 	it('renders critical profile data through the request-free hero', () => {
 		expect(profileQuery).toContain('userPoints {')
 		expect(profileQuery).toContain('levelItems(first: 0')
-		expect(page).toContain('await data.prefetchCritical()')
+		expect(page).toContain('await summaryData.prefetchCritical()')
 		expect(profileComposable).not.toContain('if (!import.meta.server) return')
-		expect(profileComposable).toContain('await profile\n\t\tawait nextTick()')
+		expect(summaryComposable).toContain('await profile')
+		expect(careerComposable).toContain('!careerPrefetch.active.value')
 		expect(page).toContain(':pending="profilePending"')
 		expect(page).toContain('data.profile.data.value === undefined')
 		expect(page).toContain('<UserDetailHero')
@@ -96,11 +108,12 @@ describe('user profile overview', () => {
 		expect(historyQuery).not.toContain('worldRecords')
 		expect(secondaryHistoryQuery).toContain('totalPoints')
 		expect(secondaryHistoryQuery).toContain('worldRecords')
-		expect(profileComposable).toContain('import.meta.server ||')
-		expect(profileComposable).toContain('careerSecondaryActive.value = true')
-		expect(profileComposable).toContain('pointsHistoryQuery.executeQuery()')
-		expect(profileComposable).toContain('secondaryPointsHistoryReady')
+		expect(careerComposable).toContain('import.meta.server ||')
+		expect(careerComposable).toContain('function activateCareerSecondary()')
+		expect(careerComposable).not.toContain('pointsHistoryQuery.executeQuery()')
+		expect(careerComposable).toContain('secondaryPointsHistoryReady')
 		expect(page).toContain(':secondary-ready="data.secondaryPointsHistoryReady.value"')
+		expect(page).toContain('@activate-secondary="data.activateCareerSecondary"')
 		expect(page).not.toContain('pointsHistoryActive')
 		expect(page).not.toContain('worldRecordsActive')
 		expect(page).toContain(':pending="pointsHistoryPending"')
@@ -156,7 +169,8 @@ describe('user profile overview', () => {
 		expect(careerHistory).toContain("ref<StandingSeries>('rank')")
 		expect(careerHistory).toContain("key: 'worldRecords'")
 		expect(careerHistory).toContain('props.secondaryHistory.map')
-		expect(careerHistory).toContain('disabled: !props.secondaryReady')
+		expect(careerHistory).not.toContain('disabled: !props.secondaryReady')
+		expect(careerHistory).toContain("emit('activate-secondary')")
 		expect(careerHistory).toContain('inverted: false')
 		expect(careerHistory.match(/group: 'points'/g)).toHaveLength(2)
 		expect(careerHistory.match(/group: 'standing'/g)).toHaveLength(2)
@@ -182,7 +196,9 @@ describe('user profile overview', () => {
 
 	it('reserves chart height while the SSR response hydrates', () => {
 		expect(careerHistory).toContain('class="relative h-[220px]"')
-		expect(careerHistory).toContain('v-if="!hydrated"')
+		expect(careerHistory).toContain(
+			'v-if="!hydrated || (series.secondary && secondaryPending)"',
+		)
 		expect(careerHistory).toContain('name="loader-2"')
 		expect(careerHistory).toContain('motion-safe:animate-spin')
 		expect(careerHistory).toContain('role="status"')
@@ -228,7 +244,8 @@ describe('user profile overview', () => {
 		expect(page).toContain("value: 'today'")
 		expect(page).toContain("value: 'month'")
 		expect(page).toContain("value: 'year'")
-		expect(page).toContain('USER_TELEMETRY_TIME_ZONE')
+		expect(page).toContain("getDateTimeFormatter(locale.value, 'month-london')")
+		expect(page).toContain("getDateTimeFormatter(locale.value, 'year-london')")
 	})
 
 	it('keeps a rolling year baseline and appends current values', () => {

@@ -8,6 +8,10 @@
 				v-if="level.imageUrl"
 				:src="level.imageUrl"
 				:alt="level.name"
+				format="avif"
+				width="1600"
+				height="900"
+				sizes="100vw sm:50vw xl:33vw 2xl:25vw"
 				class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
 				loading="lazy"
 			/>
@@ -94,6 +98,7 @@
 
 <script setup vapor lang="ts">
 import type { LevelSummary } from '~/types/app'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 import { createLevelRatingFormatter, isLevelRatingAvailable } from '~/utils/levelRating'
 
 const props = defineProps<{
@@ -111,7 +116,7 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
-const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
+const numberFormat = computed(() => getNumberFormatter(locale.value))
 const ratingFormat = computed(() => createLevelRatingFormatter(locale.value))
 const bestTime = computed(() => props.level.worldRecordTime ?? props.level.medals?.author)
 const bestTimeAuthor = computed(() => props.level.worldRecordAuthorName ?? props.level.authorName)

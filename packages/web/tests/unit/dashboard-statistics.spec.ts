@@ -15,6 +15,10 @@ const model = readFileSync(
 	new URL('../../app/composables/useDashboardStatisticsModel.ts', import.meta.url),
 	'utf8',
 )
+const formatters = readFileSync(
+	new URL('../../app/utils/intlFormatters.ts', import.meta.url),
+	'utf8',
+)
 const panel = readFileSync(
 	new URL('../../app/components/dashboard/DashboardStatisticsPanel.vue', import.meta.url),
 	'utf8',
@@ -173,6 +177,7 @@ describe('dashboard statistic presentation', () => {
 		expect(chartLegend).toContain('formatPercentage(entry.value)')
 		expect(model).toContain('dashboard.totals.units.metres')
 		expect(model).toContain('dashboard.totals.units.seconds')
-		expect(model).toContain('maximumFractionDigits: 2')
+		expect(model).toContain("getNumberFormatter(locale.value, 'two-decimal')")
+		expect(formatters).toContain("'two-decimal': { maximumFractionDigits: 2 }")
 	})
 })

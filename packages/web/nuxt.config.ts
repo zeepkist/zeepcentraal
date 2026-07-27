@@ -96,7 +96,6 @@ export default defineNuxtConfig({
 				'@tabler/icons-vue',
 				'@unhead/schema-org/vue',
 				'@urql/vue',
-				'graphql-ws',
 			],
 		},
 	},
@@ -217,6 +216,13 @@ export default defineNuxtConfig({
 			title: 'ZeepCentraal',
 			htmlAttrs: { lang: 'en' },
 			link: [
+				{
+					rel: 'preload',
+					href: '/fonts/DINish.woff2',
+					as: 'font',
+					type: 'font/woff2',
+					crossorigin: 'anonymous',
+				},
 				//{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
 				{ rel: 'icon', type: 'image/png', href: '/favicon-32x32.png' },
 				{ rel: 'icon', type: 'image/png', href: '/favicon-16x16.png' },

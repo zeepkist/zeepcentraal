@@ -1,9 +1,13 @@
 <template>
 	<div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 		<div v-for="medal in medals" :key="medal.key" class="rounded-xl border border-border bg-card/70 p-4 flex items-center gap-4">
-			<img
+			<NuxtImg
 				:src="medal.src"
 				:alt="`${medal.label} medal`"
+				format="avif"
+				width="48"
+				height="48"
+				densities="1x 2x"
 				class="h-12 w-12 rounded-full"
 			/>
 			<div>

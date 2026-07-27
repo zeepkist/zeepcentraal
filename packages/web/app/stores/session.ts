@@ -4,6 +4,7 @@ import type { SessionUser } from '~/types/app'
 export const useSessionStore = defineStore('session', () => {
 	const user = ref<SessionUser | null>(null)
 	const pending = ref(false)
+	const resolved = ref(false)
 
 	function setUser(nextUser: SessionUser | null) {
 		user.value = nextUser
@@ -11,6 +12,7 @@ export const useSessionStore = defineStore('session', () => {
 
 	return {
 		pending,
+		resolved,
 		setUser,
 		user,
 	}

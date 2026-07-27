@@ -1,6 +1,16 @@
 <template>
 	<NuxtLink :to="to ?? tournamentPath(tournament.type, tournament.slug)" class="group block h-full overflow-hidden rounded-2xl border border-border bg-card/60 transition hover:border-primary/50 hover:shadow-lg">
-		<NuxtImg v-if="tournament.level.imageUrl" :src="tournament.level.imageUrl" :alt="tournament.level.name" class="aspect-video w-full object-cover" loading="lazy" />
+		<NuxtImg
+			v-if="tournament.level.imageUrl"
+			:src="tournament.level.imageUrl"
+			:alt="tournament.level.name"
+			format="avif"
+			width="1600"
+			height="900"
+			sizes="100vw sm:50vw xl:33vw"
+			class="aspect-video w-full object-cover"
+			loading="lazy"
+		/>
 		<div class="p-4">
 			<div class="flex items-center justify-between gap-3"><h3 class="truncate text-lg font-bold text-highlighted">{{ tournament.level.name }}</h3><UBadge variant="soft">{{ periodLabel }}</UBadge></div>
 			<p class="mt-1 truncate text-sm text-muted">{{ tournament.level.authorName }}</p>

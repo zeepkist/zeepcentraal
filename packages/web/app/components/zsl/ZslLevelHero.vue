@@ -49,8 +49,14 @@
 					v-if="imageSrc"
 					:src="imageSrc"
 					:alt="title"
+					format="avif"
+					width="1600"
+					height="900"
+					sizes="100vw lg:40vw"
 					class="aspect-video w-full object-cover"
+					loading="eager"
 					preload
+					fetchpriority="high"
 				/>
 				<div v-else class="flex aspect-video items-center justify-center bg-muted">
 					<TablerIcon name="photo-off" class="size-12 text-muted-foreground" />

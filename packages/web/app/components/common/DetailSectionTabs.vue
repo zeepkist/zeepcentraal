@@ -14,7 +14,7 @@
 			}"
 		>
 			<template v-for="item in items" :key="item.value" #[item.value]>
-				<div class="space-y-8 lg:space-y-10">
+				<div v-if="visitedTabs.has(item.value)" class="space-y-8 lg:space-y-10">
 					<slot :name="item.value" />
 				</div>
 			</template>
@@ -32,11 +32,20 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: T] }>()
+const visitedTabs = reactive(new Set<T>([props.modelValue]))
 
 const activeTab = computed<T>({
 	get: () => props.modelValue,
-	set: (value) => emit('update:modelValue', value),
+	set: (value) => {
+		visitedTabs.add(value)
+		emit('update:modelValue', value)
+	},
 })
+
+watch(
+	() => props.modelValue,
+	(value) => visitedTabs.add(value),
+)
 
 const tabItems = computed(() =>
 	props.items.map((item) => ({

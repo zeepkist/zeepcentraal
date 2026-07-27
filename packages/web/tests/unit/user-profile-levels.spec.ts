@@ -15,10 +15,13 @@ const grid = readFileSync(
 	'utf8',
 )
 const composable = readFileSync(
-	new URL('../../app/composables/useUserProfile.ts', import.meta.url),
+	new URL('../../app/composables/useUserLevels.ts', import.meta.url),
 	'utf8',
 )
-const page = readFileSync(new URL('../../app/pages/user/[steamid].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/user/[steamid].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
 
 describe('user profile level showcases', () => {
 	it('requests exactly six recent non-deleted workshop levels', () => {
@@ -43,6 +46,7 @@ describe('user profile level showcases', () => {
 
 	it('keeps level requests viewport-deferred and maps period record counts', () => {
 		expect(composable).toContain('const levelsPrefetch = useViewportPrefetch()')
+		expect(composable).toContain('!toValue(active)')
 		expect(composable).toContain('!levelsPrefetch.active.value')
 		expect(composable).toContain('level.periodRecords.totalCount')
 	})

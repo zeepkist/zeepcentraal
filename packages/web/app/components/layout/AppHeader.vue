@@ -1,5 +1,6 @@
 <template>
 	<UHeader
+		v-model:open="mobileDrawerOpen"
 		:mode="'drawer'"
 		data-testid="app-header"
 		:ui="{ root: 'bg-warm-neutral-900/75 backdrop-blur' }"
@@ -59,6 +60,7 @@
 
 		<template #body>
 			<HeaderOmniSearch
+				v-if="mobileDrawerOpen"
 				id="mobile-omni-search"
 				:query="omniSearch.search.value"
 				:users="omniSearch.users.value"
@@ -83,6 +85,7 @@ import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 const { t, locale, locales, setLocale } = useI18n()
 const route = useRoute()
 const session = useSessionStore()
+const mobileDrawerOpen = ref(false)
 const { login, logout } = useAccountActions()
 const omniSearch = useOmniSearch()
 const sidebarPreference = useCookie<boolean | null>('sidebar-open', {
@@ -127,6 +130,7 @@ const mobileItems = computed(() =>
 	mainNav.map((item) => ({
 		label: t(item.labelKey),
 		to: item.to,
+		prefetchOn: item.prefetchOn,
 		active: isNavigationTargetActive(route.path, item.to),
 	})),
 )

@@ -8,6 +8,7 @@ const config: CodegenConfig = {
 			preset: 'client',
 			presetConfig: { fragmentMasking: false },
 			config: {
+				documentMode: 'string',
 				useTypeImports: true,
 			},
 		},

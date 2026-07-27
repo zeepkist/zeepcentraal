@@ -118,6 +118,14 @@ describe('navigation model', () => {
 		expect(sidebar).not.toContain('active-class=')
 		expect(header).toContain('active: isNavigationTargetActive(route.path, item.to)')
 		expect(footer).toContain('active: isNavigationTargetActive(route.path, to)')
+		expect(sidebar).toContain(':prefetch-on="item.prefetchOn"')
+		expect(header).toContain('prefetchOn: item.prefetchOn')
+		expect(footer).toContain("prefetchOn: 'interaction'")
+	})
+
+	test('mounts mobile search only while drawer is open', () => {
+		expect(header).toContain('v-model:open="mobileDrawerOpen"')
+		expect(header).toContain('v-if="mobileDrawerOpen"')
 	})
 
 	test('fades the header logo within a stable reduced-motion-safe slot', () => {

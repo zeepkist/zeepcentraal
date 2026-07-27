@@ -26,6 +26,7 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
+				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<LevelGrid :levels="dashboard.trendingLevels.value" v-bind="dashboardLevelLabels" />
 			</DataState>
 		</section>
@@ -44,6 +45,20 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
+				<template #pending>
+					<div class="grid gap-4 md:grid-cols-2">
+						<div
+							v-for="index in 2"
+							:key="index"
+							class="min-h-48 space-y-4 rounded-xl border border-border bg-card/60 p-5"
+						>
+							<USkeleton class="h-4 w-1/4" />
+							<USkeleton class="h-7 w-3/4" />
+							<USkeleton class="h-16 w-full" />
+							<USkeleton class="h-4 w-1/3" />
+						</div>
+					</div>
+				</template>
 				<SteamNewsFeed :items="dashboard.news.data.value" />
 			</DataState>
 		</section>
@@ -58,6 +73,7 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
+				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<LevelGrid :levels="dashboard.popularLevels.value" v-bind="dashboardLevelLabels" />
 			</DataState>
 		</section>
@@ -76,6 +92,7 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
+				<template #pending><DashboardStatisticsSkeleton /></template>
 				<DashboardStatisticsPanel :model="statisticsModel" />
 			</DataState>
 		</section>
@@ -90,6 +107,7 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
+				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<LevelGrid :levels="dashboard.hotLevels.value" v-bind="dashboardLevelLabels" />
 			</DataState>
 		</section>
@@ -104,6 +122,7 @@
 				:empty-title="$t('common.empty')"
 				class="space-y-8"
 			>
+				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
 					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
 					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="dashboardLevelLabels" />

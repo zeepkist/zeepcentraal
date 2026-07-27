@@ -13,16 +13,22 @@
 			}"
 		>
 			<template #telemetry>
-				<div class="space-y-8"><slot name="telemetry" /></div>
+				<div v-if="activeTab === 'telemetry'" class="space-y-8">
+					<slot name="telemetry" />
+				</div>
 			</template>
 			<template #charts>
-				<div class="space-y-8"><slot name="charts" /></div>
+				<div v-if="activeTab === 'charts'" class="space-y-8"><slot name="charts" /></div>
 			</template>
 			<template #analysis>
-				<div class="space-y-8"><slot name="analysis" /></div>
+				<div v-if="activeTab === 'analysis'" class="space-y-8">
+					<slot name="analysis" />
+				</div>
 			</template>
 			<template #improvement>
-				<div class="space-y-8"><slot name="improvement" /></div>
+				<div v-if="activeTab === 'improvement'" class="space-y-8">
+					<slot name="improvement" />
+				</div>
 			</template>
 		</UTabs>
 	</section>
@@ -39,7 +45,9 @@ const props = defineProps<{
 	}
 }>()
 
-const activeTab = ref<'telemetry' | 'charts' | 'analysis' | 'improvement'>('telemetry')
+type RecordAnalysisTab = 'telemetry' | 'charts' | 'analysis' | 'improvement'
+
+const activeTab = defineModel<RecordAnalysisTab>({ default: 'telemetry' })
 const items = computed(() => [
 	{ label: props.labels.telemetry, slot: 'telemetry' as const, value: 'telemetry' as const },
 	{ label: props.labels.charts, slot: 'charts' as const, value: 'charts' as const },

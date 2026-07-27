@@ -11,19 +11,19 @@
 					:model-value="pointsSeries"
 					:label="labels.pointsToggleLabel"
 					:options="pointsOptions"
-					@update:model-value="pointsSeries = $event"
+					@update:model-value="selectPointsSeries"
 				/>
 				<ChartSeriesTabs
 					v-else
 					:model-value="standingSeries"
 					:label="labels.standingToggleLabel"
 					:options="standingOptions"
-					@update:model-value="standingSeries = $event"
+					@update:model-value="selectStandingSeries"
 				/>
 			</div>
 			<div class="relative h-[220px]">
 				<div
-					v-if="!hydrated"
+					v-if="!hydrated || (series.secondary && secondaryPending)"
 					class="absolute inset-0 grid place-items-center text-primary"
 					role="status"
 					:aria-label="labels.loading"
@@ -48,6 +48,7 @@ import type {
 	UserCareerSecondaryHistoryPoint,
 } from '~/types/app'
 import type { TablerIconName } from '~/utils/icons'
+import { getDateTimeFormatter, getNumberFormatter } from '~/utils/intlFormatters'
 import { createUserCareerAxisFormatter } from '~/utils/userCareerHistory'
 
 type PointsSeries = 'rankedPoints' | 'totalPoints'
@@ -56,6 +57,7 @@ type StandingSeries = 'rank' | 'worldRecords'
 const props = defineProps<{
 	history: UserCareerHistoryPoint[]
 	secondaryHistory: UserCareerSecondaryHistoryPoint[]
+	secondaryPending: boolean
 	secondaryReady: boolean
 	labels: {
 		rankedPoints: string
@@ -71,10 +73,11 @@ const props = defineProps<{
 		loading: string
 	}
 }>()
+const emit = defineEmits<{ 'activate-secondary': [] }>()
 const { locale } = useI18n()
-const number = computed(() => new Intl.NumberFormat(locale.value))
+const number = computed(() => getNumberFormatter(locale.value))
 const compactNumber = computed(() => createUserCareerAxisFormatter(locale.value))
-const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeZone: 'Europe/London' }))
+const date = computed(() => getDateTimeFormatter(locale.value, 'medium-london'))
 const duration = ref(0)
 const hydrated = ref(false)
 const pointsSeries = ref<PointsSeries>('rankedPoints')
@@ -94,7 +97,6 @@ const pointsOptions = computed<
 		value: 'totalPoints' as const,
 		label: props.labels.totalPoints,
 		icon: 'sum',
-		disabled: !props.secondaryReady,
 	},
 ])
 
@@ -106,18 +108,27 @@ const standingOptions = computed<
 		value: 'worldRecords' as const,
 		label: props.labels.worldRecords,
 		icon: 'trophy',
-		disabled: !props.secondaryReady,
 	},
 ])
 
 const seriesModels = computed(() => [
 	pointsSeries.value === 'rankedPoints'
-		? { group: 'points' as const, key: 'rankedPoints', title: props.labels.rankedPoints, description: props.labels.rankedPointsDescription, color: '#facc15', inverted: false, data: props.history.map((point) => ({ date: point.date, value: point.rankedPoints })) }
-		: { group: 'points' as const, key: 'totalPoints', title: props.labels.totalPoints, description: props.labels.totalPointsDescription, color: '#a855f7', inverted: false, data: props.secondaryHistory.map((point) => ({ date: point.date, value: point.totalPoints })) },
+		? { group: 'points' as const, key: 'rankedPoints', title: props.labels.rankedPoints, description: props.labels.rankedPointsDescription, color: '#facc15', inverted: false, secondary: false, data: props.history.map((point) => ({ date: point.date, value: point.rankedPoints })) }
+		: { group: 'points' as const, key: 'totalPoints', title: props.labels.totalPoints, description: props.labels.totalPointsDescription, color: '#a855f7', inverted: false, secondary: true, data: props.secondaryHistory.map((point) => ({ date: point.date, value: point.totalPoints })) },
 	standingSeries.value === 'rank'
-		? { group: 'standing' as const, key: 'rank', title: props.labels.rank, description: props.labels.rankDescription, color: '#38bdf8', inverted: true, data: props.history.flatMap((point) => point.rank == null ? [] : [{ date: point.date, value: -point.rank }]) }
-		: { group: 'standing' as const, key: 'worldRecords', title: props.labels.worldRecords, description: props.labels.worldRecordsDescription, color: '#f43f5e', inverted: false, data: props.secondaryHistory.map((point) => ({ date: point.date, value: point.worldRecords })) },
+		? { group: 'standing' as const, key: 'rank', title: props.labels.rank, description: props.labels.rankDescription, color: '#38bdf8', inverted: true, secondary: false, data: props.history.flatMap((point) => point.rank == null ? [] : [{ date: point.date, value: -point.rank }]) }
+		: { group: 'standing' as const, key: 'worldRecords', title: props.labels.worldRecords, description: props.labels.worldRecordsDescription, color: '#f43f5e', inverted: false, secondary: true, data: props.secondaryHistory.map((point) => ({ date: point.date, value: point.worldRecords })) },
 ])
+
+function selectPointsSeries(value: PointsSeries) {
+	pointsSeries.value = value
+	if (value === 'totalPoints' && !props.secondaryReady) emit('activate-secondary')
+}
+
+function selectStandingSeries(value: StandingSeries) {
+	standingSeries.value = value
+	if (value === 'worldRecords' && !props.secondaryReady) emit('activate-secondary')
+}
 
 function formatDate(value?: string) { return value ? date.value.format(new Date(value)) : '' }
 

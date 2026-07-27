@@ -2,7 +2,7 @@
 	<UCard
 		class="relative overflow-hidden rounded-2xl border-primary/30 bg-linear-to-br from-primary/15 via-card to-card"
 	>
-		<div class="hero-orbit absolute -right-16 -top-16 size-48 rounded-full bg-primary/15 blur-3xl" />
+		<div class="absolute -right-16 -top-16 size-48 rounded-full bg-primary/10" />
 		<div class="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 			<div class="flex gap-4">
 				<span class="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">

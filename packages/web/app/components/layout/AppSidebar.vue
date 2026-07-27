@@ -37,6 +37,7 @@
 			>
 				<NuxtLink
 					:to="item.to"
+					:prefetch-on="item.prefetchOn"
 					class="group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
 					:class="{
 						'justify-center px-2': state === 'collapsed',

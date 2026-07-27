@@ -8,19 +8,16 @@ import type {
 	DashboardStatisticsMetric,
 	DashboardStatisticsModel,
 } from '~/types/app'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 
 export function useDashboardStatisticsModel(
 	statistics: Ref<Zc_DashboardStatisticsQuery | undefined>,
 	currentMonth: Ref<string>,
 ) {
 	const { t, locale } = useI18n()
-	const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
-	const oneDecimal = computed(
-		() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
-	)
-	const twoDecimals = computed(
-		() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }),
-	)
+	const numberFormat = computed(() => getNumberFormatter(locale.value))
+	const oneDecimal = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
+	const twoDecimals = computed(() => getNumberFormatter(locale.value, 'two-decimal'))
 
 	type StatisticAggregates = Zc_DashboardV6StatisticAggregatesFragment
 	type StatisticSum = NonNullable<StatisticAggregates['sum']>

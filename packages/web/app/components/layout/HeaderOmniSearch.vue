@@ -50,6 +50,7 @@
 						v-if="item.imageUrl"
 						:src="item.imageUrl"
 						:alt="item.name"
+						format="avif"
 						width="40"
 						height="40"
 						class="size-full object-cover"
@@ -87,6 +88,7 @@
 <script setup vapor lang="ts">
 import type { InputMenuItem } from '@nuxt/ui'
 import type { OmniSearchLevelResult, OmniSearchResult, OmniSearchUserResult } from '~/types/app'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 import { isLevelRatingAvailable } from '~/utils/levelRating'
 import { OMNI_SEARCH_MINIMUM_LENGTH } from '~/utils/omniSearch'
 
@@ -122,10 +124,8 @@ const emit = defineEmits<{
 
 type SearchMenuItem = InputMenuItem & Partial<OmniSearchResult>
 
-const numberFormat = computed(() => new Intl.NumberFormat(props.locale))
-const ratingFormat = computed(
-	() => new Intl.NumberFormat(props.locale, { style: 'percent', maximumFractionDigits: 0 }),
-)
+const numberFormat = computed(() => getNumberFormatter(props.locale))
+const ratingFormat = computed(() => getNumberFormatter(props.locale, 'percent-integer'))
 const emptyLabel = computed(() => {
 	if (props.error) return props.labels.error
 	if (props.pending) return props.labels.loading

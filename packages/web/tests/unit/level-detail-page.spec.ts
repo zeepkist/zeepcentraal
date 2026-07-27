@@ -11,7 +11,10 @@ const historyQuery = readFileSync(
 	new URL('../../app/graphql/queries/levelPointsHistory.graphql', import.meta.url),
 	'utf8',
 )
-const page = readFileSync(new URL('../../app/pages/level/[xxh128].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/level/[xxh128].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
 const hero = readFileSync(
 	new URL('../../app/components/level/LevelDetailHero.vue', import.meta.url),
 	'utf8',

@@ -57,9 +57,14 @@
 					v-if="mod.imageUrl"
 					:src="mod.imageUrl"
 					:alt="mod.name"
+					format="avif"
+					width="1600"
+					height="900"
+					sizes="100vw lg:40vw"
 					class="size-full object-cover"
 					loading="eager"
 					preload
+					fetchpriority="high"
 				/>
 				<div v-else class="grid size-full place-items-center">
 					<TablerIcon name="photo-off" class="size-12 text-muted-foreground" />
@@ -71,6 +76,7 @@
 
 <script setup vapor lang="ts">
 import type { ModDetail } from '~/types/mod'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 
 const props = defineProps<{
 	mod: ModDetail
@@ -88,10 +94,8 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
-const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
-const sizeFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { style: 'unit', unit: 'megabyte', maximumFractionDigits: 1 }),
-)
+const numberFormat = computed(() => getNumberFormatter(locale.value))
+const sizeFormat = computed(() => getNumberFormatter(locale.value, 'megabyte-one-decimal'))
 const metrics = computed(() => [
 	{ label: props.labels.version, value: props.mod.version ?? props.labels.unavailable },
 	{

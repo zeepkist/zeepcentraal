@@ -13,6 +13,9 @@
 			:error-title="labels.error"
 			:empty-title="labels.empty"
 		>
+			<template #pending>
+				<LevelGridSkeleton :columns="columns" />
+			</template>
 			<LevelGrid
 				:levels="levels"
 				:adventure-label="labels.adventure"

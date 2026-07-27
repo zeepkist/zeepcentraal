@@ -6,6 +6,7 @@ export type NavItem = {
 	descriptionKey?: string
 	icon?: TablerIconName
 	children?: NavItem[]
+	prefetchOn?: 'interaction'
 }
 
 export type PlaceholderPage = {

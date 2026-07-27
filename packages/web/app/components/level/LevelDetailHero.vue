@@ -71,8 +71,14 @@
 						v-if="level.imageUrl"
 						:src="level.imageUrl"
 						:alt="level.name"
+						format="avif"
+						width="1600"
+						height="900"
+						sizes="100vw lg:40vw"
 						class="aspect-video w-full object-cover"
+						loading="eager"
 						preload
+						fetchpriority="high"
 					/>
 					<div v-else class="flex aspect-video items-center justify-center bg-muted">
 						<TablerIcon name="photo-off" class="size-12 text-muted-foreground" />
@@ -139,6 +145,7 @@
 
 <script setup vapor lang="ts">
 import type { LevelSummary, LevelWorldRecordSummary } from '~/types/app'
+import { getNumberFormatter } from '~/utils/intlFormatters'
 import type { LevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
 import { getLevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
 import { isLevelRatingAvailable } from '~/utils/levelRating'
@@ -171,13 +178,9 @@ const { locale } = useI18n()
 const competitivenessRating = computed(() =>
 	getLevelCompetitivenessRating(props.level.competitiveness),
 )
-const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
-const percentFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { style: 'percent', maximumFractionDigits: 1 }),
-)
-const distanceFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
-)
+const numberFormat = computed(() => getNumberFormatter(locale.value))
+const percentFormat = computed(() => getNumberFormatter(locale.value, 'percent-one-decimal'))
+const distanceFormat = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
 const metrics = computed(() => [
 	{ label: props.labels.points, value: formatNumber(props.level.points) },
 	{
@@ -216,22 +219,3 @@ function formatTime(seconds: number) {
 	return `${minutes}:${(seconds - minutes * 60).toFixed(3).padStart(6, '0')}`
 }
 </script>
-
-<style scoped>
-@media (prefers-reduced-motion: no-preference) {
-	.level-hero {
-		animation: level-hero-enter 500ms ease-out both;
-	}
-}
-
-@keyframes level-hero-enter {
-	from {
-		opacity: 0;
-		transform: translateY(0.75rem);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-</style>

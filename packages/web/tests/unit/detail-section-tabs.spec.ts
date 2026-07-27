@@ -16,8 +16,11 @@ describe('detail section tabs', () => {
 		expect(component).not.toMatch(/ref\(/)
 	})
 
-	it('force-mounts dynamic request-free panels so their state survives tab changes', () => {
+	it('mounts panels on first visit and retains their state after tab changes', () => {
 		expect(component).toContain(':unmount-on-hide="false"')
+		expect(component).toContain('reactive(new Set<T>([props.modelValue]))')
+		expect(component).toContain('visitedTabs.add(value)')
+		expect(component).toContain('v-if="visitedTabs.has(item.value)"')
 		expect(component).toContain('v-for="item in items"')
 		expect(component).toContain('#[item.value]')
 		expect(component).toContain('<slot :name="item.value" />')

@@ -11,7 +11,7 @@ const contributionsQuery = readFileSync(
 	'utf8',
 )
 const composable = readFileSync(
-	new URL('../../app/composables/useUserProfile.ts', import.meta.url),
+	new URL('../../app/composables/useUserResults.ts', import.meta.url),
 	'utf8',
 )
 const section = readFileSync(
@@ -26,7 +26,10 @@ const statusBadge = readFileSync(
 	new URL('../../app/components/record/RecordStatusBadge.vue', import.meta.url),
 	'utf8',
 )
-const page = readFileSync(new URL('../../app/pages/user/[steamid].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/user/[steamid].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
 
 describe('user profile record results', () => {
 	it('keeps personal best filters inclusive of world records', () => {
@@ -114,7 +117,8 @@ describe('user profile record results', () => {
 		expect(composable).toContain('function retainRows(')
 		expect(composable).toContain('if (ready) retained.value = nextRows')
 		expect(composable).toContain("{ immediate: true, flush: 'sync' }")
-		expect(composable).toContain('wrResult.value.executeQuery()')
+		expect(composable).toContain('!toValue(active)')
+		expect(composable).not.toContain('wrResult.value.executeQuery()')
 		expect(section).toContain(':pending="pending && records.length === 0"')
 		expect(section).toContain(':pending="pending"')
 		expect(section).toContain('v-if="records.length > 0"')

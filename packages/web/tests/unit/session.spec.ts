@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 import { resolveVerifiedSession } from '../../server/utils/session'
+import { hasCompleteWebAuthCookieTuple } from '../../shared/authCookies'
 
 function sessionCookies(accessExpiry: number, accessToken = 'access') {
 	const payload = Buffer.from(JSON.stringify({ exp: accessExpiry })).toString('base64url')
@@ -12,6 +13,16 @@ const refreshedCookies =
 	'zeepcentral_steam_id=76561198000000000; zeepcentral_access_token=next-access; zeepcentral_refresh_token=next-refresh'
 
 describe('SSR session resolution', () => {
+	test('detects only complete non-empty web auth tuples', () => {
+		expect(hasCompleteWebAuthCookieTuple()).toBe(false)
+		expect(hasCompleteWebAuthCookieTuple('zeepcentral_steam_id=1')).toBe(false)
+		expect(hasCompleteWebAuthCookieTuple(validCookies)).toBe(true)
+		expect(
+			hasCompleteWebAuthCookieTuple(
+				'zeepcentral_steam_id=1; zeepcentral_access_token=; zeepcentral_refresh_token=x',
+			),
+		).toBe(false)
+	})
 	test('does not query or refresh without the complete cookie tuple', async () => {
 		const lookup = vi.fn()
 		const canRefresh = vi.fn()

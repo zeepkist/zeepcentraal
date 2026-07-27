@@ -17,7 +17,10 @@ const toggle = readFileSync(
 	new URL('../../app/components/level/LevelSplitComparisonToggle.vue', import.meta.url),
 	'utf8',
 )
-const page = readFileSync(new URL('../../app/pages/level/[xxh128].vue', import.meta.url), 'utf8')
+const page = readFileSync(
+	new URL('../../app/pages/level/[xxh128].vue', import.meta.url),
+	'utf8',
+).replaceAll('<Lazy', '<')
 
 function splitRecord(id: number, time: number) {
 	return {

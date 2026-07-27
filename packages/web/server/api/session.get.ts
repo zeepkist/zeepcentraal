@@ -1,5 +1,6 @@
 import { getRefreshableWebSession, getWebSession } from '@zeepkist/database/services'
 import type { SessionUser } from '../../app/types/app'
+import { hasCompleteWebAuthCookieTuple } from '../../shared/authCookies'
 import { cookieHeaderFromSetCookies, refreshWebAuth } from '../utils/backend'
 import { assertSameOrigin } from '../utils/request'
 import { resolveVerifiedSession } from '../utils/session'
@@ -20,6 +21,7 @@ function responseFromSession(session: NonNullable<Awaited<ReturnType<typeof getW
 export default defineEventHandler(async (event) => {
 	assertSameOrigin(event)
 	const cookieHeader = getHeader(event, 'cookie')
+	const startedAt = performance.now()
 	const resolution = await resolveVerifiedSession(
 		cookieHeader,
 		getWebSession,
@@ -29,6 +31,13 @@ export default defineEventHandler(async (event) => {
 			return cookieHeaderFromSetCookies(refreshed.cookies)
 		},
 	)
+	if (hasCompleteWebAuthCookieTuple(cookieHeader)) {
+		appendResponseHeader(
+			event,
+			'server-timing',
+			`auth_session;dur=${(performance.now() - startedAt).toFixed(1)}`,
+		)
+	}
 	if (import.meta.dev) {
 		setResponseHeader(event, 'x-zeep-auth-resolution', resolution.reason)
 	}

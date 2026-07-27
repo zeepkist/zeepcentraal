@@ -5,6 +5,10 @@
 				<NuxtImg
 					:src="image.src"
 					:alt="image.caption"
+					format="avif"
+					width="1600"
+					height="900"
+					sizes="100vw md:33vw"
 					class="size-full object-cover"
 					loading="lazy"
 				/>

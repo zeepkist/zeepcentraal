@@ -7,6 +7,10 @@
 			<NuxtImg
 				:src="imageSrc"
 				:alt="imageAlt"
+				format="avif"
+				width="1600"
+				height="900"
+				sizes="100vw sm:50vw md:33vw xl:20vw"
 				class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
 				loading="lazy"
 			/>

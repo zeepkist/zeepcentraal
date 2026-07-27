@@ -24,6 +24,7 @@
 					>
 						<template #career>
 							<div
+								:ref="data.careerTarget"
 								class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start"
 							>
 								<div class="min-w-0 space-y-8 lg:space-y-10">
@@ -39,11 +40,25 @@
 											:empty="data.pointsHistory.value.length === 0"
 											v-bind="stateLabels"
 										>
-											<UserCareerHistory
+											<template #pending>
+												<div class="grid gap-4">
+													<USkeleton
+														v-for="index in 2"
+														:key="index"
+														class="h-[254px] w-full rounded-2xl"
+													/>
+												</div>
+											</template>
+											<LazyUserCareerHistory
 												:history="data.pointsHistory.value"
 												:secondary-history="data.secondaryPointsHistory.value"
+												:secondary-pending="
+													data.careerSecondaryActive.value &&
+													!data.secondaryPointsHistoryReady.value
+												"
 												:secondary-ready="data.secondaryPointsHistoryReady.value"
 												:labels="historyLabels"
+												@activate-secondary="data.activateCareerSecondary"
 											/>
 										</DataState>
 									</section>
@@ -68,7 +83,10 @@
 											:error="data.statistics.error.value?.message"
 											v-bind="stateLabels"
 										>
-											<RecordTelemetryPanel
+											<template #pending>
+												<USkeleton class="min-h-80 w-full rounded-2xl" />
+											</template>
+											<LazyRecordTelemetryPanel
 												:model="telemetryModel"
 												:description="$t('users.profile.telemetry.telemetryDescription')"
 											/>
@@ -86,7 +104,7 @@
 										<MetricGrid :metrics="metrics" :columns="2" />
 									</section>
 
-									<UserSuperLeaguePanel
+									<LazyUserSuperLeaguePanel
 										id="profile-super-league"
 										:selected-season-id="data.selectedSuperLeagueSeasonId.value"
 										:seasons="superLeagueSeasonOptions"
@@ -129,7 +147,7 @@
 
 						<template #records>
 							<div class="space-y-8 lg:space-y-10">
-								<UserResultsSection
+								<LazyUserResultsSection
 									id="profile-world-records"
 									:title="$t('users.profile.worldRecords.title')"
 									:description="$t('users.profile.worldRecords.description')"
@@ -153,7 +171,7 @@
 								/>
 
 								<div :ref="data.personalBestsTarget">
-									<UserResultsSection
+									<LazyUserResultsSection
 										id="profile-personal-bests"
 										:title="$t('users.profile.personalBests.title')"
 										:description="$t('users.profile.personalBests.description')"
@@ -178,7 +196,7 @@
 								</div>
 
 								<div :ref="data.recentTarget">
-									<UserResultsSection
+									<LazyUserResultsSection
 										id="profile-recent"
 										:title="$t('users.profile.recent.title')"
 										:description="$t('users.profile.recent.description')"
@@ -203,7 +221,7 @@
 						<template #workshop>
 							<div class="space-y-8 lg:space-y-10">
 								<div :ref="data.levelsTarget">
-									<UserLevelCollection
+									<LazyUserLevelCollection
 										id="profile-popular-levels"
 										:title="$t('users.profile.levels.popularTitle')"
 										:description="$t('users.profile.levels.popularDescription')"
@@ -217,7 +235,7 @@
 									/>
 								</div>
 
-								<UserLevelCollection
+								<LazyUserLevelCollection
 									id="profile-recent-levels"
 									:title="$t('users.profile.levels.recentTitle')"
 									:description="$t('users.profile.levels.recentDescription')"
@@ -244,24 +262,33 @@ import type {
 	UserAchievementPreviewItem,
 	UserCosmeticProgressPreview,
 } from '~/types/app'
+import { getDateTimeFormatter, getNumberFormatter } from '~/utils/intlFormatters'
 
 const route = useRoute()
 const { t } = useI18n()
 const steamId = computed(() => String(route.params.steamid))
-const data = useUserProfile(steamId)
+type UserProfileTab = 'career' | 'records' | 'workshop'
+const activeTab = ref<UserProfileTab>('career')
+const summaryData = useUserProfileSummary(steamId)
+const data = useUserProfile(steamId, {
+	recordsActive: computed(() => activeTab.value === 'records'),
+	summary: summaryData,
+	workshopActive: computed(() => activeTab.value === 'workshop'),
+})
 const user = data.user
-await data.prefetchCritical()
+await summaryData.prefetchCritical()
 const summary = data.summary
 const profilePending = computed(
 	() => data.profile.fetching.value && data.profile.data.value === undefined,
 )
 const pointsHistoryPending = computed(
 	() =>
-		data.pointsHistoryQuery.fetching.value &&
-		data.pointsHistoryQuery.data.value === undefined,
+		!data.careerActive.value ||
+		(data.pointsHistoryQuery.fetching.value &&
+			data.pointsHistoryQuery.data.value === undefined),
 )
 const { locale } = useI18n()
-const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
+const number = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
 const profileUrl = computed(() => steamProfileUrl(steamId.value))
 const workshopProfileUrl = computed(() => steamWorkshopProfileUrl(steamId.value))
 const levelsUrl = computed(() => `/levels?author=${steamId.value}`)
@@ -269,8 +296,6 @@ const recentLevelsUrl = computed(
 	() => `/levels?author=${steamId.value}&sort=DATE_CREATED_DESC`,
 )
 const telemetryModel = useRecordTelemetryModel(data.selectedStatistics, 'user')
-type UserProfileTab = 'career' | 'records' | 'workshop'
-const activeTab = ref<UserProfileTab>('career')
 const profileTabs = computed<Array<{ label: string; value: UserProfileTab }>>(() => [
 	{ label: t('users.profile.tabs.career'), value: 'career' },
 	{ label: t('users.profile.tabs.records'), value: 'records' },
@@ -355,14 +380,10 @@ const cosmeticsPreview = computed<UserCosmeticProgressPreview>(() => ({
 }))
 const telemetryPeriodOptions = computed(() => {
 	const window = data.telemetryWindows.value
-	const month = new Intl.DateTimeFormat(locale.value, {
-		month: 'long',
-		timeZone: USER_TELEMETRY_TIME_ZONE,
-	}).format(new Date(window.monthSince))
-	const year = new Intl.DateTimeFormat(locale.value, {
-		year: 'numeric',
-		timeZone: USER_TELEMETRY_TIME_ZONE,
-	}).format(new Date(window.now))
+	const month = getDateTimeFormatter(locale.value, 'month-london').format(
+		new Date(window.monthSince),
+	)
+	const year = getDateTimeFormatter(locale.value, 'year-london').format(new Date(window.now))
 	return [
 		{ label: t('users.profile.telemetry.allTime'), value: 'all-time' },
 		{ label: t('users.profile.telemetry.today'), value: 'today' },

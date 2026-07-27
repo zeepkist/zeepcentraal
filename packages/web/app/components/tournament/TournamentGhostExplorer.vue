@@ -15,9 +15,9 @@
 			</UButton>
 		</div>
 		<p v-if="missingCount" class="text-sm text-warning">{{ $t('tournaments.ghosts.missing', { count: missingCount }) }}</p>
-		<div v-show="workspaceOpen">
+		<div v-if="loaded" v-show="workspaceOpen">
 			<ClientOnly>
-				<RecordReplayWorkspace
+				<LazyRecordReplayWorkspace
 					:ghosts="playback.loaded.value"
 					:level-blocks="geometry.blocks.value"
 					:states="playback.states"
@@ -51,6 +51,7 @@ const workspaceActive = computed(() => loaded.value && workspaceOpen.value)
 const levelId = computed(() => props.levelId)
 const primaryColor = ref('#facc15')
 const playback = useGhostPlaybackSources({
+	active: workspaceActive,
 	sources,
 	identityLabels: {
 		unknownPlayer: t('tournaments.unknownPlayer'),
