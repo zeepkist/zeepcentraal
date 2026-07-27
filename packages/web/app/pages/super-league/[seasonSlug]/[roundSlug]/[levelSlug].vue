@@ -32,7 +32,14 @@
 						:empty="standings.length === 0"
 						v-bind="stateLabels"
 					>
-						<ZslStandingsTable :standings="standings" :viewer-user-id="viewerId" show-time :labels="tableLabels" />
+						<ZslStandingsTable
+							:standings="standings"
+							:viewer-user-id="viewerId"
+							:fastest-time="fastestTime"
+							:labels="tableLabels"
+							show-time
+							show-delta
+						/>
 					</DataState>
 					<CursorPagination
 						class="mt-4"
@@ -66,6 +73,7 @@ if (parsedSeasonId === null || parsedRoundNumber === null || parsedLevelId === n
 const id = computed(() => parsedLevelId)
 const {
 	competitorCount,
+	fastestTime,
 	level,
 	page,
 	pagination,
@@ -126,6 +134,7 @@ const tableLabels = computed(() => ({
 	position: t('common.rank'),
 	player: t('common.user'),
 	time: t('common.time'),
+	delta: t('common.delta'),
 	points: t('common.points'),
 	levelsPlayed: t('zsl.levelsPlayed'),
 	openPlayer: t('auth.profile'),

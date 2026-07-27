@@ -11,6 +11,13 @@ query ZC_ZslLevel($id: Int!) {
 				name
 			}
 		}
+		zslLevelResults(first: 0) {
+			aggregates {
+				min {
+					time
+				}
+			}
+		}
 		level {
 			xxHash
 			levelItems(

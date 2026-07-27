@@ -73,6 +73,7 @@ withDefaults(
 			player: string
 			unknownPlayer: string
 			time: string
+			delta: string
 			status: string
 			points: string
 			pointsHelp: string

@@ -8,6 +8,7 @@
 				<col class="w-[7rem]" />
 				<col />
 				<col v-if="showTime" class="w-[9rem]" />
+				<col v-if="showDeltaColumn" class="w-[7rem]" />
 				<col v-if="showLevelsPlayed" class="w-[9rem]" />
 				<col v-for="label in roundLabels" :key="label" class="w-[5.5rem]" />
 				<col class="w-[8rem]" />
@@ -17,6 +18,9 @@
 					<th class="px-4 py-3" scope="col">{{ labels.position }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.player }}</th>
 					<th v-if="showTime" class="px-4 py-3" scope="col">{{ labels.time }}</th>
+					<th v-if="showDeltaColumn" class="px-4 py-3" scope="col">
+						{{ labels.delta }}
+					</th>
 					<th v-if="showLevelsPlayed" class="px-4 py-3" scope="col">
 						{{ labels.levelsPlayed }}
 					</th>
@@ -63,6 +67,15 @@
 							{{ row.time == null ? labels.emptyValue : formatTime(row.time) }}
 						</DataTableCellLink>
 					</td>
+					<td v-if="showDeltaColumn" class="p-0 tabular-nums text-muted">
+						<DataTableCellLink :to="userPath(row.steamId)" :aria-label="labels.openPlayer" class="px-4 py-3">
+							{{
+								row.time == null || fastestTime === undefined
+									? labels.emptyValue
+									: (formatTournamentDelta(row.time, fastestTime) ?? labels.emptyValue)
+							}}
+						</DataTableCellLink>
+					</td>
 					<td v-if="showLevelsPlayed" class="p-0 font-semibold tabular-nums">
 						<DataTableCellLink :to="userPath(row.steamId)" :aria-label="labels.openPlayer" class="px-4 py-3">
 							{{ row.levelsPlayed == null ? labels.emptyValue : number.format(row.levelsPlayed) }}
@@ -94,11 +107,14 @@
 
 <script setup vapor lang="ts">
 import type { ZslStanding } from '~/types/app'
+import { formatTournamentDelta } from '~/utils/tournament'
 
 const props = withDefaults(
 	defineProps<{
 		standings: ZslStanding[]
 		showTime?: boolean
+		showDelta?: boolean
+		fastestTime?: number
 		showLevelsPlayed?: boolean
 		roundLabels?: string[]
 		viewerUserId?: number
@@ -106,6 +122,7 @@ const props = withDefaults(
 			position: string
 			player: string
 			time: string
+			delta: string
 			points: string
 			levelsPlayed: string
 			openPlayer: string
@@ -114,15 +131,19 @@ const props = withDefaults(
 			emptyValue: string
 		}
 	}>(),
-	{ roundLabels: () => [], showLevelsPlayed: false, showTime: false },
+	{ roundLabels: () => [], showDelta: false, showLevelsPlayed: false, showTime: false },
 )
 
 const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value))
+const showDeltaColumn = computed(
+	() => props.showDelta && props.fastestTime !== undefined,
+)
 const tableWidthClass = computed(() => {
 	if (props.roundLabels.length > 0) return 'min-w-[68rem]'
 	if (props.showLevelsPlayed) return 'min-w-[42rem]'
-	return props.showTime ? 'min-w-[40rem]' : 'min-w-[32rem]'
+	if (props.showTime) return showDeltaColumn.value ? 'min-w-[47rem]' : 'min-w-[40rem]'
+	return 'min-w-[32rem]'
 })
 
 function formatTime(seconds: number) {

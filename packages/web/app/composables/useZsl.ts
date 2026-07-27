@@ -180,6 +180,9 @@ export function useZslLevel(id: Ref<number>, viewerId: Ref<number | undefined>) 
 		})),
 	})
 	const level = computed(() => result.data.value?.zslLevel)
+	const fastestTime = computed(
+		() => level.value?.zslLevelResults.aggregates?.min?.time ?? undefined,
+	)
 	const incomingStandings = computed(() =>
 		mergeViewerStanding(
 			standingsResult.data.value?.zslLevelResults?.edges.map(({ node }) =>
@@ -202,6 +205,7 @@ export function useZslLevel(id: Ref<number>, viewerId: Ref<number | undefined>) 
 	}
 	return {
 		competitorCount,
+		fastestTime,
 		level,
 		page,
 		pagination,

@@ -116,6 +116,7 @@ const tableLabels = computed(() => ({
 	position: t('common.rank'),
 	player: t('common.user'),
 	time: t('common.time'),
+	delta: t('common.delta'),
 	points: t('common.points'),
 	levelsPlayed: t('zsl.levelsPlayed'),
 	openPlayer: t('auth.profile'),

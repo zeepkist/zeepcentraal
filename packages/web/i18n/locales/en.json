@@ -32,6 +32,7 @@
 		"level": "Level",
 		"levels": "Levels",
 		"time": "Time",
+		"delta": "Delta",
 		"finish": "Finish",
 		"loading": "Loading data",
 		"error": "Unable to load data",

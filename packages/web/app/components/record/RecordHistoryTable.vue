@@ -87,6 +87,19 @@
 								{{ formatTime(record.time) }}
 							</DataTableCellLink>
 						</td>
+						<td v-else-if="column === 'delta'" class="p-0 tabular-nums text-muted">
+							<DataTableCellLink
+								:to="recordPath(record)"
+								:aria-label="recordAriaLabel(record)"
+								class="px-4 py-3"
+							>
+								{{
+									fastestTime === undefined
+										? labels.notRanked
+										: (formatTournamentDelta(record.time, fastestTime) ?? labels.notRanked)
+								}}
+							</DataTableCellLink>
+						</td>
 						<td v-else-if="column === 'status'" class="p-0">
 							<DataTableCellLink
 								:to="recordPath(record)"
@@ -147,6 +160,7 @@ import {
 	getRecordHistoryColumns,
 	type RecordHistoryColumn,
 } from '~/utils/recordHistoryColumns'
+import { formatTournamentDelta } from '~/utils/tournament'
 
 const props = withDefaults(
 	defineProps<{
@@ -156,6 +170,8 @@ const props = withDefaults(
 		showLevel?: boolean
 		showPlayer?: boolean
 		rankFirst?: boolean
+		showDelta?: boolean
+		fastestTime?: number
 		viewerUserId?: number
 		statusMode?: 'none' | 'world-record-only' | 'all'
 		labels: {
@@ -164,6 +180,7 @@ const props = withDefaults(
 			unknownPlayer: string
 			rank: string
 			time: string
+			delta: string
 			status: string
 			personalBest: string
 			worldRecord: string
@@ -182,6 +199,7 @@ const props = withDefaults(
 		showLevel: true,
 		showPlayer: false,
 		rankFirst: false,
+		showDelta: false,
 		statusMode: 'none',
 	},
 )
@@ -189,25 +207,32 @@ const props = withDefaults(
 const { locale } = useI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const showStatus = computed(() => props.statusMode !== 'none')
+const showDeltaColumn = computed(
+	() => props.showDelta && props.fastestTime !== undefined,
+)
 const columns = computed(() =>
 	getRecordHistoryColumns({
 		showLevel: props.showLevel,
 		showPlayer: props.showPlayer,
 		rankFirst: props.rankFirst,
 		showStatus: showStatus.value,
+		showDelta: showDeltaColumn.value,
 	}),
 )
 const tableMinWidth = computed(() => {
 	if (props.showLevel && props.showPlayer) {
-		return showStatus.value ? 'min-w-[63rem]' : 'min-w-[59rem]'
+		if (showStatus.value) return showDeltaColumn.value ? 'min-w-[70rem]' : 'min-w-[63rem]'
+		return showDeltaColumn.value ? 'min-w-[66rem]' : 'min-w-[59rem]'
 	}
-	return showStatus.value ? 'min-w-[52rem]' : 'min-w-[48rem]'
+	if (showStatus.value) return showDeltaColumn.value ? 'min-w-[59rem]' : 'min-w-[52rem]'
+	return showDeltaColumn.value ? 'min-w-[55rem]' : 'min-w-[48rem]'
 })
 
 function columnWidth(column: RecordHistoryColumn) {
 	if (column === 'player' && props.showLevel) return 'w-[11rem]'
 	if (column === 'rank') return 'w-[5rem]'
 	if (column === 'time') return 'w-[5rem]'
+	if (column === 'delta') return 'w-[7rem]'
 	if (column === 'status') return 'w-[4rem]'
 	if (column === 'points' || column === 'rankedPoints') return 'w-[8rem]'
 	if (column === 'date') return 'w-[10rem]'
@@ -219,6 +244,7 @@ function columnLabel(column: RecordHistoryColumn) {
 	if (column === 'player') return props.labels.player
 	if (column === 'rank') return props.labels.rank
 	if (column === 'time') return props.labels.time
+	if (column === 'delta') return props.labels.delta
 	if (column === 'status') return props.labels.status
 	return props.labels.date
 }

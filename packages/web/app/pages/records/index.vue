@@ -115,6 +115,7 @@ const tableLabels = computed(() => ({
 	unknownPlayer: t('common.unknownPlayer'),
 	rank: t('common.rank'),
 	time: t('common.time'),
+	delta: t('common.delta'),
 	status: t('pages.records.table.status'),
 	personalBest: t('common.personalBest'),
 	worldRecord: t('common.worldRecord'),

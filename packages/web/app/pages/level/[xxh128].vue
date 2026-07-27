@@ -148,6 +148,8 @@
 										live-update-label=""
 										rank-first
 										show-player
+										show-delta
+										:fastest-time="levelData.worldRecord.value?.time"
 										status-mode="none"
 									/>
 								</DataState>
@@ -469,6 +471,7 @@ const recordLabels = computed(() => ({
 	level: t('common.level'),
 	unknownPlayer: t('common.unknownPlayer'),
 	time: t('common.time'),
+	delta: t('common.delta'),
 	status: t('pages.records.table.status'),
 	points: t('common.points'),
 	pointsHelp: t('pages.records.table.pointsHelp'),

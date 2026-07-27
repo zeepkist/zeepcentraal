@@ -32,6 +32,17 @@ describe('record history table presentation', () => {
 		).toEqual(['rank', 'player', 'time', 'points', 'rankedPoints', 'date'])
 	})
 
+	it('places an enabled delta column directly after time', () => {
+		expect(
+			getRecordHistoryColumns({
+				showLevel: false,
+				showPlayer: true,
+				rankFirst: true,
+				showDelta: true,
+			}),
+		).toEqual(['rank', 'player', 'time', 'delta', 'points', 'rankedPoints', 'date'])
+	})
+
 	it('supports status modes, pinned rows, and data-fed point help', () => {
 		const table = read('../../app/components/record/RecordHistoryTable.vue')
 		const header = read('../../app/components/record/RecordPointsHeader.vue')

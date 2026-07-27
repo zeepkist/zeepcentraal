@@ -16,6 +16,10 @@ const levelResults = readFileSync(
 	new URL('../../app/graphql/queries/zslLevelResults.graphql', import.meta.url),
 	'utf8',
 )
+const levelQuery = readFileSync(
+	new URL('../../app/graphql/queries/zslLevel.graphql', import.meta.url),
+	'utf8',
+)
 const table = readFileSync(
 	new URL('../../app/components/zsl/ZslStandingsTable.vue', import.meta.url),
 	'utf8',
@@ -24,11 +28,22 @@ const sharedRow = readFileSync(
 	new URL('../../app/components/common/DataTableRow.vue', import.meta.url),
 	'utf8',
 )
-const routeFiles = [
-	'../../app/pages/super-league/[seasonSlug]/index.vue',
-	'../../app/pages/super-league/[seasonSlug]/[roundSlug]/index.vue',
-	'../../app/pages/super-league/[seasonSlug]/[roundSlug]/[levelSlug].vue',
-].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8'))
+const seasonPage = readFileSync(
+	new URL('../../app/pages/super-league/[seasonSlug]/index.vue', import.meta.url),
+	'utf8',
+)
+const roundPage = readFileSync(
+	new URL('../../app/pages/super-league/[seasonSlug]/[roundSlug]/index.vue', import.meta.url),
+	'utf8',
+)
+const levelPage = readFileSync(
+	new URL(
+		'../../app/pages/super-league/[seasonSlug]/[roundSlug]/[levelSlug].vue',
+		import.meta.url,
+	),
+	'utf8',
+)
+const routeFiles = [seasonPage, roundPage, levelPage]
 
 describe('Super League standings loading', () => {
 	it('loads exactly 50 cursor-paginated results ordered by position', () => {
@@ -77,6 +92,22 @@ describe('Super League standings loading', () => {
 		expect(composable).toContain('function stageStandings(')
 		expect(composable).toContain('if (fetching.value || !hasData.value) return')
 		expect(composable).toContain('resolved.value ? snapshot.value : rows.value')
+	})
+
+	it('uses one stable fastest time across level-result cursor pages', () => {
+		expect(levelQuery).toContain('zslLevelResults(first: 0)')
+		expect(levelQuery).toContain('aggregates')
+		expect(levelQuery).toContain('min')
+		expect(composable).toContain(
+			'level.value?.zslLevelResults.aggregates?.min?.time ?? undefined',
+		)
+		expect(levelPage).toContain(':fastest-time="fastestTime"')
+		expect(levelPage).toContain('show-delta')
+		expect(seasonPage).not.toContain('show-delta')
+		expect(roundPage).not.toContain('show-delta')
+		expect(table).toContain('props.showDelta && props.fastestTime !== undefined')
+		expect(table).toContain('formatTournamentDelta(row.time, fastestTime)')
+		expect(table).toContain('class="p-0 tabular-nums text-muted"')
 	})
 })
 

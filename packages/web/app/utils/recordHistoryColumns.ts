@@ -3,6 +3,7 @@ export type RecordHistoryColumn =
 	| 'player'
 	| 'rank'
 	| 'time'
+	| 'delta'
 	| 'status'
 	| 'points'
 	| 'rankedPoints'
@@ -13,6 +14,7 @@ export type RecordHistoryColumnOptions = {
 	showPlayer?: boolean
 	rankFirst?: boolean
 	showStatus?: boolean
+	showDelta?: boolean
 }
 
 export function getRecordHistoryColumns({
@@ -20,6 +22,7 @@ export function getRecordHistoryColumns({
 	showPlayer = false,
 	rankFirst = false,
 	showStatus = false,
+	showDelta = false,
 }: RecordHistoryColumnOptions = {}): RecordHistoryColumn[] {
 	const entityColumns: RecordHistoryColumn[] = []
 	if (showLevel) entityColumns.push('level')
@@ -31,6 +34,7 @@ export function getRecordHistoryColumns({
 		...(showStatus ? (['status'] as const) : []),
 		...(!rankFirst ? (['rank'] as const) : []),
 		'time',
+		...(showDelta ? (['delta'] as const) : []),
 		'points',
 		'rankedPoints',
 		'date',

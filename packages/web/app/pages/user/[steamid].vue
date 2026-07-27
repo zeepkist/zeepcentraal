@@ -474,6 +474,7 @@ const resultLabels = computed(() => ({
 	player: t('common.user'),
 	unknownPlayer: t('common.unknownPlayer'),
 	time: t('common.time'),
+	delta: t('common.delta'),
 	status: t('pages.records.table.status'),
 	points: t('common.points'),
 	pointsHelp: t('pages.records.table.pointsHelp'),
