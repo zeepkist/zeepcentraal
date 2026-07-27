@@ -2,6 +2,9 @@
 	"name": "@zeepkist/web",
 	"private": true,
 	"type": "module",
+	"imports": {
+		"#shared/authCookies": "./shared/authCookies.ts"
+	},
 	"scripts": {
 		"build": "bun run prepare:nuxt && bun --bun nuxt build",
 		"dev": "bun --bun nuxt dev --dotenv ../../.env",
