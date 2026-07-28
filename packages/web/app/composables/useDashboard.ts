@@ -78,6 +78,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	const liveMetricWindows = ref({ ...ssrMetricWindows.value })
 	const levelWindows = useState('dashboard-level-windows', () => getDashboardLevelWindows())
 	const metricsSubscriptionActive = ref(false)
+	const pageFocused = usePageFocus()
 	let metricWindowTimer: ReturnType<typeof setInterval> | undefined
 	onMounted(() => {
 		const refreshWindows = () => {
@@ -104,7 +105,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	const metricsLive = useSubscription({
 		query: Zc_DashboardMetricsLiveDocument,
 		variables: liveMetricWindows,
-		pause: computed(() => !metricsSubscriptionActive.value),
+		pause: computed(() => !metricsSubscriptionActive.value || !pageFocused.value),
 	})
 	const hotLevelsQuery = useQuery({
 		query: Zc_DashboardHotLevelsDocument,

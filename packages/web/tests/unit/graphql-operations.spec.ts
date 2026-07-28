@@ -5,6 +5,7 @@ import { Kind, parse, visit } from 'graphql'
 import { describe, expect, test } from 'vitest'
 
 const graphqlDir = fileURLToPath(new URL('../../app/graphql', import.meta.url))
+const appDir = fileURLToPath(new URL('../../app', import.meta.url))
 const composablesDir = fileURLToPath(new URL('../../app/composables', import.meta.url))
 const urqlPlugin = fileURLToPath(new URL('../../app/plugins/urql.ts', import.meta.url))
 
@@ -97,6 +98,28 @@ describe('GraphQL operation conventions', () => {
 				expect(source).not.toContain('query ZC_')
 				expect(source).not.toContain('subscription ZC_')
 			}
+		}
+	})
+
+	test('live subscriptions pause outside focused visible tabs', () => {
+		const focusComposable = readFileSync(join(composablesDir, 'usePageFocus.ts'), 'utf8')
+		expect(focusComposable).toContain('useDocumentVisibility()')
+		expect(focusComposable).toContain('useWindowFocus()')
+		expect(focusComposable).toContain("visibility.value === 'visible'")
+		expect(focusComposable).toContain('windowFocused.value')
+
+		const subscriptionFiles = [
+			...filesUnder(appDir, '.ts'),
+			...filesUnder(appDir, '.vue'),
+		].filter((file) => readFileSync(file, 'utf8').includes('useSubscription'))
+		expect(subscriptionFiles.length).toBeGreaterThan(0)
+
+		for (const file of subscriptionFiles) {
+			const source = readFileSync(file, 'utf8')
+			const subscriptionCount = source.match(/\buseSubscription\s*\(/g)?.length ?? 0
+			const focusPauseCount = source.match(/!pageFocused\.value/g)?.length ?? 0
+			expect(source).toContain('const pageFocused = usePageFocus()')
+			expect(focusPauseCount).toBe(subscriptionCount)
 		}
 	})
 
