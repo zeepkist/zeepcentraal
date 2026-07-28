@@ -24,10 +24,15 @@ describe('dashboard critical SSR', () => {
 		)
 		expect(page).toContain('dashboard.criticalQuery.fetching.value')
 		expect(page).toContain('dashboard.metrics.value')
+		expect(page).toContain('dashboard.activeTournaments.value')
 		expect(page).toContain('dashboard.trendingLevels.value')
 		expect(page).toContain('dashboard.popularLevelsQuery.fetching.value')
 		expect(page.indexOf('trending-levels-heading')).toBeLessThan(
 			page.indexOf('popular-levels-heading'),
+		)
+		expect(page.indexOf('<DashboardHero')).toBeLessThan(page.indexOf('live-stats-heading'))
+		expect(page.indexOf('live-stats-heading')).toBeLessThan(
+			page.indexOf('active-tournaments-heading'),
 		)
 		expect(page.indexOf('popular-levels-heading')).toBeLessThan(
 			page.indexOf('hot-levels-heading'),
@@ -54,7 +59,9 @@ describe('dashboard critical SSR', () => {
 	it('preserves SSR metrics until a post-mount subscription snapshot arrives', () => {
 		expect(composable).toContain("const ssrMetricWindows = useState('dashboard-metric-windows'")
 		expect(composable).toContain('const liveMetricWindows = ref({ ...ssrMetricWindows.value })')
-		expect(composable).toContain('variables: ssrMetricWindows')
+		expect(composable).toContain(
+			'variables: computed(() => ({ ...ssrMetricWindows.value, now: tournamentNow.value }))',
+		)
 		expect(composable).toContain('variables: liveMetricWindows')
 		expect(composable).toContain('const metricsSubscriptionActive = ref(false)')
 		expect(composable.indexOf('metricsSubscriptionActive.value = true')).toBeGreaterThan(

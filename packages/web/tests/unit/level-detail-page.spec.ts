@@ -30,6 +30,10 @@ describe('level detail hero', () => {
 		expect(query).toContain('modifierCompetitiveness')
 		expect(query).toContain('recordStatistic {')
 		expect(query).toContain('distance')
+		expect(query).toContain('trackTournaments(')
+		expect(query).toContain('first: 2')
+		expect(query).toContain('startAt: { lessThanOrEqualTo: $now }')
+		expect(query).toContain('orderBy: [TYPE_ASC]')
 		expect(query).not.toMatch(/^\s*hash\s*$/m)
 	})
 

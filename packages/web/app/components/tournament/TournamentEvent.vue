@@ -108,6 +108,12 @@
 					</div>
 				</section>
 
+				<TournamentHowToJoin
+					v-if="showHowToJoin"
+					:type="type"
+					:slug="tournament.slug"
+				/>
+
 				<section v-if="podium.length" class="space-y-4">
 					<SectionHeader
 						:title="$t('tournaments.podium')"
@@ -211,6 +217,7 @@ import type { TrackTournamentType } from '~/types/tournament'
 import {
 	formatTournamentPeriod,
 	formatTournamentTime,
+	shouldShowTournamentHowTo,
 	tournamentPath,
 } from '~/utils/tournament'
 
@@ -226,6 +233,7 @@ const viewerId = computed(() => session.user?.id)
 const slug = computed(() => props.slug)
 const {
 	active,
+	hasViewerTime,
 	liveEnabled,
 	navigation,
 	navigationResult,
@@ -262,6 +270,9 @@ const periodLabel = computed(() =>
 				t('tournaments.weeklyPeriod', period),
 			)
 		: '',
+)
+const showHowToJoin = computed(() =>
+	shouldShowTournamentHowTo(active.value, viewerId.value !== undefined, hasViewerTime.value),
 )
 const sounds = useTournamentNotificationSounds(updateFeed, liveEnabled)
 const paginationLabels = computed(() => ({

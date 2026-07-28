@@ -1,4 +1,6 @@
-import type { TrackTournamentType } from '~/types/tournament'
+import type { Zc_TrackTournamentFeatureFragment } from '~/graphql/generated/graphql'
+import type { TournamentFeature, TrackTournamentType } from '~/types/tournament'
+import { getLevelDisplayName } from './levelDisplay'
 
 const ROTATION_PENDING_GRACE_MS = 5 * 60_000
 
@@ -32,6 +34,56 @@ export function nextTournamentBoundary(type: TrackTournamentType, at: Date): Dat
 export function tournamentPath(type: TrackTournamentType, slug?: string): string {
 	const root = type === 0 ? '/totw' : '/totm'
 	return slug ? `${root}/${slug}` : root
+}
+
+export function isTrackTournamentActive(
+	tournament: Pick<TournamentFeature, 'endAt' | 'finalizedAt' | 'startAt'>,
+	now: Date = new Date(),
+): boolean {
+	const current = now.getTime()
+	const start = Date.parse(tournament.startAt)
+	const end = Date.parse(tournament.endAt)
+	return (
+		tournament.finalizedAt === null &&
+		Number.isFinite(start) &&
+		Number.isFinite(end) &&
+		start <= current &&
+		current < end
+	)
+}
+
+export function shouldShowTournamentHowTo(
+	active: boolean,
+	authenticated: boolean,
+	hasViewerTime: boolean,
+): boolean {
+	return active && (!authenticated || !hasViewerTime)
+}
+
+export function mapTournamentFeature(
+	node: Zc_TrackTournamentFeatureFragment | null | undefined,
+): TournamentFeature | null {
+	const level = node?.level
+	if (!node || !level) return null
+	const item = level.levelItems.nodes[0]
+	return {
+		id: node.id,
+		type: node.type as TrackTournamentType,
+		slug: node.slug,
+		startAt: String(node.startAt),
+		endAt: String(node.endAt),
+		finalizedAt: node.finalizedAt == null ? null : String(node.finalizedAt),
+		participantCount: node.trackTournamentResults.totalCount,
+		level: {
+			id: level.id,
+			xxHash: level.xxHash,
+			name: getLevelDisplayName(item?.name, level.xxHash),
+			imageUrl: item?.imageUrl ?? null,
+			authorName: item?.author?.steamName ?? null,
+			authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
+			points: null,
+		},
+	}
 }
 
 export function formatTournamentPeriod(

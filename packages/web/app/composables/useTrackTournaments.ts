@@ -14,6 +14,7 @@ import type {
 	TrackTournamentType,
 } from '~/types/tournament'
 import { mapGhostRecordSource } from '~/utils/ghostRecordSource'
+import { isTrackTournamentActive, mapTournamentFeature } from '~/utils/tournament'
 
 function mapStanding(node: {
 	tournamentId: number
@@ -42,25 +43,13 @@ function mapStanding(node: {
 function mapTournament(
 	node: Zc_TrackTournamentSummaryFragment | null | undefined,
 ): TournamentSummary | null {
-	const level = node?.level
-	if (!node || !level) return null
-	const item = level.levelItems.nodes[0]
+	const feature = mapTournamentFeature(node)
+	if (!node?.level || !feature) return null
 	return {
-		id: node.id,
-		type: node.type as TrackTournamentType,
-		slug: node.slug,
-		startAt: String(node.startAt),
-		endAt: String(node.endAt),
-		finalizedAt: node.finalizedAt == null ? null : String(node.finalizedAt),
-		participantCount: node.trackTournamentResults.totalCount,
+		...feature,
 		level: {
-			id: level.id,
-			xxHash: level.xxHash,
-			name: item?.name ?? level.xxHash,
-			imageUrl: item?.imageUrl ?? null,
-			authorName: item?.author?.steamName ?? null,
-			authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
-			points: level.levelPoints?.points ?? null,
+			...feature.level,
+			points: node.level.levelPoints?.points ?? null,
 		},
 		podium: node.trackTournamentResults.nodes.map(mapStanding),
 	}
@@ -148,8 +137,7 @@ export function useTrackTournamentDetail(
 	}))
 	const active = computed(() => {
 		const value = tournament.value
-		const now = Date.now()
-		return Boolean(value && Date.parse(value.startAt) <= now && Date.parse(value.endAt) > now)
+		return Boolean(value && isTrackTournamentActive(value))
 	})
 	const liveEnabled = computed(
 		() => mounted.value && active.value && pagination.isFirstPage.value,
@@ -174,6 +162,7 @@ export function useTrackTournamentDetail(
 				? live.data.value?.trackTournament?.viewerStanding?.nodes[0]
 				: undefined) ?? result.data.value?.tournament?.viewerStanding?.nodes[0],
 	)
+	const hasViewerTime = computed(() => viewerNode.value !== undefined)
 	const standings = computed(() => {
 		const rows = (connection.value?.edges ?? []).map(({ node }) => mapStanding(node))
 		const own = viewerNode.value
@@ -205,6 +194,7 @@ export function useTrackTournamentDetail(
 	})
 	return {
 		active,
+		hasViewerTime,
 		live,
 		liveEnabled,
 		navigation,

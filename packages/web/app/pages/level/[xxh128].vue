@@ -106,6 +106,24 @@
 						:action="$t('levels.detail.authorCta.action')"
 					/>
 
+					<section
+						v-if="levelData.tournamentFeatures.value.length"
+						aria-labelledby="level-tournaments-heading"
+					>
+						<SectionHeader
+							id="level-tournaments-heading"
+							:title="$t('tournaments.features.levelTitle')"
+							:description="$t('tournaments.features.levelDescription')"
+						/>
+						<div class="grid gap-5 md:grid-cols-2">
+							<TournamentFeatureCard
+								v-for="tournament in levelData.tournamentFeatures.value"
+								:key="tournament.id"
+								:tournament="tournament"
+							/>
+						</div>
+					</section>
+
 					<DetailSectionTabs
 						v-model="activeDetailTab"
 						:items="detailTabs"

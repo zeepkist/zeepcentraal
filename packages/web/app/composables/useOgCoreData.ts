@@ -16,7 +16,7 @@ export async function useOgDashboardData() {
 	const windows = getDashboardMetricWindows()
 	const criticalQuery = useQuery({
 		query: Zc_DashboardCriticalDocument,
-		variables: windows,
+		variables: { ...windows, now: new Date().toISOString() },
 	})
 	const statisticsQuery = useQuery({
 		query: Zc_DashboardStatisticsDocument,
@@ -37,7 +37,7 @@ export async function useOgDashboardData() {
 export async function useOgRecordCountsData() {
 	const query = useQuery({
 		query: Zc_DashboardCriticalDocument,
-		variables: getDashboardMetricWindows(),
+		variables: { ...getDashboardMetricWindows(), now: new Date().toISOString() },
 	})
 
 	await query
@@ -87,7 +87,7 @@ export async function useOgLevelExplorerData() {
 export async function useOgLevelDetailData(slug: string) {
 	const query = useQuery({
 		query: Zc_LevelDetailDocument,
-		variables: { xxHash: slug },
+		variables: { xxHash: slug, now: new Date().toISOString() },
 	})
 
 	await query

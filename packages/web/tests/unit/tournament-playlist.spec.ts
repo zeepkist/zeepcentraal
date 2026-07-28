@@ -20,7 +20,7 @@ describe('Zeepkist tournament playlists', () => {
 		expect(buildTournamentPlaylist('Track of the Week', [level], 'single')).toEqual({
 			name: 'Track of the Week',
 			amountOfLevels: 1,
-			roundLength: 450,
+			roundLength: 720,
 			shufflePlaylist: false,
 			UID: [],
 			levels: [
@@ -34,24 +34,27 @@ describe('Zeepkist tournament playlists', () => {
 		})
 	})
 
-	test('uses seven-minute minimum and author-time fallback', () => {
+	test('uses twelve-minute minimum and author-time fallback', () => {
 		expect(
 			buildTournamentPlaylist('Short', [{ ...level, worldRecordTime: 100 }], 'single')
 				.roundLength,
-		).toBe(420)
+		).toBe(720)
 		expect(
-			buildTournamentPlaylist('Fallback', [{ ...level, worldRecordTime: null }], 'single')
-				.roundLength,
-		).toBe(480)
+			buildTournamentPlaylist(
+				'Fallback',
+				[{ ...level, validationTimeAuthor: 300, worldRecordTime: null }],
+				'single',
+			).roundLength,
+		).toBe(900)
 	})
 
-	test('fixes aggregate rounds to seven minutes and enables shuffle', () => {
+	test('fixes aggregate rounds to twelve minutes and enables shuffle', () => {
 		const playlist = buildTournamentPlaylist(
 			'All tournaments',
 			[level, { ...level, fileUid: 'level-uid', worldRecordTime: 500 }],
 			'aggregate',
 		)
-		expect(playlist.roundLength).toBe(420)
+		expect(playlist.roundLength).toBe(720)
 		expect(playlist.shufflePlaylist).toBe(true)
 		expect(playlist.amountOfLevels).toBe(2)
 		expect(playlist.levels.map((entry) => entry.UID)).toEqual(['level-uid', 'level-uid'])

@@ -1,6 +1,6 @@
 import type { TrackTournamentType } from '~/types/tournament'
 
-export const TOURNAMENT_PLAYLIST_MINIMUM_ROUND_LENGTH = 7 * 60
+export const TOURNAMENT_PLAYLIST_MINIMUM_ROUND_LENGTH = 12 * 60
 
 export type TournamentPlaylistLevelSource = {
 	fileUid: string

@@ -38,6 +38,8 @@ export type TournamentSummary = {
 	podium: TournamentStanding[]
 }
 
+export type TournamentFeature = Omit<TournamentSummary, 'podium'>
+
 export type TournamentNavigation = {
 	previous: TournamentSummary | null
 	current: TournamentSummary | null

@@ -1,4 +1,4 @@
-query ZC_LevelDetail($xxHash: String!) {
+query ZC_LevelDetail($xxHash: String!, $now: Datetime!) {
 	levelByXxHash(xxHash: $xxHash) {
 		id
 		xxHash
@@ -59,6 +59,15 @@ query ZC_LevelDetail($xxHash: String!) {
 		}
 		favourites(first: 0) {
 			totalCount
+		}
+		trackTournaments(
+			first: 2
+			filter: { startAt: { lessThanOrEqualTo: $now } }
+			orderBy: [TYPE_ASC]
+		) {
+			nodes {
+				...ZC_TrackTournamentFeature
+			}
 		}
 		worldRecordGlobal {
 			record {

@@ -181,8 +181,36 @@ fragment ZC_DashboardMetricCounts on Query {
 	}
 }
 
-query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!) {
+query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!, $now: Datetime!) {
 	...ZC_DashboardMetricCounts
+	activeWeeklyTournament: trackTournaments(
+		first: 1
+		filter: {
+			type: { equalTo: 0 }
+			startAt: { lessThanOrEqualTo: $now }
+			endAt: { greaterThan: $now }
+			finalizedAt: { isNull: true }
+		}
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_TrackTournamentFeature
+		}
+	}
+	activeMonthlyTournament: trackTournaments(
+		first: 1
+		filter: {
+			type: { equalTo: 1 }
+			startAt: { lessThanOrEqualTo: $now }
+			endAt: { greaterThan: $now }
+			finalizedAt: { isNull: true }
+		}
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_TrackTournamentFeature
+		}
+	}
 	trendingLevels: hotLevelsSince(
 		since: $daySince
 		first: 6

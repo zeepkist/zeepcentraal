@@ -149,7 +149,7 @@ describe('private mod.io API boundary', () => {
 })
 
 describe('mod presentation', () => {
-	it('shows the ModKist prompt only to anonymous players or confirmed zero-record viewers', () => {
+	it('shows the Modkist prompt only to anonymous players or confirmed zero-record viewers', () => {
 		expect(shouldShowModkistPromo(false, undefined)).toBe(true)
 		expect(shouldShowModkistPromo(true, 0)).toBe(true)
 		expect(shouldShowModkistPromo(true, 1)).toBe(false)
@@ -158,7 +158,7 @@ describe('mod presentation', () => {
 		expect(explorerPage).toContain('v-if="showModkistPromo"')
 	})
 
-	it('places a request-free ModKist download and setup guide below explorer filters', () => {
+	it('places a request-free Modkist download and setup guide below explorer filters', () => {
 		expect(explorerPage.indexOf('<ModkistPromoCard')).toBeGreaterThan(
 			explorerPage.indexOf('<ModFilterPanel'),
 		)

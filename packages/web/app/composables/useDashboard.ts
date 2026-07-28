@@ -11,6 +11,7 @@ import {
 import type { LevelSummary, SteamNewsItem } from '~/types/app'
 import { getDashboardLevelWindows, getDashboardMetricWindows } from '~/utils/dashboardMetrics'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
+import { mapTournamentFeature } from '~/utils/tournament'
 
 type DashboardLevelLike = {
 	id: number
@@ -75,6 +76,7 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 
 export function useDashboard(viewerId: Ref<number | undefined>) {
 	const ssrMetricWindows = useState('dashboard-metric-windows', () => getDashboardMetricWindows())
+	const tournamentNow = useState('dashboard-tournament-now', () => new Date().toISOString())
 	const liveMetricWindows = ref({ ...ssrMetricWindows.value })
 	const levelWindows = useState('dashboard-level-windows', () => getDashboardLevelWindows())
 	const metricsSubscriptionActive = ref(false)
@@ -100,7 +102,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 
 	const criticalQuery = useQuery({
 		query: Zc_DashboardCriticalDocument,
-		variables: ssrMetricWindows,
+		variables: computed(() => ({ ...ssrMetricWindows.value, now: tournamentNow.value })),
 	})
 	const metricsLive = useSubscription({
 		query: Zc_DashboardMetricsLiveDocument,
@@ -161,6 +163,14 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	)
 	const viewer = computed(() => viewerQuery.data.value?.user)
 	const viewerStanding = computed(() => latestSeason.value?.zslSeasonResults.nodes[0])
+	const activeTournaments = computed(() =>
+		[
+			criticalQuery.data.value?.activeWeeklyTournament?.nodes[0],
+			criticalQuery.data.value?.activeMonthlyTournament?.nodes[0],
+		]
+			.map(mapTournamentFeature)
+			.filter((tournament) => tournament !== null),
+	)
 	const trendingLevels = computed(
 		() =>
 			(criticalQuery.data.value?.trendingLevels?.nodes ?? [])
@@ -199,6 +209,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	}
 
 	return {
+		activeTournaments,
 		criticalQuery,
 		latestSeason,
 		hotLevelsActive: hotLevelsPrefetch.active,

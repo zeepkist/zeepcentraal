@@ -19,10 +19,6 @@
 </template>
 
 <script setup vapor lang="ts">
-import MED_Author from '~/assets/medals/MED_Author.png'
-import MED_Bronze from '~/assets/medals/MED_Bronze.png'
-import MED_Gold from '~/assets/medals/MED_Gold2.png'
-import MED_Silver from '~/assets/medals/MED_Silver.png'
 import type { MedalTimes } from '~/types/app'
 
 const props = defineProps<{
@@ -31,10 +27,10 @@ const props = defineProps<{
 }>()
 
 const medals = computed(() => [
-	{ key: 'author', label: props.labels.author, time: props.times.author, src: MED_Author },
-	{ key: 'gold', label: props.labels.gold, time: props.times.gold, src: MED_Gold },
-	{ key: 'silver', label: props.labels.silver, time: props.times.silver, src: MED_Silver },
-	{ key: 'bronze', label: props.labels.bronze, time: props.times.bronze, src: MED_Bronze },
+	{ key: 'author', label: props.labels.author, time: props.times.author, src: '/assets/medals/MED_Author.png' },
+	{ key: 'gold', label: props.labels.gold, time: props.times.gold, src: '/assets/medals/MED_Gold.png' },
+	{ key: 'silver', label: props.labels.silver, time: props.times.silver, src: '/assets/medals/MED_Silver.png' },
+	{ key: 'bronze', label: props.labels.bronze, time: props.times.bronze, src: '/assets/medals/MED_Bronze.png' },
 ])
 
 function formatTime(seconds: number) {

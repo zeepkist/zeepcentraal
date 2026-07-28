@@ -126,6 +126,12 @@
 		"endedAt": "Ended",
 		"endDate": "End Date",
 		"finalized": "Final Results",
+		"features": {
+			"activeDescription": "Race the current weekly and monthly tournament levels and submit your best time to appear on the live leaderboard.",
+			"activeTitle": "Active Time Attack Tournaments",
+			"levelDescription": "Explore this level’s Track of the Week and Track of the Month appearances.",
+			"levelTitle": "Tournament appearances"
+		},
 		"ghosts": {
 			"description": "View ghost replays of tournament entries and compare racing lines.",
 			"hide": "Hide ghosts",
@@ -136,6 +142,35 @@
 		},
 		"history": "Past Tournaments",
 		"historyDescription": "Browse past tournament results and standings.",
+		"howToJoin": {
+			"description": "Set a time whenever it suits you during the active tournament period.",
+			"flexible": {
+				"description": "No signup is needed. Play at your own schedule without fixed timeslots.",
+				"title": "Play when you want"
+			},
+			"room": {
+				"action": "Download tournament playlist",
+				"description": "Join a room already playing this level, or host it yourself.",
+				"download": "Download the tournament playlist and save it to",
+				"host": "Host an Online room and load the downloaded playlist.",
+				"join": "Join an existing Online room playing the tournament level.",
+				"title": "Join or host an Online room"
+			},
+			"setup": {
+				"action": "Set up Modkist and GTR",
+				"description": "Install Modkist and the GTR mod if you do not already have them.",
+				"title": "Install the required mods"
+			},
+			"time": {
+				"description": "Set times on the level during the active period. Your fastest eligible time becomes your tournament PB.",
+				"title": "Set your fastest time"
+			},
+			"title": "How to Join",
+			"updates": {
+				"description": "Keep this page open to receive live tournament leaderboard updates.",
+				"title": "Follow the leaderboard"
+			}
+		},
 		"leaderboard": "Leaderboard",
 		"leaderboardDescription": "Records submitted during this tournament period.",
 		"live": "Live",
@@ -179,6 +214,7 @@
 		"timeRemaining": "Time remaining",
 		"unknownPlayer": "Unknown player",
 		"weeklyPeriod": "{year} Week {week}",
+		"viewTournament": "View tournament",
 		"yourStanding": "You"
 	},
 	"wikiContent": {
@@ -690,7 +726,7 @@
 				"setupDescription": "Safe, guided setup for automatic records and ghosts",
 				"panel": {
 					"title": "Start submitting with confidence",
-					"description": "Install ModKist, the mod manager for Zeepkist. All mods are verified and approved by the Zeepkist modding community.",
+					"description": "Install Modkist, the mod manager for Zeepkist. All mods are verified and approved by the Zeepkist modding community.",
 					"features": {
 						"submit": "Automatically submit completed runs to global leaderboards",
 						"ghosts": "Replay personal bests and world records, or load ghosts in bulk",
@@ -1296,9 +1332,9 @@
 		"empty": "No mods match these filters.",
 		"modkistPromo": {
 			"eyebrow": "Zeepkist mod manager",
-			"title": "Discover mods with ModKist",
-			"description": "Install and update Zeepkist mods from one trusted community tool. ModKist keeps setup simple and gives you control over every installed mod.",
-			"download": "Download ModKist",
+			"title": "Discover mods with Modkist",
+			"description": "Install and update Zeepkist mods from one trusted community tool. Modkist keeps setup simple and gives you control over every installed mod.",
+			"download": "Download Modkist",
 			"guide": "View installation guide"
 		},
 		"filters": {

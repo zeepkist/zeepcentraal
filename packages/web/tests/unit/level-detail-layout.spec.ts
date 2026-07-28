@@ -103,6 +103,7 @@ describe('compact level detail layout', () => {
 		const pointsIndex = page.indexOf('aria-labelledby="level-points-heading"')
 		const splitsIndex = page.indexOf('aria-labelledby="split-analysis-heading"')
 		const authorCtaIndex = page.indexOf('<AuthorLevelsCta')
+		const tournamentsIndex = page.indexOf('aria-labelledby="level-tournaments-heading"')
 		const tabsIndex = page.indexOf('<DetailSectionTabs')
 
 		expect(heroIndex).toBeGreaterThan(-1)
@@ -110,7 +111,10 @@ describe('compact level detail layout', () => {
 		expect(pointsIndex).toBeGreaterThan(medalsIndex)
 		expect(splitsIndex).toBeGreaterThan(pointsIndex)
 		expect(authorCtaIndex).toBeGreaterThan(splitsIndex)
-		expect(tabsIndex).toBeGreaterThan(authorCtaIndex)
+		expect(tournamentsIndex).toBeGreaterThan(authorCtaIndex)
+		expect(tabsIndex).toBeGreaterThan(tournamentsIndex)
+		expect(page).toContain('v-if="levelData.tournamentFeatures.value.length"')
+		expect(page).toContain('class="grid gap-5 md:grid-cols-2"')
 	})
 
 	it('uses local Records, Telemetry, and Ghosts Explorer tabs with Records selected by default', () => {

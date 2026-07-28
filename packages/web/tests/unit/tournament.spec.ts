@@ -2,7 +2,9 @@ import { describe, expect, test } from 'vitest'
 import {
 	formatTournamentDelta,
 	formatTournamentPeriod,
+	isTrackTournamentActive,
 	nextTournamentBoundary,
+	shouldShowTournamentHowTo,
 } from '../../app/utils/tournament'
 import { selectTournamentNotificationKind } from '../../app/utils/tournamentNotification'
 
@@ -60,6 +62,38 @@ describe('formatTournamentDelta', () => {
 
 	test('uses race-time formatting for gaps of at least one minute', () => {
 		expect(formatTournamentDelta(112.123, 42.123)).toBe('+1:10.000')
+	})
+})
+
+describe('live tournament presentation', () => {
+	const tournament = {
+		startAt: '2026-07-28T12:00:00.000Z',
+		endAt: '2026-07-28T13:00:00.000Z',
+		finalizedAt: null,
+	}
+
+	test('uses inclusive start, exclusive end, and finalized exclusion', () => {
+		expect(isTrackTournamentActive(tournament, new Date('2026-07-28T11:59:59.999Z'))).toBe(
+			false,
+		)
+		expect(isTrackTournamentActive(tournament, new Date(tournament.startAt))).toBe(true)
+		expect(isTrackTournamentActive(tournament, new Date('2026-07-28T12:30:00.000Z'))).toBe(true)
+		expect(isTrackTournamentActive(tournament, new Date(tournament.endAt))).toBe(false)
+		expect(
+			isTrackTournamentActive(
+				{ ...tournament, finalizedAt: '2026-07-28T12:30:00.000Z' },
+				new Date('2026-07-28T12:30:00.000Z'),
+			),
+		).toBe(false)
+	})
+
+	test('shows join guide only to active anonymous or unranked viewers', () => {
+		expect(shouldShowTournamentHowTo(true, false, false)).toBe(true)
+		expect(shouldShowTournamentHowTo(true, true, false)).toBe(true)
+		expect(shouldShowTournamentHowTo(true, true, true)).toBe(false)
+		expect(shouldShowTournamentHowTo(false, false, false)).toBe(false)
+		expect(shouldShowTournamentHowTo(false, true, false)).toBe(false)
+		expect(shouldShowTournamentHowTo(false, true, true)).toBe(false)
 	})
 })
 

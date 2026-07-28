@@ -30,6 +30,7 @@ import {
 } from '~/utils/levelRecordRows'
 import { mapLevelScoreInsights } from '~/utils/levelScoreInsights'
 import { buildLevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
+import { mapTournamentFeature } from '~/utils/tournament'
 import { buildVoteDistributionCounts } from '~/utils/voteDistribution'
 
 function mapRecord(
@@ -102,9 +103,12 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	)
 	const recentPrefetch = useViewportPrefetch()
 	const personalBestsPrefetch = useViewportPrefetch()
+	const tournamentNow = useState(`level-tournament-now:${xxHash.value}`, () =>
+		new Date().toISOString(),
+	)
 	const detail = useQuery({
 		query: Zc_LevelDetailDocument,
-		variables: computed(() => ({ xxHash: xxHash.value })),
+		variables: computed(() => ({ xxHash: xxHash.value, now: tournamentNow.value })),
 	})
 	const level = computed(() => detail.data.value?.levelByXxHash)
 	const levelId = computed(() => level.value?.id)
@@ -262,6 +266,11 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			level.value?.votes.totalCount ?? 0,
 		),
 	)
+	const tournamentFeatures = computed(() =>
+		(level.value?.trackTournaments.nodes ?? [])
+			.map(mapTournamentFeature)
+			.filter((tournament) => tournament !== null),
+	)
 	const worldRecord = computed<LevelWorldRecordSummary | null>(() => {
 		const value = level.value?.worldRecordGlobal
 		if (!value?.record) return null
@@ -393,6 +402,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		statisticsActive: statisticsPrefetch.active,
 		statisticsTarget: statisticsPrefetch.target,
 		summary,
+		tournamentFeatures,
 		viewerBest,
 		voteDistribution,
 		worldRecord,

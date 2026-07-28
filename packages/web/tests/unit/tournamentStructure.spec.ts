@@ -65,6 +65,56 @@ describe('shared tournament web implementation', () => {
 		expect(query).toContain('orderBy: [UPDATED_AT_DESC, ID_DESC]')
 	})
 
+	test('uses lightweight shared feature cards on dashboard and level detail', () => {
+		const query = source('app/graphql/queries/trackTournaments.graphql')
+		const dashboardQuery = source('app/graphql/queries/dashboard.graphql')
+		const levelQuery = source('app/graphql/queries/levelDetail.graphql')
+		const dashboard = source('app/pages/index.vue')
+		const level = source('app/pages/level/[xxh128].vue')
+		const card = source('app/components/tournament/TournamentFeatureCard.vue')
+
+		expect(query).toContain('fragment ZC_TrackTournamentFeature')
+		expect(query).toContain('trackTournamentResults(first: 0)')
+		expect(dashboardQuery).toContain('activeWeeklyTournament: trackTournaments(')
+		expect(dashboardQuery).toContain('activeMonthlyTournament: trackTournaments(')
+		expect(dashboardQuery).toMatch(/activeWeeklyTournament: trackTournaments\(\s*first: 1/)
+		expect(dashboardQuery).toMatch(/activeMonthlyTournament: trackTournaments\(\s*first: 1/)
+		expect(levelQuery).toContain('first: 2')
+		expect(levelQuery).toContain('startAt: { lessThanOrEqualTo: $now }')
+		expect(dashboard).toContain('<TournamentFeatureCard')
+		expect(level).toContain('<TournamentFeatureCard')
+		expect(card).toContain('tournamentPath(tournament.type, tournament.slug)')
+		expect(card).toContain('formatTournamentPeriod(')
+		expect(card).toContain('tournament.participantCount')
+	})
+
+	test('shows join instructions only for live viewers without a tournament time', () => {
+		const event = source('app/components/tournament/TournamentEvent.vue')
+		const composable = source('app/composables/useTrackTournaments.ts')
+		const guide = source('app/components/tournament/TournamentHowToJoin.vue')
+		const heroIndex = event.indexOf('class="relative isolate overflow-hidden')
+		const guideIndex = event.indexOf('<TournamentHowToJoin')
+		const podiumIndex = event.indexOf('v-if="podium.length"')
+
+		expect(guideIndex).toBeGreaterThan(heroIndex)
+		expect(podiumIndex).toBeGreaterThan(guideIndex)
+		expect(event).toContain('v-if="showHowToJoin"')
+		expect(event).toContain('shouldShowTournamentHowTo(')
+		expect(composable).toContain(
+			'const hasViewerTime = computed(() => viewerNode.value !== undefined)',
+		)
+		expect(composable).toContain('hasViewerTime,')
+		expect(guide).toContain('to="/wiki/setup-modkist"')
+		expect(guide).toContain('tournamentPlaylistPath(props.type, props.slug)')
+		expect(guide).toContain('%AppData%\\Zeepkist\\Playlists')
+		expect(guide).toContain(':to="playlistPath"')
+		expect(guide).toContain('class="flex flex-col gap-8 lg:flex-row lg:gap-14"')
+		expect(guide).toContain('<ol>')
+		expect(guide).not.toContain('grid')
+		expect(guide).not.toContain('lg:grid-cols-2')
+		expect(guide).not.toContain('rounded-2xl border border-border/70 bg-default/70 p-4')
+	})
+
 	test('preserves leaderboard click targets and tournament ghost cap', () => {
 		const table = source('app/components/tournament/TournamentLeaderboardTable.vue')
 		const event = source('app/components/tournament/TournamentEvent.vue')

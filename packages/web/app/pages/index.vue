@@ -16,6 +16,24 @@
 			<MetricGrid :metrics="liveMetrics" :columns="3" />
 		</section>
 
+		<section
+			v-if="dashboard.activeTournaments.value.length"
+			aria-labelledby="active-tournaments-heading"
+		>
+			<SectionHeader
+				id="active-tournaments-heading"
+				:title="$t('tournaments.features.activeTitle')"
+				:description="$t('tournaments.features.activeDescription')"
+			/>
+			<div class="grid gap-5 md:grid-cols-2">
+				<TournamentFeatureCard
+					v-for="tournament in dashboard.activeTournaments.value"
+					:key="tournament.id"
+					:tournament="tournament"
+				/>
+			</div>
+		</section>
+
 		<section aria-labelledby="trending-levels-heading">
 			<SectionHeader id="trending-levels-heading" :title="$t('dashboard.trendingLevels.title')" :description="$t('dashboard.trendingLevels.description')" />
 			<DataState
