@@ -201,7 +201,11 @@
 					/>
 				</section>
 
-				<TournamentGhostExplorer :standings="updateFeed" :level-id="tournament.level.id" />
+				<TournamentGhostExplorer
+					:standings="ghostStandings"
+					:level-id="tournament.level.id"
+					:missing-count="missingGhostCount"
+				/>
 			</template>
 			<TournamentNavigation
 				v-if="detailPage && !navigationResult.fetching.value"
@@ -233,8 +237,10 @@ const viewerId = computed(() => session.user?.id)
 const slug = computed(() => props.slug)
 const {
 	active,
+	ghostStandings,
 	hasViewerTime,
 	liveEnabled,
+	missingGhostCount,
 	navigation,
 	navigationResult,
 	page,

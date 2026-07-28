@@ -8,7 +8,7 @@ import {
 const TOURNAMENT_SOUND_KEY = 'tournament-notification-sound-enabled'
 
 export function useTournamentNotificationSounds(
-	feed: Ref<TournamentStanding[]>,
+	feed: Ref<readonly Pick<TournamentStanding, 'rank' | 'recordId' | 'userId'>[]>,
 	liveEnabled: Ref<boolean>,
 ) {
 	const enabled = useState('tournament-notification-sound-enabled', () => false)

@@ -83,7 +83,10 @@ import type {
 	GhostLoadState,
 	LoadedPlaybackGhost,
 } from '~/types/ghost'
-import { resolveGhostPlaybackStartTime } from '~/utils/ghostScene'
+import {
+	resolveGhostPlaybackStartTime,
+	resolveGhostSelectedRecordId,
+} from '~/utils/ghostScene'
 
 const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
@@ -189,10 +192,20 @@ watch(
 	},
 )
 watch(
-	() => followGhosts.value.map(({ record }) => record.recordId),
-	(recordIds) => {
-		if (selectedRecordId.value !== null && recordIds.includes(selectedRecordId.value)) return
-		selectedRecordId.value = recordIds[0] ?? null
+	[
+		() => followGhosts.value.map(({ record }) => record.recordId),
+		() =>
+			props.primaryRecordId === null || props.primaryRecordId === undefined
+				? undefined
+				: props.states.get(props.primaryRecordId)?.status,
+	],
+	([recordIds, primaryStatus]) => {
+		selectedRecordId.value = resolveGhostSelectedRecordId(
+			selectedRecordId.value,
+			props.primaryRecordId,
+			recordIds,
+			primaryStatus === 'error',
+		)
 	},
 	{ immediate: true },
 )

@@ -39,13 +39,17 @@
 <script setup vapor lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
 import type { TournamentStanding } from '~/types/tournament'
+import { orderTournamentGhostSources } from '~/utils/tournament'
 
-const props = defineProps<{ standings: TournamentStanding[]; levelId: number }>()
+const props = defineProps<{
+	standings: TournamentStanding[]
+	levelId: number
+	missingCount: number
+}>()
 const { t, locale } = useI18n()
 const sources = shallowRef<GhostRecordSource[]>([])
 const workspaceOpen = ref(false)
-const available = computed(() => props.standings.flatMap((row) => row.ghost?.ghostUrl ? [row.ghost] : []).slice(0, 200))
-const missingCount = computed(() => props.standings.length - available.value.length)
+const available = computed(() => orderTournamentGhostSources(props.standings))
 const loaded = computed(() => sources.value.length > 0)
 const workspaceActive = computed(() => loaded.value && workspaceOpen.value)
 const levelId = computed(() => props.levelId)

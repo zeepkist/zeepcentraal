@@ -156,6 +156,11 @@ export function useTrackTournamentDetail(
 			(liveEnabled.value ? live.data.value?.trackTournament?.leaderboard : undefined) ??
 			result.data.value?.tournament?.leaderboard,
 	)
+	const ghostConnection = computed(
+		() =>
+			(liveEnabled.value ? live.data.value?.trackTournament?.ghostFeed : undefined) ??
+			result.data.value?.tournament?.ghostFeed,
+	)
 	const viewerNode = computed(
 		() =>
 			(liveEnabled.value
@@ -175,15 +180,18 @@ export function useTrackTournamentDetail(
 		const firstPage = standings.value.filter((row) => !row.pinned).slice(0, 3)
 		return firstPage.length > 0 ? firstPage : fallback
 	})
-	const updateFeed = computed(() =>
-		(
+	const ghostStandings = computed(() => (ghostConnection.value?.nodes ?? []).map(mapStanding))
+	const updateFeed = computed(
+		() =>
 			(liveEnabled.value ? live.data.value?.trackTournament?.updateFeed?.nodes : undefined) ??
 			result.data.value?.tournament?.updateFeed?.nodes ??
-			[]
-		).map(mapStanding),
+			[],
 	)
 	const page = computed(() => pageInfo(connection.value?.pageInfo))
 	const totalCount = computed(() => connection.value?.totalCount ?? 0)
+	const missingGhostCount = computed(() =>
+		Math.max(0, totalCount.value - (ghostConnection.value?.totalCount ?? 0)),
+	)
 	async function prefetch() {
 		if (!import.meta.server) return
 		await result
@@ -194,9 +202,11 @@ export function useTrackTournamentDetail(
 	})
 	return {
 		active,
+		ghostStandings,
 		hasViewerTime,
 		live,
 		liveEnabled,
+		missingGhostCount,
 		navigation,
 		navigationResult,
 		page,

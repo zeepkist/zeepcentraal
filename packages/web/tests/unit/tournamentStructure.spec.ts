@@ -129,9 +129,7 @@ describe('shared tournament web implementation', () => {
 		expect(event).toContain(':datetime="entry.setAt"')
 		expect(event).toContain('v-if="active" :datetime="entry.setAt" relative')
 		expect(event).toContain(':fastest-time="podium[0]?.time"')
-		expect(source('app/components/tournament/TournamentGhostExplorer.vue')).toContain(
-			'.slice(0, 200)',
-		)
+		expect(source('app/utils/tournament.ts')).toContain('TOURNAMENT_GHOST_LIMIT = 200')
 	})
 
 	test('keeps loaded tournament ghosts mounted and pauses them while collapsed', () => {
@@ -162,10 +160,24 @@ describe('shared tournament web implementation', () => {
 		expect(navigation).toContain('tournamentPath(props.type, props.navigation.next.slug)')
 	})
 
-	test('subscribes to top 50 and latest 200 while sitemap excludes unstarted events', () => {
+	test('subscribes to top 50, latest updates, and fastest valid ghosts', () => {
 		const query = source('app/graphql/queries/trackTournaments.graphql')
 		expect(query).toContain('leaderboard: trackTournamentResults(\n\t\t\tfirst: 50')
-		expect(query).toContain('updateFeed: trackTournamentResults(\n\t\t\tfirst: 200')
+		expect(query.match(/updateFeed: trackTournamentResults\(/g)).toHaveLength(2)
+		expect(query.match(/orderBy: \[DATE_UPDATED_DESC, RECORD_ID_DESC\]/g)).toHaveLength(2)
+		expect(query.match(/ghostFeed: trackTournamentResults\(/g)).toHaveLength(2)
+		expect(query.match(/orderBy: \[TIME_ASC, RECORD_ID_ASC\]/g)).toHaveLength(2)
+		expect(query.match(/recordMedia: \{ ghostUrl: \{ isNull: false \} \}/g)).toHaveLength(2)
+		expect(query.match(/recordMediaExists: true/g)).toHaveLength(2)
+		expect(query).toMatch(
+			/updateFeed: trackTournamentResults\([\s\S]*?nodes \{\s*userId\s*recordId\s*rank\s*\}/,
+		)
+		expect(query).toMatch(
+			/ghostFeed: trackTournamentResults\([\s\S]*?totalCount\s*nodes \{\s*\.\.\.ZC_TrackTournamentStanding/,
+		)
+		const event = source('app/components/tournament/TournamentEvent.vue')
+		expect(event).toContain(':standings="ghostStandings"')
+		expect(event).toContain(':missing-count="missingGhostCount"')
 		expect(source('app/graphql/queries/sitemapTournaments.graphql')).toContain(
 			'startAt: { lessThanOrEqualTo: $now }',
 		)

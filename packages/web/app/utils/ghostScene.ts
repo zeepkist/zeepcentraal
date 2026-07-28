@@ -190,6 +190,21 @@ export function resolveGhostPlaybackStartTime(currentTime: number, duration: num
 	return safeCurrentTime >= safeDuration - 0.0005 ? 0 : safeCurrentTime
 }
 
+export function resolveGhostSelectedRecordId(
+	currentRecordId: number | null,
+	primaryRecordId: number | null | undefined,
+	loadedRecordIds: readonly number[],
+	primaryFailed: boolean,
+): number | null {
+	if (currentRecordId !== null && loadedRecordIds.includes(currentRecordId)) {
+		return currentRecordId
+	}
+	if (primaryRecordId !== null && primaryRecordId !== undefined && !primaryFailed) {
+		return primaryRecordId
+	}
+	return loadedRecordIds[0] ?? null
+}
+
 export function perspectiveWorldUnitsPerPixel(
 	distance: number,
 	verticalFovDegrees: number,

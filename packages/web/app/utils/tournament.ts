@@ -1,8 +1,10 @@
 import type { Zc_TrackTournamentFeatureFragment } from '~/graphql/generated/graphql'
-import type { TournamentFeature, TrackTournamentType } from '~/types/tournament'
+import type { GhostRecordSource } from '~/types/ghost'
+import type { TournamentFeature, TournamentStanding, TrackTournamentType } from '~/types/tournament'
 import { getLevelDisplayName } from './levelDisplay'
 
 const ROTATION_PENDING_GRACE_MS = 5 * 60_000
+const TOURNAMENT_GHOST_LIMIT = 200
 
 export function nextTournamentBoundary(type: TrackTournamentType, at: Date): Date {
 	if (type === 0) {
@@ -58,6 +60,15 @@ export function shouldShowTournamentHowTo(
 	hasViewerTime: boolean,
 ): boolean {
 	return active && (!authenticated || !hasViewerTime)
+}
+
+export function orderTournamentGhostSources(
+	standings: readonly TournamentStanding[],
+): GhostRecordSource[] {
+	return standings
+		.flatMap((standing) => (standing.ghost?.ghostUrl ? [standing.ghost] : []))
+		.toSorted((left, right) => left.time - right.time || left.recordId - right.recordId)
+		.slice(0, TOURNAMENT_GHOST_LIMIT)
 }
 
 export function mapTournamentFeature(

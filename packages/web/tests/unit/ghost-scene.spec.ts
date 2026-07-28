@@ -10,6 +10,7 @@ import {
 	rebaseGhostPosition,
 	resolveGhostDisplayPosition,
 	resolveGhostPlaybackStartTime,
+	resolveGhostSelectedRecordId,
 	resolveGhostTrailSampleLimit,
 	sampleGhostTrailFrames,
 } from '../../app/utils/ghostScene'
@@ -87,6 +88,16 @@ describe('ghost scene', () => {
 		expect(resolveGhostPlaybackStartTime(30, 30)).toBe(0)
 		expect(resolveGhostPlaybackStartTime(29.9998, 30)).toBe(0)
 		expect(resolveGhostPlaybackStartTime(12, 30)).toBe(12)
+	})
+
+	it('keeps pending primary selected while slower ghosts load first', () => {
+		expect(resolveGhostSelectedRecordId(1, 1, [2, 3], false)).toBe(1)
+	})
+
+	it('falls back after primary failure and preserves manual loaded selection', () => {
+		expect(resolveGhostSelectedRecordId(1, 1, [2, 3], true)).toBe(2)
+		expect(resolveGhostSelectedRecordId(3, 1, [1, 2, 3], false)).toBe(3)
+		expect(resolveGhostSelectedRecordId(null, null, [2, 3], false)).toBe(2)
 	})
 
 	it('increases label world clearance as perspective camera moves away', () => {

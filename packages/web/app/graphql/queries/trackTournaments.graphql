@@ -191,6 +191,20 @@ query ZC_TrackTournamentDetail(
 			orderBy: [DATE_UPDATED_DESC, RECORD_ID_DESC]
 		) {
 			nodes {
+				userId
+				recordId
+				rank
+			}
+		}
+		ghostFeed: trackTournamentResults(
+			first: 200
+			filter: {
+				record: { recordMedia: { ghostUrl: { isNull: false } }, recordMediaExists: true }
+			}
+			orderBy: [TIME_ASC, RECORD_ID_ASC]
+		) {
+			totalCount
+			nodes {
 				...ZC_TrackTournamentStanding
 			}
 		}
@@ -264,6 +278,20 @@ subscription ZC_TrackTournamentLive($id: Int!, $viewerId: Int!, $includeViewer: 
 			first: 200
 			orderBy: [DATE_UPDATED_DESC, RECORD_ID_DESC]
 		) {
+			nodes {
+				userId
+				recordId
+				rank
+			}
+		}
+		ghostFeed: trackTournamentResults(
+			first: 200
+			filter: {
+				record: { recordMedia: { ghostUrl: { isNull: false } }, recordMediaExists: true }
+			}
+			orderBy: [TIME_ASC, RECORD_ID_ASC]
+		) {
+			totalCount
 			nodes {
 				...ZC_TrackTournamentStanding
 			}
