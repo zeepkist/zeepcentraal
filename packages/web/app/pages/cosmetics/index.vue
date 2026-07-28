@@ -16,4 +16,5 @@ useSeoMeta({
 	description: () => t('pages.cosmetics.seo.description'),
 	robots: 'noindex, nofollow',
 })
+defineOgImage('Cosmetics.takumi', { slug: 'cosmetics' })
 </script>

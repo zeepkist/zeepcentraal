@@ -36,6 +36,7 @@ import { USER_SORTS } from '~/composables/usePlayers'
 import type { UserPointsOrderBy } from '~/graphql/generated/graphql'
 
 usePageSeo('users')
+defineOgImage('UserRankings.takumi', { slug: 'users' })
 const { t } = useI18n()
 const session = useSessionStore()
 const { applyFilters, page, pagination, result, search, sort, users } = usePlayers()

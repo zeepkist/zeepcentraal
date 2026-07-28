@@ -65,6 +65,7 @@ if (parsedRecordId === null || !Number.isSafeInteger(parsedRecordId) || parsedRe
 	throw createError({ statusCode: 404, statusMessage: t('pages.recordDetail.notFound') })
 }
 const recordId = parsedRecordId
+defineOgImage('RecordDetail.takumi', { slug: String(recordId) })
 const recordData = useRecordDetail(computed(() => recordId))
 await recordData.prefetchCritical()
 const record = recordData.record

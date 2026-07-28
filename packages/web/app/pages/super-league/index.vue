@@ -32,6 +32,7 @@
 </template>
 <script setup vapor lang="ts">
 usePageSeo('zsl')
+defineOgImage('SuperLeague.takumi', { slug: 'super-league' })
 const { t } = useI18n()
 const { page, pagination, result, seasons } = useZslSeasons()
 const roundsLabel = (count: number) => t('zsl.roundCount', { count })

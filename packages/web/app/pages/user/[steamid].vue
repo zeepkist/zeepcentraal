@@ -263,10 +263,13 @@ import type {
 	UserCosmeticProgressPreview,
 } from '~/types/app'
 import { getDateTimeFormatter, getNumberFormatter } from '~/utils/intlFormatters'
+import { preserveOgStringProp } from '~/utils/ogImage'
 
 const route = useRoute()
 const { t } = useI18n()
 const steamId = computed(() => String(route.params.steamid))
+const ogSteamId = computed(() => preserveOgStringProp(steamId.value))
+defineOgImage('UserDetail.takumi', { slug: ogSteamId })
 type UserProfileTab = 'career' | 'records' | 'workshop'
 const activeTab = ref<UserProfileTab>('career')
 const summaryData = useUserProfileSummary(steamId)

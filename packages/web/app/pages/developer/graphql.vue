@@ -14,6 +14,7 @@ const breadcrumbs = computed(() =>
 	buildAncestorBreadcrumbs('/developer', t('pages.developer.breadcrumb'), ['graphql']),
 )
 usePageSeo('graphql')
+defineOgImage('DeveloperGraphql.takumi', { slug: 'graphql' })
 const { data: document } = await useAsyncData('developer-graphql', () =>
 	queryCollection('developer').path('/developer/graphql').first(),
 )

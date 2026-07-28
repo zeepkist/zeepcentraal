@@ -83,6 +83,7 @@ import { MOD_SORTS, type ModSort } from '~/types/mod'
 import { shouldShowModkistPromo } from '~/utils/modkistPromo'
 
 usePageSeo('mods')
+defineOgImage('ModExplorer.takumi', { slug: 'mods' })
 const { t } = useI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)

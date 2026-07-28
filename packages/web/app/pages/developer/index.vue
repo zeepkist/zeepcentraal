@@ -8,6 +8,7 @@
 </template>
 <script setup vapor lang="ts">
 usePageSeo('developer')
+defineOgImage('Developer.takumi', { slug: 'developer' })
 const { t } = useI18n()
 const links = computed(() => [
 	{

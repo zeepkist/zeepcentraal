@@ -171,7 +171,7 @@
 @font-face {
 	font-family: "DINish";
 	src: url("/fonts/DINish.woff2") format("woff2");
-	font-style: oblique 0deg 12deg;
+	font-style: normal;
 	font-weight: 300 900;
 	font-display: swap;
 }

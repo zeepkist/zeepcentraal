@@ -90,6 +90,7 @@ import {
 } from '~/utils/levelExplorer'
 
 usePageSeo('levels')
+defineOgImage('LevelExplorer.takumi', { slug: 'levels' })
 const { t } = useI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)

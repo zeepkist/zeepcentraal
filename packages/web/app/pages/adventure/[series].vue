@@ -35,6 +35,7 @@ if (!initialSeries) {
 }
 
 const series = computed(() => findAdventureSeries(route.params.series) ?? initialSeries)
+defineOgImage('AdventureSeries.takumi', { slug: computed(() => series.value.slug) })
 watch(
 	() => route.params.series,
 	(value) => {

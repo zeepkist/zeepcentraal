@@ -83,13 +83,8 @@ useSeoMeta({
 	description,
 	ogTitle: title,
 	ogDescription: description,
-	ogImage: () => data.value?.mod.imageUrl ?? undefined,
 	twitterCard: 'summary_large_image',
 })
 useSchemaOrg([defineWebPage({ name: title, description })])
-defineOgImage('ZeepCentraal.takumi', {
-	brand: computed(() => t('common.brand')),
-	title,
-	description,
-})
+defineOgImage('ModDetail.takumi', { slug })
 </script>

@@ -77,6 +77,7 @@ const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
 if (parsedSeasonId === null) {
 	throw createError({ statusCode: 404, statusMessage: t('zsl.notFound') })
 }
+defineOgImage('SuperLeagueSeason.takumi', { slug: `season-${parsedSeasonId}` })
 const id = computed(() => parsedSeasonId)
 const {
 	competitorCount,

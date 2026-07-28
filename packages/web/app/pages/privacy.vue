@@ -19,4 +19,5 @@ if (!document.value) {
 }
 
 usePageSeo('privacy')
+defineOgImage('Privacy.takumi', { slug: 'privacy' })
 </script>

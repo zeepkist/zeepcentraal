@@ -116,6 +116,15 @@ export default defineNuxtConfig({
 		storageKey: 'colour_mode',
 	},
 	fonts: {
+		families: [
+			{
+				name: 'DINish',
+				src: '/fonts/DINish.woff2',
+				style: 'normal',
+				weight: '300 900',
+				global: true,
+			},
+		],
 		providers: {
 			adobe: false,
 			bunny: false,

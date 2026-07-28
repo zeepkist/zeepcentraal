@@ -70,6 +70,9 @@ const parsedLevelId = parseSuperLeagueSlug(route.params.levelSlug, 'level')
 if (parsedSeasonId === null || parsedRoundNumber === null || parsedLevelId === null) {
 	throw createError({ statusCode: 404, statusMessage: t('zsl.notFound') })
 }
+defineOgImage('SuperLeagueLevel.takumi', {
+	slug: `season-${parsedSeasonId}/round-${parsedRoundNumber}/level-${parsedLevelId}`,
+})
 const id = computed(() => parsedLevelId)
 const {
 	competitorCount,

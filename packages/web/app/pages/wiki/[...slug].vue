@@ -49,4 +49,5 @@ if (!document.value) {
 	throw createError({ statusCode: 404, statusMessage: t('pages.wiki.notFound') })
 }
 useSeoMeta({ title: () => document.value?.title, description: () => document.value?.description })
+defineOgImage('WikiContent.takumi', { slug: path })
 </script>

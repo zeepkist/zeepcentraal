@@ -156,6 +156,7 @@ type DashboardHeroModel = {
 }
 
 usePageSeo('home')
+defineOgImage('Dashboard.takumi', { slug: 'home' })
 
 const { t, locale } = useI18n()
 const route = useRoute()

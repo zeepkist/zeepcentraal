@@ -81,6 +81,9 @@ const parsedRoundNumber = parseSuperLeagueSlug(route.params.roundSlug, 'round')
 if (parsedSeasonId === null || parsedRoundNumber === null) {
 	throw createError({ statusCode: 404, statusMessage: t('zsl.notFound') })
 }
+defineOgImage('SuperLeagueRound.takumi', {
+	slug: `season-${parsedSeasonId}/round-${parsedRoundNumber}`,
+})
 const seasonId = computed(() => parsedSeasonId)
 const roundNumber = computed(() => parsedRoundNumber)
 const {

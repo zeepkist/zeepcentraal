@@ -23,6 +23,7 @@ if (cosmeticId === null || !Number.isSafeInteger(cosmeticId) || cosmeticId < 1) 
 		statusMessage: t('pages.cosmeticDetail.notFound'),
 	})
 }
+defineOgImage('CosmeticDetail.takumi', { slug: String(cosmeticId) })
 
 useSeoMeta({
 	title: () => t('pages.cosmeticDetail.seo.title', { id: cosmeticId }),

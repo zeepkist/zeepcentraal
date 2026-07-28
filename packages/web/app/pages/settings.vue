@@ -13,4 +13,5 @@
 
 <script setup vapor lang="ts">
 usePageSeo('settings')
+defineOgImage('Settings.takumi', { slug: 'settings' })
 </script>

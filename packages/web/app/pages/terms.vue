@@ -19,4 +19,5 @@ if (!document.value) {
 }
 
 usePageSeo('terms')
+defineOgImage('Terms.takumi', { slug: 'terms' })
 </script>

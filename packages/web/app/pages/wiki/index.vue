@@ -8,6 +8,7 @@
 </template>
 <script setup vapor lang="ts">
 usePageSeo('wiki')
+defineOgImage('WikiIndex.takumi', { slug: 'wiki' })
 const { data: document } = await useAsyncData('wiki-index', () =>
 	queryCollection('wiki').path('/wiki').first(),
 )
