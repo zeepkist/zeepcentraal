@@ -1,5 +1,5 @@
 <template>
-	<NuxtLink :to="to ?? tournamentPath(tournament.type, tournament.slug)" class="group block h-full overflow-hidden rounded-2xl border border-border bg-card/60 transition hover:border-primary/50 hover:shadow-lg">
+	<NuxtLink :to="to ?? tournamentPath(tournament.type, tournament.slug)" class="group block h-full overflow-hidden rounded-2xl border border-border bg-card/60 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
 		<NuxtImg
 			v-if="tournament.level.imageUrl"
 			:src="tournament.level.imageUrl"

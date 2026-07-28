@@ -1,5 +1,5 @@
 <template>
-	<div class="flex min-w-0 flex-1 items-center gap-3">
+	<NuxtLink to="/" class="flex min-w-0 flex-1 items-center gap-3">
 		<NuxtImg
 			src="/android-chrome-192x192.png"
 			alt="ZeepCentraal"
@@ -18,7 +18,7 @@
 		>
 			ZeepCentraal
 		</span>
-	</div>
+	</NuxtLink>
 </template>
 
 <script setup vapor lang="ts">
