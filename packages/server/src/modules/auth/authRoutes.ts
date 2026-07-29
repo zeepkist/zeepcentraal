@@ -429,11 +429,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 					}),
 			) as Record<string, string>
 
-			const cookieAccessToken = cookies[COOKIES.AccessToken]
 			const cookieRefreshToken = cookies[COOKIES.RefreshToken]
 			const cookieSteamId = cookies[COOKIES.SteamId]
 
-			if (!cookieAccessToken || !cookieRefreshToken || !cookieSteamId) {
+			if (!cookieRefreshToken || !cookieSteamId) {
 				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
 			}
 
@@ -482,8 +481,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				operationId: 'refreshWebSession',
 				summary: 'Refresh a browser session',
 				description:
-					'Rotates browser access and refresh cookies. Requires the complete ZeepCentraal session cookie set.',
-				security: [{ webSession: [] }],
+					'Rotates browser access and refresh cookies. Requires the refresh-token and Steam-ID cookies; the access-token cookie may be missing or expired.',
+				security: [{ webRefreshSession: [] }],
 				tags: [OPENAPI_TAG.auth],
 			},
 		},

@@ -1,5 +1,5 @@
 import { getRefreshableWebSession, getWebSession } from '@zeepkist/database/services'
-import { hasCompleteWebAuthCookieTuple } from '#shared/authCookies'
+import { hasRefreshableWebAuthCookieTuple } from '#shared/authCookies'
 import type { SessionUser } from '../../app/types/app'
 import { cookieHeaderFromSetCookies, refreshWebAuth } from '../utils/backend'
 import { assertSameOrigin } from '../utils/request'
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
 			return cookieHeaderFromSetCookies(refreshed.cookies)
 		},
 	)
-	if (hasCompleteWebAuthCookieTuple(cookieHeader)) {
+	if (hasRefreshableWebAuthCookieTuple(cookieHeader)) {
 		appendResponseHeader(
 			event,
 			'server-timing',

@@ -1,4 +1,4 @@
-import { hasCompleteWebAuthCookieTuple } from '#shared/authCookies'
+import { hasRefreshableWebAuthCookieTuple } from '#shared/authCookies'
 import type { SessionUser } from '~/types/app'
 
 export async function useCurrentUser() {
@@ -8,7 +8,7 @@ export async function useCurrentUser() {
 	const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 	const user = computed(() => session.user)
 	const shouldResolve = import.meta.server
-		? hasCompleteWebAuthCookieTuple(requestHeaders?.cookie)
+		? hasRefreshableWebAuthCookieTuple(requestHeaders?.cookie)
 		: !session.resolved
 	if (!shouldResolve) {
 		session.pending = false

@@ -1,4 +1,9 @@
-import { readSessionCookies, type SessionCookies } from './backend'
+import {
+	type RefreshableSessionCookies,
+	readRefreshableSessionCookies,
+	readSessionCookies,
+	type SessionCookies,
+} from './backend'
 
 export type SessionResolutionReason =
 	| 'database_error'
@@ -17,27 +22,25 @@ export type SessionResolution<T> = {
 export async function resolveVerifiedSession<T>(
 	cookieHeader: string | null | undefined,
 	lookup: (cookies: SessionCookies) => Promise<T | null>,
-	canRefresh: (cookies: Pick<SessionCookies, 'steamId' | 'refreshToken'>) => Promise<boolean>,
+	canRefresh: (cookies: RefreshableSessionCookies) => Promise<boolean>,
 	refresh: () => Promise<string>,
 ): Promise<SessionResolution<T>> {
+	const refreshableCookies = readRefreshableSessionCookies(cookieHeader)
+	if (!refreshableCookies) return { session: null, reason: 'incomplete_cookies' }
+
 	const cookies = readSessionCookies(cookieHeader)
-	if (!cookies) return { session: null, reason: 'incomplete_cookies' }
-
-	let session: T | null
-	try {
-		session = await lookup(cookies)
-	} catch {
-		return { session: null, reason: 'database_error' }
+	if (cookies) {
+		let session: T | null
+		try {
+			session = await lookup(cookies)
+		} catch {
+			return { session: null, reason: 'database_error' }
+		}
+		if (session) return { session, reason: 'verified' }
 	}
-	if (session) return { session, reason: 'verified' }
 
 	try {
-		if (
-			!(await canRefresh({
-				steamId: cookies.steamId,
-				refreshToken: cookies.refreshToken,
-			}))
-		) {
+		if (!(await canRefresh(refreshableCookies))) {
 			return { session: null, reason: 'invalid_tuple' }
 		}
 	} catch {

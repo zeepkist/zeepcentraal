@@ -1,10 +1,13 @@
 import { webAuthCookieNames } from '#shared/authCookies'
 import { authRefreshUrl } from '../../app/utils/auth'
 
-export type SessionCookies = {
+export type RefreshableSessionCookies = {
 	steamId: string
-	accessToken: string
 	refreshToken: string
+}
+
+export type SessionCookies = RefreshableSessionCookies & {
+	accessToken: string
 }
 
 export function getBackendBaseUrl() {
@@ -47,7 +50,7 @@ export function cookieHeaderFromSetCookies(cookies: string[]) {
 		.join('; ')
 }
 
-export function readSessionCookies(cookieHeader?: string | null): SessionCookies | null {
+function readCookieHeader(cookieHeader?: string | null) {
 	const cookies: Record<string, string> = {}
 	for (const item of (cookieHeader ?? '').split(';')) {
 		const [key, ...rest] = item.trim().split('=')
@@ -58,6 +61,23 @@ export function readSessionCookies(cookieHeader?: string | null): SessionCookies
 			return null
 		}
 	}
+	return cookies
+}
+
+export function readRefreshableSessionCookies(
+	cookieHeader?: string | null,
+): RefreshableSessionCookies | null {
+	const cookies = readCookieHeader(cookieHeader)
+	if (!cookies) return null
+	const [, refreshTokenName, steamIdName] = webAuthCookieNames
+	const steamId = cookies[steamIdName]
+	const refreshToken = cookies[refreshTokenName]
+	return steamId && refreshToken ? { steamId, refreshToken } : null
+}
+
+export function readSessionCookies(cookieHeader?: string | null): SessionCookies | null {
+	const cookies = readCookieHeader(cookieHeader)
+	if (!cookies) return null
 	const [accessTokenName, refreshTokenName, steamIdName] = webAuthCookieNames
 	const steamId = cookies[steamIdName]
 	const accessToken = cookies[accessTokenName]

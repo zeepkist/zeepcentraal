@@ -521,6 +521,7 @@ test('CORS allows configured website origin and rejects arbitrary origins', asyn
 test('OpenAPI document groups every public operation by category', async () => {
 	type OpenApiOperation = {
 		operationId?: string
+		security?: Array<Record<string, string[]>>
 		summary?: string
 		tags?: string[]
 	}
@@ -568,8 +569,10 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'accessToken',
 		'gtrBearerAuth',
 		'jobBearerAuth',
+		'webRefreshSession',
 		'webSession',
 	])
+	expect(document.paths['/auth/web/refresh']?.post?.security).toEqual([{ webRefreshSession: [] }])
 	expect(document.paths['/favicon.ico']).toBeUndefined()
 })
 
@@ -818,12 +821,29 @@ test('auth/web/refresh returns 400 when cookies are missing', async () => {
 	})
 })
 
+test('auth/web/refresh requires the refresh token and Steam ID cookie pair', async () => {
+	for (const cookie of [
+		'zeepcentral_refresh_token=existing-refresh',
+		'zeepcentral_steam_id=12345678901234567',
+	]) {
+		const response = await send('/auth/web/refresh', {
+			method: 'POST',
+			headers: { cookie },
+		})
+
+		expect(response.status).toBe(400)
+		expect(await readBody(response)).toEqual({
+			error: { code: 14, message: 'Not authenticated' },
+		})
+	}
+})
+
 test('auth/web/refresh returns 404 when user is missing', async () => {
 	state.userBySteamId = null
 	const response = await send('/auth/web/refresh', {
 		method: 'POST',
 		headers: {
-			cookie: 'zeepcentral_access_token=existing-access; zeepcentral_refresh_token=existing-refresh; zeepcentral_steam_id=12345678901234567',
+			cookie: 'zeepcentral_refresh_token=existing-refresh; zeepcentral_steam_id=12345678901234567',
 		},
 	})
 
@@ -833,17 +853,36 @@ test('auth/web/refresh returns 404 when user is missing', async () => {
 	})
 })
 
-test('auth/web/refresh returns 200 and refreshed cookies on success', async () => {
+test('auth/web/refresh recreates a missing access cookie on success', async () => {
 	const response = await send('/auth/web/refresh', {
 		method: 'POST',
 		headers: {
-			cookie: 'zeepcentral_access_token=existing-access; zeepcentral_refresh_token=existing-refresh; zeepcentral_steam_id=12345678901234567',
+			cookie: 'zeepcentral_refresh_token=existing-refresh; zeepcentral_steam_id=12345678901234567',
 		},
 	})
 
 	expect(response.status).toBe(200)
 	expect(await readBody(response)).toBeNull()
-	expect(response.headers.get('set-cookie') ?? '').toContain('zeepcentral_access_token=')
+	const setCookies = response.headers.get('set-cookie') ?? ''
+	expect(setCookies).toContain('zeepcentral_access_token=')
+	expect(setCookies).toContain('zeepcentral_refresh_token=')
+	expect(setCookies).toContain('zeepcentral_steam_id=')
+	expect(state.deletedRefreshTokens).toContain('existing-refresh')
+})
+
+test('auth/web/refresh rejects an invalid refresh token when the access cookie is missing', async () => {
+	state.refreshAuth = null
+	const response = await send('/auth/web/refresh', {
+		method: 'POST',
+		headers: {
+			cookie: 'zeepcentral_refresh_token=invalid-refresh; zeepcentral_steam_id=12345678901234567',
+		},
+	})
+
+	expect(response.status).toBe(401)
+	expect(await readBody(response)).toEqual({
+		error: { code: 15, message: 'Invalid or expired token' },
+	})
 })
 
 test('level/request queues workshop scan when canonical hash is unknown', async () => {

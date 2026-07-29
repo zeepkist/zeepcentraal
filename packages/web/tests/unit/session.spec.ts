@@ -1,6 +1,9 @@
 import { describe, expect, test, vi } from 'vitest'
 import { resolveVerifiedSession } from '../../server/utils/session'
-import { hasCompleteWebAuthCookieTuple } from '../../shared/authCookies'
+import {
+	hasCompleteWebAuthCookieTuple,
+	hasRefreshableWebAuthCookieTuple,
+} from '../../shared/authCookies'
 
 function sessionCookies(accessExpiry: number, accessToken = 'access') {
 	const payload = Buffer.from(JSON.stringify({ exp: accessExpiry })).toString('base64url')
@@ -9,21 +12,27 @@ function sessionCookies(accessExpiry: number, accessToken = 'access') {
 
 const validCookies = sessionCookies(2_000_000_000)
 const expiredCookies = sessionCookies(1)
+const refreshableCookies =
+	'zeepcentral_steam_id=76561198000000000; zeepcentral_refresh_token=refresh'
 const refreshedCookies =
 	'zeepcentral_steam_id=76561198000000000; zeepcentral_access_token=next-access; zeepcentral_refresh_token=next-refresh'
 
 describe('SSR session resolution', () => {
-	test('detects only complete non-empty web auth tuples', () => {
+	test('detects complete and refreshable non-empty web auth tuples', () => {
 		expect(hasCompleteWebAuthCookieTuple()).toBe(false)
 		expect(hasCompleteWebAuthCookieTuple('zeepcentral_steam_id=1')).toBe(false)
 		expect(hasCompleteWebAuthCookieTuple(validCookies)).toBe(true)
+		expect(hasRefreshableWebAuthCookieTuple()).toBe(false)
+		expect(hasRefreshableWebAuthCookieTuple('zeepcentral_steam_id=1')).toBe(false)
+		expect(hasRefreshableWebAuthCookieTuple(refreshableCookies)).toBe(true)
+		expect(hasRefreshableWebAuthCookieTuple(validCookies)).toBe(true)
 		expect(
 			hasCompleteWebAuthCookieTuple(
 				'zeepcentral_steam_id=1; zeepcentral_access_token=; zeepcentral_refresh_token=x',
 			),
 		).toBe(false)
 	})
-	test('does not query or refresh without the complete cookie tuple', async () => {
+	test('does not query or refresh without the refresh token and Steam ID pair', async () => {
 		const lookup = vi.fn()
 		const canRefresh = vi.fn()
 		const refresh = vi.fn()
@@ -33,6 +42,31 @@ describe('SSR session resolution', () => {
 		expect(lookup).not.toHaveBeenCalled()
 		expect(canRefresh).not.toHaveBeenCalled()
 		expect(refresh).not.toHaveBeenCalled()
+	})
+
+	test('repairs a missing access token from the authoritative refresh tuple', async () => {
+		const session = { id: 1 }
+		const lookup = vi.fn().mockResolvedValue(session)
+		const canRefresh = vi.fn().mockResolvedValue(true)
+		const refresh = vi.fn().mockResolvedValue(refreshedCookies)
+
+		expect(
+			await resolveVerifiedSession(refreshableCookies, lookup, canRefresh, refresh),
+		).toEqual({
+			session,
+			reason: 'refreshed',
+		})
+		expect(canRefresh).toHaveBeenCalledWith({
+			steamId: '76561198000000000',
+			refreshToken: 'refresh',
+		})
+		expect(refresh).toHaveBeenCalledOnce()
+		expect(lookup).toHaveBeenCalledOnce()
+		expect(lookup).toHaveBeenCalledWith({
+			steamId: '76561198000000000',
+			accessToken: 'next-access',
+			refreshToken: 'next-refresh',
+		})
 	})
 
 	test('trusts an exact current tuple without refreshing', async () => {
@@ -75,18 +109,23 @@ describe('SSR session resolution', () => {
 		})
 	}
 
-	test('does not rotate an unmatched refresh token', async () => {
-		const refresh = vi.fn()
-		expect(
-			await resolveVerifiedSession(
-				validCookies,
-				vi.fn().mockResolvedValue(null),
-				vi.fn().mockResolvedValue(false),
-				refresh,
-			),
-		).toEqual({ session: null, reason: 'invalid_tuple' })
-		expect(refresh).not.toHaveBeenCalled()
-	})
+	for (const [label, cookies] of [
+		['with an access token', validCookies],
+		['without an access token', refreshableCookies],
+	] as const) {
+		test(`does not rotate an unmatched refresh token ${label}`, async () => {
+			const refresh = vi.fn()
+			expect(
+				await resolveVerifiedSession(
+					cookies,
+					vi.fn().mockResolvedValue(null),
+					vi.fn().mockResolvedValue(false),
+					refresh,
+				),
+			).toEqual({ session: null, reason: 'invalid_tuple' })
+			expect(refresh).not.toHaveBeenCalled()
+		})
+	}
 
 	test('reports failed rotation and failed post-refresh validation', async () => {
 		const lookup = vi.fn().mockResolvedValue(null)

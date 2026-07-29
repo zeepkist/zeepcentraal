@@ -45,6 +45,12 @@ export const withDocumentation = new Elysia().use(
 						name: COOKIES.AccessToken,
 						description: 'HttpOnly ZeepCentraal browser access-token cookie.',
 					},
+					webRefreshSession: {
+						type: 'apiKey',
+						in: 'cookie',
+						name: COOKIES.RefreshToken,
+						description: 'HttpOnly ZeepCentraal browser refresh-token cookie.',
+					},
 					jobBearerAuth: {
 						type: 'http',
 						scheme: 'bearer',

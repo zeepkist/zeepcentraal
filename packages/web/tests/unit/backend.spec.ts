@@ -3,6 +3,7 @@ import {
 	accessTokenExpiresAt,
 	accessTokenRefreshAt,
 	cookieHeaderFromSetCookies,
+	readRefreshableSessionCookies,
 	readSessionCookies,
 } from '../../server/utils/backend'
 import { isCrossOriginRequest } from '../../server/utils/request'
@@ -18,7 +19,7 @@ describe('web server auth and request guards', () => {
 		)
 	})
 
-	test('requires the complete server-issued web auth cookie tuple', () => {
+	test('reads refreshable and complete server-issued web auth cookie tuples', () => {
 		expect(
 			readSessionCookies(
 				'zeepcentral_steam_id=76561198000000000; zeepcentral_access_token=access; zeepcentral_refresh_token=refresh',
@@ -29,11 +30,21 @@ describe('web server auth and request guards', () => {
 			refreshToken: 'refresh',
 		})
 		expect(
+			readRefreshableSessionCookies(
+				'zeepcentral_steam_id=76561198000000000; zeepcentral_refresh_token=refresh',
+			),
+		).toEqual({
+			steamId: '76561198000000000',
+			refreshToken: 'refresh',
+		})
+		expect(
 			readSessionCookies(
 				'zeepcentral_steam_id=76561198000000000; zeepcentral_access_token=access',
 			),
 		).toBeNull()
+		expect(readRefreshableSessionCookies('zeepcentral_steam_id=76561198000000000')).toBeNull()
 		expect(readSessionCookies('zeepcentral_refresh_token=%E0%A4%A')).toBeNull()
+		expect(readRefreshableSessionCookies('zeepcentral_refresh_token=%E0%A4%A')).toBeNull()
 	})
 
 	test('turns refreshed Set-Cookie headers into a validation cookie header', () => {
