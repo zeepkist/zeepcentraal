@@ -113,7 +113,6 @@ export class WorkshopScanner {
 					changedLevelIds: await persistence.markDeleted(
 						metadata.workshopId,
 						STEAM_VISIBILITY.Hidden,
-						false,
 					),
 				})
 			} else if (!canSteamCmdDownloadWorkshopItem(metadata.visibility)) {
@@ -123,7 +122,6 @@ export class WorkshopScanner {
 					changedLevelIds: await persistence.markDeleted(
 						metadata.workshopId,
 						metadata.visibility,
-						true,
 					),
 				})
 			} else {

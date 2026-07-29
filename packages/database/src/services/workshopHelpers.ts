@@ -58,16 +58,7 @@ export function resolveWorkshopLevelId({
 	return existingByLegacyHash?.id ?? createdLevel?.id
 }
 
-/**
- * An explicit private Steam visibility update must not remove Adventure level aliases.
- * Permanent removals fail closed and remove every active alias.
- */
-export function shouldDeleteWorkshopLevelItem({
-	adventure,
-	preserveAdventure,
-}: {
-	adventure: boolean
-	preserveAdventure: boolean
-}): boolean {
-	return !preserveAdventure || !adventure
+/** Workshop discovery state must never remove built-in Adventure level aliases. */
+export function shouldDeleteWorkshopLevelItem({ adventure }: { adventure: boolean }): boolean {
+	return !adventure
 }

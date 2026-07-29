@@ -133,14 +133,12 @@ test('inaccessible workshop levels preserve existing metadata blocks', () => {
 	).toEqual([])
 })
 
-test('private visibility preserves Adventure aliases and removes community aliases', () => {
-	expect(shouldDeleteWorkshopLevelItem({ adventure: true, preserveAdventure: true })).toBe(false)
-	expect(shouldDeleteWorkshopLevelItem({ adventure: false, preserveAdventure: true })).toBe(true)
+test('Workshop reconciliation preserves Adventure aliases', () => {
+	expect(shouldDeleteWorkshopLevelItem({ adventure: true })).toBe(false)
 })
 
-test('permanently unavailable workshops remove Adventure and community aliases', () => {
-	expect(shouldDeleteWorkshopLevelItem({ adventure: true, preserveAdventure: false })).toBe(true)
-	expect(shouldDeleteWorkshopLevelItem({ adventure: false, preserveAdventure: false })).toBe(true)
+test('Workshop reconciliation removes missing community aliases', () => {
+	expect(shouldDeleteWorkshopLevelItem({ adventure: false })).toBe(true)
 })
 
 test('workshop deletion paths lock parent Workshop row before changing aliases', () => {
@@ -179,16 +177,20 @@ test('hash merge locks every linked Workshop before moving records or deleting l
 	expect(levelDelete).toBeGreaterThan(workshopLock)
 })
 
-test('private workshop deletion joins levels before applying Adventure preservation', () => {
-	const start = workshopServiceSource.indexOf('export async function markWorkshopDeleted')
-	const source = workshopServiceSource.slice(start)
-	const visibilityUpdate = source.indexOf('.set({ visibility: workshopVisibility })')
-	const aliasDelete = source.indexOf('.update(levelItem)')
+test('Workshop deletion paths join levels before preserving Adventure aliases', () => {
+	for (const functionName of ['markMissingWorkshopLevelsDeleted', 'markWorkshopDeleted']) {
+		const start = workshopServiceSource.indexOf(`export async function ${functionName}`)
+		const nextExport = workshopServiceSource.indexOf('\nexport async function ', start + 1)
+		const source = workshopServiceSource.slice(
+			start,
+			nextExport === -1 ? workshopServiceSource.length : nextExport,
+		)
 
-	expect(source).toContain('.innerJoin(level, eq(level.id, levelItem.idLevel))')
-	expect(source).toContain('shouldDeleteWorkshopLevelItem({')
-	expect(visibilityUpdate).toBeGreaterThan(-1)
-	expect(aliasDelete).toBeGreaterThan(visibilityUpdate)
+		expect(source).toContain('.innerJoin(level, eq(level.id, levelItem.idLevel))')
+		expect(source).toMatch(
+			/shouldDeleteWorkshopLevelItem\(\{ adventure: (item|row)\.adventure \}\)/,
+		)
+	}
 })
 
 test('workshop level resolution prefers canonical xxHash row over stale file UID row', () => {

@@ -610,11 +610,20 @@ export async function markMissingWorkshopLevelsDeleted(
 		`)
 
 		const existing = await tx
-			.select({ id: levelItem.id, idLevel: levelItem.idLevel, xxHash: level.xxHash })
+			.select({
+				id: levelItem.id,
+				idLevel: levelItem.idLevel,
+				xxHash: level.xxHash,
+				adventure: level.adventure,
+			})
 			.from(levelItem)
 			.innerJoin(level, eq(level.id, levelItem.idLevel))
 			.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
-		const missing = existing.filter((item) => !activeXxHashes.includes(item.xxHash))
+		const missing = existing.filter(
+			(item) =>
+				!activeXxHashes.includes(item.xxHash) &&
+				shouldDeleteWorkshopLevelItem({ adventure: item.adventure }),
+		)
 		if (missing.length === 0) {
 			return []
 		}
@@ -634,7 +643,6 @@ export async function markMissingWorkshopLevelsDeleted(
 export async function markWorkshopDeleted(
 	workshopId: bigint,
 	workshopVisibility: number,
-	preserveAdventure: boolean,
 ): Promise<number[]> {
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`
@@ -657,10 +665,7 @@ export async function markWorkshopDeleted(
 			.innerJoin(level, eq(level.id, levelItem.idLevel))
 			.where(and(eq(levelItem.workshopId, workshopId), eq(levelItem.deleted, false)))
 		const rowsToDelete = rows.filter((row) =>
-			shouldDeleteWorkshopLevelItem({
-				adventure: row.adventure,
-				preserveAdventure,
-			}),
+			shouldDeleteWorkshopLevelItem({ adventure: row.adventure }),
 		)
 		if (rowsToDelete.length === 0) {
 			return []

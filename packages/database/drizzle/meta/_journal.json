@@ -484,6 +484,13 @@
 			"when": 1785352186981,
 			"tag": "0069_pink_steel_serpent",
 			"breakpoints": true
+		},
+		{
+			"idx": 70,
+			"version": "7",
+			"when": 1785359138012,
+			"tag": "0070_preserve_adventure_workshop_aliases",
+			"breakpoints": true
 		}
 	]
 }

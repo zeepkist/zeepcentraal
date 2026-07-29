@@ -47,11 +47,7 @@ export interface WorkshopDownloader {
 
 export interface WorkshopPersistence {
 	findLevelAuthorByXxHash(xxHash: string, excludedUploaderId: bigint): Promise<bigint | undefined>
-	markDeleted(
-		workshopId: bigint,
-		workshopVisibility: number,
-		preserveAdventure: boolean,
-	): Promise<number[]>
+	markDeleted(workshopId: bigint, workshopVisibility: number): Promise<number[]>
 	markMissing(workshopId: bigint, activeXxHashes: string[]): Promise<number[]>
 	mergeZeepSdkExponentHash?(input: {
 		correctLevelId: number
