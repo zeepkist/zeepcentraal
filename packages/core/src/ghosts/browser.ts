@@ -1,6 +1,6 @@
 import { isGzip } from '../utils/isGzip'
 import { decodeProtobufGhostPayload } from './protobuf'
-import { parseDecodedV5, parseDecodedV6 } from './protobufVersions'
+import { parseDecodedV5, parseDecodedV6, parseDecodedV7 } from './protobufVersions'
 import type { ParsedGhost } from './types'
 import { parseV1 } from './v1'
 import { parseV2 } from './v2'
@@ -35,6 +35,8 @@ export async function parseGhostBrowser(
 			return parseDecodedV5(decoded)
 		case 6:
 			return parseDecodedV6(decoded)
+		case 7:
+			return parseDecodedV7(decoded)
 		default:
 			throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
 	}

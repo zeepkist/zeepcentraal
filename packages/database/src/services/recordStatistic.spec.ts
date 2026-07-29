@@ -111,10 +111,14 @@ describe('record statistic backfill selection', () => {
 			driverInputTransitionCount: 18,
 			distanceOnWood: 10,
 			distanceOnMud: 20,
-			distanceOnFlesh: 30,
+			distanceOnIce1: 30,
+			distanceOnIce2: 40,
+			distanceOnIce3: 50,
 			timeOnWood: 1,
 			timeOnMud: 2,
-			timeOnFlesh: 3,
+			timeOnIce1: 3,
+			timeOnIce2: 4,
+			timeOnIce3: 5,
 		})
 
 		expect(conflictSet).toMatchObject({
@@ -131,10 +135,14 @@ describe('record statistic backfill selection', () => {
 			driverInputTransitionCount: 18,
 			distanceOnWood: 10,
 			distanceOnMud: 20,
-			distanceOnFlesh: 30,
+			distanceOnIce1: 30,
+			distanceOnIce2: 40,
+			distanceOnIce3: 50,
 			timeOnWood: 1,
 			timeOnMud: 2,
-			timeOnFlesh: 3,
+			timeOnIce1: 3,
+			timeOnIce2: 4,
+			timeOnIce3: 5,
 		})
 	})
 })

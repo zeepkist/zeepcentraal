@@ -841,10 +841,12 @@
 				"tarmac": "Tarmac",
 				"grass": "Grass",
 				"sand": "Sand",
-				"ice": "Ice",
-				"metal": "Metal",
-				"snow": "Snow",
-				"soap": "Soap"
+				"soap": "Soap",
+				"wood": "Wood",
+				"mud": "Mud",
+				"ice1": "Ice 5",
+				"ice2": "Ice 10",
+				"ice3": "Ice 15"
 			},
 			"movement": {
 				"ground": "On ground",

@@ -18,11 +18,13 @@ fragment ZC_RecordStatistic on RecordStatistic {
 	distanceOn4Wheels
 	distanceOnGrass
 	distanceOnGround
-	distanceOnIce
-	distanceOnMetal
+	distanceOnIce1
+	distanceOnIce2
+	distanceOnIce3
+	distanceOnWood
+	distanceOnMud
 	distanceOnMonorail
 	distanceOnSand
-	distanceOnSnow
 	distanceOnSoap
 	distanceOnTarmac
 	distanceParaglider
@@ -59,11 +61,13 @@ fragment ZC_RecordStatistic on RecordStatistic {
 	timeOn4Wheels
 	timeOnGrass
 	timeOnGround
-	timeOnIce
-	timeOnMetal
+	timeOnIce1
+	timeOnIce2
+	timeOnIce3
+	timeOnWood
+	timeOnMud
 	timeOnMonorail
 	timeOnSand
-	timeOnSnow
 	timeOnSoap
 	timeOnTarmac
 	timeParaglider
@@ -76,7 +80,6 @@ fragment ZC_RecordStatistic on RecordStatistic {
 	turnRightCount
 	turnRightTime
 }
-
 query ZC_RecordDetail($recordId: Int!) {
 	record(id: $recordId) {
 		...ZC_GhostComparisonRecord

@@ -37,15 +37,71 @@ export function useRecordTelemetryModel(
 	const total = (entries: DashboardChartEntry[]) =>
 		entries.reduce((result, item) => result + item.value, 0)
 
-	const surfaceColors = {
-		tarmac: '#64748b',
-		grass: '#22c55e',
-		sand: '#f59e0b',
-		ice: '#38bdf8',
-		metal: '#94a3b8',
-		snow: '#e2e8f0',
-		soap: '#ec4899',
-	} as const
+	const surfaceDefinitions = [
+		{
+			key: 'tarmac',
+			label: () => t('dashboard.totals.surfaces.tarmac'),
+			color: '#64748b',
+			distanceField: 'distanceOnTarmac',
+			timeField: 'timeOnTarmac',
+		},
+		{
+			key: 'grass',
+			label: () => t('dashboard.totals.surfaces.grass'),
+			color: '#22c55e',
+			distanceField: 'distanceOnGrass',
+			timeField: 'timeOnGrass',
+		},
+		{
+			key: 'sand',
+			label: () => t('dashboard.totals.surfaces.sand'),
+			color: '#f59e0b',
+			distanceField: 'distanceOnSand',
+			timeField: 'timeOnSand',
+		},
+		{
+			key: 'soap',
+			label: () => t('dashboard.totals.surfaces.soap'),
+			color: '#ec4899',
+			distanceField: 'distanceOnSoap',
+			timeField: 'timeOnSoap',
+		},
+		{
+			key: 'wood',
+			label: () => t('dashboard.totals.surfaces.wood'),
+			color: '#a16207',
+			distanceField: 'distanceOnWood',
+			timeField: 'timeOnWood',
+		},
+		{
+			key: 'mud',
+			label: () => t('dashboard.totals.surfaces.mud'),
+			color: '#78350f',
+			distanceField: 'distanceOnMud',
+			timeField: 'timeOnMud',
+		},
+		{
+			key: 'ice1',
+			label: () => t('dashboard.totals.surfaces.ice1'),
+			color: '#7dd3fc',
+			distanceField: 'distanceOnIce1',
+			timeField: 'timeOnIce1',
+		},
+		{
+			key: 'ice2',
+			label: () => t('dashboard.totals.surfaces.ice2'),
+			color: '#38bdf8',
+			distanceField: 'distanceOnIce2',
+			timeField: 'timeOnIce2',
+		},
+		{
+			key: 'ice3',
+			label: () => t('dashboard.totals.surfaces.ice3'),
+			color: '#0284c7',
+			distanceField: 'distanceOnIce3',
+			timeField: 'timeOnIce3',
+		},
+	] as const
 
 	const scopeT = (key: string) => {
 		const prefix =
@@ -64,108 +120,14 @@ export function useRecordTelemetryModel(
 		const sum = aggregates?.sum
 		const average = aggregates?.average
 		const max = aggregates?.max
-		const surfaceDistance = [
-			entry(
-				'tarmac',
-				t('dashboard.totals.surfaces.tarmac'),
-				numeric(sum?.distanceOnTarmac),
-				surfaceColors.tarmac,
-				formatDistance(numeric(sum?.distanceOnTarmac)),
-			),
-			entry(
-				'grass',
-				t('dashboard.totals.surfaces.grass'),
-				numeric(sum?.distanceOnGrass),
-				surfaceColors.grass,
-				formatDistance(numeric(sum?.distanceOnGrass)),
-			),
-			entry(
-				'sand',
-				t('dashboard.totals.surfaces.sand'),
-				numeric(sum?.distanceOnSand),
-				surfaceColors.sand,
-				formatDistance(numeric(sum?.distanceOnSand)),
-			),
-			entry(
-				'ice',
-				t('dashboard.totals.surfaces.ice'),
-				numeric(sum?.distanceOnIce),
-				surfaceColors.ice,
-				formatDistance(numeric(sum?.distanceOnIce)),
-			),
-			entry(
-				'metal',
-				t('dashboard.totals.surfaces.metal'),
-				numeric(sum?.distanceOnMetal),
-				surfaceColors.metal,
-				formatDistance(numeric(sum?.distanceOnMetal)),
-			),
-			entry(
-				'snow',
-				t('dashboard.totals.surfaces.snow'),
-				numeric(sum?.distanceOnSnow),
-				surfaceColors.snow,
-				formatDistance(numeric(sum?.distanceOnSnow)),
-			),
-			entry(
-				'soap',
-				t('dashboard.totals.surfaces.soap'),
-				numeric(sum?.distanceOnSoap),
-				surfaceColors.soap,
-				formatDistance(numeric(sum?.distanceOnSoap)),
-			),
-		]
-		const surfaceTime = [
-			entry(
-				'tarmac',
-				t('dashboard.totals.surfaces.tarmac'),
-				numeric(sum?.timeOnTarmac),
-				surfaceColors.tarmac,
-				formatDuration(numeric(sum?.timeOnTarmac)),
-			),
-			entry(
-				'grass',
-				t('dashboard.totals.surfaces.grass'),
-				numeric(sum?.timeOnGrass),
-				surfaceColors.grass,
-				formatDuration(numeric(sum?.timeOnGrass)),
-			),
-			entry(
-				'sand',
-				t('dashboard.totals.surfaces.sand'),
-				numeric(sum?.timeOnSand),
-				surfaceColors.sand,
-				formatDuration(numeric(sum?.timeOnSand)),
-			),
-			entry(
-				'ice',
-				t('dashboard.totals.surfaces.ice'),
-				numeric(sum?.timeOnIce),
-				surfaceColors.ice,
-				formatDuration(numeric(sum?.timeOnIce)),
-			),
-			entry(
-				'metal',
-				t('dashboard.totals.surfaces.metal'),
-				numeric(sum?.timeOnMetal),
-				surfaceColors.metal,
-				formatDuration(numeric(sum?.timeOnMetal)),
-			),
-			entry(
-				'snow',
-				t('dashboard.totals.surfaces.snow'),
-				numeric(sum?.timeOnSnow),
-				surfaceColors.snow,
-				formatDuration(numeric(sum?.timeOnSnow)),
-			),
-			entry(
-				'soap',
-				t('dashboard.totals.surfaces.soap'),
-				numeric(sum?.timeOnSoap),
-				surfaceColors.soap,
-				formatDuration(numeric(sum?.timeOnSoap)),
-			),
-		]
+		const surfaceDistance = surfaceDefinitions.map((surface) => {
+			const value = numeric(sum?.[surface.distanceField])
+			return entry(surface.key, surface.label(), value, surface.color, formatDistance(value))
+		})
+		const surfaceTime = surfaceDefinitions.map((surface) => {
+			const value = numeric(sum?.[surface.timeField])
+			return entry(surface.key, surface.label(), value, surface.color, formatDuration(value))
+		})
 		const movementDistance = [
 			entry(
 				'ground',

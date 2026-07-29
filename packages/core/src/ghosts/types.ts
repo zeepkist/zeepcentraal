@@ -123,23 +123,21 @@ export type GhostStatisticValues = {
 	distanceOnTarmac: number | null
 	distanceOnGrass: number | null
 	distanceOnSand: number | null
-	distanceOnSnow: number | null
-	distanceOnIce: number | null
 	distanceOnSoap: number | null
-	distanceOnMetal: number | null
 	distanceOnWood: number | null
 	distanceOnMud: number | null
-	distanceOnFlesh: number | null
+	distanceOnIce1: number | null
+	distanceOnIce2: number | null
+	distanceOnIce3: number | null
 	timeOnTarmac: number | null
 	timeOnGrass: number | null
 	timeOnSand: number | null
-	timeOnSnow: number | null
-	timeOnIce: number | null
 	timeOnSoap: number | null
-	timeOnMetal: number | null
 	timeOnWood: number | null
 	timeOnMud: number | null
-	timeOnFlesh: number | null
+	timeOnIce1: number | null
+	timeOnIce2: number | null
+	timeOnIce3: number | null
 	averageVelocity: number | null
 	maxVelocity: number | null
 	averageAngularVelocity: number | null

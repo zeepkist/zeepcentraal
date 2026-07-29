@@ -13,14 +13,15 @@ import { parseV3 } from './v3'
 import { parseV4 } from './v4'
 import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
+import { parseDecodedV7 } from './v7'
 
 export { TURN_DEADZONE } from './constants'
 export {
 	GroundedWheelState,
 	InputFlags,
+	MaterialPhysicsState,
 	SlippingWheelState,
 	SoapboxFlags,
-	SurfaceState,
 	WheelFlags,
 } from './enums'
 export { calculateGhostStatistics, emptyGhostStatistics } from './statistics'
@@ -41,6 +42,7 @@ export { parseV3 } from './v3'
 export { parseV4 } from './v4'
 export { parseV5 } from './v5'
 export { parseV6 } from './v6'
+export { parseV7 } from './v7'
 export { detectGhostCapabilities, normalizeGhostColor, normalizeQuaternion, unityEulerToQuaternion }
 
 export async function parseGhost(buffer: Buffer): Promise<ParsedGhost> {
@@ -65,6 +67,8 @@ export async function parseGhost(buffer: Buffer): Promise<ParsedGhost> {
 			return parseDecodedV5(decoded)
 		case 6:
 			return parseDecodedV6(decoded)
+		case 7:
+			return parseDecodedV7(decoded)
 		default:
 			throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
 	}
@@ -79,7 +83,7 @@ export async function parseGhostStatistics(buffer: Buffer): Promise<GhostStatist
 	}
 
 	const decoded = await decodeNativeProtobufGhost(buffer)
-	if (decoded.version !== 5 && decoded.version !== 6) {
+	if (!decoded.version || ![5, 6, 7].includes(decoded.version)) {
 		throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
 	}
 	return calculateGhostStatisticsFromIterable(iterateProtobufFrames(decoded), decoded.version)

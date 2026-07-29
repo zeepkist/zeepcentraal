@@ -18,10 +18,12 @@ const SURFACE_TIME_FIELDS = [
 	'timeOnTarmac',
 	'timeOnGrass',
 	'timeOnSand',
-	'timeOnIce',
-	'timeOnMetal',
-	'timeOnSnow',
 	'timeOnSoap',
+	'timeOnWood',
+	'timeOnMud',
+	'timeOnIce1',
+	'timeOnIce2',
+	'timeOnIce3',
 ] as const
 
 export interface LevelScoreSplit {
@@ -54,12 +56,14 @@ export interface LevelScoreTelemetry {
 	timeInAir?: number | null
 	timeOnGrass?: number | null
 	timeOnGround?: number | null
-	timeOnIce?: number | null
-	timeOnMetal?: number | null
+	timeOnIce1?: number | null
+	timeOnIce2?: number | null
+	timeOnIce3?: number | null
+	timeOnMud?: number | null
 	timeOnSand?: number | null
-	timeOnSnow?: number | null
 	timeOnSoap?: number | null
 	timeOnTarmac?: number | null
+	timeOnWood?: number | null
 	timeRagdoll?: number | null
 	timeSlipping?: number | null
 	turnLeftCount?: number | null

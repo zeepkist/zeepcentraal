@@ -30,7 +30,7 @@ export const WheelFlags = {
 export const GroundedWheelState = WheelFlags
 export const SlippingWheelState = WheelFlags
 
-export const SurfaceState = {
+export const V6SurfaceState = {
 	None: 0,
 	Tarmac: 1 << 0,
 	Grass: 1 << 1,
@@ -42,6 +42,19 @@ export const SurfaceState = {
 	Wood: 1 << 7,
 	Mud: 1 << 8,
 	Flesh: 1 << 9,
+} as const
+
+export const MaterialPhysicsState = {
+	None: 0,
+	Tarmac: 1 << 0,
+	Grass: 1 << 1,
+	Sand: 1 << 2,
+	Soap: 1 << 3,
+	Wood: 1 << 4,
+	Mud: 1 << 5,
+	Ice1: 1 << 6,
+	Ice2: 1 << 7,
+	Ice3: 1 << 8,
 } as const
 
 export type BitwiseEnumValue = number

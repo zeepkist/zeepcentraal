@@ -15,6 +15,7 @@ const model = readFileSync(
 	new URL('../../app/composables/useDashboardStatisticsModel.ts', import.meta.url),
 	'utf8',
 )
+const englishLocale = readFileSync(new URL('../../i18n/locales/en.json', import.meta.url), 'utf8')
 const formatters = readFileSync(
 	new URL('../../app/utils/intlFormatters.ts', import.meta.url),
 	'utf8',
@@ -90,10 +91,12 @@ describe('dashboard statistic aggregates', () => {
 			'distanceOnTarmac',
 			'distanceOnGrass',
 			'distanceOnSand',
-			'distanceOnIce',
-			'distanceOnMetal',
-			'distanceOnSnow',
 			'distanceOnSoap',
+			'distanceOnWood',
+			'distanceOnMud',
+			'distanceOnIce1',
+			'distanceOnIce2',
+			'distanceOnIce3',
 			'timeOnTarmac',
 			'timeOnGround',
 			'distanceOn4Wheels',
@@ -107,6 +110,25 @@ describe('dashboard statistic aggregates', () => {
 		]) {
 			expect(querySource).toContain(field)
 		}
+	})
+
+	it('shows all physical surface categories with distinct ice labels', () => {
+		for (const surface of [
+			'tarmac',
+			'grass',
+			'sand',
+			'soap',
+			'wood',
+			'mud',
+			'ice1',
+			'ice2',
+			'ice3',
+		]) {
+			expect(model).toContain(`key: '${surface}'`)
+		}
+		expect(englishLocale).toContain('"ice1": "Ice 5"')
+		expect(englishLocale).toContain('"ice2": "Ice 10"')
+		expect(englishLocale).toContain('"ice3": "Ice 15"')
 	})
 })
 

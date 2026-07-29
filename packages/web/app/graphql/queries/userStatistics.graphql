@@ -6,7 +6,6 @@ fragment ZC_UserStatisticTotals on RecordStatisticsConnection {
 		}
 	}
 }
-
 fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 	sum {
 		distance
@@ -17,10 +16,12 @@ fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 		distanceOn4Wheels
 		distanceOnGrass
 		distanceOnGround
-		distanceOnIce
-		distanceOnMetal
+		distanceOnIce1
+		distanceOnIce2
+		distanceOnIce3
+		distanceOnWood
+		distanceOnMud
 		distanceOnSand
-		distanceOnSnow
 		distanceOnSoap
 		distanceOnTarmac
 		distanceRagdoll
@@ -28,10 +29,12 @@ fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 		timeInAir
 		timeOnGrass
 		timeOnGround
-		timeOnIce
-		timeOnMetal
+		timeOnIce1
+		timeOnIce2
+		timeOnIce3
+		timeOnWood
+		timeOnMud
 		timeOnSand
-		timeOnSnow
 		timeOnSoap
 		timeOnTarmac
 		timeRagdoll
@@ -50,7 +53,6 @@ fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 		maxSpeed
 	}
 }
-
 query ZC_UserStatistics(
 	$userId: Int!
 	$minimumModVersion: String!

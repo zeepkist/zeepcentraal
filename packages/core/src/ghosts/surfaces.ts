@@ -3,7 +3,12 @@ import type { KnownSurface } from './surfaceState'
 import { KNOWN_SURFACES } from './surfaceState'
 
 export type { KnownSurface } from './surfaceState'
-export { KNOWN_SURFACES, surfacesFromState } from './surfaceState'
+export {
+	KNOWN_SURFACES,
+	surfacesFromState,
+	surfacesFromV6State,
+	surfacesFromV7State,
+} from './surfaceState'
 
 export function normalizeSurface(surface: string): KnownSurface {
 	if ((KNOWN_SURFACES as readonly string[]).includes(surface)) {
@@ -21,12 +26,11 @@ export function emptySurfaceValues(): Record<KnownSurface, number> {
 		tarmac: 0,
 		grass: 0,
 		sand: 0,
-		snow: 0,
-		ice: 0,
 		soap: 0,
-		metal: 0,
 		wood: 0,
 		mud: 0,
-		flesh: 0,
+		ice1: 0,
+		ice2: 0,
+		ice3: 0,
 	}
 }

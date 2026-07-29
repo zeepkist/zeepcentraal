@@ -477,6 +477,13 @@
 			"when": 1785289429252,
 			"tag": "0068_supreme_rafael_vega",
 			"breakpoints": true
+		},
+		{
+			"idx": 69,
+			"version": "7",
+			"when": 1785352186981,
+			"tag": "0069_pink_steel_serpent",
+			"breakpoints": true
 		}
 	]
 }

@@ -30,10 +30,12 @@ query ZC_LevelStatistics($levelId: Int!, $minimumModVersion: String!) {
 				distanceOn4Wheels
 				distanceOnGrass
 				distanceOnGround
-				distanceOnIce
-				distanceOnMetal
+				distanceOnIce1
+				distanceOnIce2
+				distanceOnIce3
+				distanceOnWood
+				distanceOnMud
 				distanceOnSand
-				distanceOnSnow
 				distanceOnSoap
 				distanceOnTarmac
 				distanceRagdoll
@@ -41,10 +43,12 @@ query ZC_LevelStatistics($levelId: Int!, $minimumModVersion: String!) {
 				timeInAir
 				timeOnGrass
 				timeOnGround
-				timeOnIce
-				timeOnMetal
+				timeOnIce1
+				timeOnIce2
+				timeOnIce3
+				timeOnWood
+				timeOnMud
 				timeOnSand
-				timeOnSnow
 				timeOnSoap
 				timeOnTarmac
 				timeRagdoll

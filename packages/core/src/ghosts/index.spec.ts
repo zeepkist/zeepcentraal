@@ -1,14 +1,16 @@
 import { describe, expect, test } from 'bun:test'
+import { V6SurfaceState } from './enums'
 import {
 	calculateGhostStatistics,
 	detectGhostCapabilities,
+	MaterialPhysicsState,
 	SoapboxFlags,
-	SurfaceState,
 } from './index'
 import { type DecodedProtobufGhost, iterateProtobufFrames } from './protobuf'
 import { calculateGhostStatisticsFromIterable } from './statistics'
 import { parseDecodedV5 } from './v5'
 import { parseDecodedV6 } from './v6'
+import { parseDecodedV7 } from './v7'
 
 describe('V6 ghost frame parsing', () => {
 	test('maps V6 state ProtoMembers and unscales compressed vectors', () => {
@@ -23,7 +25,7 @@ describe('V6 ghost frame parsing', () => {
 				soapboxFlags: 0,
 				groundedWheelState: 3,
 				slippingWheelState: 1,
-				surfaceState: SurfaceState.Sand | SurfaceState.Ice,
+				surfaceState: V6SurfaceState.Sand | V6SurfaceState.Ice,
 				localVelocity: { x: 100_000, y: 0, z: 0 },
 				localAngularVelocity: { x: 0, y: 200, z: 0 },
 				localGForce: { x: 100_000, y: 0 },
@@ -41,7 +43,7 @@ describe('V6 ghost frame parsing', () => {
 					soapboxFlags: 0,
 					groundedWheelState: 0,
 					slippingWheelState: 0,
-					surfaceState: SurfaceState.Tarmac,
+					surfaceState: V6SurfaceState.Tarmac,
 					localVelocity: { x: 200_000, y: 0, z: 0 },
 					localAngularVelocity: { x: 0, y: 300, z: 0 },
 					localGForce: { x: 200_000, y: 0 },
@@ -55,11 +57,28 @@ describe('V6 ghost frame parsing', () => {
 		expect(ghost.frames[0]?.localVelocity).toEqual({ x: 1, y: 0, z: 0 })
 		expect(ghost.frames[0]?.localAngularVelocity).toEqual({ x: 0, y: 2, z: 0 })
 		expect(ghost.frames[0]?.localGForce).toEqual({ x: 1, y: 0 })
-		expect(ghost.frames[0]?.surfaces).toEqual(['sand', 'ice'])
+		expect(ghost.frames[0]?.surfaces).toEqual(['sand', 'ice1'])
 		expect(ghost.frames[0]?.parkingBlock).toBe(true)
 		expect(ghost.frames[0]?.monorail).toBe(true)
 		expect(ghost.frames[1]?.position).toEqual({ x: 1, y: 0, z: 0 })
 		expect(ghost.frames[1]?.rotation).toEqual({ x: 1, y: 2, z: 3 })
+	})
+
+	test('normalizes V6 particle-only states to physical categories', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				surfaceState:
+					V6SurfaceState.Metal |
+					V6SurfaceState.Snow |
+					V6SurfaceState.Flesh |
+					V6SurfaceState.Ice,
+			},
+			deltaFrames: [],
+		})
+
+		expect(ghost.frames[0]?.surfaces).toEqual(['tarmac', 'sand', 'ice1', 'mud'])
 	})
 
 	test('reconstructs one-way V6 ragdoll frames', () => {
@@ -138,6 +157,49 @@ describe('V6 ghost frame parsing', () => {
 	})
 })
 
+describe('V7 ghost frame parsing', () => {
+	test('maps all material physics flags and leaves None unattributed', () => {
+		const allMaterialPhysics =
+			MaterialPhysicsState.Tarmac |
+			MaterialPhysicsState.Grass |
+			MaterialPhysicsState.Sand |
+			MaterialPhysicsState.Soap |
+			MaterialPhysicsState.Wood |
+			MaterialPhysicsState.Mud |
+			MaterialPhysicsState.Ice1 |
+			MaterialPhysicsState.Ice2 |
+			MaterialPhysicsState.Ice3
+		const ghost = parseDecodedV7({
+			version: 7,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				surfaceState: allMaterialPhysics,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+					surfaceState: MaterialPhysicsState.None,
+				},
+			],
+		})
+
+		expect(ghost.frames[0]?.surfaces).toEqual([
+			'tarmac',
+			'grass',
+			'sand',
+			'soap',
+			'wood',
+			'mud',
+			'ice1',
+			'ice2',
+			'ice3',
+		])
+		expect(ghost.frames[1]?.surfaces).toEqual([])
+		expect(ghost.version).toBe(7)
+	})
+})
+
 describe('protobuf ghost statistic capabilities', () => {
 	test('streaming V5 statistics match full reconstructed frame statistics', () => {
 		const decoded: DecodedProtobufGhost = {
@@ -179,7 +241,7 @@ describe('protobuf ghost statistic capabilities', () => {
 				soapboxFlags: SoapboxFlags.FrontLeft | SoapboxFlags.RearLeft,
 				groundedWheelState: 15,
 				slippingWheelState: 1,
-				surfaceState: SurfaceState.Grass,
+				surfaceState: V6SurfaceState.Grass,
 				localVelocity: { x: 100_000, y: 0, z: 0 },
 				ragdollState: false,
 			},
@@ -193,7 +255,7 @@ describe('protobuf ghost statistic capabilities', () => {
 					soapboxFlags: SoapboxFlags.Paraglider,
 					groundedWheelState: 0,
 					slippingWheelState: 0,
-					surfaceState: SurfaceState.Tarmac,
+					surfaceState: V6SurfaceState.Tarmac,
 					localVelocity: { x: 200_000, y: 0, z: 0 },
 					ragdollState: true,
 					ragdollPosition: { x: 100_000, y: 0, z: 0 },
@@ -232,7 +294,7 @@ describe('protobuf ghost statistic capabilities', () => {
 					SoapboxFlags.RearRight,
 				groundedWheelState: 15,
 				slippingWheelState: 0,
-				surfaceState: SurfaceState.Tarmac,
+				surfaceState: V6SurfaceState.Tarmac,
 				localVelocity: { x: 100_000, y: 0, z: 0 },
 				parkingBlockState: true,
 			},
@@ -245,7 +307,7 @@ describe('protobuf ghost statistic capabilities', () => {
 					soapboxFlags: SoapboxFlags.FrontLeft | SoapboxFlags.RearLeft,
 					groundedWheelState: 15,
 					slippingWheelState: 0,
-					surfaceState: SurfaceState.Tarmac,
+					surfaceState: V6SurfaceState.Tarmac,
 					localVelocity: { x: 100_000, y: 0, z: 0 },
 					parkingBlockState: true,
 				},
@@ -463,7 +525,7 @@ describe('ghost statistics calculation', () => {
 				position: { x: 0, y: 0, z: 0 },
 				groundedWheelState: 3,
 				slippingWheelState: 1,
-				surfaces: ['sand', 'ice'],
+				surfaces: ['sand', 'ice1'],
 				inAir: false,
 				parkingBlock: true,
 				monorail: true,
@@ -490,9 +552,9 @@ describe('ghost statistics calculation', () => {
 		expect(stats.distanceOn2Wheels).toBe(10)
 		expect(stats.timeOn2Wheels).toBe(1)
 		expect(stats.distanceOnSand).toBe(5)
-		expect(stats.distanceOnIce).toBe(5)
+		expect(stats.distanceOnIce1).toBe(5)
 		expect(stats.timeOnSand).toBe(0.5)
-		expect(stats.timeOnIce).toBe(0.5)
+		expect(stats.timeOnIce1).toBe(0.5)
 		expect(stats.distanceSlipping).toBe(10)
 		expect(stats.distanceOnMonorail).toBe(10)
 		expect(stats.distanceParked).toBe(10)
@@ -504,30 +566,29 @@ describe('ghost statistics calculation', () => {
 		expect(stats.maxGforce).toBe(2)
 	})
 
-	test('decodes and splits V6 wood, mud, and flesh statistics', () => {
+	test('normalizes V6 particle states into physical statistics', () => {
 		const ghost = parseDecodedV6({
 			version: 6,
 			initialFrame: {
 				position: { x: 0, y: 0, z: 0 },
-				surfaceState: SurfaceState.Wood | SurfaceState.Mud | SurfaceState.Flesh,
+				surfaceState: V6SurfaceState.Wood | V6SurfaceState.Mud | V6SurfaceState.Flesh,
 			},
 			deltaFrames: [
 				{
 					time: 1,
 					position: { x: 300_000, y: 0, z: 0 },
-					surfaceState: SurfaceState.Tarmac,
+					surfaceState: V6SurfaceState.Tarmac,
 				},
 			],
 		})
 		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
 
-		expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'mud', 'flesh'])
-		expect(stats.distanceOnWood).toBe(1)
-		expect(stats.distanceOnMud).toBe(1)
-		expect(stats.distanceOnFlesh).toBe(1)
-		expect(stats.timeOnWood).toBeCloseTo(1 / 3)
-		expect(stats.timeOnMud).toBeCloseTo(1 / 3)
-		expect(stats.timeOnFlesh).toBeCloseTo(1 / 3)
+		expect(ghost.frames[0]?.surfaces).toEqual(['tarmac', 'mud'])
+		expect(stats.distanceOnTarmac).toBe(1.5)
+		expect(stats.distanceOnMud).toBe(1.5)
+		expect(stats.distanceOnWood).toBe(0)
+		expect(stats.timeOnTarmac).toBeCloseTo(0.5)
+		expect(stats.timeOnMud).toBeCloseTo(0.5)
 	})
 
 	test('calculates ragdoll distance and time from ragdoll positions', () => {

@@ -3,9 +3,9 @@ export { TURN_DEADZONE } from './constants'
 export {
 	GroundedWheelState,
 	InputFlags,
+	MaterialPhysicsState,
 	SlippingWheelState,
 	SoapboxFlags,
-	SurfaceState,
 	WheelFlags,
 } from './enums'
 export { normalizeGhostColor } from './metadata'
@@ -16,7 +16,7 @@ export {
 	readProtobufFrames,
 	readProtobufMetadata,
 } from './protobuf'
-export { parseDecodedV5, parseDecodedV6 } from './protobufVersions'
+export { parseDecodedV5, parseDecodedV6, parseDecodedV7 } from './protobufVersions'
 export type {
 	GhostCapabilities,
 	GhostCosmetics,

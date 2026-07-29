@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test'
+import { compressSync } from '@napi-rs/lzma/lzma'
 import protobuf from 'protobufjs'
 import { decompressGzipBrowser, parseGhostBrowser } from './browser'
+import { MaterialPhysicsState } from './enums'
+import { parseGhost, parseGhostStatistics } from './index'
 import { decodeProtobufGhostPayload, readProtobufMetadata } from './protobuf'
 import { parseV1 } from './v1'
 import { parseV4 } from './v4'
@@ -100,6 +103,48 @@ function createProtobufMetadataPayload(): Uint8Array {
 		.finish()
 }
 
+function createV7ProtobufPayload(): Uint8Array {
+	const root = new protobuf.Root()
+	const vector3 = new protobuf.Type('Vector3')
+		.add(new protobuf.Field('x', 1, 'float'))
+		.add(new protobuf.Field('y', 2, 'float'))
+		.add(new protobuf.Field('z', 3, 'float'))
+	const vector3Int = new protobuf.Type('Vector3Int')
+		.add(new protobuf.Field('x', 1, 'int32'))
+		.add(new protobuf.Field('y', 2, 'int32'))
+		.add(new protobuf.Field('z', 3, 'int32'))
+	const initialFrame = new protobuf.Type('InitialFrame')
+		.add(new protobuf.Field('position', 1, 'Vector3'))
+		.add(new protobuf.Field('surfaceState', 9, 'int32'))
+	const deltaFrame = new protobuf.Type('DeltaFrame')
+		.add(new protobuf.Field('time', 1, 'float'))
+		.add(new protobuf.Field('position', 2, 'Vector3Int'))
+		.add(new protobuf.Field('surfaceState', 10, 'int32'))
+	const ghost = new protobuf.Type('Ghost')
+		.add(new protobuf.Field('version', 1, 'int32'))
+		.add(new protobuf.Field('initialFrame', 4, 'InitialFrame'))
+		.add(new protobuf.Field('deltaFrames', 5, 'DeltaFrame', 'repeated'))
+	root.define('test').add(vector3).add(vector3Int).add(initialFrame).add(deltaFrame).add(ghost)
+	return ghost
+		.encode(
+			ghost.fromObject({
+				version: 7,
+				initialFrame: {
+					position: { x: 0, y: 0, z: 0 },
+					surfaceState: MaterialPhysicsState.Ice2 | MaterialPhysicsState.Wood,
+				},
+				deltaFrames: [
+					{
+						time: 1,
+						position: { x: 100_000, y: 0, z: 0 },
+						surfaceState: MaterialPhysicsState.None,
+					},
+				],
+			}),
+		)
+		.finish()
+}
+
 describe('ghost playback parsing', () => {
 	test('preserves legacy Euler rotation and exposes normalized orientation', () => {
 		const ghost = parseV1(createV1Ghost([0, 90, 0]))
@@ -167,6 +212,28 @@ describe('ghost playback parsing', () => {
 
 		expect(raw.frames[0]?.rotation).toEqual({ x: 1, y: 2, z: 3 })
 		expect(gzip.frames[0]?.rotation).toEqual({ x: 1, y: 2, z: 3 })
+	})
+
+	test('uses browser parser for V7 material physics telemetry', async () => {
+		const ghost = await parseGhostBrowser(new Uint8Array([1]), {
+			decompressLzma: async () => createV7ProtobufPayload(),
+		})
+
+		expect(ghost.version).toBe(7)
+		expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'ice2'])
+		expect(ghost.frames[1]?.surfaces).toEqual([])
+	})
+
+	test('uses native parser and statistics path for V7 material physics telemetry', async () => {
+		const compressed = compressSync(createV7ProtobufPayload())
+		const ghost = await parseGhost(compressed)
+		const statistics = await parseGhostStatistics(compressed)
+
+		expect(ghost.version).toBe(7)
+		expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'ice2'])
+		expect(statistics.ghostVersion).toBe(7)
+		expect(statistics.distanceOnWood).toBe(0.5)
+		expect(statistics.distanceOnIce2).toBe(0.5)
 	})
 
 	test('bounds native browser gzip decompression output', async () => {

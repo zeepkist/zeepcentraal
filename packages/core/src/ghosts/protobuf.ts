@@ -177,11 +177,11 @@ export function* iterateProtobufFrames(decoded: DecodedProtobufGhost): Generator
 	if (!decoded.initialFrame?.position || !decoded.deltaFrames) {
 		throw new Error('Invalid protobuf ghost')
 	}
-	if (decoded.version !== 5 && decoded.version !== 6) {
+	if (!decoded.version || ![5, 6, 7].includes(decoded.version)) {
 		throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
 	}
-	const version = decoded.version
-	const hasExtendedTelemetry = version === 6
+	const version = decoded.version as 5 | 6 | 7
+	const hasExtendedTelemetry = version >= 6
 	let position = decoded.initialFrame.position
 	let rotation = decoded.initialFrame.rotation
 	let ragdollActive = hasExtendedTelemetry && decoded.initialFrame.ragdollState === true
@@ -294,7 +294,7 @@ function frameFromProtobuf(
 		ragdollPosition?: Vector3
 		ragdollRotation?: Vector3
 	},
-	version: 5 | 6,
+	version: 5 | 6 | 7,
 	rotation = source.rotation,
 ): GhostFrame {
 	if (
@@ -305,10 +305,18 @@ function frameFromProtobuf(
 	}
 	const inputFlags = source.inputFlags ?? 0
 	const soapboxFlags = source.soapboxFlags ?? 0
-	const hasExtendedTelemetry = version === 6
+	const hasExtendedTelemetry = version >= 6
 	const groundedWheelState = hasExtendedTelemetry ? (source.groundedWheelState ?? 0) : undefined
 	const slippingWheelState = hasExtendedTelemetry ? source.slippingWheelState : undefined
 	const surfaceState = hasExtendedTelemetry ? source.surfaceState : undefined
+	const surfaces =
+		typeof surfaceState !== 'number'
+			? undefined
+			: version === 6
+				? surfacesFromState(surfaceState, 6)
+				: version === 7
+					? surfacesFromState(surfaceState, 7)
+					: undefined
 	return {
 		time,
 		position,
@@ -327,7 +335,7 @@ function frameFromProtobuf(
 		groundedWheelState,
 		slippingWheelState,
 		surfaceState,
-		surfaces: typeof surfaceState === 'number' ? surfacesFromState(surfaceState) : undefined,
+		surfaces,
 		localVelocity:
 			hasExtendedTelemetry && source.localVelocity
 				? unscaleVector3(source.localVelocity, POSITION_MULTIPLIER)
