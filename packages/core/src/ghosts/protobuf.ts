@@ -306,7 +306,7 @@ function frameFromProtobuf(
 	const inputFlags = source.inputFlags ?? 0
 	const soapboxFlags = source.soapboxFlags ?? 0
 	const hasExtendedTelemetry = version === 6
-	const groundedWheelState = hasExtendedTelemetry ? source.groundedWheelState : undefined
+	const groundedWheelState = hasExtendedTelemetry ? (source.groundedWheelState ?? 0) : undefined
 	const slippingWheelState = hasExtendedTelemetry ? source.slippingWheelState : undefined
 	const surfaceState = hasExtendedTelemetry ? source.surfaceState : undefined
 	return {

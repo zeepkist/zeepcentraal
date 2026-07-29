@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test'
-import { calculateGhostStatistics, SoapboxFlags, SurfaceState } from './index'
+import {
+	calculateGhostStatistics,
+	detectGhostCapabilities,
+	SoapboxFlags,
+	SurfaceState,
+} from './index'
 import { type DecodedProtobufGhost, iterateProtobufFrames } from './protobuf'
 import { calculateGhostStatisticsFromIterable } from './statistics'
 import { parseDecodedV5 } from './v5'
@@ -291,6 +296,35 @@ describe('protobuf ghost statistic capabilities', () => {
 		}
 	})
 
+	test('preserves omitted V6 zero-valued grounded-wheel state', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				groundedWheelState: 15,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 100_000, y: 0, z: 0 },
+				},
+				{
+					time: 2,
+					position: { x: 100_000, y: 0, z: 0 },
+					groundedWheelState: 15,
+				},
+			],
+		})
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(ghost.frames[1]?.groundedWheelState).toBe(0)
+		expect(ghost.frames[1]?.inAir).toBe(true)
+		expect(stats.distanceInAir).toBe(1)
+		expect(stats.distanceOnGround).toBe(1)
+		expect(stats.timeInAir).toBe(1)
+		expect(stats.timeOnGround).toBe(1)
+	})
+
 	test('keeps omitted zero-state V6 slip and inactive ragdoll telemetry available', () => {
 		const ghost = parseDecodedV6({
 			version: 6,
@@ -344,6 +378,66 @@ describe('protobuf ghost statistic capabilities', () => {
 })
 
 describe('ghost statistics calculation', () => {
+	test('uses grounded-wheel state for air statistics and capabilities', () => {
+		const frames = [
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				groundedWheelState: 15,
+				inAir: true,
+			},
+			{
+				time: 1,
+				position: { x: 10, y: 0, z: 0 },
+				groundedWheelState: 0,
+				inAir: false,
+			},
+			{
+				time: 2,
+				position: { x: 20, y: 0, z: 0 },
+				groundedWheelState: 0,
+				inAir: false,
+			},
+			{
+				time: 3,
+				position: { x: 30, y: 0, z: 0 },
+				groundedWheelState: 15,
+				inAir: true,
+			},
+		]
+		const stats = calculateGhostStatistics(frames)
+
+		expect(detectGhostCapabilities(frames).air).toBe(true)
+		expect(stats.hasAirData).toBe(true)
+		expect(stats.distanceInAir).toBe(20)
+		expect(stats.distanceOnGround).toBe(10)
+		expect(stats.timeInAir).toBe(2)
+		expect(stats.timeOnGround).toBe(1)
+	})
+
+	test('does not infer air capability from legacy inAir values', () => {
+		const frames = [
+			{
+				time: 0,
+				position: { x: 0, y: 0, z: 0 },
+				inAir: true,
+			},
+			{
+				time: 1,
+				position: { x: 1, y: 0, z: 0 },
+				inAir: false,
+			},
+		]
+		const stats = calculateGhostStatistics(frames)
+
+		expect(detectGhostCapabilities(frames).air).toBe(false)
+		expect(stats.hasAirData).toBe(false)
+		expect(stats.distanceInAir).toBeNull()
+		expect(stats.distanceOnGround).toBeNull()
+		expect(stats.timeInAir).toBeNull()
+		expect(stats.timeOnGround).toBeNull()
+	})
+
 	test('maps unknown legacy frame surface to tarmac', () => {
 		const stats = calculateGhostStatistics([
 			{

@@ -13,7 +13,7 @@ export function detectGhostCapabilities(
 				typeof frame.braking === 'boolean' ||
 				typeof frame.horn === 'boolean',
 		),
-		air: frames.some((frame) => typeof frame.inAir === 'boolean'),
+		air: frames.some((frame) => typeof frame.groundedWheelState === 'number'),
 		wheels: frames.some((frame) => typeof frame.groundedWheelState === 'number'),
 		slipping:
 			hasExtendedTelemetry ||

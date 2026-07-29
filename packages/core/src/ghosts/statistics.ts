@@ -170,7 +170,7 @@ export function calculateGhostStatisticsFromIterable(
 			typeof frame.braking === 'boolean'
 		hasHornStats ||= typeof frame.horn === 'boolean'
 		hasStateStats ||= hasFrameState(frame)
-		hasAirStats ||= typeof frame.inAir === 'boolean'
+		hasAirStats ||= typeof frame.groundedWheelState === 'number'
 		hasWheelStats ||= typeof frame.groundedWheelState === 'number'
 		hasSlipStats ||= typeof frame.slippingWheelState === 'number'
 		hasSurfaceStats ||= Boolean(frame.surface || frame.surfaces?.length)
@@ -232,8 +232,11 @@ export function calculateGhostStatisticsFromIterable(
 
 		if (validSegment) {
 			totalDistance += segmentDistance
-			if (previous.inAir === true) distanceInAir += segmentDistance
-			if (previous.inAir === false) distanceOnGround += segmentDistance
+			if (previous.groundedWheelState === 0) {
+				distanceInAir += segmentDistance
+			} else if (typeof previous.groundedWheelState === 'number') {
+				distanceOnGround += segmentDistance
+			}
 			const groundedWheels = countBits(previous.groundedWheelState)
 			if (isWheelCount(groundedWheels)) {
 				distanceOnWheels[groundedWheels] += segmentDistance
@@ -301,8 +304,11 @@ export function calculateGhostStatisticsFromIterable(
 			turnLeftTime += dt
 		if (typeof previous.steering === 'number' && previous.steering > TURN_DEADZONE)
 			turnRightTime += dt
-		if (previous.inAir === true) timeInAir += dt
-		if (previous.inAir === false) timeOnGround += dt
+		if (previous.groundedWheelState === 0) {
+			timeInAir += dt
+		} else if (typeof previous.groundedWheelState === 'number') {
+			timeOnGround += dt
+		}
 		const groundedWheels = countBits(previous.groundedWheelState)
 		if (isWheelCount(groundedWheels)) {
 			timeOnWheels[groundedWheels] += dt
