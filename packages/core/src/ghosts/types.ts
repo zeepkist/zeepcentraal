@@ -127,6 +127,9 @@ export type GhostStatisticValues = {
 	distanceOnIce: number | null
 	distanceOnSoap: number | null
 	distanceOnMetal: number | null
+	distanceOnWood: number | null
+	distanceOnMud: number | null
+	distanceOnFlesh: number | null
 	timeOnTarmac: number | null
 	timeOnGrass: number | null
 	timeOnSand: number | null
@@ -134,6 +137,9 @@ export type GhostStatisticValues = {
 	timeOnIce: number | null
 	timeOnSoap: number | null
 	timeOnMetal: number | null
+	timeOnWood: number | null
+	timeOnMud: number | null
+	timeOnFlesh: number | null
 	averageVelocity: number | null
 	maxVelocity: number | null
 	averageAngularVelocity: number | null

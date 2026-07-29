@@ -504,6 +504,32 @@ describe('ghost statistics calculation', () => {
 		expect(stats.maxGforce).toBe(2)
 	})
 
+	test('decodes and splits V6 wood, mud, and flesh statistics', () => {
+		const ghost = parseDecodedV6({
+			version: 6,
+			initialFrame: {
+				position: { x: 0, y: 0, z: 0 },
+				surfaceState: SurfaceState.Wood | SurfaceState.Mud | SurfaceState.Flesh,
+			},
+			deltaFrames: [
+				{
+					time: 1,
+					position: { x: 300_000, y: 0, z: 0 },
+					surfaceState: SurfaceState.Tarmac,
+				},
+			],
+		})
+		const stats = calculateGhostStatistics(ghost.frames, ghost.version)
+
+		expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'mud', 'flesh'])
+		expect(stats.distanceOnWood).toBe(1)
+		expect(stats.distanceOnMud).toBe(1)
+		expect(stats.distanceOnFlesh).toBe(1)
+		expect(stats.timeOnWood).toBeCloseTo(1 / 3)
+		expect(stats.timeOnMud).toBeCloseTo(1 / 3)
+		expect(stats.timeOnFlesh).toBeCloseTo(1 / 3)
+	})
+
 	test('calculates ragdoll distance and time from ragdoll positions', () => {
 		const stats = calculateGhostStatistics([
 			{

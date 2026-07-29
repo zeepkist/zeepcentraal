@@ -25,5 +25,8 @@ export function emptySurfaceValues(): Record<KnownSurface, number> {
 		ice: 0,
 		soap: 0,
 		metal: 0,
+		wood: 0,
+		mud: 0,
+		flesh: 0,
 	}
 }

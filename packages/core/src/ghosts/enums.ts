@@ -39,6 +39,9 @@ export const SurfaceState = {
 	Ice: 1 << 4,
 	Soap: 1 << 5,
 	Metal: 1 << 6,
+	Wood: 1 << 7,
+	Mud: 1 << 8,
+	Flesh: 1 << 9,
 } as const
 
 export type BitwiseEnumValue = number

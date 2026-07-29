@@ -109,6 +109,12 @@ describe('record statistic backfill selection', () => {
 			hasRagdollData: true,
 			timeAnyDriverInput: 12.5,
 			driverInputTransitionCount: 18,
+			distanceOnWood: 10,
+			distanceOnMud: 20,
+			distanceOnFlesh: 30,
+			timeOnWood: 1,
+			timeOnMud: 2,
+			timeOnFlesh: 3,
 		})
 
 		expect(conflictSet).toMatchObject({
@@ -123,6 +129,12 @@ describe('record statistic backfill selection', () => {
 			hasRagdollData: true,
 			timeAnyDriverInput: 12.5,
 			driverInputTransitionCount: 18,
+			distanceOnWood: 10,
+			distanceOnMud: 20,
+			distanceOnFlesh: 30,
+			timeOnWood: 1,
+			timeOnMud: 2,
+			timeOnFlesh: 3,
 		})
 	})
 })
