@@ -442,6 +442,7 @@
 				"failedDescription": "{count} replay could not be downloaded or decoded. Other comparisons remain available.",
 				"retry": "Retry failed replays",
 				"frameRate": "{value} FPS",
+				"frameRateStatus": "{current} / {target} FPS",
 				"approximateGeometry": "Approximate level geometry",
 				"emptyTitle": "No playable ghost",
 				"emptyDescription": "No ghost data available.",
@@ -465,7 +466,9 @@
 					"orbit": "Orbit",
 					"isometric": "Isometric",
 					"follow": "Follow selected ghost",
-					"frameRoute": "Frame full route"
+					"frameRoute": "Frame full route",
+					"fullScreen": "Enter full screen",
+					"exitFullScreen": "Exit full screen"
 				}
 			},
 			"performance": {

@@ -124,6 +124,8 @@ export type GhostGridModel = {
 	cellSize: 16
 	majorEvery: 4
 	origin: GhostVector3
+	routeMinimum: GhostVector3
+	routeMaximum: GhostVector3
 	minimumX: number
 	maximumX: number
 	minimumZ: number

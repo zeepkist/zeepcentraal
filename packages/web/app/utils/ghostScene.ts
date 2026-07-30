@@ -7,6 +7,9 @@ const MINIMUM_EXTENT = 256
 const MINIMUM_LABEL_WORLD_OFFSET = 4.5
 const LABEL_GAP_PIXELS = 24
 const LABEL_STAGGER_PIXELS = 10
+const MINIMUM_ISOMETRIC_CAMERA_DISTANCE = 80
+const ISOMETRIC_CAMERA_DEPTH_MARGIN = 80
+const DEFAULT_CAMERA_FAR = 5_000
 
 export type GhostSceneQuality = 'performance' | 'balanced' | 'quality'
 
@@ -116,6 +119,16 @@ export function buildGhostGrid(paths: readonly (readonly GhostPlaybackFrame[])[]
 		cellSize: CELL_SIZE,
 		majorEvery: MAJOR_EVERY,
 		origin,
+		routeMinimum: {
+			x: bounds.minimum.x - origin.x,
+			y: bounds.minimum.y - origin.y,
+			z: -(bounds.maximum.z - origin.z),
+		},
+		routeMaximum: {
+			x: bounds.maximum.x - origin.x,
+			y: bounds.maximum.y - origin.y,
+			z: -(bounds.minimum.z - origin.z),
+		},
 		minimumX,
 		maximumX,
 		minimumZ,
@@ -124,6 +137,26 @@ export function buildGhostGrid(paths: readonly (readonly GhostPlaybackFrame[])[]
 		minorZ: zLines.minor,
 		majorX: xLines.major,
 		majorZ: zLines.major,
+	}
+}
+
+export function calculateIsometricCameraDepth(model: GhostGridModel) {
+	const projectedDepth =
+		(model.routeMaximum.x -
+			model.routeMinimum.x +
+			(model.routeMaximum.y - model.routeMinimum.y) +
+			(model.routeMaximum.z - model.routeMinimum.z)) /
+		Math.sqrt(3)
+	const distance = Math.max(
+		MINIMUM_ISOMETRIC_CAMERA_DISTANCE,
+		projectedDepth + ISOMETRIC_CAMERA_DEPTH_MARGIN,
+	)
+	return {
+		distance,
+		far: Math.max(
+			DEFAULT_CAMERA_FAR,
+			distance + projectedDepth + ISOMETRIC_CAMERA_DEPTH_MARGIN,
+		),
 	}
 }
 

@@ -6,7 +6,9 @@
 		<div ref="canvasHost" class="absolute inset-0" />
 		<div ref="labelHost" class="pointer-events-none absolute inset-0 overflow-hidden" />
 		<div class="pointer-events-none absolute left-3 top-3 flex flex-wrap gap-2">
-			<UBadge color="neutral" variant="soft">{{ labels.frameRate(frameRate) }}</UBadge>
+			<UBadge color="neutral" variant="soft">
+				{{ labels.frameRate(currentFrameRate, frameRate) }}
+			</UBadge>
 			<UBadge v-if="levelBlocks.length" color="neutral" variant="soft">
 				{{ labels.approximateGeometry }}
 			</UBadge>
@@ -52,6 +54,7 @@ import type {
 import {
 	buildGhostGrid,
 	calculateGhostLabelWorldOffset,
+	calculateIsometricCameraDepth,
 	interpolateGhostFrame,
 	orthographicWorldUnitsPerPixel,
 	perspectiveWorldUnitsPerPixel,
@@ -102,7 +105,7 @@ const props = withDefaults(defineProps<{
 	frameRate: 30 | 60
 	quality: RenderQuality
 	labels: {
-		frameRate: (value: number) => string
+		frameRate: (current: number, target: number) => string
 		approximateGeometry: string
 		emptyTitle: string
 		emptyDescription: string
@@ -127,10 +130,12 @@ const canvasHost = useTemplateRef('canvasHost')
 const labelHost = useTemplateRef('labelHost')
 const contextLost = ref(false)
 const rendererError = ref(false)
+const currentFrameRate = ref(0)
 
 let renderer: THREE.WebGLRenderer | null = null
 let labelRenderer: CSS2DRenderer | null = null
 let scene: THREE.Scene | null = null
+let orbitFog: THREE.Fog | null = null
 let perspectiveCamera: THREE.PerspectiveCamera | null = null
 let orthographicCamera: THREE.OrthographicCamera | null = null
 let controls: OrbitControls | null = null
@@ -138,9 +143,12 @@ let resizeObserver: ResizeObserver | null = null
 let animationFrame = 0
 let lastRenderedAt = 0
 let lastPlaybackAt = 0
+let frameRateWindowStartedAt = 0
+let renderedFrameCount = 0
 let grid: GhostGridModel | null = null
 let visuals = new Map<number, GhostVisual>()
 let orthographicVertical = 45
+const isometricCameraDirection = new THREE.Vector3(1, 1, 1).normalize()
 
 const activeCamera = () =>
 	props.cameraMode === 'isometric' ? orthographicCamera : perspectiveCamera
@@ -239,7 +247,8 @@ function createScene() {
 	labelRenderer.setSize(host.clientWidth, host.clientHeight)
 
 	scene = new THREE.Scene()
-	scene.fog = new THREE.Fog(resolveCssColor('--ui-bg', '#0c0a09'), 350, 1_500)
+	orbitFog = new THREE.Fog(resolveCssColor('--ui-bg', '#0c0a09'), 350, 1_500)
+	scene.fog = orbitFog
 	scene.add(new THREE.HemisphereLight(0xffffff, 0x292524, 2.1))
 	const keyLight = new THREE.DirectionalLight(0xffffff, 2.5)
 	keyLight.position.set(80, 120, 40)
@@ -264,17 +273,20 @@ function configureControls() {
 	const camera = activeCamera()
 	const canvas = renderer?.domElement
 	if (!camera || !canvas) return
+	if (scene) scene.fog = props.cameraMode === 'isometric' ? null : orbitFog
 	controls = new OrbitControls(camera, canvas)
 	controls.enableDamping = true
 	controls.dampingFactor = 0.08
 	controls.maxDistance = 1_200
+	controls.enablePan = true
+	controls.mouseButtons.RIGHT = THREE.MOUSE.PAN
+	controls.touches.TWO = THREE.TOUCH.DOLLY_PAN
 	if (props.cameraMode === 'isometric') {
 		controls.enableRotate = false
 		controls.screenSpacePanning = true
 		controls.mouseButtons.LEFT = THREE.MOUSE.PAN
 		controls.addEventListener('start', detachIsometricFollow)
 	} else {
-		controls.enablePan = false
 		controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE
 	}
 	frameSelected()
@@ -656,6 +668,20 @@ function renderLoop(timestamp: number) {
 	if (!renderer || !labelRenderer || !scene || !camera || contextLost.value) return
 	renderer.render(scene, camera)
 	labelRenderer.render(scene, camera)
+	recordRenderedFrame(timestamp)
+}
+
+function recordRenderedFrame(timestamp: number) {
+	if (frameRateWindowStartedAt === 0) {
+		frameRateWindowStartedAt = timestamp
+		return
+	}
+	renderedFrameCount += 1
+	const elapsed = timestamp - frameRateWindowStartedAt
+	if (elapsed < 500) return
+	currentFrameRate.value = Math.max(0, Math.round((renderedFrameCount * 1_000) / elapsed))
+	frameRateWindowStartedAt = timestamp
+	renderedFrameCount = 0
 }
 
 function updateGhosts() {
@@ -785,7 +811,7 @@ function frameSelected() {
 	if (props.cameraMode === 'isometric') {
 		orthographicVertical = 45
 		resize()
-		camera.position.copy(target).add(new THREE.Vector3(45, 45, 45))
+		positionIsometricCamera(target)
 	}
 	else camera.position.copy(target).add(new THREE.Vector3(16, 10, 16))
 	controls.update()
@@ -803,11 +829,28 @@ function frameRoute() {
 	else {
 		const host = canvasHost.value
 		const aspect = host ? Math.max(1, host.clientWidth) / Math.max(1, host.clientHeight) : 16 / 9
-		orthographicVertical = Math.max(depth, width / aspect, 80) * 1.2
+		const routeHeight = grid.routeMaximum.y - grid.routeMinimum.y
+		const projectedVertical = (width + 2 * routeHeight + depth) / Math.sqrt(6)
+		orthographicVertical = Math.max(depth, width / aspect, projectedVertical, 80) * 1.2
+		const target = new THREE.Vector3(
+			(grid.routeMinimum.x + grid.routeMaximum.x) / 2,
+			(grid.routeMinimum.y + grid.routeMaximum.y) / 2,
+			(grid.routeMinimum.z + grid.routeMaximum.z) / 2,
+		)
+		controls.target.copy(target)
 		resize()
-		camera.position.set(distance * 0.5, distance * 0.5, distance * 0.5)
+		positionIsometricCamera(target)
 	}
 	controls.update()
+}
+
+function positionIsometricCamera(target: THREE.Vector3) {
+	if (!orthographicCamera || !grid) return
+	const { distance, far } = calculateIsometricCameraDepth(grid)
+	orthographicCamera.position.copy(target).addScaledVector(isometricCameraDirection, distance)
+	orthographicCamera.far = far
+	orthographicCamera.updateProjectionMatrix()
+	if (controls) controls.maxDistance = Math.max(1_200, distance * 2)
 }
 
 function resize() {

@@ -35,8 +35,8 @@
 		"lint:staged": "lint-staged",
 		"format": "biome format .",
 		"format:fix": "biome format --write .",
-		"dedupe": "bunlock-dedupe",
-		"dedupe:fix": "bunlock-dedupe --fix",
+		"dedupe": "bunlock-dedupe --update --refresh",
+		"dedupe:fix": "bunlock-dedupe --update --refresh --fix",
 		"skill:add": "skills add"
 	},
 	"lint-staged": {
@@ -49,7 +49,7 @@
 		"@semantic-release/release-notes-generator": "~14.1.1",
 		"@types/bun": "~1.3.14",
 		"better-sqlite3": "~12.11.1",
-		"bunlock-dedupe": "~1.6.3",
+		"bunlock-dedupe": "~1.7.1",
 		"conventional-changelog-conventionalcommits": "~10.2.1",
 		"golar": "~0.1.10",
 		"husky": "~9.1.7",

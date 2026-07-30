@@ -3,6 +3,7 @@ import type { GhostPlaybackFrame } from '../../app/types/ghost'
 import {
 	buildGhostGrid,
 	calculateGhostLabelWorldOffset,
+	calculateIsometricCameraDepth,
 	interpolateGhostFrame,
 	orthographicWorldUnitsPerPixel,
 	perspectiveWorldUnitsPerPixel,
@@ -41,6 +42,26 @@ describe('ghost scene', () => {
 		const rebased = rebaseGhostPosition({ x: -1_000_003, y: 100, z: 2_000_009 }, grid.origin)
 		expect(Number.isFinite(rebased.x)).toBe(true)
 		expect(Number.isFinite(rebased.z)).toBe(true)
+	})
+
+	it('keeps real route height and expands isometric camera depth for steep trails', () => {
+		const flat = buildGhostGrid([
+			[
+				{ time: 0, position: { x: 0, y: 0, z: 0 } },
+				{ time: 1, position: { x: 0, y: 10, z: 0 } },
+			],
+		])
+		const steep = buildGhostGrid([
+			[
+				{ time: 0, position: { x: 0, y: -300, z: 0 } },
+				{ time: 1, position: { x: 0, y: 300, z: 0 } },
+			],
+		])
+
+		expect(steep.routeMaximum.y - steep.routeMinimum.y).toBe(600)
+		expect(calculateIsometricCameraDepth(steep).distance).toBeGreaterThan(
+			calculateIsometricCameraDepth(flat).distance,
+		)
 	})
 
 	it('interpolates positions, speed, and steering by playback time', () => {

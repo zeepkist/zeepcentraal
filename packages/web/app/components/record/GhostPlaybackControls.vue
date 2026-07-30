@@ -84,6 +84,14 @@
 			>
 				{{ labels.frameRoute }}
 			</UButton>
+			<UButton
+				color="neutral"
+				variant="soft"
+				:icon="fullscreen ? 'i-tabler-arrows-minimize' : 'i-tabler-arrows-maximize'"
+				:aria-label="fullscreen ? labels.exitFullScreen : labels.fullScreen"
+				:aria-pressed="fullscreen"
+				@click="$emit('fullscreen')"
+			/>
 			<slot name="settings" />
 		</div>
 	</div>
@@ -99,6 +107,7 @@ const props = defineProps<{
 	playbackRate: number
 	loop: boolean
 	cameraMode: GhostCameraMode
+	fullscreen: boolean
 	labels: {
 		play: string
 		pause: string
@@ -111,6 +120,8 @@ const props = defineProps<{
 		isometric: string
 		follow: string
 		frameRoute: string
+		fullScreen: string
+		exitFullScreen: string
 	}
 }>()
 
@@ -123,6 +134,7 @@ defineEmits<{
 	step: [direction: -1 | 1]
 	follow: []
 	frameRoute: []
+	fullscreen: []
 }>()
 
 const rateItems = [0.25, 0.5, 1, 2].map((value) => ({ label: `${value}×`, value }))

@@ -325,7 +325,8 @@ const replayLabels = computed(() => ({
 	failedDescription: (count: number) => t('pages.recordDetail.replay.failedDescription', { count }),
 	retry: t('pages.recordDetail.replay.retry'),
 	viewer: {
-		frameRate: (value: number) => t('pages.recordDetail.replay.frameRate', { value }),
+		frameRate: (current: number, target: number) =>
+			t('pages.recordDetail.replay.frameRateStatus', { current, target }),
 		approximateGeometry: t('pages.recordDetail.replay.approximateGeometry'),
 		emptyTitle: t('pages.recordDetail.replay.emptyTitle'),
 		emptyDescription: t('pages.recordDetail.replay.emptyDescription'),
@@ -346,6 +347,8 @@ const replayLabels = computed(() => ({
 		isometric: t('pages.recordDetail.replay.controls.isometric'),
 		follow: t('pages.recordDetail.replay.controls.follow'),
 		frameRoute: t('pages.recordDetail.replay.controls.frameRoute'),
+		fullScreen: t('pages.recordDetail.replay.controls.fullScreen'),
+		exitFullScreen: t('pages.recordDetail.replay.controls.exitFullScreen'),
 	},
 }))
 

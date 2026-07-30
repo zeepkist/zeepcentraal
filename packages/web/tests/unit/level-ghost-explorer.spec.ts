@@ -32,8 +32,24 @@ const viewer = readFileSync(
 	new URL('../../app/components/record/GhostPlaybackViewer.client.vue', import.meta.url),
 	'utf8',
 )
+const controls = readFileSync(
+	new URL('../../app/components/record/GhostPlaybackControls.vue', import.meta.url),
+	'utf8',
+)
 const workspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
+	'utf8',
+)
+const recordExperience = readFileSync(
+	new URL('../../app/components/record/RecordGhostExperience.client.vue', import.meta.url),
+	'utf8',
+)
+const levelExplorer = readFileSync(
+	new URL('../../app/components/level/LevelGhostExplorerTab.client.vue', import.meta.url),
+	'utf8',
+)
+const tournamentExplorer = readFileSync(
+	new URL('../../app/components/tournament/TournamentGhostExplorer.vue', import.meta.url),
 	'utf8',
 )
 const schema = buildSchema(
@@ -189,5 +205,36 @@ describe('level bulk ghost rendering', () => {
 		expect(workspace).toContain('if (!active) playing.value = false')
 		expect(workspace).toContain('loadingWhenEmpty: true')
 		expect(workspace).toContain('props.loadingWhenEmpty && props.states.size === 0')
+	})
+
+	it('keeps settings and fullscreen controls in every workspace context', () => {
+		expect(controls).toContain('<slot name="settings" />')
+		expect(controls).toContain('@click="$emit(\'fullscreen\')"')
+		expect(workspace).toContain('@fullscreen="toggleFullscreen"')
+		expect(workspace).toContain('element.requestFullscreen()')
+		expect(workspace).toContain('document.exitFullscreen()')
+		for (const context of [recordExperience, levelExplorer, tournamentExplorer]) {
+			expect(context).toContain('<template #settings>')
+			expect(context).toContain('<GhostPerformanceSettings')
+		}
+	})
+
+	it('supports panning and performance-friendly trail rendering', () => {
+		expect(viewer).toContain('controls.enablePan = true')
+		expect(viewer).toContain('controls.mouseButtons.RIGHT = THREE.MOUSE.PAN')
+		expect(viewer).toContain('controls.touches.TWO = THREE.TOUCH.DOLLY_PAN')
+		expect(viewer).toContain("const antialias = props.quality !== 'performance'")
+		expect(viewer).toContain('antialias,')
+		expect(viewer).not.toContain('alphaToCoverage: true')
+		expect(viewer).not.toContain('depthWrite: false')
+		expect(viewer).not.toContain('trail.frustumCulled = false')
+		expect(viewer).toContain('calculateIsometricCameraDepth(grid)')
+		expect(viewer).toContain("scene.fog = props.cameraMode === 'isometric' ? null : orbitFog")
+	})
+
+	it('reports measured FPS alongside target FPS', () => {
+		expect(viewer).toContain('const currentFrameRate = ref(0)')
+		expect(viewer).toContain('recordRenderedFrame(timestamp)')
+		expect(viewer).toContain('labels.frameRate(currentFrameRate, frameRate)')
 	})
 })

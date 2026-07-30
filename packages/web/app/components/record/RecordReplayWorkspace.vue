@@ -1,5 +1,5 @@
 <template>
-	<div class="space-y-4">
+	<div ref="workspace" class="ghost-replay-workspace space-y-4">
 		<div v-if="active && ghosts.length === 0" class="grid aspect-video min-h-80 place-items-center rounded-2xl border border-border bg-card/60 p-6 text-center">
 			<div>
 				<TablerIcon
@@ -42,11 +42,13 @@
 			v-model:loop="loop"
 			v-model:camera-mode="cameraMode"
 			:duration="duration"
+			:fullscreen="fullscreen"
 			:labels="labels.controls"
 			@update:playing="setPlaying"
 			@step="step"
 			@follow="viewer?.followSelected()"
 			@frame-route="viewer?.frameRoute()"
+			@fullscreen="toggleFullscreen"
 		>
 			<template #settings><slot name="settings" /></template>
 		</GhostPlaybackControls>
@@ -128,6 +130,8 @@ const props = withDefaults(defineProps<{
 			isometric: string
 			follow: string
 			frameRoute: string
+			fullScreen: string
+			exitFullScreen: string
 		}
 	}
 }>(), {
@@ -144,12 +148,14 @@ const emit = defineEmits<{
 }>()
 
 const viewer = useTemplateRef('viewer')
+const workspace = useTemplateRef('workspace')
 const currentTime = ref(0)
 const playing = ref(false)
 const playbackRate = ref(1)
 const loop = ref(false)
 const cameraMode = ref<GhostCameraMode>('orbit')
 const following = ref(true)
+const fullscreen = ref(false)
 const selectedRecordId = ref<number | null>(props.primaryRecordId)
 const duration = computed(() => Math.max(0, ...props.ghosts.map(({ record }) => record.time)))
 const followGhosts = computed(() => {
@@ -220,6 +226,9 @@ watch(duration, (value) => {
 })
 watch(currentTime, (value) => emit('timeupdate', value))
 
+onMounted(() => document.addEventListener('fullscreenchange', updateFullscreenState))
+onBeforeUnmount(() => document.removeEventListener('fullscreenchange', updateFullscreenState))
+
 function select(recordId: number) {
 	selectedRecordId.value = recordId
 	following.value = true
@@ -249,5 +258,38 @@ function setPlaying(value: boolean) {
 	playing.value = value
 }
 
-defineExpose({ seek })
+async function toggleFullscreen() {
+	const element = workspace.value
+	if (!element) return
+	try {
+		if (document.fullscreenElement === element) await document.exitFullscreen()
+		else await element.requestFullscreen()
+	} catch {
+		// Browser or embedding policy denied fullscreen.
+	}
+}
+
+function updateFullscreenState() {
+	fullscreen.value = document.fullscreenElement === workspace.value
+}
+
+defineExpose({ seek, toggleFullscreen })
 </script>
+
+<style>
+.ghost-replay-workspace:fullscreen {
+	display: flex;
+	height: 100dvh;
+	flex-direction: column;
+	gap: 1rem;
+	overflow: auto;
+	background: var(--ui-bg);
+	padding: 1rem;
+}
+
+.ghost-replay-workspace:fullscreen .ghost-viewer {
+	min-height: min(60dvh, 48rem);
+	flex: 1 1 auto;
+	aspect-ratio: auto;
+}
+</style>

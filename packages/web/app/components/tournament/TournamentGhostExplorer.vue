@@ -30,7 +30,19 @@
 					:quality="performance.renderQuality.value"
 					:labels="replayLabels"
 					@retry="$event.forEach(playback.retry)"
-				/>
+				>
+					<template #settings>
+						<GhostPerformanceSettings
+							:preferences="performance.preferences.value"
+							:cache-stats="performance.cacheStats.value"
+							:cache-pending="performance.cachePending.value"
+							:labels="performanceLabels"
+							@update:frame-rate="performance.setFrameRate"
+							@update:render-quality="performance.setRenderQuality"
+							@clear-cache="performance.clearCache"
+						/>
+					</template>
+				</LazyRecordReplayWorkspace>
 			</ClientOnly>
 		</div>
 	</section>
@@ -79,7 +91,25 @@ function toggleWorkspace() {
 }
 const replayLabels = computed(() => ({
 	loadingTitle: t('pages.recordDetail.replay.loadingTitle'), loadingDescription: t('pages.recordDetail.replay.loadingDescription'), failedTitle: t('pages.recordDetail.replay.failedTitle'), failedDescription: (count: number) => t('pages.recordDetail.replay.failedDescription', { count }), retry: t('pages.recordDetail.replay.retry'),
-	viewer: { frameRate: (value: number) => t('pages.recordDetail.replay.frameRate', { value }), approximateGeometry: t('pages.recordDetail.replay.approximateGeometry'), emptyTitle: t('pages.recordDetail.replay.emptyTitle'), emptyDescription: t('pages.recordDetail.replay.emptyDescription'), contextLostTitle: t('pages.recordDetail.replay.contextLostTitle'), contextLostDescription: t('pages.recordDetail.replay.contextLostDescription'), unavailableTitle: t('pages.recordDetail.replay.unavailableTitle'), unavailableDescription: t('pages.recordDetail.replay.unavailableDescription') },
-	controls: { play: t('pages.recordDetail.replay.controls.play'), pause: t('pages.recordDetail.replay.controls.pause'), timeline: t('pages.recordDetail.replay.controls.timeline'), previousFrame: t('pages.recordDetail.replay.controls.previousFrame'), nextFrame: t('pages.recordDetail.replay.controls.nextFrame'), speed: t('pages.recordDetail.replay.controls.speed'), loop: t('pages.recordDetail.replay.controls.loop'), orbit: t('pages.recordDetail.replay.controls.orbit'), isometric: t('pages.recordDetail.replay.controls.isometric'), follow: t('pages.recordDetail.replay.controls.follow'), frameRoute: t('pages.recordDetail.replay.controls.frameRoute') },
+	viewer: { frameRate: (current: number, target: number) => t('pages.recordDetail.replay.frameRateStatus', { current, target }), approximateGeometry: t('pages.recordDetail.replay.approximateGeometry'), emptyTitle: t('pages.recordDetail.replay.emptyTitle'), emptyDescription: t('pages.recordDetail.replay.emptyDescription'), contextLostTitle: t('pages.recordDetail.replay.contextLostTitle'), contextLostDescription: t('pages.recordDetail.replay.contextLostDescription'), unavailableTitle: t('pages.recordDetail.replay.unavailableTitle'), unavailableDescription: t('pages.recordDetail.replay.unavailableDescription') },
+	controls: { play: t('pages.recordDetail.replay.controls.play'), pause: t('pages.recordDetail.replay.controls.pause'), timeline: t('pages.recordDetail.replay.controls.timeline'), previousFrame: t('pages.recordDetail.replay.controls.previousFrame'), nextFrame: t('pages.recordDetail.replay.controls.nextFrame'), speed: t('pages.recordDetail.replay.controls.speed'), loop: t('pages.recordDetail.replay.controls.loop'), orbit: t('pages.recordDetail.replay.controls.orbit'), isometric: t('pages.recordDetail.replay.controls.isometric'), follow: t('pages.recordDetail.replay.controls.follow'), frameRoute: t('pages.recordDetail.replay.controls.frameRoute'), fullScreen: t('pages.recordDetail.replay.controls.fullScreen'), exitFullScreen: t('pages.recordDetail.replay.controls.exitFullScreen') },
+}))
+const performanceLabels = computed(() => ({
+	open: t('pages.recordDetail.performance.open'),
+	title: t('pages.recordDetail.performance.title'),
+	description: t('pages.recordDetail.performance.description'),
+	frameRate: t('pages.recordDetail.performance.frameRate'),
+	quality: t('pages.recordDetail.performance.quality'),
+	auto: t('common.auto'),
+	fps30: t('pages.recordDetail.replay.frameRate', { value: 30 }),
+	fps60: t('pages.recordDetail.replay.frameRate', { value: 60 }),
+	performance: t('pages.recordDetail.performance.performance'),
+	balanced: t('pages.recordDetail.performance.balanced'),
+	qualityHigh: t('pages.recordDetail.performance.qualityHigh'),
+	cache: t('pages.recordDetail.performance.cache'),
+	cacheValue: (entries: string, size: string) =>
+		t('pages.recordDetail.performance.cacheValue', { entries, size }),
+	clearCache: t('pages.recordDetail.performance.clearCache'),
+	unavailable: t('common.unavailable'),
 }))
 </script>
