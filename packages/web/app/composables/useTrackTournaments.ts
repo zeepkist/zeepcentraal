@@ -106,7 +106,7 @@ export function useTrackTournamentDetail(
 ) {
 	const pagination = useCursorPagination(50, 'standings')
 	const mounted = ref(false)
-	const pageFocused = usePageFocus()
+	const pageVisible = usePageVisibility()
 	const navigationNow = useState(`track-tournament-detail-now:${type}:${slug.value}`, () =>
 		new Date().toISOString(),
 	)
@@ -149,7 +149,7 @@ export function useTrackTournamentDetail(
 			viewerId: viewerId.value ?? 0,
 			includeViewer: viewerId.value !== undefined,
 		})),
-		pause: computed(() => import.meta.server || !liveEnabled.value || !pageFocused.value),
+		pause: computed(() => import.meta.server || !liveEnabled.value || !pageVisible.value),
 	})
 	const connection = computed(
 		() =>

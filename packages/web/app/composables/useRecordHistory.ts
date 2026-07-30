@@ -97,7 +97,7 @@ type LivePacket = { key: string; data: Zc_RecordHistoryLiveSubscription }
 export function useRecordHistory(options: RecordHistoryOptions) {
 	const pagination = useCursorPagination(25, options.namespace)
 	const mounted = ref(false)
-	const pageFocused = usePageFocus()
+	const pageVisible = usePageVisibility()
 	const activation = ref(0)
 	const highlightedRecordIds = ref<ReadonlySet<number>>(new Set())
 	const newRecordBatch = shallowRef<RecordHistoryUpdate | null>(null)
@@ -134,7 +134,7 @@ export function useRecordHistory(options: RecordHistoryOptions) {
 		{
 			query: Zc_RecordHistoryLiveDocument,
 			variables: computed(() => ({ filter: filter.value })),
-			pause: computed(() => import.meta.server || !liveEnabled.value || !pageFocused.value),
+			pause: computed(() => import.meta.server || !liveEnabled.value || !pageVisible.value),
 		},
 		(_previous: LivePacket | undefined, data): LivePacket => ({ key: liveKey.value, data }),
 	)

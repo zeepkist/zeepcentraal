@@ -101,12 +101,15 @@ describe('GraphQL operation conventions', () => {
 		}
 	})
 
-	test('live subscriptions pause outside focused visible tabs', () => {
-		const focusComposable = readFileSync(join(composablesDir, 'usePageFocus.ts'), 'utf8')
-		expect(focusComposable).toContain('useDocumentVisibility()')
-		expect(focusComposable).toContain('useWindowFocus()')
-		expect(focusComposable).toContain("visibility.value === 'visible'")
-		expect(focusComposable).toContain('windowFocused.value')
+	test('live subscriptions pause only while pages are hidden', () => {
+		const visibilityComposable = readFileSync(
+			join(composablesDir, 'usePageVisibility.ts'),
+			'utf8',
+		)
+		expect(visibilityComposable).toContain('useDocumentVisibility()')
+		expect(visibilityComposable).toContain("visibility.value === 'visible'")
+		expect(visibilityComposable).not.toContain('useWindowFocus')
+		expect(visibilityComposable).not.toContain('document.hasFocus')
 
 		const subscriptionFiles = [
 			...filesUnder(appDir, '.ts'),
@@ -117,9 +120,9 @@ describe('GraphQL operation conventions', () => {
 		for (const file of subscriptionFiles) {
 			const source = readFileSync(file, 'utf8')
 			const subscriptionCount = source.match(/\buseSubscription\s*\(/g)?.length ?? 0
-			const focusPauseCount = source.match(/!pageFocused\.value/g)?.length ?? 0
-			expect(source).toContain('const pageFocused = usePageFocus()')
-			expect(focusPauseCount).toBe(subscriptionCount)
+			const visibilityPauseCount = source.match(/!pageVisible\.value/g)?.length ?? 0
+			expect(source).toContain('const pageVisible = usePageVisibility()')
+			expect(visibilityPauseCount).toBe(subscriptionCount)
 		}
 	})
 
