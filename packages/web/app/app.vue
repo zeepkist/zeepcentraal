@@ -10,11 +10,14 @@
 import { resolveInitialColourMode } from '~/utils/colourMode'
 
 const colourMode = useColorMode()
-useServerHead({
-	htmlAttrs: {
-		class: resolveInitialColourMode(colourMode.preference),
-	},
-})
+
+if (import.meta.server) {
+	useHead({
+		htmlAttrs: {
+			class: resolveInitialColourMode(colourMode.preference),
+		},
+	})
+}
 
 await useCurrentUser()
 </script>

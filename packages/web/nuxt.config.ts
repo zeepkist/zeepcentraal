@@ -11,9 +11,18 @@ export default defineNuxtConfig({
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
 	srcDir: 'app',
+	future: {
+		compatibilityVersion: 5,
+		typescriptBundlerResolution: true,
+	},
 	experimental: {
-		ssrStreaming: false,
 		watcher: 'builder',
+		emitRouteChunkError: 'automatic-immediate',
+		crossOriginPrefetch: true,
+		writeEarlyHints: true,
+		typedPages: true,
+		buildCache: true,
+		//viewTransition: true
 	},
 	appConfig: {
 		ui: {
