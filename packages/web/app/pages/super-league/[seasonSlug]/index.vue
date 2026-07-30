@@ -7,12 +7,25 @@
 			v-bind="stateLabels"
 			class="space-y-8 py-2"
 		>
+			<template #pending>
+				<SharedDetailPreview
+					v-if="transitionPreview"
+					entity="zsl-season"
+					:entity-id="parsedSeasonId"
+					:preview="transitionPreview"
+					compact
+				/>
+				<div v-else class="space-y-3">
+					<USkeleton v-for="index in 3" :key="index" class="h-24 rounded-xl" />
+				</div>
+			</template>
 			<template v-if="season">
 				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 				<PageHeader
 					:eyebrow="$t('zsl.season')"
 					:title="season.name"
 					:description="$t('zsl.seasonDescription')"
+					:title-transition-style="transition.targetStyle('zsl-season', parsedSeasonId, 'title')"
 				>
 					<template #actions>
 						<ZslPageFacts
@@ -28,6 +41,8 @@
 					<ZslRoundGrid
 						:rounds="season.zslRounds.nodes"
 						:link="roundLink"
+						:season-id="parsedSeasonId"
+						:transition-scope="`zsl-rounds-${parsedSeasonId}`"
 					/>
 				</section>
 				<section>
@@ -79,6 +94,8 @@ if (parsedSeasonId === null) {
 }
 defineOgImage('SuperLeagueSeason.takumi', { slug: `season-${parsedSeasonId}` })
 const id = computed(() => parsedSeasonId)
+const transition = useSharedViewTransition()
+const transitionPreview = computed(() => transition.preview('zsl-season', parsedSeasonId))
 const {
 	competitorCount,
 	page,

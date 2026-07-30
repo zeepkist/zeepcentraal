@@ -7,6 +7,17 @@
 			v-bind="stateLabels"
 			class="space-y-8 py-2"
 		>
+			<template #pending>
+				<SharedDetailPreview
+					v-if="transitionPreview"
+					entity="zsl-level"
+					:entity-id="parsedLevelId"
+					:preview="transitionPreview"
+				/>
+				<div v-else class="space-y-3">
+					<USkeleton v-for="index in 3" :key="index" class="h-24 rounded-xl" />
+				</div>
+			</template>
 			<template v-if="level">
 				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 				<ZslLevelHero
@@ -17,6 +28,7 @@
 					:workshop-url="workshopUrl"
 					:competitor-count="competitorCount"
 					:event-date="level.round?.eventDate"
+					:transition-id="parsedLevelId"
 					:labels="heroLabels"
 				/>
 				<section>
@@ -74,6 +86,8 @@ defineOgImage('SuperLeagueLevel.takumi', {
 	slug: `season-${parsedSeasonId}/round-${parsedRoundNumber}/level-${parsedLevelId}`,
 })
 const id = computed(() => parsedLevelId)
+const transition = useSharedViewTransition()
+const transitionPreview = computed(() => transition.preview('zsl-level', parsedLevelId))
 const {
 	competitorCount,
 	fastestTime,

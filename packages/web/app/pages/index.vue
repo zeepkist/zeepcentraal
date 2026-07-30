@@ -30,6 +30,7 @@
 					v-for="tournament in dashboard.activeTournaments.value"
 					:key="tournament.id"
 					:tournament="tournament"
+					transition-scope="dashboard-active-tournaments"
 				/>
 			</div>
 		</section>
@@ -45,7 +46,11 @@
 				:empty-title="$t('common.empty')"
 			>
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
-				<LevelGrid :levels="dashboard.trendingLevels.value" v-bind="dashboardLevelLabels" />
+				<LevelGrid
+					:levels="dashboard.trendingLevels.value"
+					transition-scope="dashboard-trending"
+					v-bind="dashboardLevelLabels"
+				/>
 			</DataState>
 		</section>
 
@@ -92,7 +97,11 @@
 				:empty-title="$t('common.empty')"
 			>
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
-				<LevelGrid :levels="dashboard.popularLevels.value" v-bind="dashboardLevelLabels" />
+				<LevelGrid
+					:levels="dashboard.popularLevels.value"
+					transition-scope="dashboard-popular"
+					v-bind="dashboardLevelLabels"
+				/>
 			</DataState>
 		</section>
 
@@ -126,7 +135,11 @@
 				:empty-title="$t('common.empty')"
 			>
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
-				<LevelGrid :levels="dashboard.hotLevels.value" v-bind="dashboardLevelLabels" />
+				<LevelGrid
+					:levels="dashboard.hotLevels.value"
+					transition-scope="dashboard-hot"
+					v-bind="dashboardLevelLabels"
+				/>
 			</DataState>
 		</section>
 
@@ -143,7 +156,11 @@
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
 					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
-					<LevelGrid :levels="dashboard.viewerLevels.value" v-bind="dashboardLevelLabels" />
+					<LevelGrid
+						:levels="dashboard.viewerLevels.value"
+						transition-scope="dashboard-viewer"
+						v-bind="dashboardLevelLabels"
+					/>
 				</section>
 			</DataState>
 		</section>

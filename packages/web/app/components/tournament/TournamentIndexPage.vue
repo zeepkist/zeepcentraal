@@ -26,6 +26,7 @@
 						v-for="tournament in history"
 						:key="tournament.id"
 						:tournament="tournament"
+						:transition-scope="`tournament-history-${type}`"
 					/>
 				</div>
 			</DataState>

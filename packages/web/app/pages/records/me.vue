@@ -53,6 +53,7 @@
 					:labels="tableLabels"
 					:highlighted-record-ids="data.highlightedRecordIds.value"
 					:live-update-label="$t('pages.records.liveUpdate')"
+					transition-scope="records-me"
 					:status-mode="view === 'world-records' ? 'none' : 'world-record-only'"
 				/>
 			</DataState>

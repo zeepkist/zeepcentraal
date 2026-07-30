@@ -54,7 +54,11 @@
 				:empty-title="$t('mods.empty')"
 				:skeletons="8"
 			>
-				<ModGrid :mods="data?.items ?? []" :labels="cardLabels" />
+				<ModGrid
+					:mods="data?.items ?? []"
+					:labels="cardLabels"
+					transition-scope="mods-explorer"
+				/>
 			</DataState>
 			<CursorPagination
 				:page="page"

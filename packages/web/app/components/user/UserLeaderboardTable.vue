@@ -18,13 +18,33 @@
 					interactive
 				>
 					<td class="p-0 font-bold tabular-nums">
-						<DataTableCellLink :to="userPath(user)" :aria-label="labels.openPlayer" class="px-4 py-3">
-							#{{ user.rank ?? '—' }}
+						<DataTableCellLink
+							:to="userPath(user)"
+							:aria-label="labels.openPlayer"
+							class="px-4 py-3"
+							@click.capture="beginTransition($event, user)"
+						>
+							<span
+								:style="transition.sourceStyle(transitionScope, 'user', user.steamId, 'metric')"
+								data-shared-transition-source="metric"
+							>
+								#{{ user.rank ?? '—' }}
+							</span>
 						</DataTableCellLink>
 					</td>
 					<td class="p-0">
-						<DataTableCellLink :to="userPath(user)" focusable class="px-4 py-3 font-semibold group-hover:text-primary">
-							{{ user.steamName }}
+						<DataTableCellLink
+							:to="userPath(user)"
+							focusable
+							class="px-4 py-3 font-semibold group-hover:text-primary"
+							@click.capture="beginTransition($event, user)"
+						>
+							<span
+								:style="transition.sourceStyle(transitionScope, 'user', user.steamId, 'title')"
+								data-shared-transition-source="title"
+							>
+								{{ user.steamName }}
+							</span>
 						</DataTableCellLink>
 					</td>
 					<td class="p-0 tabular-nums">
@@ -51,9 +71,10 @@
 <script setup vapor lang="ts">
 import type { UserSummary } from '~/types/app'
 
-defineProps<{
+const props = defineProps<{
 	users: UserSummary[]
 	viewerUserId?: number
+	transitionScope: string
 	labels: {
 		rank: string
 		player: string
@@ -64,7 +85,22 @@ defineProps<{
 	}
 }>()
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const formatter = computed(() => new Intl.NumberFormat(locale.value))
 const format = (value?: number | null) => formatter.value.format(value ?? 0)
 const userPath = (user: UserSummary) => `/user/${user.steamId}`
+
+function beginTransition(event: MouseEvent, user: UserSummary) {
+	transition.begin({
+		event,
+		entity: 'user',
+		entityId: user.steamId,
+		scope: props.transitionScope,
+		targetRoute: userPath(user),
+		preview: {
+			title: user.steamName ?? String(user.steamId),
+			metric: user.rank ? `#${formatter.value.format(user.rank)}` : '—',
+		},
+	})
+}
 </script>

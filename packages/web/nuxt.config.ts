@@ -22,7 +22,7 @@ export default defineNuxtConfig({
 		writeEarlyHints: true,
 		typedPages: true,
 		buildCache: true,
-		//viewTransition: true
+		viewTransition: true,
 	},
 	appConfig: {
 		ui: {

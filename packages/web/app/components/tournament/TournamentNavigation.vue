@@ -14,6 +14,7 @@
 					v-if="item.tournament"
 					:tournament="item.tournament"
 					:to="item.to"
+					:transition-scope="`tournament-navigation-${type}-${item.key}`"
 				/>
 				<NuxtLink
 					v-else-if="item.key === 'current'"

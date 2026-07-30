@@ -52,7 +52,11 @@
 					</div>
 				</div>
 			</div>
-			<div class="aspect-video overflow-hidden rounded-xl border border-border bg-muted shadow-xl shadow-black/10">
+			<div
+				class="aspect-video overflow-hidden rounded-xl border border-border bg-muted shadow-xl shadow-black/10"
+				:style="transition.targetStyle('mod', mod.slug, 'media')"
+				data-shared-transition-target="media"
+			>
 				<NuxtImg
 					v-if="mod.imageUrl"
 					:src="mod.imageUrl"
@@ -94,6 +98,7 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const numberFormat = computed(() => getNumberFormatter(locale.value))
 const sizeFormat = computed(() => getNumberFormatter(locale.value, 'megabyte-one-decimal'))
 const metrics = computed(() => [

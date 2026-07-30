@@ -55,7 +55,12 @@
 				:error-title="$t('common.error')"
 				:empty-title="$t('common.empty')"
 			>
-				<LevelGrid :levels="levels" :columns="4" v-bind="levelLabels" />
+				<LevelGrid
+					:levels="levels"
+					:columns="4"
+					transition-scope="levels-explorer"
+					v-bind="levelLabels"
+				/>
 			</DataState>
 			<CursorPagination
 				:page="page"

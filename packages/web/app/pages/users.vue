@@ -24,6 +24,7 @@
 					:users="users"
 					:viewer-user-id="session.user?.id"
 					:labels="tableLabels"
+					transition-scope="users-ranking"
 				/>
 			</DataState>
 			<CursorPagination :page="page" :can-go-previous="pagination.canGoPrevious(page)" :can-go-next="pagination.canGoNext(page)" :pending="result.fetching.value" v-bind="paginationLabels" @first="pagination.first()" @previous="pagination.previous(page)" @next="pagination.next(page)" @last="pagination.last()" />

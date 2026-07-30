@@ -136,6 +136,10 @@
 }
 
 @layer base {
+	:root {
+		view-transition-name: none;
+	}
+
 	body {
 		background: var(--background);
 		color: var(--foreground);
@@ -145,6 +149,83 @@
 	button:not(:disabled),
 	[role="button"]:not(:disabled) {
 		cursor: pointer;
+	}
+}
+
+.app-page-content {
+	view-transition-name: page-content;
+}
+
+::view-transition-group(page-content) {
+	animation-duration: 240ms;
+	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+::view-transition-old(page-content) {
+	animation: page-content-out 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+::view-transition-new(page-content) {
+	animation: page-content-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+html:active-view-transition-type(detail-back)::view-transition-old(page-content) {
+	animation-name: page-content-back-out;
+}
+
+html:active-view-transition-type(detail-back)::view-transition-new(page-content) {
+	animation-name: page-content-back-in;
+}
+
+::view-transition-group(shared-media) {
+	animation-duration: 360ms;
+	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+::view-transition-image-pair(shared-media) {
+	isolation: isolate;
+}
+
+::view-transition-old(shared-media),
+::view-transition-new(shared-media) {
+	animation-duration: 360ms;
+	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+	height: 100%;
+	mix-blend-mode: normal;
+	object-fit: cover;
+}
+
+::view-transition-group(shared-title),
+::view-transition-group(shared-metric) {
+	animation-duration: 280ms;
+	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes page-content-out {
+	to {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+}
+
+@keyframes page-content-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+}
+
+@keyframes page-content-back-out {
+	to {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+}
+
+@keyframes page-content-back-in {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
 	}
 }
 
@@ -201,6 +282,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none;
+	}
+
 	*,
 	*::before,
 	*::after {

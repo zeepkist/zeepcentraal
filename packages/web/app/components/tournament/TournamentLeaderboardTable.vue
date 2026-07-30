@@ -8,8 +8,8 @@
 			<tbody>
 				<DataTableRow v-for="row in standings" :key="row.userId" :viewer="viewerUserId === row.userId" :pinned="row.pinned" interactive>
 					<td class="p-0 font-black tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">#{{ row.rank }}</DataTableCellLink></td>
-					<td class="p-0"><DataTableCellLink :to="playerPath(row)" focusable class="truncate px-4 py-3 font-semibold group-hover:text-primary">{{ row.steamName ?? row.steamId ?? $t('tournaments.unknownPlayer') }} <UBadge v-if="row.pinned" class="ml-2" size="sm" variant="soft">{{ $t('tournaments.yourStanding') }}</UBadge></DataTableCellLink></td>
-					<td class="p-0 font-semibold tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">{{ formatTournamentTime(row.time) }}</DataTableCellLink></td>
+					<td class="p-0"><DataTableCellLink :to="playerPath(row)" focusable class="truncate px-4 py-3 font-semibold group-hover:text-primary"><span :style="transition.sourceStyle(transitionScope, 'record', row.recordId, 'title')" data-shared-transition-source="title">{{ row.steamName ?? row.steamId ?? $t('tournaments.unknownPlayer') }}</span> <UBadge v-if="row.pinned" class="ml-2" size="sm" variant="soft">{{ $t('tournaments.yourStanding') }}</UBadge></DataTableCellLink></td>
+					<td class="p-0 font-semibold tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3" @click.capture="beginTransition($event, row)"><span :style="transition.sourceStyle(transitionScope, 'record', row.recordId, 'metric')" data-shared-transition-source="metric">{{ formatTournamentTime(row.time) }}</span></DataTableCellLink></td>
 					<td class="p-0 tabular-nums text-muted"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">{{ fastestTime === undefined ? '—' : (formatTournamentDelta(row.time, fastestTime) ?? '—') }}</DataTableCellLink></td>
 					<td class="p-0 font-bold tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">{{ number.format(row.points) }}</DataTableCellLink></td>
 					<td class="p-0 tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3 text-right"><template v-if="row.setAt"><NuxtTime v-if="active" :datetime="row.setAt" relative /><NuxtTime v-else :datetime="row.setAt" date-style="medium" time-style="short" /></template><template v-else>{{ $t('common.unavailable') }}</template></DataTableCellLink></td>
@@ -23,14 +23,30 @@
 import type { TournamentStanding } from '~/types/tournament'
 import { formatTournamentDelta, formatTournamentTime } from '~/utils/tournament'
 
-defineProps<{
+const props = defineProps<{
 	standings: TournamentStanding[]
 	viewerUserId?: number
 	fastestTime?: number
 	active: boolean
+	transitionScope: string
 }>()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
+const transition = useSharedViewTransition()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 const recordPath = (row: TournamentStanding) => `/record/${row.recordId}`
 const playerPath = (row: TournamentStanding) => row.steamId ? `/user/${row.steamId}` : recordPath(row)
+
+function beginTransition(event: MouseEvent, row: TournamentStanding) {
+	transition.begin({
+		event,
+		entity: 'record',
+		entityId: row.recordId,
+		scope: props.transitionScope,
+		targetRoute: recordPath(row),
+		preview: {
+			title: row.steamName ?? row.steamId ?? t('tournaments.unknownPlayer'),
+			metric: formatTournamentTime(row.time),
+		},
+	})
+}
 </script>

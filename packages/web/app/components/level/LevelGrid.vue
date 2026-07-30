@@ -10,6 +10,7 @@
 			v-for="level in levels"
 			:key="level.id"
 			:level="level"
+			:transition-scope="transitionScope"
 			:adventure-label="adventureLabel"
 			:points-label="pointsLabel"
 			:records-label="recordsLabel"
@@ -30,6 +31,7 @@ import type { LevelSummary } from '~/types/app'
 withDefaults(
 	defineProps<{
 		levels: LevelSummary[]
+		transitionScope: string
 		adventureLabel: string
 		pointsLabel: string
 		recordsLabel: string

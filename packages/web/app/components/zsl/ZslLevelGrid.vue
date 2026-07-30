@@ -6,6 +6,16 @@
 			:to="link(entry.id)"
 			:image-src="entry.level?.levelItems.nodes[0]?.imageUrl"
 			:image-alt="entry.level?.levelItems.nodes[0]?.name ?? levelLabel"
+			:shared-transition="{
+				entity: 'zsl-level',
+				entityId: entry.id,
+				scope: transitionScope,
+				preview: {
+					title: entry.level?.levelItems.nodes[0]?.name ?? levelLabel,
+					mediaUrl: entry.level?.levelItems.nodes[0]?.imageUrl ?? null,
+					mediaAlt: entry.level?.levelItems.nodes[0]?.name ?? levelLabel,
+				},
+			}"
 		>
 			<template #title>
 				<h3 class="truncate text-lg font-bold text-highlighted">
@@ -30,5 +40,6 @@ defineProps<{
 	link: (id: number) => string
 	levelLabel: string
 	resultsLabel: string
+	transitionScope: string
 }>()
 </script>

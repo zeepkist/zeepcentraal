@@ -6,9 +6,14 @@
 			:to="`/mod/${mod.slug}`"
 			:aria-label="mod.name"
 			class="absolute inset-0 z-10 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+			@click.capture="beginTransition"
 		/>
 		<div class="h-full p-4">
-			<div class="relative aspect-video overflow-hidden rounded-lg bg-muted">
+			<div
+				class="relative aspect-video overflow-hidden rounded-lg bg-muted"
+				:style="transition.sourceStyle(transitionScope, 'mod', mod.slug, 'media')"
+				data-shared-transition-source="media"
+			>
 				<NuxtImg
 					v-if="mod.imageUrl"
 					:src="mod.imageUrl"
@@ -82,9 +87,11 @@ const props = defineProps<{
 	updatedLabel: string
 	openModioLabel: string
 	unavailableLabel: string
+	transitionScope: string
 }>()
 
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const compactFormat = computed(
 	() => getNumberFormatter(locale.value, 'compact-one-decimal'),
 )
@@ -115,4 +122,20 @@ const metrics = computed(() => [
 				: percentFormat.value.format(props.mod.rating / 100),
 	},
 ])
+
+function beginTransition(event: MouseEvent) {
+	transition.begin({
+		event,
+		entity: 'mod',
+		entityId: props.mod.slug,
+		scope: props.transitionScope,
+		targetRoute: `/mod/${props.mod.slug}`,
+		preview: {
+			title: props.mod.name,
+			subtitle: props.mod.authorName,
+			mediaUrl: props.mod.imageUrl ?? null,
+			mediaAlt: props.mod.name,
+		},
+	})
+}
 </script>

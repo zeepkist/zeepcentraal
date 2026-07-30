@@ -10,7 +10,11 @@
 				<p v-else-if="eyebrow" class="text-sm font-semibold uppercase tracking-wide text-primary">
 					{{ eyebrow }}
 				</p>
-				<h1 class="mt-2 text-3xl font-bold text-foreground md:text-4xl">
+				<h1
+					class="mt-2 text-3xl font-bold text-foreground md:text-4xl"
+					:style="titleTransitionStyle"
+					:data-shared-transition-target="titleTransitionStyle ? 'title' : undefined"
+				>
 					{{ title }}
 				</h1>
 				<p class="mt-3 text-base text-muted-foreground md:text-lg">
@@ -23,6 +27,7 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { StyleValue } from 'vue'
 import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
 
 defineProps<{
@@ -31,5 +36,6 @@ defineProps<{
 	eyebrow?: string
 	title: string
 	description: string
+	titleTransitionStyle?: StyleValue
 }>()
 </script>

@@ -8,6 +8,17 @@
 			:error-title="$t('common.error')"
 			:empty-title="$t('pages.recordDetail.notFound')"
 		>
+			<template #pending>
+				<SharedDetailPreview
+					v-if="transitionPreview"
+					entity="record"
+					:entity-id="recordId"
+					:preview="transitionPreview"
+				/>
+				<div v-else class="space-y-3">
+					<USkeleton v-for="index in 4" :key="index" class="h-24 rounded-xl" />
+				</div>
+			</template>
 			<div v-if="record && source && record.level" class="space-y-8 lg:space-y-10">
 				<RecordDetailHero
 					:record="source"
@@ -68,6 +79,8 @@ const recordId = parsedRecordId
 defineOgImage('RecordDetail.takumi', { slug: String(recordId) })
 const recordData = useRecordDetail(computed(() => recordId))
 await recordData.prefetchCritical()
+const transition = useSharedViewTransition()
+const transitionPreview = computed(() => transition.preview('record', recordId))
 const record = recordData.record
 const source = recordData.source
 const levelItem = recordData.levelItem

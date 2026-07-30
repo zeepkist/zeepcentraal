@@ -17,7 +17,12 @@
 			:error-title="$t('common.error')"
 			:empty-title="$t('common.empty')"
 		>
-			<LevelGrid :levels="adventure.levels.value" :columns="4" v-bind="levelLabels" />
+			<LevelGrid
+				:levels="adventure.levels.value"
+				:columns="4"
+				:transition-scope="`adventure-${series.slug}`"
+				v-bind="levelLabels"
+			/>
 		</DataState>
 	</section>
 </template>

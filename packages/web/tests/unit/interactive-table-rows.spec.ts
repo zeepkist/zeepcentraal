@@ -40,7 +40,8 @@ describe('interactive table rows', () => {
 		expect(history).toContain('playerOrRecordPath(record)')
 		expect(history).toContain('levelPath(record)')
 		expect(history).not.toContain('defineEmits')
-		expect(history).not.toContain('@click')
+		expect(history).toContain('@click.capture="beginTransition($event, record)"')
+		expect(history).not.toContain('@click.prevent')
 	})
 
 	it('passes viewer identity to global users and pins only existing PB append', () => {

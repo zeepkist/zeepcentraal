@@ -8,6 +8,17 @@
 			:error-title="$t('common.error')"
 			:empty-title="$t('users.profile.notFound')"
 		>
+			<template #pending>
+				<SharedDetailPreview
+					v-if="transitionPreview"
+					entity="user"
+					:entity-id="steamId"
+					:preview="transitionPreview"
+				/>
+				<div v-else class="space-y-3">
+					<USkeleton v-for="index in 4" :key="index" class="h-24 rounded-xl" />
+				</div>
+			</template>
 			<template v-if="user && summary">
 				<div class="space-y-8 lg:space-y-10">
 					<UserDetailHero
@@ -149,6 +160,7 @@
 							<div class="space-y-8 lg:space-y-10">
 								<LazyUserResultsSection
 									id="profile-world-records"
+									transition-scope="user-world-records"
 									:title="$t('users.profile.worldRecords.title')"
 									:description="$t('users.profile.worldRecords.description')"
 									:records="data.wrRows.value"
@@ -173,6 +185,7 @@
 								<div :ref="data.personalBestsTarget">
 									<LazyUserResultsSection
 										id="profile-personal-bests"
+										transition-scope="user-personal-bests"
 										:title="$t('users.profile.personalBests.title')"
 										:description="$t('users.profile.personalBests.description')"
 										:records="data.pbRows.value"
@@ -198,6 +211,7 @@
 								<div :ref="data.recentTarget">
 									<LazyUserResultsSection
 										id="profile-recent"
+										transition-scope="user-recent-records"
 										:title="$t('users.profile.recent.title')"
 										:description="$t('users.profile.recent.description')"
 										:records="data.recentRows.value"
@@ -232,6 +246,7 @@
 										:pending="levelsPending"
 										:error="data.levelsQuery.error.value?.message"
 										:labels="levelCollectionLabels"
+										transition-scope="user-popular-levels"
 									/>
 								</div>
 
@@ -246,6 +261,7 @@
 									:pending="levelsPending"
 									:error="data.levelsQuery.error.value?.message"
 									:labels="levelCollectionLabels"
+									transition-scope="user-recent-levels"
 								/>
 							</div>
 						</template>
@@ -279,8 +295,10 @@ const data = useUserProfile(steamId, {
 	workshopActive: computed(() => activeTab.value === 'workshop'),
 })
 const user = data.user
-await summaryData.prefetchCritical()
+if (import.meta.server) await summaryData.prefetchCritical()
 const summary = data.summary
+const transition = useSharedViewTransition()
+const transitionPreview = computed(() => transition.preview('user', steamId.value))
 const profilePending = computed(
 	() => data.profile.fetching.value && data.profile.data.value === undefined,
 )

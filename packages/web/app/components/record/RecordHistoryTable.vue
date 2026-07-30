@@ -60,7 +60,11 @@
 								:aria-label="record.userSteamId ? undefined : recordAriaLabel(record)"
 								class="truncate px-4 py-3 font-semibold group-hover:text-primary"
 							>
-								<span :class="record.userSteamId ? '' : 'text-muted-foreground'">
+								<span
+									:class="record.userSteamId ? '' : 'text-muted-foreground'"
+									:style="transition.sourceStyle(transitionScope, 'record', record.id, 'title')"
+									data-shared-transition-source="title"
+								>
 									{{ record.userName ?? record.userSteamId ?? labels.unknownPlayer }}
 								</span>
 							</DataTableCellLink>
@@ -83,8 +87,14 @@
 								:aria-label="recordAriaLabel(record)"
 								focusable
 								class="px-4 py-3"
+								@click.capture="beginTransition($event, record)"
 							>
-								{{ formatTime(record.time) }}
+								<span
+									:style="transition.sourceStyle(transitionScope, 'record', record.id, 'metric')"
+									data-shared-transition-source="metric"
+								>
+									{{ formatTime(record.time) }}
+								</span>
 							</DataTableCellLink>
 						</td>
 						<td v-else-if="column === 'delta'" class="p-0 tabular-nums text-muted">
@@ -165,6 +175,7 @@ import { formatTournamentDelta } from '~/utils/tournament'
 const props = withDefaults(
 	defineProps<{
 		records: RecordHistoryRow[]
+		transitionScope: string
 		highlightedRecordIds?: ReadonlySet<number>
 		liveUpdateLabel: string
 		showLevel?: boolean
@@ -205,6 +216,7 @@ const props = withDefaults(
 )
 
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const showStatus = computed(() => props.statusMode !== 'none')
 const showDeltaColumn = computed(
@@ -273,5 +285,20 @@ function playerOrRecordPath(record: RecordHistoryRow) {
 
 function recordAriaLabel(record: RecordHistoryRow) {
 	return props.labels.openRecord.replace('{level}', record.levelName)
+}
+
+function beginTransition(event: MouseEvent, record: RecordHistoryRow) {
+	transition.begin({
+		event,
+		entity: 'record',
+		entityId: record.id,
+		scope: props.transitionScope,
+		targetRoute: recordPath(record),
+		preview: {
+			title: record.userName ?? record.userSteamId ?? props.labels.unknownPlayer,
+			subtitle: record.levelName,
+			metric: formatTime(record.time),
+		},
+	})
 }
 </script>

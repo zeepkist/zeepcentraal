@@ -122,6 +122,8 @@ describe('level record tables', () => {
 		expect(page.match(/rank-first/g)).toHaveLength(2)
 		expect(page.match(/show-player/g)).toHaveLength(2)
 		expect(page.match(/:show-level="false"/g)).toHaveLength(2)
+		expect(page).toMatch(/:transition-scope="`level-personal-bests-\$\{xxHash\}`"/)
+		expect(page).toMatch(/:transition-scope="`level-recent-records-\$\{xxHash\}`"/)
 		expect(page.match(/show-delta/g)).toHaveLength(1)
 		expect(page).toContain(':fastest-time="levelData.worldRecord.value?.time"')
 		expect(page).toContain('status-mode="none"')

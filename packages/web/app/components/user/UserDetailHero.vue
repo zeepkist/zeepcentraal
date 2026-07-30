@@ -3,7 +3,13 @@
 		<div class="grid gap-7 lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] lg:items-center">
 			<div class="min-w-0">
 				<p class="text-sm font-bold uppercase tracking-[0.18em] text-primary">{{ labels.eyebrow }}</p>
-				<h1 class="mt-3 truncate text-4xl font-black tracking-tight text-highlighted md:text-6xl">{{ user.steamName ?? user.steamId }}</h1>
+				<h1
+					class="mt-3 truncate text-4xl font-black tracking-tight text-highlighted md:text-6xl"
+					:style="transition.targetStyle('user', user.steamId, 'title')"
+					data-shared-transition-target="title"
+				>
+					{{ user.steamName ?? user.steamId }}
+				</h1>
 				<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
 					<span class="inline-flex items-center gap-2"><TablerIcon name="calendar" class="size-4" />{{ labels.joined }} <NuxtTime :datetime="user.dateCreated" relative /></span>
 				</div>
@@ -15,7 +21,13 @@
 			<div class="grid grid-cols-2 gap-3">
 				<div class="col-span-2 rounded-2xl border border-primary/25 bg-primary/10 p-5">
 					<p class="text-xs font-bold uppercase tracking-wider text-primary">{{ labels.globalRank }}</p>
-					<p class="mt-2 text-5xl font-black tabular-nums text-highlighted">{{ rank }}</p>
+					<p
+						class="mt-2 text-5xl font-black tabular-nums text-highlighted"
+						:style="transition.targetStyle('user', user.steamId, 'metric')"
+						data-shared-transition-target="metric"
+					>
+						{{ rank }}
+					</p>
 				</div>
 				<div class="rounded-xl border border-border/70 bg-default/65 p-4">
 					<p class="text-xs text-muted-foreground">{{ labels.rankedPoints }}</p>
@@ -40,6 +52,7 @@ const props = defineProps<{
 	labels: { eyebrow: string; joined: string; globalRank: string; rankedPoints: string; totalPoints: string; unranked: string; steamProfile: string; steamWorkshop: string }
 }>()
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 const rank = computed(() => props.user.rank && props.user.rank > 0 ? `#${number.value.format(props.user.rank)}` : props.labels.unranked)
 const format = (value: number) => number.value.format(value)

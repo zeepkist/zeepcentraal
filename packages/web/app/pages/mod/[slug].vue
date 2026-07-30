@@ -10,7 +10,19 @@
 			:error-title="$t('common.error')"
 			:empty-title="$t('mods.detail.notFound')"
 			:skeletons="4"
-		/>
+		>
+			<template #pending>
+				<SharedDetailPreview
+					v-if="transitionPreview"
+					entity="mod"
+					:entity-id="slug"
+					:preview="transitionPreview"
+				/>
+				<div v-else class="space-y-3">
+					<USkeleton v-for="index in 4" :key="index" class="h-24 rounded-xl" />
+				</div>
+			</template>
+		</DataState>
 		<template v-if="data?.mod">
 			<ModDescription
 				:title="$t('mods.detail.description')"
@@ -22,7 +34,12 @@
 					:title="$t('mods.detail.dependencies')"
 					:description="$t('mods.detail.dependenciesDescription')"
 				/>
-				<ModGrid v-if="data.dependencies.length" :mods="data.dependencies" :labels="cardLabels" />
+				<ModGrid
+					v-if="data.dependencies.length"
+					:mods="data.dependencies"
+					:labels="cardLabels"
+					:transition-scope="`mod-dependencies-${slug}`"
+				/>
 				<div v-else class="rounded-xl border border-border bg-card/60 p-8 text-center text-muted-foreground">
 					{{ $t('mods.detail.noDependencies') }}
 				</div>
@@ -40,13 +57,16 @@ const { t } = useI18n()
 const slug = normalizeModSlug(route.params.slug)
 if (!slug) throw createError({ statusCode: 404, statusMessage: t('mods.detail.notFound') })
 
-const request = await useFetch<ModDetailResponse>(`/api/modio/mods/${slug}`, {
+const request = useFetch<ModDetailResponse>(`/api/modio/mods/${slug}`, {
 	query: { dependencies: 'true' },
 	key: `mod-detail:${slug}`,
 })
+if (import.meta.server) await request
 const data = request.data
 const pending = computed(() => request.status.value === 'pending')
 const error = computed(() => request.error.value?.message ?? null)
+const transition = useSharedViewTransition()
+const transitionPreview = computed(() => transition.preview('mod', slug))
 if (request.error.value?.statusCode === 404) {
 	throw createError({ statusCode: 404, statusMessage: t('mods.detail.notFound') })
 }

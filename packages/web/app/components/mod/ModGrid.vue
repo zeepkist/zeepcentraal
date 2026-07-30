@@ -1,6 +1,12 @@
 <template>
 	<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-		<ModCard v-for="mod in mods" :key="mod.id" :mod="mod" v-bind="labels" />
+		<ModCard
+			v-for="mod in mods"
+			:key="mod.id"
+			:mod="mod"
+			:transition-scope="transitionScope"
+			v-bind="labels"
+		/>
 	</div>
 </template>
 
@@ -9,6 +15,7 @@ import type { ModSummary } from '~/types/mod'
 
 defineProps<{
 	mods: readonly ModSummary[]
+	transitionScope: string
 	labels: {
 		versionLabel: string
 		sizeLabel: string

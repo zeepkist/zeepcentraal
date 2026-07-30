@@ -2,8 +2,13 @@
 	<NuxtLink
 		:to="`/level/${level.xxHash}`"
 		class="group block h-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 p-4 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+		@click.capture="beginTransition"
 	>
-		<div class="aspect-video overflow-hidden rounded-lg bg-muted">
+		<div
+			class="aspect-video overflow-hidden rounded-lg bg-muted"
+			:style="transition.sourceStyle(transitionScope, 'level', level.xxHash, 'media')"
+			data-shared-transition-source="media"
+		>
 			<NuxtImg
 				v-if="level.imageUrl"
 				:src="level.imageUrl"
@@ -103,6 +108,7 @@ import { createLevelRatingFormatter, isLevelRatingAvailable } from '~/utils/leve
 
 const props = defineProps<{
 	level: LevelSummary
+	transitionScope: string
 	adventureLabel: string
 	pointsLabel: string
 	recordsLabel: string
@@ -116,6 +122,7 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const numberFormat = computed(() => getNumberFormatter(locale.value))
 const ratingFormat = computed(() => createLevelRatingFormatter(locale.value))
 const bestTime = computed(() => props.level.worldRecordTime ?? props.level.medals?.author)
@@ -124,6 +131,26 @@ const bestTimeLabel = computed(() =>
 	props.level.worldRecordTime == null ? props.authorTimeLabel : props.worldRecordLabel,
 )
 const isWorldRecord = computed(() => props.level.worldRecordTime != null)
+
+function beginTransition(event: MouseEvent) {
+	transition.begin({
+		event,
+		entity: 'level',
+		entityId: props.level.xxHash,
+		scope: props.transitionScope,
+		targetRoute: `/level/${props.level.xxHash}`,
+		preview: {
+			title: props.level.name,
+			subtitle: props.level.authorName,
+			mediaUrl: props.level.imageUrl,
+			mediaAlt: props.level.name,
+			metric:
+				props.level.worldRecordTime == null
+					? null
+					: formatTime(props.level.worldRecordTime),
+		},
+	})
+}
 
 function formatNumber(value: number) {
 	return numberFormat.value.format(value)

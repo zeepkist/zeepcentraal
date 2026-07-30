@@ -15,6 +15,7 @@
 				:seasons="seasons"
 				:rounds-label="roundsLabel"
 				:competitors-label="competitorsLabel"
+				transition-scope="zsl-seasons"
 			/>
 		</DataState>
 		<CursorPagination

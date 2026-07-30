@@ -5,6 +5,12 @@
 			:key="season.id"
 			:to="superLeagueSeasonPath(season.id)"
 			icon="trophy"
+			:shared-transition="{
+				entity: 'zsl-season',
+				entityId: season.id,
+				scope: transitionScope,
+				preview: { title: season.name },
+			}"
 		>
 			<template #title>
 				<h2 class="text-2xl font-black text-highlighted">{{ season.name }}</h2>
@@ -45,5 +51,6 @@ defineProps<{
 	}>
 	roundsLabel: (count: number) => string
 	competitorsLabel: (count: number) => string
+	transitionScope: string
 }>()
 </script>

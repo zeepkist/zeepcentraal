@@ -8,10 +8,22 @@
 			:error-title="$t('common.error')"
 			:empty-title="$t('levels.detail.notFound')"
 		>
+			<template #pending>
+				<SharedDetailPreview
+					v-if="transitionPreview"
+					entity="level"
+					:entity-id="xxHash"
+					:preview="transitionPreview"
+				/>
+				<div v-else class="space-y-3">
+					<USkeleton v-for="index in 4" :key="index" class="h-24 rounded-xl" />
+				</div>
+			</template>
 			<template v-if="summary">
 				<div class="space-y-8 lg:space-y-10">
 					<LevelDetailHero
 						:level="summary"
+						:transition-id="xxHash"
 						:world-record="levelData.worldRecord.value"
 						:workshop-url="workshopUrl"
 						:labels="heroLabels"
@@ -120,6 +132,7 @@
 								v-for="tournament in levelData.tournamentFeatures.value"
 								:key="tournament.id"
 								:tournament="tournament"
+								:transition-scope="`level-tournaments-${xxHash}`"
 							/>
 						</div>
 					</section>
@@ -163,6 +176,7 @@
 										:labels="recordLabels"
 										:viewer-user-id="viewerId"
 										:show-level="false"
+										:transition-scope="`level-personal-bests-${xxHash}`"
 										live-update-label=""
 										rank-first
 										show-player
@@ -223,6 +237,7 @@
 										:labels="recordLabels"
 										:viewer-user-id="viewerId"
 										:show-level="false"
+										:transition-scope="`level-recent-records-${xxHash}`"
 										live-update-label=""
 										rank-first
 										show-player
@@ -318,6 +333,8 @@ const { t, locale } = useI18n()
 const session = useSessionStore()
 const user = computed(() => session.user)
 const xxHash = computed(() => String(route.params.xxh128))
+const transition = useSharedViewTransition()
+const transitionPreview = computed(() => transition.preview('level', xxHash.value))
 defineOgImage('LevelDetail.takumi', { slug: xxHash })
 const viewerId = computed(() => user.value?.id)
 const levelData = useLevelDetail(xxHash, viewerId)

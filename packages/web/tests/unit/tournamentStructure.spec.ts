@@ -82,10 +82,17 @@ describe('shared tournament web implementation', () => {
 		expect(levelQuery).toContain('first: 2')
 		expect(levelQuery).toContain('startAt: { lessThanOrEqualTo: $now }')
 		expect(dashboard).toContain('<TournamentFeatureCard')
+		expect(dashboard).toContain('transition-scope="dashboard-active-tournaments"')
 		expect(level).toContain('<TournamentFeatureCard')
-		expect(card).toContain('tournamentPath(tournament.type, tournament.slug)')
+		expect(level).toMatch(/:transition-scope="`level-tournaments-\$\{xxHash\}`"/)
+		expect(card).toContain('tournamentPath(props.tournament.type, props.tournament.slug)')
 		expect(card).toContain('formatTournamentPeriod(')
 		expect(card).toContain('tournament.participantCount')
+		expect(card).toContain('@click.capture="beginTransition"')
+		expect(card).toContain(
+			"transition.sourceStyle(transitionScope, 'tournament', transitionId, 'media')",
+		)
+		expect(card).toContain("entity: 'tournament'")
 	})
 
 	test('shows join instructions only for live viewers without a tournament time', () => {

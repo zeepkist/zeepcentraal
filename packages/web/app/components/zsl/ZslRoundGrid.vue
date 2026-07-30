@@ -5,6 +5,12 @@
 			:key="round.id"
 			:to="link(round)"
 			icon="calendar-event"
+			:shared-transition="{
+				entity: 'zsl-round',
+				entityId: `${seasonId}:${round.round}`,
+				scope: transitionScope,
+				preview: { title: round.name },
+			}"
 		>
 			<template #eyebrow>
 				<UBadge color="primary" variant="soft">
@@ -28,5 +34,7 @@
 defineProps<{
 	rounds: Array<{ id: number; round: number; name: string; eventDate: unknown }>
 	link: (round: { id: number; round: number }) => string
+	seasonId: string | number
+	transitionScope: string
 }>()
 </script>

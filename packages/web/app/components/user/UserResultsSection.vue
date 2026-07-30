@@ -28,6 +28,7 @@
 				:records="records"
 				:labels="labels"
 				:status-mode="statusMode"
+				:transition-scope="transitionScope"
 				live-update-label=""
 				rank-first
 				show-level
@@ -59,6 +60,7 @@ withDefaults(
 		title: string
 		description: string
 		records: RecordHistoryRow[]
+		transitionScope: string
 		sort?: RecordHistorySort
 		sortLabel?: string
 		pending: boolean

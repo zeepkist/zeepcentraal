@@ -1,21 +1,28 @@
 <template>
 	<NuxtLink
-		:to="tournamentPath(tournament.type, tournament.slug)"
+		:to="targetRoute"
 		class="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/70 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+		@click.capture="beginTransition"
 	>
-		<NuxtImg
-			v-if="tournament.level.imageUrl"
-			:src="tournament.level.imageUrl"
-			:alt="tournament.level.name"
-			format="avif"
-			width="1600"
-			height="900"
-			sizes="100vw md:50vw"
-			class="aspect-video w-full object-cover"
-			loading="lazy"
-		/>
-		<div v-else class="flex aspect-video items-center justify-center bg-muted">
-			<TablerIcon name="photo-off" class="size-10 text-muted-foreground" />
+		<div
+			class="aspect-video w-full overflow-hidden bg-muted"
+			:style="transition.sourceStyle(transitionScope, 'tournament', transitionId, 'media')"
+			data-shared-transition-source="media"
+		>
+			<NuxtImg
+				v-if="tournament.level.imageUrl"
+				:src="tournament.level.imageUrl"
+				:alt="tournament.level.name"
+				format="avif"
+				width="1600"
+				height="900"
+				sizes="100vw md:50vw"
+				class="size-full object-cover"
+				loading="lazy"
+			/>
+			<div v-else class="flex size-full items-center justify-center">
+				<TablerIcon name="photo-off" class="size-10 text-muted-foreground" />
+			</div>
 		</div>
 
 		<div class="flex flex-1 flex-col p-5">
@@ -53,9 +60,17 @@ import {
 	tournamentPath,
 } from '~/utils/tournament'
 
-const props = defineProps<{ tournament: TournamentFeature }>()
+const props = defineProps<{
+	tournament: TournamentFeature
+	transitionScope: string
+}>()
 const { locale, t } = useI18n()
+const transition = useSharedViewTransition()
 const active = computed(() => isTrackTournamentActive(props.tournament))
+const transitionId = computed(() => `${props.tournament.type}:${props.tournament.slug}`)
+const targetRoute = computed(() =>
+	tournamentPath(props.tournament.type, props.tournament.slug),
+)
 const formatName = computed(() =>
 	t(props.tournament.type === 0 ? 'pages.totw.title' : 'pages.totm.title'),
 )
@@ -67,4 +82,20 @@ const periodLabel = computed(() =>
 		(period) => t('tournaments.weeklyPeriod', period),
 	),
 )
+
+function beginTransition(event: MouseEvent) {
+	transition.begin({
+		event,
+		entity: 'tournament',
+		entityId: transitionId.value,
+		scope: props.transitionScope,
+		targetRoute: targetRoute.value,
+		preview: {
+			title: props.tournament.level.name,
+			subtitle: props.tournament.level.authorName ?? undefined,
+			mediaUrl: props.tournament.level.imageUrl ?? null,
+			mediaAlt: props.tournament.level.name,
+		},
+	})
+}
 </script>

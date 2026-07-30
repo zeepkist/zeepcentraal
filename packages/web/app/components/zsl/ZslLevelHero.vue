@@ -5,7 +5,11 @@
 		<div class="relative grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,1.1fr)] lg:items-center">
 			<div class="min-w-0">
 				<p class="text-sm font-bold uppercase tracking-[0.18em] text-primary">{{ labels.eyebrow }}</p>
-				<h1 class="mt-3 text-balance text-4xl font-black tracking-tight text-highlighted md:text-6xl">
+				<h1
+					class="mt-3 text-balance text-4xl font-black tracking-tight text-highlighted md:text-6xl"
+					:style="transition.targetStyle('zsl-level', transitionId, 'title')"
+					data-shared-transition-target="title"
+				>
 					{{ title }}
 				</h1>
 				<p class="mt-3 text-lg text-muted-foreground">{{ context }}</p>
@@ -43,7 +47,11 @@
 				/>
 			</div>
 
-			<div class="overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg">
+			<div
+				class="overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg"
+				:style="transition.targetStyle('zsl-level', transitionId, 'media')"
+				data-shared-transition-target="media"
+			>
 				<NuxtImg
 					v-if="imageSrc"
 					:src="imageSrc"
@@ -74,6 +82,7 @@ defineProps<{
 	workshopUrl?: string
 	competitorCount: number
 	eventDate: unknown
+	transitionId: string | number
 	labels: {
 		eyebrow: string
 		openLevel: string
@@ -82,4 +91,6 @@ defineProps<{
 		playedOn: string
 	}
 }>()
+
+const transition = useSharedViewTransition()
 </script>

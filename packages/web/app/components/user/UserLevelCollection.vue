@@ -29,6 +29,7 @@
 				:by-label="labels.by"
 				:created-label="labels.created"
 				:columns="columns"
+				:transition-scope="transitionScope"
 			/>
 		</DataState>
 	</section>
@@ -44,6 +45,7 @@ withDefaults(defineProps<{
 	actionLabel: string
 	actionTo: string
 	recordsLabel: string
+	transitionScope: string
 	levels: LevelSummary[]
 	pending: boolean
 	error?: string

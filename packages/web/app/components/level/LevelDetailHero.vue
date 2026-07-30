@@ -65,6 +65,8 @@
 				<div
 					v-if="level.publiclyVisible"
 					class="w-full overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg"
+					:style="transition.targetStyle('level', transitionId, 'media')"
+					data-shared-transition-target="media"
 				>
 					<NuxtImg
 						v-if="level.imageUrl"
@@ -151,6 +153,7 @@ import { isLevelRatingAvailable } from '~/utils/levelRating'
 
 const props = defineProps<{
 	level: LevelSummary
+	transitionId: string
 	worldRecord?: LevelWorldRecordSummary | null
 	workshopUrl?: string
 	labels: {
@@ -174,6 +177,7 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const competitivenessRating = computed(() =>
 	getLevelCompetitivenessRating(props.level.competitiveness),
 )

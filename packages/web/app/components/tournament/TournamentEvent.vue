@@ -8,6 +8,17 @@
 		:empty-title="$t('tournaments.notFound')"
 		class="space-y-10"
 	>
+		<template #pending>
+			<SharedDetailPreview
+				v-if="transitionPreview"
+				entity="tournament"
+				:entity-id="transitionId"
+				:preview="transitionPreview"
+			/>
+			<div v-else class="space-y-3">
+				<USkeleton v-for="index in 4" :key="index" class="h-24 rounded-xl" />
+			</div>
+		</template>
 		<template v-if="tournament">
 			<TournamentCountdown
 				v-if="future"
@@ -50,7 +61,11 @@
 								</div>
 							</div>
 
-							<div class="w-full overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg">
+							<div
+								class="w-full overflow-hidden rounded-2xl border border-border/70 bg-default/70 shadow-lg"
+								:style="transition.targetStyle('tournament', transitionId, 'media')"
+								data-shared-transition-target="media"
+							>
 								<NuxtImg
 									v-if="tournament.level.imageUrl"
 									:src="tournament.level.imageUrl"
@@ -186,6 +201,7 @@
 							:viewer-user-id="viewerId"
 							:fastest-time="podium[0]?.time"
 							:active="active"
+							:transition-scope="`tournament-standings-${transitionId}`"
 						/>
 					</DataState>
 					<CursorPagination
@@ -232,6 +248,11 @@ const props = defineProps<{
 	detailPage?: boolean
 }>()
 const { locale, t } = useI18n()
+const transition = useSharedViewTransition()
+const transitionId = computed(() => `${props.type}:${props.slug}`)
+const transitionPreview = computed(() =>
+	props.detailPage ? transition.preview('tournament', transitionId.value) : null,
+)
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)
 const slug = computed(() => props.slug)

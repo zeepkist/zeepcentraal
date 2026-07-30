@@ -16,7 +16,11 @@
 				<p class="mt-5 text-sm font-bold uppercase tracking-[0.18em] text-primary">
 					{{ labels.recordTime }}
 				</p>
-				<h1 class="mt-1 text-5xl font-black tabular-nums tracking-tight text-highlighted sm:text-7xl">
+				<h1
+					class="mt-1 text-5xl font-black tabular-nums tracking-tight text-highlighted sm:text-7xl"
+					:style="transition.targetStyle('record', record.recordId, 'metric')"
+					data-shared-transition-target="metric"
+				>
 					{{ formatTime(record.time) }}
 				</h1>
 				<div class="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3 text-muted-foreground">
@@ -24,11 +28,18 @@
 						v-if="record.userSteamId"
 						:to="`/user/${record.userSteamId}`"
 						class="inline-flex items-center gap-2 font-semibold transition hover:text-primary"
+						:style="transition.targetStyle('record', record.recordId, 'title')"
+						data-shared-transition-target="title"
 					>
 						<TablerIcon name="user" class="size-5" />
 						{{ record.userName ?? labels.unknownPlayer }}
 					</NuxtLink>
-					<span v-else class="inline-flex items-center gap-2 font-semibold">
+					<span
+						v-else
+						class="inline-flex items-center gap-2 font-semibold"
+						:style="transition.targetStyle('record', record.recordId, 'title')"
+						data-shared-transition-target="title"
+					>
 						<TablerIcon name="user" class="size-5" />
 						{{ record.userName ?? labels.unknownPlayer }}
 					</span>
@@ -106,6 +117,7 @@ const props = defineProps<{
 }>()
 
 const { locale } = useI18n()
+const transition = useSharedViewTransition()
 const numberFormat = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
 const metrics = computed(() => [
 	{ label: props.labels.levelRank, value: props.levelRank ? `#${numberFormat.value.format(props.levelRank)}` : props.labels.unavailable },

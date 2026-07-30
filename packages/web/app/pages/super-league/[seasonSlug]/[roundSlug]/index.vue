@@ -7,12 +7,25 @@
 			v-bind="stateLabels"
 			class="space-y-8 py-2"
 		>
+			<template #pending>
+				<SharedDetailPreview
+					v-if="transitionPreview"
+					entity="zsl-round"
+					:entity-id="transitionId"
+					:preview="transitionPreview"
+					compact
+				/>
+				<div v-else class="space-y-3">
+					<USkeleton v-for="index in 3" :key="index" class="h-24 rounded-xl" />
+				</div>
+			</template>
 			<template v-if="round">
 				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 				<PageHeader
 					:eyebrow="$t('zsl.roundNumber', { round: round.round })"
 					:title="round.name"
 					:description="$t('zsl.roundDescription')"
+					:title-transition-style="transition.targetStyle('zsl-round', transitionId, 'title')"
 				>
 					<template #actions>
 						<ZslPageFacts
@@ -31,6 +44,7 @@
 						:link="levelLink"
 						:level-label="$t('common.level')"
 						:results-label="$t('zsl.viewResults')"
+						:transition-scope="`zsl-levels-${parsedSeasonId}-${parsedRoundNumber}`"
 					/>
 				</section>
 				<section>
@@ -86,6 +100,9 @@ defineOgImage('SuperLeagueRound.takumi', {
 })
 const seasonId = computed(() => parsedSeasonId)
 const roundNumber = computed(() => parsedRoundNumber)
+const transitionId = `${parsedSeasonId}:${parsedRoundNumber}`
+const transition = useSharedViewTransition()
+const transitionPreview = computed(() => transition.preview('zsl-round', transitionId))
 const {
 	competitorCount,
 	page,
