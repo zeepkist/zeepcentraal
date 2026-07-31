@@ -15,6 +15,8 @@
 					ref="replayWorkspace"
 					:ghosts="playback.loaded.value"
 					:level-blocks="levelGeometry.blocks.value"
+					:show-level-geometry="performance.preferences.value.showLevelGeometry"
+					:show-ghost-trails="performance.preferences.value.showGhostTrails"
 					:states="playback.states"
 					:primary-record-id="recordId"
 					:frame-rate="performance.frameRate.value"
@@ -31,6 +33,8 @@
 							:labels="performanceLabels"
 							@update:frame-rate="performance.setFrameRate"
 							@update:render-quality="performance.setRenderQuality"
+							@update:show-level-geometry="performance.setShowLevelGeometry"
+							@update:show-ghost-trails="performance.setShowGhostTrails"
 							@clear-cache="performance.clearCache"
 						/>
 					</template>
@@ -364,6 +368,8 @@ const performanceLabels = computed(() => ({
 	performance: t('pages.recordDetail.performance.performance'),
 	balanced: t('pages.recordDetail.performance.balanced'),
 	qualityHigh: t('pages.recordDetail.performance.qualityHigh'),
+	levelGeometry: t('pages.recordDetail.performance.levelGeometry'),
+	ghostTrails: t('pages.recordDetail.performance.ghostTrails'),
 	cache: t('pages.recordDetail.performance.cache'),
 	cacheValue: (entries: string, size: string) => t('pages.recordDetail.performance.cacheValue', { entries, size }),
 	clearCache: t('pages.recordDetail.performance.clearCache'),

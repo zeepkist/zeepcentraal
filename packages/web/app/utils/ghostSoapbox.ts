@@ -1,6 +1,6 @@
 import type { GhostPlaybackFrame } from '~/types/ghost'
 
-export const GHOST_SOAPBOX_SCALE = 0.42
+export const GHOST_SOAPBOX_SCALE = 0.5
 
 export const GHOST_WHEEL_COLORS = {
 	standard: 0x171513,

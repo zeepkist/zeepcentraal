@@ -78,8 +78,8 @@ describe('ghost soapbox model', () => {
 		expect(GHOST_SOAPBOX_WHEEL_LAYOUT).toHaveLength(4)
 	})
 
-	it('scales every detailed model to 0.42 while preserving its origin and facing correction', () => {
-		expect(GHOST_SOAPBOX_SCALE).toBe(0.42)
+	it('scales every detailed model to 0.5 while preserving its origin and facing correction', () => {
+		expect(GHOST_SOAPBOX_SCALE).toBe(0.5)
 		expect(batch).toContain('GHOST_SOAPBOX_SCALE')
 		expect(batch).toContain('Math.PI')
 

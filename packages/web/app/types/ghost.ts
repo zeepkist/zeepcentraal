@@ -119,6 +119,8 @@ export type GhostPerformancePreferences = {
 	version: 1
 	frameRate: GhostFrameRate
 	renderQuality: GhostRenderQuality
+	showLevelGeometry: boolean
+	showGhostTrails: boolean
 }
 
 export type GhostGridModel = {

@@ -28,6 +28,18 @@
 						@update:model-value="$emit('update:renderQuality', $event as GhostRenderQuality)"
 					/>
 				</UFormField>
+				<div class="space-y-3 rounded-xl border border-border bg-muted/40 p-3">
+					<USwitch
+						:model-value="preferences.showLevelGeometry"
+						:label="labels.levelGeometry"
+						@update:model-value="$emit('update:showLevelGeometry', Boolean($event))"
+					/>
+					<USwitch
+						:model-value="preferences.showGhostTrails"
+						:label="labels.ghostTrails"
+						@update:model-value="$emit('update:showGhostTrails', Boolean($event))"
+					/>
+				</div>
 				<div class="rounded-xl border border-border bg-muted/40 p-3">
 					<div class="flex items-center justify-between gap-3">
 						<div>
@@ -78,6 +90,8 @@ const props = defineProps<{
 		performance: string
 		balanced: string
 		qualityHigh: string
+		levelGeometry: string
+		ghostTrails: string
 		cache: string
 		cacheValue: (entries: string, size: string) => string
 		clearCache: string
@@ -88,6 +102,8 @@ const props = defineProps<{
 defineEmits<{
 	'update:frameRate': [value: GhostFrameRate]
 	'update:renderQuality': [value: GhostRenderQuality]
+	'update:showLevelGeometry': [value: boolean]
+	'update:showGhostTrails': [value: boolean]
 	clearCache: []
 }>()
 

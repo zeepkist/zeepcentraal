@@ -473,13 +473,15 @@
 			},
 			"performance": {
 				"open": "Ghost playback settings",
-				"title": "Playback quality",
+				"title": "Playback settings",
 				"description": "Global settings are saved on this device.",
 				"frameRate": "Frame rate",
 				"quality": "Render quality",
 				"performance": "Performance",
 				"balanced": "Balanced",
 				"qualityHigh": "High quality",
+				"levelGeometry": "Level geometry",
+				"ghostTrails": "Ghost trails",
 				"cache": "Offline ghost cache",
 				"cacheValue": "{entries} ghosts · {size}",
 				"clearCache": "Clear"

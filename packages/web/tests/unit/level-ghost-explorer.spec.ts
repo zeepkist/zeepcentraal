@@ -36,6 +36,10 @@ const controls = readFileSync(
 	new URL('../../app/components/record/GhostPlaybackControls.vue', import.meta.url),
 	'utf8',
 )
+const settings = readFileSync(
+	new URL('../../app/components/record/GhostPerformanceSettings.vue', import.meta.url),
+	'utf8',
+)
 const workspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
 	'utf8',
@@ -222,7 +226,17 @@ describe('level bulk ghost rendering', () => {
 		for (const context of [recordExperience, levelExplorer, tournamentExplorer]) {
 			expect(context).toContain('<template #settings>')
 			expect(context).toContain('<GhostPerformanceSettings')
+			expect(context).toContain(':show-level-geometry=')
+			expect(context).toContain(':show-ghost-trails=')
+			expect(context).toContain('@update:show-level-geometry=')
+			expect(context).toContain('@update:show-ghost-trails=')
 		}
+		expect(settings).toContain(':model-value="preferences.showLevelGeometry"')
+		expect(settings).toContain(':model-value="preferences.showGhostTrails"')
+		expect(workspace).toContain(':show-level-geometry="showLevelGeometry"')
+		expect(workspace).toContain(':show-ghost-trails="showGhostTrails"')
+		expect(viewer).toContain('levelMeshRenderer?.clear()')
+		expect(viewer).toContain('visual.trail.visible = props.showGhostTrails')
 	})
 
 	it('supports panning and performance-friendly trail rendering', () => {

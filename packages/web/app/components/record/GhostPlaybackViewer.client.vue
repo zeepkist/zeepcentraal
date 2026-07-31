@@ -9,7 +9,7 @@
 			<UBadge color="neutral" variant="soft">
 				{{ labels.frameRate(currentFrameRate, frameRate) }}
 			</UBadge>
-			<UBadge v-if="levelBlocks.length" color="neutral" variant="soft">
+			<UBadge v-if="showLevelGeometry && levelBlocks.length" color="neutral" variant="soft">
 				{{ labels.approximateGeometry }}
 			</UBadge>
 		</div>
@@ -90,6 +90,8 @@ type GhostVisual = {
 const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelBlocks: GhostLevelBlock[]
+	showLevelGeometry?: boolean
+	showGhostTrails?: boolean
 	labelRecordIds?: number[]
 	bulkMode?: boolean
 	bulkGhostCount?: number
@@ -116,6 +118,8 @@ const props = withDefaults(defineProps<{
 }>(), {
 	bulkMode: false,
 	sceneRevision: 0,
+	showLevelGeometry: true,
+	showGhostTrails: true,
 })
 
 const emit = defineEmits<{
@@ -217,6 +221,16 @@ watch(
 		else createLevelGeometry()
 	},
 	{ deep: false },
+)
+
+watch(
+	() => props.showLevelGeometry,
+	() => createLevelGeometry(),
+)
+
+watch(
+	() => props.showGhostTrails,
+	() => syncGhostTrailVisibility(),
 )
 
 watch(
@@ -500,8 +514,20 @@ function visualRevision(loaded: LoadedPlaybackGhost) {
 }
 
 function createLevelGeometry() {
+	if (!props.showLevelGeometry) {
+		levelMeshRenderer?.clear()
+		return
+	}
 	if (!grid) return
 	void levelMeshRenderer?.render(props.levelBlocks, grid.origin)
+}
+
+function syncGhostTrailVisibility() {
+	for (const visual of visuals.values()) {
+		visual.trail.visible = props.showGhostTrails
+		if (!props.showGhostTrails) visual.trailGeometry.instanceCount = 0
+	}
+	if (props.showGhostTrails) updateGhosts()
 }
 
 function createTrail(loaded: LoadedPlaybackGhost) {
@@ -529,6 +555,7 @@ function createTrail(loaded: LoadedPlaybackGhost) {
 		gapSize: Math.min(8, 2 + (loaded.identity.userRunOrdinal ?? 0)),
 	})
 	const trail = new Line2(geometry, material)
+	trail.visible = props.showGhostTrails
 	trail.computeLineDistances()
 	geometry.instanceCount = 0
 	return { trail, geometry, material, times }
@@ -665,8 +692,10 @@ function updateGhosts() {
 			wheelState: frame.wheelState,
 			wheelColor: resolveGhostWheelColor(frame),
 		})
-		const segments = upperBound(visual.trailTimes, props.currentTime)
-		visual.trailGeometry.instanceCount = Math.max(0, segments - 1)
+		if (props.showGhostTrails) {
+			const segments = upperBound(visual.trailTimes, props.currentTime)
+			visual.trailGeometry.instanceCount = Math.max(0, segments - 1)
+		} else visual.trailGeometry.instanceCount = 0
 		if (visual.ghost.record.recordId === props.selectedRecordId) {
 			selectedDelta = visual.group.position.clone().sub(previous)
 		}

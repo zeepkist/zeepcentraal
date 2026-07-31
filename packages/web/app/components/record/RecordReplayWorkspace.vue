@@ -16,6 +16,8 @@
 			ref="viewer"
 			:ghosts="ghosts"
 			:level-blocks="levelBlocks"
+			:show-level-geometry="showLevelGeometry"
+			:show-ghost-trails="showGhostTrails"
 			:current-time="currentTime"
 			:playing="playing"
 			:playback-rate="playbackRate"
@@ -93,6 +95,8 @@ import {
 const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelBlocks: GhostLevelBlock[]
+	showLevelGeometry?: boolean
+	showGhostTrails?: boolean
 	states: Map<number, GhostLoadState>
 	primaryRecordId?: number | null
 	followRecordIds?: number[]
@@ -140,6 +144,8 @@ const props = withDefaults(defineProps<{
 	loadingWhenEmpty: true,
 	primaryRecordId: null,
 	sceneRevision: 0,
+	showLevelGeometry: true,
+	showGhostTrails: true,
 })
 
 const emit = defineEmits<{

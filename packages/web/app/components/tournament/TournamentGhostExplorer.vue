@@ -20,6 +20,8 @@
 				<LazyRecordReplayWorkspace
 					:ghosts="playback.loaded.value"
 					:level-blocks="geometry.blocks.value"
+					:show-level-geometry="performance.preferences.value.showLevelGeometry"
+					:show-ghost-trails="performance.preferences.value.showGhostTrails"
 					:states="playback.states"
 					:primary-record-id="sources[0]?.recordId ?? null"
 					:follow-record-ids="sources.slice(0, 8).map((source) => source.recordId)"
@@ -39,6 +41,8 @@
 							:labels="performanceLabels"
 							@update:frame-rate="performance.setFrameRate"
 							@update:render-quality="performance.setRenderQuality"
+							@update:show-level-geometry="performance.setShowLevelGeometry"
+							@update:show-ghost-trails="performance.setShowGhostTrails"
 							@clear-cache="performance.clearCache"
 						/>
 					</template>
@@ -106,6 +110,8 @@ const performanceLabels = computed(() => ({
 	performance: t('pages.recordDetail.performance.performance'),
 	balanced: t('pages.recordDetail.performance.balanced'),
 	qualityHigh: t('pages.recordDetail.performance.qualityHigh'),
+	levelGeometry: t('pages.recordDetail.performance.levelGeometry'),
+	ghostTrails: t('pages.recordDetail.performance.ghostTrails'),
 	cache: t('pages.recordDetail.performance.cache'),
 	cacheValue: (entries: string, size: string) =>
 		t('pages.recordDetail.performance.cacheValue', { entries, size }),

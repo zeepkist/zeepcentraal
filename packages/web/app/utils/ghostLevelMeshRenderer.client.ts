@@ -41,8 +41,8 @@ export class GhostLevelMeshRenderer {
 			new BlockMeshLibrary({ baseUrl: options.baseUrl, concurrency: options.concurrency })
 		this.material = new THREE.MeshStandardMaterial({
 			color,
-			transparent: true,
-			opacity: 0.2,
+			transparent: false,
+			opacity: 1,
 			roughness: 0.85,
 			metalness: 0.05,
 		})
@@ -55,10 +55,14 @@ export class GhostLevelMeshRenderer {
 		return this.renderLoaded(blocks, origin, revision)
 	}
 
-	dispose() {
-		this.disposed = true
+	clear() {
 		this.revision += 1
 		this.replaceGroup(null)
+	}
+
+	dispose() {
+		this.disposed = true
+		this.clear()
 		this.library.dispose()
 		this.fallbackGeometry.dispose()
 		this.material.dispose()

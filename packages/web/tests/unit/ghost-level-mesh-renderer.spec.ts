@@ -47,6 +47,11 @@ describe('GhostLevelMeshRenderer', () => {
 		)
 		expect(meshes).toHaveLength(2)
 		expect(meshes.map(({ count }) => count).sort()).toEqual([1, 2])
+		for (const mesh of meshes) {
+			const material = mesh.material as THREE.MeshStandardMaterial
+			expect(material.transparent).toBe(false)
+			expect(material.opacity).toBe(1)
+		}
 		expect(library.loadMeshes).toHaveBeenCalledOnce()
 		renderer.dispose()
 	})
@@ -98,6 +103,28 @@ describe('GhostLevelMeshRenderer', () => {
 		expect(fallback).toBeInstanceOf(THREE.InstancedMesh)
 		expect(fallback.count).toBe(1)
 		expect(library.loadMeshes).toHaveBeenCalledOnce()
+		renderer.dispose()
+	})
+
+	it('clears geometry and ignores an in-flight mesh result when disabled', async () => {
+		let resolveManifest: ((value: BlockMeshManifest) => void) | undefined
+		const manifestPromise = new Promise<BlockMeshManifest>((resolve) => {
+			resolveManifest = resolve
+		})
+		const library = fakeLibrary({
+			getManifest: vi.fn(() => manifestPromise),
+			loadMeshes: vi.fn(async () => ({ meshes: new Map(), failed: new Set<string>() })),
+		})
+		const scene = new THREE.Scene()
+		const renderer = new GhostLevelMeshRenderer(scene, { baseUrl: '', library }, '#a8a29e')
+
+		const render = renderer.render([block(1490, 0)], vector())
+		renderer.clear()
+		resolveManifest?.(manifest)
+		await render
+
+		expect(scene.getObjectByName('level-geometry')).toBeUndefined()
+		expect(library.loadMeshes).not.toHaveBeenCalled()
 		renderer.dispose()
 	})
 })
