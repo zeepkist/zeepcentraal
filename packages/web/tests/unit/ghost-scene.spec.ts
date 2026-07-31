@@ -183,24 +183,24 @@ describe('ghost scene', () => {
 		expect(sampleGhostTrailFrames(frames, 2)).toEqual([0, 1_000])
 	})
 
-	it('reconciles keyed ghost visuals and recreates only changed modes or identities', () => {
+	it('reconciles keyed ghost visuals and recreates only changed revisions or identities', () => {
 		expect(
 			planGhostVisualReconciliation(
 				[
-					{ recordId: 1, detailed: true, revision: 'one' },
-					{ recordId: 2, detailed: false, revision: 'two' },
-					{ recordId: 3, detailed: false, revision: 'three' },
+					{ recordId: 1, revision: 'one' },
+					{ recordId: 2, revision: 'two' },
+					{ recordId: 3, revision: 'three' },
 				],
 				[
-					{ recordId: 1, detailed: true, revision: 'one' },
-					{ recordId: 2, detailed: true, revision: 'two' },
-					{ recordId: 4, detailed: false, revision: 'four' },
+					{ recordId: 1, revision: 'one' },
+					{ recordId: 2, revision: 'two-updated' },
+					{ recordId: 4, revision: 'four' },
 				],
 			),
 		).toEqual({
 			create: [
-				{ recordId: 2, detailed: true, revision: 'two' },
-				{ recordId: 4, detailed: false, revision: 'four' },
+				{ recordId: 2, revision: 'two-updated' },
+				{ recordId: 4, revision: 'four' },
 			],
 			remove: [3, 2],
 			retain: [1],

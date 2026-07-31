@@ -48,6 +48,7 @@ export type GhostPlaybackFrame = {
 	offroad?: boolean
 	paraglider?: boolean
 	inAir?: boolean
+	wheelState?: number
 	groundedWheelState?: number
 	slippingWheelState?: number
 	surfaceState?: number

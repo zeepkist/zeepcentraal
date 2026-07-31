@@ -191,13 +191,15 @@ describe('level ghost selection', () => {
 })
 
 describe('level bulk ghost rendering', () => {
-	it('reconciles keyed visuals and limits detailed models and labels', () => {
+	it('reconciles keyed visuals, instances every model, and limits labels', () => {
 		expect(viewer).toContain('planGhostVisualReconciliation(')
-		expect(viewer).toContain('createLightweightMarker(')
-		expect(viewer).toContain('const label = detailed ? createGhostLabel(loaded) : null')
+		expect(viewer).toContain('ghostMeshBatch?.configure(descriptors)')
+		expect(viewer).not.toContain('createLightweightMarker(')
+		expect(viewer).toContain('isLabeledGhost(loaded.record.recordId)')
 		expect(viewer).toContain('resolveGhostTrailSampleLimit(')
 		expect(workspace).toContain('return [...ordered, ...remaining].slice(0, 12)')
-		expect(workspace).toContain(':detailed-record-ids="followRecordIdList"')
+		expect(workspace).toContain('return props.ghosts.slice(0, 12)')
+		expect(workspace).toContain(':label-record-ids="labelRecordIdList"')
 	})
 
 	it('unmounts WebGL when inactive and can render a cleared empty state', () => {

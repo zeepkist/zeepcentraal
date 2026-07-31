@@ -52,6 +52,10 @@ import type {
 	LoadedPlaybackGhost,
 } from '~/types/ghost'
 import {
+	GhostMeshBatchRenderer,
+	type GhostMeshDescriptor,
+} from '~/utils/ghostMeshBatch.client'
+import {
 	buildGhostGrid,
 	calculateGhostLabelWorldOffset,
 	calculateIsometricCameraDepth,
@@ -64,12 +68,13 @@ import {
 	resolveGhostTrailSampleLimit,
 	sampleGhostTrailFrames,
 } from '~/utils/ghostScene'
+import { resolveGhostWheelColor } from '~/utils/ghostSoapbox'
+import { loadGhostSoapboxGeometries } from '~/utils/ghostSoapboxModel.client'
 
 type RenderQuality = 'performance' | 'balanced' | 'quality'
 
 type GhostVisual = {
 	ghost: LoadedPlaybackGhost
-	detailed: boolean
 	revision: string
 	group: THREE.Group
 	label: HTMLElement | null
@@ -79,19 +84,12 @@ type GhostVisual = {
 	trailGeometry: LineGeometry
 	trailMaterial: LineMaterial
 	trailTimes: number[]
-	chassis: THREE.Mesh | null
-	driver: THREE.Mesh | null
-	arms: THREE.Mesh[]
-	brakeLights: THREE.Mesh[]
-	paraglider: THREE.Mesh | null
-	ragdoll: THREE.Mesh | null
-	wheels: THREE.Mesh[]
 }
 
 const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelBlocks: GhostLevelBlock[]
-	detailedRecordIds?: number[]
+	labelRecordIds?: number[]
 	bulkMode?: boolean
 	bulkGhostCount?: number
 	sceneRevision?: number | string
@@ -147,16 +145,29 @@ let frameRateWindowStartedAt = 0
 let renderedFrameCount = 0
 let grid: GhostGridModel | null = null
 let visuals = new Map<number, GhostVisual>()
+let ghostMeshBatch: GhostMeshBatchRenderer | null = null
+let viewerMounted = false
 let orthographicVertical = 45
 const isometricCameraDirection = new THREE.Vector3(1, 1, 1).normalize()
+const ragdollEuler = new THREE.Euler()
+const ragdollQuaternion = new THREE.Quaternion()
+const ragdollMatrix = new THREE.Matrix4()
 
 const activeCamera = () =>
 	props.cameraMode === 'isometric' ? orthographicCamera : perspectiveCamera
 
 onMounted(() => {
+	viewerMounted = true
 	if (!createScene()) return
 	createGhosts()
 	animationFrame = requestAnimationFrame(renderLoop)
+	void loadGhostSoapboxGeometries()
+		.then((geometries) => {
+			if (!viewerMounted) return
+			ghostMeshBatch?.setModelGeometries(geometries)
+			updateGhosts()
+		})
+		.catch(() => undefined)
 })
 
 watch(
@@ -169,11 +180,15 @@ watch(
 )
 
 watch(
-	() => [props.bulkMode, props.detailedRecordIds] as const,
+	() => props.bulkMode,
 	() => {
-		if (props.bulkMode) reconcileGhosts()
-		else createGhosts()
+		createGhosts()
 	},
+)
+
+watch(
+	() => props.labelRecordIds,
+	() => syncGhostLabels(),
 	{ deep: false },
 )
 
@@ -220,7 +235,10 @@ watch(
 	},
 )
 
-onBeforeUnmount(disposeScene)
+onBeforeUnmount(() => {
+	viewerMounted = false
+	disposeScene()
+})
 
 function createScene() {
 	const host = canvasHost.value
@@ -247,6 +265,7 @@ function createScene() {
 	labelRenderer.setSize(host.clientWidth, host.clientHeight)
 
 	scene = new THREE.Scene()
+	ghostMeshBatch = new GhostMeshBatchRenderer(scene)
 	orbitFog = new THREE.Fog(resolveCssColor('--ui-bg', '#0c0a09'), 350, 1_500)
 	scene.fog = orbitFog
 	scene.add(new THREE.HemisphereLight(0xffffff, 0x292524, 2.1))
@@ -315,6 +334,7 @@ function createGhosts() {
 	for (const [visualIndex, loaded] of props.ghosts.entries()) {
 		addGhostVisual(loaded, visualIndex)
 	}
+	configureGhostMeshes()
 	updateSelection()
 	resize()
 	frameRoute()
@@ -349,13 +369,11 @@ function reconcileGhosts() {
 	}
 	const desired = props.ghosts.map((loaded) => ({
 		recordId: loaded.record.recordId,
-		detailed: isDetailedGhost(loaded.record.recordId),
 		revision: visualRevision(loaded),
 	}))
 	const reconciliation = planGhostVisualReconciliation(
 		[...visuals.values()].map((visual) => ({
 			recordId: visual.ghost.record.recordId,
-			detailed: visual.detailed,
 			revision: visual.revision,
 		})),
 		desired,
@@ -374,26 +392,27 @@ function reconcileGhosts() {
 			if (visual) visual.labelStagger = visualIndex % 4
 		}
 	}
+	configureGhostMeshes()
+	syncGhostLabels()
 	updateSelection()
 	resize()
 }
 
 function addGhostVisual(loaded: LoadedPlaybackGhost, visualIndex: number) {
 	if (!scene) return
-	const detailed = isDetailedGhost(loaded.record.recordId)
-	const soapbox = detailed ? createSoapbox(loaded) : createLightweightMarker(loaded)
-	const { group } = soapbox
-	const label = detailed ? createGhostLabel(loaded) : null
+	const group = new THREE.Group()
+	group.name = `ghost-${loaded.record.recordId}`
+	const label = isLabeledGhost(loaded.record.recordId) ? createGhostLabel(loaded) : null
 	const labelObject = label ? new CSS2DObject(label) : null
 	labelObject?.position.set(0, 2.8, 0)
 
 	const { trail, geometry, material, times } = createTrail(loaded)
-	scene.add(group, trail)
+	scene.add(trail)
 	if (labelObject) scene.add(labelObject)
 	visuals.set(loaded.record.recordId, {
 		ghost: loaded,
-		detailed,
 		revision: visualRevision(loaded),
+		group,
 		label,
 		labelObject,
 		labelStagger: visualIndex % 4,
@@ -401,8 +420,16 @@ function addGhostVisual(loaded: LoadedPlaybackGhost, visualIndex: number) {
 		trailGeometry: geometry,
 		trailMaterial: material,
 		trailTimes: times,
-		...soapbox,
 	})
+}
+
+function configureGhostMeshes() {
+	const descriptors: GhostMeshDescriptor[] = props.ghosts.map(({ record, identity }) => ({
+		recordId: record.recordId,
+		bodyColor: identity.bodyColor,
+		isWorldRecord: identity.isWorldRecord,
+	}))
+	ghostMeshBatch?.configure(descriptors)
 }
 
 function refreshBulkTrails() {
@@ -430,8 +457,26 @@ function createGhostLabel(loaded: LoadedPlaybackGhost) {
 	return label
 }
 
-function isDetailedGhost(recordId: number) {
-	return !props.bulkMode || props.detailedRecordIds === undefined || props.detailedRecordIds.includes(recordId)
+function isLabeledGhost(recordId: number) {
+	return props.labelRecordIds === undefined || props.labelRecordIds.includes(recordId)
+}
+
+function syncGhostLabels() {
+	if (!scene) return
+	for (const visual of visuals.values()) {
+		const shouldLabel = isLabeledGhost(visual.ghost.record.recordId)
+		if (shouldLabel && !visual.label) {
+			visual.label = createGhostLabel(visual.ghost)
+			visual.labelObject = new CSS2DObject(visual.label)
+			visual.labelObject.position.set(0, 2.8, 0)
+			scene.add(visual.labelObject)
+		} else if (!shouldLabel && visual.label) {
+			visual.label.remove()
+			if (visual.labelObject) scene.remove(visual.labelObject)
+			visual.label = null
+			visual.labelObject = null
+		}
+	}
 }
 
 function visualRevision(loaded: LoadedPlaybackGhost) {
@@ -485,94 +530,6 @@ function createLevelGeometry() {
 	mesh.instanceMatrix.needsUpdate = true
 	mesh.computeBoundingSphere()
 	scene.add(mesh)
-}
-
-function createSoapbox(loaded: LoadedPlaybackGhost) {
-	const group = new THREE.Group()
-	group.name = `ghost-${loaded.record.recordId}`
-	const color = new THREE.Color(loaded.identity.bodyColor)
-	const material = new THREE.MeshStandardMaterial({
-		color,
-		transparent: true,
-		opacity: loaded.identity.isWorldRecord ? 0.92 : 0.76,
-		roughness: 0.42,
-		metalness: 0.18,
-	})
-	const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.45, 2.5), material)
-	chassis.position.y = 0.55
-	group.add(chassis)
-	const driver = new THREE.Mesh(new THREE.CapsuleGeometry(0.38, 0.8, 5, 8), material.clone())
-	driver.position.set(0, 1.35, 0.25)
-	group.add(driver)
-	const arms = [-1, 1].map((side) => {
-		const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.65, 0.18), material.clone())
-		arm.position.set(side * 0.48, 1.45, 0.1)
-		group.add(arm)
-		return arm
-	})
-	const brakeLights = [-1, 1].map((side) => {
-		const light = new THREE.Mesh(
-			new THREE.BoxGeometry(0.28, 0.16, 0.08),
-			new THREE.MeshBasicMaterial({ color: 0xef4444 }),
-		)
-		light.position.set(side * 0.48, 0.62, 1.28)
-		light.visible = false
-		group.add(light)
-		return light
-	})
-	const paraglider = new THREE.Mesh(
-		new THREE.SphereGeometry(2.2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-		new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.72, side: THREE.DoubleSide }),
-	)
-	paraglider.position.set(0, 3.8, 0)
-	paraglider.scale.y = 0.35
-	paraglider.visible = false
-	group.add(paraglider)
-	const ragdoll = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 1.1, 5, 8), material.clone())
-	ragdoll.visible = false
-	group.add(ragdoll)
-	const wheels: THREE.Mesh[] = []
-	for (const [x, z] of [
-		[-0.82, -0.72],
-		[0.82, -0.72],
-		[-0.82, 0.82],
-		[0.82, 0.82],
-	] as const) {
-		const wheel = new THREE.Mesh(
-			new THREE.CylinderGeometry(0.32, 0.32, 0.22, 12),
-			new THREE.MeshStandardMaterial({ color: 0x171513, roughness: 0.8, transparent: true }),
-		)
-		wheel.rotation.z = Math.PI / 2
-		wheel.position.set(x, 0.32, z)
-		group.add(wheel)
-		wheels.push(wheel)
-	}
-	return { group, chassis, driver, arms, brakeLights, paraglider, ragdoll, wheels }
-}
-
-function createLightweightMarker(loaded: LoadedPlaybackGhost) {
-	const group = new THREE.Group()
-	group.name = `ghost-${loaded.record.recordId}`
-	const marker = new THREE.Mesh(
-		new THREE.SphereGeometry(0.55, 8, 6),
-		new THREE.MeshBasicMaterial({
-			color: new THREE.Color(loaded.identity.bodyColor),
-			transparent: true,
-			opacity: loaded.identity.isWorldRecord ? 0.95 : 0.78,
-		}),
-	)
-	marker.position.y = 0.55
-	group.add(marker)
-	return {
-		group,
-		chassis: null,
-		driver: null,
-		arms: [],
-		brakeLights: [],
-		paraglider: null,
-		ragdoll: null,
-		wheels: [],
-	}
 }
 
 function createTrail(loaded: LoadedPlaybackGhost) {
@@ -687,26 +644,20 @@ function recordRenderedFrame(timestamp: number) {
 function updateGhosts() {
 	if (!grid) return
 	let selectedDelta: THREE.Vector3 | null = null
+	ghostMeshBatch?.beginFrame()
 	for (const visual of visuals.values()) {
 		const frame = interpolateGhostFrame(visual.ghost.ghost.frames, props.currentTime)
-		if (!frame) continue
+		if (!frame) {
+			ghostMeshBatch?.hide(visual.ghost.record.recordId)
+			continue
+		}
 		const ragdollActive = frame.ragdoll === true
 		const next = rebaseGhostPosition(resolveGhostDisplayPosition(frame), grid.origin)
 		const previous = visual.group.position.clone()
 		visual.group.position.set(next.x, next.y, next.z)
 		if (visual.label && visual.labelObject) updateLabelPosition(visual, next)
-		if (!visual.detailed) {
-			if (frame.orientation) {
-				visual.group.quaternion.set(
-					-frame.orientation.x,
-					-frame.orientation.y,
-					frame.orientation.z,
-					frame.orientation.w,
-				)
-			}
-		} else if (ragdollActive) {
-			visual.group.quaternion.identity()
-		} else if (frame.orientation) {
+		if (ragdollActive) visual.group.quaternion.identity()
+		else if (frame.orientation) {
 			visual.group.quaternion.set(
 				-frame.orientation.x,
 				-frame.orientation.y,
@@ -714,45 +665,41 @@ function updateGhosts() {
 				frame.orientation.w,
 			)
 		}
-		if (visual.chassis) visual.chassis.visible = !ragdollActive
-		if (visual.driver) visual.driver.visible = !ragdollActive
-		if (visual.ragdoll) {
-			visual.ragdoll.visible = ragdollActive
-			visual.ragdoll.position.set(0, 0, 0)
-		}
-		for (const [index, arm] of visual.arms.entries()) {
-			arm.visible = !ragdollActive
-			arm.rotation.z = frame.armsUp ? (index === 0 ? -1.15 : 1.15) : 0
-		}
-		for (const light of visual.brakeLights) {
-			light.visible = !ragdollActive && frame.braking === true
-		}
-		if (visual.paraglider) visual.paraglider.visible = !ragdollActive && frame.paraglider === true
-		if (ragdollActive && visual.ragdoll) {
+		visual.group.updateMatrix()
+		let currentRagdollMatrix: THREE.Matrix4 | null = null
+		if (ragdollActive) {
 			if (frame.ragdollRotation) {
-				visual.ragdoll.rotation.set(
+				ragdollEuler.set(
 					THREE.MathUtils.degToRad(-frame.ragdollRotation.x),
 					THREE.MathUtils.degToRad(-frame.ragdollRotation.y),
 					THREE.MathUtils.degToRad(frame.ragdollRotation.z),
 				)
-			}
+				ragdollQuaternion.setFromEuler(ragdollEuler)
+			} else ragdollQuaternion.identity()
+			ragdollMatrix.compose(
+				visual.group.position,
+				ragdollQuaternion,
+				visual.group.scale,
+			)
+			currentRagdollMatrix = ragdollMatrix
 		}
-		const wheelColor = frame.soap ? 0xec4899 : frame.offroad ? 0x84cc16 : 0x171513
-		for (const [index, wheel] of visual.wheels.entries()) {
-			wheel.visible = !ragdollActive
-			const wheelMaterial = wheel.material as THREE.MeshStandardMaterial
-			wheelMaterial.color.setHex(wheelColor)
-			const grounded =
-				frame.groundedWheelState === undefined ||
-				(frame.groundedWheelState & (1 << index)) !== 0
-			wheelMaterial.opacity = grounded ? 1 : 0.5
-		}
+		ghostMeshBatch?.update(visual.ghost.record.recordId, {
+			worldMatrix: visual.group.matrix,
+			position: visual.group.position,
+			ragdoll: ragdollActive,
+			ragdollMatrix: currentRagdollMatrix,
+			braking: frame.braking === true,
+			paraglider: frame.paraglider === true,
+			wheelState: frame.wheelState,
+			wheelColor: resolveGhostWheelColor(frame),
+		})
 		const segments = upperBound(visual.trailTimes, props.currentTime)
 		visual.trailGeometry.instanceCount = Math.max(0, segments - 1)
 		if (visual.ghost.record.recordId === props.selectedRecordId) {
 			selectedDelta = visual.group.position.clone().sub(previous)
 		}
 	}
+	ghostMeshBatch?.commitFrame()
 	if (props.following && selectedDelta && controls && activeCamera()) {
 		activeCamera()?.position.add(selectedDelta)
 		controls.target.add(selectedDelta)
@@ -880,11 +827,10 @@ function removeNamedObject(name: string) {
 }
 
 function disposeVisual(visual: GhostVisual) {
-	visual.group.traverse(disposeObject)
 	visual.trailGeometry.dispose()
 	visual.trailMaterial.dispose()
 	visual.label?.remove()
-	scene?.remove(visual.group, visual.trail)
+	scene?.remove(visual.trail)
 	if (visual.labelObject) scene?.remove(visual.labelObject)
 }
 
@@ -902,6 +848,8 @@ function disposeScene() {
 	controls?.dispose()
 	for (const visual of visuals.values()) disposeVisual(visual)
 	visuals.clear()
+	ghostMeshBatch?.dispose()
+	ghostMeshBatch = null
 	if (scene) scene.traverse(disposeObject)
 	renderer?.domElement.removeEventListener('webglcontextlost', onContextLost)
 	renderer?.domElement.removeEventListener('webglcontextrestored', onContextRestored)

@@ -245,7 +245,7 @@ describe('record detail GraphQL', () => {
 			'resolveGhostPlaybackStartTime(currentTime.value, duration.value)',
 		)
 		expect(playbackViewer).toContain('resolveGhostDisplayPosition(frame)')
-		expect(playbackViewer).toContain('visual.chassis.visible = !ragdollActive')
-		expect(playbackViewer).toContain('visual.ragdoll.position.set(0, 0, 0)')
+		expect(playbackViewer).toContain('ragdoll: ragdollActive')
+		expect(playbackViewer).toContain('currentRagdollMatrix = ragdollMatrix')
 	})
 })

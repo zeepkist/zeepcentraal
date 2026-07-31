@@ -27,7 +27,7 @@
 			:quality="quality"
 			:bulk-mode="bulkMode"
 			:bulk-ghost-count="states.size"
-			:detailed-record-ids="followRecordIdList"
+			:label-record-ids="labelRecordIdList"
 			:scene-revision="sceneRevision"
 			:labels="labels.viewer"
 			@update:current-time="currentTime = $event"
@@ -159,7 +159,7 @@ const fullscreen = ref(false)
 const selectedRecordId = ref<number | null>(props.primaryRecordId)
 const duration = computed(() => Math.max(0, ...props.ghosts.map(({ record }) => record.time)))
 const followGhosts = computed(() => {
-	if (props.followRecordIds === undefined) return props.ghosts
+	if (props.followRecordIds === undefined) return props.ghosts.slice(0, 12)
 	const byId = new Map(props.ghosts.map((ghost) => [ghost.record.recordId, ghost]))
 	const ordered = props.followRecordIds.flatMap((recordId) => {
 		const ghost = byId.get(recordId)
@@ -174,7 +174,7 @@ const followGhosts = computed(() => {
 		)
 	return [...ordered, ...remaining].slice(0, 12)
 })
-const followRecordIdList = computed(() =>
+const labelRecordIdList = computed(() =>
 	followGhosts.value.map(({ record }) => record.recordId),
 )
 const failedCount = computed(

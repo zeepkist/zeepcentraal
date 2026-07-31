@@ -15,7 +15,6 @@ export type GhostSceneQuality = 'performance' | 'balanced' | 'quality'
 
 export type GhostVisualDescriptor = {
 	recordId: number
-	detailed: boolean
 	revision: string
 }
 
@@ -80,7 +79,7 @@ export function planGhostVisualReconciliation(
 
 	for (const item of desired) {
 		const current = existingById.get(item.recordId)
-		if (!current || current.detailed !== item.detailed || current.revision !== item.revision) {
+		if (!current || current.revision !== item.revision) {
 			create.push(item)
 			if (current) remove.push(item.recordId)
 		} else retain.push(item.recordId)
