@@ -51,6 +51,7 @@
 			"!packages/web/.nuxt",
 			"!packages/web/.output",
 			"!packages/web/app/graphql/generated",
+			"!packages/web/public/assets/block-meshes",
 			"!packages/web/test-results"
 		]
 	},

@@ -89,6 +89,7 @@ export default defineNuxtConfig({
 			graphqlWsUrl: process.env.NUXT_PUBLIC_GRAPHQL_WS_URL ?? productionGraphqlWsUrl,
 			backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL ?? productionBackendUrl,
 			ghostCdnOrigins: process.env.NUXT_PUBLIC_GHOST_CDN_ORIGINS ?? 'https://cdn.zeepki.st',
+			blockMeshBaseUrl: process.env.NUXT_PUBLIC_BLOCK_MESH_BASE_URL ?? '',
 		},
 	},
 	image: {

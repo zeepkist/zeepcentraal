@@ -11,6 +11,7 @@
 		"preview": "bun --bun nuxt preview --dotenv ../../.env",
 		"postinstall": "bun run prepare:nuxt",
 		"prepare:nuxt": "bun --bun nuxt prepare",
+		"generate:block-meshes": "bun scripts/generate-block-mesh-manifest.ts",
 		"codegen": "bun --bun graphql-codegen --config codegen.ts",
 		"typecheck": "nuxt typecheck",
 		"test": "bun --bun vitest run",

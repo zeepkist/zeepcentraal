@@ -3,6 +3,13 @@ import type { GhostLevelBlock, GhostVector3 } from '~/types/ghost'
 const MAXIMUM_RENDER_BLOCKS = 20_000
 
 export function parseLevelGeometryBlocks(value: unknown): GhostLevelBlock[] {
+	if (typeof value === 'string') {
+		try {
+			return parseLevelGeometryBlocks(JSON.parse(value))
+		} catch {
+			return []
+		}
+	}
 	if (!Array.isArray(value)) return []
 	return value.slice(0, MAXIMUM_RENDER_BLOCKS).flatMap((entry) => {
 		if (!entry || typeof entry !== 'object') return []

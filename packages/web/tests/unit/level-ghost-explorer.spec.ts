@@ -194,7 +194,11 @@ describe('level bulk ghost rendering', () => {
 	it('reconciles keyed visuals, instances every model, and limits labels', () => {
 		expect(viewer).toContain('planGhostVisualReconciliation(')
 		expect(viewer).toContain('ghostMeshBatch?.configure(descriptors)')
+		expect(viewer).toContain('new GhostLevelMeshRenderer(')
+		expect(viewer).toContain('levelMeshRenderer?.render(props.levelBlocks, grid.origin)')
+		expect(viewer).toContain('config.public.blockMeshBaseUrl')
 		expect(viewer).not.toContain('createLightweightMarker(')
+		expect(viewer).not.toContain('new THREE.BoxGeometry(2, 2, 2)')
 		expect(viewer).toContain('isLabeledGhost(loaded.record.recordId)')
 		expect(viewer).toContain('resolveGhostTrailSampleLimit(')
 		expect(workspace).toContain('return [...ordered, ...remaining].slice(0, 12)')

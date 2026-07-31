@@ -37,4 +37,30 @@ describe('parseLevelGeometryBlocks', () => {
 			},
 		])
 	})
+
+	it('decodes compact level metadata returned as JSON text', () => {
+		expect(
+			parseLevelGeometryBlocks(
+				JSON.stringify([
+					{
+						i: 1490,
+						p: { x: -7.07493, y: 41.3419876, z: 2.953003 },
+						r: { x: 9.04873, y: 357.9862, z: 356.081665 },
+						s: { x: 1, y: 1, z: 1 },
+					},
+				]),
+			),
+		).toEqual([
+			{
+				id: 1490,
+				position: { x: -7.07493, y: 41.3419876, z: 2.953003 },
+				rotation: { x: 9.04873, y: 357.9862, z: 356.081665 },
+				scale: { x: 1, y: 1, z: 1 },
+			},
+		])
+	})
+
+	it('rejects malformed JSON text', () => {
+		expect(parseLevelGeometryBlocks('[not-json')).toEqual([])
+	})
 })
