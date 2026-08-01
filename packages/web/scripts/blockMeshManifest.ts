@@ -63,6 +63,13 @@ export type BlockMeshPaintConflict = {
 	assets: string[]
 }
 
+export type BlockMeshPaintPhysicsError = {
+	paintId: number
+	asset: string
+	physicsGuid: string | null
+	reason: 'missing-reference' | 'unresolved-reference' | 'unsupported-surface'
+}
+
 export type BlockMeshGenerationReport = {
 	blockCount: number
 	partCount: number
@@ -74,6 +81,7 @@ export type BlockMeshGenerationReport = {
 	unresolvedReferences: BlockMeshUnresolvedReference[]
 	invalidControllers: BlockMeshInvalidController[]
 	paintConflicts: BlockMeshPaintConflict[]
+	paintPhysicsErrors: BlockMeshPaintPhysicsError[]
 }
 
 export type GenerateBlockMeshBundleOptions = {
@@ -81,7 +89,6 @@ export type GenerateBlockMeshBundleOptions = {
 	assetMeshDirectory: string
 	glbMeshDirectory: string
 	paintHolderDirectory: string
-	materialDirectory: string
 	outputDirectory: string
 	copyMeshes?: boolean
 }
@@ -154,6 +161,17 @@ const IDENTITY_MATRIX = new THREE.Matrix4()
 const BLOCK_OPTION_CONTROLLER_GUID = 'b4261eb191488cc43931530c16db9ab5'
 const ROAD_PAINTER_GUID = '3527f1b5ed7e63940af875bd424d8b18'
 const MATERIAL_HOLDER_GUID = '6e47a3d5d8751ec41921d7b6a3037763'
+const PHYSICS_SURFACE_COLORS: Readonly<Record<string, [number, number, number]>> = {
+	Tarmac: srgb('#8B929A'),
+	'Ice 0.05': srgb('#D9F4FF'),
+	'Ice 0.10': srgb('#A9DDF5'),
+	'Ice 0.15': srgb('#69B7E8'),
+	Sand: srgb('#E8C77B'),
+	Mud: srgb('#B9825A'),
+	Grass: srgb('#8FCB7B'),
+	Wood: srgb('#C99562'),
+	Soap: srgb('#EAA3BC'),
+}
 
 export async function generateBlockMeshBundle(
 	options: GenerateBlockMeshBundleOptions,
@@ -162,7 +180,7 @@ export async function generateBlockMeshBundle(
 		listFiles(options.gameObjectDirectory, '.prefab'),
 		listFiles(options.assetMeshDirectory, '.asset.meta'),
 		listFiles(options.glbMeshDirectory, '.glb'),
-		loadPaintPalette(options.paintHolderDirectory, options.materialDirectory),
+		loadPaintPalette(options.paintHolderDirectory),
 	])
 	const skippedBadPrefabs = prefabNames.filter((name) => /^BAD/i.test(name))
 	const parsedCandidates = await mapWithConcurrency(
@@ -258,6 +276,7 @@ export async function generateBlockMeshBundle(
 		unresolvedReferences,
 		invalidControllers,
 		paintConflicts: paintPalette.conflicts,
+		paintPhysicsErrors: paintPalette.physicsErrors,
 	}
 
 	await mkdir(options.outputDirectory, { recursive: true })
@@ -791,19 +810,19 @@ function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-async function loadPaintPalette(paintHolderDirectory: string, materialDirectory: string) {
-	const [holderNames, materialMetaNames] = await Promise.all([
+async function loadPaintPalette(paintHolderDirectory: string) {
+	const [holderNames, assetMetaNames] = await Promise.all([
 		listFiles(paintHolderDirectory, '.asset'),
-		listFiles(materialDirectory, '.mat.meta'),
+		listFiles(paintHolderDirectory, '.asset.meta'),
 	])
-	const materialGuidToName = new Map<string, string>()
-	const materialMeta = await mapWithConcurrency(materialMetaNames, 32, async (name) => ({
-		name: name.slice(0, -'.meta'.length),
-		content: await readFile(join(materialDirectory, name), 'utf8'),
+	const physicsGuidToName = new Map<string, string>()
+	const assetMeta = await mapWithConcurrency(assetMetaNames, 32, async (name) => ({
+		name: name.slice(0, -'.asset.meta'.length),
+		content: await readFile(join(paintHolderDirectory, name), 'utf8'),
 	}))
-	for (const { name, content } of materialMeta) {
+	for (const { name, content } of assetMeta) {
 		const guid = content.match(/^guid:\s*([a-f0-9]+)\s*$/m)?.[1]
-		if (guid) materialGuidToName.set(guid, name)
+		if (guid) physicsGuidToName.set(guid, name)
 	}
 	const parsedHolders = await mapWithConcurrency(holderNames, 32, async (asset) => {
 		const body = await readFile(join(paintHolderDirectory, asset), 'utf8')
@@ -816,87 +835,71 @@ async function loadPaintPalette(paintHolderDirectory: string, materialDirectory:
 			asset,
 			paintId,
 			materialGuid: readGuidReference(body, 'material'),
-			splash: readInlineColor(readScalar(body, 'levelEditor_paintSplash')),
-			useActual: readScalar(body, 'useActualMaterialInEditorSplash') === '1',
-			useMaterialColor: readScalar(body, 'useMaterialColorInstead') === '1',
-			useSamplePlusMaterial: readScalar(body, 'useSamplePlusMaterialColor') === '1',
+			physicsGuid: readGuidReference(body, 'physics'),
 		}
 	})
 	const holders = parsedHolders.filter(
 		(holder): holder is NonNullable<typeof holder> => holder !== null,
 	)
-	const referencedMaterialGuids = new Set(
-		holders.flatMap(({ materialGuid }) => (materialGuid ? [materialGuid] : [])),
-	)
-	const materialColors = new Map<string, [number, number, number]>()
-	await mapWithConcurrency([...referencedMaterialGuids], 32, async (guid) => {
-		const name = materialGuidToName.get(guid)
-		if (!name) return
-		const body = await readFile(join(materialDirectory, name), 'utf8')
-		const color = readNamedColor(body, '_Color')
-		if (color) materialColors.set(guid, color)
-	})
 	const colors: Record<string, [number, number, number]> = {}
 	const materialToPaintId = new Map<string, number>()
 	const conflicts: BlockMeshPaintConflict[] = []
+	const physicsErrors: BlockMeshPaintPhysicsError[] = []
 	for (const [paintId, entries] of Map.groupBy(holders, ({ paintId }) => paintId)) {
-		const candidates = entries.map((holder) => ({
-			asset: holder.asset,
-			color: resolvePaintColor(holder, materialColors),
-		}))
-		if (new Set(candidates.map(({ color }) => JSON.stringify(color))).size > 1) {
-			conflicts.push({ paintId, assets: candidates.map(({ asset }) => asset).sort() })
-			continue
+		const surfaces = new Set<string>()
+		for (const holder of entries) {
+			if (!holder.physicsGuid) {
+				physicsErrors.push({
+					paintId,
+					asset: holder.asset,
+					physicsGuid: null,
+					reason: 'missing-reference',
+				})
+				continue
+			}
+			const surface = physicsGuidToName.get(holder.physicsGuid)
+			if (!surface) {
+				physicsErrors.push({
+					paintId,
+					asset: holder.asset,
+					physicsGuid: holder.physicsGuid,
+					reason: 'unresolved-reference',
+				})
+				continue
+			}
+			if (!PHYSICS_SURFACE_COLORS[surface]) {
+				physicsErrors.push({
+					paintId,
+					asset: holder.asset,
+					physicsGuid: holder.physicsGuid,
+					reason: 'unsupported-surface',
+				})
+				continue
+			}
+			surfaces.add(surface)
 		}
-		const color = candidates[0]?.color
-		if (color) colors[String(paintId)] = color
+		if (surfaces.size > 1) {
+			conflicts.push({ paintId, assets: entries.map(({ asset }) => asset).sort() })
+		} else {
+			const surface = surfaces.values().next().value
+			const color = surface ? PHYSICS_SURFACE_COLORS[surface] : undefined
+			if (color) colors[String(paintId)] = color
+		}
 		for (const { materialGuid } of entries) {
 			if (materialGuid && !materialToPaintId.has(materialGuid)) {
 				materialToPaintId.set(materialGuid, paintId)
 			}
 		}
 	}
-	return { colors, materialToPaintId, conflicts }
+	physicsErrors.sort(
+		(left, right) => left.paintId - right.paintId || left.asset.localeCompare(right.asset),
+	)
+	return { colors, materialToPaintId, conflicts, physicsErrors }
 }
 
-function resolvePaintColor(
-	holder: {
-		materialGuid: string | null
-		splash: [number, number, number]
-		useActual: boolean
-		useMaterialColor: boolean
-		useSamplePlusMaterial: boolean
-	},
-	materialColors: ReadonlyMap<string, [number, number, number]>,
-): [number, number, number] {
-	const material = holder.materialGuid ? materialColors.get(holder.materialGuid) : undefined
-	if (!material) return holder.splash
-	if (holder.useActual || holder.useMaterialColor) return material
-	if (holder.useSamplePlusMaterial) {
-		return holder.splash.map((value, index) => roundColor(value * (material[index] ?? 1))) as [
-			number,
-			number,
-			number,
-		]
-	}
-	return holder.splash
-}
-
-function readNamedColor(body: string, name: string): [number, number, number] | null {
-	const match = body.match(new RegExp(`^    - ${escapeRegExp(name)}:\\s*(\\{.*?\\})\\s*$`, 'm'))
-	return match?.[1] ? readInlineColor(match[1]) : null
-}
-
-function readInlineColor(value: string | null): [number, number, number] {
-	return [
-		roundColor(readInlineNumber(value, 'r', 0.65)),
-		roundColor(readInlineNumber(value, 'g', 0.63)),
-		roundColor(readInlineNumber(value, 'b', 0.6)),
-	]
-}
-
-function roundColor(value: number) {
-	return Math.round(Math.min(1, Math.max(0, value)) * 1_000_000) / 1_000_000
+function srgb(hex: `#${string}`): [number, number, number] {
+	const value = Number.parseInt(hex.slice(1), 16)
+	return [((value >> 16) & 0xff) / 255, ((value >> 8) & 0xff) / 255, (value & 0xff) / 255]
 }
 
 async function listFiles(directory: string, suffix: string): Promise<string[]> {

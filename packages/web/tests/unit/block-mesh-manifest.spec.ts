@@ -158,7 +158,6 @@ describe('block mesh manifest generator', () => {
 			assetMeshDirectory: fixture.assetMeshes,
 			glbMeshDirectory: fixture.glbMeshes,
 			paintHolderDirectory: fixture.paintHolders,
-			materialDirectory: fixture.materials,
 			outputDirectory: fixture.output,
 		})
 
@@ -179,9 +178,20 @@ describe('block mesh manifest generator', () => {
 		)
 	})
 
-	it('derives approximate palette colors and renderer default paint IDs', async () => {
+	it('derives all paint colors from physics assets and keeps renderer default paint IDs', async () => {
 		const fixture = await createDirectories()
-		const materialGuid = 'cccccccccccccccccccccccccccccccc'
+		const surfaces = [
+			{ paintId: 0, name: 'Tarmac', hex: '#8B929A' },
+			{ paintId: 1, name: 'Ice 0.05', hex: '#D9F4FF' },
+			{ paintId: 2, name: 'Ice 0.10', hex: '#A9DDF5' },
+			{ paintId: 3, name: 'Ice 0.15', hex: '#69B7E8' },
+			{ paintId: 4, name: 'Sand', hex: '#E8C77B' },
+			{ paintId: 5, name: 'Mud', hex: '#B9825A' },
+			{ paintId: 90, name: 'Grass', hex: '#8FCB7B' },
+			{ paintId: 7, name: 'Wood', hex: '#C99562' },
+			{ paintId: 8, name: 'Soap', hex: '#EAA3BC' },
+		] as const
+		const grassMaterialGuid = fixtureGuid(190)
 		await Promise.all([
 			writeFile(
 				join(fixture.gameObjects, '98 - Painted.prefab'),
@@ -189,19 +199,101 @@ describe('block mesh manifest generator', () => {
 					blockId: 98,
 					name: '98 - Painted',
 					paintable: true,
-					parts: [{ guid: GUID_A, name: 'Painted', materialGuid }],
+					parts: [{ guid: GUID_A, name: 'Painted', materialGuid: grassMaterialGuid }],
 				}),
 			),
 			writeFile(join(fixture.assetMeshes, 'Painted.asset.meta'), `guid: ${GUID_A}\n`),
 			writeFile(join(fixture.glbMeshes, 'Painted.glb'), 'glb'),
+			...surfaces.flatMap(({ paintId, name }, index) => {
+				const physicsGuid = fixtureGuid(index + 1)
+				const materialGuid = name === 'Grass' ? grassMaterialGuid : fixtureGuid(index + 101)
+				return [
+					writeFile(
+						join(fixture.paintHolders, `${paintId} - ${name}.asset`),
+						paintHolder({ paintId, materialGuid, physicsGuid }),
+					),
+					writeFile(
+						join(fixture.paintHolders, `${name}.asset.meta`),
+						`guid: ${physicsGuid}\n`,
+					),
+				]
+			}),
+		])
+
+		const { manifest, report } = await generateBlockMeshBundle({
+			gameObjectDirectory: fixture.gameObjects,
+			assetMeshDirectory: fixture.assetMeshes,
+			glbMeshDirectory: fixture.glbMeshes,
+			paintHolderDirectory: fixture.paintHolders,
+			outputDirectory: fixture.output,
+		})
+
+		expect(manifest.paints).toEqual(
+			Object.fromEntries(surfaces.map(({ paintId, hex }) => [paintId, srgb(hex)])),
+		)
+		expect(manifest.paints['90']).toEqual(srgb('#8FCB7B'))
+		expect(manifest.blocks['98']?.parts[0]?.paint).toEqual({ index: 0, defaultId: 90 })
+		expect(report.paintConflicts).toEqual([])
+		expect(report.paintPhysicsErrors).toEqual([])
+	})
+
+	it('reports missing, unresolved, unsupported, and conflicting paint physics', async () => {
+		const fixture = await createDirectories()
+		const tarmacGuid = fixtureGuid(1)
+		const grassGuid = fixtureGuid(2)
+		const unsupportedGuid = fixtureGuid(3)
+		const unresolvedGuid = fixtureGuid(4)
+		await Promise.all([
+			writeFile(join(fixture.paintHolders, 'Tarmac.asset.meta'), `guid: ${tarmacGuid}\n`),
+			writeFile(join(fixture.paintHolders, 'Grass.asset.meta'), `guid: ${grassGuid}\n`),
+			writeFile(join(fixture.paintHolders, 'Metal.asset.meta'), `guid: ${unsupportedGuid}\n`),
 			writeFile(
-				join(fixture.paintHolders, '403 - Blue.asset'),
-				`--- !u!114 &11400000\nMonoBehaviour:\n  m_Script: {fileID: 11500000, guid: 6e47a3d5d8751ec41921d7b6a3037763, type: 3}\n  materialID: 403\n  material: {fileID: 2100000, guid: ${materialGuid}, type: 2}\n  useActualMaterialInEditorSplash: 1\n  useMaterialColorInstead: 0\n  useSamplePlusMaterialColor: 0\n  levelEditor_paintSplash: {r: 1, g: 0, b: 0, a: 1}\n`,
+				join(fixture.paintHolders, '1 - Same A.asset'),
+				paintHolder({
+					paintId: 1,
+					materialGuid: fixtureGuid(101),
+					physicsGuid: tarmacGuid,
+				}),
 			),
-			writeFile(join(fixture.materials, 'Blue.mat.meta'), `guid: ${materialGuid}\n`),
 			writeFile(
-				join(fixture.materials, 'Blue.mat'),
-				'Material:\n  m_SavedProperties:\n    m_Colors:\n    - _Color: {r: 0.2, g: 0.4, b: 0.6, a: 1}\n',
+				join(fixture.paintHolders, '1 - Same B.asset'),
+				paintHolder({
+					paintId: 1,
+					materialGuid: fixtureGuid(102),
+					physicsGuid: tarmacGuid,
+				}),
+			),
+			writeFile(
+				join(fixture.paintHolders, '2 - Conflict A.asset'),
+				paintHolder({
+					paintId: 2,
+					materialGuid: fixtureGuid(103),
+					physicsGuid: tarmacGuid,
+				}),
+			),
+			writeFile(
+				join(fixture.paintHolders, '2 - Conflict B.asset'),
+				paintHolder({ paintId: 2, materialGuid: fixtureGuid(104), physicsGuid: grassGuid }),
+			),
+			writeFile(
+				join(fixture.paintHolders, '3 - Missing.asset'),
+				paintHolder({ paintId: 3, materialGuid: fixtureGuid(105) }),
+			),
+			writeFile(
+				join(fixture.paintHolders, '4 - Unresolved.asset'),
+				paintHolder({
+					paintId: 4,
+					materialGuid: fixtureGuid(106),
+					physicsGuid: unresolvedGuid,
+				}),
+			),
+			writeFile(
+				join(fixture.paintHolders, '5 - Unsupported.asset'),
+				paintHolder({
+					paintId: 5,
+					materialGuid: fixtureGuid(107),
+					physicsGuid: unsupportedGuid,
+				}),
 			),
 		])
 
@@ -210,13 +302,36 @@ describe('block mesh manifest generator', () => {
 			assetMeshDirectory: fixture.assetMeshes,
 			glbMeshDirectory: fixture.glbMeshes,
 			paintHolderDirectory: fixture.paintHolders,
-			materialDirectory: fixture.materials,
 			outputDirectory: fixture.output,
 		})
 
-		expect(manifest.paints['403']).toEqual([0.2, 0.4, 0.6])
-		expect(manifest.blocks['98']?.parts[0]?.paint).toEqual({ index: 0, defaultId: 403 })
-		expect(report.paintConflicts).toEqual([])
+		expect(manifest.paints).toEqual({ 1: srgb('#8B929A') })
+		expect(report.paintConflicts).toEqual([
+			{
+				paintId: 2,
+				assets: ['2 - Conflict A.asset', '2 - Conflict B.asset'],
+			},
+		])
+		expect(report.paintPhysicsErrors).toEqual([
+			{
+				paintId: 3,
+				asset: '3 - Missing.asset',
+				physicsGuid: null,
+				reason: 'missing-reference',
+			},
+			{
+				paintId: 4,
+				asset: '4 - Unresolved.asset',
+				physicsGuid: unresolvedGuid,
+				reason: 'unresolved-reference',
+			},
+			{
+				paintId: 5,
+				asset: '5 - Unsupported.asset',
+				physicsGuid: unsupportedGuid,
+				reason: 'unsupported-surface',
+			},
+		])
 	})
 
 	it('rejects conflicting duplicate block geometry', async () => {
@@ -241,7 +356,6 @@ describe('block mesh manifest generator', () => {
 			assetMeshDirectory: fixture.assetMeshes,
 			glbMeshDirectory: fixture.glbMeshes,
 			paintHolderDirectory: fixture.paintHolders,
-			materialDirectory: fixture.materials,
 			outputDirectory: fixture.output,
 			copyMeshes: false,
 		})
@@ -339,18 +453,32 @@ async function createDirectories() {
 	const assetMeshes = join(root, 'AssetMeshes')
 	const glbMeshes = join(root, 'GlbMeshes')
 	const paintHolders = join(root, 'PaintHolders')
-	const materials = join(root, 'Materials')
 	const output = join(root, 'Output')
 	await Promise.all([
 		mkdir(gameObjects),
 		mkdir(assetMeshes),
 		mkdir(glbMeshes),
 		mkdir(paintHolders),
-		mkdir(materials),
 	])
-	return { gameObjects, assetMeshes, glbMeshes, paintHolders, materials, output }
+	return { gameObjects, assetMeshes, glbMeshes, paintHolders, output }
 }
 
 function identityMatrix() {
 	return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+}
+
+function paintHolder(options: { paintId: number; materialGuid: string; physicsGuid?: string }) {
+	const physics = options.physicsGuid
+		? `  physics: {fileID: 11400000, guid: ${options.physicsGuid}, type: 2}\n`
+		: ''
+	return `--- !u!114 &11400000\nMonoBehaviour:\n  m_Script: {fileID: 11500000, guid: 6e47a3d5d8751ec41921d7b6a3037763, type: 3}\n  materialID: ${options.paintId}\n  material: {fileID: 2100000, guid: ${options.materialGuid}, type: 2}\n${physics}`
+}
+
+function fixtureGuid(value: number) {
+	return value.toString(16).padStart(32, '0')
+}
+
+function srgb(hex: string) {
+	const value = Number.parseInt(hex.slice(1), 16)
+	return [((value >> 16) & 0xff) / 255, ((value >> 8) & 0xff) / 255, (value & 0xff) / 255]
 }

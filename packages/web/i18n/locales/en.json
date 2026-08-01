@@ -480,7 +480,7 @@
 				"performance": "Performance",
 				"balanced": "Balanced",
 				"qualityHigh": "High quality",
-				"levelGeometry": "Level geometry",
+				"levelGeometry": "Level geometry (Alpha)",
 				"ghostTrails": "Ghost trails",
 				"cache": "Offline ghost cache",
 				"cacheValue": "{entries} ghosts · {size}",
