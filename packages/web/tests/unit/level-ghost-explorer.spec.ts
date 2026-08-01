@@ -107,6 +107,16 @@ describe('level ghost explorer GraphQL', () => {
 		expect(composable).toContain('LEVEL_GHOST_SEARCH_DEBOUNCE_MS = 250')
 		expect(composable).toContain('LEVEL_GHOST_USER_LIMIT = 8')
 	})
+
+	it('loads and renders protected terrain only for authenticated sessions', () => {
+		expect(viewer).toContain(
+			'const canLoadProtectedMeshes = computed(() => session.user !== null)',
+		)
+		expect(viewer).toContain('if (!canLoadProtectedMeshes.value || !props.showLevelGeometry)')
+		expect(viewer).toContain('levelMeshRenderer?.clear()')
+		expect(viewer).toContain('?.loadGhostModels()')
+		expect(viewer).not.toContain('if (!canLoadProtectedMeshes.value) return')
+	})
 })
 
 describe('level ghost selection', () => {
@@ -199,8 +209,10 @@ describe('level bulk ghost rendering', () => {
 		expect(viewer).toContain('planGhostVisualReconciliation(')
 		expect(viewer).toContain('ghostMeshBatch?.configure(descriptors)')
 		expect(viewer).toContain('new GhostLevelMeshRenderer(')
-		expect(viewer).toContain('levelMeshRenderer?.render(props.levelBlocks, grid.origin)')
-		expect(viewer).toContain('config.public.blockMeshBaseUrl')
+		expect(viewer).toContain(
+			'levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin)',
+		)
+		expect(viewer).toContain('new ProtectedMeshLibrary()')
 		expect(viewer).not.toContain('createLightweightMarker(')
 		expect(viewer).not.toContain('new THREE.BoxGeometry(2, 2, 2)')
 		expect(viewer).toContain('isLabeledGhost(loaded.record.recordId)')

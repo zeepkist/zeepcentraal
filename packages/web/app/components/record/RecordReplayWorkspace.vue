@@ -15,6 +15,7 @@
 			v-else-if="active"
 			ref="viewer"
 			:ghosts="ghosts"
+			:level-id="levelId"
 			:level-blocks="levelBlocks"
 			:show-level-geometry="showLevelGeometry"
 			:show-ghost-trails="showGhostTrails"
@@ -94,6 +95,7 @@ import {
 
 const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
+	levelId: number
 	levelBlocks: GhostLevelBlock[]
 	showLevelGeometry?: boolean
 	showGhostTrails?: boolean

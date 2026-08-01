@@ -1,0 +1,153 @@
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { MeshoptDecoder } from 'meshoptimizer/decoder'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+	parseProtectedGhostModelBundle,
+	parseProtectedLevelMeshBundle,
+} from '../../app/utils/protectedMeshLibrary.client'
+import { compileProtectedBlockMeshCorpus } from '../../scripts/protectedBlockMeshCorpus'
+import {
+	buildProtectedGhostModelBundle,
+	buildProtectedLevelMeshBundle,
+	clearProtectedMeshCorpusCaches,
+} from '../../server/utils/protectedMeshCorpus'
+import type { ProtectedMeshCorpusIndex } from '../../shared/protectedMeshFormat'
+
+const temporaryDirectories: string[] = []
+const sourceGuid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+afterEach(async () => {
+	clearProtectedMeshCorpusCaches()
+	await Promise.all(
+		temporaryDirectories
+			.splice(0)
+			.map((directory) => rm(directory, { recursive: true, force: true })),
+	)
+})
+
+describe('protected mesh corpus compiler', () => {
+	it('removes source identifiers and emits only opaque compressed primitive files', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'protected-mesh-corpus-'))
+		temporaryDirectories.push(root)
+		const bundle = join(root, 'bundle')
+		const models = join(root, 'models')
+		const output = join(root, 'output')
+		await Promise.all([mkdir(join(bundle, 'meshes'), { recursive: true }), mkdir(models)])
+		await writeFile(
+			join(bundle, 'manifest.json'),
+			JSON.stringify({
+				version: 1,
+				blocks: {
+					1490: {
+						name: 'HW - Fence Straight 1_3d',
+						parts: [{ mesh: sourceGuid, name: 'Fence', matrix: identity() }],
+					},
+				},
+			}),
+		)
+		await writeFile(join(bundle, 'meshes', `${sourceGuid}.glb`), triangleGlb())
+		await Promise.all(
+			['axle', 'character', 'soapbox', 'spoiler', 'wheel'].map((name) =>
+				writeFile(join(models, `${name}.stl`), triangleStl()),
+			),
+		)
+
+		const report = await compileProtectedBlockMeshCorpus({
+			bundleDirectory: bundle,
+			ghostModelDirectory: models,
+			outputDirectory: output,
+		})
+		const index = JSON.parse(
+			await readFile(join(output, 'index.json'), 'utf8'),
+		) as ProtectedMeshCorpusIndex
+		const files = await readdir(join(output, 'meshes'))
+		const meshFile = index.blocks['1490']?.parts[0]?.mesh
+
+		expect(report).toMatchObject({ blockCount: 1, meshCount: 1, primitiveCount: 1 })
+		expect(meshFile).toMatch(/^[a-f0-9]{32}\.zcp$/)
+		expect(files).toContain(meshFile)
+		expect(JSON.stringify(index)).not.toContain(sourceGuid)
+		expect(JSON.stringify(index)).not.toContain('Fence')
+		const payload = await readFile(join(output, 'meshes', meshFile as string))
+		expect(payload.subarray(0, 4).toString('ascii')).toBe('ZCMP')
+		expect(payload.includes(Buffer.from('glTF'))).toBe(false)
+
+		const [levelBytes, ghostModelBytes] = await Promise.all([
+			buildProtectedLevelMeshBundle(output, [
+				{
+					id: 1490,
+					position: { x: 0, y: 0, z: 0 },
+					rotation: { x: 0, y: 0, z: 0 },
+					scale: { x: 1, y: 1, z: 1 },
+				},
+			]),
+			buildProtectedGhostModelBundle(output),
+		])
+		await MeshoptDecoder.ready
+		const levelBundle = parseProtectedLevelMeshBundle(levelBytes)
+		const ghostModels = parseProtectedGhostModelBundle(ghostModelBytes)
+		expect(levelBundle.groups).toHaveLength(1)
+		expect(ghostModels.body.getAttribute('position').count).toBeGreaterThan(0)
+		expect(() => parseProtectedGhostModelBundle(levelBytes)).toThrow(
+			'Ghost model bundle contains level geometry',
+		)
+	})
+})
+
+function triangleGlb() {
+	const binary = new Uint8Array(80)
+	const positions = new Float32Array(binary.buffer, 0, 9)
+	positions.set([0, 0, 0, 1, 0, 0, 0, 1, 0])
+	const normals = new Float32Array(binary.buffer, 36, 9)
+	normals.set([0, 0, 1, 0, 0, 1, 0, 0, 1])
+	new Uint16Array(binary.buffer, 72, 3).set([0, 1, 2])
+	const json = {
+		asset: { version: '2.0' },
+		buffers: [{ byteLength: binary.byteLength }],
+		bufferViews: [
+			{ buffer: 0, byteOffset: 0, byteLength: 36 },
+			{ buffer: 0, byteOffset: 36, byteLength: 36 },
+			{ buffer: 0, byteOffset: 72, byteLength: 6 },
+		],
+		accessors: [
+			{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3' },
+			{ bufferView: 1, componentType: 5126, count: 3, type: 'VEC3' },
+			{ bufferView: 2, componentType: 5123, count: 3, type: 'SCALAR' },
+		],
+		meshes: [{ primitives: [{ attributes: { POSITION: 0, NORMAL: 1 }, indices: 2 }] }],
+		nodes: [{ mesh: 0 }],
+		scenes: [{ nodes: [0] }],
+		scene: 0,
+	}
+	const jsonSource = Buffer.from(JSON.stringify(json))
+	const jsonLength = Math.ceil(jsonSource.byteLength / 4) * 4
+	const result = Buffer.alloc(12 + 8 + jsonLength + 8 + binary.byteLength, 0x20)
+	result.writeUInt32LE(0x46546c67, 0)
+	result.writeUInt32LE(2, 4)
+	result.writeUInt32LE(result.byteLength, 8)
+	result.writeUInt32LE(jsonLength, 12)
+	result.writeUInt32LE(0x4e4f534a, 16)
+	jsonSource.copy(result, 20)
+	const binaryHeader = 20 + jsonLength
+	result.writeUInt32LE(binary.byteLength, binaryHeader)
+	result.writeUInt32LE(0x004e4942, binaryHeader + 4)
+	result.set(binary, binaryHeader + 8)
+	return result
+}
+
+function triangleStl() {
+	const result = Buffer.alloc(84 + 50)
+	result.writeUInt32LE(1, 80)
+	let offset = 84
+	for (const value of [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]) {
+		result.writeFloatLE(value, offset)
+		offset += 4
+	}
+	return result
+}
+
+function identity() {
+	return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+}

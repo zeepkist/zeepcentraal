@@ -1,113 +1,188 @@
-import * as THREE from 'three'
+import { MeshoptEncoder } from 'meshoptimizer/encoder'
 import { describe, expect, it, vi } from 'vitest'
-import { BlockMeshLibrary, type BlockMeshManifest } from '../../app/utils/blockMeshLibrary.client'
+import {
+	ProtectedMeshLibrary,
+	parseProtectedGhostModelBundle,
+	parseProtectedLevelMeshBundle,
+} from '../../app/utils/protectedMeshLibrary.client'
+import {
+	GHOST_MODEL_SLOTS,
+	PROTECTED_MESH_BUNDLE_MAGIC,
+	PROTECTED_MESH_BUNDLE_VERSION,
+	PROTECTED_MESH_PRIMITIVE_MAGIC,
+	PROTECTED_MESH_PRIMITIVE_VERSION,
+} from '../../shared/protectedMeshFormat'
 
-const manifest: BlockMeshManifest = {
-	version: 1,
-	blocks: {
-		1490: {
-			name: 'HW - Fence Straight 1_3d',
-			parts: [
-				{
-					mesh: 'fence-guid',
-					name: 'Fence',
-					matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-				},
-			],
-		},
-	},
-}
+const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
 
-describe('BlockMeshLibrary', () => {
-	it('caches manifest and GLB requests while preserving shared geometry matrices', async () => {
-		let manifestRequests = 0
-		let meshRequests = 0
-		const geometry = new THREE.BoxGeometry(1, 1, 1)
-		const scene = new THREE.Group()
-		const child = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial())
-		child.position.set(2, 3, 4)
-		scene.add(child)
-		const library = new BlockMeshLibrary({
-			baseUrl: 'https://meshes.example.test/',
-			fetch: async () => {
-				manifestRequests += 1
-				return new Response(JSON.stringify(manifest), { status: 200 })
-			},
-			loader: {
-				loadAsync: async () => {
-					meshRequests += 1
-					return { scene } as never
-				},
+describe('ProtectedMeshLibrary', () => {
+	it('loads authenticated terrain and anonymous soapbox models once each', async () => {
+		await MeshoptEncoder.ready
+		const requests = new Map<string, number>()
+		const library = new ProtectedMeshLibrary({
+			fetch: async (url, init) => {
+				const path = String(url)
+				requests.set(path, (requests.get(path) ?? 0) + 1)
+				if (path === '/api/ghost-playback-models') {
+					expect(init).toMatchObject({ credentials: 'omit' })
+					return new Response(fixtureGhostModelBundle(), { status: 200 })
+				}
+				expect(path).toBe('/api/ghost-playback-assets/1490')
+				expect(init).toMatchObject({ credentials: 'include' })
+				return new Response(fixtureLevelBundle(), { status: 200 })
 			},
 		})
 
-		expect((await library.getDefinition(1490))?.name).toBe('HW - Fence Straight 1_3d')
-		expect(await library.getDefinition(9999)).toBeNull()
-		const [first, second] = await Promise.all([
-			library.loadMesh('fence-guid'),
-			library.loadMesh('fence-guid'),
+		const [first, second, ghostModels, repeatedGhostModels] = await Promise.all([
+			library.load(1490),
+			library.load(1490),
+			library.loadGhostModels(),
+			library.loadGhostModels(),
 		])
 
-		expect(manifestRequests).toBe(1)
-		expect(meshRequests).toBe(1)
+		expect(requests).toEqual(
+			new Map([
+				['/api/ghost-playback-assets/1490', 1],
+				['/api/ghost-playback-models', 1],
+			]),
+		)
 		expect(first).toBe(second)
-		expect(first[0]?.geometry).toBe(geometry)
-		expect(first[0]?.matrix.elements.slice(12, 15)).toEqual([2, 3, 4])
+		expect(ghostModels).toBe(repeatedGhostModels)
+		expect(first.groups).toHaveLength(1)
+		expect(first.groups[0]?.matrices).toHaveLength(1)
+		expect(first.fallbackMatrices).toHaveLength(1)
+		expect(first.groups[0]?.primitives[0]?.geometry.getAttribute('position').count).toBe(3)
+		expect(ghostModels.body.getAttribute('position').count).toBe(3)
 		library.dispose()
 	})
 
-	it('bounds parallel loading and isolates failures', async () => {
-		let active = 0
-		let maximumActive = 0
+	it('reports failures, permits login retry, and rejects malformed bundles', async () => {
+		await MeshoptEncoder.ready
 		const reportFallback = vi.fn()
-		const library = new BlockMeshLibrary({
-			baseUrl: '/assets/block-meshes',
-			concurrency: 2,
-			reportFallback,
-			fetch: async () => new Response(JSON.stringify(manifest), { status: 200 }),
-			loader: {
-				loadAsync: async (url) => {
-					active += 1
-					maximumActive = Math.max(maximumActive, active)
-					await Promise.resolve()
-					active -= 1
-					if (url.includes('broken')) throw new Error('broken GLB')
-					return {
-						scene: new THREE.Mesh(
-							new THREE.BoxGeometry(),
-							new THREE.MeshBasicMaterial(),
-						),
-					} as never
-				},
+		let attempts = 0
+		const library = new ProtectedMeshLibrary({
+			fetch: async () => {
+				attempts += 1
+				return attempts === 1
+					? new Response('', { status: 401 })
+					: new Response(fixtureLevelBundle(), { status: 200 })
 			},
+			reportFallback,
 		})
 
-		const result = await library.loadMeshes(['one', 'two', 'broken', 'three'])
-
-		expect(maximumActive).toBe(2)
-		expect([...result.meshes.keys()].sort()).toEqual(['one', 'three', 'two'])
-		expect([...result.failed]).toEqual(['broken'])
-		expect(reportFallback).toHaveBeenCalledWith({
-			kind: 'mesh',
-			mesh: 'broken',
-			error: expect.any(Error),
-		})
+		await expect(library.load(1)).rejects.toThrow('Protected mesh request failed: 401')
+		await expect(library.load(1)).resolves.toMatchObject({ groups: [{ matrices: [{}] }] })
+		expect(attempts).toBe(2)
+		expect(reportFallback).toHaveBeenCalledOnce()
+		expect(() => parseProtectedLevelMeshBundle(new Uint8Array(52))).toThrow(
+			'Invalid mesh bundle magic',
+		)
+		expect(() => parseProtectedGhostModelBundle(fixtureLevelBundle())).toThrow(
+			'Ghost model bundle contains level geometry',
+		)
 		library.dispose()
-	})
-
-	it('keeps box rendering available when base URL is empty or manifest fails', async () => {
-		const unconfigured = new BlockMeshLibrary({ baseUrl: '' })
-		await expect(unconfigured.getManifest()).rejects.toThrow(
-			'Block mesh base URL is not configured',
-		)
-
-		const unavailable = new BlockMeshLibrary({
-			baseUrl: '/assets/block-meshes',
-			fetch: async () => new Response('', { status: 503 }),
-			reportFallback: vi.fn(),
-		})
-		await expect(unavailable.getManifest()).rejects.toThrow(
-			'Block mesh manifest request failed: 503',
-		)
 	})
 })
+
+function fixtureLevelBundle() {
+	return fixtureBundle(true, false)
+}
+
+function fixtureGhostModelBundle() {
+	return fixtureBundle(false, true)
+}
+
+function fixtureBundle(includeLevel: boolean, includeCommon: boolean) {
+	const primitive = fixturePrimitive()
+	const headerSize = 52
+	const groupSize = includeLevel ? 8 + primitive.byteLength + 64 : 0
+	const fallbackSize = includeLevel ? 64 : 0
+	const commonEntries = includeCommon ? Object.values(GHOST_MODEL_SLOTS) : []
+	const commonSize = commonEntries.length * (8 + primitive.byteLength)
+	const bytes = new Uint8Array(headerSize + groupSize + fallbackSize + commonSize)
+	const view = new DataView(bytes.buffer)
+	let offset = 0
+	view.setUint32(offset, PROTECTED_MESH_BUNDLE_MAGIC, true)
+	offset += 4
+	view.setUint16(offset, PROTECTED_MESH_BUNDLE_VERSION, true)
+	offset += 4 + 32
+	view.setUint32(offset, includeLevel ? 1 : 0, true)
+	view.setUint32(offset + 4, includeLevel ? 1 : 0, true)
+	view.setUint32(offset + 8, commonEntries.length, true)
+	offset += 12
+	if (includeLevel) {
+		view.setUint32(offset, primitive.byteLength, true)
+		view.setUint32(offset + 4, 1, true)
+		offset += 8
+		bytes.set(primitive, offset)
+		offset += primitive.byteLength
+		offset = writeMatrix(view, offset)
+		offset = writeMatrix(view, offset)
+	}
+	for (const slot of commonEntries) {
+		view.setUint8(offset, slot)
+		view.setUint32(offset + 4, primitive.byteLength, true)
+		offset += 8
+		bytes.set(primitive, offset)
+		offset += primitive.byteLength
+	}
+	return bytes
+}
+
+function fixturePrimitive() {
+	const positions = new Uint16Array([0, 0, 0, 0, 65_535, 0, 0, 0, 0, 65_535, 0, 0])
+	const normals = new Float32Array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1])
+	const octahedral = MeshoptEncoder.encodeFilterOct(normals, 3, 8, 16)
+	const encodedPositions = MeshoptEncoder.encodeVertexBuffer(
+		new Uint8Array(positions.buffer),
+		3,
+		8,
+	)
+	const encodedNormals = MeshoptEncoder.encodeVertexBuffer(octahedral, 3, 8)
+	const indices = new Uint16Array([0, 1, 2])
+	const encodedIndices = MeshoptEncoder.encodeIndexBuffer(new Uint8Array(indices.buffer), 3, 2)
+	const headerSize = 8 + 64 + 20 + 4 + 24
+	const bytes = new Uint8Array(
+		headerSize +
+			encodedPositions.byteLength +
+			encodedNormals.byteLength +
+			encodedIndices.byteLength,
+	)
+	const view = new DataView(bytes.buffer)
+	let offset = 0
+	view.setUint32(offset, PROTECTED_MESH_PRIMITIVE_MAGIC, true)
+	view.setUint16(offset + 4, PROTECTED_MESH_PRIMITIVE_VERSION, true)
+	view.setUint16(offset + 6, 1, true)
+	offset = 8
+	offset = writeMatrix(view, offset)
+	for (const value of [
+		3,
+		3,
+		encodedPositions.byteLength,
+		encodedNormals.byteLength,
+		encodedIndices.byteLength,
+	]) {
+		view.setUint32(offset, value, true)
+		offset += 4
+	}
+	view.setUint8(offset, 2)
+	offset += 4
+	for (const value of [0, 0, 0, 1, 1, 0]) {
+		view.setFloat32(offset, value, true)
+		offset += 4
+	}
+	for (const payload of [encodedPositions, encodedNormals, encodedIndices]) {
+		bytes.set(payload, offset)
+		offset += payload.byteLength
+	}
+	return bytes
+}
+
+function writeMatrix(view: DataView, offset: number) {
+	let cursor = offset
+	for (const value of identity) {
+		view.setFloat32(cursor, value, true)
+		cursor += 4
+	}
+	return cursor
+}

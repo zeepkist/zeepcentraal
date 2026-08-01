@@ -9,7 +9,11 @@
 			<UBadge color="neutral" variant="soft">
 				{{ labels.frameRate(currentFrameRate, frameRate) }}
 			</UBadge>
-			<UBadge v-if="showLevelGeometry && levelBlocks.length" color="neutral" variant="soft">
+			<UBadge
+				v-if="canLoadProtectedMeshes && showLevelGeometry && levelBlocks.length"
+				color="neutral"
+				variant="soft"
+			>
 				{{ labels.approximateGeometry }}
 			</UBadge>
 		</div>
@@ -70,7 +74,7 @@ import {
 	sampleGhostTrailFrames,
 } from '~/utils/ghostScene'
 import { resolveGhostWheelColor } from '~/utils/ghostSoapbox'
-import { loadGhostSoapboxGeometries } from '~/utils/ghostSoapboxModel.client'
+import { ProtectedMeshLibrary } from '~/utils/protectedMeshLibrary.client'
 
 type RenderQuality = 'performance' | 'balanced' | 'quality'
 
@@ -89,6 +93,7 @@ type GhostVisual = {
 
 const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
+	levelId: number
 	levelBlocks: GhostLevelBlock[]
 	showLevelGeometry?: boolean
 	showGhostTrails?: boolean
@@ -128,7 +133,8 @@ const emit = defineEmits<{
 	'update:following': [value: boolean]
 }>()
 
-const config = useRuntimeConfig()
+const session = useSessionStore()
+const canLoadProtectedMeshes = computed(() => session.user !== null)
 const container = useTemplateRef('container')
 const canvasHost = useTemplateRef('canvasHost')
 const labelHost = useTemplateRef('labelHost')
@@ -153,6 +159,7 @@ let grid: GhostGridModel | null = null
 let visuals = new Map<number, GhostVisual>()
 let ghostMeshBatch: GhostMeshBatchRenderer | null = null
 let levelMeshRenderer: GhostLevelMeshRenderer | null = null
+let protectedMeshLibrary: ProtectedMeshLibrary | null = null
 let viewerMounted = false
 let orthographicVertical = 45
 const isometricCameraDirection = new THREE.Vector3(1, 1, 1).normalize()
@@ -168,13 +175,7 @@ onMounted(() => {
 	if (!createScene()) return
 	createGhosts()
 	animationFrame = requestAnimationFrame(renderLoop)
-	void loadGhostSoapboxGeometries()
-		.then((geometries) => {
-			if (!viewerMounted) return
-			ghostMeshBatch?.setModelGeometries(geometries)
-			updateGhosts()
-		})
-		.catch(() => undefined)
+	loadProtectedGhostModels()
 })
 
 watch(
@@ -213,6 +214,23 @@ watch(
 		if (props.bulkMode) refreshBulkTrails()
 	},
 )
+
+watch(
+	() => props.levelId,
+	() => {
+		createLevelGeometry()
+		loadProtectedGhostModels()
+	},
+)
+
+watch(canLoadProtectedMeshes, (canLoad) => {
+	if (!canLoad) {
+		levelMeshRenderer?.clear()
+		return
+	}
+	createLevelGeometry()
+	loadProtectedGhostModels()
+})
 
 watch(
 	() => props.levelBlocks,
@@ -282,10 +300,11 @@ function createScene() {
 	labelRenderer.setSize(host.clientWidth, host.clientHeight)
 
 	scene = new THREE.Scene()
+	protectedMeshLibrary = new ProtectedMeshLibrary()
 	ghostMeshBatch = new GhostMeshBatchRenderer(scene)
 	levelMeshRenderer = new GhostLevelMeshRenderer(
 		scene,
-		{ baseUrl: String(config.public.blockMeshBaseUrl ?? '') },
+		{ library: protectedMeshLibrary },
 		resolveCssColor('--ui-text-muted', '#a8a29e'),
 	)
 	orbitFog = new THREE.Fog(resolveCssColor('--ui-bg', '#0c0a09'), 350, 1_500)
@@ -514,12 +533,23 @@ function visualRevision(loaded: LoadedPlaybackGhost) {
 }
 
 function createLevelGeometry() {
-	if (!props.showLevelGeometry) {
+	if (!canLoadProtectedMeshes.value || !props.showLevelGeometry) {
 		levelMeshRenderer?.clear()
 		return
 	}
 	if (!grid) return
-	void levelMeshRenderer?.render(props.levelBlocks, grid.origin)
+	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin)
+}
+
+function loadProtectedGhostModels() {
+	void protectedMeshLibrary
+		?.loadGhostModels()
+		.then((ghostModels) => {
+			if (!viewerMounted) return
+			ghostMeshBatch?.setModelGeometries(ghostModels)
+			updateGhosts()
+		})
+		.catch(() => undefined)
 }
 
 function syncGhostTrailVisibility() {
@@ -853,6 +883,8 @@ function disposeScene() {
 	ghostMeshBatch = null
 	levelMeshRenderer?.dispose()
 	levelMeshRenderer = null
+	protectedMeshLibrary?.dispose()
+	protectedMeshLibrary = null
 	if (scene) scene.traverse(disposeObject)
 	renderer?.domElement.removeEventListener('webglcontextlost', onContextLost)
 	renderer?.domElement.removeEventListener('webglcontextrestored', onContextRestored)

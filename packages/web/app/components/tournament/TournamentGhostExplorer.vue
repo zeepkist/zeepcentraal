@@ -19,6 +19,7 @@
 			<ClientOnly>
 				<LazyRecordReplayWorkspace
 					:ghosts="playback.loaded.value"
+					:level-id="levelId"
 					:level-blocks="geometry.blocks.value"
 					:show-level-geometry="performance.preferences.value.showLevelGeometry"
 					:show-ghost-trails="performance.preferences.value.showGhostTrails"

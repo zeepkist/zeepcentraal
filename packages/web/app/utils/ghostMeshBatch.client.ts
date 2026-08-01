@@ -1,11 +1,12 @@
 import * as THREE from 'three'
 import {
+	GHOST_SOAPBOX_GROUND_LIFT_WHEEL_FACTOR,
 	GHOST_SOAPBOX_SCALE,
 	GHOST_SOAPBOX_WHEEL_LAYOUT,
 	GHOST_WHEEL_COLORS,
 	isGhostWheelPresent,
 } from '~/utils/ghostSoapbox'
-import type { GhostSoapboxGeometries } from '~/utils/ghostSoapboxModel.client'
+import type { GhostSoapboxGeometries } from '~/utils/protectedMeshLibrary.client'
 
 type GhostOpacityTier = 'regular' | 'world-record'
 
@@ -74,11 +75,6 @@ const TIER_OPACITY = {
 } as const
 
 const HIDDEN_MATRIX = new THREE.Matrix4().makeScale(0, 0, 0)
-const MODEL_ROOT_MATRIX = new THREE.Matrix4().compose(
-	new THREE.Vector3(),
-	new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI),
-	new THREE.Vector3(GHOST_SOAPBOX_SCALE, GHOST_SOAPBOX_SCALE, GHOST_SOAPBOX_SCALE),
-)
 const FALLBACK_LOCAL_MATRIX = new THREE.Matrix4().makeTranslation(0, 0.55, 0)
 const PARAGLIDER_LOCAL_MATRIX = new THREE.Matrix4().compose(
 	new THREE.Vector3(0, 3.8, 0),
@@ -122,6 +118,7 @@ export class GhostMeshBatchRenderer {
 	}
 	private readonly scratchMatrix = new THREE.Matrix4()
 	private readonly scratchModelMatrix = new THREE.Matrix4()
+	private readonly modelRootMatrix = createModelRootMatrix(0)
 	private geometries: GhostSoapboxGeometries | null = null
 	private globalModelPool: GlobalModelPool | null = null
 	private descriptors: GhostMeshDescriptor[] = []
@@ -165,6 +162,9 @@ export class GhostMeshBatchRenderer {
 
 	setModelGeometries(geometries: GhostSoapboxGeometries) {
 		this.geometries = geometries
+		if (!geometries.wheel.boundingBox) geometries.wheel.computeBoundingBox()
+		const wheelHeight = geometries.wheel.boundingBox?.getSize(new THREE.Vector3()).y ?? 0
+		this.modelRootMatrix.copy(createModelRootMatrix(wheelHeight))
 		this.configure(this.descriptors)
 	}
 
@@ -189,7 +189,7 @@ export class GhostMeshBatchRenderer {
 		const tierPool = this.tierModelPools.get(slot.tier)
 		const globalPool = this.globalModelPool
 		if (!tierPool || !globalPool) return
-		this.scratchModelMatrix.multiplyMatrices(state.worldMatrix, MODEL_ROOT_MATRIX)
+		this.scratchModelMatrix.multiplyMatrices(state.worldMatrix, this.modelRootMatrix)
 		const modelMatrix = state.ragdoll ? HIDDEN_MATRIX : this.scratchModelMatrix
 		tierPool.body.setMatrixAt(slot.tierIndex, modelMatrix)
 		tierPool.axles.setMatrixAt(slot.tierIndex, modelMatrix)
@@ -531,6 +531,15 @@ function nextCapacity(count: number) {
 	let capacity = 1
 	while (capacity < count) capacity *= 2
 	return capacity
+}
+
+function createModelRootMatrix(wheelHeight: number) {
+	const groundLift = wheelHeight * GHOST_SOAPBOX_SCALE * GHOST_SOAPBOX_GROUND_LIFT_WHEEL_FACTOR
+	return new THREE.Matrix4().compose(
+		new THREE.Vector3(0, groundLift, 0),
+		new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI),
+		new THREE.Vector3(GHOST_SOAPBOX_SCALE, GHOST_SOAPBOX_SCALE, GHOST_SOAPBOX_SCALE),
+	)
 }
 
 function createStandardMaterial(

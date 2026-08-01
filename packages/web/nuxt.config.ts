@@ -81,6 +81,7 @@ export default defineNuxtConfig({
 		},
 	},
 	runtimeConfig: {
+		blockMeshCorpusPath: process.env.NUXT_BLOCK_MESH_CORPUS_PATH ?? '',
 		githubToken: process.env.NUXT_GITHUB_TOKEN ?? '',
 		modioApiKey: process.env.NUXT_MODIO_API_KEY ?? '',
 		modioApiEndpoint: process.env.NUXT_MODIO_API_ENDPOINT ?? 'https://api.mod.io/',
@@ -89,7 +90,6 @@ export default defineNuxtConfig({
 			graphqlWsUrl: process.env.NUXT_PUBLIC_GRAPHQL_WS_URL ?? productionGraphqlWsUrl,
 			backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL ?? productionBackendUrl,
 			ghostCdnOrigins: process.env.NUXT_PUBLIC_GHOST_CDN_ORIGINS ?? 'https://cdn.zeepki.st',
-			blockMeshBaseUrl: process.env.NUXT_PUBLIC_BLOCK_MESH_BASE_URL ?? '',
 		},
 	},
 	image: {

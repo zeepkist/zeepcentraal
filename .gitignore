@@ -10,5 +10,5 @@ packages/web/.data/
 packages/web/.nuxt/
 packages/web/.output/
 packages/web/test-results/
-packages/web/public/assets/block-meshes/
+packages/web/.data/block-meshes/
 zeepcentraal-web/
