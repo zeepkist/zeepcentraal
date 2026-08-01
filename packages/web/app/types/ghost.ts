@@ -144,6 +144,8 @@ export type GhostLevelBlock = {
 	position: GhostVector3
 	rotation: GhostVector3
 	scale: GhostVector3
+	attributes: Record<number, number>
+	paints: Record<number, number>
 }
 
 export type GhostEventKind =

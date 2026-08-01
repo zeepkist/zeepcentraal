@@ -16,11 +16,18 @@ try {
 			gameObjectDirectory: options.gameObjectDirectory as string,
 			assetMeshDirectory: options.assetMeshDirectory as string,
 			glbMeshDirectory: options.glbMeshDirectory as string,
+			paintHolderDirectory: options.paintHolderDirectory as string,
+			materialDirectory: options.materialDirectory as string,
 			outputDirectory: bundleDirectory,
 		})
-		if (report.conflicts.length > 0 || report.unresolvedReferences.length > 0) {
+		if (
+			report.conflicts.length > 0 ||
+			report.unresolvedReferences.length > 0 ||
+			report.invalidControllers.length > 0 ||
+			report.paintConflicts.length > 0
+		) {
 			throw new Error(
-				`Block mesh export incomplete: ${report.conflicts.length} conflicts, ${report.unresolvedReferences.length} unresolved references.`,
+				`Block mesh export incomplete: ${report.conflicts.length} conflicts, ${report.unresolvedReferences.length} unresolved references, ${report.invalidControllers.length} invalid controllers, ${report.paintConflicts.length} paint conflicts.`,
 			)
 		}
 	}
@@ -53,7 +60,16 @@ function parseArguments(args: string[]) {
 	const gameObjectDirectory = values.get('--game-objects')
 	const assetMeshDirectory = values.get('--asset-meshes')
 	const glbMeshDirectory = values.get('--glb-meshes')
-	if (!bundleDirectory && (!gameObjectDirectory || !assetMeshDirectory || !glbMeshDirectory)) {
+	const paintHolderDirectory = values.get('--paint-holders')
+	const materialDirectory = values.get('--materials')
+	if (
+		!bundleDirectory &&
+		(!gameObjectDirectory ||
+			!assetMeshDirectory ||
+			!glbMeshDirectory ||
+			!paintHolderDirectory ||
+			!materialDirectory)
+	) {
 		throw new Error(usage())
 	}
 	return {
@@ -61,11 +77,13 @@ function parseArguments(args: string[]) {
 		gameObjectDirectory,
 		assetMeshDirectory,
 		glbMeshDirectory,
+		paintHolderDirectory,
+		materialDirectory,
 		ghostModelDirectory,
 		outputDirectory,
 	}
 }
 
 function usage() {
-	return 'Usage: bun scripts/generate-block-mesh-manifest.ts (--bundle <existing-bundle> | --game-objects <v17_2/GameObject> --asset-meshes <v17_2/Mesh> --glb-meshes <v17_3/Mesh>) --ghost-models <models> --out <private-corpus>'
+	return 'Usage: bun scripts/generate-block-mesh-manifest.ts (--bundle <v2-bundle> | --game-objects <v17_2/GameObject> --asset-meshes <v17_2/Mesh> --glb-meshes <v17_3/Mesh> --paint-holders <v17_2/MonoBehaviour> --materials <v17_2/Material>) --ghost-models <models> --out <private-corpus>'
 }

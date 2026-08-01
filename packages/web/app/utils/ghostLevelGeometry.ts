@@ -1,6 +1,7 @@
 import type { GhostLevelBlock, GhostVector3 } from '~/types/ghost'
 
 const MAXIMUM_RENDER_BLOCKS = 20_000
+const MAXIMUM_OPTION_INDEX = 255
 
 export function parseLevelGeometryBlocks(value: unknown): GhostLevelBlock[] {
 	if (typeof value === 'string') {
@@ -14,6 +15,7 @@ export function parseLevelGeometryBlocks(value: unknown): GhostLevelBlock[] {
 	return value.slice(0, MAXIMUM_RENDER_BLOCKS).flatMap((entry) => {
 		if (!entry || typeof entry !== 'object') return []
 		const block = entry as Record<string, unknown>
+		const numericOptions = nested(block, 'd', 'n')
 		const position = readVector(
 			block.Position ?? block.position ?? block.p ?? nested(block, 'd', 'p'),
 		)
@@ -32,9 +34,34 @@ export function parseLevelGeometryBlocks(value: unknown): GhostLevelBlock[] {
 				scale: readVector(
 					block.Scale ?? block.scale ?? block.s ?? nested(block, 'd', 's'),
 				) ?? { x: 1, y: 1, z: 1 },
+				attributes: readIndexedOptions(numericOptions, 'a'),
+				paints: readIndexedOptions(numericOptions, 'p'),
 			},
 		]
 	})
+}
+
+function readIndexedOptions(value: unknown, prefix: 'a' | 'p'): Record<number, number> {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+	const options: Array<[number, number]> = []
+	for (const [key, rawValue] of Object.entries(value)) {
+		const match = key.match(new RegExp(`^${prefix}(\\d+)$`))
+		if (!match) continue
+		const index = Number(match[1])
+		const option = readNumber(rawValue)
+		if (
+			!Number.isSafeInteger(index) ||
+			index < 0 ||
+			index > MAXIMUM_OPTION_INDEX ||
+			option === null ||
+			!Number.isSafeInteger(option)
+		) {
+			continue
+		}
+		options.push([index, option])
+	}
+	options.sort(([left], [right]) => left - right)
+	return Object.fromEntries(options)
 }
 
 function nested(value: Record<string, unknown>, first: string, second: string): unknown {

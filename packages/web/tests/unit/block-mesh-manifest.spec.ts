@@ -11,6 +11,7 @@ const temporaryDirectories: string[] = []
 type FixturePart = {
 	guid: string
 	name: string
+	materialGuid?: string
 	position?: { x: number; y: number; z: number }
 	parentPart?: number
 	active?: boolean
@@ -76,6 +77,36 @@ describe('block mesh manifest generator', () => {
 		expect(candidate?.skippedBuiltInMeshCount).toBe(1)
 	})
 
+	it('includes inactive controlled variants and maps attribute and paint slots', () => {
+		const materialGuid = 'cccccccccccccccccccccccccccccccc'
+		const candidate = parseBlockPrefab(
+			prefab({
+				blockId: 98,
+				name: '98 - Variants',
+				optionMode: 2,
+				paintable: true,
+				parts: [
+					{ guid: GUID_A, name: 'Small', materialGuid },
+					{ guid: GUID_B, name: 'Large', materialGuid, active: false },
+				],
+			}),
+			'98 - Variants.prefab',
+			new Map([[materialGuid, 403]]),
+		)
+
+		expect(candidate?.optionMode).toBe(2)
+		expect(candidate?.invalidControllerReasons).toEqual([])
+		expect(candidate?.parts).toHaveLength(2)
+		expect(candidate?.parts.find(({ name }) => name === 'Small')).toMatchObject({
+			attribute: { index: 0, defaultVisible: true },
+			paint: { index: 0, defaultId: 403 },
+		})
+		expect(candidate?.parts.find(({ name }) => name === 'Large')).toMatchObject({
+			attribute: { index: 1, defaultVisible: false },
+			paint: { index: 1, defaultId: 403 },
+		})
+	})
+
 	it('copies shared meshes once, collapses matching duplicates, and reports bad and unresolved data', async () => {
 		const fixture = await createDirectories()
 		await Promise.all([
@@ -126,6 +157,8 @@ describe('block mesh manifest generator', () => {
 			gameObjectDirectory: fixture.gameObjects,
 			assetMeshDirectory: fixture.assetMeshes,
 			glbMeshDirectory: fixture.glbMeshes,
+			paintHolderDirectory: fixture.paintHolders,
+			materialDirectory: fixture.materials,
 			outputDirectory: fixture.output,
 		})
 
@@ -144,6 +177,46 @@ describe('block mesh manifest generator', () => {
 		expect(JSON.parse(await readFile(join(fixture.output, 'manifest.json'), 'utf8'))).toEqual(
 			manifest,
 		)
+	})
+
+	it('derives approximate palette colors and renderer default paint IDs', async () => {
+		const fixture = await createDirectories()
+		const materialGuid = 'cccccccccccccccccccccccccccccccc'
+		await Promise.all([
+			writeFile(
+				join(fixture.gameObjects, '98 - Painted.prefab'),
+				prefab({
+					blockId: 98,
+					name: '98 - Painted',
+					paintable: true,
+					parts: [{ guid: GUID_A, name: 'Painted', materialGuid }],
+				}),
+			),
+			writeFile(join(fixture.assetMeshes, 'Painted.asset.meta'), `guid: ${GUID_A}\n`),
+			writeFile(join(fixture.glbMeshes, 'Painted.glb'), 'glb'),
+			writeFile(
+				join(fixture.paintHolders, '403 - Blue.asset'),
+				`--- !u!114 &11400000\nMonoBehaviour:\n  m_Script: {fileID: 11500000, guid: 6e47a3d5d8751ec41921d7b6a3037763, type: 3}\n  materialID: 403\n  material: {fileID: 2100000, guid: ${materialGuid}, type: 2}\n  useActualMaterialInEditorSplash: 1\n  useMaterialColorInstead: 0\n  useSamplePlusMaterialColor: 0\n  levelEditor_paintSplash: {r: 1, g: 0, b: 0, a: 1}\n`,
+			),
+			writeFile(join(fixture.materials, 'Blue.mat.meta'), `guid: ${materialGuid}\n`),
+			writeFile(
+				join(fixture.materials, 'Blue.mat'),
+				'Material:\n  m_SavedProperties:\n    m_Colors:\n    - _Color: {r: 0.2, g: 0.4, b: 0.6, a: 1}\n',
+			),
+		])
+
+		const { manifest, report } = await generateBlockMeshBundle({
+			gameObjectDirectory: fixture.gameObjects,
+			assetMeshDirectory: fixture.assetMeshes,
+			glbMeshDirectory: fixture.glbMeshes,
+			paintHolderDirectory: fixture.paintHolders,
+			materialDirectory: fixture.materials,
+			outputDirectory: fixture.output,
+		})
+
+		expect(manifest.paints['403']).toEqual([0.2, 0.4, 0.6])
+		expect(manifest.blocks['98']?.parts[0]?.paint).toEqual({ index: 0, defaultId: 403 })
+		expect(report.paintConflicts).toEqual([])
 	})
 
 	it('rejects conflicting duplicate block geometry', async () => {
@@ -167,6 +240,8 @@ describe('block mesh manifest generator', () => {
 			gameObjectDirectory: fixture.gameObjects,
 			assetMeshDirectory: fixture.assetMeshes,
 			glbMeshDirectory: fixture.glbMeshes,
+			paintHolderDirectory: fixture.paintHolders,
+			materialDirectory: fixture.materials,
 			outputDirectory: fixture.output,
 			copyMeshes: false,
 		})
@@ -186,6 +261,8 @@ function prefab(options: {
 	name: string
 	parts: FixturePart[]
 	rootPosition?: { x: number; y: number; z: number }
+	optionMode?: 0 | 1 | 2
+	paintable?: boolean
 }) {
 	const rootPosition = options.rootPosition ?? { x: 0, y: 0, z: 0 }
 	const documents = [
@@ -214,13 +291,32 @@ function prefab(options: {
 				`--- !u!137 &${gameObjectId + 2}\nSkinnedMeshRenderer:\n  m_GameObject: {fileID: ${gameObjectId}}\n  m_Enabled: ${part.enabled === false ? 0 : 1}\n  m_Mesh: ${meshReference}\n`,
 			)
 		} else {
+			const materials = part.materialGuid
+				? `  m_Materials:\n  - {fileID: 2100000, guid: ${part.materialGuid}, type: 2}\n`
+				: ''
 			documents.push(
 				`--- !u!33 &${gameObjectId + 2}\nMeshFilter:\n  m_GameObject: {fileID: ${gameObjectId}}\n  m_Mesh: ${meshReference}\n`,
-				`--- !u!23 &${gameObjectId + 3}\nMeshRenderer:\n  m_GameObject: {fileID: ${gameObjectId}}\n  m_Enabled: ${part.enabled === false ? 0 : 1}\n`,
+				`--- !u!23 &${gameObjectId + 3}\nMeshRenderer:\n  m_GameObject: {fileID: ${gameObjectId}}\n  m_Enabled: ${part.enabled === false ? 0 : 1}\n${materials}`,
 			)
 		}
 	}
+	if (options.optionMode !== undefined) {
+		documents.push(
+			`--- !u!114 &4\nMonoBehaviour:\n  m_GameObject: {fileID: 1}\n  m_Script: {fileID: 11500000, guid: b4261eb191488cc43931530c16db9ab5, type: 3}\n  blockPieces:\n${options.parts.map((_, index) => `  - {fileID: ${10 + index * 10}}`).join('\n')}\n  blockPieceBridgeNR: ${packedInt32(options.parts.map((_, index) => index))}\n  blockMode: ${options.optionMode}\n`,
+		)
+	}
+	if (options.paintable) {
+		documents.push(
+			`--- !u!114 &5\nMonoBehaviour:\n  m_GameObject: {fileID: 1}\n  m_Script: {fileID: 11500000, guid: 3527f1b5ed7e63940af875bd424d8b18, type: 3}\n  renderers:\n${options.parts.map((_, index) => `  - {fileID: ${13 + index * 10}}`).join('\n')}\n  optionalLeadingPhsxMaterialIndex: ${packedInt32(options.parts.map(() => 0))}\n`,
+		)
+	}
 	return documents.join('')
+}
+
+function packedInt32(values: number[]) {
+	const bytes = Buffer.alloc(values.length * 4)
+	for (const [index, value] of values.entries()) bytes.writeInt32LE(value, index * 4)
+	return bytes.toString('hex')
 }
 
 function gameObjectDocument(id: number, name: string, active = true) {
@@ -242,9 +338,17 @@ async function createDirectories() {
 	const gameObjects = join(root, 'GameObject')
 	const assetMeshes = join(root, 'AssetMeshes')
 	const glbMeshes = join(root, 'GlbMeshes')
+	const paintHolders = join(root, 'PaintHolders')
+	const materials = join(root, 'Materials')
 	const output = join(root, 'Output')
-	await Promise.all([mkdir(gameObjects), mkdir(assetMeshes), mkdir(glbMeshes)])
-	return { gameObjects, assetMeshes, glbMeshes, output }
+	await Promise.all([
+		mkdir(gameObjects),
+		mkdir(assetMeshes),
+		mkdir(glbMeshes),
+		mkdir(paintHolders),
+		mkdir(materials),
+	])
+	return { gameObjects, assetMeshes, glbMeshes, paintHolders, materials, output }
 }
 
 function identityMatrix() {

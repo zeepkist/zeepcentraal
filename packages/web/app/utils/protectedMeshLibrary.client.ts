@@ -17,6 +17,7 @@ export type ProtectedMeshPrimitive = {
 export type ProtectedMeshGroup = {
 	primitives: ProtectedMeshPrimitive[]
 	matrices: THREE.Matrix4[]
+	color: [number, number, number] | null
 }
 
 export type GhostSoapboxGeometries = {
@@ -169,9 +170,17 @@ function parseProtectedBundle(bytes: Uint8Array) {
 	for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
 		const payloadLength = reader.length()
 		const matrixCount = reader.count()
+		const red = reader.uint8()
+		const green = reader.uint8()
+		const blue = reader.uint8()
+		const hasColor = reader.uint8() !== 0
 		const primitives = parsePrimitiveFile(reader.bytes(payloadLength))
 		const matrices = Array.from({ length: matrixCount }, () => reader.matrix())
-		groups.push({ primitives, matrices })
+		groups.push({
+			primitives,
+			matrices,
+			color: hasColor ? [red / 255, green / 255, blue / 255] : null,
+		})
 	}
 	const fallbackMatrices = Array.from({ length: fallbackCount }, () => reader.matrix())
 	const common = new Map<GhostModelSlot, THREE.BufferGeometry>()

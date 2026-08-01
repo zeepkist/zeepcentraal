@@ -12,8 +12,13 @@ import {
 	buildProtectedGhostModelBundle,
 	buildProtectedLevelMeshBundle,
 	clearProtectedMeshCorpusCaches,
+	protectedMeshBundleCacheKey,
+	selectProtectedMeshParts,
 } from '../../server/utils/protectedMeshCorpus'
-import type { ProtectedMeshCorpusIndex } from '../../shared/protectedMeshFormat'
+import type {
+	ProtectedMeshCorpusIndex,
+	ProtectedMeshMatrix,
+} from '../../shared/protectedMeshFormat'
 
 const temporaryDirectories: string[] = []
 const sourceGuid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
@@ -28,6 +33,48 @@ afterEach(async () => {
 })
 
 describe('protected mesh corpus compiler', () => {
+	it('resolves toggle and exclusive attributes with prefab defaults', () => {
+		const parts = [
+			{ mesh: 'uncontrolled', matrix: identity() },
+			{
+				mesh: 'small',
+				matrix: identity(),
+				attribute: { index: 0, defaultVisible: true },
+			},
+			{
+				mesh: 'large',
+				matrix: identity(),
+				attribute: { index: 1, defaultVisible: false },
+			},
+		]
+		const selected = (optionMode: 0 | 1 | 2, attributes: Record<number, number>) =>
+			selectProtectedMeshParts({ optionMode, parts }, attributes).map(({ mesh }) => mesh)
+
+		expect(selected(2, {})).toEqual(['uncontrolled', 'small'])
+		expect(selected(2, { 1: 1 })).toEqual(['uncontrolled', 'large'])
+		expect(selected(2, { 0: 1, 1: 1 })).toEqual(['uncontrolled', 'small'])
+		expect(selected(0, { 7: 1 })).toEqual(['uncontrolled', 'small'])
+		expect(selected(1, { 0: 0 })).toEqual(['uncontrolled'])
+	})
+
+	it('includes attributes and paints in protected bundle cache identity', () => {
+		const block = {
+			id: 98,
+			position: { x: 0, y: 0, z: 0 },
+			rotation: { x: 0, y: 0, z: 0 },
+			scale: { x: 1, y: 1, z: 1 },
+			attributes: { 0: 1 },
+			paints: { 0: 403 },
+		}
+		const original = protectedMeshBundleCacheKey('digest', [block])
+		expect(
+			protectedMeshBundleCacheKey('digest', [{ ...block, attributes: { 1: 1 } }]),
+		).not.toBe(original)
+		expect(protectedMeshBundleCacheKey('digest', [{ ...block, paints: { 0: 285 } }])).not.toBe(
+			original,
+		)
+	})
+
 	it('removes source identifiers and emits only opaque compressed primitive files', async () => {
 		const root = await mkdtemp(join(tmpdir(), 'protected-mesh-corpus-'))
 		temporaryDirectories.push(root)
@@ -38,11 +85,19 @@ describe('protected mesh corpus compiler', () => {
 		await writeFile(
 			join(bundle, 'manifest.json'),
 			JSON.stringify({
-				version: 1,
+				version: 2,
+				paints: { 403: [0.25, 0.5, 0.75] },
 				blocks: {
 					1490: {
 						name: 'HW - Fence Straight 1_3d',
-						parts: [{ mesh: sourceGuid, name: 'Fence', matrix: identity() }],
+						parts: [
+							{
+								mesh: sourceGuid,
+								name: 'Fence',
+								matrix: identity(),
+								paint: { index: 0 },
+							},
+						],
 					},
 				},
 			}),
@@ -81,6 +136,8 @@ describe('protected mesh corpus compiler', () => {
 					position: { x: 0, y: 0, z: 0 },
 					rotation: { x: 0, y: 0, z: 0 },
 					scale: { x: 1, y: 1, z: 1 },
+					attributes: {},
+					paints: { 0: 403 },
 				},
 			]),
 			buildProtectedGhostModelBundle(output),
@@ -89,6 +146,7 @@ describe('protected mesh corpus compiler', () => {
 		const levelBundle = parseProtectedLevelMeshBundle(levelBytes)
 		const ghostModels = parseProtectedGhostModelBundle(ghostModelBytes)
 		expect(levelBundle.groups).toHaveLength(1)
+		expect(levelBundle.groups[0]?.color).toEqual([64 / 255, 128 / 255, 191 / 255])
 		expect(ghostModels.body.getAttribute('position').count).toBeGreaterThan(0)
 		expect(() => parseProtectedGhostModelBundle(levelBytes)).toThrow(
 			'Ghost model bundle contains level geometry',
@@ -148,6 +206,6 @@ function triangleStl() {
 	return result
 }
 
-function identity() {
+function identity(): ProtectedMeshMatrix {
 	return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
 }

@@ -50,6 +50,7 @@ describe('ProtectedMeshLibrary', () => {
 		expect(ghostModels).toBe(repeatedGhostModels)
 		expect(first.groups).toHaveLength(1)
 		expect(first.groups[0]?.matrices).toHaveLength(1)
+		expect(first.groups[0]?.color).toEqual([1, 128 / 255, 0])
 		expect(first.fallbackMatrices).toHaveLength(1)
 		expect(first.groups[0]?.primitives[0]?.geometry.getAttribute('position').count).toBe(3)
 		expect(ghostModels.body.getAttribute('position').count).toBe(3)
@@ -95,7 +96,7 @@ function fixtureGhostModelBundle() {
 function fixtureBundle(includeLevel: boolean, includeCommon: boolean) {
 	const primitive = fixturePrimitive()
 	const headerSize = 52
-	const groupSize = includeLevel ? 8 + primitive.byteLength + 64 : 0
+	const groupSize = includeLevel ? 12 + primitive.byteLength + 64 : 0
 	const fallbackSize = includeLevel ? 64 : 0
 	const commonEntries = includeCommon ? Object.values(GHOST_MODEL_SLOTS) : []
 	const commonSize = commonEntries.length * (8 + primitive.byteLength)
@@ -113,7 +114,11 @@ function fixtureBundle(includeLevel: boolean, includeCommon: boolean) {
 	if (includeLevel) {
 		view.setUint32(offset, primitive.byteLength, true)
 		view.setUint32(offset + 4, 1, true)
-		offset += 8
+		view.setUint8(offset + 8, 255)
+		view.setUint8(offset + 9, 128)
+		view.setUint8(offset + 10, 0)
+		view.setUint8(offset + 11, 255)
+		offset += 12
 		bytes.set(primitive, offset)
 		offset += primitive.byteLength
 		offset = writeMatrix(view, offset)

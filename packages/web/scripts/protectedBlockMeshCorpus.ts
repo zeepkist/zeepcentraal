@@ -96,6 +96,9 @@ export async function compileProtectedBlockMeshCorpus(
 	const manifest = JSON.parse(
 		await readFile(join(options.bundleDirectory, 'manifest.json'), 'utf8'),
 	) as BlockMeshManifest
+	if (manifest.version !== 2 || !manifest.blocks || !manifest.paints) {
+		throw new Error('Block mesh bundle version 2 required; regenerate from raw exports')
+	}
 	const outputMeshDirectory = join(options.outputDirectory, 'meshes')
 	await mkdir(outputMeshDirectory, { recursive: true })
 
@@ -146,15 +149,26 @@ export async function compileProtectedBlockMeshCorpus(
 	const blocks: ProtectedMeshCorpusIndex['blocks'] = {}
 	for (const [blockId, definition] of Object.entries(manifest.blocks)) {
 		blocks[blockId] = {
-			parts: definition.parts.flatMap(({ mesh, matrix }) => {
+			...(definition.optionMode === undefined ? {} : { optionMode: definition.optionMode }),
+			parts: definition.parts.flatMap(({ mesh, matrix, attribute, paint }) => {
 				const protectedMesh = sourceToOpaque.get(mesh)
-				return protectedMesh ? [{ mesh: protectedMesh, matrix }] : []
+				return protectedMesh
+					? [
+							{
+								mesh: protectedMesh,
+								matrix,
+								...(attribute ? { attribute } : {}),
+								...(paint ? { paint } : {}),
+							},
+						]
+					: []
 			}),
 		}
 	}
 	const unsignedIndex = {
 		version: PROTECTED_MESH_CORPUS_VERSION,
 		blocks,
+		paints: manifest.paints,
 		common: commonFiles,
 	}
 	const digest = createHash('sha256')

@@ -44,6 +44,11 @@ describe('GhostLevelMeshRenderer', () => {
 			expect(material.transparent).toBe(false)
 			expect(material.opacity).toBe(1)
 		}
+		const painted = meshes.find(({ count }) => count === 2)
+		expect(painted).toBeDefined()
+		expect(
+			(painted?.material as THREE.MeshStandardMaterial | undefined)?.color.getHexString(),
+		).toBe('ff8000')
 		renderer.dispose()
 	})
 
@@ -100,6 +105,7 @@ function fakeBundle(geometry: THREE.BufferGeometry): ProtectedLevelMeshBundle {
 					new THREE.Matrix4().makeTranslation(0, 0, 0),
 					new THREE.Matrix4().makeTranslation(10, 0, 0),
 				],
+				color: [1, 128 / 255, 0],
 			},
 		],
 		fallbackMatrices: [new THREE.Matrix4().makeTranslation(20, 0, 0)],
@@ -116,6 +122,8 @@ function block(id: number, x: number): GhostLevelBlock {
 		position: { x, y: 0, z: 0 },
 		rotation: vector(),
 		scale: { x: 1, y: 1, z: 1 },
+		attributes: {},
+		paints: {},
 	}
 }
 

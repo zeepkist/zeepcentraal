@@ -1,5 +1,5 @@
-export const PROTECTED_MESH_CORPUS_VERSION = 1
-export const PROTECTED_MESH_BUNDLE_VERSION = 1
+export const PROTECTED_MESH_CORPUS_VERSION = 2
+export const PROTECTED_MESH_BUNDLE_VERSION = 2
 export const PROTECTED_MESH_PRIMITIVE_VERSION = 1
 
 export const PROTECTED_MESH_BUNDLE_MAGIC = 0x424d435a
@@ -33,14 +33,25 @@ export type ProtectedMeshMatrix = [
 	number,
 ]
 
+export type ProtectedMeshColor = [number, number, number]
+
+export type ProtectedMeshPart = {
+	mesh: string
+	matrix: ProtectedMeshMatrix
+	attribute?: { index: number; defaultVisible: boolean }
+	paint?: { index: number; defaultId?: number }
+}
+
 export type ProtectedMeshCorpusIndex = {
-	version: 1
+	version: 2
 	digest: string
 	blocks: Record<
 		string,
 		{
-			parts: Array<{ mesh: string; matrix: ProtectedMeshMatrix }>
+			optionMode?: 0 | 1 | 2
+			parts: ProtectedMeshPart[]
 		}
 	>
+	paints: Record<string, ProtectedMeshColor>
 	common: Record<'axles' | 'body' | 'character' | 'wheel', string>
 }

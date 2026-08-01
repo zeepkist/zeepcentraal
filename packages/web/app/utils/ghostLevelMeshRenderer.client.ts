@@ -13,11 +13,13 @@ export type GhostLevelMeshRendererOptions = {
 type MeshBatch = {
 	geometry: THREE.BufferGeometry
 	matrices: THREE.Matrix4[]
+	material: THREE.MeshStandardMaterial
 }
 
 export class GhostLevelMeshRenderer {
 	private readonly fallbackGeometry = new THREE.BoxGeometry(2, 2, 2)
 	private readonly material: THREE.MeshStandardMaterial
+	private readonly paintedMaterials = new Map<string, THREE.MeshStandardMaterial>()
 	private group: THREE.Group | null = null
 	private revision = 0
 	private disposed = false
@@ -53,6 +55,8 @@ export class GhostLevelMeshRenderer {
 		this.clear()
 		this.fallbackGeometry.dispose()
 		this.material.dispose()
+		for (const material of this.paintedMaterials.values()) material.dispose()
+		this.paintedMaterials.clear()
 	}
 
 	private async renderLoaded(levelId: number, origin: GhostVector3, revision: number) {
@@ -66,9 +70,11 @@ export class GhostLevelMeshRenderer {
 		const originMatrix = createOriginMatrix(origin)
 		const batches: MeshBatch[] = []
 		for (const group of bundle.groups) {
+			const material = this.materialForColor(group.color)
 			for (const primitive of group.primitives) {
 				batches.push({
 					geometry: primitive.geometry,
+					material,
 					matrices: group.matrices.map((matrix) =>
 						composeProtectedMeshMatrix(originMatrix, matrix, primitive),
 					),
@@ -80,7 +86,7 @@ export class GhostLevelMeshRenderer {
 		for (const batch of batches) {
 			const mesh = new THREE.InstancedMesh(
 				batch.geometry,
-				this.material,
+				batch.material,
 				batch.matrices.length,
 			)
 			for (const [index, matrix] of batch.matrices.entries()) mesh.setMatrixAt(index, matrix)
@@ -113,6 +119,23 @@ export class GhostLevelMeshRenderer {
 		}
 		this.group = group
 		if (group) this.scene.add(group)
+	}
+
+	private materialForColor(color: [number, number, number] | null) {
+		if (!color) return this.material
+		const key = color.map((value) => Math.round(value * 255)).join(',')
+		let material = this.paintedMaterials.get(key)
+		if (!material) {
+			material = new THREE.MeshStandardMaterial({
+				color: new THREE.Color().setRGB(color[0], color[1], color[2], THREE.SRGBColorSpace),
+				transparent: false,
+				opacity: 1,
+				roughness: 0.85,
+				metalness: 0.05,
+			})
+			this.paintedMaterials.set(key, material)
+		}
+		return material
 	}
 
 	private isStale(revision: number) {
