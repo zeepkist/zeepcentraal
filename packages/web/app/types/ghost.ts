@@ -119,6 +119,8 @@ export type GhostPerformancePreferences = {
 	version: 1
 	frameRate: GhostFrameRate
 	renderQuality: GhostRenderQuality
+	showLevelGeometry: boolean
+	showGhostTrails: boolean
 }
 
 export type GhostGridModel = {
@@ -142,6 +144,8 @@ export type GhostLevelBlock = {
 	position: GhostVector3
 	rotation: GhostVector3
 	scale: GhostVector3
+	attributes: Record<number, number>
+	paints: Record<number, number>
 }
 
 export type GhostEventKind =

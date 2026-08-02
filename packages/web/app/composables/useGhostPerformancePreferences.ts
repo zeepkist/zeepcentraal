@@ -9,6 +9,8 @@ const DEFAULT_PREFERENCES: GhostPerformancePreferences = {
 	version: 1,
 	frameRate: 'auto',
 	renderQuality: 'auto',
+	showLevelGeometry: true,
+	showGhostTrails: true,
 }
 
 export function useGhostPerformancePreferences() {
@@ -33,7 +35,7 @@ export function useGhostPerformancePreferences() {
 		void refreshCacheStats()
 	})
 
-	const preferences = computed(() => sanitizePreferences(cookie.value))
+	const preferences = computed(() => sanitizeGhostPerformancePreferences(cookie.value))
 	const frameRate = computed<30 | 60>(() => {
 		const selected = preferences.value.frameRate
 		return selected === 'auto' ? (mobile.value ? 30 : 60) : selected
@@ -49,6 +51,14 @@ export function useGhostPerformancePreferences() {
 
 	function setRenderQuality(value: GhostRenderQuality) {
 		cookie.value = { ...preferences.value, renderQuality: value }
+	}
+
+	function setShowLevelGeometry(value: boolean) {
+		cookie.value = { ...preferences.value, showLevelGeometry: value }
+	}
+
+	function setShowGhostTrails(value: boolean) {
+		cookie.value = { ...preferences.value, showGhostTrails: value }
 	}
 
 	async function refreshCacheStats() {
@@ -80,12 +90,14 @@ export function useGhostPerformancePreferences() {
 		cachePending,
 		setFrameRate,
 		setRenderQuality,
+		setShowLevelGeometry,
+		setShowGhostTrails,
 		refreshCacheStats,
 		clearCache,
 	}
 }
 
-function sanitizePreferences(value: unknown): GhostPerformancePreferences {
+export function sanitizeGhostPerformancePreferences(value: unknown): GhostPerformancePreferences {
 	if (!value || typeof value !== 'object') return { ...DEFAULT_PREFERENCES }
 	const candidate = value as Partial<GhostPerformancePreferences>
 	const frameRate: GhostFrameRate =
@@ -100,5 +112,11 @@ function sanitizePreferences(value: unknown): GhostPerformancePreferences {
 	].includes(String(candidate.renderQuality))
 		? (candidate.renderQuality as GhostRenderQuality)
 		: 'auto'
-	return { version: 1, frameRate, renderQuality }
+	return {
+		version: 1,
+		frameRate,
+		renderQuality,
+		showLevelGeometry: candidate.showLevelGeometry !== false,
+		showGhostTrails: candidate.showGhostTrails !== false,
+	}
 }

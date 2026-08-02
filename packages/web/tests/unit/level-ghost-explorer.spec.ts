@@ -36,6 +36,10 @@ const controls = readFileSync(
 	new URL('../../app/components/record/GhostPlaybackControls.vue', import.meta.url),
 	'utf8',
 )
+const settings = readFileSync(
+	new URL('../../app/components/record/GhostPerformanceSettings.vue', import.meta.url),
+	'utf8',
+)
 const workspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
 	'utf8',
@@ -102,6 +106,16 @@ describe('level ghost explorer GraphQL', () => {
 		expect(composable).toContain('LEVEL_GHOST_SEARCH_MINIMUM_LENGTH = 2')
 		expect(composable).toContain('LEVEL_GHOST_SEARCH_DEBOUNCE_MS = 250')
 		expect(composable).toContain('LEVEL_GHOST_USER_LIMIT = 8')
+	})
+
+	it('loads and renders protected terrain only for authenticated sessions', () => {
+		expect(viewer).toContain(
+			'const canLoadProtectedMeshes = computed(() => session.user !== null)',
+		)
+		expect(viewer).toContain('if (!canLoadProtectedMeshes.value || !props.showLevelGeometry)')
+		expect(viewer).toContain('levelMeshRenderer?.clear()')
+		expect(viewer).toContain('?.loadGhostModels()')
+		expect(viewer).not.toContain('if (!canLoadProtectedMeshes.value) return')
 	})
 })
 
@@ -194,7 +208,13 @@ describe('level bulk ghost rendering', () => {
 	it('reconciles keyed visuals, instances every model, and limits labels', () => {
 		expect(viewer).toContain('planGhostVisualReconciliation(')
 		expect(viewer).toContain('ghostMeshBatch?.configure(descriptors)')
+		expect(viewer).toContain('new GhostLevelMeshRenderer(')
+		expect(viewer).toContain(
+			'levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin)',
+		)
+		expect(viewer).toContain('new ProtectedMeshLibrary()')
 		expect(viewer).not.toContain('createLightweightMarker(')
+		expect(viewer).not.toContain('new THREE.BoxGeometry(2, 2, 2)')
 		expect(viewer).toContain('isLabeledGhost(loaded.record.recordId)')
 		expect(viewer).toContain('resolveGhostTrailSampleLimit(')
 		expect(workspace).toContain('return [...ordered, ...remaining].slice(0, 12)')
@@ -218,7 +238,17 @@ describe('level bulk ghost rendering', () => {
 		for (const context of [recordExperience, levelExplorer, tournamentExplorer]) {
 			expect(context).toContain('<template #settings>')
 			expect(context).toContain('<GhostPerformanceSettings')
+			expect(context).toContain(':show-level-geometry=')
+			expect(context).toContain(':show-ghost-trails=')
+			expect(context).toContain('@update:show-level-geometry=')
+			expect(context).toContain('@update:show-ghost-trails=')
 		}
+		expect(settings).toContain(':model-value="preferences.showLevelGeometry"')
+		expect(settings).toContain(':model-value="preferences.showGhostTrails"')
+		expect(workspace).toContain(':show-level-geometry="showLevelGeometry"')
+		expect(workspace).toContain(':show-ghost-trails="showGhostTrails"')
+		expect(viewer).toContain('levelMeshRenderer?.clear()')
+		expect(viewer).toContain('visual.trail.visible = props.showGhostTrails')
 	})
 
 	it('supports panning and performance-friendly trail rendering', () => {

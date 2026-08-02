@@ -81,6 +81,8 @@ export default defineNuxtConfig({
 		},
 	},
 	runtimeConfig: {
+		blockMeshCorpusPath: process.env.NUXT_BLOCK_MESH_CORPUS_PATH ?? '',
+		blockMeshCorpusToken: process.env.NUXT_BLOCK_MESH_CORPUS_TOKEN ?? '',
 		githubToken: process.env.NUXT_GITHUB_TOKEN ?? '',
 		modioApiKey: process.env.NUXT_MODIO_API_KEY ?? '',
 		modioApiEndpoint: process.env.NUXT_MODIO_API_ENDPOINT ?? 'https://api.mod.io/',

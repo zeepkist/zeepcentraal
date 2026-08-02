@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import * as THREE from 'three'
 import { describe, expect, it } from 'vitest'
 import {
@@ -7,6 +7,7 @@ import {
 } from '../../app/utils/ghostMeshBatch.client'
 import {
 	GHOST_SOAPBOX_AXLE_POSITIONS,
+	GHOST_SOAPBOX_GROUND_LIFT_WHEEL_FACTOR,
 	GHOST_SOAPBOX_SCALE,
 	GHOST_SOAPBOX_WHEEL_LAYOUT,
 	GHOST_WHEEL_COLORS,
@@ -18,8 +19,8 @@ const viewer = readFileSync(
 	new URL('../../app/components/record/GhostPlaybackViewer.client.vue', import.meta.url),
 	'utf8',
 )
-const model = readFileSync(
-	new URL('../../app/utils/ghostSoapboxModel.client.ts', import.meta.url),
+const corpusGenerator = readFileSync(
+	new URL('../../scripts/protectedBlockMeshCorpus.ts', import.meta.url),
 	'utf8',
 )
 const batch = readFileSync(
@@ -65,21 +66,20 @@ function frameState(overrides: Partial<Parameters<GhostMeshBatchRenderer['update
 }
 
 describe('ghost soapbox model', () => {
-	it('ships and merges every independently rendered STL part', () => {
+	it('moves every independently rendered model part into protected corpus generation', () => {
 		for (const name of ['axle', 'character', 'soapbox', 'spoiler', 'wheel']) {
-			expect(
-				statSync(new URL(`../../app/assets/models/${name}.stl`, import.meta.url)).size,
-			).toBeGreaterThan(0)
-			expect(model).toContain(`models/${name}.stl`)
+			expect(corpusGenerator).toContain(`'${name}'`)
 		}
-		expect(model).toContain('STLLoader')
-		expect(model).toContain('mergeGeometries')
+		expect(corpusGenerator).toContain('mergePrimitives')
+		expect(viewer).toContain('ProtectedMeshLibrary')
+		expect(viewer).not.toContain('.stl')
 		expect(GHOST_SOAPBOX_AXLE_POSITIONS).toHaveLength(2)
 		expect(GHOST_SOAPBOX_WHEEL_LAYOUT).toHaveLength(4)
 	})
 
-	it('scales every detailed model to 0.42 while preserving its origin and facing correction', () => {
-		expect(GHOST_SOAPBOX_SCALE).toBe(0.42)
+	it('scales and raises the detailed model by 0.75 rendered wheel heights', () => {
+		expect(GHOST_SOAPBOX_SCALE).toBe(0.5)
+		expect(GHOST_SOAPBOX_GROUND_LIFT_WHEEL_FACTOR).toBe(0.75)
 		expect(batch).toContain('GHOST_SOAPBOX_SCALE')
 		expect(batch).toContain('Math.PI')
 
@@ -98,12 +98,20 @@ describe('ghost soapbox model', () => {
 		const rotation = new THREE.Quaternion()
 		const scale = new THREE.Vector3()
 		matrix.decompose(position, rotation, scale)
-		expect(position.toArray()).toEqual([0, 0, 0])
+		expect(position.x).toBe(0)
+		expect(position.y).toBeCloseTo(GHOST_SOAPBOX_SCALE * GHOST_SOAPBOX_GROUND_LIFT_WHEEL_FACTOR)
+		expect(position.z).toBe(0)
 		expect(scale.x).toBeCloseTo(GHOST_SOAPBOX_SCALE)
 		expect(scale.y).toBeCloseTo(GHOST_SOAPBOX_SCALE)
 		expect(scale.z).toBeCloseTo(GHOST_SOAPBOX_SCALE)
 		const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(rotation)
 		expect(forward.z).toBeCloseTo(-1)
+		mesh(scene, 'ghost-model-world-record-wheels').getMatrixAt(0, matrix)
+		expect(new THREE.Vector3().setFromMatrixPosition(matrix).y).toBeCloseTo(
+			GHOST_SOAPBOX_SCALE *
+				(GHOST_SOAPBOX_WHEEL_LAYOUT[0].position[1] +
+					GHOST_SOAPBOX_GROUND_LIFT_WHEEL_FACTOR),
+		)
 		renderer.dispose()
 	})
 

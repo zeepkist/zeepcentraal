@@ -14,6 +14,7 @@
 		"dev:web": "bun --bun --cwd=packages/web run dev",
 		"graphql:smoke": "bun --cwd=packages/postgraphile run smoke:web",
 		"jobs:trigger": "bun packages/server/scripts/jobs-trigger.ts",
+		"generate:block-meshes": "bun --cwd=packages/web run generate:block-meshes",
 		"build:server": "bun --cwd=packages/server run build",
 		"build:jobs": "bun --cwd=packages/jobs run build",
 		"build:migrate": "bun --cwd=packages/database run build",

@@ -9,7 +9,11 @@
 			<UBadge color="neutral" variant="soft">
 				{{ labels.frameRate(currentFrameRate, frameRate) }}
 			</UBadge>
-			<UBadge v-if="levelBlocks.length" color="neutral" variant="soft">
+			<UBadge
+				v-if="canLoadProtectedMeshes && showLevelGeometry && levelBlocks.length"
+				color="neutral"
+				variant="soft"
+			>
 				{{ labels.approximateGeometry }}
 			</UBadge>
 		</div>
@@ -51,6 +55,7 @@ import type {
 	GhostLevelBlock,
 	LoadedPlaybackGhost,
 } from '~/types/ghost'
+import { GhostLevelMeshRenderer } from '~/utils/ghostLevelMeshRenderer.client'
 import {
 	GhostMeshBatchRenderer,
 	type GhostMeshDescriptor,
@@ -69,7 +74,7 @@ import {
 	sampleGhostTrailFrames,
 } from '~/utils/ghostScene'
 import { resolveGhostWheelColor } from '~/utils/ghostSoapbox'
-import { loadGhostSoapboxGeometries } from '~/utils/ghostSoapboxModel.client'
+import { ProtectedMeshLibrary } from '~/utils/protectedMeshLibrary.client'
 
 type RenderQuality = 'performance' | 'balanced' | 'quality'
 
@@ -88,7 +93,10 @@ type GhostVisual = {
 
 const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
+	levelId: number
 	levelBlocks: GhostLevelBlock[]
+	showLevelGeometry?: boolean
+	showGhostTrails?: boolean
 	labelRecordIds?: number[]
 	bulkMode?: boolean
 	bulkGhostCount?: number
@@ -115,6 +123,8 @@ const props = withDefaults(defineProps<{
 }>(), {
 	bulkMode: false,
 	sceneRevision: 0,
+	showLevelGeometry: true,
+	showGhostTrails: true,
 })
 
 const emit = defineEmits<{
@@ -123,6 +133,8 @@ const emit = defineEmits<{
 	'update:following': [value: boolean]
 }>()
 
+const session = useSessionStore()
+const canLoadProtectedMeshes = computed(() => session.user !== null)
 const container = useTemplateRef('container')
 const canvasHost = useTemplateRef('canvasHost')
 const labelHost = useTemplateRef('labelHost')
@@ -146,6 +158,8 @@ let renderedFrameCount = 0
 let grid: GhostGridModel | null = null
 let visuals = new Map<number, GhostVisual>()
 let ghostMeshBatch: GhostMeshBatchRenderer | null = null
+let levelMeshRenderer: GhostLevelMeshRenderer | null = null
+let protectedMeshLibrary: ProtectedMeshLibrary | null = null
 let viewerMounted = false
 let orthographicVertical = 45
 const isometricCameraDirection = new THREE.Vector3(1, 1, 1).normalize()
@@ -161,13 +175,7 @@ onMounted(() => {
 	if (!createScene()) return
 	createGhosts()
 	animationFrame = requestAnimationFrame(renderLoop)
-	void loadGhostSoapboxGeometries()
-		.then((geometries) => {
-			if (!viewerMounted) return
-			ghostMeshBatch?.setModelGeometries(geometries)
-			updateGhosts()
-		})
-		.catch(() => undefined)
+	loadProtectedGhostModels()
 })
 
 watch(
@@ -208,12 +216,39 @@ watch(
 )
 
 watch(
+	() => props.levelId,
+	() => {
+		createLevelGeometry()
+		loadProtectedGhostModels()
+	},
+)
+
+watch(canLoadProtectedMeshes, (canLoad) => {
+	if (!canLoad) {
+		levelMeshRenderer?.clear()
+		return
+	}
+	createLevelGeometry()
+	loadProtectedGhostModels()
+})
+
+watch(
 	() => props.levelBlocks,
 	() => {
 		if (props.bulkMode) createGhosts()
 		else createLevelGeometry()
 	},
 	{ deep: false },
+)
+
+watch(
+	() => props.showLevelGeometry,
+	() => createLevelGeometry(),
+)
+
+watch(
+	() => props.showGhostTrails,
+	() => syncGhostTrailVisibility(),
 )
 
 watch(
@@ -265,7 +300,13 @@ function createScene() {
 	labelRenderer.setSize(host.clientWidth, host.clientHeight)
 
 	scene = new THREE.Scene()
+	protectedMeshLibrary = new ProtectedMeshLibrary()
 	ghostMeshBatch = new GhostMeshBatchRenderer(scene)
+	levelMeshRenderer = new GhostLevelMeshRenderer(
+		scene,
+		{ library: protectedMeshLibrary },
+		resolveCssColor('--ui-text-muted', '#a8a29e'),
+	)
 	orbitFog = new THREE.Fog(resolveCssColor('--ui-bg', '#0c0a09'), 350, 1_500)
 	scene.fog = orbitFog
 	scene.add(new THREE.HemisphereLight(0xffffff, 0x292524, 2.1))
@@ -492,44 +533,31 @@ function visualRevision(loaded: LoadedPlaybackGhost) {
 }
 
 function createLevelGeometry() {
-	removeNamedObject('level-geometry')
-	if (!scene || !grid || props.levelBlocks.length === 0) return
-	const geometry = new THREE.BoxGeometry(2, 2, 2)
-	const material = new THREE.MeshStandardMaterial({
-		color: resolveCssColor('--ui-text-muted', '#a8a29e'),
-		transparent: true,
-		opacity: 0.2,
-		roughness: 0.85,
-		metalness: 0.05,
-	})
-	const mesh = new THREE.InstancedMesh(geometry, material, props.levelBlocks.length)
-	mesh.name = 'level-geometry'
-	const matrix = new THREE.Matrix4()
-	const quaternion = new THREE.Quaternion()
-	const position = new THREE.Vector3()
-	const scale = new THREE.Vector3()
-	const euler = new THREE.Euler()
-	for (const [index, block] of props.levelBlocks.entries()) {
-		const rebased = rebaseGhostPosition(block.position, grid.origin)
-		position.set(rebased.x, rebased.y, rebased.z)
-		euler.set(
-			THREE.MathUtils.degToRad(-block.rotation.x),
-			THREE.MathUtils.degToRad(-block.rotation.y),
-			THREE.MathUtils.degToRad(block.rotation.z),
-			'YXZ',
-		)
-		quaternion.setFromEuler(euler)
-		scale.set(
-			clampBlockScale(block.scale.x),
-			clampBlockScale(block.scale.y),
-			clampBlockScale(block.scale.z),
-		)
-		matrix.compose(position, quaternion, scale)
-		mesh.setMatrixAt(index, matrix)
+	if (!canLoadProtectedMeshes.value || !props.showLevelGeometry) {
+		levelMeshRenderer?.clear()
+		return
 	}
-	mesh.instanceMatrix.needsUpdate = true
-	mesh.computeBoundingSphere()
-	scene.add(mesh)
+	if (!grid) return
+	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin)
+}
+
+function loadProtectedGhostModels() {
+	void protectedMeshLibrary
+		?.loadGhostModels()
+		.then((ghostModels) => {
+			if (!viewerMounted) return
+			ghostMeshBatch?.setModelGeometries(ghostModels)
+			updateGhosts()
+		})
+		.catch(() => undefined)
+}
+
+function syncGhostTrailVisibility() {
+	for (const visual of visuals.values()) {
+		visual.trail.visible = props.showGhostTrails
+		if (!props.showGhostTrails) visual.trailGeometry.instanceCount = 0
+	}
+	if (props.showGhostTrails) updateGhosts()
 }
 
 function createTrail(loaded: LoadedPlaybackGhost) {
@@ -557,6 +585,7 @@ function createTrail(loaded: LoadedPlaybackGhost) {
 		gapSize: Math.min(8, 2 + (loaded.identity.userRunOrdinal ?? 0)),
 	})
 	const trail = new Line2(geometry, material)
+	trail.visible = props.showGhostTrails
 	trail.computeLineDistances()
 	geometry.instanceCount = 0
 	return { trail, geometry, material, times }
@@ -693,8 +722,10 @@ function updateGhosts() {
 			wheelState: frame.wheelState,
 			wheelColor: resolveGhostWheelColor(frame),
 		})
-		const segments = upperBound(visual.trailTimes, props.currentTime)
-		visual.trailGeometry.instanceCount = Math.max(0, segments - 1)
+		if (props.showGhostTrails) {
+			const segments = upperBound(visual.trailTimes, props.currentTime)
+			visual.trailGeometry.instanceCount = Math.max(0, segments - 1)
+		} else visual.trailGeometry.instanceCount = 0
 		if (visual.ghost.record.recordId === props.selectedRecordId) {
 			selectedDelta = visual.group.position.clone().sub(previous)
 		}
@@ -850,6 +881,10 @@ function disposeScene() {
 	visuals.clear()
 	ghostMeshBatch?.dispose()
 	ghostMeshBatch = null
+	levelMeshRenderer?.dispose()
+	levelMeshRenderer = null
+	protectedMeshLibrary?.dispose()
+	protectedMeshLibrary = null
 	if (scene) scene.traverse(disposeObject)
 	renderer?.domElement.removeEventListener('webglcontextlost', onContextLost)
 	renderer?.domElement.removeEventListener('webglcontextrestored', onContextRestored)
@@ -887,10 +922,6 @@ function upperBound(values: readonly number[], target: number) {
 		else high = middle
 	}
 	return low
-}
-
-function clampBlockScale(value: number) {
-	return Math.min(64, Math.max(0.2, Math.abs(value) * 2))
 }
 
 defineExpose({ frameRoute, followSelected, frameSelected })
