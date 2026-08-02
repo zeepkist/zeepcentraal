@@ -1,15 +1,10 @@
+import { LEVEL_DECAY_FACTOR, MIN_PERSISTED_DECAYED_POINTS } from '@zeepkist/core/score'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
-import { userPointContribution } from '../schema'
-import {
-	sortedUniqueUserIds,
-	userPointContributionFingerprint,
-} from './userPointContributionHelpers'
+import { levelPoints, personalBestGlobal, record, userPointContribution } from '../schema'
+import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
-export {
-	sortedUniqueUserIds,
-	userPointContributionFingerprint,
-} from './userPointContributionHelpers'
+export { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 export interface UserPointContributionInput {
 	contributionRank: number
@@ -27,7 +22,12 @@ interface UserPointContributionBatchInput {
 	idUser: number
 }
 
-// Nine bound values per contribution; 5,000 stays below PostgreSQL's parameter limit.
+export interface LevelContributionProjectionSyncResult {
+	levels: number
+	users: number
+}
+
+// Eight bound values per contribution; 5,000 stays below PostgreSQL's parameter limit.
 const WRITE_BATCH_SIZE = 5000
 export const USER_POINT_CONTRIBUTION_LOCK_NAMESPACE = 1_516_438_864
 export const USER_POINT_CONTRIBUTION_LOCK_BUCKETS = 64
@@ -67,7 +67,7 @@ function chunks<T>(items: T[], size: number): T[][] {
 	return result
 }
 
-export async function upsertUserPointContributionsBulk(
+export async function updateUserPointContributionPlayerValuesBulk(
 	entries: UserPointContributionBatchInput[],
 ): Promise<void> {
 	if (entries.length === 0) {
@@ -77,119 +77,222 @@ export async function upsertUserPointContributionsBulk(
 	await db.transaction(async (tx) => {
 		const idUsers = sortedUniqueUserIds(entries.map((entry) => entry.idUser))
 		await acquireUserContributionLocks(tx, idUsers)
-
-		const existingRows = await tx
-			.select({
-				idUser: userPointContribution.idUser,
-				idLevel: userPointContribution.idLevel,
-				idRecord: userPointContribution.idRecord,
-				contributionRank: userPointContribution.contributionRank,
-				levelPosition: userPointContribution.levelPosition,
-				levelPoints: userPointContribution.levelPoints,
-				levelDecayedPoints: userPointContribution.levelDecayedPoints,
-				playerDecayedPoints: userPointContribution.playerDecayedPoints,
-			})
-			.from(userPointContribution)
-			.where(inArray(userPointContribution.idUser, idUsers))
-			.orderBy(asc(userPointContribution.idUser), asc(userPointContribution.contributionRank))
-
-		const existingByUser = new Map<number, Omit<UserPointContributionInput, 'idUser'>[]>()
-		for (const row of existingRows) {
-			const rows = existingByUser.get(row.idUser) ?? []
-			rows.push({
-				idLevel: row.idLevel,
-				idRecord: row.idRecord,
-				contributionRank: row.contributionRank,
-				levelPosition: row.levelPosition,
-				levelPoints: row.levelPoints,
-				levelDecayedPoints: row.levelDecayedPoints,
-				playerDecayedPoints: row.playerDecayedPoints,
-			})
-			existingByUser.set(row.idUser, rows)
-		}
-
-		const changedEntries = entries.filter(
-			(entry) =>
-				userPointContributionFingerprint(existingByUser.get(entry.idUser) ?? []) !==
-				userPointContributionFingerprint(entry.contributions),
-		)
-		if (changedEntries.length === 0) return
-
-		const changedUserIds = new Set(changedEntries.map((entry) => entry.idUser))
-		const desiredKeys = new Set(
-			changedEntries.flatMap((entry) =>
-				entry.contributions.map(
-					(contribution) => `${entry.idUser}:${contribution.idLevel}`,
-				),
-			),
-		)
-		const removedRows = existingRows.filter(
-			(row) =>
-				changedUserIds.has(row.idUser) && !desiredKeys.has(`${row.idUser}:${row.idLevel}`),
-		)
-		const now = new Date().toISOString()
-		const rows = changedEntries.flatMap((entry) =>
+		const rows = entries.flatMap((entry) =>
 			entry.contributions.map((contribution) => ({
 				idUser: entry.idUser,
 				...contribution,
-				dateCalculated: now,
 			})),
 		)
 
 		for (const batch of chunks(rows, WRITE_BATCH_SIZE)) {
-			await tx
-				.insert(userPointContribution)
-				.values(batch)
-				.onConflictDoUpdate({
-					target: [userPointContribution.idUser, userPointContribution.idLevel],
-					set: {
-						idRecord: sql`EXCLUDED.id_record`,
-						contributionRank: sql`EXCLUDED.contribution_rank`,
-						levelPosition: sql`EXCLUDED.level_position`,
-						levelPoints: sql`EXCLUDED.level_points`,
-						levelDecayedPoints: sql`EXCLUDED.level_decayed_points`,
-						playerDecayedPoints: sql`EXCLUDED.player_decayed_points`,
-						dateCalculated: sql`EXCLUDED.date_calculated`,
-					},
-					where: sql`ROW(
-						${userPointContribution.idRecord},
-						${userPointContribution.contributionRank},
-						${userPointContribution.levelPosition},
-						${userPointContribution.levelPoints},
-						${userPointContribution.levelDecayedPoints},
-						${userPointContribution.playerDecayedPoints}
-					) IS DISTINCT FROM ROW(
-						EXCLUDED.id_record,
-						EXCLUDED.contribution_rank,
-						EXCLUDED.level_position,
-						EXCLUDED.level_points,
-						EXCLUDED.level_decayed_points,
-						EXCLUDED.player_decayed_points
+			const values = sql.join(
+				batch.map(
+					(row) => sql`(
+						${row.idUser}::integer,
+						${row.idLevel}::integer,
+						${row.idRecord}::integer,
+						${row.levelPosition}::integer,
+						${row.levelPoints}::integer,
+						${row.levelDecayedPoints}::double precision,
+						${row.contributionRank}::integer,
+						${row.playerDecayedPoints}::double precision
 					)`,
-				})
-		}
-
-		for (const batch of chunks(removedRows, WRITE_BATCH_SIZE)) {
-			const keys = sql.join(
-				batch.map((row) => sql`(${row.idUser}::integer, ${row.idLevel}::integer)`),
+				),
 				sql`, `,
 			)
-			await tx.delete(userPointContribution).where(sql`
-				(${userPointContribution.idUser}, ${userPointContribution.idLevel}) IN (${keys})
+			await tx.execute(sql`
+				UPDATE ${userPointContribution} AS target
+				SET
+					contribution_rank = source.contribution_rank,
+					player_decayed_points = source.player_decayed_points,
+					date_calculated = NOW()
+				FROM (VALUES ${values}) AS source(
+					id_user,
+					id_level,
+					id_record,
+					level_position,
+					level_points,
+					level_decayed_points,
+					contribution_rank,
+					player_decayed_points
+				)
+				WHERE target.id_user = source.id_user
+					AND target.id_level = source.id_level
+					AND ROW(
+						target.id_record,
+						target.level_position,
+						target.level_points,
+						target.level_decayed_points
+					) IS NOT DISTINCT FROM ROW(
+						source.id_record,
+						source.level_position,
+						source.level_points,
+						source.level_decayed_points
+					)
+					AND ROW(
+						target.contribution_rank,
+						target.player_decayed_points
+					) IS DISTINCT FROM ROW(
+						source.contribution_rank,
+						source.player_decayed_points
+					)
 			`)
 		}
 	})
 }
 
-export async function clearUserPointContributions(idUsers: number[]): Promise<void> {
-	if (idUsers.length === 0) {
-		return
+export async function syncUserPointContributionLevels(
+	idLevels: number[],
+): Promise<LevelContributionProjectionSyncResult> {
+	const uniqueLevelIds = [...new Set(idLevels)].sort((a, b) => a - b)
+	if (uniqueLevelIds.length === 0) {
+		return { levels: 0, users: 0 }
 	}
-	await db.transaction(async (tx) => {
-		const lockIds = sortedUniqueUserIds(idUsers)
-		await acquireUserContributionLocks(tx, lockIds)
-		await tx.delete(userPointContribution).where(inArray(userPointContribution.idUser, lockIds))
+
+	return db.transaction(async (tx) => {
+		const affectedUsers = await tx.execute<{ idUser: number }>(sql`
+			SELECT DISTINCT affected.id_user AS "idUser"
+			FROM (
+				SELECT ${personalBestGlobal.idUser} AS id_user
+				FROM ${personalBestGlobal}
+				WHERE ${personalBestGlobal.idLevel} = ANY(${sql.param(uniqueLevelIds)}::integer[])
+				UNION
+				SELECT ${userPointContribution.idUser} AS id_user
+				FROM ${userPointContribution}
+				WHERE ${userPointContribution.idLevel} = ANY(${sql.param(uniqueLevelIds)}::integer[])
+			) AS affected
+			ORDER BY affected.id_user
+		`)
+		const idUsers = affectedUsers.map((entry) => entry.idUser)
+		await acquireUserContributionLocks(tx, idUsers)
+
+		await tx.execute(sql`
+			WITH ranked_personal_bests AS (
+				SELECT
+					${personalBestGlobal.idUser} AS id_user,
+					${personalBestGlobal.idLevel} AS id_level,
+					${personalBestGlobal.idRecord} AS id_record,
+					${levelPoints.points} AS level_points,
+					(
+						RANK() OVER (
+							PARTITION BY ${personalBestGlobal.idLevel}
+							ORDER BY ${record.time}
+						)
+					)::integer AS level_position
+				FROM ${personalBestGlobal}
+				INNER JOIN ${record} ON ${record.id} = ${personalBestGlobal.idRecord}
+				INNER JOIN ${levelPoints} ON ${levelPoints.idLevel} = ${personalBestGlobal.idLevel}
+				WHERE ${personalBestGlobal.idLevel} = ANY(${sql.param(uniqueLevelIds)}::integer[])
+					AND ${levelPoints.points} > 0
+			), desired AS (
+				SELECT
+					ranked_personal_bests.*,
+					CASE
+						WHEN LN(ranked_personal_bests.level_points::double precision)
+							+ (ranked_personal_bests.level_position - 1)
+								* LN(${LEVEL_DECAY_FACTOR}::double precision)
+							< LN(${MIN_PERSISTED_DECAYED_POINTS}::double precision)
+							THEN 0::double precision
+						ELSE ranked_personal_bests.level_points::double precision * POWER(
+							${LEVEL_DECAY_FACTOR}::double precision,
+							ranked_personal_bests.level_position - 1
+						)
+					END AS level_decayed_points
+				FROM ranked_personal_bests
+			)
+			INSERT INTO ${userPointContribution} (
+				id_user,
+				id_level,
+				id_record,
+				contribution_rank,
+				level_position,
+				level_points,
+				level_decayed_points,
+				player_decayed_points,
+				date_calculated
+			)
+			SELECT
+				desired.id_user,
+				desired.id_level,
+				desired.id_record,
+				COALESCE(existing.contribution_rank, 2147483647),
+				desired.level_position,
+				desired.level_points,
+				desired.level_decayed_points,
+				COALESCE(existing.player_decayed_points, 0::double precision),
+				NOW()
+			FROM desired
+			LEFT JOIN ${userPointContribution} AS existing
+				ON existing.id_user = desired.id_user
+				AND existing.id_level = desired.id_level
+			ON CONFLICT (id_user, id_level) DO UPDATE SET
+				id_record = EXCLUDED.id_record,
+				level_position = EXCLUDED.level_position,
+				level_points = EXCLUDED.level_points,
+				level_decayed_points = EXCLUDED.level_decayed_points,
+				date_calculated = EXCLUDED.date_calculated
+			WHERE ROW(
+				${userPointContribution.idRecord},
+				${userPointContribution.levelPosition},
+				${userPointContribution.levelPoints},
+				${userPointContribution.levelDecayedPoints}
+			) IS DISTINCT FROM ROW(
+				EXCLUDED.id_record,
+				EXCLUDED.level_position,
+				EXCLUDED.level_points,
+				EXCLUDED.level_decayed_points
+			)
+		`)
+
+		await tx.execute(sql`
+			DELETE FROM ${userPointContribution} AS contribution
+			WHERE contribution.id_level = ANY(${sql.param(uniqueLevelIds)}::integer[])
+				AND NOT EXISTS (
+					SELECT 1
+					FROM ${personalBestGlobal}
+					INNER JOIN ${levelPoints}
+						ON ${levelPoints.idLevel} = ${personalBestGlobal.idLevel}
+					WHERE ${personalBestGlobal.idUser} = contribution.id_user
+						AND ${personalBestGlobal.idLevel} = contribution.id_level
+						AND ${personalBestGlobal.idRecord} = contribution.id_record
+						AND ${levelPoints.points} > 0
+				)
+		`)
+
+		return { levels: uniqueLevelIds.length, users: idUsers.length }
 	})
+}
+
+export async function getUserPointContributionsForUsers(
+	idUsers: number[],
+): Promise<Map<number, Omit<UserPointContributionInput, 'idUser'>[]>> {
+	if (idUsers.length === 0) {
+		return new Map()
+	}
+
+	const rows = await db
+		.select({
+			idUser: userPointContribution.idUser,
+			idLevel: userPointContribution.idLevel,
+			idRecord: userPointContribution.idRecord,
+			contributionRank: userPointContribution.contributionRank,
+			levelPosition: userPointContribution.levelPosition,
+			levelPoints: userPointContribution.levelPoints,
+			levelDecayedPoints: userPointContribution.levelDecayedPoints,
+			playerDecayedPoints: userPointContribution.playerDecayedPoints,
+		})
+		.from(userPointContribution)
+		.where(inArray(userPointContribution.idUser, idUsers))
+		.orderBy(asc(userPointContribution.idUser), asc(userPointContribution.contributionRank))
+
+	const grouped = new Map<number, Omit<UserPointContributionInput, 'idUser'>[]>()
+	for (const row of rows) {
+		const { idUser, ...contribution } = row
+		const entries = grouped.get(idUser) ?? []
+		entries.push(contribution)
+		grouped.set(idUser, entries)
+	}
+	return grouped
 }
 
 export async function getUserPointContributions(idUser: number) {

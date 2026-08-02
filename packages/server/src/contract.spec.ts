@@ -1089,7 +1089,9 @@ test('record/submit returns 200 with empty body on success', async () => {
 	])
 	expect(state.workshopScanCalls).toEqual([])
 	await Bun.sleep(0)
-	expect(state.jobCalls).toEqual([{ task: 'updateLevelScore', options: { idLevel: 10 } }])
+	expect(state.jobCalls).toEqual([
+		{ task: 'updateLevelScore', options: { idLevel: 10, idUser: 1 } },
+	])
 })
 
 test('record/submit does not await level-score enqueue', async () => {
@@ -1123,7 +1125,9 @@ test('record/submit does not await level-score enqueue', async () => {
 	expect(state.jobCalls).toEqual([])
 	releaseEnqueue()
 	await Bun.sleep(0)
-	expect(state.jobCalls).toEqual([{ task: 'updateLevelScore', options: { idLevel: 10 } }])
+	expect(state.jobCalls).toEqual([
+		{ task: 'updateLevelScore', options: { idLevel: 10, idUser: 1 } },
+	])
 })
 
 test('record/submit rejects missing canonical hash from old clients', async () => {

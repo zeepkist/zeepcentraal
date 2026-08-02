@@ -16,7 +16,10 @@ const setLevelPointsToZeroBulk = mock(async (ids: number[]) => ids)
 const upsertLevelPointsBulk = mock(async (updates: Array<{ idLevel: number }>) =>
 	updates.map((update) => update.idLevel),
 )
-const refreshCachedLevelLeaderboards = mock(async () => {})
+const syncUserPointContributionLevels = mock(async (ids: number[]) => ({
+	levels: ids.length,
+	users: 10,
+}))
 
 mock.module('@zeepkist/database', () => ({
 	getLevelWorkshopAvailabilities,
@@ -25,11 +28,8 @@ mock.module('@zeepkist/database', () => ({
 	getV2ScorePersonalBestsByLevelIds,
 	getVoteValuesByLevelIds,
 	setLevelPointsToZeroBulk,
+	syncUserPointContributionLevels,
 	upsertLevelPointsBulk,
-}))
-
-mock.module('../utils/playerScoreLeaderboardCache', () => ({
-	refreshCachedLevelLeaderboards,
 }))
 
 const { updateLevelScoreBatch } = await import('./levelScoreBatch')
@@ -45,7 +45,7 @@ beforeEach(() => {
 	getVoteValuesByLevelIds.mockClear()
 	setLevelPointsToZeroBulk.mockClear()
 	upsertLevelPointsBulk.mockClear()
-	refreshCachedLevelLeaderboards.mockClear()
+	syncUserPointContributionLevels.mockClear()
 })
 
 test('loads only votes unchanged for at least seven days', async () => {
@@ -141,7 +141,7 @@ test('skips score evidence reads for unavailable levels', async () => {
 	expect(setLevelPointsToZeroBulk).toHaveBeenCalledWith([1])
 })
 
-test('refreshes cached leaderboards only when awarded points change', async () => {
+test('syncs contribution projection when awarded points stay unchanged', async () => {
 	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
 	getLevelPointValuesByIds.mockImplementationOnce(async () => [{ idLevel: 1, points: 0 }])
 
@@ -152,7 +152,7 @@ test('refreshes cached leaderboards only when awarded points change', async () =
 	})
 
 	expect(upsertLevelPointsBulk).toHaveBeenCalledTimes(1)
-	expect(refreshCachedLevelLeaderboards).not.toHaveBeenCalled()
+	expect(syncUserPointContributionLevels).toHaveBeenCalledWith([1])
 })
 
 test('report-only mode logs proposed deltas without writing scores', async () => {
@@ -184,7 +184,7 @@ test('report-only mode logs proposed deltas without writing scores', async () =>
 	expect(getLevelPointValuesByIds).toHaveBeenCalledWith([1])
 	expect(upsertLevelPointsBulk).not.toHaveBeenCalled()
 	expect(setLevelPointsToZeroBulk).not.toHaveBeenCalled()
-	expect(refreshCachedLevelLeaderboards).not.toHaveBeenCalled()
+	expect(syncUserPointContributionLevels).not.toHaveBeenCalled()
 	expect(info).toHaveBeenCalledWith(
 		'Calculated report-only level scores.',
 		expect.objectContaining({ levels: expect.any(Array) }),

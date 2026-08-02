@@ -15,6 +15,11 @@ export interface PlayerPointContribution {
 	playerDecayedPoints: number
 }
 
+export type LevelPointContribution = Omit<
+	PlayerPointContribution,
+	'contributionRank' | 'playerDecayedPoints'
+>
+
 export interface CalculatePlayerPointsResult {
 	contributions: PlayerPointContribution[]
 	points: number
@@ -23,8 +28,8 @@ export interface CalculatePlayerPointsResult {
 
 export const GLOBAL_DECAY_FACTOR = 0.95
 export const LEVEL_DECAY_FACTOR = 0.985
-export const PLAYER_SCORE_PB_LIMIT = 2000
-export const PLAYER_SCORE_CONTRIBUTION_LIMIT = 2000
+// PostgreSQL real uses IEEE-754 binary32; smaller positive values cannot be persisted safely.
+export const MIN_PERSISTED_DECAYED_POINTS = 2 ** -149
 
 export function calculateDecayMultiplier(position: number, decayFactor: number) {
 	if (
@@ -48,47 +53,32 @@ export function calculatePlayerPointsDecayed(
 		return 0
 	}
 
-	return points * calculateDecayMultiplier(position, decayFactor)
+	const decayedPoints = points * calculateDecayMultiplier(position, decayFactor)
+	return decayedPoints < MIN_PERSISTED_DECAYED_POINTS ? 0 : decayedPoints
 }
 
-export const calculatePlayerPoints = (
-	personalBests: PersonalBest[],
-): CalculatePlayerPointsResult => {
-	const contributions: PlayerPointContribution[] = []
+export function calculatePlayerPointsFromContributions(
+	contributions: LevelPointContribution[],
+): CalculatePlayerPointsResult {
 	const totals = {
 		points: 0,
 		totalPoints: 0,
 	}
 
-	for (const { idLevel, idRecord, levelPoints, position } of personalBests) {
-		const index = Number(position)
-		if (!Number.isFinite(index) || index < 1 || levelPoints === 0) {
-			continue
-		}
-
-		contributions.push({
-			idLevel,
-			idRecord,
-			contributionRank: 0,
-			levelPosition: index,
-			levelPoints,
-			levelDecayedPoints: calculatePlayerPointsDecayed(
-				levelPoints,
-				index,
-				LEVEL_DECAY_FACTOR,
-			),
-			playerDecayedPoints: 0,
-		})
-	}
-
 	const rankedContributions = contributions
+		.filter(
+			(contribution) =>
+				contribution.levelPosition >= 1 &&
+				Number.isFinite(contribution.levelPosition) &&
+				contribution.levelPoints > 0 &&
+				Number.isFinite(contribution.levelDecayedPoints),
+		)
 		.sort(
 			(a, b) =>
 				b.levelDecayedPoints - a.levelDecayedPoints ||
 				a.idLevel - b.idLevel ||
 				a.idRecord - b.idRecord,
 		)
-		.slice(0, PLAYER_SCORE_PB_LIMIT)
 		.map((contribution, index) => {
 			const contributionRank = index + 1
 			return {
@@ -110,6 +100,30 @@ export const calculatePlayerPoints = (
 	return {
 		points: Math.round(totals.points),
 		totalPoints: Math.round(totals.totalPoints),
-		contributions: rankedContributions.slice(0, PLAYER_SCORE_CONTRIBUTION_LIMIT),
+		contributions: rankedContributions,
 	}
 }
+
+export const calculatePlayerPoints = (personalBests: PersonalBest[]): CalculatePlayerPointsResult =>
+	calculatePlayerPointsFromContributions(
+		personalBests.flatMap(({ idLevel, idRecord, levelPoints, position }) => {
+			const levelPosition = Number(position)
+			if (!Number.isFinite(levelPosition) || levelPosition < 1 || levelPoints <= 0) {
+				return []
+			}
+
+			return [
+				{
+					idLevel,
+					idRecord,
+					levelPosition,
+					levelPoints,
+					levelDecayedPoints: calculatePlayerPointsDecayed(
+						levelPoints,
+						levelPosition,
+						LEVEL_DECAY_FACTOR,
+					),
+				},
+			]
+		}),
+	)

@@ -491,6 +491,13 @@
 			"when": 1785359138012,
 			"tag": "0070_preserve_adventure_workshop_aliases",
 			"breakpoints": true
+		},
+		{
+			"idx": 71,
+			"version": "7",
+			"when": 1785641402278,
+			"tag": "0071_backfill_player_score_contributions",
+			"breakpoints": true
 		}
 	]
 }

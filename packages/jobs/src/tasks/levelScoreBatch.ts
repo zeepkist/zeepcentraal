@@ -14,10 +14,10 @@ import {
 	getV2ScorePersonalBestsByLevelIds,
 	getVoteValuesByLevelIds,
 	setLevelPointsToZeroBulk,
+	syncUserPointContributionLevels,
 	upsertLevelPointsBulk,
 } from '@zeepkist/database'
 import type { Helpers } from 'graphile-worker'
-import { refreshCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
 
 type PersonalBestRow = Awaited<ReturnType<typeof getV2ScorePersonalBestsByLevelIds>>[number]
 
@@ -182,7 +182,8 @@ export async function updateLevelScoreBatch({
 			zeroed: zeroIds.length,
 			persisted: 0,
 			pointChanged: 0,
-			refreshed: 0,
+			projectionLevels: 0,
+			projectionUsers: 0,
 			reportOnly: true,
 		})
 		return { updated: 0, zeroed: 0, reported: updates.length + zeroIds.length }
@@ -198,13 +199,9 @@ export async function updateLevelScoreBatch({
 	const [updatedIds, zeroedIds] = await timed('persistence', () =>
 		Promise.all([upsertLevelPointsBulk(updates), setLevelPointsToZeroBulk(zeroIds)]),
 	)
-	if (pointChangedIds.length > 0) {
-		await timed('cacheRefresh', () =>
-			refreshCachedLevelLeaderboards({ idLevels: pointChangedIds, logger }),
-		)
-	} else {
-		timings.cacheRefreshMs = 0
-	}
+	const projection = await timed('contributionProjection', () =>
+		syncUserPointContributionLevels(idLevels),
+	)
 	logger.info('Level score batch timings.', {
 		...timings,
 		totalMs: Date.now() - startedAt,
@@ -213,7 +210,8 @@ export async function updateLevelScoreBatch({
 		zeroed: zeroIds.length,
 		persisted: updatedIds.length + zeroedIds.length,
 		pointChanged: pointChangedIds.length,
-		refreshed: pointChangedIds.length,
+		projectionLevels: projection.levels,
+		projectionUsers: projection.users,
 		reportOnly: false,
 	})
 	return { updated: updatedIds.length, zeroed: zeroedIds.length, reported: 0 }

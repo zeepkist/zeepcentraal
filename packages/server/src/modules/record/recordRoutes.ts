@@ -39,18 +39,20 @@ function ghostFrameBucket(frameCount: number | null): string {
 
 function scheduleRecordFollowups({
 	idLevel,
+	idUser,
 	personalBestChanged,
 	workshopId,
 	workshopScanClaimed,
 }: {
 	idLevel: number
+	idUser: number
 	personalBestChanged: boolean
 	workshopId?: bigint
 	workshopScanClaimed: boolean
 }): void {
 	if (personalBestChanged) {
 		void traceSubmitPhase('record.submit.enqueue_level_score', () =>
-			enqueueCompatibleTask('updateLevelScore', { idLevel }),
+			enqueueCompatibleTask('updateLevelScore', { idLevel, idUser }),
 		).catch((error) => {
 			console.error(`Failed to enqueue level score update for level ${idLevel}:`, error)
 		})
@@ -233,6 +235,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 				})
 				scheduleRecordFollowups({
 					idLevel: level.id,
+					idUser: user.id,
 					personalBestChanged: submitted.personalBestChanged,
 					workshopId,
 					workshopScanClaimed,

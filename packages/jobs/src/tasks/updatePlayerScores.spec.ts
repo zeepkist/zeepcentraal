@@ -9,32 +9,50 @@ const postgresCause = Object.assign(new Error('duplicate key'), {
 const persistenceError = Object.assign(new Error('Failed query'), { cause: postgresCause })
 let contributionError: unknown = persistenceError
 const events: string[] = []
-const upsertUserPointContributionsBulk = mock(async () => {
+let discoveredUsers = [{ idUser: 42, latestRecordDate: new Date().toISOString() }]
+const updateUserPointContributionPlayerValuesBulk = mock(async () => {
 	if (contributionError) throw contributionError
 })
+const getUserPointContributionsForUsers = mock(
+	async (idUsers: number[]) =>
+		new Map(
+			idUsers.map((idUser) => [
+				idUser,
+				[
+					{
+						idUser,
+						idLevel: 7,
+						idRecord: 70,
+						contributionRank: 1,
+						levelPosition: 1,
+						levelPoints: 100,
+						levelDecayedPoints: 100,
+						playerDecayedPoints: 100,
+					},
+				],
+			]),
+		),
+)
+const bulkUpdateUserRanks = mock(async () => {})
 const getAllUsersWithLatestRecordDate = mock(async () => {
 	events.push('user-discovery')
-	return [{ idUser: 42, latestRecordDate: new Date().toISOString() }]
+	return discoveredUsers
 })
 
 mock.module('@zeepkist/core/score', () => ({
-	calculatePlayerPoints: () => ({ points: 100, totalPoints: 100, contributions: [] }),
+	calculatePlayerPointsFromContributions: (source: Array<{ idUser: number }>) => ({
+		points: 100,
+		totalPoints: 100,
+		contributions: source.map(({ idUser: _, ...contribution }) => contribution),
+	}),
 }))
 mock.module('@zeepkist/database/services', () => ({
-	bulkUpdateUserRanks: mock(async () => {}),
-	clearUserPointContributions: mock(async () => {}),
+	bulkUpdateUserRanks,
 	getAllUsersWithLatestRecordDate,
+	getUserPointContributionsForUsers,
 	updateUserRanks: mock(async () => {}),
-	upsertUserPointContributionsBulk,
+	updateUserPointContributionPlayerValuesBulk,
 	upsertUserPointsBulk: mock(async () => {}),
-}))
-mock.module('@zeepkist/database/services/personalBest', () => ({
-	getPersonalBestLevelIdsForUsers: mock(async () => [7]),
-}))
-mock.module('../utils/playerScoreLeaderboardCache', () => ({
-	getCachedLevelLeaderboards: mock(
-		async () => new Map([[7, [{ idUser: 42, idLevel: 7, idRecord: 70, time: 60 }]]]),
-	),
 }))
 
 const { updatePlayerScores } = await import('./updatePlayerScores')
@@ -42,7 +60,10 @@ const { updatePlayerScores } = await import('./updatePlayerScores')
 beforeEach(() => {
 	contributionError = persistenceError
 	events.length = 0
-	upsertUserPointContributionsBulk.mockClear()
+	discoveredUsers = [{ idUser: 42, latestRecordDate: new Date().toISOString() }]
+	bulkUpdateUserRanks.mockClear()
+	getUserPointContributionsForUsers.mockClear()
+	updateUserPointContributionPlayerValuesBulk.mockClear()
 })
 
 test('logs PostgreSQL metadata and affected user batch before rethrow', async () => {
@@ -93,4 +114,26 @@ test('logs phase completion for successful full recalculation', async () => {
 		'updatePlayerScores completed.',
 		expect.objectContaining({ rankUpdateMs: expect.any(Number), totalMs: expect.any(Number) }),
 	)
+})
+
+test('retains and recalculates inactive contribution rows while resetting rank', async () => {
+	contributionError = null
+	discoveredUsers = [{ idUser: 42, latestRecordDate: '2020-01-01T00:00:00.000Z' }]
+
+	await updatePlayerScores({}, {
+		logger: { error: mock(() => {}), info: mock(() => {}) },
+	} as never)
+
+	expect(bulkUpdateUserRanks).toHaveBeenCalledWith({
+		idUsers: [42],
+		points: 0,
+		rank: -1,
+	})
+	expect(getUserPointContributionsForUsers).toHaveBeenCalledWith([42])
+	expect(updateUserPointContributionPlayerValuesBulk).toHaveBeenCalledWith([
+		{
+			idUser: 42,
+			contributions: [expect.objectContaining({ idLevel: 7, idRecord: 70 })],
+		},
+	])
 })

@@ -3,10 +3,10 @@ import {
 	calculateDecayMultiplier,
 	calculatePlayerPoints,
 	calculatePlayerPointsDecayed,
+	calculatePlayerPointsFromContributions,
 	GLOBAL_DECAY_FACTOR,
 	LEVEL_DECAY_FACTOR,
-	PLAYER_SCORE_CONTRIBUTION_LIMIT,
-	PLAYER_SCORE_PB_LIMIT,
+	MIN_PERSISTED_DECAYED_POINTS,
 } from './calculatePlayerPoints'
 
 describe('calculatePlayerPoints', () => {
@@ -32,37 +32,51 @@ describe('calculatePlayerPoints', () => {
 		expect(result.contributions[1]?.playerDecayedPoints).toBeCloseTo(935.75)
 	})
 
-	test('caps ranked point calculation to configured PB limit', () => {
-		const personalBests = Array.from({ length: PLAYER_SCORE_PB_LIMIT + 1 }, (_, index) => ({
+	test('calculates and persists every positive-point personal best', () => {
+		const personalBests = Array.from({ length: 2500 }, (_, index) => ({
 			idLevel: index + 1,
 			idRecord: index + 10_000,
 			levelPoints: 100,
 			position: 1n,
 		}))
 
-		const capped = calculatePlayerPoints(personalBests)
-		const exactLimit = calculatePlayerPoints(personalBests.slice(0, PLAYER_SCORE_PB_LIMIT))
-
-		expect(capped.points).toBe(exactLimit.points)
-		expect(capped.totalPoints).toBe(PLAYER_SCORE_PB_LIMIT * 100)
-	})
-
-	test('caps contribution output to configured contribution limit', () => {
-		const personalBests = Array.from(
-			{ length: PLAYER_SCORE_CONTRIBUTION_LIMIT + 1 },
-			(_, index) => ({
-				idLevel: index + 1,
-				idRecord: index + 10_000,
-				levelPoints: PLAYER_SCORE_CONTRIBUTION_LIMIT + 1 - index,
-				position: 1n,
-			}),
-		)
-
 		const result = calculatePlayerPoints(personalBests)
 
-		expect(result.contributions).toHaveLength(PLAYER_SCORE_CONTRIBUTION_LIMIT)
-		expect(result.contributions[0]?.idLevel).toBe(1)
-		expect(result.contributions.at(-1)?.idLevel).toBe(PLAYER_SCORE_CONTRIBUTION_LIMIT)
+		expect(result.contributions).toHaveLength(2500)
+		expect(result.totalPoints).toBe(250_000)
+		expect(result.contributions.at(-1)?.contributionRank).toBe(2500)
+		expect(result.contributions.at(-1)?.playerDecayedPoints).toBe(0)
+	})
+
+	test('recalculates only player-owned fields from projected level contributions', () => {
+		const result = calculatePlayerPointsFromContributions([
+			{
+				idLevel: 2,
+				idRecord: 20,
+				levelPosition: 2,
+				levelPoints: 1000,
+				levelDecayedPoints: 985,
+			},
+			{
+				idLevel: 1,
+				idRecord: 10,
+				levelPosition: 1,
+				levelPoints: 1000,
+				levelDecayedPoints: 1000,
+			},
+		])
+
+		expect(result.points).toBe(1936)
+		expect(result.totalPoints).toBe(1985)
+		expect(
+			result.contributions.map(({ idLevel, contributionRank }) => ({
+				idLevel,
+				contributionRank,
+			})),
+		).toEqual([
+			{ idLevel: 1, contributionRank: 1 },
+			{ idLevel: 2, contributionRank: 2 },
+		])
 	})
 })
 
@@ -83,6 +97,13 @@ describe('calculatePlayerPointsDecayed', () => {
 	test('applies level decay to points at leaderboard position', () => {
 		expect(calculatePlayerPointsDecayed(1000, 1, LEVEL_DECAY_FACTOR)).toBe(1000)
 		expect(calculatePlayerPointsDecayed(1000, 2, LEVEL_DECAY_FACTOR)).toBeCloseTo(985)
+	})
+
+	test('clamps positive values below PostgreSQL real precision to zero', () => {
+		expect(
+			calculatePlayerPointsDecayed(MIN_PERSISTED_DECAYED_POINTS, 1, GLOBAL_DECAY_FACTOR),
+		).toBe(MIN_PERSISTED_DECAYED_POINTS)
+		expect(calculatePlayerPointsDecayed(100, 2500, GLOBAL_DECAY_FACTOR)).toBe(0)
 	})
 
 	test('returns zero for invalid points and positions', () => {

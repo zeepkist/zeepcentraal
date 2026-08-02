@@ -1,18 +1,16 @@
-import { calculatePlayerPoints, type PlayerPointContribution } from '@zeepkist/core/score'
+import {
+	calculatePlayerPointsFromContributions,
+	type PlayerPointContribution,
+} from '@zeepkist/core/score'
 import {
 	bulkUpdateUserRanks,
-	clearUserPointContributions,
 	getAllUsersWithLatestRecordDate,
+	getUserPointContributionsForUsers,
+	updateUserPointContributionPlayerValuesBulk,
 	updateUserRanks,
-	upsertUserPointContributionsBulk,
 	upsertUserPointsBulk,
 } from '@zeepkist/database/services'
-import {
-	getPersonalBestLevelIdsForUsers,
-	type PersonalBestWithLevelPointsAndPosition,
-} from '@zeepkist/database/services/personalBest'
 import { batchProcess } from '../utils'
-import { getCachedLevelLeaderboards } from '../utils/playerScoreLeaderboardCache'
 import { getPostgresErrorMetadata } from '../utils/postgresError'
 import type { TaskHandler } from './types'
 
@@ -85,71 +83,46 @@ async function recalculatePlayerScores(
 			rank: -1,
 		})
 		const rankResetMs = Date.now() - rankResetStartedAt
-		const contributionClearStartedAt = Date.now()
-		await clearUserPointContributions(idUsers)
 		helpers.logger.info('Reset inactive player scores.', {
 			users: idUsers.length,
 			rankResetMs,
-			contributionClearMs: Date.now() - contributionClearStartedAt,
 			totalMs: Date.now() - inactiveStartedAt,
 		})
 	}
 
 	const pointsList: PointsList[] = []
+	const rankedUserIds = new Set(rankedUsers.map((user) => user.idUser))
 
-	const rankedUserBatches = Array.from(batchProcess(rankedUsers, PLAYER_SCORE_BATCH_SIZE))
-	for (let batchIndex = 0; batchIndex < rankedUserBatches.length; batchIndex++) {
-		const userBatch = rankedUserBatches[batchIndex]
+	const userBatches = Array.from(batchProcess(users, PLAYER_SCORE_BATCH_SIZE))
+	for (let batchIndex = 0; batchIndex < userBatches.length; batchIndex++) {
+		const userBatch = userBatches[batchIndex]
 		if (!userBatch) {
 			continue
 		}
 
 		helpers.logger.info(
-			`Updating player score batch ${batchIndex + 1}/${rankedUserBatches.length} (${userBatch.length} users).`,
+			`Updating player score batch ${batchIndex + 1}/${userBatches.length} (${userBatch.length} users).`,
 		)
 
 		const idUsers = userBatch.map(({ idUser }) => idUser)
-		const idUserSet = new Set(idUsers)
-		const personalBestsByUser = new Map<number, PersonalBestWithLevelPointsAndPosition[]>()
-		const levelDiscoveryStartedAt = Date.now()
-		const idLevels = await getPersonalBestLevelIdsForUsers(idUsers)
-		const levelDiscoveryMs = Date.now() - levelDiscoveryStartedAt
-		const leaderboardStartedAt = Date.now()
-		const levelLeaderboards = await getCachedLevelLeaderboards({
-			idLevels,
-			logger: helpers.logger,
-		})
-		const leaderboardMs = Date.now() - leaderboardStartedAt
-
-		for (const rows of levelLeaderboards.values()) {
-			for (const row of rows) {
-				if (!idUserSet.has(row.idUser)) {
-					continue
-				}
-
-				const entries = personalBestsByUser.get(row.idUser) ?? []
-				entries.push(row)
-				personalBestsByUser.set(row.idUser, entries)
-			}
-		}
+		const contributionReadStartedAt = Date.now()
+		const contributionsByUser = await getUserPointContributionsForUsers(idUsers)
+		const contributionReadMs = Date.now() - contributionReadStartedAt
 
 		const calculationStartedAt = Date.now()
 		const contributionUpdates: ContributionUpdate[] = []
-		const pointUpdates = userBatch.map(({ idUser }) => {
-			const personalBests = personalBestsByUser.get(idUser) ?? []
-
-			if (personalBests.length === 0) {
-				pointsList.push({ idUser, points: 0 })
-				contributionUpdates.push({ idUser, contributions: [] })
-				return { idUser, points: 0, totalPoints: 0 }
-			}
-
-			const { points, totalPoints, contributions } = calculatePlayerPoints(personalBests)
-			pointsList.push({ idUser, points })
+		const pointUpdates: Array<{ idUser: number; points: number; totalPoints: number }> = []
+		for (const { idUser } of userBatch) {
+			const sourceContributions = contributionsByUser.get(idUser) ?? []
+			const { points, totalPoints, contributions } =
+				calculatePlayerPointsFromContributions(sourceContributions)
 			contributionUpdates.push({ idUser, contributions })
 
-			return { idUser, points, totalPoints }
-		})
+			if (rankedUserIds.has(idUser)) {
+				pointsList.push({ idUser, points })
+				pointUpdates.push({ idUser, points, totalPoints })
+			}
+		}
 
 		const calculationMs = Date.now() - calculationStartedAt
 		const persistenceStartedAt = Date.now()
@@ -164,7 +137,7 @@ async function recalculatePlayerScores(
 				})(),
 				(async () => {
 					const startedAt = Date.now()
-					await upsertUserPointContributionsBulk(contributionUpdates)
+					await updateUserPointContributionPlayerValuesBulk(contributionUpdates)
 					contributionPersistenceMs = Date.now() - startedAt
 				})(),
 			])
@@ -177,20 +150,15 @@ async function recalculatePlayerScores(
 			throw error
 		}
 
-		helpers.logger.info(
-			`Updated player score batch ${batchIndex + 1}/${rankedUserBatches.length}.`,
-			{
-				users: userBatch.length,
-				levels: idLevels.length,
-				levelDiscoveryMs,
-				leaderboardMs,
-				calculationMs,
-				userPointsPersistenceMs,
-				contributionPersistenceMs,
-				persistenceMs: Date.now() - persistenceStartedAt,
-				totalMs: Date.now() - taskStartedAt,
-			},
-		)
+		helpers.logger.info(`Updated player score batch ${batchIndex + 1}/${userBatches.length}.`, {
+			users: userBatch.length,
+			contributionReadMs,
+			calculationMs,
+			userPointsPersistenceMs,
+			contributionPersistenceMs,
+			persistenceMs: Date.now() - persistenceStartedAt,
+			totalMs: Date.now() - taskStartedAt,
+		})
 	}
 
 	const usersSortedByHighestPoints = pointsList.sort((a, b) => b.points - a.points)

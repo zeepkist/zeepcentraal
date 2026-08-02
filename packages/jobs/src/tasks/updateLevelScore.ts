@@ -24,7 +24,7 @@ export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) =
 		logger: helpers.logger,
 	})
 
-	if (idUser) {
+	if (idUser && !payload.reportOnly) {
 		await helpers.addJob(
 			'updatePlayerScore',
 			{ idUser },

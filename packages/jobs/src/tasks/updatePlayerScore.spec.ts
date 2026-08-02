@@ -1,20 +1,31 @@
-import { expect, mock, test } from 'bun:test'
+import { beforeEach, expect, mock, test } from 'bun:test'
 
-const getUserPersonalBestsWithLevelPointsAndPosition = mock(async () => [{ idLevel: 1 }])
-const upsertUserPointContributionsBulk = mock(async () => {})
+let projectedContributions = new Map([[42, [{ idLevel: 1 }]]])
+const getUserPointContributionsForUsers = mock(async () => projectedContributions)
+const updateUserPointContributionPlayerValuesBulk = mock(async () => {})
 const upsertUserPoints = mock(async () => {})
 
 mock.module('@zeepkist/core/score', () => ({
-	calculatePlayerPoints: () => ({ contributions: [], points: 100, totalPoints: 100 }),
+	calculatePlayerPointsFromContributions: () => ({
+		contributions: [],
+		points: projectedContributions.size === 0 ? 0 : 100,
+		totalPoints: projectedContributions.size === 0 ? 0 : 100,
+	}),
 }))
 mock.module('@zeepkist/database', () => ({
-	clearUserPointContributions: mock(async () => {}),
-	getUserPersonalBestsWithLevelPointsAndPosition,
-	upsertUserPointContributionsBulk,
+	getUserPointContributionsForUsers,
+	updateUserPointContributionPlayerValuesBulk,
 	upsertUserPoints,
 }))
 
 const { updatePlayerScore } = await import('./updatePlayerScore')
+
+beforeEach(() => {
+	projectedContributions = new Map([[42, [{ idLevel: 1 }]]])
+	getUserPointContributionsForUsers.mockClear()
+	updateUserPointContributionPlayerValuesBulk.mockClear()
+	upsertUserPoints.mockClear()
+})
 
 test('logs start and completion timings', async () => {
 	const info = mock((..._args: unknown[]) => {})
@@ -27,4 +38,14 @@ test('logs start and completion timings', async () => {
 	expect(info).toHaveBeenCalledWith('updatePlayerScore completed for idUser=42.', {
 		totalMs: expect.any(Number),
 	})
+})
+
+test('persists zero score when projection has no positive-point contributions', async () => {
+	projectedContributions = new Map()
+
+	await updatePlayerScore({ idUser: 42 }, {
+		logger: { error: mock(() => {}), info: mock(() => {}), warn: mock(() => {}) },
+	} as never)
+
+	expect(upsertUserPoints).toHaveBeenCalledWith({ idUser: 42, points: 0, totalPoints: 0 })
 })

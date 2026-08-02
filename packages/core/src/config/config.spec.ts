@@ -36,11 +36,10 @@ test('database config parses without server-only secrets', () => {
 	expect(config.wasabi.thumbnailFolder).toBe('thumbnails-dev')
 })
 
-test('jobs config keeps Keyv cache in separate schema by default', () => {
+test('jobs config parses without cache configuration', () => {
 	const config = parseJobsConfig({})
 
 	expect(config.databaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
-	expect(config.keyvSchema).toBe('zeepkist_cache')
 })
 
 test('import config preserves super league candidate fallback', () => {
