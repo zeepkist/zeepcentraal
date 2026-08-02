@@ -137,3 +137,17 @@ jobs:
           service-version: pr-${{ github.event.pull_request.number || github.run_id }}
           push: false
           tags: ${{ matrix.image.tag }}:pr-${{ github.event.pull_request.number || github.run_id }}
+
+  can-merge:
+    name: can-merge
+    runs-on: ubuntu-latest
+    needs: [build-packages, docker-build]
+    if: ${{ always() }}
+    steps:
+      - name: Require successful build matrices
+        env:
+          BUILD_PACKAGES_RESULT: ${{ needs.build-packages.result }}
+          DOCKER_BUILD_RESULT: ${{ needs.docker-build.result }}
+        run: |
+          test "$BUILD_PACKAGES_RESULT" = "success"
+          test "$DOCKER_BUILD_RESULT" = "success"

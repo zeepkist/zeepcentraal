@@ -116,6 +116,22 @@ describe('web deployment build', () => {
 		}
 	})
 
+	it('exposes one required check for all package and Docker matrix builds', () => {
+		const canMergeJob = prWorkflow.slice(prWorkflow.indexOf('\n  can-merge:\n'))
+
+		expect(canMergeJob).toContain('name: can-merge')
+		expect(canMergeJob).toContain('needs: [build-packages, docker-build]')
+		expect(canMergeJob).toContain(['if: $', '{{ always() }}'].join(''))
+		expect(canMergeJob).toContain(
+			['BUILD_PACKAGES_RESULT: $', '{{ needs.build-packages.result }}'].join(''),
+		)
+		expect(canMergeJob).toContain(
+			['DOCKER_BUILD_RESULT: $', '{{ needs.docker-build.result }}'].join(''),
+		)
+		expect(canMergeJob).toContain('test "$BUILD_PACKAGES_RESULT" = "success"')
+		expect(canMergeJob).toContain('test "$DOCKER_BUILD_RESULT" = "success"')
+	})
+
 	it('runs the complete Nitro output with pinned Bun as non-root', () => {
 		expect(webDockerfile).toContain('FROM oven/bun:1.3.14-slim')
 		expect(webDockerfile).toContain('COPY --chown=65532:65532 packages/web/.output .output')
