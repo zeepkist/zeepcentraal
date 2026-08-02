@@ -26,11 +26,18 @@ export default defineEventHandler(async (event) => {
 	const metadata = data.level?.levelMetadata.nodes[0]
 	if (!metadata) throw createError({ statusCode: 404, statusMessage: 'Level geometry not found' })
 	const blocks = parseLevelGeometryBlocks(metadata.blocks)
-	const digest = await protectedMeshCorpusDigest(config.blockMeshCorpusPath)
+	const digest = await protectedMeshCorpusDigest(
+		config.blockMeshCorpusPath,
+		config.blockMeshCorpusToken,
+	)
 	const key = protectedMeshBundleCacheKey(digest, blocks)
 	let bundle = bundleCache.get(key)
 	if (!bundle) {
-		bundle = await buildProtectedLevelMeshBundle(config.blockMeshCorpusPath, blocks)
+		bundle = await buildProtectedLevelMeshBundle(
+			config.blockMeshCorpusPath,
+			blocks,
+			config.blockMeshCorpusToken,
+		)
 		bundleCache.set(key, bundle)
 		bundleCacheBytes += bundle.byteLength
 		while (bundleCache.size > MAXIMUM_CACHE_ENTRIES || bundleCacheBytes > MAXIMUM_CACHE_BYTES) {

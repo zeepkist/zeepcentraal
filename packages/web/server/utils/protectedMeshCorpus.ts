@@ -15,9 +15,13 @@ import {
 
 type Corpus = {
 	index: ProtectedMeshCorpusIndex
-	directory: string
+	source: CorpusSource
 	files: Map<string, Promise<Uint8Array>>
 }
+
+type CorpusSource =
+	| { kind: 'local'; directory: string }
+	| { kind: 'remote'; baseUrl: URL; referer: string }
 
 type BundleGroup = {
 	payload: Uint8Array
@@ -30,12 +34,15 @@ const ghostModelBundlePromises = new Map<string, Promise<Uint8Array>>()
 const ASSET_RIPPER_TO_GHOST_MATRIX = new THREE.Matrix4().makeRotationY(Math.PI)
 const ZERO_VECTOR = { x: 0, y: 0, z: 0 }
 const MAXIMUM_BUNDLE_BYTES = 64 * 1024 * 1024
+const MAXIMUM_CORPUS_INDEX_BYTES = 16 * 1024 * 1024
+const BLOCK_CORPUS_REFERER_PREFIX = 'https://zeepki.st/server/block-corpus/'
 
 export async function buildProtectedLevelMeshBundle(
-	corpusDirectory: string,
+	corpusLocation: string,
 	blocks: readonly GhostLevelBlock[],
+	corpusToken = '',
 ) {
-	const corpus = await loadCorpus(corpusDirectory)
+	const corpus = await loadCorpus(corpusLocation, corpusToken)
 	const groups = new Map<
 		string,
 		{ file: string; color: ProtectedMeshColor | null; matrices: ProtectedMeshMatrix[] }
@@ -121,10 +128,11 @@ function isPartVisible(
 		: activeAttributes.has(attribute.index)
 }
 
-export function buildProtectedGhostModelBundle(corpusDirectory: string) {
-	let promise = ghostModelBundlePromises.get(corpusDirectory)
+export function buildProtectedGhostModelBundle(corpusLocation: string, corpusToken = '') {
+	const cacheKey = corpusSourceCacheKey(corpusLocation, corpusToken)
+	let promise = ghostModelBundlePromises.get(cacheKey)
 	if (!promise) {
-		promise = loadCorpus(corpusDirectory).then(async (corpus) => {
+		promise = loadCorpus(corpusLocation, corpusToken).then(async (corpus) => {
 			const common = await Promise.all(
 				(
 					Object.entries(corpus.index.common) as Array<
@@ -137,7 +145,7 @@ export function buildProtectedGhostModelBundle(corpusDirectory: string) {
 			)
 			return serializeBundle(corpus.index.digest, [], [], common)
 		})
-		ghostModelBundlePromises.set(corpusDirectory, promise)
+		ghostModelBundlePromises.set(cacheKey, promise)
 	}
 	return promise
 }
@@ -146,16 +154,18 @@ export function protectedMeshBundleCacheKey(digest: string, blocks: readonly Gho
 	return createHash('sha256').update(digest).update(JSON.stringify(blocks)).digest('hex')
 }
 
-export async function protectedMeshCorpusDigest(corpusDirectory: string) {
-	return (await loadCorpus(corpusDirectory)).index.digest
+export async function protectedMeshCorpusDigest(corpusLocation: string, corpusToken = '') {
+	return (await loadCorpus(corpusLocation, corpusToken)).index.digest
 }
 
-async function loadCorpus(directory: string) {
-	if (!directory)
+async function loadCorpus(location: string, token: string) {
+	if (!location)
 		throw createError({ statusCode: 503, statusMessage: 'Protected mesh corpus missing' })
-	let promise = corpusPromises.get(directory)
+	const cacheKey = corpusSourceCacheKey(location, token)
+	let promise = corpusPromises.get(cacheKey)
 	if (!promise) {
-		promise = readFile(join(directory, 'index.json'), 'utf8').then((value) => {
+		promise = createCorpusSource(location, token).then(async (source) => {
+			const value = await readCorpusIndex(source)
 			const index = JSON.parse(value) as ProtectedMeshCorpusIndex
 			if (
 				index.version !== PROTECTED_MESH_CORPUS_VERSION ||
@@ -166,16 +176,46 @@ async function loadCorpus(directory: string) {
 			) {
 				throw new Error('Protected mesh corpus index has unsupported shape')
 			}
-			return { index, directory, files: new Map() }
+			return { index, source, files: new Map() }
 		})
-		corpusPromises.set(directory, promise)
+		corpusPromises.set(cacheKey, promise)
 	}
 	try {
 		return await promise
 	} catch {
-		corpusPromises.delete(directory)
+		corpusPromises.delete(cacheKey)
 		throw createError({ statusCode: 503, statusMessage: 'Protected mesh corpus unavailable' })
 	}
+}
+
+async function createCorpusSource(location: string, token: string): Promise<CorpusSource> {
+	if (/^https:\/\//i.test(location)) {
+		if (!token) throw new Error('Remote protected mesh corpus token missing')
+		const baseUrl = new URL(location.endsWith('/') ? location : `${location}/`)
+		return {
+			kind: 'remote',
+			baseUrl,
+			referer: `${BLOCK_CORPUS_REFERER_PREFIX}${encodeURIComponent(token)}`,
+		}
+	}
+	if (/^[a-z][a-z\d+.-]*:\/\//i.test(location)) {
+		throw new Error('Remote protected mesh corpus must use HTTPS')
+	}
+	return { kind: 'local', directory: location }
+}
+
+function corpusSourceCacheKey(location: string, token: string) {
+	return createHash('sha256').update(location).update('\0').update(token).digest('hex')
+}
+
+async function readCorpusIndex(source: CorpusSource) {
+	if (source.kind === 'local') return readFile(join(source.directory, 'index.json'), 'utf8')
+	const bytes = await fetchCorpusBytes(
+		new URL('index.json', source.baseUrl),
+		source.referer,
+		MAXIMUM_CORPUS_INDEX_BYTES,
+	)
+	return new TextDecoder().decode(bytes)
 }
 
 function readCorpusFile(corpus: Corpus, file: string) {
@@ -184,12 +224,41 @@ function readCorpusFile(corpus: Corpus, file: string) {
 	}
 	let promise = corpus.files.get(file)
 	if (!promise) {
-		promise = readFile(join(corpus.directory, 'meshes', file)).then(
-			(value) => new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
-		)
+		promise = readCorpusBytes(corpus.source, file)
 		corpus.files.set(file, promise)
+		promise.catch(() => corpus.files.delete(file))
 	}
 	return promise
+}
+
+async function readCorpusBytes(source: CorpusSource, file: string) {
+	if (source.kind === 'local') {
+		const value = await readFile(join(source.directory, 'meshes', file))
+		return new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+	}
+	return fetchCorpusBytes(
+		new URL(`meshes/${file}`, source.baseUrl),
+		source.referer,
+		MAXIMUM_BUNDLE_BYTES,
+	)
+}
+
+async function fetchCorpusBytes(url: URL, referer: string, maximumBytes: number) {
+	const response = await fetch(url, {
+		cache: 'no-store',
+		headers: { referer },
+		redirect: 'error',
+	})
+	if (!response.ok) throw new Error(`Protected mesh corpus returned ${response.status}`)
+	const contentLength = Number(response.headers.get('content-length'))
+	if (Number.isFinite(contentLength) && contentLength > maximumBytes) {
+		throw new Error('Protected mesh corpus response too large')
+	}
+	const bytes = new Uint8Array(await response.arrayBuffer())
+	if (bytes.byteLength > maximumBytes) {
+		throw new Error('Protected mesh corpus response too large')
+	}
+	return bytes
 }
 
 function serializeBundle(

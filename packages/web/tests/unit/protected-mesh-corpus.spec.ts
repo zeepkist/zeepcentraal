@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { MeshoptDecoder } from 'meshoptimizer/decoder'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
 	parseProtectedGhostModelBundle,
 	parseProtectedLevelMeshBundle,
@@ -13,6 +13,7 @@ import {
 	buildProtectedLevelMeshBundle,
 	clearProtectedMeshCorpusCaches,
 	protectedMeshBundleCacheKey,
+	protectedMeshCorpusDigest,
 	selectProtectedMeshParts,
 } from '../../server/utils/protectedMeshCorpus'
 import type {
@@ -22,9 +23,13 @@ import type {
 
 const temporaryDirectories: string[] = []
 const sourceGuid = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+const originalFetch = globalThis.fetch
+const originalCreateError = globalThis.createError
 
 afterEach(async () => {
 	clearProtectedMeshCorpusCaches()
+	globalThis.fetch = originalFetch
+	globalThis.createError = originalCreateError
 	await Promise.all(
 		temporaryDirectories
 			.splice(0)
@@ -151,6 +156,59 @@ describe('protected mesh corpus compiler', () => {
 		expect(() => parseProtectedGhostModelBundle(levelBytes)).toThrow(
 			'Ghost model bundle contains level geometry',
 		)
+
+		clearProtectedMeshCorpusCaches()
+		const remoteBaseUrl = 'https://cdn.zeepki.st/blocks/block-meshes-v2'
+		const corpusToken = 'test-block-corpus-token'
+		const fetchMock = vi.fn(
+			async (input: string | URL | Request, _init?: RequestInit): Promise<Response> => {
+				const url = new URL(input instanceof Request ? input.url : input)
+				const prefix = '/blocks/block-meshes-v2/'
+				if (!url.pathname.startsWith(prefix)) return new Response(null, { status: 404 })
+				const value = await readFile(join(output, url.pathname.slice(prefix.length)))
+				return new Response(new Uint8Array(value), {
+					headers: { 'content-length': String(value.byteLength) },
+					status: 200,
+				})
+			},
+		)
+		globalThis.fetch = fetchMock as typeof fetch
+		const remoteBlocks = [
+			{
+				id: 1490,
+				position: { x: 0, y: 0, z: 0 },
+				rotation: { x: 0, y: 0, z: 0 },
+				scale: { x: 1, y: 1, z: 1 },
+				attributes: {},
+				paints: { 0: 403 },
+			},
+		]
+		const [remoteLevelBytes, remoteGhostModelBytes, remoteDigest] = await Promise.all([
+			buildProtectedLevelMeshBundle(remoteBaseUrl, remoteBlocks, corpusToken),
+			buildProtectedGhostModelBundle(remoteBaseUrl, corpusToken),
+			protectedMeshCorpusDigest(remoteBaseUrl, corpusToken),
+		])
+		expect(parseProtectedLevelMeshBundle(remoteLevelBytes).groups).toHaveLength(1)
+		expect(parseProtectedGhostModelBundle(remoteGhostModelBytes).body).toBeDefined()
+		expect(remoteDigest).toBe(index.digest)
+		expect(fetchMock).toHaveBeenCalled()
+		for (const [, init] of fetchMock.mock.calls) {
+			expect(new Headers(init?.headers).get('referer')).toBe(
+				'https://zeepki.st/server/block-corpus/test-block-corpus-token',
+			)
+			expect(init).toMatchObject({ cache: 'no-store', redirect: 'error' })
+		}
+	})
+
+	it('rejects a remote corpus without a server token before fetching', async () => {
+		const fetchMock = vi.fn()
+		globalThis.fetch = fetchMock as typeof fetch
+		globalThis.createError = ((input: { statusCode: number; statusMessage: string }) =>
+			Object.assign(new Error(input.statusMessage), input)) as typeof createError
+		await expect(
+			protectedMeshCorpusDigest('https://cdn.zeepki.st/blocks/block-meshes-v2'),
+		).rejects.toMatchObject({ statusCode: 503 })
+		expect(fetchMock).not.toHaveBeenCalled()
 	})
 })
 

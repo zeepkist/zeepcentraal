@@ -46,6 +46,9 @@ describe('protected mesh access', () => {
 		expect(route).toContain('requireProtectedMeshAccess(event)')
 		expect(route).toContain("'cache-control': 'private, no-store'")
 		expect(config).toContain('NUXT_BLOCK_MESH_CORPUS_PATH')
+		expect(config).toContain('NUXT_BLOCK_MESH_CORPUS_TOKEN')
+		expect(config).not.toContain('NUXT_PUBLIC_BLOCK_MESH_CORPUS_TOKEN')
+		expect(route).toContain('config.blockMeshCorpusToken')
 		expect(config).not.toContain('NUXT_STEAM_PUBLISHER_API_KEY')
 		expect(config).not.toContain('NUXT_PUBLIC_BLOCK_MESH_BASE_URL')
 	})
@@ -53,6 +56,7 @@ describe('protected mesh access', () => {
 	it('serves only common ghost models without requiring a login', () => {
 		expect(ghostModelRoute).toContain('buildProtectedGhostModelBundle(')
 		expect(ghostModelRoute).toContain('assertSameOrigin(event)')
+		expect(ghostModelRoute).toContain('config.blockMeshCorpusToken')
 		expect(ghostModelRoute).toContain("'cache-control': 'public,")
 		expect(ghostModelRoute).not.toContain('requireProtectedMeshAccess')
 	})
