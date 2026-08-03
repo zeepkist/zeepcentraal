@@ -133,7 +133,9 @@ describe('web deployment build', () => {
 	})
 
 	it('validates non-develop branch pushes before pull request creation', () => {
-		expect(prWorkflow).toMatch(/on:\s*\n\s+push:\s*\n\s+branches-ignore: \[develop\]/)
+		expect(prWorkflow).toMatch(
+			/on:\s*\n\s+push:\s*\n\s+branches-ignore: \[develop, 'gh-readonly-queue\/\*\*'\]/,
+		)
 		expect(prWorkflow).toContain(
 			[
 				'group: pr-validate-$',
