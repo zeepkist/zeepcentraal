@@ -31,6 +31,11 @@ export function parseSitemapPage(value: string | undefined): number | null {
 	return Number.isSafeInteger(page) && page <= MAX_SITEMAP_PAGE ? page : null
 }
 
+export function parseSitemapPageFilename(value: string | undefined): number | null {
+	if (!value?.endsWith('.xml')) return null
+	return parseSitemapPage(value.slice(0, -4))
+}
+
 export function sitemapPageCount(maxId: number): number {
 	return maxId > 0 ? Math.ceil(maxId / SITEMAP_PAGE_SIZE) : 0
 }

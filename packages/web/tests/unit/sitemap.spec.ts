@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
 	isSitemapGroup,
 	parseSitemapPage,
+	parseSitemapPageFilename,
 	renderSitemapXml,
 	SITEMAP_GROUPS,
 	sitemapPageCount,
@@ -33,6 +34,16 @@ describe('paginated sitemaps', () => {
 		expect(parseSitemapPage('01')).toBeNull()
 		expect(parseSitemapPage('-1')).toBeNull()
 		expect(parseSitemapPage('2147483')).toBeNull()
+		expect(parseSitemapPageFilename('0.xml')).toBe(0)
+		expect(parseSitemapPageFilename('12.xml')).toBe(12)
+		expect(parseSitemapPageFilename('01.xml')).toBeNull()
+		expect(parseSitemapPageFilename('12')).toBeNull()
+		expect(parseSitemapPageFilename('12.xml.xml')).toBeNull()
+	})
+
+	test('captures sitemap filename as one Nitro route parameter', () => {
+		const route = source('server/routes/sitemaps/[group]/[page].get.ts')
+		expect(route).toContain("parseSitemapPageFilename(getRouterParam(event, 'page'))")
 	})
 
 	test('renders canonical escaped XML with sitemap defaults', () => {

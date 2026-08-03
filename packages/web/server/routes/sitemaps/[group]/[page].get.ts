@@ -1,6 +1,6 @@
 export default defineEventHandler(async (event) => {
 	const group = getRouterParam(event, 'group')
-	const page = parseSitemapPage(getRouterParam(event, 'page'))
+	const page = parseSitemapPageFilename(getRouterParam(event, 'page'))
 	if (!isSitemapGroup(group) || page === null) {
 		throw createError({ statusCode: 404, statusMessage: 'Sitemap page not found' })
 	}
