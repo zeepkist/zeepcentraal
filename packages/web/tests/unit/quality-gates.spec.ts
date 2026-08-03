@@ -32,8 +32,9 @@ describe('repository quality gates', () => {
 
 	it('runs root and web checks in both CI workflows', () => {
 		for (const workflow of workflows) {
-			expect(workflow).toContain('run: bun --bun run typecheck')
-			expect(workflow).toContain('run: bun --bun run typecheck:web')
+			expect(workflow).toContain('run: bun run typecheck')
+			expect(workflow).toContain('run: bun run typecheck:web')
+			expect(workflow).not.toContain('run: bun --bun run typecheck')
 			expect(workflow).toContain('run: bun --bun run test')
 			expect(workflow).toContain('run: bun --bun run test:web')
 		}

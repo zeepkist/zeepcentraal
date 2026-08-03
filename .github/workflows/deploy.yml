@@ -26,10 +26,10 @@ jobs:
         uses: ./.github/actions/setup-bun-deps
 
       - name: Typecheck
-        run: bun --bun run typecheck
+        run: bun run typecheck
 
       - name: Typecheck web
-        run: bun --bun run typecheck:web
+        run: bun run typecheck:web
 
       - name: Run tests
         run: bun --bun run test
