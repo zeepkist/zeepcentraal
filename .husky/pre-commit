@@ -1,3 +1,19 @@
 bun run lint:staged
 bun run typecheck
-bun run test
+bun run typecheck:web
+
+set +e
+bun run test &
+root_test_pid=$!
+bun run test:web &
+web_test_pid=$!
+
+wait "$root_test_pid"
+root_test_status=$?
+wait "$web_test_pid"
+web_test_status=$?
+set -e
+
+if [ "$root_test_status" -ne 0 ] || [ "$web_test_status" -ne 0 ]; then
+	exit 1
+fi

@@ -18,7 +18,7 @@ describe('detail section tabs', () => {
 
 	it('mounts panels on first visit and retains their state after tab changes', () => {
 		expect(component).toContain(':unmount-on-hide="false"')
-		expect(component).toContain('reactive(new Set<T>([props.modelValue]))')
+		expect(component).toContain('shallowReactive(new Set<T>([props.modelValue]))')
 		expect(component).toContain('visitedTabs.add(value)')
 		expect(component).toContain('v-if="visitedTabs.has(item.value)"')
 		expect(component).toContain('v-for="item in items"')

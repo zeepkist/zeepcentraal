@@ -28,7 +28,9 @@ usePageSeo('adventure')
 const route = useRoute()
 const { t } = useI18n()
 const seriesSlug = computed(() =>
-	typeof route.params.series === 'string' ? route.params.series : undefined,
+	'series' in route.params && typeof route.params.series === 'string'
+		? route.params.series
+		: undefined,
 )
 const adventure = useAdventure(seriesSlug)
 const seriesTabs = computed(() =>

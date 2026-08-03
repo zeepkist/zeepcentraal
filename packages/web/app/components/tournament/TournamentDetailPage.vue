@@ -8,7 +8,7 @@
 import type { TrackTournamentType } from '~/types/tournament'
 
 defineProps<{ type: TrackTournamentType; title: string }>()
-const route = useRoute()
+const route = useRoute<'totm-slug' | 'totw-slug'>()
 const rawSlug = route.params.slug
 const slug =
 	typeof rawSlug === 'string' && /^[0-9]{4}-(?:w[0-9]{2}|[0-9]{2})$/.test(rawSlug)

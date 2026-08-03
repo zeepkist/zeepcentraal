@@ -115,6 +115,11 @@ export type GhostCameraMode = 'orbit' | 'isometric'
 export type GhostFrameRate = 'auto' | 30 | 60
 export type GhostRenderQuality = 'auto' | 'performance' | 'balanced' | 'quality'
 
+export type RecordReplayWorkspaceHandle = {
+	seek: (time: number, options?: { pause?: boolean }) => void
+	toggleFullscreen: () => Promise<void>
+}
+
 export type GhostPerformancePreferences = {
 	version: 1
 	frameRate: GhostFrameRate

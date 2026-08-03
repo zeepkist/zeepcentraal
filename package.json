@@ -31,6 +31,7 @@
 		"typecheck": "golar",
 		"typecheck:web": "bun --cwd=packages/web run typecheck",
 		"test": "bun test --isolate",
+		"test:web": "bun --cwd=packages/web run test",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"lint:staged": "lint-staged",

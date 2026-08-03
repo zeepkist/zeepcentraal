@@ -28,8 +28,14 @@ jobs:
       - name: Typecheck
         run: bun --bun run typecheck
 
+      - name: Typecheck web
+        run: bun --bun run typecheck:web
+
       - name: Run tests
         run: bun --bun run test
+
+      - name: Run web tests
+        run: bun --bun run test:web
 
   release:
     runs-on: ubuntu-latest

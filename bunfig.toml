@@ -19,6 +19,7 @@ minimumReleaseAge = 259200
 smol = true
 isolate = true
 preload = ["./test/preload.ts"]
+pathIgnorePatterns = ["packages/web/**"]
 #coverage = true
 #coverageThreshold = 0.9
 coverageSkipTestFiles = true

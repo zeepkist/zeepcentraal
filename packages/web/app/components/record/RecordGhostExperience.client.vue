@@ -182,7 +182,7 @@
 </template>
 
 <script setup vapor lang="ts">
-import type { GhostRecordSource } from '~/types/ghost'
+import type { GhostRecordSource, RecordReplayWorkspaceHandle } from '~/types/ghost'
 import { buildGhostSlipEvents, buildGhostTimelineEvents } from '~/utils/ghostAnalysis'
 import { buildLevelSplitAnalysis, resolveGhostFinishSpeed } from '~/utils/levelSplitAnalysis'
 import { buildRecordAirControlRuns, buildRecordDriftRuns } from '~/utils/recordGhostAnalysis'
@@ -243,7 +243,7 @@ const playback = useGhostPlaybackSources({
 	fallbackPalette: ['#38bdf8', '#a78bfa', '#f472b6', '#4ade80', '#fb923c', '#22d3ee'],
 })
 const performance = useGhostPerformancePreferences()
-const replayWorkspace = useTemplateRef('replayWorkspace')
+const replayWorkspace = useTemplateRef<RecordReplayWorkspaceHandle>('replayWorkspace')
 const replaySection = useTemplateRef('replaySection')
 const replayTime = ref(0)
 const activeAnalysisTab = ref<'telemetry' | 'charts' | 'analysis' | 'improvement'>(

@@ -87,6 +87,7 @@ import type {
 	GhostLevelBlock,
 	GhostLoadState,
 	LoadedPlaybackGhost,
+	RecordReplayWorkspaceHandle,
 } from '~/types/ghost'
 import {
 	resolveGhostPlaybackStartTime,
@@ -281,7 +282,7 @@ function updateFullscreenState() {
 	fullscreen.value = document.fullscreenElement === workspace.value
 }
 
-defineExpose({ seek, toggleFullscreen })
+defineExpose<RecordReplayWorkspaceHandle>({ seek, toggleFullscreen })
 </script>
 
 <style>

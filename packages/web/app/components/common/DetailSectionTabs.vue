@@ -32,7 +32,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: T] }>()
-const visitedTabs = reactive(new Set<T>([props.modelValue]))
+const visitedTabs = shallowReactive(new Set<T>([props.modelValue]))
 
 const activeTab = computed<T>({
 	get: () => props.modelValue,

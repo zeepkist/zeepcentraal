@@ -65,7 +65,7 @@
 <script setup vapor lang="ts">
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 
-definePageMeta({ key: (route) => String(route.params.recordId) })
+definePageMeta({ key: (route) => route.path })
 
 const route = useRoute()
 const { t } = useI18n()

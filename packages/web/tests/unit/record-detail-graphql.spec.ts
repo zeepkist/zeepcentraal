@@ -47,6 +47,7 @@ const replayWorkspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
 	'utf8',
 )
+const ghostTypes = readFileSync(new URL('../../app/types/ghost.ts', import.meta.url), 'utf8')
 const comparisonPicker = readFileSync(
 	new URL('../../app/components/record/RecordComparisonPicker.vue', import.meta.url),
 	'utf8',
@@ -148,7 +149,7 @@ describe('record detail GraphQL', () => {
 
 	it('SSR-prefetches record detail and remounts when record route changes', () => {
 		expect(recordPage).toContain('await recordData.prefetchCritical()')
-		expect(recordPage).toContain('key: (route) => String(route.params.recordId)')
+		expect(recordPage).toContain('key: (route) => route.path')
 		expect(recordPage).toContain('<ClientOnly>')
 		expect(recordPage).toContain('.slice(0, 10)')
 		expect(recordRoute).toContain("{ rootMargin: '25% 0px' }")
@@ -232,6 +233,11 @@ describe('record detail GraphQL', () => {
 	it('pauses event seeks and scrolls the replay into view accessibly', () => {
 		expect(recordPage).toContain('ref="replaySection"')
 		expect(recordPage.match(/@seek="seekAnalysisEvent"/g)).toHaveLength(3)
+		expect(recordExperience).toContain(
+			"useTemplateRef<RecordReplayWorkspaceHandle>('replayWorkspace')",
+		)
+		expect(replayWorkspace).toContain('defineExpose<RecordReplayWorkspaceHandle>')
+		expect(ghostTypes).toContain('export type RecordReplayWorkspaceHandle')
 		expect(recordPage).toContain('seek(time, { pause: true })')
 		expect(recordPage).toContain("window.matchMedia('(prefers-reduced-motion: reduce)')")
 		expect(recordPage).toContain('scrollIntoView({')
