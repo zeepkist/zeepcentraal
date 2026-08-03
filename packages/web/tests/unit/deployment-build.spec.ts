@@ -132,6 +132,17 @@ describe('web deployment build', () => {
 		expect(canMergeJob).toContain('test "$DOCKER_BUILD_RESULT" = "success"')
 	})
 
+	it('validates non-develop branch pushes before pull request creation', () => {
+		expect(prWorkflow).toMatch(/on:\s*\n\s+push:\s*\n\s+branches-ignore: \[develop\]/)
+		expect(prWorkflow).toContain(
+			[
+				'group: pr-validate-$',
+				'{{ github.event.pull_request.head.repo.full_name || github.repository }}-$',
+				'{{ github.event.pull_request.head.ref || github.ref_name }}',
+			].join(''),
+		)
+	})
+
 	it('runs the complete Nitro output with pinned Bun as non-root', () => {
 		expect(webDockerfile).toContain('FROM oven/bun:1.3.14-slim')
 		expect(webDockerfile).toContain('COPY --chown=65532:65532 packages/web/.output .output')
