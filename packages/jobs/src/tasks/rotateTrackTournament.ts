@@ -17,9 +17,12 @@ export const rotateTrackTournament: TaskHandler<RotateTrackTournamentPayload> = 
 	}
 	const result = await rotateDatabaseTrackTournament(type)
 	if (result.reason === 'empty-pool') {
-		helpers.logger.warn('rotateTrackTournament found no unused top-quartile level.', {
-			type,
-		})
+		helpers.logger.warn(
+			'rotateTrackTournament found no unused level in tournament quality pool.',
+			{
+				type,
+			},
+		)
 		return
 	}
 	helpers.logger.info('rotateTrackTournament completed.', {

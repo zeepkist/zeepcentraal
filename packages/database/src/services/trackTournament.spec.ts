@@ -58,9 +58,14 @@ test('ceil-rounds tournament curve upward to even points', () => {
 describe('track tournament transaction SQL', () => {
 	const source = Bun.file(new URL('./trackTournament.ts', import.meta.url)).text()
 
-	test('keeps fixed top-quartile quality threshold before same-type exclusion', async () => {
+	test('uses type-specific quality thresholds before same-type exclusion', async () => {
 		const sql = await source
-		expect(sql.indexOf('PERCENTILE_CONT(0.75)')).toBeLessThan(
+		expect(sql).toContain('[TRACK_TOURNAMENT_TYPE.weekly]: 0.9')
+		expect(sql).toContain('[TRACK_TOURNAMENT_TYPE.monthly]: 0.95')
+		expect(sql).toContain(
+			'minimumPointPercentile = TRACK_TOURNAMENT_MINIMUM_POINT_PERCENTILE[type]',
+		)
+		expect(sql.indexOf('PERCENTILE_CONT($' + '{minimumPointPercentile})')).toBeLessThan(
 			sql.indexOf('FROM $' + '{trackTournament} AS used_tournament'),
 		)
 		expect(sql).toContain('used_tournament.type = $' + '{type}')

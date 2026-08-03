@@ -28,6 +28,19 @@ test('rejects invalid tournament type', async () => {
 	expect(warn).toHaveBeenCalled()
 })
 
+test('uses type-neutral logging when a tournament quality pool is empty', async () => {
+	const warn = mock(() => {})
+	rotateDatabaseTrackTournament.mockImplementationOnce(async () => ({
+		created: false,
+		reason: 'empty-pool',
+	}))
+	await rotateTrackTournament({ type: 1 }, { logger: { warn } } as never)
+	expect(warn).toHaveBeenCalledWith(
+		'rotateTrackTournament found no unused level in tournament quality pool.',
+		{ type: 1 },
+	)
+})
+
 test('uses distinct stable UTC weekly and monthly schedules', () => {
 	const rotations = cronTasks.filter(({ task }) => task === 'rotateTrackTournament')
 	expect(rotations).toEqual([

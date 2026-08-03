@@ -14,6 +14,10 @@ type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 export const TRACK_TOURNAMENT_LOCK_NAMESPACE = 1_953_744_431
 export const TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE = 1_953_744_432
+const TRACK_TOURNAMENT_MINIMUM_POINT_PERCENTILE = {
+	[TRACK_TOURNAMENT_TYPE.weekly]: 0.9,
+	[TRACK_TOURNAMENT_TYPE.monthly]: 0.95,
+} satisfies Record<TrackTournamentType, number>
 
 async function rerankTrackTournaments(
 	tx: DatabaseTransaction,
@@ -117,6 +121,7 @@ export async function recordTrackTournamentResults(
 }
 
 async function selectTrackTournamentLevel(tx: DatabaseTransaction, type: TrackTournamentType) {
+	const minimumPointPercentile = TRACK_TOURNAMENT_MINIMUM_POINT_PERCENTILE[type]
 	const selected = await tx.execute<{
 		id_level: number
 	}>(sql`
@@ -134,7 +139,8 @@ async function selectTrackTournamentLevel(tx: DatabaseTransaction, type: TrackTo
 					AND display_item.deleted = false
 			)
 		), threshold AS (
-			SELECT PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY eligible_level.points) AS points
+			SELECT PERCENTILE_CONT(${minimumPointPercentile})
+				WITHIN GROUP (ORDER BY eligible_level.points) AS points
 			FROM eligible_levels AS eligible_level
 		)
 		SELECT eligible_level.id_level
