@@ -2,7 +2,7 @@ name: Pull Request Validation
 
 on:
   push:
-    branches-ignore: [develop]
+    branches-ignore: [develop, 'gh-readonly-queue/**']
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
