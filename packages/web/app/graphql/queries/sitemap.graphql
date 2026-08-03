@@ -1,0 +1,175 @@
+query ZC_SitemapMaxIds($now: Datetime!) {
+	users(first: 0, filter: { banned: { equalTo: false } }) {
+		aggregates {
+			max {
+				id
+			}
+		}
+	}
+	levels(first: 0, filter: { publiclyVisible: { equalTo: true } }) {
+		aggregates {
+			max {
+				id
+			}
+		}
+	}
+	records(first: 0, filter: { level: { publiclyVisible: { equalTo: true } } }) {
+		aggregates {
+			max {
+				id
+			}
+		}
+	}
+	trackTournaments(
+		first: 0
+		filter: { startAt: { lessThanOrEqualTo: $now }, type: { in: [0, 1] } }
+	) {
+		aggregates {
+			max {
+				id
+			}
+		}
+	}
+	zslSeasons(first: 0) {
+		aggregates {
+			max {
+				id
+			}
+		}
+	}
+	zslRounds(first: 0) {
+		aggregates {
+			max {
+				id
+			}
+		}
+	}
+	zslLevels(first: 0) {
+		aggregates {
+			max {
+				id
+			}
+		}
+	}
+}
+
+query ZC_SitemapUsersPage($startId: Int!, $endId: Int!) {
+	users(
+		first: 1000
+		filter: {
+			banned: { equalTo: false }
+			id: { greaterThanOrEqualTo: $startId, lessThan: $endId }
+		}
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			steamId
+			dateUpdated
+			dateCreated
+		}
+	}
+}
+
+query ZC_SitemapLevelsPage($startId: Int!, $endId: Int!) {
+	levels(
+		first: 1000
+		filter: {
+			publiclyVisible: { equalTo: true }
+			id: { greaterThanOrEqualTo: $startId, lessThan: $endId }
+		}
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			xxHash
+			dateUpdated
+			dateCreated
+		}
+	}
+}
+
+query ZC_SitemapRecordsPage($startId: Int!, $endId: Int!) {
+	records(
+		first: 1000
+		filter: {
+			level: { publiclyVisible: { equalTo: true } }
+			id: { greaterThanOrEqualTo: $startId, lessThan: $endId }
+		}
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			id
+			dateUpdated
+			dateCreated
+		}
+	}
+}
+
+query ZC_SitemapTrackTournamentsPage($startId: Int!, $endId: Int!, $now: Datetime!) {
+	trackTournaments(
+		first: 1000
+		filter: {
+			startAt: { lessThanOrEqualTo: $now }
+			type: { in: [0, 1] }
+			id: { greaterThanOrEqualTo: $startId, lessThan: $endId }
+		}
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			type
+			slug
+			dateUpdated
+			dateCreated
+		}
+	}
+}
+
+query ZC_SitemapSuperLeagueSeasonsPage($startId: Int!, $endId: Int!) {
+	zslSeasons(
+		first: 1000
+		filter: { id: { greaterThanOrEqualTo: $startId, lessThan: $endId } }
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			id
+			dateUpdated
+			dateCreated
+		}
+	}
+}
+
+query ZC_SitemapSuperLeagueRoundsPage($startId: Int!, $endId: Int!) {
+	zslRounds(
+		first: 1000
+		filter: { id: { greaterThanOrEqualTo: $startId, lessThan: $endId } }
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			round
+			dateUpdated
+			dateCreated
+			season {
+				id
+			}
+		}
+	}
+}
+
+query ZC_SitemapSuperLeagueLevelsPage($startId: Int!, $endId: Int!) {
+	zslLevels(
+		first: 1000
+		filter: { id: { greaterThanOrEqualTo: $startId, lessThan: $endId } }
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			id
+			dateUpdated
+			dateCreated
+			round {
+				round
+				season {
+					id
+				}
+			}
+		}
+	}
+}

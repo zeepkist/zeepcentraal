@@ -23,7 +23,7 @@ describe('private level metadata presentation', () => {
 			dashboardViewer: 1,
 			homeStats: 1,
 			search: 1,
-			sitemapLevels: 1,
+			sitemap: 4,
 			userLevels: 2,
 		} as const
 

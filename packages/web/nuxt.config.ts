@@ -1,4 +1,5 @@
 import graphql from '@rollup/plugin-graphql'
+import { ADVENTURE_SERIES } from './app/utils/adventureSeries'
 import { getBuildAssetsDir } from './config/buildAssets'
 
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
@@ -98,6 +99,13 @@ export default defineNuxtConfig({
 	},
 	routeRules: {
 		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },
+		'/adventure': { sitemap: false },
+		'/cosmetic/**': { sitemap: false },
+		'/cosmetics': { sitemap: false },
+		'/records/me': { robots: false, sitemap: false },
+		'/settings': { robots: false, sitemap: false },
+		'/sitemaps/**': { swr: 600 },
+		'/totd': { sitemap: false },
 	},
 	vite: {
 		plugins: [graphql()],
@@ -204,7 +212,7 @@ export default defineNuxtConfig({
 	},
 	robots: {
 		enabled: true,
-		disallow: ['/settings'],
+		disallow: ['/records/me', '/settings'],
 	},
 	sitemap: {
 		defaults: {
@@ -214,19 +222,7 @@ export default defineNuxtConfig({
 		sitemaps: {
 			pages: {
 				includeAppSources: true,
-				chunks: true,
-			},
-			users: {
-				chunks: true,
-				sources: ['/api/__sitemap__/users'],
-			},
-			levels: {
-				chunks: true,
-				sources: ['/api/__sitemap__/levels'],
-			},
-			tournaments: {
-				chunks: true,
-				sources: ['/api/__sitemap__/tournaments'],
+				urls: ADVENTURE_SERIES.map((series) => `/adventure/${series.slug}`),
 			},
 		},
 	},

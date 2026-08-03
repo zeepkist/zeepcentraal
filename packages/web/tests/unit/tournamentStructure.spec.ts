@@ -185,9 +185,9 @@ describe('shared tournament web implementation', () => {
 		const event = source('app/components/tournament/TournamentEvent.vue')
 		expect(event).toContain(':standings="ghostStandings"')
 		expect(event).toContain(':missing-count="missingGhostCount"')
-		expect(source('app/graphql/queries/sitemapTournaments.graphql')).toContain(
-			'startAt: { lessThanOrEqualTo: $now }',
-		)
+		const sitemapQuery = source('app/graphql/queries/sitemap.graphql')
+		expect(sitemapQuery).toContain('startAt: { lessThanOrEqualTo: $now }')
+		expect(sitemapQuery).toContain('type: { in: [0, 1] }')
 	})
 
 	test('downloads started tournament playlists with attachment headers', () => {
