@@ -8,6 +8,7 @@ export default defineConfig({
 		},
 	},
 	test: {
+		silent: 'passed-only',
 		deps: {
 			interopDefault: false,
 		},
