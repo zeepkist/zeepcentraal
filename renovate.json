@@ -5,10 +5,9 @@
 	"minimumReleaseAge": "3 days",
 	"prCreation": "not-pending",
 	"internalChecksFilter": "strict",
-	"prConcurrentLimit": 5,
-	"prHourlyLimit": 2,
+	"prConcurrentLimit": 10,
+	"prHourlyLimit": 5,
 	"timezone": "Europe/London",
-	"schedule": ["* 22-23,0-6 * * 1-5", "* * * * 0,6"],
 	"lockFileMaintenance": {
 		"enabled": true
 	}
