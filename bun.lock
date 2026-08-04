@@ -148,7 +148,7 @@
         "lzma-wasm": "~1.0.7",
         "meshoptimizer": "~1.1.1",
         "nuxt": "~4.5.0",
-        "nuxt-charts": "~2.1.4",
+        "nuxt-charts": "~2.2.0",
         "pinia": "~4.0.0",
         "sanitize-html": "~2.17.6",
         "tailwindcss": "~4.3.3",
@@ -3282,7 +3282,7 @@
 
     "nuxt": ["nuxt@4.5.1", "", { "dependencies": { "@dxup/nuxt": "^0.5.3", "@nuxt/cli": "^3.37.0", "@nuxt/devtools": "^3.3.1", "@nuxt/kit": "4.5.1", "@nuxt/nitro-server": "4.5.1", "@nuxt/schema": "4.5.1", "@nuxt/telemetry": "^2.8.0", "@nuxt/vite-builder": "4.5.1", "@unhead/vue": "^3.2.3", "@vue/shared": "^3.5.40", "chokidar": "^5.0.0", "compatx": "^0.2.0", "consola": "^3.4.2", "cookie-es": "^3.1.1", "defu": "^6.1.7", "devalue": "^5.8.2", "errx": "^0.1.0", "escape-string-regexp": "^5.0.0", "exsolve": "^1.1.0", "fnv1a-64": "^0.1.1", "hookable": "^6.1.1", "ignore": "^7.0.6", "impound": "^1.1.6", "jiti": "^2.7.0", "klona": "^2.0.6", "knitwork": "^1.3.0", "magic-string": "^1.0.0", "mlly": "^1.8.2", "nanotar": "^0.3.0", "nostics": "^1.2.0", "nypm": "^0.6.8", "object-identity": "^0.2.3", "ofetch": "^1.5.1", "ohash": "^2.0.11", "on-change": "^6.0.2", "oxc-walker": "^1.0.0", "pathe": "^2.0.3", "perfect-debounce": "^2.1.0", "picomatch": "^4.0.5", "pkg-types": "^2.3.1", "rolldown": "^1.2.0", "rolldown-string": "^0.3.1", "rou3": "^0.9.1", "scule": "^1.3.0", "std-env": "^4.2.0", "tinyglobby": "^0.2.17", "ufo": "^1.6.4", "ultrahtml": "^1.7.0", "uncrypto": "^0.1.3", "unctx": "^3.0.0", "undici": "^8.8.0", "unhead": "^3.2.3", "unimport": "^6.3.1", "unplugin": "^3.3.0", "unrouting": "^0.2.2", "untyped": "^2.0.0", "verkit": "^0.2.0", "vue": "^3.5.40", "vue-router": "^5.2.0" }, "peerDependencies": { "@parcel/watcher": "^2.1.0", "@types/node": ">=18.12.0" }, "optionalPeers": ["@parcel/watcher", "@types/node"], "bin": { "nuxi": "bin/nuxt.mjs", "nuxt": "bin/nuxt.mjs" } }, "sha512-bDfkB3VKenF7diLS+r6hBGjW/5hyH35q2xHZ355jEYuD1/dVC/3DW8yW8P+8p+Qk8MX+J0TmD66+jxnCandEpA=="],
 
-    "nuxt-charts": ["nuxt-charts@2.1.4", "", { "dependencies": { "vue-chrts": "2.1.4" } }, "sha512-uoTj+2zWc8ctAGNJw5buHobw/EGMM0qZw/Js+cySX8/3B6R6hwJ47KgeMQJt3LPSaQ2i4H7x8DmJPPSdUFhdJQ=="],
+    "nuxt-charts": ["nuxt-charts@2.2.0", "", { "dependencies": { "vue-chrts": "2.2.0" } }, "sha512-QYurK/hkP8RA3jKNP7ngRY04tiF9slRh35QU8bFQpcVlRKe7fBXeXLzdx8dZIS2deGUahqthZeChD4zasJ13Pg=="],
 
     "nuxt-component-meta": ["nuxt-component-meta@0.18.0", "", { "dependencies": { "@nuxt/kit": "^4.4.8", "citty": "^0.2.2", "defu": "^6.1.7", "jiti": "^2.7.0", "magic-string": "^0.30.21", "mlly": "^1.8.2", "ohash": "^2.0.11", "oxc-parser": "^0.139.0", "oxc-walker": "^1.0.0", "pathe": "^2.0.3", "scule": "^1.3.0", "typescript": "^5.9.3", "ufo": "^1.6.4", "unplugin": "^2.3.11", "vue-component-meta": "^3.3.7" }, "bin": { "nuxt-component-meta": "bin/nuxt-component-meta.mjs" } }, "sha512-Lo++ctinehNtQvU1SdYdIfYvhUqFtP5nOQsMvbrpFYh53TqwoS97BrS/tjWQe68cfXQaerzhKPFY1Xb1EH4mJg=="],
 
@@ -4226,7 +4226,7 @@
 
     "vue-bundle-renderer": ["vue-bundle-renderer@2.3.1", "", { "dependencies": { "ufo": "^1.6.4" } }, "sha512-7F4LNMopUw5RgYWo4zCmVUHCc6aQRC6dCKHUYkM/n+fux4AUGdL1x6m5A515WWyFysRRN7cx3hBzVqoisfRfzw=="],
 
-    "vue-chrts": ["vue-chrts@2.1.4", "", { "dependencies": { "@turf/boolean-point-in-polygon": "^7.3.1", "@unovis/ts": "^1.6.2", "@unovis/vue": "^1.6.2", "d3-geo": "^3.1.1", "proj4": "^2.20.2" }, "peerDependencies": { "vue": "^3.5.13" } }, "sha512-FGSJD/CfBHgEMMLe8A7DfZrwdNBD+LwfyjQWBqNPe6KG+aUAPMhsRDayNjaCX/TGYs1KAmVJ6lqPsmXdofkIdQ=="],
+    "vue-chrts": ["vue-chrts@2.2.0", "", { "dependencies": { "@turf/boolean-point-in-polygon": "^7.3.1", "@unovis/ts": "^1.6.2", "@unovis/vue": "^1.6.2", "d3-geo": "^3.1.1", "proj4": "^2.20.2" }, "peerDependencies": { "vue": "^3.5.13" } }, "sha512-zznUtug992GgpDj/dXuGSkkrY+SokfE5qz4q/IgloRPo0Mo95n+qVrekI6+aOMMbVolBI8SvKKLQ6sGY+VgfEA=="],
 
     "vue-component-meta": ["vue-component-meta@3.3.8", "", { "dependencies": { "@volar/typescript": "2.4.28", "@vue/language-core": "3.3.8", "path-browserify": "^1.0.1" }, "peerDependencies": { "typescript": "*" }, "optionalPeers": ["typescript"] }, "sha512-ISPs6028bEvf1Hn44kFZ+uOiDomEkZCvfUgcdA83sVOYJ9g6EkH1M8yCmJP0ewLyf/0M+sF41bjgIg7jPw4MmA=="],
 
