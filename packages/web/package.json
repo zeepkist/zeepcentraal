@@ -38,7 +38,7 @@
 		"graphql": "~17.0.2",
 		"graphql-ws": "~6.2.0",
 		"lzma-wasm": "~1.0.7",
-		"meshoptimizer": "~1.1.1",
+		"meshoptimizer": "~1.2.0",
 		"nuxt": "~4.5.0",
 		"nuxt-charts": "~2.1.4",
 		"pinia": "~4.0.0",
