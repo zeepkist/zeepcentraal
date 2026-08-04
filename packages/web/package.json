@@ -31,7 +31,7 @@
 		"@unhead/vue": "~3.2.3",
 		"@urql/vue": "~2.1.1",
 		"@vue/devtools-api": "~8.1.5",
-		"@vueuse/core": "~14.3.0",
+		"@vueuse/core": "~14.4.0",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"better-sqlite3": "~13.0.0",
