@@ -40,7 +40,7 @@
 		"lzma-wasm": "~1.0.7",
 		"meshoptimizer": "~1.2.0",
 		"nuxt": "~4.5.0",
-		"nuxt-charts": "~2.1.4",
+		"nuxt-charts": "~2.2.0",
 		"pinia": "~4.0.0",
 		"sanitize-html": "~2.17.6",
 		"tailwindcss": "~4.3.3",
