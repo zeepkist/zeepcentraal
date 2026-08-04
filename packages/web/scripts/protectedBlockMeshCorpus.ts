@@ -85,9 +85,9 @@ export type ProtectedBlockMeshCorpusReport = {
 const IDENTITY_MATRIX = new THREE.Matrix4()
 const MODEL_ROTATION_X = -Math.PI / 2
 const SPOILER_OFFSET_Y = -1.0146778822
-const SIMPLIFY_TRIANGLE_THRESHOLD = 1_000
-const SIMPLIFY_RATIO = 0.6
-const SIMPLIFY_ERROR = 0.001
+const SIMPLIFY_TRIANGLE_THRESHOLD = 100 // 1_000
+const SIMPLIFY_RATIO = 0.1 // 0.6
+const SIMPLIFY_ERROR = 0.01 // 0.001
 
 export async function compileProtectedBlockMeshCorpus(
 	options: CompileProtectedBlockMeshCorpusOptions,
