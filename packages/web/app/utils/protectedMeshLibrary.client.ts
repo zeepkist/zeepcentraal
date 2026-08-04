@@ -5,6 +5,7 @@ import {
 	type GhostModelSlot,
 	PROTECTED_MESH_BUNDLE_MAGIC,
 	PROTECTED_MESH_BUNDLE_VERSION,
+	PROTECTED_MESH_GROUP_FLAGS,
 	PROTECTED_MESH_PRIMITIVE_MAGIC,
 	PROTECTED_MESH_PRIMITIVE_VERSION,
 } from '../../shared/protectedMeshFormat'
@@ -39,6 +40,8 @@ export type ProtectedMeshLibraryOptions = {
 
 const MAXIMUM_BUNDLE_BYTES = 64 * 1024 * 1024
 const MAXIMUM_COLLECTION_COUNT = 100_000
+const REFLECT_X_MATRIX = new THREE.Matrix4().makeScale(-1, 1, 1)
+const KNOWN_GROUP_FLAGS = PROTECTED_MESH_GROUP_FLAGS.hasColor | PROTECTED_MESH_GROUP_FLAGS.reflectX
 
 export class ProtectedMeshLibrary {
 	private readonly fetchImplementation: typeof globalThis.fetch
@@ -173,8 +176,15 @@ function parseProtectedBundle(bytes: Uint8Array) {
 		const red = reader.uint8()
 		const green = reader.uint8()
 		const blue = reader.uint8()
-		const hasColor = reader.uint8() !== 0
+		const flags = reader.uint8()
+		if ((flags & ~KNOWN_GROUP_FLAGS) !== 0)
+			throw new Error('Invalid protected mesh group flags')
+		const hasColor = (flags & PROTECTED_MESH_GROUP_FLAGS.hasColor) !== 0
+		const reflectX = (flags & PROTECTED_MESH_GROUP_FLAGS.reflectX) !== 0
 		const primitives = parsePrimitiveFile(reader.bytes(payloadLength))
+		if (reflectX) {
+			for (const primitive of primitives) reflectPrimitiveX(primitive)
+		}
 		const matrices = Array.from({ length: matrixCount }, () => reader.matrix())
 		groups.push({
 			primitives,
@@ -270,6 +280,21 @@ function parsePrimitiveFile(bytes: Uint8Array) {
 	}
 	reader.finish()
 	return primitives
+}
+
+function reflectPrimitiveX(primitive: ProtectedMeshPrimitive) {
+	const index = primitive.geometry.getIndex()
+	if (!index || index.count % 3 !== 0) {
+		throw new Error('Protected reflected mesh contains incomplete triangles')
+	}
+	primitive.geometry.applyMatrix4(REFLECT_X_MATRIX)
+	for (let offset = 0; offset < index.count; offset += 3) {
+		const second = index.getX(offset + 1)
+		index.setX(offset + 1, index.getX(offset + 2))
+		index.setX(offset + 2, second)
+	}
+	index.needsUpdate = true
+	primitive.matrix.premultiply(REFLECT_X_MATRIX).multiply(REFLECT_X_MATRIX)
 }
 
 class BinaryReader {

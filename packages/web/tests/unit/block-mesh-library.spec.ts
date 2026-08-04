@@ -9,6 +9,7 @@ import {
 	GHOST_MODEL_SLOTS,
 	PROTECTED_MESH_BUNDLE_MAGIC,
 	PROTECTED_MESH_BUNDLE_VERSION,
+	PROTECTED_MESH_GROUP_FLAGS,
 	PROTECTED_MESH_PRIMITIVE_MAGIC,
 	PROTECTED_MESH_PRIMITIVE_VERSION,
 } from '../../shared/protectedMeshFormat'
@@ -81,19 +82,40 @@ describe('ProtectedMeshLibrary', () => {
 		expect(() => parseProtectedGhostModelBundle(fixtureLevelBundle())).toThrow(
 			'Ghost model bundle contains level geometry',
 		)
+		const versionTwo = fixtureLevelBundle()
+		new DataView(versionTwo.buffer).setUint16(4, 2, true)
+		expect(() => parseProtectedLevelMeshBundle(versionTwo)).toThrow(
+			'Unsupported mesh bundle version',
+		)
+		const invalidFlags = fixtureLevelBundle()
+		new DataView(invalidFlags.buffer).setUint8(52 + 11, 1 << 7)
+		expect(() => parseProtectedLevelMeshBundle(invalidFlags)).toThrow(
+			'Invalid protected mesh group flags',
+		)
 		library.dispose()
+	})
+
+	it('reflects flagged geometry while keeping primitive matrices positive', async () => {
+		await MeshoptEncoder.ready
+		const bundle = parseProtectedLevelMeshBundle(fixtureLevelBundle(true))
+		const primitive = bundle.groups[0]?.primitives[0]
+		const position = primitive?.geometry.getAttribute('position')
+
+		expect(position?.getX(1)).toBeCloseTo(-1)
+		expect(Array.from(primitive?.geometry.getIndex()?.array ?? [])).toEqual([0, 2, 1])
+		expect(primitive?.matrix.determinant()).toBeGreaterThan(0)
 	})
 })
 
-function fixtureLevelBundle() {
-	return fixtureBundle(true, false)
+function fixtureLevelBundle(reflectX = false) {
+	return fixtureBundle(true, false, reflectX)
 }
 
 function fixtureGhostModelBundle() {
 	return fixtureBundle(false, true)
 }
 
-function fixtureBundle(includeLevel: boolean, includeCommon: boolean) {
+function fixtureBundle(includeLevel: boolean, includeCommon: boolean, reflectX = false) {
 	const primitive = fixturePrimitive()
 	const headerSize = 52
 	const groupSize = includeLevel ? 12 + primitive.byteLength + 64 : 0
@@ -117,7 +139,11 @@ function fixtureBundle(includeLevel: boolean, includeCommon: boolean) {
 		view.setUint8(offset + 8, 255)
 		view.setUint8(offset + 9, 128)
 		view.setUint8(offset + 10, 0)
-		view.setUint8(offset + 11, 255)
+		view.setUint8(
+			offset + 11,
+			PROTECTED_MESH_GROUP_FLAGS.hasColor |
+				(reflectX ? PROTECTED_MESH_GROUP_FLAGS.reflectX : 0),
+		)
 		offset += 12
 		bytes.set(primitive, offset)
 		offset += primitive.byteLength

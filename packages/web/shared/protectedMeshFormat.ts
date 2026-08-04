@@ -1,9 +1,14 @@
-export const PROTECTED_MESH_CORPUS_VERSION = 2
-export const PROTECTED_MESH_BUNDLE_VERSION = 2
+export const PROTECTED_MESH_CORPUS_VERSION = 3
+export const PROTECTED_MESH_BUNDLE_VERSION = 3
 export const PROTECTED_MESH_PRIMITIVE_VERSION = 1
 
 export const PROTECTED_MESH_BUNDLE_MAGIC = 0x424d435a
 export const PROTECTED_MESH_PRIMITIVE_MAGIC = 0x504d435a
+
+export const PROTECTED_MESH_GROUP_FLAGS = {
+	hasColor: 1 << 0,
+	reflectX: 1 << 1,
+} as const
 
 export const GHOST_MODEL_SLOTS = {
 	body: 1,
@@ -43,7 +48,7 @@ export type ProtectedMeshPart = {
 }
 
 export type ProtectedMeshCorpusIndex = {
-	version: 2
+	version: 3
 	digest: string
 	blocks: Record<
 		string,

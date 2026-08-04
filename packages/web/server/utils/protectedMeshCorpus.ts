@@ -8,6 +8,7 @@ import {
 	PROTECTED_MESH_BUNDLE_MAGIC,
 	PROTECTED_MESH_BUNDLE_VERSION,
 	PROTECTED_MESH_CORPUS_VERSION,
+	PROTECTED_MESH_GROUP_FLAGS,
 	type ProtectedMeshColor,
 	type ProtectedMeshCorpusIndex,
 	type ProtectedMeshMatrix,
@@ -27,15 +28,20 @@ type BundleGroup = {
 	payload: Uint8Array
 	matrices: ProtectedMeshMatrix[]
 	color: ProtectedMeshColor | null
+	reflectX: boolean
 }
 
 const corpusPromises = new Map<string, Promise<Corpus>>()
 const ghostModelBundlePromises = new Map<string, Promise<Uint8Array>>()
 const ASSET_RIPPER_TO_GHOST_MATRIX = new THREE.Matrix4().makeRotationY(Math.PI)
+const REFLECT_X_MATRIX = new THREE.Matrix4().makeScale(-1, 1, 1)
 const ZERO_VECTOR = { x: 0, y: 0, z: 0 }
 const MAXIMUM_BUNDLE_BYTES = 64 * 1024 * 1024
 const MAXIMUM_CORPUS_INDEX_BYTES = 16 * 1024 * 1024
 const BLOCK_CORPUS_REFERER_PREFIX = 'https://zeepki.st/server/block-corpus/'
+const MATRIX_DETERMINANT_EPSILON = 1e-12
+const BLOCK_POSITION_JITTER_MAGNITUDE = 0.01
+const blockPositionJitterMatrices = new Map<string, THREE.Matrix4>()
 
 export async function buildProtectedLevelMeshBundle(
 	corpusLocation: string,
@@ -45,7 +51,12 @@ export async function buildProtectedLevelMeshBundle(
 	const corpus = await loadCorpus(corpusLocation, corpusToken)
 	const groups = new Map<
 		string,
-		{ file: string; color: ProtectedMeshColor | null; matrices: ProtectedMeshMatrix[] }
+		{
+			file: string
+			color: ProtectedMeshColor | null
+			reflectX: boolean
+			matrices: ProtectedMeshMatrix[]
+		}
 	>()
 	const fallbackMatrices: ProtectedMeshMatrix[] = []
 	for (const block of blocks) {
@@ -63,20 +74,34 @@ export async function buildProtectedLevelMeshBundle(
 				: undefined
 			const color =
 				paintId === undefined ? null : (corpus.index.paints[String(paintId)] ?? null)
-			const key = `${part.mesh}:${color?.join(',') ?? 'neutral'}`
-			const group = groups.get(key) ?? { file: part.mesh, color, matrices: [] }
-			group.matrices.push(
-				matrixArray(
-					blockMatrix.clone().multiply(new THREE.Matrix4().fromArray(part.matrix)),
-				),
-			)
+			const matrix = blockMatrix.clone().multiply(new THREE.Matrix4().fromArray(part.matrix))
+			const determinant = matrix.determinant()
+			if (
+				!Number.isFinite(determinant) ||
+				Math.abs(determinant) <= MATRIX_DETERMINANT_EPSILON
+			) {
+				continue
+			}
+			const reflectX = determinant < 0
+			if (reflectX) matrix.multiply(REFLECT_X_MATRIX)
+			const colorKey = protectedMeshColorKey(color)
+			matrix.premultiply(blockPositionJitterMatrix(colorKey))
+			const key = `${part.mesh}:${colorKey}:${reflectX ? 1 : 0}`
+			const group = groups.get(key) ?? {
+				file: part.mesh,
+				color,
+				reflectX,
+				matrices: [],
+			}
+			group.matrices.push(matrixArray(matrix))
 			groups.set(key, group)
 		}
 	}
 	const bundleGroups: BundleGroup[] = await Promise.all(
-		[...groups.values()].map(async ({ file, color, matrices }) => ({
+		[...groups.values()].map(async ({ file, color, reflectX, matrices }) => ({
 			payload: await readCorpusFile(corpus, file),
 			color,
+			reflectX,
 			matrices,
 		})),
 	)
@@ -301,8 +326,11 @@ function serializeBundle(
 			for (const [index, value] of group.color.entries()) {
 				view.setUint8(offset + 8 + index, Math.round(Math.min(1, Math.max(0, value)) * 255))
 			}
-			view.setUint8(offset + 11, 255)
 		}
+		const flags =
+			(group.color ? PROTECTED_MESH_GROUP_FLAGS.hasColor : 0) |
+			(group.reflectX ? PROTECTED_MESH_GROUP_FLAGS.reflectX : 0)
+		view.setUint8(offset + 11, flags)
 		offset += 12
 		bytes.set(group.payload, offset)
 		offset += group.payload.byteLength
@@ -374,6 +402,31 @@ function clampFallbackScale(value: number) {
 
 function matrixArray(matrix: THREE.Matrix4) {
 	return matrix.toArray() as ProtectedMeshMatrix
+}
+
+function protectedMeshColorKey(color: ProtectedMeshColor | null) {
+	return color
+		? color.map((value) => Math.round(Math.min(1, Math.max(0, value)) * 255)).join(',')
+		: 'neutral'
+}
+
+function blockPositionJitterMatrix(colorKey: string) {
+	let matrix = blockPositionJitterMatrices.get(colorKey)
+	if (!matrix) {
+		const digest = createHash('sha256')
+			.update(`protected-mesh-position-jitter:${colorKey}`)
+			.digest()
+		const offset = new THREE.Vector3(
+			digest.readUInt16LE(0) / 32_767.5 - 1,
+			digest.readUInt16LE(2) / 32_767.5 - 1,
+			digest.readUInt16LE(4) / 32_767.5 - 1,
+		)
+		if (offset.lengthSq() <= Number.EPSILON) offset.set(1, 0, 0)
+		offset.normalize().multiplyScalar(BLOCK_POSITION_JITTER_MAGNITUDE)
+		matrix = new THREE.Matrix4().makeTranslation(offset.x, offset.y, offset.z)
+		blockPositionJitterMatrices.set(colorKey, matrix)
+	}
+	return matrix
 }
 
 export function clearProtectedMeshCorpusCaches() {

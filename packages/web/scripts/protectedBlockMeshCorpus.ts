@@ -75,6 +75,9 @@ export type ProtectedBlockMeshCorpusReport = {
 	blockCount: number
 	meshCount: number
 	primitiveCount: number
+	reflectedPrimitiveCount: number
+	negativeTransformPartCount: number
+	singularPartCount: number
 	commonPrimitiveCount: number
 	originalTriangleCount: number
 	triangleCount: number
@@ -86,8 +89,9 @@ const IDENTITY_MATRIX = new THREE.Matrix4()
 const MODEL_ROTATION_X = -Math.PI / 2
 const SPOILER_OFFSET_Y = -1.0146778822
 const SIMPLIFY_TRIANGLE_THRESHOLD = 100 // 1_000
-const SIMPLIFY_RATIO = 0.1 // 0.6
-const SIMPLIFY_ERROR = 0.01 // 0.001
+const SIMPLIFY_RATIO = 0.5
+const SIMPLIFY_ERROR = 0.001
+const MATRIX_DETERMINANT_EPSILON = 1e-12
 
 export async function compileProtectedBlockMeshCorpus(
 	options: CompileProtectedBlockMeshCorpusOptions,
@@ -108,6 +112,9 @@ export async function compileProtectedBlockMeshCorpus(
 	const sourceToOpaque = new Map<string, string>()
 	const fileDigests: string[] = []
 	let primitiveCount = 0
+	let reflectedPrimitiveCount = 0
+	let negativeTransformPartCount = 0
+	let singularPartCount = 0
 	let commonPrimitiveCount = 0
 	let originalTriangleCount = 0
 	let triangleCount = 0
@@ -116,15 +123,18 @@ export async function compileProtectedBlockMeshCorpus(
 
 	for (const source of [...sourceMeshes].sort()) {
 		const opaque = opaqueName(source)
-		const primitives = parseGlb(
+		const parsed = parseGlb(
 			await readFile(join(options.bundleDirectory, 'meshes', `${source}.glb`)),
+			source,
 		)
+		const { primitives } = parsed
 		const encoded = encodePrimitiveFile(primitives)
 		const fileName = `${opaque}.zcp`
 		await writeFile(join(outputMeshDirectory, fileName), encoded.bytes)
 		sourceToOpaque.set(source, fileName)
 		fileDigests.push(hashBytes(encoded.bytes))
 		primitiveCount += primitives.length
+		reflectedPrimitiveCount += parsed.reflectedPrimitiveCount
 		originalTriangleCount += encoded.originalIndexCount / 3
 		triangleCount += encoded.indexCount / 3
 		maximumSimplificationError = Math.max(maximumSimplificationError, encoded.maximumError)
@@ -151,6 +161,18 @@ export async function compileProtectedBlockMeshCorpus(
 		blocks[blockId] = {
 			...(definition.optionMode === undefined ? {} : { optionMode: definition.optionMode }),
 			parts: definition.parts.flatMap(({ mesh, matrix, attribute, paint }) => {
+				const determinant = matrixDeterminant(matrix)
+				if (
+					matrix.some((value) => !Number.isFinite(value)) ||
+					!Number.isFinite(determinant)
+				) {
+					throw new Error(`Block ${blockId} contains a non-finite part transform`)
+				}
+				if (Math.abs(determinant) <= MATRIX_DETERMINANT_EPSILON) {
+					singularPartCount += 1
+					return []
+				}
+				if (determinant < 0) negativeTransformPartCount += 1
 				const protectedMesh = sourceToOpaque.get(mesh)
 				return protectedMesh
 					? [
@@ -180,6 +202,9 @@ export async function compileProtectedBlockMeshCorpus(
 		blockCount: Object.keys(blocks).length,
 		meshCount: sourceMeshes.size,
 		primitiveCount,
+		reflectedPrimitiveCount,
+		negativeTransformPartCount,
+		singularPartCount,
 		commonPrimitiveCount,
 		originalTriangleCount,
 		triangleCount,
@@ -324,7 +349,7 @@ function encodePrimitive(primitive: Primitive): EncodedPrimitive {
 	}
 }
 
-function parseGlb(bytes: Uint8Array): Primitive[] {
+function parseGlb(bytes: Uint8Array, source: string) {
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
 	if (view.getUint32(0, true) !== 0x46546c67 || view.getUint32(4, true) !== 2) {
 		throw new Error('Unsupported GLB')
@@ -342,10 +367,13 @@ function parseGlb(bytes: Uint8Array): Primitive[] {
 	}
 	if (!json) throw new Error('GLB JSON chunk missing')
 	const result: Primitive[] = []
+	let reflectedPrimitiveCount = 0
 	const scene = json.scenes?.[json.scene ?? 0]
-	for (const root of scene?.nodes ?? []) visitGlbNode(json, binary, root, IDENTITY_MATRIX, result)
+	for (const root of scene?.nodes ?? []) {
+		reflectedPrimitiveCount += visitGlbNode(json, binary, root, IDENTITY_MATRIX, result, source)
+	}
 	if (result.length === 0) throw new Error('GLB contains no triangle primitives')
-	return result
+	return { primitives: result, reflectedPrimitiveCount }
 }
 
 function visitGlbNode(
@@ -354,12 +382,14 @@ function visitGlbNode(
 	nodeIndex: number,
 	parentMatrix: THREE.Matrix4,
 	result: Primitive[],
-) {
+	source: string,
+): number {
 	const node = json.nodes?.[nodeIndex]
-	if (!node) return
+	if (!node) return 0
 	const matrix = parentMatrix.clone().multiply(readNodeMatrix(node))
 	const mesh = node.mesh === undefined ? undefined : json.meshes?.[node.mesh]
-	for (const primitive of mesh?.primitives ?? []) {
+	let reflectedPrimitiveCount = 0
+	for (const [primitiveIndex, primitive] of (mesh?.primitives ?? []).entries()) {
 		if ((primitive.mode ?? 4) !== 4) continue
 		const positionAccessor = primitive.attributes.POSITION
 		if (positionAccessor === undefined) continue
@@ -371,14 +401,27 @@ function visitGlbNode(
 			primitive.indices === undefined
 				? Uint32Array.from({ length: positions.length / 3 }, (_, index) => index)
 				: Uint32Array.from(readAccessor(json, binary, primitive.indices))
-		result.push({
-			matrix: matrix.toArray() as ProtectedMeshMatrix,
+		const parsedPrimitive: Primitive = {
+			matrix: IDENTITY_MATRIX.toArray() as ProtectedMeshMatrix,
 			positions,
 			normals,
 			indices,
-		})
+		}
+		if (
+			applyMatrix(
+				parsedPrimitive,
+				matrix,
+				`GLB ${source}, node ${nodeIndex}, primitive ${primitiveIndex}`,
+			)
+		) {
+			reflectedPrimitiveCount += 1
+		}
+		result.push(parsedPrimitive)
 	}
-	for (const child of node.children ?? []) visitGlbNode(json, binary, child, matrix, result)
+	for (const child of node.children ?? []) {
+		reflectedPrimitiveCount += visitGlbNode(json, binary, child, matrix, result, source)
+	}
+	return reflectedPrimitiveCount
 }
 
 function readNodeMatrix(node: NonNullable<GlbJson['nodes']>[number]) {
@@ -512,21 +555,41 @@ function primitiveFromTriangles(positions: Float32Array, normals: Float32Array |
 
 function transformStl(primitive: Primitive) {
 	const matrix = new THREE.Matrix4().makeRotationX(MODEL_ROTATION_X)
-	applyMatrix(primitive, matrix)
+	applyMatrix(primitive, matrix, 'ghost model STL')
 	return primitive
 }
 
-function applyMatrix(primitive: Primitive, matrix: THREE.Matrix4) {
+function applyMatrix(primitive: Primitive, matrix: THREE.Matrix4, label: string) {
+	if (matrix.elements.some((value) => !Number.isFinite(value))) {
+		throw new Error(`${label} contains a non-finite transform`)
+	}
+	const determinant = matrix.determinant()
+	if (!Number.isFinite(determinant) || Math.abs(determinant) <= MATRIX_DETERMINANT_EPSILON) {
+		throw new Error(`${label} contains a singular transform`)
+	}
 	const position = new THREE.Vector3()
 	for (let index = 0; index < primitive.positions.length; index += 3) {
 		position.fromArray(primitive.positions, index).applyMatrix4(matrix)
 		position.toArray(primitive.positions, index)
 	}
-	if (!primitive.normals) return
-	const normalMatrix = new THREE.Matrix3().getNormalMatrix(matrix)
-	for (let index = 0; index < primitive.normals.length; index += 3) {
-		position.fromArray(primitive.normals, index).applyMatrix3(normalMatrix).normalize()
-		position.toArray(primitive.normals, index)
+	if (primitive.normals) {
+		const normalMatrix = new THREE.Matrix3().getNormalMatrix(matrix)
+		for (let index = 0; index < primitive.normals.length; index += 3) {
+			position.fromArray(primitive.normals, index).applyMatrix3(normalMatrix).normalize()
+			position.toArray(primitive.normals, index)
+		}
+	}
+	if (determinant < 0) reverseTriangleWinding(primitive.indices, label)
+	primitive.matrix = IDENTITY_MATRIX.toArray() as ProtectedMeshMatrix
+	return determinant < 0
+}
+
+function reverseTriangleWinding(indices: Uint32Array, label: string) {
+	if (indices.length % 3 !== 0) throw new Error(`${label} contains incomplete triangles`)
+	for (let index = 0; index < indices.length; index += 3) {
+		const second = indices[index + 1] as number
+		indices[index + 1] = indices[index + 2] as number
+		indices[index + 2] = second
 	}
 }
 
@@ -604,7 +667,21 @@ function positionBounds(positions: Float32Array) {
 }
 
 function opaqueName(source: string) {
-	return createHash('sha256').update(`zeepcentraal-mesh-v1:${source}`).digest('hex').slice(0, 32)
+	return createHash('sha256').update(`zeepcentraal-mesh-v3:${source}`).digest('hex').slice(0, 32)
+}
+
+function matrixDeterminant(matrix: readonly number[]) {
+	return (
+		(matrix[0] as number) *
+			((matrix[5] as number) * (matrix[10] as number) -
+				(matrix[6] as number) * (matrix[9] as number)) -
+		(matrix[4] as number) *
+			((matrix[1] as number) * (matrix[10] as number) -
+				(matrix[2] as number) * (matrix[9] as number)) +
+		(matrix[8] as number) *
+			((matrix[1] as number) * (matrix[6] as number) -
+				(matrix[2] as number) * (matrix[5] as number))
+	)
 }
 
 function hashBytes(bytes: Uint8Array) {

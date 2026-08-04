@@ -43,6 +43,7 @@ describe('GhostLevelMeshRenderer', () => {
 			const material = mesh.material as THREE.MeshStandardMaterial
 			expect(material.transparent).toBe(false)
 			expect(material.opacity).toBe(1)
+			expect(material.side).toBe(THREE.FrontSide)
 		}
 		const painted = meshes.find(({ count }) => count === 2)
 		expect(painted).toBeDefined()
