@@ -92,10 +92,14 @@ export class GhostLevelMeshRenderer {
 			for (const [index, matrix] of batch.matrices.entries()) mesh.setMatrixAt(index, matrix)
 			mesh.instanceMatrix.needsUpdate = true
 			mesh.computeBoundingSphere()
+			mesh.matrixAutoUpdate = false
+			mesh.updateMatrix()
 			group.add(mesh)
 		}
 		const fallback = this.createFallbackMeshFromMatrices(bundle.fallbackMatrices, originMatrix)
 		if (fallback) group.add(fallback)
+		group.matrixAutoUpdate = false
+		group.updateMatrix()
 		this.replaceGroup(group)
 	}
 
@@ -107,6 +111,8 @@ export class GhostLevelMeshRenderer {
 		}
 		mesh.instanceMatrix.needsUpdate = true
 		mesh.computeBoundingSphere()
+		mesh.matrixAutoUpdate = false
+		mesh.updateMatrix()
 		return mesh
 	}
 

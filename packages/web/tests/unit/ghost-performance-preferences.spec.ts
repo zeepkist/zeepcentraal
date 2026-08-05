@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeGhostPerformancePreferences } from '../../app/composables/useGhostPerformancePreferences'
+import {
+	resolveGhostFrameRate,
+	resolveGhostRenderQuality,
+	sanitizeGhostPerformancePreferences,
+} from '../../app/composables/useGhostPerformancePreferences'
 
 describe('ghost performance preferences', () => {
 	it('enables level geometry and trails for existing saved preferences', () => {
@@ -31,5 +35,17 @@ describe('ghost performance preferences', () => {
 			showLevelGeometry: false,
 			showGhostTrails: false,
 		})
+	})
+
+	it('defaults mobile devices to performance rendering at 30 FPS', () => {
+		expect(resolveGhostFrameRate('auto', true)).toBe(30)
+		expect(resolveGhostRenderQuality('auto', true)).toBe('performance')
+		expect(resolveGhostFrameRate('auto', false)).toBe(60)
+		expect(resolveGhostRenderQuality('auto', false)).toBe('quality')
+	})
+
+	it('preserves explicit mobile overrides', () => {
+		expect(resolveGhostFrameRate(60, true)).toBe(60)
+		expect(resolveGhostRenderQuality('balanced', true)).toBe('balanced')
 	})
 })

@@ -33,6 +33,7 @@ describe('GhostLevelMeshRenderer', () => {
 		await rendering
 
 		const group = scene.getObjectByName('level-geometry') as THREE.Group
+		expect(group.matrixAutoUpdate).toBe(false)
 		const meshes = group.children.filter(
 			(child): child is THREE.InstancedMesh => child instanceof THREE.InstancedMesh,
 		)
@@ -40,6 +41,7 @@ describe('GhostLevelMeshRenderer', () => {
 		expect(meshes.map(({ count }) => count).sort()).toEqual([1, 2])
 		expect(library.load).toHaveBeenCalledWith(42)
 		for (const mesh of meshes) {
+			expect(mesh.matrixAutoUpdate).toBe(false)
 			const material = mesh.material as THREE.MeshStandardMaterial
 			expect(material.transparent).toBe(false)
 			expect(material.opacity).toBe(1)

@@ -21,9 +21,9 @@ export function useGhostPerformancePreferences() {
 		secure: import.meta.env.PROD,
 		path: '/',
 	})
-	const mobile = ref(false)
+	const mobile = shallowRef(false)
 	const cacheStats = shallowRef<GhostBinaryCacheStats | null>(null)
-	const cachePending = ref(false)
+	const cachePending = shallowRef(false)
 
 	onMounted(() => {
 		const navigatorWithUserAgentData = globalThis.navigator as Navigator & {
@@ -36,14 +36,12 @@ export function useGhostPerformancePreferences() {
 	})
 
 	const preferences = computed(() => sanitizeGhostPerformancePreferences(cookie.value))
-	const frameRate = computed<30 | 60>(() => {
-		const selected = preferences.value.frameRate
-		return selected === 'auto' ? (mobile.value ? 30 : 60) : selected
-	})
-	const renderQuality = computed<Exclude<GhostRenderQuality, 'auto'>>(() => {
-		const selected = preferences.value.renderQuality
-		return selected === 'auto' ? (mobile.value ? 'balanced' : 'quality') : selected
-	})
+	const frameRate = computed<30 | 60>(() =>
+		resolveGhostFrameRate(preferences.value.frameRate, mobile.value),
+	)
+	const renderQuality = computed<Exclude<GhostRenderQuality, 'auto'>>(() =>
+		resolveGhostRenderQuality(preferences.value.renderQuality, mobile.value),
+	)
 
 	function setFrameRate(value: GhostFrameRate) {
 		cookie.value = { ...preferences.value, frameRate: value }
@@ -95,6 +93,17 @@ export function useGhostPerformancePreferences() {
 		refreshCacheStats,
 		clearCache,
 	}
+}
+
+export function resolveGhostFrameRate(frameRate: GhostFrameRate, mobile: boolean): 30 | 60 {
+	return frameRate === 'auto' ? (mobile ? 30 : 60) : frameRate
+}
+
+export function resolveGhostRenderQuality(
+	quality: GhostRenderQuality,
+	mobile: boolean,
+): Exclude<GhostRenderQuality, 'auto'> {
+	return quality === 'auto' ? (mobile ? 'performance' : 'quality') : quality
 }
 
 export function sanitizeGhostPerformancePreferences(value: unknown): GhostPerformancePreferences {

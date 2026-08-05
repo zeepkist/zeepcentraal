@@ -10,12 +10,14 @@ const LABEL_STAGGER_PIXELS = 10
 const MINIMUM_ISOMETRIC_CAMERA_DISTANCE = 80
 const ISOMETRIC_CAMERA_DEPTH_MARGIN = 80
 const DEFAULT_CAMERA_FAR = 5_000
+const FRAME_INTERVAL_EPSILON_MS = 0.01
 
 export type GhostSceneQuality = 'performance' | 'balanced' | 'quality'
 
 export type GhostRendererOptions = {
 	antialias: boolean
 	powerPreference: 'low-power' | 'high-performance'
+	stencil: false
 }
 
 export type GhostVisualDescriptor = {
@@ -30,23 +32,41 @@ export type GhostVisualReconciliation = {
 }
 
 const GHOST_TRAIL_TOTAL_BUDGET: Record<GhostSceneQuality, number> = {
-	performance: 50_000,
-	balanced: 120_000,
-	quality: 240_000,
+	performance: 25_000,
+	balanced: 60_000,
+	quality: 120_000,
 }
 
 const GHOST_TRAIL_PER_GHOST_CAP: Record<GhostSceneQuality, number> = {
-	performance: 4_000,
-	balanced: 12_000,
-	quality: 30_000,
+	performance: 2_000,
+	balanced: 6_000,
+	quality: 15_000,
 }
 
-const MINIMUM_GHOST_TRAIL_SAMPLES = 128
+const GHOST_TRAIL_SIMPLIFICATION_TOLERANCE: Record<GhostSceneQuality, number> = {
+	performance: 0.25,
+	balanced: 0.1,
+	quality: 0.04,
+}
+
+const GHOST_TRAIL_MAXIMUM_TIME_STEP: Record<GhostSceneQuality, number> = {
+	performance: 1,
+	balanced: 0.5,
+	quality: 0.25,
+}
+
+const MINIMUM_GHOST_TRAIL_SAMPLES = 2
+
+export type GhostFrameTiming = {
+	frameDue: boolean
+	framePhase: number | null
+}
 
 export function resolveGhostRendererOptions(quality: GhostSceneQuality): GhostRendererOptions {
 	return {
 		antialias: quality !== 'performance',
 		powerPreference: quality === 'quality' ? 'high-performance' : 'low-power',
+		stencil: false,
 	}
 }
 
@@ -67,6 +87,30 @@ export function resolveGhostTrailSampleLimit(
 	)
 }
 
+export function resolveGhostTrailSimplificationTolerance(quality: GhostSceneQuality): number {
+	return GHOST_TRAIL_SIMPLIFICATION_TOLERANCE[quality]
+}
+
+export function resolveGhostFrameTiming(
+	previousFramePhase: number | null,
+	timestamp: number,
+	frameRate: 30 | 60,
+): GhostFrameTiming {
+	if (previousFramePhase === null || timestamp + FRAME_INTERVAL_EPSILON_MS < previousFramePhase) {
+		return { frameDue: true, framePhase: timestamp }
+	}
+	const interval = 1_000 / frameRate
+	const elapsed = timestamp - previousFramePhase
+	if (elapsed + FRAME_INTERVAL_EPSILON_MS < interval) {
+		return { frameDue: false, framePhase: previousFramePhase }
+	}
+	const elapsedIntervals = Math.max(
+		1,
+		Math.floor((elapsed + FRAME_INTERVAL_EPSILON_MS) / interval),
+	)
+	return { frameDue: true, framePhase: previousFramePhase + elapsedIntervals * interval }
+}
+
 export function sampleGhostTrailFrames<T>(frames: readonly T[], maximum: number): T[] {
 	const sampleCount = Math.min(frames.length, Math.max(0, Math.floor(maximum)))
 	if (sampleCount === 0) return []
@@ -75,6 +119,182 @@ export function sampleGhostTrailFrames<T>(frames: readonly T[], maximum: number)
 		const index = Math.round((sampleIndex * (frames.length - 1)) / (sampleCount - 1))
 		return frames[index] as T
 	})
+}
+
+export function simplifyGhostTrailFrames(
+	frames: readonly GhostPlaybackFrame[],
+	quality: GhostSceneQuality,
+	maximum: number,
+): GhostPlaybackFrame[] {
+	const cap = Math.min(frames.length, Math.max(0, Math.floor(maximum)))
+	if (cap === 0) return []
+	if (cap === 1) return frames[0] ? [frames[0]] : []
+	if (frames.length <= 2) return [...frames]
+
+	const minimumTolerance = resolveGhostTrailSimplificationTolerance(quality)
+	let simplified = simplifyGhostTrailFramesAtTolerance(frames, minimumTolerance)
+	if (simplified.length <= cap) {
+		return preserveGhostTrailProgress(frames, simplified, quality, cap)
+	}
+
+	let lowerTolerance = minimumTolerance
+	let upperTolerance = Math.max(minimumTolerance * 2, ghostTrailBoundsDiagonal(frames))
+	let upperResult = simplifyGhostTrailFramesAtTolerance(frames, upperTolerance)
+	while (upperResult.length > cap && Number.isFinite(upperTolerance)) {
+		lowerTolerance = upperTolerance
+		upperTolerance *= 2
+		upperResult = simplifyGhostTrailFramesAtTolerance(frames, upperTolerance)
+	}
+
+	for (let iteration = 0; iteration < 16; iteration += 1) {
+		const tolerance = (lowerTolerance + upperTolerance) / 2
+		const candidate = simplifyGhostTrailFramesAtTolerance(frames, tolerance)
+		if (candidate.length > cap) lowerTolerance = tolerance
+		else {
+			upperTolerance = tolerance
+			upperResult = candidate
+		}
+	}
+
+	simplified = upperResult
+	const capped = simplified.length <= cap ? simplified : sampleGhostTrailFrames(simplified, cap)
+	return preserveGhostTrailProgress(frames, capped, quality, cap)
+}
+
+function preserveGhostTrailProgress(
+	frames: readonly GhostPlaybackFrame[],
+	spatialFrames: readonly GhostPlaybackFrame[],
+	quality: GhostSceneQuality,
+	cap: number,
+): GhostPlaybackFrame[] {
+	if (spatialFrames.length >= cap) return [...spatialFrames]
+	const indexByFrame = new Map(frames.map((frame, index) => [frame, index]))
+	const retainedIndices = new Set(
+		spatialFrames.flatMap((frame) => {
+			const index = indexByFrame.get(frame)
+			return index === undefined ? [] : [index]
+		}),
+	)
+	const temporalIndices: number[] = []
+	const firstTime = frames[0]?.time ?? 0
+	const maximumTimeStep = GHOST_TRAIL_MAXIMUM_TIME_STEP[quality]
+	let nextTime = firstTime + maximumTimeStep
+	for (let index = 1; index < frames.length - 1; index += 1) {
+		const frame = frames[index]
+		if (!frame || frame.time < nextTime) continue
+		if (!retainedIndices.has(index)) temporalIndices.push(index)
+		nextTime = frame.time + maximumTimeStep
+	}
+
+	const available = cap - retainedIndices.size
+	const selectedTemporalIndices =
+		temporalIndices.length <= available
+			? temporalIndices
+			: sampleGhostTrailFrames(temporalIndices, available)
+	for (const index of selectedTemporalIndices) retainedIndices.add(index)
+	return [...retainedIndices]
+		.toSorted((left, right) => left - right)
+		.flatMap((index) => (frames[index] ? [frames[index]] : []))
+}
+
+function simplifyGhostTrailFramesAtTolerance(
+	frames: readonly GhostPlaybackFrame[],
+	tolerance: number,
+): GhostPlaybackFrame[] {
+	const lastIndex = frames.length - 1
+	if (lastIndex < 1) return [...frames]
+	const retained = new Uint8Array(frames.length)
+	retained[0] = 1
+	retained[lastIndex] = 1
+	const stack: Array<[number, number]> = [[0, lastIndex]]
+	const toleranceSquared = tolerance * tolerance
+
+	while (stack.length > 0) {
+		const range = stack.pop()
+		if (!range) continue
+		const [startIndex, endIndex] = range
+		const start = frames[startIndex]
+		const end = frames[endIndex]
+		if (!start || !end) continue
+		const startPosition = resolveGhostDisplayPosition(start)
+		const endPosition = resolveGhostDisplayPosition(end)
+		let furthestIndex = -1
+		let furthestDistanceSquared = toleranceSquared
+
+		for (let index = startIndex + 1; index < endIndex; index += 1) {
+			const frame = frames[index]
+			if (!frame) continue
+			const distanceSquared = pointSegmentDistanceSquared(
+				resolveGhostDisplayPosition(frame),
+				startPosition,
+				endPosition,
+			)
+			if (distanceSquared > furthestDistanceSquared) {
+				furthestDistanceSquared = distanceSquared
+				furthestIndex = index
+			}
+		}
+
+		if (furthestIndex < 0) continue
+		retained[furthestIndex] = 1
+		stack.push([startIndex, furthestIndex], [furthestIndex, endIndex])
+	}
+
+	return frames.filter((_, index) => retained[index] === 1)
+}
+
+function pointSegmentDistanceSquared(
+	point: GhostVector3,
+	start: GhostVector3,
+	end: GhostVector3,
+): number {
+	const lineX = end.x - start.x
+	const lineY = end.y - start.y
+	const lineZ = end.z - start.z
+	const lengthSquared = lineX * lineX + lineY * lineY + lineZ * lineZ
+	if (lengthSquared === 0) return vectorDistanceSquared(point, start)
+	const ratio = Math.min(
+		1,
+		Math.max(
+			0,
+			((point.x - start.x) * lineX +
+				(point.y - start.y) * lineY +
+				(point.z - start.z) * lineZ) /
+				lengthSquared,
+		),
+	)
+	const projected = {
+		x: start.x + lineX * ratio,
+		y: start.y + lineY * ratio,
+		z: start.z + lineZ * ratio,
+	}
+	return vectorDistanceSquared(point, projected)
+}
+
+function vectorDistanceSquared(left: GhostVector3, right: GhostVector3): number {
+	const x = left.x - right.x
+	const y = left.y - right.y
+	const z = left.z - right.z
+	return x * x + y * y + z * z
+}
+
+function ghostTrailBoundsDiagonal(frames: readonly GhostPlaybackFrame[]): number {
+	let minimumX = Number.POSITIVE_INFINITY
+	let minimumY = Number.POSITIVE_INFINITY
+	let minimumZ = Number.POSITIVE_INFINITY
+	let maximumX = Number.NEGATIVE_INFINITY
+	let maximumY = Number.NEGATIVE_INFINITY
+	let maximumZ = Number.NEGATIVE_INFINITY
+	for (const frame of frames) {
+		const position = resolveGhostDisplayPosition(frame)
+		minimumX = Math.min(minimumX, position.x)
+		minimumY = Math.min(minimumY, position.y)
+		minimumZ = Math.min(minimumZ, position.z)
+		maximumX = Math.max(maximumX, position.x)
+		maximumY = Math.max(maximumY, position.y)
+		maximumZ = Math.max(maximumZ, position.z)
+	}
+	return Math.hypot(maximumX - minimumX, maximumY - minimumY, maximumZ - minimumZ)
 }
 
 export function planGhostVisualReconciliation(

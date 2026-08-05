@@ -10,11 +10,14 @@ import {
 	planGhostVisualReconciliation,
 	rebaseGhostPosition,
 	resolveGhostDisplayPosition,
+	resolveGhostFrameTiming,
 	resolveGhostPlaybackStartTime,
 	resolveGhostRendererOptions,
 	resolveGhostSelectedRecordId,
 	resolveGhostTrailSampleLimit,
+	resolveGhostTrailSimplificationTolerance,
 	sampleGhostTrailFrames,
+	simplifyGhostTrailFrames,
 } from '../../app/utils/ghostScene'
 
 describe('ghost scene', () => {
@@ -22,14 +25,17 @@ describe('ghost scene', () => {
 		expect(resolveGhostRendererOptions('performance')).toEqual({
 			antialias: false,
 			powerPreference: 'low-power',
+			stencil: false,
 		})
 		expect(resolveGhostRendererOptions('balanced')).toEqual({
 			antialias: true,
 			powerPreference: 'low-power',
+			stencil: false,
 		})
 		expect(resolveGhostRendererOptions('quality')).toEqual({
 			antialias: true,
 			powerPreference: 'high-performance',
+			stencil: false,
 		})
 	})
 
@@ -176,17 +182,17 @@ describe('ghost scene', () => {
 	})
 
 	it('allocates quality-dependent bulk trail budgets without exceeding per-ghost caps', () => {
-		expect(resolveGhostTrailSampleLimit('performance', 200, true)).toBe(250)
-		expect(resolveGhostTrailSampleLimit('balanced', 200, true)).toBe(600)
-		expect(resolveGhostTrailSampleLimit('quality', 200, true)).toBe(1_200)
-		expect(resolveGhostTrailSampleLimit('performance', 3, true)).toBe(4_000)
-		expect(resolveGhostTrailSampleLimit('balanced', 1_000, true)).toBe(128)
+		expect(resolveGhostTrailSampleLimit('performance', 200, true)).toBe(125)
+		expect(resolveGhostTrailSampleLimit('balanced', 200, true)).toBe(300)
+		expect(resolveGhostTrailSampleLimit('quality', 200, true)).toBe(600)
+		expect(resolveGhostTrailSampleLimit('performance', 3, true)).toBe(2_000)
+		expect(resolveGhostTrailSampleLimit('balanced', 1_000, true)).toBe(60)
 	})
 
-	it('preserves existing per-ghost trail caps outside bulk playback', () => {
-		expect(resolveGhostTrailSampleLimit('performance', 200, false)).toBe(4_000)
-		expect(resolveGhostTrailSampleLimit('balanced', 200, false)).toBe(12_000)
-		expect(resolveGhostTrailSampleLimit('quality', 200, false)).toBe(30_000)
+	it('halves per-ghost trail caps outside bulk playback', () => {
+		expect(resolveGhostTrailSampleLimit('performance', 200, false)).toBe(2_000)
+		expect(resolveGhostTrailSampleLimit('balanced', 200, false)).toBe(6_000)
+		expect(resolveGhostTrailSampleLimit('quality', 200, false)).toBe(15_000)
 	})
 
 	it('preserves trail endpoints while uniformly sampling frames', () => {
@@ -197,6 +203,85 @@ describe('ghost scene', () => {
 		expect(sampled[0]).toBe(0)
 		expect(sampled.at(-1)).toBe(1_000)
 		expect(sampleGhostTrailFrames(frames, 2)).toEqual([0, 1_000])
+	})
+
+	it('preserves frame cadence remainder on high-refresh displays', () => {
+		for (const refreshRate of [60, 120, 144]) {
+			for (const target of [30, 60] as const) {
+				let phase: number | null = null
+				let rendered = 0
+				const callbackCount = refreshRate * 10
+				for (let index = 0; index <= callbackCount; index += 1) {
+					const timing = resolveGhostFrameTiming(
+						phase,
+						(index * 1_000) / refreshRate,
+						target,
+					)
+					phase = timing.framePhase
+					if (timing.frameDue) rendered += 1
+				}
+				expect(rendered).toBeGreaterThanOrEqual(target * 10)
+				expect(rendered).toBeLessThanOrEqual(target * 10 + 1)
+			}
+		}
+	})
+
+	it('resets frame cadence when no previous phase exists', () => {
+		expect(resolveGhostFrameTiming(null, 500, 60)).toEqual({
+			frameDue: true,
+			framePhase: 500,
+		})
+		expect(resolveGhostFrameTiming(500, 508, 60).frameDue).toBe(false)
+	})
+
+	it('uses quality-dependent world-space trail simplification', () => {
+		expect(resolveGhostTrailSimplificationTolerance('performance')).toBe(0.25)
+		expect(resolveGhostTrailSimplificationTolerance('balanced')).toBe(0.1)
+		expect(resolveGhostTrailSimplificationTolerance('quality')).toBe(0.04)
+	})
+
+	it('simplifies straight trails while retaining corners and endpoints', () => {
+		const frames: GhostPlaybackFrame[] = [
+			{ time: 0, position: { x: 0, y: 0, z: 0 } },
+			{ time: 0.01, position: { x: 5, y: 0, z: 0 } },
+			{ time: 0.02, position: { x: 10, y: 0, z: 0 } },
+			{ time: 0.03, position: { x: 10, y: 0, z: 10 } },
+			{ time: 0.04, position: { x: 10, y: 0, z: 20 } },
+		]
+		const simplified = simplifyGhostTrailFrames(frames, 'balanced', 100)
+
+		expect(simplified.map(({ time }) => time)).toEqual([0, 0.02, 0.04])
+		expect(simplified[0]).toBe(frames[0])
+		expect(simplified.at(-1)).toBe(frames.at(-1))
+	})
+
+	it('deterministically raises tolerance until the hard trail cap is met', () => {
+		const frames: GhostPlaybackFrame[] = Array.from({ length: 1_000 }, (_, index) => ({
+			time: index,
+			position: { x: index, y: index % 2 === 0 ? 0 : 10, z: 0 },
+		}))
+		const first = simplifyGhostTrailFrames(frames, 'quality', 32)
+		const second = simplifyGhostTrailFrames(frames, 'quality', 32)
+
+		expect(first.length).toBeLessThanOrEqual(32)
+		expect(first.map(({ time }) => time)).toEqual(second.map(({ time }) => time))
+		expect(first[0]?.time).toBe(0)
+		expect(first.at(-1)?.time).toBe(999)
+		expect(
+			first.every(
+				(frame, index) => index === 0 || frame.time > (first[index - 1]?.time ?? -1),
+			),
+		).toBe(true)
+	})
+
+	it('retains temporal anchors so straight trails reveal during playback', () => {
+		const frames: GhostPlaybackFrame[] = Array.from({ length: 101 }, (_, index) => ({
+			time: index / 10,
+			position: { x: index, y: 0, z: 0 },
+		}))
+		const simplified = simplifyGhostTrailFrames(frames, 'performance', 100)
+
+		expect(simplified.map(({ time }) => time)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 	})
 
 	it('reconciles keyed ghost visuals and recreates only changed revisions or identities', () => {

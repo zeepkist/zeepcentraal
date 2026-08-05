@@ -43,6 +43,7 @@
 </template>
 
 <script setup vapor lang="ts">
+import { useElementVisibility } from '@vueuse/core'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { Line2 } from 'three/addons/lines/Line2.js'
@@ -55,6 +56,7 @@ import type {
 	GhostLevelBlock,
 	LoadedPlaybackGhost,
 } from '~/types/ghost'
+import { GhostFrameScheduler } from '~/utils/ghostFrameScheduler'
 import { GhostLevelMeshRenderer } from '~/utils/ghostLevelMeshRenderer.client'
 import {
 	GhostMeshBatchRenderer,
@@ -70,9 +72,10 @@ import {
 	planGhostVisualReconciliation,
 	rebaseGhostPosition,
 	resolveGhostDisplayPosition,
+	resolveGhostFrameTiming,
 	resolveGhostRendererOptions,
 	resolveGhostTrailSampleLimit,
-	sampleGhostTrailFrames,
+	simplifyGhostTrailFrames,
 } from '~/utils/ghostScene'
 import { resolveGhostWheelColor } from '~/utils/ghostSoapbox'
 import { ProtectedMeshLibrary } from '~/utils/protectedMeshLibrary.client'
@@ -85,6 +88,7 @@ type GhostVisual = {
 	group: THREE.Group
 	label: HTMLElement | null
 	labelObject: CSS2DObject | null
+	labelHeight: number
 	labelStagger: number
 	trail: Line2
 	trailGeometry: LineGeometry
@@ -139,9 +143,15 @@ const canLoadProtectedMeshes = computed(() => session.user !== null)
 const container = useTemplateRef('container')
 const canvasHost = useTemplateRef('canvasHost')
 const labelHost = useTemplateRef('labelHost')
-const contextLost = ref(false)
-const rendererError = ref(false)
-const currentFrameRate = ref(0)
+const pageVisible = usePageVisibility()
+const elementVisible = useElementVisibility(container, { initialValue: true })
+const renderingVisible = computed(() => pageVisible.value && elementVisible.value)
+const playbackDuration = computed(() =>
+	props.ghosts.reduce((maximum, { record }) => Math.max(maximum, record.time), 0),
+)
+const contextLost = shallowRef(false)
+const rendererError = shallowRef(false)
+const currentFrameRate = shallowRef(0)
 
 let renderer: THREE.WebGLRenderer | null = null
 let labelRenderer: CSS2DRenderer | null = null
@@ -151,11 +161,14 @@ let perspectiveCamera: THREE.PerspectiveCamera | null = null
 let orthographicCamera: THREE.OrthographicCamera | null = null
 let controls: OrbitControls | null = null
 let resizeObserver: ResizeObserver | null = null
-let animationFrame = 0
-let lastRenderedAt = 0
-let lastPlaybackAt = 0
+let frameScheduler: GhostFrameScheduler | null = null
+let framePhase: number | null = null
+let lastPlaybackAt: number | null = null
 let frameRateWindowStartedAt = 0
 let renderedFrameCount = 0
+let renderRequested = true
+let ghostStateDirty = true
+let labelHeightsDirty = true
 let grid: GhostGridModel | null = null
 let visuals = new Map<number, GhostVisual>()
 let ghostMeshBatch: GhostMeshBatchRenderer | null = null
@@ -167,16 +180,22 @@ const isometricCameraDirection = new THREE.Vector3(1, 1, 1).normalize()
 const ragdollEuler = new THREE.Euler()
 const ragdollQuaternion = new THREE.Quaternion()
 const ragdollMatrix = new THREE.Matrix4()
+const selectedDelta = new THREE.Vector3()
 
 const activeCamera = () =>
 	props.cameraMode === 'isometric' ? orthographicCamera : perspectiveCamera
 
 onMounted(() => {
 	viewerMounted = true
+	frameScheduler = new GhostFrameScheduler(
+		(callback) => requestAnimationFrame(callback),
+		(handle) => cancelAnimationFrame(handle),
+		renderLoop,
+	)
 	if (!createScene()) return
 	createGhosts()
-	animationFrame = requestAnimationFrame(renderLoop)
 	loadProtectedGhostModels()
+	invalidateGhostState()
 })
 
 watch(
@@ -187,6 +206,34 @@ watch(
 	},
 	{ deep: false },
 )
+
+watch(
+	() => props.currentTime,
+	() => invalidateGhostState(),
+)
+
+watch(
+	() => props.playing,
+	() => {
+		resetFrameClock()
+		invalidateGhostState()
+	},
+)
+
+watch(
+	() => props.frameRate,
+	() => {
+		resetFrameClock()
+		invalidateRender()
+	},
+)
+
+watch(renderingVisible, (visible) => {
+	if (visible) {
+		resetFrameClock()
+		invalidateGhostState()
+	} else suspendRendering()
+})
 
 watch(
 	() => props.bulkMode,
@@ -212,7 +259,7 @@ watch(
 watch(
 	() => props.bulkGhostCount,
 	() => {
-		if (props.bulkMode) refreshBulkTrails()
+		if (props.bulkMode) refreshGhostTrails()
 	},
 )
 
@@ -227,6 +274,7 @@ watch(
 watch(canLoadProtectedMeshes, (canLoad) => {
 	if (!canLoad) {
 		levelMeshRenderer?.clear()
+		invalidateRender()
 		return
 	}
 	createLevelGeometry()
@@ -259,14 +307,19 @@ watch(
 
 watch(
 	() => props.selectedRecordId,
-	() => updateSelection(),
+	() => {
+		updateSelection()
+		invalidateGhostState()
+	},
 )
 
 watch(
 	() => props.quality,
 	() => {
 		if (renderer) replaceRenderer()
-		if (props.bulkMode) refreshBulkTrails()
+		refreshGhostTrails()
+		resetFrameClock()
+		invalidateRender()
 	},
 )
 
@@ -348,10 +401,12 @@ function replaceRenderer() {
 		previous.domElement.removeEventListener('webglcontextrestored', onContextRestored)
 		previous.dispose()
 	}
+	invalidateRender()
 	return true
 }
 
 function configureControls() {
+	controls?.removeEventListener('change', invalidateRender)
 	controls?.dispose()
 	const camera = activeCamera()
 	const canvas = renderer?.domElement
@@ -364,6 +419,7 @@ function configureControls() {
 	controls.enablePan = true
 	controls.mouseButtons.RIGHT = THREE.MOUSE.PAN
 	controls.touches.TWO = THREE.TOUCH.DOLLY_PAN
+	controls.addEventListener('change', invalidateRender)
 	if (props.cameraMode === 'isometric') {
 		controls.enableRotate = false
 		controls.screenSpacePanning = true
@@ -373,6 +429,7 @@ function configureControls() {
 		controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE
 	}
 	frameSelected()
+	invalidateRender()
 }
 
 function detachIsometricFollow() {
@@ -402,6 +459,7 @@ function createGhosts() {
 	updateSelection()
 	resize()
 	frameRoute()
+	invalidateGhostState()
 }
 
 function buildSceneGrid() {
@@ -460,6 +518,7 @@ function reconcileGhosts() {
 	syncGhostLabels()
 	updateSelection()
 	resize()
+	invalidateGhostState()
 }
 
 function addGhostVisual(loaded: LoadedPlaybackGhost, visualIndex: number) {
@@ -479,12 +538,14 @@ function addGhostVisual(loaded: LoadedPlaybackGhost, visualIndex: number) {
 		group,
 		label,
 		labelObject,
+		labelHeight: 24,
 		labelStagger: visualIndex % 4,
 		trail,
 		trailGeometry: geometry,
 		trailMaterial: material,
 		trailTimes: times,
 	})
+	if (label) labelHeightsDirty = true
 }
 
 function configureGhostMeshes() {
@@ -496,7 +557,7 @@ function configureGhostMeshes() {
 	ghostMeshBatch?.configure(descriptors)
 }
 
-function refreshBulkTrails() {
+function refreshGhostTrails() {
 	if (!scene || !grid) return
 	for (const visual of visuals.values()) {
 		visual.trailGeometry.dispose()
@@ -510,6 +571,7 @@ function refreshBulkTrails() {
 		scene.add(trail)
 	}
 	resize()
+	invalidateGhostState()
 }
 
 function createGhostLabel(loaded: LoadedPlaybackGhost) {
@@ -534,6 +596,7 @@ function syncGhostLabels() {
 			visual.labelObject = new CSS2DObject(visual.label)
 			visual.labelObject.position.set(0, 2.8, 0)
 			scene.add(visual.labelObject)
+			labelHeightsDirty = true
 		} else if (!shouldLabel && visual.label) {
 			visual.label.remove()
 			if (visual.labelObject) scene.remove(visual.labelObject)
@@ -541,6 +604,7 @@ function syncGhostLabels() {
 			visual.labelObject = null
 		}
 	}
+	invalidateGhostState()
 }
 
 function visualRevision(loaded: LoadedPlaybackGhost) {
@@ -558,10 +622,14 @@ function visualRevision(loaded: LoadedPlaybackGhost) {
 function createLevelGeometry() {
 	if (!canLoadProtectedMeshes.value || !props.showLevelGeometry) {
 		levelMeshRenderer?.clear()
+		invalidateRender()
 		return
 	}
 	if (!grid) return
-	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin)
+	invalidateRender()
+	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin).then(() => {
+		if (viewerMounted) invalidateRender()
+	})
 }
 
 function loadProtectedGhostModels() {
@@ -570,7 +638,7 @@ function loadProtectedGhostModels() {
 		.then((ghostModels) => {
 			if (!viewerMounted) return
 			ghostMeshBatch?.setModelGeometries(ghostModels)
-			updateGhosts()
+			invalidateGhostState()
 		})
 		.catch(() => undefined)
 }
@@ -580,7 +648,7 @@ function syncGhostTrailVisibility() {
 		visual.trail.visible = props.showGhostTrails
 		if (!props.showGhostTrails) visual.trailGeometry.instanceCount = 0
 	}
-	if (props.showGhostTrails) updateGhosts()
+	invalidateGhostState()
 }
 
 function createTrail(loaded: LoadedPlaybackGhost) {
@@ -590,7 +658,7 @@ function createTrail(loaded: LoadedPlaybackGhost) {
 	const maximum = resolveGhostTrailSampleLimit(props.quality, ghostCount, props.bulkMode)
 	const positions: number[] = []
 	const times: number[] = []
-	for (const frame of sampleGhostTrailFrames(loaded.ghost.frames, maximum)) {
+	for (const frame of simplifyGhostTrailFrames(loaded.ghost.frames, props.quality, maximum)) {
 		if (!grid) continue
 		const position = rebaseGhostPosition(resolveGhostDisplayPosition(frame), grid.origin)
 		positions.push(position.x, position.y + 0.1, position.z)
@@ -608,6 +676,8 @@ function createTrail(loaded: LoadedPlaybackGhost) {
 		gapSize: Math.min(8, 2 + (loaded.identity.userRunOrdinal ?? 0)),
 	})
 	const trail = new Line2(geometry, material)
+	trail.matrixAutoUpdate = false
+	trail.updateMatrix()
 	trail.visible = props.showGhostTrails
 	trail.computeLineDistances()
 	geometry.instanceCount = 0
@@ -626,7 +696,10 @@ function createGrid(model: GhostGridModel) {
 		createGridLines(model.majorX, model.minimumZ, model.maximumZ, true, primaryColor, 0.3),
 		createGridLines(model.majorZ, model.minimumX, model.maximumX, false, primaryColor, 0.3),
 	)
+	group.matrixAutoUpdate = false
+	group.updateMatrix()
 	scene.add(group)
+	invalidateRender()
 }
 
 function createGridLines(
@@ -650,64 +723,135 @@ function createGridLines(
 	}
 	const geometry = new THREE.BufferGeometry()
 	geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-	return new THREE.LineSegments(
+	const lines = new THREE.LineSegments(
 		geometry,
 		new THREE.LineBasicMaterial({ color, transparent: true, opacity }),
 	)
+	lines.matrixAutoUpdate = false
+	lines.updateMatrix()
+	return lines
+}
+
+function invalidateRender() {
+	renderRequested = true
+	if (!viewerMounted || !renderingVisible.value || contextLost.value) return
+	frameScheduler?.request()
+}
+
+function invalidateGhostState() {
+	ghostStateDirty = true
+	invalidateRender()
+}
+
+function suspendRendering() {
+	frameScheduler?.cancel()
+	resetFrameClock()
+}
+
+function resetFrameClock() {
+	framePhase = null
+	lastPlaybackAt = null
+	frameRateWindowStartedAt = 0
+	renderedFrameCount = 0
+	currentFrameRate.value = 0
 }
 
 function renderLoop(timestamp: number) {
-	animationFrame = requestAnimationFrame(renderLoop)
-	const interval = 1_000 / props.frameRate
-	if (timestamp - lastRenderedAt < interval) return
-	const delta = Math.min(0.1, lastPlaybackAt > 0 ? (timestamp - lastPlaybackAt) / 1_000 : 0)
-	lastPlaybackAt = timestamp
-	lastRenderedAt = timestamp
-	if (props.playing) {
-		const duration = Math.max(0, ...props.ghosts.map(({ record }) => record.time))
-		const next = props.currentTime + delta * props.playbackRate
-		if (next >= duration) {
-			emit('update:currentTime', props.loop ? 0 : duration)
-			if (!props.loop) emit('update:playing', false)
-		} else emit('update:currentTime', next)
+	if (!viewerMounted || !renderingVisible.value || contextLost.value) {
+		resetFrameClock()
+		return
 	}
-	updateGhosts()
-	controls?.update()
+	const timing = resolveGhostFrameTiming(framePhase, timestamp, props.frameRate)
+	framePhase = timing.framePhase
+	if (!timing.frameDue) {
+		if (props.playing || renderRequested) frameScheduler?.request()
+		return
+	}
+
+	const requested = renderRequested
+	renderRequested = false
+	const controlsChanged = controls?.update() ?? false
+	let playbackTime = props.currentTime
+	if (props.playing) {
+		const delta = Math.min(
+			0.1,
+			lastPlaybackAt === null ? 0 : (timestamp - lastPlaybackAt) / 1_000,
+		)
+		lastPlaybackAt = timestamp
+		const next = props.currentTime + delta * props.playbackRate
+		if (next >= playbackDuration.value) {
+			playbackTime = props.loop ? 0 : playbackDuration.value
+			emit('update:currentTime', playbackTime)
+			if (!props.loop) emit('update:playing', false)
+		} else {
+			playbackTime = next
+			emit('update:currentTime', playbackTime)
+		}
+		ghostStateDirty = true
+	} else lastPlaybackAt = null
+
+	const updateRequired = ghostStateDirty
+	if (updateRequired) {
+		updateGhosts(playbackTime)
+		ghostStateDirty = false
+	} else if (requested || controlsChanged) updateGhostLabelPositions()
+
 	const camera = activeCamera()
-	if (!renderer || !labelRenderer || !scene || !camera || contextLost.value) return
-	renderer.render(scene, camera)
-	labelRenderer.render(scene, camera)
-	recordRenderedFrame(timestamp)
+	const shouldRender = requested || updateRequired || controlsChanged || props.playing
+	if (shouldRender && renderer && labelRenderer && scene && camera) {
+		renderer.render(scene, camera)
+		labelRenderer.render(scene, camera)
+		if (labelHeightsDirty && syncGhostLabelHeights()) {
+			updateGhostLabelPositions()
+			invalidateRender()
+		}
+		recordRenderedFrame(timestamp)
+	}
+
+	if (props.playing || controlsChanged || renderRequested) frameScheduler?.request()
 }
 
 function recordRenderedFrame(timestamp: number) {
+	if (!props.playing) {
+		currentFrameRate.value = 0
+		frameRateWindowStartedAt = 0
+		renderedFrameCount = 0
+		return
+	}
 	if (frameRateWindowStartedAt === 0) {
 		frameRateWindowStartedAt = timestamp
 		return
 	}
 	renderedFrameCount += 1
 	const elapsed = timestamp - frameRateWindowStartedAt
-	if (elapsed < 500) return
+	if (elapsed < 1_000) return
 	currentFrameRate.value = Math.max(0, Math.round((renderedFrameCount * 1_000) / elapsed))
 	frameRateWindowStartedAt = timestamp
 	renderedFrameCount = 0
 }
 
-function updateGhosts() {
+function updateGhosts(playbackTime: number) {
 	if (!grid) return
-	let selectedDelta: THREE.Vector3 | null = null
+	let hasSelectedDelta = false
 	ghostMeshBatch?.beginFrame()
 	for (const visual of visuals.values()) {
-		const frame = interpolateGhostFrame(visual.ghost.ghost.frames, props.currentTime)
+		const frame = interpolateGhostFrame(visual.ghost.ghost.frames, playbackTime)
 		if (!frame) {
 			ghostMeshBatch?.hide(visual.ghost.record.recordId)
 			continue
 		}
 		const ragdollActive = frame.ragdoll === true
-		const next = rebaseGhostPosition(resolveGhostDisplayPosition(frame), grid.origin)
-		const previous = visual.group.position.clone()
-		visual.group.position.set(next.x, next.y, next.z)
-		if (visual.label && visual.labelObject) updateLabelPosition(visual, next)
+		const displayPosition = resolveGhostDisplayPosition(frame)
+		const selected = visual.ghost.record.recordId === props.selectedRecordId
+		const previousX = selected ? visual.group.position.x : 0
+		const previousY = selected ? visual.group.position.y : 0
+		const previousZ = selected ? visual.group.position.z : 0
+		visual.group.position.set(
+			displayPosition.x - grid.origin.x,
+			displayPosition.y - grid.origin.y,
+			-(displayPosition.z - grid.origin.z),
+		)
+		if (visual.label && visual.labelObject) updateLabelPosition(visual, visual.group.position)
 		if (ragdollActive) visual.group.quaternion.identity()
 		else if (frame.orientation) {
 			visual.group.quaternion.set(
@@ -746,18 +890,42 @@ function updateGhosts() {
 			wheelColor: resolveGhostWheelColor(frame),
 		})
 		if (props.showGhostTrails) {
-			const segments = upperBound(visual.trailTimes, props.currentTime)
+			const segments = upperBound(visual.trailTimes, playbackTime)
 			visual.trailGeometry.instanceCount = Math.max(0, segments - 1)
 		} else visual.trailGeometry.instanceCount = 0
-		if (visual.ghost.record.recordId === props.selectedRecordId) {
-			selectedDelta = visual.group.position.clone().sub(previous)
+		if (selected) {
+			selectedDelta.set(
+				visual.group.position.x - previousX,
+				visual.group.position.y - previousY,
+				visual.group.position.z - previousZ,
+			)
+			hasSelectedDelta = true
 		}
 	}
 	ghostMeshBatch?.commitFrame()
-	if (props.following && selectedDelta && controls && activeCamera()) {
+	if (props.following && hasSelectedDelta && controls && activeCamera()) {
 		activeCamera()?.position.add(selectedDelta)
 		controls.target.add(selectedDelta)
 	}
+}
+
+function updateGhostLabelPositions() {
+	for (const visual of visuals.values()) {
+		if (visual.label && visual.labelObject) updateLabelPosition(visual, visual.group.position)
+	}
+}
+
+function syncGhostLabelHeights() {
+	labelHeightsDirty = false
+	let changed = false
+	for (const visual of visuals.values()) {
+		if (!visual.label) continue
+		const height = visual.label.offsetHeight
+		if (height <= 0 || height === visual.labelHeight) continue
+		visual.labelHeight = height
+		changed = true
+	}
+	return changed
 }
 
 function updateLabelPosition(visual: GhostVisual, position: { x: number; y: number; z: number }) {
@@ -779,7 +947,7 @@ function updateLabelPosition(visual: GhostVisual, position: { x: number; y: numb
 			)
 	const offset = calculateGhostLabelWorldOffset(
 		worldUnitsPerPixel,
-		visual.label.offsetHeight,
+		visual.labelHeight,
 		visual.labelStagger,
 	)
 	visual.labelObject.position.set(position.x, position.y + offset, position.z)
@@ -816,6 +984,7 @@ function frameSelected() {
 	}
 	else camera.position.copy(target).add(new THREE.Vector3(16, 10, 16))
 	controls.update()
+	invalidateRender()
 }
 
 function frameRoute() {
@@ -843,6 +1012,7 @@ function frameRoute() {
 		positionIsometricCamera(target)
 	}
 	controls.update()
+	invalidateRender()
 }
 
 function positionIsometricCamera(target: THREE.Vector3) {
@@ -871,6 +1041,7 @@ function resize() {
 	renderer.setSize(width, height, false)
 	labelRenderer.setSize(width, height)
 	for (const visual of visuals.values()) visual.trailMaterial.resolution.set(width, height)
+	invalidateRender()
 }
 
 function removeNamedObject(name: string) {
@@ -897,8 +1068,10 @@ function disposeObject(object: THREE.Object3D) {
 }
 
 function disposeScene() {
-	cancelAnimationFrame(animationFrame)
+	frameScheduler?.cancel()
+	frameScheduler = null
 	resizeObserver?.disconnect()
+	controls?.removeEventListener('change', invalidateRender)
 	controls?.dispose()
 	for (const visual of visuals.values()) disposeVisual(visual)
 	visuals.clear()
@@ -919,11 +1092,14 @@ function disposeScene() {
 function onContextLost(event: Event) {
 	event.preventDefault()
 	contextLost.value = true
+	suspendRendering()
 }
 
 function onContextRestored() {
 	contextLost.value = false
+	resetFrameClock()
 	createGhosts()
+	invalidateGhostState()
 }
 
 function resolveCssColor(variable: string, fallback: string) {

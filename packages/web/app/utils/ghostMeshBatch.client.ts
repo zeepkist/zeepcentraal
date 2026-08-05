@@ -499,6 +499,8 @@ export class GhostMeshBatchRenderer {
 		mesh.count = 0
 		mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
 		mesh.frustumCulled = true
+		mesh.matrixAutoUpdate = false
+		mesh.updateMatrix()
 		this.scene.add(mesh)
 		return mesh
 	}

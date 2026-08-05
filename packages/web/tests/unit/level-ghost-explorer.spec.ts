@@ -280,8 +280,19 @@ describe('level bulk ghost rendering', () => {
 	})
 
 	it('reports measured FPS alongside target FPS', () => {
-		expect(viewer).toContain('const currentFrameRate = ref(0)')
+		expect(viewer).toContain('const currentFrameRate = shallowRef(0)')
 		expect(viewer).toContain('recordRenderedFrame(timestamp)')
 		expect(viewer).toContain('labels.frameRate(currentFrameRate, frameRate)')
+	})
+
+	it('coalesces demand rendering and suspends hidden playback', () => {
+		expect(viewer).toContain('new GhostFrameScheduler(')
+		expect(viewer).toContain('(callback) => requestAnimationFrame(callback)')
+		expect(viewer).toContain('(handle) => cancelAnimationFrame(handle)')
+		expect(viewer).toContain('useElementVisibility(container, { initialValue: true })')
+		expect(viewer).toContain('watch(renderingVisible, (visible) => {')
+		expect(viewer).toContain('if (props.playing || renderRequested) frameScheduler?.request()')
+		expect(viewer).toContain('const updateRequired = ghostStateDirty')
+		expect(viewer).not.toContain('animationFrame = requestAnimationFrame(renderLoop)')
 	})
 })
