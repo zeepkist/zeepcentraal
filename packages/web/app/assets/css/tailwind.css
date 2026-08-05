@@ -143,7 +143,7 @@
 	body {
 		background: var(--background);
 		color: var(--foreground);
-		font-family: "DINish", "DINish Fallback", sans-serif;
+		font-family: "DINish", sans-serif;
 	}
 
 	button:not(:disabled),
@@ -255,15 +255,6 @@ html:active-view-transition-type(detail-back)::view-transition-new(page-content)
 	font-style: normal;
 	font-weight: 300 900;
 	font-display: swap;
-}
-
-@font-face {
-	font-family: "DINish Fallback";
-	src: local("Arial");
-	size-adjust: 97.8%;
-	ascent-override: 104.85%;
-	descent-override: 24.76%;
-	line-gap-override: 0%;
 }
 
 .tabular {

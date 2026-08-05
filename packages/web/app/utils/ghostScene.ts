@@ -13,6 +13,11 @@ const DEFAULT_CAMERA_FAR = 5_000
 
 export type GhostSceneQuality = 'performance' | 'balanced' | 'quality'
 
+export type GhostRendererOptions = {
+	antialias: boolean
+	powerPreference: 'low-power' | 'high-performance'
+}
+
 export type GhostVisualDescriptor = {
 	recordId: number
 	revision: string
@@ -37,6 +42,13 @@ const GHOST_TRAIL_PER_GHOST_CAP: Record<GhostSceneQuality, number> = {
 }
 
 const MINIMUM_GHOST_TRAIL_SAMPLES = 128
+
+export function resolveGhostRendererOptions(quality: GhostSceneQuality): GhostRendererOptions {
+	return {
+		antialias: quality !== 'performance',
+		powerPreference: quality === 'quality' ? 'high-performance' : 'low-power',
+	}
+}
 
 export function resolveGhostTrailSampleLimit(
 	quality: GhostSceneQuality,

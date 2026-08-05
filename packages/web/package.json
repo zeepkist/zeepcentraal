@@ -54,6 +54,7 @@
 		"@graphql-codegen/cli": "~7.2.0",
 		"@graphql-codegen/client-preset": "~6.1.0",
 		"@iconify-json/lucide": "~1.2.118",
+		"@iconify-json/tabler": "~1.2.38",
 		"@playwright/test": "~1.62.0",
 		"@types/sanitize-html": "~2.16.1",
 		"@types/three": "~0.185.1",

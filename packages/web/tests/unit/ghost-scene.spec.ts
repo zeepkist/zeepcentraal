@@ -11,12 +11,28 @@ import {
 	rebaseGhostPosition,
 	resolveGhostDisplayPosition,
 	resolveGhostPlaybackStartTime,
+	resolveGhostRendererOptions,
 	resolveGhostSelectedRecordId,
 	resolveGhostTrailSampleLimit,
 	sampleGhostTrailFrames,
 } from '../../app/utils/ghostScene'
 
 describe('ghost scene', () => {
+	it('selects WebGL power and antialiasing options by quality', () => {
+		expect(resolveGhostRendererOptions('performance')).toEqual({
+			antialias: false,
+			powerPreference: 'low-power',
+		})
+		expect(resolveGhostRendererOptions('balanced')).toEqual({
+			antialias: true,
+			powerPreference: 'low-power',
+		})
+		expect(resolveGhostRendererOptions('quality')).toEqual({
+			antialias: true,
+			powerPreference: 'high-performance',
+		})
+	})
+
 	it('builds exact 16 metre cells and 64 metre major lines', () => {
 		const grid = buildGhostGrid([
 			[

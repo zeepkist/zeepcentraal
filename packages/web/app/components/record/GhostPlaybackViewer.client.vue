@@ -70,6 +70,7 @@ import {
 	planGhostVisualReconciliation,
 	rebaseGhostPosition,
 	resolveGhostDisplayPosition,
+	resolveGhostRendererOptions,
 	resolveGhostTrailSampleLimit,
 	sampleGhostTrailFrames,
 } from '~/utils/ghostScene'
@@ -264,9 +265,8 @@ watch(
 watch(
 	() => props.quality,
 	() => {
-		configureRendererQuality()
+		if (renderer) replaceRenderer()
 		if (props.bulkMode) refreshBulkTrails()
-		resize()
 	},
 )
 
@@ -279,22 +279,7 @@ function createScene() {
 	const host = canvasHost.value
 	const labels = labelHost.value
 	if (!host || !labels) return false
-	const antialias = props.quality !== 'performance'
-	try {
-		renderer = new THREE.WebGLRenderer({
-			antialias,
-			alpha: true,
-			powerPreference: 'high-performance',
-		})
-	} catch {
-		rendererError.value = true
-		return false
-	}
-	renderer.outputColorSpace = THREE.SRGBColorSpace
-	renderer.shadowMap.enabled = props.quality === 'quality'
-	renderer.domElement.addEventListener('webglcontextlost', onContextLost)
-	renderer.domElement.addEventListener('webglcontextrestored', onContextRestored)
-	host.replaceChildren(renderer.domElement)
+	if (!replaceRenderer()) return false
 
 	labelRenderer = new CSS2DRenderer({ element: labels })
 	labelRenderer.setSize(host.clientWidth, host.clientHeight)
@@ -325,6 +310,44 @@ function createScene() {
 	resizeObserver = new ResizeObserver(resize)
 	resizeObserver.observe(host)
 	resize()
+	return true
+}
+
+function replaceRenderer() {
+	const host = canvasHost.value
+	if (!host) return false
+	const quality = props.quality
+	const options = resolveGhostRendererOptions(quality)
+	const previous = renderer
+	let candidate: THREE.WebGLRenderer
+	try {
+		candidate = new THREE.WebGLRenderer({
+			alpha: false,
+			...options,
+		})
+	} catch {
+		if (!renderer) rendererError.value = true
+		return false
+	}
+	candidate.outputColorSpace = THREE.SRGBColorSpace
+	candidate.shadowMap.enabled = quality === 'quality'
+	candidate.domElement.addEventListener('webglcontextlost', onContextLost)
+	candidate.domElement.addEventListener('webglcontextrestored', onContextRestored)
+	renderer = candidate
+	rendererError.value = false
+	contextLost.value = false
+	host.replaceChildren(candidate.domElement)
+	if (controls) {
+		controls.disconnect()
+		controls.connect(candidate.domElement)
+	}
+	configureRendererQuality()
+	resize()
+	if (previous) {
+		previous.domElement.removeEventListener('webglcontextlost', onContextLost)
+		previous.domElement.removeEventListener('webglcontextrestored', onContextRestored)
+		previous.dispose()
+	}
 	return true
 }
 
