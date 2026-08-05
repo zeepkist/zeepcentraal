@@ -2,6 +2,7 @@
 @import "@nuxt/ui";
 
 @theme static {
+	--font-sans: "DINish", sans-serif;
 	--color-warm-neutral-50: #fafaf9;
 	--color-warm-neutral-100: #f5f5f4;
 	--color-warm-neutral-200: #e7e5e4;

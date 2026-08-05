@@ -146,6 +146,7 @@ describe('OG image component contracts', () => {
 		expect(frame).toContain("font-feature-settings: 'tnum' 1")
 		expect(frame).toContain("import { normaliseOgImageUrl } from '~/utils/ogImage'")
 		expect(frame).toContain("import { computed } from 'vue'")
+		expect(css).toContain('--font-sans: "DINish", sans-serif;')
 		expect(css).toMatch(
 			/@font-face\s*\{[\s\S]*?font-family:\s*"DINish";[\s\S]*?font-style:\s*normal;/,
 		)
