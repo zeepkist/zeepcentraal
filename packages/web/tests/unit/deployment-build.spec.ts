@@ -215,6 +215,11 @@ describe('web deployment build', () => {
 
 	it('uses per-image BuildKit caches written only by deploy runs', () => {
 		expect(buildDockerImageAction).toContain('cache-write:')
+		expect(buildDockerImageAction).toContain('uses: docker/setup-buildx-action@v4')
+		expect(buildDockerImageAction).toContain('driver: docker-container')
+		expect(buildDockerImageAction.indexOf('uses: docker/setup-buildx-action@v4')).toBeLessThan(
+			buildDockerImageAction.indexOf('uses: docker/build-push-action@v7'),
+		)
 		expect(buildDockerImageAction).toContain(
 			['cache-from: type=gha,scope=$', '{{ inputs.name }}'].join(''),
 		)
