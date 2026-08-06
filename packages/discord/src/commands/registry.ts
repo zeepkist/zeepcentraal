@@ -4,53 +4,31 @@ import type {
 	RESTPostAPIApplicationCommandsJSONBody,
 	UserContextMenuCommandInteraction,
 } from 'discord.js'
-import { botStatusDefinition } from './bot-status.definition'
-import { handleBotStatus } from './bot-status.handler'
-import { compareDefinition } from './compare.definition'
-import { handleCompare } from './compare.handler'
+import { botStatusDefinition, botStatusHandler } from './bot-status'
+import { compareDefinition, compareHandler } from './compare'
 import type { CommandContext } from './context'
-import { feedDefinition } from './feed.definition'
-import { handleFeed } from './feed.handler'
-import { gtrDefinition } from './gtr.definition'
-import { handleGtr } from './gtr.handler'
-import { helpDefinition } from './help.definition'
-import { handleHelp } from './help.handler'
-import { levelDefinition } from './level.definition'
-import { autocompleteLevel, handleLevel } from './level.handler'
-import { linkDefinition } from './link.definition'
-import { handleLink } from './link.handler'
-// import { linkedRoleDefinition } from './linked-role.definition'
-// import { handleLinkedRole } from './linked-role.handler'
-import { modkistDefinition } from './modkist.definition'
-import { handleModkist } from './modkist.handler'
-import { playlistDefinition } from './playlist.definition'
-import { handlePlaylist } from './playlist.handler'
-import { playlistRecommendDefinition } from './playlist-recommend.definition'
-import { handlePlaylistRecommend } from './playlist-recommend.handler'
-import { randomLevelDefinition } from './random-level.definition'
-import { handleRandomLevel } from './random-level.handler'
-import { statsDefinition } from './stats.definition'
-import { handleStats } from './stats.handler'
-import { statsSurfaceDefinition } from './stats-surface.definition'
-import { handleStatsSurface } from './stats-surface.handler'
-import { totmDefinition } from './totm.definition'
-import { handleTotm } from './totm.handler'
-import { totwDefinition } from './totw.definition'
-import { handleTotw } from './totw.handler'
-import { unlinkDefinition } from './unlink.definition'
-import { handleUnlink } from './unlink.handler'
-import { userDefinition } from './user.definition'
-import { handleUser } from './user.handler'
+import { feedDefinition, feedHandler } from './feed'
+import { gtrDefinition, gtrHandler } from './gtr'
+import { helpDefinition, helpHandler } from './help'
+import { levelAutocompleteHandler, levelDefinition, levelHandler } from './level'
+import { linkDefinition, linkHandler } from './link'
+// import { linkedRoleDefinition, linkedRoleHandler } from './linked-role'
+import { modkistDefinition, modkistHandler } from './modkist'
+import { playlistDefinition, playlistHandler } from './playlist'
+import { playlistRecommendDefinition, playlistRecommendHandler } from './playlist-recommend'
+import { randomLevelDefinition, randomLevelHandler } from './random-level'
+import { statsDefinition, statsHandler } from './stats'
+import { statsSurfaceDefinition, statsSurfaceHandler } from './stats-surface'
+import { totmDefinition, totmHandler } from './totm'
+import { totwDefinition, totwHandler } from './totw'
+import { unlinkDefinition, unlinkHandler } from './unlink'
+import { userDefinition, userHandler } from './user'
 import { handleButton } from './utils/button.handler'
-// import { watchDefinition } from './watch.definition'
-// import { handleWatch } from './watch.handler'
-import { wrPingDefinition } from './wr-ping.definition'
-import { handleWrPing } from './wr-ping.handler'
-import { zeepCentraalProfileDefinition } from './zeepcentraal-profile.definition'
-import { handleZeepCentraalProfile } from './zeepcentraal-profile.handler'
+// import { watchDefinition, watchHandler } from './watch'
+import { wrPingDefinition, wrPingHandler } from './wr-ping'
+import { zeepCentraalProfileDefinition, zeepCentraalProfileHandler } from './zeepcentraal-profile'
 
-// import { zslDefinition } from './zsl.definition'
-// import { handleZsl } from './zsl.handler'
+// import { zslDefinition, zslHandler } from './zsl'
 
 type Definition = {
 	toJSON: () => RESTPostAPIApplicationCommandsJSONBody
@@ -90,31 +68,31 @@ export type CommandRegistry = {
 }
 
 export const chatInputCommands: ChatInputCommandEntry[] = [
-	{ definition: linkDefinition, handler: handleLink },
-	{ definition: unlinkDefinition, handler: handleUnlink },
-	{ definition: wrPingDefinition, handler: handleWrPing },
-	{ definition: feedDefinition, handler: handleFeed },
-	// { definition: linkedRoleDefinition, handler: handleLinkedRole },
-	// { definition: watchDefinition, handler: handleWatch },
-	{ definition: levelDefinition, handler: handleLevel, autocomplete: autocompleteLevel },
-	{ definition: userDefinition, handler: handleUser },
-	{ definition: totwDefinition, handler: handleTotw },
-	{ definition: totmDefinition, handler: handleTotm },
-	// { definition: zslDefinition, handler: handleZsl },
-	{ definition: playlistDefinition, handler: handlePlaylist },
-	{ definition: playlistRecommendDefinition, handler: handlePlaylistRecommend },
-	{ definition: statsDefinition, handler: handleStats },
-	{ definition: statsSurfaceDefinition, handler: handleStatsSurface },
-	{ definition: modkistDefinition, handler: handleModkist },
-	{ definition: gtrDefinition, handler: handleGtr },
-	{ definition: compareDefinition, handler: handleCompare },
-	{ definition: randomLevelDefinition, handler: handleRandomLevel },
-	{ definition: helpDefinition, handler: handleHelp },
-	{ definition: botStatusDefinition, handler: handleBotStatus },
+	{ definition: linkDefinition, handler: linkHandler },
+	{ definition: unlinkDefinition, handler: unlinkHandler },
+	{ definition: wrPingDefinition, handler: wrPingHandler },
+	{ definition: feedDefinition, handler: feedHandler },
+	// { definition: linkedRoleDefinition, handler: linkedRoleHandler },
+	// { definition: watchDefinition, handler: watchHandler },
+	{ definition: levelDefinition, handler: levelHandler, autocomplete: levelAutocompleteHandler },
+	{ definition: userDefinition, handler: userHandler },
+	{ definition: totwDefinition, handler: totwHandler },
+	{ definition: totmDefinition, handler: totmHandler },
+	// { definition: zslDefinition, handler: zslHandler },
+	{ definition: playlistDefinition, handler: playlistHandler },
+	{ definition: playlistRecommendDefinition, handler: playlistRecommendHandler },
+	{ definition: statsDefinition, handler: statsHandler },
+	{ definition: statsSurfaceDefinition, handler: statsSurfaceHandler },
+	{ definition: modkistDefinition, handler: modkistHandler },
+	{ definition: gtrDefinition, handler: gtrHandler },
+	{ definition: compareDefinition, handler: compareHandler },
+	{ definition: randomLevelDefinition, handler: randomLevelHandler },
+	{ definition: helpDefinition, handler: helpHandler },
+	{ definition: botStatusDefinition, handler: botStatusHandler },
 ]
 
 export const contextMenuCommands: ContextMenuCommandEntry[] = [
-	{ definition: zeepCentraalProfileDefinition, handler: handleZeepCentraalProfile },
+	{ definition: zeepCentraalProfileDefinition, handler: zeepCentraalProfileHandler },
 ]
 
 export function createCommandRegistry(
