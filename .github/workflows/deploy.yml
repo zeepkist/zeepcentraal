@@ -3,7 +3,6 @@ name: Deploy
 on:
   push:
     branches: [develop]
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,8 +11,9 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-develop
   cancel-in-progress: false
+  queue: max
 
 jobs:
   test:
@@ -39,7 +39,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, build-packages]
     outputs:
       version: ${{ steps.release_version.outputs.version }}
       major: ${{ steps.release_version.outputs.major }}
@@ -90,7 +90,6 @@ jobs:
 
   build-packages:
     runs-on: ubuntu-latest
-    needs: [test, release]
     strategy:
       fail-fast: false
       matrix:
@@ -192,82 +191,47 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Build ${{ matrix.image.name }} image (no push)
-        uses: ./.github/actions/build-docker-image
-        with:
-          name: ${{ matrix.image.name }}
-          dockerfile: ${{ matrix.image.file }}
-          artifact-download-path: ${{ matrix.image.artifact_download_path }}
-          expected-path: ${{ matrix.image.expected_path }}
-          clone-super-league: ${{ matrix.image.clone_super_league }}
-          service-version: ${{ needs.release.outputs.version || github.sha }}
-          push: false
-          tags: ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ github.sha }}
+      - name: Resolve image parameters
+        id: image_parameters
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ matrix.image.image_name }}
+          VERSION: ${{ needs.release.outputs.version }}
+          MAJOR: ${{ needs.release.outputs.major }}
+          MAJOR_MINOR: ${{ needs.release.outputs.major_minor }}
+        run: |
+          if [ -z "$VERSION" ]; then
+            {
+              echo "push=false"
+              echo "service_version=$GITHUB_SHA"
+              echo "tags<<EOF"
+              echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-  docker-publish:
-    runs-on: ubuntu-latest
-    needs: [docker-build, release]
-    if: needs.release.outputs.version != ''
-    strategy:
-      fail-fast: true
-      matrix:
-        image:
-          - name: server
-            file: Dockerfile.server
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-server
-            image_name: server
-            clone_super_league: false
-          - name: discord
-            file: Dockerfile.discord
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-discord
-            image_name: discord
-            clone_super_league: false
-          - name: jobs
-            file: Dockerfile.jobs
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-jobs
-            image_name: jobs
-            clone_super_league: false
-          - name: migrate
-            file: Dockerfile.migrate
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-migrate
-            image_name: migrate
-            clone_super_league: false
-          - name: import-zsl
-            file: Dockerfile.zsl
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-import-zsl
-            image_name: import-zsl
-            clone_super_league: true
-          - name: postgraphile
-            file: Dockerfile.postgraphile
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-postgraphile
-            image_name: postgraphile
-            clone_super_league: false
-          - name: web
-            file: Dockerfile.web
-            artifact_download_path: packages/web/.output
-            expected_path: packages/web/.output/server/index.mjs
-            image_name: web
-            clone_super_league: false
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
+          {
+            echo "push=true"
+            echo "service_version=$VERSION"
+            echo "tags<<EOF"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:latest"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$MAJOR"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$MAJOR_MINOR"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$VERSION"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
+        if: ${{ steps.image_parameters.outputs.push == 'true' }}
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish ${{ matrix.image.name }} image
+      - name: Build ${{ matrix.image.name }} image
         uses: ./.github/actions/build-docker-image
         with:
           name: ${{ matrix.image.name }}
@@ -275,11 +239,7 @@ jobs:
           artifact-download-path: ${{ matrix.image.artifact_download_path }}
           expected-path: ${{ matrix.image.expected_path }}
           clone-super-league: ${{ matrix.image.clone_super_league }}
-          service-version: ${{ needs.release.outputs.version }}
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:latest
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ needs.release.outputs.major }}
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ needs.release.outputs.major_minor }}
-            ghcr.io/${{ github.repository }}/${{ matrix.image.image_name }}:${{ needs.release.outputs.version }}
+          service-version: ${{ steps.image_parameters.outputs.service_version }}
+          push: ${{ steps.image_parameters.outputs.push }}
+          tags: ${{ steps.image_parameters.outputs.tags }}
+          cache-write: true

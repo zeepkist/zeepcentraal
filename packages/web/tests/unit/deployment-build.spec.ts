@@ -84,6 +84,8 @@ describe('web deployment build', () => {
 		expect(buildAction).toContain('name: Build Package Output')
 		expect(buildAction).toContain('artifact-path:')
 		expect(buildAction).toContain('include-hidden-files:')
+		expect(buildAction).toContain('upload-artifact:')
+		expect(buildAction).toMatch(/if: \$\{\{ inputs\.upload-artifact == 'true' \}\}/)
 		expect(buildAction).toContain(['name: package-output-', '$', '{{ inputs.name }}'].join(''))
 		expect(buildAction).toContain(['path: ', '$', '{{ inputs.artifact-path }}'].join(''))
 		expect(buildAction).not.toContain('compiled-binary')
@@ -95,11 +97,18 @@ describe('web deployment build', () => {
 			expect(workflow).toContain('include_hidden_files: true')
 			expect(workflow).not.toContain('binary: zeepcentraal-web')
 		}
+
+		expect(prWorkflow).toContain('upload-artifact: false')
+		expect(deployWorkflow).not.toContain('upload-artifact: false')
 	})
 
 	it('downloads each package output to its declared runtime path', () => {
 		expect(buildDockerImageAction).toContain('artifact-download-path:')
 		expect(buildDockerImageAction).toContain('expected-path:')
+		expect(buildDockerImageAction).toContain('download-artifact:')
+		expect(buildDockerImageAction).toMatch(
+			/if: \$\{\{ inputs\.download-artifact == 'true' \}\}/,
+		)
 		expect(buildDockerImageAction).toContain(
 			['name: package-output-', '$', '{{ inputs.name }}'].join(''),
 		)
@@ -114,35 +123,109 @@ describe('web deployment build', () => {
 			expect(workflow).toContain('artifact_download_path: packages/web/.output')
 			expect(workflow).toContain('expected_path: packages/web/.output/server/index.mjs')
 		}
+
+		expect(prWorkflow).toContain('download-artifact: false')
+		expect(deployWorkflow).not.toContain('download-artifact: false')
 	})
 
-	it('exposes one required check for all package and Docker matrix builds', () => {
+	it('preserves required quality and can-merge checks', () => {
 		const canMergeJob = prWorkflow.slice(prWorkflow.indexOf('\n  can-merge:\n'))
 
 		expect(canMergeJob).toContain('name: can-merge')
-		expect(canMergeJob).toContain('needs: [build-packages, docker-build]')
+		expect(canMergeJob).toContain('needs: [quality, build-images]')
 		expect(canMergeJob).toContain(['if: $', '{{ always() }}'].join(''))
+		expect(canMergeJob).toContain(['QUALITY_RESULT: $', '{{ needs.quality.result }}'].join(''))
 		expect(canMergeJob).toContain(
-			['BUILD_PACKAGES_RESULT: $', '{{ needs.build-packages.result }}'].join(''),
+			['BUILD_IMAGES_RESULT: $', '{{ needs.build-images.result }}'].join(''),
 		)
-		expect(canMergeJob).toContain(
-			['DOCKER_BUILD_RESULT: $', '{{ needs.docker-build.result }}'].join(''),
-		)
-		expect(canMergeJob).toContain('test "$BUILD_PACKAGES_RESULT" = "success"')
-		expect(canMergeJob).toContain('test "$DOCKER_BUILD_RESULT" = "success"')
+		expect(canMergeJob).toContain('test "$QUALITY_RESULT" = "success"')
+		expect(canMergeJob).toContain('test "$BUILD_IMAGES_RESULT" = "success"')
 	})
 
-	it('validates non-develop branch pushes before pull request creation', () => {
-		expect(prWorkflow).toMatch(
-			/on:\s*\n\s+push:\s*\n\s+branches-ignore: \[develop, 'gh-readonly-queue\/\*\*'\]/,
+	it('routes pull request validation and deploy pushes without duplicate branch runs', () => {
+		const prTriggers = prWorkflow.slice(
+			prWorkflow.indexOf('\non:\n'),
+			prWorkflow.indexOf('\npermissions:\n'),
 		)
+		const deployTriggers = deployWorkflow.slice(
+			deployWorkflow.indexOf('\non:\n'),
+			deployWorkflow.indexOf('\npermissions:\n'),
+		)
+
+		expect(prTriggers).toContain('pull_request:')
+		expect(prTriggers).toContain('types: [opened, synchronize, reopened, ready_for_review]')
+		expect(prTriggers).toContain('merge_group:')
+		expect(prTriggers).toContain('branches: [develop]')
+		expect(prTriggers).not.toContain('push:')
+
+		expect(deployTriggers).toMatch(/push:\s*\n\s+branches: \[develop\]/)
+		expect(deployTriggers).not.toContain('workflow_dispatch:')
+		expect(deployTriggers).not.toContain('pull_request:')
+		expect(deployTriggers).not.toContain('merge_group:')
+	})
+
+	it('cancels stale pull request runs and queues every deploy push', () => {
 		expect(prWorkflow).toContain(
+			['group: pr-validate-$', '{{ github.event.pull_request.number || github.ref }}'].join(
+				'',
+			),
+		)
+		expect(prWorkflow).toContain('cancel-in-progress: true')
+		expect(deployWorkflow).toContain('group: deploy-develop')
+		expect(deployWorkflow).toContain('cancel-in-progress: false')
+		expect(deployWorkflow).toContain('queue: max')
+	})
+
+	it('runs pull request quality and package-image builds in parallel', () => {
+		const buildImagesJob = prWorkflow.slice(
+			prWorkflow.indexOf('\n  build-images:\n'),
+			prWorkflow.indexOf('\n  can-merge:\n'),
+		)
+
+		expect(buildImagesJob).not.toMatch(/\n {4}needs:/)
+		expect(buildImagesJob).toContain('upload-artifact: false')
+		expect(buildImagesJob).toContain('download-artifact: false')
+		expect(prWorkflow).not.toContain('\n  build-packages:\n')
+		expect(prWorkflow).not.toContain('\n  docker-build:\n')
+	})
+
+	it('builds deploy artifacts beside tests and builds each Docker image once', () => {
+		const buildPackagesJob = deployWorkflow.slice(
+			deployWorkflow.indexOf('\n  build-packages:\n'),
+			deployWorkflow.indexOf('\n  docker-build:\n'),
+		)
+		const dockerBuildJob = deployWorkflow.slice(deployWorkflow.indexOf('\n  docker-build:\n'))
+
+		expect(buildPackagesJob).not.toMatch(/\n {4}needs:/)
+		expect(deployWorkflow).toContain('needs: [test, build-packages]')
+		expect(dockerBuildJob).toContain('needs: [build-packages, release]')
+		expect(dockerBuildJob).toContain('Resolve image parameters')
+		expect(dockerBuildJob).toContain(
+			['if: $', "{{ steps.image_parameters.outputs.push == 'true' }}"].join(''),
+		)
+		expect(dockerBuildJob).toContain(
+			['push: $', '{{ steps.image_parameters.outputs.push }}'].join(''),
+		)
+		expect(dockerBuildJob).toContain('cache-write: true')
+		expect(deployWorkflow).not.toContain('\n  docker-publish:\n')
+		expect(
+			deployWorkflow.match(/uses: \.\/\.github\/actions\/build-docker-image/g),
+		).toHaveLength(1)
+	})
+
+	it('uses per-image BuildKit caches written only by deploy runs', () => {
+		expect(buildDockerImageAction).toContain('cache-write:')
+		expect(buildDockerImageAction).toContain(
+			['cache-from: type=gha,scope=$', '{{ inputs.name }}'].join(''),
+		)
+		expect(buildDockerImageAction).toContain(
 			[
-				'group: pr-validate-$',
-				'{{ github.event.pull_request.head.repo.full_name || github.repository }}-$',
-				'{{ github.event.pull_request.head.ref || github.ref_name }}',
+				'cache-to: $',
+				"{{ inputs.cache-write == 'true' && format('type=gha,mode=max,scope={0},ignore-error=true', inputs.name) || '' }}",
 			].join(''),
 		)
+		expect(prWorkflow).not.toContain('cache-write: true')
+		expect(deployWorkflow).toContain('cache-write: true')
 	})
 
 	it('runs the complete Nitro output with pinned Bun as non-root', () => {

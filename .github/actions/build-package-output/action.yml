@@ -1,5 +1,5 @@
 name: Build Package Output
-description: Build one package output and upload it as a workflow artifact.
+description: Build one package output and optionally upload it as a workflow artifact.
 inputs:
   name:
     description: Package/image name used for artifact naming.
@@ -14,6 +14,10 @@ inputs:
     description: Whether hidden files and directories belong in the artifact.
     required: false
     default: 'false'
+  upload-artifact:
+    description: Whether to upload the package output as a workflow artifact.
+    required: false
+    default: 'true'
 runs:
   using: composite
   steps:
@@ -39,6 +43,7 @@ runs:
       run: bun run ${{ inputs.build-script }}
 
     - name: Upload ${{ inputs.name }} output
+      if: ${{ inputs.upload-artifact == 'true' }}
       uses: actions/upload-artifact@v7
       with:
         name: package-output-${{ inputs.name }}

@@ -1,5 +1,5 @@
 name: Build Docker Image
-description: Download one package output and build or publish one Docker image.
+description: Optionally download one package output and build or publish one Docker image.
 inputs:
   name:
     description: Image/package name used for artifact naming.
@@ -13,6 +13,10 @@ inputs:
   expected-path:
     description: File expected after package output download.
     required: true
+  download-artifact:
+    description: Whether to download the package output workflow artifact.
+    required: false
+    default: 'true'
   clone-super-league:
     description: Clone Super League data into Docker build context.
     required: false
@@ -27,10 +31,15 @@ inputs:
   tags:
     description: Docker image tags.
     required: true
+  cache-write:
+    description: Whether to export the image cache to GitHub Actions.
+    required: false
+    default: 'false'
 runs:
   using: composite
   steps:
     - name: Download ${{ inputs.name }} output
+      if: ${{ inputs.download-artifact == 'true' }}
       uses: actions/download-artifact@v8
       with:
         name: package-output-${{ inputs.name }}
@@ -56,3 +65,5 @@ runs:
         build-args: |
           SERVICE_VERSION=${{ inputs.service-version }}
         tags: ${{ inputs.tags }}
+        cache-from: type=gha,scope=${{ inputs.name }}
+        cache-to: ${{ inputs.cache-write == 'true' && format('type=gha,mode=max,scope={0},ignore-error=true', inputs.name) || '' }}

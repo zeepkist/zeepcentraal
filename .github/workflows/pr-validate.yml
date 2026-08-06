@@ -1,8 +1,6 @@
 name: Pull Request Validation
 
 on:
-  push:
-    branches-ignore: [develop, 'gh-readonly-queue/**']
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
@@ -13,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pr-validate-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: pr-validate-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,97 +42,70 @@ jobs:
       - name: Run format check
         run: bun --bun run format
 
-  build-packages:
+  build-images:
     runs-on: ubuntu-latest
-    needs: [quality]
-    strategy:
-      fail-fast: true
-      matrix:
-        package:
-          - name: server
-            build_script: build:server
-            artifact_path: dist/zeepcentraal-server
-            include_hidden_files: false
-          - name: discord
-            build_script: build:discord
-            artifact_path: dist/zeepcentraal-discord
-            include_hidden_files: false
-          - name: jobs
-            build_script: build:jobs
-            artifact_path: dist/zeepcentraal-jobs
-            include_hidden_files: false
-          - name: migrate
-            build_script: build:migrate
-            artifact_path: dist/zeepcentraal-migrate
-            include_hidden_files: false
-          - name: import-zsl
-            build_script: build:import-zsl
-            artifact_path: dist/zeepcentraal-import-zsl
-            include_hidden_files: false
-          - name: postgraphile
-            build_script: build:postgraphile
-            artifact_path: dist/zeepcentraal-postgraphile
-            include_hidden_files: false
-          - name: web
-            build_script: build:web
-            artifact_path: packages/web/.output/
-            include_hidden_files: true
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Build ${{ matrix.package.name }} output
-        uses: ./.github/actions/build-package-output
-        with:
-          name: ${{ matrix.package.name }}
-          build-script: ${{ matrix.package.build_script }}
-          artifact-path: ${{ matrix.package.artifact_path }}
-          include-hidden-files: ${{ matrix.package.include_hidden_files }}
-
-  docker-build:
-    runs-on: ubuntu-latest
-    needs: [build-packages]
     strategy:
       fail-fast: true
       matrix:
         image:
           - name: server
+            build_script: build:server
+            artifact_path: dist/zeepcentraal-server
+            include_hidden_files: false
             file: Dockerfile.server
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-server
             tag: zeepcentraal/server
             clone_super_league: false
           - name: discord
+            build_script: build:discord
+            artifact_path: dist/zeepcentraal-discord
+            include_hidden_files: false
             file: Dockerfile.discord
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-discord
             tag: zeepcentraal/discord
             clone_super_league: false
           - name: jobs
+            build_script: build:jobs
+            artifact_path: dist/zeepcentraal-jobs
+            include_hidden_files: false
             file: Dockerfile.jobs
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-jobs
             tag: zeepcentraal/jobs
             clone_super_league: false
           - name: migrate
+            build_script: build:migrate
+            artifact_path: dist/zeepcentraal-migrate
+            include_hidden_files: false
             file: Dockerfile.migrate
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-migrate
             tag: zeepcentraal/migrate
             clone_super_league: false
           - name: import-zsl
+            build_script: build:import-zsl
+            artifact_path: dist/zeepcentraal-import-zsl
+            include_hidden_files: false
             file: Dockerfile.zsl
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-import-zsl
             tag: zeepcentraal/import-zsl
             clone_super_league: true
           - name: postgraphile
+            build_script: build:postgraphile
+            artifact_path: dist/zeepcentraal-postgraphile
+            include_hidden_files: false
             file: Dockerfile.postgraphile
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-postgraphile
             tag: zeepcentraal/postgraphile
             clone_super_league: false
           - name: web
+            build_script: build:web
+            artifact_path: packages/web/.output/
+            include_hidden_files: true
             file: Dockerfile.web
             artifact_download_path: packages/web/.output
             expected_path: packages/web/.output/server/index.mjs
@@ -144,6 +115,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Build ${{ matrix.image.name }} output
+        uses: ./.github/actions/build-package-output
+        with:
+          name: ${{ matrix.image.name }}
+          build-script: ${{ matrix.image.build_script }}
+          artifact-path: ${{ matrix.image.artifact_path }}
+          include-hidden-files: ${{ matrix.image.include_hidden_files }}
+          upload-artifact: false
+
       - name: Build ${{ matrix.image.name }} image (no push)
         uses: ./.github/actions/build-docker-image
         with:
@@ -151,6 +131,7 @@ jobs:
           dockerfile: ${{ matrix.image.file }}
           artifact-download-path: ${{ matrix.image.artifact_download_path }}
           expected-path: ${{ matrix.image.expected_path }}
+          download-artifact: false
           clone-super-league: ${{ matrix.image.clone_super_league }}
           service-version: pr-${{ github.event.pull_request.number || github.run_id }}
           push: false
@@ -159,13 +140,13 @@ jobs:
   can-merge:
     name: can-merge
     runs-on: ubuntu-latest
-    needs: [build-packages, docker-build]
+    needs: [quality, build-images]
     if: ${{ always() }}
     steps:
-      - name: Require successful build matrices
+      - name: Require successful validation
         env:
-          BUILD_PACKAGES_RESULT: ${{ needs.build-packages.result }}
-          DOCKER_BUILD_RESULT: ${{ needs.docker-build.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          BUILD_IMAGES_RESULT: ${{ needs.build-images.result }}
         run: |
-          test "$BUILD_PACKAGES_RESULT" = "success"
-          test "$DOCKER_BUILD_RESULT" = "success"
+          test "$QUALITY_RESULT" = "success"
+          test "$BUILD_IMAGES_RESULT" = "success"
