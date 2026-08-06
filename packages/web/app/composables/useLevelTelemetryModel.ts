@@ -269,7 +269,8 @@ export function useRecordTelemetryModel(
 		return {
 			minimumVersionLabel: t('dashboard.totals.period.minimumVersion'),
 			emptyLabel: scopeT('empty'),
-			unavailableLabel: scope === 'record' ? scopeT('notAvailable') : t('common.unavailable'),
+			unavailableLabel:
+				scope === 'record' ? t('common.notAvailable') : t('common.unavailable'),
 			overviewMetrics: [
 				{
 					key: 'distance',

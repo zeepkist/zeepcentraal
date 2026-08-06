@@ -350,7 +350,6 @@ function createScene() {
 	scene.add(new THREE.HemisphereLight(0xffffff, 0x292524, 2.1))
 	const keyLight = new THREE.DirectionalLight(0xffffff, 2.5)
 	keyLight.position.set(80, 120, 40)
-	keyLight.castShadow = props.quality === 'quality'
 	scene.add(keyLight)
 
 	perspectiveCamera = new THREE.PerspectiveCamera(48, 16 / 9, 0.1, 5_000)
@@ -383,7 +382,6 @@ function replaceRenderer() {
 		return false
 	}
 	candidate.outputColorSpace = THREE.SRGBColorSpace
-	candidate.shadowMap.enabled = quality === 'quality'
 	candidate.domElement.addEventListener('webglcontextlost', onContextLost)
 	candidate.domElement.addEventListener('webglcontextrestored', onContextRestored)
 	renderer = candidate
@@ -440,7 +438,6 @@ function configureRendererQuality() {
 	if (!renderer) return
 	const maximumDpr = props.quality === 'performance' ? 1 : props.quality === 'balanced' ? 1.5 : 2
 	renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, maximumDpr))
-	renderer.shadowMap.enabled = props.quality === 'quality'
 }
 
 function createGhosts() {

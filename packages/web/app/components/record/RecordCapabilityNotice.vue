@@ -44,7 +44,7 @@ const props = defineProps<{
 	labels: RecordCapabilityLabels
 }>()
 
-const icon = 'alert-triangle'
+const icon = 'i-tabler-alert-triangle'
 const features = computed<RecordCapabilityFeature[]>(() =>
 	Object.entries(props.capabilities).map(([key, available]) => ({
 		key,

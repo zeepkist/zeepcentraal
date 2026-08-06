@@ -109,13 +109,10 @@ function scopedTelemetryKeys(sources: SourceFile[]): string[] {
 		'users.profile.telemetry',
 		'pages.recordDetail.telemetry',
 	]
-	const suffixes = [...source.matchAll(/\bscopeT\(\s*['"]([A-Za-z0-9_-]+)['"]\s*\)/g)].flatMap(
-		(match) => (match[1] === 'notAvailable' ? [] : [match[1]]),
+	const suffixes = [...source.matchAll(/\bscopeT\(\s*['"]([A-Za-z0-9_-]+)['"]\s*\)/g)].map(
+		(match) => match[1],
 	)
-	return [
-		...prefixes.flatMap((prefix) => suffixes.map((suffix) => `${prefix}.${suffix}`)),
-		...(source.includes("scopeT('notAvailable')") ? ['common.notAvailable'] : []),
-	]
+	return prefixes.flatMap((prefix) => suffixes.map((suffix) => `${prefix}.${suffix}`))
 }
 
 function recordAnalysisKeys(sources: SourceFile[]): string[] {

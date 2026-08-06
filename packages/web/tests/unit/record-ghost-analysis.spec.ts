@@ -321,11 +321,16 @@ describe('record ghost analysis', () => {
 			new URL('../../app/components/record/RecordDriftAnalysis.vue', import.meta.url),
 			'utf8',
 		)
+		const capabilitySource = readFileSync(
+			new URL('../../app/components/record/RecordCapabilityNotice.vue', import.meta.url),
+			'utf8',
+		)
 		expect(chartSource).toContain('<DashboardChartTooltip')
 		expect(chartSource).toContain('color: props.primaryColor')
 		expect(driftSource).toContain('<BarChart')
 		expect(driftSource).toContain('<DashboardChartTooltip')
 		expect(driftSource).toContain('color: props.primaryColor')
+		expect(capabilitySource).toContain("const icon = 'i-tabler-alert-triangle'")
 	})
 
 	it('supports accessible shared focus and directional steering axes', () => {

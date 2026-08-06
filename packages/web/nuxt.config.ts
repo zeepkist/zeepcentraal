@@ -1,6 +1,7 @@
 import graphql from '@rollup/plugin-graphql'
 import { ADVENTURE_SERIES } from './app/utils/adventureSeries'
 import { getBuildAssetsDir } from './config/buildAssets'
+import { clientFsStub } from './config/clientFsStub'
 
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
 const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
@@ -108,7 +109,7 @@ export default defineNuxtConfig({
 		'/totd': { sitemap: false },
 	},
 	vite: {
-		plugins: [graphql()],
+		plugins: [clientFsStub(), graphql()],
 		optimizeDeps: {
 			include: [
 				'@nuxt/content > slugify',
