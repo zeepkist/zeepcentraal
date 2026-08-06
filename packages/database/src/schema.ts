@@ -1145,6 +1145,289 @@ export const worldRecordGlobal = pgTable(
 	],
 )
 
+export const discordActivityEvent = pgTable(
+	'discord_activity_event',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity({
+			name: 'discord_activity_event_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+			cache: 100,
+		}),
+		kind: text().notNull(),
+		idLevel: integer('id_level'),
+		idUser: integer('id_user'),
+		idPreviousUser: integer('id_previous_user'),
+		idRecord: integer('id_record'),
+		idPreviousRecord: integer('id_previous_record'),
+		payload: jsonb().$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+		occurredAt: timestamp('occurred_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idLevel],
+			foreignColumns: [level.id],
+			name: 'discord_activity_event_level_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'discord_activity_event_user_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idPreviousUser],
+			foreignColumns: [user.id],
+			name: 'discord_activity_event_previous_user_fkey',
+		}).onDelete('set null'),
+		foreignKey({
+			columns: [table.idRecord],
+			foreignColumns: [record.id],
+			name: 'discord_activity_event_record_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.idPreviousRecord],
+			foreignColumns: [record.id],
+			name: 'discord_activity_event_previous_record_fkey',
+		}).onDelete('set null'),
+		check(
+			'CK_discord_activity_event_kind',
+			sql`${table.kind} IN ('workshop', 'personal_best', 'world_record', 'rank_batch', 'vote')`,
+		),
+		index('IX_discord_activity_event_kind_id').using(
+			'btree',
+			table.kind.asc().nullsLast(),
+			table.id.asc().nullsLast(),
+		),
+		index('IX_discord_activity_event_user_occurred').using(
+			'btree',
+			table.idUser.asc().nullsLast(),
+			table.occurredAt.desc().nullsLast(),
+		),
+		index('IX_discord_activity_event_level_occurred').using(
+			'btree',
+			table.idLevel.asc().nullsLast(),
+			table.occurredAt.desc().nullsLast(),
+		),
+		pgPolicy('graphql_select_visible_discord_activity_event', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`${table.idLevel} IS NULL OR EXISTS (
+				SELECT 1 FROM public.level AS discord_visible_level
+				WHERE discord_visible_level.id = ${table.idLevel}
+					AND discord_visible_level.publicly_visible = true
+			)`,
+		}),
+	],
+).enableRLS()
+
+export const discordGuildConfig = zcPrivate.table('discord_guild_config', {
+	guildId: bigint('guild_id', { mode: 'bigint' }).primaryKey(),
+	linkedRoleId: bigint('linked_role_id', { mode: 'bigint' }),
+	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+})
+
+export const discordGuildFeed = zcPrivate.table(
+	'discord_guild_feed',
+	{
+		guildId: bigint('guild_id', { mode: 'bigint' }).notNull(),
+		kind: text().notNull(),
+		channelId: bigint('channel_id', { mode: 'bigint' }).notNull(),
+		enabled: boolean().notNull().default(true),
+		cursorEventId: bigint('cursor_event_id', { mode: 'bigint' }).notNull().default(sql`0`),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.guildId, table.kind] }),
+		check(
+			'CK_discord_guild_feed_kind',
+			sql`${table.kind} IN ('workshop', 'world_record', 'rank', 'totw', 'totm')`,
+		),
+		index('IX_discord_guild_feed_enabled').using(
+			'btree',
+			table.enabled.asc().nullsLast(),
+			table.kind.asc().nullsLast(),
+		),
+	],
+)
+
+export const discordUserPreference = zcPrivate.table('discord_user_preference', {
+	discordId: bigint('discord_id', { mode: 'bigint' }).primaryKey(),
+	pingOnWorldRecordLoss: boolean('ping_on_world_record_loss').notNull().default(false),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+})
+
+export const discordLinkCode = zcPrivate.table(
+	'discord_link_code',
+	{
+		codeHash: text('code_hash').primaryKey(),
+		idUser: integer('id_user').notNull(),
+		expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
+		attempts: integer().notNull().default(0),
+		consumedAt: timestamp('consumed_at', { withTimezone: true, mode: 'string' }),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'discord_link_code_user_fkey',
+		}).onDelete('cascade'),
+		index('IX_discord_link_code_user_expiry').using(
+			'btree',
+			table.idUser.asc().nullsLast(),
+			table.expiresAt.desc().nullsLast(),
+		),
+	],
+)
+
+export const discordOAuthLinkState = zcPrivate.table(
+	'discord_oauth_link_state',
+	{
+		stateHash: text('state_hash').primaryKey(),
+		idUser: integer('id_user').notNull(),
+		expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
+		consumedAt: timestamp('consumed_at', { withTimezone: true, mode: 'string' }),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'discord_oauth_link_state_user_fkey',
+		}).onDelete('cascade'),
+		index('IX_discord_oauth_link_state_expiry').using(
+			'btree',
+			table.expiresAt.asc().nullsLast(),
+		),
+	],
+)
+
+export const discordWatch = zcPrivate.table(
+	'discord_watch',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity({
+			name: 'discord_watch_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+		}),
+		discordId: bigint('discord_id', { mode: 'bigint' }).notNull(),
+		kind: text().notNull(),
+		targetId: text('target_id').notNull(),
+		paused: boolean().notNull().default(false),
+		lastError: text('last_error'),
+		lastDeliveryKey: text('last_delivery_key'),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		unique('UQ_discord_watch_target').on(table.discordId, table.kind, table.targetId),
+		check(
+			'CK_discord_watch_kind',
+			sql`${table.kind} IN ('player', 'level', 'author', 'tournament')`,
+		),
+		index('IX_discord_watch_target').using(
+			'btree',
+			table.kind.asc().nullsLast(),
+			table.targetId.asc().nullsLast(),
+		),
+	],
+)
+
+export const discordWorkerState = zcPrivate.table('discord_worker_state', {
+	key: text().primaryKey(),
+	cursorEventId: bigint('cursor_event_id', { mode: 'bigint' }).notNull().default(sql`0`),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+})
+
+export const discordTournamentMessage = zcPrivate.table(
+	'discord_tournament_message',
+	{
+		guildId: bigint('guild_id', { mode: 'bigint' }).notNull(),
+		idTournament: integer('id_tournament').notNull(),
+		channelId: bigint('channel_id', { mode: 'bigint' }).notNull(),
+		messageId: bigint('message_id', { mode: 'bigint' }).notNull(),
+		contentHash: text('content_hash').notNull(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.guildId, table.idTournament] }),
+		foreignKey({
+			columns: [table.idTournament],
+			foreignColumns: [trackTournament.id],
+			name: 'discord_tournament_message_tournament_fkey',
+		}).onDelete('cascade'),
+	],
+)
+
+export const discordDigest = zcPrivate.table('discord_digest', {
+	guildId: bigint('guild_id', { mode: 'bigint' }).primaryKey(),
+	channelId: bigint('channel_id', { mode: 'bigint' }).notNull(),
+	dailyEnabled: boolean('daily_enabled').notNull().default(false),
+	weeklyEnabled: boolean('weekly_enabled').notNull().default(false),
+	deliveryHour: integer('delivery_hour').notNull().default(9),
+	weeklyDay: integer('weekly_day').notNull().default(1),
+	nextDeliveryAt: timestamp('next_delivery_at', { withTimezone: true, mode: 'string' }),
+	leaseUntil: timestamp('lease_until', { withTimezone: true, mode: 'string' }),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+})
+
+export const discordDelivery = zcPrivate.table(
+	'discord_delivery',
+	{
+		guildId: bigint('guild_id', { mode: 'bigint' }).notNull(),
+		eventId: bigint('event_id', { mode: 'bigint' }).notNull(),
+		channelId: bigint('channel_id', { mode: 'bigint' }).notNull(),
+		messageId: bigint('message_id', { mode: 'bigint' }),
+		status: text().notNull().default('pending'),
+		lastError: text('last_error'),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.guildId, table.eventId] }),
+		foreignKey({
+			columns: [table.eventId],
+			foreignColumns: [discordActivityEvent.id],
+			name: 'discord_delivery_event_fkey',
+		}).onDelete('cascade'),
+		check('CK_discord_delivery_status', sql`${table.status} IN ('pending', 'sent', 'failed')`),
+	],
+)
+
 export const recordHistoryIndex = zcPrivate.table(
 	'record_history_index',
 	{

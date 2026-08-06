@@ -1,8 +1,8 @@
-import type { Ref } from 'vue'
 import type {
 	Zc_LevelStatisticsQuery,
 	Zc_RecordStatisticFragment,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
 
 export function useSingleRecordTelemetryModel(
 	statistic: Ref<Zc_RecordStatisticFragment | null | undefined>,

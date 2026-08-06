@@ -1,4 +1,3 @@
-import type { H3Event } from 'h3'
 import {
 	Zc_SitemapLevelsPageDocument,
 	Zc_SitemapMaxIdsDocument,
@@ -8,7 +7,8 @@ import {
 	Zc_SitemapSuperLeagueSeasonsPageDocument,
 	Zc_SitemapTrackTournamentsPageDocument,
 	Zc_SitemapUsersPageDocument,
-} from '../../app/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { H3Event } from 'h3'
 import {
 	superLeagueLevelPath,
 	superLeagueRoundPath,

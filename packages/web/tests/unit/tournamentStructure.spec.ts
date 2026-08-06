@@ -42,7 +42,7 @@ describe('shared tournament web implementation', () => {
 		const event = source('app/components/tournament/TournamentEvent.vue')
 		const composable = source('app/composables/useTrackTournaments.ts')
 		const card = source('app/components/tournament/TournamentCard.vue')
-		const query = source('app/graphql/queries/trackTournaments.graphql')
+		const query = source('../graphql/documents/web/queries/trackTournaments.graphql')
 		const liveOperation = query.slice(query.indexOf('subscription ZC_TrackTournamentLive'))
 		expect(event).toContain("$t('tournaments.competitors')")
 		expect(event).toContain(':value="numberFormat.format(totalCount)"')
@@ -66,9 +66,9 @@ describe('shared tournament web implementation', () => {
 	})
 
 	test('uses lightweight shared feature cards on dashboard and level detail', () => {
-		const query = source('app/graphql/queries/trackTournaments.graphql')
-		const dashboardQuery = source('app/graphql/queries/dashboard.graphql')
-		const levelQuery = source('app/graphql/queries/levelDetail.graphql')
+		const query = source('../graphql/documents/web/queries/trackTournaments.graphql')
+		const dashboardQuery = source('../graphql/documents/web/queries/dashboard.graphql')
+		const levelQuery = source('../graphql/documents/web/queries/levelDetail.graphql')
 		const dashboard = source('app/pages/index.vue')
 		const level = source('app/pages/level/[xxh128].vue')
 		const card = source('app/components/tournament/TournamentFeatureCard.vue')
@@ -150,7 +150,7 @@ describe('shared tournament web implementation', () => {
 	})
 
 	test('queries and renders rich same-format tournament navigation on detail pages', () => {
-		const query = source('app/graphql/queries/trackTournaments.graphql')
+		const query = source('../graphql/documents/web/queries/trackTournaments.graphql')
 		const composable = source('app/composables/useTrackTournaments.ts')
 		const event = source('app/components/tournament/TournamentEvent.vue')
 		const navigation = source('app/components/tournament/TournamentNavigation.vue')
@@ -168,7 +168,7 @@ describe('shared tournament web implementation', () => {
 	})
 
 	test('subscribes to top 50, latest updates, and fastest valid ghosts', () => {
-		const query = source('app/graphql/queries/trackTournaments.graphql')
+		const query = source('../graphql/documents/web/queries/trackTournaments.graphql')
 		expect(query).toContain('leaderboard: trackTournamentResults(\n\t\t\tfirst: 50')
 		expect(query.match(/updateFeed: trackTournamentResults\(/g)).toHaveLength(2)
 		expect(query.match(/orderBy: \[DATE_UPDATED_DESC, RECORD_ID_DESC\]/g)).toHaveLength(2)
@@ -185,13 +185,13 @@ describe('shared tournament web implementation', () => {
 		const event = source('app/components/tournament/TournamentEvent.vue')
 		expect(event).toContain(':standings="ghostStandings"')
 		expect(event).toContain(':missing-count="missingGhostCount"')
-		const sitemapQuery = source('app/graphql/queries/sitemap.graphql')
+		const sitemapQuery = source('../graphql/documents/web/queries/sitemap.graphql')
 		expect(sitemapQuery).toContain('startAt: { lessThanOrEqualTo: $now }')
 		expect(sitemapQuery).toContain('type: { in: [0, 1] }')
 	})
 
 	test('downloads started tournament playlists with attachment headers', () => {
-		const query = source('app/graphql/queries/tournamentPlaylist.graphql')
+		const query = source('../graphql/documents/web/queries/tournamentPlaylist.graphql')
 		const endpoint = source('server/api/tournaments/playlist.get.ts')
 		const actions = source('app/components/tournament/TournamentPlaylistActions.vue')
 		const event = source('app/components/tournament/TournamentEvent.vue')

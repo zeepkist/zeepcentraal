@@ -1,10 +1,10 @@
 import { useQuery } from '@urql/vue'
-import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
 import {
 	Zc_UserPointsHistoryDocument,
 	Zc_UserPointsHistorySecondaryDocument,
 	Zc_UserStatisticsDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
 import {
 	buildUserCareerHistory,
 	buildUserCareerSecondaryHistory,

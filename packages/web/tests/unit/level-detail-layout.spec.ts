@@ -10,7 +10,7 @@ const ghostTab = readFileSync(
 	'utf8',
 )
 const detailQuery = readFileSync(
-	new URL('../../app/graphql/queries/levelDetail.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelDetail.graphql', import.meta.url),
 	'utf8',
 )
 const hero = readFileSync(

@@ -1,4 +1,4 @@
-import type { RecordHistoryEntriesOrderBy } from '~/graphql/generated/graphql'
+import type { RecordHistoryEntriesOrderBy } from '@zeepkist/graphql/generated'
 import type { RecordResultStatus } from '~/types/app'
 
 export const recordHistoryViews = ['recent', 'personal-bests', 'world-records'] as const

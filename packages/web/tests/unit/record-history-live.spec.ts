@@ -16,7 +16,10 @@ describe('live record history', () => {
 
 	it('requests exactly one latest cursor-free page', () => {
 		const subscription = readFileSync(
-			new URL('../../app/graphql/subscriptions/recordHistoryLive.graphql', import.meta.url),
+			new URL(
+				'../../../graphql/documents/web/subscriptions/recordHistoryLive.graphql',
+				import.meta.url,
+			),
 			'utf8',
 		)
 		expect(subscription).toContain('recordHistoryEntries(first: 25')
@@ -25,7 +28,10 @@ describe('live record history', () => {
 		expect(subscription).not.toContain('before:')
 		expect(subscription).toContain('...ZC_RecordHistoryRow')
 		const query = readFileSync(
-			new URL('../../app/graphql/queries/recordHistory.graphql', import.meta.url),
+			new URL(
+				'../../../graphql/documents/web/queries/recordHistory.graphql',
+				import.meta.url,
+			),
 			'utf8',
 		)
 		expect(query).toContain('isPersonalBest')

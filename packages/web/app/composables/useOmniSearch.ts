@@ -1,5 +1,5 @@
 import { useQuery } from '@urql/vue'
-import { Zc_OmniSearchDocument } from '~/graphql/generated/graphql'
+import { Zc_OmniSearchDocument } from '@zeepkist/graphql/generated'
 import type { OmniSearchLevelResult, OmniSearchResult, OmniSearchUserResult } from '~/types/app'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import {

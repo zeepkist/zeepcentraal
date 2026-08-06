@@ -1,6 +1,6 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
-import { userPoints } from '../schema'
+import { discordActivityEvent, userPoints } from '../schema'
 
 interface UserPointsInput {
 	idUser: number
@@ -127,13 +127,40 @@ export async function updateUserRanks(entries: Array<{ idUser: number; rank: num
 		entries.map((entry) => sql`(${entry.idUser}::integer, ${entry.rank}::integer)`),
 		sql`, `,
 	)
-	await db.execute(sql`
-		UPDATE ${userPoints} AS target
-		SET rank = source.rank, date_updated = NOW()
-		FROM (VALUES ${values}) AS source(id_user, rank)
-		WHERE target.id_user = source.id_user
-			AND target.rank IS DISTINCT FROM source.rank
-	`)
+	return db.transaction(async (tx) => {
+		const changes = await tx.execute<{
+			idUser: number
+			previousRank: number
+			rank: number
+		}>(sql`
+			WITH source(id_user, rank) AS (VALUES ${values}),
+			changed AS MATERIALIZED (
+				SELECT target.id_user, target.rank AS previous_rank, source.rank
+				FROM ${userPoints} AS target
+				INNER JOIN source ON source.id_user = target.id_user
+				WHERE target.rank IS DISTINCT FROM source.rank
+			), updated AS (
+				UPDATE ${userPoints} AS target
+				SET rank = changed.rank, date_updated = NOW()
+				FROM changed
+				WHERE target.id_user = changed.id_user
+				RETURNING target.id_user
+			)
+			SELECT
+				changed.id_user AS "idUser",
+				changed.previous_rank AS "previousRank",
+				changed.rank
+			FROM changed
+			INNER JOIN updated ON updated.id_user = changed.id_user
+		`)
+		if (changes.length > 0) {
+			await tx.insert(discordActivityEvent).values({
+				kind: 'rank_batch',
+				payload: { changes },
+			})
+		}
+		return changes
+	})
 }
 
 export async function bulkUpdateUserRanks({
@@ -150,6 +177,15 @@ export async function bulkUpdateUserRanks({
 	}
 
 	await db.transaction(async (tx) => {
+		const previous = await tx
+			.select({ idUser: userPoints.idUser, previousRank: userPoints.rank })
+			.from(userPoints)
+			.where(
+				and(
+					inArray(userPoints.idUser, idUsers),
+					sql`${userPoints.rank} IS DISTINCT FROM ${rank}`,
+				),
+			)
 		await tx
 			.update(userPoints)
 			.set({
@@ -163,5 +199,13 @@ export async function bulkUpdateUserRanks({
 					sql`ROW(${userPoints.points}, ${userPoints.rank}) IS DISTINCT FROM ROW(${points}, ${rank})`,
 				),
 			)
+		if (previous.length > 0) {
+			await tx.insert(discordActivityEvent).values({
+				kind: 'rank_batch',
+				payload: {
+					changes: previous.map((entry) => ({ ...entry, rank })),
+				},
+			})
+		}
 	})
 }

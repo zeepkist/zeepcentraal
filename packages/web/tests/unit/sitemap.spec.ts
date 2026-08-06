@@ -59,7 +59,7 @@ describe('paginated sitemaps', () => {
 	})
 
 	test('queries every requested public dataset without nested caps', () => {
-		const query = source('app/graphql/queries/sitemap.graphql')
+		const query = source('../graphql/documents/web/queries/sitemap.graphql')
 		expect(query.match(/first: 1000/g)).toHaveLength(7)
 		expect(query).toContain('banned: { equalTo: false }')
 		expect(query.match(/publiclyVisible: \{ equalTo: true \}/g)).toHaveLength(4)

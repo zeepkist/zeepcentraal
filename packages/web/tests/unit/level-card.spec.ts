@@ -19,7 +19,7 @@ const zslGrid = readFileSync(
 	'utf8',
 )
 const adventureQuery = readFileSync(
-	new URL('../../app/graphql/queries/adventure.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/adventure.graphql', import.meta.url),
 	'utf8',
 )
 const adventure = readFileSync(

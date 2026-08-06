@@ -1,4 +1,5 @@
 export * from './database'
+export * from './discordBot'
 export * from './importZsl'
 export * from './jobs'
 export * from './migrate'

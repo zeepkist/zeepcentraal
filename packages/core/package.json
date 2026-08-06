@@ -16,6 +16,9 @@
 		"./config/database": {
 			"import": "./src/config/database.ts"
 		},
+		"./config/discord-bot": {
+			"import": "./src/config/discordBot.ts"
+		},
 		"./config/import-zsl": {
 			"import": "./src/config/importZsl.ts"
 		},

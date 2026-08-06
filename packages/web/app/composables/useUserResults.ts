@@ -4,13 +4,13 @@ import {
 	GLOBAL_DECAY_FACTOR,
 	LEVEL_DECAY_FACTOR,
 } from '@zeepkist/core/score'
-import type { MaybeRefOrGetter } from 'vue'
-import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
 import {
 	type UserPointContributionsOrderBy,
 	Zc_UserContributionsDocument,
 	Zc_UserResultsDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { MaybeRefOrGetter } from 'vue'
+import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
 import type { CursorPage, RecordHistoryRow } from '~/types/app'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'

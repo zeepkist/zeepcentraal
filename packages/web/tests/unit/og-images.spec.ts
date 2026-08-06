@@ -7,7 +7,7 @@ const webRoot = fileURLToPath(new URL('../..', import.meta.url))
 const appRoot = join(webRoot, 'app')
 const ogImageRoot = join(appRoot, 'components/OgImage')
 const composablesRoot = join(appRoot, 'composables')
-const graphqlQueriesRoot = join(appRoot, 'graphql/queries')
+const graphqlQueriesRoot = join(webRoot, '../graphql/documents/web/queries')
 
 const expectedEntries = [
 	'AdventureSeries',
@@ -50,7 +50,8 @@ const routeEntries = [
 	['pages/privacy.vue', 'Privacy'],
 	['pages/record/[recordId].vue', 'RecordDetail'],
 	['pages/records/index.vue', 'Records'],
-	['pages/settings.vue', 'Settings'],
+	['pages/settings/index.vue', 'Settings'],
+	['pages/settings/discord.vue', 'Settings'],
 	['pages/super-league/index.vue', 'SuperLeague'],
 	['pages/super-league/[seasonSlug]/[roundSlug]/[levelSlug].vue', 'SuperLeagueLevel'],
 	['pages/super-league/[seasonSlug]/[roundSlug]/index.vue', 'SuperLeagueRound'],
@@ -222,7 +223,7 @@ describe('OG image data-source contracts', () => {
 			)
 
 			if (implementationSource.includes('useQuery(')) {
-				expect(implementationSource, file).toContain("from '~/graphql/generated/graphql'")
+				expect(implementationSource, file).toContain("from '@zeepkist/graphql/generated'")
 			}
 			if (implementationSource.includes('queryCollection(')) {
 				expect([

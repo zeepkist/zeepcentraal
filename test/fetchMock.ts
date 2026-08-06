@@ -10,9 +10,13 @@ export function mockJsonFetch(
 		const url = new URL(String(input))
 		urls.push(url)
 		const { body = {}, status = 200, headers = {} } = handler(url)
+		const responseHeaders = new Headers(headers)
+		if (!responseHeaders.has('content-type')) {
+			responseHeaders.set('content-type', 'application/json')
+		}
 		return new Response(JSON.stringify(body), {
 			status,
-			headers: { 'content-type': 'application/json', ...headers },
+			headers: responseHeaders,
 		})
 	}) as typeof fetch
 	return urls

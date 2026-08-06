@@ -169,10 +169,19 @@ function modelTranslationKeys(sources: SourceFile[]): string[] {
 	return keys
 }
 
+function componentTranslationKeys(sources: SourceFile[]): string[] {
+	return sources.flatMap(({ source }) =>
+		[...source.matchAll(/<(?:I18nT|i18n-t)\b[^>]*\bkeypath\s*=\s*(['"])([^'"]+)\1/g)]
+			.map((match) => match[2] ?? '')
+			.filter((key) => TRANSLATION_KEY.test(key)),
+	)
+}
+
 function runtimeTranslationKeys(sources: SourceFile[]): string[] {
 	return [
 		...sources.flatMap(({ source }) => exactTranslationCalls(source)),
 		...modelTranslationKeys(sources),
+		...componentTranslationKeys(sources),
 		...pageSeoKeys(sources),
 		...scopedTelemetryKeys(sources),
 		...recordAnalysisKeys(sources),

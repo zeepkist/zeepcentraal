@@ -8,7 +8,7 @@ import {
 } from '../../app/utils/adventureSeries'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
-const query = read('../../app/graphql/queries/adventure.graphql')
+const query = read('../../../graphql/documents/web/queries/adventure.graphql')
 const composable = read('../../app/composables/useAdventure.ts')
 const parent = read('../../app/pages/adventure.vue')
 const index = read('../../app/pages/adventure/index.vue')

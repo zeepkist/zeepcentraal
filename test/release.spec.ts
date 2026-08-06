@@ -7,6 +7,7 @@ const deployWorkflow = readFileSync(new URL('.github/workflows/deploy.yml', repo
 const packageNames = [
 	'core',
 	'database',
+	'discord',
 	'graphql',
 	'import-zsl',
 	'jobs',

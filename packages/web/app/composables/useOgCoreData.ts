@@ -8,7 +8,7 @@ import {
 	Zc_RecordDetailDocument,
 	Zc_UserProfileDocument,
 	Zc_UsersDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
 import { findAdventureSeries } from '~/utils/adventureSeries'
 import { getDashboardMetricWindows } from '~/utils/dashboardMetrics'
 

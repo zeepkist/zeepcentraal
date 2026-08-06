@@ -1,6 +1,5 @@
 import { useQuery } from '@urql/vue'
-import { computed } from 'vue'
-import type { Zc_TrackTournamentSummaryFragment } from '~/graphql/generated/graphql'
+import type { Zc_TrackTournamentSummaryFragment } from '@zeepkist/graphql/generated'
 import {
 	Zc_TrackTournamentDetailDocument,
 	Zc_TrackTournamentIndexDocument,
@@ -11,7 +10,8 @@ import {
 	Zc_ZslSeasonDocument,
 	Zc_ZslSeasonResultsDocument,
 	Zc_ZslSeasonsDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import { computed } from 'vue'
 import type { TrackTournamentType } from '~/types/tournament'
 import { getOgTournamentStatus } from '~/utils/ogImage'
 import { formatTournamentPeriod } from '~/utils/tournament'

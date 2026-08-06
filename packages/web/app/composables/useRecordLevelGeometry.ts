@@ -1,6 +1,6 @@
 import { useQuery } from '@urql/vue'
+import { Zc_RecordLevelGeometryDocument } from '@zeepkist/graphql/generated'
 import type { MaybeRefOrGetter, Ref } from 'vue'
-import { Zc_RecordLevelGeometryDocument } from '~/graphql/generated/graphql'
 import type { GhostLevelBlock } from '~/types/ghost'
 import { parseLevelGeometryBlocks } from '~/utils/ghostLevelGeometry'
 

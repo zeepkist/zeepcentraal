@@ -17,11 +17,11 @@ import {
 } from '../../app/utils/levelGhostSelection'
 
 const explorerQuery = readFileSync(
-	new URL('../../app/graphql/queries/levelGhostExplorer.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelGhostExplorer.graphql', import.meta.url),
 	'utf8',
 )
 const sharedFragment = readFileSync(
-	new URL('../../app/graphql/queries/ghostRecordSource.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/ghostRecordSource.graphql', import.meta.url),
 	'utf8',
 )
 const composable = readFileSync(

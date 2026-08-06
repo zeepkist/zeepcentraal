@@ -33,8 +33,8 @@
 </template>
 
 <script setup vapor lang="ts">
+import type { UserPointsOrderBy } from '@zeepkist/graphql/generated'
 import { USER_SORTS } from '~/composables/usePlayers'
-import type { UserPointsOrderBy } from '~/graphql/generated/graphql'
 
 usePageSeo('users')
 defineOgImage('UserRankings.takumi', { slug: 'users' })

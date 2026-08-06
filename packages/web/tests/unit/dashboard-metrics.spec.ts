@@ -8,11 +8,14 @@ import {
 } from '../../app/utils/dashboardMetrics'
 
 const querySource = readFileSync(
-	new URL('../../app/graphql/queries/dashboard.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/dashboard.graphql', import.meta.url),
 	'utf8',
 )
 const subscriptionSource = readFileSync(
-	new URL('../../app/graphql/subscriptions/dashboardMetrics.graphql', import.meta.url),
+	new URL(
+		'../../../graphql/documents/web/subscriptions/dashboardMetrics.graphql',
+		import.meta.url,
+	),
 	'utf8',
 )
 const dashboardMetricCopy = (

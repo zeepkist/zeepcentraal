@@ -5,19 +5,19 @@ import { mapSeasonRoundPoints, mergeViewerStanding } from '../../app/utils/zslSt
 
 const composable = readFileSync(new URL('../../app/composables/useZsl.ts', import.meta.url), 'utf8')
 const seasonResults = readFileSync(
-	new URL('../../app/graphql/queries/zslSeasonResults.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/zslSeasonResults.graphql', import.meta.url),
 	'utf8',
 )
 const roundResults = readFileSync(
-	new URL('../../app/graphql/queries/zslRoundResults.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/zslRoundResults.graphql', import.meta.url),
 	'utf8',
 )
 const levelResults = readFileSync(
-	new URL('../../app/graphql/queries/zslLevelResults.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/zslLevelResults.graphql', import.meta.url),
 	'utf8',
 )
 const levelQuery = readFileSync(
-	new URL('../../app/graphql/queries/zslLevel.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/zslLevel.graphql', import.meta.url),
 	'utf8',
 )
 const table = readFileSync(

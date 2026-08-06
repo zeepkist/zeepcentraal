@@ -1,6 +1,6 @@
 import { useQuery } from '@urql/vue'
+import { Zc_MyRecordCountDocument } from '@zeepkist/graphql/generated'
 import type { Ref } from 'vue'
-import { Zc_MyRecordCountDocument } from '~/graphql/generated/graphql'
 import type { RecordHistorySort, RecordHistoryView } from '~/utils/recordHistory'
 
 export function useMyRecords(

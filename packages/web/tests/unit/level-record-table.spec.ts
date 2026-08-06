@@ -7,15 +7,18 @@ import {
 } from '../../app/utils/levelRecordRows'
 
 const recordsQuery = readFileSync(
-	new URL('../../app/graphql/queries/levelRecords.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelRecords.graphql', import.meta.url),
 	'utf8',
 )
 const ranksQuery = readFileSync(
-	new URL('../../app/graphql/queries/levelPersonalBestRanks.graphql', import.meta.url),
+	new URL(
+		'../../../graphql/documents/web/queries/levelPersonalBestRanks.graphql',
+		import.meta.url,
+	),
 	'utf8',
 )
 const viewerBestQuery = readFileSync(
-	new URL('../../app/graphql/queries/levelViewerBest.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelViewerBest.graphql', import.meta.url),
 	'utf8',
 )
 const component = readFileSync(
@@ -112,7 +115,10 @@ describe('level record tables', () => {
 		expect(composable).not.toContain('Zc_LevelViewerRankDocument')
 		expect(
 			existsSync(
-				new URL('../../app/graphql/queries/levelViewerRank.graphql', import.meta.url),
+				new URL(
+					'../../../graphql/documents/web/queries/levelViewerRank.graphql',
+					import.meta.url,
+				),
 			),
 		).toBe(false)
 	})

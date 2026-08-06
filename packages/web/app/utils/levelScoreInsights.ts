@@ -1,4 +1,4 @@
-import type { Zc_LevelDetailQuery } from '~/graphql/generated/graphql'
+import type { Zc_LevelDetailQuery } from '@zeepkist/graphql/generated'
 import type { LevelScoreInsights } from '~/types/app'
 
 export type LevelScoreInsightsSource = NonNullable<

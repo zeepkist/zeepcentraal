@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { Kind, parse, visit } from 'graphql'
 import { describe, expect, test } from 'vitest'
 
-const graphqlDir = fileURLToPath(new URL('../../app/graphql', import.meta.url))
+const graphqlDir = fileURLToPath(new URL('../../../graphql/documents/web', import.meta.url))
 const appDir = fileURLToPath(new URL('../../app', import.meta.url))
 const composablesDir = fileURLToPath(new URL('../../app/composables', import.meta.url))
 const urqlPlugin = fileURLToPath(new URL('../../app/plugins/urql.ts', import.meta.url))
@@ -92,9 +92,7 @@ describe('GraphQL operation conventions', () => {
 		for (const file of filesUnder(composablesDir, '.ts')) {
 			const source = readFileSync(file, 'utf8')
 			if (source.includes('useQuery') || source.includes('useSubscription')) {
-				expect(
-					source.includes('.graphql') || source.includes('~/graphql/generated/graphql'),
-				).toBe(true)
+				expect(source.includes('@zeepkist/graphql/generated')).toBe(true)
 				expect(source).not.toContain('query ZC_')
 				expect(source).not.toContain('subscription ZC_')
 			}

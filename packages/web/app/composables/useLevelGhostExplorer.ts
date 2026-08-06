@@ -1,10 +1,10 @@
 import { useClientHandle, useQuery } from '@urql/vue'
-import type { Ref } from 'vue'
 import {
 	Zc_LevelGhostDefaultsDocument,
 	Zc_LevelGhostPresetDocument,
 	Zc_LevelGhostUserSearchDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
 import type { GhostRecordSource } from '~/types/ghost'
 import type {
 	LevelGhostPresetCount,

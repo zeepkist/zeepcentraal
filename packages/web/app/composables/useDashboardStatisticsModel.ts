@@ -1,8 +1,8 @@
-import type { Ref } from 'vue'
 import type {
 	Zc_DashboardStatisticsQuery,
 	Zc_DashboardV6StatisticAggregatesFragment,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
 import type {
 	DashboardChartEntry,
 	DashboardStatisticsMetric,

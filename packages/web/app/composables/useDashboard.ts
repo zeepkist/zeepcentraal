@@ -1,5 +1,4 @@
 import { useQuery, useSubscription } from '@urql/vue'
-import type { Ref } from 'vue'
 import {
 	Zc_DashboardCriticalDocument,
 	Zc_DashboardHeroSummaryDocument,
@@ -7,7 +6,8 @@ import {
 	Zc_DashboardMetricsLiveDocument,
 	Zc_DashboardStatisticsDocument,
 	Zc_DashboardViewerLevelsDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
 import type { LevelSummary, SteamNewsItem } from '~/types/app'
 import { getDashboardLevelWindows, getDashboardMetricWindows } from '~/utils/dashboardMetrics'
 import { getLevelDisplayName } from '~/utils/levelDisplay'

@@ -102,3 +102,36 @@ export async function refreshWebAuth(event: Parameters<typeof getHeader>[0]) {
 	const cookies = forwardBackendCookies(event, response.headers)
 	return { cookies, refreshAt: accessTokenRefreshAt(cookieHeaderFromSetCookies(cookies)) }
 }
+
+export async function fetchAuthenticatedBackend<T>(
+	event: Parameters<typeof getHeader>[0],
+	path: string,
+	options: { method: 'POST' | 'DELETE' },
+) {
+	let cookie = getHeader(event, 'cookie')
+	let response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
+		...options,
+		headers: cookie ? { cookie } : undefined,
+		credentials: 'include',
+		ignoreResponseError: true,
+	})
+	if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
+		const refreshed = await refreshWebAuth(event)
+		cookie = cookieHeaderFromSetCookies(refreshed.cookies)
+		response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
+			...options,
+			headers: cookie ? { cookie } : undefined,
+			credentials: 'include',
+			ignoreResponseError: true,
+		})
+	}
+	forwardBackendCookies(event, response.headers)
+	if (response.status >= 400) {
+		throw createError({
+			statusCode: response.status,
+			statusMessage: 'Authenticated backend request failed',
+			data: response._data,
+		})
+	}
+	return response._data as T
+}

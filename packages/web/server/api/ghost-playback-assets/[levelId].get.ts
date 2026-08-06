@@ -1,4 +1,4 @@
-import { Zc_RecordLevelGeometryDocument } from '../../../app/graphql/generated/graphql'
+import { Zc_RecordLevelGeometryDocument } from '@zeepkist/graphql/generated'
 import { parseLevelGeometryBlocks } from '../../../app/utils/ghostLevelGeometry'
 import { fetchGraphql } from '../../utils/graphql'
 import { requireProtectedMeshAccess } from '../../utils/protectedMeshAccess'

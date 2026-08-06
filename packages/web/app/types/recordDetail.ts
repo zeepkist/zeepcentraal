@@ -2,7 +2,7 @@ import type {
 	Zc_GhostComparisonRecordFragment,
 	Zc_RecordDetailQuery,
 	Zc_RecordStatisticFragment,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
 import type { GhostRecordSource } from '~/types/ghost'
 
 export type RecordDetailRecord = NonNullable<Zc_RecordDetailQuery['record']>

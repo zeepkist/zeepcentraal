@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
 COPY packages/core/package.json packages/core/package.json
 COPY packages/database/package.json packages/database/package.json
+COPY packages/discord/package.json packages/discord/package.json
 COPY packages/graphql/package.json packages/graphql/package.json
 COPY packages/import-zsl/package.json packages/import-zsl/package.json
 COPY packages/jobs/package.json packages/jobs/package.json

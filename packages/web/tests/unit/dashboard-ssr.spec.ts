@@ -8,7 +8,7 @@ const composable = readFileSync(
 const page = readFileSync(new URL('../../app/pages/index.vue', import.meta.url), 'utf8')
 const app = readFileSync(new URL('../../app/app.vue', import.meta.url), 'utf8')
 const viewerQuery = readFileSync(
-	new URL('../../app/graphql/queries/dashboardViewer.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/dashboardViewer.graphql', import.meta.url),
 	'utf8',
 )
 

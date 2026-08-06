@@ -1,10 +1,10 @@
 import { useQuery } from '@urql/vue'
-import type { MaybeRefOrGetter, Ref } from 'vue'
 import {
 	Zc_RecordComparisonCatalogDocument,
 	Zc_RecordComparisonRecordsDocument,
 	Zc_RecordComparisonUserSearchDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { GhostRecordSource } from '~/types/ghost'
 import type { RecordComparisonCatalog, RecordComparisonUser } from '~/types/recordDetail'
 import { mapGhostRecordSource } from '~/utils/ghostRecordSource'

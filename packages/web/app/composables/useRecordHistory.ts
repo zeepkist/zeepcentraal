@@ -4,14 +4,14 @@ import {
 	GLOBAL_DECAY_FACTOR,
 	LEVEL_DECAY_FACTOR,
 } from '@zeepkist/core/score'
-import type { Ref } from 'vue'
-import { useRecordRankFallback } from '~/composables/useRecordRankFallback'
 import {
 	Zc_RecordHistoryDocument,
 	Zc_RecordHistoryLiveDocument,
 	type Zc_RecordHistoryLiveSubscription,
 	type Zc_RecordHistoryRowFragment,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
+import { useRecordRankFallback } from '~/composables/useRecordRankFallback'
 import type { CursorPage, RecordHistoryRow, RecordHistoryUpdate } from '~/types/app'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import {

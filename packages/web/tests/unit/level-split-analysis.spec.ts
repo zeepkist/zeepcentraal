@@ -6,7 +6,7 @@ import {
 } from '../../app/utils/levelSplitAnalysis'
 
 const query = readFileSync(
-	new URL('../../app/graphql/queries/levelSplitAnalysis.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelSplitAnalysis.graphql', import.meta.url),
 	'utf8',
 )
 const component = readFileSync(

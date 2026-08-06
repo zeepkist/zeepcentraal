@@ -13,6 +13,7 @@ export type PgRelation = {
 	remoteResource: { codec: unknown }
 	extensions?: {
 		tags?: {
+			fieldName?: string
 			foreignFieldName?: string
 			foreignSingleFieldName?: string
 		}
@@ -57,6 +58,10 @@ export function getRelation(details: PgRelationDetails) {
 }
 
 export function getTaggedRelationFieldName(relation: PgRelation) {
+	return relation.extensions?.tags?.fieldName
+}
+
+export function getTaggedForeignRelationFieldName(relation: PgRelation) {
 	return (
 		relation.extensions?.tags?.foreignSingleFieldName ??
 		relation.extensions?.tags?.foreignFieldName

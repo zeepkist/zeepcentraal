@@ -3,7 +3,7 @@ import { Kind, parse } from 'graphql'
 import { describe, expect, it } from 'vitest'
 
 const querySource = readFileSync(
-	new URL('../../app/graphql/queries/dashboard.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/dashboard.graphql', import.meta.url),
 	'utf8',
 )
 const composable = readFileSync(

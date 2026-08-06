@@ -112,6 +112,7 @@ test('production server config rejects weak secrets', () => {
 			NODE_ENV: 'production',
 			JWT_SECRET: 'x'.repeat(32),
 			TRIGGER_JOB_TOKEN: 'trigger-token',
+			DISCORD_BOT_API_TOKEN: 'd'.repeat(32),
 		}),
 	).toThrow('TRIGGER_JOB_TOKEN must contain at least 32 non-placeholder characters')
 })

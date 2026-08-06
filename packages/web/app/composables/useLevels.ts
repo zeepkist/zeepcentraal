@@ -1,11 +1,11 @@
 import { useQuery } from '@urql/vue'
-import type { Ref } from 'vue'
 import {
 	type LevelsOrderBy,
 	Zc_HotLevelsDocument,
 	Zc_LevelsDocument,
 	Zc_UserSuggestionsDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
 import type { CursorPage, LevelSummary, SortOption } from '~/types/app'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import {

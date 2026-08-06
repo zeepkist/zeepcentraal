@@ -1,0 +1,11 @@
+[test]
+coverage = true
+coverageSkipTestFiles = true
+coverageThreshold = { lines = 1, functions = 1 }
+preload = ["../../test/preload.ts"]
+coveragePathIgnorePatterns = [
+	"../core/**",
+	"../graphql/**",
+	"../../test/**",
+	"test/**",
+]

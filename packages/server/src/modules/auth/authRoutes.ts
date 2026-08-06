@@ -14,6 +14,8 @@ import {
 	parseCookieHeader,
 } from '@zeepkist/core'
 import {
+	consumeDiscordOAuthLinkState,
+	createDiscordOAuthLinkState,
 	getOrInsertUser,
 	getUser,
 	getUserByDiscordId,
@@ -23,9 +25,11 @@ import {
 import { setActiveSpanAttributes } from '@zeepkist/telemetry'
 import { Elysia, t } from 'elysia'
 import { OPENAPI_TAG } from '../../openapi'
+import { withAuthRequest } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
 import { handleV1Error, V1_ERROR_CODES } from '../../v1Errors'
+import { hashDiscordOAuthState } from '../discord/discordLink'
 
 function cookieDomain() {
 	const backendUrl = config.backendUrl
@@ -241,6 +245,34 @@ const gtrAuthRoutes = new Elysia()
 export const authRoutes = new Elysia({ prefix: '/auth' })
 	.use(gtrAuthRoutes)
 	.use(withRateLimit('auth'))
+	.group('/discord/link', (app) =>
+		app.use(withAuthRequest).get(
+			'/redirect',
+			async ({ auth, set }) => {
+				const linkedUser = await getUser(auth.steamId)
+				if (!linkedUser || linkedUser.banned) {
+					set.status = 401
+					return
+				}
+				const state = `link.${crypto.randomUUID()}`
+				await createDiscordOAuthLinkState({
+					stateHash: hashDiscordOAuthState(state),
+					idUser: linkedUser.id,
+					expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+				})
+				return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
+			},
+			{
+				detail: {
+					operationId: 'startDiscordAccountLink',
+					summary: 'Start verified Discord account linking',
+					description:
+						'Requires a ZeepCentraal browser session, records OAuth state and redirects to Discord.',
+					tags: [OPENAPI_TAG.auth],
+				},
+			},
+		),
+	)
 	.get(
 		'/discord/redirect',
 		() => {
@@ -262,7 +294,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 		async ({ query, headers }) => {
 			const code = query.code as string | undefined
 			const state = query.state as string | undefined
-			if (!code || !validState(headers, state)) {
+			if (!code || !state || !validState(headers, state)) {
 				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
 			}
 
@@ -274,6 +306,26 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			const discordUser = await getDiscordUser(discordAccessToken)
 			if (!discordUser) {
 				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+			}
+
+			if (state.startsWith('link.')) {
+				const result = await consumeDiscordOAuthLinkState(
+					hashDiscordOAuthState(state),
+					BigInt(discordUser.id),
+				)
+				if (result.status !== 'linked') {
+					return redirectResponse(
+						new URL(
+							`/settings/discord?discordLinkError=${result.status}`,
+							cookieDomain().frontendUrl,
+						).href,
+						[stateCookie('', 0)],
+					)
+				}
+				return redirectResponse(
+					new URL('/settings/discord?linked=1', cookieDomain().frontendUrl).href,
+					[stateCookie('', 0)],
+				)
 			}
 
 			const user = await getUserByDiscordId(discordUser.id)

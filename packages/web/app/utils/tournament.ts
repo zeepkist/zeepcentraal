@@ -1,4 +1,4 @@
-import type { Zc_TrackTournamentFeatureFragment } from '~/graphql/generated/graphql'
+import type { Zc_TrackTournamentFeatureFragment } from '@zeepkist/graphql/generated'
 import type { GhostRecordSource } from '~/types/ghost'
 import type { TournamentFeature, TournamentStanding, TrackTournamentType } from '~/types/tournament'
 import { getLevelDisplayName } from './levelDisplay'

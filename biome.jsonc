@@ -50,7 +50,7 @@
 			"!packages/web/.data",
 			"!packages/web/.nuxt",
 			"!packages/web/.output",
-			"!packages/web/app/graphql/generated",
+			"!packages/graphql/src/generated",
 			"!packages/web/public/assets/block-meshes",
 			"!packages/web/test-results"
 		]

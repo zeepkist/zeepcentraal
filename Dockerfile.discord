@@ -1,0 +1,19 @@
+FROM gcr.io/distroless/cc-debian12
+
+ARG SERVICE_VERSION=dev
+
+LABEL org.opencontainers.image.description="ZeepCentraal Discord community bot."
+
+WORKDIR /app
+
+COPY --chmod=755 dist/zeepcentraal-discord zeepcentraal-discord
+
+ENV NODE_ENV=production
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-discord
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
+
+EXPOSE 3000
+
+RUN ["./zeepcentraal-discord", "--self-test"]
+
+CMD ["./zeepcentraal-discord"]

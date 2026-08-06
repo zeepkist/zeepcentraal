@@ -55,6 +55,10 @@ jobs:
             build_script: build:server
             artifact_path: dist/zeepcentraal-server
             include_hidden_files: false
+          - name: discord
+            build_script: build:discord
+            artifact_path: dist/zeepcentraal-discord
+            include_hidden_files: false
           - name: jobs
             build_script: build:jobs
             artifact_path: dist/zeepcentraal-jobs
@@ -99,6 +103,12 @@ jobs:
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-server
             tag: zeepcentraal/server
+            clone_super_league: false
+          - name: discord
+            file: Dockerfile.discord
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-discord
+            tag: zeepcentraal/discord
             clone_super_league: false
           - name: jobs
             file: Dockerfile.jobs

@@ -1,6 +1,14 @@
 import { Elysia } from 'elysia'
 import { config } from './config'
-import { authRoutes, jobRoutes, levelRoutes, recordRoutes, userRoutes, voteRoutes } from './modules'
+import {
+	authRoutes,
+	discordBotRoutes,
+	jobRoutes,
+	levelRoutes,
+	recordRoutes,
+	userRoutes,
+	voteRoutes,
+} from './modules'
 import { OPENAPI_TAG } from './openapi'
 import { withContext } from './plugins/withContext'
 import { withCors } from './plugins/withCors'
@@ -26,6 +34,7 @@ export function buildServer() {
 		.use(withErrors)
 		.use(withContext)
 		.use(authRoutes)
+		.use(discordBotRoutes)
 		.use(userRoutes)
 		.use(levelRoutes)
 		.use(recordRoutes)

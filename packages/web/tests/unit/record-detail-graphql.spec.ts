@@ -11,19 +11,19 @@ import {
 import { describe, expect, it } from 'vitest'
 
 const detailQuery = readFileSync(
-	new URL('../../app/graphql/queries/recordDetail.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/recordDetail.graphql', import.meta.url),
 	'utf8',
 )
 const ghostRecordSourceFragment = readFileSync(
-	new URL('../../app/graphql/queries/ghostRecordSource.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/ghostRecordSource.graphql', import.meta.url),
 	'utf8',
 )
 const comparisonsQuery = readFileSync(
-	new URL('../../app/graphql/queries/recordComparisons.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/recordComparisons.graphql', import.meta.url),
 	'utf8',
 )
 const geometryQuery = readFileSync(
-	new URL('../../app/graphql/queries/recordLevelGeometry.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/recordLevelGeometry.graphql', import.meta.url),
 	'utf8',
 )
 const geometryComposable = readFileSync(

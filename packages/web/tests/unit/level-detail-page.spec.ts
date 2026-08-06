@@ -4,11 +4,11 @@ import { getLevelCompetitivenessRating } from '../../app/utils/levelCompetitiven
 import { steamWorkshopItemUrl } from '../../app/utils/steamWorkshop'
 
 const query = readFileSync(
-	new URL('../../app/graphql/queries/levelDetail.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelDetail.graphql', import.meta.url),
 	'utf8',
 )
 const historyQuery = readFileSync(
-	new URL('../../app/graphql/queries/levelPointsHistory.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelPointsHistory.graphql', import.meta.url),
 	'utf8',
 )
 const page = readFileSync(

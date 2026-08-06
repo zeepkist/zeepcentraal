@@ -1,7 +1,7 @@
 import { useQuery } from '@urql/vue'
+import { type Zc_UserLevelCardFragment, Zc_UserLevelsDocument } from '@zeepkist/graphql/generated'
 import type { MaybeRefOrGetter } from 'vue'
 import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
-import { type Zc_UserLevelCardFragment, Zc_UserLevelsDocument } from '~/graphql/generated/graphql'
 import type { LevelSummary } from '~/types/app'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { getLevelHotWindows } from '~/utils/levelExplorer'

@@ -31,7 +31,7 @@ const topPage = readFileSync(
 	'utf8',
 )
 const roundQuery = readFileSync(
-	new URL('../../app/graphql/queries/zslRound.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/zslRound.graphql', import.meta.url),
 	'utf8',
 )
 const breadcrumbs = readFileSync(

@@ -1,0 +1,26 @@
+{
+	"name": "@zeepkist/discord",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"scripts": {
+		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-discord src/index.ts",
+		"self-test": "bun src/index.ts --self-test",
+		"test": "bun test src"
+	},
+	"dependencies": {
+		"@urql/core": "~6.0.3",
+		"@zeepkist/core": "workspace:*",
+		"@zeepkist/graphql": "workspace:*",
+		"@zeepkist/telemetry": "workspace:*",
+		"bufferutil": "~4.1.0",
+		"discord.js": "~14.27.0",
+		"graphql": "~17.0.2",
+		"graphql-ws": "~6.2.0",
+		"ws": "~8.21.1"
+	},
+	"devDependencies": {
+		"@types/ws": "~8.18.1"
+	}
+}

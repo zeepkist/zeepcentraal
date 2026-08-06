@@ -4,7 +4,6 @@ import {
 	GLOBAL_DECAY_FACTOR,
 	LEVEL_DECAY_FACTOR,
 } from '@zeepkist/core/score'
-import type { Ref } from 'vue'
 import {
 	type RecordsOrderBy,
 	Zc_LevelDetailDocument,
@@ -14,7 +13,8 @@ import {
 	Zc_LevelSplitAnalysisDocument,
 	Zc_LevelStatisticsDocument,
 	Zc_LevelViewerBestDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
 import type {
 	CursorPage,
 	LevelSummary,

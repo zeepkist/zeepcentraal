@@ -1,4 +1,3 @@
-import graphql from '@rollup/plugin-graphql'
 import { ADVENTURE_SERIES } from './app/utils/adventureSeries'
 import { getBuildAssetsDir } from './config/buildAssets'
 import { clientFsStub } from './config/clientFsStub'
@@ -105,11 +104,12 @@ export default defineNuxtConfig({
 		'/cosmetics': { sitemap: false },
 		'/records/me': { robots: false, sitemap: false },
 		'/settings': { robots: false, sitemap: false },
+		'/settings/**': { robots: false, sitemap: false },
 		'/sitemaps/**': { swr: 600 },
 		'/totd': { sitemap: false },
 	},
 	vite: {
-		plugins: [clientFsStub(), graphql()],
+		plugins: [clientFsStub()],
 		optimizeDeps: {
 			include: [
 				'@nuxt/content > slugify',

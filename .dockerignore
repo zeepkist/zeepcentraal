@@ -10,6 +10,7 @@
 !dist/zeepcentraal-migrate
 !dist/zeepcentraal-import-zsl
 !dist/zeepcentraal-postgraphile
+!dist/zeepcentraal-discord
 **/.DS_Store
 !packages/web/.output/
 !packages/web/.output/**

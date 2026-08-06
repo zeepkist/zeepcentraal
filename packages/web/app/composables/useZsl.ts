@@ -1,5 +1,4 @@
 import { useQuery } from '@urql/vue'
-import type { ComputedRef, Ref } from 'vue'
 import {
 	Zc_ZslLevelDocument,
 	Zc_ZslLevelResultsDocument,
@@ -8,7 +7,8 @@ import {
 	Zc_ZslSeasonDocument,
 	Zc_ZslSeasonResultsDocument,
 	Zc_ZslSeasonsDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { ComputedRef, Ref } from 'vue'
 import type { CursorPage, ZslStanding } from '~/types/app'
 import { mapZslStanding, mergeViewerStanding } from '~/utils/zslStandings'
 

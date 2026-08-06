@@ -1,10 +1,10 @@
 import { useQuery } from '@urql/vue'
-import type { MaybeRefOrGetter } from 'vue'
-import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
 import {
 	Zc_UserSuperLeagueSeasonDocument,
 	Zc_UserSuperLeagueSeasonsDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { MaybeRefOrGetter } from 'vue'
+import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
 import { buildUserSuperLeagueSummary } from '~/utils/userSuperLeague'
 
 export function useUserSuperLeague(

@@ -15,7 +15,7 @@ import {
 	ZRTM_RLS_SMOKE_QUERY,
 } from './utils/webGraphqlSmoke'
 
-const webGraphqlDirectory = fileURLToPath(new URL('../../web/app/graphql', import.meta.url))
+const webGraphqlDirectory = fileURLToPath(new URL('../../graphql/documents/web', import.meta.url))
 const publishedSchemaPath = fileURLToPath(new URL('../../graphql/schema.graphql', import.meta.url))
 
 interface SmokeLogger {

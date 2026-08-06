@@ -22,6 +22,10 @@ export const withDocumentation = new Elysia().use(
 				{ name: 'record', description: 'Authenticated GTR record submission.' },
 				{ name: 'vote', description: 'Authenticated level rating submission.' },
 				{ name: 'job', description: 'Internal background-job triggers.' },
+				{
+					name: 'discord-bot',
+					description: 'Private Discord bot state and account-link operations.',
+				},
 				{ name: 'system', description: 'Service health and operational endpoints.' },
 			],
 			components: {
@@ -55,6 +59,11 @@ export const withDocumentation = new Elysia().use(
 						type: 'http',
 						scheme: 'bearer',
 						description: 'Private service token for trusted job producers.',
+					},
+					discordBotBearerAuth: {
+						type: 'http',
+						scheme: 'bearer',
+						description: 'Private service token for ZeepCentraal Discord bot.',
 					},
 				},
 			},

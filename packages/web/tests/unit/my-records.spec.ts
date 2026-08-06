@@ -55,7 +55,10 @@ describe('record history', () => {
 			'utf8',
 		)
 		const query = readFileSync(
-			new URL('../../app/graphql/queries/recordHistory.graphql', import.meta.url),
+			new URL(
+				'../../../graphql/documents/web/queries/recordHistory.graphql',
+				import.meta.url,
+			),
 			'utf8',
 		)
 		expect(composable).toContain('useCursorPagination(25, options.namespace)')

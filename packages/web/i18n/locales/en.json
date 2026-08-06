@@ -897,7 +897,73 @@
 	"settings": {
 		"account": {
 			"title": "Account settings",
-			"description": "Additional account controls and connected-service settings will appear here."
+			"description": "Manage connected services and account preferences."
+		},
+		"discord": {
+			"overview": {
+				"title": "Discord connection",
+				"description": "Sign in to ZeepCentraal with Discord and unlock extended companion bot features.",
+				"action": "Manage Discord"
+			},
+			"page": {
+				"eyebrow": "Connected service",
+				"title": "Discord",
+				"description": "Connect your Discord account to sign in to ZeepCentraal and unlock extended companion bot features."
+			},
+			"signIn": {
+				"title": "Sign in required",
+				"description": "Sign in with Steam before connecting Discord.",
+				"action": "Sign in with Steam"
+			},
+			"account": {
+				"title": "Discord account",
+				"description": "Access your ZeepCentraal profile through Discord's user context menu, create playlists tailored to you, and more.",
+				"status": {
+					"linked": "Linked",
+					"notLinked": "Not linked"
+				},
+				"userId": "Discord user ID",
+				"unlink": "Unlink Discord",
+				"addToServer": "Add ZeepCentraal to your server"
+			},
+			"automatic": {
+				"title": "Connect automatically",
+				"description": "Continue with Discord to connect this account automatically.",
+				"action": "Continue with Discord"
+			},
+			"manual": {
+				"title": "Connect inside Discord",
+				"description": "Generate a short-lived code, then enter it with the bot's {command} command.",
+				"action": "Generate code"
+			},
+			"code": {
+				"title": "One-time code",
+				"copy": "Copy code",
+				"copied": "Copied",
+				"expiresIn": "Expires in {time}",
+				"expired": "Code expired",
+				"regenerate": "Generate another"
+			},
+			"toasts": {
+				"codeGenerationFailed": {
+					"title": "Code generation failed",
+					"description": "Sign in again, then retry."
+				},
+				"unlinked": {
+					"title": "Discord unlinked"
+				},
+				"unlinkFailed": {
+					"title": "Unlink failed",
+					"description": "Try again shortly."
+				},
+				"linked": {
+					"title": "Discord linked",
+					"description": "You can now sign in to ZeepCentraal with Discord and use extended companion bot features."
+				},
+				"linkFailed": {
+					"title": "Discord link failed"
+				}
+			}
 		}
 	},
 	"users": {

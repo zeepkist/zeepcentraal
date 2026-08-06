@@ -1,10 +1,10 @@
 import { useQuery } from '@urql/vue'
-import type { InjectionKey, Ref } from 'vue'
 import {
 	type Zc_AdventureLevelCardFragment,
 	Zc_AdventureSeriesCountsDocument,
 	Zc_AdventureSeriesDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { InjectionKey, Ref } from 'vue'
 import type { LevelSummary } from '~/types/app'
 import {
 	ADVENTURE_SERIES,

@@ -9,7 +9,7 @@ import {
 } from '../../app/utils/omniSearch'
 
 const query = readFileSync(
-	new URL('../../app/graphql/queries/search.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/search.graphql', import.meta.url),
 	'utf8',
 )
 const component = readFileSync(

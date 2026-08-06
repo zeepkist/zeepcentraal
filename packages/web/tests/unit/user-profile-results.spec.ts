@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { resolveRecordPbOrWr } from '../../app/utils/levelRecordRows'
 
 const resultsQuery = readFileSync(
-	new URL('../../app/graphql/queries/userResults.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/userResults.graphql', import.meta.url),
 	'utf8',
 )
 const contributionsQuery = readFileSync(
-	new URL('../../app/graphql/queries/userContributions.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/userContributions.graphql', import.meta.url),
 	'utf8',
 )
 const composable = readFileSync(

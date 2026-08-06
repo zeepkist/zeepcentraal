@@ -1,5 +1,6 @@
 export const OPENAPI_TAG = {
 	auth: 'auth',
+	discordBot: 'discord-bot',
 	job: 'job',
 	level: 'level',
 	record: 'record',
@@ -10,6 +11,7 @@ export const OPENAPI_TAG = {
 
 export const GTR_BEARER_SECURITY: Array<Record<string, string[]>> = [{ gtrBearerAuth: [] }]
 export const JOB_BEARER_SECURITY: Array<Record<string, string[]>> = [{ jobBearerAuth: [] }]
+export const DISCORD_BOT_SECURITY: Array<Record<string, string[]>> = [{ discordBotBearerAuth: [] }]
 export const USER_SECURITY: Array<Record<string, string[]>> = [
 	{ accessToken: [] },
 	{ webSession: [] },

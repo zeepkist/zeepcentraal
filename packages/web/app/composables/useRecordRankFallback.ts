@@ -1,6 +1,6 @@
 import { useClientHandle } from '@urql/vue'
+import { Zc_RecordPersonalBestRankDocument } from '@zeepkist/graphql/generated'
 import type { ComputedRef, Ref } from 'vue'
-import { Zc_RecordPersonalBestRankDocument } from '~/graphql/generated/graphql'
 import type { RecordHistoryRow } from '~/types/app'
 import {
 	createRecordRankResolver,

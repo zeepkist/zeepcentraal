@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { getLevelHotWindows } from '../../app/utils/levelExplorer'
 
 const query = readFileSync(
-	new URL('../../app/graphql/queries/userLevels.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/userLevels.graphql', import.meta.url),
 	'utf8',
 )
 const collection = readFileSync(

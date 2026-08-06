@@ -1,4 +1,4 @@
-import type { Zc_GhostComparisonRecordFragment } from '~/graphql/generated/graphql'
+import type { Zc_GhostComparisonRecordFragment } from '@zeepkist/graphql/generated'
 import type { GhostRecordSource } from '~/types/ghost'
 
 export function mapGhostRecordSource(record: Zc_GhostComparisonRecordFragment): GhostRecordSource {

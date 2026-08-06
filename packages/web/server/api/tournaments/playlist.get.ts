@@ -1,5 +1,5 @@
-import type { TrackTournamentFilter } from '../../../app/graphql/generated/graphql'
-import { Zc_TrackTournamentPlaylistDocument } from '../../../app/graphql/generated/graphql'
+import type { TrackTournamentFilter } from '@zeepkist/graphql/generated'
+import { Zc_TrackTournamentPlaylistDocument } from '@zeepkist/graphql/generated'
 import {
 	buildTournamentPlaylist,
 	type TournamentPlaylistLevelSource,

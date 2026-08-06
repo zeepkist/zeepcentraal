@@ -10,15 +10,18 @@ import {
 import { getUserTelemetryWindows } from '../../app/utils/userTelemetry'
 
 const profileQuery = readFileSync(
-	new URL('../../app/graphql/queries/userProfile.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/userProfile.graphql', import.meta.url),
 	'utf8',
 )
 const historyQuery = readFileSync(
-	new URL('../../app/graphql/queries/userPointsHistory.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/userPointsHistory.graphql', import.meta.url),
 	'utf8',
 )
 const secondaryHistoryQuery = readFileSync(
-	new URL('../../app/graphql/queries/userPointsHistorySecondary.graphql', import.meta.url),
+	new URL(
+		'../../../graphql/documents/web/queries/userPointsHistorySecondary.graphql',
+		import.meta.url,
+	),
 	'utf8',
 )
 const profileComposable = readFileSync(
@@ -34,7 +37,7 @@ const summaryComposable = readFileSync(
 	'utf8',
 )
 const statisticsQuery = readFileSync(
-	new URL('../../app/graphql/queries/userStatistics.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/userStatistics.graphql', import.meta.url),
 	'utf8',
 )
 const page = readFileSync(

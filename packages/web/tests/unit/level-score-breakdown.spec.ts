@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const query = readFileSync(
-	new URL('../../app/graphql/queries/levelDetail.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levelDetail.graphql', import.meta.url),
 	'utf8',
 )
 const page = readFileSync(

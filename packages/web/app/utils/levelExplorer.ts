@@ -1,4 +1,4 @@
-import type { LevelFilter, LevelsOrderBy } from '~/graphql/generated/graphql'
+import type { LevelFilter, LevelsOrderBy } from '@zeepkist/graphql/generated'
 
 export const LEVEL_POINTS_MIN = 0
 export const LEVEL_POINTS_MAX = 9984

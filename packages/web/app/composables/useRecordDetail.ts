@@ -1,6 +1,6 @@
 import { useQuery } from '@urql/vue'
+import { Zc_RecordDetailDocument } from '@zeepkist/graphql/generated'
 import type { Ref } from 'vue'
-import { Zc_RecordDetailDocument } from '~/graphql/generated/graphql'
 import type { GhostRecordSource } from '~/types/ghost'
 import { mapGhostRecordSource } from '~/utils/ghostRecordSource'
 

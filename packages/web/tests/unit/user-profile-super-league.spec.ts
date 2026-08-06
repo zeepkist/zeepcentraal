@@ -6,7 +6,7 @@ import {
 } from '../../app/utils/userSuperLeague'
 
 const query = readFileSync(
-	new URL('../../app/graphql/queries/userSuperLeague.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/userSuperLeague.graphql', import.meta.url),
 	'utf8',
 )
 const component = readFileSync(

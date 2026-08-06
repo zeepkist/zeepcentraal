@@ -1,5 +1,5 @@
 import { useQuery } from '@urql/vue'
-import { Zc_UserProfileDocument } from '~/graphql/generated/graphql'
+import { Zc_UserProfileDocument } from '@zeepkist/graphql/generated'
 import type { UserProfileSummary } from '~/types/app'
 import { buildVoteDistributionCounts } from '~/utils/voteDistribution'
 

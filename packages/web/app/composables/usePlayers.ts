@@ -3,7 +3,7 @@ import {
 	type UserPointFilter,
 	type UserPointsOrderBy,
 	Zc_UsersDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
 import type { CursorPage, UserSummary } from '~/types/app'
 
 export const USER_SORTS = {

@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { getLevelDisplayName, LEVEL_HASH_DISPLAY_LENGTH } from '../../app/utils/levelDisplay'
 
 const query = (name: string) =>
-	readFileSync(new URL(`../../app/graphql/queries/${name}.graphql`, import.meta.url), 'utf8')
+	readFileSync(
+		new URL(`../../../graphql/documents/web/queries/${name}.graphql`, import.meta.url),
+		'utf8',
+	)
 const source = (path: string) => readFileSync(new URL(`../../app/${path}`, import.meta.url), 'utf8')
 
 describe('private level metadata presentation', () => {

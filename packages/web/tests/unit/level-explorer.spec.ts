@@ -11,11 +11,11 @@ import {
 } from '../../app/utils/levelExplorer'
 
 const levelsQuery = readFileSync(
-	new URL('../../app/graphql/queries/levels.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/levels.graphql', import.meta.url),
 	'utf8',
 )
 const usersQuery = readFileSync(
-	new URL('../../app/graphql/queries/users.graphql', import.meta.url),
+	new URL('../../../graphql/documents/web/queries/users.graphql', import.meta.url),
 	'utf8',
 )
 const composable = readFileSync(

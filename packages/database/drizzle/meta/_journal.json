@@ -498,6 +498,34 @@
 			"when": 1785641402278,
 			"tag": "0071_backfill_player_score_contributions",
 			"breakpoints": true
+		},
+		{
+			"idx": 72,
+			"version": "7",
+			"when": 1785981727058,
+			"tag": "0072_loving_norrin_radd",
+			"breakpoints": true
+		},
+		{
+			"idx": 73,
+			"version": "7",
+			"when": 1785987059260,
+			"tag": "0073_lean_jimmy_woo",
+			"breakpoints": true
+		},
+		{
+			"idx": 74,
+			"version": "7",
+			"when": 1786029318719,
+			"tag": "0074_disable_discord_activity_many_to_many",
+			"breakpoints": true
+		},
+		{
+			"idx": 75,
+			"version": "7",
+			"when": 1786030006548,
+			"tag": "0075_name_discord_activity_reverse_relations",
+			"breakpoints": true
 		}
 	]
 }

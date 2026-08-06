@@ -1,5 +1,5 @@
+import type { Zc_LevelStatisticsQuery } from '@zeepkist/graphql/generated'
 import type { Ref } from 'vue'
-import type { Zc_LevelStatisticsQuery } from '~/graphql/generated/graphql'
 import type {
 	DashboardChartEntry,
 	DashboardStatisticsMetric,

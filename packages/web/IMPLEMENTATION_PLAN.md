@@ -3,7 +3,7 @@
 ## Foundation
 
 - [x] Keep pages/composables responsible for requests; components receive typed data only.
-- [x] Use generated GraphQL documents from `app/graphql/queries` and `app/graphql/subscriptions`.
+- [x] Use generated GraphQL documents from `packages/graphql/documents/web`.
 - [x] Use cursor pagination with exact `first`/`last` values; never use `offset`.
 - [x] Seed live panels through SSR, then subscribe after hydration.
 - [x] Keep all interface copy in `i18n/locales/en.json`.

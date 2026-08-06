@@ -1,6 +1,7 @@
 import type { Inflector, PgTable } from '../types'
 import {
 	getRelation,
+	getTaggedForeignRelationFieldName,
 	getTaggedRelationFieldName,
 	type PgRelationDetails,
 	pluralProperNounFieldName,
@@ -21,14 +22,16 @@ const pluralProperNounRelationFieldRenames = new Map([
 	['levelPoint', 'levelPoints'],
 ])
 
-const relationFieldName = (details: PgRelationDetails) => {
+const relationFieldName = (details: PgRelationDetails, backwards = false) => {
 	const relation = getRelation(details)
 	if (!relation) {
 		return undefined
 	}
 
 	return (
-		getTaggedRelationFieldName(relation) ??
+		(backwards
+			? getTaggedForeignRelationFieldName(relation)
+			: getTaggedRelationFieldName(relation)) ??
 		pluralProperNounFieldName(relation.remoteResource.codec)
 	)
 }
@@ -133,7 +136,7 @@ const PgFixForeignKeyNamesPlugin: GraphileConfig.Plugin = {
 				_options: GraphileConfig.ResolvedPreset,
 				details: PgRelationDetails,
 			) {
-				return relationFieldName(details) ?? previous?.(details) ?? ''
+				return relationFieldName(details, true) ?? previous?.(details) ?? ''
 			},
 			_manyRelation(
 				this: Inflector,

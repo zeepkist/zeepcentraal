@@ -1,9 +1,9 @@
 import { useQuery } from '@urql/vue'
-import ZcLeaderboardsQuery from '~/graphql/queries/leaderboards.graphql'
+import { Zc_LeaderboardsDocument } from '@zeepkist/graphql/generated'
 
 export function useLeaderboards(first = 10) {
 	return useQuery({
-		query: ZcLeaderboardsQuery,
+		query: Zc_LeaderboardsDocument,
 		variables: { first },
 	})
 }

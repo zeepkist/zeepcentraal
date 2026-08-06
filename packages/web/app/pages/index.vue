@@ -4,7 +4,7 @@
 			v-if="authVerificationFailed"
 			data-testid="auth-verification-error"
 			color="error"
-			icon="i-lucide-circle-alert"
+			icon="i-tabler-alert-circle"
 			:title="$t('auth.verificationFailed.title')"
 			:description="$t('auth.verificationFailed.description')"
 		/>

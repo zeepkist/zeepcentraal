@@ -26,6 +26,7 @@ const serverEnvSchema = z.object({
 	DISCORD_CLIENT_ID: z.string().optional(),
 	DISCORD_CLIENT_SECRET: z.string().optional(),
 	DISCORD_REDIRECT_URI: z.string().optional(),
+	DISCORD_BOT_API_TOKEN: z.string().min(32).optional(),
 	FRONTEND_URL: z.string().default('http://localhost:4000'),
 	BACKEND_URL: z.string().default('http://localhost:3000'),
 	CORS_ALLOWED_ORIGINS: z.string().optional(),
@@ -47,12 +48,18 @@ export function parseServerConfig(env: EnvSource) {
 	const triggerJobToken =
 		parsedEnv.TRIGGER_JOB_TOKEN ??
 		(parsedEnv.NODE_ENV === 'test' ? 'trigger-token' : parsedEnv.TRIGGER_JOB_TOKEN)
+	const discordBotApiToken =
+		parsedEnv.DISCORD_BOT_API_TOKEN ??
+		(parsedEnv.NODE_ENV === 'test' ? 'discord-bot-api-token'.padEnd(32, 'x') : undefined)
 
 	if (!jwtSecret) {
 		throw new Error('JWT_SECRET is required')
 	}
 	if (!triggerJobToken) {
 		throw new Error('TRIGGER_JOB_TOKEN is required')
+	}
+	if (!discordBotApiToken) {
+		throw new Error('DISCORD_BOT_API_TOKEN is required')
 	}
 
 	requireStrongProductionSecrets({
@@ -86,6 +93,7 @@ export function parseServerConfig(env: EnvSource) {
 			clientId: parsedEnv.DISCORD_CLIENT_ID,
 			clientSecret: parsedEnv.DISCORD_CLIENT_SECRET,
 			redirectUri: parsedEnv.DISCORD_REDIRECT_URI,
+			botApiToken: discordBotApiToken,
 		},
 		frontendUrl: parsedEnv.FRONTEND_URL,
 		backendUrl: parsedEnv.BACKEND_URL,

@@ -1,12 +1,12 @@
 import { useQuery, useSubscription } from '@urql/vue'
-import type { Ref } from 'vue'
-import type { Zc_TrackTournamentSummaryFragment } from '~/graphql/generated/graphql'
+import type { Zc_TrackTournamentSummaryFragment } from '@zeepkist/graphql/generated'
 import {
 	Zc_TrackTournamentDetailDocument,
 	Zc_TrackTournamentIndexDocument,
 	Zc_TrackTournamentLiveDocument,
 	Zc_TrackTournamentNavigationDocument,
-} from '~/graphql/generated/graphql'
+} from '@zeepkist/graphql/generated'
+import type { Ref } from 'vue'
 import type {
 	TournamentNavigation,
 	TournamentStanding,

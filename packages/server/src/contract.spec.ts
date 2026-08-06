@@ -53,6 +53,7 @@ const state = {
 	canonicalLevelRequests: [] as Array<{ hash: string; xxHash: string; adventure: boolean }>,
 	canonicalInsertMissingLevel: false,
 	updatedDiscordIds: [] as Array<{ steamId: string; discordId: bigint | null }>,
+	discordLinkCodes: [] as Array<{ codeHash: string; idUser: number; expiresAt: string }>,
 	mediaSchedules: [] as Array<{ idRecord: number; ghostData: string }>,
 	recordStatistics: [] as Array<Record<string, unknown> | undefined>,
 	voteUpserts: [] as Array<{ idUser: number; idLevel: number; value: number }>,
@@ -149,6 +150,7 @@ function resetState() {
 	state.canonicalLevelRequests = []
 	state.canonicalInsertMissingLevel = false
 	state.updatedDiscordIds = []
+	state.discordLinkCodes = []
 	state.mediaSchedules = []
 	state.recordStatistics = []
 	state.voteUpserts = []
@@ -236,6 +238,7 @@ const mockServerConfig = {
 		clientId: 'discord-client-id',
 		clientSecret: 'discord-client-secret',
 		redirectUri: 'http://localhost:3000/auth/discord/callback',
+		botApiToken: 'discord-bot-api-token-for-contract-tests',
 	},
 	steam: {
 		appId: '1440670',
@@ -334,6 +337,42 @@ mock.module('@zeepkist/database', () => ({
 }))
 
 mock.module('@zeepkist/database/services', () => ({
+	DISCORD_FEED_KINDS: ['workshop', 'world_record', 'rank', 'totw', 'totm'],
+	DISCORD_WATCH_KINDS: ['player', 'level', 'author', 'tournament'],
+	addDiscordWatch: async () => null,
+	advanceDiscordGuildFeedCursor: async () => null,
+	advanceDiscordWorkerCursor: async () => null,
+	consumeDiscordLinkCode: async () => ({ status: 'linked', idUser: 1 }),
+	consumeDiscordOAuthLinkState: async () => ({ status: 'linked', idUser: 1 }),
+	createDiscordLinkCode: async (input: {
+		codeHash: string
+		idUser: number
+		expiresAt: string
+	}) => {
+		state.discordLinkCodes.push(input)
+		return input
+	},
+	createDiscordOAuthLinkState: async () => null,
+	getDiscordGuildState: async () => ({
+		config: null,
+		feeds: [],
+		digest: null,
+		tournamentMessages: [],
+	}),
+	getDiscordDelivery: async () => null,
+	getDiscordWorkerCursor: async () => ({ key: 'watch-events', cursorEventId: 0n }),
+	getMatchingDiscordWatches: async () => [],
+	getDiscordUserState: async () => ({ linkedUser: null, preference: null, watches: [] }),
+	removeDiscordWatch: async () => null,
+	setDiscordDelivery: async () => null,
+	setDiscordDigest: async () => null,
+	setDiscordGuildFeed: async () => null,
+	setDiscordGuildLinkedRole: async () => null,
+	setDiscordTournamentMessage: async () => null,
+	setDiscordUserPreference: async () => null,
+	updateDiscordWatchDelivery: async () => null,
+	unlinkDiscordByDiscordId: async () => null,
+	unlinkDiscordBySteamId: async () => null,
 	isModOutdated: async () => state.versionOutdated,
 	getOrInsertUser: async (steamId: bigint, steamName?: string) => {
 		state.getOrInsertUserCalls.push({ steamId, steamName })
@@ -561,12 +600,13 @@ test('OpenAPI document groups every public operation by category', async () => {
 	}
 
 	const documentedTags = new Map(document.tags?.map((tag) => [tag.name, tag.description]))
-	for (const tag of ['auth', 'user', 'level', 'record', 'vote', 'job', 'system']) {
+	for (const tag of ['auth', 'discord-bot', 'user', 'level', 'record', 'vote', 'job', 'system']) {
 		expect(documentedTags.get(tag)).toBeTruthy()
 	}
 
 	expect(Object.keys(document.components?.securitySchemes ?? {}).sort()).toEqual([
 		'accessToken',
+		'discordBotBearerAuth',
 		'gtrBearerAuth',
 		'jobBearerAuth',
 		'webRefreshSession',
@@ -1543,7 +1583,7 @@ test('vote/submit rejects legacy Level-only body', async () => {
 	expect(state.voteUpserts).toEqual([])
 })
 
-test('user/updateDiscordId returns 200 and links discord id', async () => {
+test('user/updateDiscordId rejects unverified positive Discord IDs', async () => {
 	const response = await send('/user/updateDiscordId', {
 		method: 'POST',
 		headers: {
@@ -1555,11 +1595,14 @@ test('user/updateDiscordId returns 200 and links discord id', async () => {
 		}),
 	})
 
-	expect(response.status).toBe(200)
-	expect(await response.text()).toBe('')
-	expect(state.updatedDiscordIds).toEqual([
-		{ steamId: '12345678901234567', discordId: 76561198000000000n },
-	])
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: {
+			code: 'discord_ownership_required',
+			message: 'Positive Discord IDs require OAuth or one-time code verification.',
+		},
+	})
+	expect(state.updatedDiscordIds).toEqual([])
 })
 
 test('user/updateDiscordId returns 200 and unlinks discord id when Id is -1', async () => {
@@ -1577,6 +1620,36 @@ test('user/updateDiscordId returns 200 and unlinks discord id when Id is -1', as
 	expect(response.status).toBe(200)
 	expect(await response.text()).toBe('')
 	expect(state.updatedDiscordIds).toEqual([{ steamId: '12345678901234567', discordId: -1n }])
+})
+
+test('user/discord/link-code creates an expiring one-time code for authenticated user', async () => {
+	const response = await send('/user/discord/link-code', {
+		method: 'POST',
+		headers: { authorization: 'Bearer steam-valid' },
+	})
+
+	expect(response.status).toBe(200)
+	const body = (await readBody(response)) as { code: string; expiresAt: string }
+	expect(body.code).toMatch(/^[0-9]{8}$/)
+	expect(new Date(body.expiresAt).getTime()).toBeGreaterThan(Date.now())
+	expect(state.discordLinkCodes).toHaveLength(1)
+	expect(state.discordLinkCodes[0]?.codeHash).not.toContain(body.code)
+})
+
+test('discord-bot routes require dedicated bearer token', async () => {
+	const denied = await send('/discord-bot/guilds/123')
+	expect(denied.status).toBe(401)
+
+	const allowed = await send('/discord-bot/guilds/123', {
+		headers: { authorization: 'Bearer discord-bot-api-token-for-contract-tests' },
+	})
+	expect(allowed.status).toBe(200)
+	expect(await readBody(allowed)).toEqual({
+		config: null,
+		feeds: [],
+		digest: null,
+		tournamentMessages: [],
+	})
 })
 
 test('job/trigger returns 200 and enqueues a compatible task', async () => {

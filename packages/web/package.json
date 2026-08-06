@@ -12,9 +12,9 @@
 		"postinstall": "bun run prepare:nuxt",
 		"prepare:nuxt": "bun --bun nuxt prepare",
 		"generate:block-meshes": "bun scripts/generate-block-mesh-manifest.ts",
-		"codegen": "bun --bun graphql-codegen --config codegen.ts",
+		"codegen": "bun --cwd=../graphql run codegen",
 		"typecheck": "nuxt typecheck",
-		"test": "bun --bun vitest run",
+		"test": "bun --bun vitest run --silent=passed-only",
 		"test:e2e": "bun --bun playwright test"
 	},
 	"dependencies": {
@@ -25,7 +25,6 @@
 		"@nuxtjs/i18n": "~10.5.0",
 		"@nuxtjs/seo": "~5.3.6",
 		"@pinia/nuxt": "~1.0.0",
-		"@rollup/plugin-graphql": "~3.0.0",
 		"@tabler/icons-vue": "~3.45.0",
 		"@takumi-rs/core": "~2.4.0",
 		"@unhead/vue": "~3.2.3",
@@ -34,6 +33,7 @@
 		"@vueuse/core": "~14.4.0",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
+		"@zeepkist/graphql": "workspace:*",
 		"better-sqlite3": "~13.0.0",
 		"graphql": "~17.0.2",
 		"graphql-ws": "~6.2.0",
@@ -51,9 +51,6 @@
 	},
 	"devDependencies": {
 		"@golar/vue": "~0.1.10",
-		"@graphql-codegen/cli": "~7.2.0",
-		"@graphql-codegen/client-preset": "~6.1.0",
-		"@iconify-json/lucide": "~1.2.118",
 		"@iconify-json/tabler": "~1.2.38",
 		"@playwright/test": "~1.62.0",
 		"@types/sanitize-html": "~2.16.1",

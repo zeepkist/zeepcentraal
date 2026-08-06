@@ -7,7 +7,10 @@ import {
 } from '../../app/utils/voteDistribution'
 
 const queryFiles = ['levelDetail.graphql', 'userProfile.graphql'].map((name) =>
-	readFileSync(new URL(`../../app/graphql/queries/${name}`, import.meta.url), 'utf8'),
+	readFileSync(
+		new URL(`../../../graphql/documents/web/queries/${name}`, import.meta.url),
+		'utf8',
+	),
 )
 const chart = readFileSync(
 	new URL('../../app/components/common/VoteDistributionChart.vue', import.meta.url),

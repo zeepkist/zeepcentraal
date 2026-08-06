@@ -110,11 +110,17 @@ describe('record rank fallback', () => {
 
 	it('uses a count-only query and requests current level points', () => {
 		const rankQuery = readFileSync(
-			new URL('../../app/graphql/queries/recordPersonalBestRank.graphql', import.meta.url),
+			new URL(
+				'../../../graphql/documents/web/queries/recordPersonalBestRank.graphql',
+				import.meta.url,
+			),
 			'utf8',
 		)
 		const historyQuery = readFileSync(
-			new URL('../../app/graphql/queries/recordHistory.graphql', import.meta.url),
+			new URL(
+				'../../../graphql/documents/web/queries/recordHistory.graphql',
+				import.meta.url,
+			),
 			'utf8',
 		)
 
