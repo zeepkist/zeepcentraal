@@ -54,7 +54,7 @@ export type GenerateAccessTokenInput = {
 
 const signer = createSigner({
 	key: config.jwt.secret,
-	expiresIn: Math.floor(config.jwt.accessTtlMs / 1_000),
+	expiresIn: config.jwt.accessTtlMs,
 })
 
 const verifier = createVerifier({

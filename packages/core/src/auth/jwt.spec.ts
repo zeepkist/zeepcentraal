@@ -42,6 +42,7 @@ test('generateAccessToken emits V1-compatible claims for gtr provider', () => {
 	expect(typeof payload.jti).toBe('string')
 	expect(typeof payload.iat).toBe('number')
 	expect(typeof payload.exp).toBe('number')
+	expect((payload.exp as number) - (payload.iat as number)).toBe(15 * 60)
 })
 
 test('generateAccessToken emits discordid for discord provider', () => {
