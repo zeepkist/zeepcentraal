@@ -12,6 +12,24 @@ import { createClient as createWsClient, type Client as WsClient } from 'graphql
 import WebSocket from 'ws'
 import type { DiscordActivityEvent, DiscordBotConfig, LinkedUser } from './types'
 
+type DiscordActivityEventResponse = Omit<DiscordActivityEvent, 'payload'> & {
+	payload: unknown
+}
+
+function activityEventPayload(value: unknown): Record<string, unknown> | null {
+	let payload = value
+	if (typeof payload === 'string') {
+		try {
+			payload = JSON.parse(payload)
+		} catch {
+			return null
+		}
+	}
+	return payload !== null && typeof payload === 'object' && !Array.isArray(payload)
+		? (payload as Record<string, unknown>)
+		: null
+}
+
 const activityEventsDocument = gql`
 	query DiscordActivityEvents($after: BigInt!, $first: Int!) {
 		discordActivityEvents(
@@ -36,6 +54,7 @@ const activityEventsDocument = gql`
 						nodes { name imageUrl workshopId author { id steamId steamName discordId } }
 					}
 					levelPoints { points rating }
+					personalBestGlobals(first: 0) { totalCount }
 				}
 				user { id steamId steamName discordId }
 				previousUser { id steamId steamName discordId }
@@ -247,11 +266,13 @@ export class ZeepGraphqlClient {
 	}
 
 	async activityEvents(after: string, first = 100) {
-		const data = await this.query<{ discordActivityEvents: { nodes: DiscordActivityEvent[] } }>(
-			activityEventsDocument,
-			{ after, first },
-		)
-		return data.discordActivityEvents.nodes
+		const data = await this.query<{
+			discordActivityEvents: { nodes: DiscordActivityEventResponse[] }
+		}>(activityEventsDocument, { after, first })
+		return data.discordActivityEvents.nodes.map((event) => ({
+			...event,
+			payload: activityEventPayload(event.payload),
+		}))
 	}
 
 	subscribeToActivityEvents(onChange: () => void) {
@@ -263,6 +284,10 @@ export class ZeepGraphqlClient {
 			.subscribe((result) => {
 				if (!result.error && result.data) onChange()
 			})
+	}
+
+	restartLiveConnection() {
+		this.wsClient.terminate()
 	}
 
 	async usersByIds(ids: number[]) {

@@ -84,6 +84,7 @@ export function createMockContext(
 		query: mock(async () => ({})),
 		activityEvents: mock(async () => []),
 		subscribeToActivityEvents: mock(() => ({ unsubscribe: mock(() => {}) })),
+		restartLiveConnection: mock(() => {}),
 		usersByIds: mock(async () => new Map()),
 		userStats: mock(async () => ({})),
 		modVersions: mock(async () => ({ versions: { nodes: [] }, records: { nodes: [] } })),

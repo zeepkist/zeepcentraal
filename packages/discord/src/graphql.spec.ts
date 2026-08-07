@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'bun:test'
 import type { Client as UrqlClient } from '@urql/core'
-import { buildSchema, parse, validate } from 'graphql'
+import { buildSchema, parse, print, validate } from 'graphql'
 import type { Client as WsClient } from 'graphql-ws'
 import { testConfig } from '../test/mocks'
 import {
@@ -25,7 +25,12 @@ function createHarness(results: Array<{ data?: unknown; error?: unknown }> = [])
 	}))
 	const urqlClient = { query, subscription } as unknown as UrqlClient
 	const dispose = mock(() => {})
-	const wsClient = { dispose, subscribe: mock(() => mock(() => {})) } as unknown as WsClient
+	const terminate = mock(() => {})
+	const wsClient = {
+		dispose,
+		subscribe: mock(() => mock(() => {})),
+		terminate,
+	} as unknown as WsClient
 	let clientOptions: Record<string, unknown> | undefined
 	let wsOptions: Record<string, unknown> | undefined
 	const client = new ZeepGraphqlClient(testConfig, {
@@ -46,6 +51,7 @@ function createHarness(results: Array<{ data?: unknown; error?: unknown }> = [])
 		subscription,
 		subscriptionListener: () => subscriptionListener,
 		subscriptionResult,
+		terminate,
 		wsOptions: () => wsOptions,
 	}
 }
@@ -124,7 +130,7 @@ test('activity event query and live subscription map backend results', async () 
 		previousUserId: null,
 		recordId: null,
 		previousRecordId: null,
-		payload: null,
+		payload: '{"value":1}',
 		occurredAt: '2026-08-06T00:00:00Z',
 		level: null,
 		user: null,
@@ -133,7 +139,12 @@ test('activity event query and live subscription map backend results', async () 
 		previousRecord: null,
 	} as const
 	const harness = createHarness([{ data: { discordActivityEvents: { nodes: [event] } } }])
-	expect(await harness.client.activityEvents('4', 25)).toEqual([event])
+	expect(await harness.client.activityEvents('4', 25)).toEqual([
+		{ ...event, payload: { value: 1 } },
+	])
+	expect(print(harness.query.mock.calls[0]?.[0] as never)).toContain(
+		'personalBestGlobals(first: 0)',
+	)
 	expect(harness.query.mock.calls[0]?.[1]).toEqual({ after: '4', first: 25 })
 	const onChange = mock(() => {})
 	const live = harness.client.subscribeToActivityEvents(onChange)
@@ -142,6 +153,31 @@ test('activity event query and live subscription map backend results', async () 
 	harness.subscriptionListener()?.({ data: { discordActivityEvents: { nodes: [] } } })
 	expect(onChange).toHaveBeenCalledTimes(1)
 	expect(live).toBe(harness.subscriptionResult)
+	harness.client.restartLiveConnection()
+	expect(harness.terminate).toHaveBeenCalledTimes(1)
+})
+
+test('activity event query safely normalizes object and malformed payloads', async () => {
+	const harness = createHarness([
+		{
+			data: {
+				discordActivityEvents: {
+					nodes: [
+						{ id: '1', payload: { changes: [] } },
+						{ id: '2', payload: 'not-json' },
+						{ id: '3', payload: '[]' },
+					],
+				},
+			},
+		},
+	])
+	expect(
+		(await harness.client.activityEvents('0')).map(({ id, payload }) => ({ id, payload })),
+	).toEqual([
+		{ id: '1', payload: { changes: [] } },
+		{ id: '2', payload: null },
+		{ id: '3', payload: null },
+	])
 })
 
 test('usersByIds skips empty requests, deduplicates, and batches by 100', async () => {

@@ -67,6 +67,7 @@ export type DiscordActivityEvent = {
 			}>
 		}
 		levelPoints: { points: number; rating: number } | null
+		personalBestGlobals: { totalCount: number }
 	} | null
 	user: LinkedUser | null
 	previousUser: LinkedUser | null
