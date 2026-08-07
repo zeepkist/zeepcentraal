@@ -22,6 +22,7 @@ import {
 import { FeedService } from './feeds'
 import { errorEmbed } from './format'
 import { ZeepGraphqlClient } from './graphql'
+import { waitForDiscordDependencies } from './readiness'
 import type { DiscordBotConfig } from './types'
 
 type BufferUtil = typeof import('bufferutil')
@@ -58,6 +59,7 @@ export type DiscordRuntimeDependencies = {
 	onSignal: (signal: 'SIGINT' | 'SIGTERM', listener: () => void) => void
 	parseConfig: (env: NodeJS.ProcessEnv) => DiscordBotConfig
 	serve: (options: HealthServerOptions) => HealthServer
+	waitForDependencies: typeof waitForDiscordDependencies
 }
 
 export function createProductionDiscordDependencies(): DiscordRuntimeDependencies {
@@ -82,6 +84,7 @@ export function createProductionDiscordDependencies(): DiscordRuntimeDependencie
 		onSignal: (signal, listener) => process.on(signal, listener),
 		parseConfig: (env) => parseDiscordBotConfig(env) as DiscordBotConfig,
 		serve: (options) => Bun.serve(options),
+		waitForDependencies: waitForDiscordDependencies,
 	}
 }
 
@@ -162,10 +165,12 @@ export function createDiscordRuntime(
 		runtime: dependencies.createCommandRuntime(),
 	}
 	const feeds = dependencies.createFeeds(client, context)
+	const startupController = new AbortController()
 	let ready = false
 	let stopping = false
 
 	client.once(Events.ClientReady, (connected) => {
+		if (stopping) return
 		ready = true
 		dependencies.log(
 			`Discord connected as ${connected.user.tag} in ${connected.guilds.cache.size} guilds`,
@@ -239,6 +244,7 @@ export function createDiscordRuntime(
 		if (stopping) return
 		stopping = true
 		dependencies.log(`Received ${signal}; stopping Discord bot`)
+		startupController.abort()
 		ready = false
 		feeds.stop()
 		healthServer.stop(true)
@@ -247,10 +253,17 @@ export function createDiscordRuntime(
 	}
 
 	const start = async () => {
-		await registerCommands(config, dependencies)
-		await client.login(config.botToken)
 		dependencies.onSignal('SIGINT', () => void stop('SIGINT'))
 		dependencies.onSignal('SIGTERM', () => void stop('SIGTERM'))
+		const dependenciesReady = await dependencies.waitForDependencies({
+			config,
+			log: dependencies.log,
+			signal: startupController.signal,
+		})
+		if (!dependenciesReady || stopping) return
+		await registerCommands(config, dependencies)
+		if (stopping) return
+		await client.login(config.botToken)
 	}
 
 	return { client, context, start, stop }

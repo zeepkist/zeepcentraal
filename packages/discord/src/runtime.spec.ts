@@ -115,6 +115,7 @@ function createDependencies(
 			healthOptions = options
 			return health
 		}),
+		waitForDependencies: mock(async () => true),
 		...overrides,
 	}
 	return {
@@ -234,6 +235,18 @@ test('runtime exposes starting/ready health, starts feeds, registers, and shuts 
 	expect(await response?.json()).toMatchObject({ status: 'starting', discord: false, guilds: 0 })
 	response = await options?.fetch(new Request('http://localhost/other'))
 	expect(response?.status).toBe(404)
+	await runtime.start()
+	expect(harness.dependencies.waitForDependencies).toHaveBeenCalledWith({
+		config: testConfig,
+		log: harness.dependencies.log,
+		signal: expect.any(AbortSignal),
+	})
+	expect(harness.rest.put).toHaveBeenCalledTimes(1)
+	expect(harness.clientHarness.login).toHaveBeenCalledWith('bot-token')
+	expect(harness.signals.has('SIGINT')).toBe(true)
+	expect(harness.signals.has('SIGTERM')).toBe(true)
+	response = await options?.fetch(new Request('http://localhost/ready'))
+	expect(response?.status).toBe(503)
 	await harness.clientHarness.onceHandlers.get(Events.ClientReady)?.({
 		user: { tag: 'ZeepCentraal#6919' },
 		guilds: { cache: new Map([['guild', {}]]) },
@@ -242,11 +255,6 @@ test('runtime exposes starting/ready health, starts feeds, registers, and shuts 
 	response = await options?.fetch(new Request('http://localhost/ready'))
 	expect(response?.status).toBe(200)
 	expect(await response?.json()).toMatchObject({ status: 'ok', discord: true })
-	await runtime.start()
-	expect(harness.rest.put).toHaveBeenCalledTimes(1)
-	expect(harness.clientHarness.login).toHaveBeenCalledWith('bot-token')
-	expect(harness.signals.has('SIGINT')).toBe(true)
-	expect(harness.signals.has('SIGTERM')).toBe(true)
 	harness.signals.get('SIGINT')?.()
 	harness.signals.get('SIGTERM')?.()
 	await new Promise((resolve) => setTimeout(resolve, 0))
@@ -256,6 +264,64 @@ test('runtime exposes starting/ready health, starts feeds, registers, and shuts 
 	expect(harness.health.stop).toHaveBeenCalledWith(true)
 	expect(harness.graphql.dispose).toHaveBeenCalledTimes(1)
 	expect(harness.clientHarness.destroy).toHaveBeenCalledTimes(1)
+})
+
+test('runtime keeps commands and login gated until dependency preflight completes', async () => {
+	let releaseReadiness!: (ready: boolean) => void
+	const readiness = new Promise<boolean>((resolve) => {
+		releaseReadiness = resolve
+	})
+	const harness = createDependencies({
+		waitForDependencies: mock(async () => readiness),
+	})
+	const runtime = createDiscordRuntime(testConfig, harness.dependencies)
+	const starting = runtime.start()
+	await new Promise((resolve) => setTimeout(resolve, 0))
+
+	expect(harness.signals.has('SIGINT')).toBe(true)
+	expect(harness.signals.has('SIGTERM')).toBe(true)
+	expect(harness.rest.put).not.toHaveBeenCalled()
+	expect(harness.clientHarness.login).not.toHaveBeenCalled()
+	const response = await harness.healthOptions()?.fetch(new Request('http://localhost/ready'))
+	expect(response?.status).toBe(503)
+
+	releaseReadiness(true)
+	await starting
+	expect(harness.rest.put).toHaveBeenCalledTimes(1)
+	expect(harness.clientHarness.login).toHaveBeenCalledTimes(1)
+})
+
+test('runtime shutdown aborts dependency preflight and never starts Discord', async () => {
+	const harness = createDependencies({
+		waitForDependencies: mock(
+			async ({ signal }) =>
+				new Promise<boolean>((resolve) => {
+					if (signal.aborted) {
+						resolve(false)
+						return
+					}
+					signal.addEventListener('abort', () => resolve(false), { once: true })
+				}),
+		),
+	})
+	const runtime = createDiscordRuntime(testConfig, harness.dependencies)
+	const starting = runtime.start()
+	await new Promise((resolve) => setTimeout(resolve, 0))
+	harness.signals.get('SIGTERM')?.()
+	await starting
+	await new Promise((resolve) => setTimeout(resolve, 0))
+
+	expect(harness.rest.put).not.toHaveBeenCalled()
+	expect(harness.clientHarness.login).not.toHaveBeenCalled()
+	expect(harness.feeds.stop).toHaveBeenCalledTimes(1)
+	expect(harness.health.stop).toHaveBeenCalledWith(true)
+	expect(harness.graphql.dispose).toHaveBeenCalledTimes(1)
+	expect(harness.clientHarness.destroy).toHaveBeenCalledTimes(1)
+	await harness.clientHarness.onceHandlers.get(Events.ClientReady)?.({
+		user: { tag: 'ZeepCentraal#6919' },
+		guilds: { cache: new Map() },
+	} as never)
+	expect(harness.feeds.start).not.toHaveBeenCalled()
 })
 
 function interaction(kind: string, overrides: Record<string, unknown> = {}) {
@@ -398,6 +464,7 @@ test('production dependency factory builds concrete adapters without external I/
 	expect(dependencies.createCommandRuntime()).toBeDefined()
 	expect(dependencies.createFeeds(client, {} as never)).toBeDefined()
 	expect(dependencies.createRest('token')).toBeDefined()
+	expect(dependencies.waitForDependencies).toBeFunction()
 	const compressed = dependencies.deflate(new TextEncoder().encode('test'))
 	expect(new TextDecoder().decode(dependencies.inflate(compressed))).toBe('test')
 	expect((await dependencies.loadBufferUtil()).mask).toBeFunction()

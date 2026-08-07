@@ -60,6 +60,9 @@ bun run build:discord
 ```
 
 Production image uses `Dockerfile.discord`. Health probes: `/health` and `/ready` on port 6000.
+Both return `503` during startup until configured public backend `/healthz` and GraphQL `/readyz`
+routes are healthy and Discord gateway is ready. Dependency probes retry every 5 seconds without a
+startup deadline; command registration and gateway login wait for both routes.
 
 ## Commands
 
