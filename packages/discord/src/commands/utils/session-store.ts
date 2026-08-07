@@ -1,8 +1,17 @@
+import type { APIActionRowComponent, APIButtonComponent, APIEmbed } from 'discord.js'
+
+export type Page = {
+	components?: APIActionRowComponent<APIButtonComponent>[]
+	description: string
+	embed?: APIEmbed
+	title: string
+}
+
 export type PageSession = {
 	expiresAt: number
 	ownerId: string
 	page: number
-	pages: Array<{ description: string; title: string }>
+	pages: Page[]
 }
 
 export type PlaylistSession = {

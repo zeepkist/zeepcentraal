@@ -1,5 +1,8 @@
 import {
 	ActionRowBuilder,
+	type APIActionRowComponent,
+	type APIButtonComponent,
+	type APIEmbed,
 	ButtonBuilder,
 	type ButtonInteraction,
 	ButtonStyle,
@@ -7,7 +10,14 @@ import {
 } from 'discord.js'
 import { baseEmbed, safeMentions } from '../../format'
 import type { CommandContext } from '../context'
-import type { PageSession } from './session-store'
+import type { Page, PageSession } from './session-store'
+
+export type PagePresentation = {
+	components?: APIActionRowComponent<APIButtonComponent>[]
+	descriptionPrefix?: string
+	embed?: APIEmbed
+	emptyDescription?: string
+}
 
 function pageRow(id: string, session: PageSession) {
 	return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -27,16 +37,25 @@ function pageRow(id: string, session: PageSession) {
 function currentPage(id: string, session: PageSession) {
 	const page = session.pages[session.page]
 	if (!page) throw new Error('Page no longer exists')
+	const footer = page.embed?.footer?.text ?? 'ZeepCentraal'
 	return {
 		embeds: [
 			{
 				...baseEmbed(page.title, page.description),
-				footer: { text: `ZeepCentraal • Page ${session.page + 1}/${session.pages.length}` },
+				...page.embed,
+				title: page.title,
+				description: page.description,
+				footer: { text: `${footer} • Page ${session.page + 1}/${session.pages.length}` },
 			},
 		],
-		components: [pageRow(id, session)],
+		components: [...(page.components ?? []), pageRow(id, session)],
 		allowedMentions: safeMentions,
 	}
+}
+
+export function createPagination(context: CommandContext, ownerId: string, pages: Page[]) {
+	const { id, session } = context.runtime.sessions.createPages(ownerId, pages)
+	return currentPage(id, session)
 }
 
 export function createPages(
@@ -45,17 +64,27 @@ export function createPages(
 	title: string,
 	rows: string[],
 	perPage = 10,
+	presentation: PagePresentation = {},
 ) {
+	const {
+		descriptionPrefix,
+		emptyDescription = 'No results.',
+		...pagePresentation
+	} = presentation
 	const pages = Array.from(
 		{ length: Math.max(1, Math.ceil(rows.length / perPage)) },
-		(_, index) => ({
-			title,
-			description:
-				rows.slice(index * perPage, (index + 1) * perPage).join('\n') || 'No results.',
-		}),
+		(_, index) => {
+			const pageRows = rows.slice(index * perPage, (index + 1) * perPage).join('\n')
+			return {
+				...pagePresentation,
+				title,
+				description: [descriptionPrefix, pageRows || emptyDescription]
+					.filter(Boolean)
+					.join('\n\n'),
+			}
+		},
 	)
-	const { id, session } = context.runtime.sessions.createPages(ownerId, pages)
-	return currentPage(id, session)
+	return createPagination(context, ownerId, pages)
 }
 
 export async function handlePaginationButton(

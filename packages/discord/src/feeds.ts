@@ -365,6 +365,13 @@ export class FeedService {
 	}
 
 	async pollTournaments() {
+		let target:
+			| {
+					guild: Guild
+					state?: DiscordGuildState
+					type?: 0 | 1
+			  }
+			| undefined
 		try {
 			for (const type of [0, 1] as const) {
 				const snapshot = await buildTournamentMessage(type, this.context)
@@ -391,12 +398,34 @@ export class FeedService {
 				}
 			}
 			for (const guild of this.client.guilds.cache.values()) {
+				target = { guild }
 				const state = await this.context.backend.guild(guild.id)
-				await updateTournament(guild, state, 0, this.context)
-				await updateTournament(guild, state, 1, this.context)
+				for (const type of [0, 1] as const) {
+					target = { guild, state, type }
+					await updateTournament(guild, state, type, this.context)
+				}
 			}
 		} catch (error) {
-			console.error('Discord tournament feed poll failed', error)
+			if (!target) {
+				console.error('Discord tournament feed poll failed', error)
+				return
+			}
+			const feedKind = target.type === undefined ? null : target.type === 0 ? 'totw' : 'totm'
+			const feed = target.state?.feeds.find(
+				(entry) => entry.kind === feedKind && entry.enabled,
+			)
+			const channel = feed ? target.guild.channels.cache.get(feed.channelId) : null
+			console.error(
+				'Discord tournament feed poll failed',
+				{
+					guildId: target.guild.id,
+					guildName: target.guild.name,
+					channelId: feed?.channelId ?? null,
+					channelName: channel?.name ?? null,
+					feedKind,
+				},
+				error,
+			)
 		}
 	}
 

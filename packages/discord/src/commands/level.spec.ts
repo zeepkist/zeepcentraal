@@ -1,11 +1,13 @@
 import { expect, mock, test } from 'bun:test'
 import {
 	createAutocompleteInteraction,
+	createButtonInteraction,
 	createChatInteraction,
 	createMockContext,
 	linkedUser,
 } from '../../test/mocks'
 import { levelAutocompleteHandler, levelHandler } from './level'
+import { handlePaginationButton } from './utils/pagination.handler'
 
 const publicLevel = {
 	id: 42,
@@ -71,7 +73,67 @@ test('level resolves text search through first result', async () => {
 	const { context } = createMockContext({ graphql: { query } })
 	const { interaction } = createChatInteraction('level', { strings: { query: 'Fast Track' } })
 	await levelHandler(interaction, context)
-	expect(query).toHaveBeenCalledTimes(2)
+	expect(query).toHaveBeenCalledTimes(3)
+})
+
+test('level paginates all personal bests and preserves level details', async () => {
+	const records = Array.from({ length: 12 }, (_, index) => ({
+		time: 20 + index,
+		userId: index + 10,
+		user: { ...linkedUser, id: index + 10, discordId: null, steamName: `Player ${index + 1}` },
+	}))
+	const query = mock(async (...args: unknown[]) => {
+		const variables = args[1] as { after?: unknown }
+		if (!variables.after) {
+			return {
+				records: {
+					edges: records.slice(0, 10).map((node) => ({ node })),
+					pageInfo: { endCursor: 'cursor-10', hasNextPage: true },
+				},
+			}
+		}
+		return {
+			records: {
+				edges: records.slice(10).map((node) => ({ node })),
+				pageInfo: { endCursor: 'cursor-12', hasNextPage: false },
+			},
+		}
+	})
+	const usersByIds = mock(
+		async (ids: number[]) =>
+			new Map(
+				ids.map((id) => [
+					id,
+					{
+						...linkedUser,
+						id,
+						discordId: id === 21 ? 'discord-21' : null,
+						steamName: id === 8 ? 'Author' : id === 9 ? 'Winner' : `Enriched ${id - 9}`,
+					},
+				]),
+			),
+	)
+	const { context } = createMockContext({
+		graphql: { levelById: mock(async () => publicLevel), query, usersByIds },
+	})
+	const { interaction, state } = createChatInteraction('level', { strings: { query: '42' } })
+	await levelHandler(interaction, context)
+	expect(JSON.stringify(state.edit)).toContain('Enriched 1')
+	expect(JSON.stringify(state.edit)).not.toContain('Enriched 12')
+	expect(query.mock.calls[0]?.[1]).toMatchObject({
+		filter: { levelId: { equalTo: 42 }, personalBestGlobalsExist: true },
+		orderBy: ['TIME_ASC', 'ID_ASC'],
+	})
+
+	const next = createButtonInteraction('page:session-1:next')
+	await handlePaginationButton(next.interaction, context, 'session-1', 'next')
+	const updated = JSON.stringify(next.state.update)
+	expect(updated).toContain('Enriched 12 (<@discord-21>)')
+	expect(updated).toContain('https://images.example.test/42.png')
+	expect(updated).toContain('Hash / ID')
+	expect(updated).toContain('By Author')
+	expect(updated).toContain('Page 2/2')
+	expect(query.mock.calls[1]?.[1]).toMatchObject({ after: 'cursor-10' })
 })
 
 test('level rejects missing and private results', async () => {

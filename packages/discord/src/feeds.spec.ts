@@ -70,13 +70,22 @@ function createGuild(options: { channel?: Record<string, unknown> | null } = {})
 	const channel =
 		options.channel === undefined
 			? {
+					id: 'channel',
 					isTextBased: () => true,
 					messages: { fetch: mock(async () => message) },
+					name: 'tournament-feed',
 					send,
 				}
 			: options.channel
 	const fetch = mock(async () => channel)
-	const guild = { id: 'guild-1', channels: { fetch } } as unknown as Guild
+	const guild = {
+		id: 'guild-1',
+		name: 'Test Guild',
+		channels: {
+			cache: new Map(channel ? [['channel', channel]] : []),
+			fetch,
+		},
+	} as unknown as Guild
 	return { channel, edit, fetch, guild, message, send }
 }
 
@@ -486,6 +495,40 @@ test('FeedService contains activity, watch, guild, and tournament failures', asy
 	)
 	expect(consoleError).toHaveBeenCalledWith(
 		'Discord tournament feed poll failed',
+		expect.any(Error),
+	)
+	consoleError.mockRestore()
+})
+
+test('FeedService logs guild and channel context for tournament update failures', async () => {
+	const consoleError = spyOn(console, 'error').mockImplementation(() => {})
+	const failedGuild = createGuild()
+	failedGuild.send.mockImplementation(async () => {
+		throw new Error('Missing Permissions')
+	})
+	const { context } = createMockContext({
+		backend: {
+			guild: mock(async () =>
+				guildState({
+					feeds: [
+						{ kind: 'totw', channelId: 'channel', enabled: true, cursorEventId: '0' },
+					],
+				}),
+			),
+		},
+		graphql: { query: mock(async () => tournamentData) },
+	})
+	const { client } = createClient([failedGuild.guild])
+	await new FeedService(client, context).pollTournaments()
+	expect(consoleError).toHaveBeenCalledWith(
+		'Discord tournament feed poll failed',
+		{
+			guildId: 'guild-1',
+			guildName: 'Test Guild',
+			channelId: 'channel',
+			channelName: 'tournament-feed',
+			feedKind: 'totw',
+		},
 		expect.any(Error),
 	)
 	consoleError.mockRestore()

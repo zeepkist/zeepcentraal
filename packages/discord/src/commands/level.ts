@@ -1,21 +1,52 @@
-import { Zc_OmniSearchDocument } from '@zeepkist/graphql/generated'
+import { Zc_LevelRecordsDocument, Zc_OmniSearchDocument } from '@zeepkist/graphql/generated'
 import {
 	type AutocompleteInteraction,
 	type ChatInputCommandInteraction,
 	SlashCommandBuilder,
 } from 'discord.js'
-import {
-	baseEmbed,
-	compactNumber,
-	formatTime,
-	playerLabel,
-	safeMentions,
-	truncate,
-} from '../format'
+import { baseEmbed, compactNumber, formatTime, playerLabel, truncate } from '../format'
 import type { LinkedUser } from '../types'
 import type { CommandContext } from './context'
 import { findLevel } from './utils/level-lookup'
+import { createPages } from './utils/pagination.handler'
 import { enrichUser } from './utils/user-enrichment'
+
+type LevelLeaderboardRecord = {
+	time: number
+	user?: LinkedUser | null
+	userId: number
+}
+
+async function levelLeaderboard(levelId: number, context: CommandContext) {
+	const records: LevelLeaderboardRecord[] = []
+	let after: unknown
+	while (true) {
+		const data = await context.graphql.query<Record<string, unknown>>(Zc_LevelRecordsDocument, {
+			first: 100,
+			after,
+			filter: {
+				levelId: { equalTo: levelId },
+				personalBestGlobalsExist: true,
+			},
+			orderBy: ['TIME_ASC', 'ID_ASC'],
+			includeStatus: false,
+		})
+		const connection = (
+			data as {
+				records?: {
+					edges: Array<{ node: LevelLeaderboardRecord }>
+					pageInfo: { endCursor?: unknown; hasNextPage: boolean }
+				} | null
+			}
+		).records
+		if (!connection) break
+		records.push(...connection.edges.map((edge) => edge.node))
+		const next = connection.pageInfo.endCursor
+		if (!connection.pageInfo.hasNextPage || next == null || next === after) break
+		after = next
+	}
+	return records
+}
 
 export const levelDefinition = new SlashCommandBuilder()
 	.setName('level')
@@ -55,9 +86,12 @@ export async function levelHandler(
 	}
 	if (!typed.publiclyVisible) throw new Error('Level is not publicly visible.')
 	const item = typed.levelItems?.nodes[0]
-	const userIds = [item?.author?.id, typed.worldRecordGlobal?.user?.id].filter(
-		(value): value is number => typeof value === 'number',
-	)
+	const leaderboard = await levelLeaderboard(typed.id, context)
+	const userIds = [
+		item?.author?.id,
+		typed.worldRecordGlobal?.user?.id,
+		...leaderboard.map((record) => record.userId),
+	].filter((value): value is number => typeof value === 'number')
 	const users = await context.graphql.usersByIds(userIds)
 	const author = enrichUser(
 		item?.author as unknown as Record<string, unknown>,
@@ -67,44 +101,50 @@ export async function levelHandler(
 		typed.worldRecordGlobal?.user as unknown as Record<string, unknown>,
 		users,
 	) as LinkedUser | null
-	await interaction.editReply({
-		embeds: [
+	const embed = {
+		...baseEmbed(item?.name ?? typed.xxHash),
+		url: `${context.config.frontendUrl}/level/${typed.xxHash}`,
+		thumbnail: item?.imageUrl ? { url: item.imageUrl } : undefined,
+		fields: [
 			{
-				...baseEmbed(item?.name ?? typed.xxHash, `By ${playerLabel(author)}`),
-				url: `${context.config.frontendUrl}/level/${typed.xxHash}`,
-				thumbnail: item?.imageUrl ? { url: item.imageUrl } : undefined,
-				fields: [
-					{
-						name: 'Hash / ID',
-						value: `\`${typed.xxHash}\` / \`${typed.id}\``,
-						inline: false,
-					},
-					{
-						name: 'Ranked points',
-						value: compactNumber(typed.levelPoints?.points),
-						inline: true,
-					},
-					{
-						name: 'Rating',
-						value: (typed.levelPoints?.rating ?? 0).toFixed(2),
-						inline: true,
-					},
-					{
-						name: 'Records / PBs',
-						value: `${typed.records?.totalCount ?? 0} / ${typed.personalBestGlobals?.totalCount ?? 0}`,
-						inline: true,
-					},
-					{ name: 'Votes', value: String(typed.votes?.totalCount ?? 0), inline: true },
-					{
-						name: 'World record',
-						value: `${formatTime(typed.worldRecordGlobal?.record?.time)} • ${playerLabel(worldRecord)}`,
-						inline: false,
-					},
-				],
+				name: 'Hash / ID',
+				value: `\`${typed.xxHash}\` / \`${typed.id}\``,
+				inline: false,
+			},
+			{
+				name: 'Ranked points',
+				value: compactNumber(typed.levelPoints?.points),
+				inline: true,
+			},
+			{
+				name: 'Rating',
+				value: (typed.levelPoints?.rating ?? 0).toFixed(2),
+				inline: true,
+			},
+			{
+				name: 'Records / PBs',
+				value: `${typed.records?.totalCount ?? 0} / ${typed.personalBestGlobals?.totalCount ?? 0}`,
+				inline: true,
+			},
+			{ name: 'Votes', value: String(typed.votes?.totalCount ?? 0), inline: true },
+			{
+				name: 'World record',
+				value: `${formatTime(typed.worldRecordGlobal?.record?.time)} • ${playerLabel(worldRecord)}`,
+				inline: false,
 			},
 		],
-		allowedMentions: safeMentions,
-	})
+	}
+	const rows = leaderboard.map(
+		(record, index) =>
+			`**${index + 1}.** ${playerLabel(users.get(record.userId) ?? record.user)} • ${formatTime(record.time)}`,
+	)
+	await interaction.editReply(
+		createPages(context, interaction.user.id, item?.name ?? typed.xxHash, rows, 10, {
+			descriptionPrefix: `By ${playerLabel(author)}\n\n**Leaderboard**`,
+			embed,
+			emptyDescription: 'No personal bests yet.',
+		}),
+	)
 }
 
 export async function levelAutocompleteHandler(
