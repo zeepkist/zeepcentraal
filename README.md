@@ -128,9 +128,9 @@ Expected response:
 
 ## Git Hooks
 
-`bun install` configures a Husky pre-commit hook. Before each commit it applies Biome fixes to
-staged files, then runs the full typecheck and test suite. Use `HUSKY=0` only when an emergency
-bypass is required.
+`bun install` configures native Git hooks from `.githooks` through local `core.hooksPath`. Before
+each commit the pre-commit hook applies Biome fixes to staged files, then runs the full typecheck
+and test suite. Use `git commit --no-verify` only when an emergency bypass is required.
 
 ## Build and Docker
 

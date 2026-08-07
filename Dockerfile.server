@@ -15,7 +15,7 @@ COPY packages/telemetry/package.json packages/telemetry/package.json
 COPY packages/web/package.json packages/web/package.json
 COPY packages/workshop/package.json packages/workshop/package.json
 
-RUN HUSKY=0 bun install --frozen-lockfile
+RUN bun install --frozen-lockfile
 RUN set -eux; \
 	mkdir -p /native-node_modules/@napi-rs; \
 	lzma_package="$(find . -path '*/node_modules/@napi-rs/lzma/package.json' -print -quit)"; \
