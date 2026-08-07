@@ -15,7 +15,7 @@ function statisticAggregate(data: Record<string, unknown>) {
 	}
 }
 
-export async function handleStatistics(
+export async function statisticsHandler(
 	interaction: ChatInputCommandInteraction,
 	context: CommandContext,
 	surface: boolean,

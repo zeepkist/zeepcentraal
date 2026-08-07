@@ -5,7 +5,7 @@ import {
 } from 'discord.js'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
-import { renderUser } from './utils/user-profile.handler'
+import { userProfileHandler } from './utils/user-profile'
 
 export const zeepCentraalProfileDefinition = new ContextMenuCommandBuilder()
 	.setName('ZeepCentraal profile')
@@ -17,5 +17,5 @@ export async function zeepCentraalProfileHandler(
 ) {
 	await interaction.deferReply()
 	const user = linkedUserOrThrow(await context.backend.user(interaction.targetId))
-	await renderUser(interaction, context, user)
+	await userProfileHandler(interaction, context, user)
 }

@@ -1,13 +1,15 @@
 import { expect, mock, test } from 'bun:test'
 import { createChatInteraction, createMockContext, linkedUser } from '../../../test/mocks'
-import { renderUser } from './user-profile.handler'
+import { userProfileHandler } from './user-profile'
 
 test('user profile rejects missing profile', async () => {
 	const { context } = createMockContext({
 		graphql: { userByFilter: mock(async () => null) },
 	})
 	const { interaction } = createChatInteraction('user')
-	expect(renderUser(interaction, context, linkedUser)).rejects.toThrow('Player not found.')
+	expect(userProfileHandler(interaction, context, linkedUser)).rejects.toThrow(
+		'Player not found.',
+	)
 })
 
 test('user profile renders complete ranked profile', async () => {
@@ -22,6 +24,6 @@ test('user profile renders complete ranked profile', async () => {
 	}))
 	const { context } = createMockContext({ graphql: { userByFilter } })
 	const { interaction, state } = createChatInteraction('user')
-	await renderUser(interaction, context, linkedUser)
+	await userProfileHandler(interaction, context, linkedUser)
 	expect(JSON.stringify(state.edit)).toContain('#1')
 })

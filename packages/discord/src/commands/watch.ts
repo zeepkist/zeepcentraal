@@ -1,7 +1,7 @@
 import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
-import { createPages } from './utils/pagination.handler'
+import { createPages } from './utils/pagination'
 
 export const watchDefinition = new SlashCommandBuilder()
 	.setName('watch')

@@ -87,7 +87,7 @@ export function createPages(
 	return createPagination(context, ownerId, pages)
 }
 
-export async function handlePaginationButton(
+export async function paginationHandler(
 	interaction: ButtonInteraction,
 	context: CommandContext,
 	id: string,

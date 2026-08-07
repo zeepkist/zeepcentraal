@@ -1,11 +1,6 @@
 import { expect, test } from 'bun:test'
 import { createButtonInteraction, createMockContext } from '../../../test/mocks'
-import {
-	createPlaylist,
-	handlePlaylistButton,
-	type PlaylistLevel,
-	playlistResponse,
-} from './playlist.handler'
+import { createPlaylist, type PlaylistLevel, playlistHandler, playlistResponse } from './playlist'
 
 const complete: PlaylistLevel = {
 	id: 1,
@@ -49,16 +44,16 @@ test('playlist response rejects empty levels', () => {
 test('playlist button handles expiry, ownership, and attachment', async () => {
 	const { context } = createMockContext()
 	const expired = createButtonInteraction('playlist:missing')
-	await handlePlaylistButton(expired.interaction, context, 'missing')
+	await playlistHandler(expired.interaction, context, 'missing')
 	expect(JSON.stringify(expired.state.reply)).toContain('download expired')
 
 	context.runtime.sessions.createPlaylist('discord-1', 'file.zeeplist', 'content')
 	const wrong = createButtonInteraction('playlist:session-1', 'other')
-	await handlePlaylistButton(wrong.interaction, context, 'session-1')
+	await playlistHandler(wrong.interaction, context, 'session-1')
 	expect(JSON.stringify(wrong.state.reply)).toContain('Only command owner')
 
 	const owner = createButtonInteraction('playlist:session-1')
-	await handlePlaylistButton(owner.interaction, context, 'session-1')
+	await playlistHandler(owner.interaction, context, 'session-1')
 	const reply = owner.state.reply as { files: Array<{ name: string; attachment: Buffer }> }
 	expect(reply.files[0]?.name).toBe('file.zeeplist')
 	expect(reply.files[0]?.attachment.toString()).toBe('content')

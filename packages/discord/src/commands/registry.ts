@@ -23,7 +23,7 @@ import { totmDefinition, totmHandler } from './totm'
 import { totwDefinition, totwHandler } from './totw'
 import { unlinkDefinition, unlinkHandler } from './unlink'
 import { userDefinition, userHandler } from './user'
-import { handleButton } from './utils/button.handler'
+import { buttonHandler } from './utils/button'
 // import { watchDefinition, watchHandler } from './watch'
 import { wrPingDefinition, wrPingHandler } from './wr-ping'
 import { zeepCentraalProfileDefinition, zeepCentraalProfileHandler } from './zeepcentraal-profile'
@@ -160,4 +160,4 @@ export async function dispatchContextMenu(
 	return handler(interaction, context)
 }
 
-export const dispatchButton = handleButton
+export const dispatchButton = buttonHandler

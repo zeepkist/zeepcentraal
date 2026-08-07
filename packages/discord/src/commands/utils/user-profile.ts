@@ -3,7 +3,7 @@ import { baseEmbed, compactNumber, playerLabel, safeMentions } from '../../forma
 import type { LinkedUser } from '../../types'
 import type { CommandContext } from '../context'
 
-export async function renderUser(
+export async function userProfileHandler(
 	interaction: ChatInputCommandInteraction | UserContextMenuCommandInteraction,
 	context: CommandContext,
 	user: LinkedUser,

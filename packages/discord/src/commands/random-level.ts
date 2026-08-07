@@ -2,7 +2,7 @@ import { Zc_LevelsDocument } from '@zeepkist/graphql/generated'
 import { type ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js'
 import { baseEmbed, compactNumber } from '../format'
 import type { CommandContext } from './context'
-import type { PlaylistLevel } from './utils/playlist.handler'
+import type { PlaylistLevel } from './utils/playlist'
 
 export const randomLevelDefinition = new SlashCommandBuilder()
 	.setName('random-level')

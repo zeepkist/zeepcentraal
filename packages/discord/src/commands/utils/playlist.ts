@@ -94,7 +94,7 @@ export function playlistResponse(
 	}
 }
 
-export async function handlePlaylistButton(
+export async function playlistHandler(
 	interaction: ButtonInteraction,
 	context: CommandContext,
 	id: string,

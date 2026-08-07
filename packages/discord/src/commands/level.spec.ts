@@ -7,7 +7,7 @@ import {
 	linkedUser,
 } from '../../test/mocks'
 import { levelAutocompleteHandler, levelHandler } from './level'
-import { handlePaginationButton } from './utils/pagination.handler'
+import { paginationHandler } from './utils/pagination'
 
 const publicLevel = {
 	id: 42,
@@ -126,7 +126,7 @@ test('level paginates all personal bests and preserves level details', async () 
 	})
 
 	const next = createButtonInteraction('page:session-1:next')
-	await handlePaginationButton(next.interaction, context, 'session-1', 'next')
+	await paginationHandler(next.interaction, context, 'session-1', 'next')
 	const updated = JSON.stringify(next.state.update)
 	expect(updated).toContain('Enriched 12 (<@discord-21>)')
 	expect(updated).toContain('https://images.example.test/42.png')

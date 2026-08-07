@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'bun:test'
 import { createChatInteraction, createMockContext, unlinkedState } from '../../../test/mocks'
-import { handleStatistics } from './statistics.handler'
+import { statisticsHandler } from './statistics'
 
 test('statistics renders aggregate values', async () => {
 	const userStats = mock(async () => ({
@@ -22,7 +22,7 @@ test('statistics renders aggregate values', async () => {
 	const { interaction, state } = createChatInteraction('stats', {
 		strings: { range: 'custom', from: '2026-08-01', to: '2026-08-02' },
 	})
-	await handleStatistics(interaction, context, false)
+	await statisticsHandler(interaction, context, false)
 	expect(userStats).toHaveBeenCalledWith(
 		7,
 		'2026-08-01T00:00:00.000Z',
@@ -55,7 +55,7 @@ test('surface statistics renders all measured surfaces', async () => {
 	const { interaction, state } = createChatInteraction('stats-surface', {
 		strings: { range: 'all-time' },
 	})
-	await handleStatistics(interaction, context, true)
+	await statisticsHandler(interaction, context, true)
 	expect(JSON.stringify(state.edit)).toContain('10 m')
 })
 
@@ -64,5 +64,5 @@ test('statistics requires linked account', async () => {
 		backend: { user: mock(async () => unlinkedState) },
 	})
 	const { interaction } = createChatInteraction('stats', { strings: { range: 'today' } })
-	expect(handleStatistics(interaction, context, false)).rejects.toThrow('Link account first')
+	expect(statisticsHandler(interaction, context, false)).rejects.toThrow('Link account first')
 })

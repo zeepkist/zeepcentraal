@@ -5,8 +5,8 @@ import {
 	createMockContext,
 	linkedUser,
 } from '../../../test/mocks'
-import { handlePaginationButton } from './pagination.handler'
-import { buildTournamentMessage, handleTournament } from './tournament.handler'
+import { paginationHandler } from './pagination'
+import { buildTournamentMessage, tournamentHandler } from './tournament'
 
 test('tournament renderer includes standings, level, buttons, and stable hash', async () => {
 	const query = mock(async () => ({
@@ -66,7 +66,7 @@ test('tournament handler defers then edits reply', async () => {
 	}))
 	const { context } = createMockContext({ graphql: { query } })
 	const { interaction, state } = createChatInteraction('totw')
-	await handleTournament(interaction, context, 0)
+	await tournamentHandler(interaction, context, 0)
 	expect(state.edit).toBeDefined()
 })
 
@@ -139,13 +139,13 @@ test('tournament handler paginates complete standings and preserves link buttons
 	)
 	const { context } = createMockContext({ graphql: { query, usersByIds } })
 	const { interaction, state } = createChatInteraction('totw')
-	await handleTournament(interaction, context, 0)
+	await tournamentHandler(interaction, context, 0)
 	expect(JSON.stringify(state.edit)).toContain('Enriched 1')
 	expect(JSON.stringify(state.edit)).not.toContain('Enriched 12')
 	expect((state.edit as { components: unknown[] }).components).toHaveLength(2)
 
 	const next = createButtonInteraction('page:session-1:next')
-	await handlePaginationButton(next.interaction, context, 'session-1', 'next')
+	await paginationHandler(next.interaction, context, 'session-1', 'next')
 	const updated = JSON.stringify(next.state.update)
 	expect(updated).toContain('Enriched 12 (<@discord-12>)')
 	expect(updated).toContain('https://image.test/5.png')

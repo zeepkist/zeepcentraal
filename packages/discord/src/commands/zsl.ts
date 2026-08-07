@@ -8,7 +8,7 @@ import type { DocumentNode } from 'graphql'
 import { formatTime, playerLabel } from '../format'
 import type { LinkedUser } from '../types'
 import type { CommandContext } from './context'
-import { createPages } from './utils/pagination.handler'
+import { createPages } from './utils/pagination'
 
 export const zslDefinition = new SlashCommandBuilder()
 	.setName('zsl')

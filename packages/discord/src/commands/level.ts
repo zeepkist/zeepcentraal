@@ -8,7 +8,7 @@ import { baseEmbed, compactNumber, formatTime, playerLabel, truncate } from '../
 import type { LinkedUser } from '../types'
 import type { CommandContext } from './context'
 import { findLevel } from './utils/level-lookup'
-import { createPages } from './utils/pagination.handler'
+import { createPages } from './utils/pagination'
 import { enrichUser } from './utils/user-enrichment'
 
 type LevelLeaderboardRecord = {

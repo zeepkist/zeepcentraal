@@ -12,7 +12,7 @@ import {
 import { baseEmbed, formatTime, playerLabel, safeMentions } from '../../format'
 import type { LinkedUser } from '../../types'
 import type { CommandContext } from '../context'
-import { createPages } from './pagination.handler'
+import { createPages } from './pagination'
 
 type TournamentResult = {
 	points: number
@@ -160,7 +160,7 @@ export async function buildTournamentMessage(type: 0 | 1, context: CommandContex
 	}
 }
 
-export async function handleTournament(
+export async function tournamentHandler(
 	interaction: ChatInputCommandInteraction,
 	context: CommandContext,
 	type: 0 | 1,

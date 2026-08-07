@@ -2,7 +2,7 @@ import { type ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 import { baseEmbed } from '../../format'
 import type { CommandContext } from '../context'
 
-export async function handleModkistGtr(
+export async function modkistGtrHandler(
 	interaction: ChatInputCommandInteraction,
 	context: CommandContext,
 ) {

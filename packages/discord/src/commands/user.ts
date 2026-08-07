@@ -2,7 +2,7 @@ import { type ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.j
 import type { LinkedUser } from '../types'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
-import { renderUser } from './utils/user-profile.handler'
+import { userProfileHandler } from './utils/user-profile'
 
 export const userDefinition = new SlashCommandBuilder()
 	.setName('user')
@@ -38,5 +38,5 @@ export async function userHandler(
 	context: CommandContext,
 ) {
 	await interaction.deferReply()
-	await renderUser(interaction, context, await userForInteraction(interaction, context))
+	await userProfileHandler(interaction, context, await userForInteraction(interaction, context))
 }

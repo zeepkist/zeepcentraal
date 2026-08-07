@@ -1,6 +1,6 @@
 import type { Client, Guild, GuildTextBasedChannel, MessageCreateOptions } from 'discord.js'
 import type { CommandContext } from './commands/context'
-import { buildTournamentMessage } from './commands/utils/tournament.handler'
+import { buildTournamentMessage } from './commands/utils/tournament'
 import { baseEmbed, formatTime, playerLabel, safeMentions, truncate } from './format'
 import type { DiscordActivityEvent, DiscordFeedKind, DiscordGuildState } from './types'
 

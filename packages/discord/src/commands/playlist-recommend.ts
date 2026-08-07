@@ -2,7 +2,7 @@ import { Zc_UserContributionsDocument } from '@zeepkist/graphql/generated'
 import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
-import { type PlaylistLevel, playlistResponse } from './utils/playlist.handler'
+import { type PlaylistLevel, playlistResponse } from './utils/playlist'
 
 export const playlistRecommendDefinition = new SlashCommandBuilder()
 	.setName('playlist-recommend')
