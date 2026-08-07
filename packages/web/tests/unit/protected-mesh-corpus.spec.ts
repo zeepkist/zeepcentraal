@@ -322,16 +322,15 @@ describe('protected mesh corpus compiler', () => {
 			},
 		)
 		globalThis.fetch = fetchMock as typeof fetch
-		const remoteBlocks = [
-			{
-				id: 1490,
-				position: { x: 0, y: 0, z: 0 },
-				rotation: { x: 0, y: 0, z: 0 },
-				scale: { x: 1, y: 1, z: 1 },
-				attributes: {},
-				paints: { 0: 403 },
-			},
-		]
+		const remoteBlock = {
+			id: 1490,
+			position: { x: 0, y: 0, z: 0 },
+			rotation: { x: 0, y: 0, z: 0 },
+			scale: { x: 1, y: 1, z: 1 },
+			attributes: {},
+			paints: { 0: 403 },
+		}
+		const remoteBlocks = [remoteBlock]
 		const [remoteLevelBytes, remoteGhostModelBytes, remoteDigest] = await Promise.all([
 			buildProtectedLevelMeshBundle(remoteBaseUrl, remoteBlocks, corpusToken),
 			buildProtectedGhostModelBundle(remoteBaseUrl, corpusToken),
@@ -341,12 +340,64 @@ describe('protected mesh corpus compiler', () => {
 		expect(parseProtectedGhostModelBundle(remoteGhostModelBytes).body).toBeDefined()
 		expect(remoteDigest).toBe(index.digest)
 		expect(fetchMock).toHaveBeenCalled()
+		const requestCount = (suffix: string) =>
+			fetchMock.mock.calls.filter(([input]) => {
+				const url = new URL(input instanceof Request ? input.url : input)
+				return url.pathname.endsWith(suffix)
+			}).length
+		expect(requestCount('/index.json')).toBe(1)
+		expect(requestCount(`/meshes/${meshFile}`)).toBe(1)
 		for (const [, init] of fetchMock.mock.calls) {
 			expect(new Headers(init?.headers).get('referer')).toBe(
 				'https://zeepki.st/server/block-corpus/test-block-corpus-token',
 			)
 			expect(init).toMatchObject({ cache: 'no-store', redirect: 'error' })
 		}
+
+		fetchMock.mockClear()
+		const sharedMeshBlocks = [
+			remoteBlock,
+			{
+				...remoteBlock,
+				position: { x: 10, y: 0, z: 0 },
+				paints: { 0: 285 },
+			},
+		]
+		const [firstConcurrentBundle, secondConcurrentBundle] = await Promise.all([
+			buildProtectedLevelMeshBundle(remoteBaseUrl, sharedMeshBlocks, corpusToken),
+			buildProtectedLevelMeshBundle(remoteBaseUrl, sharedMeshBlocks, corpusToken),
+		])
+		expect(firstConcurrentBundle).toBe(secondConcurrentBundle)
+		expect(requestCount(`/meshes/${meshFile}`)).toBe(1)
+		const rebuiltBundle = await buildProtectedLevelMeshBundle(
+			remoteBaseUrl,
+			sharedMeshBlocks,
+			corpusToken,
+		)
+		expect(rebuiltBundle).not.toBe(firstConcurrentBundle)
+		expect(requestCount(`/meshes/${meshFile}`)).toBe(2)
+		expect(requestCount('/index.json')).toBe(0)
+
+		fetchMock.mockClear()
+		const [firstConcurrentModels, secondConcurrentModels] = await Promise.all([
+			buildProtectedGhostModelBundle(remoteBaseUrl, corpusToken),
+			buildProtectedGhostModelBundle(remoteBaseUrl, corpusToken),
+		])
+		expect(firstConcurrentModels).toBe(secondConcurrentModels)
+		expect(fetchMock).toHaveBeenCalledTimes(4)
+		const rebuiltModels = await buildProtectedGhostModelBundle(remoteBaseUrl, corpusToken)
+		expect(rebuiltModels).not.toBe(firstConcurrentModels)
+		expect(fetchMock).toHaveBeenCalledTimes(8)
+
+		fetchMock.mockClear()
+		fetchMock.mockImplementationOnce(async () => new Response(null, { status: 500 }))
+		await expect(
+			buildProtectedLevelMeshBundle(remoteBaseUrl, remoteBlocks, corpusToken),
+		).rejects.toThrow('Protected mesh corpus returned 500')
+		await expect(
+			buildProtectedLevelMeshBundle(remoteBaseUrl, remoteBlocks, corpusToken),
+		).resolves.toBeInstanceOf(Uint8Array)
+		expect(fetchMock).toHaveBeenCalledTimes(2)
 	})
 
 	it('rejects singular GLB node transforms', async () => {

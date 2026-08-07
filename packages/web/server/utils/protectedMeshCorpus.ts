@@ -17,7 +17,6 @@ import {
 type Corpus = {
 	index: ProtectedMeshCorpusIndex
 	source: CorpusSource
-	files: Map<string, Promise<Uint8Array>>
 }
 
 type CorpusSource =
@@ -32,7 +31,9 @@ type BundleGroup = {
 }
 
 const corpusPromises = new Map<string, Promise<Corpus>>()
-const ghostModelBundlePromises = new Map<string, Promise<Uint8Array>>()
+// Binary bundles stay here only while builds are active; getPendingBundle removes settled entries.
+const pendingLevelBundlePromises = new Map<string, Promise<Uint8Array>>()
+const pendingGhostModelBundlePromises = new Map<string, Promise<Uint8Array>>()
 const ASSET_RIPPER_TO_GHOST_MATRIX = new THREE.Matrix4().makeRotationY(Math.PI)
 const REFLECT_X_MATRIX = new THREE.Matrix4().makeScale(-1, 1, 1)
 const ZERO_VECTOR = { x: 0, y: 0, z: 0 }
@@ -49,6 +50,19 @@ export async function buildProtectedLevelMeshBundle(
 	corpusToken = '',
 ) {
 	const corpus = await loadCorpus(corpusLocation, corpusToken)
+	const bundleKey = [
+		corpusSourceCacheKey(corpusLocation, corpusToken),
+		protectedMeshBundleCacheKey(corpus.index.digest, blocks),
+	].join(':')
+	return getPendingBundle(pendingLevelBundlePromises, bundleKey, () =>
+		buildProtectedLevelMeshBundleUncached(corpus, blocks),
+	)
+}
+
+async function buildProtectedLevelMeshBundleUncached(
+	corpus: Corpus,
+	blocks: readonly GhostLevelBlock[],
+) {
 	const groups = new Map<
 		string,
 		{
@@ -97,9 +111,10 @@ export async function buildProtectedLevelMeshBundle(
 			groups.set(key, group)
 		}
 	}
+	const files = new Map<string, Promise<Uint8Array>>()
 	const bundleGroups: BundleGroup[] = await Promise.all(
 		[...groups.values()].map(async ({ file, color, reflectX, matrices }) => ({
-			payload: await readCorpusFile(corpus, file),
+			payload: await readCorpusFile(corpus, files, file),
 			color,
 			reflectX,
 			matrices,
@@ -153,26 +168,23 @@ function isPartVisible(
 		: activeAttributes.has(attribute.index)
 }
 
-export function buildProtectedGhostModelBundle(corpusLocation: string, corpusToken = '') {
-	const cacheKey = corpusSourceCacheKey(corpusLocation, corpusToken)
-	let promise = ghostModelBundlePromises.get(cacheKey)
-	if (!promise) {
-		promise = loadCorpus(corpusLocation, corpusToken).then(async (corpus) => {
-			const common = await Promise.all(
-				(
-					Object.entries(corpus.index.common) as Array<
-						[keyof ProtectedMeshCorpusIndex['common'], string]
-					>
-				).map(async ([name, file]) => ({
-					slot: GHOST_MODEL_SLOTS[name],
-					payload: await readCorpusFile(corpus, file),
-				})),
-			)
-			return serializeBundle(corpus.index.digest, [], [], common)
-		})
-		ghostModelBundlePromises.set(cacheKey, promise)
-	}
-	return promise
+export async function buildProtectedGhostModelBundle(corpusLocation: string, corpusToken = '') {
+	const bundleKey = corpusSourceCacheKey(corpusLocation, corpusToken)
+	const corpus = await loadCorpus(corpusLocation, corpusToken)
+	return getPendingBundle(pendingGhostModelBundlePromises, bundleKey, async () => {
+		const files = new Map<string, Promise<Uint8Array>>()
+		const common = await Promise.all(
+			(
+				Object.entries(corpus.index.common) as Array<
+					[keyof ProtectedMeshCorpusIndex['common'], string]
+				>
+			).map(async ([name, file]) => ({
+				slot: GHOST_MODEL_SLOTS[name],
+				payload: await readCorpusFile(corpus, files, file),
+			})),
+		)
+		return serializeBundle(corpus.index.digest, [], [], common)
+	})
 }
 
 export function protectedMeshBundleCacheKey(digest: string, blocks: readonly GhostLevelBlock[]) {
@@ -201,7 +213,7 @@ async function loadCorpus(location: string, token: string) {
 			) {
 				throw new Error('Protected mesh corpus index has unsupported shape')
 			}
-			return { index, source, files: new Map() }
+			return { index, source }
 		})
 		corpusPromises.set(cacheKey, promise)
 	}
@@ -243,16 +255,31 @@ async function readCorpusIndex(source: CorpusSource) {
 	return new TextDecoder().decode(bytes)
 }
 
-function readCorpusFile(corpus: Corpus, file: string) {
+function readCorpusFile(corpus: Corpus, files: Map<string, Promise<Uint8Array>>, file: string) {
 	if (!/^(?:[a-f0-9]{32}|common-(?:axles|body|character|wheel))\.zcp$/.test(file)) {
 		throw new Error('Protected mesh corpus contains unsafe filename')
 	}
-	let promise = corpus.files.get(file)
+	let promise = files.get(file)
 	if (!promise) {
 		promise = readCorpusBytes(corpus.source, file)
-		corpus.files.set(file, promise)
-		promise.catch(() => corpus.files.delete(file))
+		files.set(file, promise)
 	}
+	return promise
+}
+
+function getPendingBundle(
+	pending: Map<string, Promise<Uint8Array>>,
+	key: string,
+	build: () => Promise<Uint8Array>,
+) {
+	const existing = pending.get(key)
+	if (existing) return existing
+	const promise = build()
+	pending.set(key, promise)
+	const remove = () => {
+		if (pending.get(key) === promise) pending.delete(key)
+	}
+	promise.then(remove, remove)
 	return promise
 }
 
@@ -431,5 +458,6 @@ function blockPositionJitterMatrix(colorKey: string) {
 
 export function clearProtectedMeshCorpusCaches() {
 	corpusPromises.clear()
-	ghostModelBundlePromises.clear()
+	pendingLevelBundlePromises.clear()
+	pendingGhostModelBundlePromises.clear()
 }

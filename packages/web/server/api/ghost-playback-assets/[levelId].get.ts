@@ -9,11 +9,6 @@ import {
 } from '../../utils/protectedMeshCorpus'
 import { assertSameOrigin } from '../../utils/request'
 
-const MAXIMUM_CACHE_ENTRIES = 16
-const MAXIMUM_CACHE_BYTES = 256 * 1024 * 1024
-const bundleCache = new Map<string, Uint8Array>()
-let bundleCacheBytes = 0
-
 export default defineEventHandler(async (event) => {
 	assertSameOrigin(event)
 	await requireProtectedMeshAccess(event)
@@ -31,22 +26,11 @@ export default defineEventHandler(async (event) => {
 		config.blockMeshCorpusToken,
 	)
 	const key = protectedMeshBundleCacheKey(digest, blocks)
-	let bundle = bundleCache.get(key)
-	if (!bundle) {
-		bundle = await buildProtectedLevelMeshBundle(
-			config.blockMeshCorpusPath,
-			blocks,
-			config.blockMeshCorpusToken,
-		)
-		bundleCache.set(key, bundle)
-		bundleCacheBytes += bundle.byteLength
-		while (bundleCache.size > MAXIMUM_CACHE_ENTRIES || bundleCacheBytes > MAXIMUM_CACHE_BYTES) {
-			const oldest = bundleCache.keys().next().value
-			if (oldest === undefined) break
-			bundleCacheBytes -= bundleCache.get(oldest)?.byteLength ?? 0
-			bundleCache.delete(oldest)
-		}
-	}
+	const bundle = await buildProtectedLevelMeshBundle(
+		config.blockMeshCorpusPath,
+		blocks,
+		config.blockMeshCorpusToken,
+	)
 	setResponseHeaders(event, {
 		'cache-control': 'private, no-store',
 		'content-disposition': `inline; filename="${key.slice(0, 20)}.zcmb"`,

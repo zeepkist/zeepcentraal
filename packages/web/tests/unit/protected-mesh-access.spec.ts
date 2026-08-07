@@ -51,6 +51,8 @@ describe('protected mesh access', () => {
 		expect(route).toContain('config.blockMeshCorpusToken')
 		expect(config).not.toContain('NUXT_STEAM_PUBLISHER_API_KEY')
 		expect(config).not.toContain('NUXT_PUBLIC_BLOCK_MESH_BASE_URL')
+		expect(route).not.toContain('bundleCache')
+		expect(route).not.toContain('MAXIMUM_CACHE_BYTES')
 	})
 
 	it('serves only common ghost models without requiring a login', () => {
