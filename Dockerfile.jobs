@@ -38,7 +38,7 @@ RUN set -eux; \
 	test -n "$(find /native-node_modules/@napi-rs/lzma -maxdepth 1 -type f -name 'lzma.linux-*-gnu.node' -print -quit)"; \
 	test -n "$(find /native-node_modules/@napi-rs -maxdepth 1 -type d -name 'lzma-linux-*-gnu' -print -quit)"
 
-FROM steamcmd/steamcmd:ubuntu-22@sha256:bcae08c23bed25c99479c653c26f8ef3187471438fd2c89f295634e1bbb39ede
+FROM steamcmd/steamcmd:ubuntu-22@sha256:ea800a0a8468683b51f0f55b6d6e9f2dcaef2ef4a22145e66ac856b28e7deb32
 
 ARG SERVICE_VERSION=dev
 
