@@ -49,7 +49,7 @@
 		"*": "biome check --write --no-errors-on-unmatched"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "~2.5.5",
+		"@biomejs/biome": "~2.5.7",
 		"@semantic-release/commit-analyzer": "~13.0.1",
 		"@semantic-release/github": "~12.0.9",
 		"@semantic-release/release-notes-generator": "~14.1.1",
@@ -60,7 +60,7 @@
 		"husky": "~9.1.7",
 		"lint-staged": "~17.3.0",
 		"semantic-release": "~25.0.8",
-		"skills": "~1.5.20",
+		"skills": "~1.5.21",
 		"typescript": "~7.0.2"
 	}
 }
