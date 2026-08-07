@@ -14,6 +14,7 @@ const webTsconfig = JSON.parse(
 	compilerOptions: Record<string, unknown>
 }
 const bunfig = repositoryFile('bunfig.toml')
+const gitattributes = repositoryFile('.gitattributes')
 const preCommit = repositoryFile('.githooks/pre-commit')
 const workflows = [
 	repositoryFile('.github/workflows/pr-validate.yml'),
@@ -44,6 +45,7 @@ describe('repository quality gates', () => {
 	it('configures native Git hooks without Husky', () => {
 		expect(rootPackage.scripts.prepare).toContain('git config --local core.hooksPath .githooks')
 		expect(rootPackage.devDependencies).not.toHaveProperty('husky')
+		expect(gitattributes).toContain('.githooks/* text eol=lf')
 		expect(preCommit).toMatch(/^#!\/bin\/sh\nset -e\n/)
 	})
 
