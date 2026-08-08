@@ -74,7 +74,7 @@ const activityEventsLiveDocument = gql`
 const userIdsDocument = gql`
 	query DiscordUsersByIds($ids: [Int!]) {
 		users(first: 100, filter: { id: { in: $ids } }) {
-			nodes { id steamId steamName discordId }
+			nodes { id steamId steamName discordId userPoints { points } }
 		}
 	}
 `

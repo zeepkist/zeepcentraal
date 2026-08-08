@@ -52,8 +52,10 @@ test('event messages switch covers rank, workshop, personal best, vote, and worl
 	expect(worldRecord.allowedMentions).toEqual({ users: ['discord-2'], parse: [] })
 	expect(displayText(worldRecord)).toContain('Stolen from Previous')
 	expect(JSON.stringify(worldRecord)).toContain('https://image.test/level.jpg')
-	expect(displayText(worldRecord)).toContain('**Level points**  100')
-	expect(displayText(worldRecord)).toContain('**Personal bests**  25')
+	expect(displayText(worldRecord)).toContain('**Record**  Player Seven (<@discord-1>) • 12.300s')
+	expect(displayText(worldRecord)).toContain(
+		'**Level activity**  1,235 points • 25 personal bests',
+	)
 
 	const firstRecord = await eventMessage(
 		createFeedEvent({

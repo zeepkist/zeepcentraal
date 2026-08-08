@@ -4,6 +4,8 @@ import { displayContainer, INFO_COLOR, messagePayload } from '../display'
 import { playerLabel, truncate } from '../format'
 import type { DiscordActivityEvent } from '../types'
 
+const pointsFormatter = new Intl.NumberFormat('en')
+
 type RankChange = {
 	idUser: number
 	previousRank: number
@@ -33,16 +35,29 @@ function rankLabel(rank: number) {
 	return rank === -1 ? 'Unranked' : `#${rank}`
 }
 
+function rankOrder(rank: number) {
+	return rank === -1 ? Number.MAX_SAFE_INTEGER : rank
+}
+
+function pointsLabel(points: number | undefined) {
+	return typeof points === 'number' && Number.isFinite(points)
+		? pointsFormatter.format(points)
+		: 'unknown'
+}
+
 export async function rankMessage(event: DiscordActivityEvent, context: CommandContext) {
-	const changes = rankChanges(event)
+	const changes = rankChanges(event).sort(
+		(left, right) => rankOrder(left.rank) - rankOrder(right.rank) || left.idUser - right.idUser,
+	)
 	if (changes.length === 0) return null
 	const users = await context.graphql.usersByIds(changes.map((change) => change.idUser))
 	const rows = changes.slice(0, 30).map((change) => {
 		const direction =
 			change.rank !== -1 && (change.previousRank === -1 || change.rank < change.previousRank)
-				? '▲'
-				: '▼'
-		return `${direction} ${playerLabel(users.get(change.idUser))}: ${rankLabel(change.previousRank)} → ${rankLabel(change.rank)}`
+				? '<:up:1535467505831780455>'
+				: '<:down:1535467431655637072>'
+		const user = users.get(change.idUser)
+		return `${direction} ${playerLabel(user)}: ${rankLabel(change.previousRank)} → ${rankLabel(change.rank)} (${pointsLabel(user?.userPoints?.points)} pts)`
 	})
 	if (changes.length > rows.length) rows.push(`…and ${changes.length - rows.length} more`)
 	return messagePayload(

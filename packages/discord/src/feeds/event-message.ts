@@ -128,6 +128,8 @@ export async function worldRecordEventMessage(
 			preference?.preference?.pingOnWorldRecordLoss,
 	)
 	const notification = shouldPing ? `<@${discordId}> your world record was beaten.\n` : ''
+	const points = Math.ceil(event.level?.levelPoints?.points ?? 0).toLocaleString('en')
+	const personalBests = compactNumber(event.level?.personalBestGlobals.totalCount)
 
 	return messagePayload(
 		displayContainer({
@@ -136,12 +138,7 @@ export async function worldRecordEventMessage(
 			footer: eventFooter(event),
 			sections: [
 				{
-					content: `**Player**  ${playerLabel(event.user)}\n**Time**  ${formatTime(event.record?.time)}\n${recordContext}`,
-					heading: 'Record',
-				},
-				{
-					content: `**Level points**  ${compactNumber(event.level?.levelPoints?.points)}\n**Personal bests**  ${compactNumber(event.level?.personalBestGlobals.totalCount)}`,
-					heading: 'Level activity',
+					content: `**Record**  ${playerLabel(event.user)} • ${formatTime(event.record?.time)}\n${recordContext}\n**Level activity**  ${points} points • ${personalBests} personal bests`,
 				},
 			],
 			thumbnail: levelItem?.imageUrl

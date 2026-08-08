@@ -21,6 +21,12 @@ function result(
 	}
 }
 
+function buttonDisabled(value: unknown, label: string) {
+	return allComponents(value).find(
+		(component) => component.type === 2 && component.label === label,
+	)?.disabled
+}
+
 test('local pagination renders branded empty and four-button pages', () => {
 	const { context } = createMockContext()
 	const empty = createPages(context, 'owner', 'Empty', [])
@@ -87,11 +93,9 @@ test('pagination preserves full presentation and custom empty context', async ()
 test('cursor pagination sends exact forward and reverse GraphQL windows', async () => {
 	const { context } = createMockContext()
 	const loader = mock(async (window: Record<string, unknown>, page: number) => {
-		if ('last' in window && !('before' in window))
-			return result(['Last'], { previous: true, totalCount: 31 })
+		if ('last' in window && !('before' in window)) return result(['Last'], { totalCount: 31 })
 		if ('before' in window) return result(['Previous'], { next: true, totalCount: 31 })
-		if ('after' in window)
-			return result(['Next'], { next: true, previous: true, totalCount: 31 })
+		if ('after' in window) return result(['Next'], { next: true, totalCount: 31 })
 		return result([`First ${page}`], { next: true, totalCount: 31 })
 	})
 	const initial = await createCursorPages(
@@ -107,6 +111,8 @@ test('cursor pagination sends exact forward and reverse GraphQL windows', async 
 	await paginationHandler(next.interaction, context, 'session-1', 'next')
 	expect(loader.mock.calls[1]?.[0]).toEqual({ after: 'end', first: 10 })
 	expect(displayText(next.state.edit)).toContain('Page 2/4')
+	expect(buttonDisabled(next.state.edit, 'First')).toBeFalse()
+	expect(buttonDisabled(next.state.edit, 'Previous')).toBeFalse()
 
 	const previous = createButtonInteraction('page:session-1:previous')
 	await paginationHandler(previous.interaction, context, 'session-1', 'previous')
@@ -116,11 +122,19 @@ test('cursor pagination sends exact forward and reverse GraphQL windows', async 
 	await paginationHandler(last.interaction, context, 'session-1', 'last')
 	expect(loader.mock.calls[3]?.[0]).toEqual({ last: 10 })
 	expect(displayText(last.state.edit)).toContain('Page 4/4')
+	expect(buttonDisabled(last.state.edit, 'First')).toBeFalse()
+	expect(buttonDisabled(last.state.edit, 'Previous')).toBeFalse()
+	expect(buttonDisabled(last.state.edit, 'Next')).toBeTrue()
+	expect(buttonDisabled(last.state.edit, 'Last')).toBeTrue()
 
 	const first = createButtonInteraction('page:session-1:first')
 	await paginationHandler(first.interaction, context, 'session-1', 'first')
 	expect(loader.mock.calls[4]?.[0]).toEqual({ first: 10 })
 	expect(displayText(first.state.edit)).toContain('Page 1/4')
+	expect(buttonDisabled(first.state.edit, 'First')).toBeTrue()
+	expect(buttonDisabled(first.state.edit, 'Previous')).toBeTrue()
+	expect(buttonDisabled(first.state.edit, 'Next')).toBeFalse()
+	expect(buttonDisabled(first.state.edit, 'Last')).toBeFalse()
 })
 
 test('cursor pagination recovers to first page after results mutate empty', async () => {

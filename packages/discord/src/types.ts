@@ -16,6 +16,7 @@ export type LinkedUser = {
 	steamId: string | number | bigint | null
 	steamName: string | null
 	discordId: string | number | bigint | null
+	userPoints?: { points: number } | null
 }
 
 export type DiscordUserState = {

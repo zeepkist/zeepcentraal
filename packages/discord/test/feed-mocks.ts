@@ -29,7 +29,7 @@ export function createFeedEvent(
 					},
 				],
 			},
-			levelPoints: { points: 100, rating: 4.5 },
+			levelPoints: { points: 1_234.1, rating: 4.5 },
 			personalBestGlobals: { totalCount: 25 },
 		},
 		user: linkedUser,

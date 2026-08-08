@@ -21,8 +21,8 @@ function pageCount(session: PageSession) {
 
 function pageRow(id: string, session: PageSession) {
 	const pages = pageCount(session)
-	const atFirst = session.page === 0 || !session.result.pageInfo.hasPreviousPage
-	const atLast = session.page >= pages - 1 || !session.result.pageInfo.hasNextPage
+	const atFirst = session.page === 0
+	const atLast = session.page >= pages - 1
 	return new ActionRowBuilder<ButtonBuilder>().addComponents(
 		new ButtonBuilder()
 			.setCustomId(`page:${id}:first`)

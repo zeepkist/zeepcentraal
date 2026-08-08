@@ -5,7 +5,9 @@ type ComponentJson = {
 	accessory?: ComponentJson
 	components?: ComponentJson[]
 	content?: string
+	disabled?: boolean
 	items?: ComponentJson[]
+	label?: string
 	type?: number
 }
 
