@@ -269,10 +269,12 @@ export class ZeepGraphqlClient {
 		const data = await this.query<{
 			discordActivityEvents: { nodes: DiscordActivityEventResponse[] }
 		}>(activityEventsDocument, { after, first })
-		return data.discordActivityEvents.nodes.map((event) => ({
-			...event,
-			payload: activityEventPayload(event.payload),
-		}))
+		return data.discordActivityEvents.nodes
+			.map((event) => ({
+				...event,
+				payload: activityEventPayload(event.payload),
+			}))
+			.reverse()
 	}
 
 	subscribeToActivityEvents(onChange: () => void) {

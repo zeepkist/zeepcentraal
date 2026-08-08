@@ -81,3 +81,22 @@ test('process feed advances malformed rank events without sending empty messages
 	expect(backend.setDelivery).not.toHaveBeenCalled()
 	expect(backend.advanceFeed).toHaveBeenCalledWith('guild-1', 'rank', 'event-1')
 })
+
+test('process feed posts multi-event batches oldest first', async () => {
+	const state = createFeedGuildState({
+		feeds: [{ kind: 'world_record', channelId: 'channel', enabled: true, cursorEventId: '0' }],
+	})
+	const { guild, send } = createFeedGuild()
+	const { backend, context } = createMockContext({
+		backend: { delivery: mock(async () => null) },
+		graphql: {
+			activityEvents: mock(async () => [
+				createFeedEvent({ id: 'event-1', occurredAt: '2026-08-06T12:00:00Z' }),
+				createFeedEvent({ id: 'event-2', occurredAt: '2026-08-06T12:01:00Z' }),
+			]),
+		},
+	})
+	await processFeed(guild, state, 'world_record', context)
+	expect(send).toHaveBeenCalledTimes(2)
+	expect(backend.advanceFeed.mock.calls.map((call) => call[2])).toEqual(['event-1', 'event-2'])
+})

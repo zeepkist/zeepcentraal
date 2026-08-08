@@ -154,7 +154,7 @@ test('query returns data and reports GraphQL and empty-data failures', async () 
 	)
 })
 
-test('activity event query and live subscription map backend results', async () => {
+test('activity event query returns descending GraphQL results oldest first', async () => {
 	const event = {
 		id: '9',
 		kind: 'vote',
@@ -171,9 +171,13 @@ test('activity event query and live subscription map backend results', async () 
 		record: null,
 		previousRecord: null,
 	} as const
-	const harness = createHarness([{ data: { discordActivityEvents: { nodes: [event] } } }])
+	const newerEvent = { ...event, id: '10', payload: '{"value":2}' } as const
+	const harness = createHarness([
+		{ data: { discordActivityEvents: { nodes: [newerEvent, event] } } },
+	])
 	expect(await harness.client.activityEvents('4', 25)).toEqual([
 		{ ...event, payload: { value: 1 } },
+		{ ...newerEvent, payload: { value: 2 } },
 	])
 	expect(print(harness.query.mock.calls[0]?.[0] as never)).toContain(
 		'personalBestGlobals(first: 0)',
@@ -207,9 +211,9 @@ test('activity event query safely normalizes object and malformed payloads', asy
 	expect(
 		(await harness.client.activityEvents('0')).map(({ id, payload }) => ({ id, payload })),
 	).toEqual([
-		{ id: '1', payload: { changes: [] } },
-		{ id: '2', payload: null },
 		{ id: '3', payload: null },
+		{ id: '2', payload: null },
+		{ id: '1', payload: { changes: [] } },
 	])
 })
 
