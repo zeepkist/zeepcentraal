@@ -21,6 +21,20 @@ test('command runtime supplies production defaults', () => {
 	expect(runtime.now()).toBeInstanceOf(Date)
 	expect(runtime.monotonicNow()).toBeNumber()
 	expect(runtime.random()).toBeNumber()
-	const result = runtime.sessions.createPages('owner', [{ title: 'Page', description: 'Body' }])
+	const result = runtime.sessions.createPages(
+		'owner',
+		10,
+		{
+			pageInfo: { hasNextPage: false, hasPreviousPage: false },
+			rows: ['Body'],
+			totalCount: 1,
+		},
+		{ title: 'Page' },
+		async () => ({
+			pageInfo: { hasNextPage: false, hasPreviousPage: false },
+			rows: ['Body'],
+			totalCount: 1,
+		}),
+	)
 	expect(result.id).toBeString()
 })

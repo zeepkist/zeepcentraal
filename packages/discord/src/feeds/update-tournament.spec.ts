@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { MessageFlags } from 'discord.js'
 import { createFeedGuild, createFeedGuildState, tournamentData } from '../../test/feed-mocks'
 import { createMockContext } from '../../test/mocks'
 import { updateTournament } from './update-tournament'
@@ -37,6 +38,11 @@ test('tournament updates create, edit, skip stable, and reject invalid channels'
 	})
 	await updateTournament(created.guild, changed, 0, context)
 	expect(created.edit).toHaveBeenCalledTimes(1)
+	expect((created.edit.mock.calls as unknown[][])[0]?.[0]).toMatchObject({
+		content: null,
+		embeds: [],
+		flags: MessageFlags.IsComponentsV2,
+	})
 	const invalid = createFeedGuild({ channel: { isTextBased: () => false } })
 	await expect(updateTournament(invalid.guild, changed, 0, context)).rejects.toThrow(
 		'Configured tournament channel is unavailable',

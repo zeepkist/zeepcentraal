@@ -5,7 +5,6 @@ import {
 	Events,
 	GatewayIntentBits,
 	type GuildMember,
-	MessageFlags,
 	REST,
 	type RESTPostAPIApplicationCommandsJSONBody,
 	Routes,
@@ -19,8 +18,8 @@ import {
 	dispatchChatInput,
 	dispatchContextMenu,
 } from './commands/registry'
+import { editPayload, errorContainer, replyPayload } from './display'
 import { FeedService } from './feeds'
-import { errorEmbed } from './format'
 import { ZeepGraphqlClient } from './graphql'
 import { waitForDiscordDependencies } from './readiness'
 import type { DiscordBotConfig } from './types'
@@ -211,13 +210,11 @@ export function createDiscordRuntime(
 			const message = error instanceof Error ? error.message : 'Unknown error'
 			dependencies.logError(`Discord interaction ${interaction.id} failed`, error)
 			if (!interaction.isRepliable()) return
-			const response = {
-				embeds: [errorEmbed(message)],
-				flags: MessageFlags.Ephemeral as const,
-			}
-			if (interaction.deferred) await interaction.editReply({ embeds: response.embeds })
-			else if (interaction.replied) await interaction.followUp(response)
-			else await interaction.reply(response)
+			const container = errorContainer(message)
+			if (interaction.deferred) await interaction.editReply(editPayload(container))
+			else if (interaction.replied)
+				await interaction.followUp(replyPayload(container, { ephemeral: true }))
+			else await interaction.reply(replyPayload(container, { ephemeral: true }))
 		}
 	})
 

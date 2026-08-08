@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext } from '../../test/mocks'
 import { randomLevelHandler } from './random-level'
 
@@ -23,6 +24,7 @@ test('random-level uses injected selection and minimum points', async () => {
 		integers: { 'minimum-points': 1000 },
 	})
 	await randomLevelHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(query.mock.calls[0]?.[1]).toMatchObject({
 		filter: { levelPoints: { points: { greaterThanOrEqualTo: 1000 } } },
 	})
@@ -46,5 +48,6 @@ test('random-level renders hash and zero points fallback', async () => {
 	const { context } = createMockContext({ graphql: { query } })
 	const { interaction, state } = createChatInteraction('random-level')
 	await randomLevelHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(JSON.stringify(state.edit)).toContain('hash-only')
 })

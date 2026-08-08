@@ -22,7 +22,7 @@ export async function deliverWatches(
 	for (const [discordId, recipientWatches] of recipients) {
 		try {
 			const recipient = await client.users.fetch(discordId)
-			await recipient.send({ ...message, content: undefined, allowedMentions: safeMentions })
+			await recipient.send({ ...message, allowedMentions: safeMentions })
 			for (const watch of recipientWatches) {
 				await context.backend.updateWatchDelivery(watch.id, {
 					paused: false,

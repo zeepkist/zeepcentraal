@@ -187,10 +187,16 @@ export function createContextInteraction(commandName = 'ZeepCentraal profile') {
 }
 
 export function createButtonInteraction(customId: string, userId = 'discord-1') {
-	const state: { reply?: unknown; update?: unknown } = {}
+	const state: { deferUpdate?: boolean; edit?: unknown; reply?: unknown; update?: unknown } = {}
 	const interaction = {
 		customId,
 		user: { id: userId },
+		deferUpdate: mock(async () => {
+			state.deferUpdate = true
+		}),
+		editReply: mock(async (input: unknown) => {
+			state.edit = input
+		}),
 		reply: mock(async (input: unknown) => {
 			state.reply = input
 		}),

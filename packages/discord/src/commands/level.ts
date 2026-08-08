@@ -1,14 +1,17 @@
 import { Zc_LevelRecordsDocument, Zc_OmniSearchDocument } from '@zeepkist/graphql/generated'
 import {
+	ActionRowBuilder,
 	type AutocompleteInteraction,
+	ButtonBuilder,
+	ButtonStyle,
 	type ChatInputCommandInteraction,
 	SlashCommandBuilder,
 } from 'discord.js'
-import { baseEmbed, compactNumber, formatTime, playerLabel, truncate } from '../format'
+import { compactNumber, formatTime, playerLabel, truncate } from '../format'
 import type { LinkedUser } from '../types'
 import type { CommandContext } from './context'
 import { findLevel } from './utils/level-lookup'
-import { createPages } from './utils/pagination'
+import { type CursorWindow, createCursorPages } from './utils/pagination'
 import { enrichUser } from './utils/user-enrichment'
 
 type LevelLeaderboardRecord = {
@@ -17,13 +20,10 @@ type LevelLeaderboardRecord = {
 	userId: number
 }
 
-async function levelLeaderboard(levelId: number, context: CommandContext) {
-	const records: LevelLeaderboardRecord[] = []
-	let after: unknown
-	while (true) {
+function levelLeaderboard(levelId: number, context: CommandContext) {
+	return async (window: CursorWindow, page: number) => {
 		const data = await context.graphql.query<Record<string, unknown>>(Zc_LevelRecordsDocument, {
-			first: 100,
-			after,
+			...window,
 			filter: {
 				levelId: { equalTo: levelId },
 				personalBestGlobalsExist: true,
@@ -35,17 +35,34 @@ async function levelLeaderboard(levelId: number, context: CommandContext) {
 			data as {
 				records?: {
 					edges: Array<{ node: LevelLeaderboardRecord }>
-					pageInfo: { endCursor?: unknown; hasNextPage: boolean }
+					pageInfo: {
+						endCursor?: string | null
+						hasNextPage: boolean
+						hasPreviousPage: boolean
+						startCursor?: string | null
+					}
+					totalCount: number
 				} | null
 			}
 		).records
-		if (!connection) break
-		records.push(...connection.edges.map((edge) => edge.node))
-		const next = connection.pageInfo.endCursor
-		if (!connection.pageInfo.hasNextPage || next == null || next === after) break
-		after = next
+		if (!connection) {
+			return {
+				pageInfo: { hasNextPage: false, hasPreviousPage: false },
+				rows: [],
+				totalCount: 0,
+			}
+		}
+		const records = connection.edges.map((edge) => edge.node)
+		const users = await context.graphql.usersByIds(records.map((record) => record.userId))
+		return {
+			pageInfo: connection.pageInfo,
+			rows: records.map(
+				(record, index) =>
+					`**${page * 10 + index + 1}.** ${playerLabel(users.get(record.userId) ?? record.user)} • ${formatTime(record.time)}`,
+			),
+			totalCount: connection.totalCount,
+		}
 	}
-	return records
 }
 
 export const levelDefinition = new SlashCommandBuilder()
@@ -86,12 +103,9 @@ export async function levelHandler(
 	}
 	if (!typed.publiclyVisible) throw new Error('Level is not publicly visible.')
 	const item = typed.levelItems?.nodes[0]
-	const leaderboard = await levelLeaderboard(typed.id, context)
-	const userIds = [
-		item?.author?.id,
-		typed.worldRecordGlobal?.user?.id,
-		...leaderboard.map((record) => record.userId),
-	].filter((value): value is number => typeof value === 'number')
+	const userIds = [item?.author?.id, typed.worldRecordGlobal?.user?.id].filter(
+		(value): value is number => typeof value === 'number',
+	)
 	const users = await context.graphql.usersByIds(userIds)
 	const author = enrichUser(
 		item?.author as unknown as Record<string, unknown>,
@@ -101,49 +115,39 @@ export async function levelHandler(
 		typed.worldRecordGlobal?.user as unknown as Record<string, unknown>,
 		users,
 	) as LinkedUser | null
-	const embed = {
-		...baseEmbed(item?.name ?? typed.xxHash),
-		url: `${context.config.frontendUrl}/level/${typed.xxHash}`,
-		thumbnail: item?.imageUrl ? { url: item.imageUrl } : undefined,
-		fields: [
-			{
-				name: 'Hash / ID',
-				value: `\`${typed.xxHash}\` / \`${typed.id}\``,
-				inline: false,
-			},
-			{
-				name: 'Ranked points',
-				value: compactNumber(typed.levelPoints?.points),
-				inline: true,
-			},
-			{
-				name: 'Rating',
-				value: (typed.levelPoints?.rating ?? 0).toFixed(2),
-				inline: true,
-			},
-			{
-				name: 'Records / PBs',
-				value: `${typed.records?.totalCount ?? 0} / ${typed.personalBestGlobals?.totalCount ?? 0}`,
-				inline: true,
-			},
-			{ name: 'Votes', value: String(typed.votes?.totalCount ?? 0), inline: true },
-			{
-				name: 'World record',
-				value: `${formatTime(typed.worldRecordGlobal?.record?.time)} • ${playerLabel(worldRecord)}`,
-				inline: false,
-			},
-		],
-	}
-	const rows = leaderboard.map(
-		(record, index) =>
-			`**${index + 1}.** ${playerLabel(users.get(record.userId) ?? record.user)} • ${formatTime(record.time)}`,
-	)
 	await interaction.editReply(
-		createPages(context, interaction.user.id, item?.name ?? typed.xxHash, rows, 10, {
-			descriptionPrefix: `By ${playerLabel(author)}\n\n**Leaderboard**`,
-			embed,
-			emptyDescription: 'No personal bests yet.',
-		}),
+		await createCursorPages(
+			context,
+			interaction.user.id,
+			{
+				actions: [
+					new ActionRowBuilder<ButtonBuilder>().addComponents(
+						new ButtonBuilder()
+							.setLabel('Open level')
+							.setStyle(ButtonStyle.Link)
+							.setURL(`${context.config.frontendUrl}/level/${typed.xxHash}`),
+					),
+				],
+				description: `By ${playerLabel(author)}`,
+				emptyDescription: 'No personal bests yet.',
+				sections: [
+					{
+						content: [
+							`**Hash / ID**  \`${typed.xxHash}\` / \`${typed.id}\``,
+							`**Points**  ${compactNumber(typed.levelPoints?.points)}  •  **Rating**  ${(typed.levelPoints?.rating ?? 0).toFixed(2)}`,
+							`**Records / PBs**  ${typed.records?.totalCount ?? 0} / ${typed.personalBestGlobals?.totalCount ?? 0}  •  **Votes**  ${typed.votes?.totalCount ?? 0}`,
+							`**World record**  ${formatTime(typed.worldRecordGlobal?.record?.time)} • ${playerLabel(worldRecord)}`,
+						].join('\n'),
+						heading: 'Level details',
+					},
+				],
+				thumbnail: item?.imageUrl
+					? { description: `${item.name} thumbnail`, url: item.imageUrl }
+					: undefined,
+				title: item?.name ?? typed.xxHash,
+			},
+			levelLeaderboard(typed.id, context),
+		),
 	)
 }
 

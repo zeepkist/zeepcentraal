@@ -1,6 +1,7 @@
 import { expect, mock, spyOn, test } from 'bun:test'
 import type { Client, GuildMember } from 'discord.js'
-import { Events, MessageFlags } from 'discord.js'
+import { Events } from 'discord.js'
+import { expectComponentsV2 } from '../test/components'
 import { testConfig } from '../test/mocks'
 import { createCommandRuntime } from './commands/context'
 import { commandData } from './commands/registry'
@@ -406,17 +407,13 @@ test('runtime contains member sync failures and uses all Discord error response 
 	const handler = harness.clientHarness.onHandlers.get(Events.InteractionCreate)
 	const edit = interaction('chat', { deferred: true })
 	await handler?.(edit as never)
-	expect(edit.editReply).toHaveBeenCalledWith({ embeds: expect.any(Array) })
+	expectComponentsV2(edit.editReply.mock.calls[0]?.[0])
 	const follow = interaction('chat', { replied: true })
 	await handler?.(follow as never)
-	expect(follow.followUp).toHaveBeenCalledWith(
-		expect.objectContaining({ flags: MessageFlags.Ephemeral }),
-	)
+	expectComponentsV2(follow.followUp.mock.calls[0]?.[0], true)
 	const reply = interaction('chat')
 	await handler?.(reply as never)
-	expect(reply.reply).toHaveBeenCalledWith(
-		expect.objectContaining({ flags: MessageFlags.Ephemeral }),
-	)
+	expectComponentsV2(reply.reply.mock.calls[0]?.[0], true)
 	const noReply = interaction('chat', { isRepliable: () => false })
 	await handler?.(noReply as never)
 	expect(noReply.reply).not.toHaveBeenCalled()

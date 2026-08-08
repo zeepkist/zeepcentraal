@@ -1,4 +1,5 @@
-import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
+import { type ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js'
+import { displayContainer, replyPayload, SUCCESS_COLOR } from '../display'
 import type { CommandContext } from './context'
 
 export const unlinkDefinition = new SlashCommandBuilder()
@@ -10,8 +11,14 @@ export async function unlinkHandler(
 	context: CommandContext,
 ) {
 	await context.backend.unlink(interaction.user.id)
-	await interaction.reply({
-		flags: MessageFlags.Ephemeral,
-		content: 'Discord account unlinked.',
-	})
+	await interaction.reply(
+		replyPayload(
+			displayContainer({
+				accentColor: SUCCESS_COLOR,
+				description: 'Discord account unlinked.',
+				title: 'Account unlinked',
+			}),
+			{ ephemeral: true },
+		),
+	)
 }

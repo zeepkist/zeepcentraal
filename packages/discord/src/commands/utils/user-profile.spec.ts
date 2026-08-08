@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../../test/components'
 import { createChatInteraction, createMockContext, linkedUser } from '../../../test/mocks'
 import { userProfileHandler } from './user-profile'
 
@@ -25,5 +26,6 @@ test('user profile renders complete ranked profile', async () => {
 	const { context } = createMockContext({ graphql: { userByFilter } })
 	const { interaction, state } = createChatInteraction('user')
 	await userProfileHandler(interaction, context, linkedUser)
+	expectComponentsV2(state.edit)
 	expect(JSON.stringify(state.edit)).toContain('#1')
 })

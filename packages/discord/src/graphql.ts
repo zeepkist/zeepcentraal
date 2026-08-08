@@ -35,7 +35,7 @@ const activityEventsDocument = gql`
 		discordActivityEvents(
 			first: $first
 			filter: { id: { greaterThan: $after } }
-			orderBy: [ID_ASC]
+			orderBy: [ID_DESC]
 		) {
 			nodes {
 				id
@@ -67,7 +67,7 @@ const activityEventsDocument = gql`
 
 const activityEventsLiveDocument = gql`
 	subscription DiscordActivityEventsLive {
-		discordActivityEvents(last: 1, orderBy: [ID_ASC]) { nodes { id } }
+		discordActivityEvents(last: 1, orderBy: [ID_DESC]) { nodes { id } }
 	}
 `
 

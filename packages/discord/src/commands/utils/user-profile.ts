@@ -1,5 +1,12 @@
-import type { ChatInputCommandInteraction, UserContextMenuCommandInteraction } from 'discord.js'
-import { baseEmbed, compactNumber, playerLabel, safeMentions } from '../../format'
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	type ChatInputCommandInteraction,
+	type UserContextMenuCommandInteraction,
+} from 'discord.js'
+import { displayContainer, editPayload } from '../../display'
+import { compactNumber, playerLabel } from '../../format'
 import type { LinkedUser } from '../../types'
 import type { CommandContext } from '../context'
 
@@ -27,44 +34,31 @@ export async function userProfileHandler(
 		votes?: { totalCount: number }
 		worldRecordGlobals?: { totalCount: number }
 	}
-	await interaction.editReply({
-		embeds: [
-			{
-				...baseEmbed(playerLabel(typed), `Steam ID: \`${typed.steamId}\``),
-				url: `${context.config.frontendUrl}/user/${typed.steamId}`,
-				fields: [
-					{
-						name: 'Rank',
-						value:
-							typed.userPoints?.rank && typed.userPoints.rank > 0
-								? `#${typed.userPoints.rank}`
-								: 'Unranked',
-						inline: true,
-					},
-					{
-						name: 'Ranked points',
-						value: compactNumber(typed.userPoints?.points),
-						inline: true,
-					},
-					{
-						name: 'WRs',
-						value: String(typed.worldRecordGlobals?.totalCount ?? 0),
-						inline: true,
-					},
-					{
-						name: 'Records / PBs',
-						value: `${typed.records?.totalCount ?? 0} / ${typed.personalBestGlobals?.totalCount ?? 0}`,
-						inline: true,
-					},
-					{
-						name: 'Published levels',
-						value: String(typed.levelItems?.totalCount ?? 0),
-						inline: true,
-					},
-					{ name: 'Votes', value: String(typed.votes?.totalCount ?? 0), inline: true },
+	await interaction.editReply(
+		editPayload(
+			displayContainer({
+				actions: [
+					new ActionRowBuilder<ButtonBuilder>().addComponents(
+						new ButtonBuilder()
+							.setLabel('Open profile')
+							.setStyle(ButtonStyle.Link)
+							.setURL(`${context.config.frontendUrl}/user/${typed.steamId}`),
+					),
 				],
-			},
-		],
-		allowedMentions: safeMentions,
-	})
+				description: `Steam ID  \`${typed.steamId}\``,
+				sections: [
+					{
+						content: [
+							`**Rank**  ${typed.userPoints?.rank && typed.userPoints.rank > 0 ? `#${typed.userPoints.rank}` : 'Unranked'}  •  **Points**  ${compactNumber(typed.userPoints?.points)}`,
+							`**World records**  ${typed.worldRecordGlobals?.totalCount ?? 0}`,
+							`**Records / PBs**  ${typed.records?.totalCount ?? 0} / ${typed.personalBestGlobals?.totalCount ?? 0}`,
+							`**Published levels / votes**  ${typed.levelItems?.totalCount ?? 0} / ${typed.votes?.totalCount ?? 0}`,
+						].join('\n'),
+						heading: 'Career summary',
+					},
+				],
+				title: playerLabel(typed),
+			}),
+		),
+	)
 }

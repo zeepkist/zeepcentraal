@@ -1,6 +1,7 @@
 import type { MessageCreateOptions } from 'discord.js'
 import type { CommandContext } from '../commands/context'
-import { baseEmbed, playerLabel, safeMentions, truncate } from '../format'
+import { displayContainer, INFO_COLOR, messagePayload } from '../display'
+import { playerLabel, truncate } from '../format'
 import type { DiscordActivityEvent } from '../types'
 
 type RankChange = {
@@ -36,7 +37,7 @@ export async function rankMessage(event: DiscordActivityEvent, context: CommandC
 	const changes = rankChanges(event)
 	if (changes.length === 0) return null
 	const users = await context.graphql.usersByIds(changes.map((change) => change.idUser))
-	const rows = changes.slice(0, 40).map((change) => {
+	const rows = changes.slice(0, 30).map((change) => {
 		const direction =
 			change.rank !== -1 && (change.previousRank === -1 || change.rank < change.previousRank)
 				? '▲'
@@ -44,13 +45,18 @@ export async function rankMessage(event: DiscordActivityEvent, context: CommandC
 		return `${direction} ${playerLabel(users.get(change.idUser))}: ${rankLabel(change.previousRank)} → ${rankLabel(change.rank)}`
 	})
 	if (changes.length > rows.length) rows.push(`…and ${changes.length - rows.length} more`)
-	return {
-		embeds: [
-			baseEmbed(
-				`Rank changes • ${changes.length} ${changes.length === 1 ? 'player' : 'players'}`,
-				truncate(rows.join('\n'), 4000),
-			),
-		],
-		allowedMentions: safeMentions,
-	} satisfies MessageCreateOptions
+	return messagePayload(
+		displayContainer({
+			accentColor: INFO_COLOR,
+			description: `${changes.length} ${changes.length === 1 ? 'player moved' : 'players moved'} after ranking recalculation.`,
+			footer: `ZeepCentraal • <t:${Math.floor(new Date(event.occurredAt).getTime() / 1000)}:R>`,
+			sections: [
+				{
+					content: truncate(rows.join('\n'), 3000),
+					heading: 'Movements',
+				},
+			],
+			title: 'Rank changes',
+		}),
+	) satisfies MessageCreateOptions
 }

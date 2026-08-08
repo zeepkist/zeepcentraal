@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext } from '../../test/mocks'
 import { gtrHandler } from './gtr'
 
@@ -10,6 +11,7 @@ test('gtr includes linked player versions', async () => {
 	const { context } = createMockContext({ graphql: { modVersions } })
 	const { interaction, state } = createChatInteraction('gtr')
 	await gtrHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(JSON.stringify(state.edit)).toContain('1.2.3')
 	expect(JSON.stringify(state.edit)).toContain('1.3.0 / 1.1.0')
 })

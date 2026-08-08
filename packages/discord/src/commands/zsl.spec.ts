@@ -1,10 +1,13 @@
 import { expect, mock, test } from 'bun:test'
+import { displayText, expectComponentsV2 } from '../../test/components'
 import {
+	createButtonInteraction,
 	createChatInteraction,
 	createMockContext,
 	linkedUser,
 	unlinkedState,
 } from '../../test/mocks'
+import { paginationHandler } from './utils/pagination'
 import { zslHandler } from './zsl'
 
 test('zsl paginates season results and appends viewer result', async () => {
@@ -36,14 +39,36 @@ test('zsl paginates season results and appends viewer result', async () => {
 							},
 						},
 					],
-					pageInfo: { hasNextPage: true, endCursor: 'cursor-1' },
+					pageInfo: {
+						endCursor: 'cursor-1',
+						hasNextPage: true,
+						hasPreviousPage: false,
+						startCursor: 'cursor-0',
+					},
+					totalCount: 11,
 				},
 			}
 		}
 		return {
+			viewerStanding: {
+				nodes: [
+					{
+						userId: 9,
+						position: 9,
+						points: 5,
+						time: 14,
+						user: { ...linkedUser, id: 9 },
+					},
+				],
+			},
 			zslSeasonResults: {
 				edges: [{ node: { userId: 2, position: 2, points: 8, user: null } }],
-				pageInfo: { hasNextPage: false },
+				pageInfo: {
+					hasNextPage: false,
+					hasPreviousPage: true,
+					startCursor: 'cursor-1',
+				},
+				totalCount: 11,
 			},
 		}
 	})
@@ -60,10 +85,15 @@ test('zsl paginates season results and appends viewer result', async () => {
 		integers: { id: 3 },
 	})
 	await zslHandler(interaction, context)
-	expect(query).toHaveBeenCalledTimes(2)
-	expect(query.mock.calls[1]?.[1]).toMatchObject({ after: 'cursor-1' })
-	expect(JSON.stringify(state.edit)).toContain('Your result')
-	expect(JSON.stringify(state.edit)).toContain('Super League season 3')
+	expect(query).toHaveBeenCalledTimes(1)
+	expect(query.mock.calls[0]?.[1]).toMatchObject({ first: 10 })
+	expectComponentsV2(state.edit)
+	expect(displayText(state.edit)).toContain('Your result')
+	expect(displayText(state.edit)).toContain('Super League season 3')
+	const next = createButtonInteraction('page:session-1:next')
+	await paginationHandler(next.interaction, context, 'session-1', 'next')
+	expect(query.mock.calls[1]?.[1]).toMatchObject({ after: 'cursor-1', first: 10 })
+	expect(displayText(next.state.edit)).toContain('Page 2/2')
 })
 
 test('zsl validates and queries round scope', async () => {
@@ -75,7 +105,11 @@ test('zsl validates and queries round scope', async () => {
 	expect(zslHandler(missingRound, context)).rejects.toThrow('Round scope needs `round`.')
 
 	const query = mock(async (..._args: unknown[]) => ({
-		zslRoundResults: { edges: [], pageInfo: { hasNextPage: false } },
+		zslRoundResults: {
+			edges: [],
+			pageInfo: { hasNextPage: false, hasPreviousPage: false },
+			totalCount: 0,
+		},
 	}))
 	const valid = createMockContext({ graphql: { query } }).context
 	const { interaction, state } = createChatInteraction('zsl', {
@@ -96,8 +130,9 @@ test('zsl handles level scope without linked viewer or connection', async () => 
 		integers: { id: 12 },
 	})
 	await zslHandler(interaction, context)
-	expect(JSON.stringify(state.edit)).toContain('No results.')
-	expect(JSON.stringify(state.edit)).toContain('Super League level 12')
+	expectComponentsV2(state.edit)
+	expect(displayText(state.edit)).toContain('No results yet.')
+	expect(displayText(state.edit)).toContain('Super League level 12')
 })
 
 test('zsl does not duplicate viewer already in results', async () => {
@@ -106,7 +141,8 @@ test('zsl does not duplicate viewer already in results', async () => {
 		viewerStanding: { nodes: [viewer] },
 		zslLevelResults: {
 			edges: [{ node: viewer }],
-			pageInfo: { hasNextPage: true, endCursor: null },
+			pageInfo: { hasNextPage: false, hasPreviousPage: false },
+			totalCount: 1,
 		},
 	}))
 	const { context } = createMockContext({ graphql: { query } })

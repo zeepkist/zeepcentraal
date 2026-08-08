@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'bun:test'
-import { MessageFlags } from 'discord.js'
+import { displayText, expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext } from '../../test/mocks'
 import { linkHandler } from './link'
 
@@ -7,7 +7,7 @@ test('link explains browser flow when code is omitted', async () => {
 	const { interaction, state } = createChatInteraction('link')
 	const { context } = createMockContext()
 	await linkHandler(interaction, context)
-	expect(state.reply).toMatchObject({ flags: MessageFlags.Ephemeral })
+	expectComponentsV2(state.reply, true)
 	expect(JSON.stringify(state.reply)).toContain('/settings/discord')
 })
 
@@ -19,7 +19,8 @@ test('link redeems code and confirms success', async () => {
 	})
 	await linkHandler(interaction, context)
 	expect(redeem).toHaveBeenCalledWith('12345678', 'discord-1')
-	expect(JSON.stringify(state.reply)).toContain('Account linked')
+	expectComponentsV2(state.reply, true)
+	expect(displayText(state.reply)).toContain('Account linked')
 })
 
 test('link reports rejected code status', async () => {

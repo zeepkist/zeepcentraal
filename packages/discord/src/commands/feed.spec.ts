@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext } from '../../test/mocks'
 import { feedHandler } from './feed'
 
@@ -18,6 +19,7 @@ test.each([true, false])('feed stores enabled=%s configuration', async (enabled)
 		booleans: { enabled },
 	})
 	await feedHandler(interaction, context)
+	expectComponentsV2(state.reply, true)
 	expect(setFeed).toHaveBeenCalledWith('guild-1', 'world_record', 'channel-1', enabled)
 	expect(JSON.stringify(state.reply)).toContain(enabled ? 'enabled' : 'disabled')
 })

@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext } from '../../test/mocks'
 import { statsHandler } from './stats'
 
@@ -16,5 +17,6 @@ test('stats delegates standard activity statistics', async () => {
 		strings: { range: 'today' },
 	})
 	await statsHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(JSON.stringify(state.edit)).toContain('Player statistics')
 })

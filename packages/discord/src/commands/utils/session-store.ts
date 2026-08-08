@@ -1,17 +1,45 @@
-import type { APIActionRowComponent, APIButtonComponent, APIEmbed } from 'discord.js'
+import type { DisplayOptions } from '../../display'
 
-export type Page = {
-	components?: APIActionRowComponent<APIButtonComponent>[]
-	description: string
-	embed?: APIEmbed
-	title: string
+export type CursorWindow = {
+	after?: string | null
+	before?: string | null
+	first?: number
+	last?: number
+}
+
+export type PageInfo = {
+	endCursor?: string | null
+	hasNextPage: boolean
+	hasPreviousPage: boolean
+	startCursor?: string | null
+}
+
+export type PageResult = {
+	pageInfo: PageInfo
+	rows: string[]
+	sections?: DisplayOptions['sections']
+	totalCount: number
+}
+
+export type PageLoader = (window: CursorWindow, page: number) => Promise<PageResult>
+
+export type PagePresentation = Omit<DisplayOptions, 'footer' | 'sections'> & {
+	descriptionPrefix?: string
+	emptyDescription?: string
+	footer?: string
+	sectionHeading?: string
+	sections?: DisplayOptions['sections']
 }
 
 export type PageSession = {
 	expiresAt: number
+	loader: PageLoader
 	ownerId: string
 	page: number
-	pages: Page[]
+	pageSize: number
+	pending?: Promise<void>
+	presentation: PagePresentation
+	result: PageResult
 }
 
 export type PlaylistSession = {
@@ -52,13 +80,22 @@ export class CommandSessionStore {
 		}
 	}
 
-	createPages(ownerId: string, pages: PageSession['pages']) {
+	createPages(
+		ownerId: string,
+		pageSize: number,
+		result: PageResult,
+		presentation: PagePresentation,
+		loader: PageLoader,
+	) {
 		const id = this.id()
 		this.pages.set(id, {
 			expiresAt: this.now() + this.ttl,
+			loader,
 			ownerId,
 			page: 0,
-			pages,
+			pageSize,
+			presentation,
+			result,
 		})
 		return { id, session: this.pages.get(id) as PageSession }
 	}

@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { displayText, expectComponentsV2 } from '../../../test/components'
 import {
 	createButtonInteraction,
 	createChatInteraction,
@@ -23,8 +24,31 @@ test('tournament renderer includes standings, level, buttons, and stable hash', 
 						levelItems: { nodes: [{ name: 'Level', imageUrl: 'https://image.test' }] },
 					},
 					trackTournamentResults: {
-						totalCount: 1,
-						nodes: [{ rank: 1, time: 12, points: 10, userId: 7, user: linkedUser }],
+						totalCount: 4,
+						nodes: [
+							{ rank: 1, time: 12, points: 10, userId: 7, user: linkedUser },
+							{
+								rank: 2,
+								time: 13,
+								points: 8,
+								userId: 8,
+								user: { ...linkedUser, steamName: 'Second' },
+							},
+							{
+								rank: 3,
+								time: 14,
+								points: 6,
+								userId: 9,
+								user: { ...linkedUser, steamName: 'Third' },
+							},
+							{
+								rank: 4,
+								time: 15,
+								points: 4,
+								userId: 10,
+								user: { ...linkedUser, steamName: 'Fourth' },
+							},
+						],
 					},
 				},
 			],
@@ -36,7 +60,10 @@ test('tournament renderer includes standings, level, buttons, and stable hash', 
 	const second = await buildTournamentMessage(0, context)
 	expect(first.contentHash).toBe(second.contentHash)
 	expect(first.tournamentType).toBe('totw')
-	expect(JSON.stringify(first.message)).toContain('Enriched')
+	expectComponentsV2(first.message)
+	expect(displayText(first.message)).toContain('Enriched')
+	expect(displayText(first.message)).toContain('Third')
+	expect(displayText(first.message)).not.toContain('Fourth')
 	expect(JSON.stringify(first.message)).toContain('Download level playlist')
 })
 
@@ -70,7 +97,7 @@ test('tournament handler defers then edits reply', async () => {
 	expect(state.edit).toBeDefined()
 })
 
-test('tournament handler paginates complete standings and preserves link buttons', async () => {
+test('tournament handler paginates standings server-side and preserves link buttons', async () => {
 	const results = Array.from({ length: 12 }, (_, index) => ({
 		rank: index + 1,
 		time: 10 + index,
@@ -109,7 +136,13 @@ test('tournament handler paginates complete standings and preserves link buttons
 				tournament: {
 					leaderboard: {
 						edges: results.slice(0, 10).map((node) => ({ node })),
-						pageInfo: { endCursor: 'cursor-10', hasNextPage: true },
+						pageInfo: {
+							endCursor: 'cursor-10',
+							hasNextPage: true,
+							hasPreviousPage: false,
+							startCursor: 'cursor-0',
+						},
+						totalCount: 12,
 					},
 				},
 			}
@@ -118,7 +151,13 @@ test('tournament handler paginates complete standings and preserves link buttons
 			tournament: {
 				leaderboard: {
 					edges: results.slice(10).map((node) => ({ node })),
-					pageInfo: { endCursor: 'cursor-12', hasNextPage: false },
+					pageInfo: {
+						endCursor: 'cursor-12',
+						hasNextPage: false,
+						hasPreviousPage: true,
+						startCursor: 'cursor-10',
+					},
+					totalCount: 12,
 				},
 			},
 		}
@@ -140,16 +179,19 @@ test('tournament handler paginates complete standings and preserves link buttons
 	const { context } = createMockContext({ graphql: { query, usersByIds } })
 	const { interaction, state } = createChatInteraction('totw')
 	await tournamentHandler(interaction, context, 0)
-	expect(JSON.stringify(state.edit)).toContain('Enriched 1')
-	expect(JSON.stringify(state.edit)).not.toContain('Enriched 12')
-	expect((state.edit as { components: unknown[] }).components).toHaveLength(2)
+	expectComponentsV2(state.edit)
+	expect(displayText(state.edit)).toContain('Enriched 1')
+	expect(displayText(state.edit)).not.toContain('Enriched 12')
+	expect((state.edit as { components: unknown[] }).components).toHaveLength(1)
+	expect(query.mock.calls[1]?.[1]).toMatchObject({ first: 10 })
 
 	const next = createButtonInteraction('page:session-1:next')
 	await paginationHandler(next.interaction, context, 'session-1', 'next')
-	const updated = JSON.stringify(next.state.update)
+	expectComponentsV2(next.state.edit)
+	const updated = displayText(next.state.edit)
 	expect(updated).toContain('Enriched 12 (<@discord-12>)')
-	expect(updated).toContain('https://image.test/5.png')
-	expect(updated).toContain('Download level playlist')
+	expect(JSON.stringify(next.state.edit)).toContain('https://image.test/5.png')
+	expect(JSON.stringify(next.state.edit)).toContain('Download level playlist')
 	expect(updated).toContain('Page 2/2')
 	expect(query.mock.calls[2]?.[1]).toMatchObject({ after: 'cursor-10' })
 })

@@ -1,5 +1,6 @@
 import { type ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js'
-import { baseEmbed, compactNumber, playerLabel, safeMentions } from '../format'
+import { displayContainer, editPayload } from '../display'
+import { compactNumber, playerLabel } from '../format'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
 
@@ -22,16 +23,18 @@ export async function compareHandler(
 		context.graphql.userByFilter({ id: { equalTo: first.id } }),
 		context.graphql.userByFilter({ id: { equalTo: second.id } }),
 	])
-	const rows = profiles.map((profile, index) => {
+	const sections = profiles.map((profile, index) => {
 		const typed = profile as {
 			discordId: string
 			steamName: string
 			userPoints?: { points: number; rank: number; worldRecords: number } | null
 		}
-		return `${index === 0 ? 'You' : 'Opponent'}: **${playerLabel(typed)}** • rank #${typed.userPoints?.rank ?? '-'} • ${compactNumber(typed.userPoints?.points)} pts • ${typed.userPoints?.worldRecords ?? 0} WRs`
+		return {
+			content: `**${playerLabel(typed)}**\nRank ${typed.userPoints?.rank ? `#${typed.userPoints.rank}` : 'Unranked'} • ${compactNumber(typed.userPoints?.points)} pts • ${typed.userPoints?.worldRecords ?? 0} WRs`,
+			heading: index === 0 ? 'You' : 'Opponent',
+		}
 	})
-	await interaction.editReply({
-		embeds: [baseEmbed('Player comparison', rows.join('\n'))],
-		allowedMentions: safeMentions,
-	})
+	await interaction.editReply(
+		editPayload(displayContainer({ sections, title: 'Player comparison' })),
+	)
 }

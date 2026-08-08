@@ -1,5 +1,6 @@
 import type { ChatInputCommandInteraction } from 'discord.js'
-import { baseEmbed, compactNumber, formatTime, playerLabel, safeMentions } from '../../format'
+import { displayContainer, editPayload } from '../../display'
+import { compactNumber, formatTime, playerLabel } from '../../format'
 import type { CommandContext } from '../context'
 import { dateRange } from './date-range'
 import { linkedUserOrThrow } from './linked-user'
@@ -33,7 +34,7 @@ export async function statisticsHandler(
 	const sums = aggregates.aggregates?.sum ?? {}
 	const averages = aggregates.aggregates?.average ?? {}
 	const maximums = aggregates.aggregates?.max ?? {}
-	const fields = surface
+	const rows = surface
 		? [
 				['Tarmac', sums.distanceOnTarmac],
 				['Grass', sums.distanceOnGrass],
@@ -45,63 +46,26 @@ export async function statisticsHandler(
 				['Ice 10', sums.distanceOnIce2],
 				['Ice 15', sums.distanceOnIce3],
 				['Airborne', sums.distanceInAir],
-			].map(([name, value]) => ({
-				name: String(name),
-				value: `${compactNumber(value as number)} m`,
-				inline: true,
-			}))
+			].map(([name, value]) => `**${name}**  ${compactNumber(value as number)} m`)
 		: [
-				{
-					name: 'Records',
-					value: String((data.records as { totalCount: number }).totalCount),
-					inline: true,
-				},
-				{
-					name: 'PBs',
-					value: String((data.personalBests as { totalCount: number }).totalCount),
-					inline: true,
-				},
-				{
-					name: 'WRs',
-					value: String((data.worldRecords as { totalCount: number }).totalCount),
-					inline: true,
-				},
-				{
-					name: 'Levels / votes',
-					value: `${(data.levels as { totalCount: number }).totalCount} / ${(data.votes as { totalCount: number }).totalCount}`,
-					inline: true,
-				},
-				{
-					name: 'Distance / time',
-					value: `${compactNumber(sums.distance)} m / ${formatTime(sums.time)}`,
-					inline: true,
-				},
-				{
-					name: 'Average speed',
-					value: `${Number(averages.averageSpeed ?? 0).toFixed(2)} km/h`,
-					inline: true,
-				},
-				{
-					name: 'Average G-force',
-					value: Number(averages.averageGforce ?? 0).toFixed(2),
-					inline: true,
-				},
-				{
-					name: 'Maximum speed / G',
-					value: `${Number(maximums.maxSpeed ?? 0).toFixed(2)} km/h / ${Number(maximums.maxGforce ?? 0).toFixed(2)} G`,
-					inline: true,
-				},
+				`**Records / PBs / WRs**  ${(data.records as { totalCount: number }).totalCount} / ${(data.personalBests as { totalCount: number }).totalCount} / ${(data.worldRecords as { totalCount: number }).totalCount}`,
+				`**Levels / votes**  ${(data.levels as { totalCount: number }).totalCount} / ${(data.votes as { totalCount: number }).totalCount}`,
+				`**Distance / time**  ${compactNumber(sums.distance)} m / ${formatTime(sums.time)}`,
+				`**Average speed / G-force**  ${Number(averages.averageSpeed ?? 0).toFixed(2)} km/h / ${Number(averages.averageGforce ?? 0).toFixed(2)} G`,
+				`**Maximum speed / G-force**  ${Number(maximums.maxSpeed ?? 0).toFixed(2)} km/h / ${Number(maximums.maxGforce ?? 0).toFixed(2)} G`,
 			]
-	await interaction.editReply({
-		embeds: [
-			{
-				...baseEmbed(
-					`${surface ? 'Surface statistics' : 'Player statistics'} • ${range.label}`,
-					playerLabel(linked),
-				),
-				fields,
-			},
-		],
-		allowedMentions: safeMentions,
-	})
+	await interaction.editReply(
+		editPayload(
+			displayContainer({
+				description: `${playerLabel(linked)} • ${aggregates.totalCount} telemetry samples`,
+				sections: [
+					{
+						content: rows.join('\n'),
+						heading: surface ? 'Distance by surface' : 'Performance summary',
+					},
+				],
+				title: `${surface ? 'Surface statistics' : 'Player statistics'} • ${range.label}`,
+			}),
+		),
+	)
 }

@@ -1,5 +1,5 @@
-import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
-import { baseEmbed } from '../format'
+import { type ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js'
+import { displayContainer, replyPayload } from '../display'
 import type { CommandContext } from './context'
 
 export const helpDefinition = new SlashCommandBuilder()
@@ -10,13 +10,31 @@ export async function helpHandler(
 	interaction: ChatInputCommandInteraction,
 	_context: CommandContext,
 ) {
-	await interaction.reply({
-		flags: MessageFlags.Ephemeral,
-		embeds: [
-			baseEmbed(
-				'ZeepCentraal bot',
-				'Account: `/link`, `/unlink`, `/wr-ping`\nDiscovery: `/level`, `/user`, `/random-level`, `/compare`\nCompetition: `/totw`, `/totm`, `/zsl`\nPlaylists: `/playlist`, `/playlist-recommend`\nTelemetry: `/stats`, `/stats-surface`\nNotifications: `/watch`\nSetup: `/modkist`, `/gtr`',
-			),
-		],
-	})
+	await interaction.reply(
+		replyPayload(
+			displayContainer({
+				description: 'Commands for records, competition, and community tools.',
+				sections: [
+					{
+						content: '`/link` • `/unlink` • `/wr-ping` • `/watch`',
+						heading: 'Account & notifications',
+					},
+					{
+						content: '`/level` • `/user` • `/random-level` • `/compare`',
+						heading: 'Discovery',
+					},
+					{
+						content: '`/totw` • `/totm` • `/zsl` • `/playlist` • `/playlist-recommend`',
+						heading: 'Competition & playlists',
+					},
+					{
+						content: '`/stats` • `/stats-surface` • `/modkist` • `/gtr`',
+						heading: 'Telemetry & setup',
+					},
+				],
+				title: 'ZeepCentraal bot',
+			}),
+			{ ephemeral: true },
+		),
+	)
 }

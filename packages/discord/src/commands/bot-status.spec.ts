@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { displayText, expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext } from '../../test/mocks'
 import { botStatusHandler } from './bot-status'
 
@@ -11,5 +12,6 @@ test('bot-status measures GraphQL health', async () => {
 	const { interaction, state } = createChatInteraction('bot-status')
 	await botStatusHandler(interaction, context)
 	expect(userByFilter).toHaveBeenCalledWith({ id: { equalTo: -1 } })
-	expect(JSON.stringify(state.edit)).toContain('healthy (26 ms)')
+	expectComponentsV2(state.edit)
+	expect(displayText(state.edit)).toContain('Healthy • 26 ms')
 })

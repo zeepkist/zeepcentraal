@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import {
 	createChatInteraction,
 	createMockContext,
@@ -24,6 +25,7 @@ test('watch lists active and paused entries', async () => {
 	const { context } = createMockContext({ backend: { user } })
 	const { interaction, state } = createChatInteraction('watch', { subcommand: 'list' })
 	await watchHandler(interaction, context)
+	expectComponentsV2(state.reply, true)
 	expect(JSON.stringify(state.reply)).toContain('• paused')
 	expect(JSON.stringify(state.reply)).toContain('hash')
 })
@@ -36,6 +38,7 @@ test('watch removes entry', async () => {
 		strings: { id: 'watch-1' },
 	})
 	await watchHandler(interaction, context)
+	expectComponentsV2(state.reply, true)
 	expect(removeWatch).toHaveBeenCalledWith('discord-1', 'watch-1')
 	expect(JSON.stringify(state.reply)).toContain('Watch removed')
 })
@@ -48,6 +51,7 @@ test('watch adds entry', async () => {
 		strings: { kind: 'author', target: 'Akane' },
 	})
 	await watchHandler(interaction, context)
+	expectComponentsV2(state.reply, true)
 	expect(addWatch).toHaveBeenCalledWith('discord-1', 'author', 'Akane')
 	expect(JSON.stringify(state.reply)).toContain('Watch added')
 })

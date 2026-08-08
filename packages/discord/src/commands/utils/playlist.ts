@@ -4,9 +4,9 @@ import {
 	ButtonBuilder,
 	type ButtonInteraction,
 	ButtonStyle,
-	MessageFlags,
 } from 'discord.js'
-import { baseEmbed, safeMentions, truncate } from '../../format'
+import { displayContainer, editPayload, replyPayload } from '../../display'
+import { truncate } from '../../format'
 import type { LinkedUser } from '../../types'
 import type { CommandContext } from '../context'
 
@@ -69,29 +69,27 @@ export function playlistResponse(
 		.slice(0, 15)
 		.map((level, index) => `${index + 1}. ${level.levelItems?.nodes[0]?.name ?? level.xxHash}`)
 		.join('\n')
-	return {
-		embeds: [
-			{
-				...baseEmbed(`${name} • ${levels.length} levels`, truncate(list, 3500)),
-				fields: [
-					{ name: 'Filters', value: filters.join(', ') || 'None' },
-					{
-						name: 'Install',
-						value: `Download file, then place it in \`${PLAYLIST_PATH}\`.`,
-					},
-				],
-			},
-		],
-		components: [
-			new ActionRowBuilder<ButtonBuilder>().addComponents(
-				new ButtonBuilder()
-					.setCustomId(`playlist:${id}`)
-					.setLabel('Generate Playlist')
-					.setStyle(ButtonStyle.Primary),
-			),
-		],
-		allowedMentions: safeMentions,
-	}
+	return editPayload(
+		displayContainer({
+			actions: [
+				new ActionRowBuilder<ButtonBuilder>().addComponents(
+					new ButtonBuilder()
+						.setCustomId(`playlist:${id}`)
+						.setLabel('Generate Playlist')
+						.setStyle(ButtonStyle.Primary),
+				),
+			],
+			description: `${levels.length} public levels matched.`,
+			sections: [
+				{ content: truncate(list, 3000), heading: 'Preview' },
+				{
+					content: `**Filters**  ${filters.join(', ') || 'None'}\n**Install**  Place downloaded file in \`${PLAYLIST_PATH}\`.`,
+					heading: 'Playlist details',
+				},
+			],
+			title: name,
+		}),
+	)
 }
 
 export async function playlistHandler(
@@ -101,23 +99,43 @@ export async function playlistHandler(
 ) {
 	const session = context.runtime.sessions.playlist(id)
 	if (!session) {
-		await interaction.reply({
-			flags: MessageFlags.Ephemeral,
-			content: 'Playlist download expired. Run command again.',
-		})
+		await interaction.reply(
+			replyPayload(
+				displayContainer({
+					description: 'Run command again.',
+					title: 'Playlist download expired',
+				}),
+				{ ephemeral: true },
+			),
+		)
 		return true
 	}
 	if (session.ownerId !== interaction.user.id) {
-		await interaction.reply({
-			flags: MessageFlags.Ephemeral,
-			content: 'Only command owner can download this playlist.',
-		})
+		await interaction.reply(
+			replyPayload(
+				displayContainer({
+					description: 'Only command owner can download this playlist.',
+					title: 'Private download',
+				}),
+				{ ephemeral: true },
+			),
+		)
 		return true
 	}
-	await interaction.reply({
-		flags: MessageFlags.Ephemeral,
-		content: `Place file in \`${PLAYLIST_PATH}\`.`,
-		files: [new AttachmentBuilder(Buffer.from(session.content), { name: session.filename })],
-	})
+	await interaction.reply(
+		replyPayload(
+			displayContainer({
+				description: `Place file in \`${PLAYLIST_PATH}\`.`,
+				files: [{ name: session.filename }],
+				title: 'Playlist ready',
+			}),
+			{
+				ephemeral: true,
+				files: [
+					new AttachmentBuilder(Buffer.from(session.content), { name: session.filename }),
+				],
+			},
+		),
+	)
 	return true
 }

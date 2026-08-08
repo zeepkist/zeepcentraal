@@ -1,22 +1,7 @@
 import { expect, test } from 'bun:test'
-import { Colors } from 'discord.js'
-import {
-	baseEmbed,
-	compactNumber,
-	EMBED_COLOR,
-	ERROR_COLOR,
-	errorEmbed,
-	formatTime,
-	playerLabel,
-	SUCCESS_COLOR,
-	safeMentions,
-	truncate,
-} from './format'
+import { compactNumber, formatTime, playerLabel, safeMentions, truncate } from './format'
 
-test('format exposes expected embed colours and safe mentions', () => {
-	expect(EMBED_COLOR).toBe(Colors.Yellow)
-	expect(SUCCESS_COLOR).toBe(Colors.Green)
-	expect(ERROR_COLOR).toBe(Colors.Red)
+test('format exposes safe mentions', () => {
 	expect(safeMentions).toEqual({ parse: [] })
 })
 
@@ -46,20 +31,4 @@ test('compact numbers handle numeric inputs and invalid values', () => {
 test('truncate preserves short text and clips long text', () => {
 	expect(truncate('short', 10)).toBe('short')
 	expect(truncate('1234567890', 6)).toBe('12345…')
-})
-
-test('base and error embeds use consistent metadata', () => {
-	const base = baseEmbed('Title', 'Description')
-	expect(base).toMatchObject({
-		color: EMBED_COLOR,
-		title: 'Title',
-		description: 'Description',
-		footer: { text: 'ZeepCentraal' },
-	})
-	expect(baseEmbed('Title').description).toBeUndefined()
-	expect(errorEmbed('Failure')).toMatchObject({
-		color: ERROR_COLOR,
-		title: 'Request failed',
-		description: 'Failure',
-	})
 })

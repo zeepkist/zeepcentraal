@@ -1,9 +1,9 @@
 import {
 	type ChatInputCommandInteraction,
-	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js'
+import { displayContainer, replyPayload, SUCCESS_COLOR } from '../display'
 import type { CommandContext } from './context'
 
 export const linkedRoleDefinition = new SlashCommandBuilder()
@@ -24,10 +24,16 @@ export async function linkedRoleHandler(
 	if (!interaction.guildId) throw new Error('Run this command inside a server.')
 	const role = interaction.options.getRole('role')
 	await context.backend.setLinkedRole(interaction.guildId, role?.id ?? null)
-	await interaction.reply({
-		flags: MessageFlags.Ephemeral,
-		content: role
-			? `Linked-account role set to <@&${role.id}>.`
-			: 'Linked-account role disabled.',
-	})
+	await interaction.reply(
+		replyPayload(
+			displayContainer({
+				accentColor: SUCCESS_COLOR,
+				description: role
+					? `Linked-account role set to <@&${role.id}>.`
+					: 'Linked-account role disabled.',
+				title: 'Linked role updated',
+			}),
+			{ ephemeral: true },
+		),
+	)
 }

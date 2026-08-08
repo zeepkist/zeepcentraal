@@ -1,14 +1,34 @@
-import type { MessageCreateOptions } from 'discord.js'
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, type MessageCreateOptions } from 'discord.js'
 import type { CommandContext } from '../commands/context'
-import { baseEmbed, compactNumber, formatTime, playerLabel, safeMentions } from '../format'
+import { displayContainer, INFO_COLOR, messagePayload, SUCCESS_COLOR } from '../display'
+import { compactNumber, formatTime, playerLabel, safeMentions } from '../format'
 import type { DiscordActivityEvent } from '../types'
 import { eventLevelName } from './event-level-name'
 import { rankMessage } from './rank-message'
+
+type EventMessageOptions = {
+	includeLossPing?: boolean
+}
 
 function eventLevelUrl(event: DiscordActivityEvent, context: CommandContext) {
 	return event.level
 		? `${context.config.frontendUrl}/level/${event.level.xxHash}`
 		: context.config.frontendUrl
+}
+
+function eventActions(event: DiscordActivityEvent, context: CommandContext) {
+	return [
+		new ActionRowBuilder<ButtonBuilder>().addComponents(
+			new ButtonBuilder()
+				.setLabel(event.level ? 'Open level' : 'Open ZeepCentraal')
+				.setStyle(ButtonStyle.Link)
+				.setURL(eventLevelUrl(event, context)),
+		),
+	]
+}
+
+function eventFooter(event: DiscordActivityEvent) {
+	return `ZeepCentraal • <t:${Math.floor(new Date(event.occurredAt).getTime() / 1000)}:R>`
 }
 
 function assertNever(value: never): never {
@@ -21,60 +41,66 @@ export async function rankEventMessage(event: DiscordActivityEvent, context: Com
 
 export function workshopEventMessage(event: DiscordActivityEvent, context: CommandContext) {
 	const item = event.level?.levelItems.nodes[0]
-	return {
-		embeds: [
-			{
-				...baseEmbed(
-					'New public workshop level',
-					`${eventLevelName(event)}\nBy ${playerLabel(item?.author)}`,
-				),
-				url: eventLevelUrl(event, context),
-				thumbnail: item?.imageUrl ? { url: item.imageUrl } : undefined,
-				fields: [
-					{
-						name: 'Workshop ID',
-						value: String(item?.workshopId ?? event.payload?.workshopId ?? 'Unknown'),
-					},
-				],
-			},
-		],
-		allowedMentions: safeMentions,
-	} satisfies MessageCreateOptions
+	return messagePayload(
+		displayContainer({
+			actions: eventActions(event, context),
+			accentColor: INFO_COLOR,
+			description: `**${eventLevelName(event)}**\nBy ${playerLabel(item?.author)}`,
+			footer: eventFooter(event),
+			sections: [
+				{
+					content: `**Workshop ID**  ${String(item?.workshopId ?? event.payload?.workshopId ?? 'Unknown')}`,
+					heading: 'Level details',
+				},
+			],
+			thumbnail: item?.imageUrl
+				? { description: `${eventLevelName(event)} thumbnail`, url: item.imageUrl }
+				: undefined,
+			title: 'New public workshop level',
+		}),
+	) satisfies MessageCreateOptions
 }
 
 export function personalBestEventMessage(event: DiscordActivityEvent, context: CommandContext) {
-	return {
-		embeds: [
-			{
-				...baseEmbed(
-					`New personal best • ${eventLevelName(event)}`,
-					`${playerLabel(event.user)} • ${formatTime(event.record?.time)}`,
-				),
-				url: eventLevelUrl(event, context),
-			},
-		],
-		allowedMentions: safeMentions,
-	} satisfies MessageCreateOptions
+	return messagePayload(
+		displayContainer({
+			actions: eventActions(event, context),
+			accentColor: SUCCESS_COLOR,
+			description: eventLevelName(event),
+			footer: eventFooter(event),
+			sections: [
+				{
+					content: `**Player**  ${playerLabel(event.user)}\n**Time**  ${formatTime(event.record?.time)}`,
+					heading: 'Personal best',
+				},
+			],
+			title: 'New personal best',
+		}),
+	) satisfies MessageCreateOptions
 }
 
 export function voteEventMessage(event: DiscordActivityEvent, context: CommandContext) {
-	return {
-		embeds: [
-			{
-				...baseEmbed(
-					`Level vote • ${eventLevelName(event)}`,
-					`${playerLabel(event.user)} voted ${String(event.payload?.value ?? 'unknown')}.`,
-				),
-				url: eventLevelUrl(event, context),
-			},
-		],
-		allowedMentions: safeMentions,
-	} satisfies MessageCreateOptions
+	return messagePayload(
+		displayContainer({
+			actions: eventActions(event, context),
+			accentColor: INFO_COLOR,
+			description: eventLevelName(event),
+			footer: eventFooter(event),
+			sections: [
+				{
+					content: `**Player**  ${playerLabel(event.user)}\n**Vote**  ${String(event.payload?.value ?? 'Unknown')}`,
+					heading: 'Community vote',
+				},
+			],
+			title: 'Level vote',
+		}),
+	) satisfies MessageCreateOptions
 }
 
 export async function worldRecordEventMessage(
 	event: DiscordActivityEvent,
 	context: CommandContext,
+	options: EventMessageOptions = {},
 ) {
 	const samePlayer = event.userId !== null && event.userId === event.previousUserId
 	const levelItem = event.level?.levelItems.nodes[0]
@@ -89,42 +115,53 @@ export async function worldRecordEventMessage(
 	} else {
 		recordContext = `Stolen from ${playerLabel(event.previousUser)} (${formatTime(event.previousRecord.time)})`
 	}
-	const content =
+	const discordId =
 		event.previousRecord && !samePlayer ? event.previousUser?.discordId?.toString() : undefined
-	const preference = content ? await context.backend.user(content).catch(() => null) : null
+	const preference =
+		options.includeLossPing !== false && discordId
+			? await context.backend.user(discordId).catch(() => null)
+			: null
 	const shouldPing = Boolean(
-		content && content !== '-1' && preference?.preference?.pingOnWorldRecordLoss,
+		discordId &&
+			discordId !== '-1' &&
+			options.includeLossPing !== false &&
+			preference?.preference?.pingOnWorldRecordLoss,
 	)
+	const notification = shouldPing ? `<@${discordId}> your world record was beaten.\n` : ''
 
-	return {
-		content: shouldPing ? `<@${content}> your world record was beaten.` : undefined,
-		embeds: [
-			{
-				...baseEmbed(
-					`New world record • ${eventLevelName(event)}`,
-					`${playerLabel(event.user)} • ${formatTime(event.record?.time)}\n${recordContext}`,
-				),
-				url: eventLevelUrl(event, context),
-				thumbnail: levelItem?.imageUrl ? { url: levelItem.imageUrl } : undefined,
-				fields: [
-					{
-						name: 'Ranked points',
-						value: compactNumber(event.level?.levelPoints?.points),
-						inline: true,
-					},
-					{
-						name: 'Personal bests',
-						value: compactNumber(event.level?.personalBestGlobals.totalCount),
-						inline: true,
-					},
-				],
-			},
-		],
-		allowedMentions: shouldPing ? { users: [content as string], parse: [] } : safeMentions,
-	} satisfies MessageCreateOptions
+	return messagePayload(
+		displayContainer({
+			actions: eventActions(event, context),
+			description: `${notification}**${eventLevelName(event)}**`,
+			footer: eventFooter(event),
+			sections: [
+				{
+					content: `**Player**  ${playerLabel(event.user)}\n**Time**  ${formatTime(event.record?.time)}\n${recordContext}`,
+					heading: 'Record',
+				},
+				{
+					content: `**Level points**  ${compactNumber(event.level?.levelPoints?.points)}\n**Personal bests**  ${compactNumber(event.level?.personalBestGlobals.totalCount)}`,
+					heading: 'Level activity',
+				},
+			],
+			thumbnail: levelItem?.imageUrl
+				? { description: `${eventLevelName(event)} thumbnail`, url: levelItem.imageUrl }
+				: undefined,
+			title: 'New world record',
+		}),
+		{
+			allowedMentions: shouldPing
+				? { users: [discordId as string], parse: [] }
+				: safeMentions,
+		},
+	) satisfies MessageCreateOptions
 }
 
-export async function eventMessage(event: DiscordActivityEvent, context: CommandContext) {
+export async function eventMessage(
+	event: DiscordActivityEvent,
+	context: CommandContext,
+	options: EventMessageOptions = {},
+) {
 	switch (event.kind) {
 		case 'rank_batch':
 			return rankEventMessage(event, context)
@@ -135,7 +172,7 @@ export async function eventMessage(event: DiscordActivityEvent, context: Command
 		case 'vote':
 			return voteEventMessage(event, context)
 		case 'world_record':
-			return worldRecordEventMessage(event, context)
+			return worldRecordEventMessage(event, context, options)
 		default:
 			return assertNever(event.kind)
 	}

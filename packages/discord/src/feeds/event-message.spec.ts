@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'bun:test'
-import type { APIEmbed, MessageCreateOptions } from 'discord.js'
+import { displayText, expectComponentsV2 } from '../../test/components'
 import { createFeedEvent } from '../../test/feed-mocks'
 import { createMockContext, linkedUser } from '../../test/mocks'
 import { eventMessage } from './event-message'
@@ -15,7 +15,8 @@ test('event messages switch covers rank, workshop, personal best, vote, and worl
 		},
 	})
 	const workshop = await eventMessage(createFeedEvent({ kind: 'workshop' }), context)
-	expect(JSON.stringify(workshop)).toContain('New public workshop level')
+	expectComponentsV2(workshop)
+	expect(displayText(workshop)).toContain('New public workshop level')
 	expect(JSON.stringify(workshop)).toContain('https://image.test/level.jpg')
 	expect(
 		JSON.stringify(
@@ -43,19 +44,18 @@ test('event messages switch covers rank, workshop, personal best, vote, and worl
 		JSON.stringify(
 			await eventMessage(createFeedEvent({ kind: 'vote', payload: { value: 1 } }), context),
 		),
-	).toContain('voted 1')
-	const worldRecord = (await eventMessage(createFeedEvent(), context)) as MessageCreateOptions
-	expect(worldRecord.content).toContain('<@discord-2>')
+	).toContain('**Vote**  1')
+	const worldRecord = await eventMessage(createFeedEvent(), context)
+	if (!worldRecord) throw new Error('world-record message missing')
+	expectComponentsV2(worldRecord)
+	expect(displayText(worldRecord)).toContain('<@discord-2>')
 	expect(worldRecord.allowedMentions).toEqual({ users: ['discord-2'], parse: [] })
-	const worldRecordEmbed = worldRecord.embeds?.[0] as APIEmbed
-	expect(worldRecordEmbed.description).toContain('Stolen from Previous')
-	expect(worldRecordEmbed.thumbnail).toEqual({ url: 'https://image.test/level.jpg' })
-	expect(worldRecordEmbed.fields).toEqual([
-		{ name: 'Ranked points', value: '100', inline: true },
-		{ name: 'Personal bests', value: '25', inline: true },
-	])
+	expect(displayText(worldRecord)).toContain('Stolen from Previous')
+	expect(JSON.stringify(worldRecord)).toContain('https://image.test/level.jpg')
+	expect(displayText(worldRecord)).toContain('**Level points**  100')
+	expect(displayText(worldRecord)).toContain('**Personal bests**  25')
 
-	const firstRecord = (await eventMessage(
+	const firstRecord = await eventMessage(
 		createFeedEvent({
 			previousUserId: null,
 			previousRecordId: null,
@@ -63,11 +63,9 @@ test('event messages switch covers rank, workshop, personal best, vote, and worl
 			previousRecord: null,
 		}),
 		context,
-	)) as MessageCreateOptions
-	expect(firstRecord.content).toBeUndefined()
-	expect((firstRecord.embeds?.[0] as APIEmbed | undefined)?.description).toContain(
-		'First record set on this level.',
 	)
+	expect(displayText(firstRecord)).not.toContain('<@discord-2> your world record')
+	expect(displayText(firstRecord)).toContain('First record set on this level.')
 
 	const samePlayerLookup = mock(async () => ({
 		linkedUser,
@@ -75,26 +73,32 @@ test('event messages switch covers rank, workshop, personal best, vote, and worl
 		watches: [],
 	}))
 	const samePlayerContext = createMockContext({ backend: { user: samePlayerLookup } }).context
-	const improved = (await eventMessage(
+	const improved = await eventMessage(
 		createFeedEvent({
 			previousUserId: linkedUser.id,
 			previousUser: linkedUser,
 		}),
 		samePlayerContext,
-	)) as MessageCreateOptions
-	expect(improved.content).toBeUndefined()
-	expect((improved.embeds?.[0] as APIEmbed | undefined)?.description).toContain(
-		'Improved by 0.100s',
 	)
-	expect((improved.embeds?.[0] as APIEmbed | undefined)?.description).not.toContain('Stolen from')
+	expect(displayText(improved)).toContain('Improved by 0.100s')
+	expect(displayText(improved)).not.toContain('Stolen from')
 	expect(samePlayerLookup).not.toHaveBeenCalled()
 
 	const failedPreference = createMockContext({
 		backend: { user: mock(async () => Promise.reject(new Error('backend offline'))) },
 	}).context
-	expect(
-		((await eventMessage(createFeedEvent(), failedPreference)) as MessageCreateOptions).content,
-	).toBeUndefined()
+	expect(displayText(await eventMessage(createFeedEvent(), failedPreference))).not.toContain(
+		'<@discord-2> your world record',
+	)
+	const watchLookup = mock(async () => {
+		throw new Error('watch messages must not load ping preferences')
+	})
+	const watchContext = createMockContext({ backend: { user: watchLookup } }).context
+	const watchMessage = await eventMessage(createFeedEvent(), watchContext, {
+		includeLossPing: false,
+	})
+	expect(displayText(watchMessage)).not.toContain('<@discord-2> your world record')
+	expect(watchLookup).not.toHaveBeenCalled()
 	await expect(
 		eventMessage(createFeedEvent({ kind: 'unsupported' as never }), context),
 	).rejects.toThrow('Unsupported Discord activity event kind: unsupported')

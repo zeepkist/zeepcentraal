@@ -1,6 +1,13 @@
 import { Zc_LevelsDocument } from '@zeepkist/graphql/generated'
-import { type ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js'
-import { baseEmbed, compactNumber } from '../format'
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	type ChatInputCommandInteraction,
+	SlashCommandBuilder,
+} from 'discord.js'
+import { displayContainer, editPayload } from '../display'
+import { compactNumber } from '../format'
 import type { CommandContext } from './context'
 import type { PlaylistLevel } from './utils/playlist'
 
@@ -31,15 +38,20 @@ export async function randomLevelHandler(
 	).map((edge) => edge.node)
 	const level = levels[Math.floor(context.runtime.random() * levels.length)]
 	if (!level) throw new Error('No public level matched.')
-	await interaction.editReply({
-		embeds: [
-			{
-				...baseEmbed(
-					level.levelItems?.nodes[0]?.name ?? level.xxHash,
-					`Random public level • ${compactNumber(level.levelPoints?.points)} ranked points`,
-				),
-				url: `${context.config.frontendUrl}/level/${level.xxHash}`,
-			},
-		],
-	})
+	await interaction.editReply(
+		editPayload(
+			displayContainer({
+				actions: [
+					new ActionRowBuilder<ButtonBuilder>().addComponents(
+						new ButtonBuilder()
+							.setLabel('Open level')
+							.setStyle(ButtonStyle.Link)
+							.setURL(`${context.config.frontendUrl}/level/${level.xxHash}`),
+					),
+				],
+				description: `Random public level • ${compactNumber(level.levelPoints?.points)} ranked points`,
+				title: level.levelItems?.nodes[0]?.name ?? level.xxHash,
+			}),
+		),
+	)
 }

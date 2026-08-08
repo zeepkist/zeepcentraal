@@ -64,6 +64,17 @@ Both return `503` during startup until configured public backend `/healthz` and 
 routes are healthy and Discord gateway is ready. Dependency probes retry every 5 seconds without a
 startup deadline; command registration and gateway login wait for both routes.
 
+## Message presentation
+
+Bot replies, feeds, direct messages, errors, and file downloads use Discord Components V2. Shared
+display builders provide branded containers, safe mentions, semantic accent colours, section
+layout, thumbnails with alt text, and muted ZeepCentraal footers. Do not add legacy message
+`content` or `embeds` alongside these components.
+
+Leaderboard commands request 10 rows per GraphQL cursor page. `First`, `Previous`, `Next`, and
+`Last` buttons are owner-scoped and expire after 15 minutes. Tournament feed messages remain static
+top-three summaries; pagination only applies to command responses.
+
 ## Commands
 
 - Account: `/link`, `/unlink`, `/wr-ping`, `/linked-role`.

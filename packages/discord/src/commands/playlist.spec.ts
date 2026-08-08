@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext, unlinkedState } from '../../test/mocks'
 import { playlistHandler } from './playlist'
 
@@ -24,6 +25,7 @@ test.each([
 		strings: { sort },
 	})
 	await playlistHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(query.mock.calls[0]?.[1]).toMatchObject({ first: 1, orderBy: [orderBy, 'ID_ASC'] })
 	expect(JSON.stringify(state.edit)).toContain('ZeepCentraal Top Levels')
 	expect(JSON.stringify(state.edit)).not.toContain('second')
@@ -38,6 +40,7 @@ test('playlist applies linked-player and record filters', async () => {
 		booleans: { 'without-wr': true, 'without-pb': true, 'no-records': true },
 	})
 	await playlistHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	const variables = query.mock.calls[0]?.[1] as { filter: Record<string, unknown> }
 	expect(variables.filter).toMatchObject({
 		recordsExist: false,
@@ -65,6 +68,7 @@ test.each([
 		strings: { sort },
 	})
 	await playlistHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(recentWorkshopLevels.mock.calls[0]?.[1]).toBe(orderBy)
 	expect(JSON.stringify(state.edit)).toContain('Level One')
 	expect(JSON.stringify(state.edit)).not.toContain('Removed')

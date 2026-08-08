@@ -1,6 +1,8 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createFeedClient } from '../../test/feed-mocks'
 import { createMockContext } from '../../test/mocks'
+import { displayContainer, messagePayload } from '../display'
 import { deliverWatches } from './deliver-watches'
 
 test('watch delivery groups recipients, skips delivered watches, and records success', async () => {
@@ -14,13 +16,13 @@ test('watch delivery groups recipients, skips delivered watches, and records suc
 			{ id: 'c', discordId: 'discord-2', lastDeliveryKey: 'delivery' },
 		] as never,
 		'delivery',
-		{ content: 'hello' },
+		messagePayload(displayContainer({ description: 'Hello', title: 'Watch update' })),
 		context,
 	)
 	expect(fetch).toHaveBeenCalledTimes(1)
-	expect(send).toHaveBeenCalledWith(
-		expect.objectContaining({ content: undefined, allowedMentions: { parse: [] } }),
-	)
+	const sent = (send.mock.calls as unknown[][])[0]?.[0]
+	expectComponentsV2(sent)
+	expect(sent).toMatchObject({ allowedMentions: { parse: [] } })
 	expect(backend.updateWatchDelivery).toHaveBeenCalledTimes(2)
 	expect(backend.updateWatchDelivery.mock.calls[0]).toEqual([
 		'a',

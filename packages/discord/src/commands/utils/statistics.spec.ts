@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../../test/components'
 import { createChatInteraction, createMockContext, unlinkedState } from '../../../test/mocks'
 import { statisticsHandler } from './statistics'
 
@@ -23,6 +24,7 @@ test('statistics renders aggregate values', async () => {
 		strings: { range: 'custom', from: '2026-08-01', to: '2026-08-02' },
 	})
 	await statisticsHandler(interaction, context, false)
+	expectComponentsV2(state.edit)
 	expect(userStats).toHaveBeenCalledWith(
 		7,
 		'2026-08-01T00:00:00.000Z',
@@ -56,6 +58,7 @@ test('surface statistics renders all measured surfaces', async () => {
 		strings: { range: 'all-time' },
 	})
 	await statisticsHandler(interaction, context, true)
+	expectComponentsV2(state.edit)
 	expect(JSON.stringify(state.edit)).toContain('10 m')
 })
 

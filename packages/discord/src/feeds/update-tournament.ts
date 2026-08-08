@@ -1,6 +1,7 @@
 import type { Guild, GuildTextBasedChannel } from 'discord.js'
 import type { CommandContext } from '../commands/context'
 import { buildTournamentMessage } from '../commands/utils/tournament'
+import { messageEditPayload } from '../display'
 import type { DiscordGuildState } from '../types'
 import { sendToChannel } from './send-to-channel'
 
@@ -26,7 +27,7 @@ export async function updateTournament(
 			throw new Error('Configured tournament channel is unavailable')
 		}
 		const message = await (channel as GuildTextBasedChannel).messages.fetch(existing.messageId)
-		await message.edit(snapshot.message)
+		await message.edit(messageEditPayload(snapshot.container, { clearLegacy: true }))
 		messageId = message.id
 	} else {
 		messageId = (await sendToChannel(guild, feed.channelId, snapshot.message)).id

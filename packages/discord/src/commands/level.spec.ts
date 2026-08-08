@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { displayText, expectComponentsV2 } from '../../test/components'
 import {
 	createAutocompleteInteraction,
 	createButtonInteraction,
@@ -46,8 +47,9 @@ test('level resolves numeric ID and renders enriched details', async () => {
 	await levelHandler(interaction, context)
 	expect(levelById).toHaveBeenCalledWith(42)
 	expect(usersByIds).toHaveBeenCalledWith([8, 9])
-	expect(JSON.stringify(state.edit)).toContain('<@winner-discord>')
-	expect(JSON.stringify(state.edit)).toContain('1.23K')
+	expectComponentsV2(state.edit)
+	expect(displayText(state.edit)).toContain('<@winner-discord>')
+	expect(displayText(state.edit)).toContain('1.23K')
 })
 
 test('level resolves hash and renders missing optional data', async () => {
@@ -76,7 +78,7 @@ test('level resolves text search through first result', async () => {
 	expect(query).toHaveBeenCalledTimes(3)
 })
 
-test('level paginates all personal bests and preserves level details', async () => {
+test('level paginates personal bests server-side and preserves level details', async () => {
 	const records = Array.from({ length: 12 }, (_, index) => ({
 		time: 20 + index,
 		userId: index + 10,
@@ -88,14 +90,26 @@ test('level paginates all personal bests and preserves level details', async () 
 			return {
 				records: {
 					edges: records.slice(0, 10).map((node) => ({ node })),
-					pageInfo: { endCursor: 'cursor-10', hasNextPage: true },
+					pageInfo: {
+						endCursor: 'cursor-10',
+						hasNextPage: true,
+						hasPreviousPage: false,
+						startCursor: 'cursor-0',
+					},
+					totalCount: 12,
 				},
 			}
 		}
 		return {
 			records: {
 				edges: records.slice(10).map((node) => ({ node })),
-				pageInfo: { endCursor: 'cursor-12', hasNextPage: false },
+				pageInfo: {
+					endCursor: 'cursor-12',
+					hasNextPage: false,
+					hasPreviousPage: true,
+					startCursor: 'cursor-10',
+				},
+				totalCount: 12,
 			},
 		}
 	})
@@ -118,18 +132,21 @@ test('level paginates all personal bests and preserves level details', async () 
 	})
 	const { interaction, state } = createChatInteraction('level', { strings: { query: '42' } })
 	await levelHandler(interaction, context)
-	expect(JSON.stringify(state.edit)).toContain('Enriched 1')
-	expect(JSON.stringify(state.edit)).not.toContain('Enriched 12')
+	expectComponentsV2(state.edit)
+	expect(displayText(state.edit)).toContain('Enriched 1')
+	expect(displayText(state.edit)).not.toContain('Enriched 12')
 	expect(query.mock.calls[0]?.[1]).toMatchObject({
+		first: 10,
 		filter: { levelId: { equalTo: 42 }, personalBestGlobalsExist: true },
 		orderBy: ['TIME_ASC', 'ID_ASC'],
 	})
 
 	const next = createButtonInteraction('page:session-1:next')
 	await paginationHandler(next.interaction, context, 'session-1', 'next')
-	const updated = JSON.stringify(next.state.update)
+	expectComponentsV2(next.state.edit)
+	const updated = displayText(next.state.edit)
 	expect(updated).toContain('Enriched 12 (<@discord-21>)')
-	expect(updated).toContain('https://images.example.test/42.png')
+	expect(JSON.stringify(next.state.edit)).toContain('https://images.example.test/42.png')
 	expect(updated).toContain('Hash / ID')
 	expect(updated).toContain('By Author')
 	expect(updated).toContain('Page 2/2')

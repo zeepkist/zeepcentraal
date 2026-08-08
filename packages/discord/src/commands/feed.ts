@@ -1,11 +1,10 @@
 import {
 	ChannelType,
 	type ChatInputCommandInteraction,
-	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
 } from 'discord.js'
-import { baseEmbed, SUCCESS_COLOR } from '../format'
+import { displayContainer, replyPayload, SUCCESS_COLOR } from '../display'
 import type { DiscordFeedKind } from '../types'
 import type { CommandContext } from './context'
 
@@ -48,16 +47,14 @@ export async function feedHandler(
 	const channel = interaction.options.getChannel('channel', true)
 	const enabled = interaction.options.getBoolean('enabled', true)
 	await context.backend.setFeed(interaction.guildId, kind, channel.id, enabled)
-	await interaction.reply({
-		flags: MessageFlags.Ephemeral,
-		embeds: [
-			{
-				...baseEmbed(
-					'Feed updated',
-					`${kind} feed ${enabled ? 'enabled' : 'disabled'} in <#${channel.id}>.`,
-				),
-				color: SUCCESS_COLOR,
-			},
-		],
-	})
+	await interaction.reply(
+		replyPayload(
+			displayContainer({
+				accentColor: SUCCESS_COLOR,
+				description: `**${kind.replaceAll('_', ' ')}** feed ${enabled ? 'enabled' : 'disabled'} in <#${channel.id}>.`,
+				title: 'Feed updated',
+			}),
+			{ ephemeral: true },
+		),
+	)
 }

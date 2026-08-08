@@ -1,5 +1,3 @@
-import type { APIEmbed, InteractionReplyOptions, MessageCreateOptions } from 'discord.js'
-
 export type DiscordBotConfig = {
 	nodeEnv: 'development' | 'test' | 'production'
 	clientId: string
@@ -74,9 +72,3 @@ export type DiscordActivityEvent = {
 	record: { id: number; time: number; modVersion: string } | null
 	previousRecord: { id: number; time: number; modVersion: string } | null
 }
-
-export type CommandResponse = InteractionReplyOptions & {
-	embeds?: APIEmbed[]
-}
-
-export type FeedMessage = MessageCreateOptions

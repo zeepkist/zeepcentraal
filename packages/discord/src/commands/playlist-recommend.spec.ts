@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext, unlinkedState } from '../../test/mocks'
 import { playlistRecommendHandler } from './playlist-recommend'
 
@@ -26,6 +27,7 @@ test('playlist-recommend filters, sorts, and resolves improvement levels', async
 		integers: { count: 2 },
 	})
 	await playlistRecommendHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(query.mock.calls[0]?.[1]).toMatchObject({ first: 8 })
 	expect(levelById.mock.calls.map((call) => call[0])).toEqual([1, 2])
 	expect(JSON.stringify(state.edit)).toContain('Level 1')

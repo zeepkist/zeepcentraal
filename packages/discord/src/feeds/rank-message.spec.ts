@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { displayText, expectComponentsV2 } from '../../test/components'
 import { createFeedEvent } from '../../test/feed-mocks'
 import { createMockContext, linkedUser } from '../../test/mocks'
 import { rankMessage } from './rank-message'
@@ -31,11 +32,12 @@ test('rank message renders validated changes and directions', async () => {
 		}),
 		context,
 	)
-	expect(JSON.stringify(ranked)).toContain('▲')
-	expect(JSON.stringify(ranked)).toContain('▼')
-	expect(JSON.stringify(ranked)).toContain('Rank changes • 4 players')
-	expect(JSON.stringify(ranked)).toContain('Unranked → #6')
-	expect(JSON.stringify(ranked)).toContain('#7 → Unranked')
+	expectComponentsV2(ranked)
+	expect(displayText(ranked)).toContain('▲')
+	expect(displayText(ranked)).toContain('▼')
+	expect(displayText(ranked)).toContain('4 players moved')
+	expect(displayText(ranked)).toContain('Unranked → #6')
+	expect(displayText(ranked)).toContain('#7 → Unranked')
 	expect(await rankMessage(createFeedEvent({ payload: null }), context)).toBeNull()
 	expect(await rankMessage(createFeedEvent({ payload: { changes: [] } }), context)).toBeNull()
 })

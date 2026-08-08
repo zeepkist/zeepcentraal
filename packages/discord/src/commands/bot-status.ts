@@ -1,5 +1,5 @@
 import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
-import { baseEmbed, SUCCESS_COLOR } from '../format'
+import { displayContainer, editPayload, SUCCESS_COLOR } from '../display'
 import type { CommandContext } from './context'
 
 export const botStatusDefinition = new SlashCommandBuilder()
@@ -13,15 +13,19 @@ export async function botStatusHandler(
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 	const started = context.runtime.monotonicNow()
 	await context.graphql.userByFilter({ id: { equalTo: -1 } })
-	await interaction.editReply({
-		embeds: [
-			{
-				...baseEmbed(
-					'Bot status',
-					`Discord gateway: connected\nGraphQL POST: healthy (${Math.round(context.runtime.monotonicNow() - started)} ms)`,
-				),
-				color: SUCCESS_COLOR,
-			},
-		],
-	})
+	await interaction.editReply(
+		editPayload(
+			displayContainer({
+				accentColor: SUCCESS_COLOR,
+				description: 'All systems operational.',
+				sections: [
+					{
+						content: `🟢 **Discord gateway**  Connected\n🟢 **GraphQL POST**  Healthy • ${Math.round(context.runtime.monotonicNow() - started)} ms`,
+						heading: 'Service health',
+					},
+				],
+				title: 'Bot status',
+			}),
+		),
+	)
 }

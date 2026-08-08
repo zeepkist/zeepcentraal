@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { displayText, expectComponentsV2 } from '../../test/components'
 import {
 	createChatInteraction,
 	createMockContext,
@@ -27,9 +28,10 @@ test('compare renders command owner and opponent profiles', async () => {
 		users: { player: { id: 'discord-2' } },
 	})
 	await compareHandler(interaction, context)
-	expect(JSON.stringify(state.edit)).toContain('You:')
-	expect(JSON.stringify(state.edit)).toContain('Opponent:')
-	expect(JSON.stringify(state.edit)).toContain('rank #-')
+	expectComponentsV2(state.edit)
+	expect(displayText(state.edit)).toContain('### You')
+	expect(displayText(state.edit)).toContain('### Opponent')
+	expect(displayText(state.edit)).toContain('Rank Unranked')
 })
 
 test('compare requires both accounts linked', async () => {

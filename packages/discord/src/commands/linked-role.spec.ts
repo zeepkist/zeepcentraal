@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext } from '../../test/mocks'
 import { linkedRoleHandler } from './linked-role'
 
@@ -20,6 +21,7 @@ test.each([{ role: { id: 'role-1' } }, { role: null }])(
 			roles: { role },
 		})
 		await linkedRoleHandler(interaction, context)
+		expectComponentsV2(state.reply, true)
 		expect(setLinkedRole).toHaveBeenCalledWith('guild-1', role?.id ?? null)
 		expect(JSON.stringify(state.reply)).toContain(role ? '<@&role-1>' : 'disabled')
 	},

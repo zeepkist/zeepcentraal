@@ -1,4 +1,5 @@
 import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
+import { displayContainer, replyPayload, SUCCESS_COLOR } from '../display'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
 import { createPages } from './utils/pagination'
@@ -51,9 +52,14 @@ export async function watchHandler(
 			(watch) =>
 				`\`${watch.id}\` • **${watch.kind}** • ${watch.targetId}${watch.paused ? ' • paused' : ''}`,
 		)
+		const response = createPages(context, interaction.user.id, 'Your watches', rows, 10, {
+			emptyDescription: 'No watches configured.',
+			sectionHeading: 'Watches',
+		})
 		await interaction.reply({
-			flags: MessageFlags.Ephemeral,
-			...createPages(context, interaction.user.id, 'Your watches', rows),
+			allowedMentions: response.allowedMentions,
+			components: response.components,
+			flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
 		})
 		return
 	}
@@ -62,7 +68,16 @@ export async function watchHandler(
 			interaction.user.id,
 			interaction.options.getString('id', true),
 		)
-		await interaction.reply({ flags: MessageFlags.Ephemeral, content: 'Watch removed.' })
+		await interaction.reply(
+			replyPayload(
+				displayContainer({
+					accentColor: SUCCESS_COLOR,
+					description: 'Watch removed.',
+					title: 'Watch updated',
+				}),
+				{ ephemeral: true },
+			),
+		)
 		return
 	}
 	await context.backend.addWatch(
@@ -70,8 +85,14 @@ export async function watchHandler(
 		interaction.options.getString('kind', true),
 		interaction.options.getString('target', true),
 	)
-	await interaction.reply({
-		flags: MessageFlags.Ephemeral,
-		content: 'Watch added. Updates arrive by DM.',
-	})
+	await interaction.reply(
+		replyPayload(
+			displayContainer({
+				accentColor: SUCCESS_COLOR,
+				description: 'Watch added. Updates arrive by direct message.',
+				title: 'Watch active',
+			}),
+			{ ephemeral: true },
+		),
+	)
 }

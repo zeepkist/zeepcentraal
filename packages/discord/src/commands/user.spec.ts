@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import {
 	createChatInteraction,
 	createMockContext,
@@ -26,6 +27,7 @@ test('user resolves linked Discord target and renders ranked profile', async () 
 		users: { discord: { id: 'discord-2' } },
 	})
 	await userHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(user).toHaveBeenCalledWith('discord-2')
 	expect(JSON.stringify(state.edit)).toContain('#2')
 	expect(JSON.stringify(state.edit)).toContain('1.5K')
@@ -37,8 +39,9 @@ test.each([
 ] as const)('user resolves identifier %s', async (identifier, expectedFilter) => {
 	const userByFilter = mock(async (..._args: unknown[]) => rankedProfile)
 	const { context } = createMockContext({ graphql: { userByFilter } })
-	const { interaction } = createChatInteraction('user', { strings: { id: identifier } })
+	const { interaction, state } = createChatInteraction('user', { strings: { id: identifier } })
 	await userHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(userByFilter.mock.calls[0]?.[0]).toEqual(expectedFilter)
 })
 

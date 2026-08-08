@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { expectComponentsV2 } from '../../test/components'
 import {
 	createContextInteraction,
 	createMockContext,
@@ -12,6 +13,7 @@ test('profile context command resolves target and renders profile', async () => 
 	const { context } = createMockContext({ graphql: { userByFilter } })
 	const { interaction, state } = createContextInteraction()
 	await zeepCentraalProfileHandler(interaction, context)
+	expectComponentsV2(state.edit)
 	expect(JSON.stringify(state.edit)).toContain('Player Seven')
 })
 
