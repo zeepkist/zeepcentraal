@@ -21,7 +21,6 @@ const expectedEntries = [
 	'ModDetail',
 	'ModExplorer',
 	'Privacy',
-	'RecordDetail',
 	'Records',
 	'Settings',
 	'SuperLeague',
@@ -48,8 +47,6 @@ const routeEntries = [
 	['pages/mod/[slug].vue', 'ModDetail'],
 	['pages/mods.vue', 'ModExplorer'],
 	['pages/privacy.vue', 'Privacy'],
-	['pages/record/[recordId].vue', 'RecordDetail'],
-	['pages/records/index.vue', 'Records'],
 	['pages/settings/index.vue', 'Settings'],
 	['pages/settings/discord.vue', 'Settings'],
 	['pages/super-league/index.vue', 'SuperLeague'],
@@ -168,6 +165,26 @@ describe('OG image component contracts', () => {
 })
 
 describe('OG image route wiring', () => {
+	test('publishes one shared Records card from records and record detail routes', () => {
+		const recordsRoute = source('pages/records/index.vue')
+		const recordRoute = source('pages/record/[recordId].vue')
+		const sharedImage = source('composables/useRecordsOgImage.ts')
+		const sharedImagePlugin = source('plugins/records-og-image.server.ts')
+
+		expect(recordsRoute).toContain('useRecordsOgImage()')
+		expect(recordRoute).toContain('useRecordsOgImage()')
+		expect(recordsRoute).not.toContain('defineOgImage(')
+		expect(recordRoute).not.toContain('defineOgImage(')
+		expect(sharedImage).toContain("RECORDS_OG_PAGE_PATH = '/records'")
+		expect(sharedImage).toContain("component: 'RecordsTakumi'")
+		expect(sharedImage).toContain("props: { slug: 'records' }")
+		expect(sharedImage).toContain("cacheKey: 'records-card'")
+		expect(sharedImage).not.toContain('getOgImagePath(')
+		expect(sharedImagePlugin).toContain('_path: RECORDS_OG_PAGE_PATH')
+		expect(sharedImagePlugin).toContain('buildOgImageUrl(')
+		expect(sharedImagePlugin).toContain('useState(RECORDS_OG_STATE_KEY, () => path)')
+	})
+
 	test('wires each route to its dedicated component with only a slug prop', () => {
 		for (const [route, component, type] of routeEntries) {
 			const routeSource = source(route)

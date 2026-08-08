@@ -18,6 +18,7 @@ import {
 	resolveTelemetryConfig,
 	type TelemetryConfigInput,
 } from './config'
+import { registerRuntimeMemoryMetrics } from './runtimeMetrics'
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN)
 
@@ -58,7 +59,9 @@ export function createElysiaTelemetryOptions(input: TelemetryConfigInput) {
 }
 
 export function createElysiaTelemetryPlugin(input: TelemetryConfigInput) {
-	return opentelemetry(createElysiaTelemetryOptions(input))
+	const plugin = opentelemetry(createElysiaTelemetryOptions(input))
+	registerRuntimeMemoryMetrics()
+	return plugin
 }
 
 export function startNodeTelemetry(input: TelemetryConfigInput) {
@@ -75,6 +78,7 @@ export function startNodeTelemetry(input: TelemetryConfigInput) {
 
 	try {
 		sdk.start()
+		registerRuntimeMemoryMetrics()
 	} catch (error) {
 		console.error('Error starting the SDK', error)
 	}

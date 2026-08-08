@@ -5,7 +5,6 @@ import {
 	Zc_DashboardStatisticsDocument,
 	Zc_LevelDetailDocument,
 	Zc_LevelsDocument,
-	Zc_RecordDetailDocument,
 	Zc_UserProfileDocument,
 	Zc_UsersDocument,
 } from '@zeepkist/graphql/generated'
@@ -92,20 +91,6 @@ export async function useOgLevelDetailData(slug: string) {
 
 	await query
 	return query.data.value?.levelByXxHash ?? null
-}
-
-export async function useOgRecordDetailData(slug: string) {
-	const recordId = /^\d+$/.test(slug) ? Number(slug) : null
-	const validRecordId =
-		recordId !== null && Number.isSafeInteger(recordId) && recordId > 0 ? recordId : null
-	const query = useQuery({
-		query: Zc_RecordDetailDocument,
-		variables: { recordId: validRecordId ?? 0 },
-		pause: validRecordId === null,
-	})
-
-	if (validRecordId !== null) await query
-	return query.data.value?.record ?? null
 }
 
 export async function useOgAdventureSeriesData(slug: string) {

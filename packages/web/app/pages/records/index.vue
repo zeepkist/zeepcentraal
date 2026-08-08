@@ -89,7 +89,7 @@ const sounds = useRecordNotificationSounds({
 })
 
 usePageSeo('records')
-defineOgImage('Records.takumi', { slug: 'records' })
+useRecordsOgImage()
 
 const tabOptions = computed<
 	Array<{ value: RecordHistoryView; label: string; icon: TablerIconName }>

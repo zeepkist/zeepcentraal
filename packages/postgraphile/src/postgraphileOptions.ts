@@ -8,6 +8,7 @@ import { PostGraphileAmberPreset } from 'postgraphile/presets/amber'
 import { makeV4Preset } from 'postgraphile/presets/v4'
 import { PostGraphileConnectionFilterPreset } from 'postgraphile-plugin-connection-filter'
 import { AddCdnToUrlsPlugin } from './plugins/AddCdnToUrlsPlugin'
+import { createBoundedGrafastCachesPlugin } from './plugins/BoundedGrafastCachesPlugin'
 import PgFixForeignKeyNamesPlugin from './plugins/FixForeignKeyNamesPlugin'
 import { HideAuthOrderByEnumsPlugin } from './plugins/HideAuthOrderByEnumsPlugin'
 import { LiveQueryCompatPlugin } from './plugins/LiveQueryCompatPlugin'
@@ -29,6 +30,9 @@ type PostGraphileRuntimeConfig = {
 		lockMs: number
 		idleTransactionMs: number
 	}
+	databasePoolMax: number
+	cacheMaxEntries: number
+	operationPlansPerOperation: number
 	liveQueries: {
 		enabled: boolean
 	}
@@ -58,6 +62,7 @@ export function createPostGraphilePgServiceOptions(config: PostGraphileRuntimeCo
 		connectionString: config.databaseUrl,
 		poolConfig: {
 			application_name: 'zeepcentraal-postgraphile',
+			max: config.databasePoolMax,
 			connectionTimeoutMillis: config.databaseTimeouts.connectMs,
 			statement_timeout: config.databaseTimeouts.statementMs,
 			lock_timeout: config.databaseTimeouts.lockMs,
@@ -104,7 +109,13 @@ export function createPostGraphilePreset(
 			PgManyToManyPreset,
 			PgAggregatesPreset,
 		],
-		plugins,
+		plugins: [
+			...plugins,
+			createBoundedGrafastCachesPlugin({
+				maxEntries: config.cacheMaxEntries,
+				operationPlansPerOperation: config.operationPlansPerOperation,
+			}),
+		],
 		pgServices: [makePgService(createPostGraphilePgServiceOptions(config))],
 		grafast: {
 			explain: config.allowExplain,
@@ -124,6 +135,7 @@ export function createPostGraphilePreset(
 			graphiqlOnGraphQLGET: false,
 			watch: config.nodeEnv !== 'production',
 			websockets: config.liveQueries.enabled,
+			parseAndValidateCacheSize: config.cacheMaxEntries,
 		},
 	}
 }

@@ -91,4 +91,20 @@ describe('evaluateQueryCost', () => {
 
 		expect(misses).toBe(2)
 	})
+
+	test('evicts least-recent query cost entries at configured limit', async () => {
+		let misses = 0
+		const evaluate = createQueryCostEvaluator({
+			cacheSize: 1,
+			onCacheMiss: () => {
+				misses++
+			},
+		})
+
+		await evaluate({ query: '{ level { id } }' })
+		await evaluate({ query: '{ version { id } }' })
+		await evaluate({ query: '{ level { id } }' })
+
+		expect(misses).toBe(3)
+	})
 })

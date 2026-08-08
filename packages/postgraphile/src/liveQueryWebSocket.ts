@@ -52,6 +52,7 @@ type LiveQueryWebSocketConfig = {
 	debounceMs: number
 	maxOperations: number
 	onActiveChange?: (active: boolean) => void
+	onActiveOperationsChange?: (activeOperations: number) => void
 }
 
 export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfig) {
@@ -63,6 +64,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 	function setActiveDelta(delta: 1 | -1) {
 		const wasActive = activeOperations > 0
 		activeOperations += delta
+		config.onActiveOperationsChange?.(activeOperations)
 		const isActive = activeOperations > 0
 
 		if (wasActive !== isActive) {

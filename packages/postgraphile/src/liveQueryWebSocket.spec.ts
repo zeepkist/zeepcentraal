@@ -49,6 +49,8 @@ function createHandlers(
 		request: Request,
 	) => unknown,
 	onActiveChange?: (active: boolean) => void,
+	maxOperations = 10,
+	onActiveOperationsChange?: (activeOperations: number) => void,
 ) {
 	return createLiveQueryWebSocketHandlers({
 		schema: buildSchema(`
@@ -71,8 +73,9 @@ function createHandlers(
 			}
 		`),
 		debounceMs: 1,
-		maxOperations: 10,
+		maxOperations,
 		onActiveChange,
+		onActiveOperationsChange,
 		async execute(_request, body) {
 			return execute(body, _request)
 		},
@@ -281,9 +284,12 @@ describe('createLiveQueryWebSocketHandlers', () => {
 
 	test('complete and close remove active operations', async () => {
 		const activeStates: boolean[] = []
+		const activeOperationCounts: number[] = []
 		const { handlers, invalidate } = createHandlers(
 			() => ({ data: { records: { totalCount: 1, nodes: [] } } }),
 			(active) => activeStates.push(active),
+			10,
+			(count) => activeOperationCounts.push(count),
 		)
 		const socket = createWebSocket()
 
@@ -305,8 +311,35 @@ describe('createLiveQueryWebSocketHandlers', () => {
 		await Bun.sleep(5)
 
 		expect(activeStates).toEqual([true, false])
+		expect(activeOperationCounts).toEqual([1, 0])
 		expect(socket.sent).toEqual([])
 		handlers.close(socket.ws)
+	})
+
+	test('rejects excess live operations with protocol error', async () => {
+		const { handlers } = createHandlers(() => ({ data: {} }), undefined, 1)
+		const socket = createWebSocket()
+
+		handlers.open(socket.ws)
+		for (const id of ['1', '2']) {
+			handlers.message(
+				socket.ws,
+				JSON.stringify({
+					id,
+					type: 'subscribe',
+					payload: {
+						query: 'subscription { records(first: 1) { totalCount } }',
+					},
+				}),
+			)
+			await Bun.sleep(1)
+		}
+
+		expect(socket.sent.at(-1)).toEqual({
+			id: '2',
+			type: 'error',
+			payload: [{ message: 'Too many live query operations' }],
+		})
 	})
 
 	test('malformed JSON closes websocket without throwing', () => {

@@ -8,9 +8,8 @@ type GraphqlHttpConfig = {
 	maxQueryCost: number
 	defaultCollectionSize: number
 	queryTraceDetail: boolean
+	cacheMaxEntries: number
 }
-
-const DEFAULT_QUERY_COST_CACHE_SIZE = 500
 
 async function parseGraphqlBody(request: Request, body: unknown) {
 	if (request.method !== 'POST') {
@@ -46,7 +45,7 @@ export function createGraphqlHttpHandler(
 		maxCost: config.maxQueryCost,
 		defaultCollectionSize: config.defaultCollectionSize,
 		includeTraceDetail: config.queryTraceDetail,
-		cacheSize: DEFAULT_QUERY_COST_CACHE_SIZE,
+		cacheSize: config.cacheMaxEntries,
 	})
 
 	return async ({ request, body }: { request: Request; body: unknown }) => {

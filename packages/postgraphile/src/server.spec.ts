@@ -19,6 +19,9 @@ const postgraphileRuntimeConfig = {
 		lockMs: 3000,
 		idleTransactionMs: 30000,
 	},
+	databasePoolMax: 6,
+	cacheMaxEntries: 128,
+	operationPlansPerOperation: 8,
 	liveQueries: { enabled: true },
 }
 
@@ -70,6 +73,7 @@ describe('buildPostGraphileServer', () => {
 			connectionString: postgraphileRuntimeConfig.databaseUrl,
 			poolConfig: {
 				application_name: 'zeepcentraal-postgraphile',
+				max: 6,
 				connectionTimeoutMillis: 5000,
 				statement_timeout: 15000,
 				lock_timeout: 3000,
@@ -89,6 +93,7 @@ describe('buildPostGraphileServer', () => {
 			connectionString: postgraphileRuntimeConfig.databaseUrl,
 			poolConfig: {
 				application_name: 'zeepcentraal-postgraphile',
+				max: 6,
 				connectionTimeoutMillis: 5000,
 				statement_timeout: 15000,
 				lock_timeout: 3000,
@@ -123,6 +128,7 @@ describe('buildPostGraphileServer', () => {
 		expect(preset.grafserv?.graphqlPath).toBe('/')
 		expect(preset.grafserv?.eventStreamPath).toBeUndefined()
 		expect(preset.grafserv?.websockets).toBe(true)
+		expect(preset.grafserv?.parseAndValidateCacheSize).toBe(128)
 	})
 
 	test('serves health check', async () => {

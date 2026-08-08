@@ -76,13 +76,13 @@ if (parsedRecordId === null || !Number.isSafeInteger(parsedRecordId) || parsedRe
 	throw createError({ statusCode: 404, statusMessage: t('pages.recordDetail.notFound') })
 }
 const recordId = parsedRecordId
-defineOgImage('RecordDetail.takumi', { slug: String(recordId) })
-const recordData = useRecordDetail(computed(() => recordId))
+useRecordsOgImage()
+const recordData = useRecordDetailSummary(computed(() => recordId))
 await recordData.prefetchCritical()
 const transition = useSharedViewTransition()
 const transitionPreview = computed(() => transition.preview('record', recordId))
 const record = recordData.record
-const source = recordData.source
+const source = recordData.hero
 const levelItem = recordData.levelItem
 if (import.meta.server && !record.value && !recordData.detail.error.value) {
 	throw createError({ statusCode: 404, statusMessage: t('pages.recordDetail.notFound') })
@@ -95,7 +95,7 @@ const publicLevelItem = computed(() =>
 const levelName = computed(() =>
 	getLevelDisplayName(publicLevelItem.value?.name, record.value?.level?.xxHash ?? ''),
 )
-const ghostExperienceActive = ref(false)
+const ghostExperienceActive = shallowRef(false)
 const ghostExperienceTarget = useTemplateRef('ghostExperienceTarget')
 let ghostExperienceObserver: IntersectionObserver | undefined
 

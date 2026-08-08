@@ -14,6 +14,10 @@ const detailQuery = readFileSync(
 	new URL('../../../graphql/documents/web/queries/recordDetail.graphql', import.meta.url),
 	'utf8',
 )
+const summaryQuery = readFileSync(
+	new URL('../../../graphql/documents/web/queries/recordDetailSummary.graphql', import.meta.url),
+	'utf8',
+)
 const ghostRecordSourceFragment = readFileSync(
 	new URL('../../../graphql/documents/web/queries/ghostRecordSource.graphql', import.meta.url),
 	'utf8',
@@ -81,10 +85,32 @@ describe('record detail GraphQL', () => {
 		const errors = validate(
 			schema,
 			parse(
-				`${ghostRecordSourceFragment}\n${detailQuery}\n${comparisonsQuery}\n${geometryQuery}`,
+				`${ghostRecordSourceFragment}\n${detailQuery}\n${summaryQuery}\n${comparisonsQuery}\n${geometryQuery}`,
 			),
 		)
 		expect(errors.map((error) => error.message)).toEqual([])
+	})
+
+	it('keeps SSR summary small and leaves full replay detail client-lazy', () => {
+		for (const excluded of [
+			'splits',
+			'speeds',
+			'recordMedia',
+			'ZC_RecordStatistic',
+			'author',
+			'workshopId',
+		]) {
+			expect(summaryQuery).not.toContain(excluded)
+		}
+		expect(summaryQuery).not.toMatch(/\bworldRecordGlobal\s*\{/)
+		expect(summaryQuery).toContain('ghostVersion')
+		expect(summaryQuery).toContain('levelPosition')
+		expect(summaryQuery).toContain('playerDecayedPoints')
+		expect(recordRoute).toContain('useRecordDetailSummary(')
+		expect(recordRoute).not.toContain('useRecordDetail(')
+		expect(recordExperience).toContain('useRecordDetail(recordIdRef)')
+		expect(recordRoute).toContain('<LazyRecordGhostExperience')
+		expect(recordRoute).toContain("{ rootMargin: '25% 0px' }")
 	})
 
 	it('loads one level geometry snapshot after hydration', () => {
@@ -147,7 +173,7 @@ describe('record detail GraphQL', () => {
 		expect(comparisonsComposable).toContain('!hydrated.value ||')
 	})
 
-	it('SSR-prefetches record detail and remounts when record route changes', () => {
+	it('SSR-prefetches record summary and remounts when record route changes', () => {
 		expect(recordPage).toContain('await recordData.prefetchCritical()')
 		expect(recordPage).toContain('key: (route) => route.path')
 		expect(recordPage).toContain('<ClientOnly>')

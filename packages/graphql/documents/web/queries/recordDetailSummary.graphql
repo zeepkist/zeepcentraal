@@ -1,0 +1,42 @@
+query ZC_RecordDetailSummary($recordId: Int!) {
+	record(id: $recordId) {
+		id
+		time
+		dateCreated
+		gameVersion
+		modVersion
+		user {
+			steamId
+			steamName
+		}
+		personalBestGlobals(first: 0) {
+			totalCount
+		}
+		worldRecordGlobals(first: 0) {
+			totalCount
+		}
+		level {
+			xxHash
+			publiclyVisible
+			levelItems(
+				first: 1
+				filter: { deleted: { equalTo: false } }
+				orderBy: [UPDATED_AT_DESC]
+			) {
+				nodes {
+					name
+					imageUrl
+				}
+			}
+		}
+		recordStatistic {
+			ghostVersion
+		}
+		userPointContributions(first: 1) {
+			nodes {
+				levelPosition
+				playerDecayedPoints
+			}
+		}
+	}
+}

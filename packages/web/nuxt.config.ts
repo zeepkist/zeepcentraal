@@ -1,12 +1,22 @@
+import { fileURLToPath } from 'node:url'
 import { ADVENTURE_SERIES } from './app/utils/adventureSeries'
 import { getBuildAssetsDir } from './config/buildAssets'
 import { clientFsStub } from './config/clientFsStub'
+import { createNitroCacheStorageOptions } from './config/nitroCache'
+
+const ogImageModuleUrl = import.meta.resolve('nuxt-og-image')
+const ogImageUrlBuilderPath = fileURLToPath(
+	new URL('./runtime/shared/urlEncoding.js', ogImageModuleUrl),
+)
 
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
 const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
 const productionBackendUrl = 'https://backend.zeepki.st'
 
 export default defineNuxtConfig({
+	alias: {
+		'#records-og-image-url-builder': ogImageUrlBuilderPath,
+	},
 	compatibilityDate: '2026-07-25',
 	debug: process.env.NUXT_DEBUG === 'true',
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
@@ -122,6 +132,9 @@ export default defineNuxtConfig({
 	nitro: {
 		preset: 'bun',
 		compressPublicAssets: true,
+		storage: {
+			cache: createNitroCacheStorageOptions(),
+		},
 		esbuild: {
 			options: {
 				target: 'esnext',

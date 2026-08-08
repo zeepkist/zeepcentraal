@@ -95,6 +95,30 @@ test('postgraphile config accepts bounded database and readiness timeouts', () =
 	expect(config.readiness).toEqual({ timeoutMs: 750, cacheMs: 250 })
 })
 
+test('postgraphile config defaults bounded pools, caches, and live operations', () => {
+	const config = parsePostgraphileConfig({ NODE_ENV: 'test' })
+
+	expect(config.databasePoolMax).toBe(6)
+	expect(config.cacheMaxEntries).toBe(128)
+	expect(config.operationPlansPerOperation).toBe(8)
+	expect(config.liveQueries.maxOperations).toBe(256)
+})
+
+test('postgraphile config accepts custom runtime memory controls', () => {
+	const config = parsePostgraphileConfig({
+		NODE_ENV: 'test',
+		POSTGRAPHILE_DATABASE_POOL_MAX: '4',
+		POSTGRAPHILE_CACHE_MAX_ENTRIES: '64',
+		POSTGRAPHILE_OPERATION_PLANS_PER_OPERATION: '6',
+		POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS: '128',
+	})
+
+	expect(config.databasePoolMax).toBe(4)
+	expect(config.cacheMaxEntries).toBe(64)
+	expect(config.operationPlansPerOperation).toBe(6)
+	expect(config.liveQueries.maxOperations).toBe(128)
+})
+
 test('postgraphile config rejects a superuser connection in production', () => {
 	expect(() =>
 		parsePostgraphileConfig({

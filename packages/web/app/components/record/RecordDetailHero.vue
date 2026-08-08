@@ -87,11 +87,11 @@
 </template>
 
 <script setup vapor lang="ts">
-import type { GhostRecordSource } from '~/types/ghost'
+import type { RecordHeroSource } from '~/types/recordDetail'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 
 const props = defineProps<{
-	record: GhostRecordSource
+	record: RecordHeroSource
 	levelHash: string
 	levelName: string
 	imageUrl?: string | null

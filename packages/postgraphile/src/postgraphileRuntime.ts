@@ -1,4 +1,5 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
+import { getMeter } from '@zeepkist/telemetry'
 import type { GraphQLSchema } from 'postgraphile/graphql'
 import { type ElysiaGrafserv, elysiaGrafserv } from './elysiaGrafserv'
 import { createGraphqlHttpHandler } from './graphqlHttp'
@@ -19,6 +20,16 @@ const readinessBody = {
 	operationName: 'ZC_Readiness',
 	query: 'query ZC_Readiness { versions(first: 1) { nodes { id } } }',
 }
+
+let activeLiveOperations = 0
+const activeLiveOperationsGauge = getMeter('zeepcentraal-postgraphile').createObservableGauge(
+	'postgraphile.live_query.active_operations',
+	{
+		description: 'Active PostGraphile live query operations',
+		unit: '{operation}',
+	},
+)
+activeLiveOperationsGauge.addCallback((result) => result.observe(activeLiveOperations))
 
 function isGraphqlReadinessPayload(value: unknown): value is { data: unknown; errors?: unknown[] } {
 	return typeof value === 'object' && value !== null && 'data' in value
@@ -77,6 +88,9 @@ export function createPostGraphileRuntime(
 			} else {
 				poller.stop()
 			}
+		},
+		onActiveOperationsChange(count) {
+			activeLiveOperations = count
 		},
 		async execute(request, body) {
 			return readGraphqlJsonResponse(await server.handleGraphQLRequest(request, body))
