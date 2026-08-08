@@ -9,6 +9,7 @@ import {
 	getDiscordGuildState,
 	getDiscordUserState,
 	getDiscordWorkerCursor,
+	getEnabledDiscordGuildFeeds,
 	getMatchingDiscordWatches,
 	removeDiscordWatch,
 	setDiscordDelivery,
@@ -189,6 +190,9 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 			detail: detail('advanceDiscordWorkerCursor', 'Advance durable Discord worker cursor'),
 		},
 	)
+	.get('/guild-feeds/enabled', async () => jsonSafe(await getEnabledDiscordGuildFeeds()), {
+		detail: detail('getEnabledDiscordGuildFeeds', 'List enabled Discord guild feeds'),
+	})
 	.get(
 		'/guilds/:guildId',
 		async ({ params }) => jsonSafe(await getDiscordGuildState(BigInt(params.guildId))),

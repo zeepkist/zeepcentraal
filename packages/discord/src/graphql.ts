@@ -30,13 +30,9 @@ function activityEventPayload(value: unknown): Record<string, unknown> | null {
 		: null
 }
 
-const activityEventsDocument = gql`
-	query DiscordActivityEvents($after: BigInt!, $first: Int!) {
-		discordActivityEvents(
-			first: $first
-			filter: { id: { greaterThan: $after } }
-			orderBy: [ID_DESC]
-		) {
+const activityEventsLiveDocument = gql`
+	subscription DiscordActivityEventsLive {
+		discordActivityEvents(first: 100, orderBy: [ID_DESC]) {
 			nodes {
 				id
 				kind
@@ -62,12 +58,6 @@ const activityEventsDocument = gql`
 				previousRecord { id time modVersion }
 			}
 		}
-	}
-`
-
-const activityEventsLiveDocument = gql`
-	subscription DiscordActivityEventsLive {
-		discordActivityEvents(last: 1, orderBy: [ID_DESC]) { nodes { id } }
 	}
 `
 
@@ -241,6 +231,7 @@ export class ZeepGraphqlClient {
 			url: config.graphql.wsUrl,
 			webSocketImpl: WebSocket,
 			lazy: true,
+			keepAlive: 30_000,
 			retryAttempts: Number.POSITIVE_INFINITY,
 			shouldRetry: () => true,
 		})
@@ -265,31 +256,23 @@ export class ZeepGraphqlClient {
 		return result.data
 	}
 
-	async activityEvents(after: string, first = 100) {
-		const data = await this.query<{
-			discordActivityEvents: { nodes: DiscordActivityEventResponse[] }
-		}>(activityEventsDocument, { after, first })
-		return data.discordActivityEvents.nodes
-			.map((event) => ({
-				...event,
-				payload: activityEventPayload(event.payload),
-			}))
-			.reverse()
-	}
-
-	subscribeToActivityEvents(onChange: () => void) {
+	subscribeToActivityEvents(onEvents: (events: DiscordActivityEvent[]) => void) {
 		return this.client
-			.subscription<{ discordActivityEvents: { nodes: Array<{ id: string }> } }>(
-				activityEventsLiveDocument,
-				{},
-			)
+			.subscription<{
+				discordActivityEvents: { nodes: DiscordActivityEventResponse[] }
+			}>(activityEventsLiveDocument, {})
 			.subscribe((result) => {
-				if (!result.error && result.data) onChange()
+				const nodes = result.data?.discordActivityEvents.nodes
+				if (result.error || !nodes || nodes.length === 0) return
+				onEvents(
+					nodes
+						.map((event) => ({
+							...event,
+							payload: activityEventPayload(event.payload),
+						}))
+						.reverse(),
+				)
 			})
-	}
-
-	restartLiveConnection() {
-		this.wsClient.terminate()
 	}
 
 	async usersByIds(ids: number[]) {

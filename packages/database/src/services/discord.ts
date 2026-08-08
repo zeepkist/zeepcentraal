@@ -190,6 +190,13 @@ export async function getDiscordGuildState(guildId: bigint) {
 	return { config: config ?? null, feeds, digest: digest ?? null, tournamentMessages }
 }
 
+export async function getEnabledDiscordGuildFeeds() {
+	return db.query.discordGuildFeed.findMany({
+		where: eq(discordGuildFeed.enabled, true),
+		orderBy: [asc(discordGuildFeed.guildId), asc(discordGuildFeed.kind)],
+	})
+}
+
 export async function setDiscordGuildLinkedRole(guildId: bigint, linkedRoleId: bigint | null) {
 	const [updated] = await db
 		.insert(discordGuildConfig)

@@ -359,6 +359,15 @@ mock.module('@zeepkist/database/services', () => ({
 		digest: null,
 		tournamentMessages: [],
 	}),
+	getEnabledDiscordGuildFeeds: async () => [
+		{
+			guildId: 123n,
+			kind: 'workshop',
+			channelId: 456n,
+			enabled: true,
+			cursorEventId: 789n,
+		},
+	],
 	getDiscordDelivery: async () => null,
 	getDiscordWorkerCursor: async () => ({ key: 'watch-events', cursorEventId: 0n }),
 	getMatchingDiscordWatches: async () => [],
@@ -1650,6 +1659,20 @@ test('discord-bot routes require dedicated bearer token', async () => {
 		digest: null,
 		tournamentMessages: [],
 	})
+
+	const feeds = await send('/discord-bot/guild-feeds/enabled', {
+		headers: { authorization: 'Bearer discord-bot-api-token-for-contract-tests' },
+	})
+	expect(feeds.status).toBe(200)
+	expect(await readBody(feeds)).toEqual([
+		{
+			guildId: '123',
+			kind: 'workshop',
+			channelId: '456',
+			enabled: true,
+			cursorEventId: '789',
+		},
+	])
 })
 
 test('job/trigger returns 200 and enqueues a compatible task', async () => {

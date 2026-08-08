@@ -26,6 +26,7 @@ test('backend client maps every operation to authenticated HTTP contracts', asyn
 	await client.workerCursor('worker')
 	await client.advanceWorkerCursor('worker', '2')
 	await client.guild('guild')
+	await client.enabledGuildFeeds()
 	await client.setFeed('guild', 'workshop', 'channel', true)
 	await client.setLinkedRole('guild', 'role')
 	await client.advanceFeed('guild', 'workshop', '3')
@@ -45,7 +46,7 @@ test('backend client maps every operation to authenticated HTTP contracts', asyn
 		contentHash: 'hash',
 	})
 
-	expect(requests).toHaveLength(17)
+	expect(requests).toHaveLength(18)
 	expect(requests[0]?.url).toBe('https://backend.example.test/discord-bot/users/discord')
 	expect(requests[0]?.method).toBe('GET')
 	expect(requests[0]?.headers.get('authorization')).toBe(
@@ -54,8 +55,9 @@ test('backend client maps every operation to authenticated HTTP contracts', asyn
 	expect(requests[1]?.method).toBe('POST')
 	expect(await requests[1]?.json()).toEqual({ code: '12345678', discordId: 'discord' })
 	expect(requests[2]?.method).toBe('DELETE')
-	expect(requests[11]?.url).toContain('/guilds/guild/feeds/workshop')
-	expect(requests[16]?.url).toContain('/tournaments/4/message')
+	expect(requests[11]?.url).toContain('/guild-feeds/enabled')
+	expect(requests[12]?.url).toContain('/guilds/guild/feeds/workshop')
+	expect(requests[17]?.url).toContain('/tournaments/4/message')
 })
 
 test('backend client reports bounded text backend error details with request metadata', async () => {

@@ -6,18 +6,14 @@ import { createProductionFeedScheduler } from './feeds/create-production-feed-sc
 import { deliverWatches } from './feeds/deliver-watches'
 import type { FeedScheduler } from './feeds/feed-scheduler'
 import { processActivityWatches } from './feeds/process-activity-watches'
-import { processFeed } from './feeds/process-feed'
+import { activityFeedKind, processFeed } from './feeds/process-feed'
 import { updateTournament } from './feeds/update-tournament'
-import type { DiscordGuildState } from './types'
-
-const ACTIVITY_SUBSCRIPTION_REFRESH_MS = 55 * 60_000
+import type { DiscordActivityEvent, DiscordGuildFeed, DiscordGuildState } from './types'
 
 export class FeedService {
-	private activityTimer?: ReturnType<typeof setInterval>
-	private activitySubscriptionTimer?: ReturnType<typeof setInterval>
 	private tournamentTimer?: ReturnType<typeof setInterval>
 	private liveSubscription?: { unsubscribe: () => void }
-	private polling = false
+	private activityQueue = Promise.resolve()
 	private tournamentPolling = false
 	private tournamentWatchKeys = new Map<number, string>()
 
@@ -28,39 +24,75 @@ export class FeedService {
 	) {}
 
 	start() {
-		this.activityTimer = this.scheduler.setInterval(() => void this.pollActivity(), 20_000)
 		this.tournamentTimer = this.scheduler.setInterval(() => void this.pollTournaments(), 60_000)
-		this.activitySubscriptionTimer = this.scheduler.setInterval(() => {
-			this.context.graphql.restartLiveConnection()
-			void this.pollActivity()
-		}, ACTIVITY_SUBSCRIPTION_REFRESH_MS)
-		this.liveSubscription = this.context.graphql.subscribeToActivityEvents(() => {
-			void this.pollActivity()
+		this.liveSubscription = this.context.graphql.subscribeToActivityEvents((events) => {
+			void this.enqueueActivityEvents(events)
 		})
-		void this.pollActivity()
 		void this.pollTournaments()
 	}
 
-	async pollActivity() {
-		if (this.polling) return
-		this.polling = true
+	enqueueActivityEvents(events: DiscordActivityEvent[]) {
+		this.activityQueue = this.activityQueue
+			.then(() => this.processActivityEvents(events))
+			.catch((error) => {
+				console.error(
+					'Discord activity event processing failed',
+					discordErrorSummary(error),
+				)
+			})
+		return this.activityQueue
+	}
+
+	async processActivityEvents(events: DiscordActivityEvent[]) {
 		try {
-			try {
-				await processActivityWatches(this.client, this.context)
-			} catch (error) {
-				console.error('Discord activity watch poll failed', discordErrorSummary(error))
-			}
-			for (const guild of this.client.guilds.cache.values()) {
-				const state = await this.context.backend.guild(guild.id)
-				for (const kind of ['workshop', 'world_record', 'rank'] as const) {
-					await processFeed(guild, state, kind, this.context)
-				}
-			}
+			await processActivityWatches(this.client, events, this.context)
 		} catch (error) {
-			console.error('Discord activity feed poll failed', discordErrorSummary(error))
-		} finally {
-			this.polling = false
+			console.error('Discord activity watch processing failed', discordErrorSummary(error))
 		}
+
+		const feedEvents = events.filter((event) => activityFeedKind(event) !== undefined)
+		if (feedEvents.length === 0) return
+
+		let feeds: DiscordGuildFeed[]
+		try {
+			feeds = await this.context.backend.enabledGuildFeeds()
+		} catch (error) {
+			console.error('Discord activity feed lookup failed', discordErrorSummary(error))
+			return
+		}
+
+		const guildFeeds = new Map<string, DiscordGuildFeed[]>()
+		for (const feed of feeds) {
+			if (feed.kind === 'totw' || feed.kind === 'totm') continue
+			const entries = guildFeeds.get(feed.guildId) ?? []
+			entries.push(feed)
+			guildFeeds.set(feed.guildId, entries)
+		}
+
+		await Promise.all(
+			[...guildFeeds].map(async ([guildId, entries]) => {
+				const guild = this.client.guilds.cache.get(guildId)
+				if (!guild) return
+				for (const feed of entries) {
+					try {
+						await processFeed(guild, feed, feedEvents, this.context)
+					} catch (error) {
+						const channel = guild.channels.cache.get(feed.channelId)
+						console.error(
+							'Discord activity feed delivery failed',
+							{
+								guildId: guild.id,
+								guildName: guild.name,
+								channelId: feed.channelId,
+								channelName: channel?.name ?? null,
+								feedKind: feed.kind,
+							},
+							discordErrorSummary(error),
+						)
+					}
+				}
+			}),
+		)
 	}
 
 	async pollTournaments() {
@@ -161,9 +193,6 @@ export class FeedService {
 	}
 
 	stop() {
-		if (this.activityTimer) this.scheduler.clearInterval(this.activityTimer)
-		if (this.activitySubscriptionTimer)
-			this.scheduler.clearInterval(this.activitySubscriptionTimer)
 		if (this.tournamentTimer) this.scheduler.clearInterval(this.tournamentTimer)
 		this.liveSubscription?.unsubscribe()
 	}

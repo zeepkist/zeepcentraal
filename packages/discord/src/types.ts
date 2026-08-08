@@ -27,14 +27,17 @@ export type DiscordUserState = {
 
 export type DiscordFeedKind = 'workshop' | 'world_record' | 'rank' | 'totw' | 'totm'
 
+export type DiscordGuildFeed = {
+	guildId: string
+	kind: DiscordFeedKind
+	channelId: string
+	enabled: boolean
+	cursorEventId: string
+}
+
 export type DiscordGuildState = {
 	config: { linkedRoleId: string | null } | null
-	feeds: Array<{
-		kind: DiscordFeedKind
-		channelId: string
-		enabled: boolean
-		cursorEventId: string
-	}>
+	feeds: Array<Omit<DiscordGuildFeed, 'guildId'>>
 	digest: Record<string, unknown> | null
 	tournamentMessages: Array<{
 		idTournament: number

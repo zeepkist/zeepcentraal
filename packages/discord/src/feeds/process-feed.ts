@@ -1,6 +1,7 @@
 import type { Guild } from 'discord.js'
 import type { CommandContext } from '../commands/context'
-import type { DiscordActivityEvent, DiscordFeedKind, DiscordGuildState } from '../types'
+import type { DiscordActivityEvent, DiscordFeedKind, DiscordGuildFeed } from '../types'
+import { isEventAfterCursor } from './event-cursor'
 import { eventMessage } from './event-message'
 import { sendToChannel } from './send-to-channel'
 
@@ -10,29 +11,32 @@ const EVENT_FEED: Partial<Record<DiscordActivityEvent['kind'], DiscordFeedKind>>
 	rank_batch: 'rank',
 }
 
+export function activityFeedKind(event: DiscordActivityEvent) {
+	return EVENT_FEED[event.kind]
+}
+
 export async function processFeed(
 	guild: Guild,
-	state: DiscordGuildState,
-	kind: DiscordFeedKind,
+	feed: DiscordGuildFeed,
+	events: DiscordActivityEvent[],
 	context: CommandContext,
 ) {
-	const feed = state.feeds.find((entry) => entry.kind === kind && entry.enabled)
-	if (!feed || kind === 'totw' || kind === 'totm') return
-	const events = await context.graphql.activityEvents(feed.cursorEventId)
+	if (!feed.enabled || feed.kind === 'totw' || feed.kind === 'totm') return
+	let cursorEventId = feed.cursorEventId
 	for (const event of events) {
-		if (EVENT_FEED[event.kind] !== kind) {
-			await context.backend.advanceFeed(guild.id, kind, event.id)
-			continue
-		}
+		if (activityFeedKind(event) !== feed.kind) continue
+		if (!isEventAfterCursor(event.id, cursorEventId)) continue
 		try {
 			const delivery = await context.backend.delivery(guild.id, event.id)
 			if (delivery?.status === 'sent') {
-				await context.backend.advanceFeed(guild.id, kind, event.id)
+				await context.backend.advanceFeed(guild.id, feed.kind, event.id)
+				cursorEventId = event.id
 				continue
 			}
 			const message = await eventMessage(event, context)
 			if (!message) {
-				await context.backend.advanceFeed(guild.id, kind, event.id)
+				await context.backend.advanceFeed(guild.id, feed.kind, event.id)
+				cursorEventId = event.id
 				continue
 			}
 			await context.backend.setDelivery({
@@ -50,7 +54,8 @@ export async function processFeed(
 				messageId: sent.id,
 				status: 'sent',
 			})
-			await context.backend.advanceFeed(guild.id, kind, event.id)
+			await context.backend.advanceFeed(guild.id, feed.kind, event.id)
+			cursorEventId = event.id
 		} catch (error) {
 			await context.backend.setDelivery({
 				guildId: guild.id,

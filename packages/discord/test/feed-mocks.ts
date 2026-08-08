@@ -7,7 +7,7 @@ export function createFeedEvent(
 	overrides: Partial<DiscordActivityEvent> = {},
 ): DiscordActivityEvent {
 	return {
-		id: 'event-1',
+		id: '1',
 		kind: 'world_record',
 		levelId: 3,
 		userId: 7,

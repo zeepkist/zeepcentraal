@@ -13,6 +13,7 @@ import {
 	discordReferenceDocuments,
 	ZeepGraphqlClient,
 } from './graphql'
+import type { DiscordActivityEvent } from './types'
 
 function createHarness(results: Array<{ data?: unknown; error?: unknown }> = []) {
 	const query = mock((_document: unknown, variables: unknown) => ({
@@ -21,7 +22,7 @@ function createHarness(results: Array<{ data?: unknown; error?: unknown }> = [])
 	}))
 	let subscriptionListener: ((result: { data?: unknown; error?: unknown }) => void) | undefined
 	const subscriptionResult = { unsubscribe: mock(() => {}) }
-	const subscription = mock(() => ({
+	const subscription = mock((_document: unknown, _variables: unknown) => ({
 		subscribe: mock((listener: typeof subscriptionListener) => {
 			subscriptionListener = listener
 			return subscriptionResult
@@ -78,6 +79,7 @@ test('GraphQL client configures POST transport and retrying lazy subscriptions',
 	expect(harness.wsOptions()).toMatchObject({
 		url: testConfig.graphql.wsUrl,
 		lazy: true,
+		keepAlive: 30_000,
 		retryAttempts: Number.POSITIVE_INFINITY,
 	})
 	const shouldRetry = harness.wsOptions()?.shouldRetry as (() => boolean) | undefined
@@ -154,10 +156,10 @@ test('query returns data and reports GraphQL and empty-data failures', async () 
 	)
 })
 
-test('activity event query returns descending GraphQL results oldest first', async () => {
+test('activity event subscription emits full descending snapshots oldest first', () => {
 	const event = {
 		id: '9',
-		kind: 'vote',
+		kind: 'workshop',
 		levelId: null,
 		userId: null,
 		previousUserId: null,
@@ -171,46 +173,49 @@ test('activity event query returns descending GraphQL results oldest first', asy
 		record: null,
 		previousRecord: null,
 	} as const
-	const newerEvent = { ...event, id: '10', payload: '{"value":2}' } as const
-	const harness = createHarness([
-		{ data: { discordActivityEvents: { nodes: [newerEvent, event] } } },
-	])
-	expect(await harness.client.activityEvents('4', 25)).toEqual([
-		{ ...event, payload: { value: 1 } },
-		{ ...newerEvent, payload: { value: 2 } },
-	])
-	expect(print(harness.query.mock.calls[0]?.[0] as never)).toContain(
-		'personalBestGlobals(first: 0)',
-	)
-	expect(harness.query.mock.calls[0]?.[1]).toEqual({ after: '4', first: 25 })
-	const onChange = mock(() => {})
-	const live = harness.client.subscribeToActivityEvents(onChange)
+	const newerEvent = {
+		...event,
+		id: '10',
+		kind: 'personal_best',
+		payload: '{"value":2}',
+	} as const
+	const harness = createHarness()
+	const onEvents = mock((_events: DiscordActivityEvent[]) => {})
+	const live = harness.client.subscribeToActivityEvents(onEvents)
 	harness.subscriptionListener()?.({ error: new Error('offline') })
 	harness.subscriptionListener()?.({ data: undefined })
 	harness.subscriptionListener()?.({ data: { discordActivityEvents: { nodes: [] } } })
-	expect(onChange).toHaveBeenCalledTimes(1)
+	harness.subscriptionListener()?.({
+		data: { discordActivityEvents: { nodes: [newerEvent, event] } },
+	})
+	expect(onEvents).toHaveBeenCalledTimes(1)
+	expect(onEvents.mock.calls[0]?.[0]).toEqual([
+		{ ...event, payload: { value: 1 } },
+		{ ...newerEvent, payload: { value: 2 } },
+	])
+	const document = harness.subscription.mock.calls[0]?.[0]
+	expect(print(document as never)).toContain('discordActivityEvents(first: 100')
+	expect(print(document as never)).toContain('personalBestGlobals(first: 0)')
 	expect(live).toBe(harness.subscriptionResult)
-	harness.client.restartLiveConnection()
-	expect(harness.terminate).toHaveBeenCalledTimes(1)
 })
 
-test('activity event query safely normalizes object and malformed payloads', async () => {
-	const harness = createHarness([
-		{
-			data: {
-				discordActivityEvents: {
-					nodes: [
-						{ id: '1', payload: { changes: [] } },
-						{ id: '2', payload: 'not-json' },
-						{ id: '3', payload: '[]' },
-					],
-				},
+test('activity event subscription safely normalizes object and malformed payloads', () => {
+	const harness = createHarness()
+	const onEvents = mock((_events: DiscordActivityEvent[]) => {})
+	harness.client.subscribeToActivityEvents(onEvents)
+	harness.subscriptionListener()?.({
+		data: {
+			discordActivityEvents: {
+				nodes: [
+					{ id: '1', payload: { changes: [] } },
+					{ id: '2', payload: 'not-json' },
+					{ id: '3', payload: '[]' },
+				],
 			},
 		},
-	])
-	expect(
-		(await harness.client.activityEvents('0')).map(({ id, payload }) => ({ id, payload })),
-	).toEqual([
+	})
+	const emitted = onEvents.mock.calls[0]?.[0]
+	expect(emitted?.map(({ id, payload }) => ({ id, payload }))).toEqual([
 		{ id: '3', payload: null },
 		{ id: '2', payload: null },
 		{ id: '1', payload: { changes: [] } },

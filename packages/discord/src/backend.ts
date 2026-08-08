@@ -2,6 +2,7 @@ import { backendErrorDetail, DiscordBackendError } from './errors'
 import type {
 	DiscordBotConfig,
 	DiscordFeedKind,
+	DiscordGuildFeed,
 	DiscordGuildState,
 	DiscordUserState,
 } from './types'
@@ -114,6 +115,10 @@ export class DiscordBackendClient {
 
 	guild(guildId: string) {
 		return this.request<DiscordGuildState>(`/discord-bot/guilds/${guildId}`)
+	}
+
+	enabledGuildFeeds() {
+		return this.request<DiscordGuildFeed[]>('/discord-bot/guild-feeds/enabled')
 	}
 
 	setFeed(guildId: string, kind: DiscordFeedKind, channelId: string, enabled: boolean) {
