@@ -145,6 +145,56 @@ describe('buildPostGraphileServer', () => {
 		expect(await secondResponse.text()).toBe(html)
 	})
 
+	test('serves Ruru with a secure websocket endpoint for direct HTTPS requests', async () => {
+		const response = await createApp().handle(new Request('https://secure-ruru.test/'))
+
+		expect(response.status).toBe(200)
+		expect(await response.text()).toContain('"subscriptionEndpoint": "wss://secure-ruru.test/"')
+	})
+
+	test('uses a valid first forwarded protocol for Ruru websocket endpoints', async () => {
+		const response = await createApp().handle(
+			new Request('http://forwarded-ruru.test/', {
+				headers: { 'x-forwarded-proto': 'https, http' },
+			}),
+		)
+
+		expect(response.status).toBe(200)
+		expect(await response.text()).toContain(
+			'"subscriptionEndpoint": "wss://forwarded-ruru.test/"',
+		)
+	})
+
+	test('ignores forwarded protocols when the first value is invalid', async () => {
+		const response = await createApp().handle(
+			new Request('http://invalid-forwarded-ruru.test/', {
+				headers: { 'x-forwarded-proto': 'javascript, https' },
+			}),
+		)
+
+		expect(response.status).toBe(200)
+		expect(await response.text()).toContain(
+			'"subscriptionEndpoint": "ws://invalid-forwarded-ruru.test/"',
+		)
+	})
+
+	test('caches Ruru HTML by public origin', async () => {
+		const app = createApp()
+		const proxiedHttps = await app.handle(
+			new Request('http://cached-ruru.test/', {
+				headers: { 'x-forwarded-proto': 'https' },
+			}),
+		)
+		const directHttp = await app.handle(new Request('http://cached-ruru.test/'))
+
+		expect(await proxiedHttps.text()).toContain(
+			'"subscriptionEndpoint": "wss://cached-ruru.test/"',
+		)
+		expect(await directHttp.text()).toContain(
+			'"subscriptionEndpoint": "ws://cached-ruru.test/"',
+		)
+	})
+
 	test('redirects graphiql and graphql to root', async () => {
 		const app = createApp()
 		const graphiql = await app.handle(new Request('http://localhost/graphiql'))

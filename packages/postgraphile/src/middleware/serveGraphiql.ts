@@ -8,15 +8,30 @@ const ruruConfig = {
 
 const ruruHtmlByOrigin = new Map<string, string>()
 
+function getPublicHttpProtocol(request: Request, url: URL): 'http:' | 'https:' {
+	const forwardedProtocol = request.headers
+		.get('x-forwarded-proto')
+		?.split(',', 1)[0]
+		?.trim()
+		.toLowerCase()
+
+	if (forwardedProtocol === 'http' || forwardedProtocol === 'https') {
+		return `${forwardedProtocol}:`
+	}
+
+	return url.protocol === 'https:' ? 'https:' : 'http:'
+}
+
 function getRuruHtml(request: Request) {
 	const url = new URL(request.url)
-	const origin = `${url.protocol}//${url.host}`
+	const publicHttpProtocol = getPublicHttpProtocol(request, url)
+	const origin = `${publicHttpProtocol}//${url.host}`
 	const cached = ruruHtmlByOrigin.get(origin)
 	if (cached) {
 		return cached
 	}
 
-	const websocketProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+	const websocketProtocol = publicHttpProtocol === 'https:' ? 'wss:' : 'ws:'
 	const html = ruruHTML({
 		...ruruConfig,
 		subscriptions: true,
