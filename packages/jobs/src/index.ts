@@ -5,7 +5,8 @@ import { makeWorkerUtils } from 'graphile-worker'
 import { recoverOrphanedPlayerScoreQueueLock } from './utils/recoverOrphanedPlayerScoreQueueLock'
 import { startCrons, startRunner, stopCrons, stopRunner } from './worker'
 
-const WORKER_COUNT = 2
+// TODO: Restore worker cluster count to 2.
+const WORKER_COUNT = 1
 const clusterEvents = cluster as typeof cluster & {
 	on(event: 'exit', listener: (worker: Worker) => void): typeof cluster
 }
