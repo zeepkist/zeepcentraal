@@ -24,7 +24,7 @@ import { totwDefinition, totwHandler } from './totw'
 import { unlinkDefinition, unlinkHandler } from './unlink'
 import { userDefinition, userHandler } from './user'
 import { buttonHandler } from './utils/button'
-// import { watchDefinition, watchHandler } from './watch'
+import { watchDefinition, watchHandler } from './watch'
 import { wrPingDefinition, wrPingHandler } from './wr-ping'
 import { zeepCentraalProfileDefinition, zeepCentraalProfileHandler } from './zeepcentraal-profile'
 
@@ -73,7 +73,7 @@ export const chatInputCommands: ChatInputCommandEntry[] = [
 	{ definition: wrPingDefinition, handler: wrPingHandler },
 	{ definition: feedDefinition, handler: feedHandler },
 	// { definition: linkedRoleDefinition, handler: linkedRoleHandler },
-	// { definition: watchDefinition, handler: watchHandler },
+	{ definition: watchDefinition, handler: watchHandler },
 	{ definition: levelDefinition, handler: levelHandler, autocomplete: levelAutocompleteHandler },
 	{ definition: userDefinition, handler: userHandler },
 	{ definition: totwDefinition, handler: totwHandler },

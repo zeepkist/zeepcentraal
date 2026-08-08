@@ -49,8 +49,8 @@ const profileCommand = contextMenuCommands[0]
 if (!linkCommand || !profileCommand) throw new Error('Expected command fixtures are missing')
 
 test('registry contains exact command set and option order', () => {
-	expect(commandData).toHaveLength(19)
-	expect(new Set(commandData.map((command) => command.name)).size).toBe(19)
+	expect(commandData).toHaveLength(20)
+	expect(new Set(commandData.map((command) => command.name)).size).toBe(20)
 	for (const command of commandData) {
 		expect(command.options?.map((option) => option.name) ?? []).toEqual(
 			expectedOptions[command.name] ?? [],
