@@ -91,12 +91,24 @@ export function createFeedClient(guilds: Guild[] = [], send = mock(async () => (
 }
 
 export const tournamentData = {
-	active: {
+	weekly: {
 		nodes: [
 			{
 				id: 5,
+				type: 0,
 				slug: 'week-5',
 				endAt: '2026-08-08T00:00:00Z',
+				trackTournamentResults: { totalCount: 0, nodes: [] },
+			},
+		],
+	},
+	monthly: {
+		nodes: [
+			{
+				id: 6,
+				type: 1,
+				slug: 'month-6',
+				endAt: '2026-08-31T00:00:00Z',
 				trackTournamentResults: { totalCount: 0, nodes: [] },
 			},
 		],

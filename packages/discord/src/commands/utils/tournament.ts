@@ -1,6 +1,8 @@
 import {
-	Zc_TrackTournamentDetailDocument,
-	Zc_TrackTournamentIndexDocument,
+	Zc_DiscordTournamentLeaderboardDocument,
+	type Zc_DiscordTournamentLeaderboardQuery,
+	Zc_DiscordTournamentSnapshotsDocument,
+	type Zc_DiscordTournamentSnapshotsQuery,
 } from '@zeepkist/graphql/generated'
 import {
 	ActionRowBuilder,
@@ -18,7 +20,7 @@ type TournamentResult = {
 	points: number
 	rank: number
 	time: number
-	user?: LinkedUser | null
+	user?: Pick<LinkedUser, 'steamName'> | null
 	userId: number
 }
 
@@ -27,10 +29,8 @@ type Tournament = {
 	id: number
 	level?: {
 		levelItems: { nodes: Array<{ imageUrl: string; name: string }> }
-		xxHash: string
 	} | null
 	slug: string
-	startAt: string
 	trackTournamentResults?: {
 		nodes: TournamentResult[]
 		totalCount: number
@@ -93,32 +93,11 @@ function tournamentPresentation(
 
 function tournamentLeaderboard(type: 0 | 1, slug: string, context: CommandContext) {
 	return async (window: CursorWindow) => {
-		const data = await context.graphql.query<Record<string, unknown>>(
-			Zc_TrackTournamentDetailDocument,
-			{
-				...window,
-				type,
-				slug,
-				viewerId: 0,
-				includeViewer: false,
-			},
+		const data = await context.graphql.query<Zc_DiscordTournamentLeaderboardQuery>(
+			Zc_DiscordTournamentLeaderboardDocument,
+			{ ...window, type, slug },
 		)
-		const leaderboard = (
-			data as {
-				tournament?: {
-					leaderboard?: {
-						edges: Array<{ node: TournamentResult }>
-						pageInfo: {
-							endCursor?: string | null
-							hasNextPage: boolean
-							hasPreviousPage: boolean
-							startCursor?: string | null
-						}
-						totalCount: number
-					}
-				} | null
-			}
-		).tournament?.leaderboard
+		const leaderboard = data.tournament?.leaderboard
 		if (!leaderboard) {
 			return {
 				pageInfo: { hasNextPage: false, hasPreviousPage: false },
@@ -129,39 +108,37 @@ function tournamentLeaderboard(type: 0 | 1, slug: string, context: CommandContex
 		const results = leaderboard.edges.map((edge) => edge.node)
 		const users = await context.graphql.usersByIds(results.map((result) => result.userId))
 		return {
-			pageInfo: leaderboard.pageInfo,
+			pageInfo: {
+				endCursor: leaderboard.pageInfo.endCursor
+					? String(leaderboard.pageInfo.endCursor)
+					: null,
+				hasNextPage: leaderboard.pageInfo.hasNextPage,
+				hasPreviousPage: leaderboard.pageInfo.hasPreviousPage,
+				startCursor: leaderboard.pageInfo.startCursor
+					? String(leaderboard.pageInfo.startCursor)
+					: null,
+			},
 			rows: results.map(
 				(result) =>
-					`**${result.rank}.** ${playerLabel(users.get(result.userId) ?? result.user)} • ${formatTime(result.time)} • ${result.points} pts`,
+					`**${result.rank}.** ${playerLabel(users.get(result.userId) ?? { discordId: null, steamName: result.user?.steamName ?? null })} • ${formatTime(result.time)} • ${result.points} pts`,
 			),
 			totalCount: leaderboard.totalCount,
 		}
 	}
 }
 
-export async function buildTournamentMessage(type: 0 | 1, context: CommandContext) {
-	const data = await context.graphql.query<Record<string, unknown>>(
-		Zc_TrackTournamentIndexDocument,
-		{
-			type,
-			now: context.runtime.now().toISOString(),
-			first: 1,
-		},
-	)
-	const typed = data as {
-		active?: { nodes: Array<Record<string, unknown>> }
-		history?: { edges: Array<{ node: Record<string, unknown> }> }
-	}
-	const tournament = typed.active?.nodes[0] ?? typed.history?.edges[0]?.node
-	if (!tournament) throw new Error('No tournament found.')
-	const value = tournament as Tournament
+async function renderTournamentMessage(
+	type: 0 | 1,
+	value: Tournament,
+	users: Map<number, LinkedUser>,
+	context: CommandContext,
+) {
 	const results = value.trackTournamentResults?.nodes ?? []
-	const users = await context.graphql.usersByIds(results.map((result) => result.userId))
 	const standings = results
 		.slice(0, 3)
 		.map(
 			(result) =>
-				`**${result.rank}.** ${playerLabel(users.get(result.userId) ?? result.user)} • ${formatTime(result.time)} • ${result.points} pts`,
+				`**${result.rank}.** ${playerLabel(users.get(result.userId) ?? { discordId: null, steamName: result.user?.steamName ?? null })} • ${formatTime(result.time)} • ${result.points} pts`,
 		)
 		.join('\n')
 	const presentation = tournamentPresentation(type, value, context)
@@ -195,6 +172,54 @@ export async function buildTournamentMessage(type: 0 | 1, context: CommandContex
 		tournamentSlug: value.slug,
 		tournamentType: tournamentRoute(type),
 	}
+}
+
+export type BuiltTournamentMessage = Awaited<ReturnType<typeof renderTournamentMessage>>
+
+function tournamentValue(
+	value: NonNullable<Zc_DiscordTournamentSnapshotsQuery['weekly']>['nodes'][number],
+): Tournament {
+	return {
+		...value,
+		endAt: String(value.endAt),
+		trackTournamentResults: {
+			...value.trackTournamentResults,
+			nodes: value.trackTournamentResults.nodes.map((result) => ({
+				...result,
+				user: result.user ? { steamName: result.user.steamName ?? '' } : null,
+			})),
+		},
+	}
+}
+
+export async function buildTournamentMessages(context: CommandContext) {
+	const data = await context.graphql.query<Zc_DiscordTournamentSnapshotsQuery>(
+		Zc_DiscordTournamentSnapshotsDocument,
+		{ now: context.runtime.now().toISOString() },
+	)
+	const values = new Map<0 | 1, Tournament>()
+	const weekly = data.weekly?.nodes[0]
+	const monthly = data.monthly?.nodes[0]
+	if (weekly) values.set(0, tournamentValue(weekly))
+	if (monthly) values.set(1, tournamentValue(monthly))
+	const users = values.size
+		? await context.graphql.usersByIds(
+				[...values.values()].flatMap((value) =>
+					(value.trackTournamentResults?.nodes ?? []).map((result) => result.userId),
+				),
+			)
+		: new Map<number, LinkedUser>()
+	const messages = new Map<0 | 1, BuiltTournamentMessage>()
+	for (const [type, value] of values) {
+		messages.set(type, await renderTournamentMessage(type, value, users, context))
+	}
+	return messages
+}
+
+export async function buildTournamentMessage(type: 0 | 1, context: CommandContext) {
+	const snapshot = (await buildTournamentMessages(context)).get(type)
+	if (!snapshot) throw new Error('No tournament found.')
+	return snapshot
 }
 
 export async function tournamentHandler(

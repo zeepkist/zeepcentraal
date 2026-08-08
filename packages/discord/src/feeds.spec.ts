@@ -66,29 +66,38 @@ test('FeedService schedules, polls, avoids overlapping activity work, and stops 
 test('FeedService contains activity, watch, guild, and tournament failures', async () => {
 	const consoleError = spyOn(console, 'error').mockImplementation(() => {})
 	const guild = createFeedGuild().guild
+	const tournamentError = Object.assign(new Error('[GraphQL] timeout exceeded'), {
+		name: 'CombinedError',
+		response: new Response(null, {
+			headers: { 'x-query-cost': '162' },
+			status: 524,
+		}),
+	})
 	const { context } = createMockContext({
 		backend: {
 			workerCursor: mock(async () => Promise.reject(new Error('watch failed'))),
 			guild: mock(async () => Promise.reject(new Error('guild failed'))),
 		},
-		graphql: { query: mock(async () => Promise.reject(new Error('tournament failed'))) },
+		graphql: { query: mock(async () => Promise.reject(tournamentError)) },
 	})
 	const { client } = createFeedClient([guild])
 	const service = new FeedService(client, context)
 	await service.pollActivity()
 	await service.pollTournaments()
-	expect(consoleError).toHaveBeenCalledWith(
-		'Discord activity watch poll failed',
-		expect.any(Error),
-	)
-	expect(consoleError).toHaveBeenCalledWith(
-		'Discord activity feed poll failed',
-		expect.any(Error),
-	)
-	expect(consoleError).toHaveBeenCalledWith(
-		'Discord tournament feed poll failed',
-		expect.any(Error),
-	)
+	expect(consoleError).toHaveBeenCalledWith('Discord activity watch poll failed', {
+		message: 'watch failed',
+		name: 'Error',
+	})
+	expect(consoleError).toHaveBeenCalledWith('Discord activity feed poll failed', {
+		message: 'guild failed',
+		name: 'Error',
+	})
+	expect(consoleError).toHaveBeenCalledWith('Discord tournament feed poll failed', {
+		message: '[GraphQL] timeout exceeded',
+		name: 'CombinedError',
+		queryCost: '162',
+		status: 524,
+	})
 	consoleError.mockRestore()
 })
 
@@ -98,6 +107,9 @@ test('FeedService logs guild and channel context for tournament update failures'
 	failedGuild.send.mockImplementation(async () => {
 		throw new Error('Missing Permissions')
 	})
+	const healthyGuild = createFeedGuild()
+	;(healthyGuild.guild as unknown as { id: string; name: string }).id = 'guild-2'
+	;(healthyGuild.guild as unknown as { id: string; name: string }).name = 'Healthy Guild'
 	const { context } = createMockContext({
 		backend: {
 			guild: mock(async () =>
@@ -110,7 +122,7 @@ test('FeedService logs guild and channel context for tournament update failures'
 		},
 		graphql: { query: mock(async () => tournamentData) },
 	})
-	const { client } = createFeedClient([failedGuild.guild])
+	const { client } = createFeedClient([failedGuild.guild, healthyGuild.guild])
 	await new FeedService(client, context).pollTournaments()
 	expect(consoleError).toHaveBeenCalledWith(
 		'Discord tournament feed poll failed',
@@ -121,7 +133,114 @@ test('FeedService logs guild and channel context for tournament update failures'
 			channelName: 'tournament-feed',
 			feedKind: 'totw',
 		},
-		expect.any(Error),
+		{ message: 'Missing Permissions', name: 'Error' },
+	)
+	expect(healthyGuild.send).toHaveBeenCalledTimes(1)
+	consoleError.mockRestore()
+})
+
+test('FeedService batches tournament snapshots across guilds without update queries', async () => {
+	const firstGuild = createFeedGuild()
+	const secondGuild = createFeedGuild()
+	;(secondGuild.guild as unknown as { id: string }).id = 'guild-2'
+	const query = mock(async () => tournamentData)
+	const usersByIds = mock(async () => new Map())
+	const { context, backend } = createMockContext({
+		backend: {
+			guild: mock(async () =>
+				createFeedGuildState({
+					feeds: [
+						{ kind: 'totw', channelId: 'channel', enabled: true, cursorEventId: '0' },
+					],
+				}),
+			),
+		},
+		graphql: { query, usersByIds },
+	})
+	const { client } = createFeedClient([firstGuild.guild, secondGuild.guild])
+	await new FeedService(client, context).pollTournaments()
+	expect(query).toHaveBeenCalledTimes(1)
+	expect(usersByIds).toHaveBeenCalledTimes(1)
+	expect(backend.guild).toHaveBeenCalledTimes(2)
+	expect(backend.setTournamentMessage).toHaveBeenCalledTimes(2)
+})
+
+test('FeedService suppresses overlapping tournament polls', async () => {
+	let release: (() => void) | undefined
+	const blocked = new Promise<void>((resolve) => {
+		release = resolve
+	})
+	const query = mock(async () => {
+		await blocked
+		return tournamentData
+	})
+	const { context } = createMockContext({ graphql: { query } })
+	const { client } = createFeedClient()
+	const service = new FeedService(client, context)
+	const first = service.pollTournaments()
+	await service.pollTournaments()
+	expect(query).toHaveBeenCalledTimes(1)
+	release?.()
+	await first
+})
+
+test('FeedService warns for missing tournament type and continues available type', async () => {
+	const consoleWarn = spyOn(console, 'warn').mockImplementation(() => {})
+	const guild = createFeedGuild()
+	const { context, backend } = createMockContext({
+		backend: {
+			guild: mock(async () =>
+				createFeedGuildState({
+					feeds: [
+						{ kind: 'totw', channelId: 'channel', enabled: true, cursorEventId: '0' },
+					],
+				}),
+			),
+		},
+		graphql: {
+			query: mock(async () => ({ ...tournamentData, monthly: { nodes: [] } })),
+		},
+	})
+	const { client } = createFeedClient([guild.guild])
+	await new FeedService(client, context).pollTournaments()
+	expect(consoleWarn).toHaveBeenCalledWith('Discord tournament snapshot missing', {
+		feedKind: 'totm',
+	})
+	expect(backend.setTournamentMessage).toHaveBeenCalledTimes(1)
+	consoleWarn.mockRestore()
+})
+
+test('FeedService isolates tournament watch failures from other types and guild feeds', async () => {
+	const consoleError = spyOn(console, 'error').mockImplementation(() => {})
+	const guild = createFeedGuild()
+	let matchCount = 0
+	const matchingWatches = mock(async () => {
+		matchCount++
+		if (matchCount === 1) throw new Error('watch backend failed')
+		return []
+	})
+	const { context, backend } = createMockContext({
+		backend: {
+			matchingWatches,
+			guild: mock(async () =>
+				createFeedGuildState({
+					feeds: [
+						{ kind: 'totw', channelId: 'channel', enabled: true, cursorEventId: '0' },
+						{ kind: 'totm', channelId: 'channel', enabled: true, cursorEventId: '0' },
+					],
+				}),
+			),
+		},
+		graphql: { query: mock(async () => tournamentData) },
+	})
+	const { client } = createFeedClient([guild.guild])
+	await new FeedService(client, context).pollTournaments()
+	expect(matchingWatches).toHaveBeenCalledTimes(2)
+	expect(backend.setTournamentMessage).toHaveBeenCalledTimes(2)
+	expect(consoleError).toHaveBeenCalledWith(
+		'Discord tournament watch delivery failed',
+		{ feedKind: 'totw' },
+		{ message: 'watch backend failed', name: 'Error' },
 	)
 	consoleError.mockRestore()
 })

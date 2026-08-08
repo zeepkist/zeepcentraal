@@ -1,0 +1,104 @@
+fragment ZC_DiscordTournamentSnapshot on TrackTournament {
+	id
+	type
+	slug
+	endAt
+	level {
+		levelItems(
+			first: 1
+			filter: { deleted: { equalTo: false } }
+			orderBy: [UPDATED_AT_DESC, ID_DESC]
+		) {
+			nodes {
+				name
+				imageUrl
+			}
+		}
+	}
+	trackTournamentResults(first: 3, orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]) {
+		totalCount
+		nodes {
+			userId
+			time
+			rank
+			points
+			user {
+				steamName
+			}
+		}
+	}
+}
+
+query ZC_DiscordTournamentSnapshots($now: Datetime!) {
+	weekly: trackTournaments(
+		first: 1
+		filter: {
+			type: { equalTo: 0 }
+			startAt: { lessThanOrEqualTo: $now }
+			or: [
+				{ endAt: { lessThanOrEqualTo: $now } }
+				{ endAt: { greaterThan: $now }, finalizedAt: { isNull: true } }
+			]
+		}
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_DiscordTournamentSnapshot
+		}
+	}
+	monthly: trackTournaments(
+		first: 1
+		filter: {
+			type: { equalTo: 1 }
+			startAt: { lessThanOrEqualTo: $now }
+			or: [
+				{ endAt: { lessThanOrEqualTo: $now } }
+				{ endAt: { greaterThan: $now }, finalizedAt: { isNull: true } }
+			]
+		}
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_DiscordTournamentSnapshot
+		}
+	}
+}
+
+query ZC_DiscordTournamentLeaderboard(
+	$type: Int!
+	$slug: String!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+) {
+	tournament: trackTournamentByTypeAndSlug(type: $type, slug: $slug) {
+		leaderboard: trackTournamentResults(
+			first: $first
+			after: $after
+			last: $last
+			before: $before
+			orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]
+		) {
+			edges {
+				cursor
+				node {
+					userId
+					time
+					rank
+					points
+					user {
+						steamName
+					}
+				}
+			}
+			pageInfo {
+				startCursor
+				endCursor
+				hasNextPage
+				hasPreviousPage
+			}
+			totalCount
+		}
+	}
+}

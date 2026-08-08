@@ -1,6 +1,7 @@
 import { expect, mock, test } from 'bun:test'
 import { testConfig } from '../test/mocks'
 import { DiscordBackendClient } from './backend'
+import { DiscordBackendError } from './errors'
 
 test('backend client maps every operation to authenticated HTTP contracts', async () => {
 	const requests: Request[] = []
@@ -57,16 +58,53 @@ test('backend client maps every operation to authenticated HTTP contracts', asyn
 	expect(requests[16]?.url).toContain('/tournaments/4/message')
 })
 
-test('backend client reports bounded backend error details', async () => {
+test('backend client reports bounded text backend error details with request metadata', async () => {
 	const fetchImpl = mock(
-		async () => new Response('x'.repeat(600), { status: 503 }),
+		async () =>
+			new Response(`  ${'x'.repeat(400)}  `, {
+				headers: { 'content-type': 'text/plain', 'retry-after': '120' },
+				status: 503,
+			}),
 	) as unknown as typeof fetch
 	const client = new DiscordBackendClient(testConfig, fetchImpl)
 	try {
 		await client.user('discord')
 		throw new Error('expected request failure')
 	} catch (error) {
-		expect(error).toBeInstanceOf(Error)
-		expect((error as Error).message).toBe(`Backend 503: ${'x'.repeat(500)}`)
+		expect(error).toBeInstanceOf(DiscordBackendError)
+		expect(error).toMatchObject({
+			status: 503,
+			method: 'GET',
+			path: '/discord-bot/users/discord',
+			retryAfter: '120',
+		})
+		expect((error as Error).message.length).toBeLessThan(400)
+		expect((error as Error).message.endsWith('…')).toBe(true)
 	}
+})
+
+test('backend client omits Cloudflare HTML error pages', async () => {
+	const html = '<!DOCTYPE html><html><title>524 timeout</title></html>'
+	const fetchImpl = mock(
+		async () => new Response(html, { headers: { 'content-type': 'text/html' }, status: 524 }),
+	) as unknown as typeof fetch
+	const client = new DiscordBackendClient(testConfig, fetchImpl)
+	await expect(client.user('discord')).rejects.toMatchObject({
+		detail: null,
+		message: 'Backend 524 GET /discord-bot/users/discord',
+	})
+})
+
+test('backend client extracts safe JSON error detail', async () => {
+	const fetchImpl = mock(async () =>
+		Response.json(
+			{ detail: 'Database temporarily unavailable', ignored: 'private diagnostics' },
+			{ status: 503 },
+		),
+	) as unknown as typeof fetch
+	const client = new DiscordBackendClient(testConfig, fetchImpl)
+	await expect(client.setPreference('discord', true)).rejects.toMatchObject({
+		detail: 'Database temporarily unavailable',
+		method: 'PATCH',
+	})
 })

@@ -1,6 +1,7 @@
-import type { Client, Guild } from 'discord.js'
+import type { Client } from 'discord.js'
 import type { CommandContext } from './commands/context'
-import { buildTournamentMessage } from './commands/utils/tournament'
+import { buildTournamentMessages } from './commands/utils/tournament'
+import { discordErrorSummary } from './errors'
 import { createProductionFeedScheduler } from './feeds/create-production-feed-scheduler'
 import { deliverWatches } from './feeds/deliver-watches'
 import type { FeedScheduler } from './feeds/feed-scheduler'
@@ -17,6 +18,7 @@ export class FeedService {
 	private tournamentTimer?: ReturnType<typeof setInterval>
 	private liveSubscription?: { unsubscribe: () => void }
 	private polling = false
+	private tournamentPolling = false
 	private tournamentWatchKeys = new Map<number, string>()
 
 	constructor(
@@ -46,7 +48,7 @@ export class FeedService {
 			try {
 				await processActivityWatches(this.client, this.context)
 			} catch (error) {
-				console.error('Discord activity watch poll failed', error)
+				console.error('Discord activity watch poll failed', discordErrorSummary(error))
 			}
 			for (const guild of this.client.guilds.cache.values()) {
 				const state = await this.context.backend.guild(guild.id)
@@ -55,74 +57,106 @@ export class FeedService {
 				}
 			}
 		} catch (error) {
-			console.error('Discord activity feed poll failed', error)
+			console.error('Discord activity feed poll failed', discordErrorSummary(error))
 		} finally {
 			this.polling = false
 		}
 	}
 
 	async pollTournaments() {
-		let target:
-			| {
-					guild: Guild
-					state?: DiscordGuildState
-					type?: 0 | 1
-			  }
-			| undefined
+		if (this.tournamentPolling) return
+		this.tournamentPolling = true
 		try {
+			let snapshots: Awaited<ReturnType<typeof buildTournamentMessages>>
+			try {
+				snapshots = await buildTournamentMessages(this.context)
+			} catch (error) {
+				console.error('Discord tournament feed poll failed', discordErrorSummary(error))
+				return
+			}
 			for (const type of [0, 1] as const) {
-				const snapshot = await buildTournamentMessage(type, this.context)
+				const snapshot = snapshots.get(type)
+				if (!snapshot) {
+					console.warn('Discord tournament snapshot missing', {
+						feedKind: type === 0 ? 'totw' : 'totm',
+					})
+					continue
+				}
 				const deliveryKey = `tournament:${snapshot.tournamentId}:${snapshot.contentHash}`
 				if (this.tournamentWatchKeys.get(type) !== deliveryKey) {
-					const watches = await this.context.backend.matchingWatches([
-						{
-							kind: 'tournament',
-							targetIds: [
-								String(snapshot.tournamentId),
-								snapshot.tournamentSlug,
-								snapshot.tournamentType,
-							],
-						},
-					])
-					await deliverWatches(
-						this.client,
-						watches,
-						deliveryKey,
-						snapshot.message,
-						this.context,
-					)
-					this.tournamentWatchKeys.set(type, deliveryKey)
+					try {
+						const watches = await this.context.backend.matchingWatches([
+							{
+								kind: 'tournament',
+								targetIds: [
+									String(snapshot.tournamentId),
+									snapshot.tournamentSlug,
+									snapshot.tournamentType,
+								],
+							},
+						])
+						await deliverWatches(
+							this.client,
+							watches,
+							deliveryKey,
+							snapshot.message,
+							this.context,
+						)
+						this.tournamentWatchKeys.set(type, deliveryKey)
+					} catch (error) {
+						console.error(
+							'Discord tournament watch delivery failed',
+							{ feedKind: type === 0 ? 'totw' : 'totm' },
+							discordErrorSummary(error),
+						)
+					}
 				}
 			}
 			for (const guild of this.client.guilds.cache.values()) {
-				target = { guild }
-				const state = await this.context.backend.guild(guild.id)
+				let state: DiscordGuildState
+				try {
+					state = await this.context.backend.guild(guild.id)
+				} catch (error) {
+					console.error(
+						'Discord tournament feed poll failed',
+						{
+							guildId: guild.id,
+							guildName: guild.name,
+							channelId: null,
+							channelName: null,
+							feedKind: null,
+						},
+						discordErrorSummary(error),
+					)
+					continue
+				}
 				for (const type of [0, 1] as const) {
-					target = { guild, state, type }
-					await updateTournament(guild, state, type, this.context)
+					const snapshot = snapshots.get(type)
+					if (!snapshot) continue
+					try {
+						await updateTournament(guild, state, type, snapshot, this.context)
+					} catch (error) {
+						const feedKind = type === 0 ? 'totw' : 'totm'
+						const feed = state.feeds.find(
+							(entry) => entry.kind === feedKind && entry.enabled,
+						)
+						const channel = feed ? guild.channels.cache.get(feed.channelId) : null
+						console.error(
+							'Discord tournament feed poll failed',
+							{
+								guildId: guild.id,
+								guildName: guild.name,
+								channelId: feed?.channelId ?? null,
+								channelName: channel?.name ?? null,
+								feedKind,
+							},
+							discordErrorSummary(error),
+						)
+					}
 				}
 			}
-		} catch (error) {
-			if (!target) {
-				console.error('Discord tournament feed poll failed', error)
-				return
-			}
-			const feedKind = target.type === undefined ? null : target.type === 0 ? 'totw' : 'totm'
-			const feed = target.state?.feeds.find(
-				(entry) => entry.kind === feedKind && entry.enabled,
-			)
-			const channel = feed ? target.guild.channels.cache.get(feed.channelId) : null
-			console.error(
-				'Discord tournament feed poll failed',
-				{
-					guildId: target.guild.id,
-					guildName: target.guild.name,
-					channelId: feed?.channelId ?? null,
-					channelName: channel?.name ?? null,
-					feedKind,
-				},
-				error,
-			)
+		} finally {
+			this.tournamentPolling = false
 		}
 	}
 

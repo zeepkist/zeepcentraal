@@ -19,6 +19,7 @@ import {
 	dispatchContextMenu,
 } from './commands/registry'
 import { editPayload, errorContainer, replyPayload } from './display'
+import { discordErrorSummary } from './errors'
 import { FeedService } from './feeds'
 import { ZeepGraphqlClient } from './graphql'
 import { waitForDiscordDependencies } from './readiness'
@@ -179,7 +180,10 @@ export function createDiscordRuntime(
 
 	client.on(Events.GuildMemberAdd, (member) => {
 		void syncLinkedRole(member, context).catch((error) => {
-			dependencies.logError(`Linked role sync failed for ${member.id}`, error)
+			dependencies.logError(
+				`Linked role sync failed for ${member.id}`,
+				discordErrorSummary(error),
+			)
 		})
 	})
 
@@ -208,7 +212,10 @@ export function createDiscordRuntime(
 			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error'
-			dependencies.logError(`Discord interaction ${interaction.id} failed`, error)
+			dependencies.logError(
+				`Discord interaction ${interaction.id} failed`,
+				discordErrorSummary(error),
+			)
 			if (!interaction.isRepliable()) return
 			const container = errorContainer(message)
 			if (interaction.deferred) await interaction.editReply(editPayload(container))

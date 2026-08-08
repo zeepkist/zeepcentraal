@@ -398,11 +398,11 @@ test('runtime contains member sync failures and uses all Discord error response 
 	harness.backend.guild.mockImplementation(async () => Promise.reject(new Error('role failed')))
 	createDiscordRuntime(testConfig, harness.dependencies)
 	const memberHandler = harness.clientHarness.onHandlers.get(Events.GuildMemberAdd)
-	memberHandler?.({ id: 'member' } as never)
+	memberHandler?.({ id: 'member', guild: { id: 'guild' } } as never)
 	await new Promise((resolve) => setTimeout(resolve, 0))
 	expect(harness.dependencies.logError).toHaveBeenCalledWith(
 		'Linked role sync failed for member',
-		expect.any(Error),
+		{ message: 'role failed', name: 'Error' },
 	)
 	const handler = harness.clientHarness.onHandlers.get(Events.InteractionCreate)
 	const edit = interaction('chat', { deferred: true })

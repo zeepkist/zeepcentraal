@@ -1,3 +1,4 @@
+import { backendErrorDetail, DiscordBackendError } from './errors'
 import type {
 	DiscordBotConfig,
 	DiscordFeedKind,
@@ -14,6 +15,7 @@ export class DiscordBackendClient {
 	) {}
 
 	private async request<T>(path: string, input: FetchInput = {}): Promise<T> {
+		const method = (input.method ?? 'GET').toUpperCase()
 		const response = await this.fetchImpl(new URL(path, this.config.backendUrl), {
 			...input,
 			headers: {
@@ -24,8 +26,13 @@ export class DiscordBackendClient {
 			body: input.body === undefined ? undefined : JSON.stringify(input.body),
 		})
 		if (!response.ok) {
-			const detail = await response.text()
-			throw new Error(`Backend ${response.status}: ${detail.slice(0, 500)}`)
+			throw new DiscordBackendError(
+				response.status,
+				method,
+				path,
+				response.headers.get('retry-after'),
+				await backendErrorDetail(response),
+			)
 		}
 		return (await response.json()) as T
 	}

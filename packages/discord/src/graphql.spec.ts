@@ -1,5 +1,9 @@
 import { expect, mock, test } from 'bun:test'
 import type { Client as UrqlClient } from '@urql/core'
+import {
+	Zc_DiscordTournamentLeaderboardDocument,
+	Zc_DiscordTournamentSnapshotsDocument,
+} from '@zeepkist/graphql/generated'
 import { buildSchema, parse, print, validate } from 'graphql'
 import type { Client as WsClient } from 'graphql-ws'
 import { testConfig } from '../test/mocks'
@@ -109,6 +113,35 @@ test('raw Discord operations match reference GraphQL schema', async () => {
 	)
 	const errors = discordReferenceDocuments.flatMap((document) => validate(schema, document))
 	expect(errors.map((error) => error.message)).toEqual([])
+})
+
+test('generated Discord tournament operations stay schema-valid and minimal', async () => {
+	const schema = buildSchema(
+		await Bun.file(new URL('../../graphql/schema.graphql', import.meta.url)).text(),
+	)
+	const documents = [
+		Zc_DiscordTournamentSnapshotsDocument,
+		Zc_DiscordTournamentLeaderboardDocument,
+	]
+	expect(
+		documents.flatMap((document) => validate(schema, document)).map((error) => error.message),
+	).toEqual([])
+	const snapshots = print(Zc_DiscordTournamentSnapshotsDocument)
+	const leaderboard = print(Zc_DiscordTournamentLeaderboardDocument)
+	expect(snapshots).toMatch(/weekly: trackTournaments\(\s*first: 1/)
+	expect(snapshots).toMatch(/monthly: trackTournaments\(\s*first: 1/)
+	expect(snapshots).toContain('trackTournamentResults(first: 3')
+	expect(leaderboard).toContain('leaderboard: trackTournamentResults')
+	for (const forbidden of [
+		'ghostFeed',
+		'updateFeed',
+		'recordMedia',
+		'personalBestGlobals',
+		'worldRecordGlobals',
+	]) {
+		expect(snapshots).not.toContain(forbidden)
+		expect(leaderboard).not.toContain(forbidden)
+	}
 })
 
 test('query returns data and reports GraphQL and empty-data failures', async () => {

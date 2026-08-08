@@ -1,6 +1,6 @@
 import type { Guild, GuildTextBasedChannel } from 'discord.js'
 import type { CommandContext } from '../commands/context'
-import { buildTournamentMessage } from '../commands/utils/tournament'
+import type { BuiltTournamentMessage } from '../commands/utils/tournament'
 import { messageEditPayload } from '../display'
 import type { DiscordGuildState } from '../types'
 import { sendToChannel } from './send-to-channel'
@@ -9,12 +9,12 @@ export async function updateTournament(
 	guild: Guild,
 	state: DiscordGuildState,
 	type: 0 | 1,
+	snapshot: BuiltTournamentMessage,
 	context: CommandContext,
 ) {
 	const kind = type === 0 ? 'totw' : 'totm'
 	const feed = state.feeds.find((entry) => entry.kind === kind && entry.enabled)
 	if (!feed) return
-	const snapshot = await buildTournamentMessage(type, context)
 	const existing = state.tournamentMessages?.find(
 		(message) => message.idTournament === snapshot.tournamentId,
 	)

@@ -7,11 +7,11 @@ import {
 	linkedUser,
 } from '../../../test/mocks'
 import { paginationHandler } from './pagination'
-import { buildTournamentMessage, tournamentHandler } from './tournament'
+import { buildTournamentMessage, buildTournamentMessages, tournamentHandler } from './tournament'
 
 test('tournament renderer includes standings, level, buttons, and stable hash', async () => {
 	const query = mock(async () => ({
-		active: {
+		weekly: {
 			nodes: [
 				{
 					id: 5,
@@ -67,11 +67,18 @@ test('tournament renderer includes standings, level, buttons, and stable hash', 
 	expect(JSON.stringify(first.message)).toContain('Download level playlist')
 })
 
-test('tournament renderer supports history and missing optional data', async () => {
+test('tournament renderer supports finalized tournaments and missing optional data', async () => {
 	const query = mock(async () => ({
-		history: {
-			edges: [
-				{ node: { id: 6, slug: 'month-6', endAt: '2026-08-08T00:00:00Z', level: null } },
+		monthly: {
+			nodes: [
+				{
+					id: 6,
+					type: 1,
+					slug: 'month-6',
+					endAt: '2026-08-08T00:00:00Z',
+					level: null,
+					trackTournamentResults: { nodes: [], totalCount: 0 },
+				},
 			],
 		},
 	}))
@@ -83,13 +90,66 @@ test('tournament renderer supports history and missing optional data', async () 
 })
 
 test('tournament renderer rejects absent tournament', async () => {
-	const { context } = createMockContext({ graphql: { query: mock(async () => ({})) } })
+	const { context } = createMockContext({
+		graphql: { query: mock(async () => ({ monthly: { nodes: [] }, weekly: { nodes: [] } })) },
+	})
 	expect(buildTournamentMessage(0, context)).rejects.toThrow('No tournament found.')
+})
+
+test('tournament renderer batches both types and linked-user enrichment', async () => {
+	const query = mock(async () => ({
+		weekly: {
+			nodes: [
+				{
+					id: 5,
+					type: 0,
+					slug: 'week-5',
+					endAt: '2026-08-08T00:00:00Z',
+					trackTournamentResults: {
+						nodes: [{ rank: 1, time: 12, points: 10, userId: 7, user: linkedUser }],
+						totalCount: 1,
+					},
+				},
+			],
+		},
+		monthly: {
+			nodes: [
+				{
+					id: 6,
+					type: 1,
+					slug: 'month-6',
+					endAt: '2026-08-31T00:00:00Z',
+					trackTournamentResults: {
+						nodes: [{ rank: 1, time: 20, points: 10, userId: 8, user: null }],
+						totalCount: 1,
+					},
+				},
+			],
+		},
+	}))
+	const usersByIds = mock(async () => new Map([[8, { ...linkedUser, id: 8 }]]))
+	const { context } = createMockContext({ graphql: { query, usersByIds } })
+	const snapshots = await buildTournamentMessages(context)
+	expect(query).toHaveBeenCalledTimes(1)
+	expect(usersByIds).toHaveBeenCalledTimes(1)
+	expect(usersByIds).toHaveBeenCalledWith([7, 8])
+	expect(snapshots.size).toBe(2)
+	expect(displayText(snapshots.get(1)?.message)).toContain('Player Seven (<@discord-1>)')
 })
 
 test('tournament handler defers then edits reply', async () => {
 	const query = mock(async () => ({
-		active: { nodes: [{ id: 1, slug: 'week', endAt: '2026-08-08T00:00:00Z' }] },
+		weekly: {
+			nodes: [
+				{
+					id: 1,
+					type: 0,
+					slug: 'week',
+					endAt: '2026-08-08T00:00:00Z',
+					trackTournamentResults: { nodes: [], totalCount: 0 },
+				},
+			],
+		},
 	}))
 	const { context } = createMockContext({ graphql: { query } })
 	const { interaction, state } = createChatInteraction('totw')
@@ -109,10 +169,11 @@ test('tournament handler paginates standings server-side and preserves link butt
 		const variables = args[1] as { after?: unknown; now?: string }
 		if (variables.now) {
 			return {
-				active: {
+				weekly: {
 					nodes: [
 						{
 							id: 5,
+							type: 0,
 							slug: 'week-5',
 							endAt: '2026-08-08T00:00:00Z',
 							level: {
