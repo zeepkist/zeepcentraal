@@ -23,28 +23,48 @@ const getUserPointContributionsForUsers = mock(
 						idUser,
 						idLevel: 7,
 						idRecord: 70,
-						contributionRank: 1,
-						levelPosition: 1,
-						levelPoints: 100,
-						levelDecayedPoints: 100,
-						playerDecayedPoints: 100,
+						contributionRank: 2_147_483_647,
+						levelPosition: 27,
+						levelPoints: 9368,
+						levelDecayedPoints: 6323.9565,
+						playerDecayedPoints: 0,
 					},
 				],
 			]),
 		),
 )
 const bulkUpdateUserRanks = mock(async () => {})
+const upsertUserPointsBulk = mock(async () => {})
 const getAllUsersWithLatestRecordDate = mock(async () => {
 	events.push('user-discovery')
 	return discoveredUsers
 })
 
 mock.module('@zeepkist/core/score', () => ({
-	calculatePlayerPointsFromContributions: (source: Array<{ idUser: number }>) => ({
-		points: 100,
-		totalPoints: 100,
-		contributions: source.map(({ idUser: _, ...contribution }) => contribution),
-	}),
+	calculatePlayerPointsFromContributions: (
+		source: Array<{ idUser: number; levelDecayedPoints: number }>,
+	) => {
+		const contributions = source.map(({ idUser: _, ...contribution }, index) => ({
+			...contribution,
+			contributionRank: index + 1,
+			playerDecayedPoints: contribution.levelDecayedPoints * 0.95 ** index,
+		}))
+		return {
+			points: Math.round(
+				contributions.reduce(
+					(total, contribution) => total + contribution.playerDecayedPoints,
+					0,
+				),
+			),
+			totalPoints: Math.round(
+				contributions.reduce(
+					(total, contribution) => total + contribution.levelDecayedPoints,
+					0,
+				),
+			),
+			contributions,
+		}
+	},
 }))
 mock.module('@zeepkist/database/services', () => ({
 	bulkUpdateUserRanks,
@@ -52,7 +72,7 @@ mock.module('@zeepkist/database/services', () => ({
 	getUserPointContributionsForUsers,
 	updateUserRanks: mock(async () => {}),
 	updateUserPointContributionPlayerValuesBulk,
-	upsertUserPointsBulk: mock(async () => {}),
+	upsertUserPointsBulk,
 }))
 
 const { updatePlayerScores } = await import('./updatePlayerScores')
@@ -64,6 +84,7 @@ beforeEach(() => {
 	bulkUpdateUserRanks.mockClear()
 	getUserPointContributionsForUsers.mockClear()
 	updateUserPointContributionPlayerValuesBulk.mockClear()
+	upsertUserPointsBulk.mockClear()
 })
 
 test('logs PostgreSQL metadata and affected user batch before rethrow', async () => {
@@ -114,6 +135,21 @@ test('logs phase completion for successful full recalculation', async () => {
 		'updatePlayerScores completed.',
 		expect.objectContaining({ rankUpdateMs: expect.any(Number), totalMs: expect.any(Number) }),
 	)
+	expect(upsertUserPointsBulk).toHaveBeenCalledWith([
+		{ idUser: 42, points: 6324, totalPoints: 6324 },
+	])
+	expect(updateUserPointContributionPlayerValuesBulk).toHaveBeenCalledWith([
+		{
+			idUser: 42,
+			contributions: [
+				expect.objectContaining({
+					contributionRank: 1,
+					levelDecayedPoints: 6323.9565,
+					playerDecayedPoints: 6323.9565,
+				}),
+			],
+		},
+	])
 })
 
 test('retains and recalculates inactive contribution rows while resetting rank', async () => {

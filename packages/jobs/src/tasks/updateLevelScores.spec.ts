@@ -1,7 +1,7 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 
 const getAllLevelIds = mock(async () => [1, 2])
-const getAllLevelIdsWithRecordsSince = mock(async () => [2])
+const getAllLevelIdsWithRecordsSince = mock(async (_recordsSince: Date) => [2])
 const getPersonalBestCount90thPercentile = mock(async () => 100)
 const rebuildPlayerSkillAggregates = mock(async () => 50)
 
@@ -12,7 +12,7 @@ mock.module('@zeepkist/database', () => ({
 	rebuildPlayerSkillAggregates,
 }))
 
-const { updateLevelScores } = await import('./updateLevelScores')
+const { RECENT_LEVEL_SCORE_LOOKBACK_MS, updateLevelScores } = await import('./updateLevelScores')
 
 beforeEach(() => {
 	getAllLevelIds.mockClear()
@@ -35,10 +35,16 @@ test('rebuilds independent skill before full level scoring', async () => {
 
 test('reuses skill snapshot for incremental scoring', async () => {
 	const addJobs = mock(async () => {})
+	const before = Date.now()
 
 	await updateLevelScores({ all: false }, { addJobs, logger: { info: mock(() => {}) } } as never)
+	const after = Date.now()
 
 	expect(rebuildPlayerSkillAggregates).not.toHaveBeenCalled()
 	expect(getAllLevelIdsWithRecordsSince).toHaveBeenCalledTimes(1)
+	const cutoff = getAllLevelIdsWithRecordsSince.mock.calls[0]?.[0]
+	expect(cutoff).toBeInstanceOf(Date)
+	expect(cutoff?.getTime()).toBeGreaterThanOrEqual(before - RECENT_LEVEL_SCORE_LOOKBACK_MS)
+	expect(cutoff?.getTime()).toBeLessThanOrEqual(after - RECENT_LEVEL_SCORE_LOOKBACK_MS)
 	expect(addJobs).toHaveBeenCalledTimes(1)
 })

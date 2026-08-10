@@ -85,6 +85,9 @@ export async function updateUserPointContributionPlayerValuesBulk(
 		)
 
 		for (const batch of chunks(rows, WRITE_BATCH_SIZE)) {
+			// Match PostgreSQL's real columns before the optimistic snapshot comparison. A real
+			// value read through the text protocol may not equal the same decimal rebound as
+			// double precision, even though both round to the same persisted float4 value.
 			const values = sql.join(
 				batch.map(
 					(row) => sql`(
@@ -93,9 +96,9 @@ export async function updateUserPointContributionPlayerValuesBulk(
 						${row.idRecord}::integer,
 						${row.levelPosition}::integer,
 						${row.levelPoints}::integer,
-						${row.levelDecayedPoints}::double precision,
+						${row.levelDecayedPoints}::real,
 						${row.contributionRank}::integer,
-						${row.playerDecayedPoints}::double precision
+						${row.playerDecayedPoints}::real
 					)`,
 				),
 				sql`, `,

@@ -62,7 +62,7 @@ test('locks affected users and propagates chunk failure for transaction rollback
 	expect(new PgDialect().sqlToQuery(lockQueries[2] as SQL).params).toHaveLength(8)
 })
 
-test('updates only player-owned fields when level-owned snapshot still matches', async () => {
+test('updates player fields with float4-compatible level snapshot values', async () => {
 	await updateUserPointContributionPlayerValuesBulk([
 		{
 			idUser: 7,
@@ -70,11 +70,11 @@ test('updates only player-owned fields when level-owned snapshot still matches',
 				{
 					idLevel: 10,
 					idRecord: 100,
-					contributionRank: 1,
-					levelPosition: 1,
-					levelPoints: 110,
-					levelDecayedPoints: 110,
-					playerDecayedPoints: 110,
+					contributionRank: 3,
+					levelPosition: 27,
+					levelPoints: 9368,
+					levelDecayedPoints: 6323.9565,
+					playerDecayedPoints: 5707.3706,
 				},
 			],
 		},
@@ -86,6 +86,11 @@ test('updates only player-owned fields when level-owned snapshot still matches',
 	expect(updateQuery.sql).toContain('player_decayed_points = source.player_decayed_points')
 	expect(updateQuery.sql).toContain('IS NOT DISTINCT FROM ROW')
 	expect(updateQuery.sql).toContain('IS DISTINCT FROM ROW')
+	expect(updateQuery.sql).toContain('$6::real')
+	expect(updateQuery.sql).toContain('$8::real')
+	expect(updateQuery.sql).not.toContain('::double precision')
+	expect(updateQuery.params[5]).toBe(6323.9565)
+	expect(updateQuery.params[7]).toBe(5707.3706)
 	expect(updateQuery.sql).not.toContain('id_record = source.id_record')
 	expect(updateQuery.sql).not.toContain('INSERT INTO')
 	expect(updateQuery.sql).not.toContain('DELETE FROM')

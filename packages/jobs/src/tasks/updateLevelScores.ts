@@ -12,6 +12,8 @@ type Payload = {
 	reportOnly?: boolean
 }
 
+export const RECENT_LEVEL_SCORE_LOOKBACK_MS = 60 * 60 * 1000
+
 export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) => {
 	const { all = false } = payload
 	if (all) {
@@ -21,7 +23,9 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 	}
 	const levelIds = all
 		? await getAllLevelIds()
-		: await getAllLevelIdsWithRecordsSince(new Date(Date.now() - 20 * 60 * 1000))
+		: await getAllLevelIdsWithRecordsSince(
+				new Date(Date.now() - RECENT_LEVEL_SCORE_LOOKBACK_MS),
+			)
 
 	helpers.logger.info(`updateLevelScores starting with ${levelIds.length} levels (all=${all}).`)
 	if (levelIds.length === 0) {
