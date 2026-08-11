@@ -8,7 +8,6 @@ test('skips unchanged player points and rank writes', () => {
 		`ROW(\${userPoints.points}, \${userPoints.totalPoints}) IS DISTINCT FROM ROW(EXCLUDED.points, EXCLUDED.total_points)`,
 	)
 	expect(service).toContain('target.rank IS DISTINCT FROM source.rank')
-	expect(service).toContain(
-		`ROW(\${userPoints.points}, \${userPoints.rank}) IS DISTINCT FROM ROW(\${points}, \${rank})`,
-	)
+	expect(service).toContain('AND ROW(points, rank) IS DISTINCT FROM ROW(0, -1)')
+	expect(service).toContain('AND player_decayed_points IS DISTINCT FROM 0::real')
 })

@@ -2,9 +2,13 @@ import { LEVEL_DECAY_FACTOR, MIN_PERSISTED_DECAYED_POINTS } from '@zeepkist/core
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { levelPoints, personalBestGlobal, record, userPointContribution } from '../schema'
-import { sortedUniqueUserIds } from './userPointContributionHelpers'
+import { acquireUserContributionLocks, sortedUniqueUserIds } from './userPointContributionHelpers'
 
-export { sortedUniqueUserIds } from './userPointContributionHelpers'
+export {
+	sortedUniqueUserIds,
+	USER_POINT_CONTRIBUTION_LOCK_BUCKETS,
+	USER_POINT_CONTRIBUTION_LOCK_NAMESPACE,
+} from './userPointContributionHelpers'
 
 export interface UserPointContributionInput {
 	contributionRank: number
@@ -29,35 +33,6 @@ export interface LevelContributionProjectionSyncResult {
 
 // Eight bound values per contribution; 5,000 stays below PostgreSQL's parameter limit.
 const WRITE_BATCH_SIZE = 5000
-export const USER_POINT_CONTRIBUTION_LOCK_NAMESPACE = 1_516_438_864
-export const USER_POINT_CONTRIBUTION_LOCK_BUCKETS = 64
-
-function contributionLockIds(idUsers: readonly number[]): number[] {
-	return sortedUniqueUserIds(
-		idUsers.map(
-			(idUser) =>
-				((idUser % USER_POINT_CONTRIBUTION_LOCK_BUCKETS) +
-					USER_POINT_CONTRIBUTION_LOCK_BUCKETS) %
-				USER_POINT_CONTRIBUTION_LOCK_BUCKETS,
-		),
-	)
-}
-
-async function acquireUserContributionLocks(
-	tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-	idUsers: readonly number[],
-): Promise<void> {
-	const lockIds = contributionLockIds(idUsers)
-	if (lockIds.length === 0) return
-	await tx.execute(sql`
-		SELECT pg_advisory_xact_lock(
-			${USER_POINT_CONTRIBUTION_LOCK_NAMESPACE},
-			locked_user.id_user
-		)
-		FROM unnest(${sql.param(lockIds)}::integer[]) AS locked_user(id_user)
-		ORDER BY locked_user.id_user
-	`)
-}
 
 function chunks<T>(items: T[], size: number): T[][] {
 	const result: T[][] = []

@@ -1,6 +1,7 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
-import { discordActivityEvent, userPoints } from '../schema'
+import { discordActivityEvent, userPointContribution, userPoints } from '../schema'
+import { acquireUserContributionLocks, sortedUniqueUserIds } from './userPointContributionHelpers'
 
 interface UserPointsInput {
 	idUser: number
@@ -163,47 +164,39 @@ export async function updateUserRanks(entries: Array<{ idUser: number; rank: num
 	})
 }
 
-export async function bulkUpdateUserRanks({
-	idUsers,
-	points,
-	rank,
-}: {
-	idUsers: number[]
-	points: number
-	rank: number
-}): Promise<void> {
-	if (idUsers.length === 0) {
+export async function resetInactiveUserScores(idUsers: number[]): Promise<void> {
+	const uniqueUserIds = sortedUniqueUserIds(idUsers)
+	if (uniqueUserIds.length === 0) {
 		return
 	}
 
 	await db.transaction(async (tx) => {
-		const previous = await tx
-			.select({ idUser: userPoints.idUser, previousRank: userPoints.rank })
-			.from(userPoints)
-			.where(
-				and(
-					inArray(userPoints.idUser, idUsers),
-					sql`${userPoints.rank} IS DISTINCT FROM ${rank}`,
-				),
-			)
-		await tx
-			.update(userPoints)
-			.set({
-				points,
-				rank,
-				dateUpdated: new Date().toISOString(),
-			})
-			.where(
-				and(
-					inArray(userPoints.idUser, idUsers),
-					sql`ROW(${userPoints.points}, ${userPoints.rank}) IS DISTINCT FROM ROW(${points}, ${rank})`,
-				),
-			)
+		await acquireUserContributionLocks(tx, uniqueUserIds)
+		const previous = await tx.execute<{ idUser: number; previousRank: number }>(sql`
+			SELECT
+				${userPoints.idUser} AS "idUser",
+				${userPoints.rank} AS "previousRank"
+			FROM ${userPoints}
+			WHERE ${userPoints.idUser} = ANY(${sql.param(uniqueUserIds)}::integer[])
+				AND ${userPoints.rank} IS DISTINCT FROM -1
+		`)
+		await tx.execute(sql`
+			UPDATE ${userPoints}
+			SET points = 0, rank = -1, date_updated = NOW()
+			WHERE id_user = ANY(${sql.param(uniqueUserIds)}::integer[])
+				AND ROW(points, rank) IS DISTINCT FROM ROW(0, -1)
+		`)
+		await tx.execute(sql`
+			UPDATE ${userPointContribution}
+			SET player_decayed_points = 0, date_calculated = NOW()
+			WHERE id_user = ANY(${sql.param(uniqueUserIds)}::integer[])
+				AND player_decayed_points IS DISTINCT FROM 0::real
+		`)
 		if (previous.length > 0) {
 			await tx.insert(discordActivityEvent).values({
 				kind: 'rank_batch',
 				payload: {
-					changes: previous.map((entry) => ({ ...entry, rank })),
+					changes: previous.map((entry) => ({ ...entry, rank: -1 })),
 				},
 			})
 		}

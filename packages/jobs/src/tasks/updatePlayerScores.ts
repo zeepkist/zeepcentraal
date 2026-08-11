@@ -3,9 +3,9 @@ import {
 	type PlayerPointContribution,
 } from '@zeepkist/core/score'
 import {
-	bulkUpdateUserRanks,
 	getAllUsersWithLatestRecordDate,
 	getUserPointContributionsForUsers,
+	resetInactiveUserScores,
 	updateUserPointContributionPlayerValuesBulk,
 	updateUserRanks,
 	upsertUserPointsBulk,
@@ -77,11 +77,7 @@ async function recalculatePlayerScores(
 		const inactiveStartedAt = Date.now()
 		const idUsers = unrankedUsers.map((user) => user.idUser)
 		const rankResetStartedAt = Date.now()
-		await bulkUpdateUserRanks({
-			idUsers,
-			points: 0,
-			rank: -1,
-		})
+		await resetInactiveUserScores(idUsers)
 		const rankResetMs = Date.now() - rankResetStartedAt
 		helpers.logger.info('Reset inactive player scores.', {
 			users: idUsers.length,
@@ -93,7 +89,7 @@ async function recalculatePlayerScores(
 	const pointsList: PointsList[] = []
 	const rankedUserIds = new Set(rankedUsers.map((user) => user.idUser))
 
-	const userBatches = Array.from(batchProcess(users, PLAYER_SCORE_BATCH_SIZE))
+	const userBatches = Array.from(batchProcess(rankedUsers, PLAYER_SCORE_BATCH_SIZE))
 	for (let batchIndex = 0; batchIndex < userBatches.length; batchIndex++) {
 		const userBatch = userBatches[batchIndex]
 		if (!userBatch) {

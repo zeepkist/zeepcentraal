@@ -33,7 +33,7 @@ const getUserPointContributionsForUsers = mock(
 			]),
 		),
 )
-const bulkUpdateUserRanks = mock(async () => {})
+const resetInactiveUserScores = mock(async () => {})
 const upsertUserPointsBulk = mock(async () => {})
 const getAllUsersWithLatestRecordDate = mock(async () => {
 	events.push('user-discovery')
@@ -67,9 +67,9 @@ mock.module('@zeepkist/core/score', () => ({
 	},
 }))
 mock.module('@zeepkist/database/services', () => ({
-	bulkUpdateUserRanks,
 	getAllUsersWithLatestRecordDate,
 	getUserPointContributionsForUsers,
+	resetInactiveUserScores,
 	updateUserRanks: mock(async () => {}),
 	updateUserPointContributionPlayerValuesBulk,
 	upsertUserPointsBulk,
@@ -81,7 +81,7 @@ beforeEach(() => {
 	contributionError = persistenceError
 	events.length = 0
 	discoveredUsers = [{ idUser: 42, latestRecordDate: new Date().toISOString() }]
-	bulkUpdateUserRanks.mockClear()
+	resetInactiveUserScores.mockClear()
 	getUserPointContributionsForUsers.mockClear()
 	updateUserPointContributionPlayerValuesBulk.mockClear()
 	upsertUserPointsBulk.mockClear()
@@ -152,7 +152,7 @@ test('logs phase completion for successful full recalculation', async () => {
 	])
 })
 
-test('retains and recalculates inactive contribution rows while resetting rank', async () => {
+test('zeros inactive contribution points without recalculating them', async () => {
 	contributionError = null
 	discoveredUsers = [{ idUser: 42, latestRecordDate: '2020-01-01T00:00:00.000Z' }]
 
@@ -160,16 +160,8 @@ test('retains and recalculates inactive contribution rows while resetting rank',
 		logger: { error: mock(() => {}), info: mock(() => {}) },
 	} as never)
 
-	expect(bulkUpdateUserRanks).toHaveBeenCalledWith({
-		idUsers: [42],
-		points: 0,
-		rank: -1,
-	})
-	expect(getUserPointContributionsForUsers).toHaveBeenCalledWith([42])
-	expect(updateUserPointContributionPlayerValuesBulk).toHaveBeenCalledWith([
-		{
-			idUser: 42,
-			contributions: [expect.objectContaining({ idLevel: 7, idRecord: 70 })],
-		},
-	])
+	expect(resetInactiveUserScores).toHaveBeenCalledWith([42])
+	expect(getUserPointContributionsForUsers).not.toHaveBeenCalled()
+	expect(updateUserPointContributionPlayerValuesBulk).not.toHaveBeenCalled()
+	expect(upsertUserPointsBulk).not.toHaveBeenCalled()
 })
