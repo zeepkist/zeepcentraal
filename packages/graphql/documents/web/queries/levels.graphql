@@ -83,7 +83,7 @@ query ZC_HotLevels(
 	$after: Cursor
 	$last: Int
 	$before: Cursor
-	$filter: LevelFilter
+	$filter: LevelFilter!
 	$since: Datetime!
 ) {
 	levels: hotLevelsSince(
@@ -91,7 +91,7 @@ query ZC_HotLevels(
 		after: $after
 		last: $last
 		before: $before
-		filter: $filter
+		filter: { and: [$filter, { worldRecordGlobal: { record: { time: { greaterThan: 10 } } } }] }
 		since: $since
 	) {
 		edges {

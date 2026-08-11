@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { Kind, parse } from 'graphql'
+import { type FieldNode, Kind, parse, type ValueNode } from 'graphql'
 import { describe, expect, it } from 'vitest'
 import {
 	formatDashboardMonth,
@@ -23,6 +23,22 @@ const dashboardMetricCopy = (
 		dashboard: { metrics: Record<string, string> }
 	}
 ).dashboard.metrics
+
+function getObjectField(value: ValueNode | undefined, name: string): ValueNode | undefined {
+	if (value?.kind !== Kind.OBJECT) return undefined
+	return value.fields.find((field) => field.name.value === name)?.value
+}
+
+function expectMinimumHotWorldRecord(field: FieldNode): void {
+	const filter = field.arguments?.find((argument) => argument.name.value === 'filter')?.value
+	const worldRecord = getObjectField(filter, 'worldRecordGlobal')
+	const record = getObjectField(worldRecord, 'record')
+	const time = getObjectField(record, 'time')
+	expect(getObjectField(time, 'greaterThan')).toMatchObject({
+		kind: Kind.INT,
+		value: '10',
+	})
+}
 
 describe('dashboard metric windows', () => {
 	it('uses an exact rolling 24-hour boundary', () => {
@@ -102,6 +118,7 @@ describe('dashboard metric GraphQL', () => {
 		).toMatchObject({
 			value: { kind: Kind.VARIABLE, name: { value: 'daySince' } },
 		})
+		expectMinimumHotWorldRecord(trendingLevels)
 		expect(
 			criticalQuery.selectionSet.selections.some(
 				(selection) =>
@@ -131,6 +148,7 @@ describe('dashboard metric GraphQL', () => {
 		).toMatchObject({
 			value: { kind: Kind.VARIABLE, name: { value: 'since' } },
 		})
+		expectMinimumHotWorldRecord(activityLevels)
 		const nodes = activityLevels.selectionSet?.selections.find(
 			(selection) => selection.kind === Kind.FIELD && selection.name.value === 'nodes',
 		)

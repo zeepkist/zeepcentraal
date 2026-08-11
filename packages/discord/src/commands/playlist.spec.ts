@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test'
+import { print } from 'graphql'
 import { expectComponentsV2 } from '../../test/components'
 import { createChatInteraction, createMockContext, unlinkedState } from '../../test/mocks'
 import { playlistHandler } from './playlist'
@@ -82,6 +83,7 @@ test('playlist queries popularity over trailing 30 days', async () => {
 		strings: { sort: 'popularity' },
 	})
 	await playlistHandler(interaction, context)
+	expect(print(query.mock.calls[0]?.[0] as never)).toContain('greaterThan: 10')
 	expect(query.mock.calls[0]?.[1]).toMatchObject({
 		first: 20,
 		since: '2026-07-07T12:00:00.000Z',

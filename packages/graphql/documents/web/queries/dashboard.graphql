@@ -212,7 +212,10 @@ query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!, $now: D
 	trendingLevels: hotLevelsSince(
 		since: $daySince
 		first: 6
-		filter: { publiclyVisible: { equalTo: true } }
+		filter: {
+			publiclyVisible: { equalTo: true }
+			worldRecordGlobal: { record: { time: { greaterThan: 10 } } }
+		}
 	) {
 		nodes {
 			...ZC_DashboardLevel
@@ -229,7 +232,10 @@ query ZC_DashboardHotLevels($since: Datetime!) {
 	levels: hotLevelsSince(
 		since: $since
 		first: 6
-		filter: { publiclyVisible: { equalTo: true } }
+		filter: {
+			publiclyVisible: { equalTo: true }
+			worldRecordGlobal: { record: { time: { greaterThan: 10 } } }
+		}
 	) {
 		nodes {
 			...ZC_DashboardLevel

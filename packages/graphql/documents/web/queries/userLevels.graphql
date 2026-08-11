@@ -61,6 +61,7 @@ query ZC_UserLevels($userId: Int!, $steamId: BigInt!, $since: Datetime!) {
 		filter: {
 			publiclyVisible: { equalTo: true }
 			levelItems: { some: { authorId: { equalTo: $steamId }, deleted: { equalTo: false } } }
+			worldRecordGlobal: { record: { time: { greaterThan: 10 } } }
 		}
 	) {
 		nodes {

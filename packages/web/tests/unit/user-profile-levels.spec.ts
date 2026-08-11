@@ -38,6 +38,7 @@ describe('user profile level showcases', () => {
 		expect(query).toContain('first: 6')
 		expect(query).toContain('since: $since')
 		expect(query).toContain('authorId: { equalTo: $steamId }')
+		expect(query).toContain('worldRecordGlobal: { record: { time: { greaterThan: 10 } } }')
 		expect(query).toContain('periodRecords: records(')
 		expect(query).toContain('dateCreated: { greaterThanOrEqualTo: $since }')
 		const windows = getLevelHotWindows(new Date('2026-07-14T12:00:00.000Z'))

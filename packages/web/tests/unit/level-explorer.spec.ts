@@ -172,6 +172,12 @@ describe('level explorer requests and layout', () => {
 		expect(levelsQuery).toContain('query ZC_Levels(')
 		expect(levelsQuery).toContain('query ZC_HotLevels(')
 		expect(levelsQuery).toContain('hotLevelsSince(')
+		expect(levelsQuery).toContain('$filter: LevelFilter!')
+		expect(levelsQuery).toContain('and: [')
+		expect(levelsQuery).toContain('$filter')
+		expect(levelsQuery).toContain(
+			'worldRecordGlobal: { record: { time: { greaterThan: 10 } } }',
+		)
 		expect(levelsQuery).not.toContain('offset:')
 		expect(composable).toContain('pause: hotSort')
 		expect(composable).toContain('pause: computed(() => !hotSort.value)')
