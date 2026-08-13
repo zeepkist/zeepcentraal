@@ -105,7 +105,7 @@ export default defineNuxtConfig({
 		},
 	},
 	image: {
-		domains: ['assets.modcdn.io'],
+		domains: ['assets.modcdn.io', 'cdn.zeepki.st', 'zeepki.st'],
 	},
 	routeRules: {
 		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },
