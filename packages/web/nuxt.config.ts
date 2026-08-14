@@ -3,6 +3,7 @@ import { ADVENTURE_SERIES } from './app/utils/adventureSeries'
 import { getBuildAssetsDir } from './config/buildAssets'
 import { clientFsStub } from './config/clientFsStub'
 import { createNitroCacheStorageOptions } from './config/nitroCache'
+import { bundledUiIcons, uiIcons } from './config/uiIcons'
 
 const ogImageModuleUrl = import.meta.resolve('nuxt-og-image')
 const ogImageUrlBuilderPath = fileURLToPath(
@@ -12,6 +13,12 @@ const ogImageUrlBuilderPath = fileURLToPath(
 const productionGraphqlHttpUrl = 'https://graphql.zeepki.st'
 const productionGraphqlWsUrl = 'wss://graphql.zeepki.st'
 const productionBackendUrl = 'https://backend.zeepki.st'
+const ipxBaseURL = '/_ipx'
+const ipxDomains: string[] = ['assets.modcdn.io', 'cdn.zeepki.st', 'zeepki.st']
+const ipxPublicDir =
+	process.env.NODE_ENV === 'development'
+		? fileURLToPath(new URL('./public', import.meta.url))
+		: '../public'
 
 export default defineNuxtConfig({
 	alias: {
@@ -46,6 +53,7 @@ export default defineNuxtConfig({
 				error: 'red',
 				neutral: 'warm-neutral',
 			},
+			icons: uiIcons,
 		},
 	},
 	css: ['~/assets/css/tailwind.css'],
@@ -97,6 +105,12 @@ export default defineNuxtConfig({
 		githubToken: process.env.NUXT_GITHUB_TOKEN ?? '',
 		modioApiKey: process.env.NUXT_MODIO_API_KEY ?? '',
 		modioApiEndpoint: process.env.NUXT_MODIO_API_ENDPOINT ?? 'https://api.mod.io/',
+		ipx: {
+			baseURL: ipxBaseURL,
+			alias: {},
+			fs: { dir: ipxPublicDir },
+			http: { domains: ipxDomains },
+		},
 		public: {
 			graphqlHttpUrl: process.env.NUXT_PUBLIC_GRAPHQL_HTTP_URL ?? productionGraphqlHttpUrl,
 			graphqlWsUrl: process.env.NUXT_PUBLIC_GRAPHQL_WS_URL ?? productionGraphqlWsUrl,
@@ -105,9 +119,14 @@ export default defineNuxtConfig({
 		},
 	},
 	image: {
-		// domains: ['assets.modcdn.io', 'cdn.zeepki.st', 'zeepki.st'],
-		domains: [],
+		domains: ipxDomains,
 	},
+	icon: {
+		clientBundle: {
+			icons: bundledUiIcons,
+		},
+	},
+	serverHandlers: [{ route: `${ipxBaseURL}/**`, handler: '#server/handlers/ipx.ts' }],
 	routeRules: {
 		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },
 		'/adventure': { sitemap: false },

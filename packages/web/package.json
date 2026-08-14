@@ -37,6 +37,7 @@
 		"better-sqlite3": "~13.0.0",
 		"graphql": "~17.0.2",
 		"graphql-ws": "~6.2.0",
+		"ipx": "4.0.0-beta.1",
 		"lzma-wasm": "~1.0.7",
 		"meshoptimizer": "~1.2.0",
 		"nuxt": "~4.5.0",

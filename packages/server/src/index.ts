@@ -1,8 +1,7 @@
 import cluster, { type Worker } from 'node:cluster'
 import { type ClusterWorkerLike, onceAsync, stopClusterWorkers } from './processLifecycle'
 
-// TODO: Restore worker cluster count to 2.
-const WORKER_COUNT = 1
+const WORKER_COUNT = 2
 const clusterEvents = cluster as typeof cluster & {
 	on(event: 'exit', listener: (worker: Worker) => void): typeof cluster
 }
