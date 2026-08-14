@@ -9,5 +9,5 @@ export function isLevelRatingAvailable(
 	rating: number | null | undefined,
 	voteCount: number | undefined,
 ): rating is number {
-	return rating != null && voteCount !== 0
+	return rating != null && (voteCount ?? 0) >= 5
 }

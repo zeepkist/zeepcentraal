@@ -5,6 +5,21 @@ let availability = new Map([[1, { adventure: false, itemCount: 0, accessibleItem
 let personalBestRows: unknown[] = []
 let matureVotes = new Map<number, number[]>()
 
+const scoreablePersonalBestRow = {
+	idRecord: 10,
+	idUser: 20,
+	idLevel: 1,
+	time: 60,
+	dateCreated: '2026-01-01T00:00:00.000Z',
+	splits: [20, 40],
+	speeds: [80, 100],
+	totalCount: 1,
+	statisticTime: null,
+	distance: null,
+	hasInputData: null,
+	hasStateData: null,
+}
+
 const getLevelWorkshopAvailabilities = mock(async () => availability)
 const getLevelPointValuesByIds = mock(async () => [{ idLevel: 1, points: 100 }])
 const getLevelSkillMetricsByLevelIds = mock(async () => new Map())
@@ -69,22 +84,7 @@ test('loads only votes unchanged for at least seven days', async () => {
 
 test('persists only retained V2 score fields', async () => {
 	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
-	personalBestRows = [
-		{
-			idRecord: 10,
-			idUser: 20,
-			idLevel: 1,
-			time: 60,
-			dateCreated: '2026-01-01T00:00:00.000Z',
-			splits: [20, 40],
-			speeds: [80, 100],
-			totalCount: 1,
-			statisticTime: null,
-			distance: null,
-			hasInputData: null,
-			hasStateData: null,
-		},
-	]
+	personalBestRows = [scoreablePersonalBestRow]
 	matureVotes = new Map([[1, [1, 2]]])
 
 	await updateLevelScoreBatch({
@@ -121,9 +121,26 @@ test('persists only retained V2 score fields', async () => {
 		evidenceModifier: expect.any(Number),
 		idLevel: 1,
 		qualityModifier: expect.any(Number),
+		rating: 0.5,
+		ratingModifier: 1,
 		skillScore: 0.5,
 		worldRecordExcluded: false,
 	})
+})
+
+test('boosts level points after five mature positive votes', async () => {
+	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
+	personalBestRows = [scoreablePersonalBestRow]
+	matureVotes = new Map([[1, [1, 1, 1, 1, 1]]])
+
+	await updateLevelScoreBatch({
+		idLevels: [1],
+		personalBestCountPercentile: 100,
+		logger: { info: mock(() => {}) } as never,
+	})
+
+	const updates = upsertLevelPointsBulk.mock.calls[0]?.[0] as Array<Record<string, unknown>>
+	expect(updates[0]).toMatchObject({ rating: 0.75, ratingModifier: 1.125 })
 })
 
 test('skips score evidence reads for unavailable levels', async () => {

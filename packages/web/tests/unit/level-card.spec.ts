@@ -72,11 +72,13 @@ describe('level card presentation', () => {
 		expect(card).toContain('createLevelRatingFormatter(locale.value)')
 	})
 
-	it('shows ratings only when a level has votes', () => {
+	it('shows ratings only when a level has at least five votes', () => {
 		expect(isLevelRatingAvailable(0.5, 0)).toBe(false)
-		expect(isLevelRatingAvailable(0.5, 1)).toBe(true)
+		expect(isLevelRatingAvailable(0.5, 4)).toBe(false)
+		expect(isLevelRatingAvailable(0.5, 5)).toBe(true)
 		expect(isLevelRatingAvailable(0.874, 10)).toBe(true)
 		expect(isLevelRatingAvailable(null, 10)).toBe(false)
+		expect(isLevelRatingAvailable(0.5, undefined)).toBe(false)
 	})
 
 	it('loads PB counts for Adventure level cards', () => {

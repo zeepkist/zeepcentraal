@@ -615,10 +615,15 @@ export const calculateLegacyLevelScoreObservations = (
 		leaderboardConfidence,
 	)
 	const competitiveMerit = 0.65 * competitivenessScore + 0.35 * worldRecordDifficulty.score
+	const voteRating = normalized.voteRating === null ? null : clamp(normalized.voteRating)
 	const voteFactor =
-		normalized.matureVoteCount === 0 || normalized.voteRating === null
+		normalized.matureVoteCount === 0 || voteRating === null
 			? 1
-			: clamp(0.95 + clamp(normalized.voteRating) * 0.1, 0.95, 1.05)
+			: clamp(
+					voteRating <= 0.5 ? 0.95 + voteRating * 0.1 : 1 + (voteRating - 0.5) * 0.5,
+					0.95,
+					1.25,
+				)
 
 	return {
 		competitiveMerit,

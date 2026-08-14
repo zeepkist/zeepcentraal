@@ -118,10 +118,13 @@ describe('calculateLevelPoints', () => {
 		expect(neutral.factors.participationFactor).toBe(1)
 	})
 
-	test('limits vote influence and keeps zero mature votes neutral', () => {
+	test('asymmetrically rewards positive votes and keeps zero mature votes neutral', () => {
 		const base = { personalBests: personalBests(10), matureVoteCount: 10 }
 		expect(calculateLevelPoints({ ...base, voteRating: 0 }).factors.voteFactor).toBe(0.95)
-		expect(calculateLevelPoints({ ...base, voteRating: 1 }).factors.voteFactor).toBe(1.05)
+		expect(calculateLevelPoints({ ...base, voteRating: 0.5 }).factors.voteFactor).toBe(1)
+		expect(calculateLevelPoints({ ...base, voteRating: 0.75 }).factors.voteFactor).toBe(1.125)
+		expect(calculateLevelPoints({ ...base, voteRating: 1 }).factors.voteFactor).toBe(1.25)
+		expect(calculateLevelPoints(base).factors.voteFactor).toBe(1)
 		expect(
 			calculateLevelPoints({ ...base, voteRating: 1, matureVoteCount: 0 }).factors.voteFactor,
 		).toBe(1)

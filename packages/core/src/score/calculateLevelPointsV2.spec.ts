@@ -105,10 +105,17 @@ describe('calculateLevelPointsV2', () => {
 		expect(twenty.points).toBeGreaterThan(five.points)
 	})
 
-	test('retains V1 mature-vote adjustment', () => {
+	test('asymmetrically rewards positive mature votes in final score', () => {
 		const base = { personalBests: personalBests(20), matureVoteCount: 10 }
+		const neutral = calculateLevelPointsV2({ ...base, voteRating: 0.5 })
+		const positive = calculateLevelPointsV2({ ...base, voteRating: 0.75 })
+
 		expect(calculateLevelPointsV2({ ...base, voteRating: 0 }).factors.voteFactor).toBe(0.95)
-		expect(calculateLevelPointsV2({ ...base, voteRating: 1 }).factors.voteFactor).toBe(1.05)
+		expect(neutral.factors.voteFactor).toBe(1)
+		expect(positive.factors.voteFactor).toBe(1.125)
+		expect(calculateLevelPointsV2({ ...base, voteRating: 1 }).factors.voteFactor).toBe(1.25)
+		expect(positive.points).toBeGreaterThan(neutral.points)
+		expect(calculateLevelPointsV2(base).factors.voteFactor).toBe(1)
 		expect(
 			calculateLevelPointsV2({ ...base, voteRating: 1, matureVoteCount: 0 }).factors
 				.voteFactor,

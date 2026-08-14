@@ -9,14 +9,18 @@ import {
 } from './calculateVoteRating'
 
 describe('calculateVoteScore', () => {
-	test('makes positive votes stronger than equivalent negative votes', () => {
-		expect(NEGATIVE_VOTE_WEIGHT).toBe(0.75)
-		expect(calculateVoteScore(-2)).toBe(0.125)
-		expect(calculateVoteScore(-1)).toBe(0.3125)
+	test('makes positive votes twice as strong as equivalent negative votes', () => {
+		expect(NEGATIVE_VOTE_WEIGHT).toBe(0.5)
+		expect(calculateVoteScore(-2)).toBe(0.25)
+		expect(calculateVoteScore(-1)).toBe(0.375)
 		expect(calculateVoteScore(1)).toBe(0.75)
 		expect(calculateVoteScore(2)).toBe(1)
-		expect(calculateVoteScore(-1) + calculateVoteScore(1)).toBeGreaterThan(1)
-		expect(calculateVoteScore(-2) + calculateVoteScore(2)).toBeGreaterThan(1)
+		expect(calculateVoteScore(1) - DEFAULT_VOTE_RATING).toBe(
+			2 * (DEFAULT_VOTE_RATING - calculateVoteScore(-1)),
+		)
+		expect(calculateVoteScore(2) - DEFAULT_VOTE_RATING).toBe(
+			2 * (DEFAULT_VOTE_RATING - calculateVoteScore(-2)),
+		)
 	})
 
 	test('clamps out-of-range votes and neutralizes invalid values', () => {
@@ -27,14 +31,37 @@ describe('calculateVoteScore', () => {
 })
 
 describe('calculateVoteRating', () => {
-	test('uses default rating when no mature votes exist', () => {
-		expect(calculateVoteRating([])).toBe(DEFAULT_VOTE_RATING)
+	test('uses default rating below five mature votes', () => {
+		for (let voteCount = 0; voteCount < 5; voteCount++) {
+			expect(calculateVoteRating(Array.from({ length: voteCount }, () => 2))).toBe(
+				DEFAULT_VOTE_RATING,
+			)
+		}
+		expect(calculateVoteRating([1, -2])).toBe(DEFAULT_VOTE_RATING)
 	})
 
-	test('retains Wilson lower-bound ranking with positive skew', () => {
-		expect(calculateVoteRating([-1, 1])).toBeGreaterThan(calculateVoteRating([0, 0]))
-		expect(calculateVoteRating([-2, 2])).toBeGreaterThan(calculateVoteRating([0, 0]))
-		expect(calculateVoteRating([2, 2])).toBe(0.666667)
+	test('averages mature votes with positive weighting', () => {
+		expect(calculateVoteRating([1, 1, 1, 1, 1])).toBe(0.75)
+		expect(calculateVoteRating([2, 2, 2, 2, 2])).toBe(1)
+		expect(calculateVoteRating([1, 1, 1, 1, -1])).toBe(0.675)
+		expect(calculateVoteRating([1, 1, 1, 1, -2])).toBe(0.65)
+		expect(calculateVoteRating([2, 2, 2, 1, 1, -1, -2])).toBe(0.732143)
+		expect(calculateVoteRating([1, 1, 1, -2, -2])).toBe(0.55)
+		expect(calculateVoteRating([0, 0, 0, 0, 0])).toBe(0.5)
+		expect(calculateVoteRating([-1, -1, -1, -1, -1])).toBe(0.375)
+		expect(calculateVoteRating([-2, -2, -2, -2, -2])).toBe(0.25)
+	})
+
+	test('is independent of vote order', () => {
+		expect(calculateVoteRating([2, 2, 2, 1, 1, -1, -2])).toBe(
+			calculateVoteRating([-2, 1, 2, -1, 2, 1, 2]),
+		)
+	})
+
+	test('uses clamped and neutralized vote scores in rating', () => {
+		expect(calculateVoteRating([-3, 3, 1, 0, Number.NaN])).toBe(
+			calculateVoteRating([-2, 2, 1, 0, 0]),
+		)
 	})
 })
 
