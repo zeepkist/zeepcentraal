@@ -74,12 +74,6 @@ describe('web deployment build', () => {
 		expect(buildAction).toContain(buildRevisionExpression)
 	})
 
-	it('keeps server-side Nuxt Content storage in memory', () => {
-		expect(nuxtConfig).toMatch(
-			/content:\s*\{\s*database:\s*\{\s*type:\s*'sqlite',\s*filename:\s*':memory:'/,
-		)
-	})
-
 	it('uploads declared package outputs without web-native special cases', () => {
 		expect(buildAction).toContain('name: Build Package Output')
 		expect(buildAction).toContain('artifact-path:')

@@ -67,6 +67,9 @@ export default defineNuxtConfig({
 		'nuxt-charts',
 	],
 	content: {
+		experimental: {
+			sqliteConnector: 'native',
+		},
 		database: {
 			type: 'sqlite',
 			filename: ':memory:',
