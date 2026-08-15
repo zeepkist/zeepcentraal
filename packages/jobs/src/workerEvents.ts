@@ -27,27 +27,33 @@ export function createJobWorkerEvents({
 	})
 
 	events.on('pool:listen:success', ({ client, workerPool }) => {
-		void client
-			.query(WORKER_POOL_MARKER_SQL, [WORKER_POOL_MARKER_LOCK_NAMESPACE, workerPool.id])
-			.then(() => {
-				logger.info('Graphile worker pool liveness marker registered.', {
-					poolId: workerPool.id,
-				})
-			})
-			.catch((error) => {
-				logger.error('Graphile worker pool liveness marker registration failed.', {
-					poolId: workerPool.id,
-					postgres: getPostgresErrorMetadata(error),
-				})
-				void Promise.resolve(
-					workerPool.forcefulShutdown('Worker pool liveness marker registration failed'),
-				).catch((shutdownError) => {
-					logger.error('Graphile worker pool shutdown after marker failure failed.', {
+		// Graphile emits before its LISTEN query. Wait for that query to finish instead of
+		// queueing another query on the listener client while it is active.
+		client.once('drain', () => {
+			void client
+				.query(WORKER_POOL_MARKER_SQL, [WORKER_POOL_MARKER_LOCK_NAMESPACE, workerPool.id])
+				.then(() => {
+					logger.info('Graphile worker pool liveness marker registered.', {
 						poolId: workerPool.id,
-						postgres: getPostgresErrorMetadata(shutdownError),
 					})
 				})
-			})
+				.catch((error) => {
+					logger.error('Graphile worker pool liveness marker registration failed.', {
+						poolId: workerPool.id,
+						postgres: getPostgresErrorMetadata(error),
+					})
+					void Promise.resolve(
+						workerPool.forcefulShutdown(
+							'Worker pool liveness marker registration failed',
+						),
+					).catch((shutdownError) => {
+						logger.error('Graphile worker pool shutdown after marker failure failed.', {
+							poolId: workerPool.id,
+							postgres: getPostgresErrorMetadata(shutdownError),
+						})
+					})
+				})
+		})
 	})
 
 	events.on('job:start', ({ job, worker }) => {

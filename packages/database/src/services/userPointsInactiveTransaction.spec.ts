@@ -27,28 +27,24 @@ beforeEach(() => {
 	transaction.mockClear()
 })
 
-test('atomically resets inactive aggregate and contribution ranked points under user locks', async () => {
+test('atomically resets inactive aggregate and contribution ranked points without advisory locks', async () => {
 	previousRanks = [{ idUser: 9, previousRank: 4 }]
 
 	await resetInactiveUserScores([9, 2, 9])
 
 	expect(transaction).toHaveBeenCalledTimes(1)
-	expect(queries).toHaveLength(4)
+	expect(queries).toHaveLength(3)
 
-	const lockQuery = new PgDialect().sqlToQuery(queries[0] as SQL)
-	expect(lockQuery.sql).toContain('pg_advisory_xact_lock')
-	expect(lockQuery.params).toEqual([1_516_438_864, [2, 9]])
-
-	const previousRankQuery = new PgDialect().sqlToQuery(queries[1] as SQL)
+	const previousRankQuery = new PgDialect().sqlToQuery(queries[0] as SQL)
 	expect(previousRankQuery.sql).toContain('AS "previousRank"')
 	expect(previousRankQuery.params).toEqual([[2, 9]])
 
-	const aggregateQuery = new PgDialect().sqlToQuery(queries[2] as SQL)
+	const aggregateQuery = new PgDialect().sqlToQuery(queries[1] as SQL)
 	expect(aggregateQuery.sql).toContain('SET points = 0, rank = -1, date_updated = NOW()')
 	expect(aggregateQuery.sql).toContain('ROW(points, rank) IS DISTINCT FROM ROW(0, -1)')
 	expect(aggregateQuery.params).toEqual([[2, 9]])
 
-	const contributionQuery = new PgDialect().sqlToQuery(queries[3] as SQL)
+	const contributionQuery = new PgDialect().sqlToQuery(queries[2] as SQL)
 	expect(contributionQuery.sql).toContain(
 		'SET player_decayed_points = 0, date_calculated = NOW()',
 	)
@@ -59,6 +55,17 @@ test('atomically resets inactive aggregate and contribution ranked points under 
 		kind: 'rank_batch',
 		payload: { changes: [{ idUser: 9, previousRank: 4, rank: -1 }] },
 	})
+})
+
+test('resets inactive users in transactions of 50', async () => {
+	await resetInactiveUserScores(Array.from({ length: 51 }, (_, index) => index + 1))
+
+	expect(transaction).toHaveBeenCalledTimes(2)
+	expect(queries).toHaveLength(6)
+	expect(new PgDialect().sqlToQuery(queries[0] as SQL).params).toEqual([
+		Array.from({ length: 50 }, (_, index) => index + 1),
+	])
+	expect(new PgDialect().sqlToQuery(queries[3] as SQL).params).toEqual([[51]])
 })
 
 test('does not open a transaction without inactive users', async () => {

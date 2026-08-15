@@ -30,10 +30,6 @@ const expectedCompatibleTaskIdentifiers = [
 
 test('compatible task contract exposes exact API-triggerable task list', () => {
 	expect(compatibleTaskIdentifiers).toEqual(expectedCompatibleTaskIdentifiers)
-	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBatch')
-	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBarrier')
-	expect(compatibleTaskIdentifiers).not.toContain('monitorLevelScoreRun')
-	expect(compatibleTaskIdentifiers).not.toContain('finalizeLevelScores')
 	expect(isCompatibleTaskIdentifier('updateLevelScoresBatch')).toBe(false)
 	expect(isCompatibleTaskIdentifier('updateLevelScore')).toBe(true)
 })
@@ -46,22 +42,6 @@ test('task payload validation accepts compatible legacy shapes', () => {
 		true,
 	)
 	expect(isValidTaskPayload('updateLevelPointsHistoryBatch', { ids: [1, 2] })).toBe(true)
-	expect(
-		isValidTaskPayload('updateLevelScoresBatch', {
-			ids: [1, 2],
-		}),
-	).toBe(true)
-	const runId = crypto.randomUUID()
-	expect(isValidTaskPayload('finalizeLevelScores', { all: true, runId })).toBe(true)
-	expect(isValidTaskPayload('monitorLevelScoreRun', { all: true, check: 0, runId })).toBe(true)
-	expect(
-		isValidTaskPayload('updateLevelScoresBarrier', {
-			all: false,
-			ids: [1, 2],
-			phase: 'queue0',
-			runId,
-		}),
-	).toBe(true)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: '3749321871' })).toBe(true)
 	expect(isValidTaskPayload('syncWorkshopCatalog', { all: true })).toBe(true)
 	expect(isValidTaskPayload('syncWorkshopCatalog', { repairZslAuthors: true })).toBe(true)
@@ -103,25 +83,10 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(isValidTaskPayload('syncWorkshopCatalog', { fixZeepSDKExponentHashes: 'true' })).toBe(
 		false,
 	)
-	expect(
-		isValidTaskPayload('updateLevelScoresBatch', {
-			ids: Array.from({ length: 51 }, (_, index) => index + 1),
-		}),
-	).toBe(false)
-	expect(
-		isValidTaskPayload('monitorLevelScoreRun', {
-			all: true,
-			check: -1,
-			runId: crypto.randomUUID(),
-		}),
-	).toBe(false)
-	expect(
-		isValidTaskPayload('updateLevelScoresBarrier', {
-			all: false,
-			phase: 'queue0',
-			runId: crypto.randomUUID(),
-		}),
-	).toBe(false)
+	expect(isValidTaskPayload('updateLevelScoresBatch', { ids: [1, 2] })).toBe(false)
+	expect(isValidTaskPayload('monitorLevelScoreRun', {})).toBe(false)
+	expect(isValidTaskPayload('updateLevelScoresBarrier', {})).toBe(false)
+	expect(isValidTaskPayload('finalizeLevelScores', {})).toBe(false)
 	expect(
 		isValidTaskPayload('scanWorkshopBatch', {
 			workshopIds: Array.from({ length: 11 }, (_, index) => `${index + 1}`),
@@ -175,7 +140,27 @@ test('full player scoring uses serialized contribution queue', () => {
 		cronTime: '5-59/10 * * * *',
 		spec: {
 			jobKey: UPDATE_PLAYER_SCORES_JOB_KEY,
-			jobKeyMode: 'unsafe_dedupe',
+			queueName: PLAYER_SCORE_QUEUE_NAME,
+		},
+	})
+})
+
+test('bulk level scoring uses distinct serialized full and incremental jobs', () => {
+	expect(cronTasks).toContainEqual({
+		task: 'updateLevelScores',
+		cronTime: '0 1 * * 1',
+		payload: { all: true },
+		spec: {
+			jobKey: 'update-level-scores:full',
+			queueName: PLAYER_SCORE_QUEUE_NAME,
+		},
+	})
+	expect(cronTasks).toContainEqual({
+		task: 'updateLevelScores',
+		cronTime: '*/30 * * * *',
+		payload: { all: false },
+		spec: {
+			jobKey: 'update-level-scores:incremental',
 			queueName: PLAYER_SCORE_QUEUE_NAME,
 		},
 	})

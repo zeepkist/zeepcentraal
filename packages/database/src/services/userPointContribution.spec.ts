@@ -6,11 +6,9 @@ test('user contribution lock targets are sorted and unique', () => {
 	expect(sortedUniqueUserIds([9, 2, 9, 4, 2])).toEqual([2, 4, 9])
 })
 
-test('player persistence owns only derived fields under advisory lock', () => {
+test('player persistence owns only derived fields and validates its snapshot', () => {
 	const service = readFileSync(new URL('./userPointContribution.ts', import.meta.url), 'utf8')
-	const functionStart = service.indexOf(
-		'export async function updateUserPointContributionPlayerValuesBulk',
-	)
+	const functionStart = service.indexOf('export async function persistUserPointScore')
 	const functionEnd = service.indexOf(
 		'export async function syncUserPointContributionLevels',
 		functionStart,
@@ -18,16 +16,17 @@ test('player persistence owns only derived fields under advisory lock', () => {
 	const playerPersistence = service.slice(functionStart, functionEnd)
 
 	expect(functionStart).toBeGreaterThan(-1)
-	expect(playerPersistence).toContain('await db.transaction(async (tx) => {')
-	expect(playerPersistence).toContain('await acquireUserContributionLocks(tx, idUsers)')
+	expect(playerPersistence).toContain('return db.transaction(async (tx) => {')
+	expect(playerPersistence).toContain('contributionSnapshotMatches(tx, input)')
 	expect(playerPersistence).toContain('UPDATE ')
 	expect(playerPersistence).toContain(' AS target')
 	expect(playerPersistence).toContain('contribution_rank = source.contribution_rank')
 	expect(playerPersistence).toContain('player_decayed_points = source.player_decayed_points')
 	expect(playerPersistence).toContain('IS NOT DISTINCT FROM ROW(')
 	expect(playerPersistence).toContain('IS DISTINCT FROM ROW(')
-	expect(playerPersistence).not.toContain('INSERT INTO')
+	expect(playerPersistence).toContain('INSERT INTO $' + '{userPoints}')
 	expect(playerPersistence).not.toContain('DELETE FROM')
+	expect(playerPersistence).not.toContain('pg_advisory_xact_lock')
 })
 
 test('projection backfill ranks every positive-point personal best without cap', () => {

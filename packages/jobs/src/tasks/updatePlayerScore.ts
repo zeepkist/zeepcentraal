@@ -1,10 +1,5 @@
-import { calculatePlayerPointsFromContributions } from '@zeepkist/core/score'
-import {
-	getUserPointContributionsForUsers,
-	updateUserPointContributionPlayerValuesBulk,
-	upsertUserPoints,
-} from '@zeepkist/database'
 import { getPostgresErrorMetadata } from '../utils/postgresError'
+import { recalculateAndPersistPlayerScore } from '../utils/recalculatePlayerScore'
 import type { TaskHandler } from './types'
 
 type Payload = {
@@ -20,20 +15,13 @@ export const updatePlayerScore: TaskHandler<Payload> = async (payload, helpers) 
 	helpers.logger.info(`updatePlayerScore started for idUser=${payload.idUser}.`)
 
 	try {
-		const contributionsByUser = await getUserPointContributionsForUsers([payload.idUser])
-		const sourceContributions = contributionsByUser.get(payload.idUser) ?? []
-		const { points, totalPoints, contributions } =
-			calculatePlayerPointsFromContributions(sourceContributions)
-		await Promise.all([
-			upsertUserPoints({
-				idUser: payload.idUser,
-				points,
-				totalPoints,
-			}),
-			updateUserPointContributionPlayerValuesBulk([
-				{ idUser: payload.idUser, contributions },
-			]),
-		])
+		await recalculateAndPersistPlayerScore({
+			idUser: payload.idUser,
+			onSnapshotMismatch: (attempt) =>
+				helpers.logger.warn(
+					`Player contribution snapshot changed for idUser=${payload.idUser}; retrying (${attempt}/3).`,
+				),
+		})
 		helpers.logger.info(`updatePlayerScore completed for idUser=${payload.idUser}.`, {
 			totalMs: Date.now() - taskStartedAt,
 		})

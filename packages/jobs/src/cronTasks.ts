@@ -27,15 +27,30 @@ export const cronTasks = [
 		spec: { priority: WORKSHOP_JOB_PRIORITY },
 	}, // every Sunday at 01:00
 	// Weekly full recalculation
-	{ task: 'updateLevelScores', cronTime: '0 1 * * 1', payload: { all: true } }, // every Monday at 01:00
+	{
+		task: 'updateLevelScores',
+		cronTime: '0 1 * * 1',
+		payload: { all: true },
+		spec: {
+			jobKey: 'update-level-scores:full',
+			queueName: PLAYER_SCORE_QUEUE_NAME,
+		},
+	}, // every Monday at 01:00
 	// Near-real-time leaderboard updates
-	{ task: 'updateLevelScores', cronTime: '*/30 * * * *', payload: { all: false } }, // every 30 minutes
+	{
+		task: 'updateLevelScores',
+		cronTime: '*/30 * * * *',
+		payload: { all: false },
+		spec: {
+			jobKey: 'update-level-scores:incremental',
+			queueName: PLAYER_SCORE_QUEUE_NAME,
+		},
+	}, // every 30 minutes
 	{
 		task: 'updatePlayerScores',
 		cronTime: '5-59/10 * * * *',
 		spec: {
 			jobKey: UPDATE_PLAYER_SCORES_JOB_KEY,
-			jobKeyMode: 'unsafe_dedupe' as const,
 			queueName: PLAYER_SCORE_QUEUE_NAME,
 		},
 	}, // every 10 minutes, offset by 5 minutes

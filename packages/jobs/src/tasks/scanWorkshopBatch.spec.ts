@@ -79,6 +79,7 @@ describe('scanWorkshopBatch', () => {
 				identifier: 'updateLevelScore',
 				payload: { idLevel: 7 },
 				jobKey: 'update-level-score:7',
+				queueName: 'player-score-writes',
 			},
 		])
 		expect(helpers.logger.warn).not.toHaveBeenCalled()

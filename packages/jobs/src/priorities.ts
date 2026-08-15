@@ -1,4 +1,3 @@
 export const DEFAULT_JOB_PRIORITY = 5
-export const LEVEL_SCORE_FINALIZER_PRIORITY = -10
 export const PRIORITY_JOB_PRIORITY = 0
 export const WORKSHOP_JOB_PRIORITY = 100

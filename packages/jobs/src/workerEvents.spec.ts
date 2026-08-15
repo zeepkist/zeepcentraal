@@ -19,11 +19,17 @@ test('registers pool marker and logs job start and nested failure metadata', asy
 	const onPoolCreated = mock((_poolId: string) => {})
 	const events = createJobWorkerEvents({ logger, onPoolCreated })
 	const query = mock(async () => ({ rows: [] }))
+	let drain: (() => void) | undefined
+	const once = mock((event: string, listener: () => void) => {
+		if (event === 'drain') drain = listener
+	})
 	const forcefulShutdown = mock(async () => ({ forceFailedJobs: [] }))
 	const workerPool = { forcefulShutdown, id: 'pool-live' }
 
 	events.emit('pool:create', { workerPool } as never)
-	events.emit('pool:listen:success', { client: { query }, workerPool } as never)
+	events.emit('pool:listen:success', { client: { once, query }, workerPool } as never)
+	expect(query).not.toHaveBeenCalled()
+	drain?.()
 	await Promise.resolve()
 
 	expect(onPoolCreated).toHaveBeenCalledWith('pool-live')
@@ -66,10 +72,17 @@ test('stops pool when liveness marker registration fails', async () => {
 	const markerError = Object.assign(new Error('connection closed'), { code: '08006' })
 	const forcefulShutdown = mock(async () => ({ forceFailedJobs: [] }))
 	const workerPool = { forcefulShutdown, id: 'pool-broken' }
+	let drain: (() => void) | undefined
 	events.emit('pool:listen:success', {
-		client: { query: mock(async () => Promise.reject(markerError)) },
+		client: {
+			once: (_event: string, listener: () => void) => {
+				drain = listener
+			},
+			query: mock(async () => Promise.reject(markerError)),
+		},
 		workerPool,
 	} as never)
+	drain?.()
 	await new Promise((resolve) => setTimeout(resolve, 0))
 
 	expect(forcefulShutdown).toHaveBeenCalledWith('Worker pool liveness marker registration failed')

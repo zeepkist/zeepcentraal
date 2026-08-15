@@ -1,12 +1,16 @@
-import { eq, inArray, sql } from 'drizzle-orm'
+import { inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { discordActivityEvent, userPointContribution, userPoints } from '../schema'
-import { acquireUserContributionLocks, sortedUniqueUserIds } from './userPointContributionHelpers'
+import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
-interface UserPointsInput {
-	idUser: number
-	points: number
-	totalPoints: number
+export const USER_SCORE_WRITE_BATCH_SIZE = 50
+
+function chunks<T>(items: T[], size = USER_SCORE_WRITE_BATCH_SIZE): T[][] {
+	const result: T[][] = []
+	for (let index = 0; index < items.length; index += size) {
+		result.push(items.slice(index, index + size))
+	}
+	return result
 }
 
 export async function getTotalUserPoints() {
@@ -56,112 +60,59 @@ export async function getUserPointsByIds(ids: number[]) {
 		.where(inArray(userPoints.idUser, ids))
 }
 
-export async function upsertUserPoints({
-	idUser,
-	points,
-	totalPoints,
-}: UserPointsInput): Promise<void> {
-	await db.transaction(async (tx) => {
-		const dateUpdated = new Date().toISOString()
-		const [updated] = await tx
-			.update(userPoints)
-			.set({
-				points,
-				totalPoints,
-				dateUpdated,
-			})
-			.where(eq(userPoints.idUser, idUser))
-			.returning({ idUser: userPoints.idUser })
-		if (updated) {
-			return
-		}
-
-		await tx
-			.insert(userPoints)
-			.values({
-				idUser,
-				points,
-				totalPoints,
-				dateUpdated,
-			})
-			.onConflictDoUpdate({
-				target: [userPoints.idUser],
-				set: {
-					points,
-					totalPoints,
-					dateUpdated,
-				},
-			})
-	})
-}
-
-function dedupeUserPointsEntries(entries: UserPointsInput[]): UserPointsInput[] {
-	return [...new Map(entries.map((entry) => [entry.idUser, entry])).values()]
-}
-
-export async function upsertUserPointsBulk(entries: UserPointsInput[]) {
+export async function updateUserRanks(
+	entries: Array<{ idUser: number; rank: number }>,
+	onBatchCompleted?: (processed: number, total: number) => void,
+) {
 	if (entries.length === 0) {
 		return
 	}
-	const dedupedEntries = dedupeUserPointsEntries(entries)
-	const dateUpdated = new Date().toISOString()
-
-	await db
-		.insert(userPoints)
-		.values(dedupedEntries.map((entry) => ({ ...entry, dateUpdated })))
-		.onConflictDoUpdate({
-			target: [userPoints.idUser],
-			set: {
-				points: sql`EXCLUDED.points`,
-				totalPoints: sql`EXCLUDED.total_points`,
-				dateUpdated,
-			},
-			where: sql`ROW(${userPoints.points}, ${userPoints.totalPoints}) IS DISTINCT FROM ROW(EXCLUDED.points, EXCLUDED.total_points)`,
-		})
-}
-
-export async function updateUserRanks(entries: Array<{ idUser: number; rank: number }>) {
-	if (entries.length === 0) {
-		return
-	}
-	const values = sql.join(
-		entries.map((entry) => sql`(${entry.idUser}::integer, ${entry.rank}::integer)`),
-		sql`, `,
-	)
-	return db.transaction(async (tx) => {
-		const changes = await tx.execute<{
-			idUser: number
-			previousRank: number
-			rank: number
-		}>(sql`
-			WITH source(id_user, rank) AS (VALUES ${values}),
-			changed AS MATERIALIZED (
-				SELECT target.id_user, target.rank AS previous_rank, source.rank
-				FROM ${userPoints} AS target
-				INNER JOIN source ON source.id_user = target.id_user
-				WHERE target.rank IS DISTINCT FROM source.rank
-			), updated AS (
-				UPDATE ${userPoints} AS target
-				SET rank = changed.rank, date_updated = NOW()
+	const allChanges: Array<{ idUser: number; previousRank: number; rank: number }> = []
+	let processed = 0
+	for (const batch of chunks(entries)) {
+		const values = sql.join(
+			batch.map((entry) => sql`(${entry.idUser}::integer, ${entry.rank}::integer)`),
+			sql`, `,
+		)
+		const changes = await db.transaction(async (tx) => {
+			const batchChanges = await tx.execute<{
+				idUser: number
+				previousRank: number
+				rank: number
+			}>(sql`
+				WITH source(id_user, rank) AS (VALUES ${values}),
+				changed AS MATERIALIZED (
+					SELECT target.id_user, target.rank AS previous_rank, source.rank
+					FROM ${userPoints} AS target
+					INNER JOIN source ON source.id_user = target.id_user
+					WHERE target.rank IS DISTINCT FROM source.rank
+				), updated AS (
+					UPDATE ${userPoints} AS target
+					SET rank = changed.rank, date_updated = NOW()
+					FROM changed
+					WHERE target.id_user = changed.id_user
+					RETURNING target.id_user
+				)
+				SELECT
+					changed.id_user AS "idUser",
+					changed.previous_rank AS "previousRank",
+					changed.rank
 				FROM changed
-				WHERE target.id_user = changed.id_user
-				RETURNING target.id_user
-			)
-			SELECT
-				changed.id_user AS "idUser",
-				changed.previous_rank AS "previousRank",
-				changed.rank
-			FROM changed
-			INNER JOIN updated ON updated.id_user = changed.id_user
-		`)
-		if (changes.length > 0) {
-			await tx.insert(discordActivityEvent).values({
-				kind: 'rank_batch',
-				payload: { changes },
-			})
-		}
-		return changes
-	})
+				INNER JOIN updated ON updated.id_user = changed.id_user
+			`)
+			if (batchChanges.length > 0) {
+				await tx.insert(discordActivityEvent).values({
+					kind: 'rank_batch',
+					payload: { changes: batchChanges },
+				})
+			}
+			return batchChanges
+		})
+		allChanges.push(...changes)
+		processed += batch.length
+		onBatchCompleted?.(processed, entries.length)
+	}
+	return allChanges
 }
 
 export async function resetInactiveUserScores(idUsers: number[]): Promise<void> {
@@ -170,35 +121,36 @@ export async function resetInactiveUserScores(idUsers: number[]): Promise<void> 
 		return
 	}
 
-	await db.transaction(async (tx) => {
-		await acquireUserContributionLocks(tx, uniqueUserIds)
-		const previous = await tx.execute<{ idUser: number; previousRank: number }>(sql`
+	for (const batch of chunks(uniqueUserIds)) {
+		await db.transaction(async (tx) => {
+			const previous = await tx.execute<{ idUser: number; previousRank: number }>(sql`
 			SELECT
 				${userPoints.idUser} AS "idUser",
 				${userPoints.rank} AS "previousRank"
 			FROM ${userPoints}
-			WHERE ${userPoints.idUser} = ANY(${sql.param(uniqueUserIds)}::integer[])
+			WHERE ${userPoints.idUser} = ANY(${sql.param(batch)}::integer[])
 				AND ${userPoints.rank} IS DISTINCT FROM -1
 		`)
-		await tx.execute(sql`
+			await tx.execute(sql`
 			UPDATE ${userPoints}
 			SET points = 0, rank = -1, date_updated = NOW()
-			WHERE id_user = ANY(${sql.param(uniqueUserIds)}::integer[])
+			WHERE id_user = ANY(${sql.param(batch)}::integer[])
 				AND ROW(points, rank) IS DISTINCT FROM ROW(0, -1)
 		`)
-		await tx.execute(sql`
+			await tx.execute(sql`
 			UPDATE ${userPointContribution}
 			SET player_decayed_points = 0, date_calculated = NOW()
-			WHERE id_user = ANY(${sql.param(uniqueUserIds)}::integer[])
+			WHERE id_user = ANY(${sql.param(batch)}::integer[])
 				AND player_decayed_points IS DISTINCT FROM 0::real
 		`)
-		if (previous.length > 0) {
-			await tx.insert(discordActivityEvent).values({
-				kind: 'rank_batch',
-				payload: {
-					changes: previous.map((entry) => ({ ...entry, rank: -1 })),
-				},
-			})
-		}
-	})
+			if (previous.length > 0) {
+				await tx.insert(discordActivityEvent).values({
+					kind: 'rank_batch',
+					payload: {
+						changes: previous.map((entry) => ({ ...entry, rank: -1 })),
+					},
+				})
+			}
+		})
+	}
 }

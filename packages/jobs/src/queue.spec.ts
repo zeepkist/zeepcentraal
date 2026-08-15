@@ -29,6 +29,7 @@ test('queue boundary deduplicates persistent level scoring by level', async () =
 			jobKey: 'update-level-score:7',
 			maxAttempts: 3,
 			priority: 5,
+			queueName: 'player-score-writes',
 		})
 		expect(call[2]).not.toHaveProperty('jobKeyMode')
 	}
@@ -37,4 +38,19 @@ test('queue boundary deduplicates persistent level scoring by level', async () =
 test('enqueue boundary keeps report-only level scoring separate', async () => {
 	await enqueueCompatibleTask('updateLevelScore', { idLevel: 7, reportOnly: true })
 	expect(addJob.mock.calls[0]?.[2]).toMatchObject({ jobKey: 'update-level-score-report:7' })
+	expect(addJob.mock.calls[0]?.[2]).not.toHaveProperty('queueName')
+})
+
+test('queue boundary serializes bulk score writers under distinct keys', async () => {
+	await enqueueCompatibleTask('updateLevelScores', { all: true })
+	await enqueueCompatibleTask('updateLevelScores', { all: false })
+
+	expect(addJob.mock.calls[0]?.[2]).toMatchObject({
+		jobKey: 'update-level-scores:full',
+		queueName: 'player-score-writes',
+	})
+	expect(addJob.mock.calls[1]?.[2]).toMatchObject({
+		jobKey: 'update-level-scores:incremental',
+		queueName: 'player-score-writes',
+	})
 })

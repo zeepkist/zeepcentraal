@@ -3,18 +3,17 @@ import { cronJobOptions } from './cronJobOptions'
 
 const defaults = { maxAttempts: 3, priority: 0 }
 
-test('preserves task-specific job key mode', () => {
+test('uses normal preserve-run-at replacement for serialized score tasks', () => {
 	expect(
 		cronJobOptions('updatePlayerScores', defaults, {
 			jobKey: 'update-player-scores',
-			jobKeyMode: 'unsafe_dedupe',
 			queueName: 'player-score-writes',
 		}),
 	).toEqual({
 		maxAttempts: 3,
 		priority: 0,
 		jobKey: 'update-player-scores',
-		jobKeyMode: 'unsafe_dedupe',
+		jobKeyMode: 'preserve_run_at',
 		queueName: 'player-score-writes',
 	})
 })

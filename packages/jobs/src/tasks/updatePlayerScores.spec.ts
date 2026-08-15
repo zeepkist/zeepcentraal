@@ -10,8 +10,9 @@ const persistenceError = Object.assign(new Error('Failed query'), { cause: postg
 let contributionError: unknown = persistenceError
 const events: string[] = []
 let discoveredUsers = [{ idUser: 42, latestRecordDate: new Date().toISOString() }]
-const updateUserPointContributionPlayerValuesBulk = mock(async () => {
+const recalculateAndPersistPlayerScore = mock(async ({ idUser }: { idUser: number }) => {
 	if (contributionError) throw contributionError
+	return { idUser, points: 6324, totalPoints: 6324, contributions: [] }
 })
 const getUserPointContributionsForUsers = mock(
 	async (idUsers: number[]) =>
@@ -20,7 +21,6 @@ const getUserPointContributionsForUsers = mock(
 				idUser,
 				[
 					{
-						idUser,
 						idLevel: 7,
 						idRecord: 70,
 						contributionRank: 2_147_483_647,
@@ -34,48 +34,28 @@ const getUserPointContributionsForUsers = mock(
 		),
 )
 const resetInactiveUserScores = mock(async () => {})
-const upsertUserPointsBulk = mock(async () => {})
+const updateUserRanks = mock(
+	async (
+		entries: Array<{ idUser: number; rank: number }>,
+		onBatchCompleted?: (processed: number, total: number) => void,
+	) => {
+		onBatchCompleted?.(entries.length, entries.length)
+	},
+)
 const getAllUsersWithLatestRecordDate = mock(async () => {
 	events.push('user-discovery')
 	return discoveredUsers
 })
 
-mock.module('@zeepkist/core/score', () => ({
-	calculatePlayerPointsFromContributions: (
-		source: Array<{ idUser: number; levelDecayedPoints: number }>,
-	) => {
-		const contributions = source.map(({ idUser: _, ...contribution }, index) => ({
-			...contribution,
-			contributionRank: index + 1,
-			playerDecayedPoints: contribution.levelDecayedPoints * 0.95 ** index,
-		}))
-		return {
-			points: Math.round(
-				contributions.reduce(
-					(total, contribution) => total + contribution.playerDecayedPoints,
-					0,
-				),
-			),
-			totalPoints: Math.round(
-				contributions.reduce(
-					(total, contribution) => total + contribution.levelDecayedPoints,
-					0,
-				),
-			),
-			contributions,
-		}
-	},
-}))
 mock.module('@zeepkist/database/services', () => ({
 	getAllUsersWithLatestRecordDate,
 	getUserPointContributionsForUsers,
 	resetInactiveUserScores,
-	updateUserRanks: mock(async () => {}),
-	updateUserPointContributionPlayerValuesBulk,
-	upsertUserPointsBulk,
+	updateUserRanks,
 }))
+mock.module('../utils/recalculatePlayerScore', () => ({ recalculateAndPersistPlayerScore }))
 
-const { updatePlayerScores } = await import('./updatePlayerScores')
+const { PLAYER_SCORE_WRITE_CONCURRENCY, updatePlayerScores } = await import('./updatePlayerScores')
 
 beforeEach(() => {
 	contributionError = persistenceError
@@ -83,8 +63,8 @@ beforeEach(() => {
 	discoveredUsers = [{ idUser: 42, latestRecordDate: new Date().toISOString() }]
 	resetInactiveUserScores.mockClear()
 	getUserPointContributionsForUsers.mockClear()
-	updateUserPointContributionPlayerValuesBulk.mockClear()
-	upsertUserPointsBulk.mockClear()
+	recalculateAndPersistPlayerScore.mockClear()
+	updateUserRanks.mockClear()
 })
 
 test('logs PostgreSQL metadata and affected user batch before rethrow', async () => {
@@ -139,21 +119,21 @@ test('logs phase completion for successful full recalculation', async () => {
 		'updatePlayerScores completed.',
 		expect.objectContaining({ rankUpdateMs: expect.any(Number), totalMs: expect.any(Number) }),
 	)
-	expect(upsertUserPointsBulk).toHaveBeenCalledWith([
-		{ idUser: 42, points: 6324, totalPoints: 6324 },
-	])
-	expect(updateUserPointContributionPlayerValuesBulk).toHaveBeenCalledWith([
-		{
-			idUser: 42,
-			contributions: [
-				expect.objectContaining({
-					contributionRank: 1,
-					levelDecayedPoints: 6323.9565,
-					playerDecayedPoints: 6323.9565,
-				}),
-			],
-		},
-	])
+	const batchCompletion = info.mock.calls.find(
+		([message]) =>
+			typeof message === 'string' && message.startsWith('Updated player score batch 1/1'),
+	)
+	expect(batchCompletion?.[0]).toMatch(/^Updated player score batch 1\/1 \(\d+ms\)\.$/)
+	expect(batchCompletion?.[1]).toEqual(expect.objectContaining({ batchMs: expect.any(Number) }))
+	expect(PLAYER_SCORE_WRITE_CONCURRENCY).toBe(5)
+	expect(recalculateAndPersistPlayerScore).toHaveBeenCalledWith({
+		idUser: 42,
+		initialContributions: [
+			expect.objectContaining({ idLevel: 7, levelDecayedPoints: 6323.9565 }),
+		],
+		onSnapshotMismatch: expect.any(Function),
+	})
+	expect(updateUserRanks).toHaveBeenCalledWith([{ idUser: 42, rank: 1 }], expect.any(Function))
 })
 
 test('zeros inactive contribution points without recalculating them', async () => {
@@ -166,6 +146,5 @@ test('zeros inactive contribution points without recalculating them', async () =
 
 	expect(resetInactiveUserScores).toHaveBeenCalledWith([42])
 	expect(getUserPointContributionsForUsers).not.toHaveBeenCalled()
-	expect(updateUserPointContributionPlayerValuesBulk).not.toHaveBeenCalled()
-	expect(upsertUserPointsBulk).not.toHaveBeenCalled()
+	expect(recalculateAndPersistPlayerScore).not.toHaveBeenCalled()
 })

@@ -1,14 +1,16 @@
 import { LEVEL_DECAY_FACTOR, MIN_PERSISTED_DECAYED_POINTS } from '@zeepkist/core/score'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
-import { levelPoints, personalBestGlobal, record, userPointContribution } from '../schema'
-import { acquireUserContributionLocks, sortedUniqueUserIds } from './userPointContributionHelpers'
+import {
+	levelPoints,
+	personalBestGlobal,
+	record,
+	userPointContribution,
+	userPoints,
+} from '../schema'
+import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
-export {
-	sortedUniqueUserIds,
-	USER_POINT_CONTRIBUTION_LOCK_BUCKETS,
-	USER_POINT_CONTRIBUTION_LOCK_NAMESPACE,
-} from './userPointContributionHelpers'
+export { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 export interface UserPointContributionInput {
 	contributionRank: number
@@ -21,21 +23,16 @@ export interface UserPointContributionInput {
 	playerDecayedPoints: number
 }
 
-interface UserPointContributionBatchInput {
+export interface PersistUserPointScoreInput {
 	contributions: Omit<UserPointContributionInput, 'idUser'>[]
 	idUser: number
+	points: number
+	totalPoints: number
 }
 
 export interface LevelContributionProjectionSyncResult {
 	idUsers: number[]
 	levels: number
-	users: number
-}
-
-export interface ChangedLevelPointContributionSyncResult {
-	deleted: number
-	fallbackLevels: number
-	updated: number
 	users: number
 }
 
@@ -61,31 +58,85 @@ function chunks<T>(items: T[], size: number): T[][] {
 	return result
 }
 
-export async function updateUserPointContributionPlayerValuesBulk(
-	entries: UserPointContributionBatchInput[],
-): Promise<void> {
-	if (entries.length === 0) {
-		return
+async function contributionSnapshotMatches(
+	tx: DatabaseTransaction,
+	input: PersistUserPointScoreInput,
+): Promise<boolean> {
+	if (input.contributions.length === 0) {
+		const rows = await tx.execute<{ matches: boolean }>(sql`
+			SELECT NOT EXISTS (
+				SELECT 1
+				FROM ${userPointContribution}
+				WHERE ${userPointContribution.idUser} = ${input.idUser}
+			) AS matches
+		`)
+		return rows[0]?.matches === true
 	}
 
-	await db.transaction(async (tx) => {
-		const idUsers = sortedUniqueUserIds(entries.map((entry) => entry.idUser))
-		await acquireUserContributionLocks(tx, idUsers)
-		const rows = entries.flatMap((entry) =>
-			entry.contributions.map((contribution) => ({
-				idUser: entry.idUser,
-				...contribution,
-			})),
+	const rows = await tx.execute<{ matches: boolean }>(sql`
+		WITH expected AS (
+			SELECT *
+			FROM UNNEST(
+				${sql.param(input.contributions.map((entry) => entry.idLevel))}::integer[],
+				${sql.param(input.contributions.map((entry) => entry.idRecord))}::integer[],
+				${sql.param(input.contributions.map((entry) => entry.levelPosition))}::integer[],
+				${sql.param(input.contributions.map((entry) => entry.levelPoints))}::integer[],
+				${sql.param(input.contributions.map((entry) => entry.levelDecayedPoints))}::real[]
+			) AS expected(
+				id_level,
+				id_record,
+				level_position,
+				level_points,
+				level_decayed_points
+			)
+		),
+		current_contributions AS (
+			SELECT
+				${userPointContribution.idLevel} AS id_level,
+				${userPointContribution.idRecord} AS id_record,
+				${userPointContribution.levelPosition} AS level_position,
+				${userPointContribution.levelPoints} AS level_points,
+				${userPointContribution.levelDecayedPoints} AS level_decayed_points
+			FROM ${userPointContribution}
+			WHERE ${userPointContribution.idUser} = ${input.idUser}
 		)
+		SELECT NOT EXISTS (
+			SELECT 1
+			FROM expected
+			FULL OUTER JOIN current_contributions AS current
+				ON current.id_level = expected.id_level
+			WHERE expected.id_level IS NULL
+				OR current.id_level IS NULL
+				OR ROW(
+					current.id_record,
+					current.level_position,
+					current.level_points,
+					current.level_decayed_points
+				) IS DISTINCT FROM ROW(
+					expected.id_record,
+					expected.level_position,
+					expected.level_points,
+					expected.level_decayed_points
+				)
+		) AS matches
+	`)
+	return rows[0]?.matches === true
+}
 
-		for (const batch of chunks(rows, WRITE_BATCH_SIZE)) {
+export async function persistUserPointScore(input: PersistUserPointScoreInput): Promise<boolean> {
+	return db.transaction(async (tx) => {
+		if (!(await contributionSnapshotMatches(tx, input))) {
+			return false
+		}
+
+		for (const batch of chunks(input.contributions, WRITE_BATCH_SIZE)) {
 			// Match PostgreSQL's real columns before the optimistic snapshot comparison. A real
 			// value read through the text protocol may not equal the same decimal rebound as
 			// double precision, even though both round to the same persisted float4 value.
 			const values = sql.join(
 				batch.map(
 					(row) => sql`(
-						${row.idUser}::integer,
+						${input.idUser}::integer,
 						${row.idLevel}::integer,
 						${row.idRecord}::integer,
 						${row.levelPosition}::integer,
@@ -132,9 +183,26 @@ export async function updateUserPointContributionPlayerValuesBulk(
 					) IS DISTINCT FROM ROW(
 						source.contribution_rank,
 						source.player_decayed_points
-					)
+				)
 			`)
 		}
+
+		await tx.execute(sql`
+			INSERT INTO ${userPoints} (
+				id_user,
+				points,
+				total_points,
+				date_updated
+			)
+			VALUES (${input.idUser}, ${input.points}, ${input.totalPoints}, NOW())
+			ON CONFLICT (id_user) DO UPDATE SET
+				points = EXCLUDED.points,
+				total_points = EXCLUDED.total_points,
+				date_updated = EXCLUDED.date_updated
+			WHERE ROW(${userPoints.points}, ${userPoints.totalPoints})
+				IS DISTINCT FROM ROW(EXCLUDED.points, EXCLUDED.total_points)
+		`)
+		return true
 	})
 }
 
@@ -148,14 +216,13 @@ export async function syncUserPointContributionLevels(
 	}
 
 	return db.transaction((tx) =>
-		syncUserPointContributionLevelsInTransaction(tx, uniqueLevelIds, true, options.runPhase),
+		syncUserPointContributionLevelsInTransaction(tx, uniqueLevelIds, options.runPhase),
 	)
 }
 
 async function syncUserPointContributionLevelsInTransaction(
 	tx: DatabaseTransaction,
 	uniqueLevelIds: number[],
-	lockUsers: boolean,
 	runPhase: ContributionSyncPhaseRunner = (_phase, operation) => operation(),
 ): Promise<LevelContributionProjectionSyncResult> {
 	const affectedUsers = await runPhase('affectedUsers', () =>
@@ -174,9 +241,6 @@ async function syncUserPointContributionLevelsInTransaction(
 		`),
 	)
 	const idUsers = sortedUniqueUserIds(affectedUsers.map((entry) => entry.idUser))
-	if (lockUsers) {
-		await runPhase('userLocks', () => acquireUserContributionLocks(tx, idUsers))
-	}
 
 	await runPhase('projectionUpsert', () =>
 		tx.execute(sql`
@@ -276,155 +340,6 @@ async function syncUserPointContributionLevelsInTransaction(
 	)
 
 	return { idUsers, levels: uniqueLevelIds.length, users: idUsers.length }
-}
-
-export async function syncChangedLevelPointContributionValues(
-	options: ContributionSyncOptions = {},
-): Promise<ChangedLevelPointContributionSyncResult> {
-	const runPhase = options.runPhase ?? ((_phase, operation) => operation())
-	return db.transaction(async (tx) => {
-		const fallbackRows = await runPhase('fallbackLevels', () =>
-			tx.execute<{ idLevel: number }>(sql`
-			SELECT ${levelPoints.idLevel} AS "idLevel"
-			FROM ${levelPoints}
-			WHERE ${levelPoints.points} > 0
-				AND EXISTS (
-					SELECT 1
-					FROM ${personalBestGlobal}
-					WHERE ${personalBestGlobal.idLevel} = ${levelPoints.idLevel}
-				)
-				AND NOT EXISTS (
-					SELECT 1
-					FROM ${userPointContribution}
-					WHERE ${userPointContribution.idLevel} = ${levelPoints.idLevel}
-				)
-			ORDER BY ${levelPoints.idLevel}
-		`),
-		)
-		const fallbackLevelIds = fallbackRows.map((row) => row.idLevel)
-		const fallbackUsers =
-			fallbackLevelIds.length === 0
-				? sql``
-				: sql`
-					UNION
-					SELECT ${personalBestGlobal.idUser} AS id_user
-					FROM ${personalBestGlobal}
-					WHERE ${personalBestGlobal.idLevel}
-						= ANY(${sql.param(fallbackLevelIds)}::integer[])
-				`
-
-		const affectedUsers = await runPhase('affectedUsers', () =>
-			tx.execute<{ idUser: number }>(sql`
-			SELECT DISTINCT affected.id_user AS "idUser"
-			FROM (
-				SELECT ${userPointContribution.idUser} AS id_user
-				FROM ${userPointContribution}
-				LEFT JOIN ${levelPoints}
-					ON ${levelPoints.idLevel} = ${userPointContribution.idLevel}
-				WHERE ${levelPoints.idLevel} IS NULL
-					OR ${levelPoints.points} <= 0
-					OR ROW(
-						${userPointContribution.levelPoints},
-						${userPointContribution.levelDecayedPoints}
-					) IS DISTINCT FROM ROW(
-						${levelPoints.points},
-						CASE
-							WHEN ${levelPoints.points} IS NULL OR ${levelPoints.points} <= 0
-								THEN 0::real
-							WHEN LN(${levelPoints.points}::double precision)
-								+ (${userPointContribution.levelPosition} - 1)
-									* LN(${LEVEL_DECAY_FACTOR}::double precision)
-								< LN(${MIN_PERSISTED_DECAYED_POINTS}::double precision)
-								THEN 0::real
-							ELSE (${levelPoints.points}::double precision * POWER(
-								${LEVEL_DECAY_FACTOR}::double precision,
-								${userPointContribution.levelPosition} - 1
-							))::real
-						END
-					)
-				${fallbackUsers}
-			) AS affected
-			ORDER BY affected.id_user
-		`),
-		)
-		const idUsers = sortedUniqueUserIds(affectedUsers.map((row) => row.idUser))
-		await runPhase('userLocks', () => acquireUserContributionLocks(tx, idUsers))
-
-		const updatedRows = await runPhase('contributionUpdate', () =>
-			tx.execute<{ count: number }>(sql`
-			WITH updated AS (
-				UPDATE ${userPointContribution} AS contribution
-				SET
-					level_points = current_level.points,
-					level_decayed_points = CASE
-						WHEN current_level.points <= 0 THEN 0::real
-						WHEN LN(current_level.points::double precision)
-							+ (contribution.level_position - 1)
-								* LN(${LEVEL_DECAY_FACTOR}::double precision)
-							< LN(${MIN_PERSISTED_DECAYED_POINTS}::double precision)
-							THEN 0::real
-						ELSE (current_level.points::double precision * POWER(
-							${LEVEL_DECAY_FACTOR}::double precision,
-							contribution.level_position - 1
-						))::real
-					END,
-					date_calculated = NOW()
-				FROM ${levelPoints} AS current_level
-				WHERE current_level.id_level = contribution.id_level
-					AND current_level.points > 0
-					AND ROW(
-						contribution.level_points,
-						contribution.level_decayed_points
-					) IS DISTINCT FROM ROW(
-						current_level.points,
-						CASE
-							WHEN current_level.points <= 0 THEN 0::real
-							WHEN LN(current_level.points::double precision)
-								+ (contribution.level_position - 1)
-									* LN(${LEVEL_DECAY_FACTOR}::double precision)
-								< LN(${MIN_PERSISTED_DECAYED_POINTS}::double precision)
-								THEN 0::real
-							ELSE (current_level.points::double precision * POWER(
-								${LEVEL_DECAY_FACTOR}::double precision,
-								contribution.level_position - 1
-							))::real
-						END
-					)
-				RETURNING 1
-			)
-			SELECT COUNT(*)::integer AS count FROM updated
-		`),
-		)
-
-		const deletedRows = await runPhase('contributionDelete', () =>
-			tx.execute<{ count: number }>(sql`
-			WITH deleted AS (
-				DELETE FROM ${userPointContribution} AS contribution
-				WHERE NOT EXISTS (
-					SELECT 1
-					FROM ${levelPoints}
-					WHERE ${levelPoints.idLevel} = contribution.id_level
-						AND ${levelPoints.points} > 0
-				)
-				RETURNING 1
-			)
-			SELECT COUNT(*)::integer AS count FROM deleted
-		`),
-		)
-
-		if (fallbackLevelIds.length > 0) {
-			await runPhase('fallbackProjection', () =>
-				syncUserPointContributionLevelsInTransaction(tx, fallbackLevelIds, false),
-			)
-		}
-
-		return {
-			deleted: Number(deletedRows[0]?.count ?? 0),
-			fallbackLevels: fallbackLevelIds.length,
-			updated: Number(updatedRows[0]?.count ?? 0),
-			users: idUsers.length,
-		}
-	})
 }
 
 export async function getUserPointContributionsForUsers(

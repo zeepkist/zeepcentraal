@@ -161,30 +161,39 @@ test('skips score evidence reads for unavailable levels', async () => {
 test('syncs contribution projection when awarded points stay unchanged', async () => {
 	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
 	getLevelPointValuesByIds.mockImplementationOnce(async () => [{ idLevel: 1, points: 0 }])
+	const logger = createLogger()
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		logger: createLogger() as never,
+		logger: logger as never,
 	})
 
 	expect(upsertLevelPointsBulk).toHaveBeenCalledTimes(1)
 	expect(syncUserPointContributionLevels).toHaveBeenCalledWith([1])
-})
-
-test('defers contribution projection for bulk score batches', async () => {
-	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
-	const logger = createLogger()
-	const { info } = logger
-
-	await updateLevelScoreBatch({
-		idLevels: [1],
-		syncContributions: false,
-		logger: logger as never,
-	})
-
-	expect(syncUserPointContributionLevels).not.toHaveBeenCalled()
-	expect(info.mock.calls.at(-1)?.[0]).toStartWith('Level score batch timings:')
-	expect(info.mock.calls.at(-1)?.[1]).toMatchObject({ contributionProjectionMs: 0 })
+	const timingCall = logger.info.mock.calls.find(([message]) =>
+		message.startsWith('Level score batch timings:'),
+	)
+	expect(timingCall?.[0]).toMatch(
+		/^Level score batch timings: contributionProjection=\d+ms total=\d+ms\.$/,
+	)
+	expect(timingCall?.[1]).toEqual(
+		expect.objectContaining({
+			contributionProjectionMs: expect.any(Number),
+			totalMs: expect.any(Number),
+		}),
+	)
+	for (const removedTiming of [
+		'availabilityMs',
+		'votesMs',
+		'skillMetricsMs',
+		'personalBestsMs',
+		'calculationMs',
+		'currentPointsMs',
+		'persistenceMs',
+	]) {
+		expect(timingCall?.[1]).not.toHaveProperty(removedTiming)
+	}
+	expect(logger.debug).not.toHaveBeenCalled()
 })
 
 test('report-only mode logs proposed deltas without writing scores', async () => {

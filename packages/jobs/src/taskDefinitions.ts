@@ -20,29 +20,7 @@ const batchPayload = z.union([
 		limit: z.number().int().positive(),
 	}),
 ])
-const levelScoreFinalizationPayload = z
-	.looseObject({
-		all: z.boolean(),
-		ids: z.array(z.number().int().positive()).min(1).optional(),
-		runId: z.uuid(),
-	})
-	.refine((payload) => payload.all || payload.ids !== undefined, {
-		message: 'Incremental finalization requires level IDs',
-	})
-
 export const taskDefinitions = {
-	finalizeLevelScores: {
-		schema: levelScoreFinalizationPayload,
-		compatible: false,
-		maxAttempts: 3,
-	},
-	monitorLevelScoreRun: {
-		schema: levelScoreFinalizationPayload.extend({
-			check: z.number().int().nonnegative(),
-		}),
-		compatible: false,
-		maxAttempts: 3,
-	},
 	backfillRecordGhostStatistics: {
 		schema: z
 			.looseObject({
@@ -104,22 +82,6 @@ export const taskDefinitions = {
 			reportOnly: z.boolean().optional(),
 		}),
 		compatible: true,
-		maxAttempts: 3,
-	},
-	updateLevelScoresBatch: {
-		schema: z.looseObject({
-			ids: z.array(z.number().int().positive()).min(1).max(50),
-			reportOnly: z.boolean().optional(),
-			runId: z.uuid().optional(),
-		}),
-		compatible: false,
-		maxAttempts: 3,
-	},
-	updateLevelScoresBarrier: {
-		schema: levelScoreFinalizationPayload.extend({
-			phase: z.union([z.literal('queue0'), z.literal('queue1')]),
-		}),
-		compatible: false,
 		maxAttempts: 3,
 	},
 	updatePlayerScore: {
