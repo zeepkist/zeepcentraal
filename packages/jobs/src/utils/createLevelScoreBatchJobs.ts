@@ -1,7 +1,7 @@
 import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from '../priorities'
 import { batchProcess } from './batchProcess'
 
-export const LEVEL_SCORE_BATCH_SIZE = 50
+export const LEVEL_SCORE_BATCH_SIZE = 100
 export const LEVEL_SCORE_QUEUE_NAMES = ['level-score-batch-0', 'level-score-batch-1'] as const
 
 export function createLevelScoreBatchJobs(
