@@ -4,6 +4,10 @@ import { type EnvSource, nodeEnvSchema, readRootEnvValue } from './shared'
 const databaseEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
 	DATABASE_URL: z.string().min(1).default('postgres://postgres:postgres@localhost:5432/zeepkist'),
+	DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+	DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+	DATABASE_LOCK_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+	DATABASE_IDLE_TRANSACTION_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
 	WASABI_ACCESSKEY: z.string().default(''),
 	WASABI_SECRETKEY: z.string().default(''),
 	WASABI_BUCKET: z.string().default(''),
@@ -28,6 +32,12 @@ export function parseDatabaseConfig(env: EnvSource) {
 	return {
 		nodeEnv: parsedEnv.NODE_ENV,
 		databaseUrl: parsedEnv.DATABASE_URL,
+		databaseTimeouts: {
+			connectMs: parsedEnv.DATABASE_CONNECT_TIMEOUT_MS,
+			statementMs: parsedEnv.DATABASE_STATEMENT_TIMEOUT_MS,
+			lockMs: parsedEnv.DATABASE_LOCK_TIMEOUT_MS,
+			idleTransactionMs: parsedEnv.DATABASE_IDLE_TRANSACTION_TIMEOUT_MS,
+		},
 		wasabi: {
 			accessKey: parsedEnv.WASABI_ACCESSKEY,
 			secretKey: parsedEnv.WASABI_SECRETKEY,

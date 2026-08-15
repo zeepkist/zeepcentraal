@@ -27,6 +27,7 @@ interface UserPointContributionBatchInput {
 }
 
 export interface LevelContributionProjectionSyncResult {
+	idUsers: number[]
 	levels: number
 	users: number
 }
@@ -36,6 +37,15 @@ export interface ChangedLevelPointContributionSyncResult {
 	fallbackLevels: number
 	updated: number
 	users: number
+}
+
+export type ContributionSyncPhaseRunner = <T>(
+	phase: string,
+	operation: () => Promise<T>,
+) => Promise<T>
+
+export interface ContributionSyncOptions {
+	runPhase?: ContributionSyncPhaseRunner
 }
 
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -130,14 +140,15 @@ export async function updateUserPointContributionPlayerValuesBulk(
 
 export async function syncUserPointContributionLevels(
 	idLevels: number[],
+	options: ContributionSyncOptions = {},
 ): Promise<LevelContributionProjectionSyncResult> {
 	const uniqueLevelIds = [...new Set(idLevels)].sort((a, b) => a - b)
 	if (uniqueLevelIds.length === 0) {
-		return { levels: 0, users: 0 }
+		return { idUsers: [], levels: 0, users: 0 }
 	}
 
 	return db.transaction((tx) =>
-		syncUserPointContributionLevelsInTransaction(tx, uniqueLevelIds, true),
+		syncUserPointContributionLevelsInTransaction(tx, uniqueLevelIds, true, options.runPhase),
 	)
 }
 
@@ -145,8 +156,10 @@ async function syncUserPointContributionLevelsInTransaction(
 	tx: DatabaseTransaction,
 	uniqueLevelIds: number[],
 	lockUsers: boolean,
+	runPhase: ContributionSyncPhaseRunner = (_phase, operation) => operation(),
 ): Promise<LevelContributionProjectionSyncResult> {
-	const affectedUsers = await tx.execute<{ idUser: number }>(sql`
+	const affectedUsers = await runPhase('affectedUsers', () =>
+		tx.execute<{ idUser: number }>(sql`
 			SELECT DISTINCT affected.id_user AS "idUser"
 			FROM (
 				SELECT ${personalBestGlobal.idUser} AS id_user
@@ -158,11 +171,15 @@ async function syncUserPointContributionLevelsInTransaction(
 				WHERE ${userPointContribution.idLevel} = ANY(${sql.param(uniqueLevelIds)}::integer[])
 			) AS affected
 			ORDER BY affected.id_user
-		`)
-	const idUsers = affectedUsers.map((entry) => entry.idUser)
-	if (lockUsers) await acquireUserContributionLocks(tx, idUsers)
+		`),
+	)
+	const idUsers = sortedUniqueUserIds(affectedUsers.map((entry) => entry.idUser))
+	if (lockUsers) {
+		await runPhase('userLocks', () => acquireUserContributionLocks(tx, idUsers))
+	}
 
-	await tx.execute(sql`
+	await runPhase('projectionUpsert', () =>
+		tx.execute(sql`
 			WITH ranked_personal_bests AS (
 				SELECT
 					${personalBestGlobal.idUser} AS id_user,
@@ -238,9 +255,11 @@ async function syncUserPointContributionLevelsInTransaction(
 				EXCLUDED.level_points,
 				EXCLUDED.level_decayed_points
 			)
-		`)
+		`),
+	)
 
-	await tx.execute(sql`
+	await runPhase('projectionDelete', () =>
+		tx.execute(sql`
 			DELETE FROM ${userPointContribution} AS contribution
 			WHERE contribution.id_level = ANY(${sql.param(uniqueLevelIds)}::integer[])
 				AND NOT EXISTS (
@@ -253,14 +272,19 @@ async function syncUserPointContributionLevelsInTransaction(
 						AND ${personalBestGlobal.idRecord} = contribution.id_record
 						AND ${levelPoints.points} > 0
 				)
-		`)
+		`),
+	)
 
-	return { levels: uniqueLevelIds.length, users: idUsers.length }
+	return { idUsers, levels: uniqueLevelIds.length, users: idUsers.length }
 }
 
-export async function syncChangedLevelPointContributionValues(): Promise<ChangedLevelPointContributionSyncResult> {
+export async function syncChangedLevelPointContributionValues(
+	options: ContributionSyncOptions = {},
+): Promise<ChangedLevelPointContributionSyncResult> {
+	const runPhase = options.runPhase ?? ((_phase, operation) => operation())
 	return db.transaction(async (tx) => {
-		const fallbackRows = await tx.execute<{ idLevel: number }>(sql`
+		const fallbackRows = await runPhase('fallbackLevels', () =>
+			tx.execute<{ idLevel: number }>(sql`
 			SELECT ${levelPoints.idLevel} AS "idLevel"
 			FROM ${levelPoints}
 			WHERE ${levelPoints.points} > 0
@@ -275,7 +299,8 @@ export async function syncChangedLevelPointContributionValues(): Promise<Changed
 					WHERE ${userPointContribution.idLevel} = ${levelPoints.idLevel}
 				)
 			ORDER BY ${levelPoints.idLevel}
-		`)
+		`),
+		)
 		const fallbackLevelIds = fallbackRows.map((row) => row.idLevel)
 		const fallbackUsers =
 			fallbackLevelIds.length === 0
@@ -288,7 +313,8 @@ export async function syncChangedLevelPointContributionValues(): Promise<Changed
 						= ANY(${sql.param(fallbackLevelIds)}::integer[])
 				`
 
-		const affectedUsers = await tx.execute<{ idUser: number }>(sql`
+		const affectedUsers = await runPhase('affectedUsers', () =>
+			tx.execute<{ idUser: number }>(sql`
 			SELECT DISTINCT affected.id_user AS "idUser"
 			FROM (
 				SELECT ${userPointContribution.idUser} AS id_user
@@ -319,11 +345,13 @@ export async function syncChangedLevelPointContributionValues(): Promise<Changed
 				${fallbackUsers}
 			) AS affected
 			ORDER BY affected.id_user
-		`)
-		const idUsers = affectedUsers.map((row) => row.idUser)
-		await acquireUserContributionLocks(tx, idUsers)
+		`),
+		)
+		const idUsers = sortedUniqueUserIds(affectedUsers.map((row) => row.idUser))
+		await runPhase('userLocks', () => acquireUserContributionLocks(tx, idUsers))
 
-		const updatedRows = await tx.execute<{ count: number }>(sql`
+		const updatedRows = await runPhase('contributionUpdate', () =>
+			tx.execute<{ count: number }>(sql`
 			WITH updated AS (
 				UPDATE ${userPointContribution} AS contribution
 				SET
@@ -365,9 +393,11 @@ export async function syncChangedLevelPointContributionValues(): Promise<Changed
 				RETURNING 1
 			)
 			SELECT COUNT(*)::integer AS count FROM updated
-		`)
+		`),
+		)
 
-		const deletedRows = await tx.execute<{ count: number }>(sql`
+		const deletedRows = await runPhase('contributionDelete', () =>
+			tx.execute<{ count: number }>(sql`
 			WITH deleted AS (
 				DELETE FROM ${userPointContribution} AS contribution
 				WHERE NOT EXISTS (
@@ -379,10 +409,13 @@ export async function syncChangedLevelPointContributionValues(): Promise<Changed
 				RETURNING 1
 			)
 			SELECT COUNT(*)::integer AS count FROM deleted
-		`)
+		`),
+		)
 
 		if (fallbackLevelIds.length > 0) {
-			await syncUserPointContributionLevelsInTransaction(tx, fallbackLevelIds, false)
+			await runPhase('fallbackProjection', () =>
+				syncUserPointContributionLevelsInTransaction(tx, fallbackLevelIds, false),
+			)
 		}
 
 		return {

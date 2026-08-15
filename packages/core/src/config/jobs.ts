@@ -4,6 +4,10 @@ import { type EnvSource, nodeEnvSchema } from './shared'
 const jobsEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
 	DATABASE_URL: z.string().min(1).default('postgres://postgres:postgres@localhost:5432/zeepkist'),
+	DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+	DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(300000),
+	DATABASE_LOCK_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
+	DATABASE_IDLE_TRANSACTION_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
 	JOBS_QUEUE_POOL_MAX: z.coerce.number().int().positive().default(2),
 	STEAM_APP_ID: z.string().default('1440670'),
 	STEAM_API_KEY: z.string().optional(),
@@ -18,6 +22,12 @@ export function parseJobsConfig(env: EnvSource) {
 	return {
 		nodeEnv: parsedEnv.NODE_ENV,
 		databaseUrl: parsedEnv.DATABASE_URL,
+		databaseTimeouts: {
+			connectMs: parsedEnv.DATABASE_CONNECT_TIMEOUT_MS,
+			statementMs: parsedEnv.DATABASE_STATEMENT_TIMEOUT_MS,
+			lockMs: parsedEnv.DATABASE_LOCK_TIMEOUT_MS,
+			idleTransactionMs: parsedEnv.DATABASE_IDLE_TRANSACTION_TIMEOUT_MS,
+		},
 		queuePoolMax: parsedEnv.JOBS_QUEUE_POOL_MAX,
 		steam: {
 			appId: parsedEnv.STEAM_APP_ID,

@@ -1,5 +1,6 @@
 import { releaseLevelRequest } from '@zeepkist/database/services/workshop'
 import { createWorkshopRetryJobs, formatWorkshopFailure } from '../utils/createWorkshopRetryJobs'
+import { levelScoreJobOptions } from '../utils/levelScoreJobOptions'
 import { getWorkshopScanner } from '../workshopScanner'
 import type { TaskHandler } from './types'
 
@@ -25,7 +26,7 @@ export const scanWorkshopBatch: TaskHandler<Payload> = async (payload, helpers) 
 		[...levelIds].map((idLevel) => ({
 			identifier: 'updateLevelScore',
 			payload: { idLevel },
-			jobKey: `update-level-score:${idLevel}`,
+			...levelScoreJobOptions('updateLevelScore', { idLevel }),
 		})),
 	)
 

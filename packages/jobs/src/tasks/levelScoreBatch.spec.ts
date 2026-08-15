@@ -30,6 +30,7 @@ const upsertLevelPointsBulk = mock(async (updates: Array<{ idLevel: number }>) =
 	updates.map((update) => update.idLevel),
 )
 const syncUserPointContributionLevels = mock(async (ids: number[]) => ({
+	idUsers: [20, 30],
 	levels: ids.length,
 	users: 10,
 }))
@@ -46,6 +47,15 @@ mock.module('@zeepkist/database', () => ({
 }))
 
 const { updateLevelScoreBatch } = await import('./levelScoreBatch')
+
+function createLogger() {
+	return {
+		debug: mock((_message: string, _metadata?: unknown) => {}),
+		error: mock((_message: string, _metadata?: unknown) => {}),
+		info: mock((_message: string, _metadata?: unknown) => {}),
+		warn: mock((_message: string, _metadata?: unknown) => {}),
+	}
+}
 
 beforeEach(() => {
 	availability = new Map([[1, { adventure: false, itemCount: 0, accessibleItemCount: 0 }]])
@@ -67,7 +77,7 @@ test('loads only votes unchanged for at least seven days', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		logger: { info: mock(() => {}) } as never,
+		logger: createLogger() as never,
 	})
 
 	const after = Date.now()
@@ -86,7 +96,7 @@ test('persists only retained V2 score fields', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		logger: { info: mock(() => {}) } as never,
+		logger: createLogger() as never,
 	})
 
 	const updates = upsertLevelPointsBulk.mock.calls[0]?.[0] as Array<Record<string, unknown>>
@@ -127,7 +137,7 @@ test('boosts level points after five mature positive votes', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		logger: { info: mock(() => {}) } as never,
+		logger: createLogger() as never,
 	})
 
 	const updates = upsertLevelPointsBulk.mock.calls[0]?.[0] as Array<Record<string, unknown>>
@@ -139,7 +149,7 @@ test('skips score evidence reads for unavailable levels', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		logger: { info: mock(() => {}) } as never,
+		logger: createLogger() as never,
 	})
 
 	expect(getV2ScorePersonalBestsByLevelIds).not.toHaveBeenCalled()
@@ -154,7 +164,7 @@ test('syncs contribution projection when awarded points stay unchanged', async (
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		logger: { info: mock(() => {}) } as never,
+		logger: createLogger() as never,
 	})
 
 	expect(upsertLevelPointsBulk).toHaveBeenCalledTimes(1)
@@ -163,12 +173,13 @@ test('syncs contribution projection when awarded points stay unchanged', async (
 
 test('defers contribution projection for bulk score batches', async () => {
 	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
-	const info = mock((_message: string, _metadata?: unknown) => {})
+	const logger = createLogger()
+	const { info } = logger
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
 		syncContributions: false,
-		logger: { info } as never,
+		logger: logger as never,
 	})
 
 	expect(syncUserPointContributionLevels).not.toHaveBeenCalled()
@@ -191,15 +202,16 @@ test('report-only mode logs proposed deltas without writing scores', async () =>
 			hasStateData: null,
 		},
 	]
-	const info = mock(() => {})
+	const logger = createLogger()
+	const { info } = logger
 
 	const result = await updateLevelScoreBatch({
 		idLevels: [1],
 		reportOnly: true,
-		logger: { info } as never,
+		logger: logger as never,
 	})
 
-	expect(result).toEqual({ updated: 0, zeroed: 0, reported: 1 })
+	expect(result).toEqual({ affectedUserIds: [], updated: 0, zeroed: 0, reported: 1 })
 	expect(getLevelPointValuesByIds).toHaveBeenCalledWith([1])
 	expect(upsertLevelPointsBulk).not.toHaveBeenCalled()
 	expect(setLevelPointsToZeroBulk).not.toHaveBeenCalled()

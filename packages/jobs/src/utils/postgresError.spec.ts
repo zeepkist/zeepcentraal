@@ -17,6 +17,8 @@ describe('getPostgresErrorMetadata', () => {
 			detail: 'Key already exists.',
 			routine: '_bt_check_unique',
 			message: 'duplicate key',
+			messages: ['Failed query', 'duplicate key'],
+			wrapperMessage: 'Failed query',
 		})
 	})
 })

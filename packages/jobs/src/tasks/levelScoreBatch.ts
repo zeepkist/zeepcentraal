@@ -18,6 +18,7 @@ import {
 	upsertLevelPointsBulk,
 } from '@zeepkist/database'
 import type { Helpers } from 'graphile-worker'
+import { createTaskPhaseLogger } from '../utils/taskPhaseLogger'
 
 type PersonalBestRow = Awaited<ReturnType<typeof getV2ScorePersonalBestsByLevelIds>>[number]
 
@@ -58,20 +59,22 @@ export async function updateLevelScoreBatch({
 	reportOnly?: boolean
 	syncContributions?: boolean
 	logger: Helpers['logger']
-}): Promise<{ updated: number; zeroed: number; reported: number }> {
+}): Promise<{
+	affectedUserIds: number[]
+	updated: number
+	zeroed: number
+	reported: number
+}> {
 	if (idLevels.length === 0) {
-		return { updated: 0, zeroed: 0, reported: 0 }
+		return { affectedUserIds: [], updated: 0, zeroed: 0, reported: 0 }
 	}
 	const startedAt = Date.now()
-	const timings: Record<string, number> = {}
-	const timed = async <T>(name: string, operation: () => Promise<T>): Promise<T> => {
-		const phaseStartedAt = Date.now()
-		try {
-			return await operation()
-		} finally {
-			timings[`${name}Ms`] = Date.now() - phaseStartedAt
-		}
-	}
+	const phaseLogger = createTaskPhaseLogger({
+		logger,
+		metadata: { requested: idLevels.length },
+		scope: 'Level score batch',
+	})
+	const { timings } = phaseLogger
 	const logTimings = (metadata: Record<string, unknown>) => {
 		const totalMs = Date.now() - startedAt
 		const phaseSummary = Object.entries(timings)
@@ -84,7 +87,7 @@ export async function updateLevelScoreBatch({
 		})
 	}
 
-	const availabilityByLevel = await timed('availability', () =>
+	const availabilityByLevel = await phaseLogger.run('availability', () =>
 		getLevelWorkshopAvailabilities(idLevels),
 	)
 	const eligibleIds = idLevels.filter((idLevel) =>
@@ -100,11 +103,13 @@ export async function updateLevelScoreBatch({
 	const [personalBests, skillMetricsByLevel, voteValuesByLevel] =
 		eligibleIds.length > 0
 			? await Promise.all([
-					timed('personalBests', () =>
+					phaseLogger.run('personalBests', () =>
 						getV2ScorePersonalBestsByLevelIds({ idLevels: eligibleIds }),
 					),
-					timed('skillMetrics', () => getLevelSkillMetricsByLevelIds(eligibleIds)),
-					timed('votes', () =>
+					phaseLogger.run('skillMetrics', () =>
+						getLevelSkillMetricsByLevelIds(eligibleIds),
+					),
+					phaseLogger.run('votes', () =>
 						getVoteValuesByLevelIds(eligibleIds, getVoteRatingMaturityCutoff()),
 					),
 				])
@@ -117,44 +122,44 @@ export async function updateLevelScoreBatch({
 		personalBestsByLevel.set(personalBest.idLevel, entries)
 	}
 
-	const updates: UpdateLevelPointsPayload[] = []
-	const calculationStartedAt = Date.now()
+	const updates = await phaseLogger.run('calculation', async () => {
+		const calculated: UpdateLevelPointsPayload[] = []
+		for (const idLevel of eligibleIds) {
+			const levelPersonalBests = personalBestsByLevel.get(idLevel) ?? []
+			const matureVotes = voteValuesByLevel.get(idLevel) ?? []
+			const rating = calculateVoteRating(matureVotes)
+			const score = calculateLevelPointsV2({
+				personalBests: levelPersonalBests.map(mapPersonalBest),
+				personalBestCount: Number(levelPersonalBests.at(0)?.totalCount ?? 0),
+				skill: skillMetricsByLevel.get(idLevel) ?? null,
+				voteRating: rating,
+				matureVoteCount: matureVotes.length,
+			})
+			const { metrics, factors } = score
 
-	for (const idLevel of eligibleIds) {
-		const levelPersonalBests = personalBestsByLevel.get(idLevel) ?? []
-		const matureVotes = voteValuesByLevel.get(idLevel) ?? []
-		const rating = calculateVoteRating(matureVotes)
-		const score = calculateLevelPointsV2({
-			personalBests: levelPersonalBests.map(mapPersonalBest),
-			personalBestCount: Number(levelPersonalBests.at(0)?.totalCount ?? 0),
-			skill: skillMetricsByLevel.get(idLevel) ?? null,
-			voteRating: rating,
-			matureVoteCount: matureVotes.length,
-		})
-		const { metrics, factors } = score
+			calculated.push({
+				idLevel,
+				points: score.points,
+				rating,
+				lengthModifier: factors.lengthFactor,
+				evidenceModifier: factors.evidenceFactor,
+				qualityModifier: factors.qualityFactor,
+				ratingModifier: factors.voteFactor,
+				complexityConfidence: metrics.complexityConfidence,
+				complexityScore: metrics.complexityScore,
+				fieldStrength: metrics.fieldStrength,
+				qualityScore: metrics.qualityScore,
+				skillAlignment: metrics.skillAlignment,
+				skillConfidence: metrics.skillConfidence,
+				skillSampleSize: metrics.skillSampleSize,
+				skillScore: metrics.skillScore,
+				skillSeparation: metrics.skillSeparation,
+			})
+		}
+		return calculated
+	})
 
-		updates.push({
-			idLevel,
-			points: score.points,
-			rating,
-			lengthModifier: factors.lengthFactor,
-			evidenceModifier: factors.evidenceFactor,
-			qualityModifier: factors.qualityFactor,
-			ratingModifier: factors.voteFactor,
-			complexityConfidence: metrics.complexityConfidence,
-			complexityScore: metrics.complexityScore,
-			fieldStrength: metrics.fieldStrength,
-			qualityScore: metrics.qualityScore,
-			skillAlignment: metrics.skillAlignment,
-			skillConfidence: metrics.skillConfidence,
-			skillSampleSize: metrics.skillSampleSize,
-			skillScore: metrics.skillScore,
-			skillSeparation: metrics.skillSeparation,
-		})
-	}
-	timings.calculationMs = Date.now() - calculationStartedAt
-
-	const currentLevelPoints = await timed('currentPoints', () =>
+	const currentLevelPoints = await phaseLogger.run('currentPoints', () =>
 		getLevelPointValuesByIds(idLevels),
 	)
 	const currentByLevel = new Map(currentLevelPoints.map((entry) => [entry.idLevel, entry.points]))
@@ -189,7 +194,12 @@ export async function updateLevelScoreBatch({
 			projectionUsers: 0,
 			reportOnly: true,
 		})
-		return { updated: 0, zeroed: 0, reported: updates.length + zeroIds.length }
+		return {
+			affectedUserIds: [],
+			updated: 0,
+			zeroed: 0,
+			reported: updates.length + zeroIds.length,
+		}
 	}
 
 	const proposedPoints = new Map(updates.map((update) => [update.idLevel, update.points]))
@@ -199,12 +209,14 @@ export async function updateLevelScoreBatch({
 			!currentByLevel.has(idLevel) ||
 			currentByLevel.get(idLevel) !== proposedPoints.get(idLevel),
 	)
-	const [updatedIds, zeroedIds] = await timed('persistence', () =>
+	const [updatedIds, zeroedIds] = await phaseLogger.run('persistence', () =>
 		Promise.all([upsertLevelPointsBulk(updates), setLevelPointsToZeroBulk(zeroIds)]),
 	)
 	const projection = syncContributions
-		? await timed('contributionProjection', () => syncUserPointContributionLevels(idLevels))
-		: { levels: 0, users: 0 }
+		? await phaseLogger.run('contributionProjection', () =>
+				syncUserPointContributionLevels(idLevels),
+			)
+		: { idUsers: [], levels: 0, users: 0 }
 	if (!syncContributions) timings.contributionProjectionMs = 0
 	logTimings({
 		requested: idLevels.length,
@@ -216,5 +228,10 @@ export async function updateLevelScoreBatch({
 		projectionUsers: projection.users,
 		reportOnly: false,
 	})
-	return { updated: updatedIds.length, zeroed: zeroedIds.length, reported: 0 }
+	return {
+		affectedUserIds: projection.idUsers,
+		updated: updatedIds.length,
+		zeroed: zeroedIds.length,
+		reported: 0,
+	}
 }

@@ -125,7 +125,7 @@ test('syncs uncapped level contribution projection under ordered player locks', 
 
 	const result = await syncUserPointContributionLevels([8, 7, 8])
 
-	expect(result).toEqual({ levels: 2, users: 2 })
+	expect(result).toEqual({ idUsers: [2, 9], levels: 2, users: 2 })
 	expect(lockQueries).toHaveLength(4)
 	const affectedQuery = new PgDialect().sqlToQuery(lockQueries[0] as SQL)
 	expect(affectedQuery.sql).toContain('ANY($1::integer[])')

@@ -9,25 +9,33 @@ type Payload = {
 }
 
 export const updateLevelScore: TaskHandler<Payload> = async (payload, helpers) => {
-	const { idLevel, idUser } = payload
+	const { idLevel } = payload
 	if (!idLevel) {
 		helpers.logger.warn('updateLevelScore skipped: missing idLevel payload.')
 		return
 	}
 
-	await updateLevelScoreBatch({
+	const result = await updateLevelScoreBatch({
 		idLevels: [idLevel],
 		reportOnly: payload.reportOnly,
 		logger: helpers.logger,
 	})
 
-	if (idUser && !payload.reportOnly) {
-		await helpers.addJob(
-			'updatePlayerScore',
-			{ idUser },
-			playerScoreJobOptions('updatePlayerScore', { idUser }),
+	if (!payload.reportOnly && result.affectedUserIds.length > 0) {
+		await helpers.addJobs(
+			result.affectedUserIds.map((idUser) => {
+				const options = playerScoreJobOptions('updatePlayerScore', { idUser })
+				return {
+					identifier: 'updatePlayerScore',
+					payload: { idUser },
+					jobKey: options.jobKey,
+					queueName: options.queueName,
+				}
+			}),
 		)
 	}
 
-	helpers.logger.info(`updateLevelScore completed for idLevel=${idLevel}.`)
+	helpers.logger.info(`updateLevelScore completed for idLevel=${idLevel}.`, {
+		affectedUsers: result.affectedUserIds.length,
+	})
 }

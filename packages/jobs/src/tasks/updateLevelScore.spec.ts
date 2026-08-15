@@ -1,6 +1,11 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 
-const updateLevelScoreBatch = mock(async () => ({ updated: 1, zeroed: 0, reported: 0 }))
+const updateLevelScoreBatch = mock(async () => ({
+	affectedUserIds: [42],
+	updated: 1,
+	zeroed: 0,
+	reported: 0,
+}))
 
 mock.module('./levelScoreBatch', () => ({ updateLevelScoreBatch }))
 
@@ -14,35 +19,41 @@ test('queues submitting player after contribution projection sync', async () => 
 	const events: string[] = []
 	updateLevelScoreBatch.mockImplementationOnce(async () => {
 		events.push('level-projection')
-		return { updated: 1, zeroed: 0, reported: 0 }
+		return { affectedUserIds: [42, 99], updated: 1, zeroed: 0, reported: 0 }
 	})
-	const addJob = mock(async () => {
+	const addJobs = mock(async () => {
 		events.push('player-job')
 	})
 
 	await updateLevelScore({ idLevel: 7, idUser: 42 }, {
-		addJob,
+		addJobs,
 		logger: { info: mock(() => {}), warn: mock(() => {}) },
 	} as never)
 
 	expect(events).toEqual(['level-projection', 'player-job'])
-	expect(addJob).toHaveBeenCalledWith(
-		'updatePlayerScore',
-		{ idUser: 42 },
+	expect(addJobs).toHaveBeenCalledWith([
 		{
+			identifier: 'updatePlayerScore',
+			payload: { idUser: 42 },
 			jobKey: 'update-player-score:42',
 			queueName: 'player-score-writes',
 		},
-	)
+		{
+			identifier: 'updatePlayerScore',
+			payload: { idUser: 99 },
+			jobKey: 'update-player-score:99',
+			queueName: 'player-score-writes',
+		},
+	])
 })
 
 test('report-only level scoring does not queue player mutation', async () => {
-	const addJob = mock(async () => {})
+	const addJobs = mock(async () => {})
 
 	await updateLevelScore({ idLevel: 7, idUser: 42, reportOnly: true }, {
-		addJob,
+		addJobs,
 		logger: { info: mock(() => {}), warn: mock(() => {}) },
 	} as never)
 
-	expect(addJob).not.toHaveBeenCalled()
+	expect(addJobs).not.toHaveBeenCalled()
 })

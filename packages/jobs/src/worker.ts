@@ -5,6 +5,7 @@ import { cronTasks } from './cronTasks'
 import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from './priorities'
 import { taskList } from './tasks'
 import { cronJobOptions } from './utils/cronJobOptions'
+import { createJobWorkerEvents } from './workerEvents'
 import { jobsWorkerPreset } from './workerOptions'
 
 export const defaultJobOptions: TaskSpec = {
@@ -21,8 +22,13 @@ let runner: Awaited<ReturnType<typeof run>> | null = null
 let runnerStop: Promise<void> | null = null
 const cronJobs: CronJob[] = []
 
-export async function startRunner() {
+export async function startRunner({
+	onPoolCreated,
+}: {
+	onPoolCreated?: (poolId: string) => void
+} = {}) {
 	runnerStop = null
+	const events = createJobWorkerEvents({ onPoolCreated })
 	runner = await run({
 		connectionString: jobsConfig.databaseUrl,
 		crontabFile: '',
@@ -30,6 +36,7 @@ export async function startRunner() {
 		maxPoolSize: 15,
 		taskList: taskList as Parameters<typeof run>[0]['taskList'],
 		noHandleSignals: true,
+		events,
 		preset: jobsWorkerPreset,
 	})
 	console.info(`Job runner started (PID ${process.pid})`)

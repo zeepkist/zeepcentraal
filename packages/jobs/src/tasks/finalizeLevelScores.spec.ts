@@ -6,7 +6,11 @@ const syncChangedLevelPointContributionValues = mock(async () => ({
 	updated: 30,
 	users: 12,
 }))
-const syncUserPointContributionLevels = mock(async () => ({ levels: 2, users: 4 }))
+const syncUserPointContributionLevels = mock(async () => ({
+	idUsers: [1, 2, 3, 4],
+	levels: 2,
+	users: 4,
+}))
 
 mock.module('@zeepkist/database', () => ({
 	syncChangedLevelPointContributionValues,
@@ -23,11 +27,17 @@ beforeEach(() => {
 test('full run applies point deltas then queues player score refresh', async () => {
 	const addJob = mock(async () => {})
 	const info = mock((_message: string, _metadata?: unknown) => {})
+	const logger = {
+		debug: mock(() => {}),
+		error: mock(() => {}),
+		info,
+		warn: mock(() => {}),
+	}
 	const runId = crypto.randomUUID()
 
 	await finalizeLevelScores({ all: true, runId }, {
 		addJob,
-		logger: { info },
+		logger,
 	} as never)
 
 	expect(syncChangedLevelPointContributionValues).toHaveBeenCalledTimes(1)
@@ -57,12 +67,23 @@ test('full run applies point deltas then queues player score refresh', async () 
 
 test('incremental run projects all changed levels once', async () => {
 	const info = mock((_message: string, _metadata?: unknown) => {})
+	const logger = {
+		debug: mock(() => {}),
+		error: mock(() => {}),
+		info,
+		warn: mock(() => {}),
+	}
 	await finalizeLevelScores({ all: false, ids: [2, 3], runId: crypto.randomUUID() }, {
 		addJob: mock(async () => {}),
-		logger: { info },
+		logger,
 	} as never)
 
-	expect(syncUserPointContributionLevels).toHaveBeenCalledWith([2, 3])
+	expect(syncUserPointContributionLevels).toHaveBeenCalledWith(
+		[2, 3],
+		expect.objectContaining({ runPhase: expect.any(Function) }),
+	)
 	expect(syncChangedLevelPointContributionValues).not.toHaveBeenCalled()
-	expect(info.mock.calls[0]?.[0]).toContain('mode=projection levels=2 users=4')
+	expect(
+		info.mock.calls.some(([message]) => message.includes('mode=projection levels=2 users=4')),
+	).toBe(true)
 })

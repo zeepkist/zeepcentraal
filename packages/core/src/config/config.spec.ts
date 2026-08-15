@@ -32,6 +32,12 @@ test('database config parses without server-only secrets', () => {
 	const config = parseDatabaseConfig({})
 
 	expect(config.databaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
+	expect(config.databaseTimeouts).toEqual({
+		connectMs: undefined,
+		statementMs: undefined,
+		lockMs: undefined,
+		idleTransactionMs: undefined,
+	})
 	expect(config.wasabi.ghostFolder).toBe('ghosts-dev')
 	expect(config.wasabi.thumbnailFolder).toBe('thumbnails-dev')
 })
@@ -40,7 +46,29 @@ test('jobs config parses without cache configuration', () => {
 	const config = parseJobsConfig({})
 
 	expect(config.databaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
+	expect(config.databaseTimeouts).toEqual({
+		connectMs: 5000,
+		statementMs: 300000,
+		lockMs: 30000,
+		idleTransactionMs: 60000,
+	})
 	expect(config.queuePoolMax).toBe(2)
+})
+
+test('jobs config accepts bounded database timeouts', () => {
+	const config = parseJobsConfig({
+		DATABASE_CONNECT_TIMEOUT_MS: '2500',
+		DATABASE_STATEMENT_TIMEOUT_MS: '180000',
+		DATABASE_LOCK_TIMEOUT_MS: '20000',
+		DATABASE_IDLE_TRANSACTION_TIMEOUT_MS: '45000',
+	})
+
+	expect(config.databaseTimeouts).toEqual({
+		connectMs: 2500,
+		statementMs: 180000,
+		lockMs: 20000,
+		idleTransactionMs: 45000,
+	})
 })
 
 test('jobs config accepts a custom queue pool maximum', () => {

@@ -1,4 +1,5 @@
 import { releaseLevelRequest } from '@zeepkist/database/services/workshop'
+import { levelScoreJobOptions } from '../utils/levelScoreJobOptions'
 import { getWorkshopScanner } from '../workshopScanner'
 import type { TaskHandler } from './types'
 
@@ -15,7 +16,7 @@ export const scanWorkshopItem: TaskHandler<Payload> = async (payload, helpers) =
 		result.changedLevelIds.map((idLevel) => ({
 			identifier: 'updateLevelScore',
 			payload: { idLevel },
-			jobKey: `update-level-score:${idLevel}`,
+			...levelScoreJobOptions('updateLevelScore', { idLevel }),
 		})),
 	)
 	helpers.logger.info(

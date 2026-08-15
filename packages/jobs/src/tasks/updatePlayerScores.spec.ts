@@ -105,7 +105,9 @@ test('logs PostgreSQL metadata and affected user batch before rethrow', async ()
 			constraint: 'user_point_contribution_pkey',
 			detail: 'Key already exists.',
 			message: 'duplicate key',
+			messages: ['Failed query', 'duplicate key'],
 			routine: '_bt_check_unique',
+			wrapperMessage: 'Failed query',
 		},
 	})
 	expect(error).toHaveBeenCalledWith('updatePlayerScores failed.', {
@@ -115,7 +117,9 @@ test('logs PostgreSQL metadata and affected user batch before rethrow', async ()
 			constraint: 'user_point_contribution_pkey',
 			detail: 'Key already exists.',
 			message: 'duplicate key',
+			messages: ['Failed query', 'duplicate key'],
 			routine: '_bt_check_unique',
+			wrapperMessage: 'Failed query',
 		},
 	})
 })
