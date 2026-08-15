@@ -47,3 +47,8 @@ export const uiIcons = {
 export const bundledUiIcons = Object.values(uiIcons).map((icon) =>
 	icon.replace(/^i-([^-]+)-/, '$1:'),
 )
+
+export const uiIconClientBundle = {
+	icons: bundledUiIcons,
+	scan: true as const,
+}

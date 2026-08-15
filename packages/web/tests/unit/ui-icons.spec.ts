@@ -1,6 +1,6 @@
 import { icons as tablerIconSet } from '@iconify-json/tabler'
 import { describe, expect, it } from 'vitest'
-import { bundledUiIcons, uiIcons } from '../../config/uiIcons'
+import { bundledUiIcons, uiIconClientBundle, uiIcons } from '../../config/uiIcons'
 
 const nuxtUiIconKeys = [
 	'arrowDown',
@@ -58,8 +58,12 @@ describe('Nuxt UI icons', () => {
 		}
 	})
 
-	it('pre-bundles every semantic default for SSR', () => {
-		expect(bundledUiIcons).toEqual(
+	it('pre-bundles semantic defaults and scans app icon literals for SSR', () => {
+		expect(uiIconClientBundle).toEqual({
+			icons: bundledUiIcons,
+			scan: true,
+		})
+		expect(uiIconClientBundle.icons).toEqual(
 			Object.values(uiIcons).map((icon) => icon.replace(/^i-tabler-/, 'tabler:')),
 		)
 	})

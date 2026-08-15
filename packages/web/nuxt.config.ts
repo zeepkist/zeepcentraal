@@ -3,7 +3,7 @@ import { ADVENTURE_SERIES } from './app/utils/adventureSeries'
 import { getBuildAssetsDir } from './config/buildAssets'
 import { clientFsStub } from './config/clientFsStub'
 import { createNitroCacheStorageOptions } from './config/nitroCache'
-import { bundledUiIcons, uiIcons } from './config/uiIcons'
+import { uiIconClientBundle, uiIcons } from './config/uiIcons'
 
 const ogImageModuleUrl = import.meta.resolve('nuxt-og-image')
 const ogImageUrlBuilderPath = fileURLToPath(
@@ -113,9 +113,7 @@ export default defineNuxtConfig({
 		provider: 'none',
 	},
 	icon: {
-		clientBundle: {
-			icons: bundledUiIcons,
-		},
+		clientBundle: uiIconClientBundle,
 	},
 	routeRules: {
 		'/auth/callback': { redirect: { to: '/?auth=callback', statusCode: 302 } },
