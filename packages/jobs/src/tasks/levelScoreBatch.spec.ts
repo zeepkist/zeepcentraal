@@ -115,7 +115,7 @@ test('persists only retained V2 score fields', async () => {
 		idLevel: 1,
 		qualityModifier: expect.any(Number),
 		rating: 0.5,
-		ratingModifier: 1,
+		ratingModifier: 0.8,
 		skillScore: 0.5,
 	})
 })
@@ -131,7 +131,7 @@ test('boosts level points after five mature positive votes', async () => {
 	})
 
 	const updates = upsertLevelPointsBulk.mock.calls[0]?.[0] as Array<Record<string, unknown>>
-	expect(updates[0]).toMatchObject({ rating: 0.75, ratingModifier: 1.125 })
+	expect(updates[0]).toMatchObject({ rating: 0.75, ratingModifier: 0.9 })
 })
 
 test('skips score evidence reads for unavailable levels', async () => {

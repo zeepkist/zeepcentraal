@@ -253,11 +253,11 @@ const prepareLevelScoreInput = (input: LevelScoreInput): PreparedLevelScoreInput
 
 const calculateVoteFactor = (normalized: NormalizedLevelScoreInput): number => {
 	const { matureVoteCount, voteRating } = normalized
-	if (matureVoteCount === 0 || voteRating === null) return 1
+	if (matureVoteCount === 0 || voteRating === null) return 0.8
 	return clamp(
-		voteRating <= 0.5 ? 0.95 + voteRating * 0.1 : 1 + (voteRating - 0.5) * 0.5,
-		0.95,
-		1.25,
+		voteRating <= 0.5 ? 0.76 + voteRating * 0.08 : 0.8 + (voteRating - 0.5) * 0.4,
+		0.76,
+		1,
 	)
 }
 
@@ -459,15 +459,15 @@ export function calculateLevelPointsV2(input: LevelScoreInput): LevelScoreResult
 		qualityFactor,
 		voteFactor,
 	}
-	const rawPoints =
-		MAX_LEVEL_POINTS *
-		factors.lengthFactor *
-		factors.evidenceFactor *
-		factors.qualityFactor *
-		factors.voteFactor
+	const finalMultiplier = clamp(
+		factors.lengthFactor * factors.evidenceFactor * factors.qualityFactor * factors.voteFactor,
+	)
+	const roundedPoints = ceilLevelPointsV2(MAX_LEVEL_POINTS * finalMultiplier)
+	const points =
+		finalMultiplier < 1 ? Math.min(roundedPoints, MAX_LEVEL_POINTS - 2) : roundedPoints
 
 	return {
-		points: ceilLevelPointsV2(rawPoints),
+		points,
 		factors,
 		metrics: {
 			complexityConfidence: complexity.confidence,

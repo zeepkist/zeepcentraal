@@ -104,16 +104,56 @@ describe('calculateLevelPointsV2', () => {
 		const neutral = calculateLevelPointsV2({ ...base, voteRating: 0.5 })
 		const positive = calculateLevelPointsV2({ ...base, voteRating: 0.75 })
 
-		expect(calculateLevelPointsV2({ ...base, voteRating: 0 }).factors.voteFactor).toBe(0.95)
-		expect(neutral.factors.voteFactor).toBe(1)
-		expect(positive.factors.voteFactor).toBe(1.125)
-		expect(calculateLevelPointsV2({ ...base, voteRating: 1 }).factors.voteFactor).toBe(1.25)
+		expect(calculateLevelPointsV2({ ...base, voteRating: 0 }).factors.voteFactor).toBe(0.76)
+		expect(neutral.factors.voteFactor).toBe(0.8)
+		expect(positive.factors.voteFactor).toBe(0.9)
+		expect(calculateLevelPointsV2({ ...base, voteRating: 1 }).factors.voteFactor).toBe(1)
 		expect(positive.points).toBeGreaterThan(neutral.points)
-		expect(calculateLevelPointsV2(base).factors.voteFactor).toBe(1)
+		expect(calculateLevelPointsV2(base).factors.voteFactor).toBe(0.8)
 		expect(
 			calculateLevelPointsV2({ ...base, voteRating: 1, matureVoteCount: 0 }).factors
 				.voteFactor,
-		).toBe(1)
+		).toBe(0.8)
+	})
+
+	test('reserves maximum points for an exact maximum combined multiplier', () => {
+		const maximumPersonalBests = personalBests(20, (_index, time) => ({
+			telemetry: telemetry(time, {
+				turnLeftTime: time * 0.63,
+				turnRightTime: 0,
+				driverInputTransitionCount: time * 1.89,
+			}),
+		}))
+		const maximum = calculateLevelPointsV2({
+			personalBests: maximumPersonalBests,
+			skill: strongSkill,
+			matureVoteCount: 10,
+			voteRating: 1,
+		})
+		const submaximumVote = calculateLevelPointsV2({
+			personalBests: maximumPersonalBests,
+			skill: strongSkill,
+			matureVoteCount: 10,
+			voteRating: 0.999999,
+		})
+		const submaximumEvidence = calculateLevelPointsV2({
+			personalBests: maximumPersonalBests.slice(0, 15),
+			skill: strongSkill,
+			matureVoteCount: 10,
+			voteRating: 1,
+		})
+
+		expect(maximum.factors).toEqual({
+			evidenceFactor: 1,
+			lengthFactor: 1,
+			qualityFactor: 1,
+			voteFactor: 1,
+		})
+		expect(maximum.points).toBe(9_984)
+		expect(submaximumVote.factors.voteFactor).toBeLessThan(1)
+		expect(submaximumVote.points).toBe(9_982)
+		expect(submaximumEvidence.factors.evidenceFactor).toBeLessThan(1)
+		expect(submaximumEvidence.points).toBeLessThanOrEqual(9_982)
 	})
 
 	test('shrinks missing complexity and skill evidence to neutral', () => {
