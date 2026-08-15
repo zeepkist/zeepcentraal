@@ -101,20 +101,20 @@ export const LEVEL_SCORE_V2_SKILL = {
 	alignment: { minimum: 0.45, maximum: 0.85 },
 	separation: { minimum: 0.005, maximum: 0.07 },
 	fieldStrength: { minimum: 0.6, maximum: 0.8 },
-	minimumRatedPlayers: 20,
-	fullRatedPlayers: 100,
+	minimumRatedPlayers: 8,
+	fullRatedPlayers: 64,
 } as const
 
 export const LEVEL_SCORE_V2_EVIDENCE = {
-	minimumFactor: 0.2,
-	minimumPersonalBests: 5,
-	fullPersonalBests: 20,
+	minimumFactor: 0.1,
+	minimumPersonalBests: 3,
+	fullPersonalBests: 16,
 } as const
 
 export const LEVEL_SCORE_V2_QUALITY = {
 	minimumFactor: 0.1,
-	complexityWeight: 0.5,
-	skillWeight: 0.5,
+	complexityWeight: 0.55,
+	skillWeight: 0.45,
 } as const
 
 export const LEVEL_SCORE_V2_POINTS = {

@@ -86,17 +86,17 @@ describe('calculateLevelPointsV2', () => {
 	})
 
 	test('uses sparse-board evidence protection and reaches full evidence at 20 PBs', () => {
-		const five = calculateLevelPointsV2({ personalBests: personalBests(5) })
+		const three = calculateLevelPointsV2({ personalBests: personalBests(3) })
 		const twenty = calculateLevelPointsV2({ personalBests: personalBests(20) })
 		const truncatedTwenty = calculateLevelPointsV2({
 			personalBests: personalBests(10),
 			personalBestCount: 20,
 		})
 
-		expect(five.factors.evidenceFactor).toBe(LEVEL_SCORE_V2_EVIDENCE.minimumFactor)
+		expect(three.factors.evidenceFactor).toBe(LEVEL_SCORE_V2_EVIDENCE.minimumFactor)
 		expect(twenty.factors.evidenceFactor).toBe(1)
 		expect(truncatedTwenty.factors.evidenceFactor).toBe(1)
-		expect(twenty.points).toBeGreaterThan(five.points)
+		expect(twenty.points).toBeGreaterThan(three.points)
 	})
 
 	test('asymmetrically rewards positive mature votes in final score', () => {
