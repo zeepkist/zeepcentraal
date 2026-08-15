@@ -12,7 +12,7 @@ test('groups level score updates into bounded jobs', () => {
 	)
 
 	expect(jobs).toHaveLength(3)
-	expect(jobs.map((job) => job.payload.ids.length)).toEqual([100, 100, 1])
+	expect(jobs.map((job) => job.payload.ids.length)).toEqual([50, 50, 1])
 	expect(jobs.every((job) => job.identifier === 'updateLevelScoresBatch')).toBe(true)
 	expect(jobs.every((job) => job.payload.reportOnly === false)).toBe(true)
 	expect(jobs.map((job) => job.queueName)).toEqual([
