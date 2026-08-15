@@ -55,7 +55,8 @@ mock.module('@zeepkist/database/services', () => ({
 }))
 mock.module('../utils/recalculatePlayerScore', () => ({ recalculateAndPersistPlayerScore }))
 
-const { PLAYER_SCORE_WRITE_CONCURRENCY, updatePlayerScores } = await import('./updatePlayerScores')
+const { PLAYER_SCORE_BATCH_CONCURRENCY, PLAYER_SCORE_WRITE_CONCURRENCY, updatePlayerScores } =
+	await import('./updatePlayerScores')
 
 beforeEach(() => {
 	contributionError = persistenceError
@@ -125,6 +126,7 @@ test('logs phase completion for successful full recalculation', async () => {
 	)
 	expect(batchCompletion?.[0]).toMatch(/^Updated player score batch 1\/1 \(\d+ms\)\.$/)
 	expect(batchCompletion?.[1]).toEqual(expect.objectContaining({ batchMs: expect.any(Number) }))
+	expect(PLAYER_SCORE_BATCH_CONCURRENCY).toBe(2)
 	expect(PLAYER_SCORE_WRITE_CONCURRENCY).toBe(5)
 	expect(recalculateAndPersistPlayerScore).toHaveBeenCalledWith({
 		idUser: 42,

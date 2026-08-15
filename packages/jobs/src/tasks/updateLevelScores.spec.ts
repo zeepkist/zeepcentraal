@@ -19,9 +19,12 @@ mock.module('@zeepkist/database', () => ({
 }))
 mock.module('./levelScoreBatch', () => ({ updateLevelScoreBatch }))
 
-const { LEVEL_SCORE_BATCH_SIZE, RECENT_LEVEL_SCORE_LOOKBACK_MS, updateLevelScores } = await import(
-	'./updateLevelScores'
-)
+const {
+	LEVEL_SCORE_BATCH_CONCURRENCY,
+	LEVEL_SCORE_BATCH_SIZE,
+	RECENT_LEVEL_SCORE_LOOKBACK_MS,
+	updateLevelScores,
+} = await import('./updateLevelScores')
 
 function createHelpers() {
 	return {
@@ -70,13 +73,14 @@ test('rebuilds independent skill and queues one player refresh after full scorin
 	)
 })
 
-test('processes levels sequentially in batches of 50 with progress metadata', async () => {
+test('processes levels with two concurrent batches of 50 and progress metadata', async () => {
 	allLevelIds = Array.from({ length: 101 }, (_, index) => index + 1)
 	const helpers = createHelpers()
 
 	await updateLevelScores({ all: true }, helpers as never)
 
 	expect(LEVEL_SCORE_BATCH_SIZE).toBe(50)
+	expect(LEVEL_SCORE_BATCH_CONCURRENCY).toBe(2)
 	expect(updateLevelScoreBatch.mock.calls.map(([input]) => input.idLevels.length)).toEqual([
 		50, 50, 1,
 	])

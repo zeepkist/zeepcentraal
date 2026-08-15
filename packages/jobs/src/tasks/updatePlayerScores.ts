@@ -4,7 +4,7 @@ import {
 	resetInactiveUserScores,
 	updateUserRanks,
 } from '@zeepkist/database/services'
-import { batchProcess } from '../utils'
+import { batchProcess, runWithConcurrency } from '../utils'
 import { getPostgresErrorMetadata } from '../utils/postgresError'
 import { recalculateAndPersistPlayerScore } from '../utils/recalculatePlayerScore'
 import type { TaskHandler } from './types'
@@ -17,6 +17,7 @@ interface PointsList {
 }
 
 const PLAYER_SCORE_BATCH_SIZE = 50
+export const PLAYER_SCORE_BATCH_CONCURRENCY = 2
 export const PLAYER_SCORE_WRITE_CONCURRENCY = 5
 
 export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers) => {
@@ -81,75 +82,75 @@ async function recalculatePlayerScores(
 
 	const userBatches = Array.from(batchProcess(rankedUsers, PLAYER_SCORE_BATCH_SIZE))
 	let processedUsers = 0
-	for (let batchIndex = 0; batchIndex < userBatches.length; batchIndex++) {
-		const userBatch = userBatches[batchIndex]
-		if (!userBatch) {
-			continue
-		}
-		const batchStartedAt = Date.now()
+	await runWithConcurrency(
+		userBatches,
+		PLAYER_SCORE_BATCH_CONCURRENCY,
+		async (userBatch, batchIndex) => {
+			const batchStartedAt = Date.now()
 
-		helpers.logger.info(
-			`Updating player score batch ${batchIndex + 1}/${userBatches.length} (${userBatch.length} users).`,
-		)
+			helpers.logger.info(
+				`Updating player score batch ${batchIndex + 1}/${userBatches.length} (${userBatch.length} users).`,
+			)
 
-		const idUsers = userBatch.map(({ idUser }) => idUser)
-		const contributionReadStartedAt = Date.now()
-		const contributionsByUser = await getUserPointContributionsForUsers(idUsers)
-		const contributionReadMs = Date.now() - contributionReadStartedAt
+			const idUsers = userBatch.map(({ idUser }) => idUser)
+			const contributionReadStartedAt = Date.now()
+			const contributionsByUser = await getUserPointContributionsForUsers(idUsers)
+			const contributionReadMs = Date.now() - contributionReadStartedAt
 
-		const persistenceStartedAt = Date.now()
-		try {
-			for (const writeBatch of batchProcess(userBatch, PLAYER_SCORE_WRITE_CONCURRENCY)) {
-				const results = await Promise.all(
-					writeBatch.map(async ({ idUser }) => ({
-						idUser,
-						result: await recalculateAndPersistPlayerScore({
+			const persistenceStartedAt = Date.now()
+			try {
+				for (const writeBatch of batchProcess(userBatch, PLAYER_SCORE_WRITE_CONCURRENCY)) {
+					const results = await Promise.all(
+						writeBatch.map(async ({ idUser }) => ({
 							idUser,
-							initialContributions: contributionsByUser.get(idUser) ?? [],
-							onSnapshotMismatch: (attempt) =>
-								helpers.logger.warn(
-									`Player contribution snapshot changed for idUser=${idUser}; retrying (${attempt}/3).`,
-								),
-						}),
-					})),
-				)
-				for (const { idUser, result } of results) {
-					pointsList.push({ idUser, points: result.points })
+							result: await recalculateAndPersistPlayerScore({
+								idUser,
+								initialContributions: contributionsByUser.get(idUser) ?? [],
+								onSnapshotMismatch: (attempt) =>
+									helpers.logger.warn(
+										`Player contribution snapshot changed for idUser=${idUser}; retrying (${attempt}/3).`,
+									),
+							}),
+						})),
+					)
+					for (const { idUser, result } of results) {
+						pointsList.push({ idUser, points: result.points })
+					}
 				}
+			} catch (error) {
+				helpers.logger.error('Player score batch persistence failed.', {
+					idUsers,
+					persistenceMs: Date.now() - persistenceStartedAt,
+					postgres: getPostgresErrorMetadata(error),
+				})
+				throw error
 			}
-		} catch (error) {
-			helpers.logger.error('Player score batch persistence failed.', {
-				idUsers,
-				persistenceMs: Date.now() - persistenceStartedAt,
-				postgres: getPostgresErrorMetadata(error),
-			})
-			throw error
-		}
 
-		processedUsers += userBatch.length
-		const totalMs = Date.now() - taskStartedAt
-		const progress =
-			rankedUsers.length === 0 ? 100 : (processedUsers / rankedUsers.length) * 100
-		const etaMs =
-			processedUsers === 0
-				? 0
-				: Math.round((totalMs / processedUsers) * (rankedUsers.length - processedUsers))
-		const batchMs = Date.now() - batchStartedAt
-		helpers.logger.info(
-			`Updated player score batch ${batchIndex + 1}/${userBatches.length} (${batchMs}ms).`,
-			{
-				batchMs,
-				users: userBatch.length,
-				processedUsers,
-				totalUsers: rankedUsers.length,
-				progress: Number(progress.toFixed(2)),
-				etaMs,
-				contributionReadMs,
-				persistenceMs: Date.now() - persistenceStartedAt,
-				totalMs,
-			},
-		)
-	}
+			processedUsers += userBatch.length
+			const totalMs = Date.now() - taskStartedAt
+			const progress =
+				rankedUsers.length === 0 ? 100 : (processedUsers / rankedUsers.length) * 100
+			const etaMs =
+				processedUsers === 0
+					? 0
+					: Math.round((totalMs / processedUsers) * (rankedUsers.length - processedUsers))
+			const batchMs = Date.now() - batchStartedAt
+			helpers.logger.info(
+				`Updated player score batch ${batchIndex + 1}/${userBatches.length} (${batchMs}ms).`,
+				{
+					batchMs,
+					users: userBatch.length,
+					processedUsers,
+					totalUsers: rankedUsers.length,
+					progress: Number(progress.toFixed(2)),
+					etaMs,
+					contributionReadMs,
+					persistenceMs: Date.now() - persistenceStartedAt,
+					totalMs,
+				},
+			)
+		},
+	)
 
 	const usersSortedByHighestPoints = pointsList.sort((a, b) => b.points - a.points)
 	let currentRank = 1
