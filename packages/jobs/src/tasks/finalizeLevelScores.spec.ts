@@ -22,11 +22,12 @@ beforeEach(() => {
 
 test('full run applies point deltas then queues player score refresh', async () => {
 	const addJob = mock(async () => {})
+	const info = mock((_message: string, _metadata?: unknown) => {})
 	const runId = crypto.randomUUID()
 
 	await finalizeLevelScores({ all: true, runId }, {
 		addJob,
-		logger: { info: mock(() => {}) },
+		logger: { info },
 	} as never)
 
 	expect(syncChangedLevelPointContributionValues).toHaveBeenCalledTimes(1)
@@ -40,14 +41,28 @@ test('full run applies point deltas then queues player score refresh', async () 
 			queueName: 'player-score-writes',
 		},
 	)
+	expect(info).toHaveBeenCalledWith(
+		expect.stringContaining(
+			`run=${runId} mode=delta updated=30 deleted=2 fallbackLevels=1 users=12`,
+		),
+		expect.objectContaining({
+			all: true,
+			deleted: 2,
+			fallbackLevels: 1,
+			updated: 30,
+			users: 12,
+		}),
+	)
 })
 
 test('incremental run projects all changed levels once', async () => {
+	const info = mock((_message: string, _metadata?: unknown) => {})
 	await finalizeLevelScores({ all: false, ids: [2, 3], runId: crypto.randomUUID() }, {
 		addJob: mock(async () => {}),
-		logger: { info: mock(() => {}) },
+		logger: { info },
 	} as never)
 
 	expect(syncUserPointContributionLevels).toHaveBeenCalledWith([2, 3])
 	expect(syncChangedLevelPointContributionValues).not.toHaveBeenCalled()
+	expect(info.mock.calls[0]?.[0]).toContain('mode=projection levels=2 users=4')
 })

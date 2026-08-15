@@ -1,4 +1,8 @@
-import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from '../priorities'
+import {
+	DEFAULT_JOB_PRIORITY,
+	LEVEL_SCORE_FINALIZER_PRIORITY,
+	PRIORITY_JOB_PRIORITY,
+} from '../priorities'
 import { LEVEL_SCORE_QUEUE_NAMES } from '../utils/createLevelScoreBatchJobs'
 import { PLAYER_SCORE_QUEUE_NAME } from '../utils/playerScoreJobOptions'
 import type { TaskHandler } from './types'
@@ -32,8 +36,10 @@ export const updateLevelScoresBarrier: TaskHandler<Payload> = async (payload, he
 	const { phase: _, ...finalizationPayload } = payload
 	await helpers.addJob('finalizeLevelScores', finalizationPayload, {
 		jobKey: `finalize-level-scores:${payload.runId}`,
-		priority,
+		priority: LEVEL_SCORE_FINALIZER_PRIORITY,
 		queueName: PLAYER_SCORE_QUEUE_NAME,
 	})
-	helpers.logger.info(`Level score run ${payload.runId} cleared both batch queues.`)
+	helpers.logger.info(
+		`Level score run ${payload.runId} cleared both batch queues; queued contribution finalizer at priority ${LEVEL_SCORE_FINALIZER_PRIORITY}.`,
+	)
 }

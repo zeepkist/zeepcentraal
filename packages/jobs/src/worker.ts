@@ -5,6 +5,7 @@ import { cronTasks } from './cronTasks'
 import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from './priorities'
 import { taskList } from './tasks'
 import { cronJobOptions } from './utils/cronJobOptions'
+import { jobsWorkerPreset } from './workerOptions'
 
 export const defaultJobOptions: TaskSpec = {
 	priority: DEFAULT_JOB_PRIORITY,
@@ -29,13 +30,7 @@ export async function startRunner() {
 		maxPoolSize: 15,
 		taskList: taskList as Parameters<typeof run>[0]['taskList'],
 		noHandleSignals: true,
-		preset: {
-			worker: {
-				localQueue: { size: 200 },
-				completeJobBatchDelay: 0,
-				failJobBatchDelay: 0,
-			},
-		},
+		preset: jobsWorkerPreset,
 	})
 	console.info(`Job runner started (PID ${process.pid})`)
 }

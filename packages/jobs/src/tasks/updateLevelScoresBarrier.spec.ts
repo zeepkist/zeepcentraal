@@ -29,8 +29,35 @@ test('chains queue barriers then queues serialized finalizer', async () => {
 		{ all: false, ids: [1, 2], runId: payload.runId },
 		{
 			jobKey: `finalize-level-scores:${payload.runId}`,
-			priority: 0,
+			priority: -10,
 			queueName: 'player-score-writes',
 		},
+	)
+})
+
+test('keeps full barrier behind full batches but prioritizes its finalizer', async () => {
+	const addJob = mock(async () => {})
+	const logger = { info: mock(() => {}) }
+	const runId = crypto.randomUUID()
+
+	await updateLevelScoresBarrier({ all: true, phase: 'queue0', runId }, {
+		addJob,
+		logger,
+	} as never)
+	expect(addJob).toHaveBeenCalledWith(
+		'updateLevelScoresBarrier',
+		{ all: true, phase: 'queue1', runId },
+		expect.objectContaining({ priority: 5, queueName: 'level-score-batch-1' }),
+	)
+
+	addJob.mockClear()
+	await updateLevelScoresBarrier({ all: true, phase: 'queue1', runId }, {
+		addJob,
+		logger,
+	} as never)
+	expect(addJob).toHaveBeenCalledWith(
+		'finalizeLevelScores',
+		{ all: true, runId },
+		expect.objectContaining({ priority: -10, queueName: 'player-score-writes' }),
 	)
 })
