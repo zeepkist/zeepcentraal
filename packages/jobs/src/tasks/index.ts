@@ -4,6 +4,7 @@ import {
 	backfillRecordGhostStatistics,
 	backfillRecordGhostStatisticsBatch,
 } from './backfillRecordGhostStatistics'
+import { finalizeLevelScores } from './finalizeLevelScores'
 import { recoverLevelRequests } from './recoverLevelRequests'
 import { rotateTrackTournament } from './rotateTrackTournament'
 import { scanWorkshopBatch } from './scanWorkshopBatch'
@@ -14,6 +15,7 @@ import { updateLevelPointsHistory } from './updateLevelPointsHistory'
 import { updateLevelPointsHistoryBatch } from './updateLevelPointsHistoryBatch'
 import { updateLevelScore } from './updateLevelScore'
 import { updateLevelScores } from './updateLevelScores'
+import { updateLevelScoresBarrier } from './updateLevelScoresBarrier'
 import { updateLevelScoresBatch } from './updateLevelScoresBatch'
 import { updatePlayerScore } from './updatePlayerScore'
 import { updatePlayerScores } from './updatePlayerScores'
@@ -32,11 +34,13 @@ export const taskList = {
 	rotateTrackTournament: rotateTrackTournament as GWTask,
 	syncPersonalBests: syncPersonalBests as GWTask,
 	syncWorkshopCatalog: syncWorkshopCatalog as GWTask,
+	finalizeLevelScores: finalizeLevelScores as GWTask,
 	updateLevelPointsHistory: updateLevelPointsHistory as GWTask,
 	updateLevelPointsHistoryBatch: updateLevelPointsHistoryBatch as GWTask,
 	updateLevelScore: updateLevelScore as GWTask,
 	updateLevelScores: updateLevelScores as GWTask,
 	updateLevelScoresBatch: updateLevelScoresBatch as GWTask,
+	updateLevelScoresBarrier: updateLevelScoresBarrier as GWTask,
 	updatePlayerScore: updatePlayerScore as GWTask,
 	updatePlayerScores: updatePlayerScores as GWTask,
 	updateUserPointsHistory: updateUserPointsHistory as GWTask,

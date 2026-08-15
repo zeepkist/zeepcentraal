@@ -4,6 +4,9 @@ import { PgDialect } from 'drizzle-orm/pg-core'
 
 const lockQueries: unknown[] = []
 let affectedProjectionUsers: Array<{ idUser: number }> = []
+let fallbackLevels: Array<{ idLevel: number }> = []
+let changedRows = 0
+let deletedRows = 0
 let failSecondPlayerUpdate = false
 let playerUpdateCount = 0
 const execute = mock(async (query: unknown) => {
@@ -15,6 +18,15 @@ const execute = mock(async (query: unknown) => {
 			throw new Error('update failed')
 		}
 	}
+	if (compiled.sql.includes('SELECT "level_points"."id_level" AS "idLevel"')) {
+		return fallbackLevels
+	}
+	if (compiled.sql.includes('SELECT COUNT(*)::integer AS count FROM updated')) {
+		return [{ count: changedRows }]
+	}
+	if (compiled.sql.includes('SELECT COUNT(*)::integer AS count FROM deleted')) {
+		return [{ count: deletedRows }]
+	}
 	return compiled.sql.includes('SELECT DISTINCT affected.id_user') ? affectedProjectionUsers : []
 })
 const tx = { execute }
@@ -22,12 +34,18 @@ const transaction = mock(async (callback: (value: typeof tx) => Promise<void>) =
 
 mock.module('../client', () => ({ db: { transaction } }))
 
-const { syncUserPointContributionLevels, updateUserPointContributionPlayerValuesBulk } =
-	await import('./userPointContribution')
+const {
+	syncChangedLevelPointContributionValues,
+	syncUserPointContributionLevels,
+	updateUserPointContributionPlayerValuesBulk,
+} = await import('./userPointContribution')
 
 beforeEach(() => {
 	lockQueries.length = 0
 	affectedProjectionUsers = []
+	fallbackLevels = []
+	changedRows = 0
+	deletedRows = 0
 	failSecondPlayerUpdate = false
 	playerUpdateCount = 0
 	transaction.mockClear()
@@ -129,4 +147,30 @@ test('syncs uncapped level contribution projection under ordered player locks', 
 	const deleteQuery = new PgDialect().sqlToQuery(lockQueries[3] as SQL)
 	expect(deleteQuery.sql).toContain('DELETE FROM "user_point_contribution" AS contribution')
 	expect(deleteQuery.sql).toContain('NOT EXISTS')
+})
+
+test('syncs changed level-point values once and fully projects newly positive levels', async () => {
+	fallbackLevels = [{ idLevel: 12 }]
+	affectedProjectionUsers = [{ idUser: 2 }, { idUser: 9 }]
+	changedRows = 25
+	deletedRows = 3
+
+	const result = await syncChangedLevelPointContributionValues()
+
+	expect(result).toEqual({ deleted: 3, fallbackLevels: 1, updated: 25, users: 2 })
+	const compiled = lockQueries.map((query) => new PgDialect().sqlToQuery(query as SQL))
+	expect(compiled.filter((query) => query.sql.includes('pg_advisory_xact_lock'))).toHaveLength(1)
+	const updateQuery = compiled.find((query) =>
+		query.sql.includes('WITH updated AS (\n\t\t\t\tUPDATE "user_point_contribution"'),
+	)
+	expect(updateQuery?.sql).toContain('level_points = current_level.points')
+	expect(updateQuery?.sql).toContain('level_decayed_points = CASE')
+	expect(updateQuery?.sql).toContain('IS DISTINCT FROM ROW')
+	const deleteQuery = compiled.find((query) =>
+		query.sql.includes('SELECT COUNT(*)::integer AS count FROM deleted'),
+	)
+	expect(deleteQuery?.sql).toContain('FROM "level_points"')
+	expect(deleteQuery?.sql).toContain('NOT EXISTS')
+	const projectionQuery = compiled.find((query) => query.sql.includes('RANK() OVER'))
+	expect(projectionQuery?.params).toContainEqual([12])
 })

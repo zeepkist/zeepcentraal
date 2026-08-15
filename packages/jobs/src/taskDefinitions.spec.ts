@@ -31,6 +31,8 @@ const expectedCompatibleTaskIdentifiers = [
 test('compatible task contract exposes exact API-triggerable task list', () => {
 	expect(compatibleTaskIdentifiers).toEqual(expectedCompatibleTaskIdentifiers)
 	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBatch')
+	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBarrier')
+	expect(compatibleTaskIdentifiers).not.toContain('finalizeLevelScores')
 	expect(isCompatibleTaskIdentifier('updateLevelScoresBatch')).toBe(false)
 	expect(isCompatibleTaskIdentifier('updateLevelScore')).toBe(true)
 })
@@ -46,6 +48,16 @@ test('task payload validation accepts compatible legacy shapes', () => {
 	expect(
 		isValidTaskPayload('updateLevelScoresBatch', {
 			ids: [1, 2],
+		}),
+	).toBe(true)
+	const runId = crypto.randomUUID()
+	expect(isValidTaskPayload('finalizeLevelScores', { all: true, runId })).toBe(true)
+	expect(
+		isValidTaskPayload('updateLevelScoresBarrier', {
+			all: false,
+			ids: [1, 2],
+			phase: 'queue0',
+			runId,
 		}),
 	).toBe(true)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: '3749321871' })).toBe(true)
@@ -92,6 +104,13 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(
 		isValidTaskPayload('updateLevelScoresBatch', {
 			ids: Array.from({ length: 51 }, (_, index) => index + 1),
+		}),
+	).toBe(false)
+	expect(
+		isValidTaskPayload('updateLevelScoresBarrier', {
+			all: false,
+			phase: 'queue0',
+			runId: crypto.randomUUID(),
 		}),
 	).toBe(false)
 	expect(

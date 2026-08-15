@@ -51,10 +51,12 @@ function mapPersonalBest(row: PersonalBestRow): LevelScorePersonalBest {
 export async function updateLevelScoreBatch({
 	idLevels,
 	reportOnly = false,
+	syncContributions = true,
 	logger,
 }: {
 	idLevels: number[]
 	reportOnly?: boolean
+	syncContributions?: boolean
 	logger: Helpers['logger']
 }): Promise<{ updated: number; zeroed: number; reported: number }> {
 	if (idLevels.length === 0) {
@@ -69,6 +71,17 @@ export async function updateLevelScoreBatch({
 		} finally {
 			timings[`${name}Ms`] = Date.now() - phaseStartedAt
 		}
+	}
+	const logTimings = (metadata: Record<string, unknown>) => {
+		const totalMs = Date.now() - startedAt
+		const phaseSummary = Object.entries(timings)
+			.map(([name, duration]) => `${name.replace(/Ms$/, '')}=${duration}ms`)
+			.join(' ')
+		logger.info(`Level score batch timings: ${phaseSummary} total=${totalMs}ms.`, {
+			...timings,
+			totalMs,
+			...metadata,
+		})
 	}
 
 	const availabilityByLevel = await timed('availability', () =>
@@ -166,9 +179,7 @@ export async function updateLevelScoreBatch({
 			}),
 			zeroedLevelIds: zeroIds,
 		})
-		logger.info('Level score batch timings.', {
-			...timings,
-			totalMs: Date.now() - startedAt,
+		logTimings({
 			requested: idLevels.length,
 			eligible: eligibleIds.length,
 			zeroed: zeroIds.length,
@@ -191,12 +202,11 @@ export async function updateLevelScoreBatch({
 	const [updatedIds, zeroedIds] = await timed('persistence', () =>
 		Promise.all([upsertLevelPointsBulk(updates), setLevelPointsToZeroBulk(zeroIds)]),
 	)
-	const projection = await timed('contributionProjection', () =>
-		syncUserPointContributionLevels(idLevels),
-	)
-	logger.info('Level score batch timings.', {
-		...timings,
-		totalMs: Date.now() - startedAt,
+	const projection = syncContributions
+		? await timed('contributionProjection', () => syncUserPointContributionLevels(idLevels))
+		: { levels: 0, users: 0 }
+	if (!syncContributions) timings.contributionProjectionMs = 0
+	logTimings({
 		requested: idLevels.length,
 		eligible: eligibleIds.length,
 		zeroed: zeroIds.length,

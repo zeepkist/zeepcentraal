@@ -16,6 +16,7 @@ export const updateLevelScoresBatch: TaskHandler<Payload> = async (payload, help
 	const result = await updateLevelScoreBatch({
 		idLevels: ids,
 		reportOnly: payload.reportOnly,
+		syncContributions: false,
 		logger: helpers.logger,
 	})
 

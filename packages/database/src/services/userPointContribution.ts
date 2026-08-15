@@ -31,6 +31,15 @@ export interface LevelContributionProjectionSyncResult {
 	users: number
 }
 
+export interface ChangedLevelPointContributionSyncResult {
+	deleted: number
+	fallbackLevels: number
+	updated: number
+	users: number
+}
+
+type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
+
 // Eight bound values per contribution; 5,000 stays below PostgreSQL's parameter limit.
 const WRITE_BATCH_SIZE = 5000
 
@@ -127,8 +136,17 @@ export async function syncUserPointContributionLevels(
 		return { levels: 0, users: 0 }
 	}
 
-	return db.transaction(async (tx) => {
-		const affectedUsers = await tx.execute<{ idUser: number }>(sql`
+	return db.transaction((tx) =>
+		syncUserPointContributionLevelsInTransaction(tx, uniqueLevelIds, true),
+	)
+}
+
+async function syncUserPointContributionLevelsInTransaction(
+	tx: DatabaseTransaction,
+	uniqueLevelIds: number[],
+	lockUsers: boolean,
+): Promise<LevelContributionProjectionSyncResult> {
+	const affectedUsers = await tx.execute<{ idUser: number }>(sql`
 			SELECT DISTINCT affected.id_user AS "idUser"
 			FROM (
 				SELECT ${personalBestGlobal.idUser} AS id_user
@@ -141,10 +159,10 @@ export async function syncUserPointContributionLevels(
 			) AS affected
 			ORDER BY affected.id_user
 		`)
-		const idUsers = affectedUsers.map((entry) => entry.idUser)
-		await acquireUserContributionLocks(tx, idUsers)
+	const idUsers = affectedUsers.map((entry) => entry.idUser)
+	if (lockUsers) await acquireUserContributionLocks(tx, idUsers)
 
-		await tx.execute(sql`
+	await tx.execute(sql`
 			WITH ranked_personal_bests AS (
 				SELECT
 					${personalBestGlobal.idUser} AS id_user,
@@ -222,7 +240,7 @@ export async function syncUserPointContributionLevels(
 			)
 		`)
 
-		await tx.execute(sql`
+	await tx.execute(sql`
 			DELETE FROM ${userPointContribution} AS contribution
 			WHERE contribution.id_level = ANY(${sql.param(uniqueLevelIds)}::integer[])
 				AND NOT EXISTS (
@@ -237,7 +255,142 @@ export async function syncUserPointContributionLevels(
 				)
 		`)
 
-		return { levels: uniqueLevelIds.length, users: idUsers.length }
+	return { levels: uniqueLevelIds.length, users: idUsers.length }
+}
+
+export async function syncChangedLevelPointContributionValues(): Promise<ChangedLevelPointContributionSyncResult> {
+	return db.transaction(async (tx) => {
+		const fallbackRows = await tx.execute<{ idLevel: number }>(sql`
+			SELECT ${levelPoints.idLevel} AS "idLevel"
+			FROM ${levelPoints}
+			WHERE ${levelPoints.points} > 0
+				AND EXISTS (
+					SELECT 1
+					FROM ${personalBestGlobal}
+					WHERE ${personalBestGlobal.idLevel} = ${levelPoints.idLevel}
+				)
+				AND NOT EXISTS (
+					SELECT 1
+					FROM ${userPointContribution}
+					WHERE ${userPointContribution.idLevel} = ${levelPoints.idLevel}
+				)
+			ORDER BY ${levelPoints.idLevel}
+		`)
+		const fallbackLevelIds = fallbackRows.map((row) => row.idLevel)
+		const fallbackUsers =
+			fallbackLevelIds.length === 0
+				? sql``
+				: sql`
+					UNION
+					SELECT ${personalBestGlobal.idUser} AS id_user
+					FROM ${personalBestGlobal}
+					WHERE ${personalBestGlobal.idLevel}
+						= ANY(${sql.param(fallbackLevelIds)}::integer[])
+				`
+
+		const affectedUsers = await tx.execute<{ idUser: number }>(sql`
+			SELECT DISTINCT affected.id_user AS "idUser"
+			FROM (
+				SELECT ${userPointContribution.idUser} AS id_user
+				FROM ${userPointContribution}
+				LEFT JOIN ${levelPoints}
+					ON ${levelPoints.idLevel} = ${userPointContribution.idLevel}
+				WHERE ${levelPoints.idLevel} IS NULL
+					OR ${levelPoints.points} <= 0
+					OR ROW(
+						${userPointContribution.levelPoints},
+						${userPointContribution.levelDecayedPoints}
+					) IS DISTINCT FROM ROW(
+						${levelPoints.points},
+						CASE
+							WHEN ${levelPoints.points} IS NULL OR ${levelPoints.points} <= 0
+								THEN 0::real
+							WHEN LN(${levelPoints.points}::double precision)
+								+ (${userPointContribution.levelPosition} - 1)
+									* LN(${LEVEL_DECAY_FACTOR}::double precision)
+								< LN(${MIN_PERSISTED_DECAYED_POINTS}::double precision)
+								THEN 0::real
+							ELSE (${levelPoints.points}::double precision * POWER(
+								${LEVEL_DECAY_FACTOR}::double precision,
+								${userPointContribution.levelPosition} - 1
+							))::real
+						END
+					)
+				${fallbackUsers}
+			) AS affected
+			ORDER BY affected.id_user
+		`)
+		const idUsers = affectedUsers.map((row) => row.idUser)
+		await acquireUserContributionLocks(tx, idUsers)
+
+		const updatedRows = await tx.execute<{ count: number }>(sql`
+			WITH updated AS (
+				UPDATE ${userPointContribution} AS contribution
+				SET
+					level_points = current_level.points,
+					level_decayed_points = CASE
+						WHEN current_level.points <= 0 THEN 0::real
+						WHEN LN(current_level.points::double precision)
+							+ (contribution.level_position - 1)
+								* LN(${LEVEL_DECAY_FACTOR}::double precision)
+							< LN(${MIN_PERSISTED_DECAYED_POINTS}::double precision)
+							THEN 0::real
+						ELSE (current_level.points::double precision * POWER(
+							${LEVEL_DECAY_FACTOR}::double precision,
+							contribution.level_position - 1
+						))::real
+					END,
+					date_calculated = NOW()
+				FROM ${levelPoints} AS current_level
+				WHERE current_level.id_level = contribution.id_level
+					AND current_level.points > 0
+					AND ROW(
+						contribution.level_points,
+						contribution.level_decayed_points
+					) IS DISTINCT FROM ROW(
+						current_level.points,
+						CASE
+							WHEN current_level.points <= 0 THEN 0::real
+							WHEN LN(current_level.points::double precision)
+								+ (contribution.level_position - 1)
+									* LN(${LEVEL_DECAY_FACTOR}::double precision)
+								< LN(${MIN_PERSISTED_DECAYED_POINTS}::double precision)
+								THEN 0::real
+							ELSE (current_level.points::double precision * POWER(
+								${LEVEL_DECAY_FACTOR}::double precision,
+								contribution.level_position - 1
+							))::real
+						END
+					)
+				RETURNING 1
+			)
+			SELECT COUNT(*)::integer AS count FROM updated
+		`)
+
+		const deletedRows = await tx.execute<{ count: number }>(sql`
+			WITH deleted AS (
+				DELETE FROM ${userPointContribution} AS contribution
+				WHERE NOT EXISTS (
+					SELECT 1
+					FROM ${levelPoints}
+					WHERE ${levelPoints.idLevel} = contribution.id_level
+						AND ${levelPoints.points} > 0
+				)
+				RETURNING 1
+			)
+			SELECT COUNT(*)::integer AS count FROM deleted
+		`)
+
+		if (fallbackLevelIds.length > 0) {
+			await syncUserPointContributionLevelsInTransaction(tx, fallbackLevelIds, false)
+		}
+
+		return {
+			deleted: Number(deletedRows[0]?.count ?? 0),
+			fallbackLevels: fallbackLevelIds.length,
+			updated: Number(updatedRows[0]?.count ?? 0),
+			users: idUsers.length,
+		}
 	})
 }
 

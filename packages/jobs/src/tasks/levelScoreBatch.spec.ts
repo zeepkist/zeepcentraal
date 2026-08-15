@@ -161,6 +161,21 @@ test('syncs contribution projection when awarded points stay unchanged', async (
 	expect(syncUserPointContributionLevels).toHaveBeenCalledWith([1])
 })
 
+test('defers contribution projection for bulk score batches', async () => {
+	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
+	const info = mock((_message: string, _metadata?: unknown) => {})
+
+	await updateLevelScoreBatch({
+		idLevels: [1],
+		syncContributions: false,
+		logger: { info } as never,
+	})
+
+	expect(syncUserPointContributionLevels).not.toHaveBeenCalled()
+	expect(info.mock.calls.at(-1)?.[0]).toStartWith('Level score batch timings:')
+	expect(info.mock.calls.at(-1)?.[1]).toMatchObject({ contributionProjectionMs: 0 })
+})
+
 test('report-only mode logs proposed deltas without writing scores', async () => {
 	availability = new Map([[1, { adventure: true, itemCount: 0, accessibleItemCount: 0 }]])
 	personalBestRows = [
