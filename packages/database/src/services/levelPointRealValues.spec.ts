@@ -30,13 +30,11 @@ describe('level point PostgreSQL real values', () => {
 	test('preserves null, undefined, zero, and representable values', () => {
 		const sanitized = sanitizeLevelPointRealValues({
 			...payload,
-			competitiveMerit: null,
 			complexityConfidence: undefined,
 			qualityScore: 0,
 			skillAlignment: 1e-20,
 		})
 
-		expect(sanitized.competitiveMerit).toBeNull()
 		expect(sanitized.complexityConfidence).toBeUndefined()
 		expect(sanitized.qualityScore).toBe(0)
 		expect(sanitized.skillAlignment).toBe(1e-20)

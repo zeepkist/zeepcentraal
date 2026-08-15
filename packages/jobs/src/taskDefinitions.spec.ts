@@ -46,7 +46,6 @@ test('task payload validation accepts compatible legacy shapes', () => {
 	expect(
 		isValidTaskPayload('updateLevelScoresBatch', {
 			ids: [1, 2],
-			personalBestCountPercentile: 42.5,
 		}),
 	).toBe(true)
 	expect(isValidTaskPayload('scanWorkshopItem', { workshopId: '3749321871' })).toBe(true)
@@ -93,7 +92,6 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(
 		isValidTaskPayload('updateLevelScoresBatch', {
 			ids: Array.from({ length: 51 }, (_, index) => index + 1),
-			personalBestCountPercentile: 1,
 		}),
 	).toBe(false)
 	expect(

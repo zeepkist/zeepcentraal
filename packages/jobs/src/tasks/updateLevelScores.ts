@@ -1,7 +1,6 @@
 import {
 	getAllLevelIds,
 	getAllLevelIdsWithRecordsSince,
-	getPersonalBestCount90thPercentile,
 	rebuildPlayerSkillAggregates,
 } from '@zeepkist/database'
 import { createLevelScoreBatchJobs } from '../utils/createLevelScoreBatchJobs'
@@ -32,10 +31,8 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 		return
 	}
 
-	const personalBestCountPercentile = await getPersonalBestCount90thPercentile()
 	const jobs = createLevelScoreBatchJobs(
 		levelIds,
-		personalBestCountPercentile,
 		payload.reportOnly,
 		!all && !payload.reportOnly,
 	)

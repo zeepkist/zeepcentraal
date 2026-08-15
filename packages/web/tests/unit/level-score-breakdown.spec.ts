@@ -17,11 +17,9 @@ const locale = readFileSync(new URL('../../i18n/locales/en.json', import.meta.ur
 
 const scoreFields = [
 	'modifierLength',
-	'modifierCompetitiveness',
 	'modifierEvidence',
 	'modifierQuality',
 	'modifierRating',
-	'competitiveMerit',
 	'complexityConfidence',
 	'complexityScore',
 	'fieldStrength',
@@ -31,12 +29,12 @@ const scoreFields = [
 	'skillSampleSize',
 	'skillScore',
 	'skillSeparation',
-	'worldRecordExcluded',
 ] as const
 
 describe('level score breakdown', () => {
 	it('requests exact retained score and selectivity signals', () => {
 		for (const field of scoreFields) expect(query).toMatch(new RegExp(`\\n\\s+${field}\\n`))
+		expect(query).not.toContain('modifierCompetitiveness')
 		for (const field of [
 			'modifierPopularity',
 			'sampleSize',
@@ -68,19 +66,12 @@ describe('level score breakdown', () => {
 		)
 	})
 
-	it('feeds complexity and skill into quality while isolating diagnostics', () => {
+	it('feeds complexity and skill into quality without legacy diagnostics', () => {
 		expect(component).toContain('M100 92 C100 196 300 190 300 310')
 		expect(component).toContain('M300 92 L300 310')
-		expect(component).toContain('class="diagnostic-lane')
-		expect(component).toContain("metric('competitiveMerit', 'percentage')")
-		expect(component).toContain("metric('worldRecordExcluded', 'boolean')")
-
-		const scoringStages = component.slice(
-			component.indexOf('const stages ='),
-			component.indexOf('const gauges ='),
-		)
-		expect(scoringStages).not.toContain('competitiveMerit')
-		expect(scoringStages).not.toContain('worldRecordExcluded')
+		expect(component).not.toContain('diagnostic-lane')
+		expect(component).not.toContain('competitiveMerit')
+		expect(component).not.toContain('worldRecordExcluded')
 	})
 
 	it('supports persistent progressive detail and one-time motion preferences', () => {

@@ -1,4 +1,3 @@
-export * from './calculateLevelPoints'
 export * from './calculateLevelPointsV2'
 export * from './calculatePlayerPoints'
 export * from './calculateVoteRating'

@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import type { LevelScorePersonalBest, LevelScoreTelemetry } from './calculateLevelPoints'
 import {
 	calculateLevelPointsV2,
 	calculateLevelPointsV2LengthFactor,
-	calculateLevelPointsV2Tightness,
 	ceilLevelPointsV2,
 	LEVEL_SCORE_V2_EVIDENCE,
 	LEVEL_SCORE_V2_POINTS,
+	type LevelScorePersonalBest,
+	type LevelScoreTelemetry,
 } from './calculateLevelPointsV2'
 
 const telemetry = (
@@ -44,13 +44,7 @@ const strongSkill = {
 }
 
 describe('level score V2 primitives', () => {
-	test('retains V1 logarithmic tightness as an observation', () => {
-		expect(calculateLevelPointsV2Tightness(60, 61.2, 0.02)).toBeCloseTo(0.5, 10)
-		expect(calculateLevelPointsV2Tightness(60, 60, 0.02)).toBe(1)
-		expect(calculateLevelPointsV2Tightness(0, 60, 0.02)).toBe(0)
-	})
-
-	test('retains V1 length curve', () => {
+	test('uses median-time length curve', () => {
 		expect(calculateLevelPointsV2LengthFactor(4)).toBe(0.35)
 		expect(calculateLevelPointsV2LengthFactor(5)).toBe(0.35)
 		expect(calculateLevelPointsV2LengthFactor(20)).toBe(1)
@@ -232,24 +226,6 @@ describe('calculateLevelPointsV2', () => {
 		expect(score({ ...baselineSkill, fieldStrength: 0.8 })).toBeGreaterThan(baseline)
 	})
 
-	test('keeps competitive merit metric-only', () => {
-		const compact = personalBests(20, (index, time) => ({
-			time: 60 + index * 0.01,
-			telemetry: telemetry(time),
-		}))
-		const spread = personalBests(20, (index, time) => ({
-			time: 60 + index * 0.5,
-			telemetry: telemetry(time),
-		}))
-		const compactResult = calculateLevelPointsV2({ personalBests: compact, skill: strongSkill })
-		const spreadResult = calculateLevelPointsV2({ personalBests: spread, skill: strongSkill })
-
-		expect(compactResult.metrics.competitiveMerit).not.toBe(
-			spreadResult.metrics.competitiveMerit,
-		)
-		expect(compactResult.points).toBe(spreadResult.points)
-	})
-
 	test('ranks a wider technical skill-selective board above compressed low-control board', () => {
 		const compressed = calculateLevelPointsV2({
 			personalBests: personalBests(20, (index, time) => ({
@@ -292,7 +268,7 @@ describe('calculateLevelPointsV2', () => {
 		expect(reversed.factors).toEqual(forward.factors)
 	})
 
-	test('excludes anomalous leaders without direct cut penalty', () => {
+	test('excludes anomalous leaders from scoring inputs', () => {
 		const result = calculateLevelPointsV2({
 			personalBests: [
 				{ time: 10 },
@@ -300,7 +276,6 @@ describe('calculateLevelPointsV2', () => {
 			],
 		})
 
-		expect(result.metrics.worldRecordExcluded).toBe(true)
 		expect(result.modifiers).not.toHaveProperty('cutPenalty')
 		expect(result.points).toBeGreaterThan(0)
 	})
@@ -312,8 +287,5 @@ describe('calculateLevelPointsV2', () => {
 		expect(result.modifiers.evidenceModifier).toBe(result.factors.evidenceFactor)
 		expect(result.modifiers.qualityModifier).toBe(result.factors.qualityFactor)
 		expect(result.modifiers.ratingModifier).toBe(result.factors.voteFactor)
-		expect(result.modifiers.competitivenessModifier).toBeCloseTo(
-			0.1 + 1.9 * (result.metrics.competitiveMerit ?? 0),
-		)
 	})
 })

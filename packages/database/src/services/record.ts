@@ -251,7 +251,7 @@ export async function getPersonalBestsWithRecordByLevelIds({
 
 export async function getV2ScorePersonalBestsByLevelIds({
 	idLevels,
-	limit = 50,
+	limit = 20,
 }: {
 	idLevels: number[]
 	limit?: number
@@ -262,7 +262,7 @@ export async function getV2ScorePersonalBestsByLevelIds({
 
 export function buildV2ScorePersonalBestsByLevelIdsQuery({
 	idLevels,
-	limit = 50,
+	limit = 20,
 }: {
 	idLevels: number[]
 	limit?: number
@@ -272,7 +272,6 @@ export function buildV2ScorePersonalBestsByLevelIdsQuery({
 			idRecord: record.id,
 			idLevel: record.idLevel,
 			time: record.time,
-			dateCreated: record.dateCreated,
 			splits: record.splits,
 			totalCount: sql<number>`COUNT(*) OVER (PARTITION BY ${record.idLevel})`.as(
 				'total_count',
@@ -292,7 +291,6 @@ export function buildV2ScorePersonalBestsByLevelIdsQuery({
 		.select({
 			idLevel: ranked.idLevel,
 			time: ranked.time,
-			dateCreated: ranked.dateCreated,
 			splits: ranked.splits,
 			totalCount: ranked.totalCount,
 			statisticTime: recordStatistic.time,

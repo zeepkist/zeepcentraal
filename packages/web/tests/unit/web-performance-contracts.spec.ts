@@ -1,26 +1,52 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createImage } from '@nuxt/image/runtime'
+import createNoneProvider from '@nuxt/image/runtime/providers/none'
 import { describe, expect, it } from 'vitest'
 
+const webRoot = fileURLToPath(new URL('../..', import.meta.url))
 const appRoot = fileURLToPath(new URL('../../app', import.meta.url))
 const appFiles = collectFiles(appRoot)
 const vueSources = appFiles
 	.filter((file) => file.endsWith('.vue'))
 	.map((file) => ({ file, source: readFileSync(file, 'utf8') }))
+const nuxtConfigSource = readFileSync(join(webRoot, 'nuxt.config.ts'), 'utf8')
+const webPackage = JSON.parse(readFileSync(join(webRoot, 'package.json'), 'utf8'))
 
 describe('web performance contracts', () => {
-	it('requests AVIF explicitly for every Nuxt image without WebP sources', () => {
+	it('passes Nuxt image URLs through without server processing', () => {
 		const images = vueSources.flatMap(({ file, source }) =>
 			[...source.matchAll(/<NuxtImg\b[\s\S]*?\/>/g)].map((match) => ({
 				file,
 				tag: match[0],
 			})),
 		)
+		const image = createImage({
+			providers: { none: { defaults: {}, setup: createNoneProvider } },
+			nuxt: { baseURL: '/' },
+			presets: {},
+			provider: 'none',
+			screens: {},
+			alias: {},
+			domains: [],
+			densities: [1, 2],
+			format: ['avif'],
+			runtimeConfig: {} as never,
+		})
+
+		expect(image('/android-chrome-192x192.png', { width: 64 })).toBe(
+			'/android-chrome-192x192.png',
+		)
+		expect(image('https://cdn.zeepki.st/thumbnails/example.jpg', { width: 640 })).toBe(
+			'https://cdn.zeepki.st/thumbnails/example.jpg',
+		)
+		expect(nuxtConfigSource).toMatch(/image:\s*{\s*provider: 'none',?\s*}/)
+		expect(nuxtConfigSource).not.toMatch(/\bipx\b/i)
+		expect(webPackage.dependencies).not.toHaveProperty('ipx')
 		expect(images.length).toBeGreaterThan(0)
 		for (const image of images) {
-			expect(image.tag, image.file).toContain('format="avif"')
-			expect(image.tag, image.file).not.toMatch(/webp/i)
+			expect(image.tag, image.file).not.toMatch(/\bprovider=/)
 		}
 		expect(vueSources.map(({ source }) => source).join('\n')).not.toContain('<NuxtPicture')
 	})

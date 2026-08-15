@@ -57,10 +57,10 @@ describe('compact level detail layout', () => {
 			'modifierEvidence',
 			'modifierQuality',
 			'modifierRating',
-			'modifierCompetitiveness',
 		]) {
 			expect(detailQuery).toContain(field)
 		}
+		expect(detailQuery).not.toContain('modifierCompetitiveness')
 		expect(points).not.toContain('metrics:')
 	})
 

@@ -8,11 +8,9 @@ const source = {
 	points: 8_000,
 	rating: 1.2,
 	modifierLength: 0.91,
-	modifierCompetitiveness: 1.37,
 	modifierEvidence: 0.82,
 	modifierQuality: 0.73,
 	modifierRating: 1.04,
-	competitiveMerit: 0.61,
 	complexityConfidence: 0.52,
 	complexityScore: 0.63,
 	fieldStrength: 0.74,
@@ -22,13 +20,11 @@ const source = {
 	skillSampleSize: 42,
 	skillScore: 0.71,
 	skillSeparation: 0.08,
-	worldRecordExcluded: true,
 } satisfies LevelScoreInsightsSource
 
 describe('level score insights', () => {
 	it('maps GraphQL modifier names to reactor factor names', () => {
 		expect(mapLevelScoreInsights(source)).toEqual({
-			competitiveMerit: 0.61,
 			complexityConfidence: 0.52,
 			complexityScore: 0.63,
 			evidenceModifier: 0.82,
@@ -42,13 +38,11 @@ describe('level score insights', () => {
 			skillScore: 0.71,
 			skillSeparation: 0.08,
 			voteAdjustment: 1.04,
-			worldRecordExcluded: true,
 		})
 	})
 
 	it('keeps unavailable values undefined when no level-points row exists', () => {
 		expect(mapLevelScoreInsights(undefined)).toEqual({
-			competitiveMerit: undefined,
 			complexityConfidence: undefined,
 			complexityScore: undefined,
 			evidenceModifier: undefined,
@@ -62,7 +56,6 @@ describe('level score insights', () => {
 			skillScore: undefined,
 			skillSeparation: undefined,
 			voteAdjustment: undefined,
-			worldRecordExcluded: undefined,
 		})
 	})
 })

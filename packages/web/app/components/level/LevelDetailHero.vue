@@ -129,7 +129,7 @@
 				</div>
 				<div
 					v-else
-					class="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-dashed border-border bg-gradient-to-r from-default/80 to-primary/5 p-4 text-muted-foreground shadow-sm"
+					class="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-dashed border-border bg-linear-to-r from-default/80 to-primary/5 p-4 text-muted-foreground shadow-sm"
 				>
 					<span class="grid size-10 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground">
 						<TablerIcon name="trophy" class="size-5" />
@@ -147,8 +147,6 @@
 <script setup vapor lang="ts">
 import type { LevelSummary, LevelWorldRecordSummary } from '~/types/app'
 import { getNumberFormatter } from '~/utils/intlFormatters'
-import type { LevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
-import { getLevelCompetitivenessRating } from '~/utils/levelCompetitiveness'
 import { isLevelRatingAvailable } from '~/utils/levelRating'
 
 const props = defineProps<{
@@ -165,8 +163,6 @@ const props = defineProps<{
 		records: string
 		personalBests: string
 		trackLength: string
-		competitiveness: string
-		competitivenessRatings: Record<LevelCompetitivenessRating, string>
 		unavailable: string
 		worldRecord: string
 		worldRecordSet: string
@@ -178,9 +174,6 @@ const props = defineProps<{
 
 const { locale } = useI18n()
 const transition = useSharedViewTransition()
-const competitivenessRating = computed(() =>
-	getLevelCompetitivenessRating(props.level.competitiveness),
-)
 const numberFormat = computed(() => getNumberFormatter(locale.value))
 const percentFormat = computed(() => getNumberFormatter(locale.value, 'percent-one-decimal'))
 const distanceFormat = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
@@ -193,12 +186,6 @@ const metrics = computed(() => [
 	{ label: props.labels.records, value: formatNumber(props.level.recordCount) },
 	{ label: props.labels.personalBests, value: formatNumber(props.level.personalBestCount) },
 	{ label: props.labels.trackLength, value: formatDistance(props.level.trackLength) },
-	{
-		label: props.labels.competitiveness,
-		value: competitivenessRating.value
-			? props.labels.competitivenessRatings[competitivenessRating.value]
-			: props.labels.unavailable,
-	},
 ])
 
 function formatNumber(value: number | null | undefined) {

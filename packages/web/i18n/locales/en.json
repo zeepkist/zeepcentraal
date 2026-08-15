@@ -1319,13 +1319,7 @@
 					"empty": "No players have voted on this level yet.",
 					"total": "{count} votes"
 				},
-				"diagnostics": {
-					"title": "Scoring diagnostics",
-					"description": "Useful leaderboard observations shown for context. These values do not enter the points multiplication path.",
-					"observationOnly": "Observation only"
-				},
 				"metrics": {
-					"competitiveMerit": "Competitive merit",
 					"complexityConfidence": "Complexity confidence",
 					"complexityScore": "Execution complexity",
 					"evidenceModifier": "Evidence factor",
@@ -1338,8 +1332,7 @@
 					"skillSampleSize": "Rated players",
 					"skillScore": "Player-skill selectivity",
 					"skillSeparation": "Skill separation",
-					"voteAdjustment": "Mature-vote factor",
-					"worldRecordExcluded": "WR anomaly"
+					"voteAdjustment": "Mature-vote factor"
 				},
 				"confidence": "Confidence",
 				"inspector": "Factor",
@@ -1362,17 +1355,6 @@
 				"points": "Level points",
 				"rating": "Rating",
 				"trackLength": "Track length",
-				"competitiveness": "Competitiveness",
-				"competitivenessRatings": {
-					"veryEasy": "Very Easy",
-					"easy": "Easy",
-					"casual": "Casual",
-					"balanced": "Balanced",
-					"competitive": "Competitive",
-					"hard": "Hard",
-					"expert": "Expert",
-					"intense": "Intense"
-				},
 				"unavailable": "—",
 				"workshopAction": "Subscribe on Steam Workshop"
 			},

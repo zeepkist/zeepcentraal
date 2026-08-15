@@ -1,14 +1,93 @@
-import {
-	calculateLeaderboardTightness,
-	calculateLegacyLevelScoreObservations,
-	calculateLevelLengthFactor,
-	type LegacyLevelScoreInput,
-	type LevelScoreInput,
-	type LevelScorePersonalBest,
-	type LevelScoreResult,
-	MAX_LEVEL_POINTS,
-	prepareLevelScoreInput,
-} from './calculateLevelPoints'
+export const MAX_LEVEL_POINTS = 9_984
+export const LEVEL_SCORE_PERSONAL_BEST_LIMIT = 20
+
+export interface LevelScoreSplit {
+	/** Cumulative checkpoint time. Finish time is added from personal best time. */
+	time: number
+}
+
+export interface LevelScoreTelemetry {
+	armsUpCount?: number | null
+	armsUpTime?: number | null
+	brakeCount?: number | null
+	brakeTime?: number | null
+	driverInputTransitionCount?: number | null
+	hasInputData?: boolean | null
+	time?: number | null
+	turnLeftCount?: number | null
+	turnLeftTime?: number | null
+	turnRightCount?: number | null
+	turnRightTime?: number | null
+}
+
+export interface LevelScorePersonalBest {
+	splits?: readonly LevelScoreSplit[] | null
+	telemetry?: LevelScoreTelemetry | null
+	time: number
+}
+
+export interface LevelScoreSkillMetrics {
+	alignment: number | null
+	fieldStrength: number | null
+	ratedPlayerCount: number
+	separation: number | null
+}
+
+export interface LevelScoreInput {
+	matureVoteCount?: number
+	/** Total current PB count, including entries outside supplied top 20. */
+	personalBestCount?: number
+	/** Best current personal bests. More than 20 entries are ignored. */
+	personalBests: readonly LevelScorePersonalBest[]
+	/** Independent cross-map player-skill observations for this level. */
+	skill?: LevelScoreSkillMetrics | null
+	voteRating?: number | null
+}
+
+export interface LevelScoreFactors {
+	evidenceFactor: number
+	lengthFactor: number
+	qualityFactor: number
+	voteFactor: number
+}
+
+export interface LevelScoreMetrics {
+	complexityConfidence: number | null
+	complexityScore: number | null
+	fieldStrength: number | null
+	qualityScore: number | null
+	skillAlignment: number | null
+	skillConfidence: number | null
+	skillSampleSize: number | null
+	skillScore: number | null
+	skillSeparation: number | null
+}
+
+export interface LevelScoreModifiers {
+	evidenceModifier: number
+	lengthModifier: number
+	qualityModifier: number
+	ratingModifier: number
+}
+
+export interface LevelScoreResult {
+	factors: LevelScoreFactors
+	metrics: LevelScoreMetrics
+	modifiers: LevelScoreModifiers
+	points: number
+}
+
+interface NormalizedLevelScoreInput {
+	matureVoteCount: number | null
+	personalBestCount: number
+	voteRating: number | null
+}
+
+interface PreparedLevelScoreInput {
+	allPersonalBests: LevelScorePersonalBest[]
+	normalized: NormalizedLevelScoreInput
+	personalBests: LevelScorePersonalBest[]
+}
 
 export const LEVEL_SCORE_V2_COMPLEXITY = {
 	sampleLimit: 20,
@@ -77,8 +156,110 @@ const percentile = (values: readonly number[], quantile: number): number | null 
 
 const median = (values: readonly number[]): number | null => percentile(values, 0.5)
 
-export const calculateLevelPointsV2Tightness = calculateLeaderboardTightness
-export const calculateLevelPointsV2LengthFactor = calculateLevelLengthFactor
+const mean = (values: readonly number[]): number | null =>
+	values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+
+export const calculateLevelPointsV2LengthFactor = (medianTopTenTime: number | null): number => {
+	if (!isFiniteNumber(medianTopTenTime) || medianTopTenTime <= 0) return 0
+	if (medianTopTenTime < 5) return 0.35
+	if (medianTopTenTime < 20) {
+		return 0.35 + 0.65 * smoothstepBetween(medianTopTenTime, 5, 20)
+	}
+	if (medianTopTenTime <= 180) return 1
+	if (medianTopTenTime < 600) {
+		return 1 - 0.25 * smoothstepBetween(medianTopTenTime, 180, 600)
+	}
+	return 0.75
+}
+
+const splitDurations = (personalBest: LevelScorePersonalBest): number[] | null => {
+	const cumulativeTimes = (personalBest.splits ?? []).map((split) => split.time)
+	if (cumulativeTimes.length === 0) return null
+
+	const durations: number[] = []
+	let previous = 0
+	for (const time of cumulativeTimes) {
+		if (!isFiniteNumber(time) || time <= previous || time > personalBest.time) return null
+		durations.push(time - previous)
+		previous = time
+	}
+	if (previous < personalBest.time) durations.push(personalBest.time - previous)
+	return durations
+}
+
+const corroboratedTheoreticalBest = (
+	personalBests: readonly LevelScorePersonalBest[],
+): number | null => {
+	const candidates = personalBests.map(splitDurations).filter((value) => value !== null)
+	const segmentCounts = new Map<number, number>()
+	for (const candidate of candidates) {
+		segmentCounts.set(candidate.length, (segmentCounts.get(candidate.length) ?? 0) + 1)
+	}
+	const segmentCount = [...segmentCounts.entries()]
+		.filter(([, count]) => count >= 5)
+		.toSorted((left, right) => right[1] - left[1] || right[0] - left[0])[0]?.[0]
+	if (!segmentCount) return null
+
+	const comparable = candidates.filter((candidate) => candidate.length === segmentCount)
+	let total = 0
+	for (let index = 0; index < segmentCount; index += 1) {
+		const segment = percentile(
+			comparable.map((candidate) => candidate[index] ?? Number.NaN),
+			0.05,
+		)
+		if (segment === null) return null
+		total += segment
+	}
+	return total
+}
+
+const isAnomalousWorldRecord = (personalBests: readonly LevelScorePersonalBest[]): boolean => {
+	const worldRecord = personalBests[0]
+	if (!worldRecord) return false
+	const nextFive = personalBests.slice(1, 6).map((personalBest) => personalBest.time)
+	const nextFiveMean = mean(nextFive)
+	const leaderboardExcluded =
+		nextFive.length === 5 && worldRecord.time <= (nextFiveMean ?? 0) * 0.5
+	const theoreticalBest = corroboratedTheoreticalBest(personalBests.slice(1))
+	const telemetryExcluded =
+		theoreticalBest !== null &&
+		smoothstepBetween(theoreticalBest / worldRecord.time - 1, 0.03, 0.15) >= 1
+	return leaderboardExcluded || telemetryExcluded
+}
+
+const prepareLevelScoreInput = (input: LevelScoreInput): PreparedLevelScoreInput => {
+	const personalBests = input.personalBests.filter(
+		(personalBest) => isFiniteNumber(personalBest.time) && personalBest.time > 0,
+	)
+	const personalBestCount = isFiniteNumber(input.personalBestCount)
+		? Math.max(0, Math.trunc(input.personalBestCount))
+		: personalBests.length
+	const normalized: NormalizedLevelScoreInput = {
+		personalBestCount: Math.max(personalBestCount, personalBests.length),
+		voteRating: isFiniteNumber(input.voteRating) ? clamp(input.voteRating) : null,
+		matureVoteCount: isFiniteNumber(input.matureVoteCount)
+			? Math.max(0, Math.trunc(input.matureVoteCount))
+			: null,
+	}
+	const allPersonalBests = personalBests
+		.toSorted((left, right) => left.time - right.time)
+		.slice(0, LEVEL_SCORE_PERSONAL_BEST_LIMIT)
+	let effectivePersonalBests = allPersonalBests
+	while (effectivePersonalBests.length > 0 && isAnomalousWorldRecord(effectivePersonalBests)) {
+		effectivePersonalBests = effectivePersonalBests.slice(1)
+	}
+	return { allPersonalBests, normalized, personalBests: [...effectivePersonalBests] }
+}
+
+const calculateVoteFactor = (normalized: NormalizedLevelScoreInput): number => {
+	const { matureVoteCount, voteRating } = normalized
+	if (matureVoteCount === 0 || voteRating === null) return 1
+	return clamp(
+		voteRating <= 0.5 ? 0.95 + voteRating * 0.1 : 1 + (voteRating - 0.5) * 0.5,
+		0.95,
+		1.25,
+	)
+}
 
 export const ceilLevelPointsV2 = (value: number): number =>
 	Math.ceil(clamp(value, LEVEL_SCORE_V2_POINTS.minimum, LEVEL_SCORE_V2_POINTS.maximum) / 2) * 2
@@ -163,8 +344,8 @@ const calculateComplexity = (personalBests: readonly LevelScorePersonalBest[]) =
 	}
 }
 
-const calculateSkill = (input: LevelScoreInput | LegacyLevelScoreInput) => {
-	const skill = 'skill' in input ? input.skill : null
+const calculateSkill = (input: LevelScoreInput) => {
+	const skill = input.skill
 	const ratedPlayerCount = isFiniteNumber(skill?.ratedPlayerCount)
 		? Math.max(0, Math.trunc(skill.ratedPlayerCount))
 		: 0
@@ -213,12 +394,9 @@ const calculateSkill = (input: LevelScoreInput | LegacyLevelScoreInput) => {
 	}
 }
 
-export function calculateLevelPointsV2(
-	input: LevelScoreInput | LegacyLevelScoreInput,
-): LevelScoreResult {
+export function calculateLevelPointsV2(input: LevelScoreInput): LevelScoreResult {
 	const prepared = prepareLevelScoreInput(input)
-	const observations = calculateLegacyLevelScoreObservations(prepared)
-	const competitiveMerit = observations.competitiveMerit
+	const voteFactor = calculateVoteFactor(prepared.normalized)
 	const leader = prepared.personalBests[0]
 
 	if (!leader) {
@@ -228,10 +406,9 @@ export function calculateLevelPointsV2(
 				evidenceFactor: LEVEL_SCORE_V2_EVIDENCE.minimumFactor,
 				lengthFactor: 1,
 				qualityFactor: 0.55,
-				voteFactor: observations.voteFactor,
+				voteFactor,
 			},
 			metrics: {
-				competitiveMerit: null,
 				complexityConfidence: null,
 				complexityScore: null,
 				fieldStrength: null,
@@ -241,14 +418,12 @@ export function calculateLevelPointsV2(
 				skillSampleSize: null,
 				skillScore: null,
 				skillSeparation: null,
-				worldRecordExcluded: observations.worldRecordExcluded,
 			},
 			modifiers: {
-				competitivenessModifier: observations.competitivenessModifier,
 				evidenceModifier: LEVEL_SCORE_V2_EVIDENCE.minimumFactor,
 				lengthModifier: 1,
 				qualityModifier: 0.55,
-				ratingModifier: observations.voteFactor,
+				ratingModifier: voteFactor,
 			},
 		}
 	}
@@ -275,14 +450,14 @@ export function calculateLevelPointsV2(
 				LEVEL_SCORE_V2_EVIDENCE.minimumPersonalBests,
 				LEVEL_SCORE_V2_EVIDENCE.fullPersonalBests,
 			)
-	const lengthFactor = calculateLevelLengthFactor(
+	const lengthFactor = calculateLevelPointsV2LengthFactor(
 		median(prepared.personalBests.slice(0, 10).map((personalBest) => personalBest.time)),
 	)
 	const factors = {
 		evidenceFactor,
 		lengthFactor,
 		qualityFactor,
-		voteFactor: observations.voteFactor,
+		voteFactor,
 	}
 	const rawPoints =
 		MAX_LEVEL_POINTS *
@@ -295,7 +470,6 @@ export function calculateLevelPointsV2(
 		points: ceilLevelPointsV2(rawPoints),
 		factors,
 		metrics: {
-			competitiveMerit,
 			complexityConfidence: complexity.confidence,
 			complexityScore: complexity.score,
 			fieldStrength: skill.fieldStrength,
@@ -305,12 +479,10 @@ export function calculateLevelPointsV2(
 			skillSampleSize: skill.ratedPlayerCount,
 			skillScore: skill.score,
 			skillSeparation: skill.separation,
-			worldRecordExcluded: observations.worldRecordExcluded,
 		},
 		modifiers: {
 			evidenceModifier: factors.evidenceFactor,
 			lengthModifier: factors.lengthFactor,
-			competitivenessModifier: observations.competitivenessModifier,
 			qualityModifier: factors.qualityFactor,
 			ratingModifier: factors.voteFactor,
 		},

@@ -278,7 +278,6 @@ export const levelMetadata = pgTable(
 ).enableRLS()
 
 const levelPointDiagnosticColumns = () => ({
-	competitiveMerit: real('competitive_merit'),
 	complexityConfidence: real('complexity_confidence'),
 	complexityScore: real('complexity_score'),
 	fieldStrength: real('field_strength'),
@@ -288,7 +287,6 @@ const levelPointDiagnosticColumns = () => ({
 	skillSampleSize: integer('skill_sample_size'),
 	skillScore: real('skill_score'),
 	skillSeparation: real('skill_separation'),
-	worldRecordExcluded: boolean('world_record_excluded'),
 })
 
 export const levelPoints = pgTable(
@@ -298,7 +296,6 @@ export const levelPoints = pgTable(
 		points: integer().notNull(),
 		rating: real().notNull().default(DEFAULT_VOTE_RATING),
 		lengthModifier: real('modifier_length').notNull().default(1.0),
-		competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
 		evidenceModifier: real('modifier_evidence').notNull().default(1.0),
 		qualityModifier: real('modifier_quality').notNull().default(1.0),
 		ratingModifier: real('modifier_rating').notNull().default(1.0),
@@ -344,7 +341,6 @@ export const levelPointsHistory = pgTable(
 		points: integer().notNull(),
 		rating: real().notNull().default(DEFAULT_VOTE_RATING),
 		lengthModifier: real('modifier_length').notNull().default(1.0),
-		competitivenessModifier: real('modifier_competitiveness').notNull().default(1.0),
 		evidenceModifier: real('modifier_evidence').notNull().default(1.0),
 		qualityModifier: real('modifier_quality').notNull().default(1.0),
 		ratingModifier: real('modifier_rating').notNull().default(1.0),

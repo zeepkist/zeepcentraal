@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="relative flex size-full overflow-hidden bg-[#0c0a09] text-[#fafaf9]"
+		class="relative flex size-full overflow-hidden bg-warm-neutral-950 text-warm-neutral-50"
 		style="font-family: DINish; font-style: normal; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1"
 	>
 		<div class="absolute inset-x-0 top-0 h-2 bg-[#facc15]" />
@@ -19,7 +19,7 @@
 				</div>
 				<div
 					v-if="eyebrow"
-					class="rounded-full border border-[#44403c] bg-[#171513] px-5 py-2 text-[20px] font-bold uppercase tracking-[0.12em] text-[#d6d3d1]"
+					class="rounded-full border border-warm-neutral-700 bg-warm-neutral-900 px-5 py-2 text-[20px] font-bold uppercase tracking-[0.12em] text-warm-neutral-300"
 				>
 					{{ eyebrow }}
 				</div>
@@ -45,7 +45,7 @@
 						<p
 							v-if="description"
 							:class="dense ? 'mt-2 max-h-14 text-[22px]' : 'mt-4 max-h-21 text-[26px]'"
-							class="m-0 overflow-hidden leading-[1.3] text-[#a8a29e]"
+							class="m-0 overflow-hidden leading-[1.3] text-warm-neutral-400"
 						>
 							{{ description }}
 						</p>
@@ -60,15 +60,15 @@
 
 				<div
 					v-if="resolvedImageUrl"
-					class="flex w-100 shrink-0 overflow-hidden rounded-3xl border border-[#44403c] bg-[#171513] p-2"
+					class="flex w-100 shrink-0 overflow-hidden rounded-3xl border border-warm-neutral-700 bg-warm-neutral-900 p-2"
 				>
 					<img :src="resolvedImageUrl" alt="" class="size-full rounded-2xl object-cover" />
 				</div>
 			</div>
 
 			<div :class="dense ? 'mt-5' : 'mt-7'" class="flex items-center gap-4">
-				<div class="h-1 flex-1 rounded-full bg-[#292524]" />
-				<div class="text-[18px] font-bold tracking-[0.08em] text-[#78716c]">ZEEPKI.ST</div>
+				<div class="h-1 flex-1 rounded-full bg-warm-neutral-800" />
+				<div class="text-[18px] font-bold tracking-[0.08em] text-warm-neutral-500">ZEEPKI.ST</div>
 			</div>
 		</div>
 	</div>

@@ -26,11 +26,9 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!) {
 			points
 			rating
 			modifierLength
-			modifierCompetitiveness
 			modifierEvidence
 			modifierQuality
 			modifierRating
-			competitiveMerit
 			complexityConfidence
 			complexityScore
 			fieldStrength
@@ -40,7 +38,6 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!) {
 			skillSampleSize
 			skillScore
 			skillSeparation
-			worldRecordExcluded
 		}
 		records(first: 0) {
 			totalCount

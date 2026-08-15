@@ -6,16 +6,14 @@ import {
 	LEVEL_SCORE_QUEUE_NAMES,
 } from './createLevelScoreBatchJobs'
 
-test('groups level score updates into bounded jobs with one percentile snapshot', () => {
+test('groups level score updates into bounded jobs', () => {
 	const jobs = createLevelScoreBatchJobs(
 		Array.from({ length: LEVEL_SCORE_BATCH_SIZE * 2 + 1 }, (_, index) => index + 1),
-		42.5,
 	)
 
 	expect(jobs).toHaveLength(3)
 	expect(jobs.map((job) => job.payload.ids.length)).toEqual([50, 50, 1])
 	expect(jobs.every((job) => job.identifier === 'updateLevelScoresBatch')).toBe(true)
-	expect(jobs.every((job) => job.payload.personalBestCountPercentile === 42.5)).toBe(true)
 	expect(jobs.every((job) => job.payload.reportOnly === false)).toBe(true)
 	expect(jobs.map((job) => job.queueName)).toEqual([
 		LEVEL_SCORE_QUEUE_NAMES[0],
@@ -26,14 +24,14 @@ test('groups level score updates into bounded jobs with one percentile snapshot'
 })
 
 test('prioritizes incremental batches without changing stable keys', () => {
-	const [job] = createLevelScoreBatchJobs([1, 2], 10, false, true)
+	const [job] = createLevelScoreBatchJobs([1, 2], false, true)
 	expect(job?.priority).toBe(PRIORITY_JOB_PRIORITY)
 	expect(job?.jobKey).toBe('update-level-scores-batch:1-2')
 })
 
 test('propagates report-only mode to every batch', () => {
-	const jobs = createLevelScoreBatchJobs([1, 2], 10, true)
+	const jobs = createLevelScoreBatchJobs([1, 2], true)
 	expect(jobs.every((job) => job.payload.reportOnly)).toBe(true)
 	expect(jobs[0]?.jobKey).toBe('update-level-scores-batch-report:1-2')
-	expect(createLevelScoreBatchJobs([1, 2], 10)[0]?.jobKey).toBe('update-level-scores-batch:1-2')
+	expect(createLevelScoreBatchJobs([1, 2])[0]?.jobKey).toBe('update-level-scores-batch:1-2')
 })

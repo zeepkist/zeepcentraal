@@ -383,17 +383,6 @@ const heroLabels = computed(() => ({
 	records: t('common.records'),
 	personalBests: t('dashboard.metrics.personalBests'),
 	trackLength: t('levels.detail.hero.trackLength'),
-	competitiveness: t('levels.detail.hero.competitiveness'),
-	competitivenessRatings: {
-		veryEasy: t('levels.detail.hero.competitivenessRatings.veryEasy'),
-		easy: t('levels.detail.hero.competitivenessRatings.easy'),
-		casual: t('levels.detail.hero.competitivenessRatings.casual'),
-		balanced: t('levels.detail.hero.competitivenessRatings.balanced'),
-		competitive: t('levels.detail.hero.competitivenessRatings.competitive'),
-		hard: t('levels.detail.hero.competitivenessRatings.hard'),
-		expert: t('levels.detail.hero.competitivenessRatings.expert'),
-		intense: t('levels.detail.hero.competitivenessRatings.intense'),
-	},
 	unavailable: t('levels.detail.hero.unavailable'),
 	worldRecord: t('levels.detail.worldRecord.title'),
 	worldRecordSet: t('levels.detail.worldRecord.set'),
@@ -448,7 +437,6 @@ const scoreBreakdownLabels = computed(() => ({
 		},
 	},
 	metrics: {
-		competitiveMerit: t('levels.detail.scoreBreakdown.metrics.competitiveMerit'),
 		complexityConfidence: t('levels.detail.scoreBreakdown.metrics.complexityConfidence'),
 		complexityScore: t('levels.detail.scoreBreakdown.metrics.complexityScore'),
 		evidenceModifier: t('levels.detail.scoreBreakdown.metrics.evidenceModifier'),
@@ -462,7 +450,6 @@ const scoreBreakdownLabels = computed(() => ({
 		skillScore: t('levels.detail.scoreBreakdown.metrics.skillScore'),
 		skillSeparation: t('levels.detail.scoreBreakdown.metrics.skillSeparation'),
 		voteAdjustment: t('levels.detail.scoreBreakdown.metrics.voteAdjustment'),
-		worldRecordExcluded: t('levels.detail.scoreBreakdown.metrics.worldRecordExcluded'),
 	},
 	formula: {
 		base: t('levels.detail.scoreBreakdown.formula.base'),
@@ -480,11 +467,6 @@ const scoreBreakdownLabels = computed(() => ({
 	votes: {
 		title: t('levels.detail.scoreBreakdown.votes.title'),
 		description: t('levels.detail.scoreBreakdown.votes.description'),
-	},
-	diagnostics: {
-		title: t('levels.detail.scoreBreakdown.diagnostics.title'),
-		description: t('levels.detail.scoreBreakdown.diagnostics.description'),
-		observationOnly: t('levels.detail.scoreBreakdown.diagnostics.observationOnly'),
 	},
 	voteDistribution: {
 		ariaLabel: t('levels.detail.scoreBreakdown.votes.ariaLabel'),

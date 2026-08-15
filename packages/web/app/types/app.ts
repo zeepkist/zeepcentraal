@@ -69,7 +69,6 @@ export type LevelSummary = {
 	points?: number | null
 	rating?: number | null
 	voteCount?: number
-	competitiveness?: number | null
 	recordCount?: number
 	personalBestCount?: number
 	worldRecordTime?: number | null
@@ -87,7 +86,6 @@ export type LevelWorldRecordSummary = {
 }
 
 export type LevelScoreInsights = {
-	competitiveMerit?: number | null
 	complexityConfidence?: number | null
 	complexityScore?: number | null
 	evidenceModifier?: number | null
@@ -101,7 +99,6 @@ export type LevelScoreInsights = {
 	skillScore?: number | null
 	skillSeparation?: number | null
 	voteAdjustment?: number | null
-	worldRecordExcluded?: boolean | null
 }
 
 export type UserSummary = {

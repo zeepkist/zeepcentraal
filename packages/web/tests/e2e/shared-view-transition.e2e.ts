@@ -48,10 +48,7 @@ const levelDetail = {
 			},
 		],
 	},
-	levelPoints: {
-		...levelCard.levelPoints,
-		modifierCompetitiveness: 1,
-	},
+	levelPoints: levelCard.levelPoints,
 	votes: { totalCount: 10, groupedAggregates: [] },
 	favourites: { totalCount: 2 },
 	trackTournaments: { nodes: [] },

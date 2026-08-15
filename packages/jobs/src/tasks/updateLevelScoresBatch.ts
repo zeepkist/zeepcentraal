@@ -3,20 +3,18 @@ import type { TaskHandler } from './types'
 
 type Payload = {
 	ids?: number[]
-	personalBestCountPercentile?: number
 	reportOnly?: boolean
 }
 
 export const updateLevelScoresBatch: TaskHandler<Payload> = async (payload, helpers) => {
-	const { ids, personalBestCountPercentile } = payload
-	if (!ids?.length || personalBestCountPercentile === undefined) {
-		helpers.logger.warn('updateLevelScoresBatch skipped: missing ids or percentile payload.')
+	const { ids } = payload
+	if (!ids?.length) {
+		helpers.logger.warn('updateLevelScoresBatch skipped: missing ids payload.')
 		return
 	}
 
 	const result = await updateLevelScoreBatch({
 		idLevels: ids,
-		personalBestCountPercentile,
 		reportOnly: payload.reportOnly,
 		logger: helpers.logger,
 	})

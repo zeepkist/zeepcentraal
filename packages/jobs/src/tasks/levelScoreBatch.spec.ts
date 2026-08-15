@@ -10,9 +10,7 @@ const scoreablePersonalBestRow = {
 	idUser: 20,
 	idLevel: 1,
 	time: 60,
-	dateCreated: '2026-01-01T00:00:00.000Z',
 	splits: [20, 40],
-	speeds: [80, 100],
 	totalCount: 1,
 	statisticTime: null,
 	distance: null,
@@ -69,7 +67,6 @@ test('loads only votes unchanged for at least seven days', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		personalBestCountPercentile: 0,
 		logger: { info: mock(() => {}) } as never,
 	})
 
@@ -89,15 +86,12 @@ test('persists only retained V2 score fields', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		personalBestCountPercentile: 100,
 		logger: { info: mock(() => {}) } as never,
 	})
 
 	const updates = upsertLevelPointsBulk.mock.calls[0]?.[0] as Array<Record<string, unknown>>
 	expect(updates).toHaveLength(1)
 	expect(Object.keys(updates[0] ?? {}).toSorted()).toEqual([
-		'competitiveMerit',
-		'competitivenessModifier',
 		'complexityConfidence',
 		'complexityScore',
 		'evidenceModifier',
@@ -114,7 +108,6 @@ test('persists only retained V2 score fields', async () => {
 		'skillSampleSize',
 		'skillScore',
 		'skillSeparation',
-		'worldRecordExcluded',
 	])
 	expect(updates[0]).toMatchObject({
 		complexityScore: 0.5,
@@ -124,7 +117,6 @@ test('persists only retained V2 score fields', async () => {
 		rating: 0.5,
 		ratingModifier: 1,
 		skillScore: 0.5,
-		worldRecordExcluded: false,
 	})
 })
 
@@ -135,7 +127,6 @@ test('boosts level points after five mature positive votes', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		personalBestCountPercentile: 100,
 		logger: { info: mock(() => {}) } as never,
 	})
 
@@ -148,7 +139,6 @@ test('skips score evidence reads for unavailable levels', async () => {
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		personalBestCountPercentile: 100,
 		logger: { info: mock(() => {}) } as never,
 	})
 
@@ -164,7 +154,6 @@ test('syncs contribution projection when awarded points stay unchanged', async (
 
 	await updateLevelScoreBatch({
 		idLevels: [1],
-		personalBestCountPercentile: 100,
 		logger: { info: mock(() => {}) } as never,
 	})
 
@@ -180,7 +169,6 @@ test('report-only mode logs proposed deltas without writing scores', async () =>
 			idUser: 20,
 			idLevel: 1,
 			time: 60,
-			dateCreated: '2026-01-01T00:00:00.000Z',
 			totalCount: 1,
 			statisticTime: null,
 			distance: null,
@@ -192,7 +180,6 @@ test('report-only mode logs proposed deltas without writing scores', async () =>
 
 	const result = await updateLevelScoreBatch({
 		idLevels: [1],
-		personalBestCountPercentile: 100,
 		reportOnly: true,
 		logger: { info } as never,
 	})

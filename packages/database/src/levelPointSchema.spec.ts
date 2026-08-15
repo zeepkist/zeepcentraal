@@ -3,8 +3,6 @@ import { getTableColumns } from 'drizzle-orm'
 import { levelPoints, levelPointsHistory } from './schema'
 
 const retainedColumns = [
-	'competitiveMerit',
-	'competitivenessModifier',
 	'complexityConfidence',
 	'complexityScore',
 	'dateCreated',
@@ -23,7 +21,6 @@ const retainedColumns = [
 	'skillSampleSize',
 	'skillScore',
 	'skillSeparation',
-	'worldRecordExcluded',
 ]
 
 describe('level point persistence schema', () => {

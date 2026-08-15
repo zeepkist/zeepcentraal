@@ -40,14 +40,14 @@ describe('level score personal best query', () => {
 	test('limits before joining only V2 input telemetry', () => {
 		const query = buildV2ScorePersonalBestsByLevelIdsQuery({
 			idLevels: [1],
-			limit: 50,
-		}).toSQL().sql
+		}).toSQL()
 
-		expect(query).toContain('ranked_v2_score_personal_bests')
-		expect(query).toContain('left join "record_statistic"')
-		expect(query).toContain('"driver_input_transition_count"')
-		expect(query).toContain('"has_input_data"')
+		expect(query.sql).toContain('ranked_v2_score_personal_bests')
+		expect(query.sql).toContain('left join "record_statistic"')
+		expect(query.sql).toContain('"driver_input_transition_count"')
+		expect(query.sql).toContain('"has_input_data"')
 		for (const excluded of [
+			'"date_created"',
 			'"speeds"',
 			'"distance"',
 			'"average_speed"',
@@ -55,8 +55,10 @@ describe('level score personal best query', () => {
 			'"time_on_tarmac"',
 			'"has_surface_data"',
 		]) {
-			expect(query).not.toContain(excluded)
+			expect(query.sql).not.toContain(excluded)
 		}
+		expect(query.sql).toContain('"splits"')
+		expect(query.params).toContain(20)
 	})
 })
 

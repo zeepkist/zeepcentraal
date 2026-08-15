@@ -185,7 +185,7 @@
 			</div>
 		</section>
 
-		<div class="mt-7 grid gap-7 lg:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.65fr)]">
+		<div class="mt-7">
 			<section class="vote-branch relative lg:pr-6" :aria-labelledby="`${inspectorId}-votes`">
 				<div class="flex items-start gap-3">
 					<span class="rounded-full bg-primary/10 p-2 text-primary">
@@ -202,36 +202,6 @@
 					<VoteDistributionChart :counts="voteCounts" :labels="labels.voteDistribution" />
 				</div>
 			</section>
-
-			<aside
-				class="diagnostic-lane self-start border-l-2 border-dashed border-border/80 pl-5"
-				:aria-labelledby="`${inspectorId}-diagnostics`"
-			>
-				<div class="flex items-center gap-2">
-					<TablerIcon name="microscope" class="size-5 text-muted-foreground" />
-					<h3 :id="`${inspectorId}-diagnostics`" class="font-black text-highlighted">
-						{{ labels.diagnostics.title }}
-					</h3>
-					<span
-						class="rounded-full bg-muted px-2 py-0.5 text-[0.65rem] font-black uppercase tracking-wide text-muted-foreground"
-					>
-						{{ labels.diagnostics.observationOnly }}
-					</span>
-				</div>
-				<p class="mt-2 text-sm text-muted-foreground">
-					{{ labels.diagnostics.description }}
-				</p>
-				<dl class="mt-4 space-y-3">
-					<div
-						v-for="metric in diagnosticMetrics"
-						:key="metric.key"
-						class="flex items-baseline justify-between gap-4 border-b border-border/50 pb-2"
-					>
-						<dt class="text-sm text-muted-foreground">{{ metric.label }}</dt>
-						<dd class="font-black tabular-nums text-highlighted">{{ formatMetric(metric) }}</dd>
-					</div>
-				</dl>
-			</aside>
 		</div>
 	</section>
 </template>
@@ -283,7 +253,6 @@ const props = defineProps<{
 			}) => string
 		}
 		votes: { title: string; description: string }
-		diagnostics: { title: string; description: string; observationOnly: string }
 		voteDistribution: {
 			ariaLabel: string
 			empty: string
@@ -404,10 +373,6 @@ const factorStages = computed(() =>
 	),
 )
 const selectedStage = computed(() => findStage(activeStage.value))
-const diagnosticMetrics = computed(() => [
-	metric('competitiveMerit', 'percentage'),
-	metric('worldRecordExcluded', 'boolean'),
-])
 const formattedPoints = computed(() =>
 	isAvailable(props.points) && typeof props.points === 'number'
 		? integerFormat.value.format(props.points)

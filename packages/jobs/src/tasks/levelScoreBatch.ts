@@ -1,5 +1,5 @@
 import {
-	calculateLevelPointsV2 as calculateLevelPoints,
+	calculateLevelPointsV2,
 	calculateVoteRating,
 	getVoteRatingMaturityCutoff,
 	isLevelScoreEligible,
@@ -43,7 +43,6 @@ function mapTelemetry(row: PersonalBestRow): LevelScoreTelemetry | null {
 function mapPersonalBest(row: PersonalBestRow): LevelScorePersonalBest {
 	return {
 		time: row.time,
-		dateCreated: row.dateCreated,
 		splits: row.splits?.map((time) => ({ time })),
 		telemetry: mapTelemetry(row),
 	}
@@ -51,12 +50,10 @@ function mapPersonalBest(row: PersonalBestRow): LevelScorePersonalBest {
 
 export async function updateLevelScoreBatch({
 	idLevels,
-	personalBestCountPercentile,
 	reportOnly = false,
 	logger,
 }: {
 	idLevels: number[]
-	personalBestCountPercentile: number
 	reportOnly?: boolean
 	logger: Helpers['logger']
 }): Promise<{ updated: number; zeroed: number; reported: number }> {
@@ -91,7 +88,7 @@ export async function updateLevelScoreBatch({
 		eligibleIds.length > 0
 			? await Promise.all([
 					timed('personalBests', () =>
-						getV2ScorePersonalBestsByLevelIds({ idLevels: eligibleIds, limit: 50 }),
+						getV2ScorePersonalBestsByLevelIds({ idLevels: eligibleIds }),
 					),
 					timed('skillMetrics', () => getLevelSkillMetricsByLevelIds(eligibleIds)),
 					timed('votes', () =>
@@ -114,10 +111,9 @@ export async function updateLevelScoreBatch({
 		const levelPersonalBests = personalBestsByLevel.get(idLevel) ?? []
 		const matureVotes = voteValuesByLevel.get(idLevel) ?? []
 		const rating = calculateVoteRating(matureVotes)
-		const score = calculateLevelPoints({
+		const score = calculateLevelPointsV2({
 			personalBests: levelPersonalBests.map(mapPersonalBest),
 			personalBestCount: Number(levelPersonalBests.at(0)?.totalCount ?? 0),
-			eligibleLevelP90PersonalBestCount: personalBestCountPercentile,
 			skill: skillMetricsByLevel.get(idLevel) ?? null,
 			voteRating: rating,
 			matureVoteCount: matureVotes.length,
@@ -129,15 +125,12 @@ export async function updateLevelScoreBatch({
 			points: score.points,
 			rating,
 			lengthModifier: factors.lengthFactor,
-			competitivenessModifier: score.modifiers.competitivenessModifier,
 			evidenceModifier: factors.evidenceFactor,
 			qualityModifier: factors.qualityFactor,
 			ratingModifier: factors.voteFactor,
-			competitiveMerit: metrics.competitiveMerit,
 			complexityConfidence: metrics.complexityConfidence,
 			complexityScore: metrics.complexityScore,
 			fieldStrength: metrics.fieldStrength,
-			worldRecordExcluded: metrics.worldRecordExcluded,
 			qualityScore: metrics.qualityScore,
 			skillAlignment: metrics.skillAlignment,
 			skillConfidence: metrics.skillConfidence,
@@ -169,7 +162,6 @@ export async function updateLevelScoreBatch({
 					skillConfidence: update.skillConfidence,
 					skillScore: update.skillScore,
 					voteFactor: update.ratingModifier,
-					worldRecordExcluded: update.worldRecordExcluded,
 				}
 			}),
 			zeroedLevelIds: zeroIds,

@@ -2,13 +2,11 @@ import { beforeEach, expect, mock, test } from 'bun:test'
 
 const getAllLevelIds = mock(async () => [1, 2])
 const getAllLevelIdsWithRecordsSince = mock(async (_recordsSince: Date) => [2])
-const getPersonalBestCount90thPercentile = mock(async () => 100)
 const rebuildPlayerSkillAggregates = mock(async () => 50)
 
 mock.module('@zeepkist/database', () => ({
 	getAllLevelIds,
 	getAllLevelIdsWithRecordsSince,
-	getPersonalBestCount90thPercentile,
 	rebuildPlayerSkillAggregates,
 }))
 
@@ -17,7 +15,6 @@ const { RECENT_LEVEL_SCORE_LOOKBACK_MS, updateLevelScores } = await import('./up
 beforeEach(() => {
 	getAllLevelIds.mockClear()
 	getAllLevelIdsWithRecordsSince.mockClear()
-	getPersonalBestCount90thPercentile.mockClear()
 	rebuildPlayerSkillAggregates.mockClear()
 })
 

@@ -88,7 +88,6 @@ export const taskDefinitions = {
 	updateLevelScoresBatch: {
 		schema: z.looseObject({
 			ids: z.array(z.number().int().positive()).min(1).max(50),
-			personalBestCountPercentile: z.number().nonnegative(),
 			reportOnly: z.boolean().optional(),
 		}),
 		compatible: false,

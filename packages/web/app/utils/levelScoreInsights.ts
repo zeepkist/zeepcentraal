@@ -9,7 +9,6 @@ export function mapLevelScoreInsights(
 	points: LevelScoreInsightsSource | null | undefined,
 ): LevelScoreInsights {
 	return {
-		competitiveMerit: points?.competitiveMerit,
 		complexityConfidence: points?.complexityConfidence,
 		complexityScore: points?.complexityScore,
 		evidenceModifier: points?.modifierEvidence,
@@ -23,6 +22,5 @@ export function mapLevelScoreInsights(
 		skillScore: points?.skillScore,
 		skillSeparation: points?.skillSeparation,
 		voteAdjustment: points?.modifierRating,
-		worldRecordExcluded: points?.worldRecordExcluded,
 	}
 }

@@ -9,11 +9,14 @@ const schema = readFileSync(new URL('../schema.ts', import.meta.url), 'utf8')
 describe('level point persistence', () => {
 	test('excludes legacy V1 diagnostics from active persistence', () => {
 		for (const field of [
+			'competitiveMerit',
+			'competitivenessModifier',
 			'popularityModifier',
 			'cutPenalty',
 			'passivePlaySeverity',
 			'sampleSize',
 			'typicalDistance',
+			'worldRecordExcluded',
 		]) {
 			expect(schema).not.toContain(`${field}:`)
 			expect(service).not.toContain(`${field}:`)
@@ -51,6 +54,5 @@ describe('level point persistence', () => {
 		expect(service).toContain(
 			"to_jsonb(excluded) - 'id_level' - 'date_created' - 'date_updated'",
 		)
-		expect(service).toContain('excluded.world_record_excluded')
 	})
 })

@@ -18,7 +18,6 @@ function levelPointHistoryChanged(latestHistoryIdLevel: SQLWrapper) {
 }
 
 const unavailableLevelPointMetrics = {
-	competitiveMerit: null,
 	complexityConfidence: null,
 	complexityScore: null,
 	fieldStrength: null,
@@ -28,13 +27,11 @@ const unavailableLevelPointMetrics = {
 	skillSampleSize: null,
 	skillScore: null,
 	skillSeparation: null,
-	worldRecordExcluded: null,
 } satisfies Partial<typeof levelPoints.$inferInsert>
 
 const zeroLevelPointValues = {
 	points: 0,
 	lengthModifier: 0,
-	competitivenessModifier: 0,
 	evidenceModifier: 0.2,
 	qualityModifier: 0.55,
 	ratingModifier: 1,
@@ -127,11 +124,9 @@ const levelPointUpsertChanged = sql<boolean>`
 const zeroLevelPointUpsertChanged = sql<boolean>`ROW(
 	${levelPoints.points},
 	${levelPoints.lengthModifier},
-	${levelPoints.competitivenessModifier},
 	${levelPoints.evidenceModifier},
 	${levelPoints.qualityModifier},
 	${levelPoints.ratingModifier},
-	${levelPoints.competitiveMerit},
 	${levelPoints.complexityConfidence},
 	${levelPoints.complexityScore},
 	${levelPoints.fieldStrength},
@@ -140,16 +135,13 @@ const zeroLevelPointUpsertChanged = sql<boolean>`ROW(
 	${levelPoints.skillConfidence},
 	${levelPoints.skillSampleSize},
 	${levelPoints.skillScore},
-	${levelPoints.skillSeparation},
-	${levelPoints.worldRecordExcluded}
+	${levelPoints.skillSeparation}
 ) IS DISTINCT FROM ROW(
 	excluded.points,
 	excluded.modifier_length,
-	excluded.modifier_competitiveness,
 	excluded.modifier_evidence,
 	excluded.modifier_quality,
 	excluded.modifier_rating,
-	excluded.competitive_merit,
 	excluded.complexity_confidence,
 	excluded.complexity_score,
 	excluded.field_strength,
@@ -158,8 +150,7 @@ const zeroLevelPointUpsertChanged = sql<boolean>`ROW(
 	excluded.skill_confidence,
 	excluded.skill_sample_size,
 	excluded.skill_score,
-	excluded.skill_separation,
-	excluded.world_record_excluded
+	excluded.skill_separation
 )`
 
 export async function upsertLevelPointsBulk(
@@ -181,11 +172,9 @@ export async function upsertLevelPointsBulk(
 				points: sql`excluded.points`,
 				rating: sql`excluded.rating`,
 				lengthModifier: sql`excluded.modifier_length`,
-				competitivenessModifier: sql`excluded.modifier_competitiveness`,
 				evidenceModifier: sql`excluded.modifier_evidence`,
 				qualityModifier: sql`excluded.modifier_quality`,
 				ratingModifier: sql`excluded.modifier_rating`,
-				competitiveMerit: sql`excluded.competitive_merit`,
 				complexityConfidence: sql`excluded.complexity_confidence`,
 				complexityScore: sql`excluded.complexity_score`,
 				fieldStrength: sql`excluded.field_strength`,
@@ -195,7 +184,6 @@ export async function upsertLevelPointsBulk(
 				skillSampleSize: sql`excluded.skill_sample_size`,
 				skillScore: sql`excluded.skill_score`,
 				skillSeparation: sql`excluded.skill_separation`,
-				worldRecordExcluded: sql`excluded.world_record_excluded`,
 				dateUpdated,
 			},
 			where: levelPointUpsertChanged,

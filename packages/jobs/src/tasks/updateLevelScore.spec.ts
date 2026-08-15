@@ -1,15 +1,12 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 
-const getPersonalBestCount90thPercentile = mock(async () => 100)
 const updateLevelScoreBatch = mock(async () => ({ updated: 1, zeroed: 0, reported: 0 }))
 
-mock.module('@zeepkist/database', () => ({ getPersonalBestCount90thPercentile }))
 mock.module('./levelScoreBatch', () => ({ updateLevelScoreBatch }))
 
 const { updateLevelScore } = await import('./updateLevelScore')
 
 beforeEach(() => {
-	getPersonalBestCount90thPercentile.mockClear()
 	updateLevelScoreBatch.mockClear()
 })
 
