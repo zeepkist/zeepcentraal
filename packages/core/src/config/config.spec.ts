@@ -40,6 +40,17 @@ test('jobs config parses without cache configuration', () => {
 	const config = parseJobsConfig({})
 
 	expect(config.databaseUrl).toBe('postgres://postgres:postgres@localhost:5432/zeepkist')
+	expect(config.queuePoolMax).toBe(2)
+})
+
+test('jobs config accepts a custom queue pool maximum', () => {
+	const config = parseJobsConfig({ JOBS_QUEUE_POOL_MAX: '4' })
+
+	expect(config.queuePoolMax).toBe(4)
+})
+
+test.each(['0', '-1', '1.5', 'invalid'])('jobs config rejects queue pool maximum %s', (value) => {
+	expect(() => parseJobsConfig({ JOBS_QUEUE_POOL_MAX: value })).toThrow()
 })
 
 test('import config preserves super league candidate fallback', () => {

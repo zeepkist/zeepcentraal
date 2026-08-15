@@ -61,6 +61,7 @@ At minimum, set these values in `.env`:
 | `JWT_SECRET` | Yes | Must be at least 32 characters |
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated website origins; defaults to `FRONTEND_URL` |
 | `TRUST_PROXY` | No | Trust forwarded client IP headers for rate limiting |
+| `JOBS_QUEUE_POOL_MAX` | No | Per-process enqueue-only Graphile pool maximum; defaults to `2` |
 
 The remaining values in `.env.example` are optional or have defaults, but you should configure them for your environment (Steam, Discord, Wasabi/S3, and OpenTelemetry).
 

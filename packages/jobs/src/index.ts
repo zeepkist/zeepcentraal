@@ -1,9 +1,8 @@
 import type { Worker } from 'node:cluster'
 import cluster from 'node:cluster'
-import { jobsConfig } from '@zeepkist/core/config/jobs'
-import { makeWorkerUtils } from 'graphile-worker'
 import { recoverOrphanedPlayerScoreQueueLock } from './utils/recoverOrphanedPlayerScoreQueueLock'
 import { startCrons, startRunner, stopCrons, stopRunner } from './worker'
+import { createQueueWorkerUtils } from './workerUtils'
 
 const WORKER_COUNT = 2
 const clusterEvents = cluster as typeof cluster & {
@@ -28,7 +27,7 @@ if (cluster.isPrimary) {
 			lockAgeMs: Math.max(0, Date.now() - lockedAt),
 		})
 	}
-	const utils = await makeWorkerUtils({ connectionString: jobsConfig.databaseUrl })
+	const utils = await createQueueWorkerUtils()
 	startCrons((task, payload, spec) => utils.addJob(task, payload, spec))
 
 	console.info(`Jobs primary (PID ${process.pid}) started, forking ${WORKER_COUNT} workers...`)

@@ -4,6 +4,7 @@ import { type EnvSource, nodeEnvSchema } from './shared'
 const jobsEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
 	DATABASE_URL: z.string().min(1).default('postgres://postgres:postgres@localhost:5432/zeepkist'),
+	JOBS_QUEUE_POOL_MAX: z.coerce.number().int().positive().default(2),
 	STEAM_APP_ID: z.string().default('1440670'),
 	STEAM_API_KEY: z.string().optional(),
 	STEAMCMD_PATH: z.string().default('steamcmd'),
@@ -17,6 +18,7 @@ export function parseJobsConfig(env: EnvSource) {
 	return {
 		nodeEnv: parsedEnv.NODE_ENV,
 		databaseUrl: parsedEnv.DATABASE_URL,
+		queuePoolMax: parsedEnv.JOBS_QUEUE_POOL_MAX,
 		steam: {
 			appId: parsedEnv.STEAM_APP_ID,
 			apiKey: parsedEnv.STEAM_API_KEY,
