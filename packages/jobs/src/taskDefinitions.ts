@@ -36,6 +36,13 @@ export const taskDefinitions = {
 		compatible: false,
 		maxAttempts: 3,
 	},
+	monitorLevelScoreRun: {
+		schema: levelScoreFinalizationPayload.extend({
+			check: z.number().int().nonnegative(),
+		}),
+		compatible: false,
+		maxAttempts: 3,
+	},
 	backfillRecordGhostStatistics: {
 		schema: z
 			.looseObject({
@@ -103,6 +110,7 @@ export const taskDefinitions = {
 		schema: z.looseObject({
 			ids: z.array(z.number().int().positive()).min(1).max(50),
 			reportOnly: z.boolean().optional(),
+			runId: z.uuid().optional(),
 		}),
 		compatible: false,
 		maxAttempts: 3,

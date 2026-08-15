@@ -32,6 +32,7 @@ test('compatible task contract exposes exact API-triggerable task list', () => {
 	expect(compatibleTaskIdentifiers).toEqual(expectedCompatibleTaskIdentifiers)
 	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBatch')
 	expect(compatibleTaskIdentifiers).not.toContain('updateLevelScoresBarrier')
+	expect(compatibleTaskIdentifiers).not.toContain('monitorLevelScoreRun')
 	expect(compatibleTaskIdentifiers).not.toContain('finalizeLevelScores')
 	expect(isCompatibleTaskIdentifier('updateLevelScoresBatch')).toBe(false)
 	expect(isCompatibleTaskIdentifier('updateLevelScore')).toBe(true)
@@ -52,6 +53,7 @@ test('task payload validation accepts compatible legacy shapes', () => {
 	).toBe(true)
 	const runId = crypto.randomUUID()
 	expect(isValidTaskPayload('finalizeLevelScores', { all: true, runId })).toBe(true)
+	expect(isValidTaskPayload('monitorLevelScoreRun', { all: true, check: 0, runId })).toBe(true)
 	expect(
 		isValidTaskPayload('updateLevelScoresBarrier', {
 			all: false,
@@ -104,6 +106,13 @@ test('task payload validation rejects missing required identifiers', () => {
 	expect(
 		isValidTaskPayload('updateLevelScoresBatch', {
 			ids: Array.from({ length: 51 }, (_, index) => index + 1),
+		}),
+	).toBe(false)
+	expect(
+		isValidTaskPayload('monitorLevelScoreRun', {
+			all: true,
+			check: -1,
+			runId: crypto.randomUUID(),
 		}),
 	).toBe(false)
 	expect(

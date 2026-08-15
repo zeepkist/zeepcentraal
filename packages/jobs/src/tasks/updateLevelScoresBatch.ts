@@ -4,6 +4,7 @@ import type { TaskHandler } from './types'
 type Payload = {
 	ids?: number[]
 	reportOnly?: boolean
+	runId?: string
 }
 
 export const updateLevelScoresBatch: TaskHandler<Payload> = async (payload, helpers) => {

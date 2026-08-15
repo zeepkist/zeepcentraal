@@ -4,10 +4,8 @@ import {
 	rebuildPlayerSkillAggregates,
 } from '@zeepkist/database'
 import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from '../priorities'
-import {
-	createLevelScoreBatchJobs,
-	LEVEL_SCORE_QUEUE_NAMES,
-} from '../utils/createLevelScoreBatchJobs'
+import { createLevelScoreBatchJobs } from '../utils/createLevelScoreBatchJobs'
+import { LEVEL_SCORE_MONITOR_QUEUE_NAME, levelScoreMonitorJobKey } from './monitorLevelScoreRun'
 import type { TaskHandler } from './types'
 
 type Payload = {
@@ -35,32 +33,32 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 		return
 	}
 
-	const jobs = createLevelScoreBatchJobs(
-		levelIds,
-		payload.reportOnly,
-		!all && !payload.reportOnly,
-	)
+	const runId = crypto.randomUUID()
+	const jobs = createLevelScoreBatchJobs(levelIds, {
+		incremental: !all && !payload.reportOnly,
+		reportOnly: payload.reportOnly,
+		runId,
+	})
 	await helpers.addJobs(jobs)
 
-	helpers.logger.info(`Queued ${jobs.length} updateLevelScoresBatch jobs.`)
+	helpers.logger.info(`Queued ${jobs.length} updateLevelScoresBatch jobs for run ${runId}.`)
 	if (payload.reportOnly) {
 		return
 	}
 
-	const runId = crypto.randomUUID()
 	await helpers.addJob(
-		'updateLevelScoresBarrier',
+		'monitorLevelScoreRun',
 		{
 			runId,
-			phase: 'queue0',
+			check: 0,
 			all,
 			...(!all && { ids: levelIds }),
 		},
 		{
-			jobKey: `update-level-scores-barrier:${runId}:queue0`,
+			jobKey: levelScoreMonitorJobKey(runId, 0),
 			priority: all ? DEFAULT_JOB_PRIORITY : PRIORITY_JOB_PRIORITY,
-			queueName: LEVEL_SCORE_QUEUE_NAMES[0],
+			queueName: LEVEL_SCORE_MONITOR_QUEUE_NAME,
 		},
 	)
-	helpers.logger.info(`Queued level score finalization barrier for run ${runId}.`)
+	helpers.logger.info(`Queued level score completion monitor for run ${runId}.`)
 }

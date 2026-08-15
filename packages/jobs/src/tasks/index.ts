@@ -5,6 +5,7 @@ import {
 	backfillRecordGhostStatisticsBatch,
 } from './backfillRecordGhostStatistics'
 import { finalizeLevelScores } from './finalizeLevelScores'
+import { monitorLevelScoreRun } from './monitorLevelScoreRun'
 import { recoverLevelRequests } from './recoverLevelRequests'
 import { rotateTrackTournament } from './rotateTrackTournament'
 import { scanWorkshopBatch } from './scanWorkshopBatch'
@@ -35,6 +36,7 @@ export const taskList = {
 	syncPersonalBests: syncPersonalBests as GWTask,
 	syncWorkshopCatalog: syncWorkshopCatalog as GWTask,
 	finalizeLevelScores: finalizeLevelScores as GWTask,
+	monitorLevelScoreRun: monitorLevelScoreRun as GWTask,
 	updateLevelPointsHistory: updateLevelPointsHistory as GWTask,
 	updateLevelPointsHistoryBatch: updateLevelPointsHistoryBatch as GWTask,
 	updateLevelScore: updateLevelScore as GWTask,
