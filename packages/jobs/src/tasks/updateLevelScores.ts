@@ -5,6 +5,7 @@ import {
 } from '@zeepkist/database'
 import { batchProcess, runWithConcurrency } from '../utils'
 import { playerScoreJobOptions } from '../utils/playerScoreJobOptions'
+import { JOBS_WORKER_CONCURRENCY } from '../workerOptions'
 import { updateLevelScoreBatch } from './levelScoreBatch'
 import type { TaskHandler } from './types'
 
@@ -15,7 +16,6 @@ type Payload = {
 
 export const RECENT_LEVEL_SCORE_LOOKBACK_MS = 60 * 60 * 1000
 export const LEVEL_SCORE_BATCH_SIZE = 50
-export const LEVEL_SCORE_BATCH_CONCURRENCY = 2
 
 export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) => {
 	const { all = false } = payload
@@ -43,7 +43,7 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 	let reported = 0
 	const affectedUsers = new Set<number>()
 
-	await runWithConcurrency(batches, LEVEL_SCORE_BATCH_CONCURRENCY, async (ids, batchIndex) => {
+	await runWithConcurrency(batches, JOBS_WORKER_CONCURRENCY, async (ids, batchIndex) => {
 		const batchStartedAt = Date.now()
 		const result = await updateLevelScoreBatch({
 			idLevels: ids,

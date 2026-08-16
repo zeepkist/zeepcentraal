@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test'
-import { jobsWorkerPreset } from './workerOptions'
+import { JOBS_WORKER_CONCURRENCY, jobsWorkerPreset } from './workerOptions'
 
-test('does not prefetch jobs outside Graphile named-queue execution', () => {
+test('prefetches concurrency plus one job with batched completion and failure writes', () => {
 	expect(jobsWorkerPreset.worker).toEqual({
-		completeJobBatchDelay: 0,
-		failJobBatchDelay: 0,
+		localQueue: { size: JOBS_WORKER_CONCURRENCY + 1 },
+		completeJobBatchDelay: 50,
+		failJobBatchDelay: 250,
 	})
-	expect(jobsWorkerPreset.worker).not.toHaveProperty('localQueue')
 })

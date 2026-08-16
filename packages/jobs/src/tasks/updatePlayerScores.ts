@@ -7,6 +7,7 @@ import {
 import { batchProcess, runWithConcurrency } from '../utils'
 import { getPostgresErrorMetadata } from '../utils/postgresError'
 import { recalculateAndPersistPlayerScore } from '../utils/recalculatePlayerScore'
+import { JOBS_WORKER_CONCURRENCY } from '../workerOptions'
 import type { TaskHandler } from './types'
 
 type Payload = Record<string, never>
@@ -17,8 +18,6 @@ interface PointsList {
 }
 
 const PLAYER_SCORE_BATCH_SIZE = 50
-export const PLAYER_SCORE_BATCH_CONCURRENCY = 2
-export const PLAYER_SCORE_WRITE_CONCURRENCY = 5
 
 export const updatePlayerScores: TaskHandler<Payload> = async (_payload, helpers) => {
 	const taskStartedAt = Date.now()
@@ -84,7 +83,7 @@ async function recalculatePlayerScores(
 	let processedUsers = 0
 	await runWithConcurrency(
 		userBatches,
-		PLAYER_SCORE_BATCH_CONCURRENCY,
+		JOBS_WORKER_CONCURRENCY,
 		async (userBatch, batchIndex) => {
 			const batchStartedAt = Date.now()
 
@@ -99,7 +98,10 @@ async function recalculatePlayerScores(
 
 			const persistenceStartedAt = Date.now()
 			try {
-				for (const writeBatch of batchProcess(userBatch, PLAYER_SCORE_WRITE_CONCURRENCY)) {
+				for (const writeBatch of batchProcess(
+					userBatch,
+					Math.round(JOBS_WORKER_CONCURRENCY / 2),
+				)) {
 					const results = await Promise.all(
 						writeBatch.map(async ({ idUser }) => ({
 							idUser,
