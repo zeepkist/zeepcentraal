@@ -28,6 +28,7 @@ import { hashDiscordLinkCode } from './discordLink'
 
 const snowflake = t.String({ pattern: '^[0-9]{1,20}$' })
 const eventId = t.String({ pattern: '^[0-9]{1,30}$' })
+const MAX_WATCH_MATCH_TARGET_IDS = 50
 
 function jsonSafe(value: unknown): unknown {
 	if (typeof value === 'bigint') return value.toString()
@@ -142,7 +143,7 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 					t.Object({
 						kind: t.UnionEnum(DISCORD_WATCH_KINDS),
 						targetIds: t.Array(t.String({ minLength: 1, maxLength: 128 }), {
-							maxItems: 20,
+							maxItems: MAX_WATCH_MATCH_TARGET_IDS,
 						}),
 					}),
 					{ maxItems: 4 },

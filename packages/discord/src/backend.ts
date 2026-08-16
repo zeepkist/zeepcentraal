@@ -8,6 +8,36 @@ import type {
 } from './types'
 
 type FetchInput = Omit<RequestInit, 'body'> & { body?: unknown }
+type WatchKind = 'player' | 'level' | 'author' | 'tournament'
+type WatchMatchTarget = { kind: WatchKind; targetIds: string[] }
+type MatchingWatch = {
+	id: string
+	discordId: string
+	kind: string
+	targetId: string
+	lastDeliveryKey: string | null
+}
+
+const MAX_WATCH_MATCH_TARGET_IDS = 50
+const MAX_WATCH_MATCH_TARGET_GROUPS = 4
+
+function watchMatchRequestBatches(targets: WatchMatchTarget[]): WatchMatchTarget[][] {
+	const chunks: WatchMatchTarget[] = []
+	for (const target of targets) {
+		for (let index = 0; index < target.targetIds.length; index += MAX_WATCH_MATCH_TARGET_IDS) {
+			chunks.push({
+				kind: target.kind,
+				targetIds: target.targetIds.slice(index, index + MAX_WATCH_MATCH_TARGET_IDS),
+			})
+		}
+	}
+
+	const batches: WatchMatchTarget[][] = []
+	for (let index = 0; index < chunks.length; index += MAX_WATCH_MATCH_TARGET_GROUPS) {
+		batches.push(chunks.slice(index, index + MAX_WATCH_MATCH_TARGET_GROUPS))
+	}
+	return batches
+}
 
 export class DiscordBackendClient {
 	constructor(
@@ -75,21 +105,16 @@ export class DiscordBackendClient {
 		})
 	}
 
-	matchingWatches(
-		targets: Array<{
-			kind: 'player' | 'level' | 'author' | 'tournament'
-			targetIds: string[]
-		}>,
-	) {
-		return this.request<
-			Array<{
-				id: string
-				discordId: string
-				kind: string
-				targetId: string
-				lastDeliveryKey: string | null
-			}>
-		>('/discord-bot/watches/matches', { method: 'POST', body: { targets } })
+	async matchingWatches(targets: WatchMatchTarget[]) {
+		const matches = new Map<string, MatchingWatch>()
+		for (const requestTargets of watchMatchRequestBatches(targets)) {
+			const batch = await this.request<MatchingWatch[]>('/discord-bot/watches/matches', {
+				method: 'POST',
+				body: { targets: requestTargets },
+			})
+			for (const watch of batch) matches.set(watch.id, watch)
+		}
+		return [...matches.values()]
 	}
 
 	updateWatchDelivery(

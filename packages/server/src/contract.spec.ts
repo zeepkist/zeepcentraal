@@ -1675,6 +1675,32 @@ test('discord-bot routes require dedicated bearer token', async () => {
 	])
 })
 
+test('discord-bot watch matching accepts up to 50 target IDs per group', async () => {
+	const sendMatches = (count: number) =>
+		send('/discord-bot/watches/matches', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: 'Bearer discord-bot-api-token-for-contract-tests',
+			},
+			body: JSON.stringify({
+				targets: [
+					{
+						kind: 'player',
+						targetIds: Array.from({ length: count }, (_, index) => String(index + 1)),
+					},
+				],
+			}),
+		})
+
+	const accepted = await sendMatches(50)
+	expect(accepted.status).toBe(200)
+	expect(await readBody(accepted)).toEqual([])
+
+	const rejected = await sendMatches(51)
+	expect(rejected.status).toBe(422)
+})
+
 test('job/trigger returns 200 and enqueues a compatible task', async () => {
 	const response = await send('/job/trigger', {
 		method: 'POST',
