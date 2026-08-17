@@ -136,8 +136,8 @@ function dropFile(event: DragEvent) {
 		@dragleave.prevent="dragging = false"
 		@drop.prevent="dropFile"
 	>
-		<div class="flex flex-wrap items-end gap-3">
-			<UFormField :label="$t('playlist.library.current')" class="min-w-56 flex-1">
+		<div class="space-y-4">
+			<UFormField :label="$t('playlist.library.current')">
 				<USelect
 					:model-value="activePlaylistId ?? undefined"
 					:items="items"
@@ -147,32 +147,51 @@ function dropFile(event: DragEvent) {
 					@update:model-value="store.setActivePlaylist(String($event))"
 				/>
 			</UFormField>
-			<UButton icon="i-tabler-plus" color="primary" @click="store.createPlaylist()">
-				{{ $t('playlist.actions.new') }}
-			</UButton>
-			<UButton
-				icon="i-tabler-copy"
-				color="neutral"
-				variant="soft"
-				:disabled="!activePlaylist"
-				@click="duplicate"
-			>
-				{{ $t('playlist.actions.duplicate') }}
-			</UButton>
-			<div
-				class="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/25 p-1.5 pr-3 transition-colors"
-				:class="{ 'border-primary bg-primary/10': dragging }"
-			>
+			<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
+				<UButton icon="i-tabler-plus" color="primary" variant="soft" block @click="store.createPlaylist()">
+					{{ $t('playlist.actions.new') }}
+				</UButton>
 				<UButton
-					icon="i-tabler-upload"
+					icon="i-tabler-copy"
 					color="neutral"
 					variant="soft"
-					:loading="importing"
-					@click="fileInput?.click()"
+					block
+					:disabled="!activePlaylist"
+					@click="duplicate"
 				>
-					{{ $t('playlist.actions.import') }}
+					{{ $t('playlist.actions.duplicate') }}
 				</UButton>
-				<span class="text-xs text-muted-foreground">{{ $t('playlist.import.drop') }}</span>
+				<UButton icon="i-tabler-download" block :disabled="!downloadable" @click="download">
+					{{ $t('playlist.actions.download') }}
+				</UButton>
+				<UButton
+					icon="i-tabler-trash"
+					color="error"
+					variant="soft"
+					block
+					:disabled="!activePlaylist"
+					@click="deleteOpen = true"
+				>
+					{{ $t('playlist.actions.delete') }}
+				</UButton>
+			</div>
+			<div
+				class="rounded-lg border border-dashed border-border bg-muted/25 p-3 transition-colors flex justify-center "
+				:class="{ 'border-primary bg-primary/10': dragging }"
+			>
+				<div class="flex items-center gap-3">
+					<UButton
+						icon="i-tabler-upload"
+						color="neutral"
+						variant="soft"
+						class="shrink-0"
+						:loading="importing"
+						@click="fileInput?.click()"
+					>
+						{{ $t('playlist.actions.import') }}
+					</UButton>
+					<span class="text-sm text-muted-foreground">{{ $t('playlist.import.drop') }}</span>
+				</div>
 				<input
 					ref="fileInput"
 					type="file"
@@ -181,37 +200,31 @@ function dropFile(event: DragEvent) {
 					@change="importFile"
 				>
 			</div>
-			<UButton icon="i-tabler-download" :disabled="!downloadable" @click="download">
-				{{ $t('playlist.actions.download') }}
-			</UButton>
-			<UButton
-				icon="i-tabler-trash"
-				color="error"
-				variant="soft"
-				:disabled="!activePlaylist"
-				@click="deleteOpen = true"
-			>
-				{{ $t('playlist.actions.delete') }}
-			</UButton>
-		</div>
-		<div
-			class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm"
-		>
-			<div class="flex items-center gap-2 text-muted-foreground">
-				<UIcon :name="statusIcon" class="size-4" :class="{ 'animate-spin': persistenceStatus === 'saving' || persistenceStatus === 'loading' }" />
-				<span>{{ statusLabel }}</span>
-			</div>
-			<div class="flex items-center gap-2 text-muted-foreground">
-				<span>{{ $t('playlist.download.guidance') }}</span>
-				<code>%AppData%\Zeepkist\Playlists</code>
-				<UButton
-					icon="i-tabler-copy"
-					color="neutral"
-					variant="ghost"
-					square
-					:aria-label="$t('playlist.actions.copyPath')"
-					@click="copyPath"
-				/>
+			<div class="space-y-3 pt-4 text-sm">
+				<div class="flex items-center gap-2 text-muted-foreground">
+					<UIcon
+						:name="statusIcon"
+						class="size-4 shrink-0"
+						:class="{ 'animate-spin': persistenceStatus === 'saving' || persistenceStatus === 'loading' }"
+					/>
+					<span>{{ statusLabel }}</span>
+				</div>
+				<div class="grid gap-1 text-muted-foreground">
+					<div class="flex min-w-0 items-center gap-1">
+						<span class="min-w-0 flex-1 truncate">
+							{{ $t('playlist.download.guidance') }}
+							<code class="pl-1">%AppData%\Zeepkist\Playlists</code>
+						</span>
+						<UButton
+							icon="i-tabler-copy"
+							color="neutral"
+							variant="ghost"
+							square
+							:aria-label="$t('playlist.actions.copyPath')"
+							@click="copyPath"
+						/>
+					</div>
+				</div>
 			</div>
 		</div>
 	</UCard>

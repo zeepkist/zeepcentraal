@@ -3,9 +3,7 @@ import type { AddPlaylistLevelResult } from '~/stores/playlists'
 import type { LevelSummary } from '~/types/app'
 import { parseSafeWorkshopId } from '~/utils/playlist'
 
-const props = withDefaults(defineProps<{ level: LevelSummary; iconOnly?: boolean }>(), {
-	iconOnly: false,
-})
+const props = defineProps<{ level: LevelSummary }>()
 const store = usePlaylistsStore()
 const toast = useToast()
 const { t } = useI18n()
@@ -65,17 +63,14 @@ function toggle() {
 
 <template>
 	<UButton
-		:color="added ? 'success' : 'primary'"
-		:variant="added ? 'soft' : 'solid'"
-		:icon="added ? 'i-tabler-check' : 'i-tabler-playlist-add'"
-		:square="iconOnly"
+		:color="added ? 'error' : 'primary'"
+		variant="solid"
+		:icon="added ? 'i-tabler-playlist-x' : 'i-tabler-playlist-add'"
 		:disabled="!added && !canAdd"
 		:aria-label="accessibleLabel"
 		:title="accessibleLabel"
 		@click.prevent.stop="toggle"
 	>
-		<template v-if="!iconOnly">
-			{{ added ? $t('playlist.actions.added') : $t('playlist.actions.add') }}
-		</template>
+		{{ added ? $t('playlist.actions.remove') : $t('playlist.actions.add') }}
 	</UButton>
 </template>

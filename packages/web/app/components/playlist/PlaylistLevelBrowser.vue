@@ -66,12 +66,6 @@ const levelLabels = computed(() => ({
 
 <template>
 	<section aria-labelledby="playlist-browser-heading" class="space-y-5">
-		<div>
-			<h2 id="playlist-browser-heading" class="text-2xl font-bold text-highlighted">
-				{{ $t('playlist.browser.title') }}
-			</h2>
-			<p class="text-sm text-muted-foreground">{{ $t('playlist.browser.description') }}</p>
-		</div>
 		<div class="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)]">
 			<LevelFilterPanel
 				:title="$t('levels.filters.title')"

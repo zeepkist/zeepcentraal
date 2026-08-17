@@ -13,16 +13,18 @@ describe('playlist integration contracts', () => {
 	it('keeps LevelCard link and playlist control as sibling interactions', async () => {
 		const source = await appSource('components/level/LevelCard.vue')
 		const linkEnd = source.indexOf('</NuxtLink>')
+		const lastLinkEnd = source.lastIndexOf('</NuxtLink>')
 		const addButton = source.indexOf('<PlaylistAddButton')
 		expect(source).toContain('<article')
 		expect(linkEnd).toBeGreaterThan(0)
-		expect(addButton).toBeGreaterThan(linkEnd)
+		expect(addButton).toBeGreaterThan(lastLinkEnd)
 		expect(source.slice(source.indexOf('<NuxtLink'), linkEnd)).not.toContain(
 			'<PlaylistAddButton',
 		)
-		expect(source).toContain('icon-only')
-		expect(source).toContain('level-playlist-action')
-		expect(source).toContain('@media (hover: hover) and (pointer: fine)')
+		expect(source).toContain('<PlaylistAddButton :level="level" block class="mt-4 w-full" />')
+		expect(source).not.toContain('icon-only')
+		expect(source).not.toContain('level-playlist-action')
+		expect(source).not.toContain('<style scoped>')
 	})
 
 	it('exposes playlist action on detail hero and public playlist workspace', async () => {
@@ -53,8 +55,9 @@ describe('playlist integration contracts', () => {
 	})
 
 	it('uses full-width workspace, contextual import dropzone, and list count', async () => {
-		const [page, toolbar, settings, levels] = await Promise.all([
+		const [page, workspace, toolbar, settings, levels] = await Promise.all([
 			appSource('pages/playlist.vue'),
+			appSource('components/playlist/PlaylistWorkspace.vue'),
 			appSource('components/playlist/PlaylistLibraryToolbar.vue'),
 			appSource('components/playlist/PlaylistSettingsForm.vue'),
 			appSource('components/playlist/PlaylistLevelList.client.vue'),
@@ -62,16 +65,31 @@ describe('playlist integration contracts', () => {
 		expect(page).toContain('class="max-w-none')
 		expect(toolbar).toContain('border-dashed border-border bg-muted/25')
 		expect(toolbar).toContain("$t('playlist.import.drop')")
+		expect(toolbar).toContain('sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2')
+		expect(workspace.match(/<PlaylistLibraryToolbar/g)).toHaveLength(1)
+		expect(workspace.indexOf('<PlaylistLibraryToolbar')).toBeLessThan(
+			workspace.indexOf('<PlaylistSettingsForm'),
+		)
 		expect(settings).not.toContain('levelCount')
 		expect(levels).toContain("$t('playlist.levels.count'")
 	})
 
 	it('toggles shared level actions between add and remove', async () => {
-		const action = await appSource('components/playlist/PlaylistAddButton.client.vue')
+		const [action, translations] = await Promise.all([
+			appSource('components/playlist/PlaylistAddButton.client.vue'),
+			readFile(resolve(repoRoot, 'packages/web/i18n/locales/en.json'), 'utf8'),
+		])
 		expect(action).toContain('if (added.value)')
 		expect(action).toContain('store.removeLevel')
 		expect(action).toContain("t('playlist.actions.remove')")
 		expect(action).toContain(':disabled="!added && !canAdd"')
+		expect(action).toContain(":color=\"added ? 'error' : 'primary'\"")
+		expect(action).toContain('variant="solid"')
+		expect(action).toContain("'i-tabler-playlist-x'")
+		expect(action).toContain("'i-tabler-playlist-add'")
+		expect(action).not.toContain('iconOnly')
+		expect(action).not.toContain('playlist.actions.added')
+		expect(JSON.parse(translations).playlist.actions.added).toBeUndefined()
 	})
 
 	it('includes required metadata in every shared LevelCard query and mapping', async () => {

@@ -6,8 +6,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 
 <template>
 	<div class="space-y-6">
-		<PlaylistLibraryToolbar v-if="hydrated" />
-		<UCard v-else class="border-border bg-card/85">
+		<UCard v-if="!hydrated" class="border-border bg-card/85">
 			<div class="flex min-h-24 items-center justify-center gap-3 text-muted-foreground">
 				<UIcon name="i-tabler-loader-2" class="size-5 animate-spin" />
 				<span>{{ $t('playlist.persistence.loading') }}</span>
@@ -36,6 +35,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 			class="grid min-w-0 gap-6 lg:grid-cols-[minmax(21rem,25rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(30rem,30rem)_minmax(0,1fr)]"
 		>
 			<div :class="{ 'hidden lg:block': mobilePane !== 'playlist' }" class="min-w-0 space-y-6">
+				<PlaylistLibraryToolbar />
 				<template v-if="activePlaylist">
 					<PlaylistSettingsForm :playlist="activePlaylist" />
 					<PlaylistLevelList />

@@ -111,7 +111,6 @@
 	"playlist": {
 		"actions": {
 			"add": "Add to playlist",
-			"added": "Added",
 			"cancel": "Cancel",
 			"copyPath": "Copy playlist folder path",
 			"delete": "Delete",
@@ -121,10 +120,6 @@
 			"new": "New playlist",
 			"remove": "Remove from playlist",
 			"undo": "Undo"
-		},
-		"browser": {
-			"description": "Use Level Explorer filters, then add levels from any card.",
-			"title": "Find levels"
 		},
 		"delete": {
 			"description": "This removes the local playlist from this browser. Download it first if you need a backup.",
@@ -164,8 +159,8 @@
 			"error": "Local saving unavailable",
 			"idle": "Local storage waiting",
 			"loading": "Loading local playlists",
-			"saved": "Saved locally",
-			"saving": "Saving locally"
+			"saved": "Auto-saved locally. Download the playlist to keep a backup.",
+			"saving": "Auto-saving locally."
 		},
 		"settings": {
 			"estimatedDuration": "Estimated maximum play time: {duration}",
@@ -387,7 +382,7 @@
 			"title": "Levels"
 		},
 		"playlist": {
-			"description": "Build, organise, import and download Zeepkist playlists stored privately in this browser.",
+			"description": "Build a custom Zeepkist playlist with up-to 1,000 levels.",
 			"eyebrow": "Playlist Builder",
 			"seo": {
 				"description": "Create Zeepkist playlists, reorder workshop levels, import existing files, and download game-ready .zeeplist files.",
