@@ -326,6 +326,8 @@ export async function loadAdventureMigrationRows(
 			throw new Error(`Missing adventure level file: ${relative(adventureRoot, filePath)}`)
 		}
 
+		console.debug(`Parsing level ${entry.levelName}`)
+
 		const parsed = parseJsonLevelV2(await readFile(filePath, 'utf8'), true)
 		if (!/^[0-9A-F]{32}$/.test(parsed.hash)) {
 			throw new Error(`Parsed adventure level ${entry.levelName} has invalid XXH128 hash`)
