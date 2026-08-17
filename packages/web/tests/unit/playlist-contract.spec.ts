@@ -144,8 +144,8 @@ describe('playlist integration contracts', () => {
 		])
 		expect(navigation).toContain("'/playlist': ['/playlist']")
 		expect(navigation).toContain("to: '/playlist'")
-		expect(footer).toContain("t('nav.playlist'), '/playlist', 'playlist'")
-		expect(icons).toContain('IconPlaylist')
+		expect(footer).toContain("t('nav.playlist'), '/playlist', 'layout-list'")
+		expect(icons).toContain('IconLayoutList')
 		expect(JSON.parse(translations).pages.playlist).toBeDefined()
 	})
 
