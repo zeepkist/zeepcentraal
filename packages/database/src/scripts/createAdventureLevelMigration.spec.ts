@@ -44,11 +44,17 @@ test('resolves series, short name, and image url', () => {
 	expect(getAdventureImageUrl('XG', name)).toBe('assets/thumbnails/1/levels/XG/XG-04.avif')
 })
 
-test('generated SQL escapes strings and filters missing xx_hash at execution time', () => {
+test('generated SQL resolves canonical xxHash levels and safely falls back to legacy hash', () => {
 	const sql = generateAdventureMigrationSql([baseRow])
 
 	expect(sql).toContain(`'A-''01'`)
-	expect(sql).toContain(`"level"."xx_hash" IS NULL`)
+	expect(sql).toContain(`INNER JOIN LATERAL`)
+	expect(sql).toContain(`candidate_level."xx_hash" = adventure_data.xx_hash`)
+	expect(sql).toContain(`candidate_level."xx_hash" IS NULL`)
+	expect(sql).toContain(`candidate_level."hash" = adventure_data.uid`)
+	expect(sql).toContain(`candidate_level."id" ASC`)
+	expect(sql).toContain(`LIMIT 1`)
+	expect(sql).not.toContain(`WHERE "level"."xx_hash" IS NULL`)
 	expect(sql).toContain(`-1::bigint`)
 	expect(sql).toContain(`"quoted '' block"`)
 })

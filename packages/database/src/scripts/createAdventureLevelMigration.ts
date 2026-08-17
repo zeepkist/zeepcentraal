@@ -192,23 +192,34 @@ export function generateAdventureMigrationSql(rows: AdventureMigrationRow[]): st
 	}
 
 	return `WITH ${adventureDataCte(rows)},
-matched_levels AS (
+resolved_levels AS (
 \tSELECT
 \t\t"level"."id" AS id_level,
 \t\tadventure_data.*
 \tFROM adventure_data
-\tINNER JOIN "level" ON "level"."hash" = adventure_data.uid
-\tWHERE "level"."xx_hash" IS NULL
+\tINNER JOIN LATERAL (
+\t\tSELECT candidate_level."id", candidate_level."xx_hash"
+\t\tFROM "level" AS candidate_level
+\t\tWHERE candidate_level."xx_hash" = adventure_data.xx_hash
+\t\t\tOR (
+\t\t\t\tcandidate_level."xx_hash" IS NULL
+\t\t\t\tAND candidate_level."hash" = adventure_data.uid
+\t\t\t)
+\t\tORDER BY
+\t\t\t(candidate_level."xx_hash" = adventure_data.xx_hash) DESC NULLS LAST,
+\t\t\tcandidate_level."id" ASC
+\t\tLIMIT 1
+\t) AS "level" ON TRUE
 ),
 updated_levels AS (
 \tUPDATE "level"
 \tSET
-\t\t"xx_hash" = matched_levels.xx_hash,
+\t\t"xx_hash" = resolved_levels.xx_hash,
 \t\t"adventure" = TRUE,
 \t\t"date_updated" = now()
-\tFROM matched_levels
-\tWHERE "level"."id" = matched_levels.id_level
-\tRETURNING matched_levels.*
+\tFROM resolved_levels
+\tWHERE "level"."id" = resolved_levels.id_level
+\tRETURNING resolved_levels.*
 ),
 inserted_level_items AS (
 \tINSERT INTO "level_item" (
