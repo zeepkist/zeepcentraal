@@ -5,6 +5,7 @@ export const navigationRouteFamilies: Readonly<Record<string, readonly string[]>
 	'/': ['/'],
 	'/records': ['/records', '/record'],
 	'/levels': ['/levels', '/level'],
+	'/playlist': ['/playlist'],
 	'/users': ['/users', '/user'],
 	'/super-league': ['/super-league'],
 	'/mods': ['/mods', '/mod'],
@@ -49,19 +50,24 @@ const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 		icon: 'trophy',
 	},
 	{
-		to: '/levels',
-		labelKey: 'nav.levels',
-		icon: 'map',
-	},
-	{
 		to: '/users',
 		labelKey: 'nav.users',
 		icon: 'users',
 	},
 	{
-		to: '/super-league',
-		labelKey: 'nav.zsl',
-		icon: 'flag',
+		to: '/levels',
+		labelKey: 'nav.levels',
+		icon: 'map',
+	},
+	{
+		to: '/playlist',
+		labelKey: 'nav.playlist',
+		icon: 'layout-list',
+	},
+	{
+		to: '/adventure/a',
+		labelKey: 'nav.adventure',
+		icon: 'route',
 	},
 	{
 		to: '/totw',
@@ -74,9 +80,9 @@ const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 		icon: 'calendar-stats',
 	},
 	{
-		to: '/adventure/a',
-		labelKey: 'nav.adventure',
-		icon: 'route',
+		to: '/super-league',
+		labelKey: 'nav.zsl',
+		icon: 'flag',
 	},
 	{
 		to: '/mods',

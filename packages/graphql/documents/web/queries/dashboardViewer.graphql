@@ -41,6 +41,9 @@ query ZC_DashboardViewerLevels($id: Int!) {
 			orderBy: [CREATED_AT_DESC]
 		) {
 			nodes {
+				fileUid
+				fileAuthor
+				workshopId
 				level {
 					id
 					xxHash

@@ -22,6 +22,9 @@ type DashboardLevelLike = {
 		nodes: Array<{
 			name: string
 			imageUrl: string
+			fileUid: string
+			fileAuthor: string
+			workshopId: unknown
 			validationTimeAuthor: number
 			validationTimeGold: number
 			validationTimeSilver: number
@@ -46,10 +49,13 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 	return {
 		id: level.id,
 		xxHash: level.xxHash,
+		fileUid: item?.fileUid,
+		fileAuthor: item?.fileAuthor,
 		name: getLevelDisplayName(item?.name, level.xxHash),
 		imageUrl: item?.imageUrl,
 		authorName: item?.author?.steamName,
 		authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
+		workshopId: item?.workshopId == null ? null : String(item.workshopId),
 		adventure: level.adventure,
 		dateCreated: String(level.dateCreated),
 		points: level.levelPoints?.points,

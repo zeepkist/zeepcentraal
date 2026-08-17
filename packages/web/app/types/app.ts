@@ -56,6 +56,8 @@ export type RecordHistoryUpdate = {
 export type LevelSummary = {
 	id: number
 	xxHash: string
+	fileUid?: string | null
+	fileAuthor?: string | null
 	publiclyVisible?: boolean
 	name: string
 	imageUrl?: string | null
@@ -75,6 +77,33 @@ export type LevelSummary = {
 	worldRecordAuthorName?: string | null
 	worldRecordAuthorSteamId?: string | null
 	medals?: MedalTimes | null
+}
+
+export type LocalPlaylistLevel = {
+	UID: string
+	WorkshopID: number
+	Name: string
+	Author: string
+	xxHash?: string
+	imageUrl?: string
+}
+
+export type LocalPlaylist = {
+	id: string
+	name: string
+	roundLength: number
+	shufflePlaylist: boolean
+	levels: LocalPlaylistLevel[]
+	createdAt: string
+	updatedAt: string
+}
+
+export type PlaylistImportReport = {
+	normalizedFields: string[]
+	skippedDuplicates: string[]
+	skippedInvalid: number
+	truncatedOverflow: number
+	unresolvedLegacyUids: string[]
 }
 
 export type LevelWorldRecordSummary = {

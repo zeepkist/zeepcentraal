@@ -7,6 +7,9 @@ fragment ZC_DashboardLevel on Level {
 		nodes {
 			name
 			imageUrl
+			fileUid
+			fileAuthor
+			workshopId
 			validationTimeAuthor
 			validationTimeGold
 			validationTimeSilver

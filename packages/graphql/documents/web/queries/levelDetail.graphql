@@ -9,6 +9,8 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!) {
 			nodes {
 				name
 				imageUrl
+				fileUid
+				fileAuthor
 				authorId
 				workshopId
 				validationTimeAuthor

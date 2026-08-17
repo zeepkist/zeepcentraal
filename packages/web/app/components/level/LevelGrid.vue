@@ -2,7 +2,7 @@
 	<div
 		class="grid gap-4 sm:grid-cols-2"
 		:class="{
-			'xl:grid-cols-3 2xl:grid-cols-4': columns === 4,
+			'3xl:grid-cols-4 2xl:grid-cols-3 xl:grid-cols-2 grid-cols-1': columns === 4,
 			'xl:grid-cols-3': columns === 3,
 		}"
 	>

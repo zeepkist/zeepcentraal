@@ -8,6 +8,13 @@ const compactNumberFormatter = new Intl.NumberFormat('en-GB', {
 	notation: 'compact',
 })
 
+function formatCompactNumber(value: number): string {
+	return compactNumberFormatter
+		.formatToParts(value)
+		.map((part) => (part.type === 'compact' ? part.value.toUpperCase() : part.value))
+		.join('')
+}
+
 export type OgTournamentStatus = 'Finished' | 'Live now' | 'Upcoming'
 
 export function getOgTournamentStatus(
@@ -37,13 +44,13 @@ export function formatOgNumber(value: number | null | undefined): string {
 }
 
 export function formatOgCompactNumber(value: number | null | undefined): string {
-	return value == null || !Number.isFinite(value) ? '—' : compactNumberFormatter.format(value)
+	return value == null || !Number.isFinite(value) ? '—' : formatCompactNumber(value)
 }
 
 export function formatOgDistance(metres: number | null | undefined): string {
 	if (metres == null || !Number.isFinite(metres)) return '—'
 	const kilometres = metres / 1000
-	return `${kilometres >= 100_000 ? compactNumberFormatter.format(kilometres) : numberFormatter.format(kilometres)} km`
+	return `${kilometres >= 100_000 ? formatCompactNumber(kilometres) : numberFormatter.format(kilometres)} km`
 }
 
 export function formatOgTime(seconds: number | null | undefined): string {
