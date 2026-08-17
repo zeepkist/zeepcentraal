@@ -1,0 +1,25 @@
+query ZC_PlaylistLevelsByUid($uids: [String!]!) {
+	levelItems(
+		first: 100
+		filter: {
+			fileUid: { in: $uids }
+			deleted: { equalTo: false }
+			level: { publiclyVisible: { equalTo: true } }
+		}
+		orderBy: [UPDATED_AT_DESC]
+	) {
+		nodes {
+			fileUid
+			fileAuthor
+			workshopId
+			name
+			imageUrl
+			level {
+				xxHash
+			}
+			author {
+				steamName
+			}
+		}
+	}
+}

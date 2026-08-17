@@ -233,6 +233,8 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		return {
 			id: value.id,
 			xxHash: value.xxHash,
+			fileUid: item?.fileUid,
+			fileAuthor: item?.fileAuthor,
 			publiclyVisible: value.publiclyVisible,
 			name: getLevelDisplayName(item?.name, value.xxHash),
 			imageUrl: item?.imageUrl,

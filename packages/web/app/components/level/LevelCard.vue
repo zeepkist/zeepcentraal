@@ -1,26 +1,42 @@
 <template>
-	<NuxtLink
-		:to="`/level/${level.xxHash}`"
-		class="group block h-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 p-4 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-		@click.capture="beginTransition"
+	<article
+		class="level-card group h-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 p-4 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1"
 	>
-		<div
-			class="aspect-video overflow-hidden rounded-lg bg-muted"
-			:style="transition.sourceStyle(transitionScope, 'level', level.xxHash, 'media')"
-			data-shared-transition-source="media"
-		>
-			<NuxtImg
-				v-if="level.imageUrl"
-				:src="level.imageUrl"
-				:alt="level.name"
-				format="avif"
-				width="1600"
-				height="900"
-				sizes="100vw sm:50vw xl:33vw 2xl:25vw"
-				class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
-				loading="lazy"
+		<div class="relative">
+			<NuxtLink
+				:to="`/level/${level.xxHash}`"
+				class="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+				@click.capture="beginTransition"
+			>
+				<div
+					class="aspect-video overflow-hidden rounded-lg bg-muted"
+					:style="transition.sourceStyle(transitionScope, 'level', level.xxHash, 'media')"
+					data-shared-transition-source="media"
+				>
+					<NuxtImg
+						v-if="level.imageUrl"
+						:src="level.imageUrl"
+						:alt="level.name"
+						format="avif"
+						width="1600"
+						height="900"
+						sizes="100vw sm:50vw xl:33vw 2xl:25vw"
+						class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
+						loading="lazy"
+					/>
+				</div>
+			</NuxtLink>
+			<PlaylistAddButton
+				:level="level"
+				icon-only
+				class="level-playlist-action absolute right-2 bottom-2 z-10 shadow-lg"
 			/>
 		</div>
+		<NuxtLink
+			:to="`/level/${level.xxHash}`"
+			class="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+			@click.capture="beginTransition"
+		>
 		<div class="mt-4 flex items-start justify-between gap-3">
 			<div class="min-w-0">
 				<h3 class="truncate text-lg font-semibold text-highlighted">{{ level.name }}</h3>
@@ -98,7 +114,8 @@
 			<span>{{ createdLabel }}</span>
 			<NuxtTime :datetime="level.dateCreated" relative />
 		</div>
-	</NuxtLink>
+		</NuxtLink>
+	</article>
 </template>
 
 <script setup vapor lang="ts">
@@ -161,3 +178,32 @@ function formatTime(seconds: number) {
 	return `${minutes}:${(seconds - minutes * 60).toFixed(3).padStart(6, '0')}`
 }
 </script>
+
+<style scoped>
+.level-playlist-action {
+	transition:
+		opacity 160ms ease,
+		transform 160ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.level-playlist-action {
+		pointer-events: none;
+		opacity: 0;
+		transform: translateY(0.375rem) scale(0.94);
+	}
+
+	.level-card:hover .level-playlist-action,
+	.level-card:focus-within .level-playlist-action {
+		pointer-events: auto;
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.level-playlist-action {
+		transition: none;
+	}
+}
+</style>

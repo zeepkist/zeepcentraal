@@ -94,18 +94,103 @@
 		}
 	},
 	"nav": {
-		"adventure": "Adventure",
+		"adventure": "Adventure Mode",
 		"cosmetics": "Cosmetics",
 		"developer": "Developer",
 		"home": "Dashboard",
-		"levels": "Levels",
+		"levels": "Level Explorer",
+		"playlist": "Playlist Builder",
 		"mods": "Mods",
-		"records": "Records",
+		"records": "Live Records",
 		"totm": "Track of the Month",
 		"totw": "Track of the Week",
-		"users": "Users",
+		"users": "Player Rankings",
 		"wiki": "Wiki",
 		"zsl": "Zeepkist Super League"
+	},
+	"playlist": {
+		"actions": {
+			"add": "Add to playlist",
+			"added": "Added",
+			"cancel": "Cancel",
+			"copyPath": "Copy playlist folder path",
+			"delete": "Delete",
+			"download": "Download .zeeplist",
+			"duplicate": "Duplicate",
+			"import": "Import",
+			"new": "New playlist",
+			"remove": "Remove from playlist",
+			"undo": "Undo"
+		},
+		"browser": {
+			"description": "Use Level Explorer filters, then add levels from any card.",
+			"title": "Find levels"
+		},
+		"delete": {
+			"description": "This removes the local playlist from this browser. Download it first if you need a backup.",
+			"title": "Delete playlist?"
+		},
+		"download": {
+			"guidance": "Save into"
+		},
+		"empty": {
+			"description": "Create one here, or add a level from any level.",
+			"title": "No local playlists yet"
+		},
+		"import": {
+			"clean": "Imported playlist.",
+			"drop": "or drop a .zeeplist here",
+			"duplicates": "{count} duplicate UIDs skipped",
+			"invalid": "{count} invalid levels skipped",
+			"tooLarge": "Playlist files must be 2 MiB or smaller.",
+			"truncated": "{count} levels above the 1000-level limit skipped",
+			"unresolved": "{count} legacy UIDs could not be resolved"
+		},
+		"levels": {
+			"count": "{count} levels",
+			"drag": "Drag to reorder level",
+			"emptyDescription": "Add levels from level browser or any level page",
+			"emptyTitle": "Playlist is empty",
+			"moveDown": "Move level down",
+			"moveUp": "Move level up",
+			"remove": "Remove level",
+			"title": "Playlist levels"
+		},
+		"library": {
+			"current": "Current playlist",
+			"none": "No playlist selected"
+		},
+		"persistence": {
+			"error": "Local saving unavailable",
+			"idle": "Local storage waiting",
+			"loading": "Loading local playlists",
+			"saved": "Saved locally",
+			"saving": "Saving locally"
+		},
+		"settings": {
+			"estimatedDuration": "Estimated maximum play time: {duration}",
+			"name": "Playlist name",
+			"roundLength": "Round duration",
+			"roundLengthHint": "Seconds per level (60–3600)",
+			"shuffle": "Shuffle playlist",
+			"shuffleHint": "Zeepkist will select a random level from the playlist each time a round ends.",
+			"title": "Playlist settings"
+		},
+		"tabs": {
+			"browser": "Find levels",
+			"playlist": "Playlist"
+		},
+		"toasts": {
+			"added": "Added {level}",
+			"duplicate": "Level already exists in current playlist",
+			"full": "Playlist reached 1000-level limit",
+			"importFailed": "Could not import playlist",
+			"imported": "Imported {playlist}",
+			"invalid": "Level has no Workshop ID or file UID",
+			"pathCopied": "Playlist folder path copied",
+			"pathCopyFailed": "Could not copy playlist folder path",
+			"removed": "Removed {level}"
+		}
 	},
 	"search": {
 		"empty": "No users or levels found",
@@ -300,6 +385,15 @@
 				"title": "Levels"
 			},
 			"title": "Levels"
+		},
+		"playlist": {
+			"description": "Build, organise, import and download Zeepkist playlists stored privately in this browser.",
+			"eyebrow": "Playlist Builder",
+			"seo": {
+				"description": "Create Zeepkist playlists, reorder workshop levels, import existing files, and download game-ready .zeeplist files.",
+				"title": "Zeepkist Playlist Builder"
+			},
+			"title": "Build a Zeepkist playlist"
 		},
 		"mods": {
 			"description": "Discover Zeepkist mods available on Modkist.",

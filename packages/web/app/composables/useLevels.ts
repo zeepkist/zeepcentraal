@@ -187,10 +187,13 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 			return {
 				id: node.id,
 				xxHash: node.xxHash,
+				fileUid: item?.fileUid,
+				fileAuthor: item?.fileAuthor,
 				name: getLevelDisplayName(item?.name, node.xxHash),
 				imageUrl: item?.imageUrl,
 				authorName: item?.author?.steamName,
 				authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
+				workshopId: item?.workshopId == null ? null : String(item.workshopId),
 				adventure: node.adventure,
 				dateCreated: String(node.dateCreated),
 				points: node.levelPoints?.points,

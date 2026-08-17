@@ -31,6 +31,7 @@
 		"@urql/vue": "~2.1.1",
 		"@vue/devtools-api": "~8.2.0",
 		"@vueuse/core": "~14.4.0",
+		"@vueuse/integrations": "~14.4.0",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"@zeepkist/graphql": "workspace:*",
@@ -43,6 +44,7 @@
 		"nuxt-og-image": "~6.7.5",
 		"pinia": "~4.0.0",
 		"sanitize-html": "~2.17.6",
+		"sortablejs": "~1.15.6",
 		"tailwindcss": "~4.3.3",
 		"three": "~0.185.1",
 		"vue": "~3.5.40",
@@ -54,8 +56,10 @@
 		"@iconify-json/tabler": "~1.2.38",
 		"@playwright/test": "~1.62.0",
 		"@types/sanitize-html": "~2.16.1",
+		"@types/sortablejs": "~1.15.9",
 		"@types/three": "~0.185.1",
 		"@vue/test-utils": "~2.4.11",
+		"fake-indexeddb": "~6.2.4",
 		"unstorage": "~1.17.5",
 		"vitest": "~4.1.10"
 	}

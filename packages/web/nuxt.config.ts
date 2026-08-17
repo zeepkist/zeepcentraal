@@ -33,7 +33,7 @@ export default defineNuxtConfig({
 		crossOriginPrefetch: true,
 		writeEarlyHints: true,
 		typedPages: true,
-		buildCache: true,
+		buildCache: false,
 		viewTransition: true,
 	},
 	appConfig: {
@@ -186,7 +186,7 @@ export default defineNuxtConfig({
 				code: 'en',
 				language: 'en-GB',
 				name: 'English',
-				files: ['en.json'],
+				files: ['en.ts'],
 				isCatchallLocale: true,
 			},
 			/*
@@ -194,12 +194,12 @@ export default defineNuxtConfig({
 				code: 'de',
 				language: 'de-DE',
 				name: 'Deutsch',
-				files: ['en.json', 'de.json'],
+				files: ['en.ts', 'de.json'],
 			},
 			*/
-			//{ code: 'ja', language: 'ja-JP', name: '日本語', files: ['en.json'] },
-			//{ code: 'nl', language: 'nl-NL', name: 'Nederlands', files: ['en.json'] },
-			//{ code: 'no', language: 'no-NO', name: 'Norsk', files: ['en.json'] },
+			//{ code: 'ja', language: 'ja-JP', name: '日本語', files: ['en.ts'] },
+			//{ code: 'nl', language: 'nl-NL', name: 'Nederlands', files: ['en.ts'] },
+			//{ code: 'no', language: 'no-NO', name: 'Norsk', files: ['en.ts'] },
 		],
 		detectBrowserLanguage: {
 			useCookie: true,

@@ -70,6 +70,7 @@ const footerColumns = computed(() => [
 		children: [
 			internal(t('nav.records'), '/records', 'trophy'),
 			internal(t('nav.levels'), '/levels', 'map'),
+			internal(t('nav.playlist'), '/playlist', 'playlist'),
 			internal(t('nav.users'), '/users', 'users'),
 			internal(t('nav.zsl'), '/super-league', 'flag'),
 			internal(t('nav.mods'), '/mods', 'plug'),
