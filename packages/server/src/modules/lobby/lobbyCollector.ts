@@ -47,8 +47,10 @@ export class LobbyCollector {
 				try {
 					await this.connectToMaster(identity)
 					retry = 1_000
-				} catch {
-					console.warn('Zeepkist lobby collector connection failed; retrying')
+				} catch (error) {
+					console.warn(
+						`Zeepkist lobby collector connection failed; retrying: ${safeErrorMessage(error)}`,
+					)
 				}
 				if (this.stopped) {
 					break
@@ -157,4 +159,9 @@ function withJitter(delayMs: number) {
 
 function delay(delayMs: number) {
 	return new Promise<void>((resolve) => setTimeout(resolve, delayMs))
+}
+
+function safeErrorMessage(error: unknown) {
+	const message = error instanceof Error ? error.message : 'Unknown error'
+	return message.replace(/[\r\n\t]/g, ' ').slice(0, 200)
 }

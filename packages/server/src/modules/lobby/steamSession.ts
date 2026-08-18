@@ -66,7 +66,8 @@ export class LobbySteamSession {
 		}
 		const userData = Buffer.allocUnsafe(4)
 		userData.writeUInt32LE(TICKET_USER_DATA)
-		return this.client.createEncryptedAppTicket(this.appId, userData)
+		const result: unknown = await this.client.createEncryptedAppTicket(this.appId, userData)
+		return normalizeEncryptedAppTicket(result)
 	}
 
 	close() {
@@ -82,4 +83,20 @@ export class LobbySteamSession {
 		await chmod(temporaryFile, 0o600)
 		await rename(temporaryFile, this.refreshTokenFile)
 	}
+}
+
+export function normalizeEncryptedAppTicket(result: unknown) {
+	const ticket = Buffer.isBuffer(result)
+		? result
+		: isObject(result) && Buffer.isBuffer(result.encryptedAppTicket)
+			? result.encryptedAppTicket
+			: undefined
+	if (!ticket?.length) {
+		throw new Error('Steam returned an invalid encrypted app ticket')
+	}
+	return ticket
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null
 }
