@@ -19,15 +19,18 @@ RUN bun install --frozen-lockfile
 RUN set -eux; \
 	mkdir -p /native-node_modules/@doctormckay /native-node_modules/@napi-rs; \
 	steam_crypto_package="$(find . -path '*/node_modules/@doctormckay/steam-crypto/package.json' -print -quit)"; \
-	lzma_package="$(find . -path '*/node_modules/@napi-rs/lzma/package.json' -print -quit)"; \
+	napi_lzma_package="$(find . -path '*/node_modules/@napi-rs/lzma/package.json' -print -quit)"; \
+	lzma_package="$(find . -path '*/node_modules/lzma/package.json' -print -quit)"; \
 	xxhash_package="$(find . -path '*/node_modules/xxhash-addon/package.json' -print -quit)"; \
 	node_gyp_build_package="$(find . -path '*/node_modules/node-gyp-build/package.json' -print -quit)"; \
 	test -n "$steam_crypto_package"; \
+	test -n "$napi_lzma_package"; \
 	test -n "$lzma_package"; \
 	test -n "$xxhash_package"; \
 	test -n "$node_gyp_build_package"; \
 	cp -R "$(dirname "$steam_crypto_package")" /native-node_modules/@doctormckay/steam-crypto; \
-	cp -R "$(dirname "$lzma_package")" /native-node_modules/@napi-rs/lzma; \
+	cp -R "$(dirname "$napi_lzma_package")" /native-node_modules/@napi-rs/lzma; \
+	cp -R "$(dirname "$lzma_package")" /native-node_modules/lzma; \
 	cp -R "$(dirname "$xxhash_package")" /native-node_modules/xxhash-addon; \
 	cp -R "$(dirname "$node_gyp_build_package")" /native-node_modules/node-gyp-build; \
 	for package_json in $(find . -path '*/node_modules/@napi-rs/lzma-linux-*-gnu/package.json' -print); do \
@@ -37,6 +40,8 @@ RUN set -eux; \
 	done; \
 	test -f /native-node_modules/@doctormckay/steam-crypto/index.js; \
 	test -f /native-node_modules/@doctormckay/steam-crypto/system.pem; \
+	test -f /native-node_modules/lzma/index.js; \
+	test -f /native-node_modules/lzma/src/lzma_worker.js; \
 	test -f /native-node_modules/xxhash-addon/xxhash-addon.js; \
 	test -f /native-node_modules/node-gyp-build/index.js; \
 	test -n "$(find /native-node_modules/xxhash-addon/prebuilds/linux-x64 -maxdepth 1 -type f -name '*.glibc.node' -print -quit)"; \
