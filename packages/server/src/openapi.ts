@@ -1,6 +1,7 @@
 export const OPENAPI_TAG = {
 	auth: 'auth',
 	discordBot: 'discord-bot',
+	favourite: 'favourite',
 	job: 'job',
 	level: 'level',
 	record: 'record',

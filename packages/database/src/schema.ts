@@ -1028,14 +1028,6 @@ export const version = pgTable('version', {
 export const favourite = pgTable(
 	'favourite',
 	{
-		id: integer().primaryKey().generatedByDefaultAsIdentity({
-			name: 'favorites_id_seq',
-			startWith: 1,
-			increment: 1,
-			minValue: 1,
-			maxValue: 2147483647,
-			cache: 1,
-		}),
 		idUser: integer('id_user').notNull(),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -1056,7 +1048,7 @@ export const favourite = pgTable(
 			foreignColumns: [user.id],
 			name: 'favorites_user_foreign',
 		}).onDelete('cascade'),
-		unique('UQ_favourites_user_level').on(table.idUser, table.idLevel),
+		primaryKey({ columns: [table.idUser, table.idLevel] }),
 		index('IX_favorites_level').using('btree', table.idLevel.asc().nullsLast()),
 	],
 )

@@ -1,6 +1,6 @@
 {
-	"id": "a8e5d6bc-6f87-4eaf-9da4-44b3f5141d7d",
-	"prevId": "d58c394a-1db1-4c39-8e98-eacb0d553d12",
+	"id": "4e0b547d-fe42-4f52-8be0-6ea296f83b64",
+	"prevId": "a8e5d6bc-6f87-4eaf-9da4-44b3f5141d7d",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -1029,23 +1029,6 @@
 			"name": "favourite",
 			"schema": "",
 			"columns": {
-				"id": {
-					"name": "id",
-					"type": "integer",
-					"primaryKey": true,
-					"notNull": true,
-					"identity": {
-						"type": "byDefault",
-						"name": "favorites_id_seq",
-						"schema": "public",
-						"increment": "1",
-						"startWith": "1",
-						"minValue": "1",
-						"maxValue": "2147483647",
-						"cache": "1",
-						"cycle": false
-					}
-				},
 				"id_user": {
 					"name": "id_user",
 					"type": "integer",
@@ -1109,14 +1092,13 @@
 					"onUpdate": "no action"
 				}
 			},
-			"compositePrimaryKeys": {},
-			"uniqueConstraints": {
-				"UQ_favourites_user_level": {
-					"name": "UQ_favourites_user_level",
-					"nullsNotDistinct": false,
+			"compositePrimaryKeys": {
+				"favourite_id_user_id_level_pk": {
+					"name": "favourite_id_user_id_level_pk",
 					"columns": ["id_user", "id_level"]
 				}
 			},
+			"uniqueConstraints": {},
 			"policies": {},
 			"checkConstraints": {},
 			"isRLSEnabled": false

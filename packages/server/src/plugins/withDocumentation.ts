@@ -21,6 +21,7 @@ export const withDocumentation = new Elysia().use(
 				{ name: 'level', description: 'Level discovery and Workshop metadata requests.' },
 				{ name: 'record', description: 'Authenticated GTR record submission.' },
 				{ name: 'vote', description: 'Authenticated level rating submission.' },
+				{ name: 'favourite', description: 'Authenticated favourite level mutations.' },
 				{ name: 'job', description: 'Internal background-job triggers.' },
 				{
 					name: 'discord-bot',

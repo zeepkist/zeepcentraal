@@ -56,6 +56,8 @@ const state = {
 	discordLinkCodes: [] as Array<{ codeHash: string; idUser: number; expiresAt: string }>,
 	mediaSchedules: [] as Array<{ idRecord: number; ghostData: string }>,
 	recordStatistics: [] as Array<Record<string, unknown> | undefined>,
+	favouriteAdds: [] as Array<{ idUser: number; idLevel: number }>,
+	favouriteRemoves: [] as Array<{ idUser: number; idLevel: number }>,
 	voteUpserts: [] as Array<{ idUser: number; idLevel: number; value: number }>,
 	userBySteamId: {
 		id: 1,
@@ -153,6 +155,8 @@ function resetState() {
 	state.discordLinkCodes = []
 	state.mediaSchedules = []
 	state.recordStatistics = []
+	state.favouriteAdds = []
+	state.favouriteRemoves = []
 	state.voteUpserts = []
 	state.userBySteamId = {
 		id: 1,
@@ -450,6 +454,12 @@ mock.module('@zeepkist/database/services', () => ({
 		hash === state.level.hash && state.levelExists ? state.level : null,
 	getLevelByXxHash: async (xxHash: string) =>
 		xxHash === state.level.xxHash && state.levelExists ? state.level : null,
+	addFavourite: async (idUser: number, idLevel: number) => {
+		state.favouriteAdds.push({ idUser, idLevel })
+	},
+	removeFavourite: async (idUser: number, idLevel: number) => {
+		state.favouriteRemoves.push({ idUser, idLevel })
+	},
 	submitRecord: async (input: Record<string, unknown>, statistic?: Record<string, unknown>) => {
 		state.recordStatistics.push(statistic)
 		return {
@@ -593,6 +603,8 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'POST /user/updateSteamName': ['updateSteamName', 'user'],
 		'POST /user/updateDiscordId': ['updateDiscordId', 'user'],
 		'POST /level/request': ['requestLevel', 'level'],
+		'POST /favourite/add': ['addFavourite', 'favourite'],
+		'POST /favourite/remove': ['removeFavourite', 'favourite'],
 		'POST /record/submit': ['submitRecord', 'record'],
 		'POST /vote/submit': ['submitVote', 'vote'],
 		'POST /job/trigger': ['triggerJob', 'job'],
@@ -609,7 +621,17 @@ test('OpenAPI document groups every public operation by category', async () => {
 	}
 
 	const documentedTags = new Map(document.tags?.map((tag) => [tag.name, tag.description]))
-	for (const tag of ['auth', 'discord-bot', 'user', 'level', 'record', 'vote', 'job', 'system']) {
+	for (const tag of [
+		'auth',
+		'discord-bot',
+		'user',
+		'level',
+		'favourite',
+		'record',
+		'vote',
+		'job',
+		'system',
+	]) {
 		expect(documentedTags.get(tag)).toBeTruthy()
 	}
 
@@ -622,7 +644,44 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'webSession',
 	])
 	expect(document.paths['/auth/web/refresh']?.post?.security).toEqual([{ webRefreshSession: [] }])
+	expect(document.paths['/favourite/add']?.post?.security).toEqual([
+		{ accessToken: [] },
+		{ webSession: [] },
+	])
+	expect(document.paths['/favourite/remove']?.post?.security).toEqual([
+		{ accessToken: [] },
+		{ webSession: [] },
+	])
 	expect(document.paths['/favicon.ico']).toBeUndefined()
+})
+
+test('OpenAPI documents exact favourite request and response schemas', async () => {
+	const response = await send('/openapi/json')
+	const document = (await response.json()) as {
+		paths: Record<
+			string,
+			Record<
+				string,
+				{
+					requestBody?: { content?: Record<string, { schema?: unknown }> }
+					responses?: Record<string, unknown>
+				}
+			>
+		>
+	}
+
+	for (const path of ['/favourite/add', '/favourite/remove']) {
+		const operation = document.paths[path]?.post
+		expect(operation?.requestBody?.content?.['application/json']?.schema).toMatchObject({
+			type: 'object',
+			additionalProperties: { not: {} },
+			required: ['hash'],
+			properties: {
+				hash: { type: 'string', pattern: '^[0-9A-F]{32}$' },
+			},
+		})
+		expect(Object.keys(operation?.responses ?? {}).toSorted()).toEqual(['200', '400', '401'])
+	}
 })
 
 test('auth/login returns 400 when mod version is outdated', async () => {
@@ -1502,6 +1561,172 @@ test('record/submit returns 401 when authenticated user is missing', async () =>
 		error: { code: 16, message: 'User not found' },
 	})
 })
+
+test('favourite/add is idempotent through GTR bearer authentication', async () => {
+	for (let attempt = 0; attempt < 2; attempt++) {
+		const response = await send('/favourite/add', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: 'Bearer gtr-valid',
+			},
+			body: JSON.stringify({ hash: state.level.xxHash }),
+		})
+
+		expect(response.status).toBe(200)
+		expect(await response.text()).toBe('')
+	}
+
+	expect(state.favouriteAdds).toEqual([
+		{ idUser: 1, idLevel: state.level.id },
+		{ idUser: 1, idLevel: state.level.id },
+	])
+})
+
+test('favourite/add accepts web session cookie authentication', async () => {
+	const response = await send('/favourite/add', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			cookie: 'zeepcentral_access_token=steam-valid',
+		},
+		body: JSON.stringify({ hash: state.level.xxHash }),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.favouriteAdds).toEqual([{ idUser: 1, idLevel: state.level.id }])
+})
+
+test('favourite/remove is idempotent through web bearer authentication', async () => {
+	for (let attempt = 0; attempt < 2; attempt++) {
+		const response = await send('/favourite/remove', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: 'Bearer steam-valid',
+			},
+			body: JSON.stringify({ hash: state.level.xxHash }),
+		})
+
+		expect(response.status).toBe(200)
+		expect(await response.text()).toBe('')
+	}
+
+	expect(state.favouriteRemoves).toEqual([
+		{ idUser: 1, idLevel: state.level.id },
+		{ idUser: 1, idLevel: state.level.id },
+	])
+})
+
+test('favourite/add returns level-not-found for an unknown canonical hash', async () => {
+	state.levelExists = false
+	const response = await send('/favourite/add', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({ hash: state.level.xxHash }),
+	})
+
+	expect(response.status).toBe(400)
+	expect(await readBody(response)).toEqual({
+		error: { code: 18, message: 'Level not found' },
+	})
+	expect(state.favouriteAdds).toEqual([])
+})
+
+test('favourite/remove succeeds without mutation for an unknown canonical hash', async () => {
+	state.levelExists = false
+	const response = await send('/favourite/remove', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer gtr-valid',
+		},
+		body: JSON.stringify({ hash: state.level.xxHash }),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.favouriteRemoves).toEqual([])
+})
+
+for (const [name, body] of [
+	['missing hash', {}],
+	['lowercase hash', { hash: '0123456789abcdef0123456789abcdef' }],
+	['malformed hash', { hash: 'NOT-A-HASH' }],
+	['additional property', { hash: '0123456789ABCDEF0123456789ABCDEF', extra: true }],
+] as const) {
+	test(`favourite routes reject ${name} through JSON schema`, async () => {
+		for (const path of ['/favourite/add', '/favourite/remove']) {
+			const response = await send(path, {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/json',
+					authorization: 'Bearer gtr-valid',
+				},
+				body: JSON.stringify(body),
+			})
+
+			expect(response.status).toBe(422)
+		}
+		expect(state.favouriteAdds).toEqual([])
+		expect(state.favouriteRemoves).toEqual([])
+	})
+}
+
+test('favourite routes require a valid access token', async () => {
+	const missing = await send('/favourite/add', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ hash: state.level.xxHash }),
+	})
+	expect(missing.status).toBe(400)
+	expect(await readBody(missing)).toBe('Not authenticated')
+
+	const invalid = await send('/favourite/remove', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer invalid',
+		},
+		body: JSON.stringify({ hash: state.level.xxHash }),
+	})
+	expect(invalid.status).toBe(401)
+	expect(await readBody(invalid)).toBe('Invalid or expired token')
+	expect(state.favouriteAdds).toEqual([])
+	expect(state.favouriteRemoves).toEqual([])
+})
+
+for (const stateName of ['missing', 'banned'] as const) {
+	test(`favourite routes reject ${stateName} authenticated users`, async () => {
+		if (stateName === 'missing') {
+			state.userBySteamId = null
+		} else if (state.userBySteamId) {
+			state.userBySteamId.banned = true
+		}
+
+		for (const path of ['/favourite/add', '/favourite/remove']) {
+			const response = await send(path, {
+				method: 'POST',
+				headers: {
+					'content-type': 'application/json',
+					authorization: 'Bearer gtr-valid',
+				},
+				body: JSON.stringify({ hash: state.level.xxHash }),
+			})
+
+			expect(response.status).toBe(401)
+			expect(await readBody(response)).toEqual({
+				error: { code: 16, message: 'User not found' },
+			})
+		}
+		expect(state.favouriteAdds).toEqual([])
+		expect(state.favouriteRemoves).toEqual([])
+	})
+}
 
 test('vote/submit returns 200 with empty body on success', async () => {
 	const response = await send('/vote/submit', {

@@ -1,5 +1,6 @@
 export * from './auth'
 export * from './discord'
+export * from './favourite'
 export * from './level'
 export * from './levelPoints'
 export * from './levelPointsHistory'

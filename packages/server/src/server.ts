@@ -3,6 +3,7 @@ import { config } from './config'
 import {
 	authRoutes,
 	discordBotRoutes,
+	favouriteRoutes,
 	jobRoutes,
 	levelRoutes,
 	recordRoutes,
@@ -35,6 +36,7 @@ export function buildServer() {
 		.use(withContext)
 		.use(authRoutes)
 		.use(discordBotRoutes)
+		.use(favouriteRoutes)
 		.use(userRoutes)
 		.use(levelRoutes)
 		.use(recordRoutes)

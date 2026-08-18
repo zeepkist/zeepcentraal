@@ -1,5 +1,6 @@
 export * from './auth/authRoutes'
 export * from './discord/discordBotRoutes'
+export * from './favourite/favouriteRoutes'
 export * from './job/jobRoutes'
 export * from './level/levelRoutes'
 export * from './record/recordRoutes'
