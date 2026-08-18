@@ -23,9 +23,55 @@ test('server config accepts custom request body limit', () => {
 	const config = parseServerConfig({
 		NODE_ENV: 'test',
 		SERVER_MAX_REQUEST_BODY_SIZE: '16777216',
+		STEAM_APP_ID: '1',
 	})
 
 	expect(config.api.maxRequestBodySize).toBe(16 * 1024 * 1024)
+	expect(config.steam.appId).toBe(1)
+})
+
+test('server config keeps lobby feed disabled by default', () => {
+	const config = parseServerConfig({ NODE_ENV: 'test' })
+
+	expect(config.lobby).toEqual({
+		enabled: false,
+		host: undefined,
+		port: undefined,
+		build: undefined,
+		refreshTokenFile: '',
+	})
+})
+
+test('server config requires lobby endpoint and build when feed is enabled', () => {
+	expect(() => parseServerConfig({ NODE_ENV: 'test', ZEEPKIST_LOBBY_ENABLED: 'true' })).toThrow(
+		'ZEEPKIST_LOBBY_HOST is required',
+	)
+	expect(() =>
+		parseServerConfig({
+			NODE_ENV: 'test',
+			ZEEPKIST_LOBBY_ENABLED: 'true',
+			ZEEPKIST_LOBBY_HOST: '12.34.56.789',
+		}),
+	).toThrow('ZEEPKIST_LOBBY_BUILD is required')
+})
+
+test('server config accepts enabled lobby feed', () => {
+	const config = parseServerConfig({
+		NODE_ENV: 'test',
+		ZEEPKIST_LOBBY_ENABLED: 'true',
+		ZEEPKIST_LOBBY_HOST: '12.34.56.789',
+		ZEEPKIST_LOBBY_PORT: '12345',
+		ZEEPKIST_LOBBY_BUILD: '1234',
+		ZEEPKIST_STEAM_REFRESH_TOKEN_FILE: '/tmp/steam-token',
+	})
+
+	expect(config.lobby).toEqual({
+		enabled: true,
+		host: '12.34.56.789',
+		port: 12345,
+		build: 1234,
+		refreshTokenFile: '/tmp/steam-token',
+	})
 })
 
 test('database config parses without server-only secrets', () => {

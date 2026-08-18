@@ -19,6 +19,7 @@ export const withDocumentation = new Elysia().use(
 				},
 				{ name: 'user', description: 'Authenticated ZeepCentraal account updates.' },
 				{ name: 'level', description: 'Level discovery and Workshop metadata requests.' },
+				{ name: 'lobby', description: 'Public live Zeepkist lobby status.' },
 				{ name: 'record', description: 'Authenticated GTR record submission.' },
 				{ name: 'vote', description: 'Authenticated level rating submission.' },
 				{ name: 'favourite', description: 'Authenticated favourite level mutations.' },

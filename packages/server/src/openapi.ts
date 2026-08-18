@@ -4,6 +4,7 @@ export const OPENAPI_TAG = {
 	favourite: 'favourite',
 	job: 'job',
 	level: 'level',
+	lobby: 'lobby',
 	record: 'record',
 	system: 'system',
 	user: 'user',

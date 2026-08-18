@@ -43,6 +43,9 @@
 		"./steam": {
 			"import": "./src/steam/index.ts"
 		},
+		"./zeepnet": {
+			"import": "./src/zeepnet/index.ts"
+		},
 		"./ghosts": {
 			"import": "./src/ghosts/index.ts"
 		},

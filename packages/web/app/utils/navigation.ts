@@ -7,6 +7,7 @@ export const navigationRouteFamilies: Readonly<Record<string, readonly string[]>
 	'/levels': ['/levels', '/level'],
 	'/playlist': ['/playlist'],
 	'/users': ['/users', '/user'],
+	'/lobby': ['/lobby'],
 	'/super-league': ['/super-league'],
 	'/mods': ['/mods', '/mod'],
 	'/adventure/a': ['/adventure'],
@@ -54,6 +55,13 @@ const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 		labelKey: 'nav.users',
 		icon: 'users',
 	},
+	/*
+	{
+		to: '/lobby',
+		labelKey: 'nav.lobbies',
+		icon: 'server',
+	},
+	*/
 	{
 		to: '/levels',
 		labelKey: 'nav.levels',

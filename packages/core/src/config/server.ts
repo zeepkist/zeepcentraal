@@ -21,8 +21,13 @@ const serverEnvSchema = z.object({
 	JWT_ISSUER: z.string().default('https://zeepki.st'),
 	JWT_ACCESS_TTL: z.string().default('15m'),
 	JWT_REFRESH_TTL: z.string().default('7d'),
-	STEAM_APP_ID: z.string().default('1440670'),
+	STEAM_APP_ID: z.coerce.number().int().positive().default(1_440_670),
 	STEAM_API_KEY: z.string().optional(),
+	ZEEPKIST_LOBBY_ENABLED: z.stringbool().default(false),
+	ZEEPKIST_LOBBY_HOST: z.string().min(1).optional(),
+	ZEEPKIST_LOBBY_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+	ZEEPKIST_LOBBY_BUILD: z.coerce.number().int().positive().optional(),
+	ZEEPKIST_STEAM_REFRESH_TOKEN_FILE: z.string().min(1).default(''),
 	DISCORD_CLIENT_ID: z.string().optional(),
 	DISCORD_CLIENT_SECRET: z.string().optional(),
 	DISCORD_REDIRECT_URI: z.string().optional(),
@@ -61,6 +66,12 @@ export function parseServerConfig(env: EnvSource) {
 	if (!discordBotApiToken) {
 		throw new Error('DISCORD_BOT_API_TOKEN is required')
 	}
+	if (parsedEnv.ZEEPKIST_LOBBY_ENABLED && !parsedEnv.ZEEPKIST_LOBBY_HOST) {
+		throw new Error('ZEEPKIST_LOBBY_HOST is required when lobby feed is enabled')
+	}
+	if (parsedEnv.ZEEPKIST_LOBBY_ENABLED && !parsedEnv.ZEEPKIST_LOBBY_BUILD) {
+		throw new Error('ZEEPKIST_LOBBY_BUILD is required when lobby feed is enabled')
+	}
 
 	requireStrongProductionSecrets({
 		nodeEnv: parsedEnv.NODE_ENV,
@@ -88,6 +99,13 @@ export function parseServerConfig(env: EnvSource) {
 		steam: {
 			appId: parsedEnv.STEAM_APP_ID,
 			apiKey: parsedEnv.STEAM_API_KEY,
+		},
+		lobby: {
+			enabled: parsedEnv.ZEEPKIST_LOBBY_ENABLED,
+			host: parsedEnv.ZEEPKIST_LOBBY_HOST,
+			port: parsedEnv.ZEEPKIST_LOBBY_PORT,
+			build: parsedEnv.ZEEPKIST_LOBBY_BUILD,
+			refreshTokenFile: parsedEnv.ZEEPKIST_STEAM_REFRESH_TOKEN_FILE,
 		},
 		discord: {
 			clientId: parsedEnv.DISCORD_CLIENT_ID,

@@ -1,4 +1,5 @@
 import cluster, { type Worker } from 'node:cluster'
+import { attachLobbyWorker, initializeLobbyWorkerIpc } from './modules/lobby/lobbyIpc'
 import { type ClusterWorkerLike, onceAsync, stopClusterWorkers } from './processLifecycle'
 
 const WORKER_COUNT = 2
@@ -12,8 +13,20 @@ if (cluster.isPrimary) {
 	process.title = 'zeepcentraal-api: primary'
 	console.info(`API primary (PID ${process.pid}) started, forking ${WORKER_COUNT} workers...`)
 
+	const workers = () =>
+		Object.values(cluster.workers ?? {}).filter(
+			(worker): worker is Worker => worker !== undefined,
+		)
+	const { startLobbyPrimary } = await import('./modules/lobby/lobbyPrimary')
+	const lobbyPrimary = startLobbyPrimary(workers)
+	const forkWorker = () => {
+		const worker = cluster.fork()
+		attachLobbyWorker(worker, lobbyPrimary.getSnapshot)
+		return worker
+	}
+
 	for (let i = 0; i < WORKER_COUNT; i++) {
-		cluster.fork()
+		forkWorker()
 	}
 
 	clusterEvents.on('exit', (worker) => {
@@ -23,7 +36,7 @@ if (cluster.isPrimary) {
 		console.warn(`API worker ${worker.process.pid} died, restarting...`)
 		setTimeout(() => {
 			if (!shuttingDown) {
-				cluster.fork()
+				forkWorker()
 			}
 		}, restartDelayMs)
 		restartDelayMs = Math.min(restartDelayMs * 2, 30_000)
@@ -32,10 +45,11 @@ if (cluster.isPrimary) {
 	const shutdownPrimary = onceAsync(async (signal: NodeJS.Signals) => {
 		shuttingDown = true
 		console.info(`API primary received ${signal}, stopping workers...`)
-		const workers = Object.values(cluster.workers ?? {})
+		lobbyPrimary.stop()
+		const activeWorkers = Object.values(cluster.workers ?? {})
 			.filter((worker): worker is Worker => worker !== undefined)
 			.map((worker) => worker as Worker & ClusterWorkerLike)
-		const stoppedCleanly = await stopClusterWorkers(workers, signal)
+		const stoppedCleanly = await stopClusterWorkers(activeWorkers, signal)
 		if (!stoppedCleanly) {
 			console.error('API workers did not stop before shutdown timeout; forced termination.')
 		}
@@ -45,6 +59,7 @@ if (cluster.isPrimary) {
 	process.on('SIGTERM', () => void shutdownPrimary('SIGTERM'))
 } else {
 	process.title = 'zeepcentraal-api: worker'
+	initializeLobbyWorkerIpc()
 	const { config } = await import('./config')
 	const { buildServer } = await import('./server')
 	const { initializeQueue } = await import('@zeepkist/jobs/queue')

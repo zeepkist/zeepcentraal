@@ -8,4 +8,6 @@ export const config = {
 	otelCollectorUrl: serverConfig.otel.collectorUrl,
 	otelServiceName: serverConfig.otel.serviceName,
 	otelServiceVersion: serverConfig.otel.serviceVersion,
+	steamAppId: serverConfig.steam.appId,
+	lobby: serverConfig.lobby,
 } as const

@@ -245,7 +245,7 @@ const mockServerConfig = {
 		botApiToken: 'discord-bot-api-token-for-contract-tests',
 	},
 	steam: {
-		appId: '1440670',
+		appId: 1_440_670,
 		apiKey: 'steam-api-key',
 	},
 	otel: {
@@ -608,6 +608,8 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'POST /record/submit': ['submitRecord', 'record'],
 		'POST /vote/submit': ['submitVote', 'vote'],
 		'POST /job/trigger': ['triggerJob', 'job'],
+		'GET /lobby': ['getLobbySnapshot', 'lobby'],
+		'GET /lobby/events': ['streamLobbySnapshots', 'lobby'],
 		'GET /healthz': ['getHealth', 'system'],
 	} as const
 
@@ -626,6 +628,7 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'discord-bot',
 		'user',
 		'level',
+		'lobby',
 		'favourite',
 		'record',
 		'vote',

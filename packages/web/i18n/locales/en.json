@@ -99,6 +99,7 @@
 		"developer": "Developer",
 		"home": "Dashboard",
 		"levels": "Level Explorer",
+		"lobbies": "Online Lobbies",
 		"playlist": "Playlist Builder",
 		"mods": "Mods",
 		"records": "Live Records",
@@ -107,6 +108,35 @@
 		"users": "Player Rankings",
 		"wiki": "Wiki",
 		"zsl": "Zeepkist Super League"
+	},
+	"lobby": {
+		"empty": "No active rooms found.",
+		"status": {
+			"connecting": {
+				"description": "Waiting for a fresh lobby snapshot.",
+				"title": "Connecting to Zeepkist"
+			},
+			"live": "Live lobby feed",
+			"stale": {
+				"description": "Showing last known rooms while connection recovers.",
+				"title": "Lobby feed interrupted"
+			},
+			"unavailable": {
+				"description": "Lobby collector is disabled or could not start.",
+				"title": "Lobby feed unavailable"
+			}
+		},
+		"summary": {
+			"lobbies": "Online rooms",
+			"onlinePlayers": "Players online",
+			"playersInLobbies": "Players in rooms"
+		},
+		"table": {
+			"host": "Host",
+			"players": "Players",
+			"privateLobby": "Private lobby",
+			"room": "Room"
+		}
 	},
 	"playlist": {
 		"actions": {
@@ -380,6 +410,15 @@
 				"title": "Levels"
 			},
 			"title": "Levels"
+		},
+		"lobby": {
+			"description": "See active Zeepkist rooms, hosts and player counts.",
+			"eyebrow": "Zeepkist Online",
+			"seo": {
+				"description": "Live Zeepkist online player and lobby counts.",
+				"title": "Zeepkist Online Lobbies"
+			},
+			"title": "Online lobbies"
 		},
 		"playlist": {
 			"description": "Build a custom Zeepkist playlist with up-to 1,000 levels.",

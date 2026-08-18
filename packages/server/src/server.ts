@@ -6,6 +6,7 @@ import {
 	favouriteRoutes,
 	jobRoutes,
 	levelRoutes,
+	lobbyRoutes,
 	recordRoutes,
 	userRoutes,
 	voteRoutes,
@@ -39,6 +40,7 @@ export function buildServer() {
 		.use(favouriteRoutes)
 		.use(userRoutes)
 		.use(levelRoutes)
+		.use(lobbyRoutes)
 		.use(recordRoutes)
 		.use(voteRoutes)
 		.use(jobRoutes)
