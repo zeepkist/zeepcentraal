@@ -44,8 +44,8 @@ if (cluster.isPrimary) {
 
 	const shutdownPrimary = onceAsync(async (signal: NodeJS.Signals) => {
 		shuttingDown = true
-		console.info(`API primary received ${signal}, stopping workers...`)
-		lobbyPrimary.stop()
+		console.info(`API primary received ${signal}, stopping lobby collector and workers...`)
+		await lobbyPrimary.stop()
 		const activeWorkers = Object.values(cluster.workers ?? {})
 			.filter((worker): worker is Worker => worker !== undefined)
 			.map((worker) => worker as Worker & ClusterWorkerLike)

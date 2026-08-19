@@ -12,6 +12,7 @@ interface LobbyCollectorConfig {
 }
 
 const MIN_TICKET_INTERVAL_MS = 60_000
+const FIRST_SNAPSHOT_TIMEOUT_MS = 15_000
 
 export class LobbyCollector {
 	private stopped = false
@@ -21,6 +22,7 @@ export class LobbyCollector {
 	private cachedTicket: Buffer | undefined
 	private ticketCreatedAt = 0
 	private lastTicketRequestAt = 0
+	private stopPromise: Promise<void> | undefined
 
 	constructor(
 		private readonly config: LobbyCollectorConfig,
@@ -34,8 +36,8 @@ export class LobbyCollector {
 
 	stop() {
 		this.stopped = true
-		this.lidgren?.close()
-		this.steam?.close()
+		this.stopPromise ??= this.stopConnections()
+		return this.stopPromise
 	}
 
 	private async run() {
@@ -48,9 +50,11 @@ export class LobbyCollector {
 					await this.connectToMaster(identity)
 					retry = 1_000
 				} catch (error) {
-					console.warn(
-						`Zeepkist lobby collector connection failed; retrying: ${safeErrorMessage(error)}`,
-					)
+					if (!this.stopped) {
+						console.warn(
+							`Zeepkist lobby collector connection failed; retrying: ${safeErrorMessage(error)}`,
+						)
+					}
 				}
 				if (this.stopped) {
 					break
@@ -60,15 +64,22 @@ export class LobbyCollector {
 				retry = Math.min(retry * 2, 60_000)
 			}
 		} catch {
-			console.error('Zeepkist lobby collector could not start Steam session')
-			this.publish(emptySnapshot('unavailable'))
+			if (!this.stopped) {
+				console.error('Zeepkist lobby collector could not start Steam session')
+				this.publish(emptySnapshot('unavailable'))
+			}
 		}
 	}
 
 	private async connectToMaster(identity: SteamIdentity) {
 		const ticket = await this.getTicket()
+		if (this.stopped) {
+			return
+		}
 		const state = new LobbyState()
 		let invalidPacket = false
+		let firstSnapshotTimedOut = false
+		let firstSnapshotTimer: ReturnType<typeof setTimeout> | undefined
 		const lidgren = new LidgrenClient({
 			host: this.config.host,
 			port: this.config.port,
@@ -79,22 +90,49 @@ export class LobbyCollector {
 					if (!packet) {
 						return
 					}
+					if (firstSnapshotTimer) {
+						clearTimeout(firstSnapshotTimer)
+						firstSnapshotTimer = undefined
+					}
 					state.apply(packet)
 					const snapshot = state.snapshot('live')
 					this.lastSnapshot = snapshot
 					this.publish(snapshot)
 				} catch {
 					invalidPacket = true
-					lidgren.close()
+					void lidgren.close('Invalid lobby packet')
 				}
 			},
 		})
 		this.lidgren = lidgren
-		await lidgren.connect()
-		await lidgren.waitForClose()
-		this.lidgren = undefined
+		try {
+			await lidgren.connect()
+			firstSnapshotTimer = setTimeout(() => {
+				firstSnapshotTimedOut = true
+				void lidgren.close('Lobby snapshot timed out')
+			}, FIRST_SNAPSHOT_TIMEOUT_MS)
+			await lidgren.waitForClose()
+		} finally {
+			if (firstSnapshotTimer) {
+				clearTimeout(firstSnapshotTimer)
+			}
+			if (this.lidgren === lidgren) {
+				this.lidgren = undefined
+			}
+		}
 		if (invalidPacket) {
 			throw new Error('Master server sent invalid lobby packet')
+		}
+		if (firstSnapshotTimedOut) {
+			throw new Error('Master server did not send an initial lobby snapshot')
+		}
+	}
+
+	private async stopConnections() {
+		try {
+			await this.lidgren?.close()
+		} finally {
+			this.steam?.close()
 		}
 	}
 

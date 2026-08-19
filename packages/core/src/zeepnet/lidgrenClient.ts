@@ -18,6 +18,7 @@ const MAX_FRAGMENT_GROUPS = 32
 const MAX_REASSEMBLED_BYTES = 2 * 1024 * 1024
 const SEQUENCE_MODULUS = 1024
 const RECEIVE_WINDOW = 64
+const DISCONNECT_FLUSH_TIMEOUT_MS = 500
 
 interface LidgrenClientOptions {
 	hail: Uint8Array
@@ -42,7 +43,10 @@ interface FragmentGroup {
 export class LidgrenClient {
 	private socket: Socket | undefined
 	private connected = false
+	private closing = false
 	private closed = false
+	private closeError: Error | undefined
+	private closePromise: Promise<void> | undefined
 	private expectedSequence = 0
 	private readonly withheld = new Map<number, IncomingMessage>()
 	private readonly fragments = new Map<number, FragmentGroup>()
@@ -54,9 +58,16 @@ export class LidgrenClient {
 	private readonly uniqueIdentifier = randomBytes(8).readBigInt64LE()
 	private resolveConnected: (() => void) | undefined
 	private rejectConnected: ((error: Error) => void) | undefined
-	private resolveClosed: (() => void) | undefined
+	private readonly closedPromise: Promise<void>
+	private readonly resolveClosed: () => void
 
-	constructor(private readonly options: LidgrenClientOptions) {}
+	constructor(private readonly options: LidgrenClientOptions) {
+		let resolveClosed: (() => void) | undefined
+		this.closedPromise = new Promise<void>((resolve) => {
+			resolveClosed = resolve
+		})
+		this.resolveClosed = () => resolveClosed?.()
+	}
 
 	connect() {
 		if (this.socket) {
@@ -84,31 +95,31 @@ export class LidgrenClient {
 		})
 	}
 
-	waitForClose() {
-		if (this.closed) {
-			return Promise.resolve()
+	async waitForClose() {
+		await this.closedPromise
+		if (this.closeError) {
+			throw this.closeError
 		}
-		return new Promise<void>((resolve) => {
-			this.resolveClosed = resolve
-		})
 	}
 
-	close() {
-		if (this.closed) {
-			return
+	close(reason = 'Client shutting down') {
+		if (this.closePromise) {
+			return this.closePromise
 		}
-		this.closed = true
-		if (this.connected) {
-			const payload = new BitWriter()
-			payload.writeString('Client shutting down')
-			this.sendMessage(MESSAGE_TYPE.disconnect, payload.toUint8Array(), payload.bitLength)
+		if (this.closing || this.closed) {
+			return this.closedPromise
 		}
+		this.closing = true
 		this.clearTimers()
-		this.socket?.close()
+		if (!this.connected) {
+			this.rejectConnected?.(new Error('Lidgren client closed'))
+		}
+		this.closePromise = this.disconnectAndClose(reason)
+		return this.closePromise
 	}
 
 	private sendConnect() {
-		if (this.connected || this.closed) {
+		if (this.connected || this.closing || this.closed) {
 			return
 		}
 		if (this.handshakeAttempts >= 5) {
@@ -125,7 +136,7 @@ export class LidgrenClient {
 	}
 
 	private receiveDatagram(data: Buffer) {
-		if (this.closed || data.length > MAX_DATAGRAM_BYTES) {
+		if (this.closing || this.closed || data.length > MAX_DATAGRAM_BYTES) {
 			return
 		}
 		this.lastReceivedAt = Date.now()
@@ -327,22 +338,86 @@ export class LidgrenClient {
 		this.socket.send(data)
 	}
 
+	private async disconnectAndClose(reason: string) {
+		if (this.connected) {
+			const payload = new BitWriter()
+			payload.writeString(reason)
+			await this.sendMessageAndWait(
+				MESSAGE_TYPE.disconnect,
+				payload.toUint8Array(),
+				payload.bitLength,
+			)
+		}
+		this.closeSocket()
+		await this.closedPromise
+	}
+
+	private sendMessageAndWait(type: number, payload: Uint8Array, payloadBits: number) {
+		return new Promise<void>((resolve) => {
+			const socket = this.socket
+			if (!socket || this.closed || payloadBits > 0xffff) {
+				resolve()
+				return
+			}
+			const data = new Uint8Array(5 + payload.length)
+			data[0] = type
+			data[1] = 0
+			data[2] = 0
+			data[3] = payloadBits & 0xff
+			data[4] = payloadBits >>> 8
+			data.set(payload, 5)
+
+			let settled = false
+			const finish = () => {
+				if (settled) {
+					return
+				}
+				settled = true
+				clearTimeout(timeout)
+				resolve()
+			}
+			const timeout = setTimeout(finish, DISCONNECT_FLUSH_TIMEOUT_MS)
+			try {
+				socket.send(data, finish)
+			} catch {
+				finish()
+			}
+		})
+	}
+
 	private fail(error: Error) {
-		if (this.closed) {
+		if (this.closing || this.closed) {
 			return
 		}
-		this.closed = true
+		this.closing = true
+		this.closeError = error
 		this.clearTimers()
 		if (!this.connected) {
 			this.rejectConnected?.(error)
 		}
-		this.socket?.close()
+		this.closeSocket()
 	}
 
 	private finishClosed() {
+		if (this.closed) {
+			return
+		}
+		this.closing = true
 		this.closed = true
 		this.clearTimers()
-		this.resolveClosed?.()
+		this.resolveClosed()
+	}
+
+	private closeSocket() {
+		if (!this.socket) {
+			this.finishClosed()
+			return
+		}
+		try {
+			this.socket.close()
+		} catch {
+			this.finishClosed()
+		}
 	}
 
 	private clearTimers() {

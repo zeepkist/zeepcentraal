@@ -15,7 +15,7 @@ export function startLobbyPrimary(getWorkers: () => Worker[]) {
 	}
 
 	if (!config.lobby.enabled) {
-		return { getSnapshot: () => snapshot, stop: () => {} }
+		return { getSnapshot: () => snapshot, stop: async () => {} }
 	}
 	if (!config.lobby.host || !config.lobby.build || !config.lobby.port) {
 		throw new Error('Enabled lobby collector has incomplete configuration')
