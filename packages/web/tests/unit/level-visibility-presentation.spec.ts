@@ -27,7 +27,7 @@ describe('private level metadata presentation', () => {
 			homeStats: 1,
 			search: 1,
 			sitemap: 4,
-			userLevels: 2,
+			userLevels: 3,
 		} as const
 
 		for (const [document, expectedCount] of Object.entries(expectedFilterCounts)) {

@@ -57,11 +57,16 @@ describe('dashboard critical SSR', () => {
 	})
 
 	it('preserves SSR metrics until a post-mount subscription snapshot arrives', () => {
+		const criticalQuery = composable.slice(
+			composable.indexOf('const criticalQuery = useQuery'),
+			composable.indexOf('const metricsLive = useSubscription'),
+		)
 		expect(composable).toContain("const ssrMetricWindows = useState('dashboard-metric-windows'")
 		expect(composable).toContain('const liveMetricWindows = ref({ ...ssrMetricWindows.value })')
-		expect(composable).toContain(
-			'variables: computed(() => ({ ...ssrMetricWindows.value, now: tournamentNow.value }))',
-		)
+		expect(criticalQuery).toContain('...ssrMetricWindows.value')
+		expect(criticalQuery).toContain('now: tournamentNow.value')
+		expect(criticalQuery).toContain('viewerId: viewerId.value ?? 0')
+		expect(criticalQuery).toContain('includeViewer: viewerId.value !== undefined')
 		expect(composable).toContain('variables: liveMetricWindows')
 		expect(composable).toContain('const metricsSubscriptionActive = ref(false)')
 		expect(composable.indexOf('metricsSubscriptionActive.value = true')).toBeGreaterThan(
@@ -76,6 +81,14 @@ describe('dashboard critical SSR', () => {
 	})
 
 	it('keeps remaining non-critical dashboard requests client-only', () => {
+		const hotLevelsQuery = composable.slice(
+			composable.indexOf('const hotLevelsQuery = useQuery'),
+			composable.indexOf('const popularLevelsQuery = useQuery'),
+		)
+		const popularLevelsQuery = composable.slice(
+			composable.indexOf('const popularLevelsQuery = useQuery'),
+			composable.indexOf('const viewerQuery = useQuery'),
+		)
 		expect(composable).toContain(
 			'pause: computed(() => import.meta.server || !hotLevelsPrefetch.active.value)',
 		)
@@ -83,12 +96,12 @@ describe('dashboard critical SSR', () => {
 			'pause: computed(() => import.meta.server || !popularLevelsPrefetch.active.value)',
 		)
 		expect(composable.match(/query: Zc_DashboardHotLevelsDocument/g)).toHaveLength(2)
-		expect(composable).toContain(
-			'variables: computed(() => ({ since: levelWindows.value.weekSince }))',
-		)
-		expect(composable).toContain(
-			'variables: computed(() => ({ since: levelWindows.value.rollingMonthSince }))',
-		)
+		expect(hotLevelsQuery).toContain('since: levelWindows.value.weekSince')
+		expect(popularLevelsQuery).toContain('since: levelWindows.value.rollingMonthSince')
+		for (const query of [hotLevelsQuery, popularLevelsQuery]) {
+			expect(query).toContain('viewerId: viewerId.value ?? 0')
+			expect(query).toContain('includeViewer: viewerId.value !== undefined')
+		}
 		expect(composable).toContain('levelWindows.value = getDashboardLevelWindows()')
 		expect(composable).toMatch(
 			/import\.meta\.server\s*\|\|\s*viewerId\.value === undefined\s*\|\|\s*!viewerPrefetch\.active\.value/,

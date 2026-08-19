@@ -1,4 +1,5 @@
 import { expect, type Page, type Route, test } from '@playwright/test'
+import { AUTH_RETURN_PATH_STORAGE_KEY } from '../../app/utils/auth-return-path'
 
 const themeTokenNames = [
 	'--color-warm-neutral-50',
@@ -245,10 +246,67 @@ test('stale browser session cannot override SSR authentication', async ({ page }
 	expect(hydrationWarnings).toEqual([])
 })
 
-test('failed OAuth callback reports verification failure and cleans the URL', async ({ page }) => {
+for (const provider of [
+	{ label: 'Sign in with Steam', route: 'steam' },
+	{ label: 'Sign in with Discord', route: 'discord' },
+]) {
+	test(`${provider.label} saves current path before navigation`, async ({ page }) => {
+		await page.route(`**/auth/${provider.route}/redirect`, (route) => route.abort())
+		await page.goto('/levels?sort=popular&page=2')
+		await page.getByRole('button', { name: 'Sign in' }).click()
+		await page.getByRole('menuitem', { name: provider.label }).click()
+		await expect
+			.poll(() =>
+				page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_PATH_STORAGE_KEY),
+			)
+			.toBe('/levels?sort=popular&page=2')
+	})
+}
+
+test('verified OAuth callback returns to saved path and consumes it', async ({ page }) => {
+	await page.addInitScript(({ key, path }) => localStorage.setItem(key, path), {
+		key: AUTH_RETURN_PATH_STORAGE_KEY,
+		path: '/levels?sort=popular&page=2',
+	})
+	await page.route('**/api/session', (route) =>
+		route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify({
+				user: {
+					id: 1,
+					steamId: '76561198000000000',
+					steamName: 'Verified user',
+				},
+				refreshAt: null,
+			}),
+		}),
+	)
+
+	await page.goto('/?auth=callback')
+	await expect(page).toHaveURL('/levels?sort=popular&page=2')
+	await expect
+		.poll(() => page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_PATH_STORAGE_KEY))
+		.toBeNull()
+})
+
+test('failed OAuth callback consumes saved path and keeps verification error', async ({ page }) => {
+	await page.addInitScript(({ key, path }) => localStorage.setItem(key, path), {
+		key: AUTH_RETURN_PATH_STORAGE_KEY,
+		path: '/levels?sort=popular&page=2',
+	})
+
 	await page.goto('/?auth=callback')
 	await expect(page.getByTestId('auth-verification-error')).toBeVisible()
 	await expect(page).toHaveURL('/')
+	expect(
+		await page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_PATH_STORAGE_KEY),
+	).toBeNull()
+})
+
+test('failed OAuth callback reports verification failure and cleans the URL', async ({ page }) => {
+	await page.goto('/?auth=callback&source=legacy')
+	await expect(page.getByTestId('auth-verification-error')).toBeVisible()
+	await expect(page).toHaveURL('/?source=legacy')
 	await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
 })
 
