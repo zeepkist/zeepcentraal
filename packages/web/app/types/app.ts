@@ -56,6 +56,7 @@ export type RecordHistoryUpdate = {
 export type LevelSummary = {
 	id: number
 	xxHash: string
+	favourited: boolean
 	fileUid?: string | null
 	fileAuthor?: string | null
 	publiclyVisible?: boolean

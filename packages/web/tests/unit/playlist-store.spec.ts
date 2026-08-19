@@ -9,6 +9,7 @@ function summary(overrides: Partial<LevelSummary> = {}): LevelSummary {
 	return {
 		id: 1,
 		xxHash: 'hash',
+		favourited: false,
 		fileUid: 'uid-one',
 		fileAuthor: 'File Author',
 		name: 'Level One',

@@ -27,12 +27,13 @@ usePageSeo('adventure')
 
 const route = useRoute()
 const { t } = useI18n()
+const session = useSessionStore()
 const seriesSlug = computed(() =>
 	'series' in route.params && typeof route.params.series === 'string'
 		? route.params.series
 		: undefined,
 )
-const adventure = useAdventure(seriesSlug)
+const adventure = useAdventure(seriesSlug, computed(() => session.user?.id))
 const seriesTabs = computed(() =>
 	adventure.tabs.value.map((series) => ({
 		...series,

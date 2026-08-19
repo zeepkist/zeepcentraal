@@ -138,6 +138,18 @@
 			"room": "Room"
 		}
 	},
+	"favourites": {
+		"actions": {
+			"add": "Add {level} to favourites",
+			"remove": "Remove {level} from favourites"
+		},
+		"toasts": {
+			"failed": {
+				"title": "Favourite update failed",
+				"description": "Try again shortly."
+			}
+		}
+	},
 	"playlist": {
 		"actions": {
 			"add": "Add to playlist",
@@ -1126,7 +1138,8 @@
 				"label": "Player profile sections",
 				"career": "Career",
 				"records": "Records",
-				"workshopLevels": "Workshop Levels"
+				"workshopLevels": "Workshop Levels",
+				"favouriteLevels": "Favourite Levels"
 			},
 			"summary": {
 				"title": "Career Summary",
@@ -1227,6 +1240,11 @@
 				"popularDescription": "Most-played levels this year.",
 				"viewAll": "View all levels",
 				"empty": "No published levels found"
+			},
+			"favourites": {
+				"title": "Favourite Levels",
+				"description": "Levels this player has favourited.",
+				"empty": "No favourite levels found"
 			},
 			"worldRecords": {
 				"title": "World Records",

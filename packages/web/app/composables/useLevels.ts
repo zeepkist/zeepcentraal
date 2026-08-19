@@ -126,6 +126,8 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 		variables: computed(() => ({
 			...pagination.variables.value,
 			filter: filter.value,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
 			orderBy: [
 				isHotLevelSort(appliedSort.value)
 					? LEVEL_SORTS.points
@@ -139,6 +141,8 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 		variables: computed(() => ({
 			...pagination.variables.value,
 			filter: filter.value,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
 			since:
 				getHotLevelSince(appliedSort.value, hotWindows.value) ??
 				hotWindows.value.todaySince,
@@ -187,6 +191,7 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 			return {
 				id: node.id,
 				xxHash: node.xxHash,
+				favourited: (node.viewerFavourites?.totalCount ?? 0) > 0,
 				fileUid: item?.fileUid,
 				fileAuthor: item?.fileAuthor,
 				name: getLevelDisplayName(item?.name, node.xxHash),

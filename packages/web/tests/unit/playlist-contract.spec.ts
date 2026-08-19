@@ -21,7 +21,11 @@ describe('playlist integration contracts', () => {
 		expect(source.slice(source.indexOf('<NuxtLink'), linkEnd)).not.toContain(
 			'<PlaylistAddButton',
 		)
-		expect(source).toContain('<PlaylistAddButton :level="level" block class="mt-4 w-full" />')
+		expect(source).toContain('class="mt-4 flex items-center gap-2"')
+		expect(source).toContain(
+			'<PlaylistAddButton :level="level" block class="min-w-0 flex-1" />',
+		)
+		expect(source).toContain('<FavouriteLevelButton :level="level" />')
 		expect(source).not.toContain('icon-only')
 		expect(source).not.toContain('level-playlist-action')
 		expect(source).not.toContain('<style scoped>')
@@ -109,6 +113,7 @@ describe('playlist integration contracts', () => {
 			expect(source).toContain('fileUid')
 			expect(source).toContain('fileAuthor')
 			expect(source).toContain('workshopId')
+			expect(source).toContain('viewerFavourites: favourites')
 		}
 
 		const mappings = ['useAdventure.ts', 'useDashboard.ts', 'useUserLevels.ts', 'useLevels.ts']
@@ -117,6 +122,7 @@ describe('playlist integration contracts', () => {
 			expect(source).toContain('fileUid:')
 			expect(source).toContain('fileAuthor:')
 			expect(source).toContain('workshopId:')
+			expect(source).toContain('favourited:')
 		}
 	})
 

@@ -54,6 +54,7 @@
 						{{ labels.workshopAction }}
 					</UButton>
 					<PlaylistAddButton :level="level" size="lg" />
+					<FavouriteLevelButton :level="level" size="lg" />
 					<div class="flex items-center gap-2 text-sm text-muted-foreground">
 						<TablerIcon name="calendar" class="size-4" />
 						<span>{{ labels.published }}</span>

@@ -1,4 +1,4 @@
-query ZC_LevelDetail($xxHash: String!, $now: Datetime!) {
+query ZC_LevelDetail($xxHash: String!, $now: Datetime!, $viewerId: Int!, $includeViewer: Boolean!) {
 	levelByXxHash(xxHash: $xxHash) {
 		id
 		xxHash
@@ -57,6 +57,11 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!) {
 			totalCount
 		}
 		favourites(first: 0) {
+			totalCount
+		}
+		viewerFavourites: favourites(first: 0, filter: { userId: { equalTo: $viewerId } })
+			@include(if: $includeViewer)
+		{
 			totalCount
 		}
 		trackTournaments(

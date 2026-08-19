@@ -108,7 +108,10 @@
 				<NuxtTime :datetime="level.dateCreated" relative />
 			</div>
 		</NuxtLink>
-		<PlaylistAddButton :level="level" block class="mt-4 w-full" />
+		<div class="mt-4 flex items-center gap-2">
+			<PlaylistAddButton :level="level" block class="min-w-0 flex-1" />
+			<FavouriteLevelButton :level="level" />
+		</div>
 	</article>
 </template>
 

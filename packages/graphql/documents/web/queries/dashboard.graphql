@@ -33,6 +33,11 @@ fragment ZC_DashboardLevel on Level {
 	votes(first: 0) {
 		totalCount
 	}
+	viewerFavourites: favourites(first: 0, filter: { userId: { equalTo: $viewerId } })
+		@include(if: $includeViewer)
+	{
+		totalCount
+	}
 	worldRecordGlobal {
 		record {
 			time
@@ -182,7 +187,13 @@ fragment ZC_DashboardMetricCounts on Query {
 		totalCount
 	}
 }
-query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!, $now: Datetime!) {
+query ZC_DashboardCritical(
+	$daySince: Datetime!
+	$monthSince: Datetime!
+	$now: Datetime!
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
 	...ZC_DashboardMetricCounts
 	activeWeeklyTournament: trackTournaments(
 		first: 1
@@ -231,7 +242,7 @@ query ZC_DashboardCritical($daySince: Datetime!, $monthSince: Datetime!, $now: D
 		}
 	}
 }
-query ZC_DashboardHotLevels($since: Datetime!) {
+query ZC_DashboardHotLevels($since: Datetime!, $viewerId: Int!, $includeViewer: Boolean!) {
 	levels: hotLevelsSince(
 		since: $since
 		first: 6

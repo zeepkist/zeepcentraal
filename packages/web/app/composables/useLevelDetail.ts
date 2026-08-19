@@ -108,7 +108,12 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 	)
 	const detail = useQuery({
 		query: Zc_LevelDetailDocument,
-		variables: computed(() => ({ xxHash: xxHash.value, now: tournamentNow.value })),
+		variables: computed(() => ({
+			xxHash: xxHash.value,
+			now: tournamentNow.value,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
+		})),
 	})
 	const level = computed(() => detail.data.value?.levelByXxHash)
 	const levelId = computed(() => level.value?.id)
@@ -233,6 +238,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		return {
 			id: value.id,
 			xxHash: value.xxHash,
+			favourited: (value.viewerFavourites?.totalCount ?? 0) > 0,
 			fileUid: item?.fileUid,
 			fileAuthor: item?.fileAuthor,
 			publiclyVisible: value.publiclyVisible,

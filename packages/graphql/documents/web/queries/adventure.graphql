@@ -16,6 +16,11 @@ fragment ZC_AdventureLevelCard on Level {
 	votes(first: 0) {
 		totalCount
 	}
+	viewerFavourites: favourites(first: 0, filter: { userId: { equalTo: $viewerId } })
+		@include(if: $includeViewer)
+	{
+		totalCount
+	}
 	worldRecordGlobal {
 		record {
 			time
@@ -251,7 +256,7 @@ query ZC_AdventureSeriesCounts {
 	}
 }
 
-query ZC_AdventureSeries($prefix: String!) {
+query ZC_AdventureSeries($prefix: String!, $viewerId: Int!, $includeViewer: Boolean!) {
 	levels(
 		first: 1000
 		filter: {

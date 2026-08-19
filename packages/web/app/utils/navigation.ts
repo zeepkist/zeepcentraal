@@ -55,13 +55,11 @@ const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 		labelKey: 'nav.users',
 		icon: 'users',
 	},
-	/*
 	{
 		to: '/lobby',
 		labelKey: 'nav.lobbies',
 		icon: 'server',
 	},
-	*/
 	{
 		to: '/levels',
 		labelKey: 'nav.levels',

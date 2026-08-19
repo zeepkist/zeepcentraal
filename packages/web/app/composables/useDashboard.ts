@@ -37,6 +37,7 @@ type DashboardLevelLike = {
 	periodRecords?: { totalCount: number }
 	personalBestGlobals?: { totalCount: number }
 	votes?: { totalCount: number }
+	viewerFavourites?: { totalCount: number }
 	worldRecordGlobal?: {
 		record: { time: number } | null
 		user: { steamId: unknown; steamName: string | null } | null
@@ -49,6 +50,7 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 	return {
 		id: level.id,
 		xxHash: level.xxHash,
+		favourited: (level.viewerFavourites?.totalCount ?? 0) > 0,
 		fileUid: item?.fileUid,
 		fileAuthor: item?.fileAuthor,
 		name: getLevelDisplayName(item?.name, level.xxHash),
@@ -108,7 +110,12 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 
 	const criticalQuery = useQuery({
 		query: Zc_DashboardCriticalDocument,
-		variables: computed(() => ({ ...ssrMetricWindows.value, now: tournamentNow.value })),
+		variables: computed(() => ({
+			...ssrMetricWindows.value,
+			now: tournamentNow.value,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
+		})),
 	})
 	const metricsLive = useSubscription({
 		query: Zc_DashboardMetricsLiveDocument,
@@ -117,12 +124,20 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	})
 	const hotLevelsQuery = useQuery({
 		query: Zc_DashboardHotLevelsDocument,
-		variables: computed(() => ({ since: levelWindows.value.weekSince })),
+		variables: computed(() => ({
+			since: levelWindows.value.weekSince,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
+		})),
 		pause: computed(() => import.meta.server || !hotLevelsPrefetch.active.value),
 	})
 	const popularLevelsQuery = useQuery({
 		query: Zc_DashboardHotLevelsDocument,
-		variables: computed(() => ({ since: levelWindows.value.rollingMonthSince })),
+		variables: computed(() => ({
+			since: levelWindows.value.rollingMonthSince,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
+		})),
 		pause: computed(() => import.meta.server || !popularLevelsPrefetch.active.value),
 	})
 	const viewerQuery = useQuery({
@@ -133,7 +148,11 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	const latestSeason = computed(() => viewerQuery.data.value?.zslSeasons?.nodes[0])
 	const viewerLevelsQuery = useQuery({
 		query: Zc_DashboardViewerLevelsDocument,
-		variables: computed(() => ({ id: viewerId.value ?? 0 })),
+		variables: computed(() => ({
+			id: viewerId.value ?? 0,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
+		})),
 		pause: computed(
 			() =>
 				import.meta.server || viewerId.value === undefined || !viewerPrefetch.active.value,

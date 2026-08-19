@@ -35,6 +35,11 @@ fragment ZC_LevelExplorerCard on Level {
 	votes(first: 0) {
 		totalCount
 	}
+	viewerFavourites: favourites(first: 0, filter: { userId: { equalTo: $viewerId } })
+		@include(if: $includeViewer)
+	{
+		totalCount
+	}
 	worldRecordGlobal {
 		record {
 			time
@@ -53,6 +58,8 @@ query ZC_Levels(
 	$before: Cursor
 	$filter: LevelFilter
 	$orderBy: [LevelsOrderBy!]
+	$viewerId: Int!
+	$includeViewer: Boolean!
 ) {
 	levels(
 		first: $first
@@ -85,6 +92,8 @@ query ZC_HotLevels(
 	$before: Cursor
 	$filter: LevelFilter!
 	$since: Datetime!
+	$viewerId: Int!
+	$includeViewer: Boolean!
 ) {
 	levels: hotLevelsSince(
 		first: $first

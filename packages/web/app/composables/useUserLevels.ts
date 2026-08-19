@@ -6,7 +6,7 @@ import type { LevelSummary } from '~/types/app'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { getLevelHotWindows } from '~/utils/levelExplorer'
 
-function mapUserLevel(
+export function mapUserLevel(
 	level: Zc_UserLevelCardFragment,
 	recordCount = level.records.totalCount,
 ): LevelSummary {
@@ -14,6 +14,7 @@ function mapUserLevel(
 	return {
 		id: level.id,
 		xxHash: level.xxHash,
+		favourited: (level.viewerFavourites?.totalCount ?? 0) > 0,
 		fileUid: item?.fileUid,
 		fileAuthor: item?.fileAuthor,
 		name: getLevelDisplayName(item?.name, level.xxHash),
@@ -49,6 +50,7 @@ export function useUserLevels(
 	steamId: Ref<string>,
 	summaryData: UserProfileSummaryModel,
 	active: MaybeRefOrGetter<boolean>,
+	viewerId: Ref<number | undefined>,
 ) {
 	const levelsPrefetch = useViewportPrefetch()
 	const levelWindows = useState(`user-level-windows:${steamId.value}`, () => getLevelHotWindows())
@@ -59,6 +61,8 @@ export function useUserLevels(
 			userId: userId.value ?? 0,
 			steamId: steamId.value,
 			since: levelWindows.value.yearSince,
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
 		})),
 		pause: computed(
 			() =>

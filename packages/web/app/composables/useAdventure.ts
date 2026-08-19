@@ -19,6 +19,7 @@ function mapLevel(level: Zc_AdventureLevelCardFragment): LevelSummary {
 	return {
 		id: level.id,
 		xxHash: level.xxHash,
+		favourited: (level.viewerFavourites?.totalCount ?? 0) > 0,
 		fileUid: item?.fileUid,
 		fileAuthor: item?.fileAuthor,
 		name: getLevelDisplayName(item?.name, level.xxHash),
@@ -50,7 +51,10 @@ function mapLevel(level: Zc_AdventureLevelCardFragment): LevelSummary {
 	}
 }
 
-export function useAdventure(seriesSlug: Ref<string | undefined>) {
+export function useAdventure(
+	seriesSlug: Ref<string | undefined>,
+	viewerId: Ref<number | undefined>,
+) {
 	const selectedSeries = computed(() => findAdventureSeries(seriesSlug.value))
 	const cache = shallowReactive(new Map<AdventureSeriesSlug, LevelSummary[]>())
 	const queryPaused = computed(() => {
@@ -65,7 +69,11 @@ export function useAdventure(seriesSlug: Ref<string | undefined>) {
 	})
 	const seriesQuery = useQuery({
 		query: Zc_AdventureSeriesDocument,
-		variables: computed(() => ({ prefix: selectedSeries.value?.prefix ?? '' })),
+		variables: computed(() => ({
+			prefix: selectedSeries.value?.prefix ?? '',
+			viewerId: viewerId.value ?? 0,
+			includeViewer: viewerId.value !== undefined,
+		})),
 		pause: queryPaused,
 		requestPolicy: 'cache-first',
 	})

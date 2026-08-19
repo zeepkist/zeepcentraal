@@ -190,10 +190,741 @@ input DatetimeFilter {
   notIn: [Datetime!]
 }
 
+type DiscordActivityEvent implements Node {
+  dateCreated: Datetime!
+  id: BigInt!
+  kind: String!
+
+  """Reads a single `Level` that is related to this `DiscordActivityEvent`."""
+  level: Level
+  levelId: Int
+
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  occurredAt: Datetime!
+  payload: JSON!
+
+  """
+  Reads a single `Record` that is related to this `DiscordActivityEvent`.
+  """
+  previousRecord: Record
+  previousRecordId: Int
+
+  """Reads a single `User` that is related to this `DiscordActivityEvent`."""
+  previousUser: User
+  previousUserId: Int
+
+  """
+  Reads a single `Record` that is related to this `DiscordActivityEvent`.
+  """
+  record: Record
+  recordId: Int
+
+  """Reads a single `User` that is related to this `DiscordActivityEvent`."""
+  user: User
+  userId: Int
+}
+
+type DiscordActivityEventAggregates {
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: DiscordActivityEventAverageAggregates
+
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: DiscordActivityEventDistinctCountAggregates
+  keys: [String]
+
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: DiscordActivityEventMaxAggregates
+
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: DiscordActivityEventMinAggregates
+
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: DiscordActivityEventStddevPopulationAggregates
+
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: DiscordActivityEventStddevSampleAggregates
+
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: DiscordActivityEventSumAggregates
+
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: DiscordActivityEventVariancePopulationAggregates
+
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: DiscordActivityEventVarianceSampleAggregates
+}
+
+"""
+A filter to be used against aggregates of `DiscordActivityEvent` object types.
+"""
+input DiscordActivityEventAggregatesFilter {
+  """Mean average aggregate over matching `DiscordActivityEvent` objects."""
+  average: DiscordActivityEventAverageAggregateFilter
+
+  """Distinct count aggregate over matching `DiscordActivityEvent` objects."""
+  distinctCount: DiscordActivityEventDistinctCountAggregateFilter
+
+  """
+  A filter that must pass for the relevant `DiscordActivityEvent` object to be included within the aggregate.
+  """
+  filter: DiscordActivityEventFilter
+
+  """Maximum aggregate over matching `DiscordActivityEvent` objects."""
+  max: DiscordActivityEventMaxAggregateFilter
+
+  """Minimum aggregate over matching `DiscordActivityEvent` objects."""
+  min: DiscordActivityEventMinAggregateFilter
+
+  """
+  Population standard deviation aggregate over matching `DiscordActivityEvent` objects.
+  """
+  stddevPopulation: DiscordActivityEventStddevPopulationAggregateFilter
+
+  """
+  Sample standard deviation aggregate over matching `DiscordActivityEvent` objects.
+  """
+  stddevSample: DiscordActivityEventStddevSampleAggregateFilter
+
+  """Sum aggregate over matching `DiscordActivityEvent` objects."""
+  sum: DiscordActivityEventSumAggregateFilter
+
+  """
+  Population variance aggregate over matching `DiscordActivityEvent` objects.
+  """
+  variancePopulation: DiscordActivityEventVariancePopulationAggregateFilter
+
+  """
+  Sample variance aggregate over matching `DiscordActivityEvent` objects.
+  """
+  varianceSample: DiscordActivityEventVarianceSampleAggregateFilter
+}
+
+input DiscordActivityEventAverageAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  previousRecordId: BigFloatFilter
+  previousUserId: BigFloatFilter
+  recordId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type DiscordActivityEventAverageAggregates {
+  """Mean average of id across the matching connection"""
+  id: BigFloat
+
+  """Mean average of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """Mean average of previousRecordId across the matching connection"""
+  previousRecordId: BigFloat
+
+  """Mean average of previousUserId across the matching connection"""
+  previousUserId: BigFloat
+
+  """Mean average of recordId across the matching connection"""
+  recordId: BigFloat
+
+  """Mean average of userId across the matching connection"""
+  userId: BigFloat
+}
+
+"""
+A condition to be used against `DiscordActivityEvent` object types. All fields
+are tested for equality and combined with a logical ‘and.’
+"""
+input DiscordActivityEventCondition {
+  """Checks for equality with the object’s `dateCreated` field."""
+  dateCreated: Datetime
+
+  """Checks for equality with the object’s `id` field."""
+  id: BigInt
+
+  """Checks for equality with the object’s `kind` field."""
+  kind: String
+
+  """Checks for equality with the object’s `levelId` field."""
+  levelId: Int
+
+  """Checks for equality with the object’s `occurredAt` field."""
+  occurredAt: Datetime
+
+  """Checks for equality with the object’s `payload` field."""
+  payload: JSON
+
+  """Checks for equality with the object’s `previousRecordId` field."""
+  previousRecordId: Int
+
+  """Checks for equality with the object’s `previousUserId` field."""
+  previousUserId: Int
+
+  """Checks for equality with the object’s `recordId` field."""
+  recordId: Int
+
+  """Checks for equality with the object’s `userId` field."""
+  userId: Int
+}
+
+input DiscordActivityEventDistinctCountAggregateFilter {
+  dateCreated: BigIntFilter
+  id: BigIntFilter
+  kind: BigIntFilter
+  levelId: BigIntFilter
+  occurredAt: BigIntFilter
+  payload: BigIntFilter
+  previousRecordId: BigIntFilter
+  previousUserId: BigIntFilter
+  recordId: BigIntFilter
+  userId: BigIntFilter
+}
+
+type DiscordActivityEventDistinctCountAggregates {
+  """Distinct count of dateCreated across the matching connection"""
+  dateCreated: BigInt
+
+  """Distinct count of id across the matching connection"""
+  id: BigInt
+
+  """Distinct count of kind across the matching connection"""
+  kind: BigInt
+
+  """Distinct count of levelId across the matching connection"""
+  levelId: BigInt
+
+  """Distinct count of occurredAt across the matching connection"""
+  occurredAt: BigInt
+
+  """Distinct count of payload across the matching connection"""
+  payload: BigInt
+
+  """Distinct count of previousRecordId across the matching connection"""
+  previousRecordId: BigInt
+
+  """Distinct count of previousUserId across the matching connection"""
+  previousUserId: BigInt
+
+  """Distinct count of recordId across the matching connection"""
+  recordId: BigInt
+
+  """Distinct count of userId across the matching connection"""
+  userId: BigInt
+}
+
+"""
+A filter to be used against `DiscordActivityEvent` object types. All fields are combined with a logical ‘and.’
+"""
+input DiscordActivityEventFilter {
+  """Checks for all expressions in this list."""
+  and: [DiscordActivityEventFilter!]
+
+  """Filter by the object’s `dateCreated` field."""
+  dateCreated: DatetimeFilter
+
+  """Filter by the object’s `id` field."""
+  id: BigIntFilter
+
+  """Filter by the object’s `kind` field."""
+  kind: StringFilter
+
+  """Filter by the object’s `level` relation."""
+  level: LevelFilter
+
+  """A related `level` exists."""
+  levelExists: Boolean
+
+  """Filter by the object’s `levelId` field."""
+  levelId: IntFilter
+
+  """Negates the expression."""
+  not: DiscordActivityEventFilter
+
+  """Filter by the object’s `occurredAt` field."""
+  occurredAt: DatetimeFilter
+
+  """Checks for any expressions in this list."""
+  or: [DiscordActivityEventFilter!]
+
+  """Filter by the object’s `previousRecord` relation."""
+  previousRecord: RecordFilter
+
+  """A related `previousRecord` exists."""
+  previousRecordExists: Boolean
+
+  """Filter by the object’s `previousRecordId` field."""
+  previousRecordId: IntFilter
+
+  """Filter by the object’s `previousUser` relation."""
+  previousUser: UserFilter
+
+  """A related `previousUser` exists."""
+  previousUserExists: Boolean
+
+  """Filter by the object’s `previousUserId` field."""
+  previousUserId: IntFilter
+
+  """Filter by the object’s `record` relation."""
+  record: RecordFilter
+
+  """A related `record` exists."""
+  recordExists: Boolean
+
+  """Filter by the object’s `recordId` field."""
+  recordId: IntFilter
+
+  """Filter by the object’s `user` relation."""
+  user: UserFilter
+
+  """A related `user` exists."""
+  userExists: Boolean
+
+  """Filter by the object’s `userId` field."""
+  userId: IntFilter
+}
+
+"""
+Grouping methods for `DiscordActivityEvent` for usage during aggregation.
+"""
+enum DiscordActivityEventGroupBy {
+  DATE_CREATED
+  DATE_CREATED_TRUNCATED_TO_DAY
+  DATE_CREATED_TRUNCATED_TO_HOUR
+  KIND
+  LEVEL_ID
+  OCCURRED_AT
+  OCCURRED_AT_TRUNCATED_TO_DAY
+  OCCURRED_AT_TRUNCATED_TO_HOUR
+  PAYLOAD
+  PREVIOUS_RECORD_ID
+  PREVIOUS_USER_ID
+  RECORD_ID
+  USER_ID
+}
+
+input DiscordActivityEventHavingAverageInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventHavingDistinctCountInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+"""Conditions for `DiscordActivityEvent` aggregates."""
+input DiscordActivityEventHavingInput {
+  AND: [DiscordActivityEventHavingInput!]
+  OR: [DiscordActivityEventHavingInput!]
+  average: DiscordActivityEventHavingAverageInput
+  distinctCount: DiscordActivityEventHavingDistinctCountInput
+  max: DiscordActivityEventHavingMaxInput
+  min: DiscordActivityEventHavingMinInput
+  stddevPopulation: DiscordActivityEventHavingStddevPopulationInput
+  stddevSample: DiscordActivityEventHavingStddevSampleInput
+  sum: DiscordActivityEventHavingSumInput
+  variancePopulation: DiscordActivityEventHavingVariancePopulationInput
+  varianceSample: DiscordActivityEventHavingVarianceSampleInput
+}
+
+input DiscordActivityEventHavingMaxInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventHavingMinInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventHavingStddevPopulationInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventHavingStddevSampleInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventHavingSumInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventHavingVariancePopulationInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventHavingVarianceSampleInput {
+  dateCreated: HavingDatetimeFilter
+  id: HavingBigintFilter
+  levelId: HavingIntFilter
+  occurredAt: HavingDatetimeFilter
+  previousRecordId: HavingIntFilter
+  previousUserId: HavingIntFilter
+  recordId: HavingIntFilter
+  userId: HavingIntFilter
+}
+
+input DiscordActivityEventMaxAggregateFilter {
+  id: BigIntFilter
+  levelId: IntFilter
+  previousRecordId: IntFilter
+  previousUserId: IntFilter
+  recordId: IntFilter
+  userId: IntFilter
+}
+
+type DiscordActivityEventMaxAggregates {
+  """Maximum of id across the matching connection"""
+  id: BigInt
+
+  """Maximum of levelId across the matching connection"""
+  levelId: Int
+
+  """Maximum of previousRecordId across the matching connection"""
+  previousRecordId: Int
+
+  """Maximum of previousUserId across the matching connection"""
+  previousUserId: Int
+
+  """Maximum of recordId across the matching connection"""
+  recordId: Int
+
+  """Maximum of userId across the matching connection"""
+  userId: Int
+}
+
+input DiscordActivityEventMinAggregateFilter {
+  id: BigIntFilter
+  levelId: IntFilter
+  previousRecordId: IntFilter
+  previousUserId: IntFilter
+  recordId: IntFilter
+  userId: IntFilter
+}
+
+type DiscordActivityEventMinAggregates {
+  """Minimum of id across the matching connection"""
+  id: BigInt
+
+  """Minimum of levelId across the matching connection"""
+  levelId: Int
+
+  """Minimum of previousRecordId across the matching connection"""
+  previousRecordId: Int
+
+  """Minimum of previousUserId across the matching connection"""
+  previousUserId: Int
+
+  """Minimum of recordId across the matching connection"""
+  recordId: Int
+
+  """Minimum of userId across the matching connection"""
+  userId: Int
+}
+
+input DiscordActivityEventStddevPopulationAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  previousRecordId: BigFloatFilter
+  previousUserId: BigFloatFilter
+  recordId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type DiscordActivityEventStddevPopulationAggregates {
+  """Population standard deviation of id across the matching connection"""
+  id: BigFloat
+
+  """
+  Population standard deviation of levelId across the matching connection
+  """
+  levelId: BigFloat
+
+  """
+  Population standard deviation of previousRecordId across the matching connection
+  """
+  previousRecordId: BigFloat
+
+  """
+  Population standard deviation of previousUserId across the matching connection
+  """
+  previousUserId: BigFloat
+
+  """
+  Population standard deviation of recordId across the matching connection
+  """
+  recordId: BigFloat
+
+  """Population standard deviation of userId across the matching connection"""
+  userId: BigFloat
+}
+
+input DiscordActivityEventStddevSampleAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  previousRecordId: BigFloatFilter
+  previousUserId: BigFloatFilter
+  recordId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type DiscordActivityEventStddevSampleAggregates {
+  """Sample standard deviation of id across the matching connection"""
+  id: BigFloat
+
+  """Sample standard deviation of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """
+  Sample standard deviation of previousRecordId across the matching connection
+  """
+  previousRecordId: BigFloat
+
+  """
+  Sample standard deviation of previousUserId across the matching connection
+  """
+  previousUserId: BigFloat
+
+  """Sample standard deviation of recordId across the matching connection"""
+  recordId: BigFloat
+
+  """Sample standard deviation of userId across the matching connection"""
+  userId: BigFloat
+}
+
+input DiscordActivityEventSumAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigIntFilter
+  previousRecordId: BigIntFilter
+  previousUserId: BigIntFilter
+  recordId: BigIntFilter
+  userId: BigIntFilter
+}
+
+type DiscordActivityEventSumAggregates {
+  """Sum of id across the matching connection"""
+  id: BigFloat!
+
+  """Sum of levelId across the matching connection"""
+  levelId: BigInt!
+
+  """Sum of previousRecordId across the matching connection"""
+  previousRecordId: BigInt!
+
+  """Sum of previousUserId across the matching connection"""
+  previousUserId: BigInt!
+
+  """Sum of recordId across the matching connection"""
+  recordId: BigInt!
+
+  """Sum of userId across the matching connection"""
+  userId: BigInt!
+}
+
+input DiscordActivityEventVariancePopulationAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  previousRecordId: BigFloatFilter
+  previousUserId: BigFloatFilter
+  recordId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type DiscordActivityEventVariancePopulationAggregates {
+  """Population variance of id across the matching connection"""
+  id: BigFloat
+
+  """Population variance of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """Population variance of previousRecordId across the matching connection"""
+  previousRecordId: BigFloat
+
+  """Population variance of previousUserId across the matching connection"""
+  previousUserId: BigFloat
+
+  """Population variance of recordId across the matching connection"""
+  recordId: BigFloat
+
+  """Population variance of userId across the matching connection"""
+  userId: BigFloat
+}
+
+input DiscordActivityEventVarianceSampleAggregateFilter {
+  id: BigFloatFilter
+  levelId: BigFloatFilter
+  previousRecordId: BigFloatFilter
+  previousUserId: BigFloatFilter
+  recordId: BigFloatFilter
+  userId: BigFloatFilter
+}
+
+type DiscordActivityEventVarianceSampleAggregates {
+  """Sample variance of id across the matching connection"""
+  id: BigFloat
+
+  """Sample variance of levelId across the matching connection"""
+  levelId: BigFloat
+
+  """Sample variance of previousRecordId across the matching connection"""
+  previousRecordId: BigFloat
+
+  """Sample variance of previousUserId across the matching connection"""
+  previousUserId: BigFloat
+
+  """Sample variance of recordId across the matching connection"""
+  recordId: BigFloat
+
+  """Sample variance of userId across the matching connection"""
+  userId: BigFloat
+}
+
+"""A connection to a list of `DiscordActivityEvent` values."""
+type DiscordActivityEventsConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: DiscordActivityEventAggregates
+
+  """
+  A list of edges which contains the `DiscordActivityEvent` and cursor to aid in pagination.
+  """
+  edges: [DiscordActivityEventsEdge!]!
+
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `DiscordActivityEvent` for these aggregates.
+    """
+    groupBy: [DiscordActivityEventGroupBy!]!
+
+    """Conditions on the grouped aggregates."""
+    having: DiscordActivityEventHavingInput
+  ): [DiscordActivityEventAggregates!]
+
+  """A list of `DiscordActivityEvent` objects."""
+  nodes: [DiscordActivityEvent!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `DiscordActivityEvent` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+"""A `DiscordActivityEvent` edge in the connection."""
+type DiscordActivityEventsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `DiscordActivityEvent` at the end of the edge."""
+  node: DiscordActivityEvent!
+}
+
+"""Methods to use when ordering `DiscordActivityEvent`."""
+enum DiscordActivityEventsOrderBy {
+  DATE_CREATED_ASC
+  DATE_CREATED_DESC
+  ID_ASC
+  ID_DESC
+  KIND_ASC
+  KIND_DESC
+  LEVEL_ID_ASC
+  LEVEL_ID_DESC
+  NATURAL
+  OCCURRED_AT_ASC
+  OCCURRED_AT_DESC
+  PAYLOAD_ASC
+  PAYLOAD_DESC
+  PREVIOUS_RECORD_ID_ASC
+  PREVIOUS_RECORD_ID_DESC
+  PREVIOUS_USER_ID_ASC
+  PREVIOUS_USER_ID_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  RECORD_ID_ASC
+  RECORD_ID_DESC
+  USER_ID_ASC
+  USER_ID_DESC
+}
+
 type Favourite implements Node {
   dateCreated: Datetime!
   dateUpdated: Datetime
-  id: Int!
 
   """Reads a single `Level` that is related to this `Favourite`."""
   level: Level
@@ -295,15 +1026,11 @@ input FavouriteAggregatesFilter {
 }
 
 input FavouriteAverageAggregateFilter {
-  id: BigFloatFilter
   levelId: BigFloatFilter
   userId: BigFloatFilter
 }
 
 type FavouriteAverageAggregates {
-  """Mean average of id across the matching connection"""
-  id: BigFloat
-
   """Mean average of levelId across the matching connection"""
   levelId: BigFloat
 
@@ -322,9 +1049,6 @@ input FavouriteCondition {
   """Checks for equality with the object’s `dateUpdated` field."""
   dateUpdated: Datetime
 
-  """Checks for equality with the object’s `id` field."""
-  id: Int
-
   """Checks for equality with the object’s `levelId` field."""
   levelId: Int
 
@@ -335,7 +1059,6 @@ input FavouriteCondition {
 input FavouriteDistinctCountAggregateFilter {
   dateCreated: BigIntFilter
   dateUpdated: BigIntFilter
-  id: BigIntFilter
   levelId: BigIntFilter
   userId: BigIntFilter
 }
@@ -346,9 +1069,6 @@ type FavouriteDistinctCountAggregates {
 
   """Distinct count of dateUpdated across the matching connection"""
   dateUpdated: BigInt
-
-  """Distinct count of id across the matching connection"""
-  id: BigInt
 
   """Distinct count of levelId across the matching connection"""
   levelId: BigInt
@@ -369,9 +1089,6 @@ input FavouriteFilter {
 
   """Filter by the object’s `dateUpdated` field."""
   dateUpdated: DatetimeFilter
-
-  """Filter by the object’s `id` field."""
-  id: IntFilter
 
   """Filter by the object’s `level` relation."""
   level: LevelFilter
@@ -407,7 +1124,6 @@ enum FavouriteGroupBy {
 input FavouriteHavingAverageInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -415,7 +1131,6 @@ input FavouriteHavingAverageInput {
 input FavouriteHavingDistinctCountInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -438,7 +1153,6 @@ input FavouriteHavingInput {
 input FavouriteHavingMaxInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -446,7 +1160,6 @@ input FavouriteHavingMaxInput {
 input FavouriteHavingMinInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -454,7 +1167,6 @@ input FavouriteHavingMinInput {
 input FavouriteHavingStddevPopulationInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -462,7 +1174,6 @@ input FavouriteHavingStddevPopulationInput {
 input FavouriteHavingStddevSampleInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -470,7 +1181,6 @@ input FavouriteHavingStddevSampleInput {
 input FavouriteHavingSumInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -478,7 +1188,6 @@ input FavouriteHavingSumInput {
 input FavouriteHavingVariancePopulationInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
@@ -486,21 +1195,16 @@ input FavouriteHavingVariancePopulationInput {
 input FavouriteHavingVarianceSampleInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
-  id: HavingIntFilter
   levelId: HavingIntFilter
   userId: HavingIntFilter
 }
 
 input FavouriteMaxAggregateFilter {
-  id: IntFilter
   levelId: IntFilter
   userId: IntFilter
 }
 
 type FavouriteMaxAggregates {
-  """Maximum of id across the matching connection"""
-  id: Int
-
   """Maximum of levelId across the matching connection"""
   levelId: Int
 
@@ -509,15 +1213,11 @@ type FavouriteMaxAggregates {
 }
 
 input FavouriteMinAggregateFilter {
-  id: IntFilter
   levelId: IntFilter
   userId: IntFilter
 }
 
 type FavouriteMinAggregates {
-  """Minimum of id across the matching connection"""
-  id: Int
-
   """Minimum of levelId across the matching connection"""
   levelId: Int
 
@@ -526,15 +1226,11 @@ type FavouriteMinAggregates {
 }
 
 input FavouriteStddevPopulationAggregateFilter {
-  id: BigFloatFilter
   levelId: BigFloatFilter
   userId: BigFloatFilter
 }
 
 type FavouriteStddevPopulationAggregates {
-  """Population standard deviation of id across the matching connection"""
-  id: BigFloat
-
   """
   Population standard deviation of levelId across the matching connection
   """
@@ -545,15 +1241,11 @@ type FavouriteStddevPopulationAggregates {
 }
 
 input FavouriteStddevSampleAggregateFilter {
-  id: BigFloatFilter
   levelId: BigFloatFilter
   userId: BigFloatFilter
 }
 
 type FavouriteStddevSampleAggregates {
-  """Sample standard deviation of id across the matching connection"""
-  id: BigFloat
-
   """Sample standard deviation of levelId across the matching connection"""
   levelId: BigFloat
 
@@ -562,15 +1254,11 @@ type FavouriteStddevSampleAggregates {
 }
 
 input FavouriteSumAggregateFilter {
-  id: BigIntFilter
   levelId: BigIntFilter
   userId: BigIntFilter
 }
 
 type FavouriteSumAggregates {
-  """Sum of id across the matching connection"""
-  id: BigInt!
-
   """Sum of levelId across the matching connection"""
   levelId: BigInt!
 
@@ -579,15 +1267,11 @@ type FavouriteSumAggregates {
 }
 
 input FavouriteVariancePopulationAggregateFilter {
-  id: BigFloatFilter
   levelId: BigFloatFilter
   userId: BigFloatFilter
 }
 
 type FavouriteVariancePopulationAggregates {
-  """Population variance of id across the matching connection"""
-  id: BigFloat
-
   """Population variance of levelId across the matching connection"""
   levelId: BigFloat
 
@@ -596,15 +1280,11 @@ type FavouriteVariancePopulationAggregates {
 }
 
 input FavouriteVarianceSampleAggregateFilter {
-  id: BigFloatFilter
   levelId: BigFloatFilter
   userId: BigFloatFilter
 }
 
 type FavouriteVarianceSampleAggregates {
-  """Sample variance of id across the matching connection"""
-  id: BigFloat
-
   """Sample variance of levelId across the matching connection"""
   levelId: BigFloat
 
@@ -660,8 +1340,6 @@ enum FavouritesOrderBy {
   DATE_CREATED_DESC
   DATE_UPDATED_ASC
   DATE_UPDATED_DESC
-  ID_ASC
-  ID_DESC
   LEVEL_ID_ASC
   LEVEL_ID_DESC
   NATURAL
@@ -926,6 +1604,40 @@ type Level implements Node {
   adventure: Boolean!
   dateCreated: Datetime!
   dateUpdated: Datetime
+
+  """Reads and enables pagination through a set of `DiscordActivityEvent`."""
+  discordActivityEvents(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DiscordActivityEventCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DiscordActivityEventFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `DiscordActivityEvent`."""
+    orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DiscordActivityEventsConnection!
 
   """Reads and enables pagination through a set of `Favourite`."""
   favourites(
@@ -1740,6 +2452,12 @@ input LevelFilter {
 
   """Filter by the object’s `dateUpdated` field."""
   dateUpdated: DatetimeFilter
+
+  """Filter by the object’s `discordActivityEvents` relation."""
+  discordActivityEvents: LevelToManyDiscordActivityEventFilter
+
+  """Some related `discordActivityEvents` exist."""
+  discordActivityEventsExist: Boolean
 
   """Filter by the object’s `favourites` relation."""
   favourites: LevelToManyFavouriteFilter
@@ -3617,7 +4335,6 @@ type LevelMinAggregates {
 }
 
 type LevelPoint implements Node {
-  competitiveMerit: Float
   complexityConfidence: Float
   complexityScore: Float
   dateCreated: Datetime!
@@ -3627,7 +4344,6 @@ type LevelPoint implements Node {
   """Reads a single `Level` that is related to this `LevelPoint`."""
   level: Level
   levelId: Int!
-  modifierCompetitiveness: Float!
   modifierEvidence: Float!
   modifierLength: Float!
   modifierQuality: Float!
@@ -3645,7 +4361,6 @@ type LevelPoint implements Node {
   skillSampleSize: Int
   skillScore: Float
   skillSeparation: Float
-  worldRecordExcluded: Boolean
 }
 
 type LevelPointAggregates {
@@ -3697,9 +4412,6 @@ type LevelPointAggregates {
 }
 
 type LevelPointAverageAggregates {
-  """Mean average of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Mean average of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -3711,9 +4423,6 @@ type LevelPointAverageAggregates {
 
   """Mean average of levelId across the matching connection"""
   levelId: BigFloat
-
-  """Mean average of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float
 
   """Mean average of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -3757,9 +4466,6 @@ A condition to be used against `LevelPoint` object types. All fields are tested
 for equality and combined with a logical ‘and.’
 """
 input LevelPointCondition {
-  """Checks for equality with the object’s `competitiveMerit` field."""
-  competitiveMerit: Float
-
   """Checks for equality with the object’s `complexityConfidence` field."""
   complexityConfidence: Float
 
@@ -3777,9 +4483,6 @@ input LevelPointCondition {
 
   """Checks for equality with the object’s `levelId` field."""
   levelId: Int
-
-  """Checks for equality with the object’s `modifierCompetitiveness` field."""
-  modifierCompetitiveness: Float
 
   """Checks for equality with the object’s `modifierEvidence` field."""
   modifierEvidence: Float
@@ -3816,15 +4519,9 @@ input LevelPointCondition {
 
   """Checks for equality with the object’s `skillSeparation` field."""
   skillSeparation: Float
-
-  """Checks for equality with the object’s `worldRecordExcluded` field."""
-  worldRecordExcluded: Boolean
 }
 
 type LevelPointDistinctCountAggregates {
-  """Distinct count of competitiveMerit across the matching connection"""
-  competitiveMerit: BigInt
-
   """Distinct count of complexityConfidence across the matching connection"""
   complexityConfidence: BigInt
 
@@ -3842,11 +4539,6 @@ type LevelPointDistinctCountAggregates {
 
   """Distinct count of levelId across the matching connection"""
   levelId: BigInt
-
-  """
-  Distinct count of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: BigInt
 
   """Distinct count of modifierEvidence across the matching connection"""
   modifierEvidence: BigInt
@@ -3883,9 +4575,6 @@ type LevelPointDistinctCountAggregates {
 
   """Distinct count of skillSeparation across the matching connection"""
   skillSeparation: BigInt
-
-  """Distinct count of worldRecordExcluded across the matching connection"""
-  worldRecordExcluded: BigInt
 }
 
 """
@@ -3894,9 +4583,6 @@ A filter to be used against `LevelPoint` object types. All fields are combined w
 input LevelPointFilter {
   """Checks for all expressions in this list."""
   and: [LevelPointFilter!]
-
-  """Filter by the object’s `competitiveMerit` field."""
-  competitiveMerit: FloatFilter
 
   """Filter by the object’s `complexityConfidence` field."""
   complexityConfidence: FloatFilter
@@ -3918,9 +4604,6 @@ input LevelPointFilter {
 
   """Filter by the object’s `levelId` field."""
   levelId: IntFilter
-
-  """Filter by the object’s `modifierCompetitiveness` field."""
-  modifierCompetitiveness: FloatFilter
 
   """Filter by the object’s `modifierEvidence` field."""
   modifierEvidence: FloatFilter
@@ -3963,14 +4646,10 @@ input LevelPointFilter {
 
   """Filter by the object’s `skillSeparation` field."""
   skillSeparation: FloatFilter
-
-  """Filter by the object’s `worldRecordExcluded` field."""
-  worldRecordExcluded: BooleanFilter
 }
 
 """Grouping methods for `LevelPoint` for usage during aggregation."""
 enum LevelPointGroupBy {
-  COMPETITIVE_MERIT
   COMPLEXITY_CONFIDENCE
   COMPLEXITY_SCORE
   DATE_CREATED
@@ -3980,7 +4659,6 @@ enum LevelPointGroupBy {
   DATE_UPDATED_TRUNCATED_TO_DAY
   DATE_UPDATED_TRUNCATED_TO_HOUR
   FIELD_STRENGTH
-  MODIFIER_COMPETITIVENESS
   MODIFIER_EVIDENCE
   MODIFIER_LENGTH
   MODIFIER_QUALITY
@@ -3993,18 +4671,15 @@ enum LevelPointGroupBy {
   SKILL_SAMPLE_SIZE
   SKILL_SCORE
   SKILL_SEPARATION
-  WORLD_RECORD_EXCLUDED
 }
 
 input LevelPointHavingAverageInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4020,14 +4695,12 @@ input LevelPointHavingAverageInput {
 }
 
 input LevelPointHavingDistinctCountInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4058,14 +4731,12 @@ input LevelPointHavingInput {
 }
 
 input LevelPointHavingMaxInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4081,14 +4752,12 @@ input LevelPointHavingMaxInput {
 }
 
 input LevelPointHavingMinInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4104,14 +4773,12 @@ input LevelPointHavingMinInput {
 }
 
 input LevelPointHavingStddevPopulationInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4127,14 +4794,12 @@ input LevelPointHavingStddevPopulationInput {
 }
 
 input LevelPointHavingStddevSampleInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4150,14 +4815,12 @@ input LevelPointHavingStddevSampleInput {
 }
 
 input LevelPointHavingSumInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4173,14 +4836,12 @@ input LevelPointHavingSumInput {
 }
 
 input LevelPointHavingVariancePopulationInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4196,14 +4857,12 @@ input LevelPointHavingVariancePopulationInput {
 }
 
 input LevelPointHavingVarianceSampleInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   fieldStrength: HavingFloatFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -4219,9 +4878,6 @@ input LevelPointHavingVarianceSampleInput {
 }
 
 type LevelPointMaxAggregates {
-  """Maximum of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Maximum of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -4233,9 +4889,6 @@ type LevelPointMaxAggregates {
 
   """Maximum of levelId across the matching connection"""
   levelId: Int
-
-  """Maximum of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float
 
   """Maximum of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -4275,9 +4928,6 @@ type LevelPointMaxAggregates {
 }
 
 type LevelPointMinAggregates {
-  """Minimum of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Minimum of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -4289,9 +4939,6 @@ type LevelPointMinAggregates {
 
   """Minimum of levelId across the matching connection"""
   levelId: Int
-
-  """Minimum of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float
 
   """Minimum of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -4332,11 +4979,6 @@ type LevelPointMinAggregates {
 
 type LevelPointStddevPopulationAggregates {
   """
-  Population standard deviation of competitiveMerit across the matching connection
-  """
-  competitiveMerit: Float
-
-  """
   Population standard deviation of complexityConfidence across the matching connection
   """
   complexityConfidence: Float
@@ -4355,11 +4997,6 @@ type LevelPointStddevPopulationAggregates {
   Population standard deviation of levelId across the matching connection
   """
   levelId: BigFloat
-
-  """
-  Population standard deviation of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """
   Population standard deviation of modifierEvidence across the matching connection
@@ -4420,11 +5057,6 @@ type LevelPointStddevPopulationAggregates {
 
 type LevelPointStddevSampleAggregates {
   """
-  Sample standard deviation of competitiveMerit across the matching connection
-  """
-  competitiveMerit: Float
-
-  """
   Sample standard deviation of complexityConfidence across the matching connection
   """
   complexityConfidence: Float
@@ -4441,11 +5073,6 @@ type LevelPointStddevSampleAggregates {
 
   """Sample standard deviation of levelId across the matching connection"""
   levelId: BigFloat
-
-  """
-  Sample standard deviation of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """
   Sample standard deviation of modifierEvidence across the matching connection
@@ -4503,9 +5130,6 @@ type LevelPointStddevSampleAggregates {
 }
 
 type LevelPointSumAggregates {
-  """Sum of competitiveMerit across the matching connection"""
-  competitiveMerit: Float!
-
   """Sum of complexityConfidence across the matching connection"""
   complexityConfidence: Float!
 
@@ -4517,9 +5141,6 @@ type LevelPointSumAggregates {
 
   """Sum of levelId across the matching connection"""
   levelId: BigInt!
-
-  """Sum of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float!
 
   """Sum of modifierEvidence across the matching connection"""
   modifierEvidence: Float!
@@ -4559,9 +5180,6 @@ type LevelPointSumAggregates {
 }
 
 type LevelPointVariancePopulationAggregates {
-  """Population variance of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """
   Population variance of complexityConfidence across the matching connection
   """
@@ -4575,11 +5193,6 @@ type LevelPointVariancePopulationAggregates {
 
   """Population variance of levelId across the matching connection"""
   levelId: BigFloat
-
-  """
-  Population variance of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """Population variance of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -4619,9 +5232,6 @@ type LevelPointVariancePopulationAggregates {
 }
 
 type LevelPointVarianceSampleAggregates {
-  """Sample variance of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Sample variance of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -4633,11 +5243,6 @@ type LevelPointVarianceSampleAggregates {
 
   """Sample variance of levelId across the matching connection"""
   levelId: BigFloat
-
-  """
-  Sample variance of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """Sample variance of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -4766,8 +5371,6 @@ type LevelPointsHistoriesEdge {
 
 """Methods to use when ordering `LevelPointsHistory`."""
 enum LevelPointsHistoriesOrderBy {
-  COMPETITIVE_MERIT_ASC
-  COMPETITIVE_MERIT_DESC
   COMPLEXITY_CONFIDENCE_ASC
   COMPLEXITY_CONFIDENCE_DESC
   COMPLEXITY_SCORE_ASC
@@ -4782,8 +5385,6 @@ enum LevelPointsHistoriesOrderBy {
   ID_DESC
   LEVEL_ID_ASC
   LEVEL_ID_DESC
-  MODIFIER_COMPETITIVENESS_ASC
-  MODIFIER_COMPETITIVENESS_DESC
   MODIFIER_EVIDENCE_ASC
   MODIFIER_EVIDENCE_DESC
   MODIFIER_LENGTH_ASC
@@ -4811,12 +5412,9 @@ enum LevelPointsHistoriesOrderBy {
   SKILL_SCORE_DESC
   SKILL_SEPARATION_ASC
   SKILL_SEPARATION_DESC
-  WORLD_RECORD_EXCLUDED_ASC
-  WORLD_RECORD_EXCLUDED_DESC
 }
 
 type LevelPointsHistory implements Node {
-  competitiveMerit: Float
   complexityConfidence: Float
   complexityScore: Float
   dateCreated: Datetime!
@@ -4827,7 +5425,6 @@ type LevelPointsHistory implements Node {
   """Reads a single `Level` that is related to this `LevelPointsHistory`."""
   level: Level
   levelId: Int!
-  modifierCompetitiveness: Float!
   modifierEvidence: Float!
   modifierLength: Float!
   modifierQuality: Float!
@@ -4845,7 +5442,6 @@ type LevelPointsHistory implements Node {
   skillSampleSize: Int
   skillScore: Float
   skillSeparation: Float
-  worldRecordExcluded: Boolean
 }
 
 type LevelPointsHistoryAggregates {
@@ -4940,13 +5536,11 @@ input LevelPointsHistoryAggregatesFilter {
 }
 
 input LevelPointsHistoryAverageAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: BigFloatFilter
   levelId: BigFloatFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -4962,9 +5556,6 @@ input LevelPointsHistoryAverageAggregateFilter {
 }
 
 type LevelPointsHistoryAverageAggregates {
-  """Mean average of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Mean average of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -4979,9 +5570,6 @@ type LevelPointsHistoryAverageAggregates {
 
   """Mean average of levelId across the matching connection"""
   levelId: BigFloat
-
-  """Mean average of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float
 
   """Mean average of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -5025,9 +5613,6 @@ A condition to be used against `LevelPointsHistory` object types. All fields are
 tested for equality and combined with a logical ‘and.’
 """
 input LevelPointsHistoryCondition {
-  """Checks for equality with the object’s `competitiveMerit` field."""
-  competitiveMerit: Float
-
   """Checks for equality with the object’s `complexityConfidence` field."""
   complexityConfidence: Float
 
@@ -5048,9 +5633,6 @@ input LevelPointsHistoryCondition {
 
   """Checks for equality with the object’s `levelId` field."""
   levelId: Int
-
-  """Checks for equality with the object’s `modifierCompetitiveness` field."""
-  modifierCompetitiveness: Float
 
   """Checks for equality with the object’s `modifierEvidence` field."""
   modifierEvidence: Float
@@ -5087,13 +5669,9 @@ input LevelPointsHistoryCondition {
 
   """Checks for equality with the object’s `skillSeparation` field."""
   skillSeparation: Float
-
-  """Checks for equality with the object’s `worldRecordExcluded` field."""
-  worldRecordExcluded: Boolean
 }
 
 input LevelPointsHistoryDistinctCountAggregateFilter {
-  competitiveMerit: BigIntFilter
   complexityConfidence: BigIntFilter
   complexityScore: BigIntFilter
   dateCreated: BigIntFilter
@@ -5101,7 +5679,6 @@ input LevelPointsHistoryDistinctCountAggregateFilter {
   fieldStrength: BigIntFilter
   id: BigIntFilter
   levelId: BigIntFilter
-  modifierCompetitiveness: BigIntFilter
   modifierEvidence: BigIntFilter
   modifierLength: BigIntFilter
   modifierQuality: BigIntFilter
@@ -5114,13 +5691,9 @@ input LevelPointsHistoryDistinctCountAggregateFilter {
   skillSampleSize: BigIntFilter
   skillScore: BigIntFilter
   skillSeparation: BigIntFilter
-  worldRecordExcluded: BigIntFilter
 }
 
 type LevelPointsHistoryDistinctCountAggregates {
-  """Distinct count of competitiveMerit across the matching connection"""
-  competitiveMerit: BigInt
-
   """Distinct count of complexityConfidence across the matching connection"""
   complexityConfidence: BigInt
 
@@ -5141,11 +5714,6 @@ type LevelPointsHistoryDistinctCountAggregates {
 
   """Distinct count of levelId across the matching connection"""
   levelId: BigInt
-
-  """
-  Distinct count of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: BigInt
 
   """Distinct count of modifierEvidence across the matching connection"""
   modifierEvidence: BigInt
@@ -5182,9 +5750,6 @@ type LevelPointsHistoryDistinctCountAggregates {
 
   """Distinct count of skillSeparation across the matching connection"""
   skillSeparation: BigInt
-
-  """Distinct count of worldRecordExcluded across the matching connection"""
-  worldRecordExcluded: BigInt
 }
 
 """
@@ -5193,9 +5758,6 @@ A filter to be used against `LevelPointsHistory` object types. All fields are co
 input LevelPointsHistoryFilter {
   """Checks for all expressions in this list."""
   and: [LevelPointsHistoryFilter!]
-
-  """Filter by the object’s `competitiveMerit` field."""
-  competitiveMerit: FloatFilter
 
   """Filter by the object’s `complexityConfidence` field."""
   complexityConfidence: FloatFilter
@@ -5220,9 +5782,6 @@ input LevelPointsHistoryFilter {
 
   """Filter by the object’s `levelId` field."""
   levelId: IntFilter
-
-  """Filter by the object’s `modifierCompetitiveness` field."""
-  modifierCompetitiveness: FloatFilter
 
   """Filter by the object’s `modifierEvidence` field."""
   modifierEvidence: FloatFilter
@@ -5265,16 +5824,12 @@ input LevelPointsHistoryFilter {
 
   """Filter by the object’s `skillSeparation` field."""
   skillSeparation: FloatFilter
-
-  """Filter by the object’s `worldRecordExcluded` field."""
-  worldRecordExcluded: BooleanFilter
 }
 
 """
 Grouping methods for `LevelPointsHistory` for usage during aggregation.
 """
 enum LevelPointsHistoryGroupBy {
-  COMPETITIVE_MERIT
   COMPLEXITY_CONFIDENCE
   COMPLEXITY_SCORE
   DATE_CREATED
@@ -5285,7 +5840,6 @@ enum LevelPointsHistoryGroupBy {
   DATE_UPDATED_TRUNCATED_TO_HOUR
   FIELD_STRENGTH
   LEVEL_ID
-  MODIFIER_COMPETITIVENESS
   MODIFIER_EVIDENCE
   MODIFIER_LENGTH
   MODIFIER_QUALITY
@@ -5298,11 +5852,9 @@ enum LevelPointsHistoryGroupBy {
   SKILL_SAMPLE_SIZE
   SKILL_SCORE
   SKILL_SEPARATION
-  WORLD_RECORD_EXCLUDED
 }
 
 input LevelPointsHistoryHavingAverageInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5310,7 +5862,6 @@ input LevelPointsHistoryHavingAverageInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5326,7 +5877,6 @@ input LevelPointsHistoryHavingAverageInput {
 }
 
 input LevelPointsHistoryHavingDistinctCountInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5334,7 +5884,6 @@ input LevelPointsHistoryHavingDistinctCountInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5365,7 +5914,6 @@ input LevelPointsHistoryHavingInput {
 }
 
 input LevelPointsHistoryHavingMaxInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5373,7 +5921,6 @@ input LevelPointsHistoryHavingMaxInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5389,7 +5936,6 @@ input LevelPointsHistoryHavingMaxInput {
 }
 
 input LevelPointsHistoryHavingMinInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5397,7 +5943,6 @@ input LevelPointsHistoryHavingMinInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5413,7 +5958,6 @@ input LevelPointsHistoryHavingMinInput {
 }
 
 input LevelPointsHistoryHavingStddevPopulationInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5421,7 +5965,6 @@ input LevelPointsHistoryHavingStddevPopulationInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5437,7 +5980,6 @@ input LevelPointsHistoryHavingStddevPopulationInput {
 }
 
 input LevelPointsHistoryHavingStddevSampleInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5445,7 +5987,6 @@ input LevelPointsHistoryHavingStddevSampleInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5461,7 +6002,6 @@ input LevelPointsHistoryHavingStddevSampleInput {
 }
 
 input LevelPointsHistoryHavingSumInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5469,7 +6009,6 @@ input LevelPointsHistoryHavingSumInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5485,7 +6024,6 @@ input LevelPointsHistoryHavingSumInput {
 }
 
 input LevelPointsHistoryHavingVariancePopulationInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5493,7 +6031,6 @@ input LevelPointsHistoryHavingVariancePopulationInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5509,7 +6046,6 @@ input LevelPointsHistoryHavingVariancePopulationInput {
 }
 
 input LevelPointsHistoryHavingVarianceSampleInput {
-  competitiveMerit: HavingFloatFilter
   complexityConfidence: HavingFloatFilter
   complexityScore: HavingFloatFilter
   dateCreated: HavingDatetimeFilter
@@ -5517,7 +6053,6 @@ input LevelPointsHistoryHavingVarianceSampleInput {
   fieldStrength: HavingFloatFilter
   id: HavingIntFilter
   levelId: HavingIntFilter
-  modifierCompetitiveness: HavingFloatFilter
   modifierEvidence: HavingFloatFilter
   modifierLength: HavingFloatFilter
   modifierQuality: HavingFloatFilter
@@ -5533,13 +6068,11 @@ input LevelPointsHistoryHavingVarianceSampleInput {
 }
 
 input LevelPointsHistoryMaxAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: IntFilter
   levelId: IntFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -5555,9 +6088,6 @@ input LevelPointsHistoryMaxAggregateFilter {
 }
 
 type LevelPointsHistoryMaxAggregates {
-  """Maximum of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Maximum of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -5572,9 +6102,6 @@ type LevelPointsHistoryMaxAggregates {
 
   """Maximum of levelId across the matching connection"""
   levelId: Int
-
-  """Maximum of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float
 
   """Maximum of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -5614,13 +6141,11 @@ type LevelPointsHistoryMaxAggregates {
 }
 
 input LevelPointsHistoryMinAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: IntFilter
   levelId: IntFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -5636,9 +6161,6 @@ input LevelPointsHistoryMinAggregateFilter {
 }
 
 type LevelPointsHistoryMinAggregates {
-  """Minimum of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Minimum of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -5653,9 +6175,6 @@ type LevelPointsHistoryMinAggregates {
 
   """Minimum of levelId across the matching connection"""
   levelId: Int
-
-  """Minimum of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float
 
   """Minimum of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -5695,13 +6214,11 @@ type LevelPointsHistoryMinAggregates {
 }
 
 input LevelPointsHistoryStddevPopulationAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: BigFloatFilter
   levelId: BigFloatFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -5717,11 +6234,6 @@ input LevelPointsHistoryStddevPopulationAggregateFilter {
 }
 
 type LevelPointsHistoryStddevPopulationAggregates {
-  """
-  Population standard deviation of competitiveMerit across the matching connection
-  """
-  competitiveMerit: Float
-
   """
   Population standard deviation of complexityConfidence across the matching connection
   """
@@ -5744,11 +6256,6 @@ type LevelPointsHistoryStddevPopulationAggregates {
   Population standard deviation of levelId across the matching connection
   """
   levelId: BigFloat
-
-  """
-  Population standard deviation of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """
   Population standard deviation of modifierEvidence across the matching connection
@@ -5808,13 +6315,11 @@ type LevelPointsHistoryStddevPopulationAggregates {
 }
 
 input LevelPointsHistoryStddevSampleAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: BigFloatFilter
   levelId: BigFloatFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -5830,11 +6335,6 @@ input LevelPointsHistoryStddevSampleAggregateFilter {
 }
 
 type LevelPointsHistoryStddevSampleAggregates {
-  """
-  Sample standard deviation of competitiveMerit across the matching connection
-  """
-  competitiveMerit: Float
-
   """
   Sample standard deviation of complexityConfidence across the matching connection
   """
@@ -5855,11 +6355,6 @@ type LevelPointsHistoryStddevSampleAggregates {
 
   """Sample standard deviation of levelId across the matching connection"""
   levelId: BigFloat
-
-  """
-  Sample standard deviation of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """
   Sample standard deviation of modifierEvidence across the matching connection
@@ -5917,13 +6412,11 @@ type LevelPointsHistoryStddevSampleAggregates {
 }
 
 input LevelPointsHistorySumAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: BigIntFilter
   levelId: BigIntFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -5939,9 +6432,6 @@ input LevelPointsHistorySumAggregateFilter {
 }
 
 type LevelPointsHistorySumAggregates {
-  """Sum of competitiveMerit across the matching connection"""
-  competitiveMerit: Float!
-
   """Sum of complexityConfidence across the matching connection"""
   complexityConfidence: Float!
 
@@ -5956,9 +6446,6 @@ type LevelPointsHistorySumAggregates {
 
   """Sum of levelId across the matching connection"""
   levelId: BigInt!
-
-  """Sum of modifierCompetitiveness across the matching connection"""
-  modifierCompetitiveness: Float!
 
   """Sum of modifierEvidence across the matching connection"""
   modifierEvidence: Float!
@@ -5998,13 +6485,11 @@ type LevelPointsHistorySumAggregates {
 }
 
 input LevelPointsHistoryVariancePopulationAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: BigFloatFilter
   levelId: BigFloatFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -6020,9 +6505,6 @@ input LevelPointsHistoryVariancePopulationAggregateFilter {
 }
 
 type LevelPointsHistoryVariancePopulationAggregates {
-  """Population variance of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """
   Population variance of complexityConfidence across the matching connection
   """
@@ -6039,11 +6521,6 @@ type LevelPointsHistoryVariancePopulationAggregates {
 
   """Population variance of levelId across the matching connection"""
   levelId: BigFloat
-
-  """
-  Population variance of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """Population variance of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -6083,13 +6560,11 @@ type LevelPointsHistoryVariancePopulationAggregates {
 }
 
 input LevelPointsHistoryVarianceSampleAggregateFilter {
-  competitiveMerit: FloatFilter
   complexityConfidence: FloatFilter
   complexityScore: FloatFilter
   fieldStrength: FloatFilter
   id: BigFloatFilter
   levelId: BigFloatFilter
-  modifierCompetitiveness: FloatFilter
   modifierEvidence: FloatFilter
   modifierLength: FloatFilter
   modifierQuality: FloatFilter
@@ -6105,9 +6580,6 @@ input LevelPointsHistoryVarianceSampleAggregateFilter {
 }
 
 type LevelPointsHistoryVarianceSampleAggregates {
-  """Sample variance of competitiveMerit across the matching connection"""
-  competitiveMerit: Float
-
   """Sample variance of complexityConfidence across the matching connection"""
   complexityConfidence: Float
 
@@ -6122,11 +6594,6 @@ type LevelPointsHistoryVarianceSampleAggregates {
 
   """Sample variance of levelId across the matching connection"""
   levelId: BigFloat
-
-  """
-  Sample variance of modifierCompetitiveness across the matching connection
-  """
-  modifierCompetitiveness: Float
 
   """Sample variance of modifierEvidence across the matching connection"""
   modifierEvidence: Float
@@ -6167,8 +6634,6 @@ type LevelPointsHistoryVarianceSampleAggregates {
 
 """Methods to use when ordering `LevelPoint`."""
 enum LevelPointsOrderBy {
-  COMPETITIVE_MERIT_ASC
-  COMPETITIVE_MERIT_DESC
   COMPLEXITY_CONFIDENCE_ASC
   COMPLEXITY_CONFIDENCE_DESC
   COMPLEXITY_SCORE_ASC
@@ -6181,8 +6646,6 @@ enum LevelPointsOrderBy {
   FIELD_STRENGTH_DESC
   LEVEL_ID_ASC
   LEVEL_ID_DESC
-  MODIFIER_COMPETITIVENESS_ASC
-  MODIFIER_COMPETITIVENESS_DESC
   MODIFIER_EVIDENCE_ASC
   MODIFIER_EVIDENCE_DESC
   MODIFIER_LENGTH_ASC
@@ -6210,8 +6673,6 @@ enum LevelPointsOrderBy {
   SKILL_SCORE_DESC
   SKILL_SEPARATION_ASC
   SKILL_SEPARATION_DESC
-  WORLD_RECORD_EXCLUDED_ASC
-  WORLD_RECORD_EXCLUDED_DESC
 }
 
 """
@@ -6387,6 +6848,31 @@ type LevelStddevSampleAggregates {
 type LevelSumAggregates {
   """Sum of id across the matching connection"""
   id: BigInt!
+}
+
+"""
+A filter to be used against many `DiscordActivityEvent` object types. All fields are combined with a logical ‘and.’
+"""
+input LevelToManyDiscordActivityEventFilter {
+  """
+  Aggregates across related `DiscordActivityEvent` match the filter criteria.
+  """
+  aggregates: DiscordActivityEventAggregatesFilter
+
+  """
+  Every related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: DiscordActivityEventFilter
+
+  """
+  No related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: DiscordActivityEventFilter
+
+  """
+  Some related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: DiscordActivityEventFilter
 }
 
 """
@@ -6664,7 +7150,6 @@ type LevelUsersByFavouriteManyToManyEdge {
   cursor: Cursor
   dateCreated: Datetime!
   dateUpdated: Datetime
-  id: Int!
 
   """The `User` at the end of the edge."""
   node: User!
@@ -7185,8 +7670,124 @@ enum LevelsOrderBy {
   DATE_CREATED_DESC
   DATE_UPDATED_ASC
   DATE_UPDATED_DESC
-  FAVOURITES_AVERAGE_ID_ASC
-  FAVOURITES_AVERAGE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_COUNT_ASC
+  DISCORD_ACTIVITY_EVENTS_COUNT_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_DATE_CREATED_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_DATE_CREATED_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_KIND_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_KIND_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_OCCURRED_AT_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_OCCURRED_AT_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PAYLOAD_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PAYLOAD_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_USER_ID_DESC
   FAVOURITES_AVERAGE_LEVEL_ID_ASC
   FAVOURITES_AVERAGE_LEVEL_ID_DESC
   FAVOURITES_AVERAGE_USER_ID_ASC
@@ -7197,50 +7798,34 @@ enum LevelsOrderBy {
   FAVOURITES_DISTINCT_COUNT_DATE_CREATED_DESC
   FAVOURITES_DISTINCT_COUNT_DATE_UPDATED_ASC
   FAVOURITES_DISTINCT_COUNT_DATE_UPDATED_DESC
-  FAVOURITES_DISTINCT_COUNT_ID_ASC
-  FAVOURITES_DISTINCT_COUNT_ID_DESC
   FAVOURITES_DISTINCT_COUNT_LEVEL_ID_ASC
   FAVOURITES_DISTINCT_COUNT_LEVEL_ID_DESC
   FAVOURITES_DISTINCT_COUNT_USER_ID_ASC
   FAVOURITES_DISTINCT_COUNT_USER_ID_DESC
-  FAVOURITES_MAX_ID_ASC
-  FAVOURITES_MAX_ID_DESC
   FAVOURITES_MAX_LEVEL_ID_ASC
   FAVOURITES_MAX_LEVEL_ID_DESC
   FAVOURITES_MAX_USER_ID_ASC
   FAVOURITES_MAX_USER_ID_DESC
-  FAVOURITES_MIN_ID_ASC
-  FAVOURITES_MIN_ID_DESC
   FAVOURITES_MIN_LEVEL_ID_ASC
   FAVOURITES_MIN_LEVEL_ID_DESC
   FAVOURITES_MIN_USER_ID_ASC
   FAVOURITES_MIN_USER_ID_DESC
-  FAVOURITES_STDDEV_POPULATION_ID_ASC
-  FAVOURITES_STDDEV_POPULATION_ID_DESC
   FAVOURITES_STDDEV_POPULATION_LEVEL_ID_ASC
   FAVOURITES_STDDEV_POPULATION_LEVEL_ID_DESC
   FAVOURITES_STDDEV_POPULATION_USER_ID_ASC
   FAVOURITES_STDDEV_POPULATION_USER_ID_DESC
-  FAVOURITES_STDDEV_SAMPLE_ID_ASC
-  FAVOURITES_STDDEV_SAMPLE_ID_DESC
   FAVOURITES_STDDEV_SAMPLE_LEVEL_ID_ASC
   FAVOURITES_STDDEV_SAMPLE_LEVEL_ID_DESC
   FAVOURITES_STDDEV_SAMPLE_USER_ID_ASC
   FAVOURITES_STDDEV_SAMPLE_USER_ID_DESC
-  FAVOURITES_SUM_ID_ASC
-  FAVOURITES_SUM_ID_DESC
   FAVOURITES_SUM_LEVEL_ID_ASC
   FAVOURITES_SUM_LEVEL_ID_DESC
   FAVOURITES_SUM_USER_ID_ASC
   FAVOURITES_SUM_USER_ID_DESC
-  FAVOURITES_VARIANCE_POPULATION_ID_ASC
-  FAVOURITES_VARIANCE_POPULATION_ID_DESC
   FAVOURITES_VARIANCE_POPULATION_LEVEL_ID_ASC
   FAVOURITES_VARIANCE_POPULATION_LEVEL_ID_DESC
   FAVOURITES_VARIANCE_POPULATION_USER_ID_ASC
   FAVOURITES_VARIANCE_POPULATION_USER_ID_DESC
-  FAVOURITES_VARIANCE_SAMPLE_ID_ASC
-  FAVOURITES_VARIANCE_SAMPLE_ID_DESC
   FAVOURITES_VARIANCE_SAMPLE_LEVEL_ID_ASC
   FAVOURITES_VARIANCE_SAMPLE_LEVEL_ID_DESC
   FAVOURITES_VARIANCE_SAMPLE_USER_ID_ASC
@@ -7565,8 +8150,6 @@ enum LevelsOrderBy {
   LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_GROUND_DESC
   LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_SKYBOX_ASC
   LEVEL_METADATA_VARIANCE_SAMPLE_TYPE_SKYBOX_DESC
-  LEVEL_POINTS_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_COMPLEXITY_SCORE_ASC
@@ -7577,8 +8160,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_DATE_UPDATED_DESC
   LEVEL_POINTS_FIELD_STRENGTH_ASC
   LEVEL_POINTS_FIELD_STRENGTH_DESC
-  LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_AVERAGE_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_AVERAGE_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_AVERAGE_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_AVERAGE_COMPLEXITY_SCORE_ASC
@@ -7589,8 +8170,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_AVERAGE_ID_DESC
   LEVEL_POINTS_HISTORIES_AVERAGE_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_AVERAGE_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_AVERAGE_MODIFIER_LENGTH_ASC
@@ -7617,8 +8196,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_AVERAGE_SKILL_SEPARATION_DESC
   LEVEL_POINTS_HISTORIES_COUNT_ASC
   LEVEL_POINTS_HISTORIES_COUNT_DESC
-  LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_COMPLEXITY_SCORE_ASC
@@ -7633,8 +8210,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_ID_DESC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_MODIFIER_LENGTH_ASC
@@ -7659,10 +8234,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SCORE_DESC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SEPARATION_ASC
   LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_EXCLUDED_ASC
-  LEVEL_POINTS_HISTORIES_DISTINCT_COUNT_WORLD_RECORD_EXCLUDED_DESC
-  LEVEL_POINTS_HISTORIES_MAX_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_MAX_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_MAX_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_MAX_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_MAX_COMPLEXITY_SCORE_ASC
@@ -7673,8 +8244,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_MAX_ID_DESC
   LEVEL_POINTS_HISTORIES_MAX_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_MAX_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_MAX_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_MAX_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_MAX_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_MAX_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_MAX_MODIFIER_LENGTH_ASC
@@ -7699,8 +8268,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_MAX_SKILL_SCORE_DESC
   LEVEL_POINTS_HISTORIES_MAX_SKILL_SEPARATION_ASC
   LEVEL_POINTS_HISTORIES_MAX_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_HISTORIES_MIN_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_MIN_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_MIN_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_MIN_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_MIN_COMPLEXITY_SCORE_ASC
@@ -7711,8 +8278,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_MIN_ID_DESC
   LEVEL_POINTS_HISTORIES_MIN_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_MIN_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_MIN_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_MIN_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_MIN_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_MIN_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_MIN_MODIFIER_LENGTH_ASC
@@ -7737,8 +8302,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_MIN_SKILL_SCORE_DESC
   LEVEL_POINTS_HISTORIES_MIN_SKILL_SEPARATION_ASC
   LEVEL_POINTS_HISTORIES_MIN_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_COMPLEXITY_SCORE_ASC
@@ -7749,8 +8312,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_ID_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_MODIFIER_LENGTH_ASC
@@ -7775,8 +8336,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SCORE_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SEPARATION_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_POPULATION_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_COMPLEXITY_SCORE_ASC
@@ -7787,8 +8346,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_ID_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_MODIFIER_LENGTH_ASC
@@ -7813,8 +8370,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SCORE_DESC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SEPARATION_ASC
   LEVEL_POINTS_HISTORIES_STDDEV_SAMPLE_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_HISTORIES_SUM_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_SUM_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_SUM_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_SUM_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_SUM_COMPLEXITY_SCORE_ASC
@@ -7825,8 +8380,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_SUM_ID_DESC
   LEVEL_POINTS_HISTORIES_SUM_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_SUM_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_SUM_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_SUM_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_SUM_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_SUM_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_SUM_MODIFIER_LENGTH_ASC
@@ -7851,8 +8404,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_SUM_SKILL_SCORE_DESC
   LEVEL_POINTS_HISTORIES_SUM_SKILL_SEPARATION_ASC
   LEVEL_POINTS_HISTORIES_SUM_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_COMPLEXITY_SCORE_ASC
@@ -7863,8 +8414,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_ID_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_MODIFIER_LENGTH_ASC
@@ -7889,8 +8438,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SCORE_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SEPARATION_ASC
   LEVEL_POINTS_HISTORIES_VARIANCE_POPULATION_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVE_MERIT_ASC
-  LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPETITIVE_MERIT_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPLEXITY_CONFIDENCE_ASC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPLEXITY_CONFIDENCE_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_COMPLEXITY_SCORE_ASC
@@ -7901,8 +8448,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_ID_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEVEL_ID_ASC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_LEVEL_ID_DESC
-  LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_MODIFIER_LENGTH_ASC
@@ -7929,8 +8474,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_HISTORIES_VARIANCE_SAMPLE_SKILL_SEPARATION_DESC
   LEVEL_POINTS_ID_LEVEL_ASC
   LEVEL_POINTS_ID_LEVEL_DESC
-  LEVEL_POINTS_MODIFIER_COMPETITIVENESS_ASC
-  LEVEL_POINTS_MODIFIER_COMPETITIVENESS_DESC
   LEVEL_POINTS_MODIFIER_EVIDENCE_ASC
   LEVEL_POINTS_MODIFIER_EVIDENCE_DESC
   LEVEL_POINTS_MODIFIER_LENGTH_ASC
@@ -7955,8 +8498,6 @@ enum LevelsOrderBy {
   LEVEL_POINTS_SKILL_SCORE_DESC
   LEVEL_POINTS_SKILL_SEPARATION_ASC
   LEVEL_POINTS_SKILL_SEPARATION_DESC
-  LEVEL_POINTS_WORLD_RECORD_EXCLUDED_ASC
-  LEVEL_POINTS_WORLD_RECORD_EXCLUDED_DESC
   NATURAL
   PERSONAL_BEST_GLOBALS_AVERAGE_ID_ASC
   PERSONAL_BEST_GLOBALS_AVERAGE_ID_DESC
@@ -9097,11 +9638,45 @@ input PlayerSkillAggregateFilter {
 
 """The root query type which gives access points into the data universe."""
 type Query implements Node {
-  """Get a single `Favourite`."""
-  favourite(id: Int!): Favourite
+  """Get a single `DiscordActivityEvent`."""
+  discordActivityEvent(id: BigInt!): DiscordActivityEvent
+
+  """Reads and enables pagination through a set of `DiscordActivityEvent`."""
+  discordActivityEvents(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DiscordActivityEventCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DiscordActivityEventFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `DiscordActivityEvent`."""
+    orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DiscordActivityEventsConnection
 
   """Get a single `Favourite`."""
-  favouriteByUserIdAndLevelId(levelId: Int!, userId: Int!): Favourite
+  favourite(levelId: Int!, userId: Int!): Favourite
 
   """Reads and enables pagination through a set of `Favourite`."""
   favourites(
@@ -10249,6 +10824,74 @@ type Query implements Node {
 type Record implements Node {
   dateCreated: Datetime!
   dateUpdated: Datetime
+
+  """Reads and enables pagination through a set of `DiscordActivityEvent`."""
+  discordActivityEvents(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DiscordActivityEventCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DiscordActivityEventFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `DiscordActivityEvent`."""
+    orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DiscordActivityEventsConnection!
+
+  """Reads and enables pagination through a set of `DiscordActivityEvent`."""
+  discordActivityEventsAsPreviousRecord(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DiscordActivityEventCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DiscordActivityEventFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `DiscordActivityEvent`."""
+    orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DiscordActivityEventsConnection!
   gameVersion: String!
   id: Int!
 
@@ -10950,6 +11593,20 @@ input RecordFilter {
 
   """Filter by the object’s `dateUpdated` field."""
   dateUpdated: DatetimeFilter
+
+  """Filter by the object’s `discordActivityEvents` relation."""
+  discordActivityEvents: RecordToManyDiscordActivityEventFilter
+
+  """
+  Filter by the object’s `discordActivityEventsAsPreviousRecord` relation.
+  """
+  discordActivityEventsAsPreviousRecord: RecordToManyDiscordActivityEventFilter
+
+  """Some related `discordActivityEventsAsPreviousRecord` exist."""
+  discordActivityEventsAsPreviousRecordExist: Boolean
+
+  """Some related `discordActivityEvents` exist."""
+  discordActivityEventsExist: Boolean
 
   """Filter by the object’s `gameVersion` field."""
   gameVersion: StringFilter
@@ -16308,6 +16965,31 @@ type RecordSumAggregates {
 }
 
 """
+A filter to be used against many `DiscordActivityEvent` object types. All fields are combined with a logical ‘and.’
+"""
+input RecordToManyDiscordActivityEventFilter {
+  """
+  Aggregates across related `DiscordActivityEvent` match the filter criteria.
+  """
+  aggregates: DiscordActivityEventAggregatesFilter
+
+  """
+  Every related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: DiscordActivityEventFilter
+
+  """
+  No related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: DiscordActivityEventFilter
+
+  """
+  Some related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: DiscordActivityEventFilter
+}
+
+"""
 A filter to be used against many `PersonalBestGlobal` object types. All fields are combined with a logical ‘and.’
 """
 input RecordToManyPersonalBestGlobalFilter {
@@ -17076,6 +17758,242 @@ enum RecordsOrderBy {
   DATE_CREATED_DESC
   DATE_UPDATED_ASC
   DATE_UPDATED_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_AVERAGE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_COUNT_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_COUNT_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_DATE_CREATED_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_DATE_CREATED_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_KIND_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_KIND_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_OCCURRED_AT_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_OCCURRED_AT_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_PAYLOAD_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_PAYLOAD_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_DISTINCT_COUNT_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MAX_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_MIN_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_STDDEV_SAMPLE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_SUM_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_RECORD_VARIANCE_SAMPLE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_COUNT_ASC
+  DISCORD_ACTIVITY_EVENTS_COUNT_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_DATE_CREATED_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_DATE_CREATED_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_KIND_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_KIND_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_OCCURRED_AT_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_OCCURRED_AT_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PAYLOAD_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PAYLOAD_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_USER_ID_DESC
   GAME_VERSION_ASC
   GAME_VERSION_DESC
   ID_ASC
@@ -17761,11 +18679,45 @@ input StringFilter {
 The root subscription type: contains realtime events you can subscribe to with the `subscription` operation.
 """
 type Subscription {
-  """Get a single `Favourite`."""
-  favourite(id: Int!): Favourite
+  """Get a single `DiscordActivityEvent`."""
+  discordActivityEvent(id: BigInt!): DiscordActivityEvent
+
+  """Reads and enables pagination through a set of `DiscordActivityEvent`."""
+  discordActivityEvents(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DiscordActivityEventCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DiscordActivityEventFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `DiscordActivityEvent`."""
+    orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DiscordActivityEventsConnection
 
   """Get a single `Favourite`."""
-  favouriteByUserIdAndLevelId(levelId: Int!, userId: Int!): Favourite
+  favourite(levelId: Int!, userId: Int!): Favourite
 
   """Reads and enables pagination through a set of `Favourite`."""
   favourites(
@@ -20601,6 +21553,74 @@ type User implements Node {
   banned: Boolean!
   dateCreated: Datetime!
   dateUpdated: Datetime
+
+  """Reads and enables pagination through a set of `DiscordActivityEvent`."""
+  discordActivityEvents(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DiscordActivityEventCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DiscordActivityEventFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `DiscordActivityEvent`."""
+    orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DiscordActivityEventsConnection!
+
+  """Reads and enables pagination through a set of `DiscordActivityEvent`."""
+  discordActivityEventsAsPreviousUser(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DiscordActivityEventCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DiscordActivityEventFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `DiscordActivityEvent`."""
+    orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DiscordActivityEventsConnection!
   discordId: BigInt
 
   """Reads and enables pagination through a set of `Favourite`."""
@@ -21725,6 +22745,18 @@ input UserFilter {
   """Filter by the object’s `dateUpdated` field."""
   dateUpdated: DatetimeFilter
 
+  """Filter by the object’s `discordActivityEvents` relation."""
+  discordActivityEvents: UserToManyDiscordActivityEventFilter
+
+  """Filter by the object’s `discordActivityEventsAsPreviousUser` relation."""
+  discordActivityEventsAsPreviousUser: UserToManyDiscordActivityEventFilter
+
+  """Some related `discordActivityEventsAsPreviousUser` exist."""
+  discordActivityEventsAsPreviousUserExist: Boolean
+
+  """Some related `discordActivityEvents` exist."""
+  discordActivityEventsExist: Boolean
+
   """Filter by the object’s `discordId` field."""
   discordId: BigIntFilter
 
@@ -21973,7 +23005,6 @@ type UserLevelsByFavouriteManyToManyEdge {
   cursor: Cursor
   dateCreated: Datetime!
   dateUpdated: Datetime
-  id: Int!
 
   """The `Level` at the end of the edge."""
   node: Level!
@@ -24654,6 +25685,31 @@ type UserSumAggregates {
 }
 
 """
+A filter to be used against many `DiscordActivityEvent` object types. All fields are combined with a logical ‘and.’
+"""
+input UserToManyDiscordActivityEventFilter {
+  """
+  Aggregates across related `DiscordActivityEvent` match the filter criteria.
+  """
+  aggregates: DiscordActivityEventAggregatesFilter
+
+  """
+  Every related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: DiscordActivityEventFilter
+
+  """
+  No related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: DiscordActivityEventFilter
+
+  """
+  Some related `DiscordActivityEvent` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: DiscordActivityEventFilter
+}
+
+"""
 A filter to be used against many `Favourite` object types. All fields are combined with a logical ‘and.’
 """
 input UserToManyFavouriteFilter {
@@ -25316,10 +26372,244 @@ enum UsersOrderBy {
   DATE_CREATED_DESC
   DATE_UPDATED_ASC
   DATE_UPDATED_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_AVERAGE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_COUNT_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_COUNT_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_DATE_CREATED_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_DATE_CREATED_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_KIND_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_KIND_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_OCCURRED_AT_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_OCCURRED_AT_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_PAYLOAD_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_PAYLOAD_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_DISTINCT_COUNT_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MAX_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_MIN_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_STDDEV_SAMPLE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_SUM_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AS_PREVIOUS_USER_VARIANCE_SAMPLE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_AVERAGE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_COUNT_ASC
+  DISCORD_ACTIVITY_EVENTS_COUNT_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_DATE_CREATED_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_DATE_CREATED_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_KIND_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_KIND_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_OCCURRED_AT_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_OCCURRED_AT_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PAYLOAD_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PAYLOAD_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_DISTINCT_COUNT_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MAX_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MAX_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_MIN_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_MIN_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_STDDEV_SAMPLE_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_SUM_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_SUM_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_POPULATION_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_LEVEL_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_LEVEL_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_PREVIOUS_USER_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_RECORD_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_RECORD_ID_DESC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_USER_ID_ASC
+  DISCORD_ACTIVITY_EVENTS_VARIANCE_SAMPLE_USER_ID_DESC
   DISCORD_ID_ASC
   DISCORD_ID_DESC
-  FAVOURITES_AVERAGE_ID_ASC
-  FAVOURITES_AVERAGE_ID_DESC
   FAVOURITES_AVERAGE_LEVEL_ID_ASC
   FAVOURITES_AVERAGE_LEVEL_ID_DESC
   FAVOURITES_AVERAGE_USER_ID_ASC
@@ -25330,50 +26620,34 @@ enum UsersOrderBy {
   FAVOURITES_DISTINCT_COUNT_DATE_CREATED_DESC
   FAVOURITES_DISTINCT_COUNT_DATE_UPDATED_ASC
   FAVOURITES_DISTINCT_COUNT_DATE_UPDATED_DESC
-  FAVOURITES_DISTINCT_COUNT_ID_ASC
-  FAVOURITES_DISTINCT_COUNT_ID_DESC
   FAVOURITES_DISTINCT_COUNT_LEVEL_ID_ASC
   FAVOURITES_DISTINCT_COUNT_LEVEL_ID_DESC
   FAVOURITES_DISTINCT_COUNT_USER_ID_ASC
   FAVOURITES_DISTINCT_COUNT_USER_ID_DESC
-  FAVOURITES_MAX_ID_ASC
-  FAVOURITES_MAX_ID_DESC
   FAVOURITES_MAX_LEVEL_ID_ASC
   FAVOURITES_MAX_LEVEL_ID_DESC
   FAVOURITES_MAX_USER_ID_ASC
   FAVOURITES_MAX_USER_ID_DESC
-  FAVOURITES_MIN_ID_ASC
-  FAVOURITES_MIN_ID_DESC
   FAVOURITES_MIN_LEVEL_ID_ASC
   FAVOURITES_MIN_LEVEL_ID_DESC
   FAVOURITES_MIN_USER_ID_ASC
   FAVOURITES_MIN_USER_ID_DESC
-  FAVOURITES_STDDEV_POPULATION_ID_ASC
-  FAVOURITES_STDDEV_POPULATION_ID_DESC
   FAVOURITES_STDDEV_POPULATION_LEVEL_ID_ASC
   FAVOURITES_STDDEV_POPULATION_LEVEL_ID_DESC
   FAVOURITES_STDDEV_POPULATION_USER_ID_ASC
   FAVOURITES_STDDEV_POPULATION_USER_ID_DESC
-  FAVOURITES_STDDEV_SAMPLE_ID_ASC
-  FAVOURITES_STDDEV_SAMPLE_ID_DESC
   FAVOURITES_STDDEV_SAMPLE_LEVEL_ID_ASC
   FAVOURITES_STDDEV_SAMPLE_LEVEL_ID_DESC
   FAVOURITES_STDDEV_SAMPLE_USER_ID_ASC
   FAVOURITES_STDDEV_SAMPLE_USER_ID_DESC
-  FAVOURITES_SUM_ID_ASC
-  FAVOURITES_SUM_ID_DESC
   FAVOURITES_SUM_LEVEL_ID_ASC
   FAVOURITES_SUM_LEVEL_ID_DESC
   FAVOURITES_SUM_USER_ID_ASC
   FAVOURITES_SUM_USER_ID_DESC
-  FAVOURITES_VARIANCE_POPULATION_ID_ASC
-  FAVOURITES_VARIANCE_POPULATION_ID_DESC
   FAVOURITES_VARIANCE_POPULATION_LEVEL_ID_ASC
   FAVOURITES_VARIANCE_POPULATION_LEVEL_ID_DESC
   FAVOURITES_VARIANCE_POPULATION_USER_ID_ASC
   FAVOURITES_VARIANCE_POPULATION_USER_ID_DESC
-  FAVOURITES_VARIANCE_SAMPLE_ID_ASC
-  FAVOURITES_VARIANCE_SAMPLE_ID_DESC
   FAVOURITES_VARIANCE_SAMPLE_LEVEL_ID_ASC
   FAVOURITES_VARIANCE_SAMPLE_LEVEL_ID_DESC
   FAVOURITES_VARIANCE_SAMPLE_USER_ID_ASC

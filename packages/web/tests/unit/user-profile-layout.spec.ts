@@ -87,9 +87,11 @@ describe('user profile layout', () => {
 		expect(page).toContain("t('users.profile.tabs.career')")
 		expect(page).toContain("t('users.profile.tabs.records')")
 		expect(page).toContain("t('users.profile.tabs.workshopLevels')")
+		expect(page).toContain("t('users.profile.tabs.favouriteLevels')")
 		expect(page).toContain("value: 'career'")
 		expect(page).toContain("value: 'records'")
 		expect(page).toContain("value: 'workshop'")
+		expect(page).toContain("value: 'favourites'")
 	})
 
 	it('renders request-free achievement preview badges in responsive columns', () => {

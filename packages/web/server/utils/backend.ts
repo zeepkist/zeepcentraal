@@ -106,7 +106,7 @@ export async function refreshWebAuth(event: Parameters<typeof getHeader>[0]) {
 export async function fetchAuthenticatedBackend<T>(
 	event: Parameters<typeof getHeader>[0],
 	path: string,
-	options: { method: 'POST' | 'DELETE' },
+	options: { method: 'POST' | 'DELETE'; body?: Record<string, unknown> },
 ) {
 	let cookie = getHeader(event, 'cookie')
 	let response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {

@@ -265,6 +265,27 @@
 								/>
 							</div>
 						</template>
+
+						<template #favourites>
+							<LazyUserFavouriteLevelsSection
+								id="profile-favourite-levels"
+								:title="$t('users.profile.favourites.title')"
+								:description="$t('users.profile.favourites.description')"
+								:levels="data.favouriteLevels.value"
+								:pending="favouritesPending"
+								:pagination-pending="data.favouritesQuery.fetching.value"
+								:error="data.favouritesQuery.error.value?.message"
+								:page="data.favouritesPage.value"
+								:can-go-previous="data.favouritesPagination.canGoPrevious(data.favouritesPage.value)"
+								:can-go-next="data.favouritesPagination.canGoNext(data.favouritesPage.value)"
+								:labels="favouriteLevelLabels"
+								transition-scope="user-favourite-levels"
+								@first="data.favouritesPagination.first()"
+								@previous="data.favouritesPagination.previous(data.favouritesPage.value)"
+								@next="data.favouritesPagination.next(data.favouritesPage.value)"
+								@last="data.favouritesPagination.last()"
+							/>
+						</template>
 					</DetailSectionTabs>
 				</div>
 			</template>
@@ -283,15 +304,19 @@ import { preserveOgStringProp } from '~/utils/ogImage'
 
 const route = useRoute()
 const { t } = useI18n()
+const session = useSessionStore()
+const viewerId = computed(() => session.user?.id)
 const steamId = computed(() => String(route.params.steamid))
 const ogSteamId = computed(() => preserveOgStringProp(steamId.value))
 defineOgImage('UserDetail.takumi', { slug: ogSteamId })
-type UserProfileTab = 'career' | 'records' | 'workshop'
+type UserProfileTab = 'career' | 'records' | 'workshop' | 'favourites'
 const activeTab = ref<UserProfileTab>('career')
 const summaryData = useUserProfileSummary(steamId)
 const data = useUserProfile(steamId, {
+	favouritesActive: computed(() => activeTab.value === 'favourites'),
 	recordsActive: computed(() => activeTab.value === 'records'),
 	summary: summaryData,
+	viewerId,
 	workshopActive: computed(() => activeTab.value === 'workshop'),
 })
 const user = data.user
@@ -321,6 +346,7 @@ const profileTabs = computed<Array<{ label: string; value: UserProfileTab }>>(()
 	{ label: t('users.profile.tabs.career'), value: 'career' },
 	{ label: t('users.profile.tabs.records'), value: 'records' },
 	{ label: t('users.profile.tabs.workshopLevels'), value: 'workshop' },
+	{ label: t('users.profile.tabs.favouriteLevels'), value: 'favourites' },
 ])
 
 useSeoMeta({
@@ -543,7 +569,24 @@ const levelCollectionLabels = computed(() => ({
 	by: t('levels.card.by'),
 	created: t('levels.card.created'),
 }))
+const favouriteLevelLabels = computed(() => ({
+	...levelCollectionLabels.value,
+	empty: t('users.profile.favourites.empty'),
+	records: t('common.records'),
+	pagination: t('common.pagination'),
+	first: t('common.first'),
+	previous: t('common.previous'),
+	next: t('common.next'),
+	last: t('common.last'),
+}))
 const levelsPending = computed(() => !data.levelsActive.value || data.levelsQuery.fetching.value)
+const favouritesPending = computed(() =>
+	data.favouritesPagination.isInitialPending(
+		data.favouritesQuery.fetching.value,
+		data.favouriteLevels.value.length,
+		activeTab.value === 'favourites',
+	),
+)
 const wrPending = computed(
 	() =>
 		data.wrResult.value.fetching.value && data.wrResult.value.data.value === undefined,

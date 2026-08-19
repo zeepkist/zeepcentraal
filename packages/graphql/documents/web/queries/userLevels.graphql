@@ -33,6 +33,11 @@ fragment ZC_UserLevelCard on Level {
 	votes(first: 0) {
 		totalCount
 	}
+	viewerFavourites: favourites(first: 0, filter: { userId: { equalTo: $viewerId } })
+		@include(if: $includeViewer)
+	{
+		totalCount
+	}
 	worldRecordGlobal {
 		record {
 			time
@@ -44,7 +49,13 @@ fragment ZC_UserLevelCard on Level {
 	}
 }
 
-query ZC_UserLevels($userId: Int!, $steamId: BigInt!, $since: Datetime!) {
+query ZC_UserLevels(
+	$userId: Int!
+	$steamId: BigInt!
+	$since: Datetime!
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
 	recentUser: user(id: $userId) {
 		levelItems(
 			first: 6
@@ -75,6 +86,43 @@ query ZC_UserLevels($userId: Int!, $steamId: BigInt!, $since: Datetime!) {
 			) {
 				totalCount
 			}
+		}
+	}
+}
+
+query ZC_UserFavouriteLevels(
+	$userId: Int!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
+	user(id: $userId) {
+		favourites(
+			first: $first
+			after: $after
+			last: $last
+			before: $before
+			filter: { level: { publiclyVisible: { equalTo: true } } }
+			orderBy: [DATE_CREATED_DESC]
+		) {
+			edges {
+				cursor
+				node {
+					level {
+						...ZC_UserLevelCard
+					}
+				}
+			}
+			pageInfo {
+				startCursor
+				endCursor
+				hasNextPage
+				hasPreviousPage
+			}
+			totalCount
 		}
 	}
 }

@@ -33,7 +33,7 @@ query ZC_DashboardHeroSummary($id: Int!) {
 	}
 }
 
-query ZC_DashboardViewerLevels($id: Int!) {
+query ZC_DashboardViewerLevels($id: Int!, $viewerId: Int!, $includeViewer: Boolean!) {
 	user(id: $id) {
 		levelItems(
 			first: 6
@@ -60,6 +60,12 @@ query ZC_DashboardViewerLevels($id: Int!) {
 						totalCount
 					}
 					votes(first: 0) {
+						totalCount
+					}
+					viewerFavourites: favourites(
+						first: 0
+						filter: { userId: { equalTo: $viewerId } }
+					) @include(if: $includeViewer) {
 						totalCount
 					}
 					worldRecordGlobal {
