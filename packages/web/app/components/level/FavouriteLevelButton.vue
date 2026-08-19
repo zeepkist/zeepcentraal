@@ -70,6 +70,6 @@ async function toggle() {
 		class="shrink-0 text-pink-500 hover:bg-pink-500/15 hover:text-pink-600 dark:text-pink-400 dark:hover:text-pink-300"
 		@click.prevent.stop="toggle"
 	>
-		<TablerIcon :name="favourited ? 'heart-off' : 'heart'" />
+		<TablerIcon v-if="!pending" :name="favourited ? 'heart-off' : 'heart'" />
 	</UButton>
 </template>

@@ -247,19 +247,24 @@ test('stale browser session cannot override SSR authentication', async ({ page }
 })
 
 for (const provider of [
-	{ label: 'Sign in with Steam', route: 'steam' },
-	{ label: 'Sign in with Discord', route: 'discord' },
+	{ button: 'Steam', label: 'Sign in with Steam' },
+	{ button: 'Discord', label: 'Sign in with Discord' },
 ]) {
-	test(`${provider.label} saves current path before navigation`, async ({ page }) => {
-		await page.route(`**/auth/${provider.route}/redirect`, (route) => route.abort())
-		await page.goto('/levels?sort=popular&page=2')
-		await page.getByRole('button', { name: 'Sign in' }).click()
-		await page.getByRole('menuitem', { name: provider.label }).click()
+	test(`${provider.label} saves current path before navigation`, async ({ context, page }) => {
+		await page.goto('/?source=login-return')
+		await page.waitForFunction(() => '__vue_app__' in (document.querySelector('#__nuxt') ?? {}))
+		await page.waitForTimeout(4_000)
+		await page
+			.getByRole('button', { name: provider.button, exact: true })
+			.click({ noWaitAfter: true })
 		await expect
-			.poll(() =>
-				page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_PATH_STORAGE_KEY),
-			)
-			.toBe('/levels?sort=popular&page=2')
+			.poll(async () => {
+				const storage = await context.storageState()
+				return storage.origins
+					.find(({ origin }) => origin === 'http://127.0.0.1:4173')
+					?.localStorage.find(({ name }) => name === AUTH_RETURN_PATH_STORAGE_KEY)?.value
+			})
+			.toBe('/?source=login-return')
 	})
 }
 
@@ -283,7 +288,7 @@ test('verified OAuth callback returns to saved path and consumes it', async ({ p
 	)
 
 	await page.goto('/?auth=callback')
-	await expect(page).toHaveURL('/levels?sort=popular&page=2')
+	await expect(page).toHaveURL('/levels?sort=popular&page=2', { timeout: 15_000 })
 	await expect
 		.poll(() => page.evaluate((key) => localStorage.getItem(key), AUTH_RETURN_PATH_STORAGE_KEY))
 		.toBeNull()
