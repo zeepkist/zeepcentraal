@@ -10,7 +10,7 @@ import {
 } from './parsers'
 import type { PromptAdapter, PromptOption } from './prompts'
 
-export type JobCategory = 'Ghosts' | 'Workshop' | 'Scoring' | 'History'
+export type JobCategory = 'Ghosts' | 'Workshop' | 'Tournament' | 'Scoring' | 'History'
 export type JobOptions = Record<string, unknown>
 
 export interface JobPromptDefinition {
@@ -117,6 +117,14 @@ async function collectWorkshopItemOptions(prompt: PromptAdapter): Promise<JobOpt
 		validate: (value) => getValidationMessage(value ?? '', parseWorkshopId),
 	})
 	return { workshopId: parseWorkshopId(workshopId) }
+}
+
+async function collectTrackTournamentLobbyAssetOptions(prompt: PromptAdapter): Promise<JobOptions> {
+	const idTournament = await prompt.text({
+		message: 'Tournament database ID',
+		validate: integerValidator('Tournament ID'),
+	})
+	return { idTournament: parsePositiveSafeInteger(idTournament, 'Tournament ID') }
 }
 
 async function collectWorkshopCatalogOptions(prompt: PromptAdapter): Promise<JobOptions> {
@@ -249,6 +257,13 @@ export const jobPromptDefinitions = {
 		description: 'Force-process up to 500 record IDs',
 		advanced: true,
 		collectOptions: collectGhostBatchOptions,
+	},
+	prepareTrackTournamentLobbyAsset: {
+		category: 'Tournament',
+		label: 'Prepare Track of the Week lobby asset',
+		description: 'Backfill lobby level data for one weekly tournament',
+		advanced: true,
+		collectOptions: collectTrackTournamentLobbyAssetOptions,
 	},
 	scanWorkshopItem: {
 		category: 'Workshop',

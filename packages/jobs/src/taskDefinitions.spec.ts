@@ -14,6 +14,7 @@ import {
 const expectedCompatibleTaskIdentifiers = [
 	'backfillRecordGhostStatistics',
 	'backfillRecordGhostStatisticsBatch',
+	'prepareTrackTournamentLobbyAsset',
 	'scanWorkshopBatch',
 	'scanWorkshopItem',
 	'syncPersonalBests',
@@ -134,7 +135,7 @@ test('track tournaments rotate at exact UTC boundaries with distinct keys', () =
 	expect(isCompatibleTaskIdentifier('rotateTrackTournament')).toBe(false)
 	expect(isValidTaskPayload('prepareTrackTournamentLobbyAsset', { idTournament: 1 })).toBe(true)
 	expect(isValidTaskPayload('prepareTrackTournamentLobbyAsset', { idTournament: 0 })).toBe(false)
-	expect(isCompatibleTaskIdentifier('prepareTrackTournamentLobbyAsset')).toBe(false)
+	expect(isCompatibleTaskIdentifier('prepareTrackTournamentLobbyAsset')).toBe(true)
 })
 
 test('full player scoring uses serialized contribution queue', () => {

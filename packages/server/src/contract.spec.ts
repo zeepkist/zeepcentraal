@@ -498,13 +498,18 @@ mock.module('@zeepkist/jobs/queue', () => ({
 	},
 	isCompatibleTask: (task: string) =>
 		[
+			'prepareTrackTournamentLobbyAsset',
 			'updateLevelScore',
 			'updateLevelScores',
 			'updatePlayerScores',
 			'updateUserPointsHistory',
 		].includes(task),
-	isValidTaskPayload: (task: string, options: Record<string, unknown>) =>
-		task !== 'updateLevelScore' || typeof options.idLevel === 'number',
+	isValidTaskPayload: (task: string, options: Record<string, unknown>) => {
+		if (task === 'prepareTrackTournamentLobbyAsset') {
+			return typeof options.idTournament === 'number' && options.idTournament > 0
+		}
+		return task !== 'updateLevelScore' || typeof options.idLevel === 'number'
+	},
 }))
 
 mock.module('@zeepkist/core/config/server', () => ({ serverConfig: mockServerConfig }))
@@ -1946,6 +1951,26 @@ test('job/trigger returns 200 and enqueues a compatible task', async () => {
 	expect(await response.text()).toBe('')
 	expect(state.jobCalls).toEqual([
 		{ task: 'updateLevelScore', options: { idLevel: 1, idUser: 2 } },
+	])
+})
+
+test('job/trigger enqueues tournament lobby asset backfill', async () => {
+	const response = await send('/job/trigger', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer job-secret',
+		},
+		body: JSON.stringify({
+			Task: 'prepareTrackTournamentLobbyAsset',
+			Options: { idTournament: 42 },
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.jobCalls).toEqual([
+		{ task: 'prepareTrackTournamentLobbyAsset', options: { idTournament: 42 } },
 	])
 })
 

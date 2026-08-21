@@ -69,12 +69,12 @@ async function collect(
 test('prompt map exactly covers API-compatible jobs', () => {
 	expect(Object.keys(jobPromptDefinitions).sort()).toEqual([...compatibleTaskIdentifiers].sort())
 	expect(Object.keys(jobPromptDefinitions)).not.toContain('updateLevelScoresBatch')
-	expect(jobChoices).toHaveLength(14)
+	expect(jobChoices).toHaveLength(15)
 })
 
 test('choices expose category and advanced labels', () => {
 	for (const choice of jobChoices) {
-		expect(choice.label).toMatch(/^(Ghosts|Workshop|Scoring|History) · /)
+		expect(choice.label).toMatch(/^(Ghosts|Workshop|Tournament|Scoring|History) · /)
 	}
 
 	const batchChoices = jobChoices.filter((choice) => choice.value.endsWith('Batch'))
@@ -94,6 +94,7 @@ describe('job option collection', () => {
 		> = [
 			['backfillRecordGhostStatistics', { selections: ['incomplete'], texts: ['500'] }],
 			['backfillRecordGhostStatisticsBatch', { texts: ['1, 2'] }],
+			['prepareTrackTournamentLobbyAsset', { texts: ['42'] }],
 			['scanWorkshopItem', { texts: ['3749321871'] }],
 			['scanWorkshopBatch', { texts: ['3006532933 3749321871'], confirmations: [false] }],
 			['syncWorkshopCatalog', { selections: ['stale'] }],
@@ -112,6 +113,12 @@ describe('job option collection', () => {
 			const options = await collect(task, input)
 			expect(isValidTaskPayload(task, options), `${task} payload`).toBe(true)
 		}
+	})
+
+	test('collects tournament ID for lobby asset backfill', async () => {
+		expect(await collect('prepareTrackTournamentLobbyAsset', { texts: ['42'] })).toEqual({
+			idTournament: 42,
+		})
 	})
 
 	test('supports targeted and incomplete ghost backfills', async () => {

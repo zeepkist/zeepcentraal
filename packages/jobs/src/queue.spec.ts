@@ -54,3 +54,13 @@ test('queue boundary serializes bulk score writers under distinct keys', async (
 		queueName: 'player-score-writes',
 	})
 })
+
+test('queue boundary exposes tournament lobby asset preparation with retry policy', async () => {
+	await enqueueCompatibleTask('prepareTrackTournamentLobbyAsset', { idTournament: 42 })
+
+	expect(addJob).toHaveBeenCalledWith(
+		'prepareTrackTournamentLobbyAsset',
+		{ idTournament: 42 },
+		{ maxAttempts: 5, priority: 5 },
+	)
+})
