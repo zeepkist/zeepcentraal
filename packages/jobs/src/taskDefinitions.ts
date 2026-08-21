@@ -42,6 +42,11 @@ export const taskDefinitions = {
 		maxAttempts: 1,
 	},
 	recoverLevelRequests: { schema: emptyPayload, compatible: false, maxAttempts: 3 },
+	prepareTrackTournamentLobbyAsset: {
+		schema: z.looseObject({ idTournament: z.number().int().positive() }),
+		compatible: false,
+		maxAttempts: 5,
+	},
 	scanWorkshopBatch: {
 		schema: z.looseObject({
 			workshopIds: z

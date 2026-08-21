@@ -1,0 +1,15 @@
+{
+	"name": "@zeepkist/lobby-host",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"scripts": {
+		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-lobby-host src/index.ts"
+	},
+	"dependencies": {
+		"@zeepkist/core": "workspace:*",
+		"@zeepkist/database": "workspace:*",
+		"@zeepkist/telemetry": "workspace:*"
+	}
+}

@@ -4,6 +4,7 @@ import { config } from '../../config'
 import { LobbyCollector } from './lobbyCollector'
 import { sendLobbySnapshot } from './lobbyIpc'
 import { unavailableLobbySnapshot } from './lobbyStore'
+import { startRoomBroker } from './roomBroker'
 
 export async function startLobbyPrimary(getWorkers: () => Worker[]) {
 	let snapshot: LobbySnapshot = unavailableLobbySnapshot
@@ -28,15 +29,27 @@ export async function startLobbyPrimary(getWorkers: () => Worker[]) {
 			port: config.lobby.port,
 			build: config.lobby.build,
 			refreshTokenFile: config.lobby.refreshTokenFile,
+			room: config.lobby.broker.room,
 		},
 		publish,
 		persistLobbyPacket,
 	)
 	collector.start()
+	const broker = config.lobby.broker.enabled
+		? startRoomBroker(
+				{
+					host: config.lobby.broker.host,
+					port: config.lobby.broker.port,
+					token: config.lobby.broker.token as string,
+				},
+				collector,
+			)
+		: undefined
 	return {
 		getSnapshot: () => snapshot,
 		stop: async () => {
 			try {
+				await broker?.stop()
 				await collector.stop()
 			} finally {
 				await closeDatabase()

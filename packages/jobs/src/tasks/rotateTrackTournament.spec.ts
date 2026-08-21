@@ -1,24 +1,37 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
 import { cronTasks } from '../cronTasks'
 
-const rotateDatabaseTrackTournament = mock(async () => ({ created: true }))
+type RotationResult =
+	| { created: boolean; idTournament: number }
+	| { created: false; reason: 'empty-pool' }
+const rotateDatabaseTrackTournament = mock(
+	async (): Promise<RotationResult> => ({ created: true, idTournament: 42 }),
+)
 
 mock.module('@zeepkist/database', () => ({
 	isTrackTournamentType: (value: number) => value === 0 || value === 1,
 	rotateTrackTournament: rotateDatabaseTrackTournament,
+	TRACK_TOURNAMENT_TYPE: { weekly: 0, monthly: 1 },
 }))
 
 const { rotateTrackTournament } = await import('./rotateTrackTournament')
 
 beforeEach(() => rotateDatabaseTrackTournament.mockClear())
 
-test('rotates valid weekly and monthly tournament types', async () => {
+test('rotates valid weekly and monthly tournament types and prepares weekly asset', async () => {
 	const info = mock(() => {})
 	const warn = mock(() => {})
+	const addJob = mock(async () => {})
 	for (const type of [0, 1]) {
-		await rotateTrackTournament({ type }, { logger: { info, warn } } as never)
+		await rotateTrackTournament({ type }, { addJob, logger: { info, warn } } as never)
 	}
 	expect(rotateDatabaseTrackTournament).toHaveBeenCalledTimes(2)
+	expect(addJob).toHaveBeenCalledTimes(1)
+	expect(addJob).toHaveBeenCalledWith(
+		'prepareTrackTournamentLobbyAsset',
+		{ idTournament: 42 },
+		{ jobKey: 'prepare-track-tournament-lobby-asset:42' },
+	)
 })
 
 test('rejects invalid tournament type', async () => {

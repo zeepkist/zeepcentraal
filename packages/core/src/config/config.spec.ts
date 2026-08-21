@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { parseDatabaseConfig } from './database'
 import { parseImportZslConfig } from './importZsl'
 import { parseJobsConfig } from './jobs'
+import { parseLobbyHostConfig } from './lobbyHost'
 import { parseMigrateConfig } from './migrate'
 import { parsePostgraphileConfig } from './postgraphile'
 import { parseServerConfig } from './server'
@@ -39,6 +40,17 @@ test('server config keeps lobby feed disabled by default', () => {
 		port: undefined,
 		build: undefined,
 		refreshTokenFile: '',
+		broker: {
+			enabled: false,
+			host: '0.0.0.0',
+			port: 3001,
+			token: undefined,
+			room: {
+				name: 'ZeepCentraal | Track of the Week',
+				isPublic: true,
+				maxPlayers: 64,
+			},
+		},
 	})
 })
 
@@ -71,7 +83,51 @@ test('server config accepts enabled lobby feed', () => {
 		port: 12345,
 		build: 1234,
 		refreshTokenFile: '/tmp/steam-token',
+		broker: {
+			enabled: false,
+			host: '0.0.0.0',
+			port: 3001,
+			token: undefined,
+			room: {
+				name: 'ZeepCentraal | Track of the Week',
+				isPublic: true,
+				maxPlayers: 64,
+			},
+		},
 	})
+})
+
+test('server config requires lobby feed and token when room broker is enabled', () => {
+	expect(() =>
+		parseServerConfig({
+			NODE_ENV: 'test',
+			ZEEPKIST_ROOM_BROKER_ENABLED: 'true',
+		}),
+	).toThrow('ZEEPKIST_LOBBY_ENABLED is required')
+	expect(() =>
+		parseServerConfig({
+			NODE_ENV: 'test',
+			ZEEPKIST_LOBBY_ENABLED: 'true',
+			ZEEPKIST_LOBBY_HOST: '127.0.0.1',
+			ZEEPKIST_LOBBY_BUILD: '2043',
+			ZEEPKIST_ROOM_BROKER_ENABLED: 'true',
+		}),
+	).toThrow('ZEEPKIST_ROOM_BROKER_TOKEN is required')
+})
+
+test('lobby host config requires broker token only when enabled', () => {
+	expect(parseLobbyHostConfig({ NODE_ENV: 'test' }).enabled).toBe(false)
+	expect(() =>
+		parseLobbyHostConfig({ NODE_ENV: 'test', ZEEPKIST_TOTW_HOST_ENABLED: 'true' }),
+	).toThrow('ZEEPKIST_ROOM_BROKER_TOKEN is required')
+	const config = parseLobbyHostConfig({
+		NODE_ENV: 'test',
+		ZEEPKIST_TOTW_HOST_ENABLED: 'true',
+		ZEEPKIST_ROOM_BROKER_TOKEN: 'x'.repeat(32),
+	})
+	expect(config.enabled).toBe(true)
+	expect(config.brokerUrl).toBe('http://localhost:3001')
+	expect(config.roundTimeSeconds).toBe(900)
 })
 
 test('database config parses without server-only secrets', () => {

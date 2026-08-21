@@ -1,0 +1,15 @@
+FROM gcr.io/distroless/cc-debian12
+
+ARG SERVICE_VERSION=dev
+
+LABEL org.opencontainers.image.description="ZeepCentraal persistent Track of the Week lobby host."
+
+WORKDIR /app
+
+COPY --chmod=755 dist/zeepcentraal-lobby-host zeepcentraal-lobby-host
+
+ENV NODE_ENV=production
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-lobby-host
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
+
+ENTRYPOINT ["/app/zeepcentraal-lobby-host"]

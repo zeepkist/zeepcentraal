@@ -28,6 +28,13 @@ const serverEnvSchema = z.object({
 	ZEEPKIST_LOBBY_PORT: z.coerce.number().int().min(1).max(65535).optional(),
 	ZEEPKIST_LOBBY_BUILD: z.coerce.number().int().positive().optional(),
 	ZEEPKIST_STEAM_REFRESH_TOKEN_FILE: z.string().min(1).default(''),
+	ZEEPKIST_ROOM_BROKER_ENABLED: z.stringbool().default(false),
+	ZEEPKIST_ROOM_BROKER_HOST: z.string().min(1).default('0.0.0.0'),
+	ZEEPKIST_ROOM_BROKER_PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+	ZEEPKIST_ROOM_BROKER_TOKEN: z.string().min(32).optional(),
+	ZEEPKIST_TOTW_ROOM_NAME: z.string().min(1).max(256).default('ZeepCentraal | Track of the Week'),
+	ZEEPKIST_TOTW_ROOM_PUBLIC: z.stringbool().default(true),
+	ZEEPKIST_TOTW_ROOM_MAX_PLAYERS: z.coerce.number().int().min(2).max(64).default(64),
 	DISCORD_CLIENT_ID: z.string().optional(),
 	DISCORD_CLIENT_SECRET: z.string().optional(),
 	DISCORD_REDIRECT_URI: z.string().optional(),
@@ -72,6 +79,12 @@ export function parseServerConfig(env: EnvSource) {
 	if (parsedEnv.ZEEPKIST_LOBBY_ENABLED && !parsedEnv.ZEEPKIST_LOBBY_BUILD) {
 		throw new Error('ZEEPKIST_LOBBY_BUILD is required when lobby feed is enabled')
 	}
+	if (parsedEnv.ZEEPKIST_ROOM_BROKER_ENABLED && !parsedEnv.ZEEPKIST_LOBBY_ENABLED) {
+		throw new Error('ZEEPKIST_LOBBY_ENABLED is required when room broker is enabled')
+	}
+	if (parsedEnv.ZEEPKIST_ROOM_BROKER_ENABLED && !parsedEnv.ZEEPKIST_ROOM_BROKER_TOKEN) {
+		throw new Error('ZEEPKIST_ROOM_BROKER_TOKEN is required when room broker is enabled')
+	}
 
 	requireStrongProductionSecrets({
 		nodeEnv: parsedEnv.NODE_ENV,
@@ -106,6 +119,17 @@ export function parseServerConfig(env: EnvSource) {
 			port: parsedEnv.ZEEPKIST_LOBBY_PORT,
 			build: parsedEnv.ZEEPKIST_LOBBY_BUILD,
 			refreshTokenFile: parsedEnv.ZEEPKIST_STEAM_REFRESH_TOKEN_FILE,
+			broker: {
+				enabled: parsedEnv.ZEEPKIST_ROOM_BROKER_ENABLED,
+				host: parsedEnv.ZEEPKIST_ROOM_BROKER_HOST,
+				port: parsedEnv.ZEEPKIST_ROOM_BROKER_PORT,
+				token: parsedEnv.ZEEPKIST_ROOM_BROKER_TOKEN,
+				room: {
+					name: parsedEnv.ZEEPKIST_TOTW_ROOM_NAME,
+					isPublic: parsedEnv.ZEEPKIST_TOTW_ROOM_PUBLIC,
+					maxPlayers: parsedEnv.ZEEPKIST_TOTW_ROOM_MAX_PLAYERS,
+				},
+			},
 		},
 		discord: {
 			clientId: parsedEnv.DISCORD_CLIENT_ID,

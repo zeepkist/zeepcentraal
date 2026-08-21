@@ -47,6 +47,11 @@ export class BitReader {
 		return new DataView(bytes.buffer, bytes.byteOffset, 4).getFloat32(0, true)
 	}
 
+	readFloat64() {
+		const bytes = this.readBytes(8)
+		return new DataView(bytes.buffer, bytes.byteOffset, 8).getFloat64(0, true)
+	}
+
 	readVariableUInt32() {
 		let value = 0
 		for (let index = 0; index < MAX_VAR_UINT_BYTES; index++) {
@@ -136,6 +141,12 @@ export class BitWriter {
 	writeFloat32(value: number) {
 		const bytes = new Uint8Array(4)
 		new DataView(bytes.buffer).setFloat32(0, value, true)
+		this.writeBytes(bytes)
+	}
+
+	writeFloat64(value: number) {
+		const bytes = new Uint8Array(8)
+		new DataView(bytes.buffer).setFloat64(0, value, true)
 		this.writeBytes(bytes)
 	}
 

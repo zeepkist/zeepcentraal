@@ -25,6 +25,9 @@
 		"./config/jobs": {
 			"import": "./src/config/jobs.ts"
 		},
+		"./config/lobby-host": {
+			"import": "./src/config/lobbyHost.ts"
+		},
 		"./config/migrate": {
 			"import": "./src/config/migrate.ts"
 		},

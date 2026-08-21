@@ -162,7 +162,11 @@ async function selectTrackTournamentLevel(tx: DatabaseTransaction, type: TrackTo
 export async function rotateTrackTournament(
 	type: TrackTournamentType,
 	at = new Date(),
-): Promise<{ created: boolean; reason?: 'empty-pool' | 'not-boundary' }> {
+): Promise<{
+	created: boolean
+	idTournament?: number
+	reason?: 'empty-pool' | 'not-boundary'
+}> {
 	if (!isTrackTournamentBoundary(type, at)) return { created: false, reason: 'not-boundary' }
 	const period = getTrackTournamentPeriod(type, at)
 
@@ -202,7 +206,7 @@ export async function rotateTrackTournament(
 				),
 			)
 			.limit(1)
-		if (existing.length > 0) return { created: false }
+		if (existing[0]) return { created: false, idTournament: existing[0].id }
 
 		const idLevel = await selectTrackTournamentLevel(tx, type)
 		if (!idLevel) return { created: false, reason: 'empty-pool' }
@@ -221,7 +225,7 @@ export async function rotateTrackTournament(
 			})
 			.returning({ id: trackTournament.id })
 		if (!created) return { created: false }
-		return { created: true }
+		return { created: true, idTournament: created.id }
 	})
 }
 

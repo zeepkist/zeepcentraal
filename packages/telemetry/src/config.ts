@@ -6,6 +6,7 @@ export type TelemetryPackageName =
 	| 'migrate'
 	| 'import-zsl'
 	| 'postgraphile'
+	| 'lobby-host'
 
 export type TelemetryConfigInput = {
 	packageName: TelemetryPackageName

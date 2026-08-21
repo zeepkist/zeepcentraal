@@ -94,6 +94,14 @@
         "zod": "~4.4.3",
       },
     },
+    "packages/lobby-host": {
+      "name": "@zeepkist/lobby-host",
+      "dependencies": {
+        "@zeepkist/core": "workspace:*",
+        "@zeepkist/database": "workspace:*",
+        "@zeepkist/telemetry": "workspace:*",
+      },
+    },
     "packages/postgraphile": {
       "name": "@zeepkist/postgraphile",
       "dependencies": {

@@ -11,6 +11,7 @@
 !dist/zeepcentraal-import-zsl
 !dist/zeepcentraal-postgraphile
 !dist/zeepcentraal-discord
+!dist/zeepcentraal-lobby-host
 **/.DS_Store
 !packages/web/.output/
 !packages/web/.output/**

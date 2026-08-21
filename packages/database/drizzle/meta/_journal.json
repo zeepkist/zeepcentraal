@@ -554,6 +554,13 @@
 			"when": 1787276494732,
 			"tag": "0079_sweet_silverclaw",
 			"breakpoints": true
+		},
+		{
+			"idx": 80,
+			"version": "7",
+			"when": 1787318914622,
+			"tag": "0080_noisy_ultragirl",
+			"breakpoints": true
 		}
 	]
 }

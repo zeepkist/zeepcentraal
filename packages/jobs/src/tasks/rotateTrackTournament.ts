@@ -1,6 +1,7 @@
 import {
 	isTrackTournamentType,
 	rotateTrackTournament as rotateDatabaseTrackTournament,
+	TRACK_TOURNAMENT_TYPE,
 } from '@zeepkist/database'
 import type { TaskHandler } from './types'
 
@@ -24,6 +25,13 @@ export const rotateTrackTournament: TaskHandler<RotateTrackTournamentPayload> = 
 			},
 		)
 		return
+	}
+	if (type === TRACK_TOURNAMENT_TYPE.weekly && result.idTournament) {
+		await helpers.addJob(
+			'prepareTrackTournamentLobbyAsset',
+			{ idTournament: result.idTournament },
+			{ jobKey: `prepare-track-tournament-lobby-asset:${result.idTournament}` },
+		)
 	}
 	helpers.logger.info('rotateTrackTournament completed.', {
 		created: result.created,

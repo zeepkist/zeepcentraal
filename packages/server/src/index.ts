@@ -12,6 +12,15 @@ if (cluster.isPrimary) {
 	let restartDelayMs = 250
 	process.title = 'zeepcentraal-api: primary'
 	console.info(`API primary (PID ${process.pid}) started, forking ${WORKER_COUNT} workers...`)
+	const { config } = await import('./config')
+	const { startNodeTelemetry, stopNodeTelemetry } = await import('@zeepkist/telemetry')
+	startNodeTelemetry({
+		packageName: 'server',
+		collectorUrl: config.otelCollectorUrl,
+		nodeEnv: config.nodeEnv,
+		serviceName: config.otelServiceName,
+		serviceVersion: config.otelServiceVersion,
+	})
 
 	const workers = () =>
 		Object.values(cluster.workers ?? {}).filter(
@@ -56,6 +65,7 @@ if (cluster.isPrimary) {
 			.filter((worker): worker is Worker => worker !== undefined)
 			.map((worker) => worker as Worker & ClusterWorkerLike)
 		const stoppedCleanly = await stopClusterWorkers(activeWorkers, signal)
+		await stopNodeTelemetry()
 		if (!stoppedCleanly) {
 			console.error('API workers did not stop before shutdown timeout; forced termination.')
 		}

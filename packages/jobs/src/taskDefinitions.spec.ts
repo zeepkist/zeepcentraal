@@ -132,6 +132,9 @@ test('track tournaments rotate at exact UTC boundaries with distinct keys', () =
 	expect(isValidTaskPayload('rotateTrackTournament', { type: 0 })).toBe(true)
 	expect(isValidTaskPayload('rotateTrackTournament', { type: 2 })).toBe(false)
 	expect(isCompatibleTaskIdentifier('rotateTrackTournament')).toBe(false)
+	expect(isValidTaskPayload('prepareTrackTournamentLobbyAsset', { idTournament: 1 })).toBe(true)
+	expect(isValidTaskPayload('prepareTrackTournamentLobbyAsset', { idTournament: 0 })).toBe(false)
+	expect(isCompatibleTaskIdentifier('prepareTrackTournamentLobbyAsset')).toBe(false)
 })
 
 test('full player scoring uses serialized contribution queue', () => {

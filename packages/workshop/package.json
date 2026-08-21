@@ -11,6 +11,9 @@
 		"./scanner": {
 			"import": "./src/scanner.ts"
 		},
+		"./level-files": {
+			"import": "./src/levelFiles.ts"
+		},
 		"./steam-cmd": {
 			"import": "./src/steamCmd.ts"
 		},

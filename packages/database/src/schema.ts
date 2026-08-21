@@ -763,6 +763,52 @@ export const trackTournament = pgTable(
 	],
 ).enableRLS()
 
+/** Private prepared game-server payload for a weekly tournament level. */
+export const trackTournamentLobbyAsset = zcPrivate.table(
+	'track_tournament_lobby_asset',
+	{
+		idTournament: integer('id_tournament').primaryKey(),
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
+		fileUid: text('file_uid').notNull(),
+		levelName: text('level_name').notNull(),
+		author: text().notNull(),
+		collaborators: text().notNull().default(''),
+		overrideAuthorName: text('override_author_name').notNull().default(''),
+		objectKey: text('object_key').notNull(),
+		contentSha256: text('content_sha256').notNull(),
+		byteSize: integer('byte_size').notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date().toISOString()),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.idTournament],
+			foreignColumns: [trackTournament.id],
+			name: 'track_tournament_lobby_asset_tournament_fkey',
+		}).onDelete('cascade'),
+		check('CK_track_tournament_lobby_asset_byte_size', sql`${table.byteSize} > 0`),
+		unique('UQ_track_tournament_lobby_asset_object_key').on(table.objectKey),
+	],
+)
+
+/** Private durable join identifier for an automatically managed Zeepkist room. */
+export const managedLobby = zcPrivate.table('managed_lobby', {
+	key: text().primaryKey(),
+	joinId: text('join_id').notNull(),
+	dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow()
+		.$onUpdate(() => new Date().toISOString()),
+})
+
 /** Best submitted record for one user during one featured-track competition. */
 export const trackTournamentResult = pgTable(
 	'track_tournament_result',

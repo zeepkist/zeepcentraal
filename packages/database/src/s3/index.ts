@@ -30,3 +30,7 @@ export async function uploadFile(
 export async function deleteFile(fileName: string): Promise<void> {
 	await client.file(fileName).delete()
 }
+
+export async function downloadFile(fileName: string): Promise<Buffer> {
+	return Buffer.from(await client.file(fileName).arrayBuffer())
+}

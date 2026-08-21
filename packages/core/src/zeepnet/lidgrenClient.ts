@@ -16,13 +16,21 @@ const MESSAGE_TYPE = {
 const MAX_DATAGRAM_BYTES = 2 * 1024 * 1024
 const MAX_FRAGMENT_GROUPS = 32
 const MAX_REASSEMBLED_BYTES = 2 * 1024 * 1024
+const MAX_OUTGOING_BYTES = 64 * 1024 * 1024
 const SEQUENCE_MODULUS = 1024
 const RECEIVE_WINDOW = 64
+const SEND_WINDOW = 64
+const DEFAULT_MTU = 1200
+const RESEND_DELAY_MS = 500
+const MAX_SEND_ATTEMPTS = 20
 const DISCONNECT_FLUSH_TIMEOUT_MS = 500
 
-interface LidgrenClientOptions {
+export interface LidgrenClientOptions {
+	applicationIdentifier?: string
 	hail: Uint8Array
 	host: string
+	mtu?: number
+	onConnected?: (remoteHail: Uint8Array) => void
 	onPayload: (payload: Uint8Array) => void
 	port: number
 }
@@ -40,6 +48,21 @@ interface FragmentGroup {
 	totalBytes: number
 }
 
+interface OutgoingReliableMessage {
+	fragmented: boolean
+	payload: Uint8Array
+	payloadBits: number
+	reject: (error: Error) => void
+	resolve: () => void
+	type: number
+}
+
+interface PendingReliableMessage extends OutgoingReliableMessage {
+	attempts: number
+	lastSentAt: number
+	sequence: number
+}
+
 export class LidgrenClient {
 	private socket: Socket | undefined
 	private connected = false
@@ -47,14 +70,20 @@ export class LidgrenClient {
 	private closed = false
 	private closeError: Error | undefined
 	private closePromise: Promise<void> | undefined
-	private expectedSequence = 0
-	private readonly withheld = new Map<number, IncomingMessage>()
-	private readonly fragments = new Map<number, FragmentGroup>()
+	private readonly expectedSequences = new Map<number, number>()
+	private readonly withheld = new Map<number, Map<number, IncomingMessage>>()
+	private readonly fragments = new Map<string, FragmentGroup>()
 	private handshakeTimer: ReturnType<typeof setInterval> | undefined
 	private maintenanceTimer: ReturnType<typeof setInterval> | undefined
+	private senderTimer: ReturnType<typeof setInterval> | undefined
 	private handshakeAttempts = 0
 	private lastReceivedAt = Date.now()
 	private pingNumber = 0
+	private lastPingAt = 0
+	private readonly sendSequences = new Map<number, number>()
+	private fragmentGroup = 1
+	private readonly outgoingQueue: OutgoingReliableMessage[] = []
+	private readonly pendingReliable = new Map<string, PendingReliableMessage>()
 	private readonly uniqueIdentifier = randomBytes(8).readBigInt64LE()
 	private resolveConnected: (() => void) | undefined
 	private rejectConnected: ((error: Error) => void) | undefined
@@ -128,7 +157,7 @@ export class LidgrenClient {
 		}
 		this.handshakeAttempts++
 		const payload = new BitWriter()
-		payload.writeString('LoadBalancer')
+		payload.writeString(this.applicationIdentifier)
 		payload.writeInt64(this.uniqueIdentifier)
 		payload.writeFloat32(nowSeconds())
 		payload.writeBytes(this.options.hail)
@@ -187,11 +216,18 @@ export class LidgrenClient {
 				this.sendPong(message.payload)
 				break
 			case MESSAGE_TYPE.disconnect:
-				this.fail(new Error('Master server disconnected'))
+				this.fail(new Error('Remote server disconnected'))
 				break
-			case MESSAGE_TYPE.reliableOrdered:
-				this.receiveReliableOrdered(message)
+			case MESSAGE_TYPE.acknowledge:
+				this.receiveAcknowledgements(message.payload)
 				break
+			default:
+				if (
+					message.type >= MESSAGE_TYPE.reliableOrdered &&
+					message.type < MESSAGE_TYPE.reliableOrdered + 32
+				) {
+					this.receiveReliableOrdered(message)
+				}
 		}
 	}
 
@@ -201,18 +237,21 @@ export class LidgrenClient {
 			return
 		}
 		const reader = new BitReader(payload)
-		if (reader.readString(64) !== 'LoadBalancer') {
-			this.fail(new Error('Master server application identifier mismatch'))
+		if (reader.readString(64) !== this.applicationIdentifier) {
+			this.fail(new Error('Remote server application identifier mismatch'))
 			return
 		}
 		reader.readInt64()
 		reader.readFloat32()
+		const remoteHail = reader.readBytes(Math.floor(reader.remainingBits / 8))
+		this.options.onConnected?.(remoteHail)
 		this.connected = true
 		if (this.handshakeTimer) {
 			clearInterval(this.handshakeTimer)
 		}
 		this.sendConnectionEstablished()
-		this.maintenanceTimer = setInterval(() => this.maintainConnection(), 4_000)
+		this.maintenanceTimer = setInterval(() => this.maintainConnection(), 1_000)
+		this.senderTimer = setInterval(() => this.maintainReliableSends(), 50)
 		this.resolveConnected?.()
 	}
 
@@ -231,8 +270,11 @@ export class LidgrenClient {
 			this.fail(new Error('Master server connection timed out'))
 			return
 		}
-		const payload = Uint8Array.of(this.pingNumber++ & 0xff)
-		this.sendMessage(MESSAGE_TYPE.ping, payload, 8)
+		if (Date.now() - this.lastPingAt >= 4_000) {
+			this.lastPingAt = Date.now()
+			const payload = Uint8Array.of(this.pingNumber++ & 0xff)
+			this.sendMessage(MESSAGE_TYPE.ping, payload, 8)
+		}
 	}
 
 	private sendPong(payload: Uint8Array) {
@@ -248,26 +290,32 @@ export class LidgrenClient {
 
 	private receiveReliableOrdered(message: IncomingMessage) {
 		this.sendAcknowledgement(message.type, message.sequence)
-		const relative = relativeSequence(message.sequence, this.expectedSequence)
+		const expectedSequence = this.expectedSequences.get(message.type) ?? 0
+		const relative = relativeSequence(message.sequence, expectedSequence)
 		if (relative < 0 || relative > RECEIVE_WINDOW) {
 			return
 		}
 		if (relative > 0) {
-			this.withheld.set(message.sequence, message)
+			const withheld = this.withheld.get(message.type) ?? new Map<number, IncomingMessage>()
+			withheld.set(message.sequence, message)
+			this.withheld.set(message.type, withheld)
 			return
 		}
 
 		this.release(message)
-		this.expectedSequence = (this.expectedSequence + 1) % SEQUENCE_MODULUS
+		let nextSequence = (expectedSequence + 1) % SEQUENCE_MODULUS
+		const withheld = this.withheld.get(message.type)
 		while (true) {
-			const next = this.withheld.get(this.expectedSequence)
+			const next = withheld?.get(nextSequence)
 			if (!next) {
 				break
 			}
-			this.withheld.delete(this.expectedSequence)
+			withheld?.delete(nextSequence)
 			this.release(next)
-			this.expectedSequence = (this.expectedSequence + 1) % SEQUENCE_MODULUS
+			nextSequence = (nextSequence + 1) % SEQUENCE_MODULUS
 		}
+		this.expectedSequences.set(message.type, nextSequence)
+		if (withheld?.size === 0) this.withheld.delete(message.type)
 	}
 
 	private release(message: IncomingMessage) {
@@ -289,10 +337,11 @@ export class LidgrenClient {
 		) {
 			throw new Error('Invalid Lidgren fragment metadata')
 		}
-		if (!this.fragments.has(groupId) && this.fragments.size >= MAX_FRAGMENT_GROUPS) {
+		const fragmentKey = `${message.type}:${groupId}`
+		if (!this.fragments.has(fragmentKey) && this.fragments.size >= MAX_FRAGMENT_GROUPS) {
 			throw new Error('Too many Lidgren fragment groups')
 		}
-		const group = this.fragments.get(groupId) ?? {
+		const group = this.fragments.get(fragmentKey) ?? {
 			totalBytes,
 			chunkByteSize,
 			chunks: new Map<number, Uint8Array>(),
@@ -302,7 +351,7 @@ export class LidgrenClient {
 		}
 		const expectedChunkBytes = Math.min(chunkByteSize, totalBytes - chunkNumber * chunkByteSize)
 		group.chunks.set(chunkNumber, reader.readBytes(expectedChunkBytes))
-		this.fragments.set(groupId, group)
+		this.fragments.set(fragmentKey, group)
 		const chunkCount = Math.ceil(totalBytes / chunkByteSize)
 		if (group.chunks.size !== chunkCount) {
 			return
@@ -315,7 +364,7 @@ export class LidgrenClient {
 			}
 			reassembled.set(chunk, index * chunkByteSize)
 		}
-		this.fragments.delete(groupId)
+		this.fragments.delete(fragmentKey)
 		this.options.onPayload(reassembled)
 	}
 
@@ -324,14 +373,132 @@ export class LidgrenClient {
 		this.sendMessage(MESSAGE_TYPE.acknowledge, payload, 24)
 	}
 
-	private sendMessage(type: number, payload: Uint8Array, payloadBits: number) {
+	public sendReliableOrdered(payload: Uint8Array, sequenceChannel = 0) {
+		if (!this.connected || this.closing || this.closed) {
+			return Promise.reject(new Error('Lidgren client is not connected'))
+		}
+		if (payload.length > MAX_OUTGOING_BYTES) {
+			return Promise.reject(new Error('Lidgren payload exceeds outgoing limit'))
+		}
+		const mtu = Math.max(512, this.options.mtu ?? DEFAULT_MTU)
+		if (!Number.isInteger(sequenceChannel) || sequenceChannel < 0 || sequenceChannel > 31) {
+			return Promise.reject(new Error('Invalid reliable sequence channel'))
+		}
+		const messageType = MESSAGE_TYPE.reliableOrdered + sequenceChannel
+		const maxChunkBytes = mtu - 32
+		const chunks = payload.length + 5 <= mtu ? [payload] : splitPayload(payload, maxChunkBytes)
+		const groupId = chunks.length === 1 ? 0 : this.nextFragmentGroup()
+		const completion = Promise.all(
+			chunks.map(
+				(chunk, chunkNumber) =>
+					new Promise<void>((resolve, reject) => {
+						let encodedPayload = chunk
+						let payloadBits = chunk.length * 8
+						if (groupId !== 0) {
+							const writer = new BitWriter()
+							writer.writeVariableUInt32(groupId)
+							writer.writeVariableUInt32(payload.length * 8)
+							writer.writeVariableUInt32(maxChunkBytes)
+							writer.writeVariableUInt32(chunkNumber)
+							writer.writeBytes(chunk)
+							encodedPayload = writer.toUint8Array()
+							payloadBits = writer.bitLength
+						}
+						this.outgoingQueue.push({
+							fragmented: groupId !== 0,
+							payload: encodedPayload,
+							payloadBits,
+							resolve,
+							reject,
+							type: messageType,
+						})
+					}),
+			),
+		).then(() => undefined)
+		this.flushReliableQueue()
+		return completion
+	}
+
+	private receiveAcknowledgements(payload: Uint8Array) {
+		for (let offset = 0; offset + 2 < payload.length; offset += 3) {
+			const type = payload[offset]
+			const low = payload[offset + 1]
+			const high = payload[offset + 2]
+			if (type === undefined || low === undefined || high === undefined) continue
+			const sequence = (low | (high << 8)) & 1023
+			const pendingKey = reliableKey(type, sequence)
+			const pending = this.pendingReliable.get(pendingKey)
+			if (!pending || pending.type !== type) continue
+			this.pendingReliable.delete(pendingKey)
+			pending.resolve()
+		}
+		this.flushReliableQueue()
+	}
+
+	private maintainReliableSends() {
+		if (this.closing || this.closed) return
+		const now = Date.now()
+		for (const pending of this.pendingReliable.values()) {
+			if (now - pending.lastSentAt < RESEND_DELAY_MS) continue
+			if (pending.attempts >= MAX_SEND_ATTEMPTS) {
+				this.fail(new Error('Reliable Lidgren send timed out'))
+				return
+			}
+			this.sendReliableMessage(pending)
+		}
+		this.flushReliableQueue()
+	}
+
+	private flushReliableQueue() {
+		while (this.pendingReliable.size < SEND_WINDOW) {
+			const queued = this.outgoingQueue.shift()
+			if (!queued) return
+			const sequence = this.sendSequences.get(queued.type) ?? 0
+			this.sendSequences.set(queued.type, (sequence + 1) % SEQUENCE_MODULUS)
+			const pending: PendingReliableMessage = {
+				...queued,
+				attempts: 0,
+				lastSentAt: 0,
+				sequence,
+				type: queued.type,
+			}
+			this.pendingReliable.set(reliableKey(queued.type, sequence), pending)
+			this.sendReliableMessage(pending)
+		}
+	}
+
+	private sendReliableMessage(message: PendingReliableMessage) {
+		message.attempts++
+		message.lastSentAt = Date.now()
+		this.sendMessage(
+			message.type,
+			message.payload,
+			message.payloadBits,
+			message.sequence,
+			message.fragmented,
+		)
+	}
+
+	private nextFragmentGroup() {
+		const current = this.fragmentGroup
+		this.fragmentGroup = this.fragmentGroup >= 0x7fff_ffff ? 1 : this.fragmentGroup + 1
+		return current
+	}
+
+	private sendMessage(
+		type: number,
+		payload: Uint8Array,
+		payloadBits: number,
+		sequence = 0,
+		fragmented = false,
+	) {
 		if (!this.socket || this.closed || payloadBits > 0xffff) {
 			return
 		}
 		const data = new Uint8Array(5 + payload.length)
 		data[0] = type
-		data[1] = 0
-		data[2] = 0
+		data[1] = ((sequence << 1) | (fragmented ? 1 : 0)) & 0xff
+		data[2] = sequence >>> 7
 		data[3] = payloadBits & 0xff
 		data[4] = payloadBits >>> 8
 		data.set(payload, 5)
@@ -395,6 +562,7 @@ export class LidgrenClient {
 		if (!this.connected) {
 			this.rejectConnected?.(error)
 		}
+		this.rejectReliable(error)
 		this.closeSocket()
 	}
 
@@ -405,6 +573,7 @@ export class LidgrenClient {
 		this.closing = true
 		this.closed = true
 		this.clearTimers()
+		this.rejectReliable(this.closeError ?? new Error('Lidgren client closed'))
 		this.resolveClosed()
 	}
 
@@ -427,7 +596,28 @@ export class LidgrenClient {
 		if (this.maintenanceTimer) {
 			clearInterval(this.maintenanceTimer)
 		}
+		if (this.senderTimer) {
+			clearInterval(this.senderTimer)
+		}
 	}
+
+	private rejectReliable(error: Error) {
+		for (const queued of this.outgoingQueue.splice(0)) queued.reject(error)
+		for (const pending of this.pendingReliable.values()) pending.reject(error)
+		this.pendingReliable.clear()
+	}
+
+	private get applicationIdentifier() {
+		return this.options.applicationIdentifier ?? 'LoadBalancer'
+	}
+}
+
+function splitPayload(payload: Uint8Array, chunkSize: number) {
+	const chunks: Uint8Array[] = []
+	for (let offset = 0; offset < payload.length; offset += chunkSize) {
+		chunks.push(payload.subarray(offset, Math.min(payload.length, offset + chunkSize)))
+	}
+	return chunks
 }
 
 function relativeSequence(sequence: number, expected: number) {
@@ -435,6 +625,10 @@ function relativeSequence(sequence: number, expected: number) {
 		((sequence - expected + SEQUENCE_MODULUS + SEQUENCE_MODULUS / 2) % SEQUENCE_MODULUS) -
 		SEQUENCE_MODULUS / 2
 	)
+}
+
+function reliableKey(type: number, sequence: number) {
+	return `${type}:${sequence}`
 }
 
 function nowSeconds() {

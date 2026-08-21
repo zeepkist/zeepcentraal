@@ -75,6 +75,15 @@ jobs:
             expected_path: dist/zeepcentraal-jobs
             tag: zeepcentraal/jobs
             clone_super_league: false
+          - name: lobby-host
+            build_script: build:lobby-host
+            artifact_path: dist/zeepcentraal-lobby-host
+            include_hidden_files: false
+            file: Dockerfile.lobby-host
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-lobby-host
+            tag: zeepcentraal/lobby-host
+            clone_super_league: false
           - name: migrate
             build_script: build:migrate
             artifact_path: dist/zeepcentraal-migrate
