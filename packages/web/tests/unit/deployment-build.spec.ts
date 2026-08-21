@@ -228,7 +228,7 @@ describe('web deployment build', () => {
 	})
 
 	it('runs the complete Nitro output with pinned Bun as non-root', () => {
-		expect(webDockerfile).toContain('FROM oven/bun:1.3.14-slim')
+		expect(webDockerfile).toContain('FROM oven/bun:1.4.0-slim')
 		expect(webDockerfile).toContain('COPY --chown=65532:65532 packages/web/.output .output')
 		expect(webDockerfile).toContain('USER 65532:65532')
 		expect(webDockerfile).toContain('ENTRYPOINT ["bun", "--bun", ".output/server/index.mjs"]')

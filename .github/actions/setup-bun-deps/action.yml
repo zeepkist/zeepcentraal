@@ -6,6 +6,8 @@ runs:
     - name: Set up Bun
       id: bun_setup
       uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.4.0
 
     - name: Cache Bun node_modules
       id: bun-node-modules-cache
