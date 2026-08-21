@@ -30,10 +30,14 @@ export class LobbyState {
 		}
 	}
 
-	snapshot(status: LobbySnapshot['status'], staleSince: string | null = null): LobbySnapshot {
+	snapshot(
+		status: LobbySnapshot['status'],
+		staleSince: string | null = null,
+		updatedAt: string = new Date().toISOString(),
+	): LobbySnapshot {
 		return {
 			status,
-			updatedAt: status === 'live' ? new Date().toISOString() : null,
+			updatedAt: status === 'live' ? updatedAt : null,
 			staleSince,
 			stats: { ...this.stats },
 			lobbies: [...this.lobbies.values()]

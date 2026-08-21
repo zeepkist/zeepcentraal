@@ -981,6 +981,161 @@ export const user = pgTable(
 	],
 )
 
+export const lobbyStats = pgTable(
+	'lobby_stats',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity({
+			name: 'lobby_stats_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+			cache: 100,
+		}),
+		players: integer().notNull(),
+		rooms: integer().notNull(),
+		playersInRooms: integer('players_in_rooms').notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date().toISOString()),
+	},
+	(table) => [
+		check('CK_lobby_stats_players_nonnegative', sql`${table.players} >= 0`),
+		check('CK_lobby_stats_rooms_nonnegative', sql`${table.rooms} >= 0`),
+		check('CK_lobby_stats_players_in_rooms_nonnegative', sql`${table.playersInRooms} >= 0`),
+		index('IX_lobby_stats_date_created_id').using(
+			'btree',
+			table.dateCreated.desc().nullsLast(),
+			table.id.desc().nullsLast(),
+		),
+		pgPolicy('graphql_select_lobby_stats', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`true`,
+		}),
+	],
+).enableRLS()
+
+export const lobby = pgTable(
+	'lobby',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity({
+			name: 'lobby_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+			cache: 100,
+		}),
+		masterId: text('master_id').notNull(),
+		roomName: text('room_name').notNull(),
+		hostId: bigint('host_id', { mode: 'bigint' }).notNull(),
+		players: integer().notNull(),
+		playerLimit: integer('player_limit').notNull(),
+		isPublic: boolean('is_public').notNull(),
+		peakPlayers: integer('peak_players').notNull(),
+		peakTime: timestamp('peak_time', { withTimezone: true, mode: 'string' }).notNull(),
+		firstSeen: timestamp('first_seen', { withTimezone: true, mode: 'string' }).notNull(),
+		lastSeen: timestamp('last_seen', { withTimezone: true, mode: 'string' }).notNull(),
+		closedAt: timestamp('closed_at', { withTimezone: true, mode: 'string' }),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date().toISOString()),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.hostId],
+			foreignColumns: [user.steamId],
+			name: 'lobby_host_fkey',
+		}),
+		unique('UQ_lobby_master_id').on(table.masterId),
+		check('CK_lobby_players_nonnegative', sql`${table.players} >= 0`),
+		check('CK_lobby_player_limit_nonnegative', sql`${table.playerLimit} >= 0`),
+		check('CK_lobby_peak_players_nonnegative', sql`${table.peakPlayers} >= 0`),
+		check('CK_lobby_peak_players_current', sql`${table.peakPlayers} >= ${table.players}`),
+		index('IX_lobby_host').using('btree', table.hostId.asc().nullsLast()),
+		index('IX_lobby_closed_last_seen').using(
+			'btree',
+			table.closedAt.asc().nullsFirst(),
+			table.lastSeen.desc().nullsLast(),
+		),
+		index('IX_lobby_first_seen_id').using(
+			'btree',
+			table.firstSeen.desc().nullsLast(),
+			table.id.desc().nullsLast(),
+		),
+		pgPolicy('graphql_select_lobby', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`true`,
+		}),
+	],
+).enableRLS()
+
+export const lobbyHistory = pgTable(
+	'lobby_history',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity({
+			name: 'lobby_history_id_seq',
+			startWith: 1,
+			increment: 1,
+			minValue: 1,
+			cache: 100,
+		}),
+		lobbyId: bigint('lobby_id', { mode: 'bigint' }).notNull(),
+		hostId: bigint('host_id', { mode: 'bigint' }).notNull(),
+		changeType: text('change_type').notNull(),
+		roomName: text('room_name').notNull(),
+		players: integer().notNull(),
+		playerLimit: integer('player_limit').notNull(),
+		isPublic: boolean('is_public').notNull(),
+		observedAt: timestamp('observed_at', { withTimezone: true, mode: 'string' }).notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		foreignKey({
+			columns: [table.lobbyId],
+			foreignColumns: [lobby.id],
+			name: 'lobby_history_lobby_fkey',
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.hostId],
+			foreignColumns: [user.steamId],
+			name: 'lobby_history_host_fkey',
+		}),
+		check(
+			'CK_lobby_history_change_type',
+			sql`${table.changeType} IN ('opened', 'updated', 'closed', 'reopened')`,
+		),
+		check('CK_lobby_history_players_nonnegative', sql`${table.players} >= 0`),
+		check('CK_lobby_history_player_limit_nonnegative', sql`${table.playerLimit} >= 0`),
+		index('IX_lobby_history_lobby_id').using(
+			'btree',
+			table.lobbyId.asc().nullsLast(),
+			table.id.desc().nullsLast(),
+		),
+		index('IX_lobby_history_host').using('btree', table.hostId.asc().nullsLast()),
+		index('IX_lobby_history_observed_id').using(
+			'btree',
+			table.observedAt.desc().nullsLast(),
+			table.id.desc().nullsLast(),
+		),
+		pgPolicy('graphql_select_lobby_history', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`true`,
+		}),
+	],
+).enableRLS()
+
 export const playerSkillAggregate = pgTable(
 	'player_skill_aggregate',
 	{

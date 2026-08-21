@@ -1,5 +1,6 @@
 import type { LobbySnapshot } from '@zeepkist/core'
 import { BitWriter, LidgrenClient, parseLobbyPacket } from '@zeepkist/core/zeepnet'
+import { LobbyPersistenceQueue, type PersistLobbyPacket } from './lobbyPersistenceQueue'
 import { LobbyState } from './lobbyState'
 import { LobbySteamSession, type SteamIdentity } from './steamSession'
 
@@ -23,11 +24,17 @@ export class LobbyCollector {
 	private ticketCreatedAt = 0
 	private lastTicketRequestAt = 0
 	private stopPromise: Promise<void> | undefined
+	private readonly persistence: LobbyPersistenceQueue
 
 	constructor(
 		private readonly config: LobbyCollectorConfig,
 		private readonly publish: (snapshot: LobbySnapshot) => void,
-	) {}
+		persist: PersistLobbyPacket,
+	) {
+		this.persistence = new LobbyPersistenceQueue(persist, () => {
+			console.warn('Zeepkist lobby persistence failed; live feed continuing')
+		})
+	}
 
 	start() {
 		this.publish(emptySnapshot('connecting'))
@@ -94,10 +101,12 @@ export class LobbyCollector {
 						clearTimeout(firstSnapshotTimer)
 						firstSnapshotTimer = undefined
 					}
+					const observedAt = new Date().toISOString()
 					state.apply(packet)
-					const snapshot = state.snapshot('live')
+					const snapshot = state.snapshot('live', null, observedAt)
 					this.lastSnapshot = snapshot
 					this.publish(snapshot)
+					this.persistence.enqueue(packet, observedAt)
 				} catch {
 					invalidPacket = true
 					void lidgren.close('Invalid lobby packet')
@@ -133,6 +142,7 @@ export class LobbyCollector {
 			await this.lidgren?.close()
 		} finally {
 			this.steam?.close()
+			await this.persistence.drain()
 		}
 	}
 

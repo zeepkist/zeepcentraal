@@ -5,7 +5,7 @@ import { LobbyCollector } from './lobbyCollector'
 import { sendLobbySnapshot } from './lobbyIpc'
 import { unavailableLobbySnapshot } from './lobbyStore'
 
-export function startLobbyPrimary(getWorkers: () => Worker[]) {
+export async function startLobbyPrimary(getWorkers: () => Worker[]) {
 	let snapshot: LobbySnapshot = unavailableLobbySnapshot
 	const publish = (next: LobbySnapshot) => {
 		snapshot = next
@@ -20,6 +20,7 @@ export function startLobbyPrimary(getWorkers: () => Worker[]) {
 	if (!config.lobby.host || !config.lobby.build || !config.lobby.port) {
 		throw new Error('Enabled lobby collector has incomplete configuration')
 	}
+	const { closeDatabase, persistLobbyPacket } = await import('@zeepkist/database')
 	const collector = new LobbyCollector(
 		{
 			appId: config.steamAppId,
@@ -29,7 +30,17 @@ export function startLobbyPrimary(getWorkers: () => Worker[]) {
 			refreshTokenFile: config.lobby.refreshTokenFile,
 		},
 		publish,
+		persistLobbyPacket,
 	)
 	collector.start()
-	return { getSnapshot: () => snapshot, stop: () => collector.stop() }
+	return {
+		getSnapshot: () => snapshot,
+		stop: async () => {
+			try {
+				await collector.stop()
+			} finally {
+				await closeDatabase()
+			}
+		},
+	}
 }

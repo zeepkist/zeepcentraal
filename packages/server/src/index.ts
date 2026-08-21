@@ -18,7 +18,7 @@ if (cluster.isPrimary) {
 			(worker): worker is Worker => worker !== undefined,
 		)
 	const { startLobbyPrimary } = await import('./modules/lobby/lobbyPrimary')
-	const lobbyPrimary = startLobbyPrimary(workers)
+	const lobbyPrimary = await startLobbyPrimary(workers)
 	const forkWorker = () => {
 		const worker = cluster.fork()
 		attachLobbyWorker(worker, lobbyPrimary.getSnapshot)
@@ -45,7 +45,13 @@ if (cluster.isPrimary) {
 	const shutdownPrimary = onceAsync(async (signal: NodeJS.Signals) => {
 		shuttingDown = true
 		console.info(`API primary received ${signal}, stopping lobby collector and workers...`)
-		await lobbyPrimary.stop()
+		let lobbyStoppedCleanly = true
+		try {
+			await lobbyPrimary.stop()
+		} catch {
+			lobbyStoppedCleanly = false
+			console.error('Lobby collector or primary database did not stop cleanly.')
+		}
 		const activeWorkers = Object.values(cluster.workers ?? {})
 			.filter((worker): worker is Worker => worker !== undefined)
 			.map((worker) => worker as Worker & ClusterWorkerLike)
@@ -53,7 +59,7 @@ if (cluster.isPrimary) {
 		if (!stoppedCleanly) {
 			console.error('API workers did not stop before shutdown timeout; forced termination.')
 		}
-		process.exit(stoppedCleanly ? 0 : 1)
+		process.exit(lobbyStoppedCleanly && stoppedCleanly ? 0 : 1)
 	})
 	process.on('SIGINT', () => void shutdownPrimary('SIGINT'))
 	process.on('SIGTERM', () => void shutdownPrimary('SIGTERM'))
