@@ -21,6 +21,7 @@ import { getMeter } from '@zeepkist/telemetry'
 
 const MANAGED_LOBBY_KEY = 'totw'
 const INITIAL_STATE_TIMEOUT_MS = 20_000
+const LEVEL_ECHO_TIMEOUT_MS = 30_000
 const MAX_ASSET_BYTES = 64 * 1024 * 1024
 const meter = getMeter('zeepcentraal-lobby-host')
 const assignmentLatency = meter.createHistogram('zeepkist.totw.assignment.duration', {
@@ -58,6 +59,12 @@ interface LoadedAsset {
 	level: OnlineLevel
 }
 
+interface EchoedLevelData {
+	data: Uint8Array
+	uid: string
+	workshopId: bigint
+}
+
 export class TotwLobbyHost {
 	private stopped = false
 	private client: LidgrenClient | undefined
@@ -66,7 +73,10 @@ export class TotwLobbyHost {
 	private roomConnected = false
 	private ownsRoom = false
 
-	constructor(private readonly config: HostConfig) {
+	constructor(
+		private readonly config: HostConfig,
+		private readonly levelEchoTimeoutMs = LEVEL_ECHO_TIMEOUT_MS,
+	) {
 		meter.createObservableGauge('zeepkist.totw.asset.ready').addCallback((result) =>
 			result.observe(this.asset ? 1 : 0, {
 				tournament_id: this.asset?.idTournament.toString() ?? 'none',
@@ -130,8 +140,37 @@ export class TotwLobbyHost {
 		const initialState = new Promise<boolean>((resolve) => {
 			initialResolve = resolve
 		})
+		const levelEchoes = new LevelEchoInbox()
+		let levelTransferPromise: Promise<void> | undefined
+		let levelTransferFailure: Error | undefined
+		let activeLevelRequest: { uid: string; workshopId: bigint } | undefined
+		let pendingLevelRequest: { uid: string; workshopId: bigint } | undefined
 		let lostOwnership = false
-		const client = new LidgrenClient({
+		let client: LidgrenClient
+		const startLevelTransfer = (request: { uid: string; workshopId: bigint }) => {
+			if (levelTransferPromise) {
+				if (
+					activeLevelRequest?.uid !== request.uid ||
+					activeLevelRequest.workshopId !== request.workshopId
+				) {
+					pendingLevelRequest = request
+				}
+				return
+			}
+			activeLevelRequest = request
+			const transfer = this.sendLevelData(client, request, levelEchoes).catch((error) => {
+				levelTransferFailure = asError(error)
+				void client.close('Failed to complete lobby level transfer')
+			})
+			levelTransferPromise = transfer.finally(() => {
+				levelTransferPromise = undefined
+				activeLevelRequest = undefined
+				const pending = pendingLevelRequest
+				pendingLevelRequest = undefined
+				if (!levelTransferFailure && pending) startLevelTransfer(pending)
+			})
+		}
+		client = new LidgrenClient({
 			applicationIdentifier: 'GameServer',
 			host: assignment.host,
 			port: assignment.port,
@@ -160,10 +199,12 @@ export class TotwLobbyHost {
 						)
 						return
 					}
+					if (packet.type === 'level-data') {
+						levelEchoes.push(packet)
+						return
+					}
 					if (packet.type === 'level-request') {
-						void this.sendLevelData(client, packet).catch(() =>
-							client.close('Failed to send lobby level data'),
-						)
+						startLevelTransfer(packet)
 					}
 				} catch {
 					void client.close('Invalid game server packet')
@@ -180,7 +221,6 @@ export class TotwLobbyHost {
 			}
 			this.roomConnected = true
 			this.ownsRoom = true
-			await client.sendReliableOrdered(levelLoadedPacket())
 			await this.sendPlaylist(client, true)
 			console.info(`TotW lobby host connected for tournament ${this.asset?.idTournament}.`)
 			const assetTimer = setInterval(() => {
@@ -190,10 +230,12 @@ export class TotwLobbyHost {
 			}, this.config.assetPollMs)
 			try {
 				await client.waitForClose()
+				if (levelTransferFailure) throw levelTransferFailure
 			} finally {
 				clearInterval(assetTimer)
 			}
 		} finally {
+			levelEchoes.rejectAll(new Error('Game server connection closed'))
 			this.roomConnected = false
 			this.ownsRoom = false
 			if (this.client === client) this.client = undefined
@@ -259,6 +301,7 @@ export class TotwLobbyHost {
 	private async sendLevelData(
 		client: LidgrenClient,
 		request: { uid: string; workshopId: bigint },
+		levelEchoes: LevelEchoInbox,
 	) {
 		const asset = this.asset
 		if (
@@ -268,9 +311,29 @@ export class TotwLobbyHost {
 		) {
 			return
 		}
-		await client.sendReliableOrdered(levelDataPacket(asset.level, asset.compressedData))
-		await client.sendReliableOrdered(levelLoadedPacket())
-		console.info(`TotW lobby level data supplied for tournament ${asset.idTournament}.`)
+		const echoedLevel = levelEchoes.waitFor(asset.level.uid, asset.level.workshopId)
+		try {
+			await client.sendReliableOrdered(levelDataPacket(asset.level, asset.compressedData))
+			console.info(
+				`TotW lobby level data uploaded for tournament ${asset.idTournament} (${asset.compressedData.length} bytes).`,
+			)
+			levelEchoes.startTimeout(this.levelEchoTimeoutMs)
+			const echoed = await echoedLevel
+			if (echoed.data.length !== asset.compressedData.length)
+				throw new Error('Game server echoed a different level payload size')
+			const echoedSha256 = createHash('sha256').update(echoed.data).digest('hex')
+			if (echoedSha256 !== asset.contentSha256)
+				throw new Error('Game server echoed different level payload data')
+			console.info(`TotW lobby level data verified for tournament ${asset.idTournament}.`)
+			await client.sendReliableOrdered(levelLoadedPacket())
+			console.info(
+				`TotW lobby level loaded acknowledgement sent for tournament ${asset.idTournament}.`,
+			)
+		} catch (error) {
+			levelEchoes.rejectAll(asError(error))
+			void echoedLevel.catch(() => {})
+			throw error
+		}
 	}
 
 	private async requestAssignment(joinId?: string): Promise<RoomAssignment> {
@@ -347,4 +410,53 @@ function safeError(error: unknown) {
 	return (error instanceof Error ? error.message : 'Unknown error')
 		.replace(/[\r\n\t]/g, ' ')
 		.slice(0, 200)
+}
+
+function asError(error: unknown) {
+	return error instanceof Error ? error : new Error('Unknown level transfer error')
+}
+
+class LevelEchoInbox {
+	private waiter:
+		| {
+				reject: (error: Error) => void
+				resolve: (level: EchoedLevelData) => void
+				timer: ReturnType<typeof setTimeout> | undefined
+				uid: string
+				workshopId: bigint
+		  }
+		| undefined
+
+	waitFor(uid: string, workshopId: bigint) {
+		if (this.waiter) return Promise.reject(new Error('Level data echo already pending'))
+		return new Promise<EchoedLevelData>((resolve, reject) => {
+			this.waiter = { reject, resolve, timer: undefined, uid, workshopId }
+		})
+	}
+
+	startTimeout(timeoutMs: number) {
+		const waiter = this.waiter
+		if (!waiter || waiter.timer) return
+		waiter.timer = setTimeout(() => {
+			if (this.waiter !== waiter) return
+			this.waiter = undefined
+			waiter.reject(new Error('Game server level data echo timed out'))
+		}, timeoutMs)
+	}
+
+	push(level: EchoedLevelData) {
+		const waiter = this.waiter
+		if (!waiter || waiter.uid !== level.uid || waiter.workshopId !== level.workshopId) return
+		if (waiter.timer) clearTimeout(waiter.timer)
+		this.waiter = undefined
+		waiter.resolve(level)
+	}
+
+	rejectAll(error: Error) {
+		const waiter = this.waiter
+		if (!waiter) return
+		if (waiter.timer) clearTimeout(waiter.timer)
+		this.waiter = undefined
+		waiter.reject(error)
+	}
 }

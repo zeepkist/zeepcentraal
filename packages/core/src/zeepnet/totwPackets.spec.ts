@@ -114,7 +114,7 @@ describe('Track of the Week packet codecs', () => {
 		})
 	})
 
-	test('detects local host and level-data requests', () => {
+	test('detects local host, level-data requests, and echoed level data', () => {
 		const initial = packet(ZEEPKIST_PACKET_ID.initialState, (writer) => {
 			writer.writeInt32(1)
 			writer.writeUInt32(7)
@@ -146,6 +146,22 @@ describe('Track of the Week packet codecs', () => {
 		})
 		expect(parseGameHostPacket(request, 0n)).toEqual({
 			type: 'level-request',
+			uid: 'uid',
+			workshopId: 123n,
+		})
+
+		const levelData = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
+			writer.writeInt32(1)
+			writer.writeString('Track')
+			writer.writeString('uid')
+			writer.writeUInt64(123n)
+			writer.writeInt32(3)
+			writer.writeBytes(Uint8Array.of(1, 2, 3))
+		})
+		expect(parseGameHostPacket(levelData, 0n)).toEqual({
+			type: 'level-data',
+			data: Uint8Array.of(1, 2, 3),
+			name: 'Track',
 			uid: 'uid',
 			workshopId: 123n,
 		})
