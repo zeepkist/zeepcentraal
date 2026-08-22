@@ -28,6 +28,7 @@ describe('Track of the Week packet codecs', () => {
 			joinLobby: 24070,
 			joinLobbyResponse: 2983,
 			initialState: 29635,
+			changeLobbyGameProperties: 44133,
 			changeLobbyMaster: 13890,
 			changeLobbyPlaylist: 60338,
 			changeLobbyPlaylistIndex: 18192,
@@ -114,7 +115,7 @@ describe('Track of the Week packet codecs', () => {
 		})
 	})
 
-	test('detects local host, level-data requests, and echoed level data', () => {
+	test('detects local host, level-data requests, and game properties', () => {
 		const initial = packet(ZEEPKIST_PACKET_ID.initialState, (writer) => {
 			writer.writeInt32(1)
 			writer.writeUInt32(7)
@@ -150,32 +151,50 @@ describe('Track of the Week packet codecs', () => {
 			workshopId: 123n,
 		})
 
-		const levelData = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
-			writer.writeInt32(1)
-			writer.writeString('Track')
+		const gameProperties = packet(ZEEPKIST_PACKET_ID.changeLobbyGameProperties, (writer) => {
+			writer.writeFloat64(900)
+			writer.writeFloat64(123.5)
 			writer.writeString('uid')
 			writer.writeUInt64(123n)
-			writer.writeInt32(3)
-			writer.writeBytes(Uint8Array.of(1, 2, 3))
 		})
-		expect(parseGameHostPacket(levelData, 0n)).toEqual({
-			type: 'level-data',
-			data: Uint8Array.of(1, 2, 3),
-			name: 'Track',
+		expect(parseGameHostPacket(gameProperties, 0n)).toEqual({
+			type: 'game-properties',
+			levelLoadedAt: 123.5,
+			roundTime: 900,
 			uid: 'uid',
 			workshopId: 123n,
 		})
 	})
 
 	test('bounds malformed level request data', () => {
-		const request = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
+		const oversized = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
 			writer.writeInt32(3)
 			writer.writeString('')
 			writer.writeString('uid')
 			writer.writeUInt64(123n)
 			writer.writeInt32(64 * 1024 * 1024 + 1)
 		})
-		expect(() => parseGameHostPacket(request, 0n)).toThrow('Invalid level payload')
+		expect(() => parseGameHostPacket(oversized, 0n)).toThrow('Invalid level payload')
+
+		const truncated = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
+			writer.writeInt32(1)
+			writer.writeString('Track')
+			writer.writeString('uid')
+			writer.writeUInt64(123n)
+			writer.writeInt32(3)
+			writer.writeByte(1)
+		})
+		expect(() => parseGameHostPacket(truncated, 0n)).toThrow('Invalid level payload')
+	})
+
+	test('bounds malformed game properties', () => {
+		const properties = packet(ZEEPKIST_PACKET_ID.changeLobbyGameProperties, (writer) => {
+			writer.writeFloat64(900)
+			writer.writeFloat64(123.5)
+			writer.writeString('x'.repeat(4097))
+			writer.writeUInt64(123n)
+		})
+		expect(() => parseGameHostPacket(properties, 0n)).toThrow('String exceeds 4096 bytes')
 	})
 })
 

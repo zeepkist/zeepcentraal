@@ -6,6 +6,7 @@ export const ZEEPKIST_PACKET_ID = {
 	joinLobby: packetId('ZeepkistNetworking.JoinLobbyPacket'),
 	joinLobbyResponse: packetId('ZeepkistNetworking.JoinLobbyResponsePacket'),
 	initialState: packetId('ZeepkistNetworking.InitialStatePacket'),
+	changeLobbyGameProperties: packetId('ZeepkistNetworking.ChangeLobbyGamePropertiesPacket'),
 	changeLobbyMaster: packetId('ZeepkistNetworking.ChangeLobbyMasterPacket'),
 	changeLobbyPlaylist: packetId('ZeepkistNetworking.ChangeLobbyPlaylistPacket'),
 	changeLobbyPlaylistIndex: packetId('ZeepkistNetworking.ChangeLobbyPlaylistIndexPacket'),
@@ -30,15 +31,15 @@ export type MasterRoomResponse =
 
 export type GameHostPacket =
 	| { type: 'initial'; isHost: boolean }
+	| {
+			type: 'game-properties'
+			levelLoadedAt: number
+			roundTime: number
+			uid: string
+			workshopId: bigint
+	  }
 	| { type: 'master'; uid: number }
 	| { type: 'playlist-index'; currentIndex: number; nextIndex: number; selectNext: boolean }
-	| {
-			type: 'level-data'
-			data: Uint8Array
-			name: string
-			workshopId: bigint
-			uid: string
-	  }
 	| { type: 'level-request'; workshopId: bigint; uid: string }
 
 export function packetId(fullName: string) {
@@ -138,6 +139,15 @@ export function parseGameHostPacket(
 	if (id === ZEEPKIST_PACKET_ID.initialState) {
 		return { type: 'initial', isHost: readInitialHost(reader, localSteamId) }
 	}
+	if (id === ZEEPKIST_PACKET_ID.changeLobbyGameProperties) {
+		return {
+			type: 'game-properties',
+			roundTime: reader.readFloat64(),
+			levelLoadedAt: reader.readFloat64(),
+			uid: reader.readString(4096),
+			workshopId: reader.readUInt64(),
+		}
+	}
 	if (id === ZEEPKIST_PACKET_ID.changeLobbyMaster) {
 		return { type: 'master', uid: reader.readUInt32() }
 	}
@@ -151,14 +161,16 @@ export function parseGameHostPacket(
 	}
 	if (id === ZEEPKIST_PACKET_ID.levelData) {
 		const packetType = reader.readInt32()
-		const name = reader.readString(4096)
+		reader.readString(4096)
 		const uid = reader.readString(4096)
 		const workshopId = reader.readUInt64()
 		const byteLength = reader.readInt32()
-		if (byteLength < 0 || byteLength > 64 * 1024 * 1024)
+		if (
+			byteLength < 0 ||
+			byteLength > 64 * 1024 * 1024 ||
+			byteLength * 8 > reader.remainingBits
+		)
 			throw new Error('Invalid level payload')
-		const data = reader.readBytes(byteLength)
-		if (packetType === 1) return { type: 'level-data', data, name, workshopId, uid }
 		return packetType === 3 ? { type: 'level-request', workshopId, uid } : undefined
 	}
 	return undefined

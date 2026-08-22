@@ -66,7 +66,8 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 		resolveLevelData = resolve
 	})
 	let incomingSequence = 0
-	let levelEchoSent = false
+	let initialReady = false
+	let gamePropertiesSent = false
 	gameServer.on('message', (data, remote) => {
 		if (data[0] === 131) {
 			const reader = new BitReader(data.subarray(5))
@@ -93,6 +94,7 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 		const packetId = reader.readUInt16()
 		sentPacketIds.push(packetId)
 		if (packetId === ZEEPKIST_PACKET_ID.skipToLevel) {
+			if (!initialReady) return
 			for (let duplicate = 0; duplicate < 2; duplicate++)
 				gameServer.send(
 					reliable(levelRequestPacket(), incomingSequence++),
@@ -109,14 +111,19 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 			expect(byteLength).toBe(preparedPayload.length)
 			expect(byteLength).toBeGreaterThan(1_200)
 			expect(reader.readBytes(byteLength)).toEqual(preparedPayload)
-			levelEchoSent = true
-			const echoFragments = reliableFragments(levelDataEchoPacket(), incomingSequence)
-			incomingSequence = echoFragments.nextSequence
-			for (const fragment of echoFragments.messages)
-				gameServer.send(fragment, remote.port, remote.address)
+			gamePropertiesSent = true
+			gameServer.send(
+				reliable(gamePropertiesPacket(), incomingSequence++),
+				remote.port,
+				remote.address,
+			)
 		}
 		if (packetId === ZEEPKIST_PACKET_ID.levelLoaded) {
-			expect(levelEchoSent).toBe(true)
+			if (!initialReady) {
+				initialReady = true
+				return
+			}
+			expect(gamePropertiesSent).toBe(true)
 			resolveLevelData?.()
 		}
 	})
@@ -147,9 +154,15 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 		await host.stop()
 		await withTimeout(running)
 		expect(setJoinId).toHaveBeenCalledWith('totw', 'managed-room')
-		expect(sentPacketIds[0]).toBe(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)
+		const loadedIndices = sentPacketIds.flatMap((packetId, index) =>
+			packetId === ZEEPKIST_PACKET_ID.levelLoaded ? [index] : [],
+		)
+		expect(sentPacketIds[0]).toBe(ZEEPKIST_PACKET_ID.levelLoaded)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.skipToLevel)
+		expect(loadedIndices[0]).toBeLessThan(
+			sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.changeLobbyPlaylist),
+		)
 		expect(sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)).toBeLessThan(
 			sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.skipToLevel),
 		)
@@ -157,12 +170,10 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 		expect(
 			sentPacketIds.filter((packetId) => packetId === ZEEPKIST_PACKET_ID.levelData),
 		).toHaveLength(1)
-		expect(sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.levelLoaded)).toBeGreaterThan(
+		expect(loadedIndices[1]).toBeGreaterThan(
 			sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.levelData),
 		)
-		expect(
-			sentPacketIds.filter((packetId) => packetId === ZEEPKIST_PACKET_ID.levelLoaded),
-		).toHaveLength(1)
+		expect(loadedIndices).toHaveLength(2)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyVisibility)
 	} finally {
 		await host.stop()
@@ -181,6 +192,8 @@ test('switches to newly prepared weekly asset through the complete load handshak
 	const playlistUids: string[] = []
 	let incomingSequence = 0
 	let loadedCount = 0
+	let initialReady = false
+	let transferAwaitingLoaded = false
 	let resolveReplacement: (() => void) | undefined
 	const replacementLoaded = new Promise<void>((resolve) => {
 		resolveReplacement = resolve
@@ -213,6 +226,7 @@ test('switches to newly prepared weekly asset through the complete load handshak
 			playlistUids.push(reader.readString())
 		}
 		if (packetId === ZEEPKIST_PACKET_ID.skipToLevel) {
+			if (!initialReady) return
 			const uid = reader.readString()
 			const workshopId = reader.readUInt64()
 			gameServer.send(
@@ -223,20 +237,25 @@ test('switches to newly prepared weekly asset through the complete load handshak
 		}
 		if (packetId === ZEEPKIST_PACKET_ID.levelData) {
 			expect(reader.readInt32()).toBe(2)
-			const name = reader.readString()
+			reader.readString()
 			const uid = reader.readString()
 			const workshopId = reader.readUInt64()
 			const byteLength = reader.readInt32()
-			const levelData = reader.readBytes(byteLength)
-			const echoFragments = reliableFragments(
-				levelDataEchoPacket(levelData, { name, uid, workshopId }),
-				incomingSequence,
+			reader.readBytes(byteLength)
+			transferAwaitingLoaded = true
+			gameServer.send(
+				reliable(gamePropertiesPacket(uid, workshopId), incomingSequence++),
+				remote.port,
+				remote.address,
 			)
-			incomingSequence = echoFragments.nextSequence
-			for (const fragment of echoFragments.messages)
-				gameServer.send(fragment, remote.port, remote.address)
 		}
 		if (packetId === ZEEPKIST_PACKET_ID.levelLoaded) {
+			if (!initialReady) {
+				initialReady = true
+				return
+			}
+			if (!transferAwaitingLoaded) return
+			transferAwaitingLoaded = false
 			loadedCount++
 			if (loadedCount === 1) {
 				downloadedPayload = replacementPayload
@@ -290,19 +309,24 @@ test('switches to newly prepared weekly asset through the complete load handshak
 	}
 })
 
-test('disconnects without acknowledging corrupted echoed level data', async () => {
-	const corruptedPayload = Buffer.from(preparedPayload)
-	corruptedPayload[0] = (corruptedPayload[0] ?? 0) ^ 0xff
-	const sentPacketIds = await runFailedLevelTransfer(corruptedPayload, 1_000)
-	expect(sentPacketIds).not.toContain(ZEEPKIST_PACKET_ID.levelLoaded)
+test('disconnects without final acknowledgement for mismatched game properties', async () => {
+	const sentPacketIds = await runFailedLevelTransfer({ uid: 'wrong-uid', workshopId: 999n }, 25)
+	expect(
+		sentPacketIds.filter((packetId) => packetId === ZEEPKIST_PACKET_ID.levelLoaded),
+	).toHaveLength(1)
 })
 
-test('disconnects without acknowledging when level data echo times out', async () => {
+test('disconnects without final acknowledgement when game properties time out', async () => {
 	const sentPacketIds = await runFailedLevelTransfer(undefined, 25)
-	expect(sentPacketIds).not.toContain(ZEEPKIST_PACKET_ID.levelLoaded)
+	expect(
+		sentPacketIds.filter((packetId) => packetId === ZEEPKIST_PACKET_ID.levelLoaded),
+	).toHaveLength(1)
 })
 
-async function runFailedLevelTransfer(echoData: Uint8Array | undefined, echoTimeoutMs: number) {
+async function runFailedLevelTransfer(
+	properties: { uid: string; workshopId: bigint } | undefined,
+	propertiesTimeoutMs: number,
+) {
 	const blockedFetch = globalThis.fetch
 	globalThis.fetch = Bun.fetch
 	const gameServer = dgram.createSocket('udp4')
@@ -310,6 +334,7 @@ async function runFailedLevelTransfer(echoData: Uint8Array | undefined, echoTime
 	const fragments = new Map<number, FragmentGroup>()
 	const sentPacketIds: number[] = []
 	let incomingSequence = 0
+	let initialReady = false
 	let resolveDisconnect: (() => void) | undefined
 	const disconnected = new Promise<void>((resolve) => {
 		resolveDisconnect = resolve
@@ -337,18 +362,24 @@ async function runFailedLevelTransfer(echoData: Uint8Array | undefined, echoTime
 		if (!payload) return
 		const packetId = new BitReader(payload).readUInt16()
 		sentPacketIds.push(packetId)
+		if (packetId === ZEEPKIST_PACKET_ID.levelLoaded) initialReady = true
 		if (packetId === ZEEPKIST_PACKET_ID.skipToLevel) {
+			if (!initialReady) return
 			gameServer.send(
 				reliable(levelRequestPacket(), incomingSequence++),
 				remote.port,
 				remote.address,
 			)
 		}
-		if (packetId === ZEEPKIST_PACKET_ID.levelData && echoData) {
-			const echoFragments = reliableFragments(levelDataEchoPacket(echoData), incomingSequence)
-			incomingSequence = echoFragments.nextSequence
-			for (const fragment of echoFragments.messages)
-				gameServer.send(fragment, remote.port, remote.address)
+		if (packetId === ZEEPKIST_PACKET_ID.levelData && properties) {
+			gameServer.send(
+				reliable(
+					gamePropertiesPacket(properties.uid, properties.workshopId),
+					incomingSequence++,
+				),
+				remote.port,
+				remote.address,
+			)
 		}
 	})
 
@@ -373,7 +404,7 @@ async function runFailedLevelTransfer(echoData: Uint8Array | undefined, echoTime
 			reconnectMaxMs: 5_000,
 			roundTimeSeconds: 900,
 		},
-		echoTimeoutMs,
+		propertiesTimeoutMs,
 	)
 	const running = host.run()
 	try {
@@ -419,21 +450,12 @@ function levelRequestPacket(uid = 'uid', workshopId = 123n) {
 	})
 }
 
-function levelDataEchoPacket(
-	data: Uint8Array = preparedPayload,
-	level: { name: string; uid: string; workshopId: bigint } = {
-		name: 'Track',
-		uid: 'uid',
-		workshopId: 123n,
-	},
-) {
-	return packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
-		writer.writeInt32(1)
-		writer.writeString(level.name)
-		writer.writeString(level.uid)
-		writer.writeUInt64(level.workshopId)
-		writer.writeInt32(data.length)
-		writer.writeBytes(data)
+function gamePropertiesPacket(uid = 'uid', workshopId = 123n) {
+	return packet(ZEEPKIST_PACKET_ID.changeLobbyGameProperties, (writer) => {
+		writer.writeFloat64(900)
+		writer.writeFloat64(123.5)
+		writer.writeString(uid)
+		writer.writeUInt64(workshopId)
 	})
 }
 
@@ -454,25 +476,6 @@ function connectResponse() {
 
 function reliable(payload: Uint8Array, sequence: number) {
 	return message(67, payload, payload.length * 8, sequence)
-}
-
-function reliableFragments(payload: Uint8Array, firstSequence: number) {
-	const chunkByteSize = 1_000
-	const messages: Uint8Array[] = []
-	let sequence = firstSequence
-	for (let offset = 0, chunkNumber = 0; offset < payload.length; chunkNumber++) {
-		const chunk = payload.subarray(offset, offset + chunkByteSize)
-		const fragment = new BitWriter()
-		fragment.writeVariableUInt32(1)
-		fragment.writeVariableUInt32(payload.length * 8)
-		fragment.writeVariableUInt32(chunkByteSize)
-		fragment.writeVariableUInt32(chunkNumber)
-		fragment.writeBytes(chunk)
-		messages.push(message(67, fragment.toUint8Array(), fragment.bitLength, sequence, true))
-		sequence = (sequence + 1) % 1024
-		offset += chunk.length
-	}
-	return { messages, nextSequence: sequence }
 }
 
 function acknowledgement(reliableMessage: Uint8Array) {
