@@ -6,6 +6,7 @@ import {
 	levelDataPacket,
 	parseGameHostPacket,
 	parseMasterRoomResponse,
+	skipToLevelPacket,
 	ZEEPKIST_PACKET_ID,
 } from './totwPackets'
 
@@ -31,6 +32,7 @@ describe('Track of the Week packet codecs', () => {
 			changeLobbyPlaylistIndex: 18192,
 			changeLobbyVisibility: 3826,
 			levelData: 22792,
+			skipToLevel: 63876,
 		})
 	})
 
@@ -57,6 +59,19 @@ describe('Track of the Week packet codecs', () => {
 		expect(playlist.readInt32()).toBe(0)
 		expect(playlist.readInt32()).toBe(1)
 		expect(playlist.readString()).toBe('uid')
+		expect(playlist.readUInt64()).toBe(123n)
+		expect(playlist.readString()).toBe('Track')
+		expect(playlist.readString()).toBe('')
+		expect(playlist.readString()).toBe('')
+		expect(playlist.readString()).toBe('Author')
+		expect(playlist.readBoolean()).toBe(true)
+		expect(playlist.readBoolean()).toBe(true)
+		expect(playlist.readInt32()).toBe(1)
+
+		const skip = new BitReader(skipToLevelPacket(LEVEL))
+		expect(skip.readUInt16()).toBe(ZEEPKIST_PACKET_ID.skipToLevel)
+		expect(skip.readString()).toBe('uid')
+		expect(skip.readUInt64()).toBe(123n)
 	})
 
 	test('serializes host level response as packet type 2', () => {

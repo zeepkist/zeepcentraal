@@ -7,6 +7,7 @@ import {
 	levelDataPacket,
 	type OnlineLevel,
 	parseGameHostPacket,
+	skipToLevelPacket,
 } from '@zeepkist/core/zeepnet'
 import {
 	clearManagedLobbyJoinId,
@@ -178,7 +179,7 @@ export class TotwLobbyHost {
 			}
 			this.roomConnected = true
 			this.ownsRoom = true
-			await this.sendPlaylist(client)
+			await this.sendPlaylist(client, true)
 			console.info(`TotW lobby host connected for tournament ${this.asset?.idTournament}.`)
 			const assetTimer = setInterval(() => {
 				void this.refreshAndPublish(client).catch((error) => {
@@ -202,7 +203,8 @@ export class TotwLobbyHost {
 	private async refreshAndPublish(client: LidgrenClient) {
 		const previousHash = this.asset?.contentSha256
 		await this.refreshAsset()
-		if (this.asset && this.asset.contentSha256 !== previousHash) await this.sendPlaylist(client)
+		if (this.asset && this.asset.contentSha256 !== previousHash)
+			await this.sendPlaylist(client, true)
 	}
 
 	private async refreshAsset() {
@@ -239,12 +241,13 @@ export class TotwLobbyHost {
 		console.info(`TotW lobby asset ready for tournament ${metadata.idTournament}.`)
 	}
 
-	private sendPlaylist(client: LidgrenClient) {
+	private async sendPlaylist(client: LidgrenClient, skipToCurrent = false) {
 		const asset = this.asset
-		if (!asset) return Promise.resolve()
-		return client.sendReliableOrdered(
+		if (!asset) return
+		await client.sendReliableOrdered(
 			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
 		)
+		if (skipToCurrent) await client.sendReliableOrdered(skipToLevelPacket(asset.level))
 	}
 
 	private sendLevelData(client: LidgrenClient, request: { uid: string; workshopId: bigint }) {

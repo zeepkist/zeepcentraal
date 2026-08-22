@@ -11,6 +11,7 @@ export const ZEEPKIST_PACKET_ID = {
 	changeLobbyPlaylistIndex: packetId('ZeepkistNetworking.ChangeLobbyPlaylistIndexPacket'),
 	changeLobbyVisibility: packetId('ZeepkistNetworking.ChangeLobbyVisibilityPacket'),
 	levelData: packetId('ZeepkistNetworking.LevelDataPacket'),
+	skipToLevel: packetId('ZeepkistNetworking.SkipToLevelPacket'),
 } as const
 
 export interface OnlineLevel {
@@ -75,9 +76,16 @@ export function changeLobbyPlaylistPacket(level: OnlineLevel, roundTimeSeconds: 
 		writer.writeString(level.collaborators)
 		writer.writeString(level.overrideAuthorName)
 		writer.writeString(level.author)
-		writer.writeBoolean(false)
+		writer.writeBoolean(true)
 		writer.writeBoolean(true)
 		writer.writeInt32(1)
+	})
+}
+
+export function skipToLevelPacket(level: OnlineLevel) {
+	return writePacket(ZEEPKIST_PACKET_ID.skipToLevel, (writer) => {
+		writer.writeString(level.uid)
+		writer.writeUInt64(level.workshopId)
 	})
 }
 

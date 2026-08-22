@@ -105,6 +105,10 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 		await withTimeout(running)
 		expect(setJoinId).toHaveBeenCalledWith('totw', 'managed-room')
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)
+		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.skipToLevel)
+		expect(sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)).toBeLessThan(
+			sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.skipToLevel),
+		)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.levelData)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyVisibility)
 	} finally {
