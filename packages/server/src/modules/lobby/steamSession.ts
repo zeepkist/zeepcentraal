@@ -16,6 +16,7 @@ export class LobbySteamSession {
 		renewRefreshTokens: true,
 	})
 	private identity: SteamIdentity | undefined
+	private closed = false
 
 	constructor(
 		private readonly refreshTokenFile: string,
@@ -61,7 +62,7 @@ export class LobbySteamSession {
 	}
 
 	async createEncryptedAppTicket() {
-		if (!this.identity) {
+		if (!this.identity || !this.client.steamID) {
 			throw new Error('Steam client is not logged on')
 		}
 		const userData = Buffer.allocUnsafe(4)
@@ -71,6 +72,9 @@ export class LobbySteamSession {
 	}
 
 	close() {
+		if (this.closed) return
+		this.closed = true
+		this.identity = undefined
 		this.client.logOff()
 	}
 

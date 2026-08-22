@@ -30,6 +30,7 @@ interface LobbyCollectorConfig {
 const MIN_TICKET_INTERVAL_MS = 60_000
 const FIRST_SNAPSHOT_TIMEOUT_MS = 15_000
 const ROOM_RESPONSE_TIMEOUT_MS = 15_000
+const MAX_RETRY_MS = 60_000
 const meter = getMeter('zeepcentraal-lobby-collector')
 const assignmentLatency = meter.createHistogram('zeepkist.lobby.assignment.duration', {
 	description: 'Master room assignment latency',
@@ -69,6 +70,11 @@ export class LobbyCollector {
 		private readonly config: LobbyCollectorConfig,
 		private readonly publish: (snapshot: LobbySnapshot) => void,
 		persist: PersistLobbyPacket,
+		private readonly createSteamSession: (
+			refreshTokenFile: string,
+			appId: number,
+		) => LobbySteamSession = (refreshTokenFile, appId) =>
+			new LobbySteamSession(refreshTokenFile, appId),
 	) {
 		this.persistence = new LobbyPersistenceQueue(persist, () => {
 			console.warn('Zeepkist lobby persistence failed; live feed continuing')
@@ -92,49 +98,81 @@ export class LobbyCollector {
 	assignRoom(existingJoinId?: string) {
 		if (!this.roomAssignmentPromise) {
 			const startedAt = performance.now()
-			this.roomAssignmentPromise = this.assignRoomOnce(existingJoinId).finally(() => {
-				assignmentLatency.record(performance.now() - startedAt)
-				this.roomAssignmentPromise = undefined
-			})
+			this.roomAssignmentPromise = this.assignRoomOnce(existingJoinId)
+				.catch((error) => {
+					const reason =
+						error instanceof RoomAssignmentError
+							? error.reason
+							: this.masterConnected
+								? 'command-failed'
+								: 'master-unavailable'
+					console.warn(`Zeepkist room assignment unavailable: ${reason}`)
+					throw error
+				})
+				.finally(() => {
+					assignmentLatency.record(performance.now() - startedAt)
+					this.roomAssignmentPromise = undefined
+				})
 		}
 		return this.roomAssignmentPromise
 	}
 
 	private async run() {
-		let retry = 1_000
-		try {
-			this.steam = new LobbySteamSession(this.config.refreshTokenFile, this.config.appId)
-			const identity = await this.steam.connect()
-			this.identity = identity
-			while (!this.stopped) {
-				try {
-					await this.connectToMaster(identity)
-					retry = 1_000
-				} catch (error) {
-					if (!this.stopped) {
-						reconnects.add(1)
-						console.warn(
-							`Zeepkist lobby collector connection failed; retrying: ${safeErrorMessage(error)}`,
-						)
-					}
+		let retryMs = 1_000
+		while (!this.stopped) {
+			const steam = this.createSteamSession(this.config.refreshTokenFile, this.config.appId)
+			this.steam = steam
+			try {
+				const identity = await steam.connect()
+				this.identity = identity
+				await this.runMasterConnections(identity, () => {
+					retryMs = 1_000
+				})
+			} catch {
+				if (!this.stopped) {
+					console.error('Zeepkist lobby Steam session unavailable; recreating session')
+					if (this.lastSnapshot) this.markStale()
+					else this.publish(emptySnapshot('unavailable'))
 				}
-				if (this.stopped) {
-					break
-				}
-				this.markStale()
-				await delay(withJitter(retry))
-				retry = Math.min(retry * 2, 60_000)
+			} finally {
+				steam.close()
+				if (this.steam === steam) this.steam = undefined
+				this.identity = undefined
+				this.cachedTicket = undefined
+				this.ticketCreatedAt = 0
 			}
-		} catch {
 			if (!this.stopped) {
-				console.error('Zeepkist lobby collector could not start Steam session')
-				this.publish(emptySnapshot('unavailable'))
+				await delay(withJitter(retryMs))
+				retryMs = Math.min(retryMs * 2, MAX_RETRY_MS)
 			}
 		}
 	}
 
-	private async connectToMaster(identity: SteamIdentity) {
+	private async runMasterConnections(identity: SteamIdentity, onSteamAuthenticated: () => void) {
+		let retryMs = 1_000
+		while (!this.stopped) {
+			try {
+				await this.connectToMaster(identity, onSteamAuthenticated)
+				retryMs = 1_000
+			} catch (error) {
+				if (error instanceof SteamSessionUnavailableError) throw error
+				if (!this.stopped) {
+					reconnects.add(1)
+					console.warn(
+						`Zeepkist lobby collector connection failed; retrying: ${safeErrorMessage(error)}`,
+					)
+				}
+			}
+			if (this.stopped) break
+			this.markStale()
+			await delay(withJitter(retryMs))
+			retryMs = Math.min(retryMs * 2, MAX_RETRY_MS)
+		}
+	}
+
+	private async connectToMaster(identity: SteamIdentity, onSteamAuthenticated: () => void) {
 		const ticket = await this.getTicket()
+		onSteamAuthenticated()
 		if (this.stopped) {
 			return
 		}
@@ -214,7 +252,7 @@ export class LobbyCollector {
 		const token = this.masterToken
 		const playerUid = this.masterPlayerUid
 		if (!lidgren || !identity || !token || playerUid === undefined) {
-			throw new Error('Master connection is unavailable')
+			throw new RoomAssignmentError('master-unavailable')
 		}
 
 		if (existingJoinId) {
@@ -246,12 +284,11 @@ export class LobbyCollector {
 			}),
 		)
 		if (created.result !== 1 || !created.joinId) {
-			throw new Error(`Create lobby failed with result ${created.result}`)
+			throw new RoomAssignmentError('create-rejected')
 		}
 		const joinId = created.joinId
 		const joined = await this.waitForRoomResponse(lidgren, 'join')
-		if (joined.result !== 1)
-			throw new Error(`Join created lobby failed with result ${joined.result}`)
+		if (joined.result !== 1) throw new RoomAssignmentError('join-rejected')
 		return {
 			host: joined.host,
 			joinId,
@@ -272,12 +309,14 @@ export class LobbyCollector {
 			await lidgren.sendReliableOrdered(payload)
 			return await response
 		} catch (error) {
-			this.roomResponses.rejectAll(
-				error instanceof Error ? error : new Error('Room command failed'),
-			)
+			const failure =
+				error instanceof RoomAssignmentError
+					? error
+					: new RoomAssignmentError('command-failed', error)
+			this.roomResponses.rejectAll(failure)
 			void response.catch(() => {})
 			await lidgren.close('Room command failed')
-			throw error
+			throw failure
 		}
 	}
 
@@ -289,7 +328,7 @@ export class LobbyCollector {
 			return await this.roomResponses.waitFor(type)
 		} catch (error) {
 			await lidgren.close('Room command timed out')
-			throw error
+			throw new RoomAssignmentError('response-timeout', error)
 		}
 	}
 
@@ -307,14 +346,18 @@ export class LobbyCollector {
 			return this.cachedTicket
 		}
 		if (!this.steam) {
-			throw new Error('Steam session is unavailable')
+			throw new SteamSessionUnavailableError()
 		}
 		const waitMs = MIN_TICKET_INTERVAL_MS - (Date.now() - this.lastTicketRequestAt)
 		if (waitMs > 0) {
 			await delay(waitMs)
 		}
 		this.lastTicketRequestAt = Date.now()
-		this.cachedTicket = await this.steam.createEncryptedAppTicket()
+		try {
+			this.cachedTicket = await this.steam.createEncryptedAppTicket()
+		} catch (error) {
+			throw new SteamSessionUnavailableError(error)
+		}
 		this.ticketCreatedAt = Date.now()
 		return this.cachedTicket
 	}
@@ -331,6 +374,28 @@ export class LobbyCollector {
 		}
 		this.lastSnapshot = stale
 		this.publish(stale)
+	}
+}
+
+type RoomAssignmentFailure =
+	| 'command-failed'
+	| 'create-rejected'
+	| 'join-rejected'
+	| 'master-unavailable'
+	| 'response-timeout'
+
+class RoomAssignmentError extends Error {
+	constructor(
+		readonly reason: RoomAssignmentFailure,
+		cause?: unknown,
+	) {
+		super('Room assignment unavailable', { cause })
+	}
+}
+
+class SteamSessionUnavailableError extends Error {
+	constructor(cause?: unknown) {
+		super('Steam session is unavailable', { cause })
 	}
 }
 
