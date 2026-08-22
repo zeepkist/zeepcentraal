@@ -262,7 +262,7 @@ export class LobbyCollector {
 				joinLobbyPacket(existingJoinId),
 			)
 			if (joined.result === 1) {
-				return {
+				const assignment = {
 					host: joined.host,
 					joinId: existingJoinId,
 					playerUid,
@@ -270,6 +270,8 @@ export class LobbyCollector {
 					steamId: identity.steamId.toString(),
 					token,
 				}
+				await lidgren.close('Room assignment handed off')
+				return assignment
 			}
 		}
 
@@ -284,12 +286,16 @@ export class LobbyCollector {
 			}),
 		)
 		if (created.result !== 1 || !created.joinId) {
+			if (created.result === 2) {
+				await lidgren.close('Master connection remained assigned to previous room')
+				throw new RoomAssignmentError('already-in-lobby')
+			}
 			throw new RoomAssignmentError('create-rejected')
 		}
 		const joinId = created.joinId
 		const joined = await this.waitForRoomResponse(lidgren, 'join')
 		if (joined.result !== 1) throw new RoomAssignmentError('join-rejected')
-		return {
+		const assignment = {
 			host: joined.host,
 			joinId,
 			playerUid,
@@ -297,6 +303,8 @@ export class LobbyCollector {
 			steamId: identity.steamId.toString(),
 			token,
 		}
+		await lidgren.close('Room assignment handed off')
+		return assignment
 	}
 
 	private async sendRoomCommand<T extends MasterRoomResponse['type']>(
@@ -378,6 +386,7 @@ export class LobbyCollector {
 }
 
 type RoomAssignmentFailure =
+	| 'already-in-lobby'
 	| 'command-failed'
 	| 'create-rejected'
 	| 'join-rejected'

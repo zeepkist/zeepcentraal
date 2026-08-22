@@ -3,7 +3,7 @@ import { BitReader, ZEEPKIST_PACKET_ID } from '@zeepkist/core/zeepnet'
 import { LobbyCollector } from './lobbyCollector'
 
 test('rejoins stored room without requiring public lobby-list visibility', async () => {
-	const collector = createCollector((payload, inbox) => {
+	const { close, collector } = createCollector((payload, inbox) => {
 		expect(new BitReader(payload).readUInt16()).toBe(ZEEPKIST_PACKET_ID.joinLobby)
 		inbox.push({ type: 'join', result: 1, host: '10.0.0.1', port: 27000 })
 	})
@@ -15,11 +15,12 @@ test('rejoins stored room without requiring public lobby-list visibility', async
 		steamId: '76561198000000000',
 		token: 'ephemeral-token',
 	})
+	expect(close).toHaveBeenCalledWith('Room assignment handed off')
 })
 
 test('creates replacement when stored room cannot be joined', async () => {
 	const packetIds: number[] = []
-	const collector = createCollector((payload, inbox) => {
+	const { close, collector } = createCollector((payload, inbox) => {
 		const id = new BitReader(payload).readUInt16()
 		packetIds.push(id)
 		if (id === ZEEPKIST_PACKET_ID.joinLobby) {
@@ -32,6 +33,16 @@ test('creates replacement when stored room cannot be joined', async () => {
 	const assignment = await collector.assignRoom('missing-room')
 	expect(packetIds).toEqual([ZEEPKIST_PACKET_ID.joinLobby, ZEEPKIST_PACKET_ID.createLobby])
 	expect(assignment.joinId).toBe('replacement-room')
+	expect(close).toHaveBeenCalledWith('Room assignment handed off')
+})
+
+test('recycles master connection left assigned to a previous room', async () => {
+	const { close, collector } = createCollector((_payload, inbox) => {
+		inbox.push({ type: 'create', result: 2, joinId: '' })
+	})
+
+	await expect(collector.assignRoom()).rejects.toThrow('Room assignment unavailable')
+	expect(close).toHaveBeenCalledWith('Master connection remained assigned to previous room')
 })
 
 test('serializes concurrent broker assignment requests', async () => {
@@ -43,7 +54,7 @@ test('serializes concurrent broker assignment requests', async () => {
 		await sendReleased
 		inbox.push({ type: 'join', result: 1, host: '10.0.0.1', port: 27000 })
 	})
-	const collector = createCollector(send)
+	const { collector } = createCollector(send)
 	const first = collector.assignRoom('same-room')
 	const second = collector.assignRoom('same-room')
 	expect(first).toBe(second)
@@ -63,6 +74,7 @@ type ResponseInbox = {
 function createCollector(
 	onSend: (payload: Uint8Array, inbox: ResponseInbox) => void | Promise<void>,
 ) {
+	const close = mock(async () => {})
 	const collector = new LobbyCollector(
 		{
 			appId: 1_440_670,
@@ -77,7 +89,10 @@ function createCollector(
 	)
 	const internals = collector as unknown as {
 		identity: { name: string; steamId: bigint }
-		lidgren: { sendReliableOrdered(payload: Uint8Array): Promise<void> }
+		lidgren: {
+			close(reason?: string): Promise<void>
+			sendReliableOrdered(payload: Uint8Array): Promise<void>
+		}
 		masterPlayerUid: number
 		masterToken: string
 		roomResponses: ResponseInbox
@@ -86,7 +101,8 @@ function createCollector(
 	internals.masterPlayerUid = 7
 	internals.masterToken = 'ephemeral-token'
 	internals.lidgren = {
+		close,
 		sendReliableOrdered: async (payload) => onSend(payload, internals.roomResponses),
 	}
-	return collector
+	return { close, collector }
 }
