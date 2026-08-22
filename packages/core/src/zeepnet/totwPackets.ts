@@ -11,6 +11,7 @@ export const ZEEPKIST_PACKET_ID = {
 	changeLobbyPlaylistIndex: packetId('ZeepkistNetworking.ChangeLobbyPlaylistIndexPacket'),
 	changeLobbyVisibility: packetId('ZeepkistNetworking.ChangeLobbyVisibilityPacket'),
 	levelData: packetId('ZeepkistNetworking.LevelDataPacket'),
+	levelLoaded: packetId('ZeepkistNetworking.LevelLoadedPacket'),
 	skipToLevel: packetId('ZeepkistNetworking.SkipToLevelPacket'),
 } as const
 
@@ -98,6 +99,10 @@ export function levelDataPacket(level: OnlineLevel, compressedData: Uint8Array) 
 		writer.writeInt32(compressedData.length)
 		writer.writeBytes(compressedData)
 	})
+}
+
+export function levelLoadedPacket() {
+	return writePacket(ZEEPKIST_PACKET_ID.levelLoaded, () => {})
 }
 
 export function parseMasterRoomResponse(payload: Uint8Array): MasterRoomResponse | undefined {

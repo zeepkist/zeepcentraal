@@ -42,6 +42,7 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 	const gamePort = await bind(gameServer)
 	const sentPacketIds: number[] = []
 	let resolveLevelData: (() => void) | undefined
+	let levelLoadedCount = 0
 	const levelDataSent = new Promise<void>((resolve) => {
 		resolveLevelData = resolve
 	})
@@ -75,7 +76,8 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 				remote.address,
 			)
 		}
-		if (packetId === ZEEPKIST_PACKET_ID.levelData) resolveLevelData?.()
+		if (packetId === ZEEPKIST_PACKET_ID.levelLoaded && ++levelLoadedCount === 2)
+			resolveLevelData?.()
 	})
 
 	const broker = Bun.serve({
@@ -104,12 +106,16 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 		await host.stop()
 		await withTimeout(running)
 		expect(setJoinId).toHaveBeenCalledWith('totw', 'managed-room')
+		expect(sentPacketIds[0]).toBe(ZEEPKIST_PACKET_ID.levelLoaded)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.skipToLevel)
 		expect(sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)).toBeLessThan(
 			sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.skipToLevel),
 		)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.levelData)
+		expect(sentPacketIds.lastIndexOf(ZEEPKIST_PACKET_ID.levelLoaded)).toBeGreaterThan(
+			sentPacketIds.indexOf(ZEEPKIST_PACKET_ID.levelData),
+		)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyVisibility)
 	} finally {
 		await host.stop()

@@ -4,6 +4,7 @@ import {
 	changeLobbyPlaylistPacket,
 	createLobbyPacket,
 	levelDataPacket,
+	levelLoadedPacket,
 	parseGameHostPacket,
 	parseMasterRoomResponse,
 	skipToLevelPacket,
@@ -32,6 +33,7 @@ describe('Track of the Week packet codecs', () => {
 			changeLobbyPlaylistIndex: 18192,
 			changeLobbyVisibility: 3826,
 			levelData: 22792,
+			levelLoaded: 29603,
 			skipToLevel: 63876,
 		})
 	})
@@ -83,6 +85,10 @@ describe('Track of the Week packet codecs', () => {
 		expect(packet.readUInt64()).toBe(123n)
 		expect(packet.readInt32()).toBe(3)
 		expect([...packet.readBytes(3)]).toEqual([1, 2, 3])
+
+		const loaded = new BitReader(levelLoadedPacket())
+		expect(loaded.readUInt16()).toBe(ZEEPKIST_PACKET_ID.levelLoaded)
+		expect(loaded.remainingBits).toBe(0)
 	})
 
 	test('parses master assignment responses', () => {

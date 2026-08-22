@@ -5,6 +5,7 @@ import {
 	changeLobbyVisibilityPacket,
 	LidgrenClient,
 	levelDataPacket,
+	levelLoadedPacket,
 	type OnlineLevel,
 	parseGameHostPacket,
 	skipToLevelPacket,
@@ -179,6 +180,7 @@ export class TotwLobbyHost {
 			}
 			this.roomConnected = true
 			this.ownsRoom = true
+			await client.sendReliableOrdered(levelLoadedPacket())
 			await this.sendPlaylist(client, true)
 			console.info(`TotW lobby host connected for tournament ${this.asset?.idTournament}.`)
 			const assetTimer = setInterval(() => {
@@ -247,19 +249,28 @@ export class TotwLobbyHost {
 		await client.sendReliableOrdered(
 			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
 		)
-		if (skipToCurrent) await client.sendReliableOrdered(skipToLevelPacket(asset.level))
+		console.info(`TotW lobby playlist sent for tournament ${asset.idTournament}.`)
+		if (skipToCurrent) {
+			await client.sendReliableOrdered(skipToLevelPacket(asset.level))
+			console.info(`TotW lobby level switch requested for tournament ${asset.idTournament}.`)
+		}
 	}
 
-	private sendLevelData(client: LidgrenClient, request: { uid: string; workshopId: bigint }) {
+	private async sendLevelData(
+		client: LidgrenClient,
+		request: { uid: string; workshopId: bigint },
+	) {
 		const asset = this.asset
 		if (
 			!asset ||
 			request.uid !== asset.level.uid ||
 			request.workshopId !== asset.level.workshopId
 		) {
-			return Promise.resolve()
+			return
 		}
-		return client.sendReliableOrdered(levelDataPacket(asset.level, asset.compressedData))
+		await client.sendReliableOrdered(levelDataPacket(asset.level, asset.compressedData))
+		await client.sendReliableOrdered(levelLoadedPacket())
+		console.info(`TotW lobby level data supplied for tournament ${asset.idTournament}.`)
 	}
 
 	private async requestAssignment(joinId?: string): Promise<RoomAssignment> {
