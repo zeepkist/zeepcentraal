@@ -3,10 +3,13 @@ import {
 	BitWriter,
 	changeLobbyPlaylistPacket,
 	changeLobbyVisibilityPacket,
+	type GameHostPacket,
 	LidgrenClient,
 	levelDataPacket,
+	levelDataRequestPacket,
 	levelLoadedPacket,
 	type OnlineLevel,
+	type OnlinePlaylist,
 	parseGameHostPacket,
 	skipToLevelPacket,
 } from '@zeepkist/core/zeepnet'
@@ -21,7 +24,7 @@ import { getMeter } from '@zeepkist/telemetry'
 
 const MANAGED_LOBBY_KEY = 'totw'
 const INITIAL_STATE_TIMEOUT_MS = 20_000
-const GAME_PROPERTIES_TIMEOUT_MS = 30_000
+const PROTOCOL_TRANSITION_TIMEOUT_MS = 30_000
 const MAX_ASSET_BYTES = 64 * 1024 * 1024
 const meter = getMeter('zeepcentraal-lobby-host')
 const assignmentLatency = meter.createHistogram('zeepkist.totw.assignment.duration', {
@@ -59,9 +62,17 @@ interface LoadedAsset {
 	level: OnlineLevel
 }
 
-interface ConfirmedGameProperties {
-	uid: string
-	workshopId: bigint
+type GamePropertiesPacket = Extract<GameHostPacket, { type: 'game-properties' }>
+type LevelDataResponsePacket = Extract<GameHostPacket, { type: 'level-data' }>
+type LevelRequestPacket = Extract<GameHostPacket, { type: 'level-request' }>
+type PlaylistIndexPacket = Extract<GameHostPacket, { type: 'playlist-index' }>
+
+interface RoomInboxes {
+	gameProperties: PacketInbox<GamePropertiesPacket>
+	levelData: PacketInbox<LevelDataResponsePacket>
+	levelRequests: PacketInbox<LevelRequestPacket>
+	playlistIndices: PacketInbox<PlaylistIndexPacket>
+	playlists: PacketInbox<OnlinePlaylist>
 }
 
 export class TotwLobbyHost {
@@ -70,11 +81,12 @@ export class TotwLobbyHost {
 	private asset: LoadedAsset | undefined
 	private refreshPromise: Promise<void> | undefined
 	private roomConnected = false
+	private roomReady = false
 	private ownsRoom = false
 
 	constructor(
 		private readonly config: HostConfig,
-		private readonly gamePropertiesTimeoutMs = GAME_PROPERTIES_TIMEOUT_MS,
+		private readonly protocolTransitionTimeoutMs = PROTOCOL_TRANSITION_TIMEOUT_MS,
 	) {
 		meter.createObservableGauge('zeepkist.totw.asset.ready').addCallback((result) =>
 			result.observe(this.asset ? 1 : 0, {
@@ -87,6 +99,9 @@ export class TotwLobbyHost {
 		meter
 			.createObservableGauge('zeepkist.totw.room.connected')
 			.addCallback((result) => result.observe(this.roomConnected ? 1 : 0))
+		meter
+			.createObservableGauge('zeepkist.totw.room.ready')
+			.addCallback((result) => result.observe(this.roomReady ? 1 : 0))
 		meter
 			.createObservableGauge('zeepkist.totw.host.owned')
 			.addCallback((result) => result.observe(this.ownsRoom ? 1 : 0))
@@ -139,36 +154,16 @@ export class TotwLobbyHost {
 		const initialState = new Promise<boolean>((resolve) => {
 			initialResolve = resolve
 		})
-		const gameProperties = new GamePropertiesInbox()
-		let levelTransferPromise: Promise<void> | undefined
-		let levelTransferFailure: Error | undefined
-		let activeLevelRequest: { uid: string; workshopId: bigint } | undefined
-		let pendingLevelRequest: { uid: string; workshopId: bigint } | undefined
+		const inboxes: RoomInboxes = {
+			gameProperties: new PacketInbox(),
+			levelData: new PacketInbox(2),
+			levelRequests: new PacketInbox(),
+			playlistIndices: new PacketInbox(),
+			playlists: new PacketInbox(),
+		}
+		const initialPlaylistCursor = inboxes.playlists.mark()
 		let lostOwnership = false
 		let client: LidgrenClient
-		const startLevelTransfer = (request: { uid: string; workshopId: bigint }) => {
-			if (levelTransferPromise) {
-				if (
-					activeLevelRequest?.uid !== request.uid ||
-					activeLevelRequest.workshopId !== request.workshopId
-				) {
-					pendingLevelRequest = request
-				}
-				return
-			}
-			activeLevelRequest = request
-			const transfer = this.sendLevelData(client, request, gameProperties).catch((error) => {
-				levelTransferFailure = asError(error)
-				void client.close('Failed to complete lobby level transfer')
-			})
-			levelTransferPromise = transfer.finally(() => {
-				levelTransferPromise = undefined
-				activeLevelRequest = undefined
-				const pending = pendingLevelRequest
-				pendingLevelRequest = undefined
-				if (!levelTransferFailure && pending) startLevelTransfer(pending)
-			})
-		}
 		client = new LidgrenClient({
 			applicationIdentifier: 'GameServer',
 			host: assignment.host,
@@ -192,18 +187,29 @@ export class TotwLobbyHost {
 						}
 						return
 					}
-					if (packet.type === 'playlist-index' && packet.selectNext) {
-						void this.sendPlaylist(client).catch(() =>
-							client.close('Failed to update lobby playlist'),
-						)
+					if (packet.type === 'playlist') {
+						inboxes.playlists.push(packet)
+						return
+					}
+					if (packet.type === 'playlist-index') {
+						inboxes.playlistIndices.push(packet)
+						if (packet.selectNext && this.roomReady) {
+							void this.resendPlaylist(client).catch(() =>
+								client.close('Failed to update lobby playlist'),
+							)
+						}
 						return
 					}
 					if (packet.type === 'game-properties') {
-						gameProperties.push(packet)
+						inboxes.gameProperties.push(packet)
 						return
 					}
 					if (packet.type === 'level-request') {
-						startLevelTransfer(packet)
+						inboxes.levelRequests.push(packet)
+						return
+					}
+					if (packet.type === 'level-data') {
+						inboxes.levelData.push(packet)
 					}
 				} catch {
 					void client.close('Invalid game server packet')
@@ -213,33 +219,73 @@ export class TotwLobbyHost {
 		this.client = client
 		try {
 			await client.connect()
-			const isHost = await withTimeout(initialState, INITIAL_STATE_TIMEOUT_MS)
+			const isHost = await withTimeout(
+				initialState,
+				INITIAL_STATE_TIMEOUT_MS,
+				'Initial game state timed out',
+			)
 			if (!isHost) {
 				await clearManagedLobbyJoinId(MANAGED_LOBBY_KEY)
 				throw new Error('Managed account no longer owns assigned room')
 			}
 			this.roomConnected = true
 			this.ownsRoom = true
+			await inboxes.playlists.waitForAfter(
+				initialPlaylistCursor,
+				() => true,
+				this.protocolTransitionTimeoutMs,
+				'Initial lobby playlist timed out',
+			)
+			console.info(
+				`TotW lobby initial playlist received for tournament ${this.asset?.idTournament}.`,
+			)
+			const postReadinessPlaylistCursor = inboxes.playlists.mark()
 			await client.sendReliableOrdered(levelLoadedPacket())
 			console.info(
 				`TotW lobby initial level readiness acknowledged for tournament ${this.asset?.idTournament}.`,
 			)
-			await this.sendPlaylist(client, true)
-			console.info(`TotW lobby host connected for tournament ${this.asset?.idTournament}.`)
+			await inboxes.playlists.waitForAfter(
+				postReadinessPlaylistCursor,
+				() => true,
+				this.protocolTransitionTimeoutMs,
+				'Post-readiness lobby playlist timed out',
+			)
+			console.info(
+				`TotW lobby post-readiness playlist synchronized for tournament ${this.asset?.idTournament}.`,
+			)
+			let activeAssetHash: string | undefined
+			let activationQueue = Promise.resolve()
+			const activate = (asset: LoadedAsset) => {
+				const activation = activationQueue.then(async () => {
+					if (asset.contentSha256 === activeAssetHash) return
+					this.roomReady = false
+					await this.activateAsset(client, asset, inboxes)
+					activeAssetHash = asset.contentSha256
+					this.roomReady = true
+				})
+				activationQueue = activation.catch(() => {})
+				return activation
+			}
+			const initialAsset = this.asset
+			if (!initialAsset) throw new Error('Tournament asset became unavailable')
+			await activate(initialAsset)
+			console.info(`TotW lobby host connected for tournament ${initialAsset.idTournament}.`)
 			const assetTimer = setInterval(() => {
-				void this.refreshAndPublish(client).catch((error) => {
+				void this.refreshAndPublish(activate).catch((error) => {
 					console.warn(`TotW lobby asset refresh failed: ${safeError(error)}`)
+					void client.close('Failed to update lobby tournament asset')
 				})
 			}, this.config.assetPollMs)
 			try {
 				await client.waitForClose()
-				if (levelTransferFailure) throw levelTransferFailure
 			} finally {
 				clearInterval(assetTimer)
 			}
 		} finally {
-			gameProperties.rejectAll(new Error('Game server connection closed'))
+			for (const inbox of Object.values(inboxes))
+				inbox.rejectAll(new Error('Game server connection closed'))
 			this.roomConnected = false
+			this.roomReady = false
 			this.ownsRoom = false
 			if (this.client === client) this.client = undefined
 			await client.close()
@@ -247,11 +293,10 @@ export class TotwLobbyHost {
 		}
 	}
 
-	private async refreshAndPublish(client: LidgrenClient) {
+	private async refreshAndPublish(activate: (asset: LoadedAsset) => Promise<void>) {
 		const previousHash = this.asset?.contentSha256
 		await this.refreshAsset()
-		if (this.asset && this.asset.contentSha256 !== previousHash)
-			await this.sendPlaylist(client, true)
+		if (this.asset && this.asset.contentSha256 !== previousHash) await activate(this.asset)
 	}
 
 	private async refreshAsset() {
@@ -288,52 +333,123 @@ export class TotwLobbyHost {
 		console.info(`TotW lobby asset ready for tournament ${metadata.idTournament}.`)
 	}
 
-	private async sendPlaylist(client: LidgrenClient, skipToCurrent = false) {
+	private async resendPlaylist(client: LidgrenClient) {
 		const asset = this.asset
 		if (!asset) return
 		await client.sendReliableOrdered(
 			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
 		)
-		console.info(`TotW lobby playlist sent for tournament ${asset.idTournament}.`)
-		if (skipToCurrent) {
-			await client.sendReliableOrdered(skipToLevelPacket(asset.level))
-			console.info(`TotW lobby level switch requested for tournament ${asset.idTournament}.`)
-		}
 	}
 
-	private async sendLevelData(
-		client: LidgrenClient,
-		request: { uid: string; workshopId: bigint },
-		gameProperties: GamePropertiesInbox,
-	) {
-		const asset = this.asset
-		if (
-			!asset ||
-			request.uid !== asset.level.uid ||
-			request.workshopId !== asset.level.workshopId
-		) {
-			return
-		}
-		const confirmedProperties = gameProperties.waitFor(asset.level.uid, asset.level.workshopId)
-		try {
-			await client.sendReliableOrdered(levelDataPacket(asset.level, asset.compressedData))
-			console.info(
-				`TotW lobby level data uploaded for tournament ${asset.idTournament} (${asset.compressedData.length} bytes).`,
-			)
-			gameProperties.startTimeout(this.gamePropertiesTimeoutMs)
-			await confirmedProperties
-			console.info(
-				`TotW lobby game properties confirmed for tournament ${asset.idTournament}.`,
-			)
-			await client.sendReliableOrdered(levelLoadedPacket())
-			console.info(
-				`TotW lobby level loaded acknowledgement sent for tournament ${asset.idTournament}.`,
-			)
-		} catch (error) {
-			gameProperties.rejectAll(asError(error))
-			void confirmedProperties.catch(() => {})
-			throw error
-		}
+	private async activateAsset(client: LidgrenClient, asset: LoadedAsset, inboxes: RoomInboxes) {
+		const playlistCursor = inboxes.playlists.mark()
+		const playlistIndexCursor = inboxes.playlistIndices.mark()
+		await client.sendReliableOrdered(
+			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
+		)
+		console.info(`TotW lobby playlist sent for tournament ${asset.idTournament}.`)
+		await Promise.all([
+			inboxes.playlists.waitForAfter(
+				playlistCursor,
+				(playlist) => this.matchesPlaylist(playlist, asset),
+				this.protocolTransitionTimeoutMs,
+				'Lobby playlist confirmation timed out',
+			),
+			inboxes.playlistIndices.waitForAfter(
+				playlistIndexCursor,
+				(index) => index.currentIndex === 0 && index.nextIndex === 0 && !index.selectNext,
+				this.protocolTransitionTimeoutMs,
+				'Lobby playlist index confirmation timed out',
+			),
+		])
+		console.info(`TotW lobby playlist accepted for tournament ${asset.idTournament}.`)
+
+		const levelRequestCursor = inboxes.levelRequests.mark()
+		await client.sendReliableOrdered(
+			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
+		)
+		await client.sendReliableOrdered(skipToLevelPacket(asset.level))
+		console.info(`TotW lobby level switch requested for tournament ${asset.idTournament}.`)
+		await inboxes.levelRequests.waitForAfter(
+			levelRequestCursor,
+			(request) =>
+				request.uid === asset.level.uid && request.workshopId === asset.level.workshopId,
+			this.protocolTransitionTimeoutMs,
+			'Lobby level-data request timed out',
+		)
+		console.info(`TotW lobby level-data request received for tournament ${asset.idTournament}.`)
+
+		const gamePropertiesCursor = inboxes.gameProperties.mark()
+		await client.sendReliableOrdered(levelDataPacket(asset.level, asset.compressedData))
+		console.info(
+			`TotW lobby level data uploaded for tournament ${asset.idTournament} (${asset.compressedData.length} bytes).`,
+		)
+		await inboxes.gameProperties.waitForAfter(
+			gamePropertiesCursor,
+			(properties) =>
+				properties.uid === asset.level.uid &&
+				properties.workshopId === asset.level.workshopId,
+			this.protocolTransitionTimeoutMs,
+			'Game server game properties confirmation timed out',
+		)
+		console.info(`TotW lobby game properties confirmed for tournament ${asset.idTournament}.`)
+
+		const levelDataCursor = inboxes.levelData.mark()
+		await client.sendReliableOrdered(levelDataRequestPacket())
+		console.info(`TotW lobby level data requested for tournament ${asset.idTournament}.`)
+		const returnedLevel = await inboxes.levelData.waitForAfter(
+			levelDataCursor,
+			() => true,
+			this.protocolTransitionTimeoutMs,
+			'Game server level-data response timed out',
+		)
+		this.verifyReturnedLevelData(returnedLevel, asset)
+		console.info(
+			`TotW lobby returned level data verified for tournament ${asset.idTournament}.`,
+		)
+
+		const postLoadedPlaylistCursor = inboxes.playlists.mark()
+		await client.sendReliableOrdered(levelLoadedPacket())
+		console.info(
+			`TotW lobby level loaded acknowledgement sent for tournament ${asset.idTournament}.`,
+		)
+		await inboxes.playlists.waitForAfter(
+			postLoadedPlaylistCursor,
+			(playlist) => this.matchesPlaylist(playlist, asset),
+			this.protocolTransitionTimeoutMs,
+			'Post-load lobby playlist confirmation timed out',
+		)
+		console.info(`TotW lobby ready for tournament ${asset.idTournament}.`)
+	}
+
+	private matchesPlaylist(playlist: OnlinePlaylist, asset: LoadedAsset) {
+		const level = playlist.levels[0]
+		return (
+			playlist.roundTime === this.config.roundTimeSeconds &&
+			!playlist.isRandom &&
+			playlist.currentIndex === 0 &&
+			playlist.nextIndex === 0 &&
+			playlist.wasSynced &&
+			playlist.originalPlaylistLength === 1 &&
+			playlist.levels.length === 1 &&
+			level?.uid === asset.level.uid &&
+			level.workshopId === asset.level.workshopId &&
+			level.name === asset.level.name &&
+			level.collaborators === asset.level.collaborators &&
+			level.overrideAuthorName === asset.level.overrideAuthorName &&
+			level.author === asset.level.author &&
+			level.played
+		)
+	}
+
+	private verifyReturnedLevelData(packet: LevelDataResponsePacket, asset: LoadedAsset) {
+		if (packet.name !== asset.level.name)
+			throw new Error('Returned tournament level name mismatch')
+		if (packet.data.length !== asset.compressedData.length)
+			throw new Error('Returned tournament level size mismatch')
+		const sha256 = createHash('sha256').update(packet.data).digest('hex')
+		if (sha256 !== asset.contentSha256)
+			throw new Error('Returned tournament level hash mismatch')
 	}
 
 	private async requestAssignment(joinId?: string): Promise<RoomAssignment> {
@@ -381,16 +497,13 @@ function parseAssignment(value: unknown): RoomAssignment {
 	return assignment as RoomAssignment
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number) {
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
 	let timer: ReturnType<typeof setTimeout> | undefined
 	try {
 		return await Promise.race([
 			promise,
 			new Promise<never>((_, reject) => {
-				timer = setTimeout(
-					() => reject(new Error('Initial game state timed out')),
-					timeoutMs,
-				)
+				timer = setTimeout(() => reject(new Error(message)), timeoutMs)
 			}),
 		])
 	} finally {
@@ -412,53 +525,79 @@ function safeError(error: unknown) {
 		.slice(0, 200)
 }
 
-function asError(error: unknown) {
-	return error instanceof Error ? error : new Error('Unknown level transfer error')
+interface InboxEvent<T> {
+	sequence: number
+	value: T
 }
 
-class GamePropertiesInbox {
-	private waiter:
-		| {
-				reject: (error: Error) => void
-				resolve: (properties: ConfirmedGameProperties) => void
-				timer: ReturnType<typeof setTimeout> | undefined
-				uid: string
-				workshopId: bigint
-		  }
-		| undefined
+interface InboxWaiter<T> {
+	afterSequence: number
+	matches: (value: T) => boolean
+	reject: (error: Error) => void
+	resolve: (value: T) => void
+	timer: ReturnType<typeof setTimeout>
+}
 
-	waitFor(uid: string, workshopId: bigint) {
-		if (this.waiter)
-			return Promise.reject(new Error('Game properties confirmation already pending'))
-		return new Promise<ConfirmedGameProperties>((resolve, reject) => {
-			this.waiter = { reject, resolve, timer: undefined, uid, workshopId }
+class PacketInbox<T> {
+	private sequence = 0
+	private readonly events: InboxEvent<T>[] = []
+	private readonly waiters = new Set<InboxWaiter<T>>()
+
+	constructor(private readonly maxEvents = 8) {}
+
+	mark() {
+		return this.sequence
+	}
+
+	waitForAfter(
+		afterSequence: number,
+		matches: (value: T) => boolean,
+		timeoutMs: number,
+		timeoutMessage: string,
+	) {
+		const existingIndex = this.events.findIndex(
+			(event) => event.sequence > afterSequence && matches(event.value),
+		)
+		if (existingIndex >= 0) {
+			const [existing] = this.events.splice(existingIndex, 1)
+			if (existing) return Promise.resolve(existing.value)
+		}
+		return new Promise<T>((resolve, reject) => {
+			const waiter: InboxWaiter<T> = {
+				afterSequence,
+				matches,
+				reject,
+				resolve,
+				timer: setTimeout(() => {
+					this.waiters.delete(waiter)
+					reject(new Error(timeoutMessage))
+				}, timeoutMs),
+			}
+			this.waiters.add(waiter)
 		})
 	}
 
-	startTimeout(timeoutMs: number) {
-		const waiter = this.waiter
-		if (!waiter || waiter.timer) return
-		waiter.timer = setTimeout(() => {
-			if (this.waiter !== waiter) return
-			this.waiter = undefined
-			waiter.reject(new Error('Game server game properties confirmation timed out'))
-		}, timeoutMs)
-	}
-
-	push(properties: ConfirmedGameProperties) {
-		const waiter = this.waiter
-		if (!waiter || waiter.uid !== properties.uid || waiter.workshopId !== properties.workshopId)
-			return
-		if (waiter.timer) clearTimeout(waiter.timer)
-		this.waiter = undefined
-		waiter.resolve(properties)
+	push(value: T) {
+		const event = { sequence: ++this.sequence, value }
+		let consumed = false
+		for (const waiter of this.waiters) {
+			if (event.sequence <= waiter.afterSequence || !waiter.matches(value)) continue
+			clearTimeout(waiter.timer)
+			this.waiters.delete(waiter)
+			waiter.resolve(value)
+			consumed = true
+		}
+		if (consumed) return
+		this.events.push(event)
+		if (this.events.length > this.maxEvents) this.events.shift()
 	}
 
 	rejectAll(error: Error) {
-		const waiter = this.waiter
-		if (!waiter) return
-		if (waiter.timer) clearTimeout(waiter.timer)
-		this.waiter = undefined
-		waiter.reject(error)
+		for (const waiter of this.waiters) {
+			clearTimeout(waiter.timer)
+			waiter.reject(error)
+		}
+		this.waiters.clear()
+		this.events.length = 0
 	}
 }

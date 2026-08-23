@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test'
+import { createHash } from 'node:crypto'
 import { BitReader, BitWriter } from './binary'
 import {
 	changeLobbyPlaylistPacket,
 	createLobbyPacket,
 	levelDataPacket,
+	levelDataRequestPacket,
 	levelLoadedPacket,
 	parseGameHostPacket,
 	parseMasterRoomResponse,
@@ -75,6 +77,29 @@ describe('Track of the Week packet codecs', () => {
 		expect(skip.readUInt16()).toBe(ZEEPKIST_PACKET_ID.skipToLevel)
 		expect(skip.readString()).toBe('uid')
 		expect(skip.readUInt64()).toBe(123n)
+	})
+
+	test('matches captured V18 host-transition packet bytes', () => {
+		const capturedLevel = {
+			author: 'maxie12',
+			collaborators: '',
+			name: 'ZSL - Cube Maintenance',
+			overrideAuthorName: '',
+			uid: 'Six Cubed-maxie12-01KDKQ3K2KA14WK8RP9AD61TVQ',
+			workshopId: 3633729201n,
+		}
+		expect(Buffer.from(changeLobbyPlaylistPacket(capturedLevel, 720)).toString('base64')).toBe(
+			'susAAAAAAICGQAAAAAAAAAAAAgAAAFim0vBAhurEysha2sLw0spiZFpgYpaIlqJmlmSWgmJorpZwpKBygohsYqisomKdLLEBAAAALLSmmEBaQIbqxMpAmsLS3OjK3MLcxsoAAA7awvDSymJkDgAAAAA=',
+		)
+		expect(Buffer.from(skipToLevelPacket(capturedLevel)).toString('base64')).toBe(
+			'hPksU2l4IEN1YmVkLW1heGllMTItMDFLREtRM0syS0ExNFdLOFJQOUFENjFUVlGxTpbYAAAAAA==',
+		)
+		expect(Buffer.from(levelLoadedPacket()).toString('base64')).toBe('o3M=')
+		const request = levelDataRequestPacket()
+		expect(request).toHaveLength(20)
+		expect(createHash('sha256').update(request).digest('hex')).toBe(
+			'f0aad2c1e4401575ab7f47129eabab5d67914c88b21fd123f11bc9c8fad19997',
+		)
 	})
 
 	test('serializes host level response as packet type 2', () => {
@@ -166,6 +191,61 @@ describe('Track of the Week packet codecs', () => {
 		})
 	})
 
+	test('parses playlist broadcasts and returned level data', () => {
+		const playlist = packet(ZEEPKIST_PACKET_ID.changeLobbyPlaylist, (writer) => {
+			writer.writeFloat64(900)
+			writer.writeBoolean(false)
+			writer.writeInt32(0)
+			writer.writeInt32(0)
+			writer.writeInt32(1)
+			writer.writeString('uid')
+			writer.writeUInt64(123n)
+			writer.writeString('Track')
+			writer.writeString('Collaborator')
+			writer.writeString('Override')
+			writer.writeString('Author')
+			writer.writeBoolean(true)
+			writer.writeBoolean(true)
+			writer.writeInt32(1)
+		})
+		expect(parseGameHostPacket(playlist, 0n)).toEqual({
+			type: 'playlist',
+			currentIndex: 0,
+			isRandom: false,
+			levels: [
+				{
+					author: 'Author',
+					collaborators: 'Collaborator',
+					name: 'Track',
+					overrideAuthorName: 'Override',
+					played: true,
+					uid: 'uid',
+					workshopId: 123n,
+				},
+			],
+			nextIndex: 0,
+			originalPlaylistLength: 1,
+			roundTime: 900,
+			wasSynced: true,
+		})
+
+		const levelData = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
+			writer.writeInt32(1)
+			writer.writeString('Track')
+			writer.writeString('')
+			writer.writeUInt64(0n)
+			writer.writeInt32(3)
+			writer.writeBytes(Uint8Array.of(1, 2, 3))
+		})
+		expect(parseGameHostPacket(levelData, 0n)).toEqual({
+			type: 'level-data',
+			data: Uint8Array.of(1, 2, 3),
+			name: 'Track',
+			uid: '',
+			workshopId: 0n,
+		})
+	})
+
 	test('bounds malformed level request data', () => {
 		const oversized = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
 			writer.writeInt32(3)
@@ -195,6 +275,28 @@ describe('Track of the Week packet codecs', () => {
 			writer.writeUInt64(123n)
 		})
 		expect(() => parseGameHostPacket(properties, 0n)).toThrow('String exceeds 4096 bytes')
+	})
+
+	test('bounds malformed playlists', () => {
+		const oversized = packet(ZEEPKIST_PACKET_ID.changeLobbyPlaylist, (writer) => {
+			writer.writeFloat64(900)
+			writer.writeBoolean(false)
+			writer.writeInt32(0)
+			writer.writeInt32(0)
+			writer.writeInt32(1002)
+		})
+		expect(() => parseGameHostPacket(oversized, 0n)).toThrow('Invalid playlist length')
+
+		const truncated = packet(ZEEPKIST_PACKET_ID.changeLobbyPlaylist, (writer) => {
+			writer.writeFloat64(900)
+			writer.writeBoolean(false)
+			writer.writeInt32(0)
+			writer.writeInt32(0)
+			writer.writeInt32(1)
+		})
+		expect(() => parseGameHostPacket(truncated, 0n)).toThrow(
+			'Packet ended before requested bits',
+		)
 	})
 })
 

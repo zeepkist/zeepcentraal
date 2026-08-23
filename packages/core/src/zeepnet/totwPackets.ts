@@ -25,12 +25,27 @@ export interface OnlineLevel {
 	workshopId: bigint
 }
 
+export interface OnlinePlaylistLevel extends OnlineLevel {
+	played: boolean
+}
+
+export interface OnlinePlaylist {
+	currentIndex: number
+	isRandom: boolean
+	levels: OnlinePlaylistLevel[]
+	nextIndex: number
+	originalPlaylistLength: number
+	roundTime: number
+	wasSynced: boolean
+}
+
 export type MasterRoomResponse =
 	| { type: 'create'; result: number; joinId: string }
 	| { type: 'join'; result: number; host: string; port: number }
 
 export type GameHostPacket =
 	| { type: 'initial'; isHost: boolean }
+	| ({ type: 'playlist' } & OnlinePlaylist)
 	| {
 			type: 'game-properties'
 			levelLoadedAt: number
@@ -40,7 +55,17 @@ export type GameHostPacket =
 	  }
 	| { type: 'master'; uid: number }
 	| { type: 'playlist-index'; currentIndex: number; nextIndex: number; selectNext: boolean }
+	| {
+			data: Uint8Array
+			name: string
+			type: 'level-data'
+			uid: string
+			workshopId: bigint
+	  }
 	| { type: 'level-request'; workshopId: bigint; uid: string }
+
+const MAX_LEVEL_DATA_BYTES = 64 * 1024 * 1024
+const MAX_PLAYLIST_LEVELS = 1001
 
 export function packetId(fullName: string) {
 	let hash = 23
@@ -109,6 +134,16 @@ export function levelDataPacket(level: OnlineLevel, compressedData: Uint8Array) 
 	})
 }
 
+export function levelDataRequestPacket() {
+	return writePacket(ZEEPKIST_PACKET_ID.levelData, (writer) => {
+		writer.writeInt32(0)
+		writer.writeString('')
+		writer.writeString('')
+		writer.writeUInt64(0n)
+		writer.writeInt32(0)
+	})
+}
+
 export function levelLoadedPacket() {
 	return writePacket(ZEEPKIST_PACKET_ID.levelLoaded, () => {})
 }
@@ -139,6 +174,9 @@ export function parseGameHostPacket(
 	if (id === ZEEPKIST_PACKET_ID.initialState) {
 		return { type: 'initial', isHost: readInitialHost(reader, localSteamId) }
 	}
+	if (id === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
+		return { type: 'playlist', ...readPlaylist(reader) }
+	}
 	if (id === ZEEPKIST_PACKET_ID.changeLobbyGameProperties) {
 		return {
 			type: 'game-properties',
@@ -161,19 +199,53 @@ export function parseGameHostPacket(
 	}
 	if (id === ZEEPKIST_PACKET_ID.levelData) {
 		const packetType = reader.readInt32()
-		reader.readString(4096)
+		const name = reader.readString(4096)
 		const uid = reader.readString(4096)
 		const workshopId = reader.readUInt64()
 		const byteLength = reader.readInt32()
 		if (
 			byteLength < 0 ||
-			byteLength > 64 * 1024 * 1024 ||
+			byteLength > MAX_LEVEL_DATA_BYTES ||
 			byteLength * 8 > reader.remainingBits
 		)
 			throw new Error('Invalid level payload')
+		const data = reader.readBytes(byteLength)
+		if (packetType === 1) return { type: 'level-data', data, name, uid, workshopId }
 		return packetType === 3 ? { type: 'level-request', workshopId, uid } : undefined
 	}
 	return undefined
+}
+
+function readPlaylist(reader: BitReader): OnlinePlaylist {
+	const roundTime = reader.readFloat64()
+	const isRandom = reader.readBoolean()
+	const currentIndex = reader.readInt32()
+	const nextIndex = reader.readInt32()
+	const count = reader.readInt32()
+	if (count < 0 || count > MAX_PLAYLIST_LEVELS) throw new Error('Invalid playlist length')
+	const levels: OnlinePlaylistLevel[] = []
+	for (let index = 0; index < count; index++) {
+		levels.push({
+			uid: reader.readString(4096),
+			workshopId: reader.readUInt64(),
+			name: reader.readString(4096),
+			collaborators: reader.readString(4096),
+			overrideAuthorName: reader.readString(4096),
+			author: reader.readString(4096),
+			played: reader.readBoolean(),
+		})
+	}
+	const wasSynced = reader.readBoolean()
+	const originalPlaylistLength = reader.readInt32()
+	return {
+		currentIndex,
+		isRandom,
+		levels,
+		nextIndex,
+		originalPlaylistLength,
+		roundTime,
+		wasSynced,
+	}
 }
 
 function readInitialHost(reader: BitReader, localSteamId: bigint) {
