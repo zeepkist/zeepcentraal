@@ -97,12 +97,9 @@ export function sendProtocolError(state: ProtocolState, id: string | undefined, 
 	})
 }
 
-export function sendResult(state: ProtocolState, id: string, payload: unknown) {
-	send(state, {
-		id,
-		type: state.protocol === 'subscriptions-transport-ws' ? 'data' : 'next',
-		payload,
-	})
+export function sendSerializedResult(state: ProtocolState, id: string, payload: string) {
+	const type = state.protocol === 'subscriptions-transport-ws' ? 'data' : 'next'
+	state.ws.send(`{"id":${JSON.stringify(id)},"type":"${type}","payload":${payload}}`)
 }
 
 export function resolveProtocol(request: Request): WebSocketProtocol {

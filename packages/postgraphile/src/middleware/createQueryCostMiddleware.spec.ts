@@ -5,11 +5,11 @@ describe('evaluateQueryCost', () => {
 	test('accepts cheap query and returns query cost', async () => {
 		const result = await evaluateQueryCost({ query: '{ level { id } }' }, 5000, 100)
 
+		expect(result.kind).toBe('accepted')
 		expect(result.cost).toBeDefined()
-		expect(result.response).toBeUndefined()
 	})
 
-	test('rejects expensive query with original error payload shape', async () => {
+	test('rejects expensive query with transport-neutral error details', async () => {
 		const result = await evaluateQueryCost(
 			{
 				query: '{ levels(first: 1000) { nodes { records(first: 1000) { nodes { id } } } } }',
@@ -18,16 +18,12 @@ describe('evaluateQueryCost', () => {
 			100,
 		)
 
-		expect(result.cost).toBeUndefined()
-		expect(result.response?.status).toBe(400)
-		expect(result.response?.headers.get('X-Query-Cost')).toBeDefined()
-		expect(await result.response?.json()).toEqual({
-			errors: [
-				{
-					message: 'Query Cost Exceeded',
-					details: expect.stringContaining('Estimated cost:'),
-				},
-			],
+		expect(result).toEqual({
+			kind: 'rejected',
+			reason: 'cost',
+			cost: expect.any(Number),
+			message: 'Query Cost Exceeded',
+			details: expect.stringContaining('Estimated cost:'),
 		})
 	})
 
@@ -38,21 +34,53 @@ describe('evaluateQueryCost', () => {
 			100,
 		)
 
-		expect(result).toEqual({})
+		expect(result).toEqual({ kind: 'introspection' })
 	})
 
-	test('returns 400 for invalid GraphQL syntax', async () => {
+	test('returns transport-neutral rejection for invalid GraphQL syntax', async () => {
 		const result = await evaluateQueryCost({ query: '{' }, 5000, 100)
 
-		expect(result.response?.status).toBe(400)
-		expect(await result.response?.json()).toEqual({
-			errors: [
-				{
-					message: 'Invalid GraphQL Syntax',
-					details: expect.any(String),
-				},
-			],
+		expect(result).toEqual({
+			kind: 'rejected',
+			reason: 'syntax',
+			message: 'Invalid GraphQL Syntax',
+			details: expect.any(String),
 		})
+	})
+
+	test('charges non-zero cost for totalCount collections requested with first zero', async () => {
+		const result = await evaluateQueryCost(
+			{
+				query: `
+					query Metrics {
+						records(first: 0) { totalCount }
+						votes(first: 0) { totalCount }
+					}
+				`,
+				operationName: 'Metrics',
+			},
+			5000,
+			100,
+		)
+
+		expect(result.kind).toBe('accepted')
+		expect(result.cost).toBeGreaterThan(2)
+	})
+
+	test('detects introspection nested through fields and fragments', async () => {
+		const result = await evaluateQueryCost(
+			{
+				query: `
+					subscription SchemaLive { query { ...SchemaFields } }
+					fragment SchemaFields on Query { __schema { queryType { name } } }
+				`,
+				operationName: 'SchemaLive',
+			},
+			5000,
+			100,
+		)
+
+		expect(result).toEqual({ kind: 'introspection' })
 	})
 
 	test('caches repeated query cost evaluations', async () => {

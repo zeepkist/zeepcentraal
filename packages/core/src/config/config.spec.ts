@@ -242,7 +242,9 @@ test('postgraphile config defaults bounded pools, caches, and live operations', 
 	expect(config.databasePoolMax).toBe(6)
 	expect(config.cacheMaxEntries).toBe(128)
 	expect(config.operationPlansPerOperation).toBe(8)
-	expect(config.liveQueries.maxOperations).toBe(256)
+	expect(config.liveQueries.maxOperations).toBe(512)
+	expect(config.liveQueries.maxOperationsPerConnection).toBe(16)
+	expect(config.liveQueries.maxConcurrentExecutions).toBe(4)
 })
 
 test('postgraphile config accepts custom runtime memory controls', () => {
@@ -252,12 +254,16 @@ test('postgraphile config accepts custom runtime memory controls', () => {
 		POSTGRAPHILE_CACHE_MAX_ENTRIES: '64',
 		POSTGRAPHILE_OPERATION_PLANS_PER_OPERATION: '6',
 		POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS: '128',
+		POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS_PER_CONNECTION: '12',
+		POSTGRAPHILE_LIVE_QUERY_MAX_CONCURRENT_EXECUTIONS: '3',
 	})
 
 	expect(config.databasePoolMax).toBe(4)
 	expect(config.cacheMaxEntries).toBe(64)
 	expect(config.operationPlansPerOperation).toBe(6)
 	expect(config.liveQueries.maxOperations).toBe(128)
+	expect(config.liveQueries.maxOperationsPerConnection).toBe(12)
+	expect(config.liveQueries.maxConcurrentExecutions).toBe(3)
 })
 
 test('postgraphile config rejects a superuser connection in production', () => {

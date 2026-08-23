@@ -38,9 +38,14 @@ type GraphQlBody = {
 }
 
 export type QueryCostResult = {
-	response?: Response
+	kind: 'empty' | 'introspection' | 'accepted' | 'rejected'
 	cost?: number
+	reason?: 'syntax' | 'cost'
+	message?: string
+	details?: string
 }
+
+export type QueryCostEvaluator = (body: GraphQlBody | undefined) => Promise<QueryCostResult>
 
 type QueryCostEvaluatorOptions = {
 	maxCost?: number
@@ -149,16 +154,52 @@ function isCollectionField(fieldName: string, args: readonly ArgumentNode[]) {
 	return hasPaginationArgs || isPlural || isManyToMany(fieldName)
 }
 
-function containsIntrospectionField(selections: readonly SelectionNode[]): boolean {
+function containsIntrospectionField(
+	selections: readonly SelectionNode[],
+	fragments: Record<string, FragmentDefinitionNode>,
+	visitedFragments = new Set<string>(),
+): boolean {
 	for (const selection of selections) {
 		if (selection.kind === 'Field') {
 			const name = selection.name.value
 			if (name === '__schema' || name === '__type') {
 				return true
 			}
-		} else if (selection.kind === 'InlineFragment') {
-			if (containsIntrospectionField(selection.selectionSet.selections)) {
+
+			if (
+				selection.selectionSet &&
+				containsIntrospectionField(
+					selection.selectionSet.selections,
+					fragments,
+					visitedFragments,
+				)
+			) {
 				return true
+			}
+		} else if (selection.kind === 'InlineFragment') {
+			if (
+				containsIntrospectionField(
+					selection.selectionSet.selections,
+					fragments,
+					visitedFragments,
+				)
+			) {
+				return true
+			}
+		} else if (!visitedFragments.has(selection.name.value)) {
+			const fragmentName = selection.name.value
+			const fragment = fragments[fragmentName]
+			if (fragment) {
+				visitedFragments.add(fragmentName)
+				const containsIntrospection = containsIntrospectionField(
+					fragment.selectionSet.selections,
+					fragments,
+					visitedFragments,
+				)
+				visitedFragments.delete(fragmentName)
+				if (containsIntrospection) {
+					return true
+				}
 			}
 		}
 	}
@@ -185,7 +226,10 @@ function estimateSelectionsCost(
 				const multiplier = isCollection
 					? getPaginationMultiplier(args, defaultCollectionSize)
 					: 1
-				const totalMultiplier = parentMultiplier * Math.log2(Number(multiplier) + 1)
+				const collectionMultiplier = isCollection
+					? Math.max(1, Math.log2(Math.max(0, Number(multiplier)) + 1))
+					: 1
+				const totalMultiplier = parentMultiplier * collectionMultiplier
 				const effectiveDepth = shouldIncreaseDepth(fieldName) ? depth : depth - 1
 
 				cost += totalMultiplier * Math.max(1, effectiveDepth)
@@ -295,7 +339,7 @@ export function createQueryCostEvaluator({
 		body: GraphQlBody | undefined,
 	): Promise<QueryCostResult> {
 		if (typeof body?.query !== 'string') {
-			return {}
+			return { kind: 'empty' }
 		}
 
 		const startTime = performance.now()
@@ -328,10 +372,20 @@ export function createQueryCostEvaluator({
 				}
 
 				if (!result && document) {
+					const fragments: Record<string, FragmentDefinitionNode> = Object.create(null)
+					for (const definition of document.definitions) {
+						if (definition.kind === 'FragmentDefinition') {
+							fragments[definition.name.value] = definition
+						}
+					}
 					const isIntrospection = document.definitions.some(
 						(definition) =>
 							definition.kind === 'OperationDefinition' &&
-							containsIntrospectionField(definition.selectionSet.selections),
+							(!operationName || definition.name?.value === operationName) &&
+							containsIntrospectionField(
+								definition.selectionSet.selections,
+								fragments,
+							),
 					)
 
 					if (isIntrospection) {
@@ -351,7 +405,7 @@ export function createQueryCostEvaluator({
 
 			if (!result) {
 				span.end()
-				return {}
+				return { kind: 'empty' }
 			}
 
 			if (result.kind === 'syntax-error') {
@@ -363,20 +417,16 @@ export function createQueryCostEvaluator({
 				})
 				span.end()
 				return {
-					response: Response.json(
-						{
-							errors: [
-								{ message: 'Invalid GraphQL Syntax', details: result.message },
-							],
-						},
-						{ status: 400 },
-					),
+					kind: 'rejected',
+					reason: 'syntax',
+					message: 'Invalid GraphQL Syntax',
+					details: result.message,
 				}
 			}
 
 			if (result.kind === 'introspection') {
 				span.end()
-				return {}
+				return { kind: 'introspection' }
 			}
 
 			const totalCost = result.cost
@@ -415,30 +465,36 @@ export function createQueryCostEvaluator({
 				setSpanErrorStatus(span, `Query cost exceeded: ${totalCost} > ${maxCost}`)
 				span.end()
 				return {
-					response: Response.json(
-						{
-							errors: [
-								{
-									message: 'Query Cost Exceeded',
-									details: `Estimated cost: ${totalCost} > ${maxCost}. Optimsise your query by using pagination, reducing field depth and limiting requested fields per selection to fetch only the data you need.`,
-								},
-							],
-						},
-						{
-							status: 400,
-							headers: {
-								'X-Query-Cost': String(totalCost),
-							},
-						},
-					),
+					kind: 'rejected',
+					reason: 'cost',
+					cost: totalCost,
+					message: 'Query Cost Exceeded',
+					details: `Estimated cost: ${totalCost} > ${maxCost}. Optimsise your query by using pagination, reducing field depth and limiting requested fields per selection to fetch only the data you need.`,
 				}
 			}
 
 			setSpanOkStatus(span)
 			span.end()
-			return { cost: totalCost }
+			return { kind: 'accepted', cost: totalCost }
 		})
 	}
+}
+
+export function createQueryCostResponse(result: QueryCostResult): Response | undefined {
+	if (result.kind !== 'rejected' || !result.message || !result.details) {
+		return undefined
+	}
+
+	return Response.json(
+		{
+			errors: [{ message: result.message, details: result.details }],
+		},
+		{
+			status: 400,
+			headers:
+				result.cost === undefined ? undefined : { 'X-Query-Cost': String(result.cost) },
+		},
+	)
 }
 
 export async function evaluateQueryCost(

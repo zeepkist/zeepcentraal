@@ -34,7 +34,17 @@ const postgraphileEnvSchema = z.object({
 	POSTGRAPHILE_LIVE_QUERIES: z.stringbool().default(true),
 	POSTGRAPHILE_LIVE_QUERY_POLL_MS: z.coerce.number().int().positive().default(250),
 	POSTGRAPHILE_LIVE_QUERY_DEBOUNCE_MS: z.coerce.number().int().positive().default(100),
-	POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS: z.coerce.number().int().positive().default(256),
+	POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS: z.coerce.number().int().positive().default(512),
+	POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS_PER_CONNECTION: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(16),
+	POSTGRAPHILE_LIVE_QUERY_MAX_CONCURRENT_EXECUTIONS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(4),
 	POSTGRAPHILE_LIVE_QUERY_INVALIDATION_RETENTION_MINUTES: z.coerce
 		.number()
 		.int()
@@ -102,6 +112,9 @@ export function parsePostgraphileConfig(env: EnvSource) {
 			pollMs: parsedEnv.POSTGRAPHILE_LIVE_QUERY_POLL_MS,
 			debounceMs: parsedEnv.POSTGRAPHILE_LIVE_QUERY_DEBOUNCE_MS,
 			maxOperations: parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS,
+			maxOperationsPerConnection:
+				parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS_PER_CONNECTION,
+			maxConcurrentExecutions: parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_CONCURRENT_EXECUTIONS,
 			invalidationRetentionMinutes:
 				parsedEnv.POSTGRAPHILE_LIVE_QUERY_INVALIDATION_RETENTION_MINUTES,
 		},

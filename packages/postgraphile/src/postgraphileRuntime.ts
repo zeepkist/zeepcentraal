@@ -6,6 +6,7 @@ import { createGraphqlHttpHandler } from './graphqlHttp'
 import { readGraphqlJsonResponse } from './graphqlResponse'
 import { createLiveQueryInvalidationPoller } from './liveQueryInvalidationPoller'
 import { createLiveQueryWebSocketHandlers } from './liveQueryWebSocket'
+import { createQueryCostEvaluator } from './middleware/createQueryCostMiddleware'
 import { serveGraphiql } from './middleware/serveGraphiql'
 import type { ReadinessProbe } from './readiness'
 
@@ -22,7 +23,13 @@ const readinessBody = {
 }
 
 let activeLiveOperations = 0
-const activeLiveOperationsGauge = getMeter('zeepcentraal-postgraphile').createObservableGauge(
+
+let activeSharedLiveOperations = 0
+let liveQueryQueueDepth = 0
+let runningLiveQueryExecutions = 0
+
+const meter = getMeter('zeepcentraal-postgraphile')
+const activeLiveOperationsGauge = meter.createObservableGauge(
 	'postgraphile.live_query.active_operations',
 	{
 		description: 'Active PostGraphile live query operations',
@@ -30,6 +37,56 @@ const activeLiveOperationsGauge = getMeter('zeepcentraal-postgraphile').createOb
 	},
 )
 activeLiveOperationsGauge.addCallback((result) => result.observe(activeLiveOperations))
+
+const activeSharedLiveOperationsGauge = meter.createObservableGauge(
+	'postgraphile.live_query.active_shared_operations',
+	{
+		description: 'Active unique PostGraphile live query operations',
+		unit: '{operation}',
+	},
+)
+activeSharedLiveOperationsGauge.addCallback((result) => result.observe(activeSharedLiveOperations))
+
+const liveQueryQueueDepthGauge = meter.createObservableGauge(
+	'postgraphile.live_query.execution_queue_depth',
+	{
+		description: 'Queued unique PostGraphile live query executions',
+		unit: '{operation}',
+	},
+)
+liveQueryQueueDepthGauge.addCallback((result) => result.observe(liveQueryQueueDepth))
+
+const runningLiveQueryExecutionsGauge = meter.createObservableGauge(
+	'postgraphile.live_query.running_executions',
+	{
+		description: 'Running unique PostGraphile live query executions',
+		unit: '{operation}',
+	},
+)
+runningLiveQueryExecutionsGauge.addCallback((result) => result.observe(runningLiveQueryExecutions))
+
+const liveQueryDeduplicationHits = meter.createCounter(
+	'postgraphile.live_query.deduplication_hits',
+	{
+		description: 'Subscriptions joined to an existing shared live query operation',
+		unit: '{subscription}',
+	},
+)
+const liveQueryExecutions = meter.createCounter('postgraphile.live_query.executions', {
+	description: 'Unique live query database executions',
+	unit: '{execution}',
+})
+const liveQueryRejections = meter.createCounter('postgraphile.live_query.rejections', {
+	description: 'Rejected live query subscription operations',
+	unit: '{operation}',
+})
+const liveQueryExecutionDuration = meter.createHistogram(
+	'postgraphile.live_query.execution_duration',
+	{
+		description: 'Unique live query database execution duration',
+		unit: 'ms',
+	},
+)
 
 function isGraphqlReadinessPayload(value: unknown): value is { data: unknown; errors?: unknown[] } {
 	return typeof value === 'object' && value !== null && 'data' in value
@@ -78,10 +135,26 @@ export function createPostGraphileRuntime(
 		databaseUrl: config.databaseUrl,
 		databaseTimeouts: config.databaseTimeouts,
 	})
+	const httpQueryCostEvaluator = createQueryCostEvaluator({
+		maxCost: config.maxQueryCost,
+		defaultCollectionSize: config.defaultCollectionSize,
+		includeTraceDetail: config.queryTraceDetail,
+		cacheSize: config.cacheMaxEntries,
+	})
+	const liveQueryCostEvaluator = createQueryCostEvaluator({
+		maxCost: config.maxQueryCost,
+		defaultCollectionSize: config.defaultCollectionSize,
+		includeTraceDetail: false,
+		cacheSize: config.cacheMaxEntries,
+	})
 	const liveQueryWebSocket = createLiveQueryWebSocketHandlers({
 		schema: Promise.resolve(handler.getSchema()),
+		evaluateQueryCost: liveQueryCostEvaluator,
+		getExecutionScopeKey: () => 'public',
 		debounceMs: config.liveQueries.debounceMs,
 		maxOperations: config.liveQueries.maxOperations,
+		maxOperationsPerConnection: config.liveQueries.maxOperationsPerConnection,
+		maxConcurrentExecutions: config.liveQueries.maxConcurrentExecutions,
 		onActiveChange(active) {
 			if (active) {
 				poller.start(liveQueryWebSocket.invalidate)
@@ -92,13 +165,33 @@ export function createPostGraphileRuntime(
 		onActiveOperationsChange(count) {
 			activeLiveOperations = count
 		},
+		onActiveSharedOperationsChange(count) {
+			activeSharedLiveOperations = count
+		},
+		onQueueDepthChange(count) {
+			liveQueryQueueDepth = count
+		},
+		onRunningExecutionsChange(count) {
+			runningLiveQueryExecutions = count
+		},
+		onDeduplication() {
+			liveQueryDeduplicationHits.add(1)
+		},
+		onExecution(durationMs, outcome) {
+			const attributes = { outcome }
+			liveQueryExecutions.add(1, attributes)
+			liveQueryExecutionDuration.record(durationMs, attributes)
+		},
+		onRejected(reason) {
+			liveQueryRejections.add(1, { reason })
+		},
 		async execute(request, body) {
 			return readGraphqlJsonResponse(await server.handleGraphQLRequest(request, body))
 		},
 	})
 
 	return {
-		graphqlRoute: createGraphqlHttpHandler(server, config),
+		graphqlRoute: createGraphqlHttpHandler(server, config, httpQueryCostEvaluator),
 		readinessProbe: createRuntimeReadinessProbe(server),
 		liveQueryWebSocket: liveQueryWebSocket.handlers,
 		async serveRuruStatic(request: Request) {
