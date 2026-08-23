@@ -95,6 +95,7 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 	let initialReady = false
 	let postReadinessSynced = false
 	let customPlaylistCount = 0
+	const customPlaylistIndices: Array<[number, number]> = []
 	let gamePropertiesSent = false
 	let levelDataReturned = false
 	gameServer.on('message', (data, remote) => {
@@ -131,15 +132,18 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 			if (!postReadinessSynced) return
 			const level = readPlaylistLevel(reader)
 			expect(level.uid).toBe('uid')
+			const expectedNextIndex = customPlaylistCount === 0 ? 1 : 0
+			if (level.currentIndex !== 0 || level.nextIndex !== expectedNextIndex) return
+			customPlaylistIndices.push([level.currentIndex, level.nextIndex])
 			customPlaylistCount++
 			if (customPlaylistCount === 1) {
 				gameServer.send(
-					reliable(playlistPacket(TEST_LEVEL, 900), incomingSequence++),
+					reliable(playlistPacket(TEST_LEVEL, 900, 1), incomingSequence++),
 					remote.port,
 					remote.address,
 				)
 				gameServer.send(
-					reliable(playlistIndexPacket(), incomingSequence++),
+					reliable(playlistIndexPacket(1), incomingSequence++),
 					remote.port,
 					remote.address,
 				)
@@ -264,6 +268,10 @@ test('hosts looping playlist, supplies level data, and privatizes on shutdown', 
 			ZEEPKIST_PACKET_ID.levelData,
 			ZEEPKIST_PACKET_ID.levelLoaded,
 		])
+		expect(customPlaylistIndices).toEqual([
+			[0, 1],
+			[0, 0],
+		])
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyVisibility)
 	} finally {
 		await host.stop()
@@ -317,17 +325,20 @@ test('switches to newly prepared weekly asset through the complete load handshak
 		if (packetId === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
 			if (!postReadinessSynced) return
 			const level = readPlaylistLevel(reader)
+			const previousCount = playlistCounts.get(level.uid) ?? 0
+			const expectedNextIndex = previousCount === 0 ? 1 : 0
+			if (level.currentIndex !== 0 || level.nextIndex !== expectedNextIndex) return
 			playlistUids.push(level.uid)
-			const count = (playlistCounts.get(level.uid) ?? 0) + 1
+			const count = previousCount + 1
 			playlistCounts.set(level.uid, count)
 			if (count === 1) {
 				gameServer.send(
-					reliable(playlistPacket(level, 900), incomingSequence++),
+					reliable(playlistPacket(level, 900, 1), incomingSequence++),
 					remote.port,
 					remote.address,
 				)
 				gameServer.send(
-					reliable(playlistIndexPacket(), incomingSequence++),
+					reliable(playlistIndexPacket(1), incomingSequence++),
 					remote.port,
 					remote.address,
 				)
@@ -557,16 +568,18 @@ async function runFailedLevelTransfer(options: FailedTransferOptions, properties
 		}
 		if (packetId === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
 			if (!postReadinessSynced) return
-			readPlaylistLevel(reader)
+			const playlist = readPlaylistLevel(reader)
+			const expectedNextIndex = customPlaylistCount === 0 ? 1 : 0
+			if (playlist.currentIndex !== 0 || playlist.nextIndex !== expectedNextIndex) return
 			customPlaylistCount++
 			if (customPlaylistCount === 1) {
 				gameServer.send(
-					reliable(playlistPacket(TEST_LEVEL, 900), incomingSequence++),
+					reliable(playlistPacket(TEST_LEVEL, 900, 1), incomingSequence++),
 					remote.port,
 					remote.address,
 				)
 				gameServer.send(
-					reliable(playlistIndexPacket(), incomingSequence++),
+					reliable(playlistIndexPacket(1), incomingSequence++),
 					remote.port,
 					remote.address,
 				)
@@ -666,12 +679,12 @@ function initialStatePacket() {
 	})
 }
 
-function playlistPacket(level: TestLevel, roundTime: number) {
+function playlistPacket(level: TestLevel, roundTime: number, nextIndex = 0) {
 	return packet(ZEEPKIST_PACKET_ID.changeLobbyPlaylist, (writer) => {
 		writer.writeFloat64(roundTime)
 		writer.writeBoolean(false)
 		writer.writeInt32(0)
-		writer.writeInt32(0)
+		writer.writeInt32(nextIndex)
 		writer.writeInt32(1)
 		writer.writeString(level.uid)
 		writer.writeUInt64(level.workshopId)
@@ -685,11 +698,14 @@ function playlistPacket(level: TestLevel, roundTime: number) {
 	})
 }
 
-function readPlaylistLevel(reader: BitReader): TestLevel {
+function readPlaylistLevel(reader: BitReader): TestLevel & {
+	currentIndex: number
+	nextIndex: number
+} {
 	reader.readFloat64()
 	reader.readBoolean()
-	reader.readInt32()
-	reader.readInt32()
+	const currentIndex = reader.readInt32()
+	const nextIndex = reader.readInt32()
 	expect(reader.readInt32()).toBe(1)
 	const level = {
 		uid: reader.readString(),
@@ -698,6 +714,8 @@ function readPlaylistLevel(reader: BitReader): TestLevel {
 		collaborators: reader.readString(),
 		overrideAuthorName: reader.readString(),
 		author: reader.readString(),
+		currentIndex,
+		nextIndex,
 	}
 	expect(reader.readBoolean()).toBe(true)
 	expect(reader.readBoolean()).toBe(true)
@@ -705,10 +723,10 @@ function readPlaylistLevel(reader: BitReader): TestLevel {
 	return level
 }
 
-function playlistIndexPacket() {
+function playlistIndexPacket(nextIndex = 0) {
 	return packet(ZEEPKIST_PACKET_ID.changeLobbyPlaylistIndex, (writer) => {
 		writer.writeInt32(0)
-		writer.writeInt32(0)
+		writer.writeInt32(nextIndex)
 		writer.writeBoolean(false)
 	})
 }

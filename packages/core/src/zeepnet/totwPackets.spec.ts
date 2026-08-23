@@ -56,7 +56,9 @@ describe('Track of the Week packet codecs', () => {
 		expect(create.readBoolean()).toBe(true)
 		expect(create.readString()).toBe('Host')
 
-		const playlist = new BitReader(changeLobbyPlaylistPacket(LEVEL, 900))
+		const playlist = new BitReader(
+			changeLobbyPlaylistPacket(LEVEL, 900, { currentIndex: 0, nextIndex: 0 }),
+		)
 		expect(playlist.readUInt16()).toBe(ZEEPKIST_PACKET_ID.changeLobbyPlaylist)
 		expect(playlist.readFloat64()).toBe(900)
 		expect(playlist.readBoolean()).toBe(false)
@@ -88,7 +90,24 @@ describe('Track of the Week packet codecs', () => {
 			uid: 'Six Cubed-maxie12-01KDKQ3K2KA14WK8RP9AD61TVQ',
 			workshopId: 3633729201n,
 		}
-		expect(Buffer.from(changeLobbyPlaylistPacket(capturedLevel, 720)).toString('base64')).toBe(
+		expect(
+			Buffer.from(
+				changeLobbyPlaylistPacket(capturedLevel, 720, {
+					currentIndex: 0,
+					nextIndex: 1,
+				}),
+			).toString('base64'),
+		).toBe(
+			'susAAAAAAICGQAAAAAACAAAAAgAAAFim0vBAhurEysha2sLw0spiZFpgYpaIlqJmlmSWgmJorpZwpKBygohsYqisomKdLLEBAAAALLSmmEBaQIbqxMpAmsLS3OjK3MLcxsoAAA7awvDSymJkDgAAAAA=',
+		)
+		expect(
+			Buffer.from(
+				changeLobbyPlaylistPacket(capturedLevel, 720, {
+					currentIndex: 0,
+					nextIndex: 0,
+				}),
+			).toString('base64'),
+		).toBe(
 			'susAAAAAAICGQAAAAAAAAAAAAgAAAFim0vBAhurEysha2sLw0spiZFpgYpaIlqJmlmSWgmJorpZwpKBygohsYqisomKdLLEBAAAALLSmmEBaQIbqxMpAmsLS3OjK3MLcxsoAAA7awvDSymJkDgAAAAA=',
 		)
 		expect(Buffer.from(skipToLevelPacket(capturedLevel)).toString('base64')).toBe(

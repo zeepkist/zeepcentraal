@@ -97,12 +97,16 @@ export function changeLobbyVisibilityPacket(isPublic: boolean) {
 	)
 }
 
-export function changeLobbyPlaylistPacket(level: OnlineLevel, roundTimeSeconds: number) {
+export function changeLobbyPlaylistPacket(
+	level: OnlineLevel,
+	roundTimeSeconds: number,
+	indices: { currentIndex: number; nextIndex: number },
+) {
 	return writePacket(ZEEPKIST_PACKET_ID.changeLobbyPlaylist, (writer) => {
 		writer.writeFloat64(roundTimeSeconds)
 		writer.writeBoolean(false)
-		writer.writeInt32(0)
-		writer.writeInt32(0)
+		writer.writeInt32(indices.currentIndex)
+		writer.writeInt32(indices.nextIndex)
 		writer.writeInt32(1)
 		writer.writeString(level.uid)
 		writer.writeUInt64(level.workshopId)

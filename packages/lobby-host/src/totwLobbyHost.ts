@@ -337,7 +337,10 @@ export class TotwLobbyHost {
 		const asset = this.asset
 		if (!asset) return
 		await client.sendReliableOrdered(
-			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
+			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds, {
+				currentIndex: 0,
+				nextIndex: 0,
+			}),
 		)
 	}
 
@@ -345,19 +348,22 @@ export class TotwLobbyHost {
 		const playlistCursor = inboxes.playlists.mark()
 		const playlistIndexCursor = inboxes.playlistIndices.mark()
 		await client.sendReliableOrdered(
-			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
+			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds, {
+				currentIndex: 0,
+				nextIndex: 1,
+			}),
 		)
 		console.info(`TotW lobby playlist sent for tournament ${asset.idTournament}.`)
 		await Promise.all([
 			inboxes.playlists.waitForAfter(
 				playlistCursor,
-				(playlist) => this.matchesPlaylist(playlist, asset),
+				(playlist) => this.matchesPlaylist(playlist, asset, 1),
 				this.protocolTransitionTimeoutMs,
 				'Lobby playlist confirmation timed out',
 			),
 			inboxes.playlistIndices.waitForAfter(
 				playlistIndexCursor,
-				(index) => index.currentIndex === 0 && index.nextIndex === 0 && !index.selectNext,
+				(index) => index.currentIndex === 0 && index.nextIndex === 1 && !index.selectNext,
 				this.protocolTransitionTimeoutMs,
 				'Lobby playlist index confirmation timed out',
 			),
@@ -366,7 +372,10 @@ export class TotwLobbyHost {
 
 		const levelRequestCursor = inboxes.levelRequests.mark()
 		await client.sendReliableOrdered(
-			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
+			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds, {
+				currentIndex: 0,
+				nextIndex: 0,
+			}),
 		)
 		await client.sendReliableOrdered(skipToLevelPacket(asset.level))
 		console.info(`TotW lobby level switch requested for tournament ${asset.idTournament}.`)
@@ -415,20 +424,20 @@ export class TotwLobbyHost {
 		)
 		await inboxes.playlists.waitForAfter(
 			postLoadedPlaylistCursor,
-			(playlist) => this.matchesPlaylist(playlist, asset),
+			(playlist) => this.matchesPlaylist(playlist, asset, 0),
 			this.protocolTransitionTimeoutMs,
 			'Post-load lobby playlist confirmation timed out',
 		)
 		console.info(`TotW lobby ready for tournament ${asset.idTournament}.`)
 	}
 
-	private matchesPlaylist(playlist: OnlinePlaylist, asset: LoadedAsset) {
+	private matchesPlaylist(playlist: OnlinePlaylist, asset: LoadedAsset, nextIndex: number) {
 		const level = playlist.levels[0]
 		return (
 			playlist.roundTime === this.config.roundTimeSeconds &&
 			!playlist.isRandom &&
 			playlist.currentIndex === 0 &&
-			playlist.nextIndex === 0 &&
+			playlist.nextIndex === nextIndex &&
 			playlist.wasSynced &&
 			playlist.originalPlaylistLength === 1 &&
 			playlist.levels.length === 1 &&
