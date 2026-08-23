@@ -171,6 +171,7 @@ describe('shared tournament web implementation', () => {
 
 	test('subscribes to top 50, latest updates, and fastest valid ghosts', () => {
 		const query = source('../graphql/documents/web/queries/trackTournaments.graphql')
+		const composable = source('app/composables/useTrackTournaments.ts')
 		expect(query).toContain('leaderboard: trackTournamentResults(\n\t\t\tfirst: 50')
 		expect(query.match(/updateFeed: trackTournamentResults\(/g)).toHaveLength(2)
 		expect(query.match(/orderBy: \[DATE_UPDATED_DESC, RECORD_ID_DESC\]/g)).toHaveLength(2)
@@ -182,8 +183,16 @@ describe('shared tournament web implementation', () => {
 			/updateFeed: trackTournamentResults\([\s\S]*?nodes \{\s*userId\s*recordId\s*rank\s*\}/,
 		)
 		expect(query).toMatch(
-			/ghostFeed: trackTournamentResults\([\s\S]*?totalCount\s*nodes \{\s*\.\.\.ZC_TrackTournamentStanding/,
+			/ghostFeed: trackTournamentResults\([\s\S]*?totalCount\s*nodes \{\s*\.\.\.ZC_TrackTournamentGhostStanding/,
 		)
+		expect(query.match(/\.\.\.ZC_TrackTournamentGhostStanding/g)).toHaveLength(2)
+		expect(query.match(/\.\.\.ZC_GhostComparisonRecord/g)).toHaveLength(1)
+		expect(query).toMatch(
+			/fragment ZC_TrackTournamentStanding[\s\S]*?record \{\s*dateCreated\s*\}/,
+		)
+		expect(composable).toContain('function mapGhostStanding')
+		expect(composable).toContain('ghost: null')
+		expect(composable).toContain('.map(mapGhostStanding)')
 		const event = source('app/components/tournament/TournamentEvent.vue')
 		expect(event).toContain(':standings="ghostStandings"')
 		expect(event).toContain(':missing-count="missingGhostCount"')

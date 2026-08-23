@@ -1,5 +1,9 @@
 import { useQuery, useSubscription } from '@urql/vue'
-import type { Zc_TrackTournamentSummaryFragment } from '@zeepkist/graphql/generated'
+import type {
+	Zc_TrackTournamentGhostStandingFragment,
+	Zc_TrackTournamentStandingFragment,
+	Zc_TrackTournamentSummaryFragment,
+} from '@zeepkist/graphql/generated'
 import {
 	Zc_TrackTournamentDetailDocument,
 	Zc_TrackTournamentIndexDocument,
@@ -16,16 +20,7 @@ import type {
 import { mapGhostRecordSource } from '~/utils/ghostRecordSource'
 import { isTrackTournamentActive, mapTournamentFeature } from '~/utils/tournament'
 
-function mapStanding(node: {
-	tournamentId: number
-	userId: number
-	recordId: number
-	time: number
-	rank: number
-	points: number
-	user?: { steamId?: unknown; steamName?: string | null } | null
-	record?: Parameters<typeof mapGhostRecordSource>[0] | null
-}): TournamentStanding {
+function mapStanding(node: Zc_TrackTournamentStandingFragment): TournamentStanding {
 	return {
 		tournamentId: node.tournamentId,
 		userId: node.userId,
@@ -36,6 +31,13 @@ function mapStanding(node: {
 		steamId: node.user?.steamId == null ? null : String(node.user.steamId),
 		steamName: node.user?.steamName ?? null,
 		setAt: node.record?.dateCreated == null ? null : String(node.record.dateCreated),
+		ghost: null,
+	}
+}
+
+function mapGhostStanding(node: Zc_TrackTournamentGhostStandingFragment): TournamentStanding {
+	return {
+		...mapStanding(node),
 		ghost: node.record ? mapGhostRecordSource(node.record) : null,
 	}
 }
@@ -180,7 +182,9 @@ export function useTrackTournamentDetail(
 		const firstPage = standings.value.filter((row) => !row.pinned).slice(0, 3)
 		return firstPage.length > 0 ? firstPage : fallback
 	})
-	const ghostStandings = computed(() => (ghostConnection.value?.nodes ?? []).map(mapStanding))
+	const ghostStandings = computed(() =>
+		(ghostConnection.value?.nodes ?? []).map(mapGhostStanding),
+	)
 	const updateFeed = computed(
 		() =>
 			(liveEnabled.value ? live.data.value?.trackTournament?.updateFeed?.nodes : undefined) ??

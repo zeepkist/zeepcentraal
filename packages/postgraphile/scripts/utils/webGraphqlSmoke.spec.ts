@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { fileURLToPath } from 'node:url'
-import { parse, validate } from 'postgraphile/graphql'
+import { type DocumentNode, Kind, parse, print, validate, visit } from 'postgraphile/graphql'
+import { createQueryCostEvaluator } from '../../src/middleware/createQueryCostMiddleware'
 import {
 	DEFAULT_GRAPHQL_SMOKE_URL,
 	GRAPHQL_SMOKE_CLIENT,
@@ -22,6 +23,38 @@ const webGraphqlDirectory = fileURLToPath(
 const publishedSchemaPath = fileURLToPath(
 	new URL('../../../graphql/schema.graphql', import.meta.url),
 )
+const webQueryCostLimit = 5000
+
+function formatUrqlDocument(document: DocumentNode): DocumentNode {
+	return visit(document, {
+		SelectionSet(node, _key, parent) {
+			if (
+				!parent ||
+				!('kind' in parent) ||
+				parent.kind === Kind.OPERATION_DEFINITION ||
+				node.selections.some(
+					(selection) =>
+						selection.kind === Kind.FIELD &&
+						selection.name.value === '__typename' &&
+						!selection.alias,
+				)
+			) {
+				return
+			}
+
+			return {
+				...node,
+				selections: [
+					...node.selections,
+					{
+						kind: Kind.FIELD,
+						name: { kind: Kind.NAME, value: '__typename' },
+					},
+				],
+			}
+		},
+	})
+}
 
 describe('web GraphQL RLS smoke utilities', () => {
 	test('loads and validates every checked-in web operation', async () => {
@@ -34,6 +67,26 @@ describe('web GraphQL RLS smoke utilities', () => {
 		).toHaveLength(67)
 		expect(validateOperationCatalog(schema, catalog)).toEqual([])
 		expect(validate(schema, parse(ZRTM_RLS_SMOKE_QUERY))).toEqual([])
+	})
+
+	test('keeps every urql-formatted web operation within query cost limit', async () => {
+		const catalog = await loadOperationCatalog(webGraphqlDirectory)
+		const evaluate = createQueryCostEvaluator({
+			maxCost: webQueryCostLimit,
+			defaultCollectionSize: 100,
+			cacheSize: 0,
+		})
+		const failures: string[] = []
+
+		for (const operationName of [...catalog.operations.keys()].sort()) {
+			const query = print(formatUrqlDocument(operationDocument(catalog, operationName)))
+			const result = await evaluate({ operationName, query })
+			if (result.kind !== 'accepted') {
+				failures.push(`${operationName}: ${result.cost ?? result.kind}`)
+			}
+		}
+
+		expect(failures).toEqual([])
 	})
 
 	test('prints only requested operation and transitive fragments', async () => {

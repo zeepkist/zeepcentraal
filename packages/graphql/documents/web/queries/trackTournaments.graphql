@@ -38,6 +38,13 @@ fragment ZC_TrackTournamentStanding on TrackTournamentResult {
 		steamName
 	}
 	record {
+		dateCreated
+	}
+}
+
+fragment ZC_TrackTournamentGhostStanding on TrackTournamentResult {
+	...ZC_TrackTournamentStanding
+	record {
 		...ZC_GhostComparisonRecord
 	}
 }
@@ -205,7 +212,7 @@ query ZC_TrackTournamentDetail(
 		) {
 			totalCount
 			nodes {
-				...ZC_TrackTournamentStanding
+				...ZC_TrackTournamentGhostStanding
 			}
 		}
 	}
@@ -293,7 +300,7 @@ subscription ZC_TrackTournamentLive($id: Int!, $viewerId: Int!, $includeViewer: 
 		) {
 			totalCount
 			nodes {
-				...ZC_TrackTournamentStanding
+				...ZC_TrackTournamentGhostStanding
 			}
 		}
 	}
