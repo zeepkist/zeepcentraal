@@ -12,7 +12,7 @@
 					<td class="p-0 font-semibold tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3" @click.capture="beginTransition($event, row)"><span :style="transition.sourceStyle(transitionScope, 'record', row.recordId, 'metric')" data-shared-transition-source="metric">{{ formatTournamentTime(row.time) }}</span></DataTableCellLink></td>
 					<td class="p-0 tabular-nums text-muted"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">{{ fastestTime === undefined ? '—' : (formatTournamentDelta(row.time, fastestTime) ?? '—') }}</DataTableCellLink></td>
 					<td class="p-0 font-bold tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">{{ number.format(row.points) }}</DataTableCellLink></td>
-					<td class="p-0 tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3 text-right"><template v-if="row.setAt"><NuxtTime v-if="active" :datetime="row.setAt" relative /><NuxtTime v-else :datetime="row.setAt" date-style="medium" time-style="short" /></template><template v-else>{{ $t('common.unavailable') }}</template></DataTableCellLink></td>
+					<td class="p-0 tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3 text-right"><RecordDate v-if="row.setAt" :datetime="row.setAt" :show-full-date="!active" /><template v-else>{{ $t('common.unavailable') }}</template></DataTableCellLink></td>
 				</DataTableRow>
 			</tbody>
 		</table>

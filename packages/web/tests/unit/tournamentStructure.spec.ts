@@ -131,7 +131,9 @@ describe('shared tournament web implementation', () => {
 		expect(table).toContain(':datetime="row.setAt"')
 		expect(table).toContain("$t('tournaments.delta')")
 		expect(table).toContain('formatTournamentDelta(row.time, fastestTime)')
-		expect(table).toContain('v-if="active" :datetime="row.setAt" relative')
+		expect(table).toContain(
+			'<RecordDate v-if="row.setAt" :datetime="row.setAt" :show-full-date="!active" />',
+		)
 		expect(table).toContain("$t('common.set')")
 		expect(event).toContain(':datetime="entry.setAt"')
 		expect(event).toContain('v-if="active" :datetime="entry.setAt" relative')

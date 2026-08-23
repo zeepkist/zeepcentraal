@@ -149,12 +149,7 @@
 								:aria-label="recordAriaLabel(record)"
 								class="px-4 py-3"
 							>
-								<NuxtTime
-									:datetime="record.dateCreated"
-									relative
-									numeric="auto"
-									relative-style="short"
-								/>
+								<RecordDate :datetime="record.dateCreated" />
 							</DataTableCellLink>
 						</td>
 					</template>
