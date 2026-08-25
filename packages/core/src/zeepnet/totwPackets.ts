@@ -62,7 +62,7 @@ export type GameHostPacket =
 			uid: string
 			workshopId: bigint
 	  }
-	| { type: 'level-request'; workshopId: bigint; uid: string }
+	| { type: 'level-request'; name: string; workshopId: bigint; uid: string }
 
 const MAX_LEVEL_DATA_BYTES = 64 * 1024 * 1024
 const MAX_PLAYLIST_LEVELS = 1001
@@ -97,16 +97,12 @@ export function changeLobbyVisibilityPacket(isPublic: boolean) {
 	)
 }
 
-export function changeLobbyPlaylistPacket(
-	level: OnlineLevel,
-	roundTimeSeconds: number,
-	indices: { currentIndex: number; nextIndex: number },
-) {
+export function changeLobbyPlaylistPacket(level: OnlineLevel, roundTimeSeconds: number) {
 	return writePacket(ZEEPKIST_PACKET_ID.changeLobbyPlaylist, (writer) => {
 		writer.writeFloat64(roundTimeSeconds)
 		writer.writeBoolean(false)
-		writer.writeInt32(indices.currentIndex)
-		writer.writeInt32(indices.nextIndex)
+		writer.writeInt32(0)
+		writer.writeInt32(0)
 		writer.writeInt32(1)
 		writer.writeString(level.uid)
 		writer.writeUInt64(level.workshopId)
@@ -114,7 +110,7 @@ export function changeLobbyPlaylistPacket(
 		writer.writeString(level.collaborators)
 		writer.writeString(level.overrideAuthorName)
 		writer.writeString(level.author)
-		writer.writeBoolean(true)
+		writer.writeBoolean(false)
 		writer.writeBoolean(true)
 		writer.writeInt32(1)
 	})
@@ -127,12 +123,15 @@ export function skipToLevelPacket(level: OnlineLevel) {
 	})
 }
 
-export function levelDataPacket(level: OnlineLevel, compressedData: Uint8Array) {
+export function levelDataPacket(
+	request: { name: string; uid: string; workshopId: bigint },
+	compressedData: Uint8Array,
+) {
 	return writePacket(ZEEPKIST_PACKET_ID.levelData, (writer) => {
 		writer.writeInt32(2)
-		writer.writeString(level.name)
-		writer.writeString(level.uid)
-		writer.writeUInt64(level.workshopId)
+		writer.writeString(request.name)
+		writer.writeString(request.uid)
+		writer.writeUInt64(request.workshopId)
 		writer.writeInt32(compressedData.length)
 		writer.writeBytes(compressedData)
 	})
@@ -215,7 +214,7 @@ export function parseGameHostPacket(
 			throw new Error('Invalid level payload')
 		const data = reader.readBytes(byteLength)
 		if (packetType === 1) return { type: 'level-data', data, name, uid, workshopId }
-		return packetType === 3 ? { type: 'level-request', workshopId, uid } : undefined
+		return packetType === 3 ? { type: 'level-request', name, workshopId, uid } : undefined
 	}
 	return undefined
 }
