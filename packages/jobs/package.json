@@ -5,7 +5,7 @@
 	"main": "src/index.ts",
 	"types": "src/index.ts",
 	"scripts": {
-		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-jobs src/index.ts --external @napi-rs/lzma --external @napi-rs/lzma/lzma --external xxhash-addon"
+		"build": "bun build --compile --minify --splitting --compile-exec-argv=\"--smol --user-agent=ZeepCentraal\" --outfile ../../dist/zeepcentraal-jobs src/index.ts --external @napi-rs/lzma --external @napi-rs/lzma/lzma --external xxhash-addon"
 	},
 	"exports": {
 		".": {

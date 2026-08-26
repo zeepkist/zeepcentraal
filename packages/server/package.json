@@ -6,7 +6,7 @@
 	"types": "src/index.ts",
 	"scripts": {
 		"jobs:trigger": "bun --env-file=../../.env scripts/jobs-trigger.ts",
-		"build": "bun build --compile --minify-whitespace --minify-syntax --outfile ../../dist/zeepcentraal-server src/index.ts --external @doctormckay/steam-crypto --external @napi-rs/lzma --external @napi-rs/lzma/lzma --external lzma --external xxhash-addon"
+		"build": "bun build --compile --minify --splitting --compile-exec-argv=\"--smol --user-agent=ZeepCentraal\" --outfile ../../dist/zeepcentraal-server src/index.ts --external @doctormckay/steam-crypto --external @napi-rs/lzma --external @napi-rs/lzma/lzma --external lzma --external xxhash-addon"
 	},
 	"dependencies": {
 		"@elysiajs/cors": "~1.4.2",
