@@ -1,4 +1,4 @@
-import { Zc_LevelsDocument } from '@zeepkist/graphql/generated'
+import { Zc_DiscordLevelsDocument } from '@zeepkist/graphql/generated'
 import {
 	ActionRowBuilder,
 	ButtonBuilder,
@@ -24,7 +24,7 @@ export async function randomLevelHandler(
 ) {
 	await interaction.deferReply()
 	const minimum = interaction.options.getInteger('minimum-points') ?? 0
-	const data = await context.graphql.query<Record<string, unknown>>(Zc_LevelsDocument, {
+	const data = await context.graphql.query<Record<string, unknown>>(Zc_DiscordLevelsDocument, {
 		first: 100,
 		filter: {
 			publiclyVisible: { equalTo: true },

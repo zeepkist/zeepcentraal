@@ -25,6 +25,18 @@ const postgraphileEnvSchema = z.object({
 	POSTGRAPHILE_DATABASE_POOL_MAX: z.coerce.number().int().positive().default(6),
 	POSTGRAPHILE_CACHE_MAX_ENTRIES: z.coerce.number().int().positive().default(128),
 	POSTGRAPHILE_OPERATION_PLANS_PER_OPERATION: z.coerce.number().int().positive().default(8),
+	POSTGRAPHILE_MAX_REQUEST_BODY_SIZE: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(256 * 1024),
+	POSTGRAPHILE_MAX_QUERY_BYTES: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(64 * 1024),
+	POSTGRAPHILE_HTTP_MAX_CONCURRENT_REQUESTS: z.coerce.number().int().positive().default(64),
+	POSTGRAPHILE_HTTP_MAX_QUEUED_REQUESTS: z.coerce.number().int().nonnegative().default(256),
 	POSTGRAPHILE_READINESS_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
 	POSTGRAPHILE_READINESS_CACHE_MS: z.coerce.number().int().nonnegative().default(1000),
 	GRAPHQL_FIELD_TRACING: z.stringbool().default(false),
@@ -45,6 +57,26 @@ const postgraphileEnvSchema = z.object({
 		.int()
 		.positive()
 		.default(4),
+	POSTGRAPHILE_LIVE_QUERY_MAX_MESSAGE_BYTES: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(256 * 1024),
+	POSTGRAPHILE_LIVE_QUERY_MAX_PENDING_MESSAGES_PER_CONNECTION: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(32),
+	POSTGRAPHILE_LIVE_QUERY_RESULT_CACHE_MAX_BYTES: z.coerce
+		.number()
+		.int()
+		.nonnegative()
+		.default(16 * 1024 * 1024),
+	POSTGRAPHILE_LIVE_QUERY_MAX_RESULT_BYTES: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(2 * 1024 * 1024),
 	POSTGRAPHILE_LIVE_QUERY_INVALIDATION_RETENTION_MINUTES: z.coerce
 		.number()
 		.int()
@@ -99,6 +131,12 @@ export function parsePostgraphileConfig(env: EnvSource) {
 		databasePoolMax: parsedEnv.POSTGRAPHILE_DATABASE_POOL_MAX,
 		cacheMaxEntries: parsedEnv.POSTGRAPHILE_CACHE_MAX_ENTRIES,
 		operationPlansPerOperation: parsedEnv.POSTGRAPHILE_OPERATION_PLANS_PER_OPERATION,
+		maxRequestBodySize: parsedEnv.POSTGRAPHILE_MAX_REQUEST_BODY_SIZE,
+		maxQueryBytes: parsedEnv.POSTGRAPHILE_MAX_QUERY_BYTES,
+		httpAdmission: {
+			maxConcurrent: parsedEnv.POSTGRAPHILE_HTTP_MAX_CONCURRENT_REQUESTS,
+			maxQueued: parsedEnv.POSTGRAPHILE_HTTP_MAX_QUEUED_REQUESTS,
+		},
 		readiness: {
 			timeoutMs: parsedEnv.POSTGRAPHILE_READINESS_TIMEOUT_MS,
 			cacheMs: parsedEnv.POSTGRAPHILE_READINESS_CACHE_MS,
@@ -115,6 +153,11 @@ export function parsePostgraphileConfig(env: EnvSource) {
 			maxOperationsPerConnection:
 				parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS_PER_CONNECTION,
 			maxConcurrentExecutions: parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_CONCURRENT_EXECUTIONS,
+			maxMessageBytes: parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_MESSAGE_BYTES,
+			maxPendingMessagesPerConnection:
+				parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_PENDING_MESSAGES_PER_CONNECTION,
+			resultCacheMaxBytes: parsedEnv.POSTGRAPHILE_LIVE_QUERY_RESULT_CACHE_MAX_BYTES,
+			maxResultBytes: parsedEnv.POSTGRAPHILE_LIVE_QUERY_MAX_RESULT_BYTES,
 			invalidationRetentionMinutes:
 				parsedEnv.POSTGRAPHILE_LIVE_QUERY_INVALIDATION_RETENTION_MINUTES,
 		},

@@ -42,6 +42,24 @@ test('backend error detail drops empty, HTML, and unreadable bodies', async () =
 	expect(await backendErrorDetail(unreadable)).toBeNull()
 })
 
+test('backend error detail cancels oversized response bodies after bounded read', async () => {
+	let cancelled = false
+	const stream = new ReadableStream<Uint8Array>({
+		pull(controller) {
+			controller.enqueue(new TextEncoder().encode('x'.repeat(8 * 1024)))
+		},
+		cancel() {
+			cancelled = true
+		},
+	})
+	const detail = await backendErrorDetail(
+		new Response(stream, { headers: { 'content-type': 'text/plain' } }),
+	)
+
+	expect(detail?.length).toBe(300)
+	expect(cancelled).toBe(true)
+})
+
 test('Discord backend and GraphQL errors become compact structured summaries', () => {
 	const backend = new DiscordBackendError(524, 'POST', '/discord-bot/link/redeem', '120', null)
 	expect(discordErrorSummary(backend)).toEqual({

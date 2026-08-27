@@ -1,4 +1,35 @@
 const MAX_ERROR_DETAIL_LENGTH = 300
+const MAX_ERROR_BODY_BYTES = 4 * 1024
+
+async function readBoundedBody(response: Response) {
+	const reader = response.body?.getReader()
+	if (!reader) return ''
+
+	const decoder = new TextDecoder()
+	let body = ''
+	let bytesRead = 0
+	let truncated = false
+	try {
+		while (bytesRead < MAX_ERROR_BODY_BYTES) {
+			const { done, value } = await reader.read()
+			if (done) break
+
+			const remaining = MAX_ERROR_BODY_BYTES - bytesRead
+			const chunk = value.byteLength > remaining ? value.subarray(0, remaining) : value
+			bytesRead += chunk.byteLength
+			body += decoder.decode(chunk, { stream: true })
+			if (chunk.byteLength !== value.byteLength || bytesRead === MAX_ERROR_BODY_BYTES) {
+				truncated = true
+				break
+			}
+		}
+		body += decoder.decode()
+		return body
+	} finally {
+		if (truncated) await reader.cancel().catch(() => undefined)
+		reader.releaseLock()
+	}
+}
 
 function bounded(value: string) {
 	const compact = value.replace(/\s+/g, ' ').trim()
@@ -18,7 +49,7 @@ function structuredDetail(value: unknown): string | null {
 
 export async function backendErrorDetail(response: Response) {
 	const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
-	const body = await response.text().catch(() => '')
+	const body = await readBoundedBody(response).catch(() => '')
 	if (!body || contentType.includes('text/html') || /^\s*(?:<!doctype|<html)/i.test(body)) {
 		return null
 	}

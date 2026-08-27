@@ -135,4 +135,22 @@ describe('evaluateQueryCost', () => {
 
 		expect(misses).toBe(3)
 	})
+
+	test('rejects oversized UTF-8 query before parsing or caching', async () => {
+		let misses = 0
+		const evaluate = createQueryCostEvaluator({
+			maxQueryBytes: 8,
+			onCacheMiss: () => {
+				misses++
+			},
+		})
+
+		expect(await evaluate({ query: '# éééé' })).toEqual({
+			kind: 'rejected',
+			reason: 'size',
+			message: 'GraphQL query is too large',
+			details: 'Query exceeds 8 byte limit',
+		})
+		expect(misses).toBe(0)
+	})
 })

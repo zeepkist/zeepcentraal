@@ -184,7 +184,7 @@ describe('buildPostGraphileServer', () => {
 		)
 	})
 
-	test('caches Ruru HTML by public origin', async () => {
+	test('renders Ruru HTML independently for each public protocol', async () => {
 		const app = createApp()
 		const proxiedHttps = await app.handle(
 			new Request('http://cached-ruru.test/', {

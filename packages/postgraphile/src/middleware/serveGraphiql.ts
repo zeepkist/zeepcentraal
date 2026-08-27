@@ -6,8 +6,6 @@ const ruruConfig = {
 	endpoint: '/',
 }
 
-const ruruHtmlByOrigin = new Map<string, string>()
-
 function getPublicHttpProtocol(request: Request, url: URL): 'http:' | 'https:' {
 	const forwardedProtocol = request.headers
 		.get('x-forwarded-proto')
@@ -25,20 +23,12 @@ function getPublicHttpProtocol(request: Request, url: URL): 'http:' | 'https:' {
 function getRuruHtml(request: Request) {
 	const url = new URL(request.url)
 	const publicHttpProtocol = getPublicHttpProtocol(request, url)
-	const origin = `${publicHttpProtocol}//${url.host}`
-	const cached = ruruHtmlByOrigin.get(origin)
-	if (cached) {
-		return cached
-	}
-
 	const websocketProtocol = publicHttpProtocol === 'https:' ? 'wss:' : 'ws:'
-	const html = ruruHTML({
+	return ruruHTML({
 		...ruruConfig,
 		subscriptions: true,
 		subscriptionEndpoint: `${websocketProtocol}//${url.host}/`,
 	})
-	ruruHtmlByOrigin.set(origin, html)
-	return html
 }
 
 export async function serveGraphiql(request: Request): Promise<Response | null> {

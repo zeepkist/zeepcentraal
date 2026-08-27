@@ -51,15 +51,26 @@ function createWebSocket(protocol = 'graphql-transport-ws', headers: Record<stri
 type HandlerOptions = {
 	maxOperationsPerConnection?: number
 	maxConcurrentExecutions?: number
+	maxPendingMessagesPerConnection?: number
+	resultCacheMaxBytes?: number
+	maxResultBytes?: number
 	evaluateQueryCost?: QueryCostEvaluator
 	getExecutionScopeKey?: (request: Request) => string | Promise<string>
 	onActiveSharedOperationsChange?: (activeSharedOperations: number) => void
 	onQueueDepthChange?: (queueDepth: number) => void
 	onRunningExecutionsChange?: (runningExecutions: number) => void
+	onCachedResultBytesChange?: (cachedResultBytes: number) => void
 	onDeduplication?: () => void
 	onExecution?: (durationMs: number, outcome: 'success' | 'error') => void
 	onRejected?: (
-		reason: 'global_limit' | 'connection_limit' | 'cost' | 'introspection' | 'invalid',
+		reason:
+			| 'global_limit'
+			| 'connection_limit'
+			| 'cost'
+			| 'introspection'
+			| 'invalid'
+			| 'message_backlog'
+			| 'result_size',
 	) => void
 }
 
@@ -97,6 +108,9 @@ function createHandlers(
 		maxOperations,
 		maxOperationsPerConnection: options.maxOperationsPerConnection ?? maxOperations,
 		maxConcurrentExecutions: options.maxConcurrentExecutions ?? 4,
+		maxPendingMessagesPerConnection: options.maxPendingMessagesPerConnection ?? 32,
+		resultCacheMaxBytes: options.resultCacheMaxBytes ?? 16 * 1024 * 1024,
+		maxResultBytes: options.maxResultBytes ?? 2 * 1024 * 1024,
 		evaluateQueryCost: options.evaluateQueryCost,
 		getExecutionScopeKey: options.getExecutionScopeKey,
 		onActiveChange,
@@ -104,6 +118,7 @@ function createHandlers(
 		onActiveSharedOperationsChange: options.onActiveSharedOperationsChange,
 		onQueueDepthChange: options.onQueueDepthChange,
 		onRunningExecutionsChange: options.onRunningExecutionsChange,
+		onCachedResultBytesChange: options.onCachedResultBytesChange,
 		onDeduplication: options.onDeduplication,
 		onExecution: options.onExecution,
 		onRejected: options.onRejected,
@@ -343,6 +358,83 @@ describe('createLiveQueryWebSocketHandlers', () => {
 				payload: { data: { records: { totalCount: 1 } } },
 			},
 		])
+	})
+
+	test('evicts replay results by retained byte budget', async () => {
+		let executions = 0
+		const retainedBytes: number[] = []
+		const { handlers } = createHandlers(
+			(_body) => {
+				executions += 1
+				return { data: { records: { totalCount: executions } } }
+			},
+			undefined,
+			10,
+			undefined,
+			{
+				resultCacheMaxBytes: 100,
+				onCachedResultBytesChange: (bytes) => retainedBytes.push(bytes),
+			},
+		)
+		const first = createWebSocket()
+		const second = createWebSocket()
+		const late = createWebSocket()
+		const query = 'subscription Shared($first: Int) { records(first: $first) { totalCount } }'
+
+		handlers.open(first.ws)
+		handlers.message(first.ws, subscribe('first', query, { first: 1 }))
+		await Bun.sleep(2)
+		handlers.open(second.ws)
+		handlers.message(second.ws, subscribe('second', query, { first: 2 }))
+		await Bun.sleep(2)
+		handlers.open(late.ws)
+		handlers.message(late.ws, subscribe('late', query, { first: 1 }))
+		await Bun.sleep(2)
+
+		expect(executions).toBe(3)
+		expect(Math.max(...retainedBytes)).toBeLessThanOrEqual(100)
+		expect(late.sent.at(-1)?.type).toBe('next')
+	})
+
+	test('rejects oversized results and excess pending messages', async () => {
+		const pendingCost = Promise.withResolvers<{ kind: 'accepted'; cost: number }>()
+		const reasons: string[] = []
+		const pendingHandlers = createHandlers(() => ({ data: {} }), undefined, 10, undefined, {
+			evaluateQueryCost: () => pendingCost.promise,
+			maxPendingMessagesPerConnection: 1,
+			onRejected: (reason) => reasons.push(reason),
+		})
+		const pendingSocket = createWebSocket()
+		pendingHandlers.handlers.open(pendingSocket.ws)
+		pendingHandlers.handlers.message(
+			pendingSocket.ws,
+			subscribe('first', 'subscription { records(first: 1) { totalCount } }'),
+		)
+		pendingHandlers.handlers.message(
+			pendingSocket.ws,
+			subscribe('second', 'subscription { records(first: 1) { totalCount } }'),
+		)
+		expect(pendingSocket.closeCode).toBe(4429)
+		pendingCost.resolve({ kind: 'accepted', cost: 1 })
+		await Bun.sleep(2)
+
+		const resultHandlers = createHandlers(
+			() => ({ data: { records: { totalCount: 123456 } } }),
+			undefined,
+			10,
+			undefined,
+			{ maxResultBytes: 8, onRejected: (reason) => reasons.push(reason) },
+		)
+		const resultSocket = createWebSocket()
+		resultHandlers.handlers.open(resultSocket.ws)
+		resultHandlers.handlers.message(
+			resultSocket.ws,
+			subscribe('large', 'subscription { records(first: 1) { totalCount } }'),
+		)
+		await Bun.sleep(2)
+
+		expect(resultSocket.sent.at(-1)?.type).toBe('error')
+		expect(reasons).toEqual(['message_backlog', 'result_size'])
 	})
 
 	test('shares execution while preserving modern and legacy protocol envelopes', async () => {

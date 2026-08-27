@@ -71,6 +71,7 @@ export function buildPostGraphileServer(
 		precompile: true,
 		serve: {
 			development: postgraphileConfig.nodeEnv !== 'production',
+			maxRequestBodySize: postgraphileConfig.maxRequestBodySize,
 		},
 	})
 		.use(withLogging)
@@ -80,7 +81,10 @@ export function buildPostGraphileServer(
 		.head('/healthz', () => 'OK')
 		.get('/readyz', () => readinessResponse(readiness))
 		.head('/readyz', () => readinessResponse(readiness, true))
-		.ws('/', runtime.liveQueryWebSocket)
+		.ws('/', {
+			...runtime.liveQueryWebSocket,
+			maxPayloadLength: postgraphileConfig.liveQueries.maxMessageBytes,
+		})
 		.get('/', ({ request }) => serveGraphiql(request))
 		.get('/graphiql', ({ request }) => redirectToRoot(request))
 		.get('/graphql', ({ request }) => redirectToRoot(request))
@@ -88,6 +92,7 @@ export function buildPostGraphileServer(
 		.post('/', runtime.graphqlRoute)
 		.options('/', runtime.graphqlRoute)
 		.onStop(async () => {
-			await Promise.all([runtime.stop(), readiness.dispose()])
+			await readiness.dispose()
+			await runtime.stop()
 		})
 }

@@ -13,30 +13,32 @@ test('playlist-recommend filters, sorts, and resolves improvement levels', async
 			],
 		},
 	}))
-	const levelById = mock(async (id: number) =>
-		id === 2
-			? null
-			: {
-					id,
-					xxHash: `hash-${id}`,
-					levelItems: { nodes: [{ name: `Level ${id}` }] },
-				},
+	const levelsByIds = mock(async (ids: number[]) =>
+		ids
+			.filter((id) => id !== 2)
+			.map((id) => ({
+				id,
+				xxHash: `hash-${id}`,
+				levelItems: { nodes: [{ name: `Level ${id}` }] },
+			})),
 	)
-	const { context } = createMockContext({ graphql: { query, levelById } })
+	const { context } = createMockContext({ graphql: { query, levelsByIds } })
 	const { interaction, state } = createChatInteraction('playlist-recommend', {
 		integers: { count: 2 },
 	})
 	await playlistRecommendHandler(interaction, context)
 	expectComponentsV2(state.edit)
 	expect(query.mock.calls[0]?.[1]).toMatchObject({ first: 8 })
-	expect(levelById.mock.calls.map((call) => call[0])).toEqual([1, 2])
+	expect(levelsByIds).toHaveBeenCalledWith([1, 2])
 	expect(JSON.stringify(state.edit)).toContain('Level 1')
 	expect(JSON.stringify(state.edit)).not.toContain('Level 2')
 })
 
 test('playlist-recommend uses default count and rejects empty results', async () => {
 	const query = mock(async (..._args: unknown[]) => ({}))
-	const { context } = createMockContext({ graphql: { query } })
+	const { context } = createMockContext({
+		graphql: { query, levelsByIds: mock(async () => []) },
+	})
 	const { interaction } = createChatInteraction('playlist-recommend')
 	expect(playlistRecommendHandler(interaction, context)).rejects.toThrow(
 		'No public levels matched these filters.',

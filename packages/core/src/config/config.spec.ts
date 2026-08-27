@@ -245,6 +245,13 @@ test('postgraphile config defaults bounded pools, caches, and live operations', 
 	expect(config.liveQueries.maxOperations).toBe(512)
 	expect(config.liveQueries.maxOperationsPerConnection).toBe(16)
 	expect(config.liveQueries.maxConcurrentExecutions).toBe(4)
+	expect(config.maxRequestBodySize).toBe(256 * 1024)
+	expect(config.maxQueryBytes).toBe(64 * 1024)
+	expect(config.httpAdmission).toEqual({ maxConcurrent: 64, maxQueued: 256 })
+	expect(config.liveQueries.maxMessageBytes).toBe(256 * 1024)
+	expect(config.liveQueries.maxPendingMessagesPerConnection).toBe(32)
+	expect(config.liveQueries.resultCacheMaxBytes).toBe(16 * 1024 * 1024)
+	expect(config.liveQueries.maxResultBytes).toBe(2 * 1024 * 1024)
 })
 
 test('postgraphile config accepts custom runtime memory controls', () => {
@@ -256,6 +263,14 @@ test('postgraphile config accepts custom runtime memory controls', () => {
 		POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS: '128',
 		POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS_PER_CONNECTION: '12',
 		POSTGRAPHILE_LIVE_QUERY_MAX_CONCURRENT_EXECUTIONS: '3',
+		POSTGRAPHILE_MAX_REQUEST_BODY_SIZE: '131072',
+		POSTGRAPHILE_MAX_QUERY_BYTES: '32768',
+		POSTGRAPHILE_HTTP_MAX_CONCURRENT_REQUESTS: '96',
+		POSTGRAPHILE_HTTP_MAX_QUEUED_REQUESTS: '384',
+		POSTGRAPHILE_LIVE_QUERY_MAX_MESSAGE_BYTES: '65536',
+		POSTGRAPHILE_LIVE_QUERY_MAX_PENDING_MESSAGES_PER_CONNECTION: '12',
+		POSTGRAPHILE_LIVE_QUERY_RESULT_CACHE_MAX_BYTES: '1048576',
+		POSTGRAPHILE_LIVE_QUERY_MAX_RESULT_BYTES: '262144',
 	})
 
 	expect(config.databasePoolMax).toBe(4)
@@ -264,6 +279,13 @@ test('postgraphile config accepts custom runtime memory controls', () => {
 	expect(config.liveQueries.maxOperations).toBe(128)
 	expect(config.liveQueries.maxOperationsPerConnection).toBe(12)
 	expect(config.liveQueries.maxConcurrentExecutions).toBe(3)
+	expect(config.maxRequestBodySize).toBe(131072)
+	expect(config.maxQueryBytes).toBe(32768)
+	expect(config.httpAdmission).toEqual({ maxConcurrent: 96, maxQueued: 384 })
+	expect(config.liveQueries.maxMessageBytes).toBe(65536)
+	expect(config.liveQueries.maxPendingMessagesPerConnection).toBe(12)
+	expect(config.liveQueries.resultCacheMaxBytes).toBe(1048576)
+	expect(config.liveQueries.maxResultBytes).toBe(262144)
 })
 
 test('postgraphile config rejects a superuser connection in production', () => {

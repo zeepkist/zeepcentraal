@@ -1,4 +1,4 @@
-import { Zc_HotLevelsDocument, Zc_LevelsDocument } from '@zeepkist/graphql/generated'
+import { Zc_DiscordHotLevelsDocument, Zc_DiscordLevelsDocument } from '@zeepkist/graphql/generated'
 import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
@@ -84,21 +84,27 @@ export async function playlistHandler(
 			]
 		})
 	} else if (sort === 'popularity') {
-		const data = await context.graphql.query<Record<string, unknown>>(Zc_HotLevelsDocument, {
-			first: Math.min(100, Math.max(count, 20)),
-			filter,
-			since: new Date(context.runtime.now().getTime() - 30 * 86_400_000).toISOString(),
-		})
+		const data = await context.graphql.query<Record<string, unknown>>(
+			Zc_DiscordHotLevelsDocument,
+			{
+				first: Math.min(100, Math.max(count, 20)),
+				filter,
+				since: new Date(context.runtime.now().getTime() - 30 * 86_400_000).toISOString(),
+			},
+		)
 		levels = (
 			(data as { levels?: { edges: Array<{ node: PlaylistLevel }> } }).levels?.edges ?? []
 		).map((edge) => edge.node)
 	} else {
 		const orderBy = sort === 'records' ? 'RECORDS_COUNT_DESC' : 'LEVEL_POINTS_POINTS_DESC'
-		const data = await context.graphql.query<Record<string, unknown>>(Zc_LevelsDocument, {
-			first: count,
-			filter,
-			orderBy: [orderBy, 'ID_ASC'],
-		})
+		const data = await context.graphql.query<Record<string, unknown>>(
+			Zc_DiscordLevelsDocument,
+			{
+				first: count,
+				filter,
+				orderBy: [orderBy, 'ID_ASC'],
+			},
+		)
 		levels = (
 			(data as { levels?: { edges: Array<{ node: PlaylistLevel }> } }).levels?.edges ?? []
 		).map((edge) => edge.node)

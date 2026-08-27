@@ -75,7 +75,7 @@ test('GraphQL client configures POST transport and retrying lazy subscriptions',
 		fetchOptions: { method: 'POST' },
 	})
 	const exchanges = harness.clientOptions()?.exchanges as unknown[] | undefined
-	expect(exchanges?.length).toBe(3)
+	expect(exchanges?.length).toBe(2)
 	expect(harness.wsOptions()).toMatchObject({
 		url: testConfig.graphql.wsUrl,
 		lazy: true,

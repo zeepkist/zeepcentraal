@@ -5,6 +5,7 @@ import {
 	Events,
 	GatewayIntentBits,
 	type GuildMember,
+	Options,
 	REST,
 	type RESTPostAPIApplicationCommandsJSONBody,
 	Routes,
@@ -57,6 +58,7 @@ export type DiscordRuntimeDependencies = {
 	log: (...values: unknown[]) => void
 	logError: (...values: unknown[]) => void
 	onSignal: (signal: 'SIGINT' | 'SIGTERM', listener: () => void) => void
+	offSignal?: (signal: 'SIGINT' | 'SIGTERM', listener: () => void) => void
 	parseConfig: (env: NodeJS.ProcessEnv) => DiscordBotConfig
 	serve: (options: HealthServerOptions) => HealthServer
 	waitForDependencies: typeof waitForDiscordDependencies
@@ -67,7 +69,24 @@ export function createProductionDiscordDependencies(): DiscordRuntimeDependencie
 		commandData,
 		createBackend: (config) => new DiscordBackendClient(config),
 		createClient: () =>
-			new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] }),
+			new Client({
+				intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+				makeCache: Options.cacheWithLimits({
+					...Options.DefaultMakeCacheSettings,
+					GuildMemberManager: {
+						maxSize: 100,
+						keepOverLimit: (member) => member.id === member.client.user?.id,
+					},
+					MessageManager: 0,
+					PresenceManager: 0,
+					ReactionManager: 0,
+					ReactionUserManager: 0,
+					StageInstanceManager: 0,
+					ThreadMemberManager: 0,
+					UserManager: 1_000,
+					VoiceStateManager: 0,
+				}),
+			}),
 		createCommandRuntime,
 		createFeeds: (client, context) => new FeedService(client, context),
 		createGraphql: (config) => new ZeepGraphqlClient(config),
@@ -82,6 +101,7 @@ export function createProductionDiscordDependencies(): DiscordRuntimeDependencie
 		log: (...values) => console.log(...values),
 		logError: (...values) => console.error(...values),
 		onSignal: (signal, listener) => process.on(signal, listener),
+		offSignal: (signal, listener) => process.off(signal, listener),
 		parseConfig: (env) => parseDiscordBotConfig(env) as DiscordBotConfig,
 		serve: (options) => Bun.serve(options),
 		waitForDependencies: waitForDiscordDependencies,
@@ -149,6 +169,8 @@ export type DiscordRuntime = {
 	context: CommandContext
 	start: () => Promise<void>
 	stop: (signal: string) => Promise<void>
+	closed: Promise<void>
+	[Symbol.asyncDispose](): Promise<void>
 }
 
 export function createDiscordRuntime(
@@ -168,6 +190,12 @@ export function createDiscordRuntime(
 	const startupController = new AbortController()
 	let ready = false
 	let stopping = false
+	let resolveClosed!: () => void
+	const closed = new Promise<void>((resolve) => {
+		resolveClosed = resolve
+	})
+	const signalHandlers = new Map<'SIGINT' | 'SIGTERM', () => void>()
+	let stopPromise: Promise<void> | undefined
 
 	client.once(Events.ClientReady, (connected) => {
 		if (stopping) return
@@ -238,6 +266,9 @@ export function createDiscordRuntime(
 					status: ready ? 'ok' : 'starting',
 					discord: ready,
 					guilds: client.guilds.cache.size,
+					memory: process.memoryUsage(),
+					queues: feeds.stats(),
+					sessions: context.runtime.sessions.stats(),
 				},
 				{ status: ready ? 200 : 503 },
 			)
@@ -245,20 +276,36 @@ export function createDiscordRuntime(
 	})
 
 	const stop = async (signal: string) => {
-		if (stopping) return
+		if (stopPromise) return stopPromise
 		stopping = true
-		dependencies.log(`Received ${signal}; stopping Discord bot`)
-		startupController.abort()
-		ready = false
-		feeds.stop()
-		healthServer.stop(true)
-		graphql.dispose()
-		client.destroy()
+		stopPromise = (async () => {
+			dependencies.log(`Received ${signal}; stopping Discord bot`)
+			startupController.abort()
+			ready = false
+			for (const [registeredSignal, listener] of signalHandlers) {
+				dependencies.offSignal?.(registeredSignal, listener)
+			}
+			signalHandlers.clear()
+			try {
+				await feeds.stop()
+			} finally {
+				healthServer.stop(true)
+				graphql.dispose()
+				context.runtime.sessions[Symbol.dispose]()
+				client.removeAllListeners()
+				client.destroy()
+				resolveClosed()
+			}
+		})()
+		return stopPromise
 	}
 
 	const start = async () => {
-		dependencies.onSignal('SIGINT', () => void stop('SIGINT'))
-		dependencies.onSignal('SIGTERM', () => void stop('SIGTERM'))
+		for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+			const listener = () => void stop(signal)
+			signalHandlers.set(signal, listener)
+			dependencies.onSignal(signal, listener)
+		}
 		const dependenciesReady = await dependencies.waitForDependencies({
 			config,
 			log: dependencies.log,
@@ -270,7 +317,16 @@ export function createDiscordRuntime(
 		await client.login(config.botToken)
 	}
 
-	return { client, context, start, stop }
+	return {
+		client,
+		context,
+		start,
+		stop,
+		closed,
+		[Symbol.asyncDispose]() {
+			return stop('dispose')
+		},
+	}
 }
 
 export type DiscordMainOptions = {
@@ -285,11 +341,19 @@ export async function main(options: DiscordMainOptions = {}) {
 	if (argv.includes('--self-test')) return runSelfTest(dependencies)
 	const config = dependencies.parseConfig(options.env ?? process.env)
 	const runtime = createDiscordRuntime(config, dependencies)
-	await runtime.start()
-	return runtime
+	try {
+		await runtime.start()
+		return runtime
+	} catch (error) {
+		await runtime.stop('startup failure')
+		throw error
+	}
 }
 
 export async function runDiscordEntrypoint(isMain: boolean, options?: DiscordMainOptions) {
 	if (!isMain) return
-	return main(options)
+	const result = await main(options)
+	if (!result || !('closed' in result)) return result
+	await using runtime = result
+	await runtime.closed
 }

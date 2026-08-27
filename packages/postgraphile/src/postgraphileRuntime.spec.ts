@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test'
-import { createRuntimeReadinessProbe } from './postgraphileRuntime'
+import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
+import { buildSchema } from 'postgraphile/graphql'
+import { createPostGraphileRuntime, createRuntimeReadinessProbe } from './postgraphileRuntime'
 
 test('runtime readiness probe executes minimal query through Grafserv pool', async () => {
 	let request: Request | undefined
@@ -39,4 +41,31 @@ test('runtime readiness aborts request and rejects GraphQL errors', async () => 
 
 	pending.resolve(Response.json({ errors: [{ message: 'statement timeout' }] }))
 	await expect(attempt.promise).rejects.toThrow('GraphQL errors')
+})
+
+test('runtime async disposal releases PostGraphile handler once', async () => {
+	let releases = 0
+	const handler = {
+		createServ() {
+			return {
+				async handleGraphQLRequest() {
+					return Response.json({ data: {} })
+				},
+				async handleGraphiQLStaticRequest() {
+					return null
+				},
+			}
+		},
+		getSchema() {
+			return buildSchema('type Query { ok: Boolean } type Subscription { ok: Boolean }')
+		},
+		async release() {
+			releases += 1
+		},
+	}
+	const runtime = createPostGraphileRuntime(handler as never, postgraphileConfig)
+
+	await runtime[Symbol.asyncDispose]()
+	await runtime.stop()
+	expect(releases).toBe(1)
 })

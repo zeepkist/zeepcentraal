@@ -13,9 +13,13 @@ import type { DiscordActivityEvent, DiscordGuildFeed, DiscordGuildState } from '
 export class FeedService {
 	private tournamentTimer?: ReturnType<typeof setInterval>
 	private liveSubscription?: { unsubscribe: () => void }
-	private activityQueue = Promise.resolve()
+	private activityDrain?: Promise<void>
+	private readonly pendingActivityEvents = new Map<string, DiscordActivityEvent>()
+	private lastProcessedActivityId?: bigint
 	private tournamentPolling = false
+	private tournamentDrain?: Promise<void>
 	private tournamentWatchKeys = new Map<number, string>()
+	private stopped = false
 
 	constructor(
 		private readonly client: Client,
@@ -24,6 +28,7 @@ export class FeedService {
 	) {}
 
 	start() {
+		this.stopped = false
 		this.tournamentTimer = this.scheduler.setInterval(() => void this.pollTournaments(), 60_000)
 		this.liveSubscription = this.context.graphql.subscribeToActivityEvents((events) => {
 			void this.enqueueActivityEvents(events)
@@ -32,15 +37,47 @@ export class FeedService {
 	}
 
 	enqueueActivityEvents(events: DiscordActivityEvent[]) {
-		this.activityQueue = this.activityQueue
-			.then(() => this.processActivityEvents(events))
-			.catch((error) => {
+		if (this.stopped) return Promise.resolve()
+		for (const event of events) {
+			const id = activityId(event.id)
+			if (id !== undefined && this.lastProcessedActivityId !== undefined) {
+				if (id <= this.lastProcessedActivityId) continue
+			}
+			this.pendingActivityEvents.set(event.id, event)
+		}
+		while (this.pendingActivityEvents.size > 1_000) {
+			const oldest = this.pendingActivityEvents.keys().next().value
+			if (!oldest) break
+			this.pendingActivityEvents.delete(oldest)
+		}
+
+		this.activityDrain ??= this.drainActivityEvents().finally(() => {
+			this.activityDrain = undefined
+		})
+		return this.activityDrain
+	}
+
+	private async drainActivityEvents() {
+		while (this.pendingActivityEvents.size > 0) {
+			const events = [...this.pendingActivityEvents.values()].sort((left, right) =>
+				compareActivityIds(left.id, right.id),
+			)
+			this.pendingActivityEvents.clear()
+			try {
+				await this.processActivityEvents(events)
+			} catch (error) {
 				console.error(
 					'Discord activity event processing failed',
 					discordErrorSummary(error),
 				)
-			})
-		return this.activityQueue
+			}
+			for (const event of events) {
+				const id = activityId(event.id)
+				if (id !== undefined && (this.lastProcessedActivityId ?? -1n) < id) {
+					this.lastProcessedActivityId = id
+				}
+			}
+		}
 	}
 
 	async processActivityEvents(events: DiscordActivityEvent[]) {
@@ -69,35 +106,36 @@ export class FeedService {
 			guildFeeds.set(feed.guildId, entries)
 		}
 
-		await Promise.all(
-			[...guildFeeds].map(async ([guildId, entries]) => {
-				const guild = this.client.guilds.cache.get(guildId)
-				if (!guild) return
-				for (const feed of entries) {
-					try {
-						await processFeed(guild, feed, feedEvents, this.context)
-					} catch (error) {
-						const channel = guild.channels.cache.get(feed.channelId)
-						console.error(
-							'Discord activity feed delivery failed',
-							{
-								guildId: guild.id,
-								guildName: guild.name,
-								channelId: feed.channelId,
-								channelName: channel?.name ?? null,
-								feedKind: feed.kind,
-							},
-							discordErrorSummary(error),
-						)
-					}
+		await runWithConcurrency([...guildFeeds], 4, async ([guildId, entries]) => {
+			const guild = this.client.guilds.cache.get(guildId)
+			if (!guild) return
+			for (const feed of entries) {
+				try {
+					await processFeed(guild, feed, feedEvents, this.context)
+				} catch (error) {
+					const channel = guild.channels.cache.get(feed.channelId)
+					console.error(
+						'Discord activity feed delivery failed',
+						{
+							guildId: guild.id,
+							guildName: guild.name,
+							channelId: feed.channelId,
+							channelName: channel?.name ?? null,
+							feedKind: feed.kind,
+						},
+						discordErrorSummary(error),
+					)
 				}
-			}),
-		)
+			}
+		})
 	}
 
 	async pollTournaments() {
+		if (this.stopped) return
 		if (this.tournamentPolling) return
 		this.tournamentPolling = true
+		const completion = Promise.withResolvers<void>()
+		this.tournamentDrain = completion.promise
 		try {
 			let snapshots: Awaited<ReturnType<typeof buildTournamentMessages>>
 			try {
@@ -189,11 +227,53 @@ export class FeedService {
 			}
 		} finally {
 			this.tournamentPolling = false
+			completion.resolve()
+			this.tournamentDrain = undefined
 		}
 	}
 
-	stop() {
+	async stop() {
+		this.stopped = true
 		if (this.tournamentTimer) this.scheduler.clearInterval(this.tournamentTimer)
+		this.tournamentTimer = undefined
 		this.liveSubscription?.unsubscribe()
+		this.liveSubscription = undefined
+		this.pendingActivityEvents.clear()
+		await Promise.allSettled([this.activityDrain, this.tournamentDrain])
+		this.tournamentWatchKeys.clear()
 	}
+
+	stats() {
+		return { activityQueueDepth: this.pendingActivityEvents.size }
+	}
+}
+
+function activityId(value: string) {
+	try {
+		return BigInt(value)
+	} catch {
+		return undefined
+	}
+}
+
+function compareActivityIds(left: string, right: string) {
+	const leftId = activityId(left)
+	const rightId = activityId(right)
+	if (leftId === undefined || rightId === undefined) return left.localeCompare(right)
+	return leftId < rightId ? -1 : leftId > rightId ? 1 : 0
+}
+
+async function runWithConcurrency<T>(
+	items: T[],
+	concurrency: number,
+	work: (item: T) => Promise<void>,
+) {
+	let index = 0
+	async function worker() {
+		while (index < items.length) {
+			const item = items[index++]
+			if (item !== undefined) await work(item)
+		}
+	}
+	await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()))
 }

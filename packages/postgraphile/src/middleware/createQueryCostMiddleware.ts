@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import {
 	getTracer,
 	recordSpanWarning,
@@ -40,7 +41,7 @@ type GraphQlBody = {
 export type QueryCostResult = {
 	kind: 'empty' | 'introspection' | 'accepted' | 'rejected'
 	cost?: number
-	reason?: 'syntax' | 'cost'
+	reason?: 'syntax' | 'cost' | 'size'
 	message?: string
 	details?: string
 }
@@ -52,6 +53,7 @@ type QueryCostEvaluatorOptions = {
 	defaultCollectionSize?: number
 	includeTraceDetail?: boolean
 	cacheSize?: number
+	maxQueryBytes?: number
 	onCacheMiss?: () => void
 }
 
@@ -331,6 +333,7 @@ export function createQueryCostEvaluator({
 	defaultCollectionSize = 100,
 	includeTraceDetail = false,
 	cacheSize = 500,
+	maxQueryBytes = 64 * 1024,
 	onCacheMiss,
 }: QueryCostEvaluatorOptions = {}) {
 	const cache = new Map<string, CachedQueryCostResult>()
@@ -340,6 +343,14 @@ export function createQueryCostEvaluator({
 	): Promise<QueryCostResult> {
 		if (typeof body?.query !== 'string') {
 			return { kind: 'empty' }
+		}
+		if (Buffer.byteLength(body.query) > maxQueryBytes) {
+			return {
+				kind: 'rejected',
+				reason: 'size',
+				message: 'GraphQL query is too large',
+				details: `Query exceeds ${maxQueryBytes} byte limit`,
+			}
 		}
 
 		const startTime = performance.now()
@@ -490,7 +501,7 @@ export function createQueryCostResponse(result: QueryCostResult): Response | und
 			errors: [{ message: result.message, details: result.details }],
 		},
 		{
-			status: 400,
+			status: result.reason === 'size' ? 413 : 400,
 			headers:
 				result.cost === undefined ? undefined : { 'X-Query-Cost': String(result.cost) },
 		},

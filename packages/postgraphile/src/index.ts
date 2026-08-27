@@ -23,6 +23,11 @@ async function main() {
 
 	const { buildPostGraphileServer } = await import('./server')
 	const app = buildPostGraphileServer()
+	await using appLifetime = {
+		async [Symbol.asyncDispose]() {
+			await app.stop()
+		},
+	}
 
 	app.listen({
 		hostname: postgraphileConfig.host,
@@ -34,13 +39,27 @@ async function main() {
 		`PostGraphile running at http://${postgraphileConfig.host}:${postgraphileConfig.port}/graphiql`,
 	)
 
-	async function shutdown() {
-		await app.stop()
-		process.exit(0)
-	}
+	await using shutdown = createShutdownSignal()
+	await shutdown.promise
+	void appLifetime
+}
 
-	process.on('SIGTERM', () => void shutdown())
-	process.on('SIGINT', () => void shutdown())
+function createShutdownSignal() {
+	let resolve!: () => void
+	const promise = new Promise<void>((nextResolve) => {
+		resolve = nextResolve
+	})
+	const onSignal = () => resolve()
+	process.once('SIGTERM', onSignal)
+	process.once('SIGINT', onSignal)
+
+	return {
+		promise,
+		[Symbol.dispose]() {
+			process.off('SIGTERM', onSignal)
+			process.off('SIGINT', onSignal)
+		},
+	}
 }
 
 await main()

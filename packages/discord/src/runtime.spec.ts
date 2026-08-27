@@ -42,10 +42,12 @@ function createClientHarness() {
 	const onHandlers = new Map<string, (...args: never[]) => unknown>()
 	const destroy = mock(() => {})
 	const login = mock(async () => 'token')
+	const removeAllListeners = mock(() => {})
 	const client = {
 		destroy,
 		guilds: { cache: new Map() },
 		login,
+		removeAllListeners,
 		on: mock((event: string, listener: (...args: never[]) => unknown) => {
 			onHandlers.set(event, listener)
 			return client
@@ -80,7 +82,11 @@ function createDependencies(
 		),
 	}
 	const graphql = { dispose: mock(() => {}) }
-	const feeds = { start: mock(() => {}), stop: mock(() => {}) }
+	const feeds = {
+		start: mock(() => {}),
+		stats: mock(() => ({ activityQueueDepth: 0 })),
+		stop: mock(() => {}),
+	}
 	const rest = { put: mock(async (_route: string, _options: unknown) => ({})) }
 	let healthOptions:
 		| {
@@ -325,6 +331,20 @@ test('runtime shutdown aborts dependency preflight and never starts Discord', as
 	expect(harness.feeds.start).not.toHaveBeenCalled()
 })
 
+test('main disposes runtime when startup fails', async () => {
+	const harness = createDependencies({
+		waitForDependencies: mock(async () => {
+			throw new Error('preflight failed')
+		}),
+	})
+
+	await expect(main({ dependencies: harness.dependencies })).rejects.toThrow('preflight failed')
+	expect(harness.feeds.stop).toHaveBeenCalledTimes(1)
+	expect(harness.health.stop).toHaveBeenCalledWith(true)
+	expect(harness.graphql.dispose).toHaveBeenCalledTimes(1)
+	expect(harness.clientHarness.destroy).toHaveBeenCalledTimes(1)
+})
+
 function interaction(kind: string, overrides: Record<string, unknown> = {}) {
 	return {
 		id: `${kind}-id`,
@@ -442,11 +462,14 @@ test('main and entrypoint support self-test, injected env, normal startup, and i
 	expect(normal.clientHarness.login).toHaveBeenCalledTimes(1)
 	expect(await runDiscordEntrypoint(false, { dependencies: normal.dependencies })).toBeUndefined()
 	const entrypoint = createDependencies()
-	await runDiscordEntrypoint(true, {
+	const running = runDiscordEntrypoint(true, {
 		argv: ['bun', 'index.ts'],
 		dependencies: entrypoint.dependencies,
 	})
+	await new Promise((resolve) => setTimeout(resolve, 0))
 	expect(entrypoint.clientHarness.login).toHaveBeenCalledTimes(1)
+	entrypoint.signals.get('SIGTERM')?.()
+	await running
 })
 
 test('production dependency factory builds concrete adapters without external I/O', async () => {

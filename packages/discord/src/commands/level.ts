@@ -1,4 +1,7 @@
-import { Zc_LevelRecordsDocument, Zc_OmniSearchDocument } from '@zeepkist/graphql/generated'
+import {
+	Zc_DiscordLevelRecordsDocument,
+	Zc_DiscordLevelSearchDocument,
+} from '@zeepkist/graphql/generated'
 import {
 	ActionRowBuilder,
 	type AutocompleteInteraction,
@@ -22,15 +25,17 @@ type LevelLeaderboardRecord = {
 
 function levelLeaderboard(levelId: number, context: CommandContext) {
 	return async (window: CursorWindow, page: number) => {
-		const data = await context.graphql.query<Record<string, unknown>>(Zc_LevelRecordsDocument, {
-			...window,
-			filter: {
-				levelId: { equalTo: levelId },
-				personalBestGlobalsExist: true,
+		const data = await context.graphql.query<Record<string, unknown>>(
+			Zc_DiscordLevelRecordsDocument,
+			{
+				...window,
+				filter: {
+					levelId: { equalTo: levelId },
+					personalBestGlobalsExist: true,
+				},
+				orderBy: ['TIME_ASC', 'ID_ASC'],
 			},
-			orderBy: ['TIME_ASC', 'ID_ASC'],
-			includeStatus: false,
-		})
+		)
 		const connection = (
 			data as {
 				records?: {
@@ -163,9 +168,12 @@ export async function levelAutocompleteHandler(
 		typeof focusedOption === 'object' ? focusedOption.value : focusedOption,
 	).trim()
 	if (focused.length < 2) return interaction.respond([])
-	const data = await context.graphql.query<Record<string, unknown>>(Zc_OmniSearchDocument, {
-		search: focused,
-	})
+	const data = await context.graphql.query<Record<string, unknown>>(
+		Zc_DiscordLevelSearchDocument,
+		{
+			search: focused,
+		},
+	)
 	const levels =
 		(
 			data as {

@@ -1,12 +1,26 @@
 import {
 	type AnyVariables,
 	type Client,
-	cacheExchange,
 	createClient,
 	fetchExchange,
-	gql,
 	subscriptionExchange,
 } from '@urql/core'
+import {
+	Zc_DiscordActivityEventsLiveDocument,
+	Zc_DiscordHotLevelsDocument,
+	Zc_DiscordLevelByIdDocument,
+	Zc_DiscordLevelDetailByHashDocument,
+	Zc_DiscordLevelRecordsDocument,
+	Zc_DiscordLevelSearchDocument,
+	Zc_DiscordLevelsByIdsDocument,
+	Zc_DiscordLevelsDocument,
+	Zc_DiscordModVersionsDocument,
+	Zc_DiscordRecentWorkshopLevelsDocument,
+	Zc_DiscordUserContributionsDocument,
+	Zc_DiscordUserLookupDocument,
+	Zc_DiscordUserStatsDocument,
+	Zc_DiscordUsersByIdsDocument,
+} from '@zeepkist/graphql/generated'
 import type { DocumentNode } from 'graphql'
 import { createClient as createWsClient, type Client as WsClient } from 'graphql-ws'
 import WebSocket from 'ws'
@@ -30,166 +44,21 @@ function activityEventPayload(value: unknown): Record<string, unknown> | null {
 		: null
 }
 
-const activityEventsLiveDocument = gql`
-	subscription DiscordActivityEventsLive {
-		discordActivityEvents(first: 100, orderBy: [ID_DESC]) {
-			nodes {
-				id
-				kind
-				levelId
-				userId
-				previousUserId
-				recordId
-				previousRecordId
-				payload
-				occurredAt
-				level {
-					id
-					xxHash
-					levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
-						nodes { name imageUrl workshopId author { id steamId steamName discordId } }
-					}
-					levelPoints { points rating }
-					personalBestGlobals(first: 0) { totalCount }
-				}
-				user { id steamId steamName discordId }
-				previousUser { id steamId steamName discordId }
-				record { id time modVersion }
-				previousRecord { id time modVersion }
-			}
-		}
-	}
-`
-
-const userIdsDocument = gql`
-	query DiscordUsersByIds($ids: [Int!]) {
-		users(first: 100, filter: { id: { in: $ids } }) {
-			nodes { id steamId steamName discordId userPoints { points } }
-		}
-	}
-`
-
-const statsDocument = gql`
-	query DiscordUserStats($userId: Int!, $from: Datetime, $to: Datetime) {
-		records: records(
-			first: 0
-			filter: { userId: { equalTo: $userId }, dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to } }
-		) { totalCount }
-		personalBests: personalBestGlobals(
-			first: 0
-			filter: { userId: { equalTo: $userId }, dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to } }
-		) { totalCount }
-		worldRecords: worldRecordGlobals(
-			first: 0
-			filter: { userId: { equalTo: $userId }, dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to } }
-		) { totalCount }
-		levels: levelItems(
-			first: 0
-			filter: { author: { id: { equalTo: $userId } }, createdAt: { greaterThanOrEqualTo: $from, lessThan: $to }, deleted: { equalTo: false } }
-		) { totalCount }
-		votes: votes(
-			first: 0
-			filter: { userId: { equalTo: $userId }, dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to } }
-		) { totalCount }
-		recordStatistics(
-			first: 0
-			filter: { record: { userId: { equalTo: $userId }, dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to } } }
-		) {
-			totalCount
-			aggregates {
-				sum {
-					distance time distanceOnTarmac distanceOnGrass distanceOnSand distanceOnSoap
-					distanceOnWood distanceOnMud distanceOnIce1 distanceOnIce2 distanceOnIce3 distanceInAir
-				}
-				average { averageSpeed averageGforce }
-				max { maxSpeed maxGforce }
-			}
-		}
-	}
-`
-
-const versionDocument = gql`
-	query DiscordModVersions($userId: Int!) {
-		versions(first: 1, orderBy: [ID_DESC]) { nodes { latest minimum } }
-		records(first: 1, filter: { userId: { equalTo: $userId } }, orderBy: [DATE_CREATED_DESC]) {
-			nodes { modVersion dateCreated }
-		}
-	}
-`
-
-const levelByIdDocument = gql`
-	query DiscordLevelById($id: Int!) {
-		level(id: $id) {
-			id xxHash publiclyVisible adventure dateCreated
-			levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
-				nodes {
-					name imageUrl authorId workshopId fileUid fileAuthor createdAt updatedAt
-					author { id steamId steamName discordId }
-				}
-			}
-			levelPoints { points rating }
-			records(first: 0) { totalCount }
-			personalBestGlobals(first: 0) { totalCount }
-			votes(first: 0) { totalCount }
-			worldRecordGlobal {
-				record { id time modVersion }
-				user { id steamId steamName discordId }
-			}
-		}
-	}
-`
-
-const userLookupDocument = gql`
-	query DiscordUserLookup($filter: UserFilter!) {
-		users(first: 1, filter: $filter) {
-			nodes {
-				id steamId steamName discordId dateCreated
-				userPoints { points rank totalPoints worldRecords }
-				records(first: 0) { totalCount }
-				personalBestGlobals(first: 0) { totalCount }
-				worldRecordGlobals(first: 0) { totalCount }
-				levelItems(first: 0, filter: { deleted: { equalTo: false } }) { totalCount }
-				votes(first: 0) { totalCount }
-			}
-		}
-	}
-`
-
-const recentWorkshopLevelsDocument = gql`
-	query DiscordRecentWorkshopLevels(
-		$first: Int!
-		$orderBy: [LevelItemsOrderBy!]!
-		$levelFilter: LevelFilter!
-	) {
-		levelItems(
-			first: $first
-			filter: { deleted: { equalTo: false }, level: $levelFilter }
-			orderBy: $orderBy
-		) {
-			nodes {
-				name imageUrl fileUid fileAuthor workshopId createdAt updatedAt
-				level {
-					id xxHash publiclyVisible
-					levelPoints { points rating }
-					records(first: 0) { totalCount }
-					personalBestGlobals(first: 0) { totalCount }
-					worldRecordGlobal {
-						record { time }
-						user { id steamId steamName discordId }
-					}
-				}
-			}
-		}
-	}
-`
-
 export const discordReferenceDocuments = [
-	userIdsDocument,
-	statsDocument,
-	versionDocument,
-	levelByIdDocument,
-	userLookupDocument,
-	recentWorkshopLevelsDocument,
+	Zc_DiscordActivityEventsLiveDocument,
+	Zc_DiscordUsersByIdsDocument,
+	Zc_DiscordUserStatsDocument,
+	Zc_DiscordModVersionsDocument,
+	Zc_DiscordLevelByIdDocument,
+	Zc_DiscordLevelsByIdsDocument,
+	Zc_DiscordUserLookupDocument,
+	Zc_DiscordRecentWorkshopLevelsDocument,
+	Zc_DiscordLevelDetailByHashDocument,
+	Zc_DiscordLevelSearchDocument,
+	Zc_DiscordLevelsDocument,
+	Zc_DiscordHotLevelsDocument,
+	Zc_DiscordLevelRecordsDocument,
+	Zc_DiscordUserContributionsDocument,
 ]
 
 export type GraphqlDependencies = {
@@ -240,7 +109,6 @@ export class ZeepGraphqlClient {
 			preferGetMethod: false,
 			fetchOptions: { method: 'POST' },
 			exchanges: [
-				cacheExchange,
 				fetchExchange,
 				subscriptionExchange({
 					forwardSubscription: createSubscriptionForwarder(this.wsClient),
@@ -260,7 +128,7 @@ export class ZeepGraphqlClient {
 		return this.client
 			.subscription<{
 				discordActivityEvents: { nodes: DiscordActivityEventResponse[] }
-			}>(activityEventsLiveDocument, {})
+			}>(Zc_DiscordActivityEventsLiveDocument, {})
 			.subscribe((result) => {
 				const nodes = result.data?.discordActivityEvents.nodes
 				if (result.error || !nodes || nodes.length === 0) return
@@ -280,38 +148,55 @@ export class ZeepGraphqlClient {
 		const users = new Map<number, LinkedUser>()
 		const uniqueIds = [...new Set(ids)]
 		for (let index = 0; index < uniqueIds.length; index += 100) {
-			const data = await this.query<{ users: { nodes: LinkedUser[] } }>(userIdsDocument, {
-				ids: uniqueIds.slice(index, index + 100),
-			})
+			const data = await this.query<{ users: { nodes: LinkedUser[] } }>(
+				Zc_DiscordUsersByIdsDocument,
+				{ ids: uniqueIds.slice(index, index + 100) },
+			)
 			for (const user of data.users.nodes) users.set(user.id, user)
 		}
 		return users
 	}
 
 	async userStats(userId: number, from: string | null, to: string | null) {
-		return this.query<Record<string, unknown>>(statsDocument, { userId, from, to })
+		return this.query<Record<string, unknown>>(Zc_DiscordUserStatsDocument, {
+			userId,
+			from,
+			to,
+		})
 	}
 
 	async modVersions(userId: number) {
 		return this.query<{
 			versions: { nodes: Array<{ latest: string | null; minimum: string | null }> }
 			records: { nodes: Array<{ modVersion: string; dateCreated: string }> }
-		}>(versionDocument, { userId })
+		}>(Zc_DiscordModVersionsDocument, { userId })
 	}
 
 	async levelById(id: number) {
 		const data = await this.query<{ level: Record<string, unknown> | null }>(
-			levelByIdDocument,
-			{
-				id,
-			},
+			Zc_DiscordLevelByIdDocument,
+			{ id },
 		)
 		return data.level
 	}
 
+	async levelsByIds(ids: number[]) {
+		if (ids.length === 0) return []
+		const uniqueIds = [...new Set(ids)].slice(0, 50)
+		const data = await this.query<{ levels: { nodes: Array<Record<string, unknown>> } }>(
+			Zc_DiscordLevelsByIdsDocument,
+			{ ids: uniqueIds },
+		)
+		const byId = new Map(data.levels.nodes.map((level) => [Number(level.id), level] as const))
+		return uniqueIds.flatMap((id) => {
+			const level = byId.get(id)
+			return level ? [level] : []
+		})
+	}
+
 	async userByFilter(filter: Record<string, unknown>) {
 		const data = await this.query<{ users: { nodes: Array<Record<string, unknown>> } }>(
-			userLookupDocument,
+			Zc_DiscordUserLookupDocument,
 			{ filter },
 		)
 		return data.users.nodes[0] ?? null
@@ -335,7 +220,11 @@ export class ZeepGraphqlClient {
 					level: Record<string, unknown> | null
 				}>
 			}
-		}>(recentWorkshopLevelsDocument, { first, orderBy: [orderBy, 'ID_DESC'], levelFilter })
+		}>(Zc_DiscordRecentWorkshopLevelsDocument, {
+			first,
+			orderBy: [orderBy, 'ID_DESC'],
+			levelFilter,
+		})
 	}
 
 	dispose() {

@@ -1,0 +1,163 @@
+query ZC_DiscordUsersByIds($ids: [Int!]) {
+	users(first: 100, filter: { id: { in: $ids } }) {
+		nodes {
+			id
+			steamId
+			steamName
+			discordId
+			userPoints {
+				points
+			}
+		}
+	}
+}
+
+query ZC_DiscordUserStats($userId: Int!, $from: Datetime, $to: Datetime) {
+	records: records(
+		first: 0
+		filter: {
+			userId: { equalTo: $userId }
+			dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to }
+		}
+	) {
+		totalCount
+	}
+	personalBests: personalBestGlobals(
+		first: 0
+		filter: {
+			userId: { equalTo: $userId }
+			dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to }
+		}
+	) {
+		totalCount
+	}
+	worldRecords: worldRecordGlobals(
+		first: 0
+		filter: {
+			userId: { equalTo: $userId }
+			dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to }
+		}
+	) {
+		totalCount
+	}
+	levels: levelItems(
+		first: 0
+		filter: {
+			author: { id: { equalTo: $userId } }
+			createdAt: { greaterThanOrEqualTo: $from, lessThan: $to }
+			deleted: { equalTo: false }
+		}
+	) {
+		totalCount
+	}
+	votes: votes(
+		first: 0
+		filter: {
+			userId: { equalTo: $userId }
+			dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to }
+		}
+	) {
+		totalCount
+	}
+	recordStatistics(
+		first: 0
+		filter: {
+			record: {
+				userId: { equalTo: $userId }
+				dateCreated: { greaterThanOrEqualTo: $from, lessThan: $to }
+			}
+		}
+	) {
+		totalCount
+		aggregates {
+			sum {
+				distance
+				time
+				distanceOnTarmac
+				distanceOnGrass
+				distanceOnSand
+				distanceOnSoap
+				distanceOnWood
+				distanceOnMud
+				distanceOnIce1
+				distanceOnIce2
+				distanceOnIce3
+				distanceInAir
+			}
+			average {
+				averageSpeed
+				averageGforce
+			}
+			max {
+				maxSpeed
+				maxGforce
+			}
+		}
+	}
+}
+
+query ZC_DiscordModVersions($userId: Int!) {
+	versions(first: 1, orderBy: [ID_DESC]) {
+		nodes {
+			latest
+			minimum
+		}
+	}
+	records(first: 1, filter: { userId: { equalTo: $userId } }, orderBy: [DATE_CREATED_DESC]) {
+		nodes {
+			modVersion
+			dateCreated
+		}
+	}
+}
+
+query ZC_DiscordUserLookup($filter: UserFilter!) {
+	users(first: 1, filter: $filter) {
+		nodes {
+			id
+			steamId
+			steamName
+			discordId
+			dateCreated
+			userPoints {
+				points
+				rank
+				totalPoints
+				worldRecords
+			}
+			records(first: 0) {
+				totalCount
+			}
+			personalBestGlobals(first: 0) {
+				totalCount
+			}
+			worldRecordGlobals(first: 0) {
+				totalCount
+			}
+			levelItems(first: 0, filter: { deleted: { equalTo: false } }) {
+				totalCount
+			}
+			votes(first: 0) {
+				totalCount
+			}
+		}
+	}
+}
+
+query ZC_DiscordUserContributions(
+	$first: Int
+	$filter: UserPointContributionFilter!
+	$orderBy: [UserPointContributionsOrderBy!]!
+) {
+	userPointContributions(first: $first, filter: $filter, orderBy: $orderBy) {
+		edges {
+			node {
+				levelPoints
+				playerDecayedPoints
+				record {
+					levelId
+				}
+			}
+		}
+	}
+}

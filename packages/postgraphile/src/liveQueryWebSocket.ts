@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import type { GraphQLSchema } from 'postgraphile/graphql'
 import { prepareLiveQuery } from './liveQueryOperation'
 import {
@@ -25,6 +26,7 @@ type ElysiaWebSocket = {
 
 type LiveSubscription = {
 	id: string
+	needsInitial: boolean
 	state: WebSocketState
 	shared: SharedOperation
 }
@@ -38,7 +40,10 @@ type SharedOperation = {
 	variables?: unknown
 	operationName?: string
 	subscribers: Set<LiveSubscription>
-	lastResult?: string
+	lastResultFingerprint?: string
+	lastResultLength?: number
+	replay?: string
+	replayBytes: number
 	running: boolean
 	queued?: QueueKind
 	rerunAfterExecution: boolean
@@ -50,6 +55,7 @@ type WebSocketState = {
 	protocol: WebSocketProtocol
 	operations: Map<string, LiveSubscription>
 	messageChain: Promise<void>
+	pendingMessages: number
 	closed: boolean
 } & ProtocolState
 
@@ -69,15 +75,26 @@ type LiveQueryWebSocketConfig = {
 	maxOperations: number
 	maxOperationsPerConnection: number
 	maxConcurrentExecutions: number
+	maxPendingMessagesPerConnection: number
+	resultCacheMaxBytes: number
+	maxResultBytes: number
 	onActiveChange?: (active: boolean) => void
 	onActiveOperationsChange?: (activeOperations: number) => void
 	onActiveSharedOperationsChange?: (activeSharedOperations: number) => void
 	onQueueDepthChange?: (queueDepth: number) => void
 	onRunningExecutionsChange?: (runningExecutions: number) => void
+	onCachedResultBytesChange?: (cachedResultBytes: number) => void
 	onDeduplication?: () => void
 	onExecution?: (durationMs: number, outcome: 'success' | 'error') => void
 	onRejected?: (
-		reason: 'global_limit' | 'connection_limit' | 'cost' | 'introspection' | 'invalid',
+		reason:
+			| 'global_limit'
+			| 'connection_limit'
+			| 'cost'
+			| 'introspection'
+			| 'invalid'
+			| 'message_backlog'
+			| 'result_size',
 	) => void
 }
 
@@ -87,10 +104,45 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 	const sharedOperations = new Map<string, SharedOperation>()
 	const initialQueue: SharedOperation[] = []
 	const rerunQueue: SharedOperation[] = []
+	const replayOrder = new Map<string, SharedOperation>()
+	const runningPromises = new Set<Promise<void>>()
 	let activeOperations = 0
 	let pendingOperations = 0
 	let runningExecutions = 0
 	let debounce: Timer | undefined
+	let cachedResultBytes = 0
+	let disposed = false
+
+	function updateCachedResultBytes() {
+		config.onCachedResultBytesChange?.(cachedResultBytes)
+	}
+
+	function clearReplay(operation: SharedOperation) {
+		if (operation.replay === undefined) return
+		replayOrder.delete(operation.key)
+		cachedResultBytes -= operation.replayBytes
+		operation.replay = undefined
+		operation.replayBytes = 0
+		updateCachedResultBytes()
+	}
+
+	function cacheReplay(operation: SharedOperation, result: string) {
+		clearReplay(operation)
+		const bytes = result.length * 2
+		if (bytes > config.resultCacheMaxBytes) return
+
+		while (cachedResultBytes + bytes > config.resultCacheMaxBytes) {
+			const oldest = replayOrder.values().next().value
+			if (!oldest) break
+			clearReplay(oldest)
+		}
+
+		operation.replay = result
+		operation.replayBytes = bytes
+		replayOrder.set(operation.key, operation)
+		cachedResultBytes += bytes
+		updateCachedResultBytes()
+	}
 
 	function setActiveDelta(delta: 1 | -1) {
 		const wasActive = activeOperations > 0
@@ -121,7 +173,9 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 		if (shared.subscribers.size === 0 && sharedOperations.get(shared.key) === shared) {
 			sharedOperations.delete(shared.key)
 			removeQueuedOperation(shared)
-			shared.lastResult = undefined
+			clearReplay(shared)
+			shared.lastResultFingerprint = undefined
+			shared.lastResultLength = undefined
 			config.onActiveSharedOperationsChange?.(sharedOperations.size)
 		}
 	}
@@ -145,7 +199,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 	}
 
 	function enqueue(operation: SharedOperation, kind: QueueKind) {
-		if (operation.subscribers.size === 0) {
+		if (disposed || operation.subscribers.size === 0) {
 			return
 		}
 
@@ -180,7 +234,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 	}
 
 	function pumpQueue() {
-		while (runningExecutions < config.maxConcurrentExecutions) {
+		while (!disposed && runningExecutions < config.maxConcurrentExecutions) {
 			const operation = nextQueuedOperation()
 			if (!operation) {
 				return
@@ -196,7 +250,10 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 			operation.running = true
 			runningExecutions += 1
 			config.onRunningExecutionsChange?.(runningExecutions)
-			void executeOperation(operation).finally(() => {
+			const execution = executeOperation(operation)
+			runningPromises.add(execution)
+			void execution.finally(() => {
+				runningPromises.delete(execution)
 				operation.running = false
 				runningExecutions -= 1
 				config.onRunningExecutionsChange?.(runningExecutions)
@@ -208,7 +265,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 					operation.rerunAfterExecution = false
 				}
 
-				pumpQueue()
+				if (!disposed) pumpQueue()
 			})
 		}
 	}
@@ -221,17 +278,42 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 				variables: operation.variables,
 				operationName: operation.operationName,
 			})
-			const resultKey = stableStringify(result)
+			const resultKey = JSON.stringify(result) ?? 'null'
+			if (Buffer.byteLength(resultKey) > config.maxResultBytes) {
+				config.onRejected?.('result_size')
+				for (const subscriber of [...operation.subscribers]) {
+					sendProtocolError(
+						subscriber.state,
+						subscriber.id,
+						`Live query result exceeds ${config.maxResultBytes} byte limit`,
+					)
+					deleteOperation(subscriber.state, subscriber.id)
+				}
+				config.onExecution?.(performance.now() - startedAt, 'error')
+				return
+			}
+
+			const fingerprint = Bun.hash(resultKey).toString()
+			const changed =
+				operation.lastResultFingerprint !== fingerprint ||
+				operation.lastResultLength !== resultKey.length
 
 			if (
 				operation.subscribers.size > 0 &&
 				sharedOperations.get(operation.key) === operation &&
-				resultKey !== operation.lastResult
+				(changed ||
+					[...operation.subscribers].some((subscriber) => subscriber.needsInitial))
 			) {
-				operation.lastResult = resultKey
+				operation.lastResultFingerprint = fingerprint
+				operation.lastResultLength = resultKey.length
+				cacheReplay(operation, resultKey)
 				for (const subscriber of operation.subscribers) {
-					if (subscriber.state.operations.get(subscriber.id) === subscriber) {
+					if (
+						(changed || subscriber.needsInitial) &&
+						subscriber.state.operations.get(subscriber.id) === subscriber
+					) {
 						sendSerializedResult(subscriber.state, subscriber.id, resultKey)
+						subscriber.needsInitial = false
 					}
 				}
 			}
@@ -262,6 +344,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 	}
 
 	function scheduleRerunAll() {
+		if (disposed) return
 		if (debounce) {
 			clearTimeout(debounce)
 		}
@@ -284,6 +367,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 					protocol: resolveProtocol(ws.data.request),
 					operations: new Map(),
 					messageChain: Promise.resolve(),
+					pendingMessages: 0,
 					closed: false,
 				}
 				states.set(ws, state)
@@ -309,9 +393,18 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 					message.type === 'complete' ||
 					message.type === 'stop'
 				) {
+					if (websocketState.pendingMessages >= config.maxPendingMessagesPerConnection) {
+						config.onRejected?.('message_backlog')
+						ws.close(4429, 'Too many pending websocket messages')
+						return
+					}
+					websocketState.pendingMessages += 1
 					websocketState.messageChain = websocketState.messageChain
 						.then(processMessage)
 						.catch(handleError)
+						.finally(() => {
+							websocketState.pendingMessages -= 1
+						})
 				} else {
 					void processMessage().catch(handleError)
 				}
@@ -341,6 +434,27 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 			},
 		},
 		invalidate: scheduleRerunAll,
+		async dispose() {
+			if (disposed) return
+			disposed = true
+			if (debounce) clearTimeout(debounce)
+			debounce = undefined
+			initialQueue.length = 0
+			rerunQueue.length = 0
+			updateQueueDepth()
+			for (const operation of [...sharedOperations.values()]) {
+				for (const subscriber of [...operation.subscribers]) {
+					subscriber.state.closed = true
+					deleteOperation(subscriber.state, subscriber.id)
+				}
+			}
+			await Promise.allSettled([...runningPromises])
+			for (const operation of sharedOperations.values()) clearReplay(operation)
+			sharedOperations.clear()
+			replayOrder.clear()
+			cachedResultBytes = 0
+			updateCachedResultBytes()
+		},
 	}
 
 	async function handleMessage(state: WebSocketState, message: ClientMessage) {
@@ -473,6 +587,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 					variables: payload.variables,
 					operationName: payload.operationName,
 					subscribers: new Set(),
+					replayBytes: 0,
 					running: false,
 					rerunAfterExecution: false,
 				}
@@ -484,6 +599,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 
 			const subscription: LiveSubscription = {
 				id: message.id,
+				needsInitial: true,
 				state,
 				shared,
 			}
@@ -491,11 +607,14 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 			shared.subscribers.add(subscription)
 			setActiveDelta(1)
 
-			if (shared.lastResult !== undefined) {
-				sendSerializedResult(state, message.id, shared.lastResult)
+			if (shared.replay !== undefined) {
+				sendSerializedResult(state, message.id, shared.replay)
+				subscription.needsInitial = false
+				replayOrder.delete(shared.key)
+				replayOrder.set(shared.key, shared)
 			}
 
-			if (!shared.running && !shared.queued && shared.lastResult === undefined) {
+			if (!shared.running && !shared.queued && subscription.needsInitial) {
 				enqueue(shared, 'initial')
 			}
 		} finally {

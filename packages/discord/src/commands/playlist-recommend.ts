@@ -1,4 +1,4 @@
-import { Zc_UserContributionsDocument } from '@zeepkist/graphql/generated'
+import { Zc_DiscordUserContributionsDocument } from '@zeepkist/graphql/generated'
 import { type ChatInputCommandInteraction, MessageFlags, SlashCommandBuilder } from 'discord.js'
 import type { CommandContext } from './context'
 import { linkedUserOrThrow } from './utils/linked-user'
@@ -19,7 +19,7 @@ export async function playlistRecommendHandler(
 	const linked = linkedUserOrThrow(await context.backend.user(interaction.user.id))
 	const count = interaction.options.getInteger('count') ?? 15
 	const data = await context.graphql.query<Record<string, unknown>>(
-		Zc_UserContributionsDocument,
+		Zc_DiscordUserContributionsDocument,
 		{
 			first: Math.min(100, count * 4),
 			filter: { userId: { equalTo: linked.id }, levelPosition: { greaterThan: 1 } },
@@ -43,15 +43,9 @@ export async function playlistRecommendHandler(
 				(Number(left.levelPoints) - Number(left.playerDecayedPoints)),
 		)
 		.slice(0, count)
-	const levels = (
-		await Promise.all(
-			nodes.map((node) =>
-				context.graphql.levelById(Number((node.record as { levelId: number }).levelId)),
-			),
-		)
-	).filter((level): level is Record<string, unknown> =>
-		Boolean(level),
-	) as unknown as PlaylistLevel[]
+	const levels = (await context.graphql.levelsByIds(
+		nodes.map((node) => Number((node.record as { levelId: number }).levelId)),
+	)) as unknown as PlaylistLevel[]
 	await interaction.editReply(
 		playlistResponse(context, interaction.user.id, 'Ranked Points Recommendations', levels, [
 			'high-points',
