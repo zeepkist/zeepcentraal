@@ -105,6 +105,11 @@ const footerColumns = computed(() => [
 				'brand-github',
 			),
 			internal(t('nav.developer'), '/developer', 'code'),
+			external(
+				t('footer.links.status'),
+				'https://status.zeepki.st',
+				'activity',
+			)
 		],
 	},
 	{

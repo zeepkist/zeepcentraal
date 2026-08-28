@@ -90,7 +90,8 @@
 		"links": {
 			"github": "GitHub Repository",
 			"privacy": "Privacy Policy",
-			"terms": "Terms & Conditions"
+			"terms": "Terms & Conditions",
+			"status": "System Status"
 		}
 	},
 	"nav": {
