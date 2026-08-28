@@ -1,4 +1,5 @@
 export * from './config'
+export * from './requestLogging'
 export * from './runtimeMetrics'
 export * from './sdk'
 export * from './span'

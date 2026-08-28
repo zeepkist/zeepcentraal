@@ -8,6 +8,7 @@ import { Elysia, t } from 'elysia'
 import { GTR_BEARER_SECURITY, OPENAPI_TAG, USER_SECURITY } from '../../openapi'
 import { withAuthGtr, withAuthRequest } from '../../plugins/withAuth'
 import { withRateLimit } from '../../plugins/withRateLimit'
+import { ERROR_CODES, handleProblem } from '../../problems'
 import { hashDiscordLinkCode, randomDiscordLinkCode } from '../discord/discordLink'
 
 export const userRoutes = new Elysia({ prefix: '/user' })
@@ -17,15 +18,6 @@ export const userRoutes = new Elysia({ prefix: '/user' })
 			.use(withRateLimit('mutation'))
 			.post(
 				'',
-				async ({ auth, set }) => {
-					const user = await getUser(auth.steamId)
-					if (!user || user.banned) {
-						set.status = 401
-						return
-					}
-					set.status = 200
-					return
-				},
 				{
 					body: t.Object({
 						Name: t.String({ description: 'Current Steam display name.' }),
@@ -39,6 +31,14 @@ export const userRoutes = new Elysia({ prefix: '/user' })
 						tags: [OPENAPI_TAG.user],
 					},
 				},
+				async ({ auth, set }) => {
+					const user = await getUser(auth.steamId)
+					if (!user || user.banned) {
+						return handleProblem(401, ERROR_CODES.AUTH_USER_NOT_FOUND)
+					}
+					set.status = 200
+					return
+				},
 			),
 	)
 	.group('/updateDiscordId', (app) =>
@@ -47,35 +47,6 @@ export const userRoutes = new Elysia({ prefix: '/user' })
 			.use(withRateLimit('mutation'))
 			.post(
 				'',
-				async ({ auth, body, set }) => {
-					const { Id } = body
-					const user = await getUser(auth.steamId)
-					if (!user || user.banned) {
-						set.status = 401
-						return
-					}
-
-					if (!Id) {
-						set.status = 200
-						return
-					}
-
-					if (Id !== '-1') {
-						set.status = 400
-						return {
-							error: {
-								code: 'discord_ownership_required',
-								message:
-									'Positive Discord IDs require OAuth or one-time code verification.',
-							},
-						}
-					}
-
-					await updateDiscordId(auth.steamId, -1n)
-
-					set.status = 200
-					return
-				},
 				{
 					body: t.Object({
 						Id: t.String({
@@ -92,6 +63,31 @@ export const userRoutes = new Elysia({ prefix: '/user' })
 						tags: [OPENAPI_TAG.user],
 					},
 				},
+				async ({ auth, body, set }) => {
+					const { Id } = body
+					const user = await getUser(auth.steamId)
+					if (!user || user.banned) {
+						return handleProblem(401, ERROR_CODES.AUTH_USER_NOT_FOUND)
+					}
+
+					if (!Id) {
+						set.status = 200
+						return
+					}
+
+					if (Id !== '-1') {
+						return handleProblem(
+							400,
+							'Positive Discord IDs require OAuth or one-time code verification.',
+							'discord_ownership_required',
+						)
+					}
+
+					await updateDiscordId(auth.steamId, -1n)
+
+					set.status = 200
+					return
+				},
 			),
 	)
 	.group('/discord', (app) =>
@@ -100,11 +96,18 @@ export const userRoutes = new Elysia({ prefix: '/user' })
 			.use(withRateLimit('mutation'))
 			.post(
 				'/link-code',
-				async ({ auth, set }) => {
+				{
+					detail: {
+						operationId: 'createDiscordLinkCode',
+						summary: 'Create a one-time Discord account link code',
+						security: USER_SECURITY,
+						tags: [OPENAPI_TAG.user],
+					},
+				},
+				async ({ auth }) => {
 					const linkedUser = await getUser(auth.steamId)
 					if (!linkedUser || linkedUser.banned) {
-						set.status = 401
-						return
+						return handleProblem(401, ERROR_CODES.AUTH_USER_NOT_FOUND)
 					}
 					const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString()
 					for (let attempt = 0; attempt < 5; attempt++) {
@@ -122,21 +125,9 @@ export const userRoutes = new Elysia({ prefix: '/user' })
 					}
 					throw new Error('Unable to generate Discord link code')
 				},
-				{
-					detail: {
-						operationId: 'createDiscordLinkCode',
-						summary: 'Create a one-time Discord account link code',
-						security: USER_SECURITY,
-						tags: [OPENAPI_TAG.user],
-					},
-				},
 			)
 			.delete(
 				'',
-				async ({ auth, set }) => {
-					await unlinkDiscordBySteamId(auth.steamId)
-					set.status = 204
-				},
 				{
 					detail: {
 						operationId: 'unlinkDiscordAccount',
@@ -144,6 +135,10 @@ export const userRoutes = new Elysia({ prefix: '/user' })
 						security: USER_SECURITY,
 						tags: [OPENAPI_TAG.user],
 					},
+				},
+				async ({ auth, set }) => {
+					await unlinkDiscordBySteamId(auth.steamId)
+					set.status = 204
 				},
 			),
 	)

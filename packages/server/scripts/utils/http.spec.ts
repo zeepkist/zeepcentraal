@@ -82,12 +82,19 @@ describe('sendJobTriggerRequest', () => {
 		})
 	})
 
-	test('exposes structured API error status, code, and message', async () => {
+	test('exposes Problem Details status, errorCode, and detail', async () => {
 		const fetchImpl = mock(
 			async () =>
-				new Response(JSON.stringify({ error: { code: 22, message: 'Invalid request' } }), {
-					status: 400,
-				}),
+				new Response(
+					JSON.stringify({
+						type: 'about:blank',
+						title: 'Bad Request',
+						status: 400,
+						detail: 'Invalid request',
+						errorCode: 22,
+					}),
+					{ status: 400, headers: { 'content-type': 'application/problem+json' } },
+				),
 		)
 
 		const error = await captureError(
@@ -102,8 +109,8 @@ describe('sendJobTriggerRequest', () => {
 		expect(error).toBeInstanceOf(JobTriggerHttpError)
 		expect(error).toMatchObject({
 			status: 400,
-			code: 22,
-			message: 'Job trigger request failed (400, code 22): Invalid request.',
+			errorCode: 22,
+			message: 'Job trigger request failed (400, errorCode 22): Invalid request.',
 		})
 	})
 

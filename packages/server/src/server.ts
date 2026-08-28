@@ -22,7 +22,6 @@ import { createWithTelemetry } from './plugins/withTelemetry'
 
 export function buildServer() {
 	return new Elysia({
-		aot: true,
 		precompile: true,
 		serve: {
 			development: config.nodeEnv !== 'production',
@@ -44,21 +43,21 @@ export function buildServer() {
 		.use(recordRoutes)
 		.use(voteRoutes)
 		.use(jobRoutes)
-		.get(
-			'/favicon.ico',
-			({ set }) => {
-				set.status = 204
-				return
-			},
-			{ detail: { hide: true } },
-		)
-		.get('/healthz', () => ({ status: 'ok' }), {
-			detail: {
-				operationId: 'getHealth',
-				summary: 'Check API health',
-				description:
-					'Returns a lightweight readiness response when the API process is available.',
-				tags: [OPENAPI_TAG.system],
-			},
+		.get('/favicon.ico', { detail: { hide: true } }, ({ set }) => {
+			set.status = 204
+			return
 		})
+		.get(
+			'/healthz',
+			{
+				detail: {
+					operationId: 'getHealth',
+					summary: 'Check API health',
+					description:
+						'Returns a lightweight readiness response when the API process is available.',
+					tags: [OPENAPI_TAG.system],
+				},
+			},
+			() => ({ status: 'ok' }),
+		)
 }

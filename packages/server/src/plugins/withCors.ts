@@ -1,4 +1,4 @@
-import cors from '@elysiajs/cors'
+import cors from '@elysia/cors'
 import { serverConfig } from '@zeepkist/core/config/server'
 import { Elysia } from 'elysia'
 

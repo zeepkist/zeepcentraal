@@ -18,3 +18,18 @@ export const USER_SECURITY: Array<Record<string, string[]>> = [
 	{ accessToken: [] },
 	{ webSession: [] },
 ]
+
+export const PROBLEM_DETAILS_SCHEMA = {
+	type: 'object' as const,
+	additionalProperties: true,
+	required: ['type', 'title', 'status', 'detail'],
+	properties: {
+		type: { type: 'string' as const, default: 'about:blank' },
+		title: { type: 'string' as const },
+		status: { type: 'integer' as const },
+		detail: { type: 'string' as const },
+		errorCode: {
+			oneOf: [{ type: 'integer' as const }, { type: 'string' as const }],
+		},
+	},
+}

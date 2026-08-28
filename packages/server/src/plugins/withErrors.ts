@@ -1,42 +1,42 @@
 import { recordSpanError } from '@zeepkist/telemetry'
-import { Elysia } from 'elysia'
-import { handleV1Error, V1_ERROR_CODES, type V1HttpError } from '../v1Errors'
+import { Elysia, NotFound, ParseError, ValidationError } from 'elysia'
+import { ERROR_CODES, handleProblem, ProblemError } from '../problems'
 
 function recordError(error: unknown) {
 	recordSpanError(error)
 }
 
-export const withErrors = new Elysia().onError(({ code, error }) => {
-	console.error('[server] Error (code=%s):', code, error)
+function applyHeaders(
+	set: { headers: Record<string, string | number | string[]> },
+	headers?: Record<string, string>,
+) {
+	if (!headers) return
+	for (const [name, value] of Object.entries(headers)) set.headers[name] = value
+}
 
-	recordError(error)
-
-	if (error && typeof error === 'object' && 'code' in error && 'status' in error) {
-		const v1Error = error as unknown as V1HttpError
-		return new Response(JSON.stringify(handleV1Error(v1Error.code)), {
-			status: v1Error.status,
-			headers: {
-				'content-type': 'application/json',
-			},
-		})
-	}
-
-	if (code === 'VALIDATION') {
-		recordError(new Error('Validation error'))
-		return new Response(JSON.stringify(handleV1Error(V1_ERROR_CODES.GENERIC_INVALID_REQUEST)), {
-			status: 400,
-			headers: {
-				'content-type': 'application/json',
-			},
-		})
-	}
-
-	recordError(new Error('Internal server error'))
-	console.error('[server] Unhandled error (code=%s):', code, error)
-	return new Response(JSON.stringify(handleV1Error(V1_ERROR_CODES.INTERNAL_SERVER_ERROR)), {
-		status: 500,
-		headers: {
-			'content-type': 'application/json',
-		},
+export const withErrors = new Elysia({ name: 'server/errors' })
+	.error('global', ProblemError, ({ error, set }) => {
+		console.error('[server] Request error:', error)
+		recordError(error)
+		applyHeaders(set, error.headers)
+		return handleProblem(error.status, error.message, error.errorCode)
 	})
-})
+	.error('global', ValidationError, ({ error }) => {
+		console.warn('[server] Validation error:', error)
+		recordError(error)
+		return handleProblem(400, 'Invalid request', ERROR_CODES.GENERIC_INVALID_REQUEST)
+	})
+	.error('global', ParseError, ({ error }) => {
+		console.warn('[server] Parse error:', error)
+		recordError(error)
+		return handleProblem(400, 'Invalid request', ERROR_CODES.GENERIC_INVALID_REQUEST)
+	})
+	.error('global', NotFound, ({ error }) => {
+		recordError(error)
+		return handleProblem(404, 'Not found')
+	})
+	.error('global', ({ error }) => {
+		console.error('[server] Unhandled error:', error)
+		recordError(error)
+		return handleProblem(500, 'Internal server error', ERROR_CODES.INTERNAL_SERVER_ERROR)
+	})

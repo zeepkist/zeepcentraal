@@ -19,7 +19,8 @@ import type { QueryCostEvaluator } from './middleware/createQueryCostMiddleware'
 import { stableStringify } from './stableJson'
 
 type ElysiaWebSocket = {
-	data: { request: Request; liveQueryState?: WebSocketState }
+	raw?: object
+	request: Request
 	send(message: unknown): unknown
 	close(code?: number, reason?: string): unknown
 }
@@ -61,9 +62,6 @@ type WebSocketState = {
 
 type WebSocketUpgradeContext = {
 	request: Request
-	set: {
-		headers: Record<string, string | number>
-	}
 }
 
 type LiveQueryWebSocketConfig = {
@@ -99,7 +97,7 @@ type LiveQueryWebSocketConfig = {
 }
 
 export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfig) {
-	const states = new WeakMap<ElysiaWebSocket, WebSocketState>()
+	const states = new WeakMap<object, WebSocketState>()
 	const schema = Promise.resolve(config.schema)
 	const sharedOperations = new Map<string, SharedOperation>()
 	const initialQueue: SharedOperation[] = []
@@ -112,6 +110,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 	let debounce: Timer | undefined
 	let cachedResultBytes = 0
 	let disposed = false
+	const socketKey = (ws: ElysiaWebSocket) => ws.raw ?? ws
 
 	function updateCachedResultBytes() {
 		config.onCachedResultBytesChange?.(cachedResultBytes)
@@ -357,24 +356,23 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 			upgrade(context: WebSocketUpgradeContext) {
 				const protocol = selectProtocolHeader(context.request)
 				if (protocol) {
-					context.set.headers['sec-websocket-protocol'] = protocol
+					return { 'sec-websocket-protocol': protocol }
 				}
 			},
 			open(ws: ElysiaWebSocket) {
 				const state: WebSocketState = {
 					ws,
-					request: ws.data.request,
-					protocol: resolveProtocol(ws.data.request),
+					request: ws.request,
+					protocol: resolveProtocol(ws.request),
 					operations: new Map(),
 					messageChain: Promise.resolve(),
 					pendingMessages: 0,
 					closed: false,
 				}
-				states.set(ws, state)
-				ws.data.liveQueryState = state
+				states.set(socketKey(ws), state)
 			},
 			message(ws: ElysiaWebSocket, rawMessage: unknown) {
-				const state = ws.data.liveQueryState ?? states.get(ws)
+				const state = states.get(socketKey(ws))
 				if (!state) {
 					return
 				}
@@ -420,7 +418,8 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 				}
 			},
 			close(ws: ElysiaWebSocket) {
-				const state = ws.data.liveQueryState ?? states.get(ws)
+				const key = socketKey(ws)
+				const state = states.get(key)
 				if (!state) {
 					return
 				}
@@ -429,8 +428,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 				for (const operationId of state.operations.keys()) {
 					deleteOperation(state, operationId)
 				}
-				states.delete(ws)
-				ws.data.liveQueryState = undefined
+				states.delete(key)
 			},
 		},
 		invalidate: scheduleRerunAll,

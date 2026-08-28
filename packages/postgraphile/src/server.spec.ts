@@ -131,6 +131,48 @@ describe('buildPostGraphileServer', () => {
 		expect(preset.grafserv?.parseAndValidateCacheSize).toBe(128)
 	})
 
+	test('negotiates graphql-transport-ws at the root listener', async () => {
+		const app = createApp().listen({ hostname: '127.0.0.1', port: 0 })
+		const port = app.server?.port
+		if (!port) throw new Error('PostGraphile test listener did not bind')
+
+		const socket = new WebSocket(`ws://127.0.0.1:${port}/`, ['graphql-transport-ws'])
+		try {
+			await new Promise<void>((resolve, reject) => {
+				const timeout = setTimeout(
+					() => reject(new Error('WebSocket open timed out')),
+					5_000,
+				)
+				socket.addEventListener('open', () => {
+					clearTimeout(timeout)
+					resolve()
+				})
+				socket.addEventListener('error', () => {
+					clearTimeout(timeout)
+					reject(new Error('WebSocket negotiation failed'))
+				})
+			})
+
+			socket.send(JSON.stringify({ type: 'connection_init' }))
+			const message = await new Promise<string>((resolve, reject) => {
+				const timeout = setTimeout(
+					() => reject(new Error('WebSocket ack timed out')),
+					5_000,
+				)
+				socket.addEventListener('message', (event) => {
+					clearTimeout(timeout)
+					resolve(String(event.data))
+				})
+			})
+
+			expect(socket.protocol).toBe('graphql-transport-ws')
+			expect(JSON.parse(message)).toEqual({ type: 'connection_ack' })
+		} finally {
+			socket.close()
+			await app.stop()
+		}
+	}, 15_000)
+
 	test('serves health check', async () => {
 		const response = await createApp().handle(new Request('http://localhost/healthz'))
 

@@ -1,7 +1,7 @@
 import { COOKIES, getCookie, verifyAccessToken } from '@zeepkist/core'
 import { serverConfig } from '@zeepkist/core/config/server'
 import type { Elysia } from 'elysia'
-import { handleV1Error, V1_ERROR_CODES } from '../v1Errors'
+import { ERROR_CODES, handleProblem } from '../problems'
 
 type RateLimitBucket = 'auth' | 'record' | 'mutation' | 'job'
 
@@ -115,7 +115,7 @@ function authenticatedId(request: Request): string | null {
 
 export function withRateLimit(bucket: RateLimitBucket) {
 	return (app: Elysia) =>
-		app.onBeforeHandle(({ request, server, set }) => {
+		app.beforeHandle(({ request, server, set }) => {
 			const identity = authenticatedId(request) ?? clientIp(request, server)
 			const key = `${bucket}:${identity}`
 			const result = rateLimits.take(key, serverConfig.http.rateLimits[bucket])
@@ -123,8 +123,7 @@ export function withRateLimit(bucket: RateLimitBucket) {
 				return
 			}
 
-			set.status = 429
 			set.headers['retry-after'] = String(result.retryAfter)
-			return handleV1Error(V1_ERROR_CODES.GENERIC_INVALID_REQUEST)
+			return handleProblem(429, ERROR_CODES.GENERIC_INVALID_REQUEST)
 		})
 }

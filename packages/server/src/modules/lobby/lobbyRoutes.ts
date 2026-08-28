@@ -32,10 +32,6 @@ const snapshotSchema = t.Object({
 export const lobbyRoutes = new Elysia({ prefix: '/lobby' })
 	.get(
 		'',
-		({ set }) => {
-			set.headers['Cache-Control'] = 'no-store'
-			return lobbySnapshotStore.get()
-		},
 		{
 			response: snapshotSchema,
 			detail: {
@@ -44,9 +40,20 @@ export const lobbyRoutes = new Elysia({ prefix: '/lobby' })
 				tags: [OPENAPI_TAG.lobby],
 			},
 		},
+		({ set }) => {
+			set.headers['Cache-Control'] = 'no-store'
+			return lobbySnapshotStore.get()
+		},
 	)
 	.get(
 		'/events',
+		{
+			detail: {
+				operationId: 'streamLobbySnapshots',
+				summary: 'Stream Zeepkist lobby snapshots',
+				tags: [OPENAPI_TAG.lobby],
+			},
+		},
 		({ request }) => {
 			const encoder = new TextEncoder()
 			let unsubscribe = () => {}
@@ -86,12 +93,5 @@ export const lobbyRoutes = new Elysia({ prefix: '/lobby' })
 					'Content-Type': 'text/event-stream; charset=utf-8',
 				},
 			})
-		},
-		{
-			detail: {
-				operationId: 'streamLobbySnapshots',
-				summary: 'Stream Zeepkist lobby snapshots',
-				tags: [OPENAPI_TAG.lobby],
-			},
 		},
 	)

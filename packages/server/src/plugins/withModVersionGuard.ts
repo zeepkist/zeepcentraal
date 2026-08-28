@@ -1,7 +1,7 @@
 import { isModOutdated } from '@zeepkist/database/services'
 import { setActiveSpanAttributes, startActiveSpan } from '@zeepkist/telemetry'
 import type { Elysia } from 'elysia'
-import { handleV1Error, V1_ERROR_CODES } from '../v1Errors'
+import { ERROR_CODES, handleProblem } from '../problems'
 
 const HEADER = {
 	zeepkistVersion: 'x-zeepkist-version',
@@ -33,7 +33,7 @@ function firstString(...values: unknown[]): string | undefined {
 
 export const withModVersionGuard = (app: Elysia) =>
 	app.derive(async (context) => {
-		const { body, headers, status } = context
+		const { body, headers } = context
 		const payload = (body ?? {}) as GuardPayload
 		const zeepkistVersion = firstString(headers[HEADER.zeepkistVersion])
 		const zeepkistMajorVersion = firstString(
@@ -73,7 +73,7 @@ export const withModVersionGuard = (app: Elysia) =>
 		setActiveSpanAttributes(attributes)
 
 		if (outdated) {
-			return status(400, handleV1Error(V1_ERROR_CODES.AUTH_MOD_OUTDATED))
+			return handleProblem(400, ERROR_CODES.AUTH_MOD_OUTDATED)
 		}
 
 		return {

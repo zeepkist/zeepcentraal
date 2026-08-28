@@ -24,6 +24,7 @@ import {
 import { Elysia, t } from 'elysia'
 import { DISCORD_BOT_SECURITY, OPENAPI_TAG } from '../../openapi'
 import { withAuthDiscordBot } from '../../plugins/withAuthDiscordBot'
+import { handleProblem } from '../../problems'
 import { hashDiscordLinkCode } from './discordLink'
 
 const snowflake = t.String({ pattern: '^[0-9]{1,20}$' })
@@ -52,46 +53,43 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 	.use(withAuthDiscordBot)
 	.post(
 		'/link/redeem',
-		async ({ body, set }) => {
+		{
+			body: t.Object({ code: t.String({ pattern: '^[0-9]{8}$' }), discordId: snowflake }),
+			detail: detail('redeemDiscordLinkCode', 'Redeem a one-time Discord account link code'),
+		},
+		async ({ body }) => {
 			const result = await consumeDiscordLinkCode(
 				hashDiscordLinkCode(body.code),
 				BigInt(body.discordId),
 			)
 			if (result.status !== 'linked') {
-				set.status = result.status === 'conflict' ? 409 : 400
+				return handleProblem(
+					result.status === 'conflict' ? 409 : 400,
+					result.status === 'conflict' ? 'Conflict' : 'Invalid request',
+					result.status,
+				)
 			}
 			return jsonSafe(result)
-		},
-		{
-			body: t.Object({ code: t.String({ pattern: '^[0-9]{8}$' }), discordId: snowflake }),
-			detail: detail('redeemDiscordLinkCode', 'Redeem a one-time Discord account link code'),
 		},
 	)
 	.get(
 		'/users/:discordId',
-		async ({ params }) => jsonSafe(await getDiscordUserState(BigInt(params.discordId))),
 		{
 			params: t.Object({ discordId: snowflake }),
 			detail: detail('getDiscordBotUser', 'Get linked user and bot preferences'),
 		},
+		async ({ params }) => jsonSafe(await getDiscordUserState(BigInt(params.discordId))),
 	)
 	.delete(
 		'/users/:discordId/link',
-		async ({ params }) => jsonSafe(await unlinkDiscordByDiscordId(BigInt(params.discordId))),
 		{
 			params: t.Object({ discordId: snowflake }),
 			detail: detail('unlinkDiscordBotUser', 'Unlink invoking Discord user'),
 		},
+		async ({ params }) => jsonSafe(await unlinkDiscordByDiscordId(BigInt(params.discordId))),
 	)
 	.patch(
 		'/users/:discordId/preferences',
-		async ({ params, body }) =>
-			jsonSafe(
-				await setDiscordUserPreference(
-					BigInt(params.discordId),
-					body.pingOnWorldRecordLoss,
-				),
-			),
 		{
 			params: t.Object({ discordId: snowflake }),
 			body: t.Object({ pingOnWorldRecordLoss: t.Boolean() }),
@@ -100,17 +98,16 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 				'Update Discord notification preferences',
 			),
 		},
+		async ({ params, body }) =>
+			jsonSafe(
+				await setDiscordUserPreference(
+					BigInt(params.discordId),
+					body.pingOnWorldRecordLoss,
+				),
+			),
 	)
 	.post(
 		'/users/:discordId/watches',
-		async ({ params, body }) =>
-			jsonSafe(
-				await addDiscordWatch({
-					discordId: BigInt(params.discordId),
-					kind: body.kind,
-					targetId: body.targetId,
-				}),
-			),
 		{
 			params: t.Object({ discordId: snowflake }),
 			body: t.Object({
@@ -119,9 +116,21 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 			}),
 			detail: detail('addDiscordBotWatch', 'Add or resume a Discord DM watch'),
 		},
+		async ({ params, body }) =>
+			jsonSafe(
+				await addDiscordWatch({
+					discordId: BigInt(params.discordId),
+					kind: body.kind,
+					targetId: body.targetId,
+				}),
+			),
 	)
 	.delete(
 		'/users/:discordId/watches/:watchId',
+		{
+			params: t.Object({ discordId: snowflake, watchId: eventId }),
+			detail: detail('removeDiscordBotWatch', 'Remove a Discord DM watch'),
+		},
 		async ({ params }) =>
 			jsonSafe(
 				await removeDiscordWatch({
@@ -129,14 +138,9 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 					id: BigInt(params.watchId),
 				}),
 			),
-		{
-			params: t.Object({ discordId: snowflake, watchId: eventId }),
-			detail: detail('removeDiscordBotWatch', 'Remove a Discord DM watch'),
-		},
 	)
 	.post(
 		'/watches/matches',
-		async ({ body }) => jsonSafe(await getMatchingDiscordWatches(body.targets)),
 		{
 			body: t.Object({
 				targets: t.Array(
@@ -151,18 +155,10 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 			}),
 			detail: detail('matchDiscordWatches', 'Find active watches matching event targets'),
 		},
+		async ({ body }) => jsonSafe(await getMatchingDiscordWatches(body.targets)),
 	)
 	.patch(
 		'/watches/:watchId/delivery',
-		async ({ params, body }) =>
-			jsonSafe(
-				await updateDiscordWatchDelivery({
-					id: BigInt(params.watchId),
-					paused: body.paused,
-					lastError: body.lastError,
-					deliveryKey: body.deliveryKey,
-				}),
-			),
 		{
 			params: t.Object({ watchId: eventId }),
 			body: t.Object({
@@ -172,38 +168,56 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 			}),
 			detail: detail('updateDiscordWatchDelivery', 'Persist DM watch delivery state'),
 		},
+		async ({ params, body }) =>
+			jsonSafe(
+				await updateDiscordWatchDelivery({
+					id: BigInt(params.watchId),
+					paused: body.paused,
+					lastError: body.lastError,
+					deliveryKey: body.deliveryKey,
+				}),
+			),
 	)
 	.get(
 		'/workers/:key/cursor',
-		async ({ params }) => jsonSafe(await getDiscordWorkerCursor(params.key)),
 		{
 			params: t.Object({ key: t.String({ pattern: '^[a-z][a-z0-9_-]{0,31}$' }) }),
 			detail: detail('getDiscordWorkerCursor', 'Get durable Discord worker cursor'),
 		},
+		async ({ params }) => jsonSafe(await getDiscordWorkerCursor(params.key)),
 	)
 	.post(
 		'/workers/:key/cursor',
-		async ({ params, body }) =>
-			jsonSafe(await advanceDiscordWorkerCursor(params.key, BigInt(body.eventId))),
 		{
 			params: t.Object({ key: t.String({ pattern: '^[a-z][a-z0-9_-]{0,31}$' }) }),
 			body: t.Object({ eventId }),
 			detail: detail('advanceDiscordWorkerCursor', 'Advance durable Discord worker cursor'),
 		},
+		async ({ params, body }) =>
+			jsonSafe(await advanceDiscordWorkerCursor(params.key, BigInt(body.eventId))),
 	)
-	.get('/guild-feeds/enabled', async () => jsonSafe(await getEnabledDiscordGuildFeeds()), {
-		detail: detail('getEnabledDiscordGuildFeeds', 'List enabled Discord guild feeds'),
-	})
+	.get(
+		'/guild-feeds/enabled',
+		{
+			detail: detail('getEnabledDiscordGuildFeeds', 'List enabled Discord guild feeds'),
+		},
+		async () => jsonSafe(await getEnabledDiscordGuildFeeds()),
+	)
 	.get(
 		'/guilds/:guildId',
-		async ({ params }) => jsonSafe(await getDiscordGuildState(BigInt(params.guildId))),
 		{
 			params: t.Object({ guildId: snowflake }),
 			detail: detail('getDiscordGuildConfig', 'Get Discord guild configuration'),
 		},
+		async ({ params }) => jsonSafe(await getDiscordGuildState(BigInt(params.guildId))),
 	)
 	.put(
 		'/guilds/:guildId/linked-role',
+		{
+			params: t.Object({ guildId: snowflake }),
+			body: t.Object({ roleId: t.Union([snowflake, t.Null()]) }),
+			detail: detail('setDiscordGuildLinkedRole', 'Configure linked-account role'),
+		},
 		async ({ params, body }) =>
 			jsonSafe(
 				await setDiscordGuildLinkedRole(
@@ -211,14 +225,14 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 					body.roleId === null ? null : BigInt(body.roleId),
 				),
 			),
-		{
-			params: t.Object({ guildId: snowflake }),
-			body: t.Object({ roleId: t.Union([snowflake, t.Null()]) }),
-			detail: detail('setDiscordGuildLinkedRole', 'Configure linked-account role'),
-		},
 	)
 	.put(
 		'/guilds/:guildId/feeds/:kind',
+		{
+			params: t.Object({ guildId: snowflake, kind: t.UnionEnum(DISCORD_FEED_KINDS) }),
+			body: t.Object({ channelId: snowflake, enabled: t.Boolean() }),
+			detail: detail('setDiscordGuildFeed', 'Configure one Discord guild feed'),
+		},
 		async ({ params, body }) =>
 			jsonSafe(
 				await setDiscordGuildFeed({
@@ -228,14 +242,14 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 					enabled: body.enabled,
 				}),
 			),
-		{
-			params: t.Object({ guildId: snowflake, kind: t.UnionEnum(DISCORD_FEED_KINDS) }),
-			body: t.Object({ channelId: snowflake, enabled: t.Boolean() }),
-			detail: detail('setDiscordGuildFeed', 'Configure one Discord guild feed'),
-		},
 	)
 	.post(
 		'/guilds/:guildId/feeds/:kind/cursor',
+		{
+			params: t.Object({ guildId: snowflake, kind: t.UnionEnum(DISCORD_FEED_KINDS) }),
+			body: t.Object({ eventId }),
+			detail: detail('advanceDiscordGuildFeed', 'Advance durable Discord feed cursor'),
+		},
 		async ({ params, body }) =>
 			jsonSafe(
 				await advanceDiscordGuildFeedCursor({
@@ -244,26 +258,9 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 					eventId: BigInt(body.eventId),
 				}),
 			),
-		{
-			params: t.Object({ guildId: snowflake, kind: t.UnionEnum(DISCORD_FEED_KINDS) }),
-			body: t.Object({ eventId }),
-			detail: detail('advanceDiscordGuildFeed', 'Advance durable Discord feed cursor'),
-		},
 	)
 	.put(
 		'/guilds/:guildId/digest',
-		async ({ params, body }) =>
-			jsonSafe(
-				await setDiscordDigest({
-					guildId: BigInt(params.guildId),
-					channelId: BigInt(body.channelId),
-					dailyEnabled: body.dailyEnabled,
-					weeklyEnabled: body.weeklyEnabled,
-					deliveryHour: body.deliveryHour,
-					weeklyDay: body.weeklyDay,
-					nextDeliveryAt: body.nextDeliveryAt,
-				}),
-			),
 		{
 			params: t.Object({ guildId: snowflake }),
 			body: t.Object({
@@ -276,9 +273,31 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 			}),
 			detail: detail('setDiscordGuildDigest', 'Configure Discord guild digests'),
 		},
+		async ({ params, body }) =>
+			jsonSafe(
+				await setDiscordDigest({
+					guildId: BigInt(params.guildId),
+					channelId: BigInt(body.channelId),
+					dailyEnabled: body.dailyEnabled,
+					weeklyEnabled: body.weeklyEnabled,
+					deliveryHour: body.deliveryHour,
+					weeklyDay: body.weeklyDay,
+					nextDeliveryAt: body.nextDeliveryAt,
+				}),
+			),
 	)
 	.put(
 		'/guilds/:guildId/deliveries/:sourceEventId',
+		{
+			params: t.Object({ guildId: snowflake, sourceEventId: eventId }),
+			body: t.Object({
+				channelId: snowflake,
+				messageId: t.Union([snowflake, t.Null()]),
+				status: t.UnionEnum(['pending', 'sent', 'failed'] as const),
+				lastError: t.Optional(t.Union([t.String({ maxLength: 1000 }), t.Null()])),
+			}),
+			detail: detail('setDiscordDelivery', 'Record Discord event delivery state'),
+		},
 		async ({ params, body }) =>
 			jsonSafe(
 				await setDiscordDelivery({
@@ -290,40 +309,20 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 					lastError: body.lastError,
 				}),
 			),
-		{
-			params: t.Object({ guildId: snowflake, sourceEventId: eventId }),
-			body: t.Object({
-				channelId: snowflake,
-				messageId: t.Union([snowflake, t.Null()]),
-				status: t.UnionEnum(['pending', 'sent', 'failed'] as const),
-				lastError: t.Optional(t.Union([t.String({ maxLength: 1000 }), t.Null()])),
-			}),
-			detail: detail('setDiscordDelivery', 'Record Discord event delivery state'),
-		},
 	)
 	.get(
 		'/guilds/:guildId/deliveries/:sourceEventId',
-		async ({ params }) =>
-			jsonSafe(
-				await getDiscordDelivery(BigInt(params.guildId), BigInt(params.sourceEventId)),
-			),
 		{
 			params: t.Object({ guildId: snowflake, sourceEventId: eventId }),
 			detail: detail('getDiscordDelivery', 'Read Discord event delivery state'),
 		},
+		async ({ params }) =>
+			jsonSafe(
+				await getDiscordDelivery(BigInt(params.guildId), BigInt(params.sourceEventId)),
+			),
 	)
 	.put(
 		'/guilds/:guildId/tournaments/:tournamentId/message',
-		async ({ params, body }) =>
-			jsonSafe(
-				await setDiscordTournamentMessage({
-					guildId: BigInt(params.guildId),
-					idTournament: Number(params.tournamentId),
-					channelId: BigInt(body.channelId),
-					messageId: BigInt(body.messageId),
-					contentHash: body.contentHash,
-				}),
-			),
 		{
 			params: t.Object({
 				guildId: snowflake,
@@ -339,4 +338,14 @@ export const discordBotRoutes = new Elysia({ prefix: '/discord-bot' })
 				'Persist tournament embed message identity',
 			),
 		},
+		async ({ params, body }) =>
+			jsonSafe(
+				await setDiscordTournamentMessage({
+					guildId: BigInt(params.guildId),
+					idTournament: Number(params.tournamentId),
+					channelId: BigInt(body.channelId),
+					messageId: BigInt(body.messageId),
+					contentHash: body.contentHash,
+				}),
+			),
 	)

@@ -19,17 +19,15 @@ function createWebSocket(protocol = 'graphql-transport-ws', headers: Record<stri
 
 	return {
 		ws: {
-			data: {
-				request: new Request('http://localhost/', {
-					headers: {
-						...headers,
-						connection: 'Upgrade',
-						'sec-websocket-key': 'test-key',
-						'sec-websocket-protocol': protocol,
-						upgrade: 'websocket',
-					},
-				}),
-			},
+			request: new Request('http://localhost/', {
+				headers: {
+					...headers,
+					connection: 'Upgrade',
+					'sec-websocket-key': 'test-key',
+					'sec-websocket-protocol': protocol,
+					upgrade: 'websocket',
+				},
+			}),
 			send(message: unknown) {
 				sent.push(JSON.parse(String(message)) as SentMessage)
 			},
@@ -502,12 +500,11 @@ describe('createLiveQueryWebSocketHandlers', () => {
 			request: new Request('http://localhost/', {
 				headers: { 'sec-websocket-protocol': 'graphql-ws' },
 			}),
-			set: { headers: {} as Record<string, string> },
 		}
 
-		handlers.upgrade(context)
-
-		expect(context.set.headers['sec-websocket-protocol']).toBe('graphql-ws')
+		expect(handlers.upgrade(context)).toEqual({
+			'sec-websocket-protocol': 'graphql-ws',
+		})
 	})
 
 	test('invalid query sends protocol error', async () => {

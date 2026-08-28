@@ -24,14 +24,14 @@ function setSpanAttributes(attributes: Record<string, string | number | boolean 
 }
 
 export const withSpanEnrichment = new Elysia()
-	.onRequest(({ request }) => {
+	.request(({ request }) => {
 		setSpanAttributes({
 			'http.request.method': request.method,
 			'url.full': sanitizeTelemetryUrl(request.url),
 			'user_agent.original': request.headers.get('user-agent') ?? undefined,
 		})
 	})
-	.onAfterHandle(({ set, route, path }) => {
+	.afterHandle(({ set, route, path }) => {
 		if (route) {
 			updateActiveSpanName(route)
 		}

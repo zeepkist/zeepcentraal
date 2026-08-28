@@ -6,7 +6,7 @@ import {
 	verifyAccessToken,
 } from '@zeepkist/core'
 import type { Elysia } from 'elysia'
-import { V1_ERROR_CODES, V1HttpError } from '../v1Errors'
+import { ERROR_CODES, ProblemError } from '../problems'
 
 function getBearerToken(authorization?: string): string | null {
 	if (!authorization?.startsWith('Bearer ')) {
@@ -20,18 +20,18 @@ export const withAuthGtr = (app: Elysia) =>
 	app.derive(({ headers }) => {
 		const token = getBearerToken(headers.authorization)
 		if (!token) {
-			throw new V1HttpError(V1_ERROR_CODES.AUTH_MISSING_TOKEN, 400)
+			throw new ProblemError(400, ERROR_CODES.AUTH_MISSING_TOKEN)
 		}
 
 		let payload: AccessTokenPayload
 		try {
 			payload = verifyAccessToken(token)
 		} catch {
-			throw new V1HttpError(V1_ERROR_CODES.AUTH_INVALID_TOKEN, 401)
+			throw new ProblemError(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 		}
 
 		if (payload.provider !== jwtProvider.gtr) {
-			throw new V1HttpError(V1_ERROR_CODES.AUTH_INVALID_TOKEN, 401)
+			throw new ProblemError(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 		}
 
 		return { auth: payload }
@@ -42,14 +42,14 @@ export const withAuthRequest = (app: Elysia) =>
 		const token =
 			getBearerToken(headers.authorization) ?? getCookie(headers.cookie, COOKIES.AccessToken)
 		if (!token) {
-			throw new V1HttpError(V1_ERROR_CODES.AUTH_MISSING_TOKEN, 400)
+			throw new ProblemError(400, ERROR_CODES.AUTH_MISSING_TOKEN)
 		}
 
 		let payload: AccessTokenPayload
 		try {
 			payload = verifyAccessToken(token)
 		} catch {
-			throw new V1HttpError(V1_ERROR_CODES.AUTH_INVALID_TOKEN, 401)
+			throw new ProblemError(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 		}
 
 		const isAllowedProvider = [
@@ -58,7 +58,7 @@ export const withAuthRequest = (app: Elysia) =>
 			jwtProvider.gtr,
 		].includes(payload.provider)
 		if (!isAllowedProvider) {
-			throw new V1HttpError(V1_ERROR_CODES.AUTH_INVALID_TOKEN, 401)
+			throw new ProblemError(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 		}
 
 		return { auth: payload }

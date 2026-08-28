@@ -1,8 +1,8 @@
-import cors from '@elysiajs/cors'
+import cors from '@elysia/cors'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import { createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
+import { createElysiaRequestLoggingPlugin, createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
 import { Elysia } from 'elysia'
-import logixlysia from 'logixlysia'
+import { websocket } from 'elysia/websocket'
 import { serveGraphiql } from './middleware/serveGraphiql'
 import { createPostGraphileHandler } from './postgraphileOptions'
 import { createPostGraphileRuntime } from './postgraphileRuntime'
@@ -45,17 +45,9 @@ async function readinessResponse(readiness: ReadinessService, head = false) {
 	})
 }
 
-const withLogging = postgraphileConfig.requestLogging
-	? logixlysia({
-			config: {
-				showStartupMessage: false,
-				disableFileLogging: true,
-				requestId: false,
-				customLogFormat:
-					'{now} {level}\t{method}\t{status} {pathname} {duration} {speed} {ip}',
-			},
-		})
-	: new Elysia()
+const withLogging = createElysiaRequestLoggingPlugin({
+	enabled: postgraphileConfig.requestLogging,
+})
 
 export function buildPostGraphileServer(
 	handler = createPostGraphileHandler(),
@@ -67,7 +59,6 @@ export function buildPostGraphileServer(
 		createReadinessService(runtime.readinessProbe, postgraphileConfig.readiness)
 
 	return new Elysia({
-		aot: true,
 		precompile: true,
 		serve: {
 			development: postgraphileConfig.nodeEnv !== 'production',
@@ -76,6 +67,7 @@ export function buildPostGraphileServer(
 	})
 		.use(withLogging)
 		.use(cors())
+		.use(websocket())
 		.use(createWithTelemetry())
 		.get('/healthz', () => 'OK')
 		.head('/healthz', () => 'OK')
@@ -91,7 +83,7 @@ export function buildPostGraphileServer(
 		.all('/ruru-static/*', ({ request }) => runtime.serveRuruStatic(request))
 		.post('/', runtime.graphqlRoute)
 		.options('/', runtime.graphqlRoute)
-		.onStop(async () => {
+		.cleanup(async () => {
 			await readiness.dispose()
 			await runtime.stop()
 		})

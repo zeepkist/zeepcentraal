@@ -1,4 +1,4 @@
-import { opentelemetry } from '@elysiajs/opentelemetry'
+import { opentelemetry } from '@elysia/opentelemetry'
 import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api'
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'

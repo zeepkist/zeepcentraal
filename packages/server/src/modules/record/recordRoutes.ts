@@ -14,6 +14,7 @@ import { GTR_BEARER_SECURITY, OPENAPI_TAG } from '../../openapi'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
+import { ERROR_CODES, handleProblem } from '../../problems'
 import { RecordWorkCapacityError, recordWork } from './recordWork'
 
 async function traceSubmitPhase<T>(name: string, task: () => Promise<T>): Promise<T> {
@@ -74,6 +75,38 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 	.use(withModVersionGuard)
 	.post(
 		'/submit',
+		{
+			body: t.Object({
+				Level: t.String({ description: 'Canonical legacy level hash.' }),
+				Hash: t.Optional(
+					t.String({ description: 'Uppercase 32-character XXH128 level hash.' }),
+				),
+				WorkshopId: t.Optional(
+					t.String({
+						description:
+							'Positive Steam Workshop file ID. Omit for Adventure Mode levels.',
+					}),
+				),
+				Time: t.Number({ description: 'Completed record time in seconds.' }),
+				Splits: t.Array(t.Number(), {
+					description: 'Cumulative checkpoint split times in seconds.',
+				}),
+				Speeds: t.Array(t.Number(), {
+					description: 'Recorded checkpoint speeds corresponding to `Splits`.',
+				}),
+				GhostData: t.String({ description: 'Base64-encoded GTR ghost replay.' }),
+				GameVersion: t.String({ description: 'Zeepkist game version.' }),
+				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
+			}),
+			detail: {
+				operationId: 'submitRecord',
+				summary: 'Submit a GTR record',
+				description:
+					'Validates and stores a completed run, checkpoint data, telemetry statistics, and ghost replay.',
+				security: GTR_BEARER_SECURITY,
+				tags: [OPENAPI_TAG.record],
+			},
+		},
 		async ({ auth, body, set, request }) => {
 			return traceSubmitPhase('record.submit.total', async () => {
 				const {
@@ -128,13 +161,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					decodedGhostBytes > MAX_GHOST_COMPRESSED_BYTES ||
 					!validNumbers
 				) {
-					set.status = 400
-					return {
-						error: {
-							code: 19,
-							message: 'Missing required parameters',
-						},
-					}
+					return handleProblem(400, ERROR_CODES.RECORD_SUBMIT_MISSING_PARAMS)
 				}
 
 				const ghostBytes = Uint8Array.fromBase64(GhostData)
@@ -143,9 +170,8 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					uploadReservation = recordWork.reserveUpload(ghostBytes.byteLength)
 				} catch (error) {
 					if (!(error instanceof RecordWorkCapacityError)) throw error
-					set.status = 503
 					set.headers['retry-after'] = '1'
-					return
+					return handleProblem(503, 'Service unavailable')
 				}
 
 				try {
@@ -161,17 +187,10 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					const [ghostResult, userResult, existingLevelResult] = preliminaryResults
 					if (ghostResult.status === 'rejected') {
 						if (ghostResult.reason instanceof RecordWorkCapacityError) {
-							set.status = 503
 							set.headers['retry-after'] = '1'
-							return
+							return handleProblem(503, 'Service unavailable')
 						}
-						set.status = 400
-						return {
-							error: {
-								code: 19,
-								message: 'Missing required parameters',
-							},
-						}
+						return handleProblem(400, ERROR_CODES.RECORD_SUBMIT_MISSING_PARAMS)
 					}
 					if (userResult.status === 'rejected') throw userResult.reason
 					if (existingLevelResult.status === 'rejected') throw existingLevelResult.reason
@@ -179,13 +198,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 
 					const user = userResult.value
 					if (!user || user.banned) {
-						set.status = 401
-						return {
-							error: {
-								code: 16,
-								message: 'User not found',
-							},
-						}
+						return handleProblem(401, ERROR_CODES.AUTH_USER_NOT_FOUND)
 					}
 
 					const workshopId = WorkshopId === undefined ? undefined : BigInt(WorkshopId)
@@ -202,13 +215,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 									}),
 								)
 					if (!level) {
-						set.status = 400
-						return {
-							error: {
-								code: 18,
-								message: 'Level not found',
-							},
-						}
+						return handleProblem(400, ERROR_CODES.LEVEL_NOT_FOUND)
 					}
 
 					const submitted = await submitRecord(
@@ -227,13 +234,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					)
 
 					if (!submitted) {
-						set.status = 400
-						return {
-							error: {
-								code: 20,
-								message: 'Failed to submit record',
-							},
-						}
+						return handleProblem(400, ERROR_CODES.RECORD_SUBMIT_FAILED)
 					}
 
 					uploadReservation.schedule(() =>
@@ -272,37 +273,5 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					uploadReservation[Symbol.dispose]()
 				}
 			})
-		},
-		{
-			body: t.Object({
-				Level: t.String({ description: 'Canonical legacy level hash.' }),
-				Hash: t.Optional(
-					t.String({ description: 'Uppercase 32-character XXH128 level hash.' }),
-				),
-				WorkshopId: t.Optional(
-					t.String({
-						description:
-							'Positive Steam Workshop file ID. Omit for Adventure Mode levels.',
-					}),
-				),
-				Time: t.Number({ description: 'Completed record time in seconds.' }),
-				Splits: t.Array(t.Number(), {
-					description: 'Cumulative checkpoint split times in seconds.',
-				}),
-				Speeds: t.Array(t.Number(), {
-					description: 'Recorded checkpoint speeds corresponding to `Splits`.',
-				}),
-				GhostData: t.String({ description: 'Base64-encoded GTR ghost replay.' }),
-				GameVersion: t.String({ description: 'Zeepkist game version.' }),
-				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
-			}),
-			detail: {
-				operationId: 'submitRecord',
-				summary: 'Submit a GTR record',
-				description:
-					'Validates and stores a completed run, checkpoint data, telemetry statistics, and ghost replay.',
-				security: GTR_BEARER_SECURITY,
-				tags: [OPENAPI_TAG.record],
-			},
 		},
 	)

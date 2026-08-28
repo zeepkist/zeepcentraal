@@ -25,32 +25,32 @@ export interface JobTriggerRequestResult {
 }
 
 interface ParsedErrorResponse {
-	code?: number
+	errorCode?: number | string
 	message: string
 }
 
 export class JobTriggerHttpError extends Error {
 	readonly status: number
-	readonly code?: number
+	readonly errorCode?: number | string
 	readonly retryAfter?: string
 
 	constructor({
 		status,
-		code,
+		errorCode,
 		message,
 		retryAfter,
 	}: {
 		status: number
-		code?: number
+		errorCode?: number | string
 		message: string
 		retryAfter?: string
 	}) {
-		const codeSuffix = code === undefined ? '' : `, code ${code}`
+		const codeSuffix = errorCode === undefined ? '' : `, errorCode ${errorCode}`
 		const retrySuffix = retryAfter === undefined ? '' : ` Retry after: ${retryAfter}.`
 		super(`Job trigger request failed (${status}${codeSuffix}): ${message}.${retrySuffix}`)
 		this.name = 'JobTriggerHttpError'
 		this.status = status
-		this.code = code
+		this.errorCode = errorCode
 		this.retryAfter = retryAfter
 	}
 }
@@ -126,7 +126,7 @@ export async function sendJobTriggerRequest({
 
 	throw new JobTriggerHttpError({
 		status: response.status,
-		code: parsedError.code,
+		errorCode: parsedError.errorCode,
 		message: parsedError.message,
 		retryAfter,
 	})
@@ -140,11 +140,13 @@ function parseErrorResponse(responseText: string, statusText: string): ParsedErr
 	try {
 		const body = JSON.parse(responseText) as unknown
 		if (isRecord(body)) {
-			const error = body.error
-			if (isRecord(error) && typeof error.message === 'string') {
+			if (typeof body.detail === 'string') {
 				return {
-					code: typeof error.code === 'number' ? error.code : undefined,
-					message: error.message,
+					errorCode:
+						typeof body.errorCode === 'number' || typeof body.errorCode === 'string'
+							? body.errorCode
+							: undefined,
+					message: body.detail,
 				}
 			}
 

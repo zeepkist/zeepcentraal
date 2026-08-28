@@ -28,7 +28,7 @@ import { OPENAPI_TAG } from '../../openapi'
 import { withAuthRequest } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
-import { handleV1Error, V1_ERROR_CODES } from '../../v1Errors'
+import { ERROR_CODES, handleProblem } from '../../problems'
 import { hashDiscordOAuthState } from '../discord/discordLink'
 
 function cookieDomain() {
@@ -108,7 +108,7 @@ function emptyJsonResponse(status: number, body?: unknown, cookies?: string[]) {
 }
 
 function errorResponse(status: number, code: number) {
-	return emptyJsonResponse(status, handleV1Error(code))
+	return handleProblem(status, code)
 }
 
 const gtrAuthRoutes = new Elysia()
@@ -116,26 +116,42 @@ const gtrAuthRoutes = new Elysia()
 	.use(withModVersionGuard)
 	.post(
 		'/login',
+		{
+			body: t.Object({
+				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
+				SteamId: t.String({ description: 'SteamID64 belonging to the player.' }),
+				AuthenticationTicket: t.String({
+					description: 'Steam authentication session ticket encoded by the GTR client.',
+				}),
+			}),
+			detail: {
+				operationId: 'loginGtr',
+				summary: 'Sign in with a Steam authentication ticket',
+				description:
+					'Validates a Steam authentication ticket and returns a GTR access-token and refresh-token pair.',
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
 		async ({ body }) => {
 			const { ModVersion, SteamId, AuthenticationTicket } = body
 			if (!ModVersion || !SteamId || !AuthenticationTicket) {
-				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_REQUIRED_FIELDS)
+				return errorResponse(400, ERROR_CODES.AUTH_MISSING_REQUIRED_FIELDS)
 			}
 
 			const authResponse = await authenticateSteamUser(AuthenticationTicket)
 			if (!authResponse.success) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_STEAM_AUTHENTICATION_FAILED)
+				return errorResponse(401, ERROR_CODES.AUTH_STEAM_AUTHENTICATION_FAILED)
 			}
 			if (authResponse.steamId !== SteamId) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_STEAM_ID_MISMATCH)
+				return errorResponse(401, ERROR_CODES.AUTH_STEAM_ID_MISMATCH)
 			}
 
 			const user = await getOrInsertUser(BigInt(SteamId))
 			if (!user) {
-				return errorResponse(500, V1_ERROR_CODES.INTERNAL_SERVER_ERROR)
+				return errorResponse(500, ERROR_CODES.INTERNAL_SERVER_ERROR)
 			}
 			if (user.banned) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 			const { accessToken, accessTokenExpiry } = generateAccessToken({
 				provider: jwtProvider.gtr,
@@ -162,37 +178,38 @@ const gtrAuthRoutes = new Elysia()
 				RefreshTokenExpiry: Number(refreshTokenExpiry),
 			})
 		},
+	)
+	.post(
+		'/refresh',
 		{
 			body: t.Object({
 				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
 				SteamId: t.String({ description: 'SteamID64 belonging to the player.' }),
-				AuthenticationTicket: t.String({
-					description: 'Steam authentication session ticket encoded by the GTR client.',
+				LoginToken: t.String({
+					description: 'Current GTR login token retained for V1 client compatibility.',
 				}),
+				RefreshToken: t.String({ description: 'Current GTR refresh token.' }),
 			}),
 			detail: {
-				operationId: 'loginGtr',
-				summary: 'Sign in with a Steam authentication ticket',
+				operationId: 'refreshGtrSession',
+				summary: 'Refresh a GTR session',
 				description:
-					'Validates a Steam authentication ticket and returns a GTR access-token and refresh-token pair.',
+					'Rotates the supplied GTR refresh token and returns a new access-token and refresh-token pair.',
 				tags: [OPENAPI_TAG.auth],
 			},
 		},
-	)
-	.post(
-		'/refresh',
 		async ({ body }) => {
 			const { ModVersion, SteamId, LoginToken, RefreshToken } = body
 			if (!ModVersion || !SteamId || !LoginToken || !RefreshToken) {
-				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_REQUIRED_FIELDS)
+				return errorResponse(400, ERROR_CODES.AUTH_MISSING_REQUIRED_FIELDS)
 			}
 
 			const user = await getUser(SteamId)
 			if (!user) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_USER_NOT_FOUND)
+				return errorResponse(401, ERROR_CODES.AUTH_USER_NOT_FOUND)
 			}
 			if (user.banned) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 
 			const { accessToken, accessTokenExpiry } = generateAccessToken({
@@ -213,7 +230,7 @@ const gtrAuthRoutes = new Elysia()
 				dateUpdated: new Date().toISOString(),
 			})
 			if (!rotated) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 
 			return emptyJsonResponse(200, {
@@ -223,23 +240,6 @@ const gtrAuthRoutes = new Elysia()
 				RefreshTokenExpiry: Number(refreshTokenExpiry),
 			})
 		},
-		{
-			body: t.Object({
-				ModVersion: t.String({ description: 'Installed GTR semantic version.' }),
-				SteamId: t.String({ description: 'SteamID64 belonging to the player.' }),
-				LoginToken: t.String({
-					description: 'Current GTR login token retained for V1 client compatibility.',
-				}),
-				RefreshToken: t.String({ description: 'Current GTR refresh token.' }),
-			}),
-			detail: {
-				operationId: 'refreshGtrSession',
-				summary: 'Refresh a GTR session',
-				description:
-					'Rotates the supplied GTR refresh token and returns a new access-token and refresh-token pair.',
-				tags: [OPENAPI_TAG.auth],
-			},
-		},
 	)
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
@@ -248,20 +248,6 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 	.group('/discord/link', (app) =>
 		app.use(withAuthRequest).get(
 			'/redirect',
-			async ({ auth, set }) => {
-				const linkedUser = await getUser(auth.steamId)
-				if (!linkedUser || linkedUser.banned) {
-					set.status = 401
-					return
-				}
-				const state = `link.${crypto.randomUUID()}`
-				await createDiscordOAuthLinkState({
-					stateHash: hashDiscordOAuthState(state),
-					idUser: linkedUser.id,
-					expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
-				})
-				return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
-			},
 			{
 				detail: {
 					operationId: 'startDiscordAccountLink',
@@ -271,14 +257,23 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 					tags: [OPENAPI_TAG.auth],
 				},
 			},
+			async ({ auth }) => {
+				const linkedUser = await getUser(auth.steamId)
+				if (!linkedUser || linkedUser.banned) {
+					return handleProblem(401, ERROR_CODES.AUTH_USER_NOT_FOUND)
+				}
+				const state = `link.${crypto.randomUUID()}`
+				await createDiscordOAuthLinkState({
+					stateHash: hashDiscordOAuthState(state),
+					idUser: linkedUser.id,
+					expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+				})
+				return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
+			},
 		),
 	)
 	.get(
 		'/discord/redirect',
-		() => {
-			const state = crypto.randomUUID()
-			return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
-		},
 		{
 			detail: {
 				operationId: 'startDiscordLogin',
@@ -288,24 +283,37 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				tags: [OPENAPI_TAG.auth],
 			},
 		},
+		() => {
+			const state = crypto.randomUUID()
+			return redirectResponse(getDiscordRedirectUrl(state), [stateCookie(state, 300)])
+		},
 	)
 	.get(
 		'/discord/callback',
+		{
+			detail: {
+				operationId: 'completeDiscordLogin',
+				summary: 'Complete Discord sign-in',
+				description:
+					'Validates the Discord OAuth callback, creates browser session cookies, and redirects to ZeepCentraal.',
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
 		async ({ query, headers }) => {
 			const code = query.code as string | undefined
 			const state = query.state as string | undefined
 			if (!code || !state || !validState(headers, state)) {
-				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
+				return errorResponse(400, ERROR_CODES.AUTH_MISSING_TOKEN)
 			}
 
 			const discordAccessToken = await getDiscordAccessToken(code)
 			if (!discordAccessToken) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 
 			const discordUser = await getDiscordUser(discordAccessToken)
 			if (!discordUser) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 
 			if (state.startsWith('link.')) {
@@ -330,10 +338,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 
 			const user = await getUserByDiscordId(discordUser.id)
 			if (!user?.steamId) {
-				return errorResponse(400, V1_ERROR_CODES.AUTH_DISCORD_NOT_LINKED)
+				return errorResponse(400, ERROR_CODES.AUTH_DISCORD_NOT_LINKED)
 			}
 			if (user.banned) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 			setActiveSpanAttributes({
 				'user.discord_id': discordUser.id,
@@ -373,22 +381,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				stateCookie('', 0),
 			])
 		},
-		{
-			detail: {
-				operationId: 'completeDiscordLogin',
-				summary: 'Complete Discord sign-in',
-				description:
-					'Validates the Discord OAuth callback, creates browser session cookies, and redirects to ZeepCentraal.',
-				tags: [OPENAPI_TAG.auth],
-			},
-		},
 	)
 	.get(
 		'/steam/redirect',
-		() => {
-			const state = crypto.randomUUID()
-			return redirectResponse(getSteamRedirectUrl(state), [stateCookie(state, 300)])
-		},
 		{
 			detail: {
 				operationId: 'startSteamLogin',
@@ -398,31 +393,44 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				tags: [OPENAPI_TAG.auth],
 			},
 		},
+		() => {
+			const state = crypto.randomUUID()
+			return redirectResponse(getSteamRedirectUrl(state), [stateCookie(state, 300)])
+		},
 	)
 	.get(
 		'/steam/callback',
+		{
+			detail: {
+				operationId: 'completeSteamLogin',
+				summary: 'Complete Steam sign-in',
+				description:
+					'Validates the Steam OpenID callback, creates browser session cookies, and redirects to ZeepCentraal.',
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
 		async ({ query, headers }) => {
 			const state = query.state as string | undefined
 			if (!validState(headers, state)) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 			const steamQuery = query as unknown as Parameters<typeof isSteamLoginSignatureValid>[0]
 			if (!(await isSteamLoginSignatureValid(steamQuery))) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 
 			const steamIdentity = query['openid.identity'] as string | undefined
 			const steamId = steamIdentity?.split('/').pop()
 			if (!steamId) {
-				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
+				return errorResponse(400, ERROR_CODES.AUTH_MISSING_TOKEN)
 			}
 
 			const user = await getOrInsertUser(BigInt(steamId))
 			if (!user) {
-				return errorResponse(500, V1_ERROR_CODES.INTERNAL_SERVER_ERROR)
+				return errorResponse(500, ERROR_CODES.INTERNAL_SERVER_ERROR)
 			}
 			if (user.banned) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 			setActiveSpanAttributes({ 'user.steam_id': steamId })
 			const { accessToken, accessTokenExpiry } = generateAccessToken({
@@ -457,18 +465,19 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				stateCookie('', 0),
 			])
 		},
-		{
-			detail: {
-				operationId: 'completeSteamLogin',
-				summary: 'Complete Steam sign-in',
-				description:
-					'Validates the Steam OpenID callback, creates browser session cookies, and redirects to ZeepCentraal.',
-				tags: [OPENAPI_TAG.auth],
-			},
-		},
 	)
 	.post(
 		'/web/refresh',
+		{
+			detail: {
+				operationId: 'refreshWebSession',
+				summary: 'Refresh a browser session',
+				description:
+					'Rotates browser access and refresh cookies. Requires the refresh-token and Steam-ID cookies; the access-token cookie may be missing or expired.',
+				security: [{ webRefreshSession: [] }],
+				tags: [OPENAPI_TAG.auth],
+			},
+		},
 		async ({ headers }) => {
 			const cookies = Object.fromEntries(
 				(headers.cookie ?? '')
@@ -485,15 +494,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 			const cookieSteamId = cookies[COOKIES.SteamId]
 
 			if (!cookieRefreshToken || !cookieSteamId) {
-				return errorResponse(400, V1_ERROR_CODES.AUTH_MISSING_TOKEN)
+				return errorResponse(400, ERROR_CODES.AUTH_MISSING_TOKEN)
 			}
 
 			const user = await getUser(cookieSteamId)
 			if (!user) {
-				return errorResponse(404, V1_ERROR_CODES.AUTH_USER_NOT_FOUND)
+				return errorResponse(404, ERROR_CODES.AUTH_USER_NOT_FOUND)
 			}
 			if (user.banned) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 
 			const { accessToken, accessTokenExpiry } = generateAccessToken({
@@ -523,19 +532,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
 				dateUpdated: new Date().toISOString(),
 			})
 			if (!rotated) {
-				return errorResponse(401, V1_ERROR_CODES.AUTH_INVALID_TOKEN)
+				return errorResponse(401, ERROR_CODES.AUTH_INVALID_TOKEN)
 			}
 
 			return emptyJsonResponse(200, undefined, nextCookies)
-		},
-		{
-			detail: {
-				operationId: 'refreshWebSession',
-				summary: 'Refresh a browser session',
-				description:
-					'Rotates browser access and refresh cookies. Requires the refresh-token and Steam-ID cookies; the access-token cookie may be missing or expired.',
-				security: [{ webRefreshSession: [] }],
-				tags: [OPENAPI_TAG.auth],
-			},
 		},
 	)

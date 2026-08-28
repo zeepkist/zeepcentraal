@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { serverConfig } from '@zeepkist/core/config/server'
 import type { Elysia } from 'elysia'
+import { handleProblem } from '../problems'
 
 function tokenMatches(value: string | null) {
 	if (!value?.startsWith('Bearer ')) return false
@@ -10,10 +11,7 @@ function tokenMatches(value: string | null) {
 }
 
 export const withAuthDiscordBot = (app: Elysia) =>
-	app.onBeforeHandle(({ request }) => {
+	app.beforeHandle(({ request }) => {
 		if (tokenMatches(request.headers.get('authorization'))) return
-		return new Response(JSON.stringify({ error: { code: 'invalid_bot_token' } }), {
-			status: 401,
-			headers: { 'content-type': 'application/json' },
-		})
+		return handleProblem(401, 'Not authenticated', 'invalid_bot_token')
 	})

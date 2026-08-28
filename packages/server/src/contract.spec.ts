@@ -1,4 +1,5 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
+import { Elysia } from 'elysia'
 
 process.env.BACKEND_URL = 'http://localhost:3000'
 process.env.FRONTEND_URL = 'http://localhost:4000'
@@ -515,10 +516,19 @@ mock.module('@zeepkist/jobs/queue', () => ({
 mock.module('@zeepkist/core/config/server', () => ({ serverConfig: mockServerConfig }))
 
 const { buildServer } = await import('./server')
+const { withErrors } = await import('./plugins/withErrors')
+const { disposeRateLimiter } = await import('./plugins/withRateLimit')
 const app = buildServer()
 
 beforeEach(() => {
 	resetState()
+	disposeRateLimiter()
+	Object.assign(mockServerConfig.http.rateLimits, {
+		auth: 10_000,
+		record: 10_000,
+		mutation: 10_000,
+		job: 10_000,
+	})
 })
 
 async function send(path: string, init?: RequestInit) {
@@ -536,6 +546,27 @@ async function readBody(response: Response) {
 	} catch {
 		return text
 	}
+}
+
+const problemTitles: Record<number, string> = {
+	400: 'Bad Request',
+	401: 'Unauthorized',
+	404: 'Not Found',
+	409: 'Conflict',
+	429: 'Too Many Requests',
+	500: 'Internal Server Error',
+	503: 'Service Unavailable',
+}
+
+async function expectProblem(response: Response, detail: string, errorCode?: number | string) {
+	expect(response.headers.get('content-type')).toBe('application/problem+json')
+	expect(await readBody(response)).toEqual({
+		type: 'about:blank',
+		title: problemTitles[response.status],
+		status: response.status,
+		detail,
+		...(errorCode === undefined ? {} : { errorCode }),
+	})
 }
 
 async function oauthState(path: '/auth/discord/redirect' | '/auth/steam/redirect') {
@@ -581,6 +612,59 @@ test('CORS allows configured website origin and rejects arbitrary origins', asyn
 	expect(rejected.headers.get('access-control-allow-origin')).toBeNull()
 })
 
+test('unknown routes return RFC 9457 Problem Details', async () => {
+	const response = await send('/does-not-exist')
+
+	expect(response.status).toBe(404)
+	await expectProblem(response, 'Not found')
+})
+
+test('malformed JSON returns invalid-request Problem Details', async () => {
+	const response = await send('/job/trigger', {
+		method: 'POST',
+		headers: {
+			authorization: 'Bearer job-secret',
+			'content-type': 'application/json',
+		},
+		body: '{',
+	})
+
+	expect(response.status).toBe(400)
+	await expectProblem(response, 'Invalid request', 22)
+})
+
+test('rate limiting returns Problem Details and Retry-After', async () => {
+	mockServerConfig.http.rateLimits.job = 1
+	const request = () =>
+		send('/job/trigger', {
+			method: 'POST',
+			headers: {
+				authorization: 'Bearer job-secret',
+				'content-type': 'application/json',
+			},
+			body: JSON.stringify({
+				Task: 'updateLevelScore',
+				Options: { idLevel: 1 },
+			}),
+		})
+
+	expect((await request()).status).toBe(200)
+	const response = await request()
+	expect(response.status).toBe(429)
+	expect(Number(response.headers.get('retry-after'))).toBeGreaterThan(0)
+	await expectProblem(response, 'Invalid request', 22)
+})
+
+test('unhandled failures return sanitized Problem Details', async () => {
+	const errorApp = new Elysia().use(withErrors).get('/explode', () => {
+		throw new Error('private database failure')
+	})
+	const response = await errorApp.handle(new Request('http://localhost/explode'))
+
+	expect(response.status).toBe(500)
+	await expectProblem(response, 'Internal server error', 0)
+})
+
 test('OpenAPI document groups every public operation by category', async () => {
 	type OpenApiOperation = {
 		operationId?: string
@@ -589,7 +673,10 @@ test('OpenAPI document groups every public operation by category', async () => {
 		tags?: string[]
 	}
 	type OpenApiDocument = {
-		components?: { securitySchemes?: Record<string, unknown> }
+		components?: {
+			schemas?: Record<string, unknown>
+			securitySchemes?: Record<string, unknown>
+		}
 		paths: Record<string, Record<string, OpenApiOperation>>
 		tags?: Array<{ description?: string; name: string }>
 	}
@@ -651,6 +738,10 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'webRefreshSession',
 		'webSession',
 	])
+	expect(document.components?.schemas?.ProblemDetails).toMatchObject({
+		type: 'object',
+		required: ['type', 'title', 'status', 'detail'],
+	})
 	expect(document.paths['/auth/web/refresh']?.post?.security).toEqual([{ webRefreshSession: [] }])
 	expect(document.paths['/favourite/add']?.post?.security).toEqual([
 		{ accessToken: [] },
@@ -705,9 +796,7 @@ test('auth/login returns 400 when mod version is outdated', async () => {
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 9, message: 'Mod version is outdated' },
-	})
+	await expectProblem(response, 'Mod version is outdated', 9)
 })
 
 test('auth/login returns 401 on Steam authentication failure', async () => {
@@ -723,9 +812,7 @@ test('auth/login returns 401 on Steam authentication failure', async () => {
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 11, message: 'Steam authentication failed' },
-	})
+	await expectProblem(response, 'Steam authentication failed', 11)
 })
 
 test('auth/login returns 401 on Steam ID mismatch', async () => {
@@ -741,9 +828,7 @@ test('auth/login returns 401 on Steam ID mismatch', async () => {
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 10, message: 'Steam ID mismatch' },
-	})
+	await expectProblem(response, 'Steam ID mismatch', 10)
 })
 
 test('auth/refresh returns rotated tokens on success', async () => {
@@ -782,9 +867,7 @@ test('auth/refresh returns 401 for invalid refresh token', async () => {
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 15, message: 'Invalid or expired token' },
-	})
+	await expectProblem(response, 'Invalid or expired token', 15)
 })
 
 test('auth/discord/redirect returns 302 to Discord', async () => {
@@ -801,9 +884,7 @@ test('auth/discord/callback returns 400 when code is missing', async () => {
 	const response = await send('/auth/discord/callback')
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 14, message: 'Not authenticated' },
-	})
+	await expectProblem(response, 'Not authenticated', 14)
 })
 
 test('auth/discord/callback rejects mismatched OAuth state', async () => {
@@ -813,9 +894,7 @@ test('auth/discord/callback rejects mismatched OAuth state', async () => {
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 14, message: 'Not authenticated' },
-	})
+	await expectProblem(response, 'Not authenticated', 14)
 })
 
 test('auth/discord/callback returns 400 when Discord is not linked', async () => {
@@ -826,9 +905,7 @@ test('auth/discord/callback returns 400 when Discord is not linked', async () =>
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 24, message: 'Discord account not linked' },
-	})
+	await expectProblem(response, 'Discord account not linked', 24)
 })
 
 test('auth/discord/callback returns redirect and cookies on success', async () => {
@@ -885,9 +962,7 @@ test('auth/steam/callback returns 401 on invalid signature', async () => {
 	)
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 15, message: 'Invalid or expired token' },
-	})
+	await expectProblem(response, 'Invalid or expired token', 15)
 })
 
 test('auth/steam/callback returns redirect and cookies on success', async () => {
@@ -932,9 +1007,7 @@ test('auth/web/refresh returns 400 when cookies are missing', async () => {
 	const response = await send('/auth/web/refresh', { method: 'POST' })
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 14, message: 'Not authenticated' },
-	})
+	await expectProblem(response, 'Not authenticated', 14)
 })
 
 test('auth/web/refresh requires the refresh token and Steam ID cookie pair', async () => {
@@ -948,9 +1021,7 @@ test('auth/web/refresh requires the refresh token and Steam ID cookie pair', asy
 		})
 
 		expect(response.status).toBe(400)
-		expect(await readBody(response)).toEqual({
-			error: { code: 14, message: 'Not authenticated' },
-		})
+		await expectProblem(response, 'Not authenticated', 14)
 	}
 })
 
@@ -964,9 +1035,7 @@ test('auth/web/refresh returns 404 when user is missing', async () => {
 	})
 
 	expect(response.status).toBe(404)
-	expect(await readBody(response)).toEqual({
-		error: { code: 16, message: 'User not found' },
-	})
+	await expectProblem(response, 'User not found', 16)
 })
 
 test('auth/web/refresh recreates a missing access cookie on success', async () => {
@@ -996,9 +1065,7 @@ test('auth/web/refresh rejects an invalid refresh token when the access cookie i
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 15, message: 'Invalid or expired token' },
-	})
+	await expectProblem(response, 'Invalid or expired token', 15)
 })
 
 test('level/request queues workshop scan when canonical hash is unknown', async () => {
@@ -1091,7 +1158,7 @@ test('level/request releases workshop claim when enqueue fails', async () => {
 	}
 })
 
-test('level/request rejects invalid workshop ID with V1 error shape', async () => {
+test('level/request rejects invalid workshop ID with Problem Details', async () => {
 	const response = await send('/level/request', {
 		method: 'POST',
 		headers: {
@@ -1105,12 +1172,10 @@ test('level/request rejects invalid workshop ID with V1 error shape', async () =
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 22, message: 'Invalid request' },
-	})
+	await expectProblem(response, 'Invalid request', 22)
 })
 
-test('level/request rejects invalid canonical hash with V1 error shape', async () => {
+test('level/request rejects invalid canonical hash with Problem Details', async () => {
 	const response = await send('/level/request', {
 		method: 'POST',
 		headers: {
@@ -1124,9 +1189,7 @@ test('level/request rejects invalid canonical hash with V1 error shape', async (
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 22, message: 'Invalid request' },
-	})
+	await expectProblem(response, 'Invalid request', 22)
 })
 
 test('level/request returns 400 when token is missing', async () => {
@@ -1142,7 +1205,7 @@ test('level/request returns 400 when token is missing', async () => {
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toBe('Not authenticated')
+	await expectProblem(response, 'Not authenticated', 14)
 })
 
 test('level/request returns 401 for non-GTR token', async () => {
@@ -1159,7 +1222,7 @@ test('level/request returns 401 for non-GTR token', async () => {
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toBe('Invalid or expired token')
+	await expectProblem(response, 'Invalid or expired token', 15)
 })
 
 test('record/submit returns 200 with empty body on success', async () => {
@@ -1265,9 +1328,7 @@ test('record/submit rejects missing canonical hash from old clients', async () =
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 19, message: 'Missing required parameters' },
-	})
+	await expectProblem(response, 'Missing required parameters', 19)
 	expect(state.mediaSchedules).toEqual([])
 	expect(state.canonicalLevelRequests).toEqual([])
 })
@@ -1417,7 +1478,7 @@ test('record/submit does not enqueue when concurrent claim already exists', asyn
 	expect(state.workshopScanCalls).toEqual([])
 })
 
-test('record/submit rejects invalid workshop ID with V1 error shape', async () => {
+test('record/submit rejects invalid workshop ID with Problem Details', async () => {
 	const response = await send('/record/submit', {
 		method: 'POST',
 		headers: {
@@ -1438,12 +1499,10 @@ test('record/submit rejects invalid workshop ID with V1 error shape', async () =
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 19, message: 'Missing required parameters' },
-	})
+	await expectProblem(response, 'Missing required parameters', 19)
 })
 
-test('record/submit rejects missing canonical hash with V1 error shape', async () => {
+test('record/submit rejects missing canonical hash with Problem Details', async () => {
 	const response = await send('/record/submit', {
 		method: 'POST',
 		headers: {
@@ -1462,12 +1521,10 @@ test('record/submit rejects missing canonical hash with V1 error shape', async (
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 19, message: 'Missing required parameters' },
-	})
+	await expectProblem(response, 'Missing required parameters', 19)
 })
 
-test('record/submit rejects invalid canonical hash with V1 error shape', async () => {
+test('record/submit rejects invalid canonical hash with Problem Details', async () => {
 	const response = await send('/record/submit', {
 		method: 'POST',
 		headers: {
@@ -1487,9 +1544,7 @@ test('record/submit rejects invalid canonical hash with V1 error shape', async (
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 19, message: 'Missing required parameters' },
-	})
+	await expectProblem(response, 'Missing required parameters', 19)
 	expect(state.canonicalLevelRequests).toEqual([])
 })
 
@@ -1513,9 +1568,7 @@ test('record/submit rejects malformed ghost data without changing wire error sha
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 19, message: 'Missing required parameters' },
-	})
+	await expectProblem(response, 'Missing required parameters', 19)
 })
 
 test('record/submit rejects banned users', async () => {
@@ -1539,9 +1592,7 @@ test('record/submit rejects banned users', async () => {
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 16, message: 'User not found' },
-	})
+	await expectProblem(response, 'User not found', 16)
 })
 
 test('record/submit returns 401 when authenticated user is missing', async () => {
@@ -1565,9 +1616,7 @@ test('record/submit returns 401 when authenticated user is missing', async () =>
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 16, message: 'User not found' },
-	})
+	await expectProblem(response, 'User not found', 16)
 })
 
 test('favourite/add is idempotent through GTR bearer authentication', async () => {
@@ -1639,9 +1688,7 @@ test('favourite/add returns level-not-found for an unknown canonical hash', asyn
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 18, message: 'Level not found' },
-	})
+	await expectProblem(response, 'Level not found', 18)
 	expect(state.favouriteAdds).toEqual([])
 })
 
@@ -1678,7 +1725,8 @@ for (const [name, body] of [
 				body: JSON.stringify(body),
 			})
 
-			expect(response.status).toBe(422)
+			expect(response.status).toBe(400)
+			await expectProblem(response, 'Invalid request', 22)
 		}
 		expect(state.favouriteAdds).toEqual([])
 		expect(state.favouriteRemoves).toEqual([])
@@ -1692,7 +1740,7 @@ test('favourite routes require a valid access token', async () => {
 		body: JSON.stringify({ hash: state.level.xxHash }),
 	})
 	expect(missing.status).toBe(400)
-	expect(await readBody(missing)).toBe('Not authenticated')
+	await expectProblem(missing, 'Not authenticated', 14)
 
 	const invalid = await send('/favourite/remove', {
 		method: 'POST',
@@ -1703,7 +1751,7 @@ test('favourite routes require a valid access token', async () => {
 		body: JSON.stringify({ hash: state.level.xxHash }),
 	})
 	expect(invalid.status).toBe(401)
-	expect(await readBody(invalid)).toBe('Invalid or expired token')
+	await expectProblem(invalid, 'Invalid or expired token', 15)
 	expect(state.favouriteAdds).toEqual([])
 	expect(state.favouriteRemoves).toEqual([])
 })
@@ -1727,9 +1775,7 @@ for (const stateName of ['missing', 'banned'] as const) {
 			})
 
 			expect(response.status).toBe(401)
-			expect(await readBody(response)).toEqual({
-				error: { code: 16, message: 'User not found' },
-			})
+			await expectProblem(response, 'User not found', 16)
 		}
 		expect(state.favouriteAdds).toEqual([])
 		expect(state.favouriteRemoves).toEqual([])
@@ -1769,9 +1815,7 @@ test('vote/submit returns 400 when canonical hash level is missing', async () =>
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 18, message: 'Level not found' },
-	})
+	await expectProblem(response, 'Level not found', 18)
 })
 
 test('vote/submit rejects missing canonical hash', async () => {
@@ -1786,7 +1830,8 @@ test('vote/submit rejects missing canonical hash', async () => {
 		}),
 	})
 
-	expect(response.status).toBe(422)
+	expect(response.status).toBe(400)
+	await expectProblem(response, 'Invalid request', 22)
 })
 
 test('vote/submit returns 400 when canonical hash is invalid', async () => {
@@ -1803,9 +1848,7 @@ test('vote/submit returns 400 when canonical hash is invalid', async () => {
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 17, message: 'Missing required parameters' },
-	})
+	await expectProblem(response, 'Missing required parameters', 17)
 })
 
 test('vote/submit rejects legacy Level-only body', async () => {
@@ -1821,7 +1864,8 @@ test('vote/submit rejects legacy Level-only body', async () => {
 		}),
 	})
 
-	expect(response.status).toBe(422)
+	expect(response.status).toBe(400)
+	await expectProblem(response, 'Invalid request', 22)
 	expect(state.voteUpserts).toEqual([])
 })
 
@@ -1838,12 +1882,11 @@ test('user/updateDiscordId rejects unverified positive Discord IDs', async () =>
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: {
-			code: 'discord_ownership_required',
-			message: 'Positive Discord IDs require OAuth or one-time code verification.',
-		},
-	})
+	await expectProblem(
+		response,
+		'Positive Discord IDs require OAuth or one-time code verification.',
+		'discord_ownership_required',
+	)
 	expect(state.updatedDiscordIds).toEqual([])
 })
 
@@ -1881,6 +1924,7 @@ test('user/discord/link-code creates an expiring one-time code for authenticated
 test('discord-bot routes require dedicated bearer token', async () => {
 	const denied = await send('/discord-bot/guilds/123')
 	expect(denied.status).toBe(401)
+	await expectProblem(denied, 'Not authenticated', 'invalid_bot_token')
 
 	const allowed = await send('/discord-bot/guilds/123', {
 		headers: { authorization: 'Bearer discord-bot-api-token-for-contract-tests' },
@@ -1931,7 +1975,8 @@ test('discord-bot watch matching accepts up to 50 target IDs per group', async (
 	expect(await readBody(accepted)).toEqual([])
 
 	const rejected = await sendMatches(51)
-	expect(rejected.status).toBe(422)
+	expect(rejected.status).toBe(400)
+	await expectProblem(rejected, 'Invalid request', 22)
 })
 
 test('job/trigger returns 200 and enqueues a compatible task', async () => {
@@ -1988,9 +2033,7 @@ test('job/trigger returns 400 for unsupported tasks', async () => {
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 22, message: 'Invalid request' },
-	})
+	await expectProblem(response, 'Invalid request', 22)
 })
 
 test('job/trigger returns 400 for invalid compatible-task payload', async () => {
@@ -2007,9 +2050,7 @@ test('job/trigger returns 400 for invalid compatible-task payload', async () => 
 	})
 
 	expect(response.status).toBe(400)
-	expect(await readBody(response)).toEqual({
-		error: { code: 22, message: 'Invalid request' },
-	})
+	await expectProblem(response, 'Invalid request', 22)
 })
 
 test('job/trigger returns 401 for invalid job token', async () => {
@@ -2026,7 +2067,5 @@ test('job/trigger returns 401 for invalid job token', async () => {
 	})
 
 	expect(response.status).toBe(401)
-	expect(await readBody(response)).toEqual({
-		error: { code: 15, message: 'Invalid or expired token' },
-	})
+	await expectProblem(response, 'Invalid or expired token', 15)
 })
