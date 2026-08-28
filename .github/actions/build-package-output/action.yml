@@ -40,6 +40,7 @@ runs:
       shell: bash
       env:
         NUXT_BUILD_REVISION: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        ELYSIA_AOT_VERBOSE: 1
       run: bun run ${{ inputs.build-script }}
 
     - name: Upload ${{ inputs.name }} output
