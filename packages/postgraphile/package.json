@@ -16,10 +16,13 @@
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
 		"elysia": "~2.0.0-beta.9",
+		"exact-mirror": "^1.2.4",
+		"openapi-types": "^12.1.3",
 		"postgraphile": "~5.1.0",
 		"postgraphile-plugin-connection-filter": "~3.0.2",
 		"postgres": "~3.4.7",
-		"ruru": "~2.0.1"
+		"ruru": "~2.0.1",
+		"typebox": "^1.3.19"
 	},
 	"devDependencies": {}
 }
