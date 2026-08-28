@@ -1,6 +1,12 @@
 import cluster, { type Worker } from 'node:cluster'
 import { attachLobbyWorker, initializeLobbyWorkerIpc } from './modules/lobby/lobbyIpc'
-import { type ClusterWorkerLike, onceAsync, stopClusterWorkers } from './processLifecycle'
+import {
+	type ClusterWorkerLike,
+	completesWithin,
+	onceAsync,
+	PRIMARY_SHUTDOWN_TIMEOUT_MS,
+	stopClusterWorkers,
+} from './processLifecycle'
 
 const WORKER_COUNT = 2
 const clusterEvents = cluster as typeof cluster & {
@@ -54,17 +60,31 @@ if (cluster.isPrimary) {
 	const shutdownPrimary = onceAsync(async (signal: NodeJS.Signals) => {
 		shuttingDown = true
 		console.info(`API primary received ${signal}, stopping lobby collector and workers...`)
-		let lobbyStoppedCleanly = true
-		try {
-			await lobbyPrimary.stop()
-		} catch {
-			lobbyStoppedCleanly = false
-			console.error('Lobby collector or primary database did not stop cleanly.')
-		}
 		const activeWorkers = Object.values(cluster.workers ?? {})
 			.filter((worker): worker is Worker => worker !== undefined)
 			.map((worker) => worker as Worker & ClusterWorkerLike)
-		const stoppedCleanly = await stopClusterWorkers(activeWorkers, signal)
+		const lobbyStop = completesWithin(
+			Promise.resolve().then(() => lobbyPrimary.stop()),
+			PRIMARY_SHUTDOWN_TIMEOUT_MS,
+		).then(
+			(completed) => ({ completed }),
+			(error: unknown) => ({ completed: false, error }),
+		)
+		const workerStop = stopClusterWorkers(activeWorkers, signal)
+		const [lobbyResult, stoppedCleanly] = await Promise.all([lobbyStop, workerStop])
+		const lobbyStoppedCleanly = lobbyResult.completed
+		if (!lobbyStoppedCleanly) {
+			if ('error' in lobbyResult) {
+				console.error(
+					'Lobby collector or primary database did not stop cleanly.',
+					lobbyResult.error,
+				)
+			} else {
+				console.error(
+					'Lobby collector or primary database did not stop before shutdown timeout.',
+				)
+			}
+		}
 		await stopNodeTelemetry()
 		if (!stoppedCleanly) {
 			console.error('API workers did not stop before shutdown timeout; forced termination.')

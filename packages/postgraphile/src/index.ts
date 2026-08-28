@@ -1,4 +1,5 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
+import { stopServerWithEscalation } from './processLifecycle'
 import { runPostGraphileReadyCheck } from './readinessCli'
 
 async function main() {
@@ -25,7 +26,22 @@ async function main() {
 	const app = buildPostGraphileServer()
 	await using appLifetime = {
 		async [Symbol.asyncDispose]() {
-			await app.stop()
+			try {
+				const result = await stopServerWithEscalation(app)
+				if (result === 'forced') {
+					console.warn(
+						'PostGraphile graceful shutdown timed out; active transports were closed.',
+					)
+				} else if (result === 'timed-out') {
+					console.error(
+						'PostGraphile shutdown did not complete after forced transport closure.',
+					)
+					process.exit(1)
+				}
+			} catch (error) {
+				console.error('PostGraphile failed to shut down cleanly.', error)
+				process.exit(1)
+			}
 		},
 	}
 

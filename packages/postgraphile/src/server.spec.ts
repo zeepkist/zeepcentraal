@@ -171,6 +171,17 @@ describe('buildPostGraphileServer', () => {
 			socket.close()
 			await app.stop()
 		}
+
+		const rebound = Bun.serve({
+			hostname: '127.0.0.1',
+			port,
+			fetch: () => new Response('OK'),
+		})
+		try {
+			expect(rebound.port).toBe(port)
+		} finally {
+			await rebound.stop(true)
+		}
 	}, 15_000)
 
 	test('serves health check', async () => {

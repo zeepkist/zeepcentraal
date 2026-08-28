@@ -7,6 +7,25 @@ export interface ClusterWorkerLike {
 
 export const PRIMARY_SHUTDOWN_TIMEOUT_MS = 10_000
 
+export async function completesWithin(
+	operation: PromiseLike<unknown> | undefined,
+	timeoutMs: number,
+): Promise<boolean> {
+	if (!operation) return true
+
+	let timeout: ReturnType<typeof setTimeout> | undefined
+	try {
+		return await Promise.race([
+			Promise.resolve(operation).then(() => true),
+			new Promise<boolean>((resolve) => {
+				timeout = setTimeout(() => resolve(false), timeoutMs)
+			}),
+		])
+	} finally {
+		if (timeout) clearTimeout(timeout)
+	}
+}
+
 export function onceAsync<TArgument>(handler: (argument: TArgument) => Promise<void>) {
 	let activeShutdown: Promise<void> | undefined
 

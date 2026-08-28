@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { EventEmitter } from 'node:events'
-import { type ClusterWorkerLike, onceAsync, stopClusterWorkers } from './processLifecycle'
+import { Elysia } from 'elysia'
+import {
+	type ClusterWorkerLike,
+	completesWithin,
+	onceAsync,
+	stopClusterWorkers,
+} from './processLifecycle'
 
 class FakeWorker extends EventEmitter implements ClusterWorkerLike {
 	dead = false
@@ -34,6 +40,19 @@ describe('onceAsync', () => {
 	})
 })
 
+describe('completesWithin', () => {
+	test('reports completion and timeout', async () => {
+		expect(await completesWithin(Promise.resolve(), 100)).toBe(true)
+		expect(await completesWithin(new Promise(() => {}), 1)).toBe(false)
+	})
+
+	test('preserves cleanup failures', async () => {
+		expect(completesWithin(Promise.reject(new Error('cleanup failed')), 100)).rejects.toThrow(
+			'cleanup failed',
+		)
+	})
+})
+
 describe('stopClusterWorkers', () => {
 	test('waits for every worker to exit', async () => {
 		const workers = [new FakeWorker(), new FakeWorker()]
@@ -56,4 +75,22 @@ describe('stopClusterWorkers', () => {
 		expect(worker.signals).toEqual(['SIGTERM', 'SIGKILL'])
 		expect(worker.listenerCount('exit')).toBe(0)
 	})
+})
+
+test('force-stopped Elysia listener releases its port', async () => {
+	const app = new Elysia().get('/', () => 'OK').listen({ hostname: '127.0.0.1', port: 0 })
+	const port = app.server?.port
+	if (!port) throw new Error('Server lifecycle test listener did not bind')
+
+	await app.stop(true)
+	const rebound = Bun.serve({
+		hostname: '127.0.0.1',
+		port,
+		fetch: () => new Response('OK'),
+	})
+	try {
+		expect(rebound.port).toBe(port)
+	} finally {
+		await rebound.stop(true)
+	}
 })
