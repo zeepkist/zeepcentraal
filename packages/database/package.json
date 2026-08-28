@@ -29,11 +29,9 @@
 		"@zeepkist/telemetry": "workspace:*",
 		"drizzle-orm": "~0.45.0",
 		"postgres": "~3.4.7",
-		"semver": "~7.8.0",
 		"ulid": "~3.0.2"
 	},
 	"devDependencies": {
-		"@types/semver": "~7.8.0",
 		"drizzle-kit": "~0.31.5"
 	}
 }

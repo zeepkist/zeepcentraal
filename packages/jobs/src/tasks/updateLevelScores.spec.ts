@@ -2,8 +2,18 @@ import { beforeEach, expect, mock, test } from 'bun:test'
 
 let allLevelIds = [1, 2]
 let recentLevelIds = [2]
-const getAllLevelIds = mock(async () => allLevelIds)
-const getAllLevelIdsWithRecordsSince = mock(async (_recordsSince: Date) => recentLevelIds)
+const getLevelIdsPage = mock(
+	async ({
+		afterId,
+		limit,
+		recordsSince,
+	}: {
+		afterId: number
+		limit: number
+		recordsSince?: Date
+	}) =>
+		(recordsSince ? recentLevelIds : allLevelIds).filter((id) => id > afterId).slice(0, limit),
+)
 const rebuildPlayerSkillAggregates = mock(async () => 50)
 const updateLevelScoreBatch = mock(async ({ idLevels }: { idLevels: number[] }) => ({
 	affectedUserIds: idLevels,
@@ -13,8 +23,7 @@ const updateLevelScoreBatch = mock(async ({ idLevels }: { idLevels: number[] }) 
 }))
 
 mock.module('@zeepkist/database', () => ({
-	getAllLevelIds,
-	getAllLevelIdsWithRecordsSince,
+	getLevelIdsPage,
 	rebuildPlayerSkillAggregates,
 }))
 mock.module('./levelScoreBatch', () => ({ updateLevelScoreBatch }))
@@ -33,8 +42,7 @@ function createHelpers() {
 beforeEach(() => {
 	allLevelIds = [1, 2]
 	recentLevelIds = [2]
-	getAllLevelIds.mockClear()
-	getAllLevelIdsWithRecordsSince.mockClear()
+	getLevelIdsPage.mockClear()
 	rebuildPlayerSkillAggregates.mockClear()
 	updateLevelScoreBatch.mockClear()
 	updateLevelScoreBatch.mockImplementation(async ({ idLevels }: { idLevels: number[] }) => ({
@@ -51,7 +59,7 @@ test('rebuilds independent skill and queues one player refresh after full scorin
 	await updateLevelScores({ all: true }, helpers as never)
 
 	expect(rebuildPlayerSkillAggregates).toHaveBeenCalledTimes(1)
-	expect(getAllLevelIds).toHaveBeenCalledTimes(1)
+	expect(getLevelIdsPage).toHaveBeenCalledWith({ afterId: 0, limit: 200 })
 	expect(updateLevelScoreBatch).toHaveBeenCalledWith({
 		idLevels: [1, 2],
 		logger: helpers.logger,
@@ -81,14 +89,22 @@ test('processes levels in batches of 50 with progress metadata', async () => {
 		50, 50, 1,
 	])
 	expect(helpers.logger.info).toHaveBeenCalledWith(
-		'Completed level score batch 3/3.',
-		expect.objectContaining({
-			processedLevels: 101,
-			progress: 100,
-			totalLevels: 101,
-		}),
+		'Completed level score page 1, batch 3/3.',
+		expect.objectContaining({ processedLevels: 101 }),
 	)
 	expect(helpers.addJob).toHaveBeenCalledTimes(1)
+})
+
+test('fetches level IDs in keyset pages of 200', async () => {
+	allLevelIds = Array.from({ length: 250 }, (_, index) => index + 1)
+	const helpers = createHelpers()
+
+	await updateLevelScores({ all: true }, helpers as never)
+
+	expect(getLevelIdsPage.mock.calls.map(([input]) => input.afterId)).toEqual([0, 200])
+	expect(updateLevelScoreBatch.mock.calls.map(([input]) => input.idLevels.length)).toEqual([
+		50, 50, 50, 50, 50,
+	])
 })
 
 test('reuses skill snapshot for incremental scoring', async () => {
@@ -99,8 +115,8 @@ test('reuses skill snapshot for incremental scoring', async () => {
 	const after = Date.now()
 
 	expect(rebuildPlayerSkillAggregates).not.toHaveBeenCalled()
-	expect(getAllLevelIdsWithRecordsSince).toHaveBeenCalledTimes(1)
-	const cutoff = getAllLevelIdsWithRecordsSince.mock.calls[0]?.[0]
+	expect(getLevelIdsPage).toHaveBeenCalledTimes(1)
+	const cutoff = getLevelIdsPage.mock.calls[0]?.[0].recordsSince
 	expect(cutoff).toBeInstanceOf(Date)
 	expect(cutoff?.getTime()).toBeGreaterThanOrEqual(before - RECENT_LEVEL_SCORE_LOOKBACK_MS)
 	expect(cutoff?.getTime()).toBeLessThanOrEqual(after - RECENT_LEVEL_SCORE_LOOKBACK_MS)

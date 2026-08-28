@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import {
 	BitWriter,
 	changeLobbyPlaylistPacket,
@@ -22,6 +21,8 @@ import { getMeter } from '@zeepkist/telemetry'
 const MANAGED_LOBBY_KEY = 'totw'
 const PLAYLIST_CHANGE_DELAY_MS = 3_500
 const PROTOCOL_TRANSITION_TIMEOUT_MS = 30_000
+const PREVIOUS_ASSET_TTL_MS = 30_000
+const MAX_LEVEL_REQUESTS = 8
 const MAX_ASSET_BYTES = 64 * 1024 * 1024
 const meter = getMeter('zeepcentraal-lobby-host')
 const assignmentLatency = meter.createHistogram('zeepkist.totw.assignment.duration', {
@@ -53,7 +54,7 @@ interface RoomAssignment {
 }
 
 interface LoadedAsset {
-	compressedData: Buffer
+	compressedData: Uint8Array
 	contentSha256: string
 	idTournament: number
 	level: OnlineLevel
@@ -73,6 +74,8 @@ interface RoomTransferState {
 	pendingActivation?: PendingActivation
 	pendingAsset?: LoadedAsset
 	previousAsset?: LoadedAsset
+	previousAssetTimer?: ReturnType<typeof setTimeout>
+	queuedUploads: number
 	uploadQueue: Promise<void>
 }
 
@@ -137,6 +140,7 @@ export class TotwLobbyHost {
 	async stop() {
 		this.stopped = true
 		const client = this.client
+		this.asset = undefined
 		if (!client) return
 		try {
 			await client.sendReliableOrdered(changeLobbyVisibilityPacket(false))
@@ -153,6 +157,7 @@ export class TotwLobbyHost {
 		const hail = new BitWriter()
 		hail.writeString(assignment.token)
 		const transferState: RoomTransferState = {
+			queuedUploads: 0,
 			uploadQueue: Promise.resolve(),
 		}
 		let lostOwnership = false
@@ -187,9 +192,16 @@ export class TotwLobbyHost {
 						return
 					}
 					if (packet.type === 'level-request') {
-						const upload = transferState.uploadQueue.then(() =>
-							this.uploadRequestedLevel(client, packet, transferState),
-						)
+						if (transferState.queuedUploads >= MAX_LEVEL_REQUESTS) {
+							void client.close('Level request queue exceeded capacity')
+							return
+						}
+						transferState.queuedUploads++
+						const upload = transferState.uploadQueue
+							.then(() => this.uploadRequestedLevel(client, packet, transferState))
+							.finally(() => {
+								transferState.queuedUploads--
+							})
 						transferState.uploadQueue = upload.catch(() => {})
 						void upload.catch((error) => {
 							console.warn(`TotW lobby level upload failed: ${safeError(error)}`)
@@ -245,6 +257,10 @@ export class TotwLobbyHost {
 				clearInterval(assetTimer)
 			}
 		} finally {
+			if (transferState.previousAssetTimer) clearTimeout(transferState.previousAssetTimer)
+			transferState.pendingAsset = undefined
+			transferState.previousAsset = undefined
+			transferState.activeAsset = undefined
 			this.roomConnected = false
 			this.roomReady = false
 			this.ownsRoom = false
@@ -272,14 +288,10 @@ export class TotwLobbyHost {
 		if (metadata.byteSize < 1 || metadata.byteSize > MAX_ASSET_BYTES) {
 			throw new Error('Prepared tournament asset size is invalid')
 		}
-		const compressedData = await downloadTrackTournamentLobbyAsset(metadata.objectKey)
-		if (compressedData.length !== metadata.byteSize)
-			throw new Error('Tournament asset size mismatch')
-		const sha256 = createHash('sha256').update(compressedData).digest('hex')
-		if (sha256 !== metadata.contentSha256) throw new Error('Tournament asset hash mismatch')
+		const compressedData = await downloadTrackTournamentLobbyAsset(metadata)
 		this.asset = {
 			compressedData,
-			contentSha256: sha256,
+			contentSha256: metadata.contentSha256,
 			idTournament: metadata.idTournament,
 			level: {
 				author: metadata.author,
@@ -347,6 +359,12 @@ export class TotwLobbyHost {
 
 		if (state.pendingAsset?.contentSha256 !== asset.contentSha256) return
 		state.previousAsset = state.activeAsset
+		if (state.previousAssetTimer) clearTimeout(state.previousAssetTimer)
+		const previousAsset = state.previousAsset
+		state.previousAssetTimer = setTimeout(() => {
+			if (state.previousAsset === previousAsset) state.previousAsset = undefined
+			state.previousAssetTimer = undefined
+		}, PREVIOUS_ASSET_TTL_MS)
 		state.activeAsset = asset
 		state.pendingAsset = undefined
 		this.roomReady = true
@@ -378,6 +396,10 @@ export class TotwLobbyHost {
 		} finally {
 			assignmentLatency.record(performance.now() - startedAt)
 		}
+	}
+
+	public async [Symbol.asyncDispose](): Promise<void> {
+		await this.stop()
 	}
 }
 

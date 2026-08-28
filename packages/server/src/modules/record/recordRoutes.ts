@@ -1,11 +1,11 @@
-import { parseGhostStatisticsFromBase64 } from '@zeepkist/core/ghosts'
+import { MAX_GHOST_COMPRESSED_BYTES, parseGhostStatistics } from '@zeepkist/core/ghosts'
 import {
 	claimMissingLevelMetadataRequest,
 	getLevelByXxHash,
 	getOrInsertLevelWithCanonicalHash,
 	getUser,
-	scheduleRecordMediaUpload,
 	submitRecord,
+	uploadRecordMedia,
 } from '@zeepkist/database/services'
 import { enqueueCompatibleTask, enqueueWorkshopScan } from '@zeepkist/jobs/queue'
 import { setActiveSpanAttributes, startActiveSpan } from '@zeepkist/telemetry'
@@ -14,6 +14,7 @@ import { GTR_BEARER_SECURITY, OPENAPI_TAG } from '../../openapi'
 import { withAuthGtr } from '../../plugins/withAuth'
 import { withModVersionGuard } from '../../plugins/withModVersionGuard'
 import { withRateLimit } from '../../plugins/withRateLimit'
+import { RecordWorkCapacityError, recordWork } from './recordWork'
 
 async function traceSubmitPhase<T>(name: string, task: () => Promise<T>): Promise<T> {
 	return startActiveSpan(name, async (span) => {
@@ -101,13 +102,15 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					Time > 0 &&
 					Splits.every(Number.isFinite) &&
 					Speeds.every(Number.isFinite)
+				const decodedGhostBytes = validBase64
+					? Math.floor((GhostData.length * 3) / 4) -
+						(GhostData.endsWith('==') ? 2 : GhostData.endsWith('=') ? 1 : 0)
+					: 0
 
 				setActiveSpanAttributes({
 					'record.request_bytes': Number(request.headers.get('content-length') ?? 0),
 					'record.ghost_base64_bytes': GhostData.length,
-					'record.ghost_decoded_bytes': validBase64
-						? Buffer.byteLength(GhostData, 'base64')
-						: 0,
+					'record.ghost_decoded_bytes': decodedGhostBytes,
 					'record.split_count': Splits.length,
 					'record.speed_count': Speeds.length,
 				})
@@ -122,6 +125,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					!GameVersion ||
 					!validWorkshopId ||
 					!validBase64 ||
+					decodedGhostBytes > MAX_GHOST_COMPRESSED_BYTES ||
 					!validNumbers
 				) {
 					set.status = 400
@@ -133,116 +137,140 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					}
 				}
 
-				const preliminaryResults = await Promise.allSettled([
-					traceSubmitPhase('record.submit.ghost_statistics', () =>
-						parseGhostStatisticsFromBase64(GhostData),
-					),
-					traceSubmitPhase('record.submit.user_lookup', () => getUser(auth.steamId)),
-					traceSubmitPhase('record.submit.level_lookup', () => getLevelByXxHash(Hash)),
-				] as const)
-				const [ghostResult, userResult, existingLevelResult] = preliminaryResults
-				if (ghostResult.status === 'rejected') {
-					set.status = 400
-					return {
-						error: {
-							code: 19,
-							message: 'Missing required parameters',
-						},
-					}
-				}
-				if (userResult.status === 'rejected') throw userResult.reason
-				if (existingLevelResult.status === 'rejected') throw existingLevelResult.reason
-				const ghostStatistics = ghostResult.value
-
-				const user = userResult.value
-				if (!user || user.banned) {
-					set.status = 401
-					return {
-						error: {
-							code: 16,
-							message: 'User not found',
-						},
-					}
+				const ghostBytes = Uint8Array.fromBase64(GhostData)
+				let uploadReservation: ReturnType<typeof recordWork.reserveUpload>
+				try {
+					uploadReservation = recordWork.reserveUpload(ghostBytes.byteLength)
+				} catch (error) {
+					if (!(error instanceof RecordWorkCapacityError)) throw error
+					set.status = 503
+					set.headers['retry-after'] = '1'
+					return
 				}
 
-				const workshopId = WorkshopId === undefined ? undefined : BigInt(WorkshopId)
-				const isAdventure = workshopId === undefined
-				const existingLevel = existingLevelResult.value
-				const level =
-					existingLevel && (!isAdventure || existingLevel.adventure)
-						? existingLevel
-						: await traceSubmitPhase('record.submit.level_resolve', () =>
-								getOrInsertLevelWithCanonicalHash({
-									hash: Level,
-									xxHash: Hash,
-									adventure: isAdventure,
-								}),
-							)
-				if (!level) {
-					set.status = 400
-					return {
-						error: {
-							code: 18,
-							message: 'Level not found',
-						},
+				try {
+					const preliminaryResults = await Promise.allSettled([
+						traceSubmitPhase('record.submit.ghost_statistics', () =>
+							recordWork.runParser(() => parseGhostStatistics(ghostBytes)),
+						),
+						traceSubmitPhase('record.submit.user_lookup', () => getUser(auth.steamId)),
+						traceSubmitPhase('record.submit.level_lookup', () =>
+							getLevelByXxHash(Hash),
+						),
+					] as const)
+					const [ghostResult, userResult, existingLevelResult] = preliminaryResults
+					if (ghostResult.status === 'rejected') {
+						if (ghostResult.reason instanceof RecordWorkCapacityError) {
+							set.status = 503
+							set.headers['retry-after'] = '1'
+							return
+						}
+						set.status = 400
+						return {
+							error: {
+								code: 19,
+								message: 'Missing required parameters',
+							},
+						}
 					}
-				}
+					if (userResult.status === 'rejected') throw userResult.reason
+					if (existingLevelResult.status === 'rejected') throw existingLevelResult.reason
+					const ghostStatistics = ghostResult.value
 
-				const submitted = await submitRecord(
-					{
-						idUser: user.id,
+					const user = userResult.value
+					if (!user || user.banned) {
+						set.status = 401
+						return {
+							error: {
+								code: 16,
+								message: 'User not found',
+							},
+						}
+					}
+
+					const workshopId = WorkshopId === undefined ? undefined : BigInt(WorkshopId)
+					const isAdventure = workshopId === undefined
+					const existingLevel = existingLevelResult.value
+					const level =
+						existingLevel && (!isAdventure || existingLevel.adventure)
+							? existingLevel
+							: await traceSubmitPhase('record.submit.level_resolve', () =>
+									getOrInsertLevelWithCanonicalHash({
+										hash: Level,
+										xxHash: Hash,
+										adventure: isAdventure,
+									}),
+								)
+					if (!level) {
+						set.status = 400
+						return {
+							error: {
+								code: 18,
+								message: 'Level not found',
+							},
+						}
+					}
+
+					const submitted = await submitRecord(
+						{
+							idUser: user.id,
+							idLevel: level.id,
+							time: Time,
+							splits: Splits,
+							speeds: Speeds,
+							modVersion: ModVersion,
+							gameVersion: GameVersion,
+							dateCreated: new Date().toISOString(),
+							dateUpdated: new Date().toISOString(),
+						},
+						ghostStatistics,
+					)
+
+					if (!submitted) {
+						set.status = 400
+						return {
+							error: {
+								code: 20,
+								message: 'Failed to submit record',
+							},
+						}
+					}
+
+					uploadReservation.schedule(() =>
+						uploadRecordMedia(submitted.record.id, ghostBytes),
+					)
+					const workshopScanClaimed =
+						workshopId === undefined
+							? false
+							: await traceSubmitPhase('record.submit.workshop_claim', () =>
+									claimMissingLevelMetadataRequest({
+										idLevel: level.id,
+										workshopId,
+										hash: Level,
+									}),
+								)
+
+					setActiveSpanAttributes({
+						'record.ghost_version': ghostStatistics.ghostVersion ?? 0,
+						'record.ghost_frame_bucket': ghostFrameBucket(ghostStatistics.frameCount),
+						'record.personal_best_changed': submitted.personalBestChanged,
+						'record.tournament_result_changed': submitted.tournamentResultChanged,
+						'record.adventure': isAdventure,
+						'record.workshop_scan_claimed': workshopScanClaimed,
+					})
+					scheduleRecordFollowups({
 						idLevel: level.id,
-						time: Time,
-						splits: Splits,
-						speeds: Speeds,
-						modVersion: ModVersion,
-						gameVersion: GameVersion,
-						dateCreated: new Date().toISOString(),
-						dateUpdated: new Date().toISOString(),
-					},
-					ghostStatistics,
-				)
+						idUser: user.id,
+						personalBestChanged: submitted.personalBestChanged,
+						workshopId,
+						workshopScanClaimed,
+					})
 
-				if (!submitted) {
-					set.status = 400
-					return {
-						error: {
-							code: 20,
-							message: 'Failed to submit record',
-						},
-					}
+					set.status = 200
+					return
+				} finally {
+					uploadReservation[Symbol.dispose]()
 				}
-
-				scheduleRecordMediaUpload(submitted.record.id, GhostData)
-				const workshopScanClaimed =
-					workshopId === undefined
-						? false
-						: await traceSubmitPhase('record.submit.workshop_claim', () =>
-								claimMissingLevelMetadataRequest({
-									idLevel: level.id,
-									workshopId,
-									hash: Level,
-								}),
-							)
-
-				setActiveSpanAttributes({
-					'record.ghost_version': ghostStatistics.ghostVersion ?? 0,
-					'record.ghost_frame_bucket': ghostFrameBucket(ghostStatistics.frameCount),
-					'record.personal_best_changed': submitted.personalBestChanged,
-					'record.tournament_result_changed': submitted.tournamentResultChanged,
-					'record.adventure': isAdventure,
-					'record.workshop_scan_claimed': workshopScanClaimed,
-				})
-				scheduleRecordFollowups({
-					idLevel: level.id,
-					idUser: user.id,
-					personalBestChanged: submitted.personalBestChanged,
-					workshopId,
-					workshopScanClaimed,
-				})
-
-				set.status = 200
-				return
 			})
 		},
 		{

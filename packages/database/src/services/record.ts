@@ -24,12 +24,6 @@ import { recordTrackTournamentResults } from './trackTournament'
 type RecordInput = typeof record.$inferInsert
 const ghostUploadSuccesses = createCounter('record.ghost_upload.success', 'zeepcentraal-database')
 const ghostUploadFailures = createCounter('record.ghost_upload.failure', 'zeepcentraal-database')
-const GHOST_UPLOAD_MAX_ATTEMPTS = 5
-const GHOST_UPLOAD_RETRY_DELAY_MS = 1_000
-
-function wait(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms))
-}
 
 async function traceRecordPhase<T>(name: string, task: () => Promise<T>): Promise<T> {
 	return startActiveSpan(name, async (span) => {
@@ -50,37 +44,6 @@ function recordGhostUploadError(
 	attributes: Record<string, string | number | boolean>,
 ): void {
 	recordSpanError(error, attributes)
-}
-
-async function uploadGhostFileWithRetry(ghostUrl: string, file: Buffer): Promise<void> {
-	let lastError: unknown
-
-	for (let attempt = 1; attempt <= GHOST_UPLOAD_MAX_ATTEMPTS; attempt++) {
-		try {
-			await uploadFile(ghostUrl, file)
-			return
-		} catch (error) {
-			lastError = error
-			recordGhostUploadError(error, {
-				'record.ghost_upload.attempt': attempt,
-				'record.ghost_upload.max_attempts': GHOST_UPLOAD_MAX_ATTEMPTS,
-				'record.ghost_upload.retrying': attempt < GHOST_UPLOAD_MAX_ATTEMPTS,
-			})
-
-			console.error(
-				`[ghost] Upload attempt ${attempt}/${GHOST_UPLOAD_MAX_ATTEMPTS} failed for ${ghostUrl}:`,
-				error,
-			)
-
-			if (attempt === GHOST_UPLOAD_MAX_ATTEMPTS) {
-				break
-			}
-
-			await wait(GHOST_UPLOAD_RETRY_DELAY_MS)
-		}
-	}
-
-	throw lastError
 }
 
 export async function submitRecord(
@@ -183,36 +146,33 @@ export async function submitRecord(
 	)
 }
 
-export function scheduleRecordMediaUpload(idRecord: number, ghostData: string): void {
+export async function uploadRecordMedia(idRecord: number, ghostData: Uint8Array): Promise<void> {
 	const ghostUrl = `${GHOST_FOLDER}/${generateUid()}.bin`
-	void (async () => {
-		await uploadGhostFileWithRetry(ghostUrl, Buffer.from(ghostData, 'base64'))
-		try {
-			await db.insert(recordMedia).values({
-				idRecord,
-				ghostUrl,
-				dateCreated: new Date().toISOString(),
-				dateUpdated: new Date().toISOString(),
-			})
-			ghostUploadSuccesses.add(1)
-		} catch (error) {
-			await deleteFile(ghostUrl).catch((deleteError) => {
-				console.error('[ghost] Failed cleanup after media insert failure:', deleteError)
-			})
-			throw error
-		}
-	})().catch((error) => {
+	try {
+		await uploadFile(ghostUrl, ghostData)
+		await db.insert(recordMedia).values({
+			idRecord,
+			ghostUrl,
+			dateCreated: new Date().toISOString(),
+			dateUpdated: new Date().toISOString(),
+		})
+		ghostUploadSuccesses.add(1)
+	} catch (error) {
+		await deleteFile(ghostUrl).catch((deleteError) => {
+			console.error('[ghost] Failed cleanup after media upload failure:', deleteError)
+		})
 		setActiveSpanErrorStatus(
 			error instanceof Error ? error.message : 'Ghost media upload failed',
 		)
 		recordGhostUploadError(error, {
 			'record.id': idRecord,
 			'record.ghost_upload.failed': true,
-			'record.ghost_upload.max_attempts': GHOST_UPLOAD_MAX_ATTEMPTS,
+			'record.ghost_upload.max_attempts': 5,
 		})
 		ghostUploadFailures.add(1)
 		console.error(`[ghost] Upload failed for record ${idRecord}:`, error)
-	})
+		throw error
+	}
 }
 
 export async function getPersonalBestsWithRecord({

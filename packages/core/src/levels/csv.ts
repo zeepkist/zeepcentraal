@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { countCheckpoints, countFinishes } from './metadata'
 import {
 	type CsvBlock,
@@ -149,7 +148,7 @@ function canonicalCsvContent(
 }
 
 function calculateHash(skybox: number, ground: number, blocks: ParsedCsvBlock[]): string {
-	return createHash('sha1')
+	return new Bun.CryptoHasher('sha1')
 		.update(canonicalCsvContent(skybox, ground, blocks), 'utf8')
 		.digest('hex')
 		.toUpperCase()

@@ -115,6 +115,53 @@ export async function updateUserRanks(
 	return allChanges
 }
 
+export async function rankActiveUsersByPoints(idUsers: number[]): Promise<number> {
+	const uniqueUserIds = sortedUniqueUserIds(idUsers)
+	if (uniqueUserIds.length === 0) return 0
+
+	return db.transaction(async (tx) => {
+		const changes = await tx.execute<{
+			idUser: number
+			previousRank: number
+			rank: number
+		}>(sql`
+			WITH ranked AS MATERIALIZED (
+				SELECT
+					${userPoints.idUser} AS id_user,
+					RANK() OVER (ORDER BY ${userPoints.points} DESC)::integer AS rank
+				FROM ${userPoints}
+				WHERE ${userPoints.idUser} = ANY(${sql.param(uniqueUserIds)}::integer[])
+			), changed AS MATERIALIZED (
+				SELECT target.id_user, target.rank AS previous_rank, ranked.rank
+				FROM ${userPoints} AS target
+				INNER JOIN ranked ON ranked.id_user = target.id_user
+				WHERE target.rank IS DISTINCT FROM ranked.rank
+			), updated AS (
+				UPDATE ${userPoints} AS target
+				SET rank = changed.rank, date_updated = NOW()
+				FROM changed
+				WHERE target.id_user = changed.id_user
+				RETURNING target.id_user
+			)
+			SELECT
+				changed.id_user AS "idUser",
+				changed.previous_rank AS "previousRank",
+				changed.rank
+			FROM changed
+			INNER JOIN updated ON updated.id_user = changed.id_user
+			ORDER BY changed.rank, changed.id_user
+		`)
+
+		for (const batch of chunks(changes)) {
+			await tx.insert(discordActivityEvent).values({
+				kind: 'rank_batch',
+				payload: { changes: batch },
+			})
+		}
+		return changes.length
+	})
+}
+
 export async function resetInactiveUserScores(idUsers: number[]): Promise<void> {
 	const uniqueUserIds = sortedUniqueUserIds(idUsers)
 	if (uniqueUserIds.length === 0) {

@@ -16,7 +16,10 @@ const MESSAGE_TYPE = {
 const MAX_DATAGRAM_BYTES = 2 * 1024 * 1024
 const MAX_FRAGMENT_GROUPS = 32
 const MAX_REASSEMBLED_BYTES = 2 * 1024 * 1024
+const MAX_FRAGMENT_BYTES = 8 * 1024 * 1024
+const FRAGMENT_TTL_MS = 30_000
 const MAX_OUTGOING_BYTES = 64 * 1024 * 1024
+const MAX_OUTGOING_TRANSFERS = 128
 const SEQUENCE_MODULUS = 1024
 const RECEIVE_WINDOW = 64
 const SEND_WINDOW = 64
@@ -45,22 +48,31 @@ interface IncomingMessage {
 interface FragmentGroup {
 	chunkByteSize: number
 	chunks: Map<number, Uint8Array>
+	createdAt: number
 	totalBytes: number
 }
 
-interface OutgoingReliableMessage {
-	fragmented: boolean
+interface OutgoingTransfer {
+	chunkByteSize: number
+	chunkCount: number
+	groupId: number
+	messageType: number
+	nextChunk: number
 	payload: Uint8Array
-	payloadBits: number
 	reject: (error: Error) => void
+	remaining: number
 	resolve: () => void
-	type: number
 }
 
-interface PendingReliableMessage extends OutgoingReliableMessage {
+interface PendingReliableMessage {
 	attempts: number
+	fragmented: boolean
 	lastSentAt: number
+	payload: Uint8Array
+	payloadBits: number
 	sequence: number
+	transfer: OutgoingTransfer
+	type: number
 }
 
 export class LidgrenClient {
@@ -73,6 +85,7 @@ export class LidgrenClient {
 	private readonly expectedSequences = new Map<number, number>()
 	private readonly withheld = new Map<number, Map<number, IncomingMessage>>()
 	private readonly fragments = new Map<string, FragmentGroup>()
+	private fragmentBytes = 0
 	private handshakeTimer: ReturnType<typeof setInterval> | undefined
 	private maintenanceTimer: ReturnType<typeof setInterval> | undefined
 	private senderTimer: ReturnType<typeof setInterval> | undefined
@@ -82,7 +95,9 @@ export class LidgrenClient {
 	private lastPingAt = 0
 	private readonly sendSequences = new Map<number, number>()
 	private fragmentGroup = 1
-	private readonly outgoingQueue: OutgoingReliableMessage[] = []
+	private readonly transferQueue: OutgoingTransfer[] = []
+	private readonly outgoingTransfers = new Set<OutgoingTransfer>()
+	private outgoingBytes = 0
 	private readonly pendingReliable = new Map<string, PendingReliableMessage>()
 	private readonly uniqueIdentifier = randomBytes(8).readBigInt64LE()
 	private resolveConnected: (() => void) | undefined
@@ -266,6 +281,7 @@ export class LidgrenClient {
 	}
 
 	private maintainConnection() {
+		this.expireFragments(Date.now())
 		if (Date.now() - this.lastReceivedAt > 25_000) {
 			this.fail(new Error('Master server connection timed out'))
 			return
@@ -345,12 +361,20 @@ export class LidgrenClient {
 			totalBytes,
 			chunkByteSize,
 			chunks: new Map<number, Uint8Array>(),
+			createdAt: Date.now(),
 		}
 		if (group.totalBytes !== totalBytes || group.chunkByteSize !== chunkByteSize) {
 			throw new Error('Inconsistent Lidgren fragment group')
 		}
 		const expectedChunkBytes = Math.min(chunkByteSize, totalBytes - chunkNumber * chunkByteSize)
-		group.chunks.set(chunkNumber, reader.readBytes(expectedChunkBytes))
+		const chunk = reader.readBytes(expectedChunkBytes)
+		if (!group.chunks.has(chunkNumber)) {
+			if (this.fragmentBytes + chunk.byteLength > MAX_FRAGMENT_BYTES) {
+				throw new Error('Lidgren fragment memory limit exceeded')
+			}
+			group.chunks.set(chunkNumber, Uint8Array.from(chunk))
+			this.fragmentBytes += chunk.byteLength
+		}
 		this.fragments.set(fragmentKey, group)
 		const chunkCount = Math.ceil(totalBytes / chunkByteSize)
 		if (group.chunks.size !== chunkCount) {
@@ -364,8 +388,20 @@ export class LidgrenClient {
 			}
 			reassembled.set(chunk, index * chunkByteSize)
 		}
-		this.fragments.delete(fragmentKey)
+		this.deleteFragmentGroup(fragmentKey, group)
 		this.options.onPayload(reassembled)
+	}
+
+	private expireFragments(now: number) {
+		for (const [key, group] of this.fragments) {
+			if (now - group.createdAt >= FRAGMENT_TTL_MS) this.deleteFragmentGroup(key, group)
+		}
+	}
+
+	private deleteFragmentGroup(key: string, group: FragmentGroup) {
+		if (!this.fragments.delete(key)) return
+		for (const chunk of group.chunks.values()) this.fragmentBytes -= chunk.byteLength
+		group.chunks.clear()
 	}
 
 	private sendAcknowledgement(type: number, sequence: number) {
@@ -377,7 +413,11 @@ export class LidgrenClient {
 		if (!this.connected || this.closing || this.closed) {
 			return Promise.reject(new Error('Lidgren client is not connected'))
 		}
-		if (payload.length > MAX_OUTGOING_BYTES) {
+		if (
+			payload.length > MAX_OUTGOING_BYTES ||
+			this.outgoingBytes + payload.length > MAX_OUTGOING_BYTES ||
+			this.outgoingTransfers.size >= MAX_OUTGOING_TRANSFERS
+		) {
 			return Promise.reject(new Error('Lidgren payload exceeds outgoing limit'))
 		}
 		const mtu = Math.max(512, this.options.mtu ?? DEFAULT_MTU)
@@ -386,35 +426,27 @@ export class LidgrenClient {
 		}
 		const messageType = MESSAGE_TYPE.reliableOrdered + sequenceChannel
 		const maxChunkBytes = mtu - 32
-		const chunks = payload.length + 5 <= mtu ? [payload] : splitPayload(payload, maxChunkBytes)
-		const groupId = chunks.length === 1 ? 0 : this.nextFragmentGroup()
-		const completion = Promise.all(
-			chunks.map(
-				(chunk, chunkNumber) =>
-					new Promise<void>((resolve, reject) => {
-						let encodedPayload = chunk
-						let payloadBits = chunk.length * 8
-						if (groupId !== 0) {
-							const writer = new BitWriter()
-							writer.writeVariableUInt32(groupId)
-							writer.writeVariableUInt32(payload.length * 8)
-							writer.writeVariableUInt32(maxChunkBytes)
-							writer.writeVariableUInt32(chunkNumber)
-							writer.writeBytes(chunk)
-							encodedPayload = writer.toUint8Array()
-							payloadBits = writer.bitLength
-						}
-						this.outgoingQueue.push({
-							fragmented: groupId !== 0,
-							payload: encodedPayload,
-							payloadBits,
-							resolve,
-							reject,
-							type: messageType,
-						})
-					}),
-			),
-		).then(() => undefined)
+		const chunkCount = payload.length + 5 <= mtu ? 1 : Math.ceil(payload.length / maxChunkBytes)
+		let resolve = () => {}
+		let reject = (_error: Error) => {}
+		const completion = new Promise<void>((complete, fail) => {
+			resolve = complete
+			reject = fail
+		})
+		const transfer: OutgoingTransfer = {
+			chunkByteSize: maxChunkBytes,
+			chunkCount,
+			groupId: chunkCount === 1 ? 0 : this.nextFragmentGroup(),
+			messageType,
+			nextChunk: 0,
+			payload,
+			remaining: chunkCount,
+			reject,
+			resolve,
+		}
+		this.outgoingBytes += payload.byteLength
+		this.outgoingTransfers.add(transfer)
+		this.transferQueue.push(transfer)
 		this.flushReliableQueue()
 		return completion
 	}
@@ -430,7 +462,10 @@ export class LidgrenClient {
 			const pending = this.pendingReliable.get(pendingKey)
 			if (!pending || pending.type !== type) continue
 			this.pendingReliable.delete(pendingKey)
-			pending.resolve()
+			pending.transfer.remaining--
+			if (pending.transfer.remaining === 0) {
+				this.completeTransfer(pending.transfer)
+			}
 		}
 		this.flushReliableQueue()
 	}
@@ -451,20 +486,48 @@ export class LidgrenClient {
 
 	private flushReliableQueue() {
 		while (this.pendingReliable.size < SEND_WINDOW) {
-			const queued = this.outgoingQueue.shift()
-			if (!queued) return
-			const sequence = this.sendSequences.get(queued.type) ?? 0
-			this.sendSequences.set(queued.type, (sequence + 1) % SEQUENCE_MODULUS)
-			const pending: PendingReliableMessage = {
-				...queued,
-				attempts: 0,
-				lastSentAt: 0,
-				sequence,
-				type: queued.type,
+			const transfer = this.transferQueue[0]
+			if (!transfer) return
+			const chunkNumber = transfer.nextChunk++
+			const chunkOffset = chunkNumber * transfer.chunkByteSize
+			const chunk = transfer.payload.subarray(
+				chunkOffset,
+				Math.min(transfer.payload.byteLength, chunkOffset + transfer.chunkByteSize),
+			)
+			let encodedPayload = chunk
+			let payloadBits = chunk.byteLength * 8
+			if (transfer.groupId !== 0) {
+				const writer = new BitWriter()
+				writer.writeVariableUInt32(transfer.groupId)
+				writer.writeVariableUInt32(transfer.payload.byteLength * 8)
+				writer.writeVariableUInt32(transfer.chunkByteSize)
+				writer.writeVariableUInt32(chunkNumber)
+				writer.writeBytes(chunk)
+				encodedPayload = writer.toUint8Array()
+				payloadBits = writer.bitLength
 			}
-			this.pendingReliable.set(reliableKey(queued.type, sequence), pending)
+			if (transfer.nextChunk >= transfer.chunkCount) this.transferQueue.shift()
+			const sequence = this.sendSequences.get(transfer.messageType) ?? 0
+			this.sendSequences.set(transfer.messageType, (sequence + 1) % SEQUENCE_MODULUS)
+			const pending: PendingReliableMessage = {
+				attempts: 0,
+				fragmented: transfer.groupId !== 0,
+				lastSentAt: 0,
+				payload: encodedPayload,
+				payloadBits,
+				sequence,
+				transfer,
+				type: transfer.messageType,
+			}
+			this.pendingReliable.set(reliableKey(transfer.messageType, sequence), pending)
 			this.sendReliableMessage(pending)
 		}
+	}
+
+	private completeTransfer(transfer: OutgoingTransfer) {
+		if (!this.outgoingTransfers.delete(transfer)) return
+		this.outgoingBytes -= transfer.payload.byteLength
+		transfer.resolve()
 	}
 
 	private sendReliableMessage(message: PendingReliableMessage) {
@@ -574,6 +637,10 @@ export class LidgrenClient {
 		this.closed = true
 		this.clearTimers()
 		this.rejectReliable(this.closeError ?? new Error('Lidgren client closed'))
+		for (const [key, group] of this.fragments) this.deleteFragmentGroup(key, group)
+		this.withheld.clear()
+		this.expectedSequences.clear()
+		this.sendSequences.clear()
 		this.resolveClosed()
 	}
 
@@ -602,22 +669,20 @@ export class LidgrenClient {
 	}
 
 	private rejectReliable(error: Error) {
-		for (const queued of this.outgoingQueue.splice(0)) queued.reject(error)
-		for (const pending of this.pendingReliable.values()) pending.reject(error)
+		for (const transfer of this.outgoingTransfers) transfer.reject(error)
+		this.outgoingTransfers.clear()
+		this.transferQueue.length = 0
+		this.outgoingBytes = 0
 		this.pendingReliable.clear()
 	}
 
 	private get applicationIdentifier() {
 		return this.options.applicationIdentifier ?? 'LoadBalancer'
 	}
-}
 
-function splitPayload(payload: Uint8Array, chunkSize: number) {
-	const chunks: Uint8Array[] = []
-	for (let offset = 0; offset < payload.length; offset += chunkSize) {
-		chunks.push(payload.subarray(offset, Math.min(payload.length, offset + chunkSize)))
+	public async [Symbol.asyncDispose](): Promise<void> {
+		await this.close()
 	}
-	return chunks
 }
 
 function relativeSequence(sequence: number, expected: number) {

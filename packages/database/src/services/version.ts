@@ -1,6 +1,6 @@
-import { lt } from 'semver'
 import { db } from '../client'
 import { version } from '../schema'
+import { isExactModVersionOutdated } from './versionSemver'
 
 export async function isModOutdated(modVersion: string): Promise<boolean> {
 	try {
@@ -9,8 +9,10 @@ export async function isModOutdated(modVersion: string): Promise<boolean> {
 			return false
 		}
 
-		return lt(modVersion, entry[0].minimum, {})
+		return isExactModVersionOutdated(modVersion, entry[0].minimum)
 	} catch {
 		return true
 	}
 }
+
+export { isExactModVersionOutdated } from './versionSemver'

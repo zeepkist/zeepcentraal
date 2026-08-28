@@ -1,6 +1,6 @@
 import { migrateConfig } from '@zeepkist/core/config/migrate'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
-import { db } from './index'
+import { databaseHandle, db } from './index'
 import { describeMigrationError, runMigrationWithRetry } from './migrationRetry'
 
 async function main() {
@@ -18,10 +18,10 @@ async function main() {
 	console.info('[migrate] migration run completed')
 }
 
+await using _database = databaseHandle
 try {
 	await main()
-	process.exit(0)
 } catch (error) {
 	console.error(`[migrate] migration run failed: ${describeMigrationError(error)}`)
-	process.exit(1)
+	process.exitCode = 1
 }

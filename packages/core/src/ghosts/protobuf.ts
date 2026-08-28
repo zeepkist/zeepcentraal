@@ -2,6 +2,7 @@ import protobuf from 'protobufjs'
 import { finite } from '../utils/finite'
 import { remapByte } from '../utils/remapByte'
 import { InputFlags, SoapboxFlags } from './enums'
+import { assertGhostFrameCount } from './limits'
 import { hasAnyCosmetic, normalizeGhostColor, optionalCosmeticId } from './metadata'
 import { unityEulerToQuaternion } from './orientation'
 import { surfacesFromState } from './surfaceState'
@@ -180,6 +181,7 @@ export function* iterateProtobufFrames(decoded: DecodedProtobufGhost): Generator
 	if (!decoded.version || ![5, 6, 7].includes(decoded.version)) {
 		throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
 	}
+	assertGhostFrameCount(decoded.deltaFrames.length + 1)
 	const version = decoded.version as 5 | 6 | 7
 	const hasExtendedTelemetry = version >= 6
 	let position = decoded.initialFrame.position

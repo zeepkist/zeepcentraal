@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import type { SQL } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 
@@ -62,7 +61,9 @@ describe('getWebSession', () => {
 		expect(query.sql).toContain('"user"."steam_id" =')
 		expect(query.sql).toContain('"user"."banned" =')
 		expect(query.params).toContain('access-token')
-		expect(query.params).toContain(createHash('sha256').update('refresh-token').digest('hex'))
+		expect(query.params).toContain(
+			new Bun.CryptoHasher('sha256').update('refresh-token').digest('hex'),
+		)
 		expect(query.params).toContain(76561198000000000n)
 		expect(query.params).toContain(false)
 	})
@@ -104,7 +105,9 @@ describe('getWebSession', () => {
 		expect(query.sql).toContain('"user"."steam_id" =')
 		expect(query.sql).toContain('"user"."banned" =')
 		expect(query.sql).not.toContain('"auth"."access_token" =')
-		expect(query.params).toContain(createHash('sha256').update('refresh-token').digest('hex'))
+		expect(query.params).toContain(
+			new Bun.CryptoHasher('sha256').update('refresh-token').digest('hex'),
+		)
 		expect(query.params).toContain(76561198000000000n)
 		expect(query.params).toContain(false)
 	})

@@ -1,4 +1,4 @@
-export { client, closeDatabase, db } from './client'
+export { client, closeDatabase, databaseHandle, db } from './client'
 
 import * as schema from './schema'
 

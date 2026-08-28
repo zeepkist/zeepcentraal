@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { BitReader, BitWriter } from './binary'
 import {
 	changeLobbyPlaylistPacket,
@@ -88,16 +87,16 @@ describe('Track of the Week packet codecs', () => {
 			uid: 'Six Cubed-maxie12-01KDKQ3K2KA14WK8RP9AD61TVQ',
 			workshopId: 3633729201n,
 		}
-		expect(Buffer.from(changeLobbyPlaylistPacket(capturedLevel, 720)).toString('base64')).toBe(
+		expect(changeLobbyPlaylistPacket(capturedLevel, 720).toBase64()).toBe(
 			'susAAAAAAICGQAAAAAAAAAAAAgAAAFim0vBAhurEysha2sLw0spiZFpgYpaIlqJmlmSWgmJorpZwpKBygohsYqisomKdLLEBAAAALLSmmEBaQIbqxMpAmsLS3OjK3MLcxsoAAA7awvDSymJkDAAAAAA=',
 		)
-		expect(Buffer.from(skipToLevelPacket(capturedLevel)).toString('base64')).toBe(
+		expect(skipToLevelPacket(capturedLevel).toBase64()).toBe(
 			'hPksU2l4IEN1YmVkLW1heGllMTItMDFLREtRM0syS0ExNFdLOFJQOUFENjFUVlGxTpbYAAAAAA==',
 		)
-		expect(Buffer.from(levelLoadedPacket()).toString('base64')).toBe('o3M=')
+		expect(levelLoadedPacket().toBase64()).toBe('o3M=')
 		const request = levelDataRequestPacket()
 		expect(request).toHaveLength(20)
-		expect(createHash('sha256').update(request).digest('hex')).toBe(
+		expect(new Bun.CryptoHasher('sha256').update(request).digest('hex')).toBe(
 			'f0aad2c1e4401575ab7f47129eabab5d67914c88b21fd123f11bc9c8fad19997',
 		)
 	})
@@ -105,7 +104,7 @@ describe('Track of the Week packet codecs', () => {
 	test('serializes host level response as packet type 2', () => {
 		const request = { name: 'Requested Name', uid: 'request-uid', workshopId: 999n }
 		const bytes = levelDataPacket(request, Uint8Array.of(1, 2, 3))
-		expect(Buffer.from(bytes).toString('base64')).toBe(
+		expect(bytes.toBase64()).toBe(
 			'CFkCAAAADlJlcXVlc3RlZCBOYW1lC3JlcXVlc3QtdWlk5wMAAAAAAAADAAAAAQID',
 		)
 		const packet = new BitReader(bytes)

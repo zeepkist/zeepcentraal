@@ -14,3 +14,7 @@ export const db = drizzle(client, { schema })
 export async function closeDatabase(): Promise<void> {
 	await client.end({ timeout: 5 })
 }
+
+export const databaseHandle: AsyncDisposable = {
+	[Symbol.asyncDispose]: closeDatabase,
+}

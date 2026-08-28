@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { gzipSync } from 'node:zlib'
 import { parseGhostStatistics } from '@zeepkist/core/ghosts'
 import { buildGhostUrl } from './ghostStatisticsBackfill'
 
@@ -144,7 +143,7 @@ describe('ghost statistics backfill parser', () => {
 
 	test('parses gzipped legacy ghosts', async () => {
 		const stats = await parseGhostStatistics(
-			gzipSync(
+			Bun.gzipSync(
 				createV1Ghost([
 					{ time: 0, position: [0, 0, 0] },
 					{ time: 1, position: [1, 0, 0] },

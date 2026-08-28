@@ -468,8 +468,8 @@ mock.module('@zeepkist/database/services', () => ({
 			tournamentResultChanged: false,
 		}
 	},
-	scheduleRecordMediaUpload: (idRecord: number, ghostData: string) => {
-		state.mediaSchedules.push({ idRecord, ghostData })
+	uploadRecordMedia: async (idRecord: number, ghostData: Uint8Array) => {
+		state.mediaSchedules.push({ idRecord, ghostData: ghostData.toBase64() })
 	},
 	upsertVote: async (idUser: number, idLevel: number, value: number) => {
 		state.voteUpserts.push({ idUser, idLevel, value })

@@ -1,5 +1,6 @@
 import { finite } from '../utils/finite'
 import { BinaryReader } from './binaryReader'
+import { assertGhostFrameCount } from './limits'
 import { emptyGhostMetadata, legacyGhostMetadata } from './metadata'
 import { unityEulerToQuaternion } from './orientation'
 import type { GhostFrame, GhostMetadata } from './types'
@@ -23,6 +24,7 @@ export function readBinaryGhost(buffer: Uint8Array, version: 1 | 2 | 3): LegacyB
 	}
 
 	const frameCount = reader.readInt32()
+	assertGhostFrameCount(frameCount)
 	const frames: GhostFrame[] = []
 	for (let i = 0; i < frameCount; i++) {
 		const time = reader.readFloat()

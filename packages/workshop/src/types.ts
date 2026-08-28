@@ -36,7 +36,7 @@ export interface DownloadedWorkshopItem {
 	workshopId: bigint
 }
 
-export interface WorkshopDownload {
+export interface WorkshopDownload extends AsyncDisposable {
 	cleanup(): Promise<void>
 	items: DownloadedWorkshopItem[]
 }
@@ -56,7 +56,7 @@ export interface WorkshopPersistence {
 		workshopId: bigint
 		fileUid: string
 	}): Promise<{ merged: boolean; changedLevelIds: number[] }>
-	uploadThumbnail(extension: string, contents: Buffer): Promise<string>
+	uploadThumbnail(extension: string, contents: Uint8Array | Blob): Promise<string>
 	upsertLevel(input: {
 		hash: string
 		xxHash: string

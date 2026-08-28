@@ -144,11 +144,13 @@ function createDependencies({
 	const downloader: WorkshopDownloader = {
 		download: async ([workshopId]) => {
 			calls.downloads++
+			const cleanup = async () => {
+				calls.cleanups++
+			}
 			return {
 				items: [{ workshopId: workshopId as bigint, directory }],
-				cleanup: async () => {
-					calls.cleanups++
-				},
+				cleanup,
+				[Symbol.asyncDispose]: cleanup,
 			}
 		},
 	}

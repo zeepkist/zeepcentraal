@@ -1,8 +1,11 @@
 import { join } from 'node:path'
+import { databaseHandle } from '@zeepkist/database'
 import { SUPER_LEAGUE_DATA } from './config'
 import { importRound } from './importRound'
 import { importSeason } from './importSeason'
 import type { SuperLeagueMetadata } from './types'
+
+await using _database = databaseHandle
 
 const metadataPath = join(SUPER_LEAGUE_DATA, 'metadata.json')
 const metadata = (await Bun.file(metadataPath).json()) as SuperLeagueMetadata
@@ -39,4 +42,7 @@ for await (const [seasonName, seasonMetadata] of metadata) {
 			userIdMap,
 		})
 	}
+	userIdMap.clear()
 }
+
+metadata.length = 0

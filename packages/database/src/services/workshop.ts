@@ -93,7 +93,7 @@ function getImageExtensionFromContentType(contentType: string | null): string | 
 
 export async function uploadWorkshopThumbnail(
 	extension: string,
-	contents: Buffer,
+	contents: Uint8Array | Blob,
 ): Promise<string> {
 	const normalizedExtension = extension.toLowerCase().replace(/[^a-z0-9]/g, '')
 	if (!normalizedExtension) {
@@ -128,11 +128,22 @@ async function uploadSteamWorkshopThumbnail({
 	}
 
 	const objectKey = `${THUMBNAIL_FOLDER}/${workshopId}.${extension}`
-	await uploadFile(
-		objectKey,
-		Buffer.from(await response.arrayBuffer()),
-		contentType ?? `image/${extension}`,
+	const maxThumbnailBytes = 16 * 1024 * 1024
+	const contentLength = Number(response.headers.get('content-length') ?? 0)
+	if (contentLength > maxThumbnailBytes) throw new Error('Steam workshop thumbnail is too large')
+	let received = 0
+	const body = response.body?.pipeThrough(
+		new TransformStream<Uint8Array, Uint8Array>({
+			transform(chunk, controller) {
+				received += chunk.byteLength
+				if (received > maxThumbnailBytes)
+					throw new Error('Steam workshop thumbnail is too large')
+				controller.enqueue(chunk)
+			},
+		}),
 	)
+	if (!body) throw new Error('Steam workshop thumbnail response has no body')
+	await uploadFile(objectKey, body, contentType ?? `image/${extension}`)
 	return objectKey
 }
 

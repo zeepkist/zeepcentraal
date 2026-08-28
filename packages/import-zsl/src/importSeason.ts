@@ -66,6 +66,7 @@ export const importSeason = async (
 
 	const filteredRows = rows.filter((row) => row.idUser !== -1)
 	await upsertZslSeasonResults(filteredRows)
+	seasonStandings.length = 0
 
 	console.debug(`Season "${seasonName}" results imported successfully`)
 

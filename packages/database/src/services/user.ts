@@ -1,5 +1,5 @@
 import { databaseConfig } from '@zeepkist/core/config/database'
-import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { record, user } from '../schema'
 import { resolveBulkSteamNames } from './userSteamNames'
@@ -202,4 +202,26 @@ export async function getAllUsersWithLatestRecordDate(): Promise<UserWithLatestR
 		.orderBy(desc(sql`MAX(${record.dateCreated})`))
 
 	return users
+}
+
+export async function getUsersWithLatestRecordDatePage({
+	afterId = 0,
+	limit,
+}: {
+	afterId?: number
+	limit: number
+}): Promise<UserWithLatestRecordDate[]> {
+	return db
+		.select({
+			idUser: user.id,
+			latestRecordDate: sql<string | null>`MAX(${record.dateCreated})`.as(
+				'latest_record_date',
+			),
+		})
+		.from(user)
+		.leftJoin(record, eq(user.id, record.idUser))
+		.where(gt(user.id, afterId))
+		.groupBy(user.id)
+		.orderBy(asc(user.id))
+		.limit(limit)
 }

@@ -1,4 +1,4 @@
-import { eq, gte, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, gte, inArray, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { level, levelItem, record, workshopItem } from '../schema'
 import { resolveAdventureStatus } from './levelHelpers'
@@ -138,4 +138,33 @@ export async function getAllLevelIdsWithRecordsSince(recordsSince: Date): Promis
 		.where(gte(record.dateCreated, recordsSince.toISOString()))
 
 	return levels.map((entry) => entry.id)
+}
+
+export async function getLevelIdsPage({
+	afterId = 0,
+	limit,
+	recordsSince,
+}: {
+	afterId?: number
+	limit: number
+	recordsSince?: Date
+}): Promise<number[]> {
+	const rows = await db
+		.select({ id: level.id })
+		.from(level)
+		.where(
+			and(
+				gt(level.id, afterId),
+				recordsSince
+					? sql`EXISTS (
+						SELECT 1 FROM ${record}
+						WHERE ${record.idLevel} = ${level.id}
+							AND ${record.dateCreated} >= ${recordsSince.toISOString()}
+					)`
+					: undefined,
+			),
+		)
+		.orderBy(asc(level.id))
+		.limit(limit)
+	return rows.map((row) => row.id)
 }

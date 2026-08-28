@@ -22,7 +22,6 @@
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"@zeepkist/workshop": "workspace:*",
-		"cron": "~4.4.0",
 		"graphile-worker": "~0.17.3",
 		"zod": "~4.4.3"
 	}

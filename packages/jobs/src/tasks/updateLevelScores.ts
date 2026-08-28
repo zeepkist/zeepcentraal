@@ -1,11 +1,6 @@
-import {
-	getAllLevelIds,
-	getAllLevelIdsWithRecordsSince,
-	rebuildPlayerSkillAggregates,
-} from '@zeepkist/database'
+import { getLevelIdsPage, rebuildPlayerSkillAggregates } from '@zeepkist/database'
 import { batchProcess, runWithConcurrency } from '../utils'
 import { playerScoreJobOptions } from '../utils/playerScoreJobOptions'
-import { JOBS_WORKER_CONCURRENCY } from '../workerOptions'
 import { updateLevelScoreBatch } from './levelScoreBatch'
 import type { TaskHandler } from './types'
 
@@ -16,6 +11,8 @@ type Payload = {
 
 export const RECENT_LEVEL_SCORE_LOOKBACK_MS = 60 * 60 * 1000
 export const LEVEL_SCORE_BATCH_SIZE = 50
+export const LEVEL_SCORE_PAGE_SIZE = 200
+const LEVEL_SCORE_CONCURRENCY = 4
 
 export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) => {
 	const { all = false } = payload
@@ -24,55 +21,60 @@ export const updateLevelScores: TaskHandler<Payload> = async (payload, helpers) 
 		const rebuilt = await rebuildPlayerSkillAggregates()
 		helpers.logger.info(`Rebuilt independent player skill for ${rebuilt} players.`)
 	}
-	const levelIds = all
-		? await getAllLevelIds()
-		: await getAllLevelIdsWithRecordsSince(
-				new Date(Date.now() - RECENT_LEVEL_SCORE_LOOKBACK_MS),
-			)
-
-	helpers.logger.info(`updateLevelScores starting with ${levelIds.length} levels (all=${all}).`)
-	if (levelIds.length === 0) {
-		return
-	}
-
 	const startedAt = Date.now()
-	const batches = Array.from(batchProcess(levelIds, LEVEL_SCORE_BATCH_SIZE))
+	const recordsSince = all ? undefined : new Date(Date.now() - RECENT_LEVEL_SCORE_LOOKBACK_MS)
+	helpers.logger.info(`updateLevelScores starting (all=${all}).`)
 	let processed = 0
 	let updated = 0
 	let zeroed = 0
 	let reported = 0
 	const affectedUsers = new Set<number>()
 
-	await runWithConcurrency(batches, JOBS_WORKER_CONCURRENCY, async (ids, batchIndex) => {
-		const batchStartedAt = Date.now()
-		const result = await updateLevelScoreBatch({
-			idLevels: ids,
-			reportOnly: payload.reportOnly,
-			logger: helpers.logger,
+	let afterId = 0
+	let pageIndex = 0
+	while (true) {
+		const levelPage = await getLevelIdsPage({
+			afterId,
+			limit: LEVEL_SCORE_PAGE_SIZE,
+			...(recordsSince ? { recordsSince } : {}),
 		})
-		processed += ids.length
-		updated += result.updated
-		zeroed += result.zeroed
-		reported += result.reported
-		for (const idUser of result.affectedUserIds) affectedUsers.add(idUser)
+		if (levelPage.length === 0) break
+		const batches = Array.from(batchProcess(levelPage, LEVEL_SCORE_BATCH_SIZE))
+		await runWithConcurrency(batches, LEVEL_SCORE_CONCURRENCY, async (ids, batchIndex) => {
+			const batchStartedAt = Date.now()
+			const result = await updateLevelScoreBatch({
+				idLevels: ids,
+				reportOnly: payload.reportOnly,
+				logger: helpers.logger,
+			})
+			processed += ids.length
+			updated += result.updated
+			zeroed += result.zeroed
+			reported += result.reported
+			for (const idUser of result.affectedUserIds) affectedUsers.add(idUser)
 
-		const elapsedMs = Date.now() - startedAt
-		const progress = (processed / levelIds.length) * 100
-		const etaMs = Math.round((elapsedMs / processed) * (levelIds.length - processed))
-		helpers.logger.info(`Completed level score batch ${batchIndex + 1}/${batches.length}.`, {
-			all,
-			batchMs: Date.now() - batchStartedAt,
-			etaMs,
-			processedLevels: processed,
-			progress: Number(progress.toFixed(2)),
-			totalLevels: levelIds.length,
-			updated: result.updated,
-			zeroed: result.zeroed,
-			reported: result.reported,
-			affectedUsers: result.affectedUserIds.length,
-			elapsedMs,
+			const elapsedMs = Date.now() - startedAt
+			helpers.logger.info(
+				`Completed level score page ${pageIndex + 1}, batch ${batchIndex + 1}/${batches.length}.`,
+				{
+					all,
+					batchMs: Date.now() - batchStartedAt,
+					processedLevels: processed,
+					updated: result.updated,
+					zeroed: result.zeroed,
+					reported: result.reported,
+					affectedUsers: result.affectedUserIds.length,
+					elapsedMs,
+				},
+			)
 		})
-	})
+		afterId = levelPage.at(-1) ?? afterId
+		const finished = levelPage.length < LEVEL_SCORE_PAGE_SIZE
+		batches.length = 0
+		levelPage.length = 0
+		pageIndex++
+		if (finished) break
+	}
 
 	helpers.logger.info('updateLevelScores completed.', {
 		all,

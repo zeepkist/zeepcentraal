@@ -110,6 +110,9 @@ export const importRound = async ({
 		const filteredLevelRows = levelRows.filter((row) => row.idUser !== -1)
 		await upsertZslLevelResults(filteredLevelRows)
 	}
+	users.length = 0
+	levels.length = 0
+	levelMap.clear()
 
 	return dbRound
 }

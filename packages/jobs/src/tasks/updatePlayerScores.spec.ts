@@ -34,24 +34,19 @@ const getUserPointContributionsForUsers = mock(
 		),
 )
 const resetInactiveUserScores = mock(async () => {})
-const updateUserRanks = mock(
-	async (
-		entries: Array<{ idUser: number; rank: number }>,
-		onBatchCompleted?: (processed: number, total: number) => void,
-	) => {
-		onBatchCompleted?.(entries.length, entries.length)
+const rankActiveUsersByPoints = mock(async () => 1)
+const getUsersWithLatestRecordDatePage = mock(
+	async ({ afterId, limit }: { afterId: number; limit: number }) => {
+		events.push('user-discovery')
+		return discoveredUsers.filter((user) => user.idUser > afterId).slice(0, limit)
 	},
 )
-const getAllUsersWithLatestRecordDate = mock(async () => {
-	events.push('user-discovery')
-	return discoveredUsers
-})
 
 mock.module('@zeepkist/database/services', () => ({
-	getAllUsersWithLatestRecordDate,
 	getUserPointContributionsForUsers,
+	getUsersWithLatestRecordDatePage,
+	rankActiveUsersByPoints,
 	resetInactiveUserScores,
-	updateUserRanks,
 }))
 mock.module('../utils/recalculatePlayerScore', () => ({ recalculateAndPersistPlayerScore }))
 
@@ -61,10 +56,11 @@ beforeEach(() => {
 	contributionError = persistenceError
 	events.length = 0
 	discoveredUsers = [{ idUser: 42, latestRecordDate: new Date().toISOString() }]
+	getUsersWithLatestRecordDatePage.mockClear()
 	resetInactiveUserScores.mockClear()
 	getUserPointContributionsForUsers.mockClear()
 	recalculateAndPersistPlayerScore.mockClear()
-	updateUserRanks.mockClear()
+	rankActiveUsersByPoints.mockClear()
 })
 
 test('logs PostgreSQL metadata and affected user batch before rethrow', async () => {
@@ -121,9 +117,10 @@ test('logs phase completion for successful full recalculation', async () => {
 	)
 	const batchCompletion = info.mock.calls.find(
 		([message]) =>
-			typeof message === 'string' && message.startsWith('Updated player score batch 1/1'),
+			typeof message === 'string' &&
+			message.startsWith('Updated player score page 1, batch 1/1'),
 	)
-	expect(batchCompletion?.[0]).toMatch(/^Updated player score batch 1\/1 \(\d+ms\)\.$/)
+	expect(batchCompletion?.[0]).toMatch(/^Updated player score page 1, batch 1\/1 \(\d+ms\)\.$/)
 	expect(batchCompletion?.[1]).toEqual(expect.objectContaining({ batchMs: expect.any(Number) }))
 	expect(recalculateAndPersistPlayerScore).toHaveBeenCalledWith({
 		idUser: 42,
@@ -132,7 +129,7 @@ test('logs phase completion for successful full recalculation', async () => {
 		],
 		onSnapshotMismatch: expect.any(Function),
 	})
-	expect(updateUserRanks).toHaveBeenCalledWith([{ idUser: 42, rank: 1 }], expect.any(Function))
+	expect(rankActiveUsersByPoints).toHaveBeenCalledWith([42])
 })
 
 test('zeros inactive contribution points without recalculating them', async () => {
@@ -146,4 +143,26 @@ test('zeros inactive contribution points without recalculating them', async () =
 	expect(resetInactiveUserScores).toHaveBeenCalledWith([42])
 	expect(getUserPointContributionsForUsers).not.toHaveBeenCalled()
 	expect(recalculateAndPersistPlayerScore).not.toHaveBeenCalled()
+})
+
+test('keyset-pages users by 200 with four bounded score workers', async () => {
+	contributionError = null
+	discoveredUsers = Array.from({ length: 201 }, (_, index) => ({
+		idUser: index + 1,
+		latestRecordDate: new Date().toISOString(),
+	}))
+
+	await updatePlayerScores({}, {
+		logger: { error: mock(() => {}), info: mock(() => {}) },
+	} as never)
+
+	expect(getUsersWithLatestRecordDatePage.mock.calls.map(([input]) => input.afterId)).toEqual([
+		0, 200,
+	])
+	expect(getUserPointContributionsForUsers.mock.calls.every(([ids]) => ids.length <= 50)).toBe(
+		true,
+	)
+	expect(rankActiveUsersByPoints).toHaveBeenCalledWith(
+		Array.from({ length: 201 }, (_, index) => index + 1),
+	)
 })

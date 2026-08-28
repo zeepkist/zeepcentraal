@@ -2,8 +2,12 @@ const MAX_VAR_UINT_BYTES = 5
 
 export class BitReader {
 	private bitPosition = 0
+	private readonly view: DataView
+	private readonly scratch = new DataView(new ArrayBuffer(8))
 
-	constructor(private readonly data: Uint8Array) {}
+	constructor(private readonly data: Uint8Array) {
+		this.view = new DataView(data.buffer, data.byteOffset, data.byteLength)
+	}
 
 	get remainingBits() {
 		return this.data.length * 8 - this.bitPosition
@@ -43,13 +47,23 @@ export class BitReader {
 	}
 
 	readFloat32() {
-		const bytes = this.readBytes(4)
-		return new DataView(bytes.buffer, bytes.byteOffset, 4).getFloat32(0, true)
+		if ((this.bitPosition & 7) === 0 && this.remainingBits >= 32) {
+			const value = this.view.getFloat32(this.bitPosition >>> 3, true)
+			this.bitPosition += 32
+			return value
+		}
+		for (let index = 0; index < 4; index++) this.scratch.setUint8(index, this.readByte())
+		return this.scratch.getFloat32(0, true)
 	}
 
 	readFloat64() {
-		const bytes = this.readBytes(8)
-		return new DataView(bytes.buffer, bytes.byteOffset, 8).getFloat64(0, true)
+		if ((this.bitPosition & 7) === 0 && this.remainingBits >= 64) {
+			const value = this.view.getFloat64(this.bitPosition >>> 3, true)
+			this.bitPosition += 64
+			return value
+		}
+		for (let index = 0; index < 8; index++) this.scratch.setUint8(index, this.readByte())
+		return this.scratch.getFloat64(0, true)
 	}
 
 	readVariableUInt32() {
@@ -79,6 +93,11 @@ export class BitReader {
 		if (!Number.isSafeInteger(length) || length < 0 || length * 8 > this.remainingBits) {
 			throw new Error('Packet ended before requested bytes')
 		}
+		if ((this.bitPosition & 7) === 0) {
+			const offset = this.bitPosition >>> 3
+			this.bitPosition += length * 8
+			return this.data.subarray(offset, offset + length)
+		}
 		const result = new Uint8Array(length)
 		for (let index = 0; index < length; index++) {
 			result[index] = this.readByte()
@@ -105,7 +124,9 @@ export class BitReader {
 }
 
 export class BitWriter {
-	private readonly bytes: number[] = []
+	private bytes = new Uint8Array(256)
+	private view = new DataView(this.bytes.buffer)
+	private readonly scratch = new DataView(new ArrayBuffer(8))
 	private bitPosition = 0
 
 	writeBoolean(value: boolean) {
@@ -139,15 +160,25 @@ export class BitWriter {
 	}
 
 	writeFloat32(value: number) {
-		const bytes = new Uint8Array(4)
-		new DataView(bytes.buffer).setFloat32(0, value, true)
-		this.writeBytes(bytes)
+		if ((this.bitPosition & 7) === 0) {
+			this.ensureCapacity(32)
+			this.view.setFloat32(this.bitPosition >>> 3, value, true)
+			this.bitPosition += 32
+			return
+		}
+		this.scratch.setFloat32(0, value, true)
+		this.writeBytes(new Uint8Array(this.scratch.buffer, 0, 4))
 	}
 
 	writeFloat64(value: number) {
-		const bytes = new Uint8Array(8)
-		new DataView(bytes.buffer).setFloat64(0, value, true)
-		this.writeBytes(bytes)
+		if ((this.bitPosition & 7) === 0) {
+			this.ensureCapacity(64)
+			this.view.setFloat64(this.bitPosition >>> 3, value, true)
+			this.bitPosition += 64
+			return
+		}
+		this.scratch.setFloat64(0, value, true)
+		this.writeBytes(new Uint8Array(this.scratch.buffer))
 	}
 
 	writeVariableUInt32(value: number) {
@@ -169,13 +200,19 @@ export class BitWriter {
 	}
 
 	writeBytes(bytes: Uint8Array) {
+		if ((this.bitPosition & 7) === 0) {
+			this.ensureCapacity(bytes.byteLength * 8)
+			this.bytes.set(bytes, this.bitPosition >>> 3)
+			this.bitPosition += bytes.byteLength * 8
+			return
+		}
 		for (const byte of bytes) {
 			this.writeByte(byte)
 		}
 	}
 
 	toUint8Array() {
-		return Uint8Array.from(this.bytes)
+		return this.bytes.subarray(0, Math.ceil(this.bitPosition / 8))
 	}
 
 	get bitLength() {
@@ -183,6 +220,7 @@ export class BitWriter {
 	}
 
 	private writeBits(value: number, count: number) {
+		this.ensureCapacity(count)
 		for (let bit = 0; bit < count; bit++) {
 			const targetPosition = this.bitPosition + bit
 			const targetIndex = targetPosition >>> 3
@@ -190,5 +228,16 @@ export class BitWriter {
 			this.bytes[targetIndex] = current | (((value >>> bit) & 1) << (targetPosition & 7))
 		}
 		this.bitPosition += count
+	}
+
+	private ensureCapacity(additionalBits: number) {
+		const requiredBytes = Math.ceil((this.bitPosition + additionalBits) / 8)
+		if (requiredBytes <= this.bytes.byteLength) return
+		let capacity = this.bytes.byteLength
+		while (capacity < requiredBytes) capacity *= 2
+		const next = new Uint8Array(capacity)
+		next.set(this.bytes)
+		this.bytes = next
+		this.view = new DataView(next.buffer)
 	}
 }

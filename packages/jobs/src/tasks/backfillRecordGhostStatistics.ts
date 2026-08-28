@@ -4,6 +4,7 @@ import { buildGhostUrl } from '../utils/ghostStatisticsBackfill'
 import type { TaskHandler } from './types'
 
 const BATCH_SIZE = 500
+const MAX_GHOST_DOWNLOAD_BYTES = 24 * 1024 * 1024
 
 type Payload = {
 	limit?: number
@@ -15,12 +16,38 @@ type BatchPayload = {
 	ids: number[]
 }
 
-async function downloadGhost(ghostUrl: string): Promise<Buffer> {
+async function downloadGhost(ghostUrl: string): Promise<Uint8Array> {
 	const response = await fetch(buildGhostUrl(ghostUrl))
 	if (!response.ok) {
 		throw new Error(`Ghost download failed: ${response.status}`)
 	}
-	return Buffer.from(await response.arrayBuffer())
+	const contentLength = Number(response.headers.get('content-length'))
+	if (Number.isFinite(contentLength) && contentLength > MAX_GHOST_DOWNLOAD_BYTES) {
+		throw new Error('Ghost download exceeds compressed size limit')
+	}
+	if (!response.body) throw new Error('Ghost download body is unavailable')
+	const sink = new Bun.ArrayBufferSink()
+	sink.start({ asUint8Array: true, highWaterMark: 1024 * 1024 })
+	const reader = response.body.getReader()
+	let byteLength = 0
+	try {
+		while (true) {
+			const { done, value } = await reader.read()
+			if (done) break
+			byteLength += value.byteLength
+			if (byteLength > MAX_GHOST_DOWNLOAD_BYTES) {
+				throw new Error('Ghost download exceeds compressed size limit')
+			}
+			sink.write(value)
+		}
+		return sink.end() as Uint8Array
+	} catch (error) {
+		await reader.cancel(error).catch(() => undefined)
+		sink.end()
+		throw error
+	} finally {
+		reader.releaseLock()
+	}
 }
 
 export const backfillRecordGhostStatistics: TaskHandler<Payload> = async (payload, helpers) => {

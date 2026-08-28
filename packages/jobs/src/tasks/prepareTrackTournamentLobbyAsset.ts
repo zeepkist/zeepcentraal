@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { levelFormat } from '@zeepkist/core/levels'
 import { decodeZeepkistLevelPayload, encodeZeepkistLevelPayload } from '@zeepkist/core/zeepnet'
@@ -22,9 +21,8 @@ export const prepareTrackTournamentLobbyAsset: TaskHandler<Payload> = async (
 	let lastError: unknown
 
 	for (const source of sources) {
-		let download: Awaited<ReturnType<SteamCmdDownloader['download']>> | undefined
 		try {
-			download = await downloader.download([source.workshopId])
+			await using download = await downloader.download([source.workshopId])
 			const item = download.items[0]
 			if (!item) throw new Error('SteamCMD returned no workshop item')
 			const levelFile = await findWorkshopLevelFile(item.directory, source.fileUid)
@@ -36,7 +34,7 @@ export const prepareTrackTournamentLobbyAsset: TaskHandler<Payload> = async (
 			if (decodeZeepkistLevelPayload(payload).length === 0) {
 				throw new Error('Prepared level payload is empty')
 			}
-			const contentSha256 = createHash('sha256').update(payload).digest('hex')
+			const contentSha256 = new Bun.CryptoHasher('sha256').update(payload).digest('hex')
 			const objectKey = `track-tournament-lobby/${idTournament}/${contentSha256}.gz`
 			await publishTrackTournamentLobbyAsset(
 				{
@@ -61,8 +59,6 @@ export const prepareTrackTournamentLobbyAsset: TaskHandler<Payload> = async (
 			return
 		} catch (error) {
 			lastError = error
-		} finally {
-			await download?.cleanup()
 		}
 	}
 	throw lastError instanceof Error

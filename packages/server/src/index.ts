@@ -96,12 +96,16 @@ if (cluster.isPrimary) {
 		console.info(`API worker ${process.pid} received ${signal}, shutting down...`)
 		try {
 			await app.stop(true)
+			const { disposeRateLimiter } = await import('./plugins/withRateLimit')
+			disposeRateLimiter()
+			const { drainRecordWork } = await import('./modules/record/recordWork')
+			const uploadsDrained = await drainRecordWork()
 			const [{ closeQueue }, { closeDatabase }] = await Promise.all([
 				import('@zeepkist/jobs/queue'),
 				import('@zeepkist/database'),
 			])
 			await Promise.all([closeQueue(), closeDatabase()])
-			process.exit(0)
+			process.exit(uploadsDrained ? 0 : 1)
 		} catch (error) {
 			console.error(`API worker ${process.pid} failed to shut down cleanly.`, error)
 			process.exit(1)

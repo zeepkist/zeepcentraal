@@ -493,8 +493,8 @@ test('production dependency factory builds concrete adapters without external I/
 	expect(consoleLog).toHaveBeenCalledWith('log')
 	expect(consoleError).toHaveBeenCalledWith('error')
 	const listener = mock(() => {})
-	dependencies.onSignal('SIGTERM', listener)
-	process.off('SIGTERM', listener)
+	dependencies.onSignal('SIGTERM' as never, listener)
+	process.off('SIGTERM' as never, listener)
 	expect(
 		dependencies.parseConfig({
 			NODE_ENV: 'test',

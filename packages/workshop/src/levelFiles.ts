@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { extname, join, parse } from 'node:path'
 import { parseLevelV2 } from '@zeepkist/core/levels'
 
@@ -15,8 +15,9 @@ export interface WorkshopLevelFile {
 
 export async function findWorkshopLevelFile(directory: string, fileUid: string) {
 	for (const path of await findLevelPaths(directory)) {
-		if ((await stat(path)).size > MAX_LEVEL_FILE_BYTES) continue
-		const content = await readFile(path, 'utf8')
+		const file = Bun.file(path)
+		if (file.size > MAX_LEVEL_FILE_BYTES) continue
+		const content = await file.text()
 		try {
 			const parsed = parseLevelV2(content)
 			if (parsed.uid === fileUid) {

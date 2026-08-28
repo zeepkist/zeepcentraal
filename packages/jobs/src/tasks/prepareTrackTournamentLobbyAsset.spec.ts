@@ -14,11 +14,12 @@ interface FoundLevel {
 }
 
 const getSources = mock(async () => [source(123n, 'uid-123')] as ReturnType<typeof source>[])
-const publish = mock(async (_metadata: AssetMetadata, _payload: Buffer) => {})
+const publish = mock(async (_metadata: AssetMetadata, _payload: Uint8Array) => {})
 const cleanup = mock(async () => {})
 const download = mock(async (workshopIds: bigint[]) => ({
 	items: [{ workshopId: workshopIds[0], directory: 'downloaded-item' }],
 	cleanup,
+	[Symbol.asyncDispose]: cleanup,
 }))
 const findLevel = mock(
 	async () =>
@@ -58,7 +59,7 @@ test('downloads, validates, hashes, and publishes immutable weekly asset', async
 	expect(findLevel).toHaveBeenCalledWith('downloaded-item', 'uid-123')
 	expect(cleanup).toHaveBeenCalledTimes(1)
 	expect(publish).toHaveBeenCalledTimes(1)
-	const [metadata, payload] = publish.mock.calls[0] as [AssetMetadata, Buffer]
+	const [metadata, payload] = publish.mock.calls[0] as [AssetMetadata, Uint8Array]
 	expect(metadata.objectKey).toMatch(/^track-tournament-lobby\/42\/[0-9a-f]{64}\.gz$/)
 	expect(metadata.byteSize).toBe(payload.length)
 	expect(decodeZeepkistLevelPayload(payload)).toEqual(['15,uid-123', 'metadata', ''])

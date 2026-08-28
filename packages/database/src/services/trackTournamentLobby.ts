@@ -62,7 +62,7 @@ export async function getTrackTournamentLobbyAssetSources(idTournament: number) 
 
 export async function publishTrackTournamentLobbyAsset(
 	metadata: TrackTournamentLobbyAssetMetadata,
-	payload: Buffer,
+	payload: Uint8Array,
 ) {
 	await uploadFile(metadata.objectKey, payload, 'application/gzip')
 	const now = new Date().toISOString()
@@ -106,8 +106,14 @@ export async function getPreferredTrackTournamentLobbyAsset(at = new Date()) {
 	return rows.find((row) => row.active)?.asset ?? rows[0]?.asset
 }
 
-export async function downloadTrackTournamentLobbyAsset(objectKey: string) {
-	return downloadFile(objectKey)
+export async function downloadTrackTournamentLobbyAsset(
+	metadata: Pick<TrackTournamentLobbyAssetMetadata, 'byteSize' | 'contentSha256' | 'objectKey'>,
+) {
+	return downloadFile(metadata.objectKey, {
+		maxBytes: 64 * 1024 * 1024,
+		expectedBytes: metadata.byteSize,
+		expectedSha256: metadata.contentSha256,
+	})
 }
 
 export async function getManagedLobbyJoinId(key: string) {

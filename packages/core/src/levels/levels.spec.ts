@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -237,7 +236,10 @@ describe('legacy level parsing', () => {
 				expectedXxh128,
 			] = vector.split(',')
 			const bytes = readFileSync(join(fixtureDirectory, fileName))
-			const actualSha256 = createHash('sha256').update(bytes).digest('hex').toUpperCase()
+			const actualSha256 = new Bun.CryptoHasher('sha256')
+				.update(bytes)
+				.digest('hex')
+				.toUpperCase()
 			if (!fileName || !format || !expectedZeepHash || !expectedSha256 || !expectedXxh128) {
 				throw new Error(`Invalid compatibility vector: ${vector} (SHA256: ${actualSha256})`)
 			}

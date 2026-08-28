@@ -50,14 +50,14 @@ function createShutdownSignal() {
 		resolve = nextResolve
 	})
 	const onSignal = () => resolve()
-	process.once('SIGTERM', onSignal)
-	process.once('SIGINT', onSignal)
+	process.once('SIGTERM' as never, onSignal)
+	process.once('SIGINT' as never, onSignal)
 
 	return {
 		promise,
 		[Symbol.dispose]() {
-			process.off('SIGTERM', onSignal)
-			process.off('SIGINT', onSignal)
+			process.off('SIGTERM' as never, onSignal)
+			process.off('SIGINT' as never, onSignal)
 		},
 	}
 }

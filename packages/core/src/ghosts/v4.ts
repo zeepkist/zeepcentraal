@@ -2,6 +2,7 @@ import { finite } from '../utils/finite'
 import { remapByte } from '../utils/remapByte'
 import { BinaryReader } from './binaryReader'
 import { detectGhostCapabilities } from './capabilities'
+import { assertGhostFrameCount } from './limits'
 import { legacyGhostMetadata } from './metadata'
 import { normalizeQuaternion } from './orientation'
 import type { GhostFrame, ParsedGhost, Quaternion, Vector3 } from './types'
@@ -30,6 +31,7 @@ function readV4Ghost(buffer: Uint8Array) {
 		throw new Error('Invalid V4 ghost precision')
 	}
 	const frameCount = reader.readInt32()
+	assertGhostFrameCount(frameCount)
 	const frames: GhostFrame[] = []
 	let currentPosition: Vector3 | null = null
 

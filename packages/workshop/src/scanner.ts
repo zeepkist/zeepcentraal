@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir } from 'node:fs/promises'
 import { extname, join, parse } from 'node:path'
 import { calculateLegacyZeepSdkJsonXxHash, levelFormat, parseLevelV2 } from '@zeepkist/core/levels'
 import { canSteamCmdDownloadWorkshopItem, STEAM_VISIBILITY } from '@zeepkist/core/steam'
@@ -18,6 +18,16 @@ interface LevelFiles {
 	name: string
 	thumbnailPath: string
 }
+
+type PreparedLevel = LevelFiles & {
+	parsed: ReturnType<typeof parseLevelV2>
+	legacyZeepSdkXxHash?: string
+}
+
+const MAX_LEVEL_FILE_BYTES = 64 * 1024 * 1024
+const MAX_THUMBNAIL_BYTES = 16 * 1024 * 1024
+const MAX_WORKSHOP_ENTRIES = 4_096
+const MAX_WORKSHOP_DEPTH = 16
 
 export const ZSL_WORKSHOP_AUTHOR_ID = 76561198031919228n
 
@@ -40,12 +50,19 @@ async function getDatabasePersistence(): Promise<WorkshopPersistence> {
 
 async function discoverLevels(directory: string): Promise<LevelFiles[]> {
 	const levels: LevelFiles[] = []
-	async function visit(currentDirectory: string): Promise<void> {
+	let visitedEntries = 0
+	async function visit(currentDirectory: string, depth: number): Promise<void> {
+		if (depth > MAX_WORKSHOP_DEPTH)
+			throw new Error('Workshop item directory nesting is too deep')
 		const entries = await readdir(currentDirectory, { withFileTypes: true })
 		const files = new Set(entries.filter((entry) => entry.isFile()).map((entry) => entry.name))
 		for (const entry of entries) {
+			visitedEntries++
+			if (visitedEntries > MAX_WORKSHOP_ENTRIES) {
+				throw new Error('Workshop item contains too many files')
+			}
 			if (entry.isDirectory()) {
-				await visit(join(currentDirectory, entry.name))
+				await visit(join(currentDirectory, entry.name), depth + 1)
 				continue
 			}
 			if (!entry.isFile() || extname(entry.name).toLowerCase() !== '.zeeplevel') {
@@ -62,7 +79,7 @@ async function discoverLevels(directory: string): Promise<LevelFiles[]> {
 			})
 		}
 	}
-	await visit(directory)
+	await visit(directory, 0)
 	if (levels.length === 0) {
 		throw new Error(`Workshop item contains no complete levels: ${directory}`)
 	}
@@ -152,21 +169,24 @@ export class WorkshopScanner {
 		options: WorkshopScanOptions,
 		persistence: WorkshopPersistence,
 	): Promise<WorkshopScanResult[]> {
-		const download = await this.downloader.download(workshopIds)
-		try {
-			const preparedItems = await Promise.all(
-				download.items.map(async (item) => {
-					const metadata = metadataById.get(item.workshopId)
-					if (!metadata) {
-						throw new Error(`Workshop metadata ${item.workshopId} is missing`)
-					}
-					return {
-						item,
-						metadata,
-						levels: await this.prepareItem(item, metadata.creatorId, options),
-					}
-				}),
-			)
+		await using download = await this.downloader.download(workshopIds)
+		{
+			const preparedItems: Array<{
+				item: DownloadedWorkshopItem
+				metadata: WorkshopItemMetadata
+				levels: PreparedLevel[]
+			}> = []
+			for (const item of download.items) {
+				const metadata = metadataById.get(item.workshopId)
+				if (!metadata) {
+					throw new Error(`Workshop metadata ${item.workshopId} is missing`)
+				}
+				preparedItems.push({
+					item,
+					metadata,
+					levels: await this.prepareItem(item, metadata.creatorId, options),
+				})
+			}
 			if (preparedItems.length !== workshopIds.length) {
 				throw new Error('SteamCMD download returned an incomplete workshop batch')
 			}
@@ -180,12 +200,17 @@ export class WorkshopScanner {
 						level.parsed.hash,
 						persistence,
 					)
-					const imageUrl = level.thumbnailPath
-						? await persistence.uploadThumbnail(
-								extname(level.thumbnailPath).slice(1),
-								await readFile(level.thumbnailPath),
-							)
-						: ''
+					let imageUrl = ''
+					if (level.thumbnailPath) {
+						const thumbnail = Bun.file(level.thumbnailPath)
+						if (thumbnail.size > MAX_THUMBNAIL_BYTES) {
+							throw new Error('Workshop thumbnail is too large')
+						}
+						imageUrl = await persistence.uploadThumbnail(
+							extname(level.thumbnailPath).slice(1),
+							thumbnail,
+						)
+					}
 					const upsertResult = await persistence.upsertLevel({
 						...level.parsed,
 						xxHash: level.parsed.hash,
@@ -235,8 +260,6 @@ export class WorkshopScanner {
 				})
 			}
 			return results
-		} finally {
-			await download.cleanup()
 		}
 	}
 
@@ -258,34 +281,37 @@ export class WorkshopScanner {
 		item: DownloadedWorkshopItem,
 		creatorId: bigint,
 		options: WorkshopScanOptions,
-	) {
+	): Promise<PreparedLevel[]> {
 		const files = await discoverLevels(item.directory)
-		return Promise.all(
-			files.map(async (file) => {
-				try {
-					const content = await readFile(file.levelPath, 'utf8')
-					const parsed = parseLevelV2(content, false, creatorId)
-					let legacyZeepSdkXxHash: string | undefined
-					if (options.fixZeepSDKExponentHashes && parsed.format === levelFormat.json) {
-						try {
-							legacyZeepSdkXxHash = calculateLegacyZeepSdkJsonXxHash(content)
-						} catch {
-							legacyZeepSdkXxHash = undefined
-						}
+		const prepared: PreparedLevel[] = []
+		for (const file of files) {
+			try {
+				const levelFile = Bun.file(file.levelPath)
+				if (levelFile.size > MAX_LEVEL_FILE_BYTES)
+					throw new Error('Level file is too large')
+				const content = await levelFile.text()
+				const parsed = parseLevelV2(content, false, creatorId)
+				let legacyZeepSdkXxHash: string | undefined
+				if (options.fixZeepSDKExponentHashes && parsed.format === levelFormat.json) {
+					try {
+						legacyZeepSdkXxHash = calculateLegacyZeepSdkJsonXxHash(content)
+					} catch {
+						legacyZeepSdkXxHash = undefined
 					}
-					return {
-						...file,
-						parsed,
-						legacyZeepSdkXxHash,
-					}
-				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error)
-					throw new Error(
-						`Workshop ${item.workshopId} level ${file.name} (${file.levelPath}) failed validation: ${message}`,
-					)
 				}
-			}),
-		)
+				prepared.push({
+					...file,
+					parsed,
+					legacyZeepSdkXxHash,
+				})
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error)
+				throw new Error(
+					`Workshop ${item.workshopId} level ${file.name} (${file.levelPath}) failed validation: ${message}`,
+				)
+			}
+		}
+		return prepared
 	}
 }
 

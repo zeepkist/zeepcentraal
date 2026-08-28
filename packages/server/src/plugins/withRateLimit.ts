@@ -7,11 +7,79 @@ type RateLimitBucket = 'auth' | 'record' | 'mutation' | 'job'
 
 interface Counter {
 	count: number
-	resetAt: number
+	resetSecond: number
 }
 
-const WINDOW_MS = 60_000
-const counters = new Map<string, Counter>()
+const WINDOW_SECONDS = 60
+const MAX_IDENTITIES = 10_000
+
+function monotonicSecond() {
+	return Math.floor(Bun.nanoseconds() / 1_000_000_000)
+}
+
+export class RateLimitStore implements Disposable {
+	private readonly counters = new Map<string, Counter>()
+	private readonly expiryBuckets = Array.from({ length: WINDOW_SECONDS }, () => new Set<string>())
+	private currentSecond: number
+	private readonly timer: ReturnType<typeof setInterval> | undefined
+
+	public constructor(now = monotonicSecond(), schedule = true) {
+		this.currentSecond = now
+		this.timer = schedule
+			? setInterval(() => this.advance(monotonicSecond()), 1_000)
+			: undefined
+		this.timer?.unref?.()
+	}
+
+	public get size(): number {
+		return this.counters.size
+	}
+
+	public take(key: string, limit: number, now = monotonicSecond()) {
+		this.advance(now)
+		let counter = this.counters.get(key)
+		if (!counter) {
+			if (this.counters.size >= MAX_IDENTITIES) {
+				return { allowed: false, retryAfter: 1 }
+			}
+			counter = { count: 0, resetSecond: now + WINDOW_SECONDS }
+			this.counters.set(key, counter)
+			this.expiryBuckets[counter.resetSecond % WINDOW_SECONDS]?.add(key)
+		}
+		counter.count++
+		return {
+			allowed: counter.count <= limit,
+			retryAfter: Math.max(counter.resetSecond - now, 1),
+		}
+	}
+
+	public [Symbol.dispose](): void {
+		if (this.timer) clearInterval(this.timer)
+		this.counters.clear()
+		for (const bucket of this.expiryBuckets) bucket.clear()
+	}
+
+	private advance(now: number) {
+		if (now <= this.currentSecond) return
+		const start = Math.max(this.currentSecond + 1, now - WINDOW_SECONDS)
+		for (let second = start; second <= now; second++) {
+			const bucket = this.expiryBuckets[second % WINDOW_SECONDS]
+			if (!bucket) continue
+			for (const key of bucket) {
+				const counter = this.counters.get(key)
+				if (counter && counter.resetSecond <= second) this.counters.delete(key)
+			}
+			bucket.clear()
+		}
+		this.currentSecond = now
+	}
+}
+
+const rateLimits = new RateLimitStore()
+
+export function disposeRateLimiter(): void {
+	rateLimits[Symbol.dispose]()
+}
 
 function clientIp(
 	request: Request,
@@ -48,32 +116,15 @@ function authenticatedId(request: Request): string | null {
 export function withRateLimit(bucket: RateLimitBucket) {
 	return (app: Elysia) =>
 		app.onBeforeHandle(({ request, server, set }) => {
-			const now = Date.now()
-			if (counters.size > 10_000) {
-				for (const [key, counter] of counters) {
-					if (counter.resetAt <= now) {
-						counters.delete(key)
-					}
-				}
-			}
 			const identity = authenticatedId(request) ?? clientIp(request, server)
 			const key = `${bucket}:${identity}`
-			const current = counters.get(key)
-			const counter =
-				!current || current.resetAt <= now
-					? { count: 0, resetAt: now + WINDOW_MS }
-					: current
-			counter.count++
-			counters.set(key, counter)
-
-			if (counter.count <= serverConfig.http.rateLimits[bucket]) {
+			const result = rateLimits.take(key, serverConfig.http.rateLimits[bucket])
+			if (result.allowed) {
 				return
 			}
 
 			set.status = 429
-			set.headers['retry-after'] = String(
-				Math.max(Math.ceil((counter.resetAt - now) / 1000), 1),
-			)
+			set.headers['retry-after'] = String(result.retryAfter)
 			return handleV1Error(V1_ERROR_CODES.GENERIC_INVALID_REQUEST)
 		})
 }

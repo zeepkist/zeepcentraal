@@ -1,10 +1,9 @@
-import { createHash } from 'node:crypto'
 import { and, eq, gt, isNotNull } from 'drizzle-orm'
 import { db } from '../client'
 import { auth, user } from '../schema'
 
 function hashRefreshToken(refreshToken: string): string {
-	return createHash('sha256').update(refreshToken).digest('hex')
+	return new Bun.CryptoHasher('sha256').update(refreshToken).digest('hex')
 }
 
 export type WebSessionInput = {

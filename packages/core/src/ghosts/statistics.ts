@@ -1,6 +1,7 @@
 import { addTransition } from '../utils/addTransition'
 import { distance } from '../utils/distance'
 import { SPEED_CAP_KMH, TURN_DEADZONE } from './constants'
+import { assertGhostFrameCount } from './limits'
 import { emptySurfaceValues, type KnownSurface, normalizeSurface } from './surfaces'
 import type { GhostFrame, GhostStatisticValues, Vector2, Vector3 } from './types'
 
@@ -164,6 +165,7 @@ export function calculateGhostStatisticsFromIterable(
 
 	for (const frame of frames) {
 		frameCount++
+		assertGhostFrameCount(frameCount)
 		if (!Number.isFinite(frame.time) || !isFiniteVector3(frame.position)) {
 			throw new Error('Invalid ghost frame')
 		}

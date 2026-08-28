@@ -1,5 +1,4 @@
 import { jobsConfig } from '@zeepkist/core/config/jobs'
-import { CronJob } from 'cron'
 import { run, type TaskSpec } from 'graphile-worker'
 import { cronTasks } from './cronTasks'
 import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from './priorities'
@@ -20,7 +19,12 @@ export const priorityJobOptions: TaskSpec = {
 
 let runner: Awaited<ReturnType<typeof run>> | null = null
 let runnerStop: Promise<void> | null = null
-const cronJobs: CronJob[] = []
+const cronJobs: Bun.CronJob[] = []
+const scheduleCron = Bun.cron as unknown as (
+	schedule: string,
+	handler: () => unknown,
+	options: { tz: string },
+) => Bun.CronJob
 
 export async function startRunner({
 	onPoolCreated,
@@ -60,23 +64,23 @@ export function stopRunner(): Promise<void> {
 export function startCrons(
 	addJob: (task: string, payload: object, spec: TaskSpec) => Promise<unknown>,
 ) {
+	stopCrons()
 	for (const cronTask of cronTasks) {
 		const { task, cronTime } = cronTask
 		const payload = 'payload' in cronTask ? cronTask.payload : {}
 		const cronSpec: TaskSpec = 'spec' in cronTask ? cronTask.spec : {}
 		const timeZone = 'timeZone' in cronTask ? cronTask.timeZone : 'Europe/London'
-		const job = CronJob.from({
+		const job = scheduleCron(
 			cronTime,
-			onTick: () => {
-				void addJob(task, payload, cronJobOptions(task, defaultJobOptions, cronSpec)).catch(
-					(error) => {
-						console.error(`Cron enqueue failed for ${task}:`, error)
-					},
-				)
+			async () => {
+				try {
+					await addJob(task, payload, cronJobOptions(task, defaultJobOptions, cronSpec))
+				} catch (error) {
+					console.error(`Cron enqueue failed for ${task}:`, error)
+				}
 			},
-			start: true,
-			timeZone,
-		})
+			{ tz: timeZone },
+		)
 		cronJobs.push(job)
 		console.info(`Cron registered: ${task} (${cronTime}, ${timeZone})`)
 	}
@@ -84,8 +88,9 @@ export function startCrons(
 
 export function stopCrons() {
 	for (const job of cronJobs) {
-		job.stop()
+		job[Symbol.dispose]()
 	}
+	cronJobs.length = 0
 }
 
 // Kept for backwards-compatible single-process startup (e.g. tests / dev without cluster)

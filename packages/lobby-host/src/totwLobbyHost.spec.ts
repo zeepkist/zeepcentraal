@@ -1,5 +1,4 @@
 import { beforeEach, expect, mock, test } from 'bun:test'
-import { createHash } from 'node:crypto'
 import dgram from 'node:dgram'
 import {
 	BitReader,
@@ -31,6 +30,11 @@ const REPLACEMENT_LEVEL: TestLevel = {
 	uid: 'uid-2',
 	workshopId: 124n,
 }
+
+function sha256(value: string | Uint8Array): string {
+	return new Bun.CryptoHasher('sha256').update(value).digest('hex')
+}
+
 const preparedPayload = makePayload('initial')
 const replacementPayload = makePayload('replacement')
 const initialAsset = assetMetadata(42, TEST_LEVEL, preparedPayload, 'private/asset.gz')
@@ -487,9 +491,7 @@ function withTimeout<T>(promise: Promise<T>) {
 
 function makePayload(seed: string) {
 	return encodeZeepkistLevelPayload(
-		Array.from({ length: 512 }, (_, index) =>
-			createHash('sha256').update(`${seed}-${index}`).digest('hex'),
-		).join('\n'),
+		Array.from({ length: 512 }, (_, index) => sha256(`${seed}-${index}`)).join('\n'),
 		true,
 	)
 }
@@ -509,7 +511,7 @@ function assetMetadata(
 		collaborators: level.collaborators,
 		overrideAuthorName: level.overrideAuthorName,
 		objectKey,
-		contentSha256: createHash('sha256').update(payload).digest('hex'),
+		contentSha256: sha256(payload),
 		byteSize: payload.length,
 	}
 }

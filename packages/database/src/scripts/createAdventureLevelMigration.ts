@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, join, relative } from 'node:path'
 import { parseJsonLevelV2 } from '@zeepkist/core/levels'
 
@@ -299,8 +299,14 @@ WHERE NOT EXISTS (
 }
 
 async function countAdventureFiles(adventureRoot: string): Promise<number> {
-	const entries = await readdir(adventureRoot, { withFileTypes: true, recursive: true })
-	return entries.filter((entry) => entry.isFile() && entry.name.endsWith('.zeeplevel')).length
+	let count = 0
+	for await (const _path of new Bun.Glob('**/*.zeeplevel').scan({
+		cwd: adventureRoot,
+		onlyFiles: true,
+	})) {
+		count++
+	}
+	return count
 }
 
 function validateUnique<T>(rows: T[], key: (row: T) => string, label: string) {
@@ -370,11 +376,13 @@ export async function loadAdventureMigrationRows(
 }
 
 async function nextMigrationPrefix(migrationsFolder: string): Promise<string> {
-	const entries = await readdir(migrationsFolder, { withFileTypes: true })
-	const max = entries
-		.filter((entry) => entry.isFile() && /^\d{4}_.+\.sql$/.test(entry.name))
-		.map((entry) => Number(entry.name.slice(0, 4)))
-		.reduce((highest, current) => Math.max(highest, current), 0)
+	let max = 0
+	for await (const name of new Bun.Glob('????_*.sql').scan({
+		cwd: migrationsFolder,
+		onlyFiles: true,
+	})) {
+		if (/^\d{4}_.+\.sql$/.test(name)) max = Math.max(max, Number(name.slice(0, 4)))
+	}
 	return String(max + 1).padStart(4, '0')
 }
 
@@ -400,10 +408,14 @@ async function updateDrizzleJournal(migrationsFolder: string, prefix: string, ta
 
 async function copyLatestSnapshot(migrationsFolder: string, prefix: string) {
 	const metaFolder = join(migrationsFolder, 'meta')
-	const snapshots = (await readdir(metaFolder, { withFileTypes: true }))
-		.filter((entry) => entry.isFile() && /^\d{4}_snapshot\.json$/.test(entry.name))
-		.map((entry) => entry.name)
-		.sort()
+	const snapshots: string[] = []
+	for await (const name of new Bun.Glob('????_snapshot.json').scan({
+		cwd: metaFolder,
+		onlyFiles: true,
+	})) {
+		if (/^\d{4}_snapshot\.json$/.test(name)) snapshots.push(name)
+	}
+	snapshots.sort()
 	const latestSnapshot = snapshots.at(-1)
 	if (!latestSnapshot) {
 		throw new Error('Unable to find latest Drizzle snapshot')
