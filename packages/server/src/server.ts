@@ -60,4 +60,17 @@ export function buildServer() {
 			},
 			() => ({ status: 'ok' }),
 		)
+		.head(
+			'/healthz',
+			{
+				detail: {
+					operationId: 'headHealth',
+					summary: 'Check API health (HEAD)',
+					description:
+						'Returns a lightweight readiness response when the API process is available.',
+					tags: [OPENAPI_TAG.system],
+				},
+			},
+			() => ({ status: 'ok' }),
+		)
 }
