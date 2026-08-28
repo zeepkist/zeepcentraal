@@ -54,7 +54,7 @@ test('registers pool marker and logs job start and nested failure metadata', asy
 		worker,
 	} as never)
 
-	expect(logger.info).toHaveBeenCalledWith(
+	expect(logger.info).not.toHaveBeenCalledWith(
 		'Graphile job started.',
 		expect.objectContaining({ jobId: '424337', poolId: 'pool-live' }),
 	)

@@ -56,17 +56,6 @@ export function createJobWorkerEvents({
 		})
 	})
 
-	events.on('job:start', ({ job, worker }) => {
-		logger.info('Graphile job started.', {
-			attempt: job.attempts,
-			jobId: job.id,
-			maxAttempts: job.max_attempts,
-			poolId: worker.workerPool.id,
-			queueId: job.job_queue_id,
-			task: job.task_identifier,
-		})
-	})
-
 	events.on('job:error', ({ error, job, worker }) => {
 		logger.error('Graphile job failed.', {
 			attempt: job.attempts,
