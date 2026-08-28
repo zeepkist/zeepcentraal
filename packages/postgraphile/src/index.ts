@@ -22,8 +22,7 @@ async function main() {
 		await assertRestrictedGraphqlDatabaseRole(postgraphileConfig.databaseUrl)
 	}
 
-	const { buildPostGraphileServer } = await import('./server')
-	const app = buildPostGraphileServer()
+	const { app } = await import('./app')
 	await using appLifetime = {
 		async [Symbol.asyncDispose]() {
 			try {

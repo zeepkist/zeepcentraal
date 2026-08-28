@@ -97,10 +97,9 @@ if (cluster.isPrimary) {
 	process.title = 'zeepcentraal-api: worker'
 	initializeLobbyWorkerIpc()
 	const { config } = await import('./config')
-	const { buildServer } = await import('./server')
+	const { app } = await import('./app')
 	const { initializeQueue } = await import('@zeepkist/jobs/queue')
 
-	const app = buildServer()
 	await initializeQueue()
 
 	app.listen({
