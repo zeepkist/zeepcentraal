@@ -1,5 +1,6 @@
 import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { makeWorkerUtils } from 'graphile-worker'
+import { wrapWorkerUtils } from './jobTelemetry'
 
 type QueueWorkerUtilsConfig = Pick<typeof jobsConfig, 'databaseUrl' | 'queuePoolMax'>
 
@@ -10,6 +11,6 @@ export function createQueueWorkerUtilsOptions(config: QueueWorkerUtilsConfig = j
 	}
 }
 
-export function createQueueWorkerUtils() {
-	return makeWorkerUtils(createQueueWorkerUtilsOptions())
+export async function createQueueWorkerUtils() {
+	return wrapWorkerUtils(await makeWorkerUtils(createQueueWorkerUtilsOptions()))
 }

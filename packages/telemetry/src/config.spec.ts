@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { shouldStartNodeSDK } from '@elysia/opentelemetry'
+import { trace } from '@opentelemetry/api'
 import { createResourceAttributes, resolveTelemetryConfig } from './config'
 import { createElysiaTelemetryOptions, startNodeTelemetry, stopNodeTelemetry } from './sdk'
 import { injectTraceHeaders, startActiveSpan, withExtractedTraceContext } from './span'
@@ -68,6 +70,10 @@ describe('telemetry config', () => {
 		expect(options.spanProcessors).toHaveLength(1)
 		expect(options.metricReaders).toHaveLength(1)
 		expect(options).not.toHaveProperty('instrumentations')
+	})
+
+	test('Elysia reuses global SDK tracer provider', () => {
+		expect(shouldStartNodeSDK(trace.getTracerProvider())).toBe(false)
 	})
 
 	test('propagation injects trace headers from active span', () => {

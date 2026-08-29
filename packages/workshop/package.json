@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"@zeepkist/core": "workspace:*",
-		"@zeepkist/database": "workspace:*"
+		"@zeepkist/database": "workspace:*",
+		"@zeepkist/telemetry": "workspace:*"
 	}
 }

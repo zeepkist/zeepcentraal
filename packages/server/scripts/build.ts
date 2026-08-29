@@ -2,12 +2,13 @@ import { resolve } from 'node:path'
 import { aot } from 'elysia/plugin/aot/bun'
 
 process.env.NODE_ENV = 'production'
+process.env.OTEL_SDK_DISABLED = 'true'
 process.env.DATABASE_URL = 'postgres://aot:aot@127.0.0.1:5432/aot'
 process.env.JWT_SECRET = 'aot-build-only-jwt-secret'.padEnd(32, 'x')
 process.env.TRIGGER_JOB_TOKEN = 'aot-build-only-job-token'.padEnd(32, 'x')
 process.env.DISCORD_BOT_API_TOKEN = 'aot-build-only-discord-token'.padEnd(32, 'x')
 
-const entry = resolve(import.meta.dir, '../src/index.ts')
+const entry = resolve(import.meta.dir, '../src/bootstrap.ts')
 const appEntry = resolve(import.meta.dir, '../src/app.ts')
 const outfile = resolve(import.meta.dir, '../../../dist/zeepcentraal-server')
 

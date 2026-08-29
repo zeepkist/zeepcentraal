@@ -2,6 +2,7 @@ import { readdir } from 'node:fs/promises'
 import { extname, join, parse } from 'node:path'
 import { calculateLegacyZeepSdkJsonXxHash, levelFormat, parseLevelV2 } from '@zeepkist/core/levels'
 import { canSteamCmdDownloadWorkshopItem, STEAM_VISIBILITY } from '@zeepkist/core/steam'
+import { withActiveSpan } from '@zeepkist/telemetry'
 import type {
 	DownloadedWorkshopItem,
 	WorkshopBatchScanResult,
@@ -118,49 +119,64 @@ export class WorkshopScanner {
 		batchSize = 10,
 		options: WorkshopScanOptions = {},
 	): Promise<WorkshopBatchScanResult> {
-		const persistence = await this.getPersistence()
-		const metadataItems = await this.metadata.getItems(workshopIds)
-		const results: WorkshopScanResult[] = []
-		const available: WorkshopItemMetadata[] = []
-		for (const metadata of metadataItems) {
-			if (!metadata.available) {
-				results.push({
-					workshopId: metadata.workshopId,
-					status: 'permanently-unavailable',
-					changedLevelIds: await persistence.markDeleted(
-						metadata.workshopId,
-						STEAM_VISIBILITY.Hidden,
-					),
-				})
-			} else if (!canSteamCmdDownloadWorkshopItem(metadata.visibility)) {
-				results.push({
-					workshopId: metadata.workshopId,
-					status: 'inaccessible',
-					changedLevelIds: await persistence.markDeleted(
-						metadata.workshopId,
-						metadata.visibility,
-					),
-				})
-			} else {
-				available.push(metadata)
-			}
-		}
+		return withActiveSpan(
+			'workshop.scan',
+			{ attributes: { 'workshop.item.count': workshopIds.length } },
+			async (span) => {
+				const persistence = await this.getPersistence()
+				const metadataItems = await this.metadata.getItems(workshopIds)
+				const results: WorkshopScanResult[] = []
+				const available: WorkshopItemMetadata[] = []
+				for (const metadata of metadataItems) {
+					if (!metadata.available) {
+						results.push({
+							workshopId: metadata.workshopId,
+							status: 'permanently-unavailable',
+							changedLevelIds: await persistence.markDeleted(
+								metadata.workshopId,
+								STEAM_VISIBILITY.Hidden,
+							),
+						})
+					} else if (!canSteamCmdDownloadWorkshopItem(metadata.visibility)) {
+						results.push({
+							workshopId: metadata.workshopId,
+							status: 'inaccessible',
+							changedLevelIds: await persistence.markDeleted(
+								metadata.workshopId,
+								metadata.visibility,
+							),
+						})
+					} else {
+						available.push(metadata)
+					}
+				}
 
-		const metadataById = new Map(available.map((item) => [item.workshopId, item]))
-		const transientFailures: Array<{ workshopId: bigint; error: unknown }> = []
-		await downloadBatchesRecursively(
-			available.map((item) => item.workshopId),
-			async (batch) => {
-				results.push(
-					...(await this.scanDownloadedBatch(batch, metadataById, options, persistence)),
+				const metadataById = new Map(available.map((item) => [item.workshopId, item]))
+				const transientFailures: Array<{ workshopId: bigint; error: unknown }> = []
+				await downloadBatchesRecursively(
+					available.map((item) => item.workshopId),
+					async (batch) => {
+						results.push(
+							...(await this.scanDownloadedBatch(
+								batch,
+								metadataById,
+								options,
+								persistence,
+							)),
+						)
+					},
+					async (workshopId, error) => {
+						transientFailures.push({ workshopId, error })
+					},
+					batchSize,
 				)
+				span.addEvent('workshop.scan.completed', {
+					'workshop.result.count': results.length,
+					'workshop.failure.count': transientFailures.length,
+				})
+				return { results, transientFailures }
 			},
-			async (workshopId, error) => {
-				transientFailures.push({ workshopId, error })
-			},
-			batchSize,
 		)
-		return { results, transientFailures }
 	}
 
 	private async scanDownloadedBatch(
@@ -169,98 +185,107 @@ export class WorkshopScanner {
 		options: WorkshopScanOptions,
 		persistence: WorkshopPersistence,
 	): Promise<WorkshopScanResult[]> {
-		await using download = await this.downloader.download(workshopIds)
-		{
-			const preparedItems: Array<{
-				item: DownloadedWorkshopItem
-				metadata: WorkshopItemMetadata
-				levels: PreparedLevel[]
-			}> = []
-			for (const item of download.items) {
-				const metadata = metadataById.get(item.workshopId)
-				if (!metadata) {
-					throw new Error(`Workshop metadata ${item.workshopId} is missing`)
-				}
-				preparedItems.push({
-					item,
-					metadata,
-					levels: await this.prepareItem(item, metadata.creatorId, options),
-				})
-			}
-			if (preparedItems.length !== workshopIds.length) {
-				throw new Error('SteamCMD download returned an incomplete workshop batch')
-			}
-
-			const results: WorkshopScanResult[] = []
-			for (const prepared of preparedItems) {
-				const changedLevelIds: number[] = []
-				for (const level of prepared.levels) {
-					const levelAuthorId = await this.resolveLevelAuthor(
-						prepared.metadata.creatorId,
-						level.parsed.hash,
-						persistence,
-					)
-					let imageUrl = ''
-					if (level.thumbnailPath) {
-						const thumbnail = Bun.file(level.thumbnailPath)
-						if (thumbnail.size > MAX_THUMBNAIL_BYTES) {
-							throw new Error('Workshop thumbnail is too large')
+		return withActiveSpan(
+			'workshop.download.persist',
+			{ attributes: { 'workshop.item.count': workshopIds.length } },
+			async (span) => {
+				await using download = await this.downloader.download(workshopIds)
+				{
+					const preparedItems: Array<{
+						item: DownloadedWorkshopItem
+						metadata: WorkshopItemMetadata
+						levels: PreparedLevel[]
+					}> = []
+					for (const item of download.items) {
+						const metadata = metadataById.get(item.workshopId)
+						if (!metadata) {
+							throw new Error(`Workshop metadata ${item.workshopId} is missing`)
 						}
-						imageUrl = await persistence.uploadThumbnail(
-							extname(level.thumbnailPath).slice(1),
-							thumbnail,
-						)
-					}
-					const upsertResult = await persistence.upsertLevel({
-						...level.parsed,
-						xxHash: level.parsed.hash,
-						hash: level.parsed.zeepHash,
-						fileUid: level.parsed.uid,
-						workshopId: prepared.item.workshopId,
-						workshopName: prepared.metadata.name,
-						workshopImageUrl: prepared.metadata.imageUrl,
-						workshopVisibility: prepared.metadata.visibility,
-						workshopFileSize: prepared.metadata.fileSize,
-						authorId: prepared.metadata.creatorId,
-						levelAuthorId,
-						name: level.name,
-						imageUrl,
-						createdAt: prepared.metadata.createdAt,
-						updatedAt: prepared.metadata.updatedAt,
-					})
-					if (upsertResult.scoreChanged) {
-						changedLevelIds.push(upsertResult.idLevel)
-					}
-					if (
-						options.fixZeepSDKExponentHashes &&
-						level.legacyZeepSdkXxHash &&
-						level.legacyZeepSdkXxHash !== level.parsed.hash &&
-						persistence.mergeZeepSdkExponentHash
-					) {
-						const merge = await persistence.mergeZeepSdkExponentHash({
-							correctLevelId: upsertResult.idLevel,
-							correctXxHash: level.parsed.hash,
-							badXxHash: level.legacyZeepSdkXxHash,
-							workshopId: prepared.item.workshopId,
-							fileUid: level.parsed.uid,
+						preparedItems.push({
+							item,
+							metadata,
+							levels: await this.prepareItem(item, metadata.creatorId, options),
 						})
-						if (merge.merged) {
-							changedLevelIds.push(...merge.changedLevelIds)
-						}
 					}
+					if (preparedItems.length !== workshopIds.length) {
+						throw new Error('SteamCMD download returned an incomplete workshop batch')
+					}
+
+					const results: WorkshopScanResult[] = []
+					for (const prepared of preparedItems) {
+						const changedLevelIds: number[] = []
+						for (const level of prepared.levels) {
+							const levelAuthorId = await this.resolveLevelAuthor(
+								prepared.metadata.creatorId,
+								level.parsed.hash,
+								persistence,
+							)
+							let imageUrl = ''
+							if (level.thumbnailPath) {
+								const thumbnail = Bun.file(level.thumbnailPath)
+								if (thumbnail.size > MAX_THUMBNAIL_BYTES) {
+									throw new Error('Workshop thumbnail is too large')
+								}
+								imageUrl = await persistence.uploadThumbnail(
+									extname(level.thumbnailPath).slice(1),
+									thumbnail,
+								)
+							}
+							const upsertResult = await persistence.upsertLevel({
+								...level.parsed,
+								xxHash: level.parsed.hash,
+								hash: level.parsed.zeepHash,
+								fileUid: level.parsed.uid,
+								workshopId: prepared.item.workshopId,
+								workshopName: prepared.metadata.name,
+								workshopImageUrl: prepared.metadata.imageUrl,
+								workshopVisibility: prepared.metadata.visibility,
+								workshopFileSize: prepared.metadata.fileSize,
+								authorId: prepared.metadata.creatorId,
+								levelAuthorId,
+								name: level.name,
+								imageUrl,
+								createdAt: prepared.metadata.createdAt,
+								updatedAt: prepared.metadata.updatedAt,
+							})
+							if (upsertResult.scoreChanged) {
+								changedLevelIds.push(upsertResult.idLevel)
+							}
+							if (
+								options.fixZeepSDKExponentHashes &&
+								level.legacyZeepSdkXxHash &&
+								level.legacyZeepSdkXxHash !== level.parsed.hash &&
+								persistence.mergeZeepSdkExponentHash
+							) {
+								const merge = await persistence.mergeZeepSdkExponentHash({
+									correctLevelId: upsertResult.idLevel,
+									correctXxHash: level.parsed.hash,
+									badXxHash: level.legacyZeepSdkXxHash,
+									workshopId: prepared.item.workshopId,
+									fileUid: level.parsed.uid,
+								})
+								if (merge.merged) {
+									changedLevelIds.push(...merge.changedLevelIds)
+								}
+							}
+						}
+						const missing = await persistence.markMissing(
+							prepared.item.workshopId,
+							prepared.levels.map((level) => level.parsed.hash),
+						)
+						results.push({
+							workshopId: prepared.item.workshopId,
+							status: 'scanned',
+							changedLevelIds: [...new Set([...changedLevelIds, ...missing])],
+						})
+					}
+					span.addEvent('workshop.persistence.completed', {
+						'workshop.result.count': results.length,
+					})
+					return results
 				}
-				const missing = await persistence.markMissing(
-					prepared.item.workshopId,
-					prepared.levels.map((level) => level.parsed.hash),
-				)
-				results.push({
-					workshopId: prepared.item.workshopId,
-					status: 'scanned',
-					changedLevelIds: [...new Set([...changedLevelIds, ...missing])],
-				})
-			}
-			return results
-		}
+			},
+		)
 	}
 
 	private async resolveLevelAuthor(
@@ -282,36 +307,39 @@ export class WorkshopScanner {
 		creatorId: bigint,
 		options: WorkshopScanOptions,
 	): Promise<PreparedLevel[]> {
-		const files = await discoverLevels(item.directory)
-		const prepared: PreparedLevel[] = []
-		for (const file of files) {
-			try {
-				const levelFile = Bun.file(file.levelPath)
-				if (levelFile.size > MAX_LEVEL_FILE_BYTES)
-					throw new Error('Level file is too large')
-				const content = await levelFile.text()
-				const parsed = parseLevelV2(content, false, creatorId)
-				let legacyZeepSdkXxHash: string | undefined
-				if (options.fixZeepSDKExponentHashes && parsed.format === levelFormat.json) {
-					try {
-						legacyZeepSdkXxHash = calculateLegacyZeepSdkJsonXxHash(content)
-					} catch {
-						legacyZeepSdkXxHash = undefined
+		return withActiveSpan('workshop.parse', async (span) => {
+			const files = await discoverLevels(item.directory)
+			span.addEvent('workshop.files.discovered', { 'workshop.level.count': files.length })
+			const prepared: PreparedLevel[] = []
+			for (const file of files) {
+				try {
+					const levelFile = Bun.file(file.levelPath)
+					if (levelFile.size > MAX_LEVEL_FILE_BYTES)
+						throw new Error('Level file is too large')
+					const content = await levelFile.text()
+					const parsed = parseLevelV2(content, false, creatorId)
+					let legacyZeepSdkXxHash: string | undefined
+					if (options.fixZeepSDKExponentHashes && parsed.format === levelFormat.json) {
+						try {
+							legacyZeepSdkXxHash = calculateLegacyZeepSdkJsonXxHash(content)
+						} catch {
+							legacyZeepSdkXxHash = undefined
+						}
 					}
+					prepared.push({
+						...file,
+						parsed,
+						legacyZeepSdkXxHash,
+					})
+				} catch (error) {
+					const message = error instanceof Error ? error.message : String(error)
+					throw new Error(
+						`Workshop ${item.workshopId} level ${file.name} (${file.levelPath}) failed validation: ${message}`,
+					)
 				}
-				prepared.push({
-					...file,
-					parsed,
-					legacyZeepSdkXxHash,
-				})
-			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error)
-				throw new Error(
-					`Workshop ${item.workshopId} level ${file.name} (${file.levelPath}) failed validation: ${message}`,
-				)
 			}
-		}
-		return prepared
+			return prepared
+		})
 	}
 }
 

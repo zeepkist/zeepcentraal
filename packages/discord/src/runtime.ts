@@ -1,5 +1,6 @@
 import { deflateSync, inflateSync } from 'node:zlib'
 import { parseDiscordBotConfig } from '@zeepkist/core/config/discord-bot'
+import { getMeter, withActiveSpan } from '@zeepkist/telemetry'
 import {
 	Client,
 	Events,
@@ -27,6 +28,14 @@ import { waitForDiscordDependencies } from './readiness'
 import type { DiscordBotConfig } from './types'
 
 type BufferUtil = typeof import('bufferutil')
+
+const discordMeter = getMeter('zeepcentraal-discord')
+const interactionDuration = discordMeter.createHistogram('discord.interaction.duration', {
+	unit: 's',
+})
+const interactionOutcomes = discordMeter.createCounter('discord.interaction.outcomes')
+const readinessGauge = discordMeter.createObservableGauge('discord.ready')
+const activityQueueGauge = discordMeter.createObservableGauge('discord.activity.queue.depth')
 
 type RestClient = Pick<REST, 'put'>
 
@@ -152,16 +161,19 @@ export async function registerCommands(
 }
 
 export async function syncLinkedRole(member: GuildMember, context: CommandContext) {
-	const state = await context.backend.guild(member.guild.id)
-	const roleId = state.config?.linkedRoleId
-	if (!roleId) return
-	const linked = Boolean((await context.backend.user(member.id)).linkedUser)
-	if (linked && !member.roles.cache.has(roleId)) {
-		await member.roles.add(roleId, 'ZeepCentraal account linked')
-	}
-	if (!linked && member.roles.cache.has(roleId)) {
-		await member.roles.remove(roleId, 'ZeepCentraal account unlinked')
-	}
+	return withActiveSpan('discord.member.linked-role', async (span) => {
+		const state = await context.backend.guild(member.guild.id)
+		const roleId = state.config?.linkedRoleId
+		if (!roleId) return
+		const linked = Boolean((await context.backend.user(member.id)).linkedUser)
+		if (linked && !member.roles.cache.has(roleId)) {
+			await member.roles.add(roleId, 'ZeepCentraal account linked')
+		}
+		if (!linked && member.roles.cache.has(roleId)) {
+			await member.roles.remove(roleId, 'ZeepCentraal account unlinked')
+		}
+		span.addEvent('discord.member.linked-role.synced', { linked })
+	})
 }
 
 export type DiscordRuntime = {
@@ -196,6 +208,12 @@ export function createDiscordRuntime(
 	})
 	const signalHandlers = new Map<'SIGINT' | 'SIGTERM', () => void>()
 	let stopPromise: Promise<void> | undefined
+	const observeReadiness: Parameters<typeof readinessGauge.addCallback>[0] = (result) =>
+		result.observe(ready ? 1 : 0)
+	const observeActivityQueue: Parameters<typeof activityQueueGauge.addCallback>[0] = (result) =>
+		result.observe(feeds.stats().activityQueueDepth)
+	readinessGauge.addCallback(observeReadiness)
+	activityQueueGauge.addCallback(observeActivityQueue)
 
 	client.once(Events.ClientReady, (connected) => {
 		if (stopping) return
@@ -216,41 +234,67 @@ export function createDiscordRuntime(
 	})
 
 	client.on(Events.InteractionCreate, async (interaction) => {
-		try {
-			if (interaction.isAutocomplete()) {
-				await dependencies.dispatchAutocomplete(interaction, context)
-				return
-			}
-			if (interaction.isButton()) {
-				await dependencies.dispatchButton(interaction, context)
-				return
-			}
-			if (interaction.isUserContextMenuCommand()) {
-				await dependencies.dispatchContextMenu(interaction, context)
-				return
-			}
-			if (!interaction.isChatInputCommand()) return
-			await dependencies.dispatchChatInput(interaction, context)
-			if (
-				(interaction.commandName === 'link' || interaction.commandName === 'unlink') &&
-				interaction.inGuild()
-			) {
-				const member = await interaction.guild?.members.fetch(interaction.user.id)
-				if (member) await syncLinkedRole(member, context)
-			}
-		} catch (error) {
-			const message = error instanceof Error ? error.message : 'Unknown error'
-			dependencies.logError(
-				`Discord interaction ${interaction.id} failed`,
-				discordErrorSummary(error),
-			)
-			if (!interaction.isRepliable()) return
-			const container = errorContainer(message)
-			if (interaction.deferred) await interaction.editReply(editPayload(container))
-			else if (interaction.replied)
-				await interaction.followUp(replyPayload(container, { ephemeral: true }))
-			else await interaction.reply(replyPayload(container, { ephemeral: true }))
-		}
+		const started = performance.now()
+		const interactionKind = interaction.isAutocomplete()
+			? 'autocomplete'
+			: interaction.isButton()
+				? 'button'
+				: interaction.isUserContextMenuCommand()
+					? 'context-menu'
+					: interaction.isChatInputCommand()
+						? 'chat-input'
+						: 'other'
+		await withActiveSpan(
+			`discord.interaction ${interactionKind}`,
+			{ attributes: { 'discord.interaction.type': interactionKind } },
+			async (span) => {
+				try {
+					if (interaction.isAutocomplete()) {
+						await dependencies.dispatchAutocomplete(interaction, context)
+						return
+					}
+					if (interaction.isButton()) {
+						await dependencies.dispatchButton(interaction, context)
+						return
+					}
+					if (interaction.isUserContextMenuCommand()) {
+						await dependencies.dispatchContextMenu(interaction, context)
+						return
+					}
+					if (!interaction.isChatInputCommand()) return
+					await dependencies.dispatchChatInput(interaction, context)
+					if (
+						(interaction.commandName === 'link' ||
+							interaction.commandName === 'unlink') &&
+						interaction.inGuild()
+					) {
+						const member = await interaction.guild?.members.fetch(interaction.user.id)
+						if (member) await syncLinkedRole(member, context)
+					}
+				} catch (error) {
+					const message = error instanceof Error ? error.message : 'Unknown error'
+					dependencies.logError(
+						`Discord interaction ${interaction.id} failed`,
+						discordErrorSummary(error),
+					)
+					if (!interaction.isRepliable()) return
+					const container = errorContainer(message)
+					if (interaction.deferred) await interaction.editReply(editPayload(container))
+					else if (interaction.replied)
+						await interaction.followUp(replyPayload(container, { ephemeral: true }))
+					else await interaction.reply(replyPayload(container, { ephemeral: true }))
+					throw error
+				} finally {
+					interactionDuration.record((performance.now() - started) / 1_000, {
+						'discord.interaction.type': interactionKind,
+					})
+					interactionOutcomes.add(1, { 'discord.interaction.type': interactionKind })
+					span.addEvent('discord.interaction.completed', {
+						'discord.interaction.type': interactionKind,
+					})
+				}
+			},
+		).catch(() => undefined)
 	})
 
 	const healthServer = dependencies.serve({
@@ -289,6 +333,8 @@ export function createDiscordRuntime(
 			try {
 				await feeds.stop()
 			} finally {
+				readinessGauge.removeCallback(observeReadiness)
+				activityQueueGauge.removeCallback(observeActivityQueue)
 				healthServer.stop(true)
 				graphql.dispose()
 				context.runtime.sessions[Symbol.dispose]()

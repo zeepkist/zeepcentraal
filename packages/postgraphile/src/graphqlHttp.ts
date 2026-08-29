@@ -1,4 +1,6 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
+import { setActiveSpanAttributes, updateActiveSpanName } from '@zeepkist/telemetry'
+import { getOperationAST, parse } from 'postgraphile/graphql'
 import type { AdmissionController } from './admissionController'
 import type { ElysiaGrafserv } from './elysiaGrafserv'
 import { createGraphqlResponse } from './graphqlResponse'
@@ -15,6 +17,35 @@ type GraphqlHttpConfig = {
 	queryTraceDetail: boolean
 	cacheMaxEntries: number
 	maxQueryBytes: number
+}
+
+function enrichGraphqlSpan(body: unknown) {
+	const query =
+		typeof body === 'string'
+			? body
+			: body && typeof body === 'object' && 'query' in body && typeof body.query === 'string'
+				? body.query
+				: undefined
+	const requestedName =
+		body &&
+		typeof body === 'object' &&
+		'operationName' in body &&
+		typeof body.operationName === 'string'
+			? body.operationName
+			: undefined
+	if (!query) return
+	try {
+		const operation = getOperationAST(parse(query, { noLocation: true }), requestedName)
+		if (!operation) return
+		const name = operation.name?.value ?? 'anonymous'
+		setActiveSpanAttributes({
+			'graphql.operation.name': name,
+			'graphql.operation.type': operation.operation,
+		})
+		updateActiveSpanName(`${operation.operation} ${name}`)
+	} catch {
+		// Validation layer reports malformed GraphQL without recording document content.
+	}
 }
 
 async function parseGraphqlBody(request: Request, body: unknown) {
@@ -76,6 +107,7 @@ export function createGraphqlHttpHandler(
 		collectHeaderMetrics(request.headers)
 
 		const graphqlBody = await parseGraphqlBody(request, body)
+		enrichGraphqlSpan(graphqlBody)
 		const queryCost =
 			request.method === 'POST'
 				? await evaluateQueryCost(graphqlBody as never)

@@ -21,6 +21,7 @@
 	"dependencies": {
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
+		"@zeepkist/telemetry": "workspace:*",
 		"@zeepkist/workshop": "workspace:*",
 		"graphile-worker": "~0.17.3",
 		"zod": "~4.4.3"

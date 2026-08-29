@@ -16,7 +16,7 @@ import {
 	getPreferredTrackTournamentLobbyAsset,
 	setManagedLobbyJoinId,
 } from '@zeepkist/database'
-import { getMeter } from '@zeepkist/telemetry'
+import { getMeter, tracedFetch, withActiveSpan } from '@zeepkist/telemetry'
 
 const MANAGED_LOBBY_KEY = 'totw'
 const PLAYLIST_CHANGE_DELAY_MS = 3_500
@@ -93,11 +93,9 @@ export class TotwLobbyHost {
 		private readonly protocolTransitionTimeoutMs = PROTOCOL_TRANSITION_TIMEOUT_MS,
 		private readonly playlistChangeDelayMs = PLAYLIST_CHANGE_DELAY_MS,
 	) {
-		meter.createObservableGauge('zeepkist.totw.asset.ready').addCallback((result) =>
-			result.observe(this.asset ? 1 : 0, {
-				tournament_id: this.asset?.idTournament.toString() ?? 'none',
-			}),
-		)
+		meter
+			.createObservableGauge('zeepkist.totw.asset.ready')
+			.addCallback((result) => result.observe(this.asset ? 1 : 0))
 		meter
 			.createObservableGauge('zeepkist.totw.tournament.active')
 			.addCallback((result) => result.observe(this.asset?.idTournament ?? 0))
@@ -122,7 +120,7 @@ export class TotwLobbyHost {
 					await delay(this.config.assetPollMs)
 					continue
 				}
-				await this.connectRoom()
+				await withActiveSpan('lobby.connect', () => this.connectRoom())
 				retryMs = 1_000
 			} catch (error) {
 				if (!this.stopped) {
@@ -283,26 +281,31 @@ export class TotwLobbyHost {
 	}
 
 	private async refreshAssetOnce() {
-		const metadata = await getPreferredTrackTournamentLobbyAsset()
-		if (!metadata || metadata.contentSha256 === this.asset?.contentSha256) return
-		if (metadata.byteSize < 1 || metadata.byteSize > MAX_ASSET_BYTES) {
-			throw new Error('Prepared tournament asset size is invalid')
-		}
-		const compressedData = await downloadTrackTournamentLobbyAsset(metadata)
-		this.asset = {
-			compressedData,
-			contentSha256: metadata.contentSha256,
-			idTournament: metadata.idTournament,
-			level: {
-				author: metadata.author,
-				collaborators: metadata.collaborators,
-				name: metadata.levelName,
-				overrideAuthorName: metadata.overrideAuthorName,
-				uid: metadata.fileUid,
-				workshopId: metadata.workshopId,
-			},
-		}
-		console.info(`TotW lobby asset ready for tournament ${metadata.idTournament}.`)
+		return withActiveSpan('lobby.asset.refresh', async (span) => {
+			const metadata = await getPreferredTrackTournamentLobbyAsset()
+			if (!metadata || metadata.contentSha256 === this.asset?.contentSha256) return
+			if (metadata.byteSize < 1 || metadata.byteSize > MAX_ASSET_BYTES) {
+				throw new Error('Prepared tournament asset size is invalid')
+			}
+			const compressedData = await downloadTrackTournamentLobbyAsset(metadata)
+			this.asset = {
+				compressedData,
+				contentSha256: metadata.contentSha256,
+				idTournament: metadata.idTournament,
+				level: {
+					author: metadata.author,
+					collaborators: metadata.collaborators,
+					name: metadata.levelName,
+					overrideAuthorName: metadata.overrideAuthorName,
+					uid: metadata.fileUid,
+					workshopId: metadata.workshopId,
+				},
+			}
+			span.addEvent('lobby.asset.ready', {
+				'lobby.asset.bytes': compressedData.byteLength,
+			})
+			console.info(`TotW lobby asset ready for tournament ${metadata.idTournament}.`)
+		})
 	}
 
 	private async activateAsset(
@@ -310,35 +313,38 @@ export class TotwLobbyHost {
 		asset: LoadedAsset,
 		state: RoomTransferState,
 	) {
-		if (state.activeAsset?.contentSha256 === asset.contentSha256) return
-		if (state.pendingActivation?.assetHash === asset.contentSha256) {
-			return withTimeout(
-				state.pendingActivation.promise,
-				this.protocolTransitionTimeoutMs,
-				'Lobby level-data request timed out',
-			)
-		}
+		return withActiveSpan('lobby.asset.activate', async (span) => {
+			if (state.activeAsset?.contentSha256 === asset.contentSha256) return
+			if (state.pendingActivation?.assetHash === asset.contentSha256) {
+				return withTimeout(
+					state.pendingActivation.promise,
+					this.protocolTransitionTimeoutMs,
+					'Lobby level-data request timed out',
+				)
+			}
 
-		state.pendingAsset = asset
-		const activation = createPendingActivation(asset.contentSha256)
-		state.pendingActivation = activation
-		const playlistSend = client.sendReliableOrdered(
-			changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
-		)
-		const skipSend = client.sendReliableOrdered(skipToLevelPacket(asset.level))
-		console.info(
-			`TotW lobby playlist and level switch sent for tournament ${asset.idTournament}.`,
-		)
-		try {
-			await Promise.all([playlistSend, skipSend])
-			await withTimeout(
-				activation.promise,
-				this.protocolTransitionTimeoutMs,
-				'Lobby level-data request timed out',
+			state.pendingAsset = asset
+			const activation = createPendingActivation(asset.contentSha256)
+			state.pendingActivation = activation
+			const playlistSend = client.sendReliableOrdered(
+				changeLobbyPlaylistPacket(asset.level, this.config.roundTimeSeconds),
 			)
-		} finally {
-			if (state.pendingActivation === activation) state.pendingActivation = undefined
-		}
+			const skipSend = client.sendReliableOrdered(skipToLevelPacket(asset.level))
+			console.info(
+				`TotW lobby playlist and level switch sent for tournament ${asset.idTournament}.`,
+			)
+			try {
+				await Promise.all([playlistSend, skipSend])
+				await withTimeout(
+					activation.promise,
+					this.protocolTransitionTimeoutMs,
+					'Lobby level-data request timed out',
+				)
+			} finally {
+				if (state.pendingActivation === activation) state.pendingActivation = undefined
+			}
+			span.addEvent('lobby.protocol.activation.completed')
+		})
 	}
 
 	private async uploadRequestedLevel(
@@ -346,33 +352,40 @@ export class TotwLobbyHost {
 		request: LevelRequestPacket,
 		state: RoomTransferState,
 	) {
-		const asset = [state.pendingAsset, state.activeAsset, state.previousAsset].find(
-			(candidate) => candidate && this.matchesLevelRequest(candidate, request),
-		)
-		if (!asset) throw new Error('GameServer requested unknown level')
+		return withActiveSpan('lobby.asset.upload', async (span) => {
+			const asset = [state.pendingAsset, state.activeAsset, state.previousAsset].find(
+				(candidate) => candidate && this.matchesLevelRequest(candidate, request),
+			)
+			if (!asset) throw new Error('GameServer requested unknown level')
 
-		console.info(`TotW lobby level-data request received for tournament ${asset.idTournament}.`)
-		await client.sendReliableOrdered(levelDataPacket(request, asset.compressedData))
-		console.info(
-			`TotW lobby level data uploaded for tournament ${asset.idTournament} (${asset.compressedData.length} bytes).`,
-		)
+			console.info(
+				`TotW lobby level-data request received for tournament ${asset.idTournament}.`,
+			)
+			await client.sendReliableOrdered(levelDataPacket(request, asset.compressedData))
+			span.addEvent('lobby.asset.uploaded', {
+				'lobby.asset.bytes': asset.compressedData.length,
+			})
+			console.info(
+				`TotW lobby level data uploaded for tournament ${asset.idTournament} (${asset.compressedData.length} bytes).`,
+			)
 
-		if (state.pendingAsset?.contentSha256 !== asset.contentSha256) return
-		state.previousAsset = state.activeAsset
-		if (state.previousAssetTimer) clearTimeout(state.previousAssetTimer)
-		const previousAsset = state.previousAsset
-		state.previousAssetTimer = setTimeout(() => {
-			if (state.previousAsset === previousAsset) state.previousAsset = undefined
-			state.previousAssetTimer = undefined
-		}, PREVIOUS_ASSET_TTL_MS)
-		state.activeAsset = asset
-		state.pendingAsset = undefined
-		this.roomReady = true
-		if (state.pendingActivation?.assetHash === asset.contentSha256) {
-			state.pendingActivation.resolve()
-			state.pendingActivation = undefined
-		}
-		console.info(`TotW lobby ready for tournament ${asset.idTournament}.`)
+			if (state.pendingAsset?.contentSha256 !== asset.contentSha256) return
+			state.previousAsset = state.activeAsset
+			if (state.previousAssetTimer) clearTimeout(state.previousAssetTimer)
+			const previousAsset = state.previousAsset
+			state.previousAssetTimer = setTimeout(() => {
+				if (state.previousAsset === previousAsset) state.previousAsset = undefined
+				state.previousAssetTimer = undefined
+			}, PREVIOUS_ASSET_TTL_MS)
+			state.activeAsset = asset
+			state.pendingAsset = undefined
+			this.roomReady = true
+			if (state.pendingActivation?.assetHash === asset.contentSha256) {
+				state.pendingActivation.resolve()
+				state.pendingActivation = undefined
+			}
+			console.info(`TotW lobby ready for tournament ${asset.idTournament}.`)
+		})
 	}
 
 	private matchesLevelRequest(asset: LoadedAsset, request: LevelRequestPacket) {
@@ -382,15 +395,19 @@ export class TotwLobbyHost {
 	private async requestAssignment(joinId?: string): Promise<RoomAssignment> {
 		const startedAt = performance.now()
 		try {
-			const response = await fetch(`${this.config.brokerUrl}/v1/totw/assignment`, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${this.config.brokerToken}`,
-					'Content-Type': 'application/json',
+			const response = await tracedFetch(
+				`${this.config.brokerUrl}/v1/totw/assignment`,
+				{
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${this.config.brokerToken}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(joinId ? { joinId } : {}),
+					signal: AbortSignal.timeout(20_000),
 				},
-				body: JSON.stringify(joinId ? { joinId } : {}),
-				signal: AbortSignal.timeout(20_000),
-			})
+				{ operationName: 'lobby.broker.assignment' },
+			)
 			if (!response.ok) throw new Error(`Room broker returned HTTP ${response.status}`)
 			return parseAssignment(await response.json())
 		} finally {

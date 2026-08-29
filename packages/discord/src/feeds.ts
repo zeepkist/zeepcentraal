@@ -1,3 +1,4 @@
+import { getMeter, withActiveSpan } from '@zeepkist/telemetry'
 import type { Client } from 'discord.js'
 import type { CommandContext } from './commands/context'
 import { buildTournamentMessages } from './commands/utils/tournament'
@@ -9,6 +10,11 @@ import { processActivityWatches } from './feeds/process-activity-watches'
 import { activityFeedKind, processFeed } from './feeds/process-feed'
 import { updateTournament } from './feeds/update-tournament'
 import type { DiscordActivityEvent, DiscordGuildFeed, DiscordGuildState } from './types'
+
+const meter = getMeter('zeepcentraal-discord')
+const activityDuration = meter.createHistogram('discord.activity.duration', { unit: 's' })
+const pollDuration = meter.createHistogram('discord.poll.duration', { unit: 's' })
+const operationOutcomes = meter.createCounter('discord.background.operations')
 
 export class FeedService {
 	private tournamentTimer?: ReturnType<typeof setInterval>
@@ -81,6 +87,22 @@ export class FeedService {
 	}
 
 	async processActivityEvents(events: DiscordActivityEvent[]) {
+		const startedAt = performance.now()
+		try {
+			await withActiveSpan('discord.activity.process', async (span) => {
+				span.addEvent('activity.batch', { 'activity.event.count': events.length })
+				await this.processActivityEventsBatch(events)
+			})
+			operationOutcomes.add(1, { operation: 'activity', outcome: 'success' })
+		} catch (error) {
+			operationOutcomes.add(1, { operation: 'activity', outcome: 'error' })
+			throw error
+		} finally {
+			activityDuration.record((performance.now() - startedAt) / 1000)
+		}
+	}
+
+	private async processActivityEventsBatch(events: DiscordActivityEvent[]) {
 		try {
 			await processActivityWatches(this.client, events, this.context)
 		} catch (error) {
@@ -133,6 +155,24 @@ export class FeedService {
 	async pollTournaments() {
 		if (this.stopped) return
 		if (this.tournamentPolling) return
+		const startedAt = performance.now()
+		try {
+			await withActiveSpan('discord.tournament.poll', async (span) => {
+				span.addEvent('poll.started', {
+					'discord.guild.count': this.client.guilds.cache.size,
+				})
+				await this.pollTournamentsActive()
+			})
+			operationOutcomes.add(1, { operation: 'tournament_poll', outcome: 'success' })
+		} catch (error) {
+			operationOutcomes.add(1, { operation: 'tournament_poll', outcome: 'error' })
+			throw error
+		} finally {
+			pollDuration.record((performance.now() - startedAt) / 1000)
+		}
+	}
+
+	private async pollTournamentsActive() {
 		this.tournamentPolling = true
 		const completion = Promise.withResolvers<void>()
 		this.tournamentDrain = completion.promise

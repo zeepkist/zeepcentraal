@@ -6,9 +6,9 @@
 		"#shared/authCookies": "./shared/authCookies.ts"
 	},
 	"scripts": {
-		"build": "bun run prepare:nuxt && bun --bun nuxt build",
+		"build": "bun run prepare:nuxt && bun --bun nuxt build && bun scripts/build-telemetry-bootstrap.ts",
 		"dev": "bun --bun nuxt dev --dotenv ../../.env",
-		"preview": "bun --bun nuxt preview --dotenv ../../.env",
+		"preview": "bun --bun --env-file ../../.env .output/server/telemetry.mjs",
 		"postinstall": "bun run prepare:nuxt",
 		"prepare:nuxt": "bun --bun nuxt prepare",
 		"generate:block-meshes": "bun scripts/generate-block-mesh-manifest.ts",
@@ -35,6 +35,7 @@
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
 		"@zeepkist/graphql": "workspace:*",
+		"@zeepkist/telemetry": "workspace:*",
 		"graphql": "~17.0.2",
 		"graphql-ws": "~6.2.0",
 		"lzma-wasm": "~1.0.7",

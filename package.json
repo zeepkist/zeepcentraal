@@ -8,10 +8,10 @@
 	],
 	"scripts": {
 		"preview:web": "bun --bun --cwd=packages/web run preview",
-		"dev:server": "bun --watch packages/server/src/index.ts",
+		"dev:server": "bun --watch packages/server/src/bootstrap.ts",
 		"dev:jobs": "bun --watch packages/jobs/src/index.ts",
 		"dev:lobby-host": "bun --watch packages/lobby-host/src/index.ts",
-		"dev:postgraphile": "bun --watch packages/postgraphile/src/index.ts",
+		"dev:postgraphile": "bun --watch packages/postgraphile/src/bootstrap.ts",
 		"dev:discord": "bun --watch packages/discord/src/index.ts",
 		"dev:web": "bun --bun --cwd=packages/web run dev",
 		"jobs:trigger": "bun packages/server/scripts/jobs-trigger.ts",

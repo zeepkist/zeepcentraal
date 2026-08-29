@@ -18,4 +18,4 @@ EXPOSE 4000
 
 USER 65532:65532
 
-ENTRYPOINT ["bun", "--bun", ".output/server/index.mjs"]
+ENTRYPOINT ["bun", "--bun", ".output/server/telemetry.mjs"]

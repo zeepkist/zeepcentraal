@@ -3,11 +3,10 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { createDatabaseClientOptions } from './clientOptions'
 import * as schema from './schema'
+import { createTracedPostgresClient } from './telemetry'
 
-export const client = postgres(
-	databaseConfig.databaseUrl,
-	createDatabaseClientOptions(databaseConfig),
-)
+const rawClient = postgres(databaseConfig.databaseUrl, createDatabaseClientOptions(databaseConfig))
+export const client = createTracedPostgresClient(rawClient, databaseConfig.databaseUrl)
 
 export const db = drizzle(client, { schema })
 

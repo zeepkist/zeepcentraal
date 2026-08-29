@@ -2,11 +2,12 @@ import { resolve } from 'node:path'
 import { aot } from 'elysia/plugin/aot/bun'
 
 process.env.NODE_ENV = 'production'
+process.env.OTEL_SDK_DISABLED = 'true'
 process.env.DATABASE_URL = 'postgres://aot:aot@127.0.0.1:5432/aot'
 process.env.POSTGRAPHILE_DATABASE_URL = 'postgres://aot:aot@127.0.0.1:5432/aot'
 delete process.env.POSTGRAPHILE_SUPERUSER_DATABASE_URL
 
-const entry = resolve(import.meta.dir, '../src/index.ts')
+const entry = resolve(import.meta.dir, '../src/bootstrap.ts')
 const appEntry = resolve(import.meta.dir, '../src/app.ts')
 const outfile = resolve(import.meta.dir, '../../../dist/zeepcentraal-postgraphile')
 

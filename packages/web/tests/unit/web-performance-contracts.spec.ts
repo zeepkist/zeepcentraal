@@ -58,7 +58,7 @@ describe('web performance contracts', () => {
 		const levelGhosts = source('components/level/LevelGhostExplorerTab.client.vue')
 		const playback = source('composables/useGhostPlaybackSources.ts')
 		const comparisons = source('composables/useRecordComparisons.ts')
-		const urql = source('plugins/urql.ts')
+		const urql = source('plugins/urql.client.ts')
 
 		expect(recordRoute).toContain('<LazyRecordGhostExperience')
 		expect(recordRoute).toContain("rootMargin: '25% 0px'")

@@ -1,4 +1,6 @@
 export * from './config'
+export * from './fetch'
+export * from './logger'
 export * from './requestLogging'
 export * from './runtimeMetrics'
 export * from './sdk'

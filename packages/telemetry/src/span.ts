@@ -10,10 +10,13 @@ import {
 	trace,
 } from '@opentelemetry/api'
 
+export { SpanKind }
+
 export type TelemetryAttributes = Attributes
 
 export type TelemetrySpanOptions = {
 	attributes?: TelemetryAttributes
+	kind?: SpanKind
 }
 
 export type TelemetryHttpServerSpanInput = {
@@ -31,6 +34,7 @@ export type TelemetrySpan = {
 	setAttributes(attributes: TelemetryAttributes): void
 	addEvent(name: string, attributes?: TelemetryAttributes): void
 	recordException(error: unknown): void
+	hasErrorStatus(): boolean
 	setErrorStatus(message?: string): void
 	setOkStatus(): void
 	updateName(name: string): void
@@ -57,6 +61,7 @@ function toError(error: unknown) {
 }
 
 function wrapSpan(span: Span): TelemetrySpan {
+	let errorStatus = false
 	return {
 		setAttribute(name, value) {
 			span.setAttribute(name, value)
@@ -70,10 +75,15 @@ function wrapSpan(span: Span): TelemetrySpan {
 		recordException(error) {
 			span.recordException(toError(error))
 		},
+		hasErrorStatus() {
+			return errorStatus
+		},
 		setErrorStatus(message) {
+			errorStatus = true
 			span.setStatus({ code: SpanStatusCode.ERROR, message })
 		},
 		setOkStatus() {
+			errorStatus = false
 			span.setStatus({ code: SpanStatusCode.OK })
 		},
 		updateName(name) {
@@ -88,6 +98,7 @@ function wrapSpan(span: Span): TelemetrySpan {
 function toSpanOptions(options?: TelemetrySpanOptions): SpanOptions {
 	return {
 		attributes: options?.attributes,
+		kind: options?.kind,
 	}
 }
 
@@ -149,6 +160,38 @@ export function startActiveSpan<T>(
 	return getTracer().startActiveSpan(spanName, optionsOrCallback, callback)
 }
 
+export async function withActiveSpan<T>(
+	spanName: string,
+	callback: (span: TelemetrySpan) => T | Promise<T>,
+): Promise<T>
+export async function withActiveSpan<T>(
+	spanName: string,
+	options: TelemetrySpanOptions,
+	callback: (span: TelemetrySpan) => T | Promise<T>,
+): Promise<T>
+export async function withActiveSpan<T>(
+	spanName: string,
+	optionsOrCallback: TelemetrySpanOptions | ((span: TelemetrySpan) => T | Promise<T>),
+	callback?: (span: TelemetrySpan) => T | Promise<T>,
+): Promise<T> {
+	const options = typeof optionsOrCallback === 'function' ? {} : optionsOrCallback
+	const run = typeof optionsOrCallback === 'function' ? optionsOrCallback : callback
+	if (!run) throw new Error('Telemetry span callback is required')
+
+	return startActiveSpan(spanName, options, async (span) => {
+		try {
+			const value = await run(span)
+			if (!span.hasErrorStatus()) span.setOkStatus()
+			return value
+		} catch (error) {
+			recordSpanError(error, undefined, span)
+			throw error
+		} finally {
+			span.end()
+		}
+	})
+}
+
 export function injectTraceHeaders(headers?: TelemetryHeadersInit): Headers {
 	const nextHeaders = new Headers(headers)
 	propagation.inject(context.active(), nextHeaders, {
@@ -165,6 +208,21 @@ export function withExtractedTraceContext<T>(
 ): T {
 	const extractedContext = propagation.extract(context.active(), headerCarrier(headers))
 	return context.with(extractedContext, callback)
+}
+
+export type TraceCarrier = Record<string, string>
+
+export function injectTraceCarrier(carrier: TraceCarrier = {}): TraceCarrier {
+	propagation.inject(context.active(), carrier)
+	return carrier
+}
+
+export function withExtractedTraceCarrier<T>(
+	carrier: TraceCarrier | undefined,
+	callback: () => T,
+): T {
+	if (!carrier) return callback()
+	return context.with(propagation.extract(context.active(), carrier), callback)
 }
 
 export function startHttpServerSpan<T>(

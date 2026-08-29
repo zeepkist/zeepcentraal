@@ -7,7 +7,10 @@ import { describe, expect, test } from 'vitest'
 const graphqlDir = fileURLToPath(new URL('../../../graphql/documents/web', import.meta.url))
 const appDir = fileURLToPath(new URL('../../app', import.meta.url))
 const composablesDir = fileURLToPath(new URL('../../app/composables', import.meta.url))
-const urqlPlugin = fileURLToPath(new URL('../../app/plugins/urql.ts', import.meta.url))
+const urqlPlugins = [
+	fileURLToPath(new URL('../../app/plugins/urql.client.ts', import.meta.url)),
+	fileURLToPath(new URL('../../app/plugins/urql.server.ts', import.meta.url)),
+]
 
 function filesUnder(path: string, extension: string): string[] {
 	return readdirSync(path, { withFileTypes: true }).flatMap((entry) => {
@@ -138,9 +141,9 @@ describe('GraphQL operation conventions', () => {
 	})
 
 	test('urql sends GraphQL queries using POST', () => {
-		const source = readFileSync(urqlPlugin, 'utf8')
-
-		expect(source).toContain('preferGetMethod: false')
+		for (const plugin of urqlPlugins) {
+			expect(readFileSync(plugin, 'utf8')).toContain('preferGetMethod: false')
+		}
 	})
 
 	test('below-fold urql queries use viewport pause gates', () => {

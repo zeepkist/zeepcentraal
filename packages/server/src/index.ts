@@ -124,9 +124,13 @@ if (cluster.isPrimary) {
 				import('@zeepkist/database'),
 			])
 			await Promise.all([closeQueue(), closeDatabase()])
+			const { stopNodeTelemetry } = await import('@zeepkist/telemetry')
+			await stopNodeTelemetry()
 			process.exit(uploadsDrained ? 0 : 1)
 		} catch (error) {
 			console.error(`API worker ${process.pid} failed to shut down cleanly.`, error)
+			const { stopNodeTelemetry } = await import('@zeepkist/telemetry')
+			await stopNodeTelemetry().catch(() => undefined)
 			process.exit(1)
 		}
 	})

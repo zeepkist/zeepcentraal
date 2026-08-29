@@ -1,12 +1,15 @@
 export type TelemetryPackageName =
 	| 'core'
 	| 'database'
+	| 'discord'
 	| 'server'
 	| 'jobs'
 	| 'migrate'
 	| 'import-zsl'
 	| 'postgraphile'
 	| 'lobby-host'
+	| 'web'
+	| 'workshop'
 
 export type TelemetryConfigInput = {
 	packageName: TelemetryPackageName

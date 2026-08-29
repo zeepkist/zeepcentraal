@@ -47,15 +47,19 @@ export class DiscordBackendClient {
 
 	private async request<T>(path: string, input: FetchInput = {}): Promise<T> {
 		const method = (input.method ?? 'GET').toUpperCase()
-		const response = await this.fetchImpl(new URL(path, this.config.backendUrl), {
-			...input,
-			headers: {
-				authorization: `Bearer ${this.config.apiToken}`,
-				'content-type': 'application/json',
-				...input.headers,
+		const response = await tracedFetch(
+			new URL(path, this.config.backendUrl),
+			{
+				...input,
+				headers: {
+					authorization: `Bearer ${this.config.apiToken}`,
+					'content-type': 'application/json',
+					...input.headers,
+				},
+				body: input.body === undefined ? undefined : JSON.stringify(input.body),
 			},
-			body: input.body === undefined ? undefined : JSON.stringify(input.body),
-		})
+			{ fetch: this.fetchImpl, operationName: `discord.backend ${method}` },
+		)
 		if (!response.ok) {
 			throw new DiscordBackendError(
 				response.status,
@@ -206,3 +210,5 @@ export class DiscordBackendClient {
 		)
 	}
 }
+
+import { tracedFetch } from '@zeepkist/telemetry'

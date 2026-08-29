@@ -44,7 +44,9 @@ const nativeDependencyDockerfiles = ['jobs', 'server'].map((name) =>
 describe('web deployment build', () => {
 	it('builds the standard Nitro output', () => {
 		expect(rootPackage.scripts['build:web']).toBe('bun --bun --cwd=packages/web run build')
-		expect(webPackage.scripts.build).toBe('bun run prepare:nuxt && bun --bun nuxt build')
+		expect(webPackage.scripts.build).toBe(
+			'bun run prepare:nuxt && bun --bun nuxt build && bun scripts/build-telemetry-bootstrap.ts',
+		)
 		expect(webPackage.scripts['prepare:nuxt']).toBe('bun --bun nuxt prepare')
 		expect(webPackage.scripts.postinstall).toBe('bun run prepare:nuxt')
 		expect(webPackage.scripts['build:deployment']).toBeUndefined()
@@ -231,7 +233,9 @@ describe('web deployment build', () => {
 		expect(webDockerfile).toContain('FROM oven/bun:1.4.0-slim')
 		expect(webDockerfile).toContain('COPY --chown=65532:65532 packages/web/.output .output')
 		expect(webDockerfile).toContain('USER 65532:65532')
-		expect(webDockerfile).toContain('ENTRYPOINT ["bun", "--bun", ".output/server/index.mjs"]')
+		expect(webDockerfile).toContain(
+			'ENTRYPOINT ["bun", "--bun", ".output/server/telemetry.mjs"]',
+		)
 		expect(webDockerfile).not.toContain('dist/zeepcentraal-web')
 		expect(webDockerfile).not.toContain('@takumi-rs/core-linux')
 		expect(dockerIgnore).toContain('!packages/web/.output/')

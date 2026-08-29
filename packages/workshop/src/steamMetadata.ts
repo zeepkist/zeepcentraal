@@ -1,4 +1,5 @@
 import { STEAM_VISIBILITY } from '@zeepkist/core/steam'
+import { tracedFetch } from '@zeepkist/telemetry'
 import type {
 	WorkshopCatalogPage,
 	WorkshopItemMetadata,
@@ -48,7 +49,7 @@ function parseItem(item: SteamPublishedFile): WorkshopItemMetadata {
 }
 
 async function getJson(url: URL): Promise<SteamResponse> {
-	const response = await fetch(url)
+	const response = await tracedFetch(url, {}, { operationName: 'steam.webapi' })
 	if (!response.ok) {
 		throw new Error(`Steam Web API request failed: ${response.status}`)
 	}

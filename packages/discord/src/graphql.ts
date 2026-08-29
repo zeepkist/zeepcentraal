@@ -21,6 +21,7 @@ import {
 	Zc_DiscordUserStatsDocument,
 	Zc_DiscordUsersByIdsDocument,
 } from '@zeepkist/graphql/generated'
+import { SpanKind, tracedFetch, withActiveSpan } from '@zeepkist/telemetry'
 import type { DocumentNode } from 'graphql'
 import { createClient as createWsClient, type Client as WsClient } from 'graphql-ws'
 import WebSocket from 'ws'
@@ -70,6 +71,15 @@ export function createProductionGraphqlDependencies(): GraphqlDependencies {
 	return { createClient, createWsClient }
 }
 
+function operationDetails(document: DocumentNode) {
+	const operation = document.definitions.find(
+		(definition) => definition.kind === 'OperationDefinition',
+	)
+	return operation?.kind === 'OperationDefinition'
+		? { name: operation.name?.value ?? 'anonymous', type: operation.operation }
+		: { name: 'unknown', type: 'query' }
+}
+
 export function createSubscriptionForwarder(
 	wsClient: WsClient,
 ): Parameters<typeof subscriptionExchange>[0]['forwardSubscription'] {
@@ -108,6 +118,10 @@ export class ZeepGraphqlClient {
 			url: config.graphql.httpUrl,
 			preferGetMethod: false,
 			fetchOptions: { method: 'POST' },
+			fetch: ((input, init) =>
+				tracedFetch(input, init, {
+					operationName: 'discord.graphql.http',
+				})) as typeof fetch,
 			exchanges: [
 				fetchExchange,
 				subscriptionExchange({
@@ -118,10 +132,25 @@ export class ZeepGraphqlClient {
 	}
 
 	async query<T>(document: DocumentNode, variables: AnyVariables = {}): Promise<T> {
-		const result = await this.client.query<T, AnyVariables>(document, variables).toPromise()
-		if (result.error) throw result.error
-		if (!result.data) throw new Error('GraphQL returned no data')
-		return result.data
+		const operation = operationDetails(document)
+		return withActiveSpan(
+			`${operation.type} ${operation.name}`,
+			{
+				kind: SpanKind.CLIENT,
+				attributes: {
+					'graphql.operation.name': operation.name,
+					'graphql.operation.type': operation.type,
+				},
+			},
+			async () => {
+				const result = await this.client
+					.query<T, AnyVariables>(document, variables)
+					.toPromise()
+				if (result.error) throw result.error
+				if (!result.data) throw new Error('GraphQL returned no data')
+				return result.data
+			},
+		)
 	}
 
 	subscribeToActivityEvents(onEvents: (events: DiscordActivityEvent[]) => void) {
@@ -132,13 +161,21 @@ export class ZeepGraphqlClient {
 			.subscribe((result) => {
 				const nodes = result.data?.discordActivityEvents.nodes
 				if (result.error || !nodes || nodes.length === 0) return
-				onEvents(
-					nodes
-						.map((event) => ({
-							...event,
-							payload: activityEventPayload(event.payload),
-						}))
-						.reverse(),
+				void withActiveSpan(
+					'discord.activity.subscription delivery',
+					{
+						kind: SpanKind.CONSUMER,
+						attributes: { 'messaging.batch.message_count': nodes.length },
+					},
+					() =>
+						onEvents(
+							nodes
+								.map((event) => ({
+									...event,
+									payload: activityEventPayload(event.payload),
+								}))
+								.reverse(),
+						),
 				)
 			})
 	}

@@ -121,6 +121,8 @@ if (cluster.isPrimary) {
 			await utils.release()
 			const { closeDatabase } = await import('@zeepkist/database')
 			await closeDatabase()
+			const { stopNodeTelemetry } = await import('@zeepkist/telemetry')
+			await stopNodeTelemetry()
 			process.exit(0)
 		})()
 
@@ -145,6 +147,8 @@ if (cluster.isPrimary) {
 			await stopRunner()
 			const { closeDatabase } = await import('@zeepkist/database')
 			await closeDatabase()
+			const { stopNodeTelemetry } = await import('@zeepkist/telemetry')
+			await stopNodeTelemetry()
 			process.exit(0)
 		})()
 

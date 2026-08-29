@@ -1,3 +1,4 @@
+import { injectTraceHeaders, withActiveSpan } from '@zeepkist/telemetry'
 import type {
 	ModkistRelease,
 	ModkistReleaseAsset,
@@ -153,30 +154,47 @@ export function resolveModkistDownloadUrl(
 }
 
 async function requestModkistReleases(): Promise<ModkistReleases> {
-	const token = String(useRuntimeConfig().githubToken || '').trim()
-	if (!token) {
-		throw createError({ statusCode: 503, statusMessage: 'GitHub releases are not configured' })
-	}
-
-	const response = await $fetch<GitHubGraphqlResponse>(GITHUB_GRAPHQL_URL, {
-		method: 'POST',
-		headers: {
-			accept: 'application/vnd.github+json',
-			authorization: `Bearer ${token}`,
-			'user-agent': 'ZeepCentraal',
+	return withActiveSpan(
+		'query ZeepCentraal_ModkistReleases',
+		{
+			attributes: {
+				'graphql.operation.name': 'ZeepCentraal_ModkistReleases',
+				'graphql.operation.type': 'query',
+			},
 		},
-		body: {
-			query: MODKIST_RELEASE_QUERY,
-			operationName: 'ZeepCentraal_ModkistReleases',
-			variables: { owner: 'Thundernerd', name: 'ModkistMKII' },
-		},
-		timeout: 5_000,
-	})
+		async () => {
+			const token = String(useRuntimeConfig().githubToken || '').trim()
+			if (!token) {
+				throw createError({
+					statusCode: 503,
+					statusMessage: 'GitHub releases are not configured',
+				})
+			}
 
-	if (response.errors?.length || !response.data?.repository) {
-		throw createError({ statusCode: 502, statusMessage: 'GitHub releases request failed' })
-	}
-	return mapGitHubModkistReleases(response.data)
+			const response = await $fetch<GitHubGraphqlResponse>(GITHUB_GRAPHQL_URL, {
+				method: 'POST',
+				headers: injectTraceHeaders({
+					accept: 'application/vnd.github+json',
+					authorization: `Bearer ${token}`,
+					'user-agent': 'ZeepCentraal',
+				}),
+				body: {
+					query: MODKIST_RELEASE_QUERY,
+					operationName: 'ZeepCentraal_ModkistReleases',
+					variables: { owner: 'Thundernerd', name: 'ModkistMKII' },
+				},
+				timeout: 5_000,
+			})
+
+			if (response.errors?.length || !response.data?.repository) {
+				throw createError({
+					statusCode: 502,
+					statusMessage: 'GitHub releases request failed',
+				})
+			}
+			return mapGitHubModkistReleases(response.data)
+		},
+	)
 }
 
 export function getModkistReleases(): Promise<ModkistReleases> {

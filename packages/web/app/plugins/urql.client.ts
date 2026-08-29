@@ -9,32 +9,21 @@ import type { Client as GraphqlWsClient, SubscribePayload } from 'graphql-ws'
 
 export default defineNuxtPlugin((nuxtApp) => {
 	const config = useRuntimeConfig()
-	const requestHeaders = useRequestHeaders(['cookie'])
-	const ssr = ssrExchange({
-		isClient: import.meta.client,
-		initialState: import.meta.client ? nuxtApp.payload.data.urql : undefined,
-	})
-
-	if (import.meta.server) {
-		nuxtApp.hook('app:rendered', () => {
-			nuxtApp.payload.data.urql = ssr.extractData()
-		})
+	const ssr = ssrExchange({ isClient: true, initialState: nuxtApp.payload.data.urql })
+	let wsClientPromise: Promise<GraphqlWsClient> | undefined
+	const getWsClient = () => {
+		wsClientPromise ??= import('graphql-ws').then(({ createClient: createWsClient }) =>
+			createWsClient({ url: config.public.graphqlWsUrl }),
+		)
+		return wsClientPromise
 	}
-
-	const exchanges = [cacheExchange, ssr, fetchExchange]
-
-	if (import.meta.client) {
-		let wsClientPromise: Promise<GraphqlWsClient> | undefined
-		const getWsClient = () => {
-			wsClientPromise ??= import('graphql-ws').then(({ createClient: createWsClient }) =>
-				createWsClient({ url: config.public.graphqlWsUrl }),
-			)
-			return wsClientPromise
-		}
-
-		exchanges.splice(
-			2,
-			0,
+	const client = createClient({
+		url: config.public.graphqlHttpUrl,
+		preferGetMethod: false,
+		fetchOptions: { credentials: 'include' },
+		exchanges: [
+			cacheExchange,
+			ssr,
 			subscriptionExchange({
 				forwardSubscription(request) {
 					return {
@@ -63,18 +52,8 @@ export default defineNuxtPlugin((nuxtApp) => {
 					}
 				},
 			}),
-		)
-	}
-
-	const client = createClient({
-		url: config.public.graphqlHttpUrl,
-		exchanges,
-		preferGetMethod: false,
-		fetchOptions: () => ({
-			credentials: 'include',
-			headers: import.meta.server ? requestHeaders : undefined,
-		}),
+			fetchExchange,
+		],
 	})
-
 	nuxtApp.vueApp.use(urql, client)
 })

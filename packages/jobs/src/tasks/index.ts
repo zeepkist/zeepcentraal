@@ -1,4 +1,5 @@
-import type { Helpers } from 'graphile-worker'
+import type { JobHelpers } from 'graphile-worker'
+import { wrapTask } from '../jobTelemetry'
 import type { TaskIdentifier } from '../taskDefinitions'
 import {
 	backfillRecordGhostStatistics,
@@ -20,25 +21,43 @@ import { updatePlayerScores } from './updatePlayerScores'
 import { updateUserPointsHistory } from './updateUserPointsHistory'
 import { updateUserPointsHistoryBatch } from './updateUserPointsHistoryBatch'
 
-type GWTask = (payload: unknown, helpers: Helpers) => Promise<void>
+type GWTask = (payload: unknown, helpers: JobHelpers) => Promise<void>
 
 // graphile-worker task list — keys must match the task name strings used in addJob()
 export const taskList = {
-	backfillRecordGhostStatistics: backfillRecordGhostStatistics as GWTask,
-	backfillRecordGhostStatisticsBatch: backfillRecordGhostStatisticsBatch as GWTask,
-	recoverLevelRequests: recoverLevelRequests as GWTask,
-	prepareTrackTournamentLobbyAsset: prepareTrackTournamentLobbyAsset as GWTask,
-	scanWorkshopBatch: scanWorkshopBatch as GWTask,
-	scanWorkshopItem: scanWorkshopItem as GWTask,
-	rotateTrackTournament: rotateTrackTournament as GWTask,
-	syncPersonalBests: syncPersonalBests as GWTask,
-	syncWorkshopCatalog: syncWorkshopCatalog as GWTask,
-	updateLevelPointsHistory: updateLevelPointsHistory as GWTask,
-	updateLevelPointsHistoryBatch: updateLevelPointsHistoryBatch as GWTask,
-	updateLevelScore: updateLevelScore as GWTask,
-	updateLevelScores: updateLevelScores as GWTask,
-	updatePlayerScore: updatePlayerScore as GWTask,
-	updatePlayerScores: updatePlayerScores as GWTask,
-	updateUserPointsHistory: updateUserPointsHistory as GWTask,
-	updateUserPointsHistoryBatch: updateUserPointsHistoryBatch as GWTask,
+	backfillRecordGhostStatistics: wrapTask(
+		'backfillRecordGhostStatistics',
+		backfillRecordGhostStatistics as GWTask,
+	),
+	backfillRecordGhostStatisticsBatch: wrapTask(
+		'backfillRecordGhostStatisticsBatch',
+		backfillRecordGhostStatisticsBatch as GWTask,
+	),
+	recoverLevelRequests: wrapTask('recoverLevelRequests', recoverLevelRequests as GWTask),
+	prepareTrackTournamentLobbyAsset: wrapTask(
+		'prepareTrackTournamentLobbyAsset',
+		prepareTrackTournamentLobbyAsset as GWTask,
+	),
+	scanWorkshopBatch: wrapTask('scanWorkshopBatch', scanWorkshopBatch as GWTask),
+	scanWorkshopItem: wrapTask('scanWorkshopItem', scanWorkshopItem as GWTask),
+	rotateTrackTournament: wrapTask('rotateTrackTournament', rotateTrackTournament as GWTask),
+	syncPersonalBests: wrapTask('syncPersonalBests', syncPersonalBests as GWTask),
+	syncWorkshopCatalog: wrapTask('syncWorkshopCatalog', syncWorkshopCatalog as GWTask),
+	updateLevelPointsHistory: wrapTask(
+		'updateLevelPointsHistory',
+		updateLevelPointsHistory as GWTask,
+	),
+	updateLevelPointsHistoryBatch: wrapTask(
+		'updateLevelPointsHistoryBatch',
+		updateLevelPointsHistoryBatch as GWTask,
+	),
+	updateLevelScore: wrapTask('updateLevelScore', updateLevelScore as GWTask),
+	updateLevelScores: wrapTask('updateLevelScores', updateLevelScores as GWTask),
+	updatePlayerScore: wrapTask('updatePlayerScore', updatePlayerScore as GWTask),
+	updatePlayerScores: wrapTask('updatePlayerScores', updatePlayerScores as GWTask),
+	updateUserPointsHistory: wrapTask('updateUserPointsHistory', updateUserPointsHistory as GWTask),
+	updateUserPointsHistoryBatch: wrapTask(
+		'updateUserPointsHistoryBatch',
+		updateUserPointsHistoryBatch as GWTask,
+	),
 } satisfies Record<TaskIdentifier, GWTask>
