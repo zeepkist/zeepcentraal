@@ -33,6 +33,11 @@ describe('telemetry bootstrap order', () => {
 			const source = readFileSync(file, 'utf8')
 			expect(source.indexOf('startNodeTelemetry')).toBeGreaterThanOrEqual(0)
 			expect(source.indexOf('startNodeTelemetry')).toBeLessThan(source.indexOf(runtimeImport))
+			if (name === 'jobs') {
+				const suppressLogs = source.indexOf("process.env.NO_LOG_SUCCESS = '1'")
+				expect(suppressLogs).toBeGreaterThanOrEqual(0)
+				expect(suppressLogs).toBeLessThan(source.indexOf(runtimeImport))
+			}
 		})
 	}
 })

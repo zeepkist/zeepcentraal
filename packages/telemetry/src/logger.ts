@@ -1,3 +1,4 @@
+import { format } from 'node:util'
 import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 import type { TelemetryAttributes } from './span'
 
@@ -24,6 +25,7 @@ export function emitTelemetryLog(
 	level: TelemetryLogLevel,
 	message: string,
 	attributes?: TelemetryAttributes,
+	options: { printAttributes?: boolean } = {},
 ) {
 	const safeMessage = redactLogMessage(message)
 	logger.emit({
@@ -38,7 +40,8 @@ export function emitTelemetryLog(
 			: level === 'warn'
 				? originalConsole.warn
 				: originalConsole.info
-	sink(safeMessage, attributes ?? '')
+	if (attributes && options.printAttributes !== false) sink(safeMessage, attributes)
+	else sink(safeMessage)
 }
 
 export function redactLogMessage(message: string) {
@@ -57,10 +60,8 @@ export function redactLogMessage(message: string) {
 }
 
 function logBody(values: unknown[]) {
-	const first = values[0]
-	if (typeof first === 'string') return redactLogMessage(first)
-	if (first instanceof Error) return redactLogMessage(first.message)
-	return 'Structured application log'
+	if (values.length === 0) return 'Structured application log'
+	return redactLogMessage(format(...values))
 }
 
 export function installTelemetryConsoleBridge() {
