@@ -59,7 +59,7 @@
 		"@types/sanitize-html": "~2.16.1",
 		"@types/sortablejs": "~1.15.9",
 		"@types/three": "~0.185.1",
-		"@vue/test-utils": "~2.4.11",
+		"@vue/test-utils": "~2.5.0",
 		"fake-indexeddb": "~6.2.4",
 		"unstorage": "~1.17.5",
 		"vitest": "~4.1.10"
