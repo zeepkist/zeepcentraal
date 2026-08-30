@@ -113,7 +113,7 @@
         "exact-mirror": "^1.2.4",
         "openapi-types": "^12.1.3",
         "postgraphile": "~5.1.0",
-        "postgraphile-plugin-connection-filter": "~3.0.2",
+        "postgraphile-plugin-connection-filter": "~4.0.0",
         "postgres": "~3.4.7",
         "ruru": "~2.0.1",
         "typebox": "^1.3.19",
@@ -3718,7 +3718,7 @@
 
     "postgraphile": ["postgraphile@5.1.2", "", { "dependencies": { "@dataplan/json": "^1.0.1", "@dataplan/pg": "^1.1.1", "@graphile/lru": "^5.0.0", "@types/node": "^22.19.1", "@types/pg": "^8.15.6", "debug": "^4.4.3", "grafast": "^1.1.0", "grafserv": "^1.0.1", "graphile-build": "^5.1.1", "graphile-build-pg": "^5.1.2", "graphile-config": "^1.1.0", "graphile-utils": "^5.0.3", "graphql": "^16.9.0", "iterall": "^1.3.0", "jsonwebtoken": "^9.0.2", "pg": "^8.16.3", "pg-sql2": "^5.0.1", "tamedevil": "^0.1.1", "tslib": "^2.8.1", "ws": "^8.18.3" }, "peerDependencies": { "@envelop/core": "^5.0.0" }, "optionalPeers": ["@envelop/core"], "bin": { "postgraphile": "dist/cli-run.js" } }, "sha512-Ok6of4rqFaGg1mpa2o7fKXdHlrxOnuAWbUi/MthGSRcyppPgRpI7tW1DLbOLof+fhgcgWzlLdSi7sZa3oTxpMQ=="],
 
-    "postgraphile-plugin-connection-filter": ["postgraphile-plugin-connection-filter@3.0.3", "", { "dependencies": { "@tsconfig/node20": "^20.1.4", "tslib": "^2.5.0" }, "peerDependencies": { "postgraphile": "^5.0.3" }, "optionalPeers": ["postgraphile"] }, "sha512-C6Q8uT2Abu8UEGTvJUWZ9PYnnu4FBzSXrBUNyebaVGyohvsPB5yOuMQGpIxoURHGB396F+SF+ImRogUeicz8wA=="],
+    "postgraphile-plugin-connection-filter": ["postgraphile-plugin-connection-filter@4.0.1", "", { "dependencies": { "@tsconfig/node20": "^20.1.4", "tslib": "^2.5.0" }, "peerDependencies": { "postgraphile": "^5.1.4" }, "optionalPeers": ["postgraphile"] }, "sha512-LpJU+YiCaG6mPQvzhqKEfINDjnlAUiBoQ6/TshFNPAtktqx7vLtHwPKgTNXQzrCZ4rsQAjkVVFZR1reVU7qSJA=="],
 
     "postgres": ["postgres@3.4.9", "", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
 
