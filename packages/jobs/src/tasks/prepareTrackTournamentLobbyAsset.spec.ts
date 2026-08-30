@@ -52,7 +52,7 @@ beforeEach(() => {
 	findLevel.mockClear()
 })
 
-test('downloads, validates, hashes, and publishes immutable weekly asset', async () => {
+test('downloads, validates, hashes, and publishes immutable tournament asset', async () => {
 	const info = mock(() => {})
 	await prepareTrackTournamentLobbyAsset({ idTournament: 42 }, { logger: { info } } as never)
 	expect(download).toHaveBeenCalledWith([123n])

@@ -44,7 +44,7 @@ const replacementAsset = assetMetadata(
 	replacementPayload,
 	'private/replacement.gz',
 )
-let preferredAsset = initialAsset
+let preferredAsset: typeof initialAsset | undefined = initialAsset
 let downloadedPayload: Uint8Array = preparedPayload
 const getJoinId = mock(async () => undefined)
 const setJoinId = mock(async () => {})
@@ -57,9 +57,14 @@ mock.module('@zeepkist/database', () => ({
 	getManagedLobbyJoinId: getJoinId,
 	getPreferredTrackTournamentLobbyAsset: getAsset,
 	setManagedLobbyJoinId: setJoinId,
+	TRACK_TOURNAMENT_TYPE: { weekly: 0, monthly: 1 },
 }))
 
-const { TotwLobbyHost } = await import('./totwLobbyHost')
+const { LevelPayloadCache } = await import('./levelPayloadCache')
+const { formatChatAuditLine, ManagedLobbyHost, resolveChatAuditLine } = await import(
+	'./managedLobbyHost'
+)
+const { RoomBrokerClient } = await import('./roomBrokerClient')
 
 beforeEach(() => {
 	preferredAsset = initialAsset
@@ -68,6 +73,46 @@ beforeEach(() => {
 	setJoinId.mockClear()
 	clearJoinId.mockClear()
 	getAsset.mockClear()
+})
+
+test('formats bounded one-line room-attributed chat audit records', () => {
+	expect(formatChatAuditLine('totw', '[TAG] Player', 'hello')).toBe(
+		'[chat] [totw] [TAG] Player: hello',
+	)
+	expect(formatChatAuditLine('totm', '\u001b[31mPlayer\nName', 'line 1\r\nline 2')).toBe(
+		'[chat] [totm] Player Name: line 1 line 2',
+	)
+	expect(formatChatAuditLine('totw', '', '')).toBe('[chat] [totw] Unknown player: [empty]')
+	expect(formatChatAuditLine('totw', 'Player', 'x'.repeat(5_000)).length).toBeLessThan(4_096)
+	expect(formatChatAuditLine('totw', 'Player', '😀'.repeat(5_000)).length).toBeLessThan(4_096)
+	const players = new Map([[42, '[TAG] Player']])
+	expect(resolveChatAuditLine('totw', players, 42, 'hello', 7)).toBe(
+		'[chat] [totw] [TAG] Player: hello',
+	)
+	expect(resolveChatAuditLine('totw', players, 99, 'hello', 7)).toBe(
+		'[chat] [totw] Unknown player 99: hello',
+	)
+	expect(resolveChatAuditLine('totw', players, 0, 'system', 7)).toBeUndefined()
+	expect(resolveChatAuditLine('totw', players, 7, 'local', 7)).toBeUndefined()
+})
+
+test('selects tournament assets by configured profile type', async () => {
+	const host = createHost(1, 500, 0, 60_000, 600_000, 'totm', 'monthly')
+	try {
+		await (host as unknown as { refreshAsset(): Promise<void> }).refreshAsset()
+		expect(getAsset).toHaveBeenCalledWith(1)
+	} finally {
+		await host.stop()
+	}
+})
+
+test('shutdown interrupts asset polling wait', async () => {
+	preferredAsset = undefined
+	const host = createHost(1, 500, 0, 60_000)
+	const running = host.run()
+	await Bun.sleep(0)
+	await host.stop()
+	await withTimeout(running)
 })
 
 test('matches C# playlist transition and serves every level-data request', async () => {
@@ -326,20 +371,26 @@ function createHost(
 	playlistDelayMs: number,
 	assetPollMs = 60_000,
 	messageRefreshMs = 600_000,
+	roomKey = 'totw',
+	tournamentType: 'monthly' | 'weekly' = 'weekly',
 ) {
-	return new TotwLobbyHost(
+	return new ManagedLobbyHost(
 		{
+			key: roomKey,
+			profile: { type: 'track-tournament', tournamentType },
+			room: { name: 'Track of the Week', isPublic: true, maxPlayers: 64 },
 			assetPollMs,
-			brokerToken: 'b'.repeat(32),
-			brokerUrl: `http://127.0.0.1:${brokerPort}`,
-			graphqlWsUrl: 'ws://127.0.0.1:1',
 			messageRefreshMs,
 			reconnectMaxMs: 5_000,
 			roundTimeSeconds: 900,
 		},
+		{
+			broker: new RoomBrokerClient(`http://127.0.0.1:${brokerPort}`, 'b'.repeat(32)),
+			leaderboard: { close: async () => {}, watch: () => () => {} } as never,
+			payloads: new LevelPayloadCache(),
+		},
 		protocolTimeoutMs,
 		playlistDelayMs,
-		{ close: async () => {}, watch: () => {} } as never,
 	)
 }
 
@@ -357,6 +408,7 @@ function startBroker(gamePort: number, onRequest?: () => void, roomCreated = fal
 			return Response.json({
 				host: '127.0.0.1',
 				joinId: 'managed-room',
+				key: 'totw',
 				playerUid: 7,
 				port: gamePort,
 				roomCreated,

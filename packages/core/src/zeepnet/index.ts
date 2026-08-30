@@ -1,5 +1,5 @@
 export * from './binary'
+export * from './gameServerPackets'
 export * from './levelPayload'
 export * from './lidgrenClient'
 export * from './lobbyPackets'
-export * from './totwPackets'

@@ -1,4 +1,4 @@
-subscription ZC_TotwLobbyLeaderboardLive($id: Int!) {
+subscription ZC_TrackTournamentLobbyLeaderboardLive($id: Int!) {
 	trackTournament(id: $id) {
 		id
 		slug

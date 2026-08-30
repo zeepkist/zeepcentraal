@@ -20,11 +20,6 @@ interface LobbyCollectorConfig {
 	host: string
 	port: number
 	refreshTokenFile: string
-	room: {
-		isPublic: boolean
-		maxPlayers: number
-		name: string
-	}
 }
 
 const MIN_TICKET_INTERVAL_MS = 60_000
@@ -43,11 +38,22 @@ const reconnects = meter.createCounter('zeepkist.lobby.master.reconnects', {
 export interface RoomAssignment {
 	host: string
 	joinId: string
+	key: string
 	playerUid: number
 	port: number
 	roomCreated: boolean
 	steamId: string
 	token: string
+}
+
+export interface RoomAssignmentRequest {
+	joinId?: string
+	key: string
+	room: {
+		isPublic: boolean
+		maxPlayers: number
+		name: string
+	}
 }
 
 export class LobbyCollector {
@@ -62,8 +68,13 @@ export class LobbyCollector {
 	private identity: SteamIdentity | undefined
 	private masterPlayerUid: number | undefined
 	private masterToken: string | undefined
-	private roomAssignmentPromise: Promise<RoomAssignment> | undefined
+	private roomAssignmentQueue: Promise<void> = Promise.resolve()
 	private masterConnected = false
+	private readonly masterReadyWaiters = new Set<{
+		reject: (error: Error) => void
+		resolve: () => void
+		timer: ReturnType<typeof setTimeout>
+	}>()
 	private readonly roomResponses = new RoomResponseInbox()
 	private readonly persistence: LobbyPersistenceQueue
 
@@ -96,26 +107,28 @@ export class LobbyCollector {
 		return this.stopPromise
 	}
 
-	assignRoom(existingJoinId?: string) {
-		if (!this.roomAssignmentPromise) {
-			const startedAt = performance.now()
-			this.roomAssignmentPromise = this.assignRoomOnce(existingJoinId)
-				.catch((error) => {
-					const reason =
-						error instanceof RoomAssignmentError
-							? error.reason
-							: this.masterConnected
-								? 'command-failed'
-								: 'master-unavailable'
-					console.warn(`Zeepkist room assignment unavailable: ${reason}`)
-					throw error
-				})
-				.finally(() => {
-					assignmentLatency.record(performance.now() - startedAt)
-					this.roomAssignmentPromise = undefined
-				})
-		}
-		return this.roomAssignmentPromise
+	assignRoom(request: RoomAssignmentRequest) {
+		const startedAt = performance.now()
+		const assignment = this.roomAssignmentQueue.then(async () => {
+			await this.waitForMasterReady()
+			return this.assignRoomOnce(request)
+		})
+		this.roomAssignmentQueue = assignment.then(
+			() => undefined,
+			() => undefined,
+		)
+		return assignment
+			.catch((error) => {
+				const reason =
+					error instanceof RoomAssignmentError
+						? error.reason
+						: this.masterConnected
+							? 'command-failed'
+							: 'master-unavailable'
+				console.warn(`Zeepkist room assignment unavailable: ${reason}`)
+				throw error
+			})
+			.finally(() => assignmentLatency.record(performance.now() - startedAt))
 	}
 
 	private async run() {
@@ -221,6 +234,7 @@ export class LobbyCollector {
 		try {
 			await lidgren.connect()
 			this.masterConnected = true
+			this.resolveMasterReady()
 			console.info('Zeepkist lobby collector connected to master server.')
 			firstSnapshotTimer = setTimeout(() => {
 				firstSnapshotTimedOut = true
@@ -247,7 +261,7 @@ export class LobbyCollector {
 		}
 	}
 
-	private async assignRoomOnce(existingJoinId?: string): Promise<RoomAssignment> {
+	private async assignRoomOnce(request: RoomAssignmentRequest): Promise<RoomAssignment> {
 		const lidgren = this.lidgren
 		const identity = this.identity
 		const token = this.masterToken
@@ -256,23 +270,24 @@ export class LobbyCollector {
 			throw new RoomAssignmentError('master-unavailable')
 		}
 
-		if (existingJoinId) {
+		if (request.joinId) {
 			const joined = await this.sendRoomCommand(
 				lidgren,
 				'join',
-				joinLobbyPacket(existingJoinId),
+				joinLobbyPacket(request.joinId),
 			)
 			if (joined.result === 1) {
 				const assignment = {
 					host: joined.host,
-					joinId: existingJoinId,
+					joinId: request.joinId,
+					key: request.key,
 					playerUid,
 					port: joined.port,
 					roomCreated: false,
 					steamId: identity.steamId.toString(),
 					token,
 				}
-				await lidgren.close('Room assignment handed off')
+				await this.handoffMaster(lidgren)
 				return assignment
 			}
 			if (joined.result !== 4) throw new RoomAssignmentError('join-rejected')
@@ -282,9 +297,9 @@ export class LobbyCollector {
 			lidgren,
 			'create',
 			createLobbyPacket({
-				isPublic: this.config.room.isPublic,
-				maxPlayers: this.config.room.maxPlayers,
-				name: sanitizeLobbyText(this.config.room.name, 'ZeepCentraal | Track of the Week'),
+				isPublic: request.room.isPublic,
+				maxPlayers: request.room.maxPlayers,
+				name: sanitizeLobbyText(request.room.name, 'ZeepCentraal'),
 				originalHostName: sanitizeLobbyText(identity.name, 'ZeepCentraal'),
 			}),
 		)
@@ -301,14 +316,51 @@ export class LobbyCollector {
 		const assignment = {
 			host: joined.host,
 			joinId,
+			key: request.key,
 			playerUid,
 			port: joined.port,
 			roomCreated: true,
 			steamId: identity.steamId.toString(),
 			token,
 		}
-		await lidgren.close('Room assignment handed off')
+		await this.handoffMaster(lidgren)
 		return assignment
+	}
+
+	private async handoffMaster(lidgren: LidgrenClient) {
+		await lidgren.close('Room assignment handed off')
+		if (this.lidgren === lidgren) this.masterConnected = false
+	}
+
+	private waitForMasterReady() {
+		if (
+			this.lidgren &&
+			this.identity &&
+			this.masterToken &&
+			this.masterPlayerUid !== undefined &&
+			this.masterConnected
+		) {
+			return Promise.resolve()
+		}
+		return new Promise<void>((resolve, reject) => {
+			const waiter = {
+				resolve,
+				reject,
+				timer: setTimeout(() => {
+					this.masterReadyWaiters.delete(waiter)
+					reject(new RoomAssignmentError('master-unavailable'))
+				}, ROOM_RESPONSE_TIMEOUT_MS),
+			}
+			this.masterReadyWaiters.add(waiter)
+		})
+	}
+
+	private resolveMasterReady() {
+		for (const waiter of this.masterReadyWaiters) {
+			clearTimeout(waiter.timer)
+			waiter.resolve()
+		}
+		this.masterReadyWaiters.clear()
 	}
 
 	private async sendRoomCommand<T extends MasterRoomResponse['type']>(
@@ -345,6 +397,11 @@ export class LobbyCollector {
 	}
 
 	private async stopConnections() {
+		for (const waiter of this.masterReadyWaiters) {
+			clearTimeout(waiter.timer)
+			waiter.reject(new RoomAssignmentError('master-unavailable'))
+		}
+		this.masterReadyWaiters.clear()
 		try {
 			await this.lidgren?.close()
 		} finally {

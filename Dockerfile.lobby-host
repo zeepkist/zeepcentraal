@@ -2,7 +2,7 @@ FROM gcr.io/distroless/cc-debian12
 
 ARG SERVICE_VERSION=dev
 
-LABEL org.opencontainers.image.description="ZeepCentraal persistent Track of the Week lobby host."
+LABEL org.opencontainers.image.description="ZeepCentraal persistent managed lobby host."
 
 WORKDIR /app
 

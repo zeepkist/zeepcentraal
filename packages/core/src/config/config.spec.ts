@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { parseDatabaseConfig } from './database'
 import { parseImportZslConfig } from './importZsl'
 import { parseJobsConfig } from './jobs'
-import { parseLobbyHostConfig } from './lobbyHost'
+import { parseLobbyHostConfig, parseLobbyHostFileConfig } from './lobbyHost'
 import { parseMigrateConfig } from './migrate'
 import { parsePostgraphileConfig } from './postgraphile'
 import { parseServerConfig } from './server'
@@ -45,11 +45,6 @@ test('server config keeps lobby feed disabled by default', () => {
 			host: '0.0.0.0',
 			port: 3001,
 			token: undefined,
-			room: {
-				name: 'ZeepCentraal | Track of the Week',
-				isPublic: true,
-				maxPlayers: 64,
-			},
 		},
 	})
 })
@@ -88,11 +83,6 @@ test('server config accepts enabled lobby feed', () => {
 			host: '0.0.0.0',
 			port: 3001,
 			token: undefined,
-			room: {
-				name: 'ZeepCentraal | Track of the Week',
-				isPublic: true,
-				maxPlayers: 64,
-			},
 		},
 	})
 })
@@ -118,24 +108,64 @@ test('server config requires lobby feed and token when room broker is enabled', 
 test('lobby host config requires broker token only when enabled', () => {
 	expect(parseLobbyHostConfig({ NODE_ENV: 'test' }).enabled).toBe(false)
 	expect(() =>
-		parseLobbyHostConfig({ NODE_ENV: 'test', ZEEPKIST_TOTW_HOST_ENABLED: 'true' }),
+		parseLobbyHostConfig({ NODE_ENV: 'test', ZEEPKIST_LOBBY_HOST_ENABLED: 'true' }),
 	).toThrow('ZEEPKIST_ROOM_BROKER_TOKEN is required')
+	expect(() =>
+		parseLobbyHostConfig({
+			NODE_ENV: 'test',
+			ZEEPKIST_LOBBY_HOST_ENABLED: 'true',
+			ZEEPKIST_ROOM_BROKER_TOKEN: 'x'.repeat(32),
+		}),
+	).toThrow('ZEEPKIST_LOBBY_HOST_CONFIG_FILE is required')
 	const config = parseLobbyHostConfig({
 		NODE_ENV: 'test',
-		ZEEPKIST_TOTW_HOST_ENABLED: 'true',
+		ZEEPKIST_LOBBY_HOST_ENABLED: 'true',
+		ZEEPKIST_LOBBY_HOST_CONFIG_FILE: '/rooms.json',
 		ZEEPKIST_ROOM_BROKER_TOKEN: 'x'.repeat(32),
 	})
 	expect(config.enabled).toBe(true)
 	expect(config.brokerUrl).toBe('http://localhost:3001')
-	expect(config.roundTimeSeconds).toBe(900)
 	expect(config.graphqlWsUrl).toBe('ws://localhost:5000')
-	expect(config.messageRefreshMs).toBe(60_000)
+	expect(config.configFile).toBe('/rooms.json')
+})
+
+test('lobby host file config validates multiple unique managed rooms', () => {
+	const room = (key: string, tournamentType: 'monthly' | 'weekly') => ({
+		key,
+		profile: { type: 'track-tournament' as const, tournamentType },
+		room: { name: key, isPublic: true, maxPlayers: 64 },
+		roundTimeSeconds: 900,
+		assetPollMs: 30_000,
+		reconnectMaxMs: 60_000,
+		messageRefreshMs: 60_000,
+	})
+	expect(
+		parseLobbyHostFileConfig({
+			version: 1,
+			rooms: [room('totw', 'weekly'), room('totm', 'monthly')],
+		}).rooms,
+	).toHaveLength(2)
 	expect(() =>
-		parseLobbyHostConfig({
-			NODE_ENV: 'test',
-			ZEEPKIST_TOTW_MESSAGE_REFRESH_MS: '59000',
+		parseLobbyHostFileConfig({
+			version: 1,
+			rooms: [room('totw', 'weekly'), room('totw', 'monthly')],
 		}),
+	).toThrow('Duplicate managed room key')
+	expect(() => parseLobbyHostFileConfig({ version: 1, rooms: [] })).toThrow()
+	expect(() =>
+		parseLobbyHostFileConfig({ version: 1, rooms: [room('BAD KEY', 'weekly')] }),
 	).toThrow()
+	expect(() =>
+		parseLobbyHostFileConfig({
+			version: 1,
+			rooms: [
+				{
+					...room('totw', 'weekly'),
+					room: { name: '😀'.repeat(100), isPublic: true, maxPlayers: 64 },
+				},
+			],
+		}),
+	).toThrow('Room name must not exceed 256 UTF-8 bytes')
 })
 
 test('database config parses without server-only secrets', () => {

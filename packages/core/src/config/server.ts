@@ -32,9 +32,6 @@ const serverEnvSchema = z.object({
 	ZEEPKIST_ROOM_BROKER_HOST: z.string().min(1).default('0.0.0.0'),
 	ZEEPKIST_ROOM_BROKER_PORT: z.coerce.number().int().min(1).max(65535).default(3001),
 	ZEEPKIST_ROOM_BROKER_TOKEN: z.string().min(32).optional(),
-	ZEEPKIST_TOTW_ROOM_NAME: z.string().min(1).max(256).default('ZeepCentraal | Track of the Week'),
-	ZEEPKIST_TOTW_ROOM_PUBLIC: z.stringbool().default(true),
-	ZEEPKIST_TOTW_ROOM_MAX_PLAYERS: z.coerce.number().int().min(2).max(64).default(64),
 	DISCORD_CLIENT_ID: z.string().optional(),
 	DISCORD_CLIENT_SECRET: z.string().optional(),
 	DISCORD_REDIRECT_URI: z.string().optional(),
@@ -124,11 +121,6 @@ export function parseServerConfig(env: EnvSource) {
 				host: parsedEnv.ZEEPKIST_ROOM_BROKER_HOST,
 				port: parsedEnv.ZEEPKIST_ROOM_BROKER_PORT,
 				token: parsedEnv.ZEEPKIST_ROOM_BROKER_TOKEN,
-				room: {
-					name: parsedEnv.ZEEPKIST_TOTW_ROOM_NAME,
-					isPublic: parsedEnv.ZEEPKIST_TOTW_ROOM_PUBLIC,
-					maxPlayers: parsedEnv.ZEEPKIST_TOTW_ROOM_MAX_PLAYERS,
-				},
 			},
 		},
 		discord: {

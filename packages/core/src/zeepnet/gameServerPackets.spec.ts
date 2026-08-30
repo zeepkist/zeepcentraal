@@ -11,7 +11,7 @@ import {
 	parseMasterRoomResponse,
 	skipToLevelPacket,
 	ZEEPKIST_PACKET_ID,
-} from './totwPackets'
+} from './gameServerPackets'
 
 const LEVEL = {
 	author: 'Author',
@@ -22,7 +22,7 @@ const LEVEL = {
 	workshopId: 123n,
 }
 
-describe('Track of the Week packet codecs', () => {
+describe('Zeepkist GameServer packet codecs', () => {
 	test('uses V18 stable packet IDs', () => {
 		expect(ZEEPKIST_PACKET_ID).toEqual({
 			chatMessage: 48137,
@@ -39,6 +39,8 @@ describe('Track of the Week packet codecs', () => {
 			changeLobbyVisibility: 3826,
 			levelData: 22792,
 			levelLoaded: 29603,
+			playerConnected: 8162,
+			playerDisconnected: 48658,
 			skipToLevel: 63876,
 		})
 	})
@@ -171,7 +173,7 @@ describe('Track of the Week packet codecs', () => {
 			writer.writeString('name')
 			writer.writeBoolean(true)
 			writer.writeString('{}')
-			for (let index = 0; index < 10; index++) writer.writeFloat32(0)
+			for (let index = 0; index < 7; index++) writer.writeFloat32(0)
 			writer.writeBoolean(false)
 			writer.writeBoolean(false)
 			writer.writeByte(0)
@@ -183,10 +185,12 @@ describe('Track of the Week packet codecs', () => {
 		expect(parseGameHostPacket(initial, 76561198000000000n)).toEqual({
 			type: 'initial',
 			isHost: true,
+			players: [{ uid: 7, playerTag: 'tag', backupName: 'name' }],
 		})
 		expect(parseGameHostPacket(initial, 76561198000000000n, 8)).toEqual({
 			type: 'initial',
 			isHost: false,
+			players: [{ uid: 7, playerTag: 'tag', backupName: 'name' }],
 		})
 
 		const request = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
@@ -221,6 +225,54 @@ describe('Track of the Week packet codecs', () => {
 			writer.writeInt32(0)
 		})
 		expect(parseGameHostPacket(gameState, 0n)).toEqual({ type: 'game-state', state: 0 })
+	})
+
+	test('parses bounded chat and player roster updates without exposing Steam IDs', () => {
+		const chat = packet(ZEEPKIST_PACKET_ID.chatMessage, (writer) => {
+			writer.writeUInt32(42)
+			writer.writeString('hello')
+			writer.writeInt32(1)
+			writer.writeString('badge')
+		})
+		expect(parseGameHostPacket(chat, 0n)).toEqual({
+			type: 'chat',
+			message: 'hello',
+			senderUid: 42,
+		})
+
+		const connected = packet(ZEEPKIST_PACKET_ID.playerConnected, (writer) => {
+			writer.writeUInt32(42)
+			writer.writeUInt64(76561198000000042n)
+			writer.writeBoolean(false)
+			writer.writeBoolean(true)
+			writer.writeString('[TAG] ')
+			writer.writeString('Backup')
+			writer.writeString('Resolved')
+		})
+		expect(parseGameHostPacket(connected, 0n)).toEqual({
+			type: 'player-connected',
+			uid: 42,
+			isHost: false,
+			hasHostPowers: true,
+			playerTag: '[TAG] ',
+			backupName: 'Backup',
+			username: 'Resolved',
+		})
+
+		const disconnected = packet(ZEEPKIST_PACKET_ID.playerDisconnected, (writer) =>
+			writer.writeUInt32(42),
+		)
+		expect(parseGameHostPacket(disconnected, 0n)).toEqual({
+			type: 'player-disconnected',
+			uid: 42,
+		})
+
+		const badBadges = packet(ZEEPKIST_PACKET_ID.chatMessage, (writer) => {
+			writer.writeUInt32(42)
+			writer.writeString('hello')
+			writer.writeInt32(65)
+		})
+		expect(() => parseGameHostPacket(badBadges, 0n)).toThrow('Invalid chat badge count')
 	})
 
 	test('parses playlist broadcasts and returned level data', () => {

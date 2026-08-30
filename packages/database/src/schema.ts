@@ -763,7 +763,7 @@ export const trackTournament = pgTable(
 	],
 ).enableRLS()
 
-/** Private prepared game-server payload for a weekly tournament level. */
+/** Private prepared game-server payload for a weekly or monthly tournament level. */
 export const trackTournamentLobbyAsset = zcPrivate.table(
 	'track_tournament_lobby_asset',
 	{

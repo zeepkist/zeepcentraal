@@ -1,16 +1,16 @@
 import { describe, expect, test } from 'bun:test'
 import {
-	buildTotwServerMessageCommand,
+	buildTrackTournamentJoinMessageCommand,
+	buildTrackTournamentServerMessageCommand,
 	escapeUnityRichText,
-	formatTotwPeriod,
-	formatTotwTime,
 	formatTournamentRemaining,
+	formatTrackTournamentPeriod,
+	formatTrackTournamentTime,
 	leaderboardSignature,
-	TOTW_JOIN_MESSAGE_COMMAND,
-	type TotwLeaderboardStanding,
-} from './totwMessages'
+	type TrackTournamentLeaderboardStanding,
+} from './trackTournamentMessages'
 
-const standings: TotwLeaderboardStanding[] = [
+const standings: TrackTournamentLeaderboardStanding[] = [
 	{ rank: 1, recordId: 10, steamName: '<Winner>', time: 61.234, userId: 1 },
 	{ rank: 2, recordId: 11, steamName: 'Runner & Friend', time: 62, userId: 2 },
 	{ rank: 3, recordId: 12, steamName: null, time: 63.5, userId: 3 },
@@ -19,26 +19,33 @@ const standings: TotwLeaderboardStanding[] = [
 	{ rank: 6, recordId: 15, steamName: 'Sixth', time: 66.5, userId: 6 },
 	{ rank: 7, recordId: 16, steamName: 'Hidden', time: 67.5, userId: 7 },
 ]
-const firstStanding = standings[0] as TotwLeaderboardStanding
-const secondStanding = standings[1] as TotwLeaderboardStanding
+const firstStanding = standings[0] as TrackTournamentLeaderboardStanding
+const secondStanding = standings[1] as TrackTournamentLeaderboardStanding
 const now = Date.parse('2026-08-30T12:00:00.000Z')
 const tournamentEndAt = new Date(now + (6 * 24 * 60 + 3 * 60 + 38) * 60_000).toISOString()
 
-describe('TotW room messages', () => {
+describe('track tournament room messages', () => {
 	test('uses bounded rich join copy', () => {
-		expect(TOTW_JOIN_MESSAGE_COMMAND).toContain('/joinmessage yellow <b>Welcome')
-		expect(TOTW_JOIN_MESSAGE_COMMAND).toContain('<size=80%>')
-		expect(TOTW_JOIN_MESSAGE_COMMAND).toContain('zeepki.st/totw')
-		expect(TOTW_JOIN_MESSAGE_COMMAND).toContain('GTR must be installed and running')
-		expect(new TextEncoder().encode(TOTW_JOIN_MESSAGE_COMMAND).byteLength).toBeLessThan(4097)
+		const weekly = buildTrackTournamentJoinMessageCommand('weekly')
+		const monthly = buildTrackTournamentJoinMessageCommand('monthly')
+		expect(weekly).toContain('/joinmessage yellow <b>Welcome')
+		expect(weekly).toContain('zeepki.st/totw')
+		expect(monthly).toContain('Track of the Month')
+		expect(monthly).toContain('zeepki.st/totm')
+		expect(new TextEncoder().encode(weekly).byteLength).toBeLessThan(4097)
 	})
 
 	test('formats weekly period and tournament times', () => {
-		expect(formatTotwPeriod('2026-w33')).toBe('Track of the Week: 2026 Week 33')
-		expect(formatTotwPeriod('custom')).toBe('Track of the Week: custom')
-		expect(formatTotwTime(61.234)).toBe('1:01.234')
-		expect(formatTotwTime(9.5)).toBe('0:09.500')
-		expect(formatTotwTime(59.9996)).toBe('1:00.000')
+		expect(formatTrackTournamentPeriod('weekly', '2026-w33')).toBe(
+			'Track of the Week: 2026 Week 33',
+		)
+		expect(formatTrackTournamentPeriod('monthly', '2026-08')).toBe(
+			'Track of the Month: August 2026',
+		)
+		expect(formatTrackTournamentPeriod('weekly', 'custom')).toBe('Track of the Week: custom')
+		expect(formatTrackTournamentTime(61.234)).toBe('1:01.234')
+		expect(formatTrackTournamentTime(9.5)).toBe('0:09.500')
+		expect(formatTrackTournamentTime(59.9996)).toBe('1:00.000')
 		expect(formatTournamentRemaining(tournamentEndAt, now)).toBe('Ends in 6d 3h 38m')
 		expect(formatTournamentRemaining(tournamentEndAt, now + 60_000)).toBe('Ends in 6d 3h 37m')
 		expect(formatTournamentRemaining(tournamentEndAt, Date.parse(tournamentEndAt) + 1)).toBe(
@@ -50,7 +57,8 @@ describe('TotW room messages', () => {
 	})
 
 	test('renders escaped top six with podium colors', () => {
-		const command = buildTotwServerMessageCommand(
+		const command = buildTrackTournamentServerMessageCommand(
+			'weekly',
 			'2026-w33',
 			tournamentEndAt,
 			standings,
@@ -71,16 +79,29 @@ describe('TotW room messages', () => {
 
 	test('renders loading and empty states', () => {
 		expect(
-			buildTotwServerMessageCommand('2026-w33', tournamentEndAt, undefined, 900),
+			buildTrackTournamentServerMessageCommand(
+				'weekly',
+				'2026-w33',
+				tournamentEndAt,
+				undefined,
+				900,
+			),
 		).toContain('Leaderboard loading…')
-		expect(buildTotwServerMessageCommand('2026-w33', tournamentEndAt, [], 900)).toContain(
-			'No tournament times yet',
-		)
+		expect(
+			buildTrackTournamentServerMessageCommand(
+				'weekly',
+				'2026-w33',
+				tournamentEndAt,
+				[],
+				900,
+			),
+		).toContain('Set a time with GTR to appear on the leaderboard!')
 	})
 
 	test('escapes tags and bounds display names by code point', () => {
 		expect(escapeUnityRichText('<b>A&B</b>')).toBe('&lt;b&gt;A&amp;B&lt;/b&gt;')
-		const command = buildTotwServerMessageCommand(
+		const command = buildTrackTournamentServerMessageCommand(
+			'weekly',
 			'2026-w33',
 			tournamentEndAt,
 			[

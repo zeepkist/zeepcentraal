@@ -1,14 +1,8 @@
 import { and, desc, eq, lte, sql } from 'drizzle-orm'
 import { db } from '../client'
 import { downloadFile, uploadFile } from '../s3'
-import {
-	level,
-	levelItem,
-	managedLobby,
-	trackTournament,
-	trackTournamentLobbyAsset,
-} from '../schema'
-import { TRACK_TOURNAMENT_TYPE } from './trackTournamentHelpers'
+import { level, levelItem, trackTournament, trackTournamentLobbyAsset } from '../schema'
+import type { TrackTournamentType } from './trackTournamentHelpers'
 
 export interface TrackTournamentLobbyAssetMetadata {
 	author: string
@@ -51,12 +45,7 @@ export async function getTrackTournamentLobbyAssetSources(idTournament: number) 
 				eq(levelItem.publiclyVisible, true),
 			),
 		)
-		.where(
-			and(
-				eq(trackTournament.id, idTournament),
-				eq(trackTournament.type, TRACK_TOURNAMENT_TYPE.weekly),
-			),
-		)
+		.where(eq(trackTournament.id, idTournament))
 		.orderBy(desc(levelItem.updatedAt), desc(levelItem.id))
 }
 
@@ -86,7 +75,10 @@ export async function publishTrackTournamentLobbyAsset(
 		})
 }
 
-export async function getPreferredTrackTournamentLobbyAsset(at = new Date()) {
+export async function getPreferredTrackTournamentLobbyAsset(
+	type: TrackTournamentType,
+	at = new Date(),
+) {
 	const now = at.toISOString()
 	const rows = await db
 		.select({
@@ -97,12 +89,7 @@ export async function getPreferredTrackTournamentLobbyAsset(at = new Date()) {
 		})
 		.from(trackTournamentLobbyAsset)
 		.innerJoin(trackTournament, eq(trackTournament.id, trackTournamentLobbyAsset.idTournament))
-		.where(
-			and(
-				eq(trackTournament.type, TRACK_TOURNAMENT_TYPE.weekly),
-				lte(trackTournament.startAt, now),
-			),
-		)
+		.where(and(eq(trackTournament.type, type), lte(trackTournament.startAt, now)))
 		.orderBy(desc(trackTournament.startAt))
 		.limit(2)
 	const preferred = rows.find((row) => row.active) ?? rows[0]
@@ -123,28 +110,4 @@ export async function downloadTrackTournamentLobbyAsset(
 		expectedBytes: metadata.byteSize,
 		expectedSha256: metadata.contentSha256,
 	})
-}
-
-export async function getManagedLobbyJoinId(key: string) {
-	const [row] = await db
-		.select({ joinId: managedLobby.joinId })
-		.from(managedLobby)
-		.where(eq(managedLobby.key, key))
-		.limit(1)
-	return row?.joinId
-}
-
-export async function setManagedLobbyJoinId(key: string, joinId: string) {
-	const now = new Date().toISOString()
-	await db
-		.insert(managedLobby)
-		.values({ key, joinId, dateCreated: now, dateUpdated: now })
-		.onConflictDoUpdate({
-			target: managedLobby.key,
-			set: { joinId, dateUpdated: now },
-		})
-}
-
-export async function clearManagedLobbyJoinId(key: string) {
-	await db.delete(managedLobby).where(eq(managedLobby.key, key))
 }

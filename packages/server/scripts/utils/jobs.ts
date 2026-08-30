@@ -260,8 +260,8 @@ export const jobPromptDefinitions = {
 	},
 	prepareTrackTournamentLobbyAsset: {
 		category: 'Tournament',
-		label: 'Prepare Track of the Week lobby asset',
-		description: 'Backfill lobby level data for one weekly tournament',
+		label: 'Prepare track tournament lobby asset',
+		description: 'Backfill lobby level data for one weekly or monthly tournament',
 		advanced: true,
 		collectOptions: collectTrackTournamentLobbyAssetOptions,
 	},

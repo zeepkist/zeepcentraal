@@ -15,6 +15,8 @@ export const ZEEPKIST_PACKET_ID = {
 	changeLobbyVisibility: packetId('ZeepkistNetworking.ChangeLobbyVisibilityPacket'),
 	levelData: packetId('ZeepkistNetworking.LevelDataPacket'),
 	levelLoaded: packetId('ZeepkistNetworking.LevelLoadedPacket'),
+	playerConnected: packetId('ZeepkistNetworking.PlayerConnectedPacket'),
+	playerDisconnected: packetId('ZeepkistNetworking.PlayerDisconnectedPacket'),
 	skipToLevel: packetId('ZeepkistNetworking.SkipToLevelPacket'),
 } as const
 
@@ -41,12 +43,20 @@ export interface OnlinePlaylist {
 	wasSynced: boolean
 }
 
+export interface GameHostPlayer {
+	backupName: string
+	playerTag: string
+	uid: number
+	username?: string
+}
+
 export type MasterRoomResponse =
 	| { type: 'create'; result: number; joinId: string }
 	| { type: 'join'; result: number; host: string; port: number }
 
 export type GameHostPacket =
-	| { type: 'initial'; isHost: boolean }
+	| { type: 'initial'; isHost: boolean; players: GameHostPlayer[] }
+	| { type: 'chat'; message: string; senderUid: number }
 	| { type: 'game-state'; state: number }
 	| ({ type: 'playlist' } & OnlinePlaylist)
 	| {
@@ -57,6 +67,8 @@ export type GameHostPacket =
 			workshopId: bigint
 	  }
 	| { type: 'master'; uid: number }
+	| ({ type: 'player-connected'; isHost: boolean; hasHostPowers: boolean } & GameHostPlayer)
+	| { type: 'player-disconnected'; uid: number }
 	| { type: 'playlist-index'; currentIndex: number; nextIndex: number; selectNext: boolean }
 	| {
 			data: Uint8Array
@@ -70,6 +82,9 @@ export type GameHostPacket =
 const MAX_LEVEL_DATA_BYTES = 64 * 1024 * 1024
 const MAX_PLAYLIST_LEVELS = 1001
 const MAX_CHAT_MESSAGE_BYTES = 4096
+const MAX_CHAT_BADGES = 64
+const MAX_CHAT_BADGE_BYTES = 1024
+const MAX_PLAYERS = 256
 
 export function packetId(fullName: string) {
 	let hash = 23
@@ -192,7 +207,35 @@ export function parseGameHostPacket(
 	const reader = new BitReader(payload)
 	const id = reader.readUInt16()
 	if (id === ZEEPKIST_PACKET_ID.initialState) {
-		return { type: 'initial', isHost: readInitialHost(reader, localSteamId, localPlayerUid) }
+		const initial = readInitialPlayers(reader, localSteamId, localPlayerUid)
+		return { type: 'initial', ...initial }
+	}
+	if (id === ZEEPKIST_PACKET_ID.chatMessage) {
+		const senderUid = reader.readUInt32()
+		const message = reader.readString(MAX_CHAT_MESSAGE_BYTES)
+		const badgeCount = reader.readInt32()
+		if (badgeCount < 0 || badgeCount > MAX_CHAT_BADGES)
+			throw new Error('Invalid chat badge count')
+		for (let index = 0; index < badgeCount; index++) reader.readString(MAX_CHAT_BADGE_BYTES)
+		return { type: 'chat', message, senderUid }
+	}
+	if (id === ZEEPKIST_PACKET_ID.playerConnected) {
+		const uid = reader.readUInt32()
+		reader.readUInt64()
+		const isHost = reader.readBoolean()
+		const hasHostPowers = reader.readBoolean()
+		return {
+			type: 'player-connected',
+			uid,
+			isHost,
+			hasHostPowers,
+			playerTag: reader.readString(1024),
+			backupName: reader.readString(1024),
+			username: reader.readString(1024),
+		}
+	}
+	if (id === ZEEPKIST_PACKET_ID.playerDisconnected) {
+		return { type: 'player-disconnected', uid: reader.readUInt32() }
 	}
 	if (id === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
 		return { type: 'playlist', ...readPlaylist(reader) }
@@ -271,18 +314,20 @@ function readPlaylist(reader: BitReader): OnlinePlaylist {
 	}
 }
 
-function readInitialHost(reader: BitReader, localSteamId: bigint, localPlayerUid?: number) {
+function readInitialPlayers(reader: BitReader, localSteamId: bigint, localPlayerUid?: number) {
 	const count = reader.readInt32()
-	if (count < 0 || count > 256) throw new Error('Invalid initial player count')
+	if (count < 0 || count > MAX_PLAYERS) throw new Error('Invalid initial player count')
 	let localIsHost = false
+	const players: GameHostPlayer[] = []
 	for (let index = 0; index < count; index++) {
 		const playerUid = reader.readUInt32()
 		const steamId = reader.readUInt64()
-		reader.readString(1024)
-		reader.readString(1024)
+		const playerTag = reader.readString(1024)
+		const backupName = reader.readString(1024)
 		const isHost = reader.readBoolean()
+		players.push({ uid: playerUid, playerTag, backupName })
 		reader.readString(64 * 1024)
-		for (let value = 0; value < 3 + 3 + 4; value++) reader.readFloat32()
+		for (let value = 0; value < 3 + 4; value++) reader.readFloat32()
 		reader.readBoolean()
 		reader.readBoolean()
 		reader.readByte()
@@ -300,7 +345,7 @@ function readInitialHost(reader: BitReader, localSteamId: bigint, localPlayerUid
 			localIsHost = isHost
 		}
 	}
-	return localIsHost
+	return { isHost: localIsHost, players }
 }
 
 function writePacket(id: number, write: (writer: BitWriter) => void) {

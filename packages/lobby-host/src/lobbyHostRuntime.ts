@@ -1,45 +1,42 @@
-import { lobbyHostConfig } from '@zeepkist/core/config/lobby-host'
+import type { LobbyHostFileConfig } from '@zeepkist/core/config/lobby-host'
 import { closeDatabase } from '@zeepkist/database'
 import { stopNodeTelemetry } from '@zeepkist/telemetry'
-import { TotwLobbyHost } from './totwLobbyHost'
+import { LobbyHostSupervisor } from './lobbyHostSupervisor'
 
-if (!lobbyHostConfig.enabled) {
-	console.info('Track of the Week lobby host is disabled.')
-	await new Promise<void>((resolve) => {
-		process.once('SIGINT', resolve)
-		process.once('SIGTERM', resolve)
-	})
-	await stopNodeTelemetry()
-	process.exit(0)
-}
-
-const host = new TotwLobbyHost({
-	assetPollMs: lobbyHostConfig.assetPollMs,
-	brokerToken: lobbyHostConfig.brokerToken as string,
-	brokerUrl: lobbyHostConfig.brokerUrl,
-	graphqlWsUrl: lobbyHostConfig.graphqlWsUrl,
-	messageRefreshMs: lobbyHostConfig.messageRefreshMs,
-	reconnectMaxMs: lobbyHostConfig.reconnectMaxMs,
-	roundTimeSeconds: lobbyHostConfig.roundTimeSeconds,
-})
-
-let stopping = false
-async function shutdown(signal: NodeJS.Signals) {
-	if (stopping) return
-	stopping = true
-	console.info(`TotW lobby host received ${signal}; making room private and disconnecting.`)
-	try {
-		await host.stop()
-		await closeDatabase()
-		await stopNodeTelemetry()
-		process.exit(0)
-	} catch {
-		console.error('TotW lobby host did not stop cleanly.')
-		await stopNodeTelemetry().catch(() => undefined)
-		process.exit(1)
+export async function runLobbyHost(config: {
+	brokerToken: string
+	brokerUrl: string
+	file: LobbyHostFileConfig
+	graphqlWsUrl: string
+}) {
+	const supervisor = new LobbyHostSupervisor(config)
+	let stopping = false
+	async function shutdown(signal: NodeJS.Signals) {
+		if (stopping) return
+		stopping = true
+		console.info(
+			`Lobby host received ${signal}; making managed rooms private and disconnecting.`,
+		)
+		let failed = false
+		try {
+			await supervisor.stop()
+		} catch {
+			failed = true
+			console.error('Lobby host rooms did not stop cleanly.')
+		}
+		try {
+			await closeDatabase()
+		} catch {
+			failed = true
+			console.error('Lobby host database pool did not close cleanly.')
+		}
+		await stopNodeTelemetry().catch(() => {
+			failed = true
+		})
+		process.exit(failed ? 1 : 0)
 	}
-}
 
-process.on('SIGINT', () => void shutdown('SIGINT'))
-process.on('SIGTERM', () => void shutdown('SIGTERM'))
-await host.run()
+	process.on('SIGINT', () => void shutdown('SIGINT'))
+	process.on('SIGTERM', () => void shutdown('SIGTERM'))
+	await supervisor.run()
+}

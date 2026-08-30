@@ -16,7 +16,7 @@ export const prepareTrackTournamentLobbyAsset: TaskHandler<Payload> = async (
 	helpers,
 ) => {
 	const sources = await getTrackTournamentLobbyAssetSources(idTournament)
-	if (sources.length === 0) throw new Error('Weekly tournament has no downloadable level item')
+	if (sources.length === 0) throw new Error('Tournament has no downloadable level item')
 	const downloader = new SteamCmdDownloader(jobsConfig.steam.appId, jobsConfig.steam.cmdPath)
 	let lastError: unknown
 
@@ -51,7 +51,7 @@ export const prepareTrackTournamentLobbyAsset: TaskHandler<Payload> = async (
 				},
 				payload,
 			)
-			helpers.logger.info('Prepared weekly tournament lobby asset.', {
+			helpers.logger.info('Prepared track tournament lobby asset.', {
 				byteSize: payload.length,
 				idTournament,
 				workshopId: source.workshopId.toString(),

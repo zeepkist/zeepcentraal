@@ -29,7 +29,6 @@ export async function startLobbyPrimary(getWorkers: () => Worker[]) {
 			port: config.lobby.port,
 			build: config.lobby.build,
 			refreshTokenFile: config.lobby.refreshTokenFile,
-			room: config.lobby.broker.room,
 		},
 		publish,
 		persistLobbyPacket,

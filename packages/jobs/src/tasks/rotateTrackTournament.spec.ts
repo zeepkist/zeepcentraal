@@ -18,7 +18,7 @@ const { rotateTrackTournament } = await import('./rotateTrackTournament')
 
 beforeEach(() => rotateDatabaseTrackTournament.mockClear())
 
-test('rotates valid weekly and monthly tournament types and prepares weekly asset', async () => {
+test('rotates valid weekly and monthly tournament types and prepares both assets', async () => {
 	const info = mock(() => {})
 	const warn = mock(() => {})
 	const addJob = mock(async () => {})
@@ -26,7 +26,7 @@ test('rotates valid weekly and monthly tournament types and prepares weekly asse
 		await rotateTrackTournament({ type }, { addJob, logger: { info, warn } } as never)
 	}
 	expect(rotateDatabaseTrackTournament).toHaveBeenCalledTimes(2)
-	expect(addJob).toHaveBeenCalledTimes(1)
+	expect(addJob).toHaveBeenCalledTimes(2)
 	expect(addJob).toHaveBeenCalledWith(
 		'prepareTrackTournamentLobbyAsset',
 		{ idTournament: 42 },

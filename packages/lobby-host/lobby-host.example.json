@@ -1,0 +1,37 @@
+{
+	"version": 1,
+	"rooms": [
+		{
+			"key": "totw",
+			"profile": {
+				"type": "track-tournament",
+				"tournamentType": "weekly"
+			},
+			"room": {
+				"name": "zeepki.st | Track of the Week",
+				"isPublic": true,
+				"maxPlayers": 64
+			},
+			"roundTimeSeconds": 900,
+			"assetPollMs": 30000,
+			"reconnectMaxMs": 60000,
+			"messageRefreshMs": 60000
+		},
+		{
+			"key": "totm",
+			"profile": {
+				"type": "track-tournament",
+				"tournamentType": "monthly"
+			},
+			"room": {
+				"name": "zeepki.st | Track of the Month",
+				"isPublic": true,
+				"maxPlayers": 64
+			},
+			"roundTimeSeconds": 900,
+			"assetPollMs": 30000,
+			"reconnectMaxMs": 60000,
+			"messageRefreshMs": 60000
+		}
+	]
+}

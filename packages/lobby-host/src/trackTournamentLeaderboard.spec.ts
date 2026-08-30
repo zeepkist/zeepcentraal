@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import type { ExecutionResult } from 'graphql'
 import type { Sink } from 'graphql-ws'
-import { normalizeStandings, TotwLeaderboardClient } from './totwLeaderboard'
+import { normalizeStandings, TrackTournamentLeaderboardHub } from './trackTournamentLeaderboard'
 
-describe('TotW leaderboard subscription', () => {
+describe('track tournament leaderboard subscriptions', () => {
 	test('normalizes, sorts, bounds, and preserves nullable names', () => {
 		const rows = Array.from({ length: 8 }, (_, index) => ({
 			rank: 8 - index,
@@ -33,13 +33,13 @@ describe('TotW leaderboard subscription', () => {
 		}
 		const errors: unknown[] = []
 		const received: unknown[] = []
-		const leaderboard = new TotwLeaderboardClient(
+		const leaderboard = new TrackTournamentLeaderboardHub(
 			'ws://localhost',
 			(error) => errors.push(error),
 			client,
 			1,
 		)
-		leaderboard.watch(6, (rows) => received.push(rows))
+		leaderboard.watch('totw', 6, (rows) => received.push(rows))
 		expect(request?.variables).toEqual({ id: 6 })
 		sinks[0]?.next({
 			data: {
@@ -62,7 +62,7 @@ describe('TotW leaderboard subscription', () => {
 			},
 		})
 		expect(received).toHaveLength(1)
-		leaderboard.watch(7, () => {})
+		leaderboard.watch('totw', 7, () => {})
 		expect(disposed).toBe(1)
 		sinks[1]?.error(new Error('subscription failed'))
 		expect(errors).toHaveLength(1)
@@ -71,5 +71,7 @@ describe('TotW leaderboard subscription', () => {
 		expect(request?.variables).toEqual({ id: 7 })
 		await leaderboard.close()
 		expect(disposed).toBe(2)
+		leaderboard.watch('totm', 8, () => {})
+		expect(sinks).toHaveLength(3)
 	})
 })
