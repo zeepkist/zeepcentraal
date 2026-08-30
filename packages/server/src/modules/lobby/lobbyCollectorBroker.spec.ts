@@ -3,15 +3,18 @@ import { BitReader, ZEEPKIST_PACKET_ID } from '@zeepkist/core/zeepnet'
 import { LobbyCollector } from './lobbyCollector'
 
 test('rejoins stored room without requiring public lobby-list visibility', async () => {
-	const { close, collector, internals } = createCollector((payload, inbox) => {
+	const { close, collector } = createCollector((payload, inbox) => {
 		expect(new BitReader(payload).readUInt16()).toBe(ZEEPKIST_PACKET_ID.joinLobby)
 		inbox.push({ type: 'join', result: 1, host: '10.0.0.1', port: 27000 })
 	})
 	expect(await collector.assignRoom('private-room')).toEqual({
-		...internals.masterCredential,
 		host: '10.0.0.1',
 		joinId: 'private-room',
+		playerUid: 7,
 		port: 27000,
+		roomCreated: false,
+		steamId: '76561198000000000',
+		token: 'ephemeral-token',
 	})
 	expect(close).toHaveBeenCalledWith('Room assignment handed off')
 })
@@ -31,6 +34,7 @@ test('creates replacement when stored room cannot be joined', async () => {
 	const assignment = await collector.assignRoom('missing-room')
 	expect(packetIds).toEqual([ZEEPKIST_PACKET_ID.joinLobby, ZEEPKIST_PACKET_ID.createLobby])
 	expect(assignment.joinId).toBe('replacement-room')
+	expect(assignment.roomCreated).toBe(true)
 	expect(close).toHaveBeenCalledWith('Room assignment handed off')
 })
 
@@ -74,38 +78,6 @@ test('serializes concurrent broker assignment requests', async () => {
 	expect(send).toHaveBeenCalledTimes(1)
 })
 
-test('refreshes master credential generation without room command', async () => {
-	const send = mock(async () => {})
-	const { close, collector, internals } = createCollector(send)
-	internals.cachedTicket = Buffer.from([1, 2, 3])
-	internals.ticketCreatedAt = Date.now()
-	expect(collector.refreshRoomCredential(1)).toEqual({ status: 'pending' })
-	await Bun.sleep(0)
-	expect(close).toHaveBeenCalledWith('Refreshing room credential')
-	expect(internals.cachedTicket).toBeUndefined()
-	expect(internals.ticketCreatedAt).toBe(0)
-	internals.masterConnected = true
-	internals.publishMasterCredential(
-		{ name: 'Host', steamId: 76561198000000000n },
-		8,
-		'fresh-ephemeral-token',
-	)
-	await Bun.sleep(0)
-	const refresh = collector.refreshRoomCredential(1)
-	expect(refresh.status).toBe('ready')
-	if (refresh.status === 'ready') {
-		expect(refresh.credential).toMatchObject({
-			credentialGeneration: 2,
-			playerUid: 8,
-			token: 'fresh-ephemeral-token',
-		})
-		expect(refresh.credential.credentialRefreshAt - refresh.credential.credentialIssuedAt).toBe(
-			3_000_000,
-		)
-	}
-	expect(send).not.toHaveBeenCalled()
-})
-
 type ResponseInbox = {
 	push(
 		response:
@@ -122,7 +94,6 @@ function createCollector(
 		{
 			appId: 1_440_670,
 			build: 2043,
-			credentialRefreshMs: 3_000_000,
 			host: '127.0.0.1',
 			port: 26900,
 			refreshTokenFile: '',
@@ -132,43 +103,23 @@ function createCollector(
 		async () => {},
 	)
 	const internals = collector as unknown as {
-		cachedTicket: Buffer | undefined
-		credentialGeneration: number
 		identity: { name: string; steamId: bigint }
 		lidgren: {
 			close(reason?: string): Promise<void>
 			sendReliableOrdered(payload: Uint8Array): Promise<void>
 		}
 		masterConnected: boolean
-		masterCredential: ReturnType<typeof credential>
-		publishMasterCredential(
-			identity: { name: string; steamId: bigint },
-			playerUid: number,
-			token: string,
-		): void
+		masterPlayerUid: number
+		masterToken: string
 		roomResponses: ResponseInbox
-		ticketCreatedAt: number
 	}
-	internals.credentialGeneration = 1
 	internals.identity = { name: 'Host', steamId: 76561198000000000n }
 	internals.masterConnected = true
-	internals.masterCredential = credential()
+	internals.masterPlayerUid = 7
+	internals.masterToken = 'ephemeral-token'
 	internals.lidgren = {
 		close,
 		sendReliableOrdered: async (payload) => onSend(payload, internals.roomResponses),
 	}
 	return { close, collector, internals }
-}
-
-function credential() {
-	const issuedAt = Date.now()
-	return {
-		credentialDeadlineAt: issuedAt + 3_600_000,
-		credentialGeneration: 1,
-		credentialIssuedAt: issuedAt,
-		credentialRefreshAt: issuedAt + 3_000_000,
-		playerUid: 7,
-		steamId: '76561198000000000',
-		token: 'ephemeral-token',
-	}
 }

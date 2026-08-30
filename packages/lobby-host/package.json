@@ -10,6 +10,13 @@
 	"dependencies": {
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/database": "workspace:*",
-		"@zeepkist/telemetry": "workspace:*"
+		"@zeepkist/graphql": "workspace:*",
+		"@zeepkist/telemetry": "workspace:*",
+		"graphql": "~17.0.2",
+		"graphql-ws": "~6.2.0",
+		"ws": "~8.21.1"
+	},
+	"devDependencies": {
+		"@types/ws": "~8.18.1"
 	}
 }

@@ -29,7 +29,12 @@ const MAX_SEND_ATTEMPTS = 20
 const DISCONNECT_FLUSH_TIMEOUT_MS = 500
 const MAX_DISCONNECT_REASON_BYTES = 512
 
-export type LidgrenDisconnectCategory = 'credential-expired' | 'kicked' | 'remote' | 'timeout'
+export type LidgrenDisconnectCategory =
+	| 'afk'
+	| 'credential-expired'
+	| 'kicked'
+	| 'remote'
+	| 'timeout'
 
 export class LidgrenRemoteDisconnectError extends Error {
 	readonly category: LidgrenDisconnectCategory
@@ -743,6 +748,7 @@ export function sanitizeLidgrenDisconnectReason(reason: string) {
 }
 
 function categorizeLidgrenDisconnectReason(reason: string): LidgrenDisconnectCategory {
+	if (/\bafk\b/i.test(reason)) return 'afk'
 	if (/token|ticket|credential|auth|expired/i.test(reason)) return 'credential-expired'
 	if (/timeout|timed out|inactive/i.test(reason)) return 'timeout'
 	if (/kick|ban|duplicate|already online/i.test(reason)) return 'kicked'

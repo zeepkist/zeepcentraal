@@ -9,6 +9,13 @@ const lobbyHostEnvSchema = z.object({
 	ZEEPKIST_TOTW_ASSET_POLL_MS: z.coerce.number().int().min(5_000).default(30_000),
 	ZEEPKIST_TOTW_RECONNECT_MAX_MS: z.coerce.number().int().min(5_000).default(60_000),
 	ZEEPKIST_TOTW_ROUND_TIME_SECONDS: z.coerce.number().int().min(60).max(3_600).default(900),
+	ZEEPKIST_TOTW_GRAPHQL_WS_URL: z.url().default('ws://localhost:5000'),
+	ZEEPKIST_TOTW_MESSAGE_REFRESH_MS: z.coerce
+		.number()
+		.int()
+		.min(60_000)
+		.max(30 * 60_000)
+		.default(10 * 60_000),
 	OPENTELEMETRY_SERVICE_NAME: z.string().optional(),
 	OPENTELEMETRY_SERVICE_VERSION: z.string().optional(),
 	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4317'),
@@ -26,6 +33,8 @@ export function parseLobbyHostConfig(env: EnvSource) {
 		assetPollMs: parsed.ZEEPKIST_TOTW_ASSET_POLL_MS,
 		reconnectMaxMs: parsed.ZEEPKIST_TOTW_RECONNECT_MAX_MS,
 		roundTimeSeconds: parsed.ZEEPKIST_TOTW_ROUND_TIME_SECONDS,
+		graphqlWsUrl: parsed.ZEEPKIST_TOTW_GRAPHQL_WS_URL,
+		messageRefreshMs: parsed.ZEEPKIST_TOTW_MESSAGE_REFRESH_MS,
 		nodeEnv: parsed.NODE_ENV,
 		otel: {
 			collectorUrl: parsed.OPENTELEMETRY_COLLECTOR_URL,

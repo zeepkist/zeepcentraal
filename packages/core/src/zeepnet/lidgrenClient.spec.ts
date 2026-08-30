@@ -109,6 +109,13 @@ describe('LidgrenClient protocol', () => {
 		}
 	})
 
+	test('categorizes AFK disconnects separately', () => {
+		expect(new LidgrenRemoteDisconnectError('afk')).toMatchObject({
+			category: 'afk',
+			reason: 'afk',
+		})
+	})
+
 	test('rejects malformed oversized remote disconnect reason', async () => {
 		const server = dgram.createSocket('udp4')
 		const port = await bind(server)

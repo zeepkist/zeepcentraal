@@ -17,6 +17,8 @@ const host = new TotwLobbyHost({
 	assetPollMs: lobbyHostConfig.assetPollMs,
 	brokerToken: lobbyHostConfig.brokerToken as string,
 	brokerUrl: lobbyHostConfig.brokerUrl,
+	graphqlWsUrl: lobbyHostConfig.graphqlWsUrl,
+	messageRefreshMs: lobbyHostConfig.messageRefreshMs,
 	reconnectMaxMs: lobbyHostConfig.reconnectMaxMs,
 	roundTimeSeconds: lobbyHostConfig.roundTimeSeconds,
 })

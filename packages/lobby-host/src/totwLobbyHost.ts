@@ -2,6 +2,7 @@ import {
 	BitWriter,
 	changeLobbyPlaylistPacket,
 	changeLobbyVisibilityPacket,
+	chatMessagePacket,
 	type GameHostPacket,
 	LidgrenClient,
 	LidgrenRemoteDisconnectError,
@@ -17,6 +18,13 @@ import {
 	setManagedLobbyJoinId,
 } from '@zeepkist/database'
 import { getMeter, tracedFetch, withActiveSpan } from '@zeepkist/telemetry'
+import { TotwLeaderboardClient } from './totwLeaderboard'
+import {
+	buildTotwServerMessageCommand,
+	leaderboardSignature,
+	TOTW_JOIN_MESSAGE_COMMAND,
+	type TotwLeaderboardStanding,
+} from './totwMessages'
 
 const MANAGED_LOBBY_KEY = 'totw'
 const PLAYLIST_CHANGE_DELAY_MS = 3_500
@@ -24,11 +32,8 @@ const PROTOCOL_TRANSITION_TIMEOUT_MS = 30_000
 const PREVIOUS_ASSET_TTL_MS = 30_000
 const MAX_LEVEL_REQUESTS = 8
 const MAX_ASSET_BYTES = 64 * 1024 * 1024
-const DEFAULT_CREDENTIAL_REFRESH_MS = 50 * 60_000
-const DEFAULT_CREDENTIAL_DEADLINE_MS = 60 * 60_000
-const CREDENTIAL_REQUEST_TIMEOUT_MS = 30_000
-const CREDENTIAL_RETRY_MIN_MS = 30_000
-const CREDENTIAL_RETRY_MAX_MS = 5 * 60_000
+const MESSAGE_CHANGE_DEBOUNCE_MS = 1_000
+const MESSAGE_RETRY_MS = 30_000
 const meter = getMeter('zeepcentraal-lobby-host')
 const assignmentLatency = meter.createHistogram('zeepkist.totw.assignment.duration', {
 	description: 'Room broker assignment latency',
@@ -37,40 +42,32 @@ const assignmentLatency = meter.createHistogram('zeepkist.totw.assignment.durati
 const reconnects = meter.createCounter('zeepkist.totw.reconnects', {
 	description: 'Failed room connections followed by retry',
 })
-const credentialRefreshes = meter.createCounter('zeepkist.totw.credential.refreshes', {
-	description: 'GameServer credential handoff attempts',
-})
 const connectionDuration = meter.createHistogram('zeepkist.totw.connection.duration', {
 	description: 'GameServer connection lifetime',
 	unit: 'ms',
 })
-const credentialAge = meter.createHistogram('zeepkist.totw.credential.age', {
-	description: 'GameServer credential age when connection closes',
-	unit: 'ms',
+const afkDisconnects = meter.createCounter('zeepkist.totw.disconnects.afk', {
+	description: 'GameServer disconnects categorized as AFK',
 })
 
 interface HostConfig {
 	assetPollMs: number
 	brokerToken: string
 	brokerUrl: string
+	graphqlWsUrl: string
+	messageRefreshMs: number
 	reconnectMaxMs: number
 	roundTimeSeconds: number
 }
 
-interface RoomCredential {
-	credentialDeadlineAt: number
-	credentialGeneration: number
-	credentialIssuedAt: number
-	credentialRefreshAt: number
-	playerUid: number
-	steamId: string
-	token: string
-}
-
-interface RoomAssignment extends RoomCredential {
+interface RoomAssignment {
 	host: string
 	joinId: string
+	playerUid: number
 	port: number
+	roomCreated: boolean
+	steamId: string
+	token: string
 }
 
 interface LoadedAsset {
@@ -78,6 +75,7 @@ interface LoadedAsset {
 	contentSha256: string
 	idTournament: number
 	level: OnlineLevel
+	tournamentSlug: string
 }
 
 type LevelRequestPacket = Extract<GameHostPacket, { type: 'level-request' }>
@@ -91,6 +89,7 @@ interface PendingActivation {
 
 interface RoomTransferState {
 	activeAsset?: LoadedAsset
+	gameState?: number
 	pendingActivation?: PendingActivation
 	pendingAsset?: LoadedAsset
 	previousAsset?: LoadedAsset
@@ -100,27 +99,37 @@ interface RoomTransferState {
 }
 
 interface GameConnection {
-	assignment: RoomAssignment
 	client: LidgrenClient
 	closed: Promise<{ error?: Error }>
-	connectedAt: number
 }
 
 export class TotwLobbyHost {
 	private stopped = false
 	private client: LidgrenClient | undefined
-	private readonly clients = new Set<LidgrenClient>()
 	private asset: LoadedAsset | undefined
 	private refreshPromise: Promise<void> | undefined
 	private roomConnected = false
 	private roomReady = false
 	private ownsRoom = false
+	private standings: TotwLeaderboardStanding[] | undefined
+	private standingsSignature: string | undefined
+	private watchedTournamentId: number | undefined
+	private messageTimer: ReturnType<typeof setTimeout> | undefined
+	private messageDebounceTimer: ReturnType<typeof setTimeout> | undefined
+	private messageQueue = Promise.resolve()
+	private readonly leaderboard: TotwLeaderboardClient
 
 	constructor(
 		private readonly config: HostConfig,
 		private readonly protocolTransitionTimeoutMs = PROTOCOL_TRANSITION_TIMEOUT_MS,
 		private readonly playlistChangeDelayMs = PLAYLIST_CHANGE_DELAY_MS,
+		leaderboard?: TotwLeaderboardClient,
 	) {
+		this.leaderboard =
+			leaderboard ??
+			new TotwLeaderboardClient(config.graphqlWsUrl, (error) => {
+				console.warn(`TotW leaderboard subscription failed: ${safeError(error)}`)
+			})
 		meter
 			.createObservableGauge('zeepkist.totw.asset.ready')
 			.addCallback((result) => result.observe(this.asset ? 1 : 0))
@@ -165,6 +174,7 @@ export class TotwLobbyHost {
 
 	async stop() {
 		this.stopped = true
+		this.clearMessageTimers()
 		const client = this.client
 		this.asset = undefined
 		if (client) {
@@ -174,11 +184,8 @@ export class TotwLobbyHost {
 				console.warn('TotW lobby host could not make room private before shutdown.')
 			}
 		}
-		await Promise.all(
-			[...this.clients].map((connection) =>
-				connection.close('TotW lobby host shutting down'),
-			),
-		)
+		await client?.close('TotW lobby host shutting down')
+		await this.leaderboard.close()
 	}
 
 	private async connectRoom() {
@@ -189,13 +196,7 @@ export class TotwLobbyHost {
 			queuedUploads: 0,
 			uploadQueue: Promise.resolve(),
 		}
-		const localPlayerUids = new Set([assignment.playerUid])
-		let active = await this.createGameConnection(
-			assignment,
-			transferState,
-			localPlayerUids,
-			false,
-		)
+		const active = await this.createGameConnection(assignment, transferState)
 		this.client = active.client
 		try {
 			this.roomConnected = true
@@ -209,6 +210,13 @@ export class TotwLobbyHost {
 			const initialAsset = this.asset
 			if (!initialAsset) throw new Error('Tournament asset became unavailable')
 			await activate(initialAsset)
+			if (assignment.roomCreated) {
+				await active.client.sendReliableOrdered(
+					chatMessagePacket(TOTW_JOIN_MESSAGE_COMMAND),
+				)
+				console.info('TotW lobby join message configured.')
+			}
+			await this.sendServerMessage(active.client)
 			console.info(`TotW lobby host connected for tournament ${initialAsset.idTournament}.`)
 			let refreshing = false
 			const assetTimer = setInterval(() => {
@@ -223,33 +231,8 @@ export class TotwLobbyHost {
 					})
 			}, this.config.assetPollMs)
 			try {
-				let credentialRetryMs = CREDENTIAL_RETRY_MIN_MS
-				let nextCredentialAttemptAt = active.assignment.credentialRefreshAt
-				while (!this.stopped) {
-					const watched = active
-					const outcome = await Promise.race([
-						watched.closed.then((closed) => ({ type: 'closed' as const, closed })),
-						delay(Math.max(0, nextCredentialAttemptAt - Date.now())).then(() => ({
-							type: 'refresh' as const,
-						})),
-					])
-					try {
-						active = await this.refreshGameConnection(
-							watched,
-							transferState,
-							localPlayerUids,
-						)
-						credentialRetryMs = CREDENTIAL_RETRY_MIN_MS
-						nextCredentialAttemptAt = active.assignment.credentialRefreshAt
-					} catch (error) {
-						if (outcome.type === 'closed') throw outcome.closed.error ?? error
-						console.warn(
-							`TotW lobby credential handoff failed; current connection retained: ${safeError(error)}`,
-						)
-						nextCredentialAttemptAt = Date.now() + withJitter(credentialRetryMs)
-						credentialRetryMs = Math.min(credentialRetryMs * 2, CREDENTIAL_RETRY_MAX_MS)
-					}
-				}
+				const closed = await active.closed
+				if (closed.error) throw closed.error
 			} finally {
 				clearInterval(assetTimer)
 			}
@@ -261,37 +244,18 @@ export class TotwLobbyHost {
 			this.roomConnected = false
 			this.roomReady = false
 			this.ownsRoom = false
+			this.clearMessageTimers()
 			if (this.client === active.client) this.client = undefined
-			await Promise.all(
-				[...this.clients].map((connection) =>
-					connection.close('Managed room reconnecting'),
-				),
-			)
+			await active.client.close('Managed room reconnecting')
 		}
 	}
 
 	private async createGameConnection(
 		assignment: RoomAssignment,
 		state: RoomTransferState,
-		localPlayerUids: Set<number>,
-		requireAuthority: boolean,
 	): Promise<GameConnection> {
 		const hail = new BitWriter()
 		hail.writeString(assignment.token)
-		let authorityResolved = false
-		let resolveAuthority = () => {}
-		let rejectAuthority = (_error: Error) => {}
-		const authority = new Promise<void>((resolve, reject) => {
-			resolveAuthority = resolve
-			rejectAuthority = reject
-		})
-		if (!requireAuthority) void authority.catch(() => undefined)
-		const markAuthority = () => {
-			if (authorityResolved) return
-			authorityResolved = true
-			this.ownsRoom = true
-			resolveAuthority()
-		}
 		let client: LidgrenClient
 		client = new LidgrenClient({
 			applicationIdentifier: 'GameServer',
@@ -307,8 +271,8 @@ export class TotwLobbyHost {
 					)
 					if (!packet) return
 					if (packet.type === 'initial') {
-						if (packet.isHost) markAuthority()
-						else if (!requireAuthority) {
+						if (packet.isHost) this.ownsRoom = true
+						else {
 							this.ownsRoom = false
 							console.warn('TotW lobby ownership unavailable; managed room retained.')
 							void client.close('Managed account does not own assigned room')
@@ -316,12 +280,19 @@ export class TotwLobbyHost {
 						return
 					}
 					if (packet.type === 'master') {
-						if (packet.uid === assignment.playerUid) markAuthority()
-						else if (localPlayerUids.has(packet.uid)) return
+						if (packet.uid === assignment.playerUid) this.ownsRoom = true
 						else if (this.client === client) {
 							this.ownsRoom = false
 							console.warn('TotW lobby ownership transferred; managed room retained.')
 							void client.close('Managed account lost lobby ownership')
+						}
+						return
+					}
+					if (packet.type === 'game-state') {
+						const roundStarted = packet.state === 0 && state.gameState !== 0
+						state.gameState = packet.state
+						if (roundStarted && this.client === client && this.roomReady) {
+							this.queueServerMessage(MESSAGE_CHANGE_DEBOUNCE_MS)
 						}
 						return
 					}
@@ -332,42 +303,28 @@ export class TotwLobbyHost {
 				}
 			},
 		})
-		this.clients.add(client)
 		const connectedAt = Date.now()
-		try {
-			await client.connect()
-		} catch (error) {
-			this.clients.delete(client)
-			throw error
-		}
+		await client.connect()
 		const closed: Promise<{ error?: Error }> = client.waitForClose().then(
 			() => ({}),
 			(error) => ({ error: error instanceof Error ? error : new Error('GameServer closed') }),
 		)
 		void closed.then(({ error }) => {
-			this.clients.delete(client)
-			connectionDuration.record(Date.now() - connectedAt)
-			credentialAge.record(Date.now() - assignment.credentialIssuedAt, {
-				reason: error instanceof LidgrenRemoteDisconnectError ? error.category : 'local',
-			})
-			rejectAuthority(error ?? new Error('GameServer connection closed'))
+			const reason =
+				error instanceof LidgrenRemoteDisconnectError
+					? error.category
+					: error
+						? 'error'
+						: 'local'
+			connectionDuration.record(Date.now() - connectedAt, { reason })
+			if (error instanceof LidgrenRemoteDisconnectError && error.category === 'afk') {
+				afkDisconnects.add(1)
+			}
 			if (this.client === client) {
 				state.pendingActivation?.reject(error ?? new Error('GameServer connection closed'))
 			}
 		})
-		if (requireAuthority) {
-			try {
-				await withTimeout(
-					authority,
-					this.protocolTransitionTimeoutMs,
-					'Successor GameServer connection did not receive host authority',
-				)
-			} catch (error) {
-				await client.close('Successor connection did not receive host authority')
-				throw error
-			}
-		}
-		return { assignment, client, closed, connectedAt }
+		return { client, closed }
 	}
 
 	private queueLevelUpload(
@@ -390,44 +347,6 @@ export class TotwLobbyHost {
 			console.warn(`TotW lobby level upload failed: ${safeError(error)}`)
 			void client.close('Failed to supply requested tournament level')
 		})
-	}
-
-	private async refreshGameConnection(
-		current: GameConnection,
-		state: RoomTransferState,
-		localPlayerUids: Set<number>,
-	) {
-		credentialRefreshes.add(1)
-		const credential = await this.requestCredential(current.assignment.credentialGeneration)
-		if (credential.credentialGeneration <= current.assignment.credentialGeneration) {
-			throw new Error('Room broker returned stale credential')
-		}
-		if (credential.steamId !== current.assignment.steamId) {
-			throw new Error('Room broker returned credential for different account')
-		}
-		const successorAssignment = { ...current.assignment, ...credential }
-		localPlayerUids.add(credential.playerUid)
-		let successor: GameConnection
-		try {
-			successor = await this.createGameConnection(
-				successorAssignment,
-				state,
-				localPlayerUids,
-				true,
-			)
-		} catch (error) {
-			if (credential.playerUid !== current.assignment.playerUid) {
-				localPlayerUids.delete(credential.playerUid)
-			}
-			throw error
-		}
-		this.client = successor.client
-		await current.client.close('Room credential handoff complete')
-		if (credential.playerUid !== current.assignment.playerUid) {
-			localPlayerUids.delete(current.assignment.playerUid)
-		}
-		console.info('TotW lobby GameServer credential refreshed without playlist reset.')
-		return successor
 	}
 
 	private async refreshAndPublish(activate: (asset: LoadedAsset) => Promise<void>) {
@@ -454,6 +373,7 @@ export class TotwLobbyHost {
 				compressedData,
 				contentSha256: metadata.contentSha256,
 				idTournament: metadata.idTournament,
+				tournamentSlug: metadata.tournamentSlug,
 				level: {
 					author: metadata.author,
 					collaborators: metadata.collaborators,
@@ -463,6 +383,7 @@ export class TotwLobbyHost {
 					workshopId: metadata.workshopId,
 				},
 			}
+			this.watchLeaderboard(metadata.idTournament)
 			span.addEvent('lobby.asset.ready', {
 				'lobby.asset.bytes': compressedData.byteLength,
 			})
@@ -530,6 +451,13 @@ export class TotwLobbyHost {
 			console.info(
 				`TotW lobby level data uploaded for tournament ${asset.idTournament} (${asset.compressedData.length} bytes).`,
 			)
+			if (
+				state.activeAsset?.contentSha256 === asset.contentSha256 &&
+				state.pendingAsset?.contentSha256 !== asset.contentSha256 &&
+				this.roomReady
+			) {
+				this.queueServerMessage(MESSAGE_CHANGE_DEBOUNCE_MS)
+			}
 
 			if (state.pendingAsset?.contentSha256 !== asset.contentSha256) return
 			state.previousAsset = state.activeAsset
@@ -552,6 +480,64 @@ export class TotwLobbyHost {
 
 	private matchesLevelRequest(asset: LoadedAsset, request: LevelRequestPacket) {
 		return asset.level.uid === request.uid && asset.level.workshopId === request.workshopId
+	}
+
+	private watchLeaderboard(tournamentId: number) {
+		if (this.watchedTournamentId === tournamentId) return
+		this.watchedTournamentId = tournamentId
+		this.standings = undefined
+		this.standingsSignature = undefined
+		this.leaderboard.watch(tournamentId, (standings) => {
+			if (this.watchedTournamentId !== tournamentId) return
+			const signature = leaderboardSignature(standings)
+			if (signature === this.standingsSignature) return
+			this.standings = standings
+			this.standingsSignature = signature
+			this.queueServerMessage(MESSAGE_CHANGE_DEBOUNCE_MS)
+		})
+	}
+
+	private queueServerMessage(delayMs: number) {
+		if (this.stopped || !this.roomReady || !this.client || !this.asset) return
+		if (this.messageDebounceTimer) return
+		this.messageDebounceTimer = setTimeout(() => {
+			this.messageDebounceTimer = undefined
+			const client = this.client
+			if (!client) return
+			this.messageQueue = this.messageQueue
+				.then(() => this.sendServerMessage(client))
+				.catch((error) => {
+					console.warn(`TotW lobby server message failed: ${safeError(error)}`)
+					this.scheduleMessageRefresh(MESSAGE_RETRY_MS)
+				})
+		}, delayMs)
+	}
+
+	private async sendServerMessage(client: LidgrenClient) {
+		if (this.stopped || this.client !== client || !this.roomReady || !this.asset) return
+		const command = buildTotwServerMessageCommand(
+			this.asset.tournamentSlug,
+			this.standings,
+			this.config.roundTimeSeconds,
+		)
+		await client.sendReliableOrdered(chatMessagePacket(command))
+		this.scheduleMessageRefresh(this.config.messageRefreshMs)
+		console.info(`TotW lobby server message sent for tournament ${this.asset.idTournament}.`)
+	}
+
+	private scheduleMessageRefresh(delayMs: number) {
+		if (this.messageTimer) clearTimeout(this.messageTimer)
+		this.messageTimer = setTimeout(() => {
+			this.messageTimer = undefined
+			this.queueServerMessage(0)
+		}, delayMs)
+	}
+
+	private clearMessageTimers() {
+		if (this.messageTimer) clearTimeout(this.messageTimer)
+		if (this.messageDebounceTimer) clearTimeout(this.messageDebounceTimer)
+		this.messageTimer = undefined
+		this.messageDebounceTimer = undefined
 	}
 
 	private async requestAssignment(joinId?: string): Promise<RoomAssignment> {
@@ -577,33 +563,6 @@ export class TotwLobbyHost {
 		}
 	}
 
-	private async requestCredential(currentGeneration: number): Promise<RoomCredential> {
-		const deadline = Date.now() + CREDENTIAL_REQUEST_TIMEOUT_MS
-		while (Date.now() < deadline) {
-			const response = await tracedFetch(
-				`${this.config.brokerUrl}/v1/totw/credential`,
-				{
-					method: 'POST',
-					headers: {
-						Authorization: `Bearer ${this.config.brokerToken}`,
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ credentialGeneration: currentGeneration }),
-					signal: AbortSignal.timeout(Math.min(20_000, deadline - Date.now())),
-				},
-				{ operationName: 'lobby.broker.credential' },
-			)
-			if (response.status === 202) {
-				const retrySeconds = Number.parseInt(response.headers.get('retry-after') ?? '1', 10)
-				await delay(Math.min(5_000, Math.max(250, (retrySeconds || 1) * 1_000)))
-				continue
-			}
-			if (!response.ok) throw new Error(`Room broker returned HTTP ${response.status}`)
-			return parseCredential(await response.json())
-		}
-		throw new Error('Room broker credential refresh timed out')
-	}
-
 	public async [Symbol.asyncDispose](): Promise<void> {
 		await this.stop()
 	}
@@ -621,76 +580,29 @@ function parseAssignment(value: unknown): RoomAssignment {
 		typeof assignment.port !== 'number' ||
 		!Number.isInteger(assignment.port) ||
 		assignment.port < 1 ||
-		assignment.port > 65_535
+		assignment.port > 65_535 ||
+		typeof assignment.roomCreated !== 'boolean' ||
+		typeof assignment.playerUid !== 'number' ||
+		!Number.isInteger(assignment.playerUid) ||
+		assignment.playerUid < 0 ||
+		assignment.playerUid > 0xffff_ffff ||
+		typeof assignment.steamId !== 'string' ||
+		!/^[0-9]{17,20}$/.test(assignment.steamId) ||
+		typeof assignment.token !== 'string' ||
+		assignment.token.length === 0 ||
+		assignment.token.length > 4096
 	) {
 		throw new Error('Room broker response is invalid')
 	}
 	return {
 		host: assignment.host,
 		joinId: assignment.joinId,
+		playerUid: assignment.playerUid,
 		port: assignment.port,
-		...parseCredentialFields(assignment, true),
+		roomCreated: assignment.roomCreated,
+		steamId: assignment.steamId,
+		token: assignment.token,
 	}
-}
-
-function parseCredential(value: unknown): RoomCredential {
-	if (typeof value !== 'object' || value === null)
-		throw new Error('Room broker response is invalid')
-	return parseCredentialFields(value as Partial<RoomCredential>, false)
-}
-
-function parseCredentialFields(
-	credential: Partial<RoomCredential>,
-	allowLegacyTiming: boolean,
-): RoomCredential {
-	if (
-		typeof credential.playerUid !== 'number' ||
-		!Number.isInteger(credential.playerUid) ||
-		credential.playerUid < 0 ||
-		credential.playerUid > 0xffff_ffff ||
-		typeof credential.steamId !== 'string' ||
-		!/^[0-9]{17,20}$/.test(credential.steamId) ||
-		typeof credential.token !== 'string' ||
-		credential.token.length === 0 ||
-		credential.token.length > 4096
-	) {
-		throw new Error('Room broker response is invalid')
-	}
-	if (
-		allowLegacyTiming &&
-		credential.credentialGeneration === undefined &&
-		credential.credentialIssuedAt === undefined &&
-		credential.credentialRefreshAt === undefined &&
-		credential.credentialDeadlineAt === undefined
-	) {
-		const credentialIssuedAt = Date.now()
-		return {
-			credentialDeadlineAt: credentialIssuedAt + DEFAULT_CREDENTIAL_DEADLINE_MS,
-			credentialGeneration: 0,
-			credentialIssuedAt,
-			credentialRefreshAt: credentialIssuedAt + DEFAULT_CREDENTIAL_REFRESH_MS,
-			playerUid: credential.playerUid,
-			steamId: credential.steamId,
-			token: credential.token,
-		}
-	}
-	if (
-		!isEpochMs(credential.credentialIssuedAt) ||
-		!isEpochMs(credential.credentialRefreshAt) ||
-		!isEpochMs(credential.credentialDeadlineAt) ||
-		typeof credential.credentialGeneration !== 'number' ||
-		!Number.isSafeInteger(credential.credentialGeneration) ||
-		credential.credentialGeneration < 0 ||
-		credential.credentialIssuedAt > credential.credentialRefreshAt ||
-		credential.credentialRefreshAt >= credential.credentialDeadlineAt
-	) {
-		throw new Error('Room broker response is invalid')
-	}
-	return credential as RoomCredential
-}
-
-function isEpochMs(value: unknown): value is number {
-	return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
 
 async function waitWhileConnected(connection: GameConnection, durationMs: number) {

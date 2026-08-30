@@ -1,12 +1,14 @@
 import { BitReader, BitWriter } from './binary'
 
 export const ZEEPKIST_PACKET_ID = {
+	chatMessage: packetId('ZeepkistNetworking.ChatMessagePacket'),
 	createLobby: packetId('ZeepkistNetworking.CreateLobbyPacket'),
 	createLobbyResponse: packetId('ZeepkistNetworking.CreateLobbyResponsePacket'),
 	joinLobby: packetId('ZeepkistNetworking.JoinLobbyPacket'),
 	joinLobbyResponse: packetId('ZeepkistNetworking.JoinLobbyResponsePacket'),
 	initialState: packetId('ZeepkistNetworking.InitialStatePacket'),
 	changeLobbyGameProperties: packetId('ZeepkistNetworking.ChangeLobbyGamePropertiesPacket'),
+	changeLobbyGameState: packetId('ZeepkistNetworking.ChangeLobbyGameStatePacket'),
 	changeLobbyMaster: packetId('ZeepkistNetworking.ChangeLobbyMasterPacket'),
 	changeLobbyPlaylist: packetId('ZeepkistNetworking.ChangeLobbyPlaylistPacket'),
 	changeLobbyPlaylistIndex: packetId('ZeepkistNetworking.ChangeLobbyPlaylistIndexPacket'),
@@ -45,6 +47,7 @@ export type MasterRoomResponse =
 
 export type GameHostPacket =
 	| { type: 'initial'; isHost: boolean }
+	| { type: 'game-state'; state: number }
 	| ({ type: 'playlist' } & OnlinePlaylist)
 	| {
 			type: 'game-properties'
@@ -66,6 +69,7 @@ export type GameHostPacket =
 
 const MAX_LEVEL_DATA_BYTES = 64 * 1024 * 1024
 const MAX_PLAYLIST_LEVELS = 1001
+const MAX_CHAT_MESSAGE_BYTES = 4096
 
 export function packetId(fullName: string) {
 	let hash = 23
@@ -95,6 +99,18 @@ export function changeLobbyVisibilityPacket(isPublic: boolean) {
 	return writePacket(ZEEPKIST_PACKET_ID.changeLobbyVisibility, (writer) =>
 		writer.writeBoolean(isPublic),
 	)
+}
+
+export function chatMessagePacket(message: string) {
+	const byteLength = new TextEncoder().encode(message).byteLength
+	if (byteLength < 1 || byteLength > MAX_CHAT_MESSAGE_BYTES) {
+		throw new Error(`Chat message must contain between 1 and ${MAX_CHAT_MESSAGE_BYTES} bytes`)
+	}
+	return writePacket(ZEEPKIST_PACKET_ID.chatMessage, (writer) => {
+		writer.writeUInt32(0)
+		writer.writeString(message)
+		writer.writeInt32(0)
+	})
 }
 
 export function changeLobbyPlaylistPacket(level: OnlineLevel, roundTimeSeconds: number) {
@@ -189,6 +205,9 @@ export function parseGameHostPacket(
 			uid: reader.readString(4096),
 			workshopId: reader.readUInt64(),
 		}
+	}
+	if (id === ZEEPKIST_PACKET_ID.changeLobbyGameState) {
+		return { type: 'game-state', state: reader.readInt32() }
 	}
 	if (id === ZEEPKIST_PACKET_ID.changeLobbyMaster) {
 		return { type: 'master', uid: reader.readUInt32() }

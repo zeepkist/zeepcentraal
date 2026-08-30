@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { BitReader, BitWriter } from './binary'
 import {
 	changeLobbyPlaylistPacket,
+	chatMessagePacket,
 	createLobbyPacket,
 	levelDataPacket,
 	levelDataRequestPacket,
@@ -24,12 +25,14 @@ const LEVEL = {
 describe('Track of the Week packet codecs', () => {
 	test('uses V18 stable packet IDs', () => {
 		expect(ZEEPKIST_PACKET_ID).toEqual({
+			chatMessage: 48137,
 			createLobby: 18036,
 			createLobbyResponse: 42517,
 			joinLobby: 24070,
 			joinLobbyResponse: 2983,
 			initialState: 29635,
 			changeLobbyGameProperties: 44133,
+			changeLobbyGameState: 56687,
 			changeLobbyMaster: 13890,
 			changeLobbyPlaylist: 60338,
 			changeLobbyPlaylistIndex: 18192,
@@ -38,6 +41,21 @@ describe('Track of the Week packet codecs', () => {
 			levelLoaded: 29603,
 			skipToLevel: 63876,
 		})
+	})
+
+	test('serializes bounded V18 chat commands', () => {
+		const bytes = chatMessagePacket('/servermessage yellow 900 <b>Track of the Week</b>')
+		expect(bytes.toBase64()).toBe(
+			'CbwAAAAAMi9zZXJ2ZXJtZXNzYWdlIHllbGxvdyA5MDAgPGI+VHJhY2sgb2YgdGhlIFdlZWs8L2I+AAAAAA==',
+		)
+		const packet = new BitReader(bytes)
+		expect(packet.readUInt16()).toBe(ZEEPKIST_PACKET_ID.chatMessage)
+		expect(packet.readUInt32()).toBe(0)
+		expect(packet.readString()).toBe('/servermessage yellow 900 <b>Track of the Week</b>')
+		expect(packet.readInt32()).toBe(0)
+		expect(packet.remainingBits).toBe(0)
+		expect(() => chatMessagePacket('')).toThrow('between 1 and 4096 bytes')
+		expect(() => chatMessagePacket('x'.repeat(4097))).toThrow('between 1 and 4096 bytes')
 	})
 
 	test('serializes room creation and looping one-track playlist', () => {
@@ -198,6 +216,11 @@ describe('Track of the Week packet codecs', () => {
 			uid: 'uid',
 			workshopId: 123n,
 		})
+
+		const gameState = packet(ZEEPKIST_PACKET_ID.changeLobbyGameState, (writer) => {
+			writer.writeInt32(0)
+		})
+		expect(parseGameHostPacket(gameState, 0n)).toEqual({ type: 'game-state', state: 0 })
 	})
 
 	test('parses playlist broadcasts and returned level data', () => {
@@ -284,6 +307,13 @@ describe('Track of the Week packet codecs', () => {
 			writer.writeUInt64(123n)
 		})
 		expect(() => parseGameHostPacket(properties, 0n)).toThrow('String exceeds 4096 bytes')
+	})
+
+	test('rejects truncated game-state packets', () => {
+		const truncated = packet(ZEEPKIST_PACKET_ID.changeLobbyGameState, () => {})
+		expect(() => parseGameHostPacket(truncated, 0n)).toThrow(
+			'Packet ended before requested bits',
+		)
 	})
 
 	test('bounds malformed playlists', () => {

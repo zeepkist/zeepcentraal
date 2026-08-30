@@ -25,7 +25,6 @@ export async function startLobbyPrimary(getWorkers: () => Worker[]) {
 	const collector = new LobbyCollector(
 		{
 			appId: config.steamAppId,
-			credentialRefreshMs: config.lobby.broker.credentialRefreshMs,
 			host: config.lobby.host,
 			port: config.lobby.port,
 			build: config.lobby.build,

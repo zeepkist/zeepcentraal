@@ -77,16 +77,21 @@ test('matches C# playlist transition and serves every level-data request', async
 	const gamePort = await bind(gameServer)
 	const fragments = new Map<number, FragmentGroup>()
 	const sentPacketIds: number[] = []
+	const chatCommands: string[] = []
 	let incomingSequence = 0
 	let playlistSequence: number | undefined
 	let skipSequence: number | undefined
 	let connectedAt = 0
 	let playlistSentAt = 0
 	let responseCount = 0
+	let roundTransitionSent = false
 	let resolveResponses: (() => void) | undefined
 	const responsesComplete = new Promise<void>((resolve) => {
 		resolveResponses = resolve
 	})
+	const maybeResolve = () => {
+		if (responseCount >= 3 && chatCommands.length >= 4) resolveResponses?.()
+	}
 
 	gameServer.on('message', (data, remote) => {
 		if (data[0] === 131) connectedAt = performance.now()
@@ -99,6 +104,26 @@ test('matches C# playlist transition and serves every level-data request', async
 		const reader = new BitReader(payload)
 		const packetId = reader.readUInt16()
 		sentPacketIds.push(packetId)
+		if (packetId === ZEEPKIST_PACKET_ID.chatMessage) {
+			expect(reader.readUInt32()).toBe(0)
+			chatCommands.push(reader.readString())
+			expect(reader.readInt32()).toBe(0)
+			if (chatCommands.length === 2 && !roundTransitionSent) {
+				roundTransitionSent = true
+				gameServer.send(
+					reliable(gameStatePacket(1), incomingSequence++),
+					remote.port,
+					remote.address,
+				)
+				gameServer.send(
+					reliable(gameStatePacket(0), incomingSequence++),
+					remote.port,
+					remote.address,
+				)
+			}
+			maybeResolve()
+			return
+		}
 
 		if (packetId === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
 			playlistSentAt = performance.now()
@@ -137,12 +162,12 @@ test('matches C# playlist transition and serves every level-data request', async
 			)
 		} else if (responseCount === 3) {
 			expect(response.name).toBe('Late Join Name')
-			resolveResponses?.()
+			maybeResolve()
 		}
 	})
 
-	const broker = startBroker(gamePort)
-	const host = createHost(requiredPort(broker.port), 500, 40)
+	const broker = startBroker(gamePort, undefined, true)
+	const host = createHost(requiredPort(broker.port), 500, 40, 60_000, 50)
 	const running = host.run()
 	try {
 		await withTimeout(responsesComplete)
@@ -160,6 +185,10 @@ test('matches C# playlist transition and serves every level-data request', async
 		).toHaveLength(3)
 		expect(sentPacketIds).not.toContain(ZEEPKIST_PACKET_ID.levelLoaded)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyVisibility)
+		expect(chatCommands[0]).toStartWith('/joinmessage yellow ')
+		expect(chatCommands[1]).toStartWith('/servermessage yellow 900 ')
+		expect(chatCommands[2]).toStartWith('/servermessage yellow 900 ')
+		expect(chatCommands[3]).toStartWith('/servermessage yellow 900 ')
 	} finally {
 		await host.stop()
 		await broker.stop(true)
@@ -291,120 +320,26 @@ test('reconnects when GameServer never requests level data', async () => {
 	}
 })
 
-test('refreshes GameServer credential without resetting playlist', async () => {
-	const originalFetch = globalThis.fetch
-	globalThis.fetch = Bun.fetch
-	const gameServer = dgram.createSocket('udp4')
-	const gamePort = await bind(gameServer)
-	const fragments = new Map<number, FragmentGroup>()
-	const tokens = new Map<number, string>()
-	const established = new Set<number>()
-	let playlistPackets = 0
-	let oldPort = 0
-	let successorPort = 0
-	let resolveHandoff: (() => void) | undefined
-	const handoff = new Promise<void>((resolve) => {
-		resolveHandoff = resolve
-	})
-	gameServer.on('message', (data, remote) => {
-		if (data[0] === 131) {
-			const reader = new BitReader(data.subarray(5))
-			expect(reader.readString()).toBe('GameServer')
-			reader.readInt64()
-			reader.readFloat32()
-			const token = reader.readString()
-			tokens.set(remote.port, token)
-			if (token === 'ephemeral-token-1') oldPort = remote.port
-			if (token === 'ephemeral-token-2') successorPort = remote.port
-			gameServer.send(connectResponse(), remote.port, remote.address)
-			return
-		}
-		if (data[0] === 133 && !established.has(remote.port)) {
-			established.add(remote.port)
-			const playerUid = tokens.get(remote.port) === 'ephemeral-token-2' ? 8 : 7
-			gameServer.send(
-				reliable(initialStatePacket(playerUid, 76561198000000000n), 0),
-				remote.port,
-				remote.address,
-			)
-			return
-		}
-		if (data[0] === 135) {
-			if (remote.port === oldPort && successorPort !== 0) resolveHandoff?.()
-			return
-		}
-		if (data[0] !== 67) return
-		gameServer.send(acknowledgement(data), remote.port, remote.address)
-		const payload = receiveReliablePayload(data, fragments)
-		if (!payload) return
-		const reader = new BitReader(payload)
-		const packetId = reader.readUInt16()
-		if (packetId === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
-			playlistPackets++
-			return
-		}
-		if (packetId === ZEEPKIST_PACKET_ID.skipToLevel) {
-			gameServer.send(
-				reliable(levelRequestPacket('Requested Track', TEST_LEVEL), 1),
-				remote.port,
-				remote.address,
-			)
-		}
-	})
-
-	const issuedAt = Date.now()
-	const broker = Bun.serve({
-		hostname: '127.0.0.1',
-		port: 0,
-		fetch: (request) => {
-			const generation = new URL(request.url).pathname.endsWith('/credential') ? 2 : 1
-			const generationIssuedAt = generation === 1 ? issuedAt : Date.now()
-			return Response.json({
-				credentialDeadlineAt: generationIssuedAt + 60_000,
-				credentialGeneration: generation,
-				credentialIssuedAt: generationIssuedAt,
-				credentialRefreshAt: generationIssuedAt + (generation === 1 ? 500 : 30_000),
-				host: '127.0.0.1',
-				joinId: 'managed-room',
-				playerUid: generation === 1 ? 7 : 8,
-				port: gamePort,
-				steamId: '76561198000000000',
-				token: `ephemeral-token-${generation}`,
-			})
-		},
-	})
-	const host = createHost(requiredPort(broker.port), 1_000, 0)
-	const running = host.run()
-	try {
-		await withTimeout(handoff)
-		expect([...tokens.values()]).toEqual(['ephemeral-token-1', 'ephemeral-token-2'])
-		expect(playlistPackets).toBe(1)
-		await host.stop()
-		await withTimeout(running)
-	} finally {
-		await host.stop()
-		await broker.stop(true)
-		await close(gameServer)
-		globalThis.fetch = originalFetch
-	}
-})
-
 function createHost(
 	brokerPort: number,
 	protocolTimeoutMs: number,
 	playlistDelayMs: number,
 	assetPollMs = 60_000,
+	messageRefreshMs = 600_000,
 ) {
 	return new TotwLobbyHost(
 		{
 			assetPollMs,
 			brokerToken: 'b'.repeat(32),
 			brokerUrl: `http://127.0.0.1:${brokerPort}`,
+			graphqlWsUrl: 'ws://127.0.0.1:1',
+			messageRefreshMs,
 			reconnectMaxMs: 5_000,
 			roundTimeSeconds: 900,
 		},
 		protocolTimeoutMs,
 		playlistDelayMs,
+		{ close: async () => {}, watch: () => {} } as never,
 	)
 }
 
@@ -413,7 +348,7 @@ function requiredPort(port: number | undefined) {
 	return port
 }
 
-function startBroker(gamePort: number, onRequest?: () => void) {
+function startBroker(gamePort: number, onRequest?: () => void, roomCreated = false) {
 	return Bun.serve({
 		hostname: '127.0.0.1',
 		port: 0,
@@ -424,6 +359,7 @@ function startBroker(gamePort: number, onRequest?: () => void) {
 				joinId: 'managed-room',
 				playerUid: 7,
 				port: gamePort,
+				roomCreated,
 				steamId: '76561198000000000',
 				token: 'ephemeral-token',
 			})
@@ -487,24 +423,8 @@ function levelRequestPacket(name: string, level: TestLevel) {
 	})
 }
 
-function initialStatePacket(playerUid: number, steamId: bigint) {
-	return packet(ZEEPKIST_PACKET_ID.initialState, (writer) => {
-		writer.writeInt32(1)
-		writer.writeUInt32(playerUid)
-		writer.writeUInt64(steamId)
-		writer.writeString('Managed host')
-		writer.writeString('')
-		writer.writeBoolean(true)
-		writer.writeString('')
-		for (let value = 0; value < 10; value++) writer.writeFloat32(0)
-		writer.writeBoolean(false)
-		writer.writeBoolean(false)
-		writer.writeByte(0)
-		for (let value = 0; value < 13; value++) writer.writeBoolean(false)
-		writer.writeInt32(0)
-		writer.writeInt32(0)
-		writer.writeBoolean(false)
-	})
+function gameStatePacket(state: number) {
+	return packet(ZEEPKIST_PACKET_ID.changeLobbyGameState, (writer) => writer.writeInt32(state))
 }
 
 function packet(id: number, write: (writer: BitWriter) => void) {
@@ -622,6 +542,7 @@ function assetMetadata(
 ) {
 	return {
 		idTournament,
+		tournamentSlug: '2026-w33',
 		workshopId: level.workshopId,
 		fileUid: level.uid,
 		levelName: level.name,

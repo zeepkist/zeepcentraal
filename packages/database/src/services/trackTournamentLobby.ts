@@ -92,6 +92,7 @@ export async function getPreferredTrackTournamentLobbyAsset(at = new Date()) {
 		.select({
 			asset: trackTournamentLobbyAsset,
 			active: sql<boolean>`${trackTournament.startAt} <= ${now} AND ${trackTournament.endAt} > ${now}`,
+			tournamentSlug: trackTournament.slug,
 		})
 		.from(trackTournamentLobbyAsset)
 		.innerJoin(trackTournament, eq(trackTournament.id, trackTournamentLobbyAsset.idTournament))
@@ -103,7 +104,8 @@ export async function getPreferredTrackTournamentLobbyAsset(at = new Date()) {
 		)
 		.orderBy(desc(trackTournament.startAt))
 		.limit(2)
-	return rows.find((row) => row.active)?.asset ?? rows[0]?.asset
+	const preferred = rows.find((row) => row.active) ?? rows[0]
+	return preferred ? { ...preferred.asset, tournamentSlug: preferred.tournamentSlug } : undefined
 }
 
 export async function downloadTrackTournamentLobbyAsset(

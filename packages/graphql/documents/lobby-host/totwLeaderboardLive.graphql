@@ -1,0 +1,21 @@
+subscription ZC_TotwLobbyLeaderboardLive($id: Int!) {
+	trackTournament(id: $id) {
+		id
+		slug
+		leaderboard: trackTournamentResults(
+			first: 6
+			orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]
+		) {
+			nodes {
+				tournamentId
+				userId
+				recordId
+				time
+				rank
+				user {
+					steamName
+				}
+			}
+		}
+	}
+}
