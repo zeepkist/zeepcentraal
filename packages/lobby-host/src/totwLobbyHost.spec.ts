@@ -542,6 +542,7 @@ function assetMetadata(
 ) {
 	return {
 		idTournament,
+		tournamentEndAt: '2027-01-01T00:00:00.000Z',
 		tournamentSlug: '2026-w33',
 		workshopId: level.workshopId,
 		fileUid: level.uid,

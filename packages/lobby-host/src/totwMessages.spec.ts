@@ -4,6 +4,7 @@ import {
 	escapeUnityRichText,
 	formatTotwPeriod,
 	formatTotwTime,
+	formatTournamentRemaining,
 	leaderboardSignature,
 	TOTW_JOIN_MESSAGE_COMMAND,
 	type TotwLeaderboardStanding,
@@ -20,6 +21,8 @@ const standings: TotwLeaderboardStanding[] = [
 ]
 const firstStanding = standings[0] as TotwLeaderboardStanding
 const secondStanding = standings[1] as TotwLeaderboardStanding
+const now = Date.parse('2026-08-30T12:00:00.000Z')
+const tournamentEndAt = new Date(now + (6 * 24 * 60 + 3 * 60 + 38) * 60_000).toISOString()
 
 describe('TotW room messages', () => {
 	test('uses bounded rich join copy', () => {
@@ -36,13 +39,28 @@ describe('TotW room messages', () => {
 		expect(formatTotwTime(61.234)).toBe('1:01.234')
 		expect(formatTotwTime(9.5)).toBe('0:09.500')
 		expect(formatTotwTime(59.9996)).toBe('1:00.000')
+		expect(formatTournamentRemaining(tournamentEndAt, now)).toBe('Ends in 6d 3h 38m')
+		expect(formatTournamentRemaining(tournamentEndAt, now + 60_000)).toBe('Ends in 6d 3h 37m')
+		expect(formatTournamentRemaining(tournamentEndAt, Date.parse(tournamentEndAt) + 1)).toBe(
+			'Ends in 0d 0h 0m',
+		)
+		expect(() => formatTournamentRemaining('invalid', now)).toThrow(
+			'Tournament end time is invalid',
+		)
 	})
 
 	test('renders escaped top six with podium colors', () => {
-		const command = buildTotwServerMessageCommand('2026-w33', standings, 900)
+		const command = buildTotwServerMessageCommand(
+			'2026-w33',
+			tournamentEndAt,
+			standings,
+			900,
+			now,
+		)
 		expect(command).toStartWith(
 			'/servermessage yellow 900 <b>Track of the Week: 2026 Week 33</b>',
 		)
+		expect(command).toContain('Ends in 6d 3h 38m')
 		expect(command).toContain('<color=#FFD700>1. &lt;Winner&gt; — 1:01.234</color>')
 		expect(command).toContain('<color=#C0C0C0>2. Runner &amp; Friend — 1:02.000</color>')
 		expect(command).toContain('<color=#CD7F32>3. Unknown player — 1:03.500</color>')
@@ -52,10 +70,10 @@ describe('TotW room messages', () => {
 	})
 
 	test('renders loading and empty states', () => {
-		expect(buildTotwServerMessageCommand('2026-w33', undefined, 900)).toContain(
-			'Leaderboard loading…',
-		)
-		expect(buildTotwServerMessageCommand('2026-w33', [], 900)).toContain(
+		expect(
+			buildTotwServerMessageCommand('2026-w33', tournamentEndAt, undefined, 900),
+		).toContain('Leaderboard loading…')
+		expect(buildTotwServerMessageCommand('2026-w33', tournamentEndAt, [], 900)).toContain(
 			'No tournament times yet',
 		)
 	})
@@ -64,11 +82,13 @@ describe('TotW room messages', () => {
 		expect(escapeUnityRichText('<b>A&B</b>')).toBe('&lt;b&gt;A&amp;B&lt;/b&gt;')
 		const command = buildTotwServerMessageCommand(
 			'2026-w33',
+			tournamentEndAt,
 			[
 				{ ...firstStanding, steamName: '😀'.repeat(30) },
 				{ ...secondStanding, steamName: '<b>Injected</b>\r\nSecond line' },
 			],
 			900,
+			now,
 		)
 		expect(command).toContain(`${'😀'.repeat(23)}…`)
 		expect(command).not.toContain('😀'.repeat(24))

@@ -92,6 +92,7 @@ export async function getPreferredTrackTournamentLobbyAsset(at = new Date()) {
 		.select({
 			asset: trackTournamentLobbyAsset,
 			active: sql<boolean>`${trackTournament.startAt} <= ${now} AND ${trackTournament.endAt} > ${now}`,
+			tournamentEndAt: trackTournament.endAt,
 			tournamentSlug: trackTournament.slug,
 		})
 		.from(trackTournamentLobbyAsset)
@@ -105,7 +106,13 @@ export async function getPreferredTrackTournamentLobbyAsset(at = new Date()) {
 		.orderBy(desc(trackTournament.startAt))
 		.limit(2)
 	const preferred = rows.find((row) => row.active) ?? rows[0]
-	return preferred ? { ...preferred.asset, tournamentSlug: preferred.tournamentSlug } : undefined
+	return preferred
+		? {
+				...preferred.asset,
+				tournamentEndAt: preferred.tournamentEndAt,
+				tournamentSlug: preferred.tournamentSlug,
+			}
+		: undefined
 }
 
 export async function downloadTrackTournamentLobbyAsset(

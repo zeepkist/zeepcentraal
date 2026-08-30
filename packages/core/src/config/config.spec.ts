@@ -129,7 +129,7 @@ test('lobby host config requires broker token only when enabled', () => {
 	expect(config.brokerUrl).toBe('http://localhost:3001')
 	expect(config.roundTimeSeconds).toBe(900)
 	expect(config.graphqlWsUrl).toBe('ws://localhost:5000')
-	expect(config.messageRefreshMs).toBe(600_000)
+	expect(config.messageRefreshMs).toBe(60_000)
 	expect(() =>
 		parseLobbyHostConfig({
 			NODE_ENV: 'test',

@@ -18,12 +18,15 @@ export const TOTW_JOIN_MESSAGE_COMMAND = [
 
 export function buildTotwServerMessageCommand(
 	tournamentSlug: string,
+	tournamentEndAt: string,
 	standings: readonly TotwLeaderboardStanding[] | undefined,
 	roundTimeSeconds: number,
+	now = Date.now(),
 ) {
 	const title = `<b>${escapeUnityRichText(formatTotwPeriod(tournamentSlug))}</b>`
+	const remaining = formatTournamentRemaining(tournamentEndAt, now)
 	const body = formatLeaderboard(standings)
-	return `/servermessage yellow ${roundTimeSeconds} ${title}\n<size=70%>${body}</size>`
+	return `/servermessage yellow ${roundTimeSeconds} ${title}\n<size=70%>${remaining}\n${body}</size>`
 }
 
 export function formatTotwPeriod(slug: string) {
@@ -37,6 +40,16 @@ export function formatTotwTime(seconds: number) {
 	const minutes = Math.floor(milliseconds / 60_000)
 	const secondsInMinute = (milliseconds - minutes * 60_000) / 1_000
 	return `${minutes}:${secondsInMinute.toFixed(3).padStart(6, '0')}`
+}
+
+export function formatTournamentRemaining(endAt: string, now = Date.now()) {
+	const endTime = Date.parse(endAt)
+	if (!Number.isFinite(endTime)) throw new Error('Tournament end time is invalid')
+	const totalMinutes = Math.max(0, Math.ceil((endTime - now) / 60_000))
+	const days = Math.floor(totalMinutes / (24 * 60))
+	const hours = Math.floor((totalMinutes % (24 * 60)) / 60)
+	const minutes = totalMinutes % 60
+	return `Ends in ${days}d ${hours}h ${minutes}m`
 }
 
 export function escapeUnityRichText(value: string) {

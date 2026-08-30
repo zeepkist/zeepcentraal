@@ -75,6 +75,7 @@ interface LoadedAsset {
 	contentSha256: string
 	idTournament: number
 	level: OnlineLevel
+	tournamentEndAt: string
 	tournamentSlug: string
 }
 
@@ -373,6 +374,7 @@ export class TotwLobbyHost {
 				compressedData,
 				contentSha256: metadata.contentSha256,
 				idTournament: metadata.idTournament,
+				tournamentEndAt: metadata.tournamentEndAt,
 				tournamentSlug: metadata.tournamentSlug,
 				level: {
 					author: metadata.author,
@@ -517,6 +519,7 @@ export class TotwLobbyHost {
 		if (this.stopped || this.client !== client || !this.roomReady || !this.asset) return
 		const command = buildTotwServerMessageCommand(
 			this.asset.tournamentSlug,
+			this.asset.tournamentEndAt,
 			this.standings,
 			this.config.roundTimeSeconds,
 		)

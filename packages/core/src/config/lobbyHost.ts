@@ -15,7 +15,7 @@ const lobbyHostEnvSchema = z.object({
 		.int()
 		.min(60_000)
 		.max(30 * 60_000)
-		.default(10 * 60_000),
+		.default(60_000),
 	OPENTELEMETRY_SERVICE_NAME: z.string().optional(),
 	OPENTELEMETRY_SERVICE_VERSION: z.string().optional(),
 	OPENTELEMETRY_COLLECTOR_URL: z.string().default('http://localhost:4317'),
