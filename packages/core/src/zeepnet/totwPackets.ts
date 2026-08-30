@@ -171,11 +171,12 @@ export function parseMasterRoomResponse(payload: Uint8Array): MasterRoomResponse
 export function parseGameHostPacket(
 	payload: Uint8Array,
 	localSteamId: bigint,
+	localPlayerUid?: number,
 ): GameHostPacket | undefined {
 	const reader = new BitReader(payload)
 	const id = reader.readUInt16()
 	if (id === ZEEPKIST_PACKET_ID.initialState) {
-		return { type: 'initial', isHost: readInitialHost(reader, localSteamId) }
+		return { type: 'initial', isHost: readInitialHost(reader, localSteamId, localPlayerUid) }
 	}
 	if (id === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
 		return { type: 'playlist', ...readPlaylist(reader) }
@@ -251,12 +252,12 @@ function readPlaylist(reader: BitReader): OnlinePlaylist {
 	}
 }
 
-function readInitialHost(reader: BitReader, localSteamId: bigint) {
+function readInitialHost(reader: BitReader, localSteamId: bigint, localPlayerUid?: number) {
 	const count = reader.readInt32()
 	if (count < 0 || count > 256) throw new Error('Invalid initial player count')
 	let localIsHost = false
 	for (let index = 0; index < count; index++) {
-		reader.readUInt32()
+		const playerUid = reader.readUInt32()
 		const steamId = reader.readUInt64()
 		reader.readString(1024)
 		reader.readString(1024)
@@ -274,7 +275,11 @@ function readInitialHost(reader: BitReader, localSteamId: bigint) {
 			reader.readInt32()
 			reader.readFloat32()
 		}
-		if (steamId === localSteamId) localIsHost = isHost
+		if (
+			localPlayerUid === undefined ? steamId === localSteamId : playerUid === localPlayerUid
+		) {
+			localIsHost = isHost
+		}
 	}
 	return localIsHost
 }

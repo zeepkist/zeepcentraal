@@ -291,6 +291,104 @@ test('reconnects when GameServer never requests level data', async () => {
 	}
 })
 
+test('refreshes GameServer credential without resetting playlist', async () => {
+	const originalFetch = globalThis.fetch
+	globalThis.fetch = Bun.fetch
+	const gameServer = dgram.createSocket('udp4')
+	const gamePort = await bind(gameServer)
+	const fragments = new Map<number, FragmentGroup>()
+	const tokens = new Map<number, string>()
+	const established = new Set<number>()
+	let playlistPackets = 0
+	let oldPort = 0
+	let successorPort = 0
+	let resolveHandoff: (() => void) | undefined
+	const handoff = new Promise<void>((resolve) => {
+		resolveHandoff = resolve
+	})
+	gameServer.on('message', (data, remote) => {
+		if (data[0] === 131) {
+			const reader = new BitReader(data.subarray(5))
+			expect(reader.readString()).toBe('GameServer')
+			reader.readInt64()
+			reader.readFloat32()
+			const token = reader.readString()
+			tokens.set(remote.port, token)
+			if (token === 'ephemeral-token-1') oldPort = remote.port
+			if (token === 'ephemeral-token-2') successorPort = remote.port
+			gameServer.send(connectResponse(), remote.port, remote.address)
+			return
+		}
+		if (data[0] === 133 && !established.has(remote.port)) {
+			established.add(remote.port)
+			const playerUid = tokens.get(remote.port) === 'ephemeral-token-2' ? 8 : 7
+			gameServer.send(
+				reliable(initialStatePacket(playerUid, 76561198000000000n), 0),
+				remote.port,
+				remote.address,
+			)
+			return
+		}
+		if (data[0] === 135) {
+			if (remote.port === oldPort && successorPort !== 0) resolveHandoff?.()
+			return
+		}
+		if (data[0] !== 67) return
+		gameServer.send(acknowledgement(data), remote.port, remote.address)
+		const payload = receiveReliablePayload(data, fragments)
+		if (!payload) return
+		const reader = new BitReader(payload)
+		const packetId = reader.readUInt16()
+		if (packetId === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
+			playlistPackets++
+			return
+		}
+		if (packetId === ZEEPKIST_PACKET_ID.skipToLevel) {
+			gameServer.send(
+				reliable(levelRequestPacket('Requested Track', TEST_LEVEL), 1),
+				remote.port,
+				remote.address,
+			)
+		}
+	})
+
+	const issuedAt = Date.now()
+	const broker = Bun.serve({
+		hostname: '127.0.0.1',
+		port: 0,
+		fetch: (request) => {
+			const generation = new URL(request.url).pathname.endsWith('/credential') ? 2 : 1
+			const generationIssuedAt = generation === 1 ? issuedAt : Date.now()
+			return Response.json({
+				credentialDeadlineAt: generationIssuedAt + 60_000,
+				credentialGeneration: generation,
+				credentialIssuedAt: generationIssuedAt,
+				credentialRefreshAt: generationIssuedAt + (generation === 1 ? 500 : 30_000),
+				host: '127.0.0.1',
+				joinId: 'managed-room',
+				playerUid: generation === 1 ? 7 : 8,
+				port: gamePort,
+				steamId: '76561198000000000',
+				token: `ephemeral-token-${generation}`,
+			})
+		},
+	})
+	const host = createHost(requiredPort(broker.port), 1_000, 0)
+	const running = host.run()
+	try {
+		await withTimeout(handoff)
+		expect([...tokens.values()]).toEqual(['ephemeral-token-1', 'ephemeral-token-2'])
+		expect(playlistPackets).toBe(1)
+		await host.stop()
+		await withTimeout(running)
+	} finally {
+		await host.stop()
+		await broker.stop(true)
+		await close(gameServer)
+		globalThis.fetch = originalFetch
+	}
+})
+
 function createHost(
 	brokerPort: number,
 	protocolTimeoutMs: number,
@@ -386,6 +484,26 @@ function levelRequestPacket(name: string, level: TestLevel) {
 		writer.writeString(level.uid)
 		writer.writeUInt64(level.workshopId)
 		writer.writeInt32(0)
+	})
+}
+
+function initialStatePacket(playerUid: number, steamId: bigint) {
+	return packet(ZEEPKIST_PACKET_ID.initialState, (writer) => {
+		writer.writeInt32(1)
+		writer.writeUInt32(playerUid)
+		writer.writeUInt64(steamId)
+		writer.writeString('Managed host')
+		writer.writeString('')
+		writer.writeBoolean(true)
+		writer.writeString('')
+		for (let value = 0; value < 10; value++) writer.writeFloat32(0)
+		writer.writeBoolean(false)
+		writer.writeBoolean(false)
+		writer.writeByte(0)
+		for (let value = 0; value < 13; value++) writer.writeBoolean(false)
+		writer.writeInt32(0)
+		writer.writeInt32(0)
+		writer.writeBoolean(false)
 	})
 }
 

@@ -14,6 +14,7 @@ test('recreates Steam session after initial logon failure', async () => {
 		{
 			appId: 1_440_670,
 			build: 2043,
+			credentialRefreshMs: 3_000_000,
 			host: '127.0.0.1',
 			port: 26900,
 			refreshTokenFile: 'unused',
@@ -51,6 +52,7 @@ test('recreates Steam session when encrypted app ticket becomes unavailable', as
 		{
 			appId: 1_440_670,
 			build: 2043,
+			credentialRefreshMs: 3_000_000,
 			host: '127.0.0.1',
 			port: 26900,
 			refreshTokenFile: 'unused',

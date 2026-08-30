@@ -41,6 +41,7 @@ test('server config keeps lobby feed disabled by default', () => {
 		build: undefined,
 		refreshTokenFile: '',
 		broker: {
+			credentialRefreshMs: 3_000_000,
 			enabled: false,
 			host: '0.0.0.0',
 			port: 3001,
@@ -84,6 +85,7 @@ test('server config accepts enabled lobby feed', () => {
 		build: 1234,
 		refreshTokenFile: '/tmp/steam-token',
 		broker: {
+			credentialRefreshMs: 3_000_000,
 			enabled: false,
 			host: '0.0.0.0',
 			port: 3001,
@@ -113,6 +115,21 @@ test('server config requires lobby feed and token when room broker is enabled', 
 			ZEEPKIST_ROOM_BROKER_ENABLED: 'true',
 		}),
 	).toThrow('ZEEPKIST_ROOM_BROKER_TOKEN is required')
+})
+
+test('server config bounds room credential refresh before observed expiry', () => {
+	expect(
+		parseServerConfig({
+			NODE_ENV: 'test',
+			ZEEPKIST_ROOM_CREDENTIAL_REFRESH_MS: '300000',
+		}).lobby.broker.credentialRefreshMs,
+	).toBe(300_000)
+	expect(() =>
+		parseServerConfig({
+			NODE_ENV: 'test',
+			ZEEPKIST_ROOM_CREDENTIAL_REFRESH_MS: '3300001',
+		}),
+	).toThrow()
 })
 
 test('lobby host config requires broker token only when enabled', () => {

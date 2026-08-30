@@ -17,11 +17,16 @@ export class LobbySteamSession {
 	})
 	private identity: SteamIdentity | undefined
 	private closed = false
+	private readonly refreshTokenStore: SerializedRefreshTokenStore
 
 	constructor(
 		private readonly refreshTokenFile: string,
 		private readonly appId: number,
 	) {
+		this.refreshTokenStore = new SerializedRefreshTokenStore(
+			(token) => writeSteamRefreshTokenAtomically(this.refreshTokenFile, token),
+			() => console.error('Failed to persist renewed Steam refresh token'),
+		)
 		this.client.on('error', () => {
 			console.error('Steam client session error')
 		})
@@ -33,9 +38,7 @@ export class LobbySteamSession {
 			throw new Error('Steam refresh token file is empty')
 		}
 		this.client.on('refreshToken', (token) => {
-			void this.persistRefreshToken(token).catch(() => {
-				console.error('Failed to persist renewed Steam refresh token')
-			})
+			this.refreshTokenStore.enqueue(token)
 		})
 
 		await new Promise<void>((resolve, reject) => {
@@ -57,6 +60,7 @@ export class LobbySteamSession {
 			(await new Promise<string>((resolve) => {
 				this.client.once('accountInfo', (accountName) => resolve(accountName))
 			}))
+		await this.refreshTokenStore.flush()
 		this.identity = { steamId: BigInt(steamId), name }
 		return this.identity
 	}
@@ -71,22 +75,48 @@ export class LobbySteamSession {
 		return normalizeEncryptedAppTicket(result)
 	}
 
-	close() {
+	async close() {
 		if (this.closed) return
 		this.closed = true
 		this.identity = undefined
 		this.client.logOff()
+		await this.refreshTokenStore.flush().catch(() => undefined)
+	}
+}
+
+export class SerializedRefreshTokenStore {
+	private pending = Promise.resolve()
+	private writeError: Error | undefined
+
+	constructor(
+		private readonly write: (refreshToken: string) => Promise<void>,
+		private readonly onError: () => void = () => {},
+	) {}
+
+	enqueue(refreshToken: string) {
+		this.pending = this.pending
+			.then(() => this.write(refreshToken))
+			.catch((error) => {
+				this.writeError =
+					error instanceof Error ? error : new Error('Steam refresh token write failed')
+				this.onError()
+			})
 	}
 
-	private async persistRefreshToken(refreshToken: string) {
-		const temporaryFile = join(
-			dirname(this.refreshTokenFile),
-			`.steam-refresh-token.${process.pid}.tmp`,
-		)
-		await writeFile(temporaryFile, `${refreshToken}\n`, { encoding: 'utf8', mode: 0o600 })
-		await chmod(temporaryFile, 0o600)
-		await rename(temporaryFile, this.refreshTokenFile)
+	async flush() {
+		await this.pending
+		if (this.writeError) throw this.writeError
 	}
+}
+
+export async function writeSteamRefreshTokenAtomically(
+	refreshTokenFile: string,
+	refreshToken: string,
+) {
+	const temporaryFile = join(dirname(refreshTokenFile), `.steam-refresh-token.${process.pid}.tmp`)
+	await writeFile(temporaryFile, `${refreshToken}\n`, { encoding: 'utf8', mode: 0o600 })
+	await chmod(temporaryFile, 0o600)
+	await rename(temporaryFile, refreshTokenFile)
 }
 
 export function normalizeEncryptedAppTicket(result: unknown) {

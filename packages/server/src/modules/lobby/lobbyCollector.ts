@@ -17,6 +17,7 @@ import { LobbySteamSession, type SteamIdentity } from './steamSession'
 interface LobbyCollectorConfig {
 	appId: number
 	build: number
+	credentialRefreshMs: number
 	host: string
 	port: number
 	refreshTokenFile: string
@@ -31,6 +32,10 @@ const MIN_TICKET_INTERVAL_MS = 60_000
 const FIRST_SNAPSHOT_TIMEOUT_MS = 15_000
 const ROOM_RESPONSE_TIMEOUT_MS = 15_000
 const MAX_RETRY_MS = 60_000
+const CREDENTIAL_DEADLINE_MS = 60 * 60_000
+const CREDENTIAL_REFRESH_TIMEOUT_MS = 30_000
+const CREDENTIAL_REFRESH_FAILURE_COOLDOWN_MS = 5_000
+const MIN_CREDENTIAL_HANDOFF_LEASE_MS = 30_000
 const meter = getMeter('zeepcentraal-lobby-collector')
 const assignmentLatency = meter.createHistogram('zeepkist.lobby.assignment.duration', {
 	description: 'Master room assignment latency',
@@ -40,14 +45,26 @@ const reconnects = meter.createCounter('zeepkist.lobby.master.reconnects', {
 	description: 'Failed master connections followed by retry',
 })
 
-export interface RoomAssignment {
-	host: string
-	joinId: string
+export interface RoomCredential {
+	credentialDeadlineAt: number
+	credentialGeneration: number
+	credentialIssuedAt: number
+	credentialRefreshAt: number
 	playerUid: number
-	port: number
 	steamId: string
 	token: string
 }
+
+export interface RoomAssignment extends RoomCredential {
+	host: string
+	joinId: string
+	port: number
+}
+
+export type RoomCredentialRefresh =
+	| { status: 'pending' }
+	| { status: 'ready'; credential: RoomCredential }
+	| { status: 'unavailable' }
 
 export class LobbyCollector {
 	private stopped = false
@@ -59,11 +76,14 @@ export class LobbyCollector {
 	private lastTicketRequestAt = 0
 	private stopPromise: Promise<void> | undefined
 	private identity: SteamIdentity | undefined
-	private masterPlayerUid: number | undefined
-	private masterToken: string | undefined
+	private masterCredential: RoomCredential | undefined
+	private credentialGeneration = 0
+	private credentialRefreshPromise: Promise<void> | undefined
+	private credentialRefreshFailedAt = 0
 	private roomAssignmentPromise: Promise<RoomAssignment> | undefined
 	private masterConnected = false
 	private readonly roomResponses = new RoomResponseInbox()
+	private readonly credentialWaiters = new Set<CredentialWaiter>()
 	private readonly persistence: LobbyPersistenceQueue
 
 	constructor(
@@ -98,7 +118,8 @@ export class LobbyCollector {
 	assignRoom(existingJoinId?: string) {
 		if (!this.roomAssignmentPromise) {
 			const startedAt = performance.now()
-			this.roomAssignmentPromise = this.assignRoomOnce(existingJoinId)
+			this.roomAssignmentPromise = (this.credentialRefreshPromise ?? Promise.resolve())
+				.then(() => this.assignRoomOnce(existingJoinId))
 				.catch((error) => {
 					const reason =
 						error instanceof RoomAssignmentError
@@ -115,6 +136,22 @@ export class LobbyCollector {
 				})
 		}
 		return this.roomAssignmentPromise
+	}
+
+	refreshRoomCredential(currentGeneration: number): RoomCredentialRefresh {
+		const credential = this.masterCredential
+		if (credential && this.isUsableNewCredential(credential, currentGeneration)) {
+			return { status: 'ready', credential }
+		}
+		if (this.stopped || !this.identity) return { status: 'unavailable' }
+		if (
+			this.credentialRefreshFailedAt > 0 &&
+			Date.now() - this.credentialRefreshFailedAt < CREDENTIAL_REFRESH_FAILURE_COOLDOWN_MS
+		) {
+			return { status: 'unavailable' }
+		}
+		this.startCredentialRefresh(currentGeneration)
+		return { status: 'pending' }
 	}
 
 	private async run() {
@@ -135,7 +172,7 @@ export class LobbyCollector {
 					else this.publish(emptySnapshot('unavailable'))
 				}
 			} finally {
-				steam.close()
+				await steam.close()
 				if (this.steam === steam) this.steam = undefined
 				this.identity = undefined
 				this.cachedTicket = undefined
@@ -186,8 +223,9 @@ export class LobbyCollector {
 			hail: createHail(this.config.build, identity, ticket),
 			onConnected: (remoteHail) => {
 				const reader = new BitReader(remoteHail)
-				this.masterPlayerUid = reader.readUInt32()
-				this.masterToken = reader.readString(4096)
+				const playerUid = reader.readUInt32()
+				const token = reader.readString(4096)
+				this.publishMasterCredential(identity, playerUid, token)
 			},
 			onPayload: (payload) => {
 				try {
@@ -233,8 +271,6 @@ export class LobbyCollector {
 			}
 			if (this.lidgren === lidgren) {
 				this.lidgren = undefined
-				this.masterPlayerUid = undefined
-				this.masterToken = undefined
 				this.roomResponses.rejectAll(new Error('Master connection closed'))
 			}
 		}
@@ -248,10 +284,8 @@ export class LobbyCollector {
 
 	private async assignRoomOnce(existingJoinId?: string): Promise<RoomAssignment> {
 		const lidgren = this.lidgren
-		const identity = this.identity
-		const token = this.masterToken
-		const playerUid = this.masterPlayerUid
-		if (!lidgren || !identity || !token || playerUid === undefined) {
+		const credential = this.masterCredential
+		if (!lidgren || !this.identity || !credential || !this.masterConnected) {
 			throw new RoomAssignmentError('master-unavailable')
 		}
 
@@ -263,16 +297,15 @@ export class LobbyCollector {
 			)
 			if (joined.result === 1) {
 				const assignment = {
+					...credential,
 					host: joined.host,
 					joinId: existingJoinId,
-					playerUid,
 					port: joined.port,
-					steamId: identity.steamId.toString(),
-					token,
 				}
 				await lidgren.close('Room assignment handed off')
 				return assignment
 			}
+			if (joined.result !== 4) throw new RoomAssignmentError('join-rejected')
 		}
 
 		const created = await this.sendRoomCommand(
@@ -282,7 +315,7 @@ export class LobbyCollector {
 				isPublic: this.config.room.isPublic,
 				maxPlayers: this.config.room.maxPlayers,
 				name: sanitizeLobbyText(this.config.room.name, 'ZeepCentraal | Track of the Week'),
-				originalHostName: sanitizeLobbyText(identity.name, 'ZeepCentraal'),
+				originalHostName: sanitizeLobbyText(this.identity.name, 'ZeepCentraal'),
 			}),
 		)
 		if (created.result !== 1 || !created.joinId) {
@@ -296,12 +329,10 @@ export class LobbyCollector {
 		const joined = await this.waitForRoomResponse(lidgren, 'join')
 		if (joined.result !== 1) throw new RoomAssignmentError('join-rejected')
 		const assignment = {
+			...credential,
 			host: joined.host,
 			joinId,
-			playerUid,
 			port: joined.port,
-			steamId: identity.steamId.toString(),
-			token,
 		}
 		await lidgren.close('Room assignment handed off')
 		return assignment
@@ -344,9 +375,98 @@ export class LobbyCollector {
 		try {
 			await this.lidgren?.close()
 		} finally {
-			this.steam?.close()
+			await this.steam?.close()
+			this.rejectCredentialWaiters(new Error('Lobby collector stopped'))
 			await this.persistence.drain()
 		}
+	}
+
+	private startCredentialRefresh(currentGeneration: number) {
+		if (this.credentialRefreshPromise) return
+		const assignment = this.roomAssignmentPromise
+		const refresh = (async () => {
+			if (assignment) await assignment.catch(() => undefined)
+			if (this.isUsableNewCredential(this.masterCredential, currentGeneration)) return
+			const refreshAfterGeneration = Math.max(
+				currentGeneration,
+				this.masterCredential?.credentialGeneration ?? 0,
+			)
+			this.cachedTicket = undefined
+			this.ticketCreatedAt = 0
+			const freshCredential = this.waitForCredentialAfter(refreshAfterGeneration)
+			await this.lidgren?.close('Refreshing room credential')
+			await freshCredential
+			this.credentialRefreshFailedAt = 0
+		})()
+			.catch(() => {
+				this.credentialRefreshFailedAt = Date.now()
+				console.warn(
+					'Zeepkist room credential refresh failed; existing room connection retained',
+				)
+			})
+			.finally(() => {
+				if (this.credentialRefreshPromise === refresh)
+					this.credentialRefreshPromise = undefined
+			})
+		this.credentialRefreshPromise = refresh
+	}
+
+	private isUsableNewCredential(
+		credential: RoomCredential | undefined,
+		currentGeneration: number,
+	) {
+		return (
+			this.masterConnected &&
+			credential !== undefined &&
+			credential.credentialGeneration > currentGeneration &&
+			credential.credentialRefreshAt - Date.now() >= MIN_CREDENTIAL_HANDOFF_LEASE_MS
+		)
+	}
+
+	private publishMasterCredential(identity: SteamIdentity, playerUid: number, token: string) {
+		const credentialIssuedAt = Date.now()
+		const credential: RoomCredential = {
+			credentialDeadlineAt: credentialIssuedAt + CREDENTIAL_DEADLINE_MS,
+			credentialGeneration: ++this.credentialGeneration,
+			credentialIssuedAt,
+			credentialRefreshAt: credentialIssuedAt + this.config.credentialRefreshMs,
+			playerUid,
+			steamId: identity.steamId.toString(),
+			token,
+		}
+		this.masterCredential = credential
+		for (const waiter of this.credentialWaiters) {
+			if (credential.credentialGeneration <= waiter.afterGeneration) continue
+			clearTimeout(waiter.timer)
+			this.credentialWaiters.delete(waiter)
+			waiter.resolve(credential)
+		}
+	}
+
+	private waitForCredentialAfter(afterGeneration: number) {
+		const current = this.masterCredential
+		if (current && current.credentialGeneration > afterGeneration)
+			return Promise.resolve(current)
+		return new Promise<RoomCredential>((resolve, reject) => {
+			const waiter: CredentialWaiter = {
+				afterGeneration,
+				reject,
+				resolve,
+				timer: setTimeout(() => {
+					this.credentialWaiters.delete(waiter)
+					reject(new Error('Timed out waiting for refreshed room credential'))
+				}, CREDENTIAL_REFRESH_TIMEOUT_MS),
+			}
+			this.credentialWaiters.add(waiter)
+		})
+	}
+
+	private rejectCredentialWaiters(error: Error) {
+		for (const waiter of this.credentialWaiters) {
+			clearTimeout(waiter.timer)
+			waiter.reject(error)
+		}
+		this.credentialWaiters.clear()
 	}
 
 	private async getTicket() {
@@ -383,6 +503,13 @@ export class LobbyCollector {
 		this.lastSnapshot = stale
 		this.publish(stale)
 	}
+}
+
+interface CredentialWaiter {
+	afterGeneration: number
+	reject: (error: Error) => void
+	resolve: (credential: RoomCredential) => void
+	timer: ReturnType<typeof setTimeout>
 }
 
 type RoomAssignmentFailure =

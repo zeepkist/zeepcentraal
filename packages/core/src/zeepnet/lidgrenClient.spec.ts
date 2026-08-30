@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import dgram from 'node:dgram'
 import { BitReader, BitWriter } from './binary'
-import { LidgrenClient } from './lidgrenClient'
+import {
+	LidgrenClient,
+	LidgrenRemoteDisconnectError,
+	sanitizeLidgrenDisconnectReason,
+} from './lidgrenClient'
 
 const CONNECT = 131
 const CONNECT_RESPONSE = 132
@@ -74,6 +78,72 @@ describe('LidgrenClient shutdown', () => {
 })
 
 describe('LidgrenClient protocol', () => {
+	test('exposes bounded sanitized remote disconnect reason and category', async () => {
+		const server = dgram.createSocket('udp4')
+		const port = await bind(server)
+		server.on('message', (data, remote) => {
+			if (data[0] === CONNECT) {
+				server.send(connectResponse(), remote.port, remote.address)
+				return
+			}
+			if (data[0] === CONNECTION_ESTABLISHED) {
+				server.send(
+					disconnect('Authentication token=super-secret-token expired'),
+					remote.port,
+					remote.address,
+				)
+			}
+		})
+		const client = createClient(port)
+		try {
+			await client.connect()
+			const error = await withTimeout(client.waitForClose().catch((value) => value))
+			expect(error).toBeInstanceOf(LidgrenRemoteDisconnectError)
+			expect(error).toMatchObject({
+				category: 'credential-expired',
+				reason: 'Authentication token=[redacted] expired',
+			})
+			expect(String(error)).not.toContain('super-secret-token')
+		} finally {
+			await close(server)
+		}
+	})
+
+	test('rejects malformed oversized remote disconnect reason', async () => {
+		const server = dgram.createSocket('udp4')
+		const port = await bind(server)
+		server.on('message', (data, remote) => {
+			if (data[0] === CONNECT) {
+				server.send(connectResponse(), remote.port, remote.address)
+				return
+			}
+			if (data[0] !== CONNECTION_ESTABLISHED) return
+			const payload = new BitWriter()
+			payload.writeString('x'.repeat(513))
+			server.send(
+				message(DISCONNECT, payload.toUint8Array(), payload.bitLength),
+				remote.port,
+				remote.address,
+			)
+		})
+		const client = createClient(port)
+		try {
+			await client.connect()
+			expect(await withTimeout(client.waitForClose().catch((error) => error))).toEqual(
+				new Error('Malformed Lidgren message'),
+			)
+		} finally {
+			await close(server)
+		}
+	})
+
+	test('redacts token-like values and control characters', () => {
+		expect(sanitizeLidgrenDisconnectReason(`token=${'a'.repeat(64)}\nclosed`)).toBe(
+			'token=[redacted] closed',
+		)
+		expect(sanitizeLidgrenDisconnectReason('Bearer short-secret')).toBe('bearer [redacted]')
+	})
+
 	test('uses configured application identifier and exposes remote hail', async () => {
 		const server = dgram.createSocket('udp4')
 		const port = await bind(server)
@@ -211,6 +281,12 @@ function connectResponse(applicationIdentifier = 'LoadBalancer', hail = new Uint
 	payload.writeFloat32(0)
 	payload.writeBytes(hail)
 	return message(CONNECT_RESPONSE, payload.toUint8Array(), payload.bitLength)
+}
+
+function disconnect(reason: string) {
+	const payload = new BitWriter()
+	payload.writeString(reason)
+	return message(DISCONNECT, payload.toUint8Array(), payload.bitLength)
 }
 
 function acknowledgement(reliableMessage: Uint8Array) {

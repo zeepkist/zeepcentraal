@@ -166,6 +166,10 @@ describe('Track of the Week packet codecs', () => {
 			type: 'initial',
 			isHost: true,
 		})
+		expect(parseGameHostPacket(initial, 76561198000000000n, 8)).toEqual({
+			type: 'initial',
+			isHost: false,
+		})
 
 		const request = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {
 			writer.writeInt32(3)

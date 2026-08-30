@@ -27,6 +27,24 @@ const DEFAULT_MTU = 1200
 const RESEND_DELAY_MS = 500
 const MAX_SEND_ATTEMPTS = 20
 const DISCONNECT_FLUSH_TIMEOUT_MS = 500
+const MAX_DISCONNECT_REASON_BYTES = 512
+
+export type LidgrenDisconnectCategory = 'credential-expired' | 'kicked' | 'remote' | 'timeout'
+
+export class LidgrenRemoteDisconnectError extends Error {
+	readonly category: LidgrenDisconnectCategory
+	readonly reason: string
+
+	constructor(reason: string) {
+		const safeReason = sanitizeLidgrenDisconnectReason(reason)
+		super(
+			safeReason ? `Remote server disconnected: ${safeReason}` : 'Remote server disconnected',
+		)
+		this.name = 'LidgrenRemoteDisconnectError'
+		this.reason = safeReason
+		this.category = categorizeLidgrenDisconnectReason(safeReason)
+	}
+}
 
 export interface LidgrenClientOptions {
 	applicationIdentifier?: string
@@ -231,7 +249,7 @@ export class LidgrenClient {
 				this.sendPong(message.payload)
 				break
 			case MESSAGE_TYPE.disconnect:
-				this.fail(new Error('Remote server disconnected'))
+				this.handleRemoteDisconnect(message.payload)
 				break
 			case MESSAGE_TYPE.acknowledge:
 				this.receiveAcknowledgements(message.payload)
@@ -244,6 +262,14 @@ export class LidgrenClient {
 					this.receiveReliableOrdered(message)
 				}
 		}
+	}
+
+	private handleRemoteDisconnect(payload: Uint8Array) {
+		const reason =
+			payload.byteLength === 0
+				? ''
+				: new BitReader(payload).readString(MAX_DISCONNECT_REASON_BYTES)
+		this.fail(new LidgrenRemoteDisconnectError(reason))
 	}
 
 	private handleConnectResponse(payload: Uint8Array) {
@@ -698,4 +724,27 @@ function reliableKey(type: number, sequence: number) {
 
 function nowSeconds() {
 	return performance.now() / 1000
+}
+
+export function sanitizeLidgrenDisconnectReason(reason: string) {
+	return [...reason]
+		.map((character) => {
+			const code = character.charCodeAt(0)
+			return code < 32 || code === 127 ? ' ' : character
+		})
+		.join('')
+		.replace(/\bbearer\s+\S+/gi, 'bearer [redacted]')
+		.replace(/\b(bearer|token|ticket)\s*[=:]\s*\S+/gi, '$1=[redacted]')
+		.replace(/\b[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, '[redacted]')
+		.replace(/\b[A-Fa-f0-9]{32,}\b/g, '[redacted]')
+		.replace(/\b[A-Za-z0-9_+/-]{48,}={0,2}\b/g, '[redacted]')
+		.trim()
+		.slice(0, 200)
+}
+
+function categorizeLidgrenDisconnectReason(reason: string): LidgrenDisconnectCategory {
+	if (/token|ticket|credential|auth|expired/i.test(reason)) return 'credential-expired'
+	if (/timeout|timed out|inactive/i.test(reason)) return 'timeout'
+	if (/kick|ban|duplicate|already online/i.test(reason)) return 'kicked'
+	return 'remote'
 }

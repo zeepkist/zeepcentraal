@@ -9,6 +9,7 @@ export default defineConfig({
 	},
 	test: {
 		silent: 'passed-only',
+		reporters: ['minimal'],
 		deps: {
 			interopDefault: false,
 		},
