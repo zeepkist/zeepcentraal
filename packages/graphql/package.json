@@ -26,6 +26,6 @@
 		"@graphql-codegen/cli": "~7.2.0",
 		"@graphql-codegen/client-preset": "~6.1.0",
 		"@graphql-hive/cli": "~0.62.0",
-		"@graphql-inspector/cli": "~6.0.8"
+		"@graphql-inspector/cli": "~7.0.0"
 	}
 }
