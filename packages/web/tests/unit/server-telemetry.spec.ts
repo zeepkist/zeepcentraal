@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { resolveTelemetryRoute } from '../../server/utils/telemetryRoute'
 
 const requestPlugin = readFileSync(
 	new URL('../../server/plugins/telemetry.ts', import.meta.url),
@@ -21,6 +22,18 @@ describe('server telemetry contracts', () => {
 		expect(requestPlugin).toContain("span.addEvent('web.request.completed'")
 		expect(requestPlugin).toContain('if (status >= 500)')
 		expect(requestPlugin).toContain("span.addEvent('error'")
+	})
+
+	it('uses matched route path for span names and http.route', () => {
+		expect(resolveTelemetryRoute({ path: '/api/users/:id' }, '/api/users/123')).toBe(
+			'/api/users/:id',
+		)
+		expect(resolveTelemetryRoute({ handlers: {} }, '/users/123')).toBe('/users/123')
+		expect(resolveTelemetryRoute(null, '/users/123')).toBe('/users/123')
+		expect(requestPlugin).toContain(
+			'resolveTelemetryRoute(event.context.matchedRoute, url.pathname)',
+		)
+		expect(requestPlugin).not.toContain('String(event.context.matchedRoute')
 	})
 
 	it('excludes health, Nuxt assets, and static files', () => {

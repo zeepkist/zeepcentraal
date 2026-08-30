@@ -1,4 +1,5 @@
 import { SpanKind, withActiveSpan, withExtractedTraceContext } from '@zeepkist/telemetry'
+import { resolveTelemetryRoute } from '../utils/telemetryRoute'
 
 const STATIC_PATH =
 	/(?:^\/_nuxt\/|\.(?:avif|css|gif|ico|jpe?g|js|map|png|svg|webp|woff2?)(?:\?|$))/i
@@ -24,7 +25,7 @@ export default defineNitroPlugin((nitroApp) => {
 				async (span) => {
 					const result = await handler(event)
 					const status = event.node.res.statusCode
-					const route = String(event.context.matchedRoute ?? url.pathname)
+					const route = resolveTelemetryRoute(event.context.matchedRoute, url.pathname)
 					span.updateName(`${method} ${route}`)
 					span.setAttributes({
 						'http.response.status_code': status,
