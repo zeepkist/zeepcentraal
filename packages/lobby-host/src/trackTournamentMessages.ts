@@ -43,11 +43,11 @@ export function buildTrackTournamentJoinMessage(input: TrackTournamentJoinMessag
 		)
 	}
 	paragraphs.push(
-		'<size=75%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size>',
+		'<size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size>',
 	)
 	return {
 		// hostname: `---${eventName}---`,
-		hostname: '<color=#facc15>[HOST]</color>',
+		hostname: '<color=#facc15>HOST</color>',
 		message: `<size=85%><#dedede>${paragraphs.join('<br><br>')}</color></size>`,
 	}
 }
@@ -65,7 +65,7 @@ export function buildTrackTournamentServerMessageCommand(
 	const remaining = formatTournamentRemaining(tournamentEndAt, now)
 	const body = formatLeaderboard(standings)
 	const entryCount = entries === undefined ? '…' : entries
-	return `/servermessage yellow ${roundTimeSeconds} ${title}\n<size=100%>${entryCount} Entries ${remaining}\n${body}</size>`
+	return `/servermessage yellow ${roundTimeSeconds} ${title}\n<size=120%>${entryCount} Entries ${remaining}\n${body}</size>`
 }
 
 export function formatTrackTournamentPeriod(type: TrackTournamentRoomType, slug: string) {
