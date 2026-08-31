@@ -33,9 +33,9 @@ describe('track tournament room messages', () => {
 			type: 'weekly',
 		})
 		expect(result).toEqual({
-			hostname: '---Track of the Week---',
+			hostname: '<color=#facc15>[HOST]</color>',
 			message:
-				'<br><#dedede>Welcome to Track of the Week, Player One<br><br>A time attack tournament featuring a unique level each week.<br><br>View the full tournament leaderboard on <u>zeepki.st/totw</u>!<br><br>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</color>',
+				'<size=85%><#dedede>Welcome to Track of the Week, Player One<br><br>A time attack tournament featuring a unique level each week.<br><br>View the full tournament leaderboard on <u>zeepki.st/totw</u>!<br><br><size=75%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size></color></size>',
 		})
 	})
 
@@ -47,7 +47,7 @@ describe('track tournament room messages', () => {
 			standing: { rank: 12, time: 34.234 },
 			type: 'monthly',
 		})
-		expect(result.hostname).toBe('---Track of the Month---')
+		expect(result.hostname).toBe('<color=#facc15>[HOST]</color>')
 		expect(result.message).toContain(
 			'Welcome to Track of the Month, &lt;b&gt;Alice&lt;/b&gt; Second',
 		)
@@ -111,7 +111,7 @@ describe('track tournament room messages', () => {
 		expect(command).toStartWith(
 			'/servermessage yellow 900 <b>Track of the Week: 2026 Week 33</b>',
 		)
-		expect(command).toContain('<size=85%>42 Entries Ends in 6d 3h 38m\n')
+		expect(command).toContain('<size=100%>42 Entries Ends in 6d 3h 38m\n')
 		expect(command).toContain('<color=#FFD700>1. &lt;Winner&gt; — 01:01.234</color>')
 		expect(command).toContain('<color=#C0C0C0>2. Runner &amp; Friend — 01:02.000</color>')
 		expect(command).toContain('<color=#CD7F32>3. Unknown player — 01:03.500</color>')
@@ -130,7 +130,7 @@ describe('track tournament room messages', () => {
 				undefined,
 				900,
 			),
-		).toContain('<size=85%>… Entries Ends in ')
+		).toContain('<size=100%>… Entries Ends in ')
 		expect(
 			buildTrackTournamentServerMessageCommand(
 				'weekly',
