@@ -240,6 +240,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 					uploadReservation.schedule(() =>
 						uploadRecordMedia(submitted.record.id, ghostBytes),
 					)
+
 					const workshopScanClaimed =
 						workshopId === undefined
 							? false
@@ -259,6 +260,7 @@ export const recordRoutes = new Elysia({ prefix: '/record' })
 						'record.adventure': isAdventure,
 						'record.workshop_scan_claimed': workshopScanClaimed,
 					})
+
 					scheduleRecordFollowups({
 						idLevel: level.id,
 						idUser: user.id,

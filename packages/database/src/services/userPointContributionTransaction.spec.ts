@@ -157,3 +157,15 @@ test('syncs uncapped level contribution projection without advisory locks', asyn
 		),
 	).toBe(true)
 })
+
+test('reuses supplied transaction for level contribution projection', async () => {
+	affectedProjectionUsers = [{ idUser: 9 }]
+
+	const result = await syncUserPointContributionLevels([7], {
+		transaction: tx as never,
+	})
+
+	expect(result).toEqual({ idUsers: [9], levels: 1, users: 1 })
+	expect(transaction).not.toHaveBeenCalled()
+	expect(lockQueries).toHaveLength(3)
+})

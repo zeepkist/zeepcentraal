@@ -29,7 +29,7 @@ test('queue boundary deduplicates persistent level scoring by level', async () =
 			jobKey: 'update-level-score:7',
 			maxAttempts: 3,
 			priority: 5,
-			queueName: 'player-score-writes',
+			queueName: 'level-score-writes:3',
 		})
 		expect(call[2]).not.toHaveProperty('jobKeyMode')
 	}

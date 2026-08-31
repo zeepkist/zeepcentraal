@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { db } from '../client'
+import { type DatabaseExecutor, db } from '../client'
 import { playerSkillAggregate } from '../schema'
 
 const MINIMUM_SKILL_LEVEL_FIELD = 20
@@ -77,13 +77,14 @@ export async function rebuildPlayerSkillAggregates(): Promise<number> {
 
 export async function getLevelSkillMetricsByLevelIds(
 	idLevels: number[],
+	executor: DatabaseExecutor = db,
 ): Promise<Map<number, LevelSkillMetrics>> {
 	if (idLevels.length === 0) return new Map()
 	const levelIdList = sql.join(
 		idLevels.map((idLevel) => sql`${idLevel}`),
 		sql`, `,
 	)
-	const rows = await db.execute<LevelSkillMetricsRow>(sql`
+	const rows = await executor.execute<LevelSkillMetricsRow>(sql`
 		WITH target_ranked AS MATERIALIZED (
 			SELECT
 				personal_best.id_level,

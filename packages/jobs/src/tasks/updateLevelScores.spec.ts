@@ -26,7 +26,7 @@ mock.module('@zeepkist/database', () => ({
 	getLevelIdsPage,
 	rebuildPlayerSkillAggregates,
 }))
-mock.module('./levelScoreBatch', () => ({ updateLevelScoreBatch }))
+mock.module('@zeepkist/database/services', () => ({ updateLevelScoreBatch }))
 
 const { LEVEL_SCORE_BATCH_SIZE, RECENT_LEVEL_SCORE_LOOKBACK_MS, updateLevelScores } = await import(
 	'./updateLevelScores'

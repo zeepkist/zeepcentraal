@@ -7,7 +7,7 @@ const updateLevelScoreBatch = mock(async () => ({
 	reported: 0,
 }))
 
-mock.module('./levelScoreBatch', () => ({ updateLevelScoreBatch }))
+mock.module('@zeepkist/database/services', () => ({ updateLevelScoreBatch }))
 
 const { updateLevelScore } = await import('./updateLevelScore')
 

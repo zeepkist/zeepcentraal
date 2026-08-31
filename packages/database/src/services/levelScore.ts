@@ -6,20 +6,38 @@ import {
 	type LevelScorePersonalBest,
 	type LevelScoreTelemetry,
 } from '@zeepkist/core/score'
-import type { UpdateLevelPointsPayload } from '@zeepkist/database'
+import { sql } from 'drizzle-orm'
+import { type DatabaseExecutor, type DatabaseTransaction, db } from '../client'
 import {
 	getLevelPointValuesByIds,
-	getLevelSkillMetricsByLevelIds,
-	getLevelWorkshopAvailabilities,
-	getV2ScorePersonalBestsByLevelIds,
-	getVoteValuesByLevelIds,
 	setLevelPointsToZeroBulk,
-	syncUserPointContributionLevels,
+	type UpdateLevelPointsPayload,
 	upsertLevelPointsBulk,
-} from '@zeepkist/database'
-import type { Helpers } from 'graphile-worker'
+} from './levelPoints'
+import { getLevelSkillMetricsByLevelIds } from './playerSkill'
+import { getV2ScorePersonalBestsByLevelIds } from './record'
+import { syncUserPointContributionLevels } from './userPointContribution'
+import { getVoteValuesByLevelIds } from './vote'
+import { getLevelWorkshopAvailabilities } from './workshop'
 
 type PersonalBestRow = Awaited<ReturnType<typeof getV2ScorePersonalBestsByLevelIds>>[number]
+
+export interface LevelScoreBatchLogger {
+	info(message: string, metadata?: Record<string, unknown>): void
+}
+
+export interface LevelScoreBatchResult {
+	affectedUserIds: number[]
+	reported: number
+	updated: number
+	zeroed: number
+}
+
+export interface UpdateLevelScoreBatchInput {
+	idLevels: number[]
+	logger?: LevelScoreBatchLogger
+	reportOnly?: boolean
+}
 
 function mapTelemetry(row: PersonalBestRow): LevelScoreTelemetry | null {
 	const hasStatistic = row.statisticTime !== null || row.hasInputData !== null
@@ -48,27 +66,17 @@ function mapPersonalBest(row: PersonalBestRow): LevelScorePersonalBest {
 	}
 }
 
-export async function updateLevelScoreBatch({
-	idLevels,
-	reportOnly = false,
-	logger,
-}: {
-	idLevels: number[]
-	reportOnly?: boolean
-	logger: Helpers['logger']
-}): Promise<{
-	affectedUserIds: number[]
-	updated: number
-	zeroed: number
-	reported: number
-}> {
-	if (idLevels.length === 0) {
-		return { affectedUserIds: [], updated: 0, zeroed: 0, reported: 0 }
-	}
+async function calculateLevelScoreBatch(
+	idLevels: number[],
+	reportOnly: boolean,
+	logger: LevelScoreBatchLogger | undefined,
+	executor: DatabaseExecutor,
+	transaction?: DatabaseTransaction,
+): Promise<LevelScoreBatchResult> {
 	const startedAt = Date.now()
 	const logTimings = (contributionProjectionMs: number, metadata: Record<string, unknown>) => {
 		const totalMs = Date.now() - startedAt
-		logger.info(
+		logger?.info(
 			`Level score batch timings: contributionProjection=${contributionProjectionMs}ms total=${totalMs}ms.`,
 			{
 				contributionProjectionMs,
@@ -78,7 +86,7 @@ export async function updateLevelScoreBatch({
 		)
 	}
 
-	const availabilityByLevel = await getLevelWorkshopAvailabilities(idLevels)
+	const availabilityByLevel = await getLevelWorkshopAvailabilities(idLevels, executor)
 	const eligibleIds = idLevels.filter((idLevel) =>
 		isLevelScoreEligible(
 			availabilityByLevel.get(idLevel) ?? {
@@ -88,13 +96,14 @@ export async function updateLevelScoreBatch({
 			},
 		),
 	)
-	const zeroIds = idLevels.filter((idLevel) => !eligibleIds.includes(idLevel))
+	const eligibleIdSet = new Set(eligibleIds)
+	const zeroIds = idLevels.filter((idLevel) => !eligibleIdSet.has(idLevel))
 	const [personalBests, skillMetricsByLevel, voteValuesByLevel] =
 		eligibleIds.length > 0
 			? await Promise.all([
-					getV2ScorePersonalBestsByLevelIds({ idLevels: eligibleIds }),
-					getLevelSkillMetricsByLevelIds(eligibleIds),
-					getVoteValuesByLevelIds(eligibleIds, getVoteRatingMaturityCutoff()),
+					getV2ScorePersonalBestsByLevelIds({ idLevels: eligibleIds }, executor),
+					getLevelSkillMetricsByLevelIds(eligibleIds, executor),
+					getVoteValuesByLevelIds(eligibleIds, getVoteRatingMaturityCutoff(), executor),
 				])
 			: [[], new Map(), new Map()]
 
@@ -139,11 +148,11 @@ export async function updateLevelScoreBatch({
 		})
 	}
 
-	const currentLevelPoints = await getLevelPointValuesByIds(idLevels)
+	const currentLevelPoints = await getLevelPointValuesByIds(idLevels, executor)
 	const currentByLevel = new Map(currentLevelPoints.map((entry) => [entry.idLevel, entry.points]))
 
 	if (reportOnly) {
-		logger.info('Calculated report-only level scores.', {
+		logger?.info('Calculated report-only level scores.', {
 			levels: updates.map((update) => {
 				const currentPoints = currentByLevel.get(update.idLevel) ?? null
 				return {
@@ -180,6 +189,7 @@ export async function updateLevelScoreBatch({
 		}
 	}
 
+	if (!transaction) throw new Error('Persistent level scoring requires a database transaction')
 	const proposedPoints = new Map(updates.map((update) => [update.idLevel, update.points]))
 	for (const idLevel of zeroIds) proposedPoints.set(idLevel, 0)
 	const pointChangedIds = idLevels.filter(
@@ -187,12 +197,10 @@ export async function updateLevelScoreBatch({
 			!currentByLevel.has(idLevel) ||
 			currentByLevel.get(idLevel) !== proposedPoints.get(idLevel),
 	)
-	const [updatedIds, zeroedIds] = await Promise.all([
-		upsertLevelPointsBulk(updates),
-		setLevelPointsToZeroBulk(zeroIds),
-	])
+	const updatedIds = await upsertLevelPointsBulk(updates, executor)
+	const zeroedIds = await setLevelPointsToZeroBulk(zeroIds, executor)
 	const contributionProjectionStartedAt = Date.now()
-	const projection = await syncUserPointContributionLevels(idLevels)
+	const projection = await syncUserPointContributionLevels(idLevels, { transaction })
 	const contributionProjectionMs = Date.now() - contributionProjectionStartedAt
 	logTimings(contributionProjectionMs, {
 		requested: idLevels.length,
@@ -210,4 +218,28 @@ export async function updateLevelScoreBatch({
 		zeroed: zeroedIds.length,
 		reported: 0,
 	}
+}
+
+export async function updateLevelScoreBatch({
+	idLevels,
+	reportOnly = false,
+	logger,
+}: UpdateLevelScoreBatchInput): Promise<LevelScoreBatchResult> {
+	const uniqueLevelIds = [...new Set(idLevels)].sort((left, right) => left - right)
+	if (uniqueLevelIds.length === 0) {
+		return { affectedUserIds: [], updated: 0, zeroed: 0, reported: 0 }
+	}
+
+	if (reportOnly) {
+		return calculateLevelScoreBatch(uniqueLevelIds, true, logger, db)
+	}
+
+	return db.transaction(async (tx) => {
+		await tx.execute(sql`
+			SELECT pg_advisory_xact_lock(0, lock_target.id_level)
+			FROM UNNEST(${sql.param(uniqueLevelIds)}::integer[]) AS lock_target(id_level)
+			ORDER BY lock_target.id_level
+		`)
+		return calculateLevelScoreBatch(uniqueLevelIds, false, logger, tx, tx)
+	})
 }

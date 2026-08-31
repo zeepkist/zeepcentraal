@@ -1,5 +1,5 @@
 import { eq, getTableColumns, inArray, type SQLWrapper, sql } from 'drizzle-orm'
-import { db } from '../client'
+import { type DatabaseExecutor, db } from '../client'
 import { levelPoints, levelPointsHistory } from '../schema'
 import { sanitizeLevelPointRealValues } from './levelPointRealValues'
 
@@ -102,9 +102,9 @@ export async function getLevelPointsByIds(ids: number[]) {
 		.where(inArray(levelPoints.idLevel, ids))
 }
 
-export async function getLevelPointValuesByIds(ids: number[]) {
+export async function getLevelPointValuesByIds(ids: number[], executor: DatabaseExecutor = db) {
 	if (ids.length === 0) return []
-	return db
+	return executor
 		.select({ idLevel: levelPoints.idLevel, points: levelPoints.points })
 		.from(levelPoints)
 		.where(inArray(levelPoints.idLevel, ids))
@@ -155,13 +155,14 @@ const zeroLevelPointUpsertChanged = sql<boolean>`ROW(
 
 export async function upsertLevelPointsBulk(
 	payloads: UpdateLevelPointsPayload[],
+	executor: DatabaseExecutor = db,
 ): Promise<number[]> {
 	if (payloads.length === 0) {
 		return []
 	}
 
 	const dateUpdated = new Date().toISOString()
-	const rows = await db
+	const rows = await executor
 		.insert(levelPoints)
 		.values(
 			payloads.map((payload) => sanitizeLevelPointRealValues({ ...payload, dateUpdated })),
@@ -200,13 +201,16 @@ export async function setLevelPointsToZero(idLevel: number): Promise<void> {
 	await setLevelPointsToZeroBulk([idLevel])
 }
 
-export async function setLevelPointsToZeroBulk(idLevels: number[]): Promise<number[]> {
+export async function setLevelPointsToZeroBulk(
+	idLevels: number[],
+	executor: DatabaseExecutor = db,
+): Promise<number[]> {
 	if (idLevels.length === 0) {
 		return []
 	}
 
 	const dateUpdated = new Date().toISOString()
-	const rows = await db
+	const rows = await executor
 		.insert(levelPoints)
 		.values(idLevels.map((idLevel) => ({ idLevel, ...zeroLevelPointValues, dateUpdated })))
 		.onConflictDoUpdate({

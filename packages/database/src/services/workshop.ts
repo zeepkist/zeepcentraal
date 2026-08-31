@@ -1,6 +1,6 @@
 import { STEAM_ACCESSIBLE_VISIBILITIES } from '@zeepkist/core/steam'
 import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm'
-import { db } from '../client'
+import { type DatabaseExecutor, db } from '../client'
 import { THUMBNAIL_FOLDER } from '../config'
 import { uploadFile } from '../s3'
 import {
@@ -746,7 +746,10 @@ export async function getLevelWorkshopAvailability(idLevel: number): Promise<{
 	return row ?? { adventure: false, itemCount: 0, accessibleItemCount: 0 }
 }
 
-export async function getLevelWorkshopAvailabilities(idLevels: number[]): Promise<
+export async function getLevelWorkshopAvailabilities(
+	idLevels: number[],
+	executor: DatabaseExecutor = db,
+): Promise<
 	Map<
 		number,
 		{
@@ -760,7 +763,7 @@ export async function getLevelWorkshopAvailabilities(idLevels: number[]): Promis
 		return new Map()
 	}
 
-	const rows = await db
+	const rows = await executor
 		.select({
 			idLevel: level.id,
 			adventure: level.adventure,

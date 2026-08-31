@@ -1,5 +1,5 @@
 import { and, eq, inArray, lte, sql } from 'drizzle-orm'
-import { db } from '../client'
+import { type DatabaseExecutor, db } from '../client'
 import { vote } from '../schema'
 
 export async function upsertVote(userId: number, levelId: number, value: number) {
@@ -45,12 +45,13 @@ export async function getVoteValues({
 export async function getVoteValuesByLevelIds(
 	idLevels: number[],
 	eligibleBefore?: string,
+	executor: DatabaseExecutor = db,
 ): Promise<Map<number, number[]>> {
 	if (idLevels.length === 0) {
 		return new Map()
 	}
 
-	const rows = await db
+	const rows = await executor
 		.select({
 			idLevel: vote.idLevel,
 			values: sql<number[]>`ARRAY_AGG(${vote.value}::float8)`.as('values'),

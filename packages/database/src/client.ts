@@ -10,6 +10,9 @@ export const client = createTracedPostgresClient(rawClient, databaseConfig.datab
 
 export const db = drizzle(client, { schema })
 
+export type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
+export type DatabaseExecutor = typeof db | DatabaseTransaction
+
 export async function closeDatabase(): Promise<void> {
 	await client.end({ timeout: 5 })
 }

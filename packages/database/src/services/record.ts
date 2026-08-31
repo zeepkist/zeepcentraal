@@ -5,7 +5,7 @@ import {
 	startActiveSpan,
 } from '@zeepkist/telemetry'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
-import { db } from '../client'
+import { type DatabaseExecutor, db } from '../client'
 import { GHOST_FOLDER } from '../config'
 import { deleteFile, uploadFile } from '../s3'
 import {
@@ -209,25 +209,31 @@ export async function getPersonalBestsWithRecordByLevelIds({
 	return buildPersonalBestsWithRecordByLevelIdsQuery({ idLevels, limit })
 }
 
-export async function getV2ScorePersonalBestsByLevelIds({
-	idLevels,
-	limit = 20,
-}: {
-	idLevels: number[]
-	limit?: number
-}) {
+export async function getV2ScorePersonalBestsByLevelIds(
+	{
+		idLevels,
+		limit = 20,
+	}: {
+		idLevels: number[]
+		limit?: number
+	},
+	executor: DatabaseExecutor = db,
+) {
 	if (idLevels.length === 0) return []
-	return buildV2ScorePersonalBestsByLevelIdsQuery({ idLevels, limit })
+	return buildV2ScorePersonalBestsByLevelIdsQuery({ idLevels, limit }, executor)
 }
 
-export function buildV2ScorePersonalBestsByLevelIdsQuery({
-	idLevels,
-	limit = 20,
-}: {
-	idLevels: number[]
-	limit?: number
-}) {
-	const ranked = db
+export function buildV2ScorePersonalBestsByLevelIdsQuery(
+	{
+		idLevels,
+		limit = 20,
+	}: {
+		idLevels: number[]
+		limit?: number
+	},
+	executor: DatabaseExecutor = db,
+) {
+	const ranked = executor
 		.select({
 			idRecord: record.id,
 			idLevel: record.idLevel,
@@ -247,7 +253,7 @@ export function buildV2ScorePersonalBestsByLevelIdsQuery({
 		.where(and(inArray(record.idLevel, idLevels), eq(user.banned, false)))
 		.as('ranked_v2_score_personal_bests')
 
-	return db
+	return executor
 		.select({
 			idLevel: ranked.idLevel,
 			time: ranked.time,

@@ -1,5 +1,5 @@
+import { updateLevelScoreBatch } from '@zeepkist/database/services'
 import { playerScoreJobOptions } from '../utils/playerScoreJobOptions'
-import { updateLevelScoreBatch } from './levelScoreBatch'
 import type { TaskHandler } from './types'
 
 type Payload = {

@@ -1,6 +1,6 @@
 import { LEVEL_DECAY_FACTOR, MIN_PERSISTED_DECAYED_POINTS } from '@zeepkist/core/score'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
-import { db } from '../client'
+import { type DatabaseTransaction, db } from '../client'
 import {
 	levelPoints,
 	personalBestGlobal,
@@ -44,9 +44,8 @@ export type ContributionSyncPhaseRunner = <T>(
 
 export interface ContributionSyncOptions {
 	runPhase?: ContributionSyncPhaseRunner
+	transaction?: DatabaseTransaction
 }
-
-type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 // Eight bound values per contribution; 5,000 stays below PostgreSQL's parameter limit.
 const WRITE_BATCH_SIZE = 5000
@@ -226,6 +225,14 @@ export async function syncUserPointContributionLevels(
 	const uniqueLevelIds = [...new Set(idLevels)].sort((a, b) => a - b)
 	if (uniqueLevelIds.length === 0) {
 		return { idUsers: [], levels: 0, users: 0 }
+	}
+
+	if (options.transaction) {
+		return syncUserPointContributionLevelsInTransaction(
+			options.transaction,
+			uniqueLevelIds,
+			options.runPhase,
+		)
 	}
 
 	return db.transaction((tx) =>

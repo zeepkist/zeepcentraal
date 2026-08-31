@@ -1309,6 +1309,48 @@ test('record/submit does not await level-score enqueue', async () => {
 	])
 })
 
+test('record/submit keeps a 64-player burst independent from level-score enqueue', async () => {
+	let releaseEnqueue = () => {}
+	state.jobEnqueueGate = new Promise<void>((resolve) => {
+		releaseEnqueue = resolve
+	})
+	const request = () =>
+		send('/record/submit', {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				authorization: 'Bearer gtr-valid',
+			},
+			body: JSON.stringify({
+				Level: state.level.hash,
+				Hash: state.level.xxHash,
+				Time: 12.345678,
+				Splits: [1.2, 5.6],
+				Speeds: [100, 200],
+				GhostData: 'AQAAAAAAAAA=',
+				GameVersion: '1.0.0',
+				ModVersion: '1.0.0',
+			}),
+		})
+	const responses = await Promise.race([
+		(async () => {
+			const completed: Response[] = []
+			for (let offset = 0; offset < 64; offset += 4) {
+				completed.push(...(await Promise.all(Array.from({ length: 4 }, request))))
+			}
+			return completed
+		})(),
+		Bun.sleep(1_000).then(() => null),
+	])
+
+	expect(responses).not.toBeNull()
+	expect(responses?.map((response) => response.status)).toEqual(Array(64).fill(200))
+	expect(state.jobCalls).toEqual([])
+	releaseEnqueue()
+	await Bun.sleep(0)
+	expect(state.jobCalls).toHaveLength(64)
+})
+
 test('record/submit rejects missing canonical hash from old clients', async () => {
 	const response = await send('/record/submit', {
 		method: 'POST',
