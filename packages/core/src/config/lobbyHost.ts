@@ -1,5 +1,15 @@
+import ms from 'ms'
 import { z } from 'zod'
 import { type EnvSource, nodeEnvSchema } from './shared'
+
+const ROUND_TIME_MIN = 60
+const ROUND_TIME_MAX = ms('24h') / 1000
+const ASSET_POLL_MIN = ms('5s')
+const ASSET_POLL_MAX = ms('30m')
+const RECONNECT_MIN = ms('5s')
+const RECONNECT_MAX = ms('10m')
+const MESSAGE_REFRESH_MIN = ms('1m')
+const MESSAGE_REFRESH_MAX = ms('30m')
 
 const roomKeySchema = z.string().regex(/^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/)
 const roomNameSchema = z
@@ -22,22 +32,10 @@ const managedRoomSchema = z.strictObject({
 		isPublic: z.boolean(),
 		maxPlayers: z.number().int().min(2).max(64),
 	}),
-	roundTimeSeconds: z.number().int().min(60).max(3_600),
-	assetPollMs: z
-		.number()
-		.int()
-		.min(5_000)
-		.max(30 * 60_000),
-	reconnectMaxMs: z
-		.number()
-		.int()
-		.min(5_000)
-		.max(10 * 60_000),
-	messageRefreshMs: z
-		.number()
-		.int()
-		.min(60_000)
-		.max(30 * 60_000),
+	roundTimeSeconds: z.number().int().min(ROUND_TIME_MIN).max(ROUND_TIME_MAX),
+	assetPollMs: z.number().int().min(ASSET_POLL_MIN).max(ASSET_POLL_MAX),
+	reconnectMaxMs: z.number().int().min(RECONNECT_MIN).max(RECONNECT_MAX),
+	messageRefreshMs: z.number().int().min(MESSAGE_REFRESH_MIN).max(MESSAGE_REFRESH_MAX),
 })
 
 const lobbyHostFileSchema = z

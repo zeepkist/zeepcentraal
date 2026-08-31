@@ -1,5 +1,15 @@
+import ms from 'ms'
 import { z } from 'zod'
 import { type EnvSource, nodeEnvSchema } from './shared'
+
+const CONNECT_TIMEOUT_DEFAULT = ms('5s')
+const STATEMENT_TIMEOUT_DEFAULT = ms('15s')
+const LOCK_TIMEOUT_DEFAULT = ms('3s')
+const IDLE_TRANSACTION_TIMEOUT_DEFAULT = ms('30s')
+const READINESS_TIMEOUT_DEFAULT = ms('2s')
+const READINESS_CACHE_DEFAULT = ms('1s')
+const LIVE_QUERY_POLL_DEFAULT = ms('250ms')
+const LIVE_QUERY_DEBOUNCE_DEFAULT = ms('100ms')
 
 const postgraphileEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
@@ -14,14 +24,26 @@ const postgraphileEnvSchema = z.object({
 	POSTGRAPHILE_HOST: z.string().default('0.0.0.0'),
 	POSTGRAPHILE_PORT: z.coerce.number().int().positive().default(5000),
 	POSTGRAPHILE_REQUEST_LOGGING: z.stringbool().default(false),
-	POSTGRAPHILE_DATABASE_CONNECT_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
-	POSTGRAPHILE_DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
-	POSTGRAPHILE_DATABASE_LOCK_TIMEOUT_MS: z.coerce.number().int().positive().default(3000),
+	POSTGRAPHILE_DATABASE_CONNECT_TIMEOUT_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(CONNECT_TIMEOUT_DEFAULT),
+	POSTGRAPHILE_DATABASE_STATEMENT_TIMEOUT_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(STATEMENT_TIMEOUT_DEFAULT),
+	POSTGRAPHILE_DATABASE_LOCK_TIMEOUT_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(LOCK_TIMEOUT_DEFAULT),
 	POSTGRAPHILE_DATABASE_IDLE_TRANSACTION_TIMEOUT_MS: z.coerce
 		.number()
 		.int()
 		.positive()
-		.default(30000),
+		.default(IDLE_TRANSACTION_TIMEOUT_DEFAULT),
 	POSTGRAPHILE_DATABASE_POOL_MAX: z.coerce.number().int().positive().default(6),
 	POSTGRAPHILE_CACHE_MAX_ENTRIES: z.coerce.number().int().positive().default(128),
 	POSTGRAPHILE_OPERATION_PLANS_PER_OPERATION: z.coerce.number().int().positive().default(8),
@@ -37,15 +59,31 @@ const postgraphileEnvSchema = z.object({
 		.default(64 * 1024),
 	POSTGRAPHILE_HTTP_MAX_CONCURRENT_REQUESTS: z.coerce.number().int().positive().default(64),
 	POSTGRAPHILE_HTTP_MAX_QUEUED_REQUESTS: z.coerce.number().int().nonnegative().default(256),
-	POSTGRAPHILE_READINESS_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
-	POSTGRAPHILE_READINESS_CACHE_MS: z.coerce.number().int().nonnegative().default(1000),
+	POSTGRAPHILE_READINESS_TIMEOUT_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(READINESS_TIMEOUT_DEFAULT),
+	POSTGRAPHILE_READINESS_CACHE_MS: z.coerce
+		.number()
+		.int()
+		.nonnegative()
+		.default(READINESS_CACHE_DEFAULT),
 	GRAPHQL_FIELD_TRACING: z.stringbool().default(false),
 	GRAPHQL_QUERY_TRACE_DETAIL: z.stringbool().default(false),
 	GRAPHQL_MAX_QUERY_COST: z.coerce.number().int().positive().default(5000),
 	GRAPHQL_DEFAULT_COLLECTION_SIZE: z.coerce.number().int().positive().default(100),
 	POSTGRAPHILE_LIVE_QUERIES: z.stringbool().default(true),
-	POSTGRAPHILE_LIVE_QUERY_POLL_MS: z.coerce.number().int().positive().default(250),
-	POSTGRAPHILE_LIVE_QUERY_DEBOUNCE_MS: z.coerce.number().int().positive().default(100),
+	POSTGRAPHILE_LIVE_QUERY_POLL_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(LIVE_QUERY_POLL_DEFAULT),
+	POSTGRAPHILE_LIVE_QUERY_DEBOUNCE_MS: z.coerce
+		.number()
+		.int()
+		.positive()
+		.default(LIVE_QUERY_DEBOUNCE_DEFAULT),
 	POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS: z.coerce.number().int().positive().default(512),
 	POSTGRAPHILE_LIVE_QUERY_MAX_OPERATIONS_PER_CONNECTION: z.coerce
 		.number()
