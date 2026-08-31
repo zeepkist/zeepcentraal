@@ -237,6 +237,7 @@ test('matches C# playlist transition and serves every level-data request', async
 	const gamePort = await bind(gameServer)
 	const fragments = new Map<number, FragmentGroup>()
 	const sentPacketIds: number[] = []
+	const visibilityChanges: boolean[] = []
 	const chatCommands: string[] = []
 	const targetedMessages: Array<{ hostname: string; message: string; steamId: bigint }> = []
 	let incomingSequence = 0
@@ -271,6 +272,10 @@ test('matches C# playlist transition and serves every level-data request', async
 		const reader = new BitReader(payload)
 		const packetId = reader.readUInt16()
 		sentPacketIds.push(packetId)
+		if (packetId === ZEEPKIST_PACKET_ID.changeLobbyVisibility) {
+			visibilityChanges.push(reader.readBoolean())
+			return
+		}
 		if (packetId === ZEEPKIST_PACKET_ID.chatMessage) {
 			expect(reader.readUInt32()).toBe(0)
 			chatCommands.push(reader.readString())
@@ -392,10 +397,12 @@ test('matches C# playlist transition and serves every level-data request', async
 		await host.stop()
 		await withTimeout(running)
 		expect(setJoinId).toHaveBeenCalledWith('totw', 'managed-room')
-		expect(sentPacketIds.slice(0, 2)).toEqual([
+		expect(sentPacketIds.slice(0, 3)).toEqual([
+			ZEEPKIST_PACKET_ID.changeLobbyVisibility,
 			ZEEPKIST_PACKET_ID.changeLobbyPlaylist,
 			ZEEPKIST_PACKET_ID.skipToLevel,
 		])
+		expect(visibilityChanges).toEqual([true, false])
 		expect(skipSequence).toBe(((playlistSequence ?? -1) + 1) & 1023)
 		expect(playlistSentAt - connectedAt).toBeGreaterThanOrEqual(35)
 		expect(
@@ -426,6 +433,64 @@ test('matches C# playlist transition and serves every level-data request', async
 		globalThis.fetch = originalFetch
 	}
 })
+
+for (const scenario of [
+	{ isPublic: true, name: 'created public room', roomCreated: true },
+	{ isPublic: false, name: 'rejoined private room', roomCreated: false },
+]) {
+	test(`restores configured visibility for ${scenario.name}`, async () => {
+		const originalFetch = globalThis.fetch
+		globalThis.fetch = Bun.fetch
+		const gameServer = dgram.createSocket('udp4')
+		const gamePort = await bind(gameServer)
+		const fragments = new Map<number, FragmentGroup>()
+		const visibilityChanges: boolean[] = []
+		let resolveVisibility: (() => void) | undefined
+		const visibilityApplied = new Promise<void>((resolve) => {
+			resolveVisibility = resolve
+		})
+
+		gameServer.on('message', (data, remote) => {
+			if (handleConnect(gameServer, data, remote)) return
+			if (data[0] !== 67) return
+			gameServer.send(acknowledgement(data), remote.port, remote.address)
+			const payload = receiveReliablePayload(data, fragments)
+			if (!payload) return
+			const reader = new BitReader(payload)
+			if (reader.readUInt16() !== ZEEPKIST_PACKET_ID.changeLobbyVisibility) return
+			visibilityChanges.push(reader.readBoolean())
+			if (visibilityChanges.length === 1) resolveVisibility?.()
+		})
+
+		const broker = startBroker(gamePort, undefined, scenario.roomCreated)
+		const host = createHost(
+			requiredPort(broker.port),
+			500,
+			0,
+			60_000,
+			600_000,
+			'totw',
+			'weekly',
+			undefined,
+			undefined,
+			{ isPublic: scenario.isPublic },
+		)
+		const running = host.run()
+		try {
+			await withTimeout(visibilityApplied)
+			await host.stop()
+			await withTimeout(running)
+			expect(visibilityChanges[0]).toBe(scenario.isPublic)
+			expect(visibilityChanges.at(-1)).toBe(false)
+			if (!scenario.isPublic) expect(visibilityChanges).not.toContain(true)
+		} finally {
+			await host.stop()
+			await broker.stop(true)
+			await close(gameServer)
+			globalThis.fetch = originalFetch
+		}
+	})
+}
 
 test('switches weekly asset and retains previous payload during handoff', async () => {
 	const originalFetch = globalThis.fetch
@@ -572,12 +637,17 @@ function createHost(
 		tournamentId: number,
 		onSnapshot: (snapshot: TrackTournamentLeaderboardSnapshot) => void,
 	) => () => void = () => () => {},
+	options: { isPublic?: boolean } = {},
 ) {
 	return new ManagedLobbyHost(
 		{
 			key: roomKey,
 			profile: { type: 'track-tournament', tournamentType },
-			room: { name: 'Track of the Week', isPublic: true, maxPlayers: 64 },
+			room: {
+				name: 'Track of the Week',
+				isPublic: options.isPublic ?? true,
+				maxPlayers: 64,
+			},
 			assetPollMs,
 			messageRefreshMs,
 			reconnectMaxMs: 5_000,

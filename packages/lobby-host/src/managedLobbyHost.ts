@@ -230,6 +230,12 @@ export class ManagedLobbyHost {
 				}
 				return
 			}
+			await active.client.sendReliableOrdered(
+				changeLobbyVisibilityPacket(this.config.room.isPublic),
+			)
+			this.info(
+				`Managed room visibility set to ${this.config.room.isPublic ? 'public' : 'private'}.`,
+			)
 			this.roomConnected = true
 			this.ownsRoom = true
 			this.info(
