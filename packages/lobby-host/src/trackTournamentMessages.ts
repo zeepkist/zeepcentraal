@@ -6,22 +6,49 @@ export interface TrackTournamentLeaderboardStanding {
 	userId: number
 }
 
+export interface TrackTournamentJoinMessageInput {
+	minimumGtrVersion: string | null
+	playerName: string
+	requireGtr: boolean
+	standing?: { rank: number; time: number }
+	type: TrackTournamentRoomType
+}
+
 const DISPLAY_NAME_MAX_CODE_POINTS = 24
 const PODIUM_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32'] as const
 
 export type TrackTournamentRoomType = 'weekly' | 'monthly'
 
-export function buildTrackTournamentJoinMessageCommand(type: TrackTournamentRoomType) {
-	const weekly = type === 'weekly'
-	const period = weekly ? 'Week' : 'Month'
+export function buildTrackTournamentJoinMessage(input: TrackTournamentJoinMessageInput) {
+	const weekly = input.type === 'weekly'
+	const eventName = `Track of the ${weekly ? 'Week' : 'Month'}`
 	const cadence = weekly ? 'week' : 'month'
 	const route = weekly ? 'totw' : 'totm'
-	return [
-		`/joinmessage yellow <b>Welcome to Track of the ${period}!</b>`,
-		`<size=80%>A ${weekly ? 'weekly' : 'monthly'} time attack tournament on a unique track each ${cadence}.`,
-		`Standings and previous tournaments: <u>zeepki.st/${route}</u>`,
-		'<color=#FFCC66>GTR must be installed and running for your time to count.</color></size>',
-	].join('\n')
+	const paragraphs = [
+		`Welcome to ${eventName}, ${formatDisplayName(input.playerName)}`,
+		`A time attack tournament featuring a unique level each ${cadence}.`,
+		`View the full tournament leaderboard on <u>zeepki.st/${route}</u>!`,
+	]
+	if (input.requireGtr) {
+		const minimum = formatGtrVersion(input.minimumGtrVersion)
+		paragraphs.push(
+			minimum
+				? `You need GTR ${minimum}+ installed to join the tournament leaderboard.`
+				: 'You need GTR installed to join the tournament leaderboard.',
+		)
+	}
+	if (input.standing) {
+		paragraphs.push(
+			`You are currently #${input.standing.rank} on the tournament leaderboard with ${formatTrackTournamentTime(input.standing.time)}.`,
+		)
+	}
+	paragraphs.push(
+		'This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.',
+	)
+	return {
+		hostname: `---${eventName}---`,
+		message: `<br><#dedede>${paragraphs.join('<br><br>')}</color>`,
+	}
 }
 
 export function buildTrackTournamentServerMessageCommand(
@@ -29,13 +56,15 @@ export function buildTrackTournamentServerMessageCommand(
 	tournamentSlug: string,
 	tournamentEndAt: string,
 	standings: readonly TrackTournamentLeaderboardStanding[] | undefined,
+	entries: number | undefined,
 	roundTimeSeconds: number,
 	now = Date.now(),
 ) {
 	const title = `<b>${escapeUnityRichText(formatTrackTournamentPeriod(type, tournamentSlug))}</b>`
 	const remaining = formatTournamentRemaining(tournamentEndAt, now)
 	const body = formatLeaderboard(standings)
-	return `/servermessage yellow ${roundTimeSeconds} ${title}\n<size=85%>${remaining}\n${body}</size>`
+	const entryCount = entries === undefined ? '…' : entries
+	return `/servermessage yellow ${roundTimeSeconds} ${title}\n<size=85%>${entryCount} Entries ${remaining}\n${body}</size>`
 }
 
 export function formatTrackTournamentPeriod(type: TrackTournamentRoomType, slug: string) {
@@ -60,7 +89,7 @@ export function formatTrackTournamentTime(seconds: number) {
 	const milliseconds = Math.round(seconds * 1_000)
 	const minutes = Math.floor(milliseconds / 60_000)
 	const secondsInMinute = (milliseconds - minutes * 60_000) / 1_000
-	return `${minutes}:${secondsInMinute.toFixed(3).padStart(6, '0')}`
+	return `${minutes.toString().padStart(2, '0')}:${secondsInMinute.toFixed(3).padStart(6, '0')}`
 }
 
 export function formatTournamentRemaining(endAt: string, now = Date.now()) {
@@ -77,8 +106,12 @@ export function escapeUnityRichText(value: string) {
 	return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
-export function leaderboardSignature(standings: readonly TrackTournamentLeaderboardStanding[]) {
-	return JSON.stringify(
+export function leaderboardSignature(
+	standings: readonly TrackTournamentLeaderboardStanding[],
+	entries: number,
+) {
+	return JSON.stringify([
+		entries,
 		standings.map(({ rank, recordId, steamName, time, userId }) => [
 			rank,
 			recordId,
@@ -86,7 +119,7 @@ export function leaderboardSignature(standings: readonly TrackTournamentLeaderbo
 			time,
 			userId,
 		]),
-	)
+	])
 }
 
 function formatLeaderboard(standings: readonly TrackTournamentLeaderboardStanding[] | undefined) {
@@ -109,6 +142,14 @@ function formatDisplayName(value: string | null) {
 		.replace(/\s+/g, ' ')
 		.trim()
 	return escapeUnityRichText(truncateName(sanitized || 'Unknown player'))
+}
+
+function formatGtrVersion(value: string | null) {
+	const sanitized = (value ?? '')
+		.replace(/[\p{Cc}\p{Cf}]/gu, '')
+		.replace(/\s+/g, ' ')
+		.trim()
+	return escapeUnityRichText([...sanitized].slice(0, 32).join(''))
 }
 
 function truncateName(value: string) {

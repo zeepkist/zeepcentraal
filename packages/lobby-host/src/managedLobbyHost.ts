@@ -11,6 +11,7 @@ import {
 	type OnlineLevel,
 	parseGameHostPacket,
 	skipToLevelPacket,
+	targetedChatMessagePacket,
 } from '@zeepkist/core/zeepnet'
 import {
 	downloadTrackTournamentLobbyAsset,
@@ -22,9 +23,12 @@ import {
 import { emitTelemetryLog, getMeter, withActiveSpan } from '@zeepkist/telemetry'
 import type { LevelPayloadCache, LevelPayloadLease } from './levelPayloadCache'
 import type { RoomAssignment, RoomBrokerClient } from './roomBrokerClient'
-import type { TrackTournamentLeaderboardHub } from './trackTournamentLeaderboard'
+import type {
+	TrackTournamentLeaderboardHub,
+	TrackTournamentPlayerContext,
+} from './trackTournamentLeaderboard'
 import {
-	buildTrackTournamentJoinMessageCommand,
+	buildTrackTournamentJoinMessage,
 	buildTrackTournamentServerMessageCommand,
 	leaderboardSignature,
 	type TrackTournamentLeaderboardStanding,
@@ -37,6 +41,7 @@ const MAX_LEVEL_REQUESTS = 8
 const MAX_ASSET_BYTES = 64 * 1024 * 1024
 const MESSAGE_CHANGE_DEBOUNCE_MS = 1_000
 const MESSAGE_RETRY_MS = 30_000
+const RECENT_RECORD_WINDOW_MS = 30 * 24 * 60 * 60 * 1_000
 const ANSI_SEQUENCE_PATTERN = new RegExp(`${String.fromCharCode(27)}\\[[0-?]*[ -/]*[@-~]`, 'g')
 const meter = getMeter('zeepcentraal-lobby-host')
 const assignmentLatency = meter.createHistogram('zeepkist.managed_room.assignment.duration', {
@@ -65,6 +70,7 @@ interface LoadedAsset {
 }
 
 type LevelRequestPacket = Extract<GameHostPacket, { type: 'level-request' }>
+type PlayerConnectedPacket = Extract<GameHostPacket, { type: 'player-connected' }>
 
 interface PendingActivation {
 	assetHash: string
@@ -108,6 +114,7 @@ export class ManagedLobbyHost {
 	private roomConnected = false
 	private roomReady = false
 	private ownsRoom = false
+	private entries: number | undefined
 	private standings: TrackTournamentLeaderboardStanding[] | undefined
 	private standingsSignature: string | undefined
 	private watchedTournamentId: number | undefined
@@ -234,14 +241,8 @@ export class ManagedLobbyHost {
 			const initialAsset = this.asset
 			if (!initialAsset) throw new Error('Tournament asset became unavailable')
 			await activate(initialAsset)
-			if (assignment.roomCreated) {
-				await active.client.sendReliableOrdered(
-					chatMessagePacket(
-						buildTrackTournamentJoinMessageCommand(this.config.profile.tournamentType),
-					),
-				)
-				this.info('Join message configured.')
-			}
+			await active.client.sendReliableOrdered(chatMessagePacket('/joinmessage off'))
+			this.info('Built-in join message disabled.')
 			await this.sendServerMessage(active.client)
 			this.info(`Managed room connected for tournament ${initialAsset.idTournament}.`)
 			let refreshing = false
@@ -316,6 +317,9 @@ export class ManagedLobbyHost {
 					}
 					if (packet.type === 'player-connected') {
 						this.players.set(packet.uid, displayPlayerName(packet))
+						void this.sendTargetedJoinMessage(client, packet).catch((error) =>
+							this.warn(`Targeted join message failed: ${safeError(error)}`),
+						)
 						return
 					}
 					if (packet.type === 'player-disconnected') {
@@ -549,17 +553,19 @@ export class ManagedLobbyHost {
 	private watchLeaderboard(tournamentId: number) {
 		if (this.watchedTournamentId === tournamentId) return
 		this.watchedTournamentId = tournamentId
+		this.entries = undefined
 		this.standings = undefined
 		this.standingsSignature = undefined
 		this.stopLeaderboardWatch?.()
 		this.stopLeaderboardWatch = this.shared.leaderboard.watch(
 			this.config.key,
 			tournamentId,
-			(standings) => {
+			(snapshot) => {
 				if (this.watchedTournamentId !== tournamentId) return
-				const signature = leaderboardSignature(standings)
+				const signature = leaderboardSignature(snapshot.standings, snapshot.entries)
 				if (signature === this.standingsSignature) return
-				this.standings = standings
+				this.entries = snapshot.entries
+				this.standings = snapshot.standings
 				this.standingsSignature = signature
 				this.queueServerMessage(MESSAGE_CHANGE_DEBOUNCE_MS)
 			},
@@ -589,11 +595,71 @@ export class ManagedLobbyHost {
 			this.asset.tournamentSlug,
 			this.asset.tournamentEndAt,
 			this.standings,
+			this.entries,
 			this.config.roundTimeSeconds,
 		)
 		await client.sendReliableOrdered(chatMessagePacket(command))
 		this.scheduleMessageRefresh(this.config.messageRefreshMs)
 		this.info(`Server message sent for tournament ${this.asset.idTournament}.`)
+	}
+
+	private async sendTargetedJoinMessage(client: LidgrenClient, packet: PlayerConnectedPacket) {
+		for (let attempt = 0; attempt < 2; attempt++) {
+			const tournamentId = this.asset?.idTournament
+			if (
+				!tournamentId ||
+				this.stopped ||
+				this.client !== client ||
+				!this.roomReady ||
+				!this.ownsRoom
+			)
+				return
+
+			let context: TrackTournamentPlayerContext
+			try {
+				context = await this.shared.leaderboard.lookupPlayerContext(
+					tournamentId,
+					packet.steamId,
+					new Date(Date.now() - RECENT_RECORD_WINDOW_MS).toISOString(),
+				)
+			} catch {
+				context = {
+					minimumGtrVersion: null,
+					recentRecord: false,
+					userExists: false,
+				}
+			}
+
+			if (
+				this.stopped ||
+				this.client !== client ||
+				!this.roomReady ||
+				!this.ownsRoom ||
+				!this.asset
+			)
+				return
+			if (this.asset.idTournament !== tournamentId) {
+				if (attempt === 0) continue
+				return
+			}
+
+			const richMessage = buildTrackTournamentJoinMessage({
+				minimumGtrVersion: context.minimumGtrVersion,
+				playerName: packet.username?.trim() || packet.backupName,
+				requireGtr: !context.userExists || !context.recentRecord,
+				standing: context.standing,
+				type: this.config.profile.tournamentType,
+			})
+			await client.sendReliableOrdered(
+				targetedChatMessagePacket(
+					packet.steamId,
+					richMessage.message,
+					richMessage.hostname,
+				),
+			)
+			this.info('Targeted join message sent.')
+			return
+		}
 	}
 
 	private scheduleMessageRefresh(delayMs: number) {

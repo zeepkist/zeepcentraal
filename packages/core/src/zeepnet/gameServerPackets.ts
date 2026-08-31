@@ -2,6 +2,7 @@ import { BitReader, BitWriter } from './binary'
 
 export const ZEEPKIST_PACKET_ID = {
 	chatMessage: packetId('ZeepkistNetworking.ChatMessagePacket'),
+	customChatMessage: packetId('ZeepkistNetworking.CLB_Packet_CustomChatMessage'),
 	createLobby: packetId('ZeepkistNetworking.CreateLobbyPacket'),
 	createLobbyResponse: packetId('ZeepkistNetworking.CreateLobbyResponsePacket'),
 	joinLobby: packetId('ZeepkistNetworking.JoinLobbyPacket'),
@@ -67,7 +68,12 @@ export type GameHostPacket =
 			workshopId: bigint
 	  }
 	| { type: 'master'; uid: number }
-	| ({ type: 'player-connected'; isHost: boolean; hasHostPowers: boolean } & GameHostPlayer)
+	| ({
+			type: 'player-connected'
+			isHost: boolean
+			hasHostPowers: boolean
+			steamId: bigint
+	  } & GameHostPlayer)
 	| { type: 'player-disconnected'; uid: number }
 	| { type: 'playlist-index'; currentIndex: number; nextIndex: number; selectNext: boolean }
 	| {
@@ -125,6 +131,23 @@ export function chatMessagePacket(message: string) {
 		writer.writeUInt32(0)
 		writer.writeString(message)
 		writer.writeInt32(0)
+	})
+}
+
+export function targetedChatMessagePacket(
+	targetSteamId: bigint,
+	message: string,
+	hostname: string,
+) {
+	if (targetSteamId <= 0n || targetSteamId > 0xffff_ffff_ffff_ffffn) {
+		throw new Error('Target Steam ID must be between 1 and 18446744073709551615')
+	}
+	validateChatString(message, 'Chat message')
+	validateChatString(hostname, 'Chat hostname')
+	return writePacket(ZEEPKIST_PACKET_ID.customChatMessage, (writer) => {
+		writer.writeUInt64(targetSteamId)
+		writer.writeString(message)
+		writer.writeString(hostname)
 	})
 }
 
@@ -221,12 +244,13 @@ export function parseGameHostPacket(
 	}
 	if (id === ZEEPKIST_PACKET_ID.playerConnected) {
 		const uid = reader.readUInt32()
-		reader.readUInt64()
+		const steamId = reader.readUInt64()
 		const isHost = reader.readBoolean()
 		const hasHostPowers = reader.readBoolean()
 		return {
 			type: 'player-connected',
 			uid,
+			steamId,
 			isHost,
 			hasHostPowers,
 			playerTag: reader.readString(1024),
@@ -280,6 +304,13 @@ export function parseGameHostPacket(
 		return packetType === 3 ? { type: 'level-request', name, workshopId, uid } : undefined
 	}
 	return undefined
+}
+
+function validateChatString(value: string, label: string) {
+	const byteLength = new TextEncoder().encode(value).byteLength
+	if (byteLength < 1 || byteLength > MAX_CHAT_MESSAGE_BYTES) {
+		throw new Error(`${label} must contain between 1 and ${MAX_CHAT_MESSAGE_BYTES} bytes`)
+	}
 }
 
 function readPlaylist(reader: BitReader): OnlinePlaylist {

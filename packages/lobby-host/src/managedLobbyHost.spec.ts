@@ -6,6 +6,7 @@ import {
 	encodeZeepkistLevelPayload,
 	ZEEPKIST_PACKET_ID,
 } from '@zeepkist/core/zeepnet'
+import type { TrackTournamentLeaderboardSnapshot } from './trackTournamentLeaderboard'
 
 interface TestLevel {
 	author: string
@@ -14,6 +15,34 @@ interface TestLevel {
 	overrideAuthorName: string
 	uid: string
 	workshopId: bigint
+}
+
+interface PlayerContext {
+	minimumGtrVersion: string | null
+	recentRecord: boolean
+	standing?: { rank: number; time: number }
+	userExists: boolean
+}
+
+interface TargetedJoinTestClient {
+	sendReliableOrdered: (payload: Uint8Array) => Promise<unknown>
+}
+
+interface TargetedJoinTestHost {
+	asset: { idTournament: number }
+	client: TargetedJoinTestClient
+	ownsRoom: boolean
+	roomReady: boolean
+	sendTargetedJoinMessage: (
+		client: TargetedJoinTestClient,
+		packet: ReturnType<typeof playerConnectedTestPacket>,
+	) => Promise<void>
+}
+
+const RECENT_PLAYER_CONTEXT: PlayerContext = {
+	minimumGtrVersion: '1.17.3',
+	recentRecord: true,
+	userExists: true,
 }
 
 const TEST_LEVEL: TestLevel = {
@@ -115,6 +144,92 @@ test('shutdown interrupts asset polling wait', async () => {
 	await withTimeout(running)
 })
 
+test('uses generic GTR fallback when player context lookup fails', async () => {
+	const host = createHost(1, 500, 0, 60_000, 600_000, 'totw', 'weekly', async () => {
+		throw new Error('GraphQL unavailable')
+	})
+	const sent: Uint8Array[] = []
+	const client = { sendReliableOrdered: async (payload: Uint8Array) => sent.push(payload) }
+	const internal = host as unknown as TargetedJoinTestHost
+	internal.client = client
+	internal.asset = { idTournament: 42 }
+	internal.roomReady = true
+	internal.ownsRoom = true
+	await internal.sendTargetedJoinMessage(
+		client,
+		playerConnectedTestPacket(42, 76561198000000042n, 'Fallback Player'),
+	)
+	const reader = new BitReader(sent[0] as Uint8Array)
+	expect(reader.readUInt16()).toBe(ZEEPKIST_PACKET_ID.customChatMessage)
+	expect(reader.readUInt64()).toBe(76561198000000042n)
+	expect(reader.readString()).toContain(
+		'You need GTR installed to join the tournament leaderboard.',
+	)
+	expect(reader.readString()).toBe('---Track of the Week---')
+})
+
+test('retries changed tournament once and drops stale asynchronous result', async () => {
+	let resolveFirst: ((value: PlayerContext) => void) | undefined
+	let resolveSecond: ((value: PlayerContext) => void) | undefined
+	const contexts = [
+		new Promise<PlayerContext>((resolve) => {
+			resolveFirst = resolve
+		}),
+		new Promise<PlayerContext>((resolve) => {
+			resolveSecond = resolve
+		}),
+	]
+	const lookup = mock(
+		async (_tournamentId: number, _steamId: bigint, _recentSince: string) =>
+			contexts.shift() as Promise<PlayerContext>,
+	)
+	const host = createHost(1, 500, 0, 60_000, 600_000, 'totw', 'weekly', lookup)
+	const sendReliableOrdered = mock(async () => {})
+	const client = { sendReliableOrdered }
+	const internal = host as unknown as TargetedJoinTestHost
+	internal.client = client
+	internal.asset = { idTournament: 42 }
+	internal.roomReady = true
+	internal.ownsRoom = true
+	const sending = internal.sendTargetedJoinMessage(
+		client,
+		playerConnectedTestPacket(42, 76561198000000042n, 'Player'),
+	)
+	internal.asset = { idTournament: 43 }
+	resolveFirst?.(RECENT_PLAYER_CONTEXT)
+	await Bun.sleep(0)
+	expect(lookup).toHaveBeenCalledTimes(2)
+	internal.asset = { idTournament: 44 }
+	resolveSecond?.(RECENT_PLAYER_CONTEXT)
+	await sending
+	expect(sendReliableOrdered).not.toHaveBeenCalled()
+	expect(lookup.mock.calls.map((call) => call[0])).toEqual([42, 43])
+})
+
+test('drops player context result after connection changes', async () => {
+	let resolveLookup: ((value: PlayerContext) => void) | undefined
+	const lookup = () =>
+		new Promise<PlayerContext>((resolve) => {
+			resolveLookup = resolve
+		})
+	const host = createHost(1, 500, 0, 60_000, 600_000, 'totw', 'weekly', lookup)
+	const sendReliableOrdered = mock(async () => {})
+	const client = { sendReliableOrdered }
+	const internal = host as unknown as TargetedJoinTestHost
+	internal.client = client
+	internal.asset = { idTournament: 42 }
+	internal.roomReady = true
+	internal.ownsRoom = true
+	const sending = internal.sendTargetedJoinMessage(
+		client,
+		playerConnectedTestPacket(42, 76561198000000042n, 'Player'),
+	)
+	internal.client = { sendReliableOrdered: async () => {} }
+	resolveLookup?.(RECENT_PLAYER_CONTEXT)
+	await sending
+	expect(sendReliableOrdered).not.toHaveBeenCalled()
+})
+
 test('matches C# playlist transition and serves every level-data request', async () => {
 	const originalFetch = globalThis.fetch
 	globalThis.fetch = Bun.fetch
@@ -123,6 +238,7 @@ test('matches C# playlist transition and serves every level-data request', async
 	const fragments = new Map<number, FragmentGroup>()
 	const sentPacketIds: number[] = []
 	const chatCommands: string[] = []
+	const targetedMessages: Array<{ hostname: string; message: string; steamId: bigint }> = []
 	let incomingSequence = 0
 	let playlistSequence: number | undefined
 	let skipSequence: number | undefined
@@ -130,12 +246,18 @@ test('matches C# playlist transition and serves every level-data request', async
 	let playlistSentAt = 0
 	let responseCount = 0
 	let roundTransitionSent = false
+	let publishLeaderboard: ((snapshot: TrackTournamentLeaderboardSnapshot) => void) | undefined
 	let resolveResponses: (() => void) | undefined
 	const responsesComplete = new Promise<void>((resolve) => {
 		resolveResponses = resolve
 	})
 	const maybeResolve = () => {
-		if (responseCount >= 3 && chatCommands.length >= 4) resolveResponses?.()
+		if (
+			responseCount >= 3 &&
+			chatCommands.some((command) => command.includes('3 Entries')) &&
+			targetedMessages.length >= 2
+		)
+			resolveResponses?.()
 	}
 
 	gameServer.on('message', (data, remote) => {
@@ -155,6 +277,28 @@ test('matches C# playlist transition and serves every level-data request', async
 			expect(reader.readInt32()).toBe(0)
 			if (chatCommands.length === 2 && !roundTransitionSent) {
 				roundTransitionSent = true
+				publishLeaderboard?.({ entries: 3, standings: [] })
+				gameServer.send(
+					reliable(initialRosterPacket(), incomingSequence++),
+					remote.port,
+					remote.address,
+				)
+				gameServer.send(
+					reliable(
+						playerConnectedPacket(42, 76561198000000042n, 'Resolved'),
+						incomingSequence++,
+					),
+					remote.port,
+					remote.address,
+				)
+				gameServer.send(
+					reliable(
+						playerConnectedPacket(43, 76561198000000043n, 'Second'),
+						incomingSequence++,
+					),
+					remote.port,
+					remote.address,
+				)
 				gameServer.send(
 					reliable(gameStatePacket(1), incomingSequence++),
 					remote.port,
@@ -166,6 +310,15 @@ test('matches C# playlist transition and serves every level-data request', async
 					remote.address,
 				)
 			}
+			maybeResolve()
+			return
+		}
+		if (packetId === ZEEPKIST_PACKET_ID.customChatMessage) {
+			targetedMessages.push({
+				steamId: reader.readUInt64(),
+				message: reader.readString(),
+				hostname: reader.readString(),
+			})
 			maybeResolve()
 			return
 		}
@@ -211,8 +364,28 @@ test('matches C# playlist transition and serves every level-data request', async
 		}
 	})
 
-	const broker = startBroker(gamePort, undefined, true)
-	const host = createHost(requiredPort(broker.port), 500, 40, 60_000, 50)
+	const lookupPlayerContext = mock(async () => ({
+		minimumGtrVersion: '1.17.3',
+		recentRecord: true,
+		standing: { rank: 12, time: 34.234 },
+		userExists: true,
+	}))
+	const broker = startBroker(gamePort)
+	const host = createHost(
+		requiredPort(broker.port),
+		500,
+		40,
+		60_000,
+		50,
+		'totw',
+		'weekly',
+		lookupPlayerContext,
+		(_key, _tournamentId, onSnapshot) => {
+			publishLeaderboard = onSnapshot
+			onSnapshot({ entries: 2, standings: [] })
+			return () => {}
+		},
+	)
 	const running = host.run()
 	try {
 		await withTimeout(responsesComplete)
@@ -230,10 +403,22 @@ test('matches C# playlist transition and serves every level-data request', async
 		).toHaveLength(3)
 		expect(sentPacketIds).not.toContain(ZEEPKIST_PACKET_ID.levelLoaded)
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.changeLobbyVisibility)
-		expect(chatCommands[0]).toStartWith('/joinmessage yellow ')
+		expect(chatCommands[0]).toBe('/joinmessage off')
+		expect(chatCommands).not.toContainEqual(expect.stringContaining('/joinmessage yellow'))
 		expect(chatCommands[1]).toStartWith('/servermessage yellow 900 ')
-		expect(chatCommands[2]).toStartWith('/servermessage yellow 900 ')
-		expect(chatCommands[3]).toStartWith('/servermessage yellow 900 ')
+		expect(chatCommands[1]).toContain('2 Entries')
+		expect(chatCommands.some((command) => command.includes('3 Entries'))).toBe(true)
+		expect(targetedMessages.map((message) => message.steamId).toSorted()).toEqual([
+			76561198000000042n,
+			76561198000000043n,
+		])
+		expect(targetedMessages[0]?.hostname).toBe('---Track of the Week---')
+		expect(targetedMessages[0]?.message).toContain('Welcome to Track of the Week,')
+		expect(targetedMessages[0]?.message).toContain(
+			'You are currently #12 on the tournament leaderboard with 00:34.234.',
+		)
+		expect(targetedMessages).toHaveLength(2)
+		expect(lookupPlayerContext).toHaveBeenCalledTimes(2)
 	} finally {
 		await host.stop()
 		await broker.stop(true)
@@ -373,6 +558,20 @@ function createHost(
 	messageRefreshMs = 600_000,
 	roomKey = 'totw',
 	tournamentType: 'monthly' | 'weekly' = 'weekly',
+	lookupPlayerContext: (
+		tournamentId: number,
+		steamId: bigint,
+		recentSince: string,
+	) => Promise<PlayerContext> = async () => ({
+		minimumGtrVersion: null,
+		recentRecord: false,
+		userExists: false,
+	}),
+	watchLeaderboard: (
+		key: string,
+		tournamentId: number,
+		onSnapshot: (snapshot: TrackTournamentLeaderboardSnapshot) => void,
+	) => () => void = () => () => {},
 ) {
 	return new ManagedLobbyHost(
 		{
@@ -386,7 +585,11 @@ function createHost(
 		},
 		{
 			broker: new RoomBrokerClient(`http://127.0.0.1:${brokerPort}`, 'b'.repeat(32)),
-			leaderboard: { close: async () => {}, watch: () => () => {} } as never,
+			leaderboard: {
+				close: async () => {},
+				lookupPlayerContext,
+				watch: watchLeaderboard,
+			} as never,
 			payloads: new LevelPayloadCache(),
 		},
 		protocolTimeoutMs,
@@ -477,6 +680,62 @@ function levelRequestPacket(name: string, level: TestLevel) {
 
 function gameStatePacket(state: number) {
 	return packet(ZEEPKIST_PACKET_ID.changeLobbyGameState, (writer) => writer.writeInt32(state))
+}
+
+function playerConnectedPacket(uid: number, steamId: bigint, username: string) {
+	return packet(ZEEPKIST_PACKET_ID.playerConnected, (writer) => {
+		writer.writeUInt32(uid)
+		writer.writeUInt64(steamId)
+		writer.writeBoolean(false)
+		writer.writeBoolean(false)
+		writer.writeString('')
+		writer.writeString(`${username} Backup`)
+		writer.writeString(username)
+	})
+}
+
+function playerConnectedTestPacket(uid: number, steamId: bigint, username: string) {
+	return {
+		backupName: `${username} Backup`,
+		hasHostPowers: false,
+		isHost: false,
+		playerTag: '',
+		steamId,
+		type: 'player-connected' as const,
+		uid,
+		username,
+	}
+}
+
+function initialRosterPacket() {
+	return packet(ZEEPKIST_PACKET_ID.initialState, (writer) => {
+		writer.writeInt32(2)
+		writeInitialPlayer(writer, 7, 76561198000000000n, 'Host', true)
+		writeInitialPlayer(writer, 41, 76561198000000041n, 'Existing', false)
+	})
+}
+
+function writeInitialPlayer(
+	writer: BitWriter,
+	uid: number,
+	steamId: bigint,
+	backupName: string,
+	isHost: boolean,
+) {
+	writer.writeUInt32(uid)
+	writer.writeUInt64(steamId)
+	writer.writeString('')
+	writer.writeString(backupName)
+	writer.writeBoolean(isHost)
+	writer.writeString('{}')
+	for (let index = 0; index < 7; index++) writer.writeFloat32(0)
+	writer.writeBoolean(false)
+	writer.writeBoolean(false)
+	writer.writeByte(0)
+	for (let index = 0; index < 13; index++) writer.writeBoolean(false)
+	writer.writeInt32(0)
+	writer.writeInt32(0)
+	writer.writeBoolean(false)
 }
 
 function packet(id: number, write: (writer: BitWriter) => void) {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
-	buildTrackTournamentJoinMessageCommand,
+	buildTrackTournamentJoinMessage,
 	buildTrackTournamentServerMessageCommand,
 	escapeUnityRichText,
 	formatTournamentRemaining,
@@ -25,14 +25,55 @@ const now = Date.parse('2026-08-30T12:00:00.000Z')
 const tournamentEndAt = new Date(now + (6 * 24 * 60 + 3 * 60 + 38) * 60_000).toISOString()
 
 describe('track tournament room messages', () => {
-	test('uses bounded rich join copy', () => {
-		const weekly = buildTrackTournamentJoinMessageCommand('weekly')
-		const monthly = buildTrackTournamentJoinMessageCommand('monthly')
-		expect(weekly).toContain('/joinmessage yellow <b>Welcome')
-		expect(weekly).toContain('zeepki.st/totw')
-		expect(monthly).toContain('Track of the Month')
-		expect(monthly).toContain('zeepki.st/totm')
-		expect(new TextEncoder().encode(weekly).byteLength).toBeLessThan(4097)
+	test('builds exact weekly rich join message', () => {
+		const result = buildTrackTournamentJoinMessage({
+			minimumGtrVersion: '1.2.3',
+			playerName: 'Player One',
+			requireGtr: false,
+			type: 'weekly',
+		})
+		expect(result).toEqual({
+			hostname: '---Track of the Week---',
+			message:
+				'<br><#dedede>Welcome to Track of the Week, Player One<br><br>A time attack tournament featuring a unique level each week.<br><br>View the full tournament leaderboard on <u>zeepki.st/totw</u>!<br><br>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</color>',
+		})
+	})
+
+	test('builds monthly conditional paragraphs and escapes inputs', () => {
+		const result = buildTrackTournamentJoinMessage({
+			minimumGtrVersion: '<1.17&>',
+			playerName: '<b>Alice</b>\r\nSecond',
+			requireGtr: true,
+			standing: { rank: 12, time: 34.234 },
+			type: 'monthly',
+		})
+		expect(result.hostname).toBe('---Track of the Month---')
+		expect(result.message).toContain(
+			'Welcome to Track of the Month, &lt;b&gt;Alice&lt;/b&gt; Second',
+		)
+		expect(result.message).toContain('a unique level each month.')
+		expect(result.message).toContain('<u>zeepki.st/totm</u>!')
+		expect(result.message).toContain(
+			'You need GTR &lt;1.17&amp;&gt;+ installed to join the tournament leaderboard.',
+		)
+		expect(result.message).toContain(
+			'You are currently #12 on the tournament leaderboard with 00:34.234.',
+		)
+		expect(result.message).not.toContain('\n')
+		expect(new TextEncoder().encode(result.message).byteLength).toBeLessThan(4_097)
+	})
+
+	test('uses generic GTR wording and safely truncates player names', () => {
+		const result = buildTrackTournamentJoinMessage({
+			minimumGtrVersion: null,
+			playerName: '😀'.repeat(30),
+			requireGtr: true,
+			type: 'weekly',
+		})
+		expect(result.message).toContain(`Welcome to Track of the Week, ${'😀'.repeat(23)}…`)
+		expect(result.message).toContain(
+			'You need GTR installed to join the tournament leaderboard.',
+		)
 	})
 
 	test('formats weekly period and tournament times', () => {
@@ -43,9 +84,10 @@ describe('track tournament room messages', () => {
 			'Track of the Month: August 2026',
 		)
 		expect(formatTrackTournamentPeriod('weekly', 'custom')).toBe('Track of the Week: custom')
-		expect(formatTrackTournamentTime(61.234)).toBe('1:01.234')
-		expect(formatTrackTournamentTime(9.5)).toBe('0:09.500')
-		expect(formatTrackTournamentTime(59.9996)).toBe('1:00.000')
+		expect(formatTrackTournamentTime(61.234)).toBe('01:01.234')
+		expect(formatTrackTournamentTime(9.5)).toBe('00:09.500')
+		expect(formatTrackTournamentTime(59.9996)).toBe('01:00.000')
+		expect(formatTrackTournamentTime(6_000)).toBe('100:00.000')
 		expect(formatTournamentRemaining(tournamentEndAt, now)).toBe('Ends in 6d 3h 38m')
 		expect(formatTournamentRemaining(tournamentEndAt, now + 60_000)).toBe('Ends in 6d 3h 37m')
 		expect(formatTournamentRemaining(tournamentEndAt, Date.parse(tournamentEndAt) + 1)).toBe(
@@ -62,17 +104,18 @@ describe('track tournament room messages', () => {
 			'2026-w33',
 			tournamentEndAt,
 			standings,
+			42,
 			900,
 			now,
 		)
 		expect(command).toStartWith(
 			'/servermessage yellow 900 <b>Track of the Week: 2026 Week 33</b>',
 		)
-		expect(command).toContain('Ends in 6d 3h 38m')
-		expect(command).toContain('<color=#FFD700>1. &lt;Winner&gt; — 1:01.234</color>')
-		expect(command).toContain('<color=#C0C0C0>2. Runner &amp; Friend — 1:02.000</color>')
-		expect(command).toContain('<color=#CD7F32>3. Unknown player — 1:03.500</color>')
-		expect(command).toContain('<color=#FFFFFF>6. Sixth — 1:06.500</color>')
+		expect(command).toContain('<size=85%>42 Entries Ends in 6d 3h 38m\n')
+		expect(command).toContain('<color=#FFD700>1. &lt;Winner&gt; — 01:01.234</color>')
+		expect(command).toContain('<color=#C0C0C0>2. Runner &amp; Friend — 01:02.000</color>')
+		expect(command).toContain('<color=#CD7F32>3. Unknown player — 01:03.500</color>')
+		expect(command).toContain('<color=#FFFFFF>6. Sixth — 01:06.500</color>')
 		expect(command).not.toContain('Hidden')
 		expect(command).toEndWith('</size>')
 	})
@@ -84,18 +127,20 @@ describe('track tournament room messages', () => {
 				'2026-w33',
 				tournamentEndAt,
 				undefined,
+				undefined,
 				900,
 			),
-		).toContain('Leaderboard loading…')
+		).toContain('<size=85%>… Entries Ends in ')
 		expect(
 			buildTrackTournamentServerMessageCommand(
 				'weekly',
 				'2026-w33',
 				tournamentEndAt,
 				[],
+				0,
 				900,
 			),
-		).toContain('Set a time with GTR to appear on the leaderboard!')
+		).toContain('0 Entries Ends in ')
 	})
 
 	test('escapes tags and bounds display names by code point', () => {
@@ -108,6 +153,7 @@ describe('track tournament room messages', () => {
 				{ ...firstStanding, steamName: '😀'.repeat(30) },
 				{ ...secondStanding, steamName: '<b>Injected</b>\r\nSecond line' },
 			],
+			2,
 			900,
 			now,
 		)
@@ -118,11 +164,14 @@ describe('track tournament room messages', () => {
 	})
 
 	test('signature changes only with visible leaderboard data', () => {
-		expect(leaderboardSignature(standings.slice(0, 6))).toBe(
-			leaderboardSignature(standings.slice(0, 6)),
+		expect(leaderboardSignature(standings.slice(0, 6), 7)).toBe(
+			leaderboardSignature(standings.slice(0, 6), 7),
 		)
-		expect(leaderboardSignature(standings.slice(0, 6))).not.toBe(
-			leaderboardSignature([{ ...firstStanding, time: 60 }, ...standings.slice(1, 6)]),
+		expect(leaderboardSignature(standings.slice(0, 6), 7)).not.toBe(
+			leaderboardSignature([{ ...firstStanding, time: 60 }, ...standings.slice(1, 6)], 7),
+		)
+		expect(leaderboardSignature(standings.slice(0, 6), 7)).not.toBe(
+			leaderboardSignature(standings.slice(0, 6), 8),
 		)
 	})
 })

@@ -6,6 +6,7 @@ subscription ZC_TrackTournamentLobbyLeaderboardLive($id: Int!) {
 			first: 6
 			orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]
 		) {
+			totalCount
 			nodes {
 				tournamentId
 				userId
@@ -15,6 +16,37 @@ subscription ZC_TrackTournamentLobbyLeaderboardLive($id: Int!) {
 				user {
 					steamName
 				}
+			}
+		}
+	}
+}
+
+query ZC_TrackTournamentLobbyPlayerContext(
+	$tournamentId: Int!
+	$steamId: BigInt!
+	$recentSince: Datetime!
+) {
+	versions(first: 1, orderBy: [ID_DESC]) {
+		nodes {
+			minimum
+		}
+	}
+	user: userBySteamId(steamId: $steamId) {
+		id
+		recentRecords: records(
+			first: 1
+			filter: { dateCreated: { greaterThanOrEqualTo: $recentSince } }
+			orderBy: [DATE_CREATED_DESC, ID_DESC]
+		) {
+			totalCount
+		}
+		standing: trackTournamentResults(
+			first: 1
+			filter: { tournamentId: { equalTo: $tournamentId } }
+		) {
+			nodes {
+				rank
+				time
 			}
 		}
 	}

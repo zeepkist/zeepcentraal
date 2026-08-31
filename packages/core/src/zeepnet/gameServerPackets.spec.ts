@@ -10,6 +10,7 @@ import {
 	parseGameHostPacket,
 	parseMasterRoomResponse,
 	skipToLevelPacket,
+	targetedChatMessagePacket,
 	ZEEPKIST_PACKET_ID,
 } from './gameServerPackets'
 
@@ -26,6 +27,7 @@ describe('Zeepkist GameServer packet codecs', () => {
 	test('uses V18 stable packet IDs', () => {
 		expect(ZEEPKIST_PACKET_ID).toEqual({
 			chatMessage: 48137,
+			customChatMessage: 37243,
 			createLobby: 18036,
 			createLobbyResponse: 42517,
 			joinLobby: 24070,
@@ -43,6 +45,29 @@ describe('Zeepkist GameServer packet codecs', () => {
 			playerDisconnected: 48658,
 			skipToLevel: 63876,
 		})
+	})
+
+	test('serializes bounded targeted V18 custom chat', () => {
+		const bytes = targetedChatMessagePacket(
+			76561198000000042n,
+			'<br><#dedede>Welcome!</color>',
+			'---Track of the Week---',
+		)
+		const packet = new BitReader(bytes)
+		expect(packet.readUInt16()).toBe(37243)
+		expect(packet.readUInt64()).toBe(76561198000000042n)
+		expect(packet.readString()).toBe('<br><#dedede>Welcome!</color>')
+		expect(packet.readString()).toBe('---Track of the Week---')
+		expect(packet.remainingBits).toBe(0)
+		expect(() => targetedChatMessagePacket(0n, 'message', 'host')).toThrow(
+			'Target Steam ID must be between 1 and 18446744073709551615',
+		)
+		expect(() => targetedChatMessagePacket(1n, '', 'host')).toThrow(
+			'Chat message must contain between 1 and 4096 bytes',
+		)
+		expect(() => targetedChatMessagePacket(1n, 'message', '😀'.repeat(1025))).toThrow(
+			'Chat hostname must contain between 1 and 4096 bytes',
+		)
 	})
 
 	test('serializes bounded V18 chat commands', () => {
@@ -227,7 +252,7 @@ describe('Zeepkist GameServer packet codecs', () => {
 		expect(parseGameHostPacket(gameState, 0n)).toEqual({ type: 'game-state', state: 0 })
 	})
 
-	test('parses bounded chat and player roster updates without exposing Steam IDs', () => {
+	test('parses bounded chat and player roster updates with transient join Steam IDs', () => {
 		const chat = packet(ZEEPKIST_PACKET_ID.chatMessage, (writer) => {
 			writer.writeUInt32(42)
 			writer.writeString('hello')
@@ -252,6 +277,7 @@ describe('Zeepkist GameServer packet codecs', () => {
 		expect(parseGameHostPacket(connected, 0n)).toEqual({
 			type: 'player-connected',
 			uid: 42,
+			steamId: 76561198000000042n,
 			isHost: false,
 			hasHostPowers: true,
 			playerTag: '[TAG] ',
