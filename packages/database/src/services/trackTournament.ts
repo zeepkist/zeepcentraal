@@ -14,10 +14,16 @@ type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 export const TRACK_TOURNAMENT_LOCK_NAMESPACE = 1_953_744_431
 export const TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE = 1_953_744_432
-const TRACK_TOURNAMENT_MINIMUM_POINT_PERCENTILE = {
-	[TRACK_TOURNAMENT_TYPE.weekly]: 0.9,
-	[TRACK_TOURNAMENT_TYPE.monthly]: 0.95,
-} satisfies Record<TrackTournamentType, number>
+const TRACK_TOURNAMENT_LEVEL_ELIGIBILITY = {
+	[TRACK_TOURNAMENT_TYPE.weekly]: {
+		minimumPointPercentile: 0.9,
+		maximumAgeDays: 60,
+	},
+	[TRACK_TOURNAMENT_TYPE.monthly]: {
+		minimumPointPercentile: 0.9,
+		maximumAgeDays: 30,
+	},
+} satisfies Record<TrackTournamentType, { minimumPointPercentile: number; maximumAgeDays: number }>
 
 async function rerankTrackTournaments(
 	tx: DatabaseTransaction,
@@ -120,8 +126,15 @@ export async function recordTrackTournamentResults(
 	return changedTournamentIds.length > 0
 }
 
-async function selectTrackTournamentLevel(tx: DatabaseTransaction, type: TrackTournamentType) {
-	const minimumPointPercentile = TRACK_TOURNAMENT_MINIMUM_POINT_PERCENTILE[type]
+async function selectTrackTournamentLevel(
+	tx: DatabaseTransaction,
+	type: TrackTournamentType,
+	at: Date,
+) {
+	const eligibility = TRACK_TOURNAMENT_LEVEL_ELIGIBILITY[type]
+	const createdAfter = new Date(
+		at.getTime() - eligibility.maximumAgeDays * 86_400_000,
+	).toISOString()
 	const selected = await tx.execute<{
 		id_level: number
 	}>(sql`
@@ -131,7 +144,8 @@ async function selectTrackTournamentLevel(tx: DatabaseTransaction, type: TrackTo
 			INNER JOIN public.level AS candidate_level
 				ON candidate_level.id = scored_level.id_level
 				AND candidate_level.publicly_visible = true
-			WHERE EXISTS (
+			WHERE candidate_level.date_created >= ${createdAfter}
+				AND EXISTS (
 				SELECT 1
 				FROM public.level_item AS display_item
 				WHERE display_item.id_level = candidate_level.id
@@ -139,7 +153,7 @@ async function selectTrackTournamentLevel(tx: DatabaseTransaction, type: TrackTo
 					AND display_item.deleted = false
 			)
 		), threshold AS (
-			SELECT PERCENTILE_CONT(${minimumPointPercentile})
+			SELECT PERCENTILE_CONT(${eligibility.minimumPointPercentile})
 				WITHIN GROUP (ORDER BY eligible_level.points) AS points
 			FROM eligible_levels AS eligible_level
 		)
@@ -208,7 +222,7 @@ export async function rotateTrackTournament(
 			.limit(1)
 		if (existing[0]) return { created: false, idTournament: existing[0].id }
 
-		const idLevel = await selectTrackTournamentLevel(tx, type)
+		const idLevel = await selectTrackTournamentLevel(tx, type, at)
 		if (!idLevel) return { created: false, reason: 'empty-pool' }
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(0, ${idLevel})`)
 		const [created] = await tx
