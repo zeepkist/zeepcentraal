@@ -568,6 +568,13 @@
 			"when": 1788191842457,
 			"tag": "0081_adventure_level_backfill",
 			"breakpoints": true
+		},
+		{
+			"idx": 82,
+			"version": "7",
+			"when": 1788192859746,
+			"tag": "0082_low_captain_america",
+			"breakpoints": true
 		}
 	]
 }

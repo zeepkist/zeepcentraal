@@ -1,6 +1,6 @@
 {
-	"id": "fc42f490-9d7b-45d7-8287-747f1f28b401",
-	"prevId": "7d42fc7d-81ae-423b-ad75-0cb77859ecea",
+	"id": "5e2fdce2-8e6c-4eba-8c0f-d6f345ca62ac",
+	"prevId": "fc42f490-9d7b-45d7-8287-747f1f28b401",
 	"version": "7",
 	"dialect": "postgresql",
 	"tables": {
@@ -3093,6 +3093,60 @@
 			"uniqueConstraints": {},
 			"policies": {},
 			"checkConstraints": {},
+			"isRLSEnabled": false
+		},
+		"zc_private.points_history_prune_state": {
+			"name": "points_history_prune_state",
+			"schema": "zc_private",
+			"columns": {
+				"history": {
+					"name": "history",
+					"type": "text",
+					"primaryKey": true,
+					"notNull": true
+				},
+				"week_start": {
+					"name": "week_start",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"budget_date": {
+					"name": "budget_date",
+					"type": "date",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"deleted_today": {
+					"name": "deleted_today",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"default": 0
+				},
+				"date_updated": {
+					"name": "date_updated",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"policies": {},
+			"checkConstraints": {
+				"CK_points_history_prune_state_history": {
+					"name": "CK_points_history_prune_state_history",
+					"value": "\"zc_private\".\"points_history_prune_state\".\"history\" IN ('level_points_history', 'user_points_history')"
+				},
+				"CK_points_history_prune_state_deleted_today": {
+					"name": "CK_points_history_prune_state_deleted_today",
+					"value": "\"zc_private\".\"points_history_prune_state\".\"deleted_today\" >= 0"
+				}
+			},
 			"isRLSEnabled": false
 		},
 		"public.record": {

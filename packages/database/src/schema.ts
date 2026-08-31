@@ -3,6 +3,7 @@ import {
 	bigint,
 	boolean,
 	check,
+	date,
 	doublePrecision,
 	foreignKey,
 	index,
@@ -589,6 +590,27 @@ export const userPointsHistory = pgTable(
 			table.idUser.asc().nullsLast(),
 			table.dateCreated.desc().nullsLast(),
 		),
+	],
+)
+
+export const pointsHistoryPruneState = zcPrivate.table(
+	'points_history_prune_state',
+	{
+		history: text().primaryKey(),
+		weekStart: timestamp('week_start', { withTimezone: true, mode: 'string' }).notNull(),
+		budgetDate: date('budget_date', { mode: 'string' }).notNull(),
+		deletedToday: integer('deleted_today').notNull().default(0),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date().toISOString()),
+	},
+	(table) => [
+		check(
+			'CK_points_history_prune_state_history',
+			sql`${table.history} IN ('level_points_history', 'user_points_history')`,
+		),
+		check('CK_points_history_prune_state_deleted_today', sql`${table.deletedToday} >= 0`),
 	],
 )
 

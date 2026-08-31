@@ -3,6 +3,10 @@ import {
 	PLAYER_SCORE_QUEUE_NAME,
 	UPDATE_PLAYER_SCORES_JOB_KEY,
 } from './utils/playerScoreJobOptions'
+import {
+	POINTS_HISTORY_PRUNE_JOB_PRIORITY,
+	POINTS_HISTORY_PRUNE_QUEUE_NAME,
+} from './utils/pointsHistoryPruningOptions'
 
 export const cronTasks = [
 	{ task: 'recoverLevelRequests', cronTime: '0 * * * *' },
@@ -57,4 +61,12 @@ export const cronTasks = [
 	// History snapshots
 	{ task: 'updateLevelPointsHistory', cronTime: '0 * * * *' }, // every hour
 	{ task: 'updateUserPointsHistory', cronTime: '0 0,12 * * *' }, // every 12 hours
+	{
+		task: 'prunePointsHistory',
+		cronTime: '30 2 * * *',
+		spec: {
+			priority: POINTS_HISTORY_PRUNE_JOB_PRIORITY,
+			queueName: POINTS_HISTORY_PRUNE_QUEUE_NAME,
+		},
+	}, // daily at 02:30 Europe/London
 ] as const

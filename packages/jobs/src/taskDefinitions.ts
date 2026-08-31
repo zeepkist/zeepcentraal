@@ -41,6 +41,7 @@ export const taskDefinitions = {
 		compatible: true,
 		maxAttempts: 1,
 	},
+	prunePointsHistory: { schema: emptyPayload, compatible: false, maxAttempts: 3 },
 	recoverLevelRequests: { schema: emptyPayload, compatible: false, maxAttempts: 3 },
 	prepareTrackTournamentLobbyAsset: {
 		schema: z.looseObject({ idTournament: z.number().int().positive() }),

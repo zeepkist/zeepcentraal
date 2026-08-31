@@ -6,6 +6,7 @@ import {
 	backfillRecordGhostStatisticsBatch,
 } from './backfillRecordGhostStatistics'
 import { prepareTrackTournamentLobbyAsset } from './prepareTrackTournamentLobbyAsset'
+import { prunePointsHistory } from './prunePointsHistory'
 import { recoverLevelRequests } from './recoverLevelRequests'
 import { rotateTrackTournament } from './rotateTrackTournament'
 import { scanWorkshopBatch } from './scanWorkshopBatch'
@@ -33,6 +34,7 @@ export const taskList = {
 		'backfillRecordGhostStatisticsBatch',
 		backfillRecordGhostStatisticsBatch as GWTask,
 	),
+	prunePointsHistory: wrapTask('prunePointsHistory', prunePointsHistory as GWTask),
 	recoverLevelRequests: wrapTask('recoverLevelRequests', recoverLevelRequests as GWTask),
 	prepareTrackTournamentLobbyAsset: wrapTask(
 		'prepareTrackTournamentLobbyAsset',

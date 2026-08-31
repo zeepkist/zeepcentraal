@@ -10,6 +10,10 @@ import {
 	PLAYER_SCORE_QUEUE_NAME,
 	UPDATE_PLAYER_SCORES_JOB_KEY,
 } from './utils/playerScoreJobOptions'
+import {
+	POINTS_HISTORY_PRUNE_JOB_PRIORITY,
+	POINTS_HISTORY_PRUNE_QUEUE_NAME,
+} from './utils/pointsHistoryPruningOptions'
 
 const expectedCompatibleTaskIdentifiers = [
 	'backfillRecordGhostStatistics',
@@ -33,6 +37,8 @@ test('compatible task contract exposes exact API-triggerable task list', () => {
 	expect(compatibleTaskIdentifiers).toEqual(expectedCompatibleTaskIdentifiers)
 	expect(isCompatibleTaskIdentifier('updateLevelScoresBatch')).toBe(false)
 	expect(isCompatibleTaskIdentifier('updateLevelScore')).toBe(true)
+	expect(isCompatibleTaskIdentifier('prunePointsHistory')).toBe(false)
+	expect(isValidTaskPayload('prunePointsHistory', {})).toBe(true)
 })
 
 test('task payload validation accepts compatible legacy shapes', () => {
@@ -112,6 +118,17 @@ test('workshop catalog sync runs Sunday at 01:00 Europe/London', () => {
 		task: 'syncWorkshopCatalog',
 		cronTime: '0 1 * * 0',
 		spec: { priority: WORKSHOP_JOB_PRIORITY },
+	})
+})
+
+test('points history pruning runs daily at 02:30 Europe/London in a low-priority queue', () => {
+	expect(cronTasks).toContainEqual({
+		task: 'prunePointsHistory',
+		cronTime: '30 2 * * *',
+		spec: {
+			priority: POINTS_HISTORY_PRUNE_JOB_PRIORITY,
+			queueName: POINTS_HISTORY_PRUNE_QUEUE_NAME,
+		},
 	})
 })
 
