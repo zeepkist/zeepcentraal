@@ -109,9 +109,9 @@ describe('track tournament room messages', () => {
 			now,
 		)
 		expect(command).toStartWith(
-			'/servermessage yellow 900 <b>Track of the Week: 2026 Week 33</b>',
+			'/servermessage yellow 900 <size=140%><b>Track of the Week: 2026 Week 33</b>',
 		)
-		expect(command).toContain('<size=120%>42 Entries Ends in 6d 3h 38m\n')
+		expect(command).toContain('42 Entries Ends in 6d 3h 38m\n')
 		expect(command).toContain('<color=#FFD700>1. &lt;Winner&gt; — 01:01.234</color>')
 		expect(command).toContain('<color=#C0C0C0>2. Runner &amp; Friend — 01:02.000</color>')
 		expect(command).toContain('<color=#CD7F32>3. Unknown player — 01:03.500</color>')
@@ -130,7 +130,7 @@ describe('track tournament room messages', () => {
 				undefined,
 				900,
 			),
-		).toContain('<size=120%>… Entries Ends in ')
+		).toContain('… Entries Ends in ')
 		expect(
 			buildTrackTournamentServerMessageCommand(
 				'weekly',

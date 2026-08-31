@@ -65,7 +65,7 @@ export function buildTrackTournamentServerMessageCommand(
 	const remaining = formatTournamentRemaining(tournamentEndAt, now)
 	const body = formatLeaderboard(standings)
 	const entryCount = entries === undefined ? '…' : entries
-	return `/servermessage yellow ${roundTimeSeconds} ${title}\n<size=120%>${entryCount} Entries ${remaining}\n${body}</size>`
+	return `/servermessage yellow ${roundTimeSeconds} <size=140%>${title}\n${entryCount} Entries ${remaining}\n${body}</size>`
 }
 
 export function formatTrackTournamentPeriod(type: TrackTournamentRoomType, slug: string) {
