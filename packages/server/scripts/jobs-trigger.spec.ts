@@ -181,6 +181,34 @@ describe('interactive job trigger', () => {
 		)
 	})
 
+	test('sends points-history pruning from jobs trigger', async () => {
+		const prompt = new ScriptedPrompt({
+			selections: ['local', 'prunePointsHistory'],
+			confirmations: [true],
+		})
+		const ui = new CapturingUi()
+		const fetchImpl = mock(async () => new Response(null, { status: 200 }))
+
+		expect(
+			await runSendHttp({
+				environment: {
+					BACKEND_URL: 'http://localhost:5000',
+					TRIGGER_JOB_TOKEN: 'job-secret',
+				},
+				prompt,
+				ui,
+				fetchImpl,
+			}),
+		).toBe('sent')
+
+		const request = { Task: 'prunePointsHistory', Options: {} }
+		expect(ui.previews[0]?.message).toBe(JSON.stringify(request, null, 2))
+		expect(fetchImpl).toHaveBeenCalledWith(
+			'http://localhost:5000/job/trigger',
+			expect.objectContaining({ body: JSON.stringify(request) }),
+		)
+	})
+
 	test('uses fixed production endpoint and exact task-name guard', async () => {
 		const prompt = new ScriptedPrompt({
 			selections: ['production', 'updatePlayerScores'],

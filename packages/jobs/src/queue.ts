@@ -3,6 +3,10 @@ import { DEFAULT_JOB_PRIORITY, WORKSHOP_JOB_PRIORITY } from './priorities'
 import { isCompatibleTaskIdentifier, isValidTaskPayload, taskDefinitions } from './taskDefinitions'
 import { levelScoreJobOptions } from './utils/levelScoreJobOptions'
 import { playerScoreJobOptions } from './utils/playerScoreJobOptions'
+import {
+	POINTS_HISTORY_PRUNE_JOB_PRIORITY,
+	POINTS_HISTORY_PRUNE_QUEUE_NAME,
+} from './utils/pointsHistoryPruningOptions'
 import { createQueueWorkerUtils } from './workerUtils'
 
 export { isValidTaskPayload } from './taskDefinitions'
@@ -35,6 +39,12 @@ export async function enqueueCompatibleTask(task: string, options: Record<string
 	await workerUtils.addJob(task, options, {
 		priority: task === 'scanWorkshopItem' ? WORKSHOP_JOB_PRIORITY : DEFAULT_JOB_PRIORITY,
 		maxAttempts: taskDefinitions[task].maxAttempts ?? 3,
+		...(task === 'prunePointsHistory'
+			? {
+					priority: POINTS_HISTORY_PRUNE_JOB_PRIORITY,
+					queueName: POINTS_HISTORY_PRUNE_QUEUE_NAME,
+				}
+			: {}),
 		...playerScoreJobOptions(task, options),
 		...levelScoreJobOptions(task, options),
 	})

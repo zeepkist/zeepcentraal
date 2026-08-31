@@ -500,6 +500,7 @@ mock.module('@zeepkist/jobs/queue', () => ({
 	isCompatibleTask: (task: string) =>
 		[
 			'prepareTrackTournamentLobbyAsset',
+			'prunePointsHistory',
 			'updateLevelScore',
 			'updateLevelScores',
 			'updatePlayerScores',
@@ -2059,6 +2060,24 @@ test('job/trigger enqueues tournament lobby asset backfill', async () => {
 	expect(state.jobCalls).toEqual([
 		{ task: 'prepareTrackTournamentLobbyAsset', options: { idTournament: 42 } },
 	])
+})
+
+test('job/trigger enqueues points-history pruning', async () => {
+	const response = await send('/job/trigger', {
+		method: 'POST',
+		headers: {
+			'content-type': 'application/json',
+			authorization: 'Bearer job-secret',
+		},
+		body: JSON.stringify({
+			Task: 'prunePointsHistory',
+			Options: {},
+		}),
+	})
+
+	expect(response.status).toBe(200)
+	expect(await response.text()).toBe('')
+	expect(state.jobCalls).toEqual([{ task: 'prunePointsHistory', options: {} }])
 })
 
 test('job/trigger returns 400 for unsupported tasks', async () => {

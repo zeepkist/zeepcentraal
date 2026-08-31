@@ -18,6 +18,7 @@ import {
 const expectedCompatibleTaskIdentifiers = [
 	'backfillRecordGhostStatistics',
 	'backfillRecordGhostStatisticsBatch',
+	'prunePointsHistory',
 	'prepareTrackTournamentLobbyAsset',
 	'scanWorkshopBatch',
 	'scanWorkshopItem',
@@ -37,7 +38,7 @@ test('compatible task contract exposes exact API-triggerable task list', () => {
 	expect(compatibleTaskIdentifiers).toEqual(expectedCompatibleTaskIdentifiers)
 	expect(isCompatibleTaskIdentifier('updateLevelScoresBatch')).toBe(false)
 	expect(isCompatibleTaskIdentifier('updateLevelScore')).toBe(true)
-	expect(isCompatibleTaskIdentifier('prunePointsHistory')).toBe(false)
+	expect(isCompatibleTaskIdentifier('prunePointsHistory')).toBe(true)
 	expect(isValidTaskPayload('prunePointsHistory', {})).toBe(true)
 })
 

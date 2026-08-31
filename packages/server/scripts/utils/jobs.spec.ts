@@ -69,7 +69,7 @@ async function collect(
 test('prompt map exactly covers API-compatible jobs', () => {
 	expect(Object.keys(jobPromptDefinitions).sort()).toEqual([...compatibleTaskIdentifiers].sort())
 	expect(Object.keys(jobPromptDefinitions)).not.toContain('updateLevelScoresBatch')
-	expect(jobChoices).toHaveLength(15)
+	expect(jobChoices).toHaveLength(16)
 })
 
 test('choices expose category and advanced labels', () => {
@@ -94,6 +94,7 @@ describe('job option collection', () => {
 		> = [
 			['backfillRecordGhostStatistics', { selections: ['incomplete'], texts: ['500'] }],
 			['backfillRecordGhostStatisticsBatch', { texts: ['1, 2'] }],
+			['prunePointsHistory', {}],
 			['prepareTrackTournamentLobbyAsset', { texts: ['42'] }],
 			['scanWorkshopItem', { texts: ['3749321871'] }],
 			['scanWorkshopBatch', { texts: ['3006532933 3749321871'], confirmations: [false] }],

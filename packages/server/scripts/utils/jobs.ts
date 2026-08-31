@@ -314,6 +314,13 @@ export const jobPromptDefinitions = {
 		description: 'Recalculate all player scores',
 		collectOptions: emptyOptions,
 	},
+	prunePointsHistory: {
+		category: 'History',
+		label: 'Prune points history',
+		description: 'Compact completed points-history weeks older than four weeks',
+		advanced: true,
+		collectOptions: emptyOptions,
+	},
 	updateLevelPointsHistory: {
 		category: 'History',
 		label: 'Update level-points history',

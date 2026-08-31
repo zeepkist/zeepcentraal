@@ -64,3 +64,17 @@ test('queue boundary exposes tournament lobby asset preparation with retry polic
 		{ maxAttempts: 5, priority: 5 },
 	)
 })
+
+test('queue boundary keeps manual points-history pruning low priority and serialized', async () => {
+	await enqueueCompatibleTask('prunePointsHistory', {})
+
+	expect(addJob).toHaveBeenCalledWith(
+		'prunePointsHistory',
+		{},
+		{
+			maxAttempts: 3,
+			priority: 100,
+			queueName: 'points-history-pruning',
+		},
+	)
+})
