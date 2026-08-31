@@ -7,6 +7,7 @@ import {
 	record,
 	userPointContribution,
 	userPoints,
+	worldRecordGlobal,
 } from '../schema'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
@@ -192,15 +193,27 @@ export async function persistUserPointScore(input: PersistUserPointScoreInput): 
 				id_user,
 				points,
 				total_points,
+				world_records,
 				date_updated
 			)
-			VALUES (${input.idUser}, ${input.points}, ${input.totalPoints}, NOW())
+			VALUES (
+				${input.idUser},
+				${input.points},
+				${input.totalPoints},
+				(
+					SELECT COUNT(*)::integer
+					FROM ${worldRecordGlobal}
+					WHERE ${worldRecordGlobal.idUser} = ${input.idUser}
+				),
+				NOW()
+			)
 			ON CONFLICT (id_user) DO UPDATE SET
 				points = EXCLUDED.points,
 				total_points = EXCLUDED.total_points,
+				world_records = EXCLUDED.world_records,
 				date_updated = EXCLUDED.date_updated
-			WHERE ROW(${userPoints.points}, ${userPoints.totalPoints})
-				IS DISTINCT FROM ROW(EXCLUDED.points, EXCLUDED.total_points)
+			WHERE ROW(${userPoints.points}, ${userPoints.totalPoints}, ${userPoints.worldRecords})
+				IS DISTINCT FROM ROW(EXCLUDED.points, EXCLUDED.total_points, EXCLUDED.world_records)
 		`)
 		return true
 	})

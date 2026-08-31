@@ -9,7 +9,7 @@ const contributionService = readFileSync(
 
 test('skips unchanged player points and rank writes', () => {
 	expect(contributionService).toContain(
-		`WHERE ROW(\${userPoints.points}, \${userPoints.totalPoints})\n\t\t\t\tIS DISTINCT FROM ROW(EXCLUDED.points, EXCLUDED.total_points)`,
+		`WHERE ROW(\${userPoints.points}, \${userPoints.totalPoints}, \${userPoints.worldRecords})\n\t\t\t\tIS DISTINCT FROM ROW(EXCLUDED.points, EXCLUDED.total_points, EXCLUDED.world_records)`,
 	)
 	expect(service).toContain('target.rank IS DISTINCT FROM source.rank')
 	expect(service).toContain('AND ROW(points, rank) IS DISTINCT FROM ROW(0, -1)')

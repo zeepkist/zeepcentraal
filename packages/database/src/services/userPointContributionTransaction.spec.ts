@@ -99,7 +99,19 @@ test('updates player fields with float4-compatible level snapshot values', async
 	expect(updateQuery.sql).not.toContain('DELETE FROM')
 	const aggregateQuery = new PgDialect().sqlToQuery(lockQueries[2] as SQL)
 	expect(aggregateQuery.sql).toContain('INSERT INTO "user_points"')
+	expect(aggregateQuery.sql).toContain('"world_records"')
+	expect(aggregateQuery.sql).toContain('SELECT COUNT(*)::integer')
+	expect(aggregateQuery.sql).toContain('FROM "world_record_global"')
+	expect(aggregateQuery.sql).toContain('WHERE "world_record_global"."id_user" = $4')
 	expect(aggregateQuery.sql).toContain('ON CONFLICT (id_user) DO UPDATE')
+	expect(aggregateQuery.sql).toContain('world_records = EXCLUDED.world_records')
+	expect(aggregateQuery.sql).toContain(
+		'ROW("user_points"."points", "user_points"."total_points", "user_points"."world_records")',
+	)
+	expect(aggregateQuery.sql).toContain(
+		'ROW(EXCLUDED.points, EXCLUDED.total_points, EXCLUDED.world_records)',
+	)
+	expect(aggregateQuery.params).toEqual([7, 500, 750, 7])
 })
 
 test('does not insert or delete rows for users without projected contributions', async () => {
