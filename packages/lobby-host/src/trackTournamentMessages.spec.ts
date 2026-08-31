@@ -109,7 +109,7 @@ describe('track tournament room messages', () => {
 			now,
 		)
 		expect(command).toStartWith(
-			'/servermessage yellow 900 <size=140%><b>Track of the Week: 2026 Week 33</b>',
+			'/servermessage yellow 900 <size=160%><b>Track of the Week: 2026 Week 33</b>',
 		)
 		expect(command).toContain('42 Entries Ends in 6d 3h 38m\n')
 		expect(command).toContain('<color=#FFD700>1. &lt;Winner&gt; — 01:01.234</color>')
