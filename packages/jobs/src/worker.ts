@@ -1,66 +1,23 @@
-import { jobsConfig } from '@zeepkist/core/config/jobs'
-import { run, type TaskSpec } from 'graphile-worker'
 import { cronTasks } from './cronTasks'
-import { DEFAULT_JOB_PRIORITY, PRIORITY_JOB_PRIORITY } from './priorities'
-import { taskList } from './tasks'
+import type { JobLane, TaskSpec } from './queueTypes'
 import { cronJobOptions } from './utils/cronJobOptions'
-import { createJobWorkerEvents } from './workerEvents'
-import { JOBS_WORKER_CONCURRENCY, jobsWorkerPreset } from './workerOptions'
-
-export const defaultJobOptions: TaskSpec = {
-	priority: DEFAULT_JOB_PRIORITY,
-	maxAttempts: 3,
-}
-
-export const priorityJobOptions: TaskSpec = {
-	priority: PRIORITY_JOB_PRIORITY,
-	maxAttempts: 3,
-}
-
-let runner: Awaited<ReturnType<typeof run>> | null = null
-let runnerStop: Promise<void> | null = null
+import { startPgmqRunner } from './workerRunner'
+export const defaultJobOptions: TaskSpec = { maxAttempts: 3 }
+export const priorityJobOptions: TaskSpec = { maxAttempts: 3 }
+let runner: Awaited<ReturnType<typeof startPgmqRunner>> | null = null
 const cronJobs: Bun.CronJob[] = []
 const scheduleCron = Bun.cron as unknown as (
 	schedule: string,
 	handler: () => unknown,
 	options: { tz: string },
 ) => Bun.CronJob
-
-export async function startRunner({
-	onPoolCreated,
-}: {
-	onPoolCreated?: (poolId: string) => void
-} = {}) {
-	runnerStop = null
-	const events = createJobWorkerEvents({ onPoolCreated })
-	runner = await run({
-		connectionString: jobsConfig.databaseUrl,
-		crontabFile: '',
-		concurrency: JOBS_WORKER_CONCURRENCY,
-		maxPoolSize: 15,
-		taskList: taskList as Parameters<typeof run>[0]['taskList'],
-		noHandleSignals: true,
-		events,
-		preset: jobsWorkerPreset,
-	})
-	console.info(`Job runner started (PID ${process.pid})`)
+export async function startRunner(lane: JobLane = 'bulk') {
+	runner = await startPgmqRunner(lane)
 }
-
-export function stopRunner(): Promise<void> {
-	const activeRunner = runner
-	if (!activeRunner) {
-		return Promise.resolve()
-	}
-
-	runnerStop ??= activeRunner.stop().then(() => {
-		if (runner === activeRunner) {
-			runner = null
-		}
-	})
-
-	return runnerStop
+export async function stopRunner() {
+	await runner?.stop()
+	runner = null
 }
-
 export function startCrons(
 	addJob: (task: string, payload: object, spec: TaskSpec) => Promise<unknown>,
 ) {
@@ -91,15 +48,4 @@ export function stopCrons() {
 		job[Symbol.dispose]()
 	}
 	cronJobs.length = 0
-}
-
-// Kept for backwards-compatible single-process startup (e.g. tests / dev without cluster)
-export async function startWorker() {
-	await startRunner()
-	startCrons(async (task, payload, spec) => runner?.addJob(task, payload, spec))
-}
-
-export async function stopWorker() {
-	stopCrons()
-	await stopRunner()
 }

@@ -1,12 +1,8 @@
-import { WORKSHOP_JOB_PRIORITY } from './priorities'
 import {
 	PLAYER_SCORE_QUEUE_NAME,
 	UPDATE_PLAYER_SCORES_JOB_KEY,
 } from './utils/playerScoreJobOptions'
-import {
-	POINTS_HISTORY_PRUNE_JOB_PRIORITY,
-	POINTS_HISTORY_PRUNE_QUEUE_NAME,
-} from './utils/pointsHistoryPruningOptions'
+import { POINTS_HISTORY_PRUNE_QUEUE_NAME } from './utils/pointsHistoryPruningOptions'
 
 export const cronTasks = [
 	{ task: 'recoverLevelRequests', cronTime: '0 * * * *' },
@@ -28,7 +24,7 @@ export const cronTasks = [
 	{
 		task: 'syncWorkshopCatalog',
 		cronTime: '0 1 * * 0',
-		spec: { priority: WORKSHOP_JOB_PRIORITY },
+		spec: {},
 	}, // every Sunday at 01:00
 	// Weekly full recalculation
 	{
@@ -65,7 +61,6 @@ export const cronTasks = [
 		task: 'prunePointsHistory',
 		cronTime: '30 2 * * *',
 		spec: {
-			priority: POINTS_HISTORY_PRUNE_JOB_PRIORITY,
 			queueName: POINTS_HISTORY_PRUNE_QUEUE_NAME,
 		},
 	}, // daily at 02:30 Europe/London

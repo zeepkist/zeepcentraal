@@ -1,5 +1,4 @@
 import { getPendingLevelRequests } from '@zeepkist/database/services/workshop'
-import { WORKSHOP_JOB_PRIORITY } from '../priorities'
 import type { TaskHandler } from './types'
 
 const PAGE_SIZE = 1_000
@@ -19,7 +18,7 @@ export const recoverLevelRequests: TaskHandler<Record<string, never>> = async (
 			requests.map(({ workshopId }) => ({
 				identifier: 'scanWorkshopItem',
 				payload: { workshopId: workshopId.toString() },
-				priority: WORKSHOP_JOB_PRIORITY,
+
 				maxAttempts: 5,
 				jobKey: `scan-workshop-item:${workshopId}`,
 			})),

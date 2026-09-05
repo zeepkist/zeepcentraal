@@ -1,16 +1,14 @@
-import { jobsConfig } from '@zeepkist/core/config/jobs'
-import { makeWorkerUtils } from 'graphile-worker'
 import { wrapWorkerUtils } from './jobTelemetry'
+import { PgmqQueue, queueClient } from './pgmq'
+import type { JobLane } from './queueTypes'
 
-type QueueWorkerUtilsConfig = Pick<typeof jobsConfig, 'databaseUrl' | 'queuePoolMax'>
-
-export function createQueueWorkerUtilsOptions(config: QueueWorkerUtilsConfig = jobsConfig) {
-	return {
-		connectionString: config.databaseUrl,
-		maxPoolSize: config.queuePoolMax,
+export async function createQueueWorkerUtils(lane: JobLane = 'bulk') {
+	const queue = new PgmqQueue(queueClient(), lane)
+	try {
+		await queue.initialize()
+	} catch (error) {
+		await queue.release()
+		throw error
 	}
-}
-
-export async function createQueueWorkerUtils() {
-	return wrapWorkerUtils(await makeWorkerUtils(createQueueWorkerUtilsOptions()))
+	return wrapWorkerUtils(queue)
 }

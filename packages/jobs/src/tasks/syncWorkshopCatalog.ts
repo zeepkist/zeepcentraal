@@ -1,6 +1,5 @@
 import { getWorkshopSyncState } from '@zeepkist/database/services/workshop'
 import { ZSL_WORKSHOP_AUTHOR_ID } from '@zeepkist/workshop'
-import { WORKSHOP_JOB_PRIORITY } from '../priorities'
 import { batchProcess } from '../utils'
 import { getWorkshopMetadata } from '../workshopScanner'
 import type { TaskHandler } from './types'
@@ -79,7 +78,6 @@ export const syncWorkshopCatalog: TaskHandler<SyncWorkshopCatalogPayload> = asyn
 			{
 				jobKey: `scan-workshop-batch:${batch[0]}:${batch.at(-1)}`,
 				maxAttempts: 5,
-				priority: WORKSHOP_JOB_PRIORITY,
 			},
 		)
 	}

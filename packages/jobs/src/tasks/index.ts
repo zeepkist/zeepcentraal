@@ -1,5 +1,5 @@
-import type { JobHelpers } from 'graphile-worker'
 import { wrapTask } from '../jobTelemetry'
+import type { JobHelpers } from '../queueTypes'
 import type { TaskIdentifier } from '../taskDefinitions'
 import {
 	backfillRecordGhostStatistics,
@@ -22,44 +22,50 @@ import { updatePlayerScores } from './updatePlayerScores'
 import { updateUserPointsHistory } from './updateUserPointsHistory'
 import { updateUserPointsHistoryBatch } from './updateUserPointsHistoryBatch'
 
-type GWTask = (payload: unknown, helpers: JobHelpers) => Promise<void>
+type RegisteredTask = (payload: unknown, helpers: JobHelpers) => Promise<void>
 
-// graphile-worker task list — keys must match the task name strings used in addJob()
+// Application task list — keys must match the task name strings used in addJob()
 export const taskList = {
 	backfillRecordGhostStatistics: wrapTask(
 		'backfillRecordGhostStatistics',
-		backfillRecordGhostStatistics as GWTask,
+		backfillRecordGhostStatistics as RegisteredTask,
 	),
 	backfillRecordGhostStatisticsBatch: wrapTask(
 		'backfillRecordGhostStatisticsBatch',
-		backfillRecordGhostStatisticsBatch as GWTask,
+		backfillRecordGhostStatisticsBatch as RegisteredTask,
 	),
-	prunePointsHistory: wrapTask('prunePointsHistory', prunePointsHistory as GWTask),
-	recoverLevelRequests: wrapTask('recoverLevelRequests', recoverLevelRequests as GWTask),
+	prunePointsHistory: wrapTask('prunePointsHistory', prunePointsHistory as RegisteredTask),
+	recoverLevelRequests: wrapTask('recoverLevelRequests', recoverLevelRequests as RegisteredTask),
 	prepareTrackTournamentLobbyAsset: wrapTask(
 		'prepareTrackTournamentLobbyAsset',
-		prepareTrackTournamentLobbyAsset as GWTask,
+		prepareTrackTournamentLobbyAsset as RegisteredTask,
 	),
-	scanWorkshopBatch: wrapTask('scanWorkshopBatch', scanWorkshopBatch as GWTask),
-	scanWorkshopItem: wrapTask('scanWorkshopItem', scanWorkshopItem as GWTask),
-	rotateTrackTournament: wrapTask('rotateTrackTournament', rotateTrackTournament as GWTask),
-	syncPersonalBests: wrapTask('syncPersonalBests', syncPersonalBests as GWTask),
-	syncWorkshopCatalog: wrapTask('syncWorkshopCatalog', syncWorkshopCatalog as GWTask),
+	scanWorkshopBatch: wrapTask('scanWorkshopBatch', scanWorkshopBatch as RegisteredTask),
+	scanWorkshopItem: wrapTask('scanWorkshopItem', scanWorkshopItem as RegisteredTask),
+	rotateTrackTournament: wrapTask(
+		'rotateTrackTournament',
+		rotateTrackTournament as RegisteredTask,
+	),
+	syncPersonalBests: wrapTask('syncPersonalBests', syncPersonalBests as RegisteredTask),
+	syncWorkshopCatalog: wrapTask('syncWorkshopCatalog', syncWorkshopCatalog as RegisteredTask),
 	updateLevelPointsHistory: wrapTask(
 		'updateLevelPointsHistory',
-		updateLevelPointsHistory as GWTask,
+		updateLevelPointsHistory as RegisteredTask,
 	),
 	updateLevelPointsHistoryBatch: wrapTask(
 		'updateLevelPointsHistoryBatch',
-		updateLevelPointsHistoryBatch as GWTask,
+		updateLevelPointsHistoryBatch as RegisteredTask,
 	),
-	updateLevelScore: wrapTask('updateLevelScore', updateLevelScore as GWTask),
-	updateLevelScores: wrapTask('updateLevelScores', updateLevelScores as GWTask),
-	updatePlayerScore: wrapTask('updatePlayerScore', updatePlayerScore as GWTask),
-	updatePlayerScores: wrapTask('updatePlayerScores', updatePlayerScores as GWTask),
-	updateUserPointsHistory: wrapTask('updateUserPointsHistory', updateUserPointsHistory as GWTask),
+	updateLevelScore: wrapTask('updateLevelScore', updateLevelScore as RegisteredTask),
+	updateLevelScores: wrapTask('updateLevelScores', updateLevelScores as RegisteredTask),
+	updatePlayerScore: wrapTask('updatePlayerScore', updatePlayerScore as RegisteredTask),
+	updatePlayerScores: wrapTask('updatePlayerScores', updatePlayerScores as RegisteredTask),
+	updateUserPointsHistory: wrapTask(
+		'updateUserPointsHistory',
+		updateUserPointsHistory as RegisteredTask,
+	),
 	updateUserPointsHistoryBatch: wrapTask(
 		'updateUserPointsHistoryBatch',
-		updateUserPointsHistoryBatch as GWTask,
+		updateUserPointsHistoryBatch as RegisteredTask,
 	),
-} satisfies Record<TaskIdentifier, GWTask>
+} satisfies Record<TaskIdentifier, RegisteredTask>

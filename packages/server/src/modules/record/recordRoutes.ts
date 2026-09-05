@@ -54,7 +54,7 @@ function scheduleRecordFollowups({
 }): void {
 	if (personalBestChanged) {
 		void traceSubmitPhase('record.submit.enqueue_level_score', () =>
-			enqueueCompatibleTask('updateLevelScore', { idLevel, idUser }),
+			enqueueCompatibleTask('updateLevelScore', { idLevel, idUser }, { lane: 'fast' }),
 		).catch((error) => {
 			console.error(`Failed to enqueue level score update for level ${idLevel}:`, error)
 		})

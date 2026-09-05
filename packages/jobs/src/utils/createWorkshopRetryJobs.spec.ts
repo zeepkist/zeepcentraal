@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test'
-import { WORKSHOP_JOB_PRIORITY } from '../priorities'
 import { createWorkshopRetryJobs, formatWorkshopFailure } from './createWorkshopRetryJobs'
 
 test('creates isolated workshop retries with stable keys', () => {
@@ -9,7 +8,6 @@ test('creates isolated workshop retries with stable keys', () => {
 			payload: { workshopId: '3650825316' },
 			jobKey: 'scan-workshop-item:3650825316',
 			maxAttempts: 2,
-			priority: WORKSHOP_JOB_PRIORITY,
 		},
 	])
 })

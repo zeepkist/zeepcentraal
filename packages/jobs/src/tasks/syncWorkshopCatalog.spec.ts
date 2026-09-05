@@ -81,7 +81,6 @@ describe('syncWorkshopCatalog', () => {
 			{
 				jobKey: 'scan-workshop-batch:200:201',
 				maxAttempts: 5,
-				priority: 100,
 			},
 		)
 	})
@@ -100,7 +99,6 @@ describe('syncWorkshopCatalog', () => {
 			{
 				jobKey: 'scan-workshop-batch:100:100',
 				maxAttempts: 5,
-				priority: 100,
 			},
 		)
 	})
@@ -116,7 +114,6 @@ describe('syncWorkshopCatalog', () => {
 			{
 				jobKey: 'scan-workshop-batch:100:100',
 				maxAttempts: 5,
-				priority: 100,
 			},
 		)
 	})
@@ -132,7 +129,6 @@ describe('syncWorkshopCatalog', () => {
 			{
 				jobKey: 'scan-workshop-batch:100:100',
 				maxAttempts: 5,
-				priority: 100,
 			},
 		)
 	})

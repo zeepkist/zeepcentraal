@@ -2,6 +2,7 @@ import { inArray, sql } from 'drizzle-orm'
 import { arrayParam } from '../arrayParam'
 import { db } from '../client'
 import { discordActivityEvent, userPointContribution, userPoints } from '../schema'
+import { lockUserScores } from './scoreLocks'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 export const USER_SCORE_WRITE_BATCH_SIZE = 50
@@ -76,6 +77,10 @@ export async function updateUserRanks(
 			sql`, `,
 		)
 		const changes = await db.transaction(async (tx) => {
+			await lockUserScores(
+				tx,
+				batch.map((entry) => entry.idUser),
+			)
 			const batchChanges = await tx.execute<{
 				idUser: number
 				previousRank: number
@@ -122,6 +127,7 @@ export async function rankActiveUsersByPoints(idUsers: number[]): Promise<number
 	if (uniqueUserIds.length === 0) return 0
 
 	return db.transaction(async (tx) => {
+		await lockUserScores(tx, uniqueUserIds)
 		const changes = await tx.execute<{
 			idUser: number
 			previousRank: number
@@ -170,8 +176,18 @@ export async function resetInactiveUserScores(idUsers: number[]): Promise<void> 
 		return
 	}
 
-	for (const batch of chunks(uniqueUserIds)) {
+	for (const candidates of chunks(uniqueUserIds)) {
 		await db.transaction(async (tx) => {
+			await lockUserScores(tx, candidates)
+			// Recheck activity after obtaining the same lock as record submission.
+			const cutoff = new Date()
+			cutoff.setMonth(cutoff.getMonth() - 6)
+			const eligible = await tx.execute<{ id: number }>(sql`
+    SELECT candidate.id FROM UNNEST(${arrayParam(candidates)}::integer[]) AS candidate(id)
+    WHERE NOT EXISTS (SELECT 1 FROM record WHERE id_user=candidate.id AND date_created>=${cutoff.toISOString()}::timestamptz)
+   `)
+			const batch = eligible.map(({ id }) => id)
+			if (!batch.length) return
 			const previous = await tx.execute<{ idUser: number; previousRank: number }>(sql`
 			SELECT
 				${userPoints.idUser} AS "idUser",

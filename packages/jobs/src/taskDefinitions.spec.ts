@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test'
 import { cronTasks } from './cronTasks'
-import { WORKSHOP_JOB_PRIORITY } from './priorities'
 import {
 	compatibleTaskIdentifiers,
 	isCompatibleTaskIdentifier,
@@ -10,10 +9,7 @@ import {
 	PLAYER_SCORE_QUEUE_NAME,
 	UPDATE_PLAYER_SCORES_JOB_KEY,
 } from './utils/playerScoreJobOptions'
-import {
-	POINTS_HISTORY_PRUNE_JOB_PRIORITY,
-	POINTS_HISTORY_PRUNE_QUEUE_NAME,
-} from './utils/pointsHistoryPruningOptions'
+import { POINTS_HISTORY_PRUNE_QUEUE_NAME } from './utils/pointsHistoryPruningOptions'
 
 const expectedCompatibleTaskIdentifiers = [
 	'backfillRecordGhostStatistics',
@@ -118,7 +114,7 @@ test('workshop catalog sync runs Sunday at 01:00 Europe/London', () => {
 	expect(cronTasks).toContainEqual({
 		task: 'syncWorkshopCatalog',
 		cronTime: '0 1 * * 0',
-		spec: { priority: WORKSHOP_JOB_PRIORITY },
+		spec: {},
 	})
 })
 
@@ -127,7 +123,6 @@ test('points history pruning runs daily at 02:30 Europe/London in a low-priority
 		task: 'prunePointsHistory',
 		cronTime: '30 2 * * *',
 		spec: {
-			priority: POINTS_HISTORY_PRUNE_JOB_PRIORITY,
 			queueName: POINTS_HISTORY_PRUNE_QUEUE_NAME,
 		},
 	})

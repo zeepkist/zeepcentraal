@@ -6,14 +6,7 @@ import {
 	withActiveSpan,
 	withExtractedTraceCarrier,
 } from '@zeepkist/telemetry'
-import type {
-	AddJobsJobSpec,
-	Helpers,
-	Job,
-	JobHelpers,
-	TaskSpec,
-	WorkerUtils,
-} from 'graphile-worker'
+import type { AddJobsJobSpec, Helpers, Job, JobHelpers, TaskSpec, WorkerUtils } from './queueTypes'
 
 const TRACE_PAYLOAD_KEY = '__zeepcentraalTelemetry'
 const meter = getMeter('zeepcentraal-jobs')
@@ -57,9 +50,9 @@ async function tracedAddJob(
 			{
 				kind: SpanKind.PRODUCER,
 				attributes: {
-					'messaging.system': 'graphile-worker',
+					'messaging.system': 'pgmq',
 					'messaging.operation.type': 'send',
-					'messaging.destination.name': spec?.queueName ?? identifier,
+					'messaging.destination.name': `zeepcentraal_${spec?.lane ?? 'bulk'}`,
 				},
 			},
 			async (span) => {
@@ -85,7 +78,7 @@ async function tracedAddJobs(addJobs: Helpers['addJobs'], specs: readonly AddJob
 	const started = performance.now()
 	try {
 		const jobs = await withActiveSpan(
-			'graphile-worker publish batch',
+			'pgmq publish batch',
 			{
 				kind: SpanKind.PRODUCER,
 				attributes: { 'messaging.batch.message_count': specs.length },
@@ -162,7 +155,7 @@ export function wrapTask(
 					{
 						kind: SpanKind.CONSUMER,
 						attributes: {
-							'messaging.system': 'graphile-worker',
+							'messaging.system': 'pgmq',
 							'messaging.operation.type': 'process',
 							'messaging.destination.name': queue,
 							'messaging.message.id': helpers.job.id,

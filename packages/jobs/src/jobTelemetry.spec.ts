@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'bun:test'
-import type { JobHelpers, WorkerUtils } from 'graphile-worker'
 import { wrapTask, wrapWorkerUtils } from './jobTelemetry'
+import type { JobHelpers, WorkerUtils } from './queueTypes'
 
 const tracePayloadKey = '__zeepcentraalTelemetry'
 

@@ -27,8 +27,9 @@ test('queue boundary deduplicates persistent level scoring by level', async () =
 	for (const call of addJob.mock.calls) {
 		expect(call[2]).toMatchObject({
 			jobKey: 'update-level-score:7',
+			lane: 'bulk',
 			maxAttempts: 3,
-			priority: 5,
+
 			queueName: 'level-score-writes:3',
 		})
 		expect(call[2]).not.toHaveProperty('jobKeyMode')
@@ -61,7 +62,7 @@ test('queue boundary exposes tournament lobby asset preparation with retry polic
 	expect(addJob).toHaveBeenCalledWith(
 		'prepareTrackTournamentLobbyAsset',
 		{ idTournament: 42 },
-		{ maxAttempts: 5, priority: 5 },
+		{ maxAttempts: 5, lane: 'bulk' },
 	)
 })
 
@@ -72,9 +73,15 @@ test('queue boundary keeps manual points-history pruning low priority and serial
 		'prunePointsHistory',
 		{},
 		{
+			lane: 'bulk',
 			maxAttempts: 3,
-			priority: 100,
+
 			queueName: 'points-history-pruning',
 		},
 	)
+})
+
+test('record followups explicitly select fast lane', async () => {
+	await enqueueCompatibleTask('updateLevelScore', { idLevel: 7, idUser: 42 }, { lane: 'fast' })
+	expect(addJob.mock.calls[0]?.[2]).toMatchObject({ lane: 'fast' })
 })

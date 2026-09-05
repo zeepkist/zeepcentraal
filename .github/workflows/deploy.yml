@@ -34,6 +34,9 @@ jobs:
       - name: Run tests
         run: bun --bun run test
 
+      - name: Verify pgmq and score concurrency
+        uses: ./.github/actions/verify-pgmq
+
       - name: Run web tests
         run: bun --bun run test:web
 

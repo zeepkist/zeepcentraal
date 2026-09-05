@@ -3,12 +3,17 @@ import type { SQL } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 
 const lockQueries: unknown[] = []
+const coordination: string[] = []
 let affectedProjectionUsers: Array<{ idUser: number }> = []
 let failSecondPlayerUpdate = false
 let playerUpdateCount = 0
 const execute = mock(async (query: unknown) => {
-	lockQueries.push(query)
 	const compiled = new PgDialect().sqlToQuery(query as SQL)
+	if (compiled.sql.includes('pg_advisory_xact_lock')) {
+		coordination.push(compiled.sql)
+		return []
+	}
+	lockQueries.push(query)
 	if (compiled.sql.includes('UPDATE "user_point_contribution" AS target')) {
 		playerUpdateCount++
 		if (failSecondPlayerUpdate && playerUpdateCount === 2) {
@@ -29,6 +34,7 @@ const { persistUserPointScore, syncUserPointContributionLevels } = await import(
 
 beforeEach(() => {
 	lockQueries.length = 0
+	coordination.length = 0
 	affectedProjectionUsers = []
 	failSecondPlayerUpdate = false
 	playerUpdateCount = 0
@@ -53,6 +59,7 @@ test('validates one user snapshot and propagates chunk failure for transaction r
 
 	expect(transaction).toHaveBeenCalledTimes(1)
 	expect(lockQueries).toHaveLength(3)
+	expect(coordination.length).toBeGreaterThan(0)
 	const snapshotQuery = new PgDialect().sqlToQuery(lockQueries[0] as SQL)
 	expect(snapshotQuery.sql).toContain('FULL OUTER JOIN current_contributions')
 	expect(snapshotQuery.sql).toContain('AS matches')
@@ -88,6 +95,7 @@ test('updates player fields with float4-compatible level snapshot values', async
 	})
 
 	expect(lockQueries).toHaveLength(3)
+	expect(coordination.length).toBeGreaterThan(0)
 	const updateQuery = new PgDialect().sqlToQuery(lockQueries[1] as SQL)
 	expect(updateQuery.sql).toContain('SET\n\t\t\t\t\tcontribution_rank = source.contribution_rank')
 	expect(updateQuery.sql).toContain('player_decayed_points = source.player_decayed_points')
@@ -131,13 +139,14 @@ test('does not insert or delete rows for users without projected contributions',
 	).toBe(false)
 })
 
-test('syncs uncapped level contribution projection without advisory locks', async () => {
+test('syncs uncapped level contribution projection under level and user locks', async () => {
 	affectedProjectionUsers = [{ idUser: 9 }, { idUser: 2 }]
 
 	const result = await syncUserPointContributionLevels([8, 7, 8])
 
 	expect(result).toEqual({ idUsers: [2, 9], levels: 2, users: 2 })
 	expect(lockQueries).toHaveLength(3)
+	expect(coordination.length).toBeGreaterThan(0)
 	const affectedQuery = new PgDialect().sqlToQuery(lockQueries[0] as SQL)
 	expect(affectedQuery.sql).toContain('ANY($1::integer[])')
 	expect(affectedQuery.params).toEqual(['{7,8}', '{7,8}'])
@@ -169,4 +178,5 @@ test('reuses supplied transaction for level contribution projection', async () =
 	expect(result).toEqual({ idUsers: [9], levels: 1, users: 1 })
 	expect(transaction).not.toHaveBeenCalled()
 	expect(lockQueries).toHaveLength(3)
+	expect(coordination.length).toBeGreaterThan(0)
 })

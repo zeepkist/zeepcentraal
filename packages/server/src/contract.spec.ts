@@ -45,7 +45,7 @@ const state = {
 	insertAuthCalls: [] as Array<Record<string, unknown>>,
 	getOrInsertUserCalls: [] as Array<{ steamId: bigint; steamName?: string }>,
 	deletedRefreshTokens: [] as string[],
-	jobCalls: [] as Array<{ task: string; options: Record<string, unknown> }>,
+	jobCalls: [] as Array<{ task: string; options: Record<string, unknown>; lane?: string }>,
 	jobEnqueueGate: null as Promise<void> | null,
 	workshopScanCalls: [] as bigint[],
 	workshopClaims: [] as bigint[],
@@ -487,9 +487,13 @@ mock.module('@zeepkist/database/services', () => ({
 }))
 
 mock.module('@zeepkist/jobs/queue', () => ({
-	enqueueCompatibleTask: async (task: string, options: Record<string, unknown>) => {
+	enqueueCompatibleTask: async (
+		task: string,
+		options: Record<string, unknown>,
+		context?: { lane: string },
+	) => {
 		if (state.jobEnqueueGate) await state.jobEnqueueGate
-		state.jobCalls.push({ task, options })
+		state.jobCalls.push({ task, options, ...(context && { lane: context.lane }) })
 	},
 	enqueueWorkshopScan: async (workshopId: bigint) => {
 		if (state.scanEnqueueFails) {
@@ -1270,7 +1274,7 @@ test('record/submit returns 200 with empty body on success', async () => {
 	expect(state.workshopScanCalls).toEqual([])
 	await Bun.sleep(0)
 	expect(state.jobCalls).toEqual([
-		{ task: 'updateLevelScore', options: { idLevel: 10, idUser: 1 } },
+		{ task: 'updateLevelScore', options: { idLevel: 10, idUser: 1 }, lane: 'fast' },
 	])
 })
 
@@ -1306,7 +1310,7 @@ test('record/submit does not await level-score enqueue', async () => {
 	releaseEnqueue()
 	await Bun.sleep(0)
 	expect(state.jobCalls).toEqual([
-		{ task: 'updateLevelScore', options: { idLevel: 10, idUser: 1 } },
+		{ task: 'updateLevelScore', options: { idLevel: 10, idUser: 1 }, lane: 'fast' },
 	])
 })
 

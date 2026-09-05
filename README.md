@@ -6,14 +6,14 @@ A Bun workspace monorepo for ZeepCentraal services.
 
 - A modular API backend built with Elysia and Bun.
 - A PostgreSQL-backed data layer using Drizzle ORM.
-- A background processing system using graphile-worker for durable jobs and cron scheduling.
+- A background processing system using pgmq for durable fast/bulk queues and Bun.cron for recurring schedules.
 
 ## Workspace Layout
 
 - `packages/core`: shared config, auth, errors, integrations, and utility primitives.
 - `packages/database`: Drizzle schema, migrations, and data services.
 - `packages/server`: HTTP API process (Elysia routes and plugins).
-- `packages/jobs`: background worker process (graphile-worker tasks + cron scheduler).
+- `packages/jobs`: background worker process (Bun SQL + pgmq tasks + elected cron scheduler).
 - `packages/workshop`: Steam metadata, SteamCMD downloads, parsing, and workshop reconciliation.
 
 ## Prerequisites
@@ -61,7 +61,7 @@ At minimum, set these values in `.env`:
 | `JWT_SECRET` | Yes | Must be at least 32 characters |
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated website origins; defaults to `FRONTEND_URL` |
 | `TRUST_PROXY` | No | Trust forwarded client IP headers for rate limiting |
-| `JOBS_QUEUE_POOL_MAX` | No | Per-process enqueue-only Graphile pool maximum; defaults to `2` |
+| `JOBS_QUEUE_POOL_MAX` | No | Per-process Bun SQL queue pool maximum; defaults to `2` |
 
 The remaining values in `.env.example` are optional or have defaults, but you should configure them for your environment (Steam, Discord, Wasabi/S3, and OpenTelemetry).
 

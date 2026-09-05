@@ -6,7 +6,8 @@ const queries: SQL[] = []
 const values = mock(async () => {})
 const insert = mock(() => ({ values }))
 const execute = mock(async (query: SQL) => {
-	queries.push(query)
+	if (!new PgDialect().sqlToQuery(query).sql.includes('pg_advisory_xact_lock'))
+		queries.push(query)
 	return []
 })
 const tx = { execute, insert }

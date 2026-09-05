@@ -19,6 +19,7 @@ import {
 import { generateUid } from '../utils/generateUid'
 import type { RecordStatisticInput } from './recordStatistic'
 import { buildRecordStatisticValues } from './recordStatistic'
+import { lockUserScores } from './scoreLocks'
 import { recordTrackTournamentResults } from './trackTournament'
 
 type RecordInput = typeof record.$inferInsert
@@ -64,6 +65,8 @@ export async function submitRecord(
 					FROM level_lock
 				`),
 			)
+
+			await lockUserScores(tx, [input.idUser])
 
 			const [created] = await traceRecordPhase('record.submit.insert_and_projection', () =>
 				tx.insert(record).values(input).returning(),

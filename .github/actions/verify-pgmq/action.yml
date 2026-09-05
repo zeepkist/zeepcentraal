@@ -1,0 +1,34 @@
+name: Verify pgmq
+description: Exercise pgmq, migrations and concurrent scoring on disposable PostgreSQL 18
+runs:
+  using: composite
+  steps:
+    - name: Start disposable Postgres
+      shell: bash
+      run: |
+        docker run --detach --name pgmq-ci \
+          --publish 127.0.0.1:55439:5432 \
+          --env POSTGRES_PASSWORD=pgmq-ci-only \
+          --health-cmd='pg_isready -U postgres' --health-interval=1s --health-retries=60 \
+          ghcr.io/pgmq/pg18-pgmq:v1.12.0
+        for attempt in $(seq 1 60); do
+          if docker exec pgmq-ci pg_isready -U postgres; then break; fi
+          sleep 1
+        done
+        docker exec pgmq-ci createdb -U postgres pgmq_test
+        docker exec pgmq-ci createdb -U postgres sql_test
+    - name: Queue integration
+      shell: bash
+      run: bun --no-env-file packages/jobs/test/pgmq.integration.ts postgres://postgres:pgmq-ci-only@127.0.0.1:55439/pgmq_test
+    - name: Historical migrations and Bun SQL
+      shell: bash
+      env:
+        BUN_SQL_TEST_URL: postgres://postgres:pgmq-ci-only@127.0.0.1:55439/sql_test
+      run: bun --no-env-file packages/database/src/scripts/verifyBunSql.ts --bootstrap-history
+    - name: Concurrent scoring
+      shell: bash
+      run: bun --no-env-file packages/database/src/scripts/verifyPgmqScoring.ts postgres://postgres:pgmq-ci-only@127.0.0.1:55439/sql_test
+    - name: Stop disposable Postgres
+      if: always()
+      shell: bash
+      run: docker rm --force --volumes pgmq-ci

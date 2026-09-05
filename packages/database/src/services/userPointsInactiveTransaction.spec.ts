@@ -7,8 +7,13 @@ let previousRanks: Array<{ idUser: number; previousRank: number }> = []
 const values = mock(async () => {})
 const insert = mock(() => ({ values }))
 const execute = mock(async (query: SQL) => {
-	queries.push(query)
 	const compiled = new PgDialect().sqlToQuery(query)
+	if (compiled.sql.includes('pg_advisory_xact_lock')) return []
+	if (compiled.sql.includes('SELECT candidate.id')) {
+		const ids = String(compiled.params[0]).slice(1, -1).split(',').map(Number)
+		return ids.map((id) => ({ id }))
+	}
+	queries.push(query)
 	return compiled.sql.includes('AS "previousRank"') ? previousRanks : []
 })
 const tx = { execute, insert }
@@ -27,7 +32,7 @@ beforeEach(() => {
 	transaction.mockClear()
 })
 
-test('atomically resets inactive aggregate and contribution ranked points without advisory locks', async () => {
+test('atomically resets inactive aggregate and contribution ranked points under user locks', async () => {
 	previousRanks = [{ idUser: 9, previousRank: 4 }]
 
 	await resetInactiveUserScores([9, 2, 9])

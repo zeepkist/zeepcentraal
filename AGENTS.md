@@ -12,7 +12,7 @@ Read [`.agents/repository-analysis.md`](.agents/repository-analysis.md) only whe
 - `packages/core`: config/env, JWT/cookies, shared errors/types, cache, Steam, Discord. No app-package deps.
 - `packages/database`: Drizzle schema/client/migrations/services.
 - `packages/workshop`: Steam metadata/downloads, level parsing, thumbnails, DB reconciliation.
-- `packages/jobs`: Graphile tasks, scoring, queue, cron, worker lifecycle.
+- `packages/jobs`: pgmq tasks, scoring, queue, cron, worker lifecycle.
 - `packages/server`: Elysia API/plugins/routes. Use DB services. Enqueue only through `@zeepkist/jobs/queue`.
 - `packages/import-zsl`: one-shot Super League importer.
 
@@ -89,7 +89,8 @@ Do not run `lint:fix`/`format:fix` for inspection; they rewrite files.
 - Set retry/priority/idempotency deliberately. Retries can repeat partial DB effects.
 - Cron only in jobs primary. Workers process tasks only.
 - Cron timezone: `Europe/London`.
-- Jobs use two worker processes; replicas add concurrency.
+- Jobs use isolated fast (4) and bulk (14) workers; replicas add concurrency.
+- Queue runtime uses Bun SQL via `@zeepkist/core/sql`; keep pgmq at validated 1.12.0.
 
 ## Runtime/release
 

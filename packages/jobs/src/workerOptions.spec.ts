@@ -1,10 +1,7 @@
 import { expect, test } from 'bun:test'
-import { JOBS_WORKER_CONCURRENCY, jobsWorkerPreset } from './workerOptions'
+import { JOBS_FAST_CONCURRENCY, JOBS_WORKER_CONCURRENCY } from './workerOptions'
 
-test('prefetches concurrency plus one job with batched completion and failure writes', () => {
-	expect(jobsWorkerPreset.worker).toEqual({
-		localQueue: { size: JOBS_WORKER_CONCURRENCY + 1 },
-		completeJobBatchDelay: 50,
-		failJobBatchDelay: 250,
-	})
+test('reserves independent fast and bulk capacity', () => {
+	expect(JOBS_FAST_CONCURRENCY).toBe(4)
+	expect(JOBS_WORKER_CONCURRENCY).toBe(14)
 })

@@ -24,14 +24,14 @@ test('pages durable requests and enqueues idempotent workshop scans', async () =
 		{
 			identifier: 'scanWorkshopItem',
 			payload: { workshopId: '100' },
-			priority: 100,
+
 			maxAttempts: 5,
 			jobKey: 'scan-workshop-item:100',
 		},
 		{
 			identifier: 'scanWorkshopItem',
 			payload: { workshopId: '200' },
-			priority: 100,
+
 			maxAttempts: 5,
 			jobKey: 'scan-workshop-item:200',
 		},

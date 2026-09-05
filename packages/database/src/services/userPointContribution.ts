@@ -10,6 +10,7 @@ import {
 	userPoints,
 	worldRecordGlobal,
 } from '../schema'
+import { lockUserScores } from './scoreLocks'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 export { sortedUniqueUserIds } from './userPointContributionHelpers'
@@ -126,6 +127,7 @@ async function contributionSnapshotMatches(
 
 export async function persistUserPointScore(input: PersistUserPointScoreInput): Promise<boolean> {
 	return db.transaction(async (tx) => {
+		await lockUserScores(tx, [input.idUser])
 		if (!(await contributionSnapshotMatches(tx, input))) {
 			return false
 		}
@@ -246,6 +248,8 @@ async function syncUserPointContributionLevelsInTransaction(
 	uniqueLevelIds: number[],
 	runPhase: ContributionSyncPhaseRunner = (_phase, operation) => operation(),
 ): Promise<LevelContributionProjectionSyncResult> {
+	await tx.execute(sql`SELECT pg_advisory_xact_lock(0, target.id)
+ FROM UNNEST(${arrayParam(uniqueLevelIds)}::integer[]) AS target(id) ORDER BY target.id`)
 	const affectedUsers = await runPhase('affectedUsers', () =>
 		tx.execute<{ idUser: number }>(sql`
 			SELECT DISTINCT affected.id_user AS "idUser"
@@ -262,6 +266,7 @@ async function syncUserPointContributionLevelsInTransaction(
 		`),
 	)
 	const idUsers = sortedUniqueUserIds(affectedUsers.map((entry) => entry.idUser))
+	await lockUserScores(tx, idUsers)
 
 	await runPhase('projectionUpsert', () =>
 		tx.execute(sql`

@@ -1,4 +1,4 @@
-import type { TaskSpec } from 'graphile-worker'
+import type { TaskSpec } from '../queueTypes'
 
 export function cronJobOptions(
 	task: string,
@@ -9,6 +9,5 @@ export function cronJobOptions(
 		...defaults,
 		...taskSpec,
 		jobKey: taskSpec.jobKey ?? `cron:${task}`,
-		jobKeyMode: taskSpec.jobKeyMode ?? 'preserve_run_at',
 	}
 }
