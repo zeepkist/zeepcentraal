@@ -16,9 +16,11 @@ export function createDatabaseClientOptions(config: { databaseTimeouts: Database
 	}
 
 	return {
+		// Match text-encoded parameters supplied by Drizzle (notably JSON).
+		prepare: false,
 		max: 5,
-		idle_timeout: 30,
-		...(connectMs !== undefined && { connect_timeout: connectMs / 1000 }),
+		idleTimeout: 30,
+		...(connectMs !== undefined && { connectionTimeout: connectMs / 1000 }),
 		...(Object.keys(connection).length > 0 && { connection }),
 	}
 }

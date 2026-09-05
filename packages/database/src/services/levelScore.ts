@@ -7,6 +7,7 @@ import {
 	type LevelScoreTelemetry,
 } from '@zeepkist/core/score'
 import { sql } from 'drizzle-orm'
+import { arrayParam } from '../arrayParam'
 import { type DatabaseExecutor, type DatabaseTransaction, db } from '../client'
 import {
 	getLevelPointValuesByIds,
@@ -237,7 +238,7 @@ export async function updateLevelScoreBatch({
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`
 			SELECT pg_advisory_xact_lock(0, lock_target.id_level)
-			FROM UNNEST(${sql.param(uniqueLevelIds)}::integer[]) AS lock_target(id_level)
+			FROM UNNEST(${arrayParam(uniqueLevelIds)}::integer[]) AS lock_target(id_level)
 			ORDER BY lock_target.id_level
 		`)
 		return calculateLevelScoreBatch(uniqueLevelIds, false, logger, tx, tx)

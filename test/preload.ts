@@ -24,9 +24,19 @@ const blockedFetch = Object.assign(
 
 globalThis.fetch = blockedFetch
 
-mock.module('postgres', () => ({
-	default: () => {
-		throw new Error('Unexpected postgres connection in unit test')
+mock.module('@zeepkist/core/sql', () => ({
+	createSqlClient: (_url: string, options: object) => {
+		const blocked = () => {
+			throw new Error('Unexpected Bun SQL connection in unit test')
+		}
+		return Object.assign(blocked, {
+			options,
+			unsafe: blocked,
+			reserve: blocked,
+			begin: blocked,
+			listen: blocked,
+			close: async () => {},
+		})
 	},
 }))
 

@@ -1,6 +1,7 @@
-import postgres from 'postgres'
+import { createSqlClient } from '@zeepkist/core/sql'
+import type { ReservedSQL, SQL } from 'bun'
 
-type Sql = postgres.Sql<Record<string, never>>
+type Sql = SQL | ReservedSQL
 
 const stringify = (value: unknown) =>
 	JSON.stringify(value, (_, item) => (typeof item === 'bigint' ? item.toString() : item))
@@ -71,10 +72,11 @@ const setGraphqlRole = (sql: Sql) => sql.unsafe('SET LOCAL ROLE zeepcentraal_gra
 const resetRole = (sql: Sql) => sql.unsafe('RESET ROLE')
 
 export const verifyGraphqlVisibility = async (databaseUrl: string) => {
-	const sql = postgres(databaseUrl, { max: 1 })
-	await sql`BEGIN`
+	const pool = createSqlClient(databaseUrl, { max: 1, bigint: true })
+	const sql = await pool.reserve()
 
 	try {
+		await sql`BEGIN`
 		await sql`
 				INSERT INTO public."user" (steam_name, steam_id, banned)
 				VALUES ('RLS Integration', -990000000000001, false)
@@ -214,7 +216,7 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		const initialLevels = await sql<{ id: number; publiclyVisible: boolean }[]>`
 				SELECT id, publicly_visible AS "publiclyVisible"
 				FROM public.level
-				WHERE id = ANY(${sql.array(allFixtureLevelIds)}::integer[])
+				WHERE id = ANY(${sql.array(allFixtureLevelIds, 'INTEGER')}::integer[])
 				ORDER BY id
 			`
 		await resetRole(sql)
@@ -257,12 +259,15 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		const initialRecordCounts = await sql<{ id: number; recordCount: bigint }[]>`
 			SELECT id, record_count AS "recordCount"
 			FROM public.level
-			WHERE id = ANY(${sql.array([
-				levelIds.get('unlisted') as number,
-				levelIds.get('public') as number,
-				levelIds.get('friends') as number,
-				levelIds.get('hidden') as number,
-			])}::integer[])
+			WHERE id = ANY(${sql.array(
+				[
+					levelIds.get('unlisted') as number,
+					levelIds.get('public') as number,
+					levelIds.get('friends') as number,
+					levelIds.get('hidden') as number,
+				],
+				'INTEGER',
+			)}::integer[])
 			ORDER BY id
 		`
 		assertEqual(
@@ -285,10 +290,10 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		const countsAfterMove = await sql<{ id: number; recordCount: bigint }[]>`
 			SELECT id, record_count AS "recordCount"
 			FROM public.level
-			WHERE id = ANY(${sql.array([
-				levelIds.get('orphan') as number,
-				levelIds.get('deleted-only') as number,
-			])}::integer[])
+			WHERE id = ANY(${sql.array(
+				[levelIds.get('orphan') as number, levelIds.get('deleted-only') as number],
+				'INTEGER',
+			)}::integer[])
 			ORDER BY id
 		`
 		assertEqual(
@@ -389,47 +394,47 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		const visibleRecords = await sql<{ id: number }[]>`
 				SELECT id
 				FROM public.record
-				WHERE id = ANY(${sql.array([publicRecord, friendsRecord, hiddenRecord])}::integer[])
+				WHERE id = ANY(${sql.array([publicRecord, friendsRecord, hiddenRecord], 'INTEGER')}::integer[])
 			`
 		const visibleMedia = await sql<{ idRecord: number }[]>`
 				SELECT id_record AS "idRecord"
 				FROM public.record_media
-				WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord])}::integer[])
+				WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord], 'INTEGER')}::integer[])
 			`
 		const visibleStatistics = await sql<{ idRecord: number }[]>`
 				SELECT id_record AS "idRecord"
 				FROM public.record_statistic
-				WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord])}::integer[])
+				WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord], 'INTEGER')}::integer[])
 			`
 		const visiblePersonalBests = await sql<{ idRecord: number }[]>`
 				SELECT id_record AS "idRecord"
 				FROM public.personal_best_global
-				WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord])}::integer[])
+				WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord], 'INTEGER')}::integer[])
 			`
 		const visibleWorldRecords = await sql<{ idRecord: number }[]>`
 				SELECT id_record AS "idRecord"
 				FROM public.world_record_global
-			WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord])}::integer[])
+			WHERE id_record = ANY(${sql.array([publicRecord, hiddenRecord], 'INTEGER')}::integer[])
 		`
 		const visibleZslLevels = await sql<{ id: number }[]>`
 			SELECT id
 			FROM public.zsl_level
-			WHERE id = ANY(${sql.array([publicZslLevel.id, hiddenZslLevel.id])}::integer[])
+			WHERE id = ANY(${sql.array([publicZslLevel.id, hiddenZslLevel.id], 'INTEGER')}::integer[])
 		`
 		const visibleZslResults = await sql<{ idLevel: number }[]>`
 			SELECT id_level AS "idLevel"
 			FROM public.zsl_level_result
-			WHERE id_level = ANY(${sql.array([publicZslLevel.id, hiddenZslLevel.id])}::integer[])
+			WHERE id_level = ANY(${sql.array([publicZslLevel.id, hiddenZslLevel.id], 'INTEGER')}::integer[])
 		`
 		const visibleMetadata = await sql<{ idLevel: number }[]>`
 			SELECT id_level AS "idLevel"
 			FROM public.level_metadata
-			WHERE id_level = ANY(${sql.array(allFixtureLevelIds)}::integer[])
+			WHERE id_level = ANY(${sql.array(allFixtureLevelIds, 'INTEGER')}::integer[])
 		`
 		const hotFixtureLevels = await sql<{ id: number }[]>`
 				SELECT id
 				FROM public.hot_levels_since(now() - interval '1 day')
-				WHERE id = ANY(${sql.array(allFixtureLevelIds)}::integer[])
+				WHERE id = ANY(${sql.array(allFixtureLevelIds, 'INTEGER')}::integer[])
 			`
 		const publicRandomTrack = await sql<{ idLevel: number; numRecords: bigint }[]>`
 				SELECT id_level AS "idLevel", num_records AS "numRecords"
@@ -539,13 +544,14 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		const visibleItems = await sql<{ id: number }[]>`
 				SELECT id
 				FROM public.level_item
-				WHERE id = ANY(${sql.array(Object.values(itemIds))}::integer[])
+				WHERE id = ANY(${sql.array(Object.values(itemIds), 'INTEGER')}::integer[])
 			`
 		const visibleWorkshops = await sql<{ workshopId: bigint }[]>`
 				SELECT workshop_id AS "workshopId"
 				FROM public.workshop_item
 				WHERE workshop_id = ANY(${sql.array(
 					[...workshopVisibility.keys()].map(String),
+					'BIGINT',
 				)}::bigint[])
 			`
 		await resetRole(sql)
@@ -640,13 +646,17 @@ export const verifyGraphqlVisibility = async (databaseUrl: string) => {
 		await resetRole(sql)
 		assertLength(trueOrphanAfterDelete, 1, 'true orphan after item and Workshop deletion')
 	} finally {
-		await sql`ROLLBACK`
-		await sql.end()
+		try {
+			await sql`ROLLBACK`
+		} finally {
+			sql.release()
+			await pool.close()
+		}
 	}
 }
 
 export const verifyConcurrentRecordCounts = async (databaseUrl: string) => {
-	const sql = postgres(databaseUrl, { max: 20 })
+	const sql = createSqlClient(databaseUrl, { max: 20, bigint: true })
 	const fixtureSuffix = `${process.pid}-${Date.now()}`
 	const fixtureSteamId = -990000000100000 - process.pid
 	let fixtureLevelId: number | undefined
@@ -702,7 +712,7 @@ export const verifyConcurrentRecordCounts = async (databaseUrl: string) => {
 		if (fixtureUserId !== undefined) {
 			await sql`DELETE FROM public."user" WHERE id = ${fixtureUserId}`
 		}
-		await sql.end()
+		await sql.close()
 	}
 }
 

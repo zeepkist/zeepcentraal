@@ -1,4 +1,5 @@
 import { inArray, sql } from 'drizzle-orm'
+import { arrayParam } from '../arrayParam'
 import { db } from '../client'
 import { discordActivityEvent, userPointContribution, userPoints } from '../schema'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
@@ -108,7 +109,8 @@ export async function updateUserRanks(
 			}
 			return batchChanges
 		})
-		allChanges.push(...changes)
+		// Bun SQL adapter currently erases the execute<T> row type.
+		allChanges.push(...(changes as (typeof allChanges)[number][]))
 		processed += batch.length
 		onBatchCompleted?.(processed, entries.length)
 	}
@@ -130,7 +132,7 @@ export async function rankActiveUsersByPoints(idUsers: number[]): Promise<number
 					${userPoints.idUser} AS id_user,
 					RANK() OVER (ORDER BY ${userPoints.points} DESC)::integer AS rank
 				FROM ${userPoints}
-				WHERE ${userPoints.idUser} = ANY(${sql.param(uniqueUserIds)}::integer[])
+				WHERE ${userPoints.idUser} = ANY(${arrayParam(uniqueUserIds)}::integer[])
 			), changed AS MATERIALIZED (
 				SELECT target.id_user, target.rank AS previous_rank, ranked.rank
 				FROM ${userPoints} AS target
@@ -175,19 +177,19 @@ export async function resetInactiveUserScores(idUsers: number[]): Promise<void> 
 				${userPoints.idUser} AS "idUser",
 				${userPoints.rank} AS "previousRank"
 			FROM ${userPoints}
-			WHERE ${userPoints.idUser} = ANY(${sql.param(batch)}::integer[])
+			WHERE ${userPoints.idUser} = ANY(${arrayParam(batch)}::integer[])
 				AND ${userPoints.rank} IS DISTINCT FROM -1
 		`)
 			await tx.execute(sql`
 			UPDATE ${userPoints}
 			SET points = 0, rank = -1, date_updated = NOW()
-			WHERE id_user = ANY(${sql.param(batch)}::integer[])
+			WHERE id_user = ANY(${arrayParam(batch)}::integer[])
 				AND ROW(points, rank) IS DISTINCT FROM ROW(0, -1)
 		`)
 			await tx.execute(sql`
 			UPDATE ${userPointContribution}
 			SET player_decayed_points = 0, date_calculated = NOW()
-			WHERE id_user = ANY(${sql.param(batch)}::integer[])
+			WHERE id_user = ANY(${arrayParam(batch)}::integer[])
 				AND player_decayed_points IS DISTINCT FROM 0::real
 		`)
 			if (previous.length > 0) {

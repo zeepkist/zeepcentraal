@@ -37,6 +37,9 @@
 		"./config/server": {
 			"import": "./src/config/server.ts"
 		},
+		"./sql": {
+			"import": "./src/sql.ts"
+		},
 		"./levels": {
 			"import": "./src/levels/index.ts"
 		},

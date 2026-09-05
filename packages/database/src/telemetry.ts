@@ -1,5 +1,5 @@
 import { getMeter, SpanKind, type TelemetrySpan, withActiveSpan } from '@zeepkist/telemetry'
-import type { Sql } from 'postgres'
+import type { SQL } from 'bun'
 
 const databaseDuration = getMeter('zeepcentraal-database').createHistogram(
 	'db.client.operation.duration',
@@ -82,13 +82,19 @@ function wrapPendingQuery(
 
 	return new Proxy(query, {
 		get(target, property, receiver) {
+			if (property === 'execute')
+				return () => {
+					void execute().catch(() => {})
+					return receiver
+				}
 			if (property === 'then') return execute().then.bind(execute())
 			if (property === 'catch') return execute().catch.bind(execute())
 			if (property === 'finally') return execute().finally.bind(execute())
-			const value = Reflect.get(target, property, receiver)
+			const value = Reflect.get(target, property, target)
 			if (typeof value !== 'function') return value
 			return (...args: unknown[]) => {
 				const result = Reflect.apply(value, target, args)
+				if (result === target) return receiver
 				return result && typeof result === 'object' && 'then' in result
 					? wrapPendingQuery(result as PendingQuery, statement, databaseUrl)
 					: result
@@ -132,10 +138,7 @@ async function traceDatabaseOperation<T>(
 	)
 }
 
-export function createTracedPostgresClient<T extends Sql<Record<string, unknown>>>(
-	client: T,
-	databaseUrl: string,
-): T {
+export function createTracedPostgresClient<T extends SQL>(client: T, databaseUrl: string): T {
 	return new Proxy(client, {
 		apply(target, thisArg, args: unknown[]) {
 			const result = Reflect.apply(target, thisArg, args) as PendingQuery
@@ -143,10 +146,12 @@ export function createTracedPostgresClient<T extends Sql<Record<string, unknown>
 			const statement = Array.isArray(first)
 				? queryTextFromTemplate(first as unknown as TemplateStringsArray)
 				: 'query'
-			return wrapPendingQuery(result, statement, databaseUrl)
+			return result && typeof result === 'object' && 'then' in result
+				? wrapPendingQuery(result, statement, databaseUrl)
+				: result
 		},
-		get(target, property, receiver) {
-			const value = Reflect.get(target, property, receiver)
+		get(target, property) {
+			const value = Reflect.get(target, property, target)
 			if (typeof value !== 'function') return value
 			if (property === 'unsafe') {
 				return (statement: string, ...args: unknown[]) =>
@@ -156,14 +161,17 @@ export function createTracedPostgresClient<T extends Sql<Record<string, unknown>
 						databaseUrl,
 					)
 			}
-			if (property === 'begin') {
+			if (property === 'begin' || property === 'savepoint') {
 				return (...args: unknown[]) => {
 					const callbackIndex = args.findIndex((arg) => typeof arg === 'function')
 					if (callbackIndex >= 0) {
 						const callback = args[callbackIndex] as (transaction: T) => unknown
 						args[callbackIndex] = (transaction: T) =>
-							traceDatabaseOperation('BEGIN', databaseUrl, async () =>
-								callback(createTracedPostgresClient(transaction, databaseUrl)),
+							traceDatabaseOperation(
+								property === 'begin' ? 'BEGIN' : 'SAVEPOINT',
+								databaseUrl,
+								async () =>
+									callback(createTracedPostgresClient(transaction, databaseUrl)),
 							)
 					}
 					return Reflect.apply(value, target, args)

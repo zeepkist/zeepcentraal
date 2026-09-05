@@ -183,7 +183,8 @@ async function lockState(
 		WHERE history = ${history}
 		FOR UPDATE
 	`)
-	const state = rows[0]
+	// Bun SQL adapter currently erases the execute<T> row type.
+	const state = rows[0] as PruneStateRow | undefined
 	if (!state) throw new Error(`Missing pruning state for ${history}.`)
 	return state
 }
@@ -204,7 +205,8 @@ async function resetDailyBudget(
 			deleted_today AS "deletedToday",
 			week_start::text AS "weekStart"
 	`)
-	const state = rows[0]
+	// Bun SQL adapter currently erases the execute<T> row type.
+	const state = rows[0] as PruneStateRow | undefined
 	if (!state) throw new Error(`Failed to reset pruning budget for ${history}.`)
 	return state
 }

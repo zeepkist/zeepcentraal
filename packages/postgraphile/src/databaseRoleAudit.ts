@@ -1,4 +1,4 @@
-import postgres from 'postgres'
+import { createSqlClient } from '@zeepkist/core/sql'
 
 export const GRAPHQL_DATABASE_ROLE = 'zeepcentraal_graphql'
 
@@ -35,10 +35,10 @@ type InspectGraphqlDatabaseRole = (databaseUrl: string) => Promise<GraphqlDataba
 async function inspectGraphqlDatabaseRole(
 	databaseUrl: string,
 ): Promise<GraphqlDatabaseRoleInspection> {
-	const client = postgres(databaseUrl, {
+	const client = createSqlClient(databaseUrl, {
 		max: 1,
-		idle_timeout: 5,
-		connect_timeout: 10,
+		idleTimeout: 5,
+		connectionTimeout: 10,
 	})
 
 	try {
@@ -100,7 +100,7 @@ async function inspectGraphqlDatabaseRole(
 			memberOfRoles: row.member_of_roles,
 		}
 	} finally {
-		await client.end({ timeout: 5 })
+		await client.close({ timeout: 5 })
 	}
 }
 

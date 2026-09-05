@@ -134,3 +134,14 @@ describe('migration error diagnostics', () => {
 		)
 	})
 })
+
+test('reads native Bun SQLSTATE through Drizzle wrapper', () => {
+	const native = Object.assign(new Error('private query'), {
+		code: 'ERR_POSTGRES_SERVER_ERROR',
+		errno: '40001',
+	})
+	const wrapped = new Error('wrapper', { cause: native })
+	expect(getPostgresSqlState(wrapped)).toBe('40001')
+	expect(isRetryableMigrationError(wrapped)).toBe(true)
+	expect(describeMigrationError(wrapped)).toBe('PostgreSQL 40001 (serialization failure)')
+})

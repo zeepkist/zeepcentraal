@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { createDatabaseClientOptions } from './clientOptions'
 
-test('creates bounded Postgres.js options when jobs bootstrap provides timeouts', () => {
+test('creates bounded Bun SQL options when jobs bootstrap provides timeouts', () => {
 	expect(
 		createDatabaseClientOptions({
 			databaseTimeouts: {
@@ -12,14 +12,15 @@ test('creates bounded Postgres.js options when jobs bootstrap provides timeouts'
 			},
 		}),
 	).toEqual({
-		connect_timeout: 5,
+		connectionTimeout: 5,
 		connection: {
 			statement_timeout: 300000,
 			lock_timeout: 30000,
 			idle_in_transaction_session_timeout: 60000,
 		},
-		idle_timeout: 30,
+		idleTimeout: 30,
 		max: 5,
+		prepare: false,
 	})
 })
 
@@ -33,5 +34,5 @@ test('leaves database timeouts disabled for non-jobs runtimes by default', () =>
 				idleTransactionMs: undefined,
 			},
 		}),
-	).toEqual({ idle_timeout: 30, max: 5 })
+	).toEqual({ idleTimeout: 30, max: 5, prepare: false })
 })

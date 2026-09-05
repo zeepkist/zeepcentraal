@@ -16,6 +16,7 @@ export function getPostgresErrorMetadata(error: unknown): Record<string, unknown
 	const metadata: Record<string, unknown> = {}
 	for (const key of [
 		'code',
+		'errno',
 		'severity',
 		'detail',
 		'hint',

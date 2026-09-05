@@ -59,8 +59,12 @@ test('validates one user snapshot and propagates chunk failure for transaction r
 	expect(snapshotQuery.sql).toContain('FROM UNNEST(')
 	expect(snapshotQuery.sql).not.toContain('AS (VALUES')
 	expect(snapshotQuery.params).toHaveLength(6)
-	expect(snapshotQuery.params[0]).toHaveLength(5001)
-	expect(snapshotQuery.params[4]).toHaveLength(5001)
+	expect(snapshotQuery.params[0]).toBe(
+		`{${contributions.map((entry) => entry.idLevel).join(',')}}`,
+	)
+	expect(snapshotQuery.params[4]).toBe(
+		`{${contributions.map((entry) => entry.levelDecayedPoints).join(',')}}`,
+	)
 	expect(new PgDialect().sqlToQuery(lockQueries[1] as SQL).params).toHaveLength(40_000)
 	expect(new PgDialect().sqlToQuery(lockQueries[2] as SQL).params).toHaveLength(8)
 })
@@ -136,10 +140,7 @@ test('syncs uncapped level contribution projection without advisory locks', asyn
 	expect(lockQueries).toHaveLength(3)
 	const affectedQuery = new PgDialect().sqlToQuery(lockQueries[0] as SQL)
 	expect(affectedQuery.sql).toContain('ANY($1::integer[])')
-	expect(affectedQuery.params).toEqual([
-		[7, 8],
-		[7, 8],
-	])
+	expect(affectedQuery.params).toEqual(['{7,8}', '{7,8}'])
 
 	const upsertQuery = new PgDialect().sqlToQuery(lockQueries[1] as SQL)
 	expect(upsertQuery.sql).toContain('RANK() OVER')

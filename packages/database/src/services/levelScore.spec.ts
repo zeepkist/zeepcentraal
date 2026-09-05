@@ -181,7 +181,7 @@ test('locks sorted unique levels and uses one transaction executor throughout', 
 	const lockQuery = new PgDialect().sqlToQuery(lockQueries[0] as SQL)
 	expect(lockQuery.sql).toContain('pg_advisory_xact_lock(0, lock_target.id_level)')
 	expect(lockQuery.sql).toContain('ORDER BY lock_target.id_level')
-	expect(lockQuery.params).toEqual([[2, 7]])
+	expect(lockQuery.params).toEqual(['{2,7}'])
 	expect(getLevelWorkshopAvailabilities).toHaveBeenCalledWith([2, 7], transactionExecutor)
 	expect(getLevelPointValuesByIds).toHaveBeenCalledWith([2, 7], transactionExecutor)
 	expect(upsertLevelPointsBulk.mock.calls[0]?.[1]).toBe(transactionExecutor)

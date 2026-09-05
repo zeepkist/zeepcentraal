@@ -1,5 +1,5 @@
 import { migrateConfig } from '@zeepkist/core/config/migrate'
-import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import { migrate } from 'drizzle-orm/bun-sql/migrator'
 import { databaseHandle, db } from './index'
 import { describeMigrationError, runMigrationWithRetry } from './migrationRetry'
 

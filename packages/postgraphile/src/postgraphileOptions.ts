@@ -3,10 +3,10 @@ import { PgSimplifyInflectionPlugin } from '@graphile/simplify-inflection'
 import { PgManyToManyPreset } from '@graphile-contrib/pg-many-to-many'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import { postgraphile } from 'postgraphile'
-import { makePgService } from 'postgraphile/adaptors/pg'
 import { PostGraphileAmberPreset } from 'postgraphile/presets/amber'
 import { makeV4Preset } from 'postgraphile/presets/v4'
 import { PostGraphileConnectionFilterPreset } from 'postgraphile-plugin-connection-filter'
+import { makeBunPgService } from './bunSqlAdaptor'
 import { AddCdnToUrlsPlugin } from './plugins/AddCdnToUrlsPlugin'
 import { createBoundedGrafastCachesPlugin } from './plugins/BoundedGrafastCachesPlugin'
 import PgFixForeignKeyNamesPlugin from './plugins/FixForeignKeyNamesPlugin'
@@ -116,7 +116,7 @@ export function createPostGraphilePreset(
 				operationPlansPerOperation: config.operationPlansPerOperation,
 			}),
 		],
-		pgServices: [makePgService(createPostGraphilePgServiceOptions(config))],
+		pgServices: [makeBunPgService(createPostGraphilePgServiceOptions(config))],
 		grafast: {
 			explain: config.allowExplain,
 		},

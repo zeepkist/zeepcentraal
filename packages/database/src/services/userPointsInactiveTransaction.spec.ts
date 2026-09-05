@@ -37,19 +37,19 @@ test('atomically resets inactive aggregate and contribution ranked points withou
 
 	const previousRankQuery = new PgDialect().sqlToQuery(queries[0] as SQL)
 	expect(previousRankQuery.sql).toContain('AS "previousRank"')
-	expect(previousRankQuery.params).toEqual([[2, 9]])
+	expect(previousRankQuery.params).toEqual(['{2,9}'])
 
 	const aggregateQuery = new PgDialect().sqlToQuery(queries[1] as SQL)
 	expect(aggregateQuery.sql).toContain('SET points = 0, rank = -1, date_updated = NOW()')
 	expect(aggregateQuery.sql).toContain('ROW(points, rank) IS DISTINCT FROM ROW(0, -1)')
-	expect(aggregateQuery.params).toEqual([[2, 9]])
+	expect(aggregateQuery.params).toEqual(['{2,9}'])
 
 	const contributionQuery = new PgDialect().sqlToQuery(queries[2] as SQL)
 	expect(contributionQuery.sql).toContain(
 		'SET player_decayed_points = 0, date_calculated = NOW()',
 	)
 	expect(contributionQuery.sql).toContain('player_decayed_points IS DISTINCT FROM 0::real')
-	expect(contributionQuery.params).toEqual([[2, 9]])
+	expect(contributionQuery.params).toEqual(['{2,9}'])
 
 	expect(values).toHaveBeenCalledWith({
 		kind: 'rank_batch',
@@ -63,9 +63,9 @@ test('resets inactive users in transactions of 50', async () => {
 	expect(transaction).toHaveBeenCalledTimes(2)
 	expect(queries).toHaveLength(6)
 	expect(new PgDialect().sqlToQuery(queries[0] as SQL).params).toEqual([
-		Array.from({ length: 50 }, (_, index) => index + 1),
+		`{${Array.from({ length: 50 }, (_, index) => index + 1).join(',')}}`,
 	])
-	expect(new PgDialect().sqlToQuery(queries[3] as SQL).params).toEqual([[51]])
+	expect(new PgDialect().sqlToQuery(queries[3] as SQL).params).toEqual(['{51}'])
 })
 
 test('does not open a transaction without inactive users', async () => {

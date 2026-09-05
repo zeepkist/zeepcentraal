@@ -28,7 +28,6 @@
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
 		"drizzle-orm": "~0.45.0",
-		"postgres": "~3.4.7",
 		"ulid": "~3.0.2"
 	},
 	"devDependencies": {

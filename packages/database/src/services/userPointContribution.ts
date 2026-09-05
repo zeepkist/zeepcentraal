@@ -1,5 +1,6 @@
 import { LEVEL_DECAY_FACTOR, MIN_PERSISTED_DECAYED_POINTS } from '@zeepkist/core/score'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
+import { arrayParam } from '../arrayParam'
 import { type DatabaseTransaction, db } from '../client'
 import {
 	levelPoints,
@@ -77,11 +78,11 @@ async function contributionSnapshotMatches(
 		WITH expected AS (
 			SELECT *
 			FROM UNNEST(
-				${sql.param(input.contributions.map((entry) => entry.idLevel))}::integer[],
-				${sql.param(input.contributions.map((entry) => entry.idRecord))}::integer[],
-				${sql.param(input.contributions.map((entry) => entry.levelPosition))}::integer[],
-				${sql.param(input.contributions.map((entry) => entry.levelPoints))}::integer[],
-				${sql.param(input.contributions.map((entry) => entry.levelDecayedPoints))}::real[]
+				${arrayParam(input.contributions.map((entry) => entry.idLevel))}::integer[],
+				${arrayParam(input.contributions.map((entry) => entry.idRecord))}::integer[],
+				${arrayParam(input.contributions.map((entry) => entry.levelPosition))}::integer[],
+				${arrayParam(input.contributions.map((entry) => entry.levelPoints))}::integer[],
+				${arrayParam(input.contributions.map((entry) => entry.levelDecayedPoints))}::real[]
 			) AS expected(
 				id_level,
 				id_record,
@@ -251,11 +252,11 @@ async function syncUserPointContributionLevelsInTransaction(
 			FROM (
 				SELECT ${personalBestGlobal.idUser} AS id_user
 				FROM ${personalBestGlobal}
-				WHERE ${personalBestGlobal.idLevel} = ANY(${sql.param(uniqueLevelIds)}::integer[])
+				WHERE ${personalBestGlobal.idLevel} = ANY(${arrayParam(uniqueLevelIds)}::integer[])
 				UNION
 				SELECT ${userPointContribution.idUser} AS id_user
 				FROM ${userPointContribution}
-				WHERE ${userPointContribution.idLevel} = ANY(${sql.param(uniqueLevelIds)}::integer[])
+				WHERE ${userPointContribution.idLevel} = ANY(${arrayParam(uniqueLevelIds)}::integer[])
 			) AS affected
 			ORDER BY affected.id_user
 		`),
@@ -279,7 +280,7 @@ async function syncUserPointContributionLevelsInTransaction(
 				FROM ${personalBestGlobal}
 				INNER JOIN ${record} ON ${record.id} = ${personalBestGlobal.idRecord}
 				INNER JOIN ${levelPoints} ON ${levelPoints.idLevel} = ${personalBestGlobal.idLevel}
-				WHERE ${personalBestGlobal.idLevel} = ANY(${sql.param(uniqueLevelIds)}::integer[])
+				WHERE ${personalBestGlobal.idLevel} = ANY(${arrayParam(uniqueLevelIds)}::integer[])
 					AND ${levelPoints.points} > 0
 			), desired AS (
 				SELECT
@@ -345,7 +346,7 @@ async function syncUserPointContributionLevelsInTransaction(
 	await runPhase('projectionDelete', () =>
 		tx.execute(sql`
 			DELETE FROM ${userPointContribution} AS contribution
-			WHERE contribution.id_level = ANY(${sql.param(uniqueLevelIds)}::integer[])
+			WHERE contribution.id_level = ANY(${arrayParam(uniqueLevelIds)}::integer[])
 				AND NOT EXISTS (
 					SELECT 1
 					FROM ${personalBestGlobal}

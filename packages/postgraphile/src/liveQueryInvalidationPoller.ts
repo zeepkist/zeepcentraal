@@ -1,4 +1,4 @@
-import postgres from 'postgres'
+import { createSqlClient } from '@zeepkist/core/sql'
 
 type LiveQueryInvalidationPollerConfig = {
 	databaseUrl: string
@@ -33,10 +33,10 @@ export function createLiveQueryInvalidationStore({
 	LiveQueryInvalidationPollerConfig,
 	'databaseTimeouts' | 'databaseUrl'
 >): LiveQueryInvalidationStore {
-	const client = postgres(databaseUrl, {
+	const client = createSqlClient(databaseUrl, {
 		max: 1,
-		idle_timeout: 30,
-		connect_timeout: Math.max(1, Math.ceil(databaseTimeouts.connectMs / 1000)),
+		idleTimeout: 30,
+		connectionTimeout: Math.max(1, Math.ceil(databaseTimeouts.connectMs / 1000)),
 		connection: {
 			application_name: 'zeepcentraal-postgraphile-live-query',
 			statement_timeout: databaseTimeouts.statementMs,
@@ -61,7 +61,7 @@ export function createLiveQueryInvalidationStore({
 			`
 		},
 		async close() {
-			await client.end({ timeout: 5 })
+			await client.close({ timeout: 5 })
 		},
 	}
 }

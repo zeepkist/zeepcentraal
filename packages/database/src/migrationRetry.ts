@@ -17,6 +17,7 @@ const migrationSqlStateDescriptions: Readonly<Record<string, string>> = {
 interface ErrorWithCause {
 	readonly cause?: unknown
 	readonly code?: unknown
+	readonly errno?: unknown
 }
 
 export interface MigrationRetryEvent {
@@ -47,8 +48,8 @@ export function getPostgresSqlState(error: unknown): string | undefined {
 		if (seen.has(current)) return undefined
 		seen.add(current)
 
-		if (typeof current.code === 'string' && /^[0-9A-Z]{5}$/.test(current.code)) {
-			return current.code
+		for (const code of [current.errno, current.code]) {
+			if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return code
 		}
 
 		current = current.cause
