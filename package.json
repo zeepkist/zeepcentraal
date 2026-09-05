@@ -56,7 +56,7 @@
 		"@semantic-release/github": "~12.0.9",
 		"@semantic-release/release-notes-generator": "~14.1.1",
 		"@types/bun": "~1.4.0",
-		"conventional-changelog-conventionalcommits": "~9.3.1",
+		"conventional-changelog-conventionalcommits": "~10.4.0",
 		"golar": "~0.1.10",
 		"lint-staged": "~17.4.0",
 		"semantic-release": "~25.0.8",
