@@ -5,6 +5,7 @@ import {
 	startActiveSpan,
 } from '@zeepkist/telemetry'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
+import { arrayParam } from '../arrayParam'
 import { type DatabaseExecutor, db } from '../client'
 import { GHOST_FOLDER } from '../config'
 import { deleteFile, uploadFile } from '../s3'
@@ -14,6 +15,7 @@ import {
 	recordMedia,
 	recordStatistic,
 	user,
+	userPoints,
 	worldRecordGlobal,
 } from '../schema'
 import { generateUid } from '../utils/generateUid'
@@ -21,6 +23,7 @@ import type { RecordStatisticInput } from './recordStatistic'
 import { buildRecordStatisticValues } from './recordStatistic'
 import { lockUserScores } from './scoreLocks'
 import { recordTrackTournamentResults } from './trackTournament'
+import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 type RecordInput = typeof record.$inferInsert
 const ghostUploadSuccesses = createCounter('record.ghost_upload.success', 'zeepcentraal-database')
@@ -58,7 +61,7 @@ export async function submitRecord(
 					WITH user_lock AS MATERIALIZED (
 						SELECT pg_advisory_xact_lock(${input.idUser}, ${input.idLevel})
 					), level_lock AS MATERIALIZED (
-						SELECT pg_advisory_xact_lock_shared(0, ${input.idLevel})
+						SELECT pg_advisory_xact_lock(0, ${input.idLevel})
 						FROM user_lock
 					)
 					SELECT clock_timestamp()::text AS accepted_at
@@ -66,7 +69,17 @@ export async function submitRecord(
 				`),
 			)
 
-			await lockUserScores(tx, [input.idUser])
+			// The exclusive level lock keeps the previous holder stable until commit.
+			const [previousWorldRecord] = await tx
+				.select({ idUser: worldRecordGlobal.idUser })
+				.from(worldRecordGlobal)
+				.where(eq(worldRecordGlobal.idLevel, input.idLevel))
+			const worldRecordUserIds = sortedUniqueUserIds([
+				input.idUser,
+				...(previousWorldRecord ? [previousWorldRecord.idUser] : []),
+			])
+			// Acquire both holders together, in order, before modifying either user's data.
+			await lockUserScores(tx, worldRecordUserIds)
 
 			const [created] = await traceRecordPhase('record.submit.insert_and_projection', () =>
 				tx.insert(record).values(input).returning(),
@@ -108,7 +121,7 @@ export async function submitRecord(
 			)
 			const personalBestChanged = personalBestRows.length > 0
 
-			await traceRecordPhase('record.submit.world_record', () =>
+			const worldRecordRows = await traceRecordPhase('record.submit.world_record', () =>
 				tx
 					.insert(worldRecordGlobal)
 					.values({
@@ -133,6 +146,25 @@ export async function submitRecord(
 					})
 					.returning({ id: worldRecordGlobal.id }),
 			)
+
+			if (worldRecordRows.length > 0) {
+				await traceRecordPhase('record.submit.world_record_counts', () =>
+					tx.execute(sql`
+						INSERT INTO ${userPoints} (id_user, world_records, date_updated)
+						SELECT target.id, (
+							SELECT COUNT(*)::integer
+							FROM ${worldRecordGlobal}
+							WHERE ${worldRecordGlobal.idUser} = target.id
+						), NOW()
+						FROM UNNEST(${arrayParam(worldRecordUserIds)}::integer[]) AS target(id)
+						ORDER BY target.id
+						ON CONFLICT (id_user) DO UPDATE SET
+							world_records = EXCLUDED.world_records,
+							date_updated = EXCLUDED.date_updated
+						WHERE ${userPoints.worldRecords} IS DISTINCT FROM EXCLUDED.world_records
+					`),
+				)
+			}
 
 			const tournamentResultChanged = await traceRecordPhase('record.submit.tournament', () =>
 				recordTrackTournamentResults(tx, {

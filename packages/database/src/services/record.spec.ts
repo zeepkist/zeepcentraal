@@ -65,10 +65,10 @@ describe('level score personal best query', () => {
 describe('record submission transaction', () => {
 	const source = Bun.file(new URL('./record.ts', import.meta.url)).text()
 
-	test('uses ordered shared level locking and conditional PB/WR upserts', async () => {
+	test('uses ordered exclusive level locking and conditional PB/WR upserts', async () => {
 		const text = await source
 		expect(text).toContain('WITH user_lock AS MATERIALIZED')
-		expect(text).toContain('pg_advisory_xact_lock_shared(0, $' + '{input.idLevel})')
+		expect(text).toContain('pg_advisory_xact_lock(0, $' + '{input.idLevel})')
 		expect(text).toContain('FROM level_lock')
 		expect(text).toContain('WHERE current_record.id = $' + '{personalBestGlobal.idRecord}')
 		expect(text).toContain('WHERE current_record.id = $' + '{worldRecordGlobal.idRecord}')
