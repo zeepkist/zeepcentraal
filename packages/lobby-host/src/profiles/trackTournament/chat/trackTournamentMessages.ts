@@ -1,3 +1,5 @@
+import { bold, color, escapeText, lineBreak, size, underline } from '../../../chat/richText'
+
 export interface TrackTournamentLeaderboardStanding {
 	rank: number
 	recordId: number
@@ -27,7 +29,7 @@ export function buildTrackTournamentJoinMessage(input: TrackTournamentJoinMessag
 	const paragraphs = [
 		`Welcome to ${eventName}, ${formatDisplayName(input.playerName)}`,
 		`A time attack tournament featuring a unique level each ${cadence}.`,
-		`View the full tournament leaderboard on <u>zeepki.st/${route}</u>!`,
+		`View the full tournament leaderboard on ${underline(`zeepki.st/${route}`)}!`,
 	]
 	if (input.requireGtr) {
 		const minimum = formatGtrVersion(input.minimumGtrVersion)
@@ -43,12 +45,15 @@ export function buildTrackTournamentJoinMessage(input: TrackTournamentJoinMessag
 		)
 	}
 	paragraphs.push(
-		'<size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size>',
+		size(
+			65,
+			'This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.',
+		),
 	)
 	return {
 		// hostname: `---${eventName}---`,
-		hostname: '<color=#facc15>HOST</color>',
-		message: `<size=85%><#dedede>${paragraphs.join('<br><br>')}</color></size>`,
+		hostname: color('#facc15', 'HOST'),
+		message: size(85, color('#dedede', paragraphs.join(lineBreak().repeat(2)))),
 	}
 }
 
@@ -61,11 +66,11 @@ export function buildTrackTournamentServerMessageCommand(
 	roundTimeSeconds: number,
 	now = Date.now(),
 ) {
-	const title = `<b>${escapeUnityRichText(formatTrackTournamentPeriod(type, tournamentSlug))}</b>`
+	const title = bold(escapeText(formatTrackTournamentPeriod(type, tournamentSlug)))
 	const remaining = formatTournamentRemaining(tournamentEndAt, now)
 	const body = formatLeaderboard(standings)
 	const entryCount = entries === undefined ? '…' : entries
-	return `/servermessage yellow ${roundTimeSeconds} <size=160%>${title}\n${entryCount} Entries ${remaining}\n${body}</size>`
+	return `/servermessage yellow ${roundTimeSeconds} ${size(160, `${title}\n${entryCount} Entries ${remaining}\n${body}`)}`
 }
 
 export function formatTrackTournamentPeriod(type: TrackTournamentRoomType, slug: string) {
@@ -103,10 +108,6 @@ export function formatTournamentRemaining(endAt: string, now = Date.now()) {
 	return `Ends in ${days}d ${hours}h ${minutes}m`
 }
 
-export function escapeUnityRichText(value: string) {
-	return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-}
-
 export function leaderboardSignature(
 	standings: readonly TrackTournamentLeaderboardStanding[],
 	entries: number,
@@ -131,8 +132,7 @@ function formatLeaderboard(standings: readonly TrackTournamentLeaderboardStandin
 		.map((standing, index) => {
 			const name = formatDisplayName(standing.steamName)
 			const row = `${standing.rank}. ${name} — ${formatTrackTournamentTime(standing.time)}`
-			const color = PODIUM_COLORS[index] ?? '#FFFFFF'
-			return `<color=${color}>${row}</color>`
+			return color(PODIUM_COLORS[index] ?? '#FFFFFF', row)
 		})
 		.join('\n')
 }
@@ -142,7 +142,7 @@ function formatDisplayName(value: string | null) {
 		.replace(/[\p{Cc}\p{Cf}]/gu, ' ')
 		.replace(/\s+/g, ' ')
 		.trim()
-	return escapeUnityRichText(truncateName(sanitized || 'Unknown player'))
+	return escapeText(truncateName(sanitized || 'Unknown player'))
 }
 
 function formatGtrVersion(value: string | null) {
@@ -150,7 +150,7 @@ function formatGtrVersion(value: string | null) {
 		.replace(/[\p{Cc}\p{Cf}]/gu, '')
 		.replace(/\s+/g, ' ')
 		.trim()
-	return escapeUnityRichText([...sanitized].slice(0, 32).join(''))
+	return escapeText([...sanitized].slice(0, 32).join(''))
 }
 
 function truncateName(value: string) {

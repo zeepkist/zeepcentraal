@@ -152,7 +152,7 @@ describe('tournament player leaderboard', () => {
 			sync.close()
 		}
 	})
-	test('preserves native unranked time and escapes tagged names', async () => {
+	test('preserves native unranked time and escapeTexts tagged names', async () => {
 		const { sync, sent } = setup()
 		try {
 			sync.setReady(true)

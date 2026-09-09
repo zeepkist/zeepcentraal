@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
+import { escapeText } from '../../../chat/richText'
 import {
 	buildTrackTournamentJoinMessage,
 	buildTrackTournamentServerMessageCommand,
-	escapeUnityRichText,
 	formatTournamentRemaining,
 	formatTrackTournamentPeriod,
 	formatTrackTournamentTime,
@@ -35,11 +35,11 @@ describe('track tournament room messages', () => {
 		expect(result).toEqual({
 			hostname: '<color=#facc15>HOST</color>',
 			message:
-				'<size=85%><#dedede>Welcome to Track of the Week, Player One<br><br>A time attack tournament featuring a unique level each week.<br><br>View the full tournament leaderboard on <u>zeepki.st/totw</u>!<br><br><size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size></color></size>',
+				'<size=85%><color=#dedede>Welcome to Track of the Week, Player One<br><br>A time attack tournament featuring a unique level each week.<br><br>View the full tournament leaderboard on <u>zeepki.st/totw</u>!<br><br><size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size></color></size>',
 		})
 	})
 
-	test('builds monthly conditional paragraphs and escapes inputs', () => {
+	test('builds monthly conditional paragraphs and escapeTexts inputs', () => {
 		const result = buildTrackTournamentJoinMessage({
 			minimumGtrVersion: '<1.17&>',
 			playerName: '<b>Alice</b>\r\nSecond',
@@ -98,7 +98,7 @@ describe('track tournament room messages', () => {
 		)
 	})
 
-	test('renders escaped top six with podium colors', () => {
+	test('renders escapeTextd top six with podium colors', () => {
 		const command = buildTrackTournamentServerMessageCommand(
 			'weekly',
 			'2026-w33',
@@ -143,8 +143,8 @@ describe('track tournament room messages', () => {
 		).toContain('0 Entries Ends in ')
 	})
 
-	test('escapes tags and bounds display names by code point', () => {
-		expect(escapeUnityRichText('<b>A&B</b>')).toBe('&lt;b&gt;A&amp;B&lt;/b&gt;')
+	test('escapeTexts tags and bounds display names by code point', () => {
+		expect(escapeText('<b>A&B</b>')).toBe('&lt;b&gt;A&amp;B&lt;/b&gt;')
 		const command = buildTrackTournamentServerMessageCommand(
 			'weekly',
 			'2026-w33',

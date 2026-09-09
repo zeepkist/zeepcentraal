@@ -1,8 +1,8 @@
 import type { GameHostPacket, GameHostPlayer, LeaderboardOverrides } from '@zeepkist/core/zeepnet'
+import { escapeText, noBreak } from '../../../chat/richText'
 import { PlayerLeaderboard } from '../../../leaderboard/playerLeaderboard'
 import { TournamentStandingNotifications } from '../chat/tournamentStandingNotifications'
 import {
-	escapeUnityRichText,
 	formatTrackTournamentTime,
 	type TrackTournamentRoomType,
 } from '../chat/trackTournamentMessages'
@@ -102,7 +102,7 @@ export function tournamentLeaderboardOverrides(
 	return {
 		time: result ? formatTrackTournamentTime(result.time) : '',
 		position: result ? String(result.rank) : '—',
-		name: `<nobr>${escapeUnityRichText(name)}</nobr>`,
+		name: noBreak(escapeText(name)),
 		points: `${result?.points ?? 0} pts`,
 		pointsWon: ' ',
 	}
