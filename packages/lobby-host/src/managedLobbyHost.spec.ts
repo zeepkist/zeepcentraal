@@ -240,6 +240,8 @@ test('matches C# playlist transition and serves every level-data request', async
 	const visibilityChanges: boolean[] = []
 	const chatCommands: string[] = []
 	const targetedMessages: Array<{ hostname: string; message: string; steamId: bigint }> = []
+	const standingMessages: typeof targetedMessages = []
+	const leaderboardUpdates: { time: number; isOverride: boolean; position: string }[] = []
 	let incomingSequence = 0
 	let playlistSequence: number | undefined
 	let skipSequence: number | undefined
@@ -255,6 +257,8 @@ test('matches C# playlist transition and serves every level-data request', async
 	const maybeResolve = () => {
 		if (
 			responseCount >= 3 &&
+			standingMessages.length === 1 &&
+			leaderboardUpdates.some((update) => update.position === '18') &&
 			chatCommands.some((command) => command.includes('3 Entries')) &&
 			targetedMessages.length >= 2
 		)
@@ -282,7 +286,19 @@ test('matches C# playlist transition and serves every level-data request', async
 			expect(reader.readInt32()).toBe(0)
 			if (chatCommands.length === 2 && !roundTransitionSent) {
 				roundTransitionSent = true
-				publishLeaderboard?.({ entries: 3, standings: [] })
+				publishLeaderboard?.({
+					entries: 3,
+					standings: [],
+					connectedPlayers: [
+						{
+							steamId: '76561198000000042',
+							recordId: 10,
+							time: 34.234,
+							rank: 17,
+							points: 400,
+						},
+					],
+				})
 				gameServer.send(
 					reliable(initialRosterPacket(), incomingSequence++),
 					remote.port,
@@ -319,11 +335,42 @@ test('matches C# playlist transition and serves every level-data request', async
 			return
 		}
 		if (packetId === ZEEPKIST_PACKET_ID.customChatMessage) {
-			targetedMessages.push({
+			const message = {
 				steamId: reader.readUInt64(),
 				message: reader.readString(),
 				hostname: reader.readString(),
-			})
+			}
+			if (message.message.includes('Welcome to')) targetedMessages.push(message)
+			else standingMessages.push(message)
+			maybeResolve()
+			return
+		}
+		if (packetId === ZEEPKIST_PACKET_ID.customLeaderboard) {
+			const id = reader.readUInt64()
+			expect(reader.readBoolean()).toBe(false)
+			const time = reader.readFloat32()
+			expect(reader.readInt32()).toBe(0)
+			expect(reader.readBoolean()).toBe(false)
+			const isOverride = reader.readBoolean()
+			reader.readString()
+			const position = reader.readString()
+			if (id === 76561198000000042n) {
+				leaderboardUpdates.push({ time, isOverride, position })
+				if (position === '17')
+					publishLeaderboard?.({
+						entries: 3,
+						standings: [],
+						connectedPlayers: [
+							{
+								steamId: '76561198000000042',
+								recordId: 10,
+								time: 34.234,
+								rank: 18,
+								points: 390,
+							},
+						],
+					})
+			}
 			maybeResolve()
 			return
 		}
@@ -390,6 +437,24 @@ test('matches C# playlist transition and serves every level-data request', async
 			onSnapshot({ entries: 2, standings: [] })
 			return () => {}
 		},
+		{
+			setPlayers: (_key, ids) => {
+				if (ids.includes(76561198000000042n))
+					publishLeaderboard?.({
+						entries: 3,
+						standings: [],
+						connectedPlayers: [
+							{
+								steamId: '76561198000000042',
+								recordId: 10,
+								time: 34.234,
+								rank: 17,
+								points: 400,
+							},
+						],
+					})
+			},
+		},
 	)
 	const running = host.run()
 	try {
@@ -397,6 +462,8 @@ test('matches C# playlist transition and serves every level-data request', async
 		await host.stop()
 		await withTimeout(running)
 		expect(setJoinId).toHaveBeenCalledWith('totw', 'managed-room')
+		expect(leaderboardUpdates.map((update) => update.isOverride)).toEqual([false, true, true])
+		expect(leaderboardUpdates[0]?.time).toBe(Math.fround(34.234))
 		expect(sentPacketIds.slice(0, 3)).toEqual([
 			ZEEPKIST_PACKET_ID.changeLobbyVisibility,
 			ZEEPKIST_PACKET_ID.changeLobbyPlaylist,
@@ -426,6 +493,11 @@ test('matches C# playlist transition and serves every level-data request', async
 		)
 		expect(targetedMessages).toHaveLength(2)
 		expect(lookupPlayerContext).toHaveBeenCalledTimes(2)
+		expect(standingMessages[0]?.steamId).toBe(76561198000000042n)
+		expect(standingMessages[0]?.message).toContain('Rank dropped')
+		expect(standingMessages[0]?.message).toContain('down 1 position')
+		expect(standingMessages[0]?.message).toContain('00:34.234 (unchanged)')
+		expect(standingMessages[0]?.message).toContain('390 pts')
 	} finally {
 		await host.stop()
 		await broker.stop(true)
@@ -637,7 +709,7 @@ function createHost(
 		tournamentId: number,
 		onSnapshot: (snapshot: TrackTournamentLeaderboardSnapshot) => void,
 	) => () => void = () => () => {},
-	options: { isPublic?: boolean } = {},
+	options: { isPublic?: boolean; setPlayers?: (key: string, ids: bigint[]) => void } = {},
 ) {
 	return new ManagedLobbyHost(
 		{
@@ -656,6 +728,7 @@ function createHost(
 		{
 			broker: new RoomBrokerClient(`http://127.0.0.1:${brokerPort}`, 'b'.repeat(32)),
 			leaderboard: {
+				setPlayers: options.setPlayers ?? (() => {}),
 				close: async () => {},
 				lookupPlayerContext,
 				watch: watchLeaderboard,
@@ -798,7 +871,7 @@ function writeInitialPlayer(
 	writer.writeString(backupName)
 	writer.writeBoolean(isHost)
 	writer.writeString('{}')
-	for (let index = 0; index < 7; index++) writer.writeFloat32(0)
+	for (let index = 0; index < 10; index++) writer.writeFloat32(index + 0.5)
 	writer.writeBoolean(false)
 	writer.writeBoolean(false)
 	writer.writeByte(0)

@@ -1,6 +1,9 @@
 import { BitReader, BitWriter } from './binary'
 
 export const ZEEPKIST_PACKET_ID = {
+	customLeaderboard: packetId('ZeepkistNetworking.CLB_Packet_AddRemovePlayerFromLeaderboard'),
+	leaderboard: packetId('ZeepkistNetworking.LeaderboardPacket'),
+	playerUpdateResult: packetId('ZeepkistNetworking.PlayerUpdateResultPacket'),
 	chatMessage: packetId('ZeepkistNetworking.ChatMessagePacket'),
 	customChatMessage: packetId('ZeepkistNetworking.CLB_Packet_CustomChatMessage'),
 	createLobby: packetId('ZeepkistNetworking.CreateLobbyPacket'),
@@ -47,6 +50,7 @@ export interface OnlinePlaylist {
 export interface GameHostPlayer {
 	backupName: string
 	playerTag: string
+	steamId: bigint
 	uid: number
 	username?: string
 }
@@ -56,6 +60,20 @@ export type MasterRoomResponse =
 	| { type: 'join'; result: number; host: string; port: number }
 
 export type GameHostPacket =
+	| {
+			type: 'leaderboard'
+			packetType: number
+			times: { steamId: bigint; time: number }[]
+			overrides: ({ steamId: bigint } & LeaderboardOverrides)[]
+	  }
+	| {
+			type: 'player-result'
+			uid: number
+			hasResult: boolean
+			levelUid: string
+			time: number
+			checkpoints: number
+	  }
 	| { type: 'initial'; isHost: boolean; players: GameHostPlayer[] }
 	| { type: 'chat'; message: string; senderUid: number }
 	| { type: 'game-state'; state: number }
@@ -91,6 +109,66 @@ const MAX_CHAT_MESSAGE_BYTES = 4096
 const MAX_CHAT_BADGES = 64
 const MAX_CHAT_BADGE_BYTES = 1024
 const MAX_PLAYERS = 256
+
+export interface LeaderboardOverrides {
+	name: string
+	points: string
+	pointsWon: string
+	position: string
+	time: string
+}
+
+export function playerLeaderboardTimePacket(steamId: bigint, time: number, notifyPlayer = false) {
+	if (!Number.isFinite(time) || time < 0) throw new Error('Invalid leaderboard time')
+	return writeLeaderboard(steamId, Math.min(time, 36000), false, notifyPlayer, {
+		time: '',
+		position: '',
+		name: '',
+		points: '',
+		pointsWon: '',
+	})
+}
+
+export function playerLeaderboardOverridesPacket(steamId: bigint, overrides: LeaderboardOverrides) {
+	return writeLeaderboard(steamId, 0, true, false, overrides)
+}
+
+function writeLeaderboard(
+	steamId: bigint,
+	time: number,
+	isOverride: boolean,
+	notify: boolean,
+	overrides: LeaderboardOverrides,
+) {
+	if (steamId <= 0n || steamId > 0xffff_ffff_ffff_ffffn)
+		throw new Error('Invalid leaderboard target')
+	const fields = [
+		overrides.time,
+		overrides.position,
+		overrides.name,
+		overrides.points,
+		overrides.pointsWon,
+	]
+	for (const field of fields) {
+		if (new TextEncoder().encode(field).length > 4096)
+			throw new Error('Leaderboard override too long')
+	}
+	return writePacket(ZEEPKIST_PACKET_ID.customLeaderboard, (writer) => {
+		writer.writeUInt64(steamId)
+		writer.writeBoolean(false)
+		writer.writeFloat32(time)
+		writer.writeInt32(0)
+		writer.writeBoolean(notify)
+		writer.writeBoolean(isOverride)
+		for (const field of fields) writer.writeString(field)
+	})
+}
+
+function readLeaderboardCount(reader: BitReader) {
+	const count = reader.readInt32()
+	if (count < 0 || count > MAX_PLAYERS) throw new Error('Invalid leaderboard count')
+	return count
+}
 
 export function packetId(fullName: string) {
 	let hash = 23
@@ -229,6 +307,43 @@ export function parseGameHostPacket(
 ): GameHostPacket | undefined {
 	const reader = new BitReader(payload)
 	const id = reader.readUInt16()
+	if (id === ZEEPKIST_PACKET_ID.playerUpdateResult) {
+		return {
+			type: 'player-result',
+			uid: reader.readUInt32(),
+			hasResult: reader.readBoolean(),
+			levelUid: reader.readString(4096),
+			time: reader.readFloat32(),
+			checkpoints: reader.readInt32(),
+		}
+	}
+	if (id === ZEEPKIST_PACKET_ID.leaderboard) {
+		const packetType = reader.readByte()
+		if (packetType > 4) throw new Error('Invalid leaderboard type')
+		const times: { steamId: bigint; time: number }[] = []
+		const overrides: ({ steamId: bigint } & LeaderboardOverrides)[] = []
+		const count = readLeaderboardCount(reader)
+		for (let i = 0; i < count; i++) {
+			const steamId = reader.readUInt64()
+			reader.readString(4096)
+			times.push({ steamId, time: reader.readFloat32() })
+		}
+		const overrideCount = readLeaderboardCount(reader)
+		for (let i = 0; i < overrideCount; i++) {
+			overrides.push({
+				steamId: reader.readUInt64(),
+				time: reader.readString(4096),
+				position: reader.readString(4096),
+				name: reader.readString(4096),
+				points: reader.readString(4096),
+				pointsWon: reader.readString(4096),
+			})
+		}
+		const blockedCount = readLeaderboardCount(reader)
+		for (let i = 0; i < blockedCount; i++) reader.readUInt64()
+		reader.readBoolean()
+		return { type: 'leaderboard', packetType, times, overrides }
+	}
 	if (id === ZEEPKIST_PACKET_ID.initialState) {
 		const initial = readInitialPlayers(reader, localSteamId, localPlayerUid)
 		return { type: 'initial', ...initial }
@@ -356,9 +471,10 @@ function readInitialPlayers(reader: BitReader, localSteamId: bigint, localPlayer
 		const playerTag = reader.readString(1024)
 		const backupName = reader.readString(1024)
 		const isHost = reader.readBoolean()
-		players.push({ uid: playerUid, playerTag, backupName })
+		players.push({ uid: playerUid, steamId, playerTag, backupName })
 		reader.readString(64 * 1024)
-		for (let value = 0; value < 3 + 4; value++) reader.readFloat32()
+		// Chat color (RGB), then ZeepkistState position (XYZ) and rotation (XYZW).
+		for (let value = 0; value < 3 + 3 + 4; value++) reader.readFloat32()
 		reader.readBoolean()
 		reader.readBoolean()
 		reader.readByte()

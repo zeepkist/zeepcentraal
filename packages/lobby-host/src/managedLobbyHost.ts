@@ -23,6 +23,7 @@ import {
 import { emitTelemetryLog, getMeter, withActiveSpan } from '@zeepkist/telemetry'
 import type { LevelPayloadCache, LevelPayloadLease } from './levelPayloadCache'
 import type { RoomAssignment, RoomBrokerClient } from './roomBrokerClient'
+import { TournamentPlayerLeaderboard } from './tournamentPlayerLeaderboard'
 import type {
 	TrackTournamentLeaderboardHub,
 	TrackTournamentPlayerContext,
@@ -122,6 +123,7 @@ export class ManagedLobbyHost {
 	private messageDebounceTimer: ReturnType<typeof setTimeout> | undefined
 	private messageQueue = Promise.resolve()
 	private stopLeaderboardWatch: (() => void) | undefined
+	private playerLeaderboard?: TournamentPlayerLeaderboard
 	private readonly players = new Map<number, string>()
 	private readonly ownedAssets = new Set<LoadedAsset>()
 	private readonly metricAttributes: Record<string, string>
@@ -190,6 +192,7 @@ export class ManagedLobbyHost {
 
 	async stop() {
 		this.stopped = true
+		this.playerLeaderboard?.close()
 		this.stopController.abort()
 		this.clearMessageTimers()
 		const client = this.client
@@ -283,6 +286,11 @@ export class ManagedLobbyHost {
 			this.roomReady = false
 			this.ownsRoom = false
 			this.players.clear()
+			this.playerLeaderboard?.close()
+			this.playerLeaderboard = undefined
+			this.stopLeaderboardWatch?.()
+			this.stopLeaderboardWatch = undefined
+			this.watchedTournamentId = undefined
 			this.clearMessageTimers()
 			if (this.client === active.client) this.client = undefined
 			await active.client.close('Managed room reconnecting')
@@ -296,6 +304,22 @@ export class ManagedLobbyHost {
 		const hail = new BitWriter()
 		hail.writeString(assignment.token)
 		let client: LidgrenClient
+		const playerLeaderboard = new TournamentPlayerLeaderboard(
+			async (packet) => {
+				if (this.client !== client || !this.ownsRoom || this.stopped)
+					throw new Error('Room leaderboard connection unavailable')
+				await client.sendReliableOrdered(packet)
+			},
+			(ids) => this.shared.leaderboard.setPlayers(this.config.key, ids),
+			() => this.warn('Tournament leaderboard synchronization failed; retrying.'),
+			BigInt(assignment.steamId),
+			{
+				type: this.config.profile.tournamentType,
+				onError: () => this.warn('Targeted standing notification failed.'),
+			},
+		)
+		this.playerLeaderboard?.close()
+		this.playerLeaderboard = playerLeaderboard
 		client = new LidgrenClient({
 			applicationIdentifier: 'GameServer',
 			host: assignment.host,
@@ -309,6 +333,7 @@ export class ManagedLobbyHost {
 						assignment.playerUid,
 					)
 					if (!packet) return
+					playerLeaderboard.observe(packet)
 					if (packet.type === 'initial') {
 						this.players.clear()
 						for (const player of packet.players)
@@ -348,7 +373,13 @@ export class ManagedLobbyHost {
 					if (packet.type === 'game-state') {
 						const roundStarted = packet.state === 0 && state.gameState !== 0
 						state.gameState = packet.state
-						if (roundStarted && this.client === client && this.roomReady) {
+						if (
+							roundStarted &&
+							this.client === client &&
+							this.roomReady &&
+							!state.pendingAsset
+						) {
+							playerLeaderboard.setReady(true)
 							this.queueServerMessage(MESSAGE_CHANGE_DEBOUNCE_MS)
 						}
 						return
@@ -361,12 +392,18 @@ export class ManagedLobbyHost {
 			},
 		})
 		const connectedAt = Date.now()
-		await client.connect()
+		try {
+			await client.connect()
+		} catch (error) {
+			playerLeaderboard.close()
+			throw error
+		}
 		const closed: Promise<{ error?: Error }> = client.waitForClose().then(
 			() => ({}),
 			(error) => ({ error: error instanceof Error ? error : new Error('GameServer closed') }),
 		)
 		void closed.then(({ error }) => {
+			playerLeaderboard.close()
 			const reason =
 				error instanceof LidgrenRemoteDisconnectError
 					? error.category
@@ -458,7 +495,6 @@ export class ManagedLobbyHost {
 			}
 			this.asset = nextAsset
 			this.ownedAssets.add(nextAsset)
-			this.watchLeaderboard(metadata.idTournament)
 			span.addEvent('lobby.asset.ready', {
 				'lobby.asset.bytes': lease.data.byteLength,
 			})
@@ -482,6 +518,7 @@ export class ManagedLobbyHost {
 			}
 
 			state.pendingAsset = asset
+			this.playerLeaderboard?.setReady(false)
 			const activation = createPendingActivation(asset.contentSha256)
 			state.pendingActivation = activation
 			const playlistSend = client.sendReliableOrdered(
@@ -544,6 +581,10 @@ export class ManagedLobbyHost {
 			state.activeAsset = asset
 			state.pendingAsset = undefined
 			this.roomReady = true
+			this.playerLeaderboard?.setTournament(asset.idTournament, asset.level.uid)
+			this.watchLeaderboard(asset.idTournament)
+			this.playerLeaderboard?.refreshRoster()
+			this.playerLeaderboard?.setReady(true)
 			if (state.pendingActivation?.assetHash === asset.contentSha256) {
 				state.pendingActivation.resolve()
 				state.pendingActivation = undefined
@@ -568,6 +609,8 @@ export class ManagedLobbyHost {
 			tournamentId,
 			(snapshot) => {
 				if (this.watchedTournamentId !== tournamentId) return
+				if (snapshot.connectedPlayers)
+					this.playerLeaderboard?.setResults(snapshot.connectedPlayers)
 				const signature = leaderboardSignature(snapshot.standings, snapshot.entries)
 				if (signature === this.standingsSignature) return
 				this.entries = snapshot.entries

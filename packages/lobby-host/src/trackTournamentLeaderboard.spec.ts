@@ -8,6 +8,83 @@ import {
 } from './trackTournamentLeaderboard'
 
 describe('track tournament leaderboard subscriptions', () => {
+	test('debounces roster changes on shared socket, ignores stale results, and keeps outside-top-six standings', async () => {
+		const requests: {
+			variables: Record<string, unknown>
+			sink: Sink<ExecutionResult<unknown>>
+		}[] = []
+		const hub = new TrackTournamentLeaderboardHub(
+			'ws://localhost',
+			() => {},
+			{
+				dispose: async () => {},
+				subscribe: <T>(
+					request: { variables: Record<string, unknown> },
+					sink: Sink<ExecutionResult<T>>,
+				) => {
+					requests.push({
+						variables: request.variables,
+						sink: sink as Sink<ExecutionResult<unknown>>,
+					})
+					return () => {}
+				},
+			},
+			1,
+		)
+		const received: unknown[] = []
+		try {
+			hub.watch('totw', 6, (snapshot) => received.push(snapshot))
+			hub.watch('totm', 7, () => {})
+			hub.setPlayers('totw', [42n])
+			hub.setPlayers('totw', [43n, 42n, 42n])
+			const data = {
+				trackTournament: {
+					leaderboard: { totalCount: 20, nodes: [] },
+					connectedPlayers: {
+						nodes: [
+							{
+								recordId: 9,
+								time: 15,
+								rank: 17,
+								points: 400,
+								user: { steamId: '42' },
+							},
+						],
+					},
+				},
+			}
+			requests[0]?.sink.next({ data })
+			expect(received).toHaveLength(0)
+			await Bun.sleep(300)
+			expect(requests).toHaveLength(3)
+			expect(requests[2]?.variables).toEqual({ id: 6, steamIds: ['42', '43'] })
+			requests[2]?.sink.next({ data })
+			expect(received).toEqual([
+				{
+					entries: 20,
+					standings: [],
+					connectedPlayers: [
+						{ steamId: '42', recordId: 9, time: 15, rank: 17, points: 400 },
+					],
+				},
+			])
+			requests[2]?.sink.error(new Error('offline'))
+			await Bun.sleep(15)
+			expect(requests).toHaveLength(4)
+			expect(received).toHaveLength(1)
+			hub.setPlayers('totw', [])
+			await Bun.sleep(300)
+			expect(requests.at(-1)?.variables).toEqual({ id: 6, steamIds: [] })
+			expect(() =>
+				hub.setPlayers(
+					'totw',
+					Array.from({ length: 65 }, (_, i) => BigInt(i + 1)),
+				),
+			).toThrow()
+		} finally {
+			await hub.close()
+		}
+	})
 	test('normalizes, sorts, bounds, and preserves nullable names', () => {
 		const rows = Array.from({ length: 8 }, (_, index) => ({
 			rank: 8 - index,
@@ -44,7 +121,7 @@ describe('track tournament leaderboard subscriptions', () => {
 			1,
 		)
 		leaderboard.watch('totw', 6, (rows) => received.push(rows))
-		expect(request?.variables).toEqual({ id: 6 })
+		expect(request?.variables).toEqual({ id: 6, steamIds: [] })
 		sinks[0]?.next({
 			data: {
 				trackTournament: {
@@ -68,6 +145,7 @@ describe('track tournament leaderboard subscriptions', () => {
 		})
 		expect(received).toHaveLength(1)
 		expect(received[0]).toEqual({
+			connectedPlayers: undefined,
 			entries: 14,
 			standings: [
 				{
@@ -85,7 +163,7 @@ describe('track tournament leaderboard subscriptions', () => {
 		expect(errors).toHaveLength(1)
 		await Bun.sleep(5)
 		expect(sinks).toHaveLength(3)
-		expect(request?.variables).toEqual({ id: 7 })
+		expect(request?.variables).toEqual({ id: 7, steamIds: [] })
 		await leaderboard.close()
 		expect(disposed).toBe(2)
 		leaderboard.watch('totm', 8, () => {})

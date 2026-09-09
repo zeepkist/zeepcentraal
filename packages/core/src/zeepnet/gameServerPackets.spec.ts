@@ -26,6 +26,9 @@ const LEVEL = {
 describe('Zeepkist GameServer packet codecs', () => {
 	test('uses V18 stable packet IDs', () => {
 		expect(ZEEPKIST_PACKET_ID).toEqual({
+			customLeaderboard: 65488,
+			leaderboard: 26487,
+			playerUpdateResult: 3549,
 			chatMessage: 48137,
 			customChatMessage: 37243,
 			createLobby: 18036,
@@ -198,7 +201,7 @@ describe('Zeepkist GameServer packet codecs', () => {
 			writer.writeString('name')
 			writer.writeBoolean(true)
 			writer.writeString('{}')
-			for (let index = 0; index < 7; index++) writer.writeFloat32(0)
+			for (let index = 0; index < 10; index++) writer.writeFloat32(index + 0.5)
 			writer.writeBoolean(false)
 			writer.writeBoolean(false)
 			writer.writeByte(0)
@@ -210,12 +213,16 @@ describe('Zeepkist GameServer packet codecs', () => {
 		expect(parseGameHostPacket(initial, 76561198000000000n)).toEqual({
 			type: 'initial',
 			isHost: true,
-			players: [{ uid: 7, playerTag: 'tag', backupName: 'name' }],
+			players: [
+				{ uid: 7, steamId: 76561198000000000n, playerTag: 'tag', backupName: 'name' },
+			],
 		})
 		expect(parseGameHostPacket(initial, 76561198000000000n, 8)).toEqual({
 			type: 'initial',
 			isHost: false,
-			players: [{ uid: 7, playerTag: 'tag', backupName: 'name' }],
+			players: [
+				{ uid: 7, steamId: 76561198000000000n, playerTag: 'tag', backupName: 'name' },
+			],
 		})
 
 		const request = packet(ZEEPKIST_PACKET_ID.levelData, (writer) => {

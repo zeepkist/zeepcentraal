@@ -22,12 +22,23 @@ interface WatchState {
 	generation: number
 	onSnapshot: (snapshot: TrackTournamentLeaderboardSnapshot) => void
 	retryTimer?: ReturnType<typeof setTimeout>
+	rosterTimer?: ReturnType<typeof setTimeout>
+	steamIds: string[]
 	tournamentId: number
 }
 
 export interface TrackTournamentLeaderboardSnapshot {
+	connectedPlayers?: TournamentPlayerResult[]
 	entries: number
 	standings: TrackTournamentLeaderboardStanding[]
+}
+
+export interface TournamentPlayerResult {
+	points: number
+	rank: number
+	recordId: number
+	steamId: string
+	time: number
 }
 
 export interface TrackTournamentPlayerContext {
@@ -68,10 +79,12 @@ export class TrackTournamentLeaderboardHub {
 	) {
 		if (this.closed) return () => {}
 		this.unwatch(key)
-		const state: WatchState = { generation: 1, onSnapshot, tournamentId }
+		const state: WatchState = { generation: 1, onSnapshot, tournamentId, steamIds: [] }
 		this.watches.set(key, state)
 		this.subscribe(key, state)
-		return () => this.unwatch(key)
+		return () => {
+			if (this.watches.get(key) === state) this.unwatch(key)
+		}
 	}
 
 	private subscribe(key: string, state: WatchState) {
@@ -80,17 +93,27 @@ export class TrackTournamentLeaderboardHub {
 			{
 				operationName: 'ZC_TrackTournamentLobbyLeaderboardLive',
 				query: print(Zc_TrackTournamentLobbyLeaderboardLiveDocument),
-				variables: { id: state.tournamentId },
+				variables: { id: state.tournamentId, steamIds: state.steamIds },
 			},
 			{
-				complete: () => this.scheduleRetry(key, generation),
+				complete: () => {
+					if (this.watches.get(key) === state) this.scheduleRetry(key, generation)
+				},
 				error: (error) => {
+					if (this.watches.get(key) !== state || state.generation !== generation) return
 					this.onError(error)
 					this.scheduleRetry(key, generation)
 				},
 				next: (result) => {
 					const leaderboard = result.data?.trackTournament?.leaderboard
-					if (!leaderboard || this.watches.get(key) !== state) return
+					if (
+						!leaderboard ||
+						this.watches.get(key) !== state ||
+						state.generation !== generation
+					)
+						return
+					// Partial execution failures must not erase previously confirmed PBs.
+					if (result.errors?.length) return
 					if (
 						!Number.isSafeInteger(leaderboard.totalCount) ||
 						leaderboard.totalCount < 0
@@ -99,12 +122,57 @@ export class TrackTournamentLeaderboardHub {
 						return
 					}
 					state.onSnapshot({
+						connectedPlayers:
+							result.data?.trackTournament?.connectedPlayers?.nodes.flatMap(
+								(node) => {
+									const steamId = node?.user?.steamId?.toString()
+									if (
+										!node ||
+										!steamId ||
+										!state.steamIds.includes(steamId) ||
+										!Number.isFinite(node.time) ||
+										node.time < 0 ||
+										!Number.isSafeInteger(node.rank) ||
+										node.rank < 1 ||
+										!Number.isSafeInteger(node.points) ||
+										node.points < 0
+									)
+										return []
+									return [
+										{
+											steamId,
+											recordId: node.recordId,
+											time: node.time,
+											rank: node.rank,
+											points: node.points,
+										},
+									]
+								},
+							),
 						entries: leaderboard.totalCount,
 						standings: normalizeStandings(leaderboard.nodes),
 					})
 				},
 			},
 		)
+	}
+
+	setPlayers(key: string, steamIds: readonly bigint[]) {
+		const state = this.watches.get(key)
+		if (!state || this.closed) return
+		const next = [...new Set(steamIds.filter((id) => id > 0n).map(String))].sort()
+		if (next.length > 64) throw new Error('Tournament roster exceeds 64 players')
+		if (JSON.stringify(next) === JSON.stringify(state.steamIds)) return
+		state.steamIds = next
+		state.generation++
+		state.dispose?.()
+		if (state.retryTimer) clearTimeout(state.retryTimer)
+		state.retryTimer = undefined
+		if (state.rosterTimer) clearTimeout(state.rosterTimer)
+		state.rosterTimer = setTimeout(() => {
+			state.rosterTimer = undefined
+			if (this.watches.get(key) === state && !this.closed) this.subscribe(key, state)
+		}, 250)
 	}
 
 	lookupPlayerContext(
@@ -183,9 +251,14 @@ export class TrackTournamentLeaderboardHub {
 	private scheduleRetry(key: string, generation: number) {
 		const state = this.watches.get(key)
 		if (this.closed || !state || generation !== state.generation || state.retryTimer) return
+		const retryGeneration = ++state.generation
 		state.retryTimer = setTimeout(() => {
 			state.retryTimer = undefined
-			if (!this.closed && this.watches.get(key) === state && generation === state.generation)
+			if (
+				!this.closed &&
+				this.watches.get(key) === state &&
+				retryGeneration === state.generation
+			)
 				this.subscribe(key, state)
 		}, this.retryMs)
 	}
@@ -195,6 +268,7 @@ export class TrackTournamentLeaderboardHub {
 		if (!state) return
 		state.generation++
 		if (state.retryTimer) clearTimeout(state.retryTimer)
+		if (state.rosterTimer) clearTimeout(state.rosterTimer)
 		state.dispose?.()
 		this.watches.delete(key)
 	}

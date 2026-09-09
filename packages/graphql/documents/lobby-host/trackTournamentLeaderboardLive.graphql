@@ -1,7 +1,22 @@
-subscription ZC_TrackTournamentLobbyLeaderboardLive($id: Int!) {
+subscription ZC_TrackTournamentLobbyLeaderboardLive($id: Int!, $steamIds: [BigInt!]! = []) {
 	trackTournament(id: $id) {
 		id
 		slug
+		connectedPlayers: trackTournamentResults(
+			first: 64
+			filter: { user: { steamId: { in: $steamIds } } }
+			orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]
+		) {
+			nodes {
+				recordId
+				time
+				rank
+				points
+				user {
+					steamId
+				}
+			}
+		}
 		leaderboard: trackTournamentResults(
 			first: 6
 			orderBy: [RANK_ASC, TIME_ASC, RECORD_ID_ASC]
