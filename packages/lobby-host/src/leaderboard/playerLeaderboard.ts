@@ -5,17 +5,19 @@ import {
 	playerLeaderboardOverridesPacket,
 	playerLeaderboardTimePacket,
 } from '@zeepkist/core/zeepnet'
-import { TournamentStandingNotifications } from './tournamentStandingNotifications'
-import type { TournamentPlayerResult } from './trackTournamentLeaderboard'
-import type { TrackTournamentRoomType } from './trackTournamentMessages'
-import { escapeUnityRichText, formatTrackTournamentTime } from './trackTournamentMessages'
+
+export interface DesiredPlayerStanding {
+	overrides: LeaderboardOverrides
+	steamId: string
+	time?: number
+}
 
 const EMPTY: LeaderboardOverrides = { time: '', position: '', name: '', points: '', pointsWon: '' }
 
 /** Room-local projection. Steam identities remain internal and never enter telemetry. */
-export class TournamentPlayerLeaderboard {
+export class PlayerLeaderboard {
 	private roster = new Map<number, GameHostPlayer>()
-	private results = new Map<string, TournamentPlayerResult>()
+	private results = new Map<string, DesiredPlayerStanding>()
 	private times = new Map<bigint, number>()
 	private overrides = new Map<bigint, LeaderboardOverrides>()
 	private clearing = new Set<bigint>()
@@ -25,33 +27,23 @@ export class TournamentPlayerLeaderboard {
 	private dirty = false
 	private ready = false
 	private closed = false
-	private tournamentId?: number
+	private scopeId?: string
 	private levelUid?: string
-	private readonly notifications?: TournamentStandingNotifications
 
 	constructor(
 		private readonly send: (packet: Uint8Array) => Promise<void>,
 		private readonly onRoster: (ids: bigint[]) => void,
 		private readonly onError: () => void,
 		private readonly localSteamId: bigint,
-		notifications?: { type: TrackTournamentRoomType; onError: () => void },
-	) {
-		if (notifications)
-			this.notifications = new TournamentStandingNotifications(
-				notifications.type,
-				send,
-				notifications.onError,
-			)
-	}
+	) {}
 
-	setTournament(tournamentId: number, levelUid: string) {
-		if (this.tournamentId !== tournamentId) {
-			this.notifications?.reset()
+	setScope(scopeId: string, levelUid: string) {
+		if (this.scopeId !== scopeId) {
 			for (const id of this.overrides.keys()) this.clearing.add(id)
 			this.results.clear()
 			this.times.clear()
 			this.overrides.clear()
-			this.tournamentId = tournamentId
+			this.scopeId = scopeId
 			this.revision++
 		}
 		this.levelUid = levelUid
@@ -59,7 +51,6 @@ export class TournamentPlayerLeaderboard {
 	}
 
 	setReady(ready: boolean) {
-		this.notifications?.setReady(ready)
 		this.ready = ready
 		this.revision++
 		if (ready) this.schedule()
@@ -82,7 +73,6 @@ export class TournamentPlayerLeaderboard {
 	private rosterChanged() {
 		this.revision++
 		const ids = new Set([...this.roster.values()].map((p) => p.steamId))
-		this.notifications?.setRoster([...ids])
 		for (const id of this.times.keys()) if (!ids.has(id)) this.times.delete(id)
 		for (const id of this.overrides.keys()) if (!ids.has(id)) this.overrides.delete(id)
 		for (const id of this.clearing) if (!ids.has(id)) this.clearing.delete(id)
@@ -91,11 +81,14 @@ export class TournamentPlayerLeaderboard {
 		this.schedule()
 	}
 
-	setResults(results: TournamentPlayerResult[]) {
-		this.notifications?.update(results)
+	setDesired(results: DesiredPlayerStanding[]) {
 		this.results = new Map(results.map((result) => [result.steamId, result]))
 		this.revision++
 		this.schedule()
+	}
+
+	getPlayers() {
+		return [...this.roster.values()]
 	}
 
 	observe(packet: GameHostPacket) {
@@ -137,7 +130,6 @@ export class TournamentPlayerLeaderboard {
 	}
 
 	close() {
-		this.notifications?.close()
 		this.closed = true
 		this.revision++
 		if (this.timer) clearTimeout(this.timer)
@@ -174,7 +166,8 @@ export class TournamentPlayerLeaderboard {
 					if (!valid()) break
 				}
 				const result = this.results.get(id.toString())
-				if (result) {
+				if (!result) continue
+				if (result.time !== undefined) {
 					const time = Math.fround(Math.min(result.time, 36000))
 					if (this.times.get(id) !== time) {
 						this.times.set(id, time)
@@ -182,7 +175,7 @@ export class TournamentPlayerLeaderboard {
 						if (!valid()) break
 					}
 				}
-				const desired = tournamentLeaderboardOverrides(player, result)
+				const desired = result.overrides
 				if (!sameOverrides(this.overrides.get(id), desired)) {
 					this.overrides.set(id, desired)
 					await this.send(playerLeaderboardOverridesPacket(id, desired))
@@ -210,25 +203,4 @@ function sameOverrides(a: LeaderboardOverrides | undefined, b: LeaderboardOverri
 		a.points === b.points &&
 		a.pointsWon === b.pointsWon
 	)
-}
-
-export function tournamentLeaderboardOverrides(
-	player: GameHostPlayer,
-	result?: TournamentPlayerResult,
-): LeaderboardOverrides {
-	const name = [
-		...`${player.playerTag}${player.username || player.backupName}`.replace(
-			/[\p{Cc}\p{Cf}]/gu,
-			'',
-		),
-	]
-		.slice(0, 80)
-		.join('')
-	return {
-		time: result ? formatTrackTournamentTime(result.time) : '',
-		position: result ? String(result.rank) : '—',
-		name: `<nobr>${escapeUnityRichText(name)}</nobr>`,
-		points: `${result?.points ?? 0} pts`,
-		pointsWon: ' ',
-	}
 }

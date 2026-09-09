@@ -66,7 +66,7 @@ describe('targeted tournament standing messages', () => {
 		expect(message).toContain('up 3 positions')
 		expect(message).not.toMatch(/[↑↓]/u)
 		expect(message).toContain('00:34.234')
-		expect(message).toContain('−0.516s')
+		expect(message).toContain('<color=#86efac>0.516s</color>')
 		expect(message).toContain('656 pts')
 		expect(message).toContain('+26')
 		expect(message).not.toContain('#fca5a5')
@@ -104,7 +104,7 @@ describe('targeted tournament standing messages', () => {
 			expect(sent[0]?.id).toBe(42n)
 			expect(sent[0]?.hostname).toBe('<color=#facc15>HOST</color>')
 			expect(sent[0]?.message).toContain('up 3 positions')
-			expect(sent[0]?.message).toContain('−0.516s')
+			expect(sent[0]?.message).toContain('<color=#86efac>0.516s</color>')
 		} finally {
 			notifications.close()
 		}

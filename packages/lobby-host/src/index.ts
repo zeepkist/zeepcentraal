@@ -19,7 +19,7 @@ try {
 }
 const file = parseLobbyHostFileConfig(value)
 startNodeTelemetryFromEnvironment('lobby-host')
-const { runLobbyHost } = await import('./lobbyHostRuntime')
+const { runLobbyHost } = await import('./bootstrap')
 await runLobbyHost({
 	brokerToken: lobbyHostConfig.brokerToken as string,
 	brokerUrl: lobbyHostConfig.brokerUrl,

@@ -18,7 +18,10 @@ export class RoomBrokerClient {
 		private readonly token: string,
 	) {}
 
-	async assign(config: ManagedRoomConfig, joinId?: string): Promise<RoomAssignment> {
+	async assign(
+		config: Pick<ManagedRoomConfig, 'key' | 'room'>,
+		joinId?: string,
+	): Promise<RoomAssignment> {
 		const response = await tracedFetch(
 			`${this.url}/v1/rooms/assignment`,
 			{

@@ -6,7 +6,9 @@ import {
 	encodeZeepkistLevelPayload,
 	ZEEPKIST_PACKET_ID,
 } from '@zeepkist/core/zeepnet'
-import type { TrackTournamentLeaderboardSnapshot } from './trackTournamentLeaderboard'
+import type { ManagedLobbyProfile } from '../profiles/contracts'
+import type { TrackTournamentLeaderboardSnapshot } from '../profiles/trackTournament/leaderboard/trackTournamentLeaderboard'
+import { roomLogger } from './telemetry'
 
 interface TestLevel {
 	author: string
@@ -22,27 +24,6 @@ interface PlayerContext {
 	recentRecord: boolean
 	standing?: { rank: number; time: number }
 	userExists: boolean
-}
-
-interface TargetedJoinTestClient {
-	sendReliableOrdered: (payload: Uint8Array) => Promise<unknown>
-}
-
-interface TargetedJoinTestHost {
-	asset: { idTournament: number }
-	client: TargetedJoinTestClient
-	ownsRoom: boolean
-	roomReady: boolean
-	sendTargetedJoinMessage: (
-		client: TargetedJoinTestClient,
-		packet: ReturnType<typeof playerConnectedTestPacket>,
-	) => Promise<void>
-}
-
-const RECENT_PLAYER_CONTEXT: PlayerContext = {
-	minimumGtrVersion: '1.17.3',
-	recentRecord: true,
-	userExists: true,
 }
 
 const TEST_LEVEL: TestLevel = {
@@ -89,11 +70,10 @@ mock.module('@zeepkist/database', () => ({
 	TRACK_TOURNAMENT_TYPE: { weekly: 0, monthly: 1 },
 }))
 
-const { LevelPayloadCache } = await import('./levelPayloadCache')
-const { formatChatAuditLine, ManagedLobbyHost, resolveChatAuditLine } = await import(
-	'./managedLobbyHost'
-)
-const { RoomBrokerClient } = await import('./roomBrokerClient')
+const { LevelPayloadCache } = await import('../assets/levelPayloadCache')
+const { ManagedLobbyHost } = await import('./managedLobbyHost')
+const { TrackTournamentProfile } = await import('../profiles/trackTournament/profile')
+const { RoomBrokerClient } = await import('../broker/roomBrokerClient')
 
 beforeEach(() => {
 	preferredAsset = initialAsset
@@ -102,37 +82,6 @@ beforeEach(() => {
 	setJoinId.mockClear()
 	clearJoinId.mockClear()
 	getAsset.mockClear()
-})
-
-test('formats bounded one-line room-attributed chat audit records', () => {
-	expect(formatChatAuditLine('totw', '[TAG] Player', 'hello')).toBe(
-		'[chat] [totw] [TAG] Player: hello',
-	)
-	expect(formatChatAuditLine('totm', '\u001b[31mPlayer\nName', 'line 1\r\nline 2')).toBe(
-		'[chat] [totm] Player Name: line 1 line 2',
-	)
-	expect(formatChatAuditLine('totw', '', '')).toBe('[chat] [totw] Unknown player: [empty]')
-	expect(formatChatAuditLine('totw', 'Player', 'x'.repeat(5_000)).length).toBeLessThan(4_096)
-	expect(formatChatAuditLine('totw', 'Player', '😀'.repeat(5_000)).length).toBeLessThan(4_096)
-	const players = new Map([[42, '[TAG] Player']])
-	expect(resolveChatAuditLine('totw', players, 42, 'hello', 7)).toBe(
-		'[chat] [totw] [TAG] Player: hello',
-	)
-	expect(resolveChatAuditLine('totw', players, 99, 'hello', 7)).toBe(
-		'[chat] [totw] Unknown player 99: hello',
-	)
-	expect(resolveChatAuditLine('totw', players, 0, 'system', 7)).toBeUndefined()
-	expect(resolveChatAuditLine('totw', players, 7, 'local', 7)).toBeUndefined()
-})
-
-test('selects tournament assets by configured profile type', async () => {
-	const host = createHost(1, 500, 0, 60_000, 600_000, 'totm', 'monthly')
-	try {
-		await (host as unknown as { refreshAsset(): Promise<void> }).refreshAsset()
-		expect(getAsset).toHaveBeenCalledWith(1)
-	} finally {
-		await host.stop()
-	}
 })
 
 test('shutdown interrupts asset polling wait', async () => {
@@ -144,90 +93,88 @@ test('shutdown interrupts asset polling wait', async () => {
 	await withTimeout(running)
 })
 
-test('uses generic GTR fallback when player context lookup fails', async () => {
-	const host = createHost(1, 500, 0, 60_000, 600_000, 'totw', 'weekly', async () => {
-		throw new Error('GraphQL unavailable')
+test('generic runtime activates a minimal profile without tournament lookups', async () => {
+	const originalFetch = globalThis.fetch
+	globalThis.fetch = Bun.fetch
+	const server = dgram.createSocket('udp4')
+	const port = await bind(server)
+	const fragments = new Map<number, FragmentGroup>()
+	let sequence = 0
+	let resolveReady: (() => void) | undefined
+	const ready = new Promise<void>((resolve) => {
+		resolveReady = resolve
 	})
-	const sent: Uint8Array[] = []
-	const client = { sendReliableOrdered: async (payload: Uint8Array) => sent.push(payload) }
-	const internal = host as unknown as TargetedJoinTestHost
-	internal.client = client
-	internal.asset = { idTournament: 42 }
-	internal.roomReady = true
-	internal.ownsRoom = true
-	await internal.sendTargetedJoinMessage(
-		client,
-		playerConnectedTestPacket(42, 76561198000000042n, 'Fallback Player'),
+	let signal: AbortSignal | undefined
+	let uploaded = false
+	const stopSession = mock(() => {})
+	const level = {
+		level: TEST_LEVEL,
+		contentSha256: sha256(preparedPayload),
+		compressedData: preparedPayload,
+		lease: { data: preparedPayload, release: () => {} },
+	}
+	const profile: ManagedLobbyProfile = {
+		name: 'minimal-test-profile',
+		currentLevel: level,
+		prepare: async () => level,
+		stop: () => {},
+		createSession: (context) => {
+			signal = context.signal
+			return {
+				start: () => context.activate(level),
+				onPacket: () => {},
+				onTransfer: (event) => {
+					if (event.type === 'ready') resolveReady?.()
+				},
+				stop: stopSession,
+			}
+		},
+	}
+	server.on('message', (data, remote) => {
+		if (handleConnect(server, data, remote) || data[0] !== 67) return
+		server.send(acknowledgement(data), remote.port, remote.address)
+		const payload = receiveReliablePayload(data, fragments)
+		if (!payload) return
+		const reader = new BitReader(payload)
+		const id = reader.readUInt16()
+		if (id === ZEEPKIST_PACKET_ID.skipToLevel)
+			server.send(
+				reliable(levelRequestPacket('Track', TEST_LEVEL), sequence++),
+				remote.port,
+				remote.address,
+			)
+		if (id === ZEEPKIST_PACKET_ID.levelData) {
+			expect(readLevelResponse(reader).data).toEqual(preparedPayload)
+			uploaded = true
+		}
+	})
+	const broker = startBroker(port)
+	const host = createHost(
+		requiredPort(broker.port),
+		500,
+		0,
+		60_000,
+		600_000,
+		'totw',
+		'weekly',
+		undefined,
+		undefined,
+		{ profile },
 	)
-	const reader = new BitReader(sent[0] as Uint8Array)
-	expect(reader.readUInt16()).toBe(ZEEPKIST_PACKET_ID.customChatMessage)
-	expect(reader.readUInt64()).toBe(76561198000000042n)
-	expect(reader.readString()).toContain(
-		'You need GTR installed to join the tournament leaderboard.',
-	)
-	expect(reader.readString()).toBe('<color=#facc15>HOST</color>')
-})
-
-test('retries changed tournament once and drops stale asynchronous result', async () => {
-	let resolveFirst: ((value: PlayerContext) => void) | undefined
-	let resolveSecond: ((value: PlayerContext) => void) | undefined
-	const contexts = [
-		new Promise<PlayerContext>((resolve) => {
-			resolveFirst = resolve
-		}),
-		new Promise<PlayerContext>((resolve) => {
-			resolveSecond = resolve
-		}),
-	]
-	const lookup = mock(
-		async (_tournamentId: number, _steamId: bigint, _recentSince: string) =>
-			contexts.shift() as Promise<PlayerContext>,
-	)
-	const host = createHost(1, 500, 0, 60_000, 600_000, 'totw', 'weekly', lookup)
-	const sendReliableOrdered = mock(async () => {})
-	const client = { sendReliableOrdered }
-	const internal = host as unknown as TargetedJoinTestHost
-	internal.client = client
-	internal.asset = { idTournament: 42 }
-	internal.roomReady = true
-	internal.ownsRoom = true
-	const sending = internal.sendTargetedJoinMessage(
-		client,
-		playerConnectedTestPacket(42, 76561198000000042n, 'Player'),
-	)
-	internal.asset = { idTournament: 43 }
-	resolveFirst?.(RECENT_PLAYER_CONTEXT)
-	await Bun.sleep(0)
-	expect(lookup).toHaveBeenCalledTimes(2)
-	internal.asset = { idTournament: 44 }
-	resolveSecond?.(RECENT_PLAYER_CONTEXT)
-	await sending
-	expect(sendReliableOrdered).not.toHaveBeenCalled()
-	expect(lookup.mock.calls.map((call) => call[0])).toEqual([42, 43])
-})
-
-test('drops player context result after connection changes', async () => {
-	let resolveLookup: ((value: PlayerContext) => void) | undefined
-	const lookup = () =>
-		new Promise<PlayerContext>((resolve) => {
-			resolveLookup = resolve
-		})
-	const host = createHost(1, 500, 0, 60_000, 600_000, 'totw', 'weekly', lookup)
-	const sendReliableOrdered = mock(async () => {})
-	const client = { sendReliableOrdered }
-	const internal = host as unknown as TargetedJoinTestHost
-	internal.client = client
-	internal.asset = { idTournament: 42 }
-	internal.roomReady = true
-	internal.ownsRoom = true
-	const sending = internal.sendTargetedJoinMessage(
-		client,
-		playerConnectedTestPacket(42, 76561198000000042n, 'Player'),
-	)
-	internal.client = { sendReliableOrdered: async () => {} }
-	resolveLookup?.(RECENT_PLAYER_CONTEXT)
-	await sending
-	expect(sendReliableOrdered).not.toHaveBeenCalled()
+	const running = host.run()
+	try {
+		await withTimeout(ready)
+		expect(uploaded).toBe(true)
+		expect(getAsset).not.toHaveBeenCalled()
+	} finally {
+		await host.stop()
+		await withTimeout(running)
+		await broker.stop(true)
+		await close(server)
+		globalThis.fetch = originalFetch
+	}
+	expect(signal?.aborted).toBe(true)
+	expect(stopSession).toHaveBeenCalledTimes(1)
 })
 
 test('matches C# playlist transition and serves every level-data request', async () => {
@@ -709,32 +656,34 @@ function createHost(
 		tournamentId: number,
 		onSnapshot: (snapshot: TrackTournamentLeaderboardSnapshot) => void,
 	) => () => void = () => () => {},
-	options: { isPublic?: boolean; setPlayers?: (key: string, ids: bigint[]) => void } = {},
+	options: {
+		isPublic?: boolean
+		setPlayers?: (key: string, ids: bigint[]) => void
+		profile?: ManagedLobbyProfile
+	} = {},
 ) {
+	const config = {
+		key: roomKey,
+		profile: { type: 'track-tournament' as const, tournamentType },
+		room: { name: 'Track of the Week', isPublic: options.isPublic ?? true, maxPlayers: 64 },
+		assetPollMs,
+		messageRefreshMs,
+		reconnectMaxMs: 5_000,
+		roundTimeSeconds: 900,
+	}
+	const shared = {
+		leaderboard: {
+			setPlayers: options.setPlayers ?? (() => {}),
+			close: async () => {},
+			lookupPlayerContext,
+			watch: watchLeaderboard,
+		} as never,
+		payloads: new LevelPayloadCache(),
+	}
 	return new ManagedLobbyHost(
-		{
-			key: roomKey,
-			profile: { type: 'track-tournament', tournamentType },
-			room: {
-				name: 'Track of the Week',
-				isPublic: options.isPublic ?? true,
-				maxPlayers: 64,
-			},
-			assetPollMs,
-			messageRefreshMs,
-			reconnectMaxMs: 5_000,
-			roundTimeSeconds: 900,
-		},
-		{
-			broker: new RoomBrokerClient(`http://127.0.0.1:${brokerPort}`, 'b'.repeat(32)),
-			leaderboard: {
-				setPlayers: options.setPlayers ?? (() => {}),
-				close: async () => {},
-				lookupPlayerContext,
-				watch: watchLeaderboard,
-			} as never,
-			payloads: new LevelPayloadCache(),
-		},
+		config,
+		new RoomBrokerClient(`http://127.0.0.1:${brokerPort}`, 'b'.repeat(32)),
+		options.profile ?? new TrackTournamentProfile(config, shared, roomLogger(roomKey)),
 		protocolTimeoutMs,
 		playlistDelayMs,
 	)
@@ -835,19 +784,6 @@ function playerConnectedPacket(uid: number, steamId: bigint, username: string) {
 		writer.writeString(`${username} Backup`)
 		writer.writeString(username)
 	})
-}
-
-function playerConnectedTestPacket(uid: number, steamId: bigint, username: string) {
-	return {
-		backupName: `${username} Backup`,
-		hasHostPowers: false,
-		isHost: false,
-		playerTag: '',
-		steamId,
-		type: 'player-connected' as const,
-		uid,
-		username,
-	}
 }
 
 function initialRosterPacket() {

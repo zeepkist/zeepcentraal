@@ -4,18 +4,12 @@ import {
 	Zc_TrackTournamentLobbyPlayerContextDocument,
 	type Zc_TrackTournamentLobbyPlayerContextQuery,
 } from '@zeepkist/graphql/generated'
-import { type ExecutionResult, print } from 'graphql'
-import { createClient, type Sink } from 'graphql-ws'
-import WebSocket from 'ws'
-import type { TrackTournamentLeaderboardStanding } from './trackTournamentMessages'
-
-interface SubscriptionClient {
-	dispose: () => Promise<void> | void
-	subscribe: <T>(
-		request: { operationName: string; query: string; variables: Record<string, unknown> },
-		sink: Sink<ExecutionResult<T>>,
-	) => () => void
-}
+import { print } from 'graphql'
+import {
+	createSubscriptionClient,
+	type SubscriptionClient,
+} from '../../../leaderboard/graphqlClient'
+import type { TrackTournamentLeaderboardStanding } from '../chat/trackTournamentMessages'
 
 interface WatchState {
 	dispose?: () => void
@@ -60,16 +54,7 @@ export class TrackTournamentLeaderboardHub {
 		client?: SubscriptionClient,
 		private readonly retryMs = 5_000,
 	) {
-		this.client =
-			client ??
-			createClient({
-				url,
-				webSocketImpl: WebSocket,
-				lazy: true,
-				keepAlive: 30_000,
-				retryAttempts: Number.POSITIVE_INFINITY,
-				shouldRetry: () => true,
-			})
+		this.client = client ?? createSubscriptionClient(url)
 	}
 
 	watch(

@@ -1,5 +1,5 @@
 import { targetedChatMessagePacket } from '@zeepkist/core/zeepnet'
-import type { TournamentPlayerResult } from './trackTournamentLeaderboard'
+import type { TournamentPlayerResult } from '../leaderboard/trackTournamentLeaderboard'
 import { formatTrackTournamentTime, type TrackTournamentRoomType } from './trackTournamentMessages'
 
 interface PendingChange {
@@ -127,7 +127,7 @@ export function buildTournamentStandingMessage(
 		: 0
 	const pointsDelta = previous ? current.points - previous.points : 0
 	const rank = `#${current.rank}${previous ? (rankDelta === 0 ? ' (unchanged)' : ` (${color(`${rankDelta > 0 ? 'up' : 'down'} ${Math.abs(rankDelta)} ${Math.abs(rankDelta) === 1 ? 'position' : 'positions'}`, rankDelta > 0)})`) : ''}`
-	const time = `${formatTrackTournamentTime(current.time)}${previous ? (timeDelta === 0 ? ' (unchanged)' : ` (${color(`${timeDelta < 0 ? '−' : '+'}${(Math.abs(timeDelta) / 1000).toFixed(3)}s`, timeDelta < 0)})`) : ''}`
+	const time = `${formatTrackTournamentTime(current.time)}${previous ? (timeDelta === 0 ? ' (unchanged)' : ` (${color(`${(Math.abs(timeDelta) / 1000).toFixed(3)}s`, timeDelta < 0)})`) : ''}`
 	const points = `${current.points} pts${previous ? (pointsDelta === 0 ? ' (unchanged)' : ` (${color(`${pointsDelta > 0 ? '+' : '−'}${Math.abs(pointsDelta)}`, pointsDelta > 0)})`) : ''}`
 	return `<size=85%><color=#dedede><b>${label} — ${heading}</b><br>${rank} · ${time} · ${points}</color></size>`
 }

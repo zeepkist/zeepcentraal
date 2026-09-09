@@ -8,7 +8,7 @@ const bootstraps = [
 	[
 		'lobby-host',
 		new URL('../../lobby-host/src/index.ts', import.meta.url),
-		"import('./lobbyHostRuntime')",
+		"import('./bootstrap')",
 	],
 	[
 		'migrate',
