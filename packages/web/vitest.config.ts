@@ -15,5 +15,6 @@ export default defineConfig({
 		},
 		environment: 'node',
 		include: ['tests/unit/**/*.spec.ts'],
+		fsModuleCache: true,
 	},
 })
