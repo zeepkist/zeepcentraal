@@ -141,6 +141,16 @@ export class ManagedLobbyHost {
 			isReady: () => this.ready && !transfer.pending && !controller.signal.aborted,
 			isHost: () => this.ownsRoom && !controller.signal.aborted,
 			activate: (level) => transfer.activate(level),
+			activatePlaylist: (level, playlist) => transfer.activate(level, playlist),
+			updatePlaylist: (playlist, current, next) =>
+				transfer.updatePlaylist(playlist, current, next),
+			disconnect: async () => {
+				try {
+					await sendAsHost(changeLobbyVisibilityPacket(false))
+				} finally {
+					await client.close('Managed playlist unavailable')
+				}
+			},
 			send: sendAsHost,
 			createLeaderboard: (onRoster, onError) => {
 				const projection = new PlayerLeaderboard(

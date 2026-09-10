@@ -582,6 +582,20 @@
 			"when": 1788637288754,
 			"tag": "0083_pgmq_queue",
 			"breakpoints": true
+		},
+		{
+			"idx": 84,
+			"version": "7",
+			"when": 1788997502972,
+			"tag": "0084_rich_scalphunter",
+			"breakpoints": true
+		},
+		{
+			"idx": 85,
+			"version": "7",
+			"when": 1788998555319,
+			"tag": "0085_fair_trauma",
+			"breakpoints": true
 		}
 	]
 }

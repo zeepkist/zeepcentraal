@@ -14,7 +14,7 @@ export function getWorkshopMetadata(): SteamWebApiMetadata {
 export function getWorkshopScanner(): WorkshopScanner {
 	scanner ??= new WorkshopScanner(
 		getWorkshopMetadata(),
-		new SteamCmdDownloader(jobsConfig.steam.appId),
+		new SteamCmdDownloader(jobsConfig.steam.appId, jobsConfig.steam.cmdPath),
 	)
 	return scanner
 }

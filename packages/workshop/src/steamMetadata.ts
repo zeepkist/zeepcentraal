@@ -48,8 +48,8 @@ function parseItem(item: SteamPublishedFile): WorkshopItemMetadata {
 	}
 }
 
-async function getJson(url: URL): Promise<SteamResponse> {
-	const response = await tracedFetch(url, {}, { operationName: 'steam.webapi' })
+async function getJson(url: URL, signal?: AbortSignal): Promise<SteamResponse> {
+	const response = await tracedFetch(url, { signal }, { operationName: 'steam.webapi' })
 	if (!response.ok) {
 		throw new Error(`Steam Web API request failed: ${response.status}`)
 	}
@@ -61,6 +61,7 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 		private readonly apiKey: string,
 		private readonly appId: string,
 		private readonly endpoint = 'https://api.steampowered.com',
+		private readonly signal?: AbortSignal,
 	) {
 		if (!apiKey) {
 			throw new Error('STEAM_API_KEY is required for workshop metadata')
@@ -77,7 +78,7 @@ export class SteamWebApiMetadata implements WorkshopMetadataAdapter {
 		for (const [index, workshopId] of workshopIds.entries()) {
 			url.searchParams.set(`publishedfileids[${index}]`, workshopId.toString())
 		}
-		const response = await getJson(url)
+		const response = await getJson(url, this.signal)
 		const items = (response.response?.publishedfiledetails ?? []).map(parseItem)
 		const byId = new Map(items.map((item) => [item.workshopId, item]))
 		return workshopIds.map(

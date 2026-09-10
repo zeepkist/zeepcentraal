@@ -1,11 +1,12 @@
 import {
+	changeLobbyLevelsPacket,
 	changeLobbyPlaylistPacket,
 	type GameHostPacket,
 	levelDataPacket,
 	skipToLevelPacket,
 } from '@zeepkist/core/zeepnet'
 import { withActiveSpan } from '@zeepkist/telemetry'
-import type { PreparedLevel } from '../assets/preparedLevel'
+import type { PreparedLevel, PreparedPlaylist } from '../assets/preparedLevel'
 import type { LevelTransferEvent } from '../profiles/contracts'
 import { withTimeout } from './helpers'
 
@@ -26,6 +27,7 @@ export class LevelTransfer {
 	private queue = Promise.resolve()
 	private queued = 0
 	private closed = false
+	private playlist?: PreparedPlaylist
 	constructor(
 		private readonly send: (packet: Uint8Array) => Promise<void>,
 		private readonly roundTime: number,
@@ -34,7 +36,14 @@ export class LevelTransfer {
 		private readonly timeoutMs = 30_000,
 	) {}
 
-	async activate(level: PreparedLevel) {
+	async updatePlaylist(playlist: PreparedPlaylist, currentIndex: number, nextIndex: number) {
+		if (this.closed) throw new Error('GameServer connection closed')
+		this.playlist = playlist
+		await this.send(
+			changeLobbyLevelsPacket(playlist.levels, this.roundTime, currentIndex, nextIndex),
+		)
+	}
+	async activate(level: PreparedLevel, playlistSource?: PreparedPlaylist) {
 		if (this.closed) throw new Error('GameServer connection closed')
 		if (this.active?.contentSha256 === level.contentSha256) return
 		if (this.activation?.hash === level.contentSha256)
@@ -55,7 +64,17 @@ export class LevelTransfer {
 			void promise.catch(() => {})
 			const activation = { hash: level.contentSha256, promise, resolve, reject }
 			this.activation = activation
-			const playlist = this.send(changeLobbyPlaylistPacket(level.level, this.roundTime))
+			this.playlist = playlistSource
+			const playlist = this.send(
+				playlistSource
+					? changeLobbyLevelsPacket(
+							playlistSource.levels,
+							this.roundTime,
+							0,
+							playlistSource.levels.length > 1 ? 1 : 0,
+						)
+					: changeLobbyPlaylistPacket(level.level, this.roundTime),
+			)
 			const skip = this.send(skipToLevelPacket(level.level))
 			this.onEvent({ type: 'switch', level })
 			try {
@@ -87,11 +106,19 @@ export class LevelTransfer {
 	private async upload(request: Request) {
 		if (this.closed) return
 		await withActiveSpan('lobby.asset.upload', async (span) => {
-			const level = [this.pending, this.active, this.previous].find(
+			let level = this.playlist
+				? await this.playlist.load(request.uid, request.workshopId)
+				: undefined
+			if (this.closed) {
+				level?.lease.release()
+				return
+			}
+			level ??= [this.pending, this.active, this.previous].find(
 				(candidate) =>
 					candidate?.level.uid === request.uid &&
 					candidate.level.workshopId === request.workshopId,
 			)
+			if (level && this.playlist && level !== this.active) this.pending = level
 			if (!level) throw new Error('GameServer requested unknown level')
 			this.onEvent({ type: 'request', level })
 			await this.send(levelDataPacket(request, level.compressedData))

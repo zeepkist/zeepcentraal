@@ -23,10 +23,16 @@ const roomNameSchema = z
 
 const managedRoomSchema = z.strictObject({
 	key: roomKeySchema,
-	profile: z.strictObject({
-		type: z.literal('track-tournament'),
-		tournamentType: z.enum(['weekly', 'monthly']),
-	}),
+	profile: z.discriminatedUnion('type', [
+		z.strictObject({
+			type: z.literal('track-tournament'),
+			tournamentType: z.enum(['weekly', 'monthly']),
+		}),
+		z.strictObject({
+			type: z.literal('zsl-submissions'),
+			threadId: z.string().regex(/^[1-9]\d{0,19}$/),
+		}),
+	]),
 	room: z.strictObject({
 		name: roomNameSchema,
 		isPublic: z.boolean(),
@@ -70,6 +76,9 @@ const lobbyHostEnvSchema = z.object({
 })
 
 export type ManagedRoomConfig = z.infer<typeof managedRoomSchema>
+export type TrackTournamentRoomConfig = Omit<ManagedRoomConfig, 'profile'> & {
+	profile: Extract<ManagedRoomConfig['profile'], { type: 'track-tournament' }>
+}
 export type LobbyHostFileConfig = z.infer<typeof lobbyHostFileSchema>
 
 export function parseLobbyHostFileConfig(value: unknown): LobbyHostFileConfig {

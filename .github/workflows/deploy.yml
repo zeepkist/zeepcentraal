@@ -113,6 +113,10 @@ jobs:
             build_script: build:lobby-host
             artifact_path: dist/zeepcentraal-lobby-host
             include_hidden_files: false
+          - name: inspector-zeep
+            build_script: build:inspector-zeep
+            artifact_path: dist/zeepcentraal-inspector-zeep
+            include_hidden_files: false
           - name: migrate
             build_script: build:migrate
             artifact_path: dist/zeepcentraal-migrate
@@ -173,6 +177,12 @@ jobs:
             artifact_download_path: dist
             expected_path: dist/zeepcentraal-lobby-host
             image_name: lobby-host
+            clone_super_league: false
+          - name: inspector-zeep
+            file: packages/inspector-zeep/Dockerfile
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-inspector-zeep
+            image_name: inspector-zeep
             clone_super_league: false
           - name: migrate
             file: Dockerfile.migrate

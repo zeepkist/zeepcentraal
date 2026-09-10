@@ -1,7 +1,6 @@
 import { mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { jobsConfig } from '@zeepkist/core/config/jobs'
 import { withActiveSpan } from '@zeepkist/telemetry'
 import type { WorkshopDownload, WorkshopDownloader } from './types'
 
@@ -12,10 +11,12 @@ const LOG_TAIL_BYTES = 64 * 1024
 export class SteamCmdDownloader implements WorkshopDownloader {
 	public constructor(
 		private readonly appId: string,
-		private readonly executable = jobsConfig.steam.cmdPath,
+		private readonly executable: string,
+		private readonly signal?: AbortSignal,
 	) {}
 
 	public async download(workshopIds: bigint[]): Promise<WorkshopDownload> {
+		this.signal?.throwIfAborted()
 		return withActiveSpan(
 			'steamcmd.download',
 			{ attributes: { 'workshop.item.count': workshopIds.length } },
@@ -36,13 +37,17 @@ export class SteamCmdDownloader implements WorkshopDownloader {
 						stderr: 'pipe',
 					})
 					let forceKill: ReturnType<typeof setTimeout> | undefined
-					const timeout = setTimeout(() => {
+					const cancel = () => {
+						if (forceKill) return
 						process.kill('SIGTERM')
 						forceKill = setTimeout(
 							() => process.kill('SIGKILL'),
 							STEAMCMD_KILL_GRACE_MS,
 						)
-					}, STEAMCMD_TIMEOUT_MS)
+					}
+					const timeout = setTimeout(cancel, STEAMCMD_TIMEOUT_MS)
+					this.signal?.addEventListener('abort', cancel, { once: true })
+					if (this.signal?.aborted) cancel()
 					let exitCode: number
 					try {
 						;[exitCode] = await Promise.all([
@@ -52,9 +57,11 @@ export class SteamCmdDownloader implements WorkshopDownloader {
 						])
 					} finally {
 						clearTimeout(timeout)
+						this.signal?.removeEventListener('abort', cancel)
 						if (forceKill) clearTimeout(forceKill)
 					}
 					const usage = process.resourceUsage()
+					this.signal?.throwIfAborted()
 					if (usage)
 						span.addEvent('steamcmd.resources', {
 							'process.memory.peak_rss': usage.maxRSS,

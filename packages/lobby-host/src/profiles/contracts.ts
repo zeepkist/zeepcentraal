@@ -1,5 +1,5 @@
 import type { GameHostPacket, GameHostPlayer } from '@zeepkist/core/zeepnet'
-import type { PreparedLevel } from '../assets/preparedLevel'
+import type { PreparedLevel, PreparedPlaylist } from '../assets/preparedLevel'
 import type { RoomChat } from '../chat/roomChat'
 import type { PlayerLeaderboard } from '../leaderboard/playerLeaderboard'
 
@@ -15,8 +15,10 @@ export type LevelTransferEvent = {
 /** A new context/session is created for every GameServer connection. */
 export interface RoomContext {
 	activate(level: PreparedLevel): Promise<void>
+	activatePlaylist?(level: PreparedLevel, playlist: PreparedPlaylist): Promise<void>
 	chat: RoomChat
 	createLeaderboard(onRoster: (ids: bigint[]) => void, onError: () => void): PlayerLeaderboard
+	disconnect?(): Promise<void>
 	getPlayers(): GameHostPlayer[]
 	isHost(): boolean
 	isReady(): boolean
@@ -24,6 +26,11 @@ export interface RoomContext {
 	logger: RoomLogger
 	send(packet: Uint8Array): Promise<void>
 	signal: AbortSignal
+	updatePlaylist?(
+		playlist: PreparedPlaylist,
+		currentIndex: number,
+		nextIndex: number,
+	): Promise<void>
 }
 
 export interface RoomProfileSession {

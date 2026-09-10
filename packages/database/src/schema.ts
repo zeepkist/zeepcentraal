@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
+	type AnyPgColumn,
 	bigint,
 	boolean,
 	check,
@@ -26,6 +27,155 @@ import {
 import { DEFAULT_VOTE_RATING } from './config'
 
 export const zcPrivate = pgSchema('zc_private')
+
+/** Private inspector state. Never exposed through the public GraphQL schema. */
+export const levelSubmissionContest = zcPrivate.table(
+	'level_submission_contest',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+		threadId: text('thread_id').notNull().unique(),
+		guildId: text('guild_id').notNull(),
+		forumId: text('forum_id').notNull(),
+		title: text().notNull(),
+		theme: text().notNull(),
+		seasonNumber: integer('season_number').notNull(),
+		roundNumber: integer('round_number').notNull(),
+		idZslRound: integer('id_zsl_round').references(() => zslRound.id, { onDelete: 'set null' }),
+		mappingSource: text('mapping_source').notNull(),
+		state: text().notNull().default('open'),
+		rules: jsonb().notNull(),
+		rulesHash: text('rules_hash').notNull(),
+		lastCompleteScan: timestamp('last_complete_scan', { withTimezone: true, mode: 'string' }),
+		frozenAt: timestamp('frozen_at', { withTimezone: true, mode: 'string' }),
+		currentPlaylistId: bigint('current_playlist_id', { mode: 'bigint' }).references(
+			(): AnyPgColumn => levelSubmissionPlaylist.id,
+		),
+		publication: jsonb()
+			.$type<{ digest?: string; messageId?: string; cleanupIds?: string[] }>()
+			.notNull()
+			.default({}),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [check('submission_contest_state', sql`${t.state} in ('open', 'frozen')`)],
+)
+
+export const levelSubmissions = zcPrivate.table(
+	'level_submissions',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+		idContest: bigint('id_contest', { mode: 'bigint' })
+			.notNull()
+			.references(() => levelSubmissionContest.id),
+		messageId: text('message_id').notNull(),
+		authorId: text('author_id').notNull(),
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
+		messageCreatedAt: timestamp('message_created_at', {
+			withTimezone: true,
+			mode: 'string',
+		}).notNull(),
+		messageEditedAt: timestamp('message_edited_at', { withTimezone: true, mode: 'string' }),
+		state: text().notNull(),
+		sourceError: text('source_error'),
+		lastSeen: timestamp('last_seen', { withTimezone: true, mode: 'string' }).notNull(),
+		latestValidationId: bigint('latest_validation_id', { mode: 'bigint' }).references(
+			(): AnyPgColumn => levelSubmissionValidation.id,
+		),
+		retryCategory: text('retry_category'),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [
+		unique('submission_source_unique').on(t.idContest, t.messageId, t.workshopId),
+		index('submission_author').on(t.idContest, t.authorId),
+		index('submission_selected').on(t.idContest, t.state),
+		index('submission_workshop').on(t.workshopId),
+		check('submission_state', sql`${t.state} in ('selected', 'superseded', 'withdrawn')`),
+	],
+)
+
+export interface SubmissionPayloadMetadata {
+	author: string
+	byteSize: number
+	collaborators: string
+	name: string
+	objectKey: string
+	overrideAuthorName: string
+	sha256: string
+	uid: string
+}
+export const levelSubmissionValidation = zcPrivate.table(
+	'level_submission_validation',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+		idSubmission: bigint('id_submission', { mode: 'bigint' })
+			.notNull()
+			.references(() => levelSubmissions.id),
+		workshopUpdatedAt: text('workshop_updated_at').notNull(),
+		workshopFileSize: bigint('workshop_file_size', { mode: 'number' }).notNull(),
+		contentSha256: text('content_sha256'),
+		validatorVersion: text('validator_version').notNull(),
+		rulesHash: text('rules_hash').notNull(),
+		idLevelItem: integer('id_level_item').references(() => levelItem.id, {
+			onDelete: 'set null',
+		}),
+		fileUid: text('file_uid'),
+		measurements: jsonb().notNull(),
+		failures: jsonb().$type<string[]>().notNull(),
+		valid: boolean().notNull(),
+		payload: jsonb().$type<SubmissionPayloadMetadata>(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [
+		index('submission_validation_cache').on(t.idSubmission, t.rulesHash, t.validatorVersion),
+	],
+)
+
+export const levelSubmissionPlaylist = zcPrivate.table(
+	'level_submission_playlist',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+		idContest: bigint('id_contest', { mode: 'bigint' })
+			.notNull()
+			.references(() => levelSubmissionContest.id),
+		digest: text().notNull(),
+		validCount: integer('valid_count').notNull(),
+		objectKey: text('object_key').notNull(),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [unique('submission_playlist_digest').on(t.idContest, t.digest)],
+)
+
+export const levelSubmissionPlaylistEntry = zcPrivate.table(
+	'level_submission_playlist_entry',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+		idPlaylist: bigint('id_playlist', { mode: 'bigint' })
+			.notNull()
+			.references(() => levelSubmissionPlaylist.id),
+		position: integer().notNull(),
+		idValidation: bigint('id_validation', { mode: 'bigint' })
+			.notNull()
+			.references(() => levelSubmissionValidation.id),
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
+	},
+	(t) => [
+		unique('submission_playlist_position').on(t.idPlaylist, t.position),
+		unique('submission_playlist_workshop').on(t.idPlaylist, t.workshopId),
+	],
+)
 
 export const zeepCentraalGraphqlRole = pgRole('zeepcentraal_graphql', {
 	createDb: false,

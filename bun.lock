@@ -84,6 +84,16 @@
         "@zeepkist/database": "workspace:*",
       },
     },
+    "packages/inspector-zeep": {
+      "name": "@zeepkist/inspector-zeep",
+      "dependencies": {
+        "@zeepkist/core": "workspace:*",
+        "@zeepkist/database": "workspace:*",
+        "@zeepkist/telemetry": "workspace:*",
+        "@zeepkist/workshop": "workspace:*",
+        "zod": "~4.5.0",
+      },
+    },
     "packages/jobs": {
       "name": "@zeepkist/jobs",
       "dependencies": {
@@ -1973,6 +1983,8 @@
     "@zeepkist/graphql": ["@zeepkist/graphql@workspace:packages/graphql"],
 
     "@zeepkist/import-zsl": ["@zeepkist/import-zsl@workspace:packages/import-zsl"],
+
+    "@zeepkist/inspector-zeep": ["@zeepkist/inspector-zeep@workspace:packages/inspector-zeep"],
 
     "@zeepkist/jobs": ["@zeepkist/jobs@workspace:packages/jobs"],
 

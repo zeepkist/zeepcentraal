@@ -1,4 +1,4 @@
-import type { ManagedRoomConfig } from '@zeepkist/core/config/lobby-host'
+import type { TrackTournamentRoomConfig } from '@zeepkist/core/config/lobby-host'
 import type { GameHostPacket } from '@zeepkist/core/zeepnet'
 import type { LevelPayloadCache } from '../../assets/levelPayloadCache'
 import { MessageScheduler } from '../../chat/messageScheduler'
@@ -29,7 +29,7 @@ export class TrackTournamentProfile implements ManagedLobbyProfile {
 	readonly name: string
 	readonly assets: TournamentAssets
 	constructor(
-		private readonly config: ManagedRoomConfig,
+		private readonly config: TrackTournamentRoomConfig,
 		private readonly shared: TournamentDependencies,
 		private readonly log: RoomLogger,
 	) {
@@ -72,7 +72,7 @@ class TrackTournamentSession implements RoomProfileSession {
 	private readonly messages: MessageScheduler
 	private readonly players: TournamentPlayerLeaderboard
 	constructor(
-		private readonly config: ManagedRoomConfig,
+		private readonly config: TrackTournamentRoomConfig,
 		private readonly hub: TrackTournamentLeaderboardHub,
 		private readonly assets: TournamentAssets,
 		private readonly context: RoomContext,

@@ -93,7 +93,7 @@ test('shutdown interrupts asset polling wait', async () => {
 	await withTimeout(running)
 })
 
-test('generic runtime activates a minimal profile without tournament lookups', async () => {
+test('generic runtime activates and rotates fragmented playlist payloads without tournament lookups', async () => {
 	const originalFetch = globalThis.fetch
 	globalThis.fetch = Bun.fetch
 	const server = dgram.createSocket('udp4')
@@ -105,13 +105,24 @@ test('generic runtime activates a minimal profile without tournament lookups', a
 		resolveReady = resolve
 	})
 	let signal: AbortSignal | undefined
-	let uploaded = false
+	let uploaded = 0
+	let skips = 0
 	const stopSession = mock(() => {})
 	const level = {
 		level: TEST_LEVEL,
 		contentSha256: sha256(preparedPayload),
 		compressedData: preparedPayload,
 		lease: { data: preparedPayload, release: () => {} },
+	}
+	const second = {
+		level: REPLACEMENT_LEVEL,
+		contentSha256: sha256(replacementPayload),
+		compressedData: replacementPayload,
+		lease: { data: replacementPayload, release: () => {} },
+	}
+	const playlist = {
+		levels: [level.level, second.level],
+		load: async (uid: string) => [level, second].find((entry) => entry.level.uid === uid),
 	}
 	const profile: ManagedLobbyProfile = {
 		name: 'minimal-test-profile',
@@ -121,10 +132,17 @@ test('generic runtime activates a minimal profile without tournament lookups', a
 		createSession: (context) => {
 			signal = context.signal
 			return {
-				start: () => context.activate(level),
-				onPacket: () => {},
+				start: () => {
+					if (!context.activatePlaylist) throw new Error('Playlist capability missing')
+					return context.activatePlaylist(level, playlist)
+				},
+				onPacket: (packet) => {
+					if (packet.type === 'playlist-index' && packet.selectNext)
+						void context.updatePlaylist?.(playlist, 0, 1)
+				},
 				onTransfer: (event) => {
-					if (event.type === 'ready') resolveReady?.()
+					if (event.type === 'ready' && event.level.level.uid === second.level.uid)
+						resolveReady?.()
 				},
 				stop: stopSession,
 			}
@@ -137,15 +155,37 @@ test('generic runtime activates a minimal profile without tournament lookups', a
 		if (!payload) return
 		const reader = new BitReader(payload)
 		const id = reader.readUInt16()
-		if (id === ZEEPKIST_PACKET_ID.skipToLevel)
+		if (id === ZEEPKIST_PACKET_ID.skipToLevel) {
+			skips++
 			server.send(
 				reliable(levelRequestPacket('Track', TEST_LEVEL), sequence++),
 				remote.port,
 				remote.address,
 			)
+		}
+		if (id === ZEEPKIST_PACKET_ID.changeLobbyPlaylist && uploaded === 1)
+			server.send(
+				reliable(levelRequestPacket('Replacement Track', REPLACEMENT_LEVEL), sequence++),
+				remote.port,
+				remote.address,
+			)
 		if (id === ZEEPKIST_PACKET_ID.levelData) {
-			expect(readLevelResponse(reader).data).toEqual(preparedPayload)
-			uploaded = true
+			expect(readLevelResponse(reader).data).toEqual(
+				uploaded === 0 ? preparedPayload : replacementPayload,
+			)
+			uploaded++
+			if (uploaded === 1) {
+				const selectNext = new BitWriter()
+				selectNext.writeUInt16(ZEEPKIST_PACKET_ID.changeLobbyPlaylistIndex)
+				selectNext.writeInt32(0)
+				selectNext.writeInt32(1)
+				selectNext.writeBoolean(true)
+				server.send(
+					reliable(selectNext.toUint8Array(), sequence++),
+					remote.port,
+					remote.address,
+				)
+			}
 		}
 	})
 	const broker = startBroker(port)
@@ -164,7 +204,8 @@ test('generic runtime activates a minimal profile without tournament lookups', a
 	const running = host.run()
 	try {
 		await withTimeout(ready)
-		expect(uploaded).toBe(true)
+		expect(uploaded).toBe(2)
+		expect(skips).toBe(1)
 		expect(getAsset).not.toHaveBeenCalled()
 	} finally {
 		await host.stop()

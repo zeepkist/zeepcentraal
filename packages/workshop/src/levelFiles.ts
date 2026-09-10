@@ -33,7 +33,7 @@ export async function findWorkshopLevelFile(directory: string, fileUid: string) 
 	return undefined
 }
 
-async function findLevelPaths(directory: string) {
+export async function findLevelPaths(directory: string) {
 	const paths: string[] = []
 	let visitedEntries = 0
 	async function visit(current: string, depth: number): Promise<void> {

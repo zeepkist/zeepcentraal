@@ -8,6 +8,7 @@ export type TelemetryPackageName =
 	| 'import-zsl'
 	| 'postgraphile'
 	| 'lobby-host'
+	| 'inspector-zeep'
 	| 'web'
 	| 'workshop'
 

@@ -1,0 +1,22 @@
+{
+	"version": 1,
+	"forums": [{ "guildId": "1", "forumId": "2" }],
+	"seasons": { "8": 1 },
+	"activeShowcaseThreadId": "3",
+	"contests": [
+		{
+			"threadId": "3",
+			"closed": false,
+			"reopen": false,
+			"rules": {
+				"minBlocks": 0,
+				"maxBlocks": 3000,
+				"minTime": 25,
+				"maxTime": 60,
+				"minCheckpoints": 3,
+				"requiredModes": [],
+				"fixedCheckpoints": []
+			}
+		}
+	]
+}

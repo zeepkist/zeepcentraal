@@ -1,0 +1,2 @@
+ALTER TABLE "zc_private"."level_submission_contest" ADD CONSTRAINT "level_submission_contest_current_playlist_id_level_submission_playlist_id_fk" FOREIGN KEY ("current_playlist_id") REFERENCES "zc_private"."level_submission_playlist"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "zc_private"."level_submissions" ADD CONSTRAINT "level_submissions_latest_validation_id_level_submission_validation_id_fk" FOREIGN KEY ("latest_validation_id") REFERENCES "zc_private"."level_submission_validation"("id") ON DELETE no action ON UPDATE no action;

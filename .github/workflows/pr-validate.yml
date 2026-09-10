@@ -87,6 +87,15 @@ jobs:
             expected_path: dist/zeepcentraal-lobby-host
             tag: zeepcentraal/lobby-host
             clone_super_league: false
+          - name: inspector-zeep
+            build_script: build:inspector-zeep
+            artifact_path: dist/zeepcentraal-inspector-zeep
+            include_hidden_files: false
+            file: packages/inspector-zeep/Dockerfile
+            artifact_download_path: dist
+            expected_path: dist/zeepcentraal-inspector-zeep
+            tag: zeepcentraal/inspector-zeep
+            clone_super_league: false
           - name: migrate
             build_script: build:migrate
             artifact_path: dist/zeepcentraal-migrate

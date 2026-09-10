@@ -44,16 +44,16 @@ FROM steamcmd/steamcmd:ubuntu-22@sha256:ea800a0a8468683b51f0f55b6d6e9f2dcaef2ef4
 
 ARG SERVICE_VERSION=dev
 
-LABEL org.opencontainers.image.description="ZeepCentraal background worker with SteamCMD workshop scanning."
+LABEL org.opencontainers.image.description="ZeepCentraal one-shot level contest inspector with SteamCMD."
 
 WORKDIR /app
 
-COPY --chmod=755 dist/zeepcentraal-jobs zeepcentraal-jobs
+COPY --chmod=755 dist/zeepcentraal-inspector-zeep zeepcentraal-inspector-zeep
 COPY --from=native-deps /native-node_modules node_modules
 
 ENV NODE_ENV=production
-ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-jobs
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-inspector-zeep
 ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
 ENV STEAMCMD_PATH=/usr/bin/steamcmd
 
-ENTRYPOINT ["/app/zeepcentraal-jobs"]
+ENTRYPOINT ["/app/zeepcentraal-inspector-zeep"]

@@ -7,3 +7,9 @@ export interface PreparedLevel {
 	lease: LevelPayloadLease
 	level: OnlineLevel
 }
+
+/** Metadata-only playlist. Load acquires a lease only for a requested entry. */
+export interface PreparedPlaylist {
+	levels: readonly OnlineLevel[]
+	load(uid: string, workshopId: bigint): Promise<PreparedLevel | undefined>
+}

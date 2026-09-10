@@ -230,21 +230,46 @@ export function targetedChatMessagePacket(
 }
 
 export function changeLobbyPlaylistPacket(level: OnlineLevel, roundTimeSeconds: number) {
+	return changeLobbyLevelsPacket([level], roundTimeSeconds, 0, 0)
+}
+
+/** Sequential playlist; single-entry encoding remains byte-identical. */
+export function changeLobbyLevelsPacket(
+	levels: readonly OnlineLevel[],
+	roundTimeSeconds: number,
+	currentIndex: number,
+	nextIndex: number,
+) {
+	if (
+		levels.length < 1 ||
+		levels.length > MAX_PLAYLIST_LEVELS ||
+		!Number.isInteger(currentIndex) ||
+		currentIndex < 0 ||
+		currentIndex >= levels.length ||
+		!Number.isInteger(nextIndex) ||
+		nextIndex < 0 ||
+		nextIndex >= levels.length ||
+		!Number.isFinite(roundTimeSeconds) ||
+		roundTimeSeconds <= 0
+	)
+		throw new Error('Invalid managed playlist')
 	return writePacket(ZEEPKIST_PACKET_ID.changeLobbyPlaylist, (writer) => {
 		writer.writeFloat64(roundTimeSeconds)
 		writer.writeBoolean(false)
-		writer.writeInt32(0)
-		writer.writeInt32(0)
-		writer.writeInt32(1)
-		writer.writeString(level.uid)
-		writer.writeUInt64(level.workshopId)
-		writer.writeString(level.name)
-		writer.writeString(level.collaborators)
-		writer.writeString(level.overrideAuthorName)
-		writer.writeString(level.author)
-		writer.writeBoolean(false)
-		writer.writeBoolean(true)
-		writer.writeInt32(1)
+		writer.writeInt32(currentIndex)
+		writer.writeInt32(nextIndex)
+		writer.writeInt32(levels.length)
+		for (const level of levels) {
+			writer.writeString(level.uid)
+			writer.writeUInt64(level.workshopId)
+			writer.writeString(level.name)
+			writer.writeString(level.collaborators)
+			writer.writeString(level.overrideAuthorName)
+			writer.writeString(level.author)
+			writer.writeBoolean(false)
+			writer.writeBoolean(true)
+			writer.writeInt32(1)
+		}
 	})
 }
 
