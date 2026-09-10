@@ -55,7 +55,7 @@
 	"devDependencies": {
 		"@golar/vue": "~0.1.10",
 		"@iconify-json/tabler": "~1.2.38",
-		"@playwright/test": "~1.62.0",
+		"@playwright/test": "~1.63.0",
 		"@types/sanitize-html": "~2.16.1",
 		"@types/sortablejs": "~1.15.9",
 		"@types/three": "~0.185.1",
