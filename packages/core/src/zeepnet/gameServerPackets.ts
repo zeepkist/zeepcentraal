@@ -267,9 +267,9 @@ export function changeLobbyLevelsPacket(
 			writer.writeString(level.overrideAuthorName)
 			writer.writeString(level.author)
 			writer.writeBoolean(false)
-			writer.writeBoolean(true)
-			writer.writeInt32(1)
 		}
+		writer.writeBoolean(true)
+		writer.writeInt32(levels.length)
 	})
 }
 

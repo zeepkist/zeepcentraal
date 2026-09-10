@@ -93,7 +93,7 @@ test('shutdown interrupts asset polling wait', async () => {
 	await withTimeout(running)
 })
 
-test('generic runtime activates and rotates fragmented playlist payloads without tournament lookups', async () => {
+test('strict V18 peer rotates, wraps, serves late-join payloads and replaces multi-track playlist', async () => {
 	const originalFetch = globalThis.fetch
 	globalThis.fetch = Bun.fetch
 	const server = dgram.createSocket('udp4')
@@ -107,6 +107,7 @@ test('generic runtime activates and rotates fragmented playlist payloads without
 	let signal: AbortSignal | undefined
 	let uploaded = 0
 	let skips = 0
+	let acceptedPlaylists = 0
 	const stopSession = mock(() => {})
 	const level = {
 		level: TEST_LEVEL,
@@ -124,6 +125,7 @@ test('generic runtime activates and rotates fragmented playlist payloads without
 		levels: [level.level, second.level],
 		load: async (uid: string) => [level, second].find((entry) => entry.level.uid === uid),
 	}
+	const reordered = { ...playlist, levels: [second.level, level.level] }
 	const profile: ManagedLobbyProfile = {
 		name: 'minimal-test-profile',
 		currentLevel: level,
@@ -137,13 +139,18 @@ test('generic runtime activates and rotates fragmented playlist payloads without
 					return context.activatePlaylist(level, playlist)
 				},
 				onPacket: (packet) => {
-					if (packet.type === 'playlist-index' && packet.selectNext)
-						void context.updatePlaylist?.(playlist, 0, 1)
+					if (packet.type === 'playlist-index' && packet.selectNext) {
+						// Apply a published membership reorder at the third boundary only.
+						if (uploaded === 4) void context.updatePlaylist?.(reordered, 1, 0)
+						else
+							void context.updatePlaylist?.(
+								playlist,
+								packet.currentIndex,
+								packet.nextIndex,
+							)
+					}
 				},
-				onTransfer: (event) => {
-					if (event.type === 'ready' && event.level.level.uid === second.level.uid)
-						resolveReady?.()
-				},
+				onTransfer: () => {},
 				stop: stopSession,
 			}
 		},
@@ -155,6 +162,44 @@ test('generic runtime activates and rotates fragmented playlist payloads without
 		if (!payload) return
 		const reader = new BitReader(payload)
 		const id = reader.readUInt16()
+		if (id === ZEEPKIST_PACKET_ID.changeLobbyPlaylist) {
+			const expected = uploaded === 4 ? reordered.levels : playlist.levels
+			const current = uploaded === 2 || uploaded === 4 ? 1 : 0
+			const next = 1 - current
+			// Decode complete V18 framing before acting on nextIndex. Do not accept
+			// a packet merely because its ID/header looks right.
+			expect(reader.readFloat64()).toBe(900)
+			expect(reader.readBoolean()).toBe(false)
+			expect(reader.readInt32()).toBe(current)
+			expect(reader.readInt32()).toBe(next)
+			expect(reader.readInt32()).toBe(expected.length)
+			for (const entry of expected) {
+				expect(reader.readString()).toBe(entry.uid)
+				expect(reader.readUInt64()).toBe(entry.workshopId)
+				for (const value of [
+					entry.name,
+					entry.collaborators,
+					entry.overrideAuthorName,
+					entry.author,
+				])
+					expect(reader.readString()).toBe(value)
+				expect(reader.readBoolean()).toBe(false)
+			}
+			expect(reader.readBoolean()).toBe(true)
+			expect(reader.readInt32()).toBe(expected.length)
+			expect(reader.remainingBits).toBeLessThan(8)
+			while (reader.remainingBits) expect(reader.readBoolean()).toBe(false)
+			acceptedPlaylists++
+			if (uploaded > 0) {
+				const target = expected[next]
+				if (!target) throw new Error('Invalid accepted playlist index')
+				server.send(
+					reliable(levelRequestPacket(target.name, target), sequence++),
+					remote.port,
+					remote.address,
+				)
+			}
+		}
 		if (id === ZEEPKIST_PACKET_ID.skipToLevel) {
 			skips++
 			server.send(
@@ -163,22 +208,24 @@ test('generic runtime activates and rotates fragmented playlist payloads without
 				remote.address,
 			)
 		}
-		if (id === ZEEPKIST_PACKET_ID.changeLobbyPlaylist && uploaded === 1)
-			server.send(
-				reliable(levelRequestPacket('Replacement Track', REPLACEMENT_LEVEL), sequence++),
-				remote.port,
-				remote.address,
-			)
 		if (id === ZEEPKIST_PACKET_ID.levelData) {
 			expect(readLevelResponse(reader).data).toEqual(
-				uploaded === 0 ? preparedPayload : replacementPayload,
+				uploaded === 1 || uploaded === 4 ? replacementPayload : preparedPayload,
 			)
 			uploaded++
-			if (uploaded === 1) {
+			if (uploaded === 5) resolveReady?.()
+			else if (uploaded === 3) {
+				// GameServer needs current payload again for a later joining player.
+				server.send(
+					reliable(levelRequestPacket(TEST_LEVEL.name, TEST_LEVEL), sequence++),
+					remote.port,
+					remote.address,
+				)
+			} else {
 				const selectNext = new BitWriter()
 				selectNext.writeUInt16(ZEEPKIST_PACKET_ID.changeLobbyPlaylistIndex)
-				selectNext.writeInt32(0)
-				selectNext.writeInt32(1)
+				selectNext.writeInt32(uploaded === 2 ? 1 : 0)
+				selectNext.writeInt32(uploaded === 2 ? 0 : 1)
 				selectNext.writeBoolean(true)
 				server.send(
 					reliable(selectNext.toUint8Array(), sequence++),
@@ -204,7 +251,8 @@ test('generic runtime activates and rotates fragmented playlist payloads without
 	const running = host.run()
 	try {
 		await withTimeout(ready)
-		expect(uploaded).toBe(2)
+		expect(uploaded).toBe(5)
+		expect(acceptedPlaylists).toBe(4)
 		expect(skips).toBe(1)
 		expect(getAsset).not.toHaveBeenCalled()
 	} finally {
