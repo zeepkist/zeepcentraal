@@ -474,7 +474,7 @@ test('matches C# playlist transition and serves every level-data request', async
 			76561198000000042n,
 			76561198000000043n,
 		])
-		expect(targetedMessages[0]?.hostname).toBe('<color=#facc15>HOST</color>')
+		expect(targetedMessages[0]?.hostname).toBe('<color=#f9cc15>HOST</color>')
 		expect(targetedMessages[0]?.message).toContain('Welcome to Track of the Week,')
 		expect(targetedMessages[0]?.message).toContain(
 			'You are currently #12 on the tournament leaderboard with 00:34.234.',

@@ -97,7 +97,7 @@ export class TournamentStandingNotifications {
 		const message = buildTournamentStandingMessage(this.type, pending.previous, pending.current)
 		// Transport owns retries. Never replay a potentially delivered chat message.
 		void this.send(
-			targetedChatMessagePacket(BigInt(id), message, color('#facc15', 'HOST')),
+			targetedChatMessagePacket(BigInt(id), message, color('#f9cc15', 'HOST')),
 		).catch(() => this.onError())
 	}
 }
@@ -116,9 +116,9 @@ export function buildTournamentStandingMessage(
 ) {
 	const label = `Track of the ${type === 'weekly' ? 'Week' : 'Month'}`
 	const heading = !previous
-		? 'First tournament result!'
+		? "You're on the board!"
 		: current.time < previous.time
-			? 'New personal best!'
+			? 'New PB!'
 			: current.rank < previous.rank
 				? 'Rank improved!'
 				: 'Rank dropped'
@@ -134,7 +134,7 @@ export function buildTournamentStandingMessage(
 		85,
 		color(
 			'#dedede',
-			`${bold(`${label} — ${heading}`)}${lineBreak()}${rank} · ${time} · ${points}`,
+			`${bold(`${label}: ${heading}`)}${lineBreak()}${rank} · ${time} · ${points}`,
 		),
 	)
 }

@@ -52,7 +52,7 @@ export function buildTrackTournamentJoinMessage(input: TrackTournamentJoinMessag
 	)
 	return {
 		// hostname: `---${eventName}---`,
-		hostname: color('#facc15', 'HOST'),
+		hostname: color('#f9cc15', 'HOST'),
 		message: size(85, color('#dedede', paragraphs.join(lineBreak().repeat(2)))),
 	}
 }

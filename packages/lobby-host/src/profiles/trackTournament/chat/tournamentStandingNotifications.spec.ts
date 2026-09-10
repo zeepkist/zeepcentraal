@@ -61,7 +61,7 @@ describe('targeted tournament standing messages', () => {
 			time: 34.234,
 			points: 656,
 		})
-		expect(message).toContain('<b>Track of the Week — New personal best!</b>')
+		expect(message).toContain('<b>Track of the Week: New PB!</b>')
 		expect(message).toContain('#12')
 		expect(message).toContain('up 3 positions')
 		expect(message).not.toMatch(/[↑↓]/u)
@@ -77,7 +77,7 @@ describe('targeted tournament standing messages', () => {
 			rank: 16,
 			points: 620,
 		})
-		expect(drop).toContain('Track of the Month — Rank dropped')
+		expect(drop).toContain('Track of the Month: Rank dropped')
 		expect(drop).toContain('<color=#fca5a5>down 1 position</color>')
 		expect(drop).not.toMatch(/[↑↓]/u)
 		expect(drop).toContain('00:34.750 (unchanged)')
@@ -86,7 +86,7 @@ describe('targeted tournament standing messages', () => {
 		expect(pb).toContain('#15 (unchanged)')
 		expect(pb).toContain('630 pts (unchanged)')
 		const first = buildTournamentStandingMessage('weekly', undefined, result)
-		expect(first).toContain('First tournament result!')
+		expect(first).toContain("You're on the board!")
 		expect(first).not.toContain('unchanged')
 		expect(first).not.toContain('↑')
 		expect(first).not.toContain('↓')
@@ -102,7 +102,7 @@ describe('targeted tournament standing messages', () => {
 			await Bun.sleep(50)
 			expect(sent).toHaveLength(1)
 			expect(sent[0]?.id).toBe(42n)
-			expect(sent[0]?.hostname).toBe('<color=#facc15>HOST</color>')
+			expect(sent[0]?.hostname).toBe('<color=#f9cc15>HOST</color>')
 			expect(sent[0]?.message).toContain('up 3 positions')
 			expect(sent[0]?.message).toContain('<color=#86efac>0.516s</color>')
 		} finally {
@@ -123,7 +123,7 @@ describe('targeted tournament standing messages', () => {
 			notifications.update([{ ...result, points: 650, time: 34 }])
 			await Bun.sleep(50)
 			expect(sent).toHaveLength(1)
-			expect(sent[0]?.message).toContain('New personal best!')
+			expect(sent[0]?.message).toContain('New PB!')
 			expect(sent[0]?.message).toContain('650 pts (unchanged)')
 		} finally {
 			notifications.close()
@@ -135,7 +135,7 @@ describe('targeted tournament standing messages', () => {
 			notifications.update([])
 			notifications.update([result])
 			await Bun.sleep(50)
-			expect(sent[0]?.message).toContain('First tournament result!')
+			expect(sent[0]?.message).toContain("You're on the board!")
 			notifications.update([{ ...result, rank: 10 }])
 			notifications.update([])
 			await Bun.sleep(50)

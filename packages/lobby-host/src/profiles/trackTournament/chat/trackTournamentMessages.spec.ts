@@ -33,7 +33,7 @@ describe('track tournament room messages', () => {
 			type: 'weekly',
 		})
 		expect(result).toEqual({
-			hostname: '<color=#facc15>HOST</color>',
+			hostname: '<color=#f9cc15>HOST</color>',
 			message:
 				'<size=85%><color=#dedede>Welcome to Track of the Week, Player One<br><br>A time attack tournament featuring a unique level each week.<br><br>View the full tournament leaderboard on <u>zeepki.st/totw</u>!<br><br><size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size></color></size>',
 		})
@@ -47,7 +47,7 @@ describe('track tournament room messages', () => {
 			standing: { rank: 12, time: 34.234 },
 			type: 'monthly',
 		})
-		expect(result.hostname).toBe('<color=#facc15>HOST</color>')
+		expect(result.hostname).toBe('<color=#f9cc15>HOST</color>')
 		expect(result.message).toContain(
 			'Welcome to Track of the Month, &lt;b&gt;Alice&lt;/b&gt; Second',
 		)
