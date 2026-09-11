@@ -596,6 +596,13 @@
 			"when": 1788998555319,
 			"tag": "0085_fair_trauma",
 			"breakpoints": true
+		},
+		{
+			"idx": 86,
+			"version": "7",
+			"when": 1789135003023,
+			"tag": "0086_record_history_level_indexes",
+			"breakpoints": true
 		}
 	]
 }

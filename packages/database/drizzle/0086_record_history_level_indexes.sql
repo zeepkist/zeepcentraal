@@ -1,0 +1,2 @@
+CREATE INDEX "IX_record_history_index_level_latest" ON "zc_private"."record_history_index" USING btree ("history_view","level_id","id" DESC NULLS FIRST) WHERE "zc_private"."record_history_index"."history_view" IN ('personal-bests', 'world-records');--> statement-breakpoint
+CREATE INDEX "IX_record_history_index_level_user_latest" ON "zc_private"."record_history_index" USING btree ("history_view","level_id","user_id","id" DESC NULLS FIRST) WHERE "zc_private"."record_history_index"."history_view" = 'personal-bests';

@@ -19,6 +19,10 @@ const submitPerformanceMigration = readFileSync(
 	new URL('../drizzle/0067_record_history_submit_projection.sql', import.meta.url),
 	'utf8',
 )
+const levelReadPerformanceMigration = readFileSync(
+	new URL('../drizzle/0086_record_history_level_indexes.sql', import.meta.url),
+	'utf8',
+)
 
 describe('record history read model', () => {
 	test('uses one indexed projection source before mutable display joins', () => {
@@ -47,6 +51,11 @@ describe('record history read model', () => {
 			const index = indexByName(name)
 			return index?.config.columns.map((column) => ('name' in column ? column.name : null))
 		}
+		const predicate = (name: string) => {
+			const where = indexByName(name)?.config.where
+			if (!where) throw new Error(`Missing predicate for ${name}`)
+			return new PgDialect().sqlToQuery(where).sql
+		}
 
 		expect(columnNames('IX_record_history_index_latest')).toEqual([
 			'history_view',
@@ -59,6 +68,23 @@ describe('record history read model', () => {
 			'date_created',
 			'id',
 		])
+		expect(columnNames('IX_record_history_index_level_latest')).toEqual([
+			'history_view',
+			'level_id',
+			'id',
+		])
+		expect(predicate('IX_record_history_index_level_latest')).toContain(
+			`"record_history_index"."history_view" IN ('personal-bests', 'world-records')`,
+		)
+		expect(columnNames('IX_record_history_index_level_user_latest')).toEqual([
+			'history_view',
+			'level_id',
+			'user_id',
+			'id',
+		])
+		expect(predicate('IX_record_history_index_level_user_latest')).toContain(
+			`"record_history_index"."history_view" = 'personal-bests'`,
+		)
 		expect(columnNames('IX_record_history_index_player_value')).toEqual([
 			'history_view',
 			'has_contribution',
@@ -146,6 +172,22 @@ describe('record history read model', () => {
 		expect(scorePerformanceMigration).toContain('level_points IS DISTINCT FROM NEW.points')
 		expect(scorePerformanceMigration).toContain('has_contribution = false')
 		expect(scorePerformanceMigration).toContain('(is_personal_best OR is_world_record)')
+	})
+
+	test('migrates indexed current-level PB and WR reads without indexing recent records', () => {
+		expect(levelReadPerformanceMigration).toContain(
+			'CREATE INDEX "IX_record_history_index_level_latest"',
+		)
+		expect(levelReadPerformanceMigration).toContain(
+			'("history_view","level_id","id" DESC NULLS FIRST)',
+		)
+		expect(levelReadPerformanceMigration).toContain(
+			'CREATE INDEX "IX_record_history_index_level_user_latest"',
+		)
+		expect(levelReadPerformanceMigration).toContain(
+			'("history_view","level_id","user_id","id" DESC NULLS FIRST)',
+		)
+		expect(levelReadPerformanceMigration).not.toContain("history_view\" = 'recent'")
 	})
 
 	test('uses direct record inserts and set-based relation refreshes', () => {

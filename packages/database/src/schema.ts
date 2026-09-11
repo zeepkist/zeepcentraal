@@ -1832,6 +1832,23 @@ export const recordHistoryIndex = zcPrivate.table(
 			table.dateCreated.desc().nullsFirst(),
 			table.id.desc().nullsFirst(),
 		),
+		index('IX_record_history_index_level_latest')
+			.using(
+				'btree',
+				table.historyView.asc().nullsLast(),
+				table.levelId.asc().nullsLast(),
+				table.id.desc().nullsFirst(),
+			)
+			.where(sql`${table.historyView} IN ('personal-bests', 'world-records')`),
+		index('IX_record_history_index_level_user_latest')
+			.using(
+				'btree',
+				table.historyView.asc().nullsLast(),
+				table.levelId.asc().nullsLast(),
+				table.userId.asc().nullsLast(),
+				table.id.desc().nullsFirst(),
+			)
+			.where(sql`${table.historyView} = 'personal-bests'`),
 		index('IX_record_history_index_player_value').using(
 			'btree',
 			table.historyView.asc().nullsLast(),
