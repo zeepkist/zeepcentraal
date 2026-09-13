@@ -11,6 +11,6 @@
 		"@zeepkist/database": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
 		"@zeepkist/workshop": "workspace:*",
-		"zod": "~4.5.0"
+		"zod": "~4.6.0"
 	}
 }
