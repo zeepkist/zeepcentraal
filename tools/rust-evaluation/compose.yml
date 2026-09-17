@@ -1,0 +1,17 @@
+name: zeepcentraal-rust-evaluation
+services:
+  postgres:
+    image: postgres:18.6
+    ports:
+      - "127.0.0.1:54329:5432"
+    environment:
+      POSTGRES_USER: zc_preview
+      POSTGRES_PASSWORD: local-preview-only
+      POSTGRES_DB: zc_rust_sqlx
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zc_preview -d zc_rust_sqlx"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
