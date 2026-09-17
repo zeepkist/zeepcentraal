@@ -1,0 +1,29 @@
+[package]
+name = "zc-server"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[features]
+default = ["db-sqlx"]
+db-sqlx = ["zc-database/db-sqlx"]
+db-diesel = ["zc-database/db-diesel"]
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+async-graphql.workspace = true
+async-graphql-axum.workspace = true
+postrust-server.workspace = true
+postrust-core.workspace = true
+postrust-auth.workspace = true
+postrust-graphql.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+zc-core.workspace = true
+zc-database.workspace = true
+
