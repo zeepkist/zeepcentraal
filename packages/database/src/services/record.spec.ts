@@ -17,6 +17,7 @@ mock.module('@zeepkist/telemetry', () => ({
 	startActiveSpan: (_name: string, callback: (span: Record<string, () => void>) => unknown) =>
 		callback({
 			recordException: () => {},
+			setAttribute: () => {},
 			setErrorStatus: () => {},
 			end: () => {},
 		}),
@@ -65,14 +66,16 @@ describe('level score personal best query', () => {
 describe('record submission transaction', () => {
 	const source = Bun.file(new URL('./record.ts', import.meta.url)).text()
 
-	test('uses ordered exclusive level locking and conditional PB/WR upserts', async () => {
+	test('separates record, tournament, score, and world-record lock domains', async () => {
 		const text = await source
-		expect(text).toContain('WITH user_lock AS MATERIALIZED')
-		expect(text).toContain('pg_advisory_xact_lock(0, $' + '{input.idLevel})')
-		expect(text).toContain('FROM level_lock')
+		expect(text).toContain('record.submit.user_level_lock_wait')
+		expect(text).toContain('pg_advisory_xact_lock($' + '{input.idUser}, $' + '{input.idLevel})')
+		expect(text).toContain('pg_advisory_xact_lock_shared(0, $' + '{input.idLevel})')
+		expect(text).toContain('record.submit.world_record_lock_wait')
+		expect(text).toContain('pg_advisory_xact_lock($' + '{WORLD_RECORD_LOCK_NAMESPACE}')
+		expect(text).not.toContain('pg_advisory_xact_lock(0, $' + '{input.idLevel})')
 		expect(text).toContain('WHERE current_record.id = $' + '{personalBestGlobal.idRecord}')
 		expect(text).toContain('WHERE current_record.id = $' + '{worldRecordGlobal.idRecord}')
 		expect(text).not.toContain('existingPersonalBest')
-		expect(text).not.toContain('existingWorldRecord')
 	})
 })

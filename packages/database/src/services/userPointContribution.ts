@@ -10,7 +10,7 @@ import {
 	userPoints,
 	worldRecordGlobal,
 } from '../schema'
-import { lockUserScores } from './scoreLocks'
+import { lockLevelScores, lockUserScores } from './scoreLocks'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 export { sortedUniqueUserIds } from './userPointContributionHelpers'
@@ -248,8 +248,7 @@ async function syncUserPointContributionLevelsInTransaction(
 	uniqueLevelIds: number[],
 	runPhase: ContributionSyncPhaseRunner = (_phase, operation) => operation(),
 ): Promise<LevelContributionProjectionSyncResult> {
-	await tx.execute(sql`SELECT pg_advisory_xact_lock(0, target.id)
- FROM UNNEST(${arrayParam(uniqueLevelIds)}::integer[]) AS target(id) ORDER BY target.id`)
+	await lockLevelScores(tx, uniqueLevelIds)
 	const affectedUsers = await runPhase('affectedUsers', () =>
 		tx.execute<{ idUser: number }>(sql`
 			SELECT DISTINCT affected.id_user AS "idUser"

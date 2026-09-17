@@ -29,11 +29,17 @@ mock.module('@zeepkist/telemetry', () => ({
 	recordSpanError: () => {},
 	setActiveSpanErrorStatus: () => {},
 	startActiveSpan: (_name: string, callback: (span: Record<string, () => void>) => unknown) =>
-		callback({ recordException: () => {}, setErrorStatus: () => {}, end: () => {} }),
+		callback({
+			recordException: () => {},
+			setAttribute: () => {},
+			setErrorStatus: () => {},
+			end: () => {},
+		}),
 }))
 // Tournament behavior is outside this fixture; submission, score persistence, and locks are real.
 mock.module('./trackTournament', () => ({ recordTrackTournamentResults: async () => false }))
-const { submitRecord } = await import('./record')
+const { submitRecord, WORLD_RECORD_LOCK_NAMESPACE } = await import('./record')
+const { LEVEL_SCORE_LOCK_NAMESPACE } = await import('./scoreLocks')
 const { persistUserPointScore } = await import('./userPointContribution')
 
 function submit(idUser: number, idLevel: number, time: number) {
@@ -159,6 +165,53 @@ describe.skipIf(!port)('record world record counts (PostgreSQL)', () => {
 		await submit(2, 1, 10)
 		await submit(3, 1, 11)
 		expect(await counts()).toEqual([{ id_user: 1, world_records: 77 }])
+	})
+
+	test('score-level lock does not block record submission', async () => {
+		let releaseLock = () => {}
+		let markLocked = () => {}
+		const locked = new Promise<void>((resolve) => {
+			markLocked = resolve
+		})
+		const release = new Promise<void>((resolve) => {
+			releaseLock = resolve
+		})
+		const blocker = client.begin(async (tx) => {
+			await tx`SELECT pg_advisory_xact_lock(${LEVEL_SCORE_LOCK_NAMESPACE}, ${77})`
+			markLocked()
+			await release
+		})
+		await locked
+		try {
+			await expect(submit(1, 77, 10)).resolves.toMatchObject({ personalBestChanged: true })
+		} finally {
+			releaseLock()
+			await blocker
+		}
+	})
+
+	test('slower record skips busy world-record lock', async () => {
+		await submit(1, 88, 10)
+		let releaseLock = () => {}
+		let markLocked = () => {}
+		const locked = new Promise<void>((resolve) => {
+			markLocked = resolve
+		})
+		const release = new Promise<void>((resolve) => {
+			releaseLock = resolve
+		})
+		const blocker = client.begin(async (tx) => {
+			await tx`SELECT pg_advisory_xact_lock(${WORLD_RECORD_LOCK_NAMESPACE}, ${88})`
+			markLocked()
+			await release
+		})
+		await locked
+		try {
+			await expect(submit(2, 88, 11)).resolves.toMatchObject({ personalBestChanged: true })
+		} finally {
+			releaseLock()
+			await blocker
+		}
 	})
 
 	test('recount failure rolls back record, PB, WR and both counts', async () => {
