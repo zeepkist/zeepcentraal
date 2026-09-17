@@ -230,6 +230,10 @@ const mockServerConfig = {
 	nodeEnv: 'test',
 	api: { host: '0.0.0.0', port: 3000, maxRequestBodySize: 32 * 1024 * 1024 },
 	job: { triggerToken: 'job-secret' },
+	turnstile: {
+		secretKey: 'turnstile-test-secret',
+		allowedHostnames: ['localhost'],
+	},
 	jwt: {
 		secret: 'x'.repeat(32),
 		audience: 'zeepki.st',
@@ -703,6 +707,7 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'POST /favourite/add': ['addFavourite', 'favourite'],
 		'POST /favourite/remove': ['removeFavourite', 'favourite'],
 		'POST /record/submit': ['submitRecord', 'record'],
+		'POST /turnstile/verify': ['verifyTurnstile', 'turnstile'],
 		'POST /vote/submit': ['submitVote', 'vote'],
 		'POST /job/trigger': ['triggerJob', 'job'],
 		'GET /lobby': ['getLobbySnapshot', 'lobby'],
@@ -728,6 +733,7 @@ test('OpenAPI document groups every public operation by category', async () => {
 		'lobby',
 		'favourite',
 		'record',
+		'turnstile',
 		'vote',
 		'job',
 		'system',

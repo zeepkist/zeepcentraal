@@ -46,6 +46,10 @@ const recordExperience = readFileSync(
 	new URL('../../app/components/record/RecordGhostExperience.client.vue', import.meta.url),
 	'utf8',
 )
+const turnstileGate = readFileSync(
+	new URL('../../app/components/record/RecordTurnstileGate.client.vue', import.meta.url),
+	'utf8',
+)
 const recordPage = `${recordRoute}\n${recordExperience}`.replaceAll('<Lazy', '<')
 const replayWorkspace = readFileSync(
 	new URL('../../app/components/record/RecordReplayWorkspace.vue', import.meta.url),
@@ -109,7 +113,12 @@ describe('record detail GraphQL', () => {
 		expect(recordRoute).toContain('useRecordDetailSummary(')
 		expect(recordRoute).not.toContain('useRecordDetail(')
 		expect(recordExperience).toContain('useRecordDetail(recordIdRef)')
+		expect(recordRoute).toContain('<LazyRecordTurnstileGate')
+		expect(recordRoute).toContain('v-if="ghostExperienceActive && !turnstileVerified"')
 		expect(recordRoute).toContain('<LazyRecordGhostExperience')
+		expect(recordRoute).toContain('v-else-if="ghostExperienceActive"')
+		expect(turnstileGate).toContain("action: 'record-replay'")
+		expect(turnstileGate).toContain("'/turnstile/verify'")
 		expect(recordRoute).toContain("{ rootMargin: '25% 0px' }")
 	})
 

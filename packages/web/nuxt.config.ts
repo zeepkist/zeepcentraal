@@ -107,6 +107,7 @@ export default defineNuxtConfig({
 			graphqlWsUrl: process.env.NUXT_PUBLIC_GRAPHQL_WS_URL ?? productionGraphqlWsUrl,
 			backendUrl: process.env.NUXT_PUBLIC_BACKEND_URL ?? productionBackendUrl,
 			ghostCdnOrigins: process.env.NUXT_PUBLIC_GHOST_CDN_ORIGINS ?? 'https://cdn.zeepki.st',
+			turnstileSiteKey: process.env.NUXT_PUBLIC_TURNSTILE_SITE_KEY ?? 'replace-me',
 		},
 	},
 	image: {
@@ -254,6 +255,7 @@ export default defineNuxtConfig({
 			title: 'ZeepCentraal',
 			htmlAttrs: { lang: 'en' },
 			link: [
+				{ rel: 'preconnect', href: 'https://challenges.cloudflare.com' },
 				{
 					rel: 'preload',
 					href: '/fonts/DINish.woff2',
@@ -268,6 +270,13 @@ export default defineNuxtConfig({
 				{ rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
 				{ rel: 'manifest', href: '/site.webmanifest' },
 				{ rel: 'shortcut icon', href: '/favicon.ico' },
+			],
+			script: [
+				{
+					src: 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit',
+					async: true,
+					defer: true,
+				},
 			],
 		},
 	},

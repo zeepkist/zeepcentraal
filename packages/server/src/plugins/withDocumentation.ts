@@ -22,6 +22,7 @@ const documentation = {
 		{ name: 'level', description: 'Level discovery and Workshop metadata requests.' },
 		{ name: 'lobby', description: 'Public live Zeepkist lobby status.' },
 		{ name: 'record', description: 'Authenticated GTR record submission.' },
+		{ name: 'turnstile', description: 'Public browser challenge validation.' },
 		{ name: 'vote', description: 'Authenticated level rating submission.' },
 		{ name: 'favourite', description: 'Authenticated favourite level mutations.' },
 		{ name: 'job', description: 'Internal background-job triggers.' },

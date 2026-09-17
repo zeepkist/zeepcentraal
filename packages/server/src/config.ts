@@ -9,5 +9,6 @@ export const config = {
 	otelServiceName: serverConfig.otel.serviceName,
 	otelServiceVersion: serverConfig.otel.serviceVersion,
 	steamAppId: serverConfig.steam.appId,
+	turnstile: serverConfig.turnstile,
 	lobby: serverConfig.lobby,
 } as const

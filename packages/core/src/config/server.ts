@@ -16,6 +16,7 @@ const serverEnvSchema = z.object({
 		.positive()
 		.default(32 * 1024 * 1024),
 	TRIGGER_JOB_TOKEN: z.string().min(1).optional(),
+	TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
 	JWT_SECRET: z.string().min(32).optional(),
 	JWT_AUDIENCE: z.string().default('zeepki.st'),
 	JWT_ISSUER: z.string().default('https://zeepki.st'),
@@ -57,6 +58,9 @@ export function parseServerConfig(env: EnvSource) {
 	const triggerJobToken =
 		parsedEnv.TRIGGER_JOB_TOKEN ??
 		(parsedEnv.NODE_ENV === 'test' ? 'trigger-token' : parsedEnv.TRIGGER_JOB_TOKEN)
+	const turnstileSecretKey =
+		parsedEnv.TURNSTILE_SECRET_KEY ??
+		(parsedEnv.NODE_ENV === 'test' ? 'turnstile-test-secret' : undefined)
 	const discordBotApiToken =
 		parsedEnv.DISCORD_BOT_API_TOKEN ??
 		(parsedEnv.NODE_ENV === 'test' ? 'discord-bot-api-token'.padEnd(32, 'x') : undefined)
@@ -66,6 +70,9 @@ export function parseServerConfig(env: EnvSource) {
 	}
 	if (!triggerJobToken) {
 		throw new Error('TRIGGER_JOB_TOKEN is required')
+	}
+	if (!turnstileSecretKey) {
+		throw new Error('TURNSTILE_SECRET_KEY is required')
 	}
 	if (!discordBotApiToken) {
 		throw new Error('DISCORD_BOT_API_TOKEN is required')
@@ -98,6 +105,22 @@ export function parseServerConfig(env: EnvSource) {
 		},
 		job: {
 			triggerToken: triggerJobToken,
+		},
+		turnstile: {
+			secretKey: turnstileSecretKey,
+			allowedHostnames: [
+				...new Set(
+					(parsedEnv.CORS_ALLOWED_ORIGINS ?? parsedEnv.FRONTEND_URL)
+						.split(',')
+						.flatMap((origin) => {
+							try {
+								return [new URL(origin.trim()).hostname]
+							} catch {
+								return []
+							}
+						}),
+				),
+			],
 		},
 		jwt: {
 			secret: jwtSecret,
