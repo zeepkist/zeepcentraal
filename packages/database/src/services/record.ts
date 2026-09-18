@@ -5,7 +5,6 @@ import {
 	startActiveSpan,
 } from '@zeepkist/telemetry'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
-import { arrayParam } from '../arrayParam'
 import { type DatabaseExecutor, db } from '../client'
 import { GHOST_FOLDER } from '../config'
 import { deleteFile, uploadFile } from '../s3'
@@ -15,18 +14,20 @@ import {
 	recordMedia,
 	recordStatistic,
 	user,
-	userPoints,
 	worldRecordGlobal,
 } from '../schema'
 import { generateUid } from '../utils/generateUid'
 import type { RecordStatisticInput } from './recordStatistic'
 import { buildRecordStatisticValues } from './recordStatistic'
-import { lockUserScores } from './scoreLocks'
+import { lockWorldRecordCounts, WORLD_RECORD_LOCK_NAMESPACE } from './scoreLocks'
 import { recordTrackTournamentResults } from './trackTournament'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
+import { refreshUserWorldRecordCounts } from './worldRecordCounts'
 
 type RecordInput = typeof record.$inferInsert
-export const WORLD_RECORD_LOCK_NAMESPACE = 1_861_284_953
+
+export { WORLD_RECORD_LOCK_NAMESPACE } from './scoreLocks'
+
 const ghostUploadSuccesses = createCounter('record.ghost_upload.success', 'zeepcentraal-database')
 const ghostUploadFailures = createCounter('record.ghost_upload.failure', 'zeepcentraal-database')
 
@@ -157,8 +158,8 @@ export async function submitRecord(
 						input.idUser,
 						...(previousWorldRecord ? [previousWorldRecord.idUser] : []),
 					])
-					await traceRecordPhase('record.submit.user_score_lock_wait', () =>
-						lockUserScores(tx, worldRecordUserIds),
+					await traceRecordPhase('record.submit.world_record_count_lock_wait', () =>
+						lockWorldRecordCounts(tx, worldRecordUserIds),
 					)
 
 					const worldRecordRows = await traceRecordPhase(
@@ -191,20 +192,7 @@ export async function submitRecord(
 
 					if (worldRecordRows.length > 0) {
 						await traceRecordPhase('record.submit.world_record_counts', () =>
-							tx.execute(sql`
-								INSERT INTO ${userPoints} (id_user, world_records, date_updated)
-								SELECT target.id, (
-									SELECT COUNT(*)::integer
-									FROM ${worldRecordGlobal}
-									WHERE ${worldRecordGlobal.idUser} = target.id
-								), NOW()
-								FROM UNNEST(${arrayParam(worldRecordUserIds)}::integer[]) AS target(id)
-								ORDER BY target.id
-								ON CONFLICT (id_user) DO UPDATE SET
-									world_records = EXCLUDED.world_records,
-									date_updated = EXCLUDED.date_updated
-								WHERE ${userPoints.worldRecords} IS DISTINCT FROM EXCLUDED.world_records
-							`),
+							refreshUserWorldRecordCounts(tx, worldRecordUserIds),
 						)
 					}
 				}

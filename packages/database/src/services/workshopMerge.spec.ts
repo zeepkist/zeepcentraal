@@ -6,6 +6,7 @@ function createSelectBuilder() {
 	const builder = {
 		from: mock(() => builder),
 		where: mock(() => builder),
+		orderBy: mock(() => builder),
 		limit: mock(() => builder),
 		// biome-ignore lint/suspicious/noThenProperty: Drizzle query builders are thenable.
 		then: mock((resolve: (rows: unknown[]) => unknown) =>
@@ -44,6 +45,13 @@ mock.module('./user', () => ({
 	resolveSteamNameForWorkshopAuthor: async () => 'Author',
 }))
 
+const lockWorldRecordCounts = mock(async () => {})
+const lockWorldRecords = mock(async () => {})
+const refreshUserWorldRecordCounts = mock(async () => {})
+
+mock.module('./scoreLocks', () => ({ lockWorldRecordCounts, lockWorldRecords }))
+mock.module('./worldRecordCounts', () => ({ refreshUserWorldRecordCounts }))
+
 const { mergeZeepSdkExponentHash } = await import('./workshop')
 
 describe('mergeZeepSdkExponentHash', () => {
@@ -54,10 +62,19 @@ describe('mergeZeepSdkExponentHash', () => {
 		tx.update.mockClear()
 		tx.delete.mockClear()
 		tx.execute.mockClear()
+		lockWorldRecordCounts.mockClear()
+		lockWorldRecords.mockClear()
+		refreshUserWorldRecordCounts.mockClear()
 	})
 
 	test('moves records, rebuilds derived rows, and deletes empty bad level', async () => {
-		selectResults.push([{ id: 10 }], [{ id: 20 }], [{ count: 0 }])
+		selectResults.push(
+			[{ id: 10 }],
+			[{ id: 20 }],
+			[{ idUser: 2 }, { idUser: 1 }],
+			[{ idUser: 3 }],
+			[{ count: 0 }],
+		)
 
 		const result = await mergeZeepSdkExponentHash({
 			correctLevelId: 10,
@@ -71,5 +88,8 @@ describe('mergeZeepSdkExponentHash', () => {
 		expect(tx.update).toHaveBeenCalledTimes(3)
 		expect(tx.delete).toHaveBeenCalledTimes(3)
 		expect(tx.execute).toHaveBeenCalledTimes(7)
+		expect(lockWorldRecords).toHaveBeenCalledWith(tx, [10, 20])
+		expect(lockWorldRecordCounts).toHaveBeenCalledWith(tx, [1, 2, 3])
+		expect(refreshUserWorldRecordCounts).toHaveBeenCalledWith(tx, [1, 2, 3])
 	})
 })

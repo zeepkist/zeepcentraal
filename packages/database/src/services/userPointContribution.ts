@@ -10,7 +10,7 @@ import {
 	userPoints,
 	worldRecordGlobal,
 } from '../schema'
-import { lockLevelScores, lockUserScores } from './scoreLocks'
+import { lockLevelScores, lockUserScores, lockWorldRecordCounts } from './scoreLocks'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 export { sortedUniqueUserIds } from './userPointContributionHelpers'
@@ -190,6 +190,7 @@ export async function persistUserPointScore(input: PersistUserPointScoreInput): 
 			`)
 		}
 
+		await lockWorldRecordCounts(tx, [input.idUser])
 		await tx.execute(sql`
 			INSERT INTO ${userPoints} (
 				id_user,

@@ -3,14 +3,14 @@ import type { SQL } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 
 const lockQueries: unknown[] = []
-const coordination: string[] = []
+const coordination: Array<{ params: unknown[]; sql: string }> = []
 let affectedProjectionUsers: Array<{ idUser: number }> = []
 let failSecondPlayerUpdate = false
 let playerUpdateCount = 0
 const execute = mock(async (query: unknown) => {
 	const compiled = new PgDialect().sqlToQuery(query as SQL)
 	if (compiled.sql.includes('pg_advisory_xact_lock')) {
-		coordination.push(compiled.sql)
+		coordination.push(compiled)
 		return []
 	}
 	lockQueries.push(query)
@@ -59,7 +59,8 @@ test('validates one user snapshot and propagates chunk failure for transaction r
 
 	expect(transaction).toHaveBeenCalledTimes(1)
 	expect(lockQueries).toHaveLength(3)
-	expect(coordination.length).toBeGreaterThan(0)
+	expect(coordination).toHaveLength(1)
+	expect(coordination[0]?.params[0]).toBe(-1_861_284_952)
 	const snapshotQuery = new PgDialect().sqlToQuery(lockQueries[0] as SQL)
 	expect(snapshotQuery.sql).toContain('FULL OUTER JOIN current_contributions')
 	expect(snapshotQuery.sql).toContain('AS matches')
@@ -95,7 +96,9 @@ test('updates player fields with float4-compatible level snapshot values', async
 	})
 
 	expect(lockQueries).toHaveLength(3)
-	expect(coordination.length).toBeGreaterThan(0)
+	expect(coordination).toHaveLength(2)
+	expect(coordination[0]?.params[0]).toBe(-1_861_284_952)
+	expect(coordination[1]?.params[0]).toBe(1_861_284_951)
 	const updateQuery = new PgDialect().sqlToQuery(lockQueries[1] as SQL)
 	expect(updateQuery.sql).toContain('SET\n\t\t\t\t\tcontribution_rank = source.contribution_rank')
 	expect(updateQuery.sql).toContain('player_decayed_points = source.player_decayed_points')

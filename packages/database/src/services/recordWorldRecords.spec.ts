@@ -39,7 +39,8 @@ mock.module('@zeepkist/telemetry', () => ({
 // Tournament behavior is outside this fixture; submission, score persistence, and locks are real.
 mock.module('./trackTournament', () => ({ recordTrackTournamentResults: async () => false }))
 const { submitRecord, WORLD_RECORD_LOCK_NAMESPACE } = await import('./record')
-const { LEVEL_SCORE_LOCK_NAMESPACE } = await import('./scoreLocks')
+const { LEVEL_SCORE_LOCK_NAMESPACE, USER_SCORE_LOCK_NAMESPACE, WORLD_RECORD_COUNT_LOCK_NAMESPACE } =
+	await import('./scoreLocks')
 const { persistUserPointScore } = await import('./userPointContribution')
 
 function submit(idUser: number, idLevel: number, time: number) {
@@ -190,6 +191,58 @@ describe.skipIf(!port)('record world record counts (PostgreSQL)', () => {
 		}
 	})
 
+	test('user score lock does not block record submission', async () => {
+		let releaseLock = () => {}
+		let markLocked = () => {}
+		const locked = new Promise<void>((resolve) => {
+			markLocked = resolve
+		})
+		const release = new Promise<void>((resolve) => {
+			releaseLock = resolve
+		})
+		const blocker = client.begin(async (tx) => {
+			await tx`SELECT pg_advisory_xact_lock(${USER_SCORE_LOCK_NAMESPACE}, ${2671})`
+			markLocked()
+			await release
+		})
+		await locked
+		try {
+			await expect(submit(2671, 78, 10)).resolves.toMatchObject({ personalBestChanged: true })
+		} finally {
+			releaseLock()
+			await blocker
+		}
+	})
+
+	test('world-record count lock serializes count mutations', async () => {
+		let releaseLock = () => {}
+		let markLocked = () => {}
+		const locked = new Promise<void>((resolve) => {
+			markLocked = resolve
+		})
+		const release = new Promise<void>((resolve) => {
+			releaseLock = resolve
+		})
+		const blocker = client.begin(async (tx) => {
+			await tx`SELECT pg_advisory_xact_lock(${WORLD_RECORD_COUNT_LOCK_NAMESPACE}, ${1})`
+			markLocked()
+			await release
+		})
+		await locked
+		const submission = submit(1, 79, 10)
+		try {
+			const state = await Promise.race([
+				submission.then(() => 'resolved'),
+				Bun.sleep(100).then(() => 'waiting'),
+			])
+			expect(state).toBe('waiting')
+		} finally {
+			releaseLock()
+			await blocker
+		}
+		await expect(submission).resolves.toMatchObject({ personalBestChanged: true })
+	})
+
 	test('slower record skips busy world-record lock', async () => {
 		await submit(1, 88, 10)
 		let releaseLock = () => {}
@@ -237,7 +290,7 @@ describe.skipIf(!port)('record world record counts (PostgreSQL)', () => {
 		expect((await counts()).find((row) => row.id_user === 8)?.world_records).toBe(1)
 	})
 
-	test('opposite holder swaps across levels acquire score locks without deadlock', async () => {
+	test('opposite holder swaps across levels acquire count locks without deadlock', async () => {
 		await submit(1, 1, 20)
 		await submit(2, 2, 20)
 		for (let round = 0; round < 5; round++) {
