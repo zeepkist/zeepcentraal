@@ -75,6 +75,31 @@ describe('LidgrenClient shutdown', () => {
 			await close(server)
 		}
 	})
+
+	test('retains safe UDP error code and syscall metadata', async () => {
+		const server = dgram.createSocket('udp4')
+		const port = await bind(server)
+		server.on('message', (data, remote) => {
+			if (data[0] === CONNECT) server.send(connectResponse(), remote.port, remote.address)
+		})
+		const client = createClient(port)
+		try {
+			await client.connect()
+			const socket = (client as unknown as { socket: ReturnType<typeof dgram.createSocket> })
+				.socket
+			const transportError = Object.assign(new Error('private network detail'), {
+				code: 'ENETUNREACH',
+				syscall: 'send',
+			})
+			socket.emit('error', transportError)
+			const error = await withTimeout(client.waitForClose().catch((value) => value))
+			expect(error).toEqual(new Error('UDP transport error', { cause: transportError }))
+			expect((error as Error).message).not.toContain('private network detail')
+		} finally {
+			await client.close()
+			await close(server)
+		}
+	})
 })
 
 describe('LidgrenClient protocol', () => {

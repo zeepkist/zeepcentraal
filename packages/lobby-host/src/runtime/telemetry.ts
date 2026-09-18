@@ -7,10 +7,18 @@ export const assignmentLatency = meter.createHistogram(
 export const reconnects = meter.createCounter('zeepkist.managed_room.reconnects', {
 	description: 'Failed room connections followed by retry',
 })
+export const recoveryDuration = meter.createHistogram('zeepkist.managed_room.recovery.duration', {
+	description: 'Time from first room failure until readiness is restored',
+	unit: 'ms',
+})
 export const connectionDuration = meter.createHistogram(
 	'zeepkist.managed_room.connection.duration',
 	{ description: 'GameServer connection lifetime', unit: 'ms' },
 )
+export const eventLoopDelay = meter.createHistogram('zeepkist.lobby_host.event_loop.delay', {
+	description: 'Observed lobby-host event-loop scheduling delay',
+	unit: 'ms',
+})
 export const afkDisconnects = meter.createCounter('zeepkist.managed_room.disconnects.afk', {
 	description: 'GameServer disconnects categorized as AFK',
 })

@@ -4,10 +4,11 @@ import type { PreparedLevel, PreparedPlaylist } from '../../assets/preparedLevel
 import type { RoomContext } from '../contracts'
 
 let empty = false
+let unavailable = false
 const download = mock(async () => new Uint8Array([1, 2, 3]))
-mock.module('@zeepkist/database/services/level-submissions', () => ({
-	downloadSubmissionPayload: download,
-	getSubmissionPlaylist: async () => ({
+const getPlaylist = mock(async () => {
+	if (unavailable) throw new Error('database unavailable')
+	return {
 		playlist: { digest: 'snapshot' },
 		members: empty
 			? []
@@ -26,12 +27,31 @@ mock.module('@zeepkist/database/services/level-submissions', () => ({
 						},
 					},
 				})),
-	}),
+	}
+})
+mock.module('@zeepkist/database/services/level-submissions', () => ({
+	downloadSubmissionPayload: download,
+	getSubmissionPlaylist: getPlaylist,
 }))
 const { ZslSubmissionsProfile } = await import('./profile')
 beforeEach(() => {
 	empty = false
+	unavailable = false
 	download.mockClear()
+	getPlaylist.mockClear()
+})
+test('prepared playlist is reused when storage becomes unavailable', async () => {
+	const profile = new ZslSubmissionsProfile(
+		'1',
+		new LevelPayloadCache(),
+		{ info() {}, warn() {} },
+		300,
+	)
+	const first = await profile.prepare()
+	unavailable = true
+	expect(await profile.prepare()).toBe(first)
+	expect(getPlaylist).toHaveBeenCalledTimes(1)
+	profile.stop()
 })
 test('prepares only first payload and releases all leases on stop', async () => {
 	const cache = new LevelPayloadCache()
