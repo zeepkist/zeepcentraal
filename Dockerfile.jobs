@@ -1,4 +1,4 @@
-FROM oven/bun:1.4.0-debian AS native-deps
+FROM oven/bun:1.4.2-debian AS native-deps
 
 WORKDIR /app
 
