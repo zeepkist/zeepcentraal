@@ -21,10 +21,30 @@ import {
 	connectionDuration,
 	meter,
 	reconnects,
+	recoveryDuration,
 	roomLogger,
 } from './telemetry'
 
 export type RuntimeRoomConfig = Omit<ManagedRoomConfig, 'profile'>
+
+type RoomFailurePhase =
+	| 'active-session'
+	| 'asset-prepare'
+	| 'broker-assignment'
+	| 'join-id-read'
+	| 'join-id-write'
+	| 'room-start'
+	| 'udp-connect'
+	| 'unknown'
+
+class RoomAttemptError extends Error {
+	constructor(
+		readonly phase: RoomFailurePhase,
+		cause: unknown,
+	) {
+		super(`Managed room attempt failed during ${phase}`, { cause })
+	}
+}
 
 export class ManagedLobbyHost {
 	private stopped = false
@@ -32,6 +52,11 @@ export class ManagedLobbyHost {
 	private connected = false
 	private ready = false
 	private ownsRoom = false
+	private joinIdLoaded = false
+	private joinId?: string
+	private persistedJoinId?: string
+	private recoveryStartedAt?: number
+	private recoveryAttempts = 0
 	private readonly controller = new AbortController()
 	private cancelSession?: () => void
 	private readonly attributes: Record<string, string>
@@ -59,7 +84,7 @@ export class ManagedLobbyHost {
 		let retryMs = 1_000
 		while (!this.stopped) {
 			try {
-				const level = await this.profile.prepare()
+				const level = await attempt('asset-prepare', () => this.profile.prepare())
 				if (this.stopped) break
 				if (!level) {
 					await delay(this.config.assetPollMs, this.controller.signal)
@@ -69,8 +94,13 @@ export class ManagedLobbyHost {
 				retryMs = 1_000
 			} catch (error) {
 				if (!this.stopped) {
-					reconnects.add(1, this.attributes)
-					this.log.warn(`Managed room connection failed; retrying: ${safeError(error)}`)
+					const failure = roomFailure(error)
+					this.recoveryStartedAt ??= Date.now()
+					this.recoveryAttempts++
+					reconnects.add(1, { ...this.attributes, 'failure.phase': failure.phase })
+					this.log.warn(
+						`Managed room ${failure.phase} failed; retrying: ${safeError(failure.cause)}`,
+					)
 				}
 			}
 			if (!this.stopped) {
@@ -98,12 +128,22 @@ export class ManagedLobbyHost {
 		}
 	}
 	private async connectRoom() {
-		const joinId = await getManagedLobbyJoinId(this.config.key)
+		const joinId = await attempt('join-id-read', () => this.loadJoinId())
 		const started = performance.now()
-		const assignment = await this.broker
-			.assign(this.config, joinId)
-			.finally(() => assignmentLatency.record(performance.now() - started, this.attributes))
-		await setManagedLobbyJoinId(this.config.key, assignment.joinId)
+		const assignment = await attempt('broker-assignment', () =>
+			this.broker
+				.assign(this.config, joinId)
+				.finally(() =>
+					assignmentLatency.record(performance.now() - started, this.attributes),
+				),
+		)
+		this.joinId = assignment.joinId
+		if (assignment.joinId !== this.persistedJoinId) {
+			await attempt('join-id-write', () =>
+				setManagedLobbyJoinId(this.config.key, assignment.joinId),
+			)
+			this.persistedJoinId = assignment.joinId
+		}
 		if (this.stopped) return
 		const controller = new AbortController()
 		const roster = new RoomRoster()
@@ -183,7 +223,7 @@ export class ManagedLobbyHost {
 		}
 		this.cancelSession = cleanup
 		try {
-			session = this.profile.createSession(context)
+			session = await attempt('room-start', async () => this.profile.createSession(context))
 		} catch (error) {
 			cleanup()
 			throw error
@@ -224,7 +264,7 @@ export class ManagedLobbyHost {
 		this.client = client
 		const connectedAt = Date.now()
 		try {
-			await client.connect()
+			await attempt('udp-connect', () => client.connect())
 			const closed = client.waitForClose().then(
 				() => ({}) as { error?: Error },
 				(error: unknown) => ({
@@ -244,24 +284,32 @@ export class ManagedLobbyHost {
 				cleanup()
 			})
 			if (this.stopped) return
-			await send(changeLobbyVisibilityPacket(this.config.room.isPublic))
-			this.log.info(
-				`Managed room visibility set to ${this.config.room.isPublic ? 'public' : 'private'}.`,
-			)
-			this.connected = true
-			this.ownsRoom = true
-			this.log.info(
-				`GameServer connected; waiting ${this.playlistDelayMs}ms before playlist update.`,
-			)
-			const duringDelay = await Promise.race([
-				delay(this.playlistDelayMs, controller.signal).then(() => undefined),
-				closed,
-			])
-			if (duringDelay) throw duringDelay.error ?? new Error('GameServer connection closed')
-			if (controller.signal.aborted) return
-			await session.start()
+			await attempt('room-start', async () => {
+				await send(changeLobbyVisibilityPacket(this.config.room.isPublic))
+				this.log.info(
+					`Managed room visibility set to ${this.config.room.isPublic ? 'public' : 'private'}.`,
+				)
+				this.connected = true
+				this.ownsRoom = true
+				this.log.info(
+					`GameServer connected; waiting ${this.playlistDelayMs}ms before playlist update.`,
+				)
+				const duringDelay = await Promise.race([
+					delay(this.playlistDelayMs, controller.signal).then(() => undefined),
+					closed,
+				])
+				if (duringDelay)
+					throw duringDelay.error ?? new Error('GameServer connection closed')
+				if (controller.signal.aborted) return
+				await session.start()
+			})
+			if (controller.signal.aborted || this.stopped) return
+			this.markRecovered()
 			const result = await closed
-			if (result.error) throw result.error
+			throw new RoomAttemptError(
+				'active-session',
+				result.error ?? new Error('GameServer connection closed'),
+			)
 		} finally {
 			cleanup()
 			this.connected = this.ready = this.ownsRoom = false
@@ -270,7 +318,38 @@ export class ManagedLobbyHost {
 			await client.close('Managed room reconnecting')
 		}
 	}
+	private async loadJoinId() {
+		if (!this.joinIdLoaded) {
+			this.joinId = await getManagedLobbyJoinId(this.config.key)
+			this.persistedJoinId = this.joinId
+			this.joinIdLoaded = true
+		}
+		return this.joinId
+	}
+	private markRecovered() {
+		if (this.recoveryStartedAt === undefined) return
+		const durationMs = Date.now() - this.recoveryStartedAt
+		recoveryDuration.record(durationMs, this.attributes)
+		this.log.info(
+			`Managed room recovered after ${durationMs}ms and ${this.recoveryAttempts} failed attempt${this.recoveryAttempts === 1 ? '' : 's'}.`,
+		)
+		this.recoveryStartedAt = undefined
+		this.recoveryAttempts = 0
+	}
 	async [Symbol.asyncDispose]() {
 		await this.stop()
 	}
+}
+
+async function attempt<T>(phase: RoomFailurePhase, operation: () => Promise<T>) {
+	try {
+		return await operation()
+	} catch (error) {
+		if (error instanceof RoomAttemptError) throw error
+		throw new RoomAttemptError(phase, error)
+	}
+}
+
+function roomFailure(error: unknown) {
+	return error instanceof RoomAttemptError ? error : new RoomAttemptError('unknown', error)
 }

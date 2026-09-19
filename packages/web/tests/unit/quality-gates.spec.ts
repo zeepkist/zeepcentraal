@@ -27,7 +27,7 @@ describe('repository quality gates', () => {
 	})
 
 	it('isolates web Vitest files from the root Bun test runner', () => {
-		expect(bunfig).toContain('pathIgnorePatterns = ["packages/web/**"]')
+		expect(bunfig).toContain('pathIgnorePatterns = ["packages/web/**", "target/**"]')
 		expect(rootPackage.scripts.test).toBe('bun test --isolate')
 		expect(rootPackage.scripts['test:web']).toBe('bun --cwd=packages/web run test')
 	})

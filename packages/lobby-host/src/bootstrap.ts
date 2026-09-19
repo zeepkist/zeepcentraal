@@ -6,6 +6,7 @@ import { RoomBrokerClient } from './broker/roomBrokerClient'
 import { createSubscriptionClient } from './leaderboard/graphqlClient'
 import { createProfile } from './profiles/createProfile'
 import { TrackTournamentLeaderboardHub } from './profiles/trackTournament/leaderboard/trackTournamentLeaderboard'
+import { startEventLoopWatchdog } from './runtime/eventLoopWatchdog'
 import { safeError } from './runtime/helpers'
 import { LobbyHostSupervisor } from './runtime/lobbyHostSupervisor'
 import { ManagedLobbyHost } from './runtime/managedLobbyHost'
@@ -17,6 +18,7 @@ export async function runLobbyHost(config: {
 	file: LobbyHostFileConfig
 	graphqlWsUrl: string
 }) {
+	const watchdog = startEventLoopWatchdog()
 	const broker = new RoomBrokerClient(config.brokerUrl, config.brokerToken)
 	const leaderboard = new TrackTournamentLeaderboardHub(
 		config.graphqlWsUrl,
@@ -40,6 +42,7 @@ export async function runLobbyHost(config: {
 	async function shutdown(signal: NodeJS.Signals) {
 		if (stopping) return
 		stopping = true
+		watchdog.stop()
 		console.info(
 			`Lobby host received ${signal}; making managed rooms private and disconnecting.`,
 		)
@@ -64,5 +67,9 @@ export async function runLobbyHost(config: {
 
 	process.on('SIGINT', () => void shutdown('SIGINT'))
 	process.on('SIGTERM', () => void shutdown('SIGTERM'))
-	await supervisor.run()
+	try {
+		await supervisor.run()
+	} finally {
+		watchdog.stop()
+	}
 }

@@ -81,7 +81,7 @@ export function disposeRateLimiter(): void {
 	rateLimits[Symbol.dispose]()
 }
 
-function clientIp(
+export function resolveClientIp(
 	request: Request,
 	server: { requestIP(request: Request): { address: string } | null } | null,
 ): string {
@@ -116,7 +116,7 @@ function authenticatedId(request: Request): string | null {
 export function withRateLimit(bucket: RateLimitBucket) {
 	return (app: Elysia) =>
 		app.beforeHandle(({ request, server, set }) => {
-			const identity = authenticatedId(request) ?? clientIp(request, server)
+			const identity = authenticatedId(request) ?? resolveClientIp(request, server)
 			const key = `${bucket}:${identity}`
 			const result = rateLimits.take(key, serverConfig.http.rateLimits[bucket])
 			if (result.allowed) {

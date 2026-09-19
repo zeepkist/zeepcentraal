@@ -54,6 +54,7 @@ describe('web performance contracts', () => {
 	it('keeps replay, comparison, and WebSocket work behind activation', () => {
 		const recordRoute = source('pages/record/[recordId].vue')
 		const recordExperience = source('components/record/RecordGhostExperience.client.vue')
+		const turnstileGate = source('components/record/RecordTurnstileGate.client.vue')
 		const levelRoute = source('pages/level/[xxh128].vue')
 		const levelGhosts = source('components/level/LevelGhostExplorerTab.client.vue')
 		const playback = source('composables/useGhostPlaybackSources.ts')
@@ -61,6 +62,11 @@ describe('web performance contracts', () => {
 		const urql = source('plugins/urql.client.ts')
 
 		expect(recordRoute).toContain('<LazyRecordGhostExperience')
+		expect(recordRoute).toContain('<LazyRecordTurnstileGate')
+		expect(recordRoute.indexOf('<LazyRecordTurnstileGate')).toBeLessThan(
+			recordRoute.indexOf('<LazyRecordGhostExperience'),
+		)
+		expect(turnstileGate).toContain("'/turnstile/verify'")
 		expect(recordRoute).toContain("rootMargin: '25% 0px'")
 		expect(recordExperience).toContain('<LazyRecordReplayWorkspace')
 		expect(levelRoute).toContain('<LazyLevelGhostExplorerTab')

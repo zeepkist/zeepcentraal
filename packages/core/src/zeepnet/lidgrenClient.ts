@@ -149,7 +149,7 @@ export class LidgrenClient {
 				this.fail(new Error('Malformed Lidgren message'))
 			}
 		})
-		socket.on('error', () => this.fail(new Error('UDP transport error')))
+		socket.on('error', (error) => this.fail(new Error('UDP transport error', { cause: error })))
 		socket.on('close', () => this.finishClosed())
 		socket.connect(this.options.port, this.options.host, () => {
 			this.sendConnect()

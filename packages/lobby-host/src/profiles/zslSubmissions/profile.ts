@@ -28,6 +28,7 @@ export class ZslSubmissionsProfile implements ManagedLobbyProfile {
 		private readonly roundTimeSeconds: number,
 	) {}
 	async prepare() {
+		if (this.currentLevel && this.snapshot) return this.currentLevel
 		const snapshot = await getSubmissionPlaylist(this.threadId)
 		if (this.stopped) return undefined
 		this.snapshot = snapshot

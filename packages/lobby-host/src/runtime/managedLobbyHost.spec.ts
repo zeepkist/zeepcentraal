@@ -56,7 +56,7 @@ const replacementAsset = assetMetadata(
 )
 let preferredAsset: typeof initialAsset | undefined = initialAsset
 let downloadedPayload: Uint8Array = preparedPayload
-const getJoinId = mock(async () => undefined)
+const getJoinId = mock(async (): Promise<string | undefined> => undefined)
 const setJoinId = mock(async () => {})
 const clearJoinId = mock(async () => {})
 const getAsset = mock(async () => preferredAsset)
@@ -78,6 +78,9 @@ const { RoomBrokerClient } = await import('../broker/roomBrokerClient')
 beforeEach(() => {
 	preferredAsset = initialAsset
 	downloadedPayload = preparedPayload
+	getJoinId.mockImplementation(async () => undefined)
+	setJoinId.mockImplementation(async () => {})
+	getAsset.mockImplementation(async () => preferredAsset)
 	getJoinId.mockClear()
 	setJoinId.mockClear()
 	clearJoinId.mockClear()
@@ -690,6 +693,24 @@ test('reconnects when GameServer never requests level data', async () => {
 	const fragments = new Map<number, FragmentGroup>()
 	const sentPacketIds: number[] = []
 	let assignmentRequests = 0
+	let assetReads = 0
+	let joinIdReads = 0
+	let joinIdWrites = 0
+	const requestedJoinIds: Array<string | undefined> = []
+	getAsset.mockImplementation(async () => {
+		assetReads++
+		if (assetReads > 1) throw new Error('database unavailable')
+		return preferredAsset
+	})
+	getJoinId.mockImplementation(async () => {
+		joinIdReads++
+		if (joinIdReads > 1) throw new Error('database unavailable')
+		return 'previous-room'
+	})
+	setJoinId.mockImplementation(async () => {
+		joinIdWrites++
+		if (joinIdWrites > 1) throw new Error('database unavailable')
+	})
 	let resolveReconnect: (() => void) | undefined
 	const reconnected = new Promise<void>((resolve) => {
 		resolveReconnect = resolve
@@ -701,7 +722,8 @@ test('reconnects when GameServer never requests level data', async () => {
 		const payload = receiveReliablePayload(data, fragments)
 		if (payload) sentPacketIds.push(new BitReader(payload).readUInt16())
 	})
-	const broker = startBroker(gamePort, () => {
+	const broker = startBroker(gamePort, (joinId) => {
+		requestedJoinIds.push(joinId)
 		assignmentRequests++
 		if (assignmentRequests === 2) resolveReconnect?.()
 	})
@@ -715,6 +737,93 @@ test('reconnects when GameServer never requests level data', async () => {
 		expect(sentPacketIds).toContain(ZEEPKIST_PACKET_ID.skipToLevel)
 		expect(sentPacketIds).not.toContain(ZEEPKIST_PACKET_ID.levelData)
 		expect(sentPacketIds).not.toContain(ZEEPKIST_PACKET_ID.levelLoaded)
+		expect(requestedJoinIds).toEqual(['previous-room', 'managed-room'])
+		expect(getAsset).toHaveBeenCalledTimes(1)
+		expect(getJoinId).toHaveBeenCalledTimes(1)
+		expect(setJoinId).toHaveBeenCalledTimes(1)
+		expect(setJoinId).toHaveBeenCalledWith('totw', 'managed-room')
+	} finally {
+		await host.stop()
+		await broker.stop(true)
+		await close(gameServer)
+		globalThis.fetch = originalFetch
+	}
+})
+
+test('reconnects a ready room from cached state while database is unavailable', async () => {
+	const originalFetch = globalThis.fetch
+	globalThis.fetch = Bun.fetch
+	const gameServer = dgram.createSocket('udp4')
+	const gamePort = await bind(gameServer)
+	const fragments = new Map<number, FragmentGroup>()
+	const requestedLevels = new Set<number>()
+	const chatMessages = new Map<number, number>()
+	const brokerJoinIds: Array<string | undefined> = []
+	let databaseAvailable = true
+	let readyConnections = 0
+	getAsset.mockImplementation(async () => {
+		if (!databaseAvailable) throw new Error('database unavailable')
+		return preferredAsset
+	})
+	getJoinId.mockImplementation(async () => {
+		if (!databaseAvailable) throw new Error('database unavailable')
+		return 'managed-room'
+	})
+	setJoinId.mockImplementation(async () => {
+		throw new Error('database unavailable')
+	})
+	let resolveRecovered: (() => void) | undefined
+	const recovered = new Promise<void>((resolve) => {
+		resolveRecovered = resolve
+	})
+	gameServer.on('message', (data, remote) => {
+		if (handleConnect(gameServer, data, remote) || data[0] !== 67) return
+		gameServer.send(acknowledgement(data), remote.port, remote.address)
+		const payload = receiveReliablePayload(data, fragments)
+		if (!payload) return
+		const reader = new BitReader(payload)
+		const packetId = reader.readUInt16()
+		if (packetId === ZEEPKIST_PACKET_ID.skipToLevel && !requestedLevels.has(remote.port)) {
+			requestedLevels.add(remote.port)
+			gameServer.send(
+				reliable(levelRequestPacket('Cached Track', TEST_LEVEL), 0),
+				remote.port,
+				remote.address,
+			)
+			return
+		}
+		if (packetId !== ZEEPKIST_PACKET_ID.chatMessage) return
+		const messages = (chatMessages.get(remote.port) ?? 0) + 1
+		chatMessages.set(remote.port, messages)
+		if (messages !== 2) return
+		readyConnections++
+		if (readyConnections === 1) {
+			databaseAvailable = false
+			setTimeout(
+				() =>
+					gameServer.send(
+						disconnectMessage('network unavailable'),
+						remote.port,
+						remote.address,
+					),
+				10,
+			)
+			return
+		}
+		resolveRecovered?.()
+	})
+	const broker = startBroker(gamePort, (joinId) => brokerJoinIds.push(joinId))
+	const host = createHost(requiredPort(broker.port), 500, 0)
+	const running = host.run()
+	try {
+		await withTimeout(recovered)
+		await host.stop()
+		await withTimeout(running)
+		expect(readyConnections).toBe(2)
+		expect(brokerJoinIds).toEqual(['managed-room', 'managed-room'])
+		expect(getAsset).toHaveBeenCalledTimes(1)
+		expect(getJoinId).toHaveBeenCalledTimes(1)
+		expect(setJoinId).not.toHaveBeenCalled()
 	} finally {
 		await host.stop()
 		await broker.stop(true)
@@ -783,12 +892,17 @@ function requiredPort(port: number | undefined) {
 	return port
 }
 
-function startBroker(gamePort: number, onRequest?: () => void, roomCreated = false) {
+function startBroker(
+	gamePort: number,
+	onRequest?: (joinId: string | undefined) => void,
+	roomCreated = false,
+) {
 	return Bun.serve({
 		hostname: '127.0.0.1',
 		port: 0,
-		fetch: () => {
-			onRequest?.()
+		fetch: async (request) => {
+			const body = (await request.json()) as { joinId?: string }
+			onRequest?.(body.joinId)
 			return Response.json({
 				host: '127.0.0.1',
 				joinId: 'managed-room',
@@ -919,6 +1033,12 @@ function connectResponse() {
 	writer.writeInt64(0n)
 	writer.writeFloat32(0)
 	return message(132, writer.toUint8Array(), writer.bitLength)
+}
+
+function disconnectMessage(reason: string) {
+	const writer = new BitWriter()
+	writer.writeString(reason)
+	return message(135, writer.toUint8Array(), writer.bitLength)
 }
 
 function reliable(payload: Uint8Array, sequence: number) {

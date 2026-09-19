@@ -34,8 +34,12 @@
 				/>
 
 				<div ref="ghostExperienceTarget">
+					<LazyRecordTurnstileGate
+						v-if="ghostExperienceActive && !turnstileVerified"
+						@verified="turnstileVerified = true"
+					/>
 					<LazyRecordGhostExperience
-						v-if="ghostExperienceActive"
+						v-else-if="ghostExperienceActive"
 						:record-id="recordId"
 					/>
 					<section
@@ -95,6 +99,7 @@ const publicLevelItem = computed(() =>
 const levelName = computed(() =>
 	getLevelDisplayName(publicLevelItem.value?.name, record.value?.level?.xxHash ?? ''),
 )
+const turnstileVerified = shallowRef(false)
 const ghostExperienceActive = shallowRef(false)
 const ghostExperienceTarget = useTemplateRef('ghostExperienceTarget')
 let ghostExperienceObserver: IntersectionObserver | undefined

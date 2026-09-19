@@ -31,6 +31,18 @@ test('server config accepts custom request body limit', () => {
 	expect(config.steam.appId).toBe(1)
 })
 
+test('server config derives Turnstile hostnames from allowed frontend origins', () => {
+	const config = parseServerConfig({
+		NODE_ENV: 'test',
+		CORS_ALLOWED_ORIGINS: 'https://zeepki.st,https://preview.zeepki.st',
+	})
+
+	expect(config.turnstile).toEqual({
+		secretKey: 'turnstile-test-secret',
+		allowedHostnames: ['zeepki.st', 'preview.zeepki.st'],
+	})
+})
+
 test('server config keeps lobby feed disabled by default', () => {
 	const config = parseServerConfig({ NODE_ENV: 'test' })
 
@@ -343,7 +355,19 @@ test('production server config rejects weak secrets', () => {
 			NODE_ENV: 'production',
 			JWT_SECRET: 'x'.repeat(32),
 			TRIGGER_JOB_TOKEN: 'trigger-token',
+			TURNSTILE_SECRET_KEY: 'turnstile-secret',
 			DISCORD_BOT_API_TOKEN: 'd'.repeat(32),
 		}),
 	).toThrow('TRIGGER_JOB_TOKEN must contain at least 32 non-placeholder characters')
+})
+
+test('production server config requires Turnstile secret', () => {
+	expect(() =>
+		parseServerConfig({
+			NODE_ENV: 'production',
+			JWT_SECRET: 'x'.repeat(32),
+			TRIGGER_JOB_TOKEN: 't'.repeat(32),
+			DISCORD_BOT_API_TOKEN: 'd'.repeat(32),
+		}),
+	).toThrow('TURNSTILE_SECRET_KEY is required')
 })

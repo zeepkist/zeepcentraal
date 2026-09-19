@@ -570,6 +570,12 @@
 		},
 		"recordDetail": {
 			"notFound": "Record not found",
+			"turnstile": {
+				"title": "Verify to load replay data",
+				"description": "Complete this check before ghost and level data are downloaded.",
+				"verifying": "Verifying challenge…",
+				"error": "Verification failed. Complete the challenge again to retry."
+			},
 			"hero": {
 				"record": "Record #{id}",
 				"recordTime": "Finish time"

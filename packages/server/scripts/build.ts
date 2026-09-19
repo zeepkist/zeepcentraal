@@ -6,6 +6,7 @@ process.env.OTEL_SDK_DISABLED = 'true'
 process.env.DATABASE_URL = 'postgres://aot:aot@127.0.0.1:5432/aot'
 process.env.JWT_SECRET = 'aot-build-only-jwt-secret'.padEnd(32, 'x')
 process.env.TRIGGER_JOB_TOKEN = 'aot-build-only-job-token'.padEnd(32, 'x')
+process.env.TURNSTILE_SECRET_KEY = 'aot-build-only-turnstile-secret'
 process.env.DISCORD_BOT_API_TOKEN = 'aot-build-only-discord-token'.padEnd(32, 'x')
 
 const entry = resolve(import.meta.dir, '../src/bootstrap.ts')

@@ -43,6 +43,7 @@ export class TrackTournamentProfile implements ManagedLobbyProfile {
 		return this.assets.current
 	}
 	async prepare() {
+		if (this.assets.current) return this.assets.current
 		const level = await this.assets.refresh()
 		if (!level) this.log.warn('Tournament asset unavailable; waiting before room assignment.')
 		return level

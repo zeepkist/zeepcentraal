@@ -17,13 +17,16 @@ import {
 	worldRecordGlobal,
 } from '../schema'
 import { generateUid } from '../utils/generateUid'
+import { lockWorldRecordCounts, lockWorldRecords } from './scoreLocks'
 import { resolveSteamNameForWorkshopAuthor } from './user'
+import { sortedUniqueUserIds } from './userPointContributionHelpers'
 import {
 	hasWorkshopAccessibilityChanged,
 	resolveWorkshopLevelId,
 	resolveWorkshopMetadataBlocks,
 	shouldDeleteWorkshopLevelItem,
 } from './workshopHelpers'
+import { refreshUserWorldRecordCounts } from './worldRecordCounts'
 
 export { resolveWorkshopLevelId } from './workshopHelpers'
 
@@ -519,6 +522,7 @@ export async function mergeZeepSdkExponentHash({
 		const [firstLock, secondLock] = [correct.id, bad.id].sort((left, right) => left - right)
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(772001, ${firstLock})`)
 		await tx.execute(sql`SELECT pg_advisory_xact_lock(772001, ${secondLock})`)
+		await lockWorldRecords(tx, [correct.id, bad.id])
 		await tx.execute(sql`
 			SELECT ${workshopItem.workshopId}
 			FROM ${workshopItem}
@@ -578,6 +582,22 @@ export async function mergeZeepSdkExponentHash({
 			ORDER BY ${record.idUser}, ${record.time}, ${record.id}
 		`)
 
+		const previousWorldRecords = await tx
+			.select({ idUser: worldRecordGlobal.idUser })
+			.from(worldRecordGlobal)
+			.where(inArray(worldRecordGlobal.idLevel, [correct.id, bad.id]))
+		const [nextWorldRecord] = await tx
+			.select({ idUser: record.idUser })
+			.from(record)
+			.where(eq(record.idLevel, correct.id))
+			.orderBy(asc(record.time), asc(record.id))
+			.limit(1)
+		const worldRecordUserIds = sortedUniqueUserIds([
+			...previousWorldRecords.map(({ idUser }) => idUser),
+			...(nextWorldRecord ? [nextWorldRecord.idUser] : []),
+		])
+		await lockWorldRecordCounts(tx, worldRecordUserIds)
+
 		await tx
 			.delete(worldRecordGlobal)
 			.where(inArray(worldRecordGlobal.idLevel, [correct.id, bad.id]))
@@ -594,6 +614,7 @@ export async function mergeZeepSdkExponentHash({
 			ORDER BY ${record.time}, ${record.id}
 			LIMIT 1
 		`)
+		await refreshUserWorldRecordCounts(tx, worldRecordUserIds)
 
 		const remainingBadRecords = await tx
 			.select({ count: sql<number>`COUNT(*)::int` })

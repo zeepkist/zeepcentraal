@@ -7,6 +7,7 @@ export const OPENAPI_TAG = {
 	lobby: 'lobby',
 	record: 'record',
 	system: 'system',
+	turnstile: 'turnstile',
 	user: 'user',
 	vote: 'vote',
 } as const

@@ -86,6 +86,25 @@ test('event messages switch covers rank, workshop, personal best, vote, and worl
 	expect(displayText(improved)).not.toContain('Stolen from')
 	expect(samePlayerLookup).not.toHaveBeenCalled()
 
+	const unsetDiscordLookup = mock(async () => ({
+		linkedUser,
+		preference: { pingOnWorldRecordLoss: true },
+		watches: [],
+	}))
+	const unsetDiscordContext = createMockContext({
+		backend: { user: unsetDiscordLookup },
+	}).context
+	const unsetDiscordMessage = await eventMessage(
+		createFeedEvent({
+			previousUser: { ...linkedUser, id: 8, steamName: 'Previous', discordId: '-1' },
+		}),
+		unsetDiscordContext,
+	)
+	expect(displayText(unsetDiscordMessage)).toContain('Stolen from Previous')
+	expect(displayText(unsetDiscordMessage)).not.toContain('<@-1>')
+	expect(unsetDiscordMessage?.allowedMentions).toEqual({ parse: [] })
+	expect(unsetDiscordLookup).not.toHaveBeenCalled()
+
 	const failedPreference = createMockContext({
 		backend: { user: mock(async () => Promise.reject(new Error('backend offline'))) },
 	}).context

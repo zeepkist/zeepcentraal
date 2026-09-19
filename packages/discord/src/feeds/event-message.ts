@@ -118,7 +118,7 @@ export async function worldRecordEventMessage(
 	const discordId =
 		event.previousRecord && !samePlayer ? event.previousUser?.discordId?.toString() : undefined
 	const preference =
-		options.includeLossPing !== false && discordId
+		options.includeLossPing !== false && discordId && discordId !== '-1'
 			? await context.backend.user(discordId).catch(() => null)
 			: null
 	const shouldPing = Boolean(

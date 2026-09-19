@@ -8,6 +8,7 @@ import {
 	levelRoutes,
 	lobbyRoutes,
 	recordRoutes,
+	turnstileRoutes,
 	userRoutes,
 	voteRoutes,
 } from './modules'
@@ -41,6 +42,7 @@ export function buildServer() {
 		.use(levelRoutes)
 		.use(lobbyRoutes)
 		.use(recordRoutes)
+		.use(turnstileRoutes)
 		.use(voteRoutes)
 		.use(jobRoutes)
 		.get('/favicon.ico', { detail: { hide: true } }, ({ set }) => {
