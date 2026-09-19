@@ -26,6 +26,10 @@ pub struct WorkshopDownload {
 }
 
 impl WorkshopDownload {
+    pub fn new(root: PathBuf, items: Vec<DownloadedWorkshopItem>) -> Self {
+        Self { items, root }
+    }
+
     pub async fn cleanup(mut self) -> Result<()> {
         let root = std::mem::take(&mut self.root);
         if !root.as_os_str().is_empty() {

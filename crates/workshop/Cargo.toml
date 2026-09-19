@@ -15,3 +15,4 @@ steam-rs.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 zc-core.workspace = true
+zc-database.workspace = true

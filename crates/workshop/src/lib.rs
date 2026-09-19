@@ -1,5 +1,7 @@
 pub mod files;
 pub mod metadata;
+pub mod persistence;
+pub mod scanner;
 pub mod steamcmd;
 
 use async_trait::async_trait;
@@ -54,4 +56,39 @@ pub trait WorkshopMetadataAdapter: Send + Sync {
         page: u32,
         limit: u32,
     ) -> anyhow::Result<WorkshopUserItemPage>;
+}
+
+#[derive(Clone, Debug)]
+pub struct WorkshopLevelInput {
+    pub metadata: WorkshopItemMetadata,
+    pub parsed: zc_core::levels::ParsedLevel,
+    pub level_author_id: u64,
+    pub name: String,
+    pub image_url: String,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorkshopLevelUpsertResult {
+    pub id_level: i32,
+    pub score_changed: bool,
+}
+
+#[async_trait]
+pub trait WorkshopPersistence: Send + Sync {
+    async fn find_level_author_by_xx_hash(
+        &self,
+        xx_hash: &str,
+        excluded_uploader_id: u64,
+    ) -> anyhow::Result<Option<u64>>;
+    async fn mark_deleted(&self, workshop_id: u64, visibility: i32) -> anyhow::Result<Vec<i32>>;
+    async fn mark_missing(
+        &self,
+        workshop_id: u64,
+        active_xx_hashes: &[String],
+    ) -> anyhow::Result<Vec<i32>>;
+    async fn upload_thumbnail(&self, extension: &str, contents: Vec<u8>) -> anyhow::Result<String>;
+    async fn upsert_level(
+        &self,
+        input: WorkshopLevelInput,
+    ) -> anyhow::Result<WorkshopLevelUpsertResult>;
 }
