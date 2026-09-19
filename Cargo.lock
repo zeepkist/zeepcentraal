@@ -4040,6 +4040,7 @@ name = "zc-inspector-zeep"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "regex",
  "reqwest 0.13.5",
  "serde",

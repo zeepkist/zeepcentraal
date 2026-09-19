@@ -1,6 +1,6 @@
 use crate::submissions::SourceMessage;
 use anyhow::{Context, Result, bail, ensure};
-use reqwest::{Client, Method, StatusCode, Url};
+use reqwest::{Client, Method, StatusCode, Url, multipart};
 use serde::{Deserialize, de::DeserializeOwned};
 use std::time::Duration;
 
@@ -186,9 +186,81 @@ impl DiscordRest {
         Ok(())
     }
 
+    pub async fn post_attachment(
+        &self,
+        thread_id: &str,
+        payload: &serde_json::Value,
+        filename: &str,
+        contents: &[u8],
+    ) -> Result<String> {
+        ensure!(
+            !filename.is_empty(),
+            "Discord attachment filename is required"
+        );
+        let path = format!("channels/{thread_id}/messages");
+        for _attempt in 0..5 {
+            let file = multipart::Part::bytes(contents.to_vec())
+                .file_name(filename.to_owned())
+                .mime_str("application/json")?;
+            let form = multipart::Form::new()
+                .text("payload_json", serde_json::to_string(payload)?)
+                .part("files[0]", file);
+            let response = self
+                .client
+                .post(self.url(&path)?)
+                .header("Authorization", format!("Bot {}", self.token))
+                .multipart(form)
+                .send()
+                .await?;
+            if response.status() == StatusCode::TOO_MANY_REQUESTS {
+                let retry = response
+                    .json::<serde_json::Value>()
+                    .await
+                    .ok()
+                    .and_then(|value| value.get("retry_after")?.as_f64())
+                    .unwrap_or(1.0);
+                tokio::time::sleep(Duration::from_millis(
+                    (retry * 1_000.0).clamp(1_000.0, 60_000.0) as u64,
+                ))
+                .await;
+                continue;
+            }
+            if response.status().is_server_error() {
+                bail!("Discord publication outcome uncertain");
+            }
+            ensure!(
+                response.status().is_success(),
+                "Discord request failed: HTTP {}",
+                response.status()
+            );
+            let message: CreatedMessage = response.json().await?;
+            ensure!(
+                !message.id.is_empty(),
+                "Discord response omitted message ID"
+            );
+            return Ok(message.id);
+        }
+        bail!("Discord retry limit reached after attachment upload")
+    }
+
+    pub async fn delete_message(&self, thread_id: &str, message_id: &str) -> Result<()> {
+        let _: serde_json::Value = self
+            .request(
+                &format!("channels/{thread_id}/messages/{message_id}"),
+                Method::DELETE,
+            )
+            .await?;
+        Ok(())
+    }
+
     fn url(&self, path: &str) -> Result<Url> {
         Ok(self.api_root.join(path.trim_start_matches('/'))?)
     }
+}
+
+#[derive(Deserialize)]
+struct CreatedMessage {
+    id: String,
 }
 
 fn encode_path(value: &str) -> String {
