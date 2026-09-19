@@ -1,0 +1,21 @@
+[package]
+name = "zc-jobs"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+diesel.workspace = true
+diesel-async.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+zc-core.workspace = true
+zc-database.workspace = true
+zc-telemetry.workspace = true
+
+[[bin]]
+name = "zeepcentraal-jobs"
+path = "src/main.rs"

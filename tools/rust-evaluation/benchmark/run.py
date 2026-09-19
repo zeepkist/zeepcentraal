@@ -65,7 +65,7 @@ def initialize():
         time.sleep(1)
     exists = sql("SELECT datname FROM pg_database WHERE datname='zc_benchmark_template';")
     if 'zc_benchmark_template' not in exists:
-        sql((ROOT / 'crates/database/migrations/00000000000001_preview/up.sql').read_text(), 'zc_rust_sqlx')
+        sql((ROOT / 'tools/rust-evaluation/benchmark/schema.sql').read_text(), 'zc_rust_sqlx')
         sql((HERE / 'seed.sql').read_text(), 'zc_rust_sqlx')
         sql('CREATE EXTENSION pg_prewarm;', 'zc_rust_sqlx')
         sql('CREATE DATABASE zc_benchmark_template TEMPLATE zc_rust_sqlx;')
@@ -158,7 +158,7 @@ def trial(variant, round_number, output, quick=False):
         for name in ('zc-benchmark-app-sampler', 'zc-benchmark-db-sampler'):
             if docker('inspect', '-f', '{{.State.Running}}', name) != 'true':
                 raise RuntimeError(f'Sampler stopped: {docker("logs", name, check=False)}')
-        result = {'implementation': 'axum-serde-scalar' if variant in ('sqlx', 'diesel') else 'bun-elysia', 'variant': variant, 'round': round_number, 'phases': phases,
+        result = {'implementation': 'axum-serde-scalar' if variant == 'diesel' else 'bun-elysia', 'variant': variant, 'round': round_number, 'phases': phases,
                   'databaseChecks': sql('SELECT count(*) AS records FROM record; SELECT count(*) AS audits FROM record_audit;', 'zc_rust_sqlx'),
                   'appState': json.loads(docker('inspect', '-f', '{{json .State}}', APP))}
         # Every successful application write produces one audit row.
@@ -181,7 +181,7 @@ def main():
     parser.add_argument('--quick', action='store_true')
     parser.add_argument('--resume', action='store_true', help='Skip recorded attempts; verify the same image and load binaries')
     parser.add_argument('--rounds', type=int, default=3)
-    parser.add_argument('--variants', nargs='+', choices=['bun-1', 'bun-2', 'sqlx', 'diesel'], default=['bun-2', 'sqlx', 'diesel'])
+    parser.add_argument('--variants', nargs='+', choices=['bun-1', 'bun-2', 'diesel'], default=['bun-2', 'diesel'])
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--init-only', action='store_true')
     args = parser.parse_args()

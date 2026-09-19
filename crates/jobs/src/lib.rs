@@ -1,0 +1,188 @@
+use serde::{Deserialize, Serialize};
+
+pub mod queue;
+
+pub const FAST_CONCURRENCY: usize = 4;
+pub const BULK_CONCURRENCY: usize = 14;
+pub const VISIBILITY_SECONDS: i32 = 120;
+pub const HEARTBEAT_SECONDS: u64 = 30;
+pub const POLL_MILLISECONDS: u64 = 250;
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TaskIdentifier {
+    BackfillRecordGhostStatistics,
+    BackfillRecordGhostStatisticsBatch,
+    PrunePointsHistory,
+    RecoverLevelRequests,
+    PrepareTrackTournamentLobbyAsset,
+    ScanWorkshopBatch,
+    ScanWorkshopItem,
+    RotateTrackTournament,
+    SyncPersonalBests,
+    SyncWorkshopCatalog,
+    UpdateLevelPointsHistory,
+    UpdateLevelPointsHistoryBatch,
+    UpdateLevelScore,
+    UpdateLevelScores,
+    UpdatePlayerScore,
+    UpdatePlayerScores,
+    UpdateUserPointsHistory,
+    UpdateUserPointsHistoryBatch,
+}
+
+impl TaskIdentifier {
+    pub const ALL: [Self; 18] = [
+        Self::BackfillRecordGhostStatistics,
+        Self::BackfillRecordGhostStatisticsBatch,
+        Self::PrunePointsHistory,
+        Self::RecoverLevelRequests,
+        Self::PrepareTrackTournamentLobbyAsset,
+        Self::ScanWorkshopBatch,
+        Self::ScanWorkshopItem,
+        Self::RotateTrackTournament,
+        Self::SyncPersonalBests,
+        Self::SyncWorkshopCatalog,
+        Self::UpdateLevelPointsHistory,
+        Self::UpdateLevelPointsHistoryBatch,
+        Self::UpdateLevelScore,
+        Self::UpdateLevelScores,
+        Self::UpdatePlayerScore,
+        Self::UpdatePlayerScores,
+        Self::UpdateUserPointsHistory,
+        Self::UpdateUserPointsHistoryBatch,
+    ];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::BackfillRecordGhostStatistics => "backfillRecordGhostStatistics",
+            Self::BackfillRecordGhostStatisticsBatch => "backfillRecordGhostStatisticsBatch",
+            Self::PrunePointsHistory => "prunePointsHistory",
+            Self::RecoverLevelRequests => "recoverLevelRequests",
+            Self::PrepareTrackTournamentLobbyAsset => "prepareTrackTournamentLobbyAsset",
+            Self::ScanWorkshopBatch => "scanWorkshopBatch",
+            Self::ScanWorkshopItem => "scanWorkshopItem",
+            Self::RotateTrackTournament => "rotateTrackTournament",
+            Self::SyncPersonalBests => "syncPersonalBests",
+            Self::SyncWorkshopCatalog => "syncWorkshopCatalog",
+            Self::UpdateLevelPointsHistory => "updateLevelPointsHistory",
+            Self::UpdateLevelPointsHistoryBatch => "updateLevelPointsHistoryBatch",
+            Self::UpdateLevelScore => "updateLevelScore",
+            Self::UpdateLevelScores => "updateLevelScores",
+            Self::UpdatePlayerScore => "updatePlayerScore",
+            Self::UpdatePlayerScores => "updatePlayerScores",
+            Self::UpdateUserPointsHistory => "updateUserPointsHistory",
+            Self::UpdateUserPointsHistoryBatch => "updateUserPointsHistoryBatch",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|task| task.as_str() == value)
+    }
+
+    pub const fn compatible(self) -> bool {
+        !matches!(
+            self,
+            Self::RecoverLevelRequests | Self::RotateTrackTournament
+        )
+    }
+
+    pub const fn max_attempts(self) -> i32 {
+        match self {
+            Self::BackfillRecordGhostStatistics | Self::BackfillRecordGhostStatisticsBatch => 1,
+            Self::PrepareTrackTournamentLobbyAsset
+            | Self::ScanWorkshopBatch
+            | Self::ScanWorkshopItem => 5,
+            _ => 3,
+        }
+    }
+
+    pub fn validate_payload(self, payload: &serde_json::Value) -> bool {
+        let Some(object) = payload.as_object() else {
+            return false;
+        };
+        let positive_i64 = |name: &str| {
+            object
+                .get(name)
+                .and_then(serde_json::Value::as_i64)
+                .is_some_and(|value| value > 0)
+        };
+        let positive_ids = |name: &str, maximum: usize| {
+            object
+                .get(name)
+                .and_then(serde_json::Value::as_array)
+                .is_some_and(|values| {
+                    !values.is_empty()
+                        && values.len() <= maximum
+                        && values
+                            .iter()
+                            .all(|value| value.as_i64().is_some_and(|value| value > 0))
+                })
+        };
+        match self {
+            Self::ScanWorkshopItem => object
+                .get("workshopId")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(valid_positive_decimal),
+            Self::ScanWorkshopBatch => object
+                .get("workshopIds")
+                .and_then(serde_json::Value::as_array)
+                .is_some_and(|values| {
+                    !values.is_empty()
+                        && values.len() <= 10
+                        && values
+                            .iter()
+                            .all(|value| value.as_str().is_some_and(valid_positive_decimal))
+                }),
+            Self::PrepareTrackTournamentLobbyAsset => positive_i64("idTournament"),
+            Self::UpdateLevelScore => {
+                positive_i64("idLevel")
+                    && object.get("idUser").is_none_or(|_| positive_i64("idUser"))
+            }
+            Self::UpdatePlayerScore => positive_i64("idUser"),
+            Self::RotateTrackTournament => object
+                .get("type")
+                .and_then(serde_json::Value::as_i64)
+                .is_some_and(|value| matches!(value, 0 | 1)),
+            Self::BackfillRecordGhostStatisticsBatch => positive_ids("ids", 500),
+            Self::UpdateLevelPointsHistoryBatch | Self::UpdateUserPointsHistoryBatch => {
+                positive_ids("ids", usize::MAX)
+                    || (object
+                        .get("offset")
+                        .and_then(serde_json::Value::as_i64)
+                        .is_some_and(|value| value >= 0)
+                        && positive_i64("limit"))
+            }
+            Self::BackfillRecordGhostStatistics => {
+                object
+                    .get("ids")
+                    .is_none_or(|_| positive_ids("ids", usize::MAX))
+                    && object.get("limit").is_none_or(|value| {
+                        value
+                            .as_i64()
+                            .is_some_and(|value| (1..=500).contains(&value))
+                    })
+                    && object
+                        .get("reparseGhostVersion")
+                        .is_none_or(|value| value.as_i64() == Some(5))
+                    && !(object.contains_key("ids") && object.contains_key("reparseGhostVersion"))
+            }
+            _ => true,
+        }
+    }
+}
+
+fn valid_positive_decimal(value: &str) -> bool {
+    !value.is_empty() && !value.starts_with('0') && value.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn task_registry_matches_bun_count() {
+        assert_eq!(super::TaskIdentifier::ALL.len(), 18);
+        for task in super::TaskIdentifier::ALL {
+            assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
+        }
+    }
+}

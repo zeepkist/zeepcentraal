@@ -1,21 +1,21 @@
 use axum::{
+    Json, Router,
     extract::State,
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
 };
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serenity::builder::{AutocompleteChoice, CreateAutocompleteResponse};
 use std::{
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Mutex;
-use zc_discord_evaluation::{message, Display, Sessions};
+use zc_discord_evaluation::{Display, Sessions, message};
 
 #[derive(Clone)]
 struct App {

@@ -77,7 +77,7 @@ python3 tools/rust-evaluation/benchmark/report.py artifacts/rust-evaluation/benc
 ```
 
 Use a new output directory per run; old evidence is not overwritten. `--variants bun-1`
-selects the diagnostic; default variants are `bun-2 sqlx diesel`. `--quick` validates
+selects the diagnostic; default variants are `bun-2 diesel`. `--quick` validates
 plumbing with three-second phases and must not be used for published measurements.
 Allow roughly 45 minutes for three normal rounds, plus compilation and validation.
 No other compilation/load tests should run during measured trials.

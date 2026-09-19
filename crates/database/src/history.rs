@@ -1,5 +1,5 @@
 //! Read-only Drizzle history validation. Does not adopt or alter migration ledgers.
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::HashSet, path::Path};
@@ -22,6 +22,12 @@ pub struct HistoricalMigration {
     pub tag: String,
     pub sha256: String,
     pub statements: usize,
+}
+
+impl HistoricalMigration {
+    pub fn drizzle_hash(&self) -> &str {
+        &self.sha256
+    }
 }
 
 pub fn inspect(folder: &Path) -> Result<Vec<HistoricalMigration>> {

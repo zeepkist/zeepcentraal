@@ -1,6 +1,6 @@
 //! Bounded Discord evaluation. No Gateway login or production credentials.
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serenity::builder::*;
 use serenity::model::channel::MessageFlags;
 use std::collections::VecDeque;
@@ -53,9 +53,11 @@ pub fn message(input: &Display) -> anyhow::Result<Value> {
     }
     if let Some(id) = &input.button {
         components.push(CreateContainerComponent::ActionRow(
-            CreateActionRow::buttons(vec![CreateButton::new(id.clone())
-                .label("Next")
-                .style(serenity::model::application::ButtonStyle::Primary)]),
+            CreateActionRow::buttons(vec![
+                CreateButton::new(id.clone())
+                    .label("Next")
+                    .style(serenity::model::application::ButtonStyle::Primary),
+            ]),
         ));
     }
     if let Some(filename) = &input.filename {
@@ -200,9 +202,11 @@ mod tests {
                 .unwrap()["type"],
             "subscribe"
         );
-        assert!(stream
-            .receive(&json!({"type":"next","payload":{"errors":[{}]}}), "")
-            .is_err());
+        assert!(
+            stream
+                .receive(&json!({"type":"next","payload":{"errors":[{}]}}), "")
+                .is_err()
+        );
         stream.opened();
         assert!(!stream.ready);
         assert_eq!(stream.cancel()["type"], "complete");

@@ -1,0 +1,2 @@
+-- Existing schema baseline. Adoption verifies frozen 87-row ledger (legacy plus 86 journal entries).
+-- Never execute historical Drizzle DDL through Diesel.

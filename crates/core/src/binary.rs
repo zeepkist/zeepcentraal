@@ -1,6 +1,6 @@
 //! Little-endian, least-significant-bit-first Zeepnet/Lidgren primitives.
 //! Port of packages/core/src/zeepnet/binary.ts.
-use anyhow::{bail, ensure, Result};
+use anyhow::{Result, bail, ensure};
 
 pub struct BitReader<'a> {
     data: &'a [u8],

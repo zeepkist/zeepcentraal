@@ -4,11 +4,6 @@ version.workspace = true
 edition.workspace = true
 publish.workspace = true
 
-[features]
-default = ["db-sqlx"]
-db-sqlx = ["zc-database/db-sqlx"]
-db-diesel = ["zc-database/db-diesel"]
-
 [dependencies]
 anyhow.workspace = true
 serde_json.workspace = true
@@ -16,3 +11,6 @@ tokio.workspace = true
 zc-core.workspace = true
 zc-database.workspace = true
 
+[[bin]]
+name = "zeepcentraal-migrate"
+path = "src/main.rs"

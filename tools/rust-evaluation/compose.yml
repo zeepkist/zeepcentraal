@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: local-preview-only
       POSTGRES_DB: zc_rust_sqlx
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./benchmark/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U zc_preview -d zc_rust_sqlx"]
       interval: 2s
