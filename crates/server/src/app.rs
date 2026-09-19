@@ -47,6 +47,14 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             post(routes::create_discord_link_code),
         )
         .route("/user/discord", delete(routes::unlink_discord))
+        .route(
+            "/discord-bot/link/redeem",
+            post(routes::redeem_discord_link_code),
+        )
+        .route(
+            "/discord-bot/users/{discord_id}/link",
+            delete(routes::unlink_discord_bot_user),
+        )
         .route("/auth/web/refresh", post(routes::refresh_web_session))
         .route("/auth/login", post(routes::login_gtr))
         .route("/auth/refresh", post(routes::refresh_gtr_session))

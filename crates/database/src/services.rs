@@ -8,6 +8,7 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+pub mod discord;
 pub mod zsl;
 
 #[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]

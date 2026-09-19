@@ -27,7 +27,24 @@ async fn discord_link_codes_rotate_and_unlink() -> anyhow::Result<()> {
     assert_eq!(codes.len(), 1);
     assert_eq!(codes[0].get::<_, &str>(0), "second");
 
-    database.update_discord_id(steam_id, Some(123)).await?;
+    let linked = database.consume_discord_link_code("second", 123).await?;
+    assert_eq!(linked.status, DiscordLinkStatus::Linked);
+    assert_eq!(linked.id_user, Some(user.id));
+    assert_eq!(linked.steam_id, Some(steam_id));
+    assert_eq!(
+        database
+            .consume_discord_link_code("second", 123)
+            .await?
+            .status,
+        DiscordLinkStatus::Consumed
+    );
+    let unlinked = database
+        .unlink_discord_by_discord_id(123)
+        .await?
+        .expect("linked Discord user");
+    assert_eq!(unlinked.id_user, user.id);
+    assert_eq!(unlinked.discord_id, Some(-1));
+    database.update_discord_id(steam_id, Some(456)).await?;
     assert!(database.unlink_discord_by_steam_id(steam_id).await?);
     let discord_id: i64 = client
         .query_one(
@@ -42,3 +59,4 @@ async fn discord_link_codes_rotate_and_unlink() -> anyhow::Result<()> {
         .await?;
     Ok(())
 }
+use zc_database::services::discord::DiscordLinkStatus;

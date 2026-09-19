@@ -8,7 +8,7 @@ use crate::{
 };
 use axum::{
     Json,
-    extract::State,
+    extract::{Path, State},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::IntoResponse,
 };
@@ -18,6 +18,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use zc_core::jwt::Provider;
+use zc_database::services::discord::DiscordLinkStatus;
 use zc_jobs::{TaskIdentifier, queue::JobLane};
 
 type ApiResult<T> = Result<T, Problem>;
@@ -497,6 +498,129 @@ pub async fn unlink_discord(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RedeemDiscordLinkBody {
+    code: String,
+    discord_id: String,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordLinkedBody {
+    status: &'static str,
+    id_user: i32,
+    steam_id: Option<String>,
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordUnlinkedBody {
+    id_user: i32,
+    discord_id: Option<String>,
+}
+
+#[utoipa::path(post, path = "/discord-bot/link/redeem", request_body = RedeemDiscordLinkBody, responses((status = 200, body = DiscordLinkedBody), (status = 400), (status = 401), (status = 409)))]
+pub async fn redeem_discord_link_code(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<RedeemDiscordLinkBody>,
+) -> ApiResult<Json<DiscordLinkedBody>> {
+    require_discord_bot(&state, &headers)?;
+    if body.code.len() != 8 || !body.code.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(named_problem(
+            StatusCode::BAD_REQUEST,
+            "Invalid request",
+            "invalid",
+        ));
+    }
+    let discord_id = parse_snowflake(&body.discord_id)?;
+    let code_hash = state
+        .config
+        .jwt
+        .discord_link_hash("code", &body.code)
+        .map_err(Problem::internal)?;
+    let result = state
+        .database
+        .consume_discord_link_code(&code_hash, discord_id)
+        .await
+        .map_err(Problem::internal)?;
+    match result.status {
+        DiscordLinkStatus::Linked => Ok(Json(DiscordLinkedBody {
+            status: "linked",
+            id_user: result.id_user.expect("linked result has user"),
+            steam_id: result.steam_id.map(|value| value.to_string()),
+        })),
+        DiscordLinkStatus::Conflict => {
+            Err(named_problem(StatusCode::CONFLICT, "Conflict", "conflict"))
+        }
+        DiscordLinkStatus::Expired => Err(named_problem(
+            StatusCode::BAD_REQUEST,
+            "Invalid request",
+            "expired",
+        )),
+        DiscordLinkStatus::Invalid => Err(named_problem(
+            StatusCode::BAD_REQUEST,
+            "Invalid request",
+            "invalid",
+        )),
+        DiscordLinkStatus::Consumed => Err(named_problem(
+            StatusCode::BAD_REQUEST,
+            "Invalid request",
+            "consumed",
+        )),
+    }
+}
+
+#[utoipa::path(delete, path = "/discord-bot/users/{discord_id}/link", params(("discord_id" = String, Path)), responses((status = 200, body = DiscordUnlinkedBody), (status = 401)))]
+pub async fn unlink_discord_bot_user(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(discord_id): Path<String>,
+) -> ApiResult<Json<Option<DiscordUnlinkedBody>>> {
+    require_discord_bot(&state, &headers)?;
+    let unlinked = state
+        .database
+        .unlink_discord_by_discord_id(parse_snowflake(&discord_id)?)
+        .await
+        .map_err(Problem::internal)?;
+    Ok(Json(unlinked.map(|user| DiscordUnlinkedBody {
+        id_user: user.id_user,
+        discord_id: user.discord_id.map(|value| value.to_string()),
+    })))
+}
+
+fn require_discord_bot(state: &AppState, headers: &HeaderMap) -> ApiResult<()> {
+    auth::service_token(headers, &state.config.discord_bot_api_token).map_err(|_| {
+        named_problem(
+            StatusCode::UNAUTHORIZED,
+            "Not authenticated",
+            "invalid_bot_token",
+        )
+    })
+}
+
+fn parse_snowflake(value: &str) -> ApiResult<i64> {
+    if value.is_empty() || value.len() > 20 || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(named_problem(
+            StatusCode::BAD_REQUEST,
+            "Invalid request",
+            "invalid",
+        ));
+    }
+    value
+        .parse()
+        .map_err(|_| named_problem(StatusCode::BAD_REQUEST, "Invalid request", "invalid"))
+}
+
+fn named_problem(status: StatusCode, detail: &str, code: &str) -> Problem {
+    Problem {
+        status,
+        detail: detail.to_owned(),
+        error_code: Some(code.into()),
+    }
+}
+
 #[utoipa::path(post, path = "/auth/web/refresh", responses((status = 200), (status = 400), (status = 401), (status = 404)))]
 pub async fn refresh_web_session(
     State(state): State<Arc<AppState>>,
@@ -643,5 +767,16 @@ mod tests {
         assert_eq!(positive_i64("9223372036854775807"), Some(i64::MAX));
         assert_eq!(positive_i64("0"), None);
         assert_eq!(positive_i64("01"), None);
+    }
+
+    #[test]
+    fn validates_discord_snowflakes_for_bigint_storage() {
+        assert_eq!(
+            parse_snowflake("123456789012345678").unwrap(),
+            123_456_789_012_345_678
+        );
+        assert!(parse_snowflake("").is_err());
+        assert!(parse_snowflake("discord").is_err());
+        assert!(parse_snowflake("99999999999999999999").is_err());
     }
 }

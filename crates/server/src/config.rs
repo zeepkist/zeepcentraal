@@ -7,6 +7,7 @@ pub struct ServerConfig {
     pub jwt: zc_core::jwt::JwtIssuer,
     pub steam: Option<zc_core::steam::SteamClient>,
     pub trigger_job_token: Arc<str>,
+    pub discord_bot_api_token: Arc<str>,
     pub body_limit: usize,
     pub cors_origins: Vec<String>,
     pub frontend_url: String,
@@ -30,6 +31,11 @@ impl ServerConfig {
         let runtime = zc_core::RuntimeConfig::from_env(5)?;
         let secret = zc_core::config::required("JWT_SECRET")?;
         let trigger_job_token = zc_core::config::required("TRIGGER_JOB_TOKEN")?;
+        let discord_bot_api_token = zc_core::config::required("DISCORD_BOT_API_TOKEN")?;
+        ensure!(
+            discord_bot_api_token.len() >= 32,
+            "DISCORD_BOT_API_TOKEN must contain at least 32 characters"
+        );
         zc_core::config::require_strong_production_secrets(
             runtime.environment,
             &secret,
@@ -92,6 +98,7 @@ impl ServerConfig {
             jwt,
             steam,
             trigger_job_token: trigger_job_token.into(),
+            discord_bot_api_token: discord_bot_api_token.into(),
             body_limit,
             cors_origins,
             frontend_url,
