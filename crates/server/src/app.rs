@@ -4,7 +4,7 @@ use axum::{
     Router,
     extract::DefaultBodyLimit,
     middleware,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
 };
 use std::sync::Arc;
 use tower_http::{
@@ -54,6 +54,22 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route(
             "/discord-bot/users/{discord_id}/link",
             delete(routes::unlink_discord_bot_user),
+        )
+        .route(
+            "/discord-bot/users/{discord_id}",
+            get(routes::get_discord_bot_user),
+        )
+        .route(
+            "/discord-bot/users/{discord_id}/preferences",
+            patch(routes::update_discord_bot_preferences),
+        )
+        .route(
+            "/discord-bot/users/{discord_id}/watches",
+            post(routes::add_discord_bot_watch),
+        )
+        .route(
+            "/discord-bot/users/{discord_id}/watches/{watch_id}",
+            delete(routes::remove_discord_bot_watch),
         )
         .route("/auth/web/refresh", post(routes::refresh_web_session))
         .route("/auth/login", post(routes::login_gtr))

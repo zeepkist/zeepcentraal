@@ -590,6 +590,99 @@ pub async fn unlink_discord_bot_user(
     })))
 }
 
+#[utoipa::path(get, path = "/discord-bot/users/{discord_id}", params(("discord_id" = String, Path)), responses((status = 200), (status = 401)))]
+pub async fn get_discord_bot_user(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(discord_id): Path<String>,
+) -> ApiResult<Json<zc_database::services::discord::DiscordUserState>> {
+    require_discord_bot(&state, &headers)?;
+    Ok(Json(
+        state
+            .database
+            .discord_user_state(parse_snowflake(&discord_id)?)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordPreferenceBody {
+    ping_on_world_record_loss: bool,
+}
+
+#[utoipa::path(patch, path = "/discord-bot/users/{discord_id}/preferences", params(("discord_id" = String, Path)), request_body = DiscordPreferenceBody, responses((status = 200), (status = 401)))]
+pub async fn update_discord_bot_preferences(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(discord_id): Path<String>,
+    Json(body): Json<DiscordPreferenceBody>,
+) -> ApiResult<Json<zc_database::services::discord::DiscordUserPreference>> {
+    require_discord_bot(&state, &headers)?;
+    Ok(Json(
+        state
+            .database
+            .set_discord_user_preference(
+                parse_snowflake(&discord_id)?,
+                body.ping_on_world_record_loss,
+            )
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordWatchBody {
+    kind: String,
+    target_id: String,
+}
+
+#[utoipa::path(post, path = "/discord-bot/users/{discord_id}/watches", params(("discord_id" = String, Path)), request_body = DiscordWatchBody, responses((status = 200), (status = 400), (status = 401)))]
+pub async fn add_discord_bot_watch(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(discord_id): Path<String>,
+    Json(body): Json<DiscordWatchBody>,
+) -> ApiResult<Json<zc_database::services::discord::DiscordWatch>> {
+    require_discord_bot(&state, &headers)?;
+    let target_id = body.target_id.trim();
+    if !valid_discord_watch_kind(&body.kind) || target_id.is_empty() || target_id.len() > 128 {
+        return Err(named_problem(
+            StatusCode::BAD_REQUEST,
+            "Invalid request",
+            "invalid",
+        ));
+    }
+    Ok(Json(
+        state
+            .database
+            .add_discord_watch(parse_snowflake(&discord_id)?, &body.kind, target_id)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+#[utoipa::path(delete, path = "/discord-bot/users/{discord_id}/watches/{watch_id}", params(("discord_id" = String, Path), ("watch_id" = String, Path)), responses((status = 200), (status = 400), (status = 401)))]
+pub async fn remove_discord_bot_watch(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path((discord_id, watch_id)): Path<(String, String)>,
+) -> ApiResult<Json<Option<zc_database::services::discord::DiscordWatch>>> {
+    require_discord_bot(&state, &headers)?;
+    Ok(Json(
+        state
+            .database
+            .remove_discord_watch(
+                parse_snowflake(&discord_id)?,
+                parse_positive_bigint(&watch_id)?,
+            )
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
 fn require_discord_bot(state: &AppState, headers: &HeaderMap) -> ApiResult<()> {
     auth::service_token(headers, &state.config.discord_bot_api_token).map_err(|_| {
         named_problem(
@@ -611,6 +704,18 @@ fn parse_snowflake(value: &str) -> ApiResult<i64> {
     value
         .parse()
         .map_err(|_| named_problem(StatusCode::BAD_REQUEST, "Invalid request", "invalid"))
+}
+
+fn parse_positive_bigint(value: &str) -> ApiResult<i64> {
+    value
+        .parse()
+        .ok()
+        .filter(|value| *value > 0)
+        .ok_or_else(|| named_problem(StatusCode::BAD_REQUEST, "Invalid request", "invalid"))
+}
+
+fn valid_discord_watch_kind(value: &str) -> bool {
+    matches!(value, "player" | "level" | "author" | "tournament")
 }
 
 fn named_problem(status: StatusCode, detail: &str, code: &str) -> Problem {
@@ -778,5 +883,9 @@ mod tests {
         assert!(parse_snowflake("").is_err());
         assert!(parse_snowflake("discord").is_err());
         assert!(parse_snowflake("99999999999999999999").is_err());
+        assert!(valid_discord_watch_kind("tournament"));
+        assert!(!valid_discord_watch_kind("unknown"));
+        assert_eq!(parse_positive_bigint("1").unwrap(), 1);
+        assert!(parse_positive_bigint("0").is_err());
     }
 }

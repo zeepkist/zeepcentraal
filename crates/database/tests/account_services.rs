@@ -38,6 +38,28 @@ async fn discord_link_codes_rotate_and_unlink() -> anyhow::Result<()> {
             .status,
         DiscordLinkStatus::Consumed
     );
+    let preference = database.set_discord_user_preference(123, true).await?;
+    assert!(preference.ping_on_world_record_loss);
+    let watch = database
+        .add_discord_watch(123, "player", " 76561198000000000 ")
+        .await?;
+    assert_eq!(watch.target_id, "76561198000000000");
+    let state = database.discord_user_state(123).await?;
+    assert_eq!(
+        state.linked_user.as_ref().map(|user| user.id),
+        Some(user.id)
+    );
+    assert!(state.preference.is_some());
+    assert_eq!(state.watches.len(), 1);
+    let state_json = serde_json::to_value(&state)?;
+    assert_eq!(state_json["linkedUser"]["discordId"], "123");
+    assert_eq!(state_json["watches"][0]["id"], watch.id.to_string());
+    assert!(
+        database
+            .remove_discord_watch(123, watch.id)
+            .await?
+            .is_some()
+    );
     let unlinked = database
         .unlink_discord_by_discord_id(123)
         .await?
