@@ -4076,11 +4076,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "reqwest 0.13.5",
  "serde",
  "serde_json",
  "tokio",
  "tracing",
  "zc-core",
+ "zc-database",
  "zc-telemetry",
 ]
 
