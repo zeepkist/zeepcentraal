@@ -61,8 +61,9 @@ Database adoption, generated Diesel schema, telemetry, Steam ticket authenticati
 rotation, Discord account links, preferences, DM watches, guild/feed/digest/delivery persistence,
 rate limiting, Turnstile verification, basic authenticated mutations, queue access, Steam
 metadata/catalog adapters, SteamCMD supervision, bounded level-file discovery, Scalar docs,
-Serenity Components V2 foundations, and executable ZSL import with idempotent Diesel upserts
-exist. Full record pipeline, remaining non-Discord HTTP routes, job workers and handlers, Discord
-gateway behavior, lobby protocol, level parsing and workshop reconciliation, inspector mutations,
-deployment images, and production cutover remain blocked from release until their compatibility
-gates pass.
+Serenity Components V2 foundations, executable ZSL import with idempotent Diesel upserts, and
+Zeepkist V18 bit/packet codecs with golden multi-level playlist compatibility exist. Full record
+pipeline, remaining non-Discord HTTP routes, job workers and handlers, Discord gateway behavior,
+Lidgren transport and lobby lifecycle, level parsing and workshop reconciliation, inspector
+mutations, deployment images, and production cutover remain blocked from release until their
+compatibility gates pass.

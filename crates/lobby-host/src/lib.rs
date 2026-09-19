@@ -1,5 +1,7 @@
 use anyhow::{Result, ensure};
 
+pub use zc_core::zeepnet;
+
 pub const LIDGREN_HEADER_BYTES: usize = 5;
 
 pub fn validate_udp_payload(payload: &[u8], maximum: usize) -> Result<()> {

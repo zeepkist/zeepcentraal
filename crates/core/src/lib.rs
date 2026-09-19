@@ -8,6 +8,7 @@ pub mod jwt;
 pub mod score;
 pub mod steam;
 pub mod version;
+pub mod zeepnet;
 
 pub use config::{DatabaseConfig, RuntimeConfig};
 pub use identifiers::{generate_uid, xxh128_hex};
