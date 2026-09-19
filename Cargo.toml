@@ -44,6 +44,7 @@ opentelemetry_sdk = { version = "0.31", features = ["logs", "metrics", "rt-tokio
 prost = "0.14"
 pq-sys = { version = "0.7", features = ["bundled"] }
 rand = "0.9"
+regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["json", "query", "rustls"] }
 ryu-js = "1.0"
 rustls = "0.23"
