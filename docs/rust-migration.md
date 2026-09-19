@@ -65,5 +65,7 @@ Serenity Components V2 foundations, executable ZSL import with idempotent Diesel
 Zeepkist V18 bit/packet codecs with golden multi-level playlist compatibility exist. Full record
 pipeline, remaining non-Discord HTTP routes, job workers and handlers, Discord gateway behavior,
 Lidgren transport and lobby lifecycle, level parsing and workshop reconciliation, inspector
-mutations, deployment images, and production cutover remain blocked from release until their
-compatibility gates pass.
+orchestration/validation/Discord publication, deployment images, and production cutover remain
+blocked from release until their compatibility gates pass. Inspector contest, submission,
+validation, playlist, retry, freeze, round-link, and publication database mutations have Diesel
+transaction parity.
