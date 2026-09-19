@@ -7,8 +7,6 @@ pub struct PreviewConfig {
     pub database_url: String,
     pub address: SocketAddr,
     pub pool_max: u32,
-    pub postrust_pool_max: u32,
-    pub preview_features: bool,
 }
 
 /// Evaluation binaries must never silently inherit the production DATABASE_URL.
@@ -33,28 +31,15 @@ impl PreviewConfig {
             .unwrap_or_else(|_| "4310".into())
             .parse()?;
         let pool_max: u32 = std::env::var("ZC_PREVIEW_POOL_MAX")
-            .unwrap_or_else(|_| "5".into())
+            .unwrap_or_else(|_| "4".into())
             .parse()?;
         if !(2..=32).contains(&pool_max) {
             bail!("Preview pool limit must be between 2 and 32");
         }
-        let postrust_pool_max: u32 = std::env::var("ZC_PREVIEW_POSTRUST_POOL_MAX")
-            .unwrap_or_else(|_| pool_max.to_string())
-            .parse()?;
-        if !(2..=32).contains(&postrust_pool_max) {
-            bail!("Postrust pool limit must be between 2 and 32");
-        }
-        let preview_features = match std::env::var("ZC_PREVIEW_FEATURES").as_deref() {
-            Err(std::env::VarError::NotPresent) | Ok("true") => true,
-            Ok("false") => false,
-            _ => bail!("ZC_PREVIEW_FEATURES must be true or false"),
-        };
         Ok(Self {
             database_url,
             address: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port),
             pool_max,
-            postrust_pool_max,
-            preview_features,
         })
     }
 }

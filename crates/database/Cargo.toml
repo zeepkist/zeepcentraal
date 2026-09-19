@@ -6,7 +6,7 @@ publish.workspace = true
 
 [features]
 default = ["db-sqlx"]
-db-sqlx = []
+db-sqlx = ["dep:sqlx"]
 db-diesel = ["dep:diesel", "dep:diesel-async", "dep:diesel_migrations"]
 
 [dependencies]
@@ -15,10 +15,14 @@ url.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
-sqlx.workspace = true
+sqlx = { workspace = true, optional = true }
 tokio.workspace = true
 zc-core.workspace = true
 diesel = { workspace = true, optional = true }
 diesel-async = { workspace = true, optional = true }
 diesel_migrations = { workspace = true, optional = true }
 
+utoipa.workspace = true
+
+[dev-dependencies]
+tokio-postgres = "0.7"

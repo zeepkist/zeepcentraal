@@ -1,6 +1,8 @@
 # Controlled Linux database-slice benchmark
 
-[Measured results, 2026-09-17](RESULTS.md).
+[Axum results, 2026-09-19](RESULTS-AXUM-2026-09-19.md): Bun completed 3/3 attempts,
+SQLx 2/3 and Diesel 0/3. Failed offered-load attempts prevent an ORM selection.
+[Historical Postrust results, 2026-09-17](RESULTS.md) remain separate; do not pool the datasets.
 
 This compares equivalent user lookup, leaderboard aggregation, and record/audit
 transaction endpoints. It does **not** compare complete production services: Rust has
@@ -18,24 +20,20 @@ not a claim that it reproduces the production request mix.
   to Linux with `--smol`. `bun-2` runs one primary plus two workers; `bun-1` is available
   as a single-process diagnostic. This is a purpose-built equivalent slice, not the
   existing server binary with all of its modules.
-- SQLx and Diesel use the pinned Rust release binaries with Postrust admin/GraphQL
-  enabled. The primary workload uses application REST routes, not GraphQL operations
-  or connected subscriptions. Postrust's listener/schema overhead remains included.
-- Four application DB connections per implementation. SQLx's shared pool maximum is
-  five, including its persistent notification listener. Diesel has four application
-  connections plus a separate Postrust pool capped at two. Bun's two workers each
-  have two connections. Rust is limited to two Tokio worker threads.
-  Pool lifetimes retain current implementation defaults: Bun/SQLx idle timeout 30 s;
-  Diesel/bb8 idle timeout 600 s with a 30 s reaper. The result therefore includes
-  those settings, not an isolated language or driver comparison.
+- SQLx and Diesel use standalone Axum/Serde release binaries with embedded Scalar docs enabled.
+  No Postrust, GraphQL server, schema discovery or notification listener.
+- Four application DB connections each (two per Bun worker), no minimum idle connections,
+  30-second idle timeout, five-second acquisition timeout. Diesel reaper interval is one
+  second; actual cleanup and connection counts are recorded separately.
+- Fixture notification triggers remain identical across all implementations.
 - Apps receive CPUs 0–1 and a 512 MiB memory limit with swapping disabled. PostgreSQL
   receives CPU 2 and a 1 GiB limit, 128 MiB shared buffers, 4 MiB work_mem, JIT disabled.
   Load generator/samplers receive CPU 3. The four-core Docker Linux VM is not the
   bare-metal production host; other host activity remains a source of noise.
 - Before each trial, recreate the dedicated database from an identical template and
   prewarm tables/indexes. Run variants serially; rotate order across three rounds.
-- Each trial: 15 s cold idle, 10 s warmup, 35 s warm idle, 20 s at 15 req/s, 20 s at
-  150 req/s, 20 s closed-loop capacity at concurrency 32, 35 s recovery. Idle/recovery
+- Each trial: 15 s cold idle, 10 s warmup, 90 s warm idle, 20 s at 15 req/s, 20 s at
+  150 req/s, 20 s closed-loop capacity at concurrency 32, 90 s recovery. Idle/recovery
   summaries use their final 10 seconds. This is a short benchmark, not a leak/soak test.
 - 15 req/s approximates the stated 1.3 million/day average; 150 req/s is an assumed
   tenfold burst, not an observed production peak. Constant-arrival load includes
@@ -49,6 +47,10 @@ not a claim that it reproduces the production request mix.
 - Prime the load generator with 32 requests before each timed phase so its own
   HTTP/runtime initialization does not create an artificial arrival backlog. These
   requests are excluded from throughput and included in the write-audit check.
+- Each scheduled attempt runs once. Failed attempts are saved as `failed.json`, reported
+  separately and excluded from medians. A rejected offered-load trial fails that
+  candidate's acceptance gate; do not keep retrying until a clean result appears.
+  `--resume` skips recorded attempts and verifies unchanged images/binaries/settings.
 - Validate lookup payloads, leaderboard result shape, success status, and total committed
   audits against successful writes. Reject failed/dropped-load trials. Record generator
   CPU so client saturation can be distinguished from server/database saturation.
@@ -66,7 +68,7 @@ From the repository root in WSL:
 
 ```sh
 python3 tools/rust-evaluation/benchmark/prepare.py
-docker.exe build -t zc-rust-benchmark:local artifacts/rust-evaluation/benchmark/build-context
+docker.exe build -t zc-rust-benchmark:axum artifacts/rust-evaluation/benchmark/build-context
 /mnt/c/Users/wopia/.bun/bin/bun.exe --no-env-file tools/rust-evaluation/benchmark/build-bun.ts
 /mnt/c/Users/wopia/.bun/bin/bun.exe build --compile --target=bun-linux-x64 --minify tools/rust-evaluation/benchmark/load.ts --outfile artifacts/rust-evaluation/benchmark/load
 python3 tools/rust-evaluation/benchmark/run.py --quick --rounds 1 --output artifacts/rust-evaluation/benchmark/pilot-new
@@ -77,7 +79,7 @@ python3 tools/rust-evaluation/benchmark/report.py artifacts/rust-evaluation/benc
 Use a new output directory per run; old evidence is not overwritten. `--variants bun-1`
 selects the diagnostic; default variants are `bun-2 sqlx diesel`. `--quick` validates
 plumbing with three-second phases and must not be used for published measurements.
-Allow roughly 25 minutes for three normal rounds, plus compilation and validation.
+Allow roughly 45 minutes for three normal rounds, plus compilation and validation.
 No other compilation/load tests should run during measured trials.
 
 The runner cleans up labelled app/sampler containers after each trial. It retains the

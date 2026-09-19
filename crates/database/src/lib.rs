@@ -18,7 +18,8 @@ pub use sqlx_adapter::Database;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
+#[cfg_attr(feature = "db-sqlx", derive(sqlx::FromRow))]
 #[cfg_attr(feature = "db-diesel", derive(diesel::QueryableByName))]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -32,7 +33,8 @@ pub struct User {
     pub banned: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
+#[cfg_attr(feature = "db-sqlx", derive(sqlx::FromRow))]
 #[cfg_attr(feature = "db-diesel", derive(diesel::QueryableByName))]
 #[serde(rename_all = "camelCase")]
 pub struct Standing {

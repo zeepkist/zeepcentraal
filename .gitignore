@@ -18,5 +18,5 @@ packages/web/test-results/
 packages/web/.data/block-meshes/
 zeepcentraal-web/
 
-/tools/rust-evaluation/__pycache__/
-/tools/rust-evaluation/benchmark/__pycache__/
+# Python evaluation caches at any depth.
+__pycache__/
