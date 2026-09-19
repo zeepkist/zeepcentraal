@@ -4040,10 +4040,14 @@ name = "zc-inspector-zeep"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "regex",
+ "reqwest 0.13.5",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tokio",
  "tracing",
+ "url",
  "zc-core",
  "zc-database",
  "zc-telemetry",
