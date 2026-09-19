@@ -8,6 +8,8 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+pub mod zsl;
+
 #[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserAccount {
@@ -64,6 +66,12 @@ struct MinimumVersion {
     minimum: Option<String>,
 }
 
+#[derive(QueryableByName)]
+struct LinkCodeExpiry {
+    #[diesel(sql_type = Text)]
+    expires_at: String,
+}
+
 impl Database {
     pub async fn get_user(&self, steam_id: i64) -> Result<Option<UserAccount>> {
         let mut connection = self.connection().await?;
@@ -99,6 +107,46 @@ impl Database {
         let mut connection = self.connection().await?;
         Ok(sql_query("UPDATE public.\"user\" SET discord_id=$2,date_updated=clock_timestamp() WHERE steam_id=$1")
             .bind::<BigInt, _>(steam_id).bind::<Nullable<BigInt>, _>(discord_id).execute(&mut connection).await? > 0)
+    }
+
+    pub async fn create_discord_link_code(&self, id_user: i32, code_hash: &str) -> Result<String> {
+        let mut connection = self.connection().await?;
+        connection
+            .transaction::<String, anyhow::Error, _>(|connection| {
+                Box::pin(async move {
+                    sql_query(
+                        "DELETE FROM zc_private.discord_link_code \
+                         WHERE id_user=$1 OR expires_at<clock_timestamp()",
+                    )
+                    .bind::<Integer, _>(id_user)
+                    .execute(connection)
+                    .await?;
+                    let row: LinkCodeExpiry = sql_query(
+                        "INSERT INTO zc_private.discord_link_code(code_hash,id_user,expires_at) \
+                         VALUES($1,$2,clock_timestamp()+interval '10 minutes') \
+                         RETURNING to_char(expires_at AT TIME ZONE 'UTC', \
+                           'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS expires_at",
+                    )
+                    .bind::<Text, _>(code_hash)
+                    .bind::<Integer, _>(id_user)
+                    .get_result(connection)
+                    .await?;
+                    Ok(row.expires_at)
+                })
+            })
+            .await
+    }
+
+    pub async fn unlink_discord_by_steam_id(&self, steam_id: i64) -> Result<bool> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "UPDATE public.\"user\" SET discord_id=-1,date_updated=clock_timestamp() \
+             WHERE steam_id=$1",
+        )
+        .bind::<BigInt, _>(steam_id)
+        .execute(&mut connection)
+        .await?
+            > 0)
     }
 
     pub async fn get_level_by_xx_hash(&self, xx_hash: &str) -> Result<Option<Level>> {

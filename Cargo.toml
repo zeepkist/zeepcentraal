@@ -39,6 +39,7 @@ opentelemetry-appender-tracing = "0.31"
 opentelemetry-otlp = { version = "0.31", features = ["grpc-tonic", "logs", "metrics", "trace"] }
 opentelemetry_sdk = { version = "0.31", features = ["logs", "metrics", "rt-tokio", "trace"] }
 pq-sys = { version = "0.7", features = ["bundled"] }
+rand = "0.9"
 reqwest = { version = "0.13", default-features = false, features = ["json", "query", "rustls"] }
 rustls = "0.23"
 s3 = "0.1.36"

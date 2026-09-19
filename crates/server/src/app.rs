@@ -4,7 +4,7 @@ use axum::{
     Router,
     extract::DefaultBodyLimit,
     middleware,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use std::sync::Arc;
 use tower_http::{
@@ -42,6 +42,11 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route("/job/trigger", post(routes::trigger_job))
         .route("/user/updateSteamName", post(routes::update_steam_name))
         .route("/user/updateDiscordId", post(routes::update_discord_id))
+        .route(
+            "/user/discord/link-code",
+            post(routes::create_discord_link_code),
+        )
+        .route("/user/discord", delete(routes::unlink_discord))
         .route("/auth/web/refresh", post(routes::refresh_web_session))
         .route("/auth/login", post(routes::login_gtr))
         .route("/auth/refresh", post(routes::refresh_gtr_session))

@@ -2,6 +2,18 @@ use anyhow::{Context, Result, bail};
 use reqwest::Client;
 use serde::Deserialize;
 
+pub const STEAM_VISIBILITY_PUBLIC: i32 = 0;
+pub const STEAM_VISIBILITY_FRIENDS_ONLY: i32 = 1;
+pub const STEAM_VISIBILITY_HIDDEN: i32 = 2;
+pub const STEAM_VISIBILITY_UNLISTED: i32 = 3;
+
+pub const fn can_download_workshop_item(visibility: i32) -> bool {
+    matches!(
+        visibility,
+        STEAM_VISIBILITY_PUBLIC | STEAM_VISIBILITY_UNLISTED
+    )
+}
+
 #[derive(Clone)]
 pub struct SteamClient {
     client: Client,
@@ -105,5 +117,18 @@ impl SteamClient {
             .into_iter()
             .next()
             .context("Steam user not found")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn workshop_visibility_matches_steam_contract() {
+        assert!(can_download_workshop_item(STEAM_VISIBILITY_PUBLIC));
+        assert!(can_download_workshop_item(STEAM_VISIBILITY_UNLISTED));
+        assert!(!can_download_workshop_item(STEAM_VISIBILITY_FRIENDS_ONLY));
+        assert!(!can_download_workshop_item(STEAM_VISIBILITY_HIDDEN));
     }
 }

@@ -126,6 +126,10 @@ impl JwtIssuer {
         }
         Ok(claims)
     }
+
+    pub fn discord_link_hash(&self, namespace: &str, value: &str) -> Result<String> {
+        crate::discord::hash_link_value(&self.secret, namespace, value)
+    }
 }
 
 fn unix_seconds() -> Result<u64> {

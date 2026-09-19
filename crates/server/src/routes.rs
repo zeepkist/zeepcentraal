@@ -383,8 +383,9 @@ pub struct SteamNameBody {
 pub async fn update_steam_name(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(body): Json<SteamNameBody>,
+    Json(_body): Json<SteamNameBody>,
 ) -> ApiResult<StatusCode> {
+    let _ = _body.name;
     let claims = auth::user(&headers, &state, true)?;
     let steam_id = claims
         .steamid
@@ -397,13 +398,6 @@ pub async fn update_steam_name(
         .map_err(Problem::internal)?
         .filter(|user| !user.banned)
         .ok_or_else(|| Problem::code(StatusCode::UNAUTHORIZED, AUTH_USER_NOT_FOUND))?;
-    if !body.name.is_empty() {
-        state
-            .database
-            .update_user_name(steam_id, &body.name)
-            .await
-            .map_err(Problem::internal)?;
-    }
     let _ = user;
     Ok(StatusCode::OK)
 }
@@ -448,6 +442,59 @@ pub async fn update_discord_id(
         .await
         .map_err(Problem::internal)?;
     Ok(StatusCode::OK)
+}
+
+#[derive(Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordLinkCodeBody {
+    code: String,
+    expires_at: String,
+}
+
+#[utoipa::path(post, path = "/user/discord/link-code", responses((status = 200, body = DiscordLinkCodeBody), (status = 400), (status = 401)))]
+pub async fn create_discord_link_code(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> ApiResult<Json<DiscordLinkCodeBody>> {
+    let user = authenticated_user(&state, &headers, false).await?;
+    let mut last_error = None;
+    for _ in 0..5 {
+        let code = zc_core::discord::random_link_code();
+        let code_hash = state
+            .config
+            .jwt
+            .discord_link_hash("code", &code)
+            .map_err(Problem::internal)?;
+        match state
+            .database
+            .create_discord_link_code(user.id, &code_hash)
+            .await
+        {
+            Ok(expires_at) => return Ok(Json(DiscordLinkCodeBody { code, expires_at })),
+            Err(error) => last_error = Some(error),
+        }
+    }
+    Err(Problem::internal(last_error.unwrap_or_else(|| {
+        anyhow::anyhow!("Unable to generate Discord link code")
+    })))
+}
+
+#[utoipa::path(delete, path = "/user/discord", responses((status = 204), (status = 400), (status = 401)))]
+pub async fn unlink_discord(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> ApiResult<StatusCode> {
+    let claims = auth::user(&headers, &state, false)?;
+    let steam_id = claims
+        .steamid
+        .parse()
+        .map_err(|_| Problem::code(StatusCode::UNAUTHORIZED, AUTH_USER_NOT_FOUND))?;
+    state
+        .database
+        .unlink_discord_by_steam_id(steam_id)
+        .await
+        .map_err(Problem::internal)?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(post, path = "/auth/web/refresh", responses((status = 200), (status = 400), (status = 401), (status = 404)))]

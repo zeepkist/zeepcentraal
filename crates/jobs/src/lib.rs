@@ -119,26 +119,32 @@ impl TaskIdentifier {
                             .all(|value| value.as_i64().is_some_and(|value| value > 0))
                 })
         };
+        let optional_bool = |name: &str| object.get(name).is_none_or(serde_json::Value::is_boolean);
         match self {
             Self::ScanWorkshopItem => object
                 .get("workshopId")
                 .and_then(serde_json::Value::as_str)
                 .is_some_and(valid_positive_decimal),
-            Self::ScanWorkshopBatch => object
-                .get("workshopIds")
-                .and_then(serde_json::Value::as_array)
-                .is_some_and(|values| {
-                    !values.is_empty()
-                        && values.len() <= 10
-                        && values
-                            .iter()
-                            .all(|value| value.as_str().is_some_and(valid_positive_decimal))
-                }),
+            Self::ScanWorkshopBatch => {
+                object
+                    .get("workshopIds")
+                    .and_then(serde_json::Value::as_array)
+                    .is_some_and(|values| {
+                        !values.is_empty()
+                            && values.len() <= 10
+                            && values
+                                .iter()
+                                .all(|value| value.as_str().is_some_and(valid_positive_decimal))
+                    })
+                    && optional_bool("fixZeepSDKExponentHashes")
+            }
             Self::PrepareTrackTournamentLobbyAsset => positive_i64("idTournament"),
             Self::UpdateLevelScore => {
                 positive_i64("idLevel")
                     && object.get("idUser").is_none_or(|_| positive_i64("idUser"))
+                    && optional_bool("reportOnly")
             }
+            Self::UpdateLevelScores => optional_bool("all") && optional_bool("reportOnly"),
             Self::UpdatePlayerScore => positive_i64("idUser"),
             Self::RotateTrackTournament => object
                 .get("type")
@@ -167,6 +173,22 @@ impl TaskIdentifier {
                         .is_none_or(|value| value.as_i64() == Some(5))
                     && !(object.contains_key("ids") && object.contains_key("reparseGhostVersion"))
             }
+            Self::SyncWorkshopCatalog => {
+                optional_bool("all")
+                    && optional_bool("fixZeepSDKExponentHashes")
+                    && object
+                        .get("repairZslAuthors")
+                        .is_none_or(|value| value.as_bool() == Some(true))
+                    && !(object
+                        .get("repairZslAuthors")
+                        .and_then(serde_json::Value::as_bool)
+                        == Some(true)
+                        && (object.get("all").and_then(serde_json::Value::as_bool) == Some(true)
+                            || object
+                                .get("fixZeepSDKExponentHashes")
+                                .and_then(serde_json::Value::as_bool)
+                                == Some(true)))
+            }
             _ => true,
         }
     }
@@ -178,11 +200,33 @@ fn valid_positive_decimal(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::TaskIdentifier;
+
     #[test]
     fn task_registry_matches_bun_count() {
         assert_eq!(super::TaskIdentifier::ALL.len(), 18);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
+    }
+
+    #[test]
+    fn payload_validation_matches_allowlist_contract() {
+        use serde_json::json;
+        assert!(TaskIdentifier::UpdateLevelScores.validate_payload(&json!({"all": true})));
+        assert!(!TaskIdentifier::UpdateLevelScores.validate_payload(&json!({"all": 1})));
+        assert!(
+            TaskIdentifier::SyncWorkshopCatalog
+                .validate_payload(&json!({"repairZslAuthors": true}))
+        );
+        assert!(
+            !TaskIdentifier::SyncWorkshopCatalog
+                .validate_payload(&json!({"repairZslAuthors": true, "all": true}))
+        );
+        assert!(
+            !TaskIdentifier::ScanWorkshopBatch.validate_payload(
+                &json!({"workshopIds": ["1"], "fixZeepSDKExponentHashes": "yes"})
+            )
+        );
     }
 }
