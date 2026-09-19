@@ -31,6 +31,8 @@ def memory(rows, begin, end):
             'rssMedianMiB': statistics.median(rss), 'rssP95MiB': percentile(rss, .95),
             'workingSetMedianMiB': statistics.median(working), 'workingSetP95MiB': percentile(working, .95),
             'cgroupMedianMiB': statistics.median(full), 'cpuCores': cpu / elapsed,
+            'privateMedianMiB': statistics.median(r['privateKiB']/1024 for r in selected) if all('privateKiB' in r for r in selected) else None,
+            'fileCacheMedianMiB': statistics.median(r['fileBytes']/1048576 for r in selected) if all(r.get('fileBytes') is not None for r in selected) else None,
             'processCountMin': min(len(r['processes']) for r in selected),
             'processCountMax': max(len(r['processes']) for r in selected),
             'swapPeakBytes': max(r['swapBytes'] for r in selected),
@@ -41,6 +43,25 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('directory', type=Path)
     args = parser.parse_args()
+    failures = [dict(json.loads(p.read_text()), attempt=p.parent.name) for p in sorted(args.directory.glob('*/failed.json'))]
+    for failure in failures:
+        directory = args.directory / failure['attempt']
+        series = {who: [json.loads(line) for line in (directory / f'{who}-memory.jsonl').read_text().splitlines()]
+                  for who in ('app', 'db') if (directory / f'{who}-memory.jsonl').exists()}
+        failure['observedPhases'] = []
+        for name in ('typical', 'burst', 'capacity'):
+            path = directory / f'{name}.json'
+            if not path.exists():
+                continue
+            load = json.loads(path.read_text())
+            phase = {'name': name, 'load': load, 'memory': {}}
+            if 'startedUnixSeconds' in load and 'endedUnixSeconds' in load:
+                for who, rows in series.items():
+                    try:
+                        phase['memory'][who] = memory(rows, load['startedUnixSeconds'], load['endedUnixSeconds'])
+                    except ValueError as error:
+                        phase.setdefault('sampleErrors', {})[who] = str(error)
+            failure['observedPhases'].append(phase)
     trials = []
     for path in sorted(args.directory.glob('*/trial.json')):
         trial = json.loads(path.read_text())
@@ -53,19 +74,19 @@ def main():
                 begin = max(begin, end - 10)
             phase['memory'] = {who: memory(rows, begin, end) for who, rows in series.items()}
         trials.append(trial)
-    if not trials:
-        raise SystemExit('No completed trials')
+    if not trials and not failures:
+        raise SystemExit('No recorded attempts')
     summary = []
     for variant in sorted({t['variant'] for t in trials}):
         matches = [t for t in trials if t['variant'] == variant]
         get = lambda t, name: next(p for p in t['phases'] if p['name'] == name)
-        row = {'variant': variant, 'repetitions': len(matches)}
+        row = {'variant': variant, 'repetitions': len(matches), 'rejected': sum(f['variant'] == variant for f in failures)}
         for name in ('cold-idle', 'warm-idle', 'typical', 'burst', 'capacity', 'recovery'):
             phases = [get(t, name) for t in matches]
             row[name] = {
                 who: {metric: statistics.median(p['memory'][who][metric] for p in phases)
                       for metric in ('pssMedianMiB', 'pssP95MiB', 'pssPeakMiB', 'rssMedianMiB', 'rssP95MiB',
-                                     'workingSetMedianMiB', 'workingSetP95MiB', 'cgroupMedianMiB', 'cpuCores')}
+                                     'workingSetMedianMiB', 'workingSetP95MiB', 'cgroupMedianMiB', 'cpuCores', 'privateMedianMiB', 'fileCacheMedianMiB')}
                 for who in ('app', 'db')}
             if 'load' in phases[0]:
                 rates = [p['load']['rps'] for p in phases]
@@ -75,14 +96,42 @@ def main():
                                      'dropped': sum(p['load']['dropped'] for p in phases),
                                      'generatorCpuCores': max(p['load']['generatorCpuCores'] for p in phases)}
         summary.append(row)
-    (args.directory / 'report.json').write_text(json.dumps({'summary': summary, 'trials': trials}, indent=2) + '\n')
+    no_valid = sorted({f['variant'] for f in failures} - {t['variant'] for t in trials})
+    (args.directory / 'report.json').write_text(json.dumps({'summary': summary, 'trials': trials, 'rejectedAttempts': failures, 'variantsWithoutValidTrials': no_valid}, indent=2) + '\n')
     lines = ['# Linux database-slice benchmark', '',
-             'PSS counts shared pages proportionally. Values below are medians across trials; idle uses the final 10 seconds of the warm-idle window. Active uses per-trial p95 during saturation. This is not a production-service benchmark.', '',
-             '| Variant | Trials | Idle PSS MiB | Active p95 PSS MiB | Recovery PSS MiB | Capacity req/s (min–max) | Capacity p95 ms |',
+             'PSS counts shared pages proportionally. Values below are medians across trials; idle uses the final 10 seconds of the warm-idle window. Active uses per-trial p95 at the same 150 req/s offered load. This is not a production-service benchmark.', '',
+             '| Variant | Valid/attempted | Idle PSS MiB | Active p95 PSS MiB | Recovery PSS MiB | Capacity req/s (min–max) | Capacity p95 ms |',
              '| --- | ---: | ---: | ---: | ---: | ---: | ---: |']
     for row in summary:
         load = row['capacity']['load']
-        lines.append(f"| {row['variant']} | {row['repetitions']} | {row['warm-idle']['app']['pssMedianMiB']:.1f} | {row['capacity']['app']['pssP95MiB']:.1f} | {row['recovery']['app']['pssMedianMiB']:.1f} | {load['rpsMedian']:.0f} ({load['rpsMin']:.0f}–{load['rpsMax']:.0f}) | {load['p95Ms']:.1f} |")
+        lines.append(f"| {row['variant']} | {row['repetitions']}/{row['repetitions']+row['rejected']} | {row['warm-idle']['app']['pssMedianMiB']:.1f} | {row['burst']['app']['pssP95MiB']:.1f} | {row['recovery']['app']['pssMedianMiB']:.1f} | {load['rpsMedian']:.0f} ({load['rpsMin']:.0f}–{load['rpsMax']:.0f}) | {load['p95Ms']:.1f} |")
+    for variant in no_valid:
+        count = sum(f['variant'] == variant for f in failures)
+        lines.append(f'| {variant} | 0/{count} | — | — | — | — | — |')
+    if failures:
+        lines += ['', '## Rejected attempts', '', 'Rejected attempts are excluded from medians, not retried or hidden. A candidate with rejected attempts has not passed the full offered-load acceptance gate.', '']
+        for failure in failures:
+            invalid = []
+            for path in (args.directory / failure['attempt']).glob('*.json'):
+                if path.name in ('failed.json', 'trial.json'): continue
+                load = json.loads(path.read_text())
+                if load.get('errors') or load.get('dropped'):
+                    invalid.append(f"{path.stem}: {load.get('errors',0)} HTTP errors, {load.get('dropped',0)} dropped arrivals")
+            lines.append(f"- {failure['attempt']}: {'; '.join(invalid) if invalid else failure['reason'][:300]}")
+        lines += ['', 'Failed-phase observations below are diagnostic only: they are not accepted throughput or comparable steady-load memory results.', '',
+                  '| Attempt | Phase | Completed req/s | Dropped | App p95 PSS MiB | DB median PSS MiB |',
+                  '| --- | --- | ---: | ---: | ---: | ---: |']
+        for failure in failures:
+            for phase in failure['observedPhases']:
+                load = phase['load']
+                if not (load.get('errors') or load.get('dropped')):
+                    continue
+                app = phase['memory'].get('app', {}).get('pssP95MiB')
+                db = phase['memory'].get('db', {}).get('pssMedianMiB')
+                app_text = f'{app:.1f}' if app is not None else '—'
+                db_text = f'{db:.1f}' if db is not None else '—'
+                rate = f"{load['rps']:.1f}" if 'rps' in load else '—'
+                lines.append(f"| {failure['attempt']} | {phase['name']} | {rate} | {load.get('dropped', 0)} | {app_text} | {db_text} |")
     lines += ['', '## Fixed offered load', '', '| Variant | 15 req/s p95 ms | 150 req/s p95 ms | 15 req/s PSS p95 MiB | 150 req/s PSS p95 MiB | Errors / dropped |', '| --- | ---: | ---: | ---: | ---: | ---: |']
     for row in summary:
         a, b = row['typical'], row['burst']

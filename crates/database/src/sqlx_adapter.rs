@@ -8,8 +8,15 @@ pub struct Database {
 }
 impl Database {
     pub const NAME: &'static str = "sqlx";
-    pub async fn connect(_url: &str, _max: u32, shared: PgPool) -> Result<Self> {
-        Ok(Self { pool: shared })
+    pub async fn connect(url: &str, max: u32) -> Result<Self> {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(max)
+            .min_connections(0)
+            .idle_timeout(std::time::Duration::from_secs(30))
+            .acquire_timeout(std::time::Duration::from_secs(5))
+            .connect(url)
+            .await?;
+        Ok(Self { pool })
     }
     pub async fn user(&self, steam_id: i64) -> Result<Option<User>> {
         Ok(sqlx::query_as(USER_SQL)

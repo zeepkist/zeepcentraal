@@ -14,3 +14,9 @@ packages/web/.output/
 packages/web/test-results/
 packages/web/.data/block-meshes/
 zeepcentraal-web/
+
+# Local Rust evaluation output
+/target/
+/artifacts/
+/.bun-cache/
+__pycache__/

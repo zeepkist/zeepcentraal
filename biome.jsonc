@@ -42,6 +42,9 @@
 		"includes": [
 			"**",
 			"!node_modules",
+			"!target",
+			"!artifacts",
+			"!crates/discord-evaluation/fixtures",
 			"!coverage",
 			"!dist",
 			"!zeepcentraal-web",

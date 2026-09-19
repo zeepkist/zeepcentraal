@@ -15,12 +15,15 @@ pub struct Database {
 }
 impl Database {
     pub const NAME: &'static str = "diesel";
-    pub async fn connect(url: &str, max: u32, _shared: sqlx::PgPool) -> Result<Self> {
+    pub async fn connect(url: &str, max: u32) -> Result<Self> {
         let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(url);
         Ok(Self {
             pool: Pool::builder()
                 .max_size(max)
                 .min_idle(Some(0))
+                .idle_timeout(Some(std::time::Duration::from_secs(30)))
+                .connection_timeout(std::time::Duration::from_secs(5))
+                .reaper_rate(std::time::Duration::from_secs(1))
                 .build(manager)
                 .await?,
         })

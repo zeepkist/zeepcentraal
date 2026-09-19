@@ -1,4 +1,6 @@
-// Run with bun.exe on Windows/WSL. Uses synthetic preview data only.
+export {}
+
+// Local fixture only; never uses production credentials or GraphQL.
 const base = process.argv[2] ?? 'http://127.0.0.1:4310'
 const url = new URL(base)
 if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(url.hostname)) {
@@ -7,100 +9,48 @@ if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(url.hostnam
 const check = (value: unknown, message: string) => {
 	if (!value) throw new Error(message)
 }
-for (const path of [
-	'/healthz',
-	'/admin',
-	'/admin/',
-	'/admin/openapi.json',
-	'/admin/swagger',
-	'/admin/scalar',
-	'/graphql',
-	'/api/level',
-]) {
+for (const path of ['/healthz', '/docs', '/docs/scalar.js', '/openapi.json']) {
 	const response = await fetch(`${base}${path}`)
 	check(response.ok, `${path}: ${response.status}`)
+	if (path === '/docs') {
+		const html = await response.text()
+		check(html.includes('/docs/scalar.js'), 'Scalar must use local assets')
+		check(!html.includes('cdn.jsdelivr.net'), 'Scalar must work offline')
+	}
+	if (path === '/docs/scalar.js')
+		check((await response.text()).length > 100_000, 'Missing Scalar bundle')
 }
-const graphql = async (query: string) => {
-	const response = await fetch(`${base}/graphql`, {
+const spec = await fetch(`${base}/openapi.json`).then((r) => r.json())
+check(spec.paths['/evaluation/record'].post.responses['204'], 'Missing transaction contract')
+check(spec.components.schemas.User.properties.steamId, 'Schema must use Serde field casing')
+for (const path of ['/graphql', '/graphql/ws', '/admin', '/api/level']) {
+	check((await fetch(`${base}${path}`)).status === 404, `Removed surface still exposed: ${path}`)
+}
+check(
+	(await fetch(`${base}/evaluation/user/0`).then((r) => r.json())) === null,
+	'Missing user contract',
+)
+const user = await fetch(`${base}/evaluation/user/76561198000000001`).then((r) => r.json())
+check(user.steamId === '76561198000000001', 'User payload mismatch')
+const submit = (body: unknown) =>
+	fetch(`${base}/evaluation/record`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ query }),
+		body: JSON.stringify(body),
 	})
-	const body = (await response.json()) as { data?: Record<string, unknown>; errors?: unknown[] }
-	check(response.ok && !body.errors?.length, `GraphQL failed: ${JSON.stringify(body)}`)
-	return body.data
-}
-check(await graphql('{ level { id name } }'), 'Missing query data')
-await graphql(
-	'mutation { insert_record(objects: [{id_user: 1, id_level: 1, time: 28.625}]) { affected_rows } }',
+check((await submit({ user: 1, level: 1, time: -1 })).status === 400, 'Invalid time accepted')
+check(
+	(await submit({ user: -1, level: 1, time: 28 })).status === 500,
+	'Foreign key failure contract',
 )
-const socket = new WebSocket(`${base.replace('http:', 'ws:')}/graphql/ws`, 'graphql-transport-ws')
-await new Promise<void>((resolve, reject) => {
-	let initial = false
-	let previousId: unknown
-	const timer = setTimeout(() => {
-		socket.close()
-		reject(new Error('Subscription update timed out'))
-	}, 15000)
-	const fail = (error: unknown) => {
-		clearTimeout(timer)
-		socket.close()
-		reject(error)
-	}
-	socket.onopen = () => socket.send(JSON.stringify({ type: 'connection_init' }))
-	socket.onerror = () => fail(new Error('WebSocket failed'))
-	socket.onmessage = async (event) => {
-		try {
-			const message = JSON.parse(String(event.data))
-			if (message.type === 'connection_ack') {
-				socket.send(
-					JSON.stringify({
-						id: 'schema',
-						type: 'subscribe',
-						payload: { query: '{ __schema { mutationType { name } } }' },
-					}),
-				)
-			} else if (message.id === 'schema' && message.type === 'next') {
-				check(
-					message.payload?.data?.__schema?.mutationType === null,
-					'WebSocket mutations must be disabled',
-				)
-				socket.send(
-					JSON.stringify({
-						id: 'test',
-						type: 'subscribe',
-						payload: {
-							query: 'subscription { record(order_by: [{id: desc}], limit: 1) { id time } }',
-						},
-					}),
-				)
-			} else if (message.type === 'error' || message.payload?.errors?.length) {
-				fail(new Error(JSON.stringify(message)))
-			} else if (message.type === 'complete' && message.id === 'test') {
-				fail(new Error('Subscription completed before update'))
-			} else if (message.type === 'next') {
-				if (!initial) {
-					initial = true
-					previousId = message.payload?.data?.record?.[0]?.id
-					const response = await fetch(`${base}/evaluation/record`, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ user: 1, level: 1, time: 28.375 }),
-					})
-					check(response.status === 204, 'Application write failed')
-				} else if (
-					message.payload?.data?.record?.[0]?.time === 28.375 &&
-					message.payload?.data?.record?.[0]?.id !== previousId
-				) {
-					clearTimeout(timer)
-					socket.send(JSON.stringify({ type: 'complete', id: 'test' }))
-					socket.close()
-					resolve()
-				}
-			}
-		} catch (error) {
-			fail(error)
-		}
-	}
-})
-console.log('Preview admin, REST, GraphQL query/mutation and subscription smoke passed')
+const written = await submit({ user: 1, level: 1, time: 28.375 })
+check(written.status === 204 && (await written.text()) === '', 'Write must return empty 204')
+check(
+	Array.isArray(await fetch(`${base}/evaluation/leaderboard/1`).then((r) => r.json())),
+	'Leaderboard failed',
+)
+check(
+	(await fetch(`${base}/healthz`, { headers: { Origin: 'https://example.org' } })).status === 403,
+	'Foreign origin allowed',
+)
+console.log('Standalone REST, Scalar assets, OpenAPI and response contracts passed')

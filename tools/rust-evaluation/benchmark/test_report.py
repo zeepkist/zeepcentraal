@@ -1,4 +1,9 @@
 import unittest
+import json
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 from report import memory, percentile
 
 
@@ -23,6 +28,25 @@ class ReportTests(unittest.TestCase):
     def test_missing_samples_fail_instead_of_reporting_zero(self):
         with self.assertRaises(ValueError):
             memory([], 0, 10)
+
+    def test_all_rejected_attempts_remain_visible_without_claiming_zero_memory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            attempt = root / '1-diesel'
+            attempt.mkdir()
+            (attempt / 'failed.json').write_text(json.dumps({
+                'variant': 'diesel', 'round': 1, 'reason': 'Invalid burst',
+            }))
+            (attempt / 'burst.json').write_text(json.dumps({'errors': 0, 'dropped': 13}))
+            subprocess.run([sys.executable, str(Path(__file__).with_name('report.py')), directory],
+                           check=True, capture_output=True)
+            report = json.loads((root / 'report.json').read_text())
+            self.assertEqual(report['summary'], [])
+            self.assertEqual(report['variantsWithoutValidTrials'], ['diesel'])
+            self.assertEqual(len(report['rejectedAttempts']), 1)
+            markdown = (root / 'report.md').read_text()
+            self.assertIn('| diesel | 0/1 | — |', markdown)
+            self.assertIn('13 dropped arrivals', markdown)
 
 
 if __name__ == '__main__':

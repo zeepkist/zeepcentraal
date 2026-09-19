@@ -24,7 +24,7 @@ def docker(*args, input=None, check=True):
                             capture_output=True, cwd=ROOT)
     if check and result.returncode:
         raise RuntimeError(f'Docker {args[:3]} failed: {result.stderr[-3000:]} {result.stdout[-1000:]}')
-    return result.stdout.strip()
+    return (result.stdout + result.stderr if args and args[0] == "logs" else result.stdout).strip()
 
 
 def host_path(path):
@@ -100,11 +100,10 @@ def start(variant):
             '-e', 'TOKIO_WORKER_THREADS=2', '-e', 'NODE_ENV=production', '--mount', mount(ARTIFACTS, '/bench-bin', True)]
     if variant.startswith('bun'):
         docker(*base, '-e', f'BENCH_WORKERS={2 if variant == "bun-2" else 1}',
-               '--entrypoint', '/bench-bin/bun-server', 'zc-rust-benchmark:local')
+               '--entrypoint', '/bench-bin/bun-server', 'zc-rust-benchmark:axum')
     else:
-        docker(*base, '-e', 'ZC_PREVIEW_FEATURES=true', '-e', 'ZC_PREVIEW_POOL_MAX=4',
-               '-e', f'ZC_PREVIEW_POSTRUST_POOL_MAX={5 if variant == "sqlx" else 2}',
-               '--entrypoint', f'/app/{variant}', 'zc-rust-benchmark:local')
+        docker(*base, '-e', 'ZC_PREVIEW_POOL_MAX=4',
+               '--entrypoint', f'/app/{variant}', 'zc-rust-benchmark:axum')
     for _ in range(60):
         result = docker('exec', DB, 'bash', '-c',
                         "exec 3<>/dev/tcp/127.0.0.1/4310; printf 'GET /healthz HTTP/1.0\r\nHost: 127.0.0.1:4310\r\n\r\n' >&3; cat <&3", check=False)
@@ -121,7 +120,7 @@ def load(output, phase, seconds, mode, amount):
     result = docker('run', '--rm', '--label', 'zc.benchmark=true', '--network', f'container:{DB}',
                     '--cpuset-cpus', '3', '--memory', '256m', '--memory-swap', '256m',
                     '--mount', mount(ARTIFACTS, '/bench-bin', True), '--mount', mount(output, '/results'),
-                    '--entrypoint', '/bench-bin/load', 'zc-rust-benchmark:local',
+                    '--entrypoint', '/bench-bin/load', 'zc-rust-benchmark:axum',
                     seconds, mode, amount, f'/results/{phase}.json', check=False)
     file = output / f'{phase}.json'
     if not file.exists():
@@ -136,7 +135,7 @@ def load(output, phase, seconds, mode, amount):
 def idle(name, seconds):
     begin = time.time()
     time.sleep(seconds)
-    return {'name': name, 'begin': begin, 'end': time.time()}
+    return {'name': name, 'begin': begin, 'end': time.time(), 'connectionsAfter': sql("COPY (SELECT state, count(*) FROM pg_stat_activity WHERE datname='zc_rust_sqlx' AND backend_type='client backend' GROUP BY state) TO STDOUT;")}
 
 
 def trial(variant, round_number, output, quick=False):
@@ -151,15 +150,15 @@ def trial(variant, round_number, output, quick=False):
     try:
         phases.append(idle('cold-idle', 3 if quick else 15))
         phases.append(load(output, 'warmup', 3 if quick else 10, 'closed', 8))
-        phases.append(idle('warm-idle', 3 if quick else 35))
+        phases.append(idle('warm-idle', 3 if quick else 90))
         phases.append(load(output, 'typical', 3 if quick else 20, 'rate', 15))
         phases.append(load(output, 'burst', 3 if quick else 20, 'rate', 150))
         phases.append(load(output, 'capacity', 3 if quick else 20, 'closed', 32))
-        phases.append(idle('recovery', 3 if quick else 35))
+        phases.append(idle('recovery', 3 if quick else 90))
         for name in ('zc-benchmark-app-sampler', 'zc-benchmark-db-sampler'):
             if docker('inspect', '-f', '{{.State.Running}}', name) != 'true':
                 raise RuntimeError(f'Sampler stopped: {docker("logs", name, check=False)}')
-        result = {'variant': variant, 'round': round_number, 'phases': phases,
+        result = {'implementation': 'axum-serde-scalar' if variant in ('sqlx', 'diesel') else 'bun-elysia', 'variant': variant, 'round': round_number, 'phases': phases,
                   'databaseChecks': sql('SELECT count(*) AS records FROM record; SELECT count(*) AS audits FROM record_audit;', 'zc_rust_sqlx'),
                   'appState': json.loads(docker('inspect', '-f', '{{json .State}}', APP))}
         # Every successful application write produces one audit row.
@@ -180,6 +179,7 @@ def trial(variant, round_number, output, quick=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--quick', action='store_true')
+    parser.add_argument('--resume', action='store_true', help='Skip recorded attempts; verify the same image and load binaries')
     parser.add_argument('--rounds', type=int, default=3)
     parser.add_argument('--variants', nargs='+', choices=['bun-1', 'bun-2', 'sqlx', 'diesel'], default=['bun-2', 'sqlx', 'diesel'])
     parser.add_argument('--output', type=Path, required=True)
@@ -188,25 +188,44 @@ def main():
     initialize()
     if args.init_only:
         return
-    args.output.mkdir(parents=True, exist_ok=False)
+    args.output.mkdir(parents=True, exist_ok=args.resume)
     metadata = {'created': time.time(), 'docker': {k: v for k, v in json.loads(docker('info', '--format', '{{json .}}')).items() if k in ('NCPU', 'MemTotal', 'KernelVersion', 'OSType', 'Architecture', 'ServerVersion')},
                 'images': {image: json.loads(docker('image', 'inspect', image))[0]['Id']
-                           for image in ['zc-rust-benchmark:local', 'postgres:18.6', 'python:3.12-slim']},
+                           for image in ['zc-rust-benchmark:axum', 'postgres:18.6', 'python:3.12-slim']},
                 'binarySha256': {name: hashlib.sha256((ARTIFACTS / name).read_bytes()).hexdigest() for name in ('bun-server', 'load')},
                 'sourceSha256': {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in HERE.iterdir() if p.is_file()},
                 'settings': {'appCpuSet': '0,1', 'dbCpuSet': '2', 'loadCpuSet': '3', 'appMemoryMiB': 512,
                              'databaseMemoryMiB': 1024, 'readUserPercent': 70, 'leaderboardPercent': 20,
                              'transactionPercent': 10, 'hotLevelRequestPercent': 80,
-                             'hotLevelRecordsPercent': 40, 'rustPostrustEnabled': True}}
+                             'hotLevelRecordsPercent': 40, 'rustPostrustEnabled': False, 'scalarEnabled': True, 'poolMax': 4, 'poolIdleSeconds': 30, 'quick': args.quick}}
     # Docker info is host metadata only; never inspect application environment values.
-    (args.output / 'metadata.json').write_text(json.dumps(metadata, indent=2) + '\n')
+    metadata_path = args.output / 'metadata.json'
+    if args.resume:
+        previous = json.loads(metadata_path.read_text())
+        if previous['images'] != metadata['images'] or previous['binarySha256'] != metadata['binarySha256'] or previous['settings'] != metadata['settings']:
+            raise RuntimeError('Resume requires identical binaries, images and settings')
+        changed = [name for name, digest in metadata['sourceSha256'].items() if previous['sourceSha256'].get(name) != digest]
+        if any(name != 'run.py' for name in changed):
+            raise RuntimeError(f'Resume source changed: {changed}')
+        previous.setdefault('resumes', []).append({'unixSeconds': time.time(), 'controllerSha256': metadata['sourceSha256']['run.py']})
+        metadata = previous
+    metadata_path.write_text(json.dumps(metadata, indent=2) + '\n')
     for round_number in range(1, args.rounds + 1):
         # Rotate order to reduce systematic warm-cache/time bias.
         shift = (round_number - 1) % len(args.variants)
         order = args.variants[shift:] + args.variants[:shift]
         for variant in order:
+            output = args.output / f'{round_number}-{variant}'
+            if args.resume and ((output / 'trial.json').exists() or (output / 'failed.json').exists()):
+                print(f'Skipping recorded attempt {output.name}', flush=True)
+                continue
             print(f'Starting {variant} round {round_number}', flush=True)
-            trial(variant, round_number, args.output / f'{round_number}-{variant}', args.quick)
+            try:
+                trial(variant, round_number, output, args.quick)
+            except Exception as error:
+                output.mkdir(parents=True, exist_ok=True)
+                (output / 'failed.json').write_text(json.dumps({'variant': variant, 'round': round_number, 'reason': str(error)}, indent=2)+'\n')
+                print(f'REJECTED {output.name}: {error}', flush=True)
 
 
 if __name__ == '__main__':
