@@ -38,7 +38,7 @@ pub struct EnqueuedJob {
     pub max_attempts: i32,
 }
 
-#[derive(Debug, QueryableByName, Deserialize, Serialize)]
+#[derive(Clone, Debug, QueryableByName, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaimedJob {
     #[diesel(sql_type = Text)]

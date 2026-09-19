@@ -4053,15 +4053,19 @@ name = "zc-jobs"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "diesel",
  "diesel-async",
+ "jiff",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tokio",
  "tracing",
  "zc-core",
  "zc-database",
  "zc-telemetry",
+ "zc-workshop",
 ]
 
 [[package]]

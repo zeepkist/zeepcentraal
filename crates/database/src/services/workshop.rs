@@ -6,6 +6,7 @@ use diesel::{
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct WorkshopLevelInput {
@@ -41,6 +42,12 @@ pub struct WorkshopLevelInput {
 pub struct WorkshopLevelUpsertResult {
     pub id_level: i32,
     pub score_changed: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorkshopSyncState {
+    pub active_item_count: i64,
+    pub updated_epoch: i64,
 }
 
 #[derive(QueryableByName)]
@@ -391,6 +398,38 @@ impl Database {
                 .map(|row| row.workshop_id)
                 .collect(),
         )
+    }
+
+    pub async fn workshop_sync_state(&self) -> Result<HashMap<i64, WorkshopSyncState>> {
+        #[derive(QueryableByName)]
+        struct StateRow {
+            #[diesel(sql_type = BigInt)]
+            workshop_id: i64,
+            #[diesel(sql_type = BigInt)]
+            active_item_count: i64,
+            #[diesel(sql_type = BigInt)]
+            updated_epoch: i64,
+        }
+        let mut connection = self.connection().await?;
+        let rows = sql_query(
+            "SELECT workshop_id,count(*) FILTER(WHERE NOT deleted)::bigint AS active_item_count, \
+             extract(epoch FROM max(updated_at))::bigint AS updated_epoch \
+             FROM public.level_item GROUP BY workshop_id",
+        )
+        .load::<StateRow>(&mut connection)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.workshop_id,
+                    WorkshopSyncState {
+                        active_item_count: row.active_item_count,
+                        updated_epoch: row.updated_epoch,
+                    },
+                )
+            })
+            .collect())
     }
 }
 

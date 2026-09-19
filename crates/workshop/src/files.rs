@@ -15,6 +15,12 @@ pub struct WorkshopLevelFile {
     pub thumbnail_path: Option<PathBuf>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SelectedWorkshopLevelFile {
+    pub content: String,
+    pub name: String,
+}
+
 pub async fn find_level_paths(directory: &Path) -> Result<Vec<PathBuf>> {
     let mut levels = Vec::new();
     let mut stack = vec![(directory.to_owned(), 0_usize)];
@@ -93,6 +99,38 @@ pub async fn discover_levels(directory: &Path) -> Result<Vec<WorkshopLevelFile>>
             }
         })
         .collect())
+}
+
+pub async fn find_workshop_level_file(
+    directory: &Path,
+    file_uid: &str,
+) -> Result<Option<SelectedWorkshopLevelFile>> {
+    for path in find_level_paths(directory).await? {
+        let metadata = tokio::fs::metadata(&path).await?;
+        if metadata.len() > MAX_LEVEL_FILE_BYTES {
+            continue;
+        }
+        let bytes = tokio::fs::read(&path).await?;
+        if bytes.len() as u64 > MAX_LEVEL_FILE_BYTES {
+            continue;
+        }
+        let Ok(content) = String::from_utf8(bytes) else {
+            continue;
+        };
+        let Ok(parsed) = zc_core::levels::parse_level(&content, false, 0) else {
+            continue;
+        };
+        if parsed.uid == file_uid {
+            return Ok(Some(SelectedWorkshopLevelFile {
+                name: path
+                    .file_stem()
+                    .map(|value| value.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+                content,
+            }));
+        }
+    }
+    Ok(None)
 }
 
 #[cfg(test)]

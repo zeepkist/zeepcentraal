@@ -6,15 +6,19 @@ publish.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+async-trait.workspace = true
 diesel.workspace = true
 diesel-async.workspace = true
+jiff.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 zc-core.workspace = true
 zc-database.workspace = true
 zc-telemetry.workspace = true
+zc-workshop.workspace = true
 
 [[bin]]
 name = "zeepcentraal-jobs"

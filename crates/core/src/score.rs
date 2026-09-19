@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 
+mod v2;
+pub use v2::*;
+
 pub const DEFAULT_VOTE_RATING: f64 = 0.5;
 pub const NEGATIVE_VOTE_WEIGHT: f64 = 0.5;
 pub const MINIMUM_VOTE_COUNT: usize = 5;
