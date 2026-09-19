@@ -5,6 +5,7 @@ pub mod cookies;
 pub mod discord;
 pub mod identifiers;
 pub mod jwt;
+pub mod levels;
 pub mod score;
 pub mod steam;
 pub mod version;
