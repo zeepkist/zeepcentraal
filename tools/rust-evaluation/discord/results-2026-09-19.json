@@ -1,0 +1,6179 @@
+{
+	"summary": [
+		{
+			"variant": "discord-js",
+			"repetitions": 3,
+			"cold-idle": {
+				"app": {
+					"pssMedianMiB": 46.578125,
+					"pssP95MiB": 46.865234375,
+					"rssP95MiB": 47.83984375,
+					"workingSetP95MiB": 19.46875,
+					"cpuCores": 0.0007441677815432892,
+					"privateMedianMiB": 45.5546875,
+					"fileCacheMedianMiB": 35.1484375
+				},
+				"fixture": {
+					"pssMedianMiB": 14.1796875,
+					"pssP95MiB": 14.1796875,
+					"rssP95MiB": 15.15625,
+					"workingSetP95MiB": 3.265625,
+					"cpuCores": 0.00025453398237327174,
+					"privateMedianMiB": 13.19140625,
+					"fileCacheMedianMiB": 14.52734375
+				}
+			},
+			"warm-idle": {
+				"app": {
+					"pssMedianMiB": 73.96875,
+					"pssP95MiB": 73.96875,
+					"rssP95MiB": 74.9296875,
+					"workingSetP95MiB": 40.5234375,
+					"cpuCores": 0.0013161688545943514,
+					"privateMedianMiB": 73.01171875,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 33.78515625,
+					"pssP95MiB": 33.78515625,
+					"rssP95MiB": 34.76953125,
+					"workingSetP95MiB": 8.12890625,
+					"cpuCores": 0.0001514048342923296,
+					"privateMedianMiB": 32.828125,
+					"fileCacheMedianMiB": 32.26171875
+				}
+			},
+			"profile": {
+				"app": {
+					"pssMedianMiB": 64.140625,
+					"pssP95MiB": 73.693359375,
+					"rssP95MiB": 75.01953125,
+					"workingSetP95MiB": 40.934375,
+					"cpuCores": 0.023220328385888004,
+					"privateMedianMiB": 63.421875,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 33.6015625,
+					"pssP95MiB": 33.7259765625,
+					"rssP95MiB": 35.0501953125,
+					"workingSetP95MiB": 8.4384765625,
+					"cpuCores": 0.008444915469861772,
+					"privateMedianMiB": 32.90625,
+					"fileCacheMedianMiB": 32.26171875
+				},
+				"load": {
+					"rpsMedian": 15.000094148090922,
+					"rpsMin": 14.998906068284928,
+					"rpsMax": 15.000315947154697,
+					"p95Ms": 5.404826666666395,
+					"ackP95Ms": 0.5384169999961159,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"autocomplete": {
+				"app": {
+					"pssMedianMiB": 63.869140625,
+					"pssP95MiB": 63.8810546875,
+					"rssP95MiB": 65.2228515625,
+					"workingSetP95MiB": 31.0080078125,
+					"cpuCores": 0.017921606364484314,
+					"privateMedianMiB": 63.140625,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 33.505859375,
+					"pssP95MiB": 33.5251953125,
+					"rssP95MiB": 34.828125,
+					"workingSetP95MiB": 8.3046875,
+					"cpuCores": 0.006744236400714185,
+					"privateMedianMiB": 32.77734375,
+					"fileCacheMedianMiB": 32.26171875
+				},
+				"load": {
+					"rpsMedian": 15.000310621932265,
+					"rpsMin": 15.000105075736055,
+					"rpsMax": 15.001191265600069,
+					"p95Ms": 3.579136333331917,
+					"ackP95Ms": 0.8934100000042235,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"page": {
+				"app": {
+					"pssMedianMiB": 64.109375,
+					"pssP95MiB": 64.1328125,
+					"rssP95MiB": 65.4453125,
+					"workingSetP95MiB": 31.25078125,
+					"cpuCores": 0.02309319052920116,
+					"privateMedianMiB": 63.4453125,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 33.5693359375,
+					"pssP95MiB": 33.6185546875,
+					"rssP95MiB": 34.969140625,
+					"workingSetP95MiB": 8.3951171875,
+					"cpuCores": 0.007776233129938782,
+					"privateMedianMiB": 32.81640625,
+					"fileCacheMedianMiB": 32.26171875
+				},
+				"load": {
+					"rpsMedian": 15.000099152155405,
+					"rpsMin": 14.999699832006842,
+					"rpsMax": 15.001202242851468,
+					"p95Ms": 5.176050999999916,
+					"ackP95Ms": 0.5150169999978971,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"feed": {
+				"app": {
+					"pssMedianMiB": 64.24609375,
+					"pssP95MiB": 64.38359375,
+					"rssP95MiB": 65.75859375,
+					"workingSetP95MiB": 31.4923828125,
+					"cpuCores": 0.027078415896328617,
+					"privateMedianMiB": 63.515625,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 33.5859375,
+					"pssP95MiB": 33.630859375,
+					"rssP95MiB": 34.939453125,
+					"workingSetP95MiB": 8.3740234375,
+					"cpuCores": 0.009407374693470777,
+					"privateMedianMiB": 32.859375,
+					"fileCacheMedianMiB": 32.26171875
+				},
+				"load": {
+					"rpsMedian": 15.000284633400977,
+					"rpsMin": 14.999896316216695,
+					"rpsMax": 15.001160248238126,
+					"p95Ms": 5.854139999999916,
+					"ackP95Ms": null,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"burst": {
+				"app": {
+					"pssMedianMiB": 65.5791015625,
+					"pssP95MiB": 68.16328125,
+					"rssP95MiB": 69.5587890625,
+					"workingSetP95MiB": 35.0841796875,
+					"cpuCores": 0.1426914398250631,
+					"privateMedianMiB": 64.826171875,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 34.09765625,
+					"pssP95MiB": 34.544140625,
+					"rssP95MiB": 35.852734375,
+					"workingSetP95MiB": 9.2521484375,
+					"cpuCores": 0.052249960493200416,
+					"privateMedianMiB": 33.3984375,
+					"fileCacheMedianMiB": 32.26171875
+				},
+				"load": {
+					"rpsMedian": 150.00448677670374,
+					"rpsMin": 150.0008867152417,
+					"rpsMax": 150.00490333027906,
+					"p95Ms": 3.0973433333329012,
+					"ackP95Ms": 0.7361940000118921,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"capacity": {
+				"app": {
+					"pssMedianMiB": 78.61328125,
+					"pssP95MiB": 80.42734375,
+					"rssP95MiB": 81.812109375,
+					"workingSetP95MiB": 47.5736328125,
+					"cpuCores": 1.3451308017112173,
+					"privateMedianMiB": 77.849609375,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 39.0927734375,
+					"pssP95MiB": 43.097070312499994,
+					"rssP95MiB": 44.432031249999994,
+					"workingSetP95MiB": 17.906445312499994,
+					"cpuCores": 0.6057760082439794,
+					"privateMedianMiB": 38.37890625,
+					"fileCacheMedianMiB": 32.26171875
+				},
+				"load": {
+					"rpsMedian": 3309.555513334739,
+					"rpsMin": 3244.481916628331,
+					"rpsMax": 3807.5109358069167,
+					"p95Ms": 36.75148999999874,
+					"ackP95Ms": 0.7735700000193901,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"recovery": {
+				"app": {
+					"pssMedianMiB": 63.7734375,
+					"pssP95MiB": 63.7734375,
+					"rssP95MiB": 64.80078125,
+					"workingSetP95MiB": 30.2890625,
+					"cpuCores": 3.1622321555780114e-5,
+					"privateMedianMiB": 62.75,
+					"fileCacheMedianMiB": 40.93359375
+				},
+				"fixture": {
+					"pssMedianMiB": 38.31640625,
+					"pssP95MiB": 38.31640625,
+					"rssP95MiB": 39.296875,
+					"workingSetP95MiB": 12.66796875,
+					"cpuCores": 1.991473066720458e-5,
+					"privateMedianMiB": 37.3359375,
+					"fileCacheMedianMiB": 32.26171875
+				}
+			}
+		},
+		{
+			"variant": "serenity",
+			"repetitions": 3,
+			"cold-idle": {
+				"app": {
+					"pssMedianMiB": 4.369140625,
+					"pssP95MiB": 4.369140625,
+					"rssP95MiB": 5.2421875,
+					"workingSetP95MiB": 1.28515625,
+					"cpuCores": 0.0,
+					"privateMedianMiB": 3.51171875,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 14.142578125,
+					"pssP95MiB": 14.30859375,
+					"rssP95MiB": 15.1953125,
+					"workingSetP95MiB": 3.265625,
+					"cpuCores": 0.0002421895374673158,
+					"privateMedianMiB": 13.283203125,
+					"fileCacheMedianMiB": 14.318359375
+				}
+			},
+			"warm-idle": {
+				"app": {
+					"pssMedianMiB": 7.052734375,
+					"pssP95MiB": 7.052734375,
+					"rssP95MiB": 7.9140625,
+					"workingSetP95MiB": 3.75,
+					"cpuCores": 0.0,
+					"privateMedianMiB": 6.1953125,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 33.837890625,
+					"pssP95MiB": 33.837890625,
+					"rssP95MiB": 34.71875,
+					"workingSetP95MiB": 8.0625,
+					"cpuCores": 0.00015344556370680069,
+					"privateMedianMiB": 32.98046875,
+					"fileCacheMedianMiB": 32.2421875
+				}
+			},
+			"profile": {
+				"app": {
+					"pssMedianMiB": 7.2626953125,
+					"pssP95MiB": 7.2626953125,
+					"rssP95MiB": 8.45703125,
+					"workingSetP95MiB": 4.5357421875,
+					"cpuCores": 0.009126231856339113,
+					"privateMedianMiB": 6.6484375,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 33.6279296875,
+					"pssP95MiB": 33.637109375,
+					"rssP95MiB": 34.9189453125,
+					"workingSetP95MiB": 8.4259765625,
+					"cpuCores": 0.007954475204697881,
+					"privateMedianMiB": 32.9375,
+					"fileCacheMedianMiB": 32.2421875
+				},
+				"load": {
+					"rpsMedian": 15.000146083422678,
+					"rpsMin": 14.999517444524482,
+					"rpsMax": 15.000233945148633,
+					"p95Ms": 4.061343333332843,
+					"ackP95Ms": 0.457029,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"autocomplete": {
+				"app": {
+					"pssMedianMiB": 7.3779296875,
+					"pssP95MiB": 7.3779296875,
+					"rssP95MiB": 8.55859375,
+					"workingSetP95MiB": 4.5419921875,
+					"cpuCores": 0.00821706054212006,
+					"privateMedianMiB": 6.78515625,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 33.4658203125,
+					"pssP95MiB": 33.514453125,
+					"rssP95MiB": 34.8025390625,
+					"workingSetP95MiB": 8.262890625,
+					"cpuCores": 0.006940765645194872,
+					"privateMedianMiB": 32.734375,
+					"fileCacheMedianMiB": 32.2421875
+				},
+				"load": {
+					"rpsMedian": 15.000276351591253,
+					"rpsMin": 14.999571214757468,
+					"rpsMax": 15.000313235040943,
+					"p95Ms": 4.478200000000015,
+					"ackP95Ms": 0.912991,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"page": {
+				"app": {
+					"pssMedianMiB": 7.4501953125,
+					"pssP95MiB": 7.7482421875,
+					"rssP95MiB": 8.887890625,
+					"workingSetP95MiB": 5.11328125,
+					"cpuCores": 0.010553858418279325,
+					"privateMedianMiB": 6.86328125,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 33.5537109375,
+					"pssP95MiB": 33.6169921875,
+					"rssP95MiB": 34.9109375,
+					"workingSetP95MiB": 8.38125,
+					"cpuCores": 0.00891007093788948,
+					"privateMedianMiB": 32.8125,
+					"fileCacheMedianMiB": 32.2421875
+				},
+				"load": {
+					"rpsMedian": 14.99968348267902,
+					"rpsMin": 14.998831871475367,
+					"rpsMax": 14.999772972436151,
+					"p95Ms": 4.560336000000007,
+					"ackP95Ms": 0.52188,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"feed": {
+				"app": {
+					"pssMedianMiB": 7.8173828125,
+					"pssP95MiB": 7.8173828125,
+					"rssP95MiB": 8.9609375,
+					"workingSetP95MiB": 4.8923828125,
+					"cpuCores": 0.011387976611655882,
+					"privateMedianMiB": 7.23046875,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 33.5712890625,
+					"pssP95MiB": 33.6001953125,
+					"rssP95MiB": 34.88828125,
+					"workingSetP95MiB": 8.3310546875,
+					"cpuCores": 0.010268804181084609,
+					"privateMedianMiB": 32.83984375,
+					"fileCacheMedianMiB": 32.2421875
+				},
+				"load": {
+					"rpsMedian": 15.000480322880177,
+					"rpsMin": 15.000277751142953,
+					"rpsMax": 15.000801464320716,
+					"p95Ms": 5.194785666666576,
+					"ackP95Ms": null,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"burst": {
+				"app": {
+					"pssMedianMiB": 7.861328125,
+					"pssP95MiB": 7.86328125,
+					"rssP95MiB": 9.03515625,
+					"workingSetP95MiB": 5.00625,
+					"cpuCores": 0.07094421656739383,
+					"privateMedianMiB": 7.25390625,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 34.0625,
+					"pssP95MiB": 34.5474609375,
+					"rssP95MiB": 35.7974609375,
+					"workingSetP95MiB": 9.27421875,
+					"cpuCores": 0.05068584423902053,
+					"privateMedianMiB": 33.35546875,
+					"fileCacheMedianMiB": 32.2421875
+				},
+				"load": {
+					"rpsMedian": 150.00419942756466,
+					"rpsMin": 149.9999528475148,
+					"rpsMax": 150.006052406701,
+					"p95Ms": 2.598067333333347,
+					"ackP95Ms": 0.591439,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"capacity": {
+				"app": {
+					"pssMedianMiB": 8.0087890625,
+					"pssP95MiB": 8.0087890625,
+					"rssP95MiB": 9.140625,
+					"workingSetP95MiB": 5.2009765625,
+					"cpuCores": 1.3339153831322657,
+					"privateMedianMiB": 7.41796875,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 39.84375,
+					"pssP95MiB": 42.833203125,
+					"rssP95MiB": 44.09296875,
+					"workingSetP95MiB": 17.522265625,
+					"cpuCores": 0.6343325692240495,
+					"privateMedianMiB": 39.154296875,
+					"fileCacheMedianMiB": 32.2421875
+				},
+				"load": {
+					"rpsMedian": 4129.404291936556,
+					"rpsMin": 3519.2699748051086,
+					"rpsMax": 4462.95467364444,
+					"p95Ms": 30.21433900000011,
+					"ackP95Ms": 0.679399,
+					"errors": 0,
+					"dropped": 0
+				}
+			},
+			"recovery": {
+				"app": {
+					"pssMedianMiB": 8.263671875,
+					"pssP95MiB": 8.263671875,
+					"rssP95MiB": 9.125,
+					"workingSetP95MiB": 4.94140625,
+					"cpuCores": 0.0,
+					"privateMedianMiB": 7.40625,
+					"fileCacheMedianMiB": 0.00390625
+				},
+				"fixture": {
+					"pssMedianMiB": 38.373046875,
+					"pssP95MiB": 38.373046875,
+					"rssP95MiB": 39.234375,
+					"workingSetP95MiB": 12.609375,
+					"cpuCores": 0.0,
+					"privateMedianMiB": 37.515625,
+					"fileCacheMedianMiB": 32.2421875
+				}
+			}
+		}
+	],
+	"trials": [
+		{
+			"variant": "discord-js",
+			"round": 1,
+			"phases": [
+				{
+					"name": "cold-idle",
+					"begin": 1789781186.509589,
+					"end": 1789781201.5096846,
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 0
+						},
+						"fixture": {
+							"requests": 0,
+							"acknowledgements": 0,
+							"deliveries": 0,
+							"cursors": 0,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 29,
+							"pssMedianMiB": 46.578125,
+							"pssP95MiB": 46.76953125,
+							"pssPeakMiB": 46.76953125,
+							"rssMedianMiB": 47.60546875,
+							"rssP95MiB": 47.734375,
+							"workingSetMedianMiB": 19.1015625,
+							"workingSetP95MiB": 19.45703125,
+							"cgroupMedianMiB": 54.24609375,
+							"cpuCores": 0.0007082378924996973,
+							"privateMedianMiB": 45.5546875,
+							"fileCacheMedianMiB": 35.14453125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 30,
+							"pssMedianMiB": 14.18359375,
+							"pssP95MiB": 14.21796875,
+							"pssPeakMiB": 14.24609375,
+							"rssMedianMiB": 15.2109375,
+							"rssP95MiB": 15.2109375,
+							"workingSetMedianMiB": 3.23046875,
+							"workingSetP95MiB": 3.265625,
+							"cgroupMedianMiB": 17.75390625,
+							"cpuCores": 0.00023897770777015794,
+							"privateMedianMiB": 13.16015625,
+							"fileCacheMedianMiB": 14.52734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warmup",
+					"begin": 1789781204.306,
+					"end": 1789781214.346,
+					"load": {
+						"startedUnixSeconds": 1789781204.306,
+						"endedUnixSeconds": 1789781214.346,
+						"mode": "closed",
+						"amount": 8,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.010390864000001,
+						"completed": 26682,
+						"successful": 26682,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 2665.430387534166,
+						"counts": {
+							"profile": 6671,
+							"autocomplete": 6671,
+							"page": 6670,
+							"feed": 6670
+						},
+						"bytes": 927174,
+						"latencyMs": {
+							"p50": 1.173486000000139,
+							"p95": 9.103642999999465,
+							"p99": 20.31538200000068,
+							"max": 74.9196820000002
+						},
+						"acknowledgementMs": {
+							"p50": 0.3310249999994994,
+							"p95": 1.0658999999977823,
+							"p99": 3.887555000001157,
+							"max": 66.93619500000204
+						},
+						"serviceLatencyMs": {
+							"p50": 1.1717319999997926,
+							"p95": 9.086146999999983,
+							"p99": 20.313642000000982,
+							"max": 74.91849100000036
+						},
+						"generatorCpuCores": 0.38945172600804845
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 80141,
+							"acknowledgements": 13357,
+							"deliveries": 26714,
+							"cursors": 6678,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 78.9521484375,
+							"pssP95MiB": 82.0546875,
+							"pssPeakMiB": 86.9716796875,
+							"rssMedianMiB": 80.3203125,
+							"rssP95MiB": 83.4228515625,
+							"workingSetMedianMiB": 46.16015625,
+							"workingSetP95MiB": 49.340625,
+							"cgroupMedianMiB": 86.85546875,
+							"cpuCores": 1.2178374174316087,
+							"privateMedianMiB": 78.22265625,
+							"fileCacheMedianMiB": 40.6953125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.9111328125,
+							"pssP95MiB": 39.41953125,
+							"pssPeakMiB": 39.5791015625,
+							"rssMedianMiB": 35.28515625,
+							"rssP95MiB": 40.7935546875,
+							"workingSetMedianMiB": 8.748046875,
+							"workingSetP95MiB": 14.212890625,
+							"cgroupMedianMiB": 41.005859375,
+							"cpuCores": 0.5224153538688973,
+							"privateMedianMiB": 33.17578125,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warm-idle",
+					"begin": 1789781215.4476244,
+					"end": 1789781235.447734,
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 80141,
+							"acknowledgements": 13357,
+							"deliveries": 26714,
+							"cursors": 6678,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 64.1875,
+							"pssP95MiB": 64.1875,
+							"pssPeakMiB": 64.1875,
+							"rssMedianMiB": 65.21484375,
+							"rssP95MiB": 65.21484375,
+							"workingSetMedianMiB": 30.69921875,
+							"workingSetP95MiB": 30.69921875,
+							"cgroupMedianMiB": 71.62890625,
+							"cpuCores": 0.0007315271606423359,
+							"privateMedianMiB": 63.1640625,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.98046875,
+							"pssP95MiB": 33.98046875,
+							"pssPeakMiB": 33.98046875,
+							"rssMedianMiB": 35.0078125,
+							"rssP95MiB": 35.0078125,
+							"workingSetMedianMiB": 8.29296875,
+							"workingSetP95MiB": 8.29296875,
+							"cgroupMedianMiB": 40.5546875,
+							"cpuCores": 0.00015119293193018864,
+							"privateMedianMiB": 32.95703125,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "profile",
+					"begin": 1789781238.283,
+					"end": 1789781248.312,
+					"load": {
+						"startedUnixSeconds": 1789781238.283,
+						"endedUnixSeconds": 1789781248.312,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000729340999998,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 32,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 14.998906068284928,
+						"counts": {
+							"profile": 150,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 5755,
+						"latencyMs": {
+							"p50": 2.465508666666665,
+							"p95": 5.428840000000491,
+							"p99": 9.591496666666671,
+							"max": 12.610006666666777
+						},
+						"acknowledgementMs": {
+							"p50": 0.40893099999811966,
+							"p95": 0.5384169999961159,
+							"p99": 0.7580640000014682,
+							"max": 1.0499869999985094
+						},
+						"serviceLatencyMs": {
+							"p50": 1.791171999999733,
+							"p95": 3.629945000000589,
+							"p99": 7.518724999999904,
+							"max": 12.368086999999832
+						},
+						"generatorCpuCores": 0.04230631442703296
+					},
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 80687,
+							"acknowledgements": 13539,
+							"deliveries": 26896,
+							"cursors": 6678,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 19,
+							"pssMedianMiB": 64.140625,
+							"pssP95MiB": 64.184765625,
+							"pssPeakMiB": 64.1953125,
+							"rssMedianMiB": 65.5,
+							"rssP95MiB": 65.544140625,
+							"workingSetMedianMiB": 31.2734375,
+							"workingSetP95MiB": 31.325,
+							"cgroupMedianMiB": 72.203125,
+							"cpuCores": 0.021177753315555367,
+							"privateMedianMiB": 63.421875,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.689453125,
+							"pssP95MiB": 33.7314453125,
+							"pssPeakMiB": 33.787109375,
+							"rssMedianMiB": 35.0859375,
+							"rssP95MiB": 35.1279296875,
+							"workingSetMedianMiB": 8.39453125,
+							"workingSetP95MiB": 8.4384765625,
+							"cgroupMedianMiB": 40.65625,
+							"cpuCores": 0.008268130100712999,
+							"privateMedianMiB": 32.93359375,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "autocomplete",
+					"begin": 1789781250.941,
+					"end": 1789781260.949,
+					"load": {
+						"startedUnixSeconds": 1789781250.941,
+						"endedUnixSeconds": 1789781260.949,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999792923000001,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 32,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000310621932265,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 150,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 5675,
+						"latencyMs": {
+							"p50": 2.0622010000001865,
+							"p95": 3.4384799999997995,
+							"p99": 6.553768666666656,
+							"max": 8.348146333333261
+						},
+						"acknowledgementMs": {
+							"p50": 0.7193280000064988,
+							"p95": 0.8934100000042235,
+							"p99": 0.9801210000005085,
+							"max": 1.554506999993464
+						},
+						"serviceLatencyMs": {
+							"p50": 1.4076089999998658,
+							"p95": 3.195752999999968,
+							"p99": 5.956114999999954,
+							"max": 7.313424999999825
+						},
+						"generatorCpuCores": 0.04169306336744829
+					},
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 81051,
+							"acknowledgements": 13539,
+							"deliveries": 27078,
+							"cursors": 6678,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 64.265625,
+							"pssP95MiB": 64.3052734375,
+							"pssPeakMiB": 64.31640625,
+							"rssMedianMiB": 65.671875,
+							"rssP95MiB": 65.7115234375,
+							"workingSetMedianMiB": 31.388671875,
+							"workingSetP95MiB": 31.4962890625,
+							"cgroupMedianMiB": 72.318359375,
+							"cpuCores": 0.017438196295253647,
+							"privateMedianMiB": 63.50390625,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.64453125,
+							"pssP95MiB": 33.7130859375,
+							"pssPeakMiB": 33.828125,
+							"rssMedianMiB": 34.9921875,
+							"rssP95MiB": 35.0607421875,
+							"workingSetMedianMiB": 8.296875,
+							"workingSetP95MiB": 8.3654296875,
+							"cgroupMedianMiB": 40.55859375,
+							"cpuCores": 0.006371336644968187,
+							"privateMedianMiB": 32.94140625,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "page",
+					"begin": 1789781263.49,
+					"end": 1789781273.52,
+					"load": {
+						"startedUnixSeconds": 1789781263.49,
+						"endedUnixSeconds": 1789781273.52,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000200116,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 32,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 14.999699832006842,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 150,
+							"feed": 0
+						},
+						"bytes": 5759,
+						"latencyMs": {
+							"p50": 2.5277379999999994,
+							"p95": 6.049442999999883,
+							"p99": 8.517840666667325,
+							"max": 11.64699333333374
+						},
+						"acknowledgementMs": {
+							"p50": 0.40076499999850057,
+							"p95": 0.517227999996976,
+							"p99": 0.5575089999911143,
+							"max": 9.928832000005059
+						},
+						"serviceLatencyMs": {
+							"p50": 1.8615809999992052,
+							"p95": 4.195576000000074,
+							"p99": 6.624857999999904,
+							"max": 11.266132000000653
+						},
+						"generatorCpuCores": 0.04259254765497335
+					},
+					"state": {
+						"app": {
+							"sessions": 182,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 81597,
+							"acknowledgements": 13721,
+							"deliveries": 27260,
+							"cursors": 6678,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 19,
+							"pssMedianMiB": 64.5478515625,
+							"pssP95MiB": 64.6146484375,
+							"pssPeakMiB": 64.6181640625,
+							"rssMedianMiB": 65.90625,
+							"rssP95MiB": 65.973046875,
+							"workingSetMedianMiB": 31.68359375,
+							"workingSetP95MiB": 31.8296875,
+							"cgroupMedianMiB": 72.61328125,
+							"cpuCores": 0.02309319052920116,
+							"privateMedianMiB": 63.85546875,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 19,
+							"pssMedianMiB": 33.5693359375,
+							"pssP95MiB": 33.6185546875,
+							"pssPeakMiB": 33.6396484375,
+							"rssMedianMiB": 34.98828125,
+							"rssP95MiB": 35.0375,
+							"workingSetMedianMiB": 8.3125,
+							"workingSetP95MiB": 8.36796875,
+							"cgroupMedianMiB": 40.57421875,
+							"cpuCores": 0.007715039396192107,
+							"privateMedianMiB": 32.81640625,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "feed",
+					"begin": 1789781276.085,
+					"end": 1789781286.094,
+					"load": {
+						"startedUnixSeconds": 1789781276.085,
+						"endedUnixSeconds": 1789781286.094,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999226560999999,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 32
+						},
+						"dropped": 0,
+						"rps": 15.001160248238126,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 150
+						},
+						"bytes": 3600,
+						"latencyMs": {
+							"p50": 2.7201906666668947,
+							"p95": 5.854139999999916,
+							"p99": 8.546695333333219,
+							"max": 9.459716666666282
+						},
+						"acknowledgementMs": null,
+						"serviceLatencyMs": {
+							"p50": 2.1120319999999992,
+							"p95": 3.8689079999994647,
+							"p99": 7.897713000000067,
+							"max": 8.3390330000002
+						},
+						"generatorCpuCores": 0.04261399593264002
+					},
+					"state": {
+						"app": {
+							"sessions": 182,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 82325,
+							"acknowledgements": 13721,
+							"deliveries": 27442,
+							"cursors": 6860,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 19,
+							"pssMedianMiB": 64.873046875,
+							"pssP95MiB": 64.959765625,
+							"pssPeakMiB": 64.966796875,
+							"rssMedianMiB": 66.2265625,
+							"rssP95MiB": 66.31328125,
+							"workingSetMedianMiB": 31.91796875,
+							"workingSetP95MiB": 32.008984375,
+							"cgroupMedianMiB": 72.84765625,
+							"cpuCores": 0.02703064903679424,
+							"privateMedianMiB": 64.12890625,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 19,
+							"pssMedianMiB": 33.6171875,
+							"pssP95MiB": 33.694921875,
+							"pssPeakMiB": 33.796875,
+							"rssMedianMiB": 34.98828125,
+							"rssP95MiB": 35.066015625,
+							"workingSetMedianMiB": 8.27734375,
+							"workingSetP95MiB": 8.430078125,
+							"cgroupMedianMiB": 40.5390625,
+							"cpuCores": 0.009407374693470777,
+							"privateMedianMiB": 32.85546875,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "burst",
+					"begin": 1789781288.634,
+					"end": 1789781308.654,
+					"load": {
+						"startedUnixSeconds": 1789781288.634,
+						"endedUnixSeconds": 1789781308.654,
+						"mode": "rate",
+						"amount": 150,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 19.999346244,
+						"completed": 3000,
+						"successful": 3000,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 150.00490333027906,
+						"counts": {
+							"profile": 750,
+							"autocomplete": 750,
+							"page": 750,
+							"feed": 750
+						},
+						"bytes": 104078,
+						"latencyMs": {
+							"p50": 1.8213789999990695,
+							"p95": 3.4222060000001875,
+							"p99": 8.421806333331915,
+							"max": 32.36660433333236
+						},
+						"acknowledgementMs": {
+							"p50": 0.32509899999422487,
+							"p95": 0.7817759999888949,
+							"p99": 1.7542829999874812,
+							"max": 11.127174000008381
+						},
+						"serviceLatencyMs": {
+							"p50": 1.2229429999997592,
+							"p95": 2.4528300000001764,
+							"p99": 6.98233700000128,
+							"max": 24.666653000000224
+						},
+						"generatorCpuCores": 0.07674940876932396
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 91421,
+							"acknowledgements": 15237,
+							"deliveries": 30474,
+							"cursors": 7618,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 65.5791015625,
+							"pssP95MiB": 68.16328125,
+							"pssPeakMiB": 68.6318359375,
+							"rssMedianMiB": 66.974609375,
+							"rssP95MiB": 69.5587890625,
+							"workingSetMedianMiB": 32.673828125,
+							"workingSetP95MiB": 35.0841796875,
+							"cgroupMedianMiB": 73.603515625,
+							"cpuCores": 0.1426914398250631,
+							"privateMedianMiB": 64.826171875,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 34.1201171875,
+							"pssP95MiB": 34.7193359375,
+							"pssPeakMiB": 34.7568359375,
+							"rssMedianMiB": 35.484375,
+							"rssP95MiB": 36.08359375,
+							"workingSetMedianMiB": 8.814453125,
+							"workingSetP95MiB": 9.48125,
+							"cgroupMedianMiB": 41.076171875,
+							"cpuCores": 0.052249960493200416,
+							"privateMedianMiB": 33.3984375,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "capacity",
+					"begin": 1789781312.157,
+					"end": 1789781332.197,
+					"load": {
+						"startedUnixSeconds": 1789781312.157,
+						"endedUnixSeconds": 1789781332.197,
+						"mode": "closed",
+						"amount": 32,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 20.031241249,
+						"completed": 64991,
+						"successful": 64991,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 3244.481916628331,
+						"counts": {
+							"profile": 16248,
+							"autocomplete": 16248,
+							"page": 16248,
+							"feed": 16247
+						},
+						"bytes": 2260539,
+						"latencyMs": {
+							"p50": 1.0664929999993547,
+							"p95": 36.88647700000001,
+							"p99": 52.68947499999922,
+							"max": 208.82465599999887
+						},
+						"acknowledgementMs": {
+							"p50": 0.301153999986127,
+							"p95": 0.8200310000102036,
+							"p99": 2.3120139999955427,
+							"max": 52.02956999998423
+						},
+						"serviceLatencyMs": {
+							"p50": 1.0649670000002516,
+							"p95": 36.88555699999779,
+							"p99": 52.6875100000002,
+							"max": 208.82264499999837
+						},
+						"generatorCpuCores": 0.406113774921767
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 286489,
+							"acknowledgements": 47749,
+							"deliveries": 95497,
+							"cursors": 23873,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 78.61328125,
+							"pssP95MiB": 80.42734375,
+							"pssPeakMiB": 80.783203125,
+							"rssMedianMiB": 79.998046875,
+							"rssP95MiB": 81.812109375,
+							"workingSetMedianMiB": 45.810546875,
+							"workingSetP95MiB": 47.5736328125,
+							"cgroupMedianMiB": 86.740234375,
+							"cpuCores": 1.3404649445620624,
+							"privateMedianMiB": 77.849609375,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 37.681640625,
+							"pssP95MiB": 40.50659179687499,
+							"pssPeakMiB": 42.5986328125,
+							"rssMedianMiB": 39.0234375,
+							"rssP95MiB": 41.849414062499996,
+							"workingSetMedianMiB": 12.439453125,
+							"workingSetP95MiB": 15.214062499999994,
+							"cgroupMedianMiB": 44.701171875,
+							"cpuCores": 0.6042180117371977,
+							"privateMedianMiB": 36.9609375,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "recovery",
+					"begin": 1789781333.340975,
+					"end": 1789781408.379322,
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 286489,
+							"acknowledgements": 47749,
+							"deliveries": 95497,
+							"cursors": 23873,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 63.7734375,
+							"pssP95MiB": 63.7734375,
+							"pssPeakMiB": 63.7734375,
+							"rssMedianMiB": 64.80078125,
+							"rssP95MiB": 64.80078125,
+							"workingSetMedianMiB": 30.2890625,
+							"workingSetP95MiB": 30.2890625,
+							"cgroupMedianMiB": 71.21875,
+							"cpuCores": 3.1622321555780114e-5,
+							"privateMedianMiB": 62.75,
+							"fileCacheMedianMiB": 40.9296875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 35.7890625,
+							"pssP95MiB": 35.7890625,
+							"pssPeakMiB": 35.7890625,
+							"rssMedianMiB": 36.81640625,
+							"rssP95MiB": 36.81640625,
+							"workingSetMedianMiB": 10.109375,
+							"workingSetP95MiB": 10.109375,
+							"cgroupMedianMiB": 42.37109375,
+							"cpuCores": 1.991473066720458e-5,
+							"privateMedianMiB": 34.765625,
+							"fileCacheMedianMiB": 32.265625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				}
+			],
+			"final": {
+				"app": {
+					"sessions": 0,
+					"pendingFeeds": 0,
+					"peakPendingFeeds": 30
+				},
+				"fixture": {
+					"requests": 286489,
+					"acknowledgements": 47749,
+					"deliveries": 95497,
+					"cursors": 23873,
+					"duplicates": 0
+				}
+			}
+		},
+		{
+			"variant": "serenity",
+			"round": 1,
+			"phases": [
+				{
+					"name": "cold-idle",
+					"begin": 1789781416.1197875,
+					"end": 1789781431.1391964,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 0,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 0,
+							"acknowledgements": 0,
+							"deliveries": 0,
+							"cursors": 0,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 30,
+							"pssMedianMiB": 4.40625,
+							"pssP95MiB": 4.40625,
+							"pssPeakMiB": 4.40625,
+							"rssMedianMiB": 5.26953125,
+							"rssP95MiB": 5.26953125,
+							"workingSetMedianMiB": 1.28515625,
+							"workingSetP95MiB": 1.28515625,
+							"cgroupMedianMiB": 1.28515625,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 3.546875,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 30,
+							"pssMedianMiB": 14.142578125,
+							"pssP95MiB": 14.33984375,
+							"pssPeakMiB": 14.33984375,
+							"rssMedianMiB": 15.005859375,
+							"rssP95MiB": 15.203125,
+							"workingSetMedianMiB": 3.251953125,
+							"workingSetP95MiB": 3.26953125,
+							"cgroupMedianMiB": 17.5703125,
+							"cpuCores": 0.00026024615593701265,
+							"privateMedianMiB": 13.283203125,
+							"fileCacheMedianMiB": 14.318359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warmup",
+					"begin": 1789781433.741,
+					"end": 1789781443.755,
+					"load": {
+						"startedUnixSeconds": 1789781433.741,
+						"endedUnixSeconds": 1789781443.755,
+						"mode": "closed",
+						"amount": 8,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.004530442,
+						"completed": 43332,
+						"successful": 43332,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 4331.237757854983,
+						"counts": {
+							"profile": 10833,
+							"autocomplete": 10833,
+							"page": 10833,
+							"feed": 10833
+						},
+						"bytes": 1256076,
+						"latencyMs": {
+							"p50": 0.855319000000236,
+							"p95": 5.1557329999996,
+							"p99": 7.972104999999829,
+							"max": 65.36922499999991
+						},
+						"acknowledgementMs": {
+							"p50": 0.243751,
+							"p95": 0.594204,
+							"p99": 0.805306,
+							"max": 30.184076
+						},
+						"serviceLatencyMs": {
+							"p50": 0.8539430000000721,
+							"p95": 5.154102000000421,
+							"p99": 7.969362000000274,
+							"max": 65.36282699999992
+						},
+						"generatorCpuCores": 0.4761532815174976
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 130092,
+							"acknowledgements": 21682,
+							"deliveries": 43364,
+							"cursors": 10841,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 6.802734375,
+							"pssP95MiB": 6.806640625,
+							"pssPeakMiB": 6.806640625,
+							"rssMedianMiB": 7.96875,
+							"rssP95MiB": 7.97265625,
+							"workingSetMedianMiB": 3.890625,
+							"workingSetP95MiB": 3.9857421875,
+							"cgroupMedianMiB": 3.890625,
+							"cpuCores": 1.3125996574353966,
+							"privateMedianMiB": 6.20703125,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 38.724609375,
+							"pssP95MiB": 39.406640625,
+							"pssPeakMiB": 39.4140625,
+							"rssMedianMiB": 40.029296875,
+							"rssP95MiB": 40.711328125,
+							"workingSetMedianMiB": 13.458984375,
+							"workingSetP95MiB": 14.1390625,
+							"cgroupMedianMiB": 45.701171875,
+							"cpuCores": 0.6034381554804231,
+							"privateMedianMiB": 37.990234375,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warm-idle",
+					"begin": 1789781444.7659323,
+					"end": 1789781464.7846794,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 130092,
+							"acknowledgements": 21682,
+							"deliveries": 43364,
+							"cursors": 10841,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.11328125,
+							"pssP95MiB": 7.11328125,
+							"pssPeakMiB": 7.11328125,
+							"rssMedianMiB": 7.9765625,
+							"rssP95MiB": 7.9765625,
+							"workingSetMedianMiB": 3.75,
+							"workingSetP95MiB": 3.75,
+							"cgroupMedianMiB": 3.75,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 6.25390625,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.92578125,
+							"pssP95MiB": 33.92578125,
+							"pssPeakMiB": 33.92578125,
+							"rssMedianMiB": 34.7890625,
+							"rssP95MiB": 34.7890625,
+							"workingSetMedianMiB": 8.12890625,
+							"workingSetP95MiB": 8.12890625,
+							"cgroupMedianMiB": 40.37109375,
+							"cpuCores": 0.0001883149309958854,
+							"privateMedianMiB": 33.06640625,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "profile",
+					"begin": 1789781467.347,
+					"end": 1789781477.356,
+					"load": {
+						"startedUnixSeconds": 1789781467.347,
+						"endedUnixSeconds": 1789781477.356,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999902612,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 32,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000146083422678,
+						"counts": {
+							"profile": 150,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 4528,
+						"latencyMs": {
+							"p50": 2.2746560000005047,
+							"p95": 4.061343333332843,
+							"p99": 6.543153666666967,
+							"max": 10.454517333333342
+						},
+						"acknowledgementMs": {
+							"p50": 0.368748,
+							"p95": 0.49157599999999996,
+							"p99": 0.547106,
+							"max": 0.706234
+						},
+						"serviceLatencyMs": {
+							"p50": 1.717569999999796,
+							"p95": 3.364465999999993,
+							"p99": 6.030891999999994,
+							"max": 10.14602600000012
+						},
+						"generatorCpuCores": 0.047960367076422886
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 130638,
+							"acknowledgements": 21864,
+							"deliveries": 43546,
+							"cursors": 10841,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 19,
+							"pssMedianMiB": 7.572265625,
+							"pssP95MiB": 7.572265625,
+							"pssPeakMiB": 7.572265625,
+							"rssMedianMiB": 8.7734375,
+							"rssP95MiB": 8.7734375,
+							"workingSetMedianMiB": 4.75390625,
+							"workingSetP95MiB": 4.75390625,
+							"cgroupMedianMiB": 4.75390625,
+							"cpuCores": 0.009875002291034402,
+							"privateMedianMiB": 6.9296875,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.7265625,
+							"pssP95MiB": 33.7541015625,
+							"pssPeakMiB": 33.7578125,
+							"rssMedianMiB": 34.9921875,
+							"rssP95MiB": 35.0197265625,
+							"workingSetMedianMiB": 8.421875,
+							"workingSetP95MiB": 8.512109375,
+							"cgroupMedianMiB": 40.6640625,
+							"cpuCores": 0.00859016775396537,
+							"privateMedianMiB": 33.01953125,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "autocomplete",
+					"begin": 1789781479.936,
+					"end": 1789781489.966,
+					"load": {
+						"startedUnixSeconds": 1789781479.936,
+						"endedUnixSeconds": 1789781489.966,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999791180999999,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 32,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000313235040943,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 150,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 4505,
+						"latencyMs": {
+							"p50": 2.184336666665331,
+							"p95": 5.951278000000002,
+							"p99": 8.269821333333311,
+							"max": 14.588030333334245
+						},
+						"acknowledgementMs": {
+							"p50": 0.6885,
+							"p95": 0.9338270000000001,
+							"p99": 2.4926150000000002,
+							"max": 6.634845
+						},
+						"serviceLatencyMs": {
+							"p50": 1.5463579999996,
+							"p95": 5.276116999999886,
+							"p99": 7.500874000000067,
+							"max": 13.692872000001444
+						},
+						"generatorCpuCores": 0.049361930770902174
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 131002,
+							"acknowledgements": 21864,
+							"deliveries": 43728,
+							"cursors": 10841,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.6640625,
+							"pssP95MiB": 7.6640625,
+							"pssPeakMiB": 7.6640625,
+							"rssMedianMiB": 8.85546875,
+							"rssP95MiB": 8.85546875,
+							"workingSetMedianMiB": 4.7890625,
+							"workingSetP95MiB": 4.7984375,
+							"cgroupMedianMiB": 4.7890625,
+							"cpuCores": 0.00865259082851331,
+							"privateMedianMiB": 7.03125,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.59375,
+							"pssP95MiB": 33.6138671875,
+							"pssPeakMiB": 33.625,
+							"rssMedianMiB": 34.83203125,
+							"rssP95MiB": 34.8521484375,
+							"workingSetMedianMiB": 8.28515625,
+							"workingSetP95MiB": 8.340625,
+							"cgroupMedianMiB": 40.52734375,
+							"cpuCores": 0.007880258460598612,
+							"privateMedianMiB": 32.9140625,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "page",
+					"begin": 1789781493.074,
+					"end": 1789781503.084,
+					"load": {
+						"startedUnixSeconds": 1789781493.074,
+						"endedUnixSeconds": 1789781503.084,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000211016000002,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 32,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 14.99968348267902,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 150,
+							"feed": 0
+						},
+						"bytes": 4588,
+						"latencyMs": {
+							"p50": 2.427101666667113,
+							"p95": 4.560336000000007,
+							"p99": 7.171470999999656,
+							"max": 17.303046666666887
+						},
+						"acknowledgementMs": {
+							"p50": 0.374799,
+							"p95": 0.527827,
+							"p99": 0.755886,
+							"max": 1.355424
+						},
+						"serviceLatencyMs": {
+							"p50": 1.777498999999807,
+							"p95": 3.4642539999999826,
+							"p99": 6.4518379999999524,
+							"max": 17.197186999999758
+						},
+						"generatorCpuCores": 0.050734629418143856
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 182
+						},
+						"fixture": {
+							"requests": 131548,
+							"acknowledgements": 22046,
+							"deliveries": 43910,
+							"cursors": 10841,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.80859375,
+							"pssP95MiB": 8.023046875,
+							"pssPeakMiB": 8.052734375,
+							"rssMedianMiB": 9.001953125,
+							"rssP95MiB": 9.21640625,
+							"workingSetMedianMiB": 4.982421875,
+							"workingSetP95MiB": 5.206640625,
+							"cgroupMedianMiB": 4.982421875,
+							"cpuCores": 0.010553858418279325,
+							"privateMedianMiB": 7.177734375,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.658203125,
+							"pssP95MiB": 33.75390625,
+							"pssPeakMiB": 33.865234375,
+							"rssMedianMiB": 34.8984375,
+							"rssP95MiB": 34.994140625,
+							"workingSetMedianMiB": 8.30078125,
+							"workingSetP95MiB": 8.46796875,
+							"cgroupMedianMiB": 40.54296875,
+							"cpuCores": 0.00891007093788948,
+							"privateMedianMiB": 32.98046875,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "feed",
+					"begin": 1789781509.218,
+					"end": 1789781519.248,
+					"load": {
+						"startedUnixSeconds": 1789781509.218,
+						"endedUnixSeconds": 1789781519.248,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999814835999999,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 32
+						},
+						"dropped": 0,
+						"rps": 15.000277751142953,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 150
+						},
+						"bytes": 3600,
+						"latencyMs": {
+							"p50": 2.5286830000004556,
+							"p95": 5.194785666666576,
+							"p99": 9.14403933333324,
+							"max": 15.525572000000011
+						},
+						"acknowledgementMs": null,
+						"serviceLatencyMs": {
+							"p50": 1.8858770000006189,
+							"p95": 3.974433999999974,
+							"p99": 8.413277000000562,
+							"max": 15.495938000000024
+						},
+						"generatorCpuCores": 0.04972612074874224
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 28,
+							"pendingFeeds": 0,
+							"sessions": 182
+						},
+						"fixture": {
+							"requests": 132276,
+							"acknowledgements": 22046,
+							"deliveries": 44092,
+							"cursors": 11023,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 8.076171875,
+							"pssP95MiB": 8.076171875,
+							"pssPeakMiB": 8.076171875,
+							"rssMedianMiB": 9.27734375,
+							"rssP95MiB": 9.27734375,
+							"workingSetMedianMiB": 5.109375,
+							"workingSetP95MiB": 5.328125,
+							"cgroupMedianMiB": 5.109375,
+							"cpuCores": 0.011387976611655882,
+							"privateMedianMiB": 7.43359375,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 19,
+							"pssMedianMiB": 33.64453125,
+							"pssP95MiB": 33.67734375,
+							"pssPeakMiB": 33.69140625,
+							"rssMedianMiB": 34.91015625,
+							"rssP95MiB": 34.94296875,
+							"workingSetMedianMiB": 8.29296875,
+							"workingSetP95MiB": 8.373828125,
+							"cgroupMedianMiB": 40.53515625,
+							"cpuCores": 0.010268804181084609,
+							"privateMedianMiB": 32.9375,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "burst",
+					"begin": 1789781521.823,
+					"end": 1789781541.832,
+					"load": {
+						"startedUnixSeconds": 1789781521.823,
+						"endedUnixSeconds": 1789781541.832,
+						"mode": "rate",
+						"amount": 150,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 19.999193045,
+						"completed": 3000,
+						"successful": 3000,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 150.006052406701,
+						"counts": {
+							"profile": 750,
+							"autocomplete": 750,
+							"page": 750,
+							"feed": 750
+						},
+						"bytes": 87057,
+						"latencyMs": {
+							"p50": 1.5753379999987374,
+							"p95": 2.598067333333347,
+							"p99": 6.935714666666172,
+							"max": 23.503338666665513
+						},
+						"acknowledgementMs": {
+							"p50": 0.26164899999999996,
+							"p95": 0.604507,
+							"p99": 1.083789,
+							"max": 13.565605999999999
+						},
+						"serviceLatencyMs": {
+							"p50": 0.9560440000000199,
+							"p95": 1.6910769999994955,
+							"p99": 5.2224349999996775,
+							"max": 22.711944999999105
+						},
+						"generatorCpuCores": 0.07419619364947233
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 28,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 141372,
+							"acknowledgements": 23562,
+							"deliveries": 47124,
+							"cursors": 11781,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 8.103515625,
+							"pssP95MiB": 8.103515625,
+							"pssPeakMiB": 8.103515625,
+							"rssMedianMiB": 9.3046875,
+							"rssP95MiB": 9.3046875,
+							"workingSetMedianMiB": 5.20703125,
+							"workingSetP95MiB": 5.234375,
+							"cgroupMedianMiB": 5.20703125,
+							"cpuCores": 0.07235551882049214,
+							"privateMedianMiB": 7.4609375,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 39,
+							"pssMedianMiB": 34.0625,
+							"pssP95MiB": 34.604296875,
+							"pssPeakMiB": 34.62890625,
+							"rssMedianMiB": 35.328125,
+							"rssP95MiB": 35.869921875,
+							"workingSetMedianMiB": 8.75390625,
+							"workingSetP95MiB": 9.3015625,
+							"cgroupMedianMiB": 40.99609375,
+							"cpuCores": 0.05162276631564015,
+							"privateMedianMiB": 33.35546875,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "capacity",
+					"begin": 1789781544.394,
+					"end": 1789781564.428,
+					"load": {
+						"startedUnixSeconds": 1789781544.394,
+						"endedUnixSeconds": 1789781564.428,
+						"mode": "closed",
+						"amount": 32,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 20.021047627,
+						"completed": 82675,
+						"successful": 82675,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 4129.404291936556,
+						"counts": {
+							"profile": 20669,
+							"autocomplete": 20669,
+							"page": 20669,
+							"feed": 20668
+						},
+						"bytes": 2397124,
+						"latencyMs": {
+							"p50": 0.9665409999997792,
+							"p95": 30.21433900000011,
+							"p99": 35.426541000000725,
+							"max": 75.25139800000011
+						},
+						"acknowledgementMs": {
+							"p50": 0.26949,
+							"p95": 0.679399,
+							"p99": 1.0526820000000001,
+							"max": 23.007718
+						},
+						"serviceLatencyMs": {
+							"p50": 0.9649799999970128,
+							"p95": 30.209525000000212,
+							"p99": 35.425750999998854,
+							"max": 75.2498720000001
+						},
+						"generatorCpuCores": 0.46692456729352344
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 31,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 389492,
+							"acknowledgements": 64916,
+							"deliveries": 129831,
+							"cursors": 32457,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 8.158203125,
+							"pssP95MiB": 8.158203125,
+							"pssPeakMiB": 8.158203125,
+							"rssMedianMiB": 9.3671875,
+							"rssP95MiB": 9.3671875,
+							"workingSetMedianMiB": 5.283203125,
+							"workingSetP95MiB": 5.450390625,
+							"cgroupMedianMiB": 5.283203125,
+							"cpuCores": 1.3362988942906573,
+							"privateMedianMiB": 7.51953125,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 39.84375,
+							"pssP95MiB": 42.833203125,
+							"pssPeakMiB": 45.669921875,
+							"rssMedianMiB": 41.103515625,
+							"rssP95MiB": 44.09296875,
+							"workingSetMedianMiB": 14.525390625,
+							"workingSetP95MiB": 17.522265625,
+							"cgroupMedianMiB": 46.767578125,
+							"cpuCores": 0.6444296878854506,
+							"privateMedianMiB": 39.154296875,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "recovery",
+					"begin": 1789781565.5585132,
+					"end": 1789781640.609382,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 31,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 389492,
+							"acknowledgements": 64916,
+							"deliveries": 129831,
+							"cursors": 32457,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 8.50390625,
+							"pssP95MiB": 8.50390625,
+							"pssPeakMiB": 8.50390625,
+							"rssMedianMiB": 9.3671875,
+							"rssP95MiB": 9.3671875,
+							"workingSetMedianMiB": 5.1484375,
+							"workingSetP95MiB": 5.1484375,
+							"cgroupMedianMiB": 5.1484375,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 7.64453125,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 38.47265625,
+							"pssP95MiB": 38.47265625,
+							"pssPeakMiB": 38.47265625,
+							"rssMedianMiB": 39.3359375,
+							"rssP95MiB": 39.3359375,
+							"workingSetMedianMiB": 12.6953125,
+							"workingSetP95MiB": 12.6953125,
+							"cgroupMedianMiB": 44.9375,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 37.61328125,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				}
+			],
+			"final": {
+				"app": {
+					"peakPendingFeeds": 31,
+					"pendingFeeds": 0,
+					"sessions": 0
+				},
+				"fixture": {
+					"requests": 389492,
+					"acknowledgements": 64916,
+					"deliveries": 129831,
+					"cursors": 32457,
+					"duplicates": 0
+				}
+			}
+		},
+		{
+			"variant": "discord-js",
+			"round": 2,
+			"phases": [
+				{
+					"name": "cold-idle",
+					"begin": 1789781880.3713799,
+					"end": 1789781895.3714726,
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 0
+						},
+						"fixture": {
+							"requests": 0,
+							"acknowledgements": 0,
+							"deliveries": 0,
+							"cursors": 0,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 29,
+							"pssMedianMiB": 46.4296875,
+							"pssP95MiB": 46.9453125,
+							"pssPeakMiB": 46.9453125,
+							"rssMedianMiB": 47.390625,
+							"rssP95MiB": 47.90234375,
+							"workingSetMedianMiB": 18.984375,
+							"workingSetP95MiB": 19.59765625,
+							"cgroupMedianMiB": 54.140625,
+							"cpuCores": 0.0007441677815432892,
+							"privateMedianMiB": 45.47265625,
+							"fileCacheMedianMiB": 35.16015625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 30,
+							"pssMedianMiB": 14.1796875,
+							"pssP95MiB": 14.1796875,
+							"pssPeakMiB": 14.1796875,
+							"rssMedianMiB": 15.140625,
+							"rssP95MiB": 15.140625,
+							"workingSetMedianMiB": 3.234375,
+							"workingSetP95MiB": 3.26953125,
+							"cgroupMedianMiB": 17.7578125,
+							"cpuCores": 0.00025453398237327174,
+							"privateMedianMiB": 13.22265625,
+							"fileCacheMedianMiB": 14.52734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warmup",
+					"begin": 1789781898.141,
+					"end": 1789781908.176,
+					"load": {
+						"startedUnixSeconds": 1789781898.141,
+						"endedUnixSeconds": 1789781908.176,
+						"mode": "closed",
+						"amount": 8,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.006555353,
+						"completed": 35067,
+						"successful": 35067,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 3504.402740298318,
+						"counts": {
+							"profile": 8767,
+							"autocomplete": 8767,
+							"page": 8767,
+							"feed": 8766
+						},
+						"bytes": 1220749,
+						"latencyMs": {
+							"p50": 0.9795860000003813,
+							"p95": 6.527609000000666,
+							"p99": 11.520644000000175,
+							"max": 78.42269399999986
+						},
+						"acknowledgementMs": {
+							"p50": 0.28096699999878183,
+							"p95": 0.6984279999996943,
+							"p99": 1.851571999999578,
+							"max": 73.63892299999861
+						},
+						"serviceLatencyMs": {
+							"p50": 0.9781269999994038,
+							"p95": 6.52627399999983,
+							"p99": 11.519824000000199,
+							"max": 78.42076399999996
+						},
+						"generatorCpuCores": 0.4170589031667949
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 105296,
+							"acknowledgements": 17550,
+							"deliveries": 35099,
+							"cursors": 8774,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 81.5263671875,
+							"pssP95MiB": 83.91933593750001,
+							"pssPeakMiB": 87.1181640625,
+							"rssMedianMiB": 82.830078125,
+							"rssP95MiB": 85.22304687500001,
+							"workingSetMedianMiB": 48.830078125,
+							"workingSetP95MiB": 51.144726562500004,
+							"cgroupMedianMiB": 89.541015625,
+							"cpuCores": 1.3596408018037864,
+							"privateMedianMiB": 80.830078125,
+							"fileCacheMedianMiB": 40.71484375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 36.2041015625,
+							"pssP95MiB": 39.4796875,
+							"pssPeakMiB": 39.5576171875,
+							"rssMedianMiB": 37.537109375,
+							"rssP95MiB": 40.8126953125,
+							"workingSetMedianMiB": 11.0234375,
+							"workingSetP95MiB": 14.3443359375,
+							"cgroupMedianMiB": 43.275390625,
+							"cpuCores": 0.5816527508852973,
+							"privateMedianMiB": 35.478515625,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warm-idle",
+					"begin": 1789781909.1743872,
+					"end": 1789781929.1744804,
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 105296,
+							"acknowledgements": 17550,
+							"deliveries": 35099,
+							"cursors": 8774,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 73.96875,
+							"pssP95MiB": 73.96875,
+							"pssPeakMiB": 73.96875,
+							"rssMedianMiB": 74.9296875,
+							"rssP95MiB": 74.9296875,
+							"workingSetMedianMiB": 40.5234375,
+							"workingSetP95MiB": 40.5234375,
+							"cgroupMedianMiB": 81.453125,
+							"cpuCores": 0.001375702511436137,
+							"privateMedianMiB": 73.01171875,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.78515625,
+							"pssP95MiB": 33.78515625,
+							"pssPeakMiB": 33.78515625,
+							"rssMedianMiB": 34.74609375,
+							"rssP95MiB": 34.74609375,
+							"workingSetMedianMiB": 8.09765625,
+							"workingSetP95MiB": 8.09765625,
+							"cgroupMedianMiB": 40.35546875,
+							"cpuCores": 0.00017557547537452005,
+							"privateMedianMiB": 32.828125,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "profile",
+					"begin": 1789781931.525,
+					"end": 1789781941.553,
+					"load": {
+						"startedUnixSeconds": 1789781931.525,
+						"endedUnixSeconds": 1789781941.553,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999937234999999,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 32,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000094148090922,
+						"counts": {
+							"profile": 150,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 5744,
+						"latencyMs": {
+							"p50": 2.633836999999403,
+							"p95": 5.404826666666395,
+							"p99": 7.855274333333,
+							"max": 9.894596666666985
+						},
+						"acknowledgementMs": {
+							"p50": 0.4373919999998179,
+							"p95": 0.5488489999988815,
+							"p99": 0.6851909999968484,
+							"max": 4.80775100000028
+						},
+						"serviceLatencyMs": {
+							"p50": 1.97018399999979,
+							"p95": 4.940495000000055,
+							"p99": 6.969653000000108,
+							"max": 9.192715999999564
+						},
+						"generatorCpuCores": 0.04575588718682593
+					},
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 105842,
+							"acknowledgements": 17732,
+							"deliveries": 35281,
+							"cursors": 8774,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 73.669921875,
+							"pssP95MiB": 73.693359375,
+							"pssPeakMiB": 73.693359375,
+							"rssMedianMiB": 74.99609375,
+							"rssP95MiB": 75.01953125,
+							"workingSetMedianMiB": 40.79296875,
+							"workingSetP95MiB": 40.934375,
+							"cgroupMedianMiB": 81.72265625,
+							"cpuCores": 0.026070112416778413,
+							"privateMedianMiB": 72.95703125,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.6015625,
+							"pssP95MiB": 33.6626953125,
+							"pssPeakMiB": 33.7109375,
+							"rssMedianMiB": 34.91015625,
+							"rssP95MiB": 34.9712890625,
+							"workingSetMedianMiB": 8.33203125,
+							"workingSetP95MiB": 8.4189453125,
+							"cgroupMedianMiB": 40.58984375,
+							"cpuCores": 0.008476237538661103,
+							"privateMedianMiB": 32.90625,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "autocomplete",
+					"begin": 1789781944.205,
+					"end": 1789781954.215,
+					"load": {
+						"startedUnixSeconds": 1789781944.205,
+						"endedUnixSeconds": 1789781954.215,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999205886,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 32,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.001191265600069,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 150,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 5679,
+						"latencyMs": {
+							"p50": 2.2619519999998374,
+							"p95": 6.265261999999893,
+							"p99": 7.508777000000009,
+							"max": 9.584344666667675
+						},
+						"acknowledgementMs": {
+							"p50": 0.8013020000071265,
+							"p95": 1.0530730000027688,
+							"p99": 2.312512999997125,
+							"max": 4.023130000001402
+						},
+						"serviceLatencyMs": {
+							"p50": 1.6343390000001818,
+							"p95": 5.0810509999998885,
+							"p99": 7.0076590000007855,
+							"max": 8.713967000000594
+						},
+						"generatorCpuCores": 0.04709874017689568
+					},
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 106206,
+							"acknowledgements": 17732,
+							"deliveries": 35463,
+							"cursors": 8774,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 62.185546875,
+							"pssP95MiB": 62.2591796875,
+							"pssPeakMiB": 62.28515625,
+							"rssMedianMiB": 63.474609375,
+							"rssP95MiB": 63.5482421875,
+							"workingSetMedianMiB": 29.359375,
+							"workingSetP95MiB": 29.4302734375,
+							"cgroupMedianMiB": 70.2890625,
+							"cpuCores": 0.019655223533888086,
+							"privateMedianMiB": 61.466796875,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.505859375,
+							"pssP95MiB": 33.5251953125,
+							"pssPeakMiB": 33.595703125,
+							"rssMedianMiB": 34.8046875,
+							"rssP95MiB": 34.8240234375,
+							"workingSetMedianMiB": 8.193359375,
+							"workingSetP95MiB": 8.3046875,
+							"cgroupMedianMiB": 40.451171875,
+							"cpuCores": 0.006782965418394633,
+							"privateMedianMiB": 32.77734375,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "page",
+					"begin": 1789781956.814,
+					"end": 1789781966.841,
+					"load": {
+						"startedUnixSeconds": 1789781956.814,
+						"endedUnixSeconds": 1789781966.841,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999933899,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 32,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000099152155405,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 150,
+							"feed": 0
+						},
+						"bytes": 5755,
+						"latencyMs": {
+							"p50": 2.5944993333332604,
+							"p95": 5.176050999999916,
+							"p99": 7.337137666667331,
+							"max": 8.678478666667615
+						},
+						"acknowledgementMs": {
+							"p50": 0.3936919999978272,
+							"p95": 0.5150169999978971,
+							"p99": 0.7385980000108248,
+							"max": 3.114635999998427
+						},
+						"serviceLatencyMs": {
+							"p50": 1.8391429999996944,
+							"p95": 5.150503999999955,
+							"p99": 6.401170999999522,
+							"max": 8.014608999999837
+						},
+						"generatorCpuCores": 0.04262618176332407
+					},
+					"state": {
+						"app": {
+							"sessions": 182,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 106752,
+							"acknowledgements": 17914,
+							"deliveries": 35645,
+							"cursors": 8774,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 62.900390625,
+							"pssP95MiB": 63.0474609375,
+							"pssPeakMiB": 63.05859375,
+							"rssMedianMiB": 64.201171875,
+							"rssP95MiB": 64.3482421875,
+							"workingSetMedianMiB": 30.111328125,
+							"workingSetP95MiB": 30.25390625,
+							"cgroupMedianMiB": 71.041015625,
+							"cpuCores": 0.022468068922167544,
+							"privateMedianMiB": 62.205078125,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.58203125,
+							"pssP95MiB": 33.660546875,
+							"pssPeakMiB": 33.66796875,
+							"rssMedianMiB": 34.890625,
+							"rssP95MiB": 34.969140625,
+							"workingSetMedianMiB": 8.34765625,
+							"workingSetP95MiB": 8.41484375,
+							"cgroupMedianMiB": 40.60546875,
+							"cpuCores": 0.007776233129938782,
+							"privateMedianMiB": 32.87890625,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "feed",
+					"begin": 1789781969.344,
+					"end": 1789781979.353,
+					"load": {
+						"startedUnixSeconds": 1789781969.344,
+						"endedUnixSeconds": 1789781979.353,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999810248,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 32
+						},
+						"dropped": 0,
+						"rps": 15.000284633400977,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 150
+						},
+						"bytes": 3600,
+						"latencyMs": {
+							"p50": 2.718508333333375,
+							"p95": 5.59278966666534,
+							"p99": 8.189126333333206,
+							"max": 14.830026999999973
+						},
+						"acknowledgementMs": null,
+						"serviceLatencyMs": {
+							"p50": 2.065551000000596,
+							"p95": 3.9349090000000615,
+							"p99": 7.311281000000008,
+							"max": 13.892534000000524
+						},
+						"generatorCpuCores": 0.042872613516416
+					},
+					"state": {
+						"app": {
+							"sessions": 182,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 29
+						},
+						"fixture": {
+							"requests": 107480,
+							"acknowledgements": 17914,
+							"deliveries": 35827,
+							"cursors": 8956,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 62.791015625,
+							"pssP95MiB": 62.8765625,
+							"pssPeakMiB": 62.943359375,
+							"rssMedianMiB": 64.1171875,
+							"rssP95MiB": 64.202734375,
+							"workingSetMedianMiB": 29.904296875,
+							"workingSetP95MiB": 30.04296875,
+							"cgroupMedianMiB": 70.833984375,
+							"cpuCores": 0.027078415896328617,
+							"privateMedianMiB": 62.078125,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.5859375,
+							"pssP95MiB": 33.630859375,
+							"pssPeakMiB": 33.7421875,
+							"rssMedianMiB": 34.89453125,
+							"rssP95MiB": 34.939453125,
+							"workingSetMedianMiB": 8.26953125,
+							"workingSetP95MiB": 8.3740234375,
+							"cgroupMedianMiB": 40.52734375,
+							"cpuCores": 0.009186269494872286,
+							"privateMedianMiB": 32.890625,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "burst",
+					"begin": 1789781982.035,
+					"end": 1789782002.053,
+					"load": {
+						"startedUnixSeconds": 1789781982.035,
+						"endedUnixSeconds": 1789782002.053,
+						"mode": "rate",
+						"amount": 150,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 19.999401781,
+						"completed": 3000,
+						"successful": 3000,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 150.00448677670374,
+						"counts": {
+							"profile": 750,
+							"autocomplete": 750,
+							"page": 750,
+							"feed": 750
+						},
+						"bytes": 104040,
+						"latencyMs": {
+							"p50": 1.7826513333329785,
+							"p95": 3.0973433333329012,
+							"p99": 6.507759333333524,
+							"max": 25.486014333333287
+						},
+						"acknowledgementMs": {
+							"p50": 0.33399800000188407,
+							"p95": 0.7361940000118921,
+							"p99": 1.2039509999885922,
+							"max": 10.20295299999998
+						},
+						"serviceLatencyMs": {
+							"p50": 1.2237779999995837,
+							"p95": 2.1419759999989765,
+							"p99": 5.353788999999779,
+							"max": 12.091445000000022
+						},
+						"generatorCpuCores": 0.07567616354594402
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 29
+						},
+						"fixture": {
+							"requests": 116576,
+							"acknowledgements": 19430,
+							"deliveries": 38859,
+							"cursors": 9714,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 65.271484375,
+							"pssP95MiB": 66.7955078125,
+							"pssPeakMiB": 66.904296875,
+							"rssMedianMiB": 66.59765625,
+							"rssP95MiB": 68.1216796875,
+							"workingSetMedianMiB": 32.345703125,
+							"workingSetP95MiB": 33.9359375,
+							"cgroupMedianMiB": 73.275390625,
+							"cpuCores": 0.1437791567757569,
+							"privateMedianMiB": 64.55859375,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 34.09765625,
+							"pssP95MiB": 34.544140625,
+							"pssPeakMiB": 34.6171875,
+							"rssMedianMiB": 35.40625,
+							"rssP95MiB": 35.852734375,
+							"workingSetMedianMiB": 8.83203125,
+							"workingSetP95MiB": 9.2521484375,
+							"cgroupMedianMiB": 41.08984375,
+							"cpuCores": 0.05260921073714343,
+							"privateMedianMiB": 33.40234375,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "capacity",
+					"begin": 1789782004.812,
+					"end": 1789782024.874,
+					"load": {
+						"startedUnixSeconds": 1789782004.812,
+						"endedUnixSeconds": 1789782024.874,
+						"mode": "closed",
+						"amount": 32,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 20.033203774,
+						"completed": 66301,
+						"successful": 66301,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 3309.555513334739,
+						"counts": {
+							"profile": 16576,
+							"autocomplete": 16575,
+							"page": 16575,
+							"feed": 16575
+						},
+						"bytes": 2306410,
+						"latencyMs": {
+							"p50": 1.0633499999994456,
+							"p95": 36.75148999999874,
+							"p99": 54.07233499999711,
+							"max": 165.02239200000076
+						},
+						"acknowledgementMs": {
+							"p50": 0.29931100000976585,
+							"p95": 0.7735700000193901,
+							"p99": 2.0365980000060517,
+							"max": 29.396753999986686
+						},
+						"serviceLatencyMs": {
+							"p50": 1.0618320000030508,
+							"p95": 36.750262999999904,
+							"p99": 54.07125499999893,
+							"max": 165.020622
+						},
+						"generatorCpuCores": 0.4067402843760441
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 315575,
+							"acknowledgements": 52597,
+							"deliveries": 105192,
+							"cursors": 26297,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 77.8349609375,
+							"pssP95MiB": 79.1435546875,
+							"pssPeakMiB": 79.236328125,
+							"rssMedianMiB": 79.13671875,
+							"rssP95MiB": 80.4462890625,
+							"workingSetMedianMiB": 44.91796875,
+							"workingSetP95MiB": 46.1806640625,
+							"cgroupMedianMiB": 85.84765625,
+							"cpuCores": 1.3451308017112173,
+							"privateMedianMiB": 77.140625,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 39.0927734375,
+							"pssP95MiB": 43.1357421875,
+							"pssPeakMiB": 48.212890625,
+							"rssMedianMiB": 40.4140625,
+							"rssP95MiB": 44.4697265625,
+							"workingSetMedianMiB": 13.8359375,
+							"workingSetP95MiB": 17.9263671875,
+							"cgroupMedianMiB": 46.09375,
+							"cpuCores": 0.6057760082439794,
+							"privateMedianMiB": 38.37890625,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "recovery",
+					"begin": 1789782025.9978862,
+					"end": 1789782101.0347497,
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 315575,
+							"acknowledgements": 52597,
+							"deliveries": 105192,
+							"cursors": 26297,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 19,
+							"pssMedianMiB": 62.23828125,
+							"pssP95MiB": 62.23828125,
+							"pssPeakMiB": 62.23828125,
+							"rssMedianMiB": 63.19921875,
+							"rssP95MiB": 63.19921875,
+							"workingSetMedianMiB": 28.765625,
+							"workingSetP95MiB": 28.765625,
+							"cgroupMedianMiB": 69.6953125,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 61.28125,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 38.3359375,
+							"pssP95MiB": 38.3359375,
+							"pssPeakMiB": 38.3359375,
+							"rssMedianMiB": 39.296875,
+							"rssP95MiB": 39.296875,
+							"workingSetMedianMiB": 12.66796875,
+							"workingSetP95MiB": 12.66796875,
+							"cgroupMedianMiB": 44.92578125,
+							"cpuCores": 0.00019713763563318666,
+							"privateMedianMiB": 37.37890625,
+							"fileCacheMedianMiB": 32.26171875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				}
+			],
+			"final": {
+				"app": {
+					"sessions": 0,
+					"pendingFeeds": 0,
+					"peakPendingFeeds": 30
+				},
+				"fixture": {
+					"requests": 315575,
+					"acknowledgements": 52597,
+					"deliveries": 105192,
+					"cursors": 26297,
+					"duplicates": 0
+				}
+			}
+		},
+		{
+			"variant": "serenity",
+			"round": 2,
+			"phases": [
+				{
+					"name": "cold-idle",
+					"begin": 1789781649.345858,
+					"end": 1789781664.365702,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 0,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 0,
+							"acknowledgements": 0,
+							"deliveries": 0,
+							"cursors": 0,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 30,
+							"pssMedianMiB": 4.369140625,
+							"pssP95MiB": 4.369140625,
+							"pssPeakMiB": 4.369140625,
+							"rssMedianMiB": 5.23046875,
+							"rssP95MiB": 5.23046875,
+							"workingSetMedianMiB": 1.29296875,
+							"workingSetP95MiB": 1.29296875,
+							"cgroupMedianMiB": 1.29296875,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 3.51171875,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 30,
+							"pssMedianMiB": 14.291015625,
+							"pssP95MiB": 14.291015625,
+							"pssPeakMiB": 14.306640625,
+							"rssMedianMiB": 15.15234375,
+							"rssP95MiB": 15.15234375,
+							"workingSetMedianMiB": 3.244140625,
+							"workingSetP95MiB": 3.26171875,
+							"cgroupMedianMiB": 17.75,
+							"cpuCores": 0.00022592947257289158,
+							"privateMedianMiB": 13.43359375,
+							"fileCacheMedianMiB": 14.52734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warmup",
+					"begin": 1789781667.124,
+					"end": 1789781677.138,
+					"load": {
+						"startedUnixSeconds": 1789781667.124,
+						"endedUnixSeconds": 1789781677.138,
+						"mode": "closed",
+						"amount": 8,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.00364187,
+						"completed": 43303,
+						"successful": 43303,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 4328.7235351619,
+						"counts": {
+							"profile": 10826,
+							"autocomplete": 10826,
+							"page": 10826,
+							"feed": 10825
+						},
+						"bytes": 1255889,
+						"latencyMs": {
+							"p50": 0.8628260000004957,
+							"p95": 5.097889000000123,
+							"p99": 7.9344129999999495,
+							"max": 55.84993900000018
+						},
+						"acknowledgementMs": {
+							"p50": 0.240938,
+							"p95": 0.5963849999999999,
+							"p99": 0.8316969999999999,
+							"max": 49.775734
+						},
+						"serviceLatencyMs": {
+							"p50": 0.8615230000000338,
+							"p95": 5.096009999999296,
+							"p99": 7.933080000000018,
+							"max": 55.84868500000016
+						},
+						"generatorCpuCores": 0.5046488134625716
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 130004,
+							"acknowledgements": 21668,
+							"deliveries": 43335,
+							"cursors": 10833,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 6.755859375,
+							"pssP95MiB": 6.798828125,
+							"pssPeakMiB": 6.798828125,
+							"rssMedianMiB": 7.90234375,
+							"rssP95MiB": 7.9453125,
+							"workingSetMedianMiB": 3.857421875,
+							"workingSetP95MiB": 3.98125,
+							"cgroupMedianMiB": 3.857421875,
+							"cpuCores": 1.294007960922895,
+							"privateMedianMiB": 6.1484375,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 39.021484375,
+							"pssP95MiB": 39.388671875,
+							"pssPeakMiB": 39.42578125,
+							"rssMedianMiB": 40.291015625,
+							"rssP95MiB": 40.658203125,
+							"workingSetMedianMiB": 13.830078125,
+							"workingSetP95MiB": 14.1439453125,
+							"cgroupMedianMiB": 46.099609375,
+							"cpuCores": 0.6102303239046137,
+							"privateMedianMiB": 38.291015625,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warm-idle",
+					"begin": 1789781678.139501,
+					"end": 1789781698.1585343,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 130004,
+							"acknowledgements": 21668,
+							"deliveries": 43335,
+							"cursors": 10833,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.052734375,
+							"pssP95MiB": 7.052734375,
+							"pssPeakMiB": 7.052734375,
+							"rssMedianMiB": 7.9140625,
+							"rssP95MiB": 7.9140625,
+							"workingSetMedianMiB": 3.73046875,
+							"workingSetP95MiB": 3.73046875,
+							"cgroupMedianMiB": 3.73046875,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 6.1953125,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.837890625,
+							"pssP95MiB": 33.837890625,
+							"pssPeakMiB": 33.837890625,
+							"rssMedianMiB": 34.69921875,
+							"rssP95MiB": 34.69921875,
+							"workingSetMedianMiB": 8.0546875,
+							"workingSetP95MiB": 8.0546875,
+							"cgroupMedianMiB": 40.32421875,
+							"cpuCores": 0.00014276012222379561,
+							"privateMedianMiB": 32.98046875,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "profile",
+					"begin": 1789781700.887,
+					"end": 1789781710.896,
+					"load": {
+						"startedUnixSeconds": 1789781700.887,
+						"endedUnixSeconds": 1789781710.896,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000321714000002,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 32,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 14.999517444524482,
+						"counts": {
+							"profile": 150,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 4606,
+						"latencyMs": {
+							"p50": 2.2732706666665763,
+							"p95": 4.756661999999778,
+							"p99": 7.1924886666674865,
+							"max": 8.211937666666472
+						},
+						"acknowledgementMs": {
+							"p50": 0.332971,
+							"p95": 0.457029,
+							"p99": 0.5279809999999999,
+							"max": 3.300004
+						},
+						"serviceLatencyMs": {
+							"p50": 1.5467369999996663,
+							"p95": 3.8100110000000313,
+							"p99": 6.160934000000452,
+							"max": 7.2473110000000815
+						},
+						"generatorCpuCores": 0.04515084743402686
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 130550,
+							"acknowledgements": 21850,
+							"deliveries": 43517,
+							"cursors": 10833,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.2587890625,
+							"pssP95MiB": 7.2587890625,
+							"pssPeakMiB": 7.2587890625,
+							"rssMedianMiB": 8.4375,
+							"rssP95MiB": 8.4375,
+							"workingSetMedianMiB": 4.41015625,
+							"workingSetP95MiB": 4.47265625,
+							"cgroupMedianMiB": 4.41015625,
+							"cpuCores": 0.009126231856339113,
+							"privateMedianMiB": 6.6484375,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.6279296875,
+							"pssP95MiB": 33.637109375,
+							"pssPeakMiB": 33.6630859375,
+							"rssMedianMiB": 34.88671875,
+							"rssP95MiB": 34.8958984375,
+							"workingSetMedianMiB": 8.287109375,
+							"workingSetP95MiB": 8.4064453125,
+							"cgroupMedianMiB": 40.556640625,
+							"cpuCores": 0.007954475204697881,
+							"privateMedianMiB": 32.9375,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "autocomplete",
+					"begin": 1789781713.388,
+					"end": 1789781723.419,
+					"load": {
+						"startedUnixSeconds": 1789781713.388,
+						"endedUnixSeconds": 1789781723.419,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000285865,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 32,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 14.999571214757468,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 150,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 4527,
+						"latencyMs": {
+							"p50": 2.0538513333340234,
+							"p95": 4.478200000000015,
+							"p99": 7.468132333333415,
+							"max": 9.221272666667574
+						},
+						"acknowledgementMs": {
+							"p50": 0.688225,
+							"p95": 0.912991,
+							"p99": 1.8842310000000002,
+							"max": 5.6266989999999995
+						},
+						"serviceLatencyMs": {
+							"p50": 1.5133749999995416,
+							"p95": 3.4663220000002184,
+							"p99": 7.288444999999911,
+							"max": 9.146451000000525
+						},
+						"generatorCpuCores": 0.048502513482898316
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 130914,
+							"acknowledgements": 21850,
+							"deliveries": 43699,
+							"cursors": 10833,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.3720703125,
+							"pssP95MiB": 7.3720703125,
+							"pssPeakMiB": 7.3720703125,
+							"rssMedianMiB": 8.515625,
+							"rssP95MiB": 8.515625,
+							"workingSetMedianMiB": 4.4609375,
+							"workingSetP95MiB": 4.4609375,
+							"cgroupMedianMiB": 4.4609375,
+							"cpuCores": 0.00821706054212006,
+							"privateMedianMiB": 6.78515625,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.4658203125,
+							"pssP95MiB": 33.514453125,
+							"pssPeakMiB": 33.5478515625,
+							"rssMedianMiB": 34.75390625,
+							"rssP95MiB": 34.8025390625,
+							"workingSetMedianMiB": 8.142578125,
+							"workingSetP95MiB": 8.262890625,
+							"cgroupMedianMiB": 40.412109375,
+							"cpuCores": 0.006940765645194872,
+							"privateMedianMiB": 32.734375,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "page",
+					"begin": 1789781726.43,
+					"end": 1789781736.441,
+					"load": {
+						"startedUnixSeconds": 1789781726.43,
+						"endedUnixSeconds": 1789781736.441,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000778813,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 32,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 14.998831871475367,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 150,
+							"feed": 0
+						},
+						"bytes": 4691,
+						"latencyMs": {
+							"p50": 2.454357333333064,
+							"p95": 7.927240333333202,
+							"p99": 13.212588000000324,
+							"max": 17.176286333333337
+						},
+						"acknowledgementMs": {
+							"p50": 0.39294,
+							"p95": 0.52188,
+							"p99": 0.907166,
+							"max": 3.042098
+						},
+						"serviceLatencyMs": {
+							"p50": 1.8331520000001547,
+							"p95": 6.95069999999987,
+							"p99": 12.908924000000297,
+							"max": 16.53095200000007
+						},
+						"generatorCpuCores": 0.05169107423194042
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 182
+						},
+						"fixture": {
+							"requests": 131460,
+							"acknowledgements": 22032,
+							"deliveries": 43881,
+							"cursors": 10833,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.4501953125,
+							"pssP95MiB": 7.7482421875,
+							"pssPeakMiB": 7.7705078125,
+							"rssMedianMiB": 8.58984375,
+							"rssP95MiB": 8.887890625,
+							"workingSetMedianMiB": 4.677734375,
+							"workingSetP95MiB": 5.11328125,
+							"cgroupMedianMiB": 4.677734375,
+							"cpuCores": 0.010607700354864254,
+							"privateMedianMiB": 6.86328125,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.5537109375,
+							"pssP95MiB": 33.6169921875,
+							"pssPeakMiB": 33.6318359375,
+							"rssMedianMiB": 34.84765625,
+							"rssP95MiB": 34.9109375,
+							"workingSetMedianMiB": 8.33984375,
+							"workingSetP95MiB": 8.38125,
+							"cgroupMedianMiB": 40.609375,
+							"cpuCores": 0.009862361079889791,
+							"privateMedianMiB": 32.8125,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "feed",
+					"begin": 1789781739.078,
+					"end": 1789781749.087,
+					"load": {
+						"startedUnixSeconds": 1789781739.078,
+						"endedUnixSeconds": 1789781749.087,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999465719,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 32
+						},
+						"dropped": 0,
+						"rps": 15.000801464320716,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 150
+						},
+						"bytes": 3600,
+						"latencyMs": {
+							"p50": 2.771470333333582,
+							"p95": 6.172879666667541,
+							"p99": 14.17269166666756,
+							"max": 18.62309733333359
+						},
+						"acknowledgementMs": null,
+						"serviceLatencyMs": {
+							"p50": 2.006601000000046,
+							"p95": 6.138208000000304,
+							"p99": 7.934367000000066,
+							"max": 14.38596200000029
+						},
+						"generatorCpuCores": 0.053657166800473534
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 29,
+							"pendingFeeds": 0,
+							"sessions": 182
+						},
+						"fixture": {
+							"requests": 132188,
+							"acknowledgements": 22032,
+							"deliveries": 44063,
+							"cursors": 11015,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.8173828125,
+							"pssP95MiB": 7.8173828125,
+							"pssPeakMiB": 7.8173828125,
+							"rssMedianMiB": 8.9609375,
+							"rssP95MiB": 8.9609375,
+							"workingSetMedianMiB": 4.828125,
+							"workingSetP95MiB": 4.8376953125,
+							"cgroupMedianMiB": 4.828125,
+							"cpuCores": 0.012565829564062644,
+							"privateMedianMiB": 7.23046875,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.5712890625,
+							"pssP95MiB": 33.6001953125,
+							"pssPeakMiB": 33.7041015625,
+							"rssMedianMiB": 34.859375,
+							"rssP95MiB": 34.88828125,
+							"workingSetMedianMiB": 8.2890625,
+							"workingSetP95MiB": 8.3310546875,
+							"cgroupMedianMiB": 40.55859375,
+							"cpuCores": 0.010494045874874871,
+							"privateMedianMiB": 32.83984375,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "burst",
+					"begin": 1789781751.696,
+					"end": 1789781771.722,
+					"load": {
+						"startedUnixSeconds": 1789781751.696,
+						"endedUnixSeconds": 1789781771.722,
+						"mode": "rate",
+						"amount": 150,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 19.999440092,
+						"completed": 3000,
+						"successful": 3000,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 150.00419942756466,
+						"counts": {
+							"profile": 750,
+							"autocomplete": 750,
+							"page": 750,
+							"feed": 750
+						},
+						"bytes": 87095,
+						"latencyMs": {
+							"p50": 1.551007000000027,
+							"p95": 2.6669160000001284,
+							"p99": 6.415501333332941,
+							"max": 18.726196999999956
+						},
+						"acknowledgementMs": {
+							"p50": 0.25429,
+							"p95": 0.591439,
+							"p99": 0.9860960000000001,
+							"max": 11.716883000000001
+						},
+						"serviceLatencyMs": {
+							"p50": 0.9206379999995988,
+							"p95": 1.8423139999999876,
+							"p99": 5.055017000000589,
+							"max": 18.569619999998395
+						},
+						"generatorCpuCores": 0.07610468058097473
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 29,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 141284,
+							"acknowledgements": 23548,
+							"deliveries": 47095,
+							"cursors": 11773,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 39,
+							"pssMedianMiB": 7.861328125,
+							"pssP95MiB": 7.86328125,
+							"pssPeakMiB": 7.86328125,
+							"rssMedianMiB": 9.03125,
+							"rssP95MiB": 9.03515625,
+							"workingSetMedianMiB": 5.00390625,
+							"workingSetP95MiB": 5.00625,
+							"cgroupMedianMiB": 5.00390625,
+							"cpuCores": 0.07094421656739383,
+							"privateMedianMiB": 7.25390625,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 34.095703125,
+							"pssP95MiB": 34.5474609375,
+							"pssPeakMiB": 34.58203125,
+							"rssMedianMiB": 35.345703125,
+							"rssP95MiB": 35.7974609375,
+							"workingSetMedianMiB": 8.763671875,
+							"workingSetP95MiB": 9.27421875,
+							"cgroupMedianMiB": 41.033203125,
+							"cpuCores": 0.05068584423902053,
+							"privateMedianMiB": 33.408203125,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "capacity",
+					"begin": 1789781774.237,
+					"end": 1789781794.288,
+					"load": {
+						"startedUnixSeconds": 1789781774.237,
+						"endedUnixSeconds": 1789781794.288,
+						"mode": "closed",
+						"amount": 32,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 20.020593202,
+						"completed": 89351,
+						"successful": 89351,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 4462.95467364444,
+						"counts": {
+							"profile": 22338,
+							"autocomplete": 22338,
+							"page": 22338,
+							"feed": 22337
+						},
+						"bytes": 2589256,
+						"latencyMs": {
+							"p50": 0.8911600000001272,
+							"p95": 27.267282000000705,
+							"p99": 32.51445500000045,
+							"max": 61.34875099999999
+						},
+						"acknowledgementMs": {
+							"p50": 0.24943600000000002,
+							"p95": 0.633483,
+							"p99": 1.012939,
+							"max": 15.975032
+						},
+						"serviceLatencyMs": {
+							"p50": 0.8896820000009029,
+							"p95": 27.265998999999283,
+							"p99": 32.512901000000056,
+							"max": 61.34787099999994
+						},
+						"generatorCpuCores": 0.4786285253047718
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 32,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 409432,
+							"acknowledgements": 68240,
+							"deliveries": 136478,
+							"cursors": 34118,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 8.0087890625,
+							"pssP95MiB": 8.0087890625,
+							"pssPeakMiB": 8.0087890625,
+							"rssMedianMiB": 9.140625,
+							"rssP95MiB": 9.140625,
+							"workingSetMedianMiB": 5.09375,
+							"workingSetP95MiB": 5.2009765625,
+							"cgroupMedianMiB": 5.09375,
+							"cpuCores": 1.3339153831322657,
+							"privateMedianMiB": 7.41796875,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 40.0986328125,
+							"pssP95MiB": 43.46943359375,
+							"pssPeakMiB": 45.6962890625,
+							"rssMedianMiB": 41.40625,
+							"rssP95MiB": 44.77890625,
+							"workingSetMedianMiB": 14.85546875,
+							"workingSetP95MiB": 18.2703125,
+							"cgroupMedianMiB": 47.125,
+							"cpuCores": 0.6343325692240495,
+							"privateMedianMiB": 39.33203125,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "recovery",
+					"begin": 1789781795.3073554,
+					"end": 1789781870.3452082,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 32,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 409432,
+							"acknowledgements": 68240,
+							"deliveries": 136478,
+							"cursors": 34118,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 8.263671875,
+							"pssP95MiB": 8.263671875,
+							"pssPeakMiB": 8.263671875,
+							"rssMedianMiB": 9.125,
+							"rssP95MiB": 9.125,
+							"workingSetMedianMiB": 4.94140625,
+							"workingSetP95MiB": 4.94140625,
+							"cgroupMedianMiB": 4.94140625,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 7.40625,
+							"fileCacheMedianMiB": 0.00390625,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 38.373046875,
+							"pssP95MiB": 38.373046875,
+							"pssPeakMiB": 38.373046875,
+							"rssMedianMiB": 39.234375,
+							"rssP95MiB": 39.234375,
+							"workingSetMedianMiB": 12.609375,
+							"workingSetP95MiB": 12.609375,
+							"cgroupMedianMiB": 44.87890625,
+							"cpuCores": 1.7291053719408334e-5,
+							"privateMedianMiB": 37.515625,
+							"fileCacheMedianMiB": 32.2734375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				}
+			],
+			"final": {
+				"app": {
+					"peakPendingFeeds": 32,
+					"pendingFeeds": 0,
+					"sessions": 0
+				},
+				"fixture": {
+					"requests": 409432,
+					"acknowledgements": 68240,
+					"deliveries": 136478,
+					"cursors": 34118,
+					"duplicates": 0
+				}
+			}
+		},
+		{
+			"variant": "discord-js",
+			"round": 3,
+			"phases": [
+				{
+					"name": "cold-idle",
+					"begin": 1789782111.212393,
+					"end": 1789782126.231416,
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 0
+						},
+						"fixture": {
+							"requests": 0,
+							"acknowledgements": 0,
+							"deliveries": 0,
+							"cursors": 0,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 29,
+							"pssMedianMiB": 46.75,
+							"pssP95MiB": 46.865234375,
+							"pssPeakMiB": 46.865234375,
+							"rssMedianMiB": 47.734375,
+							"rssP95MiB": 47.83984375,
+							"workingSetMedianMiB": 19.19921875,
+							"workingSetP95MiB": 19.46875,
+							"cgroupMedianMiB": 54.34765625,
+							"cpuCores": 0.0008290846698956631,
+							"privateMedianMiB": 45.76953125,
+							"fileCacheMedianMiB": 35.1484375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 30,
+							"pssMedianMiB": 14.171875,
+							"pssP95MiB": 14.17724609375,
+							"pssPeakMiB": 14.181640625,
+							"rssMedianMiB": 15.15625,
+							"rssP95MiB": 15.15625,
+							"workingSetMedianMiB": 3.23046875,
+							"workingSetP95MiB": 3.265625,
+							"cgroupMedianMiB": 17.75390625,
+							"cpuCores": 0.00026552012745762984,
+							"privateMedianMiB": 13.19140625,
+							"fileCacheMedianMiB": 14.5234375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warmup",
+					"begin": 1789782129.284,
+					"end": 1789782139.299,
+					"load": {
+						"startedUnixSeconds": 1789782129.284,
+						"endedUnixSeconds": 1789782139.299,
+						"mode": "closed",
+						"amount": 8,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.005074574,
+						"completed": 30375,
+						"successful": 30375,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 3035.9593799465465,
+						"counts": {
+							"profile": 7594,
+							"autocomplete": 7594,
+							"page": 7594,
+							"feed": 7593
+						},
+						"bytes": 1055749,
+						"latencyMs": {
+							"p50": 1.1773020000000542,
+							"p95": 7.673333000000639,
+							"p99": 13.059817999999723,
+							"max": 56.21328800000015
+						},
+						"acknowledgementMs": {
+							"p50": 0.32721500000479864,
+							"p95": 0.8446919999987585,
+							"p99": 2.0969139999979234,
+							"max": 47.34105900000213
+						},
+						"serviceLatencyMs": {
+							"p50": 1.1750640000000203,
+							"p95": 7.671351999999388,
+							"p99": 13.058327999999165,
+							"max": 56.211087000000134
+						},
+						"generatorCpuCores": 0.4270333987417613
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 91220,
+							"acknowledgements": 15204,
+							"deliveries": 30407,
+							"cursors": 7601,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 78.8251953125,
+							"pssP95MiB": 88.18144531250002,
+							"pssPeakMiB": 108.9404296875,
+							"rssMedianMiB": 80.193359375,
+							"rssP95MiB": 89.54960937500002,
+							"workingSetMedianMiB": 45.982421875,
+							"workingSetP95MiB": 55.35078125000002,
+							"cgroupMedianMiB": 86.744140625,
+							"cpuCores": 1.3472353448635617,
+							"privateMedianMiB": 78.087890625,
+							"fileCacheMedianMiB": 40.69921875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.7919921875,
+							"pssP95MiB": 39.484375,
+							"pssPeakMiB": 39.5029296875,
+							"rssMedianMiB": 35.09765625,
+							"rssP95MiB": 40.7900390625,
+							"workingSetMedianMiB": 8.640625,
+							"workingSetP95MiB": 14.2640625,
+							"cgroupMedianMiB": 40.837890625,
+							"cpuCores": 0.5848785658308451,
+							"privateMedianMiB": 33.1171875,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warm-idle",
+					"begin": 1789782140.248835,
+					"end": 1789782160.2666225,
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 91220,
+							"acknowledgements": 15204,
+							"deliveries": 30407,
+							"cursors": 7601,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 75.5546875,
+							"pssP95MiB": 75.5546875,
+							"pssPeakMiB": 75.5546875,
+							"rssMedianMiB": 76.5390625,
+							"rssP95MiB": 76.5390625,
+							"workingSetMedianMiB": 42.0,
+							"workingSetP95MiB": 42.0,
+							"cgroupMedianMiB": 82.93359375,
+							"cpuCores": 0.0013161688545943514,
+							"privateMedianMiB": 74.57421875,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.78515625,
+							"pssP95MiB": 33.78515625,
+							"pssPeakMiB": 33.78515625,
+							"rssMedianMiB": 34.76953125,
+							"rssP95MiB": 34.76953125,
+							"workingSetMedianMiB": 8.12890625,
+							"workingSetP95MiB": 8.12890625,
+							"cgroupMedianMiB": 40.38671875,
+							"cpuCores": 0.0001514048342923296,
+							"privateMedianMiB": 32.8046875,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "profile",
+					"begin": 1789782162.656,
+					"end": 1789782172.666,
+					"load": {
+						"startedUnixSeconds": 1789782162.656,
+						"endedUnixSeconds": 1789782172.666,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999789373000002,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 32,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000315947154697,
+						"counts": {
+							"profile": 150,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 5730,
+						"latencyMs": {
+							"p50": 2.480829000000085,
+							"p95": 5.059128666666766,
+							"p99": 7.754588333333231,
+							"max": 10.960815999999795
+						},
+						"acknowledgementMs": {
+							"p50": 0.4001139999963925,
+							"p95": 0.5187770000047749,
+							"p99": 0.7185850000023493,
+							"max": 4.912032000000181
+						},
+						"serviceLatencyMs": {
+							"p50": 1.8370109999996203,
+							"p95": 4.690330999999787,
+							"p99": 6.986952999999858,
+							"max": 10.081106999999975
+						},
+						"generatorCpuCores": 0.04282030191117306
+					},
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 91766,
+							"acknowledgements": 15386,
+							"deliveries": 30589,
+							"cursors": 7601,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 63.77734375,
+							"pssP95MiB": 74.741796875,
+							"pssPeakMiB": 75.291015625,
+							"rssMedianMiB": 65.107421875,
+							"rssP95MiB": 76.071875,
+							"workingSetMedianMiB": 30.810546875,
+							"workingSetP95MiB": 41.8556640625,
+							"cgroupMedianMiB": 71.744140625,
+							"cpuCores": 0.023220328385888004,
+							"privateMedianMiB": 63.056640625,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.5,
+							"pssP95MiB": 33.7259765625,
+							"pssPeakMiB": 33.7890625,
+							"rssMedianMiB": 34.82421875,
+							"rssP95MiB": 35.0501953125,
+							"workingSetMedianMiB": 8.3203125,
+							"workingSetP95MiB": 8.466796875,
+							"cgroupMedianMiB": 40.578125,
+							"cpuCores": 0.008444915469861772,
+							"privateMedianMiB": 32.78515625,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "autocomplete",
+					"begin": 1789782175.255,
+					"end": 1789782185.263,
+					"load": {
+						"startedUnixSeconds": 1789782175.255,
+						"endedUnixSeconds": 1789782185.263,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.99992995,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 32,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000105075736055,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 150,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 5680,
+						"latencyMs": {
+							"p50": 2.1070479999998497,
+							"p95": 3.579136333331917,
+							"p99": 6.545457666667062,
+							"max": 7.731042333333335
+						},
+						"acknowledgementMs": {
+							"p50": 0.7117020000005141,
+							"p95": 0.8728059999994002,
+							"p99": 1.0032159999973373,
+							"max": 1.3532679999916581
+						},
+						"serviceLatencyMs": {
+							"p50": 1.4245739999996658,
+							"p95": 3.113129999999728,
+							"p99": 6.061252000000422,
+							"max": 6.885721000000103
+						},
+						"generatorCpuCores": 0.041937093769341856
+					},
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 92130,
+							"acknowledgements": 15386,
+							"deliveries": 30771,
+							"cursors": 7601,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 63.869140625,
+							"pssP95MiB": 63.8810546875,
+							"pssPeakMiB": 63.884765625,
+							"rssMedianMiB": 65.2109375,
+							"rssP95MiB": 65.2228515625,
+							"workingSetMedianMiB": 30.912109375,
+							"workingSetP95MiB": 31.0080078125,
+							"cgroupMedianMiB": 71.845703125,
+							"cpuCores": 0.017921606364484314,
+							"privateMedianMiB": 63.140625,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 19,
+							"pssMedianMiB": 33.4609375,
+							"pssP95MiB": 33.5078125,
+							"pssPeakMiB": 33.5078125,
+							"rssMedianMiB": 34.78125,
+							"rssP95MiB": 34.828125,
+							"workingSetMedianMiB": 8.22265625,
+							"workingSetP95MiB": 8.28515625,
+							"cgroupMedianMiB": 40.48046875,
+							"cpuCores": 0.006744236400714185,
+							"privateMedianMiB": 32.75390625,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "page",
+					"begin": 1789782187.792,
+					"end": 1789782197.801,
+					"load": {
+						"startedUnixSeconds": 1789782187.792,
+						"endedUnixSeconds": 1789782197.801,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999198569,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 32,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.001202242851468,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 150,
+							"feed": 0
+						},
+						"bytes": 5751,
+						"latencyMs": {
+							"p50": 2.413056666666307,
+							"p95": 4.343724999999722,
+							"p99": 7.561426333333202,
+							"max": 12.182503333333443
+						},
+						"acknowledgementMs": {
+							"p50": 0.3980219999939436,
+							"p95": 0.4906839999894146,
+							"p99": 0.5910899999871617,
+							"max": 0.7643240000033984
+						},
+						"serviceLatencyMs": {
+							"p50": 1.8433429999995496,
+							"p95": 3.3442859999995562,
+							"p99": 7.18406200000004,
+							"max": 12.025259000000005
+						},
+						"generatorCpuCores": 0.042551710225967807
+					},
+					"state": {
+						"app": {
+							"sessions": 182,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 8
+						},
+						"fixture": {
+							"requests": 92676,
+							"acknowledgements": 15568,
+							"deliveries": 30953,
+							"cursors": 7601,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 19,
+							"pssMedianMiB": 64.109375,
+							"pssP95MiB": 64.1328125,
+							"pssPeakMiB": 64.1328125,
+							"rssMedianMiB": 65.421875,
+							"rssP95MiB": 65.4453125,
+							"workingSetMedianMiB": 31.19921875,
+							"workingSetP95MiB": 31.25078125,
+							"cgroupMedianMiB": 72.1328125,
+							"cpuCores": 0.023610143867510192,
+							"privateMedianMiB": 63.4453125,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.45703125,
+							"pssP95MiB": 33.568359375,
+							"pssPeakMiB": 33.568359375,
+							"rssMedianMiB": 34.822265625,
+							"rssP95MiB": 34.93359375,
+							"workingSetMedianMiB": 8.291015625,
+							"workingSetP95MiB": 8.3951171875,
+							"cgroupMedianMiB": 40.548828125,
+							"cpuCores": 0.008376630873644425,
+							"privateMedianMiB": 32.740234375,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "feed",
+					"begin": 1789782201.127,
+					"end": 1789782211.156,
+					"load": {
+						"startedUnixSeconds": 1789782201.127,
+						"endedUnixSeconds": 1789782211.156,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000069123,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 32
+						},
+						"dropped": 0,
+						"rps": 14.999896316216695,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 150
+						},
+						"bytes": 3600,
+						"latencyMs": {
+							"p50": 3.1860506666671427,
+							"p95": 5.876720666667097,
+							"p99": 12.30746199999976,
+							"max": 30.4218800000001
+						},
+						"acknowledgementMs": null,
+						"serviceLatencyMs": {
+							"p50": 2.442309000000023,
+							"p95": 4.405304000000797,
+							"p99": 9.741115000000036,
+							"max": 30.393297000000075
+						},
+						"generatorCpuCores": 0.048840462400071755
+					},
+					"state": {
+						"app": {
+							"sessions": 182,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 28
+						},
+						"fixture": {
+							"requests": 93404,
+							"acknowledgements": 15568,
+							"deliveries": 31135,
+							"cursors": 7783,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 64.24609375,
+							"pssP95MiB": 64.38359375,
+							"pssPeakMiB": 64.3984375,
+							"rssMedianMiB": 65.62109375,
+							"rssP95MiB": 65.75859375,
+							"workingSetMedianMiB": 31.171875,
+							"workingSetP95MiB": 31.4923828125,
+							"cgroupMedianMiB": 72.10546875,
+							"cpuCores": 0.030128127355978862,
+							"privateMedianMiB": 63.515625,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.51953125,
+							"pssP95MiB": 33.55703125,
+							"pssPeakMiB": 33.67578125,
+							"rssMedianMiB": 34.82421875,
+							"rssP95MiB": 34.86171875,
+							"workingSetMedianMiB": 8.19140625,
+							"workingSetP95MiB": 8.2955078125,
+							"cgroupMedianMiB": 40.44921875,
+							"cpuCores": 0.01103403212236011,
+							"privateMedianMiB": 32.859375,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "burst",
+					"begin": 1789782213.669,
+					"end": 1789782233.688,
+					"load": {
+						"startedUnixSeconds": 1789782213.669,
+						"endedUnixSeconds": 1789782233.688,
+						"mode": "rate",
+						"amount": 150,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 19.999881772000002,
+						"completed": 3000,
+						"successful": 3000,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 150.0008867152417,
+						"counts": {
+							"profile": 750,
+							"autocomplete": 750,
+							"page": 750,
+							"feed": 750
+						},
+						"bytes": 104114,
+						"latencyMs": {
+							"p50": 1.7014640000015788,
+							"p95": 2.75196166666683,
+							"p99": 7.50280233333342,
+							"max": 23.557326000000103
+						},
+						"acknowledgementMs": {
+							"p50": 0.29721199999039527,
+							"p95": 0.6497139999992214,
+							"p99": 0.8749439999955939,
+							"max": 9.10935499999323
+						},
+						"serviceLatencyMs": {
+							"p50": 1.1376479999998992,
+							"p95": 1.8858730000010837,
+							"p99": 5.6236210000024585,
+							"max": 23.27265399999851
+						},
+						"generatorCpuCores": 0.0701303645686371
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 28
+						},
+						"fixture": {
+							"requests": 102500,
+							"acknowledgements": 17084,
+							"deliveries": 34167,
+							"cursors": 8541,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 68.28125,
+							"pssP95MiB": 70.182421875,
+							"pssPeakMiB": 70.271484375,
+							"rssMedianMiB": 69.60546875,
+							"rssP95MiB": 71.54765625,
+							"workingSetMedianMiB": 35.19921875,
+							"workingSetP95MiB": 37.070703125,
+							"cgroupMedianMiB": 76.1328125,
+							"cpuCores": 0.13954123572320737,
+							"privateMedianMiB": 67.578125,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 33.8515625,
+							"pssP95MiB": 34.384765625,
+							"pssPeakMiB": 34.44140625,
+							"rssMedianMiB": 35.1953125,
+							"rssP95MiB": 35.728515625,
+							"workingSetMedianMiB": 8.681640625,
+							"workingSetP95MiB": 9.1185546875,
+							"cgroupMedianMiB": 40.939453125,
+							"cpuCores": 0.048524702166540944,
+							"privateMedianMiB": 33.12890625,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "capacity",
+					"begin": 1789782236.317,
+					"end": 1789782256.356,
+					"load": {
+						"startedUnixSeconds": 1789782236.317,
+						"endedUnixSeconds": 1789782256.356,
+						"mode": "closed",
+						"amount": 32,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 20.029620738,
+						"completed": 76263,
+						"successful": 76263,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 3807.5109358069167,
+						"counts": {
+							"profile": 19066,
+							"autocomplete": 19066,
+							"page": 19066,
+							"feed": 19065
+						},
+						"bytes": 2655895,
+						"latencyMs": {
+							"p50": 0.9589280000000144,
+							"p95": 32.38427199999933,
+							"p99": 39.32234700000026,
+							"max": 73.17386500000066
+						},
+						"acknowledgementMs": {
+							"p50": 0.2775419999961741,
+							"p95": 0.6473150000092573,
+							"p99": 1.4409920000180136,
+							"max": 16.932193999993615
+						},
+						"serviceLatencyMs": {
+							"p50": 0.9575169999989157,
+							"p95": 32.38295099999959,
+							"p99": 39.320693000000574,
+							"max": 73.17253399999936
+						},
+						"generatorCpuCores": 0.4069976215043399
+					},
+					"state": {
+						"app": {
+							"sessions": 64,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 331384,
+							"acknowledgements": 55232,
+							"deliveries": 110462,
+							"cursors": 27614,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 79.50244140625,
+							"pssP95MiB": 81.41328125,
+							"pssPeakMiB": 81.845703125,
+							"rssMedianMiB": 80.853515625,
+							"rssP95MiB": 82.743359375,
+							"workingSetMedianMiB": 46.556640625,
+							"workingSetP95MiB": 48.45625,
+							"cgroupMedianMiB": 87.490234375,
+							"cpuCores": 1.3902712382757654,
+							"privateMedianMiB": 78.771484375,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 39.4775390625,
+							"pssP95MiB": 43.097070312499994,
+							"pssPeakMiB": 48.5830078125,
+							"rssMedianMiB": 40.8125,
+							"rssP95MiB": 44.432031249999994,
+							"workingSetMedianMiB": 14.25,
+							"workingSetP95MiB": 17.906445312499994,
+							"cgroupMedianMiB": 46.5078125,
+							"cpuCores": 0.6199785654142056,
+							"privateMedianMiB": 38.7734375,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "recovery",
+					"begin": 1789782257.4023418,
+					"end": 1789782332.4567156,
+					"state": {
+						"app": {
+							"sessions": 0,
+							"pendingFeeds": 0,
+							"peakPendingFeeds": 30
+						},
+						"fixture": {
+							"requests": 331384,
+							"acknowledgements": 55232,
+							"deliveries": 110462,
+							"cursors": 27614,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 19,
+							"pssMedianMiB": 71.640625,
+							"pssP95MiB": 71.640625,
+							"pssPeakMiB": 71.640625,
+							"rssMedianMiB": 72.625,
+							"rssP95MiB": 72.625,
+							"workingSetMedianMiB": 38.08984375,
+							"workingSetP95MiB": 38.08984375,
+							"cgroupMedianMiB": 79.0234375,
+							"cpuCores": 4.1726782965246294e-5,
+							"privateMedianMiB": 70.66015625,
+							"fileCacheMedianMiB": 40.93359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 19,
+							"pssMedianMiB": 38.31640625,
+							"pssP95MiB": 38.31640625,
+							"pssPeakMiB": 38.31640625,
+							"rssMedianMiB": 39.30078125,
+							"rssP95MiB": 39.30078125,
+							"workingSetMedianMiB": 12.6796875,
+							"workingSetP95MiB": 12.6796875,
+							"cgroupMedianMiB": 44.9375,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 37.3359375,
+							"fileCacheMedianMiB": 32.2578125,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				}
+			],
+			"final": {
+				"app": {
+					"sessions": 0,
+					"pendingFeeds": 0,
+					"peakPendingFeeds": 30
+				},
+				"fixture": {
+					"requests": 331384,
+					"acknowledgements": 55232,
+					"deliveries": 110462,
+					"cursors": 27614,
+					"duplicates": 0
+				}
+			}
+		},
+		{
+			"variant": "serenity",
+			"round": 3,
+			"phases": [
+				{
+					"name": "cold-idle",
+					"begin": 1789782340.2034805,
+					"end": 1789782355.2232566,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 0,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 0,
+							"acknowledgements": 0,
+							"deliveries": 0,
+							"cursors": 0,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 29,
+							"pssMedianMiB": 4.35546875,
+							"pssP95MiB": 4.357421875,
+							"pssPeakMiB": 4.357421875,
+							"rssMedianMiB": 5.2421875,
+							"rssP95MiB": 5.2421875,
+							"workingSetMedianMiB": 1.28515625,
+							"workingSetP95MiB": 1.28515625,
+							"cgroupMedianMiB": 1.28515625,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 3.47265625,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 30,
+							"pssMedianMiB": 14.1123046875,
+							"pssP95MiB": 14.30859375,
+							"pssPeakMiB": 14.30859375,
+							"rssMedianMiB": 14.998046875,
+							"rssP95MiB": 15.1953125,
+							"workingSetMedianMiB": 3.25,
+							"workingSetP95MiB": 3.265625,
+							"cgroupMedianMiB": 17.56640625,
+							"cpuCores": 0.0002421895374673158,
+							"privateMedianMiB": 13.23046875,
+							"fileCacheMedianMiB": 14.318359375,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warmup",
+					"begin": 1789782357.897,
+					"end": 1789782367.91,
+					"load": {
+						"startedUnixSeconds": 1789782357.897,
+						"endedUnixSeconds": 1789782367.91,
+						"mode": "closed",
+						"amount": 8,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.002799912999999,
+						"completed": 41435,
+						"successful": 41435,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 4142.34018078774,
+						"counts": {
+							"profile": 10359,
+							"autocomplete": 10359,
+							"page": 10359,
+							"feed": 10358
+						},
+						"bytes": 1202247,
+						"latencyMs": {
+							"p50": 0.8709380000000237,
+							"p95": 5.240647999999965,
+							"p99": 10.212430000000495,
+							"max": 54.63017099999979
+						},
+						"acknowledgementMs": {
+							"p50": 0.24537400000000004,
+							"p95": 0.6243029999999999,
+							"p99": 1.190244,
+							"max": 48.757964
+						},
+						"serviceLatencyMs": {
+							"p50": 0.8694150000001173,
+							"p95": 5.238948000000164,
+							"p99": 10.201367000000118,
+							"max": 54.62892800000009
+						},
+						"generatorCpuCores": 0.4689212061418948
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 124400,
+							"acknowledgements": 20734,
+							"deliveries": 41467,
+							"cursors": 10366,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 6.6806640625,
+							"pssP95MiB": 6.692578125,
+							"pssPeakMiB": 6.6962890625,
+							"rssMedianMiB": 7.8671875,
+							"rssP95MiB": 7.8791015625,
+							"workingSetMedianMiB": 3.87109375,
+							"workingSetP95MiB": 3.883984375,
+							"cgroupMedianMiB": 3.87109375,
+							"cpuCores": 1.256083375892286,
+							"privateMedianMiB": 6.046875,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 39.0205078125,
+							"pssP95MiB": 39.375390625,
+							"pssPeakMiB": 39.4384765625,
+							"rssMedianMiB": 40.29296875,
+							"rssP95MiB": 40.6478515625,
+							"workingSetMedianMiB": 13.728515625,
+							"workingSetP95MiB": 14.0998046875,
+							"cgroupMedianMiB": 45.970703125,
+							"cpuCores": 0.5940003666037327,
+							"privateMedianMiB": 38.30078125,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "warm-idle",
+					"begin": 1789782368.9246697,
+					"end": 1789782388.942518,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 124400,
+							"acknowledgements": 20734,
+							"deliveries": 41467,
+							"cursors": 10366,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 6.99609375,
+							"pssP95MiB": 6.99609375,
+							"pssPeakMiB": 6.99609375,
+							"rssMedianMiB": 7.8828125,
+							"rssP95MiB": 7.8828125,
+							"workingSetMedianMiB": 3.75,
+							"workingSetP95MiB": 3.75,
+							"cgroupMedianMiB": 3.75,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 6.11328125,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 19,
+							"pssMedianMiB": 33.83203125,
+							"pssP95MiB": 33.83203125,
+							"pssPeakMiB": 33.83203125,
+							"rssMedianMiB": 34.71875,
+							"rssP95MiB": 34.71875,
+							"workingSetMedianMiB": 8.0625,
+							"workingSetP95MiB": 8.0625,
+							"cgroupMedianMiB": 40.3046875,
+							"cpuCores": 0.00015344556370680069,
+							"privateMedianMiB": 32.94921875,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "profile",
+					"begin": 1789782391.297,
+					"end": 1789782401.306,
+					"load": {
+						"startedUnixSeconds": 1789782391.297,
+						"endedUnixSeconds": 1789782401.306,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999844039,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 32,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000233945148633,
+						"counts": {
+							"profile": 150,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 4654,
+						"latencyMs": {
+							"p50": 2.2102670000003855,
+							"p95": 3.680941999999959,
+							"p99": 6.9868063333331065,
+							"max": 8.281219999999848
+						},
+						"acknowledgementMs": {
+							"p50": 0.32711300000000004,
+							"p95": 0.424921,
+							"p99": 0.465315,
+							"max": 0.480136
+						},
+						"serviceLatencyMs": {
+							"p50": 1.4457949999996345,
+							"p95": 2.9799590000002354,
+							"p99": 5.642968999999994,
+							"max": 7.267783000000236
+						},
+						"generatorCpuCores": 0.04245786217706431
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 124946,
+							"acknowledgements": 20916,
+							"deliveries": 41649,
+							"cursors": 10366,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.2626953125,
+							"pssP95MiB": 7.2626953125,
+							"pssPeakMiB": 7.2626953125,
+							"rssMedianMiB": 8.45703125,
+							"rssP95MiB": 8.45703125,
+							"workingSetMedianMiB": 4.53125,
+							"workingSetP95MiB": 4.5357421875,
+							"cgroupMedianMiB": 4.53125,
+							"cpuCores": 0.00885557414651551,
+							"privateMedianMiB": 6.63671875,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.6103515625,
+							"pssP95MiB": 33.634765625,
+							"pssPeakMiB": 33.6533203125,
+							"rssMedianMiB": 34.89453125,
+							"rssP95MiB": 34.9189453125,
+							"workingSetMedianMiB": 8.3828125,
+							"workingSetP95MiB": 8.4259765625,
+							"cgroupMedianMiB": 40.625,
+							"cpuCores": 0.007864039292990148,
+							"privateMedianMiB": 32.89453125,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "autocomplete",
+					"begin": 1789782403.842,
+					"end": 1789782413.871,
+					"load": {
+						"startedUnixSeconds": 1789782403.842,
+						"endedUnixSeconds": 1789782413.871,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999815769,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 32,
+							"page": 0,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 15.000276351591253,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 150,
+							"page": 0,
+							"feed": 0
+						},
+						"bytes": 4566,
+						"latencyMs": {
+							"p50": 1.9088940000001458,
+							"p95": 3.7601753333328816,
+							"p99": 5.821179666667376,
+							"max": 7.019504666667672
+						},
+						"acknowledgementMs": {
+							"p50": 0.575551,
+							"p95": 0.7204499999999999,
+							"p99": 0.819032,
+							"max": 2.135272
+						},
+						"serviceLatencyMs": {
+							"p50": 1.2450509999998758,
+							"p95": 2.9780199999995602,
+							"p99": 5.618424999999888,
+							"max": 6.9750440000007075
+						},
+						"generatorCpuCores": 0.042612485054073404
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 125310,
+							"acknowledgements": 20916,
+							"deliveries": 41831,
+							"cursors": 10366,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.3779296875,
+							"pssP95MiB": 7.3779296875,
+							"pssPeakMiB": 7.3779296875,
+							"rssMedianMiB": 8.55859375,
+							"rssP95MiB": 8.55859375,
+							"workingSetMedianMiB": 4.5390625,
+							"workingSetP95MiB": 4.5419921875,
+							"cgroupMedianMiB": 4.5390625,
+							"cpuCores": 0.00741600485262057,
+							"privateMedianMiB": 6.75,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.4326171875,
+							"pssP95MiB": 33.4607421875,
+							"pssPeakMiB": 33.4755859375,
+							"rssMedianMiB": 34.72265625,
+							"rssP95MiB": 34.75078125,
+							"workingSetMedianMiB": 8.162109375,
+							"workingSetP95MiB": 8.21484375,
+							"cgroupMedianMiB": 40.404296875,
+							"cpuCores": 0.006376848117642723,
+							"privateMedianMiB": 32.6953125,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "page",
+					"begin": 1789782416.468,
+					"end": 1789782426.476,
+					"load": {
+						"startedUnixSeconds": 1789782416.468,
+						"endedUnixSeconds": 1789782426.476,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 10.000151354000002,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 32,
+							"feed": 0
+						},
+						"dropped": 0,
+						"rps": 14.999772972436151,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 150,
+							"feed": 0
+						},
+						"bytes": 4683,
+						"latencyMs": {
+							"p50": 2.1997986666665383,
+							"p95": 3.837427999999818,
+							"p99": 8.016033999999308,
+							"max": 8.603891666666641
+						},
+						"acknowledgementMs": {
+							"p50": 0.32633100000000004,
+							"p95": 0.413032,
+							"p99": 0.465058,
+							"max": 0.511622
+						},
+						"serviceLatencyMs": {
+							"p50": 1.4156789999997272,
+							"p95": 2.8945880000001125,
+							"p99": 6.935995000000048,
+							"max": 8.110141999999541
+						},
+						"generatorCpuCores": 0.04286135127630389
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 8,
+							"pendingFeeds": 0,
+							"sessions": 182
+						},
+						"fixture": {
+							"requests": 125856,
+							"acknowledgements": 21098,
+							"deliveries": 42013,
+							"cursors": 10366,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.341796875,
+							"pssP95MiB": 7.5677734375,
+							"pssPeakMiB": 7.59375,
+							"rssMedianMiB": 8.537109375,
+							"rssP95MiB": 8.7630859375,
+							"workingSetMedianMiB": 4.62890625,
+							"workingSetP95MiB": 4.90625,
+							"cgroupMedianMiB": 4.62890625,
+							"cpuCores": 0.008835362239299068,
+							"privateMedianMiB": 6.716796875,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.513671875,
+							"pssP95MiB": 33.521484375,
+							"pssPeakMiB": 33.521484375,
+							"rssMedianMiB": 34.8046875,
+							"rssP95MiB": 34.8125,
+							"workingSetMedianMiB": 8.19921875,
+							"workingSetP95MiB": 8.3203125,
+							"cgroupMedianMiB": 40.44140625,
+							"cpuCores": 0.007668509204366616,
+							"privateMedianMiB": 32.79296875,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "feed",
+					"begin": 1789782428.982,
+					"end": 1789782438.991,
+					"load": {
+						"startedUnixSeconds": 1789782428.982,
+						"endedUnixSeconds": 1789782438.991,
+						"mode": "rate",
+						"amount": 15,
+						"requestedSeconds": 10,
+						"elapsedSeconds": 9.999679795,
+						"completed": 150,
+						"successful": 150,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 32
+						},
+						"dropped": 0,
+						"rps": 15.000480322880177,
+						"counts": {
+							"profile": 0,
+							"autocomplete": 0,
+							"page": 0,
+							"feed": 150
+						},
+						"bytes": 3600,
+						"latencyMs": {
+							"p50": 2.281101999999919,
+							"p95": 4.137002999999822,
+							"p99": 6.883699666666871,
+							"max": 8.617609666666795
+						},
+						"acknowledgementMs": null,
+						"serviceLatencyMs": {
+							"p50": 1.6236489999992045,
+							"p95": 3.3739329999998517,
+							"p99": 6.309301999999661,
+							"max": 7.518747999999505
+						},
+						"generatorCpuCores": 0.04283957174450704
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 28,
+							"pendingFeeds": 0,
+							"sessions": 182
+						},
+						"fixture": {
+							"requests": 126584,
+							"acknowledgements": 21098,
+							"deliveries": 42195,
+							"cursors": 10548,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 7.66015625,
+							"pssP95MiB": 7.6603515625,
+							"pssPeakMiB": 7.6640625,
+							"rssMedianMiB": 8.84375,
+							"rssP95MiB": 8.8439453125,
+							"workingSetMedianMiB": 4.765625,
+							"workingSetP95MiB": 4.8923828125,
+							"cgroupMedianMiB": 4.765625,
+							"cpuCores": 0.010042027327410469,
+							"privateMedianMiB": 7.0234375,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 33.541015625,
+							"pssP95MiB": 33.55390625,
+							"pssPeakMiB": 33.650390625,
+							"rssMedianMiB": 34.80859375,
+							"rssP95MiB": 34.821484375,
+							"workingSetMedianMiB": 8.251953125,
+							"workingSetP95MiB": 8.27734375,
+							"cgroupMedianMiB": 40.494140625,
+							"cpuCores": 0.009063424679441302,
+							"privateMedianMiB": 32.8203125,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "burst",
+					"begin": 1789782441.512,
+					"end": 1789782461.541,
+					"load": {
+						"startedUnixSeconds": 1789782441.512,
+						"endedUnixSeconds": 1789782461.541,
+						"mode": "rate",
+						"amount": 150,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 20.000006287,
+						"completed": 3000,
+						"successful": 3000,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 149.9999528475148,
+						"counts": {
+							"profile": 750,
+							"autocomplete": 750,
+							"page": 750,
+							"feed": 750
+						},
+						"bytes": 87016,
+						"latencyMs": {
+							"p50": 1.4836816666684172,
+							"p95": 2.4564466666661247,
+							"p99": 6.586425333332954,
+							"max": 19.002929666665295
+						},
+						"acknowledgementMs": {
+							"p50": 0.235991,
+							"p95": 0.546577,
+							"p99": 0.856914,
+							"max": 8.796740000000002
+						},
+						"serviceLatencyMs": {
+							"p50": 0.8980149999997593,
+							"p95": 1.6153789999989385,
+							"p99": 4.847874000000047,
+							"max": 18.419049000000086
+						},
+						"generatorCpuCores": 0.07227962727889915
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 28,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 135680,
+							"acknowledgements": 22614,
+							"deliveries": 45227,
+							"cursors": 11306,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 7.69140625,
+							"pssP95MiB": 7.69140625,
+							"pssPeakMiB": 7.69140625,
+							"rssMedianMiB": 8.8828125,
+							"rssP95MiB": 8.8828125,
+							"workingSetMedianMiB": 4.890625,
+							"workingSetP95MiB": 4.890625,
+							"cgroupMedianMiB": 4.890625,
+							"cpuCores": 0.06829237036902505,
+							"privateMedianMiB": 7.0625,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 33.904296875,
+							"pssP95MiB": 34.3576171875,
+							"pssPeakMiB": 34.361328125,
+							"rssMedianMiB": 35.1875,
+							"rssP95MiB": 35.65390625,
+							"workingSetMedianMiB": 8.626953125,
+							"workingSetP95MiB": 9.0900390625,
+							"cgroupMedianMiB": 40.869140625,
+							"cpuCores": 0.0485231254307269,
+							"privateMedianMiB": 33.1796875,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "capacity",
+					"begin": 1789782464.299,
+					"end": 1789782484.355,
+					"load": {
+						"startedUnixSeconds": 1789782464.299,
+						"endedUnixSeconds": 1789782484.355,
+						"mode": "closed",
+						"amount": 32,
+						"requestedSeconds": 20,
+						"elapsedSeconds": 20.025175819,
+						"completed": 70474,
+						"successful": 70474,
+						"errors": 0,
+						"errorSamples": [],
+						"primerCounts": {
+							"profile": 8,
+							"autocomplete": 8,
+							"page": 8,
+							"feed": 8
+						},
+						"dropped": 0,
+						"rps": 3519.2699748051086,
+						"counts": {
+							"profile": 17619,
+							"autocomplete": 17619,
+							"page": 17618,
+							"feed": 17618
+						},
+						"bytes": 2042065,
+						"latencyMs": {
+							"p50": 1.0207329999993817,
+							"p95": 33.955641000000014,
+							"p99": 74.61336800000026,
+							"max": 131.95979500000067
+						},
+						"acknowledgementMs": {
+							"p50": 0.28602700000000003,
+							"p95": 0.9150640000000001,
+							"p99": 2.551094,
+							"max": 22.159343
+						},
+						"serviceLatencyMs": {
+							"p50": 1.0188829999997324,
+							"p95": 33.952400999998645,
+							"p99": 74.61188000000038,
+							"max": 131.95825700000023
+						},
+						"generatorCpuCores": 0.44644861452439666
+					},
+					"state": {
+						"app": {
+							"peakPendingFeeds": 32,
+							"pendingFeeds": 0,
+							"sessions": 64
+						},
+						"fixture": {
+							"requests": 347197,
+							"acknowledgements": 57867,
+							"deliveries": 115733,
+							"cursors": 28932,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 40,
+							"pssMedianMiB": 7.787109375,
+							"pssP95MiB": 7.794921875,
+							"pssPeakMiB": 7.794921875,
+							"rssMedianMiB": 8.98046875,
+							"rssP95MiB": 8.98828125,
+							"workingSetMedianMiB": 4.98046875,
+							"workingSetP95MiB": 5.0822265625,
+							"cgroupMedianMiB": 4.98046875,
+							"cpuCores": 1.1963802719639214,
+							"privateMedianMiB": 7.18359375,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 40,
+							"pssMedianMiB": 39.150390625,
+							"pssP95MiB": 42.390429687499996,
+							"pssPeakMiB": 43.576171875,
+							"rssMedianMiB": 40.48828125,
+							"rssP95MiB": 43.736132812499996,
+							"workingSetMedianMiB": 13.9296875,
+							"workingSetP95MiB": 17.247460937499998,
+							"cgroupMedianMiB": 46.171875,
+							"cpuCores": 0.5960635343861377,
+							"privateMedianMiB": 38.39453125,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				},
+				{
+					"name": "recovery",
+					"begin": 1789782485.569052,
+					"end": 1789782560.6048057,
+					"state": {
+						"app": {
+							"peakPendingFeeds": 32,
+							"pendingFeeds": 0,
+							"sessions": 0
+						},
+						"fixture": {
+							"requests": 347197,
+							"acknowledgements": 57867,
+							"deliveries": 115733,
+							"cursors": 28932,
+							"duplicates": 0
+						}
+					},
+					"memory": {
+						"app": {
+							"samples": 20,
+							"pssMedianMiB": 8.1015625,
+							"pssP95MiB": 8.1015625,
+							"pssPeakMiB": 8.1015625,
+							"rssMedianMiB": 8.98828125,
+							"rssP95MiB": 8.98828125,
+							"workingSetMedianMiB": 4.859375,
+							"workingSetP95MiB": 4.859375,
+							"cgroupMedianMiB": 4.859375,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 7.21875,
+							"fileCacheMedianMiB": 0.0,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						},
+						"fixture": {
+							"samples": 20,
+							"pssMedianMiB": 38.34375,
+							"pssP95MiB": 38.34375,
+							"pssPeakMiB": 38.34375,
+							"rssMedianMiB": 39.23046875,
+							"rssP95MiB": 39.23046875,
+							"workingSetMedianMiB": 12.59375,
+							"workingSetP95MiB": 12.59375,
+							"cgroupMedianMiB": 44.8359375,
+							"cpuCores": 0.0,
+							"privateMedianMiB": 37.4609375,
+							"fileCacheMedianMiB": 32.2421875,
+							"processCountMin": 1,
+							"processCountMax": 1,
+							"swapPeakBytes": 0,
+							"memoryEvents": {
+								"limitHits": 0
+							}
+						}
+					}
+				}
+			],
+			"final": {
+				"app": {
+					"peakPendingFeeds": 32,
+					"pendingFeeds": 0,
+					"sessions": 0
+				},
+				"fixture": {
+					"requests": 347197,
+					"acknowledgements": 57867,
+					"deliveries": 115733,
+					"cursors": 28932,
+					"duplicates": 0
+				}
+			}
+		}
+	],
+	"metadata": {
+		"scope": "offline application replay; no Gateway connection/cache",
+		"quick": false,
+		"sessionTtlMs": 15000,
+		"serenityRevision": "86866e9a20dc441faac7b38c68a3cf78721ded1c",
+		"image": "sha256:725beaf7d25258e95ef4c16b53488f714b37c79a37cb7995eb03457f5c836d49",
+		"binaries": {
+			"bun": "bc756f118c87be524d151f5c3c37f41f001ddca258ed75e684805c359f9895b7",
+			"fixture": "1bf1b950aa8ff2ae213cae1d7467d171cebd478bc4e70d0c43ee8f039c0cc52e",
+			"load": "b26456219e00025ebb98cf8d0b3c2340cab70dec672a8865f6ea1ee4735a2c75",
+			"probe": "d2b1129db5feae402d442d9826f6c590e4e780b095b4ec7846f7593cd526150b"
+		}
+	},
+	"rawArtifactDirectory": "artifacts/rust-evaluation/discord/measured-2026-09-19",
+	"reporterSha256": "795483772882da3b00496cca41c0311d6e853538a4dd58a1a0724a0047f132d0"
+}
