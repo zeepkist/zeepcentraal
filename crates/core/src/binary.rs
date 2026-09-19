@@ -29,20 +29,38 @@ impl<'a> BitReader<'a> {
     pub fn boolean(&mut self) -> Result<bool> {
         Ok(self.bits(1)? != 0)
     }
+    pub fn read_bool(&mut self) -> Result<bool> {
+        self.boolean()
+    }
     pub fn byte(&mut self) -> Result<u8> {
         Ok(self.bits(8)? as u8)
+    }
+    pub fn read_u8(&mut self) -> Result<u8> {
+        self.byte()
     }
     pub fn uint16(&mut self) -> Result<u16> {
         Ok(self.bits(16)? as u16)
     }
+    pub fn read_u16(&mut self) -> Result<u16> {
+        self.uint16()
+    }
     pub fn uint32(&mut self) -> Result<u32> {
         Ok(self.bits(32)? as u32)
+    }
+    pub fn read_u32(&mut self) -> Result<u32> {
+        self.uint32()
     }
     pub fn int32(&mut self) -> Result<i32> {
         Ok(self.uint32()? as i32)
     }
+    pub fn read_i32(&mut self) -> Result<i32> {
+        self.int32()
+    }
     pub fn uint64(&mut self) -> Result<u64> {
         self.bits(64)
+    }
+    pub fn read_u64(&mut self) -> Result<u64> {
+        self.uint64()
     }
     pub fn int64(&mut self) -> Result<i64> {
         Ok(self.uint64()? as i64)
@@ -50,8 +68,14 @@ impl<'a> BitReader<'a> {
     pub fn float32(&mut self) -> Result<f32> {
         Ok(f32::from_bits(self.uint32()?))
     }
+    pub fn read_f32(&mut self) -> Result<f32> {
+        self.float32()
+    }
     pub fn float64(&mut self) -> Result<f64> {
         Ok(f64::from_bits(self.uint64()?))
+    }
+    pub fn read_f64(&mut self) -> Result<f64> {
+        self.float64()
     }
     pub fn variable_uint32(&mut self) -> Result<u32> {
         let mut result = 0;
@@ -80,10 +104,16 @@ impl<'a> BitReader<'a> {
         }
         (0..length).map(|_| self.byte()).collect()
     }
+    pub fn read_bytes(&mut self, length: usize) -> Result<Vec<u8>> {
+        self.bytes(length)
+    }
     pub fn string(&mut self, max_bytes: usize) -> Result<String> {
         let length = self.variable_uint32()? as usize;
         ensure!(length <= max_bytes, "String exceeds {max_bytes} bytes");
         Ok(String::from_utf8(self.bytes(length)?)?)
+    }
+    pub fn read_string(&mut self, max_bytes: usize) -> Result<String> {
+        self.string(max_bytes)
     }
 }
 
@@ -114,20 +144,38 @@ impl BitWriter {
     pub fn boolean(&mut self, value: bool) {
         self.bits(u64::from(value), 1);
     }
+    pub fn write_bool(&mut self, value: bool) {
+        self.boolean(value);
+    }
     pub fn byte(&mut self, value: u8) {
         self.bits(u64::from(value), 8);
+    }
+    pub fn write_u8(&mut self, value: u8) {
+        self.byte(value);
     }
     pub fn uint16(&mut self, value: u16) {
         self.bits(u64::from(value), 16);
     }
+    pub fn write_u16(&mut self, value: u16) {
+        self.uint16(value);
+    }
     pub fn uint32(&mut self, value: u32) {
         self.bits(u64::from(value), 32);
+    }
+    pub fn write_u32(&mut self, value: u32) {
+        self.uint32(value);
     }
     pub fn int32(&mut self, value: i32) {
         self.uint32(value as u32);
     }
+    pub fn write_i32(&mut self, value: i32) {
+        self.int32(value);
+    }
     pub fn uint64(&mut self, value: u64) {
         self.bits(value, 64);
+    }
+    pub fn write_u64(&mut self, value: u64) {
+        self.uint64(value);
     }
     pub fn int64(&mut self, value: i64) {
         self.uint64(value as u64);
@@ -135,8 +183,14 @@ impl BitWriter {
     pub fn float32(&mut self, value: f32) {
         self.uint32(value.to_bits());
     }
+    pub fn write_f32(&mut self, value: f32) {
+        self.float32(value);
+    }
     pub fn float64(&mut self, value: f64) {
         self.uint64(value.to_bits());
+    }
+    pub fn write_f64(&mut self, value: f64) {
+        self.float64(value);
     }
     pub fn variable_uint32(&mut self, mut value: u32) {
         loop {
@@ -156,10 +210,19 @@ impl BitWriter {
             self.byte(byte);
         }
     }
+    pub fn write_bytes(&mut self, value: &[u8]) {
+        self.bytes(value);
+    }
     pub fn string(&mut self, value: &str) -> Result<()> {
         self.variable_uint32(value.len().try_into()?);
         self.bytes(value.as_bytes());
         Ok(())
+    }
+    pub fn write_string(&mut self, value: &str) -> Result<()> {
+        self.string(value)
+    }
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.data
     }
 }
 
