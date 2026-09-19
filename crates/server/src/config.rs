@@ -4,6 +4,7 @@ use std::{sync::Arc, time::Duration};
 #[derive(Clone)]
 pub struct ServerConfig {
     pub runtime: zc_core::RuntimeConfig,
+    pub object_storage: zc_core::config::ObjectStorageConfig,
     pub jwt: zc_core::jwt::JwtIssuer,
     pub steam: Option<zc_core::steam::SteamClient>,
     pub trigger_job_token: Arc<str>,
@@ -29,6 +30,7 @@ pub struct RateLimits {
 impl ServerConfig {
     pub fn from_env() -> Result<Self> {
         let runtime = zc_core::RuntimeConfig::from_env(5)?;
+        let object_storage = zc_core::config::ObjectStorageConfig::from_env()?;
         let secret = zc_core::config::required("JWT_SECRET")?;
         let trigger_job_token = zc_core::config::required("TRIGGER_JOB_TOKEN")?;
         let discord_bot_api_token = zc_core::config::required("DISCORD_BOT_API_TOKEN")?;
@@ -95,6 +97,7 @@ impl ServerConfig {
             .collect();
         Ok(Self {
             runtime,
+            object_storage,
             jwt,
             steam,
             trigger_job_token: trigger_job_token.into(),

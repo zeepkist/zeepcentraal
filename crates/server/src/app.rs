@@ -39,6 +39,7 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route("/favourite/remove", post(routes::remove_favourite))
         .route("/vote/submit", post(routes::submit_vote))
         .route("/level/request", post(routes::request_level))
+        .route("/record/submit", post(routes::submit_record))
         .route("/job/trigger", post(routes::trigger_job))
         .route("/user/updateSteamName", post(routes::update_steam_name))
         .route("/user/updateDiscordId", post(routes::update_discord_id))

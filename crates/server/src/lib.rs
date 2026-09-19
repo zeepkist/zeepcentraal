@@ -16,6 +16,10 @@ pub struct AppState {
     pub queue: zc_jobs::queue::Queue,
     pub rate_limits: rate_limit::RateLimitStore,
     pub http: reqwest::Client,
+    pub object_storage: Arc<dyn zc_core::object_storage::ObjectStorage>,
+    pub record_parser_slots: Arc<tokio::sync::Semaphore>,
+    pub record_upload_slots: Arc<tokio::sync::Semaphore>,
+    pub record_upload_bytes: Arc<tokio::sync::Semaphore>,
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -34,12 +38,19 @@ pub async fn run() -> anyhow::Result<()> {
     )
     .await?;
     let address = config.runtime.address;
+    let object_storage = Arc::new(zc_core::object_storage::S3ObjectStorage::new(
+        &config.object_storage,
+    )?);
     let state = Arc::new(AppState {
         config,
         database,
         queue,
         rate_limits: rate_limit::RateLimitStore::default(),
         http: reqwest::Client::builder().build()?,
+        object_storage,
+        record_parser_slots: Arc::new(tokio::sync::Semaphore::new(4)),
+        record_upload_slots: Arc::new(tokio::sync::Semaphore::new(2)),
+        record_upload_bytes: Arc::new(tokio::sync::Semaphore::new(64 * 1024 * 1024)),
     });
     let listener = tokio::net::TcpListener::bind(address).await?;
     tracing::info!(%address, "ZeepCentraal API ready");

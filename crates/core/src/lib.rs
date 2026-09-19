@@ -3,6 +3,7 @@ pub mod binary;
 pub mod config;
 pub mod cookies;
 pub mod discord;
+pub mod ghosts;
 pub mod identifiers;
 pub mod jwt;
 pub mod levels;

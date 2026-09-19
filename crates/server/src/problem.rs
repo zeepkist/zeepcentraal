@@ -15,6 +15,8 @@ pub const AUTH_INVALID_TOKEN: i32 = 15;
 pub const AUTH_USER_NOT_FOUND: i32 = 16;
 pub const VOTE_MISSING_PARAMS: i32 = 17;
 pub const LEVEL_NOT_FOUND: i32 = 18;
+pub const RECORD_SUBMIT_MISSING_PARAMS: i32 = 19;
+pub const RECORD_SUBMIT_FAILED: i32 = 20;
 pub const INVALID_REQUEST: i32 = 22;
 
 #[derive(Debug)]
@@ -47,6 +49,8 @@ impl Problem {
             AUTH_USER_NOT_FOUND => "User not found",
             VOTE_MISSING_PARAMS => "Missing required parameters",
             LEVEL_NOT_FOUND => "Level not found",
+            RECORD_SUBMIT_MISSING_PARAMS => "Missing required parameters",
+            RECORD_SUBMIT_FAILED => "Failed to submit record",
             INVALID_REQUEST => "Invalid request",
             _ => "Internal server error",
         };

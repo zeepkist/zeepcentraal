@@ -12,6 +12,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::IntoResponse,
 };
+use base64::{Engine, engine::general_purpose::STANDARD};
 use serde::{Deserialize, Serialize};
 use std::{
     sync::Arc,
@@ -19,6 +20,7 @@ use std::{
 };
 use zc_core::jwt::Provider;
 use zc_database::services::discord::DiscordLinkStatus;
+use zc_database::services::record::RecordSubmission;
 use zc_jobs::{TaskIdentifier, queue::JobLane};
 
 type ApiResult<T> = Result<T, Problem>;
@@ -347,6 +349,235 @@ pub async fn request_level(
         }
     }
     Ok(StatusCode::OK)
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "PascalCase")]
+pub struct RecordSubmissionBody {
+    level: String,
+    hash: String,
+    workshop_id: Option<String>,
+    time: f32,
+    splits: Vec<f32>,
+    speeds: Vec<f32>,
+    ghost_data: String,
+    game_version: String,
+    mod_version: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/record/submit",
+    request_body = RecordSubmissionBody,
+    responses((status = 200), (status = 400), (status = 401), (status = 503))
+)]
+pub async fn submit_record(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<RecordSubmissionBody>,
+) -> ApiResult<StatusCode> {
+    use crate::problem::{RECORD_SUBMIT_FAILED, RECORD_SUBMIT_MISSING_PARAMS};
+    use zc_core::ghosts::{MAX_GHOST_COMPRESSED_BYTES, parse_ghost_statistics};
+
+    let workshop_id = body
+        .workshop_id
+        .as_deref()
+        .map(str::parse::<i64>)
+        .transpose()
+        .ok()
+        .flatten();
+    let valid_workshop_id = body.workshop_id.is_none() || workshop_id.is_some_and(|id| id > 0);
+    let padding = usize::from(body.ghost_data.ends_with('='))
+        + usize::from(body.ghost_data.ends_with("=="));
+    let decoded_size = body
+        .ghost_data
+        .len()
+        .checked_mul(3)
+        .map(|value| value / 4)
+        .and_then(|value| value.checked_sub(padding));
+    if body.level.is_empty()
+        || !valid_xxh128(&body.hash)
+        || !valid_workshop_id
+        || !body.time.is_finite()
+        || body.time <= 0.0
+        || body.splits.iter().any(|value| !value.is_finite())
+        || body.speeds.iter().any(|value| !value.is_finite())
+        || body.ghost_data.is_empty()
+        || body.ghost_data.len() % 4 != 0
+        || decoded_size.is_none_or(|size| size > MAX_GHOST_COMPRESSED_BYTES)
+        || body.game_version.is_empty()
+        || body.mod_version.is_empty()
+    {
+        return Err(Problem::code(
+            StatusCode::BAD_REQUEST,
+            RECORD_SUBMIT_MISSING_PARAMS,
+        ));
+    }
+    require_current_mod(&state, &body.mod_version).await?;
+    let user = authenticated_user(&state, &headers, true).await?;
+    let ghost_bytes = STANDARD.decode(&body.ghost_data).map_err(|_| {
+        Problem::code(
+            StatusCode::BAD_REQUEST,
+            RECORD_SUBMIT_MISSING_PARAMS,
+        )
+    })?;
+    if ghost_bytes.len() > MAX_GHOST_COMPRESSED_BYTES {
+        return Err(Problem::code(
+            StatusCode::BAD_REQUEST,
+            RECORD_SUBMIT_MISSING_PARAMS,
+        ));
+    }
+
+    let retained_bytes = state
+        .record_upload_bytes
+        .clone()
+        .try_acquire_many_owned(ghost_bytes.len() as u32)
+        .map_err(|_| Problem {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            detail: "Service unavailable".to_owned(),
+            error_code: None,
+        })?;
+    let parser_slot = state
+        .record_parser_slots
+        .clone()
+        .try_acquire_owned()
+        .map_err(|_| Problem {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            detail: "Service unavailable".to_owned(),
+            error_code: None,
+        })?;
+    let parser_bytes = ghost_bytes.clone();
+    let statistics = tokio::task::spawn_blocking(move || parse_ghost_statistics(&parser_bytes))
+        .await
+        .map_err(|error| Problem::internal(error.into()))?
+        .map_err(|_| {
+            Problem::code(
+                StatusCode::BAD_REQUEST,
+                RECORD_SUBMIT_MISSING_PARAMS,
+            )
+        })?;
+    drop(parser_slot);
+
+    let adventure = workshop_id.is_none();
+    let level = state
+        .database
+        .resolve_submission_level(&body.level, &body.hash, adventure)
+        .await
+        .map_err(Problem::internal)?;
+    if adventure && !level.adventure {
+        return Err(Problem::code(StatusCode::BAD_REQUEST, LEVEL_NOT_FOUND));
+    }
+    let submitted = state
+        .database
+        .submit_record(RecordSubmission {
+            id_user: user.id,
+            id_level: level.id,
+            time: body.time,
+            game_version: &body.game_version,
+            mod_version: &body.mod_version,
+            splits: &body.splits,
+            speeds: &body.speeds,
+            statistics: &statistics,
+        })
+        .await
+        .map_err(Problem::internal)?;
+    if submitted.id_record <= 0 {
+        return Err(Problem::code(
+            StatusCode::BAD_REQUEST,
+            RECORD_SUBMIT_FAILED,
+        ));
+    }
+
+    let workshop_scan_claimed = match workshop_id {
+        Some(workshop_id) => state
+            .database
+            .claim_missing_level_metadata_request(level.id, workshop_id, &body.level)
+            .await
+            .map_err(Problem::internal)?,
+        None => false,
+    };
+    schedule_record_upload(state.clone(), submitted.id_record, ghost_bytes, retained_bytes);
+    schedule_record_followups(
+        state,
+        level.id,
+        user.id,
+        submitted.personal_best_changed,
+        workshop_id,
+        workshop_scan_claimed,
+    );
+    Ok(StatusCode::OK)
+}
+
+fn schedule_record_upload(
+    state: Arc<AppState>,
+    id_record: i32,
+    ghost_bytes: Vec<u8>,
+    retained_bytes: tokio::sync::OwnedSemaphorePermit,
+) {
+    tokio::spawn(async move {
+        let _retained_bytes = retained_bytes;
+        let Ok(_upload_slot) = state.record_upload_slots.clone().acquire_owned().await else {
+            return;
+        };
+        let key = format!(
+            "{}/{}.bin",
+            state.config.object_storage.ghost_folder,
+            zc_core::generate_uid()
+        );
+        if let Err(error) = state
+            .object_storage
+            .upload(&key, ghost_bytes, "application/octet-stream")
+            .await
+        {
+            tracing::error!(id_record, error = %error, "Ghost upload failed");
+            return;
+        }
+        if let Err(error) = state.database.insert_record_media(id_record, &key).await {
+            tracing::error!(id_record, error = %error, "Ghost media insert failed");
+            if let Err(cleanup_error) = state.object_storage.delete(&key).await {
+                tracing::error!(id_record, error = %cleanup_error, "Ghost cleanup failed");
+            }
+        }
+    });
+}
+
+fn schedule_record_followups(
+    state: Arc<AppState>,
+    id_level: i32,
+    id_user: i32,
+    personal_best_changed: bool,
+    workshop_id: Option<i64>,
+    workshop_scan_claimed: bool,
+) {
+    tokio::spawn(async move {
+        if personal_best_changed
+            && let Err(error) = state
+                .queue
+                .enqueue(
+                    TaskIdentifier::UpdateLevelScore,
+                    serde_json::json!({"idLevel": id_level, "idUser": id_user}),
+                    JobLane::Fast,
+                    None,
+                )
+                .await
+        {
+            tracing::error!(id_level, id_user, error = %error, "Level score enqueue failed");
+        }
+        if workshop_scan_claimed
+            && let Some(workshop_id) = workshop_id
+            && let Err(error) = state
+                .queue
+                .enqueue(
+                    TaskIdentifier::ScanWorkshopItem,
+                    serde_json::json!({"workshopId": workshop_id.to_string()}),
+                    JobLane::Bulk,
+                    Some(&format!("scanWorkshopItem:{workshop_id}")),
+                )
+                .await
+        {
+            tracing::error!(workshop_id, error = %error, "Workshop scan enqueue failed");
+        }
+    });
 }
 
 #[derive(Deserialize, utoipa::ToSchema)]
