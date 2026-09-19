@@ -30,6 +30,32 @@ pub struct DatabaseConfig {
     pub connect_timeout: Duration,
 }
 
+#[derive(Clone, Debug)]
+pub struct ObjectStorageConfig {
+    pub access_key: String,
+    pub secret_key: String,
+    pub bucket: String,
+    pub endpoint: String,
+    pub region: String,
+    pub ghost_folder: String,
+    pub thumbnail_folder: String,
+}
+
+impl ObjectStorageConfig {
+    pub fn from_env() -> Result<Self> {
+        Ok(Self {
+            access_key: required("WASABI_ACCESSKEY")?,
+            secret_key: required("WASABI_SECRETKEY")?,
+            bucket: required("WASABI_BUCKET")?,
+            endpoint: required("WASABI_ENDPOINT")?,
+            region: required("WASABI_REGION")?,
+            ghost_folder: std::env::var("GHOST_FOLDER").unwrap_or_else(|_| "ghosts-dev".to_owned()),
+            thumbnail_folder: std::env::var("THUMBNAIL_FOLDER")
+                .unwrap_or_else(|_| "thumbnails-dev".to_owned()),
+        })
+    }
+}
+
 impl DatabaseConfig {
     pub fn from_env(default_pool_max: u32) -> Result<Self> {
         let url = required("DATABASE_URL")?;

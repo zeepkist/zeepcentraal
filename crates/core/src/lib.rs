@@ -6,6 +6,7 @@ pub mod discord;
 pub mod identifiers;
 pub mod jwt;
 pub mod levels;
+pub mod object_storage;
 pub mod score;
 pub mod steam;
 pub mod version;
