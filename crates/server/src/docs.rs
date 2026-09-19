@@ -25,6 +25,19 @@ use utoipa::OpenApi;
         crate::routes::update_discord_bot_preferences,
         crate::routes::add_discord_bot_watch,
         crate::routes::remove_discord_bot_watch,
+        crate::discord_runtime_routes::match_watches,
+        crate::discord_runtime_routes::update_watch_delivery,
+        crate::discord_runtime_routes::get_worker_cursor,
+        crate::discord_runtime_routes::advance_worker_cursor,
+        crate::discord_runtime_routes::enabled_guild_feeds,
+        crate::discord_runtime_routes::guild_state,
+        crate::discord_runtime_routes::set_linked_role,
+        crate::discord_runtime_routes::set_guild_feed,
+        crate::discord_runtime_routes::advance_guild_feed,
+        crate::discord_runtime_routes::set_guild_digest,
+        crate::discord_runtime_routes::set_delivery,
+        crate::discord_runtime_routes::get_delivery,
+        crate::discord_runtime_routes::set_tournament_message,
         crate::routes::refresh_web_session,
         crate::routes::login_gtr,
         crate::routes::refresh_gtr_session,
@@ -59,7 +72,7 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 20);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 31);
         assert!(schema.to_string().find("graphql").is_none());
         let (mime, asset) = scalar_api_reference::get_asset_with_mime("scalar.js").unwrap();
         assert_eq!(mime, "application/javascript");

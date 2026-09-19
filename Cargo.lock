@@ -3888,6 +3888,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "jiff",
  "reqwest 0.13.5",
  "scalar_api_reference",
  "serde",

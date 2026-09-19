@@ -58,11 +58,11 @@ Cutover sequence:
 ## Current implementation status
 
 Database adoption, generated Diesel schema, telemetry, Steam ticket authentication, GTR token
-rotation, Discord account links, preferences, and DM watches, rate limiting, Turnstile
-verification, basic authenticated mutations, queue access, Steam metadata/catalog adapters, and
-SteamCMD supervision,
-bounded level-file discovery, Scalar docs, Serenity Components V2 foundations, and executable ZSL
-import with idempotent Diesel upserts exist. Full record pipeline, remaining HTTP routes, job
-workers and handlers, Discord gateway behavior, lobby protocol, level parsing and workshop
-reconciliation, inspector mutations, deployment images, and production cutover remain blocked
-from release until their compatibility gates pass.
+rotation, Discord account links, preferences, DM watches, guild/feed/digest/delivery persistence,
+rate limiting, Turnstile verification, basic authenticated mutations, queue access, Steam
+metadata/catalog adapters, SteamCMD supervision, bounded level-file discovery, Scalar docs,
+Serenity Components V2 foundations, and executable ZSL import with idempotent Diesel upserts
+exist. Full record pipeline, remaining non-Discord HTTP routes, job workers and handlers, Discord
+gateway behavior, lobby protocol, level parsing and workshop reconciliation, inspector mutations,
+deployment images, and production cutover remain blocked from release until their compatibility
+gates pass.

@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub mod discord;
+pub mod discord_runtime;
 pub mod zsl;
 
 #[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]

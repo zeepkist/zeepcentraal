@@ -1,10 +1,10 @@
-use crate::{AppState, docs, routes};
+use crate::{AppState, discord_runtime_routes as discord_routes, docs, routes};
 use anyhow::{Context, Result};
 use axum::{
     Router,
     extract::DefaultBodyLimit,
     middleware,
-    routing::{delete, get, patch, post},
+    routing::{delete, get, patch, post, put},
 };
 use std::sync::Arc;
 use tower_http::{
@@ -70,6 +70,50 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route(
             "/discord-bot/users/{discord_id}/watches/{watch_id}",
             delete(routes::remove_discord_bot_watch),
+        )
+        .route(
+            "/discord-bot/watches/matches",
+            post(discord_routes::match_watches),
+        )
+        .route(
+            "/discord-bot/watches/{watch_id}/delivery",
+            patch(discord_routes::update_watch_delivery),
+        )
+        .route(
+            "/discord-bot/workers/{key}/cursor",
+            get(discord_routes::get_worker_cursor).post(discord_routes::advance_worker_cursor),
+        )
+        .route(
+            "/discord-bot/guild-feeds/enabled",
+            get(discord_routes::enabled_guild_feeds),
+        )
+        .route(
+            "/discord-bot/guilds/{guild_id}",
+            get(discord_routes::guild_state),
+        )
+        .route(
+            "/discord-bot/guilds/{guild_id}/linked-role",
+            put(discord_routes::set_linked_role),
+        )
+        .route(
+            "/discord-bot/guilds/{guild_id}/feeds/{kind}",
+            put(discord_routes::set_guild_feed),
+        )
+        .route(
+            "/discord-bot/guilds/{guild_id}/feeds/{kind}/cursor",
+            post(discord_routes::advance_guild_feed),
+        )
+        .route(
+            "/discord-bot/guilds/{guild_id}/digest",
+            put(discord_routes::set_guild_digest),
+        )
+        .route(
+            "/discord-bot/guilds/{guild_id}/deliveries/{source_event_id}",
+            get(discord_routes::get_delivery).put(discord_routes::set_delivery),
+        )
+        .route(
+            "/discord-bot/guilds/{guild_id}/tournaments/{tournament_id}/message",
+            put(discord_routes::set_tournament_message),
         )
         .route("/auth/web/refresh", post(routes::refresh_web_session))
         .route("/auth/login", post(routes::login_gtr))

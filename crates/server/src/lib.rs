@@ -1,6 +1,7 @@
 pub mod app;
 pub mod auth;
 pub mod config;
+pub mod discord_runtime_routes;
 pub mod docs;
 pub mod problem;
 pub mod rate_limit;
