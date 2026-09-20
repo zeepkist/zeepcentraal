@@ -90,6 +90,34 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
         .get(0);
     assert_eq!(world_records, 1);
 
+    let slower = database
+        .submit_record(RecordSubmission {
+            id_user: user.id,
+            id_level: level.id,
+            time: 11.0,
+            game_version: "test",
+            mod_version: "test",
+            splits: &[],
+            speeds: &[],
+            statistics: &statistics,
+        })
+        .await?;
+    assert!(!slower.personal_best_changed);
+    assert!(!slower.tournament_result_changed);
+    assert!(slower.world_record_user_ids.is_empty());
+    let persisted = client
+        .query_one(
+            "SELECT count(*)::bigint, \
+             (SELECT id_record FROM public.personal_best_global WHERE id_user=$1 AND id_level=$2), \
+             (SELECT id_record FROM public.world_record_global WHERE id_level=$2) \
+             FROM public.record WHERE id_user=$1 AND id_level=$2",
+            &[&user.id, &level.id],
+        )
+        .await?;
+    assert_eq!(persisted.get::<_, i64>(0), 2);
+    assert_eq!(persisted.get::<_, i32>(1), submitted.id_record);
+    assert_eq!(persisted.get::<_, i32>(2), submitted.id_record);
+
     client
         .execute("DELETE FROM public.level WHERE id=$1", &[&level.id])
         .await?;

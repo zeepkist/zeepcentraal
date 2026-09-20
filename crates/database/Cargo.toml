@@ -24,3 +24,4 @@ utoipa.workspace = true
 
 [dev-dependencies]
 tokio-postgres = "0.7"
+tracing-subscriber.workspace = true

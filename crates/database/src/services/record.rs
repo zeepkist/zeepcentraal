@@ -67,10 +67,20 @@ where
     match future.instrument(span.clone()).await {
         Ok(value) => Ok(value),
         Err(error) => {
-            tracing::error!(parent: &span, error = %error, "Record submission phase failed");
+            tracing::error!(parent: &span, phase, error = %error, "Record submission phase failed");
             Err(error)
         }
     }
+}
+
+async fn record_optional_phase<T, F>(
+    phase: &'static str,
+    future: F,
+) -> diesel::QueryResult<Option<T>>
+where
+    F: Future<Output = diesel::QueryResult<T>>,
+{
+    record_phase(phase, async { future.await.optional() }).await
 }
 
 impl Database {
@@ -220,7 +230,7 @@ impl Database {
                     .execute(connection)
                     .await?;
 
-                    let personal_best_changed = record_phase(
+                    let personal_best_changed = record_optional_phase(
                         "personal_best",
                         sql_query(
                             "INSERT INTO public.personal_best_global \
@@ -238,8 +248,7 @@ impl Database {
                         .bind::<Float, _>(input.time)
                         .get_result::<IdRow>(connection),
                     )
-                    .await
-                    .optional()?
+                    .await?
                     .is_some();
 
                     let tournaments = sql_query(
@@ -326,7 +335,7 @@ impl Database {
                         }
                         user_ids.sort_unstable();
                         user_ids.dedup();
-                        let changed = record_phase(
+                        let changed = record_optional_phase(
                             "world_record",
                             sql_query(
                                 "INSERT INTO public.world_record_global \
@@ -343,8 +352,7 @@ impl Database {
                             .bind::<Float, _>(input.time)
                             .get_result::<IdRow>(connection),
                         )
-                        .await
-                        .optional()?;
+                        .await?;
                         if changed.is_some() {
                             world_record_user_ids = user_ids;
                         }
@@ -448,4 +456,90 @@ async fn rerank_tournament(
     .execute(connection)
     .await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+    use tracing::{Event, Level, Subscriber, field::Visit};
+    use tracing_subscriber::{Layer, layer::SubscriberExt};
+
+    #[derive(Clone, Default)]
+    struct ErrorPhases(Arc<Mutex<Vec<String>>>);
+
+    impl<S> Layer<S> for ErrorPhases
+    where
+        S: Subscriber,
+    {
+        fn on_event(&self, event: &Event<'_>, _context: tracing_subscriber::layer::Context<'_, S>) {
+            if *event.metadata().level() != Level::ERROR {
+                return;
+            }
+            let mut visitor = PhaseVisitor::default();
+            event.record(&mut visitor);
+            self.0
+                .lock()
+                .expect("error phase capture")
+                .push(visitor.phase.unwrap_or_else(|| "missing-phase".to_owned()));
+        }
+    }
+
+    #[derive(Default)]
+    struct PhaseVisitor {
+        phase: Option<String>,
+    }
+
+    impl Visit for PhaseVisitor {
+        fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+            if field.name() == "phase" {
+                self.phase = Some(format!("{value:?}").trim_matches('"').to_owned());
+            }
+        }
+
+        fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+            if field.name() == "phase" {
+                self.phase = Some(value.to_owned());
+            }
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn optional_record_miss_is_not_logged_as_an_error() {
+        let errors = ErrorPhases::default();
+        let subscriber = tracing_subscriber::registry().with(errors.clone());
+        let _guard = tracing::subscriber::set_default(subscriber);
+
+        let result = record_optional_phase::<IdRow, _>(
+            "personal_best",
+            std::future::ready(Err(diesel::result::Error::NotFound)),
+        )
+        .await
+        .expect("optional miss");
+
+        assert!(result.is_none());
+        assert!(errors.0.lock().expect("error phases").is_empty());
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn optional_record_failure_is_logged_with_phase() {
+        let errors = ErrorPhases::default();
+        let subscriber = tracing_subscriber::registry().with(errors.clone());
+        let _guard = tracing::subscriber::set_default(subscriber);
+
+        let result = record_optional_phase::<IdRow, _>(
+            "world_record",
+            std::future::ready(Err(diesel::result::Error::RollbackTransaction)),
+        )
+        .await;
+
+        assert!(matches!(
+            result,
+            Err(diesel::result::Error::RollbackTransaction)
+        ));
+        assert_eq!(
+            errors.0.lock().expect("error phases").as_slice(),
+            ["world_record"]
+        );
+    }
 }
