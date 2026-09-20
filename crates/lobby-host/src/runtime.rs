@@ -139,6 +139,7 @@ impl ManagedLobbyHost {
     async fn run_loop(&self) -> Result<()> {
         let mut retry = Duration::from_secs(1);
         while !self.stopped.load(Ordering::Acquire) {
+            let mut backoff = true;
             match self.profile.prepare().await {
                 Ok(Some(_)) => match self.connect_once().await {
                     Ok(()) => retry = Duration::from_secs(1),
@@ -146,7 +147,10 @@ impl ManagedLobbyHost {
                         tracing::warn!(room = %self.config.key, profile = self.profile.name(), %error, "Managed room attempt failed")
                     }
                 },
-                Ok(None) => retry = Duration::from_millis(self.config.asset_poll_ms),
+                Ok(None) => {
+                    retry = Duration::from_millis(self.config.asset_poll_ms);
+                    backoff = false;
+                }
                 Err(error) => {
                     tracing::warn!(room = %self.config.key, %error, "Managed room asset preparation failed")
                 }
@@ -158,7 +162,9 @@ impl ManagedLobbyHost {
                 _ = tokio::time::sleep(retry) => {},
                 _ = self.wake.notified() => {},
             }
-            retry = (retry * 2).min(Duration::from_millis(self.config.reconnect_max_ms));
+            if backoff {
+                retry = (retry * 2).min(Duration::from_millis(self.config.reconnect_max_ms));
+            }
         }
         Ok(())
     }

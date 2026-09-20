@@ -25,6 +25,7 @@ zc-telemetry.workspace = true
 
 utoipa.workspace = true
 url.workspace = true
+uuid.workspace = true
 scalar_api_reference.workspace = true
 
 [[bin]]

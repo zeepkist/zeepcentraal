@@ -9,6 +9,9 @@ pub struct ServerConfig {
     pub steam: Option<zc_core::steam::SteamClient>,
     pub trigger_job_token: Arc<str>,
     pub discord_bot_api_token: Arc<str>,
+    pub discord_client_id: Option<String>,
+    pub discord_client_secret: Option<String>,
+    pub discord_redirect_uri: Option<String>,
     pub body_limit: usize,
     pub cors_origins: Vec<String>,
     pub frontend_url: String,
@@ -67,6 +70,8 @@ impl ServerConfig {
             std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:4000".to_owned());
         let backend_url =
             std::env::var("BACKEND_URL").unwrap_or_else(|_| "http://localhost:3000".to_owned());
+        url::Url::parse(&frontend_url).context("FRONTEND_URL must be a URL")?;
+        url::Url::parse(&backend_url).context("BACKEND_URL must be a URL")?;
         let cors_origins: Vec<String> = std::env::var("CORS_ALLOWED_ORIGINS")
             .unwrap_or_else(|_| frontend_url.clone())
             .split(',')
@@ -102,6 +107,9 @@ impl ServerConfig {
             steam,
             trigger_job_token: trigger_job_token.into(),
             discord_bot_api_token: discord_bot_api_token.into(),
+            discord_client_id: optional("DISCORD_CLIENT_ID"),
+            discord_client_secret: optional("DISCORD_CLIENT_SECRET"),
+            discord_redirect_uri: optional("DISCORD_REDIRECT_URI"),
             body_limit,
             cors_origins,
             frontend_url,
@@ -112,6 +120,10 @@ impl ServerConfig {
             turnstile_hostnames,
         })
     }
+}
+
+fn optional(name: &str) -> Option<String> {
+    std::env::var(name).ok().filter(|value| !value.is_empty())
 }
 
 fn positive(name: &str, default: u32) -> Result<u32> {

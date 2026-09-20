@@ -119,6 +119,26 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             put(discord_routes::set_tournament_message),
         )
         .route("/auth/web/refresh", post(routes::refresh_web_session))
+        .route(
+            "/auth/discord/link/redirect",
+            get(crate::browser_auth::discord_link_redirect),
+        )
+        .route(
+            "/auth/discord/redirect",
+            get(crate::browser_auth::discord_redirect),
+        )
+        .route(
+            "/auth/discord/callback",
+            get(crate::browser_auth::discord_callback),
+        )
+        .route(
+            "/auth/steam/redirect",
+            get(crate::browser_auth::steam_redirect),
+        )
+        .route(
+            "/auth/steam/callback",
+            get(crate::browser_auth::steam_callback),
+        )
         .route("/auth/login", post(routes::login_gtr))
         .route("/auth/refresh", post(routes::refresh_gtr_session))
         .route("/turnstile/verify", post(crate::turnstile::verify))

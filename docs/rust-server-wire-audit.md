@@ -11,7 +11,7 @@ with identical fixtures.
 | --- | ---: | ---: | --- |
 | Health and favicon | 3 | 3 | Present |
 | GTR and web refresh auth | 3 | 3 | Present |
-| Browser Discord/Steam auth | 5 | 0 | **Missing** |
+| Browser Discord/Steam auth | 5 | 5 | Present |
 | Discord bot service API | 19 | 19 | Present |
 | Favourite | 2 | 2 | Present |
 | User | 4 | 4 | Present |
@@ -26,16 +26,16 @@ with identical fixtures.
 Rust-only documentation routes `/openapi`, `/openapi/json`, and `/openapi/scalar.js` do not
 replace Bun application routes and do not affect existing clients.
 
-## Exact missing routes
+## Exact missing route
 
 | Method | Path | Required contract |
 | --- | --- | --- |
-| GET | `/auth/discord/link/redirect` | Authenticated link state, five-minute state cookie, Discord 302 |
-| GET | `/auth/discord/redirect` | Five-minute state cookie, Discord 302 |
-| GET | `/auth/discord/callback` | State validation, OAuth exchange, link/login branches, auth cookies, frontend 302 |
-| GET | `/auth/steam/redirect` | State cookie, Steam OpenID 302 |
-| GET | `/auth/steam/callback` | State/signature validation, user upsert, auth persistence/cookies, frontend 302 |
 | POST | `/v1/rooms/assignment` | Dedicated listener, bearer token, bounded room input, 200/400/401/404/503 JSON, no-store |
+
+Browser authentication now preserves Discord account-link and login branches, OAuth state
+cookies, Steam OpenID signature verification, browser auth persistence, three session cookies,
+numeric error codes, and frontend redirects. Focused Rust tests cover state-cookie encoding and
+OpenAPI presence; production provider callbacks remain a cutover smoke gate.
 
 `GET /lobby` now returns exact unavailable snapshot casing with `Cache-Control: no-store`.
 `GET /lobby/events` uses named `snapshot` events, immediate watch state, change notifications,
@@ -53,6 +53,7 @@ Every present route still requires Bun-versus-Rust differential coverage for:
 - cookies, redirects, CORS, cache headers, rate-limit headers, and body limits;
 - durable side effects, queue payload/key, S3 key, transaction boundary, and retry behavior.
 
-Current Rust unit/static checks prove handlers compile and named paths exist. They do not prove
-unchanged web or GTR compatibility. Cutover remains blocked until missing routes exist and all
-rows pass differential tests.
+Static route audit is complete: every Bun application path except separate room-broker listener
+has a Rust handler. Current Rust unit/static checks prove handlers compile and named paths exist.
+They do not prove unchanged web or GTR compatibility. Cutover remains blocked until room broker,
+collector feed, and differential behavior tests pass.

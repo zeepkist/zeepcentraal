@@ -132,6 +132,106 @@ pub struct DiscordUserState {
 }
 
 impl Database {
+    pub async fn create_discord_oauth_link_state(
+        &self,
+        state_hash: &str,
+        id_user: i32,
+    ) -> Result<()> {
+        let mut connection = self.connection().await?;
+        connection
+            .transaction::<(), anyhow::Error, _>(|connection| {
+                Box::pin(async move {
+                    sql_query(
+                        "DELETE FROM zc_private.discord_oauth_link_state \
+                         WHERE id_user=$1 OR expires_at<clock_timestamp()",
+                    )
+                    .bind::<Integer, _>(id_user)
+                    .execute(connection)
+                    .await?;
+                    sql_query(
+                        "INSERT INTO zc_private.discord_oauth_link_state \
+                         (state_hash,id_user,expires_at) \
+                         VALUES($1,$2,clock_timestamp()+interval '5 minutes')",
+                    )
+                    .bind::<Text, _>(state_hash)
+                    .bind::<Integer, _>(id_user)
+                    .execute(connection)
+                    .await?;
+                    Ok(())
+                })
+            })
+            .await
+    }
+
+    pub async fn consume_discord_oauth_link_state(
+        &self,
+        state_hash: &str,
+        discord_id: i64,
+    ) -> Result<DiscordLinkResult> {
+        let mut connection = self.connection().await?;
+        connection
+            .transaction::<DiscordLinkResult, anyhow::Error, _>(|connection| {
+                Box::pin(async move {
+                    let state: Option<LinkCode> = sql_query(
+                        "SELECT id_user,expires_at<=clock_timestamp() AS expired, \
+                         consumed_at IS NOT NULL AS consumed \
+                         FROM zc_private.discord_oauth_link_state \
+                         WHERE state_hash=$1 FOR UPDATE",
+                    )
+                    .bind::<Text, _>(state_hash)
+                    .get_result(connection)
+                    .await
+                    .optional()?;
+                    let Some(state) = state else {
+                        return Ok(DiscordLinkResult::status(DiscordLinkStatus::Invalid));
+                    };
+                    if state.consumed {
+                        return Ok(DiscordLinkResult::status(DiscordLinkStatus::Consumed));
+                    }
+                    if state.expired {
+                        return Ok(DiscordLinkResult::status(DiscordLinkStatus::Expired));
+                    }
+                    let existing: Option<UserId> = sql_query(
+                        "SELECT id FROM public.\"user\" \
+                         WHERE discord_id=$1 AND discord_id>0 LIMIT 1",
+                    )
+                    .bind::<BigInt, _>(discord_id)
+                    .get_result(connection)
+                    .await
+                    .optional()?;
+                    if existing.is_some_and(|user| user.id != state.id_user) {
+                        return Ok(DiscordLinkResult::status(DiscordLinkStatus::Conflict));
+                    }
+                    let linked: Option<LinkedUser> = sql_query(
+                        "UPDATE public.\"user\" SET discord_id=$2,date_updated=clock_timestamp() \
+                         WHERE id=$1 AND (discord_id IS NULL OR discord_id=-1 OR discord_id=$2) \
+                         RETURNING id AS id_user,steam_id",
+                    )
+                    .bind::<Integer, _>(state.id_user)
+                    .bind::<BigInt, _>(discord_id)
+                    .get_result(connection)
+                    .await
+                    .optional()?;
+                    let Some(linked) = linked else {
+                        return Ok(DiscordLinkResult::status(DiscordLinkStatus::Conflict));
+                    };
+                    sql_query(
+                        "UPDATE zc_private.discord_oauth_link_state \
+                         SET consumed_at=clock_timestamp() WHERE state_hash=$1",
+                    )
+                    .bind::<Text, _>(state_hash)
+                    .execute(connection)
+                    .await?;
+                    Ok(DiscordLinkResult {
+                        status: DiscordLinkStatus::Linked,
+                        id_user: Some(linked.id_user),
+                        steam_id: linked.steam_id,
+                    })
+                })
+            })
+            .await
+    }
+
     pub async fn consume_discord_link_code(
         &self,
         code_hash: &str,

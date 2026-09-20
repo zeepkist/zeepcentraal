@@ -12,6 +12,7 @@ pub mod discord;
 pub mod discord_runtime;
 pub mod inspector;
 pub mod jobs;
+pub mod lobby_assets;
 pub mod managed_lobby;
 pub mod record;
 pub mod workshop;
@@ -95,6 +96,20 @@ impl Database {
             .bind::<Varchar, _>(steam_name)
             .get_result(&mut connection)
             .await?)
+    }
+
+    pub async fn get_or_insert_user(&self, steam_id: i64) -> Result<UserAccount> {
+        ensure!(steam_id > 0, "Steam ID must be positive");
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "INSERT INTO public.\"user\"(steam_id,banned,date_created,date_updated) \
+             VALUES($1,false,clock_timestamp(),clock_timestamp()) \
+             ON CONFLICT (steam_id) DO UPDATE SET steam_id=excluded.steam_id \
+             RETURNING id,steam_name,banned,steam_id,discord_id",
+        )
+        .bind::<BigInt, _>(steam_id)
+        .get_result(&mut connection)
+        .await?)
     }
 
     pub async fn get_user_by_discord_id(&self, discord_id: i64) -> Result<Option<UserAccount>> {

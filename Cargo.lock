@@ -4126,6 +4126,7 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "utoipa",
+ "uuid",
  "zc-core",
  "zc-database",
  "zc-jobs",

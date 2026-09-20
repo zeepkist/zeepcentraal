@@ -42,6 +42,11 @@ use utoipa::OpenApi;
         crate::discord_runtime_routes::get_delivery,
         crate::discord_runtime_routes::set_tournament_message,
         crate::routes::refresh_web_session,
+        crate::browser_auth::discord_link_redirect,
+        crate::browser_auth::discord_redirect,
+        crate::browser_auth::discord_callback,
+        crate::browser_auth::steam_redirect,
+        crate::browser_auth::steam_callback,
         crate::routes::login_gtr,
         crate::routes::refresh_gtr_session,
         crate::turnstile::verify
@@ -75,7 +80,7 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 34);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 39);
         assert!(schema.to_string().find("graphql").is_none());
         let (mime, asset) = scalar_api_reference::get_asset_with_mime("scalar.js").unwrap();
         assert_eq!(mime, "application/javascript");

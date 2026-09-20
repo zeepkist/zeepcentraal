@@ -1,5 +1,6 @@
 pub mod app;
 pub mod auth;
+pub mod browser_auth;
 pub mod config;
 pub mod discord_runtime_routes;
 pub mod docs;

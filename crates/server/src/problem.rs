@@ -13,6 +13,7 @@ pub const AUTH_STEAM_AUTHENTICATION_FAILED: i32 = 11;
 pub const AUTH_MISSING_TOKEN: i32 = 14;
 pub const AUTH_INVALID_TOKEN: i32 = 15;
 pub const AUTH_USER_NOT_FOUND: i32 = 16;
+pub const AUTH_DISCORD_NOT_LINKED: i32 = 24;
 pub const VOTE_MISSING_PARAMS: i32 = 17;
 pub const LEVEL_NOT_FOUND: i32 = 18;
 pub const RECORD_SUBMIT_MISSING_PARAMS: i32 = 19;
@@ -47,6 +48,7 @@ impl Problem {
             AUTH_MISSING_TOKEN => "Not authenticated",
             AUTH_INVALID_TOKEN => "Invalid or expired token",
             AUTH_USER_NOT_FOUND => "User not found",
+            AUTH_DISCORD_NOT_LINKED => "Discord account not linked",
             VOTE_MISSING_PARAMS => "Missing required parameters",
             LEVEL_NOT_FOUND => "Level not found",
             RECORD_SUBMIT_MISSING_PARAMS => "Missing required parameters",
