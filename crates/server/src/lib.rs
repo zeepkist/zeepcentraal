@@ -3,6 +3,7 @@ pub mod auth;
 pub mod config;
 pub mod discord_runtime_routes;
 pub mod docs;
+pub mod lobby;
 pub mod problem;
 pub mod rate_limit;
 pub mod routes;
@@ -20,6 +21,7 @@ pub struct AppState {
     pub record_parser_slots: Arc<tokio::sync::Semaphore>,
     pub record_upload_slots: Arc<tokio::sync::Semaphore>,
     pub record_upload_bytes: Arc<tokio::sync::Semaphore>,
+    pub lobby: lobby::LobbySnapshotStore,
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -51,6 +53,7 @@ pub async fn run() -> anyhow::Result<()> {
         record_parser_slots: Arc::new(tokio::sync::Semaphore::new(4)),
         record_upload_slots: Arc::new(tokio::sync::Semaphore::new(2)),
         record_upload_bytes: Arc::new(tokio::sync::Semaphore::new(64 * 1024 * 1024)),
+        lobby: lobby::LobbySnapshotStore::default(),
     });
     let listener = tokio::net::TcpListener::bind(address).await?;
     tracing::info!(%address, "ZeepCentraal API ready");

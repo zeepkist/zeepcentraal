@@ -69,10 +69,12 @@ cleanup ordering.
 Release remains blocked. Discord now embeds and registers all 20 active command definitions,
 dispatches account/feed/watch preference mutations, syncs linked roles, and exposes supervised
 health/readiness state. Informational command handlers, activity feed/watch delivery, tournament
-polling, and pagination still need parity. Lobby host still lacks managed-room supervision, profile
-asset preparation, transfer lifecycle, roster/chat, leaderboard projection, and tournament/ZSL
-profile behavior. Server route inventory is complete in `rust-server-wire-audit.md`; five browser
-OAuth routes, lobby snapshot/SSE, room broker, and differential behavior tests remain. Inspector
+polling, and pagination still need parity. Lobby host now has reusable managed-room supervision,
+join-ID persistence, ownership enforcement, bounded transfer queue, roster/chat, and leaderboard
+projection. Tournament/ZSL asset providers and profile sessions are not wired into its executable.
+Server route inventory is complete in `rust-server-wire-audit.md`; lobby snapshot/SSE wire handlers
+exist, but collector input, five browser OAuth routes, room broker, and differential behavior tests
+remain. Inspector
 runtime passes unit and static checks, but its disposable-PostgreSQL integration test and live
 Steam/Wasabi/Discord smoke run have not run. Deployment images, production-shaped benchmark gates,
 unchanged web/GTR smoke tests, and cutover rehearsal also remain incomplete.

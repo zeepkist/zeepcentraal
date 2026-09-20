@@ -6,6 +6,7 @@ publish.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+async-trait.workspace = true
 bytes.workspace = true
 reqwest.workspace = true
 serde.workspace = true

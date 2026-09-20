@@ -82,6 +82,15 @@ pub struct LeaderboardOverride {
     pub points_won: String,
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct LeaderboardOverrides {
+    pub time: String,
+    pub position: String,
+    pub name: String,
+    pub points: String,
+    pub points_won: String,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum GameHostPacket {
     Leaderboard {
@@ -193,6 +202,61 @@ pub fn targeted_chat_message_packet(
         writer.write_u64(target_steam_id);
         writer.write_string(message)?;
         writer.write_string(hostname)
+    })
+}
+
+pub fn player_leaderboard_time_packet(
+    steam_id: u64,
+    time: f32,
+    notify_player: bool,
+) -> Result<Vec<u8>> {
+    ensure!(time.is_finite() && time >= 0.0, "Invalid leaderboard time");
+    write_leaderboard(
+        steam_id,
+        time.min(36_000.0),
+        false,
+        notify_player,
+        &LeaderboardOverrides::default(),
+    )
+}
+
+pub fn player_leaderboard_overrides_packet(
+    steam_id: u64,
+    overrides: &LeaderboardOverrides,
+) -> Result<Vec<u8>> {
+    write_leaderboard(steam_id, 0.0, true, false, overrides)
+}
+
+fn write_leaderboard(
+    steam_id: u64,
+    time: f32,
+    is_override: bool,
+    notify: bool,
+    overrides: &LeaderboardOverrides,
+) -> Result<Vec<u8>> {
+    ensure!(steam_id > 0, "Invalid leaderboard target");
+    let fields = [
+        &overrides.time,
+        &overrides.position,
+        &overrides.name,
+        &overrides.points,
+        &overrides.points_won,
+    ];
+    ensure!(
+        fields.iter().all(|field| field.len() <= 4_096),
+        "Leaderboard override too long"
+    );
+    write_packet(CUSTOM_LEADERBOARD, |writer| {
+        writer.write_u64(steam_id);
+        writer.write_bool(false);
+        writer.write_f32(time);
+        writer.write_i32(0);
+        writer.write_bool(notify);
+        writer.write_bool(is_override);
+        for field in fields {
+            writer.write_string(field)?;
+        }
+        Ok(())
     })
 }
 
@@ -578,6 +642,51 @@ mod tests {
             packet_id("ZeepkistNetworking.SkipToLevelPacket"),
             SKIP_TO_LEVEL
         );
+    }
+
+    #[test]
+    fn custom_leaderboard_packets_match_wire_contract() -> Result<()> {
+        let overrides = LeaderboardOverrides {
+            time: "01:02.345".into(),
+            position: "#2".into(),
+            name: "Player".into(),
+            points: "123".into(),
+            points_won: "+4".into(),
+        };
+        let mut expected = BitWriter::new();
+        expected.write_u16(CUSTOM_LEADERBOARD);
+        expected.write_u64(42);
+        expected.write_bool(false);
+        expected.write_f32(0.0);
+        expected.write_i32(0);
+        expected.write_bool(false);
+        expected.write_bool(true);
+        for field in ["01:02.345", "#2", "Player", "123", "+4"] {
+            expected.write_string(field)?;
+        }
+        assert_eq!(
+            player_leaderboard_overrides_packet(42, &overrides)?,
+            expected.into_bytes()
+        );
+
+        let mut expected = BitWriter::new();
+        expected.write_u16(CUSTOM_LEADERBOARD);
+        expected.write_u64(42);
+        expected.write_bool(false);
+        expected.write_f32(36_000.0);
+        expected.write_i32(0);
+        expected.write_bool(true);
+        expected.write_bool(false);
+        for _ in 0..5 {
+            expected.write_string("")?;
+        }
+        assert_eq!(
+            player_leaderboard_time_packet(42, 40_000.0, true)?,
+            expected.into_bytes()
+        );
+        assert!(player_leaderboard_time_packet(0, 1.0, false).is_err());
+        assert!(player_leaderboard_time_packet(42, f32::NAN, false).is_err());
+        Ok(())
     }
 
     #[test]

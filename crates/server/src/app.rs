@@ -32,6 +32,8 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(|| async { axum::http::StatusCode::NO_CONTENT }),
         )
         .route("/healthz", get(routes::health).head(routes::health))
+        .route("/lobby", get(crate::lobby::snapshot))
+        .route("/lobby/events", get(crate::lobby::events))
         .route("/openapi", get(docs::page))
         .route("/openapi/json", get(docs::schema))
         .route("/openapi/scalar.js", get(docs::scalar_asset))

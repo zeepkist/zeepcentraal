@@ -3115,6 +3115,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -4082,6 +4083,7 @@ name = "zc-lobby-host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "bytes",
  "reqwest 0.13.5",
  "serde",
@@ -4118,6 +4120,7 @@ dependencies = [
  "serde_json",
  "subtle",
  "tokio",
+ "tokio-stream",
  "tower-http",
  "tracing",
  "tracing-subscriber",

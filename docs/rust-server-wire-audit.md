@@ -20,7 +20,7 @@ with identical fixtures.
 | Turnstile | 1 | 1 | Present |
 | Vote | 1 | 1 | Present |
 | Job | 1 | 1 | Present |
-| Lobby snapshot/SSE | 2 | 0 | **Missing** |
+| Lobby snapshot/SSE | 2 | 2 | Present; collector feed missing |
 | Room broker (separate listener) | 1 | 0 | **Missing** |
 
 Rust-only documentation routes `/openapi`, `/openapi/json`, and `/openapi/scalar.js` do not
@@ -35,9 +35,12 @@ replace Bun application routes and do not affect existing clients.
 | GET | `/auth/discord/callback` | State validation, OAuth exchange, link/login branches, auth cookies, frontend 302 |
 | GET | `/auth/steam/redirect` | State cookie, Steam OpenID 302 |
 | GET | `/auth/steam/callback` | State/signature validation, user upsert, auth persistence/cookies, frontend 302 |
-| GET | `/lobby` | `Cache-Control: no-store`, exact snapshot JSON |
-| GET | `/lobby/events` | SSE snapshot event immediately and on change, 15-second heartbeat, no-store |
 | POST | `/v1/rooms/assignment` | Dedicated listener, bearer token, bounded room input, 200/400/401/404/503 JSON, no-store |
+
+`GET /lobby` now returns exact unavailable snapshot casing with `Cache-Control: no-store`.
+`GET /lobby/events` uses named `snapshot` events, immediate watch state, change notifications,
+and a 15-second heartbeat. Both remain operationally unavailable until Rust lobby collector feeds
+snapshots into `LobbySnapshotStore`.
 
 ## Present-route verification gates
 
