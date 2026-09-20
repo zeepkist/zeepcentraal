@@ -2,6 +2,7 @@ node_modules/
 /target/
 /.bun-cache/
 /artifacts/rust-evaluation/
+/.data/
 benchmarks/
 .env
 .env.*
