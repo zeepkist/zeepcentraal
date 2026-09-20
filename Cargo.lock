@@ -2827,6 +2827,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-env"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95610c3c542e7954ccefa1760070efb43d9d3f14ef190a1862942fb577a4cbe7"
+
+[[package]]
 name = "rustc-hash"
 version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4844,6 +4850,7 @@ dependencies = [
  "rand 0.9.5",
  "regex",
  "reqwest 0.13.5",
+ "rust-env",
  "ryu-js",
  "s3",
  "serde",
@@ -4906,6 +4913,7 @@ dependencies = [
  "serde_json",
  "serenity",
  "tokio",
+ "zc-core",
 ]
 
 [[package]]
@@ -4923,6 +4931,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "utoipa",
+ "zc-core",
 ]
 
 [[package]]
@@ -5048,6 +5057,7 @@ dependencies = [
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
+ "zc-core",
 ]
 
 [[package]]

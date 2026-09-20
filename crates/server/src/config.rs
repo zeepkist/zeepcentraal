@@ -67,35 +67,36 @@ impl ServerConfig {
         let refresh_ttl = duration("JWT_REFRESH_TTL", "7d")?;
         let jwt = zc_core::jwt::JwtIssuer::new(
             secret,
-            std::env::var("JWT_AUDIENCE").unwrap_or_else(|_| "zeepki.st".to_owned()),
-            std::env::var("JWT_ISSUER").unwrap_or_else(|_| "https://zeepki.st".to_owned()),
+            zc_core::environment::var("JWT_AUDIENCE").unwrap_or_else(|_| "zeepki.st".to_owned()),
+            zc_core::environment::var("JWT_ISSUER")
+                .unwrap_or_else(|_| "https://zeepki.st".to_owned()),
             access_ttl,
             refresh_ttl,
         )?;
-        let steam_app_id: u32 = std::env::var("STEAM_APP_ID")
+        let steam_app_id: u32 = zc_core::environment::var("STEAM_APP_ID")
             .unwrap_or_else(|_| "1440670".to_owned())
             .parse()
             .context("STEAM_APP_ID must be a positive integer")?;
         ensure!(steam_app_id > 0, "STEAM_APP_ID must be a positive integer");
-        let steam = std::env::var("STEAM_API_KEY")
+        let steam = zc_core::environment::var("STEAM_API_KEY")
             .ok()
             .filter(|value| !value.is_empty())
             .map(|key| zc_core::steam::SteamClient::new(key, steam_app_id))
             .transpose()?;
-        let frontend_url =
-            std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:4000".to_owned());
-        let backend_url =
-            std::env::var("BACKEND_URL").unwrap_or_else(|_| "http://localhost:3000".to_owned());
+        let frontend_url = zc_core::environment::var("FRONTEND_URL")
+            .unwrap_or_else(|_| "http://localhost:4000".to_owned());
+        let backend_url = zc_core::environment::var("BACKEND_URL")
+            .unwrap_or_else(|_| "http://localhost:3000".to_owned());
         url::Url::parse(&frontend_url).context("FRONTEND_URL must be a URL")?;
         url::Url::parse(&backend_url).context("BACKEND_URL must be a URL")?;
-        let cors_origins: Vec<String> = std::env::var("CORS_ALLOWED_ORIGINS")
+        let cors_origins: Vec<String> = zc_core::environment::var("CORS_ALLOWED_ORIGINS")
             .unwrap_or_else(|_| frontend_url.clone())
             .split(',')
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_owned)
             .collect();
-        let body_limit = std::env::var("SERVER_MAX_REQUEST_BODY_SIZE")
+        let body_limit = zc_core::environment::var("SERVER_MAX_REQUEST_BODY_SIZE")
             .unwrap_or_else(|_| (32 * 1024 * 1024).to_string())
             .parse()
             .context("SERVER_MAX_REQUEST_BODY_SIZE must be an integer")?;
@@ -155,10 +156,10 @@ impl ServerConfig {
                 token.len() >= 32,
                 "ZEEPKIST_ROOM_BROKER_TOKEN must contain at least 32 characters"
             );
-            let host =
-                std::env::var("ZEEPKIST_ROOM_BROKER_HOST").unwrap_or_else(|_| "0.0.0.0".to_owned());
-            let port =
-                std::env::var("ZEEPKIST_ROOM_BROKER_PORT").unwrap_or_else(|_| "3001".to_owned());
+            let host = zc_core::environment::var("ZEEPKIST_ROOM_BROKER_HOST")
+                .unwrap_or_else(|_| "0.0.0.0".to_owned());
+            let port = zc_core::environment::var("ZEEPKIST_ROOM_BROKER_PORT")
+                .unwrap_or_else(|_| "3001".to_owned());
             Some(RoomBrokerConfig {
                 address: format!("{host}:{port}")
                     .parse()
@@ -201,11 +202,13 @@ impl ServerConfig {
 }
 
 fn optional(name: &str) -> Option<String> {
-    std::env::var(name).ok().filter(|value| !value.is_empty())
+    zc_core::environment::var(name)
+        .ok()
+        .filter(|value| !value.is_empty())
 }
 
 fn positive(name: &str, default: u32) -> Result<u32> {
-    let value = std::env::var(name)
+    let value = zc_core::environment::var(name)
         .unwrap_or_else(|_| default.to_string())
         .parse()
         .with_context(|| format!("{name} must be a positive integer"))?;
@@ -214,7 +217,7 @@ fn positive(name: &str, default: u32) -> Result<u32> {
 }
 
 fn boolean(name: &str, default: bool) -> Result<bool> {
-    match std::env::var(name) {
+    match zc_core::environment::var(name) {
         Ok(value) if matches!(value.as_str(), "true" | "1") => Ok(true),
         Ok(value) if matches!(value.as_str(), "false" | "0") => Ok(false),
         Ok(_) => anyhow::bail!("{name} must be true or false"),
@@ -224,5 +227,7 @@ fn boolean(name: &str, default: bool) -> Result<bool> {
 }
 
 fn duration(name: &str, default: &str) -> Result<Duration> {
-    zc_core::config::parse_duration(&std::env::var(name).unwrap_or_else(|_| default.to_owned()))
+    zc_core::config::parse_duration(
+        &zc_core::environment::var(name).unwrap_or_else(|_| default.to_owned()),
+    )
 }

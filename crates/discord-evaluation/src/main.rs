@@ -170,6 +170,7 @@ async fn replay(
 }
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    zc_core::environment::initialize()?;
     // Fixed loopback fixture endpoint: this executable cannot send Discord messages.
     let sessions = Arc::new(Mutex::new(Sessions::default()));
     let clean = sessions.clone();

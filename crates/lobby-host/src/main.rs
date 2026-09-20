@@ -1,5 +1,6 @@
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    zc_core::environment::initialize()?;
     if !enabled("ZEEPKIST_LOBBY_HOST_ENABLED")? {
         tracing::info!("Lobby host is disabled");
         shutdown_signal().await?;
@@ -21,7 +22,7 @@ async fn main() -> anyhow::Result<()> {
             &zc_core::config::ObjectStorageConfig::from_env()?,
         )?);
     let broker = zc_lobby_host::broker::RoomBrokerClient::new(
-        &std::env::var("ZEEPKIST_ROOM_BROKER_URL")
+        &zc_core::environment::var("ZEEPKIST_ROOM_BROKER_URL")
             .unwrap_or_else(|_| "http://localhost:3001".into()),
         zc_core::config::required("ZEEPKIST_ROOM_BROKER_TOKEN")?,
     )?;
@@ -60,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 fn enabled(name: &str) -> anyhow::Result<bool> {
-    match std::env::var(name)
+    match zc_core::environment::var(name)
         .unwrap_or_else(|_| "false".into())
         .to_ascii_lowercase()
         .as_str()

@@ -1,7 +1,8 @@
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL cloned from current Drizzle schema"]
 async fn discord_link_codes_rotate_and_unlink() -> anyhow::Result<()> {
-    let url = std::env::var("ZC_TEST_DATABASE_URL")?;
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     anyhow::ensure!(
         url::Url::parse(&url)?
             .host_str()

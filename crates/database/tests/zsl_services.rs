@@ -3,7 +3,8 @@ use zc_database::services::zsl::{RankedLevelResult, RankedResult};
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL cloned from current Drizzle schema"]
 async fn zsl_import_services_are_idempotent() -> anyhow::Result<()> {
-    let url = std::env::var("ZC_TEST_DATABASE_URL")?;
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     anyhow::ensure!(
         url::Url::parse(&url)?
             .host_str()

@@ -13,3 +13,4 @@ opentelemetry_sdk.workspace = true
 tracing.workspace = true
 tracing-opentelemetry.workspace = true
 tracing-subscriber.workspace = true
+zc-core.workspace = true

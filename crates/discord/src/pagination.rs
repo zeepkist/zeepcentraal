@@ -103,7 +103,7 @@ pub fn target_page(session: &PageSession, direction: Direction) -> i64 {
 }
 
 fn ttl() -> Duration {
-    std::env::var("DISCORD_SESSION_TTL_MS")
+    zc_core::environment::var("DISCORD_SESSION_TTL_MS")
         .ok()
         .and_then(|value| value.parse::<u64>().ok())
         .map(Duration::from_millis)

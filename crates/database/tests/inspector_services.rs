@@ -11,7 +11,9 @@ use zc_database::{
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL with current inspector tables"]
 async fn inspector_mutations_preserve_atomic_state_transitions() -> Result<()> {
-    let url = std::env::var("ZC_TEST_DATABASE_URL").context("ZC_TEST_DATABASE_URL is required")?;
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")
+        .context("ZC_TEST_DATABASE_URL is required")?;
     let database = Database::connect(&url, 2).await?;
     let contest = database
         .save_inspector_contest(&InspectorContestInput {

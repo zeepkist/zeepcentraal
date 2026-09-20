@@ -1,7 +1,8 @@
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL with current Discord tables"]
 async fn discord_runtime_services_preserve_json_and_monotonic_cursors() -> anyhow::Result<()> {
-    let url = std::env::var("ZC_TEST_DATABASE_URL")?;
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     anyhow::ensure!(
         url::Url::parse(&url)?
             .host_str()

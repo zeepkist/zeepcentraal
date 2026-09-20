@@ -101,7 +101,7 @@ impl Sessions {
         self.pages.push_back((
             id,
             owner,
-            now + std::env::var("ZC_DISCORD_EVAL_TTL_MS")
+            now + zc_core::environment::var("ZC_DISCORD_EVAL_TTL_MS")
                 .ok()
                 .and_then(|v| v.parse::<u64>().ok())
                 .unwrap_or(900_000),

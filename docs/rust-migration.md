@@ -14,6 +14,18 @@ authoritative. No shadow production database, data copy, or historical migration
 - Existing Wasabi S3 objects and keys. No object migration.
 - GraphQL excluded. PostGraphile/Ruru remain separate until callers no longer need them.
 
+## Environment loading
+
+Every Rust executable initializes the shared `zc-core` environment source before telemetry or
+service configuration. In development it searches the current directory and its parents for
+`.env`. Set `ZC_ENV_FILE` to require a specific file instead. OS environment variables always
+override file values.
+
+When global `NODE_ENV=production`, automatic `.env` discovery is disabled. Production therefore
+uses process variables from its container or service manager. An explicit `ZC_ENV_FILE` still
+loads when deliberately configured. Library crates never read configuration files themselves and
+the loader never copies file values into the process environment.
+
 ## Database adoption
 
 `zeepcentraal-migrate verify` is read-only. It acquires a PostgreSQL advisory lock, checks

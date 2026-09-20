@@ -1,5 +1,6 @@
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    zc_core::environment::initialize()?;
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     if arguments
         .first()
@@ -24,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     };
     anyhow::ensure!(arguments.len() <= 1, "Too many migration arguments");
     let database = zc_core::DatabaseConfig::from_env(1)?;
-    let migrations = std::env::var("MIGRATIONS_FOLDER")
+    let migrations = zc_core::environment::var("MIGRATIONS_FOLDER")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| std::path::PathBuf::from("packages/database/drizzle"));
     let report = zc_database::adoption::run(&database.url, &migrations, mode).await?;

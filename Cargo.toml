@@ -48,6 +48,7 @@ regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["form", "json", "multipart", "query", "rustls"] }
 ryu-js = "1.0"
 rustls = "0.23"
+rust-env = "=0.2.0"
 s3 = "0.1.36"
 scalar_api_reference = "=0.2.2"
 serde = { version = "1", features = ["derive"] }

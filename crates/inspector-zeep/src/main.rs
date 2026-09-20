@@ -1,5 +1,6 @@
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    zc_core::environment::initialize()?;
     let telemetry = zc_telemetry::initialize("inspector-zeep")?;
     let result = run().await;
     let shutdown = telemetry.shutdown().await;
@@ -8,8 +9,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn run() -> anyhow::Result<()> {
-    let path = std::env::var("INSPECTOR_CONFIG_FILE")
-        .or_else(|_| std::env::var("INSPECTOR_ZEEP_CONFIG_FILE"))?;
+    let path = zc_core::environment::var("INSPECTOR_CONFIG_FILE")
+        .or_else(|_| zc_core::environment::var("INSPECTOR_ZEEP_CONFIG_FILE"))?;
     let config =
         zc_inspector_zeep::config::InspectorConfig::parse(&tokio::fs::read_to_string(path).await?)?;
     let options =

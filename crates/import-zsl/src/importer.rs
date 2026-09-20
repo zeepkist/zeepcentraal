@@ -8,14 +8,14 @@ use std::{collections::HashMap, path::Path};
 use zc_database::services::zsl::{RankedLevelResult, RankedResult};
 
 pub async fn run() -> Result<()> {
-    let root =
-        std::env::var("SUPER_LEAGUE_DATA_PATH").unwrap_or_else(|_| "super_league_data".to_owned());
+    let root = zc_core::environment::var("SUPER_LEAGUE_DATA_PATH")
+        .unwrap_or_else(|_| "super_league_data".to_owned());
     let database_config = zc_core::DatabaseConfig::from_env(1)?;
     let database =
         zc_database::Database::connect(&database_config.url, database_config.pool_max).await?;
     let steam = zc_core::steam::SteamClient::new(
         zc_core::config::required("STEAM_API_KEY")?,
-        std::env::var("STEAM_APP_ID")
+        zc_core::environment::var("STEAM_APP_ID")
             .unwrap_or_else(|_| "1440670".to_owned())
             .parse()
             .context("STEAM_APP_ID must be a positive integer")?,

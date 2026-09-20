@@ -3,7 +3,8 @@ use zc_core::zeepnet::{LobbyOperation, LobbyPacket, WireLobby};
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL with lobby tables"]
 async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()> {
-    let url = std::env::var("ZC_TEST_DATABASE_URL")?;
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     let parsed = url::Url::parse(&url)?;
     let disposable_host = parsed.host_str().is_some_and(|host| {
         matches!(host, "localhost" | "zc-lobby-db")

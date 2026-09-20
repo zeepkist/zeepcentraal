@@ -3,7 +3,8 @@ use zc_database::Database;
 #[tokio::test]
 #[ignore = "requires PostgreSQL with current production-shaped schema"]
 async fn discord_command_queries_execute_against_current_schema() -> anyhow::Result<()> {
-    let database = Database::connect(&std::env::var("DATABASE_URL")?, 1).await?;
+    zc_core::environment::initialize()?;
+    let database = Database::connect(&zc_core::environment::var("DATABASE_URL")?, 1).await?;
     let missing = "900000000000000000";
 
     assert!(

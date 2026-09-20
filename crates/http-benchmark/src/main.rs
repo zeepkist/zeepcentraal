@@ -119,10 +119,11 @@ struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    zc_core::environment::initialize()?;
     tracing_subscriber::fmt().json().init();
-    let url =
-        std::env::var("ZC_PREVIEW_DATABASE_URL").context("ZC_PREVIEW_DATABASE_URL is required")?;
-    let port = std::env::var("ZC_PREVIEW_PORT").unwrap_or_else(|_| "4310".into());
+    let url = zc_core::environment::var("ZC_PREVIEW_DATABASE_URL")
+        .context("ZC_PREVIEW_DATABASE_URL is required")?;
+    let port = zc_core::environment::var("ZC_PREVIEW_PORT").unwrap_or_else(|_| "4310".into());
     let address = format!("0.0.0.0:{port}");
     let listener = tokio::net::TcpListener::bind(&address).await?;
     axum::serve(listener, router(Database::connect(&url).await?)).await?;

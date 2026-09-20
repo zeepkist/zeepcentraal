@@ -14,7 +14,8 @@ pub struct DiscordConfig {
 
 impl DiscordConfig {
     pub fn from_env() -> Result<Self> {
-        let host = std::env::var("DISCORD_HOST").unwrap_or_else(|_| "0.0.0.0".to_owned());
+        let host =
+            zc_core::environment::var("DISCORD_HOST").unwrap_or_else(|_| "0.0.0.0".to_owned());
         let port = parse_positive::<u16>("DISCORD_PORT", 3_000)?;
         let api_token = zc_core::config::required("DISCORD_BOT_API_TOKEN")?;
         ensure!(
@@ -36,14 +37,14 @@ impl DiscordConfig {
 }
 
 fn url(name: &str, default: &str) -> Result<reqwest::Url> {
-    std::env::var(name)
+    zc_core::environment::var(name)
         .unwrap_or_else(|_| default.to_owned())
         .parse()
         .with_context(|| format!("{name} must be a URL"))
 }
 
 fn optional_u64(name: &str) -> Result<Option<u64>> {
-    std::env::var(name)
+    zc_core::environment::var(name)
         .ok()
         .filter(|value| !value.is_empty())
         .map(|value| {
@@ -59,7 +60,7 @@ where
     T: FromStr + PartialOrd + Copy + std::fmt::Display,
     T::Err: std::error::Error + Send + Sync + 'static,
 {
-    let value = std::env::var(name)
+    let value = zc_core::environment::var(name)
         .unwrap_or_else(|_| default.to_string())
         .parse::<T>()?;
     ensure!(value > default_from_zero()?, "{name} must be positive");
@@ -75,7 +76,7 @@ where
 }
 
 fn bool_value(name: &str, default: bool) -> Result<bool> {
-    match std::env::var(name).ok().as_deref() {
+    match zc_core::environment::var(name).ok().as_deref() {
         None => Ok(default),
         Some("1" | "true" | "yes" | "on") => Ok(true),
         Some("0" | "false" | "no" | "off") => Ok(false),

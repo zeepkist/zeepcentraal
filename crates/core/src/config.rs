@@ -49,8 +49,9 @@ impl ObjectStorageConfig {
             bucket: required("WASABI_BUCKET")?,
             endpoint: required("WASABI_ENDPOINT")?,
             region: required("WASABI_REGION")?,
-            ghost_folder: std::env::var("GHOST_FOLDER").unwrap_or_else(|_| "ghosts-dev".to_owned()),
-            thumbnail_folder: std::env::var("THUMBNAIL_FOLDER")
+            ghost_folder: crate::environment::var("GHOST_FOLDER")
+                .unwrap_or_else(|_| "ghosts-dev".to_owned()),
+            thumbnail_folder: crate::environment::var("THUMBNAIL_FOLDER")
                 .unwrap_or_else(|_| "thumbnails-dev".to_owned()),
         })
     }
@@ -84,10 +85,10 @@ pub struct RuntimeConfig {
 
 impl RuntimeConfig {
     pub fn from_env(default_pool_max: u32) -> Result<Self> {
-        let environment = std::env::var("NODE_ENV")
+        let environment = crate::environment::var("NODE_ENV")
             .unwrap_or_else(|_| "development".to_owned())
             .parse()?;
-        let host = std::env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_owned());
+        let host = crate::environment::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_owned());
         let port = positive_u32("PORT", 3_000)?;
         ensure!(port <= u16::MAX.into(), "PORT exceeds 65535");
         Ok(Self {
@@ -101,7 +102,7 @@ impl RuntimeConfig {
 }
 
 pub fn required(name: &str) -> Result<String> {
-    std::env::var(name)
+    crate::environment::var(name)
         .ok()
         .filter(|value| !value.is_empty())
         .with_context(|| format!("{name} is required"))
@@ -152,7 +153,7 @@ pub fn require_strong_production_secrets(
 }
 
 fn positive_u32(name: &str, default: u32) -> Result<u32> {
-    let value = std::env::var(name)
+    let value = crate::environment::var(name)
         .unwrap_or_else(|_| default.to_string())
         .parse()
         .with_context(|| format!("{name} must be an integer"))?;
@@ -161,7 +162,7 @@ fn positive_u32(name: &str, default: u32) -> Result<u32> {
 }
 
 fn positive_u64(name: &str, default: u64) -> Result<u64> {
-    let value = std::env::var(name)
+    let value = crate::environment::var(name)
         .unwrap_or_else(|_| default.to_string())
         .parse()
         .with_context(|| format!("{name} must be an integer"))?;

@@ -4,7 +4,8 @@ use zc_database::adoption::{Mode, run};
 #[tokio::test]
 #[ignore = "requires disposable pgmq PostgreSQL with Drizzle migrations already applied"]
 async fn adopts_existing_drizzle_database_in_place() -> anyhow::Result<()> {
-    let url = std::env::var("ZC_TEST_DATABASE_URL")?;
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     anyhow::ensure!(
         url::Url::parse(&url)?
             .host_str()

@@ -36,7 +36,7 @@ pub async fn run() -> anyhow::Result<()> {
     .await?;
     let queue = zc_jobs::queue::Queue::connect(
         &config.runtime.database.url,
-        std::env::var("JOBS_QUEUE_POOL_MAX")
+        zc_core::environment::var("JOBS_QUEUE_POOL_MAX")
             .unwrap_or_else(|_| "2".to_owned())
             .parse()?,
     )

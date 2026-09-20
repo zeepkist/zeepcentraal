@@ -40,9 +40,12 @@ impl TelemetryGuard {
 
 pub fn initialize(package: &str) -> Result<TelemetryGuard> {
     let default = format!("zeepcentraal_{package}=info,tower_http=info");
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(default));
-    let endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
-        .or_else(|_| std::env::var("OPENTELEMETRY_COLLECTOR_URL"))
+    let filter = zc_core::environment::var("RUST_LOG")
+        .ok()
+        .and_then(|value| EnvFilter::try_new(value).ok())
+        .unwrap_or_else(|| EnvFilter::new(default));
+    let endpoint = zc_core::environment::var("OTEL_EXPORTER_OTLP_ENDPOINT")
+        .or_else(|_| zc_core::environment::var("OPENTELEMETRY_COLLECTOR_URL"))
         .unwrap_or_else(|_| "http://localhost:4317".to_owned());
     let resource = resource(package);
 
@@ -101,13 +104,14 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
 }
 
 fn resource(package: &str) -> Resource {
-    let environment = std::env::var("NODE_ENV").unwrap_or_else(|_| "development".to_owned());
+    let environment =
+        zc_core::environment::var("NODE_ENV").unwrap_or_else(|_| "development".to_owned());
     let mut attributes = vec![
         KeyValue::new("service.name", service_name(package)),
         KeyValue::new("deployment.environment", environment),
     ];
-    if let Ok(version) = std::env::var("OTEL_SERVICE_VERSION")
-        .or_else(|_| std::env::var("OPENTELEMETRY_SERVICE_VERSION"))
+    if let Ok(version) = zc_core::environment::var("OTEL_SERVICE_VERSION")
+        .or_else(|_| zc_core::environment::var("OPENTELEMETRY_SERVICE_VERSION"))
         && !version.is_empty()
     {
         attributes.push(KeyValue::new("service.version", version));
@@ -116,8 +120,8 @@ fn resource(package: &str) -> Resource {
 }
 
 pub fn service_name(package: &str) -> String {
-    std::env::var("OTEL_SERVICE_NAME")
-        .or_else(|_| std::env::var("OPENTELEMETRY_SERVICE_NAME"))
+    zc_core::environment::var("OTEL_SERVICE_NAME")
+        .or_else(|_| zc_core::environment::var("OPENTELEMETRY_SERVICE_NAME"))
         .unwrap_or_else(|_| format!("zeepcentraal-{package}-dev"))
 }
 

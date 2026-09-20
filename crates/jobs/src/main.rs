@@ -2,13 +2,14 @@
 async fn main() -> anyhow::Result<()> {
     use std::sync::Arc;
 
+    zc_core::environment::initialize()?;
     let telemetry = zc_telemetry::initialize("jobs")?;
     let config = zc_core::DatabaseConfig::from_env(8)?;
     let database = zc_database::Database::connect(&config.url, config.pool_max).await?;
     database.ping().await?;
     let queue = zc_jobs::queue::Queue::connect(
         &config.url,
-        std::env::var("JOBS_QUEUE_POOL_MAX")
+        zc_core::environment::var("JOBS_QUEUE_POOL_MAX")
             .unwrap_or_else(|_| "8".to_owned())
             .parse()?,
     )
@@ -17,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
     let storage: Arc<dyn zc_core::object_storage::ObjectStorage> = Arc::new(
         zc_core::object_storage::S3ObjectStorage::new(&storage_config)?,
     );
-    let app_id = std::env::var("STEAM_APP_ID").unwrap_or_else(|_| "1440670".to_owned());
+    let app_id = zc_core::environment::var("STEAM_APP_ID").unwrap_or_else(|_| "1440670".to_owned());
     let metadata: Arc<dyn zc_workshop::WorkshopMetadataAdapter> =
         Arc::new(zc_workshop::metadata::SteamWebApiMetadata::new(
             zc_core::config::required("STEAM_API_KEY")?,

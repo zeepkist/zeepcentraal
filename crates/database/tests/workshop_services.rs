@@ -7,7 +7,8 @@ use zc_database::{
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL with current workshop tables"]
 async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyhow::Result<()> {
-    let url = std::env::var("ZC_TEST_DATABASE_URL")?;
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     anyhow::ensure!(
         url::Url::parse(&url)?
             .host_str()
