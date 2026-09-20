@@ -5,10 +5,11 @@ use diesel::{
     sql_types::{Array, BigInt, Bool, Float, Integer, Jsonb, Text, Varchar},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
+use std::{fmt::Display, future::Future};
+use tracing::Instrument;
 use zc_core::ghosts::GhostStatistics;
 
 const WORLD_RECORD_LOCK_NAMESPACE: i32 = 1_861_284_953;
-const WORLD_RECORD_COUNT_LOCK_NAMESPACE: i32 = 1_861_284_951;
 const TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE: i32 = 1_953_744_432;
 
 #[derive(Clone, Debug)]
@@ -23,11 +24,12 @@ pub struct RecordSubmission<'a> {
     pub statistics: &'a GhostStatistics,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RecordSubmissionResult {
     pub id_record: i32,
     pub personal_best_changed: bool,
     pub tournament_result_changed: bool,
+    pub world_record_user_ids: Vec<i32>,
 }
 
 #[derive(QueryableByName)]
@@ -54,6 +56,21 @@ struct WorldRecordRow {
     id_user: i32,
     #[diesel(sql_type = Float)]
     time: f32,
+}
+
+async fn record_phase<T, E, F>(phase: &'static str, future: F) -> Result<T, E>
+where
+    E: Display,
+    F: Future<Output = Result<T, E>>,
+{
+    let span = tracing::info_span!("record.submit.phase", phase);
+    match future.instrument(span.clone()).await {
+        Ok(value) => Ok(value),
+        Err(error) => {
+            tracing::error!(parent: &span, error = %error, "Record submission phase failed");
+            Err(error)
+        }
+    }
 }
 
 impl Database {
@@ -155,31 +172,40 @@ impl Database {
         connection
             .transaction::<RecordSubmissionResult, anyhow::Error, _>(|connection| {
                 Box::pin(async move {
-                    let accepted: AcceptanceRow = sql_query(
-                        "SELECT pg_advisory_xact_lock($1,$2),clock_timestamp()::text AS accepted_at",
-                    )
-                    .bind::<Integer, _>(input.id_user)
-                    .bind::<Integer, _>(input.id_level)
-                    .get_result(connection)
-                    .await?;
-                    sql_query("SELECT pg_advisory_xact_lock_shared(0,$1)")
+                    let accepted: AcceptanceRow = record_phase(
+                        "user_level_lock",
+                        sql_query(
+                            "SELECT pg_advisory_xact_lock($1,$2),clock_timestamp()::text AS accepted_at",
+                        )
+                        .bind::<Integer, _>(input.id_user)
                         .bind::<Integer, _>(input.id_level)
-                        .execute(connection)
-                        .await?;
+                        .get_result(connection),
+                    )
+                    .await?;
+                    record_phase(
+                        "tournament_level_lock",
+                        sql_query("SELECT pg_advisory_xact_lock_shared(0,$1)")
+                            .bind::<Integer, _>(input.id_level)
+                            .execute(connection),
+                    )
+                    .await?;
 
-                    let created: IdRow = sql_query(
-                        "INSERT INTO public.record \
+                    let created: IdRow = record_phase(
+                        "record_insert",
+                        sql_query(
+                            "INSERT INTO public.record \
                          (id_user,time,game_version,id_level,mod_version,splits,speeds,date_created,date_updated) \
                          VALUES($1,$2,$3,$4,$5,$6,$7,clock_timestamp(),clock_timestamp()) RETURNING id",
+                        )
+                        .bind::<Integer, _>(input.id_user)
+                        .bind::<Float, _>(input.time)
+                        .bind::<Varchar, _>(input.game_version)
+                        .bind::<Integer, _>(input.id_level)
+                        .bind::<Varchar, _>(input.mod_version)
+                        .bind::<Array<Float>, _>(input.splits)
+                        .bind::<Array<Float>, _>(input.speeds)
+                        .get_result(connection),
                     )
-                    .bind::<Integer, _>(input.id_user)
-                    .bind::<Float, _>(input.time)
-                    .bind::<Varchar, _>(input.game_version)
-                    .bind::<Integer, _>(input.id_level)
-                    .bind::<Varchar, _>(input.mod_version)
-                    .bind::<Array<Float>, _>(input.splits)
-                    .bind::<Array<Float>, _>(input.speeds)
-                    .get_result(connection)
                     .await?;
 
                     sql_query(
@@ -194,8 +220,10 @@ impl Database {
                     .execute(connection)
                     .await?;
 
-                    let personal_best_changed = sql_query(
-                        "INSERT INTO public.personal_best_global \
+                    let personal_best_changed = record_phase(
+                        "personal_best",
+                        sql_query(
+                            "INSERT INTO public.personal_best_global \
                          (id_user,id_level,id_record,date_created,date_updated) \
                          VALUES($1,$2,$3,clock_timestamp(),clock_timestamp()) \
                          ON CONFLICT (id_user,id_level) DO UPDATE SET \
@@ -203,12 +231,13 @@ impl Database {
                          WHERE (SELECT current_record.time FROM public.record current_record \
                                 WHERE current_record.id=personal_best_global.id_record)>$4 \
                          RETURNING id",
+                        )
+                        .bind::<Integer, _>(input.id_user)
+                        .bind::<Integer, _>(input.id_level)
+                        .bind::<Integer, _>(created.id)
+                        .bind::<Float, _>(input.time)
+                        .get_result::<IdRow>(connection),
                     )
-                    .bind::<Integer, _>(input.id_user)
-                    .bind::<Integer, _>(input.id_level)
-                    .bind::<Integer, _>(created.id)
-                    .bind::<Float, _>(input.time)
-                    .get_result::<IdRow>(connection)
                     .await
                     .optional()?
                     .is_some();
@@ -257,12 +286,7 @@ impl Database {
                         rerank_tournament(connection, *tournament).await?;
                     }
 
-                    sql_query("SELECT pg_advisory_xact_lock($1,$2)")
-                        .bind::<Integer, _>(WORLD_RECORD_LOCK_NAMESPACE)
-                        .bind::<Integer, _>(input.id_level)
-                        .execute(connection)
-                        .await?;
-                    let previous = sql_query(
+                    let observed = sql_query(
                         "SELECT wr.id_user,r.time FROM public.world_record_global wr \
                          JOIN public.record r ON r.id=wr.id_record WHERE wr.id_level=$1",
                     )
@@ -270,48 +294,59 @@ impl Database {
                     .get_result::<WorldRecordRow>(connection)
                     .await
                     .optional()?;
-                    if previous.as_ref().is_none_or(|record| record.time > input.time) {
+                    let mut world_record_user_ids = Vec::new();
+                    if observed.as_ref().is_none_or(|record| record.time > input.time) {
+                        record_phase(
+                            "world_record_lock",
+                            sql_query("SELECT pg_advisory_xact_lock($1,$2)")
+                                .bind::<Integer, _>(WORLD_RECORD_LOCK_NAMESPACE)
+                                .bind::<Integer, _>(input.id_level)
+                                .execute(connection),
+                        )
+                        .await?;
+                        let previous = sql_query(
+                            "SELECT wr.id_user,r.time FROM public.world_record_global wr \
+                             JOIN public.record r ON r.id=wr.id_record WHERE wr.id_level=$1",
+                        )
+                        .bind::<Integer, _>(input.id_level)
+                        .get_result::<WorldRecordRow>(connection)
+                        .await
+                        .optional()?;
+                        if previous.as_ref().is_some_and(|record| record.time <= input.time) {
+                            return Ok(RecordSubmissionResult {
+                                id_record: created.id,
+                                personal_best_changed,
+                                tournament_result_changed: !changed_tournaments.is_empty(),
+                                world_record_user_ids,
+                            });
+                        }
                         let mut user_ids = vec![input.id_user];
                         if let Some(previous) = &previous {
                             user_ids.push(previous.id_user);
                         }
                         user_ids.sort_unstable();
                         user_ids.dedup();
-                        for id_user in &user_ids {
-                            sql_query("SELECT pg_advisory_xact_lock($1,$2)")
-                                .bind::<Integer, _>(WORLD_RECORD_COUNT_LOCK_NAMESPACE)
-                                .bind::<Integer, _>(*id_user)
-                                .execute(connection)
-                                .await?;
-                        }
-                        let changed = sql_query(
-                            "INSERT INTO public.world_record_global \
+                        let changed = record_phase(
+                            "world_record",
+                            sql_query(
+                                "INSERT INTO public.world_record_global \
                              (id_user,id_level,id_record,date_created,date_updated) \
                              VALUES($1,$2,$3,clock_timestamp(),clock_timestamp()) \
                              ON CONFLICT (id_level) DO UPDATE SET \
                                id_user=excluded.id_user,id_record=excluded.id_record,date_updated=excluded.date_updated \
                              WHERE (SELECT current_record.time FROM public.record current_record \
                                     WHERE current_record.id=world_record_global.id_record)>$4 RETURNING id",
+                            )
+                            .bind::<Integer, _>(input.id_user)
+                            .bind::<Integer, _>(input.id_level)
+                            .bind::<Integer, _>(created.id)
+                            .bind::<Float, _>(input.time)
+                            .get_result::<IdRow>(connection),
                         )
-                        .bind::<Integer, _>(input.id_user)
-                        .bind::<Integer, _>(input.id_level)
-                        .bind::<Integer, _>(created.id)
-                        .bind::<Float, _>(input.time)
-                        .get_result::<IdRow>(connection)
                         .await
                         .optional()?;
                         if changed.is_some() {
-                            for id_user in user_ids {
-                                sql_query(
-                                    "INSERT INTO public.user_points(id_user,world_records,date_created,date_updated) \
-                                     VALUES($1,(SELECT count(*)::integer FROM public.world_record_global WHERE id_user=$1),clock_timestamp(),clock_timestamp()) \
-                                     ON CONFLICT (id_user) DO UPDATE SET world_records=excluded.world_records,date_updated=excluded.date_updated \
-                                     WHERE user_points.world_records IS DISTINCT FROM excluded.world_records",
-                                )
-                                .bind::<Integer, _>(id_user)
-                                .execute(connection)
-                                .await?;
-                            }
+                            world_record_user_ids = user_ids;
                         }
                     }
 
@@ -319,6 +354,7 @@ impl Database {
                         id_record: created.id,
                         personal_best_changed,
                         tournament_result_changed: !changed_tournaments.is_empty(),
+                        world_record_user_ids,
                     })
                 })
             })

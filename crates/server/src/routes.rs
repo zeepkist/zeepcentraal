@@ -406,8 +406,8 @@ pub async fn submit_record(
         .ok()
         .flatten();
     let valid_workshop_id = body.workshop_id.is_none() || workshop_id.is_some_and(|id| id > 0);
-    let padding = usize::from(body.ghost_data.ends_with('='))
-        + usize::from(body.ghost_data.ends_with("=="));
+    let padding =
+        usize::from(body.ghost_data.ends_with('=')) + usize::from(body.ghost_data.ends_with("=="));
     let decoded_size = body
         .ghost_data
         .len()
@@ -434,12 +434,9 @@ pub async fn submit_record(
     }
     require_current_mod(&state, &body.mod_version).await?;
     let user = authenticated_user(&state, &headers, true).await?;
-    let ghost_bytes = STANDARD.decode(&body.ghost_data).map_err(|_| {
-        Problem::code(
-            StatusCode::BAD_REQUEST,
-            RECORD_SUBMIT_MISSING_PARAMS,
-        )
-    })?;
+    let ghost_bytes = STANDARD
+        .decode(&body.ghost_data)
+        .map_err(|_| Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_MISSING_PARAMS))?;
     if ghost_bytes.len() > MAX_GHOST_COMPRESSED_BYTES {
         return Err(Problem::code(
             StatusCode::BAD_REQUEST,
@@ -469,12 +466,7 @@ pub async fn submit_record(
     let statistics = tokio::task::spawn_blocking(move || parse_ghost_statistics(&parser_bytes))
         .await
         .map_err(|error| Problem::internal(error.into()))?
-        .map_err(|_| {
-            Problem::code(
-                StatusCode::BAD_REQUEST,
-                RECORD_SUBMIT_MISSING_PARAMS,
-            )
-        })?;
+        .map_err(|_| Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_MISSING_PARAMS))?;
     drop(parser_slot);
 
     let adventure = workshop_id.is_none();
@@ -501,10 +493,7 @@ pub async fn submit_record(
         .await
         .map_err(Problem::internal)?;
     if submitted.id_record <= 0 {
-        return Err(Problem::code(
-            StatusCode::BAD_REQUEST,
-            RECORD_SUBMIT_FAILED,
-        ));
+        return Err(Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_FAILED));
     }
 
     let workshop_scan_claimed = match workshop_id {
@@ -515,12 +504,18 @@ pub async fn submit_record(
             .map_err(Problem::internal)?,
         None => false,
     };
-    schedule_record_upload(state.clone(), submitted.id_record, ghost_bytes, retained_bytes);
+    schedule_record_upload(
+        state.clone(),
+        submitted.id_record,
+        ghost_bytes,
+        retained_bytes,
+    );
     schedule_record_followups(
         state,
         level.id,
         user.id,
         submitted.personal_best_changed,
+        submitted.world_record_user_ids,
         workshop_id,
         workshop_scan_claimed,
     );
@@ -565,6 +560,7 @@ fn schedule_record_followups(
     id_level: i32,
     id_user: i32,
     personal_best_changed: bool,
+    world_record_user_ids: Vec<i32>,
     workshop_id: Option<i64>,
     workshop_scan_claimed: bool,
 ) {
@@ -581,6 +577,24 @@ fn schedule_record_followups(
                 .await
         {
             tracing::error!(id_level, id_user, error = %error, "Level score enqueue failed");
+        }
+        for world_record_user_id in world_record_user_ids {
+            if let Err(error) = state
+                .queue
+                .enqueue(
+                    TaskIdentifier::UpdatePlayerScore,
+                    serde_json::json!({"idUser": world_record_user_id}),
+                    JobLane::Fast,
+                    Some(&format!("update-player-score:{world_record_user_id}")),
+                )
+                .await
+            {
+                tracing::error!(
+                    id_user = world_record_user_id,
+                    error = %error,
+                    "World-record count enqueue failed"
+                );
+            }
         }
         if workshop_scan_claimed
             && let Some(workshop_id) = workshop_id
