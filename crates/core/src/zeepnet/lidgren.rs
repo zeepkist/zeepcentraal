@@ -90,6 +90,15 @@ pub struct LidgrenClientOptions {
 }
 
 impl LidgrenClientOptions {
+    pub fn load_balancer(remote: SocketAddr, hail: Vec<u8>) -> Self {
+        Self {
+            remote,
+            application_identifier: "LoadBalancer".into(),
+            hail,
+            mtu: DEFAULT_MTU,
+        }
+    }
+
     pub fn game_server(remote: SocketAddr, hail: Vec<u8>) -> Self {
         Self {
             remote,

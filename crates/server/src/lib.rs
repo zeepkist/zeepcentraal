@@ -5,6 +5,7 @@ pub mod config;
 pub mod discord_runtime_routes;
 pub mod docs;
 pub mod lobby;
+pub mod lobby_runtime;
 pub mod problem;
 pub mod rate_limit;
 pub mod routes;
@@ -41,6 +42,7 @@ pub async fn run() -> anyhow::Result<()> {
     )
     .await?;
     let address = config.runtime.address;
+    let lobby_config = config.lobby.clone();
     let object_storage = Arc::new(zc_core::object_storage::S3ObjectStorage::new(
         &config.object_storage,
     )?);
@@ -56,6 +58,12 @@ pub async fn run() -> anyhow::Result<()> {
         record_upload_bytes: Arc::new(tokio::sync::Semaphore::new(64 * 1024 * 1024)),
         lobby: lobby::LobbySnapshotStore::default(),
     });
+    let lobby_runtime = lobby_runtime::LobbyRuntime::start(
+        lobby_config,
+        state.lobby.clone(),
+        state.database.clone(),
+    )
+    .await?;
     let listener = tokio::net::TcpListener::bind(address).await?;
     tracing::info!(%address, "ZeepCentraal API ready");
     axum::serve(
@@ -64,6 +72,7 @@ pub async fn run() -> anyhow::Result<()> {
     )
     .with_graceful_shutdown(shutdown())
     .await?;
+    lobby_runtime.stop().await;
     telemetry.shutdown().await
 }
 

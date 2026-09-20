@@ -32,7 +32,7 @@ pub enum LobbyStatus {
     Unavailable,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct LobbyStats {
     pub online_players: Option<u64>,
@@ -105,6 +105,10 @@ pub async fn events(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let mut headers = HeaderMap::new();
     headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
     headers.insert(header::CONNECTION, HeaderValue::from_static("keep-alive"));
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("text/event-stream; charset=utf-8"),
+    );
     (
         headers,
         Sse::new(stream).keep_alive(

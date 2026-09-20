@@ -1,5 +1,5 @@
 use anyhow::{Context, Result, ensure};
-use std::{sync::Arc, time::Duration};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
 #[derive(Clone)]
 pub struct ServerConfig {
@@ -20,6 +20,23 @@ pub struct ServerConfig {
     pub rate_limits: RateLimits,
     pub turnstile_secret: Arc<str>,
     pub turnstile_hostnames: Vec<String>,
+    pub lobby: LobbyRuntimeConfig,
+}
+
+#[derive(Clone)]
+pub struct LobbyRuntimeConfig {
+    pub enabled: bool,
+    pub app_id: u32,
+    pub master: Option<SocketAddr>,
+    pub build: Option<i32>,
+    pub refresh_token_file: PathBuf,
+    pub broker: Option<RoomBrokerConfig>,
+}
+
+#[derive(Clone)]
+pub struct RoomBrokerConfig {
+    pub address: SocketAddr,
+    pub token: Arc<str>,
 }
 
 #[derive(Clone, Copy)]
@@ -55,16 +72,15 @@ impl ServerConfig {
             access_ttl,
             refresh_ttl,
         )?;
+        let steam_app_id: u32 = std::env::var("STEAM_APP_ID")
+            .unwrap_or_else(|_| "1440670".to_owned())
+            .parse()
+            .context("STEAM_APP_ID must be a positive integer")?;
+        ensure!(steam_app_id > 0, "STEAM_APP_ID must be a positive integer");
         let steam = std::env::var("STEAM_API_KEY")
             .ok()
             .filter(|value| !value.is_empty())
-            .map(|key| {
-                let app_id = std::env::var("STEAM_APP_ID")
-                    .unwrap_or_else(|_| "1440670".to_owned())
-                    .parse()
-                    .context("STEAM_APP_ID must be a positive integer")?;
-                zc_core::steam::SteamClient::new(key, app_id)
-            })
+            .map(|key| zc_core::steam::SteamClient::new(key, steam_app_id))
             .transpose()?;
         let frontend_url =
             std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:4000".to_owned());
@@ -100,6 +116,58 @@ impl ServerConfig {
             .filter_map(|origin| url::Url::parse(origin).ok())
             .filter_map(|origin| origin.host_str().map(str::to_lowercase))
             .collect();
+        let lobby_enabled = boolean("ZEEPKIST_LOBBY_ENABLED", false)?;
+        let lobby_master = match (
+            optional("ZEEPKIST_LOBBY_HOST"),
+            optional("ZEEPKIST_LOBBY_PORT"),
+        ) {
+            (Some(host), Some(port)) => Some(
+                format!("{host}:{port}")
+                    .parse()
+                    .context("ZEEPKIST_LOBBY_HOST or ZEEPKIST_LOBBY_PORT is invalid")?,
+            ),
+            (None, None) if !lobby_enabled => None,
+            _ => anyhow::bail!(
+                "ZEEPKIST_LOBBY_HOST and ZEEPKIST_LOBBY_PORT are required when lobby feed is enabled"
+            ),
+        };
+        let lobby_build = optional("ZEEPKIST_LOBBY_BUILD")
+            .map(|value| {
+                value
+                    .parse::<i32>()
+                    .context("ZEEPKIST_LOBBY_BUILD must be positive")
+            })
+            .transpose()?;
+        if lobby_enabled {
+            ensure!(
+                lobby_build.is_some_and(|value| value > 0),
+                "ZEEPKIST_LOBBY_BUILD is required when lobby feed is enabled"
+            );
+        }
+        let broker_enabled = boolean("ZEEPKIST_ROOM_BROKER_ENABLED", false)?;
+        ensure!(
+            !broker_enabled || lobby_enabled,
+            "ZEEPKIST_LOBBY_ENABLED is required when room broker is enabled"
+        );
+        let broker = if broker_enabled {
+            let token = zc_core::config::required("ZEEPKIST_ROOM_BROKER_TOKEN")?;
+            ensure!(
+                token.len() >= 32,
+                "ZEEPKIST_ROOM_BROKER_TOKEN must contain at least 32 characters"
+            );
+            let host =
+                std::env::var("ZEEPKIST_ROOM_BROKER_HOST").unwrap_or_else(|_| "0.0.0.0".to_owned());
+            let port =
+                std::env::var("ZEEPKIST_ROOM_BROKER_PORT").unwrap_or_else(|_| "3001".to_owned());
+            Some(RoomBrokerConfig {
+                address: format!("{host}:{port}")
+                    .parse()
+                    .context("ZEEPKIST_ROOM_BROKER_HOST or ZEEPKIST_ROOM_BROKER_PORT is invalid")?,
+                token: token.into(),
+            })
+        } else {
+            None
+        };
         Ok(Self {
             runtime,
             object_storage,
@@ -118,6 +186,16 @@ impl ServerConfig {
             rate_limits,
             turnstile_secret: turnstile_secret.into(),
             turnstile_hostnames,
+            lobby: LobbyRuntimeConfig {
+                enabled: lobby_enabled,
+                app_id: steam_app_id,
+                master: lobby_master,
+                build: lobby_build,
+                refresh_token_file: optional("ZEEPKIST_STEAM_REFRESH_TOKEN_FILE")
+                    .unwrap_or_default()
+                    .into(),
+                broker,
+            },
         })
     }
 }

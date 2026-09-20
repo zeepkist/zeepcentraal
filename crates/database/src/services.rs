@@ -12,6 +12,7 @@ pub mod discord;
 pub mod discord_runtime;
 pub mod inspector;
 pub mod jobs;
+pub mod lobby;
 pub mod lobby_assets;
 pub mod managed_lobby;
 pub mod record;
