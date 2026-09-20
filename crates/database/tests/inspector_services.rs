@@ -48,7 +48,7 @@ async fn inspector_mutations_preserve_atomic_state_transitions() -> Result<()> {
             }],
         )
         .await?;
-    let id_submission = selected[0]["id"].as_i64().context("submission id")?;
+    let id_submission = selected[0].id;
     assert!(
         database
             .set_inspector_submission_retry(id_submission, "inspection-transient")

@@ -6,6 +6,7 @@ use diesel::{
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
+use std::future::Future;
 
 #[derive(QueryableByName)]
 struct JsonRow {
@@ -17,6 +18,124 @@ struct JsonRow {
 struct IdRow {
     #[diesel(sql_type = BigInt)]
     id: i64,
+}
+
+#[derive(QueryableByName)]
+struct IntegerIdRow {
+    #[diesel(sql_type = Integer)]
+    id: i32,
+}
+
+#[derive(QueryableByName)]
+struct BoolRow {
+    #[diesel(sql_type = Bool)]
+    value: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InspectorContestRow {
+    #[diesel(sql_type = BigInt)]
+    pub id: i64,
+    #[diesel(sql_type = Text)]
+    pub thread_id: String,
+    #[diesel(sql_type = Text)]
+    pub theme: String,
+    #[diesel(sql_type = Integer)]
+    pub season_number: i32,
+    #[diesel(sql_type = Integer)]
+    pub round_number: i32,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub id_zsl_round: Option<i32>,
+    #[diesel(sql_type = Text)]
+    pub state: String,
+    #[diesel(sql_type = Text)]
+    pub rules_hash: String,
+    #[diesel(sql_type = Nullable<BigInt>)]
+    pub current_playlist_id: Option<i64>,
+    #[diesel(sql_type = Jsonb)]
+    pub publication: serde_json::Value,
+}
+
+#[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InspectorSubmissionRow {
+    #[diesel(sql_type = BigInt)]
+    pub id: i64,
+    #[diesel(sql_type = Text)]
+    pub message_id: String,
+    #[diesel(sql_type = Text)]
+    pub author_id: String,
+    #[diesel(sql_type = BigInt)]
+    pub workshop_id: i64,
+    #[diesel(sql_type = Text)]
+    pub message_created_at: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub message_edited_at: Option<String>,
+    #[diesel(sql_type = Text)]
+    pub state: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub source_error: Option<String>,
+    #[diesel(sql_type = Nullable<BigInt>)]
+    pub latest_validation_id: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InspectorValidationRow {
+    #[diesel(sql_type = BigInt)]
+    pub id: i64,
+    #[diesel(sql_type = BigInt)]
+    pub id_submission: i64,
+    #[diesel(sql_type = Text)]
+    pub workshop_updated_at: String,
+    #[diesel(sql_type = BigInt)]
+    pub workshop_file_size: i64,
+    #[diesel(sql_type = Text)]
+    pub validator_version: String,
+    #[diesel(sql_type = Text)]
+    pub rules_hash: String,
+    #[diesel(sql_type = Jsonb)]
+    pub failures: serde_json::Value,
+    #[diesel(sql_type = Bool)]
+    pub valid: bool,
+    #[diesel(sql_type = Nullable<Jsonb>)]
+    pub payload: Option<serde_json::Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InspectorPlaylistRow {
+    #[diesel(sql_type = BigInt)]
+    pub id: i64,
+    #[diesel(sql_type = Text)]
+    pub digest: String,
+    #[diesel(sql_type = Integer)]
+    pub valid_count: i32,
+    #[diesel(sql_type = Text)]
+    pub object_key: String,
+    #[diesel(sql_type = BigInt)]
+    pub date_created_epoch: i64,
+}
+
+#[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InspectorPlaylistMemberRow {
+    #[diesel(sql_type = BigInt)]
+    pub id_validation: i64,
+    #[diesel(sql_type = BigInt)]
+    pub workshop_id: i64,
+    #[diesel(sql_type = Bool)]
+    pub valid: bool,
+    #[diesel(sql_type = Nullable<Jsonb>)]
+    pub payload: Option<serde_json::Value>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InspectorPlaylistBundle {
+    pub playlist: InspectorPlaylistRow,
+    pub members: Vec<InspectorPlaylistMemberRow>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -75,6 +194,135 @@ pub struct InspectorPlaylistMember {
 }
 
 impl Database {
+    pub async fn with_inspector_lock<T, F, Fut>(&self, run: F) -> Result<Option<T>>
+    where
+        F: FnOnce() -> Fut,
+        Fut: Future<Output = Result<T>>,
+    {
+        let mut connection = self.connection().await?;
+        let locked = sql_query("SELECT pg_try_advisory_lock(1953721968, 1) AS value")
+            .get_result::<BoolRow>(&mut connection)
+            .await?
+            .value;
+        if !locked {
+            return Ok(None);
+        }
+        let result = run().await;
+        let unlocked = sql_query("SELECT pg_advisory_unlock(1953721968, 1) AS value")
+            .get_result::<BoolRow>(&mut connection)
+            .await;
+        match (result, unlocked) {
+            (Ok(value), Ok(row)) => {
+                ensure!(row.value, "Inspector advisory lock was lost");
+                Ok(Some(value))
+            }
+            (Err(error), _) => Err(error),
+            (Ok(_), Err(error)) => Err(error.into()),
+        }
+    }
+
+    pub async fn find_inspector_round(
+        &self,
+        season_id: Option<i32>,
+        round: i32,
+        override_id: Option<i32>,
+    ) -> Result<Option<i32>> {
+        ensure!(round > 0, "Invalid inspector round number");
+        let mut connection = self.connection().await?;
+        let rows = sql_query(
+            "SELECT id FROM zsl_round WHERE (($1 IS NOT NULL AND id=$1) OR \
+             ($1 IS NULL AND $2 IS NOT NULL AND id_season=$2 AND round=$3)) LIMIT 2",
+        )
+        .bind::<Nullable<Integer>, _>(override_id)
+        .bind::<Nullable<Integer>, _>(season_id)
+        .bind::<Integer, _>(round)
+        .load::<IntegerIdRow>(&mut connection)
+        .await?;
+        Ok((rows.len() == 1).then(|| rows[0].id))
+    }
+
+    pub async fn get_inspector_contest(
+        &self,
+        thread_id: &str,
+    ) -> Result<Option<InspectorContestRow>> {
+        ensure!(!thread_id.is_empty(), "Invalid inspector thread ID");
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT id,thread_id,theme,season_number,round_number,id_zsl_round,state,rules_hash, \
+             current_playlist_id,publication FROM zc_private.level_submission_contest \
+             WHERE thread_id=$1",
+        )
+        .bind::<Text, _>(thread_id)
+        .get_result::<InspectorContestRow>(&mut connection)
+        .await
+        .optional()?)
+    }
+
+    pub async fn get_inspector_submissions(
+        &self,
+        id_contest: i64,
+    ) -> Result<Vec<InspectorSubmissionRow>> {
+        ensure!(id_contest > 0, "Invalid inspector contest ID");
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT id,message_id,author_id,workshop_id,message_created_at::text AS message_created_at, \
+             message_edited_at::text AS message_edited_at,state,source_error,latest_validation_id \
+             FROM zc_private.level_submissions WHERE id_contest=$1 ORDER BY id",
+        )
+        .bind::<BigInt, _>(id_contest)
+        .load::<InspectorSubmissionRow>(&mut connection)
+        .await?)
+    }
+
+    pub async fn get_inspector_validation(
+        &self,
+        id: Option<i64>,
+    ) -> Result<Option<InspectorValidationRow>> {
+        let Some(id) = id else { return Ok(None) };
+        ensure!(id > 0, "Invalid inspector validation ID");
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT id,id_submission,workshop_updated_at,workshop_file_size,validator_version, \
+             rules_hash,failures,valid,payload FROM zc_private.level_submission_validation WHERE id=$1",
+        )
+        .bind::<BigInt, _>(id)
+        .get_result::<InspectorValidationRow>(&mut connection)
+        .await
+        .optional()?)
+    }
+
+    pub async fn get_inspector_playlist(
+        &self,
+        thread_id: &str,
+    ) -> Result<Option<InspectorPlaylistBundle>> {
+        ensure!(!thread_id.is_empty(), "Invalid inspector thread ID");
+        let mut connection = self.connection().await?;
+        let playlist = sql_query(
+            "SELECT p.id,p.digest,p.valid_count,p.object_key, \
+             floor(extract(epoch FROM p.date_created))::bigint AS date_created_epoch \
+             FROM zc_private.level_submission_contest c \
+             JOIN zc_private.level_submission_playlist p ON p.id=c.current_playlist_id \
+             WHERE c.thread_id=$1",
+        )
+        .bind::<Text, _>(thread_id)
+        .get_result::<InspectorPlaylistRow>(&mut connection)
+        .await
+        .optional()?;
+        let Some(playlist) = playlist else {
+            return Ok(None);
+        };
+        let members = sql_query(
+            "SELECT e.id_validation,e.workshop_id,v.valid,v.payload \
+             FROM zc_private.level_submission_playlist_entry e \
+             JOIN zc_private.level_submission_validation v ON v.id=e.id_validation \
+             WHERE e.id_playlist=$1 ORDER BY e.position",
+        )
+        .bind::<BigInt, _>(playlist.id)
+        .load::<InspectorPlaylistMemberRow>(&mut connection)
+        .await?;
+        Ok(Some(InspectorPlaylistBundle { playlist, members }))
+    }
+
     pub async fn save_inspector_contest(
         &self,
         input: &InspectorContestInput,
@@ -155,14 +403,14 @@ impl Database {
         &self,
         id_contest: i64,
         rows: &[InspectorSubmissionInput],
-    ) -> Result<Vec<serde_json::Value>> {
+    ) -> Result<Vec<InspectorSubmissionRow>> {
         ensure!(id_contest > 0, "Invalid inspector contest ID");
         for row in rows {
             validate_submission(row)?;
         }
         let mut connection = self.connection().await?;
         connection
-            .transaction::<Vec<serde_json::Value>, anyhow::Error, _>(|connection| {
+            .transaction::<Vec<InspectorSubmissionRow>, anyhow::Error, _>(|connection| {
                 Box::pin(async move {
                     sql_query(
                         "UPDATE zc_private.level_submissions SET state='withdrawn', \
@@ -204,16 +452,15 @@ impl Database {
                     .execute(connection)
                     .await?;
                     Ok(sql_query(
-                        "SELECT to_jsonb(level_submissions.*) AS payload FROM \
-                         zc_private.level_submissions WHERE id_contest=$1 AND state='selected' \
-                         ORDER BY id",
+                        "SELECT id,message_id,author_id,workshop_id, \
+                         message_created_at::text AS message_created_at, \
+                         message_edited_at::text AS message_edited_at,state,source_error, \
+                         latest_validation_id FROM zc_private.level_submissions \
+                         WHERE id_contest=$1 AND state='selected' ORDER BY id",
                     )
                     .bind::<BigInt, _>(id_contest)
-                    .load::<JsonRow>(connection)
-                    .await?
-                    .into_iter()
-                    .map(|row| row.payload)
-                    .collect())
+                    .load::<InspectorSubmissionRow>(connection)
+                    .await?)
                 })
             })
             .await
