@@ -8,23 +8,12 @@ use axum::{
 };
 use std::sync::Arc;
 use tower_http::{
-    cors::{AllowOrigin, CorsLayer},
+    cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer},
     trace::TraceLayer,
 };
 
 pub fn router(state: Arc<AppState>) -> Result<Router> {
-    let origins = state
-        .config
-        .cors_origins
-        .iter()
-        .map(|origin| origin.parse())
-        .collect::<Result<Vec<_>, _>>()
-        .context("CORS_ALLOWED_ORIGINS contains an invalid header value")?;
-    let cors = CorsLayer::new()
-        .allow_origin(AllowOrigin::list(origins))
-        .allow_credentials(true)
-        .allow_headers(tower_http::cors::Any)
-        .allow_methods(tower_http::cors::Any);
+    let cors = cors_layer(&state.config.cors_origins)?;
     let body_limit = state.config.body_limit;
     Ok(Router::new()
         .route(
@@ -191,4 +180,28 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(state))
+}
+
+fn cors_layer(origins: &[String]) -> Result<CorsLayer> {
+    let origins = origins
+        .iter()
+        .map(|origin| origin.parse())
+        .collect::<Result<Vec<_>, _>>()
+        .context("CORS_ALLOWED_ORIGINS contains an invalid header value")?;
+    Ok(CorsLayer::new()
+        .allow_origin(AllowOrigin::list(origins))
+        .allow_credentials(true)
+        .allow_headers(AllowHeaders::mirror_request())
+        .allow_methods(AllowMethods::mirror_request()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn credentialed_cors_configuration_is_accepted() {
+        let cors = cors_layer(&["http://localhost:4000".to_owned()]).unwrap();
+        let _: Router = Router::new().layer(cors);
+    }
 }
