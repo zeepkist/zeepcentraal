@@ -64,8 +64,20 @@ impl Problem {
     }
 
     pub fn internal(error: anyhow::Error) -> Self {
+        if error.chain().any(zc_database::is_unavailable_error) {
+            return Self::unavailable(error);
+        }
         tracing::error!(error = %error, "API operation failed");
         Self::code(StatusCode::INTERNAL_SERVER_ERROR, INTERNAL)
+    }
+
+    pub fn unavailable(error: anyhow::Error) -> Self {
+        tracing::warn!(error = %error, "Database unavailable");
+        Self {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            detail: "Service unavailable".to_owned(),
+            error_code: None,
+        }
     }
 }
 
@@ -85,5 +97,39 @@ impl IntoResponse for Problem {
             HeaderValue::from_static("application/problem+json"),
         );
         response
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn pool_acquisition_failure_maps_to_service_unavailable() {
+        let error = zc_database::PoolAcquireError::from_snapshot(
+            "application",
+            Duration::from_secs(5),
+            zc_database::PoolSnapshot {
+                physical_limit: 7,
+                physical_connections: 7,
+                idle_connections: 0,
+                partition_limit: 5,
+                partition_available: 0,
+                waiting_acquisitions: 1,
+            },
+            None,
+        );
+        let problem = Problem::internal(anyhow::Error::new(error).context("query failed"));
+        assert_eq!(problem.status, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(problem.detail, "Service unavailable");
+        assert!(problem.error_code.is_none());
+    }
+
+    #[test]
+    fn other_internal_failure_stays_internal_server_error() {
+        let problem = Problem::internal(anyhow::anyhow!("broken query"));
+        assert_eq!(problem.status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(problem.error_code, Some(INTERNAL.into()));
     }
 }

@@ -10,6 +10,7 @@ use utoipa::OpenApi;
 #[openapi(
     paths(
         crate::routes::health,
+        crate::routes::ready,
         crate::lobby::snapshot,
         crate::lobby::events,
         crate::routes::add_favourite,
@@ -91,7 +92,10 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 50);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 51);
+        assert!(schema["paths"]["/healthz"]["get"].is_object());
+        assert!(schema["paths"]["/readyz"]["get"]["responses"]["200"].is_object());
+        assert!(schema["paths"]["/readyz"]["get"]["responses"]["503"].is_object());
         assert!(schema.to_string().find("graphql").is_none());
         let (mime, asset) = scalar_api_reference::get_asset_with_mime("scalar.js").unwrap();
         assert_eq!(mime, "application/javascript");

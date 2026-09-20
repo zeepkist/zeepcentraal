@@ -15,13 +15,24 @@ async fn run() -> anyhow::Result<()> {
         zc_inspector_zeep::config::InspectorConfig::parse(&tokio::fs::read_to_string(path).await?)?;
     let options =
         zc_inspector_zeep::config::parse_options(&std::env::args().skip(1).collect::<Vec<_>>())?;
-    let database_config = zc_core::DatabaseConfig::from_env(2)?;
+    let database_config = zc_core::DatabaseConfig::from_env_with_profile(
+        2,
+        zc_core::config::DatabaseProfile::Worker,
+    )?;
     anyhow::ensure!(
         database_config.pool_max >= 2,
         "Inspector requires DATABASE_POOL_MAX of at least 2"
     );
-    let database =
-        zc_database::Database::connect(&database_config.url, database_config.pool_max).await?;
+    let pool = zc_database::DatabasePool::connect(
+        &database_config.url,
+        zc_database::PoolSettings::from_database_config(
+            &database_config,
+            "zeepcentraal-inspector-zeep",
+        ),
+        zc_database::PoolBudget::application(database_config.pool_max),
+    )
+    .await?;
+    let database = zc_database::Database::from_partition(pool.application());
     let discord = zc_inspector_zeep::discord::DiscordRest::new(zc_core::config::required(
         "INSPECTOR_DISCORD_TOKEN",
     )?)?;

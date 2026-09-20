@@ -7,7 +7,7 @@ use diesel::{
     QueryableByName, sql_query,
     sql_types::{Bool, Text},
 };
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 use std::time::Duration;
 use tokio::sync::watch;
 
@@ -46,11 +46,11 @@ struct ScheduleRow {
 }
 
 pub async fn run(
-    database_url: String,
+    scheduler: zc_database::PoolPartition,
     queue: Queue,
     mut shutdown: watch::Receiver<bool>,
 ) -> Result<()> {
-    let mut connection = AsyncPgConnection::establish(&database_url).await?;
+    let mut connection = scheduler.connection().await?;
     loop {
         if *shutdown.borrow() {
             return Ok(());

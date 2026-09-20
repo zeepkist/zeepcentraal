@@ -29,18 +29,26 @@ pub struct AppState {
 pub async fn run() -> anyhow::Result<()> {
     let telemetry = zc_telemetry::initialize("server")?;
     let config = config::ServerConfig::from_env()?;
-    let database = zc_database::Database::connect(
+    let queue_max = zc_core::environment::var("JOBS_QUEUE_POOL_MAX")
+        .unwrap_or_else(|_| "2".to_owned())
+        .parse()?;
+    anyhow::ensure!(queue_max > 0, "JOBS_QUEUE_POOL_MAX must be positive");
+    let pool = zc_database::DatabasePool::connect(
         &config.runtime.database.url,
-        config.runtime.database.pool_max,
+        zc_database::PoolSettings::from_database_config(
+            &config.runtime.database,
+            "zeepcentraal-server",
+        ),
+        zc_database::PoolBudget {
+            application: config.runtime.database.pool_max,
+            queue: queue_max,
+            scheduler: 0,
+        },
     )
     .await?;
-    let queue = zc_jobs::queue::Queue::connect(
-        &config.runtime.database.url,
-        zc_core::environment::var("JOBS_QUEUE_POOL_MAX")
-            .unwrap_or_else(|_| "2".to_owned())
-            .parse()?,
-    )
-    .await?;
+    let database = zc_database::Database::from_partition(pool.application());
+    database.ping().await?;
+    let queue = zc_jobs::queue::Queue::connect(pool.queue()?).await?;
     let address = config.runtime.address;
     let lobby_config = config.lobby.clone();
     let object_storage = Arc::new(zc_core::object_storage::S3ObjectStorage::new(

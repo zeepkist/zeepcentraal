@@ -240,5 +240,6 @@ mod tests {
         assert_eq!(bucket("/level/request", limits), Some(("mutation", 3)));
         assert_eq!(bucket("/job/trigger", limits), Some(("job", 4)));
         assert_eq!(bucket("/healthz", limits), None);
+        assert_eq!(bucket("/readyz", limits), None);
     }
 }

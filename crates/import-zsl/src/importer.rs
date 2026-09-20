@@ -10,9 +10,20 @@ use zc_database::services::zsl::{RankedLevelResult, RankedResult};
 pub async fn run() -> Result<()> {
     let root = zc_core::environment::var("SUPER_LEAGUE_DATA_PATH")
         .unwrap_or_else(|_| "super_league_data".to_owned());
-    let database_config = zc_core::DatabaseConfig::from_env(1)?;
-    let database =
-        zc_database::Database::connect(&database_config.url, database_config.pool_max).await?;
+    let database_config = zc_core::DatabaseConfig::from_env_with_profile(
+        1,
+        zc_core::config::DatabaseProfile::Worker,
+    )?;
+    let pool = zc_database::DatabasePool::connect(
+        &database_config.url,
+        zc_database::PoolSettings::from_database_config(
+            &database_config,
+            "zeepcentraal-import-zsl",
+        ),
+        zc_database::PoolBudget::application(database_config.pool_max),
+    )
+    .await?;
+    let database = zc_database::Database::from_partition(pool.application());
     let steam = zc_core::steam::SteamClient::new(
         zc_core::config::required("STEAM_API_KEY")?,
         zc_core::environment::var("STEAM_APP_ID")

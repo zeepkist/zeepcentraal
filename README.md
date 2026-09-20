@@ -61,7 +61,12 @@ At minimum, set these values in `.env`:
 | `JWT_SECRET` | Yes | Must be at least 32 characters |
 | `CORS_ALLOWED_ORIGINS` | No | Comma-separated website origins; defaults to `FRONTEND_URL` |
 | `TRUST_PROXY` | No | Trust forwarded client IP headers for rate limiting |
-| `JOBS_QUEUE_POOL_MAX` | No | Per-process Bun SQL queue pool maximum; defaults to `2` |
+| `DATABASE_POOL_MAX` | No | Application database partition; server defaults to `5`, jobs to `8` |
+| `JOBS_QUEUE_POOL_MAX` | No | Reserved queue database partition; defaults to `2` |
+| `DATABASE_CONNECT_TIMEOUT_MS` | No | Pool acquisition/connect timeout; defaults to `5000` |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | No | PostgreSQL statement timeout; server defaults to `15000`, jobs to `300000` |
+| `DATABASE_LOCK_TIMEOUT_MS` | No | PostgreSQL lock timeout; server defaults to `3000`, jobs to `30000` |
+| `DATABASE_IDLE_TRANSACTION_TIMEOUT_MS` | No | Idle transaction timeout; server defaults to `30000`, jobs to `60000` |
 
 The remaining values in `.env.example` are optional or have defaults, but you should configure them for your environment (Steam, Discord, Wasabi/S3, and OpenTelemetry).
 

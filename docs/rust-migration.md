@@ -28,6 +28,14 @@ the loader never copies file values into the process environment.
 
 ## Database adoption
 
+Each Rust process owns one physical Diesel pool and keeps one connection warm. Server reserves
+five application and two queue connections. Jobs reserves eight application, two queue, and one
+scheduler connection; logical partition semaphores prevent request work from consuming queue or
+scheduler capacity. `DATABASE_POOL_MAX` controls the application partition and
+`JOBS_QUEUE_POOL_MAX` controls the queue partition. Existing timeout variables configure both pool
+acquisition and PostgreSQL session timeouts. `/healthz` remains process liveness; `/readyz` checks
+database readiness and returns HTTP 503 problem JSON while PostgreSQL is unavailable.
+
 `zeepcentraal-migrate verify` is read-only. It acquires a PostgreSQL advisory lock, checks
 frozen 87-row Drizzle ledger (legacy prefix plus 86 journal entries), and compares 53 tables, one view,
 and 535 columns from `0086_snapshot.json` with `pg_catalog`.
@@ -46,6 +54,29 @@ Cutover sequence:
 5. Run wire-contract and smoke checks from unchanged web and GTR clients.
 6. Switch traffic. Keep Bun images available for application rollback; never reverse schema
    by deleting data or replaying old migrations.
+
+## OpenTelemetry
+
+Development exports OTLP gRPC traces, metrics, and error logs to
+`https://ingress.zeepki.st:443`. Blank service-name variables are ignored, producing
+`zeepcentraal-<service>-dev`; production images explicitly set unsuffixed service names. HTTP
+server spans use matched routes and W3C Trace Context, and record status and duration without
+query values or authorization headers. Set `OTEL_SDK_DISABLED=true` to keep local structured logs
+while disabling exporters. Invalid explicit endpoint or `RUST_LOG` values stop startup. Exporter
+failures warn locally and do not stop service.
+
+Opt-in smoke checks use configured development database and collector:
+
+```bash
+cargo test -p zc-database --test pool_reliability -- --ignored --nocapture
+cargo test -p zc-jobs --test pool_reliability -- --ignored --nocapture
+cargo test -p zc-telemetry --test live_otlp -- --ignored --nocapture
+```
+
+Database checks use `ZC_TEST_DATABASE_URL` when set, then fall back to development `DATABASE_URL`.
+`ZC_TEST_DATABASE_HOST` can replace only URL hostname for container-to-host test routing.
+Telemetry smoke emits one successful and one failed synthetic request, then forces all providers
+to flush; exporter rejection fails test.
 
 ## Required compatibility gates
 

@@ -35,6 +35,19 @@ pub async fn health() -> Json<Health> {
     Json(Health { status: "ok" })
 }
 
+#[utoipa::path(
+    get,
+    path = "/readyz",
+    responses(
+        (status = 200, body = Health),
+        (status = 503, description = "Database unavailable")
+    )
+)]
+pub async fn ready(State(state): State<Arc<AppState>>) -> ApiResult<Json<Health>> {
+    state.database.ping().await.map_err(Problem::unavailable)?;
+    Ok(Json(Health { status: "ok" }))
+}
+
 #[derive(Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "PascalCase")]
 pub struct LoginBody {

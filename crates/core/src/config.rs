@@ -27,7 +27,40 @@ impl FromStr for Environment {
 pub struct DatabaseConfig {
     pub url: String,
     pub pool_max: u32,
-    pub connect_timeout: Duration,
+    pub timeouts: DatabaseTimeouts,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DatabaseTimeouts {
+    pub connect: Duration,
+    pub statement: Duration,
+    pub lock: Duration,
+    pub idle_transaction: Duration,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DatabaseProfile {
+    Interactive,
+    Worker,
+}
+
+impl DatabaseProfile {
+    pub const fn defaults(self) -> DatabaseTimeouts {
+        match self {
+            Self::Interactive => DatabaseTimeouts {
+                connect: Duration::from_secs(5),
+                statement: Duration::from_secs(15),
+                lock: Duration::from_secs(3),
+                idle_transaction: Duration::from_secs(30),
+            },
+            Self::Worker => DatabaseTimeouts {
+                connect: Duration::from_secs(5),
+                statement: Duration::from_secs(5 * 60),
+                lock: Duration::from_secs(30),
+                idle_transaction: Duration::from_secs(60),
+            },
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -59,19 +92,29 @@ impl ObjectStorageConfig {
 
 impl DatabaseConfig {
     pub fn from_env(default_pool_max: u32) -> Result<Self> {
+        Self::from_env_with_profile(default_pool_max, DatabaseProfile::Interactive)
+    }
+
+    pub fn from_env_with_profile(default_pool_max: u32, profile: DatabaseProfile) -> Result<Self> {
         let url = required("DATABASE_URL")?;
         let parsed = url::Url::parse(&url).context("DATABASE_URL is invalid")?;
         ensure!(
             matches!(parsed.scheme(), "postgres" | "postgresql"),
             "DATABASE_URL must use PostgreSQL"
         );
+        let defaults = profile.defaults();
         Ok(Self {
             url,
             pool_max: positive_u32("DATABASE_POOL_MAX", default_pool_max)?,
-            connect_timeout: Duration::from_millis(positive_u64(
-                "DATABASE_CONNECT_TIMEOUT_MS",
-                5_000,
-            )?),
+            timeouts: DatabaseTimeouts {
+                connect: duration_ms("DATABASE_CONNECT_TIMEOUT_MS", defaults.connect)?,
+                statement: duration_ms("DATABASE_STATEMENT_TIMEOUT_MS", defaults.statement)?,
+                lock: duration_ms("DATABASE_LOCK_TIMEOUT_MS", defaults.lock)?,
+                idle_transaction: duration_ms(
+                    "DATABASE_IDLE_TRANSACTION_TIMEOUT_MS",
+                    defaults.idle_transaction,
+                )?,
+            },
         })
     }
 }
@@ -170,6 +213,11 @@ fn positive_u64(name: &str, default: u64) -> Result<u64> {
     Ok(value)
 }
 
+fn duration_ms(name: &str, default: Duration) -> Result<Duration> {
+    let default = u64::try_from(default.as_millis()).context("database timeout exceeds u64")?;
+    Ok(Duration::from_millis(positive_u64(name, default)?))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,6 +236,23 @@ mod tests {
         assert_eq!(parse_duration("15m").unwrap(), Duration::from_secs(900));
         assert_eq!(parse_duration("250").unwrap(), Duration::from_millis(250));
         assert!(parse_duration("1.5s").is_err());
+    }
+
+    #[test]
+    fn database_profiles_match_service_latency_contracts() {
+        assert_eq!(
+            DatabaseProfile::Interactive.defaults(),
+            DatabaseTimeouts {
+                connect: Duration::from_secs(5),
+                statement: Duration::from_secs(15),
+                lock: Duration::from_secs(3),
+                idle_transaction: Duration::from_secs(30),
+            }
+        );
+        assert_eq!(
+            DatabaseProfile::Worker.defaults().statement,
+            Duration::from_secs(300)
+        );
     }
 
     #[test]

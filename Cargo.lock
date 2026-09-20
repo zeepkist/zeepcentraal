@@ -2037,19 +2037,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentelemetry-http"
-version = "0.31.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7a6d09a73194e6b66df7c8f1b680f156d916a1a942abf2de06823dd02b7855d"
-dependencies = [
- "async-trait",
- "bytes",
- "http",
- "opentelemetry",
- "reqwest 0.12.28",
-]
-
-[[package]]
 name = "opentelemetry-otlp"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2057,15 +2044,12 @@ checksum = "1f69cd6acbb9af919df949cd1ec9e5e7fdc2ef15d234b6b795aaa525cc02f71f"
 dependencies = [
  "http",
  "opentelemetry",
- "opentelemetry-http",
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost 0.14.4",
- "reqwest 0.12.28",
  "thiserror 2.0.20",
  "tokio",
  "tonic",
- "tracing",
 ]
 
 [[package]]
@@ -2645,7 +2629,6 @@ checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
  "base64 0.22.1",
  "bytes",
- "futures-channel",
  "futures-core",
  "futures-util",
  "http",
@@ -4020,11 +4003,13 @@ dependencies = [
  "pin-project",
  "sync_wrapper",
  "tokio",
+ "tokio-rustls 0.26.5",
  "tokio-stream",
  "tower",
  "tower-layer",
  "tower-service",
  "tracing",
+ "webpki-roots 1.0.9",
 ]
 
 [[package]]
@@ -4870,6 +4855,7 @@ name = "zc-database"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bb8",
  "diesel",
  "diesel-async",
  "diesel_migrations",
@@ -4877,8 +4863,10 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "thiserror 2.0.20",
  "tokio",
  "tokio-postgres",
+ "tracing",
  "url",
  "utoipa",
  "zc-core",
@@ -4983,6 +4971,7 @@ dependencies = [
  "sha2 0.10.9",
  "tokio",
  "tracing",
+ "url",
  "zc-core",
  "zc-database",
  "zc-telemetry",
@@ -5050,13 +5039,18 @@ name = "zc-telemetry"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "axum",
  "opentelemetry",
  "opentelemetry-appender-tracing",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
+ "tokio",
+ "tonic",
+ "tower",
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",
+ "url",
  "zc-core",
 ]
 

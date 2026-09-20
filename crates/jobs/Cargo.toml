@@ -23,3 +23,6 @@ zc-workshop.workspace = true
 [[bin]]
 name = "zeepcentraal-jobs"
 path = "src/main.rs"
+
+[dev-dependencies]
+url.workspace = true

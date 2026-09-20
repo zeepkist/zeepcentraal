@@ -1,38 +1,42 @@
+use crate::{DatabasePool, PoolBudget, PoolConnection, PoolPartition, PoolSettings, PoolSnapshot};
 use anyhow::Result;
 use diesel::sql_query;
-use diesel_async::{
-    AsyncPgConnection, RunQueryDsl,
-    pooled_connection::{AsyncDieselConnectionManager, bb8::Pool},
-};
+use diesel_async::RunQueryDsl;
+use std::time::Duration;
 
 #[derive(Clone)]
 pub struct Database {
-    pool: Pool<AsyncPgConnection>,
+    partition: PoolPartition,
 }
 impl Database {
     pub async fn connect(url: &str, max: u32) -> Result<Self> {
-        let manager = AsyncDieselConnectionManager::<AsyncPgConnection>::new(url);
-        Ok(Self {
-            pool: Pool::builder()
-                .max_size(max)
-                .min_idle(Some(0))
-                .idle_timeout(Some(std::time::Duration::from_secs(30)))
-                .connection_timeout(std::time::Duration::from_secs(5))
-                .reaper_rate(std::time::Duration::from_secs(1))
-                .build(manager)
-                .await?,
-        })
+        let settings = PoolSettings {
+            application_name: "zeepcentraal-test".to_owned(),
+            acquire_timeout: Duration::from_secs(5),
+            statement_timeout: Duration::from_secs(15),
+            lock_timeout: Duration::from_secs(3),
+            idle_transaction_timeout: Duration::from_secs(30),
+            idle_timeout: Duration::from_secs(30),
+        };
+        let pool = DatabasePool::connect(url, settings, PoolBudget::application(max)).await?;
+        Ok(Self::from_partition(pool.application()))
+    }
+
+    pub fn from_partition(partition: PoolPartition) -> Self {
+        Self { partition }
     }
 
     pub async fn ping(&self) -> Result<()> {
-        let mut connection = self.pool.get().await?;
+        let mut connection = self.connection().await?;
         sql_query("SELECT 1").execute(&mut connection).await?;
         Ok(())
     }
 
-    pub(crate) async fn connection(
-        &self,
-    ) -> Result<diesel_async::pooled_connection::bb8::PooledConnection<'_, AsyncPgConnection>> {
-        Ok(self.pool.get().await?)
+    pub fn pool_snapshot(&self) -> PoolSnapshot {
+        self.partition.snapshot()
+    }
+
+    pub(crate) async fn connection(&self) -> Result<PoolConnection> {
+        self.partition.connection().await
     }
 }

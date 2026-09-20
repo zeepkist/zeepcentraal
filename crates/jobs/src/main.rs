@@ -4,16 +4,27 @@ async fn main() -> anyhow::Result<()> {
 
     zc_core::environment::initialize()?;
     let telemetry = zc_telemetry::initialize("jobs")?;
-    let config = zc_core::DatabaseConfig::from_env(8)?;
-    let database = zc_database::Database::connect(&config.url, config.pool_max).await?;
-    database.ping().await?;
-    let queue = zc_jobs::queue::Queue::connect(
+    let config = zc_core::DatabaseConfig::from_env_with_profile(
+        8,
+        zc_core::config::DatabaseProfile::Worker,
+    )?;
+    let queue_max = zc_core::environment::var("JOBS_QUEUE_POOL_MAX")
+        .unwrap_or_else(|_| "2".to_owned())
+        .parse()?;
+    anyhow::ensure!(queue_max > 0, "JOBS_QUEUE_POOL_MAX must be positive");
+    let pool = zc_database::DatabasePool::connect(
         &config.url,
-        zc_core::environment::var("JOBS_QUEUE_POOL_MAX")
-            .unwrap_or_else(|_| "8".to_owned())
-            .parse()?,
+        zc_database::PoolSettings::from_database_config(&config, "zeepcentraal-jobs"),
+        zc_database::PoolBudget {
+            application: config.pool_max,
+            queue: queue_max,
+            scheduler: 1,
+        },
     )
     .await?;
+    let database = zc_database::Database::from_partition(pool.application());
+    database.ping().await?;
+    let queue = zc_jobs::queue::Queue::connect(pool.queue()?).await?;
     let storage_config = zc_core::config::ObjectStorageConfig::from_env()?;
     let storage: Arc<dyn zc_core::object_storage::ObjectStorage> = Arc::new(
         zc_core::object_storage::S3ObjectStorage::new(&storage_config)?,
@@ -54,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
         handler,
         shutdown_rx.clone(),
     ));
-    let mut scheduler = tokio::spawn(zc_jobs::cron::run(config.url.clone(), queue, shutdown_rx));
+    let mut scheduler = tokio::spawn(zc_jobs::cron::run(pool.scheduler()?, queue, shutdown_rx));
     let result = tokio::select! {
         signal = shutdown_signal() => signal,
         result = &mut runtime => result?,

@@ -15,8 +15,16 @@ async fn main() -> anyhow::Result<()> {
             .unwrap_or(32)
             .saturating_add(2),
     )?;
-    let database =
-        zc_database::Database::connect(&database_config.url, database_config.pool_max).await?;
+    let pool = zc_database::DatabasePool::connect(
+        &database_config.url,
+        zc_database::PoolSettings::from_database_config(
+            &database_config,
+            "zeepcentraal-lobby-host",
+        ),
+        zc_database::PoolBudget::application(database_config.pool_max),
+    )
+    .await?;
+    let database = zc_database::Database::from_partition(pool.application());
     let storage: std::sync::Arc<dyn zc_core::object_storage::ObjectStorage> =
         std::sync::Arc::new(zc_core::object_storage::S3ObjectStorage::new(
             &zc_core::config::ObjectStorageConfig::from_env()?,

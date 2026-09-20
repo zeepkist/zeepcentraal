@@ -7,10 +7,7 @@ use axum::{
     routing::{delete, get, patch, post, put},
 };
 use std::sync::Arc;
-use tower_http::{
-    cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer},
-    trace::TraceLayer,
-};
+use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
 pub fn router(state: Arc<AppState>) -> Result<Router> {
     let cors = cors_layer(&state.config.cors_origins)?;
@@ -21,6 +18,7 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(|| async { axum::http::StatusCode::NO_CONTENT }),
         )
         .route("/healthz", get(routes::health).head(routes::health))
+        .route("/readyz", get(routes::ready).head(routes::ready))
         .route("/lobby", get(crate::lobby::snapshot))
         .route("/lobby/events", get(crate::lobby::events))
         .route("/openapi", get(docs::page))
@@ -178,7 +176,7 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             crate::rate_limit::middleware,
         ))
         .layer(cors)
-        .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(zc_telemetry::http::track_request))
         .with_state(state))
 }
 
