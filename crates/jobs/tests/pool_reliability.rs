@@ -26,15 +26,24 @@ async fn queue_verification_reuses_shared_warm_pool() -> Result<()> {
             idle_timeout: Duration::from_secs(30),
         },
         PoolBudget {
-            application: 1,
-            queue: 1,
-            scheduler: 0,
+            application: 8,
+            queue: 2,
+            scheduler: 1,
         },
     )
     .await?;
     assert_eq!(pool.snapshot().physical_connections, 1);
-    let _queue = zc_jobs::queue::Queue::connect(pool.queue()?).await?;
+    let queue_partition = pool.queue()?;
+    let _queue = zc_jobs::queue::Queue::connect(queue_partition.clone()).await?;
     assert_eq!(pool.snapshot().physical_connections, 1);
     assert_eq!(pool.snapshot().idle_connections, 1);
+    let _scheduler = pool.scheduler()?.connection().await?;
+    queue_partition.warm(2).await?;
+    assert!(pool.snapshot().physical_connections >= 3);
+    assert!(pool.snapshot().idle_connections >= 2);
+    let (fast, bulk) = tokio::join!(queue_partition.connection(), queue_partition.connection());
+    let _fast = fast?;
+    let _bulk = bulk?;
+    assert!(queue_partition.warm(3).await.is_err());
     Ok(())
 }

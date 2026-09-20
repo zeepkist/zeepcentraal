@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use diesel::{
     QueryableByName, sql_query,
-    sql_types::{Bool, Text},
+    sql_types::{Bool, Integer, Text},
 };
 use diesel_async::RunQueryDsl;
 use std::time::Duration;
@@ -23,6 +23,12 @@ struct SessionSettings {
 struct LockResult {
     #[diesel(sql_type = Bool)]
     acquired: bool,
+}
+
+#[derive(QueryableByName)]
+struct BackendPid {
+    #[diesel(sql_type = Integer)]
+    pid: i32,
 }
 
 fn settings() -> PoolSettings {
@@ -54,12 +60,12 @@ async fn warm_pool_and_reserved_partition_survive_idle() -> Result<()> {
         settings(),
         PoolBudget {
             application: 1,
-            queue: 1,
+            queue: 2,
             scheduler: 1,
         },
     )
     .await?;
-    assert_eq!(pool.physical_limit(), 3);
+    assert_eq!(pool.physical_limit(), 4);
     tokio::time::sleep(Duration::from_secs(31)).await;
 
     let application = pool.application();
@@ -75,8 +81,7 @@ async fn warm_pool_and_reserved_partition_survive_idle() -> Result<()> {
             .role,
         "application"
     );
-    let mut queue = pool.queue()?.connection().await?;
-    sql_query("SELECT 1").execute(&mut queue).await?;
+    let queue_partition = pool.queue()?;
 
     let session: SessionSettings = sql_query(
         "SELECT current_setting('application_name') AS application_name, \
@@ -93,6 +98,16 @@ async fn warm_pool_and_reserved_partition_survive_idle() -> Result<()> {
     assert!(pool.snapshot().physical_connections >= 1);
 
     let mut scheduler = pool.scheduler()?.connection().await?;
+    queue_partition.warm(2).await?;
+    assert!(pool.snapshot().physical_connections >= 4);
+    assert!(pool.snapshot().idle_connections >= 2);
+    let (first_queue, second_queue) =
+        tokio::join!(queue_partition.connection(), queue_partition.connection());
+    let mut queue = first_queue?;
+    let mut second_queue = second_queue?;
+    sql_query("SELECT 1").execute(&mut queue).await?;
+    sql_query("SELECT 1").execute(&mut second_queue).await?;
+    drop(second_queue);
     sql_query("SELECT pg_advisory_lock(1861284951, 32767)")
         .execute(&mut scheduler)
         .await?;
@@ -102,8 +117,25 @@ async fn warm_pool_and_reserved_partition_survive_idle() -> Result<()> {
             .get_result(&mut queue)
             .await?;
     assert!(!contested.acquired);
+    let backend: BackendPid = sql_query("SELECT pg_backend_pid() AS pid")
+        .get_result(&mut scheduler)
+        .await?;
+    let terminated: LockResult = sql_query("SELECT pg_terminate_backend($1) AS acquired")
+        .bind::<Integer, _>(backend.pid)
+        .get_result(&mut held_application)
+        .await?;
+    assert!(terminated.acquired);
+    assert!(sql_query("SELECT 1").execute(&mut scheduler).await.is_err());
+    drop(scheduler);
+
+    let mut recovered_scheduler = pool.scheduler()?.connection().await?;
+    let recovered: LockResult =
+        sql_query("SELECT pg_try_advisory_lock(1861284951, 32767) AS acquired")
+            .get_result(&mut recovered_scheduler)
+            .await?;
+    assert!(recovered.acquired);
     sql_query("SELECT pg_advisory_unlock(1861284951, 32767)")
-        .execute(&mut scheduler)
+        .execute(&mut recovered_scheduler)
         .await?;
     Ok(())
 }

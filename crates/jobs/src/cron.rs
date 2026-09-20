@@ -1,6 +1,7 @@
 use crate::{
     TaskIdentifier,
     queue::{JobLane, Queue},
+    retry::{RetryBackoff, is_unavailable, wait_or_shutdown},
 };
 use anyhow::Result;
 use diesel::{
@@ -47,10 +48,61 @@ struct ScheduleRow {
 
 pub async fn run(
     scheduler: zc_database::PoolPartition,
+    initial_connection: zc_database::PoolConnection,
     queue: Queue,
     mut shutdown: watch::Receiver<bool>,
 ) -> Result<()> {
-    let mut connection = scheduler.connection().await?;
+    let mut initial_connection = Some(initial_connection);
+    let mut retry = RetryBackoff::new();
+    loop {
+        if *shutdown.borrow() {
+            return Ok(());
+        }
+        let connection = match initial_connection.take() {
+            Some(connection) => connection,
+            None => match scheduler.connection().await {
+                Ok(connection) => connection,
+                Err(error) if is_unavailable(&error) => {
+                    let decision = retry.failure();
+                    if decision.warn {
+                        tracing::warn!(
+                            retry_ms = decision.delay.as_millis(),
+                            "Jobs scheduler database unavailable; connection will retry"
+                        );
+                    }
+                    if wait_or_shutdown(decision.delay, &mut shutdown).await {
+                        return Ok(());
+                    }
+                    continue;
+                }
+                Err(error) => return Err(error),
+            },
+        };
+        match run_session(connection, &queue, &mut shutdown, &mut retry).await {
+            Ok(()) => return Ok(()),
+            Err(error) if is_unavailable(&error) => {
+                let decision = retry.failure();
+                if decision.warn {
+                    tracing::warn!(
+                        retry_ms = decision.delay.as_millis(),
+                        "Jobs scheduler database unavailable; leadership will be reacquired"
+                    );
+                }
+                if wait_or_shutdown(decision.delay, &mut shutdown).await {
+                    return Ok(());
+                }
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+async fn run_session(
+    mut connection: zc_database::PoolConnection,
+    queue: &Queue,
+    shutdown: &mut watch::Receiver<bool>,
+    retry: &mut RetryBackoff,
+) -> Result<()> {
     loop {
         if *shutdown.borrow() {
             return Ok(());
@@ -67,6 +119,7 @@ pub async fn run(
             _ = tokio::time::sleep(Duration::from_secs(5)) => {}
         }
     }
+    retry.reset();
     tracing::info!("Jobs scheduler leadership acquired");
     let mut last_minute = String::new();
     loop {
@@ -88,7 +141,7 @@ pub async fn run(
              extract(hour FROM local_time)=2 AND extract(minute FROM local_time)=30 AS prune FROM times",
         ).get_result(&mut connection).await?;
         if schedule.minute_key != last_minute {
-            enqueue_due(&queue, &schedule).await?;
+            enqueue_due(queue, &schedule).await?;
             last_minute = schedule.minute_key;
         }
         tokio::select! {

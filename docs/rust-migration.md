@@ -36,6 +36,12 @@ scheduler capacity. `DATABASE_POOL_MAX` controls the application partition and
 acquisition and PostgreSQL session timeouts. `/healthz` remains process liveness; `/readyz` checks
 database readiness and returns HTTP 503 problem JSON while PostgreSQL is unavailable.
 
+Jobs retains its scheduler connection and warms both queue lanes before reporting readiness. New
+physical connections are established serially to avoid cold-start connection bursts. Temporary
+database outages keep jobs alive with a 250ms-to-5s capped retry; queue polling and scheduler
+leadership resume after PostgreSQL recovers. Startup waits for database availability until shutdown,
+while missing pgmq objects or incompatible queue schema remain fatal.
+
 `zeepcentraal-migrate verify` is read-only. It acquires a PostgreSQL advisory lock, checks
 frozen 87-row Drizzle ledger (legacy prefix plus 86 journal entries), and compares 53 tables, one view,
 and 535 columns from `0086_snapshot.json` with `pg_catalog`.

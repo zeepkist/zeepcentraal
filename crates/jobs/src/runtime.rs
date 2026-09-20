@@ -1,6 +1,7 @@
 use crate::{
     BULK_CONCURRENCY, FAST_CONCURRENCY, HEARTBEAT_SECONDS, POLL_MILLISECONDS, TaskIdentifier,
     queue::{ClaimedJob, JobLane, Queue},
+    retry::{RetryBackoff, is_unavailable, wait_or_shutdown},
 };
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
@@ -44,10 +45,31 @@ async fn run_lane(
     mut shutdown: watch::Receiver<bool>,
 ) -> Result<()> {
     let mut active = JoinSet::new();
-    loop {
+    let mut retry = RetryBackoff::new();
+    'runtime: loop {
         while active.len() < concurrency && !*shutdown.borrow() {
             let capacity = i32::try_from(concurrency - active.len())?;
-            let claimed = queue.claim(lane, capacity).await?;
+            let claimed = match queue.claim(lane, capacity).await {
+                Ok(claimed) => {
+                    retry.reset();
+                    claimed
+                }
+                Err(error) if is_unavailable(&error) => {
+                    let decision = retry.failure();
+                    if decision.warn {
+                        tracing::warn!(
+                            lane = lane.as_str(),
+                            retry_ms = decision.delay.as_millis(),
+                            "Jobs queue unavailable; claim will retry"
+                        );
+                    }
+                    if wait_or_shutdown(decision.delay, &mut shutdown).await {
+                        break 'runtime;
+                    }
+                    continue 'runtime;
+                }
+                Err(error) => return Err(error),
+            };
             if claimed.is_empty() {
                 break;
             }
@@ -63,7 +85,23 @@ async fn run_lane(
         tokio::select! {
             result = active.join_next(), if !active.is_empty() => {
                 if let Some(result) = result {
-                    result??;
+                    match result? {
+                        Ok(()) => retry.reset(),
+                        Err(error) if is_unavailable(&error) => {
+                            let decision = retry.failure();
+                            if decision.warn {
+                                tracing::warn!(
+                                    lane = lane.as_str(),
+                                    retry_ms = decision.delay.as_millis(),
+                                    "Jobs database unavailable; lease will expire and worker will retry"
+                                );
+                            }
+                            if wait_or_shutdown(decision.delay, &mut shutdown).await {
+                                break 'runtime;
+                            }
+                        }
+                        Err(error) => return Err(error),
+                    }
                 }
             }
             changed = shutdown.changed() => {
@@ -75,7 +113,16 @@ async fn run_lane(
         }
     }
     while let Some(result) = active.join_next().await {
-        result??;
+        match result? {
+            Ok(()) => {}
+            Err(error) if is_unavailable(&error) => {
+                tracing::warn!(
+                    lane = lane.as_str(),
+                    "Jobs database unavailable during shutdown; lease will expire"
+                );
+            }
+            Err(error) => return Err(error),
+        }
     }
     Ok(())
 }

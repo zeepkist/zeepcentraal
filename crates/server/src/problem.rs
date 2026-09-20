@@ -117,6 +117,11 @@ mod tests {
                 partition_limit: 5,
                 partition_available: 0,
                 waiting_acquisitions: 1,
+                pending_gets: 1,
+                connections_created: 7,
+                connection_failures: 0,
+                acquisition_timeouts: 1,
+                last_connection_failure: None,
             },
             None,
         );

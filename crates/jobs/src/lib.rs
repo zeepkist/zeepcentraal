@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub mod cron;
 pub mod handlers;
 pub mod queue;
+pub mod retry;
 pub mod runtime;
 
 pub const FAST_CONCURRENCY: usize = 4;
