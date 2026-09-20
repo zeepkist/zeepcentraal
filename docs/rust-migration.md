@@ -57,15 +57,20 @@ Cutover sequence:
 
 ## Current implementation status
 
-Database adoption, generated Diesel schema, telemetry, Steam ticket authentication, GTR token
-rotation, Discord account links, preferences, DM watches, guild/feed/digest/delivery persistence,
-rate limiting, Turnstile verification, basic authenticated mutations, queue access, Steam
-metadata/catalog adapters, SteamCMD supervision, bounded level-file discovery, Scalar docs,
-Serenity Components V2 foundations, executable ZSL import with idempotent Diesel upserts, and
-Zeepkist V18 bit/packet codecs with golden multi-level playlist compatibility exist. Full record
-pipeline, remaining non-Discord HTTP routes, job workers and handlers, Discord gateway behavior,
-Lidgren transport and lobby lifecycle, level parsing and workshop reconciliation, inspector
-orchestration/validation/Discord publication, deployment images, and production cutover remain
-blocked from release until their compatibility gates pass. Inspector contest, submission,
-validation, playlist, retry, freeze, round-link, and publication database mutations have Diesel
-transaction parity.
+Implemented Rust paths now include database adoption and generated Diesel schema, telemetry,
+Steam authentication and metadata, GTR token rotation, record submission with ghost parsing and
+S3 persistence, queue workers and registered handlers, bounded SteamCMD workshop scanning and
+reconciliation, level parsing and hashes, ZSL import, Scalar API docs, Zeepkist V18 packet codecs,
+and bounded Lidgren reliable ordered transport. Inspector now includes strict config, contest and
+submission reconciliation, level validation, validation caching, S3 payload and playlist writes,
+Diesel state transitions, reactions, Components V2 multipart publication, crash recovery, and
+cleanup ordering.
+
+Release remains blocked. Discord still lacks command registration/dispatch, linked-role gateway
+handling, activity feeds, watches, tournament polling, and health runtime parity. Lobby host still
+lacks managed-room supervision, profile asset preparation, transfer lifecycle, roster/chat,
+leaderboard projection, and tournament/ZSL profile behavior. Server route inventory and wire
+contracts still need a complete Bun-to-Rust audit. Inspector runtime passes unit and static checks,
+but its disposable-PostgreSQL integration test and live Steam/Wasabi/Discord smoke run have not
+run. Deployment images, production-shaped benchmark gates, unchanged web/GTR smoke tests, and
+cutover rehearsal also remain incomplete.
