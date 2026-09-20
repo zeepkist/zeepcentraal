@@ -1,4 +1,6 @@
-use crate::{backend::Backend, commands, config::DiscordConfig, health::RuntimeState};
+use crate::{
+    backend::Backend, commands, config::DiscordConfig, feeds::FeedService, health::RuntimeState,
+};
 use anyhow::{Context as _, Result, bail};
 use serenity::{
     all::{
@@ -17,14 +19,21 @@ use std::sync::Arc;
 pub struct Handler {
     config: Arc<DiscordConfig>,
     backend: Backend,
+    feeds: Arc<FeedService>,
     state: Arc<RuntimeState>,
 }
 
 impl Handler {
-    pub fn new(config: Arc<DiscordConfig>, backend: Backend, state: Arc<RuntimeState>) -> Self {
+    pub fn new(
+        config: Arc<DiscordConfig>,
+        backend: Backend,
+        feeds: Arc<FeedService>,
+        state: Arc<RuntimeState>,
+    ) -> Self {
         Self {
             config,
             backend,
+            feeds,
             state,
         }
     }
@@ -171,11 +180,10 @@ impl Handler {
 impl EventHandler for Handler {
     async fn dispatch(&self, context: &Context, event: &FullEvent) {
         match event {
-            FullEvent::Ready {
-                data_about_bot, ..
-            } => {
+            FullEvent::Ready { data_about_bot, .. } => {
                 self.state.set_guilds(data_about_bot.guilds.len() as usize);
                 self.state.set_ready(true);
+                self.feeds.start(context.http.clone()).await;
                 tracing::info!(user = %data_about_bot.user.name, guilds = data_about_bot.guilds.len(), "Discord gateway ready");
             }
             FullEvent::GuildCreate {
@@ -221,7 +229,8 @@ pub async fn run(config: Arc<DiscordConfig>, state: Arc<RuntimeState>) -> Result
         .ready()
         .await
         .context("Discord backend is not ready")?;
-    let handler = Arc::new(Handler::new(config.clone(), backend, state));
+    let feeds = Arc::new(FeedService::new(backend.clone(), &config));
+    let handler = Arc::new(Handler::new(config.clone(), backend, feeds.clone(), state));
     let mut client = Client::builder(
         token,
         GatewayIntents::GUILDS | GatewayIntents::GUILD_MEMBERS,
@@ -232,7 +241,9 @@ pub async fn run(config: Arc<DiscordConfig>, state: Arc<RuntimeState>) -> Result
         let count = commands::register(&client.http, config.development_guild_id).await?;
         tracing::info!(count, guild_id = ?config.development_guild_id, "Registered Discord commands");
     }
-    client.start().await?;
+    let result = client.start().await;
+    feeds.stop().await;
+    result?;
     Ok(())
 }
 
@@ -308,9 +319,6 @@ mod tests {
         assert_eq!(value["type"], 4);
         let flags = value["data"]["flags"].as_u64().unwrap();
         assert_ne!(flags & u64::from(MessageFlags::EPHEMERAL.bits()), 0);
-        assert_ne!(
-            flags & u64::from(MessageFlags::IS_COMPONENTS_V2.bits()),
-            0
-        );
+        assert_ne!(flags & u64::from(MessageFlags::IS_COMPONENTS_V2.bits()), 0);
     }
 }

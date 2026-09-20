@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, bail};
 use reqwest::{Client, Method, Url};
-use serde::{Deserialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 
 #[derive(Clone)]
@@ -26,6 +26,143 @@ pub struct Watch {
     pub kind: String,
     pub target_id: String,
     pub paused: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GuildFeed {
+    pub guild_id: String,
+    pub kind: String,
+    pub channel_id: String,
+    pub enabled: bool,
+    pub cursor_event_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkerCursor {
+    pub cursor_event_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Delivery {
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchingWatch {
+    pub id: String,
+    pub discord_id: String,
+    pub last_delivery_key: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityEvent {
+    pub id: String,
+    pub kind: String,
+    pub level_id: Option<i32>,
+    pub user_id: Option<i32>,
+    pub previous_user_id: Option<i32>,
+    pub payload: Value,
+    pub occurred_at: String,
+    pub level: Option<ActivityLevel>,
+    pub user: Option<ActivityUser>,
+    pub previous_user: Option<ActivityUser>,
+    pub record: Option<ActivityRecord>,
+    pub previous_record: Option<ActivityRecord>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityLevel {
+    pub id: i32,
+    pub xx_hash: String,
+    pub level_items: ActivityLevelItems,
+    pub level_points: Option<ActivityLevelPoints>,
+    pub personal_best_globals: ActivityCount,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ActivityLevelItems {
+    pub nodes: Vec<ActivityLevelItem>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityLevelItem {
+    pub name: String,
+    pub image_url: String,
+    pub workshop_id: Option<String>,
+    pub author: Option<ActivityUser>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ActivityLevelPoints {
+    pub points: i32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityCount {
+    pub total_count: i64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityUser {
+    pub id: i32,
+    pub steam_id: Option<String>,
+    pub steam_name: Option<String>,
+    pub discord_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityRecord {
+    pub time: f32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TournamentSnapshot {
+    pub tournament_id: i32,
+    pub tournament_type: i32,
+    pub tournament_slug: String,
+    pub end_at: String,
+    pub level_name: String,
+    pub image_url: Option<String>,
+    pub entries: i64,
+    pub standings: Vec<TournamentStanding>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TournamentStanding {
+    pub user_id: i32,
+    pub steam_name: Option<String>,
+    pub discord_id: Option<String>,
+    pub time: f32,
+    pub rank: i32,
+    pub points: i32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GuildState {
+    #[serde(default)]
+    pub tournament_messages: Vec<TournamentMessage>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TournamentMessage {
+    pub id_tournament: i32,
+    pub channel_id: String,
+    pub message_id: String,
+    pub content_hash: String,
 }
 
 impl Backend {
@@ -106,6 +243,15 @@ impl Backend {
         .await
     }
 
+    pub async fn guild_runtime(&self, guild_id: &str) -> Result<GuildState> {
+        self.request(
+            Method::GET,
+            &format!("/discord-bot/guilds/{guild_id}"),
+            None,
+        )
+        .await
+    }
+
     pub async fn redeem(&self, code: &str, discord_id: u64) -> Result<Value> {
         self.request(
             Method::POST,
@@ -162,6 +308,184 @@ impl Backend {
             Method::DELETE,
             &format!("/discord-bot/users/{discord_id}/watches/{watch_id}"),
             None,
+        )
+        .await
+    }
+
+    pub async fn enabled_feeds(&self) -> Result<Vec<GuildFeed>> {
+        self.request(Method::GET, "/discord-bot/guild-feeds/enabled", None)
+            .await
+    }
+
+    pub async fn worker_cursor(&self, key: &str) -> Result<WorkerCursor> {
+        self.request(
+            Method::GET,
+            &format!("/discord-bot/workers/{key}/cursor"),
+            None,
+        )
+        .await
+    }
+
+    pub async fn events_after(&self, cursor: i64) -> Result<Vec<ActivityEvent>> {
+        self.request(
+            Method::GET,
+            &format!("/discord-bot/activity-events?after={cursor}&limit=500"),
+            None,
+        )
+        .await
+    }
+
+    pub async fn current_tournaments(&self) -> Result<Vec<TournamentSnapshot>> {
+        self.request(Method::GET, "/discord-bot/tournaments/current", None)
+            .await
+    }
+
+    pub async fn advance_worker(&self, key: &str, event_id: &str) -> Result<Value> {
+        self.request(
+            Method::POST,
+            &format!("/discord-bot/workers/{key}/cursor"),
+            Some(json!({"eventId":event_id})),
+        )
+        .await
+    }
+
+    pub async fn advance_feed(&self, guild_id: &str, kind: &str, event_id: &str) -> Result<Value> {
+        self.request(
+            Method::POST,
+            &format!("/discord-bot/guilds/{guild_id}/feeds/{kind}/cursor"),
+            Some(json!({"eventId":event_id})),
+        )
+        .await
+    }
+
+    pub async fn delivery(&self, guild_id: &str, event_id: &str) -> Result<Option<Delivery>> {
+        self.request(
+            Method::GET,
+            &format!("/discord-bot/guilds/{guild_id}/deliveries/{event_id}"),
+            None,
+        )
+        .await
+    }
+
+    pub async fn set_delivery(
+        &self,
+        guild_id: &str,
+        event_id: &str,
+        channel_id: &str,
+        message_id: Option<u64>,
+        status: &str,
+        last_error: Option<&str>,
+    ) -> Result<Value> {
+        self.request(
+            Method::PUT,
+            &format!("/discord-bot/guilds/{guild_id}/deliveries/{event_id}"),
+            Some(json!({
+                "channelId":channel_id,
+                "messageId":message_id.map(|value| value.to_string()),
+                "status":status,
+                "lastError":last_error,
+            })),
+        )
+        .await
+    }
+
+    pub async fn matching_watches(&self, event: &ActivityEvent) -> Result<Vec<MatchingWatch>> {
+        let mut player = Vec::new();
+        for user in [event.user.as_ref(), event.previous_user.as_ref()]
+            .into_iter()
+            .flatten()
+        {
+            player.push(user.id.to_string());
+            if let Some(id) = &user.steam_id {
+                player.push(id.clone());
+            }
+            if let Some(name) = &user.steam_name {
+                player.push(name.clone());
+            }
+        }
+        let mut level = Vec::new();
+        let mut author = Vec::new();
+        if let Some(value) = &event.level {
+            level.push(value.id.to_string());
+            level.push(value.xx_hash.clone());
+            if let Some(item) = value.level_items.nodes.first() {
+                level.push(item.name.clone());
+                if let Some(value) = &item.author {
+                    author.push(value.id.to_string());
+                    if let Some(id) = &value.steam_id {
+                        author.push(id.clone());
+                    }
+                    if let Some(name) = &value.steam_name {
+                        author.push(name.clone());
+                    }
+                }
+            }
+        }
+        let changes = event
+            .payload
+            .get("changes")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(|change| change.get("idUser"))
+            .map(|value| {
+                value
+                    .as_str()
+                    .map_or_else(|| value.to_string(), str::to_owned)
+            });
+        player.extend(changes);
+        self.matching_watch_targets(json!([
+            {"kind":"player","targetIds":player},
+            {"kind":"level","targetIds":level},
+            {"kind":"author","targetIds":author},
+        ]))
+        .await
+    }
+
+    pub async fn matching_watch_targets(&self, targets: Value) -> Result<Vec<MatchingWatch>> {
+        self.request(
+            Method::POST,
+            "/discord-bot/watches/matches",
+            Some(json!({"targets":targets})),
+        )
+        .await
+    }
+
+    pub async fn update_watch(
+        &self,
+        watch_id: &str,
+        paused: bool,
+        last_error: Option<&str>,
+        delivery_key: Option<&str>,
+    ) -> Result<Value> {
+        self.request(
+            Method::PATCH,
+            &format!("/discord-bot/watches/{watch_id}/delivery"),
+            Some(json!({
+                "paused":paused,
+                "lastError":last_error,
+                "deliveryKey":delivery_key,
+            })),
+        )
+        .await
+    }
+
+    pub async fn set_tournament_message(
+        &self,
+        guild_id: &str,
+        tournament_id: i32,
+        channel_id: &str,
+        message_id: u64,
+        content_hash: &str,
+    ) -> Result<Value> {
+        self.request(
+            Method::PUT,
+            &format!("/discord-bot/guilds/{guild_id}/tournaments/{tournament_id}/message"),
+            Some(json!({
+                "channelId":channel_id,
+                "messageId":message_id.to_string(),
+                "contentHash":content_hash,
+            })),
         )
         .await
     }

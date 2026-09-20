@@ -68,8 +68,10 @@ cleanup ordering.
 
 Release remains blocked. Discord now embeds and registers all 20 active command definitions,
 dispatches account/feed/watch preference mutations, syncs linked roles, and exposes supervised
-health/readiness state. Informational command handlers, activity feed/watch delivery, tournament
-polling, and pagination still need parity. Lobby executable now wires managed-room supervision,
+health/readiness state. Durable activity feeds, direct-message watches, world-record loss pings,
+and Track of the Week/Month polling now use independent persisted cursors and idempotent delivery
+records. Informational command handlers, autocomplete, and pagination still need parity. Lobby
+executable now wires managed-room supervision,
 join-ID persistence, ownership enforcement, bounded transfer queue, roster/chat, leaderboard
 projection, tournament assets and polling, ZSL inspector playlists, and Wasabi-backed level
 transfers. Live Zeepkist validation remains required. Server static route inventory is complete in

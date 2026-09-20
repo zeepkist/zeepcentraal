@@ -15,6 +15,89 @@ struct JsonRow {
 }
 
 impl Database {
+    pub async fn discord_activity_events_after(
+        &self,
+        cursor: i64,
+        limit: i64,
+    ) -> Result<Vec<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT jsonb_build_object( \
+             'id',event.id::text,'kind',event.kind,'levelId',event.id_level,'userId',event.id_user, \
+             'previousUserId',event.id_previous_user,'recordId',event.id_record, \
+             'previousRecordId',event.id_previous_record,'payload',event.payload, \
+             'occurredAt',to_char(event.occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'), \
+             'level',CASE WHEN level.id IS NULL THEN NULL ELSE jsonb_build_object( \
+               'id',level.id,'xxHash',level.xx_hash,'levelItems',jsonb_build_object('nodes', \
+                 CASE WHEN item.id IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(jsonb_build_object( \
+                   'name',item.name,'imageUrl',item.image_url,'workshopId',item.workshop_id::text, \
+                   'author',CASE WHEN author.id IS NULL THEN NULL ELSE jsonb_build_object('id',author.id, \
+                     'steamId',author.steam_id::text,'steamName',author.steam_name,'discordId',author.discord_id::text) END)) END), \
+               'levelPoints',CASE WHEN points.id_level IS NULL THEN NULL ELSE jsonb_build_object( \
+                 'points',points.points,'rating',points.rating) END, \
+               'personalBestGlobals',jsonb_build_object('totalCount',(SELECT count(*) FROM public.personal_best_global pb \
+                 WHERE pb.id_level=level.id))) END, \
+             'user',CASE WHEN actor.id IS NULL THEN NULL ELSE jsonb_build_object('id',actor.id,'steamId', \
+               actor.steam_id::text,'steamName',actor.steam_name,'discordId',actor.discord_id::text) END, \
+             'previousUser',CASE WHEN previous_actor.id IS NULL THEN NULL ELSE jsonb_build_object( \
+               'id',previous_actor.id,'steamId',previous_actor.steam_id::text,'steamName',previous_actor.steam_name, \
+               'discordId',previous_actor.discord_id::text) END, \
+             'record',CASE WHEN record.id IS NULL THEN NULL ELSE jsonb_build_object('id',record.id,'time',record.time, \
+               'modVersion',record.mod_version) END, \
+             'previousRecord',CASE WHEN previous_record.id IS NULL THEN NULL ELSE jsonb_build_object( \
+               'id',previous_record.id,'time',previous_record.time,'modVersion',previous_record.mod_version) END) AS value \
+             FROM public.discord_activity_event event \
+             LEFT JOIN public.level ON level.id=event.id_level AND level.publicly_visible=true \
+             LEFT JOIN LATERAL (SELECT * FROM public.level_item source WHERE source.id_level=level.id \
+               AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+             LEFT JOIN public.\"user\" author ON author.steam_id=item.author_id \
+             LEFT JOIN public.level_points points ON points.id_level=level.id \
+             LEFT JOIN public.\"user\" actor ON actor.id=event.id_user \
+             LEFT JOIN public.\"user\" previous_actor ON previous_actor.id=event.id_previous_user \
+             LEFT JOIN public.record record ON record.id=event.id_record \
+             LEFT JOIN public.record previous_record ON previous_record.id=event.id_previous_record \
+             WHERE event.id>$1 AND (event.id_level IS NULL OR level.id IS NOT NULL) \
+             ORDER BY event.id LIMIT $2",
+        )
+        .bind::<BigInt, _>(cursor)
+        .bind::<BigInt, _>(limit)
+        .load::<JsonRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.value)
+        .collect())
+    }
+
+    pub async fn discord_tournament_snapshots(&self) -> Result<Vec<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "WITH selected AS (SELECT DISTINCT ON (tournament.type) tournament.* \
+             FROM public.track_tournament tournament WHERE tournament.type IN (0,1) \
+             AND tournament.start_at<=clock_timestamp() ORDER BY tournament.type, \
+             (tournament.end_at>clock_timestamp()) DESC,tournament.start_at DESC,tournament.id DESC) \
+             SELECT jsonb_build_object('tournamentId',selected.id,'tournamentType',selected.type, \
+             'tournamentSlug',selected.slug,'endAt',to_char(selected.end_at AT TIME ZONE 'UTC', \
+             'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),'levelName',COALESCE(item.name,'Unknown'), \
+             'imageUrl',NULLIF(item.image_url,''),'entries',(SELECT count(*) FROM public.track_tournament_result \
+             result WHERE result.id_tournament=selected.id),'standings',COALESCE((SELECT jsonb_agg( \
+               jsonb_build_object('userId',ranked.id_user,'steamName',ranked.steam_name, \
+               'discordId',ranked.discord_id::text,'time',ranked.time,'rank',ranked.rank,'points',ranked.points) \
+               ORDER BY ranked.rank,ranked.time,ranked.id_record) FROM (SELECT result.id_user, \
+               result.id_record,\"user\".steam_name,\"user\".discord_id,result.time,result.rank,result.points \
+               FROM public.track_tournament_result result JOIN public.\"user\" ON \"user\".id=result.id_user \
+               WHERE result.id_tournament=selected.id ORDER BY result.rank,result.time,result.id_record LIMIT 3) \
+               ranked),'[]'::jsonb)) AS value FROM selected LEFT JOIN LATERAL (SELECT source.name, \
+             source.image_url FROM public.level_item source WHERE source.id_level=selected.id_level \
+             AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+             ORDER BY selected.type",
+        )
+        .load::<JsonRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.value)
+        .collect())
+    }
+
     pub async fn discord_guild_state(&self, guild_id: i64) -> Result<Value> {
         let mut connection = self.connection().await?;
         let row: JsonRow = sql_query(

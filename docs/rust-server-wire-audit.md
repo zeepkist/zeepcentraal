@@ -12,7 +12,7 @@ with identical fixtures.
 | Health and favicon | 3 | 3 | Present |
 | GTR and web refresh auth | 3 | 3 | Present |
 | Browser Discord/Steam auth | 5 | 5 | Present |
-| Discord bot service API | 19 | 19 | Present |
+| Discord bot service API | 19 | 21 | Present; two Rust-only worker read routes |
 | Favourite | 2 | 2 | Present |
 | User | 4 | 4 | Present |
 | Level | 1 | 1 | Present |
@@ -25,6 +25,10 @@ with identical fixtures.
 
 Rust-only documentation routes `/openapi`, `/openapi/json`, and `/openapi/scalar.js` do not
 replace Bun application routes and do not affect existing clients.
+
+Rust-only authenticated worker routes `/discord-bot/activity-events` and
+`/discord-bot/tournaments/current` replace PostGraphile reads inside Discord process. They do not
+change public web or GTR contracts.
 
 ## Exact missing route
 

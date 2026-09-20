@@ -79,6 +79,14 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             post(discord_routes::match_watches),
         )
         .route(
+            "/discord-bot/activity-events",
+            get(discord_routes::activity_events),
+        )
+        .route(
+            "/discord-bot/tournaments/current",
+            get(discord_routes::current_tournaments),
+        )
+        .route(
             "/discord-bot/watches/{watch_id}/delivery",
             patch(discord_routes::update_watch_delivery),
         )

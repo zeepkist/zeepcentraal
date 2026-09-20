@@ -29,6 +29,8 @@ use utoipa::OpenApi;
         crate::routes::add_discord_bot_watch,
         crate::routes::remove_discord_bot_watch,
         crate::discord_runtime_routes::match_watches,
+        crate::discord_runtime_routes::activity_events,
+        crate::discord_runtime_routes::current_tournaments,
         crate::discord_runtime_routes::update_watch_delivery,
         crate::discord_runtime_routes::get_worker_cursor,
         crate::discord_runtime_routes::advance_worker_cursor,
@@ -80,7 +82,7 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 39);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 41);
         assert!(schema.to_string().find("graphql").is_none());
         let (mime, asset) = scalar_api_reference::get_asset_with_mime("scalar.js").unwrap();
         assert_eq!(mime, "application/javascript");

@@ -2,6 +2,7 @@
 pub mod backend;
 pub mod commands;
 pub mod config;
+pub mod feeds;
 pub mod health;
 pub mod runtime;
 

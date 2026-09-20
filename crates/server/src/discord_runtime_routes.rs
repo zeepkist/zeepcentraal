@@ -1,7 +1,7 @@
 use crate::{AppState, auth, problem::Problem};
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
 };
 use serde::Deserialize;
@@ -9,6 +9,52 @@ use serde_json::Value;
 use std::sync::Arc;
 
 type ApiResult<T> = Result<T, Problem>;
+
+#[derive(Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityEventsQuery {
+    after: String,
+    #[serde(default = "default_activity_limit")]
+    limit: i64,
+}
+
+fn default_activity_limit() -> i64 {
+    100
+}
+
+#[utoipa::path(get, path = "/discord-bot/activity-events", params(ActivityEventsQuery), responses((status = 200), (status = 400), (status = 401)))]
+pub async fn activity_events(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<ActivityEventsQuery>,
+) -> ApiResult<Json<Vec<Value>>> {
+    authorize(&state, &headers)?;
+    if !(1..=500).contains(&query.limit) {
+        return Err(invalid());
+    }
+    Ok(Json(
+        state
+            .database
+            .discord_activity_events_after(unsigned_bigint(&query.after)?, query.limit)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+#[utoipa::path(get, path = "/discord-bot/tournaments/current", responses((status = 200), (status = 401)))]
+pub async fn current_tournaments(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> ApiResult<Json<Vec<Value>>> {
+    authorize(&state, &headers)?;
+    Ok(Json(
+        state
+            .database
+            .discord_tournament_snapshots()
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
 
 #[derive(Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
