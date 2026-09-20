@@ -210,7 +210,8 @@ impl Database {
                     };
 
                     sql_query(
-                        "UPDATE public.level SET hash=$2,date_updated=clock_timestamp() WHERE id=$1",
+                        "UPDATE public.level SET hash=$2,date_updated=clock_timestamp() \
+                         WHERE id=$1 AND hash IS DISTINCT FROM $2",
                     )
                     .bind::<Integer, _>(id_level)
                     .bind::<Text, _>(&input.hash)
@@ -228,7 +229,9 @@ impl Database {
                         sql_query(
                             "UPDATE public.level_metadata SET amount_checkpoints=$2,amount_finishes=$3, \
                              amount_blocks=$4,type_ground=$5,type_skybox=$6,format=$7,blocks=$8, \
-                             date_updated=clock_timestamp() WHERE id=$1",
+                             date_updated=clock_timestamp() WHERE id=$1 AND \
+                             ROW(amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks) \
+                             IS DISTINCT FROM ROW($2,$3,$4,$5,$6,$7,$8)",
                         )
                         .bind::<Integer, _>(metadata.id)
                         .bind::<Integer, _>(input.amount_checkpoints)
@@ -267,7 +270,10 @@ impl Database {
                              file_author=$6,file_uid=$7,validation_time_author=$8,validation_time_gold=$9, \
                              validation_time_silver=$10,validation_time_bronze=$11,deleted=false, \
                              created_at=$12::timestamptz,updated_at=$13::timestamptz,date_updated=clock_timestamp() \
-                             WHERE id=$1",
+                             WHERE id=$1 AND ROW(id_level,author_id,name,image_url,file_author,file_uid, \
+                               validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze, \
+                               deleted,created_at,updated_at) IS DISTINCT FROM ROW($2,$3,$4,$5,$6,$7,$8,$9,$10,$11, \
+                               false,$12::timestamptz,$13::timestamptz)",
                         )
                         .bind::<Integer, _>(item.id)
                         .bind::<Integer, _>(id_level)

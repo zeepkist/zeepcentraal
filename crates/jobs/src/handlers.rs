@@ -6,9 +6,9 @@ use crate::{
 use anyhow::{Context, Result, ensure};
 use async_trait::async_trait;
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, sync::Arc};
+use std::{collections::BTreeSet, sync::Arc, time::Instant};
 use zc_core::object_storage::{DownloadConstraints, ObjectStorage};
-use zc_database::Database;
+use zc_database::{Database, services::jobs::MaintenanceOutcome};
 use zc_workshop::{
     WorkshopDownloader, WorkshopMetadataAdapter, WorkshopPersistence, scanner::WorkshopScanner,
 };
@@ -456,10 +456,19 @@ impl ServiceJobHandler {
     async fn update_level_score(&self, payload: &serde_json::Value) -> Result<()> {
         let id_level = i32::try_from(payload["idLevel"].as_i64().context("idLevel is missing")?)?;
         let report_only = payload["reportOnly"].as_bool() == Some(true);
-        let users = self
+        let outcome = self
             .database
             .update_level_scores(&[id_level], report_only)
             .await?;
+        let users = match outcome {
+            MaintenanceOutcome::Applied(users) => users,
+            MaintenanceOutcome::Contended => {
+                anyhow::bail!("level score maintenance contended for idLevel={id_level}")
+            }
+            MaintenanceOutcome::SnapshotChanged => {
+                anyhow::bail!("level score snapshot changed for idLevel={id_level}")
+            }
+        };
         if !report_only {
             for id_user in users {
                 self.queue
@@ -488,8 +497,25 @@ impl ServiceJobHandler {
             if page.is_empty() {
                 break;
             }
-            for ids in page.chunks(50) {
-                self.database.update_level_scores(ids, report_only).await?;
+            for id_level in &page {
+                match self
+                    .database
+                    .update_level_scores(&[*id_level], report_only)
+                    .await?
+                {
+                    MaintenanceOutcome::Applied(_) => {}
+                    MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
+                        self.queue
+                            .enqueue(
+                                TaskIdentifier::UpdateLevelScore,
+                                serde_json::json!({"idLevel": id_level, "reportOnly": report_only}),
+                                JobLane::Bulk,
+                                Some(&format!("update-level-score:{id_level}")),
+                            )
+                            .await?;
+                        tracing::info!(id_level, "Deferred contended level score");
+                    }
+                }
             }
             after_id = *page.last().context("level page is empty")?;
             if page.len() < 200 {
@@ -503,6 +529,131 @@ impl ServiceJobHandler {
                     serde_json::json!({}),
                     JobLane::Bulk,
                     Some("update-player-scores"),
+                )
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn update_player_scores(&self) -> Result<()> {
+        const PAGE_SIZE: i64 = 200;
+        const READ_BATCH_SIZE: usize = 50;
+        const CONCURRENCY: usize = 4;
+        const RANK_BATCH_SIZE: usize = 50;
+
+        let started = Instant::now();
+        let mut after_id = 0;
+        let mut processed = 0usize;
+        let mut deferred = 0usize;
+        loop {
+            let page = self
+                .database
+                .user_activity_page(after_id, PAGE_SIZE)
+                .await?;
+            if page.is_empty() {
+                break;
+            }
+            let active = page
+                .iter()
+                .filter(|user| user.active)
+                .map(|user| user.id_user)
+                .collect::<Vec<_>>();
+            let inactive = page
+                .iter()
+                .filter(|user| !user.active)
+                .map(|user| user.id_user)
+                .collect::<Vec<_>>();
+            for ids in inactive.chunks(READ_BATCH_SIZE) {
+                if !matches!(
+                    self.database.reset_inactive_user_scores(ids).await?,
+                    MaintenanceOutcome::Applied(())
+                ) {
+                    deferred += ids.len();
+                    self.enqueue_player_repairs(ids).await?;
+                }
+            }
+            for ids in active.chunks(READ_BATCH_SIZE) {
+                let mut sources = self.database.user_score_sources(ids).await?.into_iter();
+                let mut tasks = tokio::task::JoinSet::new();
+                loop {
+                    while tasks.len() < CONCURRENCY {
+                        let Some(source) = sources.next() else { break };
+                        let database = self.database.clone();
+                        tasks.spawn(async move {
+                            let id_user = source.id_user;
+                            (
+                                id_user,
+                                database.recalculate_player_score_from(source).await,
+                            )
+                        });
+                    }
+                    let Some(result) = tasks.join_next().await else {
+                        break;
+                    };
+                    let (id_user, outcome) = result?;
+                    match outcome? {
+                        MaintenanceOutcome::Applied(()) => processed += 1,
+                        MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
+                            deferred += 1;
+                            self.enqueue_player_repairs(&[id_user]).await?;
+                        }
+                    }
+                }
+            }
+            after_id = page.last().context("user activity page is empty")?.id_user;
+            tracing::info!(
+                after_id,
+                processed,
+                deferred,
+                elapsed_ms = started.elapsed().as_millis(),
+                "Player score page completed"
+            );
+            if page.len() < PAGE_SIZE as usize {
+                break;
+            }
+        }
+
+        let mut rank_changes = 0usize;
+        let mut rank_stable = false;
+        for pass in 1..=3 {
+            let snapshot = self.database.player_rank_snapshot().await?;
+            let mut pass_stable = true;
+            for batch in snapshot.chunks(RANK_BATCH_SIZE) {
+                match self.database.persist_player_rank_batch(batch).await? {
+                    MaintenanceOutcome::Applied(changes) => rank_changes += changes,
+                    MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
+                        pass_stable = false;
+                    }
+                }
+            }
+            if pass_stable {
+                rank_stable = true;
+                break;
+            }
+            tracing::warn!(pass, "Player rank snapshot changed; retrying");
+        }
+        if !rank_stable {
+            tracing::warn!("Player ranks remained busy; next scheduled run will reconcile");
+        }
+        tracing::info!(
+            processed,
+            deferred,
+            rank_changes,
+            rank_stable,
+            elapsed_ms = started.elapsed().as_millis(),
+            "updatePlayerScores completed"
+        );
+        Ok(())
+    }
+
+    async fn enqueue_player_repairs(&self, ids: &[i32]) -> Result<()> {
+        for id_user in ids {
+            self.queue
+                .enqueue(
+                    TaskIdentifier::UpdatePlayerScore,
+                    serde_json::json!({"idUser": id_user}),
+                    JobLane::Bulk,
+                    Some(&format!("update-player-score:{id_user}")),
                 )
                 .await?;
         }
@@ -539,11 +690,17 @@ impl JobHandler for ServiceJobHandler {
                 .map(|_| ()),
             TaskIdentifier::UpdatePlayerScore => {
                 let id = i32::try_from(payload["idUser"].as_i64().context("idUser is missing")?)?;
-                self.database.recalculate_player_score(id).await
+                match self.database.recalculate_player_score(id).await? {
+                    MaintenanceOutcome::Applied(()) => Ok(()),
+                    MaintenanceOutcome::Contended => {
+                        anyhow::bail!("player score maintenance contended for idUser={id}")
+                    }
+                    MaintenanceOutcome::SnapshotChanged => {
+                        anyhow::bail!("player score snapshot changed for idUser={id}")
+                    }
+                }
             }
-            TaskIdentifier::UpdatePlayerScores => {
-                self.database.recalculate_all_player_scores().await
-            }
+            TaskIdentifier::UpdatePlayerScores => self.update_player_scores().await,
             TaskIdentifier::PrepareTrackTournamentLobbyAsset => {
                 self.prepare_tournament_lobby_asset(&payload).await
             }

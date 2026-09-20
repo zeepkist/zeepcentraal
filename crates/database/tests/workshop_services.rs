@@ -1,8 +1,5 @@
 use serde_json::json;
-use zc_database::{
-    Database,
-    services::workshop::WorkshopLevelInput,
-};
+use zc_database::{Database, services::workshop::WorkshopLevelInput};
 
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL with current workshop tables"]
@@ -16,6 +13,8 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         "Workshop integration test requires local disposable PostgreSQL"
     );
     let database = Database::connect(&url, 2).await?;
+    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move { connection.await.expect("PostgreSQL connection") });
     let suffix = i64::from(std::process::id());
     let workshop_id = 3_800_000_000 + suffix;
     let steam_id = 76_561_198_800_000_000 + suffix;
@@ -49,9 +48,39 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     };
     let first = database.upsert_workshop_level(&input).await?;
     assert!(first.score_changed);
+    let before = client
+        .query_one(
+            "SELECT level.xmin::text,metadata.xmin::text,item.xmin::text \
+             FROM public.level level JOIN public.level_metadata metadata ON metadata.id_level=level.id \
+             JOIN public.level_item item ON item.id_level=level.id WHERE level.id=$1",
+            &[&first.id_level],
+        )
+        .await?;
+    let before_versions = (
+        before.get::<_, String>(0),
+        before.get::<_, String>(1),
+        before.get::<_, String>(2),
+    );
     let second = database.upsert_workshop_level(&input).await?;
     assert_eq!(second.id_level, first.id_level);
     assert!(!second.score_changed);
+    let after = client
+        .query_one(
+            "SELECT level.xmin::text,metadata.xmin::text,item.xmin::text \
+             FROM public.level level JOIN public.level_metadata metadata ON metadata.id_level=level.id \
+             JOIN public.level_item item ON item.id_level=level.id WHERE level.id=$1",
+            &[&first.id_level],
+        )
+        .await?;
+    assert_eq!(
+        before_versions,
+        (
+            after.get::<_, String>(0),
+            after.get::<_, String>(1),
+            after.get::<_, String>(2),
+        ),
+        "unchanged workshop reconciliation must not rewrite rows"
+    );
 
     assert_eq!(
         database
@@ -62,8 +91,6 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     let restored = database.upsert_workshop_level(&input).await?;
     assert!(restored.score_changed);
 
-    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
-    tokio::spawn(async move { connection.await.expect("PostgreSQL connection") });
     client
         .execute(
             "UPDATE public.level SET adventure=true WHERE id=$1",
@@ -95,7 +122,10 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         )
         .await?;
     client
-        .execute("DELETE FROM public.\"user\" WHERE steam_id=$1", &[&steam_id])
+        .execute(
+            "DELETE FROM public.\"user\" WHERE steam_id=$1",
+            &[&steam_id],
+        )
         .await?;
     Ok(())
 }
