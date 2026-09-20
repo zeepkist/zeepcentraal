@@ -66,11 +66,13 @@ submission reconciliation, level validation, validation caching, S3 payload and 
 Diesel state transitions, reactions, Components V2 multipart publication, crash recovery, and
 cleanup ordering.
 
-Release remains blocked. Discord still lacks command registration/dispatch, linked-role gateway
-handling, activity feeds, watches, tournament polling, and health runtime parity. Lobby host still
-lacks managed-room supervision, profile asset preparation, transfer lifecycle, roster/chat,
-leaderboard projection, and tournament/ZSL profile behavior. Server route inventory and wire
-contracts still need a complete Bun-to-Rust audit. Inspector runtime passes unit and static checks,
-but its disposable-PostgreSQL integration test and live Steam/Wasabi/Discord smoke run have not
-run. Deployment images, production-shaped benchmark gates, unchanged web/GTR smoke tests, and
-cutover rehearsal also remain incomplete.
+Release remains blocked. Discord now embeds and registers all 20 active command definitions,
+dispatches account/feed/watch preference mutations, syncs linked roles, and exposes supervised
+health/readiness state. Informational command handlers, activity feed/watch delivery, tournament
+polling, and pagination still need parity. Lobby host still lacks managed-room supervision, profile
+asset preparation, transfer lifecycle, roster/chat, leaderboard projection, and tournament/ZSL
+profile behavior. Server route inventory is complete in `rust-server-wire-audit.md`; five browser
+OAuth routes, lobby snapshot/SSE, room broker, and differential behavior tests remain. Inspector
+runtime passes unit and static checks, but its disposable-PostgreSQL integration test and live
+Steam/Wasabi/Discord smoke run have not run. Deployment images, production-shaped benchmark gates,
+unchanged web/GTR smoke tests, and cutover rehearsal also remain incomplete.

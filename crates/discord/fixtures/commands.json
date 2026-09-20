@@ -1,0 +1,467 @@
+[
+  {
+    "options": [
+      {
+        "type": 3,
+        "name": "code",
+        "description": "8-digit code from zeepki.st/settings/discord",
+        "required": false,
+        "max_length": 8,
+        "min_length": 8
+      }
+    ],
+    "name": "link",
+    "description": "Link your Discord and ZeepCentraal accounts",
+    "type": 1
+  },
+  {
+    "options": [],
+    "name": "unlink",
+    "description": "Unlink your Discord and ZeepCentraal accounts",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "name": "enabled",
+        "description": "Ping on WR loss",
+        "required": true,
+        "type": 5
+      }
+    ],
+    "name": "wr-ping",
+    "description": "Configure ping when you lose a world record",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "type": 3,
+        "choices": [
+          {
+            "name": "Public workshop items",
+            "value": "workshop"
+          },
+          {
+            "name": "World records",
+            "value": "world_record"
+          },
+          {
+            "name": "Rank changes",
+            "value": "rank"
+          },
+          {
+            "name": "Track of the Week",
+            "value": "totw"
+          },
+          {
+            "name": "Track of the Month",
+            "value": "totm"
+          }
+        ],
+        "name": "kind",
+        "description": "Feed type",
+        "required": true
+      },
+      {
+        "channel_types": [
+          0,
+          5
+        ],
+        "name": "channel",
+        "description": "Target channel",
+        "required": true,
+        "type": 7
+      },
+      {
+        "name": "enabled",
+        "description": "Enable feed",
+        "required": true,
+        "type": 5
+      }
+    ],
+    "name": "feed",
+    "description": "Configure ZeepCentraal feed for this server",
+    "default_member_permissions": "32",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "type": 1,
+        "name": "add",
+        "description": "Watch a player, level, author, or tournament",
+        "options": [
+          {
+            "type": 3,
+            "choices": [
+              {
+                "name": "Player",
+                "value": "player"
+              },
+              {
+                "name": "Level",
+                "value": "level"
+              },
+              {
+                "name": "Author",
+                "value": "author"
+              },
+              {
+                "name": "Tournament",
+                "value": "tournament"
+              }
+            ],
+            "name": "kind",
+            "description": "Watch type",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "target",
+            "description": "ID, hash, name, or slug",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "list",
+        "description": "List active watches",
+        "options": []
+      },
+      {
+        "type": 1,
+        "name": "remove",
+        "description": "Remove a watch",
+        "options": [
+          {
+            "type": 3,
+            "name": "id",
+            "description": "Watch ID from /watch list",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "name": "watch",
+    "description": "Manage direct-message watches",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "autocomplete": true,
+        "type": 3,
+        "name": "query",
+        "description": "Level hash, ID, name, or author",
+        "required": true
+      }
+    ],
+    "name": "level",
+    "description": "Find level by hash, ID, name, or author",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "name": "discord",
+        "description": "Linked Discord user",
+        "required": false,
+        "type": 6
+      },
+      {
+        "type": 3,
+        "name": "id",
+        "description": "Steam ID or ZeepCentraal user ID",
+        "required": false
+      }
+    ],
+    "name": "user",
+    "description": "Get ZeepCentraal player information",
+    "type": 1
+  },
+  {
+    "options": [],
+    "name": "totw",
+    "description": "Show latest Track of the Week tournament",
+    "type": 1
+  },
+  {
+    "options": [],
+    "name": "totm",
+    "description": "Show latest Track of the Month tournament",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "max_value": 100,
+        "min_value": 1,
+        "type": 4,
+        "name": "count",
+        "description": "Level count",
+        "required": true
+      },
+      {
+        "type": 3,
+        "choices": [
+          {
+            "name": "Ranked points",
+            "value": "points"
+          },
+          {
+            "name": "Popularity",
+            "value": "popularity"
+          },
+          {
+            "name": "Record count",
+            "value": "records"
+          },
+          {
+            "name": "Newest workshop item",
+            "value": "created"
+          },
+          {
+            "name": "Recently updated",
+            "value": "updated"
+          }
+        ],
+        "name": "sort",
+        "description": "Ranking source",
+        "required": true
+      },
+      {
+        "name": "without-wr",
+        "description": "Exclude your WRs",
+        "required": false,
+        "type": 5
+      },
+      {
+        "name": "without-pb",
+        "description": "Exclude your PBs",
+        "required": false,
+        "type": 5
+      },
+      {
+        "name": "no-records",
+        "description": "Only levels without records",
+        "required": false,
+        "type": 5
+      },
+      {
+        "type": 3,
+        "name": "name",
+        "description": "Playlist name",
+        "required": false,
+        "max_length": 50
+      }
+    ],
+    "name": "playlist",
+    "description": "Generate playlist from top public levels",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "max_value": 50,
+        "min_value": 1,
+        "type": 4,
+        "name": "count",
+        "description": "Level count",
+        "required": false
+      }
+    ],
+    "name": "playlist-recommend",
+    "description": "Generate high-value ranked point improvement playlist",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "type": 3,
+        "choices": [
+          {
+            "name": "Today",
+            "value": "today"
+          },
+          {
+            "name": "Yesterday",
+            "value": "yesterday"
+          },
+          {
+            "name": "This week",
+            "value": "this-week"
+          },
+          {
+            "name": "Last week",
+            "value": "last-week"
+          },
+          {
+            "name": "This month",
+            "value": "this-month"
+          },
+          {
+            "name": "Last month",
+            "value": "last-month"
+          },
+          {
+            "name": "This year",
+            "value": "this-year"
+          },
+          {
+            "name": "Last year",
+            "value": "last-year"
+          },
+          {
+            "name": "All time",
+            "value": "all-time"
+          },
+          {
+            "name": "Custom range",
+            "value": "custom"
+          }
+        ],
+        "name": "range",
+        "description": "Date range",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "from",
+        "description": "Custom start: YYYY-MM-DD",
+        "required": false
+      },
+      {
+        "type": 3,
+        "name": "to",
+        "description": "Custom end: YYYY-MM-DD",
+        "required": false
+      }
+    ],
+    "name": "stats",
+    "description": "Show player activity statistics",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "type": 3,
+        "choices": [
+          {
+            "name": "Today",
+            "value": "today"
+          },
+          {
+            "name": "Yesterday",
+            "value": "yesterday"
+          },
+          {
+            "name": "This week",
+            "value": "this-week"
+          },
+          {
+            "name": "Last week",
+            "value": "last-week"
+          },
+          {
+            "name": "This month",
+            "value": "this-month"
+          },
+          {
+            "name": "Last month",
+            "value": "last-month"
+          },
+          {
+            "name": "This year",
+            "value": "this-year"
+          },
+          {
+            "name": "Last year",
+            "value": "last-year"
+          },
+          {
+            "name": "All time",
+            "value": "all-time"
+          },
+          {
+            "name": "Custom range",
+            "value": "custom"
+          }
+        ],
+        "name": "range",
+        "description": "Date range",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "from",
+        "description": "Custom start: YYYY-MM-DD",
+        "required": false
+      },
+      {
+        "type": 3,
+        "name": "to",
+        "description": "Custom end: YYYY-MM-DD",
+        "required": false
+      }
+    ],
+    "name": "stats-surface",
+    "description": "Show driven surface statistics",
+    "type": 1
+  },
+  {
+    "options": [],
+    "name": "modkist",
+    "description": "Show Modkist and GTR setup information",
+    "type": 1
+  },
+  {
+    "options": [],
+    "name": "gtr",
+    "description": "Show Modkist and GTR setup information",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "name": "player",
+        "description": "Other player",
+        "required": true,
+        "type": 6
+      }
+    ],
+    "name": "compare",
+    "description": "Compare two linked players",
+    "type": 1
+  },
+  {
+    "options": [
+      {
+        "type": 4,
+        "name": "minimum-points",
+        "description": "Minimum level points",
+        "required": false
+      }
+    ],
+    "name": "random-level",
+    "description": "Pick a random public level",
+    "type": 1
+  },
+  {
+    "options": [],
+    "name": "help",
+    "description": "Show ZeepCentraal bot command guide",
+    "type": 1
+  },
+  {
+    "options": [],
+    "name": "bot-status",
+    "description": "Show bot and API health",
+    "type": 1
+  },
+  {
+    "name": "ZeepCentraal profile",
+    "type": 2
+  }
+]
