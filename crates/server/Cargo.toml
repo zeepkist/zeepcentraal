@@ -29,6 +29,9 @@ url.workspace = true
 uuid.workspace = true
 scalar_api_reference.workspace = true
 
+[dev-dependencies]
+tower = { workspace = true, features = ["util"] }
+
 [[bin]]
 name = "zeepcentraal-server"
 path = "src/main.rs"

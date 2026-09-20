@@ -8,8 +8,8 @@ pub mod schema;
 pub mod services;
 pub use diesel_adapter::Database;
 pub use pool::{
-    DatabasePool, PoolAcquireError, PoolBudget, PoolConnection, PoolFailureStage, PoolPartition,
-    PoolSettings, PoolSnapshot,
+    DatabasePool, PoolAcquireError, PoolBudget, PoolConnection, PoolFailureCategory,
+    PoolFailureStage, PoolPartition, PoolSettings, PoolSnapshot,
 };
 
 pub fn is_unavailable_error(error: &(dyn std::error::Error + 'static)) -> bool {

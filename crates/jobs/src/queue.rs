@@ -73,12 +73,16 @@ pub struct Queue {
 
 impl Queue {
     pub async fn connect(partition: zc_database::PoolPartition) -> Result<Self> {
-        let queue = Self { partition };
+        let queue = Self::deferred(partition);
         queue.verify_contract().await?;
         Ok(queue)
     }
 
-    async fn verify_contract(&self) -> Result<()> {
+    pub fn deferred(partition: zc_database::PoolPartition) -> Self {
+        Self { partition }
+    }
+
+    pub async fn verify_contract(&self) -> Result<()> {
         let mut connection = self.partition.connection().await?;
         let version: ExtensionVersion =
             sql_query("SELECT extversion FROM pg_extension WHERE extname='pgmq'")

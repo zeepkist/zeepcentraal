@@ -23,11 +23,27 @@ impl FromStr for Environment {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DatabaseConfig {
     pub url: String,
+    pub source: crate::environment::VariableSource,
+    pub host: String,
+    pub port: u16,
     pub pool_max: u32,
     pub timeouts: DatabaseTimeouts,
+}
+
+impl std::fmt::Debug for DatabaseConfig {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("DatabaseConfig")
+            .field("source", &self.source)
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("pool_max", &self.pool_max)
+            .field("timeouts", &self.timeouts)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -96,15 +112,26 @@ impl DatabaseConfig {
     }
 
     pub fn from_env_with_profile(default_pool_max: u32, profile: DatabaseProfile) -> Result<Self> {
-        let url = required("DATABASE_URL")?;
+        let (url, source) = crate::environment::var_with_source("DATABASE_URL")
+            .ok()
+            .filter(|(value, _)| !value.is_empty())
+            .context("DATABASE_URL is required")?;
         let parsed = url::Url::parse(&url).context("DATABASE_URL is invalid")?;
         ensure!(
             matches!(parsed.scheme(), "postgres" | "postgresql"),
             "DATABASE_URL must use PostgreSQL"
         );
+        let host = parsed
+            .host_str()
+            .context("DATABASE_URL must include a host")?
+            .to_owned();
+        let port = parsed.port().unwrap_or(5432);
         let defaults = profile.defaults();
         Ok(Self {
             url,
+            source,
+            host,
+            port,
             pool_max: positive_u32("DATABASE_POOL_MAX", default_pool_max)?,
             timeouts: DatabaseTimeouts {
                 connect: duration_ms("DATABASE_CONNECT_TIMEOUT_MS", defaults.connect)?,
@@ -253,6 +280,25 @@ mod tests {
             DatabaseProfile::Worker.defaults().statement,
             Duration::from_secs(300)
         );
+    }
+
+    #[test]
+    fn database_debug_output_redacts_url_and_database_name() {
+        let config = DatabaseConfig {
+            url: "postgres://secret-user:secret-password@db.example:5433/secret-database"
+                .to_owned(),
+            source: crate::environment::VariableSource::LocalFile,
+            host: "db.example".to_owned(),
+            port: 5433,
+            pool_max: 5,
+            timeouts: DatabaseProfile::Interactive.defaults(),
+        };
+        let output = format!("{config:?}");
+        assert!(output.contains("db.example"));
+        assert!(!output.contains("secret-user"));
+        assert!(!output.contains("secret-password"));
+        assert!(!output.contains("secret-database"));
+        assert!(!output.contains("postgres://"));
     }
 
     #[test]

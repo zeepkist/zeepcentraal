@@ -44,7 +44,13 @@ pub async fn health() -> Json<Health> {
     )
 )]
 pub async fn ready(State(state): State<Arc<AppState>>) -> ApiResult<Json<Health>> {
-    state.database.ping().await.map_err(Problem::unavailable)?;
+    if !state.database_readiness.is_ready() {
+        return Err(Problem::service_unavailable());
+    }
+    if let Err(error) = state.database.ping().await {
+        state.database_readiness.set(false);
+        return Err(Problem::unavailable(error));
+    }
     Ok(Json(Health { status: "ok" }))
 }
 

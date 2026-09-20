@@ -73,6 +73,10 @@ impl Problem {
 
     pub fn unavailable(error: anyhow::Error) -> Self {
         tracing::warn!(error = %error, "Database unavailable");
+        Self::service_unavailable()
+    }
+
+    pub fn service_unavailable() -> Self {
         Self {
             status: StatusCode::SERVICE_UNAVAILABLE,
             detail: "Service unavailable".to_owned(),
@@ -122,6 +126,7 @@ mod tests {
                 connection_failures: 0,
                 acquisition_timeouts: 1,
                 last_connection_failure: None,
+                last_failure_category: None,
             },
             None,
         );

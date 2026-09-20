@@ -19,7 +19,9 @@ authoritative. No shadow production database, data copy, or historical migration
 Every Rust executable initializes the shared `zc-core` environment source before telemetry or
 service configuration. In development it searches the current directory and its parents for
 `.env`. Set `ZC_ENV_FILE` to require a specific file instead. OS environment variables always
-override file values.
+override file values. Server and jobs log whether `DATABASE_URL` came from process environment or
+local file, plus host and port. They never log URL, credentials, or database name. Clear stale
+PowerShell `$env:DATABASE_URL` values when intending to use `.env`.
 
 When global `NODE_ENV=production`, automatic `.env` discovery is disabled. Production therefore
 uses process variables from its container or service manager. An explicit `ZC_ENV_FILE` still
@@ -35,6 +37,12 @@ scheduler capacity. `DATABASE_POOL_MAX` controls the application partition and
 `JOBS_QUEUE_POOL_MAX` controls the queue partition. Existing timeout variables configure both pool
 acquisition and PostgreSQL session timeouts. `/healthz` remains process liveness; `/readyz` checks
 database readiness and returns HTTP 503 problem JSON while PostgreSQL is unavailable.
+
+Server pool is lazy. Server binds while PostgreSQL is offline, keeps health, Scalar/OpenAPI, lobby
+feed, and Turnstile routes available, and returns existing HTTP 503 problem JSON from database,
+authentication, mutation, and Discord routes. Database supervisor retries from 250ms to 5s with
+30-second warning throttling. Readiness returns to 200 after PostgreSQL and pgmq recover without a
+process restart. Missing pgmq 1.12.0 or incompatible `zc_jobs` schema remains fatal.
 
 Jobs retains its scheduler connection and warms both queue lanes before reporting readiness. New
 physical connections are established serially to avoid cold-start connection bursts. Temporary

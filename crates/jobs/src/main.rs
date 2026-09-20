@@ -8,6 +8,12 @@ async fn main() -> anyhow::Result<()> {
         8,
         zc_core::config::DatabaseProfile::Worker,
     )?;
+    tracing::info!(
+        source = %config.source,
+        host = %config.host,
+        port = config.port,
+        "Jobs database configured"
+    );
     let queue_max = zc_core::environment::var("JOBS_QUEUE_POOL_MAX")
         .unwrap_or_else(|_| "2".to_owned())
         .parse()?;
@@ -108,10 +114,7 @@ async fn prepare_database(
             Err(error) if zc_jobs::retry::is_unavailable(&error) => {
                 let decision = retry.failure();
                 if decision.warn {
-                    tracing::warn!(
-                        retry_ms = decision.delay.as_millis(),
-                        "Jobs database unavailable during startup; preparation will retry"
-                    );
+                    log_startup_retry(&error, decision.delay);
                 }
                 if zc_jobs::retry::wait_or_shutdown(decision.delay, &mut shutdown).await {
                     return Ok(None);
@@ -119,6 +122,27 @@ async fn prepare_database(
             }
             Err(error) => return Err(error),
         }
+    }
+}
+
+fn log_startup_retry(error: &anyhow::Error, delay: std::time::Duration) {
+    if let Some(pool) = error
+        .chain()
+        .find_map(|error| error.downcast_ref::<zc_database::PoolAcquireError>())
+    {
+        tracing::warn!(
+            retry_ms = delay.as_millis(),
+            stage = ?pool.last_connection_failure,
+            category = ?pool.last_failure_category,
+            host = pool.endpoint_host.as_deref().unwrap_or("unknown"),
+            port = pool.endpoint_port.unwrap_or(0),
+            "Jobs database unavailable during startup; preparation will retry"
+        );
+    } else {
+        tracing::warn!(
+            retry_ms = delay.as_millis(),
+            "Jobs database unavailable during startup; preparation will retry"
+        );
     }
 }
 

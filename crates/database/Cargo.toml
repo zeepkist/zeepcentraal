@@ -18,9 +18,9 @@ diesel_migrations.workspace = true
 pq-sys.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+url.workspace = true
 
 utoipa.workspace = true
 
 [dev-dependencies]
 tokio-postgres = "0.7"
-url.workspace = true

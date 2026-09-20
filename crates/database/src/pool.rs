@@ -87,6 +87,7 @@ pub struct PoolSnapshot {
     pub connection_failures: u64,
     pub acquisition_timeouts: u64,
     pub last_connection_failure: Option<PoolFailureStage>,
+    pub last_failure_category: Option<PoolFailureCategory>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -108,9 +109,36 @@ impl fmt::Display for PoolFailureStage {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PoolFailureCategory {
+    ConnectionRefused,
+    Timeout,
+    Dns,
+    Authentication,
+    Tls,
+    SessionSetup,
+    Validation,
+    Unknown,
+}
+
+impl fmt::Display for PoolFailureCategory {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::ConnectionRefused => "connection refused",
+            Self::Timeout => "timeout",
+            Self::Dns => "dns",
+            Self::Authentication => "authentication",
+            Self::Tls => "tls",
+            Self::SessionSetup => "session setup",
+            Self::Validation => "validation",
+            Self::Unknown => "unknown",
+        })
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 #[error(
-    "database {role} pool unavailable after {timeout_ms}ms (partition {partition_available}/{partition_limit} available, physical {physical_connections}/{physical_limit}, idle {idle_connections}, waiting {waiting_acquisitions}, pending {pending_gets}, created {connections_created}, connection failures {connection_failures}, acquisition timeouts {acquisition_timeouts}, last failure {failure_stage_label}){cause}"
+    "database {role} pool unavailable after {timeout_ms}ms (partition {partition_available}/{partition_limit} available, physical {physical_connections}/{physical_limit}, idle {idle_connections}, waiting {waiting_acquisitions}, pending {pending_gets}, created {connections_created}, connection failures {connection_failures}, acquisition timeouts {acquisition_timeouts}, last failure {failure_stage_label}, category {failure_category_label}{endpoint_label}){cause}"
 )]
 pub struct PoolAcquireError {
     pub role: &'static str,
@@ -126,7 +154,12 @@ pub struct PoolAcquireError {
     pub connection_failures: u64,
     pub acquisition_timeouts: u64,
     pub last_connection_failure: Option<PoolFailureStage>,
+    pub last_failure_category: Option<PoolFailureCategory>,
+    pub endpoint_host: Option<String>,
+    pub endpoint_port: Option<u16>,
     failure_stage_label: FailureStage,
+    failure_category_label: FailureCategory,
+    endpoint_label: EndpointLabel,
     cause: Cause,
 }
 
@@ -138,6 +171,60 @@ impl fmt::Display for FailureStage {
         match self.0 {
             Some(stage) => stage.fmt(formatter),
             None => formatter.write_str("none"),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct FailureCategory(Option<PoolFailureCategory>);
+
+impl fmt::Display for FailureCategory {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            Some(category) => category.fmt(formatter),
+            None => formatter.write_str("none"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct DatabaseEndpoint {
+    host: String,
+    port: u16,
+}
+
+impl DatabaseEndpoint {
+    fn parse(database_url: &str) -> Result<Self> {
+        let parsed = url::Url::parse(database_url).context("database URL is invalid")?;
+        let host = parsed
+            .host_str()
+            .context("database URL must include a host")?
+            .to_owned();
+        Ok(Self {
+            host,
+            port: parsed.port().unwrap_or(5432),
+        })
+    }
+}
+
+impl fmt::Display for DatabaseEndpoint {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.host.contains(':') {
+            write!(formatter, "[{}]:{}", self.host, self.port)
+        } else {
+            write!(formatter, "{}:{}", self.host, self.port)
+        }
+    }
+}
+
+#[derive(Debug)]
+struct EndpointLabel(Option<DatabaseEndpoint>);
+
+impl fmt::Display for EndpointLabel {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            Some(endpoint) => write!(formatter, ", endpoint {endpoint}"),
+            None => Ok(()),
         }
     }
 }
@@ -170,8 +257,14 @@ impl DatabasePool {
         budget: PoolBudget,
     ) -> Result<Self> {
         let physical_limit = budget.total()?;
+        let endpoint = Arc::new(DatabaseEndpoint::parse(database_url)?);
         let diagnostics = Arc::new(PoolDiagnostics::default());
-        let manager = manager(database_url, &settings, diagnostics.clone());
+        let manager = manager(
+            database_url,
+            &settings,
+            diagnostics.clone(),
+            endpoint.clone(),
+        );
         let pool = Pool::builder()
             .max_size(physical_limit)
             .min_idle(Some(1))
@@ -179,10 +272,13 @@ impl DatabasePool {
             .connection_timeout(settings.acquire_timeout)
             .error_sink(Box::new(PoolErrorLogger {
                 diagnostics: diagnostics.clone(),
+                endpoint: endpoint.clone(),
             }))
             .build(manager)
             .await
-            .map_err(|_| {
+            .map_err(|error| {
+                diagnostics.record_pool_error(&error);
+                let failure = diagnostics.last_record();
                 PoolAcquireError::from_snapshot_with_stage(
                     "startup",
                     settings.acquire_timeout,
@@ -197,19 +293,75 @@ impl DatabasePool {
                         connections_created: 0,
                         connection_failures: diagnostics.failure_count(),
                         acquisition_timeouts: 0,
-                        last_connection_failure: diagnostics.last_failure(),
+                        last_connection_failure: failure.map(|failure| failure.stage),
+                        last_failure_category: failure.map(|failure| failure.category),
                     },
                     None,
                     Some(PoolFailureStage::ConnectionEstablishment),
+                    Some(PoolFailureCategory::Unknown),
+                    Some(endpoint.as_ref().clone()),
                 )
             })?;
+        Ok(Self::from_pool(
+            pool,
+            settings.acquire_timeout,
+            budget,
+            physical_limit,
+            diagnostics,
+            endpoint,
+        ))
+    }
+
+    pub fn connect_lazy(
+        database_url: &str,
+        settings: PoolSettings,
+        budget: PoolBudget,
+    ) -> Result<Self> {
+        let physical_limit = budget.total()?;
+        let endpoint = Arc::new(DatabaseEndpoint::parse(database_url)?);
+        let diagnostics = Arc::new(PoolDiagnostics::default());
+        let manager = manager(
+            database_url,
+            &settings,
+            diagnostics.clone(),
+            endpoint.clone(),
+        );
+        let pool = Pool::builder()
+            .max_size(physical_limit)
+            .min_idle(Some(1))
+            .idle_timeout(Some(settings.idle_timeout))
+            .connection_timeout(settings.acquire_timeout)
+            .error_sink(Box::new(PoolErrorLogger {
+                diagnostics: diagnostics.clone(),
+                endpoint: endpoint.clone(),
+            }))
+            .build_unchecked(manager);
+        Ok(Self::from_pool(
+            pool,
+            settings.acquire_timeout,
+            budget,
+            physical_limit,
+            diagnostics,
+            endpoint,
+        ))
+    }
+
+    fn from_pool(
+        pool: PgPool,
+        acquire_timeout: Duration,
+        budget: PoolBudget,
+        physical_limit: u32,
+        diagnostics: Arc<PoolDiagnostics>,
+        endpoint: Arc<DatabaseEndpoint>,
+    ) -> Self {
         let application = PoolPartition::new(
             pool.clone(),
             "application",
             budget.application,
             physical_limit,
-            settings.acquire_timeout,
+            acquire_timeout,
             diagnostics.clone(),
+            endpoint.clone(),
         );
         let queue = (budget.queue > 0).then(|| {
             PoolPartition::new(
@@ -217,8 +369,9 @@ impl DatabasePool {
                 "queue",
                 budget.queue,
                 physical_limit,
-                settings.acquire_timeout,
+                acquire_timeout,
                 diagnostics.clone(),
+                endpoint.clone(),
             )
         });
         let scheduler = (budget.scheduler > 0).then(|| {
@@ -227,17 +380,18 @@ impl DatabasePool {
                 "scheduler",
                 budget.scheduler,
                 physical_limit,
-                settings.acquire_timeout,
+                acquire_timeout,
                 diagnostics,
+                endpoint,
             )
         });
-        Ok(Self {
+        Self {
             physical_limit,
-            acquire_timeout: settings.acquire_timeout,
+            acquire_timeout,
             application,
             queue,
             scheduler,
-        })
+        }
     }
 
     pub fn application(&self) -> PoolPartition {
@@ -279,6 +433,7 @@ pub struct PoolPartition {
     permits: Arc<Semaphore>,
     waiting: Arc<AtomicU64>,
     diagnostics: Arc<PoolDiagnostics>,
+    endpoint: Arc<DatabaseEndpoint>,
 }
 
 impl PoolPartition {
@@ -289,6 +444,7 @@ impl PoolPartition {
         physical_limit: u32,
         acquire_timeout: Duration,
         diagnostics: Arc<PoolDiagnostics>,
+        endpoint: Arc<DatabaseEndpoint>,
     ) -> Self {
         Self {
             pool,
@@ -299,6 +455,7 @@ impl PoolPartition {
             permits: Arc::new(Semaphore::new(limit as usize)),
             waiting: Arc::new(AtomicU64::new(0)),
             diagnostics,
+            endpoint,
         }
     }
 
@@ -356,6 +513,7 @@ impl PoolPartition {
 
     pub fn snapshot(&self) -> PoolSnapshot {
         let state = self.pool.state();
+        let failure = self.diagnostics.last_record();
         PoolSnapshot {
             physical_limit: self.physical_limit,
             physical_connections: state.connections,
@@ -368,7 +526,8 @@ impl PoolPartition {
             connections_created: state.statistics.connections_created,
             connection_failures: self.diagnostics.failure_count(),
             acquisition_timeouts: state.statistics.get_timed_out,
-            last_connection_failure: self.diagnostics.last_failure(),
+            last_connection_failure: failure.map(|failure| failure.stage),
+            last_failure_category: failure.map(|failure| failure.category),
         }
     }
 
@@ -384,6 +543,8 @@ impl PoolPartition {
             snapshot,
             cause,
             fallback_stage,
+            Some(PoolFailureCategory::Timeout),
+            Some(self.endpoint.as_ref().clone()),
         )
     }
 }
@@ -395,7 +556,7 @@ impl PoolAcquireError {
         snapshot: PoolSnapshot,
         cause: Option<String>,
     ) -> Self {
-        Self::from_snapshot_with_stage(role, timeout, snapshot, cause, None)
+        Self::from_snapshot_with_stage(role, timeout, snapshot, cause, None, None, None)
     }
 
     fn from_snapshot_with_stage(
@@ -404,7 +565,11 @@ impl PoolAcquireError {
         snapshot: PoolSnapshot,
         cause: Option<String>,
         fallback_stage: Option<PoolFailureStage>,
+        fallback_category: Option<PoolFailureCategory>,
+        endpoint: Option<DatabaseEndpoint>,
     ) -> Self {
+        let stage = snapshot.last_connection_failure.or(fallback_stage);
+        let category = snapshot.last_failure_category.or(fallback_category);
         Self {
             role,
             timeout_ms: timeout.as_millis(),
@@ -418,8 +583,13 @@ impl PoolAcquireError {
             connections_created: snapshot.connections_created,
             connection_failures: snapshot.connection_failures,
             acquisition_timeouts: snapshot.acquisition_timeouts,
-            last_connection_failure: snapshot.last_connection_failure.or(fallback_stage),
-            failure_stage_label: FailureStage(snapshot.last_connection_failure.or(fallback_stage)),
+            last_connection_failure: stage,
+            last_failure_category: category,
+            endpoint_host: endpoint.as_ref().map(|endpoint| endpoint.host.clone()),
+            endpoint_port: endpoint.as_ref().map(|endpoint| endpoint.port),
+            failure_stage_label: FailureStage(stage),
+            failure_category_label: FailureCategory(category),
+            endpoint_label: EndpointLabel(endpoint),
             cause: Cause(cause),
         }
     }
@@ -455,18 +625,18 @@ impl DerefMut for PoolConnection {
 #[derive(Debug)]
 struct PoolErrorLogger {
     diagnostics: Arc<PoolDiagnostics>,
+    endpoint: Arc<DatabaseEndpoint>,
 }
 
 impl ErrorSink<diesel_async::pooled_connection::PoolError> for PoolErrorLogger {
     fn sink(&self, error: diesel_async::pooled_connection::PoolError) {
-        let _ = error;
-        if self.diagnostics.last_failure().is_none() {
-            self.diagnostics
-                .record_failure(PoolFailureStage::Validation);
-        }
+        self.diagnostics.record_pool_error(&error);
         if self.diagnostics.should_warn() {
             tracing::warn!(
                 stage = %FailureStage(self.diagnostics.last_failure()),
+                category = %FailureCategory(self.diagnostics.last_category()),
+                host = %self.endpoint.host,
+                port = self.endpoint.port,
                 failures = self.diagnostics.failure_count(),
                 "PostgreSQL connection creation failed"
             );
@@ -476,27 +646,65 @@ impl ErrorSink<diesel_async::pooled_connection::PoolError> for PoolErrorLogger {
     fn boxed_clone(&self) -> Box<dyn ErrorSink<diesel_async::pooled_connection::PoolError>> {
         Box::new(Self {
             diagnostics: self.diagnostics.clone(),
+            endpoint: self.endpoint.clone(),
         })
     }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct FailureRecord {
+    stage: PoolFailureStage,
+    category: PoolFailureCategory,
 }
 
 #[derive(Debug, Default)]
 struct PoolDiagnostics {
     failures: AtomicU64,
-    last_failure: Mutex<Option<PoolFailureStage>>,
+    last_failure: Mutex<Option<FailureRecord>>,
     last_warning: Mutex<Option<Instant>>,
 }
 
 impl PoolDiagnostics {
-    fn record_failure(&self, stage: PoolFailureStage) {
+    fn record_failure(&self, stage: PoolFailureStage, category: PoolFailureCategory) {
         self.failures.fetch_add(1, Ordering::Relaxed);
         *self
             .last_failure
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(stage);
+            .unwrap_or_else(std::sync::PoisonError::into_inner) =
+            Some(FailureRecord { stage, category });
+    }
+
+    fn record_pool_error(&self, error: &diesel_async::pooled_connection::PoolError) {
+        if matches!(
+            error,
+            diesel_async::pooled_connection::PoolError::QueryError(_)
+        ) {
+            self.record_failure(
+                PoolFailureStage::Validation,
+                PoolFailureCategory::Validation,
+            );
+        } else if self.last_failure().is_none() {
+            let category = match error {
+                diesel_async::pooled_connection::PoolError::ConnectionError(error) => {
+                    classify_connection_error(error)
+                }
+                diesel_async::pooled_connection::PoolError::QueryError(_) => {
+                    PoolFailureCategory::Validation
+                }
+            };
+            self.record_failure(PoolFailureStage::ConnectionEstablishment, category);
+        }
     }
 
     fn last_failure(&self) -> Option<PoolFailureStage> {
+        self.last_record().map(|failure| failure.stage)
+    }
+
+    fn last_category(&self) -> Option<PoolFailureCategory> {
+        self.last_record().map(|failure| failure.category)
+    }
+
+    fn last_record(&self) -> Option<FailureRecord> {
         *self
             .last_failure
             .lock()
@@ -528,6 +736,7 @@ fn manager(
     database_url: &str,
     settings: &PoolSettings,
     diagnostics: Arc<PoolDiagnostics>,
+    endpoint: Arc<DatabaseEndpoint>,
 ) -> AsyncDieselConnectionManager<AsyncPgConnection> {
     let application_name = settings.application_name.clone();
     let statement_timeout = milliseconds(settings.statement_timeout);
@@ -544,6 +753,7 @@ fn manager(
         let idle_transaction_timeout = idle_transaction_timeout.clone();
         let setup_gate = setup_gate.clone();
         let diagnostics = diagnostics.clone();
+        let endpoint = endpoint.clone();
         Box::pin(async move {
             let setup = async {
                 let _setup_permit = setup_gate.acquire().await.map_err(|_| {
@@ -552,7 +762,9 @@ fn manager(
                 let mut connection = match AsyncPgConnection::establish(&database_url).await {
                     Ok(connection) => connection,
                     Err(error) => {
-                        diagnostics.record_failure(PoolFailureStage::ConnectionEstablishment);
+                        let category = classify_connection_failure(&error, &endpoint).await;
+                        diagnostics
+                            .record_failure(PoolFailureStage::ConnectionEstablishment, category);
                         return Err(error);
                     }
                 };
@@ -570,7 +782,10 @@ fn manager(
                 .await
                 .is_err()
                 {
-                    diagnostics.record_failure(PoolFailureStage::SessionSetup);
+                    diagnostics.record_failure(
+                        PoolFailureStage::SessionSetup,
+                        PoolFailureCategory::SessionSetup,
+                    );
                     return Err(ConnectionError::BadConnection(
                         "database session setup failed".to_owned(),
                     ));
@@ -580,7 +795,10 @@ fn manager(
             match tokio::time::timeout(setup_timeout, setup).await {
                 Ok(result) => result,
                 Err(_) => {
-                    diagnostics.record_failure(PoolFailureStage::ConnectionEstablishment);
+                    diagnostics.record_failure(
+                        PoolFailureStage::ConnectionEstablishment,
+                        PoolFailureCategory::Timeout,
+                    );
                     Err(ConnectionError::BadConnection(format!(
                         "database connection setup timed out after {}ms",
                         setup_timeout.as_millis()
@@ -590,6 +808,75 @@ fn manager(
         })
     });
     AsyncDieselConnectionManager::new_with_config(database_url, config)
+}
+
+async fn classify_connection_failure(
+    error: &ConnectionError,
+    endpoint: &DatabaseEndpoint,
+) -> PoolFailureCategory {
+    let category = classify_connection_error(error);
+    if category != PoolFailureCategory::Unknown {
+        return category;
+    }
+    let addresses = match tokio::net::lookup_host((endpoint.host.as_str(), endpoint.port)).await {
+        Ok(addresses) => addresses.collect::<Vec<_>>(),
+        Err(_) => return PoolFailureCategory::Dns,
+    };
+    if addresses.is_empty() {
+        return PoolFailureCategory::Dns;
+    }
+    match tokio::net::TcpStream::connect(addresses.as_slice()).await {
+        Err(error) if error.kind() == std::io::ErrorKind::ConnectionRefused => {
+            PoolFailureCategory::ConnectionRefused
+        }
+        Err(error)
+            if matches!(
+                error.kind(),
+                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
+            ) =>
+        {
+            PoolFailureCategory::Timeout
+        }
+        _ => PoolFailureCategory::Unknown,
+    }
+}
+
+fn classify_connection_error(error: &ConnectionError) -> PoolFailureCategory {
+    match error {
+        ConnectionError::InvalidCString(_) | ConnectionError::InvalidConnectionUrl(_) => {
+            PoolFailureCategory::Unknown
+        }
+        ConnectionError::BadConnection(message) => classify_connection_message(message),
+        ConnectionError::CouldntSetupConfiguration(error) => {
+            classify_connection_message(&error.to_string())
+        }
+        _ => PoolFailureCategory::Unknown,
+    }
+}
+
+fn classify_connection_message(message: &str) -> PoolFailureCategory {
+    let message = message.to_ascii_lowercase();
+    if message.contains("connection refused") {
+        PoolFailureCategory::ConnectionRefused
+    } else if message.contains("timed out") || message.contains("timeout") {
+        PoolFailureCategory::Timeout
+    } else if message.contains("dns")
+        || message.contains("name resolution")
+        || message.contains("failed to lookup")
+        || message.contains("could not resolve")
+    {
+        PoolFailureCategory::Dns
+    } else if message.contains("authentication")
+        || message.contains("password")
+        || message.contains("no pg_hba.conf entry")
+    {
+        PoolFailureCategory::Authentication
+    } else if message.contains("tls") || message.contains("ssl") || message.contains("certificate")
+    {
+        PoolFailureCategory::Tls
+    } else {
+        PoolFailureCategory::Unknown
+    }
 }
 
 fn milliseconds(duration: Duration) -> String {
@@ -640,15 +927,79 @@ mod tests {
     #[test]
     fn diagnostics_track_safe_failure_stage() {
         let diagnostics = PoolDiagnostics::default();
-        diagnostics.record_failure(PoolFailureStage::SessionSetup);
+        diagnostics.record_failure(
+            PoolFailureStage::SessionSetup,
+            PoolFailureCategory::SessionSetup,
+        );
         assert_eq!(diagnostics.failure_count(), 1);
         assert_eq!(
             diagnostics.last_failure(),
             Some(PoolFailureStage::SessionSetup)
         );
+        assert_eq!(
+            diagnostics.last_category(),
+            Some(PoolFailureCategory::SessionSetup)
+        );
         let now = Instant::now();
         assert!(diagnostics.should_warn_at(now));
         assert!(!diagnostics.should_warn_at(now + Duration::from_secs(29)));
         assert!(diagnostics.should_warn_at(now + Duration::from_secs(30)));
+    }
+
+    #[test]
+    fn connection_categories_never_retain_driver_messages() {
+        assert_eq!(
+            classify_connection_message("password authentication failed for user secret"),
+            PoolFailureCategory::Authentication
+        );
+        assert_eq!(
+            classify_connection_message("tcp connect error: Connection refused"),
+            PoolFailureCategory::ConnectionRefused
+        );
+        assert_eq!(
+            classify_connection_message("failed to lookup address information"),
+            PoolFailureCategory::Dns
+        );
+    }
+
+    #[tokio::test]
+    async fn generic_transport_failure_is_refined_to_connection_refused() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let endpoint = DatabaseEndpoint {
+            host: "127.0.0.1".to_owned(),
+            port: listener.local_addr().unwrap().port(),
+        };
+        drop(listener);
+        let error = ConnectionError::BadConnection("database transport failed".to_owned());
+        assert_eq!(
+            classify_connection_failure(&error, &endpoint).await,
+            PoolFailureCategory::ConnectionRefused
+        );
+    }
+
+    #[tokio::test]
+    async fn lazy_pool_does_not_require_an_initial_connection() {
+        let pool = DatabasePool::connect_lazy(
+            "postgres://secret-user:secret-password@127.0.0.1:1/secret-database",
+            PoolSettings {
+                application_name: "lazy-pool-test".to_owned(),
+                acquire_timeout: Duration::from_millis(50),
+                statement_timeout: Duration::from_secs(1),
+                lock_timeout: Duration::from_secs(1),
+                idle_transaction_timeout: Duration::from_secs(1),
+                idle_timeout: Duration::from_secs(30),
+            },
+            PoolBudget::application(1),
+        )
+        .unwrap();
+        let error = match pool.application().connection().await {
+            Ok(_) => panic!("unavailable PostgreSQL unexpectedly accepted a connection"),
+            Err(error) => error,
+        };
+        let message = error.to_string();
+        assert!(message.contains("endpoint 127.0.0.1:1"));
+        assert!(!message.contains("secret-user"));
+        assert!(!message.contains("secret-password"));
+        assert!(!message.contains("secret-database"));
     }
 }

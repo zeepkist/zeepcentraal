@@ -175,6 +175,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             state.clone(),
             crate::rate_limit::middleware,
         ))
+        .layer(middleware::from_fn_with_state(
+            state.database_readiness.clone(),
+            crate::readiness::gate,
+        ))
         .layer(cors)
         .layer(middleware::from_fn(zc_telemetry::http::track_request))
         .with_state(state))

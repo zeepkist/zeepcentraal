@@ -9,6 +9,21 @@ use std::{
 const ENV_FILE_VARIABLE: &str = "ZC_ENV_FILE";
 static SOURCE: OnceLock<EnvironmentSource> = OnceLock::new();
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum VariableSource {
+    Process,
+    LocalFile,
+}
+
+impl std::fmt::Display for VariableSource {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            Self::Process => "Process",
+            Self::LocalFile => "LocalFile",
+        })
+    }
+}
+
 struct EnvironmentSource {
     local: Option<Env>,
 }
@@ -45,10 +60,16 @@ impl EnvironmentSource {
     }
 
     fn var(&self, name: &str) -> Result<String, VarError> {
+        self.var_with_source(name).map(|(value, _)| value)
+    }
+
+    fn var_with_source(&self, name: &str) -> Result<(String, VariableSource), VarError> {
         match std::env::var(name) {
-            Ok(value) => Ok(value),
+            Ok(value) => Ok((value, VariableSource::Process)),
             Err(VarError::NotUnicode(value)) => Err(VarError::NotUnicode(value)),
-            Err(VarError::NotPresent) => self.local_var(name),
+            Err(VarError::NotPresent) => self
+                .local_var(name)
+                .map(|value| (value, VariableSource::LocalFile)),
         }
     }
 
@@ -75,6 +96,17 @@ pub fn var(name: &str) -> Result<String, VarError> {
         Some(source) => source.var(name),
         None => std::env::var(name),
     }
+}
+
+pub fn var_with_source(name: &str) -> Result<(String, VariableSource), VarError> {
+    match SOURCE.get() {
+        Some(source) => source.var_with_source(name),
+        None => std::env::var(name).map(|value| (value, VariableSource::Process)),
+    }
+}
+
+pub fn source(name: &str) -> Result<VariableSource, VarError> {
+    var_with_source(name).map(|(_, source)| source)
 }
 
 fn discover_env_file() -> Result<Option<PathBuf>> {
@@ -113,8 +145,16 @@ mod tests {
         let source = EnvironmentSource::from_path(&path, true).unwrap();
 
         assert_eq!(source.local_var("ZC_LOCAL_ONLY").unwrap(), "value");
+        assert_eq!(
+            source.var_with_source("ZC_LOCAL_ONLY").unwrap(),
+            ("value".to_owned(), VariableSource::LocalFile)
+        );
         assert_eq!(source.local_var("ZC_LIST").unwrap(), "a;b;c");
         assert_eq!(source.var("PATH").unwrap(), std::env::var("PATH").unwrap());
+        assert_eq!(
+            source.var_with_source("PATH").unwrap().1,
+            VariableSource::Process
+        );
         assert!(matches!(
             source.local_var("ZC_MISSING"),
             Err(VarError::NotPresent)
