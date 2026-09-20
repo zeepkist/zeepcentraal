@@ -71,13 +71,15 @@ definitions, including profile/level lookup, autocomplete, tournaments, playlist
 comparison, and random levels through authenticated Diesel-backed server reads. It syncs linked
 roles and exposes supervised health/readiness state. Durable activity feeds, direct-message
 watches, world-record loss pings, and Track of the Week/Month polling use independent persisted
-cursors and idempotent delivery records. Multi-page button navigation beyond first leaderboard
-page still needs parity. Lobby executable now wires managed-room supervision,
+cursors and idempotent delivery records. Level and tournament leaderboards now use owner-bound,
+expiring Components V2 first/previous/next/last sessions with fresh Diesel pages. Lobby executable
+now wires managed-room supervision,
 join-ID persistence, ownership enforcement, bounded transfer queue, roster/chat, leaderboard
 projection, tournament assets and polling, ZSL inspector playlists, and Wasabi-backed level
-transfers. Live Zeepkist validation remains required. Server static route inventory is complete in
-`rust-server-wire-audit.md`: browser Discord/Steam auth, lobby snapshot, and SSE handlers exist;
-collector input, separate room broker, and differential behavior tests remain. Read-only Discord
+transfers. Rust server now owns Steam-authenticated master collection, lobby snapshot/SSE input,
+transactional Diesel lobby history, and separate room assignment broker. Live Zeepkist validation
+remains required. Server static route inventory and Bun/Rust differential runner are complete in
+`rust-server-wire-audit.md`; paired authenticated fixture execution remains. Read-only Discord
 command queries execute against current development PostgreSQL schema. Inspector runtime passes
 unit and static checks. Live smoke cannot start until inspector config, Discord token, and SteamCMD
 path are supplied. Deployment images, production-shaped benchmark gates, unchanged

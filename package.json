@@ -41,6 +41,7 @@
 		"typecheck:web": "bun --cwd=packages/web run typecheck",
 		"test": "bun test --isolate",
 		"test:discord": "bun --cwd=packages/discord run test",
+		"test:server:differential": "bun packages/server/scripts/differential-contract.ts",
 		"test:web": "bun --cwd=packages/web run test",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
