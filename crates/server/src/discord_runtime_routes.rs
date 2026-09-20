@@ -22,6 +22,247 @@ fn default_activity_limit() -> i64 {
     100
 }
 
+#[derive(Deserialize, utoipa::IntoParams)]
+pub struct ProfileQuery {
+    kind: String,
+}
+
+#[utoipa::path(get, path = "/discord-bot/profiles/{identifier}", params(("identifier" = String, Path), ProfileQuery), responses((status = 200), (status = 400), (status = 401), (status = 404)))]
+pub async fn profile(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(identifier): Path<String>,
+    Query(query): Query<ProfileQuery>,
+) -> ApiResult<Json<Value>> {
+    authorize(&state, &headers)?;
+    if !matches!(query.kind.as_str(), "discord" | "steam" | "id")
+        || identifier.is_empty()
+        || identifier.len() > 32
+        || !identifier.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return Err(invalid());
+    }
+    state
+        .database
+        .discord_profile(&query.kind, &identifier)
+        .await
+        .map_err(Problem::internal)?
+        .map(Json)
+        .ok_or_else(|| Problem {
+            status: StatusCode::NOT_FOUND,
+            detail: "Player not found".into(),
+            error_code: None,
+        })
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+pub struct LevelQueryBody {
+    query: String,
+}
+
+#[utoipa::path(post, path = "/discord-bot/levels/lookup", request_body = LevelQueryBody, responses((status = 200), (status = 400), (status = 401), (status = 404)))]
+pub async fn level_lookup(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<LevelQueryBody>,
+) -> ApiResult<Json<Value>> {
+    authorize(&state, &headers)?;
+    let query = body.query.trim();
+    if query.is_empty() || query.len() > 200 {
+        return Err(invalid());
+    }
+    state
+        .database
+        .discord_level_lookup(query)
+        .await
+        .map_err(Problem::internal)?
+        .map(Json)
+        .ok_or_else(not_found)
+}
+
+#[utoipa::path(post, path = "/discord-bot/levels/search", request_body = LevelQueryBody, responses((status = 200), (status = 400), (status = 401)))]
+pub async fn level_search(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<LevelQueryBody>,
+) -> ApiResult<Json<Vec<Value>>> {
+    authorize(&state, &headers)?;
+    let query = body.query.trim();
+    if !(2..=200).contains(&query.len()) {
+        return Err(invalid());
+    }
+    Ok(Json(
+        state
+            .database
+            .discord_level_search(query)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+#[derive(Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct RandomLevelQuery {
+    #[serde(default)]
+    minimum_points: i32,
+}
+
+#[utoipa::path(get, path = "/discord-bot/levels/random", params(RandomLevelQuery), responses((status = 200), (status = 400), (status = 401), (status = 404)))]
+pub async fn random_level(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<RandomLevelQuery>,
+) -> ApiResult<Json<Value>> {
+    authorize(&state, &headers)?;
+    if query.minimum_points < 0 {
+        return Err(invalid());
+    }
+    state
+        .database
+        .discord_random_level(query.minimum_points)
+        .await
+        .map_err(Problem::internal)?
+        .map(Json)
+        .ok_or_else(not_found)
+}
+
+#[derive(Deserialize, utoipa::IntoParams)]
+pub struct StatisticsQuery {
+    range: String,
+    from: Option<String>,
+    to: Option<String>,
+}
+
+#[utoipa::path(get, path = "/discord-bot/users/{discord_id}/statistics", params(("discord_id" = String, Path), StatisticsQuery), responses((status = 200), (status = 400), (status = 401), (status = 404)))]
+pub async fn user_statistics(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(discord_id): Path<String>,
+    Query(query): Query<StatisticsQuery>,
+) -> ApiResult<Json<Value>> {
+    authorize(&state, &headers)?;
+    if !matches!(
+        query.range.as_str(),
+        "today"
+            | "yesterday"
+            | "this-week"
+            | "last-week"
+            | "this-month"
+            | "last-month"
+            | "this-year"
+            | "last-year"
+            | "all-time"
+            | "custom"
+    ) {
+        return Err(invalid());
+    }
+    if query.range == "custom" {
+        let (Some(from), Some(to)) = (&query.from, &query.to) else {
+            return Err(invalid());
+        };
+        let from = from.parse::<jiff::civil::Date>().map_err(|_| invalid())?;
+        let to = to.parse::<jiff::civil::Date>().map_err(|_| invalid())?;
+        if from > to {
+            return Err(invalid());
+        }
+    }
+    state
+        .database
+        .discord_user_statistics(
+            unsigned_bigint(&discord_id)?,
+            &query.range,
+            query.from.as_deref(),
+            query.to.as_deref(),
+        )
+        .await
+        .map_err(Problem::internal)?
+        .map(Json)
+        .ok_or_else(|| Problem {
+            status: StatusCode::NOT_FOUND,
+            detail: "Linked player not found".into(),
+            error_code: None,
+        })
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistBody {
+    discord_id: String,
+    count: i64,
+    sort: String,
+    #[serde(default)]
+    without_wr: bool,
+    #[serde(default)]
+    without_pb: bool,
+    #[serde(default)]
+    no_records: bool,
+}
+
+#[utoipa::path(post, path = "/discord-bot/playlists", request_body = PlaylistBody, responses((status = 200), (status = 400), (status = 401)))]
+pub async fn playlist(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<PlaylistBody>,
+) -> ApiResult<Json<Vec<Value>>> {
+    authorize(&state, &headers)?;
+    if !(1..=100).contains(&body.count)
+        || !matches!(
+            body.sort.as_str(),
+            "points" | "popularity" | "records" | "created" | "updated"
+        )
+    {
+        return Err(invalid());
+    }
+    Ok(Json(
+        state
+            .database
+            .discord_playlist_levels(
+                unsigned_bigint(&body.discord_id)?,
+                body.count,
+                &body.sort,
+                body.without_wr,
+                body.without_pb,
+                body.no_records,
+            )
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendedPlaylistBody {
+    discord_id: String,
+    count: i64,
+}
+
+#[utoipa::path(post, path = "/discord-bot/playlists/recommended", request_body = RecommendedPlaylistBody, responses((status = 200), (status = 400), (status = 401)))]
+pub async fn recommended_playlist(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<RecommendedPlaylistBody>,
+) -> ApiResult<Json<Vec<Value>>> {
+    authorize(&state, &headers)?;
+    if !(1..=50).contains(&body.count) {
+        return Err(invalid());
+    }
+    Ok(Json(
+        state
+            .database
+            .discord_recommended_levels(unsigned_bigint(&body.discord_id)?, body.count)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+fn not_found() -> Problem {
+    Problem {
+        status: StatusCode::NOT_FOUND,
+        detail: "Public level not found".into(),
+        error_code: None,
+    }
+}
+
 #[utoipa::path(get, path = "/discord-bot/activity-events", params(ActivityEventsQuery), responses((status = 200), (status = 400), (status = 401)))]
 pub async fn activity_events(
     State(state): State<Arc<AppState>>,

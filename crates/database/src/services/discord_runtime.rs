@@ -15,6 +15,250 @@ struct JsonRow {
 }
 
 impl Database {
+    pub async fn discord_profile(&self, kind: &str, identifier: &str) -> Result<Option<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT jsonb_build_object( \
+             'id',account.id,'steamId',account.steam_id::text,'steamName',account.steam_name, \
+             'discordId',account.discord_id::text,'points',COALESCE(points.points,0), \
+             'rank',COALESCE(points.rank,-1),'totalPoints',COALESCE(points.total_points,0), \
+             'worldRecords',(SELECT count(*) FROM public.world_record_global wr WHERE wr.id_user=account.id), \
+             'records',(SELECT count(*) FROM public.record record WHERE record.id_user=account.id), \
+             'personalBests',(SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_user=account.id), \
+             'publishedLevels',(SELECT count(*) FROM public.level_item item WHERE item.author_id=account.steam_id \
+               AND item.deleted=false), \
+             'votes',(SELECT count(*) FROM public.vote vote WHERE vote.id_user=account.id)) AS value \
+             FROM public.\"user\" account LEFT JOIN public.user_points points ON points.id_user=account.id \
+             WHERE CASE $1 WHEN 'discord' THEN account.discord_id::text=$2 \
+               WHEN 'steam' THEN account.steam_id::text=$2 WHEN 'id' THEN account.id::text=$2 \
+               ELSE false END LIMIT 1",
+        )
+        .bind::<Text, _>(kind)
+        .bind::<Text, _>(identifier)
+        .get_result::<JsonRow>(&mut connection)
+        .await
+        .optional()?
+        .map(|row| row.value))
+    }
+
+    pub async fn discord_level_lookup(&self, query: &str) -> Result<Option<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "WITH selected AS MATERIALIZED (SELECT level.id,level.xx_hash FROM public.level level \
+             JOIN LATERAL (SELECT source.* FROM public.level_item source WHERE source.id_level=level.id \
+               AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+             LEFT JOIN public.\"user\" author ON author.steam_id=item.author_id \
+             WHERE level.publicly_visible=true AND (level.xx_hash ILIKE $1 OR level.id::text=$1 \
+               OR item.name ILIKE '%'||$1||'%' OR author.steam_name ILIKE '%'||$1||'%') \
+             ORDER BY (level.xx_hash=$1) DESC,(level.id::text=$1) DESC,(lower(item.name)=lower($1)) DESC, \
+               similarity(item.name,$1) DESC,level.id DESC LIMIT 1) \
+             SELECT jsonb_build_object('id',level.id,'xxHash',level.xx_hash,'name',item.name, \
+               'imageUrl',item.image_url,'workshopId',item.workshop_id::text,'authorName',author.steam_name, \
+               'authorDiscordId',author.discord_id::text,'points',COALESCE(points.points,0), \
+               'rating',COALESCE(points.rating,0),'records',(SELECT count(*) FROM public.record r WHERE r.id_level=level.id), \
+               'personalBests',(SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_level=level.id), \
+               'votes',(SELECT count(*) FROM public.vote vote WHERE vote.id_level=level.id), \
+               'worldRecord',CASE WHEN wr.id IS NULL THEN NULL ELSE jsonb_build_object('time',wr_record.time, \
+                 'steamName',wr_user.steam_name,'discordId',wr_user.discord_id::text) END, \
+               'leaderboard',COALESCE((SELECT jsonb_agg(jsonb_build_object('rank',ranked.rank, \
+                 'time',ranked.time,'steamName',ranked.steam_name,'discordId',ranked.discord_id::text) \
+                 ORDER BY ranked.rank) FROM (SELECT row_number() OVER(ORDER BY record.time,record.id) AS rank, \
+                 record.time,account.steam_name,account.discord_id FROM public.personal_best_global pb \
+                 JOIN public.record record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user \
+                 WHERE pb.id_level=level.id ORDER BY record.time,record.id LIMIT 10) ranked),'[]'::jsonb)) AS value \
+             FROM selected JOIN public.level level USING(id) JOIN LATERAL (SELECT source.* FROM public.level_item source \
+               WHERE source.id_level=level.id AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+             LEFT JOIN public.\"user\" author ON author.steam_id=item.author_id \
+             LEFT JOIN public.level_points points ON points.id_level=level.id \
+             LEFT JOIN public.world_record_global wr ON wr.id_level=level.id \
+             LEFT JOIN public.record wr_record ON wr_record.id=wr.id_record \
+             LEFT JOIN public.\"user\" wr_user ON wr_user.id=wr.id_user",
+        )
+        .bind::<Text, _>(query)
+        .get_result::<JsonRow>(&mut connection)
+        .await
+        .optional()?
+        .map(|row| row.value))
+    }
+
+    pub async fn discord_level_search(&self, query: &str) -> Result<Vec<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT jsonb_build_object('name',item.name,'value',level.xx_hash) AS value \
+             FROM public.level level JOIN LATERAL (SELECT source.* FROM public.level_item source \
+               WHERE source.id_level=level.id AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+             LEFT JOIN public.\"user\" author ON author.steam_id=item.author_id \
+             WHERE level.publicly_visible=true AND (level.xx_hash ILIKE $1||'%' OR item.name ILIKE '%'||$1||'%' \
+               OR author.steam_name ILIKE '%'||$1||'%') ORDER BY (level.xx_hash=$1) DESC, \
+               (lower(item.name)=lower($1)) DESC,similarity(item.name,$1) DESC,level.id DESC LIMIT 25",
+        )
+        .bind::<Text, _>(query)
+        .load::<JsonRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.value)
+        .collect())
+    }
+
+    pub async fn discord_random_level(&self, minimum_points: i32) -> Result<Option<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "WITH candidates AS MATERIALIZED (SELECT level.xx_hash,item.name,points.points FROM public.level level \
+             JOIN public.level_points points ON points.id_level=level.id AND points.points>=$1 \
+             JOIN LATERAL (SELECT source.* FROM public.level_item source WHERE source.id_level=level.id \
+               AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+             WHERE level.publicly_visible=true ORDER BY level.id DESC LIMIT 100) \
+             SELECT jsonb_build_object('xxHash',xx_hash,'name',name,'points',points) AS value \
+             FROM candidates ORDER BY random() LIMIT 1",
+        )
+        .bind::<Integer, _>(minimum_points)
+        .get_result::<JsonRow>(&mut connection)
+        .await
+        .optional()?
+        .map(|row| row.value))
+    }
+
+    pub async fn discord_user_statistics(
+        &self,
+        discord_id: i64,
+        range: &str,
+        custom_from: Option<&str>,
+        custom_to: Option<&str>,
+    ) -> Result<Option<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "WITH local_time AS MATERIALIZED (SELECT timezone('Europe/London',clock_timestamp()) AS now), \
+             bounds_local AS MATERIALIZED (SELECT CASE $2 \
+               WHEN 'today' THEN date_trunc('day',now) WHEN 'yesterday' THEN date_trunc('day',now)-interval '1 day' \
+               WHEN 'this-week' THEN date_trunc('week',now) WHEN 'last-week' THEN date_trunc('week',now)-interval '1 week' \
+               WHEN 'this-month' THEN date_trunc('month',now) WHEN 'last-month' THEN date_trunc('month',now)-interval '1 month' \
+               WHEN 'this-year' THEN date_trunc('year',now) WHEN 'last-year' THEN date_trunc('year',now)-interval '1 year' \
+               WHEN 'all-time' THEN timestamp '2000-01-01' WHEN 'custom' THEN $3::date::timestamp END AS from_local, \
+               CASE $2 WHEN 'today' THEN date_trunc('day',now)+interval '1 day' WHEN 'yesterday' THEN date_trunc('day',now) \
+               WHEN 'this-week' THEN now+interval '1 day' WHEN 'last-week' THEN date_trunc('week',now) \
+               WHEN 'this-month' THEN now+interval '1 day' WHEN 'last-month' THEN date_trunc('month',now) \
+               WHEN 'this-year' THEN now+interval '1 day' WHEN 'last-year' THEN date_trunc('year',now) \
+               WHEN 'all-time' THEN now+interval '1 day' WHEN 'custom' THEN ($4::date+1)::timestamp END AS to_local \
+               FROM local_time), bounds AS MATERIALIZED (SELECT from_local AT TIME ZONE 'Europe/London' AS from_at, \
+               to_local AT TIME ZONE 'Europe/London' AS to_at FROM bounds_local), \
+             account AS MATERIALIZED (SELECT id,steam_name,discord_id FROM public.\"user\" \
+               WHERE discord_id=$1 AND discord_id>0 LIMIT 1) \
+             SELECT jsonb_build_object('steamName',account.steam_name,'discordId',account.discord_id::text, \
+               'records',(SELECT count(*) FROM public.record value WHERE value.id_user=account.id \
+                 AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
+               'personalBests',(SELECT count(*) FROM public.personal_best_global value WHERE value.id_user=account.id \
+                 AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
+               'worldRecords',(SELECT count(*) FROM public.world_record_global value WHERE value.id_user=account.id \
+                 AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
+               'levels',(SELECT count(*) FROM public.level_item value JOIN public.\"user\" author ON author.steam_id=value.author_id \
+                 WHERE author.id=account.id AND value.deleted=false AND value.created_at >= bounds.from_at \
+                 AND value.created_at < bounds.to_at), \
+               'votes',(SELECT count(*) FROM public.vote value WHERE value.id_user=account.id \
+                 AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
+               'samples',statistics.samples,'distance',statistics.distance,'time',statistics.time, \
+               'averageSpeed',statistics.average_speed,'averageGforce',statistics.average_gforce, \
+               'maxSpeed',statistics.max_speed,'maxGforce',statistics.max_gforce, \
+               'distanceOnTarmac',statistics.tarmac,'distanceOnGrass',statistics.grass, \
+               'distanceOnSand',statistics.sand,'distanceOnSoap',statistics.soap, \
+               'distanceOnWood',statistics.wood,'distanceOnMud',statistics.mud, \
+               'distanceOnIce1',statistics.ice1,'distanceOnIce2',statistics.ice2, \
+               'distanceOnIce3',statistics.ice3,'distanceInAir',statistics.air) AS value \
+             FROM account CROSS JOIN bounds CROSS JOIN LATERAL (SELECT count(statistic.id_record) AS samples, \
+               COALESCE(sum(statistic.distance),0) AS distance,COALESCE(sum(statistic.time),0) AS time, \
+               COALESCE(avg(statistic.average_speed),0) AS average_speed, \
+               COALESCE(avg(statistic.average_gforce),0) AS average_gforce, \
+               COALESCE(max(statistic.max_speed),0) AS max_speed,COALESCE(max(statistic.max_gforce),0) AS max_gforce, \
+               COALESCE(sum(statistic.distance_on_tarmac),0) AS tarmac,COALESCE(sum(statistic.distance_on_grass),0) AS grass, \
+               COALESCE(sum(statistic.distance_on_sand),0) AS sand,COALESCE(sum(statistic.distance_on_soap),0) AS soap, \
+               COALESCE(sum(statistic.distance_on_wood),0) AS wood,COALESCE(sum(statistic.distance_on_mud),0) AS mud, \
+               COALESCE(sum(statistic.distance_on_ice1),0) AS ice1,COALESCE(sum(statistic.distance_on_ice2),0) AS ice2, \
+               COALESCE(sum(statistic.distance_on_ice3),0) AS ice3,COALESCE(sum(statistic.distance_in_air),0) AS air \
+               FROM public.record_statistic statistic JOIN public.record record ON record.id=statistic.id_record \
+               WHERE record.id_user=account.id AND record.date_created >= bounds.from_at \
+                 AND record.date_created < bounds.to_at) statistics",
+        )
+        .bind::<BigInt, _>(discord_id)
+        .bind::<Text, _>(range)
+        .bind::<Nullable<Text>, _>(custom_from)
+        .bind::<Nullable<Text>, _>(custom_to)
+        .get_result::<JsonRow>(&mut connection)
+        .await
+        .optional()?
+        .map(|row| row.value))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn discord_playlist_levels(
+        &self,
+        discord_id: i64,
+        count: i64,
+        sort: &str,
+        without_wr: bool,
+        without_pb: bool,
+        no_records: bool,
+    ) -> Result<Vec<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "WITH account AS MATERIALIZED (SELECT id FROM public.\"user\" WHERE discord_id=$1 AND discord_id>0), \
+             candidates AS MATERIALIZED (SELECT level.id,level.xx_hash,item.workshop_id,item.file_uid,item.name,item.file_author, \
+               COALESCE(points.points,0) AS points,(SELECT count(*) FROM public.record value WHERE value.id_level=level.id) AS records, \
+               (SELECT count(*) FROM public.record value WHERE value.id_level=level.id \
+                 AND value.date_created>=clock_timestamp()-interval '30 days') AS popularity,item.created_at,item.updated_at \
+               FROM public.level level JOIN LATERAL (SELECT source.* FROM public.level_item source WHERE source.id_level=level.id \
+                 AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+               LEFT JOIN public.level_points points ON points.id_level=level.id \
+               LEFT JOIN public.world_record_global wr ON wr.id_level=level.id LEFT JOIN account ON true \
+               WHERE level.publicly_visible=true AND (NOT $4 OR wr.id_user IS DISTINCT FROM account.id) \
+                 AND (NOT $5 OR NOT EXISTS(SELECT 1 FROM public.personal_best_global pb \
+                   WHERE pb.id_level=level.id AND pb.id_user=account.id)) \
+                 AND (NOT $6 OR NOT EXISTS(SELECT 1 FROM public.record value WHERE value.id_level=level.id))) \
+             SELECT jsonb_build_object('id',id,'xxHash',xx_hash,'workshopId',workshop_id::text, \
+               'fileUid',file_uid,'name',name,'fileAuthor',file_author,'points',points,'records',records) AS value \
+             FROM candidates ORDER BY CASE $2 WHEN 'points' THEN points WHEN 'records' THEN records \
+               WHEN 'popularity' THEN popularity ELSE NULL END DESC NULLS LAST, \
+               CASE $2 WHEN 'created' THEN created_at WHEN 'updated' THEN updated_at ELSE NULL END DESC NULLS LAST,id ASC LIMIT $3",
+        )
+        .bind::<BigInt, _>(discord_id)
+        .bind::<Text, _>(sort)
+        .bind::<BigInt, _>(count)
+        .bind::<Bool, _>(without_wr)
+        .bind::<Bool, _>(without_pb)
+        .bind::<Bool, _>(no_records)
+        .load::<JsonRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.value)
+        .collect())
+    }
+
+    pub async fn discord_recommended_levels(
+        &self,
+        discord_id: i64,
+        count: i64,
+    ) -> Result<Vec<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT jsonb_build_object('id',level.id,'xxHash',level.xx_hash,'workshopId',item.workshop_id::text, \
+               'fileUid',item.file_uid,'name',item.name,'fileAuthor',item.file_author, \
+               'points',contribution.level_points,'records',(SELECT count(*) FROM public.record value WHERE value.id_level=level.id)) AS value \
+             FROM public.\"user\" account JOIN public.user_point_contribution contribution ON contribution.id_user=account.id \
+             JOIN public.level level ON level.id=contribution.id_level AND level.publicly_visible=true \
+             JOIN LATERAL (SELECT source.* FROM public.level_item source WHERE source.id_level=level.id AND source.deleted=false \
+               ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
+             WHERE account.discord_id=$1 AND contribution.level_position>1 \
+               AND contribution.level_points-contribution.player_decayed_points >= \
+                 greatest(100,contribution.level_points*0.15) \
+             ORDER BY contribution.level_points-contribution.player_decayed_points DESC,level.id LIMIT $2",
+        )
+        .bind::<BigInt, _>(discord_id)
+        .bind::<BigInt, _>(count)
+        .load::<JsonRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.value)
+        .collect())
+    }
+
     pub async fn discord_activity_events_after(
         &self,
         cursor: i64,

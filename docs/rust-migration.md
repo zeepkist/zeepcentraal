@@ -66,17 +66,19 @@ submission reconciliation, level validation, validation caching, S3 payload and 
 Diesel state transitions, reactions, Components V2 multipart publication, crash recovery, and
 cleanup ordering.
 
-Release remains blocked. Discord now embeds and registers all 20 active command definitions,
-dispatches account/feed/watch preference mutations, syncs linked roles, and exposes supervised
-health/readiness state. Durable activity feeds, direct-message watches, world-record loss pings,
-and Track of the Week/Month polling now use independent persisted cursors and idempotent delivery
-records. Informational command handlers, autocomplete, and pagination still need parity. Lobby
-executable now wires managed-room supervision,
+Release remains blocked. Discord now embeds, registers, and dispatches all 20 active command
+definitions, including profile/level lookup, autocomplete, tournaments, playlists, statistics,
+comparison, and random levels through authenticated Diesel-backed server reads. It syncs linked
+roles and exposes supervised health/readiness state. Durable activity feeds, direct-message
+watches, world-record loss pings, and Track of the Week/Month polling use independent persisted
+cursors and idempotent delivery records. Multi-page button navigation beyond first leaderboard
+page still needs parity. Lobby executable now wires managed-room supervision,
 join-ID persistence, ownership enforcement, bounded transfer queue, roster/chat, leaderboard
 projection, tournament assets and polling, ZSL inspector playlists, and Wasabi-backed level
 transfers. Live Zeepkist validation remains required. Server static route inventory is complete in
 `rust-server-wire-audit.md`: browser Discord/Steam auth, lobby snapshot, and SSE handlers exist;
-collector input, separate room broker, and differential behavior tests remain. Inspector runtime
-passes unit and static checks. Live smoke cannot start until inspector config, Discord token, and
-SteamCMD path are supplied. Deployment images, production-shaped benchmark gates, unchanged
+collector input, separate room broker, and differential behavior tests remain. Read-only Discord
+command queries execute against current development PostgreSQL schema. Inspector runtime passes
+unit and static checks. Live smoke cannot start until inspector config, Discord token, and SteamCMD
+path are supplied. Deployment images, production-shaped benchmark gates, unchanged
 web/GTR smoke tests, and cutover rehearsal also remain incomplete.

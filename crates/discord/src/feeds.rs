@@ -331,7 +331,7 @@ fn tournament_hash(snapshot: &TournamentSnapshot) -> Result<String> {
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
-fn tournament_components(
+pub(crate) fn tournament_components(
     snapshot: &TournamentSnapshot,
     frontend_url: &reqwest::Url,
 ) -> Vec<CreateComponent<'static>> {
@@ -386,6 +386,16 @@ fn tournament_components(
                             "TOTM"
                         }
                     )),
+                    CreateButton::new_link(
+                        frontend_url
+                            .join(&format!(
+                                "/api/tournaments/playlist?type={}&slug={}",
+                                snapshot.tournament_type, snapshot.tournament_slug
+                            ))
+                            .map(|url| url.to_string())
+                            .unwrap_or_else(|_| frontend_url.to_string()),
+                    )
+                    .label("Download level playlist"),
                 ]),
             ),
         ])

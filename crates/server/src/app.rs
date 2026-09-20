@@ -87,6 +87,31 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(discord_routes::current_tournaments),
         )
         .route(
+            "/discord-bot/profiles/{identifier}",
+            get(discord_routes::profile),
+        )
+        .route(
+            "/discord-bot/levels/lookup",
+            post(discord_routes::level_lookup),
+        )
+        .route(
+            "/discord-bot/levels/search",
+            post(discord_routes::level_search),
+        )
+        .route(
+            "/discord-bot/levels/random",
+            get(discord_routes::random_level),
+        )
+        .route(
+            "/discord-bot/users/{discord_id}/statistics",
+            get(discord_routes::user_statistics),
+        )
+        .route("/discord-bot/playlists", post(discord_routes::playlist))
+        .route(
+            "/discord-bot/playlists/recommended",
+            post(discord_routes::recommended_playlist),
+        )
+        .route(
             "/discord-bot/watches/{watch_id}/delivery",
             patch(discord_routes::update_watch_delivery),
         )

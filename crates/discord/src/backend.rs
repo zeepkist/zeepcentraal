@@ -165,6 +165,115 @@ pub struct TournamentMessage {
     pub content_hash: String,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Profile {
+    pub id: i32,
+    pub steam_id: Option<String>,
+    pub steam_name: Option<String>,
+    pub discord_id: Option<String>,
+    pub points: i64,
+    pub rank: i32,
+    pub total_points: i64,
+    pub world_records: i64,
+    pub records: i64,
+    pub personal_bests: i64,
+    pub published_levels: i64,
+    pub votes: i64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LevelProfile {
+    pub id: i32,
+    pub xx_hash: String,
+    pub name: String,
+    pub image_url: String,
+    pub workshop_id: String,
+    pub author_name: Option<String>,
+    pub author_discord_id: Option<String>,
+    pub points: i32,
+    pub rating: f32,
+    pub records: i64,
+    pub personal_bests: i64,
+    pub votes: i64,
+    pub world_record: Option<LevelWorldRecord>,
+    pub leaderboard: Vec<LevelStanding>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LevelWorldRecord {
+    pub time: f32,
+    pub steam_name: Option<String>,
+    pub discord_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LevelStanding {
+    pub rank: i64,
+    pub time: f32,
+    pub steam_name: Option<String>,
+    pub discord_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct SearchChoice {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RandomLevel {
+    pub xx_hash: String,
+    pub name: String,
+    pub points: i32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserStatistics {
+    pub steam_name: Option<String>,
+    pub discord_id: String,
+    pub records: i64,
+    pub personal_bests: i64,
+    pub world_records: i64,
+    pub levels: i64,
+    pub votes: i64,
+    pub samples: i64,
+    pub distance: f64,
+    pub time: f64,
+    pub average_speed: f64,
+    pub average_gforce: f64,
+    pub max_speed: f64,
+    pub max_gforce: f64,
+    pub distance_on_tarmac: f64,
+    pub distance_on_grass: f64,
+    pub distance_on_sand: f64,
+    pub distance_on_soap: f64,
+    pub distance_on_wood: f64,
+    pub distance_on_mud: f64,
+    pub distance_on_ice1: f64,
+    pub distance_on_ice2: f64,
+    pub distance_on_ice3: f64,
+    pub distance_in_air: f64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlaylistLevel {
+    pub id: i32,
+    pub xx_hash: String,
+    pub workshop_id: String,
+    pub file_uid: String,
+    pub name: String,
+    pub file_author: String,
+    pub points: i32,
+    pub records: i64,
+}
+
 impl Backend {
     pub fn new(base_url: Url, api_token: String) -> Result<Self> {
         Ok(Self {
@@ -338,6 +447,119 @@ impl Backend {
     pub async fn current_tournaments(&self) -> Result<Vec<TournamentSnapshot>> {
         self.request(Method::GET, "/discord-bot/tournaments/current", None)
             .await
+    }
+
+    pub async fn profile(&self, kind: &str, identifier: &str) -> Result<Profile> {
+        self.request(
+            Method::GET,
+            &format!("/discord-bot/profiles/{identifier}?kind={kind}"),
+            None,
+        )
+        .await
+    }
+
+    pub async fn level(&self, query: &str) -> Result<LevelProfile> {
+        self.request(
+            Method::POST,
+            "/discord-bot/levels/lookup",
+            Some(json!({"query":query})),
+        )
+        .await
+    }
+
+    pub async fn level_search(&self, query: &str) -> Result<Vec<SearchChoice>> {
+        self.request(
+            Method::POST,
+            "/discord-bot/levels/search",
+            Some(json!({"query":query})),
+        )
+        .await
+    }
+
+    pub async fn random_level(&self, minimum_points: i64) -> Result<RandomLevel> {
+        self.request(
+            Method::GET,
+            &format!("/discord-bot/levels/random?minimumPoints={minimum_points}"),
+            None,
+        )
+        .await
+    }
+
+    pub async fn user_statistics(
+        &self,
+        discord_id: u64,
+        range: &str,
+        from: Option<&str>,
+        to: Option<&str>,
+    ) -> Result<UserStatistics> {
+        let mut url = self
+            .base_url
+            .join(&format!("/discord-bot/users/{discord_id}/statistics"))?;
+        {
+            let mut query = url.query_pairs_mut();
+            query.append_pair("range", range);
+            if let Some(from) = from {
+                query.append_pair("from", from);
+            }
+            if let Some(to) = to {
+                query.append_pair("to", to);
+            }
+        }
+        let response = self
+            .client
+            .get(url)
+            .bearer_auth(&self.api_token)
+            .send()
+            .await
+            .context("Discord backend unavailable")?;
+        let status = response.status();
+        if !status.is_success() {
+            bail!(
+                "Discord backend statistics returned {status}: {}",
+                response
+                    .text()
+                    .await
+                    .unwrap_or_default()
+                    .chars()
+                    .take(300)
+                    .collect::<String>()
+            );
+        }
+        Ok(response.json().await?)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn playlist(
+        &self,
+        discord_id: u64,
+        count: i64,
+        sort: &str,
+        without_wr: bool,
+        without_pb: bool,
+        no_records: bool,
+    ) -> Result<Vec<PlaylistLevel>> {
+        self.request(
+            Method::POST,
+            "/discord-bot/playlists",
+            Some(json!({
+                "discordId":discord_id.to_string(),"count":count,"sort":sort,
+                "withoutWr":without_wr,"withoutPb":without_pb,"noRecords":no_records,
+            })),
+        )
+        .await
+    }
+
+    pub async fn recommended_playlist(
+        &self,
+        discord_id: u64,
+        count: i64,
+    ) -> Result<Vec<PlaylistLevel>> {
+        self.request(
+            Method::POST,
+            "/discord-bot/playlists/recommended",
+            Some(json!({"discordId":discord_id.to_string(),"count":count})),
+        )
+        .await
     }
 
     pub async fn advance_worker(&self, key: &str, event_id: &str) -> Result<Value> {
