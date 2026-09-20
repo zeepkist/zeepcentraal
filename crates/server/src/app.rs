@@ -87,6 +87,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(discord_routes::current_tournaments),
         )
         .route(
+            "/discord-bot/tournaments/{tournament_id}/standings",
+            get(discord_routes::tournament_standings),
+        )
+        .route(
             "/discord-bot/profiles/{identifier}",
             get(discord_routes::profile),
         )
@@ -97,6 +101,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route(
             "/discord-bot/levels/search",
             post(discord_routes::level_search),
+        )
+        .route(
+            "/discord-bot/levels/{level_id}/standings",
+            get(discord_routes::level_standings),
         )
         .route(
             "/discord-bot/levels/random",

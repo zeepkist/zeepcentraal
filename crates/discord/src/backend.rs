@@ -151,6 +151,13 @@ pub struct TournamentStanding {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LeaderboardPage<T> {
+    pub total_count: i64,
+    pub rows: Vec<T>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GuildState {
     #[serde(default)]
     pub tournament_messages: Vec<TournamentMessage>,
@@ -449,6 +456,22 @@ impl Backend {
             .await
     }
 
+    pub async fn tournament_standings(
+        &self,
+        tournament_id: i32,
+        offset: i64,
+        limit: i64,
+    ) -> Result<LeaderboardPage<TournamentStanding>> {
+        self.request(
+            Method::GET,
+            &format!(
+                "/discord-bot/tournaments/{tournament_id}/standings?offset={offset}&limit={limit}"
+            ),
+            None,
+        )
+        .await
+    }
+
     pub async fn profile(&self, kind: &str, identifier: &str) -> Result<Profile> {
         self.request(
             Method::GET,
@@ -463,6 +486,20 @@ impl Backend {
             Method::POST,
             "/discord-bot/levels/lookup",
             Some(json!({"query":query})),
+        )
+        .await
+    }
+
+    pub async fn level_standings(
+        &self,
+        level_id: i32,
+        offset: i64,
+        limit: i64,
+    ) -> Result<LeaderboardPage<LevelStanding>> {
+        self.request(
+            Method::GET,
+            &format!("/discord-bot/levels/{level_id}/standings?offset={offset}&limit={limit}"),
+            None,
         )
         .await
     }

@@ -107,6 +107,46 @@ pub struct RandomLevelQuery {
     minimum_points: i32,
 }
 
+#[derive(Deserialize, utoipa::IntoParams)]
+pub struct LeaderboardPageQuery {
+    #[serde(default = "default_leaderboard_limit")]
+    limit: i64,
+    #[serde(default)]
+    offset: i64,
+}
+
+fn default_leaderboard_limit() -> i64 {
+    10
+}
+
+fn validate_leaderboard_page(query: &LeaderboardPageQuery) -> ApiResult<()> {
+    if !(1..=25).contains(&query.limit) || !(0..=100_000).contains(&query.offset) {
+        return Err(invalid());
+    }
+    Ok(())
+}
+
+#[utoipa::path(get, path = "/discord-bot/levels/{level_id}/standings", params(("level_id" = i32, Path), LeaderboardPageQuery), responses((status = 200), (status = 400), (status = 401)))]
+pub async fn level_standings(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(level_id): Path<i32>,
+    Query(query): Query<LeaderboardPageQuery>,
+) -> ApiResult<Json<Value>> {
+    authorize(&state, &headers)?;
+    if level_id <= 0 {
+        return Err(invalid());
+    }
+    validate_leaderboard_page(&query)?;
+    Ok(Json(
+        state
+            .database
+            .discord_level_standings(level_id, query.limit, query.offset)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
 #[utoipa::path(get, path = "/discord-bot/levels/random", params(RandomLevelQuery), responses((status = 200), (status = 400), (status = 401), (status = 404)))]
 pub async fn random_level(
     State(state): State<Arc<AppState>>,
@@ -292,6 +332,27 @@ pub async fn current_tournaments(
         state
             .database
             .discord_tournament_snapshots()
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
+#[utoipa::path(get, path = "/discord-bot/tournaments/{tournament_id}/standings", params(("tournament_id" = i32, Path), LeaderboardPageQuery), responses((status = 200), (status = 400), (status = 401)))]
+pub async fn tournament_standings(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(tournament_id): Path<i32>,
+    Query(query): Query<LeaderboardPageQuery>,
+) -> ApiResult<Json<Value>> {
+    authorize(&state, &headers)?;
+    if tournament_id <= 0 {
+        return Err(invalid());
+    }
+    validate_leaderboard_page(&query)?;
+    Ok(Json(
+        state
+            .database
+            .discord_tournament_standings(tournament_id, query.limit, query.offset)
             .await
             .map_err(Problem::internal)?,
     ))

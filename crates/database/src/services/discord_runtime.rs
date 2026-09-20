@@ -100,6 +100,31 @@ impl Database {
         .collect())
     }
 
+    pub async fn discord_level_standings(
+        &self,
+        level_id: i32,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Value> {
+        let mut connection = self.connection().await?;
+        let row: JsonRow = sql_query(
+            "WITH ranked AS MATERIALIZED (SELECT row_number() OVER(ORDER BY record.time,record.id) AS rank, \
+             record.time,account.steam_name,account.discord_id FROM public.personal_best_global pb \
+             JOIN public.record record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user \
+             JOIN public.level level ON level.id=pb.id_level AND level.publicly_visible=true \
+             WHERE pb.id_level=$1), page AS (SELECT * FROM ranked ORDER BY rank LIMIT $2 OFFSET $3) \
+             SELECT jsonb_build_object('totalCount',(SELECT count(*) FROM ranked),'rows',COALESCE(jsonb_agg( \
+             jsonb_build_object('rank',page.rank,'time',page.time,'steamName',page.steam_name, \
+             'discordId',page.discord_id::text) ORDER BY page.rank),'[]'::jsonb)) AS value FROM page",
+        )
+        .bind::<Integer, _>(level_id)
+        .bind::<BigInt, _>(limit)
+        .bind::<BigInt, _>(offset)
+        .get_result(&mut connection)
+        .await?;
+        Ok(row.value)
+    }
+
     pub async fn discord_random_level(&self, minimum_points: i32) -> Result<Option<Value>> {
         let mut connection = self.connection().await?;
         Ok(sql_query(
@@ -340,6 +365,32 @@ impl Database {
         .into_iter()
         .map(|row| row.value)
         .collect())
+    }
+
+    pub async fn discord_tournament_standings(
+        &self,
+        tournament_id: i32,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Value> {
+        let mut connection = self.connection().await?;
+        let row: JsonRow = sql_query(
+            "WITH ranked AS MATERIALIZED (SELECT result.id_user,\"user\".steam_name, \
+             \"user\".discord_id,result.time,result.rank,result.points,result.id_record \
+             FROM public.track_tournament_result result JOIN public.\"user\" ON \"user\".id=result.id_user \
+             WHERE result.id_tournament=$1), page AS (SELECT * FROM ranked \
+             ORDER BY rank,time,id_record LIMIT $2 OFFSET $3) SELECT jsonb_build_object( \
+             'totalCount',(SELECT count(*) FROM ranked),'rows',COALESCE(jsonb_agg(jsonb_build_object( \
+             'userId',page.id_user,'steamName',page.steam_name,'discordId',page.discord_id::text, \
+             'time',page.time,'rank',page.rank,'points',page.points) ORDER BY page.rank,page.time,page.id_record), \
+             '[]'::jsonb)) AS value FROM page",
+        )
+        .bind::<Integer, _>(tournament_id)
+        .bind::<BigInt, _>(limit)
+        .bind::<BigInt, _>(offset)
+        .get_result(&mut connection)
+        .await?;
+        Ok(row.value)
     }
 
     pub async fn discord_guild_state(&self, guild_id: i64) -> Result<Value> {

@@ -4,6 +4,7 @@ pub mod commands;
 pub mod config;
 pub mod feeds;
 pub mod health;
+pub mod pagination;
 pub mod runtime;
 
 use serde::{Deserialize, Serialize};

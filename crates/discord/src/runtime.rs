@@ -1,15 +1,20 @@
 use crate::{
-    backend::{Backend, LevelProfile, PlaylistLevel, Profile, RandomLevel, UserStatistics},
+    backend::{
+        Backend, LevelProfile, LevelStanding, PlaylistLevel, Profile, RandomLevel,
+        TournamentSnapshot, TournamentStanding, UserStatistics,
+    },
     commands,
     config::DiscordConfig,
-    feeds::{FeedService, tournament_components},
+    feeds::FeedService,
     health::RuntimeState,
+    pagination::{Direction, PAGE_SIZE, PageKind, PageSession, PageStore, page_count, target_page},
 };
 use anyhow::{Context as _, Result, bail};
 use serenity::{
     all::{
-        Client, CommandDataOption, CommandDataOptionValue, CommandInteraction, Context,
-        EventHandler, FullEvent, GatewayIntents, Interaction, Member, MessageFlags, RoleId,
+        ButtonStyle, Client, CommandDataOption, CommandDataOptionValue, CommandInteraction,
+        ComponentInteraction, Context, EventHandler, FullEvent, GatewayIntents, Interaction,
+        Member, MessageFlags, RoleId,
     },
     async_trait,
     builder::{
@@ -19,13 +24,14 @@ use serenity::{
     },
     model::Colour,
 };
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub struct Handler {
     config: Arc<DiscordConfig>,
     backend: Backend,
     feeds: Arc<FeedService>,
     state: Arc<RuntimeState>,
+    pages: Arc<Mutex<PageStore>>,
 }
 
 impl Handler {
@@ -40,6 +46,7 @@ impl Handler {
             backend,
             feeds,
             state,
+            pages: Arc::new(Mutex::new(PageStore::default())),
         }
     }
 
@@ -140,15 +147,30 @@ impl Handler {
             .into_iter()
             .find(|snapshot| snapshot.tournament_type == tournament_type)
             .context("No tournament found")?;
+        let page = self
+            .backend
+            .tournament_standings(snapshot.tournament_id, 0, PAGE_SIZE)
+            .await?;
+        self.pages
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Pagination store unavailable"))?
+            .insert(
+                command.id.get(),
+                command.user.id.get(),
+                page.total_count,
+                PageKind::Tournament(snapshot.clone()),
+            );
         command
             .create_response(
                 &context.http,
-                CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new()
-                        .components(tournament_components(&snapshot, &self.config.frontend_url))
-                        .flags(MessageFlags::IS_COMPONENTS_V2)
-                        .allowed_mentions(CreateAllowedMentions::new()),
-                ),
+                CreateInteractionResponse::Message(tournament_page_message(
+                    command.id.get(),
+                    &snapshot,
+                    &page.rows,
+                    0,
+                    page.total_count,
+                    &self.config.frontend_url,
+                )),
             )
             .await?;
         Ok(())
@@ -205,14 +227,128 @@ impl Handler {
 
     async fn level_command(&self, context: &Context, command: &CommandInteraction) -> Result<()> {
         let query = string_option(&command.data.options, "query").context("Missing level query")?;
-        let level = self.backend.level(query).await?;
+        let mut level = self.backend.level(query).await?;
+        let page = self.backend.level_standings(level.id, 0, PAGE_SIZE).await?;
+        level.leaderboard.clone_from(&page.rows);
+        self.pages
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Pagination store unavailable"))?
+            .insert(
+                command.id.get(),
+                command.user.id.get(),
+                page.total_count,
+                PageKind::Level(level.clone()),
+            );
         command
             .create_response(
                 &context.http,
-                level_response(&level, &self.config.frontend_url),
+                CreateInteractionResponse::Message(level_page_message(
+                    command.id.get(),
+                    &level,
+                    &page.rows,
+                    0,
+                    page.total_count,
+                    &self.config.frontend_url,
+                )),
             )
             .await?;
         Ok(())
+    }
+
+    async fn component(&self, context: &Context, interaction: &ComponentInteraction) -> Result<()> {
+        let Some((session_id, direction)) = parse_page_control(&interaction.data.custom_id) else {
+            return Ok(());
+        };
+        let session = self
+            .pages
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Pagination store unavailable"))?
+            .get(session_id);
+        let Some(session) = session else {
+            interaction
+                .create_response(
+                    &context.http,
+                    interaction_message("Pagination expired", "Run command again.", true),
+                )
+                .await?;
+            return Ok(());
+        };
+        if session.owner_id != interaction.user.id.get() {
+            interaction
+                .create_response(
+                    &context.http,
+                    interaction_message(
+                        "Private controls",
+                        "Only command owner can change pages.",
+                        true,
+                    ),
+                )
+                .await?;
+            return Ok(());
+        }
+        let mut page = target_page(&session, direction);
+        let (mut total_count, mut response) = self.load_page(session_id, &session, page).await?;
+        if page > 0 && page * PAGE_SIZE >= total_count {
+            page = 0;
+            (total_count, response) = self.load_page(session_id, &session, page).await?;
+        }
+        self.pages
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Pagination store unavailable"))?
+            .update(session_id, page, total_count)
+            .context("Pagination expired")?;
+        interaction
+            .create_response(
+                &context.http,
+                CreateInteractionResponse::UpdateMessage(response),
+            )
+            .await?;
+        Ok(())
+    }
+
+    async fn load_page(
+        &self,
+        session_id: u64,
+        session: &PageSession,
+        page: i64,
+    ) -> Result<(i64, CreateInteractionResponseMessage<'static>)> {
+        let offset = page * PAGE_SIZE;
+        match &session.kind {
+            PageKind::Level(level) => {
+                let result = self
+                    .backend
+                    .level_standings(level.id, offset, PAGE_SIZE)
+                    .await?;
+                Ok((
+                    result.total_count,
+                    level_page_message(
+                        session_id,
+                        level,
+                        &result.rows,
+                        page,
+                        result.total_count,
+                        &self.config.frontend_url,
+                    ),
+                ))
+            }
+            PageKind::Tournament(snapshot) => {
+                let result = self
+                    .backend
+                    .tournament_standings(snapshot.tournament_id, offset, PAGE_SIZE)
+                    .await?;
+                Ok((
+                    result.total_count,
+                    tournament_page_message(
+                        session_id,
+                        snapshot,
+                        &result.rows,
+                        page,
+                        result.total_count,
+                        &self.config.frontend_url,
+                    ),
+                ))
+            }
+        }
     }
 
     async fn random_level_command(
@@ -467,6 +603,17 @@ impl EventHandler for Handler {
                             .await;
                     }
                 }
+                Interaction::Component(component) => {
+                    if let Err(error) = self.component(context, component).await {
+                        tracing::error!(interaction_id = component.id.get(), %error, "Discord component failed");
+                        let _ = component
+                            .create_response(
+                                &context.http,
+                                interaction_message("Interaction failed", error.to_string(), true),
+                            )
+                            .await;
+                    }
+                }
                 _ => {}
             },
             _ => {}
@@ -629,10 +776,14 @@ fn profile_response(
     )
 }
 
-fn level_response(
+fn level_page_message(
+    session_id: u64,
     level: &LevelProfile,
+    standings: &[LevelStanding],
+    page: i64,
+    total_count: i64,
     frontend_url: &reqwest::Url,
-) -> CreateInteractionResponse<'static> {
+) -> CreateInteractionResponseMessage<'static> {
     let world_record = level.world_record.as_ref().map_or_else(
         || "None".into(),
         |record| {
@@ -643,11 +794,10 @@ fn level_response(
             )
         },
     );
-    let leaderboard = if level.leaderboard.is_empty() {
+    let leaderboard = if standings.is_empty() {
         "No personal bests yet.".into()
     } else {
-        level
-            .leaderboard
+        standings
             .iter()
             .map(|standing| {
                 format!(
@@ -664,12 +814,11 @@ fn level_response(
         .join(&format!("/level/{}", level.xx_hash))
         .map(|url| url.to_string())
         .unwrap_or_else(|_| frontend_url.to_string());
-    CreateInteractionResponse::Message(
-        CreateInteractionResponseMessage::new()
-            .components(vec![CreateComponent::Container(
-                CreateContainer::new(vec![
+    CreateInteractionResponseMessage::new()
+        .components(vec![CreateComponent::Container(
+            CreateContainer::new(vec![
                     CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
-                        "## {}\nBy {}\n### Level details\n**Hash / ID**  `{}` / `{}`\n**Points**  {}  •  **Rating**  {:.2}\n**Records / PBs**  {} / {}  •  **Votes**  {}\n**World record**  {}\n### Leaderboard\n{}\n-# ZeepCentraal",
+                        "## {}\nBy {}\n### Level details\n**Hash / ID**  `{}` / `{}`\n**Points**  {}  •  **Rating**  {:.2}\n**Records / PBs**  {} / {}  •  **Votes**  {}\n**World record**  {}\n### Leaderboard\n{}\n-# ZeepCentraal • Page {}/{}",
                         level.name,
                         level.author_name.as_deref().unwrap_or("Unknown author"),
                         level.xx_hash,
@@ -681,18 +830,126 @@ fn level_response(
                         level.votes,
                         world_record,
                         leaderboard,
+                        page + 1,
+                        page_count(total_count),
                     ))),
                     CreateContainerComponent::ActionRow(
                         serenity::builder::CreateActionRow::buttons(vec![
                             CreateButton::new_link(target).label("Open level"),
                         ]),
                     ),
+                    pagination_row(session_id, page, total_count),
                 ])
-                .accent_color(Colour::DARK_GREEN),
-            )])
-            .flags(MessageFlags::IS_COMPONENTS_V2)
-            .allowed_mentions(CreateAllowedMentions::new()),
-    )
+            .accent_color(Colour::DARK_GREEN),
+        )])
+        .flags(MessageFlags::IS_COMPONENTS_V2)
+        .allowed_mentions(CreateAllowedMentions::new())
+}
+
+fn tournament_page_message(
+    session_id: u64,
+    snapshot: &TournamentSnapshot,
+    standings: &[TournamentStanding],
+    page: i64,
+    total_count: i64,
+    frontend_url: &reqwest::Url,
+) -> CreateInteractionResponseMessage<'static> {
+    let name = if snapshot.tournament_type == 0 {
+        "Track of the Week"
+    } else {
+        "Track of the Month"
+    };
+    let leaderboard = if standings.is_empty() {
+        "No submitted times yet.".into()
+    } else {
+        standings
+            .iter()
+            .map(|standing| {
+                format!(
+                    "**{}.** {} • {} • {} pts",
+                    standing.rank,
+                    standing.steam_name.as_deref().unwrap_or("Unknown player"),
+                    command_time(standing.time),
+                    standing.points,
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let route = if snapshot.tournament_type == 0 {
+        "totw"
+    } else {
+        "totm"
+    };
+    let target = frontend_url
+        .join(&format!("/{route}/{}", snapshot.tournament_slug))
+        .map(|url| url.to_string())
+        .unwrap_or_else(|_| frontend_url.to_string());
+    let playlist = frontend_url
+        .join(&format!(
+            "/api/tournaments/playlist?type={}&slug={}",
+            snapshot.tournament_type, snapshot.tournament_slug
+        ))
+        .map(|url| url.to_string())
+        .unwrap_or_else(|_| frontend_url.to_string());
+    CreateInteractionResponseMessage::new()
+        .components(vec![CreateComponent::Container(
+            CreateContainer::new(vec![
+                CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
+                    "## {name} • {}\nCurrent competition standings\n### Tournament details\n**Level**  {}\n**Entries**  {}\n**Ends**  {}\n### Leaderboard\n{}\n-# ZeepCentraal • Page {}/{}",
+                    snapshot.tournament_slug,
+                    snapshot.level_name,
+                    snapshot.entries,
+                    snapshot.end_at,
+                    leaderboard,
+                    page + 1,
+                    page_count(total_count),
+                ))),
+                CreateContainerComponent::ActionRow(
+                    serenity::builder::CreateActionRow::buttons(vec![
+                        CreateButton::new_link(target).label(format!("Open {}", route.to_uppercase())),
+                        CreateButton::new_link(playlist).label("Download level playlist"),
+                    ]),
+                ),
+                pagination_row(session_id, page, total_count),
+            ])
+            .accent_color(Colour::DARK_GREEN),
+        )])
+        .flags(MessageFlags::IS_COMPONENTS_V2)
+        .allowed_mentions(CreateAllowedMentions::new())
+}
+
+fn pagination_row(
+    session_id: u64,
+    page: i64,
+    total_count: i64,
+) -> CreateContainerComponent<'static> {
+    let last = page_count(total_count) - 1;
+    let button = |direction: &str, label: &str, disabled: bool| {
+        CreateButton::new(format!("page:{session_id}:{direction}"))
+            .label(label.to_owned())
+            .style(ButtonStyle::Secondary)
+            .disabled(disabled)
+    };
+    CreateContainerComponent::ActionRow(serenity::builder::CreateActionRow::buttons(vec![
+        button("first", "First", page == 0),
+        button("previous", "Previous", page == 0),
+        button("next", "Next", page >= last),
+        button("last", "Last", page >= last),
+    ]))
+}
+
+fn parse_page_control(custom_id: &str) -> Option<(u64, Direction)> {
+    let mut parts = custom_id.split(':');
+    if parts.next()? != "page" {
+        return None;
+    }
+    let id = parts.next()?.parse().ok()?;
+    let direction = Direction::parse(parts.next()?)?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((id, direction))
 }
 
 fn random_level_response(
@@ -919,5 +1176,18 @@ mod tests {
                 .iter()
                 .all(|command| supports_command(&command.name))
         );
+    }
+
+    #[test]
+    fn leaderboard_buttons_encode_owner_session_navigation() {
+        assert_eq!(
+            parse_page_control("page:42:previous"),
+            Some((42, Direction::Previous))
+        );
+        assert!(parse_page_control("page:42:next:extra").is_none());
+        let encoded = serde_json::to_string(&pagination_row(42, 1, 30)).unwrap();
+        for direction in ["first", "previous", "next", "last"] {
+            assert!(encoded.contains(&format!("page:42:{direction}")));
+        }
     }
 }
