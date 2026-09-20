@@ -175,4 +175,11 @@ mod tests {
         assert_eq!(result.contributions[0].id_level, 1);
         assert_eq!(result.contributions[1].player_decayed_points, 935.75);
     }
+
+    #[test]
+    fn player_decay_flushes_float32_underflow_to_zero() {
+        let value = calculate_decayed_points(1_000.0, 2_150.0, GLOBAL_DECAY_FACTOR);
+
+        assert_eq!(value, 0.0);
+    }
 }
