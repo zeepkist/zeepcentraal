@@ -77,12 +77,14 @@ jobs:
 
   rust-binaries:
     needs: release-plan
-    runs-on: ubuntu-latest
+    # SteamCMD runtime is Ubuntu 22.04 (glibc 2.35); all shipped Rust binaries need that ABI.
+    runs-on: ubuntu-22.04
     env:
       CARGO_INCREMENTAL: '0'
       CARGO_BUILD_JOBS: '2'
       CARGO_TARGET_DIR: /tmp/zc-target
       SCCACHE_GHA_ENABLED: 'true'
+      SCCACHE_GHA_VERSION: 'glibc-2.35'
       RUSTC_WRAPPER: sccache
     steps:
       - uses: actions/checkout@v7
@@ -100,6 +102,8 @@ jobs:
         with:
           cache-targets: false
       - uses: mozilla-actions/sccache-action@v0.0.11
+      - name: Verify Rust build glibc baseline
+        run: test "$(getconf GNU_LIBC_VERSION)" = 'glibc 2.35'
       - name: Stamp release crate versions in build checkout
         run: node scripts/release/stamp.mjs "$RUNNER_TEMP/release-plan.json"
       - run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
@@ -109,6 +113,8 @@ jobs:
         run: |
           mkdir -p dist
           cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,inspector-zeep,import-zsl} dist/
+      - name: Check Rust runtime ABI
+        run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-{server,jobs,migrate,lobby-host,discord,inspector-zeep,import-zsl}
       - uses: actions/upload-artifact@v7
         with:
           name: rust-binaries

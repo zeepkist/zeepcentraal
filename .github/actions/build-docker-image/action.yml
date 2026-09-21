@@ -71,8 +71,17 @@ runs:
         context: .
         file: ${{ inputs.dockerfile }}
         push: ${{ inputs.push }}
+        load: ${{ inputs.push == 'false' && startsWith(inputs.name, 'zc-') }}
         build-args: |
           SERVICE_VERSION=${{ inputs.service-version }}
         tags: ${{ inputs.tags }}
         cache-from: type=gha,scope=${{ inputs.name }}
         cache-to: ${{ inputs.cache-write == 'true' && format('type=gha,mode=max,scope={0},ignore-error=true', inputs.name) || '' }}
+
+    - name: Verify ${{ inputs.name }} runtime linkage
+      if: ${{ inputs.push == 'false' && startsWith(inputs.name, 'zc-') }}
+      shell: bash
+      env:
+        IMAGE: ${{ inputs.tags }}
+        BINARY: ${{ inputs.expected-path }}
+      run: docker run --rm --entrypoint /lib64/ld-linux-x86-64.so.2 "$IMAGE" --list "/app/$(basename "$BINARY")"

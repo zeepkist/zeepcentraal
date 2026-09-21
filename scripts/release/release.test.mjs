@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { checkVersionInfo, highestRequiredGlibc } from './check-rust-abi.mjs'
 import { analyzeCommits } from './impact.mjs'
 import { affects, rustTargets } from './targets.mjs'
 
@@ -26,6 +27,20 @@ test('release paths separate retained TypeScript services from Rust services', (
 	assert.equal(affects('zc-migrate', 'crates/database/src/adoption.rs'), true)
 	assert.equal(affects('zc-discord', 'Dockerfile.discord'), true)
 	assert.equal(affects('zc-server', 'packages/web/app/app.vue'), false)
+	for (const target of Object.keys(rustTargets)) {
+		assert.equal(affects(target, '.github/workflows/deploy.yml'), true)
+	}
+	assert.equal(affects('ts', '.github/workflows/deploy.yml'), false)
+})
+
+test('Rust ABI gate rejects glibc newer than oldest runtime', () => {
+	assert.deepEqual(highestRequiredGlibc('GLIBC_2.9 GLIBC_2.35 GLIBC_2.17'), [2, 35])
+	assert.equal(checkVersionInfo('GLIBC_2.35 GLIBC_2.17', 'zc-jobs'), 'GLIBC_2.35')
+	assert.equal(checkVersionInfo('', 'static-binary'), 'no dynamic glibc requirement')
+	assert.throws(
+		() => checkVersionInfo('GLIBC_2.38', 'zc-server'),
+		/zc-server requires GLIBC_2\.38; oldest runtime provides GLIBC_2\.35/,
+	)
 })
 
 test('GitHub squash title still releases affected Rust services', async () => {
@@ -84,6 +99,32 @@ test('GitHub squash title still releases affected Rust services', async () => {
 		context.commits[0].message = 'feat(database): add feature'
 		assert.equal(await analyzeCommits({}, context), 'minor')
 		context.commits[0].message = 'chore(database): tidy internals'
+		assert.equal(await analyzeCommits({}, context), null)
+
+		mkdirSync(join(root, '.github/workflows'), { recursive: true })
+		writeFileSync(join(root, '.github/workflows/deploy.yml'), 'runs-on: ubuntu-22.04\n')
+		git(root, 'add', '.')
+		git(
+			root,
+			'-c',
+			'user.name=Release Test',
+			'-c',
+			'user.email=release@example.test',
+			'commit',
+			'-qm',
+			'fix(ci): build compatible Rust binaries',
+		)
+		context.commits = [
+			{
+				hash: git(root, 'rev-parse', 'HEAD'),
+				message: 'fix(ci): build compatible Rust binaries',
+			},
+		]
+		for (const target of Object.keys(rustTargets)) {
+			process.env.RELEASE_TARGET = target
+			assert.equal(await analyzeCommits({}, context), 'patch', target)
+		}
+		process.env.RELEASE_TARGET = 'ts'
 		assert.equal(await analyzeCommits({}, context), null)
 	} finally {
 		if (previousTarget === undefined) delete process.env.RELEASE_TARGET
