@@ -82,6 +82,11 @@ ORDER BY msg_id DESC LIMIT 100;
 `zeepcentraal-migrate verify` is read-only. It acquires a PostgreSQL advisory lock, checks
 frozen 87-row Drizzle ledger (legacy prefix plus 86 journal entries), and compares 53 tables, one view,
 and 535 columns from `0086_snapshot.json` with `pg_catalog`.
+Five historical SQL files have a committed SHA-256 hash different from the first frozen ledger
+(`0001`, `0002`, `0054`, `0055`, `0064`). Verification accepts either exact approved hash for those
+entries, with journal order and timestamps unchanged. Unknown hashes still stop adoption and report
+the ledger row, migration tag, and observed hash. Neither variant replays historical SQL or changes
+the Drizzle ledger.
 
 `zeepcentraal-migrate adopt` performs the same checks, then transactionally creates Diesel's
 metadata table and records the no-DDL baseline `20260919000000`. It refuses partial Drizzle
