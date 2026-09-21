@@ -16,6 +16,39 @@ use std::path::Path;
 pub const BASELINE_VERSION: &str = "20260919000000";
 const MIGRATION_LOCK_ID: i64 = 8_624_390_086;
 
+// These SQL files differed from the hashes recorded in the first frozen Drizzle
+// ledger. Both hashes are retained because either exact migration history may
+// already be applied to an existing database. Never accept a new SQL hash here
+// without reviewing the historical migration and its database effects.
+const APPROVED_REPOSITORY_HASHES: &[(&str, &str)] = &[
+    (
+        "0001_remarkable_puck",
+        "8355400dfc63294fa203bef469700ab11747e4a96aa0c4358a09892441ebabed",
+    ),
+    (
+        "0002_outgoing_sugar_man",
+        "d99a451f0a065dc5a4e6224b901973d30937533a271461deff03dfa4ce4c8b89",
+    ),
+    (
+        "0054_early_millenium_guard",
+        "f6b1a16f9cb8b6c96f74155f2b361ab0df684df4acc85dc61697a2a5ec0ca30d",
+    ),
+    (
+        "0055_ancient_betty_brant",
+        "8ae981b015fffa361ca166758650901a216ed665095f853b816ed09182e6572e",
+    ),
+    (
+        "0064_gigantic_blue_shield",
+        "1be89f8f0a62eae02914b9fb76455d8c13574b001e359abbb9c39ef324953537",
+    ),
+];
+
+fn approved_repository_hash(tag: &str) -> Option<&'static str> {
+    APPROVED_REPOSITORY_HASHES
+        .iter()
+        .find_map(|(approved_tag, hash)| (*approved_tag == tag).then_some(*hash))
+}
+
 #[derive(Debug, QueryableByName)]
 struct DrizzleLedgerRow {
     #[diesel(sql_type = Text)]
@@ -168,6 +201,13 @@ fn verify_frozen_history(
             "Frozen ledger differs from Drizzle journal at {}",
             migration.tag
         );
+        ensure!(
+            migration.sha256.eq_ignore_ascii_case(&entry.hash)
+                || approved_repository_hash(&migration.tag)
+                    .is_some_and(|hash| migration.sha256.eq_ignore_ascii_case(hash)),
+            "Repository SQL hash differs from approved Drizzle history at {}",
+            migration.tag
+        );
     }
     Ok(())
 }
@@ -181,9 +221,13 @@ fn verify_ledger(expected: &[FrozenLedgerRow], actual: &[DrizzleLedgerRow]) -> R
     );
     for (index, (expected, actual)) in expected.iter().zip(actual).enumerate() {
         ensure!(
-            actual.hash.eq_ignore_ascii_case(&expected.hash),
-            "Drizzle migration {} hash differs from repository history",
-            index + 1
+            actual.hash.eq_ignore_ascii_case(&expected.hash)
+                || approved_repository_hash(&expected.tag)
+                    .is_some_and(|hash| actual.hash.eq_ignore_ascii_case(hash)),
+            "Drizzle migration {} ({}) hash differs from approved history: found {}",
+            index + 1,
+            expected.tag,
+            actual.hash
         );
         ensure!(
             actual.created_at == expected.created_at,
@@ -231,5 +275,38 @@ mod tests {
             },
         ];
         assert!(verify_ledger(&expected, &wrong).is_err());
+    }
+
+    #[test]
+    fn frozen_and_repository_migration_hashes_are_accepted() -> Result<()> {
+        let folder = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../packages/database/drizzle");
+        let history = inspect(&folder)?;
+        let frozen: FrozenLedger = serde_json::from_str(include_str!("../drizzle-ledger.json"))?;
+        verify_frozen_history(&history, &frozen.entries)?;
+
+        let expected = &frozen.entries[54];
+        assert_eq!(expected.tag, "0054_early_millenium_guard");
+        for &(tag, repository_hash) in APPROVED_REPOSITORY_HASHES {
+            let entry = frozen
+                .entries
+                .iter()
+                .find(|entry| entry.tag == tag)
+                .unwrap();
+            let actual = [DrizzleLedgerRow {
+                hash: repository_hash.to_owned(),
+                created_at: entry.created_at,
+            }];
+            assert!(verify_ledger(std::slice::from_ref(entry), &actual).is_ok());
+        }
+
+        let unexpected = [DrizzleLedgerRow {
+            hash: "0".repeat(64),
+            created_at: expected.created_at,
+        }];
+        let error = verify_ledger(std::slice::from_ref(expected), &unexpected).unwrap_err();
+        assert!(error.to_string().contains("0054_early_millenium_guard"));
+        assert!(error.to_string().contains(&"0".repeat(64)));
+        Ok(())
     }
 }
