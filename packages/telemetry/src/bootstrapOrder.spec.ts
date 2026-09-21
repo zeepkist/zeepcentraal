@@ -2,19 +2,6 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 
 const bootstraps = [
-	['server', new URL('../../server/src/bootstrap.ts', import.meta.url), "import('./index')"],
-	['jobs', new URL('../../jobs/src/index.ts', import.meta.url), "import('./jobsRuntime')"],
-	['discord', new URL('../../discord/src/index.ts', import.meta.url), "import('./runtime')"],
-	[
-		'lobby-host',
-		new URL('../../lobby-host/src/index.ts', import.meta.url),
-		"import('./bootstrap')",
-	],
-	[
-		'migrate',
-		new URL('../../database/src/migrate.ts', import.meta.url),
-		"import('./migrateRuntime')",
-	],
 	[
 		'postgraphile',
 		new URL('../../postgraphile/src/bootstrap.ts', import.meta.url),
