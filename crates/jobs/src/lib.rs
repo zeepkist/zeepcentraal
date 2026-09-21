@@ -27,6 +27,7 @@ pub enum TaskIdentifier {
     SyncWorkshopCatalog,
     UpdateLevelPointsHistory,
     UpdateLevelPointsHistoryBatch,
+    UpdateLevelContributions,
     UpdateLevelScore,
     UpdateLevelScores,
     UpdatePlayerScore,
@@ -36,7 +37,7 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 18] = [
+    pub const ALL: [Self; 19] = [
         Self::BackfillRecordGhostStatistics,
         Self::BackfillRecordGhostStatisticsBatch,
         Self::PrunePointsHistory,
@@ -49,6 +50,7 @@ impl TaskIdentifier {
         Self::SyncWorkshopCatalog,
         Self::UpdateLevelPointsHistory,
         Self::UpdateLevelPointsHistoryBatch,
+        Self::UpdateLevelContributions,
         Self::UpdateLevelScore,
         Self::UpdateLevelScores,
         Self::UpdatePlayerScore,
@@ -71,6 +73,7 @@ impl TaskIdentifier {
             Self::SyncWorkshopCatalog => "syncWorkshopCatalog",
             Self::UpdateLevelPointsHistory => "updateLevelPointsHistory",
             Self::UpdateLevelPointsHistoryBatch => "updateLevelPointsHistoryBatch",
+            Self::UpdateLevelContributions => "updateLevelContributions",
             Self::UpdateLevelScore => "updateLevelScore",
             Self::UpdateLevelScores => "updateLevelScores",
             Self::UpdatePlayerScore => "updatePlayerScore",
@@ -87,7 +90,9 @@ impl TaskIdentifier {
     pub const fn compatible(self) -> bool {
         !matches!(
             self,
-            Self::RecoverLevelRequests | Self::RotateTrackTournament
+            Self::RecoverLevelRequests
+                | Self::RotateTrackTournament
+                | Self::UpdateLevelContributions
         )
     }
 
@@ -147,6 +152,28 @@ impl TaskIdentifier {
                 positive_i64("idLevel")
                     && object.get("idUser").is_none_or(|_| positive_i64("idUser"))
                     && optional_bool("reportOnly")
+            }
+            Self::UpdateLevelContributions => {
+                let token = object
+                    .get("projectionToken")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(|value| !value.is_empty() && value.len() <= 128);
+                let cursor = object.len() == 3
+                    && positive_i64("idLevel")
+                    && object
+                        .get("afterUserId")
+                        .and_then(serde_json::Value::as_i64)
+                        .is_some_and(|value| value >= 0)
+                    && token;
+                let repair = object.len() == 4
+                    && positive_i64("idLevel")
+                    && positive_i64("idUser")
+                    && object
+                        .get("deferCount")
+                        .and_then(serde_json::Value::as_u64)
+                        .is_some_and(|value| value <= 1_000_000)
+                    && token;
+                cursor || repair
             }
             Self::UpdateLevelScores => optional_bool("all") && optional_bool("reportOnly"),
             Self::UpdatePlayerScore => positive_i64("idUser"),
@@ -208,7 +235,7 @@ mod tests {
 
     #[test]
     fn task_registry_matches_bun_count() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 18);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 19);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
@@ -219,6 +246,16 @@ mod tests {
         use serde_json::json;
         assert!(TaskIdentifier::UpdateLevelScores.validate_payload(&json!({"all": true})));
         assert!(!TaskIdentifier::UpdateLevelScores.validate_payload(&json!({"all": 1})));
+        assert!(TaskIdentifier::UpdateLevelContributions.validate_payload(
+            &json!({"idLevel": 1, "afterUserId": 0, "projectionToken": "token"})
+        ));
+        assert!(TaskIdentifier::UpdateLevelContributions.validate_payload(
+            &json!({"idLevel": 1, "idUser": 2, "projectionToken": "token", "deferCount": 0})
+        ));
+        assert!(!TaskIdentifier::UpdateLevelContributions.validate_payload(
+            &json!({"idLevel": 1, "afterUserId": 0, "idUser": 2, "projectionToken": "token", "deferCount": 0})
+        ));
+        assert!(!TaskIdentifier::UpdateLevelContributions.compatible());
         assert!(
             TaskIdentifier::SyncWorkshopCatalog
                 .validate_payload(&json!({"repairZslAuthors": true}))
