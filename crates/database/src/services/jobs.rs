@@ -20,6 +20,12 @@ pub enum MaintenanceOutcome<T> {
     Contended,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LevelContributionPage {
+    pub user_ids: Vec<i32>,
+    pub next_after_user_id: Option<i32>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, QueryableByName)]
 pub struct UserActivity {
     #[diesel(sql_type = Integer)]
@@ -636,31 +642,24 @@ impl Database {
         &self,
         ids: &[i32],
         report_only: bool,
-    ) -> Result<MaintenanceOutcome<Vec<i32>>> {
+    ) -> Result<MaintenanceOutcome<()>> {
         if ids.is_empty() {
-            return Ok(MaintenanceOutcome::Applied(Vec::new()));
+            return Ok(MaintenanceOutcome::Applied(()));
         }
         ensure!(
             report_only || ids.len() == 1,
             "persistent level scoring requires one level"
         );
         let mut connection = self.connection().await?;
-        let result = connection.transaction::<MaintenanceOutcome<Vec<i32>>,anyhow::Error,_>(|connection|Box::pin(async move{
-            let affected = if report_only {
-                Vec::new()
-            } else {
+        let result = connection.transaction::<MaintenanceOutcome<()>,anyhow::Error,_>(|connection|Box::pin(async move{
+            if !report_only {
                 set_maintenance_lock_timeout(connection).await?;
                 let lock: BooleanRow = sql_query("SELECT pg_try_advisory_xact_lock($1,$2) AS value")
                     .bind::<Integer,_>(LEVEL_SCORE_LOCK_NAMESPACE).bind::<Integer,_>(ids[0]).get_result(connection).await?;
                 if !lock.value {
                     return Ok(MaintenanceOutcome::Contended);
                 }
-                let affected = affected_user_ids(connection, ids).await?;
-                if !try_user_score_locks(connection, &affected).await? {
-                    return Ok(MaintenanceOutcome::Contended);
-                }
-                affected
-            };
+            }
             let availability=sql_query("SELECT level.id AS id_level,level.adventure,count(item.id)::bigint AS item_count,count(item.id) FILTER(WHERE item.publicly_visible=true AND item.deleted=false)::bigint AS accessible_item_count FROM public.level level LEFT JOIN public.level_item item ON item.id_level=level.id WHERE level.id=ANY($1) GROUP BY level.id,level.adventure")
                 .bind::<Array<Integer>,_>(ids).load::<AvailabilityRow>(connection).await?;
             let eligible:Vec<_>=availability.iter().filter(|row|zc_core::score::level_score_eligible(row.adventure,row.item_count,row.accessible_item_count)).map(|row|row.id_level).collect();
@@ -682,10 +681,68 @@ impl Database {
                 let result=zc_core::score::calculate_level_points_v2(runs,rows.as_slice().first().map_or(0,|row|row.total_count),skill,&vote_values);
                 if !report_only { upsert_level_points(connection,*id,result).await?; }
             }
-            if report_only{return Ok(MaintenanceOutcome::Applied(Vec::new()));}
-            sync_contribution_levels_for_users(connection,ids,&affected).await?;
-            Ok(MaintenanceOutcome::Applied(affected))
+            Ok(MaintenanceOutcome::Applied(()))
         })).await;
+        contention_outcome(result)
+    }
+
+    pub async fn level_contribution_user_page(
+        &self,
+        id_level: i32,
+        after_user_id: i32,
+        limit: i64,
+    ) -> Result<LevelContributionPage> {
+        ensure!(id_level > 0, "id_level must be positive");
+        ensure!(after_user_id >= 0, "after_user_id must not be negative");
+        ensure!((1..=50).contains(&limit), "level contribution page limit must be 1..=50");
+        let mut connection = self.connection().await?;
+        let user_ids = sql_query(
+            "SELECT affected.id_user AS id FROM (SELECT id_user FROM public.personal_best_global WHERE id_level=$1 UNION SELECT id_user FROM public.user_point_contribution WHERE id_level=$1) affected WHERE affected.id_user>$2 ORDER BY affected.id_user LIMIT $3",
+        )
+        .bind::<Integer, _>(id_level)
+        .bind::<Integer, _>(after_user_id)
+        .bind::<BigInt, _>(limit)
+        .load::<IdRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.id)
+        .collect::<Vec<_>>();
+        let next_after_user_id = (user_ids.len() == limit as usize)
+            .then(|| user_ids.last().copied())
+            .flatten();
+        Ok(LevelContributionPage {
+            user_ids,
+            next_after_user_id,
+        })
+    }
+
+    pub async fn reconcile_level_contribution_users(
+        &self,
+        id_level: i32,
+        user_ids: &[i32],
+    ) -> Result<MaintenanceOutcome<Vec<i32>>> {
+        ensure!(id_level > 0, "id_level must be positive");
+        ensure!(user_ids.len() <= 50, "level contribution batch exceeds 50 users");
+        if user_ids.is_empty() {
+            return Ok(MaintenanceOutcome::Applied(Vec::new()));
+        }
+        let mut sorted = user_ids.to_vec();
+        sorted.sort_unstable();
+        sorted.dedup();
+        ensure!(sorted.iter().all(|id| *id > 0), "id_user must be positive");
+        let mut connection = self.connection().await?;
+        let result = connection
+            .transaction::<MaintenanceOutcome<Vec<i32>>, anyhow::Error, _>(|connection| {
+                Box::pin(async move {
+                    set_maintenance_lock_timeout(connection).await?;
+                    if !try_user_score_locks(connection, &sorted).await? {
+                        return Ok(MaintenanceOutcome::Contended);
+                    }
+                    sync_contribution_levels_for_users(connection, &[id_level], &sorted).await?;
+                    Ok(MaintenanceOutcome::Applied(sorted))
+                })
+            })
+            .await;
         contention_outcome(result)
     }
 
@@ -789,14 +846,6 @@ async fn sync_contribution_levels_for_users(
     sql_query("DELETE FROM public.user_point_contribution contribution WHERE contribution.id_level=ANY($1) AND contribution.id_user=ANY($2) AND NOT EXISTS(SELECT 1 FROM public.personal_best_global pb JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_user=contribution.id_user AND pb.id_level=contribution.id_level AND points.points>0)")
         .bind::<Array<Integer>,_>(ids).bind::<Array<Integer>,_>(affected).execute(connection).await?;
     Ok(())
-}
-
-async fn affected_user_ids(
-    connection: &mut diesel_async::AsyncPgConnection,
-    ids: &[i32],
-) -> Result<Vec<i32>> {
-    Ok(sql_query("SELECT DISTINCT affected.id_user AS id FROM (SELECT id_user FROM public.personal_best_global WHERE id_level=ANY($1) UNION SELECT id_user FROM public.user_point_contribution WHERE id_level=ANY($1)) affected ORDER BY affected.id_user")
-        .bind::<Array<Integer>,_>(ids).load::<IdRow>(connection).await?.into_iter().map(|row|row.id).collect())
 }
 
 async fn set_maintenance_lock_timeout(

@@ -77,6 +77,31 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     );
 
     blocker.rollback().await?;
+    let user_score_blocker = client.transaction().await?;
+    user_score_blocker
+        .execute("SELECT pg_advisory_xact_lock(-1861284952,$1)", &[&user.id])
+        .await?;
+    assert_eq!(
+        database.update_level_scores(&[level.id], false).await?,
+        MaintenanceOutcome::Applied(())
+    );
+    assert_eq!(
+        database
+            .reconcile_level_contribution_users(level.id, &[user.id])
+            .await?,
+        MaintenanceOutcome::Contended
+    );
+    user_score_blocker.rollback().await?;
+    let page = database
+        .level_contribution_user_page(level.id, 0, 50)
+        .await?;
+    assert_eq!(page.user_ids, vec![user.id]);
+    assert_eq!(
+        database
+            .reconcile_level_contribution_users(level.id, &page.user_ids)
+            .await?,
+        MaintenanceOutcome::Applied(vec![user.id])
+    );
     assert_eq!(
         database.recalculate_player_score(user.id).await?,
         MaintenanceOutcome::Applied(())
