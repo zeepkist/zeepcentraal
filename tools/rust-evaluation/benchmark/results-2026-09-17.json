@@ -1,0 +1,708 @@
+{
+	"date": "2026-09-17",
+	"scope": "synthetic database/API slice; not complete production services",
+	"main": [
+		{
+			"variant": "bun-2",
+			"repetitions": 3,
+			"cold-idle": {
+				"app": {
+					"pssMedianMiB": 59.03759765625,
+					"pssP95MiB": 59.498046875,
+					"pssPeakMiB": 59.498046875,
+					"rssMedianMiB": 107.7734375,
+					"rssP95MiB": 108.0703125,
+					"workingSetMedianMiB": 31.640625,
+					"workingSetP95MiB": 32.275,
+					"cgroupMedianMiB": 66.8828125,
+					"cpuCores": 0.0024249347383126555
+				},
+				"db": {
+					"pssMedianMiB": 150.2421875,
+					"pssP95MiB": 150.2421875,
+					"pssPeakMiB": 150.2421875,
+					"rssMedianMiB": 502.421875,
+					"rssP95MiB": 502.42578125,
+					"workingSetMedianMiB": 309.033203125,
+					"workingSetP95MiB": 309.3326171875,
+					"cgroupMedianMiB": 815.677734375,
+					"cpuCores": 0.0030237932385928147
+				}
+			},
+			"warm-idle": {
+				"app": {
+					"pssMedianMiB": 78.046875,
+					"pssP95MiB": 78.046875,
+					"pssPeakMiB": 78.046875,
+					"rssMedianMiB": 131.9296875,
+					"rssP95MiB": 131.9296875,
+					"workingSetMedianMiB": 44.16015625,
+					"workingSetP95MiB": 44.28125,
+					"cgroupMedianMiB": 85.0390625,
+					"cpuCores": 0.002522677443658647
+				},
+				"db": {
+					"pssMedianMiB": 150.2412109375,
+					"pssP95MiB": 158.7529296875,
+					"pssPeakMiB": 158.7529296875,
+					"rssMedianMiB": 502.4296875,
+					"rssP95MiB": 725.5703125,
+					"workingSetMedianMiB": 326.14453125,
+					"workingSetP95MiB": 332.83203125,
+					"cgroupMedianMiB": 826.85546875,
+					"cpuCores": 0.0017095861184725119
+				}
+			},
+			"typical": {
+				"app": {
+					"pssMedianMiB": 77.9052734375,
+					"pssP95MiB": 79.9775390625,
+					"pssPeakMiB": 80.03125,
+					"rssMedianMiB": 132.953125,
+					"rssP95MiB": 134.9189453125,
+					"workingSetMedianMiB": 44.83203125,
+					"workingSetP95MiB": 46.8041015625,
+					"cgroupMedianMiB": 85.7578125,
+					"cpuCores": 0.015295435521762457
+				},
+				"db": {
+					"pssMedianMiB": 164.4541015625,
+					"pssP95MiB": 164.519140625,
+					"pssPeakMiB": 164.5751953125,
+					"rssMedianMiB": 790.0390625,
+					"rssP95MiB": 798.00234375,
+					"workingSetMedianMiB": 338.1171875,
+					"workingSetP95MiB": 338.21875,
+					"cgroupMedianMiB": 838.8359375,
+					"cpuCores": 0.04975744859149305
+				},
+				"load": {
+					"rpsMedian": 15.000295554573384,
+					"rpsMin": 15.00022488937163,
+					"rpsMax": 15.000538744349003,
+					"p95Ms": 22.78002966666645,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.03998149941863188
+				}
+			},
+			"burst": {
+				"app": {
+					"pssMedianMiB": 81.3955078125,
+					"pssP95MiB": 84.3876953125,
+					"pssPeakMiB": 84.5,
+					"rssMedianMiB": 139.5703125,
+					"rssP95MiB": 142.4853515625,
+					"workingSetMedianMiB": 48.28125,
+					"workingSetP95MiB": 51.2193359375,
+					"cgroupMedianMiB": 89.20703125,
+					"cpuCores": 0.06639526556576249
+				},
+				"db": {
+					"pssMedianMiB": 165.4169921875,
+					"pssP95MiB": 167.05234375,
+					"pssPeakMiB": 167.1767578125,
+					"rssMedianMiB": 901.44140625,
+					"rssP95MiB": 912.26875,
+					"workingSetMedianMiB": 339.171875,
+					"workingSetP95MiB": 340.96875,
+					"cgroupMedianMiB": 840.015625,
+					"cpuCores": 0.4659024629564221
+				},
+				"load": {
+					"rpsMedian": 149.8246546930654,
+					"rpsMin": 149.80754851935347,
+					"rpsMax": 149.87753189877571,
+					"p95Ms": 34.07895899999858,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.0730218822755798
+				}
+			},
+			"capacity": {
+				"app": {
+					"pssMedianMiB": 88.6318359375,
+					"pssP95MiB": 91.8591796875,
+					"pssPeakMiB": 92.2275390625,
+					"rssMedianMiB": 146.974609375,
+					"rssP95MiB": 150.237109375,
+					"workingSetMedianMiB": 55.607421875,
+					"workingSetP95MiB": 58.8580078125,
+					"cgroupMedianMiB": 96.533203125,
+					"cpuCores": 0.09707480583322903
+				},
+				"db": {
+					"pssMedianMiB": 167.853515625,
+					"pssP95MiB": 168.7751953125,
+					"pssPeakMiB": 168.8232421875,
+					"rssMedianMiB": 940.625,
+					"rssP95MiB": 959.312890625,
+					"workingSetMedianMiB": 341.6171875,
+					"workingSetP95MiB": 342.35625,
+					"cgroupMedianMiB": 842.53125,
+					"cpuCores": 0.9981281325266406
+				},
+				"load": {
+					"rpsMedian": 375.2982062842038,
+					"rpsMin": 321.3048914098976,
+					"rpsMax": 377.219567675795,
+					"p95Ms": 195.97561099999803,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.0708626184932036
+				}
+			},
+			"recovery": {
+				"app": {
+					"pssMedianMiB": 80.8583984375,
+					"pssP95MiB": 82.62890625,
+					"pssPeakMiB": 82.62890625,
+					"rssMedianMiB": 138.640625,
+					"rssP95MiB": 140.4140625,
+					"workingSetMedianMiB": 47.0390625,
+					"workingSetP95MiB": 48.9337890625,
+					"cgroupMedianMiB": 87.96484375,
+					"cpuCores": 0.002706433060578165
+				},
+				"db": {
+					"pssMedianMiB": 154.52685546875,
+					"pssP95MiB": 165.484375,
+					"pssPeakMiB": 165.484375,
+					"rssMedianMiB": 618.822265625,
+					"rssP95MiB": 959.7109375,
+					"workingSetMedianMiB": 329.80078125,
+					"workingSetP95MiB": 339.296875,
+					"cgroupMedianMiB": 830.76171875,
+					"cpuCores": 0.002613267325231481
+				}
+			}
+		},
+		{
+			"variant": "diesel",
+			"repetitions": 3,
+			"cold-idle": {
+				"app": {
+					"pssMedianMiB": 13.2734375,
+					"pssP95MiB": 13.2734375,
+					"pssPeakMiB": 13.2734375,
+					"rssMedianMiB": 13.27734375,
+					"rssP95MiB": 13.27734375,
+					"workingSetMedianMiB": 3.9140625,
+					"workingSetP95MiB": 3.9140625,
+					"cgroupMedianMiB": 3.9140625,
+					"cpuCores": 0.0
+				},
+				"db": {
+					"pssMedianMiB": 166.861328125,
+					"pssP95MiB": 166.8623046875,
+					"pssPeakMiB": 166.8623046875,
+					"rssMedianMiB": 560.66015625,
+					"rssP95MiB": 560.6640625,
+					"workingSetMedianMiB": 323.935546875,
+					"workingSetP95MiB": 324.23046875,
+					"cgroupMedianMiB": 829.998046875,
+					"cpuCores": 0.0029444999698567814
+				}
+			},
+			"warm-idle": {
+				"app": {
+					"pssMedianMiB": 15.18359375,
+					"pssP95MiB": 15.18359375,
+					"pssPeakMiB": 15.18359375,
+					"rssMedianMiB": 15.1875,
+					"rssP95MiB": 15.1875,
+					"workingSetMedianMiB": 5.5859375,
+					"workingSetP95MiB": 5.5859375,
+					"cgroupMedianMiB": 5.5859375,
+					"cpuCores": 3.574237786786844e-5
+				},
+				"db": {
+					"pssMedianMiB": 172.37890625,
+					"pssP95MiB": 178.814453125,
+					"pssPeakMiB": 178.814453125,
+					"rssMedianMiB": 959.7734375,
+					"rssP95MiB": 987.88671875,
+					"workingSetMedianMiB": 348.00390625,
+					"workingSetP95MiB": 354.48828125,
+					"cgroupMedianMiB": 846.0546875,
+					"cpuCores": 0.0003731734894573633
+				}
+			},
+			"typical": {
+				"app": {
+					"pssMedianMiB": 14.3984375,
+					"pssP95MiB": 14.3984375,
+					"pssPeakMiB": 14.3984375,
+					"rssMedianMiB": 15.33203125,
+					"rssP95MiB": 15.33203125,
+					"workingSetMedianMiB": 5.72265625,
+					"workingSetP95MiB": 5.824609375,
+					"cgroupMedianMiB": 5.72265625,
+					"cpuCores": 0.005589796025531067
+				},
+				"db": {
+					"pssMedianMiB": 172.3828125,
+					"pssP95MiB": 172.9248046875,
+					"pssPeakMiB": 174.0029296875,
+					"rssMedianMiB": 960.810546875,
+					"rssP95MiB": 961.7796875,
+					"workingSetMedianMiB": 348.01171875,
+					"workingSetP95MiB": 348.54296875,
+					"cgroupMedianMiB": 846.06640625,
+					"cpuCores": 0.04704077784126738
+				},
+				"load": {
+					"rpsMedian": 15.000431644170757,
+					"rpsMin": 15.000110940070506,
+					"rpsMax": 15.000574377243106,
+					"p95Ms": 20.59203400000115,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.039182150298248675
+				}
+			},
+			"burst": {
+				"app": {
+					"pssMedianMiB": 14.50390625,
+					"pssP95MiB": 14.53515625,
+					"pssPeakMiB": 14.53515625,
+					"rssMedianMiB": 15.412109375,
+					"rssP95MiB": 15.4296875,
+					"workingSetMedianMiB": 5.79296875,
+					"workingSetP95MiB": 5.910546875,
+					"cgroupMedianMiB": 5.79296875,
+					"cpuCores": 0.03598121667757256
+				},
+				"db": {
+					"pssMedianMiB": 172.3984375,
+					"pssP95MiB": 175.17607421875,
+					"pssPeakMiB": 176.6806640625,
+					"rssMedianMiB": 968.91796875,
+					"rssP95MiB": 975.246875,
+					"workingSetMedianMiB": 348.05859375,
+					"workingSetP95MiB": 350.896484375,
+					"cgroupMedianMiB": 846.15625,
+					"cpuCores": 0.4074792971986506
+				},
+				"load": {
+					"rpsMedian": 149.91897896387275,
+					"rpsMin": 149.84976045035276,
+					"rpsMax": 149.94068507684597,
+					"p95Ms": 28.594081333332724,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.06878693862653892
+				}
+			},
+			"capacity": {
+				"app": {
+					"pssMedianMiB": 14.837890625,
+					"pssP95MiB": 14.841796875,
+					"pssPeakMiB": 14.8515625,
+					"rssMedianMiB": 15.7890625,
+					"rssP95MiB": 15.79296875,
+					"workingSetMedianMiB": 6.28515625,
+					"workingSetP95MiB": 6.4765625,
+					"cgroupMedianMiB": 6.28515625,
+					"cpuCores": 0.07253851997481611
+				},
+				"db": {
+					"pssMedianMiB": 176.6865234375,
+					"pssP95MiB": 178.8498046875,
+					"pssPeakMiB": 180.16015625,
+					"rssMedianMiB": 993.38671875,
+					"rssP95MiB": 1008.84140625,
+					"workingSetMedianMiB": 351.92578125,
+					"workingSetP95MiB": 354.6828125,
+					"cgroupMedianMiB": 850.19140625,
+					"cpuCores": 0.9985253002639788
+				},
+				"load": {
+					"rpsMedian": 397.7080315454762,
+					"rpsMin": 374.91480634227287,
+					"rpsMax": 399.716300245854,
+					"p95Ms": 138.39190700000017,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.08499552670349023
+				}
+			},
+			"recovery": {
+				"app": {
+					"pssMedianMiB": 15.78515625,
+					"pssP95MiB": 15.78515625,
+					"pssPeakMiB": 15.78515625,
+					"rssMedianMiB": 15.7890625,
+					"rssP95MiB": 15.7890625,
+					"workingSetMedianMiB": 6.25,
+					"workingSetP95MiB": 6.25,
+					"cgroupMedianMiB": 6.25,
+					"cpuCores": 0.0
+				},
+				"db": {
+					"pssMedianMiB": 172.3818359375,
+					"pssP95MiB": 172.3818359375,
+					"pssPeakMiB": 172.3818359375,
+					"rssMedianMiB": 1006.828125,
+					"rssP95MiB": 1006.828125,
+					"workingSetMedianMiB": 347.50390625,
+					"workingSetP95MiB": 347.50390625,
+					"cgroupMedianMiB": 845.8203125,
+					"cpuCores": 0.00048370954065908854
+				}
+			}
+		},
+		{
+			"variant": "sqlx",
+			"repetitions": 3,
+			"cold-idle": {
+				"app": {
+					"pssMedianMiB": 12.67578125,
+					"pssP95MiB": 12.67578125,
+					"pssPeakMiB": 12.67578125,
+					"rssMedianMiB": 12.6796875,
+					"rssP95MiB": 12.6796875,
+					"workingSetMedianMiB": 3.875,
+					"workingSetP95MiB": 3.875,
+					"cgroupMedianMiB": 3.875,
+					"cpuCores": 0.0
+				},
+				"db": {
+					"pssMedianMiB": 166.849609375,
+					"pssP95MiB": 166.849609375,
+					"pssPeakMiB": 166.849609375,
+					"rssMedianMiB": 560.5,
+					"rssP95MiB": 560.50390625,
+					"workingSetMedianMiB": 324.064453125,
+					"workingSetP95MiB": 324.234375,
+					"cgroupMedianMiB": 842.283203125,
+					"cpuCores": 0.0025942787840728685
+				}
+			},
+			"warm-idle": {
+				"app": {
+					"pssMedianMiB": 14.4609375,
+					"pssP95MiB": 14.4609375,
+					"pssPeakMiB": 14.4609375,
+					"rssMedianMiB": 14.46484375,
+					"rssP95MiB": 14.46484375,
+					"workingSetMedianMiB": 5.6015625,
+					"workingSetP95MiB": 5.6015625,
+					"cgroupMedianMiB": 5.6015625,
+					"cpuCores": 3.229308218528028e-5
+				},
+				"db": {
+					"pssMedianMiB": 159.9931640625,
+					"pssP95MiB": 177.888671875,
+					"pssPeakMiB": 177.888671875,
+					"rssMedianMiB": 532.92578125,
+					"rssP95MiB": 963.10546875,
+					"workingSetMedianMiB": 337.41015625,
+					"workingSetP95MiB": 354.21875,
+					"cgroupMedianMiB": 848.984375,
+					"cpuCores": 0.0019125699261442598
+				}
+			},
+			"typical": {
+				"app": {
+					"pssMedianMiB": 13.78515625,
+					"pssP95MiB": 13.7890625,
+					"pssPeakMiB": 13.79296875,
+					"rssMedianMiB": 14.6875,
+					"rssP95MiB": 14.6955078125,
+					"workingSetMedianMiB": 5.80859375,
+					"workingSetP95MiB": 5.91015625,
+					"cgroupMedianMiB": 5.80859375,
+					"cpuCores": 0.00592816859213437
+				},
+				"db": {
+					"pssMedianMiB": 173.55126953125,
+					"pssP95MiB": 173.7626953125,
+					"pssPeakMiB": 173.9306640625,
+					"rssMedianMiB": 861.916015625,
+					"rssP95MiB": 911.9119140625,
+					"workingSetMedianMiB": 349.7578125,
+					"workingSetP95MiB": 349.887890625,
+					"cgroupMedianMiB": 861.33203125,
+					"cpuCores": 0.05067164095489845
+				},
+				"load": {
+					"rpsMedian": 15.000465582950717,
+					"rpsMin": 14.989086300121288,
+					"rpsMax": 15.00059822385717,
+					"p95Ms": 21.953331333334063,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.040059632191220156
+				}
+			},
+			"burst": {
+				"app": {
+					"pssMedianMiB": 13.814453125,
+					"pssP95MiB": 13.841796875,
+					"pssPeakMiB": 13.841796875,
+					"rssMedianMiB": 14.8046875,
+					"rssP95MiB": 14.80859375,
+					"workingSetMedianMiB": 5.9921875,
+					"workingSetP95MiB": 6.109375,
+					"cgroupMedianMiB": 5.9921875,
+					"cpuCores": 0.0405548175180809
+				},
+				"db": {
+					"pssMedianMiB": 174.2958984375,
+					"pssP95MiB": 175.8693359375,
+					"pssPeakMiB": 175.9013671875,
+					"rssMedianMiB": 948.2421875,
+					"rssP95MiB": 960.581640625,
+					"workingSetMedianMiB": 350.859375,
+					"workingSetP95MiB": 352.45703125,
+					"cgroupMedianMiB": 862.5390625,
+					"cpuCores": 0.4645250080841856
+				},
+				"load": {
+					"rpsMedian": 149.90156109887153,
+					"rpsMin": 149.88955230954042,
+					"rpsMax": 149.90442896347503,
+					"p95Ms": 32.64956133333362,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.07204731118225859
+				}
+			},
+			"capacity": {
+				"app": {
+					"pssMedianMiB": 14.04296875,
+					"pssP95MiB": 14.0982421875,
+					"pssPeakMiB": 14.146484375,
+					"rssMedianMiB": 15.041015625,
+					"rssP95MiB": 15.0982421875,
+					"workingSetMedianMiB": 6.23046875,
+					"workingSetP95MiB": 6.480859375,
+					"cgroupMedianMiB": 6.23046875,
+					"cpuCores": 0.06573261305918561
+				},
+				"db": {
+					"pssMedianMiB": 177.3125,
+					"pssP95MiB": 178.92197265625,
+					"pssPeakMiB": 178.970703125,
+					"rssMedianMiB": 982.3515625,
+					"rssP95MiB": 997.390625,
+					"workingSetMedianMiB": 354.12890625,
+					"workingSetP95MiB": 355.496484375,
+					"cgroupMedianMiB": 865.97265625,
+					"cpuCores": 0.9970184824312421
+				},
+				"load": {
+					"rpsMedian": 359.3180172169347,
+					"rpsMin": 330.52243878288397,
+					"rpsMax": 359.8855010767673,
+					"p95Ms": 126.82089500000075,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.07645569194587676
+				}
+			},
+			"recovery": {
+				"app": {
+					"pssMedianMiB": 15.0390625,
+					"pssP95MiB": 15.0390625,
+					"pssPeakMiB": 15.0390625,
+					"rssMedianMiB": 15.04296875,
+					"rssP95MiB": 15.04296875,
+					"workingSetMedianMiB": 6.18359375,
+					"workingSetP95MiB": 6.18359375,
+					"cgroupMedianMiB": 6.18359375,
+					"cpuCores": 0.0
+				},
+				"db": {
+					"pssMedianMiB": 175.7919921875,
+					"pssP95MiB": 175.7919921875,
+					"pssPeakMiB": 175.7919921875,
+					"rssMedianMiB": 997.21484375,
+					"rssP95MiB": 997.21484375,
+					"workingSetMedianMiB": 352.49609375,
+					"workingSetP95MiB": 352.496875,
+					"cgroupMedianMiB": 864.4296875,
+					"cpuCores": 0.0004783934105845565
+				}
+			}
+		}
+	],
+	"singleProcessDiagnostic": [
+		{
+			"variant": "bun-1",
+			"repetitions": 1,
+			"cold-idle": {
+				"app": {
+					"pssMedianMiB": 38.171875,
+					"pssP95MiB": 38.1796875,
+					"pssPeakMiB": 38.22265625,
+					"rssMedianMiB": 38.17578125,
+					"rssP95MiB": 38.18359375,
+					"workingSetMedianMiB": 11.740234375,
+					"workingSetP95MiB": 11.796875,
+					"cgroupMedianMiB": 45.255859375,
+					"cpuCores": 0.0005778910490832405
+				},
+				"db": {
+					"pssMedianMiB": 150.25,
+					"pssP95MiB": 150.25,
+					"pssPeakMiB": 150.25,
+					"rssMedianMiB": 503.578125,
+					"rssP95MiB": 503.58203125,
+					"workingSetMedianMiB": 308.40625,
+					"workingSetP95MiB": 308.6197265625,
+					"cgroupMedianMiB": 781.435546875,
+					"cpuCores": 0.0026003540946259356
+				}
+			},
+			"warm-idle": {
+				"app": {
+					"pssMedianMiB": 52.125,
+					"pssP95MiB": 52.125,
+					"pssPeakMiB": 52.125,
+					"rssMedianMiB": 52.12890625,
+					"rssP95MiB": 52.12890625,
+					"workingSetMedianMiB": 18.15234375,
+					"workingSetP95MiB": 18.16015625,
+					"cgroupMedianMiB": 58.7734375,
+					"cpuCores": 0.0013866132395026554
+				},
+				"db": {
+					"pssMedianMiB": 150.25,
+					"pssP95MiB": 165.6650390625,
+					"pssPeakMiB": 165.6650390625,
+					"rssMedianMiB": 503.58984375,
+					"rssP95MiB": 931.578125,
+					"workingSetMedianMiB": 315.953125,
+					"workingSetP95MiB": 328.8671875,
+					"cgroupMedianMiB": 793.1953125,
+					"cpuCores": 0.002898850223114851
+				}
+			},
+			"typical": {
+				"app": {
+					"pssMedianMiB": 51.537109375,
+					"pssP95MiB": 51.543359375,
+					"pssPeakMiB": 51.607421875,
+					"rssMedianMiB": 52.53515625,
+					"rssP95MiB": 52.54140625,
+					"workingSetMedianMiB": 18.62890625,
+					"workingSetP95MiB": 18.828125,
+					"cgroupMedianMiB": 59.25,
+					"cpuCores": 0.011711623237135236
+				},
+				"db": {
+					"pssMedianMiB": 165.228515625,
+					"pssP95MiB": 165.444921875,
+					"pssPeakMiB": 166.34765625,
+					"rssMedianMiB": 823.265625,
+					"rssP95MiB": 859.8984375,
+					"workingSetMedianMiB": 328.32421875,
+					"workingSetP95MiB": 328.677734375,
+					"cgroupMedianMiB": 805.56640625,
+					"cpuCores": 0.05203985483860414
+				},
+				"load": {
+					"rpsMedian": 15.000166624100885,
+					"rpsMin": 15.000166624100885,
+					"rpsMax": 15.000166624100885,
+					"p95Ms": 22.404080666665322,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.03971164112286634
+				}
+			},
+			"burst": {
+				"app": {
+					"pssMedianMiB": 56.171875,
+					"pssP95MiB": 56.9408203125,
+					"pssPeakMiB": 57.416015625,
+					"rssMedianMiB": 57.142578125,
+					"rssP95MiB": 57.9115234375,
+					"workingSetMedianMiB": 23.34375,
+					"workingSetP95MiB": 24.086328124999998,
+					"cgroupMedianMiB": 63.96484375,
+					"cpuCores": 0.062148075756991085
+				},
+				"db": {
+					"pssMedianMiB": 165.43408203125,
+					"pssP95MiB": 166.97744140625,
+					"pssPeakMiB": 167.0576171875,
+					"rssMedianMiB": 917.27734375,
+					"rssP95MiB": 926.60234375,
+					"workingSetMedianMiB": 328.69140625,
+					"workingSetP95MiB": 330.3060546875,
+					"cgroupMedianMiB": 806.01953125,
+					"cpuCores": 0.4636399142937827
+				},
+				"load": {
+					"rpsMedian": 149.9139740472413,
+					"rpsMin": 149.9139740472413,
+					"rpsMax": 149.9139740472413,
+					"p95Ms": 34.864143666669406,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.06909405138393178
+				}
+			},
+			"capacity": {
+				"app": {
+					"pssMedianMiB": 58.4921875,
+					"pssP95MiB": 60.384375,
+					"pssPeakMiB": 60.939453125,
+					"rssMedianMiB": 59.462890625,
+					"rssP95MiB": 61.355078125,
+					"workingSetMedianMiB": 25.685546875,
+					"workingSetP95MiB": 27.5939453125,
+					"cgroupMedianMiB": 66.306640625,
+					"cpuCores": 0.08250845591824496
+				},
+				"db": {
+					"pssMedianMiB": 167.93359375,
+					"pssP95MiB": 168.8224609375,
+					"pssPeakMiB": 168.8251953125,
+					"rssMedianMiB": 947.8984375,
+					"rssP95MiB": 962.01875,
+					"workingSetMedianMiB": 331.27734375,
+					"workingSetP95MiB": 332.13359375,
+					"cgroupMedianMiB": 808.7265625,
+					"cpuCores": 0.9998771760025934
+				},
+				"load": {
+					"rpsMedian": 375.16532752418715,
+					"rpsMin": 375.16532752418715,
+					"rpsMax": 375.16532752418715,
+					"p95Ms": 191.7947669999994,
+					"errors": 0,
+					"dropped": 0,
+					"generatorCpuCores": 0.07097411025196061
+				}
+			},
+			"recovery": {
+				"app": {
+					"pssMedianMiB": 54.0625,
+					"pssP95MiB": 54.0625,
+					"pssPeakMiB": 54.0625,
+					"rssMedianMiB": 54.06640625,
+					"rssP95MiB": 54.06640625,
+					"workingSetMedianMiB": 20.087890625,
+					"workingSetP95MiB": 20.09375,
+					"cgroupMedianMiB": 60.732421875,
+					"cpuCores": 0.0007816683713233908
+				},
+				"db": {
+					"pssMedianMiB": 151.60009765625,
+					"pssP95MiB": 165.5166015625,
+					"pssPeakMiB": 165.5166015625,
+					"rssMedianMiB": 618.11328125,
+					"rssP95MiB": 962.3359375,
+					"workingSetMedianMiB": 319.203125,
+					"workingSetP95MiB": 328.72265625,
+					"cgroupMedianMiB": 796.734375,
+					"cpuCores": 0.0015281560763512386
+				}
+			}
+		}
+	]
+}

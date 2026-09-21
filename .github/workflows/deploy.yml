@@ -3,6 +3,7 @@ name: Deploy
 on:
   push:
     branches: [develop]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -13,256 +14,220 @@ permissions:
 concurrency:
   group: deploy-develop
   cancel-in-progress: false
-  queue: max
 
 jobs:
-  test:
+  rust-quality:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_TARGET_DIR: /tmp/zc-target
+      SCCACHE_GHA_ENABLED: 'true'
+      RUSTC_WRAPPER: sccache
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-targets: false
+      - uses: mozilla-actions/sccache-action@v0.0.11
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked --workspace
+
+  ts-quality:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-bun-deps
+      - run: bunx --no-install golar -p packages/postgraphile/tsconfig.json
+      - run: bun run typecheck:web
+      - run: bun --no-env-file test --isolate packages/postgraphile/src
+      - run: bun --bun run test:web
+      - run: bunx --no-install biome check packages/postgraphile packages/web
 
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
-
-      - name: Typecheck
-        run: bun run typecheck
-
-      - name: Typecheck web
-        run: bun run typecheck:web
-
-      - name: Run tests
-        run: bun --bun run test
-
-      - name: Verify pgmq and score concurrency
-        uses: ./.github/actions/verify-pgmq
-
-      - name: Run web tests
-        run: bun --bun run test:web
-
-  release:
+  release-plan:
+    needs: [rust-quality, ts-quality]
+    if: ${{ github.ref == 'refs/heads/develop' }}
     runs-on: ubuntu-latest
-    needs: [test, build-packages]
     outputs:
-      version: ${{ steps.release_version.outputs.version }}
-      major: ${{ steps.release_version.outputs.major }}
-      major_minor: ${{ steps.release_version.outputs.major_minor }}
+      images: ${{ steps.plan.outputs.images }}
+      count: ${{ steps.plan.outputs.count }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ github.sha }}
-
-      - name: Setup Bun dependencies
-        uses: ./.github/actions/setup-bun-deps
-
-      - name: Setup release Node
-        uses: actions/setup-node@v7
+      - uses: ./.github/actions/setup-bun-deps
+      - uses: actions/setup-node@v7
         with:
           node-version: '26'
           package-manager-cache: false
-
-      - name: Configure git user
-        run: |
-          git config user.name "${GITHUB_ACTOR}"
-          git config user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
-
-      - name: Run semantic release
+      - run: node --test scripts/release/release.test.mjs
+      - name: Plan independent releases
+        id: plan
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run release
+        run: node scripts/release/plan.mjs "$RUNNER_TEMP/release-plan.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-plan
+          path: ${{ runner.temp }}/release-plan.json
+          if-no-files-found: error
 
-      - name: Resolve release version
-        id: release_version
-        shell: bash
+  rust-binaries:
+    needs: release-plan
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_TARGET_DIR: /tmp/zc-target
+      SCCACHE_GHA_ENABLED: 'true'
+      RUSTC_WRAPPER: sccache
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-plan
+          path: ${{ runner.temp }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-targets: false
+      - uses: mozilla-actions/sccache-action@v0.0.11
+      - name: Stamp release crate versions in build checkout
+        run: node scripts/release/stamp.mjs "$RUNNER_TEMP/release-plan.json"
+      - run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
+      - name: Build Rust service binaries
+        run: cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-inspector-zeep -p zc-import-zsl --bins
+      - name: Stage Rust binaries
         run: |
-          git fetch --force --tags origin
-          VERSION="$(git tag -l --points-at "$GITHUB_SHA" --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if [ -z "$VERSION" ]; then
-            echo "major=" >> "$GITHUB_OUTPUT"
-            echo "major_minor=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          MAJOR="${VERSION%%.*}"
-          REST="${VERSION#*.}"
-          MINOR="${REST%%.*}"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
-          echo "major_minor=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
+          mkdir -p dist
+          cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,inspector-zeep,import-zsl} dist/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rust-binaries
+          path: dist/zeepcentraal-*
+          if-no-files-found: error
 
-  build-packages:
+  ts-binaries:
+    needs: ts-quality
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - { name: postgraphile, script: 'build:postgraphile', path: 'dist/zeepcentraal-postgraphile', hidden: false }
+          - { name: web, script: 'build:web', path: 'packages/web/.output/', hidden: true }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: ./.github/actions/build-package-output
+        with:
+          name: ${{ matrix.package.name }}
+          build-script: ${{ matrix.package.script }}
+          artifact-path: ${{ matrix.package.path }}
+          include-hidden-files: ${{ matrix.package.hidden }}
+
+  preflight-images:
+    needs: [release-plan, rust-binaries, ts-binaries]
+    if: ${{ needs.release-plan.outputs.count != '0' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        package:
-          - name: server
-            build_script: build:server
-            artifact_path: dist/zeepcentraal-server
-            include_hidden_files: false
-          - name: discord
-            build_script: build:discord
-            artifact_path: dist/zeepcentraal-discord
-            include_hidden_files: false
-          - name: jobs
-            build_script: build:jobs
-            artifact_path: dist/zeepcentraal-jobs
-            include_hidden_files: false
-          - name: lobby-host
-            build_script: build:lobby-host
-            artifact_path: dist/zeepcentraal-lobby-host
-            include_hidden_files: false
-          - name: inspector-zeep
-            build_script: build:inspector-zeep
-            artifact_path: dist/zeepcentraal-inspector-zeep
-            include_hidden_files: false
-          - name: migrate
-            build_script: build:migrate
-            artifact_path: dist/zeepcentraal-migrate
-            include_hidden_files: false
-          - name: import-zsl
-            build_script: build:import-zsl
-            artifact_path: dist/zeepcentraal-import-zsl
-            include_hidden_files: false
-          - name: postgraphile
-            build_script: build:postgraphile
-            artifact_path: dist/zeepcentraal-postgraphile
-            include_hidden_files: false
-          - name: web
-            build_script: build:web
-            artifact_path: packages/web/.output/
-            include_hidden_files: true
+      matrix: ${{ fromJSON(needs.release-plan.outputs.images) }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
-
-      - name: Build ${{ matrix.package.name }} output
-        uses: ./.github/actions/build-package-output
+      - uses: ./.github/actions/build-docker-image
         with:
-          name: ${{ matrix.package.name }}
-          build-script: ${{ matrix.package.build_script }}
-          artifact-path: ${{ matrix.package.artifact_path }}
-          include-hidden-files: ${{ matrix.package.include_hidden_files }}
+          name: ${{ matrix.name }}
+          artifact-name: ${{ matrix.artifact }}
+          dockerfile: ${{ matrix.dockerfile }}
+          artifact-download-path: ${{ matrix.downloadPath }}
+          expected-path: ${{ matrix.expectedPath }}
+          clone-super-league: ${{ matrix.cloneSuperLeague }}
+          service-version: ${{ matrix.version }}
+          push: false
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.name }}:${{ matrix.version }}
+          cache-write: true
 
-  docker-build:
+  publish-release:
+    needs: [release-plan, preflight-images]
+    if: ${{ needs.release-plan.outputs.count != '0' }}
     runs-on: ubuntu-latest
-    needs: [build-packages, release]
-    strategy:
-      fail-fast: true
-      matrix:
-        image:
-          - name: server
-            file: Dockerfile.server
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-server
-            image_name: server
-            clone_super_league: false
-          - name: discord
-            file: Dockerfile.discord
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-discord
-            image_name: discord
-            clone_super_league: false
-          - name: jobs
-            file: Dockerfile.jobs
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-jobs
-            image_name: jobs
-            clone_super_league: false
-          - name: lobby-host
-            file: Dockerfile.lobby-host
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-lobby-host
-            image_name: lobby-host
-            clone_super_league: false
-          - name: inspector-zeep
-            file: packages/inspector-zeep/Dockerfile
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-inspector-zeep
-            image_name: inspector-zeep
-            clone_super_league: false
-          - name: migrate
-            file: Dockerfile.migrate
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-migrate
-            image_name: migrate
-            clone_super_league: false
-          - name: import-zsl
-            file: Dockerfile.zsl
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-import-zsl
-            image_name: import-zsl
-            clone_super_league: true
-          - name: postgraphile
-            file: Dockerfile.postgraphile
-            artifact_download_path: dist
-            expected_path: dist/zeepcentraal-postgraphile
-            image_name: postgraphile
-            clone_super_league: false
-          - name: web
-            file: Dockerfile.web
-            artifact_download_path: packages/web/.output
-            expected_path: packages/web/.output/server/index.mjs
-            image_name: web
-            clone_super_league: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-plan
+          path: ${{ runner.temp }}
+      - uses: ./.github/actions/setup-bun-deps
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          package-manager-cache: false
+      - name: Configure release identity
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
+      - name: Publish semantic tags and releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/release/publish.mjs "$RUNNER_TEMP/release-plan.json"
+
+  publish-images:
+    needs: [release-plan, publish-release]
+    if: ${{ needs.release-plan.outputs.count != '0' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.release-plan.outputs.images) }}
+    steps:
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
-
-      - name: Resolve image parameters
-        id: image_parameters
-        shell: bash
+      - name: Image tags
+        id: tags
         env:
-          IMAGE_NAME: ${{ matrix.image.image_name }}
-          VERSION: ${{ needs.release.outputs.version }}
-          MAJOR: ${{ needs.release.outputs.major }}
-          MAJOR_MINOR: ${{ needs.release.outputs.major_minor }}
+          NAME: ${{ matrix.name }}
+          VERSION: ${{ matrix.version }}
         run: |
-          if [ -z "$VERSION" ]; then
-            {
-              echo "push=false"
-              echo "service_version=$GITHUB_SHA"
-              echo "tags<<EOF"
-              echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
+          MAJOR="${VERSION%%.*}"
+          MINOR="${VERSION%.*}"
           {
-            echo "push=true"
-            echo "service_version=$VERSION"
-            echo "tags<<EOF"
-            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:latest"
-            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$GITHUB_SHA"
-            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$MAJOR"
-            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$MAJOR_MINOR"
-            echo "ghcr.io/$GITHUB_REPOSITORY/$IMAGE_NAME:$VERSION"
-            echo "EOF"
+            echo 'tags<<EOF'
+            echo "ghcr.io/$GITHUB_REPOSITORY/$NAME:latest"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$NAME:$GITHUB_SHA"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$NAME:$MAJOR"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$NAME:$MINOR"
+            echo "ghcr.io/$GITHUB_REPOSITORY/$NAME:$VERSION"
+            echo 'EOF'
           } >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GitHub Container Registry
-        if: ${{ steps.image_parameters.outputs.push == 'true' }}
-        uses: docker/login-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build ${{ matrix.image.name }} image
-        uses: ./.github/actions/build-docker-image
+      - uses: ./.github/actions/build-docker-image
         with:
-          name: ${{ matrix.image.name }}
-          dockerfile: ${{ matrix.image.file }}
-          artifact-download-path: ${{ matrix.image.artifact_download_path }}
-          expected-path: ${{ matrix.image.expected_path }}
-          clone-super-league: ${{ matrix.image.clone_super_league }}
-          service-version: ${{ steps.image_parameters.outputs.service_version }}
-          push: ${{ steps.image_parameters.outputs.push }}
-          tags: ${{ steps.image_parameters.outputs.tags }}
+          name: ${{ matrix.name }}
+          artifact-name: ${{ matrix.artifact }}
+          dockerfile: ${{ matrix.dockerfile }}
+          artifact-download-path: ${{ matrix.downloadPath }}
+          expected-path: ${{ matrix.expectedPath }}
+          clone-super-league: ${{ matrix.cloneSuperLeague }}
+          service-version: ${{ matrix.version }}
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
           cache-write: true

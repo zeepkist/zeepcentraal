@@ -1,0 +1,1 @@
+-- Baseline has no reversible DDL. Removing this ledger row does not alter existing schema objects.

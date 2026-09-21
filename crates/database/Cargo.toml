@@ -1,0 +1,27 @@
+[package]
+name = "zc-database"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+bb8.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+zc-core.workspace = true
+diesel.workspace = true
+diesel-async.workspace = true
+diesel_migrations.workspace = true
+pq-sys.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+url.workspace = true
+
+utoipa.workspace = true
+
+[dev-dependencies]
+tokio-postgres = "0.7"
+tracing-subscriber.workspace = true

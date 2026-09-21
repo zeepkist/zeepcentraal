@@ -1,0 +1,9 @@
+[package]
+name = "zc-test-support"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+serde_json.workspace = true

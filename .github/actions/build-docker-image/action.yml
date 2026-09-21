@@ -4,6 +4,10 @@ inputs:
   name:
     description: Image/package name used for artifact naming.
     required: true
+  artifact-name:
+    description: Uploaded build artifact name; defaults to package-output-NAME.
+    required: false
+    default: ''
   dockerfile:
     description: Dockerfile path.
     required: true
@@ -42,7 +46,7 @@ runs:
       if: ${{ inputs.download-artifact == 'true' }}
       uses: actions/download-artifact@v8
       with:
-        name: package-output-${{ inputs.name }}
+        name: ${{ inputs.artifact-name != '' && inputs.artifact-name || format('package-output-{0}', inputs.name) }}
         path: ${{ inputs.artifact-download-path }}
 
     - name: Verify ${{ inputs.name }} output
