@@ -33,7 +33,7 @@ const rustTargets = {
 		crate: 'inspector-zeep',
 		dependencies: ['inspector-zeep', 'workshop', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-inspector-zeep',
-		dockerfile: 'packages/inspector-zeep/Dockerfile',
+		dockerfile: 'Dockerfile.inspector-zeep',
 	},
 	'zc-import-zsl': {
 		crate: 'import-zsl',

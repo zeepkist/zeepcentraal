@@ -121,7 +121,7 @@ jobs:
           - { name: zc-migrate, file: Dockerfile.migrate, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-migrate, super_league: false }
           - { name: zc-lobby-host, file: Dockerfile.lobby-host, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-lobby-host, super_league: false }
           - { name: zc-discord, file: Dockerfile.discord, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-discord, super_league: false }
-          - { name: zc-inspector-zeep, file: packages/inspector-zeep/Dockerfile, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-inspector-zeep, super_league: false }
+          - { name: zc-inspector-zeep, file: Dockerfile.inspector-zeep, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-inspector-zeep, super_league: false }
           - { name: zc-import-zsl, file: Dockerfile.zsl, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-import-zsl, super_league: true }
           - { name: postgraphile, file: Dockerfile.postgraphile, artifact: package-output-postgraphile, path: dist, expected: dist/zeepcentraal-postgraphile, super_league: false }
           - { name: web, file: Dockerfile.web, artifact: package-output-web, path: packages/web/.output, expected: packages/web/.output/server/index.mjs, super_league: false }

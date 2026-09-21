@@ -26,6 +26,7 @@ test('release paths separate retained TypeScript services from Rust services', (
 	assert.equal(affects('zc-migrate', 'packages/database/drizzle/0001.sql'), true)
 	assert.equal(affects('zc-migrate', 'crates/database/src/adoption.rs'), true)
 	assert.equal(affects('zc-discord', 'Dockerfile.discord'), true)
+	assert.equal(affects('zc-inspector-zeep', 'Dockerfile.inspector-zeep'), true)
 	assert.equal(affects('zc-server', 'packages/web/app/app.vue'), false)
 	for (const target of Object.keys(rustTargets)) {
 		assert.equal(affects(target, '.github/workflows/deploy.yml'), true)
@@ -134,8 +135,13 @@ test('GitHub squash title still releases affected Rust services', async () => {
 })
 
 test('each Rust image copies its staged service binary', () => {
+	const pullRequestWorkflow = readFileSync('.github/workflows/pr-validate.yml', 'utf8')
 	for (const [name, service] of Object.entries(rustTargets)) {
 		assert.equal(existsSync(service.dockerfile), true, `${name} Dockerfile missing`)
+		assert.ok(
+			pullRequestWorkflow.includes(`name: ${name}, file: ${service.dockerfile},`),
+			`${name} PR image path differs from release target`,
+		)
 		const dockerfile = readFileSync(service.dockerfile, 'utf8')
 		assert.match(
 			dockerfile,
