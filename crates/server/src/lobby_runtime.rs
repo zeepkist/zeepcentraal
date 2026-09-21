@@ -302,8 +302,10 @@ async fn run_steam_session(
         response = steam.log_on(details) => response?,
         _ = shutdown.changed() => return Ok(()),
     };
+    tracing::info!("Steam login accepted; waiting for account information");
     let steam_id = response.steam_id.steam_id64();
     let identity_name = account_name(&mut steam, &config.refresh_token_file, shutdown).await?;
+    tracing::info!("Steam account information received");
     let mut cached_ticket: Option<(Instant, Vec<u8>)> = None;
     loop {
         let ticket = if let Some((created, ticket)) = &cached_ticket
@@ -553,21 +555,33 @@ async fn account_name(
 ) -> Result<String> {
     let wait = async {
         loop {
-            if let Some(info) = steam.account_info()
-                && !info.name.trim().is_empty()
-            {
-                return Ok(info.name);
-            }
             let Some(event) = steam.poll_event().await? else {
                 bail!("Steam session closed before account information arrived");
             };
-            persist_refresh_token(event, refresh_token_file).await?;
+            if let Some(name) = account_name_from_event(event, refresh_token_file).await? {
+                return Ok(name);
+            }
         }
     };
     tokio::select! {
         name = tokio::time::timeout(ROOM_TIMEOUT, wait) =>
             name.context("Steam account information timed out")?,
         _ = shutdown.changed() => bail!("Server shutdown"),
+    }
+}
+
+async fn account_name_from_event(
+    event: steam_client::SteamEvent,
+    refresh_token_file: &std::path::Path,
+) -> Result<Option<String>> {
+    match event {
+        steam_client::SteamEvent::Account(steam_client::AccountEvent::AccountInfo {
+            name, ..
+        }) if !name.trim().is_empty() => Ok(Some(name)),
+        event => {
+            persist_refresh_token(event, refresh_token_file).await?;
+            Ok(None)
+        }
     }
 }
 
@@ -714,6 +728,76 @@ fn sanitize_lobby_text(value: &str, fallback: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn account_info_event(name: &str) -> steam_client::SteamEvent {
+        steam_client::SteamEvent::Account(steam_client::AccountEvent::AccountInfo {
+            name: name.into(),
+            country: String::new(),
+            authed_machines: 0,
+            flags: 0,
+        })
+    }
+
+    #[tokio::test]
+    async fn account_name_comes_from_first_nonempty_steam_event() {
+        let token_file = std::path::Path::new("unused-token-file");
+        let unrelated = steam_client::SteamEvent::Auth(steam_client::AuthEvent::WebSession {
+            session_id: "fake-session".into(),
+            cookies: Vec::new(),
+        });
+        assert_eq!(
+            account_name_from_event(unrelated, token_file)
+                .await
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            account_name_from_event(account_info_event("  "), token_file)
+                .await
+                .unwrap(),
+            None
+        );
+        assert_eq!(
+            account_name_from_event(account_info_event("Lobby Bot"), token_file)
+                .await
+                .unwrap(),
+            Some("Lobby Bot".into())
+        );
+    }
+
+    #[tokio::test]
+    async fn renewed_token_is_persisted_while_waiting_for_account_info() {
+        let directory =
+            std::env::temp_dir().join(format!("zc-lobby-token-test-{}", uuid::Uuid::new_v4()));
+        tokio::fs::create_dir(&directory).await.unwrap();
+        let token_file = directory.join("refresh-token");
+        let event = steam_client::SteamEvent::Auth(steam_client::AuthEvent::RefreshToken {
+            token: "fake-renewed-token".into(),
+            account_name: "Lobby Bot".into(),
+        });
+        assert_eq!(
+            account_name_from_event(event, &token_file).await.unwrap(),
+            None
+        );
+        assert_eq!(
+            tokio::fs::read_to_string(&token_file).await.unwrap(),
+            "fake-renewed-token\n"
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                tokio::fs::metadata(&token_file)
+                    .await
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o600
+            );
+        }
+        tokio::fs::remove_dir_all(directory).await.unwrap();
+    }
 
     #[test]
     fn broker_validation_matches_bun_boundaries() {
