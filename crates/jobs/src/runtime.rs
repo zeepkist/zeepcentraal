@@ -10,7 +10,12 @@ use tokio::{sync::watch, task::JoinSet, time::MissedTickBehavior};
 
 #[async_trait]
 pub trait JobHandler: Send + Sync {
-    async fn handle(&self, task: TaskIdentifier, payload: serde_json::Value) -> Result<()>;
+    async fn handle(
+        &self,
+        task: TaskIdentifier,
+        payload: serde_json::Value,
+        lane: JobLane,
+    ) -> Result<()>;
 }
 
 pub async fn run(
@@ -76,7 +81,7 @@ async fn run_lane(
             for job in claimed {
                 let queue = queue.clone();
                 let handler = handler.clone();
-                active.spawn(async move { execute(queue, handler, job).await });
+                active.spawn(async move { execute(queue, handler, job, lane).await });
             }
         }
         if *shutdown.borrow() {
@@ -127,7 +132,12 @@ async fn run_lane(
     Ok(())
 }
 
-async fn execute(queue: Queue, handler: Arc<dyn JobHandler>, job: ClaimedJob) -> Result<()> {
+async fn execute(
+    queue: Queue,
+    handler: Arc<dyn JobHandler>,
+    job: ClaimedJob,
+    lane: JobLane,
+) -> Result<()> {
     let task = TaskIdentifier::parse(&job.task).ok_or_else(|| anyhow!("invalid job task"));
     let result = match task {
         Ok(task) if task.validate_payload(&job.payload) => {
@@ -136,7 +146,7 @@ async fn execute(queue: Queue, handler: Arc<dyn JobHandler>, job: ClaimedJob) ->
                 Duration::from_secs(HEARTBEAT_SECONDS),
             );
             heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
-            let work = handler.handle(task, job.payload.clone());
+            let work = handler.handle(task, job.payload.clone(), lane);
             tokio::pin!(work);
             loop {
                 tokio::select! {

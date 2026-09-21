@@ -50,6 +50,35 @@ database outages keep jobs alive with a 250ms-to-5s capped retry; queue polling 
 leadership resume after PostgreSQL recovers. Startup waits for database availability until shutdown,
 while missing pgmq objects or incompatible queue schema remain fatal.
 
+## Record score projection
+
+Accepted PBs enqueue a coalesced fast `updateLevelScore` job, then a fast
+`updateLevelContributions` repair keyed by level, user, and submitted record. Both use the same
+per-level lock group. The repair reads current PB and level points, then enqueues a record-keyed
+fast `updatePlayerScore`. Contention defers repair on the fast lane without failing its attempt.
+The durable bulk 50-user cursor still updates other users. Record HTTP response remains empty 200;
+level points and contribution/player points are asynchronous projections.
+
+When projection stays stale, inspect queue state read-only before assuming latency. These queries
+show recent score work and archived failures without exposing full payloads:
+
+```sql
+SELECT lane, id, task, job_key, lock_group, running, attempts, max_attempts,
+       lease_until, payload->>'idLevel' AS id_level,
+       payload->>'idUser' AS id_user, payload->>'projectionToken' AS token
+FROM zc_jobs.job
+WHERE task IN ('updateLevelScore', 'updateLevelContributions', 'updatePlayerScore')
+ORDER BY id DESC LIMIT 100;
+
+SELECT msg_id, archived_at, message->>'task' AS task,
+       message->>'failure' AS failure,
+       message->'payload'->>'idLevel' AS id_level,
+       message->'payload'->>'idUser' AS id_user
+FROM pgmq.a_zeepcentraal_fast
+WHERE message->>'task' IN ('updateLevelScore', 'updateLevelContributions', 'updatePlayerScore')
+ORDER BY msg_id DESC LIMIT 100;
+```
+
 `zeepcentraal-migrate verify` is read-only. It acquires a PostgreSQL advisory lock, checks
 frozen 87-row Drizzle ledger (legacy prefix plus 86 journal entries), and compares 53 tables, one view,
 and 535 columns from `0086_snapshot.json` with `pg_catalog`.

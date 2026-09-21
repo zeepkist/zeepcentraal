@@ -20,7 +20,7 @@ use std::{
 };
 use zc_core::jwt::Provider;
 use zc_database::services::discord::DiscordLinkStatus;
-use zc_database::services::record::RecordSubmission;
+use zc_database::services::record::{RecordSubmission, RecordSubmissionResult};
 use zc_jobs::{TaskIdentifier, queue::JobLane};
 
 type ApiResult<T> = Result<T, Problem>;
@@ -514,8 +514,7 @@ pub async fn submit_record(
         state,
         level.id,
         user.id,
-        submitted.personal_best_changed,
-        submitted.world_record_user_ids,
+        submitted,
         workshop_id,
         workshop_scan_claimed,
     );
@@ -559,14 +558,13 @@ fn schedule_record_followups(
     state: Arc<AppState>,
     id_level: i32,
     id_user: i32,
-    personal_best_changed: bool,
-    world_record_user_ids: Vec<i32>,
+    submitted: RecordSubmissionResult,
     workshop_id: Option<i64>,
     workshop_scan_claimed: bool,
 ) {
     tokio::spawn(async move {
-        if personal_best_changed
-            && let Err(error) = state
+        if submitted.personal_best_changed {
+            match state
                 .queue
                 .enqueue(
                     TaskIdentifier::UpdateLevelScore,
@@ -575,10 +573,32 @@ fn schedule_record_followups(
                     None,
                 )
                 .await
-        {
-            tracing::error!(id_level, id_user, error = %error, "Level score enqueue failed");
+            {
+                Ok(_) => {
+                    if let Err(error) = state
+                        .queue
+                        .enqueue(
+                            TaskIdentifier::UpdateLevelContributions,
+                            serde_json::json!({
+                                "idLevel": id_level,
+                                "idUser": id_user,
+                                "projectionToken": submitted.id_record.to_string(),
+                                "deferCount": 0,
+                            }),
+                            JobLane::Fast,
+                            None,
+                        )
+                        .await
+                    {
+                        tracing::error!(id_level, id_user, id_record = submitted.id_record, error = %error, "Fast contribution enqueue failed");
+                    }
+                }
+                Err(error) => {
+                    tracing::error!(id_level, id_user, id_record = submitted.id_record, error = %error, "Level score enqueue failed");
+                }
+            }
         }
-        for world_record_user_id in world_record_user_ids {
+        for world_record_user_id in submitted.world_record_user_ids {
             if let Err(error) = state
                 .queue
                 .enqueue(

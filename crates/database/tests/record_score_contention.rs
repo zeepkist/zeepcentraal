@@ -151,3 +151,173 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
         .await?;
     Ok(())
 }
+
+#[tokio::test]
+#[ignore = "requires disposable PostgreSQL cloned from current Drizzle schema"]
+async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")
+        .context("ZC_TEST_DATABASE_URL is required")?;
+    let parsed = url::Url::parse(&url)?;
+    anyhow::ensure!(
+        parsed
+            .host_str()
+            .is_some_and(|host| matches!(host, "127.0.0.1" | "localhost"))
+            && parsed.path().contains("test"),
+        "Popular-level projection test requires local disposable test database"
+    );
+    let database = Database::connect(&url, 4).await?;
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_millis();
+    let first_steam_id = 76_561_198_700_000_000_i64 + i64::try_from(nonce)? * 1_000;
+    let level = database
+        .resolve_submission_level(
+            &format!("popular-projection-{nonce}"),
+            &format!("{nonce:032X}"),
+            true,
+        )
+        .await?;
+    let (mut client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move { connection.await.expect("PostgreSQL connection") });
+    let statistics = zc_core::ghosts::GhostStatistics::default();
+    let mut user_ids = Vec::with_capacity(205);
+    for offset in 0..205_i64 {
+        let user = database.get_or_insert_user(first_steam_id + offset).await?;
+        user_ids.push(user.id);
+        let result = database
+            .submit_record(RecordSubmission {
+                id_user: user.id,
+                id_level: level.id,
+                time: if offset == 204 {
+                    9.0
+                } else {
+                    1_000.0 + offset as f32
+                },
+                game_version: "test",
+                mod_version: "test",
+                splits: &[],
+                speeds: &[],
+                statistics: &statistics,
+            })
+            .await?;
+        assert!(result.personal_best_changed);
+    }
+
+    assert_eq!(
+        database.update_level_scores(&[level.id], false).await?,
+        MaintenanceOutcome::Applied(())
+    );
+    let submitter = *user_ids.last().context("submitter missing")?;
+    assert_eq!(
+        database
+            .reconcile_level_contribution_users(level.id, &[submitter])
+            .await?,
+        MaintenanceOutcome::Applied(vec![submitter])
+    );
+    assert_eq!(
+        database.recalculate_player_score(submitter).await?,
+        MaintenanceOutcome::Applied(())
+    );
+    let fast = client
+        .query_one(
+            "SELECT contribution.level_position,contribution.level_points, \
+             contribution.contribution_rank,contribution.player_decayed_points,points.points \
+             FROM public.user_point_contribution contribution \
+             JOIN public.level_points points ON points.id_level=contribution.id_level \
+             WHERE contribution.id_level=$1 AND contribution.id_user=$2",
+            &[&level.id, &submitter],
+        )
+        .await?;
+    assert_eq!(fast.get::<_, i32>(0), 1);
+    assert!(fast.get::<_, i32>(1) > 0);
+    assert_eq!(fast.get::<_, i32>(1), fast.get::<_, i32>(4));
+    assert_eq!(fast.get::<_, i32>(2), 1);
+    assert!(fast.get::<_, f32>(3) > 0.0);
+    let before_cursor: i64 = client
+        .query_one(
+            "SELECT count(*) FROM public.user_point_contribution WHERE id_level=$1",
+            &[&level.id],
+        )
+        .await?
+        .get(0);
+    assert_eq!(before_cursor, 1);
+
+    let busy_user = user_ids[0];
+    let blocker = client.transaction().await?;
+    blocker
+        .execute(
+            "SELECT pg_advisory_xact_lock(-1861284952,$1)",
+            &[&busy_user],
+        )
+        .await?;
+    let first_page = database
+        .level_contribution_user_page(level.id, 0, 50)
+        .await?;
+    assert_eq!(first_page.user_ids.len(), 50);
+    assert!(first_page.user_ids.contains(&busy_user));
+    assert_eq!(
+        database
+            .reconcile_level_contribution_users(level.id, &first_page.user_ids)
+            .await?,
+        MaintenanceOutcome::Contended
+    );
+    let free_users = first_page
+        .user_ids
+        .iter()
+        .copied()
+        .filter(|id| *id != busy_user)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        database
+            .reconcile_level_contribution_users(level.id, &free_users)
+            .await?,
+        MaintenanceOutcome::Applied(free_users)
+    );
+    blocker.rollback().await?;
+
+    let mut after = 0;
+    let mut pages = 0;
+    loop {
+        let page = database
+            .level_contribution_user_page(level.id, after, 50)
+            .await?;
+        if page.user_ids.is_empty() {
+            break;
+        }
+        assert_eq!(
+            database
+                .reconcile_level_contribution_users(level.id, &page.user_ids)
+                .await?,
+            MaintenanceOutcome::Applied(page.user_ids.clone())
+        );
+        for id_user in &page.user_ids {
+            assert_eq!(
+                database.recalculate_player_score(*id_user).await?,
+                MaintenanceOutcome::Applied(())
+            );
+        }
+        pages += 1;
+        match page.next_after_user_id {
+            Some(next) => after = next,
+            None => break,
+        }
+    }
+    assert!(pages >= 5);
+    let converged: i64 = client
+        .query_one(
+            "SELECT count(*) FROM public.user_point_contribution \
+             WHERE id_level=$1 AND contribution_rank=1 AND player_decayed_points>0",
+            &[&level.id],
+        )
+        .await?
+        .get(0);
+    assert_eq!(converged, 205);
+    client
+        .execute("DELETE FROM public.level WHERE id=$1", &[&level.id])
+        .await?;
+    client
+        .execute("DELETE FROM public.\"user\" WHERE id=ANY($1)", &[&user_ids])
+        .await?;
+    Ok(())
+}

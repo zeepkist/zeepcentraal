@@ -188,6 +188,18 @@ impl Queue {
             .load(&mut connection).await?)
     }
 
+    pub async fn has_fast_level_score(&self, id_level: i32) -> Result<bool> {
+        ensure!(id_level > 0, "idLevel must be positive");
+        let mut connection = self.partition.connection().await?;
+        let result: BooleanResult = sql_query(
+            "SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane='fast' AND task='updateLevelScore' AND job_key=$1) AS ok",
+        )
+        .bind::<Text, _>(format!("update-level-score:{id_level}"))
+        .get_result(&mut connection)
+        .await?;
+        Ok(result.ok)
+    }
+
     pub async fn heartbeat(&self, job: &ClaimedJob) -> Result<bool> {
         self.finish_call(
             "SELECT zc_jobs.heartbeat($1,$2::bigint,$3::bigint,$4) AS ok",
@@ -238,13 +250,9 @@ fn queue_identity(
     lane: JobLane,
     explicit_key: Option<&str>,
 ) -> (Option<String>, Option<String>) {
-    let id_level = payload
-        .get("idLevel")
-        .and_then(serde_json::Value::as_i64);
+    let id_level = payload.get("idLevel").and_then(serde_json::Value::as_i64);
     let derived_key = match task {
-        TaskIdentifier::UpdateLevelScore => {
-            id_level.map(|id| format!("update-level-score:{id}"))
-        }
+        TaskIdentifier::UpdateLevelScore => id_level.map(|id| format!("update-level-score:{id}")),
         TaskIdentifier::UpdateLevelContributions => id_level.and_then(|id_level| {
             let token = payload.get("projectionToken")?.as_str()?;
             if let Some(after) = payload
@@ -256,25 +264,39 @@ fn queue_identity(
                 ))
             } else {
                 let id_user = payload.get("idUser")?.as_i64()?;
-                Some(format!("update-level-contribution:{id_level}:{id_user}"))
+                if lane == JobLane::Fast {
+                    Some(format!(
+                        "update-level-contribution-submit:{id_level}:{id_user}:{token}"
+                    ))
+                } else {
+                    Some(format!("update-level-contribution:{id_level}:{id_user}"))
+                }
             }
         }),
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if lane != JobLane::Bulk {
-        None
-    } else if matches!(
-        task,
-        TaskIdentifier::UpdateLevelScore | TaskIdentifier::UpdateLevelContributions
-    ) {
+    let group = if lane == JobLane::Fast
+        && matches!(
+            task,
+            TaskIdentifier::UpdateLevelScore | TaskIdentifier::UpdateLevelContributions
+        ) {
+        id_level.map(|id| format!("fast-level-maintenance:{id}"))
+    } else if lane == JobLane::Bulk
+        && matches!(
+            task,
+            TaskIdentifier::UpdateLevelScore | TaskIdentifier::UpdateLevelContributions
+        )
+    {
         id_level.map(|id| format!("level-maintenance-shard:{}", id.rem_euclid(4)))
-    } else if matches!(
-        task,
-        TaskIdentifier::UpdateLevelScores
-            | TaskIdentifier::UpdatePlayerScores
-            | TaskIdentifier::UpdatePlayerScore
-    ) {
+    } else if lane == JobLane::Bulk
+        && matches!(
+            task,
+            TaskIdentifier::UpdateLevelScores
+                | TaskIdentifier::UpdatePlayerScores
+                | TaskIdentifier::UpdatePlayerScore
+        )
+    {
         Some("global-scores".to_owned())
     } else {
         None
@@ -297,7 +319,10 @@ mod tests {
                 JobLane::Fast,
                 None,
             ),
-            (Some("update-level-score:17".to_owned()), None)
+            (
+                Some("update-level-score:17".to_owned()),
+                Some("fast-level-maintenance:17".to_owned())
+            )
         );
         assert_eq!(
             queue_identity(
@@ -338,5 +363,34 @@ mod tests {
             None,
         );
         assert_ne!(first.0, second.0);
+    }
+
+    #[test]
+    fn fast_submitters_keep_separate_keys_and_share_level_ordering() {
+        let score = queue_identity(
+            TaskIdentifier::UpdateLevelScore,
+            &json!({"idLevel": 17, "idUser": 2}),
+            JobLane::Fast,
+            None,
+        );
+        let first = queue_identity(
+            TaskIdentifier::UpdateLevelContributions,
+            &json!({"idLevel": 17, "idUser": 2, "projectionToken": "100", "deferCount": 0}),
+            JobLane::Fast,
+            None,
+        );
+        let second = queue_identity(
+            TaskIdentifier::UpdateLevelContributions,
+            &json!({"idLevel": 17, "idUser": 3, "projectionToken": "101", "deferCount": 0}),
+            JobLane::Fast,
+            None,
+        );
+        assert_eq!(score.1, first.1);
+        assert_eq!(score.1, second.1);
+        assert_ne!(first.0, second.0);
+        assert_eq!(
+            first.0,
+            Some("update-level-contribution-submit:17:2:100".to_owned())
+        );
     }
 }
