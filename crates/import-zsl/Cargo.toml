@@ -1,6 +1,6 @@
 [package]
 name = "zc-import-zsl"
-version.workspace = true
+version = "3.0.0"
 edition.workspace = true
 publish.workspace = true
 

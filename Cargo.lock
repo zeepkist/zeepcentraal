@@ -4875,7 +4875,7 @@ dependencies = [
 
 [[package]]
 name = "zc-discord"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4925,7 +4925,7 @@ dependencies = [
 
 [[package]]
 name = "zc-import-zsl"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "serde",
@@ -4939,7 +4939,7 @@ dependencies = [
 
 [[package]]
 name = "zc-inspector-zeep"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4960,7 +4960,7 @@ dependencies = [
 
 [[package]]
 name = "zc-jobs"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4981,7 +4981,7 @@ dependencies = [
 
 [[package]]
 name = "zc-lobby-host"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4998,7 +4998,7 @@ dependencies = [
 
 [[package]]
 name = "zc-migrate"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "serde_json",
@@ -5009,7 +5009,7 @@ dependencies = [
 
 [[package]]
 name = "zc-server"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "axum",

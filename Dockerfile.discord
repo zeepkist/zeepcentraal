@@ -14,6 +14,4 @@ ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
 
 EXPOSE 3000
 
-RUN ["./zeepcentraal-discord", "--self-test"]
-
 CMD ["./zeepcentraal-discord"]

@@ -113,6 +113,20 @@ Expected response:
 
 ## Development Commands
 
+Run Rust services from PowerShell on Windows:
+
+```powershell
+$env:CARGO_INCREMENTAL = '0'
+$env:CARGO_PROFILE_DEV_DEBUG = '0'
+$env:CARGO_TARGET_DIR = Join-Path $env:TEMP 'zc-rust-target'
+cargo run --locked -p zc-server --bin zeepcentraal-server
+# In another PowerShell session:
+cargo run --locked -p zc-jobs --bin zeepcentraal-jobs
+```
+
+Rust loads local `.env` automatically. Production uses process environment. Remaining Bun commands
+serve PostGraphile and web; older Bun backend commands remain for comparison and rollback.
+
 | Command | What it does |
 | --- | --- |
 | `bun run dev:server` | Starts API in watch mode |
@@ -130,7 +144,18 @@ Expected response:
 
 ## Releases
 
-`bun run release` versions the whole monorepo from conventional commits.
+Pushes to `develop` run Rust and retained TypeScript checks, build service binaries, preflight
+Docker images, then publish independent semantic releases. Rust images start at `3.0.0` and use
+`zc-server`, `zc-jobs`, `zc-migrate`, `zc-lobby-host`, `zc-discord`, `zc-inspector-zeep`, and
+`zc-import-zsl` tags such as `zc-server@3.0.0`. PostGraphile and web share root releases starting
+at `3.0.1` because historical root `3.0.0` is already in use. Their image names remain
+`postgraphile` and `web`. Release versions are stamped into Rust build checkouts; source Cargo
+manifests remain at baseline `3.0.0`.
+
+Release tooling lives in `scripts/release/*.mjs`. `node scripts/release/plan.mjs <output.json>`
+plans tags and images; CI alone runs `publish.mjs`. Conventional `feat`, `fix`, `perf`, and breaking
+commits drive versions for affected crates and retained TypeScript services. Shared Rust crate,
+Cargo lockfile, and migration changes release affected Rust binaries.
 
 ## Git Hooks
 
@@ -140,34 +165,37 @@ and test suite. Use `git commit --no-verify` only when an emergency bypass is re
 
 ## Build and Docker
 
-Build local binaries:
+Build local Rust binaries from PowerShell:
 
-```bash
-bun run build:server
-bun run build:jobs
+```powershell
+$env:CARGO_INCREMENTAL = '0'
+$env:CARGO_TARGET_DIR = Join-Path $env:TEMP 'zc-rust-target'
+cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-inspector-zeep -p zc-import-zsl --bins
+New-Item -ItemType Directory -Force dist | Out-Null
+Copy-Item "$env:CARGO_TARGET_DIR/release/zeepcentraal-*.exe" dist/
 ```
 
-Build Docker images:
+CI stages Linux Rust binaries in `dist/` before Docker builds. Build images from that output:
 
 ```bash
-docker build -f Dockerfile.server -t zeepcentraal-server .
-docker build -f Dockerfile.jobs -t zeepcentraal-jobs .
-docker build -f Dockerfile.migrate -t zeepcentraal-migrate .
-docker build -f Dockerfile.zsl -t zeepcentraal-import-zsl .
+docker build -f Dockerfile.server -t zc-server .
+docker build -f Dockerfile.jobs -t zc-jobs .
+docker build -f Dockerfile.migrate -t zc-migrate .
+docker build -f Dockerfile.zsl -t zc-import-zsl .
 ```
 
 Run Docker images with environment values:
 
 ```bash
-docker run --env-file .env -p 3000:3000 zeepcentraal-server
-docker run --env-file .env zeepcentraal-jobs
-docker run --env-file .env zeepcentraal-migrate
+docker run --env-file .env -p 3000:3000 zc-server
+docker run --env-file .env zc-jobs
+docker run --env-file .env zc-migrate
 ```
 
 Run ZSL import container:
 
 ```bash
 git clone --branch data https://github.com/zeepkist/super-league.git super_league_data
-docker build -f Dockerfile.zsl -t zeepcentraal-import-zsl .
-docker run --env-file .env zeepcentraal-import-zsl
+docker build -f Dockerfile.zsl -t zc-import-zsl .
+docker run --env-file .env zc-import-zsl
 ```
