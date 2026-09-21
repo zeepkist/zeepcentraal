@@ -1,0 +1,160 @@
+[
+  {
+    "input": {
+      "title": "Player",
+      "description": "Steam ID `76561198000000001`",
+      "sections": [
+        {
+          "heading": "Career summary",
+          "content": "**Rank** #1"
+        }
+      ]
+    },
+    "expected": {
+      "components": [
+        {
+          "type": 17,
+          "accent_color": 16436245,
+          "components": [
+            {
+              "type": 10,
+              "content": "## Player\nSteam ID `76561198000000001`"
+            },
+            {
+              "type": 14,
+              "divider": true,
+              "spacing": 1
+            },
+            {
+              "type": 10,
+              "content": "### Career summary\n**Rank** #1"
+            },
+            {
+              "type": 10,
+              "content": "-# ZeepCentraal"
+            }
+          ]
+        }
+      ],
+      "flags": 32768,
+      "allowed_mentions": {
+        "parse": [],
+        "users": [],
+        "roles": [],
+        "replied_user": false
+      }
+    }
+  },
+  {
+    "input": {
+      "title": "Page 2",
+      "description": "Levels",
+      "sections": [],
+      "button": "page:2",
+      "filename": "playlist.json"
+    },
+    "expected": {
+      "components": [
+        {
+          "type": 17,
+          "accent_color": 16436245,
+          "components": [
+            {
+              "type": 10,
+              "content": "## Page 2\nLevels"
+            },
+            {
+              "type": 1,
+              "components": [
+                {
+                  "type": 2,
+                  "custom_id": "page:2",
+                  "label": "Next",
+                  "disabled": false,
+                  "style": 1
+                }
+              ]
+            },
+            {
+              "type": 13,
+              "file": {
+                "url": "attachment://playlist.json"
+              },
+              "spoiler": false
+            },
+            {
+              "type": 10,
+              "content": "-# ZeepCentraal"
+            }
+          ]
+        }
+      ],
+      "flags": 32768,
+      "allowed_mentions": {
+        "parse": [],
+        "users": [],
+        "roles": [],
+        "replied_user": false
+      }
+    }
+  },
+  {
+    "input": {
+      "title": "New personal best",
+      "description": "Fixture level",
+      "thumbnail": "https://example.test/image.png",
+      "sections": [
+        {
+          "heading": "Personal best",
+          "content": "28.375"
+        }
+      ]
+    },
+    "expected": {
+      "components": [
+        {
+          "type": 17,
+          "accent_color": 16436245,
+          "components": [
+            {
+              "type": 9,
+              "components": [
+                {
+                  "type": 10,
+                  "content": "## New personal best\nFixture level"
+                }
+              ],
+              "accessory": {
+                "type": 11,
+                "media": {
+                  "url": "https://example.test/image.png"
+                },
+                "description": "Evaluation thumbnail"
+              }
+            },
+            {
+              "type": 14,
+              "divider": true,
+              "spacing": 1
+            },
+            {
+              "type": 10,
+              "content": "### Personal best\n28.375"
+            },
+            {
+              "type": 10,
+              "content": "-# ZeepCentraal"
+            }
+          ]
+        }
+      ],
+      "flags": 32768,
+      "allowed_mentions": {
+        "parse": [],
+        "users": [],
+        "roles": [],
+        "replied_user": false
+      }
+    }
+  }
+]

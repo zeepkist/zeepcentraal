@@ -1,0 +1,30 @@
+[package]
+name = "zc-core"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+flate2.workspace = true
+hmac.workspace = true
+jwt.workspace = true
+lzma-rs.workspace = true
+prost.workspace = true
+rand.workspace = true
+regex.workspace = true
+reqwest.workspace = true
+ryu-js.workspace = true
+rust-env.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha1.workspace = true
+sha2.workspace = true
+s3.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+ulid.workspace = true
+url.workspace = true
+uuid.workspace = true
+xxhash-rust.workspace = true

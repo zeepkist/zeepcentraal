@@ -44,6 +44,7 @@
 			"!node_modules",
 			"!target",
 			"!artifacts/rust-evaluation",
+			"!crates/discord-evaluation/fixtures",
 			"!coverage",
 			"!dist",
 			"!zeepcentraal-web",

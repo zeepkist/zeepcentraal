@@ -1,45 +1,3 @@
-FROM oven/bun:1.4.0-debian AS native-deps
-
-WORKDIR /app
-
-COPY package.json bun.lock bunfig.toml ./
-COPY packages/core/package.json packages/core/package.json
-COPY packages/database/package.json packages/database/package.json
-COPY packages/discord/package.json packages/discord/package.json
-COPY packages/graphql/package.json packages/graphql/package.json
-COPY packages/import-zsl/package.json packages/import-zsl/package.json
-COPY packages/jobs/package.json packages/jobs/package.json
-COPY packages/inspector-zeep/package.json packages/inspector-zeep/package.json
-COPY packages/lobby-host/package.json packages/lobby-host/package.json
-COPY packages/postgraphile/package.json packages/postgraphile/package.json
-COPY packages/server/package.json packages/server/package.json
-COPY packages/telemetry/package.json packages/telemetry/package.json
-COPY packages/web/package.json packages/web/package.json
-COPY packages/workshop/package.json packages/workshop/package.json
-
-RUN bun install --frozen-lockfile
-RUN set -eux; \
-	mkdir -p /native-node_modules/@napi-rs; \
-	lzma_package="$(find . -path '*/node_modules/@napi-rs/lzma/package.json' -print -quit)"; \
-	xxhash_package="$(find . -path '*/node_modules/xxhash-addon/package.json' -print -quit)"; \
-	node_gyp_build_package="$(find . -path '*/node_modules/node-gyp-build/package.json' -print -quit)"; \
-	test -n "$lzma_package"; \
-	test -n "$xxhash_package"; \
-	test -n "$node_gyp_build_package"; \
-	cp -R "$(dirname "$lzma_package")" /native-node_modules/@napi-rs/lzma; \
-	cp -R "$(dirname "$xxhash_package")" /native-node_modules/xxhash-addon; \
-	cp -R "$(dirname "$node_gyp_build_package")" /native-node_modules/node-gyp-build; \
-	for package_json in $(find . -path '*/node_modules/@napi-rs/lzma-linux-*-gnu/package.json' -print); do \
-		package_dir="$(dirname "$package_json")"; \
-		cp -R "$package_dir" "/native-node_modules/@napi-rs/$(basename "$package_dir")"; \
-		cp "$package_dir"/*.node /native-node_modules/@napi-rs/lzma/; \
-	done; \
-	test -f /native-node_modules/xxhash-addon/xxhash-addon.js; \
-	test -f /native-node_modules/node-gyp-build/index.js; \
-	test -n "$(find /native-node_modules/xxhash-addon/prebuilds/linux-x64 -maxdepth 1 -type f -name '*.glibc.node' -print -quit)"; \
-	test -n "$(find /native-node_modules/@napi-rs/lzma -maxdepth 1 -type f -name 'lzma.linux-*-gnu.node' -print -quit)"; \
-	test -n "$(find /native-node_modules/@napi-rs -maxdepth 1 -type d -name 'lzma-linux-*-gnu' -print -quit)"
-
 FROM steamcmd/steamcmd:ubuntu-22@sha256:ea800a0a8468683b51f0f55b6d6e9f2dcaef2ef4a22145e66ac856b28e7deb32
 
 ARG SERVICE_VERSION=dev
@@ -49,7 +7,6 @@ LABEL org.opencontainers.image.description="ZeepCentraal one-shot level contest 
 WORKDIR /app
 
 COPY --chmod=755 dist/zeepcentraal-inspector-zeep zeepcentraal-inspector-zeep
-COPY --from=native-deps /native-node_modules node_modules
 
 ENV NODE_ENV=production
 ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-inspector-zeep

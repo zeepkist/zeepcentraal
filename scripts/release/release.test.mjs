@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import test from 'node:test'
+import { affects, rustTargets } from './targets.mjs'
+
+test('release paths separate retained TypeScript services from Rust services', () => {
+	assert.equal(Object.keys(rustTargets).length, 7)
+	assert.equal(affects('ts', 'packages/web/app/app.vue'), true)
+	assert.equal(affects('ts', 'packages/postgraphile/src/index.ts'), true)
+	assert.equal(affects('ts', 'packages/server/src/server.ts'), false)
+	assert.equal(affects('zc-server', 'crates/database/src/lib.rs'), true)
+	assert.equal(affects('zc-jobs', 'crates/database/src/lib.rs'), true)
+	assert.equal(affects('zc-discord', 'crates/database/src/lib.rs'), false)
+	assert.equal(affects('zc-migrate', 'packages/database/drizzle/0001.sql'), true)
+	assert.equal(affects('zc-discord', 'Dockerfile.discord'), true)
+	assert.equal(affects('zc-server', 'packages/web/app/app.vue'), false)
+})
+
+test('each Rust image copies its staged service binary', () => {
+	for (const [name, service] of Object.entries(rustTargets)) {
+		assert.equal(existsSync(service.dockerfile), true, `${name} Dockerfile missing`)
+		const dockerfile = readFileSync(service.dockerfile, 'utf8')
+		assert.match(dockerfile, new RegExp(`COPY --chmod=755 dist/${service.binary} `), `${name} binary staging mismatch`)
+		assert.match(dockerfile, /OPENTELEMETRY_SERVICE_VERSION=\$SERVICE_VERSION/)
+	}
+	assert.match(readFileSync('Dockerfile.migrate', 'utf8'), /COPY packages\/database\/drizzle drizzle/)
+	assert.match(readFileSync('Dockerfile.zsl', 'utf8'), /COPY super_league_data \/data\/super_league_data/)
+})
+
+test('Rust release stamping changes only planned crate and lock entry', () => {
+	const root = mkdtempSync(join(tmpdir(), 'zc-release-stamp-'))
+	try {
+		mkdirSync(join(root, 'crates/server'), { recursive: true })
+		writeFileSync(join(root, 'crates/server/Cargo.toml'), '[package]\nname = "zc-server"\nversion = "3.0.0"\n')
+		writeFileSync(join(root, 'Cargo.lock'), '[[package]]\nname = "zc-server"\nversion = "3.0.0"\n\n[[package]]\nname = "zc-core"\nversion = "0.1.0"\n')
+		writeFileSync(join(root, 'plan.json'), JSON.stringify({ releases: [{ target: 'zc-server', version: '3.2.1' }] }))
+		const script = fileURLToPath(new URL('./stamp.mjs', import.meta.url))
+		const result = spawnSync(process.execPath, [script, join(root, 'plan.json')], { cwd: root, encoding: 'utf8' })
+		assert.equal(result.status, 0, result.stderr)
+		assert.match(readFileSync(join(root, 'crates/server/Cargo.toml'), 'utf8'), /version = "3\.2\.1"/)
+		assert.match(readFileSync(join(root, 'Cargo.lock'), 'utf8'), /name = "zc-server"\nversion = "3\.2\.1"/)
+		assert.match(readFileSync(join(root, 'Cargo.lock'), 'utf8'), /name = "zc-core"\nversion = "0\.1\.0"/)
+	} finally {
+		rmSync(root, { recursive: true, force: true })
+	}
+})

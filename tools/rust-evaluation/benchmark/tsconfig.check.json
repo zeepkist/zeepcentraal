@@ -1,0 +1,13 @@
+{
+	"extends": "../../../tsconfig.json",
+	"compilerOptions": {
+		"types": ["bun"],
+		"paths": {
+			"elysia": ["../../../packages/server/node_modules/elysia"],
+			"drizzle-orm": ["../../../packages/database/node_modules/drizzle-orm"],
+			"drizzle-orm/*": ["../../../packages/database/node_modules/drizzle-orm/*"]
+		}
+	},
+	"include": ["*.ts"],
+	"exclude": []
+}
