@@ -1,5 +1,0 @@
-export const JOBS_FAST_CONCURRENCY = 4
-export const JOBS_WORKER_CONCURRENCY = 14
-export const JOB_VISIBILITY_SECONDS = 120
-export const JOB_HEARTBEAT_MS = 30_000
-export const JOB_POLL_MS = 250
