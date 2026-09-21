@@ -15,7 +15,14 @@ pub trait JobHandler: Send + Sync {
         task: TaskIdentifier,
         payload: serde_json::Value,
         lane: JobLane,
-    ) -> Result<()>;
+        attempts: i32,
+    ) -> Result<JobOutcome>;
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum JobOutcome {
+    Completed,
+    Deferred,
 }
 
 pub async fn run(
@@ -146,7 +153,7 @@ async fn execute(
                 Duration::from_secs(HEARTBEAT_SECONDS),
             );
             heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
-            let work = handler.handle(task, job.payload.clone(), lane);
+            let work = handler.handle(task, job.payload.clone(), lane, job.attempts);
             tokio::pin!(work);
             loop {
                 tokio::select! {
@@ -161,8 +168,15 @@ async fn execute(
         }
         _ => Err(anyhow!("invalid job payload")),
     };
-    let failure = result.as_ref().err().map(|_| "handler_failed");
-    if !queue.finish(&job, failure).await? {
+    let acknowledged = match result.as_ref() {
+        Ok(JobOutcome::Deferred) => queue.defer(&job).await?,
+        _ => {
+            queue
+                .finish(&job, result.as_ref().err().map(|_| "handler_failed"))
+                .await?
+        }
+    };
+    if !acknowledged {
         return Err(anyhow!(
             "job lease expired before acknowledgement {}",
             job.id

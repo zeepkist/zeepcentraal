@@ -133,5 +133,42 @@ async fn fast_level_jobs_coalesce_and_submitter_repairs_keep_order() -> Result<(
             .get_result(&mut connection)
             .await?;
     assert_eq!(archived.count, 0);
+
+    let cursor = queue.enqueue_level_projection(12790, 100).await?;
+    let merged = queue.enqueue_level_projection(12790, 0).await?;
+    assert_eq!(cursor.id, merged.id);
+    let claimed = queue.claim(JobLane::Bulk, 1).await?;
+    assert_eq!(claimed[0].id, cursor.id);
+    assert_eq!(claimed[0].payload["afterUserId"], 0);
+    let pending = queue.enqueue_level_projection(12790, 50).await?;
+    queue.enqueue_level_projection(12790, 0).await?;
+    assert_ne!(pending.id, cursor.id);
+    assert!(queue.defer(&claimed[0]).await?);
+    let mut connection = partition.connection().await?;
+    let remaining: CountRow = sql_query("SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE lane='bulk' AND job_key='update-level-contributions:12790'")
+        .get_result(&mut connection).await?;
+    assert_eq!(remaining.count, 1);
+    drop(connection);
+    let claimed = queue.claim(JobLane::Bulk, 1).await?;
+    assert_eq!(claimed[0].id, pending.id);
+    assert_eq!(claimed[0].payload["afterUserId"], 0);
+    assert!(queue.defer(&claimed[0]).await?);
+    for delay in [300, 550, 1_050, 2_050] {
+        tokio::time::sleep(Duration::from_millis(delay)).await;
+        let claimed = queue.claim(JobLane::Bulk, 1).await?;
+        assert_eq!(claimed[0].id, pending.id);
+        assert_eq!(claimed[0].attempts, 1);
+        if delay == 2_050 {
+            assert!(queue.finish(&claimed[0], None).await?);
+        } else {
+            assert!(queue.defer(&claimed[0]).await?);
+        }
+    }
+    let mut connection = partition.connection().await?;
+    let archived: CountRow =
+        sql_query("SELECT count(*)::bigint AS count FROM pgmq.a_zeepcentraal_bulk")
+            .get_result(&mut connection)
+            .await?;
+    assert_eq!(archived.count, 0);
     Ok(())
 }

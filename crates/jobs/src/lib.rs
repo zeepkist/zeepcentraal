@@ -129,6 +129,11 @@ impl TaskIdentifier {
                 })
         };
         let optional_bool = |name: &str| object.get(name).is_none_or(serde_json::Value::is_boolean);
+        let optional_defer = || {
+            object
+                .get("deferCount")
+                .is_none_or(|value| value.as_u64().is_some_and(|count| count <= 4))
+        };
         match self {
             Self::ScanWorkshopItem => object
                 .get("workshopId")
@@ -152,19 +157,29 @@ impl TaskIdentifier {
                 positive_i64("idLevel")
                     && object.get("idUser").is_none_or(|_| positive_i64("idUser"))
                     && optional_bool("reportOnly")
+                    && optional_defer()
             }
             Self::UpdateLevelContributions => {
                 let token = object
                     .get("projectionToken")
                     .and_then(serde_json::Value::as_str)
                     .is_some_and(|value| !value.is_empty() && value.len() <= 128);
-                let cursor = object.len() == 3
+                let cursor = (object.len() == 2 || object.len() == 3 || object.len() == 4)
                     && positive_i64("idLevel")
                     && object
                         .get("afterUserId")
                         .and_then(serde_json::Value::as_i64)
                         .is_some_and(|value| value >= 0)
-                    && token;
+                    && object
+                        .get("deferCount")
+                        .is_none_or(|value| value.as_u64().is_some_and(|count| count <= 4))
+                    && (object.len() == 2 || token || object.contains_key("deferCount"))
+                    && object.keys().all(|key| {
+                        matches!(
+                            key.as_str(),
+                            "idLevel" | "afterUserId" | "projectionToken" | "deferCount"
+                        )
+                    });
                 let repair = object.len() == 4
                     && positive_i64("idLevel")
                     && positive_i64("idUser")
@@ -176,7 +191,7 @@ impl TaskIdentifier {
                 cursor || repair
             }
             Self::UpdateLevelScores => optional_bool("all") && optional_bool("reportOnly"),
-            Self::UpdatePlayerScore => positive_i64("idUser"),
+            Self::UpdatePlayerScore => positive_i64("idUser") && optional_defer(),
             Self::RotateTrackTournament => object
                 .get("type")
                 .and_then(serde_json::Value::as_i64)
@@ -249,6 +264,18 @@ mod tests {
         assert!(TaskIdentifier::UpdateLevelContributions.validate_payload(
             &json!({"idLevel": 1, "afterUserId": 0, "projectionToken": "token"})
         ));
+        assert!(
+            TaskIdentifier::UpdateLevelContributions
+                .validate_payload(&json!({"idLevel": 1, "afterUserId": 0}))
+        );
+        assert!(
+            TaskIdentifier::UpdateLevelContributions
+                .validate_payload(&json!({"idLevel": 1, "afterUserId": 50, "deferCount": 2}))
+        );
+        assert!(
+            !TaskIdentifier::UpdateLevelContributions
+                .validate_payload(&json!({"idLevel": 1, "afterUserId": 50, "deferCount": 5}))
+        );
         assert!(TaskIdentifier::UpdateLevelContributions.validate_payload(
             &json!({"idLevel": 1, "idUser": 2, "projectionToken": "token", "deferCount": 0})
         ));

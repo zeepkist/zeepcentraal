@@ -2,7 +2,10 @@ use anyhow::{Context, Result};
 use std::time::Duration;
 use zc_database::{
     Database,
-    services::{jobs::MaintenanceOutcome, record::RecordSubmission},
+    services::{
+        jobs::{LevelScoreUpdate, MaintenanceOutcome},
+        record::RecordSubmission,
+    },
 };
 
 #[tokio::test]
@@ -83,7 +86,10 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
         .await?;
     assert_eq!(
         database.update_level_scores(&[level.id], false).await?,
-        MaintenanceOutcome::Applied(())
+        MaintenanceOutcome::Applied(LevelScoreUpdate {
+            points_changed: true,
+            projection_needed: true
+        })
     );
     assert_eq!(
         database
@@ -206,7 +212,10 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
 
     assert_eq!(
         database.update_level_scores(&[level.id], false).await?,
-        MaintenanceOutcome::Applied(())
+        MaintenanceOutcome::Applied(LevelScoreUpdate {
+            points_changed: true,
+            projection_needed: true
+        })
     );
     let submitter = *user_ids.last().context("submitter missing")?;
     assert_eq!(
@@ -272,7 +281,7 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
         database
             .reconcile_level_contribution_users(level.id, &free_users)
             .await?,
-        MaintenanceOutcome::Applied(free_users)
+        MaintenanceOutcome::Applied(free_users.clone())
     );
     blocker.rollback().await?;
 
@@ -289,7 +298,13 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
             database
                 .reconcile_level_contribution_users(level.id, &page.user_ids)
                 .await?,
-            MaintenanceOutcome::Applied(page.user_ids.clone())
+            MaintenanceOutcome::Applied(
+                page.user_ids
+                    .iter()
+                    .copied()
+                    .filter(|id| *id == busy_user || !free_users.contains(id))
+                    .collect()
+            )
         );
         for id_user in &page.user_ids {
             assert_eq!(
@@ -313,6 +328,37 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
         .await?
         .get(0);
     assert_eq!(converged, 205);
+    let date_updated: String = client
+        .query_one(
+            "SELECT date_updated::text FROM public.level_points WHERE id_level=$1",
+            &[&level.id],
+        )
+        .await?
+        .get(0);
+    assert_eq!(
+        database.update_level_scores(&[level.id], false).await?,
+        MaintenanceOutcome::Applied(LevelScoreUpdate {
+            points_changed: false,
+            projection_needed: false
+        })
+    );
+    let unchanged_date_updated: String = client
+        .query_one(
+            "SELECT date_updated::text FROM public.level_points WHERE id_level=$1",
+            &[&level.id],
+        )
+        .await?
+        .get(0);
+    assert_eq!(date_updated, unchanged_date_updated);
+    let first_page = database
+        .level_contribution_user_page(level.id, 0, 50)
+        .await?;
+    assert_eq!(
+        database
+            .reconcile_level_contribution_users(level.id, &first_page.user_ids)
+            .await?,
+        MaintenanceOutcome::Applied(Vec::new())
+    );
     client
         .execute("DELETE FROM public.level WHERE id=$1", &[&level.id])
         .await?;

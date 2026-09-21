@@ -1,7 +1,7 @@
 use crate::{
     TaskIdentifier,
     queue::{EnqueueRequest, JobLane, Queue},
-    runtime::JobHandler,
+    runtime::{JobHandler, JobOutcome},
 };
 use anyhow::{Context, Result, ensure};
 use async_trait::async_trait;
@@ -457,7 +457,11 @@ impl ServiceJobHandler {
         Ok(())
     }
 
-    async fn update_level_score(&self, payload: &serde_json::Value, lane: JobLane) -> Result<()> {
+    async fn update_level_score(
+        &self,
+        payload: &serde_json::Value,
+        lane: JobLane,
+    ) -> Result<JobOutcome> {
         let started = Instant::now();
         let id_level = i32::try_from(payload["idLevel"].as_i64().context("idLevel is missing")?)?;
         let report_only = payload["reportOnly"].as_bool() == Some(true);
@@ -466,47 +470,29 @@ impl ServiceJobHandler {
             .update_level_scores(&[id_level], report_only)
             .await?;
         match outcome {
-            MaintenanceOutcome::Applied(()) => {
-                if !report_only {
+            MaintenanceOutcome::Applied(update) => {
+                if update.projection_needed {
                     self.enqueue_level_contribution_cursor(id_level).await?;
                 }
                 tracing::info!(
                     id_level,
                     lane = lane.as_str(),
                     report_only,
+                    points_changed = update.points_changed,
+                    projection_needed = update.projection_needed,
                     elapsed_ms = started.elapsed().as_millis(),
                     "Level score committed"
                 );
+                Ok(JobOutcome::Completed)
             }
             MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
-                self.queue
-                    .enqueue_after(
-                        TaskIdentifier::UpdateLevelScore,
-                        payload.clone(),
-                        lane,
-                        None,
-                        contribution_backoff(0),
-                    )
-                    .await?;
+                Ok(JobOutcome::Deferred)
             }
         }
-        Ok(())
     }
 
     async fn enqueue_level_contribution_cursor(&self, id_level: i32) -> Result<()> {
-        let projection_token = zc_core::generate_uid();
-        self.queue
-            .enqueue(
-                TaskIdentifier::UpdateLevelContributions,
-                serde_json::json!({
-                    "idLevel": id_level,
-                    "afterUserId": 0,
-                    "projectionToken": projection_token,
-                }),
-                JobLane::Bulk,
-                None,
-            )
-            .await?;
+        self.queue.enqueue_level_projection(id_level, 0).await?;
         Ok(())
     }
 
@@ -514,39 +500,20 @@ impl ServiceJobHandler {
         &self,
         payload: &serde_json::Value,
         lane: JobLane,
-    ) -> Result<()> {
+        attempts: i32,
+    ) -> Result<JobOutcome> {
         let started = Instant::now();
         let id_level = i32::try_from(payload["idLevel"].as_i64().context("idLevel is missing")?)?;
-        let projection_token = payload["projectionToken"]
-            .as_str()
-            .context("projectionToken is missing")?;
         if let Some(id_user) = payload["idUser"].as_i64() {
             let id_user = i32::try_from(id_user)?;
-            let defer_count = u32::try_from(
-                payload["deferCount"]
-                    .as_u64()
-                    .context("deferCount is missing")?,
-            )?;
+            let projection_token = payload["projectionToken"]
+                .as_str()
+                .context("projectionToken is missing")?;
             if lane == JobLane::Fast && self.queue.has_fast_level_score(id_level).await? {
-                self.enqueue_level_contribution_repair(
-                    id_level,
-                    id_user,
-                    projection_token,
-                    defer_count.saturating_add(1),
-                    lane,
-                    contribution_backoff(defer_count),
-                )
-                .await?;
-                return Ok(());
+                return Ok(JobOutcome::Deferred);
             }
             return self
-                .reconcile_level_contribution_repair(
-                    id_level,
-                    id_user,
-                    projection_token,
-                    defer_count,
-                    lane,
-                )
+                .reconcile_level_contribution_repair(id_level, id_user, projection_token, lane)
                 .await;
         }
 
@@ -554,6 +521,10 @@ impl ServiceJobHandler {
             lane == JobLane::Bulk,
             "contribution cursor requires bulk lane"
         );
+        if payload.get("projectionToken").is_some() {
+            self.enqueue_level_contribution_cursor(id_level).await?;
+            return Ok(JobOutcome::Completed);
+        }
 
         let after_user_id = i32::try_from(
             payload["afterUserId"]
@@ -564,9 +535,19 @@ impl ServiceJobHandler {
             .database
             .level_contribution_user_page(id_level, after_user_id, 50)
             .await?;
-        let (applied, busy) = self
-            .reconcile_level_contribution_batch(id_level, page.user_ids)
+        let page_users = page.user_ids;
+        let (mut applied, busy) = self
+            .reconcile_level_contribution_batch(id_level, page_users.clone())
             .await?;
+        if attempts > 1 {
+            applied.extend(
+                page_users
+                    .into_iter()
+                    .filter(|id_user| !busy.contains(id_user)),
+            );
+            applied.sort_unstable();
+            applied.dedup();
+        }
         let applied_count = applied.len();
         let busy_count = busy.len();
         let mut requests = player_score_requests(&applied);
@@ -575,28 +556,20 @@ impl ServiceJobHandler {
             payload: serde_json::json!({
                 "idLevel": id_level,
                 "idUser": id_user,
-                "projectionToken": projection_token,
+                "projectionToken": format!("bulk:{id_level}:{id_user}"),
                 "deferCount": 1,
             }),
             lane: JobLane::Bulk,
             key: None,
             delay: contribution_backoff(0),
         }));
-        if let Some(next_after_user_id) = page.next_after_user_id {
-            requests.push(EnqueueRequest {
-                task: TaskIdentifier::UpdateLevelContributions,
-                payload: serde_json::json!({
-                    "idLevel": id_level,
-                    "afterUserId": next_after_user_id,
-                    "projectionToken": projection_token,
-                }),
-                lane: JobLane::Bulk,
-                key: None,
-                delay: Duration::ZERO,
-            });
-        }
         if !requests.is_empty() {
             self.queue.enqueue_many(requests).await?;
+        }
+        if let Some(next_after_user_id) = page.next_after_user_id {
+            self.queue
+                .enqueue_level_projection(id_level, next_after_user_id)
+                .await?;
         }
         tracing::info!(
             id_level,
@@ -607,33 +580,7 @@ impl ServiceJobHandler {
             elapsed_ms = started.elapsed().as_millis(),
             "Level contribution page completed"
         );
-        Ok(())
-    }
-
-    async fn enqueue_level_contribution_repair(
-        &self,
-        id_level: i32,
-        id_user: i32,
-        projection_token: &str,
-        defer_count: u32,
-        lane: JobLane,
-        delay: Duration,
-    ) -> Result<()> {
-        self.queue
-            .enqueue_after(
-                TaskIdentifier::UpdateLevelContributions,
-                serde_json::json!({
-                    "idLevel": id_level,
-                    "idUser": id_user,
-                    "projectionToken": projection_token,
-                    "deferCount": defer_count,
-                }),
-                lane,
-                None,
-                delay,
-            )
-            .await?;
-        Ok(())
+        Ok(JobOutcome::Completed)
     }
 
     async fn reconcile_level_contribution_repair(
@@ -641,9 +588,8 @@ impl ServiceJobHandler {
         id_level: i32,
         id_user: i32,
         projection_token: &str,
-        defer_count: u32,
         lane: JobLane,
-    ) -> Result<()> {
+    ) -> Result<JobOutcome> {
         let started = Instant::now();
         match self
             .database
@@ -671,22 +617,14 @@ impl ServiceJobHandler {
                         elapsed_ms = started.elapsed().as_millis(),
                         "Fast contribution repair completed"
                     );
-                    Ok(())
+                    Ok(JobOutcome::Completed)
                 } else {
-                    self.enqueue_player_repairs(&users).await
+                    self.enqueue_player_repairs(&users).await?;
+                    Ok(JobOutcome::Completed)
                 }
             }
             MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
-                self.enqueue_level_contribution_repair(
-                    id_level,
-                    id_user,
-                    projection_token,
-                    defer_count.saturating_add(1),
-                    lane,
-                    contribution_backoff(defer_count),
-                )
-                .await?;
-                Ok(())
+                Ok(JobOutcome::Deferred)
             }
         }
     }
@@ -749,9 +687,9 @@ impl ServiceJobHandler {
                     .update_level_scores(&[*id_level], report_only)
                     .await?
                 {
-                    MaintenanceOutcome::Applied(()) => {
+                    MaintenanceOutcome::Applied(update) => {
                         applied += 1;
-                        if !report_only {
+                        if update.projection_needed {
                             self.enqueue_level_contribution_cursor(*id_level).await?;
                         }
                     }
@@ -774,7 +712,7 @@ impl ServiceJobHandler {
                 break;
             }
         }
-        if !report_only {
+        if all && !report_only {
             self.queue
                 .enqueue(
                     TaskIdentifier::UpdatePlayerScores,
@@ -919,8 +857,36 @@ impl JobHandler for ServiceJobHandler {
         task: TaskIdentifier,
         payload: serde_json::Value,
         lane: JobLane,
-    ) -> Result<()> {
-        match task {
+        attempts: i32,
+    ) -> Result<JobOutcome> {
+        if task == TaskIdentifier::UpdateLevelScore {
+            return self.update_level_score(&payload, lane).await;
+        }
+        if task == TaskIdentifier::UpdateLevelContributions {
+            return self
+                .update_level_contributions(&payload, lane, attempts)
+                .await;
+        }
+        if task == TaskIdentifier::UpdatePlayerScore {
+            let started = Instant::now();
+            let id = i32::try_from(payload["idUser"].as_i64().context("idUser is missing")?)?;
+            return match self.database.recalculate_player_score(id).await? {
+                MaintenanceOutcome::Applied(()) => {
+                    if lane == JobLane::Fast {
+                        tracing::info!(
+                            id_user = id,
+                            elapsed_ms = started.elapsed().as_millis(),
+                            "Fast player score completed"
+                        );
+                    }
+                    Ok(JobOutcome::Completed)
+                }
+                MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
+                    Ok(JobOutcome::Deferred)
+                }
+            };
+        }
+        let result = match task {
             TaskIdentifier::BackfillRecordGhostStatistics => {
                 self.backfill_record_statistics(&payload).await
             }
@@ -944,54 +910,20 @@ impl JobHandler for ServiceJobHandler {
                 .insert_user_point_histories(&integer_ids(&payload, "ids")?)
                 .await
                 .map(|_| ()),
-            TaskIdentifier::UpdatePlayerScore => {
-                let started = Instant::now();
-                let id = i32::try_from(payload["idUser"].as_i64().context("idUser is missing")?)?;
-                match self.database.recalculate_player_score(id).await? {
-                    MaintenanceOutcome::Applied(()) => {
-                        if lane == JobLane::Fast {
-                            tracing::info!(
-                                id_user = id,
-                                elapsed_ms = started.elapsed().as_millis(),
-                                "Fast player score completed"
-                            );
-                        }
-                        Ok(())
-                    }
-                    MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
-                        let key = if lane == JobLane::Fast {
-                            payload["projectionToken"]
-                                .as_str()
-                                .map(|token| format!("update-player-score-submit:{id}:{token}"))
-                                .unwrap_or_else(|| format!("update-player-score:{id}"))
-                        } else {
-                            format!("update-player-score:{id}")
-                        };
-                        self.queue
-                            .enqueue_after(
-                                TaskIdentifier::UpdatePlayerScore,
-                                payload,
-                                lane,
-                                Some(&key),
-                                contribution_backoff(0),
-                            )
-                            .await?;
-                        Ok(())
-                    }
-                }
-            }
+            TaskIdentifier::UpdatePlayerScore => unreachable!(),
             TaskIdentifier::UpdatePlayerScores => self.update_player_scores().await,
             TaskIdentifier::PrepareTrackTournamentLobbyAsset => {
                 self.prepare_tournament_lobby_asset(&payload).await
             }
             TaskIdentifier::RotateTrackTournament => self.rotate_tournament(&payload).await,
             TaskIdentifier::PrunePointsHistory => self.prune_points_history().await,
-            TaskIdentifier::UpdateLevelScore => self.update_level_score(&payload, lane).await,
-            TaskIdentifier::UpdateLevelContributions => {
-                self.update_level_contributions(&payload, lane).await
+            TaskIdentifier::UpdateLevelScore | TaskIdentifier::UpdateLevelContributions => {
+                unreachable!()
             }
             TaskIdentifier::UpdateLevelScores => self.update_level_scores(&payload).await,
-        }
+        };
+        result?;
+        Ok(JobOutcome::Completed)
     }
 }
 

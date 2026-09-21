@@ -20,6 +20,12 @@ pub enum MaintenanceOutcome<T> {
     Contended,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LevelScoreUpdate {
+    pub points_changed: bool,
+    pub projection_needed: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LevelContributionPage {
     pub user_ids: Vec<i32>,
@@ -642,16 +648,19 @@ impl Database {
         &self,
         ids: &[i32],
         report_only: bool,
-    ) -> Result<MaintenanceOutcome<()>> {
+    ) -> Result<MaintenanceOutcome<LevelScoreUpdate>> {
         if ids.is_empty() {
-            return Ok(MaintenanceOutcome::Applied(()));
+            return Ok(MaintenanceOutcome::Applied(LevelScoreUpdate {
+                points_changed: false,
+                projection_needed: false,
+            }));
         }
         ensure!(
             report_only || ids.len() == 1,
             "persistent level scoring requires one level"
         );
         let mut connection = self.connection().await?;
-        let result = connection.transaction::<MaintenanceOutcome<()>,anyhow::Error,_>(|connection|Box::pin(async move{
+        let result = connection.transaction::<MaintenanceOutcome<LevelScoreUpdate>,anyhow::Error,_>(|connection|Box::pin(async move{
             if !report_only {
                 set_maintenance_lock_timeout(connection).await?;
                 let lock: BooleanRow = sql_query("SELECT pg_try_advisory_xact_lock($1,$2) AS value")
@@ -669,9 +678,10 @@ impl Database {
                 .bind::<Array<Integer>,_>(&eligible).load::<VoteRow>(connection).await?};
             let skills=if eligible.is_empty(){Vec::new()}else{sql_query("WITH target_ranked AS MATERIALIZED(SELECT pb.id_level,pb.id_user,record.time,min(record.time) OVER(PARTITION BY pb.id_level) world_record_time,RANK() OVER(PARTITION BY pb.id_level ORDER BY record.time) placement_rank,COUNT(*) OVER(PARTITION BY pb.id_level) field_count FROM public.personal_best_global pb JOIN public.record record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user WHERE pb.id_level=ANY($1) AND account.banned=false AND record.time>0),target AS MATERIALIZED(SELECT *,CASE WHEN field_count>1 THEN 1-(placement_rank-1)::double precision/(field_count-1) ELSE 0.5 END placement,CASE WHEN field_count>=20 THEN 1 ELSE 0 END target_contributed FROM target_ranked),leave_one_out AS MATERIALIZED(SELECT target.*,(5.0+aggregate.placement_sum-target.placement*target.target_contributed)/(10+aggregate.eligible_level_count-target.target_contributed) independent_skill FROM target JOIN public.player_skill_aggregate aggregate ON aggregate.id_user=target.id_user WHERE aggregate.eligible_level_count-target.target_contributed>=20),skill_ranked AS MATERIALIZED(SELECT *,PERCENT_RANK() OVER(PARTITION BY id_level ORDER BY independent_skill) skill_percentile FROM leave_one_out) SELECT id_level,count(*)::integer rated_player_count,corr(skill_percentile,placement)::double precision alignment,(percentile_cont(0.5) WITHIN GROUP(ORDER BY ln(time/world_record_time)) FILTER(WHERE skill_percentile BETWEEN 0.4 AND 0.6)-percentile_cont(0.5) WITHIN GROUP(ORDER BY ln(time/world_record_time)) FILTER(WHERE skill_percentile>=0.8))::double precision separation,percentile_cont(0.5) WITHIN GROUP(ORDER BY independent_skill) FILTER(WHERE placement_rank<=10)::double precision field_strength FROM skill_ranked GROUP BY id_level")
                 .bind::<Array<Integer>,_>(&eligible).load::<SkillRow>(connection).await?};
+            let mut points_changed = false;
             for id in ids {
                 if !eligible.contains(id) {
-                    if !report_only { upsert_zero_level_points(connection,*id).await?; }
+                    if !report_only { points_changed |= upsert_zero_level_points(connection,*id).await?; }
                     continue;
                 }
                 let rows:Vec<_>=personal_bests.iter().filter(|row|row.id_level==*id).collect();
@@ -679,9 +689,12 @@ impl Database {
                 let skill=skills.iter().find(|row|row.id_level==*id).map(|row|zc_core::score::LevelScoreSkillMetrics{alignment:row.alignment,field_strength:row.field_strength,rated_player_count:row.rated_player_count,separation:row.separation});
                 let vote_values:Vec<_>=votes.iter().filter(|row|row.id_level==*id).map(|row|f64::from(row.value)).collect();
                 let result=zc_core::score::calculate_level_points_v2(runs,rows.as_slice().first().map_or(0,|row|row.total_count),skill,&vote_values);
-                if !report_only { upsert_level_points(connection,*id,result).await?; }
+                if !report_only { points_changed |= upsert_level_points(connection,*id,result).await?; }
             }
-            Ok(MaintenanceOutcome::Applied(()))
+            let projection_needed = if report_only { false } else {
+                level_contribution_drift(connection, ids[0]).await?
+            };
+            Ok(MaintenanceOutcome::Applied(LevelScoreUpdate { points_changed, projection_needed }))
         })).await;
         contention_outcome(result)
     }
@@ -694,7 +707,10 @@ impl Database {
     ) -> Result<LevelContributionPage> {
         ensure!(id_level > 0, "id_level must be positive");
         ensure!(after_user_id >= 0, "after_user_id must not be negative");
-        ensure!((1..=50).contains(&limit), "level contribution page limit must be 1..=50");
+        ensure!(
+            (1..=50).contains(&limit),
+            "level contribution page limit must be 1..=50"
+        );
         let mut connection = self.connection().await?;
         let user_ids = sql_query(
             "SELECT affected.id_user AS id FROM (SELECT id_user FROM public.personal_best_global WHERE id_level=$1 UNION SELECT id_user FROM public.user_point_contribution WHERE id_level=$1) affected WHERE affected.id_user>$2 ORDER BY affected.id_user LIMIT $3",
@@ -722,7 +738,10 @@ impl Database {
         user_ids: &[i32],
     ) -> Result<MaintenanceOutcome<Vec<i32>>> {
         ensure!(id_level > 0, "id_level must be positive");
-        ensure!(user_ids.len() <= 50, "level contribution batch exceeds 50 users");
+        ensure!(
+            user_ids.len() <= 50,
+            "level contribution batch exceeds 50 users"
+        );
         if user_ids.is_empty() {
             return Ok(MaintenanceOutcome::Applied(Vec::new()));
         }
@@ -738,8 +757,10 @@ impl Database {
                     if !try_user_score_locks(connection, &sorted).await? {
                         return Ok(MaintenanceOutcome::Contended);
                     }
-                    sync_contribution_levels_for_users(connection, &[id_level], &sorted).await?;
-                    Ok(MaintenanceOutcome::Applied(sorted))
+                    let changed =
+                        sync_contribution_levels_for_users(connection, &[id_level], &sorted)
+                            .await?;
+                    Ok(MaintenanceOutcome::Applied(changed))
                 })
             })
             .await;
@@ -811,41 +832,50 @@ impl Database {
 async fn upsert_zero_level_points(
     connection: &mut diesel_async::AsyncPgConnection,
     id_level: i32,
-) -> Result<()> {
-    sql_query("INSERT INTO public.level_points(id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,date_created,date_updated) VALUES($1,0,0.5,0,0.2,0.55,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_level) DO UPDATE SET points=0,modifier_length=0,modifier_evidence=0.2,modifier_quality=0.55,modifier_rating=1,complexity_confidence=NULL,complexity_score=NULL,field_strength=NULL,quality_score=NULL,skill_alignment=NULL,skill_confidence=NULL,skill_sample_size=NULL,skill_score=NULL,skill_separation=NULL,date_updated=clock_timestamp()")
-        .bind::<Integer,_>(id_level).execute(connection).await?;
-    Ok(())
+) -> Result<bool> {
+    Ok(sql_query("INSERT INTO public.level_points(id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,date_created,date_updated) VALUES($1,0,0.5,0,0.2,0.55,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_level) DO UPDATE SET points=0,modifier_length=0,modifier_evidence=0.2,modifier_quality=0.55,modifier_rating=1,complexity_confidence=NULL,complexity_score=NULL,field_strength=NULL,quality_score=NULL,skill_alignment=NULL,skill_confidence=NULL,skill_sample_size=NULL,skill_score=NULL,skill_separation=NULL,date_updated=clock_timestamp() WHERE ROW(level_points.points,level_points.modifier_length,level_points.modifier_evidence,level_points.modifier_quality,level_points.modifier_rating,level_points.complexity_confidence,level_points.complexity_score,level_points.field_strength,level_points.quality_score,level_points.skill_alignment,level_points.skill_confidence,level_points.skill_sample_size,level_points.skill_score,level_points.skill_separation) IS DISTINCT FROM ROW(0,0::real,0.2::real,0.55::real,1::real,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)")
+        .bind::<Integer,_>(id_level).execute(connection).await? > 0)
 }
 
 async fn upsert_level_points(
     connection: &mut diesel_async::AsyncPgConnection,
     id_level: i32,
     value: zc_core::score::LevelScoreResult,
-) -> Result<()> {
+) -> Result<bool> {
     let real = |value: f64| value as f32;
     let optional = |value: Option<f64>| value.map(|value| value as f32);
-    sql_query("INSERT INTO public.level_points(id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,date_created,date_updated) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_level) DO UPDATE SET points=excluded.points,rating=excluded.rating,modifier_length=excluded.modifier_length,modifier_evidence=excluded.modifier_evidence,modifier_quality=excluded.modifier_quality,modifier_rating=excluded.modifier_rating,complexity_confidence=excluded.complexity_confidence,complexity_score=excluded.complexity_score,field_strength=excluded.field_strength,quality_score=excluded.quality_score,skill_alignment=excluded.skill_alignment,skill_confidence=excluded.skill_confidence,skill_sample_size=excluded.skill_sample_size,skill_score=excluded.skill_score,skill_separation=excluded.skill_separation,date_updated=excluded.date_updated")
+    Ok(sql_query("INSERT INTO public.level_points(id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,date_created,date_updated) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_level) DO UPDATE SET points=excluded.points,rating=excluded.rating,modifier_length=excluded.modifier_length,modifier_evidence=excluded.modifier_evidence,modifier_quality=excluded.modifier_quality,modifier_rating=excluded.modifier_rating,complexity_confidence=excluded.complexity_confidence,complexity_score=excluded.complexity_score,field_strength=excluded.field_strength,quality_score=excluded.quality_score,skill_alignment=excluded.skill_alignment,skill_confidence=excluded.skill_confidence,skill_sample_size=excluded.skill_sample_size,skill_score=excluded.skill_score,skill_separation=excluded.skill_separation,date_updated=excluded.date_updated WHERE ROW(level_points.points,level_points.rating,level_points.modifier_length,level_points.modifier_evidence,level_points.modifier_quality,level_points.modifier_rating,level_points.complexity_confidence,level_points.complexity_score,level_points.field_strength,level_points.quality_score,level_points.skill_alignment,level_points.skill_confidence,level_points.skill_sample_size,level_points.skill_score,level_points.skill_separation) IS DISTINCT FROM ROW(excluded.points,excluded.rating,excluded.modifier_length,excluded.modifier_evidence,excluded.modifier_quality,excluded.modifier_rating,excluded.complexity_confidence,excluded.complexity_score,excluded.field_strength,excluded.quality_score,excluded.skill_alignment,excluded.skill_confidence,excluded.skill_sample_size,excluded.skill_score,excluded.skill_separation)")
         .bind::<Integer,_>(id_level).bind::<Integer,_>(value.points).bind::<Float,_>(real(value.rating))
         .bind::<Float,_>(real(value.length_modifier)).bind::<Float,_>(real(value.evidence_modifier)).bind::<Float,_>(real(value.quality_modifier)).bind::<Float,_>(real(value.rating_modifier))
         .bind::<Nullable<Float>,_>(optional(value.complexity_confidence)).bind::<Nullable<Float>,_>(optional(value.complexity_score)).bind::<Nullable<Float>,_>(optional(value.field_strength)).bind::<Nullable<Float>,_>(optional(value.quality_score))
         .bind::<Nullable<Float>,_>(optional(value.skill_alignment)).bind::<Nullable<Float>,_>(optional(value.skill_confidence)).bind::<Nullable<Integer>,_>(value.skill_sample_size).bind::<Nullable<Float>,_>(optional(value.skill_score)).bind::<Nullable<Float>,_>(optional(value.skill_separation))
-        .execute(connection).await?;
-    Ok(())
+        .execute(connection).await? > 0)
+}
+
+async fn level_contribution_drift(
+    connection: &mut diesel_async::AsyncPgConnection,
+    id_level: i32,
+) -> Result<bool> {
+    let row: BooleanRow = sql_query("WITH desired AS (SELECT pb.id_user,pb.id_record,points.points AS level_points,RANK() OVER(ORDER BY record.time)::integer AS level_position FROM public.personal_best_global pb JOIN public.record record ON record.id=pb.id_record JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_level=$1 AND points.points>0), calculated AS (SELECT *,(CASE WHEN ln(level_points::double precision)+(level_position-1)*ln(0.985)<ln(1.401298464324817e-45) THEN 0 ELSE level_points::double precision*power(0.985,level_position-1) END)::real AS decayed FROM desired), current AS (SELECT * FROM public.user_point_contribution WHERE id_level=$1) SELECT EXISTS(SELECT 1 FROM calculated target FULL JOIN current ON current.id_user=target.id_user WHERE target.id_user IS NULL OR current.id_user IS NULL OR ROW(current.id_record,current.level_position,current.level_points,current.level_decayed_points) IS DISTINCT FROM ROW(target.id_record,target.level_position,target.level_points,target.decayed) LIMIT 1) AS value")
+        .bind::<Integer,_>(id_level).get_result(connection).await?;
+    Ok(row.value)
 }
 
 async fn sync_contribution_levels_for_users(
     connection: &mut diesel_async::AsyncPgConnection,
     ids: &[i32],
     affected: &[i32],
-) -> Result<()> {
+) -> Result<Vec<i32>> {
     if affected.is_empty() {
-        return Ok(());
+        return Ok(Vec::new());
     }
-    sql_query("WITH ranked_all AS(SELECT pb.id_user,pb.id_level,pb.id_record,points.points AS level_points,RANK() OVER(PARTITION BY pb.id_level ORDER BY record.time)::integer AS level_position FROM public.personal_best_global pb JOIN public.record record ON record.id=pb.id_record JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_level=ANY($1) AND points.points>0),ranked AS(SELECT * FROM ranked_all WHERE id_user=ANY($2)),desired AS(SELECT ranked.*,CASE WHEN ln(ranked.level_points::double precision)+(ranked.level_position-1)*ln(0.985)<ln(1.401298464324817e-45) THEN 0 ELSE ranked.level_points::double precision*power(0.985,ranked.level_position-1) END AS level_decayed_points FROM ranked) INSERT INTO public.user_point_contribution(id_user,id_level,id_record,contribution_rank,level_position,level_points,level_decayed_points,player_decayed_points,date_calculated) SELECT desired.id_user,desired.id_level,desired.id_record,coalesce(existing.contribution_rank,2147483647),desired.level_position,desired.level_points,desired.level_decayed_points,coalesce(existing.player_decayed_points,0),clock_timestamp() FROM desired LEFT JOIN public.user_point_contribution existing ON existing.id_user=desired.id_user AND existing.id_level=desired.id_level ON CONFLICT(id_user,id_level) DO UPDATE SET id_record=excluded.id_record,level_position=excluded.level_position,level_points=excluded.level_points,level_decayed_points=excluded.level_decayed_points,date_calculated=excluded.date_calculated WHERE ROW(user_point_contribution.id_record,user_point_contribution.level_position,user_point_contribution.level_points,user_point_contribution.level_decayed_points) IS DISTINCT FROM ROW(excluded.id_record,excluded.level_position,excluded.level_points,excluded.level_decayed_points)")
-        .bind::<Array<Integer>,_>(ids).bind::<Array<Integer>,_>(affected).execute(connection).await?;
-    sql_query("DELETE FROM public.user_point_contribution contribution WHERE contribution.id_level=ANY($1) AND contribution.id_user=ANY($2) AND NOT EXISTS(SELECT 1 FROM public.personal_best_global pb JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_user=contribution.id_user AND pb.id_level=contribution.id_level AND points.points>0)")
-        .bind::<Array<Integer>,_>(ids).bind::<Array<Integer>,_>(affected).execute(connection).await?;
-    Ok(())
+    let mut changed = sql_query("WITH ranked_all AS(SELECT pb.id_user,pb.id_level,pb.id_record,points.points AS level_points,RANK() OVER(PARTITION BY pb.id_level ORDER BY record.time)::integer AS level_position FROM public.personal_best_global pb JOIN public.record record ON record.id=pb.id_record JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_level=ANY($1) AND points.points>0),ranked AS(SELECT * FROM ranked_all WHERE id_user=ANY($2)),desired AS(SELECT ranked.*,CASE WHEN ln(ranked.level_points::double precision)+(ranked.level_position-1)*ln(0.985)<ln(1.401298464324817e-45) THEN 0 ELSE ranked.level_points::double precision*power(0.985,ranked.level_position-1) END AS level_decayed_points FROM ranked) INSERT INTO public.user_point_contribution(id_user,id_level,id_record,contribution_rank,level_position,level_points,level_decayed_points,player_decayed_points,date_calculated) SELECT desired.id_user,desired.id_level,desired.id_record,coalesce(existing.contribution_rank,2147483647),desired.level_position,desired.level_points,desired.level_decayed_points,coalesce(existing.player_decayed_points,0),clock_timestamp() FROM desired LEFT JOIN public.user_point_contribution existing ON existing.id_user=desired.id_user AND existing.id_level=desired.id_level ON CONFLICT(id_user,id_level) DO UPDATE SET id_record=excluded.id_record,level_position=excluded.level_position,level_points=excluded.level_points,level_decayed_points=excluded.level_decayed_points,date_calculated=excluded.date_calculated WHERE ROW(user_point_contribution.id_record,user_point_contribution.level_position,user_point_contribution.level_points,user_point_contribution.level_decayed_points) IS DISTINCT FROM ROW(excluded.id_record,excluded.level_position,excluded.level_points,excluded.level_decayed_points) RETURNING id_user AS id")
+        .bind::<Array<Integer>,_>(ids).bind::<Array<Integer>,_>(affected).load::<IdRow>(connection).await?.into_iter().map(|row|row.id).collect::<Vec<_>>();
+    changed.extend(sql_query("DELETE FROM public.user_point_contribution contribution WHERE contribution.id_level=ANY($1) AND contribution.id_user=ANY($2) AND NOT EXISTS(SELECT 1 FROM public.personal_best_global pb JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_user=contribution.id_user AND pb.id_level=contribution.id_level AND points.points>0) RETURNING contribution.id_user AS id")
+        .bind::<Array<Integer>,_>(ids).bind::<Array<Integer>,_>(affected).load::<IdRow>(connection).await?.into_iter().map(|row|row.id));
+    changed.sort_unstable();
+    changed.dedup();
+    Ok(changed)
 }
 
 async fn set_maintenance_lock_timeout(

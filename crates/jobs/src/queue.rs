@@ -1,10 +1,10 @@
 use crate::{TaskIdentifier, VISIBILITY_SECONDS};
 use anyhow::{Context, Result, ensure};
 use diesel::{
-    QueryableByName, sql_query,
+    OptionalExtension, QueryableByName, sql_query,
     sql_types::{BigInt, Bool, Integer, Jsonb, Nullable, Text},
 };
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -76,6 +76,12 @@ struct ExtensionVersion {
 struct BooleanResult {
     #[diesel(sql_type = Bool)]
     ok: bool,
+}
+
+#[derive(QueryableByName)]
+struct PendingPayload {
+    #[diesel(sql_type = Jsonb)]
+    payload: serde_json::Value,
 }
 
 #[derive(Clone)]
@@ -180,6 +186,30 @@ impl Queue {
         Ok(jobs)
     }
 
+    pub async fn enqueue_level_projection(
+        &self,
+        id_level: i32,
+        after_user_id: i32,
+    ) -> Result<EnqueuedJob> {
+        ensure!(id_level > 0 && after_user_id >= 0, "invalid level cursor");
+        let key = format!("update-level-contributions:{id_level}");
+        let group = format!("level-maintenance-shard:{}", id_level.rem_euclid(4));
+        let mut connection = self.partition.connection().await?;
+        connection.transaction::<EnqueuedJob, anyhow::Error, _>(|connection| Box::pin(async move {
+            sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
+            let pending = sql_query("SELECT payload FROM zc_jobs.job WHERE lane='bulk' AND job_key=$1 AND NOT running ORDER BY id LIMIT 1")
+                .bind::<Text,_>(&key).get_result::<PendingPayload>(connection).await.optional()?;
+            let cursor = pending.as_ref().and_then(|row|row.payload["afterUserId"].as_i64())
+                .and_then(|value|i32::try_from(value).ok()).map_or(after_user_id, |value| value.min(after_user_id));
+            let payload = serde_json::json!({"idLevel":id_level,"afterUserId":cursor});
+            Ok(sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp())::text AS id, $1::text AS task_identifier, 0::integer AS attempts, $5::integer AS max_attempts")
+                .bind::<Text,_>(TaskIdentifier::UpdateLevelContributions.as_str())
+                .bind::<Jsonb,_>(payload).bind::<Text,_>(&key).bind::<Text,_>(&group)
+                .bind::<Integer,_>(TaskIdentifier::UpdateLevelContributions.max_attempts())
+                .get_result(connection).await?)
+        })).await
+    }
+
     pub async fn claim(&self, lane: JobLane, count: i32) -> Result<Vec<ClaimedJob>> {
         ensure!(count > 0, "Claim count must be positive");
         let mut connection = self.partition.connection().await?;
@@ -218,6 +248,37 @@ impl Queue {
         .await
     }
 
+    pub async fn defer(&self, job: &ClaimedJob) -> Result<bool> {
+        let delay = defer_delay(job.payload["deferCount"].as_u64().unwrap_or(0));
+        let delay_ms = i64::try_from(delay.as_millis())?;
+        let mut connection = self.partition.connection().await?;
+        connection.transaction::<bool, anyhow::Error, _>(|connection| Box::pin(async move {
+            sql_query("SELECT zc_jobs.lock_lane($1)").bind::<Text,_>(&job.lane).execute(connection).await?;
+            let current: BooleanResult = sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint AND running AND lease_until>clock_timestamp()) AS ok")
+                .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation)
+                .get_result(connection).await?;
+            if !current.ok { return Ok(false); }
+            let superseded: BooleanResult = sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job active JOIN zc_jobs.job pending ON pending.lane=active.lane AND pending.job_key=active.job_key AND pending.id<>active.id AND NOT pending.running WHERE active.lane=$1 AND active.id=$2::bigint AND active.job_key IS NOT NULL) AS ok")
+                .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).get_result(connection).await?;
+            if superseded.ok {
+                let result: BooleanResult = sql_query("SELECT zc_jobs.finish($1,$2::bigint,$3::bigint,NULL) AS ok")
+                    .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation)
+                    .get_result(connection).await?;
+                return Ok(result.ok);
+            }
+            sql_query("UPDATE zc_jobs.job SET running=false,lease_until=NULL,attempts=GREATEST(0,attempts-1),payload=jsonb_set(payload,'{deferCount}',to_jsonb(LEAST(4,COALESCE((payload->>'deferCount')::integer,0)+1))) WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint")
+                .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation).execute(connection).await?;
+            let statement = match job.lane.as_str() {
+                "fast" => "UPDATE pgmq.q_zeepcentraal_fast SET vt=clock_timestamp()+$1*interval '1 millisecond' WHERE msg_id=$2::bigint",
+                "bulk" => "UPDATE pgmq.q_zeepcentraal_bulk SET vt=clock_timestamp()+$1*interval '1 millisecond' WHERE msg_id=$2::bigint",
+                _ => anyhow::bail!("invalid job lane"),
+            };
+            let updated = sql_query(statement).bind::<BigInt,_>(delay_ms).bind::<Text,_>(&job.id).execute(connection).await?;
+            ensure!(updated == 1, "job queue message missing during deferral");
+            Ok(true)
+        })).await
+    }
+
     async fn finish_call(
         &self,
         query: &str,
@@ -254,15 +315,14 @@ fn queue_identity(
     let derived_key = match task {
         TaskIdentifier::UpdateLevelScore => id_level.map(|id| format!("update-level-score:{id}")),
         TaskIdentifier::UpdateLevelContributions => id_level.and_then(|id_level| {
-            let token = payload.get("projectionToken")?.as_str()?;
-            if let Some(after) = payload
+            if payload
                 .get("afterUserId")
                 .and_then(serde_json::Value::as_i64)
+                .is_some()
             {
-                Some(format!(
-                    "update-level-contributions:{id_level}:{token}:{after}"
-                ))
+                Some(format!("update-level-contributions:{id_level}"))
             } else {
+                let token = payload.get("projectionToken")?.as_str()?;
                 let id_user = payload.get("idUser")?.as_i64()?;
                 if lane == JobLane::Fast {
                     Some(format!(
@@ -304,11 +364,27 @@ fn queue_identity(
     (key, group)
 }
 
+pub fn defer_delay(defer_count: u64) -> Duration {
+    const DELAYS_MS: [u64; 5] = [250, 500, 1_000, 2_000, 5_000];
+    Duration::from_millis(DELAYS_MS[(defer_count as usize).min(4)])
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{JobLane, queue_identity};
+    use super::{JobLane, defer_delay, queue_identity};
     use crate::TaskIdentifier;
     use serde_json::json;
+    use std::time::Duration;
+
+    #[test]
+    fn deferred_job_backoff_caps_at_five_seconds() {
+        assert_eq!(defer_delay(0), Duration::from_millis(250));
+        assert_eq!(defer_delay(1), Duration::from_millis(500));
+        assert_eq!(defer_delay(2), Duration::from_secs(1));
+        assert_eq!(defer_delay(3), Duration::from_secs(2));
+        assert_eq!(defer_delay(4), Duration::from_secs(5));
+        assert_eq!(defer_delay(100), Duration::from_secs(5));
+    }
 
     #[test]
     fn derives_stable_level_and_projection_identities() {
@@ -327,12 +403,12 @@ mod tests {
         assert_eq!(
             queue_identity(
                 TaskIdentifier::UpdateLevelContributions,
-                &json!({"idLevel": 17, "afterUserId": 50, "projectionToken": "a"}),
+                &json!({"idLevel": 17, "afterUserId": 50}),
                 JobLane::Bulk,
                 None,
             ),
             (
-                Some("update-level-contributions:17:a:50".to_owned()),
+                Some("update-level-contributions:17".to_owned()),
                 Some("level-maintenance-shard:1".to_owned())
             )
         );
@@ -349,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    fn projection_generations_do_not_coalesce() {
+    fn projection_generations_coalesce() {
         let first = queue_identity(
             TaskIdentifier::UpdateLevelContributions,
             &json!({"idLevel": 1, "afterUserId": 0, "projectionToken": "first"}),
@@ -362,7 +438,7 @@ mod tests {
             JobLane::Bulk,
             None,
         );
-        assert_ne!(first.0, second.0);
+        assert_eq!(first.0, second.0);
     }
 
     #[test]
