@@ -30,6 +30,7 @@ const FIRST_SNAPSHOT_TIMEOUT: Duration = Duration::from_secs(15);
 const RETRY_MAX: Duration = Duration::from_secs(60);
 const MIN_TICKET_INTERVAL: Duration = Duration::from_secs(60);
 const TICKET_USER_DATA: u32 = 21_572;
+const LOBBY_HOST_NAME: &str = "ZeepCentraal";
 
 #[derive(Clone)]
 pub struct RoomBroker {
@@ -303,10 +304,8 @@ async fn run_steam_session(
         response = steam.log_on(details) => response?,
         _ = shutdown.changed() => return Ok(()),
     };
-    tracing::info!("Steam login accepted; waiting for account information");
+    tracing::info!("Steam login accepted");
     let steam_id = response.steam_id.steam_id64();
-    let identity_name = account_name(&mut steam, &config.refresh_token_file, shutdown).await?;
-    tracing::info!("Steam account information received");
     let mut cached_ticket: Option<(Instant, Vec<u8>)> = None;
     loop {
         let ticket = if let Some((created, ticket)) = &cached_ticket
@@ -345,7 +344,6 @@ async fn run_steam_session(
             shutdown,
             &mut steam,
             steam_id,
-            &identity_name,
             &ticket,
         )
         .await?;
@@ -393,15 +391,13 @@ async fn run_master(
     shutdown: &mut watch::Receiver<bool>,
     steam: &mut steam_client::SteamClient,
     steam_id: u64,
-    identity_name: &str,
     ticket: &[u8],
 ) -> Result<()> {
     let remote = config.master.context("Missing Zeepkist master address")?;
     tracing::info!(%remote, "Connecting Zeepkist lobby collector to master");
-    let hail = master_hail(
+    let hail = collector_hail(
         config.build.context("Missing Zeepkist build")?,
         steam_id,
-        identity_name,
         ticket,
     )?;
     let client = LidgrenClient::start(LidgrenClientOptions::load_balancer(remote, hail)).await?;
@@ -423,7 +419,7 @@ async fn run_master(
             command = requests.recv() => {
                 let Some(command) = command else { return Ok(()) };
                 let result = assign_on_master(
-                    &client, &mut state, store, persistence, command.request, player_uid, steam_id, &token, identity_name,
+                    &client, &mut state, store, persistence, command.request, player_uid, steam_id, &token,
                 ).await;
                 let handed_off = result.is_ok();
                 let _ = command.response.send(result);
@@ -461,7 +457,6 @@ async fn assign_on_master(
     player_uid: u32,
     steam_id: u64,
     token: &str,
-    identity_name: &str,
 ) -> Result<RoomAssignment> {
     if let Some(join_id) = request.join_id.as_deref() {
         client
@@ -487,14 +482,12 @@ async fn assign_on_master(
         ensure!(result == 4, "Stored room join rejected");
     }
     let room_name = sanitize_lobby_text(&request.room.name, "ZeepCentraal");
-    let host_name = sanitize_lobby_text(identity_name, "ZeepCentraal");
     client
         .send_reliable_ordered(
-            create_lobby_packet(
+            collector_create_lobby_packet(
                 request.room.max_players,
                 &room_name,
                 request.room.is_public,
-                &host_name,
             )?,
             0,
         )
@@ -590,41 +583,16 @@ fn apply_payload(
     Ok(true)
 }
 
-async fn account_name(
-    steam: &mut steam_client::SteamClient,
-    refresh_token_file: &std::path::Path,
-    shutdown: &mut watch::Receiver<bool>,
-) -> Result<String> {
-    let wait = async {
-        loop {
-            let Some(event) = steam.poll_event().await? else {
-                bail!("Steam session closed before account information arrived");
-            };
-            if let Some(name) = account_name_from_event(event, refresh_token_file).await? {
-                return Ok(name);
-            }
-        }
-    };
-    tokio::select! {
-        name = tokio::time::timeout(ROOM_TIMEOUT, wait) =>
-            name.context("Steam account information timed out")?,
-        _ = shutdown.changed() => bail!("Server shutdown"),
-    }
+fn collector_hail(build: i32, steam_id: u64, ticket: &[u8]) -> Result<Vec<u8>> {
+    master_hail(build, steam_id, LOBBY_HOST_NAME, ticket)
 }
 
-async fn account_name_from_event(
-    event: steam_client::SteamEvent,
-    refresh_token_file: &std::path::Path,
-) -> Result<Option<String>> {
-    match event {
-        steam_client::SteamEvent::Account(steam_client::AccountEvent::AccountInfo {
-            name, ..
-        }) if !name.trim().is_empty() => Ok(Some(name)),
-        event => {
-            persist_refresh_token(event, refresh_token_file).await?;
-            Ok(None)
-        }
-    }
+fn collector_create_lobby_packet(
+    max_players: i32,
+    room_name: &str,
+    is_public: bool,
+) -> Result<Vec<u8>> {
+    create_lobby_packet(max_players, room_name, is_public, LOBBY_HOST_NAME)
 }
 
 async fn persist_refresh_token(
@@ -811,44 +779,27 @@ mod tests {
         );
     }
 
-    fn account_info_event(name: &str) -> steam_client::SteamEvent {
-        steam_client::SteamEvent::Account(steam_client::AccountEvent::AccountInfo {
-            name: name.into(),
-            country: String::new(),
-            authed_machines: 0,
-            flags: 0,
-        })
+    #[test]
+    fn collector_wire_uses_fixed_host_name() {
+        let hail = collector_hail(18, 76_561_198_000_000_000, &[1, 2, 3]).unwrap();
+        let mut reader = BitReader::new(&hail);
+        assert_eq!(reader.read_i32().unwrap(), 18);
+        assert_eq!(reader.read_u64().unwrap(), 76_561_198_000_000_000);
+        assert_eq!(reader.read_string(100).unwrap(), "ZeepCentraal");
+        assert_eq!(reader.read_string(100).unwrap(), "");
+        assert_eq!(reader.read_string(100).unwrap(), "ZeepCentraal");
+
+        let packet = collector_create_lobby_packet(64, "Test room", true).unwrap();
+        let mut reader = BitReader::new(&packet);
+        assert_eq!(reader.read_u16().unwrap(), zc_core::zeepnet::CREATE_LOBBY);
+        assert_eq!(reader.read_i32().unwrap(), 64);
+        assert_eq!(reader.read_string(100).unwrap(), "Test room");
+        assert!(reader.read_bool().unwrap());
+        assert_eq!(reader.read_string(100).unwrap(), "ZeepCentraal");
     }
 
     #[tokio::test]
-    async fn account_name_comes_from_first_nonempty_steam_event() {
-        let token_file = std::path::Path::new("unused-token-file");
-        let unrelated = steam_client::SteamEvent::Auth(steam_client::AuthEvent::WebSession {
-            session_id: "fake-session".into(),
-            cookies: Vec::new(),
-        });
-        assert_eq!(
-            account_name_from_event(unrelated, token_file)
-                .await
-                .unwrap(),
-            None
-        );
-        assert_eq!(
-            account_name_from_event(account_info_event("  "), token_file)
-                .await
-                .unwrap(),
-            None
-        );
-        assert_eq!(
-            account_name_from_event(account_info_event("Lobby Bot"), token_file)
-                .await
-                .unwrap(),
-            Some("Lobby Bot".into())
-        );
-    }
-
-    #[tokio::test]
-    async fn renewed_token_is_persisted_while_waiting_for_account_info() {
+    async fn renewed_token_is_persisted_from_steam_event() {
         let directory =
             std::env::temp_dir().join(format!("zc-lobby-token-test-{}", uuid::Uuid::new_v4()));
         tokio::fs::create_dir(&directory).await.unwrap();
@@ -857,10 +808,7 @@ mod tests {
             token: "fake-renewed-token".into(),
             account_name: "Lobby Bot".into(),
         });
-        assert_eq!(
-            account_name_from_event(event, &token_file).await.unwrap(),
-            None
-        );
+        persist_refresh_token(event, &token_file).await.unwrap();
         assert_eq!(
             tokio::fs::read_to_string(&token_file).await.unwrap(),
             "fake-renewed-token\n"
