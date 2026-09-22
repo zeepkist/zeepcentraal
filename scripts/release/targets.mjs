@@ -2,6 +2,7 @@ const rustTargets = {
 	'zc-server': {
 		crate: 'server',
 		dependencies: ['server', 'jobs', 'workshop', 'database', 'core', 'telemetry'],
+		vendorPaths: ['vendor/steam-client-rs/'],
 		binary: 'zeepcentraal-server',
 		dockerfile: 'Dockerfile.server',
 	},
@@ -54,6 +55,7 @@ function affects(target, path) {
 	if (!service) throw new Error(`Unknown release target: ${target}`)
 	return (
 		service.dependencies.some((name) => path.startsWith(`crates/${name}/`)) ||
+		service.vendorPaths?.some((prefix) => path.startsWith(prefix)) ||
 		(service.dependencies.includes('database') &&
 			path.startsWith('packages/database/drizzle/')) ||
 		path === service.dockerfile ||

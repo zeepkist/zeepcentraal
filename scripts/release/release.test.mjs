@@ -24,6 +24,12 @@ test('release paths separate retained TypeScript services from Rust services', (
 	assert.equal(affects('ts', 'packages/postgraphile/src/index.ts'), true)
 	assert.equal(affects('ts', 'packages/server/src/server.ts'), false)
 	assert.equal(affects('zc-server', 'crates/database/src/lib.rs'), true)
+	assert.equal(affects('zc-server', 'vendor/steam-client-rs/src/services/appauth.rs'), true)
+	assert.equal(affects('zc-server', 'vendor/steam-client-rs/ZEEPCENTRAAL-PATCH.md'), true)
+	for (const target of Object.keys(rustTargets).filter((name) => name !== 'zc-server')) {
+		assert.equal(affects(target, 'vendor/steam-client-rs/src/services/appauth.rs'), false)
+	}
+	assert.equal(affects('ts', 'vendor/steam-client-rs/src/services/appauth.rs'), false)
 	assert.equal(affects('zc-jobs', 'crates/database/src/lib.rs'), true)
 	assert.equal(affects('zc-discord', 'crates/database/src/lib.rs'), false)
 	assert.equal(affects('zc-migrate', 'packages/database/drizzle/0001.sql'), true)
@@ -36,6 +42,62 @@ test('release paths separate retained TypeScript services from Rust services', (
 		assert.equal(affects(target, '.github/workflows/deploy.yml'), true)
 	}
 	assert.equal(affects('ts', '.github/workflows/deploy.yml'), false)
+})
+
+test('vendored Steam client fix bumps only server release', { timeout: 30_000 }, async () => {
+	const root = mkdtempSync(join(tmpdir(), 'zc-release-steam-'))
+	const previousTarget = process.env.RELEASE_TARGET
+	try {
+		git(root, 'init', '-q')
+		mkdirSync(join(root, 'vendor/steam-client-rs/src/services'), { recursive: true })
+		const source = join(root, 'vendor/steam-client-rs/src/services/appauth.rs')
+		writeFileSync(source, 'old\n')
+		git(root, 'add', '.')
+		git(
+			root,
+			'-c',
+			'user.name=Release Test',
+			'-c',
+			'user.email=release@example.test',
+			'commit',
+			'-qm',
+			'chore: baseline',
+		)
+		writeFileSync(source, 'fixed\n')
+		git(root, 'add', '.')
+		git(
+			root,
+			'-c',
+			'user.name=Release Test',
+			'-c',
+			'user.email=release@example.test',
+			'commit',
+			'-qm',
+			'fix(server): send complete Steam encrypted ticket',
+		)
+		const context = {
+			cwd: root,
+			commits: [
+				{
+					hash: git(root, 'rev-parse', 'HEAD'),
+					message: 'fix(server): send complete Steam encrypted ticket',
+				},
+			],
+			logger: { log() {} },
+		}
+		process.env.RELEASE_TARGET = 'zc-server'
+		assert.equal(await analyzeCommits({}, context), 'patch')
+		for (const target of Object.keys(rustTargets).filter((name) => name !== 'zc-server')) {
+			process.env.RELEASE_TARGET = target
+			assert.equal(await analyzeCommits({}, context), null, target)
+		}
+		process.env.RELEASE_TARGET = 'ts'
+		assert.equal(await analyzeCommits({}, context), null)
+	} finally {
+		if (previousTarget === undefined) delete process.env.RELEASE_TARGET
+		else process.env.RELEASE_TARGET = previousTarget
+		rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+	}
 })
 
 test('Rust ABI gate rejects glibc newer than oldest runtime', () => {
