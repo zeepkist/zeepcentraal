@@ -582,7 +582,12 @@ impl EventHandler for Handler {
             }
             FullEvent::InteractionCreate { interaction, .. } => match interaction {
                 Interaction::Command(command) => {
-                    if let Err(error) = self.command(context, command).await {
+                    if let Err(error) = zc_telemetry::observe_operation(
+                        "discord.command",
+                        self.command(context, command),
+                    )
+                    .await
+                    {
                         tracing::error!(interaction_id = command.id.get(), %error, "Discord command failed");
                         let _ = command
                             .create_response(

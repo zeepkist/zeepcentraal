@@ -1,7 +1,11 @@
 pub mod http;
 
 use anyhow::{Context, Result, ensure};
-use opentelemetry::{KeyValue, global, trace::TracerProvider as _};
+use opentelemetry::{
+    KeyValue, global,
+    metrics::{Counter, Histogram},
+    trace::TracerProvider as _,
+};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_otlp::{WithExportConfig, WithTonicConfig};
 use opentelemetry_sdk::{
@@ -11,8 +15,13 @@ use opentelemetry_sdk::{
     propagation::TraceContextPropagator,
     trace::SdkTracerProvider,
 };
-use std::time::Duration;
+use std::{
+    future::Future,
+    sync::OnceLock,
+    time::{Duration, Instant},
+};
 use tonic::transport::ClientTlsConfig;
+use tracing::Instrument;
 use tracing_subscriber::{
     EnvFilter,
     filter::filter_fn,
@@ -22,6 +31,50 @@ use tracing_subscriber::{
 use url::Url;
 
 const EXPORT_TIMEOUT: Duration = Duration::from_secs(5);
+
+struct OperationMetrics {
+    count: Counter<u64>,
+    duration: Histogram<f64>,
+}
+
+static OPERATION_METRICS: OnceLock<OperationMetrics> = OnceLock::new();
+
+/// Record one bounded service operation without exporting payloads or identifiers.
+pub async fn observe_operation<T, E>(
+    name: &'static str,
+    operation: impl Future<Output = Result<T, E>>,
+) -> Result<T, E> {
+    let span = tracing::info_span!(
+        "service.operation",
+        operation = name,
+        otel.status_code = tracing::field::Empty,
+    );
+    let started = Instant::now();
+    let result = operation.instrument(span.clone()).await;
+    let outcome = if result.is_ok() { "ok" } else { "error" };
+    if result.is_err() {
+        span.record("otel.status_code", "ERROR");
+    }
+    let metrics = OPERATION_METRICS.get_or_init(|| {
+        let meter = global::meter("zeepcentraal-service-operations");
+        OperationMetrics {
+            count: meter.u64_counter("zc.service.operation.count").build(),
+            duration: meter
+                .f64_histogram("zc.service.operation.duration")
+                .with_unit("s")
+                .build(),
+        }
+    });
+    let attributes = [
+        KeyValue::new("operation", name),
+        KeyValue::new("outcome", outcome),
+    ];
+    metrics.count.add(1, &attributes);
+    metrics
+        .duration
+        .record(started.elapsed().as_secs_f64(), &attributes);
+    result
+}
 
 pub struct TelemetryGuard {
     logger: Option<SdkLoggerProvider>,
@@ -52,9 +105,13 @@ impl TelemetryGuard {
         let logger = self.logger.take();
         let meter = self.meter.take();
         let tracer = self.tracer.take();
-        tokio::task::spawn_blocking(move || shutdown_providers(logger, meter, tracer))
+        let result = tokio::task::spawn_blocking(move || shutdown_providers(logger, meter, tracer))
             .await
-            .context("OTLP shutdown task failed")?
+            .context("OTLP shutdown task failed")?;
+        if let Err(error) = result {
+            tracing::warn!(target: "zc_telemetry::export", %error, "OTLP shutdown failed");
+        }
+        Ok(())
     }
 }
 
@@ -67,16 +124,19 @@ fn flush_providers(
     if let Some(provider) = logger
         && let Err(error) = provider.force_flush()
     {
+        tracing::warn!(target: "zc_telemetry::export", signal = "logs", %error, "OTLP export failed");
         failures.push(format!("logs: {error}"));
     }
     if let Some(provider) = meter
         && let Err(error) = provider.force_flush()
     {
+        tracing::warn!(target: "zc_telemetry::export", signal = "metrics", %error, "OTLP export failed");
         failures.push(format!("metrics: {error}"));
     }
     if let Some(provider) = tracer
         && let Err(error) = provider.force_flush()
     {
+        tracing::warn!(target: "zc_telemetry::export", signal = "traces", %error, "OTLP export failed");
         failures.push(format!("traces: {error}"));
     }
     ensure!(failures.is_empty(), "{}", failures.join("; "));
@@ -92,16 +152,19 @@ fn shutdown_providers(
     if let Some(provider) = logger
         && let Err(error) = provider.shutdown()
     {
+        tracing::warn!(target: "zc_telemetry::export", signal = "logs", %error, "OTLP shutdown failed");
         failures.push(format!("logs: {error}"));
     }
     if let Some(provider) = meter
         && let Err(error) = provider.shutdown()
     {
+        tracing::warn!(target: "zc_telemetry::export", signal = "metrics", %error, "OTLP shutdown failed");
         failures.push(format!("metrics: {error}"));
     }
     if let Some(provider) = tracer
         && let Err(error) = provider.shutdown()
     {
+        tracing::warn!(target: "zc_telemetry::export", signal = "traces", %error, "OTLP shutdown failed");
         failures.push(format!("traces: {error}"));
     }
     ensure!(failures.is_empty(), "{}", failures.join("; "));
@@ -182,7 +245,7 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
         .build();
     let log_bridge =
         OpenTelemetryTracingBridge::new(&logger_provider).with_filter(filter_fn(|metadata| {
-            metadata.level() == &tracing::Level::ERROR
+            metadata.level() <= &tracing::Level::INFO
                 && !metadata.target().starts_with("opentelemetry")
                 && metadata.target() != "zc_telemetry::export"
         }));
@@ -208,6 +271,10 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
     tracing::info_span!("telemetry.startup", service.name = name).in_scope(|| {
         tracing::info!("OpenTelemetry startup canary");
     });
+    global::meter("zeepcentraal-telemetry")
+        .u64_counter("zc.service.startups")
+        .build()
+        .add(1, &[]);
 
     let canary_logger = logger_provider.clone();
     let canary_meter = meter_provider.clone();
@@ -305,9 +372,8 @@ fn sdk_disabled() -> bool {
         .is_some_and(|value| matches!(value.to_ascii_lowercase().as_str(), "true" | "1"))
 }
 
-fn default_filter(package: &str) -> String {
-    let target = package.replace('-', "_");
-    format!("warn,zeepcentraal_{target}=info,zc_{target}=info,tower_http=info")
+fn default_filter(_package: &str) -> String {
+    "warn,zeepcentraal_=info,zc_=info,tower_http=info".to_owned()
 }
 
 #[cfg(test)]
@@ -341,8 +407,8 @@ mod tests {
     #[test]
     fn default_filter_covers_binary_and_library_targets() {
         let filter = default_filter("server");
-        assert!(filter.contains("zeepcentraal_server=info"));
-        assert!(filter.contains("zc_server=info"));
+        assert!(filter.contains("zeepcentraal_=info"));
+        assert!(filter.contains("zc_=info"));
         assert!(EnvFilter::try_new(filter).is_ok());
         assert!(EnvFilter::try_new("[invalid").is_err());
     }

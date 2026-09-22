@@ -28,6 +28,7 @@ test('release paths separate retained TypeScript services from Rust services', (
 	assert.equal(affects('zc-discord', 'crates/database/src/lib.rs'), false)
 	assert.equal(affects('zc-migrate', 'packages/database/drizzle/0001.sql'), true)
 	assert.equal(affects('zc-migrate', 'crates/database/src/adoption.rs'), true)
+	assert.equal(affects('zc-migrate', 'crates/telemetry/src/lib.rs'), true)
 	assert.equal(affects('zc-discord', 'Dockerfile.discord'), true)
 	assert.equal(affects('zc-inspector-zeep', 'Dockerfile.inspector-zeep'), true)
 	assert.equal(affects('zc-server', 'packages/web/app/app.vue'), false)

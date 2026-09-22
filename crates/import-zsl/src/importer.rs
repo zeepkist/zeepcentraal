@@ -8,6 +8,10 @@ use std::{collections::HashMap, path::Path};
 use zc_database::services::zsl::{RankedLevelResult, RankedResult};
 
 pub async fn run() -> Result<()> {
+    zc_telemetry::observe_operation("import_zsl.run", run_inner()).await
+}
+
+async fn run_inner() -> Result<()> {
     let root = zc_core::environment::var("SUPER_LEAGUE_DATA_PATH")
         .unwrap_or_else(|_| "super_league_data".to_owned());
     let database_config = zc_core::DatabaseConfig::from_env_with_profile(

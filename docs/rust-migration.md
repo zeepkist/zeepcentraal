@@ -105,13 +105,14 @@ Cutover sequence:
 
 ## OpenTelemetry
 
-Development exports OTLP gRPC traces, metrics, and error logs to
+Development exports OTLP gRPC traces, metrics, and INFO-or-higher logs to
 `https://ingress.zeepki.st:443`. Blank service-name variables are ignored, producing
 `zeepcentraal-<service>-dev`; production images explicitly set unsuffixed service names. HTTP
 server spans use matched routes and W3C Trace Context, and record status and duration without
-query values or authorization headers. Set `OTEL_SDK_DISABLED=true` to keep local structured logs
-while disabling exporters. Invalid explicit endpoint or `RUST_LOG` values stop startup. Exporter
-failures warn locally and do not stop service.
+query values or authorization headers. Startup emits a trace, INFO log, and metric counter so
+exporter failures can be detected before service traffic. Set `OTEL_SDK_DISABLED=true` to keep
+local structured logs while disabling exporters. Invalid explicit endpoint or `RUST_LOG` values stop
+startup. Exporter failures warn locally and do not stop service.
 
 Opt-in smoke checks use configured development database and collector:
 

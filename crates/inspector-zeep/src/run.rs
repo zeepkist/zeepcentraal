@@ -45,6 +45,18 @@ pub async fn run_inspector(
     config: &InspectorConfig,
     options: InspectorOptions,
 ) -> Result<()> {
+    zc_telemetry::observe_operation(
+        "inspector.run",
+        run_inspector_inner(runtime, config, options),
+    )
+    .await
+}
+
+async fn run_inspector_inner(
+    runtime: &InspectorRuntime<'_>,
+    config: &InspectorConfig,
+    options: InspectorOptions,
+) -> Result<()> {
     let result = runtime
         .database
         .with_inspector_lock(|| run_locked(runtime, config, options))

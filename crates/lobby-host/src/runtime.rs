@@ -141,12 +141,16 @@ impl ManagedLobbyHost {
         while !self.stopped.load(Ordering::Acquire) {
             let mut backoff = true;
             match self.profile.prepare().await {
-                Ok(Some(_)) => match self.connect_once().await {
-                    Ok(()) => retry = Duration::from_secs(1),
-                    Err(error) => {
-                        tracing::warn!(room = %self.config.key, profile = self.profile.name(), %error, "Managed room attempt failed")
+                Ok(Some(_)) => {
+                    match zc_telemetry::observe_operation("lobby.connect", self.connect_once())
+                        .await
+                    {
+                        Ok(()) => retry = Duration::from_secs(1),
+                        Err(error) => {
+                            tracing::warn!(room = %self.config.key, profile = self.profile.name(), %error, "Managed room attempt failed")
+                        }
                     }
-                },
+                }
                 Ok(None) => {
                     retry = Duration::from_millis(self.config.asset_poll_ms);
                     backoff = false;

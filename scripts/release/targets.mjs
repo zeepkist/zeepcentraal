@@ -13,7 +13,7 @@ const rustTargets = {
 	},
 	'zc-migrate': {
 		crate: 'migrate',
-		dependencies: ['migrate', 'database', 'core'],
+		dependencies: ['migrate', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-migrate',
 		dockerfile: 'Dockerfile.migrate',
 	},

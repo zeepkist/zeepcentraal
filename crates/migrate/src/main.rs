@@ -24,6 +24,19 @@ async fn main() -> anyhow::Result<()> {
         _ => anyhow::bail!("Usage: zeepcentraal-migrate [verify|adopt|inspect-history FOLDER]"),
     };
     anyhow::ensure!(arguments.len() <= 1, "Too many migration arguments");
+    let telemetry = zc_telemetry::initialize("migrate")?;
+    let operation = if mode == zc_database::adoption::Mode::Verify {
+        "migrate.verify"
+    } else {
+        "migrate.adopt"
+    };
+    let result = zc_telemetry::observe_operation(operation, migrate(mode)).await;
+    let shutdown = telemetry.shutdown().await;
+    result?;
+    shutdown
+}
+
+async fn migrate(mode: zc_database::adoption::Mode) -> anyhow::Result<()> {
     let database = zc_core::DatabaseConfig::from_env(1)?;
     let migrations = zc_core::environment::var("MIGRATIONS_FOLDER")
         .map(std::path::PathBuf::from)

@@ -88,7 +88,13 @@ async fn run_lane(
             for job in claimed {
                 let queue = queue.clone();
                 let handler = handler.clone();
-                active.spawn(async move { execute(queue, handler, job, lane).await });
+                active.spawn(async move {
+                    zc_telemetry::observe_operation(
+                        "jobs.execute",
+                        execute(queue, handler, job, lane),
+                    )
+                    .await
+                });
             }
         }
         if *shutdown.borrow() {
