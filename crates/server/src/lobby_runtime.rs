@@ -13,6 +13,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
+    error::Error,
+    fmt,
     future::Future,
     sync::Arc,
     time::{Duration, Instant},
@@ -20,7 +22,7 @@ use std::{
 use subtle::ConstantTimeEq;
 use tokio::sync::{mpsc, oneshot, watch};
 use zc_core::zeepnet::{
-    BitReader, LidgrenClient, LidgrenClientOptions, LobbyOperation, LobbyPacket,
+    BitReader, LidgrenClient, LidgrenClientOptions, LidgrenError, LobbyOperation, LobbyPacket,
     MasterRoomResponse, WireLobby, create_lobby_packet, join_lobby_packet, master_hail,
     parse_lobby_packet, parse_master_room_response,
 };
@@ -40,6 +42,7 @@ pub struct RoomBroker {
 pub struct LobbyRuntime {
     shutdown: watch::Sender<bool>,
     tasks: Vec<tokio::task::JoinHandle<()>>,
+    assignment_sender: Option<mpsc::Sender<AssignmentCommand>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,6 +77,50 @@ struct RoomAssignment {
 struct AssignmentCommand {
     request: AssignmentRequest,
     response: oneshot::Sender<Result<RoomAssignment>>,
+    deadline: Instant,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MasterExit {
+    Handoff,
+    Shutdown,
+}
+
+#[derive(Debug)]
+struct SteamSessionLost;
+
+impl fmt::Display for SteamSessionLost {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("Steam session lost")
+    }
+}
+
+impl Error for SteamSessionLost {}
+
+#[derive(Debug)]
+struct MasterRecycle;
+
+impl fmt::Display for MasterRecycle {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("Master connection remained assigned to previous room")
+    }
+}
+
+impl Error for MasterRecycle {}
+
+trait SteamEventSource {
+    fn poll_event(
+        &mut self,
+    ) -> impl Future<Output = Result<Option<steam_client::SteamEvent>, steam_client::SteamError>> + Send;
+}
+
+impl SteamEventSource for steam_client::SteamClient {
+    fn poll_event(
+        &mut self,
+    ) -> impl Future<Output = Result<Option<steam_client::SteamEvent>, steam_client::SteamError>> + Send
+    {
+        steam_client::SteamClient::poll_event(self)
+    }
 }
 
 #[derive(Clone)]
@@ -99,6 +146,7 @@ impl LobbyRuntime {
             return Ok(Self {
                 shutdown,
                 tasks: Vec::new(),
+                assignment_sender: None,
             });
         }
         let broker_listener = if let Some(broker_config) = config.broker.clone() {
@@ -113,7 +161,9 @@ impl LobbyRuntime {
         };
         let (sender, receiver) = mpsc::channel(16);
         let (persistence, persistence_rx) = mpsc::unbounded_channel();
-        let broker = RoomBroker { sender };
+        let broker = RoomBroker {
+            sender: sender.clone(),
+        };
         let mut tasks = vec![
             tokio::spawn(run_collector(
                 config.clone(),
@@ -131,7 +181,11 @@ impl LobbyRuntime {
                 }
             }));
         }
-        Ok(Self { shutdown, tasks })
+        Ok(Self {
+            shutdown,
+            tasks,
+            assignment_sender: Some(sender),
+        })
     }
 
     pub async fn stop(self) {
@@ -139,6 +193,7 @@ impl LobbyRuntime {
         for task in self.tasks {
             let _ = task.await;
         }
+        drop(self.assignment_sender);
     }
 }
 
@@ -181,12 +236,14 @@ async fn assign_room(
         return broker_response(StatusCode::BAD_REQUEST, "Invalid request");
     }
     let (response_tx, response_rx) = oneshot::channel();
+    let deadline = Instant::now() + ROOM_TIMEOUT;
     if state
         .broker
         .sender
         .send(AssignmentCommand {
             request,
             response: response_tx,
+            deadline,
         })
         .await
         .is_err()
@@ -196,7 +253,7 @@ async fn assign_room(
             "Room assignment unavailable",
         );
     }
-    match tokio::time::timeout(ROOM_TIMEOUT, response_rx).await {
+    match tokio::time::timeout_at(deadline.into(), response_rx).await {
         Ok(Ok(Ok(assignment))) => no_store((StatusCode::OK, Json(assignment)).into_response()),
         _ => broker_response(
             StatusCode::SERVICE_UNAVAILABLE,
@@ -256,23 +313,46 @@ async fn run_collector(
     mut shutdown: watch::Receiver<bool>,
 ) {
     let mut retry = Duration::from_secs(1);
+    let mut last_ticket_request = None;
+    store.set(empty_snapshot(LobbyStatus::Connecting));
     while !*shutdown.borrow() {
-        store.set(empty_snapshot(LobbyStatus::Connecting));
-        let result =
-            run_steam_session(&config, &store, &mut requests, &persistence, &mut shutdown).await;
+        let result = run_steam_session(
+            &config,
+            &store,
+            &mut requests,
+            &persistence,
+            &mut shutdown,
+            &mut last_ticket_request,
+            &mut retry,
+        )
+        .await;
         if *shutdown.borrow() {
             break;
         }
         if let Err(error) = result {
-            tracing::warn!(%error, "Zeepkist lobby collector disconnected");
+            if error.is::<SteamSessionLost>() {
+                tracing::warn!("Zeepkist Steam session failed; recreating");
+            } else {
+                tracing::warn!(%error, "Zeepkist lobby collector disconnected");
+            }
         }
         mark_stale(&store);
         tokio::select! {
-            _ = tokio::time::sleep(retry) => {},
+            _ = tokio::time::sleep(jittered(retry)) => {},
             _ = shutdown.changed() => break,
         }
-        retry = (retry * 2).min(RETRY_MAX);
+        retry = next_retry(retry);
     }
+}
+
+fn jittered(delay: Duration) -> Duration {
+    let random_bits = uuid::Uuid::new_v4().as_u128() & ((1u128 << 48) - 1);
+    let fraction = random_bits as f64 / (1u64 << 48) as f64;
+    Duration::from_secs_f64(delay.as_secs_f64() * (0.8 + fraction * 0.4))
+}
+
+fn next_retry(delay: Duration) -> Duration {
+    (delay * 2).min(RETRY_MAX)
 }
 
 async fn run_steam_session(
@@ -281,6 +361,8 @@ async fn run_steam_session(
     requests: &mut mpsc::Receiver<AssignmentCommand>,
     persistence: &mpsc::UnboundedSender<(LobbyPacket, String)>,
     shutdown: &mut watch::Receiver<bool>,
+    last_ticket_request: &mut Option<Instant>,
+    steam_retry: &mut Duration,
 ) -> Result<()> {
     let refresh_token = tokio::fs::read_to_string(&config.refresh_token_file)
         .await
@@ -290,69 +372,132 @@ async fn run_steam_session(
         "Steam refresh token file is empty"
     );
     let steam_options = steam_client::SteamOptions {
+        auto_relogin: false,
         renew_refresh_tokens: true,
         enable_pics_cache: false,
         ..Default::default()
     };
     let mut steam = steam_client::SteamClient::new(steam_options);
-    let details = steam_client::LogOnDetails {
-        refresh_token: Some(refresh_token.trim().to_owned()),
-        machine_name: Some("ZeepCentraal Rust lobby collector".into()),
-        ..Default::default()
-    };
-    let response = tokio::select! {
-        response = steam.log_on(details) => response?,
-        _ = shutdown.changed() => return Ok(()),
-    };
-    tracing::info!("Steam login accepted");
-    let steam_id = response.steam_id.steam_id64();
-    let mut cached_ticket: Option<(Instant, Vec<u8>)> = None;
-    loop {
-        let ticket = if let Some((created, ticket)) = &cached_ticket
-            && created.elapsed() < MIN_TICKET_INTERVAL
-        {
-            ticket.clone()
-        } else {
-            tracing::info!("Requesting Steam encrypted app ticket");
-            let ticket = bounded_ticket_request(
-                async {
-                    steam
-                        .create_encrypted_app_ticket(
-                            config.app_id,
-                            Some(&TICKET_USER_DATA.to_le_bytes()),
-                        )
-                        .await
-                        .map_err(ticket_request_error)
-                },
-                shutdown,
-                ROOM_TIMEOUT,
-            )
-            .await?;
-            ensure!(
-                !ticket.is_empty(),
-                "Steam returned an empty encrypted app ticket"
-            );
-            tracing::info!("Steam encrypted app ticket acquired");
-            cached_ticket = Some((Instant::now(), ticket.clone()));
-            ticket
+    let result = async {
+        let details = steam_client::LogOnDetails {
+            refresh_token: Some(refresh_token.trim().to_owned()),
+            machine_name: Some("ZeepCentraal Rust lobby collector".into()),
+            ..Default::default()
         };
-        run_master(
-            config,
-            store,
-            requests,
-            persistence,
-            shutdown,
-            &mut steam,
-            steam_id,
-            &ticket,
-        )
-        .await?;
-        if *shutdown.borrow() {
-            break;
+        let response = tokio::select! {
+            response = steam.log_on(details) => response.map_err(|error| {
+                tracing::warn!(error = %safe_steam_event_error(&error), "Steam login failed");
+                SteamSessionLost
+            })?,
+            _ = shutdown.changed() => return Ok(()),
+        };
+        tracing::info!("Steam login accepted");
+        let steam_id = response.steam_id.steam_id64();
+        let mut cached_ticket: Option<(Instant, Vec<u8>)> = None;
+        let mut master_retry = Duration::from_secs(1);
+        while !*shutdown.borrow() {
+            let ticket = if let Some((created, ticket)) = &cached_ticket
+                && created.elapsed() < MIN_TICKET_INTERVAL
+            {
+                ticket.clone()
+            } else {
+                tracing::info!("Requesting Steam encrypted app ticket");
+                let ticket = spaced_ticket_request(
+                    async {
+                        steam
+                            .create_encrypted_app_ticket(
+                                config.app_id,
+                                Some(&TICKET_USER_DATA.to_le_bytes()),
+                            )
+                            .await
+                            .map_err(ticket_request_error)
+                    },
+                    last_ticket_request,
+                    shutdown,
+                    MIN_TICKET_INTERVAL,
+                    ROOM_TIMEOUT,
+                )
+                .await?;
+                ensure!(
+                    !ticket.is_empty(),
+                    "Steam returned an empty encrypted app ticket"
+                );
+                tracing::info!("Steam encrypted app ticket acquired");
+                *steam_retry = Duration::from_secs(1);
+                cached_ticket = Some((Instant::now(), ticket.clone()));
+                ticket
+            };
+            match run_master(
+                config,
+                store,
+                requests,
+                persistence,
+                shutdown,
+                &mut steam,
+                steam_id,
+                &ticket,
+            )
+            .await
+            {
+                Ok(MasterExit::Shutdown) => break,
+                Ok(MasterExit::Handoff) => {
+                    master_retry = Duration::from_secs(1);
+                    tracing::info!("Master room assignment handed off");
+                }
+                Err(error) if error.is::<SteamSessionLost>() => return Err(error),
+                Err(error) => {
+                    if let Some(LidgrenError::RemoteDisconnect { category, .. }) =
+                        error.downcast_ref::<LidgrenError>()
+                    {
+                        tracing::warn!(
+                            ?category,
+                            "Zeepkist master rejected lobby collector; retrying"
+                        );
+                    } else {
+                        tracing::warn!(%error, "Zeepkist master connection failed; retrying");
+                    }
+                }
+            }
+            if *shutdown.borrow() {
+                break;
+            }
+            mark_stale(store);
+            if !wait_for_master_retry(
+                &mut steam,
+                &config.refresh_token_file,
+                shutdown,
+                jittered(master_retry),
+            )
+            .await?
+            {
+                break;
+            }
+            master_retry = next_retry(master_retry);
+        }
+        Ok(())
+    }
+    .await;
+    let _ = tokio::time::timeout(Duration::from_secs(2), steam.log_off()).await;
+    result
+}
+
+async fn spaced_ticket_request(
+    request: impl Future<Output = Result<Vec<u8>>>,
+    last_request: &mut Option<Instant>,
+    shutdown: &mut watch::Receiver<bool>,
+    minimum_interval: Duration,
+    timeout: Duration,
+) -> Result<Vec<u8>> {
+    if let Some(wait) =
+        last_request.and_then(|instant| minimum_interval.checked_sub(instant.elapsed()))
+    {
+        tokio::select! {
+            _ = tokio::time::sleep(wait) => {},
+            _ = shutdown.changed() => bail!("Server shutdown"),
         }
     }
-    let _ = steam.log_off().await;
-    Ok(())
+    *last_request = Some(Instant::now());
+    bounded_ticket_request(request, shutdown, timeout).await
 }
 
 fn ticket_request_error(error: steam_client::SteamError) -> anyhow::Error {
@@ -389,10 +534,10 @@ async fn run_master(
     requests: &mut mpsc::Receiver<AssignmentCommand>,
     persistence: &mpsc::UnboundedSender<(LobbyPacket, String)>,
     shutdown: &mut watch::Receiver<bool>,
-    steam: &mut steam_client::SteamClient,
+    steam: &mut impl SteamEventSource,
     steam_id: u64,
     ticket: &[u8],
-) -> Result<()> {
+) -> Result<MasterExit> {
     let remote = config.master.context("Missing Zeepkist master address")?;
     tracing::info!(%remote, "Connecting Zeepkist lobby collector to master");
     let hail = collector_hail(
@@ -401,49 +546,187 @@ async fn run_master(
         ticket,
     )?;
     let client = LidgrenClient::start(LidgrenClientOptions::load_balancer(remote, hail)).await?;
-    let remote_hail = tokio::time::timeout(ROOM_TIMEOUT, client.connect()).await??;
+    let result = run_master_connected(
+        config,
+        store,
+        requests,
+        persistence,
+        shutdown,
+        steam,
+        remote,
+        steam_id,
+        &client,
+        FIRST_SNAPSHOT_TIMEOUT,
+    )
+    .await;
+    let reason = match &result {
+        Ok(MasterExit::Handoff) => "Room assignment handed off",
+        Ok(MasterExit::Shutdown) => "Server shutdown",
+        Err(_) => "Master connection retrying",
+    };
+    let _ = tokio::time::timeout(Duration::from_secs(2), client.close(reason)).await;
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn run_master_connected(
+    config: &LobbyRuntimeConfig,
+    store: &LobbySnapshotStore,
+    requests: &mut mpsc::Receiver<AssignmentCommand>,
+    persistence: &mpsc::UnboundedSender<(LobbyPacket, String)>,
+    shutdown: &mut watch::Receiver<bool>,
+    steam: &mut impl SteamEventSource,
+    remote: std::net::SocketAddr,
+    steam_id: u64,
+    client: &LidgrenClient,
+    snapshot_timeout: Duration,
+) -> Result<MasterExit> {
+    let remote_hail = tokio::time::timeout(ROOM_TIMEOUT, async {
+        loop {
+            tokio::select! {
+                hail = client.connect() => break hail.map_err(anyhow::Error::from),
+                event = steam.poll_event() => handle_steam_event(event, &config.refresh_token_file).await?,
+                _ = shutdown.changed() => return Ok(Vec::new()),
+            }
+        }
+    }).await??;
+    if *shutdown.borrow() {
+        return Ok(MasterExit::Shutdown);
+    }
     let mut hail_reader = BitReader::new(&remote_hail);
     let player_uid = hail_reader.read_u32()?;
     let token = hail_reader.read_string(4_096)?;
     let mut state = LobbyState::default();
-    let first_snapshot = tokio::time::sleep(FIRST_SNAPSHOT_TIMEOUT);
+    let first_snapshot = tokio::time::sleep(snapshot_timeout);
     tokio::pin!(first_snapshot);
     let mut received_snapshot = false;
     tracing::info!(%remote, "Zeepkist lobby collector connected");
     loop {
         tokio::select! {
             payload = client.recv() => {
-                let Some(payload) = payload else { bail!("Master connection closed") };
-                received_snapshot |= apply_payload(&payload, &mut state, store, persistence)?;
-            }
-            command = requests.recv() => {
-                let Some(command) = command else { return Ok(()) };
-                let result = assign_on_master(
-                    &client, &mut state, store, persistence, command.request, player_uid, steam_id, &token,
-                ).await;
-                let handed_off = result.is_ok();
-                let _ = command.response.send(result);
-                if handed_off {
-                    let _ = client.close("Room assignment handed off").await;
-                    return Ok(());
+                let Some(payload) = payload else {
+                    client.wait_for_close().await?;
+                    bail!("Master connection closed")
+                };
+                if apply_payload(&payload, &mut state, store, persistence)? && !received_snapshot {
+                    received_snapshot = true;
+                    tracing::info!(%remote, "Initial Zeepkist lobby snapshot received");
                 }
             }
+            command = requests.recv() => {
+                let Some(command) = command else { return Ok(MasterExit::Shutdown) };
+                if !assignment_active(&command) {
+                    continue;
+                }
+                let result = assign_on_master(
+                    client, &mut state, store, persistence, command.request, player_uid, steam_id, &token,
+                ).await;
+                if !received_snapshot && matches!(store.get().status, LobbyStatus::Live) {
+                    received_snapshot = true;
+                    tracing::info!(%remote, "Initial Zeepkist lobby snapshot received");
+                }
+                let handed_off = result.is_ok();
+                let recycle = result.as_ref().is_err_and(|error| error.is::<MasterRecycle>());
+                if handed_off {
+                    return finish_master_handoff(
+                        client.close("Room assignment handed off"),
+                        result,
+                        command.response,
+                    ).await;
+                }
+                if recycle {
+                    let _ = tokio::time::timeout(
+                        Duration::from_secs(2),
+                        client.close("Master connection remained assigned to previous room"),
+                    ).await;
+                    let _ = command.response.send(result);
+                    tracing::warn!("Master rejected room creation on assigned connection; recycling");
+                    bail!(MasterRecycle);
+                }
+                let _ = command.response.send(result);
+            }
             _ = shutdown.changed() => {
-                let _ = client.close("Server shutdown").await;
-                return Ok(());
+                return Ok(MasterExit::Shutdown);
             }
-            event = steam.poll_event() => {
-                let Some(event) = event? else {
-                    let _ = client.close("Steam session closed").await;
-                    bail!("Steam session closed");
-                };
-                persist_refresh_token(event, &config.refresh_token_file).await?;
-            }
+            event = steam.poll_event() => handle_steam_event(event, &config.refresh_token_file).await?,
             _ = &mut first_snapshot, if !received_snapshot => {
-                let _ = client.close("Lobby snapshot timed out").await;
                 bail!("Master server did not send an initial lobby snapshot");
             }
         }
+    }
+}
+
+fn assignment_active(command: &AssignmentCommand) -> bool {
+    !command.response.is_closed() && Instant::now() < command.deadline
+}
+
+async fn finish_master_handoff(
+    close: impl Future<Output = std::result::Result<(), LidgrenError>>,
+    result: Result<RoomAssignment>,
+    response: oneshot::Sender<Result<RoomAssignment>>,
+) -> Result<MasterExit> {
+    if !matches!(
+        tokio::time::timeout(Duration::from_secs(2), close).await,
+        Ok(Ok(()))
+    ) {
+        let _ = response.send(Err(anyhow::anyhow!("Master handoff close failed")));
+        bail!("Master handoff close failed");
+    }
+    let _ = response.send(result);
+    Ok(MasterExit::Handoff)
+}
+
+async fn handle_steam_event(
+    event: Result<Option<steam_client::SteamEvent>, steam_client::SteamError>,
+    refresh_token_file: &std::path::Path,
+) -> Result<()> {
+    let event = event.map_err(|error| {
+        tracing::warn!(error = %safe_steam_event_error(&error), "Steam session event failed");
+        SteamSessionLost
+    })?;
+    let Some(event) = event else {
+        bail!(SteamSessionLost);
+    };
+    if matches!(
+        event,
+        steam_client::SteamEvent::Connection(
+            steam_client::ConnectionEvent::Disconnected { .. }
+                | steam_client::ConnectionEvent::ReconnectFailed { .. }
+        )
+    ) {
+        tracing::warn!("Steam session disconnected");
+        bail!(SteamSessionLost);
+    }
+    if let Err(error) = persist_refresh_token(event, refresh_token_file).await {
+        tracing::error!(%error, "Steam refresh token persistence failed");
+    }
+    Ok(())
+}
+
+async fn wait_for_master_retry(
+    steam: &mut impl SteamEventSource,
+    refresh_token_file: &std::path::Path,
+    shutdown: &mut watch::Receiver<bool>,
+    delay: Duration,
+) -> Result<bool> {
+    let sleep = tokio::time::sleep(delay);
+    tokio::pin!(sleep);
+    loop {
+        tokio::select! {
+            _ = &mut sleep => return Ok(true),
+            _ = shutdown.changed() => return Ok(false),
+            event = steam.poll_event() => handle_steam_event(event, refresh_token_file).await?,
+        }
+    }
+}
+
+fn safe_steam_event_error(error: &steam_client::SteamError) -> &'static str {
+    match error {
+        steam_client::SteamError::ConnectionError(_) => "Steam connection error",
+        steam_client::SteamError::SteamResult(_) => "Steam rejected request",
+        steam_client::SteamError::Timeout => "Steam connection timed out",
+        steam_client::SteamError::NotConnected => "Steam client disconnected",
+        _ => "Steam client error",
     }
 }
 
@@ -497,12 +780,21 @@ async fn assign_on_master(
     else {
         bail!("Unexpected master response")
     };
+    if result == 2 {
+        bail!(MasterRecycle);
+    }
+    if result != 1 || join_id.is_empty() {
+        tracing::warn!(result, "Master rejected room creation");
+    }
     ensure!(result == 1 && !join_id.is_empty(), "Room create rejected");
     let MasterRoomResponse::Join { result, host, port } =
         wait_room_response(client, state, store, persistence, false).await?
     else {
         bail!("Unexpected master response")
     };
+    if result != 1 {
+        tracing::warn!(result, "Master rejected created room join");
+    }
     ensure!(result == 1, "Created room join rejected");
     assignment(
         request.key,
@@ -550,7 +842,13 @@ async fn wait_room_response(
 ) -> Result<MasterRoomResponse> {
     tokio::time::timeout(ROOM_TIMEOUT, async {
         loop {
-            let payload = client.recv().await.context("Master connection closed")?;
+            let payload = match client.recv().await {
+                Some(payload) => payload,
+                None => {
+                    client.wait_for_close().await?;
+                    bail!("Master connection closed");
+                }
+            };
             if let Some(response) = parse_master_room_response(&payload)?
                 && matches!(
                     (&response, create),
@@ -738,6 +1036,241 @@ fn sanitize_lobby_text(value: &str, fallback: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::net::UdpSocket;
+
+    struct MockSteam;
+
+    impl SteamEventSource for MockSteam {
+        fn poll_event(
+            &mut self,
+        ) -> impl Future<
+            Output = Result<Option<steam_client::SteamEvent>, steam_client::SteamError>,
+        > + Send {
+            std::future::pending()
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    enum MockMasterMode {
+        Silent,
+        AlreadyOnline,
+        Snapshot,
+    }
+
+    async fn mock_connected_master(
+        mode: MockMasterMode,
+    ) -> (
+        LidgrenClient,
+        tokio::task::JoinHandle<()>,
+        std::net::SocketAddr,
+    ) {
+        let server = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let remote = server.local_addr().unwrap();
+        let client = LidgrenClient::start(LidgrenClientOptions::load_balancer(remote, vec![]))
+            .await
+            .unwrap();
+        let master = tokio::spawn(async move {
+            let mut bytes = [0; 2048];
+            let (_, peer) = server.recv_from(&mut bytes).await.unwrap();
+            assert_eq!(bytes[0], 131);
+            let mut handshake = zc_core::zeepnet::BitWriter::new();
+            handshake.write_string("LoadBalancer").unwrap();
+            handshake.int64(0);
+            handshake.float32(0.0);
+            let mut hail = zc_core::zeepnet::BitWriter::new();
+            hail.write_u32(7);
+            hail.write_string("fake-token").unwrap();
+            handshake.write_bytes(&hail.into_bytes());
+            server
+                .send_to(&mock_datagram(132, 0, &handshake.into_bytes()), peer)
+                .await
+                .unwrap();
+            let _ = server.recv_from(&mut bytes).await.unwrap(); // ConnectionEstablished
+            match mode {
+                MockMasterMode::AlreadyOnline => {
+                    let mut reason = zc_core::zeepnet::BitWriter::new();
+                    reason.write_string("already-online").unwrap();
+                    server
+                        .send_to(&mock_datagram(135, 0, &reason.into_bytes()), peer)
+                        .await
+                        .unwrap();
+                }
+                MockMasterMode::Snapshot => {
+                    let mut snapshot = zc_core::zeepnet::BitWriter::new();
+                    snapshot.write_u16(zc_core::zeepnet::LOBBY_LIST);
+                    snapshot.write_i32(0);
+                    server
+                        .send_to(&mock_datagram(67, 0, &snapshot.into_bytes()), peer)
+                        .await
+                        .unwrap();
+                }
+                MockMasterMode::Silent => {}
+            }
+            tokio::time::sleep(Duration::from_millis(250)).await;
+        });
+        (client, master, remote)
+    }
+
+    async fn run_mock_master(
+        mode: MockMasterMode,
+        snapshot_timeout: Duration,
+        close_after: Option<Duration>,
+    ) -> (Result<MasterExit>, LobbySnapshotStore) {
+        let (client, master, remote) = mock_connected_master(mode).await;
+        let config = LobbyRuntimeConfig {
+            enabled: true,
+            app_id: 1,
+            master: Some(remote),
+            build: Some(18),
+            refresh_token_file: "unused".into(),
+            broker: None,
+        };
+        let store = LobbySnapshotStore::default();
+        let (requests, mut request_rx) = mpsc::channel(1);
+        let (persistence, _packets) = mpsc::unbounded_channel();
+        let (shutdown_tx, mut shutdown_rx) = watch::channel(false);
+        let closer = close_after.map(|delay| {
+            let shutdown_tx = shutdown_tx.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(delay).await;
+                shutdown_tx.send_replace(true);
+            })
+        });
+        let mut steam = MockSteam;
+        let result = tokio::time::timeout(
+            Duration::from_secs(1),
+            run_master_connected(
+                &config,
+                &store,
+                &mut request_rx,
+                &persistence,
+                &mut shutdown_rx,
+                &mut steam,
+                remote,
+                1,
+                &client,
+                snapshot_timeout,
+            ),
+        )
+        .await
+        .expect("mock master run should finish");
+        drop(requests);
+        let _ = client.close("Test complete").await;
+        master.abort();
+        if let Some(closer) = closer {
+            closer.abort();
+        }
+        (result, store)
+    }
+
+    fn mock_datagram(message_type: u8, sequence: u16, payload: &[u8]) -> Vec<u8> {
+        let bits = (payload.len() * 8) as u16;
+        let mut bytes = vec![
+            message_type,
+            (sequence << 1) as u8,
+            (sequence >> 7) as u8,
+            bits as u8,
+            (bits >> 8) as u8,
+        ];
+        bytes.extend_from_slice(payload);
+        bytes
+    }
+
+    fn fixture_request() -> AssignmentRequest {
+        AssignmentRequest {
+            key: "room".into(),
+            join_id: None,
+            room: RoomRequest {
+                name: "Room".into(),
+                is_public: true,
+                max_players: 64,
+            },
+        }
+    }
+
+    async fn mock_master_assignment(create_result: u16) -> Result<RoomAssignment> {
+        let server = UdpSocket::bind("127.0.0.1:0").await?;
+        let client = LidgrenClient::start(LidgrenClientOptions::load_balancer(
+            server.local_addr()?,
+            vec![],
+        ))
+        .await?;
+        let master = async {
+            let mut bytes = [0; 2048];
+            let (_, remote) = server.recv_from(&mut bytes).await.unwrap();
+            assert_eq!(bytes[0], 131); // Connect
+            let mut handshake = zc_core::zeepnet::BitWriter::new();
+            handshake.write_string("LoadBalancer").unwrap();
+            handshake.int64(0);
+            handshake.write_f32(0.0);
+            server
+                .send_to(&mock_datagram(132, 0, &handshake.into_bytes()), remote)
+                .await
+                .unwrap();
+            loop {
+                let (length, _) = server.recv_from(&mut bytes).await.unwrap();
+                if bytes[0] != 67 {
+                    continue;
+                }
+                assert_eq!(
+                    &bytes[5..length],
+                    collector_create_lobby_packet(64, "Room", true).unwrap()
+                );
+                let sequence = ((u16::from(bytes[1]) >> 1) | (u16::from(bytes[2]) << 7)) & 1023;
+                server
+                    .send_to(
+                        &mock_datagram(134, 0, &[67, sequence as u8, (sequence >> 8) as u8]),
+                        remote,
+                    )
+                    .await
+                    .unwrap();
+                let mut response = zc_core::zeepnet::BitWriter::new();
+                response.write_u16(zc_core::zeepnet::CREATE_LOBBY_RESPONSE);
+                response.write_u16(create_result);
+                response
+                    .write_string(if create_result == 1 { "join-id" } else { "" })
+                    .unwrap();
+                server
+                    .send_to(&mock_datagram(67, 0, &response.into_bytes()), remote)
+                    .await
+                    .unwrap();
+                if create_result == 1 {
+                    let mut joined = zc_core::zeepnet::BitWriter::new();
+                    joined.write_u16(zc_core::zeepnet::JOIN_LOBBY_RESPONSE);
+                    joined.write_u16(1);
+                    joined.write_string("127.0.0.1").unwrap();
+                    joined.write_i32(7777);
+                    server
+                        .send_to(&mock_datagram(67, 1, &joined.into_bytes()), remote)
+                        .await
+                        .unwrap();
+                }
+                break;
+            }
+        };
+        let assignment = async {
+            client.connect().await?;
+            let store = LobbySnapshotStore::default();
+            let (persistence, _receiver) = mpsc::unbounded_channel();
+            assign_on_master(
+                &client,
+                &mut LobbyState::default(),
+                &store,
+                &persistence,
+                fixture_request(),
+                7,
+                1,
+                "fake-token",
+            )
+            .await
+        };
+        let ((), result) = tokio::time::timeout(Duration::from_secs(2), async {
+            tokio::join!(master, assignment)
+        })
+        .await?;
+        let _ = client.close("Test complete").await;
+        result
+    }
 
     #[tokio::test]
     async fn ticket_request_times_out_without_hanging_collector() {
@@ -765,6 +1298,207 @@ mod tests {
         )
         .await;
         assert_eq!(result.unwrap_err().to_string(), "Server shutdown");
+    }
+
+    #[tokio::test]
+    async fn ticket_requests_remain_spaced_across_sessions() {
+        let (_sender, mut shutdown) = watch::channel(false);
+        let mut last_request = Some(Instant::now());
+        let called = std::cell::Cell::new(false);
+        let request = spaced_ticket_request(
+            async {
+                called.set(true);
+                Ok(vec![1])
+            },
+            &mut last_request,
+            &mut shutdown,
+            Duration::from_millis(50),
+            Duration::from_secs(1),
+        );
+        tokio::pin!(request);
+        tokio::select! {
+            result = &mut request => panic!("request ran too soon: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(20)) => {},
+        }
+        assert!(!called.get());
+        assert_eq!(request.await.unwrap(), vec![1]);
+        assert!(called.get());
+    }
+
+    #[test]
+    fn master_retry_starts_at_one_second_and_caps_at_sixty() {
+        let mut retry = Duration::from_secs(1);
+        for expected in [2, 4, 8, 16, 32, 60, 60] {
+            let jitter = jittered(retry);
+            assert!(jitter >= retry.mul_f64(0.8));
+            assert!(jitter <= retry.mul_f64(1.2));
+            retry = next_retry(retry);
+            assert_eq!(retry, Duration::from_secs(expected));
+        }
+    }
+
+    #[test]
+    fn expired_or_abandoned_broker_requests_never_start() {
+        let (response, receiver) = oneshot::channel();
+        let mut command = AssignmentCommand {
+            request: fixture_request(),
+            response,
+            deadline: Instant::now() + Duration::from_secs(1),
+        };
+        assert!(assignment_active(&command));
+        command.deadline = Instant::now() - Duration::from_millis(1);
+        assert!(!assignment_active(&command));
+        command.deadline = Instant::now() + Duration::from_secs(1);
+        drop(receiver);
+        assert!(!assignment_active(&command));
+    }
+
+    #[test]
+    fn collector_keeps_assignment_channel_open_without_broker() {
+        let (sender, mut receiver) = mpsc::channel(1);
+        let (shutdown, _) = watch::channel(false);
+        let runtime = LobbyRuntime {
+            shutdown,
+            tasks: Vec::new(),
+            assignment_sender: Some(sender),
+        };
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::error::TryRecvError::Empty)
+        ));
+        drop(runtime);
+        assert!(matches!(
+            receiver.try_recv(),
+            Err(mpsc::error::TryRecvError::Disconnected)
+        ));
+    }
+
+    #[tokio::test]
+    async fn mock_master_response_two_recycles_connection() {
+        let error = mock_master_assignment(2).await.unwrap_err();
+        assert!(error.is::<MasterRecycle>(), "{error}");
+    }
+
+    #[tokio::test]
+    async fn mock_master_create_and_join_hands_off_room() {
+        let assignment = mock_master_assignment(1).await.unwrap();
+        assert_eq!(assignment.join_id, "join-id");
+        assert_eq!(assignment.port, 7777);
+        assert!(assignment.room_created);
+    }
+
+    #[tokio::test]
+    async fn room_assignment_waits_for_master_disconnect() {
+        let (close_tx, close_rx) = oneshot::channel();
+        let (response_tx, mut response_rx) = oneshot::channel();
+        let room = RoomAssignment {
+            host: "127.0.0.1".into(),
+            join_id: "join-id".into(),
+            key: "room".into(),
+            player_uid: 7,
+            port: 7777,
+            room_created: true,
+            steam_id: "1".into(),
+            token: "fake-token".into(),
+        };
+        let handoff = finish_master_handoff(
+            async {
+                close_rx.await.unwrap();
+                Ok(())
+            },
+            Ok(room),
+            response_tx,
+        );
+        tokio::pin!(handoff);
+        tokio::select! {
+            result = &mut handoff => panic!("handoff completed before disconnect: {result:?}"),
+            result = &mut response_rx => panic!("broker received room before disconnect: {result:?}"),
+            _ = tokio::time::sleep(Duration::from_millis(20)) => {},
+        }
+        close_tx.send(()).unwrap();
+        assert_eq!(handoff.await.unwrap(), MasterExit::Handoff);
+        assert_eq!(response_rx.await.unwrap().unwrap().join_id, "join-id");
+    }
+
+    #[tokio::test]
+    async fn three_sequential_mock_room_assignments_succeed() {
+        for _ in 0..3 {
+            assert_eq!(mock_master_assignment(1).await.unwrap().join_id, "join-id");
+        }
+    }
+
+    #[tokio::test]
+    async fn already_online_disconnect_is_master_error() {
+        let (result, _) = run_mock_master(
+            MockMasterMode::AlreadyOnline,
+            Duration::from_millis(200),
+            None,
+        )
+        .await;
+        let error = result.unwrap_err();
+        assert!(matches!(
+            error.downcast_ref::<LidgrenError>(),
+            Some(LidgrenError::RemoteDisconnect { .. })
+        ));
+        assert!(!error.is::<SteamSessionLost>());
+    }
+
+    #[tokio::test]
+    async fn missing_first_snapshot_forces_reconnect() {
+        let (result, store) =
+            run_mock_master(MockMasterMode::Silent, Duration::from_millis(30), None).await;
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Master server did not send an initial lobby snapshot"
+        );
+        assert!(!matches!(store.get().status, LobbyStatus::Live));
+    }
+
+    #[tokio::test]
+    async fn first_snapshot_and_shutdown_are_distinct_exits() {
+        let (result, store) = run_mock_master(
+            MockMasterMode::Snapshot,
+            Duration::from_millis(200),
+            Some(Duration::from_millis(40)),
+        )
+        .await;
+        assert_eq!(result.unwrap(), MasterExit::Shutdown);
+        assert!(matches!(store.get().status, LobbyStatus::Live));
+    }
+
+    #[tokio::test]
+    async fn mock_master_rejection_keeps_error_specific() {
+        let error = mock_master_assignment(3).await.unwrap_err();
+        assert_eq!(error.to_string(), "Room create rejected");
+    }
+
+    #[tokio::test]
+    async fn cm_reset_is_classified_as_steam_session_failure() {
+        let error = handle_steam_event(
+            Err(steam_client::SteamError::ConnectionError(
+                "No CM servers available".into(),
+            )),
+            std::path::Path::new("unused"),
+        )
+        .await
+        .unwrap_err();
+        assert!(error.is::<SteamSessionLost>());
+        assert_eq!(
+            safe_steam_event_error(&steam_client::SteamError::ConnectionError("secret".into())),
+            "Steam connection error"
+        );
+    }
+
+    #[tokio::test]
+    async fn refresh_token_storage_failure_keeps_live_steam_session() {
+        let missing = std::env::temp_dir()
+            .join(format!("zc-missing-token-parent-{}", uuid::Uuid::new_v4()))
+            .join("refresh-token");
+        let event = steam_client::SteamEvent::Auth(steam_client::AuthEvent::RefreshToken {
+            token: "fake-token".into(),
+            account_name: "Fake Bot".into(),
+        });
+        assert!(handle_steam_event(Ok(Some(event)), &missing).await.is_ok());
     }
 
     #[test]
@@ -796,6 +1530,31 @@ mod tests {
         assert_eq!(reader.read_string(100).unwrap(), "Test room");
         assert!(reader.read_bool().unwrap());
         assert_eq!(reader.read_string(100).unwrap(), "ZeepCentraal");
+    }
+
+    #[test]
+    fn collector_hail_create_and_join_match_bun_wire_fixtures() {
+        // Fixed bytes from the pre-Rust Bun BitWriter and lobby packet layout.
+        fn fixture(bytes: &str) -> Vec<u8> {
+            bytes
+                .split_whitespace()
+                .map(|byte| u8::from_str_radix(byte, 16).unwrap())
+                .collect()
+        }
+        assert_eq!(
+            collector_hail(18, 1, &[1, 2]).unwrap(),
+            fixture(
+                "12 00 00 00 01 00 00 00 00 00 00 00 0c 5a 65 65 70 43 65 6e 74 72 61 61 6c 00 0c 5a 65 65 70 43 65 6e 74 72 61 61 6c 02 00 00 00 01 02 02 00 00 00"
+            )
+        );
+        assert_eq!(
+            collector_create_lobby_packet(64, "Room", true).unwrap(),
+            fixture("74 46 40 00 00 00 04 52 6f 6f 6d 19 b4 ca ca e0 86 ca dc e8 e4 c2 c2 d8 00")
+        );
+        assert_eq!(
+            join_lobby_packet("abc").unwrap(),
+            fixture("06 5e 03 61 62 63")
+        );
     }
 
     #[tokio::test]

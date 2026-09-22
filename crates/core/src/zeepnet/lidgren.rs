@@ -260,6 +260,7 @@ struct PendingReliable {
 
 struct State {
     options: LidgrenClientOptions,
+    connection_id: i64,
     connected: bool,
     handshake_attempts: u8,
     last_received_at: Instant,
@@ -283,6 +284,7 @@ impl State {
         let now = Instant::now();
         Self {
             options,
+            connection_id: random(),
             connected: false,
             handshake_attempts: 0,
             last_received_at: now,
@@ -349,24 +351,27 @@ async fn run_actor(
                     Err(error) => break Err(LidgrenError::Transport(error.kind().to_string())),
                 }
             }
-            Some(command) = commands.recv() => match command {
-                Command::Send { payload, sequence_channel, complete } => {
-                    if let Err((error, complete)) = enqueue_transfer(&mut state, payload, sequence_channel, complete) {
-                        let _ = complete.send(Err(error));
-                    } else if let Err(error) = flush_reliable_queue(&socket, &mut state).await {
-                        break Err(error);
-                    }
-                }
-                Command::Close { reason, complete } => {
-                    if state.connected {
-                        let mut writer = BitWriter::new();
-                        if writer.string(&reason).is_ok() {
-                            let packet = encode_message(DISCONNECT, writer.as_bytes(), writer.bit_length(), 0, false);
-                            let _ = timeout(DISCONNECT_FLUSH_TIMEOUT, socket.send(&packet)).await;
+            command = commands.recv() => {
+                let Some(command) = command else { break Ok(()) };
+                match command {
+                    Command::Send { payload, sequence_channel, complete } => {
+                        if let Err((error, complete)) = enqueue_transfer(&mut state, payload, sequence_channel, complete) {
+                            let _ = complete.send(Err(error));
+                        } else if let Err(error) = flush_reliable_queue(&socket, &mut state).await {
+                            break Err(error);
                         }
                     }
-                    let _ = complete.send(Ok(()));
-                    break Ok(());
+                    Command::Close { reason, complete } => {
+                        if state.connected {
+                            let mut writer = BitWriter::new();
+                            if writer.string(&reason).is_ok() {
+                                let packet = encode_message(DISCONNECT, writer.as_bytes(), writer.bit_length(), 0, false);
+                                let _ = timeout(DISCONNECT_FLUSH_TIMEOUT, socket.send(&packet)).await;
+                            }
+                        }
+                        let _ = complete.send(Ok(()));
+                        break Ok(());
+                    }
                 }
             },
             _ = handshake.tick(), if !state.connected => {
@@ -419,7 +424,7 @@ async fn send_connect(socket: &UdpSocket, state: &State) -> std::result::Result<
     payload
         .string(&state.options.application_identifier)
         .map_err(|_| LidgrenError::MalformedMessage)?;
-    payload.int64(random());
+    payload.int64(state.connection_id);
     payload.float32(now_seconds());
     payload.bytes(&state.options.hail);
     send_message(
@@ -1044,18 +1049,81 @@ mod tests {
         let close = client.close("Client shutting down");
         tokio::pin!(close);
         let mut datagram = [0; 2048];
-        loop {
-            tokio::select! {
-                result = &mut close => { result.unwrap(); break; }
-                received = server.recv_from(&mut datagram) => {
-                    let (length, _) = received.unwrap();
-                    if datagram[0] == DISCONNECT {
-                        assert_eq!(BitReader::new(&datagram[5..length]).string(512).unwrap(), "Client shutting down");
+        let mut closed = false;
+        let mut saw_disconnect = false;
+        timeout(Duration::from_secs(1), async {
+            while !closed || !saw_disconnect {
+                tokio::select! {
+                    result = &mut close, if !closed => { result.unwrap(); closed = true; }
+                    received = server.recv_from(&mut datagram) => {
+                        let (length, _) = received.unwrap();
+                        if datagram[0] == DISCONNECT {
+                            assert_eq!(BitReader::new(&datagram[5..length]).string(512).unwrap(), "Client shutting down");
+                            assert_eq!(&datagram[..length], b"\x87\x00\x00\xa8\x00\x14Client shutting down");
+                            saw_disconnect = true;
+                        }
                     }
                 }
             }
-        }
+        })
+        .await
+        .expect("disconnect packet should arrive");
         assert_eq!(client.wait_for_close().await, Ok(()));
+    }
+
+    #[tokio::test]
+    async fn handshake_retries_keep_one_connection_id() {
+        let server = server().await;
+        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        socket.connect(server.local_addr().unwrap()).await.unwrap();
+        let state = State::new(LidgrenClientOptions::load_balancer(
+            server.local_addr().unwrap(),
+            vec![1, 2, 3],
+        ));
+        let mut datagram = [0; 2048];
+        for _ in 0..2 {
+            send_connect(&socket, &state).await.unwrap();
+            let (length, _) = server.recv_from(&mut datagram).await.unwrap();
+            assert_eq!(datagram[0], CONNECT);
+            let mut reader = BitReader::new(&datagram[5..length]);
+            assert_eq!(reader.string(64).unwrap(), "LoadBalancer");
+            assert_eq!(reader.int64().unwrap(), state.connection_id);
+            reader.float32().unwrap();
+            assert_eq!(reader.bytes(3).unwrap(), [1, 2, 3]);
+        }
+    }
+
+    #[tokio::test]
+    async fn dropping_client_stops_udp_actor() {
+        let server = server().await;
+        let client = LidgrenClient::start(LidgrenClientOptions::load_balancer(
+            server.local_addr().unwrap(),
+            vec![],
+        ))
+        .await
+        .unwrap();
+        let mut datagram = [0; 2048];
+        let (_, remote) = server.recv_from(&mut datagram).await.unwrap();
+        server
+            .send_to(&response("LoadBalancer", &[]), remote)
+            .await
+            .unwrap();
+        client.connect().await.unwrap();
+        let _ = server.recv_from(&mut datagram).await.unwrap(); // ConnectionEstablished
+        let mut closed = client.closed.clone();
+        drop(client);
+        timeout(Duration::from_millis(200), closed.changed())
+            .await
+            .expect("UDP actor should stop when client handle is dropped")
+            .unwrap();
+        assert_eq!(*closed.borrow(), Some(Ok(())));
+        let ping = encode_message(PING, &[7], 8, 0, false);
+        server.send_to(&ping, remote).await.unwrap();
+        while let Ok(Ok((length, _))) =
+            timeout(Duration::from_millis(200), server.recv_from(&mut datagram)).await
+        {
+            assert_ne!(datagram[..length][0], PONG);
+        }
     }
 
     #[tokio::test]
