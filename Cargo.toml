@@ -84,3 +84,7 @@ lto = "thin"
 codegen-units = 1
 strip = "debuginfo"
 panic = "abort"
+
+[patch.crates-io]
+# steam-client-rs 0.2.0 waits for job replies without polling its connection.
+steam-client-rs = { path = "vendor/steam-client-rs" }

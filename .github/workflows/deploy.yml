@@ -34,6 +34,8 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - run: cargo test --locked --workspace
+      - run: cargo clippy --manifest-path vendor/steam-client-rs/Cargo.toml --offline --all-targets -- -D warnings
+      - run: cargo test --manifest-path vendor/steam-client-rs/Cargo.toml --offline --lib ticket_request
 
   ts-quality:
     runs-on: ubuntu-latest

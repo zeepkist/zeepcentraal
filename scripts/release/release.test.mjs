@@ -10,7 +10,10 @@ import { analyzeCommits } from './impact.mjs'
 import { affects, rustTargets } from './targets.mjs'
 
 function git(cwd, ...args) {
-	const result = spawnSync('git', args, { cwd, encoding: 'utf8' })
+	const result = spawnSync('git', ['-c', 'commit.gpgsign=false', ...args], {
+		cwd,
+		encoding: 'utf8',
+	})
 	assert.equal(result.status, 0, result.stderr)
 	return result.stdout.trim()
 }
@@ -44,7 +47,7 @@ test('Rust ABI gate rejects glibc newer than oldest runtime', () => {
 	)
 })
 
-test('GitHub squash title still releases affected Rust services', async () => {
+test('GitHub squash title still releases affected Rust services', { timeout: 30_000 }, async () => {
 	const root = mkdtempSync(join(tmpdir(), 'zc-release-impact-'))
 	const previousTarget = process.env.RELEASE_TARGET
 	try {
@@ -130,7 +133,7 @@ test('GitHub squash title still releases affected Rust services', async () => {
 	} finally {
 		if (previousTarget === undefined) delete process.env.RELEASE_TARGET
 		else process.env.RELEASE_TARGET = previousTarget
-		rmSync(root, { recursive: true, force: true })
+		rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
 	}
 })
 

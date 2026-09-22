@@ -3455,8 +3455,6 @@ dependencies = [
 [[package]]
 name = "steam-client-rs"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c5b268d5ebe0a86ef7c48bbe66214694b5c425d306a6f851d985fb0263f7b2f"
 dependencies = [
  "async-trait",
  "base64 0.22.1",

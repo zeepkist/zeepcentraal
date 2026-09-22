@@ -13,6 +13,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
+    future::Future,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -313,13 +314,26 @@ async fn run_steam_session(
         {
             ticket.clone()
         } else {
-            let ticket = steam
-                .create_encrypted_app_ticket(config.app_id, Some(&TICKET_USER_DATA.to_le_bytes()))
-                .await?;
+            tracing::info!("Requesting Steam encrypted app ticket");
+            let ticket = bounded_ticket_request(
+                async {
+                    steam
+                        .create_encrypted_app_ticket(
+                            config.app_id,
+                            Some(&TICKET_USER_DATA.to_le_bytes()),
+                        )
+                        .await
+                        .map_err(ticket_request_error)
+                },
+                shutdown,
+                ROOM_TIMEOUT,
+            )
+            .await?;
             ensure!(
                 !ticket.is_empty(),
                 "Steam returned an empty encrypted app ticket"
             );
+            tracing::info!("Steam encrypted app ticket acquired");
             cached_ticket = Some((Instant::now(), ticket.clone()));
             ticket
         };
@@ -343,6 +357,33 @@ async fn run_steam_session(
     Ok(())
 }
 
+fn ticket_request_error(error: steam_client::SteamError) -> anyhow::Error {
+    match error {
+        steam_client::SteamError::SteamResult(result) => {
+            anyhow::anyhow!("Steam rejected encrypted app ticket: {result:?}")
+        }
+        steam_client::SteamError::NotConnected => {
+            anyhow::anyhow!("Steam disconnected during encrypted app ticket request")
+        }
+        steam_client::SteamError::Timeout => {
+            anyhow::anyhow!("Steam encrypted app ticket request timed out")
+        }
+        _ => anyhow::anyhow!("Steam encrypted app ticket request failed"),
+    }
+}
+
+async fn bounded_ticket_request(
+    request: impl Future<Output = Result<Vec<u8>>>,
+    shutdown: &mut watch::Receiver<bool>,
+    timeout: Duration,
+) -> Result<Vec<u8>> {
+    tokio::select! {
+        ticket = tokio::time::timeout(timeout, request) =>
+            ticket.context("Steam encrypted app ticket request timed out")?,
+        _ = shutdown.changed() => bail!("Server shutdown"),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn run_master(
     config: &LobbyRuntimeConfig,
@@ -356,6 +397,7 @@ async fn run_master(
     ticket: &[u8],
 ) -> Result<()> {
     let remote = config.master.context("Missing Zeepkist master address")?;
+    tracing::info!(%remote, "Connecting Zeepkist lobby collector to master");
     let hail = master_hail(
         config.build.context("Missing Zeepkist build")?,
         steam_id,
@@ -728,6 +770,46 @@ fn sanitize_lobby_text(value: &str, fallback: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn ticket_request_times_out_without_hanging_collector() {
+        let (_sender, mut shutdown) = watch::channel(false);
+        let result = bounded_ticket_request(
+            std::future::pending::<Result<Vec<u8>>>(),
+            &mut shutdown,
+            Duration::from_millis(1),
+        )
+        .await;
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "Steam encrypted app ticket request timed out"
+        );
+    }
+
+    #[tokio::test]
+    async fn ticket_request_stops_on_shutdown() {
+        let (sender, mut shutdown) = watch::channel(false);
+        sender.send_replace(true);
+        let result = bounded_ticket_request(
+            std::future::pending::<Result<Vec<u8>>>(),
+            &mut shutdown,
+            Duration::from_secs(15),
+        )
+        .await;
+        assert_eq!(result.unwrap_err().to_string(), "Server shutdown");
+    }
+
+    #[test]
+    fn ticket_request_errors_have_safe_phase_diagnostics() {
+        assert_eq!(
+            ticket_request_error(steam_client::SteamError::NotConnected).to_string(),
+            "Steam disconnected during encrypted app ticket request"
+        );
+        assert_eq!(
+            ticket_request_error(steam_client::SteamError::Timeout).to_string(),
+            "Steam encrypted app ticket request timed out"
+        );
+    }
 
     fn account_info_event(name: &str) -> steam_client::SteamEvent {
         steam_client::SteamEvent::Account(steam_client::AccountEvent::AccountInfo {
