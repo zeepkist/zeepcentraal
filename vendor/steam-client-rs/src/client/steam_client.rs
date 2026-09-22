@@ -2255,15 +2255,21 @@ mod tests {
         fn set_session_key(&mut self, _: Option<Vec<u8>>) {}
     }
 
-    fn ticket_response_packet() -> Bytes {
-        let body = steam_protos::CMsgClientEncryptedAppTicketResponse {
+    fn successful_ticket_response() -> steam_protos::CMsgClientEncryptedAppTicketResponse {
+        steam_protos::CMsgClientEncryptedAppTicketResponse {
             app_id: Some(123),
             eresult: Some(1),
             encrypted_ticket: Some(steam_protos::EncryptedAppTicket {
+                ticket_version_no: Some(4),
+                crc_encryptedticket: Some(0x1234),
+                cb_encrypteduserdata: Some(4),
+                cb_encrypted_appownershipticket: Some(9),
                 encrypted_ticket: Some(vec![1, 2, 3]),
-                ..Default::default()
             }),
-        };
+        }
+    }
+
+    fn ticket_response_packet(body: steam_protos::CMsgClientEncryptedAppTicketResponse) -> Bytes {
         let header = crate::protocol::ProtobufMessageHeader {
             job_id_source: u64::MAX,
             job_id_target: 1,
@@ -2272,11 +2278,20 @@ mod tests {
         Bytes::from(SteamMessage::new_proto(EMsg::ClientRequestEncryptedAppTicketResponse, header, &body).encode())
     }
 
+    async fn request_ticket_from(body: steam_protos::CMsgClientEncryptedAppTicketResponse) -> Result<Vec<u8>, SteamError> {
+        let mut client = SteamClient::new(SteamOptions::default());
+        client.steam_id = Some(test_steam_id());
+        client.connection = Some(Box::new(ScriptedConnection::new([Some(ticket_response_packet(body))])));
+        tokio::time::timeout(Duration::from_millis(250), client.create_encrypted_app_ticket(123, None))
+            .await
+            .expect("ticket request must poll Steam")
+    }
+
     #[tokio::test]
     async fn ticket_request_polls_response_and_preserves_other_events_once() {
         let mut client = SteamClient::new(SteamOptions::default());
         client.steam_id = Some(test_steam_id());
-        client.connection = Some(Box::new(ScriptedConnection::new([Some(ticket_response_packet())])));
+        client.connection = Some(Box::new(ScriptedConnection::new([Some(ticket_response_packet(successful_ticket_response()))])));
         client.event_queue.push_back(SteamEvent::Auth(AuthEvent::RefreshToken {
             token: "test-refresh-token".into(),
             account_name: "test-account".into(),
@@ -2290,7 +2305,8 @@ mod tests {
         .await
         .expect("ticket request must poll Steam")
         .expect("ticket response must succeed");
-        assert_eq!(ticket, [1, 2, 3]);
+        // Same protobuf envelope that steam-user forwards to the Zeepkist master.
+        assert_eq!(ticket, [0x08, 0x04, 0x10, 0xb4, 0x24, 0x18, 0x04, 0x20, 0x09, 0x2a, 0x03, 1, 2, 3]);
         assert_eq!(client.gc_tokens, [vec![42]]);
 
         assert!(matches!(
@@ -2302,6 +2318,40 @@ mod tests {
             Ok(Some(SteamEvent::Auth(AuthEvent::GameConnectTokens { .. })))
         ));
         assert_eq!(client.gc_tokens, [vec![42]], "deferred event must not be handled twice");
+    }
+
+    #[tokio::test]
+    async fn ticket_request_rejects_wrong_app_id() {
+        let mut response = successful_ticket_response();
+        response.app_id = Some(456);
+        assert!(matches!(
+            request_ticket_from(response).await,
+            Err(SteamError::ProtocolError(message)) if message == "Steam returned an encrypted app ticket for a different app"
+        ));
+    }
+
+    #[tokio::test]
+    async fn ticket_request_rejects_missing_or_empty_ciphertext() {
+        let mut response = successful_ticket_response();
+        response.encrypted_ticket = None;
+        assert!(matches!(
+            request_ticket_from(response).await,
+            Err(SteamError::ProtocolError(message)) if message == "Steam returned no encrypted app ticket"
+        ));
+
+        let mut response = successful_ticket_response();
+        response.encrypted_ticket.as_mut().expect("fixture has a ticket").encrypted_ticket = Some(Vec::new());
+        assert!(matches!(
+            request_ticket_from(response).await,
+            Err(SteamError::ProtocolError(message)) if message == "Steam returned an empty encrypted app ticket"
+        ));
+    }
+
+    #[tokio::test]
+    async fn ticket_request_rejects_steam_error() {
+        let mut response = successful_ticket_response();
+        response.eresult = Some(2);
+        assert!(matches!(request_ticket_from(response).await, Err(SteamError::SteamResult(steam_enums::EResult::Fail))));
     }
 
     #[tokio::test]

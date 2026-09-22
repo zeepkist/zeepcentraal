@@ -6,6 +6,7 @@
 use std::io::Write;
 
 use byteorder::{LittleEndian, WriteBytesExt};
+use prost::Message;
 use steamid::SteamID;
 
 use crate::{error::SteamError, SteamClient};
@@ -46,7 +47,8 @@ impl SteamClient {
     /// * `user_data` - Optional user data if the app expects it
     ///
     /// # Returns
-    /// The encrypted app ticket as raw bytes.
+    /// The complete protobuf-encoded encrypted app ticket, suitable for sending
+    /// to a game server for validation.
     pub async fn create_encrypted_app_ticket(&mut self, appid: u32, user_data: Option<&[u8]>) -> Result<Vec<u8>, SteamError> {
         if !self.is_logged_in() {
             return Err(SteamError::NotLoggedOn);
@@ -57,11 +59,20 @@ impl SteamClient {
         // Send request and wait for response
         let response: steam_protos::CMsgClientEncryptedAppTicketResponse = self.send_request_and_wait(steam_enums::EMsg::ClientRequestEncryptedAppTicket, &msg).await?;
 
-        if response.eresult.unwrap_or(1) != 1 {
+        if response.eresult.unwrap_or(2) != 1 {
             return Err(SteamError::SteamResult(steam_enums::EResult::from_i32(response.eresult.unwrap_or(2)).unwrap_or(steam_enums::EResult::Fail)));
         }
 
-        Ok(response.encrypted_ticket.and_then(|t| t.encrypted_ticket).unwrap_or_default())
+        if response.app_id != Some(appid) {
+            return Err(SteamError::ProtocolError("Steam returned an encrypted app ticket for a different app".into()));
+        }
+
+        let ticket = response.encrypted_ticket.ok_or_else(|| SteamError::ProtocolError("Steam returned no encrypted app ticket".into()))?;
+        if !matches!(ticket.encrypted_ticket.as_ref(), Some(bytes) if !bytes.is_empty()) {
+            return Err(SteamError::ProtocolError("Steam returned an empty encrypted app ticket".into()));
+        }
+
+        Ok(ticket.encode_to_vec())
     }
 
     /// Request an app ownership ticket for a particular app.
