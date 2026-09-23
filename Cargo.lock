@@ -5018,7 +5018,7 @@ version = "3.0.0"
 dependencies = [
  "anyhow",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "jiff",
  "reqwest 0.13.5",
  "scalar_api_reference",
