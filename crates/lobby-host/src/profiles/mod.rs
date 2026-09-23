@@ -13,6 +13,7 @@ use std::sync::Arc;
 use zc_core::object_storage::ObjectStorage;
 use zc_database::Database;
 
+use assets::SubmissionPlaylist;
 pub use assets::{SubmissionAsset, SubmissionAssets, TournamentAsset, TournamentAssets};
 pub use track_tournament::TrackTournamentProfile;
 pub use zsl_submissions::ZslSubmissionsProfile;

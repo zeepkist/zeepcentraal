@@ -1,12 +1,16 @@
 use crate::assets::{LevelLoader, PreparedLevel, PreparedPlaylist};
 use anyhow::{Context, Result, ensure};
 use serde::Deserialize;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::Mutex;
 use zc_core::{
     object_storage::{DownloadConstraints, ObjectStorage},
     zeepnet::OnlineLevel,
 };
-use zc_database::{Database, services::lobby_assets::TournamentLobbyAsset};
+use zc_database::{
+    Database,
+    services::{inspector::InspectorPlaylistBundle, lobby_assets::TournamentLobbyAsset},
+};
 
 const MAX_LEVEL_BYTES: usize = 64 * 1024 * 1024;
 
@@ -133,13 +137,32 @@ pub struct SubmissionAssets {
     database: Database,
     storage: Arc<dyn ObjectStorage>,
     thread_id: String,
+    loaded: Arc<Mutex<HashMap<String, Arc<[u8]>>>>,
+}
+
+pub(super) enum SubmissionPlaylist {
+    Missing,
+    Empty,
+    Ready(SubmissionAsset),
 }
 
 #[derive(Clone)]
 pub struct SubmissionAsset {
     pub digest: String,
-    pub first: PreparedLevel,
     pub playlist: PreparedPlaylist,
+}
+
+impl SubmissionAsset {
+    pub async fn load(&self, uid: &str, workshop_id: u64) -> Result<Option<PreparedLevel>> {
+        self.playlist.load(uid, workshop_id).await
+    }
+
+    pub async fn first(&self) -> Result<PreparedLevel> {
+        let level = &self.playlist.levels[0];
+        self.load(&level.uid, level.workshop_id)
+            .await?
+            .context("Submission playlist first level unavailable")
+    }
 }
 
 impl SubmissionAssets {
@@ -148,17 +171,26 @@ impl SubmissionAssets {
             database,
             storage,
             thread_id,
+            loaded: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    pub async fn refresh(self: &Arc<Self>) -> Result<Option<SubmissionAsset>> {
+    pub(super) async fn refresh(&self) -> Result<SubmissionPlaylist> {
         let Some(bundle) = self
             .database
             .get_inspector_playlist(&self.thread_id)
             .await?
         else {
-            return Ok(None);
+            return Ok(SubmissionPlaylist::Missing);
         };
+        Self::from_bundle(bundle, self.storage.clone(), self.loaded.clone())
+    }
+
+    fn from_bundle(
+        bundle: InspectorPlaylistBundle,
+        storage: Arc<dyn ObjectStorage>,
+        loaded: Arc<Mutex<HashMap<String, Arc<[u8]>>>>,
+    ) -> Result<SubmissionPlaylist> {
         let entries = bundle
             .members
             .into_iter()
@@ -177,7 +209,7 @@ impl SubmissionAssets {
             })
             .collect::<Result<Vec<_>>>()?;
         if entries.is_empty() {
-            return Ok(None);
+            return Ok(SubmissionPlaylist::Empty);
         }
         ensure!(
             entries.len() <= 1_001,
@@ -189,16 +221,12 @@ impl SubmissionAssets {
             .collect();
         let loader: Arc<dyn LevelLoader> = Arc::new(SubmissionLoader {
             entries: entries.clone().into(),
-            storage: self.storage.clone(),
+            storage,
+            loaded,
         });
-        let playlist = PreparedPlaylist::new(levels, loader.clone())?;
-        let first = loader
-            .load(&entries[0].payload.uid, entries[0].workshop_id)
-            .await?
-            .context("Submission playlist first level unavailable")?;
-        Ok(Some(SubmissionAsset {
+        let playlist = PreparedPlaylist::new(levels, loader)?;
+        Ok(SubmissionPlaylist::Ready(SubmissionAsset {
             digest: bundle.playlist.digest,
-            first,
             playlist,
         }))
     }
@@ -207,6 +235,7 @@ impl SubmissionAssets {
 struct SubmissionLoader {
     entries: Arc<[SubmissionEntry]>,
     storage: Arc<dyn ObjectStorage>,
+    loaded: Arc<Mutex<HashMap<String, Arc<[u8]>>>>,
 }
 
 #[async_trait::async_trait]
@@ -220,19 +249,30 @@ impl LevelLoader for SubmissionLoader {
             return Ok(None);
         };
         let payload = &entry.payload;
-        let data = self
-            .storage
-            .download(
-                &payload.object_key,
-                DownloadConstraints {
-                    max_bytes: MAX_LEVEL_BYTES,
-                    expected_bytes: Some(payload.byte_size),
-                    expected_sha256: Some(&payload.sha256),
-                },
-            )
-            .await?;
+        let cached = self.loaded.lock().await.get(&payload.sha256).cloned();
+        let data = if let Some(cached) = cached.filter(|data| data.len() == payload.byte_size) {
+            cached
+        } else {
+            let downloaded: Arc<[u8]> = self
+                .storage
+                .download(
+                    &payload.object_key,
+                    DownloadConstraints {
+                        max_bytes: MAX_LEVEL_BYTES,
+                        expected_bytes: Some(payload.byte_size),
+                        expected_sha256: Some(&payload.sha256),
+                    },
+                )
+                .await?
+                .into();
+            self.loaded
+                .lock()
+                .await
+                .insert(payload.sha256.clone(), downloaded.clone());
+            downloaded
+        };
         Ok(Some(PreparedLevel {
-            compressed_data: data.into(),
+            compressed_data: data,
             content_sha256: payload.sha256.clone().into(),
             level: online_level(workshop_id, payload),
         }))
@@ -264,4 +304,94 @@ fn validate_submission_payload(payload: &SubmissionPayload) -> Result<()> {
         "Invalid inspector payload metadata"
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use zc_database::services::inspector::{InspectorPlaylistMemberRow, InspectorPlaylistRow};
+
+    #[derive(Default)]
+    struct TestStorage {
+        downloads: AtomicUsize,
+    }
+
+    #[async_trait::async_trait]
+    impl ObjectStorage for TestStorage {
+        async fn upload(&self, _: &str, _: Vec<u8>, _: &str) -> Result<()> {
+            unreachable!()
+        }
+
+        async fn download(&self, _: &str, _: DownloadConstraints<'_>) -> Result<Vec<u8>> {
+            self.downloads.fetch_add(1, Ordering::Relaxed);
+            Ok(vec![1, 2, 3])
+        }
+
+        async fn delete(&self, _: &str) -> Result<()> {
+            unreachable!()
+        }
+    }
+
+    fn bundle(digest: &str) -> InspectorPlaylistBundle {
+        InspectorPlaylistBundle {
+            playlist: InspectorPlaylistRow {
+                id: 1,
+                digest: digest.into(),
+                valid_count: 1,
+                object_key: "inspector/playlist".into(),
+                date_created_epoch: 0,
+            },
+            members: vec![InspectorPlaylistMemberRow {
+                id_validation: 1,
+                workshop_id: 42,
+                valid: true,
+                payload: Some(serde_json::json!({
+                    "sha256": "0".repeat(64),
+                    "byteSize": 3,
+                    "uid": "level-42",
+                    "name": "Level",
+                    "author": "Author",
+                    "objectKey": "inspector/level"
+                })),
+            }],
+        }
+    }
+
+    #[tokio::test]
+    async fn refresh_builds_metadata_without_downloading_and_reuses_loaded_level() -> Result<()> {
+        let storage = Arc::new(TestStorage::default());
+        let loaded = Arc::new(Mutex::new(HashMap::new()));
+        let SubmissionPlaylist::Ready(asset) =
+            SubmissionAssets::from_bundle(bundle("a"), storage.clone(), loaded.clone())?
+        else {
+            panic!("expected playlist");
+        };
+        assert_eq!(storage.downloads.load(Ordering::Relaxed), 0);
+        assert_eq!(asset.first().await?.level.uid, "level-42");
+        assert_eq!(asset.first().await?.level.uid, "level-42");
+        let SubmissionPlaylist::Ready(republished) =
+            SubmissionAssets::from_bundle(bundle("b"), storage.clone(), loaded)?
+        else {
+            panic!("expected republished playlist");
+        };
+        assert_eq!(republished.first().await?.level.uid, "level-42");
+        assert_eq!(storage.downloads.load(Ordering::Relaxed), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn empty_published_playlist_is_distinct_from_missing_playlist() -> Result<()> {
+        let mut bundle = bundle("empty");
+        bundle.members.clear();
+        assert!(matches!(
+            SubmissionAssets::from_bundle(
+                bundle,
+                Arc::new(TestStorage::default()),
+                Arc::new(Mutex::new(HashMap::new()))
+            )?,
+            SubmissionPlaylist::Empty
+        ));
+        Ok(())
+    }
 }
