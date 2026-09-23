@@ -14,7 +14,7 @@
         "golar": "~0.1.10",
         "lint-staged": "~17.5.0",
         "semantic-release": "~25.0.8",
-        "skills": "~1.5.21",
+        "skills": "~1.7.0",
         "typescript": "~7.0.2",
       },
     },
@@ -3827,7 +3827,7 @@
 
     "sitemapd": ["sitemapd@0.2.0", "", { "dependencies": { "fast-xml-parser": "^5.10.1" } }, "sha512-gpZhUzDIbMneHj8djlUVjQeevA50ZaHlHQKwl/k8lHBXGr8tqXasrOdi1uYVP6PWjnh5HEBZv1tgVavgbxilVg=="],
 
-    "skills": ["skills@1.5.21", "", { "dependencies": { "tar": "^7.5.20", "yaml": "^2.8.3" }, "bin": { "skills": "bin/cli.mjs", "add-skill": "bin/cli.mjs" } }, "sha512-CJ4wx692UkQAW+DLpjJg/ww6dJBojq5E8sQBOqP639GutO72v4EFiV/fq1etW2r9NhM/mwaIq8YoqKFJ9XV7ng=="],
+    "skills": ["skills@1.7.0", "", { "dependencies": { "tar": "^7.5.20", "yaml": "^2.8.3" }, "bin": { "skills": "bin/cli.mjs", "add-skill": "bin/cli.mjs" } }, "sha512-OfePnDft+Xt9/tCoHdCUe5fkM8i+Q3QOSQO53hm7mKtsXyvc+CKOAAliVWZ484HS3cWx+6r+ob0AArixs3jYXw=="],
 
     "skin-tone": ["skin-tone@2.0.0", "", { "dependencies": { "unicode-emoji-modifier-base": "^1.0.0" } }, "sha512-kUMbT1oBJCpgrnKoSr0o6wPtvRWT9W9UKvGLwfJYO2WuahZRHOpEyL1ckyMGgMWh0UdpmaoFqKKD29WTomNEGA=="],
 

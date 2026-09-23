@@ -63,7 +63,7 @@
 		"golar": "~0.1.10",
 		"lint-staged": "~17.5.0",
 		"semantic-release": "~25.0.8",
-		"skills": "~1.5.21",
+		"skills": "~1.7.0",
 		"typescript": "~7.0.2"
 	}
 }
