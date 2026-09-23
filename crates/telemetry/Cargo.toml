@@ -21,7 +21,7 @@ zc-core.workspace = true
 
 [dev-dependencies]
 opentelemetry-proto = { version = "0.31", default-features = false, features = ["gen-tonic", "trace", "metrics", "logs"] }
-opentelemetry_sdk = { version = "0.31", features = ["testing"] }
+opentelemetry_sdk = { version = "0.32", features = ["testing"] }
 tokio-stream = { workspace = true, features = ["net"] }
 tonic = { workspace = true, features = ["router", "server"] }
 tower = { workspace = true, features = ["util"] }
