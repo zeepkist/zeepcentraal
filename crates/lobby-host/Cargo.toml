@@ -19,6 +19,9 @@ zc-core.workspace = true
 zc-database.workspace = true
 zc-telemetry.workspace = true
 
+[dev-dependencies]
+tracing-subscriber.workspace = true
+
 [[bin]]
 name = "zeepcentraal-lobby-host"
 path = "src/main.rs"

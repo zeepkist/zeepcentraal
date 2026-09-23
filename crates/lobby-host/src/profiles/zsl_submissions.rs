@@ -10,7 +10,10 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 use tokio::sync::{Mutex, Notify, RwLock};
-use zc_core::{object_storage::ObjectStorage, zeepnet::GameHostPacket};
+use zc_core::{
+    object_storage::ObjectStorage,
+    zeepnet::{GameHostPacket, OnlineLevel},
+};
 use zc_database::Database;
 
 pub struct ZslSubmissionsProfile {
@@ -119,6 +122,7 @@ impl LobbyProfile for ZslSubmissionsProfile {
                     && level.workshop_id == current.level.level.workshop_id
             })
             .context("Submission current level absent from playlist")?;
+        let next_index = (current_index + 1) % current.asset.playlist.levels.len();
         Ok(Arc::new(ZslSubmissionsSession {
             config: self.config.clone(),
             assets: self.assets.clone(),
@@ -128,10 +132,14 @@ impl LobbyProfile for ZslSubmissionsProfile {
                 active: current.asset,
                 pending: None,
                 current_index,
+                next_index,
             }),
             initial_level: current.level,
             stopped: AtomicBool::new(false),
             wake: Notify::new(),
+            boundary: Notify::new(),
+            poll: Mutex::new(()),
+            transitioning: AtomicBool::new(false),
         }))
     }
 
@@ -145,6 +153,39 @@ struct SessionState {
     active: SubmissionAsset,
     pending: Option<SubmissionAsset>,
     current_index: usize,
+    next_index: usize,
+}
+
+struct TransitionGuard<'a>(&'a AtomicBool);
+
+impl Drop for TransitionGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
+}
+
+fn digest_prefix(digest: &str) -> &str {
+    digest.get(..12).unwrap_or(digest)
+}
+
+fn level_position(asset: &SubmissionAsset, level: &OnlineLevel) -> Option<usize> {
+    asset.playlist.levels.iter().position(|candidate| {
+        candidate.uid == level.uid && candidate.workshop_id == level.workshop_id
+    })
+}
+
+fn retained_indices(state: &SessionState, asset: &SubmissionAsset) -> Option<(usize, usize)> {
+    let current = state.active.playlist.levels.get(state.current_index)?;
+    let current_index = level_position(asset, current)?;
+    let next_index = state
+        .active
+        .playlist
+        .levels
+        .get(state.next_index)
+        .and_then(|next| level_position(asset, next))
+        .filter(|next| *next != current_index)
+        .unwrap_or((current_index + 1) % asset.playlist.levels.len());
+    Some((current_index, next_index))
 }
 
 struct ZslSubmissionsSession {
@@ -156,6 +197,9 @@ struct ZslSubmissionsSession {
     initial_level: crate::assets::PreparedLevel,
     stopped: AtomicBool,
     wake: Notify,
+    boundary: Notify,
+    poll: Mutex<()>,
+    transitioning: AtomicBool,
 }
 
 impl ZslSubmissionsSession {
@@ -170,7 +214,57 @@ impl ZslSubmissionsSession {
             .await
     }
 
+    async fn refresh_overlay(&self) {
+        if let Err(error) = self.overlay().await {
+            tracing::warn!(%error, "Submission showcase message failed");
+        }
+    }
+
+    async fn apply_retained(
+        &self,
+        state: &mut SessionState,
+        candidate: SubmissionAsset,
+    ) -> Result<bool> {
+        let Some((current_index, next_index)) = retained_indices(state, &candidate) else {
+            return Ok(false);
+        };
+        let entries = candidate.playlist.levels.len();
+        if let Err(error) = self
+            .context
+            .update_playlist(
+                candidate.playlist.clone(),
+                current_index as i32,
+                next_index as i32,
+            )
+            .await
+        {
+            tracing::warn!(
+                room = %self.config.key,
+                digest = digest_prefix(&candidate.digest),
+                entries,
+                %error,
+                "Submission playlist update failed"
+            );
+            return Err(error);
+        }
+        state.current_index = current_index;
+        state.next_index = next_index;
+        state.pending = None;
+        state.active = candidate;
+        tracing::info!(
+            room = %self.config.key,
+            digest = digest_prefix(&state.active.digest),
+            entries,
+            "Submission playlist update applied"
+        );
+        Ok(true)
+    }
+
     async fn refresh(&self) -> Result<()> {
+        let _poll = self.poll.lock().await;
+        if self.transitioning.load(Ordering::Acquire) {
+            return Ok(());
+        }
         let next = match self.assets.refresh().await {
             Ok(SubmissionPlaylist::Ready(next)) => next,
             Ok(SubmissionPlaylist::Missing) => {
@@ -188,17 +282,35 @@ impl ZslSubmissionsSession {
         }
         let mut state = self.state.lock().await;
         if next.digest != state.active.digest {
-            if state
+            let staged = state
                 .pending
                 .as_ref()
-                .is_none_or(|pending| pending.digest != next.digest)
-            {
+                .is_none_or(|pending| pending.digest != next.digest);
+            if staged {
                 tracing::info!(
                     room = %self.config.key,
+                    digest = digest_prefix(&next.digest),
                     entries = next.playlist.levels.len(),
                     "Submission playlist update staged"
                 );
                 state.pending = Some(next);
+            }
+            let candidate = state
+                .pending
+                .clone()
+                .expect("changed digest has pending asset");
+            let applied = self.apply_retained(&mut state, candidate.clone()).await?;
+            if !applied && staged {
+                tracing::info!(
+                    room = %self.config.key,
+                    digest = digest_prefix(&candidate.digest),
+                    entries = candidate.playlist.levels.len(),
+                    "Submission playlist update deferred until round boundary"
+                );
+            }
+            drop(state);
+            if applied {
+                self.refresh_overlay().await;
             }
         } else {
             state.pending = None;
@@ -207,38 +319,152 @@ impl ZslSubmissionsSession {
     }
 
     async fn select_next(&self) -> Result<()> {
-        let (playlist, current, next, changed) = {
-            let mut state = self.state.lock().await;
-            let mut removed_current = false;
-            let mut changed = false;
-            if let Some(pending) = state.pending.take() {
-                let current_level = state.active.playlist.levels.get(state.current_index);
-                let retained = current_level.and_then(|level| {
-                    pending.playlist.levels.iter().position(|candidate| {
-                        candidate.uid == level.uid && candidate.workshop_id == level.workshop_id
-                    })
-                });
-                state.active = pending;
-                state.current_index = retained.unwrap_or(0);
-                removed_current = retained.is_none();
-                changed = true;
-            }
-            let len = state.active.playlist.levels.len();
-            let current = state.current_index.min(len - 1);
-            let next = if removed_current {
-                0
-            } else {
-                (current + 1) % len
-            };
-            (state.active.playlist.clone(), current, next, changed)
-        };
-        let entries = playlist.levels.len();
-        self.context
-            .update_playlist(playlist, current as i32, next as i32)
-            .await?;
-        if changed {
-            tracing::info!(room = %self.config.key, entries, "Submission playlist update applied");
+        let mut state = self.state.lock().await;
+        if self.transitioning.load(Ordering::Acquire) {
+            return Ok(());
         }
+        let changed = state.pending.is_some();
+        let candidate = state
+            .pending
+            .clone()
+            .unwrap_or_else(|| state.active.clone());
+        let retained = retained_indices(&state, &candidate);
+        let current_index = retained.map_or(0, |(current, _)| current);
+        let next_index = if retained.is_some() {
+            (current_index + 1) % candidate.playlist.levels.len()
+        } else {
+            0
+        };
+        let entries = candidate.playlist.levels.len();
+        if let Err(error) = self
+            .context
+            .update_playlist(
+                candidate.playlist.clone(),
+                current_index as i32,
+                next_index as i32,
+            )
+            .await
+        {
+            tracing::warn!(
+                room = %self.config.key,
+                digest = digest_prefix(&candidate.digest),
+                entries,
+                %error,
+                "Submission playlist update failed"
+            );
+            return Err(error);
+        }
+        state.current_index = current_index;
+        state.next_index = next_index;
+        if changed {
+            state.active = candidate;
+            state.pending = None;
+            tracing::info!(
+                room = %self.config.key,
+                digest = digest_prefix(&state.active.digest),
+                entries,
+                "Submission playlist update applied"
+            );
+        }
+        drop(state);
+        if changed {
+            self.refresh_overlay().await;
+        }
+        Ok(())
+    }
+
+    async fn apply_at_boundary(&self) -> Result<()> {
+        let mut state = self.state.lock().await;
+        if self.transitioning.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let Some(candidate) = state.pending.clone() else {
+            return Ok(());
+        };
+        let applied = self.apply_retained(&mut state, candidate).await?;
+        drop(state);
+        if applied {
+            self.refresh_overlay().await;
+        } else {
+            self.boundary.notify_one();
+        }
+        Ok(())
+    }
+
+    async fn activate_deferred(&self) -> Result<()> {
+        if self.stopped.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let _poll = self.poll.lock().await;
+        let state = self.state.lock().await;
+        let Some(candidate) = state.pending.clone() else {
+            return Ok(());
+        };
+        if retained_indices(&state, &candidate).is_some() {
+            drop(state);
+            return self.apply_at_boundary().await;
+        }
+        self.transitioning.store(true, Ordering::Release);
+        let transition = TransitionGuard(&self.transitioning);
+        // The receive loop must stay free to deliver the new level request.
+        drop(state);
+        let entries = candidate.playlist.levels.len();
+        let first_result = tokio::select! {
+            result = candidate.first() => result,
+            _ = self.wake.notified() => return Ok(()),
+        };
+        let first = match first_result {
+            Ok(first) => first,
+            Err(error) => {
+                tracing::warn!(
+                    room = %self.config.key,
+                    digest = digest_prefix(&candidate.digest),
+                    entries,
+                    %error,
+                    "Submission playlist update failed"
+                );
+                return Err(error);
+            }
+        };
+        if self.stopped.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let result = tokio::select! {
+            result = self.context.activate(first.clone(), Some(candidate.playlist.clone())) => result,
+            _ = self.wake.notified() => return Ok(()),
+        };
+        if let Err(error) = result {
+            tracing::warn!(
+                room = %self.config.key,
+                digest = digest_prefix(&candidate.digest),
+                entries,
+                %error,
+                "Submission playlist update failed"
+            );
+            return Err(error);
+        }
+        if self.stopped.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let mut state = self.state.lock().await;
+        let active = candidate.clone();
+        state.active = candidate;
+        state.pending = None;
+        state.current_index = 0;
+        state.next_index = usize::from(entries > 1);
+        tracing::info!(
+            room = %self.config.key,
+            digest = digest_prefix(&state.active.digest),
+            entries,
+            "Submission playlist update applied"
+        );
+        drop(state);
+        *self.current.write().await = Some(CurrentSubmission {
+            asset: active,
+            level: first,
+        });
+        drop(transition);
+        self.refresh_overlay().await;
         Ok(())
     }
 }
@@ -258,35 +484,51 @@ impl ProfileSession for ZslSubmissionsSession {
         refresh.tick().await;
         message.tick().await;
         loop {
+            if self.stopped.load(Ordering::Acquire) {
+                return Ok(());
+            }
             tokio::select! {
                 _ = self.wake.notified() => return Ok(()),
                 _ = refresh.tick() => self.refresh().await?,
+                _ = self.boundary.notified() => self.activate_deferred().await?,
                 _ = message.tick() => {
-                    if let Err(error) = self.overlay().await {
-                        tracing::warn!(%error, "Submission showcase message failed");
-                    }
+                    self.refresh_overlay().await;
                 },
             }
         }
     }
 
     async fn on_packet(&self, packet: &GameHostPacket) -> Result<()> {
-        if self.stopped.load(Ordering::Acquire) {
+        if self.stopped.load(Ordering::Acquire) || self.transitioning.load(Ordering::Acquire) {
             return Ok(());
         }
         if let GameHostPacket::PlaylistIndex {
             current_index,
+            next_index,
             select_next,
-            ..
         } = packet
         {
             if *select_next {
                 self.select_next().await?;
             } else if *current_index >= 0 {
                 let mut state = self.state.lock().await;
+                if self.transitioning.load(Ordering::Acquire) {
+                    return Ok(());
+                }
                 let index = *current_index as usize;
                 if index < state.active.playlist.levels.len() {
+                    let changed = state.current_index != index;
                     state.current_index = index;
+                    if *next_index >= 0
+                        && (*next_index as usize) < state.active.playlist.levels.len()
+                    {
+                        state.next_index = *next_index as usize;
+                    }
+                    let has_pending = state.pending.is_some();
+                    drop(state);
+                    if changed && has_pending {
+                        self.apply_at_boundary().await?;
+                    }
                 }
             }
         }
@@ -295,9 +537,34 @@ impl ProfileSession for ZslSubmissionsSession {
 
     async fn on_transfer(&self, event: &TransferEvent) -> Result<()> {
         if self.stopped.load(Ordering::Acquire)
+            || self.transitioning.load(Ordering::Acquire)
             || event.kind != crate::transfer::TransferEventKind::Ready
         {
             return Ok(());
+        }
+        let mut state = self.state.lock().await;
+        if self.transitioning.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let changed = state
+            .active
+            .playlist
+            .levels
+            .get(state.current_index)
+            .is_some_and(|current| {
+                current.uid != event.level.level.uid
+                    || current.workshop_id != event.level.level.workshop_id
+            });
+        if let Some(index) = level_position(&state.active, &event.level.level) {
+            state.current_index = index;
+            if changed {
+                state.next_index = (index + 1) % state.active.playlist.levels.len();
+            }
+        }
+        let has_pending = state.pending.is_some();
+        drop(state);
+        if changed && has_pending {
+            self.apply_at_boundary().await?;
         }
         let asset = self.state.lock().await.active.clone();
         if asset.playlist.levels.iter().any(|level| {
@@ -313,7 +580,7 @@ impl ProfileSession for ZslSubmissionsSession {
 
     async fn stop(&self) {
         if !self.stopped.swap(true, Ordering::AcqRel) {
-            self.wake.notify_waiters();
+            self.wake.notify_one();
         }
     }
 }
@@ -327,8 +594,8 @@ mod tests {
         config::LobbyHostFileConfig,
         transfer::TransferEventKind,
     };
-    use std::collections::VecDeque;
-    use zc_core::zeepnet::{OnlineLevel, parse_game_host_packet};
+    use std::{collections::VecDeque, sync::atomic::AtomicUsize};
+    use zc_core::zeepnet::{OnlineLevel, chat_message_packet, parse_game_host_packet};
 
     struct TestSource {
         results: Mutex<VecDeque<Result<SubmissionPlaylist>>>,
@@ -413,12 +680,22 @@ mod tests {
                 Ok(())
             }
         }));
+        session_with_sender(active, current_index, source, sender).await
+    }
+
+    async fn session_with_sender(
+        active: SubmissionAsset,
+        current_index: usize,
+        source: Arc<TestSource>,
+        sender: Arc<dyn crate::chat::PacketSender>,
+    ) -> Result<ZslSubmissionsSession> {
         let context = RoomContext::for_test(sender, 1)?;
         let level = &active.playlist.levels[current_index];
         let initial_level = active
             .load(&level.uid, level.workshop_id)
             .await?
             .context("Missing test level")?;
+        let next_index = (current_index + 1) % active.playlist.levels.len();
         Ok(ZslSubmissionsSession {
             config: config()?,
             assets: source,
@@ -428,20 +705,27 @@ mod tests {
                 active,
                 pending: None,
                 current_index,
+                next_index,
             }),
             initial_level,
             stopped: AtomicBool::new(false),
             wake: Notify::new(),
+            boundary: Notify::new(),
+            poll: Mutex::new(()),
+            transitioning: AtomicBool::new(false),
         })
     }
 
     async fn selected_indices(sent: &Mutex<Vec<Vec<u8>>>) -> Result<(i32, i32, Vec<u64>)> {
         let sent = sent.lock().await;
-        let GameHostPacket::Playlist(playlist) =
-            parse_game_host_packet(sent.last().context("No playlist packet")?)?
-        else {
-            panic!("expected playlist packet");
-        };
+        let playlist = sent
+            .iter()
+            .rev()
+            .find_map(|packet| match parse_game_host_packet(packet) {
+                Ok(GameHostPacket::Playlist(playlist)) => Some(playlist),
+                _ => None,
+            })
+            .context("No playlist packet")?;
         Ok((
             playlist.current_index,
             playlist.next_index,
@@ -467,6 +751,266 @@ mod tests {
             submission_message(2, 900),
             "/servermessage yellow 900 <b>ZSL Level Contest Submissions</b>\n2 valid submissions"
         );
+    }
+
+    #[tokio::test]
+    async fn poll_applies_30_to_31_without_select_next_and_refreshes_overlay() -> Result<()> {
+        let original_ids = (1..=30).collect::<Vec<_>>();
+        let updated_ids = (1..=31).collect::<Vec<_>>();
+        let source = Arc::new(TestSource::new(vec![Ok(SubmissionPlaylist::Ready(asset(
+            "published-31",
+            &updated_ids,
+        )?))]));
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let session = session(
+            asset("published-30", &original_ids)?,
+            5,
+            source,
+            sent.clone(),
+        )
+        .await?;
+
+        session.refresh().await?;
+
+        assert_eq!(selected_indices(&sent).await?, (5, 6, updated_ids));
+        let packets = sent.lock().await;
+        assert_eq!(packets.len(), 2);
+        assert_eq!(
+            packets[1],
+            chat_message_packet(&submission_message(31, session.config.round_time_seconds))?
+        );
+        let state = session.state.lock().await;
+        assert_eq!(state.active.digest, "published-31");
+        assert_eq!(state.current_index, 5);
+        assert_eq!(session.initial_level.level.workshop_id, 6);
+        assert!(state.pending.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn poll_maps_current_and_next_levels_across_reordering() -> Result<()> {
+        let source = Arc::new(TestSource::new(vec![Ok(SubmissionPlaylist::Ready(asset(
+            "reordered",
+            &[4, 2, 1, 3],
+        )?))]));
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let session = session(asset("original", &[1, 2, 3, 4])?, 1, source, sent.clone()).await?;
+
+        session.refresh().await?;
+
+        assert_eq!(selected_indices(&sent).await?, (1, 3, vec![4, 2, 1, 3]));
+        assert_eq!(session.state.lock().await.next_index, 3);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn rapid_publications_apply_latest_and_reversion() -> Result<()> {
+        let source = Arc::new(TestSource::new(vec![
+            Ok(SubmissionPlaylist::Ready(asset("second", &[1, 2, 3])?)),
+            Ok(SubmissionPlaylist::Ready(asset("third", &[1, 2, 3, 4])?)),
+            Ok(SubmissionPlaylist::Ready(asset("first", &[1, 2])?)),
+        ]));
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let session = session(asset("first", &[1, 2])?, 0, source, sent.clone()).await?;
+
+        session.refresh().await?;
+        session.refresh().await?;
+        session.refresh().await?;
+
+        assert_eq!(selected_indices(&sent).await?, (0, 1, vec![1, 2]));
+        assert_eq!(session.state.lock().await.active.digest, "first");
+        assert_eq!(
+            sent.lock()
+                .await
+                .iter()
+                .filter(|packet| matches!(
+                    parse_game_host_packet(packet),
+                    Ok(GameHostPacket::Playlist(_))
+                ))
+                .count(),
+            3
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn failed_send_does_not_commit_and_next_poll_retries() -> Result<()> {
+        let source = Arc::new(TestSource::new(vec![
+            Ok(SubmissionPlaylist::Ready(asset("new", &[1, 2, 3])?)),
+            Ok(SubmissionPlaylist::Ready(asset("new", &[1, 2, 3])?)),
+        ]));
+        let calls = Arc::new(AtomicUsize::new(0));
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let sender = Arc::new(FnPacketSender({
+            let calls = calls.clone();
+            let sent = sent.clone();
+            move |packet| {
+                let calls = calls.clone();
+                let sent = sent.clone();
+                async move {
+                    if calls.fetch_add(1, Ordering::AcqRel) == 0 {
+                        anyhow::bail!("mock packet send failed");
+                    }
+                    sent.lock().await.push(packet);
+                    Ok(())
+                }
+            }
+        }));
+        let session = session_with_sender(asset("old", &[1, 2])?, 0, source, sender).await?;
+
+        assert!(session.refresh().await.is_err());
+        {
+            let state = session.state.lock().await;
+            assert_eq!(state.active.digest, "old");
+            assert_eq!(state.pending.as_ref().unwrap().digest, "new");
+        }
+        session.refresh().await?;
+        assert_eq!(selected_indices(&sent).await?, (0, 1, vec![1, 2, 3]));
+        assert_eq!(session.state.lock().await.active.digest, "new");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn ready_boundary_applies_deferred_playlist_without_select_next() -> Result<()> {
+        let original = asset("old", &[1, 2, 3])?;
+        let next_level = original.load("uid-3", 3).await?.unwrap();
+        let source = Arc::new(TestSource::new(vec![Ok(SubmissionPlaylist::Ready(asset(
+            "new",
+            &[3, 4],
+        )?))]));
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let session = session(original, 1, source, sent.clone()).await?;
+
+        session.refresh().await?;
+        assert!(sent.lock().await.is_empty());
+        session
+            .on_transfer(&TransferEvent {
+                kind: TransferEventKind::Ready,
+                level: next_level,
+            })
+            .await?;
+
+        assert_eq!(selected_indices(&sent).await?, (0, 1, vec![3, 4]));
+        assert_eq!(session.state.lock().await.active.digest, "new");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn playlist_index_boundary_applies_deferred_playlist_without_select_next() -> Result<()> {
+        let source = Arc::new(TestSource::new(vec![Ok(SubmissionPlaylist::Ready(asset(
+            "new",
+            &[3, 4],
+        )?))]));
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let session = session(asset("old", &[1, 2, 3])?, 1, source, sent.clone()).await?;
+
+        session.refresh().await?;
+        session
+            .on_packet(&GameHostPacket::PlaylistIndex {
+                current_index: 2,
+                next_index: 0,
+                select_next: false,
+            })
+            .await?;
+
+        assert_eq!(selected_indices(&sent).await?, (0, 1, vec![3, 4]));
+        assert_eq!(session.state.lock().await.active.digest, "new");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn removed_level_switches_to_first_new_level_at_ready_boundary() -> Result<()> {
+        let original = asset("old", &[1, 2, 3])?;
+        let old_next = original.load("uid-3", 3).await?.unwrap();
+        let published = asset("new", &[4, 5])?;
+        let first = published.first().await?;
+        let source = Arc::new(TestSource::new(vec![Ok(SubmissionPlaylist::Ready(
+            published,
+        ))]));
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let (signal, mut packets) = tokio::sync::mpsc::unbounded_channel();
+        let sender = Arc::new(FnPacketSender({
+            let sent = sent.clone();
+            move |packet| {
+                let sent = sent.clone();
+                let signal = signal.clone();
+                async move {
+                    sent.lock().await.push(packet);
+                    signal.send(()).expect("test receiver still active");
+                    Ok(())
+                }
+            }
+        }));
+        let session = session_with_sender(original, 1, source, sender).await?;
+        session.refresh().await?;
+        assert!(sent.lock().await.is_empty());
+        session
+            .on_transfer(&TransferEvent {
+                kind: TransferEventKind::Ready,
+                level: old_next,
+            })
+            .await?;
+
+        let drive = async {
+            packets.recv().await.context("Missing playlist packet")?;
+            packets.recv().await.context("Missing skip packet")?;
+            tokio::time::timeout(
+                std::time::Duration::from_millis(100),
+                session.on_packet(&GameHostPacket::GameState(1)),
+            )
+            .await??;
+            session.context.complete_test_level_request(&first).await
+        };
+        tokio::time::timeout(std::time::Duration::from_secs(1), async {
+            tokio::try_join!(session.activate_deferred(), drive)
+        })
+        .await??;
+
+        assert_eq!(selected_indices(&sent).await?, (0, 1, vec![4, 5]));
+        let state = session.state.lock().await;
+        assert_eq!(state.active.digest, "new");
+        assert_eq!(state.current_index, 0);
+        drop(state);
+        assert_eq!(
+            session
+                .current
+                .read()
+                .await
+                .as_ref()
+                .unwrap()
+                .level
+                .level
+                .workshop_id,
+            4
+        );
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn deferred_activation_failure_keeps_old_playlist() -> Result<()> {
+        let original = asset("old", &[1, 2, 3])?;
+        let old_next = original.load("uid-3", 3).await?.unwrap();
+        let source = Arc::new(TestSource::new(vec![Ok(SubmissionPlaylist::Ready(asset(
+            "new",
+            &[4, 5],
+        )?))]));
+        let sender = Arc::new(FnPacketSender(|_| async {
+            anyhow::bail!("mock packet send failed")
+        }));
+        let session = session_with_sender(original, 1, source, sender).await?;
+
+        session.refresh().await?;
+        session
+            .on_transfer(&TransferEvent {
+                kind: TransferEventKind::Ready,
+                level: old_next,
+            })
+            .await?;
+        assert!(session.activate_deferred().await.is_err());
+        let state = session.state.lock().await;
+        assert_eq!(state.active.digest, "old");
+        assert_eq!(state.pending.as_ref().unwrap().digest, "new");
+        Ok(())
     }
 
     #[tokio::test]

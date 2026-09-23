@@ -4994,6 +4994,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "tracing-subscriber",
  "zc-core",
  "zc-database",
  "zc-telemetry",

@@ -2,6 +2,8 @@ use anyhow::Result;
 use std::{future::Future, sync::Arc};
 use zc_core::zeepnet::{chat_message_packet, targeted_chat_message_packet};
 
+pub(crate) mod audit;
+
 #[async_trait::async_trait]
 pub trait PacketSender: Send + Sync {
     async fn send(&self, packet: Vec<u8>) -> Result<()>;

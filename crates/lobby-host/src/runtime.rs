@@ -1,7 +1,10 @@
 use crate::{
     assets::{PreparedLevel, PreparedPlaylist},
     broker::RoomBrokerClient,
-    chat::{PacketSender, RoomChat},
+    chat::{
+        PacketSender, RoomChat,
+        audit::{log_chat_audit_line, resolve_chat_audit_line},
+    },
     config::ManagedRoomConfig,
     game_connection::GameConnection,
     leaderboard::PlayerLeaderboard,
@@ -75,6 +78,18 @@ impl RoomContext {
     #[cfg(test)]
     pub(crate) async fn observe_test_packet(&self, packet: &GameHostPacket) {
         self.roster.lock().await.observe(packet);
+    }
+
+    #[cfg(test)]
+    pub(crate) async fn complete_test_level_request(&self, level: &PreparedLevel) -> Result<()> {
+        let mut transfer = self.transfer.lock().await;
+        transfer.request(&GameHostPacket::LevelRequest {
+            name: level.level.name.clone(),
+            uid: level.level.uid.clone(),
+            workshop_id: level.level.workshop_id,
+        })?;
+        transfer.process_next().await?;
+        Ok(())
     }
 
     pub fn chat(&self) -> RoomChat {
@@ -248,7 +263,24 @@ impl ManagedLobbyHost {
                     let Some(packet) = result? else {
                         break Err(anyhow::anyhow!("GameServer connection closed"));
                     };
-                    roster.lock().await.observe(&packet);
+                    let chat_audit = {
+                        let mut roster = roster.lock().await;
+                        roster.observe(&packet);
+                        if let GameHostPacket::Chat { message, sender_uid } = &packet {
+                            resolve_chat_audit_line(
+                                &self.config.key,
+                                &roster.names(),
+                                *sender_uid,
+                                message,
+                                assignment.player_uid,
+                            )
+                        } else {
+                            None
+                        }
+                    };
+                    if let Some(line) = chat_audit {
+                        log_chat_audit_line(&self.config.key, self.profile.name(), &line);
+                    }
                     match &packet {
                         GameHostPacket::Initial { is_host, .. } => authority.store(*is_host, Ordering::Release),
                         GameHostPacket::Master(uid) => authority.store(*uid == assignment.player_uid, Ordering::Release),
