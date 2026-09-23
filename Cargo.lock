@@ -4829,7 +4829,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "flate2",
- "hmac 0.12.1",
+ "hmac 0.13.0",
  "jwt",
  "lzma-rs",
  "prost 0.14.4",
