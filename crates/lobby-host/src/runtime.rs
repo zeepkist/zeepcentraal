@@ -57,6 +57,26 @@ pub struct RoomContext {
 }
 
 impl RoomContext {
+    #[cfg(test)]
+    pub(crate) fn for_test(sender: Arc<dyn PacketSender>, local_steam_id: u64) -> Result<Self> {
+        Ok(Self {
+            transfer: Arc::new(Mutex::new(LevelTransfer::new(
+                sender.clone(),
+                900.0,
+                Duration::from_secs(30),
+            )?)),
+            sender,
+            roster: Arc::new(Mutex::new(RoomRoster::default())),
+            authority: Arc::new(AtomicBool::new(true)),
+            local_steam_id,
+        })
+    }
+
+    #[cfg(test)]
+    pub(crate) async fn observe_test_packet(&self, packet: &GameHostPacket) {
+        self.roster.lock().await.observe(packet);
+    }
+
     pub fn chat(&self) -> RoomChat {
         RoomChat::new(self.sender.clone())
     }

@@ -1,5 +1,6 @@
 mod assets;
 mod messages;
+mod notifications;
 mod track_tournament;
 mod zsl_submissions;
 

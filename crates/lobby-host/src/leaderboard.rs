@@ -69,6 +69,12 @@ impl PlayerLeaderboard {
         ids
     }
 
+    pub fn roster_players(&self) -> Vec<GameHostPlayer> {
+        let mut players: Vec<_> = self.roster.values().cloned().collect();
+        players.sort_by_key(|player| player.uid);
+        players
+    }
+
     pub fn observe(&mut self, packet: &GameHostPacket) {
         match packet {
             GameHostPacket::Initial { players, .. } => self.set_roster(players),

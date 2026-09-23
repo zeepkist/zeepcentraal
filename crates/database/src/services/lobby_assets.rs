@@ -2,7 +2,7 @@ use crate::Database;
 use anyhow::{Result, ensure};
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{Array, BigInt, Float, Integer, Nullable, Text},
+    sql_types::{Array, BigInt, Bool, Float, Integer, Nullable, Text},
 };
 use diesel_async::RunQueryDsl;
 
@@ -59,6 +59,28 @@ pub struct TournamentLobbySnapshot {
     pub connected_players: Vec<TournamentLobbyStanding>,
 }
 
+#[derive(Clone, Debug)]
+pub struct TournamentLobbyPlayerContext {
+    pub minimum_gtr_version: Option<String>,
+    pub user_exists: bool,
+    pub recent_record: bool,
+    pub standing: Option<(i32, f32)>,
+}
+
+#[derive(QueryableByName)]
+struct PlayerContextRow {
+    #[diesel(sql_type = Nullable<Text>)]
+    minimum_gtr_version: Option<String>,
+    #[diesel(sql_type = Nullable<Integer>)]
+    user_id: Option<i32>,
+    #[diesel(sql_type = Bool)]
+    recent_record: bool,
+    #[diesel(sql_type = Nullable<Integer>)]
+    rank: Option<i32>,
+    #[diesel(sql_type = Nullable<Float>)]
+    time: Option<f32>,
+}
+
 #[derive(QueryableByName)]
 struct CountRow {
     #[diesel(sql_type = BigInt)]
@@ -66,6 +88,40 @@ struct CountRow {
 }
 
 impl Database {
+    pub async fn tournament_lobby_player_context(
+        &self,
+        tournament_id: i32,
+        steam_id: u64,
+    ) -> Result<TournamentLobbyPlayerContext> {
+        ensure!(tournament_id > 0, "Invalid tournament ID");
+        let steam_id = i64::try_from(steam_id)?;
+        let mut connection = self.connection().await?;
+        let row = sql_query(
+            "SELECT (SELECT minimum FROM public.version ORDER BY id DESC LIMIT 1) AS minimum_gtr_version, \
+             account.id AS user_id, \
+             COALESCE(EXISTS(SELECT 1 FROM public.record record \
+                 WHERE record.id_user=account.id AND record.date_created>=clock_timestamp()-interval '720 hours'),false) AS recent_record, \
+             result.rank,result.time \
+             FROM (SELECT 1) seed \
+             LEFT JOIN public.\"user\" account ON account.steam_id=$2 \
+             LEFT JOIN public.track_tournament_result result \
+                 ON result.id_user=account.id AND result.id_tournament=$1",
+        )
+        .bind::<Integer, _>(tournament_id)
+        .bind::<BigInt, _>(steam_id)
+        .get_result::<PlayerContextRow>(&mut connection)
+        .await?;
+        Ok(TournamentLobbyPlayerContext {
+            minimum_gtr_version: row.minimum_gtr_version,
+            user_exists: row.user_id.is_some(),
+            recent_record: row.recent_record,
+            standing: row
+                .rank
+                .zip(row.time)
+                .filter(|(rank, time)| *rank > 0 && time.is_finite() && *time >= 0.0),
+        })
+    }
+
     pub async fn preferred_tournament_lobby_asset(
         &self,
         tournament_type: i32,
