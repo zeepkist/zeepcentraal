@@ -1,6 +1,7 @@
 <script setup vapor lang="ts">
 import LoginPrompt from '~/components/auth/LoginPrompt.vue'
 import type { LevelSummary } from '~/types/app'
+import { voteCandidateLevel } from '~/utils/superLeagueVote'
 
 const config = useRuntimeConfig()
 const session = useSessionStore()
@@ -31,17 +32,7 @@ const tabItems = computed(() => openTypes.value.map(type => ({
 	slot: 'ballot' as const,
 	badge: snapshot.value?.votes[type - 1]?.length ? 'Saved' : undefined,
 })))
-const cards = computed<LevelSummary[]>(() => (snapshot.value?.candidates ?? []).map(candidate => ({
-	id: candidate.levelId,
-	xxHash: candidate.xxHash,
-	favourited: false,
-	name: candidate.name ?? candidate.xxHash,
-	imageUrl: candidate.imageUrl,
-	authorName: candidate.authorName,
-	workshopId: String(candidate.workshopId),
-	adventure: candidate.adventure,
-	dateCreated: candidate.dateCreated,
-})))
+const cards = computed<LevelSummary[]>(() => (snapshot.value?.candidates ?? []).map(voteCandidateLevel))
 const ownLevels = computed(() => new Set((snapshot.value?.candidates ?? [])
 	.filter(candidate => candidate.selfAuthored).map(candidate => candidate.levelId)))
 

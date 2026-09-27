@@ -2,7 +2,7 @@ use crate::Database;
 use anyhow::Result;
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{BigInt, Bool, Integer, Jsonb, Nullable, SmallInt, Text},
+    sql_types::{BigInt, Bool, Float, Integer, Jsonb, Nullable, SmallInt, Text},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::Serialize;
@@ -51,6 +51,16 @@ struct CandidateRow {
     image_url: Option<String>,
     #[diesel(sql_type = Nullable<Text>)]
     author_name: Option<String>,
+    #[diesel(sql_type = Nullable<Integer>)]
+    points: Option<i32>,
+    #[diesel(sql_type = Nullable<Float>)]
+    rating: Option<f32>,
+    #[diesel(sql_type = BigInt)]
+    record_count: i64,
+    #[diesel(sql_type = BigInt)]
+    personal_best_count: i64,
+    #[diesel(sql_type = BigInt)]
+    vote_count: i64,
 }
 
 #[derive(QueryableByName)]
@@ -78,6 +88,11 @@ pub struct VoteCandidate {
     pub name: Option<String>,
     pub image_url: Option<String>,
     pub author_name: Option<String>,
+    pub points: Option<i32>,
+    pub rating: Option<f32>,
+    pub record_count: i64,
+    pub personal_best_count: i64,
+    pub vote_count: i64,
     pub self_authored: bool,
 }
 
@@ -112,7 +127,12 @@ const ROUND_SQL: &str = "SELECT r.id,c.id AS contest_id, \
 const CANDIDATES_SQL: &str = "SELECT DISTINCT l.id AS level_id,s.workshop_id, \
     coalesce(to_jsonb(s.authors),'null'::jsonb) AS authors,l.xx_hash,l.adventure, \
     l.date_created::text AS date_created,coalesce(i.name,v.payload->>'name') AS name, \
-    i.image_url,coalesce(u.steam_name,v.payload->>'author') AS author_name \
+    coalesce(nullif(i.image_url,''),nullif(other_image.image_url,''),nullif(wi.image_url,'')) AS image_url, \
+    coalesce(u.steam_name,v.payload->>'author') AS author_name, \
+    p.points,p.rating, \
+    (SELECT count(*) FROM public.record r WHERE r.id_level=l.id) AS record_count, \
+    (SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_level=l.id) AS personal_best_count, \
+    (SELECT count(*) FROM public.vote vote WHERE vote.id_level=l.id) AS vote_count \
     FROM zc_private.level_submission_contest c \
     JOIN zc_private.level_submission_playlist_entry e ON e.id_playlist=c.current_playlist_id \
     JOIN zc_private.level_submission_validation v ON v.id=e.id_validation AND v.valid \
@@ -120,7 +140,12 @@ const CANDIDATES_SQL: &str = "SELECT DISTINCT l.id AS level_id,s.workshop_id, \
     JOIN public.level l ON l.xx_hash=s.level_hash \
     LEFT JOIN LATERAL (SELECT name,image_url,author_id FROM public.level_item \
         WHERE id_level=l.id AND workshop_id=s.workshop_id ORDER BY id DESC LIMIT 1) i ON true \
+    LEFT JOIN LATERAL (SELECT image_url FROM public.level_item \
+        WHERE id_level=l.id AND deleted=false AND image_url<>'' \
+        ORDER BY updated_at DESC,id DESC LIMIT 1) other_image ON true \
+    LEFT JOIN public.workshop_item wi ON wi.workshop_id=s.workshop_id \
     LEFT JOIN public.\"user\" u ON u.steam_id=i.author_id \
+    LEFT JOIN public.level_points p ON p.id_level=l.id \
     WHERE c.id=$1 ORDER BY level_id,workshop_id";
 
 impl Database {
@@ -187,6 +212,11 @@ impl Database {
                         name: row.name,
                         image_url: row.image_url,
                         author_name: row.author_name,
+                        points: row.points,
+                        rating: row.rating,
+                        record_count: row.record_count,
+                        personal_best_count: row.personal_best_count,
+                        vote_count: row.vote_count,
                         self_authored,
                     });
                 }

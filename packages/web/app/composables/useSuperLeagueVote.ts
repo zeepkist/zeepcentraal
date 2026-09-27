@@ -7,6 +7,11 @@ export type SuperLeagueVoteCandidate = {
 	name: string | null
 	imageUrl: string | null
 	authorName: string | null
+	points: number | null
+	rating: number | null
+	recordCount: number
+	personalBestCount: number
+	voteCount: number
 	selfAuthored: boolean
 }
 
