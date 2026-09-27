@@ -1,5 +1,5 @@
-pub mod config;
 pub mod archive;
+pub mod config;
 pub mod contests;
 pub mod discord;
 pub mod playlist;
