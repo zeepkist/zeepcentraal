@@ -17,7 +17,7 @@
 				>
 					{{ title }}
 				</h1>
-				<p class="mt-3 text-base text-muted-foreground md:text-lg">
+				<p v-if="description" class="mt-3 text-base text-muted-foreground md:text-lg">
 					{{ description }}
 				</p>
 			</div>
@@ -35,7 +35,7 @@ defineProps<{
 	breadcrumbs?: ContentBreadcrumb[]
 	eyebrow?: string
 	title: string
-	description: string
+	description?: string
 	titleTransitionStyle?: StyleValue
 }>()
 </script>

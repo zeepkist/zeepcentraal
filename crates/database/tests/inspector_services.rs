@@ -60,6 +60,7 @@ async fn inspector_mutations_preserve_atomic_state_transitions() -> Result<()> {
     let validation = database
         .save_inspector_validation(&InspectorValidationInput {
             id_submission,
+            level_hash: None,
             workshop_updated_at: "2026-09-19T00:00:00Z".to_owned(),
             workshop_file_size: 123,
             content_sha256: Some("content".to_owned()),

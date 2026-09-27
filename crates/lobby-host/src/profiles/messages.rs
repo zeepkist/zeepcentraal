@@ -206,6 +206,35 @@ pub fn submission_message(entries: usize, round_time: u64) -> String {
     )
 }
 
+pub fn scheduled_submission_message(
+    entries: usize,
+    round_time: u64,
+    submission_end: &str,
+    vote_end: &str,
+    now: Timestamp,
+) -> Result<String> {
+    let deadline: Timestamp = submission_end.parse()?;
+    let (period, remaining) = if now < deadline {
+        (
+            "Submissions close",
+            tournament_remaining(submission_end, now)?,
+        )
+    } else {
+        ("ZSL voting closes", tournament_remaining(vote_end, now)?)
+    };
+    let start = submission_end
+        .get(..16)
+        .unwrap_or(submission_end)
+        .replace('T', " ");
+    let end = vote_end.get(..16).unwrap_or(vote_end).replace('T', " ");
+    Ok(format!(
+        "/servermessage yellow {round_time} <b>ZSL Level Contest</b>\n\
+        {entries} valid submissions · {period} {}\nZSL voting: {start} to {end} UTC\n\
+        Vote: https://zeepki.st/super-league/vote",
+        remaining.trim_start_matches("Ends in ")
+    ))
+}
+
 pub fn format_time(seconds: f32) -> String {
     let milliseconds = (f64::from(seconds) * 1_000.0).round() as i64;
     let minutes = milliseconds / 60_000;
@@ -304,6 +333,31 @@ fn gtr_version(value: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn submission_overlay_switches_to_vote_countdown() -> Result<()> {
+        let close = "2026-09-27T17:00:00Z";
+        let vote_end = "2026-10-04T17:00:00Z";
+        let before = scheduled_submission_message(
+            14,
+            300,
+            close,
+            vote_end,
+            "2026-09-27T16:59:01Z".parse()?,
+        )?;
+        assert!(before.contains("Submissions close 0d 0h 1m"));
+        assert!(before.contains("ZSL voting: 2026-09-27 17:00 to 2026-10-04 17:00 UTC"));
+        let after = scheduled_submission_message(
+            14,
+            300,
+            close,
+            vote_end,
+            "2026-09-27T17:00:00Z".parse()?,
+        )?;
+        assert!(after.contains("ZSL voting closes 7d 0h 0m"));
+        assert!(after.contains("https://zeepki.st/super-league/vote"));
+        Ok(())
+    }
     use zc_core::zeepnet::{BitReader, CUSTOM_CHAT_MESSAGE, targeted_chat_message_packet};
     use zc_database::services::lobby_assets::TournamentLobbyStanding;
 

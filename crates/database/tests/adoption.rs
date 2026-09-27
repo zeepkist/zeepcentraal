@@ -15,6 +15,18 @@ async fn adopts_existing_drizzle_database_in_place() -> anyhow::Result<()> {
     let migrations = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packages/database/drizzle");
     let first = run(&url, &migrations, Mode::Adopt).await?;
     let second = run(&url, &migrations, Mode::Adopt).await?;
+    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move {
+        let _ = connection.await;
+    });
+    let ledger = client
+        .query_one(
+            "SELECT to_regclass('public.__diesel_schema_migrations') IS NULL, \
+         to_regclass('zc_private.__diesel_schema_migrations') IS NOT NULL",
+            &[],
+        )
+        .await?;
+    assert!(ledger.get::<_, bool>(0) && ledger.get::<_, bool>(1));
     assert!(first.baseline_created);
     assert!(!second.baseline_created);
     assert_eq!(second.drizzle_migrations, 87);

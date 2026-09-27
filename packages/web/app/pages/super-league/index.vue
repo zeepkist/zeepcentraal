@@ -5,6 +5,7 @@
 			:title="$t('pages.zsl.title')"
 			:description="$t('pages.zsl.description')"
 		/>
+		<VoteLink />
 		<DataState
 			:pending="pagination.isInitialPending(result.fetching.value, seasons.length)"
 			:error="result.error.value?.message"

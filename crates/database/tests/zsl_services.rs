@@ -75,6 +75,20 @@ async fn zsl_import_services_are_idempotent() -> anyhow::Result<()> {
             .id,
         round.id
     );
+    database
+        .get_or_create_zsl_round(season.id, 1, "Updated Again", 0, "2025-01-02")
+        .await?;
+    database
+        .get_or_create_zsl_round(season.id, 1, "Updated Again", workshop_id + 1, "2025-01-02")
+        .await?;
+    let preserved: i64 = client
+        .query_one(
+            "SELECT workshop_id FROM zsl_round WHERE id=$1",
+            &[&round.id],
+        )
+        .await?
+        .get(0);
+    assert_eq!(preserved, workshop_id);
     assert!(database.zsl_event_is_future("2999-01-01").await?);
     assert_eq!(
         database

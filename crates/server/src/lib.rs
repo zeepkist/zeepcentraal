@@ -10,6 +10,7 @@ pub mod problem;
 pub mod rate_limit;
 pub mod readiness;
 pub mod routes;
+pub mod super_league;
 pub mod turnstile;
 
 use std::sync::Arc;

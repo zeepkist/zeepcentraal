@@ -14,6 +14,12 @@
 		"discord": "Sign in with Discord",
 		"signIn": "Sign in",
 		"steam": "Sign in with Steam",
+		"loginPrompt": {
+			"or": "or",
+			"discordRequirement": "Discord sign-in requires your Discord account to be linked to ZeepCentraal. Sign in with Steam first to link it.",
+			"voteTitle": "Sign in to vote",
+			"voteDescription": "Choose your favourite submissions to be played in ZSL, the best decorated levels, and the best track layouts."
+		},
 		"verificationFailed": {
 			"description": "Your sign-in attempt failed. Please try signing in again.",
 			"title": "Sign-in failed"

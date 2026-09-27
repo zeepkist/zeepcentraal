@@ -37,6 +37,7 @@
 						/>
 					</template>
 				</PageHeader>
+				<VoteLink :round-ids="[Number(round.id)]" />
 				<section>
 					<SectionHeader :title="$t('zsl.levels')" :description="$t('zsl.levelsDescription')" />
 					<ZslLevelGrid

@@ -4,14 +4,14 @@ use std::collections::HashSet;
 
 const DAY_SECONDS: u64 = 24 * 60 * 60;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct LobbyHostFileConfig {
     pub version: u8,
     pub rooms: Vec<ManagedRoomConfig>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ManagedRoomConfig {
     pub key: String,
@@ -23,23 +23,23 @@ pub struct ManagedRoomConfig {
     pub message_refresh_ms: u64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(tag = "type", deny_unknown_fields)]
 pub enum RoomProfile {
     #[serde(rename = "track-tournament", rename_all = "camelCase")]
     TrackTournament { tournament_type: TournamentType },
     #[serde(rename = "zsl-submissions", rename_all = "camelCase")]
-    ZslSubmissions { thread_id: String },
+    ZslSubmissions { round_id: i32 },
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum TournamentType {
     Weekly,
     Monthly,
 }
 
-#[derive(Clone, Debug, Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, serde::Serialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RoomSettings {
     pub name: String,
@@ -101,13 +101,8 @@ impl ManagedRoomConfig {
             (60_000..=1_800_000).contains(&self.message_refresh_ms),
             "Invalid message refresh interval"
         );
-        if let RoomProfile::ZslSubmissions { thread_id } = &self.profile {
-            ensure!(
-                thread_id.len() <= 20
-                    && !thread_id.starts_with('0')
-                    && thread_id.bytes().all(|byte| byte.is_ascii_digit()),
-                "Invalid ZSL submissions thread ID"
-            );
+        if let RoomProfile::ZslSubmissions { round_id } = &self.profile {
+            ensure!(*round_id > 0, "Invalid ZSL round ID");
         }
         Ok(())
     }

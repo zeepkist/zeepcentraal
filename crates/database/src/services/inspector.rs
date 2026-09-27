@@ -27,9 +27,33 @@ struct IntegerIdRow {
 }
 
 #[derive(QueryableByName)]
+struct OptionalSecondsRow {
+    #[diesel(sql_type = Nullable<BigInt>)]
+    seconds: Option<i64>,
+}
+
+#[derive(QueryableByName)]
 struct BoolRow {
     #[diesel(sql_type = Bool)]
     value: bool,
+}
+
+#[derive(QueryableByName)]
+pub struct InspectorScheduleRow {
+    #[diesel(sql_type = Text)]
+    pub submission_end: String,
+    #[diesel(sql_type = Bool)]
+    pub due: bool,
+}
+
+#[derive(QueryableByName)]
+pub struct InspectorLobbyScheduleRow {
+    #[diesel(sql_type = Text)]
+    pub submission_end: String,
+    #[diesel(sql_type = Text)]
+    pub zsl_vote_end: String,
+    #[diesel(sql_type = Bool)]
+    pub closed: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
@@ -55,6 +79,8 @@ pub struct InspectorContestRow {
     pub current_playlist_id: Option<i64>,
     #[diesel(sql_type = Jsonb)]
     pub publication: serde_json::Value,
+    #[diesel(sql_type = Bool)]
+    pub finalized: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
@@ -91,6 +117,8 @@ pub struct InspectorValidationRow {
     pub workshop_updated_at: String,
     #[diesel(sql_type = BigInt)]
     pub workshop_file_size: i64,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub content_sha256: Option<String>,
     #[diesel(sql_type = Text)]
     pub validator_version: String,
     #[diesel(sql_type = Text)]
@@ -173,6 +201,7 @@ pub struct InspectorSubmissionInput {
 #[serde(rename_all = "camelCase")]
 pub struct InspectorValidationInput {
     pub id_submission: i64,
+    pub level_hash: Option<String>,
     pub workshop_updated_at: String,
     pub workshop_file_size: i64,
     pub content_sha256: Option<String>,
@@ -194,6 +223,108 @@ pub struct InspectorPlaylistMember {
 }
 
 impl Database {
+    pub async fn next_inspector_finalize_delay(&self) -> Result<Option<i64>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query("SELECT floor(extract(epoch FROM min(r.submission_end) - clock_timestamp()))::bigint AS seconds \
+            FROM zc_private.level_submission_contest c JOIN public.zsl_round r ON r.id=c.id_zsl_round \
+            WHERE c.state='open' AND c.finalized_at IS NULL AND r.submission_end IS NOT NULL")
+            .get_result::<OptionalSecondsRow>(&mut connection).await?.seconds)
+    }
+
+    pub async fn get_inspector_lobby_schedule(
+        &self,
+        round_id: i32,
+    ) -> Result<Option<InspectorLobbyScheduleRow>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query("SELECT to_char(submission_end AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS submission_end, \
+            to_char(zsl_vote_end AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS zsl_vote_end, \
+            (zsl_vote_end<=clock_timestamp()) AS closed FROM public.zsl_round \
+            WHERE id=$1 AND submission_end IS NOT NULL AND zsl_vote_end IS NOT NULL")
+            .bind::<Integer, _>(round_id).get_result::<InspectorLobbyScheduleRow>(&mut connection).await.optional()?)
+    }
+
+    pub async fn get_inspector_playlist_by_round(
+        &self,
+        round_id: i32,
+    ) -> Result<Option<InspectorPlaylistBundle>> {
+        let mut connection = self.connection().await?;
+        let playlist = sql_query(
+            "SELECT p.id,p.digest,p.valid_count,p.object_key, \
+            floor(extract(epoch FROM p.date_created))::bigint AS date_created_epoch \
+            FROM zc_private.level_submission_contest c \
+            JOIN zc_private.level_submission_playlist p ON p.id=c.current_playlist_id \
+            WHERE c.id_zsl_round=$1 ORDER BY c.id DESC LIMIT 1",
+        )
+        .bind::<Integer, _>(round_id)
+        .get_result::<InspectorPlaylistRow>(&mut connection)
+        .await
+        .optional()?;
+        let Some(playlist) = playlist else {
+            return Ok(None);
+        };
+        let members = sql_query(
+            "SELECT e.id_validation,e.workshop_id,v.valid,v.payload \
+            FROM zc_private.level_submission_playlist_entry e \
+            JOIN zc_private.level_submission_validation v ON v.id=e.id_validation \
+            WHERE e.id_playlist=$1 ORDER BY e.position",
+        )
+        .bind::<BigInt, _>(playlist.id)
+        .load::<InspectorPlaylistMemberRow>(&mut connection)
+        .await?;
+        Ok(Some(InspectorPlaylistBundle { playlist, members }))
+    }
+
+    pub async fn get_inspector_schedule(
+        &self,
+        round_id: i32,
+    ) -> Result<Option<InspectorScheduleRow>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query("SELECT to_char(submission_end AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS submission_end, \
+            (submission_end<=clock_timestamp()) AS due FROM public.zsl_round \
+            WHERE id=$1 AND submission_end IS NOT NULL")
+            .bind::<Integer, _>(round_id)
+            .get_result::<InspectorScheduleRow>(&mut connection).await.optional()?)
+    }
+
+    pub async fn finalize_inspector_contest(
+        &self,
+        contest_id: i64,
+        playlist_id: i64,
+        archive_key: &str,
+        archive_sha256: &str,
+        archive_size: i64,
+    ) -> Result<bool> {
+        ensure!(
+            contest_id > 0
+                && playlist_id > 0
+                && archive_key.starts_with("inspector/workshop/")
+                && archive_sha256.len() == 64
+                && archive_size > 0,
+            "Invalid contest archive"
+        );
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "UPDATE zc_private.level_submission_contest c SET state='frozen', \
+            frozen_at=clock_timestamp(),finalized_at=clock_timestamp(),archive_object_key=$3, \
+            archive_sha256=$4,archive_size=$5,date_updated=clock_timestamp() \
+            WHERE c.id=$1 AND c.state='open' AND c.current_playlist_id=$2 \
+            AND EXISTS(SELECT 1 FROM public.zsl_round r WHERE r.id=c.id_zsl_round \
+                AND r.submission_end<=clock_timestamp()) \
+            AND NOT EXISTS (SELECT 1 FROM zc_private.level_submission_playlist_entry e \
+                JOIN zc_private.level_submission_validation v ON v.id=e.id_validation \
+                JOIN zc_private.level_submissions s ON s.id=v.id_submission \
+                WHERE e.id_playlist=$2 AND v.valid AND s.level_hash IS NULL)",
+        )
+        .bind::<BigInt, _>(contest_id)
+        .bind::<BigInt, _>(playlist_id)
+        .bind::<Text, _>(archive_key)
+        .bind::<Text, _>(archive_sha256)
+        .bind::<BigInt, _>(archive_size)
+        .execute(&mut connection)
+        .await?
+            > 0)
+    }
+
     pub async fn with_inspector_lock<T, F, Fut>(&self, run: F) -> Result<Option<T>>
     where
         F: FnOnce() -> Fut,
@@ -230,8 +361,8 @@ impl Database {
         ensure!(round > 0, "Invalid inspector round number");
         let mut connection = self.connection().await?;
         let rows = sql_query(
-            "SELECT id FROM zsl_round WHERE (($1 IS NOT NULL AND id=$1) OR \
-             ($1 IS NULL AND $2 IS NOT NULL AND id_season=$2 AND round=$3)) LIMIT 2",
+            "SELECT id FROM zsl_round WHERE id_season=$2 AND round=$3 \
+             AND ($1 IS NULL OR id=$1) LIMIT 2",
         )
         .bind::<Nullable<Integer>, _>(override_id)
         .bind::<Nullable<Integer>, _>(season_id)
@@ -249,7 +380,7 @@ impl Database {
         let mut connection = self.connection().await?;
         Ok(sql_query(
             "SELECT id,thread_id,theme,season_number,round_number,id_zsl_round,state,rules_hash, \
-             current_playlist_id,publication FROM zc_private.level_submission_contest \
+             current_playlist_id,publication,(finalized_at IS NOT NULL) AS finalized FROM zc_private.level_submission_contest \
              WHERE thread_id=$1",
         )
         .bind::<Text, _>(thread_id)
@@ -282,13 +413,34 @@ impl Database {
         ensure!(id > 0, "Invalid inspector validation ID");
         let mut connection = self.connection().await?;
         Ok(sql_query(
-            "SELECT id,id_submission,workshop_updated_at,workshop_file_size,validator_version, \
+            "SELECT id,id_submission,workshop_updated_at,workshop_file_size,content_sha256,validator_version, \
              rules_hash,failures,valid,payload FROM zc_private.level_submission_validation WHERE id=$1",
         )
         .bind::<BigInt, _>(id)
         .get_result::<InspectorValidationRow>(&mut connection)
         .await
         .optional()?)
+    }
+
+    pub async fn inspector_workshop_level_link_exists(
+        &self,
+        level_hash: &str,
+        workshop_id: i64,
+    ) -> Result<bool> {
+        ensure!(
+            !level_hash.is_empty() && workshop_id > 0,
+            "Invalid workshop level link"
+        );
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT EXISTS(SELECT 1 FROM public.level l JOIN public.level_item i ON i.id_level=l.id \
+             WHERE l.xx_hash=$1 AND i.workshop_id=$2) AS value",
+        )
+        .bind::<Text, _>(level_hash)
+        .bind::<BigInt, _>(workshop_id)
+        .get_result::<BoolRow>(&mut connection)
+        .await?
+        .value)
     }
 
     pub async fn get_inspector_playlist(
@@ -506,10 +658,13 @@ impl Database {
                     .await?;
                     sql_query(
                         "UPDATE zc_private.level_submissions SET latest_validation_id=$2, \
+                         level_hash=CASE WHEN $3 IS NULL THEN NULL ELSE \
+                           (SELECT xx_hash FROM public.level WHERE xx_hash=$3) END, \
                          retry_category=NULL,date_updated=clock_timestamp() WHERE id=$1",
                     )
                     .bind::<BigInt, _>(input.id_submission)
                     .bind::<BigInt, _>(row.id)
+                    .bind::<Nullable<Text>, _>(&input.level_hash)
                     .execute(connection)
                     .await?;
                     Ok(row.payload)

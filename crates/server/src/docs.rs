@@ -16,6 +16,12 @@ use utoipa::OpenApi;
         crate::routes::add_favourite,
         crate::routes::remove_favourite,
         crate::routes::submit_vote,
+        crate::super_league::get_vote,
+        crate::super_league::post_vote,
+        crate::super_league::unavailable_get,
+        crate::super_league::unavailable_post,
+        crate::super_league::unavailable_delete,
+        crate::super_league::unavailable_status,
         crate::routes::request_level,
         crate::routes::submit_record,
         crate::routes::trigger_job,
@@ -92,7 +98,9 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 51);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 54);
+        assert!(schema["paths"]["/super-league/vote"]["get"].is_object());
+        assert!(schema["paths"]["/super-league/vote"]["post"].is_object());
         assert!(schema["paths"]["/healthz"]["get"].is_object());
         assert!(schema["paths"]["/readyz"]["get"]["responses"]["200"].is_object());
         assert!(schema["paths"]["/readyz"]["get"]["responses"]["503"].is_object());

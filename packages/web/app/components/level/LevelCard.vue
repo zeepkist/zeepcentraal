@@ -109,8 +109,10 @@
 			</div>
 		</NuxtLink>
 		<div class="mt-4 flex items-center gap-2">
-			<PlaylistAddButton :level="level" block class="min-w-0 flex-1" />
-			<FavouriteLevelButton :level="level" />
+			<slot name="actions">
+				<PlaylistAddButton :level="level" block class="min-w-0 flex-1" />
+				<FavouriteLevelButton :level="level" />
+			</slot>
 		</div>
 	</article>
 </template>

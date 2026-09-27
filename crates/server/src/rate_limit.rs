@@ -141,9 +141,16 @@ fn bucket(path: &str, limits: crate::config::RateLimits) -> Option<(&'static str
         Some(("record", limits.record))
     } else if path.starts_with("/job/") {
         Some(("job", limits.job))
-    } else if ["/favourite/", "/vote/", "/level/", "/user/", "/turnstile/"]
-        .iter()
-        .any(|prefix| path.starts_with(prefix))
+    } else if [
+        "/favourite/",
+        "/vote/",
+        "/level/",
+        "/user/",
+        "/turnstile/",
+        "/super-league/",
+    ]
+    .iter()
+    .any(|prefix| path.starts_with(prefix))
     {
         Some(("mutation", limits.mutation))
     } else {
@@ -238,6 +245,7 @@ mod tests {
         assert_eq!(bucket("/auth/login", limits), Some(("auth", 1)));
         assert_eq!(bucket("/record/submit", limits), Some(("record", 2)));
         assert_eq!(bucket("/level/request", limits), Some(("mutation", 3)));
+        assert_eq!(bucket("/super-league/vote", limits), Some(("mutation", 3)));
         assert_eq!(bucket("/job/trigger", limits), Some(("job", 4)));
         assert_eq!(bucket("/healthz", limits), None);
         assert_eq!(bucket("/readyz", limits), None);

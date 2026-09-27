@@ -1,7 +1,8 @@
 //! In-place adoption of the existing Drizzle ledger by Diesel.
 //!
 //! This module never replays historical SQL against an adopted database. It verifies
-//! every Drizzle hash/timestamp before creating Diesel's metadata table and baseline row.
+//! every Drizzle hash/timestamp before placing Diesel's metadata table in zc_private
+//! and inserting the baseline row.
 
 use crate::history::{HistoricalMigration, inspect};
 use anyhow::{Context, Result, ensure};
@@ -14,7 +15,7 @@ use serde::Deserialize;
 use std::path::Path;
 
 pub const BASELINE_VERSION: &str = "20260919000000";
-const MIGRATION_LOCK_ID: i64 = 8_624_390_086;
+pub(crate) const MIGRATION_LOCK_ID: i64 = 8_624_390_086;
 
 // These SQL files differed from the hashes recorded in the first frozen Drizzle
 // ledger. Both hashes are retained because either exact migration history may
@@ -145,15 +146,9 @@ async fn adopt_locked(
         baseline_created = connection
             .transaction::<bool, anyhow::Error, _>(|connection| {
                 Box::pin(async move {
-                    sql_query(
-                        "CREATE TABLE IF NOT EXISTS __diesel_schema_migrations (\
-                         version VARCHAR(50) PRIMARY KEY NOT NULL, \
-                         run_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-                    )
-                    .execute(connection)
-                    .await?;
+                    crate::migrations::ensure_private_ledger(connection).await?;
                     let versions: Vec<DieselVersionRow> = sql_query(
-                        "SELECT version FROM __diesel_schema_migrations ORDER BY version",
+                        "SELECT version FROM zc_private.__diesel_schema_migrations ORDER BY version",
                     )
                     .load(connection)
                     .await?;
@@ -164,7 +159,7 @@ async fn adopt_locked(
                         versions.is_empty(),
                         "Diesel migrations exist without Drizzle baseline; refusing adoption"
                     );
-                    sql_query("INSERT INTO __diesel_schema_migrations(version) VALUES ($1)")
+                    sql_query("INSERT INTO zc_private.__diesel_schema_migrations(version) VALUES ($1)")
                         .bind::<Text, _>(BASELINE_VERSION)
                         .execute(connection)
                         .await?;

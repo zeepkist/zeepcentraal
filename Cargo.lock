@@ -4944,6 +4944,7 @@ version = "3.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "flate2",
  "jiff",
  "regex",
  "reqwest 0.13.5",

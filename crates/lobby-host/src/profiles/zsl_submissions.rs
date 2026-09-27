@@ -1,10 +1,13 @@
-use super::{SubmissionAsset, SubmissionAssets, SubmissionPlaylist, messages::submission_message};
+use super::{
+    SubmissionAsset, SubmissionAssets, SubmissionPlaylist,
+    messages::{scheduled_submission_message, submission_message},
+};
 use crate::{
     config::ManagedRoomConfig,
     runtime::{LobbyProfile, ProfileSession, RoomContext},
     transfer::TransferEvent,
 };
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
@@ -18,6 +21,7 @@ use zc_database::Database;
 
 pub struct ZslSubmissionsProfile {
     config: ManagedRoomConfig,
+    schedule: Option<(Database, i32)>,
     assets: Arc<dyn SubmissionSource>,
     current: Arc<RwLock<Option<CurrentSubmission>>>,
     stopped: AtomicBool,
@@ -46,11 +50,12 @@ impl ZslSubmissionsProfile {
         config: ManagedRoomConfig,
         database: Database,
         storage: Arc<dyn ObjectStorage>,
-        thread_id: String,
+        round_id: i32,
     ) -> Self {
         Self {
             config,
-            assets: Arc::new(SubmissionAssets::new(database, storage, thread_id)),
+            assets: Arc::new(SubmissionAssets::new(database.clone(), storage, round_id)),
+            schedule: Some((database, round_id)),
             current: Arc::new(RwLock::new(None)),
             stopped: AtomicBool::new(false),
         }
@@ -66,6 +71,15 @@ impl LobbyProfile for ZslSubmissionsProfile {
     async fn prepare(&self) -> Result<Option<crate::assets::PreparedLevel>> {
         if self.stopped.load(Ordering::Acquire) {
             return Ok(None);
+        }
+        if let Some((database, round_id)) = &self.schedule {
+            let Some(schedule) = database.get_inspector_lobby_schedule(*round_id).await? else {
+                return Ok(None);
+            };
+            if schedule.closed {
+                self.stopped.store(true, Ordering::Release);
+                return Ok(None);
+            }
         }
         let previous = self.current.read().await.clone();
         let asset = match self.assets.refresh().await {
@@ -125,6 +139,7 @@ impl LobbyProfile for ZslSubmissionsProfile {
         let next_index = (current_index + 1) % current.asset.playlist.levels.len();
         Ok(Arc::new(ZslSubmissionsSession {
             config: self.config.clone(),
+            schedule: self.schedule.clone(),
             assets: self.assets.clone(),
             current: self.current.clone(),
             context,
@@ -190,6 +205,7 @@ fn retained_indices(state: &SessionState, asset: &SubmissionAsset) -> Option<(us
 
 struct ZslSubmissionsSession {
     config: ManagedRoomConfig,
+    schedule: Option<(Database, i32)>,
     assets: Arc<dyn SubmissionSource>,
     current: Arc<RwLock<Option<CurrentSubmission>>>,
     context: RoomContext,
@@ -208,10 +224,23 @@ impl ZslSubmissionsSession {
             return Ok(());
         }
         let entries = self.state.lock().await.active.playlist.levels.len();
-        self.context
-            .chat()
-            .command(&submission_message(entries, self.config.round_time_seconds))
-            .await
+        let message = if let Some((database, round_id)) = &self.schedule {
+            let schedule = database
+                .get_inspector_lobby_schedule(*round_id)
+                .await?
+                .context("ZSL round has no voting schedule")?;
+            ensure!(!schedule.closed, "ZSL voting period ended");
+            scheduled_submission_message(
+                entries,
+                self.config.round_time_seconds,
+                &schedule.submission_end,
+                &schedule.zsl_vote_end,
+                jiff::Timestamp::now(),
+            )?
+        } else {
+            submission_message(entries, self.config.round_time_seconds)
+        };
+        self.context.chat().command(&message).await
     }
 
     async fn refresh_overlay(&self) {
@@ -492,7 +521,7 @@ impl ProfileSession for ZslSubmissionsSession {
                 _ = refresh.tick() => self.refresh().await?,
                 _ = self.boundary.notified() => self.activate_deferred().await?,
                 _ = message.tick() => {
-                    self.refresh_overlay().await;
+                    self.overlay().await?;
                 },
             }
         }
@@ -660,7 +689,7 @@ mod tests {
 
     fn config() -> Result<ManagedRoomConfig> {
         Ok(LobbyHostFileConfig::parse(
-            r#"{"version":1,"rooms":[{"key":"zsl","profile":{"type":"zsl-submissions","threadId":"1"},"room":{"name":"ZSL","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}]}"#,
+            r#"{"version":1,"rooms":[{"key":"zsl","profile":{"type":"zsl-submissions","roundId":1},"room":{"name":"ZSL","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}]}"#,
         )?
         .rooms
         .remove(0))
@@ -698,6 +727,7 @@ mod tests {
         let next_index = (current_index + 1) % active.playlist.levels.len();
         Ok(ZslSubmissionsSession {
             config: config()?,
+            schedule: None,
             assets: source,
             current: Arc::new(RwLock::new(None)),
             context,
@@ -1112,6 +1142,7 @@ mod tests {
         ]));
         let profile = ZslSubmissionsProfile {
             config: config()?,
+            schedule: None,
             assets: source,
             current: Arc::new(RwLock::new(None)),
             stopped: AtomicBool::new(false),

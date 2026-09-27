@@ -2,7 +2,7 @@ FROM steamcmd/steamcmd:ubuntu-22@sha256:ea800a0a8468683b51f0f55b6d6e9f2dcaef2ef4
 
 ARG SERVICE_VERSION=dev
 
-LABEL org.opencontainers.image.description="ZeepCentraal one-shot level contest inspector with SteamCMD."
+LABEL org.opencontainers.image.description="ZeepCentraal level contest inspector with SteamCMD and deadline watcher."
 
 WORKDIR /app
 

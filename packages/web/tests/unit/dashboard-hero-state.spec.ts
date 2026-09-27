@@ -37,16 +37,17 @@ describe('dashboard hero state', () => {
 			new URL('../../app/components/dashboard/DashboardHero.vue', import.meta.url),
 			'utf8',
 		)
+		const loginPrompt = readFileSync(
+			new URL('../../app/components/auth/LoginPrompt.vue', import.meta.url),
+			'utf8',
+		)
 		expect(page).toContain('<DashboardHero v-bind="hero" @login="login" />')
 		expect(page).toContain('const { login } = useAccountActions()')
-		expect(hero).toContain("$emit('login', 'steam')")
-		expect(hero).toContain("$emit('login', 'discord')")
-		expect(hero).toContain('lg:items-stretch')
-		expect(hero).toContain('flex-col justify-center')
-		expect(hero).toContain('lg:absolute')
-		expect(hero).toContain('lg:bottom-0')
-		expect(hero.match(/color="primary"/g)).toHaveLength(2)
-		expect(hero.match(/variant="outline"/g)).toHaveLength(2)
+		expect(hero).toContain('<LoginPrompt')
+		expect(hero).toContain('@login="$emit(\'login\', $event)"')
+		expect(loginPrompt).toContain("emit('login', 'steam')")
+		expect(loginPrompt).toContain("emit('login', 'discord')")
+		expect(loginPrompt).toContain("$t('auth.loginPrompt.discordRequirement')")
 	})
 
 	it('shows the active state for players with records', () => {

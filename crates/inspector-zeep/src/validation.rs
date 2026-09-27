@@ -40,6 +40,7 @@ pub struct InspectionPayload {
 
 #[derive(Clone, Debug)]
 pub struct Inspection {
+    pub level_hash: String,
     pub failures: Vec<String>,
     pub measurements: InspectionMeasurements,
     pub content_sha256: String,
@@ -201,6 +202,7 @@ pub fn inspect_level(content: &str, name: &str, rules: &Rules) -> Result<Inspect
         override_author_name,
     };
     Ok(Inspection {
+        level_hash: parsed.hash,
         failures,
         measurements: InspectionMeasurements {
             blocks: blocks.len(),

@@ -1,0 +1,18 @@
+DROP TABLE zc_private.level_submission_vote;
+ALTER TABLE zc_private.level_submission_contest
+    DROP CONSTRAINT submission_archive_complete,
+    DROP COLUMN archive_object_key,
+    DROP COLUMN archive_sha256,
+    DROP COLUMN archive_size,
+    DROP COLUMN finalized_at;
+DROP INDEX zc_private.level_submission_hash;
+ALTER TABLE zc_private.level_submissions
+    DROP CONSTRAINT level_submission_authors_count,
+    DROP COLUMN level_hash,
+    DROP COLUMN authors;
+ALTER TABLE public.zsl_round
+    DROP CONSTRAINT zsl_round_contest_schedule,
+    DROP COLUMN submission_start,
+    DROP COLUMN submission_end,
+    DROP COLUMN zsl_vote_end,
+    DROP COLUMN cosmetic_vote_end;

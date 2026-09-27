@@ -50,14 +50,30 @@ pub async fn verify(
             crate::problem::INVALID_REQUEST,
         ));
     }
+    verify_token(&state, &body.token, Some(&remote_ip), "record-replay").await?;
+    Ok(Json(TurnstileSuccess { success: true }))
+}
+
+pub async fn verify_token(
+    state: &AppState,
+    token: &str,
+    remote_ip: Option<&str>,
+    action: &str,
+) -> Result<(), Problem> {
+    if token.is_empty() || token.len() > 2_048 {
+        return Err(Problem::code(
+            StatusCode::BAD_REQUEST,
+            crate::problem::INVALID_REQUEST,
+        ));
+    }
     let response = state
         .http
         .post(SITEVERIFY_URL)
         .timeout(Duration::from_secs(10))
         .json(&SiteverifyRequest {
             secret: &state.config.turnstile_secret,
-            response: &body.token,
-            remoteip: (remote_ip != "unknown").then_some(remote_ip.as_str()),
+            response: token,
+            remoteip: remote_ip.filter(|ip| *ip != "unknown"),
         })
         .send()
         .await
@@ -66,20 +82,20 @@ pub async fn verify(
         return Err(unavailable());
     }
     let result: SiteverifyResponse = response.json().await.map_err(|_| unavailable())?;
-    if !accepted(&result, &state.config.turnstile_hostnames) {
+    if !accepted(&result, &state.config.turnstile_hostnames, action) {
         return Err(Problem {
             status: StatusCode::FORBIDDEN,
             detail: "Turnstile verification failed".to_owned(),
             error_code: None,
         });
     }
-    Ok(Json(TurnstileSuccess { success: true }))
+    Ok(())
 }
 
-fn accepted(result: &SiteverifyResponse, allowed_hostnames: &[String]) -> bool {
+fn accepted(result: &SiteverifyResponse, allowed_hostnames: &[String], action: &str) -> bool {
     let hostname = result.hostname.as_deref().map(str::to_lowercase);
     result.success
-        && result.action.as_deref() == Some("record-replay")
+        && result.action.as_deref() == Some(action)
         && hostname
             .as_ref()
             .is_some_and(|hostname| allowed_hostnames.contains(hostname))
@@ -106,7 +122,8 @@ mod tests {
                 action: Some("record-replay".to_owned()),
                 hostname: Some("ZEEPKI.ST".to_owned()),
             },
-            &allowed
+            &allowed,
+            "record-replay"
         ));
         assert!(!accepted(
             &SiteverifyResponse {
@@ -114,7 +131,8 @@ mod tests {
                 action: Some("login".to_owned()),
                 hostname: Some("zeepki.st".to_owned()),
             },
-            &allowed
+            &allowed,
+            "record-replay"
         ));
         assert!(!accepted(
             &SiteverifyResponse {
@@ -122,7 +140,8 @@ mod tests {
                 action: Some("record-replay".to_owned()),
                 hostname: Some("attacker.example".to_owned()),
             },
-            &allowed
+            &allowed,
+            "record-replay"
         ));
     }
 }

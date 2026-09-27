@@ -45,31 +45,15 @@
 						<p class="mt-2 text-xl font-black tabular-nums">{{ metric.value }}</p>
 					</div>
 				</div>
-				<div v-if="loginPrompt" class="mt-7 lg:absolute lg:inset-x-0 lg:bottom-0 lg:mt-0">
-					<div
-						class="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/35 p-3 text-sm backdrop-blur-sm"
-					>
-						<span class="font-semibold">{{ loginPrompt.label }}</span>
-						<UButton
-							color="primary"
-							variant="outline"
-							size="sm"
-							@click="$emit('login', 'steam')"
-						>
-							<TablerIcon name="brand-steam" class="size-4" />
-							{{ loginPrompt.steamLabel }}
-						</UButton>
-						<span class="text-muted-foreground">{{ loginPrompt.orLabel }}</span>
-						<UButton
-							color="primary"
-							variant="outline"
-							size="sm"
-							@click="$emit('login', 'discord')"
-						>
-							<TablerIcon name="brand-discord" class="size-4" />
-							{{ loginPrompt.discordLabel }}
-						</UButton>
-					</div>
+				<div v-if="loginPrompt" class="mt-7">
+					<LoginPrompt
+						:title="loginPrompt.label"
+						:steam-label="loginPrompt.steamLabel"
+						:discord-label="loginPrompt.discordLabel"
+						:or-label="loginPrompt.orLabel"
+						compact
+						@login="$emit('login', $event)"
+					/>
 				</div>
 			</div>
 			<div
@@ -100,6 +84,7 @@
 </template>
 
 <script setup vapor lang="ts">
+import LoginPrompt from '~/components/auth/LoginPrompt.vue'
 import type { HeroAction, HeroMetric, HeroPanel } from '~/types/app'
 
 defineProps<{

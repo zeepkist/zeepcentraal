@@ -16,6 +16,7 @@ pub mod lobby;
 pub mod lobby_assets;
 pub mod managed_lobby;
 pub mod record;
+pub mod super_league;
 pub mod workshop;
 pub mod zsl;
 

@@ -1,4 +1,5 @@
 use crate::{
+    archive::{ArchiveLevel, build_archive},
     config::{InspectorConfig, InspectorOptions, Rules},
     contests::parse_contest_title,
     discord::{DiscordRest, ForumThread},
@@ -14,14 +15,16 @@ use reqwest::Method;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
-use zc_core::object_storage::ObjectStorage;
+use zc_core::object_storage::{DownloadConstraints, ObjectStorage};
 use zc_database::services::inspector::{
     InspectorContestInput, InspectorContestRow, InspectorPlaylistMember, InspectorPlaylistRow,
     InspectorSubmissionInput, InspectorSubmissionRow, InspectorValidationInput,
     InspectorValidationRow,
 };
 use zc_workshop::{
-    WorkshopDownloader, WorkshopItemMetadata, WorkshopMetadataAdapter, files::find_level_paths,
+    WorkshopDownloader, WorkshopItemMetadata, WorkshopMetadataAdapter, WorkshopPersistence,
+    files::find_level_paths,
+    scanner::{WorkshopScanStatus, WorkshopScanner},
     steamcmd::WorkshopDownload,
 };
 
@@ -33,6 +36,7 @@ pub struct InspectorRuntime<'a> {
     pub downloader: &'a dyn WorkshopDownloader,
     pub metadata: &'a dyn WorkshopMetadataAdapter,
     pub storage: &'a dyn ObjectStorage,
+    pub persistence: &'a dyn WorkshopPersistence,
 }
 
 #[derive(Deserialize)]
@@ -134,6 +138,11 @@ async fn run_contest(
             configured.round_id,
         )
         .await?;
+    let schedule = match matched_round {
+        Some(round) => runtime.database.get_inspector_schedule(round).await?,
+        None => None,
+    };
+    let final_scan = schedule.as_ref().is_some_and(|schedule| schedule.due);
     if contest.as_ref().is_some_and(|contest| {
         contest.season_number != season_number || contest.round_number != round_number
     }) && configured.round_id.is_none()
@@ -155,7 +164,7 @@ async fn run_contest(
         return Ok(());
     }
     if let (Some(contest), Some(round)) = (&contest, matched_round)
-        && (contest.id_zsl_round.is_none() || configured.round_id.is_some())
+        && contest.id_zsl_round != Some(round)
     {
         runtime
             .database
@@ -163,18 +172,12 @@ async fn run_contest(
             .await?;
     }
     if let Some(existing) = &contest
-        && (configured.closed
-            || thread.thread_metadata.locked
-            || (existing.state == "frozen" && !configured.reopen))
+        && (existing.finalized || (existing.state == "frozen" && !final_scan && !configured.reopen))
     {
-        runtime
-            .database
-            .freeze_inspector_contest(existing.id, true)
-            .await?;
         publish_frozen(runtime, bot_id, existing, &thread.id).await?;
         return Ok(());
     }
-    if configured.closed || thread.thread_metadata.locked {
+    if !final_scan && (configured.closed || thread.thread_metadata.locked) {
         return Ok(());
     }
     let preserved_round = contest.as_ref().and_then(|row| row.id_zsl_round);
@@ -188,11 +191,7 @@ async fn run_contest(
             theme: parsed.theme.clone(),
             season_number,
             round_number,
-            id_zsl_round: if configured.round_id.is_some() {
-                matched_round.or(preserved_round)
-            } else {
-                preserved_round.or(matched_round)
-            },
+            id_zsl_round: matched_round.or(preserved_round),
             mapping_source: if configured.round_id.is_some() {
                 "explicit"
             } else if matched_round.is_some() {
@@ -210,6 +209,25 @@ async fn run_contest(
     contest = runtime.database.get_inspector_contest(&thread.id).await?;
     let contest = contest.context("Inspector contest disappeared after save")?;
     let messages = runtime.discord.messages(&thread.id).await?;
+    let messages = if let Some(schedule) = &schedule {
+        let end: jiff::Timestamp = schedule.submission_end.parse()?;
+        messages
+            .into_iter()
+            .filter(|message| {
+                message
+                    .timestamp
+                    .parse::<jiff::Timestamp>()
+                    .is_ok_and(|timestamp| timestamp < end)
+                    && message.edited_timestamp.as_ref().is_none_or(|edited| {
+                        edited
+                            .parse::<jiff::Timestamp>()
+                            .is_ok_and(|timestamp| timestamp < end)
+                    })
+            })
+            .collect::<Vec<_>>()
+    } else {
+        messages
+    };
     let previous = runtime
         .database
         .get_inspector_submissions(contest.id)
@@ -253,7 +271,8 @@ async fn run_contest(
             &details,
             &configured.rules,
             &rules_hash,
-            options.force,
+            options.force || final_scan,
+            final_scan,
         )
         .await
         {
@@ -344,6 +363,35 @@ async fn run_contest(
         .await?
         .context("Inspector playlist disappeared after publish")?
         .playlist;
+    if final_scan {
+        let archive = build_final_archive(runtime, &accepted, &output.members).await?;
+        let key = archive_key(season_number, round_number, &parsed.theme);
+        let digest = sha256(&archive);
+        let size = i64::try_from(archive.len())?;
+        let archive_bytes = archive.len();
+        runtime
+            .storage
+            .upload(&key, archive, "application/gzip")
+            .await?;
+        runtime
+            .storage
+            .download(
+                &key,
+                DownloadConstraints {
+                    max_bytes: archive_bytes,
+                    expected_bytes: Some(archive_bytes),
+                    expected_sha256: Some(&digest),
+                },
+            )
+            .await?;
+        ensure!(
+            runtime
+                .database
+                .finalize_inspector_contest(contest.id, version.id, &key, &digest, size)
+                .await?,
+            "Contest finalization lost current playlist"
+        );
+    }
     publish(runtime, bot_id, &contest, &version, &output.json, &messages).await?;
     tracing::info!(
         thread_id = thread.id,
@@ -360,6 +408,7 @@ async fn validate_submission(
     rules: &Rules,
     rules_hash: &str,
     force: bool,
+    link_level: bool,
 ) -> Result<InspectorValidationRow> {
     let workshop_id =
         u64::try_from(submission.workshop_id).context("Workshop ID exceeds supported range")?;
@@ -404,6 +453,29 @@ async fn validate_submission(
                 && after.file_size == before.file_size,
             "workshop-revision-changed"
         );
+        if link_level
+            && let Some(level) = inspection.as_ref().filter(|_| failures.is_empty())
+            && !runtime
+                .database
+                .inspector_workshop_level_link_exists(&level.level_hash, submission.workshop_id)
+                .await?
+        {
+            let scanned =
+                WorkshopScanner::new(runtime.metadata, runtime.downloader, runtime.persistence)
+                    .scan_workshop_item(workshop_id)
+                    .await?;
+            ensure!(
+                scanned.status == WorkshopScanStatus::Scanned,
+                "workshop-level-scan-unavailable"
+            );
+            ensure!(
+                runtime
+                    .database
+                    .inspector_workshop_level_link_exists(&level.level_hash, submission.workshop_id)
+                    .await?,
+                "workshop-level-hash-missing-after-scan"
+            );
+        }
     }
     let payload = if failures.is_empty() {
         inspection
@@ -430,6 +502,7 @@ async fn validate_submission(
         .database
         .save_inspector_validation(&InspectorValidationInput {
             id_submission: submission.id,
+            level_hash: inspection.as_ref().map(|value| value.level_hash.clone()),
             workshop_updated_at: item_updated.into(),
             workshop_file_size: i64::try_from(item_size).context("Workshop file exceeds bigint")?,
             content_sha256,
@@ -513,6 +586,111 @@ async fn inspect_download(
         (Err(error), _) => Err(error),
         (Ok(_), Err(error)) => Err(error.context("failed to clean workshop download")),
     }
+}
+
+fn archive_key(season: i32, round: i32, theme: &str) -> String {
+    let slug = theme
+        .chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
+        .collect::<String>();
+    let slug = slug
+        .split('-')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+    format!("inspector/workshop/S{season}R{round}_{slug}.tar.gz")
+}
+
+async fn build_final_archive(
+    runtime: &InspectorRuntime<'_>,
+    accepted: &[(&InspectorSubmissionRow, InspectorValidationRow)],
+    members: &[ValidationMember],
+) -> Result<Vec<u8>> {
+    let mut levels = Vec::with_capacity(members.len());
+    for member in members {
+        let (submission, validation) = accepted
+            .iter()
+            .find(|(submission, validation)| {
+                submission.workshop_id == member.workshop_id as i64
+                    && validation.id == member.id_validation
+            })
+            .context("Playlist member lost selected validation")?;
+        let download = runtime.downloader.download(&[member.workshop_id]).await?;
+        let result = async {
+            let directory = download
+                .items
+                .iter()
+                .find(|item| item.workshop_id == member.workshop_id)
+                .context("Final workshop download missing item")?
+                .directory
+                .as_path();
+            let found = zc_workshop::files::discover_levels(directory).await?;
+            ensure!(
+                found.len() == 1,
+                "Final workshop item has changed level count"
+            );
+            let found = &found[0];
+            let level = tokio::fs::read(&found.level_path).await?;
+            ensure!(
+                level.len() as u64 <= MAX_LEVEL_BYTES,
+                "Final level exceeds size limit"
+            );
+            ensure!(
+                validation.content_sha256.as_deref() == Some(sha256(&level).as_str()),
+                "Final workshop item changed after validation"
+            );
+            let parent = found
+                .level_path
+                .parent()
+                .context("Final level has no folder")?;
+            let mut entries = tokio::fs::read_dir(parent).await?;
+            let mut index_path = None;
+            while let Some(entry) = entries.next_entry().await? {
+                if entry.file_type().await?.is_file()
+                    && entry
+                        .file_name()
+                        .to_string_lossy()
+                        .eq_ignore_ascii_case("indexdata.zeepindex")
+                {
+                    index_path = Some(entry.path());
+                    break;
+                }
+            }
+            let index = match index_path {
+                Some(path) => Some(tokio::fs::read(path).await?),
+                None => {
+                    tracing::warn!(
+                        workshop_id = member.workshop_id,
+                        "Final level has no indexdata.zeepindex"
+                    );
+                    None
+                }
+            };
+            let thumbnail = match &found.thumbnail_path {
+                Some(path) => Some(tokio::fs::read(path).await?),
+                None => {
+                    tracing::warn!(
+                        workshop_id = member.workshop_id,
+                        "Final level has no matching thumbnail"
+                    );
+                    None
+                }
+            };
+            Ok::<_, anyhow::Error>(ArchiveLevel {
+                workshop_id: member.workshop_id,
+                name: found.name.clone(),
+                level,
+                index,
+                thumbnail,
+            })
+        }
+        .await;
+        let cleanup = download.cleanup().await;
+        levels.push(result?);
+        cleanup?;
+        tracing::debug!(submission_id = submission.id, "Final level archived");
+    }
+    build_archive(&levels)
 }
 
 async fn publish_frozen(
@@ -705,6 +883,7 @@ mod tests {
             id_submission: 2,
             workshop_updated_at: "source-error".into(),
             workshop_file_size: 0,
+            content_sha256: None,
             validator_version: VALIDATOR_VERSION.into(),
             rules_hash: "rules".into(),
             failures: json!(["multiple-workshop-links"]),

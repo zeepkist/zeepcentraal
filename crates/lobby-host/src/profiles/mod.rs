@@ -27,11 +27,11 @@ pub fn create_profile(
         RoomProfile::TrackTournament { tournament_type } => Ok(Arc::new(
             TrackTournamentProfile::new(config.clone(), database, storage, *tournament_type)?,
         )),
-        RoomProfile::ZslSubmissions { thread_id } => Ok(Arc::new(ZslSubmissionsProfile::new(
+        RoomProfile::ZslSubmissions { round_id } => Ok(Arc::new(ZslSubmissionsProfile::new(
             config.clone(),
             database,
             storage,
-            thread_id.clone(),
+            *round_id,
         ))),
     }
 }

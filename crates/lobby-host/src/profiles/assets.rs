@@ -136,7 +136,7 @@ struct SubmissionEntry {
 pub struct SubmissionAssets {
     database: Database,
     storage: Arc<dyn ObjectStorage>,
-    thread_id: String,
+    round_id: i32,
     loaded: Arc<Mutex<HashMap<String, Arc<[u8]>>>>,
 }
 
@@ -166,11 +166,11 @@ impl SubmissionAsset {
 }
 
 impl SubmissionAssets {
-    pub fn new(database: Database, storage: Arc<dyn ObjectStorage>, thread_id: String) -> Self {
+    pub fn new(database: Database, storage: Arc<dyn ObjectStorage>, round_id: i32) -> Self {
         Self {
             database,
             storage,
-            thread_id,
+            round_id,
             loaded: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -178,7 +178,7 @@ impl SubmissionAssets {
     pub(super) async fn refresh(&self) -> Result<SubmissionPlaylist> {
         let Some(bundle) = self
             .database
-            .get_inspector_playlist(&self.thread_id)
+            .get_inspector_playlist_by_round(self.round_id)
             .await?
         else {
             return Ok(SubmissionPlaylist::Missing);
