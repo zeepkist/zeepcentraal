@@ -15,6 +15,9 @@ const saved = shallowRef(false)
 const saveError = shallowRef<string | null>(null)
 const names = ['Zeepkist Super League', 'Decoration', 'Layout']
 const maxPicks = computed(() => voteType.value === 1 ? 14 : 3)
+const voteDeadline = computed(() => voteType.value === 1
+	? snapshot.value?.zslVoteEnd
+	: snapshot.value?.cosmeticVoteEnd)
 const openTypes = computed(() => snapshot.value?.openTypes ?? [])
 const pendingTypes = computed(() => openTypes.value.filter(type => !snapshot.value?.votes[type - 1]?.length))
 const savedTypes = computed(() => snapshot.value?.votes.flatMap((votes, index) => votes.length ? [index + 1] : []) ?? [])
@@ -114,6 +117,10 @@ async function submit() {
 				:ui="{ list: 'w-full flex-wrap justify-start rounded-xl border border-border bg-card/60 p-1.5', content: 'pt-6 outline-none' }">
 				<template #ballot>
 					<div class="space-y-6">
+						<div v-if="voteDeadline" class="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+							<TablerIcon name="clock" class="size-4 shrink-0 text-primary" />
+							<p>Voting closes <NuxtTime :datetime="voteDeadline" relative numeric="always" />.</p>
+						</div>
 						<BallotGuidance :vote-type="voteType" />
 						<p class="text-sm font-medium text-highlighted">{{ selected.length }} of {{ maxPicks }} levels selected</p>
 						<BallotCards :levels="cards" :selected="selected" :own-levels="ownLevels"
