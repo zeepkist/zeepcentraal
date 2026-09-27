@@ -132,24 +132,6 @@ fn changed_room_keys<'a>(
     changed
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn reload_changes_only_modified_or_removed_rooms() -> anyhow::Result<()> {
-        let old = zc_lobby_host::config::LobbyHostFileConfig::parse(r#"{"version":1,"rooms":[
-            {"key":"weekly","profile":{"type":"track-tournament","tournamentType":"weekly"},"room":{"name":"Weekly","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000},
-            {"key":"zsl","profile":{"type":"zsl-submissions","roundId":50},"room":{"name":"ZSL","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}]}"#)?.rooms;
-        assert!(changed_room_keys(old.iter(), &old).is_empty());
-        let mut next = old.clone();
-        next[1].profile = zc_lobby_host::config::RoomProfile::ZslSubmissions { round_id: 51 };
-        assert_eq!(changed_room_keys(old.iter(), &next), ["zsl"]);
-        assert_eq!(changed_room_keys(old.iter(), &old[..1]), ["zsl"]);
-        Ok(())
-    }
-}
-
 fn enabled(name: &str) -> anyhow::Result<bool> {
     match zc_core::environment::var(name)
         .unwrap_or_else(|_| "false".into())
@@ -175,4 +157,22 @@ async fn shutdown_signal() -> anyhow::Result<()> {
     #[cfg(not(unix))]
     tokio::signal::ctrl_c().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reload_changes_only_modified_or_removed_rooms() -> anyhow::Result<()> {
+        let old = zc_lobby_host::config::LobbyHostFileConfig::parse(r#"{"version":1,"rooms":[
+            {"key":"weekly","profile":{"type":"track-tournament","tournamentType":"weekly"},"room":{"name":"Weekly","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000},
+            {"key":"zsl","profile":{"type":"zsl-submissions","roundId":50},"room":{"name":"ZSL","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}]}"#)?.rooms;
+        assert!(changed_room_keys(old.iter(), &old).is_empty());
+        let mut next = old.clone();
+        next[1].profile = zc_lobby_host::config::RoomProfile::ZslSubmissions { round_id: 51 };
+        assert_eq!(changed_room_keys(old.iter(), &next), ["zsl"]);
+        assert_eq!(changed_room_keys(old.iter(), &old[..1]), ["zsl"]);
+        Ok(())
+    }
 }
