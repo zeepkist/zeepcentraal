@@ -615,5 +615,5 @@ fn validation_member(
 }
 
 fn submission_digest(rules: &Rules) -> Result<String> {
-    Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(rules)?)))
+    Ok(hex::encode(Sha256::digest(serde_json::to_vec(rules)?)))
 }

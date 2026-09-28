@@ -27,51 +27,52 @@ version = "0.1.0"
 anyhow = "1"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["http2", "json", "macros", "tokio"] }
-base64 = "0.22"
+base64 = "0.23"
 bb8 = "0.9"
 bytes = "1"
 flate2 = "1"
 diesel = { version = "2.3", default-features = false, features = ["32-column-tables", "postgres_backend", "serde_json"] }
 diesel-async = { version = "0.9.0", features = ["postgres", "pool", "bb8", "migrations"] }
 diesel_migrations = "2.3"
-hmac = "0.12"
+hex = "0.4"
+hmac = "0.13"
 jiff = { version = "0.2", features = ["serde"] }
 jwt = "0.16"
 lzma-rs = "0.3"
-opentelemetry = { version = "0.32", features = ["internal-logs"] }
-opentelemetry-appender-tracing = "0.32"
-opentelemetry-otlp = { version = "0.32", default-features = false, features = ["grpc-tonic", "logs", "metrics", "trace", "tls-ring", "tls-webpki-roots"] }
-opentelemetry_sdk = { version = "0.32.1", features = ["logs", "metrics", "rt-tokio", "trace"] }
+opentelemetry = { version = "0.33", features = ["internal-logs"] }
+opentelemetry-appender-tracing = "0.33"
+opentelemetry-otlp = { version = "0.33", default-features = false, features = ["grpc-tonic", "logs", "metrics", "trace", "tls-ring", "tls-webpki-roots"] }
+opentelemetry_sdk = { version = "0.33", features = ["logs", "metrics", "rt-tokio", "trace"] }
 prost = "0.14"
-pq-sys = { version = "0.7", features = ["bundled"] }
-rand = "0.9"
+pq-sys = { version = "0.7.6", features = ["bundled"] }
+rand = "0.10"
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["form", "json", "multipart", "query", "rustls"] }
 ryu-js = "1.0"
 rustls = "0.23.45"
 rust-env = "=0.2.0"
 s3 = "0.1.36"
-scalar_api_reference = "=0.2.2"
+scalar_api_reference = "=0.2.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
-sha1 = "0.10"
-sha2 = "0.10"
+sha1 = "0.11"
+sha2 = "0.11"
 steam-client-rs = "0.2"
 subtle = "2"
-thiserror = "2"
+thiserror = "2.0.21"
 tokio = { version = "1", features = ["fs", "macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"] }
 tokio-stream = { version = "0.1", features = ["sync"] }
 tonic = { version = "0.14", default-features = false, features = ["channel", "tls-webpki-roots"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["cors", "limit", "request-id", "trace"] }
+tower-http = { version = "0.7", features = ["cors", "limit", "request-id", "trace"] }
 tracing = "0.1"
-tracing-opentelemetry = "0.33"
+tracing-opentelemetry = "0.34"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-ulid = { version = "1", features = ["serde"] }
+ulid = { version = "3", features = ["serde"] }
 url = "2"
-utoipa = { version = "5.5", features = ["axum_extras", "ulid", "uuid"] }
+utoipa = { version = "6", features = ["axum_extras", "ulid", "uuid"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-xxhash-rust = { version = "0.8", features = ["xxh3"] }
+xxhash-rust = { version = "0.8.19", features = ["xxh3"] }
 serenity = { git = "https://github.com/serenity-rs/serenity.git", rev = "86866e9a20dc441faac7b38c68a3cf78721ded1c", default-features = false, features = ["builder", "gateway", "http", "model", "rustls_backend", "transport_compression_zlib"] }
 zc-core = { path = "crates/core" }
 zc-database = { path = "crates/database" }

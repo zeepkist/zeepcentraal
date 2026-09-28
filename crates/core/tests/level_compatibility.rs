@@ -13,7 +13,7 @@ fn matches_typescript_level_hash_vectors() {
         assert_eq!(values.len(), 5, "invalid vector: {row}");
         let bytes = fs::read(fixtures.join(values[0])).unwrap();
         assert_eq!(
-            format!("{:X}", Sha256::digest(&bytes)),
+            hex::encode_upper(Sha256::digest(&bytes)),
             values[3],
             "{}",
             values[0]

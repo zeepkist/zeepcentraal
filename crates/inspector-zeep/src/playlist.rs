@@ -140,7 +140,7 @@ pub fn create_submission_playlist(
             .map(|member| &member.payload.as_ref().expect("filtered payload").sha256)
             .collect::<Vec<_>>(),
     ))?;
-    let digest = format!("{:x}", Sha256::digest(digest_source.as_bytes()));
+    let digest = hex::encode(Sha256::digest(digest_source.as_bytes()));
     Ok(SubmissionPlaylist {
         json,
         digest,

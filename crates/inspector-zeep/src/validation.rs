@@ -260,7 +260,7 @@ fn string(value: Option<&Value>) -> Result<String> {
 }
 
 pub fn sha256(value: impl AsRef<[u8]>) -> String {
-    format!("{:x}", Sha256::digest(value.as_ref()))
+    hex::encode(Sha256::digest(value.as_ref()))
 }
 
 fn mode_ids() -> [(RequiredMode, &'static [i64]); 10] {

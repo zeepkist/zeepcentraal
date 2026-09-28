@@ -2,7 +2,7 @@ use ulid::Ulid;
 use xxhash_rust::xxh3::xxh3_128;
 
 pub fn generate_uid() -> String {
-    Ulid::new().to_string()
+    Ulid::generate().to_string()
 }
 
 pub fn xxh128_hex(content: impl AsRef<[u8]>) -> String {

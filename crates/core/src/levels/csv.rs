@@ -308,7 +308,7 @@ fn canonical_content(skybox: i64, ground: i64, blocks: &[HashBlock]) -> String {
 
 fn calculate_legacy_hash(content: &str) -> String {
     let canonical = canonical_csv_content(content);
-    format!("{:X}", Sha1::digest(canonical.as_bytes()))
+    hex::encode_upper(Sha1::digest(canonical.as_bytes()))
 }
 
 fn canonical_csv_content(content: &str) -> String {

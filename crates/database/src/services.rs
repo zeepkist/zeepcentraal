@@ -277,7 +277,7 @@ impl Database {
 }
 
 pub fn refresh_token_hash(token: &str) -> String {
-    format!("{:x}", Sha256::digest(token.as_bytes()))
+    hex::encode(Sha256::digest(token.as_bytes()))
 }
 
 #[cfg(test)]

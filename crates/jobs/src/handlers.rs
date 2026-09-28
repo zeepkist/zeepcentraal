@@ -373,7 +373,7 @@ impl ServiceJobHandler {
                     !zc_core::zeepnet::decode_zeepkist_level_payload(&bytes)?.is_empty(),
                     "Prepared level payload is empty"
                 );
-                let digest = format!("{:x}", Sha256::digest(&bytes));
+                let digest = hex::encode(Sha256::digest(&bytes));
                 let key = format!("track-tournament-lobby/{id_tournament}/{digest}.gz");
                 self.storage
                     .upload(&key, bytes.clone(), "application/gzip")

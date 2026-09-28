@@ -122,7 +122,7 @@ impl ObjectStorage for S3ObjectStorage {
             "S3 object size changed while downloading"
         );
         if let Some(expected) = constraints.expected_sha256 {
-            let actual = format!("{:x}", Sha256::digest(&bytes));
+            let actual = hex::encode(Sha256::digest(&bytes));
             ensure!(
                 actual.eq_ignore_ascii_case(expected),
                 "S3 object SHA256 does not match expected digest"

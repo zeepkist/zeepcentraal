@@ -55,7 +55,7 @@ fn generated_schema_covers_latest_drizzle_snapshot() -> anyhow::Result<()> {
     assert_eq!(zc_database::schema::DRIZZLE_COLUMN_COUNT, expected_columns);
     assert_eq!(
         zc_database::schema::DRIZZLE_SNAPSHOT_SHA256,
-        format!("{:x}", Sha256::digest(&snapshot_bytes))
+        hex::encode(Sha256::digest(&snapshot_bytes))
     );
 
     for (qualified_name, table) in snapshot.tables {

@@ -1,5 +1,5 @@
-use hmac::{Hmac, Mac};
-use rand::Rng;
+use hmac::{Hmac, KeyInit, Mac};
+use rand::RngExt;
 use sha2::Sha256;
 
 pub fn random_link_code() -> String {

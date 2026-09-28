@@ -1,6 +1,10 @@
 use anyhow::{Context, Result, ensure};
-use hmac::{Hmac, Mac};
-use jwt::{SignWithKey, VerifyWithKey};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+use hmac::{Hmac, KeyInit, Mac};
+use jwt::{
+    SignWithKey, VerifyWithKey,
+    algorithm::{AlgorithmType, SigningAlgorithm, VerifyingAlgorithm},
+};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -95,7 +99,7 @@ impl JwtIssuer {
             provider,
             discordid: discord_id.map(str::to_owned),
         };
-        let key: Hmac<Sha256> = Hmac::new_from_slice(&self.secret).context("Invalid JWT key")?;
+        let key = Hs256Key(Hmac::new_from_slice(&self.secret).context("Invalid JWT key")?);
         Ok(TokenPair {
             access_token: claims.sign_with_key(&key).context("Failed to sign JWT")?,
             access_token_expiry: i64::try_from(access_expiry)?,
@@ -105,7 +109,7 @@ impl JwtIssuer {
     }
 
     pub fn verify(&self, token: &str) -> Result<AccessTokenClaims> {
-        let key: Hmac<Sha256> = Hmac::new_from_slice(&self.secret).context("Invalid JWT key")?;
+        let key = Hs256Key(Hmac::new_from_slice(&self.secret).context("Invalid JWT key")?);
         let claims: AccessTokenClaims = token
             .verify_with_key(&key)
             .context("Invalid JWT signature")?;
@@ -132,6 +136,48 @@ impl JwtIssuer {
     }
 }
 
+// jwt 0.16's built-in signer uses hmac 0.12. Keep its token format and
+// algorithm checks while signing with the workspace's RustCrypto version.
+struct Hs256Key(Hmac<Sha256>);
+
+impl Hs256Key {
+    fn mac(&self, header: &str, claims: &str) -> Hmac<Sha256> {
+        let mut mac = self.0.clone();
+        mac.update(header.as_bytes());
+        mac.update(b".");
+        mac.update(claims.as_bytes());
+        mac
+    }
+}
+
+impl SigningAlgorithm for Hs256Key {
+    fn algorithm_type(&self) -> AlgorithmType {
+        AlgorithmType::Hs256
+    }
+
+    fn sign(&self, header: &str, claims: &str) -> Result<String, jwt::Error> {
+        Ok(URL_SAFE_NO_PAD.encode(self.mac(header, claims).finalize().into_bytes()))
+    }
+}
+
+impl VerifyingAlgorithm for Hs256Key {
+    fn algorithm_type(&self) -> AlgorithmType {
+        AlgorithmType::Hs256
+    }
+
+    fn verify_bytes(
+        &self,
+        header: &str,
+        claims: &str,
+        signature: &[u8],
+    ) -> Result<bool, jwt::Error> {
+        self.mac(header, claims)
+            .verify_slice(signature)
+            .map_err(|_| jwt::Error::InvalidSignature)?;
+        Ok(true)
+    }
+}
+
 fn unix_seconds() -> Result<u64> {
     Ok(SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -142,6 +188,34 @@ fn unix_seconds() -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hs256_matches_known_signature_and_rejects_tampering() -> Result<()> {
+        let key = Hs256Key(Hmac::new_from_slice(b"secret")?);
+        let header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+        let claims = "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9";
+        let signature = "TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
+        assert_eq!(key.sign(header, claims)?, signature);
+        assert!(key.verify(header, claims, signature)?);
+        assert!(key.verify(header, "e30", signature).is_err());
+        assert!(key.verify("e30", claims, signature).is_err());
+        assert!(key.verify(header, claims, "AA").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn hs256_rejects_other_algorithms() -> Result<()> {
+        let key = Hs256Key(Hmac::new_from_slice(b"secret")?);
+        for algorithm in ["none", "HS384", "HS512"] {
+            let header = URL_SAFE_NO_PAD.encode(format!(r#"{{"alg":"{algorithm}","typ":"JWT"}}"#));
+            let claims = URL_SAFE_NO_PAD.encode("{}");
+            let signature = key.sign(&header, &claims)?;
+            let token = format!("{header}.{claims}.{signature}");
+            let result: Result<serde_json::Value, _> = token.verify_with_key(&key);
+            assert!(matches!(result, Err(jwt::Error::AlgorithmMismatch(_, _))));
+        }
+        Ok(())
+    }
 
     #[test]
     fn preserves_v1_claim_names() -> Result<()> {

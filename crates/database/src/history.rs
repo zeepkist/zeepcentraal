@@ -63,7 +63,7 @@ pub fn inspect(folder: &Path) -> Result<Vec<HistoricalMigration>> {
             index: entry.idx,
             timestamp: entry.when,
             tag: entry.tag,
-            sha256: format!("{:x}", Sha256::digest(&bytes)),
+            sha256: hex::encode(Sha256::digest(&bytes)),
             statements: sql.split("--> statement-breakpoint").count(),
         });
         previous = Some((entry.idx, entry.when));
