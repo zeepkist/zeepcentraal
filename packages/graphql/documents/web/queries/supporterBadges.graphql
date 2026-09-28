@@ -1,0 +1,26 @@
+query ZC_SupporterBadges($after: Cursor) {
+	donations(first: 1000, after: $after) {
+		nodes {
+			discordUserid
+			isSubscriptionPayment
+			tierName
+		}
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
+	}
+}
+
+query ZC_SupporterUsers($discordIds: [BigInt!]!, $after: Cursor) {
+	users(first: 1000, after: $after, filter: { discordId: { in: $discordIds } }) {
+		nodes {
+			id
+			discordId
+		}
+		pageInfo {
+			hasNextPage
+			endCursor
+		}
+	}
+}

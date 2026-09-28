@@ -8,7 +8,7 @@
 					:style="transition.targetStyle('user', user.steamId, 'title')"
 					data-shared-transition-target="title"
 				>
-					{{ user.steamName ?? user.steamId }}
+					{{ user.steamName ?? user.steamId }} <SupporterBadge :supporter="supporter" />
 				</h1>
 				<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
 					<span class="inline-flex items-center gap-2"><TablerIcon name="calendar" class="size-4" />{{ labels.joined }} <NuxtTime :datetime="user.dateCreated" relative /></span>
@@ -44,9 +44,11 @@
 
 <script setup vapor lang="ts">
 import type { UserProfileSummary } from '~/types/app'
+import type { SupporterStatus } from '~/utils/supporters'
 
 const props = defineProps<{
 	user: UserProfileSummary
+	supporter?: SupporterStatus
 	profileUrl?: string
 	workshopUrl?: string
 	labels: { eyebrow: string; joined: string; globalRank: string; rankedPoints: string; totalPoints: string; unranked: string; steamProfile: string; steamWorkshop: string }

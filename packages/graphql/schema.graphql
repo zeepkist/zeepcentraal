@@ -922,6 +922,270 @@ enum DiscordActivityEventsOrderBy {
   USER_ID_DESC
 }
 
+type Donation implements Node {
+  discordUserid: BigInt!
+  isSubscriptionPayment: Boolean
+
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  tierName: String
+}
+
+type DonationAggregates {
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: DonationAverageAggregates
+
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: DonationDistinctCountAggregates
+  keys: [String]
+
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: DonationMaxAggregates
+
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: DonationMinAggregates
+
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: DonationStddevPopulationAggregates
+
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: DonationStddevSampleAggregates
+
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: DonationSumAggregates
+
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: DonationVariancePopulationAggregates
+
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: DonationVarianceSampleAggregates
+}
+
+type DonationAverageAggregates {
+  """Mean average of discordUserid across the matching connection"""
+  discordUserid: BigFloat
+}
+
+"""
+A condition to be used against `Donation` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input DonationCondition {
+  """Checks for equality with the object’s `discordUserid` field."""
+  discordUserid: BigInt
+
+  """Checks for equality with the object’s `isSubscriptionPayment` field."""
+  isSubscriptionPayment: Boolean
+
+  """Checks for equality with the object’s `tierName` field."""
+  tierName: String
+}
+
+type DonationDistinctCountAggregates {
+  """Distinct count of discordUserid across the matching connection"""
+  discordUserid: BigInt
+
+  """Distinct count of isSubscriptionPayment across the matching connection"""
+  isSubscriptionPayment: BigInt
+
+  """Distinct count of tierName across the matching connection"""
+  tierName: BigInt
+}
+
+"""
+A filter to be used against `Donation` object types. All fields are combined with a logical ‘and.’
+"""
+input DonationFilter {
+  """Checks for all expressions in this list."""
+  and: [DonationFilter!]
+
+  """Filter by the object’s `discordUserid` field."""
+  discordUserid: BigIntFilter
+
+  """Filter by the object’s `isSubscriptionPayment` field."""
+  isSubscriptionPayment: BooleanFilter
+
+  """Negates the expression."""
+  not: DonationFilter
+
+  """Checks for any expressions in this list."""
+  or: [DonationFilter!]
+
+  """Filter by the object’s `tierName` field."""
+  tierName: StringFilter
+}
+
+"""Grouping methods for `Donation` for usage during aggregation."""
+enum DonationGroupBy {
+  IS_SUBSCRIPTION_PAYMENT
+  TIER_NAME
+}
+
+input DonationHavingAverageInput {
+  discordUserid: HavingBigintFilter
+}
+
+input DonationHavingDistinctCountInput {
+  discordUserid: HavingBigintFilter
+}
+
+"""Conditions for `Donation` aggregates."""
+input DonationHavingInput {
+  AND: [DonationHavingInput!]
+  OR: [DonationHavingInput!]
+  average: DonationHavingAverageInput
+  distinctCount: DonationHavingDistinctCountInput
+  max: DonationHavingMaxInput
+  min: DonationHavingMinInput
+  stddevPopulation: DonationHavingStddevPopulationInput
+  stddevSample: DonationHavingStddevSampleInput
+  sum: DonationHavingSumInput
+  variancePopulation: DonationHavingVariancePopulationInput
+  varianceSample: DonationHavingVarianceSampleInput
+}
+
+input DonationHavingMaxInput {
+  discordUserid: HavingBigintFilter
+}
+
+input DonationHavingMinInput {
+  discordUserid: HavingBigintFilter
+}
+
+input DonationHavingStddevPopulationInput {
+  discordUserid: HavingBigintFilter
+}
+
+input DonationHavingStddevSampleInput {
+  discordUserid: HavingBigintFilter
+}
+
+input DonationHavingSumInput {
+  discordUserid: HavingBigintFilter
+}
+
+input DonationHavingVariancePopulationInput {
+  discordUserid: HavingBigintFilter
+}
+
+input DonationHavingVarianceSampleInput {
+  discordUserid: HavingBigintFilter
+}
+
+type DonationMaxAggregates {
+  """Maximum of discordUserid across the matching connection"""
+  discordUserid: BigInt
+}
+
+type DonationMinAggregates {
+  """Minimum of discordUserid across the matching connection"""
+  discordUserid: BigInt
+}
+
+type DonationStddevPopulationAggregates {
+  """
+  Population standard deviation of discordUserid across the matching connection
+  """
+  discordUserid: BigFloat
+}
+
+type DonationStddevSampleAggregates {
+  """
+  Sample standard deviation of discordUserid across the matching connection
+  """
+  discordUserid: BigFloat
+}
+
+type DonationSumAggregates {
+  """Sum of discordUserid across the matching connection"""
+  discordUserid: BigFloat!
+}
+
+type DonationVariancePopulationAggregates {
+  """Population variance of discordUserid across the matching connection"""
+  discordUserid: BigFloat
+}
+
+type DonationVarianceSampleAggregates {
+  """Sample variance of discordUserid across the matching connection"""
+  discordUserid: BigFloat
+}
+
+"""A connection to a list of `Donation` values."""
+type DonationsConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: DonationAggregates
+
+  """
+  A list of edges which contains the `Donation` and cursor to aid in pagination.
+  """
+  edges: [DonationsEdge!]!
+
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `Donation` for these aggregates."""
+    groupBy: [DonationGroupBy!]!
+
+    """Conditions on the grouped aggregates."""
+    having: DonationHavingInput
+  ): [DonationAggregates!]
+
+  """A list of `Donation` objects."""
+  nodes: [Donation!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The count of *all* `Donation` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""A `Donation` edge in the connection."""
+type DonationsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `Donation` at the end of the edge."""
+  node: Donation!
+}
+
+"""Methods to use when ordering `Donation`."""
+enum DonationsOrderBy {
+  DISCORD_USERID_ASC
+  DISCORD_USERID_DESC
+  IS_SUBSCRIPTION_PAYMENT_ASC
+  IS_SUBSCRIPTION_PAYMENT_DESC
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  TIER_NAME_ASC
+  TIER_NAME_DESC
+}
+
 type Favourite implements Node {
   dateCreated: Datetime!
   dateUpdated: Datetime
@@ -9674,6 +9938,43 @@ type Query implements Node {
     """The method to use when ordering `DiscordActivityEvent`."""
     orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
   ): DiscordActivityEventsConnection
+
+  """Get a single `Donation`."""
+  donation(discordUserid: BigInt!): Donation
+
+  """Reads and enables pagination through a set of `Donation`."""
+  donations(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DonationCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DonationFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `Donation`."""
+    orderBy: [DonationsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DonationsConnection
 
   """Get a single `Favourite`."""
   favourite(levelId: Int!, userId: Int!): Favourite
@@ -18716,6 +19017,43 @@ type Subscription {
     orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
   ): DiscordActivityEventsConnection
 
+  """Get a single `Donation`."""
+  donation(discordUserid: BigInt!): Donation
+
+  """Reads and enables pagination through a set of `Donation`."""
+  donations(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: DonationCondition
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: DonationFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """The method to use when ordering `Donation`."""
+    orderBy: [DonationsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): DonationsConnection
+
   """Get a single `Favourite`."""
   favourite(levelId: Int!, userId: Int!): Favourite
 
@@ -21622,6 +21960,7 @@ type User implements Node {
     orderBy: [DiscordActivityEventsOrderBy!] = [PRIMARY_KEY_ASC]
   ): DiscordActivityEventsConnection!
   discordId: BigInt
+  donation: Donation
 
   """Reads and enables pagination through a set of `Favourite`."""
   favourites(

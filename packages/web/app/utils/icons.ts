@@ -34,6 +34,8 @@ import {
 	IconChevronsLeft,
 	IconChevronsRight,
 	IconCircleCheck,
+	IconCircleCheckFilled,
+	IconCircleXFilled,
 	IconClock,
 	IconClock24,
 	IconClockBolt,
@@ -55,6 +57,7 @@ import {
 	IconGhostOff,
 	IconHandStop,
 	IconHeart,
+	IconHeartHandshake,
 	IconHeartOff,
 	IconHourglass,
 	IconInfoCircle,
@@ -100,6 +103,7 @@ import {
 	IconTargetArrow,
 	IconThumbUp,
 	IconTimelineEvent,
+	IconTipJarEuro,
 	IconTrain,
 	IconTrendingDown,
 	IconTrendingUp,
@@ -117,6 +121,8 @@ import {
 } from '@tabler/icons-vue'
 
 export const tablerIcons = {
+	'heart-handshake': IconHeartHandshake,
+	'tip-jar-euro': IconTipJarEuro,
 	'alert-triangle': IconAlertTriangle,
 	'arrow-down-from-arc': IconArrowDownFromArc,
 	'arrow-left': IconArrowLeft,
@@ -143,6 +149,8 @@ export const tablerIcons = {
 	'chevrons-left': IconChevronsLeft,
 	'chevrons-right': IconChevronsRight,
 	'circle-check': IconCircleCheck,
+	'circle-check-filled': IconCircleCheckFilled,
+	'circle-x-filled': IconCircleXFilled,
 	'clock-24': IconClock24,
 	'clock-bolt': IconClockBolt,
 	'database-off': IconDatabaseOff,

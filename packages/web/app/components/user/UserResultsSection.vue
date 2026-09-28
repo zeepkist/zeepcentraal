@@ -26,6 +26,7 @@
 		>
 			<RecordHistoryTable
 				:records="records"
+				:supporters="supporters"
 				:labels="labels"
 				:status-mode="statusMode"
 				:transition-scope="transitionScope"
@@ -53,6 +54,7 @@
 <script setup vapor lang="ts">
 import type { CursorPage, RecordHistoryRow, SortOption } from '~/types/app'
 import type { RecordHistorySort } from '~/utils/recordHistory'
+import type { SupporterMap } from '~/utils/supporters'
 
 withDefaults(
 	defineProps<{
@@ -60,6 +62,7 @@ withDefaults(
 		title: string
 		description: string
 		records: RecordHistoryRow[]
+		supporters?: SupporterMap
 		transitionScope: string
 		sort?: RecordHistorySort
 		sortLabel?: string

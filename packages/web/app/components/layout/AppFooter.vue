@@ -105,6 +105,7 @@ const footerColumns = computed(() => [
 				'brand-github',
 			),
 			internal(t('nav.developer'), '/developer', 'code'),
+			internal(t('nav.support'), '/support', 'tip-jar-euro'),
 			external(
 				t('footer.links.status'),
 				'https://status.zeepki.st',

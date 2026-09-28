@@ -114,7 +114,8 @@
 		"totw": "Track of the Week",
 		"users": "Player Rankings",
 		"wiki": "Wiki",
-		"zsl": "Zeepkist Super League"
+		"zsl": "Zeepkist Super League",
+		"support": "Support"
 	},
 	"lobby": {
 		"empty": "No active rooms found.",
@@ -855,6 +856,15 @@
 				"description": "Replay and analyse a Zeepkist record with telemetry and ghost comparisons.",
 				"recordDescription": "Replay {player}'s record on {level}, inspect telemetry and compare racing lines."
 			}
+		},
+		"support": {
+			"eyebrow": "Support development",
+			"title": "Support ZeepCentraal and Zeepkist",
+			"description": "Support Zeepkist or ZeepCentraal directly. Each donation goes to the respective developers and helps fund their ongoing development.",
+			"seo": {
+				"title": "Support ZeepCentraal and Zeepkist",
+				"description": "Support Akane’s work on ZeepCentraal or Yannic’s work on Zeepkist."
+			}
 		}
 	},
 	"dashboard": {
@@ -1594,6 +1604,39 @@
 			"openModio": "View on mod.io",
 			"by": "by {author}",
 			"seoDescription": "Downloads, dependencies, version, and mod.io details for {name}."
+		}
+	},
+	"support": {
+		"openKofi": "Open on Ko-fi",
+		"discordHelp": "For a ZeepCentraal badge, share your Discord account with Akane’s Ko-fi and make your payment public.",
+		"linkDiscord": "Link Discord to ZeepCentraal",
+		"akane": {
+			"title": "Support Akane / ZeepCentraal",
+			"description": "Help Akane keep ZeepCentraal running and build new features.",
+			"benefits": {
+				"development": "Support continued development of ZeepCentraal features, infrastructure and service operational costs.",
+				"adFree": "Keep ZeepCentraal ad-free.",
+				"badge": "Receive a supporter badge on your ZeepCentraal profile and leaderboards when your Discord account is linked.",
+				"noDiscordRole": "Does not grant a supporter role on the Official Zeepkist Discord.",
+				"noZeepkist": "Does not support Zeepkist."
+			},
+			"notice": "Public payments grant a supporter badge. Monthly payments make it pink for 35 days after the latest public monthly payment; after that, it keeps the default text colour."
+		},
+		"yannic": {
+			"title": "Support Yannic / Zeepkist",
+			"description": "Help Yannic develop Zeepkist and other side projects.",
+			"benefits": {
+				"development": "Support continued development of Zeepkist and online operational costs.",
+				"discordRole": "Receive a supporter role on the Official Zeepkist Discord.",
+				"noBadge": "Does not grant a supporter badge on your ZeepCentraal profile.",
+				"noZeepCentraal": "Does not support ZeepCentraal."
+			},
+			"notice": "These donations go to Yannic. No money goes to ZeepCentraal, and they do not grant a ZeepCentraal supporter badge."
+		},
+		"badge": {
+			"supporter": "ZeepCentraal supporter",
+			"monthly": "Monthly ZeepCentraal supporter",
+			"tier": "{supporter} · {tier}"
 		}
 	}
 }

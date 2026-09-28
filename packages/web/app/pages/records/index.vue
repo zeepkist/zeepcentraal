@@ -45,7 +45,7 @@
 			:empty-title="$t('pages.records.empty')"
 			:skeletons="6"
 		>
-			<RecordHistoryTable
+			<RecordHistoryTable :supporters="supporters"
 				:records="data.rows.value"
 				:labels="tableLabels"
 				:highlighted-record-ids="data.highlightedRecordIds.value"
@@ -150,4 +150,6 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 	lastLabel: t('common.last'),
 }))
+
+const { supporters } = useSupporterBadges()
 </script>

@@ -48,6 +48,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route("/level/request", post(routes::request_level))
         .route("/record/submit", post(routes::submit_record))
         .route("/job/trigger", post(routes::trigger_job))
+        .route(
+            "/kofi/webhook",
+            post(crate::kofi::webhook).layer(DefaultBodyLimit::max(64 * 1024)),
+        )
         .route("/user/updateSteamName", post(routes::update_steam_name))
         .route("/user/updateDiscordId", post(routes::update_discord_id))
         .route(

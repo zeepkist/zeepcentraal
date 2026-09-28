@@ -79,6 +79,22 @@ describe('PostGraphile schema lock', () => {
 		)
 	})
 
+	test('donations expose only public supporter metadata', async () => {
+		const schema = buildSchema(
+			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),
+		)
+		const donation = schema.getType('Donation')
+		expect(
+			donation && 'getFields' in donation ? Object.keys(donation.getFields()).sort() : [],
+		).toEqual(['discordUserid', 'isSubscriptionPayment', 'nodeId', 'tierName'])
+		const user = schema.getType('User')
+		expect(
+			user && 'getFields' in user ? user.getFields().donation?.type.toString() : null,
+		).toBe('Donation')
+		expect(schema.getQueryType()?.getFields().donations).toBeDefined()
+		expect(schema.getMutationType()).toBeUndefined()
+	})
+
 	test('matches published GraphQL schema when schema lock is enabled', async () => {
 		if (process.env.POSTGRAPHILE_SCHEMA_LOCK !== '1') {
 			return

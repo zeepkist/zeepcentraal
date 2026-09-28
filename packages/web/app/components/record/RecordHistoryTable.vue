@@ -66,7 +66,7 @@
 									data-shared-transition-source="title"
 								>
 									{{ record.userName ?? record.userSteamId ?? labels.unknownPlayer }}
-								</span>
+								</span> <SupporterBadge :supporter="supporters?.[record.userId]" />
 							</DataTableCellLink>
 						</td>
 						<td v-else-if="column === 'rank'" class="p-0 font-bold tabular-nums">
@@ -165,11 +165,13 @@ import {
 	getRecordHistoryColumns,
 	type RecordHistoryColumn,
 } from '~/utils/recordHistoryColumns'
+import type { SupporterMap } from '~/utils/supporters'
 import { formatTournamentDelta } from '~/utils/tournament'
 
 const props = withDefaults(
 	defineProps<{
 		records: RecordHistoryRow[]
+		supporters?: SupporterMap
 		transitionScope: string
 		highlightedRecordIds?: ReadonlySet<number>
 		liveUpdateLabel: string

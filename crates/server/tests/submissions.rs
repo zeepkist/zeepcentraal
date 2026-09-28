@@ -133,6 +133,7 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
             jwt,
             steam: None,
             trigger_job_token: "fake".into(),
+            kofi_verification_token: None,
             discord_bot_api_token: "fake".into(),
             discord_client_id: None,
             discord_client_secret: None,

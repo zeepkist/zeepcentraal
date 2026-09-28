@@ -20,7 +20,7 @@
 		</template>
 		<div class="min-w-0 space-y-6">
 			<DataState :pending="pagination.isInitialPending(result.fetching.value, users.length)" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
-				<UserLeaderboardTable
+				<UserLeaderboardTable :supporters="supporters"
 					:users="users"
 					:viewer-user-id="session.user?.id"
 					:labels="tableLabels"
@@ -63,4 +63,6 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 	lastLabel: t('common.last'),
 }))
+
+const { supporters } = useSupporterBadges()
 </script>

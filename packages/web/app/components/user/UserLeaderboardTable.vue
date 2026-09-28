@@ -44,7 +44,7 @@
 								data-shared-transition-source="title"
 							>
 								{{ user.steamName }}
-							</span>
+							</span> <SupporterBadge :supporter="supporters?.[user.id]" />
 						</DataTableCellLink>
 					</td>
 					<td class="p-0 tabular-nums">
@@ -70,9 +70,11 @@
 
 <script setup vapor lang="ts">
 import type { UserSummary } from '~/types/app'
+import type { SupporterMap } from '~/utils/supporters'
 
 const props = defineProps<{
 	users: UserSummary[]
+		supporters?: SupporterMap
 	viewerUserId?: number
 	transitionScope: string
 	labels: {

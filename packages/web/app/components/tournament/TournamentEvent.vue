@@ -146,7 +146,7 @@
 								<span class="font-black tabular-nums">{{ formatTournamentTime(entry.time) }}</span>
 							</div>
 							<p class="mt-3 truncate font-bold text-highlighted">
-								{{ entry.steamName ?? entry.steamId ?? $t('tournaments.unknownPlayer') }}
+								{{ entry.steamName ?? entry.steamId ?? $t('tournaments.unknownPlayer') }} <SupporterBadge :supporter="supporters[entry.userId]" />
 							</p>
 							<div class="mt-3 flex items-end justify-between gap-3 text-sm text-muted">
 								<span>{{ $t('tournaments.pointsValue', { points: entry.points }) }}</span>
@@ -196,7 +196,7 @@
 						:error-title="$t('common.error')"
 						:empty-title="$t('tournaments.noResults')"
 					>
-						<TournamentLeaderboardTable
+						<TournamentLeaderboardTable :supporters="supporters"
 							:standings="standings"
 							:viewer-user-id="viewerId"
 							:fastest-time="podium[0]?.time"
@@ -317,4 +317,6 @@ useSeoMeta({
 	description: () => t('tournaments.seoDescription', { title: props.title }),
 	robots: () => (future.value ? 'noindex, nofollow' : 'index, follow'),
 })
+
+const { supporters } = useSupporterBadges()
 </script>

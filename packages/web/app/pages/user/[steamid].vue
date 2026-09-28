@@ -21,7 +21,7 @@
 			</template>
 			<template v-if="user && summary">
 				<div class="space-y-8 lg:space-y-10">
-					<UserDetailHero
+					<UserDetailHero :supporter="data.user.value ? supporters[data.user.value.id] : undefined"
 						:user="summary"
 						:profile-url="profileUrl"
 						:workshop-url="workshopProfileUrl"
@@ -164,6 +164,7 @@
 									:title="$t('users.profile.worldRecords.title')"
 									:description="$t('users.profile.worldRecords.description')"
 									:records="data.wrRows.value"
+									:supporters="supporters"
 									:sort="data.wrSort.value"
 									:pending="wrPending"
 									:error="data.wrResult.value.error.value?.message"
@@ -189,6 +190,7 @@
 										:title="$t('users.profile.personalBests.title')"
 										:description="$t('users.profile.personalBests.description')"
 										:records="data.pbRows.value"
+										:supporters="supporters"
 										:sort="data.pbSort.value"
 										:sort-label="$t('levels.filters.sort')"
 										:pending="pbPending"
@@ -215,6 +217,7 @@
 										:title="$t('users.profile.recent.title')"
 										:description="$t('users.profile.recent.description')"
 										:records="data.recentRows.value"
+										:supporters="supporters"
 										:pending="recentPending"
 										:error="data.recent.error.value?.message"
 										:page="data.recentPage.value"
@@ -595,4 +598,6 @@ const pbPending = computed(
 	() => !data.personalBestsActive.value || data.pbResult.value.fetching.value,
 )
 const recentPending = computed(() => !data.recentActive.value || data.recent.fetching.value)
+
+const { supporters } = useSupporterBadges()
 </script>

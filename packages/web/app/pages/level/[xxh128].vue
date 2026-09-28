@@ -171,7 +171,7 @@
 									<template #pending>
 										<USkeleton class="min-h-96 w-full rounded-2xl" />
 									</template>
-									<LazyRecordHistoryTable
+									<LazyRecordHistoryTable :supporters="supporters"
 										:records="levelData.personalBestRows.value"
 										:labels="recordLabels"
 										:viewer-user-id="viewerId"
@@ -232,7 +232,7 @@
 									<template #pending>
 										<USkeleton class="min-h-96 w-full rounded-2xl" />
 									</template>
-									<LazyRecordHistoryTable
+									<LazyRecordHistoryTable :supporters="supporters"
 										:records="levelData.recentRows.value"
 										:labels="recordLabels"
 										:viewer-user-id="viewerId"
@@ -513,4 +513,6 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 	lastLabel: t('common.last'),
 }))
+
+const { supporters } = useSupporterBadges()
 </script>

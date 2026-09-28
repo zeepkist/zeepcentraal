@@ -26,6 +26,7 @@ use utoipa::OpenApi;
         crate::routes::request_level,
         crate::routes::submit_record,
         crate::routes::trigger_job,
+        crate::kofi::webhook,
         crate::routes::update_steam_name,
         crate::routes::update_discord_id,
         crate::routes::create_discord_link_code,
@@ -99,7 +100,8 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 55);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 56);
+        assert!(schema["paths"]["/kofi/webhook"]["post"]["requestBody"]["content"]["application/x-www-form-urlencoded"].is_object());
         assert!(schema["paths"]["/super-league/vote"]["get"].is_object());
         assert!(schema["paths"]["/super-league/vote"]["post"].is_object());
         assert!(schema["paths"]["/healthz"]["get"].is_object());

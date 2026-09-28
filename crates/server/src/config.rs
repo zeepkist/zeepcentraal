@@ -8,6 +8,7 @@ pub struct ServerConfig {
     pub jwt: zc_core::jwt::JwtIssuer,
     pub steam: Option<zc_core::steam::SteamClient>,
     pub trigger_job_token: Arc<str>,
+    pub kofi_verification_token: Option<Arc<str>>,
     pub discord_bot_api_token: Arc<str>,
     pub discord_client_id: Option<String>,
     pub discord_client_secret: Option<String>,
@@ -175,6 +176,9 @@ impl ServerConfig {
             jwt,
             steam,
             trigger_job_token: trigger_job_token.into(),
+            kofi_verification_token: optional("KOFI_VERIFICATION_TOKEN")
+                .filter(|value| !value.trim().is_empty())
+                .map(Into::into),
             discord_bot_api_token: discord_bot_api_token.into(),
             discord_client_id: optional("DISCORD_CLIENT_ID"),
             discord_client_secret: optional("DISCORD_CLIENT_SECRET"),

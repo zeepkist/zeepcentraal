@@ -114,6 +114,7 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
 }
 
 fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
+    apply_donations_overlay(snapshot, versions);
     if versions.iter().any(|version| version == "20260927010000") {
         for (table, columns) in [
             (
@@ -291,6 +292,50 @@ fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
     snapshot.tables.insert(
         "zc_private.level_submission_notification".into(),
         Object { columns },
+    );
+}
+
+fn apply_donations_overlay(snapshot: &mut Snapshot, versions: &[String]) {
+    if !versions.iter().any(|version| version == "20260928020000") {
+        return;
+    }
+    let columns = [
+        ("message_id", "uuid", true),
+        ("timestamp", "timestamp with time zone", true),
+        ("type", "text", true),
+        ("is_public", "boolean", true),
+        ("url", "text", true),
+        ("is_subscription_payment", "boolean", true),
+        ("is_first_subscription_payment", "boolean", true),
+        ("kofi_transaction_id", "uuid", true),
+        ("tier_name", "text", false),
+        ("discord_userid", "bigint", false),
+    ];
+    let object = |columns: &[(&str, &str, bool)]| Object {
+        columns: columns
+            .iter()
+            .map(|&(name, data_type, not_null)| {
+                (
+                    name.to_owned(),
+                    SnapshotColumn {
+                        name: name.to_owned(),
+                        data_type: data_type.to_owned(),
+                        not_null,
+                    },
+                )
+            })
+            .collect(),
+    };
+    snapshot
+        .tables
+        .insert("zc_private.donations".into(), object(&columns));
+    snapshot.views.insert(
+        "public.donations".into(),
+        object(&[
+            ("is_subscription_payment", "boolean", false),
+            ("tier_name", "text", false),
+            ("discord_userid", "bigint", false),
+        ]),
     );
 }
 

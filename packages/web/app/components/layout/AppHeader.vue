@@ -45,6 +45,7 @@
 				:options="localeOptions"
 				@select="selectLocale"
 			/>
+			<UButton to="/support" icon="i-tabler-tip-jar-euro" color="neutral" variant="ghost" :aria-label="t('nav.support')" />
 			<ThemeToggle />
 			<AuthMenu
 				:user="session.user"

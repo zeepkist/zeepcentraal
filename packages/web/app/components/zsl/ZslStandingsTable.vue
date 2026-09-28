@@ -57,6 +57,7 @@
 								{{ row.steamName ?? row.steamId }}
 							</span>
 							<span v-else class="truncate text-muted-foreground">{{ labels.unknown }}</span>
+							<SupporterBadge :supporter="supporters?.[row.userId]" />
 							<UBadge v-if="row.pinned" color="primary" variant="soft" size="sm">
 								{{ labels.yourStanding }}
 							</UBadge>
@@ -107,11 +108,13 @@
 
 <script setup vapor lang="ts">
 import type { ZslStanding } from '~/types/app'
+import type { SupporterMap } from '~/utils/supporters'
 import { formatTournamentDelta } from '~/utils/tournament'
 
 const props = withDefaults(
 	defineProps<{
 		standings: ZslStanding[]
+		supporters?: SupporterMap
 		showTime?: boolean
 		showDelta?: boolean
 		fastestTime?: number

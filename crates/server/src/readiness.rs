@@ -142,6 +142,7 @@ mod tests {
         assert!(available_while_degraded("/lobby/events"));
         assert!(available_while_degraded("/turnstile/verify"));
         assert!(!available_while_degraded("/record/submit"));
+        assert!(!available_while_degraded("/kofi/webhook"));
         assert!(!available_while_degraded("/auth/login"));
         assert!(!available_while_degraded(
             "/discord-bot/guild-feeds/enabled"

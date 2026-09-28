@@ -61,7 +61,7 @@
 						:empty="standings.length === 0"
 						v-bind="stateLabels"
 					>
-						<ZslStandingsTable
+						<ZslStandingsTable :supporters="supporters"
 							:standings="standings"
 							:viewer-user-id="viewerId"
 							show-levels-played
@@ -164,4 +164,6 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'),
 	lastLabel: t('common.last'),
 }))
+
+const { supporters } = useSupporterBadges()
 </script>
