@@ -92,6 +92,14 @@ pub struct LeaderboardOverrides {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct LobbyTiming {
+    pub game_state: i32,
+    pub round_time: f64,
+    pub level_loaded_at: f64,
+    pub uid: String,
+    pub workshop_id: u64,
+}
+#[derive(Clone, Debug, PartialEq)]
 pub enum GameHostPacket {
     Leaderboard {
         packet_type: u8,
@@ -108,6 +116,7 @@ pub enum GameHostPacket {
     Initial {
         is_host: bool,
         players: Vec<GameHostPlayer>,
+        timing: LobbyTiming,
     },
     Chat {
         message: String,
@@ -195,7 +204,7 @@ pub fn targeted_chat_message_packet(
     message: &str,
     hostname: &str,
 ) -> Result<Vec<u8>> {
-    ensure!(target_steam_id > 0, "Target Steam ID must be positive");
+    // Steam target 0 is the protocol broadcast destination.
     validate_chat(message, "Chat message")?;
     validate_chat(hostname, "Chat hostname")?;
     write_packet(CUSTOM_CHAT_MESSAGE, |writer| {
@@ -461,7 +470,30 @@ fn read_initial(
             is_host = player_is_host;
         }
     }
-    Ok(GameHostPacket::Initial { is_host, players })
+    let game_state = reader.read_i32()?;
+    reader.read_string(4096)?; // Lobby ID
+    reader.read_string(4096)?; // Lobby name
+    reader.read_bool()?;
+    reader.read_i32()?;
+    let round_time = reader.read_f64()?;
+    let level_loaded_at = reader.read_f64()?;
+    let uid = reader.read_string(4096)?;
+    let workshop_id = reader.read_u64()?;
+    ensure!(
+        round_time.is_finite() && round_time >= 0.0 && level_loaded_at.is_finite(),
+        "Invalid lobby timing"
+    );
+    Ok(GameHostPacket::Initial {
+        is_host,
+        players,
+        timing: LobbyTiming {
+            game_state,
+            round_time,
+            level_loaded_at,
+            uid,
+            workshop_id,
+        },
+    })
 }
 
 fn read_chat(reader: &mut BitReader<'_>) -> Result<GameHostPacket> {
@@ -712,9 +744,25 @@ mod tests {
         initial.write_i32(0);
         initial.write_i32(0);
         initial.write_bool(false);
+        initial.write_i32(0);
+        initial.write_string("lobby")?;
+        initial.write_string("ZSL")?;
+        initial.write_bool(true);
+        initial.write_i32(64);
+        initial.write_f64(900.0);
+        initial.write_f64(100.0);
+        initial.write_string("uid")?;
+        initial.write_u64(123);
         assert_eq!(
             parse_game_host_packet_for(&initial.into_bytes(), 0, Some(8))?,
             GameHostPacket::Initial {
+                timing: LobbyTiming {
+                    game_state: 0,
+                    round_time: 900.0,
+                    level_loaded_at: 100.0,
+                    uid: "uid".into(),
+                    workshop_id: 123
+                },
                 is_host: true,
                 players: vec![GameHostPlayer {
                     backup_name: "Player".into(),

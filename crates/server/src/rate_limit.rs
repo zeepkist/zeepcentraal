@@ -109,7 +109,11 @@ pub async fn middleware(
     request: Request,
     next: Next,
 ) -> Response {
-    let Some((bucket, limit)) = bucket(request.uri().path(), state.config.rate_limits) else {
+    let Some((bucket, limit)) = request_bucket(
+        request.uri().path(),
+        request.method(),
+        state.config.rate_limits,
+    ) else {
         return next.run(request).await;
     };
     let identity = authenticated_id(request.headers(), &state)
@@ -132,6 +136,18 @@ pub async fn middleware(
             .expect("valid retry-after"),
     );
     response
+}
+
+fn request_bucket(
+    path: &str,
+    method: &axum::http::Method,
+    limits: crate::config::RateLimits,
+) -> Option<(&'static str, u32)> {
+    if method == axum::http::Method::GET && path.starts_with("/super-league/") {
+        // Two-second status polling must not consume vote/submission mutation quota.
+        return Some(("contest-read", 120));
+    }
+    bucket(path, limits)
 }
 
 fn bucket(path: &str, limits: crate::config::RateLimits) -> Option<(&'static str, u32)> {
@@ -213,6 +229,35 @@ pub(crate) fn client_ip(request: &Request, trust_proxy: bool) -> String {
 mod tests {
     use super::*;
 
+    #[test]
+    fn submission_polling_has_separate_read_quota() {
+        let limits = crate::config::RateLimits {
+            auth: 1,
+            record: 1,
+            mutation: 3,
+            job: 1,
+        };
+        assert_eq!(
+            request_bucket(
+                "/super-league/submission-status/42",
+                &axum::http::Method::GET,
+                limits
+            ),
+            Some(("contest-read", 120))
+        );
+        assert_eq!(
+            request_bucket(
+                "/super-league/submit-level",
+                &axum::http::Method::POST,
+                limits
+            ),
+            Some(("mutation", 3))
+        );
+        assert_eq!(
+            request_bucket("/super-league/vote", &axum::http::Method::POST, limits),
+            Some(("mutation", 3))
+        );
+    }
     #[test]
     fn expires_fixed_window_and_caps_identities() {
         let store = RateLimitStore::default();

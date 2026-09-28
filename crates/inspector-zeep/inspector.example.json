@@ -1,0 +1,18 @@
+{
+	"version": 2,
+	"notificationChannelId": "1553911239275585617",
+	"contests": [
+		{
+			"roundId": 50,
+			"rules": {
+				"minBlocks": 0,
+				"maxBlocks": 3000,
+				"minTime": 25,
+				"maxTime": 60,
+				"minCheckpoints": 3,
+				"requiredModes": [],
+				"fixedCheckpoints": []
+			}
+		}
+	]
+}

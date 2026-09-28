@@ -1,6 +1,6 @@
 use super::{
     SubmissionAsset, SubmissionAssets, SubmissionPlaylist,
-    messages::{scheduled_submission_message, submission_message},
+    messages::{HOSTNAME, escape_text, scheduled_submission_message, submission_message},
 };
 use crate::{
     config::ManagedRoomConfig,
@@ -155,6 +155,7 @@ impl LobbyProfile for ZslSubmissionsProfile {
             boundary: Notify::new(),
             poll: Mutex::new(()),
             transitioning: AtomicBool::new(false),
+            notice: Mutex::new(RoundNotice::default()),
         }))
     }
 
@@ -203,6 +204,34 @@ fn retained_indices(state: &SessionState, asset: &SubmissionAsset) -> Option<(us
     Some((current_index, next_index))
 }
 
+#[derive(Default)]
+struct RoundNotice {
+    timing: Option<zc_core::zeepnet::LobbyTiming>,
+    announced: Option<(String, u64, u64)>,
+}
+fn upcoming_level(state: &SessionState) -> Option<OnlineLevel> {
+    if let Some(candidate) = &state.pending {
+        let next = retained_indices(state, candidate).map_or(0, |(current, _)| {
+            (current + 1) % candidate.playlist.levels.len()
+        });
+        return candidate.playlist.levels.get(next).cloned();
+    }
+    state.active.playlist.levels.get(state.next_index).cloned()
+}
+fn next_level_message(level: &OnlineLevel) -> String {
+    let author = if !level.override_author_name.is_empty() {
+        level.override_author_name.clone()
+    } else if level.collaborators.is_empty() {
+        level.author.clone()
+    } else {
+        format!("{}, {}", level.author, level.collaborators)
+    };
+    format!(
+        "<color=#f9cc15>Next submission:</color> <b>{}</b> by {}",
+        escape_text(&level.name),
+        escape_text(&author)
+    )
+}
 struct ZslSubmissionsSession {
     config: ManagedRoomConfig,
     schedule: Option<(Database, i32)>,
@@ -216,6 +245,7 @@ struct ZslSubmissionsSession {
     boundary: Notify,
     poll: Mutex<()>,
     transitioning: AtomicBool,
+    notice: Mutex<RoundNotice>,
 }
 
 impl ZslSubmissionsSession {
@@ -223,7 +253,10 @@ impl ZslSubmissionsSession {
         if self.stopped.load(Ordering::Acquire) || !self.context.is_host() {
             return Ok(());
         }
-        let entries = self.state.lock().await.active.playlist.levels.len();
+        let (entries, position) = {
+            let state = self.state.lock().await;
+            (state.active.playlist.levels.len(), state.current_index + 1)
+        };
         let message = if let Some((database, round_id)) = &self.schedule {
             let schedule = database
                 .get_inspector_lobby_schedule(*round_id)
@@ -240,7 +273,55 @@ impl ZslSubmissionsSession {
         } else {
             submission_message(entries, self.config.round_time_seconds)
         };
+        let message = format!("{message}\nSubmission {position} of {entries}");
         self.context.chat().command(&message).await
+    }
+
+    async fn announce_next(&self) -> Result<()> {
+        if self.stopped.load(Ordering::Acquire) || !self.context.is_host() {
+            self.notice.lock().await.timing = None;
+            return Ok(());
+        }
+        if self.transitioning.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let Some(now) = self.context.remote_now() else {
+            return Ok(());
+        };
+        let message = {
+            let mut notice = self.notice.lock().await;
+            let Some(timing) = &notice.timing else {
+                return Ok(());
+            };
+            let remaining = timing.round_time - (now - timing.level_loaded_at);
+            if timing.game_state != 0 || !(0.0..=10.0).contains(&remaining) {
+                return Ok(());
+            }
+            let key = (
+                timing.uid.clone(),
+                timing.workshop_id,
+                timing.level_loaded_at.to_bits(),
+            );
+            if notice.announced.as_ref() == Some(&key) {
+                return Ok(());
+            }
+            let state = self.state.lock().await;
+            let Some(current) = state.active.playlist.levels.get(state.current_index) else {
+                return Ok(());
+            };
+            if current.uid != timing.uid || current.workshop_id != timing.workshop_id {
+                return Ok(());
+            }
+            let Some(next) = upcoming_level(&state) else {
+                return Ok(());
+            };
+            notice.announced = Some(key);
+            next_level_message(&next)
+        };
+        if self.context.is_host() && !self.stopped.load(Ordering::Acquire) {
+            self.context.chat().target(0, &message, HOSTNAME).await?;
+        }
+        Ok(())
     }
 
     async fn refresh_overlay(&self) {
@@ -506,6 +587,8 @@ impl ProfileSession for ZslSubmissionsSession {
             .activate(self.initial_level.clone(), Some(playlist))
             .await?;
         self.overlay().await?;
+        let mut announcement = tokio::time::interval(std::time::Duration::from_millis(250));
+        announcement.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         let mut refresh = tokio::time::interval(std::time::Duration::from_secs(30));
         let mut message = tokio::time::interval(std::time::Duration::from_secs(60));
         refresh.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -517,6 +600,7 @@ impl ProfileSession for ZslSubmissionsSession {
                 return Ok(());
             }
             tokio::select! {
+                _ = announcement.tick() => self.announce_next().await?,
                 _ = self.wake.notified() => return Ok(()),
                 _ = refresh.tick() => self.refresh().await?,
                 _ = self.boundary.notified() => self.activate_deferred().await?,
@@ -530,6 +614,35 @@ impl ProfileSession for ZslSubmissionsSession {
     async fn on_packet(&self, packet: &GameHostPacket) -> Result<()> {
         if self.stopped.load(Ordering::Acquire) || self.transitioning.load(Ordering::Acquire) {
             return Ok(());
+        }
+        {
+            let mut notice = self.notice.lock().await;
+            match packet {
+                GameHostPacket::Initial { timing, .. } => notice.timing = Some(timing.clone()),
+                GameHostPacket::GameProperties {
+                    level_loaded_at,
+                    round_time,
+                    uid,
+                    workshop_id,
+                } => {
+                    if round_time.is_finite() && level_loaded_at.is_finite() && *round_time >= 0.0 {
+                        let game_state = notice.timing.as_ref().map_or(1, |t| t.game_state);
+                        notice.timing = Some(zc_core::zeepnet::LobbyTiming {
+                            game_state,
+                            round_time: *round_time,
+                            level_loaded_at: *level_loaded_at,
+                            uid: uid.clone(),
+                            workshop_id: *workshop_id,
+                        });
+                    }
+                }
+                GameHostPacket::GameState(game_state) => {
+                    if let Some(timing) = &mut notice.timing {
+                        timing.game_state = *game_state
+                    }
+                }
+                _ => {}
+            }
         }
         if let GameHostPacket::PlaylistIndex {
             current_index,
@@ -557,6 +670,9 @@ impl ProfileSession for ZslSubmissionsSession {
                     drop(state);
                     if changed && has_pending {
                         self.apply_at_boundary().await?;
+                    }
+                    if changed {
+                        self.refresh_overlay().await;
                     }
                 }
             }
@@ -594,6 +710,9 @@ impl ProfileSession for ZslSubmissionsSession {
         drop(state);
         if changed && has_pending {
             self.apply_at_boundary().await?;
+        }
+        if changed {
+            self.refresh_overlay().await;
         }
         let asset = self.state.lock().await.active.clone();
         if asset.playlist.levels.iter().any(|level| {
@@ -743,6 +862,7 @@ mod tests {
             boundary: Notify::new(),
             poll: Mutex::new(()),
             transitioning: AtomicBool::new(false),
+            notice: Mutex::new(RoundNotice::default()),
         })
     }
 
@@ -773,6 +893,125 @@ mod tests {
             next_index: 2,
             select_next: true,
         }
+    }
+
+    #[tokio::test]
+    async fn counter_and_next_notice_use_confirmed_position_and_escape_names() -> Result<()> {
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let mut session = session(
+            asset("a", &[1, 2, 3])?,
+            2,
+            Arc::new(TestSource::new(vec![])),
+            sent.clone(),
+        )
+        .await?;
+        session.context.test_remote_time(191.0);
+        session.overlay().await?;
+        let command = zc_core::zeepnet::parse_game_host_packet_for(&sent.lock().await[0], 0, None)?;
+        assert!(
+            matches!(command,GameHostPacket::Chat{message,..} if message.contains("Submission 3 of 3"))
+        );
+        let current = session.state.lock().await.active.playlist.levels[2].clone();
+        session
+            .on_packet(&GameHostPacket::Initial {
+                is_host: true,
+                players: vec![],
+                timing: zc_core::zeepnet::LobbyTiming {
+                    game_state: 0,
+                    round_time: 100.0,
+                    level_loaded_at: 100.0,
+                    uid: current.uid.clone(),
+                    workshop_id: current.workshop_id,
+                },
+            })
+            .await?;
+        session.announce_next().await?;
+        session.announce_next().await?;
+        assert_eq!(sent.lock().await.len(), 2, "One notice per round");
+        let expected = zc_core::zeepnet::targeted_chat_message_packet(
+            0,
+            &next_level_message(&session.state.lock().await.active.playlist.levels[0]),
+            HOSTNAME,
+        )?;
+        assert_eq!(sent.lock().await[1], expected);
+        // Same level, new loaded timestamp is a repeat round and gets a new notice.
+        session.context.test_remote_time(291.0);
+        session
+            .on_packet(&GameHostPacket::GameProperties {
+                round_time: 100.0,
+                level_loaded_at: 200.0,
+                uid: current.uid.clone(),
+                workshop_id: current.workshop_id,
+            })
+            .await?;
+        session.announce_next().await?;
+        assert_eq!(sent.lock().await.len(), 3);
+        session.context.test_authority(false);
+        session.announce_next().await?;
+        session.context.test_authority(true);
+        session.announce_next().await?;
+        assert_eq!(sent.lock().await.len(), 3);
+        let mut named = current;
+        named.name = "<size=200%>Bad & name".into();
+        named.override_author_name = "<color=red>A</color>".into();
+        let message = next_level_message(&named);
+        assert!(message.contains("&lt;size=200%&gt;"));
+        assert!(message.contains("Bad &amp; name"));
+        assert!(!message.contains("<color=red>"));
+        Ok(())
+    }
+    #[tokio::test]
+    async fn notice_respects_racing_time_changes_pending_replacement_and_stop() -> Result<()> {
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let mut session = session(
+            asset("a", &[1, 2, 3])?,
+            1,
+            Arc::new(TestSource::new(vec![])),
+            sent.clone(),
+        )
+        .await?;
+        session.context.test_remote_time(181.0);
+        let current = session.state.lock().await.active.playlist.levels[1].clone();
+        session
+            .on_packet(&GameHostPacket::Initial {
+                is_host: true,
+                players: vec![],
+                timing: zc_core::zeepnet::LobbyTiming {
+                    game_state: 0,
+                    round_time: 100.0,
+                    level_loaded_at: 100.0,
+                    uid: current.uid.clone(),
+                    workshop_id: current.workshop_id,
+                },
+            })
+            .await?;
+        session.announce_next().await?;
+        assert!(sent.lock().await.is_empty());
+        session.context.test_remote_time(191.0);
+        session.on_packet(&GameHostPacket::GameState(1)).await?;
+        session.announce_next().await?;
+        assert!(sent.lock().await.is_empty());
+        session.on_packet(&GameHostPacket::GameState(0)).await?;
+        {
+            let mut state = session.state.lock().await;
+            state.pending = Some(asset("b", &[9, 8])?);
+        }
+        let next = upcoming_level(&*session.state.lock().await).unwrap();
+        assert_eq!(next.workshop_id, 9);
+        session.announce_next().await?;
+        assert_eq!(
+            sent.lock().await[0],
+            zc_core::zeepnet::targeted_chat_message_packet(
+                0,
+                &next_level_message(&next),
+                HOSTNAME
+            )?
+        );
+        session.stop().await;
+        session.context.test_remote_time(291.0);
+        session.announce_next().await?;
+        assert_eq!(sent.lock().await.len(), 1);
+        Ok(())
     }
 
     #[test]
@@ -807,7 +1046,10 @@ mod tests {
         assert_eq!(packets.len(), 2);
         assert_eq!(
             packets[1],
-            chat_message_packet(&submission_message(31, session.config.round_time_seconds))?
+            chat_message_packet(&format!(
+                "{}\nSubmission 6 of 31",
+                submission_message(31, session.config.round_time_seconds)
+            ))?
         );
         let state = session.state.lock().await;
         assert_eq!(state.active.digest, "published-31");

@@ -86,29 +86,16 @@ async fn run() -> anyhow::Result<()> {
             zc_inspector_zeep::run::run_inspector(&runtime, &config, options),
         )
         .await;
-        let failed = match result {
-            Ok(Ok(())) => false,
+        match result {
+            Ok(Ok(())) => {}
             Ok(Err(error)) => {
                 tracing::warn!(%error, "Inspector scan failed; retrying");
-                true
             }
             Err(_) => {
                 tracing::warn!("Inspector scan timed out; retrying");
-                true
             }
         };
-        let delay = if failed {
-            60
-        } else {
-            match database.next_inspector_finalize_delay().await {
-                Ok(Some(seconds)) => seconds.clamp(1, 1_800),
-                Ok(None) => 1_800,
-                Err(error) => {
-                    tracing::warn!(%error, "Inspector deadline lookup failed");
-                    60
-                }
-            }
-        };
+        let delay = 5;
         tokio::time::sleep(std::time::Duration::from_secs(delay as u64)).await;
     }
 }

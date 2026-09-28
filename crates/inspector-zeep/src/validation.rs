@@ -10,7 +10,7 @@ use zc_core::{
     zeepnet::{decode_zeepkist_level_payload, encode_zeepkist_level_payload},
 };
 
-pub const VALIDATOR_VERSION: &str = "1";
+pub const VALIDATOR_VERSION: &str = "2";
 
 static CSV_NUMBER: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?$").expect("valid CSV number regex")

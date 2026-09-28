@@ -133,6 +133,10 @@ pub fn create_submission_playlist(
         &digest_playlist,
         members
             .iter()
+            .map(|member| member.id_validation)
+            .collect::<Vec<_>>(),
+        members
+            .iter()
             .map(|member| &member.payload.as_ref().expect("filtered payload").sha256)
             .collect::<Vec<_>>(),
     ))?;
@@ -163,6 +167,20 @@ mod tests {
     }
 
     #[test]
+    fn digest_changes_when_validation_is_replaced() {
+        let original = member(123, true, "a");
+        let mut newer = original.clone();
+        newer.id_validation += 1;
+        assert_ne!(
+            create_submission_playlist("Theme", &[original])
+                .unwrap()
+                .digest,
+            create_submission_playlist("Theme", &[newer])
+                .unwrap()
+                .digest
+        );
+    }
+    #[test]
     fn filters_invalid_and_duplicate_members_without_losing_u64_ids() {
         let playlist = create_submission_playlist(
             "Theme",
@@ -182,7 +200,7 @@ mod tests {
         assert!(playlist.json.contains("\"amountOfLevels\":1"));
         assert_eq!(
             playlist.digest,
-            "59657a5ea48897478d258f4e01dfc49bb9760a743b83f8ee82b5ad7e1d4babd4"
+            "ef0734581859d327420cf2895004be03c4df04c42a957ffefc2e29cd0c8d7236"
         );
     }
 }

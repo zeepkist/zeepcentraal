@@ -1,24 +1,17 @@
 use crate::{
     archive::{ArchiveLevel, build_archive},
     config::{InspectorConfig, InspectorOptions, Rules},
-    contests::parse_contest_title,
-    discord::{DiscordRest, ForumThread},
+    discord::DiscordRest,
     playlist::{ValidationMember, ValidationPayload, create_submission_playlist},
-    publication::{
-        PlaylistVersion, PublicationContest, PublicationState, publish_discord_playlist,
-    },
-    submissions::{SourceMessage, SourceSubmission, SubmissionState, reconcile_sources},
+    publication::deliver_notifications,
     validation::{Inspection, VALIDATOR_VERSION, inspect_level, sha256},
 };
 use anyhow::{Context, Result, bail, ensure};
-use reqwest::Method;
-use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use zc_core::object_storage::{DownloadConstraints, ObjectStorage};
 use zc_database::services::inspector::{
-    InspectorContestInput, InspectorContestRow, InspectorPlaylistMember, InspectorPlaylistRow,
-    InspectorSubmissionInput, InspectorSubmissionRow, InspectorValidationInput,
+    InspectorPlaylistMember, InspectorSubmissionRow, InspectorValidationInput,
     InspectorValidationRow,
 };
 use zc_workshop::{
@@ -27,9 +20,7 @@ use zc_workshop::{
     scanner::{WorkshopScanStatus, WorkshopScanner},
     steamcmd::WorkshopDownload,
 };
-
 const MAX_LEVEL_BYTES: u64 = 64 * 1024 * 1024;
-
 pub struct InspectorRuntime<'a> {
     pub database: &'a zc_database::Database,
     pub discord: &'a DiscordRest,
@@ -38,337 +29,225 @@ pub struct InspectorRuntime<'a> {
     pub storage: &'a dyn ObjectStorage,
     pub persistence: &'a dyn WorkshopPersistence,
 }
-
-#[derive(Deserialize)]
-struct DiscordUser {
-    id: String,
-}
-
 pub async fn run_inspector(
     runtime: &InspectorRuntime<'_>,
     config: &InspectorConfig,
     options: InspectorOptions,
 ) -> Result<()> {
-    zc_telemetry::observe_operation(
-        "inspector.run",
-        run_inspector_inner(runtime, config, options),
-    )
+    zc_telemetry::observe_operation("inspector.run", async {
+        runtime
+            .database
+            .with_inspector_lock(|| async {
+                let mut failed = false;
+                for configured in &config.contests {
+                    if let Err(error) = run_contest(runtime, configured, options).await {
+                        failed = true;
+                        runtime
+                            .database
+                            .defer_inspector_finalization(configured.round_id)
+                            .await?;
+                        tracing::warn!(round_id=configured.round_id,%error,"Contest work deferred");
+                    }
+                }
+                // Notification failure cannot prevent validation, playlists or finalization.
+                if !options.dry_run
+                    && let Err(error) = deliver_notifications(
+                        runtime.database,
+                        runtime.discord,
+                        &config.notification_channel_id,
+                    )
+                    .await
+                {
+                    tracing::warn!(%error,"Validation feed unavailable");
+                }
+                ensure!(!failed, "Inspector has deferred work");
+                Ok(())
+            })
+            .await?;
+        Ok(())
+    })
     .await
 }
-
-async fn run_inspector_inner(
-    runtime: &InspectorRuntime<'_>,
-    config: &InspectorConfig,
-    options: InspectorOptions,
-) -> Result<()> {
-    let result = runtime
-        .database
-        .with_inspector_lock(|| run_locked(runtime, config, options))
-        .await?;
-    if result.is_none() {
-        tracing::info!("Inspector run skipped because another instance holds the lock");
-    }
-    Ok(())
-}
-
-async fn run_locked(
-    runtime: &InspectorRuntime<'_>,
-    config: &InspectorConfig,
-    options: InspectorOptions,
-) -> Result<()> {
-    let bot: DiscordUser = runtime.discord.request("users/@me", Method::GET).await?;
-    let mut discovered = HashMap::new();
-    for forum in &config.forums {
-        for thread in runtime
-            .discord
-            .discover(&forum.guild_id, &forum.forum_id)
-            .await?
-        {
-            discovered.insert(thread.id.clone(), thread);
-        }
-    }
-    let mut failed = false;
-    for configured in &config.contests {
-        let result = run_contest(runtime, config, configured, options, &bot.id, &discovered).await;
-        if let Err(error) = result {
-            failed = true;
-            tracing::warn!(
-                thread_id = configured.thread_id,
-                error = %error,
-                "Inspector contest failed; publication deferred"
-            );
-        }
-    }
-    ensure!(!failed, "Inspector run completed with deferred work");
-    Ok(())
-}
-
 async fn run_contest(
     runtime: &InspectorRuntime<'_>,
-    config: &InspectorConfig,
     configured: &crate::config::ContestConfig,
     options: InspectorOptions,
-    bot_id: &str,
-    discovered: &HashMap<String, ForumThread>,
 ) -> Result<()> {
-    let thread = match discovered.get(&configured.thread_id) {
-        Some(thread) => thread.clone(),
-        None => {
-            runtime
-                .discord
-                .request(&format!("channels/{}", configured.thread_id), Method::GET)
-                .await?
-        }
-    };
-    ensure!(
-        config.forums.iter().any(|forum| {
-            forum.guild_id == thread.guild_id && forum.forum_id == thread.parent_id
-        }),
-        "Thread outside configured forum"
-    );
-    let parsed = parse_contest_title(&thread.name).context("Unrecognized contest title")?;
-    let season_number = i32::try_from(parsed.season).context("Contest season exceeds integer")?;
-    let round_number = i32::try_from(parsed.round).context("Contest round exceeds integer")?;
-    let mut contest = runtime.database.get_inspector_contest(&thread.id).await?;
-    let matched_round = runtime
-        .database
-        .find_inspector_round(
-            config.seasons.get(&parsed.season.to_string()).copied(),
-            round_number,
-            configured.round_id,
-        )
-        .await?;
-    let schedule = match matched_round {
-        Some(round) => runtime.database.get_inspector_schedule(round).await?,
-        None => None,
-    };
-    let final_scan = schedule.as_ref().is_some_and(|schedule| schedule.due);
-    if contest.as_ref().is_some_and(|contest| {
-        contest.season_number != season_number || contest.round_number != round_number
-    }) && configured.round_id.is_none()
-    {
-        bail!("Contest title changed round identity; explicit mapping required");
-    }
-    let rules_hash = submission_digest(&configured.rules)?;
     if options.dry_run {
-        let messages = runtime.discord.messages(&thread.id).await?;
         tracing::info!(
-            thread_id = thread.id,
-            source_messages = messages.len(),
-            round_matched = matched_round.is_some(),
-            rules_changed = contest
-                .as_ref()
-                .is_none_or(|row| row.rules_hash != rules_hash),
-            "Inspector preview"
+            round_id = configured.round_id,
+            "Inspector preview; no mutations"
         );
         return Ok(());
     }
-    if let (Some(contest), Some(round)) = (&contest, matched_round)
-        && contest.id_zsl_round != Some(round)
-    {
-        runtime
-            .database
-            .link_inspector_round(contest.id, round, configured.round_id.is_some())
-            .await?;
-    }
-    if let Some(existing) = &contest
-        && (existing.finalized || (existing.state == "frozen" && !final_scan && !configured.reopen))
-    {
-        publish_frozen(runtime, bot_id, existing, &thread.id).await?;
-        return Ok(());
-    }
-    if !final_scan && (configured.closed || thread.thread_metadata.locked) {
-        return Ok(());
-    }
-    let preserved_round = contest.as_ref().and_then(|row| row.id_zsl_round);
+    let rules_hash = submission_digest(&configured.rules)?;
     runtime
         .database
-        .save_inspector_contest(&InspectorContestInput {
-            thread_id: thread.id.clone(),
-            guild_id: thread.guild_id.clone(),
-            forum_id: thread.parent_id.clone(),
-            title: thread.name.clone(),
-            theme: parsed.theme.clone(),
-            season_number,
-            round_number,
-            id_zsl_round: matched_round.or(preserved_round),
-            mapping_source: if configured.round_id.is_some() {
-                "explicit"
-            } else if matched_round.is_some() {
-                "title"
-            } else {
-                "unlinked"
-            }
-            .into(),
-            rules: serde_json::to_value(&configured.rules)?,
-            rules_hash: rules_hash.clone(),
-            state: "open".into(),
-            frozen_at: None,
-        })
+        .configure_inspector_contest(
+            configured.round_id,
+            serde_json::to_value(&configured.rules)?,
+            &rules_hash,
+        )
         .await?;
-    contest = runtime.database.get_inspector_contest(&thread.id).await?;
-    let contest = contest.context("Inspector contest disappeared after save")?;
-    let messages = runtime.discord.messages(&thread.id).await?;
-    let messages = if let Some(schedule) = &schedule {
-        let end: jiff::Timestamp = schedule.submission_end.parse()?;
-        messages
-            .into_iter()
-            .filter(|message| {
-                message
-                    .timestamp
-                    .parse::<jiff::Timestamp>()
-                    .is_ok_and(|timestamp| timestamp < end)
-                    && message.edited_timestamp.as_ref().is_none_or(|edited| {
-                        edited
-                            .parse::<jiff::Timestamp>()
-                            .is_ok_and(|timestamp| timestamp < end)
-                    })
-            })
-            .collect::<Vec<_>>()
-    } else {
-        messages
-    };
-    let previous = runtime
+    let contest = runtime
+        .database
+        .get_inspector_contest(configured.round_id)
+        .await?
+        .context("Contest missing")?;
+    if contest.state == "frozen" {
+        return Ok(());
+    }
+    let schedule = runtime
+        .database
+        .get_inspector_schedule(configured.round_id)
+        .await?;
+    if !schedule.as_ref().is_some_and(|s| s.started) {
+        return Ok(());
+    }
+    let final_scan = schedule.as_ref().is_some_and(|s| s.due);
+    if final_scan && !contest.finalization_due {
+        return Ok(());
+    }
+    let selected = runtime
         .database
         .get_inspector_submissions(contest.id)
         .await?;
-    let previous_sources = previous
+    let due: Vec<_> = selected
         .iter()
-        .map(source_from_row)
-        .collect::<Result<Vec<_>>>()?;
-    let sources = reconcile_sources(&messages, &previous_sources);
-    let last_seen = jiff::Timestamp::now().to_string();
-    let selected = runtime
-        .database
-        .reconcile_inspector_submissions(
-            contest.id,
-            &sources
-                .iter()
-                .map(|source| submission_input(source, &last_seen))
-                .collect::<Result<Vec<_>>>()?,
-        )
-        .await?;
-    let ids: Vec<_> = selected
-        .iter()
-        .filter(|row| row.source_error.is_none())
-        .filter_map(|row| u64::try_from(row.workshop_id).ok())
-        .collect::<HashSet<_>>()
-        .into_iter()
+        .filter(|s| options.force || s.inspection_due)
         .collect();
+    if due.is_empty() && !final_scan && contest.playlist_revision == contest.published_revision {
+        return Ok(());
+    }
+    let ids: Vec<_> = due.iter().map(|s| s.workshop_id as u64).collect();
     let mut details = HashMap::new();
     for batch in ids.chunks(100) {
-        for item in runtime.metadata.get_items(batch).await? {
-            details.insert(item.workshop_id, item);
+        match runtime.metadata.get_items(batch).await {
+            Ok(items) => {
+                for item in items {
+                    details.insert(item.workshop_id, item);
+                }
+            }
+            Err(error) => {
+                for submission in &due {
+                    if batch.contains(&(submission.workshop_id as u64)) {
+                        runtime
+                            .database
+                            .set_inspector_submission_retry(
+                                submission.id,
+                                submission.revision,
+                                "metadata-transient",
+                            )
+                            .await?;
+                    }
+                }
+                return Err(error);
+            }
         }
     }
-    let mut accepted = Vec::new();
     let mut complete = true;
-    let mut results = HashMap::<String, bool>::new();
-    for submission in &selected {
-        match validate_submission(
+    for submission in due {
+        if !runtime
+            .database
+            .begin_inspector_validation(submission.id, submission.revision)
+            .await?
+        {
+            continue;
+        }
+        if let Err(error) = validate_submission(
             runtime,
             submission,
             &details,
             &configured.rules,
             &rules_hash,
-            options.force || final_scan,
-            final_scan,
+            options.force || submission.final_scan_due,
         )
         .await
         {
-            Ok(validation) => {
-                results
-                    .entry(submission.message_id.clone())
-                    .and_modify(|valid| *valid &= validation.valid)
-                    .or_insert(validation.valid);
-                if validation.valid {
-                    accepted.push((submission, validation));
-                }
-            }
-            Err(error) => {
-                complete = false;
-                runtime
-                    .database
-                    .set_inspector_submission_retry(submission.id, "inspection-transient")
-                    .await?;
-                tracing::warn!(submission_id = submission.id, error = %error, "Inspector submission deferred");
-            }
+            complete = false;
+            runtime
+                .database
+                .set_inspector_submission_retry(
+                    submission.id,
+                    submission.revision,
+                    "inspection-transient",
+                )
+                .await?;
+            tracing::warn!(submission_id=submission.id,%error,"Workshop check deferred");
         }
     }
-    update_reactions(
-        runtime.discord,
-        &thread.id,
-        &messages,
-        &sources,
-        &previous,
-        &results,
-    )
-    .await?;
-    if !complete {
-        bail!("Inspector contest has deferred submissions");
+    // Refresh after slow I/O; publication itself checks revision under contest lock.
+    let contest = runtime
+        .database
+        .get_inspector_contest(configured.round_id)
+        .await?
+        .context("Contest missing")?;
+    let selected = runtime
+        .database
+        .get_inspector_submissions(contest.id)
+        .await?;
+    let mut accepted = Vec::new();
+    for submission in &selected {
+        let validation = runtime
+            .database
+            .get_inspector_validation(submission.latest_validation_id)
+            .await?;
+        if final_scan && submission.final_scan_due {
+            complete = false;
+        }
+        if let Some(validation) =
+            validation.filter(|v| v.submission_revision == submission.revision && v.valid)
+        {
+            accepted.push((submission, validation));
+        }
     }
-    accepted.sort_by(|(left, _), (right, _)| {
-        left.message_created_at
-            .cmp(&right.message_created_at)
-            .then(left.id.cmp(&right.id))
-    });
     let output = create_submission_playlist(
-        &parsed.theme,
+        &contest.theme,
         &accepted
             .iter()
-            .map(|(submission, validation)| validation_member(submission, validation))
+            .map(|(s, v)| validation_member(s, v))
             .collect::<Result<Vec<_>>>()?,
     )?;
-    let current = runtime.database.get_inspector_playlist(&thread.id).await?;
-    if current
-        .as_ref()
-        .map(|bundle| bundle.playlist.digest.as_str())
-        != Some(&output.digest)
-    {
-        let object_key = format!(
-            "inspector/playlists/{}/{}.zeeplist",
-            thread.id, output.digest
-        );
-        runtime
-            .storage
-            .upload(
-                &object_key,
-                output.json.as_bytes().to_vec(),
-                "application/json",
-            )
-            .await?;
-        runtime
-            .database
-            .publish_inspector_playlist(
-                contest.id,
-                &output.digest,
-                &object_key,
-                &output
-                    .members
-                    .iter()
-                    .map(|member| {
-                        Ok(InspectorPlaylistMember {
-                            id_validation: member.id_validation,
-                            workshop_id: i64::try_from(member.workshop_id)
-                                .context("Workshop ID exceeds PostgreSQL bigint")?,
-                        })
-                    })
-                    .collect::<Result<Vec<_>>>()?,
-            )
-            .await?;
-    }
-    let version = runtime
+    let object_key = format!(
+        "inspector/playlists/{}/{}.zeeplist",
+        contest.id, output.digest
+    );
+    runtime
+        .storage
+        .upload(
+            &object_key,
+            output.json.as_bytes().to_vec(),
+            "application/json",
+        )
+        .await?;
+    runtime
         .database
-        .get_inspector_playlist(&thread.id)
-        .await?
-        .context("Inspector playlist disappeared after publish")?
-        .playlist;
-    if final_scan {
+        .publish_inspector_playlist(
+            contest.id,
+            contest.playlist_revision,
+            &output.digest,
+            &object_key,
+            &output
+                .members
+                .iter()
+                .map(|m| InspectorPlaylistMember {
+                    id_validation: m.id_validation,
+                    workshop_id: m.workshop_id as i64,
+                })
+                .collect::<Vec<_>>(),
+        )
+        .await?;
+    if final_scan && complete {
+        let version = runtime
+            .database
+            .get_inspector_playlist_by_round(configured.round_id)
+            .await?
+            .context("Published playlist missing")?
+            .playlist;
         let archive = build_final_archive(runtime, &accepted, &output.members).await?;
-        let key = archive_key(season_number, round_number, &parsed.theme);
+        let key = archive_key(contest.season_number, contest.round_number, &contest.theme);
         let digest = sha256(&archive);
-        let size = i64::try_from(archive.len())?;
-        let archive_bytes = archive.len();
+        let size = archive.len();
         runtime
             .storage
             .upload(&key, archive, "application/gzip")
@@ -378,8 +257,8 @@ async fn run_contest(
             .download(
                 &key,
                 DownloadConstraints {
-                    max_bytes: archive_bytes,
-                    expected_bytes: Some(archive_bytes),
+                    max_bytes: size,
+                    expected_bytes: Some(size),
                     expected_sha256: Some(&digest),
                 },
             )
@@ -387,20 +266,14 @@ async fn run_contest(
         ensure!(
             runtime
                 .database
-                .finalize_inspector_contest(contest.id, version.id, &key, &digest, size)
+                .finalize_inspector_contest(contest.id, version.id, &key, &digest, size as i64)
                 .await?,
-            "Contest finalization lost current playlist"
+            "Finalization lost current revision"
         );
     }
-    publish(runtime, bot_id, &contest, &version, &output.json, &messages).await?;
-    tracing::info!(
-        thread_id = thread.id,
-        valid = output.members.len(),
-        "Inspector contest complete"
-    );
+    ensure!(complete, "Contest has pending final checks");
     Ok(())
 }
-
 async fn validate_submission(
     runtime: &InspectorRuntime<'_>,
     submission: &InspectorSubmissionRow,
@@ -408,14 +281,14 @@ async fn validate_submission(
     rules: &Rules,
     rules_hash: &str,
     force: bool,
-    link_level: bool,
 ) -> Result<InspectorValidationRow> {
     let workshop_id =
         u64::try_from(submission.workshop_id).context("Workshop ID exceeds supported range")?;
     let item = details.get(&workshop_id);
-    if submission.source_error.is_none()
-        && item.is_none_or(|item| !item.available || item.updated_at.starts_with("1970-"))
-    {
+    if item.is_none_or(|item| {
+        item.permanent_failure.is_none()
+            && (!item.available || item.updated_at.starts_with("1970-"))
+    }) {
         bail!("workshop-metadata-unavailable");
     }
     let cached = runtime
@@ -423,21 +296,25 @@ async fn validate_submission(
         .get_inspector_validation(submission.latest_validation_id)
         .await?;
     if !force
-        && cached.as_ref().is_some_and(|validation| {
-            validation_cache_matches(
-                validation,
-                submission.source_error.as_deref(),
-                item,
-                rules_hash,
-            )
-        })
+        && item.is_some_and(|item| submission.authors.contains(&item.creator_id.to_string()))
+        && cached
+            .as_ref()
+            .is_some_and(|validation| validation_cache_matches(validation, item, rules_hash))
     {
+        runtime
+            .database
+            .finish_inspector_cache_check(submission.id, submission.revision)
+            .await?;
         return Ok(cached.expect("cache checked"));
     }
     let mut inspection = None;
     let mut content_sha256 = None;
-    let mut failures = submission.source_error.iter().cloned().collect::<Vec<_>>();
-    if submission.source_error.is_none() {
+    let mut failures = Vec::new();
+    if let Some(failure) = item.and_then(|item| item.permanent_failure.as_ref()) {
+        failures.push(failure.clone());
+    } else if item.is_some_and(|item| !submission.authors.contains(&item.creator_id.to_string())) {
+        failures.push("workshop-owner-not-listed-as-author".into());
+    } else {
         let download = runtime.downloader.download(&[workshop_id]).await?;
         let inspected = inspect_download(download, workshop_id, rules).await;
         let (found, raw_hash, found_failures) = inspected?;
@@ -450,11 +327,11 @@ async fn validate_submission(
         ensure!(
             after.available
                 && after.updated_at == before.updated_at
-                && after.file_size == before.file_size,
+                && after.file_size == before.file_size
+                && after.creator_id == before.creator_id,
             "workshop-revision-changed"
         );
-        if link_level
-            && let Some(level) = inspection.as_ref().filter(|_| failures.is_empty())
+        if let Some(level) = inspection.as_ref().filter(|_| failures.is_empty())
             && !runtime
                 .database
                 .inspector_workshop_level_link_exists(&level.level_hash, submission.workshop_id)
@@ -484,6 +361,20 @@ async fn validate_submission(
                 let mut payload = serde_json::to_value(&inspection.payload)?;
                 let object_key = format!("inspector/payloads/{}.gz", inspection.payload.sha256);
                 payload["objectKey"] = object_key.clone().into();
+                let names = submission
+                    .author_names
+                    .as_array()
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(serde_json::Value::as_str)
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    })
+                    .unwrap_or_default();
+                payload["author"] = names.clone().into();
+                payload["overrideAuthorName"] = names.into();
+                payload["thumbnailUrl"] = item.map(|item| item.image_url.clone()).into();
+                payload["workshopOwner"] = item.map(|item| item.creator_id.to_string()).into();
                 Ok::<_, anyhow::Error>((payload, object_key))
             })
             .transpose()?
@@ -502,6 +393,7 @@ async fn validate_submission(
         .database
         .save_inspector_validation(&InspectorValidationInput {
             id_submission: submission.id,
+            submission_revision: submission.revision,
             level_hash: inspection.as_ref().map(|value| value.level_hash.clone()),
             workshop_updated_at: item_updated.into(),
             workshop_file_size: i64::try_from(item_size).context("Workshop file exceeds bigint")?,
@@ -517,12 +409,10 @@ async fn validate_submission(
                 .unwrap_or_else(|| serde_json::json!({})),
             failures: serde_json::to_value(&failures)?,
             valid: failures.is_empty(),
-            payload: payload.map(|(payload, _)| payload),
+            payload: payload.map(|(payload, _)| payload).or_else(||item.map(|item|serde_json::json!({"name":inspection.as_ref().map_or(item.name.as_str(),|i|i.payload.name.as_str()),"thumbnailUrl":item.image_url,"workshopOwner":item.creator_id.to_string()}))),
         })
         .await?;
-    let id = saved["id"]
-        .as_i64()
-        .context("Saved validation omitted ID")?;
+    let id = saved.context("Inspected submission revision changed")?;
     runtime
         .database
         .get_inspector_validation(Some(id))
@@ -693,163 +583,20 @@ async fn build_final_archive(
     build_archive(&levels)
 }
 
-async fn publish_frozen(
-    runtime: &InspectorRuntime<'_>,
-    bot_id: &str,
-    contest: &InspectorContestRow,
-    thread_id: &str,
-) -> Result<()> {
-    let Some(bundle) = runtime.database.get_inspector_playlist(thread_id).await? else {
-        return Ok(());
-    };
-    let output = create_submission_playlist(
-        &contest.theme,
-        &bundle
-            .members
-            .iter()
-            .map(|member| {
-                Ok(ValidationMember {
-                    id_validation: member.id_validation,
-                    workshop_id: u64::try_from(member.workshop_id)
-                        .context("Invalid persisted Workshop ID")?,
-                    valid: member.valid,
-                    payload: member
-                        .payload
-                        .clone()
-                        .map(serde_json::from_value)
-                        .transpose()?,
-                })
-            })
-            .collect::<Result<Vec<_>>>()?,
-    )?;
-    let messages = runtime.discord.messages(thread_id).await?;
-    publish(
-        runtime,
-        bot_id,
-        contest,
-        &bundle.playlist,
-        &output.json,
-        &messages,
-    )
-    .await?;
-    Ok(())
-}
-
-async fn publish(
-    runtime: &InspectorRuntime<'_>,
-    bot_id: &str,
-    contest: &InspectorContestRow,
-    playlist: &InspectorPlaylistRow,
-    json: &str,
-    messages: &[SourceMessage],
-) -> Result<()> {
-    publish_discord_playlist(
-        runtime.discord,
-        runtime.database,
-        bot_id,
-        &PublicationContest {
-            id: contest.id,
-            thread_id: contest.thread_id.clone(),
-            publication: serde_json::from_value::<PublicationState>(contest.publication.clone())?,
-        },
-        &PlaylistVersion {
-            digest: playlist.digest.clone(),
-            valid_count: usize::try_from(playlist.valid_count)
-                .context("Invalid playlist valid count")?,
-            date_created_epoch: playlist.date_created_epoch,
-        },
-        json,
-        messages,
-    )
-    .await?;
-    Ok(())
-}
-
-async fn update_reactions(
-    discord: &DiscordRest,
-    thread_id: &str,
-    messages: &[SourceMessage],
-    sources: &[SourceSubmission],
-    previous: &[InspectorSubmissionRow],
-    results: &HashMap<String, bool>,
-) -> Result<()> {
-    for message in messages.iter().filter(|message| !message.author.bot) {
-        let current: Vec<_> = sources
-            .iter()
-            .filter(|source| source.message_id == message.id)
-            .collect();
-        if !current
-            .iter()
-            .any(|source| source.state == SubmissionState::Selected)
-            && (!current.is_empty() || previous.iter().any(|row| row.message_id == message.id))
-        {
-            discord.reaction(thread_id, message, None).await?;
-        } else if let Some(valid) = results.get(&message.id) {
-            discord.reaction(thread_id, message, Some(*valid)).await?;
-        }
-    }
-    Ok(())
-}
-
-fn source_from_row(row: &InspectorSubmissionRow) -> Result<SourceSubmission> {
-    Ok(SourceSubmission {
-        author_id: row.author_id.clone(),
-        message_created_at: row.message_created_at.clone(),
-        message_edited_at: row.message_edited_at.clone(),
-        message_id: row.message_id.clone(),
-        source_error: row.source_error.clone(),
-        state: match row.state.as_str() {
-            "selected" => SubmissionState::Selected,
-            "superseded" => SubmissionState::Superseded,
-            "withdrawn" => SubmissionState::Withdrawn,
-            _ => bail!("Invalid persisted submission state"),
-        },
-        workshop_id: u64::try_from(row.workshop_id).context("Invalid persisted Workshop ID")?,
-    })
-}
-
-fn submission_input(
-    source: &SourceSubmission,
-    last_seen: &str,
-) -> Result<InspectorSubmissionInput> {
-    Ok(InspectorSubmissionInput {
-        message_id: source.message_id.clone(),
-        author_id: source.author_id.clone(),
-        workshop_id: i64::try_from(source.workshop_id)
-            .context("Workshop ID exceeds PostgreSQL bigint")?,
-        message_created_at: source.message_created_at.clone(),
-        message_edited_at: source.message_edited_at.clone(),
-        state: match source.state {
-            SubmissionState::Selected => "selected",
-            SubmissionState::Superseded => "superseded",
-            SubmissionState::Withdrawn => "withdrawn",
-        }
-        .into(),
-        source_error: source.source_error.clone(),
-        last_seen: last_seen.into(),
-    })
-}
-
 fn validation_cache_matches(
     validation: &InspectorValidationRow,
-    source_error: Option<&str>,
     item: Option<&WorkshopItemMetadata>,
     rules_hash: &str,
 ) -> bool {
-    let failures = validation.failures.as_array().is_some_and(|failures| {
-        failures
-            .iter()
-            .any(|failure| failure == "multiple-workshop-links")
-    });
-    failures == source_error.is_some()
-        && validation.rules_hash == rules_hash
+    validation.rules_hash == rules_hash
         && validation.validator_version == VALIDATOR_VERSION
-        && validation.workshop_updated_at
-            == item.map_or("source-error", |item| item.updated_at.as_str())
-        && u64::try_from(validation.workshop_file_size).ok()
-            == Some(item.map_or(0, |item| item.file_size))
+        && item.is_some_and(|item| {
+            validation.payload.as_ref().is_some_and(|p| {
+                p["workshopOwner"].as_str() == Some(item.creator_id.to_string().as_str())
+            }) && validation.workshop_updated_at == item.updated_at
+                && validation.workshop_file_size as u64 == item.file_size
+        })
 }
-
 fn validation_member(
     submission: &InspectorSubmissionRow,
     validation: &InspectorValidationRow,
@@ -869,39 +616,4 @@ fn validation_member(
 
 fn submission_digest(rules: &Rules) -> Result<String> {
     Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(rules)?)))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn cache_key_includes_source_error_rules_version_and_revision() {
-        let validation = InspectorValidationRow {
-            id: 1,
-            id_submission: 2,
-            workshop_updated_at: "source-error".into(),
-            workshop_file_size: 0,
-            content_sha256: None,
-            validator_version: VALIDATOR_VERSION.into(),
-            rules_hash: "rules".into(),
-            failures: json!(["multiple-workshop-links"]),
-            valid: false,
-            payload: None,
-        };
-        assert!(validation_cache_matches(
-            &validation,
-            Some("multiple-workshop-links"),
-            None,
-            "rules"
-        ));
-        assert!(!validation_cache_matches(&validation, None, None, "rules"));
-        assert!(!validation_cache_matches(
-            &validation,
-            Some("multiple-workshop-links"),
-            None,
-            "changed"
-        ));
-    }
 }

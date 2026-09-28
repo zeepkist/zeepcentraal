@@ -1,14 +1,12 @@
 use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct InspectorConfig {
     pub version: u8,
-    pub forums: Vec<ForumConfig>,
-    pub seasons: HashMap<String, i32>,
-    pub active_showcase_thread_id: Option<String>,
+    pub notification_channel_id: String,
     pub contests: Vec<ContestConfig>,
     #[serde(default = "default_run_timeout")]
     pub run_timeout_ms: u64,
@@ -16,21 +14,9 @@ pub struct InspectorConfig {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct ForumConfig {
-    pub guild_id: String,
-    pub forum_id: String,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ContestConfig {
-    pub thread_id: String,
+    pub round_id: i32,
     pub rules: Rules,
-    pub round_id: Option<i32>,
-    #[serde(default)]
-    pub closed: bool,
-    #[serde(default)]
-    pub reopen: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -108,11 +94,8 @@ impl InspectorConfig {
     }
 
     pub fn validate(&self) -> Result<()> {
-        ensure!(self.version == 1, "Unsupported inspector config version");
-        ensure!(
-            (1..=32).contains(&self.forums.len()),
-            "Invalid inspector forum count"
-        );
+        ensure!(self.version == 2, "Unsupported inspector config version");
+        validate_snowflake(&self.notification_channel_id)?;
         ensure!(
             (1..=128).contains(&self.contests.len()),
             "Invalid inspector contest count"
@@ -121,37 +104,13 @@ impl InspectorConfig {
             (60_000..=29 * 60_000).contains(&self.run_timeout_ms),
             "Invalid inspector timeout"
         );
-        for forum in &self.forums {
-            validate_snowflake(&forum.guild_id)?;
-            validate_snowflake(&forum.forum_id)?;
-        }
-        ensure!(
-            self.seasons.iter().all(|(season, id)| {
-                !season.starts_with('0')
-                    && season.bytes().all(|byte| byte.is_ascii_digit())
-                    && *id > 0
-            }),
-            "Invalid inspector season mapping"
-        );
-        let mut threads = HashSet::new();
+        let mut rounds = HashSet::new();
         for contest in &self.contests {
-            validate_snowflake(&contest.thread_id)?;
             ensure!(
-                threads.insert(&contest.thread_id),
-                "Duplicate contest thread"
-            );
-            ensure!(
-                contest.round_id.is_none_or(|id| id > 0),
-                "Invalid contest round ID"
+                contest.round_id > 0 && rounds.insert(contest.round_id),
+                "Invalid or duplicate contest round ID"
             );
             contest.rules.validate()?;
-        }
-        if let Some(showcase) = &self.active_showcase_thread_id {
-            validate_snowflake(showcase)?;
-            ensure!(
-                threads.contains(showcase),
-                "Showcase thread must have explicit rules"
-            );
         }
         Ok(())
     }

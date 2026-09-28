@@ -56,6 +56,7 @@ pub struct RoomContext {
     transfer: Arc<Mutex<LevelTransfer>>,
     roster: Arc<Mutex<RoomRoster>>,
     authority: Arc<AtomicBool>,
+    remote_clock: zc_core::zeepnet::RemoteClock,
     pub local_steam_id: u64,
 }
 
@@ -71,8 +72,18 @@ impl RoomContext {
             sender,
             roster: Arc::new(Mutex::new(RoomRoster::default())),
             authority: Arc::new(AtomicBool::new(true)),
+            remote_clock: zc_core::zeepnet::RemoteClock::default(),
             local_steam_id,
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_remote_time(&mut self, time: f64) {
+        self.remote_clock = zc_core::zeepnet::RemoteClock::from_sample(time, Duration::ZERO);
+    }
+    #[cfg(test)]
+    pub(crate) fn test_authority(&self, value: bool) {
+        self.authority.store(value, Ordering::Release);
     }
 
     #[cfg(test)]
@@ -90,6 +101,10 @@ impl RoomContext {
         })?;
         transfer.process_next().await?;
         Ok(())
+    }
+
+    pub fn remote_now(&self) -> Option<f64> {
+        self.remote_clock.now()
     }
 
     pub fn chat(&self) -> RoomChat {
@@ -238,6 +253,7 @@ impl ManagedLobbyHost {
             transfer: transfer.clone(),
             roster: roster.clone(),
             authority: authority.clone(),
+            remote_clock: connection.remote_clock(),
             local_steam_id: assignment.steam_id()?,
         };
         let session = self.profile.create_session(context).await?;

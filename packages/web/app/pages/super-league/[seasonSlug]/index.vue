@@ -36,7 +36,7 @@
 						/>
 					</template>
 				</PageHeader>
-				<VoteLink :round-ids="season.zslRounds.nodes.map(round => Number(round.id))" />
+				<ContestLinks :round-ids="season.zslRounds.nodes.map(round => Number(round.id))" />
 				<section>
 					<SectionHeader :title="$t('zsl.rounds')" :description="$t('zsl.roundsDescription')" />
 					<ZslRoundGrid

@@ -28,6 +28,10 @@ impl GameConnection {
         })
     }
 
+    pub fn remote_clock(&self) -> zc_core::zeepnet::RemoteClock {
+        self.client.remote_clock()
+    }
+
     pub async fn recv(&self) -> Result<Option<GameHostPacket>> {
         let Some(payload) = self.client.recv().await else {
             return Ok(None);

@@ -4951,7 +4951,9 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "thiserror 2.0.20",
  "tokio",
+ "tokio-postgres",
  "tracing",
  "url",
  "zc-core",
@@ -5018,6 +5020,7 @@ name = "zc-server"
 version = "3.0.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "axum",
  "base64 0.22.1",
  "jiff",
@@ -5028,6 +5031,7 @@ dependencies = [
  "steam-client-rs",
  "subtle",
  "tokio",
+ "tokio-postgres",
  "tokio-stream",
  "tower",
  "tower-http",

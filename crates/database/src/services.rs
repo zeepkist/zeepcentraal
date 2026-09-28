@@ -4,7 +4,7 @@ use diesel::{
     OptionalExtension, QueryableByName, sql_query,
     sql_types::{BigInt, Bool, Integer, Nullable, Text, Varchar},
 };
-use diesel_async::{AsyncConnection, RunQueryDsl};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -82,6 +82,22 @@ struct LinkCodeExpiry {
     expires_at: String,
 }
 
+pub(crate) async fn get_or_insert_user_with_connection(
+    connection: &mut AsyncPgConnection,
+    steam_id: i64,
+) -> Result<UserAccount> {
+    ensure!(steam_id > 0, "Steam ID must be positive");
+    Ok(sql_query(
+        "INSERT INTO public.\"user\"(steam_id,banned,date_created,date_updated) \
+         VALUES($1,false,clock_timestamp(),clock_timestamp()) \
+         ON CONFLICT (steam_id) DO UPDATE SET steam_id=excluded.steam_id \
+         RETURNING id,steam_name,banned,steam_id,discord_id",
+    )
+    .bind::<BigInt, _>(steam_id)
+    .get_result(connection)
+    .await?)
+}
+
 impl Database {
     pub async fn get_user(&self, steam_id: i64) -> Result<Option<UserAccount>> {
         let mut connection = self.connection().await?;
@@ -101,17 +117,8 @@ impl Database {
     }
 
     pub async fn get_or_insert_user(&self, steam_id: i64) -> Result<UserAccount> {
-        ensure!(steam_id > 0, "Steam ID must be positive");
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "INSERT INTO public.\"user\"(steam_id,banned,date_created,date_updated) \
-             VALUES($1,false,clock_timestamp(),clock_timestamp()) \
-             ON CONFLICT (steam_id) DO UPDATE SET steam_id=excluded.steam_id \
-             RETURNING id,steam_name,banned,steam_id,discord_id",
-        )
-        .bind::<BigInt, _>(steam_id)
-        .get_result(&mut connection)
-        .await?)
+        get_or_insert_user_with_connection(&mut connection, steam_id).await
     }
 
     pub async fn get_user_by_discord_id(&self, discord_id: i64) -> Result<Option<UserAccount>> {
@@ -284,3 +291,6 @@ mod tests {
         );
     }
 }
+
+pub mod submission_notifications;
+pub mod submissions;

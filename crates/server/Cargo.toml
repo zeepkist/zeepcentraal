@@ -30,6 +30,8 @@ uuid.workspace = true
 scalar_api_reference.workspace = true
 
 [dev-dependencies]
+async-trait.workspace = true
+tokio-postgres = "0.7"
 tower = { workspace = true, features = ["util"] }
 
 [[bin]]

@@ -28,18 +28,22 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route("/favourite/remove", post(routes::remove_favourite))
         .route("/vote/submit", post(routes::submit_vote))
         .route(
+            "/super-league/contests",
+            get(crate::super_league::get_contests),
+        )
+        .route(
             "/super-league/vote",
             get(crate::super_league::get_vote).post(crate::super_league::post_vote),
         )
         .route(
             "/super-league/submit-level",
-            get(crate::super_league::unavailable_get)
-                .post(crate::super_league::unavailable_post)
-                .delete(crate::super_league::unavailable_delete),
+            get(crate::super_league::get_submission)
+                .post(crate::super_league::post_submission)
+                .delete(crate::super_league::delete_submission),
         )
         .route(
             "/super-league/submission-status/{id}",
-            get(crate::super_league::unavailable_status),
+            get(crate::super_league::get_submission_status),
         )
         .route("/level/request", post(routes::request_level))
         .route("/record/submit", post(routes::submit_record))

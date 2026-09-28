@@ -114,37 +114,128 @@ pub async fn post_vote(
     Ok(Json(VoteSaved { saved }))
 }
 
-fn unavailable() -> Problem {
-    Problem::service_unavailable()
+#[derive(Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct ContestQuery {
+    round_id: Option<i32>,
+    season_id: Option<i32>,
 }
-
-#[utoipa::path(get, path = "/super-league/submit-level", responses((status = 401), (status = 503)))]
-pub async fn unavailable_get(
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SubmissionBody {
+    round_id: i32,
+    workshop_id: String,
+    authors: Vec<String>,
+}
+fn submission_problem(error: anyhow::Error) -> Problem {
+    use zc_database::services::submissions::SubmissionError;
+    if let Some(reason) = error.downcast_ref::<SubmissionError>() {
+        let status = if matches!(reason, SubmissionError::Conflict) {
+            StatusCode::CONFLICT
+        } else {
+            StatusCode::BAD_REQUEST
+        };
+        let mut problem = Problem::code(status, INVALID_REQUEST);
+        problem.detail = reason.to_string();
+        return problem;
+    }
+    Problem::internal(error)
+}
+#[utoipa::path(get,path="/super-league/contests",params(ContestQuery),responses((status=200)))]
+pub async fn get_contests(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ContestQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    if query.round_id.is_some_and(|id| id <= 0) || query.season_id.is_some_and(|id| id <= 0) {
+        return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
+    }
+    Ok(Json(
+        state
+            .database
+            .submission_contests(query.season_id, query.round_id)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+#[utoipa::path(get,path="/super-league/submit-level",params(ContestQuery),responses((status=200),(status=401)))]
+pub async fn get_submission(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-) -> ApiResult<StatusCode> {
-    web_user(&state, &headers).await?;
-    Err(unavailable())
+    Query(query): Query<ContestQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let user = web_user(&state, &headers).await?;
+    if query.round_id.is_some_and(|id| id <= 0) {
+        return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
+    }
+    Ok(Json(
+        state
+            .database
+            .viewer_submission(
+                query.round_id,
+                &user.steam_id.unwrap_or_default().to_string(),
+            )
+            .await
+            .map_err(Problem::internal)?,
+    ))
 }
-#[utoipa::path(post, path = "/super-league/submit-level", responses((status = 401), (status = 503)))]
-pub async fn unavailable_post(
+#[utoipa::path(post,path="/super-league/submit-level",request_body=SubmissionBody,responses((status=202,body=i64),(status=400),(status=401),(status=409)))]
+pub async fn post_submission(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-) -> ApiResult<StatusCode> {
-    unavailable_get(State(state), headers).await
+    Json(body): Json<SubmissionBody>,
+) -> ApiResult<(StatusCode, Json<i64>)> {
+    let user = web_user(&state, &headers).await?;
+    let workshop = body.workshop_id.parse::<i64>().ok().filter(|id| *id > 0);
+    if body.round_id <= 0
+        || body.workshop_id.len() > 19
+        || body.workshop_id.starts_with('0')
+        || !body.workshop_id.bytes().all(|b| b.is_ascii_digit())
+        || workshop.is_none()
+    {
+        return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
+    }
+    let id = state
+        .database
+        .submit_level(
+            body.round_id,
+            workshop.unwrap_or_default(),
+            &body.authors,
+            &user.steam_id.unwrap_or_default().to_string(),
+        )
+        .await
+        .map_err(submission_problem)?;
+    Ok((StatusCode::ACCEPTED, Json(id)))
 }
-#[utoipa::path(delete, path = "/super-league/submit-level", responses((status = 401), (status = 503)))]
-pub async fn unavailable_delete(
+#[utoipa::path(delete,path="/super-league/submit-level",params(ContestQuery),responses((status=204),(status=400),(status=401)))]
+pub async fn delete_submission(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
+    Query(query): Query<ContestQuery>,
 ) -> ApiResult<StatusCode> {
-    unavailable_get(State(state), headers).await
+    let user = web_user(&state, &headers).await?;
+    let round = query
+        .round_id
+        .filter(|id| *id > 0)
+        .ok_or_else(|| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
+    state
+        .database
+        .withdraw_submission(round, &user.steam_id.unwrap_or_default().to_string())
+        .await
+        .map_err(submission_problem)?;
+    Ok(StatusCode::NO_CONTENT)
 }
-#[utoipa::path(get, path = "/super-league/submission-status/{id}", params(("id" = i64, Path, description = "Submission ID")), responses((status = 401), (status = 503)))]
-pub async fn unavailable_status(
+#[utoipa::path(get,path="/super-league/submission-status/{id}",params(("id"=i64,Path,description="Submission ID")),responses((status=200),(status=401),(status=404)))]
+pub async fn get_submission_status(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Path(_id): Path<i64>,
-) -> ApiResult<StatusCode> {
-    unavailable_get(State(state), headers).await
+    Path(id): Path<i64>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let user = web_user(&state, &headers).await?;
+    state
+        .database
+        .submission_status(id, &user.steam_id.unwrap_or_default().to_string())
+        .await
+        .map_err(Problem::internal)?
+        .map(Json)
+        .ok_or_else(|| Problem::code(StatusCode::NOT_FOUND, INVALID_REQUEST))
 }

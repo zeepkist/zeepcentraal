@@ -714,6 +714,13 @@ mod tests {
         board.set_scope("tournament", "level");
         board.set_ready(true);
         board.observe(&GameHostPacket::Initial {
+            timing: zc_core::zeepnet::LobbyTiming {
+                game_state: 0,
+                round_time: 900.0,
+                level_loaded_at: 0.0,
+                uid: String::new(),
+                workshop_id: 0,
+            },
             is_host: true,
             players: vec![player],
         });

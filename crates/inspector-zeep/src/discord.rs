@@ -1,49 +1,23 @@
-use crate::submissions::SourceMessage;
-use anyhow::{Context, Result, bail, ensure};
-use reqwest::{Client, Method, StatusCode, Url, multipart};
-use serde::{Deserialize, de::DeserializeOwned};
+use anyhow::{Result, ensure};
+use reqwest::{Client, Method, StatusCode, Url};
+use serde_json::Value;
 use std::time::Duration;
-
-const API_ROOT: &str = "https://discord.com/api/v10/";
-const PAGE_LIMIT: usize = 1_000;
-
 #[derive(Clone)]
 pub struct DiscordRest {
     client: Client,
     token: String,
     api_root: Url,
 }
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct ForumThread {
-    pub guild_id: String,
-    pub id: String,
-    pub name: String,
-    pub parent_id: String,
-    pub thread_metadata: ThreadMetadata,
-    #[serde(rename = "type")]
-    pub channel_type: u8,
+#[derive(Debug, thiserror::Error)]
+#[error("Discord HTTP {status}")]
+pub struct DeliveryError {
+    pub status: u16,
+    pub retry_after: i64,
 }
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct ThreadMetadata {
-    pub locked: bool,
-    pub archived: bool,
-    pub archive_timestamp: String,
-}
-
-#[derive(Deserialize)]
-struct ThreadPage {
-    threads: Vec<ForumThread>,
-    #[serde(default)]
-    has_more: bool,
-}
-
 impl DiscordRest {
     pub fn new(token: String) -> Result<Self> {
-        Self::with_root(token, Url::parse(API_ROOT)?)
+        Self::with_root(token, Url::parse("https://discord.com/api/v10/")?)
     }
-
     pub fn with_root(token: String, api_root: Url) -> Result<Self> {
         ensure!(!token.is_empty(), "Inspector Discord token is required");
         Ok(Self {
@@ -52,228 +26,132 @@ impl DiscordRest {
             api_root,
         })
     }
-
-    pub async fn request<T: DeserializeOwned>(&self, path: &str, method: Method) -> Result<T> {
-        for attempt in 0..5 {
-            let response = self
-                .client
-                .request(method.clone(), self.url(path)?)
-                .header("Authorization", format!("Bot {}", self.token))
-                .send()
-                .await?;
-            if response.status() == StatusCode::TOO_MANY_REQUESTS
-                || response.status().is_server_error()
-            {
-                if method == Method::POST && response.status() != StatusCode::TOO_MANY_REQUESTS {
-                    bail!("Discord publication outcome uncertain");
-                }
-                let delay = if response.status() == StatusCode::TOO_MANY_REQUESTS {
-                    let retry = response
-                        .json::<serde_json::Value>()
-                        .await
-                        .ok()
-                        .and_then(|value| value.get("retry_after")?.as_f64())
-                        .unwrap_or(1.0);
-                    Duration::from_millis((retry * 1_000.0).clamp(1_000.0, 60_000.0) as u64)
-                } else {
-                    Duration::from_secs(1 << attempt)
-                };
-                tokio::time::sleep(delay).await;
-                continue;
-            }
-            ensure!(
-                response.status().is_success(),
-                "Discord request failed: HTTP {}",
-                response.status()
-            );
-            if response.status() == StatusCode::NO_CONTENT {
-                return serde_json::from_value(serde_json::Value::Null)
-                    .context("Discord empty response did not match expected type");
-            }
-            return Ok(response.json().await?);
+    pub async fn request(
+        &self,
+        path: &str,
+        method: Method,
+        payload: Option<&Value>,
+    ) -> Result<Value> {
+        let mut request = self
+            .client
+            .request(method, self.api_root.join(path)?)
+            .header("Authorization", format!("Bot {}", self.token));
+        if let Some(payload) = payload {
+            request = request.json(payload)
         }
-        bail!("Discord retry limit reached")
+        let response = request.send().await?;
+        let status = response.status();
+        if !status.is_success() {
+            let retry_after = if status == StatusCode::TOO_MANY_REQUESTS {
+                response
+                    .json::<Value>()
+                    .await
+                    .ok()
+                    .and_then(|r| r["retry_after"].as_f64())
+                    .unwrap_or(60.0)
+                    .ceil() as i64
+            } else {
+                60
+            };
+            return Err(DeliveryError {
+                status: status.as_u16(),
+                retry_after,
+            }
+            .into());
+        }
+        if status == StatusCode::NO_CONTENT {
+            return Ok(Value::Null);
+        }
+        Ok(response.json().await?)
     }
-
-    pub async fn messages(&self, thread_id: &str) -> Result<Vec<SourceMessage>> {
-        let mut all = Vec::new();
+    // Bounded history recovery supplements nonce deduplication after uncertain POSTs.
+    pub async fn recover_message(&self, channel: &str, marker: &str) -> Result<Option<String>> {
+        let bot = self.request("users/@me", Method::GET, None).await?;
+        let bot_id = bot["id"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("Discord bot ID missing"))?;
         let mut before = String::new();
-        for _ in 0..PAGE_LIMIT {
+        for _ in 0..10 {
             let suffix = if before.is_empty() {
                 String::new()
             } else {
                 format!("&before={before}")
             };
-            let messages: Vec<SourceMessage> = self
+            let page = self
                 .request(
-                    &format!("channels/{thread_id}/messages?limit=100{suffix}"),
+                    &format!("channels/{channel}/messages?limit=100{suffix}"),
                     Method::GET,
+                    None,
                 )
                 .await?;
-            if messages.is_empty() {
-                return Ok(all);
+            let messages = page
+                .as_array()
+                .ok_or_else(|| anyhow::anyhow!("Invalid Discord history"))?;
+            for message in messages {
+                if matches_submission_message(message, bot_id, marker) {
+                    return Ok(message["id"].as_str().map(str::to_owned));
+                }
             }
-            let next = messages.last().expect("nonempty messages").id.clone();
-            ensure!(next != before, "Discord pagination did not advance");
-            before = next;
-            all.extend(messages);
-        }
-        bail!("Discord message page limit reached")
-    }
-
-    pub async fn discover(&self, guild_id: &str, forum_id: &str) -> Result<Vec<ForumThread>> {
-        let active: ThreadPage = self
-            .request(&format!("guilds/{guild_id}/threads/active"), Method::GET)
-            .await?;
-        let mut threads: Vec<_> = active
-            .threads
-            .into_iter()
-            .filter(|thread| thread.parent_id == forum_id)
-            .collect();
-        let mut before = String::new();
-        for _ in 0..PAGE_LIMIT {
-            let suffix = if before.is_empty() {
-                String::new()
-            } else {
-                format!("&before={}", encode_path(&before))
-            };
-            let archived: ThreadPage = self
-                .request(
-                    &format!("channels/{forum_id}/threads/archived/public?limit=100{suffix}"),
-                    Method::GET,
-                )
-                .await?;
-            threads.extend(archived.threads.iter().cloned());
-            if !archived.has_more {
-                return Ok(threads);
+            if messages.len() < 100 {
+                return Ok(None);
             }
-            let next = archived
-                .threads
+            before = messages
                 .last()
-                .map(|thread| thread.thread_metadata.archive_timestamp.clone())
-                .context("Discord archive pagination did not advance")?;
-            ensure!(next != before, "Discord archive pagination did not advance");
-            before = next;
+                .and_then(|m| m["id"].as_str())
+                .unwrap_or_default()
+                .to_owned();
+            ensure!(!before.is_empty(), "Invalid Discord history cursor");
         }
-        bail!("Discord archive page limit reached")
-    }
-
-    pub async fn reaction(
-        &self,
-        thread_id: &str,
-        message: &SourceMessage,
-        valid: Option<bool>,
-    ) -> Result<()> {
-        for emoji in ["✅", "❌"] {
-            let desired = valid.is_some_and(|valid| valid == (emoji == "✅"));
-            let current = message
-                .reactions
-                .iter()
-                .any(|reaction| reaction.me && reaction.emoji.name == emoji);
-            if desired != current {
-                let _: serde_json::Value = self
-                    .request(
-                        &format!(
-                            "channels/{thread_id}/messages/{}/reactions/{}/@me",
-                            message.id,
-                            encode_path(emoji)
-                        ),
-                        if desired { Method::PUT } else { Method::DELETE },
-                    )
-                    .await?;
-            }
-        }
-        Ok(())
-    }
-
-    pub async fn post_attachment(
-        &self,
-        thread_id: &str,
-        payload: &serde_json::Value,
-        filename: &str,
-        contents: &[u8],
-    ) -> Result<String> {
-        ensure!(
-            !filename.is_empty(),
-            "Discord attachment filename is required"
-        );
-        let path = format!("channels/{thread_id}/messages");
-        for _attempt in 0..5 {
-            let file = multipart::Part::bytes(contents.to_vec())
-                .file_name(filename.to_owned())
-                .mime_str("application/json")?;
-            let form = multipart::Form::new()
-                .text("payload_json", serde_json::to_string(payload)?)
-                .part("files[0]", file);
-            let response = self
-                .client
-                .post(self.url(&path)?)
-                .header("Authorization", format!("Bot {}", self.token))
-                .multipart(form)
-                .send()
-                .await?;
-            if response.status() == StatusCode::TOO_MANY_REQUESTS {
-                let retry = response
-                    .json::<serde_json::Value>()
-                    .await
-                    .ok()
-                    .and_then(|value| value.get("retry_after")?.as_f64())
-                    .unwrap_or(1.0);
-                tokio::time::sleep(Duration::from_millis(
-                    (retry * 1_000.0).clamp(1_000.0, 60_000.0) as u64,
-                ))
-                .await;
-                continue;
-            }
-            if response.status().is_server_error() {
-                bail!("Discord publication outcome uncertain");
-            }
-            ensure!(
-                response.status().is_success(),
-                "Discord request failed: HTTP {}",
-                response.status()
-            );
-            let message: CreatedMessage = response.json().await?;
-            ensure!(
-                !message.id.is_empty(),
-                "Discord response omitted message ID"
-            );
-            return Ok(message.id);
-        }
-        bail!("Discord retry limit reached after attachment upload")
-    }
-
-    pub async fn delete_message(&self, thread_id: &str, message_id: &str) -> Result<()> {
-        let _: serde_json::Value = self
-            .request(
-                &format!("channels/{thread_id}/messages/{message_id}"),
-                Method::DELETE,
-            )
-            .await?;
-        Ok(())
-    }
-
-    fn url(&self, path: &str) -> Result<Url> {
-        Ok(self.api_root.join(path.trim_start_matches('/'))?)
+        // Do not create a duplicate when marker may exist beyond bounded history.
+        anyhow::bail!("Notification recovery exceeded channel history bound")
     }
 }
 
-#[derive(Deserialize)]
-struct CreatedMessage {
-    id: String,
-}
-
-fn encode_path(value: &str) -> String {
-    url::form_urlencoded::byte_serialize(value.as_bytes()).collect()
+fn matches_submission_message(message: &Value, bot_id: &str, marker: &str) -> bool {
+    let footer = format!("-# {marker}");
+    message["author"]["id"].as_str() == Some(bot_id)
+        && message["components"].as_array().is_some_and(|components| {
+            components.iter().any(|container| {
+                container["type"] == 17
+                    && container["components"].as_array().is_some_and(|children| {
+                        children.iter().any(|component| {
+                            component["type"] == 10
+                                && component["content"].as_str() == Some(footer.as_str())
+                        })
+                    })
+            })
+        })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
-    fn validates_token_and_encodes_reaction_paths() {
-        assert!(DiscordRest::with_root(String::new(), Url::parse(API_ROOT).unwrap()).is_err());
-        assert_eq!(encode_path("✅"), "%E2%9C%85");
+    fn recovery_requires_exact_footer_and_bot_identity() {
+        let mut message = json!({"author":{"id":"bot"},"components":[{"type":17,"components":[{"type":10,"content":"-# zc-submission:420"}]}]});
+        assert!(!matches_submission_message(
+            &message,
+            "bot",
+            "zc-submission:42"
+        ));
+        message["components"][0]["components"][0]["content"] = "-# zc-submission:42".into();
+        assert!(matches_submission_message(
+            &message,
+            "bot",
+            "zc-submission:42"
+        ));
+        assert!(!matches_submission_message(
+            &message,
+            "other",
+            "zc-submission:42"
+        ));
+        message["components"][0]["components"][0]["content"] = "## zc-submission:42".into();
+        assert!(!matches_submission_message(
+            &message,
+            "bot",
+            "zc-submission:42"
+        ));
     }
 }

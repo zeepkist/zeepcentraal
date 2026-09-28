@@ -2,7 +2,7 @@
 use std::{
     collections::{HashMap, VecDeque},
     net::SocketAddr,
-    sync::{Arc, LazyLock},
+    sync::{Arc, LazyLock, RwLock},
     time::{Duration, Instant},
 };
 
@@ -109,7 +109,38 @@ impl LidgrenClientOptions {
     }
 }
 
+/// Monotonic server time sampled from Lidgren handshake and matching pong replies.
+#[derive(Clone, Default)]
+pub struct RemoteClock(Arc<RwLock<Option<f64>>>);
+impl RemoteClock {
+    /// Initialize from a measured remote timestamp and its round-trip duration.
+    pub fn from_sample(remote: f64, round_trip: Duration) -> Self {
+        let clock = Self::default();
+        let received = precise_seconds();
+        clock.sample(remote, received - round_trip.as_secs_f64(), received);
+        clock
+    }
+
+    pub fn now(&self) -> Option<f64> {
+        self.0
+            .read()
+            .ok()
+            .and_then(|offset| *offset)
+            .map(|offset| precise_seconds() + offset)
+    }
+    fn sample(&self, remote: f64, sent: f64, received: f64) {
+        if remote.is_finite()
+            && remote >= 0.0
+            && received >= sent
+            && received - sent <= 10.0
+            && let Ok(mut offset) = self.0.write()
+        {
+            *offset = Some(remote + (received - sent) / 2.0 - received);
+        }
+    }
+}
 pub struct LidgrenClient {
+    remote_clock: RemoteClock,
     commands: mpsc::Sender<Command>,
     payloads: Mutex<mpsc::Receiver<Vec<u8>>>,
     connected: watch::Receiver<Option<std::result::Result<Vec<u8>, LidgrenError>>>,
@@ -134,6 +165,7 @@ impl LidgrenClient {
         let (payload_tx, payload_rx) = mpsc::channel(128);
         let (connected_tx, connected_rx) = watch::channel(None);
         let (closed_tx, closed_rx) = watch::channel(None);
+        let remote_clock = RemoteClock::default();
         tokio::spawn(run_actor(
             socket,
             options,
@@ -141,13 +173,19 @@ impl LidgrenClient {
             payload_tx,
             connected_tx,
             closed_tx,
+            remote_clock.clone(),
         ));
         Ok(Self {
+            remote_clock,
             commands: command_tx,
             payloads: Mutex::new(payload_rx),
             connected: connected_rx,
             closed: closed_rx,
         })
+    }
+
+    pub fn remote_clock(&self) -> RemoteClock {
+        self.remote_clock.clone()
     }
 
     pub async fn connect(&self) -> std::result::Result<Vec<u8>, LidgrenError> {
@@ -266,6 +304,9 @@ struct State {
     last_received_at: Instant,
     last_ping_at: Instant,
     ping_number: u8,
+    ping_sample: Option<(u8, f64)>,
+    connect_sent_at: f64,
+    remote_clock: RemoteClock,
     expected_sequences: HashMap<u8, u16>,
     withheld: HashMap<u8, HashMap<u16, IncomingMessage>>,
     fragments: HashMap<(u8, u32), FragmentGroup>,
@@ -290,6 +331,9 @@ impl State {
             last_received_at: now,
             last_ping_at: now - Duration::from_secs(4),
             ping_number: 0,
+            ping_sample: None,
+            connect_sent_at: precise_seconds(),
+            remote_clock: RemoteClock::default(),
             expected_sequences: HashMap::new(),
             withheld: HashMap::new(),
             fragments: HashMap::new(),
@@ -321,8 +365,10 @@ async fn run_actor(
     payloads: mpsc::Sender<Vec<u8>>,
     connected: watch::Sender<Option<std::result::Result<Vec<u8>, LidgrenError>>>,
     closed: watch::Sender<Option<std::result::Result<(), LidgrenError>>>,
+    remote_clock: RemoteClock,
 ) {
     let mut state = State::new(options);
+    state.remote_clock = remote_clock;
     let mut receive_buffer = vec![0; MAX_DATAGRAM_BYTES + 1];
     let mut handshake = interval_at(Instant::now().into(), Duration::from_secs(3));
     handshake.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -379,6 +425,7 @@ async fn run_actor(
                     break Err(LidgrenError::HandshakeTimeout);
                 }
                 state.handshake_attempts += 1;
+                state.connect_sent_at=precise_seconds();
                 if let Err(error) = send_connect(&socket, &state).await {
                     break Err(error);
                 }
@@ -397,6 +444,7 @@ async fn run_actor(
                 if now.duration_since(state.last_ping_at) >= Duration::from_secs(4) {
                     state.last_ping_at = now;
                     let ping = [state.ping_number];
+                    state.ping_sample=Some((state.ping_number,precise_seconds()));
                     state.ping_number = state.ping_number.wrapping_add(1);
                     if let Err(error) = send_message(&socket, PING, &ping, 8, 0, false).await {
                         break Err(error);
@@ -502,9 +550,12 @@ async fn receive_message(
                 return Err(LidgrenError::ApplicationIdentifierMismatch);
             }
             reader.int64().map_err(|_| LidgrenError::MalformedMessage)?;
-            reader
+            let remote = reader
                 .float32()
                 .map_err(|_| LidgrenError::MalformedMessage)?;
+            state
+                .remote_clock
+                .sample(f64::from(remote), state.connect_sent_at, precise_seconds());
             let hail = reader
                 .bytes(reader.remaining_bits() / 8)
                 .map_err(|_| LidgrenError::MalformedMessage)?;
@@ -532,6 +583,23 @@ async fn receive_message(
             pong.byte(number);
             pong.float32(now_seconds());
             send_message(socket, PONG, pong.as_bytes(), pong.bit_length(), 0, false).await?;
+        }
+        PONG => {
+            if state.connected {
+                let mut reader = BitReader::new(&message.payload);
+                let number = reader.byte().map_err(|_| LidgrenError::MalformedMessage)?;
+                let remote = reader
+                    .float32()
+                    .map_err(|_| LidgrenError::MalformedMessage)?;
+                if let Some((expected, sent)) = state.ping_sample
+                    && expected == number
+                {
+                    state
+                        .remote_clock
+                        .sample(f64::from(remote), sent, precise_seconds());
+                    state.ping_sample = None;
+                }
+            }
         }
         DISCONNECT => {
             let reason = if message.payload.is_empty() {
@@ -911,9 +979,12 @@ fn relative_sequence(sequence: u16, expected: u16) -> i16 {
     ((i32::from(sequence) - i32::from(expected) + 1536) % 1024 - 512) as i16
 }
 
-fn now_seconds() -> f32 {
+fn precise_seconds() -> f64 {
     static START: LazyLock<Instant> = LazyLock::new(Instant::now);
-    START.elapsed().as_secs_f32()
+    START.elapsed().as_secs_f64()
+}
+fn now_seconds() -> f32 {
+    precise_seconds() as f32
 }
 
 static TOKEN_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
@@ -1040,6 +1111,51 @@ mod tests {
         );
         assert_eq!(relative_sequence(1023, 0), -1);
         assert_eq!(relative_sequence(0, 1023), 1);
+    }
+
+    #[test]
+    fn remote_clock_rejects_bad_samples_and_accounts_for_half_rtt() {
+        let clock = RemoteClock::default();
+        assert!(clock.now().is_none());
+        clock.sample(f64::NAN, 0.0, 1.0);
+        assert!(clock.now().is_none());
+        clock.sample(100.0, 0.0, 11.0);
+        assert!(clock.now().is_none());
+        let sampled = RemoteClock::from_sample(100.0, Duration::from_millis(200));
+        assert!((sampled.now().unwrap() - 100.1).abs() < 0.01);
+    }
+    #[tokio::test]
+    async fn only_matching_pong_updates_remote_clock() {
+        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let mut state = State::new(LidgrenClientOptions::game_server(
+            socket.local_addr().unwrap(),
+            vec![],
+        ));
+        state.connected = true;
+        state.ping_sample = Some((7, precise_seconds()));
+        let (payloads, _) = mpsc::channel(1);
+        let (connected, _) = watch::channel(None);
+        for number in [6, 7] {
+            let mut pong = BitWriter::new();
+            pong.byte(number);
+            pong.float32(100.0);
+            receive_message(
+                &socket,
+                &mut state,
+                IncomingMessage {
+                    message_type: PONG,
+                    sequence: 0,
+                    fragmented: false,
+                    payload: pong.into_bytes(),
+                },
+                &payloads,
+                &connected,
+            )
+            .await
+            .unwrap();
+            assert_eq!(state.remote_clock.now().is_some(), number == 7);
+        }
+        assert!(state.ping_sample.is_none());
     }
 
     #[tokio::test]
