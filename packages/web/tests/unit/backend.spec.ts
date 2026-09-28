@@ -142,4 +142,33 @@ describe('web server auth and request guards', () => {
 			data,
 		})
 	})
+	test('preserves GET query and forwards refreshed cookies on retry', async () => {
+		const raw = vi
+			.fn()
+			.mockResolvedValueOnce(response(401))
+			.mockResolvedValueOnce(
+				response(200, undefined, ['zeepcentral_access_token=new; Path=/']),
+			)
+			.mockResolvedValueOnce(response(200, { votes: [[42], [], []] }))
+		vi.stubGlobal('$fetch', { raw })
+		vi.stubGlobal('useRuntimeConfig', () => ({
+			public: { backendUrl: 'https://backend.example/' },
+		}))
+		vi.stubGlobal(
+			'getHeader',
+			() =>
+				'zeepcentral_steam_id=76561198000000000; zeepcentral_refresh_token=old; zeepcentral_access_token=old',
+		)
+		vi.stubGlobal('appendResponseHeader', vi.fn())
+		const result = await fetchAuthenticatedBackend({}, '/super-league/vote', {
+			method: 'GET',
+			query: { roundId: '50' },
+		})
+		expect(result).toEqual({ votes: [[42], [], []] })
+		expect(raw.mock.calls[2]?.[1]).toMatchObject({
+			method: 'GET',
+			query: { roundId: '50' },
+			headers: { cookie: expect.stringContaining('zeepcentral_access_token=new') },
+		})
+	})
 })

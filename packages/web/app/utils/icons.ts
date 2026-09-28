@@ -73,6 +73,7 @@ import {
 	IconMap,
 	IconMicroscope,
 	IconMinus,
+	IconNotes,
 	IconPackage,
 	IconPalette,
 	IconParachute,
@@ -121,6 +122,7 @@ import {
 } from '@tabler/icons-vue'
 
 export const tablerIcons = {
+	notes: IconNotes,
 	'heart-handshake': IconHeartHandshake,
 	'tip-jar-euro': IconTipJarEuro,
 	'alert-triangle': IconAlertTriangle,

@@ -2,13 +2,17 @@
 import LoginPrompt from '~/components/auth/LoginPrompt.vue'
 import type { LevelSummary } from '~/types/app'
 import { voteCandidateLevel } from '~/utils/superLeagueVote'
+import ContestLoading from './ContestLoading.vue'
 
 const config = useRuntimeConfig()
 const session = useSessionStore()
 const { login } = useAccountActions()
 const route = useRoute()
-const requestedRound = Number(route.query.roundId)
-const { snapshot, pending, error, refresh } = useSuperLeagueVote(Number.isInteger(requestedRound) && requestedRound > 0 ? requestedRound : undefined)
+const requestedRound = computed(() => {
+	const id = Number(route.query.roundId)
+	return Number.isInteger(id) && id > 0 ? id : undefined
+})
+const { snapshot, pending, resolved, error, refresh, initial } = useSuperLeagueVote(requestedRound)
 const voteType = shallowRef(1)
 const selected = ref<number[]>([])
 const token = shallowRef<string | null>(null)
@@ -39,10 +43,16 @@ const ownLevels = computed(() => new Set((snapshot.value?.candidates ?? [])
 	.filter(candidate => candidate.selfAuthored).map(candidate => candidate.levelId)))
 
 watch(snapshot, value => {
-	if (!value) return
+	if (!value) {
+		selected.value = []
+		token.value = null
+		saved.value = false
+		saveError.value = null
+		return
+	}
 	if (!value.openTypes.includes(voteType.value)) voteType.value = value.openTypes[0] ?? 1
 	selected.value = [...(value.votes[voteType.value - 1] ?? [])]
-})
+}, { immediate: true })
 watch(voteType, type => {
 	selected.value = [...(snapshot.value?.votes[type - 1] ?? [])]
 	token.value = null
@@ -61,6 +71,9 @@ function toggle(id: number) {
 
 async function submit() {
 	if (!snapshot.value || !token.value || saving.value || selected.value.length === 0) return
+	const owner = session.user?.id
+	const round = requestedRound.value
+	const current = () => owner === session.user?.id && round === requestedRound.value
 	saving.value = true
 	saveError.value = null
 	try {
@@ -69,31 +82,33 @@ async function submit() {
 			body: { roundId: snapshot.value.roundId, voteType: voteType.value,
 				levelIds: selected.value, turnstileToken: token.value },
 		})
+		if (!current()) return
 		await refresh()
-		saved.value = true
+		if (current()) saved.value = true
 	} catch (cause) {
-		saveError.value = cause instanceof Error ? cause.message : 'Vote could not be saved'
+		if (current()) saveError.value = cause instanceof Error ? cause.message : 'Vote could not be saved'
 	} finally {
 		saving.value = false
 		token.value = null
 		challengeKey.value++
 	}
 }
+await initial
 </script>
 
 <template>
 	<UContainer class="space-y-6 py-8">
 		<PageHeader eyebrow="Zeepkist Super League" title="Vote for contest levels" />
 		<LoginPrompt
-			v-if="!session.user"
+			v-if="session.resolved && !session.pending && !session.user"
 			:title="$t('auth.loginPrompt.voteTitle')"
 			:description="$t('auth.loginPrompt.voteDescription')"
 			@login="login"
 		/>
-		<p v-else-if="pending && !snapshot">Loading contest…</p>
-		<p v-else-if="error" role="alert" class="text-error">{{ error }}</p>
-		<p v-else-if="!snapshot">No current contest voting period.</p>
-		<template v-else>
+		<ContestLoading v-else-if="pending" label="Loading vote categories" />
+		<UAlert v-else-if="error && !snapshot" color="error" :title="error" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
+		<p v-else-if="resolved && !snapshot">No current contest voting period.</p>
+		<template v-else-if="snapshot">
 			<div v-if="pendingTypes.length" class="rounded-xl border border-border bg-card/60 p-4">
 				<p class="font-medium text-highlighted">You can still vote in these categories:</p>
 				<ul class="mt-3 flex flex-wrap gap-2">
@@ -128,5 +143,6 @@ async function submit() {
 			<p v-else-if="snapshot.votingPending">Ballots are being prepared. Check back shortly.</p>
 			<p v-else>Voting has closed. Your saved ballots remain above.</p>
 		</template>
+		<UAlert v-if="error && snapshot" color="error" :title="error" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
 	</UContainer>
 </template>

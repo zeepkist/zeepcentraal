@@ -114,6 +114,21 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
 }
 
 fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
+    if versions.iter().any(|version| version == "20260928030000") {
+        snapshot
+            .tables
+            .get_mut("public.zsl_round")
+            .unwrap()
+            .columns
+            .insert(
+                "steam_announcement_id".into(),
+                SnapshotColumn {
+                    name: "steam_announcement_id".into(),
+                    data_type: "bigint".into(),
+                    not_null: false,
+                },
+            );
+    }
     apply_donations_overlay(snapshot, versions);
     if versions.iter().any(|version| version == "20260927010000") {
         for (table, columns) in [

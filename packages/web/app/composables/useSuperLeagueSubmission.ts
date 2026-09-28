@@ -4,11 +4,16 @@ import { submissionProcessing } from '~/utils/superLeagueSubmission'
 export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) {
 	const config = useRuntimeConfig()
 	const session = useSessionStore()
-	const contest = shallowRef<SubmissionContest | null>(null)
+	const read = useSuperLeagueRead<{
+		contest: SubmissionContest | null
+		submission: LevelSubmission | null
+	}>('submit-level', roundId)
+	const contest = computed(() => read.data.value?.contest ?? null)
 	const submission = shallowRef<LevelSubmission | null>(null)
-	const loading = ref(false)
+	const loading = read.pending
 	const saving = ref(false)
-	const error = ref<string | null>(null)
+	const actionError = ref<string | null>(null)
+	const error = computed(() => actionError.value ?? read.error.value)
 	let timer: ReturnType<typeof setTimeout> | undefined
 	let generation = 0
 	let alive = true
@@ -21,7 +26,12 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 	}
 	function schedule() {
 		clearTimeout(timer)
-		if (alive && session.user && submissionProcessing(submission.value?.status))
+		if (
+			!import.meta.server &&
+			alive &&
+			session.user &&
+			submissionProcessing(submission.value?.status)
+		)
 			timer = setTimeout(poll, 2000)
 	}
 	async function poll() {
@@ -34,12 +44,12 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 			)
 			if (current === generation) {
 				submission.value = next
-				if (pollError) error.value = null
+				if (pollError) actionError.value = null
 				pollError = false
 			}
 		} catch {
 			if (current === generation) {
-				error.value = 'Could not check your submission. Trying again…'
+				actionError.value = 'Could not check your submission. Trying again…'
 				pollError = true
 			}
 		}
@@ -47,49 +57,38 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 	}
 	async function refresh() {
 		stop()
-		if (!session.user || !alive) {
-			submission.value = null
-			contest.value = null
-			loading.value = false
-			return
-		}
-		const current = generation
-		loading.value = true
-		try {
-			const result = await $fetch<{
-				contest: SubmissionContest | null
-				submission: LevelSubmission | null
-			}>(endpoint('submit-level'), {
-				credentials: 'include',
-				query: { roundId: toValue(roundId) },
-			})
-			if (current === generation) {
-				contest.value = result.contest
-				submission.value = result.submission
-				error.value = null
-				schedule()
-			}
-		} catch {
-			if (current === generation) error.value = 'Could not load your submission.'
-		} finally {
-			if (current === generation) loading.value = false
-		}
+		actionError.value = null
+		await read.refresh()
 	}
+	watch(
+		read.data,
+		(result) => {
+			stop()
+			submission.value = result?.submission ?? null
+			schedule()
+		},
+		{ immediate: true },
+	)
 	async function save(workshopId: string, authors: string[]) {
 		if (!contest.value || saving.value) return
 		stop()
+		const owner = session.user?.id
+		const requestedRound = toValue(roundId)
+		const current = () =>
+			alive && owner === session.user?.id && requestedRound === toValue(roundId)
 		saving.value = true
-		error.value = null
+		actionError.value = null
 		try {
 			await $fetch<number>(endpoint('submit-level'), {
 				method: 'POST',
 				credentials: 'include',
 				body: { roundId: contest.value.roundId, workshopId, authors },
 			})
-			await refresh()
+			if (current()) await refresh()
 		} catch (cause) {
 			const detail = (cause as { data?: { detail?: string } }).data?.detail
-			error.value = detail ?? 'Could not save your submission. Please try again.'
+			if (current())
+				actionError.value = detail ?? 'Could not save your submission. Please try again.'
 		} finally {
 			saving.value = false
 			schedule()
@@ -98,6 +97,10 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 	async function withdraw() {
 		if (!contest.value || saving.value) return
 		stop()
+		const owner = session.user?.id
+		const requestedRound = toValue(roundId)
+		const current = () =>
+			alive && owner === session.user?.id && requestedRound === toValue(roundId)
 		saving.value = true
 		try {
 			await $fetch(endpoint('submit-level'), {
@@ -105,19 +108,38 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 				credentials: 'include',
 				query: { roundId: contest.value.roundId },
 			})
-			await refresh()
+			if (current()) await refresh()
 		} catch {
-			error.value = 'Could not withdraw your submission.'
+			if (current()) actionError.value = 'Could not withdraw your submission.'
 		} finally {
 			saving.value = false
 			schedule()
 		}
 	}
-	onMounted(refresh)
-	watch([() => session.user?.id, () => toValue(roundId)], refresh)
+	onMounted(schedule)
+	watch(
+		[() => session.user?.id, () => toValue(roundId)],
+		() => {
+			stop()
+			submission.value = null
+			actionError.value = null
+		},
+		{ flush: 'sync' },
+	)
 	onScopeDispose(() => {
 		alive = false
 		stop()
 	})
-	return { contest, submission, loading, saving, error, refresh, save, withdraw }
+	return {
+		contest,
+		submission,
+		loading,
+		resolved: read.resolved,
+		initial: read.initial,
+		saving,
+		error,
+		refresh,
+		save,
+		withdraw,
+	}
 }

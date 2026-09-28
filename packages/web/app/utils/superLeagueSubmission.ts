@@ -19,6 +19,7 @@ export type SubmissionContest = {
 	round: number
 	name: string
 	rules: Record<string, unknown>
+	steamAnnouncementId: string | null
 	submissionStart: string | null
 	submissionEnd: string | null
 	submissionsOpen: boolean
@@ -50,4 +51,23 @@ export function submissionWorkshopId(url: string): string | null {
 }
 export function submissionProcessing(status: LevelSubmission['status'] | undefined): boolean {
 	return status === 'queued' || status === 'validating' || status === 'retrying'
+}
+
+export function steamContestAnnouncementUrl(id: string | null | undefined): string | null {
+	return id && /^[1-9][0-9]*$/.test(id)
+		? `https://steamcommunity.com/games/1440670/announcements/detail/${id}`
+		: null
+}
+
+export function submissionRuleLimits(rules: Record<string, unknown>) {
+	const number = (key: string, fallback: number) =>
+		typeof rules[key] === 'number' && Number.isFinite(rules[key])
+			? (rules[key] as number)
+			: fallback
+	return {
+		minTime: number('minTime', 25),
+		maxTime: number('maxTime', 60),
+		maxBlocks: number('maxBlocks', 3000),
+		minCheckpoints: number('minCheckpoints', 3),
+	}
 }

@@ -1,6 +1,7 @@
 import { injectTraceCarrier, withActiveSpan } from '@zeepkist/telemetry'
 import { webAuthCookieNames } from '#shared/authCookies'
 import { authRefreshUrl } from '../../app/utils/auth'
+import { mergeRequestCookies } from '../../app/utils/requestCookies'
 
 export type RefreshableSessionCookies = {
 	steamId: string
@@ -112,7 +113,11 @@ export async function refreshWebAuth(event: Parameters<typeof getHeader>[0]) {
 export async function fetchAuthenticatedBackend<T>(
 	event: Parameters<typeof getHeader>[0],
 	path: string,
-	options: { method: 'POST' | 'DELETE'; body?: Record<string, unknown> },
+	options: {
+		method: 'GET' | 'POST' | 'DELETE'
+		body?: Record<string, unknown>
+		query?: Record<string, string>
+	},
 ) {
 	return withActiveSpan(`web.backend ${options.method}`, async () => {
 		let cookie = getHeader(event, 'cookie')
@@ -124,7 +129,7 @@ export async function fetchAuthenticatedBackend<T>(
 		})
 		if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
 			const refreshed = await refreshWebAuth(event)
-			cookie = cookieHeaderFromSetCookies(refreshed.cookies)
+			cookie = mergeRequestCookies(cookie, refreshed.cookies)
 			response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
 				...options,
 				headers: { ...(cookie ? { cookie } : {}), ...injectTraceCarrier() },

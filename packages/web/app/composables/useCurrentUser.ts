@@ -3,6 +3,18 @@ import type { SessionUser } from '~/types/app'
 
 export async function useCurrentUser() {
 	const session = useSessionStore()
+	watch(
+		() => session.user?.id,
+		(_next, previous) => {
+			if (previous === undefined) return
+			clearNuxtData(
+				(key) =>
+					key.startsWith(`zsl-vote:${previous}:`) ||
+					key.startsWith(`zsl-submit-level:${previous}:`),
+			)
+		},
+		{ flush: 'sync' },
+	)
 	const refreshAt = useState<number | null>('session-refresh-at', () => null)
 	const responseCookies = import.meta.server ? useResponseHeader('set-cookie') : null
 	const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined

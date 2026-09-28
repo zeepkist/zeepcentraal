@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { effectScope, nextTick, reactive, ref, shallowRef, toValue, watch } from 'vue'
+import { computed, effectScope, nextTick, reactive, ref, shallowRef, toValue, watch } from 'vue'
 import { useSuperLeagueSubmission } from '../../app/composables/useSuperLeagueSubmission'
 import type { LevelSubmission } from '../../app/utils/superLeagueSubmission'
 
@@ -19,6 +19,20 @@ function setup(fetcher: ReturnType<typeof vi.fn>) {
 	vi.stubGlobal('useRuntimeConfig', () => ({ public: { backendUrl: 'https://api.example.com' } }))
 	vi.stubGlobal('useSessionStore', () => session)
 	vi.stubGlobal('$fetch', fetcher)
+	vi.stubGlobal('computed', computed)
+	vi.stubGlobal('useSuperLeagueRead', () => {
+		const data = shallowRef(null)
+		return {
+			data,
+			pending: ref(false),
+			resolved: ref(true),
+			error: ref(null),
+			initial: Promise.resolve(),
+			refresh: async () => {
+				data.value = session.user ? await fetcher('/api/super-league/submit-level') : null
+			},
+		}
+	})
 	vi.stubGlobal('ref', ref)
 	vi.stubGlobal('shallowRef', shallowRef)
 	vi.stubGlobal('toValue', toValue)

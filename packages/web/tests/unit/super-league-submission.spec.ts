@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+	steamContestAnnouncementUrl,
 	submissionAuthorChoices,
 	submissionProcessing,
+	submissionRuleLimits,
 	submissionWorkshopId,
 } from '../../app/utils/superLeagueSubmission'
 
@@ -40,5 +42,26 @@ describe('first-party submission contract', () => {
 			expect(submissionProcessing(status)).toBe(true)
 		for (const status of ['complete', 'withdrawn', undefined] as const)
 			expect(submissionProcessing(status)).toBe(false)
+	})
+})
+
+describe('contest announcement and rule limits', () => {
+	it('constructs the Steam article URL without rounding its bigint ID', () => {
+		expect(steamContestAnnouncementUrl('705530288588981646')).toBe(
+			'https://steamcommunity.com/games/1440670/announcements/detail/705530288588981646',
+		)
+		for (const id of [null, undefined, '', '0', '-1', 'https://example.com'])
+			expect(steamContestAnnouncementUrl(id)).toBeNull()
+	})
+	it('uses configured limits and supplies generic defaults only when absent', () => {
+		expect(
+			submissionRuleLimits({ minTime: 30, maxTime: 50, maxBlocks: 2000, minCheckpoints: 5 }),
+		).toEqual({ minTime: 30, maxTime: 50, maxBlocks: 2000, minCheckpoints: 5 })
+		expect(submissionRuleLimits({})).toEqual({
+			minTime: 25,
+			maxTime: 60,
+			maxBlocks: 3000,
+			minCheckpoints: 3,
+		})
 	})
 })

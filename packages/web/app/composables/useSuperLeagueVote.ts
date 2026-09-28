@@ -29,30 +29,14 @@ export type SuperLeagueVoteSnapshot = {
 	votes: number[][]
 }
 
-export function useSuperLeagueVote(roundId?: number) {
-	const config = useRuntimeConfig()
-	const session = useSessionStore()
-	const snapshot = shallowRef<SuperLeagueVoteSnapshot | null>(null)
-	const pending = ref(false)
-	const error = shallowRef<string | null>(null)
-
-	async function refresh() {
-		if (!session.user) return
-		pending.value = true
-		error.value = null
-		try {
-			snapshot.value = await $fetch<SuperLeagueVoteSnapshot | null>(
-				new URL('/super-league/vote', String(config.public.backendUrl)).toString(),
-				{ credentials: 'include', query: roundId ? { roundId } : undefined },
-			)
-		} catch (cause) {
-			error.value = cause instanceof Error ? cause.message : 'Could not load contest voting'
-		} finally {
-			pending.value = false
-		}
+export function useSuperLeagueVote(roundId: MaybeRef<number | undefined> = undefined) {
+	const read = useSuperLeagueRead<SuperLeagueVoteSnapshot | null>('vote', roundId)
+	return {
+		snapshot: read.data,
+		pending: read.pending,
+		resolved: read.resolved,
+		error: read.error,
+		refresh: read.refresh,
+		initial: read.initial,
 	}
-
-	onMounted(refresh)
-	watch(() => session.user?.id, refresh)
-	return { snapshot, pending, error, refresh }
 }

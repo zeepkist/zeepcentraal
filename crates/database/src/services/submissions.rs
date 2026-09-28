@@ -39,7 +39,7 @@ pub fn valid_authors(authors: &[String], viewer: &str) -> bool {
         })
         && authors.iter().collect::<HashSet<_>>().len() == authors.len()
 }
-const CONTEST_JSON: &str = r#"jsonb_build_object('roundId',r.id,'contestId',c.id,'name',r.name,'seasonId',r.id_season,'round',r.round,'rules',c.rules,
+const CONTEST_JSON: &str = r#"jsonb_build_object('roundId',r.id,'contestId',c.id,'name',r.name,'seasonId',r.id_season,'round',r.round,'rules',c.rules,'steamAnnouncementId',r.steam_announcement_id::text,
 'submissionStart',r.submission_start,'submissionEnd',r.submission_end,'zslVoteEnd',r.zsl_vote_end,'cosmeticVoteEnd',r.cosmetic_vote_end,
 'submissionsOpen',coalesce(c.state='open' AND r.submission_start<=now() AND now()<r.submission_end,false),
 'openTypes',CASE WHEN c.state='frozen' AND c.finalized_at IS NOT NULL AND now()>=r.submission_end THEN
