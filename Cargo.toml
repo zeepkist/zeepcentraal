@@ -32,7 +32,7 @@ bb8 = "0.9"
 bytes = "1"
 flate2 = "1"
 diesel = { version = "2.3", default-features = false, features = ["32-column-tables", "postgres_backend", "serde_json"] }
-diesel-async = { version = "0.7", features = ["postgres", "pool", "bb8", "migrations"] }
+diesel-async = { version = "0.9", features = ["postgres", "pool", "bb8", "migrations"] }
 diesel_migrations = "2.3"
 hmac = "0.12"
 jiff = { version = "0.2", features = ["serde"] }
