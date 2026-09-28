@@ -195,7 +195,7 @@ impl Queue {
         let key = format!("update-level-contributions:{id_level}");
         let group = format!("level-maintenance-shard:{}", id_level.rem_euclid(4));
         let mut connection = self.partition.connection().await?;
-        connection.transaction::<EnqueuedJob, anyhow::Error, _>(|connection| Box::pin(async move {
+        connection.transaction::<EnqueuedJob, anyhow::Error, _>(async move |connection| {
             sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
             let pending = sql_query("SELECT payload FROM zc_jobs.job WHERE lane='bulk' AND job_key=$1 AND NOT running ORDER BY id LIMIT 1")
                 .bind::<Text,_>(&key).get_result::<PendingPayload>(connection).await.optional()?;
@@ -207,7 +207,7 @@ impl Queue {
                 .bind::<Jsonb,_>(payload).bind::<Text,_>(&key).bind::<Text,_>(&group)
                 .bind::<Integer,_>(TaskIdentifier::UpdateLevelContributions.max_attempts())
                 .get_result(connection).await?)
-        })).await
+        }).await
     }
 
     pub async fn claim(&self, lane: JobLane, count: i32) -> Result<Vec<ClaimedJob>> {
@@ -252,7 +252,7 @@ impl Queue {
         let delay = defer_delay(job.payload["deferCount"].as_u64().unwrap_or(0));
         let delay_ms = i64::try_from(delay.as_millis())?;
         let mut connection = self.partition.connection().await?;
-        connection.transaction::<bool, anyhow::Error, _>(|connection| Box::pin(async move {
+        connection.transaction::<bool, anyhow::Error, _>(async move |connection| {
             sql_query("SELECT zc_jobs.lock_lane($1)").bind::<Text,_>(&job.lane).execute(connection).await?;
             let current: BooleanResult = sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint AND running AND lease_until>clock_timestamp()) AS ok")
                 .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation)
@@ -276,7 +276,7 @@ impl Queue {
             let updated = sql_query(statement).bind::<BigInt,_>(delay_ms).bind::<Text,_>(&job.id).execute(connection).await?;
             ensure!(updated == 1, "job queue message missing during deferral");
             Ok(true)
-        })).await
+        }).await
     }
 
     async fn finish_call(

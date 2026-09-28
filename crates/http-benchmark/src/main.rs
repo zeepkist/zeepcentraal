@@ -57,8 +57,7 @@ impl Database {
     async fn submit(&self, input: RecordInput) -> Result<()> {
         let mut connection = self.0.get().await?;
         connection
-            .transaction::<_, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<_, anyhow::Error, _>(async move |connection| {
                     let row: Inserted = sql_query("INSERT INTO public.record(id_user,id_level,time) VALUES ($1,$2,$3) RETURNING id")
                         .bind::<Integer, _>(input.user)
                         .bind::<Integer, _>(input.level)
@@ -71,7 +70,6 @@ impl Database {
                         .await?;
                     Ok(())
                 })
-            })
             .await
     }
 }

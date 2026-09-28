@@ -454,8 +454,7 @@ impl Database {
         )?;
         let mut connection = self.connection().await?;
         let result = connection
-            .transaction::<MaintenanceOutcome<()>, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<MaintenanceOutcome<()>, anyhow::Error, _>(async move |connection| {
                     set_maintenance_lock_timeout(connection).await?;
                     if !try_user_score_locks(connection, &[id_user]).await? {
                         return Ok(MaintenanceOutcome::Contended);
@@ -510,7 +509,6 @@ impl Database {
                     .await?;
                     Ok(MaintenanceOutcome::Applied(()))
                 })
-            })
             .await;
         contention_outcome(result)
     }
@@ -524,8 +522,7 @@ impl Database {
         sorted.dedup();
         let mut connection = self.connection().await?;
         let result = connection
-            .transaction::<MaintenanceOutcome<()>, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<MaintenanceOutcome<()>, anyhow::Error, _>(async move |connection| {
                     set_maintenance_lock_timeout(connection).await?;
                     if !try_user_score_locks(connection, &sorted).await? {
                         return Ok(MaintenanceOutcome::Contended);
@@ -555,7 +552,6 @@ impl Database {
                     .await?;
                     Ok(MaintenanceOutcome::Applied(()))
                 })
-            })
             .await;
         contention_outcome(result)
     }
@@ -586,8 +582,7 @@ impl Database {
         let source = serde_json::to_value(snapshot)?;
         let mut connection = self.connection().await?;
         let result = connection
-            .transaction::<MaintenanceOutcome<usize>, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<MaintenanceOutcome<usize>, anyhow::Error, _>(async move |connection| {
                     set_maintenance_lock_timeout(connection).await?;
                     if !try_user_score_locks(connection, &ids).await? {
                         return Ok(MaintenanceOutcome::Contended);
@@ -625,7 +620,6 @@ impl Database {
                     }
                     Ok(MaintenanceOutcome::Applied(changes.len()))
                 })
-            })
             .await;
         contention_outcome(result)
     }
@@ -638,10 +632,10 @@ impl Database {
 
     pub async fn rebuild_player_skill_aggregates(&self) -> Result<usize> {
         let mut connection = self.connection().await?;
-        connection.transaction::<usize,anyhow::Error,_>(|connection|Box::pin(async move{
+        connection.transaction::<usize,anyhow::Error,_>(async move |connection| {
             sql_query("DELETE FROM public.player_skill_aggregate").execute(connection).await?;
             Ok(sql_query("WITH ranked AS MATERIALIZED(SELECT pb.id_user,RANK() OVER(PARTITION BY pb.id_level ORDER BY record.time) placement_rank,COUNT(*) OVER(PARTITION BY pb.id_level) field_count FROM public.personal_best_global pb JOIN public.record record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user WHERE account.banned=false AND record.time>0),eligible AS(SELECT id_user,1-(placement_rank-1)::double precision/(field_count-1) placement FROM ranked WHERE field_count>=20),placements AS(SELECT id_user,sum(placement)::double precision placement_sum,count(*)::integer eligible_level_count FROM eligible GROUP BY id_user) INSERT INTO public.player_skill_aggregate(id_user,placement_sum,eligible_level_count,skill,date_updated) SELECT id_user,placement_sum,eligible_level_count,(5.0+placement_sum)/(10+eligible_level_count),clock_timestamp() FROM placements").execute(connection).await?)
-        })).await
+        }).await
     }
 
     pub async fn update_level_scores(
@@ -660,7 +654,7 @@ impl Database {
             "persistent level scoring requires one level"
         );
         let mut connection = self.connection().await?;
-        let result = connection.transaction::<MaintenanceOutcome<LevelScoreUpdate>,anyhow::Error,_>(|connection|Box::pin(async move{
+        let result = connection.transaction::<MaintenanceOutcome<LevelScoreUpdate>,anyhow::Error,_>(async move |connection| {
             if !report_only {
                 set_maintenance_lock_timeout(connection).await?;
                 let lock: BooleanRow = sql_query("SELECT pg_try_advisory_xact_lock($1,$2) AS value")
@@ -695,7 +689,7 @@ impl Database {
                 level_contribution_drift(connection, ids[0]).await?
             };
             Ok(MaintenanceOutcome::Applied(LevelScoreUpdate { points_changed, projection_needed }))
-        })).await;
+        }).await;
         contention_outcome(result)
     }
 
@@ -751,8 +745,8 @@ impl Database {
         ensure!(sorted.iter().all(|id| *id > 0), "id_user must be positive");
         let mut connection = self.connection().await?;
         let result = connection
-            .transaction::<MaintenanceOutcome<Vec<i32>>, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<MaintenanceOutcome<Vec<i32>>, anyhow::Error, _>(
+                async move |connection| {
                     set_maintenance_lock_timeout(connection).await?;
                     if !try_user_score_locks(connection, &sorted).await? {
                         return Ok(MaintenanceOutcome::Contended);
@@ -761,8 +755,8 @@ impl Database {
                         sync_contribution_levels_for_users(connection, &[id_level], &sorted)
                             .await?;
                     Ok(MaintenanceOutcome::Applied(changed))
-                })
-            })
+                },
+            )
             .await;
         contention_outcome(result)
     }
@@ -813,7 +807,7 @@ impl Database {
     ) -> Result<TournamentRotation> {
         ensure!(matches!(tournament_type, 0 | 1), "invalid tournament type");
         let mut connection = self.connection().await?;
-        connection.transaction::<TournamentRotation,anyhow::Error,_>(|connection|Box::pin(async move {
+        connection.transaction::<TournamentRotation,anyhow::Error,_>(async move |connection| {
             sql_query("SELECT pg_advisory_xact_lock(1953744431,$1)").bind::<Integer,_>(tournament_type).execute(connection).await?;
             let boundary:BooleanRow=sql_query("SELECT CASE WHEN $1=0 THEN extract(isodow FROM timezone('UTC',clock_timestamp()))=1 AND extract(hour FROM timezone('UTC',clock_timestamp()))=6 ELSE extract(day FROM timezone('UTC',clock_timestamp()))=1 AND extract(hour FROM timezone('UTC',clock_timestamp()))=6 END AS value").bind::<Integer,_>(tournament_type).get_result(connection).await?;
             if !boundary.value{return Ok(TournamentRotation{created:false,id_tournament:None});}
@@ -825,7 +819,7 @@ impl Database {
             let created=sql_query("WITH eligible AS MATERIALIZED(SELECT points.id_level,points.points FROM public.level_points points JOIN public.level level ON level.id=points.id_level AND level.publicly_visible=true WHERE level.date_created>=clock_timestamp()-CASE WHEN $1=0 THEN interval '60 days' ELSE interval '30 days' END AND EXISTS(SELECT 1 FROM public.level_item item WHERE item.id_level=level.id AND item.publicly_visible=true AND item.deleted=false)), threshold AS(SELECT percentile_cont(0.9) WITHIN GROUP(ORDER BY points) AS points FROM eligible), selected AS(SELECT eligible.id_level FROM eligible CROSS JOIN threshold WHERE eligible.points>=threshold.points AND NOT EXISTS(SELECT 1 FROM public.track_tournament used WHERE used.type=$1 AND used.id_level=eligible.id_level) ORDER BY random() LIMIT 1) INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at,points_version,date_created,date_updated) SELECT $1,CASE WHEN $1=0 THEN to_char(timezone('UTC',clock_timestamp()),'IYYY-\"W\"IW') ELSE to_char(timezone('UTC',clock_timestamp()),'YYYY-MM') END,selected.id_level,CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',clock_timestamp())) AT TIME ZONE 'UTC' ELSE date_trunc('month',timezone('UTC',clock_timestamp())) AT TIME ZONE 'UTC' END,CASE WHEN $1=0 THEN (date_trunc('week',timezone('UTC',clock_timestamp()))+interval '1 week') AT TIME ZONE 'UTC' ELSE (date_trunc('month',timezone('UTC',clock_timestamp()))+interval '1 month') AT TIME ZONE 'UTC' END,1,clock_timestamp(),clock_timestamp() FROM selected RETURNING id")
                 .bind::<Integer,_>(tournament_type).get_result::<IdRow>(connection).await.optional()?;
             Ok(TournamentRotation{created:created.is_some(),id_tournament:created.map(|row|row.id)})
-        })).await
+        }).await
     }
 }
 

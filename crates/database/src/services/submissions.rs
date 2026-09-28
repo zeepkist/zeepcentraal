@@ -115,7 +115,7 @@ impl Database {
         }
         ensure!(round > 0 && workshop > 0, "Invalid submission identifiers");
         let mut c = self.connection().await?;
-        c.transaction::<_,anyhow::Error,_>(|c|Box::pin(async move {
+        c.transaction::<_,anyhow::Error,_>(async move |c| {
             // Every mutation takes this same lock before checking author/workshop conflicts.
             let contest=sql_query("SELECT c.id FROM zc_private.level_submission_contest c JOIN public.zsl_round r ON r.id=c.id_zsl_round WHERE r.id=$1 AND c.state='open' FOR UPDATE OF c")
                 .bind::<Integer,_>(round).get_result::<IdRow>(c).await.optional()?.ok_or(SubmissionError::Closed)?;
@@ -147,11 +147,11 @@ impl Database {
             };
             sql_query("UPDATE zc_private.level_submission_contest SET playlist_revision=playlist_revision+1 WHERE id=$1").bind::<BigInt,_>(contest.id).execute(c).await?;
             Ok(row.id)
-        })).await
+        }).await
     }
     pub async fn withdraw_submission(&self, round: i32, viewer: &str) -> Result<()> {
         let mut c = self.connection().await?;
-        c.transaction::<_,anyhow::Error,_>(|c|Box::pin(async move {
+        c.transaction::<_,anyhow::Error,_>(async move |c| {
             let contest=sql_query("SELECT c.id FROM zc_private.level_submission_contest c JOIN public.zsl_round r ON r.id=c.id_zsl_round WHERE r.id=$1 AND c.state='open' FOR UPDATE OF c")
                 .bind::<Integer,_>(round).get_result::<IdRow>(c).await.optional()?.ok_or(SubmissionError::Closed)?;
             // Recheck wall clock after lock acquisition; a waiting mutation can cross the deadline.
@@ -168,7 +168,7 @@ impl Database {
                 sql_query("UPDATE zc_private.level_submission_contest SET playlist_revision=playlist_revision+1 WHERE id=$1").bind::<BigInt,_>(contest.id).execute(c).await?;
             }
             Ok(())
-        })).await
+        }).await
     }
 }
 #[cfg(test)]

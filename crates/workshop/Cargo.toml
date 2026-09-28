@@ -11,7 +11,6 @@ jiff.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-steam-rs.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 zc-core.workspace = true

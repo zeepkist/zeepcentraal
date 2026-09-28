@@ -116,8 +116,7 @@ impl Database {
         ensure!(!name.is_empty(), "ZSL season name must not be empty");
         let mut connection = self.connection().await?;
         connection
-            .transaction::<ZslSeason, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<ZslSeason, anyhow::Error, _>(async move |connection| {
                     if let Some(existing) = sql_query(
                         "SELECT id,id_points_structure FROM public.zsl_season \
                          WHERE name=$1 LIMIT 1 FOR UPDATE",
@@ -143,7 +142,6 @@ impl Database {
                     .get_result(connection)
                     .await?)
                 })
-            })
             .await
     }
 
@@ -157,8 +155,7 @@ impl Database {
     ) -> Result<ZslRound> {
         let mut connection = self.connection().await?;
         connection
-            .transaction::<ZslRound, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<ZslRound, anyhow::Error, _>(async move |connection| {
                     let existing: Option<ZslRound> = sql_query(
                         "SELECT id FROM public.zsl_round \
                          WHERE id_season=$1 AND round=$2 FOR UPDATE",
@@ -197,7 +194,6 @@ impl Database {
                     .get_result(connection)
                     .await?)
                 })
-            })
             .await
     }
 
@@ -229,29 +225,27 @@ impl Database {
     pub async fn get_or_create_zsl_level(&self, id_round: i32, id_level: i32) -> Result<ZslLevel> {
         let mut connection = self.connection().await?;
         connection
-            .transaction::<ZslLevel, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
-                    if let Some(existing) = sql_query(
-                        "SELECT id FROM public.zsl_level \
+            .transaction::<ZslLevel, anyhow::Error, _>(async move |connection| {
+                if let Some(existing) = sql_query(
+                    "SELECT id FROM public.zsl_level \
                          WHERE id_round=$1 AND id_level=$2 LIMIT 1 FOR UPDATE",
-                    )
-                    .bind::<Integer, _>(id_round)
-                    .bind::<Integer, _>(id_level)
-                    .get_result(connection)
-                    .await
-                    .optional()?
-                    {
-                        return Ok(existing);
-                    }
-                    Ok(sql_query(
-                        "INSERT INTO public.zsl_level(id_round,id_level,date_created) \
+                )
+                .bind::<Integer, _>(id_round)
+                .bind::<Integer, _>(id_level)
+                .get_result(connection)
+                .await
+                .optional()?
+                {
+                    return Ok(existing);
+                }
+                Ok(sql_query(
+                    "INSERT INTO public.zsl_level(id_round,id_level,date_created) \
                          VALUES ($1,$2,clock_timestamp()) RETURNING id",
-                    )
-                    .bind::<Integer, _>(id_round)
-                    .bind::<Integer, _>(id_level)
-                    .get_result(connection)
-                    .await?)
-                })
+                )
+                .bind::<Integer, _>(id_round)
+                .bind::<Integer, _>(id_level)
+                .get_result(connection)
+                .await?)
             })
             .await
     }

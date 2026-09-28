@@ -144,27 +144,25 @@ async fn adopt_locked(
     let mut baseline_created = false;
     if mode == Mode::Adopt {
         baseline_created = connection
-            .transaction::<bool, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
-                    crate::migrations::ensure_private_ledger(connection).await?;
-                    let versions: Vec<DieselVersionRow> = sql_query(
-                        "SELECT version FROM zc_private.__diesel_schema_migrations ORDER BY version",
-                    )
-                    .load(connection)
+            .transaction::<bool, anyhow::Error, _>(async move |connection| {
+                crate::migrations::ensure_private_ledger(connection).await?;
+                let versions: Vec<DieselVersionRow> = sql_query(
+                    "SELECT version FROM zc_private.__diesel_schema_migrations ORDER BY version",
+                )
+                .load(connection)
+                .await?;
+                if versions.iter().any(|row| row.version == BASELINE_VERSION) {
+                    return Ok(false);
+                }
+                ensure!(
+                    versions.is_empty(),
+                    "Diesel migrations exist without Drizzle baseline; refusing adoption"
+                );
+                sql_query("INSERT INTO zc_private.__diesel_schema_migrations(version) VALUES ($1)")
+                    .bind::<Text, _>(BASELINE_VERSION)
+                    .execute(connection)
                     .await?;
-                    if versions.iter().any(|row| row.version == BASELINE_VERSION) {
-                        return Ok(false);
-                    }
-                    ensure!(
-                        versions.is_empty(),
-                        "Diesel migrations exist without Drizzle baseline; refusing adoption"
-                    );
-                    sql_query("INSERT INTO zc_private.__diesel_schema_migrations(version) VALUES ($1)")
-                        .bind::<Text, _>(BASELINE_VERSION)
-                        .execute(connection)
-                        .await?;
-                    Ok(true)
-                })
+                Ok(true)
             })
             .await?;
     }

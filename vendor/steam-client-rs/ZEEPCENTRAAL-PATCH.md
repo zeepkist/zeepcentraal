@@ -19,5 +19,8 @@ ciphertext must all reach the Zeepkist master; returning only the nested
 must match the requested app ID and contain nonempty ciphertext.
 
 The crate remains version 0.2.0 and is patched locally in the root Cargo
-manifest. Remove this vendor copy once an upstream release fixes both request
-polling and ticket encoding, and the lobby collector passes the same mock tests.
+manifest. `tokio-tungstenite` is also upgraded to 0.24 to use patched rustls-webpki;
+the sibling `steam-auth-rs` and `steam-cm-provider` crates have matching local
+dependency patches, including when this client is built as a standalone crate.
+Remove this vendor copy once an upstream release fixes request polling, ticket
+encoding, and TLS dependencies, and the lobby collector passes the same mock tests.

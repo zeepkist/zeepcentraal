@@ -262,7 +262,7 @@ impl Database {
             return Ok(false);
         }
         let mut connection = self.connection().await?;
-        connection.transaction::<bool, anyhow::Error, _>(|connection| Box::pin(async move {
+        connection.transaction::<bool, anyhow::Error, _>(async move |connection| {
             let locked = sql_query("SELECT id FROM public.\"user\" WHERE id=$1 FOR UPDATE")
                 .bind::<Integer, _>(user_id).get_result::<UserLock>(connection).await.optional()?;
             if locked.as_ref().is_none_or(|user| user.id != user_id) { return Ok(false); }
@@ -288,6 +288,6 @@ impl Database {
                     .execute(connection).await?;
             }
             Ok(true)
-        })).await
+        }).await
     }
 }

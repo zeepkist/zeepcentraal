@@ -97,8 +97,7 @@ impl Database {
         );
         let mut connection = self.connection().await?;
         connection
-            .transaction::<Level, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<Level, anyhow::Error, _>(async move |connection| {
                     let by_xx = level_by_xx(connection, xx_hash).await?;
                     let level = if let Some(level) = by_xx {
                         level
@@ -156,7 +155,6 @@ impl Database {
                     }
                     Ok(level)
                 })
-            })
             .await
     }
 
@@ -180,8 +178,7 @@ impl Database {
         let statistics = serde_json::to_value(input.statistics)?;
         let mut connection = self.connection().await?;
         connection
-            .transaction::<RecordSubmissionResult, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<RecordSubmissionResult, anyhow::Error, _>(async move |connection| {
                     let accepted: AcceptanceRow = record_phase(
                         "user_level_lock",
                         sql_query(
@@ -365,7 +362,6 @@ impl Database {
                         world_record_user_ids,
                     })
                 })
-            })
             .await
     }
 

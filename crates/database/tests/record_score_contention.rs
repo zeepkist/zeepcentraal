@@ -302,7 +302,8 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
                 page.user_ids
                     .iter()
                     .copied()
-                    .filter(|id| *id == busy_user || !free_users.contains(id))
+                    // The submitter was already projected before cursor work began.
+                    .filter(|id| *id != submitter && (*id == busy_user || !free_users.contains(id)))
                     .collect()
             )
         );

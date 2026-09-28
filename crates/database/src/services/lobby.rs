@@ -116,8 +116,7 @@ impl Database {
     ) -> Result<()> {
         let mut connection = self.connection().await?;
         connection
-            .transaction::<(), anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<(), anyhow::Error, _>(async move |connection| {
                     advisory_lock(connection, STATS_LOCK_KEY).await?;
                     let previous: Option<Statistics> = sql_query(
                         "SELECT players,rooms,players_in_rooms FROM public.lobby_stats ORDER BY id DESC LIMIT 1",
@@ -143,7 +142,6 @@ impl Database {
                     .await?;
                     Ok(())
                 })
-            })
             .await
     }
 
@@ -169,8 +167,7 @@ impl Database {
         );
         let mut connection = self.connection().await?;
         connection
-            .transaction::<(), anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<(), anyhow::Error, _>(async move |connection| {
                     advisory_lock(connection, LOBBY_LOCK_KEY).await?;
                     upsert_hosts(connection, &values, observed_at).await?;
                     let existing: Vec<ExistingLobby> = sql_query(
@@ -250,7 +247,6 @@ impl Database {
                     }
                     Ok(())
                 })
-            })
             .await
     }
 
@@ -259,8 +255,7 @@ impl Database {
         let ids = serde_json::json!([entry.id]);
         let mut connection = self.connection().await?;
         connection
-            .transaction::<(), anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<(), anyhow::Error, _>(async move |connection| {
                     advisory_lock(connection, LOBBY_LOCK_KEY).await?;
                     upsert_hosts(connection, &values, observed_at).await?;
                     let previous: Option<ExistingLobby> = sql_query(
@@ -288,7 +283,6 @@ impl Database {
                     }
                     Ok(())
                 })
-            })
             .await
     }
 }

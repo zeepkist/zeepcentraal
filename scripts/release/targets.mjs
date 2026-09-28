@@ -2,7 +2,11 @@ const rustTargets = {
 	'zc-server': {
 		crate: 'server',
 		dependencies: ['server', 'jobs', 'workshop', 'database', 'core', 'telemetry'],
-		vendorPaths: ['vendor/steam-client-rs/'],
+		vendorPaths: [
+			'vendor/steam-client-rs/',
+			'vendor/steam-auth-rs/',
+			'vendor/steam-cm-provider/',
+		],
 		binary: 'zeepcentraal-server',
 		dockerfile: 'Dockerfile.server',
 	},

@@ -143,27 +143,25 @@ impl Database {
     pub async fn create_discord_link_code(&self, id_user: i32, code_hash: &str) -> Result<String> {
         let mut connection = self.connection().await?;
         connection
-            .transaction::<String, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
-                    sql_query(
-                        "DELETE FROM zc_private.discord_link_code \
+            .transaction::<String, anyhow::Error, _>(async move |connection| {
+                sql_query(
+                    "DELETE FROM zc_private.discord_link_code \
                          WHERE id_user=$1 OR expires_at<clock_timestamp()",
-                    )
-                    .bind::<Integer, _>(id_user)
-                    .execute(connection)
-                    .await?;
-                    let row: LinkCodeExpiry = sql_query(
-                        "INSERT INTO zc_private.discord_link_code(code_hash,id_user,expires_at) \
+                )
+                .bind::<Integer, _>(id_user)
+                .execute(connection)
+                .await?;
+                let row: LinkCodeExpiry = sql_query(
+                    "INSERT INTO zc_private.discord_link_code(code_hash,id_user,expires_at) \
                          VALUES($1,$2,clock_timestamp()+interval '10 minutes') \
                          RETURNING to_char(expires_at AT TIME ZONE 'UTC', \
                            'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS expires_at",
-                    )
-                    .bind::<Text, _>(code_hash)
-                    .bind::<Integer, _>(id_user)
-                    .get_result(connection)
-                    .await?;
-                    Ok(row.expires_at)
-                })
+                )
+                .bind::<Text, _>(code_hash)
+                .bind::<Integer, _>(id_user)
+                .get_result(connection)
+                .await?;
+                Ok(row.expires_at)
             })
             .await
     }
@@ -264,7 +262,7 @@ impl Database {
         let current_hash = refresh_token_hash(current_refresh_token);
         let next_hash = refresh_token_hash(next.refresh_token);
         let mut connection = self.connection().await?;
-        connection.transaction::<bool, anyhow::Error, _>(|connection| Box::pin(async move {
+        connection.transaction::<bool, anyhow::Error, _>(async move |connection| {
             let deleted = sql_query("DELETE FROM public.auth WHERE id_user=$1 AND refresh_token_hash=$2 AND refresh_token_expiry>extract(epoch from clock_timestamp())::bigint")
                 .bind::<Integer, _>(next.id_user).bind::<Text, _>(&current_hash).execute(connection).await?;
             if deleted == 0 { return Ok(false); }
@@ -273,7 +271,7 @@ impl Database {
                 .bind::<Text, _>(&next_hash).bind::<BigInt, _>(next.refresh_token_expiry).bind::<Varchar, _>(next.provider)
                 .execute(connection).await?;
             Ok(true)
-        })).await
+        }).await
     }
 }
 

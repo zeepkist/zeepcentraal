@@ -115,8 +115,7 @@ impl Database {
         validate_input(input)?;
         let mut connection = self.connection().await?;
         connection
-            .transaction::<WorkshopLevelUpsertResult, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<WorkshopLevelUpsertResult, anyhow::Error, _>(async move |connection| {
                     let previous_workshop = sql_query(
                         "SELECT visibility FROM public.workshop_item WHERE workshop_id=$1 LIMIT 1",
                     )
@@ -323,7 +322,6 @@ impl Database {
                         score_changed: created || item_changed || accessibility_changed,
                     })
                 })
-            })
             .await
     }
 
@@ -334,26 +332,24 @@ impl Database {
     ) -> Result<Vec<i32>> {
         let mut connection = self.connection().await?;
         connection
-            .transaction::<Vec<i32>, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
-                    sql_query(
-                        "SELECT workshop_id FROM public.workshop_item WHERE workshop_id=$1 FOR UPDATE",
-                    )
-                    .bind::<BigInt, _>(workshop_id)
-                    .execute(connection)
-                    .await?;
-                    let changed = sql_query(
-                        "UPDATE public.level_item li SET deleted=true,date_updated=clock_timestamp() \
+            .transaction::<Vec<i32>, anyhow::Error, _>(async move |connection| {
+                sql_query(
+                    "SELECT workshop_id FROM public.workshop_item WHERE workshop_id=$1 FOR UPDATE",
+                )
+                .bind::<BigInt, _>(workshop_id)
+                .execute(connection)
+                .await?;
+                let changed = sql_query(
+                    "UPDATE public.level_item li SET deleted=true,date_updated=clock_timestamp() \
                          FROM public.level l WHERE li.id_level=l.id AND li.workshop_id=$1 \
                          AND NOT li.deleted AND NOT l.adventure AND NOT (l.xx_hash=ANY($2)) \
                          RETURNING li.id_level",
-                    )
-                    .bind::<BigInt, _>(workshop_id)
-                    .bind::<Array<Text>, _>(active_xx_hashes)
-                    .load::<ChangedLevel>(connection)
-                    .await?;
-                    Ok(unique_ids(changed))
-                })
+                )
+                .bind::<BigInt, _>(workshop_id)
+                .bind::<Array<Text>, _>(active_xx_hashes)
+                .load::<ChangedLevel>(connection)
+                .await?;
+                Ok(unique_ids(changed))
             })
             .await
     }
@@ -365,26 +361,24 @@ impl Database {
     ) -> Result<Vec<i32>> {
         let mut connection = self.connection().await?;
         connection
-            .transaction::<Vec<i32>, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
-                    sql_query(
-                        "UPDATE public.workshop_item SET visibility=$2,date_updated=clock_timestamp() \
+            .transaction::<Vec<i32>, anyhow::Error, _>(async move |connection| {
+                sql_query(
+                    "UPDATE public.workshop_item SET visibility=$2,date_updated=clock_timestamp() \
                          WHERE workshop_id=$1",
-                    )
-                    .bind::<BigInt, _>(workshop_id)
-                    .bind::<SmallInt, _>(visibility)
-                    .execute(connection)
-                    .await?;
-                    let changed = sql_query(
-                        "UPDATE public.level_item li SET deleted=true,date_updated=clock_timestamp() \
+                )
+                .bind::<BigInt, _>(workshop_id)
+                .bind::<SmallInt, _>(visibility)
+                .execute(connection)
+                .await?;
+                let changed = sql_query(
+                    "UPDATE public.level_item li SET deleted=true,date_updated=clock_timestamp() \
                          FROM public.level l WHERE li.id_level=l.id AND li.workshop_id=$1 \
                          AND NOT li.deleted AND NOT l.adventure RETURNING li.id_level",
-                    )
-                    .bind::<BigInt, _>(workshop_id)
-                    .load::<ChangedLevel>(connection)
-                    .await?;
-                    Ok(unique_ids(changed))
-                })
+                )
+                .bind::<BigInt, _>(workshop_id)
+                .load::<ChangedLevel>(connection)
+                .await?;
+                Ok(unique_ids(changed))
             })
             .await
     }

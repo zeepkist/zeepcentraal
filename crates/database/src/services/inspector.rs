@@ -301,22 +301,19 @@ impl Database {
     {
         let mut connection = self.connection().await?;
         connection
-            .transaction::<_, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
-                    // External downloads can take minutes; this dedicated lock transaction has no row locks.
-                    sql_query("SET LOCAL idle_in_transaction_session_timeout=0")
-                        .execute(connection)
-                        .await?;
-                    let locked =
-                        sql_query("SELECT pg_try_advisory_xact_lock(1953721968,1) AS value")
-                            .get_result::<BoolRow>(connection)
-                            .await?
-                            .value;
-                    if !locked {
-                        return Ok(None);
-                    }
-                    Ok(Some(run().await?))
-                })
+            .transaction::<_, anyhow::Error, _>(async move |connection| {
+                // External downloads can take minutes; this dedicated lock transaction has no row locks.
+                sql_query("SET LOCAL idle_in_transaction_session_timeout=0")
+                    .execute(connection)
+                    .await?;
+                let locked = sql_query("SELECT pg_try_advisory_xact_lock(1953721968,1) AS value")
+                    .get_result::<BoolRow>(connection)
+                    .await?
+                    .value;
+                if !locked {
+                    return Ok(None);
+                }
+                Ok(Some(run().await?))
             })
             .await
     }
@@ -366,8 +363,7 @@ impl Database {
         );
         let mut connection = self.connection().await?;
         connection
-            .transaction::<serde_json::Value, anyhow::Error, _>(|connection| {
-                Box::pin(async move {
+            .transaction::<serde_json::Value, anyhow::Error, _>(async move |connection| {
                     let contest = sql_query(
                         "SELECT id FROM zc_private.level_submission_contest \
                          WHERE id=$1 AND state='open' AND playlist_revision=$2 FOR UPDATE",
@@ -440,7 +436,6 @@ impl Database {
                     .await?
                     .payload)
                 })
-            })
             .await
     }
     pub async fn configure_inspector_contest(
@@ -450,7 +445,7 @@ impl Database {
         rules_hash: &str,
     ) -> Result<()> {
         let mut connection = self.connection().await?;
-        connection.transaction::<_,anyhow::Error,_>(|connection|Box::pin(async move {
+        connection.transaction::<_,anyhow::Error,_>(async move |connection| {
             let changed=sql_query("SELECT id FROM zc_private.level_submission_contest WHERE id_zsl_round=$1 AND state='open' AND rules_hash<>$2 FOR UPDATE")
                 .bind::<Integer,_>(round_id).bind::<Text,_>(rules_hash).get_result::<IdRow>(connection).await.optional()?;
             if let Some(row)=changed {
@@ -461,7 +456,7 @@ impl Database {
             sql_query("INSERT INTO zc_private.level_submission_contest(id_zsl_round,rules,rules_hash) VALUES($1,$2,$3) ON CONFLICT(id_zsl_round) DO UPDATE SET rules=EXCLUDED.rules,rules_hash=EXCLUDED.rules_hash,date_updated=now() WHERE level_submission_contest.state='open'")
                 .bind::<Integer,_>(round_id).bind::<Jsonb,_>(rules).bind::<Text,_>(rules_hash).execute(connection).await?;
             Ok(())
-        })).await
+        }).await
     }
     pub async fn defer_inspector_finalization(&self, round: i32) -> Result<()> {
         let mut c = self.connection().await?;
@@ -520,7 +515,7 @@ impl Database {
         input: &InspectorValidationInput,
     ) -> Result<Option<i64>> {
         let mut c = self.connection().await?;
-        c.transaction::<_,anyhow::Error,_>(|c|Box::pin(async move {
+        c.transaction::<_,anyhow::Error,_>(async move |c| {
             let contest=sql_query("SELECT c.id FROM zc_private.level_submission_contest c JOIN zc_private.level_submissions s ON s.id_contest=c.id WHERE s.id=$1 AND c.state='open' FOR UPDATE OF c")
                 .bind::<BigInt,_>(input.id_submission).get_result::<IdRow>(c).await.optional()?;
             let Some(contest)=contest else {return Ok(None)};
@@ -540,6 +535,6 @@ impl Database {
             sql_query("INSERT INTO zc_private.level_submission_notification(id_submission,desired_revision,desired_validation_id) VALUES($1,$2,$3) ON CONFLICT(id_submission) DO UPDATE SET desired_revision=$2,desired_validation_id=$3,next_attempt_at=now(),date_updated=now()")
                 .bind::<BigInt,_>(input.id_submission).bind::<BigInt,_>(input.submission_revision).bind::<BigInt,_>(row.id).execute(c).await?;
             Ok(Some(row.id))
-        })).await
+        }).await
     }
 }

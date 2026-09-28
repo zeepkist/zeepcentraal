@@ -83,12 +83,20 @@ impl EnvironmentSource {
 }
 
 pub fn initialize() -> Result<()> {
+    initialize_crypto_provider();
     if SOURCE.get().is_some() {
         return Ok(());
     }
     let source = EnvironmentSource::load()?;
     let _ = SOURCE.set(source);
     Ok(())
+}
+
+fn initialize_crypto_provider() {
+    // Steam's Reqwest 0.12 enables ring while Reqwest 0.13 enables AWS-LC.
+    // Select a process default before WebSocket TLS uses ClientConfig::builder().
+    // A caller's previously installed provider remains authoritative.
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 }
 
 pub fn var(name: &str) -> Result<String, VarError> {
@@ -125,6 +133,23 @@ fn discover_env_file() -> Result<Option<PathBuf>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tls_default_handles_both_crypto_providers_and_repeated_initialization() {
+        let _ring = rustls::crypto::ring::default_provider();
+        let _aws_lc = rustls::crypto::aws_lc_rs::default_provider();
+        initialize_crypto_provider();
+        let provider = rustls::crypto::CryptoProvider::get_default().unwrap();
+        initialize_crypto_provider();
+        assert!(std::ptr::eq(
+            provider,
+            rustls::crypto::CryptoProvider::get_default().unwrap()
+        ));
+        let config = rustls::ClientConfig::builder()
+            .with_root_certificates(rustls::RootCertStore::empty())
+            .with_no_client_auth();
+        assert!(!config.crypto_provider().cipher_suites.is_empty());
+    }
 
     fn temporary_file(contents: &str) -> PathBuf {
         let path = std::env::temp_dir().join(format!(
