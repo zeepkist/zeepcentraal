@@ -41,7 +41,7 @@ lzma-rs = "0.3"
 opentelemetry = { version = "0.31", features = ["internal-logs"] }
 opentelemetry-appender-tracing = "0.31"
 opentelemetry-otlp = { version = "0.31", default-features = false, features = ["grpc-tonic", "logs", "metrics", "trace", "tls-webpki-roots"] }
-opentelemetry_sdk = { version = "0.31", features = ["logs", "metrics", "rt-tokio", "trace"] }
+opentelemetry_sdk = { version = "0.32", features = ["logs", "metrics", "rt-tokio", "trace"] }
 prost = "0.14"
 pq-sys = { version = "0.7", features = ["bundled"] }
 rand = "0.9"
