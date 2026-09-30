@@ -6,6 +6,7 @@ pub mod feeds;
 pub mod health;
 pub mod pagination;
 pub mod runtime;
+mod tournament;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

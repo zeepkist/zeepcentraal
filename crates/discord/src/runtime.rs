@@ -8,6 +8,7 @@ use crate::{
     feeds::FeedService,
     health::RuntimeState,
     pagination::{Direction, PAGE_SIZE, PageKind, PageSession, PageStore, page_count, target_page},
+    tournament,
 };
 use anyhow::{Context as _, Result, bail};
 use serenity::{
@@ -859,66 +860,20 @@ fn tournament_page_message(
     total_count: i64,
     frontend_url: &reqwest::Url,
 ) -> CreateInteractionResponseMessage<'static> {
-    let name = if snapshot.tournament_type == 0 {
-        "Track of the Week"
-    } else {
-        "Track of the Month"
-    };
-    let leaderboard = if standings.is_empty() {
-        "No submitted times yet.".into()
-    } else {
-        standings
-            .iter()
-            .map(|standing| {
-                format!(
-                    "**{}.** {} • {} • {} pts",
-                    standing.rank,
-                    standing.steam_name.as_deref().unwrap_or("Unknown player"),
-                    command_time(standing.time),
-                    standing.points,
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-    let route = if snapshot.tournament_type == 0 {
-        "totw"
-    } else {
-        "totm"
-    };
-    let target = frontend_url
-        .join(&format!("/{route}/{}", snapshot.tournament_slug))
-        .map(|url| url.to_string())
-        .unwrap_or_else(|_| frontend_url.to_string());
-    let playlist = frontend_url
-        .join(&format!(
-            "/api/tournaments/playlist?type={}&slug={}",
-            snapshot.tournament_type, snapshot.tournament_slug
-        ))
-        .map(|url| url.to_string())
-        .unwrap_or_else(|_| frontend_url.to_string());
+    let mut components = tournament::container_components(
+        snapshot,
+        standings,
+        frontend_url,
+        &format!(
+            "-# ZeepCentraal • Page {}/{}",
+            page + 1,
+            page_count(total_count)
+        ),
+    );
+    components.push(pagination_row(session_id, page, total_count));
     CreateInteractionResponseMessage::new()
         .components(vec![CreateComponent::Container(
-            CreateContainer::new(vec![
-                CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
-                    "## {name} • {}\nCurrent competition standings\n### Tournament details\n**Level**  {}\n**Entries**  {}\n**Ends**  {}\n### Leaderboard\n{}\n-# ZeepCentraal • Page {}/{}",
-                    snapshot.tournament_slug,
-                    snapshot.level_name,
-                    snapshot.entries,
-                    snapshot.end_at,
-                    leaderboard,
-                    page + 1,
-                    page_count(total_count),
-                ))),
-                CreateContainerComponent::ActionRow(
-                    serenity::builder::CreateActionRow::buttons(vec![
-                        CreateButton::new_link(target).label(format!("Open {}", route.to_uppercase())),
-                        CreateButton::new_link(playlist).label("Download level playlist"),
-                    ]),
-                ),
-                pagination_row(session_id, page, total_count),
-            ])
-            .accent_color(Colour::DARK_GREEN),
+            CreateContainer::new(components).accent_color(Colour::DARK_GREEN),
         )])
         .flags(MessageFlags::IS_COMPONENTS_V2)
         .allowed_mentions(CreateAllowedMentions::new())
@@ -1193,6 +1148,49 @@ mod tests {
         let encoded = serde_json::to_string(&pagination_row(42, 1, 30)).unwrap();
         for direction in ["first", "previous", "next", "last"] {
             assert!(encoded.contains(&format!("page:42:{direction}")));
+        }
+    }
+
+    #[test]
+    fn tournament_pages_preserve_navigation_and_correct_details_and_links() {
+        for (tournament_type, slug, route) in [(0, "2026-W39", "totw"), (1, "2026-10", "totm")] {
+            let mut snapshot = crate::tournament::tests::snapshot();
+            snapshot.tournament_type = tournament_type;
+            snapshot.tournament_slug = slug.into();
+            let value = serde_json::to_value(tournament_page_message(
+                42,
+                &snapshot,
+                &snapshot.standings,
+                1,
+                2 * PAGE_SIZE,
+                &"https://zeepki.st".parse().unwrap(),
+            ))
+            .unwrap();
+            assert_eq!(value["flags"], MessageFlags::IS_COMPONENTS_V2.bits());
+            assert_eq!(value["allowed_mentions"]["parse"], serde_json::json!([]));
+            let components = &value["components"][0]["components"];
+            assert_eq!(components[0]["accessory"]["type"], 11);
+            let details = components[0]["components"][0]["content"].as_str().unwrap();
+            assert!(details.contains(slug));
+            assert!(details.contains("<t:1791180000:R>"));
+            assert!(
+                components[1]["content"]
+                    .as_str()
+                    .unwrap()
+                    .contains("Page 2/2")
+            );
+            assert_eq!(
+                components[2]["components"][0]["url"],
+                format!("https://zeepki.st/{route}/{}", slug.to_ascii_lowercase())
+            );
+            assert_eq!(
+                components[2]["components"][1]["url"],
+                format!(
+                    "https://zeepki.st/api/tournaments/playlist?type={tournament_type}&slug={slug}"
+                )
+            );
+            assert_eq!(components[3]["components"][0]["custom_id"], "page:42:first");
+            assert_eq!(components[3]["components"][2]["custom_id"], "page:42:next");
         }
     }
 }

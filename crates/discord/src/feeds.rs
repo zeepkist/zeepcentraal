@@ -1,6 +1,7 @@
 use crate::{
     backend::{ActivityEvent, Backend, GuildFeed, MatchingWatch, TournamentSnapshot},
     config::DiscordConfig,
+    tournament,
 };
 use anyhow::{Context, Result};
 use serenity::{
@@ -165,8 +166,9 @@ async fn poll_tournaments(
             1 => "totm",
             _ => continue,
         };
-        let content_hash = tournament_hash(&snapshot)?;
-        deliver_tournament_watches(http, backend, frontend_url, &snapshot, kind, &content_hash)
+        let watch_hash = tournament_hash(&snapshot)?;
+        let content_hash = tournament_feed_hash(&watch_hash);
+        deliver_tournament_watches(http, backend, frontend_url, &snapshot, kind, &watch_hash)
             .await?;
         for feed in feeds
             .iter()
@@ -331,74 +333,23 @@ fn tournament_hash(snapshot: &TournamentSnapshot) -> Result<String> {
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
+// Presentation changes refresh guild posts without changing watch delivery keys.
+fn tournament_feed_hash(watch_hash: &str) -> String {
+    let digest = Sha256::digest(format!("tournament-render-v2:{watch_hash}"));
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
 pub(crate) fn tournament_components(
     snapshot: &TournamentSnapshot,
     frontend_url: &reqwest::Url,
 ) -> Vec<CreateComponent<'static>> {
-    let name = if snapshot.tournament_type == 0 {
-        "Track of the Week"
-    } else {
-        "Track of the Month"
-    };
-    let standings = if snapshot.standings.is_empty() {
-        "No submitted times yet.".into()
-    } else {
-        snapshot
-            .standings
-            .iter()
-            .map(|standing| {
-                format!(
-                    "**{}.** {} • {} • {} pts",
-                    standing.rank,
-                    standing.steam_name.as_deref().unwrap_or("Unknown player"),
-                    format_time(standing.time),
-                    standing.points
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-    let route = if snapshot.tournament_type == 0 {
-        "totw"
-    } else {
-        "totm"
-    };
-    let target = frontend_url
-        .join(&format!("/{route}/{}", snapshot.tournament_slug))
-        .map(|url| url.to_string())
-        .unwrap_or_else(|_| frontend_url.to_string());
     vec![CreateComponent::Container(
-        CreateContainer::new(vec![
-            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
-                "## {name} • {}\nCurrent competition standings\n### Tournament details\n**Level**  {}\n**Entries**  {}\n**Ends**  {}\n### Leaderboard\n{standings}\n-# ZeepCentraal",
-                snapshot.tournament_slug,
-                snapshot.level_name,
-                snapshot.entries,
-                snapshot.end_at,
-            ))),
-            CreateContainerComponent::ActionRow(
-                serenity::builder::CreateActionRow::buttons(vec![
-                    CreateButton::new_link(target).label(format!(
-                        "Open {}",
-                        if snapshot.tournament_type == 0 {
-                            "TOTW"
-                        } else {
-                            "TOTM"
-                        }
-                    )),
-                    CreateButton::new_link(
-                        frontend_url
-                            .join(&format!(
-                                "/api/tournaments/playlist?type={}&slug={}",
-                                snapshot.tournament_type, snapshot.tournament_slug
-                            ))
-                            .map(|url| url.to_string())
-                            .unwrap_or_else(|_| frontend_url.to_string()),
-                    )
-                    .label("Download level playlist"),
-                ]),
-            ),
-        ])
+        CreateContainer::new(tournament::container_components(
+            snapshot,
+            &snapshot.standings,
+            frontend_url,
+            "-# ZeepCentraal",
+        ))
         .accent_color(Colour::DARK_GREEN),
     )]
 }
@@ -718,5 +669,47 @@ mod tests {
     #[test]
     fn formats_record_times() {
         assert_eq!(format_time(61.2346), "01:01.235");
+    }
+
+    #[test]
+    fn tournament_feed_and_watch_messages_share_corrected_components() {
+        let snapshot = crate::tournament::tests::snapshot();
+        let components = serde_json::to_value(tournament_components(
+            &snapshot,
+            &"https://zeepki.st".parse().unwrap(),
+        ))
+        .unwrap();
+        let children = &components[0]["components"];
+        assert_eq!(
+            children[0]["accessory"]["media"]["url"],
+            "https://example.com/track.jpg"
+        );
+        assert!(
+            children[0]["components"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("<t:1791180000:R>")
+        );
+        assert_eq!(
+            children[2]["components"][0]["url"],
+            "https://zeepki.st/totw/2026-w40"
+        );
+    }
+
+    #[test]
+    fn presentation_version_refreshes_feeds_without_changing_watch_hash() {
+        let snapshot = crate::tournament::tests::snapshot();
+        let watch_hash = tournament_hash(&snapshot).unwrap();
+        let feed_hash = tournament_feed_hash(&watch_hash);
+        assert_ne!(feed_hash, watch_hash);
+        assert_eq!(watch_hash, tournament_hash(&snapshot).unwrap());
+        assert_eq!(feed_hash, tournament_feed_hash(&watch_hash));
+        let mut changed = snapshot;
+        changed.entries += 1;
+        assert_ne!(watch_hash, tournament_hash(&changed).unwrap());
+        assert_ne!(
+            feed_hash,
+            tournament_feed_hash(&tournament_hash(&changed).unwrap())
+        );
     }
 }
