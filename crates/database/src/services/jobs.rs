@@ -16,8 +16,8 @@ const MAINTENANCE_LOCK_TIMEOUT: &str = "100ms";
 const TRACK_TOURNAMENT_SELECTION_SQL: &str = r#"
 WITH period_start AS MATERIALIZED (
     SELECT CASE WHEN $1=0
-        THEN date_trunc('week', timezone('UTC', clock_timestamp()))
-        ELSE date_trunc('month', timezone('UTC', clock_timestamp()))
+        THEN date_trunc('week', timezone('UTC', $2::text::timestamptz))
+        ELSE date_trunc('month', timezone('UTC', $2::text::timestamptz))
     END AS utc_start
 ), period AS (
     SELECT (utc_start AT TIME ZONE 'UTC') + interval '6 hours' AS start_at,
@@ -56,7 +56,7 @@ WITH period_start AS MATERIALIZED (
 INSERT INTO public.track_tournament
     (type, slug, id_level, start_at, end_at, points_version, date_created, date_updated)
 SELECT $1, period.slug, selected.id_level, period.start_at, period.end_at,
-       1, clock_timestamp(), clock_timestamp()
+       1, $2::text::timestamptz, $2::text::timestamptz
 FROM selected CROSS JOIN period
 RETURNING id
 "#;
@@ -855,21 +855,95 @@ impl Database {
     ) -> Result<TournamentRotation> {
         ensure!(matches!(tournament_type, 0 | 1), "invalid tournament type");
         let mut connection = self.connection().await?;
-        connection.transaction::<TournamentRotation,anyhow::Error,_>(async move |connection| {
-            sql_query("SELECT pg_advisory_xact_lock(1953744431,$1)").bind::<Integer,_>(tournament_type).execute(connection).await?;
-            let boundary:BooleanRow=sql_query("SELECT CASE WHEN $1=0 THEN extract(isodow FROM timezone('UTC',clock_timestamp()))=1 AND extract(hour FROM timezone('UTC',clock_timestamp()))=6 ELSE extract(day FROM timezone('UTC',clock_timestamp()))=1 AND extract(hour FROM timezone('UTC',clock_timestamp()))=6 END AS value").bind::<Integer,_>(tournament_type).get_result(connection).await?;
-            if !boundary.value{return Ok(TournamentRotation{created:false,id_tournament:None});}
-            sql_query("UPDATE public.track_tournament SET finalized_at=clock_timestamp(),date_updated=clock_timestamp() WHERE type=$1 AND finalized_at IS NULL AND end_at<=clock_timestamp()")
-                .bind::<Integer,_>(tournament_type).execute(connection).await?;
-            let existing=sql_query("SELECT id FROM public.track_tournament WHERE type=$1 AND start_at=(CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',clock_timestamp())) ELSE date_trunc('month',timezone('UTC',clock_timestamp())) END AT TIME ZONE 'UTC')+interval '6 hours' LIMIT 1")
-                .bind::<Integer,_>(tournament_type).get_result::<IdRow>(connection).await.optional()?;
-            if let Some(row)=existing{return Ok(TournamentRotation{created:false,id_tournament:Some(row.id)});}
-            let created=sql_query(TRACK_TOURNAMENT_SELECTION_SQL)
-                .bind::<Integer,_>(tournament_type).get_result::<IdRow>(connection).await.optional()?;
-            Ok(TournamentRotation{created:created.is_some(),id_tournament:created.map(|row|row.id)})
-        }).await
+        rotate_track_tournament_at(&mut connection, tournament_type, None).await
     }
 }
+
+#[derive(QueryableByName)]
+struct TournamentClockRow {
+    #[diesel(sql_type = Text)]
+    observed_at: String,
+}
+
+async fn rotate_track_tournament_at(
+    connection: &mut diesel_async::AsyncPgConnection,
+    tournament_type: i32,
+    observed_at: Option<&str>,
+) -> Result<TournamentRotation> {
+    ensure!(matches!(tournament_type, 0 | 1), "invalid tournament type");
+    connection
+        .transaction::<TournamentRotation, anyhow::Error, _>(async move |connection| {
+            sql_query("SELECT pg_advisory_xact_lock(1953744431,$1)")
+                .bind::<Integer, _>(tournament_type)
+                .execute(connection)
+                .await?;
+            // Capture after acquiring the lock; every query uses this same instant.
+            let clock: TournamentClockRow = sql_query(
+                "SELECT COALESCE($1::text::timestamptz,clock_timestamp())::text AS observed_at",
+            )
+            .bind::<Nullable<Text>, _>(observed_at)
+            .get_result(connection)
+            .await?;
+            let at = &clock.observed_at;
+            let boundary: BooleanRow = sql_query(
+                "WITH observed AS (SELECT timezone('UTC',$2::text::timestamptz) AS utc_time) \
+                 SELECT CASE WHEN $1=0 THEN extract(isodow FROM utc_time)=1 \
+                 AND extract(hour FROM utc_time)=6 ELSE extract(day FROM utc_time)=1 \
+                 AND extract(hour FROM utc_time)=6 END AS value FROM observed",
+            )
+            .bind::<Integer, _>(tournament_type)
+            .bind::<Text, _>(at)
+            .get_result(connection)
+            .await?;
+            if !boundary.value {
+                return Ok(TournamentRotation {
+                    created: false,
+                    id_tournament: None,
+                });
+            }
+            sql_query(
+                "UPDATE public.track_tournament SET finalized_at=$2::text::timestamptz, \
+                 date_updated=$2::text::timestamptz WHERE type=$1 AND finalized_at IS NULL \
+                 AND end_at<=$2::text::timestamptz",
+            )
+            .bind::<Integer, _>(tournament_type)
+            .bind::<Text, _>(at)
+            .execute(connection)
+            .await?;
+            let existing = sql_query(
+                "SELECT id FROM public.track_tournament WHERE type=$1 AND start_at= \
+                 (CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',$2::text::timestamptz)) \
+                 ELSE date_trunc('month',timezone('UTC',$2::text::timestamptz)) END \
+                 AT TIME ZONE 'UTC')+interval '6 hours' LIMIT 1",
+            )
+            .bind::<Integer, _>(tournament_type)
+            .bind::<Text, _>(at)
+            .get_result::<IdRow>(connection)
+            .await
+            .optional()?;
+            if let Some(row) = existing {
+                return Ok(TournamentRotation {
+                    created: false,
+                    id_tournament: Some(row.id),
+                });
+            }
+            let created = sql_query(TRACK_TOURNAMENT_SELECTION_SQL)
+                .bind::<Integer, _>(tournament_type)
+                .bind::<Text, _>(at)
+                .get_result::<IdRow>(connection)
+                .await
+                .optional()?;
+            Ok(TournamentRotation {
+                created: created.is_some(),
+                id_tournament: created.map(|row| row.id),
+            })
+        })
+        .await
+}
+
+#[cfg(test)]
+#[path = "track_tournament_tests.rs"]
+mod track_tournament_tests;
 
 async fn upsert_zero_level_points(
     connection: &mut diesel_async::AsyncPgConnection,
