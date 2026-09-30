@@ -18,6 +18,11 @@ const wikiDocuments = [
 	'level-editor/useful-numbers.md',
 	'level-editor/light-tricks.md',
 	'level-editor/pre-v18-logic-blocks.md',
+	'zeepcentraal-gtr/index.md',
+	'zeepcentraal-gtr/points-and-ranked-points.md',
+	'zeepcentraal-gtr/level-points.md',
+	'zeepcentraal-gtr/track-of-the-week-month.md',
+	'zeepcentraal-gtr/faq.md',
 ]
 
 describe('Wiki documentation', () => {
@@ -27,6 +32,8 @@ describe('Wiki documentation', () => {
 
 		expect(readWiki('index.md')).toContain('::content-resource-grid')
 		expect(readWiki('level-editor/index.md')).toContain('::content-resource-grid')
+		expect(readWiki('index.md')).toContain('/wiki/zeepcentraal-gtr')
+		expect(readWiki('zeepcentraal-gtr/index.md')).toContain('::content-resource-grid')
 		expect(documents.join('\n')).toContain('type="notice"')
 		expect(documents.join('\n')).toContain('type="important"')
 		expect(documents.join('\n')).toContain('type="reminder"')

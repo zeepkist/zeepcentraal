@@ -189,6 +189,13 @@ pub fn change_lobby_visibility_packet(is_public: bool) -> Result<Vec<u8>> {
     })
 }
 
+pub fn change_lobby_master_packet(player_uid: u32) -> Result<Vec<u8>> {
+    write_packet(CHANGE_LOBBY_MASTER, |writer| {
+        writer.write_u32(player_uid);
+        Ok(())
+    })
+}
+
 pub fn chat_message_packet(message: &str) -> Result<Vec<u8>> {
     validate_chat(message, "Chat message")?;
     write_packet(CHAT_MESSAGE, |writer| {
@@ -666,6 +673,10 @@ mod tests {
     #[test]
     fn packet_hashes_match_v18_ids() {
         assert_eq!(
+            packet_id("ZeepkistNetworking.ChangeLobbyMasterPacket"),
+            CHANGE_LOBBY_MASTER
+        );
+        assert_eq!(
             packet_id("ZeepkistNetworking.ChangeLobbyPlaylistPacket"),
             CHANGE_LOBBY_PLAYLIST
         );
@@ -674,6 +685,21 @@ mod tests {
             packet_id("ZeepkistNetworking.SkipToLevelPacket"),
             SKIP_TO_LEVEL
         );
+    }
+
+    #[test]
+    fn host_transfer_matches_v18_golden_bytes() -> Result<()> {
+        let packet = change_lobby_master_packet(0xfedc_ba98)?;
+        assert_eq!(packet, [0x42, 0x36, 0x98, 0xba, 0xdc, 0xfe]);
+        let mut reader = BitReader::new(&packet);
+        assert_eq!(reader.read_u16()?, 13_890);
+        assert_eq!(reader.read_u32()?, 0xfedc_ba98);
+        assert_eq!(reader.remaining_bits(), 0);
+        assert_eq!(
+            parse_game_host_packet(&packet)?,
+            GameHostPacket::Master(0xfedc_ba98)
+        );
+        Ok(())
     }
 
     #[test]

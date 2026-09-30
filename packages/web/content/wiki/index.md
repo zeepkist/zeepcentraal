@@ -19,6 +19,8 @@ New to Zeepkist? Begin with [Getting Started](/wiki/getting-started), then follo
   ::
   ::content-resource-card{to="/wiki/level-editor" icon="road" title="Level Editor Guides" description="Build readable, performant tracks with practical physics and editor references."}
   ::
+  ::content-resource-card{to="/wiki/zeepcentraal-gtr" icon="trophy" title="ZeepCentraal & GTR Guides" description="Understand points, featured tracks, Workshop discovery and level versions."}
+  ::
 ::
 
 ## Explore ZeepCentraal

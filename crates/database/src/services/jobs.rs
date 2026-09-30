@@ -13,6 +13,54 @@ const USER_SCORE_LOCK_NAMESPACE: i32 = -1_861_284_952;
 const LEVEL_SCORE_LOCK_NAMESPACE: i32 = 1_861_284_954;
 const MAINTENANCE_LOCK_TIMEOUT: &str = "100ms";
 
+const TRACK_TOURNAMENT_SELECTION_SQL: &str = r#"
+WITH period_start AS MATERIALIZED (
+    SELECT CASE WHEN $1=0
+        THEN date_trunc('week', timezone('UTC', clock_timestamp()))
+        ELSE date_trunc('month', timezone('UTC', clock_timestamp()))
+    END AS utc_start
+), period AS (
+    SELECT (utc_start AT TIME ZONE 'UTC') + interval '6 hours' AS start_at,
+           ((utc_start - CASE WHEN $1=0 THEN interval '84 days' ELSE interval '6 months' END)
+               AT TIME ZONE 'UTC') + interval '6 hours' AS window_start_at,
+           ((utc_start + CASE WHEN $1=0 THEN interval '1 week' ELSE interval '1 month' END)
+               AT TIME ZONE 'UTC') + interval '6 hours' AS end_at,
+           CASE WHEN $1=0 THEN to_char(utc_start, 'IYYY-"W"IW')
+                ELSE to_char(utc_start, 'YYYY-MM') END AS slug
+    FROM period_start
+), eligible AS MATERIALIZED (
+    SELECT points.id_level, points.points
+    FROM public.level_points points
+    JOIN public.level level ON level.id=points.id_level AND level.publicly_visible=true
+    CROSS JOIN period
+    WHERE level.date_created >= period.window_start_at
+      AND level.date_created < period.start_at
+      AND points.points > 0
+      AND EXISTS (
+          SELECT 1 FROM public.level_item item
+          WHERE item.id_level=level.id AND item.publicly_visible=true AND item.deleted=false
+      )
+), threshold AS (
+    SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY points) AS points FROM eligible
+), selected AS (
+    SELECT eligible.id_level
+    FROM eligible CROSS JOIN threshold
+    WHERE eligible.points >= threshold.points
+      AND NOT EXISTS (
+          SELECT 1 FROM public.track_tournament used
+          WHERE used.type=$1 AND used.id_level=eligible.id_level
+      )
+    ORDER BY random()
+    LIMIT 1
+)
+INSERT INTO public.track_tournament
+    (type, slug, id_level, start_at, end_at, points_version, date_created, date_updated)
+SELECT $1, period.slug, selected.id_level, period.start_at, period.end_at,
+       1, clock_timestamp(), clock_timestamp()
+FROM selected CROSS JOIN period
+RETURNING id
+"#;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MaintenanceOutcome<T> {
     Applied(T),
@@ -813,10 +861,10 @@ impl Database {
             if !boundary.value{return Ok(TournamentRotation{created:false,id_tournament:None});}
             sql_query("UPDATE public.track_tournament SET finalized_at=clock_timestamp(),date_updated=clock_timestamp() WHERE type=$1 AND finalized_at IS NULL AND end_at<=clock_timestamp()")
                 .bind::<Integer,_>(tournament_type).execute(connection).await?;
-            let existing=sql_query("SELECT id FROM public.track_tournament WHERE type=$1 AND start_at=CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',clock_timestamp())) AT TIME ZONE 'UTC' ELSE date_trunc('month',timezone('UTC',clock_timestamp())) AT TIME ZONE 'UTC' END LIMIT 1")
+            let existing=sql_query("SELECT id FROM public.track_tournament WHERE type=$1 AND start_at=(CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',clock_timestamp())) ELSE date_trunc('month',timezone('UTC',clock_timestamp())) END AT TIME ZONE 'UTC')+interval '6 hours' LIMIT 1")
                 .bind::<Integer,_>(tournament_type).get_result::<IdRow>(connection).await.optional()?;
             if let Some(row)=existing{return Ok(TournamentRotation{created:false,id_tournament:Some(row.id)});}
-            let created=sql_query("WITH eligible AS MATERIALIZED(SELECT points.id_level,points.points FROM public.level_points points JOIN public.level level ON level.id=points.id_level AND level.publicly_visible=true WHERE level.date_created>=clock_timestamp()-CASE WHEN $1=0 THEN interval '60 days' ELSE interval '30 days' END AND EXISTS(SELECT 1 FROM public.level_item item WHERE item.id_level=level.id AND item.publicly_visible=true AND item.deleted=false)), threshold AS(SELECT percentile_cont(0.9) WITHIN GROUP(ORDER BY points) AS points FROM eligible), selected AS(SELECT eligible.id_level FROM eligible CROSS JOIN threshold WHERE eligible.points>=threshold.points AND NOT EXISTS(SELECT 1 FROM public.track_tournament used WHERE used.type=$1 AND used.id_level=eligible.id_level) ORDER BY random() LIMIT 1) INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at,points_version,date_created,date_updated) SELECT $1,CASE WHEN $1=0 THEN to_char(timezone('UTC',clock_timestamp()),'IYYY-\"W\"IW') ELSE to_char(timezone('UTC',clock_timestamp()),'YYYY-MM') END,selected.id_level,CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',clock_timestamp())) AT TIME ZONE 'UTC' ELSE date_trunc('month',timezone('UTC',clock_timestamp())) AT TIME ZONE 'UTC' END,CASE WHEN $1=0 THEN (date_trunc('week',timezone('UTC',clock_timestamp()))+interval '1 week') AT TIME ZONE 'UTC' ELSE (date_trunc('month',timezone('UTC',clock_timestamp()))+interval '1 month') AT TIME ZONE 'UTC' END,1,clock_timestamp(),clock_timestamp() FROM selected RETURNING id")
+            let created=sql_query(TRACK_TOURNAMENT_SELECTION_SQL)
                 .bind::<Integer,_>(tournament_type).get_result::<IdRow>(connection).await.optional()?;
             Ok(TournamentRotation{created:created.is_some(),id_tournament:created.map(|row|row.id)})
         }).await

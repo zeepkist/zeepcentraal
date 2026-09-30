@@ -1,10 +1,7 @@
 use crate::{
     assets::{PreparedLevel, PreparedPlaylist},
     broker::RoomBrokerClient,
-    chat::{
-        PacketSender, RoomChat,
-        audit::{log_chat_audit_line, resolve_chat_audit_line},
-    },
+    chat::{PacketSender, RoomChat},
     config::ManagedRoomConfig,
     game_connection::GameConnection,
     leaderboard::PlayerLeaderboard,
@@ -13,15 +10,20 @@ use crate::{
     transfer::{LevelTransfer, TransferEvent},
 };
 use anyhow::{Context, Result};
-use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
-    time::Duration,
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
 };
+#[cfg(test)]
+use std::time::Duration;
 use tokio::sync::{Mutex, Notify};
-use zc_core::zeepnet::{GameHostPacket, change_lobby_visibility_packet};
+use zc_core::zeepnet::GameHostPacket;
+
+mod connection;
+mod retry;
+
+use connection::ConnectedRoom;
+use retry::RetryBackoff;
 
 #[async_trait::async_trait]
 pub trait LobbyProfile: Send + Sync + 'static {
@@ -37,17 +39,6 @@ pub trait ProfileSession: Send + Sync + 'static {
     async fn on_packet(&self, packet: &GameHostPacket) -> Result<()>;
     async fn on_transfer(&self, event: &TransferEvent) -> Result<()>;
     async fn stop(&self);
-}
-
-struct ConnectionSender {
-    connection: Arc<GameConnection>,
-}
-
-#[async_trait::async_trait]
-impl PacketSender for ConnectionSender {
-    async fn send(&self, packet: Vec<u8>) -> Result<()> {
-        self.connection.send(packet).await
-    }
 }
 
 #[derive(Clone)]
@@ -129,6 +120,7 @@ impl RoomContext {
         level: PreparedLevel,
         playlist: Option<PreparedPlaylist>,
     ) -> Result<()> {
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
         let (timeout, ready) = {
             let mut transfer = self.transfer.lock().await;
             let timeout = transfer.timeout();
@@ -148,6 +140,7 @@ impl RoomContext {
         current: i32,
         next: i32,
     ) -> Result<()> {
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
         self.transfer
             .lock()
             .await
@@ -187,43 +180,42 @@ impl ManagedLobbyHost {
     }
 
     async fn run_loop(&self) -> Result<()> {
-        let mut retry = Duration::from_secs(1);
+        let mut retry = RetryBackoff::new(self.config.reconnect_max_ms);
         while !self.stopped.load(Ordering::Acquire) {
-            let mut backoff = true;
-            match self.profile.prepare().await {
+            let poll_only = match self.profile.prepare().await {
                 Ok(Some(_)) => {
-                    match zc_telemetry::observe_operation("lobby.connect", self.connect_once())
-                        .await
+                    if let Err(error) = zc_telemetry::observe_operation(
+                        "lobby.connect",
+                        self.connect_once(&mut retry),
+                    )
+                    .await
                     {
-                        Ok(()) => retry = Duration::from_secs(1),
-                        Err(error) => {
-                            tracing::warn!(room = %self.config.key, profile = self.profile.name(), %error, "Managed room attempt failed")
-                        }
+                        tracing::warn!(room = %self.config.key, profile = self.profile.name(), %error, "Managed room attempt failed");
                     }
+                    false
                 }
-                Ok(None) => {
-                    retry = Duration::from_millis(self.config.asset_poll_ms);
-                    backoff = false;
-                }
+                Ok(None) => true,
                 Err(error) => {
-                    tracing::warn!(room = %self.config.key, %error, "Managed room asset preparation failed")
+                    tracing::warn!(room = %self.config.key, %error, "Managed room asset preparation failed");
+                    false
                 }
-            }
+            };
             if self.stopped.load(Ordering::Acquire) {
                 break;
             }
-            tokio::select! {
-                _ = tokio::time::sleep(retry) => {},
-                _ = self.wake.notified() => {},
+            let delay = retry.wait_delay(poll_only.then_some(self.config.asset_poll_ms));
+            if !poll_only {
+                tracing::info!(room = %self.config.key, profile = self.profile.name(), delay_ms = delay.as_millis() as u64, "Managed room reconnect scheduled");
             }
-            if backoff {
-                retry = (retry * 2).min(Duration::from_millis(self.config.reconnect_max_ms));
+            tokio::select! {
+                _ = tokio::time::sleep(delay) => {},
+                _ = wait_for_stop(&self.stopped, &self.wake) => break,
             }
         }
         Ok(())
     }
 
-    async fn connect_once(&self) -> Result<()> {
+    async fn connect_once(&self, retry: &mut RetryBackoff) -> Result<()> {
         let join_id = self
             .database
             .managed_lobby_join_id(&self.config.key)
@@ -238,95 +230,17 @@ impl ManagedLobbyHost {
             return Ok(());
         }
         let connection = Arc::new(GameConnection::connect(&assignment).await?);
-        let sender: Arc<dyn PacketSender> = Arc::new(ConnectionSender {
-            connection: connection.clone(),
-        });
-        let transfer = Arc::new(Mutex::new(LevelTransfer::new(
-            sender.clone(),
-            self.config.round_time_seconds as f64,
-            Duration::from_secs(30),
-        )?));
-        let roster = Arc::new(Mutex::new(RoomRoster::default()));
-        let authority = Arc::new(AtomicBool::new(true));
-        let context = RoomContext {
-            sender: sender.clone(),
-            transfer: transfer.clone(),
-            roster: roster.clone(),
-            authority: authority.clone(),
-            remote_clock: connection.remote_clock(),
+        ConnectedRoom {
+            config: &self.config,
+            profile: self.profile.as_ref(),
+            connection,
             local_steam_id: assignment.steam_id()?,
-        };
-        let session = self.profile.create_session(context).await?;
-        sender
-            .send(change_lobby_visibility_packet(self.config.room.is_public)?)
-            .await?;
-        tokio::time::sleep(Duration::from_millis(3_500)).await;
-        let mut started = {
-            let session = session.clone();
-            tokio::spawn(async move { session.start().await })
-        };
-        let result = loop {
-            tokio::select! {
-                _ = self.wake.notified() => break Ok(()),
-                start_result = &mut started => {
-                    break match start_result {
-                        Ok(Ok(())) => Err(anyhow::anyhow!("Room profile stopped unexpectedly")),
-                        Ok(Err(error)) => Err(error.context("Room profile start failed")),
-                        Err(error) => Err(error.into()),
-                    };
-                }
-                result = connection.recv() => {
-                    let Some(packet) = result? else {
-                        break Err(anyhow::anyhow!("GameServer connection closed"));
-                    };
-                    let chat_audit = {
-                        let mut roster = roster.lock().await;
-                        roster.observe(&packet);
-                        if let GameHostPacket::Chat { message, sender_uid } = &packet {
-                            resolve_chat_audit_line(
-                                &self.config.key,
-                                &roster.names(),
-                                *sender_uid,
-                                message,
-                                assignment.player_uid,
-                            )
-                        } else {
-                            None
-                        }
-                    };
-                    if let Some(line) = chat_audit {
-                        log_chat_audit_line(&self.config.key, self.profile.name(), &line);
-                    }
-                    match &packet {
-                        GameHostPacket::Initial { is_host, .. } => authority.store(*is_host, Ordering::Release),
-                        GameHostPacket::Master(uid) => authority.store(*uid == assignment.player_uid, Ordering::Release),
-                        _ => {}
-                    }
-                    if !authority.load(Ordering::Acquire) {
-                        break Err(anyhow::anyhow!("Managed account lost lobby ownership"));
-                    }
-                    if matches!(packet, GameHostPacket::LevelRequest { .. }) {
-                        let events = {
-                            let mut transfer = transfer.lock().await;
-                            transfer.request(&packet)?;
-                            transfer.process_next().await?
-                        };
-                        if let Some(events) = events {
-                            for event in &events {
-                                session.on_transfer(event).await?;
-                            }
-                        }
-                    }
-                    session.on_packet(&packet).await?;
-                }
-            }
-        };
-        session.stop().await;
-        started.abort();
-        transfer.lock().await.close();
-        let _ = sender.send(change_lobby_visibility_packet(false)?).await;
-        let _ = connection.close("Managed room reconnecting").await;
-        result
+            player_uid: assignment.player_uid,
+            stopped: &self.stopped,
+            wake: &self.wake,
+        }
+        .run(retry)
+        .await
     }
 }
 
@@ -346,5 +260,46 @@ impl SupervisedRoom for ManagedLobbyHost {
         }
         self.wake.notify_waiters();
         self.profile.stop().await
+    }
+}
+
+// Register before checking the flag so notify_waiters cannot be lost between
+// checking stopped and awaiting notification (including during startup).
+async fn wait_for_stop(stopped: &AtomicBool, wake: &Notify) {
+    loop {
+        let notified = wake.notified();
+        tokio::pin!(notified);
+        notified.as_mut().enable();
+        if stopped.load(Ordering::Acquire) {
+            return;
+        }
+        notified.await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(start_paused = true)]
+    async fn shutdown_interrupts_backoff_without_waiting_for_retry() {
+        let stopped = Arc::new(AtomicBool::new(false));
+        let wake = Arc::new(Notify::new());
+        let task = {
+            let stopped = stopped.clone();
+            let wake = wake.clone();
+            tokio::spawn(async move {
+                tokio::select! {
+                    _ = tokio::time::sleep(Duration::from_secs(600)) => panic!("retry elapsed"),
+                    _ = wait_for_stop(&stopped, &wake) => {},
+                }
+            })
+        };
+        tokio::task::yield_now().await;
+        let before = tokio::time::Instant::now();
+        stopped.store(true, Ordering::Release);
+        wake.notify_waiters();
+        task.await.unwrap();
+        assert_eq!(tokio::time::Instant::now(), before);
     }
 }
