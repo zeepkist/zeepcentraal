@@ -105,7 +105,7 @@
 									</section>
 								</div>
 
-								<aside class="space-y-8 lg:space-y-10">
+								<aside class="min-w-0 space-y-8 lg:space-y-10">
 									<section aria-labelledby="profile-summary">
 										<SectionHeader
 											id="profile-summary"
@@ -125,6 +125,32 @@
 										:error="superLeagueError"
 										:labels="superLeagueLabels"
 										@update:selected-season-id="data.selectedSuperLeagueSeasonId.value = $event"
+									/>
+
+									<UserTrackTournamentPanel
+										id="profile-totw"
+										:title="$t('nav.totw')"
+										:description="$t('users.profile.trackTournaments.weeklyDescription')"
+										:results="data.weeklyTournaments.results.value"
+										:pending="data.weeklyTournaments.pending.value"
+										:error="data.weeklyTournaments.error.value"
+										:can-go-previous="data.weeklyTournaments.pagination.canGoPrevious(data.weeklyTournaments.page.value)"
+										:can-go-next="data.weeklyTournaments.pagination.canGoNext(data.weeklyTournaments.page.value)"
+										@previous="data.weeklyTournaments.pagination.previous(data.weeklyTournaments.page.value)"
+										@next="data.weeklyTournaments.pagination.next(data.weeklyTournaments.page.value)"
+									/>
+
+									<UserTrackTournamentPanel
+										id="profile-totm"
+										:title="$t('nav.totm')"
+										:description="$t('users.profile.trackTournaments.monthlyDescription')"
+										:results="data.monthlyTournaments.results.value"
+										:pending="data.monthlyTournaments.pending.value"
+										:error="data.monthlyTournaments.error.value"
+										:can-go-previous="data.monthlyTournaments.pagination.canGoPrevious(data.monthlyTournaments.page.value)"
+										:can-go-next="data.monthlyTournaments.pagination.canGoNext(data.monthlyTournaments.page.value)"
+										@previous="data.monthlyTournaments.pagination.previous(data.monthlyTournaments.page.value)"
+										@next="data.monthlyTournaments.pagination.next(data.monthlyTournaments.page.value)"
 									/>
 
 									<UserAchievementShowcase

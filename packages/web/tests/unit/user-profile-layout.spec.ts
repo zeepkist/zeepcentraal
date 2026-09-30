@@ -26,7 +26,7 @@ describe('user profile layout', () => {
 			'class="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] lg:items-start"',
 		)
 		expect(page).toContain('class="min-w-0 space-y-8 lg:space-y-10"')
-		expect(page).toContain('<aside class="space-y-8 lg:space-y-10">')
+		expect(page).toContain('<aside class="min-w-0 space-y-8 lg:space-y-10">')
 
 		const careerStart = page.indexOf('<template #career>')
 		const recordsStart = page.indexOf('<template #records>')
@@ -38,6 +38,8 @@ describe('user profile layout', () => {
 		const sidebarIds = [
 			'profile-summary',
 			'profile-super-league',
+			'profile-totw',
+			'profile-totm',
 			'profile-achievements',
 			'profile-cosmetics',
 		]

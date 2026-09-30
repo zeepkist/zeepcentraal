@@ -1182,6 +1182,13 @@
 				"noSeasons": "No Super League seasons found",
 				"noResults": "This player did not enter this season."
 			},
+			"trackTournaments": {
+				"weeklyDescription": "Weekly tournament standings and results.",
+				"monthlyDescription": "Monthly tournament standings and results.",
+				"noResults": "This player has not entered any tournaments yet.",
+				"provisional": "Provisional",
+				"pagination": "{tournament} result pages"
+			},
 			"achievements": {
 				"title": "Achievements",
 				"description": "Coming soon",

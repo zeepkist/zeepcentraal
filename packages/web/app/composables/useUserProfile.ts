@@ -13,6 +13,8 @@ export function useUserProfile(steamId: Ref<string>, options: UseUserProfileOpti
 	const summaryData = options.summary ?? useUserProfileSummary(steamId)
 	const career = useUserCareer(steamId, summaryData)
 	const superLeague = useUserSuperLeague(steamId, summaryData, career.careerActive)
+	const weeklyTournaments = useUserTrackTournaments(steamId, summaryData, 0, career.careerActive)
+	const monthlyTournaments = useUserTrackTournaments(steamId, summaryData, 1, career.careerActive)
 	const results = useUserResults(steamId, summaryData, options.recordsActive ?? true)
 	const viewerId = options.viewerId ?? computed(() => undefined)
 	const profileUserId = computed(() => summaryData.user.value?.id)
@@ -33,6 +35,8 @@ export function useUserProfile(steamId: Ref<string>, options: UseUserProfileOpti
 		...levels,
 		...results,
 		...superLeague,
+		weeklyTournaments,
+		monthlyTournaments,
 		prefetchCritical,
 		profile: summaryData.profile,
 		summary: summaryData.summary,

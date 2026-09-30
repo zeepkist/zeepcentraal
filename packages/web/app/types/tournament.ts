@@ -2,6 +2,21 @@ import type { GhostRecordSource } from './ghost'
 
 export type TrackTournamentType = 0 | 1
 
+export type UserTrackTournamentResult = {
+	id: number
+	type: TrackTournamentType
+	slug: string
+	startAt: string
+	endAt: string
+	finalizedAt: string | null
+	levelName: string | null
+	imageUrl: string | null
+	authorName: string | null
+	rank: number
+	points: number
+	time: number
+}
+
 export type TournamentStanding = {
 	tournamentId: number
 	userId: number
