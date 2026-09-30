@@ -22,6 +22,38 @@ fn default_activity_limit() -> i64 {
     100
 }
 
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UsersLookupBody {
+    user_ids: Vec<i32>,
+}
+
+impl UsersLookupBody {
+    fn validate(&self) -> ApiResult<()> {
+        if self.user_ids.len() > 30 || self.user_ids.iter().any(|id| *id <= 0) {
+            return Err(invalid());
+        }
+        Ok(())
+    }
+}
+
+#[utoipa::path(post, path = "/discord-bot/users/lookup", request_body = UsersLookupBody, responses((status = 200), (status = 400), (status = 401)))]
+pub async fn users_lookup(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(body): Json<UsersLookupBody>,
+) -> ApiResult<Json<Vec<Value>>> {
+    authorize(&state, &headers)?;
+    body.validate()?;
+    Ok(Json(
+        state
+            .database
+            .discord_users_lookup(&body.user_ids)
+            .await
+            .map_err(Problem::internal)?,
+    ))
+}
+
 #[derive(Deserialize, utoipa::IntoParams)]
 pub struct ProfileQuery {
     kind: String,
@@ -799,6 +831,22 @@ fn validate_worker_key(value: &str) -> ApiResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lookup_accepts_only_bounded_positive_player_ids() {
+        for ids in [vec![], vec![1, 1, i32::MAX], (1..=30).collect()] {
+            assert!(UsersLookupBody { user_ids: ids }.validate().is_ok());
+        }
+        for ids in [vec![0], vec![-1], (1..=31).collect()] {
+            assert!(UsersLookupBody { user_ids: ids }.validate().is_err());
+        }
+        assert!(
+            serde_json::from_value::<UsersLookupBody>(serde_json::json!({
+                "userIds": [2147483648_u64]
+            }))
+            .is_err()
+        );
+    }
 
     #[test]
     fn validates_discord_runtime_identifiers() {

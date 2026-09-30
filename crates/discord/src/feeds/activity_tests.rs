@@ -1,0 +1,517 @@
+use super::*;
+use axum::{
+    Json, Router,
+    body::to_bytes,
+    extract::Request,
+    http::{Method, StatusCode},
+};
+use serde_json::{Value, json};
+use serenity::http::HttpBuilder;
+use std::{collections::BTreeSet, sync::Mutex};
+
+#[derive(Default)]
+struct State {
+    feeds: Vec<Value>,
+    events: Vec<Value>,
+    worker: i64,
+    deliveries: BTreeMap<(String, String), String>,
+    watched: BTreeSet<i64>,
+    watch_keys: BTreeMap<i64, String>,
+    fail_sends: BTreeSet<(u64, i64)>,
+    fail_cursors: BTreeSet<(String, i64)>,
+    fail_watch_lookup: bool,
+    fail_user_lookup: bool,
+    sent: Vec<(u64, i64, Value)>,
+    attempts: Vec<(u64, i64)>,
+    queries: Vec<i64>,
+    lookups: Vec<Vec<i32>>,
+}
+
+fn feed(guild: u64, kind: &str, channel: u64, cursor: i64) -> Value {
+    json!({"guildId":guild.to_string(),"kind":kind,"channelId":channel.to_string(),
+        "enabled":true,"cursorEventId":cursor.to_string()})
+}
+
+fn event(id: i64, kind: &str) -> Value {
+    let name = format!("Event {id}");
+    let mut value = json!({"id":id.to_string(),"kind":kind,"payload":{},
+        "occurredAt":"2026-10-05T06:00:00Z", "userId":id,
+        "user":{"id":id,"steamName":name},"record":{"time":49.332},
+        "level":{"id":id,"xxHash":format!("hash{id}"),"levelItems":{"nodes":[{
+            "name":name,"imageUrl":"https://example.com/track.jpg","workshopId":"1"}]},
+            "levelPoints":{"points":1000},"personalBestGlobals":{"totalCount":1}}});
+    if kind == "rank_batch" {
+        value["payload"] = json!({"changes":[{"idUser":id,"previousRank":2,"rank":1}]});
+        value["user"] = Value::Null;
+        value["level"] = Value::Null;
+    }
+    value
+}
+
+struct Harness {
+    state: Arc<Mutex<State>>,
+    backend: Backend,
+    http: Http,
+    server: JoinHandle<()>,
+}
+
+impl Drop for Harness {
+    fn drop(&mut self) {
+        self.server.abort();
+    }
+}
+
+impl Harness {
+    async fn new(state: State) -> Self {
+        let state = Arc::new(Mutex::new(state));
+        let captured = state.clone();
+        let app = Router::new().fallback(move |request: Request| {
+            let captured = captured.clone();
+            async move {
+                let path = request.uri().path().to_owned();
+                let query = request.uri().query().unwrap_or_default().to_owned();
+                let method = request.method().clone();
+                let bytes = to_bytes(request.into_body(), 64 * 1024).await.unwrap();
+                let body = if bytes.is_empty() {
+                    Value::Null
+                } else {
+                    serde_json::from_slice(&bytes).unwrap()
+                };
+                let mut state = captured.lock().unwrap();
+                respond(&mut state, &path, &query, &method, body)
+            }
+        });
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let url = format!("http://{address}");
+        let server = tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        let backend = Backend::new(url.parse().unwrap(), "fake-test-token".into()).unwrap();
+        let http = HttpBuilder::without_token()
+            .proxy(url)
+            .ratelimiter_disabled(true)
+            .build();
+        Self {
+            state,
+            backend,
+            http,
+            server,
+        }
+    }
+
+    async fn poll(&self) {
+        poll_activity(
+            &self.http,
+            &self.backend,
+            &"https://zeepki.st".parse().unwrap(),
+        )
+        .await
+        .unwrap();
+    }
+
+    fn cursor(&self, guild: &str, kind: &str) -> i64 {
+        self.state
+            .lock()
+            .unwrap()
+            .feeds
+            .iter()
+            .find(|feed| feed["guildId"] == guild && feed["kind"] == kind)
+            .unwrap()["cursorEventId"]
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap()
+    }
+}
+
+fn respond(
+    state: &mut State,
+    path: &str,
+    query: &str,
+    method: &Method,
+    body: Value,
+) -> (StatusCode, Json<Value>) {
+    let parts = path.trim_matches('/').split('/').collect::<Vec<_>>();
+    let fail = || {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"code":0,"message":"fixture failure"})),
+        )
+    };
+    let value = if path == "/discord-bot/guild-feeds/enabled" {
+        json!(state.feeds)
+    } else if path == "/discord-bot/workers/watch-events/cursor" {
+        if method == Method::POST {
+            let id = body["eventId"].as_str().unwrap().parse::<i64>().unwrap();
+            if state.fail_cursors.contains(&("watch-events".into(), id)) {
+                return fail();
+            }
+            state.worker = state.worker.max(id);
+        }
+        json!({"cursorEventId":state.worker.to_string()})
+    } else if path == "/discord-bot/activity-events" {
+        let params = reqwest::Url::parse(&format!("http://fixture/?{query}")).unwrap();
+        let after = params
+            .query_pairs()
+            .find(|(key, _)| key == "after")
+            .unwrap()
+            .1
+            .parse::<i64>()
+            .unwrap();
+        assert_eq!(
+            params
+                .query_pairs()
+                .find(|(key, _)| key == "limit")
+                .unwrap()
+                .1,
+            "500"
+        );
+        state.queries.push(after);
+        json!(
+            state
+                .events
+                .iter()
+                .filter(|event| event["id"].as_str().unwrap().parse::<i64>().unwrap() > after)
+                .take(500)
+                .collect::<Vec<_>>()
+        )
+    } else if path == "/discord-bot/watches/matches" {
+        if state.fail_watch_lookup {
+            return fail();
+        }
+        let targets = body["targets"][0]["targetIds"].as_array().unwrap();
+        let id = targets
+            .iter()
+            .filter_map(|target| target.as_str()?.parse::<i64>().ok())
+            .find(|id| state.watched.contains(id));
+        match id {
+            Some(id) => {
+                json!([{"id":id.to_string(),"discordId":"123","lastDeliveryKey":state.watch_keys.get(&id)}])
+            }
+            None => json!([]),
+        }
+    } else if path == "/discord-bot/users/lookup" {
+        if state.fail_user_lookup {
+            return fail();
+        }
+        let ids = body["userIds"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|id| i32::try_from(id.as_i64().unwrap()).unwrap())
+            .collect::<Vec<_>>();
+        state.lookups.push(ids.clone());
+        json!(ids.iter().map(|id|json!({"id":id,"steamName":format!("Event {id}"),"discordId":null,"points":123000})).collect::<Vec<_>>())
+    } else if parts.starts_with(&["discord-bot", "watches"]) && parts.last() == Some(&"delivery") {
+        let id = parts[2].parse().unwrap();
+        if let Some(key) = body["deliveryKey"].as_str() {
+            state.watch_keys.insert(id, key.into());
+        }
+        json!({})
+    } else if parts.starts_with(&["discord-bot", "guilds"]) && parts.get(3) == Some(&"deliveries") {
+        let key = (parts[2].into(), parts[4].into());
+        if method == Method::PUT {
+            state
+                .deliveries
+                .insert(key.clone(), body["status"].as_str().unwrap().into());
+        }
+        state
+            .deliveries
+            .get(&key)
+            .map_or(Value::Null, |status| json!({"status":status}))
+    } else if parts.starts_with(&["discord-bot", "guilds"]) && parts.last() == Some(&"cursor") {
+        let id = body["eventId"].as_str().unwrap().parse::<i64>().unwrap();
+        if state
+            .fail_cursors
+            .contains(&(format!("{}/{}", parts[2], parts[4]), id))
+        {
+            return fail();
+        }
+        let feed = state
+            .feeds
+            .iter_mut()
+            .find(|feed| feed["guildId"] == parts[2] && feed["kind"] == parts[4])
+            .unwrap();
+        let previous = feed["cursorEventId"]
+            .as_str()
+            .unwrap()
+            .parse::<i64>()
+            .unwrap();
+        feed["cursorEventId"] = json!(previous.max(id).to_string());
+        feed.clone()
+    } else if path.ends_with("/users/@me/channels") {
+        json!({"id":"900","type":1,"recipients":[{"id":"123","username":"fixture","discriminator":"0","avatar":null}]})
+    } else if path.ends_with("/messages") {
+        let index = parts.iter().position(|part| *part == "channels").unwrap();
+        let channel = parts[index + 1].parse::<u64>().unwrap();
+        let content = body.to_string();
+        let id = content
+            .split("Event ")
+            .nth(1)
+            .unwrap()
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect::<String>()
+            .parse::<i64>()
+            .unwrap();
+        state.attempts.push((channel, id));
+        if state.fail_sends.contains(&(channel, id)) {
+            return fail();
+        }
+        state.sent.push((channel, id, body));
+        json!({"id":"123456789012345678","channel_id":channel.to_string(),
+            "author":{"id":"999","username":"fixture","discriminator":"0","avatar":null},
+            "content":"","timestamp":"2026-10-05T06:00:00Z","edited_timestamp":null,
+            "tts":false,"mention_everyone":false,"mentions":[],"mention_roles":[],
+            "attachments":[],"embeds":[],"pinned":false,"type":0})
+    } else {
+        panic!("Unexpected fixture request: {method} {path}: {body}");
+    };
+    (StatusCode::OK, Json(value))
+}
+
+#[tokio::test]
+async fn drains_pages_with_tournaments_quiet_feeds_and_shared_rank_rendering() {
+    let mut state = State {
+        worker: 500,
+        feeds: vec![
+            feed(1, "totw", 10, 0),
+            feed(1, "totm", 11, 0),
+            feed(1, "world_record", 20, 0),
+            feed(1, "workshop", 21, 0),
+            feed(1, "rank", 22, 0),
+            feed(2, "rank", 23, 500),
+        ],
+        ..State::default()
+    };
+    state.events = (1..=505)
+        .map(|id| {
+            event(
+                id,
+                match id {
+                    501 => "world_record",
+                    502 => "workshop",
+                    503 => "rank_batch",
+                    504 => "world_record",
+                    505 => "workshop",
+                    _ => "vote",
+                },
+            )
+        })
+        .collect();
+    state.watched.extend([501, 502, 503, 504, 505]);
+    let harness = Harness::new(state).await;
+    harness.poll().await;
+    assert_eq!(harness.cursor("1", "world_record"), 500);
+    assert_eq!(harness.cursor("1", "totw"), 0);
+    // Another consumer's newer page remains reachable despite older feed cursors.
+    assert_eq!(harness.cursor("2", "rank"), 505);
+    harness.poll().await;
+    for kind in ["world_record", "workshop", "rank"] {
+        assert_eq!(harness.cursor("1", kind), 505);
+    }
+    let state = harness.state.lock().unwrap();
+    for (channel, expected) in [
+        (20, vec![501, 504]),
+        (21, vec![502, 505]),
+        (22, vec![503]),
+        (23, vec![503]),
+        (900, vec![501, 502, 503, 504, 505]),
+    ] {
+        let delivered = state
+            .sent
+            .iter()
+            .filter(|(target, _, _)| *target == channel)
+            .map(|(_, id, _)| *id)
+            .collect::<Vec<_>>();
+        assert_eq!(delivered, expected, "channel {channel}");
+    }
+    let ranks = state
+        .sent
+        .iter()
+        .filter(|(_, id, _)| *id == 503)
+        .map(|(_, _, message)| message)
+        .collect::<Vec<_>>();
+    assert!(ranks.iter().all(|message| *message == ranks[0]));
+    assert_eq!(state.lookups, vec![vec![503], vec![503]]); // Once per poll, across all consumers.
+    assert!(state.queries.contains(&500));
+}
+
+#[tokio::test]
+async fn failed_sends_preserve_order_and_retry_without_duplicates() {
+    let mut state = State {
+        feeds: vec![
+            feed(1, "world_record", 20, 0),
+            feed(2, "world_record", 21, 500),
+        ],
+        events: (1..=503)
+            .map(|id| event(id, if id >= 501 { "world_record" } else { "vote" }))
+            .collect(),
+        ..State::default()
+    };
+    state.fail_sends.insert((20, 501));
+    let harness = Harness::new(state).await;
+    harness.poll().await;
+    harness.poll().await;
+    assert_eq!(harness.cursor("1", "world_record"), 500);
+    assert_eq!(harness.cursor("2", "world_record"), 503);
+    assert!(!harness.state.lock().unwrap().attempts.contains(&(20, 502)));
+    harness.state.lock().unwrap().fail_sends.clear();
+    harness.poll().await;
+    harness.poll().await;
+    let state = harness.state.lock().unwrap();
+    for channel in [20, 21] {
+        assert_eq!(
+            state
+                .sent
+                .iter()
+                .filter(|(target, _, _)| *target == channel)
+                .map(|(_, id, _)| *id)
+                .collect::<Vec<_>>(),
+            vec![501, 502, 503]
+        );
+    }
+}
+
+#[tokio::test]
+async fn cursor_write_failures_stop_only_affected_consumer_and_sent_ledger_prevents_replay() {
+    let mut state = State {
+        feeds: vec![
+            feed(1, "world_record", 20, 0),
+            feed(2, "world_record", 21, 0),
+        ],
+        events: vec![event(1, "world_record"), event(2, "world_record")],
+        ..State::default()
+    };
+    state.watched.extend([1, 2]);
+    state.fail_cursors.insert(("1/world_record".into(), 1));
+    state.fail_cursors.insert(("watch-events".into(), 1));
+    let harness = Harness::new(state).await;
+    harness.poll().await;
+    assert_eq!(harness.state.lock().unwrap().worker, 0);
+    assert_eq!(harness.cursor("1", "world_record"), 0);
+    assert!(
+        !harness
+            .state
+            .lock()
+            .unwrap()
+            .attempts
+            .iter()
+            .any(|(channel, id)| matches!(channel, 20 | 900) && *id == 2)
+    );
+    harness.state.lock().unwrap().fail_cursors.clear();
+    harness.poll().await;
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.worker, 2);
+    for channel in [20, 21, 900] {
+        assert_eq!(
+            state
+                .sent
+                .iter()
+                .filter(|(target, _, _)| *target == channel)
+                .map(|(_, id, _)| *id)
+                .collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+    }
+}
+
+#[tokio::test]
+async fn watch_failure_does_not_block_feeds_and_saved_deliveries_are_skipped() {
+    let mut state = State {
+        feeds: vec![feed(1, "workshop", 20, 0)],
+        events: vec![event(1, "workshop"), event(2, "workshop")],
+        fail_watch_lookup: true,
+        ..State::default()
+    };
+    state
+        .deliveries
+        .insert(("1".into(), "1".into()), "sent".into());
+    let harness = Harness::new(state).await;
+    harness.poll().await;
+    assert_eq!(harness.cursor("1", "workshop"), 2);
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.worker, 0);
+    assert_eq!(
+        state.sent.iter().map(|(_, id, _)| *id).collect::<Vec<_>>(),
+        vec![2]
+    );
+}
+
+#[tokio::test]
+async fn watch_sends_remain_ordered_across_pages_and_dm_failure_keeps_cursor() {
+    let mut state = State {
+        events: (1..=501)
+            .map(|id| {
+                event(
+                    id,
+                    match id {
+                        499 => "personal_best",
+                        500 => "workshop",
+                        501 => "world_record",
+                        _ => "vote",
+                    },
+                )
+            })
+            .collect(),
+        ..State::default()
+    };
+    state.watched.extend([499, 500, 501]);
+    state.fail_sends.insert((900, 499));
+    let harness = Harness::new(state).await;
+    harness.poll().await;
+    assert_eq!(harness.state.lock().unwrap().worker, 498);
+    assert!(!harness.state.lock().unwrap().attempts.contains(&(900, 500)));
+    harness.state.lock().unwrap().fail_sends.clear();
+    harness.poll().await;
+    harness.poll().await;
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.worker, 501);
+    assert_eq!(
+        state.sent.iter().map(|(_, id, _)| *id).collect::<Vec<_>>(),
+        vec![499, 500, 501]
+    );
+}
+
+#[tokio::test]
+async fn invalid_rank_batches_are_suppressed_and_lookup_errors_retry_without_stalling_other_feeds()
+{
+    let mut invalid = event(1, "rank_batch");
+    invalid["payload"] = json!({"changes":[{"idUser":1,"previousRank":2,"rank":2}]});
+    let state = State {
+        feeds: vec![feed(1, "rank", 20, 0), feed(1, "world_record", 21, 0)],
+        events: vec![invalid, event(2, "rank_batch"), event(3, "world_record")],
+        fail_user_lookup: true,
+        ..State::default()
+    };
+    let harness = Harness::new(state).await;
+    harness.poll().await;
+    assert_eq!(harness.cursor("1", "rank"), 1);
+    assert_eq!(harness.cursor("1", "world_record"), 3);
+    assert_eq!(
+        harness
+            .state
+            .lock()
+            .unwrap()
+            .sent
+            .iter()
+            .map(|(_, id, _)| *id)
+            .collect::<Vec<_>>(),
+        vec![3]
+    );
+    harness.state.lock().unwrap().fail_user_lookup = false;
+    harness.poll().await;
+    assert_eq!(harness.cursor("1", "rank"), 3);
+    assert_eq!(
+        harness
+            .state
+            .lock()
+            .unwrap()
+            .sent
+            .iter()
+            .map(|(_, id, _)| *id)
+            .collect::<Vec<_>>(),
+        vec![3, 2]
+    );
+}

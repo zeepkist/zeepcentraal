@@ -121,6 +121,15 @@ pub struct ActivityUser {
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RankUser {
+    pub id: i32,
+    pub steam_name: Option<String>,
+    pub discord_id: Option<String>,
+    pub points: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActivityRecord {
     pub time: f32,
 }
@@ -477,6 +486,15 @@ impl Backend {
             Method::GET,
             &format!("/discord-bot/profiles/{identifier}?kind={kind}"),
             None,
+        )
+        .await
+    }
+
+    pub async fn users_lookup(&self, user_ids: &[i32]) -> Result<Vec<RankUser>> {
+        self.request(
+            Method::POST,
+            "/discord-bot/users/lookup",
+            Some(json!({"userIds": user_ids})),
         )
         .await
     }

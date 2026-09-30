@@ -92,6 +92,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(discord_routes::activity_events),
         )
         .route(
+            "/discord-bot/users/lookup",
+            post(discord_routes::users_lookup),
+        )
+        .route(
             "/discord-bot/tournaments/current",
             get(discord_routes::current_tournaments),
         )

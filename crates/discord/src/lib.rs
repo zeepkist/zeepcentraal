@@ -5,6 +5,7 @@ pub mod config;
 pub mod feeds;
 pub mod health;
 pub mod pagination;
+mod rank;
 pub mod runtime;
 mod tournament;
 

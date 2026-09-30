@@ -1,7 +1,7 @@
 use crate::{
     backend::{ActivityEvent, Backend, GuildFeed, MatchingWatch, TournamentSnapshot},
     config::DiscordConfig,
-    tournament,
+    rank, tournament,
 };
 use anyhow::{Context, Result};
 use serenity::{
@@ -24,6 +24,9 @@ use std::{
 use tokio::{sync::Notify, task::JoinHandle};
 
 const WATCH_CURSOR: &str = "watch-events";
+
+#[cfg(test)]
+mod activity_tests;
 
 pub struct FeedService {
     backend: Backend,
@@ -83,74 +86,154 @@ impl FeedService {
     }
 }
 
-async fn poll_activity(http: &Http, backend: &Backend, frontend_url: &reqwest::Url) -> Result<()> {
-    let feeds = backend.enabled_feeds().await?;
-    let watch_cursor = backend.worker_cursor(WATCH_CURSOR).await?;
-    let cursor = feeds
-        .iter()
-        .filter_map(|feed| feed.cursor_event_id.parse::<i64>().ok())
-        .chain(watch_cursor.cursor_event_id.parse::<i64>())
-        .min()
-        .unwrap_or_default();
-    let events = backend.events_after(cursor).await?;
-    let mut watch_cursor = watch_cursor
-        .cursor_event_id
-        .parse::<i64>()
-        .unwrap_or_default();
-    let mut watch_blocked = false;
-    let mut feed_cursors = feeds
-        .iter()
-        .filter_map(|feed| {
-            Some((
-                (feed.guild_id.clone(), feed.kind.clone()),
-                feed.cursor_event_id.parse::<i64>().ok()?,
-            ))
-        })
-        .collect::<BTreeMap<_, _>>();
-    for event in events {
-        let event_id = event
-            .id
-            .parse::<i64>()
-            .context("Invalid activity event ID")?;
-        if event_id > watch_cursor && !watch_blocked {
-            match deliver_watches(http, backend, frontend_url, &event).await {
-                Ok(()) => {
-                    backend.advance_worker(WATCH_CURSOR, &event.id).await?;
-                    watch_cursor = event_id;
-                }
-                Err(error) => {
-                    watch_blocked = true;
-                    tracing::error!(event_id = %event.id, %error, "Discord activity watch delivery failed");
-                }
-            }
+type RankMessages = BTreeMap<String, Option<CreateMessage<'static>>>;
+
+type ActivityPages = BTreeMap<i64, Vec<ActivityEvent>>;
+
+async fn activity_page<'a>(
+    backend: &Backend,
+    pages: &'a mut ActivityPages,
+    cursor: i64,
+) -> Result<&'a [ActivityEvent]> {
+    if let std::collections::btree_map::Entry::Vacant(entry) = pages.entry(cursor) {
+        let events = backend.events_after(cursor).await?;
+        let mut previous = cursor;
+        for event in &events {
+            let id = event
+                .id
+                .parse::<i64>()
+                .context("Invalid activity event ID")?;
+            anyhow::ensure!(
+                id > previous,
+                "Activity events must follow cursor in ascending order"
+            );
+            previous = id;
         }
-        for feed in &feeds {
-            let key = (feed.guild_id.clone(), feed.kind.clone());
-            let feed_cursor = feed_cursors.get(&key).copied().unwrap_or_default();
-            if event_id <= feed_cursor || feed_kind(&event.kind) != Some(feed.kind.as_str()) {
-                continue;
-            }
-            match deliver_feed(http, backend, frontend_url, feed, &event).await {
-                Ok(()) => {
-                    backend
-                        .advance_feed(&feed.guild_id, &feed.kind, &event.id)
-                        .await?;
-                    feed_cursors.insert(key, event_id);
-                }
-                Err(error) => {
-                    tracing::error!(
-                        guild_id = %feed.guild_id,
-                        channel_id = %feed.channel_id,
-                        feed_kind = %feed.kind,
-                        event_id = %event.id,
-                        %error,
-                        "Discord activity feed delivery failed"
-                    );
-                }
-            }
+        entry.insert(events);
+    }
+    Ok(&pages[&cursor])
+}
+
+async fn poll_activity(http: &Http, backend: &Backend, frontend_url: &reqwest::Url) -> Result<()> {
+    let mut pages = ActivityPages::new();
+    let mut rank_messages = RankMessages::new();
+    if let Err(error) =
+        poll_activity_watches(http, backend, frontend_url, &mut pages, &mut rank_messages).await
+    {
+        tracing::error!(%error, "Discord activity watch delivery failed");
+    }
+    let feeds = backend.enabled_feeds().await?;
+    for feed in feeds.iter().filter(|feed| {
+        feed.enabled && matches!(feed.kind.as_str(), "workshop" | "world_record" | "rank")
+    }) {
+        if let Err(error) = poll_activity_feed(
+            http,
+            backend,
+            frontend_url,
+            feed,
+            &mut pages,
+            &mut rank_messages,
+        )
+        .await
+        {
+            tracing::error!(guild_id = %feed.guild_id, channel_id = %feed.channel_id,
+                feed_kind = %feed.kind, %error, "Discord activity feed delivery failed");
         }
     }
     Ok(())
+}
+
+async fn poll_activity_watches(
+    http: &Http,
+    backend: &Backend,
+    frontend_url: &reqwest::Url,
+    pages: &mut ActivityPages,
+    rank_messages: &mut RankMessages,
+) -> Result<()> {
+    let cursor = backend
+        .worker_cursor(WATCH_CURSOR)
+        .await?
+        .cursor_event_id
+        .parse::<i64>()
+        .context("Invalid Discord watch cursor")?;
+    for event in activity_page(backend, pages, cursor).await? {
+        deliver_watches(http, backend, frontend_url, event, rank_messages)
+            .await
+            .with_context(|| format!("Watch event {} failed", event.id))?;
+        backend.advance_worker(WATCH_CURSOR, &event.id).await?;
+    }
+    Ok(())
+}
+
+async fn poll_activity_feed(
+    http: &Http,
+    backend: &Backend,
+    frontend_url: &reqwest::Url,
+    feed: &GuildFeed,
+    pages: &mut ActivityPages,
+    rank_messages: &mut RankMessages,
+) -> Result<()> {
+    let cursor = feed
+        .cursor_event_id
+        .parse::<i64>()
+        .context("Invalid Discord feed cursor")?;
+    // Checkpoint irrelevant prefixes together, but checkpoint every successful send.
+    let mut durable_cursor = feed.cursor_event_id.clone();
+    let mut scanned_cursor = durable_cursor.clone();
+    for event in activity_page(backend, pages, cursor).await? {
+        if feed_kind(&event.kind) == Some(feed.kind.as_str()) {
+            if scanned_cursor != durable_cursor {
+                backend
+                    .advance_feed(&feed.guild_id, &feed.kind, &scanned_cursor)
+                    .await?;
+            }
+            deliver_feed(http, backend, frontend_url, feed, event, rank_messages)
+                .await
+                .with_context(|| format!("Feed event {} failed", event.id))?;
+            backend
+                .advance_feed(&feed.guild_id, &feed.kind, &event.id)
+                .await?;
+            durable_cursor = event.id.clone();
+        }
+        scanned_cursor = event.id.clone();
+    }
+    if scanned_cursor != durable_cursor {
+        backend
+            .advance_feed(&feed.guild_id, &feed.kind, &scanned_cursor)
+            .await?;
+    }
+    Ok(())
+}
+
+async fn activity_message(
+    event: &ActivityEvent,
+    frontend_url: &reqwest::Url,
+    backend: &Backend,
+    guild_message: bool,
+    rank_messages: &mut RankMessages,
+) -> Result<Option<CreateMessage<'static>>> {
+    if event.kind != "rank_batch" {
+        return Ok(Some(
+            event_message(event, frontend_url, guild_message.then_some(backend)).await,
+        ));
+    }
+    if let Some(message) = rank_messages.get(&event.id) {
+        return Ok(message.clone());
+    }
+    let changes = rank::changes(event);
+    let users = if changes.is_empty() {
+        Vec::new()
+    } else {
+        let ids = changes
+            .iter()
+            .take(rank::DISPLAY_LIMIT)
+            .map(|change| change.id_user)
+            .collect::<Vec<_>>();
+        backend.users_lookup(&ids).await?
+    };
+    let message = rank::message(event, &changes, &users);
+    rank_messages.insert(event.id.clone(), message.clone());
+    Ok(message)
 }
 
 async fn poll_tournaments(
@@ -360,6 +443,7 @@ async fn deliver_feed(
     frontend_url: &reqwest::Url,
     feed: &GuildFeed,
     event: &ActivityEvent,
+    rank_messages: &mut RankMessages,
 ) -> Result<()> {
     if !feed.enabled {
         return Ok(());
@@ -371,6 +455,10 @@ async fn deliver_feed(
     {
         return Ok(());
     }
+    let Some(message) = activity_message(event, frontend_url, backend, true, rank_messages).await?
+    else {
+        return Ok(());
+    };
     backend
         .set_delivery(
             &feed.guild_id,
@@ -387,10 +475,7 @@ async fn deliver_feed(
         .context("Invalid Discord feed channel ID")?;
     match ChannelId::new(channel_id)
         .widen()
-        .send_message(
-            http,
-            event_message(event, frontend_url, Some(backend)).await,
-        )
+        .send_message(http, message)
         .await
     {
         Ok(message) => {
@@ -428,6 +513,7 @@ async fn deliver_watches(
     backend: &Backend,
     frontend_url: &reqwest::Url,
     event: &ActivityEvent,
+    rank_messages: &mut RankMessages,
 ) -> Result<()> {
     let delivery_key = format!("event:{}", event.id);
     let watches = backend.matching_watches(event).await?;
@@ -440,6 +526,14 @@ async fn deliver_watches(
                 .push(watch);
         }
     }
+    if recipients.is_empty() {
+        return Ok(());
+    }
+    let Some(message) =
+        activity_message(event, frontend_url, backend, false, rank_messages).await?
+    else {
+        return Ok(());
+    };
     for (discord_id, watches) in recipients {
         let user_id = discord_id
             .parse::<u64>()
@@ -449,7 +543,7 @@ async fn deliver_watches(
             channel
                 .id
                 .widen()
-                .send_message(http, event_message(event, frontend_url, None).await)
+                .send_message(http, message.clone())
                 .await?;
             serenity::Result::<()>::Ok(())
         }
@@ -507,7 +601,6 @@ async fn event_message(
         "workshop" => "New public workshop level",
         "personal_best" => "New personal best",
         "world_record" => "New world record",
-        "rank_batch" => "Rankings updated",
         "vote" => "Level vote",
         _ => "ZeepCentraal activity",
     };
@@ -538,14 +631,6 @@ async fn event_message(
                 .as_ref()
                 .map_or_else(|| "Unknown time".into(), |record| format_time(record.time)),
             world_record_context(event)
-        ),
-        "rank_batch" => format!(
-            "{} player ranks changed.",
-            event
-                .payload
-                .get("changes")
-                .and_then(serde_json::Value::as_array)
-                .map_or(0, Vec::len)
         ),
         "vote" => format!(
             "**{level_name}**\n{player} voted {}.",

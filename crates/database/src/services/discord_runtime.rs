@@ -15,6 +15,22 @@ struct JsonRow {
 }
 
 impl Database {
+    pub async fn discord_users_lookup(&self, user_ids: &[i32]) -> Result<Vec<Value>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT jsonb_build_object('id',account.id,'steamName',account.steam_name, \
+             'discordId',account.discord_id::text,'points',points.points) AS value \
+             FROM public.\"user\" account LEFT JOIN public.user_points points ON points.id_user=account.id \
+             WHERE account.id=ANY($1) ORDER BY account.id",
+        )
+        .bind::<Array<Integer>, _>(user_ids)
+        .load::<JsonRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.value)
+        .collect())
+    }
+
     pub async fn discord_profile(&self, kind: &str, identifier: &str) -> Result<Option<Value>> {
         let mut connection = self.connection().await?;
         Ok(sql_query(
