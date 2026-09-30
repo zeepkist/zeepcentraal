@@ -6,8 +6,8 @@ pub mod queue;
 pub mod retry;
 pub mod runtime;
 
-pub const FAST_CONCURRENCY: usize = 4;
-pub const BULK_CONCURRENCY: usize = 14;
+pub const FAST_CONCURRENCY: usize = 15;
+pub const BULK_CONCURRENCY: usize = 15;
 pub const VISIBILITY_SECONDS: i32 = 120;
 pub const HEARTBEAT_SECONDS: u64 = 30;
 pub const POLL_MILLISECONDS: u64 = 250;

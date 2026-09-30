@@ -89,7 +89,7 @@ Do not run `lint:fix`/`format:fix` for inspection; they rewrite files.
 - Set retry/priority/idempotency deliberately. Retries can repeat partial DB effects.
 - Cron only in jobs primary. Workers process tasks only.
 - Cron timezone: `Europe/London`.
-- Jobs use isolated fast (4) and bulk (14) workers; replicas add concurrency.
+- Jobs use isolated fast (15) and bulk (15) workers; replicas add concurrency.
 - Queue runtime uses Bun SQL via `@zeepkist/core/sql`; keep pgmq at validated 1.12.0.
 
 ## Runtime/release
