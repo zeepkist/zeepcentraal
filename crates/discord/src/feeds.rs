@@ -1,6 +1,7 @@
 use crate::{
     backend::{ActivityEvent, Backend, GuildFeed, MatchingWatch, TournamentSnapshot},
     config::DiscordConfig,
+    media::thumbnail_url,
     rank, tournament,
 };
 use anyhow::{Context, Result};
@@ -423,7 +424,7 @@ fn tournament_hash(snapshot: &TournamentSnapshot) -> Result<String> {
 
 // Presentation changes refresh guild posts without changing watch delivery keys.
 fn tournament_feed_hash(watch_hash: &str) -> String {
-    let digest = Sha256::digest(format!("tournament-render-v2:{watch_hash}"));
+    let digest = Sha256::digest(format!("tournament-render-v3:{watch_hash}"));
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
@@ -646,37 +647,55 @@ async fn event_message(
         ),
         _ => "New ZeepCentraal activity.".into(),
     };
-    let occurred = event.occurred_at.parse::<jiff::Timestamp>().map_or_else(
-        |_| event.occurred_at.clone(),
-        |timestamp| format!("<t:{}:R>", timestamp.as_second()),
-    );
+    let occurred = event
+        .occurred_at
+        .trim()
+        .parse::<jiff::Timestamp>()
+        .map_or_else(
+            |_| event.occurred_at.clone(),
+            |timestamp| format!("<t:{}:R>", timestamp.as_second()),
+        );
     let details = CreateTextDisplay::new(format!(
         "## {title}\n{detail}\n-# ZeepCentraal • {occurred}"
     ));
     let image = item
         .filter(|_| matches!(event.kind.as_str(), "workshop" | "world_record"))
-        .map(|item| item.image_url.trim())
-        .filter(|url| !url.is_empty());
+        .and_then(|item| thumbnail_url(&item.image_url));
     let header = match image {
         Some(url) => CreateContainerComponent::Section(CreateSection::new(
             vec![CreateSectionComponent::TextDisplay(details)],
             CreateSectionAccessory::Thumbnail(
-                CreateThumbnail::new(CreateUnfurledMediaItem::new(url.to_owned()))
+                CreateThumbnail::new(CreateUnfurledMediaItem::new(url))
                     .description(level_name.chars().take(512).collect::<String>()),
             ),
         )),
         None => CreateContainerComponent::TextDisplay(details),
     };
     let mut components = vec![header];
+    let mut buttons = Vec::new();
     if let Some(level) = &event.level {
         let target = frontend_url
             .join(&format!("/level/{}", level.xx_hash))
             .map(|url| url.to_string())
             .unwrap_or_else(|_| frontend_url.to_string());
+        buttons.push(CreateButton::new_link(target).label("Open level"));
+    }
+    let profile_user = match event.kind.as_str() {
+        "workshop" => item.and_then(|item| item.author.as_ref()),
+        "world_record" => event.user.as_ref(),
+        _ => None,
+    };
+    if let Some(steam_id) = profile_user
+        .and_then(|user| user.steam_id.as_deref())
+        .and_then(|steam_id| steam_id.parse::<u64>().ok())
+        .filter(|steam_id| *steam_id > 0)
+        && let Ok(target) = frontend_url.join(&format!("/user/{steam_id}"))
+    {
+        buttons.push(CreateButton::new_link(target.to_string()).label("View player"));
+    }
+    if !buttons.is_empty() {
         components.push(CreateContainerComponent::ActionRow(
-            serenity::builder::CreateActionRow::buttons(vec![
-                CreateButton::new_link(target).label("Open level"),
-            ]),
+            serenity::builder::CreateActionRow::buttons(buttons),
         ));
     }
     let allowed_mentions = loss_ping.map_or_else(CreateAllowedMentions::new, |user| {
@@ -779,7 +798,8 @@ mod tests {
 
     #[test]
     fn tournament_feed_and_watch_messages_share_corrected_components() {
-        let snapshot = crate::tournament::tests::snapshot();
+        let mut snapshot = crate::tournament::tests::snapshot();
+        snapshot.image_url = Some("thumbnails/track.jpg".into());
         let components = serde_json::to_value(tournament_components(
             &snapshot,
             &"https://zeepki.st".parse().unwrap(),
@@ -788,7 +808,7 @@ mod tests {
         let children = &components[0]["components"];
         assert_eq!(
             children[0]["accessory"]["media"]["url"],
-            "https://example.com/track.jpg"
+            "https://cdn.zeepki.st/thumbnails/track.jpg"
         );
         assert!(
             children[0]["components"][0]["content"]

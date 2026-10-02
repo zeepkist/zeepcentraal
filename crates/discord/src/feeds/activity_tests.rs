@@ -83,7 +83,13 @@ async fn level_events_render_thumbnail_relative_time_and_missing_image_fallback(
         );
         assert_eq!(message["flags"], 32768);
         assert_eq!(message["allowed_mentions"]["parse"], json!([]));
-        for image in ["", "  "] {
+        for image in [
+            "",
+            "  ",
+            "not a URL",
+            "https://[invalid]/track.jpg",
+            "file:///track.jpg",
+        ] {
             let mut value = value.clone();
             value["level"]["levelItems"]["nodes"][0]["imageUrl"] = json!(image);
             value["occurredAt"] = json!("invalid timestamp");
@@ -98,6 +104,139 @@ async fn level_events_render_thumbnail_relative_time_and_missing_image_fallback(
                     .unwrap()
                     .contains("invalid timestamp")
             );
+        }
+    }
+}
+
+#[tokio::test]
+async fn level_events_resolve_stored_thumbnail_keys() {
+    let frontend = "https://zeepki.st".parse().unwrap();
+    for kind in ["workshop", "world_record"] {
+        let mut value = event(1, kind);
+        value["level"]["levelItems"]["nodes"][0]["imageUrl"] = json!("thumbnails/track.jpg");
+        let activity = serde_json::from_value(value).unwrap();
+        let message =
+            serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+        let header = &message["components"][0]["components"][0];
+        assert_eq!(
+            header["accessory"]["media"]["url"],
+            "https://cdn.zeepki.st/thumbnails/track.jpg"
+        );
+        assert!(
+            header["components"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("Event 1")
+        );
+    }
+}
+
+#[tokio::test]
+async fn activity_footer_formats_reported_timestamp_with_optional_whitespace() {
+    let frontend = "https://zeepki.st".parse().unwrap();
+    for kind in ["workshop", "world_record"] {
+        for timestamp in ["2026-10-02T13:55:36.700Z", " 2026-10-02T13:55:36.700Z\n"] {
+            let mut value = event(1, kind);
+            value["occurredAt"] = json!(timestamp);
+            let activity = serde_json::from_value(value).unwrap();
+            let message =
+                serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+            let text = message["components"][0]["components"][0]["components"][0]["content"]
+                .as_str()
+                .unwrap();
+            assert!(text.contains("ZeepCentraal • <t:1790949336:R>"), "{text}");
+            assert!(!text.contains("2026-10-02"));
+        }
+    }
+}
+
+#[tokio::test]
+async fn activity_buttons_link_world_record_player_and_workshop_author() {
+    let frontend = "https://zeepki.st".parse().unwrap();
+    for (kind, steam_id) in [
+        ("world_record", "76561198000000001"),
+        ("workshop", "76561198000000002"),
+    ] {
+        let mut value = event(1, kind);
+        value["user"]["steamId"] = json!("76561198000000001");
+        value["level"]["levelItems"]["nodes"][0]["author"] =
+            json!({"id":2,"steamId":"76561198000000002","steamName":"Level author"});
+        if kind == "workshop" {
+            value["user"] = Value::Null;
+        }
+        let activity = serde_json::from_value(value).unwrap();
+        let message =
+            serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+        let buttons = &message["components"][0]["components"][1]["components"];
+        assert_eq!(buttons[0]["label"], "Open level");
+        assert_eq!(buttons[1]["label"], "View player");
+        assert_eq!(
+            buttons[1]["url"],
+            format!("https://zeepki.st/user/{steam_id}")
+        );
+    }
+}
+
+#[tokio::test]
+async fn sent_activity_messages_have_thumbnail_relative_timestamp_and_player_link() {
+    for (kind, steam_id) in [
+        ("world_record", "76561198000000001"),
+        ("workshop", "76561198000000002"),
+    ] {
+        let mut value = event(1, kind);
+        value["occurredAt"] = json!("2026-10-02T13:55:36.700Z");
+        value["user"]["steamId"] = json!("76561198000000001");
+        value["level"]["levelItems"]["nodes"][0]["imageUrl"] =
+            json!("https://cdn.zeepki.st/thumbnails/fixture.jpg");
+        value["level"]["levelItems"]["nodes"][0]["author"] =
+            json!({"id":2,"steamId":"76561198000000002","steamName":"Level author"});
+        let harness = Harness::new(State {
+            feeds: vec![feed(1, kind, 20, 0)],
+            events: vec![value],
+            ..State::default()
+        })
+        .await;
+        harness.poll().await;
+        let state = harness.state.lock().unwrap();
+        assert_eq!(state.sent.len(), 1);
+        let message = &state.sent[0].2;
+        let components = &message["components"][0]["components"];
+        let header = &components[0];
+        assert_eq!(header["type"], 9);
+        assert_eq!(
+            header["accessory"]["media"]["url"],
+            "https://cdn.zeepki.st/thumbnails/fixture.jpg"
+        );
+        assert!(
+            header["components"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("ZeepCentraal • <t:1790949336:R>")
+        );
+        assert_eq!(components[1]["components"][1]["label"], "View player");
+        assert_eq!(
+            components[1]["components"][1]["url"],
+            format!("https://zeepki.st/user/{steam_id}")
+        );
+    }
+}
+
+#[tokio::test]
+async fn activity_buttons_omit_missing_or_invalid_player_ids() {
+    let frontend = "https://zeepki.st".parse().unwrap();
+    for kind in ["workshop", "world_record"] {
+        for steam_id in [Value::Null, json!(""), json!("0"), json!("invalid")] {
+            let mut value = event(1, kind);
+            value["user"]["steamId"] = steam_id.clone();
+            value["level"]["levelItems"]["nodes"][0]["author"] = json!({"id":2,"steamId":steam_id});
+            let activity = serde_json::from_value(value).unwrap();
+            let message =
+                serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+            let buttons = message["components"][0]["components"][1]["components"]
+                .as_array()
+                .unwrap();
+            assert_eq!(buttons.len(), 1);
+            assert_eq!(buttons[0]["label"], "Open level");
         }
     }
 }

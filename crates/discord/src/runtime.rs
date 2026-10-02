@@ -1157,6 +1157,7 @@ mod tests {
             let mut snapshot = crate::tournament::tests::snapshot();
             snapshot.tournament_type = tournament_type;
             snapshot.tournament_slug = slug.into();
+            snapshot.image_url = Some("thumbnails/track.jpg".into());
             let value = serde_json::to_value(tournament_page_message(
                 42,
                 &snapshot,
@@ -1170,6 +1171,10 @@ mod tests {
             assert_eq!(value["allowed_mentions"]["parse"], serde_json::json!([]));
             let components = &value["components"][0]["components"];
             assert_eq!(components[0]["accessory"]["type"], 11);
+            assert_eq!(
+                components[0]["accessory"]["media"]["url"],
+                "https://cdn.zeepki.st/thumbnails/track.jpg"
+            );
             let details = components[0]["components"][0]["content"].as_str().unwrap();
             assert!(details.contains(slug));
             assert!(details.contains("<t:1791180000:R>"));

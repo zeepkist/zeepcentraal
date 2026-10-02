@@ -1,4 +1,7 @@
-use crate::backend::{TournamentSnapshot, TournamentStanding};
+use crate::{
+    backend::{TournamentSnapshot, TournamentStanding},
+    media::thumbnail_url,
+};
 use serenity::builder::{
     CreateActionRow, CreateButton, CreateContainerComponent, CreateSection, CreateSectionAccessory,
     CreateSectionComponent, CreateTextDisplay, CreateThumbnail, CreateUnfurledMediaItem,
@@ -23,15 +26,11 @@ pub(crate) fn container_components(
         "## {name} • {}\nCurrent competition standings\n### Tournament details\n**Level**  {}\n**Entries**  {}\n**Ends**  {ends}",
         snapshot.tournament_slug, snapshot.level_name, snapshot.entries,
     ));
-    let header = match snapshot
-        .image_url
-        .as_deref()
-        .filter(|url| !url.trim().is_empty())
-    {
+    let header = match snapshot.image_url.as_deref().and_then(thumbnail_url) {
         Some(url) => CreateContainerComponent::Section(CreateSection::new(
             vec![CreateSectionComponent::TextDisplay(details)],
             CreateSectionAccessory::Thumbnail(
-                CreateThumbnail::new(CreateUnfurledMediaItem::new(url.to_owned()))
+                CreateThumbnail::new(CreateUnfurledMediaItem::new(url))
                     .description(snapshot.level_name.clone()),
             ),
         )),
@@ -142,6 +141,44 @@ pub(crate) mod tests {
             value[2]["components"][1]["url"],
             "https://zeepki.st/api/tournaments/playlist?type=0&slug=2026-W40"
         );
+    }
+
+    #[test]
+    fn stored_thumbnail_keys_render_as_cdn_urls_for_both_tournament_types() {
+        for tournament_type in [0, 1] {
+            let mut snapshot = snapshot();
+            snapshot.tournament_type = tournament_type;
+            for key in ["thumbnails/track.jpg", "/thumbnails/track.jpg"] {
+                snapshot.image_url = Some(key.into());
+                let value = render(&snapshot);
+                assert_eq!(
+                    value[0]["accessory"]["media"]["url"],
+                    "https://cdn.zeepki.st/thumbnails/track.jpg"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_thumbnail_does_not_block_tournament_details() {
+        let mut snapshot = snapshot();
+        for image in [
+            "not a URL",
+            "https://[invalid]/track.jpg",
+            "file:///track.jpg",
+        ] {
+            snapshot.image_url = Some(image.into());
+            let value = render(&snapshot);
+            assert_eq!(value[0]["type"], 10);
+            assert!(
+                value[0]["content"]
+                    .as_str()
+                    .unwrap()
+                    .contains("Fixture track")
+            );
+            assert!(value[1]["content"].as_str().unwrap().contains("00:49.332"));
+            assert_eq!(value[2]["components"][0]["label"], "Open TOTW");
+        }
     }
 
     #[test]

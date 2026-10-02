@@ -4,6 +4,7 @@ pub mod commands;
 pub mod config;
 pub mod feeds;
 pub mod health;
+mod media;
 pub mod pagination;
 mod rank;
 pub mod runtime;
