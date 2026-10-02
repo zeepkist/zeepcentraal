@@ -41,17 +41,14 @@ export async function findSubmissionRound(
 	round: number,
 	override?: number,
 ) {
-	if (!override && !seasonId) return undefined
-	const rows = await db
-		.select({ id: zslRound.id })
-		.from(zslRound)
-		.where(
-			override
-				? eq(zslRound.id, override)
-				: and(eq(zslRound.idSeason, seasonId!), eq(zslRound.round, round)),
-		)
-		.limit(2)
-	return rows.length === 1 ? rows[0]!.id : undefined
+	const condition = override
+		? eq(zslRound.id, override)
+		: seasonId
+			? and(eq(zslRound.idSeason, seasonId), eq(zslRound.round, round))
+			: undefined
+	if (!condition) return undefined
+	const rows = await db.select({ id: zslRound.id }).from(zslRound).where(condition).limit(2)
+	return rows.length === 1 ? rows[0]?.id : undefined
 }
 export async function getSubmissionContest(threadId: string) {
 	return (await db.select().from(contests).where(eq(contests.threadId, threadId)))[0]
@@ -76,7 +73,8 @@ export async function saveSubmissionContest(input: typeof contests.$inferInsert)
 			set: { ...input, dateUpdated: new Date().toISOString() },
 		})
 		.returning()
-	return row!
+	if (!row) throw new Error('Submission contest was not returned')
+	return row
 }
 export async function freezeSubmissionContest(id: bigint, frozen: boolean) {
 	await db
@@ -128,15 +126,16 @@ export async function getSubmissionValidation(id: bigint | null) {
 export async function saveSubmissionValidation(input: ValidationInput) {
 	return db.transaction(async (tx) => {
 		const [row] = await tx.insert(validations).values(input).returning()
+		if (!row) throw new Error('Submission validation was not returned')
 		await tx
 			.update(submissions)
 			.set({
-				latestValidationId: row!.id,
+				latestValidationId: row.id,
 				retryCategory: null,
 				dateUpdated: new Date().toISOString(),
 			})
 			.where(eq(submissions.id, input.idSubmission))
-		return row!
+		return row
 	})
 }
 export async function setSubmissionRetry(id: bigint, category: string) {
@@ -188,7 +187,8 @@ export async function publishSubmissionPlaylist(
 					.select()
 					.from(playlists)
 					.where(and(eq(playlists.idContest, idContest), eq(playlists.digest, digest)))
-			)[0]!
+			)[0]
+		if (!playlist) throw new Error('Submission playlist was not returned')
 		if (inserted && members.length)
 			await tx
 				.insert(entries)
