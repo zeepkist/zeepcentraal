@@ -4,6 +4,11 @@ import { join } from 'node:path'
 import * as THREE from 'three'
 import type { GhostLevelBlock, GhostVector3 } from '../../app/types/ghost'
 import {
+	type GhostLightingData,
+	resolveGhostEnvironment,
+	resolveGhostLights,
+} from '../../shared/ghostLighting'
+import {
 	GHOST_MODEL_SLOTS,
 	PROTECTED_GHOST_MODEL_BUNDLE_VERSION,
 	PROTECTED_MESH_BUNDLE_MAGIC,
@@ -46,7 +51,8 @@ const MAXIMUM_BUNDLE_BYTES = 64 * 1024 * 1024
 const MAXIMUM_CORPUS_INDEX_BYTES = 16 * 1024 * 1024
 const BLOCK_CORPUS_REFERER_PREFIX = 'https://zeepki.st/server/block-corpus/'
 const MATRIX_DETERMINANT_EPSILON = 1e-12
-const CORPUS_VERSION_ERROR = 'Protected mesh corpus version 5 required; regenerate from raw exports'
+const CORPUS_VERSION_ERROR =
+	'Protected mesh corpus version 5 or 6 required; regenerate from raw exports'
 const BLOCK_POSITION_JITTER_MAGNITUDE = 0.01
 const blockPositionJitterMatrices = new Map<string, THREE.Matrix4>()
 
@@ -54,20 +60,24 @@ export async function buildProtectedLevelMeshBundle(
 	corpusLocation: string,
 	blocks: readonly GhostLevelBlock[],
 	corpusToken = '',
+	environment: unknown = null,
+	skybox = 0,
 ) {
 	const corpus = await loadCorpus(corpusLocation, corpusToken)
 	const bundleKey = [
 		corpusSourceCacheKey(corpusLocation, corpusToken),
-		protectedMeshBundleCacheKey(corpus.index.digest, blocks),
+		protectedMeshBundleCacheKey(corpus.index.digest, blocks, environment, skybox),
 	].join(':')
 	return getPendingBundle(pendingLevelBundlePromises, bundleKey, () =>
-		buildProtectedLevelMeshBundleUncached(corpus, blocks),
+		buildProtectedLevelMeshBundleUncached(corpus, blocks, environment, skybox),
 	)
 }
 
 async function buildProtectedLevelMeshBundleUncached(
 	corpus: Corpus,
 	blocks: readonly GhostLevelBlock[],
+	environment: unknown,
+	skybox: number,
 ) {
 	const groups = new Map<
 		string,
@@ -158,7 +168,15 @@ async function buildProtectedLevelMeshBundleUncached(
 			}),
 		),
 	)
-	return serializeBundle(corpus.index.digest, bundleGroups, fallbackMatrices, [])
+	const resolvedEnvironment = resolveGhostEnvironment(
+		environment,
+		skybox,
+		corpus.index.skyProfiles,
+	)
+	return serializeBundle(corpus.index.digest, bundleGroups, fallbackMatrices, [], {
+		environment: resolvedEnvironment,
+		lights: resolveGhostLights(blocks, corpus.index.blocks, resolvedEnvironment),
+	})
 }
 
 export function selectProtectedMeshParts(
@@ -200,8 +218,16 @@ export async function buildProtectedGhostModelBundle(corpusLocation: string, cor
 	})
 }
 
-export function protectedMeshBundleCacheKey(digest: string, blocks: readonly GhostLevelBlock[]) {
-	return createHash('sha256').update(digest).update(JSON.stringify(blocks)).digest('hex')
+export function protectedMeshBundleCacheKey(
+	digest: string,
+	blocks: readonly GhostLevelBlock[],
+	environment: unknown = null,
+	skybox = 0,
+) {
+	return createHash('sha256')
+		.update(digest)
+		.update(JSON.stringify([blocks, environment, skybox]))
+		.digest('hex')
 }
 
 export async function protectedMeshCorpusDigest(corpusLocation: string, corpusToken = '') {
@@ -218,7 +244,7 @@ async function loadCorpus(location: string, token: string) {
 			const value = await readCorpusIndex(source)
 			const index = JSON.parse(value) as ProtectedMeshCorpusIndex
 			if (
-				index.version !== PROTECTED_MESH_CORPUS_VERSION ||
+				![5, PROTECTED_MESH_CORPUS_VERSION].includes(index.version) ||
 				!index.digest ||
 				!index.blocks ||
 				!index.paints ||
@@ -340,7 +366,18 @@ function serializeBundle(
 	groups: BundleGroup[],
 	fallbackMatrices: ProtectedMeshMatrix[],
 	common: Array<{ slot: number; payload: Uint8Array }>,
+	lighting?: GhostLightingData,
 ) {
+	const trailer = common.length
+		? null
+		: new TextEncoder().encode(
+				JSON.stringify({
+					lighting,
+					emissions: groups.map((group) =>
+						group.materials.map((material) => material?.emissive ?? [0, 0, 0]),
+					),
+				}),
+			)
 	const headerSize = 52
 	const byteLength =
 		headerSize +
@@ -354,7 +391,8 @@ function serializeBundle(
 			0,
 		) +
 		fallbackMatrices.length * 64 +
-		common.reduce((total, entry) => total + 8 + entry.payload.byteLength, 0)
+		common.reduce((total, entry) => total + 8 + entry.payload.byteLength, 0) +
+		(trailer ? 4 + trailer.byteLength : 0)
 	if (byteLength > MAXIMUM_BUNDLE_BYTES) {
 		throw createError({ statusCode: 413, statusMessage: 'Protected mesh bundle too large' })
 	}
@@ -427,6 +465,10 @@ function serializeBundle(
 		offset += 8
 		bytes.set(entry.payload, offset)
 		offset += entry.payload.byteLength
+	}
+	if (trailer) {
+		view.setUint32(offset, trailer.byteLength, true)
+		bytes.set(trailer, offset + 4)
 	}
 	return bytes
 }

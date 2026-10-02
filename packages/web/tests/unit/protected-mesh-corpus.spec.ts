@@ -55,6 +55,7 @@ describe('protected mesh corpus compiler', () => {
 			workflow: 'specular',
 			transparent: false,
 			doubleSided: false,
+			emissive: [2, 0.25, 0.01],
 		}
 		const glass = {
 			...ice,
@@ -115,11 +116,23 @@ describe('protected mesh corpus compiler', () => {
 			{ ...block, paints: { 0: 404, 1: 403 } },
 			{ ...block, id: 1326 },
 		])
-		expect(new DataView(bytes.buffer).getUint16(4, true)).toBe(4)
+		expect(new DataView(bytes.buffer).getUint16(4, true)).toBe(5)
 		const parsed = parseProtectedLevelMeshBundle(bytes)
 		expect(parsed.groups).toHaveLength(2)
 		expect(parsed.fallbackMatrices).toHaveLength(0)
 		expect(parsed.groups[0]?.materials[0]?.workflow).toBe('specular')
+		expect(parsed.groups[0]?.materials[0]?.emissive).toEqual([2, 0.25, 0.01])
+		expect(parsed.lighting?.environment.sun.intensity).toBe(1)
+		const prefix = new TextEncoder().encode('{"lighting":')
+		const trailerStart = bytes.findIndex((_value, index) =>
+			prefix.every((value, offset) => bytes[index + offset] === value),
+		)
+		expect(trailerStart).toBeGreaterThan(4)
+		const legacy = bytes.slice(0, trailerStart - 4)
+		new DataView(legacy.buffer).setUint16(4, 4, true)
+		const old = parseProtectedLevelMeshBundle(legacy)
+		expect(old.lighting).toBeUndefined()
+		expect(old.groups[0]?.materials[0]?.emissive).toBeUndefined()
 		expect(parsed.groups[0]?.materials[1]?.opacity).toBeCloseTo(0.5)
 		expect(parsed.groups[0]?.primitives[2]?.nativeOnly).toBe(true)
 		expect(parsed.groups[1]?.materials[0]?.color[2]).toBeCloseTo(0.75)
@@ -434,7 +447,7 @@ describe('protected mesh corpus compiler', () => {
 			negativeTransformPartCount: 1,
 			singularPartCount: 1,
 		})
-		expect(index.version).toBe(5)
+		expect(index.version).toBe(6)
 		expect(index.blocks['1490']?.parts).toHaveLength(1)
 		expect(meshFile).toMatch(/^[a-f0-9]{32}\.zcp$/)
 		expect(files).toContain(meshFile)
@@ -755,7 +768,7 @@ describe('protected mesh corpus compiler', () => {
 			await expect(protectedMeshCorpusDigest(root)).rejects.toMatchObject({
 				statusCode: 503,
 				statusMessage:
-					'Protected mesh corpus version 5 required; regenerate from raw exports',
+					'Protected mesh corpus version 5 or 6 required; regenerate from raw exports',
 			})
 		},
 	)

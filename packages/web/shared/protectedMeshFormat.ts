@@ -1,5 +1,7 @@
-export const PROTECTED_MESH_CORPUS_VERSION = 5
-export const PROTECTED_MESH_BUNDLE_VERSION = 4
+import type { GhostEnvironment, ProtectedLightDefinition } from './ghostLighting'
+
+export const PROTECTED_MESH_CORPUS_VERSION = 6
+export const PROTECTED_MESH_BUNDLE_VERSION = 5
 export const PROTECTED_GHOST_MODEL_BUNDLE_VERSION = 3
 export const PROTECTED_MESH_PRIMITIVE_VERSION = 1
 
@@ -51,6 +53,8 @@ export type ProtectedMeshMaterial = {
 	workflow: 'metallic' | 'specular'
 	transparent: boolean
 	doubleSided: boolean
+	/** Authored emission, linear HDR. Absent in legacy corpora. */
+	emissive?: ProtectedMeshColor
 }
 
 export type ProtectedMeshMaterialSlot = { material: string | null; paintIndex?: number }
@@ -67,7 +71,13 @@ export function validateProtectedMeshMaterial(value: ProtectedMeshMaterial) {
 		) ||
 		!['metallic', 'specular'].includes(value.workflow) ||
 		typeof value.transparent !== 'boolean' ||
-		typeof value.doubleSided !== 'boolean'
+		typeof value.doubleSided !== 'boolean' ||
+		(value.emissive !== undefined &&
+			(!Array.isArray(value.emissive) ||
+				value.emissive.length !== 3 ||
+				!value.emissive.every(
+					(number) => Number.isFinite(number) && number >= 0 && number <= 65_504,
+				)))
 	)
 		throw new Error('Malformed protected material descriptor')
 	return value
@@ -87,13 +97,14 @@ export type ProtectedMeshPart = {
 }
 
 export type ProtectedMeshCorpusIndex = {
-	version: 5
+	version: 5 | 6
 	digest: string
 	blocks: Record<
 		string,
 		{
 			optionMode?: 0 | 1 | 2
 			parts: ProtectedMeshPart[]
+			lights?: ProtectedLightDefinition[]
 		}
 	>
 	paints: Record<string, ProtectedMeshColor>
@@ -101,4 +112,5 @@ export type ProtectedMeshCorpusIndex = {
 	paintMaterials: Record<string, string>
 	primitiveSlots: Record<string, number[]>
 	common: Record<'axles' | 'body' | 'character' | 'wheel', string>
+	skyProfiles?: Record<string, GhostEnvironment>
 }

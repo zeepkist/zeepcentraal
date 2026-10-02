@@ -40,12 +40,40 @@ export function parseLevelGeometryBlocks(value: unknown): GhostLevelBlock[] {
 				paints: Array.isArray(block.Paints)
 					? readCsvOptions(block.Paints, true)
 					: readIndexedOptions(numericOptions, 'p'),
+				...readLightingOptions(block),
 				meshVariant: readNamedOption(numericOptions, 'vr'),
 				hideLogicBlock: readNamedOption(numericOptions, 'lbhd') !== 0,
 				hideTrigger: readNamedOption(numericOptions, 'xt1') !== 0,
 			},
 		]
 	})
+}
+
+function readLightingOptions(block: Record<string, unknown>) {
+	const floatOptions: Record<string, number> = {}
+	const booleanOptions: Record<string, boolean> = {}
+	const textOptions: Record<string, string> = {}
+	for (const kind of ['f', 'n', 'b', 't'] as const) {
+		const options = nested(block, 'd', kind)
+		if (!options || typeof options !== 'object' || Array.isArray(options)) continue
+		for (const [key, value] of Object.entries(options).slice(0, 256)) {
+			if (!/^[a-z][a-z0-9]{0,31}$/i.test(key)) continue
+			if (kind === 'f' && typeof value === 'number' && Number.isFinite(value))
+				floatOptions[key] = value
+			if ((kind === 'b' || kind === 'n') && !/^[ap]\d+$/.test(key)) {
+				if (typeof value === 'boolean') booleanOptions[key] = value
+				else if (typeof value === 'number' && Number.isFinite(value))
+					booleanOptions[key] = value !== 0
+			}
+			if (kind === 't' && typeof value === 'string' && value.length <= 128)
+				textOptions[key] = value
+		}
+	}
+	return {
+		...(Object.keys(floatOptions).length ? { floatOptions } : {}),
+		...(Object.keys(booleanOptions).length ? { booleanOptions } : {}),
+		...(Object.keys(textOptions).length ? { textOptions } : {}),
+	}
 }
 
 function readCsvOptions(values: unknown[], integersOnly: boolean): Record<number, number> {

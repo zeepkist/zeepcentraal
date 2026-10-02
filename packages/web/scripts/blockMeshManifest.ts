@@ -1,12 +1,13 @@
 import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import * as THREE from 'three'
+import type { GhostEnvironment, ProtectedLightDefinition } from '../shared/ghostLighting'
 import type {
 	ProtectedMeshMaterial,
 	ProtectedMeshMaterialSlot,
 	ProtectedMeshVisibility,
 } from '../shared/protectedMeshFormat'
-
+import { extractUnityLights, loadUnitySkyProfiles } from './unityLighting'
 import { loadUnityMaterials } from './unityMaterials'
 
 export type BlockMeshMatrix = [
@@ -42,10 +43,12 @@ export type BlockMeshDefinition = {
 	name: string
 	optionMode?: 0 | 1 | 2
 	parts: BlockMeshPart[]
+	lights?: ProtectedLightDefinition[]
 }
 
 export type BlockMeshManifest = {
-	version: 4
+	version: 4 | 5
+	skyProfiles?: Record<string, GhostEnvironment>
 	paints: Record<string, [number, number, number]>
 	materials: Record<string, ProtectedMeshMaterial>
 	paintMaterials: Record<string, string>
@@ -153,6 +156,7 @@ type PrefabCandidate = {
 	name: string
 	prefab: string
 	parts: BlockMeshPart[]
+	lights?: ProtectedLightDefinition[]
 	optionMode?: 0 | 1 | 2
 	optionControllerCount: number
 	variantControllerCount: number
@@ -300,6 +304,7 @@ export async function generateBlockMeshBundle(
 			name: selected.name,
 			...(selected.optionMode === undefined ? {} : { optionMode: selected.optionMode }),
 			parts,
+			...(selected.lights?.length ? { lights: selected.lights } : {}),
 		}
 	}
 
@@ -310,7 +315,8 @@ export async function generateBlockMeshBundle(
 			)
 	}
 	const manifest: BlockMeshManifest = {
-		version: 4,
+		version: 5,
+		skyProfiles: await loadUnitySkyProfiles(options.gameObjectDirectory, scriptNames),
 		paints: paintPalette.colors,
 		materials: nativePalette.materials,
 		paintMaterials: paintPalette.paintMaterials,
@@ -565,6 +571,18 @@ export function parseBlockPrefab(
 		name: root.name || basename(prefab, '.prefab'),
 		prefab,
 		parts,
+		lights: extractUnityLights(
+			documents,
+			scriptNames,
+			(gameObjectId) =>
+				calculateRootRelativeMatrix(
+					gameObjectId,
+					rootTransform.id,
+					transformsById,
+					transformsByGameObject,
+				),
+			gameplay.visibility,
+		),
 		...(gameplay.optionMode === undefined ? {} : { optionMode: gameplay.optionMode }),
 		optionControllerCount: gameplay.optionControllerCount,
 		variantControllerCount: gameplay.variants.size,

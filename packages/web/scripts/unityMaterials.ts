@@ -104,6 +104,10 @@ export function parseUnityMaterial(source: string, shaderName: string, shaderSou
 	const mode = scalar('_Mode', glass ? 3 : 0)
 	const hasProperty = (key: string) =>
 		new RegExp(`^\\s*- ${key}:|${key}\\s*\\(`, 'm').test(`${source}\n${shaderSource}`)
+	const keywords = [
+		source.match(/^\s*m_ShaderKeywords:[ \t]*([^\r\n]*)/m)?.[1] ?? '',
+		source.match(/^\s*m_ValidKeywords:[ \t]*([^\r\n]*(?:\r?\n[ \t]*-[^\r\n]*)*)/m)?.[1] ?? '',
+	].join(' ')
 	const roughness = hasProperty('_Roughness')
 		? scalar('_Roughness', 0.5)
 		: hasProperty('_Smoothness')
@@ -123,6 +127,16 @@ export function parseUnityMaterial(source: string, shaderName: string, shaderSou
 		doubleSided:
 			/two.?face|double.?side/i.test(shaderName) ||
 			/TwoFace/i.test(source.match(/m_Name: (.*)/)?.[1] ?? ''),
+		...(hasProperty('_EmissionColor') &&
+		(/\b_EMISSION\b/i.test(keywords) || /emissive|unlit/i.test(shaderName))
+			? {
+					emissive: color('_EmissionColor', [0, 0, 0, 1]).slice(0, 3) as [
+						number,
+						number,
+						number,
+					],
+				}
+			: {}),
 	})
 	return { material, defaults }
 }

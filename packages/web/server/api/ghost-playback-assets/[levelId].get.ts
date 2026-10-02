@@ -25,11 +25,18 @@ export default defineEventHandler(async (event) => {
 		config.blockMeshCorpusPath,
 		config.blockMeshCorpusToken,
 	)
-	const key = protectedMeshBundleCacheKey(digest, blocks)
+	const key = protectedMeshBundleCacheKey(
+		digest,
+		blocks,
+		metadata.environment,
+		metadata.typeSkybox,
+	)
 	const bundle = await buildProtectedLevelMeshBundle(
 		config.blockMeshCorpusPath,
 		blocks,
 		config.blockMeshCorpusToken,
+		metadata.environment,
+		metadata.typeSkybox,
 	)
 	setResponseHeaders(event, {
 		'cache-control': 'private, no-store',

@@ -105,7 +105,7 @@ export async function compileProtectedBlockMeshCorpus(
 		await readFile(join(options.bundleDirectory, 'manifest.json'), 'utf8'),
 	) as BlockMeshManifest
 	if (
-		manifest.version !== 4 ||
+		![4, 5].includes(manifest.version) ||
 		!manifest.blocks ||
 		!manifest.paints ||
 		!manifest.materials ||
@@ -189,6 +189,7 @@ export async function compileProtectedBlockMeshCorpus(
 	for (const [blockId, definition] of Object.entries(manifest.blocks)) {
 		blocks[blockId] = {
 			...(definition.optionMode === undefined ? {} : { optionMode: definition.optionMode }),
+			...(definition.lights?.length ? { lights: definition.lights } : {}),
 			parts: definition.parts.flatMap(
 				({ mesh, matrix, visibility, variant, paint, materials }) => {
 					if (!Array.isArray(materials))
@@ -233,6 +234,7 @@ export async function compileProtectedBlockMeshCorpus(
 	}
 	const unsignedIndex = {
 		version: PROTECTED_MESH_CORPUS_VERSION,
+		skyProfiles: manifest.skyProfiles ?? {},
 		blocks,
 		paints: manifest.paints,
 		materials: manifest.materials,

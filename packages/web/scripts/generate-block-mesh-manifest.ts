@@ -43,7 +43,7 @@ try {
 		sourceReport,
 	})
 	console.log(
-		`Generated protected corpus v5: ${report.blockCount} blocks, ${report.meshCount} meshes, ${report.triangleCount} triangles, ${report.negativeTransformPartCount} reflected parts, ${report.singularPartCount} singular parts omitted, ${report.encodedBytes} bytes.`,
+		`Generated protected corpus v6: ${report.blockCount} blocks, ${report.meshCount} meshes, ${report.triangleCount} triangles, ${report.negativeTransformPartCount} reflected parts, ${report.singularPartCount} singular parts omitted, ${report.encodedBytes} bytes.`,
 	)
 } finally {
 	if (temporaryDirectory) await rm(temporaryDirectory, { recursive: true, force: true })

@@ -1,5 +1,6 @@
 import { MeshoptDecoder } from 'meshoptimizer/decoder'
 import * as THREE from 'three'
+import { type GhostLightingData, validateGhostLightingData } from '../../shared/ghostLighting'
 import {
 	GHOST_MODEL_SLOTS,
 	type GhostModelSlot,
@@ -36,6 +37,7 @@ export type GhostSoapboxGeometries = {
 export type ProtectedLevelMeshBundle = {
 	groups: ProtectedMeshGroup[]
 	fallbackMatrices: THREE.Matrix4[]
+	lighting?: GhostLightingData
 }
 
 export type ProtectedMeshLibraryOptions = {
@@ -142,10 +144,16 @@ export class ProtectedMeshLibrary {
 
 export function parseProtectedLevelMeshBundle(bytes: Uint8Array): ProtectedLevelMeshBundle {
 	const parsed = parseProtectedBundle(bytes)
-	if (parsed.version !== PROTECTED_MESH_BUNDLE_VERSION)
-		throw new Error('Level mesh bundle version 4 required; regenerate corpus')
+	if (![4, PROTECTED_MESH_BUNDLE_VERSION].includes(parsed.version)) {
+		for (const geometry of parsed.common.values()) geometry.dispose()
+		throw new Error('Level mesh bundle version 4 or 5 required; regenerate corpus')
+	}
 	for (const geometry of parsed.common.values()) geometry.dispose()
-	return { groups: parsed.groups, fallbackMatrices: parsed.fallbackMatrices }
+	return {
+		groups: parsed.groups,
+		fallbackMatrices: parsed.fallbackMatrices,
+		lighting: parsed.lighting,
+	}
 }
 
 export function parseProtectedGhostModelBundle(bytes: Uint8Array): GhostSoapboxGeometries {
@@ -157,112 +165,151 @@ export function parseProtectedGhostModelBundle(bytes: Uint8Array): GhostSoapboxG
 		for (const geometry of parsed.common.values()) geometry.dispose()
 		throw new Error('Ghost model bundle contains level geometry')
 	}
-	return {
-		axles: requireCommon(parsed.common, GHOST_MODEL_SLOTS.axles),
-		body: requireCommon(parsed.common, GHOST_MODEL_SLOTS.body),
-		character: requireCommon(parsed.common, GHOST_MODEL_SLOTS.character),
-		wheel: requireCommon(parsed.common, GHOST_MODEL_SLOTS.wheel),
+	try {
+		return {
+			axles: requireCommon(parsed.common, GHOST_MODEL_SLOTS.axles),
+			body: requireCommon(parsed.common, GHOST_MODEL_SLOTS.body),
+			character: requireCommon(parsed.common, GHOST_MODEL_SLOTS.character),
+			wheel: requireCommon(parsed.common, GHOST_MODEL_SLOTS.wheel),
+		}
+	} catch (error) {
+		for (const geometry of parsed.common.values()) geometry.dispose()
+		throw error
 	}
 }
 
 function parseProtectedBundle(bytes: Uint8Array) {
-	const reader = new BinaryReader(bytes)
-	if (reader.uint32() !== PROTECTED_MESH_BUNDLE_MAGIC)
-		throw new Error('Invalid mesh bundle magic')
-	const version = reader.uint16()
-	if (
-		version !== PROTECTED_MESH_BUNDLE_VERSION &&
-		version !== PROTECTED_GHOST_MODEL_BUNDLE_VERSION
-	) {
-		throw new Error('Unsupported mesh bundle version')
-	}
-	reader.skip(2 + 32)
-	const groupCount = reader.count()
-	const fallbackCount = reader.count()
-	const commonCount = reader.count()
-	if (version === PROTECTED_GHOST_MODEL_BUNDLE_VERSION && (groupCount || fallbackCount))
-		throw new Error('Legacy level mesh bundle rejected; regenerate corpus')
-	const groups: ProtectedMeshGroup[] = []
-	for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
-		const payloadLength = reader.length()
-		const matrixCount = reader.count()
-		const red = reader.uint8()
-		const green = reader.uint8()
-		const blue = reader.uint8()
-		const flags = reader.uint8()
-		if ((flags & ~KNOWN_GROUP_FLAGS) !== 0)
-			throw new Error('Invalid protected mesh group flags')
-		const hasColor = (flags & PROTECTED_MESH_GROUP_FLAGS.hasColor) !== 0
-		const reflectX = (flags & PROTECTED_MESH_GROUP_FLAGS.reflectX) !== 0
-		const primitiveIndices: number[] = []
-		const materials = Array.from({ length: reader.count() }, () => {
-			primitiveIndices.push(reader.count())
-			const flags = reader.uint32()
-			if (flags & ~15) throw new Error('Invalid protected material flags')
-			const color: [number, number, number] = [
-				reader.float32(),
-				reader.float32(),
-				reader.float32(),
-			]
-			const opacity = reader.float32(),
-				roughness = reader.float32(),
-				metalness = reader.float32()
-			const specular: [number, number, number] = [
-				reader.float32(),
-				reader.float32(),
-				reader.float32(),
-			]
-			return flags & 1
-				? validateProtectedMeshMaterial({
-						color,
-						opacity,
-						roughness,
-						metalness,
-						specular,
-						workflow: flags & 2 ? 'specular' : 'metallic',
-						transparent: Boolean(flags & 4),
-						doubleSided: Boolean(flags & 8),
-					})
-				: null
-		})
-		const sourcePrimitives = parsePrimitiveFile(reader.bytes(payloadLength))
-		const seen = new Set<number>()
-		const primitives = primitiveIndices.map((index) => {
-			const primitive = sourcePrimitives[index]
-			if (!primitive) throw new Error('Invalid protected submesh index')
-			const nativeOnly = seen.has(index)
-			seen.add(index)
-			return { ...primitive, nativeOnly }
-		})
-		if (materials.length !== primitives.length)
-			throw new Error('Protected material slot count mismatch')
-		if (reflectX) {
-			for (const primitive of sourcePrimitives) reflectPrimitiveX(primitive)
+	const allocated = new Set<THREE.BufferGeometry>()
+	try {
+		const reader = new BinaryReader(bytes)
+		if (reader.uint32() !== PROTECTED_MESH_BUNDLE_MAGIC)
+			throw new Error('Invalid mesh bundle magic')
+		const version = reader.uint16()
+		if (
+			version !== PROTECTED_MESH_BUNDLE_VERSION &&
+			version !== 4 &&
+			version !== PROTECTED_GHOST_MODEL_BUNDLE_VERSION
+		) {
+			throw new Error('Unsupported mesh bundle version')
 		}
-		const matrices = Array.from({ length: matrixCount }, () => reader.matrix())
-		groups.push({
-			primitives,
-			materials,
-			matrices,
-			color: hasColor ? [red / 255, green / 255, blue / 255] : null,
-		})
+		reader.skip(2 + 32)
+		const groupCount = reader.count()
+		const fallbackCount = reader.count()
+		const commonCount = reader.count()
+		if (version === PROTECTED_GHOST_MODEL_BUNDLE_VERSION && (groupCount || fallbackCount))
+			throw new Error('Legacy level mesh bundle rejected; regenerate corpus')
+		const groups: ProtectedMeshGroup[] = []
+		for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
+			const payloadLength = reader.length()
+			const matrixCount = reader.count()
+			const red = reader.uint8()
+			const green = reader.uint8()
+			const blue = reader.uint8()
+			const flags = reader.uint8()
+			if ((flags & ~KNOWN_GROUP_FLAGS) !== 0)
+				throw new Error('Invalid protected mesh group flags')
+			const hasColor = (flags & PROTECTED_MESH_GROUP_FLAGS.hasColor) !== 0
+			const reflectX = (flags & PROTECTED_MESH_GROUP_FLAGS.reflectX) !== 0
+			const primitiveIndices: number[] = []
+			const materials = Array.from({ length: reader.count() }, () => {
+				primitiveIndices.push(reader.count())
+				const flags = reader.uint32()
+				if (flags & ~15) throw new Error('Invalid protected material flags')
+				const color: [number, number, number] = [
+					reader.float32(),
+					reader.float32(),
+					reader.float32(),
+				]
+				const opacity = reader.float32(),
+					roughness = reader.float32(),
+					metalness = reader.float32()
+				const specular: [number, number, number] = [
+					reader.float32(),
+					reader.float32(),
+					reader.float32(),
+				]
+				return flags & 1
+					? validateProtectedMeshMaterial({
+							color,
+							opacity,
+							roughness,
+							metalness,
+							specular,
+							workflow: flags & 2 ? 'specular' : 'metallic',
+							transparent: Boolean(flags & 4),
+							doubleSided: Boolean(flags & 8),
+						})
+					: null
+			})
+			const sourcePrimitives = parsePrimitiveFile(reader.bytes(payloadLength), allocated)
+			const seen = new Set<number>()
+			const primitives = primitiveIndices.map((index) => {
+				const primitive = sourcePrimitives[index]
+				if (!primitive) throw new Error('Invalid protected submesh index')
+				const nativeOnly = seen.has(index)
+				seen.add(index)
+				return { ...primitive, nativeOnly }
+			})
+			if (materials.length !== primitives.length)
+				throw new Error('Protected material slot count mismatch')
+			if (reflectX) {
+				for (const primitive of sourcePrimitives) reflectPrimitiveX(primitive)
+			}
+			const matrices = Array.from({ length: matrixCount }, () => reader.matrix())
+			groups.push({
+				primitives,
+				materials,
+				matrices,
+				color: hasColor ? [red / 255, green / 255, blue / 255] : null,
+			})
+		}
+		const fallbackMatrices = Array.from({ length: fallbackCount }, () => reader.matrix())
+		const common = new Map<GhostModelSlot, THREE.BufferGeometry>()
+		for (let commonIndex = 0; commonIndex < commonCount; commonIndex += 1) {
+			const slot = reader.uint8() as GhostModelSlot
+			reader.skip(3)
+			const primitives = parsePrimitiveFile(reader.bytes(reader.length()), allocated)
+			const primitive = primitives[0]
+			if (!primitive || primitives.length !== 1)
+				throw new Error('Invalid common mesh payload')
+			primitive.geometry.applyMatrix4(primitive.matrix)
+			common.set(slot, primitive.geometry)
+		}
+		let lighting: GhostLightingData | undefined
+		if (version === PROTECTED_MESH_BUNDLE_VERSION) {
+			const trailer = JSON.parse(new TextDecoder().decode(reader.bytes(reader.length()))) as {
+				lighting?: GhostLightingData
+				emissions?: Array<Array<[number, number, number]>>
+			}
+			if (trailer.lighting) lighting = validateGhostLightingData(trailer.lighting)
+			if (!Array.isArray(trailer.emissions) || trailer.emissions.length !== groups.length)
+				throw new Error('Protected emission group count mismatch')
+			for (const [index, group] of groups.entries()) {
+				const emissions = trailer.emissions[index]
+				if (!emissions || emissions.length !== group.materials.length)
+					throw new Error('Protected emission slot count mismatch')
+				for (const [slot, material] of group.materials.entries()) {
+					if (material)
+						validateProtectedMeshMaterial(
+							Object.assign(material, { emissive: emissions[slot] }),
+						)
+				}
+			}
+		}
+		reader.finish()
+		const retained = new Set([
+			...groups.flatMap((group) => group.primitives.map((primitive) => primitive.geometry)),
+			...common.values(),
+		])
+		for (const geometry of allocated) if (!retained.has(geometry)) geometry.dispose()
+		return { groups, fallbackMatrices, common, version, lighting }
+	} catch (error) {
+		for (const geometry of allocated) geometry.dispose()
+		throw error
 	}
-	const fallbackMatrices = Array.from({ length: fallbackCount }, () => reader.matrix())
-	const common = new Map<GhostModelSlot, THREE.BufferGeometry>()
-	for (let commonIndex = 0; commonIndex < commonCount; commonIndex += 1) {
-		const slot = reader.uint8() as GhostModelSlot
-		reader.skip(3)
-		const primitives = parsePrimitiveFile(reader.bytes(reader.length()))
-		const primitive = primitives[0]
-		if (!primitive || primitives.length !== 1) throw new Error('Invalid common mesh payload')
-		primitive.geometry.applyMatrix4(primitive.matrix)
-		common.set(slot, primitive.geometry)
-	}
-	reader.finish()
-	return { groups, fallbackMatrices, common, version }
 }
 
-function parsePrimitiveFile(bytes: Uint8Array) {
+function parsePrimitiveFile(bytes: Uint8Array, allocated: Set<THREE.BufferGeometry>) {
 	const reader = new BinaryReader(bytes)
 	if (reader.uint32() !== PROTECTED_MESH_PRIMITIVE_MAGIC) {
 		throw new Error('Invalid protected primitive magic')
@@ -299,6 +346,7 @@ function parsePrimitiveFile(bytes: Uint8Array) {
 			}
 		}
 		const geometry = new THREE.BufferGeometry()
+		allocated.add(geometry)
 		geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 		if (normalLength > 0) {
 			const quantizedNormals = new Uint8Array(vertexCount * 8)

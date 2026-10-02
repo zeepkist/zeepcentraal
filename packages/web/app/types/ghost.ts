@@ -154,6 +154,9 @@ export type GhostLevelBlock = {
 	scale: GhostVector3
 	attributes: Record<number, number>
 	paints: Record<number, number>
+	floatOptions?: Record<string, number>
+	booleanOptions?: Record<string, boolean>
+	textOptions?: Record<string, string>
 	meshVariant?: number
 	hideLogicBlock?: boolean
 	hideTrigger?: boolean

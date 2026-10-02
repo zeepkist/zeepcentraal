@@ -123,7 +123,12 @@ function fixtureBundle(includeLevel: boolean, includeCommon: boolean, reflectX =
 	const fallbackSize = includeLevel ? 64 : 0
 	const commonEntries = includeCommon ? Object.values(GHOST_MODEL_SLOTS) : []
 	const commonSize = commonEntries.length * (8 + primitive.byteLength)
-	const bytes = new Uint8Array(headerSize + groupSize + fallbackSize + commonSize)
+	const trailer = includeLevel
+		? new TextEncoder().encode(JSON.stringify({ emissions: [[[0, 0, 0]]] }))
+		: null
+	const bytes = new Uint8Array(
+		headerSize + groupSize + fallbackSize + commonSize + (trailer ? 4 + trailer.length : 0),
+	)
 	const view = new DataView(bytes.buffer)
 	let offset = 0
 	view.setUint32(offset, PROTECTED_MESH_BUNDLE_MAGIC, true)
@@ -163,6 +168,10 @@ function fixtureBundle(includeLevel: boolean, includeCommon: boolean, reflectX =
 		offset += 8
 		bytes.set(primitive, offset)
 		offset += primitive.byteLength
+	}
+	if (trailer) {
+		view.setUint32(offset, trailer.length, true)
+		bytes.set(trailer, offset + 4)
 	}
 	return bytes
 }
