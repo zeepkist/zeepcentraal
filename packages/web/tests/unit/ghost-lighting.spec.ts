@@ -8,6 +8,7 @@ import {
 	selectGhostShadowLights,
 } from '../../app/utils/ghostLighting.client'
 import {
+	GhostMaterialContributionPass,
 	hideGhostLightingHelpers,
 	isOpaqueGhostGeometry,
 } from '../../app/utils/ghostLightingPasses.client'
@@ -400,9 +401,19 @@ describe('lighting budgets and lifecycle', () => {
 		scene.background = sky
 		const renderer = {
 			getRenderTarget: () => null,
+			getDrawingBufferSize: (size: THREE.Vector2) => size.set(8, 8),
 			setRenderTarget: vi.fn(),
-			render: vi.fn(),
+			render: vi.fn(() => expect(scene.environment).toBe(authored)),
 		} as unknown as THREE.WebGLRenderer
+		let failSpecular = false
+		const environments: Array<THREE.Texture | null> = []
+		const specular = vi
+			.spyOn(GhostMaterialContributionPass.prototype, 'render')
+			.mockImplementation(() => {
+				environments.push(scene.environment)
+				if (failSpecular && scene.environment === captured.texture)
+					throw new Error('Lost context')
+			})
 		const update = vi.spyOn(THREE.CubeCamera.prototype, 'update').mockImplementation(() => {
 			expect(scene.environment).toBe(authored)
 			expect(scene.background).toBe(sky)
@@ -416,14 +427,29 @@ describe('lighting budgets and lifecycle', () => {
 			scene.background = orthographicBackground
 			for (let index = 0; index < 5; index++) {
 				reflection.markDirty(true)
-				reflection.render(new THREE.PerspectiveCamera(), new THREE.Vector3(), index * 1000)
+				reflection.render(
+					new THREE.PerspectiveCamera(),
+					new THREE.Vector3(index * 10, 0, 0),
+					index * 1000,
+				)
 				expect(scene.background).toBe(orthographicBackground)
+				expect(scene.environment).toBe(authored)
 			}
 			expect(update).toHaveBeenCalledTimes(5)
+			expect(environments).toEqual(
+				Array.from({ length: 5 }, () => [authored, captured.texture]).flat(),
+			)
+			failSpecular = true
+			expect(() =>
+				reflection.render(new THREE.PerspectiveCamera(), new THREE.Vector3(), 6000),
+			).toThrow('Lost context')
+			expect(scene.environment).toBe(authored)
+			expect(scene.background).toBe(orthographicBackground)
 			reflection.dispose()
 			expect(scene.environment).toBe(authored)
 		} finally {
 			update.mockRestore()
+			specular.mockRestore()
 			generate.mockRestore()
 			disposeGenerator.mockRestore()
 		}

@@ -238,6 +238,9 @@ export class GhostReflectionRenderer {
 	private readonly environmentSpecular = new THREE.WebGLRenderTarget(1, 1, {
 		type: THREE.HalfFloatType,
 	})
+	private readonly authoredSpecular = new THREE.WebGLRenderTarget(1, 1, {
+		type: THREE.HalfFloatType,
+	})
 	private readonly specularPass = new GhostMaterialContributionPass('environment')
 	private readonly composite: THREE.ShaderMaterial
 	private readonly quad: FullScreenQuad
@@ -262,13 +265,16 @@ export class GhostReflectionRenderer {
 				beauty: { value: this.beauty.texture },
 				reflection: { value: this.reflection.texture },
 				environmentSpecular: { value: this.environmentSpecular.texture },
+				authoredSpecular: { value: this.authoredSpecular.texture },
+				useSSR: { value: this.settings.resolutionScale > 0 },
 			},
 			vertexShader:
 				'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-			fragmentShader: `uniform sampler2D beauty; uniform sampler2D reflection; uniform sampler2D environmentSpecular; varying vec2 vUv;
-			void main(){vec4 base=texture2D(beauty,vUv);vec4 reflected=texture2D(reflection,vUv);
+			fragmentShader: `uniform sampler2D beauty,reflection,environmentSpecular,authoredSpecular; uniform bool useSSR; varying vec2 vUv;
+			void main(){vec4 base=texture2D(beauty,vUv);vec4 reflected=useSSR?texture2D(reflection,vUv):vec4(0.);
+			vec3 authored=texture2D(authoredSpecular,vUv).rgb;
 			vec3 environment=texture2D(environmentSpecular,vUv).rgb;
-			gl_FragColor=vec4(max(vec3(0.),base.rgb-environment*reflected.a)+reflected.rgb*reflected.a,base.a);
+			gl_FragColor=vec4(max(vec3(0.),base.rgb-authored)+mix(environment,reflected.rgb,reflected.a),base.a);
 			}`,
 			depthTest: false,
 			depthWrite: false,
@@ -299,20 +305,14 @@ export class GhostReflectionRenderer {
 						this.cube.texture,
 						this.environment ?? undefined,
 					)
-					this.scene.environment = this.environment.texture
 					this.clock.commit(timestamp)
 				} finally {
-					this.scene.environment = this.environment?.texture ?? previousEnvironment
+					this.scene.environment = previousEnvironment
 					this.scene.background = previousBackground
 					restore()
 				}
 			}
-			if (!this.settings.resolutionScale) {
-				this.renderer.setRenderTarget(previousTarget)
-				this.renderer.render(this.scene, camera)
-				return
-			}
-			if (!this.pass) {
+			if (!this.pass && this.settings.resolutionScale) {
 				this.pass = new MaterialSSRPass(this.renderer, this.scene, camera)
 				this.pass.resolutionScale = this.settings.resolutionScale
 			}
@@ -322,36 +322,52 @@ export class GhostReflectionRenderer {
 				this.beauty.setSize(size.x, size.y)
 				this.reflection.setSize(size.x, size.y)
 				this.environmentSpecular.setSize(size.x, size.y)
-				this.pass.setSize(size.x, size.y)
+				this.authoredSpecular.setSize(size.x, size.y)
+				this.pass?.setSize(size.x, size.y)
 			}
-			this.pass.updateCamera(camera)
-			const restore = hideReflectionHelpers(this.scene)
-			const depthMaterials = new Map<THREE.Material, boolean>()
-			this.scene.traverseVisible((object) => {
-				if (!(object instanceof THREE.Mesh) || !object.name.startsWith('ghost-model-'))
-					return
-				for (const material of Array.isArray(object.material)
-					? object.material
-					: [object.material]) {
-					if (!depthMaterials.has(material))
-						depthMaterials.set(material, material.depthWrite)
-					material.depthWrite = true
-				}
-			})
-			try {
-				this.pass.render(this.renderer, this.reflection, this.beauty, 0, false)
-			} finally {
-				for (const [material, depthWrite] of depthMaterials)
-					material.depthWrite = depthWrite
-				restore()
-			}
+			if (this.pass) this.renderSSR(camera)
 			this.renderer.setRenderTarget(this.beauty)
 			this.renderer.render(this.scene, camera)
-			this.specularPass.render(this.renderer, this.scene, camera, this.environmentSpecular)
+			this.specularPass.render(this.renderer, this.scene, camera, this.authoredSpecular)
+			const authoredEnvironment = this.scene.environment
+			try {
+				// Probe position changes reflections only. Diffuse ambient stays authored in every main/SSR draw.
+				this.scene.environment = this.environment?.texture ?? authoredEnvironment
+				this.specularPass.render(
+					this.renderer,
+					this.scene,
+					camera,
+					this.environmentSpecular,
+				)
+			} finally {
+				this.scene.environment = authoredEnvironment
+			}
 			this.renderer.setRenderTarget(previousTarget)
 			this.quad.render(this.renderer)
 		} finally {
 			this.renderer.setRenderTarget(previousTarget)
+		}
+	}
+
+	private renderSSR(camera: THREE.Camera) {
+		if (!this.pass) return
+		this.pass.updateCamera(camera)
+		const restore = hideReflectionHelpers(this.scene)
+		const depthMaterials = new Map<THREE.Material, boolean>()
+		this.scene.traverseVisible((object) => {
+			if (!(object instanceof THREE.Mesh) || !object.name.startsWith('ghost-model-')) return
+			for (const material of Array.isArray(object.material)
+				? object.material
+				: [object.material]) {
+				if (!depthMaterials.has(material)) depthMaterials.set(material, material.depthWrite)
+				material.depthWrite = true
+			}
+		})
+		try {
+			this.pass.render(this.renderer, this.reflection, this.beauty, 0, false)
+		} finally {
+			for (const [material, depthWrite] of depthMaterials) material.depthWrite = depthWrite
+			restore()
 		}
 	}
 
@@ -367,6 +383,7 @@ export class GhostReflectionRenderer {
 		this.beauty.dispose()
 		this.reflection.dispose()
 		this.environmentSpecular.dispose()
+		this.authoredSpecular.dispose()
 		this.specularPass.dispose()
 		this.composite.dispose()
 		this.quad.dispose()

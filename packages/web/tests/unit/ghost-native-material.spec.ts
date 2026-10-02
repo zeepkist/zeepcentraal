@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as THREE from 'three'
 import { describe, expect, it, vi } from 'vitest'
+import { GhostMaterialContributionPass } from '../../app/utils/ghostLightingPasses.client'
 import {
 	createGhostNativeMaterial,
 	sortTransparentGhostInstances,
@@ -162,9 +163,13 @@ describe('reflection scheduling and sources', () => {
 		const disposeEnvironment = vi.spyOn(environment, 'dispose')
 		const renderer = {
 			getRenderTarget: () => target,
+			getDrawingBufferSize: (size: THREE.Vector2) => size.set(8, 8),
 			setRenderTarget: vi.fn(),
 			render: vi.fn(),
 		} as unknown as THREE.WebGLRenderer
+		const specular = vi
+			.spyOn(GhostMaterialContributionPass.prototype, 'render')
+			.mockImplementation(() => {})
 		const update = vi.spyOn(THREE.CubeCamera.prototype, 'update').mockImplementation(() => {
 			expect(grid.visible).toBe(false)
 			expect(soapbox.visible).toBe(true)
@@ -183,7 +188,7 @@ describe('reflection scheduling and sources', () => {
 			expect(renderer.setRenderTarget).toHaveBeenLastCalledWith(target)
 			update.mockImplementation(() => undefined)
 			reflections.render(new THREE.PerspectiveCamera(), new THREE.Vector3(), 1)
-			expect(scene.environment).toBe(environment.texture)
+			expect(scene.environment).toBe(originalEnvironment)
 			reflections.dispose()
 			reflections.dispose()
 			expect(scene.environment).toBe(originalEnvironment)
@@ -191,6 +196,7 @@ describe('reflection scheduling and sources', () => {
 			expect(disposeGenerator).toHaveBeenCalledOnce()
 		} finally {
 			update.mockRestore()
+			specular.mockRestore()
 			generate.mockRestore()
 			disposeGenerator.mockRestore()
 		}

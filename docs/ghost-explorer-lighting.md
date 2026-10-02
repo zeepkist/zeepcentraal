@@ -30,6 +30,8 @@ Glass and ghosts never cast opaque shadows. Beams use scene depth and selected l
 
 Reflection captures start from authored ambient lighting each time. Captured environments never feed
 subsequent captures. SSR blends over separately captured environment specular rather than adding both.
+Diffuse ambient always uses authored environment. Moving reflection probes changes specular reflections
+only. Camera regression samples same visible matte surface while orbiting and panning past coloured walls.
 
 ## Migration and rollout
 
