@@ -1,7 +1,22 @@
+mod adventure_environment;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    zc_core::environment::initialize()?;
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments
+        .first()
+        .is_some_and(|arg| arg == "generate-adventure-environment")
+    {
+        anyhow::ensure!(
+            arguments.len() == 3,
+            "Usage: zc-migrate generate-adventure-environment SOURCE_FOLDER OUTPUT_SQL"
+        );
+        let (sql, count) = adventure_environment::generate(std::path::Path::new(&arguments[1]))?;
+        std::fs::write(&arguments[2], sql)?;
+        println!("Wrote {count} adventure environments; no database connection");
+        return Ok(());
+    }
+    zc_core::environment::initialize()?;
     if arguments
         .first()
         .is_some_and(|arg| arg == "inspect-history")
