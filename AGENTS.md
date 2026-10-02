@@ -10,7 +10,8 @@ Read [`.agents/repository-analysis.md`](.agents/repository-analysis.md) only whe
 ## Map
 
 - `packages/core`: config/env, JWT/cookies, shared errors/types, cache, Steam, Discord. No app-package deps.
-- `packages/database`: Drizzle schema/client/migrations/services.
+- `crates/database`: production Diesel schema, services, migrations.
+- `packages/database`: retained TypeScript mirror. Drizzle migrations are archived.
 - `packages/workshop`: Steam metadata/downloads, level parsing, thumbnails, DB reconciliation.
 - `packages/jobs`: pgmq tasks, scoring, queue, cron, worker lifecycle.
 - `packages/server`: Elysia API/plugins/routes. Use DB services. Enqueue only through `@zeepkist/jobs/queue`.
@@ -43,13 +44,9 @@ bun run build:migrate
 bun run build:import-zsl
 ```
 
-DB:
-
-```bash
-bun run db:generate
-bun run db:migrate
-bun run db:studio
-```
+DB migrations use Rust Diesel only. Never run Drizzle migration generation or migration commands.
+Add `up.sql` and `down.sql` under `crates/database/migrations/<timestamp>_<name>/`.
+Rust migrator embeds Diesel migrations. Archived Drizzle files exist only for adoption verification.
 
 Do not run `lint:fix`/`format:fix` for inspection; they rewrite files.
 
@@ -74,9 +71,10 @@ Do not run `lint:fix`/`format:fix` for inspection; they rewrite files.
 
 ## Database
 
-- Source of truth: `packages/database/src/schema.ts`.
-- Reusable reads/writes: `packages/database/src/services`, exported through barrel.
-- Schema edit flow: edit schema -> `bun run db:generate` -> review/commit SQL snapshot journal.
+- Production schema: `crates/database/src/schema.rs`. Keep retained TypeScript schema mirror consistent.
+- Production reads/writes: `crates/database/src/services`.
+- Schema edit flow: add Diesel SQL migration, update Rust schema and TypeScript mirror, review SQL.
+- Never write new files or change journal/snapshots under `packages/database/drizzle`.
 - Never edit/reorder/delete applied migrations. Add new migration.
 - Keep PostgreSQL names/compat constraints stable unless task says otherwise.
 
@@ -113,6 +111,6 @@ Do not run `lint:fix`/`format:fix` for inspection; they rewrite files.
 - Focused tests for behavior/API changes.
 - Run typecheck/test/lint/format.
 - Build affected executable(s); all four for shared/build/deploy changes.
-- Schema changes include generated migration set.
+- Schema changes include Diesel migration with `up.sql` and `down.sql`.
 - Deployment changes verify PR + deploy workflow paths and runtime file availability.
 - Report skipped checks with reason: environment vs code.
