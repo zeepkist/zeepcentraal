@@ -1,6 +1,59 @@
 import { expect, test } from '@playwright/test'
 
 for (const quality of ['performance', 'balanced', 'quality'] as const)
+	for (const camera of ['orbit', 'isometric'] as const)
+		test(`${quality} ${camera}: stable white balance while orbiting and panning`, async ({
+			page,
+		}) => {
+			const errors: string[] = []
+			page.on('pageerror', (error) => errors.push(error.message))
+			await page.goto('/')
+			await page.waitForFunction(() => 'ghostLightingHarness' in window)
+			await page.evaluate((options) => window.ghostLightingHarness.load(options), {
+				quality,
+				camera,
+				ambientProbe: true,
+			})
+			const colors: number[][] = []
+			const reflections: number[][] = []
+			for (const [azimuth, pan] of [
+				[0, 0],
+				[0, -9],
+				[0, 9],
+				[0.25, 9],
+				[-0.25, -9],
+				[0, 0],
+			]) {
+				const frame = await page.evaluate(
+					([azimuth, pan]) =>
+						window.ghostLightingHarness.moveCamera(azimuth ?? 0, pan ?? 0),
+					[azimuth, pan],
+				)
+				expect(frame.exposure).toBe(1)
+				colors.push(
+					await page.evaluate(() => window.ghostLightingHarness.samplePoint(0, 0, 0)),
+				)
+				reflections.push(
+					await page.evaluate(() => window.ghostLightingHarness.samplePoint(0, 0.02, 5)),
+				)
+			}
+			for (let channel = 0; channel < 3; channel++) {
+				const values = colors.map((color) => color[channel] ?? 0)
+				expect(Math.min(...values)).toBeGreaterThan(20)
+				expect(Math.max(...values) - Math.min(...values)).toBeLessThanOrEqual(2)
+			}
+			expect(
+				Math.max(
+					...[0, 1, 2].map((channel) => {
+						const values = reflections.map((color) => color[channel] ?? 0)
+						return Math.max(...values) - Math.min(...values)
+					}),
+				),
+			).toBeGreaterThan(10)
+			expect(errors).toEqual([])
+		})
+
+for (const quality of ['performance', 'balanced', 'quality'] as const)
 	for (const camera of ['orbit', 'isometric'] as const) {
 		test(`${quality} ${camera}: white, ice, glass, lights, night, beams and capture stability`, async ({
 			page,

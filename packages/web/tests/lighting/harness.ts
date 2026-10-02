@@ -8,6 +8,7 @@ import { GhostPostprocessing } from '../../app/utils/ghostPostprocessing.client'
 import { GhostVolumetricPass } from '../../app/utils/ghostVolumetrics.client'
 import { parseProtectedLevelMeshBundle } from '../../app/utils/protectedMeshLibrary.client'
 import { DEFAULT_GHOST_ENVIRONMENT, type GhostLightingData } from '../../shared/ghostLighting'
+import type { ProtectedMeshMaterial } from '../../shared/protectedMeshFormat'
 
 type FixtureOptions = {
 	quality: GhostLightingQuality
@@ -17,6 +18,7 @@ type FixtureOptions = {
 	pointBeams?: boolean
 	occluder?: boolean
 	level?: string
+	ambientProbe?: boolean
 }
 const element = document.querySelector('canvas')
 if (!element) throw new Error('Lighting fixture canvas missing')
@@ -31,6 +33,8 @@ let scene: THREE.Scene,
 	pipeline: GhostPostprocessing
 let bounds = new THREE.Box3(),
 	target = new THREE.Vector3(),
+	cameraHomeTarget = new THREE.Vector3(),
+	cameraHomeOffset = new THREE.Vector3(),
 	timestamp = 0
 const resources = new Set<THREE.BufferGeometry | THREE.Material>()
 
@@ -106,7 +110,51 @@ async function load(options: FixtureOptions) {
 			},
 		],
 	}
-	if (options.level) {
+	if (options.ambientProbe) {
+		lighting.lights = []
+		lighting.environment.sun.intensity = 0
+		lighting.environment.backlight.intensity = 0
+		lighting.environment.fog.enabled = false
+		lighting.environment.ambient = {
+			top: [0.45, 0.45, 0.45],
+			mid: [0.45, 0.45, 0.45],
+			bottom: [0.45, 0.45, 0.45],
+		}
+		lighting.environment.sky = {
+			top: [0.45, 0.45, 0.45],
+			horizon: [0.45, 0.45, 0.45],
+			bottom: [0.45, 0.45, 0.45],
+			exposure: 1,
+		}
+		const descriptor: ProtectedMeshMaterial = {
+			color: [1, 1, 1],
+			roughness: 1,
+			transparent: false,
+			opacity: 1,
+			metalness: 0,
+			specular: [0, 0, 0],
+			workflow: 'specular',
+			doubleSided: false,
+		}
+		// Zero F0/F90 isolates diffuse ambient from legitimate view-dependent reflections.
+		const matte = createGhostNativeMaterial(descriptor)
+		matte.specularIntensity = 0
+		mesh(new THREE.PlaneGeometry(100, 100), matte, [0, 0, 0]).rotation.x = -Math.PI / 2
+		mesh(
+			new THREE.PlaneGeometry(3, 3),
+			createGhostNativeMaterial({ ...descriptor, specular: [0.8, 0.8, 0.8] }),
+			[0, 0.02, 5],
+		).rotation.x = -Math.PI / 2
+		for (const side of [-1, 1]) {
+			const color = side < 0 ? new THREE.Color(3, 0, 0) : new THREE.Color(0, 0, 3)
+			// Unlit walls colour captures without contributing authored bloom or direct light.
+			mesh(new THREE.BoxGeometry(8, 12, 10), new THREE.MeshBasicMaterial({ color }), [
+				side * 14,
+				6,
+				0,
+			])
+		}
+	} else if (options.level) {
 		await MeshoptDecoder.ready
 		const response = await fetch(`/fixture-level/${options.level}`)
 		if (!response.ok) throw new Error(`Fixture unavailable: ${options.level}`)
@@ -178,6 +226,7 @@ async function load(options: FixtureOptions) {
 	}
 	bounds.setFromObject(scene)
 	target = bounds.getCenter(new THREE.Vector3())
+	if (options.ambientProbe) target.set(0, 0, 0)
 	if (options.level) {
 		const anchor = await (await fetch(`/fixture-camera/${options.level}`)).json()
 		target.set(anchor.x, anchor.y + 4, -anchor.z)
@@ -194,6 +243,8 @@ async function load(options: FixtureOptions) {
 		)
 	else camera = new THREE.PerspectiveCamera(48, 16 / 9, 0.1, 5000)
 	camera.position.copy(target).add(new THREE.Vector3(radius * 0.9, radius * 0.65, radius * 1.15))
+	cameraHomeTarget.copy(target)
+	cameraHomeOffset.copy(camera.position).sub(target)
 	camera.lookAt(target)
 	camera.updateMatrixWorld()
 	rig = new GhostLightingRig(renderer, scene, options.quality, legacy)
@@ -246,6 +297,37 @@ function render() {
 		exposure: renderer.toneMappingExposure,
 		programs: renderer.info.programs?.length,
 	}
+}
+
+function moveCamera(azimuth: number, pan: number) {
+	target.copy(cameraHomeTarget).add(new THREE.Vector3(pan, 0, 0))
+	camera.position
+		.copy(target)
+		.add(cameraHomeOffset.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), azimuth))
+	camera.lookAt(target)
+	return render()
+}
+
+function samplePoint(x: number, y: number, z: number) {
+	const worldPoint = new THREE.Vector3(x, y, z)
+	const point = worldPoint.clone().project(camera)
+	const ray = new THREE.Raycaster()
+	ray.setFromCamera(new THREE.Vector2(point.x, point.y), camera)
+	const hit = ray.intersectObjects(scene.children, true)[0]
+	if (!hit || hit.point.distanceTo(worldPoint) > 0.05) throw new Error('Lighting probe occluded')
+	const size = renderer.getDrawingBufferSize(new THREE.Vector2())
+	const column = Math.round(((point.x + 1) / 2) * size.x),
+		row = Math.round(((point.y + 1) / 2) * size.y)
+	if (column < 1 || column >= size.x - 1 || row < 1 || row >= size.y - 1)
+		throw new Error('Lighting probe outside viewport')
+	const gl = renderer.getContext(),
+		pixels = new Uint8Array(3 * 3 * 4),
+		color = [0, 0, 0]
+	gl.readPixels(column - 1, row - 1, 3, 3, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+	for (let channel = 0; channel < 3; channel++)
+		for (let index = channel; index < pixels.length; index += 4)
+			color[channel] = (color[channel] ?? 0) + (pixels[index] ?? 0) / 9
+	return color
 }
 
 function beamEnergy() {
@@ -335,6 +417,8 @@ Object.assign(window, {
 	ghostLightingHarness: {
 		load,
 		render,
+		moveCamera,
+		samplePoint,
 		beamEnergy,
 		resize,
 		replaceRenderer,
@@ -349,6 +433,8 @@ declare global {
 		ghostLightingHarness: {
 			load: typeof load
 			render: typeof render
+			moveCamera: typeof moveCamera
+			samplePoint: typeof samplePoint
 			beamEnergy: typeof beamEnergy
 			resize: typeof resize
 			replaceRenderer: typeof replaceRenderer
