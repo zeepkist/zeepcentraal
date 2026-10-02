@@ -1,4 +1,7 @@
-use crate::Database;
+use crate::{
+    Database,
+    services::discord_rank::{RankChange, append_rank_changes},
+};
 use anyhow::{Result, ensure};
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
@@ -243,17 +246,6 @@ struct PersistedContribution {
     level_decayed_points: f32,
     contribution_rank: i32,
     player_decayed_points: f32,
-}
-
-#[derive(QueryableByName, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct RankChangeRow {
-    #[diesel(sql_type = Integer)]
-    id_user: i32,
-    #[diesel(sql_type = Integer)]
-    previous_rank: i32,
-    #[diesel(sql_type = Integer)]
-    rank: i32,
 }
 
 impl Database {
@@ -656,17 +648,13 @@ impl Database {
                          ORDER BY changed.rank,changed.id_user",
                     )
                     .bind::<Jsonb, _>(&source)
-                    .load::<RankChangeRow>(connection)
+                    .load::<RankChange>(connection)
                     .await?;
-                    if !changes.is_empty() {
-                        sql_query(
-                            "INSERT INTO public.discord_activity_event(kind,payload) VALUES('rank_batch',jsonb_build_object('changes',$1::jsonb))",
-                        )
-                        .bind::<Jsonb, _>(serde_json::to_value(&changes)?)
-                        .execute(connection)
-                        .await?;
+                    let count = changes.len();
+                    if count > 0 {
+                        append_rank_changes(connection, changes).await?;
                     }
-                    Ok(MaintenanceOutcome::Applied(changes.len()))
+                    Ok(MaintenanceOutcome::Applied(count))
                 })
             .await;
         contention_outcome(result)

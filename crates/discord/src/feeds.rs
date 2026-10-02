@@ -8,7 +8,9 @@ use serenity::{
     all::{ChannelId, Http, MessageFlags, MessageId, UserId},
     builder::{
         CreateAllowedMentions, CreateButton, CreateComponent, CreateContainer,
-        CreateContainerComponent, CreateMessage, CreateTextDisplay, EditMessage,
+        CreateContainerComponent, CreateMessage, CreateSection, CreateSectionAccessory,
+        CreateSectionComponent, CreateTextDisplay, CreateThumbnail, CreateUnfurledMediaItem,
+        EditMessage,
     },
     model::Colour,
 };
@@ -115,6 +117,9 @@ async fn activity_page<'a>(
 }
 
 async fn poll_activity(http: &Http, backend: &Backend, frontend_url: &reqwest::Url) -> Result<()> {
+    if let Err(error) = backend.flush_rank_batches().await {
+        tracing::error!(%error, "Discord rank batch flush failed");
+    }
     let mut pages = ActivityPages::new();
     let mut rank_messages = RankMessages::new();
     if let Err(error) =
@@ -641,12 +646,28 @@ async fn event_message(
         ),
         _ => "New ZeepCentraal activity.".into(),
     };
-    let mut components = vec![CreateContainerComponent::TextDisplay(
-        CreateTextDisplay::new(format!(
-            "## {title}\n{detail}\n-# ZeepCentraal • {}",
-            event.occurred_at
+    let occurred = event.occurred_at.parse::<jiff::Timestamp>().map_or_else(
+        |_| event.occurred_at.clone(),
+        |timestamp| format!("<t:{}:R>", timestamp.as_second()),
+    );
+    let details = CreateTextDisplay::new(format!(
+        "## {title}\n{detail}\n-# ZeepCentraal • {occurred}"
+    ));
+    let image = item
+        .filter(|_| matches!(event.kind.as_str(), "workshop" | "world_record"))
+        .map(|item| item.image_url.trim())
+        .filter(|url| !url.is_empty());
+    let header = match image {
+        Some(url) => CreateContainerComponent::Section(CreateSection::new(
+            vec![CreateSectionComponent::TextDisplay(details)],
+            CreateSectionAccessory::Thumbnail(
+                CreateThumbnail::new(CreateUnfurledMediaItem::new(url.to_owned()))
+                    .description(level_name.chars().take(512).collect::<String>()),
+            ),
         )),
-    )];
+        None => CreateContainerComponent::TextDisplay(details),
+    };
+    let mut components = vec![header];
     if let Some(level) = &event.level {
         let target = frontend_url
             .join(&format!("/level/{}", level.xx_hash))

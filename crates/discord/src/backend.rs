@@ -2,6 +2,7 @@ use anyhow::{Context, Result, bail};
 use reqwest::{Client, Method, Url};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone)]
 pub struct Backend {
@@ -56,6 +57,13 @@ pub struct MatchingWatch {
     pub id: String,
     pub discord_id: String,
     pub last_delivery_key: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WatchTarget {
+    kind: String,
+    target_ids: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -499,6 +507,13 @@ impl Backend {
         .await
     }
 
+    pub async fn flush_rank_batches(&self) -> Result<()> {
+        let _: Value = self
+            .request(Method::POST, "/discord-bot/rank-batches/flush", None)
+            .await?;
+        Ok(())
+    }
+
     pub async fn level(&self, query: &str) -> Result<LevelProfile> {
         self.request(
             Method::POST,
@@ -667,17 +682,18 @@ impl Backend {
     }
 
     pub async fn matching_watches(&self, event: &ActivityEvent) -> Result<Vec<MatchingWatch>> {
-        let mut player = Vec::new();
+        let mut player = [event.user_id, event.previous_user_id]
+            .into_iter()
+            .flatten()
+            .filter(|id| *id > 0)
+            .map(|id| id.to_string())
+            .collect::<Vec<_>>();
         for user in [event.user.as_ref(), event.previous_user.as_ref()]
             .into_iter()
             .flatten()
         {
-            player.push(user.id.to_string());
-            if let Some(id) = &user.steam_id {
-                player.push(id.clone());
-            }
-            if let Some(name) = &user.steam_name {
-                player.push(name.clone());
+            if user.id > 0 {
+                player.push(user.id.to_string());
             }
         }
         let mut level = Vec::new();
@@ -698,19 +714,13 @@ impl Backend {
                 }
             }
         }
-        let changes = event
-            .payload
-            .get("changes")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(|change| change.get("idUser"))
-            .map(|value| {
-                value
-                    .as_str()
-                    .map_or_else(|| value.to_string(), str::to_owned)
-            });
-        player.extend(changes);
+        if event.kind == "rank_batch" {
+            player.extend(
+                crate::rank::changes(event)
+                    .into_iter()
+                    .map(|change| change.id_user.to_string()),
+            );
+        }
         self.matching_watch_targets(json!([
             {"kind":"player","targetIds":player},
             {"kind":"level","targetIds":level},
@@ -720,12 +730,42 @@ impl Backend {
     }
 
     pub async fn matching_watch_targets(&self, targets: Value) -> Result<Vec<MatchingWatch>> {
-        self.request(
-            Method::POST,
-            "/discord-bot/watches/matches",
-            Some(json!({"targets":targets})),
-        )
-        .await
+        let targets: Vec<WatchTarget> =
+            serde_json::from_value(targets).context("Invalid Discord watch targets")?;
+        let mut normalized = BTreeMap::<String, BTreeSet<String>>::new();
+        for target in targets {
+            for id in target.target_ids {
+                let id = id.trim().to_lowercase();
+                if !id.is_empty() && id.len() <= 128 {
+                    normalized
+                        .entry(target.kind.clone())
+                        .or_default()
+                        .insert(id);
+                }
+            }
+        }
+        let mut requests = Vec::<Vec<Value>>::new();
+        for (kind, ids) in normalized {
+            let ids = ids.into_iter().collect::<Vec<_>>();
+            for (index, chunk) in ids.chunks(50).enumerate() {
+                if index == requests.len() {
+                    requests.push(Vec::new());
+                }
+                requests[index].push(json!({"kind":kind,"targetIds":chunk}));
+            }
+        }
+        let mut watches = BTreeMap::<String, MatchingWatch>::new();
+        for targets in requests {
+            let matches: Vec<MatchingWatch> = self
+                .request(
+                    Method::POST,
+                    "/discord-bot/watches/matches",
+                    Some(json!({"targets":targets})),
+                )
+                .await?;
+            watches.extend(matches.into_iter().map(|watch| (watch.id.clone(), watch)));
+        }
+        Ok(watches.into_values().collect())
     }
 
     pub async fn update_watch(

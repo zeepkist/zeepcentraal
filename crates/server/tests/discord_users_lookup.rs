@@ -137,6 +137,53 @@ async fn request(app: &Router, token: Option<&str>, body: Value) -> Result<(Stat
     Ok((status, value))
 }
 
+async fn flush(app: &Router, token: Option<&str>) -> Result<(StatusCode, Value)> {
+    let mut builder = Request::builder()
+        .method("POST")
+        .uri("/discord-bot/rank-batches/flush");
+    if let Some(token) = token {
+        builder = builder.header("Authorization", format!("Bearer {token}"));
+    }
+    let response = app.clone().oneshot(builder.body(Body::empty())?).await?;
+    let status = response.status();
+    let bytes = to_bytes(response.into_body(), 64 * 1024).await?;
+    Ok((status, serde_json::from_slice(&bytes)?))
+}
+
+#[tokio::test]
+async fn rank_batch_flush_requires_bot_token() -> Result<()> {
+    let app = app("postgres://fixture:fixture@127.0.0.1:1/discord_feeds_test")?;
+    for token in [None, Some("wrong-token")] {
+        assert_eq!(flush(&app, token).await?.0, StatusCode::UNAUTHORIZED);
+    }
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires disposable local PostgreSQL named discord_feeds_test"]
+async fn rank_batch_flush_http_contract_accepts_empty_body_and_is_idempotent() -> Result<()> {
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
+    let parsed = url::Url::parse(&url)?;
+    ensure!(
+        parsed.host_str() == Some("127.0.0.1") && parsed.path() == "/discord_feeds_test",
+        "Dedicated disposable database required"
+    );
+    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move {
+        let _ = connection.await;
+    });
+    client.batch_execute("CREATE SCHEMA IF NOT EXISTS zc_private; CREATE TABLE IF NOT EXISTS zc_private.discord_rank_batch_state(id smallint PRIMARY KEY,changes jsonb,window_started_at timestamptz,last_change_at timestamptz); INSERT INTO zc_private.discord_rank_batch_state VALUES(1,'[]',NULL,NULL) ON CONFLICT DO NOTHING").await?;
+    let app = app(&url)?;
+    for _ in 0..2 {
+        assert_eq!(
+            flush(&app, Some("fake-discord-api-test-token")).await?,
+            (StatusCode::OK, json!({"emittedBatches":0}))
+        );
+    }
+    Ok(())
+}
+
 #[tokio::test]
 async fn lookup_requires_bot_token_and_validates_ids_before_database_access() -> Result<()> {
     let app = app("postgres://fixture:fixture@127.0.0.1:1/discord_feeds_test")?;
@@ -146,7 +193,7 @@ async fn lookup_requires_bot_token_and_validates_ids_before_database_access() ->
             StatusCode::UNAUTHORIZED
         );
     }
-    for ids in [vec![0], vec![-1], (1..=31).collect()] {
+    for ids in [vec![0], vec![-1], (1..=51).collect()] {
         assert_eq!(
             request(
                 &app,
@@ -197,10 +244,11 @@ async fn lookup_http_contract_returns_only_requested_users_and_nullable_points()
             ON CONFLICT(id_user) DO UPDATE SET points=excluded.points;
     "#).await?;
     let app = app(&url)?;
+    let user_ids = [vec![9002, 9001, 9001], (10_000..=10_046).collect()].concat();
     let (status, users) = request(
         &app,
         Some("fake-discord-api-test-token"),
-        json!({"userIds":[9002,9001,9001,999]}),
+        json!({"userIds":user_ids}),
     )
     .await?;
     assert_eq!(status, StatusCode::OK);

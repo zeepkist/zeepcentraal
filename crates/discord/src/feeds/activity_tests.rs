@@ -16,11 +16,18 @@ struct State {
     worker: i64,
     deliveries: BTreeMap<(String, String), String>,
     watched: BTreeSet<i64>,
+    player_watches: Vec<(i64, i64, u64)>,
+    watch_requests: Vec<Value>,
     watch_keys: BTreeMap<i64, String>,
+    dm_recipients: Vec<u64>,
+    dm_channels: BTreeMap<u64, u64>,
     fail_sends: BTreeSet<(u64, i64)>,
     fail_cursors: BTreeSet<(String, i64)>,
     fail_watch_lookup: bool,
     fail_user_lookup: bool,
+    fail_rank_flush: bool,
+    flushes: usize,
+    ping_world_record_loss: bool,
     sent: Vec<(u64, i64, Value)>,
     attempts: Vec<(u64, i64)>,
     queries: Vec<i64>,
@@ -46,6 +53,117 @@ fn event(id: i64, kind: &str) -> Value {
         value["level"] = Value::Null;
     }
     value
+}
+
+#[tokio::test]
+async fn level_events_render_thumbnail_relative_time_and_missing_image_fallback() {
+    let frontend = "https://zeepki.st".parse().unwrap();
+    for kind in ["workshop", "world_record"] {
+        let value = event(1, kind);
+        let activity: ActivityEvent = serde_json::from_value(value.clone()).unwrap();
+        let message =
+            serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+        let header = &message["components"][0]["components"][0];
+        assert_eq!(header["type"], 9);
+        assert_eq!(header["accessory"]["type"], 11);
+        assert_eq!(
+            header["accessory"]["media"]["url"],
+            "https://example.com/track.jpg"
+        );
+        assert_eq!(header["accessory"]["description"], "Event 1");
+        let text = header["components"][0]["content"].as_str().unwrap();
+        assert!(text.contains("<t:1791180000:R>"));
+        if kind == "world_record" {
+            assert!(text.contains("00:49.332"));
+            assert!(text.contains("First record set on this level."));
+        }
+        assert_eq!(
+            message["components"][0]["components"][1]["components"][0]["url"],
+            "https://zeepki.st/level/hash1"
+        );
+        assert_eq!(message["flags"], 32768);
+        assert_eq!(message["allowed_mentions"]["parse"], json!([]));
+        for image in ["", "  "] {
+            let mut value = value.clone();
+            value["level"]["levelItems"]["nodes"][0]["imageUrl"] = json!(image);
+            value["occurredAt"] = json!("invalid timestamp");
+            let activity = serde_json::from_value(value).unwrap();
+            let message =
+                serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+            let header = &message["components"][0]["components"][0];
+            assert_eq!(header["type"], 10);
+            assert!(
+                header["content"]
+                    .as_str()
+                    .unwrap()
+                    .contains("invalid timestamp")
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn rank_flush_failure_does_not_stall_other_feeds() {
+    let harness = Harness::new(State {
+        feeds: vec![feed(1, "world_record", 20, 0)],
+        events: vec![event(1, "world_record")],
+        fail_rank_flush: true,
+        ..State::default()
+    })
+    .await;
+    harness.poll().await;
+    assert_eq!(harness.cursor("1", "world_record"), 1);
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.flushes, 1);
+    assert_eq!(state.sent.len(), 1);
+}
+
+#[tokio::test]
+async fn world_record_thumbnail_preserves_context_and_opt_in_loss_pings() {
+    let frontend = "https://zeepki.st".parse().unwrap();
+    let mut value = event(1, "world_record");
+    value["previousUserId"] = json!(2);
+    value["previousUser"] = json!({"id":2,"steamName":"Previous player","discordId":"456"});
+    value["previousRecord"] = json!({"time":55.0});
+    let mut activity: ActivityEvent = serde_json::from_value(value).unwrap();
+    for enabled in [false, true] {
+        let harness = Harness::new(State {
+            ping_world_record_loss: enabled,
+            ..State::default()
+        })
+        .await;
+        let message =
+            serde_json::to_value(event_message(&activity, &frontend, Some(&harness.backend)).await)
+                .unwrap();
+        let text = message["components"][0]["components"][0]["components"][0]["content"]
+            .as_str()
+            .unwrap();
+        assert!(text.contains("Stolen from Previous player (00:55.000)"));
+        assert_eq!(
+            text.contains("<@456> your world record was beaten."),
+            enabled
+        );
+        let mentions = message["allowed_mentions"]["users"].as_array().unwrap();
+        assert_eq!(mentions.len(), usize::from(enabled));
+        if enabled {
+            assert_eq!(mentions[0], "456");
+        }
+        let direct = serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+        assert!(
+            direct["allowed_mentions"]["users"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+    }
+    activity.previous_user_id = activity.user_id;
+    let message = serde_json::to_value(event_message(&activity, &frontend, None).await).unwrap();
+    assert!(
+        message["components"][0]["components"][0]["components"][0]["content"]
+            .as_str()
+            .unwrap()
+            .contains("Improved by 5.668s")
+    );
 }
 
 struct Harness {
@@ -139,7 +257,15 @@ fn respond(
             Json(json!({"code":0,"message":"fixture failure"})),
         )
     };
-    let value = if path == "/discord-bot/guild-feeds/enabled" {
+    let value = if path == "/discord-bot/rank-batches/flush" {
+        assert_eq!(method, Method::POST);
+        assert!(body.is_null());
+        state.flushes += 1;
+        if state.fail_rank_flush {
+            return fail();
+        }
+        json!({"emittedBatches":0})
+    } else if path == "/discord-bot/guild-feeds/enabled" {
         json!(state.feeds)
     } else if path == "/discord-bot/workers/watch-events/cursor" {
         if method == Method::POST {
@@ -180,17 +306,31 @@ fn respond(
         if state.fail_watch_lookup {
             return fail();
         }
-        let targets = body["targets"][0]["targetIds"].as_array().unwrap();
-        let id = targets
-            .iter()
-            .filter_map(|target| target.as_str()?.parse::<i64>().ok())
-            .find(|id| state.watched.contains(id));
-        match id {
-            Some(id) => {
-                json!([{"id":id.to_string(),"discordId":"123","lastDeliveryKey":state.watch_keys.get(&id)}])
+        let targets = body["targets"].as_array().unwrap();
+        assert!(targets.len() <= 4);
+        let mut players = BTreeSet::new();
+        for target in targets {
+            let ids = target["targetIds"].as_array().unwrap();
+            assert!(ids.len() <= 50);
+            for id in ids {
+                let id = id.as_str().unwrap();
+                assert!(!id.is_empty() && id.len() <= 128);
+                if target["kind"] == "player"
+                    && let Ok(id) = id.parse::<i64>()
+                {
+                    players.insert(id);
+                }
             }
-            None => json!([]),
         }
+        state.watch_requests.push(body);
+        let mut watches = state
+            .player_watches
+            .iter()
+            .filter(|(_, player, _)| players.contains(player))
+            .map(|(id, _, owner)| json!({"id":id.to_string(),"discordId":owner.to_string(),"lastDeliveryKey":state.watch_keys.get(id)}))
+            .collect::<Vec<_>>();
+        watches.extend(players.intersection(&state.watched).map(|id| json!({"id":id.to_string(),"discordId":"123","lastDeliveryKey":state.watch_keys.get(id)})));
+        json!(watches)
     } else if path == "/discord-bot/users/lookup" {
         if state.fail_user_lookup {
             return fail();
@@ -203,6 +343,8 @@ fn respond(
             .collect::<Vec<_>>();
         state.lookups.push(ids.clone());
         json!(ids.iter().map(|id|json!({"id":id,"steamName":format!("Event {id}"),"discordId":null,"points":123000})).collect::<Vec<_>>())
+    } else if path == "/discord-bot/users/456" {
+        json!({"linkedUser":null,"preference":{"pingOnWorldRecordLoss":state.ping_world_record_loss},"watches":[]})
     } else if parts.starts_with(&["discord-bot", "watches"]) && parts.last() == Some(&"delivery") {
         let id = parts[2].parse().unwrap();
         if let Some(key) = body["deliveryKey"].as_str() {
@@ -241,7 +383,14 @@ fn respond(
         feed["cursorEventId"] = json!(previous.max(id).to_string());
         feed.clone()
     } else if path.ends_with("/users/@me/channels") {
-        json!({"id":"900","type":1,"recipients":[{"id":"123","username":"fixture","discriminator":"0","avatar":null}]})
+        let recipient = body["recipient_id"]
+            .as_str()
+            .unwrap()
+            .parse::<u64>()
+            .unwrap();
+        state.dm_recipients.push(recipient);
+        let channel = state.dm_channels.get(&recipient).copied().unwrap_or(900);
+        json!({"id":channel.to_string(),"type":1,"recipients":[{"id":recipient.to_string(),"username":"fixture","discriminator":"0","avatar":null}]})
     } else if path.ends_with("/messages") {
         let index = parts.iter().position(|part| *part == "channels").unwrap();
         let channel = parts[index + 1].parse::<u64>().unwrap();
@@ -269,6 +418,130 @@ fn respond(
         panic!("Unexpected fixture request: {method} {path}: {body}");
     };
     (StatusCode::OK, Json(value))
+}
+
+#[tokio::test]
+async fn player_watches_dm_owners_once_for_records_and_ranks_without_guild_feeds() {
+    for kind in ["personal_best", "world_record", "rank_batch"] {
+        let mut value = event(1, kind);
+        if kind == "rank_batch" {
+            value["payload"]["changes"] = json!([
+                {"idUser":1,"previousRank":3,"rank":1},
+                {"idUser":2,"previousRank":4,"rank":2}
+            ]);
+        } else {
+            value["user"]["discordId"] = json!("456");
+            value["user"]["steamName"] = json!("123"); // Numeric name is not another player ID.
+            value["level"]["levelItems"]["nodes"][0]["name"] =
+                json!(format!("Event 1 {}", "🦀".repeat(40)));
+            if kind == "world_record" {
+                value["previousUserId"] = json!(2);
+                value["previousUser"] =
+                    json!({"id":2,"steamName":"Previous player","discordId":"789"});
+                value["previousRecord"] = json!({"time":55.0});
+            }
+        }
+        let harness = Harness::new(State {
+            events: vec![value],
+            player_watches: vec![(11, 1, 123), (12, 1, 123), (13, 2, 321)],
+            dm_channels: BTreeMap::from([(321, 901)]),
+            ..State::default()
+        })
+        .await;
+        harness.poll().await;
+        harness.poll().await;
+        let state = harness.state.lock().unwrap();
+        let previous_matches = kind != "personal_best";
+        assert_eq!(state.worker, 1);
+        assert_eq!(state.sent.len(), if previous_matches { 2 } else { 1 });
+        assert_eq!(
+            state.dm_recipients,
+            if previous_matches {
+                vec![123, 321]
+            } else {
+                vec![123]
+            }
+        );
+        assert_eq!(state.watch_keys.get(&11).unwrap(), "event:1");
+        assert_eq!(state.watch_keys.get(&12).unwrap(), "event:1");
+        assert_eq!(state.watch_keys.contains_key(&13), previous_matches);
+        let players = state
+            .watch_requests
+            .iter()
+            .flat_map(|request| request["targets"].as_array().unwrap())
+            .filter(|target| target["kind"] == "player")
+            .collect::<Vec<_>>();
+        assert_eq!(players.len(), 1);
+        assert!(
+            !players[0]["targetIds"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("123"))
+        );
+    }
+}
+
+#[tokio::test]
+async fn owner_dm_failure_retries_without_repeating_another_owners_success() {
+    let harness = Harness::new(State {
+        events: vec![event(1, "personal_best")],
+        player_watches: vec![(11, 1, 123), (12, 1, 321)],
+        dm_channels: BTreeMap::from([(321, 901)]),
+        fail_sends: BTreeSet::from([(901, 1)]),
+        ..State::default()
+    })
+    .await;
+    harness.poll().await;
+    {
+        let mut state = harness.state.lock().unwrap();
+        assert_eq!(state.worker, 0);
+        assert_eq!(state.sent.len(), 1);
+        assert_eq!(state.watch_keys.get(&11).unwrap(), "event:1");
+        assert!(!state.watch_keys.contains_key(&12));
+        state.fail_sends.clear();
+    }
+    harness.poll().await;
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.worker, 1);
+    assert_eq!(state.sent.len(), 2);
+    assert_eq!(state.dm_recipients, vec![123, 321, 321]);
+    assert_eq!(state.watch_keys.get(&12).unwrap(), "event:1");
+}
+
+#[tokio::test]
+async fn watch_target_requests_are_bounded_and_returned_watches_are_deduplicated() {
+    let harness = Harness::new(State {
+        player_watches: vec![(11, 1, 123), (11, 99, 123), (12, 101, 321)],
+        ..State::default()
+    })
+    .await;
+    let mut ids = (1..=101).map(|id| id.to_string()).collect::<Vec<_>>();
+    ids.extend([" 1 ".into(), "".into(), " ".into(), "🦀".repeat(33)]);
+    let watches = harness
+        .backend
+        .matching_watch_targets(json!([
+            {"kind":"player","targetIds":ids},
+            {"kind":"player","targetIds":["51"]}
+        ]))
+        .await
+        .unwrap();
+    assert_eq!(
+        watches
+            .iter()
+            .map(|watch| watch.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["11", "12"]
+    );
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.watch_requests.len(), 3);
+    assert_eq!(
+        state
+            .watch_requests
+            .iter()
+            .map(|request| request["targets"][0]["targetIds"].as_array().unwrap().len())
+            .sum::<usize>(),
+        101
+    );
 }
 
 #[tokio::test]

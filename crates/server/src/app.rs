@@ -145,6 +145,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(discord_routes::enabled_guild_feeds),
         )
         .route(
+            "/discord-bot/rank-batches/flush",
+            post(discord_routes::flush_rank_batches),
+        )
+        .route(
             "/discord-bot/guilds/{guild_id}",
             get(discord_routes::guild_state),
         )

@@ -30,7 +30,7 @@ pub struct UsersLookupBody {
 
 impl UsersLookupBody {
     fn validate(&self) -> ApiResult<()> {
-        if self.user_ids.len() > 30 || self.user_ids.iter().any(|id| *id <= 0) {
+        if self.user_ids.len() > 50 || self.user_ids.iter().any(|id| *id <= 0) {
             return Err(invalid());
         }
         Ok(())
@@ -333,6 +333,27 @@ fn not_found() -> Problem {
         detail: "Public level not found".into(),
         error_code: None,
     }
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RankBatchFlush {
+    emitted_batches: usize,
+}
+
+#[utoipa::path(post, path = "/discord-bot/rank-batches/flush", responses((status = 200, body = RankBatchFlush), (status = 401)))]
+pub async fn flush_rank_batches(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+) -> ApiResult<Json<RankBatchFlush>> {
+    authorize(&state, &headers)?;
+    Ok(Json(RankBatchFlush {
+        emitted_batches: state
+            .database
+            .flush_discord_rank_batches()
+            .await
+            .map_err(Problem::internal)?,
+    }))
 }
 
 #[utoipa::path(get, path = "/discord-bot/activity-events", params(ActivityEventsQuery), responses((status = 200), (status = 400), (status = 401)))]
@@ -834,10 +855,10 @@ mod tests {
 
     #[test]
     fn lookup_accepts_only_bounded_positive_player_ids() {
-        for ids in [vec![], vec![1, 1, i32::MAX], (1..=30).collect()] {
+        for ids in [vec![], vec![1, 1, i32::MAX], (1..=50).collect()] {
             assert!(UsersLookupBody { user_ids: ids }.validate().is_ok());
         }
-        for ids in [vec![0], vec![-1], (1..=31).collect()] {
+        for ids in [vec![0], vec![-1], (1..=51).collect()] {
             assert!(UsersLookupBody { user_ids: ids }.validate().is_err());
         }
         assert!(

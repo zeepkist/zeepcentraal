@@ -163,7 +163,15 @@ definitions, including profile/level lookup, autocomplete, tournaments, playlist
 comparison, and random levels through authenticated Diesel-backed server reads. It syncs linked
 roles and exposes supervised health/readiness state. Durable activity feeds, direct-message
 watches, world-record loss pings, and Track of the Week/Month polling use independent persisted
-cursors and idempotent delivery records. Level and tournament leaderboards now use owner-bound,
+cursors and idempotent delivery records. Rank changes accumulate transactionally in PostgreSQL;
+each player keeps their earliest previous rank and latest rank. Batches flush at 50 players,
+after two quiet minutes, or after five minutes total. Discord polls the authenticated
+`POST /discord-bot/rank-batches/flush` endpoint every five seconds before activity delivery.
+Apply the rank accumulator migration before jobs/server deployment; deploy server before Discord.
+Player watch matching resolves internal player IDs to Steam IDs, names, Discord IDs, and Discord
+mentions. Existing active watches need no recreation. DMs go to the watch owner's Discord ID.
+Deploy server matching changes before Discord; preserve cursors without replaying skipped history.
+Level and tournament leaderboards now use owner-bound,
 expiring Components V2 first/previous/next/last sessions with fresh Diesel pages. Lobby executable
 now wires managed-room supervision,
 join-ID persistence, ownership enforcement, bounded transfer queue, roster/chat, leaderboard

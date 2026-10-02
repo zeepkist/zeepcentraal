@@ -39,6 +39,7 @@ use utoipa::OpenApi;
         crate::routes::remove_discord_bot_watch,
         crate::discord_runtime_routes::match_watches,
         crate::discord_runtime_routes::activity_events,
+        crate::discord_runtime_routes::flush_rank_batches,
         crate::discord_runtime_routes::users_lookup,
         crate::discord_runtime_routes::current_tournaments,
         crate::discord_runtime_routes::tournament_standings,
@@ -101,7 +102,14 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 57);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 58);
+        assert!(
+            schema["paths"]["/discord-bot/rank-batches/flush"]["post"]["responses"]["200"]
+                .is_object()
+        );
+        assert!(
+            schema["paths"]["/discord-bot/rank-batches/flush"]["post"]["requestBody"].is_null()
+        );
         assert!(schema["paths"]["/discord-bot/users/lookup"]["post"].is_object());
         assert!(schema["paths"]["/kofi/webhook"]["post"]["requestBody"]["content"]["application/x-www-form-urlencoded"].is_object());
         assert!(schema["paths"]["/super-league/vote"]["get"].is_object());

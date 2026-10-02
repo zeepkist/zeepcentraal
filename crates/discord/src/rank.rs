@@ -8,7 +8,63 @@ use serenity::{
     },
 };
 
-pub(crate) const DISPLAY_LIMIT: usize = 30;
+pub(crate) const DISPLAY_LIMIT: usize = 50;
+
+fn bounded_name(name: &str, limit: usize) -> String {
+    let mut length = 0;
+    name.chars()
+        .map(|character| {
+            if matches!(character, '\r' | '\n' | '\t') {
+                ' '
+            } else {
+                character
+            }
+        })
+        .take_while(|character| {
+            length += character.len_utf16();
+            length <= limit
+        })
+        .collect()
+}
+
+fn row(change: &RankChange, users: &[RankUser], compact: bool) -> String {
+    let user = users.iter().find(|user| user.id == change.id_user);
+    let name = bounded_name(
+        user.and_then(|user| user.steam_name.as_deref())
+            .unwrap_or("Unknown player"),
+        if compact { 24 } else { 40 },
+    );
+    let mention = user
+        .and_then(|user| user.discord_id.as_deref())
+        .and_then(|id| id.parse::<u64>().ok())
+        .filter(|id| *id > 0)
+        .map(|id| format!("<@{id}>"));
+    let points = user.and_then(|user| user.points);
+    if compact {
+        let player = mention.unwrap_or(name);
+        let points = points.map_or_else(|| "unknown".into(), |points| points.to_string());
+        format!(
+            "{player} {} → {} · {points}",
+            rank_label(change.previous_rank),
+            rank_label(change.rank)
+        )
+    } else {
+        let player = mention.map_or(name.clone(), |mention| format!("{name} ({mention})"));
+        let up =
+            change.rank != -1 && (change.previous_rank == -1 || change.rank < change.previous_rank);
+        let arrow = if up {
+            "<:up:1535467505831780455>"
+        } else {
+            "<:down:1535467431655637072>"
+        };
+        let points = points.map_or_else(|| "unknown".into(), points_label);
+        format!(
+            "{arrow} {player}: {} → {} ({points} pts)",
+            rank_label(change.previous_rank),
+            rank_label(change.rank)
+        )
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -82,50 +138,6 @@ pub(crate) fn message(
     if changes.is_empty() {
         return None;
     }
-    let mut rows = Vec::new();
-    let mut text_length = 0;
-    for change in changes.iter().take(DISPLAY_LIMIT) {
-        let up =
-            change.rank != -1 && (change.previous_rank == -1 || change.rank < change.previous_rank);
-        let arrow = if up {
-            "<:up:1535467505831780455>"
-        } else {
-            "<:down:1535467431655637072>"
-        };
-        let user = users.iter().find(|user| user.id == change.id_user);
-        // Bound user-supplied names so every movement fits Discord's text limits.
-        let name = user
-            .and_then(|user| user.steam_name.as_deref())
-            .unwrap_or("Unknown player")
-            .replace(['\r', '\n'], " ")
-            .chars()
-            .take(40)
-            .collect::<String>();
-        let player = match user
-            .and_then(|user| user.discord_id.as_deref())
-            .and_then(|id| id.parse::<u64>().ok())
-            .filter(|id| *id > 0)
-        {
-            Some(id) => format!("{name} (<@{id}>)"),
-            None => name,
-        };
-        let points = user
-            .and_then(|user| user.points)
-            .map_or_else(|| "unknown".into(), points_label);
-        let row = format!(
-            "{arrow} {player}: {} → {} ({points} pts)",
-            rank_label(change.previous_rank),
-            rank_label(change.rank)
-        );
-        text_length += row.encode_utf16().count() + 1;
-        if text_length > 3000 {
-            break;
-        }
-        rows.push(row);
-    }
-    if changes.len() > rows.len() {
-        rows.push(format!("…and {} more", changes.len() - rows.len()));
-    }
     let occurred = event.occurred_at.parse::<jiff::Timestamp>().map_or_else(
         |_| event.occurred_at.clone(),
         |timestamp| format!("<t:{}:R>", timestamp.as_second()),
@@ -136,11 +148,40 @@ pub(crate) fn message(
     } else {
         "players moved"
     };
-    // Separate text displays keep bounded movement rows within component limits.
+    let mut header =
+        format!("## Rank changes\n{count} {movement} after ranking recalculation.\n### Movements");
+    let footer = format!("-# ZeepCentraal • {occurred}");
+    let mut rows = changes
+        .iter()
+        .take(DISPLAY_LIMIT)
+        .map(|change| row(change, users, false))
+        .collect::<Vec<_>>();
+    let more = (changes.len() > DISPLAY_LIMIT)
+        .then(|| format!("…and {} more", changes.len() - DISPLAY_LIMIT));
+    let text_length = header.encode_utf16().count()
+        + footer.encode_utf16().count()
+        + rows
+            .iter()
+            .map(|row| row.encode_utf16().count() + 1)
+            .sum::<usize>()
+        + more
+            .as_ref()
+            .map_or(0, |more| more.encode_utf16().count() + 1)
+        + 2;
+    if text_length > 4000 {
+        header.push_str(" • points");
+        rows = changes
+            .iter()
+            .take(DISPLAY_LIMIT)
+            .map(|change| row(change, users, true))
+            .collect();
+    }
+    if let Some(more) = more {
+        rows.push(more);
+    }
+    // Ten rows per text display; compact fallback retains all fifty movements.
     let mut components = vec![CreateContainerComponent::TextDisplay(
-        CreateTextDisplay::new(format!(
-            "## Rank changes\n{count} {movement} after ranking recalculation.\n### Movements"
-        )),
+        CreateTextDisplay::new(header),
     )];
     for chunk in rows.chunks(10) {
         components.push(CreateContainerComponent::TextDisplay(
@@ -148,7 +189,7 @@ pub(crate) fn message(
         ));
     }
     components.push(CreateContainerComponent::TextDisplay(
-        CreateTextDisplay::new(format!("-# ZeepCentraal • {occurred}")),
+        CreateTextDisplay::new(footer),
     ));
     Some(
         CreateMessage::new()
@@ -242,14 +283,15 @@ mod tests {
             assert!(message(&event, &changes(&event), &[]).is_none());
         }
         let event = event(
-            json!({"changes":(1..=35).rev().map(|id|json!({"idUser":id,"previousRank":3,"rank":2})).collect::<Vec<_>>()}),
+            json!({"changes":(1..=55).rev().map(|id|json!({"idUser":id,"previousRank":3,"rank":2})).collect::<Vec<_>>()}),
         );
         let changes = changes(&event);
         assert_eq!(changes[0].id_user, 1);
         assert_eq!(changes[29].id_user, 30);
+        assert_eq!(changes[49].id_user, 50);
         let normal = serde_json::to_value(message(&event, &changes, &[]).unwrap()).unwrap();
         assert!(text(&normal).contains("…and 5 more"));
-        let users = (1..=35)
+        let users = (1..=55)
             .map(|id| RankUser {
                 id,
                 steam_name: Some("🚀".repeat(1000)),
@@ -259,8 +301,34 @@ mod tests {
             .collect::<Vec<_>>();
         let value = serde_json::to_value(message(&event, &changes, &users).unwrap()).unwrap();
         assert!(text(&value).contains("…and "));
-        assert!(text(&value).contains("9,223,372,036,854,775,807 pts"));
+        assert!(text(&value).contains("9223372036854775807"));
+        assert!(text(&value).contains("### Movements • points"));
+        assert_eq!(text(&value).matches("#3 → #2").count(), 50);
         assert!(text(&value).encode_utf16().count() < 4000);
         assert_eq!(points_label(i64::MIN), "-9,223,372,036,854,775,808");
+    }
+
+    #[test]
+    fn all_fifty_movements_fit_with_maximum_numbers_and_unicode_names() {
+        let event = event(json!({"changes":(1..=50).map(|id|json!({
+            "idUser":id,"previousRank":i32::MAX,"rank":i32::MAX-1
+        })).collect::<Vec<_>>()}));
+        let users = (1..=50)
+            .map(|id| RankUser {
+                id,
+                steam_name: Some("🚀\n".repeat(1000)),
+                discord_id: (id % 2 == 0).then(|| u64::MAX.to_string()),
+                points: Some(i64::MIN),
+            })
+            .collect::<Vec<_>>();
+        let value =
+            serde_json::to_value(message(&event, &changes(&event), &users).unwrap()).unwrap();
+        let text = text(&value);
+        assert_eq!(text.matches("#2147483647 → #2147483646").count(), 50);
+        assert_eq!(text.matches("-9223372036854775808").count(), 50);
+        assert!(!text.contains("…and"));
+        assert!(text.encode_utf16().count() <= 4000);
+        assert_eq!(value["allowed_mentions"]["parse"], json!([]));
+        assert_eq!(bounded_name("🚀🚀🚀", 5), "🚀🚀");
     }
 }

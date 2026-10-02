@@ -687,15 +687,40 @@ impl Database {
         let mut connection = self.connection().await?;
         let mut matches = HashMap::<i64, Value>::new();
         for (kind, target_ids) in targets {
-            let normalized: Vec<String> = target_ids
+            let mut normalized: HashSet<String> = target_ids
                 .iter()
-                .map(|target| target.to_lowercase())
-                .collect::<HashSet<_>>()
-                .into_iter()
+                .map(|target| target.trim().to_lowercase())
                 .collect();
             if normalized.is_empty() {
                 continue;
             }
+            if kind == "player" {
+                let player_ids = normalized
+                    .iter()
+                    .filter_map(|target| target.parse::<i32>().ok())
+                    .filter(|id| *id > 0)
+                    .collect::<Vec<_>>();
+                if !player_ids.is_empty() {
+                    let aliases = sql_query(
+                        "SELECT unnest(ARRAY[account.id::text,account.steam_id::text,account.steam_name, \
+                         account.discord_id::text,'<@' || account.discord_id::text || '>', \
+                         '<@!' || account.discord_id::text || '>']) AS value \
+                         FROM public.\"user\" account WHERE account.id=ANY($1)",
+                    )
+                    .bind::<Array<Integer>, _>(&player_ids)
+                    .load::<WatchAliasRow>(&mut connection)
+                    .await?;
+                    // Match watch creation's Unicode normalization regardless of database locale.
+                    normalized.extend(
+                        aliases
+                            .into_iter()
+                            .filter_map(|row| row.value)
+                            .map(|alias| alias.trim().to_lowercase())
+                            .filter(|alias| !alias.is_empty()),
+                    );
+                }
+            }
+            let normalized = normalized.into_iter().collect::<Vec<_>>();
             let rows: Vec<(i64, Value)> = sql_query(
                 "SELECT id AS value,jsonb_build_object('id',id::text,'discordId',discord_id::text,'kind',kind, \
                  'targetId',target_id,'paused',paused,'lastError',last_error,'lastDeliveryKey',last_delivery_key, \
@@ -753,4 +778,10 @@ struct WatchJsonRow {
     value: i64,
     #[diesel(sql_type = Jsonb)]
     payload: Value,
+}
+
+#[derive(QueryableByName)]
+struct WatchAliasRow {
+    #[diesel(sql_type = Nullable<Text>)]
+    value: Option<String>,
 }
