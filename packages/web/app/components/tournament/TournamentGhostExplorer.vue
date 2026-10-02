@@ -21,7 +21,8 @@
 					:ghosts="playback.loaded.value"
 					:level-id="levelId"
 					:level-blocks="geometry.blocks.value"
-					:show-level-geometry="performance.preferences.value.showLevelGeometry"
+					:paint-mode="performance.preferences.value.paintMode"
+				:show-level-geometry="performance.preferences.value.showLevelGeometry"
 					:show-ghost-trails="performance.preferences.value.showGhostTrails"
 					:states="playback.states"
 					:primary-record-id="sources[0]?.recordId ?? null"
@@ -42,7 +43,8 @@
 							:labels="performanceLabels"
 							@update:frame-rate="performance.setFrameRate"
 							@update:render-quality="performance.setRenderQuality"
-							@update:show-level-geometry="performance.setShowLevelGeometry"
+							@update:paint-mode="performance.setPaintMode"
+						@update:show-level-geometry="performance.setShowLevelGeometry"
 							@update:show-ghost-trails="performance.setShowGhostTrails"
 							@clear-cache="performance.clearCache"
 						/>
@@ -111,6 +113,7 @@ const performanceLabels = computed(() => ({
 	performance: t('pages.recordDetail.performance.performance'),
 	balanced: t('pages.recordDetail.performance.balanced'),
 	qualityHigh: t('pages.recordDetail.performance.qualityHigh'),
+	realMaterialColours: t('pages.recordDetail.performance.realMaterialColours'),
 	levelGeometry: t('pages.recordDetail.performance.levelGeometry'),
 	ghostTrails: t('pages.recordDetail.performance.ghostTrails'),
 	cache: t('pages.recordDetail.performance.cache'),

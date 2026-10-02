@@ -48,6 +48,7 @@
 				:ghosts="ghostPlayback.loaded.value"
 				:level-id="levelId"
 				:level-blocks="ghostLevelGeometry.blocks.value"
+				:paint-mode="ghostPerformance.preferences.value.paintMode"
 				:show-level-geometry="ghostPerformance.preferences.value.showLevelGeometry"
 				:show-ghost-trails="ghostPerformance.preferences.value.showGhostTrails"
 				:states="ghostPlayback.states"
@@ -70,6 +71,7 @@
 						:labels="ghostPerformanceLabels"
 						@update:frame-rate="ghostPerformance.setFrameRate"
 						@update:render-quality="ghostPerformance.setRenderQuality"
+						@update:paint-mode="ghostPerformance.setPaintMode"
 						@update:show-level-geometry="ghostPerformance.setShowLevelGeometry"
 						@update:show-ghost-trails="ghostPerformance.setShowGhostTrails"
 						@clear-cache="ghostPerformance.clearCache"
@@ -244,6 +246,7 @@ const ghostPerformanceLabels = computed(() => ({
 	performance: t('pages.recordDetail.performance.performance'),
 	balanced: t('pages.recordDetail.performance.balanced'),
 	qualityHigh: t('pages.recordDetail.performance.qualityHigh'),
+	realMaterialColours: t('pages.recordDetail.performance.realMaterialColours'),
 	levelGeometry: t('pages.recordDetail.performance.levelGeometry'),
 	ghostTrails: t('pages.recordDetail.performance.ghostTrails'),
 	cache: t('pages.recordDetail.performance.cache'),

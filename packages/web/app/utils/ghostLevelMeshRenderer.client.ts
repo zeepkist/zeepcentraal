@@ -1,5 +1,10 @@
 import * as THREE from 'three'
+import type { ProtectedMeshMaterial } from '../../shared/protectedMeshFormat'
 import type { GhostLevelBlock, GhostVector3 } from '../types/ghost'
+import {
+	createGhostNativeMaterial,
+	sortTransparentGhostInstances,
+} from './ghostNativeMaterial.client'
 import type {
 	ProtectedLevelMeshBundle,
 	ProtectedMeshLibrary,
@@ -14,12 +19,23 @@ type MeshBatch = {
 	geometry: THREE.BufferGeometry
 	matrices: THREE.Matrix4[]
 	material: THREE.MeshStandardMaterial
+	nativeMaterial: THREE.MeshStandardMaterial
+	nativeOnly: boolean
 }
 
 export class GhostLevelMeshRenderer {
 	private readonly fallbackGeometry = new THREE.BoxGeometry(2, 2, 2)
 	private readonly material: THREE.MeshStandardMaterial
 	private readonly paintedMaterials = new Map<string, THREE.MeshStandardMaterial>()
+	private readonly nativeMaterials = new Map<string, THREE.MeshPhysicalMaterial>()
+	private readonly bindings: Array<{
+		mesh: THREE.InstancedMesh
+		matrices: THREE.Matrix4[]
+		physics: THREE.MeshStandardMaterial
+		native: THREE.MeshStandardMaterial
+		nativeOnly: boolean
+	}> = []
+	private paintMode: 'physics' | 'material' = 'physics'
 	private group: THREE.Group | null = null
 	private revision = 0
 	private disposed = false
@@ -45,6 +61,22 @@ export class GhostLevelMeshRenderer {
 		return this.renderLoaded(levelId, origin, revision)
 	}
 
+	setPaintMode(mode: 'physics' | 'material') {
+		this.paintMode = mode
+		for (const binding of this.bindings) {
+			binding.mesh.material = mode === 'material' ? binding.native : binding.physics
+			binding.mesh.visible = !binding.nativeOnly || mode === 'material'
+		}
+	}
+
+	prepare(camera: THREE.Camera) {
+		if (this.paintMode !== 'material') return
+		camera.updateMatrixWorld()
+		for (const binding of this.bindings)
+			if (binding.native.transparent)
+				sortTransparentGhostInstances(binding.mesh, binding.matrices, camera)
+	}
+
 	clear() {
 		this.revision += 1
 		this.replaceGroup(null)
@@ -57,6 +89,8 @@ export class GhostLevelMeshRenderer {
 		this.material.dispose()
 		for (const material of this.paintedMaterials.values()) material.dispose()
 		this.paintedMaterials.clear()
+		for (const material of this.nativeMaterials.values()) material.dispose()
+		this.nativeMaterials.clear()
 	}
 
 	private async renderLoaded(levelId: number, origin: GhostVector3, revision: number) {
@@ -71,10 +105,12 @@ export class GhostLevelMeshRenderer {
 		const batches: MeshBatch[] = []
 		for (const group of bundle.groups) {
 			const material = this.materialForColor(group.color)
-			for (const primitive of group.primitives) {
+			for (const [index, primitive] of group.primitives.entries()) {
 				batches.push({
 					geometry: primitive.geometry,
 					material,
+					nativeMaterial: this.materialForDescriptor(group.materials[index] ?? null),
+					nativeOnly: primitive.nativeOnly === true,
 					matrices: group.matrices.map((matrix) =>
 						composeProtectedMeshMatrix(originMatrix, matrix, primitive),
 					),
@@ -86,7 +122,7 @@ export class GhostLevelMeshRenderer {
 		for (const batch of batches) {
 			const mesh = new THREE.InstancedMesh(
 				batch.geometry,
-				batch.material,
+				this.paintMode === 'material' ? batch.nativeMaterial : batch.material,
 				batch.matrices.length,
 			)
 			for (const [index, matrix] of batch.matrices.entries()) mesh.setMatrixAt(index, matrix)
@@ -94,6 +130,19 @@ export class GhostLevelMeshRenderer {
 			mesh.computeBoundingSphere()
 			mesh.matrixAutoUpdate = false
 			mesh.updateMatrix()
+			mesh.onBeforeRender = (_renderer, _scene, camera) => {
+				if (mesh.material instanceof THREE.Material && mesh.material.transparent)
+					sortTransparentGhostInstances(mesh, batch.matrices, camera)
+			}
+			mesh.visible = !batch.nativeOnly || this.paintMode === 'material'
+			mesh.userData.reflectionSource = true
+			this.bindings.push({
+				mesh,
+				matrices: batch.matrices,
+				physics: batch.material,
+				native: batch.nativeMaterial,
+				nativeOnly: batch.nativeOnly,
+			})
 			group.add(mesh)
 		}
 		const fallback = this.createFallbackMeshFromMatrices(bundle.fallbackMatrices, originMatrix)
@@ -123,8 +172,22 @@ export class GhostLevelMeshRenderer {
 				if (object instanceof THREE.InstancedMesh) object.dispose()
 			})
 		}
+		for (let index = this.bindings.length - 1; index >= 0; index -= 1) {
+			if (this.bindings[index]?.mesh.parent !== group) this.bindings.splice(index, 1)
+		}
 		this.group = group
 		if (group) this.scene.add(group)
+	}
+
+	private materialForDescriptor(descriptor: ProtectedMeshMaterial | null) {
+		if (!descriptor) return this.material
+		const key = JSON.stringify(descriptor)
+		let material = this.nativeMaterials.get(key)
+		if (!material) {
+			material = createGhostNativeMaterial(descriptor)
+			this.nativeMaterials.set(key, material)
+		}
+		return material
 	}
 
 	private materialForColor(color: [number, number, number] | null) {

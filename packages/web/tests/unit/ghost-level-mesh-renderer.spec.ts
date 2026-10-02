@@ -11,6 +11,40 @@ import type {
 } from '../../app/utils/protectedMeshLibrary.client'
 
 describe('GhostLevelMeshRenderer', () => {
+	it('switches authored materials without fetching or replacing geometry', async () => {
+		const bundle = fakeBundle(new THREE.BoxGeometry())
+		const group = bundle.groups[0]
+		if (!group) throw new Error('Fixture group missing')
+		group.materials[0] = {
+			color: [0.2, 0.4, 0.8],
+			specular: [0.04, 0.04, 0.04],
+			opacity: 0.5,
+			roughness: 0.07,
+			metalness: 0,
+			workflow: 'metallic',
+			transparent: true,
+			doubleSided: false,
+		}
+		const library = fakeLibrary(Promise.resolve(bundle))
+		const scene = new THREE.Scene()
+		const renderer = new GhostLevelMeshRenderer(scene, { library }, '#aaa')
+		await renderer.render(42, [block(0, 0)], vector())
+		const mesh = scene.getObjectByName('level-geometry')?.children[0] as THREE.InstancedMesh
+		if (!mesh) throw new Error('Level mesh missing')
+		const physics = mesh.material
+		renderer.setPaintMode('material')
+		const native = mesh.material as THREE.MeshPhysicalMaterial
+		expect(native.isMeshPhysicalMaterial).toBe(true)
+		expect(native.opacity).toBe(0.5)
+		expect(native.depthWrite).toBe(false)
+		expect(mesh.geometry).toBe(group.primitives[0]?.geometry)
+		renderer.setPaintMode('physics')
+		expect(mesh.material).toBe(physics)
+		expect(library.load).toHaveBeenCalledTimes(1)
+		const disposed = vi.spyOn(native, 'dispose')
+		renderer.dispose()
+		expect(disposed).toHaveBeenCalledOnce()
+	})
 	it('stays empty while loading then renders protected geometry and server-selected fallbacks', async () => {
 		const geometry = new THREE.BoxGeometry()
 		const bundle = fakeBundle(geometry)
@@ -108,6 +142,7 @@ function fakeBundle(geometry: THREE.BufferGeometry): ProtectedLevelMeshBundle {
 					new THREE.Matrix4().makeTranslation(0, 0, 0),
 					new THREE.Matrix4().makeTranslation(10, 0, 0),
 				],
+				materials: [null],
 				color: [1, 128 / 255, 0],
 			},
 		],

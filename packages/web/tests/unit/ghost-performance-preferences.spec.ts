@@ -6,6 +6,28 @@ import {
 } from '../../app/composables/useGhostPerformancePreferences'
 
 describe('ghost performance preferences', () => {
+	it('preserves material mode while geometry is disabled and rejects unknown modes', () => {
+		expect(
+			sanitizeGhostPerformancePreferences({
+				paintMode: 'material',
+				showLevelGeometry: false,
+			}),
+		).toMatchObject({ paintMode: 'material', showLevelGeometry: false })
+		expect(sanitizeGhostPerformancePreferences({ paintMode: 'invalid' }).paintMode).toBe(
+			'physics',
+		)
+	})
+	it('preserves material mode while geometry is disabled and rejects unknown modes', () => {
+		expect(
+			sanitizeGhostPerformancePreferences({
+				paintMode: 'material',
+				showLevelGeometry: false,
+			}),
+		).toMatchObject({ paintMode: 'material', showLevelGeometry: false })
+		expect(sanitizeGhostPerformancePreferences({ paintMode: 'invalid' }).paintMode).toBe(
+			'physics',
+		)
+	})
 	it('enables level geometry and trails for existing saved preferences', () => {
 		expect(
 			sanitizeGhostPerformancePreferences({
@@ -17,6 +39,7 @@ describe('ghost performance preferences', () => {
 			version: 1,
 			frameRate: 60,
 			renderQuality: 'quality',
+			paintMode: 'physics',
 			showLevelGeometry: true,
 			showGhostTrails: true,
 		})

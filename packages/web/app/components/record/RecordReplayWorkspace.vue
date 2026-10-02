@@ -17,6 +17,7 @@
 			:ghosts="ghosts"
 			:level-id="levelId"
 			:level-blocks="levelBlocks"
+			:paint-mode="paintMode"
 			:show-level-geometry="showLevelGeometry"
 			:show-ghost-trails="showGhostTrails"
 			:current-time="currentTime"
@@ -98,6 +99,7 @@ const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelId: number
 	levelBlocks: GhostLevelBlock[]
+	paintMode?: 'physics' | 'material'
 	showLevelGeometry?: boolean
 	showGhostTrails?: boolean
 	states: Map<number, GhostLoadState>
@@ -147,6 +149,7 @@ const props = withDefaults(defineProps<{
 	loadingWhenEmpty: true,
 	primaryRecordId: null,
 	sceneRevision: 0,
+	paintMode: 'physics',
 	showLevelGeometry: true,
 	showGhostTrails: true,
 })

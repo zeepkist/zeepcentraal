@@ -120,7 +120,10 @@ export type RecordReplayWorkspaceHandle = {
 	toggleFullscreen: () => Promise<void>
 }
 
+export type GhostPaintMode = 'physics' | 'material'
+
 export type GhostPerformancePreferences = {
+	paintMode: GhostPaintMode
 	version: 1
 	frameRate: GhostFrameRate
 	renderQuality: GhostRenderQuality

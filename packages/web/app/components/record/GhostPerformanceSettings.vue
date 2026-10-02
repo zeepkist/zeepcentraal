@@ -29,11 +29,19 @@
 					/>
 				</UFormField>
 				<div class="space-y-3 rounded-xl border border-border bg-muted/40 p-3">
-					<USwitch
-						:model-value="preferences.showLevelGeometry"
-						:label="labels.levelGeometry"
-						@update:model-value="$emit('update:showLevelGeometry', Boolean($event))"
-					/>
+					<div class="grid grid-cols-2 gap-3">
+						<USwitch
+							:model-value="preferences.showLevelGeometry"
+							:label="labels.levelGeometry"
+							@update:model-value="$emit('update:showLevelGeometry', Boolean($event))"
+						/>
+						<USwitch
+							:model-value="preferences.paintMode === 'material'"
+							:label="labels.realMaterialColours"
+							:disabled="!preferences.showLevelGeometry"
+							@update:model-value="$emit('update:paintMode', $event ? 'material' : 'physics')"
+						/>
+					</div>
 					<USwitch
 						:model-value="preferences.showGhostTrails"
 						:label="labels.ghostTrails"
@@ -69,6 +77,7 @@
 <script setup vapor lang="ts">
 import type {
 	GhostFrameRate,
+	GhostPaintMode,
 	GhostPerformancePreferences,
 	GhostRenderQuality,
 } from '~/types/ghost'
@@ -91,6 +100,7 @@ const props = defineProps<{
 		balanced: string
 		qualityHigh: string
 		levelGeometry: string
+		realMaterialColours: string
 		ghostTrails: string
 		cache: string
 		cacheValue: (entries: string, size: string) => string
@@ -100,6 +110,7 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
+	'update:paintMode': [value: GhostPaintMode]
 	'update:frameRate': [value: GhostFrameRate]
 	'update:renderQuality': [value: GhostRenderQuality]
 	'update:showLevelGeometry': [value: boolean]

@@ -62,6 +62,7 @@ import {
 	GhostMeshBatchRenderer,
 	type GhostMeshDescriptor,
 } from '~/utils/ghostMeshBatch.client'
+import { GhostReflectionRenderer } from '~/utils/ghostReflections.client'
 import {
 	buildGhostGrid,
 	calculateGhostLabelWorldOffset,
@@ -100,6 +101,7 @@ const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelId: number
 	levelBlocks: GhostLevelBlock[]
+	paintMode?: 'physics' | 'material'
 	showLevelGeometry?: boolean
 	showGhostTrails?: boolean
 	labelRecordIds?: number[]
@@ -128,6 +130,7 @@ const props = withDefaults(defineProps<{
 }>(), {
 	bulkMode: false,
 	sceneRevision: 0,
+	paintMode: 'physics',
 	showLevelGeometry: true,
 	showGhostTrails: true,
 })
@@ -153,6 +156,7 @@ const contextLost = shallowRef(false)
 const rendererError = shallowRef(false)
 const currentFrameRate = shallowRef(0)
 
+let reflections: GhostReflectionRenderer | null = null
 let renderer: THREE.WebGLRenderer | null = null
 let labelRenderer: CSS2DRenderer | null = null
 let scene: THREE.Scene | null = null
@@ -164,6 +168,7 @@ let resizeObserver: ResizeObserver | null = null
 let frameScheduler: GhostFrameScheduler | null = null
 let framePhase: number | null = null
 let lastPlaybackAt: number | null = null
+let lastEmittedPlaybackTime: number | null = null
 let frameRateWindowStartedAt = 0
 let renderedFrameCount = 0
 let renderRequested = true
@@ -209,7 +214,11 @@ watch(
 
 watch(
 	() => props.currentTime,
-	() => invalidateGhostState(),
+	(value) => {
+		if (value !== lastEmittedPlaybackTime) reflections?.markDirty(true)
+		lastEmittedPlaybackTime = null
+		invalidateGhostState()
+	},
 )
 
 watch(
@@ -272,6 +281,7 @@ watch(
 )
 
 watch(canLoadProtectedMeshes, (canLoad) => {
+	configureReflections()
 	if (!canLoad) {
 		levelMeshRenderer?.clear()
 		invalidateRender()
@@ -292,7 +302,19 @@ watch(
 
 watch(
 	() => props.showLevelGeometry,
-	() => createLevelGeometry(),
+	() => {
+		createLevelGeometry()
+		configureReflections()
+	},
+)
+
+watch(
+	() => props.paintMode,
+	() => {
+		levelMeshRenderer?.setPaintMode(props.paintMode)
+		configureReflections()
+		invalidateRender()
+	},
 )
 
 watch(
@@ -345,6 +367,8 @@ function createScene() {
 		{ library: protectedMeshLibrary },
 		resolveCssColor('--ui-text-muted', '#a8a29e'),
 	)
+	levelMeshRenderer.setPaintMode(props.paintMode)
+	configureReflections()
 	orbitFog = new THREE.Fog(resolveCssColor('--ui-bg', '#0c0a09'), 350, 1_500)
 	scene.fog = orbitFog
 	scene.add(new THREE.HemisphereLight(0xffffff, 0x292524, 2.1))
@@ -384,7 +408,10 @@ function replaceRenderer() {
 	candidate.outputColorSpace = THREE.SRGBColorSpace
 	candidate.domElement.addEventListener('webglcontextlost', onContextLost)
 	candidate.domElement.addEventListener('webglcontextrestored', onContextRestored)
+	reflections?.dispose()
+	reflections = null
 	renderer = candidate
+	configureReflections()
 	rendererError.value = false
 	contextLost.value = false
 	host.replaceChildren(candidate.domElement)
@@ -401,6 +428,18 @@ function replaceRenderer() {
 	}
 	invalidateRender()
 	return true
+}
+
+function configureReflections() {
+	reflections?.dispose()
+	reflections =
+		renderer &&
+		scene &&
+		canLoadProtectedMeshes.value &&
+		props.paintMode === 'material' &&
+		props.showLevelGeometry
+			? new GhostReflectionRenderer(renderer, scene, props.quality)
+			: null
 }
 
 function configureControls() {
@@ -625,7 +664,10 @@ function createLevelGeometry() {
 	if (!grid) return
 	invalidateRender()
 	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin).then(() => {
-		if (viewerMounted) invalidateRender()
+		if (viewerMounted) {
+			reflections?.markDirty(true)
+			invalidateRender()
+		}
 	})
 }
 
@@ -635,6 +677,7 @@ function loadProtectedGhostModels() {
 		.then((ghostModels) => {
 			if (!viewerMounted) return
 			ghostMeshBatch?.setModelGeometries(ghostModels)
+			reflections?.markDirty(true)
 			invalidateGhostState()
 		})
 		.catch(() => undefined)
@@ -730,12 +773,14 @@ function createGridLines(
 }
 
 function invalidateRender() {
+	reflections?.markDirty()
 	renderRequested = true
 	if (!viewerMounted || !renderingVisible.value || contextLost.value) return
 	frameScheduler?.request()
 }
 
 function invalidateGhostState() {
+	reflections?.markDirty(!props.playing)
 	ghostStateDirty = true
 	invalidateRender()
 }
@@ -778,10 +823,12 @@ function renderLoop(timestamp: number) {
 		const next = props.currentTime + delta * props.playbackRate
 		if (next >= playbackDuration.value) {
 			playbackTime = props.loop ? 0 : playbackDuration.value
+			lastEmittedPlaybackTime = playbackTime
 			emit('update:currentTime', playbackTime)
 			if (!props.loop) emit('update:playing', false)
 		} else {
 			playbackTime = next
+			lastEmittedPlaybackTime = next
 			emit('update:currentTime', playbackTime)
 		}
 		ghostStateDirty = true
@@ -796,7 +843,12 @@ function renderLoop(timestamp: number) {
 	const camera = activeCamera()
 	const shouldRender = requested || updateRequired || controlsChanged || props.playing
 	if (shouldRender && renderer && labelRenderer && scene && camera) {
-		renderer.render(scene, camera)
+		levelMeshRenderer?.prepare(camera)
+		if (updateRequired || controlsChanged)
+			reflections?.markDirty(!props.playing && !controlsChanged)
+		if (reflections)
+			reflections.render(camera, controls?.target ?? new THREE.Vector3(), timestamp)
+		else renderer.render(scene, camera)
 		labelRenderer.render(scene, camera)
 		if (labelHeightsDirty && syncGhostLabelHeights()) {
 			updateGhostLabelPositions()
@@ -1065,6 +1117,8 @@ function disposeObject(object: THREE.Object3D) {
 }
 
 function disposeScene() {
+	reflections?.dispose()
+	reflections = null
 	frameScheduler?.cancel()
 	frameScheduler = null
 	resizeObserver?.disconnect()
@@ -1089,11 +1143,14 @@ function disposeScene() {
 function onContextLost(event: Event) {
 	event.preventDefault()
 	contextLost.value = true
+	reflections?.dispose()
+	reflections = null
 	suspendRendering()
 }
 
 function onContextRestored() {
 	contextLost.value = false
+	configureReflections()
 	resetFrameClock()
 	createGhosts()
 	invalidateGhostState()

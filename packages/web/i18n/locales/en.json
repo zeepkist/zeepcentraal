@@ -635,6 +635,7 @@
 				"balanced": "Balanced",
 				"qualityHigh": "High quality",
 				"levelGeometry": "Level geometry (Alpha)",
+				"realMaterialColours": "Real material colours",
 				"ghostTrails": "Ghost trails",
 				"cache": "Offline ghost cache",
 				"cacheValue": "{entries} ghosts · {size}",

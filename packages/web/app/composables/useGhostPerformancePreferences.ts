@@ -1,4 +1,9 @@
-import type { GhostFrameRate, GhostPerformancePreferences, GhostRenderQuality } from '~/types/ghost'
+import type {
+	GhostFrameRate,
+	GhostPaintMode,
+	GhostPerformancePreferences,
+	GhostRenderQuality,
+} from '~/types/ghost'
 import {
 	clearGhostBinaryCache,
 	type GhostBinaryCacheStats,
@@ -7,6 +12,7 @@ import {
 
 const DEFAULT_PREFERENCES: GhostPerformancePreferences = {
 	version: 1,
+	paintMode: 'physics',
 	frameRate: 'auto',
 	renderQuality: 'auto',
 	showLevelGeometry: true,
@@ -51,6 +57,10 @@ export function useGhostPerformancePreferences() {
 		cookie.value = { ...preferences.value, renderQuality: value }
 	}
 
+	function setPaintMode(value: GhostPaintMode) {
+		cookie.value = { ...preferences.value, paintMode: value }
+	}
+
 	function setShowLevelGeometry(value: boolean) {
 		cookie.value = { ...preferences.value, showLevelGeometry: value }
 	}
@@ -86,6 +96,7 @@ export function useGhostPerformancePreferences() {
 		renderQuality,
 		cacheStats,
 		cachePending,
+		setPaintMode,
 		setFrameRate,
 		setRenderQuality,
 		setShowLevelGeometry,
@@ -123,6 +134,7 @@ export function sanitizeGhostPerformancePreferences(value: unknown): GhostPerfor
 		: 'auto'
 	return {
 		version: 1,
+		paintMode: candidate.paintMode === 'material' ? 'material' : 'physics',
 		frameRate,
 		renderQuality,
 		showLevelGeometry: candidate.showLevelGeometry !== false,
