@@ -39,6 +39,7 @@ describe('GraphQL operation conventions', () => {
 
 	test('connections use bounded cursor pagination without offsets', () => {
 		const connections = new Set([
+			'workshopItems',
 			'levelItems',
 			'levels',
 			'personalBestGlobals',

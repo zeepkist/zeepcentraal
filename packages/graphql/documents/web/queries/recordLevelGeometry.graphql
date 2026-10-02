@@ -3,6 +3,7 @@ query ZC_RecordLevelGeometry($levelId: Int!) {
 		levelMetadata(first: 1, orderBy: [DATE_UPDATED_DESC, ID_DESC]) {
 			nodes {
 				blocks
+				environment
 				format
 				typeGround
 				typeSkybox

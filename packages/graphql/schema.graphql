@@ -3888,6 +3888,7 @@ type LevelMetadatum implements Node {
   blocks: JSON!
   dateCreated: Datetime!
   dateUpdated: Datetime
+  environment: JSON
   format: Int!
   id: Int!
 
@@ -4052,6 +4053,9 @@ input LevelMetadatumCondition {
   """Checks for equality with the object’s `dateUpdated` field."""
   dateUpdated: Datetime
 
+  """Checks for equality with the object’s `environment` field."""
+  environment: JSON
+
   """Checks for equality with the object’s `format` field."""
   format: Int
 
@@ -4075,6 +4079,7 @@ input LevelMetadatumDistinctCountAggregateFilter {
   blocks: BigIntFilter
   dateCreated: BigIntFilter
   dateUpdated: BigIntFilter
+  environment: BigIntFilter
   format: BigIntFilter
   id: BigIntFilter
   levelId: BigIntFilter
@@ -4100,6 +4105,9 @@ type LevelMetadatumDistinctCountAggregates {
 
   """Distinct count of dateUpdated across the matching connection"""
   dateUpdated: BigInt
+
+  """Distinct count of environment across the matching connection"""
+  environment: BigInt
 
   """Distinct count of format across the matching connection"""
   format: BigInt
@@ -4176,6 +4184,7 @@ enum LevelMetadatumGroupBy {
   DATE_UPDATED
   DATE_UPDATED_TRUNCATED_TO_DAY
   DATE_UPDATED_TRUNCATED_TO_HOUR
+  ENVIRONMENT
   FORMAT
   LEVEL_ID
   TYPE_GROUND
