@@ -58,11 +58,12 @@ import type {
 } from '~/types/ghost'
 import { GhostFrameScheduler } from '~/utils/ghostFrameScheduler'
 import { GhostLevelMeshRenderer } from '~/utils/ghostLevelMeshRenderer.client'
+import { GhostLightingRig } from '~/utils/ghostLighting.client'
 import {
 	GhostMeshBatchRenderer,
 	type GhostMeshDescriptor,
 } from '~/utils/ghostMeshBatch.client'
-import { GhostReflectionRenderer } from '~/utils/ghostReflections.client'
+import { GhostPostprocessing } from '~/utils/ghostPostprocessing.client'
 import {
 	buildGhostGrid,
 	calculateGhostLabelWorldOffset,
@@ -156,7 +157,9 @@ const contextLost = shallowRef(false)
 const rendererError = shallowRef(false)
 const currentFrameRate = shallowRef(0)
 
-let reflections: GhostReflectionRenderer | null = null
+let reflections: GhostPostprocessing | null = null
+let lighting: GhostLightingRig | null = null
+let legacyLights = new THREE.Group()
 let renderer: THREE.WebGLRenderer | null = null
 let labelRenderer: CSS2DRenderer | null = null
 let scene: THREE.Scene | null = null
@@ -368,13 +371,15 @@ function createScene() {
 		resolveCssColor('--ui-text-muted', '#a8a29e'),
 	)
 	levelMeshRenderer.setPaintMode(props.paintMode)
-	configureReflections()
 	orbitFog = new THREE.Fog(resolveCssColor('--ui-bg', '#0c0a09'), 350, 1_500)
 	scene.fog = orbitFog
-	scene.add(new THREE.HemisphereLight(0xffffff, 0x292524, 2.1))
+	legacyLights = new THREE.Group()
+	legacyLights.add(new THREE.HemisphereLight(0xffffff, 0x292524, 2.1))
 	const keyLight = new THREE.DirectionalLight(0xffffff, 2.5)
 	keyLight.position.set(80, 120, 40)
-	scene.add(keyLight)
+	legacyLights.add(keyLight)
+	scene.add(legacyLights)
+	configureReflections()
 
 	perspectiveCamera = new THREE.PerspectiveCamera(48, 16 / 9, 0.1, 5_000)
 	perspectiveCamera.position.set(35, 24, 35)
@@ -410,6 +415,8 @@ function replaceRenderer() {
 	candidate.domElement.addEventListener('webglcontextrestored', onContextRestored)
 	reflections?.dispose()
 	reflections = null
+	lighting?.dispose()
+	lighting = null
 	renderer = candidate
 	configureReflections()
 	rendererError.value = false
@@ -432,14 +439,15 @@ function replaceRenderer() {
 
 function configureReflections() {
 	reflections?.dispose()
-	reflections =
-		renderer &&
-		scene &&
-		canLoadProtectedMeshes.value &&
-		props.paintMode === 'material' &&
-		props.showLevelGeometry
-			? new GhostReflectionRenderer(renderer, scene, props.quality)
-			: null
+	reflections = null
+	lighting?.dispose()
+	lighting = null
+	if (scene) scene.fog = props.cameraMode === 'isometric' ? null : orbitFog
+	if (renderer && scene && canLoadProtectedMeshes.value && props.paintMode === 'material') {
+		lighting = new GhostLightingRig(renderer, scene, props.quality, legacyLights)
+		lighting.setLevel(levelMeshRenderer?.getLighting(), grid?.origin ?? { x: 0, y: 0, z: 0 })
+		reflections = new GhostPostprocessing(renderer, scene, props.quality)
+	}
 }
 
 function configureControls() {
@@ -448,7 +456,7 @@ function configureControls() {
 	const camera = activeCamera()
 	const canvas = renderer?.domElement
 	if (!camera || !canvas) return
-	if (scene) scene.fog = props.cameraMode === 'isometric' ? null : orbitFog
+	if (scene && !lighting) scene.fog = props.cameraMode === 'isometric' ? null : orbitFog
 	controls = new OrbitControls(camera, canvas)
 	controls.enableDamping = true
 	controls.dampingFactor = 0.08
@@ -665,7 +673,7 @@ function createLevelGeometry() {
 	invalidateRender()
 	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin).then(() => {
 		if (viewerMounted) {
-			reflections?.markDirty(true)
+			configureReflections()
 			invalidateRender()
 		}
 	})
@@ -844,10 +852,11 @@ function renderLoop(timestamp: number) {
 	const shouldRender = requested || updateRequired || controlsChanged || props.playing
 	if (shouldRender && renderer && labelRenderer && scene && camera) {
 		levelMeshRenderer?.prepare(camera)
+		lighting?.prepare(camera, controls?.target ?? new THREE.Vector3(), levelMeshRenderer?.getBounds() ?? new THREE.Box3())
 		if (updateRequired || controlsChanged)
 			reflections?.markDirty(!props.playing && !controlsChanged)
-		if (reflections)
-			reflections.render(camera, controls?.target ?? new THREE.Vector3(), timestamp)
+		if (reflections && lighting)
+			reflections.render(camera, controls?.target ?? new THREE.Vector3(), timestamp, lighting)
 		else renderer.render(scene, camera)
 		labelRenderer.render(scene, camera)
 		if (labelHeightsDirty && syncGhostLabelHeights()) {
@@ -1119,6 +1128,8 @@ function disposeObject(object: THREE.Object3D) {
 function disposeScene() {
 	reflections?.dispose()
 	reflections = null
+	lighting?.dispose()
+	lighting = null
 	frameScheduler?.cancel()
 	frameScheduler = null
 	resizeObserver?.disconnect()
@@ -1145,6 +1156,8 @@ function onContextLost(event: Event) {
 	contextLost.value = true
 	reflections?.dispose()
 	reflections = null
+	lighting?.dispose()
+	lighting = null
 	suspendRendering()
 }
 

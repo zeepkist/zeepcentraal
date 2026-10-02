@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js'
 import { SSRPass } from 'three/addons/postprocessing/SSRPass.js'
+import { GhostMaterialContributionPass } from './ghostLightingPasses.client'
 
 export type GhostReflectionQuality = 'performance' | 'balanced' | 'quality'
 
@@ -72,6 +73,13 @@ class MaterialSSRPass extends SSRPass {
 	constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
 		super({ renderer, scene, camera, selects: [], groundReflector: null, width: 1, height: 1 })
 		this.output = SSRPass.OUTPUT.SSR
+		for (const target of [
+			this.beautyRenderTarget,
+			this.ssrRenderTarget,
+			this.blurRenderTarget,
+			this.blurRenderTarget2,
+		])
+			target.texture.type = THREE.HalfFloatType
 		this.opacity = 0.85
 		this.maxDistance = 160
 		this.thickness = 0.15
@@ -220,12 +228,17 @@ export class GhostReflectionRenderer {
 	private readonly pmrem: THREE.PMREMGenerator
 	private environment: THREE.WebGLRenderTarget | null = null
 	private readonly previousEnvironment: THREE.Texture | null
+	private readonly captureBackground: THREE.Scene['background']
 	private pass: MaterialSSRPass | null = null
 	private readonly beauty = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType })
 	private readonly reflection = new THREE.WebGLRenderTarget(1, 1, {
 		type: THREE.HalfFloatType,
 		depthBuffer: false,
 	})
+	private readonly environmentSpecular = new THREE.WebGLRenderTarget(1, 1, {
+		type: THREE.HalfFloatType,
+	})
+	private readonly specularPass = new GhostMaterialContributionPass('environment')
 	private readonly composite: THREE.ShaderMaterial
 	private readonly quad: FullScreenQuad
 	private readonly size = new THREE.Vector2()
@@ -243,21 +256,23 @@ export class GhostReflectionRenderer {
 		this.cubeCamera = new THREE.CubeCamera(0.1, 5_000, this.cube)
 		this.pmrem = new THREE.PMREMGenerator(renderer)
 		this.previousEnvironment = scene.environment
+		this.captureBackground = scene.background
 		this.composite = new THREE.ShaderMaterial({
 			uniforms: {
 				beauty: { value: this.beauty.texture },
 				reflection: { value: this.reflection.texture },
+				environmentSpecular: { value: this.environmentSpecular.texture },
 			},
 			vertexShader:
 				'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-			fragmentShader: `uniform sampler2D beauty; uniform sampler2D reflection; varying vec2 vUv;
+			fragmentShader: `uniform sampler2D beauty; uniform sampler2D reflection; uniform sampler2D environmentSpecular; varying vec2 vUv;
 			void main(){vec4 base=texture2D(beauty,vUv);vec4 reflected=texture2D(reflection,vUv);
-			gl_FragColor=vec4(base.rgb+reflected.rgb*reflected.a,base.a);
-			#include <tonemapping_fragment>
-			#include <colorspace_fragment>
+			vec3 environment=texture2D(environmentSpecular,vUv).rgb;
+			gl_FragColor=vec4(max(vec3(0.),base.rgb-environment*reflected.a)+reflected.rgb*reflected.a,base.a);
 			}`,
 			depthTest: false,
 			depthWrite: false,
+			toneMapped: false,
 		})
 		this.quad = new FullScreenQuad(this.composite)
 	}
@@ -272,7 +287,12 @@ export class GhostReflectionRenderer {
 		try {
 			if (this.clock.due(timestamp, this.settings.interval)) {
 				const restore = hideReflectionHelpers(this.scene)
+				const previousEnvironment = this.scene.environment
+				const previousBackground = this.scene.background
 				try {
+					// Capture authored ambient only. Never feed the previous capture into itself.
+					this.scene.environment = this.previousEnvironment
+					this.scene.background = this.captureBackground
 					this.cubeCamera.position.copy(target).add(new THREE.Vector3(0, 2, 0))
 					this.cubeCamera.update(this.renderer, this.scene)
 					this.environment = this.pmrem.fromCubemap(
@@ -282,6 +302,8 @@ export class GhostReflectionRenderer {
 					this.scene.environment = this.environment.texture
 					this.clock.commit(timestamp)
 				} finally {
+					this.scene.environment = this.environment?.texture ?? previousEnvironment
+					this.scene.background = previousBackground
 					restore()
 				}
 			}
@@ -299,6 +321,7 @@ export class GhostReflectionRenderer {
 				this.size.copy(size)
 				this.beauty.setSize(size.x, size.y)
 				this.reflection.setSize(size.x, size.y)
+				this.environmentSpecular.setSize(size.x, size.y)
 				this.pass.setSize(size.x, size.y)
 			}
 			this.pass.updateCamera(camera)
@@ -324,6 +347,7 @@ export class GhostReflectionRenderer {
 			}
 			this.renderer.setRenderTarget(this.beauty)
 			this.renderer.render(this.scene, camera)
+			this.specularPass.render(this.renderer, this.scene, camera, this.environmentSpecular)
 			this.renderer.setRenderTarget(previousTarget)
 			this.quad.render(this.renderer)
 		} finally {
@@ -342,6 +366,8 @@ export class GhostReflectionRenderer {
 		this.pass?.dispose()
 		this.beauty.dispose()
 		this.reflection.dispose()
+		this.environmentSpecular.dispose()
+		this.specularPass.dispose()
 		this.composite.dispose()
 		this.quad.dispose()
 	}

@@ -37,9 +37,13 @@ describe('GhostLevelMeshRenderer', () => {
 		expect(native.isMeshPhysicalMaterial).toBe(true)
 		expect(native.opacity).toBe(0.5)
 		expect(native.depthWrite).toBe(false)
+		expect(mesh.castShadow).toBe(false)
+		expect(mesh.receiveShadow).toBe(true)
 		expect(mesh.geometry).toBe(group.primitives[0]?.geometry)
 		renderer.setPaintMode('physics')
 		expect(mesh.material).toBe(physics)
+		expect(mesh.castShadow).toBe(false)
+		expect(mesh.receiveShadow).toBe(false)
 		expect(library.load).toHaveBeenCalledTimes(1)
 		const disposed = vi.spyOn(native, 'dispose')
 		renderer.dispose()
@@ -81,6 +85,14 @@ describe('GhostLevelMeshRenderer', () => {
 			expect(material.opacity).toBe(1)
 			expect(material.side).toBe(THREE.FrontSide)
 		}
+		renderer.setPaintMode('material')
+		expect(
+			meshes.every(
+				(mesh) => mesh.castShadow && mesh.receiveShadow && mesh.userData.lightingGeometry,
+			),
+		).toBe(true)
+		renderer.setPaintMode('physics')
+		expect(meshes.every((mesh) => !mesh.castShadow && !mesh.receiveShadow)).toBe(true)
 		const painted = meshes.find(({ count }) => count === 2)
 		expect(painted).toBeDefined()
 		expect(
@@ -129,6 +141,8 @@ describe('GhostLevelMeshRenderer', () => {
 		resolveBundle?.(fakeBundle(new THREE.BoxGeometry()))
 		await stale
 		expect(scene.getObjectByName('level-geometry')).toBeUndefined()
+		expect(renderer.getLighting()).toBeUndefined()
+		expect(renderer.getBounds().isEmpty()).toBe(true)
 		renderer.dispose()
 	})
 })

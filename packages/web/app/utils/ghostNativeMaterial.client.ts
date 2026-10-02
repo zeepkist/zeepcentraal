@@ -15,22 +15,33 @@ export function createGhostNativeMaterial(descriptor: ProtectedMeshMaterial) {
 		metalness: descriptor.metalness,
 		side: descriptor.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
 		envMapIntensity: 1,
+		emissive: new THREE.Color().setRGB(
+			...(descriptor.emissive ?? [0, 0, 0]),
+			THREE.LinearSRGBColorSpace,
+		),
 	})
 	const specular = new THREE.Color().setRGB(...descriptor.specular, THREE.SRGBColorSpace)
-	if (descriptor.workflow === 'specular') {
+	material.onBeforeCompile = (shader) => {
+		// Match Unity's legacy lamp attenuation without changing physics materials.
+		shader.fragmentShader = shader.fragmentShader.replace(
+			'#include <lights_pars_begin>',
+			THREE.ShaderChunk.lights_pars_begin.replace(
+				'return distanceFalloff;',
+				'return decayExponent == 0.0 && cutoffDistance > 0.0 ? pow2(saturate(1.0 - pow4(lightDistance / cutoffDistance))) / (1.0 + 25.0 * pow2(lightDistance / cutoffDistance)) : distanceFalloff;',
+			),
+		)
+		if (descriptor.workflow !== 'specular') return
 		// Unity specular workflow supplies F0 directly. Three's specularColor otherwise
 		// multiplies dielectric F0, losing strong coloured reflections such as blue ice.
-		material.onBeforeCompile = (shader) => {
-			shader.uniforms.unitySpecular = { value: specular }
-			shader.fragmentShader = `uniform vec3 unitySpecular;\n${shader.fragmentShader}`.replace(
-				'#include <lights_physical_fragment>',
-				`#include <lights_physical_fragment>
+		shader.uniforms.unitySpecular = { value: specular }
+		shader.fragmentShader = `uniform vec3 unitySpecular;\n${shader.fragmentShader}`.replace(
+			'#include <lights_physical_fragment>',
+			`#include <lights_physical_fragment>
 				material.specularColor = unitySpecular;
 				material.diffuseColor = diffuseColor.rgb * (1.0 - max(max(unitySpecular.r, unitySpecular.g), unitySpecular.b));`,
-			)
-		}
-		material.customProgramCacheKey = () => 'zeep-unity-specular-v1'
+		)
 	}
+	material.customProgramCacheKey = () => `zeep-unity-lighting-v2-${descriptor.workflow}`
 	material.userData.reflection = {
 		roughness: descriptor.roughness,
 		color:
