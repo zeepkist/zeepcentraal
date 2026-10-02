@@ -1,6 +1,13 @@
 import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import * as THREE from 'three'
+import type {
+	ProtectedMeshMaterial,
+	ProtectedMeshMaterialSlot,
+	ProtectedMeshVisibility,
+} from '../shared/protectedMeshFormat'
+
+import { loadUnityMaterials } from './unityMaterials'
 
 export type BlockMeshMatrix = [
 	number,
@@ -25,8 +32,10 @@ export type BlockMeshPart = {
 	mesh: string
 	matrix: BlockMeshMatrix
 	name: string
-	attribute?: { index: number; defaultVisible: boolean }
+	visibility?: ProtectedMeshVisibility[]
+	variant?: { index: number; count: number }
 	paint?: { index: number; defaultId?: number }
+	materials: ProtectedMeshMaterialSlot[]
 }
 
 export type BlockMeshDefinition = {
@@ -36,8 +45,11 @@ export type BlockMeshDefinition = {
 }
 
 export type BlockMeshManifest = {
-	version: 2
+	version: 4
 	paints: Record<string, [number, number, number]>
+	materials: Record<string, ProtectedMeshMaterial>
+	paintMaterials: Record<string, string>
+	submeshCounts: Record<string, number>
 	blocks: Record<string, BlockMeshDefinition>
 }
 
@@ -74,6 +86,11 @@ export type BlockMeshGenerationReport = {
 	blockCount: number
 	partCount: number
 	meshCount: number
+	optionControllerCount: number
+	variantControllerCount: number
+	paintCount: number
+	materialCount: number
+	materialDefaults: Array<{ material: string; properties: string[] }>
 	skippedBadPrefabs: string[]
 	skippedBuiltInMeshCount: number
 	skippedInactiveRendererCount: number
@@ -90,6 +107,9 @@ export type GenerateBlockMeshBundleOptions = {
 	glbMeshDirectory: string
 	paintHolderDirectory: string
 	outputDirectory: string
+	scriptDirectory?: string
+	materialDirectory?: string
+	shaderDirectory?: string
 	copyMeshes?: boolean
 }
 
@@ -112,6 +132,7 @@ type UnityMeshReference = {
 }
 
 type UnityMeshFilter = {
+	id: string
 	gameObjectId: string
 	mesh: UnityMeshReference
 }
@@ -133,6 +154,8 @@ type PrefabCandidate = {
 	prefab: string
 	parts: BlockMeshPart[]
 	optionMode?: 0 | 1 | 2
+	optionControllerCount: number
+	variantControllerCount: number
 	invalidControllerReasons: string[]
 	skippedBuiltInMeshCount: number
 	skippedInactiveRendererCount: number
@@ -147,7 +170,6 @@ type UnityDocument = {
 type ControlledGameObject = {
 	gameObjectId: string
 	attributeIndex: number
-	defaultVisible: boolean
 }
 
 type ParsedOptionController = {
@@ -158,9 +180,6 @@ type ParsedOptionController = {
 const UNITY_DOCUMENT_HEADER_PATTERN = /^--- !u!(\d+) &(-?\d+)\r?$/gm
 const UNITY_TO_GLTF = new THREE.Matrix4().makeScale(-1, 1, 1)
 const IDENTITY_MATRIX = new THREE.Matrix4()
-const BLOCK_OPTION_CONTROLLER_GUID = 'b4261eb191488cc43931530c16db9ab5'
-const ROAD_PAINTER_GUID = '3527f1b5ed7e63940af875bd424d8b18'
-const MATERIAL_HOLDER_GUID = '6e47a3d5d8751ec41921d7b6a3037763'
 const PHYSICS_SURFACE_COLORS: Readonly<Record<string, [number, number, number]>> = {
 	Tarmac: srgb('#8B929A'),
 	'Ice 0.05': srgb('#D9F4FF'),
@@ -176,11 +195,19 @@ const PHYSICS_SURFACE_COLORS: Readonly<Record<string, [number, number, number]>>
 export async function generateBlockMeshBundle(
 	options: GenerateBlockMeshBundleOptions,
 ): Promise<{ manifest: BlockMeshManifest; report: BlockMeshGenerationReport }> {
-	const [prefabNames, assetMetaNames, glbNames, paintPalette] = await Promise.all([
+	const scriptNames = await loadUnityScriptCatalog(
+		options.scriptDirectory ??
+			join(dirname(options.gameObjectDirectory), 'Scripts', 'Zeepkist'),
+	)
+	const [prefabNames, assetMetaNames, glbNames, paintPalette, nativePalette] = await Promise.all([
 		listFiles(options.gameObjectDirectory, '.prefab'),
 		listFiles(options.assetMeshDirectory, '.asset.meta'),
 		listFiles(options.glbMeshDirectory, '.glb'),
-		loadPaintPalette(options.paintHolderDirectory),
+		loadPaintPalette(options.paintHolderDirectory, scriptNames),
+		loadUnityMaterials(
+			options.materialDirectory ?? join(dirname(options.gameObjectDirectory), 'Material'),
+			options.shaderDirectory ?? join(dirname(options.gameObjectDirectory), 'Shader'),
+		),
 	])
 	const skippedBadPrefabs = prefabNames.filter((name) => /^BAD/i.test(name))
 	const parsedCandidates = await mapWithConcurrency(
@@ -188,7 +215,7 @@ export async function generateBlockMeshBundle(
 		32,
 		async (prefab) => {
 			const content = await readFile(join(options.gameObjectDirectory, prefab), 'utf8')
-			return parseBlockPrefab(content, prefab, paintPalette.materialToPaintId)
+			return parseBlockPrefab(content, prefab, paintPalette.materialToPaintId, scriptNames)
 		},
 	)
 	const candidates = parsedCandidates.filter(
@@ -196,15 +223,29 @@ export async function generateBlockMeshBundle(
 	)
 
 	const guidToStem = new Map<string, string>()
+	const submeshCounts: Record<string, number> = {}
 	const assetMetaEntries = await mapWithConcurrency(assetMetaNames, 32, async (metaName) => {
 		const content = await readFile(join(options.assetMeshDirectory, metaName), 'utf8')
+		const asset = await readFile(
+			join(options.assetMeshDirectory, metaName.slice(0, -5)),
+			'utf8',
+		)
+		const count =
+			asset
+				.match(/m_SubMeshes:([\s\S]*?)\n {2}m_Shapes:/)?.[1]
+				?.match(/- serializedVersion:/g)?.length ?? 0
+		if (!count) throw new Error(`Malformed submesh table: ${metaName}`)
 		return {
 			guid: content.match(/^guid:\s*([a-f0-9]+)\s*$/m)?.[1],
+			count,
 			stem: metaName.slice(0, -'.asset.meta'.length),
 		}
 	})
-	for (const { guid, stem } of assetMetaEntries) {
-		if (guid) guidToStem.set(guid, stem)
+	for (const { guid, stem, count } of assetMetaEntries) {
+		if (guid) {
+			guidToStem.set(guid, stem)
+			submeshCounts[guid] = count
+		}
 	}
 	const glbStems = new Set(glbNames.map((name) => name.slice(0, -'.glb'.length)))
 
@@ -215,6 +256,8 @@ export async function generateBlockMeshBundle(
 	const invalidControllers: BlockMeshInvalidController[] = []
 	let skippedBuiltInMeshCount = 0
 	let skippedInactiveRendererCount = 0
+	let optionControllerCount = 0
+	let variantControllerCount = 0
 
 	for (const [blockId, blockCandidates] of groupedCandidates) {
 		for (const candidate of blockCandidates) {
@@ -236,12 +279,20 @@ export async function generateBlockMeshBundle(
 			})
 			continue
 		}
+		optionControllerCount += selected.optionControllerCount
+		variantControllerCount += selected.variantControllerCount
 		const parts: BlockMeshPart[] = []
 		for (const part of selected.parts) {
 			const stem = guidToStem.get(part.mesh)
 			if (!stem || !glbStems.has(stem)) {
 				unresolvedReferences.push({ blockId, guid: part.mesh, prefab: selected.prefab })
 				continue
+			}
+			for (const slot of part.materials) {
+				if (slot.material && !nativePalette.materials[slot.material])
+					throw new Error(
+						`Unresolved renderer material: ${slot.material} (${nativePalette.unresolved[slot.material] ?? selected.prefab})`,
+					)
 			}
 			parts.push(part)
 		}
@@ -252,9 +303,18 @@ export async function generateBlockMeshBundle(
 		}
 	}
 
+	for (const [paintId, guid] of Object.entries(paintPalette.paintMaterials)) {
+		if (!nativePalette.materials[guid])
+			throw new Error(
+				`Unresolved paint material: ${paintId}, ${guid} (${nativePalette.unresolved[guid] ?? 'missing .mat.meta'})`,
+			)
+	}
 	const manifest: BlockMeshManifest = {
-		version: 2,
+		version: 4,
 		paints: paintPalette.colors,
+		materials: nativePalette.materials,
+		paintMaterials: paintPalette.paintMaterials,
+		submeshCounts,
 		blocks: Object.fromEntries(
 			Object.entries(blocks).sort(([left], [right]) => Number(left) - Number(right)),
 		),
@@ -269,6 +329,11 @@ export async function generateBlockMeshBundle(
 			0,
 		),
 		meshCount: referencedGuids.size,
+		optionControllerCount,
+		variantControllerCount,
+		paintCount: Object.keys(paintPalette.colors).length,
+		materialCount: Object.keys(nativePalette.materials).length,
+		materialDefaults: nativePalette.defaults,
 		skippedBadPrefabs: skippedBadPrefabs.sort(),
 		skippedBuiltInMeshCount,
 		skippedInactiveRendererCount,
@@ -306,6 +371,7 @@ export function parseBlockPrefab(
 	content: string,
 	prefab: string,
 	materialToPaintId: ReadonlyMap<string, number> = new Map(),
+	scriptNames: ReadonlyMap<string, string> = new Map(),
 ): PrefabCandidate | null {
 	const documents = parseUnityDocuments(content)
 	const gameObjects = new Map<string, UnityGameObject>()
@@ -315,8 +381,8 @@ export function parseBlockPrefab(
 	const meshRenderers = new Map<string, UnityRenderer[]>()
 	const renderersById = new Map<string, UnityRenderer>()
 	const skinnedRenderers: UnitySkinnedRenderer[] = []
-	const optionControllerBodies: string[] = []
-	const painterBodies: string[] = []
+	const behaviours = new Map<string, UnityDocument>()
+	let blockPropertiesBody = ''
 	let blockId: number | null = null
 	let rootGameObjectId: string | null = null
 
@@ -361,21 +427,22 @@ export function parseBlockPrefab(
 			case 33: {
 				const gameObjectId = readFileId(document.body, 'm_GameObject')
 				if (!gameObjectId) break
-				meshFilters.push({ gameObjectId, mesh: readMeshReference(document.body) })
+				meshFilters.push({
+					id: document.id,
+					gameObjectId,
+					mesh: readMeshReference(document.body),
+				})
 				break
 			}
 			case 114: {
-				const scriptGuid = readGuidReference(document.body, 'm_Script')
-				if (scriptGuid === BLOCK_OPTION_CONTROLLER_GUID) {
-					optionControllerBodies.push(document.body)
-				}
-				if (scriptGuid === ROAD_PAINTER_GUID) painterBodies.push(document.body)
+				behaviours.set(document.id, document)
 				const parsedBlockId = readScalar(document.body, 'blockID')
 				if (parsedBlockId === null) break
 				const numericBlockId = Number(parsedBlockId)
 				if (!Number.isInteger(numericBlockId)) break
 				blockId = numericBlockId
 				rootGameObjectId = readFileId(document.body, 'm_GameObject')
+				blockPropertiesBody = document.body
 				break
 			}
 			case 137: {
@@ -399,13 +466,20 @@ export function parseBlockPrefab(
 	const rootTransform = transformsByGameObject.get(rootGameObjectId)
 	if (!root || !rootTransform) return null
 	const invalidControllerReasons: string[] = []
-	const controller = parseOptionController(
-		optionControllerBodies,
+	const gameplay = parsePrefabGameplay(
+		blockPropertiesBody,
+		behaviours,
+		scriptNames,
 		gameObjects,
+		transformsByGameObject,
+		transformsById,
+		rootTransform.id,
+		meshFilters,
+		renderersById,
 		invalidControllerReasons,
 	)
 	const paintSlots = parsePaintSlots(
-		painterBodies,
+		gameplay.painterBodies,
 		renderersById,
 		materialToPaintId,
 		invalidControllerReasons,
@@ -419,29 +493,14 @@ export function parseBlockPrefab(
 		mesh: UnityMeshReference,
 		enabled: boolean,
 		rendererId: string,
+		variant?: { index: number; count: number },
 	) => {
 		if (mesh.builtIn || !mesh.guid) {
 			skippedBuiltInMeshCount += 1
 			return
 		}
-		const controlled = findControlledPart(
-			gameObjectId,
-			controller.controlledGameObjects,
-			rootTransform.id,
-			transformsById,
-			transformsByGameObject,
-		)
-		if (
-			!enabled ||
-			!isGameObjectActiveForPart(
-				gameObjectId,
-				rootTransform.id,
-				controlled?.gameObjectId,
-				gameObjects,
-				transformsById,
-				transformsByGameObject,
-			)
-		) {
+		const state = gameplay.visibility(gameObjectId)
+		if (!enabled || gameplay.hiddenRenderers.has(rendererId) || !state.visible) {
 			skippedInactiveRendererCount += 1
 			return
 		}
@@ -455,19 +514,28 @@ export function parseBlockPrefab(
 		const gltfMatrix = new THREE.Matrix4()
 			.multiplyMatrices(UNITY_TO_GLTF, unityMatrix)
 			.multiply(UNITY_TO_GLTF)
-		const paint = paintSlots.get(rendererId)
+		const paintSlot = paintSlots.get(rendererId)
+		const paint = paintSlot
+			? {
+					index: paintSlot.index,
+					...(paintSlot.defaultId === undefined
+						? {}
+						: { defaultId: paintSlot.defaultId }),
+				}
+			: undefined
+		const materials = (renderersById.get(rendererId)?.materialGuids ?? []).map(
+			(material, index) => ({
+				material,
+				...(paintSlot ? { paintIndex: paintSlot.offset + index } : {}),
+			}),
+		)
 		parts.push({
 			mesh: mesh.guid,
 			matrix: gltfMatrix.toArray() as BlockMeshMatrix,
+			materials,
 			name: gameObjects.get(gameObjectId)?.name ?? '',
-			...(controlled
-				? {
-						attribute: {
-							index: controlled.attributeIndex,
-							defaultVisible: controlled.defaultVisible,
-						},
-					}
-				: {}),
+			...(state.conditions.length > 0 ? { visibility: state.conditions } : {}),
+			...(variant ? { variant } : {}),
 			...(paint ? { paint } : {}),
 		})
 	}
@@ -476,7 +544,17 @@ export function parseBlockPrefab(
 		const renderer = meshRenderers
 			.get(filter.gameObjectId)
 			?.find((candidate) => candidate.enabled)
-		addPart(filter.gameObjectId, filter.mesh, Boolean(renderer), renderer?.id ?? '')
+		const variants = gameplay.variants.get(filter.id)
+		if (variants) {
+			for (const [index, mesh] of variants.entries()) {
+				addPart(filter.gameObjectId, mesh, Boolean(renderer), renderer?.id ?? '', {
+					index,
+					count: variants.length,
+				})
+			}
+		} else {
+			addPart(filter.gameObjectId, filter.mesh, Boolean(renderer), renderer?.id ?? '')
+		}
 	}
 	for (const renderer of skinnedRenderers) {
 		addPart(renderer.gameObjectId, renderer.mesh, renderer.enabled, renderer.id)
@@ -487,11 +565,232 @@ export function parseBlockPrefab(
 		name: root.name || basename(prefab, '.prefab'),
 		prefab,
 		parts,
-		...(controller.optionMode === undefined ? {} : { optionMode: controller.optionMode }),
+		...(gameplay.optionMode === undefined ? {} : { optionMode: gameplay.optionMode }),
+		optionControllerCount: gameplay.optionControllerCount,
+		variantControllerCount: gameplay.variants.size,
 		invalidControllerReasons,
 		skippedBuiltInMeshCount,
 		skippedInactiveRendererCount,
 	}
+}
+
+type VisibilityState = { visible: boolean; conditions: ProtectedMeshVisibility[] }
+
+function parsePrefabGameplay(
+	blockBody: string,
+	behaviours: ReadonlyMap<string, UnityDocument>,
+	scriptNames: ReadonlyMap<string, string>,
+	gameObjects: ReadonlyMap<string, UnityGameObject>,
+	transformsByGameObject: ReadonlyMap<string, UnityTransform>,
+	transformsById: ReadonlyMap<string, UnityTransform>,
+	rootTransformId: string,
+	meshFilters: UnityMeshFilter[],
+	renderers: ReadonlyMap<string, UnityRenderer>,
+	invalidReasons: string[],
+) {
+	const states = new Map<string, VisibilityState>(
+		[...gameObjects].map(([id, object]) => [id, { visible: object.active, conditions: [] }]),
+	)
+	const hiddenRenderers = new Set<string>()
+	const variants = new Map<string, UnityMeshReference[]>()
+	const followerSources = new Map<string, string>()
+	const painterBodies: string[] = []
+	let optionMode: 0 | 1 | 2 | undefined
+	let optionControllerCount = 0
+	const scriptName = (body: string) => scriptNames.get(readGuidReference(body, 'm_Script') ?? '')
+	if (scriptName(blockBody) !== 'BlockProperties') {
+		invalidReasons.push('BlockProperties script metadata unresolved')
+	}
+	const setState = (id: string | null, state: VisibilityState, source: string) => {
+		if (!id || id === '0' || !gameObjects.has(id)) {
+			invalidReasons.push(`${source} references missing GameObject ${id}`)
+			return
+		}
+		states.set(id, state)
+	}
+	const setList = (body: string, key: string, visible: boolean, source: string) => {
+		for (const id of readFileIdList(body, key))
+			setState(id, { visible, conditions: [] }, source)
+	}
+	for (const id of readFileIdList(blockBody, 'propertyScripts')) {
+		const document = behaviours.get(id)
+		if (!document) {
+			invalidReasons.push(`propertyScripts references missing component ${id}`)
+			continue
+		}
+		const body = document.body
+		const name = scriptName(body)
+		if (!name) {
+			invalidReasons.push(`propertyScripts script metadata unresolved for component ${id}`)
+			continue
+		}
+		if (name === 'BlockEdit_RoadABCD_NEW' || name === 'BlockEdit_v18_RoadABCD') {
+			const controller = parseOptionController([body], gameObjects, invalidReasons)
+			optionControllerCount += 1
+			optionMode = controller.optionMode
+			for (const [objectId, controlled] of controller.controlledGameObjects) {
+				setState(
+					objectId,
+					{
+						visible: true,
+						conditions: [{ kind: 'attribute', index: controlled.attributeIndex }],
+					},
+					name,
+				)
+			}
+		} else if (name === 'Properties_RoadPainter') {
+			painterBodies.push(body)
+		} else if (name === 'BlockEdit_DisableGameObjects' || name === 'InvisibleBlockScript') {
+			setList(body, 'editorObjects', false, name)
+			setList(
+				body,
+				name === 'InvisibleBlockScript' ? 'gamesObjects' : 'playerObjects',
+				true,
+				name,
+			)
+			if (name === 'InvisibleBlockScript') {
+				for (const rendererId of readFileIdList(body, 'hideThese')) {
+					if (!renderers.has(rendererId))
+						invalidReasons.push(`hideThese references missing renderer ${rendererId}`)
+					hiddenRenderers.add(rendererId)
+				}
+			}
+		} else if (name === 'PlaceDynamicObject') {
+			setState(readFileId(body, 'editorObject'), { visible: false, conditions: [] }, name)
+			setList(body, 'auxEditorObjects', false, name)
+			// Render each gameplay template once, at its saved transform, before physics moves its clone.
+			setState(readFileId(body, 'levelObject'), { visible: true, conditions: [] }, name)
+			setList(body, 'auxLevelObjects', true, name)
+		} else if (name === 'BlockEdit_v18_DiscoRoadABCD') {
+			const filterId = readFileId(body, 'meshFilter') ?? ''
+			const meshes = readGuidList(body, 'availableMeshes').map((guid) => ({
+				guid,
+				builtIn: !guid,
+			}))
+			if (
+				!meshFilters.some((filter) => filter.id === filterId) ||
+				meshes.length === 0 ||
+				meshes.some((mesh) => !mesh.guid)
+			) {
+				invalidReasons.push(`${name} has missing mesh filter or invalid availableMeshes`)
+			} else if (variants.has(filterId)) {
+				invalidReasons.push(`${name} repeats mesh filter ${filterId}`)
+			} else {
+				variants.set(filterId, meshes)
+			}
+		} else if (name === 'BlockEdit_v18_C_Logic_Trigger') {
+			setState(
+				readFileId(body, 'triggerGlow'),
+				{
+					visible: true,
+					conditions: [{ kind: 'hideTrigger' }],
+				},
+				name,
+			)
+		} else if (name.startsWith('BlockEdit_v18_C_Logic_')) {
+			for (const objectId of readFileIdList(body, 'chipGameObjects')) {
+				setState(
+					objectId,
+					{
+						visible: true,
+						conditions: [{ kind: 'hideLogicBlock' }],
+					},
+					name,
+				)
+			}
+		}
+	}
+	for (const { body } of behaviours.values()) {
+		if (
+			scriptName(body) !== 'EnableDisableOtherGameObjects' ||
+			readScalar(body, 'm_Enabled') === '0'
+		)
+			continue
+		const sourceId = readFileId(body, 'm_GameObject') ?? ''
+		if (!gameObjects.has(sourceId)) {
+			invalidReasons.push(`follower source GameObject ${sourceId} missing`)
+			continue
+		}
+		for (const targetId of readFileIdList(body, 'followers')) {
+			if (!gameObjects.has(targetId))
+				invalidReasons.push(`follower GameObject ${targetId} missing`)
+			if (followerSources.has(targetId) && followerSources.get(targetId) !== sourceId) {
+				invalidReasons.push(`follower GameObject ${targetId} has multiple sources`)
+			}
+			followerSources.set(targetId, sourceId)
+		}
+	}
+	const cache = new Map<string, VisibilityState>()
+	const visibility = (id: string, visited = new Set<string>()): VisibilityState => {
+		const cached = cache.get(id)
+		if (cached) return cached
+		if (visited.has(id)) {
+			invalidReasons.push(`cyclic gameplay visibility at GameObject ${id}`)
+			return { visible: false, conditions: [] }
+		}
+		const transform = transformsByGameObject.get(id)
+		if (!transform) {
+			invalidReasons.push(`GameObject ${id} has no transform`)
+			return { visible: false, conditions: [] }
+		}
+		const path = new Set(visited).add(id)
+		const sourceId = followerSources.get(id)
+		const own = sourceId ? visibility(sourceId, path) : states.get(id)
+		if (!own) return { visible: false, conditions: [] }
+		let parent: VisibilityState = { visible: true, conditions: [] }
+		if (transform.id !== rootTransformId) {
+			const parentTransform = transform.parentId
+				? transformsById.get(transform.parentId)
+				: undefined
+			if (!parentTransform) {
+				invalidReasons.push(`GameObject ${id} has no parent inside block`)
+				return { visible: false, conditions: [] }
+			}
+			parent = visibility(parentTransform.gameObjectId, path)
+		}
+		const conditions = [
+			...new Map(
+				[...own.conditions, ...parent.conditions].map((condition) => [
+					JSON.stringify(condition),
+					condition,
+				]),
+			).values(),
+		].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+		const result = { visible: own.visible && parent.visible, conditions }
+		cache.set(id, result)
+		return result
+	}
+	return {
+		visibility,
+		hiddenRenderers,
+		variants,
+		painterBodies,
+		optionMode,
+		optionControllerCount,
+	}
+}
+
+export async function loadUnityScriptCatalog(directory: string): Promise<Map<string, string>> {
+	const entries = await mapWithConcurrency(
+		await listFiles(directory, '.cs.meta'),
+		32,
+		async (name) => {
+			const content = await readFile(join(directory, name), 'utf8')
+			const guid = content.match(/^guid:\s*([a-f0-9]{32})\s*$/m)?.[1]
+			if (!guid) throw new Error(`Unity script metadata missing GUID: ${name}`)
+			return { guid, name: name.slice(0, -'.cs.meta'.length) }
+		},
+	)
+	const result = new Map<string, string>()
+	for (const { guid, name } of entries) {
+		if (result.has(guid)) throw new Error(`Unity script metadata repeats GUID: ${name}`)
+		result.set(guid, name)
+	}
+	for (const name of ['BlockProperties', 'Properties_RoadPainter', 'MaterialHolder']) {
+		if (!entries.some((entry) => entry.name === name))
+			throw new Error(`Unity script metadata missing ${name}`)
+	}
+	return result
 }
 
 function parseUnityDocuments(content: string): UnityDocument[] {
@@ -517,14 +816,16 @@ function parseOptionController(
 	if (!body) return { controlledGameObjects }
 	if (bodies.length > 1) invalidReasons.push('multiple option controllers')
 	const blockPieces = readFileIdList(body, 'blockPieces')
-	const bridge = readPackedInt32(readScalar(body, 'blockPieceBridgeNR'))
+	const bridge = readPackedInt32(
+		readScalar(body, 'blockPieceBridgeNR') ?? readScalar(body, 'blockPieceNR'),
+	)
 	if (blockPieces.length !== bridge.length) {
 		invalidReasons.push(
 			`option controller has ${blockPieces.length} pieces but ${bridge.length} bridge values`,
 		)
 		return { controlledGameObjects }
 	}
-	const rawMode = Number(readScalar(body, 'blockMode'))
+	const rawMode = Number(readScalar(body, 'blockMode') ?? Number.NaN)
 	const optionMode = rawMode === 0 || rawMode === 1 || rawMode === 2 ? rawMode : undefined
 	if (optionMode === undefined)
 		invalidReasons.push(`unsupported option controller mode ${rawMode}`)
@@ -546,7 +847,6 @@ function parseOptionController(
 		controlledGameObjects.set(gameObjectId, {
 			gameObjectId,
 			attributeIndex,
-			defaultVisible: gameObject.active,
 		})
 	}
 	return {
@@ -561,7 +861,7 @@ function parsePaintSlots(
 	materialToPaintId: ReadonlyMap<string, number>,
 	invalidReasons: string[],
 ) {
-	const slots = new Map<string, { index: number; defaultId?: number }>()
+	const slots = new Map<string, { index: number; offset: number; defaultId?: number }>()
 	const body = bodies[0]
 	if (!body) return slots
 	if (bodies.length > 1) invalidReasons.push('multiple road painter controllers')
@@ -569,6 +869,7 @@ function parsePaintSlots(
 	const defaultMaterialIndices = readPackedInt32(
 		readScalar(body, 'optionalLeadingPhsxMaterialIndex'),
 	)
+	let paintIndex = 0
 	for (const [index, rendererId] of rendererIds.entries()) {
 		const renderer = renderersById.get(rendererId)
 		if (!renderer) {
@@ -579,13 +880,15 @@ function parsePaintSlots(
 			invalidReasons.push(`road painter repeats renderer ${rendererId}`)
 			continue
 		}
-		const materialIndex = defaultMaterialIndices[index] ?? -1
-		const materialGuid = materialIndex >= 0 ? renderer.materialGuids[materialIndex] : undefined
+		const materialIndex = Math.max(0, defaultMaterialIndices[index] ?? 0)
+		const materialGuid = renderer.materialGuids[materialIndex]
 		const defaultId = materialGuid ? materialToPaintId.get(materialGuid) : undefined
 		slots.set(rendererId, {
-			index,
+			index: paintIndex + materialIndex,
+			offset: paintIndex,
 			...(defaultId === undefined ? {} : { defaultId }),
 		})
+		paintIndex += renderer.materialGuids.length
 	}
 	return slots
 }
@@ -626,52 +929,6 @@ function calculateRootRelativeMatrix(
 	return result
 }
 
-function findControlledPart(
-	gameObjectId: string,
-	controlledGameObjects: ReadonlyMap<string, ControlledGameObject>,
-	rootTransformId: string,
-	transformsById: ReadonlyMap<string, UnityTransform>,
-	transformsByGameObject: ReadonlyMap<string, UnityTransform>,
-): ControlledGameObject | null {
-	let transform = transformsByGameObject.get(gameObjectId)
-	const visited = new Set<string>()
-	while (transform) {
-		if (visited.has(transform.id)) return null
-		visited.add(transform.id)
-		const controlled = controlledGameObjects.get(transform.gameObjectId)
-		if (controlled) return controlled
-		if (transform.id === rootTransformId || !transform.parentId) return null
-		transform = transformsById.get(transform.parentId)
-	}
-	return null
-}
-
-function isGameObjectActiveForPart(
-	gameObjectId: string,
-	rootTransformId: string,
-	controlledGameObjectId: string | undefined,
-	gameObjects: Map<string, UnityGameObject>,
-	transformsById: Map<string, UnityTransform>,
-	transformsByGameObject: Map<string, UnityTransform>,
-): boolean {
-	let transform = transformsByGameObject.get(gameObjectId)
-	const visited = new Set<string>()
-	while (transform) {
-		if (visited.has(transform.id)) return false
-		visited.add(transform.id)
-		if (
-			gameObjects.get(transform.gameObjectId)?.active === false &&
-			transform.gameObjectId !== controlledGameObjectId
-		) {
-			return false
-		}
-		if (transform.id === rootTransformId) return true
-		if (!transform.parentId) return false
-		transform = transformsById.get(transform.parentId)
-	}
-	return false
-}
-
 function selectCanonicalCandidate(
 	blockId: number,
 	candidates: PrefabCandidate[],
@@ -691,12 +948,19 @@ function preferNamedCandidate(blockId: number, candidates: PrefabCandidate[]): P
 }
 
 function candidateSignature(candidate: PrefabCandidate): string {
-	const geometry = candidate.parts.map(({ mesh, matrix, attribute, paint }) => ({
-		mesh,
-		matrix,
-		attribute,
-		paintIndex: paint?.index,
-	}))
+	const geometry = candidate.parts.map(
+		({ mesh, matrix, visibility, variant, paint, materials }) => ({
+			mesh,
+			matrix,
+			visibility,
+			variant,
+			paintIndex: paint?.index,
+			// Palette prefab clones differ in default paint, but saved paint slots replace it.
+			materials: materials.map((slot) =>
+				slot.paintIndex === undefined ? slot : { paintIndex: slot.paintIndex },
+			),
+		}),
+	)
 	geometry.sort(
 		(left, right) =>
 			left.mesh.localeCompare(right.mesh) ||
@@ -710,9 +974,10 @@ function compareParts(left: BlockMeshPart, right: BlockMeshPart): number {
 		left.mesh.localeCompare(right.mesh) ||
 		left.name.localeCompare(right.name) ||
 		JSON.stringify(left.matrix).localeCompare(JSON.stringify(right.matrix)) ||
-		JSON.stringify(left.attribute ?? null).localeCompare(
-			JSON.stringify(right.attribute ?? null),
+		JSON.stringify(left.visibility ?? null).localeCompare(
+			JSON.stringify(right.visibility ?? null),
 		) ||
+		(left.variant?.index ?? -1) - (right.variant?.index ?? -1) ||
 		(left.paint?.index ?? -1) - (right.paint?.index ?? -1)
 	)
 }
@@ -730,7 +995,7 @@ function readMeshReference(body: string): UnityMeshReference {
 }
 
 function readScalar(body: string, key: string): string | null {
-	const match = body.match(new RegExp(`^  ${escapeRegExp(key)}:\\s*(.*?)\\s*$`, 'm'))
+	const match = body.match(new RegExp(`^  ${escapeRegExp(key)}:[ \\t]*(.*?)[ \\t]*\\r?$`, 'm'))
 	return match?.[1] ?? null
 }
 
@@ -810,7 +1075,10 @@ function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-async function loadPaintPalette(paintHolderDirectory: string) {
+async function loadPaintPalette(
+	paintHolderDirectory: string,
+	scriptNames: ReadonlyMap<string, string>,
+) {
 	const [holderNames, assetMetaNames] = await Promise.all([
 		listFiles(paintHolderDirectory, '.asset'),
 		listFiles(paintHolderDirectory, '.asset.meta'),
@@ -822,13 +1090,15 @@ async function loadPaintPalette(paintHolderDirectory: string) {
 	}))
 	for (const { name, content } of assetMeta) {
 		const guid = content.match(/^guid:\s*([a-f0-9]+)\s*$/m)?.[1]
-		if (guid) physicsGuidToName.set(guid, name)
+		if (guid) physicsGuidToName.set(guid, name.replace(/^\d+\s+-\s+/, ''))
 	}
 	const parsedHolders = await mapWithConcurrency(holderNames, 32, async (asset) => {
 		const body = await readFile(join(paintHolderDirectory, asset), 'utf8')
-		if (readGuidReference(body, 'm_Script') !== MATERIAL_HOLDER_GUID) return null
 		const rawPaintId = readScalar(body, 'materialID')
 		if (rawPaintId === null) return null
+		if (scriptNames.get(readGuidReference(body, 'm_Script') ?? '') !== 'MaterialHolder') {
+			throw new Error(`MaterialHolder script metadata unresolved: ${asset}`)
+		}
 		const paintId = Number(rawPaintId)
 		if (!Number.isSafeInteger(paintId)) return null
 		return {
@@ -843,10 +1113,15 @@ async function loadPaintPalette(paintHolderDirectory: string) {
 	)
 	const colors: Record<string, [number, number, number]> = {}
 	const materialToPaintId = new Map<string, number>()
+	const paintMaterials: Record<string, string> = {}
 	const conflicts: BlockMeshPaintConflict[] = []
 	const physicsErrors: BlockMeshPaintPhysicsError[] = []
 	for (const [paintId, entries] of Map.groupBy(holders, ({ paintId }) => paintId)) {
 		const surfaces = new Set<string>()
+		const materialRefs = new Set(entries.map((entry) => entry.materialGuid))
+		if (materialRefs.has(null)) throw new Error(`Missing paint material: ${paintId}`)
+		if (materialRefs.size === 1)
+			paintMaterials[String(paintId)] = entries[0]?.materialGuid as string
 		for (const holder of entries) {
 			if (!holder.physicsGuid) {
 				physicsErrors.push({
@@ -878,7 +1153,7 @@ async function loadPaintPalette(paintHolderDirectory: string) {
 			}
 			surfaces.add(surface)
 		}
-		if (surfaces.size > 1) {
+		if (surfaces.size > 1 || materialRefs.size > 1) {
 			conflicts.push({ paintId, assets: entries.map(({ asset }) => asset).sort() })
 		} else {
 			const surface = surfaces.values().next().value
@@ -894,7 +1169,7 @@ async function loadPaintPalette(paintHolderDirectory: string) {
 	physicsErrors.sort(
 		(left, right) => left.paintId - right.paintId || left.asset.localeCompare(right.asset),
 	)
-	return { colors, materialToPaintId, conflicts, physicsErrors }
+	return { colors, materialToPaintId, paintMaterials, conflicts, physicsErrors }
 }
 
 function srgb(hex: `#${string}`): [number, number, number] {

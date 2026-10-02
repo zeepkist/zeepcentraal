@@ -151,6 +151,9 @@ export type GhostLevelBlock = {
 	scale: GhostVector3
 	attributes: Record<number, number>
 	paints: Record<number, number>
+	meshVariant?: number
+	hideLogicBlock?: boolean
+	hideTrigger?: boolean
 }
 
 export type GhostEventKind =

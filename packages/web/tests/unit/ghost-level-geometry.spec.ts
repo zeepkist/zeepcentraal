@@ -17,6 +17,9 @@ describe('parseLevelGeometryBlocks', () => {
 				id: 42,
 				attributes: {},
 				paints: {},
+				meshVariant: 0,
+				hideLogicBlock: false,
+				hideTrigger: false,
 				position: { x: 16, y: 2, z: -8 },
 				rotation: { x: 0, y: 90, z: 0 },
 				scale: { x: 2, y: 1, z: 4 },
@@ -35,6 +38,9 @@ describe('parseLevelGeometryBlocks', () => {
 				id: 7,
 				attributes: {},
 				paints: {},
+				meshVariant: 0,
+				hideLogicBlock: false,
+				hideTrigger: false,
 				position: { x: 1, y: 2, z: 3 },
 				rotation: { x: 4, y: 5, z: 6 },
 				scale: { x: 0.5, y: 1, z: 2 },
@@ -59,11 +65,51 @@ describe('parseLevelGeometryBlocks', () => {
 				id: 1490,
 				attributes: {},
 				paints: {},
+				meshVariant: 0,
+				hideLogicBlock: false,
+				hideTrigger: false,
 				position: { x: -7.07493, y: 41.3419876, z: 2.953003 },
 				rotation: { x: 9.04873, y: 357.9862, z: 356.081665 },
 				scale: { x: 1, y: 1, z: 1 },
 			},
 		])
+	})
+
+	it('keeps CSV paint and toggle indices and accepts nonzero fractional toggles', () => {
+		expect(
+			parseLevelGeometryBlocks([
+				{
+					Id: 0,
+					Position: [0, 0, 0],
+					Options: [1, 0, -0.5, Infinity],
+					Paints: [403, 285, 1.5],
+				},
+			])[0],
+		).toMatchObject({
+			attributes: { 0: 1, 1: 0, 2: -0.5 },
+			paints: { 0: 403, 1: 285 },
+		})
+	})
+
+	it('parses named integer options and rejects malformed values', () => {
+		expect(
+			parseLevelGeometryBlocks([
+				{ i: 2445, p: [0, 0, 0], d: { n: { vr: 7, lbhd: -1, xt1: 2 } } },
+			])[0],
+		).toMatchObject({
+			meshVariant: 7,
+			hideLogicBlock: true,
+			hideTrigger: true,
+		})
+		expect(
+			parseLevelGeometryBlocks([
+				{ i: 2445, p: [0, 0, 0], d: { n: { vr: 1.5, lbhd: 'bad', xt1: NaN } } },
+			])[0],
+		).toMatchObject({
+			meshVariant: 0,
+			hideLogicBlock: false,
+			hideTrigger: false,
+		})
 	})
 
 	it('maps validated numeric block attributes and paints', () => {

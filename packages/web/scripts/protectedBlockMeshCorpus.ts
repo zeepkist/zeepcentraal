@@ -11,10 +11,12 @@ import {
 	PROTECTED_MESH_PRIMITIVE_VERSION,
 	type ProtectedMeshCorpusIndex,
 	type ProtectedMeshMatrix,
+	validateProtectedMeshMaterial,
 } from '../shared/protectedMeshFormat'
-import type { BlockMeshManifest } from './blockMeshManifest'
+import type { BlockMeshGenerationReport, BlockMeshManifest } from './blockMeshManifest'
 
 type Primitive = {
+	slot?: number
 	matrix: ProtectedMeshMatrix
 	positions: Float32Array
 	normals: Float32Array | null
@@ -69,9 +71,11 @@ export type CompileProtectedBlockMeshCorpusOptions = {
 	bundleDirectory: string
 	ghostModelDirectory: string
 	outputDirectory: string
+	sourceReport?: BlockMeshGenerationReport
 }
 
 export type ProtectedBlockMeshCorpusReport = {
+	source?: BlockMeshGenerationReport
 	blockCount: number
 	meshCount: number
 	primitiveCount: number
@@ -100,8 +104,15 @@ export async function compileProtectedBlockMeshCorpus(
 	const manifest = JSON.parse(
 		await readFile(join(options.bundleDirectory, 'manifest.json'), 'utf8'),
 	) as BlockMeshManifest
-	if (manifest.version !== 2 || !manifest.blocks || !manifest.paints) {
-		throw new Error('Block mesh bundle version 2 required; regenerate from raw exports')
+	if (
+		manifest.version !== 4 ||
+		!manifest.blocks ||
+		!manifest.paints ||
+		!manifest.materials ||
+		!manifest.paintMaterials ||
+		!manifest.submeshCounts
+	) {
+		throw new Error('Block mesh bundle version 4 required; regenerate from raw exports')
 	}
 	const outputMeshDirectory = join(options.outputDirectory, 'meshes')
 	await mkdir(outputMeshDirectory, { recursive: true })
@@ -110,6 +121,12 @@ export async function compileProtectedBlockMeshCorpus(
 		Object.values(manifest.blocks).flatMap(({ parts }) => parts.map(({ mesh }) => mesh)),
 	)
 	const sourceToOpaque = new Map<string, string>()
+	const primitiveSlots: Record<string, number[]> = {}
+	for (const material of Object.values(manifest.materials))
+		validateProtectedMeshMaterial(material)
+	for (const [paintId, guid] of Object.entries(manifest.paintMaterials)) {
+		if (!manifest.materials[guid]) throw new Error(`Unresolved paint material: ${paintId}`)
+	}
 	const fileDigests: string[] = []
 	let primitiveCount = 0
 	let reflectedPrimitiveCount = 0
@@ -128,10 +145,22 @@ export async function compileProtectedBlockMeshCorpus(
 			source,
 		)
 		const { primitives } = parsed
+		const slots = primitives.map((primitive) => primitive.slot as number)
+		const expected = manifest.submeshCounts[source]
+		if (
+			!expected ||
+			parsed.slotCount !== expected ||
+			new Set(slots).size !== slots.length ||
+			slots.some((slot) => slot < 0 || slot >= expected)
+		)
+			throw new Error(
+				`Ambiguous Unity/GLB submesh mapping: ${source}, expected ${expected}, found ${parsed.slotCount}`,
+			)
 		const encoded = encodePrimitiveFile(primitives)
 		const fileName = `${opaque}.zcp`
 		await writeFile(join(outputMeshDirectory, fileName), encoded.bytes)
 		sourceToOpaque.set(source, fileName)
+		primitiveSlots[fileName] = slots
 		fileDigests.push(hashBytes(encoded.bytes))
 		primitiveCount += primitives.length
 		reflectedPrimitiveCount += parsed.reflectedPrimitiveCount
@@ -160,37 +189,55 @@ export async function compileProtectedBlockMeshCorpus(
 	for (const [blockId, definition] of Object.entries(manifest.blocks)) {
 		blocks[blockId] = {
 			...(definition.optionMode === undefined ? {} : { optionMode: definition.optionMode }),
-			parts: definition.parts.flatMap(({ mesh, matrix, attribute, paint }) => {
-				const determinant = matrixDeterminant(matrix)
-				if (
-					matrix.some((value) => !Number.isFinite(value)) ||
-					!Number.isFinite(determinant)
-				) {
-					throw new Error(`Block ${blockId} contains a non-finite part transform`)
-				}
-				if (Math.abs(determinant) <= MATRIX_DETERMINANT_EPSILON) {
-					singularPartCount += 1
-					return []
-				}
-				if (determinant < 0) negativeTransformPartCount += 1
-				const protectedMesh = sourceToOpaque.get(mesh)
-				return protectedMesh
-					? [
-							{
-								mesh: protectedMesh,
-								matrix,
-								...(attribute ? { attribute } : {}),
-								...(paint ? { paint } : {}),
-							},
-						]
-					: []
-			}),
+			parts: definition.parts.flatMap(
+				({ mesh, matrix, visibility, variant, paint, materials }) => {
+					if (!Array.isArray(materials))
+						throw new Error(`Block ${blockId} lacks renderer material slots`)
+					for (const slot of materials) {
+						if (slot.material && !manifest.materials[slot.material])
+							throw new Error(`Unresolved renderer material: ${slot.material}`)
+						if (
+							slot.paintIndex !== undefined &&
+							(!Number.isSafeInteger(slot.paintIndex) || slot.paintIndex < 0)
+						)
+							throw new Error(`Malformed paint slot in block ${blockId}`)
+					}
+					const determinant = matrixDeterminant(matrix)
+					if (
+						matrix.some((value) => !Number.isFinite(value)) ||
+						!Number.isFinite(determinant)
+					) {
+						throw new Error(`Block ${blockId} contains a non-finite part transform`)
+					}
+					if (Math.abs(determinant) <= MATRIX_DETERMINANT_EPSILON) {
+						singularPartCount += 1
+						return []
+					}
+					if (determinant < 0) negativeTransformPartCount += 1
+					const protectedMesh = sourceToOpaque.get(mesh)
+					return protectedMesh
+						? [
+								{
+									mesh: protectedMesh,
+									matrix,
+									...(visibility ? { visibility } : {}),
+									...(variant ? { variant } : {}),
+									...(paint ? { paint } : {}),
+									materials,
+								},
+							]
+						: []
+				},
+			),
 		}
 	}
 	const unsignedIndex = {
 		version: PROTECTED_MESH_CORPUS_VERSION,
 		blocks,
 		paints: manifest.paints,
+		materials: manifest.materials,
+		paintMaterials: manifest.paintMaterials,
+		primitiveSlots,
 		common: commonFiles,
 	}
 	const digest = createHash('sha256')
@@ -199,6 +246,7 @@ export async function compileProtectedBlockMeshCorpus(
 		.digest('hex')
 	const index: ProtectedMeshCorpusIndex = { ...unsignedIndex, digest }
 	const report: ProtectedBlockMeshCorpusReport = {
+		...(options.sourceReport ? { source: options.sourceReport } : {}),
 		blockCount: Object.keys(blocks).length,
 		meshCount: sourceMeshes.size,
 		primitiveCount,
@@ -373,7 +421,11 @@ function parseGlb(bytes: Uint8Array, source: string) {
 		reflectedPrimitiveCount += visitGlbNode(json, binary, root, IDENTITY_MATRIX, result, source)
 	}
 	if (result.length === 0) throw new Error('GLB contains no triangle primitives')
-	return { primitives: result, reflectedPrimitiveCount }
+	return {
+		primitives: result,
+		reflectedPrimitiveCount,
+		slotCount: (json.meshes ?? []).reduce((sum, mesh) => sum + mesh.primitives.length, 0),
+	}
 }
 
 function visitGlbNode(
@@ -402,6 +454,10 @@ function visitGlbNode(
 				? Uint32Array.from({ length: positions.length / 3 }, (_, index) => index)
 				: Uint32Array.from(readAccessor(json, binary, primitive.indices))
 		const parsedPrimitive: Primitive = {
+			slot:
+				(json.meshes ?? [])
+					.slice(0, node.mesh ?? 0)
+					.reduce((sum, mesh) => sum + mesh.primitives.length, 0) + primitiveIndex,
 			matrix: IDENTITY_MATRIX.toArray() as ProtectedMeshMatrix,
 			positions,
 			normals,

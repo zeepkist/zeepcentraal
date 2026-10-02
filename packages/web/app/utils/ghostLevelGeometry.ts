@@ -34,11 +34,35 @@ export function parseLevelGeometryBlocks(value: unknown): GhostLevelBlock[] {
 				scale: readVector(
 					block.Scale ?? block.scale ?? block.s ?? nested(block, 'd', 's'),
 				) ?? { x: 1, y: 1, z: 1 },
-				attributes: readIndexedOptions(numericOptions, 'a'),
-				paints: readIndexedOptions(numericOptions, 'p'),
+				attributes: Array.isArray(block.Options)
+					? readCsvOptions(block.Options, false)
+					: readIndexedOptions(numericOptions, 'a'),
+				paints: Array.isArray(block.Paints)
+					? readCsvOptions(block.Paints, true)
+					: readIndexedOptions(numericOptions, 'p'),
+				meshVariant: readNamedOption(numericOptions, 'vr'),
+				hideLogicBlock: readNamedOption(numericOptions, 'lbhd') !== 0,
+				hideTrigger: readNamedOption(numericOptions, 'xt1') !== 0,
 			},
 		]
 	})
+}
+
+function readCsvOptions(values: unknown[], integersOnly: boolean): Record<number, number> {
+	return Object.fromEntries(
+		values.slice(0, MAXIMUM_OPTION_INDEX + 1).flatMap((value, index) => {
+			const number = readNumber(value)
+			return number === null || (integersOnly && !Number.isSafeInteger(number))
+				? []
+				: [[index, number]]
+		}),
+	)
+}
+
+function readNamedOption(value: unknown, key: string): number {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return 0
+	const number = readNumber((value as Record<string, unknown>)[key])
+	return number !== null && Number.isSafeInteger(number) ? number : 0
 }
 
 function readIndexedOptions(value: unknown, prefix: 'a' | 'p'): Record<number, number> {

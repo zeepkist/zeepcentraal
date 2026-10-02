@@ -7,6 +7,7 @@ import {
 } from '../../app/utils/protectedMeshLibrary.client'
 import {
 	GHOST_MODEL_SLOTS,
+	PROTECTED_GHOST_MODEL_BUNDLE_VERSION,
 	PROTECTED_MESH_BUNDLE_MAGIC,
 	PROTECTED_MESH_BUNDLE_VERSION,
 	PROTECTED_MESH_GROUP_FLAGS,
@@ -118,7 +119,7 @@ function fixtureGhostModelBundle() {
 function fixtureBundle(includeLevel: boolean, includeCommon: boolean, reflectX = false) {
 	const primitive = fixturePrimitive()
 	const headerSize = 52
-	const groupSize = includeLevel ? 12 + primitive.byteLength + 64 : 0
+	const groupSize = includeLevel ? 16 + 44 + primitive.byteLength + 64 : 0
 	const fallbackSize = includeLevel ? 64 : 0
 	const commonEntries = includeCommon ? Object.values(GHOST_MODEL_SLOTS) : []
 	const commonSize = commonEntries.length * (8 + primitive.byteLength)
@@ -127,7 +128,11 @@ function fixtureBundle(includeLevel: boolean, includeCommon: boolean, reflectX =
 	let offset = 0
 	view.setUint32(offset, PROTECTED_MESH_BUNDLE_MAGIC, true)
 	offset += 4
-	view.setUint16(offset, PROTECTED_MESH_BUNDLE_VERSION, true)
+	view.setUint16(
+		offset,
+		includeLevel ? PROTECTED_MESH_BUNDLE_VERSION : PROTECTED_GHOST_MODEL_BUNDLE_VERSION,
+		true,
+	)
 	offset += 4 + 32
 	view.setUint32(offset, includeLevel ? 1 : 0, true)
 	view.setUint32(offset + 4, includeLevel ? 1 : 0, true)
@@ -145,6 +150,8 @@ function fixtureBundle(includeLevel: boolean, includeCommon: boolean, reflectX =
 				(reflectX ? PROTECTED_MESH_GROUP_FLAGS.reflectX : 0),
 		)
 		offset += 12
+		view.setUint32(offset, 1, true)
+		offset += 4 + 44 // One null material descriptor for primitive 0.
 		bytes.set(primitive, offset)
 		offset += primitive.byteLength
 		offset = writeMatrix(view, offset)

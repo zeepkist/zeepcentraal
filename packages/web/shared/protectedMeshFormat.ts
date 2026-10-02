@@ -1,5 +1,6 @@
-export const PROTECTED_MESH_CORPUS_VERSION = 3
-export const PROTECTED_MESH_BUNDLE_VERSION = 3
+export const PROTECTED_MESH_CORPUS_VERSION = 5
+export const PROTECTED_MESH_BUNDLE_VERSION = 4
+export const PROTECTED_GHOST_MODEL_BUNDLE_VERSION = 3
 export const PROTECTED_MESH_PRIMITIVE_VERSION = 1
 
 export const PROTECTED_MESH_BUNDLE_MAGIC = 0x424d435a
@@ -40,15 +41,53 @@ export type ProtectedMeshMatrix = [
 
 export type ProtectedMeshColor = [number, number, number]
 
+// Colours are authored sRGB. Convert once when creating Three materials.
+export type ProtectedMeshMaterial = {
+	color: ProtectedMeshColor
+	opacity: number
+	roughness: number
+	metalness: number
+	specular: ProtectedMeshColor
+	workflow: 'metallic' | 'specular'
+	transparent: boolean
+	doubleSided: boolean
+}
+
+export type ProtectedMeshMaterialSlot = { material: string | null; paintIndex?: number }
+
+export function validateProtectedMeshMaterial(value: ProtectedMeshMaterial) {
+	if (
+		!value ||
+		!Array.isArray(value.color) ||
+		value.color.length !== 3 ||
+		!Array.isArray(value.specular) ||
+		value.specular.length !== 3 ||
+		![...value.color, ...value.specular, value.opacity, value.roughness, value.metalness].every(
+			(number) => Number.isFinite(number) && number >= 0 && number <= 1,
+		) ||
+		!['metallic', 'specular'].includes(value.workflow) ||
+		typeof value.transparent !== 'boolean' ||
+		typeof value.doubleSided !== 'boolean'
+	)
+		throw new Error('Malformed protected material descriptor')
+	return value
+}
+
+export type ProtectedMeshVisibility =
+	| { kind: 'attribute'; index: number }
+	| { kind: 'hideLogicBlock' | 'hideTrigger' }
+
 export type ProtectedMeshPart = {
 	mesh: string
 	matrix: ProtectedMeshMatrix
-	attribute?: { index: number; defaultVisible: boolean }
+	visibility?: ProtectedMeshVisibility[]
+	variant?: { index: number; count: number }
 	paint?: { index: number; defaultId?: number }
+	materials: ProtectedMeshMaterialSlot[]
 }
 
 export type ProtectedMeshCorpusIndex = {
-	version: 3
+	version: 5
 	digest: string
 	blocks: Record<
 		string,
@@ -58,5 +97,8 @@ export type ProtectedMeshCorpusIndex = {
 		}
 	>
 	paints: Record<string, ProtectedMeshColor>
+	materials: Record<string, ProtectedMeshMaterial>
+	paintMaterials: Record<string, string>
+	primitiveSlots: Record<string, number[]>
 	common: Record<'axles' | 'body' | 'character' | 'wheel', string>
 }

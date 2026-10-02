@@ -3,21 +3,26 @@ import * as THREE from 'three'
 import {
 	GHOST_MODEL_SLOTS,
 	type GhostModelSlot,
+	PROTECTED_GHOST_MODEL_BUNDLE_VERSION,
 	PROTECTED_MESH_BUNDLE_MAGIC,
 	PROTECTED_MESH_BUNDLE_VERSION,
 	PROTECTED_MESH_GROUP_FLAGS,
 	PROTECTED_MESH_PRIMITIVE_MAGIC,
 	PROTECTED_MESH_PRIMITIVE_VERSION,
+	type ProtectedMeshMaterial,
+	validateProtectedMeshMaterial,
 } from '../../shared/protectedMeshFormat'
 
 export type ProtectedMeshPrimitive = {
 	geometry: THREE.BufferGeometry
 	matrix: THREE.Matrix4
+	nativeOnly?: boolean
 }
 
 export type ProtectedMeshGroup = {
 	primitives: ProtectedMeshPrimitive[]
 	matrices: THREE.Matrix4[]
+	materials: Array<ProtectedMeshMaterial | null>
 	color: [number, number, number] | null
 }
 
@@ -137,6 +142,8 @@ export class ProtectedMeshLibrary {
 
 export function parseProtectedLevelMeshBundle(bytes: Uint8Array): ProtectedLevelMeshBundle {
 	const parsed = parseProtectedBundle(bytes)
+	if (parsed.version !== PROTECTED_MESH_BUNDLE_VERSION)
+		throw new Error('Level mesh bundle version 4 required; regenerate corpus')
 	for (const geometry of parsed.common.values()) geometry.dispose()
 	return { groups: parsed.groups, fallbackMatrices: parsed.fallbackMatrices }
 }
@@ -162,13 +169,19 @@ function parseProtectedBundle(bytes: Uint8Array) {
 	const reader = new BinaryReader(bytes)
 	if (reader.uint32() !== PROTECTED_MESH_BUNDLE_MAGIC)
 		throw new Error('Invalid mesh bundle magic')
-	if (reader.uint16() !== PROTECTED_MESH_BUNDLE_VERSION) {
+	const version = reader.uint16()
+	if (
+		version !== PROTECTED_MESH_BUNDLE_VERSION &&
+		version !== PROTECTED_GHOST_MODEL_BUNDLE_VERSION
+	) {
 		throw new Error('Unsupported mesh bundle version')
 	}
 	reader.skip(2 + 32)
 	const groupCount = reader.count()
 	const fallbackCount = reader.count()
 	const commonCount = reader.count()
+	if (version === PROTECTED_GHOST_MODEL_BUNDLE_VERSION && (groupCount || fallbackCount))
+		throw new Error('Legacy level mesh bundle rejected; regenerate corpus')
 	const groups: ProtectedMeshGroup[] = []
 	for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
 		const payloadLength = reader.length()
@@ -181,13 +194,55 @@ function parseProtectedBundle(bytes: Uint8Array) {
 			throw new Error('Invalid protected mesh group flags')
 		const hasColor = (flags & PROTECTED_MESH_GROUP_FLAGS.hasColor) !== 0
 		const reflectX = (flags & PROTECTED_MESH_GROUP_FLAGS.reflectX) !== 0
-		const primitives = parsePrimitiveFile(reader.bytes(payloadLength))
+		const primitiveIndices: number[] = []
+		const materials = Array.from({ length: reader.count() }, () => {
+			primitiveIndices.push(reader.count())
+			const flags = reader.uint32()
+			if (flags & ~15) throw new Error('Invalid protected material flags')
+			const color: [number, number, number] = [
+				reader.float32(),
+				reader.float32(),
+				reader.float32(),
+			]
+			const opacity = reader.float32(),
+				roughness = reader.float32(),
+				metalness = reader.float32()
+			const specular: [number, number, number] = [
+				reader.float32(),
+				reader.float32(),
+				reader.float32(),
+			]
+			return flags & 1
+				? validateProtectedMeshMaterial({
+						color,
+						opacity,
+						roughness,
+						metalness,
+						specular,
+						workflow: flags & 2 ? 'specular' : 'metallic',
+						transparent: Boolean(flags & 4),
+						doubleSided: Boolean(flags & 8),
+					})
+				: null
+		})
+		const sourcePrimitives = parsePrimitiveFile(reader.bytes(payloadLength))
+		const seen = new Set<number>()
+		const primitives = primitiveIndices.map((index) => {
+			const primitive = sourcePrimitives[index]
+			if (!primitive) throw new Error('Invalid protected submesh index')
+			const nativeOnly = seen.has(index)
+			seen.add(index)
+			return { ...primitive, nativeOnly }
+		})
+		if (materials.length !== primitives.length)
+			throw new Error('Protected material slot count mismatch')
 		if (reflectX) {
-			for (const primitive of primitives) reflectPrimitiveX(primitive)
+			for (const primitive of sourcePrimitives) reflectPrimitiveX(primitive)
 		}
 		const matrices = Array.from({ length: matrixCount }, () => reader.matrix())
 		groups.push({
 			primitives,
+			materials,
 			matrices,
 			color: hasColor ? [red / 255, green / 255, blue / 255] : null,
 		})
@@ -204,7 +259,7 @@ function parseProtectedBundle(bytes: Uint8Array) {
 		common.set(slot, primitive.geometry)
 	}
 	reader.finish()
-	return { groups, fallbackMatrices, common }
+	return { groups, fallbackMatrices, common, version }
 }
 
 function parsePrimitiveFile(bytes: Uint8Array) {

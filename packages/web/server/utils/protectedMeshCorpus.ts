@@ -5,13 +5,16 @@ import * as THREE from 'three'
 import type { GhostLevelBlock, GhostVector3 } from '../../app/types/ghost'
 import {
 	GHOST_MODEL_SLOTS,
+	PROTECTED_GHOST_MODEL_BUNDLE_VERSION,
 	PROTECTED_MESH_BUNDLE_MAGIC,
 	PROTECTED_MESH_BUNDLE_VERSION,
 	PROTECTED_MESH_CORPUS_VERSION,
 	PROTECTED_MESH_GROUP_FLAGS,
 	type ProtectedMeshColor,
 	type ProtectedMeshCorpusIndex,
+	type ProtectedMeshMaterial,
 	type ProtectedMeshMatrix,
+	validateProtectedMeshMaterial,
 } from '../../shared/protectedMeshFormat'
 
 type Corpus = {
@@ -26,6 +29,8 @@ type CorpusSource =
 type BundleGroup = {
 	payload: Uint8Array
 	matrices: ProtectedMeshMatrix[]
+	primitiveIndices: number[]
+	materials: Array<ProtectedMeshMaterial | null>
 	color: ProtectedMeshColor | null
 	reflectX: boolean
 }
@@ -41,6 +46,7 @@ const MAXIMUM_BUNDLE_BYTES = 64 * 1024 * 1024
 const MAXIMUM_CORPUS_INDEX_BYTES = 16 * 1024 * 1024
 const BLOCK_CORPUS_REFERER_PREFIX = 'https://zeepki.st/server/block-corpus/'
 const MATRIX_DETERMINANT_EPSILON = 1e-12
+const CORPUS_VERSION_ERROR = 'Protected mesh corpus version 5 required; regenerate from raw exports'
 const BLOCK_POSITION_JITTER_MAGNITUDE = 0.01
 const blockPositionJitterMatrices = new Map<string, THREE.Matrix4>()
 
@@ -67,6 +73,8 @@ async function buildProtectedLevelMeshBundleUncached(
 		string,
 		{
 			file: string
+			primitiveIndices: number[]
+			materials: Array<ProtectedMeshMaterial | null>
 			color: ProtectedMeshColor | null
 			reflectX: boolean
 			matrices: ProtectedMeshMatrix[]
@@ -82,7 +90,7 @@ async function buildProtectedLevelMeshBundleUncached(
 		const blockMatrix = createBlockMatrix(block, ZERO_VECTOR).multiply(
 			ASSET_RIPPER_TO_GHOST_MATRIX,
 		)
-		for (const part of selectProtectedMeshParts(definition, block.attributes)) {
+		for (const part of selectProtectedMeshParts(definition, block)) {
 			const paintId = part.paint
 				? (block.paints[part.paint.index] ?? part.paint.defaultId)
 				: undefined
@@ -98,11 +106,37 @@ async function buildProtectedLevelMeshBundleUncached(
 			}
 			const reflectX = determinant < 0
 			if (reflectX) matrix.multiply(REFLECT_X_MATRIX)
+			const sourceSlots = corpus.index.primitiveSlots[part.mesh] ?? []
+			const resolveMaterial = (slot: number) => {
+				const assignment = part.materials[Math.min(slot, part.materials.length - 1)]
+				const savedPaint =
+					assignment?.paintIndex === undefined
+						? undefined
+						: block.paints[assignment.paintIndex]
+				const guid =
+					(savedPaint === undefined
+						? undefined
+						: corpus.index.paintMaterials[String(savedPaint)]) ?? assignment?.material
+				return guid
+					? validateProtectedMeshMaterial(
+							corpus.index.materials[guid] as ProtectedMeshMaterial,
+						)
+					: null
+			}
+			const materials = sourceSlots.map(resolveMaterial)
+			const primitiveIndices = sourceSlots.map((_, index) => index)
+			const lastSlot = Math.max(...sourceSlots)
+			for (let slot = lastSlot + 1; slot < part.materials.length; slot += 1) {
+				primitiveIndices.push(sourceSlots.indexOf(lastSlot))
+				materials.push(resolveMaterial(slot))
+			}
 			const colorKey = protectedMeshColorKey(color)
 			matrix.premultiply(blockPositionJitterMatrix(colorKey))
-			const key = `${part.mesh}:${colorKey}:${reflectX ? 1 : 0}`
+			const key = `${part.mesh}:${colorKey}:${reflectX ? 1 : 0}:${JSON.stringify(materials)}`
 			const group = groups.get(key) ?? {
 				file: part.mesh,
+				primitiveIndices,
+				materials,
 				color,
 				reflectX,
 				matrices: [],
@@ -113,59 +147,38 @@ async function buildProtectedLevelMeshBundleUncached(
 	}
 	const files = new Map<string, Promise<Uint8Array>>()
 	const bundleGroups: BundleGroup[] = await Promise.all(
-		[...groups.values()].map(async ({ file, color, reflectX, matrices }) => ({
-			payload: await readCorpusFile(corpus, files, file),
-			color,
-			reflectX,
-			matrices,
-		})),
+		[...groups.values()].map(
+			async ({ file, color, reflectX, matrices, materials, primitiveIndices }) => ({
+				payload: await readCorpusFile(corpus, files, file),
+				primitiveIndices,
+				materials,
+				color,
+				reflectX,
+				matrices,
+			}),
+		),
 	)
 	return serializeBundle(corpus.index.digest, bundleGroups, fallbackMatrices, [])
 }
 
 export function selectProtectedMeshParts(
 	definition: ProtectedMeshCorpusIndex['blocks'][string],
-	attributes: Readonly<Record<number, number>>,
+	block: Pick<GhostLevelBlock, 'attributes' | 'meshVariant' | 'hideLogicBlock' | 'hideTrigger'>,
 ) {
-	const activeAttributes = resolveActiveAttributes(definition, attributes)
-	return definition.parts.filter((part) => isPartVisible(part.attribute, activeAttributes))
-}
-
-function resolveActiveAttributes(
-	definition: ProtectedMeshCorpusIndex['blocks'][string],
-	attributes: Readonly<Record<number, number>>,
-): Set<number> | null {
-	if (Object.keys(attributes).length === 0) return null
-	const controlled = new Set(
-		definition.parts.flatMap(({ attribute }) => (attribute ? [attribute.index] : [])),
-	)
-	const requested = new Set(
-		Object.entries(attributes)
-			.filter(([index, value]) => value === 1 && controlled.has(Number(index)))
-			.map(([index]) => Number(index)),
-	)
-	const defaults = new Set(
-		definition.parts.flatMap(({ attribute }) =>
-			attribute?.defaultVisible ? [attribute.index] : [],
-		),
-	)
-	if (definition.optionMode === 0) return requested.size > 0 ? requested : defaults
-	if (definition.optionMode === 1) return requested
-	if (definition.optionMode === 2) {
-		const selected = [...(requested.size > 0 ? requested : defaults)].sort((a, b) => a - b)[0]
-		return new Set(selected === undefined ? [] : [selected])
-	}
-	return requested
-}
-
-function isPartVisible(
-	attribute: { index: number; defaultVisible: boolean } | undefined,
-	activeAttributes: ReadonlySet<number> | null,
-) {
-	if (!attribute) return true
-	return activeAttributes === null
-		? attribute.defaultVisible
-		: activeAttributes.has(attribute.index)
+	return definition.parts.filter((part) => {
+		if (
+			part.visibility?.some((condition) =>
+				condition.kind === 'attribute'
+					? (block.attributes[condition.index] ?? 0) === 0
+					: Boolean(block[condition.kind]),
+			)
+		)
+			return false
+		if (!part.variant) return true
+		const value = block.meshVariant ?? 0
+		const index = Math.max(0, Math.min(part.variant.count - 1, value))
+		return part.variant.index === index
+	})
 }
 
 export async function buildProtectedGhostModelBundle(corpusLocation: string, corpusToken = '') {
@@ -209,9 +222,12 @@ async function loadCorpus(location: string, token: string) {
 				!index.digest ||
 				!index.blocks ||
 				!index.paints ||
+				!index.materials ||
+				!index.paintMaterials ||
+				!index.primitiveSlots ||
 				!index.common
 			) {
-				throw new Error('Protected mesh corpus index has unsupported shape')
+				throw new Error(CORPUS_VERSION_ERROR)
 			}
 			return { index, source }
 		})
@@ -219,9 +235,15 @@ async function loadCorpus(location: string, token: string) {
 	}
 	try {
 		return await promise
-	} catch {
+	} catch (error) {
 		corpusPromises.delete(cacheKey)
-		throw createError({ statusCode: 503, statusMessage: 'Protected mesh corpus unavailable' })
+		throw createError({
+			statusCode: 503,
+			statusMessage:
+				error instanceof Error && error.message === CORPUS_VERSION_ERROR
+					? CORPUS_VERSION_ERROR
+					: 'Protected mesh corpus unavailable',
+		})
 	}
 }
 
@@ -323,7 +345,12 @@ function serializeBundle(
 	const byteLength =
 		headerSize +
 		groups.reduce(
-			(total, group) => total + 12 + group.payload.byteLength + group.matrices.length * 64,
+			(total, group) =>
+				total +
+				16 +
+				group.materials.length * 44 +
+				group.payload.byteLength +
+				group.matrices.length * 64,
 			0,
 		) +
 		fallbackMatrices.length * 64 +
@@ -336,7 +363,11 @@ function serializeBundle(
 	let offset = 0
 	view.setUint32(offset, PROTECTED_MESH_BUNDLE_MAGIC, true)
 	offset += 4
-	view.setUint16(offset, PROTECTED_MESH_BUNDLE_VERSION, true)
+	view.setUint16(
+		offset,
+		common.length ? PROTECTED_GHOST_MODEL_BUNDLE_VERSION : PROTECTED_MESH_BUNDLE_VERSION,
+		true,
+	)
 	offset += 2
 	view.setUint16(offset, 0, true)
 	offset += 2
@@ -359,6 +390,32 @@ function serializeBundle(
 			(group.reflectX ? PROTECTED_MESH_GROUP_FLAGS.reflectX : 0)
 		view.setUint8(offset + 11, flags)
 		offset += 12
+		view.setUint32(offset, group.materials.length, true)
+		offset += 4
+		for (const [index, material] of group.materials.entries()) {
+			view.setUint32(offset, group.primitiveIndices[index] as number, true)
+			offset += 4
+			const flags = material
+				? 1 |
+					(material.workflow === 'specular' ? 2 : 0) |
+					(material.transparent ? 4 : 0) |
+					(material.doubleSided ? 8 : 0)
+				: 0
+			view.setUint32(offset, flags, true)
+			offset += 4
+			for (const value of material
+				? [
+						...material.color,
+						material.opacity,
+						material.roughness,
+						material.metalness,
+						...material.specular,
+					]
+				: Array(9).fill(0)) {
+				view.setFloat32(offset, value, true)
+				offset += 4
+			}
+		}
 		bytes.set(group.payload, offset)
 		offset += group.payload.byteLength
 		for (const matrix of group.matrices) offset = writeMatrix(view, offset, matrix)

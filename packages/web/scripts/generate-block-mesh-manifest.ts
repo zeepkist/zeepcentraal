@@ -1,12 +1,13 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { generateBlockMeshBundle } from './blockMeshManifest'
+import { type BlockMeshGenerationReport, generateBlockMeshBundle } from './blockMeshManifest'
 import { compileProtectedBlockMeshCorpus } from './protectedBlockMeshCorpus'
 
 const options = parseArguments(process.argv.slice(2))
 let bundleDirectory = options.bundleDirectory
 let temporaryDirectory: string | null = null
+let sourceReport: BlockMeshGenerationReport | undefined
 
 try {
 	if (!bundleDirectory) {
@@ -17,8 +18,12 @@ try {
 			assetMeshDirectory: options.assetMeshDirectory as string,
 			glbMeshDirectory: options.glbMeshDirectory as string,
 			paintHolderDirectory: options.paintHolderDirectory as string,
+			scriptDirectory: options.scriptDirectory,
+			materialDirectory: options.materialDirectory,
+			shaderDirectory: options.shaderDirectory,
 			outputDirectory: bundleDirectory,
 		})
+		sourceReport = report
 		if (
 			report.conflicts.length > 0 ||
 			report.unresolvedReferences.length > 0 ||
@@ -27,7 +32,7 @@ try {
 			report.paintPhysicsErrors.length > 0
 		) {
 			throw new Error(
-				`Block mesh export incomplete: ${report.conflicts.length} conflicts, ${report.unresolvedReferences.length} unresolved references, ${report.invalidControllers.length} invalid controllers, ${report.paintConflicts.length} paint conflicts, ${report.paintPhysicsErrors.length} paint physics errors.`,
+				`Block mesh export incomplete: ${report.conflicts.length} conflicts, ${report.unresolvedReferences.length} unresolved references, ${report.invalidControllers.length} invalid controllers, ${report.paintConflicts.length} paint conflicts, ${report.paintPhysicsErrors.length} paint physics errors. ${JSON.stringify(report.invalidControllers[0] ?? report.unresolvedReferences[0] ?? report.paintPhysicsErrors[0] ?? report.conflicts[0] ?? report.paintConflicts[0])}`,
 			)
 		}
 	}
@@ -35,9 +40,10 @@ try {
 		bundleDirectory,
 		ghostModelDirectory: options.ghostModelDirectory,
 		outputDirectory: options.outputDirectory,
+		sourceReport,
 	})
 	console.log(
-		`Generated protected corpus v3: ${report.blockCount} blocks, ${report.meshCount} meshes, ${report.triangleCount} triangles, ${report.negativeTransformPartCount} reflected parts, ${report.singularPartCount} singular parts omitted, ${report.encodedBytes} bytes.`,
+		`Generated protected corpus v5: ${report.blockCount} blocks, ${report.meshCount} meshes, ${report.triangleCount} triangles, ${report.negativeTransformPartCount} reflected parts, ${report.singularPartCount} singular parts omitted, ${report.encodedBytes} bytes.`,
 	)
 } finally {
 	if (temporaryDirectory) await rm(temporaryDirectory, { recursive: true, force: true })
@@ -61,6 +67,9 @@ function parseArguments(args: string[]) {
 	const assetMeshDirectory = values.get('--asset-meshes')
 	const glbMeshDirectory = values.get('--glb-meshes')
 	const paintHolderDirectory = values.get('--paint-holders')
+	const scriptDirectory = values.get('--scripts')
+	const materialDirectory = values.get('--materials')
+	const shaderDirectory = values.get('--shaders')
 	if (
 		!bundleDirectory &&
 		(!gameObjectDirectory || !assetMeshDirectory || !glbMeshDirectory || !paintHolderDirectory)
@@ -73,11 +82,14 @@ function parseArguments(args: string[]) {
 		assetMeshDirectory,
 		glbMeshDirectory,
 		paintHolderDirectory,
+		scriptDirectory,
+		materialDirectory,
+		shaderDirectory,
 		ghostModelDirectory,
 		outputDirectory,
 	}
 }
 
 function usage() {
-	return 'Usage: bun scripts/generate-block-mesh-manifest.ts (--bundle <v2-bundle> | --game-objects <v17_2/GameObject> --asset-meshes <v17_2/Mesh> --glb-meshes <v17_3/Mesh> --paint-holders <v17_2/MonoBehaviour>) --ghost-models <models> --out <private-corpus>'
+	return 'Usage: bun scripts/generate-block-mesh-manifest.ts (--bundle <v4-bundle> | --game-objects <GameObject> --asset-meshes <Mesh> --glb-meshes <GLB Mesh> --paint-holders <MonoBehaviour> [--scripts <Scripts/Zeepkist>] [--materials <Material>] [--shaders <Shader>]) --ghost-models <models> --out <private-corpus>'
 }
