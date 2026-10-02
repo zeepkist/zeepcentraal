@@ -19,7 +19,7 @@ members = [
 
 [workspace.package]
 edition = "2024"
-rust-version = "1.98"
+rust-version = "1.99"
 publish = false
 version = "0.1.0"
 
@@ -45,14 +45,14 @@ opentelemetry-otlp = { version = "0.33", default-features = false, features = ["
 opentelemetry_sdk = { version = "0.33", features = ["logs", "metrics", "rt-tokio", "trace"] }
 prost = "0.14"
 pq-sys = { version = "0.7.6", features = ["bundled"] }
-rand = "0.10"
+rand = "0.10.3"
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["form", "json", "multipart", "query", "rustls"] }
 ryu-js = "1.0"
 rustls = "0.23.45"
 rust-env = "=0.2.0"
 s3 = "0.1.36"
-scalar_api_reference = "=0.2.8"
+scalar_api_reference = "=0.2.10"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 sha1 = "0.11"
