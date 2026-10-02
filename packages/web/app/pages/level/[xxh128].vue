@@ -265,6 +265,7 @@
 									@last="levelData.recentPagination.last()"
 								/>
 							</section>
+							<LevelWorkshopSection v-if="summary.publiclyVisible" :level-id="summary.id" />
 						</template>
 
 						<template #telemetry>

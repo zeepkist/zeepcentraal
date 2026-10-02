@@ -68,6 +68,7 @@ describe('navigation model', () => {
 		['/super-league/season-7/round-1/level-615', '/super-league'],
 		['/user/76561198031919228', '/users'],
 		['/level/example-hash', '/levels'],
+		['/workshop/123', '/workshop'],
 		['/records/me', '/records'],
 		['/record/42', '/records'],
 		['/totw/week-30', '/totw'],

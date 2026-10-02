@@ -3,11 +3,9 @@ import {
 	type LevelsOrderBy,
 	Zc_HotLevelsDocument,
 	Zc_LevelsDocument,
-	Zc_UserSuggestionsDocument,
 } from '@zeepkist/graphql/generated'
 import type { Ref } from 'vue'
-import type { CursorPage, LevelSummary, SortOption } from '~/types/app'
-import { getLevelDisplayName } from '~/utils/levelDisplay'
+import type { CursorPage, LevelSummary } from '~/types/app'
 import {
 	buildLevelFilter,
 	getHotLevelSince,
@@ -22,6 +20,7 @@ import {
 	normalizeLevelRange,
 	normalizeViewerLevelFilter,
 } from '~/utils/levelExplorer'
+import { mapLevelSummary } from '~/utils/levelSummary'
 
 export const LEVEL_SORTS = {
 	latest: 'DATE_CREATED_DESC',
@@ -158,70 +157,10 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 	}
 	const connection = computed(() => result.data.value?.levels)
 
-	const debouncedAuthor = ref('')
-	let authorTimer: ReturnType<typeof setTimeout> | undefined
-	watch(
-		author,
-		(value) => {
-			if (authorTimer) clearTimeout(authorTimer)
-			if (import.meta.server) return
-			authorTimer = setTimeout(() => {
-				debouncedAuthor.value = value.trim()
-			}, 250)
-		},
-		{ immediate: true },
-	)
-	onScopeDispose(() => {
-		if (authorTimer) clearTimeout(authorTimer)
-	})
-	const authorSuggestionsResult = useQuery({
-		query: Zc_UserSuggestionsDocument,
-		variables: computed(() => ({ search: debouncedAuthor.value })),
-		pause: computed(() => import.meta.server || debouncedAuthor.value.length < 2),
-	})
-	const authorSuggestions = computed<SortOption[]>(() =>
-		(authorSuggestionsResult.data.value?.users?.nodes ?? []).flatMap((user) =>
-			user.steamName ? [{ label: user.steamName, value: String(user.steamId) }] : [],
-		),
-	)
-
+	const authorSuggestionsResult = useAuthorSuggestions(author)
+	const authorSuggestions = authorSuggestionsResult.suggestions
 	const levels = computed<LevelSummary[]>(() =>
-		(connection.value?.edges ?? []).map(({ node }) => {
-			const item = node.levelItems.nodes[0]
-			return {
-				id: node.id,
-				xxHash: node.xxHash,
-				favourited: (node.viewerFavourites?.totalCount ?? 0) > 0,
-				fileUid: item?.fileUid,
-				fileAuthor: item?.fileAuthor,
-				name: getLevelDisplayName(item?.name, node.xxHash),
-				imageUrl: item?.imageUrl,
-				authorName: item?.author?.steamName,
-				authorSteamId: item?.author?.steamId == null ? null : String(item.author.steamId),
-				workshopId: item?.workshopId == null ? null : String(item.workshopId),
-				adventure: node.adventure,
-				dateCreated: String(node.dateCreated),
-				points: node.levelPoints?.points,
-				rating: node.levelPoints?.rating,
-				recordCount: node.records.totalCount,
-				personalBestCount: node.personalBestGlobals.totalCount,
-				voteCount: node.votes.totalCount,
-				worldRecordTime: node.worldRecordGlobal?.record?.time,
-				worldRecordAuthorName: node.worldRecordGlobal?.user?.steamName,
-				worldRecordAuthorSteamId:
-					node.worldRecordGlobal?.user?.steamId == null
-						? null
-						: String(node.worldRecordGlobal.user.steamId),
-				medals: item
-					? {
-							author: item.validationTimeAuthor,
-							gold: item.validationTimeGold,
-							silver: item.validationTimeSilver,
-							bronze: item.validationTimeBronze,
-						}
-					: null,
-			}
-		}),
+		(connection.value?.edges ?? []).map(({ node }) => mapLevelSummary(node)),
 	)
 	const page = computed<CursorPage>(() =>
 		connection.value?.pageInfo
@@ -254,7 +193,7 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 		applyFilters,
 		author,
 		authorSuggestions,
-		authorSuggestionsPending: authorSuggestionsResult.fetching,
+		authorSuggestionsPending: authorSuggestionsResult.pending,
 		levels,
 		page,
 		pagination,

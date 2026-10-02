@@ -116,9 +116,14 @@ describe('playlist integration contracts', () => {
 			expect(source).toContain('viewerFavourites: favourites')
 		}
 
-		const mappings = ['useAdventure.ts', 'useDashboard.ts', 'useUserLevels.ts', 'useLevels.ts']
+		const mappings = [
+			'composables/useAdventure.ts',
+			'composables/useDashboard.ts',
+			'composables/useUserLevels.ts',
+			'utils/levelSummary.ts',
+		]
 		for (const path of mappings) {
-			const source = await appSource(`composables/${path}`)
+			const source = await appSource(path)
 			expect(source).toContain('fileUid:')
 			expect(source).toContain('fileAuthor:')
 			expect(source).toContain('workshopId:')

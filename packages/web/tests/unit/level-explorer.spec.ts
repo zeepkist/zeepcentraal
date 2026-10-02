@@ -188,9 +188,14 @@ describe('level explorer requests and layout', () => {
 		expect(usersQuery).toContain('banned: { equalTo: false }')
 		expect(usersQuery).toContain('includesInsensitive: $search')
 		expect(usersQuery).toContain('orderBy: [STEAM_NAME_ASC]')
-		expect(composable).toContain('}, 250)')
-		expect(composable).toContain('debouncedAuthor.value.length < 2')
-		expect(composable).toContain('value: String(user.steamId)')
+		const suggestions = readFileSync(
+			new URL('../../app/composables/useAuthorSuggestions.ts', import.meta.url),
+			'utf8',
+		)
+		expect(composable).toContain('useAuthorSuggestions(author)')
+		expect(suggestions).toContain('}, 250)')
+		expect(suggestions).toContain('debouncedAuthor.value.length < 2')
+		expect(suggestions).toContain('value: String(user.steamId)')
 	})
 
 	it('renders counts only in filter headers and four explorer columns', () => {

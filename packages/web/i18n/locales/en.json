@@ -115,7 +115,8 @@
 		"users": "Player Rankings",
 		"wiki": "Wiki",
 		"zsl": "Zeepkist Super League",
-		"support": "Support"
+		"support": "Support",
+		"workshop": "Workshop"
 	},
 	"lobby": {
 		"empty": "No active rooms found.",
@@ -865,6 +866,15 @@
 			"seo": {
 				"title": "Support ZeepCentraal and Zeepkist",
 				"description": "Support Akane’s work on ZeepCentraal or Yannic’s work on Zeepkist."
+			}
+		},
+		"workshop": {
+			"eyebrow": "Steam Workshop",
+			"title": "Explore workshop items",
+			"description": "Browse tracked workshop items and discover the levels inside.",
+			"seo": {
+				"title": "Workshop explorer",
+				"description": "Explore tracked Zeepkist workshop items, their authors, and included levels."
 			}
 		}
 	},
@@ -1645,6 +1655,37 @@
 			"supporter": "ZeepCentraal supporter",
 			"monthly": "Monthly ZeepCentraal supporter",
 			"tier": "{supporter} · {tier}"
+		}
+	},
+	"workshop": {
+		"results": "{count} workshop items",
+		"published": "Published",
+		"updated": "Updated",
+		"fileSize": "File size",
+		"id": "Workshop ID",
+		"viewOnSteam": "View on Steam",
+		"filters": {
+			"title": "Workshop filters",
+			"search": "Search workshop titles",
+			"author": "Author",
+			"sort": "Sort by",
+			"apply": "Apply filters"
+		},
+		"sort": {
+			"latest": "Latest published",
+			"updated": "Latest updated",
+			"name": "Name"
+		},
+		"detail": {
+			"notFound": "Workshop item not found",
+			"levelsTitle": "Included levels",
+			"levelsDescription": "{count} levels in this workshop item.",
+			"seoDescription": "Explore {name} and its included Zeepkist levels."
+		},
+		"levelSection": {
+			"title": "Workshop items",
+			"description": "Workshop items containing this level, newest published first.",
+			"empty": "No workshop items contain this level."
 		}
 	}
 }

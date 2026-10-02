@@ -5,6 +5,7 @@ export const navigationRouteFamilies: Readonly<Record<string, readonly string[]>
 	'/': ['/'],
 	'/records': ['/records', '/record'],
 	'/levels': ['/levels', '/level'],
+	'/workshop': ['/workshop'],
 	'/playlist': ['/playlist'],
 	'/users': ['/users', '/user'],
 	'/lobby': ['/lobby'],
@@ -64,6 +65,11 @@ const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 		to: '/levels',
 		labelKey: 'nav.levels',
 		icon: 'map',
+	},
+	{
+		to: '/workshop',
+		labelKey: 'nav.workshop',
+		icon: 'brand-steam',
 	},
 	{
 		to: '/playlist',

@@ -89,6 +89,17 @@ export type LocalPlaylistLevel = {
 	imageUrl?: string
 }
 
+export type WorkshopSummary = {
+	workshopId: string
+	name: string
+	imageUrl: string | null
+	authorSteamId: string
+	authorName: string | null
+	createdAt: string
+	updatedAt: string
+	fileSize: number
+}
+
 export type LocalPlaylist = {
 	id: string
 	name: string

@@ -1,0 +1,140 @@
+fragment ZC_WorkshopCard on WorkshopItem {
+	workshopId
+	name
+	imageUrl
+	createdAt
+	updatedAt
+	fileSize
+	authorId
+	author {
+		steamId
+		steamName
+	}
+}
+
+query ZC_Workshops(
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$filter: WorkshopItemFilter
+	$orderBy: [WorkshopItemsOrderBy!]
+) {
+	workshopItems(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: $filter
+		orderBy: $orderBy
+	) {
+		nodes {
+			...ZC_WorkshopCard
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}
+
+query ZC_WorkshopDetail($workshopId: BigInt!) {
+	workshopItem(workshopId: $workshopId) {
+		...ZC_WorkshopCard
+	}
+}
+
+fragment ZC_WorkshopLevelCard on Level {
+	id
+	xxHash
+	adventure
+	dateCreated
+	levelItems(
+		first: 1
+		filter: { workshopId: { equalTo: $workshopId }, deleted: { equalTo: false } }
+		orderBy: [UPDATED_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			name
+			imageUrl
+			fileUid
+			fileAuthor
+			workshopId
+			createdAt
+			updatedAt
+			validationTimeAuthor
+			validationTimeGold
+			validationTimeSilver
+			validationTimeBronze
+			author {
+				steamId
+				steamName
+			}
+		}
+	}
+	levelPoints {
+		points
+		rating
+	}
+	records(first: 0) {
+		totalCount
+	}
+	personalBestGlobals(first: 0) {
+		totalCount
+	}
+	votes(first: 0) {
+		totalCount
+	}
+	viewerFavourites: favourites(first: 0, filter: { userId: { equalTo: $viewerId } })
+		@include(if: $includeViewer)
+	{
+		totalCount
+	}
+	worldRecordGlobal {
+		record {
+			time
+		}
+		user {
+			steamId
+			steamName
+		}
+	}
+}
+
+query ZC_WorkshopLevels(
+	$workshopId: BigInt!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
+	levels(
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+		filter: {
+			publiclyVisible: { equalTo: true }
+			levelItems: {
+				some: { workshopId: { equalTo: $workshopId }, deleted: { equalTo: false } }
+			}
+		}
+		orderBy: [ID_ASC]
+	) {
+		nodes {
+			...ZC_WorkshopLevelCard
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+}

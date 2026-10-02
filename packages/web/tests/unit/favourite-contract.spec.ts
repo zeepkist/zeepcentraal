@@ -71,7 +71,6 @@ describe('favourite level integration', () => {
 		}
 
 		for (const composable of [
-			'useLevels.ts',
 			'useAdventure.ts',
 			'useDashboard.ts',
 			'useUserLevels.ts',
@@ -79,6 +78,9 @@ describe('favourite level integration', () => {
 		]) {
 			expect(appSource(`composables/${composable}`)).toContain('favourited:')
 		}
+		expect(appSource('utils/levelSummary.ts')).toContain('favourited:')
+		expect(appSource('composables/useLevels.ts')).toContain('mapLevelSummary(node)')
+		expect(appSource('composables/useWorkshopDetail.ts')).toContain('.map(mapLevelSummary)')
 	})
 
 	it('proxies guarded authenticated mutations with exact backend bodies', () => {
