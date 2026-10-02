@@ -13,11 +13,17 @@ for (const release of plan.releases) {
 		git('push', 'origin', `refs/tags/${release.tag}`)
 	}
 	if (release.bootstrap || release.existing) {
-		if (git('rev-list', '-n', '1', release.tag) !== plan.sha) throw new Error(`Tag ${release.tag} points elsewhere`)
+		if (git('rev-list', '-n', '1', release.tag) !== plan.sha)
+			throw new Error(`Tag ${release.tag} points elsewhere`)
 		const found = spawnSync('gh', ['release', 'view', release.tag], { encoding: 'utf8' })
 		if (found.status !== 0) {
-			const created = spawnSync('gh', ['release', 'create', release.tag, '--target', plan.sha, '--generate-notes'], { encoding: 'utf8', stdio: 'inherit' })
-			if (created.status !== 0) throw new Error(`GitHub release creation failed: ${release.tag}`)
+			const created = spawnSync(
+				'gh',
+				['release', 'create', release.tag, '--target', plan.sha, '--generate-notes'],
+				{ encoding: 'utf8', stdio: 'inherit' },
+			)
+			if (created.status !== 0)
+				throw new Error(`GitHub release creation failed: ${release.tag}`)
 		}
 		continue
 	}

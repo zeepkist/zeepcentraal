@@ -13,7 +13,7 @@ const docs = {
 	feed: print(Zc_DiscordActivityEventsLiveDocument),
 }
 const path = new URL('../../../crates/discord-evaluation/fixtures/documents.json', import.meta.url)
-const text = JSON.stringify(docs, null, 2) + '\n'
+const text = `${JSON.stringify(docs, null, 2)}\n`
 if (process.argv.includes('--check')) {
 	if ((await Bun.file(path).text()) !== text)
 		throw new Error('GraphQL evaluation documents drifted')

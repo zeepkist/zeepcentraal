@@ -63,7 +63,7 @@ const fixtures = inputs.map((input) => {
 	}
 })
 const path = new URL('../../../crates/discord-evaluation/fixtures/components.json', import.meta.url)
-const expected = JSON.stringify(fixtures, null, 2) + '\n'
+const expected = `${JSON.stringify(fixtures, null, 2)}\n`
 if (process.argv.includes('--check')) {
 	if ((await Bun.file(path).text()) !== expected)
 		throw new Error('Discord golden fixtures changed')

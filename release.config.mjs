@@ -1,6 +1,9 @@
 const target = process.env.RELEASE_TARGET || 'ts'
 
-if (target !== 'ts' && !/^zc-(server|jobs|migrate|lobby-host|discord|inspector-zeep|import-zsl)$/.test(target)) {
+if (
+	target !== 'ts' &&
+	!/^zc-(server|jobs|migrate|lobby-host|discord|inspector-zeep|import-zsl)$/.test(target)
+) {
 	throw new Error(`Unknown release target: ${target}`)
 }
 

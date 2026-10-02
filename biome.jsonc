@@ -43,6 +43,8 @@
 			"**",
 			"!node_modules",
 			"!target",
+			"!.bun-cache",
+			"!.data",
 			"!artifacts/rust-evaluation",
 			"!crates/discord-evaluation/fixtures",
 			"!coverage",
