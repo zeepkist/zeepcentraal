@@ -169,6 +169,7 @@ impl WorkshopPersistence for DatabaseWorkshopPersistence {
             amount_blocks: i32::try_from(input.parsed.amount_blocks)?,
             type_ground: i32::try_from(input.parsed.type_ground)?,
             type_skybox: i32::try_from(input.parsed.type_skybox)?,
+            environment: input.parsed.environment,
             blocks,
         };
         let result = self.database.upsert_workshop_level(&database_input).await?;

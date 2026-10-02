@@ -148,6 +148,7 @@ export function parseJsonLevel(content: string, adventure = false): ParsedLevel 
 		typeGround: numberOrDefault(parsed.enviro?.groundMat),
 		typeSkybox: numberOrDefault(parsed.enviro?.skybox),
 		blocks,
+		environment: parsed.enviro ?? null,
 	}
 }
 

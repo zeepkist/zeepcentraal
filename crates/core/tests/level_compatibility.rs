@@ -49,4 +49,20 @@ fn parses_bom_non_finite_and_adventure_contracts() {
     assert_eq!(parsed.validation_time_author, 0.0);
     assert_eq!(parsed.amount_checkpoints, 1);
     assert_eq!(parsed.amount_finishes, 1);
+    assert_eq!(parsed.environment.as_ref().unwrap()["skybox"], 2);
+}
+
+#[test]
+fn environment_changes_preserve_level_hash_and_blocks() {
+    let original = serde_json::json!({"enviro":{"skybox":1},"blox":[{"i":2265,"d":{"f":{"cl3":0.125},"n":{"cl4":1}}}]});
+    let mut changed = original.clone();
+    changed["enviro"] = serde_json::json!({"skybox":2,"skyboxOverride":{"sun":{"i":0.5},"fog":{"_fg":true,"dn":0.001}}});
+    let before = parse_level(&original.to_string(), false, 0).unwrap();
+    let after = parse_level(&changed.to_string(), false, 0).unwrap();
+    assert_eq!(before.hash, after.hash);
+    assert_eq!(
+        serde_json::to_value(before.blocks).unwrap(),
+        serde_json::to_value(after.blocks).unwrap()
+    );
+    assert_eq!(after.environment.unwrap(), changed["enviro"]);
 }

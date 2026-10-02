@@ -44,6 +44,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         amount_blocks: 2,
         type_ground: -1,
         type_skybox: 1,
+        environment: Some(serde_json::json!({"skybox": 1})),
         blocks: json!([{"i": 22}, {"i": 2}]),
     };
     let first = database.upsert_workshop_level(&input).await?;
@@ -80,6 +81,37 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
             after.get::<_, String>(2),
         ),
         "unchanged workshop reconciliation must not rewrite rows"
+    );
+
+    let mut changed_environment = input.clone();
+    changed_environment.environment =
+        Some(json!({"skybox": 1, "skyboxOverride": {"sun": {"i": 0.125}}}));
+    let lighting_update = database.upsert_workshop_level(&changed_environment).await?;
+    assert_eq!(lighting_update.id_level, first.id_level);
+    assert!(!lighting_update.score_changed);
+    let saved = client
+        .query_one(
+            "SELECT metadata.environment::text,metadata.blocks::text,level.hash,level.xx_hash \
+         FROM public.level level JOIN public.level_metadata metadata ON metadata.id_level=level.id \
+         WHERE level.id=$1",
+            &[&first.id_level],
+        )
+        .await?;
+    assert_eq!(
+        saved
+            .get::<_, Option<String>>(0)
+            .map(|value| serde_json::from_str::<serde_json::Value>(&value))
+            .transpose()?,
+        changed_environment.environment
+    );
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&saved.get::<_, String>(1))?,
+        input.blocks
+    );
+    assert_eq!(saved.get::<_, String>(2), input.hash);
+    assert_eq!(
+        saved.get::<_, Option<String>>(3).as_deref(),
+        Some(input.xx_hash.as_str())
     );
 
     assert_eq!(

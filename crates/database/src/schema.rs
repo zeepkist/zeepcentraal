@@ -94,6 +94,7 @@ diesel::table! {
         amount_blocks -> Integer,
         type_ground -> Integer,
         type_skybox -> Integer,
+        environment -> Nullable<Jsonb>,
         format -> Integer,
         blocks -> Jsonb,
         publicly_visible -> Bool,

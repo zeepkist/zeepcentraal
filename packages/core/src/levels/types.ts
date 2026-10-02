@@ -24,6 +24,7 @@ export interface ParsedLevel {
 	amountFinishes: number
 	authorId: bigint
 	blocks: CsvBlock[] | unknown[]
+	environment?: unknown
 	fileAuthor: string
 	format: (typeof levelFormat)[keyof typeof levelFormat]
 	hash: string

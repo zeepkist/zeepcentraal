@@ -359,6 +359,10 @@ pub fn parse_csv_level(content: &str, adventure: bool, author_id: u64) -> Result
         amount_blocks,
         type_ground: integer(parsed.validation[5]),
         type_skybox: integer(parsed.validation[4]),
+        environment: Some(serde_json::json!({
+            "skybox": integer(parsed.validation[4]),
+            "groundMat": integer(parsed.validation[5]),
+        })),
         blocks: LevelBlocks::Csv(blocks.into_iter().map(|entry| entry.block).collect()),
     })
 }

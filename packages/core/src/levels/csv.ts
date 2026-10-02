@@ -283,6 +283,7 @@ export function parseCsvLevel(content: string, adventure = false, authorId = 0n)
 		amountBlocks: blocks.length,
 		typeGround: ground,
 		typeSkybox: skybox,
+		environment: { skybox, groundMat: ground },
 		blocks: blocks.map(({ rawPosition, rawEuler, rawScale, ...block }) => block),
 	}
 }

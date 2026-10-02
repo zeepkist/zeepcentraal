@@ -19,6 +19,22 @@ const csv = [
 ].join('\n')
 
 describe('legacy level parsing', () => {
+	test('preserves environments and saved options without changing block hashes', () => {
+		const source = {
+			enviro: { skybox: 1 },
+			blox: [{ i: 2265, d: { f: { cl3: 0.125 }, n: { cl4: 1 } } }],
+		}
+		const before = parseJsonLevelV2(JSON.stringify(source))
+		const environment = {
+			skybox: 2,
+			skyboxOverride: { sun: { i: 0.5 }, fog: { _fg: true, dn: 0.001 } },
+		}
+		const after = parseJsonLevelV2(JSON.stringify({ ...source, enviro: environment }))
+		expect(after.environment).toEqual(environment)
+		expect(after.blocks).toEqual(before.blocks)
+		expect(after.hash).toBe(before.hash)
+		expect(parseCsvLevel(csv).environment).toEqual({ skybox: 1, groundMat: -1 })
+	})
 	test('parses CSV metadata and adventure UID hash', () => {
 		const parsed = parseCsvLevel(csv, true, 76561198000000000n)
 		expect(parsed.hash).toBe('uid-1')

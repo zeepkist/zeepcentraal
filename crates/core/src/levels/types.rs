@@ -61,5 +61,7 @@ pub struct ParsedLevel {
     pub amount_blocks: usize,
     pub type_ground: i64,
     pub type_skybox: i64,
+    #[serde(default)]
+    pub environment: Option<serde_json::Value>,
     pub blocks: LevelBlocks,
 }

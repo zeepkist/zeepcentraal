@@ -2,7 +2,7 @@ use crate::Database;
 use anyhow::{Result, ensure};
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{Array, BigInt, Bool, Float, Integer, Jsonb, SmallInt, Text},
+    sql_types::{Array, BigInt, Bool, Float, Integer, Jsonb, Nullable, SmallInt, Text},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde_json::Value;
@@ -36,6 +36,7 @@ pub struct WorkshopLevelInput {
     pub type_ground: i32,
     pub type_skybox: i32,
     pub blocks: Value,
+    pub environment: Option<Value>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -227,10 +228,10 @@ impl Database {
                     if let Some(metadata) = existing_metadata {
                         sql_query(
                             "UPDATE public.level_metadata SET amount_checkpoints=$2,amount_finishes=$3, \
-                             amount_blocks=$4,type_ground=$5,type_skybox=$6,format=$7,blocks=$8, \
+                             amount_blocks=$4,type_ground=$5,type_skybox=$6,format=$7,blocks=$8,environment=$9, \
                              date_updated=clock_timestamp() WHERE id=$1 AND \
-                             ROW(amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks) \
-                             IS DISTINCT FROM ROW($2,$3,$4,$5,$6,$7,$8)",
+                             ROW(amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks,environment) \
+                             IS DISTINCT FROM ROW($2,$3,$4,$5,$6,$7,$8,$9)",
                         )
                         .bind::<Integer, _>(metadata.id)
                         .bind::<Integer, _>(input.amount_checkpoints)
@@ -240,13 +241,14 @@ impl Database {
                         .bind::<Integer, _>(input.type_skybox)
                         .bind::<Integer, _>(input.format)
                         .bind::<Jsonb, _>(&input.blocks)
+                        .bind::<Nullable<Jsonb>, _>(&input.environment)
                         .execute(connection)
                         .await?;
                     } else {
                         sql_query(
                             "INSERT INTO public.level_metadata \
-                             (id_level,amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks,date_created,date_updated) \
-                             VALUES($1,$2,$3,$4,$5,$6,$7,$8,clock_timestamp(),clock_timestamp())",
+                             (id_level,amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks,environment,date_created,date_updated) \
+                             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,clock_timestamp(),clock_timestamp())",
                         )
                         .bind::<Integer, _>(id_level)
                         .bind::<Integer, _>(input.amount_checkpoints)
@@ -256,6 +258,7 @@ impl Database {
                         .bind::<Integer, _>(input.type_skybox)
                         .bind::<Integer, _>(input.format)
                         .bind::<Jsonb, _>(&input.blocks)
+                        .bind::<Nullable<Jsonb>, _>(&input.environment)
                         .execute(connection)
                         .await?;
                     }

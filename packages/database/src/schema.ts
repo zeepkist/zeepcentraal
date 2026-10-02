@@ -402,6 +402,7 @@ export const levelMetadata = pgTable(
 		typeSkybox: integer('type_skybox').notNull(),
 		format: integer().notNull().default(0),
 		blocks: jsonb().notNull(),
+		environment: jsonb(),
 		publiclyVisible: boolean('publicly_visible').notNull().default(false),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()

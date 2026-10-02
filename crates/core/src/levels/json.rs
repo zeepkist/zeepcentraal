@@ -214,6 +214,7 @@ pub fn parse_json_level(content: &str, adventure: bool) -> Result<ParsedLevel> {
         amount_blocks,
         type_ground: as_integer(environment.and_then(|value| value.get("groundMat"))),
         type_skybox: as_integer(environment.and_then(|value| value.get("skybox"))),
+        environment: environment.cloned().map(Value::Object),
         blocks: LevelBlocks::Json(blocks),
     })
 }

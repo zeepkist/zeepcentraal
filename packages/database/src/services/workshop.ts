@@ -37,6 +37,7 @@ export interface WorkshopLevelInput {
 	authorId: bigint
 	blocks: unknown
 	createdAt: string
+	environment?: unknown
 	fileAuthor: string
 	fileUid: string
 	format: number
@@ -433,6 +434,7 @@ export async function upsertWorkshopLevel(
 			typeSkybox: input.typeSkybox,
 			format: input.format,
 			blocks: metadataBlocks,
+			environment: input.environment ?? null,
 			dateUpdated: now,
 		}
 		if (existingMetadata) {
