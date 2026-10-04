@@ -57,6 +57,7 @@ pub struct MatchingWatch {
     pub id: String,
     pub discord_id: String,
     pub last_delivery_key: Option<String>,
+    pub matched_player_ids: Option<Vec<i32>>,
 }
 
 #[derive(Deserialize)]
@@ -763,7 +764,20 @@ impl Backend {
                     Some(json!({"targets":targets})),
                 )
                 .await?;
-            watches.extend(matches.into_iter().map(|watch| (watch.id.clone(), watch)));
+            for watch in matches {
+                if let Some(existing) = watches.get_mut(&watch.id) {
+                    match (&mut existing.matched_player_ids, watch.matched_player_ids) {
+                        (Some(existing), Some(ids)) => {
+                            existing.extend(ids);
+                            existing.sort_unstable();
+                            existing.dedup();
+                        }
+                        (existing, _) => *existing = None,
+                    }
+                } else {
+                    watches.insert(watch.id.clone(), watch);
+                }
+            }
         }
         Ok(watches.into_values().collect())
     }

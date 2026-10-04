@@ -1,5 +1,5 @@
 use crate::{
-    backend::{ActivityEvent, Backend, GuildFeed, MatchingWatch, TournamentSnapshot},
+    backend::{ActivityEvent, Backend, GuildFeed, MatchingWatch, RankUser, TournamentSnapshot},
     config::DiscordConfig,
     media::thumbnail_url,
     rank, tournament,
@@ -17,7 +17,7 @@ use serenity::{
 };
 use sha2::{Digest, Sha256};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -89,7 +89,12 @@ impl FeedService {
     }
 }
 
-type RankMessages = BTreeMap<String, Option<CreateMessage<'static>>>;
+struct RankBatch {
+    changes: Vec<rank::RankChange>,
+    users: Vec<RankUser>,
+}
+
+type RankBatches = BTreeMap<String, RankBatch>;
 
 type ActivityPages = BTreeMap<i64, Vec<ActivityEvent>>;
 
@@ -122,9 +127,9 @@ async fn poll_activity(http: &Http, backend: &Backend, frontend_url: &reqwest::U
         tracing::error!(%error, "Discord rank batch flush failed");
     }
     let mut pages = ActivityPages::new();
-    let mut rank_messages = RankMessages::new();
+    let mut rank_batches = RankBatches::new();
     if let Err(error) =
-        poll_activity_watches(http, backend, frontend_url, &mut pages, &mut rank_messages).await
+        poll_activity_watches(http, backend, frontend_url, &mut pages, &mut rank_batches).await
     {
         tracing::error!(%error, "Discord activity watch delivery failed");
     }
@@ -138,7 +143,7 @@ async fn poll_activity(http: &Http, backend: &Backend, frontend_url: &reqwest::U
             frontend_url,
             feed,
             &mut pages,
-            &mut rank_messages,
+            &mut rank_batches,
         )
         .await
         {
@@ -154,7 +159,7 @@ async fn poll_activity_watches(
     backend: &Backend,
     frontend_url: &reqwest::Url,
     pages: &mut ActivityPages,
-    rank_messages: &mut RankMessages,
+    rank_batches: &mut RankBatches,
 ) -> Result<()> {
     let cursor = backend
         .worker_cursor(WATCH_CURSOR)
@@ -163,7 +168,7 @@ async fn poll_activity_watches(
         .parse::<i64>()
         .context("Invalid Discord watch cursor")?;
     for event in activity_page(backend, pages, cursor).await? {
-        deliver_watches(http, backend, frontend_url, event, rank_messages)
+        deliver_watches(http, backend, frontend_url, event, rank_batches)
             .await
             .with_context(|| format!("Watch event {} failed", event.id))?;
         backend.advance_worker(WATCH_CURSOR, &event.id).await?;
@@ -177,7 +182,7 @@ async fn poll_activity_feed(
     frontend_url: &reqwest::Url,
     feed: &GuildFeed,
     pages: &mut ActivityPages,
-    rank_messages: &mut RankMessages,
+    rank_batches: &mut RankBatches,
 ) -> Result<()> {
     let cursor = feed
         .cursor_event_id
@@ -193,7 +198,7 @@ async fn poll_activity_feed(
                     .advance_feed(&feed.guild_id, &feed.kind, &scanned_cursor)
                     .await?;
             }
-            deliver_feed(http, backend, frontend_url, feed, event, rank_messages)
+            deliver_feed(http, backend, frontend_url, feed, event, rank_batches)
                 .await
                 .with_context(|| format!("Feed event {} failed", event.id))?;
             backend
@@ -216,30 +221,37 @@ async fn activity_message(
     frontend_url: &reqwest::Url,
     backend: &Backend,
     guild_message: bool,
-    rank_messages: &mut RankMessages,
+    rank_batches: &mut RankBatches,
 ) -> Result<Option<CreateMessage<'static>>> {
     if event.kind != "rank_batch" {
         return Ok(Some(
             event_message(event, frontend_url, guild_message.then_some(backend)).await,
         ));
     }
-    if let Some(message) = rank_messages.get(&event.id) {
-        return Ok(message.clone());
-    }
-    let changes = rank::changes(event);
-    let users = if changes.is_empty() {
-        Vec::new()
-    } else {
+    let batch = rank_batch(event, backend, rank_batches).await?;
+    Ok(rank::message(event, &batch.changes, &batch.users))
+}
+
+async fn rank_batch<'a>(
+    event: &ActivityEvent,
+    backend: &Backend,
+    rank_batches: &'a mut RankBatches,
+) -> Result<&'a RankBatch> {
+    if let std::collections::btree_map::Entry::Vacant(entry) = rank_batches.entry(event.id.clone()) {
+        let changes = rank::changes(event);
         let ids = changes
             .iter()
-            .take(rank::DISPLAY_LIMIT)
             .map(|change| change.id_user)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
             .collect::<Vec<_>>();
-        backend.users_lookup(&ids).await?
-    };
-    let message = rank::message(event, &changes, &users);
-    rank_messages.insert(event.id.clone(), message.clone());
-    Ok(message)
+        let mut users = Vec::new();
+        for chunk in ids.chunks(rank::DISPLAY_LIMIT) {
+            users.extend(backend.users_lookup(chunk).await?);
+        }
+        entry.insert(RankBatch { changes, users });
+    }
+    Ok(&rank_batches[&event.id])
 }
 
 async fn poll_tournaments(
@@ -449,7 +461,7 @@ async fn deliver_feed(
     frontend_url: &reqwest::Url,
     feed: &GuildFeed,
     event: &ActivityEvent,
-    rank_messages: &mut RankMessages,
+    rank_batches: &mut RankBatches,
 ) -> Result<()> {
     if !feed.enabled {
         return Ok(());
@@ -461,7 +473,7 @@ async fn deliver_feed(
     {
         return Ok(());
     }
-    let Some(message) = activity_message(event, frontend_url, backend, true, rank_messages).await?
+    let Some(message) = activity_message(event, frontend_url, backend, true, rank_batches).await?
     else {
         return Ok(());
     };
@@ -519,7 +531,7 @@ async fn deliver_watches(
     backend: &Backend,
     frontend_url: &reqwest::Url,
     event: &ActivityEvent,
-    rank_messages: &mut RankMessages,
+    rank_batches: &mut RankBatches,
 ) -> Result<()> {
     let delivery_key = format!("event:{}", event.id);
     let watches = backend.matching_watches(event).await?;
@@ -535,12 +547,34 @@ async fn deliver_watches(
     if recipients.is_empty() {
         return Ok(());
     }
-    let Some(message) =
-        activity_message(event, frontend_url, backend, false, rank_messages).await?
-    else {
-        return Ok(());
+    let common_message = if event.kind == "rank_batch" {
+        anyhow::ensure!(
+            recipients
+                .values()
+                .flatten()
+                .all(|watch| watch.matched_player_ids.is_some()),
+            "Rank watch matches require matchedPlayerIds; deploy server before Discord bot"
+        );
+        None
+    } else {
+        activity_message(event, frontend_url, backend, false, rank_batches).await?
     };
     for (discord_id, watches) in recipients {
+        let message = if event.kind == "rank_batch" {
+            let batch = rank_batch(event, backend, rank_batches).await?;
+            let watched = watches
+                .iter()
+                .filter_map(|watch| watch.matched_player_ids.as_ref())
+                .flatten()
+                .copied()
+                .collect::<BTreeSet<_>>();
+            rank::message(event, &rank::for_watches(&batch.changes, &watched), &batch.users)
+        } else {
+            common_message.clone()
+        };
+        let Some(message) = message else {
+            continue;
+        };
         let user_id = discord_id
             .parse::<u64>()
             .context("Invalid Discord watch recipient")?;

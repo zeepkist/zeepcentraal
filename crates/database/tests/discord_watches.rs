@@ -1,5 +1,5 @@
 use anyhow::{Result, ensure};
-use serde_json::Value;
+use serde_json::{Value, json};
 use zc_database::Database;
 
 #[tokio::test]
@@ -27,7 +27,9 @@ async fn existing_player_watch_aliases_match_canonical_record_and_rank_players()
             UNIQUE(discord_id,kind,target_id)
         );
         INSERT INTO public."user" VALUES
-            (11,76561198000000011,'FiXtUrE Ω🦀 player',555000000000000111), (12,NULL,NULL,NULL);
+            (11,76561198000000011,'FiXtUrE Ω🦀 player',555000000000000111), (12,NULL,NULL,NULL),
+            (13,76561198000000013,'FiXtUrE Ω🦀 player',555000000000000113),
+            (14,76561198000000014,'11',555000000000000114);
         INSERT INTO public."user"
             SELECT id,76561198000000000+id,'Batch ' || id,666000000000000000+id
             FROM generate_series(101,150) id;
@@ -80,6 +82,7 @@ async fn existing_player_watch_aliases_match_canonical_record_and_rank_players()
         ])
         .await?;
     assert_eq!(ids(&matches), expected);
+    assert!(matches.iter().all(|watch| watch["matchedPlayerIds"] == json!([11])));
     assert!(
         matches
             .iter()
@@ -89,6 +92,30 @@ async fn existing_player_watch_aliases_match_canonical_record_and_rank_players()
         matches.last().unwrap()["discordId"],
         other_owner.to_string()
     );
+    let collisions = database
+        .matching_discord_watches(&[
+            ("player".into(), vec!["11".into()]),
+            ("player".into(), vec!["13".into(), "14".into()]),
+            ("player".into(), vec!["11".into()]),
+        ])
+        .await?;
+    assert_eq!(ids(&collisions), expected);
+    for watch in &collisions {
+        let players = match watch["targetId"].as_str().unwrap() {
+            "fixture ω🦀 player" => json!([11, 13]),
+            "11" => json!([11, 14]),
+            _ => json!([11]),
+        };
+        assert_eq!(watch["matchedPlayerIds"], players);
+    }
+    let deleted_matches = database
+        .matching_discord_watches(&[("player".into(), vec!["99".into()])])
+        .await?;
+    assert_eq!(deleted_matches[0]["matchedPlayerIds"], json!([99]));
+    let author_matches = database
+        .matching_discord_watches(&[("author".into(), vec!["555000000000000111".into()])])
+        .await?;
+    assert_eq!(author_matches[0]["matchedPlayerIds"], json!([]));
     assert_eq!(
         ids(&database
             .matching_discord_watches(&[("player".into(), vec![" FIXTURE Ω🦀 PLAYER ".into()])])
@@ -126,6 +153,9 @@ async fn existing_player_watch_aliases_match_canonical_record_and_rank_players()
         .await?;
     assert_eq!(ids(&batch), batch_watches);
     assert_eq!(batch.len(), 50);
+    for (watch, id) in batch.iter().zip(101..=150) {
+        assert_eq!(watch["matchedPlayerIds"], json!([id]));
+    }
     assert!(
         batch
             .iter()

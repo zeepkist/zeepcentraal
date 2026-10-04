@@ -7,6 +7,7 @@ use serenity::{
         CreateMessage, CreateTextDisplay,
     },
 };
+use std::collections::BTreeSet;
 
 pub(crate) const DISPLAY_LIMIT: usize = 50;
 
@@ -66,7 +67,7 @@ fn row(change: &RankChange, users: &[RankUser], compact: bool) -> String {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RankChange {
     pub id_user: i32,
@@ -100,6 +101,51 @@ pub(crate) fn changes(event: &ActivityEvent) -> Vec<RankChange> {
         )
     });
     changes
+}
+
+pub(crate) fn for_watches(changes: &[RankChange], watched: &BTreeSet<i32>) -> Vec<RankChange> {
+    let mut selected = watched.clone();
+    let mut intervals = changes
+        .iter()
+        .map(|change| {
+            let (start, end) = match (change.previous_rank, change.rank) {
+                (-1, rank) | (rank, -1) => (rank, rank),
+                (previous, rank) => (previous.min(rank), previous.max(rank)),
+            };
+            (start, end, change)
+        })
+        .collect::<Vec<_>>();
+    intervals.sort_unstable_by_key(|(start, end, change)| (*start, *end, change.id_user));
+    let mut group = Vec::new();
+    let mut group_end = 0;
+    let mut group_watched = false;
+    for (start, end, change) in intervals {
+        if start > group_end {
+            if group_watched {
+                selected.extend(group.drain(..));
+            } else {
+                group.clear();
+            }
+            group_watched = false;
+            group_end = end;
+        } else {
+            group_end = group_end.max(end);
+        }
+        // Entry/exit watches select their own row, without expanding the group.
+        group_watched |= watched.contains(&change.id_user)
+            && change.previous_rank > 0
+            && change.rank > 0;
+        group.push(change.id_user);
+    }
+    if group_watched {
+        selected.extend(group);
+    }
+    let mut seen = BTreeSet::new();
+    changes
+        .iter()
+        .filter(|change| selected.contains(&change.id_user) && seen.insert(change.id_user))
+        .cloned()
+        .collect()
 }
 
 fn valid_rank(rank: i32) -> bool {
@@ -220,6 +266,78 @@ mod tests {
             .filter_map(|value| value["content"].as_str())
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn selected_ids(changes: &[RankChange], watched: &[i32]) -> Vec<i32> {
+        for_watches(changes, &watched.iter().copied().collect())
+            .iter()
+            .map(|change| change.id_user)
+            .collect()
+    }
+
+    #[test]
+    fn akane_watch_keeps_only_two_related_movements_from_twenty_seven() {
+        let movements = [
+            (24, 23), (23, 24), (70, 69), (69, 70), (101, 100), (100, 101),
+            (176, 175), (175, 176), (181, 180), (182, 181), (183, 182), (184, 183),
+            (185, 184), (180, 185), (211, 210), (212, 211), (210, 212), (285, 284),
+            (286, 285), (284, 286), (309, 308), (308, 309), (353, 352), (352, 353),
+            (377, 376), (378, 377), (376, 378),
+        ];
+        let event = event(json!({"changes":movements.iter().enumerate().map(|(index,(previous,rank))|
+            json!({"idUser":index+1,"previousRank":previous,"rank":rank})).collect::<Vec<_>>()}));
+        let changes = changes(&event);
+        let selected = for_watches(&changes, &BTreeSet::from([8]));
+        assert_eq!(changes.len(), 27);
+        assert_eq!(selected_ids(&changes, &[8]), vec![7, 8]);
+        let users = vec![
+            RankUser { id: 7, steam_name: Some("Kilandor".into()), discord_id: Some("123".into()), points: Some(93828) },
+            RankUser { id: 8, steam_name: Some("Akane".into()), discord_id: Some("456".into()), points: Some(93756) },
+        ];
+        let rendered = serde_json::to_value(message(&event, &selected, &users).unwrap()).unwrap();
+        let text = text(&rendered);
+        assert!(text.contains("2 players moved after ranking recalculation."));
+        assert!(text.contains("Kilandor (<@123>): #176 → #175 (93,828 pts)"));
+        assert!(text.contains("Akane (<@456>): #175 → #176 (93,756 pts)"));
+        assert!(!text.contains("Unknown player"));
+    }
+
+    #[test]
+    fn watches_expand_transitive_groups_with_shared_endpoints_but_not_adjacent_groups() {
+        let event = event(json!({"changes":[
+            {"idUser":1,"previousRank":10,"rank":11},
+            {"idUser":2,"previousRank":11,"rank":13},
+            {"idUser":3,"previousRank":14,"rank":13},
+            {"idUser":4,"previousRank":15,"rank":16},
+            {"idUser":5,"previousRank":16,"rank":15},
+            {"idUser":6,"previousRank":12,"rank":13},
+            {"idUser":3,"previousRank":14,"rank":13}
+        ]}));
+        let changes = changes(&event);
+        assert_eq!(selected_ids(&changes, &[1]), vec![1, 2, 3, 6]);
+        assert_eq!(selected_ids(&changes, &[3]), vec![1, 2, 3, 6]);
+        assert_eq!(selected_ids(&changes, &[5]), vec![5, 4]);
+        assert_eq!(selected_ids(&changes, &[1, 3, 5]), vec![1, 2, 3, 6, 5, 4]);
+        assert!(selected_ids(&changes, &[99]).is_empty());
+        assert!(selected_ids(&changes, &[]).is_empty());
+    }
+
+    #[test]
+    fn entry_exit_watches_stay_isolated_and_other_entries_use_finite_position() {
+        let event = event(json!({"changes":[
+            {"idUser":1,"previousRank":10,"rank":11},
+            {"idUser":2,"previousRank":-1,"rank":10},
+            {"idUser":3,"previousRank":11,"rank":-1},
+            {"idUser":4,"previousRank":12,"rank":13},
+            {"idUser":5,"previousRank":-1,"rank":12},
+            {"idUser":6,"previousRank":-1,"rank":100}
+        ]}));
+        let changes = changes(&event);
+        assert_eq!(selected_ids(&changes, &[2]), vec![2]);
+        assert_eq!(selected_ids(&changes, &[3]), vec![3]);
+        assert_eq!(selected_ids(&changes, &[1]), vec![2, 1, 3]);
+        assert_eq!(selected_ids(&changes, &[4]), vec![5, 4]);
+        assert_eq!(selected_ids(&changes, &[1, 6]), vec![2, 1, 6, 3]);
     }
 
     #[test]

@@ -6,7 +6,7 @@ use diesel::{
 };
 use diesel_async::RunQueryDsl;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[derive(QueryableByName)]
 struct JsonRow {
@@ -685,7 +685,7 @@ impl Database {
         targets: &[(String, Vec<String>)],
     ) -> Result<Vec<Value>> {
         let mut connection = self.connection().await?;
-        let mut matches = HashMap::<i64, Value>::new();
+        let mut matches = HashMap::<i64, (Value, BTreeSet<i32>)>::new();
         for (kind, target_ids) in targets {
             let mut normalized: HashSet<String> = target_ids
                 .iter()
@@ -694,15 +694,23 @@ impl Database {
             if normalized.is_empty() {
                 continue;
             }
+            let mut alias_players = HashMap::<String, BTreeSet<i32>>::new();
             if kind == "player" {
                 let player_ids = normalized
                     .iter()
                     .filter_map(|target| target.parse::<i32>().ok())
                     .filter(|id| *id > 0)
                     .collect::<Vec<_>>();
+                for target in &normalized {
+                    if let Ok(id) = target.parse::<i32>()
+                        && id > 0
+                    {
+                        alias_players.entry(target.clone()).or_default().insert(id);
+                    }
+                }
                 if !player_ids.is_empty() {
                     let aliases = sql_query(
-                        "SELECT unnest(ARRAY[account.id::text,account.steam_id::text,account.steam_name, \
+                        "SELECT account.id AS id_user,unnest(ARRAY[account.id::text,account.steam_id::text,account.steam_name, \
                          account.discord_id::text,'<@' || account.discord_id::text || '>', \
                          '<@!' || account.discord_id::text || '>']) AS value \
                          FROM public.\"user\" account WHERE account.id=ANY($1)",
@@ -711,13 +719,15 @@ impl Database {
                     .load::<WatchAliasRow>(&mut connection)
                     .await?;
                     // Match watch creation's Unicode normalization regardless of database locale.
-                    normalized.extend(
-                        aliases
-                            .into_iter()
-                            .filter_map(|row| row.value)
-                            .map(|alias| alias.trim().to_lowercase())
-                            .filter(|alias| !alias.is_empty()),
-                    );
+                    for row in aliases {
+                        if let Some(alias) = row.value {
+                            let alias = alias.trim().to_lowercase();
+                            if !alias.is_empty() {
+                                normalized.insert(alias.clone());
+                                alias_players.entry(alias).or_default().insert(row.id_user);
+                            }
+                        }
+                    }
                 }
             }
             let normalized = normalized.into_iter().collect::<Vec<_>>();
@@ -735,14 +745,28 @@ impl Database {
             .into_iter()
             .map(|row| (row.value, row.payload))
             .collect();
-            matches.extend(rows);
+            for (id, payload) in rows {
+                let players = payload["targetId"]
+                    .as_str()
+                    .and_then(|target| alias_players.get(target))
+                    .cloned()
+                    .unwrap_or_default();
+                matches
+                    .entry(id)
+                    .or_insert_with(|| (payload, BTreeSet::new()))
+                    .1
+                    .extend(players);
+            }
         }
         let mut ids: Vec<_> = matches.keys().copied().collect();
         ids.sort_unstable();
-        Ok(ids
-            .into_iter()
+        ids.into_iter()
             .filter_map(|id| matches.remove(&id))
-            .collect())
+            .map(|(mut payload, players)| {
+                payload["matchedPlayerIds"] = serde_json::to_value(players)?;
+                Ok(payload)
+            })
+            .collect()
     }
 
     pub async fn update_discord_watch_delivery(
@@ -782,6 +806,8 @@ struct WatchJsonRow {
 
 #[derive(QueryableByName)]
 struct WatchAliasRow {
+    #[diesel(sql_type = Integer)]
+    id_user: i32,
     #[diesel(sql_type = Nullable<Text>)]
     value: Option<String>,
 }

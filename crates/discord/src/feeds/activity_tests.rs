@@ -24,6 +24,7 @@ struct State {
     fail_sends: BTreeSet<(u64, i64)>,
     fail_cursors: BTreeSet<(String, i64)>,
     fail_watch_lookup: bool,
+    missing_player_associations: bool,
     fail_user_lookup: bool,
     fail_rank_flush: bool,
     flushes: usize,
@@ -466,9 +467,14 @@ fn respond(
             .player_watches
             .iter()
             .filter(|(_, player, _)| players.contains(player))
-            .map(|(id, _, owner)| json!({"id":id.to_string(),"discordId":owner.to_string(),"lastDeliveryKey":state.watch_keys.get(id)}))
+            .map(|(id, player, owner)| json!({"id":id.to_string(),"discordId":owner.to_string(),"lastDeliveryKey":state.watch_keys.get(id),"matchedPlayerIds":[player]}))
             .collect::<Vec<_>>();
-        watches.extend(players.intersection(&state.watched).map(|id| json!({"id":id.to_string(),"discordId":"123","lastDeliveryKey":state.watch_keys.get(id)})));
+        watches.extend(players.intersection(&state.watched).map(|id| json!({"id":id.to_string(),"discordId":"123","lastDeliveryKey":state.watch_keys.get(id),"matchedPlayerIds":[id]})));
+        if state.missing_player_associations {
+            for watch in &mut watches {
+                watch.as_object_mut().unwrap().remove("matchedPlayerIds");
+            }
+        }
         json!(watches)
     } else if path == "/discord-bot/users/lookup" {
         if state.fail_user_lookup {
@@ -480,6 +486,7 @@ fn respond(
             .iter()
             .map(|id| i32::try_from(id.as_i64().unwrap()).unwrap())
             .collect::<Vec<_>>();
+        assert!(ids.len() <= 50);
         state.lookups.push(ids.clone());
         json!(ids.iter().map(|id|json!({"id":id,"steamName":format!("Event {id}"),"discordId":null,"points":123000})).collect::<Vec<_>>())
     } else if path == "/discord-bot/users/456" {
@@ -647,6 +654,148 @@ async fn owner_dm_failure_retries_without_repeating_another_owners_success() {
     assert_eq!(state.watch_keys.get(&12).unwrap(), "event:1");
 }
 
+fn rank_event(movements: &[(i32, i32, i32)]) -> Value {
+    let mut value = event(1, "rank_batch");
+    value["userId"] = Value::Null;
+    value["payload"]["changes"] = json!(movements.iter().map(|(id,previous,rank)|
+        json!({"idUser":id,"previousRank":previous,"rank":rank})).collect::<Vec<_>>());
+    value
+}
+
+fn rank_text(message: &Value) -> String {
+    message["components"][0]["components"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|component| component["content"].as_str())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[tokio::test]
+async fn rank_watches_filter_akane_example_and_keep_full_guild_batch() {
+    let movements = [
+        (24, 23), (23, 24), (70, 69), (69, 70), (101, 100), (100, 101),
+        (176, 175), (175, 176), (181, 180), (182, 181), (183, 182), (184, 183),
+        (185, 184), (180, 185), (211, 210), (212, 211), (210, 212), (285, 284),
+        (286, 285), (284, 286), (309, 308), (308, 309), (353, 352), (352, 353),
+        (377, 376), (378, 377), (376, 378),
+    ];
+    let movements = movements.iter().enumerate().map(|(index,(previous,rank))|
+        (i32::try_from(index).unwrap()+1,*previous,*rank)).collect::<Vec<_>>();
+    let harness = Harness::new(State {
+        feeds: vec![feed(1, "rank", 20, 0)],
+        events: vec![rank_event(&movements)],
+        player_watches: vec![(11, 8, 123)],
+        ..State::default()
+    }).await;
+    harness.poll().await;
+    harness.poll().await;
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.sent.len(), 2);
+    let direct = &state.sent.iter().find(|(channel,_,_)| *channel==900).unwrap().2;
+    let text = rank_text(direct);
+    assert!(text.contains("2 players moved"));
+    assert!(text.contains("Event 7: #176 → #175"));
+    assert!(text.contains("Event 8: #175 → #176"));
+    assert!(!text.contains("Event 1:"));
+    let guild = &state.sent.iter().find(|(channel,_,_)| *channel==20).unwrap().2;
+    assert!(rank_text(guild).contains("27 players moved"));
+    assert_eq!(state.lookups.len(), 1);
+    assert_eq!(state.watch_keys.get(&11).unwrap(), "event:1");
+}
+
+#[tokio::test]
+async fn rank_watches_combine_owner_groups_without_leaking_to_other_owners_and_retry() {
+    let harness = Harness::new(State {
+        feeds: vec![feed(1, "rank", 20, 0)],
+        events: vec![rank_event(&[(1,5,6),(2,6,5),(3,20,21),(4,21,20),(5,40,41),(6,41,40)])],
+        player_watches: vec![(11,1,123),(12,1,123),(13,3,123),(14,1,321),(15,3,555)],
+        dm_channels: BTreeMap::from([(321,901),(555,902)]),
+        fail_sends: BTreeSet::from([(901,1)]),
+        ..State::default()
+    }).await;
+    harness.poll().await;
+    {
+        let mut state = harness.state.lock().unwrap();
+        assert_eq!(state.worker, 0);
+        let owner = rank_text(&state.sent.iter().find(|(channel,_,_)| *channel==900).unwrap().2);
+        assert!(owner.contains("4 players moved"));
+        assert!(owner.contains("Event 1:"));
+        assert!(owner.contains("Event 3:"));
+        assert!(!owner.contains("Event 5:"));
+        assert!(rank_text(&state.sent.iter().find(|(channel,_,_)| *channel==20).unwrap().2).contains("6 players moved"));
+        assert_eq!(state.lookups.len(), 1);
+        state.fail_sends.clear();
+    }
+    harness.poll().await;
+    let state = harness.state.lock().unwrap();
+    assert_eq!(state.worker, 1);
+    assert_eq!(state.sent.iter().filter(|(channel,_,_)| *channel==900).count(), 1);
+    assert_eq!(state.sent.iter().filter(|(channel,_,_)| *channel==20).count(), 1);
+    for (channel, included, excluded) in [(901,"Event 1:","Event 3:"),(902,"Event 3:","Event 1:")] {
+        let text = rank_text(&state.sent.iter().find(|(target,_,_)| *target==channel).unwrap().2);
+        assert!(text.contains("2 players moved"));
+        assert!(text.contains(included));
+        assert!(!text.contains(excluded));
+    }
+    assert!((11..=15).all(|id| state.watch_keys.get(&id).is_some_and(|key| key=="event:1")));
+}
+
+#[tokio::test]
+async fn rank_watch_lookup_and_missing_associations_retry_without_unfiltered_dm() {
+    for missing in [false,true] {
+        let harness = Harness::new(State {
+            feeds: vec![feed(1,"rank",20,0)],
+            events: vec![rank_event(&[(1,5,6),(2,6,5),(3,20,21)])],
+            player_watches: vec![(11,1,123)],
+            missing_player_associations: missing,
+            fail_user_lookup: !missing,
+            ..State::default()
+        }).await;
+        harness.poll().await;
+        {
+            let mut state = harness.state.lock().unwrap();
+            assert_eq!(state.worker, 0);
+            assert!(state.sent.iter().all(|(channel,_,_)| *channel!=900));
+            assert!(!state.watch_keys.contains_key(&11));
+            if missing {
+                assert!(rank_text(&state.sent[0].2).contains("3 players moved"));
+            }
+            state.missing_player_associations=false;
+            state.fail_user_lookup=false;
+        }
+        harness.poll().await;
+        let state = harness.state.lock().unwrap();
+        assert_eq!(state.worker, 1);
+        let direct = rank_text(&state.sent.iter().find(|(channel,_,_)| *channel==900).unwrap().2);
+        assert!(direct.contains("2 players moved"));
+        assert!(!direct.contains("Event 3:"));
+    }
+}
+
+#[tokio::test]
+async fn rank_watch_after_first_fifty_has_player_details_with_bounded_shared_lookups() {
+    let movements = (1..=55).map(|id|(id,id*3,id*3+1)).collect::<Vec<_>>();
+    let harness = Harness::new(State {
+        feeds: vec![feed(1,"rank",20,0)],
+        events: vec![rank_event(&movements)],
+        player_watches: vec![(11,55,123)],
+        ..State::default()
+    }).await;
+    harness.poll().await;
+    let state = harness.state.lock().unwrap();
+    let text = rank_text(&state.sent.iter().find(|(channel,_,_)| *channel==900).unwrap().2);
+    assert!(text.contains("1 player moved"));
+    assert!(text.contains("Event 55: #165 → #166 (123,000 pts)"));
+    assert!(!text.contains("Unknown player"));
+    assert_eq!(state.lookups.iter().map(Vec::len).collect::<Vec<_>>(), vec![50,5]);
+    let guild = rank_text(&state.sent.iter().find(|(channel,_,_)| *channel==20).unwrap().2);
+    assert!(guild.contains("55 players moved"));
+    assert!(guild.contains("…and 5 more"));
+    assert!(!guild.contains("Event 55:"));
+}
+
 #[tokio::test]
 async fn watch_target_requests_are_bounded_and_returned_watches_are_deduplicated() {
     let harness = Harness::new(State {
@@ -671,6 +820,8 @@ async fn watch_target_requests_are_bounded_and_returned_watches_are_deduplicated
             .collect::<Vec<_>>(),
         vec!["11", "12"]
     );
+    assert_eq!(watches[0].matched_player_ids, Some(vec![1, 99]));
+    assert_eq!(watches[1].matched_player_ids, Some(vec![101]));
     let state = harness.state.lock().unwrap();
     assert_eq!(state.watch_requests.len(), 3);
     assert_eq!(
