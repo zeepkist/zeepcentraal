@@ -32,6 +32,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(crate::super_league::get_contests),
         )
         .route(
+            "/super-league/vote-results",
+            get(crate::super_league::get_vote_results),
+        )
+        .route(
             "/super-league/vote",
             get(crate::super_league::get_vote).post(crate::super_league::post_vote),
         )

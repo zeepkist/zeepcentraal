@@ -29,8 +29,11 @@ export type SuperLeagueVoteSnapshot = {
 	votes: number[][]
 }
 
-export function useSuperLeagueVote(roundId: MaybeRef<number | undefined> = undefined) {
-	const read = useSuperLeagueRead<SuperLeagueVoteSnapshot | null>('vote', roundId)
+export function useSuperLeagueVote(
+	roundId: MaybeRef<number | undefined> = undefined,
+	enabled: MaybeRef<boolean> = true,
+) {
+	const read = useSuperLeagueRead<SuperLeagueVoteSnapshot | null>('vote', roundId, enabled)
 	return {
 		snapshot: read.data,
 		pending: read.pending,

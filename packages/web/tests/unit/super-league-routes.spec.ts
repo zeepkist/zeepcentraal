@@ -4,6 +4,7 @@ import {
 	superLeagueLevelPath,
 	superLeagueRoundPath,
 	superLeagueSeasonPath,
+	superLeagueVotesPath,
 } from '../../app/utils/superLeagueRoutes'
 
 describe('Super League routes', () => {
@@ -24,5 +25,6 @@ describe('Super League routes', () => {
 		expect(superLeagueSeasonPath(7)).toBe('/super-league/season-7')
 		expect(superLeagueRoundPath(7, 1)).toBe('/super-league/season-7/round-1')
 		expect(superLeagueLevelPath(7, 1, 615)).toBe('/super-league/season-7/round-1/level-615')
+		expect(superLeagueVotesPath(7, 1)).toBe('/super-league/season-7/round-1/votes')
 	})
 })

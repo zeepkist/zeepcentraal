@@ -5,7 +5,11 @@ import { useSuperLeagueRead } from '../../app/composables/useSuperLeagueRead'
 import { mergeRequestCookies } from '../../app/utils/requestCookies'
 
 // Model Nuxt's keyed async-data lifecycle, including payload hydration and cancellation.
-function setup(fetcher = vi.fn(), payload?: { owner: string; result: unknown }) {
+function setup(
+	fetcher = vi.fn(),
+	payload?: { owner: string; result: unknown },
+	enabled = ref(true),
+) {
 	const session = reactive({
 		user: { id: 1 } as { id: number } | null,
 		pending: false,
@@ -63,7 +67,7 @@ function setup(fetcher = vi.fn(), payload?: { owner: string; result: unknown }) 
 		},
 	)
 	const scope = effectScope()
-	const read = scope.run(() => useSuperLeagueRead<unknown>('vote', round))
+	const read = scope.run(() => useSuperLeagueRead<unknown>('vote', round, enabled))
 	if (!read) throw new Error('Missing read scope')
 	return {
 		session,
@@ -81,6 +85,23 @@ const response = (data: unknown) => ({ _data: data, headers: new Headers() })
 afterEach(() => vi.unstubAllGlobals())
 
 describe('private contest initial reads', () => {
+	it('waits for explicit historical round before reading a private ballot', async () => {
+		const enabled = ref(false)
+		const fetcher = vi.fn().mockResolvedValue(response({ roundId: 50 }))
+		const flow = setup(fetcher, undefined, enabled)
+		await flow.ready()
+		expect(fetcher).not.toHaveBeenCalled()
+		enabled.value = true
+		await nextTick()
+		await flow.ready()
+		expect(fetcher).toHaveBeenCalledWith(
+			'/api/super-league/vote',
+			expect.objectContaining({ query: { roundId: 50 } }),
+		)
+		enabled.value = false
+		expect(flow.read.data.value).toBeNull()
+		flow.stop()
+	})
 	it('keeps unresolved responses in loading state, including successful empty results', async () => {
 		let finish!: (value: unknown) => void
 		const fetcher = vi.fn(

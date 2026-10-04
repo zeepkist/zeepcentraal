@@ -18,6 +18,7 @@ use utoipa::OpenApi;
         crate::routes::submit_vote,
         crate::super_league::get_contests,
         crate::super_league::get_vote,
+        crate::super_league::get_vote_results,
         crate::super_league::post_vote,
         crate::super_league::get_submission,
         crate::super_league::post_submission,
@@ -102,7 +103,7 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 58);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 59);
         assert!(
             schema["paths"]["/discord-bot/rank-batches/flush"]["post"]["responses"]["200"]
                 .is_object()
@@ -114,6 +115,11 @@ mod tests {
         assert!(schema["paths"]["/kofi/webhook"]["post"]["requestBody"]["content"]["application/x-www-form-urlencoded"].is_object());
         assert!(schema["paths"]["/super-league/vote"]["get"].is_object());
         assert!(schema["paths"]["/super-league/vote"]["post"].is_object());
+        assert!(schema["paths"]["/super-league/vote-results"]["get"].is_object());
+        assert_eq!(
+            schema["paths"]["/super-league/vote-results"]["get"]["parameters"][0]["required"],
+            true
+        );
         assert!(schema["paths"]["/healthz"]["get"].is_object());
         assert!(schema["paths"]["/readyz"]["get"]["responses"]["200"].is_object());
         assert!(schema["paths"]["/readyz"]["get"]["responses"]["503"].is_object());

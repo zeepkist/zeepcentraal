@@ -11,5 +11,8 @@ export const superLeagueSeasonPath = (seasonId: number) => `/super-league/season
 export const superLeagueRoundPath = (seasonId: number, roundNumber: number) =>
 	`${superLeagueSeasonPath(seasonId)}/round-${roundNumber}`
 
+export const superLeagueVotesPath = (seasonId: number, roundNumber: number) =>
+	`${superLeagueRoundPath(seasonId, roundNumber)}/votes`
+
 export const superLeagueLevelPath = (seasonId: number, roundNumber: number, levelId: number) =>
 	`${superLeagueRoundPath(seasonId, roundNumber)}/level-${levelId}`

@@ -22,8 +22,11 @@ export type SubmissionContest = {
 	steamAnnouncementId: string | null
 	submissionStart: string | null
 	submissionEnd: string | null
+	zslVoteEnd: string | null
+	cosmeticVoteEnd: string | null
 	submissionsOpen: boolean
 	openTypes: number[]
+	resultTypes: number[]
 }
 export type SubmissionValidation = {
 	valid: boolean

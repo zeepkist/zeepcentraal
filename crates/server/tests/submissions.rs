@@ -173,6 +173,36 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     });
     state.database_readiness.set(true);
     let app = zc_server::app::router(state)?;
+    let result_path = format!("/super-league/vote-results?roundId={round}");
+    let results = request(&app, Method::GET, &result_path, None, None).await?;
+    assert_eq!(results.0, StatusCode::OK);
+    assert_eq!(results.1["roundId"], round);
+    for category in results.1["categories"].as_array().unwrap() {
+        assert_eq!(category["state"], "pending");
+        assert!(category["totalVotes"].is_null());
+        assert_eq!(category["levels"], json!([]));
+    }
+    for path in [
+        "/super-league/vote-results",
+        "/super-league/vote-results?roundId=0",
+    ] {
+        assert_eq!(
+            request(&app, Method::GET, path, None, None).await?.0,
+            StatusCode::BAD_REQUEST
+        );
+    }
+    assert_eq!(
+        request(
+            &app,
+            Method::GET,
+            "/super-league/vote-results?roundId=2147483647",
+            None,
+            None
+        )
+        .await?
+        .0,
+        StatusCode::NOT_FOUND
+    );
     let path = format!("/super-league/submit-level?roundId={round}");
     let unauth = request(&app, Method::GET, &path, None, None).await?;
     assert_eq!(unauth.0, StatusCode::BAD_REQUEST);

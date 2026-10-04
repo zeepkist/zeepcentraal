@@ -5,15 +5,46 @@ use crate::{
 };
 use axum::{
     Json,
-    extract::{Path, Query, State},
+    extract::{Path, Query, State, rejection::QueryRejection},
     http::{HeaderMap, StatusCode},
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use zc_core::jwt::Provider;
-use zc_database::services::{UserAccount, super_league::VoteSnapshot};
+use zc_database::services::{
+    UserAccount,
+    super_league::{VoteResultsSnapshot, VoteSnapshot},
+};
 
 type ApiResult<T> = Result<T, Problem>;
+
+#[derive(Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+pub struct VoteResultsQuery {
+    round_id: i32,
+}
+
+#[utoipa::path(get, path = "/super-league/vote-results", params(VoteResultsQuery), responses((status = 200, body = VoteResultsSnapshot), (status = 400), (status = 404)))]
+pub async fn get_vote_results(
+    State(state): State<Arc<AppState>>,
+    query: Result<Query<VoteResultsQuery>, QueryRejection>,
+) -> ApiResult<impl axum::response::IntoResponse> {
+    let Query(query) =
+        query.map_err(|_| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
+    if query.round_id <= 0 {
+        return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
+    }
+    let snapshot = state
+        .database
+        .super_league_vote_results(query.round_id)
+        .await
+        .map_err(Problem::internal)?
+        .ok_or_else(|| Problem::code(StatusCode::NOT_FOUND, INVALID_REQUEST))?;
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "no-store")],
+        Json(snapshot),
+    ))
+}
 
 #[derive(Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
@@ -59,7 +90,7 @@ pub async fn get_vote(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(query): Query<VoteQuery>,
-) -> ApiResult<Json<Option<VoteSnapshot>>> {
+) -> ApiResult<impl axum::response::IntoResponse> {
     let user = web_user(&state, &headers).await?;
     if query.round_id.is_some_and(|id| id <= 0) {
         return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
@@ -73,7 +104,10 @@ pub async fn get_vote(
         )
         .await
         .map_err(Problem::internal)?;
-    Ok(Json(snapshot))
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "private, no-store")],
+        Json(snapshot),
+    ))
 }
 
 #[utoipa::path(post, path = "/super-league/vote", request_body = VoteBody, responses((status = 200, body = VoteSaved), (status = 400), (status = 401), (status = 403)))]
@@ -145,16 +179,19 @@ fn submission_problem(error: anyhow::Error) -> Problem {
 pub async fn get_contests(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ContestQuery>,
-) -> ApiResult<Json<serde_json::Value>> {
+) -> ApiResult<impl axum::response::IntoResponse> {
     if query.round_id.is_some_and(|id| id <= 0) || query.season_id.is_some_and(|id| id <= 0) {
         return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
     }
-    Ok(Json(
-        state
-            .database
-            .submission_contests(query.season_id, query.round_id)
-            .await
-            .map_err(Problem::internal)?,
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "no-store")],
+        Json(
+            state
+                .database
+                .submission_contests(query.season_id, query.round_id)
+                .await
+                .map_err(Problem::internal)?,
+        ),
     ))
 }
 #[utoipa::path(get,path="/super-league/submit-level",params(ContestQuery),responses((status=200),(status=401)))]

@@ -4,19 +4,21 @@ import { mergeRequestCookies } from '~/utils/requestCookies'
 export function useSuperLeagueRead<T>(
 	kind: 'vote' | 'submit-level',
 	roundId: MaybeRef<number | undefined>,
+	enabled: MaybeRef<boolean> = true,
 ) {
 	const session = useSessionStore()
 	const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
 	const responseCookies = import.meta.server ? useResponseHeader('set-cookie') : undefined
 	if (import.meta.server) useResponseHeader('cache-control').value = 'private, no-store'
 	const identity = computed(
-		() => `zsl-${kind}:${session.user?.id ?? 'guest'}:${toValue(roundId) ?? 'current'}`,
+		() =>
+			`zsl-${kind}:${session.user?.id ?? 'guest'}:${toValue(enabled) ? (toValue(roundId) ?? 'current') : 'disabled'}`,
 	)
 	const request = useAsyncData(
 		identity,
 		async (_app, { signal }) => {
 			const owner = identity.value
-			if (!session.user) return { owner, result: null as T | null }
+			if (!session.user || !toValue(enabled)) return { owner, result: null as T | null }
 			const issued = responseCookies?.value
 			const headers = import.meta.server
 				? {
@@ -65,7 +67,7 @@ export function useSuperLeagueRead<T>(
 	const snapshot = computed(() => request.data.value ?? lastResult.value)
 	const matches = computed(() => snapshot.value?.owner === identity.value)
 	const data = computed(() =>
-		session.user && matches.value ? (snapshot.value?.result ?? null) : null,
+		session.user && toValue(enabled) && matches.value ? (snapshot.value?.result ?? null) : null,
 	)
 	const resolved = computed(() => matches.value && request.status.value !== 'idle')
 	const pending = computed(

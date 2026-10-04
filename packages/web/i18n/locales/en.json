@@ -1346,7 +1346,26 @@
 		"unknown": "Unknown player",
 		"notFound": "Super League result not found",
 		"yourStanding": "Your standing",
-		"viewResults": "View results"
+		"viewResults": "View results",
+		"voting": {
+			"resultsTitle": "Voting results",
+			"description": "Community votes for every submitted level. Results appear after each category closes.",
+			"backToRound": "Back to round",
+			"zsl": "ZSL",
+			"decoration": "Decoration",
+			"layout": "Track Layout",
+			"votes": "Votes",
+			"totalVotes": "total votes",
+			"youVoted": "You voted",
+			"yourLevel": "Your Level",
+			"pending": "Voting results are not available yet",
+			"availableAfter": "Results available after",
+			"unavailable": "Voting results unavailable",
+			"noVotes": "No votes were recorded in this category.",
+			"noLevels": "No eligible levels were recorded for this round.",
+			"chartDescription": "Votes per level. Exact counts appear in the list below.",
+			"retry": "Try again"
+		}
 	},
 	"levels": {
 		"results": "{count} levels",
