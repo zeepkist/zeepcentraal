@@ -245,6 +245,31 @@ async function collectHistoryBatchOptions(prompt: PromptAdapter): Promise<JobOpt
 const emptyOptions = async (): Promise<JobOptions> => ({})
 
 export const jobPromptDefinitions = {
+	prepareZslPracticePlaylist: {
+		category: 'Tournament',
+		label: 'Prepare ZSL practice playlist',
+		description: 'Prepare every selected Workshop level for a ZSL practice room',
+		collectOptions: async (prompt: PromptAdapter): Promise<JobOptions> => {
+			const roundId = await prompt.text({
+				message: 'ZSL round ID',
+				validate: integerValidator('Round ID', { maximum: 2147483647 }),
+			})
+			const playlist = await prompt.text({
+				message: 'Practice playlist HTTP(S) URL',
+				validate: (value) =>
+					isValidTaskPayload('prepareZslPracticePlaylist', {
+						roundId: 1,
+						playlist: value,
+					})
+						? undefined
+						: 'Enter HTTP(S) URL without credentials',
+			})
+			return {
+				roundId: parseBoundedPositiveSafeInteger(roundId, 2147483647, 'Round ID'),
+				playlist,
+			}
+		},
+	},
 	backfillLevelSimhash: {
 		category: 'Workshop',
 		label: 'Backfill level SimHash',

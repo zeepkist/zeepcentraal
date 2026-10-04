@@ -22,6 +22,22 @@ const batchPayload = z.union([
 	}),
 ])
 export const taskDefinitions = {
+	prepareZslPracticePlaylist: {
+		schema: z.strictObject({
+			roundId: z.number().int().positive().max(2147483647),
+			playlist: z
+				.url()
+				.max(4096)
+				.refine((value) => {
+					const url = new URL(value)
+					return (
+						['http:', 'https:'].includes(url.protocol) && !url.username && !url.password
+					)
+				}),
+		}),
+		compatible: true,
+		maxAttempts: 5,
+	},
 	backfillLevelSimhash: {
 		schema: z.strictObject({}),
 		compatible: true,

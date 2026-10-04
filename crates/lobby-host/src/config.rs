@@ -15,6 +15,8 @@ pub struct LobbyHostFileConfig {
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ManagedRoomConfig {
     pub key: String,
+    #[serde(default = "default_enabled")]
+    pub enabled: bool,
     pub profile: RoomProfile,
     pub room: RoomSettings,
     pub round_time_seconds: u64,
@@ -30,6 +32,8 @@ pub enum RoomProfile {
     TrackTournament { tournament_type: TournamentType },
     #[serde(rename = "zsl-submissions", rename_all = "camelCase")]
     ZslSubmissions { round_id: i32 },
+    #[serde(rename = "zsl-practice", rename_all = "camelCase")]
+    ZslPractice { round_id: i32, playlist: String },
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
@@ -45,6 +49,10 @@ pub struct RoomSettings {
     pub name: String,
     pub is_public: bool,
     pub max_players: u8,
+}
+
+fn default_enabled() -> bool {
+    true
 }
 
 impl LobbyHostFileConfig {
@@ -101,7 +109,12 @@ impl ManagedRoomConfig {
             (60_000..=1_800_000).contains(&self.message_refresh_ms),
             "Invalid message refresh interval"
         );
-        if let RoomProfile::ZslSubmissions { round_id } = &self.profile {
+        if let RoomProfile::ZslPractice { playlist, .. } = &self.profile {
+            zc_core::practice::validate_playlist_url(playlist)?;
+        }
+        if let RoomProfile::ZslSubmissions { round_id }
+        | RoomProfile::ZslPractice { round_id, .. } = &self.profile
+        {
             ensure!(*round_id > 0, "Invalid ZSL round ID");
         }
         Ok(())
@@ -158,5 +171,25 @@ mod tests {
         assert!(LobbyHostFileConfig::parse(r#"{"version":1,"rooms":[],"extra":true}"#).is_err());
         let source = format!(r#"{{"version":1,"rooms":[{}]}}"#, room("BAD KEY"));
         assert!(LobbyHostFileConfig::parse(&source).is_err());
+    }
+    #[test]
+    fn enabled_defaults_and_disabled_profiles_are_validated() -> Result<()> {
+        let base = room("practice");
+        let parse = |room: &str| {
+            LobbyHostFileConfig::parse(&format!(r#"{{"version":1,"rooms":[{room}]}}"#))
+        };
+        assert!(parse(&base)?.rooms[0].enabled);
+        for enabled in [true, false] {
+            let explicit = base.replacen("\"key\":", &format!("\"enabled\":{enabled},\"key\":"), 1);
+            assert_eq!(parse(&explicit)?.rooms[0].enabled, enabled);
+        }
+        assert!(parse(&base.replacen("\"key\":", "\"enabled\":\"false\",\"key\":", 1)).is_err());
+        let practice = base.replace(r#"{"type":"track-tournament","tournamentType":"weekly"}"#,
+            r#"{"type":"zsl-practice","roundId":50,"playlist":"https://cdn.example.com/practice.zeeplist"}"#)
+            .replacen("\"key\":", "\"enabled\":false,\"key\":", 1);
+        assert!(!parse(&practice)?.rooms[0].enabled);
+        assert!(parse(&practice.replace("\"roundId\":50", "\"roundId\":0")).is_err());
+        assert!(parse(&practice.replace("https://cdn.example.com", "file:///tmp")).is_err());
+        Ok(())
     }
 }

@@ -14,6 +14,7 @@ struct FakeConnection {
     inbox: Mutex<mpsc::UnboundedReceiver<Result<Option<GameHostPacket>>>>,
     sent: StdMutex<Vec<Vec<u8>>>,
     closes: AtomicUsize,
+    packets_at_close: StdMutex<Vec<usize>>,
     fail_chat: AtomicBool,
     stall_controls: AtomicBool,
 }
@@ -41,6 +42,10 @@ impl RoomConnection for FakeConnection {
         self.inbox.lock().await.recv().await.unwrap_or(Ok(None))
     }
     async fn close(&self, _reason: &str) -> Result<()> {
+        self.packets_at_close
+            .lock()
+            .unwrap()
+            .push(self.sent.lock().unwrap().len());
         self.closes.fetch_add(1, Ordering::AcqRel);
         Ok(())
     }
@@ -52,6 +57,8 @@ impl RoomConnection for FakeConnection {
 #[derive(Default)]
 struct ProfileStats {
     starts: AtomicUsize,
+    close_at: StdMutex<Option<jiff::Timestamp>>,
+    scheduled_closes: AtomicUsize,
     stops: AtomicUsize,
     contexts: StdMutex<Vec<RoomContext>>,
     observed: StdMutex<Vec<GameHostPacket>>,
@@ -67,6 +74,13 @@ struct FakeProfile(Arc<ProfileStats>);
 impl LobbyProfile for FakeProfile {
     fn name(&self) -> &str {
         "fake-profile"
+    }
+    fn close_at(&self) -> Option<jiff::Timestamp> {
+        *self.0.close_at.lock().unwrap()
+    }
+    async fn scheduled_closed(&self) -> Result<()> {
+        self.0.scheduled_closes.fetch_add(1, Ordering::AcqRel);
+        Ok(())
     }
     async fn prepare(&self) -> Result<Option<PreparedLevel>> {
         Ok(None)
@@ -139,6 +153,7 @@ impl Harness {
             inbox: Mutex::new(inbox),
             sent: StdMutex::new(Vec::new()),
             closes: AtomicUsize::new(0),
+            packets_at_close: StdMutex::new(Vec::new()),
             fail_chat: AtomicBool::new(false),
             stall_controls: AtomicBool::new(false),
         });
@@ -153,6 +168,7 @@ impl Harness {
             tokio::spawn(async move {
                 let config = ManagedRoomConfig {
                     key: "totw".into(),
+                    enabled: true,
                     profile: RoomProfile::TrackTournament {
                         tournament_type: TournamentType::Weekly,
                     },
@@ -481,7 +497,14 @@ async fn shutdown_interrupts_startup_settling_and_recovery() -> Result<()> {
         flush().await;
         let now = Instant::now();
         h.shutdown().await?;
-        assert_eq!(Instant::now(), now);
+        assert_eq!(
+            Instant::now() - now,
+            if initial_state == Some(true) {
+                Duration::ZERO
+            } else {
+                Duration::from_secs(5)
+            }
+        );
         assert_eq!(h.starts(), 0);
         assert_eq!(h.connection.closes.load(Ordering::Acquire), 1);
         assert_eq!(
@@ -652,5 +675,73 @@ async fn shutdown_during_session_retirement_still_closes_transfer() -> Result<()
         "GameServer connection closed"
     );
     assert_eq!(h.connection.closes.load(Ordering::Acquire), 1);
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn ordinary_disable_makes_private_before_leave_without_kicks() -> Result<()> {
+    let mut h = Harness::new();
+    h.packet(initial(true));
+    flush().await;
+    advance(4).await;
+    h.shutdown().await?;
+    assert_eq!(h.count(zc_core::zeepnet::KICK_PLAYER), 0);
+    assert_eq!(h.stats.scheduled_closes.load(Ordering::Acquire), 0);
+    let sent = h.connection.sent.lock().unwrap();
+    let count = h.connection.packets_at_close.lock().unwrap()[0];
+    assert_eq!(sent[count - 1], change_lobby_visibility_packet(false)?);
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn scheduled_close_kicks_guests_and_late_joiners_before_leave() -> Result<()> {
+    let mut h = Harness::new();
+    h.packet(initial(true));
+    flush().await;
+    advance(4).await;
+    *h.stats.close_at.lock().unwrap() = Some(jiff::Timestamp::from_second(
+        jiff::Timestamp::now().as_second() - 1,
+    )?);
+    advance(1).await;
+    assert_eq!(h.count(zc_core::zeepnet::KICK_PLAYER), 1);
+    h.packet(GameHostPacket::PlayerConnected {
+        player: player(43),
+        is_host: false,
+        has_host_powers: false,
+    });
+    flush().await;
+    assert_eq!(h.count(zc_core::zeepnet::KICK_PLAYER), 2);
+    advance(2).await;
+    h.result().await?;
+    assert_eq!(h.stats.scheduled_closes.load(Ordering::Acquire), 1);
+    let sent = h.connection.sent.lock().unwrap();
+    let first_kick = sent
+        .iter()
+        .position(|packet| packet_type(packet) == zc_core::zeepnet::KICK_PLAYER)
+        .unwrap();
+    assert_eq!(sent[first_kick - 1], change_lobby_visibility_packet(false)?);
+    assert!(h.connection.packets_at_close.lock().unwrap()[0] > first_kick);
+    assert!(
+        sent.iter()
+            .filter(|packet| packet_type(packet) == zc_core::zeepnet::KICK_PLAYER)
+            .all(|packet| packet != &kick_player_packet(BOT_UID).unwrap())
+    );
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn disable_before_initial_state_still_hides_assigned_room() -> Result<()> {
+    let mut h = Harness::new();
+    h.stopped.store(true, Ordering::Release);
+    h.wake.notify_waiters();
+    h.packet(initial(true));
+    h.result().await?;
+    assert_eq!(h.count(zc_core::zeepnet::KICK_PLAYER), 0);
+    assert_eq!(h.starts(), 0);
+    let sent = h.connection.sent.lock().unwrap();
+    assert_eq!(
+        sent.last().unwrap(),
+        &change_lobby_visibility_packet(false)?
+    );
     Ok(())
 }

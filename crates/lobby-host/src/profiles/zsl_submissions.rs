@@ -22,6 +22,7 @@ use zc_database::Database;
 pub struct ZslSubmissionsProfile {
     config: ManagedRoomConfig,
     schedule: Option<(Database, i32)>,
+    practice: Option<Arc<super::practice::PracticeState>>,
     assets: Arc<dyn SubmissionSource>,
     current: Arc<RwLock<Option<CurrentSubmission>>>,
     stopped: AtomicBool,
@@ -39,6 +40,13 @@ impl SubmissionSource for SubmissionAssets {
     }
 }
 
+#[async_trait::async_trait]
+impl SubmissionSource for super::assets::PracticeAssets {
+    async fn refresh(&self) -> Result<SubmissionPlaylist> {
+        super::assets::PracticeAssets::refresh(self).await
+    }
+}
+
 #[derive(Clone)]
 struct CurrentSubmission {
     asset: SubmissionAsset,
@@ -46,6 +54,28 @@ struct CurrentSubmission {
 }
 
 impl ZslSubmissionsProfile {
+    pub fn practice(
+        config: ManagedRoomConfig,
+        database: Database,
+        storage: Arc<dyn ObjectStorage>,
+        round_id: i32,
+        playlist: String,
+    ) -> Self {
+        Self {
+            config,
+            schedule: None,
+            practice: Some(Arc::new(super::practice::PracticeState::new(
+                database.clone(),
+                round_id,
+            ))),
+            assets: Arc::new(super::assets::PracticeAssets::new(
+                database, storage, round_id, playlist,
+            )),
+            current: Arc::new(RwLock::new(None)),
+            stopped: AtomicBool::new(false),
+        }
+    }
+
     pub fn new(
         config: ManagedRoomConfig,
         database: Database,
@@ -56,6 +86,7 @@ impl ZslSubmissionsProfile {
             config,
             assets: Arc::new(SubmissionAssets::new(database.clone(), storage, round_id)),
             schedule: Some((database, round_id)),
+            practice: None,
             current: Arc::new(RwLock::new(None)),
             stopped: AtomicBool::new(false),
         }
@@ -65,12 +96,53 @@ impl ZslSubmissionsProfile {
 #[async_trait::async_trait]
 impl LobbyProfile for ZslSubmissionsProfile {
     fn name(&self) -> &str {
-        "zsl-submissions"
+        if self.practice.is_some() {
+            "zsl-practice"
+        } else {
+            "zsl-submissions"
+        }
+    }
+
+    fn room_name(&self) -> Option<String> {
+        self.practice
+            .as_ref()
+            .and_then(|state| state.schedule())
+            .map(|schedule| schedule.title())
+    }
+    fn close_at(&self) -> Option<jiff::Timestamp> {
+        self.practice.as_ref().map(|state| state.close_at())
+    }
+    async fn scheduled_closed(&self) -> Result<()> {
+        if let Some(state) = &self.practice {
+            state.clear_join_id(&self.config.key).await?;
+        }
+        Ok(())
+    }
+    async fn refresh_schedule(&self) -> Result<()> {
+        if let Some(state) = &self.practice {
+            if state.needs_clear() {
+                state.clear_join_id(&self.config.key).await?;
+            }
+            state.refresh().await?;
+        }
+        Ok(())
     }
 
     async fn prepare(&self) -> Result<Option<crate::assets::PreparedLevel>> {
         if self.stopped.load(Ordering::Acquire) {
             return Ok(None);
+        }
+        if let Some(state) = &self.practice {
+            if state.needs_clear() {
+                state.clear_join_id(&self.config.key).await?;
+            }
+            state.refresh().await?;
+            if state
+                .schedule()
+                .is_none_or(|schedule| !schedule.is_open(jiff::Timestamp::now()))
+            {
+                return Ok(None);
+            }
         }
         if let Some((database, round_id)) = &self.schedule {
             let Some(schedule) = database.get_inspector_lobby_schedule(*round_id).await? else {
@@ -140,6 +212,7 @@ impl LobbyProfile for ZslSubmissionsProfile {
         Ok(Arc::new(ZslSubmissionsSession {
             config: self.config.clone(),
             schedule: self.schedule.clone(),
+            practice: self.practice.clone(),
             assets: self.assets.clone(),
             current: self.current.clone(),
             context,
@@ -219,6 +292,9 @@ fn upcoming_level(state: &SessionState) -> Option<OnlineLevel> {
     state.active.playlist.levels.get(state.next_index).cloned()
 }
 fn next_level_message(level: &OnlineLevel) -> String {
+    labelled_next_level_message(level, "Next submission:")
+}
+fn labelled_next_level_message(level: &OnlineLevel, label: &str) -> String {
     let author = if !level.override_author_name.is_empty() {
         level.override_author_name.clone()
     } else if level.collaborators.is_empty() {
@@ -227,7 +303,7 @@ fn next_level_message(level: &OnlineLevel) -> String {
         format!("{}, {}", level.author, level.collaborators)
     };
     format!(
-        "<color=#f9cc15>Next submission:</color> <b>{}</b> by {}",
+        "<color=#f9cc15>{label}</color> <b>{}</b> by {}",
         escape_text(&level.name),
         escape_text(&author)
     )
@@ -235,6 +311,7 @@ fn next_level_message(level: &OnlineLevel) -> String {
 struct ZslSubmissionsSession {
     config: ManagedRoomConfig,
     schedule: Option<(Database, i32)>,
+    practice: Option<Arc<super::practice::PracticeState>>,
     assets: Arc<dyn SubmissionSource>,
     current: Arc<RwLock<Option<CurrentSubmission>>>,
     context: RoomContext,
@@ -257,6 +334,21 @@ impl ZslSubmissionsSession {
             let state = self.state.lock().await;
             (state.active.playlist.levels.len(), state.current_index + 1)
         };
+        if let Some(practice) = &self.practice {
+            let schedule = practice
+                .schedule()
+                .context("Practice schedule unavailable")?;
+            return self
+                .context
+                .chat()
+                .command(&schedule.overlay(
+                    entries,
+                    position,
+                    self.config.round_time_seconds,
+                    jiff::Timestamp::now(),
+                ))
+                .await;
+        }
         let message = if let Some((database, round_id)) = &self.schedule {
             let schedule = database
                 .get_inspector_lobby_schedule(*round_id)
@@ -316,7 +408,11 @@ impl ZslSubmissionsSession {
                 return Ok(());
             };
             notice.announced = Some(key);
-            next_level_message(&next)
+            if self.practice.is_some() {
+                labelled_next_level_message(&next, "Next level:")
+            } else {
+                next_level_message(&next)
+            }
         };
         if self.context.is_host() && !self.stopped.load(Ordering::Acquire) {
             self.context.chat().target(0, &message, HOSTNAME).await?;
@@ -586,11 +682,17 @@ impl ProfileSession for ZslSubmissionsSession {
         self.context
             .activate(self.initial_level.clone(), Some(playlist))
             .await?;
+        if self.practice.is_some() {
+            self.context.chat().command("/joinmessage off").await?;
+        }
         self.overlay().await?;
         let mut announcement = tokio::time::interval(std::time::Duration::from_millis(250));
         announcement.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        let mut refresh = tokio::time::interval(std::time::Duration::from_secs(30));
-        let mut message = tokio::time::interval(std::time::Duration::from_secs(60));
+        let mut refresh =
+            tokio::time::interval(std::time::Duration::from_millis(self.config.asset_poll_ms));
+        let mut message = tokio::time::interval(std::time::Duration::from_millis(
+            self.config.message_refresh_ms,
+        ));
         refresh.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         message.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         refresh.tick().await;
@@ -643,6 +745,25 @@ impl ProfileSession for ZslSubmissionsSession {
                 }
                 _ => {}
             }
+        }
+        if let (Some(practice), GameHostPacket::PlayerConnected { player, .. }) =
+            (&self.practice, packet)
+            && player.steam_id != self.context.local_steam_id
+            && let Some(schedule) = practice.schedule()
+        {
+            let name = player
+                .username
+                .as_deref()
+                .filter(|name| !name.trim().is_empty())
+                .unwrap_or(&player.backup_name);
+            self.context
+                .chat()
+                .target(
+                    player.steam_id,
+                    &schedule.welcome(name, self.config.round_time_seconds, jiff::Timestamp::now()),
+                    HOSTNAME,
+                )
+                .await?;
         }
         if let GameHostPacket::PlaylistIndex {
             current_index,
@@ -745,12 +866,12 @@ mod tests {
     use std::{collections::VecDeque, sync::atomic::AtomicUsize};
     use zc_core::zeepnet::{OnlineLevel, chat_message_packet, parse_game_host_packet};
 
-    struct TestSource {
+    pub(super) struct TestSource {
         results: Mutex<VecDeque<Result<SubmissionPlaylist>>>,
     }
 
     impl TestSource {
-        fn new(results: Vec<Result<SubmissionPlaylist>>) -> Self {
+        pub(super) fn new(results: Vec<Result<SubmissionPlaylist>>) -> Self {
             Self {
                 results: Mutex::new(results.into()),
             }
@@ -781,7 +902,7 @@ mod tests {
         }
     }
 
-    fn asset(digest: &str, ids: &[u64]) -> Result<SubmissionAsset> {
+    pub(super) fn asset(digest: &str, ids: &[u64]) -> Result<SubmissionAsset> {
         let levels: Vec<_> = ids
             .iter()
             .map(|id| PreparedLevel {
@@ -814,7 +935,7 @@ mod tests {
         .remove(0))
     }
 
-    async fn session(
+    pub(super) async fn session(
         active: SubmissionAsset,
         current_index: usize,
         source: Arc<TestSource>,
@@ -847,6 +968,7 @@ mod tests {
         Ok(ZslSubmissionsSession {
             config: config()?,
             schedule: None,
+            practice: None,
             assets: source,
             current: Arc::new(RwLock::new(None)),
             context,
@@ -1385,6 +1507,7 @@ mod tests {
         let profile = ZslSubmissionsProfile {
             config: config()?,
             schedule: None,
+            practice: None,
             assets: source,
             current: Arc::new(RwLock::new(None)),
             stopped: AtomicBool::new(false),
@@ -1402,6 +1525,90 @@ mod tests {
             })
             .await?;
         assert_eq!(profile.prepare().await?.unwrap().level.workshop_id, 2);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod practice_session_tests {
+    use super::tests::{TestSource, asset, session};
+    use super::*;
+    #[tokio::test]
+    async fn practice_uses_shared_counter_join_and_next_notice() -> Result<()> {
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let mut session = session(
+            asset("practice", &[1, 2, 3])?,
+            2,
+            Arc::new(TestSource::new(vec![])),
+            sent.clone(),
+        )
+        .await?;
+        let now = jiff::Timestamp::now().as_second();
+        session.practice = Some(Arc::new(super::super::practice::PracticeState::for_test(
+            super::super::practice::PracticeSchedule {
+                name: "Mixed <Surfaces>".into(),
+                first: jiff::Timestamp::from_second(now + 10000)?,
+                second: jiff::Timestamp::from_second(now + 30000)?,
+            },
+        )));
+        session.context.test_remote_time(191.0);
+        session.overlay().await?;
+        let command = zc_core::zeepnet::parse_game_host_packet_for(&sent.lock().await[0], 0, None)?;
+        assert!(
+            matches!(command, GameHostPacket::Chat { message, .. } if message.contains("Level 3 of 3") && message.contains("Mixed &lt;Surfaces&gt;") && !message.contains("Submission"))
+        );
+        let current = session.state.lock().await.active.playlist.levels[2].clone();
+        session
+            .on_packet(&GameHostPacket::Initial {
+                is_host: true,
+                players: vec![],
+                timing: zc_core::zeepnet::LobbyTiming {
+                    game_state: 0,
+                    round_time: 100.0,
+                    level_loaded_at: 100.0,
+                    uid: current.uid.clone(),
+                    workshop_id: current.workshop_id,
+                },
+            })
+            .await?;
+        session.announce_next().await?;
+        session.announce_next().await?;
+        assert_eq!(sent.lock().await.len(), 2);
+        let expected = zc_core::zeepnet::targeted_chat_message_packet(
+            0,
+            &next_level_message(&session.state.lock().await.active.playlist.levels[0])
+                .replace("Next submission:", "Next level:"),
+            HOSTNAME,
+        )?;
+        assert_eq!(sent.lock().await[1], expected);
+        let player = zc_core::zeepnet::GameHostPlayer {
+            uid: 42,
+            steam_id: 42,
+            username: Some("<Player>".into()),
+            backup_name: "Fallback".into(),
+            player_tag: String::new(),
+        };
+        session
+            .on_packet(&GameHostPacket::PlayerConnected {
+                player,
+                is_host: false,
+                has_host_powers: false,
+            })
+            .await?;
+        let packets = sent.lock().await;
+        let mut reader = zc_core::zeepnet::BitReader::new(&packets[2]);
+        reader.read_u16()?;
+        assert_eq!(reader.read_u64()?, 42);
+        let message = reader.read_string(4096)?;
+        assert!(message.contains("&lt;Player&gt;"));
+        assert!(message.contains("Mixed &lt;Surfaces&gt;"));
+        assert!(message.contains("playlist"));
+        assert!(!message.contains("Submission"));
+        assert_eq!(reader.read_string(4096)?, HOSTNAME);
+        assert_eq!(
+            packets[2],
+            zc_core::zeepnet::targeted_chat_message_packet(42, &message, HOSTNAME)?
+        );
         Ok(())
     }
 }

@@ -17,6 +17,7 @@ tokio.workspace = true
 tracing.workspace = true
 zc-core.workspace = true
 zc-database.workspace = true
+zc-jobs.workspace = true
 zc-telemetry.workspace = true
 
 [dev-dependencies]

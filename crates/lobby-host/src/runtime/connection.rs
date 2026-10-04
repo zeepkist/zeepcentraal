@@ -24,8 +24,8 @@ use tokio::{
     time::Instant,
 };
 use zc_core::zeepnet::{
-    GameHostPacket, LobbyTiming, RemoteClock, change_lobby_master_packet,
-    change_lobby_visibility_packet,
+    GameHostPacket, LobbyTiming, RemoteClock, change_lobby_master_packet, change_lobby_name_packet,
+    change_lobby_visibility_packet, kick_player_packet,
 };
 
 const RECOVERY_TIMEOUT: Duration = Duration::from_secs(30);
@@ -112,6 +112,7 @@ impl ActiveSession {
 
 struct RoomState {
     host: bool,
+    schedule_authority: Arc<AtomicBool>,
     roster: Arc<Mutex<RoomRoster>>,
     timing: Option<LobbyTiming>,
     recovery: Option<Recovery>,
@@ -126,6 +127,7 @@ impl RoomState {
         let now = Instant::now();
         Self {
             host: false,
+            schedule_authority: Arc::new(AtomicBool::new(false)),
             roster: Arc::new(Mutex::new(RoomRoster::default())),
             timing: None,
             recovery: None,
@@ -179,24 +181,132 @@ impl RoomState {
 impl ConnectedRoom<'_> {
     pub(super) async fn run(&self, retry: &mut RetryBackoff) -> Result<()> {
         let mut state = RoomState::new();
-        let result = tokio::select! {
+        let authority = state.schedule_authority.clone();
+        let (result, scheduled) = tokio::select! {
             biased;
-            _ = wait_for_stop(self.stopped, self.wake) => Ok(()),
-            result = self.drive(&mut state, retry) => result,
+            _ = wait_for_stop(self.stopped, self.wake) => (Ok(()), false),
+            _ = self.watch_schedule(authority) => (Ok(()), true),
+            result = self.drive(&mut state, retry) => (result, false),
         };
         retry.lost_host(Instant::now());
         state.controls.shutdown().await;
         if let Some(mut active) = state.active.take() {
             active.stop().await;
         }
-        if state.host && state.timing.is_some() {
-            let _ = self
+        if (scheduled || self.stopped.load(Ordering::Acquire)) && !state.host {
+            // Covers disable during assignment/connection and host recovery.
+            state.host = self.recover_shutdown_authority(&state.roster).await;
+        }
+        if state.host
+            && let Err(error) = self
                 .connection
                 .send(change_lobby_visibility_packet(false)?)
-                .await;
+                .await
+        {
+            tracing::warn!(%error, "Could not make retiring room private");
         }
-        let _ = self.connection.close("Managed room reconnecting").await;
+        if scheduled
+            && state.host
+            && let Err(error) = self.kick_guests(&state.roster).await
+        {
+            tracing::warn!(%error, "Scheduled room kicks failed");
+        }
+        let reason = if scheduled {
+            "ZSL practice closed for tournament"
+        } else if self.stopped.load(Ordering::Acquire) {
+            "Managed room disabled or stopped"
+        } else {
+            "Managed room reconnecting"
+        };
+        let _ = self.connection.close(reason).await;
+        if scheduled {
+            self.profile.scheduled_closed().await?;
+        }
         result
+    }
+
+    // Separate future remains live while session packet handling awaits assets or DB.
+    async fn watch_schedule(&self, authority: Arc<AtomicBool>) {
+        let mut tick = tokio::time::interval(Duration::from_millis(100));
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let mut notices = crate::profiles::practice::ClosureNotices::default();
+        let refresh = || async {
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            self.profile.refresh_schedule().await
+        };
+        let mut pending_refresh = Box::pin(refresh());
+        loop {
+            tokio::select! {
+                biased;
+                _ = tick.tick() => {
+                    if let Some(deadline) = self.profile.close_at() {
+                        let now = jiff::Timestamp::now();
+                        if now >= deadline { return; }
+                        if notices.due(deadline, now) && authority.load(Ordering::Acquire) {
+                            let result = tokio::time::timeout(Duration::from_secs(1), RoomChat::new(self.connection.clone()).target(0, crate::profiles::practice::CLOSURE_MESSAGE, crate::profiles::messages::HOSTNAME)).await;
+                            if !matches!(result, Ok(Ok(()))) { tracing::warn!("Practice closure notice failed"); }
+                        }
+                    }
+                }
+                result = &mut pending_refresh => {
+                    if let Err(error) = result { tracing::warn!(%error, "Practice schedule refresh failed"); }
+                    pending_refresh = Box::pin(refresh());
+                }
+            }
+        }
+    }
+
+    async fn recover_shutdown_authority(&self, roster: &Arc<Mutex<RoomRoster>>) -> bool {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        if !matches!(
+            tokio::time::timeout_at(
+                deadline,
+                self.connection
+                    .send(change_lobby_master_packet(self.player_uid).unwrap())
+            )
+            .await,
+            Ok(Ok(()))
+        ) {
+            return false;
+        }
+        loop {
+            tokio::select! {
+                _ = tokio::time::sleep_until(deadline) => return false,
+                packet = self.connection.recv() => match packet {
+                    Ok(Some(packet)) => {
+                        roster.lock().await.observe(&packet);
+                        if matches!(packet, GameHostPacket::Initial { is_host: true, .. })
+                            || matches!(packet, GameHostPacket::Master(uid) if uid == self.player_uid) { return true; }
+                    }
+                    _ => return false,
+                }
+            }
+        }
+    }
+
+    async fn kick_guests(&self, roster: &Arc<Mutex<RoomRoster>>) -> Result<()> {
+        let mut kicked = std::collections::HashSet::new();
+        let mut deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            let players = roster.lock().await.all();
+            for player in players {
+                if player.uid != self.player_uid && kicked.insert(player.uid) {
+                    self.connection
+                        .send(kick_player_packet(player.uid)?)
+                        .await?;
+                    // Drain in-flight joins after the last acknowledged kick.
+                    deadline = Instant::now() + Duration::from_secs(2);
+                }
+            }
+            tokio::select! {
+                _ = tokio::time::sleep_until(deadline) => return Ok(()),
+                _ = wait_for_stop(self.stopped, self.wake) => return Ok(()),
+                packet = self.connection.recv() => {
+                    let Some(packet) = packet? else { return Ok(()); };
+                    roster.lock().await.observe(&packet);
+                }
+            }
+        }
     }
 
     async fn start_session(&self, state: &mut RoomState) -> Result<()> {
@@ -234,7 +344,11 @@ impl ConnectedRoom<'_> {
         };
         profile.on_packet(&initial).await?;
         let is_public = self.config.room.is_public;
+        let room_name = self.profile.room_name();
         let task = tokio::spawn(async move {
+            if let Some(name) = room_name {
+                context.send(change_lobby_name_packet(&name)?).await?;
+            }
             context
                 .send(change_lobby_visibility_packet(is_public)?)
                 .await?;
@@ -335,6 +449,7 @@ impl ConnectedRoom<'_> {
         state.observe_timing(packet);
         if let Some(host) = ownership {
             state.host = host;
+            state.schedule_authority.store(host, Ordering::Release);
             if host {
                 retry.confirmed_host(Instant::now());
                 if let Some(recovery) = state.recovery.take() {
@@ -400,6 +515,7 @@ fn recovery_message(profile: &RoomProfile) -> String {
             tournament_type: TournamentType::Monthly,
         } => "Track of the Month",
         RoomProfile::ZslSubmissions { .. } => "ZSL submissions",
+        RoomProfile::ZslPractice { .. } => "ZSL practice",
     };
     format!(
         "ZeepCentraal needs host back to keep this room operating for {label}. Please return host to ZeepCentraal."

@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 mod catalog;
 pub mod cron;
 pub mod handlers;
+mod practice;
 pub mod queue;
 pub mod retry;
 pub mod runtime;
@@ -23,6 +24,7 @@ pub enum TaskIdentifier {
     PrunePointsHistory,
     RecoverLevelRequests,
     PrepareTrackTournamentLobbyAsset,
+    PrepareZslPracticePlaylist,
     ScanWorkshopBatch,
     ScanWorkshopItem,
     RotateTrackTournament,
@@ -40,13 +42,14 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 20] = [
+    pub const ALL: [Self; 21] = [
         Self::BackfillLevelSimhash,
         Self::BackfillRecordGhostStatistics,
         Self::BackfillRecordGhostStatisticsBatch,
         Self::PrunePointsHistory,
         Self::RecoverLevelRequests,
         Self::PrepareTrackTournamentLobbyAsset,
+        Self::PrepareZslPracticePlaylist,
         Self::ScanWorkshopBatch,
         Self::ScanWorkshopItem,
         Self::RotateTrackTournament,
@@ -71,6 +74,7 @@ impl TaskIdentifier {
             Self::PrunePointsHistory => "prunePointsHistory",
             Self::RecoverLevelRequests => "recoverLevelRequests",
             Self::PrepareTrackTournamentLobbyAsset => "prepareTrackTournamentLobbyAsset",
+            Self::PrepareZslPracticePlaylist => "prepareZslPracticePlaylist",
             Self::ScanWorkshopBatch => "scanWorkshopBatch",
             Self::ScanWorkshopItem => "scanWorkshopItem",
             Self::RotateTrackTournament => "rotateTrackTournament",
@@ -105,6 +109,7 @@ impl TaskIdentifier {
         match self {
             Self::BackfillRecordGhostStatistics | Self::BackfillRecordGhostStatisticsBatch => 1,
             Self::PrepareTrackTournamentLobbyAsset
+            | Self::PrepareZslPracticePlaylist
             | Self::ScanWorkshopBatch
             | Self::ScanWorkshopItem => 5,
             _ => 3,
@@ -159,6 +164,17 @@ impl TaskIdentifier {
                     && optional_bool("fixZeepSDKExponentHashes")
             }
             Self::PrepareTrackTournamentLobbyAsset => positive_i64("idTournament"),
+            Self::PrepareZslPracticePlaylist => {
+                object.len() == 2
+                    && positive_i64("roundId")
+                    && object["roundId"]
+                        .as_i64()
+                        .is_some_and(|id| id <= i32::MAX as i64)
+                    && object
+                        .get("playlist")
+                        .and_then(serde_json::Value::as_str)
+                        .is_some_and(|url| zc_core::practice::validate_playlist_url(url).is_ok())
+            }
             Self::UpdateLevelScore => {
                 positive_i64("idLevel")
                     && object.get("idUser").is_none_or(|_| positive_i64("idUser"))
@@ -256,7 +272,7 @@ mod tests {
 
     #[test]
     fn task_registry_matches_bun_count() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 20);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 21);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }

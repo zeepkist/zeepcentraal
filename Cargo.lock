@@ -4836,6 +4836,7 @@ dependencies = [
  "tracing-subscriber",
  "zc-core",
  "zc-database",
+ "zc-jobs",
  "zc-telemetry",
 ]
 

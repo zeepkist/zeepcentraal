@@ -32,6 +32,11 @@ impl Database {
         Ok(())
     }
 
+    /// Share this application partition with the existing jobs queue client.
+    pub fn pool_partition(&self) -> PoolPartition {
+        self.partition.clone()
+    }
+
     pub fn pool_snapshot(&self) -> PoolSnapshot {
         self.partition.snapshot()
     }

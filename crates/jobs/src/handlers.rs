@@ -348,6 +348,39 @@ impl ServiceJobHandler {
         Ok(())
     }
 
+    async fn prepare_practice_playlist(&self, payload: &serde_json::Value) -> Result<()> {
+        let round_id = i32::try_from(payload["roundId"].as_i64().context("roundId is missing")?)?;
+        let url = payload["playlist"]
+            .as_str()
+            .context("playlist is missing")?;
+        ensure!(
+            self.database.practice_schedule(round_id).await?.is_some(),
+            "Practice round does not exist"
+        );
+        let playlist = zc_core::practice::fetch_playlist(url).await?;
+        let bundle = crate::practice::prepare_bundle(
+            round_id,
+            url,
+            playlist,
+            self.downloader.as_ref(),
+            self.storage.as_ref(),
+        )
+        .await?;
+        let manifest = serde_json::to_vec(&bundle)?;
+        ensure!(
+            manifest.len() <= zc_core::practice::MAX_PLAYLIST_BYTES,
+            "Practice manifest is too large"
+        );
+        let digest = hex::encode(Sha256::digest(&manifest));
+        let key = format!("zsl-practice/manifests/{round_id}/{digest}.json");
+        self.storage
+            .upload(&key, manifest.clone(), "application/json")
+            .await?;
+        self.database
+            .publish_practice_asset(round_id, url, &key, &digest, i32::try_from(manifest.len())?)
+            .await
+    }
+
     async fn prepare_tournament_lobby_asset(&self, payload: &serde_json::Value) -> Result<()> {
         let id_tournament = i32::try_from(
             payload["idTournament"]
@@ -923,6 +956,9 @@ impl JobHandler for ServiceJobHandler {
                 .map(|_| ()),
             TaskIdentifier::UpdatePlayerScore => unreachable!(),
             TaskIdentifier::UpdatePlayerScores => self.update_player_scores().await,
+            TaskIdentifier::PrepareZslPracticePlaylist => {
+                self.prepare_practice_playlist(&payload).await
+            }
             TaskIdentifier::PrepareTrackTournamentLobbyAsset => {
                 self.prepare_tournament_lobby_asset(&payload).await
             }

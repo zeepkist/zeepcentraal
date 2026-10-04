@@ -70,7 +70,7 @@ async function collect(
 test('prompt map exactly covers API-compatible jobs', () => {
 	expect(Object.keys(jobPromptDefinitions).sort()).toEqual([...compatibleTaskIdentifiers].sort())
 	expect(Object.keys(jobPromptDefinitions)).not.toContain('updateLevelScoresBatch')
-	expect(jobChoices).toHaveLength(17)
+	expect(jobChoices).toHaveLength(18)
 })
 
 test('recovered menu matches API-compatible Rust tasks', async () => {
@@ -123,6 +123,10 @@ describe('job option collection', () => {
 			['backfillRecordGhostStatisticsBatch', { texts: ['1, 2'] }],
 			['prunePointsHistory', {}],
 			['prepareTrackTournamentLobbyAsset', { texts: ['42'] }],
+			[
+				'prepareZslPracticePlaylist',
+				{ texts: ['50', 'https://cdn.example.com/practice.zeeplist'] },
+			],
 			['scanWorkshopItem', { texts: ['3749321871'] }],
 			['scanWorkshopBatch', { texts: ['3006532933 3749321871'], confirmations: [false] }],
 			['syncWorkshopCatalog', { selections: ['stale'] }],
@@ -259,4 +263,19 @@ describe('job option collection', () => {
 			}),
 		).toEqual({ offset: 0, limit: 200 })
 	})
+})
+
+test('practice preparation validates round ID and HTTP(S) playlist', async () => {
+	expect(
+		await collect('prepareZslPracticePlaylist', {
+			texts: ['50', 'https://cdn.example.com/practice.zeeplist'],
+		}),
+	).toEqual({ roundId: 50, playlist: 'https://cdn.example.com/practice.zeeplist' })
+	for (const options of [
+		{ roundId: 0, playlist: 'https://example.com/p' },
+		{ roundId: 50, playlist: 'file:///tmp/p' },
+		{ roundId: 50, playlist: 'https://user:secret@example.com/p' },
+	]) {
+		expect(isValidTaskPayload('prepareZslPracticePlaylist', options)).toBe(false)
+	}
 })

@@ -2047,6 +2047,7 @@ export const zslRound = pgTable(
 		round: integer('round').notNull(),
 		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
 		eventDate: timestamp('event_date', { withTimezone: true, mode: 'string' }).notNull(),
+		event2Date: timestamp('event2_date', { withTimezone: true, mode: 'string' }),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),
@@ -2248,6 +2249,34 @@ export const zslSeasonResult = pgTable(
 		index('IX_zsl_season_result_date_created').using(
 			'btree',
 			table.dateCreated.asc().nullsLast(),
+		),
+	],
+)
+
+/** Published, complete ZSL practice bundle; workers replace reference atomically. */
+export const zslPracticePlaylist = zcPrivate.table(
+	'zsl_practice_playlist',
+	{
+		idZslRound: integer('id_zsl_round')
+			.notNull()
+			.references(() => zslRound.id, { onDelete: 'cascade' }),
+		playlistUrl: text('playlist_url').notNull(),
+		objectKey: text('object_key').notNull(),
+		contentSha256: text('content_sha256').notNull(),
+		byteSize: integer('byte_size').notNull(),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.idZslRound, table.playlistUrl] }),
+		check(
+			'zsl_practice_playlist_content_sha256_check',
+			sql`${table.contentSha256} ~ '^[0-9a-f]{64}$'`,
+		),
+		check(
+			'zsl_practice_playlist_byte_size_check',
+			sql`${table.byteSize} > 0 AND ${table.byteSize} <= 1048576`,
 		),
 	],
 )

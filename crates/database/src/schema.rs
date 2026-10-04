@@ -520,6 +520,7 @@ diesel::table! {
         round -> Integer,
         workshop_id -> BigInt,
         event_date -> Timestamptz,
+        event2_date -> Nullable<Timestamptz>,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
     }
@@ -826,5 +827,16 @@ diesel::table! {
         is_personal_best -> Bool,
         is_world_record -> Bool,
         has_contribution -> Bool,
+    }
+}
+
+diesel::table! {
+    zc_private.zsl_practice_playlist (id_zsl_round, playlist_url) {
+        id_zsl_round -> Integer,
+        playlist_url -> Text,
+        object_key -> Text,
+        content_sha256 -> Text,
+        byte_size -> Integer,
+        date_updated -> Timestamptz,
     }
 }

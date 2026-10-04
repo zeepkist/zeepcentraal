@@ -18,6 +18,7 @@ pub mod level_simhash;
 pub mod lobby;
 pub mod lobby_assets;
 pub mod managed_lobby;
+pub mod practice;
 pub mod record;
 pub mod super_league;
 pub mod workshop;

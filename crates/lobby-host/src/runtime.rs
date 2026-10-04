@@ -28,6 +28,18 @@ use retry::RetryBackoff;
 #[async_trait::async_trait]
 pub trait LobbyProfile: Send + Sync + 'static {
     fn name(&self) -> &str;
+    fn room_name(&self) -> Option<String> {
+        None
+    }
+    fn close_at(&self) -> Option<jiff::Timestamp> {
+        None
+    }
+    async fn refresh_schedule(&self) -> Result<()> {
+        Ok(())
+    }
+    async fn scheduled_closed(&self) -> Result<()> {
+        Ok(())
+    }
     async fn prepare(&self) -> Result<Option<PreparedLevel>>;
     async fn create_session(&self, context: RoomContext) -> Result<Arc<dyn ProfileSession>>;
     async fn stop(&self) -> Result<()>;
@@ -180,9 +192,17 @@ impl ManagedLobbyHost {
     }
 
     async fn run_loop(&self) -> Result<()> {
+        if !self.config.enabled {
+            return Ok(());
+        }
         let mut retry = RetryBackoff::new(self.config.reconnect_max_ms);
         while !self.stopped.load(Ordering::Acquire) {
-            let poll_only = match self.profile.prepare().await {
+            let prepared = tokio::select! {
+                biased;
+                _ = wait_for_stop(&self.stopped, &self.wake) => break,
+                prepared = self.profile.prepare() => prepared,
+            };
+            let poll_only = match prepared {
                 Ok(Some(_)) => {
                     if let Err(error) = zc_telemetry::observe_operation(
                         "lobby.connect",
@@ -220,14 +240,24 @@ impl ManagedLobbyHost {
             .database
             .managed_lobby_join_id(&self.config.key)
             .await?;
-        let assignment = self.broker.assign(&self.config, join_id.as_deref()).await?;
+        let mut resolved_config = self.config.clone();
+        if self.stopped.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        if let Some(name) = self.profile.room_name() {
+            resolved_config.room.name = name;
+        }
+        resolved_config.room.is_public = false;
+        // Assignment may already have created a room. Complete the handoff even
+        // after disable, then retire that room through the normal connection path.
+        let assignment = self
+            .broker
+            .assign(&resolved_config, join_id.as_deref())
+            .await?;
         if join_id.as_deref() != Some(&assignment.join_id) {
             self.database
                 .set_managed_lobby_join_id(&self.config.key, &assignment.join_id)
                 .await?;
-        }
-        if self.stopped.load(Ordering::Acquire) {
-            return Ok(());
         }
         let connection = Arc::new(GameConnection::connect(&assignment).await?);
         ConnectedRoom {

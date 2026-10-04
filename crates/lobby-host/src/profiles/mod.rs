@@ -1,6 +1,7 @@
 mod assets;
-mod messages;
+pub(crate) mod messages;
 mod notifications;
+pub(crate) mod practice;
 mod track_tournament;
 mod zsl_submissions;
 
@@ -27,6 +28,15 @@ pub fn create_profile(
         RoomProfile::TrackTournament { tournament_type } => Ok(Arc::new(
             TrackTournamentProfile::new(config.clone(), database, storage, *tournament_type)?,
         )),
+        RoomProfile::ZslPractice { round_id, playlist } => {
+            Ok(Arc::new(ZslSubmissionsProfile::practice(
+                config.clone(),
+                database,
+                storage,
+                *round_id,
+                playlist.clone(),
+            )))
+        }
         RoomProfile::ZslSubmissions { round_id } => Ok(Arc::new(ZslSubmissionsProfile::new(
             config.clone(),
             database,

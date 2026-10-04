@@ -306,6 +306,105 @@ fn validate_submission_payload(payload: &SubmissionPayload) -> Result<()> {
     Ok(())
 }
 
+pub(super) struct PracticeAssets {
+    database: Database,
+    storage: Arc<dyn ObjectStorage>,
+    round_id: i32,
+    url: String,
+    loaded: Arc<Mutex<HashMap<String, Arc<[u8]>>>>,
+    requested: Mutex<Option<std::time::Instant>>,
+}
+impl PracticeAssets {
+    pub fn new(
+        database: Database,
+        storage: Arc<dyn ObjectStorage>,
+        round_id: i32,
+        url: String,
+    ) -> Self {
+        Self {
+            database,
+            storage,
+            round_id,
+            url,
+            loaded: Arc::new(Mutex::new(HashMap::new())),
+            requested: Mutex::new(None),
+        }
+    }
+    pub async fn refresh(&self) -> Result<SubmissionPlaylist> {
+        let Some(metadata) = self
+            .database
+            .practice_asset(self.round_id, &self.url)
+            .await?
+        else {
+            let mut requested = self.requested.lock().await;
+            if requested.is_none_or(|last| last.elapsed() >= std::time::Duration::from_secs(600)) {
+                let key = format!(
+                    "prepare-zsl-practice:{}:{}",
+                    self.round_id,
+                    zc_core::identifiers::xxh128_hex(self.url.as_bytes())
+                );
+                zc_jobs::queue::Queue::deferred(self.database.pool_partition())
+                    .enqueue(
+                        zc_jobs::TaskIdentifier::PrepareZslPracticePlaylist,
+                        serde_json::json!({"roundId":self.round_id,"playlist":self.url}),
+                        zc_jobs::queue::JobLane::Bulk,
+                        Some(&key),
+                    )
+                    .await?;
+                *requested = Some(std::time::Instant::now());
+            }
+            return Ok(SubmissionPlaylist::Missing);
+        };
+        let bytes = self
+            .storage
+            .download(
+                &metadata.object_key,
+                DownloadConstraints {
+                    max_bytes: zc_core::practice::MAX_PLAYLIST_BYTES,
+                    expected_bytes: Some(usize::try_from(metadata.byte_size)?),
+                    expected_sha256: Some(&metadata.content_sha256),
+                },
+            )
+            .await?;
+        let bundle: zc_core::practice::PracticeBundle = serde_json::from_slice(&bytes)?;
+        bundle.validate()?;
+        ensure!(
+            bundle.round_id == self.round_id && bundle.playlist == self.url,
+            "Practice bundle identity mismatch"
+        );
+        let entries: Vec<_> = bundle
+            .levels
+            .into_iter()
+            .map(|entry| SubmissionEntry {
+                workshop_id: entry.level.workshop_id,
+                payload: SubmissionPayload {
+                    sha256: entry.sha256,
+                    byte_size: entry.byte_size,
+                    uid: entry.level.uid,
+                    name: entry.level.name,
+                    author: entry.level.author,
+                    collaborators: entry.level.collaborators,
+                    override_author_name: entry.level.override_author_name,
+                    object_key: entry.object_key,
+                },
+            })
+            .collect();
+        let levels = entries
+            .iter()
+            .map(|entry| online_level(entry.workshop_id, &entry.payload))
+            .collect();
+        let loader = Arc::new(SubmissionLoader {
+            entries: entries.into(),
+            storage: self.storage.clone(),
+            loaded: self.loaded.clone(),
+        });
+        Ok(SubmissionPlaylist::Ready(SubmissionAsset {
+            digest: metadata.content_sha256,
+            playlist: PreparedPlaylist::new(levels, loader)?,
+        }))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -87,6 +87,9 @@ async fn reconcile_rooms(
         }
     }
     for room in next {
+        if !room.enabled {
+            continue;
+        }
         if running.contains_key(&room.key) {
             continue;
         }
@@ -169,6 +172,11 @@ mod tests {
             {"key":"weekly","profile":{"type":"track-tournament","tournamentType":"weekly"},"room":{"name":"Weekly","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000},
             {"key":"zsl","profile":{"type":"zsl-submissions","roundId":50},"room":{"name":"ZSL","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}]}"#)?.rooms;
         assert!(changed_room_keys(old.iter(), &old).is_empty());
+        let mut disabled = old.clone();
+        disabled[1].enabled = false;
+        assert_eq!(changed_room_keys(old.iter(), &disabled), ["zsl"]);
+        assert!(changed_room_keys(disabled.iter(), &disabled).is_empty());
+        assert_eq!(changed_room_keys(disabled.iter(), &old), ["zsl"]);
         let mut next = old.clone();
         next[1].profile = zc_lobby_host::config::RoomProfile::ZslSubmissions { round_id: 51 };
         assert_eq!(changed_room_keys(old.iter(), &next), ["zsl"]);

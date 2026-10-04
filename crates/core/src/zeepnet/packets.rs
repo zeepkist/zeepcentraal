@@ -22,6 +22,8 @@ pub const LEVEL_LOADED: u16 = 29_603;
 pub const PLAYER_CONNECTED: u16 = 8_162;
 pub const PLAYER_DISCONNECTED: u16 = 48_658;
 pub const SKIP_TO_LEVEL: u16 = 63_876;
+pub const CHANGE_LOBBY_NAME: u16 = 53675;
+pub const KICK_PLAYER: u16 = 14557;
 
 const MAX_LEVEL_DATA_BYTES: usize = 64 * 1024 * 1024;
 const MAX_PLAYLIST_LEVELS: usize = 1_001;
@@ -187,6 +189,23 @@ pub fn change_lobby_visibility_packet(is_public: bool) -> Result<Vec<u8>> {
         writer.write_bool(is_public);
         Ok(())
     })
+}
+
+/// v18 KickPlayerPacket.Serialize writes one unsigned 32-bit player UID.
+pub fn kick_player_packet(player_uid: u32) -> Result<Vec<u8>> {
+    write_packet(KICK_PLAYER, |writer| {
+        writer.write_u32(player_uid);
+        Ok(())
+    })
+}
+
+/// v18 ChangeLobbyNamePacket uses Lidgren string serialization.
+pub fn change_lobby_name_packet(name: &str) -> Result<Vec<u8>> {
+    ensure!(
+        !name.trim().is_empty() && name.len() <= 256,
+        "Invalid lobby name"
+    );
+    write_packet(CHANGE_LOBBY_NAME, |writer| writer.write_string(name))
 }
 
 pub fn change_lobby_master_packet(player_uid: u32) -> Result<Vec<u8>> {
@@ -968,5 +987,22 @@ mod tests {
             }
         }
         output
+    }
+}
+
+#[cfg(test)]
+mod kick_tests {
+    use super::*;
+    #[test]
+    fn kick_matches_game_assembly_golden_bytes() -> Result<()> {
+        assert_eq!(
+            packet_id("ZeepkistNetworking.KickPlayerPacket"),
+            KICK_PLAYER
+        );
+        assert_eq!(
+            kick_player_packet(0xfedcba98)?,
+            [221, 56, 0x98, 0xba, 0xdc, 0xfe]
+        );
+        Ok(())
     }
 }
