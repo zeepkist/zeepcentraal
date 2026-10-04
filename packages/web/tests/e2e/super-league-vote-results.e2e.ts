@@ -23,7 +23,7 @@ const round = {
 }
 
 async function hydrate(page: Page) {
-	await page.goto('/cosmetics')
+	await page.goto('/cosmetics', { waitUntil: 'domcontentloaded' })
 	await page.waitForFunction(() => {
 		const root = document.querySelector('#__nuxt') as Element & {
 			__vue_app__?: { config: { globalProperties: { $nuxt?: { isHydrating: boolean } } } }
@@ -210,9 +210,6 @@ for (const theme of ['dark', 'light']) {
 			.first()
 		await expect(votedBar).toBeVisible()
 		await votedBar.hover()
-		console.log(await votedBar.evaluate((element) => ({ datum: (element as unknown as { __data__: unknown }).__data__, html: element.outerHTML })))
-		console.log(await page.locator('[class*="tooltip"]').evaluateAll(elements => elements.map(element => ({ tag: element.tagName, class: element.getAttribute('class'), text: element.textContent, html: element.outerHTML.slice(0, 400) }))))
-		await page.screenshot({ path: testInfo.outputPath(`votes-${theme}-viewport.png`) })
 		await expect(
 			page
 				.locator('div[class*="-tooltip"]')
