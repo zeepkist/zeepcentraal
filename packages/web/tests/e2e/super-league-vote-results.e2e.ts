@@ -187,12 +187,33 @@ for (const theme of ['dark', 'light']) {
 			{ name: 'colour_mode', value: theme, url: 'http://127.0.0.1:4173' },
 		])
 		const mocks = await fixture(page)
+		const pageErrors: string[] = []
+		page.on('pageerror', (error) => pageErrors.push(error.message))
 		await hydrate(page)
 		await navigate(page, resultPath)
+		await expect(page.locator('html')).toHaveClass(new RegExp(`\\b${theme}\\b`))
 		await expect(page.getByRole('heading', { level: 1, name: 'Voting results' })).toBeVisible()
 		await expect(page.locator('[data-category-total]')).toHaveCount(3)
 		await expect(page.locator('[data-result-level]')).toHaveCount(57)
 		await expect(page.getByRole('img', { name: /Votes per level/ })).toHaveCount(3)
+		await expect
+			.poll(() =>
+				page
+					.getByRole('img', { name: /Votes per level/ })
+					.first()
+					.locator('svg text')
+					.first()
+					.evaluate((element) => getComputedStyle(element).fontFamily),
+			)
+			.toContain('DINish')
+		const longLabel = page
+			.getByRole('img', { name: /Votes per level/ })
+			.first()
+			.locator('svg text')
+			.filter({ hasText: /^A/ })
+		await expect
+			.poll(() => longLabel.evaluate((element) => element.getBoundingClientRect().height))
+			.toBeLessThan(36)
 		await expect(page.getByText('Your Level', { exact: true })).toHaveCount(0)
 		expect(mocks.queries.some((query) => query.includes('ZC_ZslRoundResults'))).toBe(false)
 		await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -210,14 +231,21 @@ for (const theme of ['dark', 'light']) {
 			.first()
 		await expect(votedBar).toBeVisible()
 		await votedBar.hover()
-		await expect(
-			page
-				.locator('div[class*="-tooltip"]')
-				.filter({ hasText: 'A very long submitted level name' }),
-		).toContainText('18 Votes')
+		await expect(page.getByRole('tooltip')).toContainText('18 Votes')
+		await expect(page.getByRole('tooltip')).toContainText('A very long submitted level name')
+		const regularBars = page
+			.getByRole('img', { name: /Votes per level/ })
+			.first()
+			.locator('path[style*="--chart-1"]')
+		await expect(regularBars).toHaveCount(17)
+		await regularBars.last().hover()
+		await expect(page.getByRole('tooltip')).toContainText('Level 2')
+		await expect(page.getByRole('tooltip')).toContainText('17 Votes')
 		await page.mouse.move(0, 0)
 		await page.screenshot({ path: testInfo.outputPath(`votes-${theme}.png`), fullPage: true })
 		await page.screenshot({ path: testInfo.outputPath(`votes-${theme}-viewport.png`) })
+		await page.locator('[data-result-level]').first().scrollIntoViewIfNeeded()
+		await page.screenshot({ path: testInfo.outputPath(`votes-${theme}-rows.png`) })
 		const overflow = await page.evaluate(
 			() => document.documentElement.scrollWidth > window.innerWidth,
 		)
@@ -238,6 +266,7 @@ for (const theme of ['dark', 'light']) {
 		).toHaveAttribute('href', resultPath)
 		await page.getByRole('link', { name: 'Voting results', exact: true }).click()
 		await expect(page).toHaveURL(resultPath)
+		expect(pageErrors).toEqual([])
 	})
 }
 
