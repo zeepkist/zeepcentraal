@@ -237,7 +237,8 @@ async fn rank_batch<'a>(
     backend: &Backend,
     rank_batches: &'a mut RankBatches,
 ) -> Result<&'a RankBatch> {
-    if let std::collections::btree_map::Entry::Vacant(entry) = rank_batches.entry(event.id.clone()) {
+    if let std::collections::btree_map::Entry::Vacant(entry) = rank_batches.entry(event.id.clone())
+    {
         let changes = rank::changes(event);
         let ids = changes
             .iter()
@@ -568,7 +569,11 @@ async fn deliver_watches(
                 .flatten()
                 .copied()
                 .collect::<BTreeSet<_>>();
-            rank::message(event, &rank::for_watches(&batch.changes, &watched), &batch.users)
+            rank::message(
+                event,
+                &rank::for_watches(&batch.changes, &watched),
+                &batch.users,
+            )
         } else {
             common_message.clone()
         };

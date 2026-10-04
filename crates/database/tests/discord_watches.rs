@@ -82,7 +82,11 @@ async fn existing_player_watch_aliases_match_canonical_record_and_rank_players()
         ])
         .await?;
     assert_eq!(ids(&matches), expected);
-    assert!(matches.iter().all(|watch| watch["matchedPlayerIds"] == json!([11])));
+    assert!(
+        matches
+            .iter()
+            .all(|watch| watch["matchedPlayerIds"] == json!([11]))
+    );
     assert!(
         matches
             .iter()

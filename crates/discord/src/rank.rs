@@ -132,9 +132,8 @@ pub(crate) fn for_watches(changes: &[RankChange], watched: &BTreeSet<i32>) -> Ve
             group_end = group_end.max(end);
         }
         // Entry/exit watches select their own row, without expanding the group.
-        group_watched |= watched.contains(&change.id_user)
-            && change.previous_rank > 0
-            && change.rank > 0;
+        group_watched |=
+            watched.contains(&change.id_user) && change.previous_rank > 0 && change.rank > 0;
         group.push(change.id_user);
     }
     if group_watched {
@@ -278,21 +277,55 @@ mod tests {
     #[test]
     fn akane_watch_keeps_only_two_related_movements_from_twenty_seven() {
         let movements = [
-            (24, 23), (23, 24), (70, 69), (69, 70), (101, 100), (100, 101),
-            (176, 175), (175, 176), (181, 180), (182, 181), (183, 182), (184, 183),
-            (185, 184), (180, 185), (211, 210), (212, 211), (210, 212), (285, 284),
-            (286, 285), (284, 286), (309, 308), (308, 309), (353, 352), (352, 353),
-            (377, 376), (378, 377), (376, 378),
+            (24, 23),
+            (23, 24),
+            (70, 69),
+            (69, 70),
+            (101, 100),
+            (100, 101),
+            (176, 175),
+            (175, 176),
+            (181, 180),
+            (182, 181),
+            (183, 182),
+            (184, 183),
+            (185, 184),
+            (180, 185),
+            (211, 210),
+            (212, 211),
+            (210, 212),
+            (285, 284),
+            (286, 285),
+            (284, 286),
+            (309, 308),
+            (308, 309),
+            (353, 352),
+            (352, 353),
+            (377, 376),
+            (378, 377),
+            (376, 378),
         ];
-        let event = event(json!({"changes":movements.iter().enumerate().map(|(index,(previous,rank))|
-            json!({"idUser":index+1,"previousRank":previous,"rank":rank})).collect::<Vec<_>>()}));
+        let event = event(
+            json!({"changes":movements.iter().enumerate().map(|(index,(previous,rank))|
+            json!({"idUser":index+1,"previousRank":previous,"rank":rank})).collect::<Vec<_>>()}),
+        );
         let changes = changes(&event);
         let selected = for_watches(&changes, &BTreeSet::from([8]));
         assert_eq!(changes.len(), 27);
         assert_eq!(selected_ids(&changes, &[8]), vec![7, 8]);
         let users = vec![
-            RankUser { id: 7, steam_name: Some("Kilandor".into()), discord_id: Some("123".into()), points: Some(93828) },
-            RankUser { id: 8, steam_name: Some("Akane".into()), discord_id: Some("456".into()), points: Some(93756) },
+            RankUser {
+                id: 7,
+                steam_name: Some("Kilandor".into()),
+                discord_id: Some("123".into()),
+                points: Some(93828),
+            },
+            RankUser {
+                id: 8,
+                steam_name: Some("Akane".into()),
+                discord_id: Some("456".into()),
+                points: Some(93756),
+            },
         ];
         let rendered = serde_json::to_value(message(&event, &selected, &users).unwrap()).unwrap();
         let text = text(&rendered);
