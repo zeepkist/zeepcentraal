@@ -156,12 +156,62 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     let restored = database.upsert_workshop_level(&input).await?;
     assert!(restored.score_changed);
 
+    assert_eq!(
+        database
+            .reconcile_missing_workshop_items(&[workshop_id])
+            .await?,
+        vec![first.id_level]
+    );
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT points FROM public.level_points WHERE id_level=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, i32>(0),
+        0
+    );
+    let restored = database.upsert_workshop_level(&input).await?;
+    assert!(restored.score_changed);
+    assert!(
+        !client
+            .query_one(
+                "SELECT deleted FROM public.level_item WHERE id_level=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
+
     client
         .execute(
             "UPDATE public.level SET adventure=true WHERE id=$1",
             &[&first.id_level],
         )
         .await?;
+    client
+        .execute(
+            "UPDATE public.level_points SET points=900 WHERE id_level=$1",
+            &[&first.id_level],
+        )
+        .await?;
+    assert!(
+        database
+            .reconcile_missing_workshop_items(&[workshop_id])
+            .await?
+            .is_empty()
+    );
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT points FROM public.level_points WHERE id_level=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, i32>(0),
+        900
+    );
     assert!(
         database
             .mark_missing_workshop_levels_deleted(workshop_id, &[])

@@ -14,6 +14,7 @@ struct SteamEnvelope {
 
 #[derive(Default, Debug, Deserialize)]
 struct SteamResponse {
+    result: Option<i32>,
     next_cursor: Option<String>,
     #[serde(default)]
     publishedfiledetails: Vec<SteamPublishedFile>,
@@ -143,14 +144,7 @@ impl WorkshopMetadataAdapter for SteamWebApiMetadata {
             .append_pair("return_metadata", "true")
             .append_pair("admin_query", "true");
         let response = self.get_json(url).await?;
-        Ok(WorkshopCatalogPage {
-            items: response
-                .publishedfiledetails
-                .into_iter()
-                .map(parse_item)
-                .collect(),
-            next_cursor: response.next_cursor.filter(|next| next != cursor),
-        })
+        parse_catalog_page(response, cursor, limit)
     }
 
     async fn list_user_item_ids(
@@ -192,6 +186,42 @@ impl WorkshopMetadataAdapter for SteamWebApiMetadata {
             next_page: has_next.then_some(page + 1),
         })
     }
+}
+
+fn parse_catalog_page(
+    response: SteamResponse,
+    cursor: &str,
+    limit: u32,
+) -> Result<WorkshopCatalogPage> {
+    ensure!(
+        response.result.is_none_or(|result| result == 1),
+        "Steam workshop catalog query failed"
+    );
+    let total = response
+        .total
+        .context("Steam workshop catalog total is missing")?;
+    let items: Vec<_> = response
+        .publishedfiledetails
+        .into_iter()
+        .map(parse_item)
+        .collect();
+    ensure!(
+        items.len() <= limit as usize,
+        "Steam workshop catalog page exceeds limit"
+    );
+    ensure!(
+        items
+            .iter()
+            .all(|item| item.workshop_id > 0 && i64::try_from(item.workshop_id).is_ok()),
+        "Steam workshop catalog contains invalid workshop ID"
+    );
+    Ok(WorkshopCatalogPage {
+        items,
+        next_cursor: response
+            .next_cursor
+            .filter(|next| !next.is_empty() && next != cursor),
+        total,
+    })
 }
 
 fn parse_item(item: SteamPublishedFile) -> WorkshopItemMetadata {
@@ -255,6 +285,37 @@ fn timestamp(seconds: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn catalog_pages_require_valid_totals_ids_and_query_results() -> Result<()> {
+        for value in [
+            serde_json::json!({}),
+            serde_json::json!({"total":0,"result":2}),
+            serde_json::json!({"total":1,"publishedfiledetails":[{}]}),
+            serde_json::json!({"total":1,"publishedfiledetails":[{"publishedfileid":"18446744073709551615"}]}),
+        ] {
+            assert!(parse_catalog_page(serde_json::from_value(value)?, "*", 100).is_err());
+        }
+        let empty = parse_catalog_page(
+            serde_json::from_value(serde_json::json!({
+                "total":0,"next_cursor":"*",
+            }))?,
+            "*",
+            100,
+        )?;
+        assert!(empty.items.is_empty());
+        assert!(empty.next_cursor.is_none());
+        assert_eq!(empty.total, 0);
+        let value = serde_json::json!({
+            "total":1,"next_cursor":"next",
+            "publishedfiledetails":[{"publishedfileid":"3507841441","result":1}],
+        });
+        let page = parse_catalog_page(serde_json::from_value(value.clone())?, "*", 100)?;
+        assert_eq!(page.items[0].workshop_id, 3_507_841_441);
+        assert_eq!(page.next_cursor.as_deref(), Some("next"));
+        assert!(parse_catalog_page(serde_json::from_value(value)?, "*", 0).is_err());
+        Ok(())
+    }
 
     #[test]
     fn parses_visibility_sizes_and_failures() {

@@ -6,7 +6,7 @@ use diesel::{
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 #[derive(Clone, Debug)]
 pub struct WorkshopLevelInput {
@@ -412,6 +412,102 @@ impl Database {
             .await
     }
 
+    /// Reconcile IDs absent from a complete catalog, including unfinished repairs from retries.
+    pub async fn reconcile_missing_workshop_items(&self, workshop_ids: &[i64]) -> Result<Vec<i32>> {
+        use super::jobs::{LEVEL_SCORE_LOCK_NAMESPACE, upsert_zero_level_points};
+
+        ensure!(
+            workshop_ids.len() <= 100,
+            "Workshop reconciliation batch exceeds 100 items"
+        );
+        ensure!(
+            workshop_ids.iter().all(|id| *id > 0),
+            "Workshop IDs must be positive"
+        );
+        if workshop_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut connection = self.connection().await?;
+        let (ids, deleted, zeroed) = connection
+            .transaction::<_, anyhow::Error, _>(async move |connection| {
+                sql_query(
+                    "SELECT workshop_id FROM public.workshop_item WHERE workshop_id=ANY($1) \
+                     ORDER BY workshop_id FOR UPDATE",
+                )
+                .bind::<Array<BigInt>, _>(workshop_ids)
+                .execute(connection)
+                .await?;
+                let levels = sql_query(
+                    "SELECT DISTINCT level.id AS id_level FROM public.level_item item \
+                     JOIN public.level level ON level.id=item.id_level \
+                     WHERE item.workshop_id=ANY($1) AND NOT level.adventure ORDER BY level.id",
+                )
+                .bind::<Array<BigInt>, _>(workshop_ids)
+                .load::<ChangedLevel>(connection)
+                .await?;
+                let level_ids: Vec<_> = levels.into_iter().map(|row| row.id_level).collect();
+                // Serialize against score jobs before changing their availability snapshot.
+                for id_level in &level_ids {
+                    sql_query("SELECT pg_advisory_xact_lock($1,$2)")
+                        .bind::<Integer, _>(LEVEL_SCORE_LOCK_NAMESPACE)
+                        .bind::<Integer, _>(id_level)
+                        .execute(connection)
+                        .await?;
+                }
+                let changed = sql_query(
+                    "UPDATE public.level_item item SET deleted=true,date_updated=clock_timestamp() \
+                     FROM public.level level WHERE level.id=item.id_level \
+                     AND item.workshop_id=ANY($1) AND NOT item.deleted AND NOT level.adventure \
+                     RETURNING item.id_level",
+                )
+                .bind::<Array<BigInt>, _>(workshop_ids)
+                .load::<ChangedLevel>(connection)
+                .await?;
+                let deleted = changed.len();
+                let mut refresh: BTreeSet<_> =
+                    changed.into_iter().map(|row| row.id_level).collect();
+                let unavailable = sql_query(
+                    "SELECT level.id AS id_level FROM public.level level WHERE level.id=ANY($1) \
+                     AND NOT level.adventure AND NOT EXISTS(SELECT 1 FROM public.level_item item \
+                     WHERE item.id_level=level.id AND item.publicly_visible AND NOT item.deleted) \
+                     ORDER BY level.id",
+                )
+                .bind::<Array<Integer>, _>(&level_ids)
+                .load::<ChangedLevel>(connection)
+                .await?;
+                let unavailable_ids: Vec<_> =
+                    unavailable.into_iter().map(|row| row.id_level).collect();
+                let mut zeroed = 0;
+                for id_level in &unavailable_ids {
+                    if upsert_zero_level_points(connection, *id_level).await? {
+                        zeroed += 1;
+                        refresh.insert(*id_level);
+                    }
+                }
+                // A crash after commit must not strand old player contributions on retry.
+                refresh.extend(
+                    sql_query(
+                        "SELECT DISTINCT id_level FROM public.user_point_contribution \
+                     WHERE id_level=ANY($1)",
+                    )
+                    .bind::<Array<Integer>, _>(&unavailable_ids)
+                    .load::<ChangedLevel>(connection)
+                    .await?
+                    .into_iter()
+                    .map(|row| row.id_level),
+                );
+                Ok((refresh.into_iter().collect::<Vec<_>>(), deleted, zeroed))
+            })
+            .await?;
+        tracing::info!(
+            missing = workshop_ids.len(),
+            deleted,
+            zeroed,
+            "Workshop catalog deletion reconciliation committed"
+        );
+        Ok(ids)
+    }
+
     pub async fn pending_level_request_workshop_ids(&self) -> Result<Vec<i64>> {
         #[derive(QueryableByName)]
         struct RequestRow {
@@ -443,7 +539,7 @@ impl Database {
         let rows = sql_query(
             "SELECT workshop_id,count(*) FILTER(WHERE NOT deleted)::bigint AS active_item_count, \
              extract(epoch FROM max(updated_at))::bigint AS updated_epoch \
-             FROM public.level_item GROUP BY workshop_id",
+             FROM public.level_item WHERE workshop_id>0 GROUP BY workshop_id",
         )
         .load::<StateRow>(&mut connection)
         .await?;

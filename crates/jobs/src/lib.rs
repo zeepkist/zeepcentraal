@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+mod catalog;
 pub mod cron;
 pub mod handlers;
 pub mod queue;
@@ -11,6 +12,7 @@ pub const BULK_CONCURRENCY: usize = 15;
 pub const VISIBILITY_SECONDS: i32 = 120;
 pub const HEARTBEAT_SECONDS: u64 = 30;
 pub const POLL_MILLISECONDS: u64 = 250;
+pub const WORKSHOP_SCAN_BATCH_SIZE: usize = 10;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -149,7 +151,7 @@ impl TaskIdentifier {
                     .and_then(serde_json::Value::as_array)
                     .is_some_and(|values| {
                         !values.is_empty()
-                            && values.len() <= 10
+                            && values.len() <= WORKSHOP_SCAN_BATCH_SIZE
                             && values
                                 .iter()
                                 .all(|value| value.as_str().is_some_and(valid_positive_decimal))

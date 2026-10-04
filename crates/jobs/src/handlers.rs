@@ -1,5 +1,6 @@
 use crate::{
-    TaskIdentifier,
+    TaskIdentifier, WORKSHOP_SCAN_BATCH_SIZE,
+    catalog::discover_catalog,
     queue::{EnqueueRequest, JobLane, Queue},
     runtime::{JobHandler, JobOutcome},
 };
@@ -176,54 +177,16 @@ impl ServiceJobHandler {
         let force_all = payload["all"].as_bool() == Some(true);
         let repair_zsl = payload["repairZslAuthors"].as_bool() == Some(true);
         let stored = self.database.workshop_sync_state().await?;
-        let mut queued = BTreeSet::new();
-        let mut seen = BTreeSet::new();
-        if repair_zsl {
-            let mut page = 1;
-            loop {
-                let result = self
-                    .metadata
-                    .list_user_item_ids(zc_workshop::scanner::ZSL_WORKSHOP_AUTHOR_ID, page, 100)
-                    .await?;
-                seen.extend(result.workshop_ids.iter().copied());
-                queued.extend(result.workshop_ids);
-                let Some(next) = result.next_page else { break };
-                page = next;
-            }
-        } else {
-            let mut cursor = "*".to_owned();
-            loop {
-                let result = self.metadata.list_items(&cursor, 100).await?;
-                for item in result.items {
-                    seen.insert(item.workshop_id);
-                    let stored_item = i64::try_from(item.workshop_id)
-                        .ok()
-                        .and_then(|id| stored.get(&id));
-                    let updated_epoch = parse_epoch(&item.updated_at)?;
-                    if force_all
-                        || stored_item.is_none()
-                        || stored_item.is_some_and(|state| {
-                            state.active_item_count == 0 || updated_epoch > state.updated_epoch
-                        })
-                    {
-                        queued.insert(item.workshop_id);
-                    }
-                }
-                let Some(next) = result.next_cursor else {
-                    break;
-                };
-                cursor = next;
-            }
-            for (workshop_id, state) in stored {
-                if state.active_item_count > 0
-                    && !seen.contains(&u64::try_from(workshop_id).unwrap_or_default())
-                {
-                    queued.insert(u64::try_from(workshop_id)?);
-                }
-            }
+        let discovery =
+            discover_catalog(self.metadata.as_ref(), &stored, force_all, repair_zsl).await?;
+        for missing in discovery.missing.chunks(100) {
+            let changed = self
+                .database
+                .reconcile_missing_workshop_items(missing)
+                .await?;
+            self.enqueue_level_scores(&changed).await?;
         }
-        let ids: Vec<_> = queued.into_iter().collect();
-        for chunk in ids.chunks(20) {
+        for chunk in discovery.queued.chunks(WORKSHOP_SCAN_BATCH_SIZE) {
             let first = chunk.first().context("empty workshop chunk")?;
             let last = chunk.last().context("empty workshop chunk")?;
             self.queue
@@ -238,6 +201,13 @@ impl ServiceJobHandler {
                 )
                 .await?;
         }
+        tracing::info!(
+            discovered = discovery.discovered,
+            missing = discovery.missing.len(),
+            queued = discovery.queued.len(),
+            repair_zsl,
+            "Workshop catalog sync completed"
+        );
         Ok(())
     }
 
@@ -1024,13 +994,6 @@ fn integer_ids(payload: &serde_json::Value, name: &str) -> Result<Vec<i32>> {
             .map_err(Into::into)
         })
         .collect()
-}
-
-fn parse_epoch(value: &str) -> Result<i64> {
-    Ok(value
-        .parse::<jiff::Timestamp>()
-        .with_context(|| format!("invalid Steam timestamp {value}"))?
-        .as_second())
 }
 
 #[cfg(test)]

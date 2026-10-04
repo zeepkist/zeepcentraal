@@ -13,7 +13,7 @@ use std::collections::BTreeMap;
 use zc_core::ghosts::GhostStatistics;
 
 const USER_SCORE_LOCK_NAMESPACE: i32 = -1_861_284_952;
-const LEVEL_SCORE_LOCK_NAMESPACE: i32 = 1_861_284_954;
+pub(crate) const LEVEL_SCORE_LOCK_NAMESPACE: i32 = 1_861_284_954;
 const MAINTENANCE_LOCK_TIMEOUT: &str = "100ms";
 
 const TRACK_TOURNAMENT_SELECTION_SQL: &str = r#"
@@ -933,7 +933,7 @@ async fn rotate_track_tournament_at(
 #[path = "track_tournament_tests.rs"]
 mod track_tournament_tests;
 
-async fn upsert_zero_level_points(
+pub(crate) async fn upsert_zero_level_points(
     connection: &mut diesel_async::AsyncPgConnection,
     id_level: i32,
 ) -> Result<bool> {

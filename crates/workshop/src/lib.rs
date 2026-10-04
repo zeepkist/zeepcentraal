@@ -27,6 +27,7 @@ pub struct WorkshopItemMetadata {
 pub struct WorkshopCatalogPage {
     pub items: Vec<WorkshopItemMetadata>,
     pub next_cursor: Option<String>,
+    pub total: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
