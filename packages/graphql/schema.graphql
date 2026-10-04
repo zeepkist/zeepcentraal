@@ -2186,6 +2186,11 @@ type Level implements Node {
     orderBy: [RecordsOrderBy!] = [PRIMARY_KEY_ASC]
   ): LevelRecordsByUserPointContributionManyToManyConnection!
 
+  """
+  SimHash v1: block-ID frequencies; XXH3-64 of little-endian i64 IDs; positive votes set bits, ties clear bits; signed bigint stores all 64 bits.
+  """
+  simhash: BigInt
+
   """Reads and enables pagination through a set of `TrackTournament`."""
   trackTournaments(
     """Read all values in the set after (below) this cursor."""
@@ -2650,6 +2655,9 @@ type LevelAggregates {
 type LevelAverageAggregates {
   """Mean average of id across the matching connection"""
   id: BigFloat
+
+  """Mean average of simhash across the matching connection"""
+  simhash: BigFloat
 }
 
 """
@@ -2674,6 +2682,9 @@ input LevelCondition {
   """Checks for equality with the object’s `publiclyVisible` field."""
   publiclyVisible: Boolean
 
+  """Checks for equality with the object’s `simhash` field."""
+  simhash: BigInt
+
   """Checks for equality with the object’s `xxHash` field."""
   xxHash: String
 }
@@ -2696,6 +2707,9 @@ type LevelDistinctCountAggregates {
 
   """Distinct count of publiclyVisible across the matching connection"""
   publiclyVisible: BigInt
+
+  """Distinct count of simhash across the matching connection"""
+  simhash: BigInt
 
   """Distinct count of xxHash across the matching connection"""
   xxHash: BigInt
@@ -2780,6 +2794,9 @@ input LevelFilter {
   """Some related `records` exist."""
   recordsExist: Boolean
 
+  """Filter by the object’s `simhash` field."""
+  simhash: BigIntFilter
+
   """Filter by the object’s `trackTournaments` relation."""
   trackTournaments: LevelToManyTrackTournamentFilter
 
@@ -2825,18 +2842,21 @@ enum LevelGroupBy {
   DATE_UPDATED_TRUNCATED_TO_HOUR
   HASH
   PUBLICLY_VISIBLE
+  SIMHASH
 }
 
 input LevelHavingAverageInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 input LevelHavingDistinctCountInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 """Conditions for `Level` aggregates."""
@@ -2858,42 +2878,49 @@ input LevelHavingMaxInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 input LevelHavingMinInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 input LevelHavingStddevPopulationInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 input LevelHavingStddevSampleInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 input LevelHavingSumInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 input LevelHavingVariancePopulationInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 input LevelHavingVarianceSampleInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
+  simhash: HavingBigintFilter
 }
 
 type LevelItem implements Node {
@@ -3808,6 +3835,9 @@ enum LevelItemsOrderBy {
 type LevelMaxAggregates {
   """Maximum of id across the matching connection"""
   id: Int
+
+  """Maximum of simhash across the matching connection"""
+  simhash: BigInt
 }
 
 """A connection to a list of `LevelMetadatum` values."""
@@ -4605,6 +4635,9 @@ type LevelMetadatumVarianceSampleAggregates {
 type LevelMinAggregates {
   """Minimum of id across the matching connection"""
   id: Int
+
+  """Minimum of simhash across the matching connection"""
+  simhash: BigInt
 }
 
 type LevelPoint implements Node {
@@ -7111,16 +7144,27 @@ type LevelRecordsByUserPointContributionManyToManyEdge {
 type LevelStddevPopulationAggregates {
   """Population standard deviation of id across the matching connection"""
   id: BigFloat
+
+  """
+  Population standard deviation of simhash across the matching connection
+  """
+  simhash: BigFloat
 }
 
 type LevelStddevSampleAggregates {
   """Sample standard deviation of id across the matching connection"""
   id: BigFloat
+
+  """Sample standard deviation of simhash across the matching connection"""
+  simhash: BigFloat
 }
 
 type LevelSumAggregates {
   """Sum of id across the matching connection"""
   id: BigInt!
+
+  """Sum of simhash across the matching connection"""
+  simhash: BigFloat!
 }
 
 """
@@ -7730,11 +7774,17 @@ type LevelUsersByVoteManyToManyEdge {
 type LevelVariancePopulationAggregates {
   """Population variance of id across the matching connection"""
   id: BigFloat
+
+  """Population variance of simhash across the matching connection"""
+  simhash: BigFloat
 }
 
 type LevelVarianceSampleAggregates {
   """Sample variance of id across the matching connection"""
   id: BigFloat
+
+  """Sample variance of simhash across the matching connection"""
+  simhash: BigFloat
 }
 
 """
@@ -8940,6 +8990,8 @@ enum LevelsOrderBy {
   RECORDS_VARIANCE_SAMPLE_TIME_DESC
   RECORDS_VARIANCE_SAMPLE_USER_ID_ASC
   RECORDS_VARIANCE_SAMPLE_USER_ID_DESC
+  SIMHASH_ASC
+  SIMHASH_DESC
   TRACK_TOURNAMENTS_AVERAGE_ID_ASC
   TRACK_TOURNAMENTS_AVERAGE_ID_DESC
   TRACK_TOURNAMENTS_AVERAGE_LEVEL_ID_ASC
@@ -10441,6 +10493,34 @@ type Query implements Node {
     """The method to use when ordering `Record`."""
     orderBy: [RecordsOrderBy!] = [PRIMARY_KEY_ASC]
   ): RecordsConnection
+
+  """Reads and enables pagination through a set of `Level`."""
+  similarLevels(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LevelFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+    maxDistance: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    xxHash: String
+  ): LevelsConnection
 
   """Get a single `TrackTournament`."""
   trackTournament(id: Int!): TrackTournament
@@ -19519,6 +19599,34 @@ type Subscription {
     """The method to use when ordering `Record`."""
     orderBy: [RecordsOrderBy!] = [PRIMARY_KEY_ASC]
   ): RecordsConnection
+
+  """Reads and enables pagination through a set of `Level`."""
+  similarLevels(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LevelFilter
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+    maxDistance: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    xxHash: String
+  ): LevelsConnection
 
   """Get a single `TrackTournament`."""
   trackTournament(id: Int!): TrackTournament

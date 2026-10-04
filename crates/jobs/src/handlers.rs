@@ -53,6 +53,46 @@ impl ServiceJobHandler {
         )
     }
 
+    async fn backfill_level_simhash(&self) -> Result<()> {
+        use zc_database::services::level_simhash::LevelSimhashOutcome;
+        let mut after_id = 0;
+        let mut processed = 0;
+        let mut updated = 0;
+        loop {
+            let ids = self
+                .database
+                .missing_level_simhash_ids(after_id, 100)
+                .await?;
+            if ids.is_empty() {
+                break;
+            }
+            for id_level in ids {
+                let outcome = self.database.backfill_level_simhash(id_level).await?;
+                if outcome == LevelSimhashOutcome::Updated {
+                    updated += 1;
+                } else {
+                    tracing::warn!(id_level, reason = ?outcome, "SimHash backfill skipped level");
+                }
+                processed += 1;
+                after_id = id_level;
+            }
+            tracing::info!(
+                processed,
+                updated,
+                skipped = processed - updated,
+                after_id,
+                "SimHash backfill progress"
+            );
+        }
+        tracing::info!(
+            processed,
+            updated,
+            skipped = processed - updated,
+            "SimHash backfill completed"
+        );
+        Ok(())
+    }
+
     async fn scan_item(&self, payload: &serde_json::Value) -> Result<()> {
         let workshop_id = payload["workshopId"]
             .as_str()
@@ -887,6 +927,7 @@ impl JobHandler for ServiceJobHandler {
             };
         }
         let result = match task {
+            TaskIdentifier::BackfillLevelSimhash => self.backfill_level_simhash().await,
             TaskIdentifier::BackfillRecordGhostStatistics => {
                 self.backfill_record_statistics(&payload).await
             }

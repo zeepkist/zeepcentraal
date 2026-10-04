@@ -196,6 +196,7 @@ export const level = pgTable(
 		}),
 		hash: text().notNull(),
 		xxHash: text('xx_hash').notNull(),
+		simhash: bigint('simhash', { mode: 'bigint' }),
 		adventure: boolean().notNull().default(false),
 		hasRecords: boolean('has_records').notNull().default(false),
 		recordCount: bigint('record_count', { mode: 'number' }).notNull().default(0),
@@ -210,6 +211,12 @@ export const level = pgTable(
 	(table) => [
 		index('IX_level_hash').using('btree', table.hash.asc().nullsLast()),
 		unique('UQ_level_xx_hash').on(table.xxHash),
+		index('IX_level_public_simhash')
+			.using('btree', table.simhash, table.id)
+			.where(sql`${table.publiclyVisible} = true AND ${table.simhash} IS NOT NULL`),
+		index('IX_level_missing_simhash')
+			.using('btree', table.id)
+			.where(sql`${table.simhash} IS NULL`),
 		index('IX_level_date_created_id').using(
 			'btree',
 			table.dateCreated.desc().nullsLast(),

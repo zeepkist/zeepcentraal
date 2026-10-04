@@ -61,11 +61,12 @@ describe('web GraphQL RLS smoke utilities', () => {
 		const catalog = await loadOperationCatalog(webGraphqlDirectory)
 		const schema = await loadPublishedSchema(publishedSchemaPath)
 
-		expect(catalog.operations.size).toBe(73)
+		expect(catalog.operations.size).toBe(74)
 		expect(
 			[...catalog.operations.keys()].filter((name) => name.startsWith('ZC_')),
-		).toHaveLength(73)
+		).toHaveLength(74)
 		expect(catalog.operations.has('ZC_UserTrackTournamentResults')).toBe(true)
+		expect(catalog.operations.has('ZC_SimilarLevels')).toBe(true)
 		expect(validateOperationCatalog(schema, catalog)).toEqual([])
 		expect(validate(schema, parse(ZRTM_RLS_SMOKE_QUERY))).toEqual([])
 	})

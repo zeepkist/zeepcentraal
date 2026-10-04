@@ -23,6 +23,30 @@ describe('PostGraphile schema lock', () => {
 		expect(publishedSchema).toContain('zRtm(')
 	})
 
+	test('similar levels retain routine order and expose signed BigInt fingerprints', async () => {
+		const schema = buildSchema(
+			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),
+		)
+		const level = schema.getType('Level')
+		expect(
+			level && 'getFields' in level ? level.getFields().simhash?.type.toString() : null,
+		).toBe('BigInt')
+		for (const root of [schema.getQueryType(), schema.getSubscriptionType()]) {
+			const similar = root?.getFields().similarLevels
+			expect(similar?.type.toString()).toBe('LevelsConnection')
+			expect(similar?.args.find((arg) => arg.name === 'xxHash')?.type.toString()).toBe(
+				'String',
+			)
+			expect(similar?.args.find((arg) => arg.name === 'maxDistance')?.type.toString()).toBe(
+				'Int',
+			)
+			expect(similar?.args.map((arg) => arg.name)).toEqual(
+				expect.arrayContaining(['first', 'last', 'after', 'before']),
+			)
+			expect(similar?.args.some((arg) => arg.name === 'orderBy')).toBe(false)
+		}
+	})
+
 	test('published schema exposes discovery visibility without internal persistence state', async () => {
 		const publishedSchema = buildSchema(
 			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),

@@ -15,6 +15,7 @@ pub const POLL_MILLISECONDS: u64 = 250;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskIdentifier {
+    BackfillLevelSimhash,
     BackfillRecordGhostStatistics,
     BackfillRecordGhostStatisticsBatch,
     PrunePointsHistory,
@@ -37,7 +38,8 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 19] = [
+    pub const ALL: [Self; 20] = [
+        Self::BackfillLevelSimhash,
         Self::BackfillRecordGhostStatistics,
         Self::BackfillRecordGhostStatisticsBatch,
         Self::PrunePointsHistory,
@@ -61,6 +63,7 @@ impl TaskIdentifier {
 
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::BackfillLevelSimhash => "backfillLevelSimhash",
             Self::BackfillRecordGhostStatistics => "backfillRecordGhostStatistics",
             Self::BackfillRecordGhostStatisticsBatch => "backfillRecordGhostStatisticsBatch",
             Self::PrunePointsHistory => "prunePointsHistory",
@@ -135,6 +138,7 @@ impl TaskIdentifier {
                 .is_none_or(|value| value.as_u64().is_some_and(|count| count <= 4))
         };
         match self {
+            Self::BackfillLevelSimhash => object.is_empty(),
             Self::ScanWorkshopItem => object
                 .get("workshopId")
                 .and_then(serde_json::Value::as_str)
@@ -250,7 +254,7 @@ mod tests {
 
     #[test]
     fn task_registry_matches_bun_count() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 19);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 20);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
@@ -259,6 +263,11 @@ mod tests {
     #[test]
     fn payload_validation_matches_allowlist_contract() {
         use serde_json::json;
+        assert!(TaskIdentifier::BackfillLevelSimhash.compatible());
+        assert_eq!(TaskIdentifier::BackfillLevelSimhash.max_attempts(), 3);
+        assert!(TaskIdentifier::BackfillLevelSimhash.validate_payload(&json!({})));
+        assert!(!TaskIdentifier::BackfillLevelSimhash.validate_payload(&json!({"all":true})));
+        assert!(!TaskIdentifier::BackfillLevelSimhash.validate_payload(&json!([])));
         assert!(TaskIdentifier::UpdateLevelScores.validate_payload(&json!({"all": true})));
         assert!(!TaskIdentifier::UpdateLevelScores.validate_payload(&json!({"all": 1})));
         assert!(TaskIdentifier::UpdateLevelContributions.validate_payload(

@@ -52,6 +52,7 @@ diesel::table! {
         id -> Integer,
         hash -> Text,
         xx_hash -> Text,
+        simhash -> Nullable<BigInt>,
         adventure -> Bool,
         has_records -> Bool,
         record_count -> BigInt,

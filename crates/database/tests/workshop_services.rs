@@ -49,6 +49,20 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     };
     let first = database.upsert_workshop_level(&input).await?;
     assert!(first.score_changed);
+    let fingerprint = client
+        .query_one(
+            "SELECT simhash FROM public.level WHERE id=$1",
+            &[&first.id_level],
+        )
+        .await?
+        .get::<_, i64>(0);
+    assert_eq!(
+        Some(fingerprint),
+        zc_core::levels::calculate_level_simhash(
+            &input.blocks,
+            zc_core::levels::LevelFormat::Json
+        )?
+    );
     let before = client
         .query_one(
             "SELECT level.xmin::text,metadata.xmin::text,item.xmin::text \
@@ -81,6 +95,25 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
             after.get::<_, String>(2),
         ),
         "unchanged workshop reconciliation must not rewrite rows"
+    );
+
+    client
+        .execute(
+            "UPDATE public.level SET simhash=NULL WHERE id=$1",
+            &[&first.id_level],
+        )
+        .await?;
+    let repaired = database.upsert_workshop_level(&input).await?;
+    assert!(!repaired.score_changed);
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT simhash FROM public.level WHERE id=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, i64>(0),
+        fingerprint
     );
 
     let mut changed_environment = input.clone();

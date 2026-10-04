@@ -58,6 +58,14 @@ struct IdRow {
 }
 
 #[derive(QueryableByName)]
+struct ExistingLevel {
+    #[diesel(sql_type = Integer)]
+    id: i32,
+    #[diesel(sql_type = Nullable<BigInt>)]
+    simhash: Option<i64>,
+}
+
+#[derive(QueryableByName)]
 struct AuthorRow {
     #[diesel(sql_type = BigInt)]
     author_id: i64,
@@ -171,13 +179,14 @@ impl Database {
                     .optional()?;
 
                     let existing_level = sql_query(
-                        "SELECT id FROM public.level WHERE xx_hash=$1 LIMIT 1 FOR UPDATE",
+                        "SELECT id,simhash FROM public.level WHERE xx_hash=$1 LIMIT 1 FOR UPDATE",
                     )
                     .bind::<Text, _>(&input.xx_hash)
-                    .get_result::<IdRow>(connection)
+                    .get_result::<ExistingLevel>(connection)
                     .await
                     .optional()?;
 
+                    let needs_simhash = existing_level.as_ref().is_none_or(|level| level.simhash.is_none());
                     let mut created = false;
                     let id_level = if let Some(level) = existing_level {
                         level.id
@@ -261,6 +270,23 @@ impl Database {
                         .bind::<Nullable<Jsonb>, _>(&input.environment)
                         .execute(connection)
                         .await?;
+                    }
+
+                    if needs_simhash {
+                        let simhash = match input.format {
+                            0 => zc_core::levels::calculate_level_simhash(&input.blocks, zc_core::levels::LevelFormat::Csv),
+                            1 => zc_core::levels::calculate_level_simhash(&input.blocks, zc_core::levels::LevelFormat::Json),
+                            _ => Err(anyhow::anyhow!("Unsupported level format")),
+                        };
+                        match simhash {
+                            Ok(Some(simhash)) => {
+                                sql_query("UPDATE public.level SET simhash=$2,date_updated=clock_timestamp() WHERE id=$1 AND simhash IS NULL")
+                                    .bind::<Integer, _>(id_level).bind::<BigInt, _>(simhash)
+                                    .execute(connection).await?;
+                            }
+                            Ok(None) => {}
+                            Err(error) => tracing::warn!(id_level, error = %error, "Invalid blocks for SimHash"),
+                        }
                     }
 
                     let item_changed = existing_item.as_ref().is_none_or(|item| {

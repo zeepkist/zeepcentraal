@@ -14,6 +14,7 @@ pub mod discord_runtime;
 pub mod donations;
 pub mod inspector;
 pub mod jobs;
+pub mod level_simhash;
 pub mod lobby;
 pub mod lobby_assets;
 pub mod managed_lobby;

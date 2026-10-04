@@ -336,11 +336,14 @@ fn queue_identity(
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if lane == JobLane::Fast
+    let group = if task == TaskIdentifier::BackfillLevelSimhash {
+        Some("level-simhash-backfill".to_owned())
+    } else if lane == JobLane::Fast
         && matches!(
             task,
             TaskIdentifier::UpdateLevelScore | TaskIdentifier::UpdateLevelContributions
-        ) {
+        )
+    {
         id_level.map(|id| format!("fast-level-maintenance:{id}"))
     } else if lane == JobLane::Bulk
         && matches!(
@@ -376,6 +379,17 @@ mod tests {
     use serde_json::json;
     use std::time::Duration;
 
+    #[test]
+    fn simhash_backfills_share_one_group() {
+        let (key, group) = queue_identity(
+            TaskIdentifier::BackfillLevelSimhash,
+            &serde_json::json!({}),
+            JobLane::Bulk,
+            None,
+        );
+        assert_eq!(key, None);
+        assert_eq!(group.as_deref(), Some("level-simhash-backfill"));
+    }
     #[test]
     fn deferred_job_backoff_caps_at_five_seconds() {
         assert_eq!(defer_delay(0), Duration::from_millis(250));

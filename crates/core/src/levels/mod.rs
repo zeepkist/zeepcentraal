@@ -1,11 +1,13 @@
 mod csv;
 mod json;
+mod simhash;
 mod types;
 
 use anyhow::Result;
 
 pub use csv::{calculate_csv_level_xxhash, parse_csv_level};
 pub use json::{calculate_json_level_xxhash, parse_json_level};
+pub use simhash::calculate_level_simhash;
 pub use types::{CsvBlock, LevelBlocks, LevelFormat, ParsedLevel, Vector3};
 
 pub const PRESENT_BLOCK_ID: i64 = 2264;

@@ -118,3 +118,34 @@ query ZC_HotLevels(
 		totalCount
 	}
 }
+
+query ZC_SimilarLevels(
+	$xxHash: String!
+	$maxDistance: Int = 16
+	$first: Int
+	$after: Cursor
+	$filter: LevelFilter
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
+	levels: similarLevels(
+		xxHash: $xxHash
+		maxDistance: $maxDistance
+		first: $first
+		after: $after
+		filter: $filter
+	) {
+		edges {
+			cursor
+			node {
+				...ZC_LevelExplorerCard
+				simhash
+			}
+		}
+		pageInfo {
+			endCursor
+			hasNextPage
+		}
+		totalCount
+	}
+}

@@ -6,6 +6,7 @@
       "name": "@zeepkist/zeepcentraal",
       "devDependencies": {
         "@biomejs/biome": "~2.5.7",
+        "@clack/prompts": "~1.8.0",
         "@semantic-release/commit-analyzer": "~13.0.1",
         "@semantic-release/github": "~12.0.9",
         "@semantic-release/release-notes-generator": "~14.1.1",
@@ -16,6 +17,7 @@
         "semantic-release": "~25.0.8",
         "skills": "~1.7.0",
         "typescript": "~7.0.2",
+        "zod": "~4.6.0",
       },
     },
     "packages/core": {
