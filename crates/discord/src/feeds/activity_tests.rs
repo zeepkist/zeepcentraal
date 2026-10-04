@@ -550,6 +550,24 @@ fn respond(
             .collect::<String>()
             .parse::<i64>()
             .unwrap();
+        let id = if content.contains("Rank changes") {
+            state
+                .events
+                .iter()
+                .find(|event| {
+                    event["kind"] == "rank_batch"
+                        && event["payload"]["changes"]
+                            .as_array()
+                            .is_some_and(|changes| {
+                                changes
+                                    .iter()
+                                    .any(|change| change["idUser"].as_i64() == Some(id))
+                            })
+                })
+                .map_or(id, |event| event["id"].as_str().unwrap().parse().unwrap())
+        } else {
+            id
+        };
         state.attempts.push((channel, id));
         if state.fail_sends.contains(&(channel, id)) {
             return fail();
