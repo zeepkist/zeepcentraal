@@ -45,6 +45,7 @@
 			"!target",
 			"!.bun-cache",
 			"!.data",
+			"!.local/ghost-validation",
 			"!artifacts/rust-evaluation",
 			"!crates/discord-evaluation/fixtures",
 			"!coverage",

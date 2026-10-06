@@ -327,3 +327,22 @@ describe('legacy level parsing', () => {
 		)
 	})
 })
+
+test('linked checkpoint metadata counts connected groups', () => {
+	const link = (target: string) => JSON.stringify({ t: target, c: 0, a: false })
+	const blocks = [
+		{ i: 22, u: 'a', d: { n: { id0: 1 }, t: { 'id0-0': link('b') } } },
+		{ i: 22, u: 'b' },
+		{
+			i: 1607,
+			u: 'bridge',
+			d: { n: { id0: 2, ch5: 0 }, t: { 'id0-0': link('c'), 'id0-1': link('d') } },
+		},
+		{ i: 22, u: 'c' },
+		{ i: 22, u: 'd' },
+	]
+	expect(
+		parseJsonLevel(JSON.stringify({ level: { UID: 'fixture' }, blox: blocks }))
+			.amountCheckpoints,
+	).toBe(2)
+})

@@ -116,13 +116,13 @@ export type GenerateBlockMeshBundleOptions = {
 	copyMeshes?: boolean
 }
 
-type UnityGameObject = {
+export type UnityGameObject = {
 	id: string
 	name: string
 	active: boolean
 }
 
-type UnityTransform = {
+export type UnityTransform = {
 	id: string
 	gameObjectId: string
 	parentId: string | null
@@ -811,7 +811,7 @@ export async function loadUnityScriptCatalog(directory: string): Promise<Map<str
 	return result
 }
 
-function parseUnityDocuments(content: string): UnityDocument[] {
+export function parseUnityDocuments(content: string): UnityDocument[] {
 	const headers = [...content.matchAll(UNITY_DOCUMENT_HEADER_PATTERN)]
 	return headers.map((match, index) => {
 		const bodyStart = (match.index ?? 0) + match[0].length
@@ -824,7 +824,7 @@ function parseUnityDocuments(content: string): UnityDocument[] {
 	})
 }
 
-function parseOptionController(
+export function parseOptionController(
 	bodies: string[],
 	gameObjects: ReadonlyMap<string, UnityGameObject>,
 	invalidReasons: string[],
@@ -911,7 +911,7 @@ function parsePaintSlots(
 	return slots
 }
 
-function composeUnityTransform(body: string): THREE.Matrix4 {
+export function composeUnityTransform(body: string): THREE.Matrix4 {
 	const position = readVector(body, 'm_LocalPosition', { x: 0, y: 0, z: 0 })
 	const rotation = readQuaternion(body, 'm_LocalRotation')
 	const scale = readVector(body, 'm_LocalScale', { x: 1, y: 1, z: 1 })
@@ -922,7 +922,7 @@ function composeUnityTransform(body: string): THREE.Matrix4 {
 	)
 }
 
-function calculateRootRelativeMatrix(
+export function calculateRootRelativeMatrix(
 	gameObjectId: string,
 	rootTransformId: string,
 	transformsById: Map<string, UnityTransform>,
@@ -1000,7 +1000,7 @@ function compareParts(left: BlockMeshPart, right: BlockMeshPart): number {
 	)
 }
 
-function readMeshReference(body: string): UnityMeshReference {
+export function readMeshReference(body: string): UnityMeshReference {
 	const match = body.match(/^ {2}m_Mesh:\s*\{([^}]+)\}\s*$/m)
 	if (!match) return { guid: null, builtIn: true }
 	const fields = match[1] ?? ''
@@ -1012,24 +1012,24 @@ function readMeshReference(body: string): UnityMeshReference {
 	}
 }
 
-function readScalar(body: string, key: string): string | null {
+export function readScalar(body: string, key: string): string | null {
 	const match = body.match(new RegExp(`^  ${escapeRegExp(key)}:[ \\t]*(.*?)[ \\t]*\\r?$`, 'm'))
 	return match?.[1] ?? null
 }
 
-function readFileId(body: string, key: string): string | null {
+export function readFileId(body: string, key: string): string | null {
 	const line = readScalar(body, key)
 	return line?.match(/fileID:\s*(-?\d+)/)?.[1] ?? null
 }
 
-function readFileIdList(body: string, key: string): string[] {
+export function readFileIdList(body: string, key: string): string[] {
 	const match = body.match(
 		new RegExp(`^  ${escapeRegExp(key)}:\\s*\\r?\\n((?:  - .*?(?:\\r?\\n|$))*)`, 'm'),
 	)
 	return [...(match?.[1] ?? '').matchAll(/fileID:\s*(-?\d+)/g)].map((entry) => entry[1] as string)
 }
 
-function readGuidReference(body: string, key: string): string | null {
+export function readGuidReference(body: string, key: string): string | null {
 	return readScalar(body, key)?.match(/guid:\s*([a-f0-9]+)/)?.[1] ?? null
 }
 
@@ -1060,7 +1060,7 @@ function nonZeroFileId(fileId: string | null): string | null {
 	return fileId && fileId !== '0' ? fileId : null
 }
 
-function readVector(
+export function readVector(
 	body: string,
 	key: string,
 	fallback: { x: number; y: number; z: number },

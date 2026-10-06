@@ -229,6 +229,7 @@ fn parse_legacy(payload: &[u8], version: i32) -> Result<ParsedGhost, GhostError>
     }
     let capabilities = detect_capabilities(&frames, version);
     Ok(ParsedGhost {
+        evidence: None,
         version,
         metadata,
         capabilities,
@@ -238,7 +239,7 @@ fn parse_legacy(payload: &[u8], version: i32) -> Result<ParsedGhost, GhostError>
 
 fn parse_protobuf(decoded: proto::Ghost) -> Result<ParsedGhost, GhostError> {
     let version = decoded.version;
-    if !(5..=7).contains(&version) {
+    if !(5..=8).contains(&version) {
         return Err(GhostError::Unsupported(version));
     }
     enforce_frame_count(decoded.delta_frames.len().saturating_add(1))?;
@@ -345,9 +346,25 @@ fn parse_protobuf(decoded: proto::Ghost) -> Result<ParsedGhost, GhostError> {
         )?);
     }
 
+    let evidence = if version == 8 {
+        let evidence: crate::ghost_validation::RunEvidence =
+            serde_json::from_str(&decoded.evidence_json)
+                .map_err(|_| GhostError::Invalid("V8 evidence"))?;
+        enforce_frame_count(evidence.samples.len())?;
+        if evidence.events.len() > crate::ghost_validation::MAX_BLOCKS + 1 {
+            return Err(GhostError::Invalid("V8 event limit"));
+        }
+        if let Some(frame) = frames.first_mut() {
+            frame.time = evidence.initial_time;
+        }
+        Some(evidence)
+    } else {
+        None
+    };
     let metadata = protobuf_metadata(&decoded);
     let capabilities = detect_capabilities(&frames, version);
     Ok(ParsedGhost {
+        evidence,
         version,
         metadata,
         capabilities,

@@ -325,6 +325,30 @@ pub fn calculate_csv_level_xxhash(content: &str) -> String {
     crate::xxh128_hex(canonical.as_bytes())
 }
 
+/// Reconstruct only from server-held normalized metadata. Caller must compare stored hash.
+pub fn calculate_csv_blocks_xxhash(
+    blocks: &serde_json::Value,
+    skybox: i64,
+    ground: i64,
+) -> Result<String> {
+    let blocks: Vec<CsvBlock> = serde_json::from_value(blocks.clone())?;
+    let raw = |vector: Vector3| {
+        [vector.x, vector.y, vector.z].map(|value| format_decimal(&value.to_string()))
+    };
+    let blocks: Vec<_> = blocks
+        .into_iter()
+        .map(|block| HashBlock {
+            raw_position: raw(block.position),
+            raw_euler: raw(block.euler),
+            raw_scale: raw(block.scale),
+            block,
+        })
+        .collect();
+    Ok(crate::xxh128_hex(
+        canonical_content(skybox, ground, &blocks).as_bytes(),
+    ))
+}
+
 pub fn parse_csv_level(content: &str, adventure: bool, author_id: u64) -> Result<ParsedLevel> {
     let parsed = parse_content(content);
     let blocks = parse_blocks(&parsed.block_lines);

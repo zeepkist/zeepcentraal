@@ -116,6 +116,8 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     ];
     let state = Arc::new(AppState {
         config: ServerConfig {
+            validation_manifest: None,
+            validation_enforce: false,
             runtime: RuntimeConfig {
                 environment: Environment::Test,
                 address: "127.0.0.1:0".parse()?,

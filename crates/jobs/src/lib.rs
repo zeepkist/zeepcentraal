@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 mod catalog;
 pub mod cron;
+pub mod ghost_audit;
 pub mod handlers;
 mod practice;
 pub mod queue;
@@ -18,6 +19,8 @@ pub const WORKSHOP_SCAN_BATCH_SIZE: usize = 10;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskIdentifier {
+    ValidateRecordGhost,
+    AuditRecordGhosts,
     BackfillLevelSimhash,
     BackfillRecordGhostStatistics,
     BackfillRecordGhostStatisticsBatch,
@@ -42,7 +45,9 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 21] = [
+    pub const ALL: [Self; 23] = [
+        Self::ValidateRecordGhost,
+        Self::AuditRecordGhosts,
         Self::BackfillLevelSimhash,
         Self::BackfillRecordGhostStatistics,
         Self::BackfillRecordGhostStatisticsBatch,
@@ -68,6 +73,8 @@ impl TaskIdentifier {
 
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::ValidateRecordGhost => "validateRecordGhost",
+            Self::AuditRecordGhosts => "auditRecordGhosts",
             Self::BackfillLevelSimhash => "backfillLevelSimhash",
             Self::BackfillRecordGhostStatistics => "backfillRecordGhostStatistics",
             Self::BackfillRecordGhostStatisticsBatch => "backfillRecordGhostStatisticsBatch",
@@ -146,6 +153,36 @@ impl TaskIdentifier {
         };
         match self {
             Self::BackfillLevelSimhash => object.is_empty(),
+            Self::ValidateRecordGhost => {
+                object.len() == 1
+                    && positive_i64("idRecord")
+                    && object["idRecord"]
+                        .as_i64()
+                        .is_some_and(|id| id <= i32::MAX.into())
+            }
+            Self::AuditRecordGhosts => {
+                object.keys().all(|key| {
+                    matches!(
+                        key.as_str(),
+                        "afterId" | "idRecord" | "idLevel" | "workshopId" | "from" | "to"
+                    )
+                }) && ["idRecord", "idLevel"].iter().all(|key| {
+                    object.get(*key).is_none_or(|v| {
+                        v.as_i64().is_some_and(|id| id > 0 && id <= i32::MAX.into())
+                    })
+                }) && object.get("afterId").is_none_or(|v| {
+                    v.as_i64()
+                        .is_some_and(|id| id >= 0 && id <= i32::MAX.into())
+                }) && object.get("workshopId").is_none_or(|v| {
+                    v.as_str()
+                        .is_some_and(|s| s.parse::<i64>().is_ok_and(|id| id > 0))
+                }) && ["from", "to"].iter().all(|key| {
+                    object.get(*key).is_none_or(|v| {
+                        v.as_str()
+                            .is_some_and(|s| s.len() <= 64 && s.parse::<jiff::Timestamp>().is_ok())
+                    })
+                })
+            }
             Self::ScanWorkshopItem => object
                 .get("workshopId")
                 .and_then(serde_json::Value::as_str)
@@ -272,7 +309,7 @@ mod tests {
 
     #[test]
     fn task_registry_matches_bun_count() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 21);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 23);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
@@ -281,6 +318,15 @@ mod tests {
     #[test]
     fn payload_validation_matches_allowlist_contract() {
         use serde_json::json;
+        assert!(TaskIdentifier::ValidateRecordGhost.compatible());
+        assert!(TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":1})));
+        assert!(!TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":0})));
+        assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({})));
+        assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(
+            &json!({"afterId":100,"idLevel":2,"workshopId":"3","from":"2026-01-01T00:00:00Z"})
+        ));
+        assert!(!TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({"from":"invalid"})));
+        assert!(!TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({"delete":true})));
         assert!(TaskIdentifier::BackfillLevelSimhash.compatible());
         assert_eq!(TaskIdentifier::BackfillLevelSimhash.max_attempts(), 3);
         assert!(TaskIdentifier::BackfillLevelSimhash.validate_payload(&json!({})));

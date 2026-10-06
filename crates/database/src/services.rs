@@ -12,6 +12,7 @@ pub mod discord;
 pub mod discord_rank;
 pub mod discord_runtime;
 pub mod donations;
+pub mod ghost_validation;
 pub mod inspector;
 pub mod jobs;
 pub mod level_simhash;
@@ -103,6 +104,17 @@ pub(crate) async fn get_or_insert_user_with_connection(
 }
 
 impl Database {
+    pub async fn is_administrator(&self, steam_id: i64) -> Result<bool> {
+        #[derive(QueryableByName)]
+        struct Access {
+            #[diesel(sql_type = Bool)]
+            allowed: bool,
+        }
+        let mut connection = self.connection().await?;
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM public.\"user\" WHERE steam_id=$1 AND role='admin' AND NOT banned) AS allowed")
+            .bind::<BigInt, _>(steam_id).get_result::<Access>(&mut connection).await?.allowed)
+    }
+
     pub async fn get_user(&self, steam_id: i64) -> Result<Option<UserAccount>> {
         let mut connection = self.connection().await?;
         Ok(sql_query("SELECT id,steam_name,banned,steam_id,discord_id FROM public.\"user\" WHERE steam_id=$1 LIMIT 1")

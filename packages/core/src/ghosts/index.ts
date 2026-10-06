@@ -5,6 +5,7 @@ import { normalizeGhostColor } from './metadata'
 import { normalizeQuaternion, unityEulerToQuaternion } from './orientation'
 import { type DecodedProtobufGhost, iterateProtobufFrames } from './protobuf'
 import { decodeNativeProtobufGhost } from './protobufNative'
+import { parseDecodedV8 } from './protobufVersions'
 import { calculateGhostStatistics, calculateGhostStatisticsFromIterable } from './statistics'
 import type { GhostStatisticValues, ParsedGhost } from './types'
 import { parseV1 } from './v1'
@@ -68,7 +69,7 @@ function parseLegacyGhost(payload: Uint8Array, version: number): ParsedGhost {
 
 type DecodedGhostSource =
 	| { kind: 'legacy'; ghost: ParsedGhost }
-	| { kind: 'protobuf'; ghost: DecodedProtobufGhost; version: 5 | 6 | 7 }
+	| { kind: 'protobuf'; ghost: DecodedProtobufGhost; version: 5 | 6 | 7 | 8 }
 
 async function decodeGhostSource(buffer: Uint8Array): Promise<DecodedGhostSource> {
 	assertGhostCompressedSize(buffer.byteLength)
@@ -87,6 +88,7 @@ async function decodeGhostSource(buffer: Uint8Array): Promise<DecodedGhostSource
 		case 5:
 		case 6:
 		case 7:
+		case 8:
 			return { kind: 'protobuf', ghost, version: ghost.version }
 		default:
 			throw new Error(`Unsupported protobuf ghost version ${ghost.version}`)
@@ -103,6 +105,8 @@ function parseProtobufGhost(
 			return parseDecodedV6(source.ghost)
 		case 7:
 			return parseDecodedV7(source.ghost)
+		case 8:
+			return parseDecodedV8(source.ghost)
 	}
 }
 

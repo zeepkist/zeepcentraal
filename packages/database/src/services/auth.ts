@@ -33,6 +33,7 @@ export async function getWebSession(input: WebSessionInput) {
 			steamId: user.steamId,
 			steamName: user.steamName,
 			discordId: user.discordId,
+			role: user.role,
 			accessTokenExpiry: auth.accessTokenExpiry,
 		})
 		.from(auth)

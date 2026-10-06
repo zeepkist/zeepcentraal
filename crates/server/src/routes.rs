@@ -396,7 +396,8 @@ pub async fn submit_record(
     Json(body): Json<RecordSubmissionBody>,
 ) -> ApiResult<StatusCode> {
     use crate::problem::{RECORD_SUBMIT_FAILED, RECORD_SUBMIT_MISSING_PARAMS};
-    use zc_core::ghosts::{MAX_GHOST_COMPRESSED_BYTES, parse_ghost_statistics};
+    use sha2::{Digest, Sha256};
+    use zc_core::ghosts::{MAX_GHOST_COMPRESSED_BYTES, calculate_ghost_statistics, parse_ghost};
 
     let workshop_id = body
         .workshop_id
@@ -463,11 +464,77 @@ pub async fn submit_record(
             error_code: None,
         })?;
     let parser_bytes = ghost_bytes.clone();
-    let statistics = tokio::task::spawn_blocking(move || parse_ghost_statistics(&parser_bytes))
+    let ghost = tokio::task::spawn_blocking(move || parse_ghost(&parser_bytes))
         .await
         .map_err(|error| Problem::internal(error.into()))?
         .map_err(|_| Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_MISSING_PARAMS))?;
+    let snapshot = state
+        .database
+        .validation_snapshot(&body.hash)
+        .await
+        .map_err(Problem::internal)?;
+    let validator_snapshot = snapshot.clone();
+    let manifest = state.config.validation_manifest.clone();
+    let steam_id = user.steam_id.map(|id| id.to_string()).unwrap_or_default();
+    let canonical_hash = body.hash.clone();
+    let game_version = body.game_version.clone();
+    let splits = body.splits.clone();
+    let speeds = body.speeds.clone();
+    let time = f64::from(body.time);
+    let (ghost, statistics, report) = tokio::task::spawn_blocking(move || {
+        let statistics = calculate_ghost_statistics(&ghost.frames, ghost.version);
+        let context = zc_core::ghost_validation::SubmissionContext {
+            steam_id: &steam_id,
+            canonical_hash: &canonical_hash,
+            game_version: &game_version,
+            time,
+            splits: &splits,
+            speeds: &speeds,
+        };
+        let report = zc_core::ghost_validation::validate(
+            &ghost,
+            &context,
+            validator_snapshot.as_ref().map(|s| &s.blocks),
+            manifest.as_ref(),
+        );
+        (ghost, statistics, report)
+    })
+    .await
+    .map_err(|e| Problem::internal(e.into()))?;
     drop(parser_slot);
+    let ghost_digest = hex::encode(Sha256::digest(&ghost_bytes));
+    let payload_digest=hex::encode(Sha256::digest(serde_json::to_vec(&serde_json::json!({"level":body.level,"hash":body.hash,"workshopId":body.workshop_id,"time":body.time,"splits":body.splits,"speeds":body.speeds,"gameVersion":body.game_version,"modVersion":body.mod_version,"ghostDigest":ghost_digest})).map_err(|e|Problem::internal(e.into()))?));
+    let run_uuid = ghost
+        .evidence
+        .as_ref()
+        .and_then(|e| e.run_uuid.parse::<uuid::Uuid>().ok())
+        .map(|id| id.to_string());
+    if let Some(run_uuid) = &run_uuid
+        && let Some(existing) = state
+            .database
+            .accepted_run_digest(user.id, run_uuid)
+            .await
+            .map_err(Problem::internal)?
+    {
+        if existing != payload_digest {
+            return Err(Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_FAILED));
+        }
+        return Ok(StatusCode::OK);
+    }
+    if state.config.validation_enforce && report.status == "fail" {
+        state
+            .database
+            .save_record_validation(
+                None,
+                user.id,
+                snapshot.as_ref(),
+                Some(&ghost_digest),
+                &report,
+            )
+            .await
+            .map_err(Problem::internal)?;
+        return Err(Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_FAILED));
+    }
 
     let adventure = workshop_id.is_none();
     let level = state
@@ -478,9 +545,46 @@ pub async fn submit_record(
     if adventure && !level.adventure {
         return Err(Problem::code(StatusCode::BAD_REQUEST, LEVEL_NOT_FOUND));
     }
+    let _upload_slot = state
+        .record_upload_slots
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|_| Problem {
+            status: StatusCode::SERVICE_UNAVAILABLE,
+            detail: "Service unavailable".into(),
+            error_code: None,
+        })?;
+    let key = format!(
+        "{}/{}.bin",
+        state.config.object_storage.ghost_folder,
+        zc_core::generate_uid()
+    );
+    state
+        .object_storage
+        .upload(&key, ghost_bytes, "application/octet-stream")
+        .await
+        .map_err(|error| {
+            tracing::error!(error=%error,"Ghost upload failed before acceptance");
+            Problem {
+                status: StatusCode::SERVICE_UNAVAILABLE,
+                detail: "Ghost storage unavailable; retry submission".into(),
+                error_code: None,
+            }
+        })?;
+    drop(_upload_slot);
+    drop(retained_bytes);
     let submitted = state
         .database
         .submit_record(RecordSubmission {
+            evidence: Some(zc_database::services::ghost_validation::AcceptedEvidence {
+                ghost_key: &key,
+                ghost_digest: &ghost_digest,
+                payload_digest: &payload_digest,
+                run_uuid: run_uuid.as_deref(),
+                snapshot: snapshot.as_ref(),
+                report: &report,
+            }),
             id_user: user.id,
             id_level: level.id,
             time: body.time,
@@ -491,7 +595,13 @@ pub async fn submit_record(
             statistics: &statistics,
         })
         .await
-        .map_err(Problem::internal)?;
+        .map_err(|error| {
+            if error.to_string() == "run UUID payload mismatch" {
+                Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_FAILED)
+            } else {
+                Problem::internal(error)
+            }
+        })?;
     if submitted.id_record <= 0 {
         return Err(Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_FAILED));
     }
@@ -504,12 +614,6 @@ pub async fn submit_record(
             .map_err(Problem::internal)?,
         None => false,
     };
-    schedule_record_upload(
-        state.clone(),
-        submitted.id_record,
-        ghost_bytes,
-        retained_bytes,
-    );
     schedule_record_followups(
         state,
         level.id,
@@ -519,39 +623,6 @@ pub async fn submit_record(
         workshop_scan_claimed,
     );
     Ok(StatusCode::OK)
-}
-
-fn schedule_record_upload(
-    state: Arc<AppState>,
-    id_record: i32,
-    ghost_bytes: Vec<u8>,
-    retained_bytes: tokio::sync::OwnedSemaphorePermit,
-) {
-    tokio::spawn(async move {
-        let _retained_bytes = retained_bytes;
-        let Ok(_upload_slot) = state.record_upload_slots.clone().acquire_owned().await else {
-            return;
-        };
-        let key = format!(
-            "{}/{}.bin",
-            state.config.object_storage.ghost_folder,
-            zc_core::generate_uid()
-        );
-        if let Err(error) = state
-            .object_storage
-            .upload(&key, ghost_bytes, "application/octet-stream")
-            .await
-        {
-            tracing::error!(id_record, error = %error, "Ghost upload failed");
-            return;
-        }
-        if let Err(error) = state.database.insert_record_media(id_record, &key).await {
-            tracing::error!(id_record, error = %error, "Ghost media insert failed");
-            if let Err(cleanup_error) = state.object_storage.delete(&key).await {
-                tracing::error!(id_record, error = %cleanup_error, "Ghost cleanup failed");
-            }
-        }
-    });
 }
 
 fn schedule_record_followups(

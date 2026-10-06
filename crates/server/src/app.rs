@@ -51,6 +51,22 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         )
         .route("/level/request", post(routes::request_level))
         .route("/record/submit", post(routes::submit_record))
+        .route(
+            "/admin/ghost-validation",
+            get(crate::ghost_validation_routes::list),
+        )
+        .route(
+            "/admin/ghost-validation/audit",
+            post(crate::ghost_validation_routes::audit),
+        )
+        .route(
+            "/admin/ghost-validation/records/{id}",
+            get(crate::ghost_validation_routes::evidence),
+        )
+        .route(
+            "/admin/ghost-validation/records/{id}/ghost",
+            get(crate::ghost_validation_routes::ghost),
+        )
         .route("/job/trigger", post(routes::trigger_job))
         .route(
             "/kofi/webhook",

@@ -14,6 +14,7 @@ const TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE: i32 = 1_953_744_432;
 
 #[derive(Clone, Debug)]
 pub struct RecordSubmission<'a> {
+    pub evidence: Option<super::ghost_validation::AcceptedEvidence<'a>>,
     pub id_user: i32,
     pub id_level: i32,
     pub time: f32,
@@ -110,7 +111,22 @@ impl Database {
                         .get_result::<Level>(connection)
                         .await
                         .optional()?;
-                        if let Some(level) = legacy.filter(|level| level.xx_hash.is_empty()) {
+                        let verified_legacy = if let Some(level) = legacy.filter(|level| level.xx_hash.is_empty()) {
+                            #[derive(QueryableByName)]
+                            struct Blocks {
+                                #[diesel(sql_type=Jsonb)] blocks: serde_json::Value,
+                                #[diesel(sql_type=Integer)] format: i32,
+                                #[diesel(sql_type=Integer)] type_ground: i32,
+                                #[diesel(sql_type=Integer)] type_skybox: i32,
+                            }
+                            let stored = sql_query("SELECT blocks,format,type_ground,type_skybox FROM public.level_metadata WHERE id_level=$1 ORDER BY id LIMIT 1")
+                                .bind::<Integer,_>(level.id).get_result::<Blocks>(connection).await.optional()?;
+                            stored.filter(|stored| {
+                                let hash=match stored.format {1=>zc_core::levels::calculate_json_level_xxhash(&serde_json::json!({"blox":stored.blocks}).to_string()),0=>zc_core::levels::calculate_csv_blocks_xxhash(&stored.blocks,stored.type_skybox.into(),stored.type_ground.into()),_=>return false};
+                                hash.is_ok_and(|hash|hash.eq_ignore_ascii_case(xx_hash))
+                            }).map(|_|level)
+                        } else { None };
+                        if let Some(level) = verified_legacy {
                             lock_level_workshop_items(connection, level.id).await?;
                             sql_query(
                                 "UPDATE public.level SET xx_hash=$2,adventure=adventure OR $3,date_updated=clock_timestamp() \
@@ -179,6 +195,17 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<RecordSubmissionResult, anyhow::Error, _>(async move |connection| {
+                    if let Some(evidence) = &input.evidence
+                        && let Some(run_uuid) = evidence.run_uuid {
+                        sql_query("SELECT pg_advisory_xact_lock($1,hashtext($2))").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).execute(connection).await?;
+                        #[derive(QueryableByName)]
+                        struct Run { #[diesel(sql_type=Integer)] id_record:i32, #[diesel(sql_type=Text)] payload_digest:String }
+                        let existing=sql_query("SELECT id_record,payload_digest FROM zc_private.record_run WHERE id_user=$1 AND run_uuid=$2").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).get_result::<Run>(connection).await.optional()?;
+                        if let Some(existing)=existing {
+                            ensure!(existing.payload_digest==evidence.payload_digest,"run UUID payload mismatch");
+                            return Ok(RecordSubmissionResult {id_record:existing.id_record,personal_best_changed:false,tournament_result_changed:false,world_record_user_ids:vec![]});
+                        }
+                    }
                     let accepted: AcceptanceRow = record_phase(
                         "user_level_lock",
                         sql_query(
@@ -215,6 +242,13 @@ impl Database {
                     )
                     .await?;
 
+                    if let Some(evidence)=&input.evidence {
+                        sql_query("INSERT INTO public.record_media(id_record,ghost_url,date_created,date_updated) VALUES($1,$2,clock_timestamp(),clock_timestamp())").bind::<Integer,_>(created.id).bind::<Text,_>(evidence.ghost_key).execute(connection).await?;
+                        super::ghost_validation::persist_validation(connection,Some(created.id),input.id_user,evidence.snapshot,Some(evidence.ghost_digest),evidence.report).await?;
+                        if let Some(run_uuid)=evidence.run_uuid {
+                            sql_query("INSERT INTO zc_private.record_run(id_user,run_uuid,payload_digest,id_record) VALUES($1,$2,$3,$4)").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).bind::<Text,_>(evidence.payload_digest).bind::<Integer,_>(created.id).execute(connection).await?;
+                        }
+                    }
                     sql_query(
                         "INSERT INTO public.record_statistic \
                          SELECT populated.* FROM jsonb_populate_record( \

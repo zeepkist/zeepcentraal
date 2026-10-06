@@ -136,6 +136,8 @@ pub(crate) struct DeltaFrame {
 
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub(crate) struct Ghost {
+    #[prost(string, tag = "8")]
+    pub evidence_json: String,
     #[prost(int32, tag = "1")]
     pub version: i32,
     #[prost(uint64, tag = "2")]

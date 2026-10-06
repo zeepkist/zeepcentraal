@@ -1,4 +1,4 @@
-import { countCheckpoints, countFinishes } from './metadata'
+import { countFinishes, countJsonCheckpointGroups } from './metadata'
 import { levelFormat, type ParsedLevel, type ParsedLevelV2 } from './types'
 import { medalTime, numberOrDefault, presentBlockId } from './utils'
 import { xxHash128Hex } from './xxhash'
@@ -142,7 +142,7 @@ export function parseJsonLevel(content: string, adventure = false): ParsedLevel 
 		validationTimeGold: medalTime(parsed.medals?.gold),
 		validationTimeSilver: medalTime(parsed.medals?.silver),
 		validationTimeBronze: medalTime(parsed.medals?.bronze),
-		amountCheckpoints: countCheckpoints(metadataBlocks),
+		amountCheckpoints: countJsonCheckpointGroups(blocks),
 		amountFinishes: countFinishes(metadataBlocks),
 		amountBlocks: blocks.length,
 		typeGround: numberOrDefault(parsed.enviro?.groundMat),

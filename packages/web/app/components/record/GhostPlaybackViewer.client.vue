@@ -46,6 +46,7 @@
 import { useElementVisibility } from '@vueuse/core'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js'
 import { Line2 } from 'three/addons/lines/Line2.js'
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js'
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js'
@@ -102,6 +103,8 @@ const props = withDefaults(defineProps<{
 	ghosts: LoadedPlaybackGhost[]
 	levelId: number
 	levelBlocks: GhostLevelBlock[]
+	levelAssetUrl?: string
+	validationOverlays?: Array<{ uid: string; vertices: number[][]; color: string }>
 	paintMode?: 'physics' | 'material'
 	showLevelGeometry?: boolean
 	showGhostTrails?: boolean
@@ -134,6 +137,7 @@ const props = withDefaults(defineProps<{
 	paintMode: 'physics',
 	showLevelGeometry: true,
 	showGhostTrails: true,
+	validationOverlays: () => [],
 })
 
 const emit = defineEmits<{
@@ -160,6 +164,7 @@ const currentFrameRate = shallowRef(0)
 let reflections: GhostPostprocessing | null = null
 let lighting: GhostLightingRig | null = null
 let legacyLights = new THREE.Group()
+let validationGeometry: THREE.Group | null = null
 let renderer: THREE.WebGLRenderer | null = null
 let labelRenderer: CSS2DRenderer | null = null
 let scene: THREE.Scene | null = null
@@ -664,6 +669,7 @@ function visualRevision(loaded: LoadedPlaybackGhost) {
 }
 
 function createLevelGeometry() {
+	createValidationGeometry()
 	if (!canLoadProtectedMeshes.value || !props.showLevelGeometry) {
 		levelMeshRenderer?.clear()
 		invalidateRender()
@@ -671,12 +677,37 @@ function createLevelGeometry() {
 	}
 	if (!grid) return
 	invalidateRender()
-	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin).then(() => {
+	void levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin, props.levelAssetUrl).then(() => {
 		if (viewerMounted) {
 			configureReflections()
 			invalidateRender()
 		}
 	})
+}
+
+watch(() => props.validationOverlays, () => {
+	createValidationGeometry()
+	invalidateRender()
+})
+
+function createValidationGeometry() {
+	if (validationGeometry) {
+		validationGeometry.traverse(disposeObject)
+		scene?.remove(validationGeometry)
+		validationGeometry = null
+	}
+	if (!scene || !grid || !props.validationOverlays.length) return
+	validationGeometry = new THREE.Group()
+	for (const overlay of props.validationOverlays) {
+		const points = overlay.vertices.map((p) => new THREE.Vector3(p[0], p[1], p[2]).sub(new THREE.Vector3(grid?.origin.x, grid?.origin.y, grid?.origin.z)))
+		if (points.length < 4) continue
+		const hull = new ConvexGeometry(points)
+		const wire = new THREE.LineSegments(new THREE.WireframeGeometry(hull), new THREE.LineBasicMaterial({ color: overlay.color, transparent: true, opacity: 0.8 }))
+		hull.dispose()
+		wire.name = overlay.uid
+		validationGeometry.add(wire)
+	}
+	scene.add(validationGeometry)
 }
 
 function loadProtectedGhostModels() {
@@ -1126,6 +1157,7 @@ function disposeObject(object: THREE.Object3D) {
 }
 
 function disposeScene() {
+	validationGeometry = null
 	reflections?.dispose()
 	reflections = null
 	lighting?.dispose()

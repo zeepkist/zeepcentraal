@@ -11,6 +11,7 @@
 		"preview": "bun --bun --env-file ../../.env .output/server/telemetry.mjs",
 		"postinstall": "bun run prepare:nuxt",
 		"prepare:nuxt": "bun --bun nuxt prepare",
+		"generate:validation-manifest": "bun scripts/generate-validation-manifest.ts",
 		"generate:block-meshes": "bun scripts/generate-block-mesh-manifest.ts",
 		"codegen": "bun --cwd=../graphql run codegen",
 		"typecheck": "nuxt typecheck",

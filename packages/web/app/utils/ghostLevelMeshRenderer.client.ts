@@ -65,11 +65,16 @@ export class GhostLevelMeshRenderer {
 		})
 	}
 
-	render(levelId: number, blocks: readonly GhostLevelBlock[], origin: GhostVector3) {
+	render(
+		levelId: number,
+		blocks: readonly GhostLevelBlock[],
+		origin: GhostVector3,
+		assetUrl?: string,
+	) {
 		const revision = ++this.revision
 		this.replaceGroup(null)
 		if (blocks.length === 0) return Promise.resolve()
-		return this.renderLoaded(levelId, origin, revision)
+		return this.renderLoaded(levelId, origin, revision, assetUrl)
 	}
 
 	setPaintMode(mode: 'physics' | 'material') {
@@ -110,10 +115,17 @@ export class GhostLevelMeshRenderer {
 		this.nativeMaterials.clear()
 	}
 
-	private async renderLoaded(levelId: number, origin: GhostVector3, revision: number) {
+	private async renderLoaded(
+		levelId: number,
+		origin: GhostVector3,
+		revision: number,
+		assetUrl?: string,
+	) {
 		let bundle: ProtectedLevelMeshBundle
 		try {
-			bundle = await this.options.library.load(levelId)
+			bundle = await (assetUrl
+				? this.options.library.load(levelId, assetUrl)
+				: this.options.library.load(levelId))
 		} catch {
 			return
 		}

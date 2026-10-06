@@ -28,6 +28,67 @@ import { DEFAULT_VOTE_RATING } from './config'
 
 export const zcPrivate = pgSchema('zc_private')
 
+export const levelVersionLineage = zcPrivate.table(
+	'level_version_lineage',
+	{
+		idLevel: integer('id_level')
+			.notNull()
+			.references((): AnyPgColumn => level.id),
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
+		fileUid: text('file_uid').notNull(),
+		source: text('source').notNull(),
+		observedAt: timestamp('observed_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.default(sql`clock_timestamp()`),
+	},
+	(table) => [
+		primaryKey({ columns: [table.idLevel, table.workshopId, table.fileUid, table.source] }),
+		index('level_version_lineage_lookup').on(table.fileUid, table.workshopId, table.idLevel),
+	],
+)
+
+export const recordValidation = zcPrivate.table(
+	'record_validation',
+	{
+		id: bigint('id', { mode: 'bigint' }).notNull().primaryKey().generatedAlwaysAsIdentity(),
+		idRecord: integer('id_record').references((): AnyPgColumn => record.id),
+		idUser: integer('id_user')
+			.notNull()
+			.references((): AnyPgColumn => user.id),
+		idLevel: integer('id_level').references((): AnyPgColumn => level.id),
+		ghostDigest: text('ghost_digest'),
+		levelXxHash: text('level_xx_hash'),
+		status: text('status').notNull(),
+		report: jsonb('report').notNull(),
+		validatorVersion: text('validator_version').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.default(sql`clock_timestamp()`),
+	},
+	(table) => [
+		index('record_validation_record').on(table.idRecord, table.id.desc()),
+		check(
+			'record_validation_status_check',
+			sql`${table.status} IN ('pending','pass','fail','uncertain')`,
+		),
+	],
+)
+
+export const recordRun = zcPrivate.table(
+	'record_run',
+	{
+		idUser: integer('id_user')
+			.notNull()
+			.references((): AnyPgColumn => user.id),
+		runUuid: text('run_uuid').notNull(),
+		payloadDigest: text('payload_digest').notNull(),
+		idRecord: integer('id_record')
+			.notNull()
+			.references((): AnyPgColumn => record.id),
+	},
+	(table) => [primaryKey({ columns: [table.idUser, table.runUuid] })],
+)
+
 /** Private inspector state. Never exposed through the public GraphQL schema. */
 export const levelSubmissionContest = zcPrivate.table(
 	'level_submission_contest',
@@ -1190,6 +1251,7 @@ export const user = pgTable(
 			cache: 1,
 		}),
 		steamName: varchar('steam_name', { length: 255 }),
+		role: text().default('user').notNull(),
 		banned: boolean().default(false).notNull(),
 		steamId: bigint('steam_id', { mode: 'bigint' }),
 		discordId: bigint('discord_id', { mode: 'bigint' }),
@@ -1202,6 +1264,7 @@ export const user = pgTable(
 	},
 	(table) => [
 		unique('UQ_user_steam_id').on(table.steamId),
+		check('CK_user_role', sql`${table.role} IN ('user', 'admin')`),
 		uniqueIndex('UQ_user_discord_id').on(table.discordId).where(sql`${table.discordId} > 0`),
 		index('IX_user_steam_name_search').using('gin', table.steamName.op('gin_trgm_ops')),
 	],

@@ -14,12 +14,14 @@ function responseFromSession(session: NonNullable<Awaited<ReturnType<typeof getW
 	}
 	return {
 		user,
+		isAdmin: session.role === 'admin',
 		refreshAt: Number(session.accessTokenExpiry) * 1000 - 60_000,
 	}
 }
 
 export default defineEventHandler(async (event) => {
 	assertSameOrigin(event)
+	setResponseHeader(event, 'cache-control', 'private, no-store')
 	const cookieHeader = getHeader(event, 'cookie')
 	const startedAt = performance.now()
 	const resolution = await resolveVerifiedSession(
@@ -43,5 +45,5 @@ export default defineEventHandler(async (event) => {
 	}
 	return resolution.session
 		? responseFromSession(resolution.session)
-		: { user: null, refreshAt: null }
+		: { user: null, isAdmin: false, refreshAt: null }
 })

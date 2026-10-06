@@ -53,6 +53,8 @@ fn app(url: &str) -> Result<Router> {
     )?;
     let state = Arc::new(AppState {
         config: ServerConfig {
+            validation_manifest: None,
+            validation_enforce: false,
             runtime: RuntimeConfig {
                 environment: Environment::Test,
                 address: "127.0.0.1:0".parse()?,
@@ -156,6 +158,49 @@ async fn rank_batch_flush_requires_bot_token() -> Result<()> {
     for token in [None, Some("wrong-token")] {
         assert_eq!(flush(&app, token).await?.0, StatusCode::UNAUTHORIZED);
     }
+    Ok(())
+}
+
+#[tokio::test]
+async fn ghost_validation_admin_rejects_non_steam_sessions() -> Result<()> {
+    let app = app("postgres://fixture:fixture@127.0.0.1:1/admin_test")?;
+    let issuer = JwtIssuer::new(
+        "fake-unit-test-secret-at-least-32-bytes",
+        "fixture",
+        "fixture",
+        Duration::from_secs(600),
+        Duration::from_secs(1200),
+    )?;
+    for provider in [zc_core::jwt::Provider::Gtr, zc_core::jwt::Provider::Discord] {
+        let token = issuer
+            .issue(provider, "76561198000000001", Some("123456789"))?
+            .access_token;
+        for path in [
+            "/admin/ghost-validation",
+            "/admin/ghost-validation/records/1",
+            "/admin/ghost-validation/records/1/ghost",
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .uri(path)
+                        .header("Authorization", format!("Bearer {token}"))
+                        .body(Body::empty())?,
+                )
+                .await?;
+            assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        }
+    }
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/admin/ghost-validation")
+                .header("Authorization", "Bearer forged")
+                .body(Body::empty())?,
+        )
+        .await?;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     Ok(())
 }
 

@@ -70,7 +70,7 @@ async function collect(
 test('prompt map exactly covers API-compatible jobs', () => {
 	expect(Object.keys(jobPromptDefinitions).sort()).toEqual([...compatibleTaskIdentifiers].sort())
 	expect(Object.keys(jobPromptDefinitions)).not.toContain('updateLevelScoresBatch')
-	expect(jobChoices).toHaveLength(18)
+	expect(jobChoices).toHaveLength(20)
 })
 
 test('recovered menu matches API-compatible Rust tasks', async () => {

@@ -22,6 +22,26 @@ const batchPayload = z.union([
 	}),
 ])
 export const taskDefinitions = {
+	validateRecordGhost: {
+		schema: z.strictObject({ idRecord: z.number().int().positive().max(2147483647) }),
+		compatible: true,
+		maxAttempts: 3,
+	},
+	auditRecordGhosts: {
+		schema: z.strictObject({
+			afterId: z.number().int().nonnegative().max(2147483647).optional(),
+			idRecord: z.number().int().positive().max(2147483647).optional(),
+			idLevel: z.number().int().positive().max(2147483647).optional(),
+			workshopId: z
+				.string()
+				.regex(/^[1-9][0-9]*$/)
+				.optional(),
+			from: z.iso.datetime({ offset: true }).optional(),
+			to: z.iso.datetime({ offset: true }).optional(),
+		}),
+		compatible: true,
+		maxAttempts: 3,
+	},
 	prepareZslPracticePlaylist: {
 		schema: z.strictObject({
 			roundId: z.number().int().positive().max(2147483647),

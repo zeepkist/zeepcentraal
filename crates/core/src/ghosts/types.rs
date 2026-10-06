@@ -99,6 +99,7 @@ pub struct GhostCapabilities {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParsedGhost {
+    pub evidence: Option<crate::ghost_validation::RunEvidence>,
     pub version: i32,
     pub metadata: GhostMetadata,
     pub capabilities: GhostCapabilities,

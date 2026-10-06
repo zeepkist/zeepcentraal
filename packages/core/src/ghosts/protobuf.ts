@@ -7,6 +7,7 @@ import { hasAnyCosmetic, normalizeGhostColor, optionalCosmeticId } from './metad
 import { unityEulerToQuaternion } from './orientation'
 import { surfacesFromState } from './surfaceState'
 import type { GhostCosmetics, GhostFrame, GhostMetadata, Vector2, Vector3 } from './types'
+import { readRunEvidence } from './v8Evidence'
 
 const POSITION_MULTIPLIER = 100_000
 const ROTATION_MULTIPLIER = 100
@@ -82,6 +83,7 @@ const ghostType = new protobuf.Type('Ghost')
 	.add(new protobuf.Field('deltaFrames', 5, 'DeltaFrame', 'repeated'))
 	.add(new protobuf.Field('taggedUsername', 6, 'string'))
 	.add(new protobuf.Field('color', 7, 'string'))
+	.add(new protobuf.Field('evidenceJson', 8, 'string'))
 
 root.define('gtr')
 	.add(vector3Type)
@@ -93,6 +95,7 @@ root.define('gtr')
 	.add(ghostType)
 
 export type DecodedProtobufGhost = {
+	evidenceJson?: string
 	version?: number
 	steamId?: string | number | bigint | { toString(): string }
 	cosmetics?: {
@@ -178,11 +181,11 @@ export function* iterateProtobufFrames(decoded: DecodedProtobufGhost): Generator
 	if (!decoded.initialFrame?.position || !decoded.deltaFrames) {
 		throw new Error('Invalid protobuf ghost')
 	}
-	if (!decoded.version || ![5, 6, 7].includes(decoded.version)) {
+	if (!decoded.version || ![5, 6, 7, 8].includes(decoded.version)) {
 		throw new Error(`Unsupported protobuf ghost version ${decoded.version}`)
 	}
 	assertGhostFrameCount(decoded.deltaFrames.length + 1)
-	const version = decoded.version as 5 | 6 | 7
+	const version = decoded.version as 5 | 6 | 7 | 8
 	const hasExtendedTelemetry = version >= 6
 	let position = decoded.initialFrame.position
 	let rotation = decoded.initialFrame.rotation
@@ -194,7 +197,7 @@ export function* iterateProtobufFrames(decoded: DecodedProtobufGhost): Generator
 		? requireUnscaledVector3(decoded.initialFrame.ragdollRotation, ROTATION_MULTIPLIER)
 		: undefined
 	yield frameFromProtobuf(
-		0,
+		decoded.version === 8 ? readRunEvidence(decoded).initialTime : 0,
 		position,
 		{
 			...decoded.initialFrame,
@@ -296,7 +299,7 @@ function frameFromProtobuf(
 		ragdollPosition?: Vector3
 		ragdollRotation?: Vector3
 	},
-	version: 5 | 6 | 7,
+	version: 5 | 6 | 7 | 8,
 	rotation = source.rotation,
 ): GhostFrame {
 	if (
@@ -316,7 +319,7 @@ function frameFromProtobuf(
 			? undefined
 			: version === 6
 				? surfacesFromState(surfaceState, 6)
-				: version === 7
+				: version >= 7
 					? surfacesFromState(surfaceState, 7)
 					: undefined
 	return {

@@ -3,6 +3,8 @@ use std::{net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 
 #[derive(Clone)]
 pub struct ServerConfig {
+    pub validation_manifest: Option<zc_core::ghost_validation::ValidationManifest>,
+    pub validation_enforce: bool,
     pub runtime: zc_core::RuntimeConfig,
     pub object_storage: zc_core::config::ObjectStorageConfig,
     pub jwt: zc_core::jwt::JwtIssuer,
@@ -170,7 +172,14 @@ impl ServerConfig {
         } else {
             None
         };
+        let validation_mode = optional("GHOST_VALIDATION_MODE").unwrap_or_else(|| "observe".into());
+        ensure!(
+            matches!(validation_mode.as_str(), "observe" | "enforce"),
+            "GHOST_VALIDATION_MODE must be observe or enforce"
+        );
         Ok(Self {
+            validation_manifest: zc_core::ghost_validation::load_manifest_from_env()?,
+            validation_enforce: validation_mode == "enforce",
             runtime,
             object_storage,
             jwt,

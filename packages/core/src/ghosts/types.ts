@@ -149,6 +149,7 @@ export type GhostStatisticValues = {
 }
 
 export type ParsedGhost = {
+	evidence?: import('./v8Evidence').RunEvidence
 	version: number
 	metadata: GhostMetadata
 	capabilities: GhostCapabilities

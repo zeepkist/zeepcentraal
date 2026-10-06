@@ -399,7 +399,7 @@ function encodePrimitive(primitive: Primitive): EncodedPrimitive {
 	}
 }
 
-function parseGlb(bytes: Uint8Array, source: string) {
+export function parseGlb(bytes: Uint8Array, source: string) {
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
 	if (view.getUint32(0, true) !== 0x46546c67 || view.getUint32(4, true) !== 2) {
 		throw new Error('Unsupported GLB')

@@ -40,6 +40,7 @@ describe('getWebSession', () => {
 				steamId: 76561198000000000n,
 				steamName: 'Zeep',
 				discordId: null,
+				role: 'admin',
 				accessTokenExpiry: 2_000_000_000n,
 			},
 		])
@@ -51,6 +52,7 @@ describe('getWebSession', () => {
 		})
 
 		expect(session?.id).toBe(1)
+		expect(session?.role).toBe('admin')
 		expect(whereCondition).toBeDefined()
 		const query = new PgDialect().sqlToQuery(whereCondition as SQL)
 		expect(query.sql).toContain('"auth"."access_token" =')

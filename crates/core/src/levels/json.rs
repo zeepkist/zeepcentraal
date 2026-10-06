@@ -1,6 +1,4 @@
-use super::{
-    LevelBlocks, LevelFormat, PRESENT_BLOCK_ID, ParsedLevel, count_checkpoints, count_finishes,
-};
+use super::{LevelBlocks, LevelFormat, PRESENT_BLOCK_ID, ParsedLevel, count_finishes};
 use anyhow::{Context, Result, bail};
 use serde_json::{Map, Value};
 
@@ -186,14 +184,9 @@ pub fn parse_json_level(content: &str, adventure: bool) -> Result<ParsedLevel> {
             .unwrap_or_else(|| as_number(Some(&Value::Number(value.clone()))) as u64),
         _ => 0,
     };
-    let mut checkpoint_blocks = Vec::with_capacity(blocks.len());
     let mut finish_ids = Vec::with_capacity(blocks.len());
     for block in &blocks {
         let id = as_integer(block.get("i"));
-        let flagged = block
-            .pointer("/d/n/ch5")
-            .is_some_and(|value| as_integer(Some(value)) == 1);
-        checkpoint_blocks.push((id, flagged));
         finish_ids.push(id);
     }
     let amount_blocks = blocks.len();
@@ -209,7 +202,11 @@ pub fn parse_json_level(content: &str, adventure: bool) -> Result<ParsedLevel> {
         validation_time_gold: as_number(medals.and_then(|value| value.get("gold"))),
         validation_time_silver: as_number(medals.and_then(|value| value.get("silver"))),
         validation_time_bronze: as_number(medals.and_then(|value| value.get("bronze"))),
-        amount_checkpoints: count_checkpoints(checkpoint_blocks),
+        amount_checkpoints: crate::ghost_validation::checkpoint_graph(&Value::Array(
+            blocks.clone(),
+        ))
+        .groups
+        .len(),
         amount_finishes: count_finishes(finish_ids),
         amount_blocks,
         type_ground: as_integer(environment.and_then(|value| value.get("groundMat"))),

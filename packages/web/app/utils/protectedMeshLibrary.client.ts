@@ -53,7 +53,7 @@ const KNOWN_GROUP_FLAGS = PROTECTED_MESH_GROUP_FLAGS.hasColor | PROTECTED_MESH_G
 export class ProtectedMeshLibrary {
 	private readonly fetchImplementation: typeof globalThis.fetch
 	private readonly reportFallback: (error: unknown) => void
-	private readonly promises = new Map<number, Promise<ProtectedLevelMeshBundle>>()
+	private readonly promises = new Map<string, Promise<ProtectedLevelMeshBundle>>()
 	private readonly bundles = new Set<ProtectedLevelMeshBundle>()
 	private ghostModelsPromise: Promise<GhostSoapboxGeometries> | null = null
 	private ghostModels: GhostSoapboxGeometries | null = null
@@ -66,16 +66,14 @@ export class ProtectedMeshLibrary {
 			((error) => console.warn('Protected mesh bundle unavailable.', error))
 	}
 
-	load(levelId: number) {
-		const cached = this.promises.get(levelId)
+	load(levelId: number, assetUrl?: string) {
+		const key = assetUrl ?? `/api/ghost-playback-assets/${encodeURIComponent(levelId)}`
+		const cached = this.promises.get(key)
 		if (cached) return cached
-		const promise = this.fetchImplementation(
-			`/api/ghost-playback-assets/${encodeURIComponent(levelId)}`,
-			{
-				credentials: 'include',
-				headers: { accept: 'application/vnd.zeepcentraal.mesh-bundle' },
-			},
-		)
+		const promise = this.fetchImplementation(key, {
+			credentials: 'include',
+			headers: { accept: 'application/vnd.zeepcentraal.mesh-bundle' },
+		})
 			.then(async (response) => {
 				if (!response.ok)
 					throw new Error(`Protected mesh request failed: ${response.status}`)
@@ -93,11 +91,11 @@ export class ProtectedMeshLibrary {
 				return bundle
 			})
 			.catch((error: unknown) => {
-				this.promises.delete(levelId)
+				this.promises.delete(key)
 				this.reportFallback(error)
 				throw error
 			})
-		this.promises.set(levelId, promise)
+		this.promises.set(key, promise)
 		return promise
 	}
 

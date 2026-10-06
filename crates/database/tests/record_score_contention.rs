@@ -60,6 +60,7 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     let submitted = tokio::time::timeout(
         Duration::from_secs(2),
         database.submit_record(RecordSubmission {
+            evidence: None,
             id_user: user.id,
             id_level: level.id,
             time: 10.0,
@@ -123,6 +124,7 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
 
     let slower = database
         .submit_record(RecordSubmission {
+            evidence: None,
             id_user: user.id,
             id_level: level.id,
             time: 11.0,
@@ -193,6 +195,7 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
         user_ids.push(user.id);
         let result = database
             .submit_record(RecordSubmission {
+                evidence: None,
                 id_user: user.id,
                 id_level: level.id,
                 time: if offset == 204 {

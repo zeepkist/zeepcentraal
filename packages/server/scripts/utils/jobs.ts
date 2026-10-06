@@ -245,6 +245,27 @@ async function collectHistoryBatchOptions(prompt: PromptAdapter): Promise<JobOpt
 const emptyOptions = async (): Promise<JobOptions> => ({})
 
 export const jobPromptDefinitions = {
+	auditRecordGhosts: {
+		category: 'Ghosts',
+		label: 'Audit record ghosts',
+		description: 'Report geometry compatibility for all records without changing eligibility',
+		collectOptions: emptyOptions,
+	},
+	validateRecordGhost: {
+		category: 'Ghosts',
+		label: 'Validate record ghost',
+		description: 'Report geometry compatibility for one record',
+		collectOptions: async (prompt: PromptAdapter): Promise<JobOptions> => ({
+			idRecord: parseBoundedPositiveSafeInteger(
+				await prompt.text({
+					message: 'Record ID',
+					validate: integerValidator('Record ID', { maximum: 2147483647 }),
+				}),
+				2147483647,
+				'Record ID',
+			),
+		}),
+	},
 	prepareZslPracticePlaylist: {
 		category: 'Tournament',
 		label: 'Prepare ZSL practice playlist',

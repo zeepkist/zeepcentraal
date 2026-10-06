@@ -5,7 +5,7 @@ mod types;
 
 use anyhow::Result;
 
-pub use csv::{calculate_csv_level_xxhash, parse_csv_level};
+pub use csv::{calculate_csv_blocks_xxhash, calculate_csv_level_xxhash, parse_csv_level};
 pub use json::{calculate_json_level_xxhash, parse_json_level};
 pub use simhash::calculate_level_simhash;
 pub use types::{CsvBlock, LevelBlocks, LevelFormat, ParsedLevel, Vector3};

@@ -4,6 +4,7 @@ pub mod browser_auth;
 pub mod config;
 pub mod discord_runtime_routes;
 pub mod docs;
+pub mod ghost_validation_routes;
 pub mod kofi;
 pub mod lobby;
 pub mod lobby_runtime;

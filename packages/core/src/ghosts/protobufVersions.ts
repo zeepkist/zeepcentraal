@@ -2,6 +2,7 @@ import { detectGhostCapabilities } from './capabilities'
 import type { DecodedProtobufGhost } from './protobuf'
 import { readProtobufFrames, readProtobufMetadata } from './protobuf'
 import type { ParsedGhost } from './types'
+import { readRunEvidence } from './v8Evidence'
 
 export function parseDecodedV5(decoded: DecodedProtobufGhost): ParsedGhost {
 	if (decoded.version !== 5) {
@@ -24,12 +25,21 @@ export function parseDecodedV7(decoded: DecodedProtobufGhost): ParsedGhost {
 	return parseDecodedProtobufGhost(decoded, 7)
 }
 
-function parseDecodedProtobufGhost(decoded: DecodedProtobufGhost, version: 5 | 6 | 7): ParsedGhost {
+function parseDecodedProtobufGhost(
+	decoded: DecodedProtobufGhost,
+	version: 5 | 6 | 7 | 8,
+): ParsedGhost {
 	const frames = readProtobufFrames(decoded)
 	return {
 		version,
+		...(version === 8 ? { evidence: readRunEvidence(decoded) } : {}),
 		metadata: readProtobufMetadata(decoded),
 		capabilities: detectGhostCapabilities(frames, version),
 		frames,
 	}
+}
+
+export function parseDecodedV8(decoded: DecodedProtobufGhost): ParsedGhost {
+	if (decoded.version !== 8) throw new Error(`Invalid V8 ghost version ${decoded.version}`)
+	return parseDecodedProtobufGhost(decoded, 8)
 }

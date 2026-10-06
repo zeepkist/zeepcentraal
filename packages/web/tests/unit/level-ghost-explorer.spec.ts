@@ -210,7 +210,7 @@ describe('level bulk ghost rendering', () => {
 		expect(viewer).toContain('ghostMeshBatch?.configure(descriptors)')
 		expect(viewer).toContain('new GhostLevelMeshRenderer(')
 		expect(viewer).toContain(
-			'levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin)',
+			'levelMeshRenderer?.render(props.levelId, props.levelBlocks, grid.origin, props.levelAssetUrl)',
 		)
 		expect(viewer).toContain('new ProtectedMeshLibrary()')
 		expect(viewer).not.toContain('createLightweightMarker(')

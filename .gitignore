@@ -21,3 +21,5 @@ zeepcentraal-web/
 
 # Python evaluation caches at any depth.
 __pycache__/
+
+/.local/ghost-validation/

@@ -382,6 +382,7 @@ diesel::table! {
 diesel::table! {
     user (id) {
         id -> Integer,
+        role -> Text,
         steam_name -> Nullable<Varchar>,
         banned -> Bool,
         steam_id -> Nullable<BigInt>,

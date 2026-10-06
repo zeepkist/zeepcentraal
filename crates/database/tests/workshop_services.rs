@@ -2,14 +2,16 @@ use serde_json::json;
 use zc_database::{Database, services::workshop::WorkshopLevelInput};
 
 #[tokio::test]
-#[ignore = "requires disposable PostgreSQL with current workshop tables"]
+#[ignore = "requires fresh local workshop_validation_test database with current migrations"]
 async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyhow::Result<()> {
     zc_core::environment::initialize()?;
     let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
+    let parsed_url = url::Url::parse(&url)?;
     anyhow::ensure!(
-        url::Url::parse(&url)?
+        parsed_url
             .host_str()
-            .is_some_and(|host| matches!(host, "127.0.0.1" | "localhost")),
+            .is_some_and(|host| matches!(host, "127.0.0.1" | "localhost"))
+            && parsed_url.path() == "/workshop_validation_test",
         "Workshop integration test requires local disposable PostgreSQL"
     );
     let database = Database::connect(&url, 2).await?;
@@ -227,20 +229,41 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         .get(0);
     assert!(!deleted);
 
-    client
-        .execute("DELETE FROM public.level WHERE id=$1", &[&first.id_level])
-        .await?;
-    client
-        .execute(
-            "DELETE FROM public.workshop_item WHERE workshop_id=$1",
+    // Reset this disposable database after testing; evidence is intentionally immutable.
+    // A reused UID moves current membership, but retains both existing metadata versions.
+    let mut new_version = input.clone();
+    new_version.xx_hash = format!("{:032X}", suffix + 1_000_000);
+    new_version.blocks = json!([{"i":22},{"i":2},{"i":22}]);
+    let changed = database.upsert_workshop_level(&new_version).await?;
+    assert_ne!(changed.id_level, first.id_level);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&client
+            .query_one(
+                "SELECT blocks::text FROM public.level_metadata WHERE id_level=$1 ORDER BY id LIMIT 1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, String>(0))?,
+        input.blocks
+    );
+    assert_eq!(client.query_one("SELECT count(DISTINCT id_level) FROM zc_private.level_version_lineage WHERE workshop_id=$1 AND file_uid=$2", &[&workshop_id, &input.file_uid]).await?.get::<_, i64>(0), 2);
+    let membership_count = client
+        .query_one(
+            "SELECT count(*) FROM zc_private.level_version_lineage WHERE workshop_id=$1",
             &[&workshop_id],
         )
-        .await?;
-    client
-        .execute(
-            "DELETE FROM public.\"user\" WHERE steam_id=$1",
-            &[&steam_id],
-        )
-        .await?;
+        .await?
+        .get::<_, i64>(0);
+    database.upsert_workshop_level(&new_version).await?;
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM zc_private.level_version_lineage WHERE workshop_id=$1",
+                &[&workshop_id]
+            )
+            .await?
+            .get::<_, i64>(0),
+        membership_count
+    );
     Ok(())
 }

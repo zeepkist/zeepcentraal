@@ -123,7 +123,11 @@ export async function fetchAuthenticatedBackend<T>(
 		let cookie = getHeader(event, 'cookie')
 		let response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
 			...options,
-			headers: { ...(cookie ? { cookie } : {}), ...injectTraceCarrier() },
+			headers: {
+				...(cookie ? { cookie } : {}),
+				...(getHeader(event, 'origin') ? { origin: getHeader(event, 'origin') } : {}),
+				...injectTraceCarrier(),
+			},
 			credentials: 'include',
 			ignoreResponseError: true,
 		})
@@ -132,7 +136,11 @@ export async function fetchAuthenticatedBackend<T>(
 			cookie = mergeRequestCookies(cookie, refreshed.cookies)
 			response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
 				...options,
-				headers: { ...(cookie ? { cookie } : {}), ...injectTraceCarrier() },
+				headers: {
+					...(cookie ? { cookie } : {}),
+					...(getHeader(event, 'origin') ? { origin: getHeader(event, 'origin') } : {}),
+					...injectTraceCarrier(),
+				},
 				credentials: 'include',
 				ignoreResponseError: true,
 			})
