@@ -45,8 +45,8 @@ export function useSingleRecordTelemetryModel(
 			'max-g': value.hasVelocityData === true && value.maxGforce != null,
 		}
 		const chartAvailability: Record<string, boolean> = {
-			'surface-distance': value.hasSurfaceData === true,
-			'surface-time': value.hasSurfaceData === true,
+			'surface-distance': hasExtendedEventTelemetry || value.hasSurfaceData === true,
+			'surface-time': hasExtendedEventTelemetry || value.hasSurfaceData === true,
 			'movement-distance':
 				hasExtendedEventTelemetry ||
 				value.hasAirData === true ||

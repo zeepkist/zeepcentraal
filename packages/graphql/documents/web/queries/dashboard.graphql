@@ -308,7 +308,6 @@ fragment ZC_DashboardV6StatisticAggregates on RecordStatisticAggregates {
 query ZC_DashboardStatistics(
 	$daySince: Datetime!
 	$monthSince: Datetime!
-	$minimumModVersion: String!
 ) {
 	allTimeStatistics: recordStatistics(first: 0) {
 		aggregates {
@@ -340,9 +339,9 @@ query ZC_DashboardStatistics(
 	v6DayStatistics: recordStatistics(
 		first: 0
 		filter: {
+			ghostVersion: { greaterThanOrEqualTo: 6 }
 			record: {
 				dateCreated: { greaterThanOrEqualTo: $daySince }
-				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
 		}
 	) {
@@ -353,9 +352,9 @@ query ZC_DashboardStatistics(
 	v6MonthStatistics: recordStatistics(
 		first: 0
 		filter: {
+			ghostVersion: { greaterThanOrEqualTo: 6 }
 			record: {
 				dateCreated: { greaterThanOrEqualTo: $monthSince }
-				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
 		}
 	) {

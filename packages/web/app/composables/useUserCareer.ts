@@ -75,7 +75,6 @@ export function useUserCareer(steamId: Ref<string>, summaryData: UserProfileSumm
 		query: Zc_UserStatisticsDocument,
 		variables: computed(() => ({
 			userId: userId.value ?? 0,
-			minimumModVersion: '1.2.0',
 			daySince: telemetryWindows.value.daySince,
 			monthSince: telemetryWindows.value.monthSince,
 			yearSince: telemetryWindows.value.yearSince,

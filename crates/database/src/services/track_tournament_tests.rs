@@ -5,6 +5,10 @@ const REPAIR_UP: &str =
     include_str!("../../migrations/20260930010000_track_tournament_utc_boundaries/up.sql");
 const REPAIR_DOWN: &str =
     include_str!("../../migrations/20260930010000_track_tournament_utc_boundaries/down.sql");
+const SLUG_UP: &str =
+    include_str!("../../migrations/20261008030000_track_tournament_lowercase_week/up.sql");
+const SLUG_DOWN: &str =
+    include_str!("../../migrations/20261008030000_track_tournament_lowercase_week/down.sql");
 
 async fn fixture() -> Result<AsyncPgConnection> {
     let url = std::env::var("ZC_TEST_DATABASE_URL")?;
@@ -75,6 +79,125 @@ struct PeriodRow {
 
 #[tokio::test]
 #[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn slug_repair_preserves_tournaments_and_results_and_is_idempotent() -> Result<()> {
+    let mut connection = fixture().await?;
+    connection
+        .batch_execute(
+            r#"
+INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at,finalized_at,date_updated)
+SELECT kind,slug,n,statement_timestamp()+offset_days*interval '1 day',
+       statement_timestamp()+(offset_days+7)*interval '1 day',
+       CASE WHEN finalized THEN statement_timestamp()-interval '1 day' END,
+       statement_timestamp()-interval '2 days'
+FROM (VALUES
+    (1,0,'2026-W41',-1,false),
+    (2,0,'2025-W01',-400,false),
+    (3,0,'2026-W40',-8,true),
+    (4,0,'2027-W01',100,false),
+    (5,0,'2026-w39',-15,false),
+    (6,1,'2026-10',-2,false),
+    (7,1,'2026-W41',-3,false),
+    (8,0,'custom-W41',-4,false),
+    (9,0,'2026-W1',-5,false),
+    (10,0,'2026-W410',-6,false)
+) AS fixtures(n,kind,slug,offset_days,finalized);
+INSERT INTO public.track_tournament_result
+SELECT id,1,100+id,49.332,1,1000 FROM public.track_tournament;
+CREATE TEMP TABLE original_tournaments ON COMMIT DROP AS SELECT * FROM public.track_tournament;
+CREATE TEMP TABLE original_results ON COMMIT DROP AS SELECT * FROM public.track_tournament_result;
+"#,
+        )
+        .await?;
+    connection.batch_execute(SLUG_UP).await?;
+    let preserved: BooleanRow = sql_query(
+        r#"
+SELECT (SELECT count(*)=10 FROM public.track_tournament)
+   AND (SELECT bool_and(
+       to_jsonb(t)-'slug'=to_jsonb(o)-'slug'
+       AND t.slug=CASE WHEN o.id_level<=4 THEN replace(o.slug,'W','w') ELSE o.slug END
+   ) FROM public.track_tournament t JOIN original_tournaments o USING(id))
+   AND NOT EXISTS(
+       (SELECT * FROM public.track_tournament_result EXCEPT SELECT * FROM original_results)
+       UNION ALL
+       (SELECT * FROM original_results EXCEPT SELECT * FROM public.track_tournament_result)
+   ) AS value
+"#,
+    )
+    .get_result(&mut connection)
+    .await?;
+    assert!(preserved.value);
+    connection
+        .batch_execute(
+            "CREATE TEMP TABLE once_repaired ON COMMIT DROP AS SELECT * FROM public.track_tournament",
+        )
+        .await?;
+    connection.batch_execute(SLUG_UP).await?;
+    let repeated: BooleanRow = sql_query(
+        "SELECT NOT EXISTS((SELECT * FROM public.track_tournament EXCEPT SELECT * FROM once_repaired) \
+         UNION ALL (SELECT * FROM once_repaired EXCEPT SELECT * FROM public.track_tournament)) AS value",
+    )
+    .get_result(&mut connection)
+    .await?;
+    assert!(repeated.value);
+    connection.batch_execute("SAVEPOINT before_down").await?;
+    let error = connection.batch_execute(SLUG_DOWN).await.unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("Corrected tournament slugs cannot be automatically reverted")
+    );
+    connection
+        .batch_execute("ROLLBACK TO SAVEPOINT before_down")
+        .await?;
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn slug_repair_conflict_fails_without_partial_changes() -> Result<()> {
+    let mut connection = fixture().await?;
+    connection
+        .batch_execute(
+            r#"
+INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at)
+SELECT 0,slug,n,statement_timestamp()+n*interval '1 week',
+       statement_timestamp()+(n+1)*interval '1 week'
+FROM (VALUES (1,'2026-W40'),(2,'2026-W41'),(3,'2026-w41')) AS fixtures(n,slug);
+INSERT INTO public.track_tournament_result
+SELECT id,1,100+id,49.332,1,1000 FROM public.track_tournament;
+CREATE TEMP TABLE original_tournaments ON COMMIT DROP AS SELECT * FROM public.track_tournament;
+CREATE TEMP TABLE original_results ON COMMIT DROP AS SELECT * FROM public.track_tournament_result;
+SAVEPOINT before_repair;
+"#,
+        )
+        .await?;
+    let error = connection.batch_execute(SLUG_UP).await.unwrap_err();
+    assert!(matches!(
+        error,
+        diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)
+    ));
+    connection
+        .batch_execute("ROLLBACK TO SAVEPOINT before_repair")
+        .await?;
+    let preserved: BooleanRow = sql_query(
+        r#"
+SELECT NOT EXISTS(
+    (SELECT * FROM public.track_tournament EXCEPT SELECT * FROM original_tournaments)
+    UNION ALL (SELECT * FROM original_tournaments EXCEPT SELECT * FROM public.track_tournament)
+) AND NOT EXISTS(
+    (SELECT * FROM public.track_tournament_result EXCEPT SELECT * FROM original_results)
+    UNION ALL (SELECT * FROM original_results EXCEPT SELECT * FROM public.track_tournament_result)
+) AS value
+"#,
+    )
+    .get_result(&mut connection)
+    .await?;
+    assert!(preserved.value);
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
 async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
     let mut connection = fixture().await?;
     for zone in ["UTC", "Europe/London", "America/New_York"] {
@@ -86,25 +209,25 @@ async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
             (
                 0,
                 "2026-09-28T06:00:00Z",
-                "2026-W40",
+                "2026-w40",
                 "2026-10-05T06:00:00Z",
             ),
             (
                 0,
                 "2025-12-29T06:00:00Z",
-                "2026-W01",
+                "2026-w01",
                 "2026-01-05T06:00:00Z",
             ),
             (
                 0,
                 "2026-03-23T06:00:00Z",
-                "2026-W13",
+                "2026-w13",
                 "2026-03-30T06:00:00Z",
             ),
             (
                 0,
                 "2026-10-19T06:00:00Z",
-                "2026-W43",
+                "2026-w43",
                 "2026-10-26T06:00:00Z",
             ),
             (1, "2028-02-01T06:00:00Z", "2028-02", "2028-03-01T06:00:00Z"),

@@ -55,7 +55,6 @@ fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 }
 query ZC_UserStatistics(
 	$userId: Int!
-	$minimumModVersion: String!
 	$daySince: Datetime!
 	$monthSince: Datetime!
 	$yearSince: Datetime!
@@ -102,9 +101,9 @@ query ZC_UserStatistics(
 	v6Statistics: recordStatistics(
 		first: 0
 		filter: {
+			ghostVersion: { greaterThanOrEqualTo: 6 }
 			record: {
 				userId: { equalTo: $userId }
-				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
 		}
 	) {
@@ -116,10 +115,10 @@ query ZC_UserStatistics(
 	v6DayStatistics: recordStatistics(
 		first: 0
 		filter: {
+			ghostVersion: { greaterThanOrEqualTo: 6 }
 			record: {
 				userId: { equalTo: $userId }
 				dateCreated: { greaterThanOrEqualTo: $daySince }
-				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
 		}
 	) {
@@ -131,10 +130,10 @@ query ZC_UserStatistics(
 	v6MonthStatistics: recordStatistics(
 		first: 0
 		filter: {
+			ghostVersion: { greaterThanOrEqualTo: 6 }
 			record: {
 				userId: { equalTo: $userId }
 				dateCreated: { greaterThanOrEqualTo: $monthSince }
-				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
 		}
 	) {
@@ -146,10 +145,10 @@ query ZC_UserStatistics(
 	v6YearStatistics: recordStatistics(
 		first: 0
 		filter: {
+			ghostVersion: { greaterThanOrEqualTo: 6 }
 			record: {
 				userId: { equalTo: $userId }
 				dateCreated: { greaterThanOrEqualTo: $yearSince }
-				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
 		}
 	) {

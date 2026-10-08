@@ -1,4 +1,4 @@
-query ZC_LevelStatistics($levelId: Int!, $minimumModVersion: String!) {
+query ZC_LevelStatistics($levelId: Int!) {
 	allStatistics: recordStatistics(
 		first: 0
 		filter: { record: { levelId: { equalTo: $levelId } } }
@@ -13,9 +13,9 @@ query ZC_LevelStatistics($levelId: Int!, $minimumModVersion: String!) {
 	v6Statistics: recordStatistics(
 		first: 0
 		filter: {
+			ghostVersion: { greaterThanOrEqualTo: 6 }
 			record: {
 				levelId: { equalTo: $levelId }
-				modVersion: { greaterThanOrEqualTo: $minimumModVersion }
 			}
 		}
 	) {

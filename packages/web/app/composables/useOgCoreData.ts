@@ -26,7 +26,6 @@ export async function useOgDashboardData() {
 		query: Zc_DashboardStatisticsDocument,
 		variables: {
 			...windows,
-			minimumModVersion: '1.2.0',
 		},
 	})
 

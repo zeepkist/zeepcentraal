@@ -28,7 +28,7 @@ WITH period_start AS MATERIALIZED (
                AT TIME ZONE 'UTC') + interval '6 hours' AS window_start_at,
            ((utc_start + CASE WHEN $1=0 THEN interval '1 week' ELSE interval '1 month' END)
                AT TIME ZONE 'UTC') + interval '6 hours' AS end_at,
-           CASE WHEN $1=0 THEN to_char(utc_start, 'IYYY-"W"IW')
+           CASE WHEN $1=0 THEN to_char(utc_start, 'IYYY-"w"IW')
                 ELSE to_char(utc_start, 'YYYY-MM') END AS slug
     FROM period_start
 ), eligible AS MATERIALIZED (

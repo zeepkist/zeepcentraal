@@ -155,7 +155,7 @@ export function calculateGhostStatisticsFromIterable(
 	let hasAirStats = false
 	let hasWheelStats = false
 	let hasSlipStats = ghostVersion !== null && ghostVersion >= 6
-	let hasSurfaceStats = false
+	let hasSurfaceStats = ghostVersion !== null && ghostVersion >= 6
 	let hasParkingStats = false
 	let hasMonorailStats = false
 	let hasRagdollStats = ghostVersion !== null && ghostVersion >= 6

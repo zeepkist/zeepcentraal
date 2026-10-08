@@ -26,9 +26,11 @@ export function detectGhostCapabilities(
 				typeof frame.parkingBlock === 'boolean' ||
 				typeof frame.monorail === 'boolean',
 		),
-		surfaces: frames.some(
-			(frame) => typeof frame.surface === 'string' || Boolean(frame.surfaces?.length),
-		),
+		surfaces:
+			hasExtendedTelemetry ||
+			frames.some(
+				(frame) => typeof frame.surface === 'string' || Boolean(frame.surfaces?.length),
+			),
 		velocity: frames.some(
 			(frame) =>
 				frame.localVelocity !== undefined ||
