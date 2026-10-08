@@ -18,6 +18,123 @@ async fn fixture_url(database_name: &str) -> Result<String> {
 }
 
 #[tokio::test]
+#[ignore = "requires empty local ghost_validation_history_test database"]
+async fn corrected_attempts_supersede_failures_without_changing_records() -> Result<()> {
+    use serde_json::json;
+    use zc_core::ghost_validation::VALIDATOR_VERSION;
+    let url = fixture_url("ghost_validation_history_test").await?;
+    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move { connection.await.expect("fixture connection") });
+    client
+        .batch_execute(include_str!("fixtures/ghost_validation.sql"))
+        .await?;
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261006180000_ghost_validation/up.sql"
+        ))
+        .await?;
+    client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)),(2,repeat('b',32)); INSERT INTO public.record(id,id_user,id_level,time,date_created) VALUES(1276,1,1,10,'2020-01-01'); INSERT INTO public.personal_best_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.world_record_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.level_points(id_level,points) VALUES(1,100);").await?;
+    let database = Database::connect(&url, 2).await?;
+    let before = client.query_one("SELECT to_jsonb(r)::text, (SELECT jsonb_agg(p)::text FROM public.personal_best_global p), (SELECT jsonb_agg(w)::text FROM public.world_record_global w), (SELECT jsonb_agg(s)::text FROM public.level_points s) FROM public.record r WHERE id=1276", &[]).await?;
+    let snapshot = |id, hash: char| zc_database::services::ghost_validation::LevelSnapshot {
+        id,
+        id_level: id as i32,
+        canonical_hash: hash.to_string().repeat(32),
+        type_ground: 0,
+        type_skybox: 0,
+        file_uids: vec![],
+        format: 1,
+        blocks: json!([]),
+        environment: None,
+    };
+    let assigned = snapshot(1, 'a');
+    let candidate = snapshot(2, 'b');
+    let mut old = ValidationReport::failed("invalid_splits");
+    old.validator_version = "geometry-6".into();
+    database
+        .save_record_validation(Some(1276), 1, None, None, &old)
+        .await?;
+    old.comparison = true;
+    database
+        .save_record_validation(Some(1276), 1, Some(&assigned), None, &old)
+        .await?;
+    database
+        .save_record_validation(Some(1276), 1, Some(&candidate), None, &old)
+        .await?;
+    let filter = json!({"reasons":["invalid_splits","missing_ghost"]});
+    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
+    assert!(
+        database
+            .audit_record_ids(&json!({"reasons":["missing_ghost"]}))
+            .await?
+            .is_empty()
+    );
+    assert!(
+        database
+            .audit_record_ids(&json!({"reasons":["invalid_splits"],"afterId":1276}))
+            .await?
+            .is_empty()
+    );
+    let corrected = ValidationReport::uncertain("legacy_telemetry_incomplete");
+    database
+        .save_record_validation(Some(1276), 1, Some(&assigned), None, &corrected)
+        .await?;
+    // Partial progress does not skip outstanding candidate versions.
+    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
+    let mut comparison = corrected.clone();
+    comparison.comparison = true;
+    database
+        .save_record_validation(Some(1276), 1, Some(&assigned), None, &comparison)
+        .await?;
+    let mut outage = ValidationReport::uncertain("ghost_storage_unavailable");
+    outage.comparison = true;
+    database
+        .save_record_validation(Some(1276), 1, Some(&candidate), None, &outage)
+        .await?;
+    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
+    database
+        .save_record_validation(Some(1276), 1, Some(&candidate), None, &comparison)
+        .await?;
+    assert!(database.audit_record_ids(&filter).await?.is_empty());
+    let latest = database
+        .admin_validations(0, Some(1276), None, &json!({}))
+        .await?;
+    assert_eq!(latest.len(), 3);
+    assert!(
+        latest
+            .iter()
+            .all(|v| v["status"] == "uncertain" && v["validator_version"] == VALIDATOR_VERSION)
+    );
+    assert!(
+        database
+            .admin_validations(0, Some(1276), Some("fail"), &json!({}))
+            .await?
+            .is_empty()
+    );
+    let history = database
+        .admin_validations(0, Some(1276), Some("fail"), &json!({"history":true}))
+        .await?;
+    assert_eq!(history.len(), 3);
+    assert_eq!(database.record_validation_attempts(1276).await?.len(), 7);
+    let after = latest[0]["id"].as_str().unwrap().parse()?;
+    assert_eq!(
+        database
+            .admin_validations(after, Some(1276), None, &json!({}))
+            .await?
+            .len(),
+        2
+    );
+    let after = client.query_one("SELECT to_jsonb(r)::text, (SELECT jsonb_agg(p)::text FROM public.personal_best_global p), (SELECT jsonb_agg(w)::text FROM public.world_record_global w), (SELECT jsonb_agg(s)::text FROM public.level_points s) FROM public.record r WHERE id=1276", &[]).await?;
+    for index in 0..4 {
+        assert_eq!(
+            before.get::<_, String>(index),
+            after.get::<_, String>(index)
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
 #[ignore = "requires empty local ghost_validation_migration_test database"]
 async fn migration_round_trip_and_immutable_lineage() -> Result<()> {
     let url = fixture_url("ghost_validation_migration_test").await?;

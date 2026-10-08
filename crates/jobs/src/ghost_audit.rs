@@ -11,6 +11,7 @@ use zc_core::{
     ghosts::{MAX_GHOST_COMPRESSED_BYTES, parse_ghost},
 };
 use zc_database::Database;
+use zc_database::services::ghost_validation::{AuditRecord, LevelSnapshot};
 
 pub struct GhostAuditService {
     database: Database,
@@ -24,6 +25,38 @@ impl GhostAuditService {
             queue,
             storage,
         }
+    }
+    async fn save_unavailable_evidence(
+        &self,
+        record: &AuditRecord,
+        snapshot: Option<&LevelSnapshot>,
+        report: &ValidationReport,
+    ) -> Result<()> {
+        self.database
+            .save_record_validation(Some(record.id), record.id_user, snapshot, None, report)
+            .await?;
+        for candidate in self
+            .database
+            .validation_candidates(record.id_level)
+            .await?
+            .iter()
+            .filter(|candidate| candidate.verified())
+        {
+            let comparison = ValidationReport {
+                comparison: true,
+                ..report.clone()
+            };
+            self.database
+                .save_record_validation(
+                    Some(record.id),
+                    record.id_user,
+                    Some(candidate),
+                    None,
+                    &comparison,
+                )
+                .await?;
+        }
+        Ok(())
     }
     pub async fn validate_record_ghost(&self, payload: &serde_json::Value) -> Result<()> {
         static SLOTS: std::sync::OnceLock<tokio::sync::Semaphore> = std::sync::OnceLock::new();
@@ -39,17 +72,15 @@ impl GhostAuditService {
             .database
             .validation_snapshot(&record.canonical_hash)
             .await?;
-        let Some(url) = &record.ghost_url else {
-            return self
-                .database
-                .save_record_validation(
-                    Some(id),
-                    record.id_user,
-                    snapshot.as_ref(),
-                    None,
-                    &ValidationReport::uncertain("missing_ghost"),
-                )
-                .await;
+        let Some(url) = record
+            .ghost_url
+            .as_ref()
+            .filter(|url| !url.trim().is_empty())
+        else {
+            let report = ValidationReport::failed("missing_ghost");
+            self.save_unavailable_evidence(&record, snapshot.as_ref(), &report)
+                .await?;
+            return Ok(());
         };
         let bytes = match self
             .storage
@@ -65,15 +96,12 @@ impl GhostAuditService {
             Ok(bytes) => bytes,
             // Storage failures retry. An unavailable object is not proof of an invalid run.
             Err(error) => {
-                self.database
-                    .save_record_validation(
-                        Some(id),
-                        record.id_user,
-                        snapshot.as_ref(),
-                        None,
-                        &ValidationReport::uncertain("ghost_storage_unavailable"),
-                    )
-                    .await?;
+                self.save_unavailable_evidence(
+                    &record,
+                    snapshot.as_ref(),
+                    &ValidationReport::uncertain("ghost_storage_unavailable"),
+                )
+                .await?;
                 return Err(error);
             }
         };
@@ -86,10 +114,21 @@ impl GhostAuditService {
             let ghost = match parse_ghost(&bytes) {
                 Ok(ghost) => ghost,
                 Err(_) => {
-                    return (
-                        ValidationReport::uncertain("unsupported_or_invalid_ghost"),
-                        vec![],
-                    );
+                    let report = ValidationReport::uncertain("unsupported_or_invalid_ghost");
+                    let comparisons = candidates
+                        .iter()
+                        .filter(|candidate| candidate.verified())
+                        .map(|candidate| {
+                            (
+                                candidate.clone(),
+                                ValidationReport {
+                                    comparison: true,
+                                    ..report.clone()
+                                },
+                            )
+                        })
+                        .collect();
+                    return (report, comparisons);
                 }
             };
             let context = SubmissionContext {
@@ -193,7 +232,7 @@ mod tests {
 
     #[test]
     fn full_page_preserves_filters_and_resumes_after_last_record() {
-        let payload = json!({"idLevel":7,"workshopId":"123","from":"2026-01-01T00:00:00Z","to":"2026-02-01T00:00:00Z","afterId":20});
+        let payload = json!({"idLevel":7,"workshopId":"123","from":"2026-01-01T00:00:00Z","to":"2026-02-01T00:00:00Z","afterId":20,"reasons":["invalid_splits","missing_ghost"]});
         let ids: Vec<_> = (21..=120).collect();
         let page = audit_page(&payload, &ids);
         assert_eq!(page.records, ids);

@@ -185,6 +185,250 @@ fn context() -> SubmissionContext<'static> {
     }
 }
 #[test]
+fn unavailable_or_invalid_legacy_values_remain_uncertain_and_identity_still_fails() {
+    let (template, blocks, manifest) = fixture();
+    for version in 1..=7 {
+        let mut ghost = template.clone();
+        ghost.version = version;
+        ghost.evidence = None;
+        for (splits, speeds) in [
+            (&[][..], &[][..]),
+            (&[0.5][..], &[][..]),
+            (&[][..], &[36.][..]),
+            (&[0.5][..], &[36., 37.][..]),
+            (&[-1.][..], &[36.][..]),
+            (&[9.][..], &[-1.][..]),
+            (&[f32::NAN][..], &[f32::INFINITY][..]),
+        ] {
+            let c = SubmissionContext {
+                splits,
+                speeds,
+                ..context()
+            };
+            for identity in [None, Some("0".into()), Some("".into())] {
+                ghost.metadata.steam_id = identity;
+                let report = validate(&ghost, &c, Some(&blocks), Some(&manifest));
+                assert_eq!(
+                    report.status, "uncertain",
+                    "V{version}: {:?}",
+                    report.reasons
+                );
+                assert!(!report.reasons.contains(&"invalid_splits".into()));
+            }
+            ghost.metadata.steam_id = Some("43".into());
+            let report = validate(&ghost, &c, Some(&blocks), None);
+            assert_eq!(report.status, "fail");
+            assert!(report.reasons.contains(&"wrong_steam_id".into()));
+        }
+    }
+}
+#[test]
+fn v4_supports_splits_without_checkpoint_speeds() {
+    let (mut ghost, blocks, manifest) = fixture();
+    ghost.version = 4;
+    ghost.evidence = None;
+    let c = SubmissionContext {
+        speeds: &[],
+        ..context()
+    };
+    let report = validate(&ghost, &c, Some(&blocks), Some(&manifest));
+    assert!(
+        !report
+            .reasons
+            .iter()
+            .any(|reason| reason.starts_with("legacy_telemetry_")),
+        "{:?}",
+        report.reasons
+    );
+    for version in 5..=7 {
+        ghost.version = version;
+        let report = validate(&ghost, &c, Some(&blocks), Some(&manifest));
+        assert!(
+            report
+                .reasons
+                .contains(&"legacy_telemetry_incomplete".into())
+        );
+        assert_eq!(report.status, "uncertain");
+    }
+}
+
+#[test]
+fn supplied_legacy_checkpoint_arrays_prove_shortfalls_without_manifest() {
+    let (mut ghost, mut blocks, _) = fixture();
+    let mut checkpoint = blocks
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|block| block["i"] == 22)
+        .unwrap()
+        .clone();
+    checkpoint["u"] = json!("second-checkpoint");
+    blocks.as_array_mut().unwrap().push(checkpoint);
+    for version in 1..=7 {
+        ghost.version = version;
+        ghost.evidence = None;
+        let report = validate(&ghost, &context(), Some(&blocks), None);
+        assert_eq!(report.status, "fail", "V{version}: {:?}", report.reasons);
+        assert!(
+            report
+                .reasons
+                .contains(&"missing_checkpoint_telemetry".into())
+        );
+    }
+}
+#[test]
+fn legacy_count_shortfalls_use_linked_groups_and_ignore_missing_telemetry() {
+    let (mut ghost, _, _) = fixture();
+    let blocks: Value = serde_json::from_str(include_str!(
+        "fixtures/ghost-validation/linked_checkpoints_2.json"
+    ))
+    .unwrap();
+    for version in 1..=7 {
+        ghost.version = version;
+        ghost.evidence = None;
+        for (splits, speeds, expected) in [
+            (&[][..], &[][..], "uncertain"),
+            (&[0.2][..], &[][..], "fail"),
+            (&[][..], &[36.][..], "fail"),
+            (&[0.2, 0.5][..], &[][..], "uncertain"),
+            (&[][..], &[36., 37.][..], "uncertain"),
+            (&[0.2, 0.5][..], &[36., 37.][..], "uncertain"),
+        ] {
+            let report = validate(
+                &ghost,
+                &SubmissionContext {
+                    splits,
+                    speeds,
+                    ..context()
+                },
+                Some(&blocks),
+                None,
+            );
+            assert_eq!(report.status, expected, "V{version}: {:?}", report.reasons);
+        }
+    }
+}
+#[test]
+fn continuous_legacy_trajectory_proves_distant_missing_checkpoint() {
+    let (mut ghost, mut blocks, mut manifest) = fixture();
+    blocks
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"i":22,"u":"missed","p":{"x":50}}));
+    manifest.calibrated = false;
+    ghost.evidence = None;
+    ghost.frames = (0..=50)
+        .map(|i| GhostFrame {
+            time: f64::from(i) * 0.02,
+            position: Vector3 {
+                x: f64::from(i) * 0.2,
+                y: 0.,
+                z: 0.,
+            },
+            ..Default::default()
+        })
+        .collect();
+    let context = SubmissionContext {
+        splits: &[],
+        speeds: &[],
+        ..context()
+    };
+    for version in 1..=7 {
+        ghost.version = version;
+        let report = validate(&ghost, &context, Some(&blocks), Some(&manifest));
+        assert_eq!(report.status, "fail", "V{version}: {:?}", report.reasons);
+        assert_eq!(report.missing_groups, vec![vec!["missed"]]);
+        assert!(report.reasons.contains(&"missing_checkpoint_groups".into()));
+        ghost.frames[10].ragdoll = Some(true);
+        assert_eq!(
+            validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+            "uncertain"
+        );
+        ghost.frames[10].ragdoll = None;
+    }
+    let mut nearby = blocks.clone();
+    nearby[3]["p"]["x"] = json!(12);
+    assert_eq!(
+        validate(&ghost, &context, Some(&nearby), Some(&manifest)).status,
+        "uncertain",
+        "car-root offset envelope must prevent near-contact failures"
+    );
+    let mut linked = blocks.clone();
+    linked[3]["d"] = json!({"n":{"id0":1},"t":{"id0-0":"{\"t\":\"cp\",\"c\":0,\"a\":true}"}});
+    let report = validate(&ghost, &context, Some(&linked), Some(&manifest));
+    assert_eq!(report.status, "uncertain");
+    assert!(report.missing_groups.is_empty());
+    ghost.frames.drain(10..30);
+    assert_eq!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+        "uncertain"
+    );
+}
+#[test]
+fn uncertain_checkpoint_links_cannot_prove_legacy_count_shortfall() {
+    let (mut ghost, _, _) = fixture();
+    ghost.version = 5;
+    ghost.evidence = None;
+    let blocks = json!([
+        {"i":22,"u":"one","d":{"n":{"id0":1},"t":{"id0-0":"invalid"}}},
+        {"i":22,"u":"two"}
+    ]);
+    let report = validate(&ghost, &context(), Some(&blocks), None);
+    assert_eq!(report.status, "uncertain");
+    assert!(
+        !report
+            .reasons
+            .contains(&"missing_checkpoint_telemetry".into())
+    );
+}
+#[test]
+fn v8_zero_checkpoint_level_passes_with_empty_telemetry() {
+    let (mut ghost, mut blocks, manifest) = fixture();
+    blocks
+        .as_array_mut()
+        .unwrap()
+        .retain(|block| block["i"] != 22);
+    ghost
+        .evidence
+        .as_mut()
+        .unwrap()
+        .events
+        .retain(|event| event.finish);
+    let c = SubmissionContext {
+        splits: &[],
+        speeds: &[],
+        ..context()
+    };
+    let report = validate(&ghost, &c, Some(&blocks), Some(&manifest));
+    assert_eq!(report.status, "pass", "{:?}", report.reasons);
+    assert!(report.matched_groups.is_empty());
+    assert!(report.missing_groups.is_empty());
+}
+#[test]
+fn v8_split_and_event_checks_remain_strict() {
+    let (ghost, blocks, manifest) = fixture();
+    for (splits, speeds, reason) in [
+        (&[0.5][..], &[][..], "invalid_splits"),
+        (&[-1.][..], &[36.][..], "invalid_splits"),
+        (&[0.5][..], &[-1.][..], "invalid_splits"),
+        (&[][..], &[][..], "event_split_count_mismatch"),
+        (&[0.4][..], &[36.][..], "event_split_values_mismatch"),
+    ] {
+        let c = SubmissionContext {
+            splits,
+            speeds,
+            ..context()
+        };
+        let report = validate(&ghost, &c, Some(&blocks), Some(&manifest));
+        assert_eq!(report.status, "fail");
+        assert!(
+            report.reasons.contains(&reason.into()),
+            "{:?}",
+            report.reasons
+        );
+    }
+}
+#[test]
 fn calibrated_run_checks_finish_correction_and_every_checkpoint() {
     let (ghost, blocks, manifest) = fixture();
     let context = context();
@@ -225,8 +469,13 @@ fn missing_data_and_uncalibrated_geometry_never_prove_checkpoint_failure() {
     ghost.evidence = None;
     ghost.version = 7;
     ghost.frames[0].ragdoll = Some(true);
+    let absent_telemetry = SubmissionContext {
+        splits: &[],
+        speeds: &[],
+        ..context()
+    };
     assert_eq!(
-        validate(&ghost, &context(), Some(&blocks), Some(&manifest)).status,
+        validate(&ghost, &absent_telemetry, Some(&blocks), Some(&manifest)).status,
         "uncertain"
     );
 }

@@ -2,12 +2,56 @@ use crate::Database;
 use anyhow::Result;
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{Array, BigInt, Float, Integer, Jsonb, Nullable, Text},
+    sql_types::{Array, BigInt, Bool, Float, Integer, Jsonb, Nullable, Text},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
 use serde_json::Value;
-use zc_core::ghost_validation::ValidationReport;
+use zc_core::ghost_validation::{VALIDATOR_VERSION, ValidationReport};
+
+const AUDIT_RECORD_IDS_QUERY: &str = r#"
+SELECT r.id FROM public.record r
+WHERE r.id>$1
+  AND ($2::integer IS NULL OR r.id=$2)
+  AND ($3::integer IS NULL OR r.id_level=$3)
+  AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM zc_private.level_version_lineage o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
+  AND ($5::text IS NULL OR r.date_created >= $5::timestamptz)
+  AND ($6::text IS NULL OR r.date_created < $6::timestamptz)
+  AND (cardinality($7::text[])=0 OR EXISTS(
+    SELECT 1 FROM zc_private.record_validation old
+    WHERE old.id_record=r.id AND old.validator_version<>$8 AND old.report->'reasons' ?| $7
+      AND NOT EXISTS(
+        SELECT 1 FROM zc_private.record_validation newer
+        WHERE newer.id_record=old.id_record AND newer.id>old.id AND newer.validator_version=$8
+          AND coalesce(newer.report->>'comparison','false')=coalesce(old.report->>'comparison','false')
+          AND (newer.level_xx_hash IS NOT DISTINCT FROM old.level_xx_hash OR
+            (coalesce(old.report->>'comparison','false')='false' AND (old.level_xx_hash IS NULL OR newer.level_xx_hash IS NULL)))
+          AND newer.status IN ('pass','fail','uncertain')
+          AND NOT (newer.report->'reasons' ? 'ghost_storage_unavailable')
+      )
+  ))
+ORDER BY r.id LIMIT 100
+"#;
+
+const ADMIN_VALIDATIONS_QUERY: &str = r#"
+SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text) AS data
+FROM zc_private.record_validation v
+WHERE v.id>$1
+  AND ($8::boolean OR v.id_record IS NULL OR NOT EXISTS(
+    SELECT 1 FROM zc_private.record_validation newer
+    WHERE newer.id_record=v.id_record AND newer.id>v.id
+      AND coalesce(newer.report->>'comparison','false')=coalesce(v.report->>'comparison','false')
+      AND (newer.level_xx_hash IS NOT DISTINCT FROM v.level_xx_hash OR
+        (coalesce(v.report->>'comparison','false')='false' AND (v.level_xx_hash IS NULL OR newer.level_xx_hash IS NULL)))
+  ))
+  AND ($2::integer IS NULL OR v.id_record=$2)
+  AND ($3::text IS NULL OR v.status=$3)
+  AND ($4::integer IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.id_level=$4))
+  AND ($5::bigint IS NULL OR EXISTS(SELECT 1 FROM public.record r JOIN zc_private.level_version_lineage o ON o.id_level=r.id_level WHERE r.id=v.id_record AND o.workshop_id=$5))
+  AND ($6::text IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.date_created >= $6::timestamptz))
+  AND ($7::text IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.date_created < $7::timestamptz))
+ORDER BY v.id LIMIT 100
+"#;
 
 #[derive(Clone, Debug, QueryableByName, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -159,8 +203,30 @@ impl Database {
         }
         let integer = |key: &str| filter[key].as_i64().and_then(|v| i32::try_from(v).ok());
         let mut c = self.connection().await?;
-        Ok(sql_query("SELECT r.id FROM public.record r WHERE r.id>$1 AND ($2::integer IS NULL OR r.id=$2) AND ($3::integer IS NULL OR r.id_level=$3) AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM zc_private.level_version_lineage o WHERE o.id_level=r.id_level AND o.workshop_id=$4)) AND ($5::text IS NULL OR r.date_created >= $5::timestamptz) AND ($6::text IS NULL OR r.date_created < $6::timestamptz) ORDER BY r.id LIMIT 100")
-  .bind::<Integer,_>(integer("afterId").unwrap_or(0)).bind::<Nullable<Integer>,_>(integer("idRecord")).bind::<Nullable<Integer>,_>(integer("idLevel")).bind::<Nullable<BigInt>,_>(filter["workshopId"].as_str().and_then(|v|v.parse::<i64>().ok())).bind::<Nullable<Text>,_>(filter["from"].as_str()).bind::<Nullable<Text>,_>(filter["to"].as_str()).load::<Id>(&mut c).await?.into_iter().map(|r|r.id).collect())
+        let reasons: Vec<String> = filter["reasons"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|v| v.as_str().map(str::to_owned))
+            .collect();
+        Ok(sql_query(AUDIT_RECORD_IDS_QUERY)
+            .bind::<Integer, _>(integer("afterId").unwrap_or(0))
+            .bind::<Nullable<Integer>, _>(integer("idRecord"))
+            .bind::<Nullable<Integer>, _>(integer("idLevel"))
+            .bind::<Nullable<BigInt>, _>(
+                filter["workshopId"]
+                    .as_str()
+                    .and_then(|v| v.parse::<i64>().ok()),
+            )
+            .bind::<Nullable<Text>, _>(filter["from"].as_str())
+            .bind::<Nullable<Text>, _>(filter["to"].as_str())
+            .bind::<Array<Text>, _>(reasons)
+            .bind::<Text, _>(VALIDATOR_VERSION)
+            .load::<Id>(&mut c)
+            .await?
+            .into_iter()
+            .map(|r| r.id)
+            .collect())
     }
     pub async fn validation_candidates(&self, id_level: i32) -> Result<Vec<LevelSnapshot>> {
         let mut c = self.connection().await?;
@@ -179,7 +245,27 @@ impl Database {
         filter: &Value,
     ) -> Result<Vec<Value>> {
         let mut c = self.connection().await?;
-        Ok(sql_query("SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text) AS data FROM zc_private.record_validation v WHERE v.id>$1 AND ($2::integer IS NULL OR v.id_record=$2) AND ($3::text IS NULL OR v.status=$3) AND ($4::integer IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.id_level=$4)) AND ($5::bigint IS NULL OR EXISTS(SELECT 1 FROM public.record r JOIN zc_private.level_version_lineage o ON o.id_level=r.id_level WHERE r.id=v.id_record AND o.workshop_id=$5)) AND ($6::text IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.date_created >= $6::timestamptz)) AND ($7::text IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.date_created < $7::timestamptz)) ORDER BY v.id LIMIT 100")
-  .bind::<BigInt,_>(after).bind::<Nullable<Integer>,_>(record).bind::<Nullable<Text>,_>(status).bind::<Nullable<Integer>,_>(filter["idLevel"].as_i64().and_then(|v|i32::try_from(v).ok())).bind::<Nullable<BigInt>,_>(filter["workshopId"].as_str().and_then(|v|v.parse::<i64>().ok())).bind::<Nullable<Text>,_>(filter["from"].as_str()).bind::<Nullable<Text>,_>(filter["to"].as_str()).load::<JsonRow>(&mut c).await?.into_iter().map(|r|r.data).collect())
+        Ok(sql_query(ADMIN_VALIDATIONS_QUERY)
+            .bind::<BigInt, _>(after)
+            .bind::<Nullable<Integer>, _>(record)
+            .bind::<Nullable<Text>, _>(status)
+            .bind::<Nullable<Integer>, _>(
+                filter["idLevel"]
+                    .as_i64()
+                    .and_then(|v| i32::try_from(v).ok()),
+            )
+            .bind::<Nullable<BigInt>, _>(
+                filter["workshopId"]
+                    .as_str()
+                    .and_then(|v| v.parse::<i64>().ok()),
+            )
+            .bind::<Nullable<Text>, _>(filter["from"].as_str())
+            .bind::<Nullable<Text>, _>(filter["to"].as_str())
+            .bind::<Bool, _>(filter["history"].as_bool().unwrap_or(false))
+            .load::<JsonRow>(&mut c)
+            .await?
+            .into_iter()
+            .map(|r| r.data)
+            .collect())
     }
 }

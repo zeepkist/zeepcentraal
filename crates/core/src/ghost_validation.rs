@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const VALIDATOR_VERSION: &str = "geometry-6";
+pub const VALIDATOR_VERSION: &str = "geometry-8";
 pub const MAX_BLOCKS: usize = 20_000;
 pub const MAX_QUERY_WORK: usize = 2_000_000;
 pub const START_IDS: &[i64] = &[1, 1363, 2256, 2259];
@@ -83,6 +83,12 @@ pub struct ValidationReport {
     pub validator_version: String,
 }
 impl ValidationReport {
+    pub fn failed(reason: &str) -> Self {
+        Self {
+            status: "fail".into(),
+            ..Self::uncertain(reason)
+        }
+    }
     pub fn uncertain(reason: &str) -> Self {
         Self {
             comparison: false,
@@ -103,6 +109,69 @@ impl ValidationReport {
         }
         if !self.reasons.iter().any(|r| r == reason) {
             self.reasons.push(reason.into());
+        }
+    }
+}
+
+/// Checkpoint telemetry travels in submission fields, not V1–V7 ghost payloads.
+/// GTR commit 34cc643 records V4 splits, without speeds. Earlier submission
+/// implementations are absent from available history, so their support is unknown.
+fn checkpoint_telemetry_capabilities(version: i32) -> (Option<bool>, Option<bool>) {
+    match version {
+        1..=3 => (None, None),
+        4 => (Some(true), Some(false)),
+        5.. => (Some(true), Some(true)),
+        _ => (None, None),
+    }
+}
+
+fn validate_checkpoint_telemetry(
+    ghost: &ParsedGhost,
+    context: &SubmissionContext<'_>,
+    group_count: Option<usize>,
+    report: &mut ValidationReport,
+) {
+    let legacy = (1..=7).contains(&ghost.version);
+    let (splits_supported, speeds_supported) = checkpoint_telemetry_capabilities(ghost.version);
+    if legacy && splits_supported.is_none() && context.splits.is_empty() {
+        report.uncertainty("legacy_telemetry_capabilities_unknown");
+    }
+    let invalid_values = context
+        .splits
+        .iter()
+        .any(|v| !v.is_finite() || *v < 0. || f64::from(*v) > context.time + 0.25)
+        || context.splits.windows(2).any(|pair| pair[1] < pair[0])
+        || context.speeds.iter().any(|v| !v.is_finite() || *v < 0.);
+    let mismatch = context.splits.len() != context.speeds.len();
+    if !legacy {
+        if invalid_values || mismatch {
+            report.fail("invalid_splits");
+        }
+        return;
+    }
+    if invalid_values || (mismatch && !context.splits.is_empty() && !context.speeds.is_empty()) {
+        report.uncertainty("legacy_telemetry_inconsistent");
+    }
+    if mismatch
+        && speeds_supported == Some(true)
+        && (context.splits.is_empty() || context.speeds.is_empty())
+    {
+        report.uncertainty("legacy_telemetry_incomplete");
+    }
+    if let Some(count) = group_count {
+        for (values, supported) in [
+            (context.splits, splits_supported),
+            (context.speeds, speeds_supported),
+        ] {
+            if supported == Some(true) && values.is_empty() && count > 0 {
+                report.uncertainty("legacy_telemetry_incomplete");
+            } else if !values.is_empty() && values.len() < count {
+                // Supplied checkpoint telemetry proves a shortfall even for old formats.
+                // Empty arrays remain unavailable evidence, not zero checkpoint hits.
+                report.fail("missing_checkpoint_telemetry");
+            } else if !values.is_empty() && values.len() > count {
+                report.uncertainty("legacy_telemetry_inconsistent");
+            }
         }
     }
 }
@@ -435,19 +504,12 @@ pub fn validate(
         .metadata
         .steam_id
         .as_deref()
+        .filter(|id| !((1..=7).contains(&ghost.version) && (id.trim().is_empty() || *id == "0")))
         .is_some_and(|id| id != context.steam_id)
     {
         report.fail("wrong_steam_id");
     }
-    if context.splits.len() != context.speeds.len()
-        || context
-            .splits
-            .iter()
-            .any(|v| *v < 0. || f64::from(*v) > context.time + 0.25)
-        || context.speeds.iter().any(|v| *v < 0.)
-    {
-        report.fail("invalid_splits");
-    }
+    validate_checkpoint_telemetry(ghost, context, None, &mut report);
     if ghost
         .frames
         .windows(2)
@@ -521,6 +583,10 @@ pub fn validate(
     for reason in &graph.reasons {
         report.uncertainty(reason);
     }
+    if (1..=7).contains(&ghost.version) && graph.reasons.is_empty() {
+        // Counting does not require collider exports. Malformed links cannot prove a count.
+        validate_checkpoint_telemetry(ghost, context, Some(graph.groups.len()), &mut report);
+    }
     let Some(manifest) = manifest else {
         report.uncertainty("missing_validation_manifest");
         return report;
@@ -557,7 +623,7 @@ pub fn validate(
         submission_level: String::new(),
         canonical_hash: String::new(),
         initial_time: ghost.frames.first().map_or(0., |f| f.time),
-        physics_interval: 0.02,
+        physics_interval: manifest.physics_interval,
         samples: ghost
             .frames
             .iter()
@@ -595,9 +661,15 @@ pub fn validate(
     };
     let complete = e.samples[0].time == e.initial_time
         && (e.physics_interval - manifest.physics_interval).abs() < 0.00001
-        && e.samples
-            .windows(2)
-            .all(|p| p[1].time >= p[0].time && p[1].time - p[0].time <= e.physics_interval * 1.5)
+        && e.samples.windows(2).all(|p| {
+            p[1].time >= p[0].time
+                && p[1].time - p[0].time
+                    <= if legacy {
+                        e.physics_interval * 2.5 + 0.001
+                    } else {
+                        e.physics_interval * 1.5
+                    }
+        })
         && e.samples
             .iter()
             .all(|s| (s.radius - trusted_radius(s.time)).abs() <= manifest.position_tolerance);
@@ -985,12 +1057,35 @@ pub fn validate(
     }
     if !report.missing_groups.is_empty() {
         if legacy {
-            report.uncertainty("missing_checkpoint_groups");
+            // Legacy positions use the expanded car-root envelope above. Accept a geometric
+            // absence only after the whole run reaches a known finish without sampling gaps.
+            // Ragdolls can move the head independently from the recorded car position.
+            let continuous_run = complete
+                && e.samples.first().is_some_and(|s| s.time <= 0.1)
+                && e.samples
+                    .last()
+                    .is_some_and(|s| (s.time - context.time).abs() <= 0.25)
+                && e.samples.iter().all(finite_sample)
+                && e.samples.windows(2).all(|pair| {
+                    let gap = pair[1].time - pair[0].time;
+                    gap > 0. && gap <= manifest.physics_interval * 2.5 + 0.001
+                });
+            if continuous_run
+                && geometry_complete
+                && finish_hit
+                && !ghost.frames.iter().any(|frame| frame.ragdoll == Some(true))
+            {
+                report.fail("missing_checkpoint_groups");
+            } else {
+                report.uncertainty("missing_checkpoint_groups");
+            }
         } else {
             miss(&mut report, "missing_checkpoint_groups");
         }
     }
-    if context.splits.len() != report.matched_groups.len() + report.missing_groups.len() {
+    if !(1..=7).contains(&ghost.version)
+        && context.splits.len() != report.matched_groups.len() + report.missing_groups.len()
+    {
         miss(&mut report, "wrong_split_count");
     }
     report

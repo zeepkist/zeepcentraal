@@ -82,6 +82,18 @@ async function collectBackfillOptions(prompt: PromptAdapter): Promise<JobOptions
 	}
 }
 
+async function collectGhostAuditOptions(prompt: PromptAdapter): Promise<JobOptions> {
+	const mode = await prompt.select({
+		message: 'Choose ghost audit scope',
+		options: [
+			{ value: 'all', label: 'All historical records' },
+			{ value: 'repair', label: 'Correct legacy splits and missing ghosts' },
+		],
+		initialValue: 'all',
+	})
+	return mode === 'repair' ? { reasons: ['invalid_splits', 'missing_ghost'] } : {}
+}
+
 async function collectGhostBatchOptions(prompt: PromptAdapter): Promise<JobOptions> {
 	const ids = await prompt.text({
 		message: 'Record IDs (maximum 500)',
@@ -249,7 +261,7 @@ export const jobPromptDefinitions = {
 		category: 'Ghosts',
 		label: 'Audit record ghosts',
 		description: 'Report geometry compatibility for all records without changing eligibility',
-		collectOptions: emptyOptions,
+		collectOptions: collectGhostAuditOptions,
 	},
 	validateRecordGhost: {
 		category: 'Ghosts',

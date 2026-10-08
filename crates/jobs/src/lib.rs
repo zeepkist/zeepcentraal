@@ -164,7 +164,13 @@ impl TaskIdentifier {
                 object.keys().all(|key| {
                     matches!(
                         key.as_str(),
-                        "afterId" | "idRecord" | "idLevel" | "workshopId" | "from" | "to"
+                        "afterId"
+                            | "idRecord"
+                            | "idLevel"
+                            | "workshopId"
+                            | "from"
+                            | "to"
+                            | "reasons"
                     )
                 }) && ["idRecord", "idLevel"].iter().all(|key| {
                     object.get(*key).is_none_or(|v| {
@@ -176,6 +182,14 @@ impl TaskIdentifier {
                 }) && object.get("workshopId").is_none_or(|v| {
                     v.as_str()
                         .is_some_and(|s| s.parse::<i64>().is_ok_and(|id| id > 0))
+                }) && object.get("reasons").is_none_or(|value| {
+                    value.as_array().is_some_and(|reasons| {
+                        !reasons.is_empty()
+                            && reasons.len() <= 2
+                            && reasons.iter().all(|reason| {
+                                matches!(reason.as_str(), Some("invalid_splits" | "missing_ghost"))
+                            })
+                    })
                 }) && ["from", "to"].iter().all(|key| {
                     object.get(*key).is_none_or(|v| {
                         v.as_str()
@@ -322,6 +336,18 @@ mod tests {
         assert!(TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":1})));
         assert!(!TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":0})));
         assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({})));
+        assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(
+            &json!({"idRecord":1276,"reasons":["invalid_splits","missing_ghost"]})
+        ));
+        for reasons in [
+            json!([]),
+            json!(["wrong_steam_id"]),
+            json!(["missing_ghost", "missing_ghost", "missing_ghost"]),
+        ] {
+            assert!(
+                !TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({"reasons":reasons}))
+            );
+        }
         assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(
             &json!({"afterId":100,"idLevel":2,"workshopId":"3","from":"2026-01-01T00:00:00Z"})
         ));

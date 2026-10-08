@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 	const snapshotId = getRouterParam(event, 'snapshot')
 	if (!Number.isSafeInteger(id) || id < 1 || !snapshotId || !/^\d+$/.test(snapshotId))
 		throw createError({ statusCode: 404, statusMessage: 'Snapshot not found' })
-	// Backend checks verified Steam session and DB administrator role before disclosing blocks.
+	// Backend checks verified web session and DB administrator role before disclosing blocks.
 	const review = await fetchAuthenticatedBackend<ValidationReview>(
 		event,
 		`/admin/ghost-validation/records/${id}`,

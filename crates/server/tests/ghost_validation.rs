@@ -88,7 +88,14 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     let parsed = url::Url::parse(&url)?;
     ensure!(
-        parsed.host_str() == Some("127.0.0.1") && parsed.path() == "/ghost_validation_http_test",
+        parsed.host_str() == Some("127.0.0.1")
+            && matches!(
+                parsed.path(),
+                "/ghost_validation_http_test"
+                    | "/ghost_validation_legacy_http_test"
+                    | "/ghost_validation_legacy_http_test_2"
+                    | "/ghost_validation_discord_http_test"
+            ),
         "Dedicated local fixture DB required"
     );
     let storage = Arc::new(Storage::default());
@@ -114,7 +121,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     let discord = state
         .config
         .jwt
-        .issue(Provider::Discord, "42", Some("fixture"))?
+        .issue(Provider::Discord, "42", Some("1234"))?
         .access_token;
     let app = zc_server::app::router(state.clone())?;
     let fixture: Value =
@@ -189,6 +196,30 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     );
     assert_eq!(
         request(&app, "GET", &path, &discord, Value::Null).await?.0,
+        StatusCode::OK
+    );
+    for route in [
+        path.as_str(),
+        "/admin/ghost-validation?after=0&status=fail&history=false",
+    ] {
+        assert_eq!(
+            request(&app, "GET", route, &discord, Value::Null).await?.0,
+            StatusCode::OK
+        );
+    }
+    assert_eq!(
+        request(&app, "GET", &path, &token, Value::Null).await?.0,
+        StatusCode::FORBIDDEN
+    );
+    let wrong_discord = state
+        .config
+        .jwt
+        .issue(Provider::Discord, "43", Some("5678"))?
+        .access_token;
+    assert_eq!(
+        request(&app, "GET", &path, &wrong_discord, Value::Null)
+            .await?
+            .0,
         StatusCode::FORBIDDEN
     );
     assert_eq!(
@@ -208,6 +239,10 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         request(&app, "GET", &path, &steam, Value::Null).await?.0,
         StatusCode::FORBIDDEN
     );
+    assert_eq!(
+        request(&app, "GET", &path, &discord, Value::Null).await?.0,
+        StatusCode::FORBIDDEN
+    );
     client
         .execute(
             "UPDATE public.\"user\" SET banned=false,role='user' WHERE id=$1",
@@ -216,6 +251,10 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         .await?;
     assert_eq!(
         request(&app, "GET", &path, &steam, Value::Null).await?.0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        request(&app, "GET", &path, &discord, Value::Null).await?.0,
         StatusCode::FORBIDDEN
     );
     client
@@ -248,6 +287,26 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         Ok::<_,anyhow::Error>(client.query_one("SELECT jsonb_build_object('records',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM public.record r),'personalBests',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM public.personal_best_global p),'worldRecords',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM public.world_record_global w))::text", &[]).await?.get::<_,String>(0))
     };
     let before = eligibility().await?;
+    // Outages supersede old candidate failures too, while keeping repair retryable.
+    let blocks = json!([]);
+    let hash = zc_core::levels::calculate_json_level_xxhash(&json!({"blox":blocks}).to_string())?;
+    let candidate = state
+        .database
+        .resolve_submission_level("fixture-candidate", &hash, true)
+        .await?;
+    let assigned = state.database.audit_record(record).await?.unwrap().id_level;
+    client.execute("INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)", &[&candidate.id,&blocks.to_string()]).await?;
+    for level in [assigned, candidate.id] {
+        client.execute("INSERT INTO zc_private.level_version_lineage(id_level,workshop_id,file_uid,source) VALUES($1,123,'untrusted-fixture','workshop_scan')", &[&level]).await?;
+    }
+    let snapshot = state.database.validation_snapshot(&hash).await?.unwrap();
+    let mut old_candidate = zc_core::ghost_validation::ValidationReport::failed("invalid_splits");
+    old_candidate.comparison = true;
+    old_candidate.validator_version = "geometry-6".into();
+    state
+        .database
+        .save_record_validation(Some(record), user.id, Some(&snapshot), None, &old_candidate)
+        .await?;
     storage.download_failing.store(true, Ordering::SeqCst);
     assert!(
         auditor
@@ -256,9 +315,24 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
             .is_err()
     );
     let attempts = state.database.record_validation_attempts(record).await?;
+    assert_eq!(attempts[0]["status"], "uncertain");
     assert_eq!(
         attempts[0]["report"]["reasons"][0],
         "ghost_storage_unavailable"
+    );
+    assert!(
+        state
+            .database
+            .admin_validations(0, Some(record), Some("fail"), &json!({}))
+            .await?
+            .is_empty()
+    );
+    assert_eq!(
+        state
+            .database
+            .audit_record_ids(&json!({"idRecord":record,"reasons":["invalid_splits"]}))
+            .await?,
+        vec![record]
     );
     storage.download_failing.store(false, Ordering::SeqCst);
     auditor
@@ -299,6 +373,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     let missing = *all.last().unwrap();
     let legacy = state.database.audit_record(missing).await?.unwrap();
     assert!(legacy.splits.is_empty() && legacy.speeds.is_empty());
+    let before_missing = eligibility().await?;
     auditor
         .validate_record_ghost(&json!({"idRecord":missing}))
         .await?;
@@ -306,5 +381,39 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         state.database.record_validation_attempts(missing).await?[0]["report"]["reasons"][0],
         "missing_ghost"
     );
+    assert_eq!(
+        state.database.record_validation_attempts(missing).await?[0]["status"],
+        "fail"
+    );
+    assert_eq!(eligibility().await?, before_missing);
+    client
+        .execute(
+            "INSERT INTO public.record_media(id_record,ghost_url) VALUES($1,'  ')",
+            &[&missing],
+        )
+        .await?;
+    auditor
+        .validate_record_ghost(&json!({"idRecord":missing}))
+        .await?;
+    let (status, current) = request(
+        &app,
+        "GET",
+        &format!("/admin/ghost-validation?record={missing}&status=fail"),
+        &steam,
+        Value::Null,
+    )
+    .await?;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(current["attempts"].as_array().unwrap().len(), 2);
+    let (status, history) = request(
+        &app,
+        "GET",
+        &format!("/admin/ghost-validation?record={missing}&history=true&status=fail"),
+        &steam,
+        Value::Null,
+    )
+    .await?;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(history["attempts"].as_array().unwrap().len(), 4);
     Ok(())
 }

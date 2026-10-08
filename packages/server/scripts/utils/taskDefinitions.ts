@@ -38,6 +38,11 @@ export const taskDefinitions = {
 				.optional(),
 			from: z.iso.datetime({ offset: true }).optional(),
 			to: z.iso.datetime({ offset: true }).optional(),
+			reasons: z
+				.array(z.enum(['invalid_splits', 'missing_ghost']))
+				.min(1)
+				.max(2)
+				.optional(),
 		}),
 		compatible: true,
 		maxAttempts: 3,

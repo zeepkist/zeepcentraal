@@ -111,6 +111,25 @@ test('choices expose category and advanced labels', () => {
 })
 
 describe('job option collection', () => {
+	test('audits all records or resumes correction of affected attempts', async () => {
+		expect(await collect('auditRecordGhosts', { selections: ['all'] })).toEqual({})
+		expect(await collect('auditRecordGhosts', { selections: ['repair'] })).toEqual({
+			reasons: ['invalid_splits', 'missing_ghost'],
+		})
+		for (const reasons of [
+			[],
+			['wrong_steam_id'],
+			['invalid_splits', 'missing_ghost', 'missing_ghost'],
+		]) {
+			expect(isValidTaskPayload('auditRecordGhosts', { reasons })).toBe(false)
+		}
+		expect(
+			isValidTaskPayload('auditRecordGhosts', {
+				reasons: ['invalid_splits'],
+				idRecord: 1276,
+			}),
+		).toBe(true)
+	})
 	test('builds schema-valid payloads for all compatible jobs', async () => {
 		const cases: Array<
 			readonly [

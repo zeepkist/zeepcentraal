@@ -12,7 +12,7 @@ use zc_core::object_storage::DownloadConstraints;
 
 async fn administrator(state: &AppState, headers: &HeaderMap) -> Result<(), Problem> {
     let claims = auth::user(headers, state, false)?;
-    if claims.provider != zc_core::jwt::Provider::Steam {
+    if claims.provider == zc_core::jwt::Provider::Gtr {
         return Err(denied());
     }
     let steam = claims.steamid.parse::<i64>().map_err(|_| denied())?;
@@ -42,6 +42,8 @@ pub struct Filters {
     after: i64,
     record: Option<i32>,
     status: Option<String>,
+    #[serde(default)]
+    history: bool,
     #[serde(flatten)]
     filter: serde_json::Map<String, Value>,
 }
@@ -62,6 +64,7 @@ pub async fn list(
             error_code: None,
         });
     }
+    extra["history"] = json!(filter.history);
     let rows = state
         .database
         .admin_validations(

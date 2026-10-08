@@ -13,6 +13,7 @@ const auditLevel = shallowRef('')
 const auditWorkshop = shallowRef('')
 const auditFrom = shallowRef('')
 const auditTo = shallowRef('')
+const showHistory = shallowRef(false)
 const formState = computed(() => ({ record: recordFilter.value, status: status.value, level: auditLevel.value, workshop: auditWorkshop.value, from: auditFrom.value, to: auditTo.value }))
 const statusItems = [
 	{ label: 'All statuses', value: 'all' },
@@ -27,13 +28,14 @@ const columns: TableColumn<ValidationAttempt>[] = [
 	{ accessorKey: 'status', header: 'Status' },
 	{ id: 'reasons', header: 'Reasons' },
 	{ accessorKey: 'created_at', header: 'Observed' },
+	{ accessorKey: 'validator_version', header: 'Validator' },
 	{ id: 'review', header: 'Review' },
 ]
 
 async function load(more = false) {
 	busy.value = true; error.value = ''
 	try {
-		const page = await $fetch<{ attempts: ValidationAttempt[] }>('/api/admin/ghost-validation', { query: { after: more ? attempts.value.at(-1)?.id : '0', record: recordFilter.value || undefined, status: status.value === 'all' ? undefined : status.value, idLevel: auditLevel.value || undefined, workshopId: auditWorkshop.value || undefined, from: auditFrom.value ? new Date(auditFrom.value).toISOString() : undefined, to: auditTo.value ? new Date(auditTo.value).toISOString() : undefined } })
+		const page = await $fetch<{ attempts: ValidationAttempt[] }>('/api/admin/ghost-validation', { query: { after: more ? attempts.value.at(-1)?.id : '0', record: recordFilter.value || undefined, status: status.value === 'all' ? undefined : status.value, idLevel: auditLevel.value || undefined, workshopId: auditWorkshop.value || undefined, from: auditFrom.value ? new Date(auditFrom.value).toISOString() : undefined, to: auditTo.value ? new Date(auditTo.value).toISOString() : undefined, history: String(showHistory.value) } })
 		attempts.value = more ? [...attempts.value, ...page.attempts] : page.attempts
 	} catch (e) { error.value = e instanceof Error ? e.message : 'Review unavailable' }
 	finally { busy.value = false }
@@ -81,6 +83,7 @@ onMounted(() => load())
 				<UFormField label="From" name="from"><UInput v-model="auditFrom" type="datetime-local" class="w-full" /></UFormField>
 				<UFormField label="Before" name="to"><UInput v-model="auditTo" type="datetime-local" class="w-full" /></UFormField>
 				<div class="sm:col-span-2 lg:col-span-3"><UButton type="submit" :loading="busy">Refresh</UButton></div>
+				<USwitch v-model="showHistory" label="Show audit history" description="Include superseded validation attempts." :disabled="busy" class="sm:col-span-2 lg:col-span-3" @update:model-value="load()" />
 			</UForm>
 		</UCard>
 		<UAlert v-if="error" color="error" variant="soft" title="Review unavailable" :description="error" />
