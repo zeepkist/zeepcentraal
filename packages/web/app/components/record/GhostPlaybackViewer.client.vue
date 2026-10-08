@@ -699,7 +699,11 @@ function createValidationGeometry() {
 	if (!scene || !grid || !props.validationOverlays.length) return
 	validationGeometry = new THREE.Group()
 	for (const overlay of props.validationOverlays) {
-		const points = overlay.vertices.map((p) => new THREE.Vector3(p[0], p[1], p[2]).sub(new THREE.Vector3(grid?.origin.x, grid?.origin.y, grid?.origin.z)))
+		const origin = grid.origin
+		const points = overlay.vertices.map(([x = 0, y = 0, z = 0]) => {
+			const position = rebaseGhostPosition({ x, y, z }, origin)
+			return new THREE.Vector3(position.x, position.y, position.z)
+		})
 		if (points.length < 4) continue
 		const hull = new ConvexGeometry(points)
 		const wire = new THREE.LineSegments(new THREE.WireframeGeometry(hull), new THREE.LineBasicMaterial({ color: overlay.color, transparent: true, opacity: 0.8 }))

@@ -5,6 +5,28 @@ import { parseLevelGeometryBlocks } from '~/utils/ghostLevelGeometry'
 import type { ValidationAttempt, ValidationReport, ValidationReview } from '~~/shared/ghostValidation'
 
 const props = defineProps<{ recordId: number; attempts: ValidationAttempt[] }>()
+const { t } = useI18n()
+const performance = useGhostPerformancePreferences()
+const performanceLabels = computed(() => ({
+	open: t('pages.recordDetail.performance.open'),
+	title: t('pages.recordDetail.performance.title'),
+	description: t('pages.recordDetail.performance.description'),
+	frameRate: t('pages.recordDetail.performance.frameRate'),
+	quality: t('pages.recordDetail.performance.quality'),
+	auto: t('common.auto'),
+	fps30: t('pages.recordDetail.replay.frameRate', { value: 30 }),
+	fps60: t('pages.recordDetail.replay.frameRate', { value: 60 }),
+	performance: t('pages.recordDetail.performance.performance'),
+	balanced: t('pages.recordDetail.performance.balanced'),
+	qualityHigh: t('pages.recordDetail.performance.qualityHigh'),
+	realMaterialColours: t('pages.recordDetail.performance.realMaterialColours'),
+	levelGeometry: t('pages.recordDetail.performance.levelGeometry'),
+	ghostTrails: t('pages.recordDetail.performance.ghostTrails'),
+	cache: t('pages.recordDetail.performance.cache'),
+	cacheValue: (entries: string, size: string) => t('pages.recordDetail.performance.cacheValue', { entries, size }),
+	clearCache: t('pages.recordDetail.performance.clearCache'),
+	unavailable: t('common.unavailable'),
+}))
 const review = shallowRef<ValidationReview | null>(null)
 const ghosts = shallowRef<LoadedPlaybackGhost[]>([])
 const selectedSnapshot = shallowRef('')
@@ -71,10 +93,22 @@ async function compare() {
 			<UBadge color="neutral" variant="soft">Unverified</UBadge>
 		</div>
 		<p class="text-sm text-muted">Candidate matches do not establish original version.</p>
-		<GhostPlaybackViewer v-if="review" :key="`${recordId}:${selectedSnapshot}`" :ghosts="ghosts" :level-id="review.record.levelId" :level-blocks="blocks" :level-asset-url="assetUrl" :show-level-geometry="true" :validation-overlays="overlays" v-model:current-time="time" v-model:playing="playing" v-model:following="following" :playback-rate="1" :loop="false" :selected-record-id="recordId" camera-mode="orbit" :frame-rate="30" quality="balanced" :labels="labels" />
+		<GhostPlaybackViewer v-if="review" :key="`${recordId}:${selectedSnapshot}`" :ghosts="ghosts" :level-id="review.record.levelId" :level-blocks="blocks" :level-asset-url="assetUrl" :show-level-geometry="performance.preferences.value.showLevelGeometry" :paint-mode="performance.preferences.value.paintMode" :show-ghost-trails="performance.preferences.value.showGhostTrails" :validation-overlays="overlays" v-model:current-time="time" v-model:playing="playing" v-model:following="following" :playback-rate="1" :loop="false" :selected-record-id="recordId" camera-mode="orbit" :frame-rate="performance.frameRate.value" :quality="performance.renderQuality.value" :labels="labels" />
 		<div class="flex items-center gap-4">
 			<UButton :disabled="!ghosts.length" @click="playing = !playing">{{ playing ? 'Pause' : 'Play' }}</UButton>
 			<USlider v-model="time" :min="0" :max="Math.max(review?.record.time ?? 0, 0.01)" :step="0.01" :disabled="!ghosts.length" class="flex-1" aria-label="Ghost time" />
+			<GhostPerformanceSettings
+				:preferences="performance.preferences.value"
+				:cache-stats="performance.cacheStats.value"
+				:cache-pending="performance.cachePending.value"
+				:labels="performanceLabels"
+				@update:frame-rate="performance.setFrameRate"
+				@update:render-quality="performance.setRenderQuality"
+				@update:paint-mode="performance.setPaintMode"
+				@update:show-level-geometry="performance.setShowLevelGeometry"
+				@update:show-ghost-trails="performance.setShowGhostTrails"
+				@clear-cache="performance.clearCache"
+			/>
 		</div>
 		<p v-if="selectedReport" class="text-sm text-muted">{{ selectedReport.status }}: {{ selectedReport.reasons.join(', ') }}</p>
 		</div>
