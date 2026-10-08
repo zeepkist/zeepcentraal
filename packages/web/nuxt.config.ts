@@ -19,7 +19,7 @@ export default defineNuxtConfig({
 		'#records-og-image-url-builder': ogImageUrlBuilderPath,
 	},
 	compatibilityDate: '2026-07-25',
-	debug: process.env.NUXT_DEBUG === 'true',
+	debug: process.env.NUXT_PROFILE === 'true' ? { perf: true } : process.env.NUXT_DEBUG === 'true',
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
 	srcDir: 'app',
@@ -66,6 +66,26 @@ export default defineNuxtConfig({
 		'@pinia/nuxt',
 		'nuxt-charts',
 	],
+	nuxtCharts: {
+		global: false,
+		include: ['LineChart', 'BarChart', 'DonutChart'],
+	},
+	hooks: {
+		ready: (nuxt) => {
+			// Register after modules so their dependency entries are already present.
+			nuxt.hook('vite:extendConfig', (config, { isClient }) => {
+				if (!isClient || !config.optimizeDeps?.include) return
+				// Bun isolates transitive dependencies beside their owning package.
+				config.optimizeDeps.include = config.optimizeDeps.include.map((dependency) => {
+					if (dependency === 'vue-chrts') return 'nuxt-charts > vue-chrts'
+					if (dependency.startsWith('@nuxtjs/mdc > ')) {
+						return `@nuxt/content > ${dependency}`
+					}
+					return dependency
+				})
+			})
+		},
+	},
 	content: {
 		experimental: {
 			sqliteConnector: 'native',
@@ -130,12 +150,7 @@ export default defineNuxtConfig({
 	vite: {
 		plugins: [clientFsStub()],
 		optimizeDeps: {
-			include: [
-				'@nuxt/content > slugify',
-				'@tabler/icons-vue',
-				'@unhead/schema-org/vue',
-				'@urql/vue',
-			],
+			include: ['@nuxt/content > slugify', '@unhead/schema-org/vue', '@urql/vue'],
 		},
 	},
 	nitro: {

@@ -7,7 +7,9 @@
 	},
 	"scripts": {
 		"build": "bun run prepare:nuxt && bun --bun nuxt build && bun scripts/build-telemetry-bootstrap.ts",
-		"dev": "bun --bun nuxt dev --dotenv ../../.env",
+		"dev": "NUXT_ENABLE_DEVTOOLS=false bun --bun nuxt dev --dotenv ../../.env",
+		"dev:tools": "NUXT_ENABLE_DEVTOOLS=true bun --bun nuxt dev --dotenv ../../.env",
+		"dev:profile": "NUXT_PROFILE=true bun run dev",
 		"preview": "bun --bun --env-file ../../.env .output/server/telemetry.mjs",
 		"postinstall": "bun run prepare:nuxt",
 		"prepare:nuxt": "bun --bun nuxt prepare",
