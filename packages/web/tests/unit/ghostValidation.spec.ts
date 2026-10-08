@@ -42,17 +42,25 @@ describe('private validation evidence', () => {
 		const row = {
 			id: '1',
 			id_record: 1,
-			id_level: null,
+			id_level: '1',
 			status: '=CMD',
 			created_at: 'today',
+			updated_at: 'changed-today',
 			validator_version: 'v1',
 			ghost_digest: null,
 			level_xx_hash: null,
-			report: { reasons: ['"quoted"'], matchedGroups: [], missingGroups: [['@uid']] },
+			report: {
+				status: '=CMD',
+				validatorVersion: 'v1',
+				reasons: ['"quoted"'],
+				matchedGroups: [],
+				missingGroups: [['@uid']],
+			},
 		} satisfies ValidationAttempt
 		const csv = validationCsv([row])
 		expect(csv).toContain('"\'=CMD"')
 		expect(csv).toContain('""quoted""')
+		expect(csv).toContain('"changed-today"')
 	})
 	it('requires resolved script metadata before extracting physics', async () => {
 		const result = await extractValidationBlock(

@@ -10,6 +10,8 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use zc_core::object_storage::DownloadConstraints;
 
+static COMPARISON_SLOTS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
+
 async fn administrator(state: &AppState, headers: &HeaderMap) -> Result<(), Problem> {
     let claims = auth::user(headers, state, false)?;
     if claims.provider == zc_core::jwt::Provider::Gtr {
@@ -42,8 +44,8 @@ pub struct Filters {
     after: i64,
     record: Option<i32>,
     status: Option<String>,
-    #[serde(default)]
-    history: bool,
+    #[serde(default, rename = "history")]
+    _history: bool,
     #[serde(flatten)]
     filter: serde_json::Map<String, Value>,
 }
@@ -64,7 +66,6 @@ pub async fn list(
             error_code: None,
         });
     }
-    extra["history"] = json!(filter.history);
     let rows = state
         .database
         .admin_validations(
@@ -76,6 +77,126 @@ pub async fn list(
         .await
         .map_err(Problem::internal)?;
     Ok(private_json(json!({"attempts":rows})))
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Comparison {
+    id_level: i32,
+}
+pub async fn compare(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(id): Path<i32>,
+    Json(payload): Json<Comparison>,
+) -> Result<Response, Problem> {
+    administrator(&state, &headers).await?;
+    if headers.get(header::AUTHORIZATION).is_none()
+        && !headers
+            .get(header::ORIGIN)
+            .and_then(|v| v.to_str().ok())
+            .is_some_and(|origin| {
+                state
+                    .config
+                    .cors_origins
+                    .iter()
+                    .any(|allowed| allowed == origin)
+            })
+    {
+        return Err(denied());
+    }
+    let _comparison_slot = COMPARISON_SLOTS
+        .acquire()
+        .await
+        .map_err(|e| Problem::internal(e.into()))?;
+    let record = state
+        .database
+        .audit_record(id)
+        .await
+        .map_err(Problem::internal)?
+        .ok_or(Problem {
+            status: StatusCode::NOT_FOUND,
+            detail: "Record not found".into(),
+            error_code: None,
+        })?;
+    let candidate = state
+        .database
+        .validation_candidates(record.id_level)
+        .await
+        .map_err(Problem::internal)?
+        .into_iter()
+        .find(|candidate| candidate.id_level == payload.id_level);
+    if candidate.is_none() && payload.id_level != record.id_level {
+        return Err(Problem {
+            status: StatusCode::BAD_REQUEST,
+            detail: "Invalid candidate level".into(),
+            error_code: None,
+        });
+    }
+    let mut report = if record
+        .ghost_url
+        .as_ref()
+        .is_none_or(|key| key.trim().is_empty())
+    {
+        zc_core::ghost_validation::ValidationReport::failed("missing_ghost")
+    } else if let Some(key) = record
+        .ghost_url
+        .as_ref()
+        .filter(|key| !key.trim().is_empty())
+    {
+        let candidate = candidate.filter(|candidate| candidate.verified());
+        let slot = state
+            .record_parser_slots
+            .clone()
+            .acquire_owned()
+            .await
+            .map_err(|e| Problem::internal(e.into()))?;
+        let bytes = state
+            .object_storage
+            .download(
+                key,
+                DownloadConstraints {
+                    max_bytes: zc_core::ghosts::MAX_GHOST_COMPRESSED_BYTES,
+                    ..Default::default()
+                },
+            )
+            .await
+            .map_err(|_| Problem {
+                status: StatusCode::SERVICE_UNAVAILABLE,
+                detail: "Ghost storage unavailable".into(),
+                error_code: None,
+            })?;
+        let manifest = state.config.validation_manifest.clone();
+        tokio::task::spawn_blocking(move || {
+            let _slot = slot;
+            let ghost = match zc_core::ghosts::parse_ghost(&bytes) {
+                Ok(ghost) => ghost,
+                Err(_) => {
+                    return zc_core::ghost_validation::ValidationReport::uncertain(
+                        "unsupported_or_invalid_ghost",
+                    );
+                }
+            };
+            zc_core::ghost_validation::validate(
+                &ghost,
+                &zc_core::ghost_validation::SubmissionContext {
+                    steam_id: &record.steam_id,
+                    canonical_hash: &record.canonical_hash,
+                    game_version: &record.game_version,
+                    time: record.time.into(),
+                    splits: &record.splits,
+                    speeds: &record.speeds,
+                },
+                candidate.as_ref().map(|candidate| &candidate.blocks),
+                manifest.as_ref(),
+            )
+        })
+        .await
+        .map_err(|e| Problem::internal(e.into()))?
+    } else {
+        zc_core::ghost_validation::ValidationReport::failed("missing_ghost")
+    };
+    report.comparison = true;
+    Ok(private_json(json!({"report":report})))
 }
 pub async fn audit(
     State(state): State<Arc<AppState>>,

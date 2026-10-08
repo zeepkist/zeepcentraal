@@ -1,8 +1,8 @@
 use crate::Database;
-use anyhow::Result;
+use anyhow::{Result, ensure};
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{Array, BigInt, Bool, Float, Integer, Jsonb, Nullable, Text},
+    sql_types::{Array, BigInt, Float, Integer, Jsonb, Nullable, Text},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
@@ -14,40 +14,27 @@ SELECT r.id FROM public.record r
 WHERE r.id>$1
   AND ($2::integer IS NULL OR r.id=$2)
   AND ($3::integer IS NULL OR r.id_level=$3)
-  AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM zc_private.level_version_lineage o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
+  AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
   AND ($5::text IS NULL OR r.date_created >= $5::timestamptz)
   AND ($6::text IS NULL OR r.date_created < $6::timestamptz)
   AND (cardinality($7::text[])=0 OR EXISTS(
-    SELECT 1 FROM zc_private.record_validation old
-    WHERE old.id_record=r.id AND old.validator_version<>$8 AND old.report->'reasons' ?| $7
-      AND NOT EXISTS(
-        SELECT 1 FROM zc_private.record_validation newer
-        WHERE newer.id_record=old.id_record AND newer.id>old.id AND newer.validator_version=$8
-          AND coalesce(newer.report->>'comparison','false')=coalesce(old.report->>'comparison','false')
-          AND (newer.level_xx_hash IS NOT DISTINCT FROM old.level_xx_hash OR
-            (coalesce(old.report->>'comparison','false')='false' AND (old.level_xx_hash IS NULL OR newer.level_xx_hash IS NULL)))
-          AND newer.status IN ('pass','fail','uncertain')
-          AND NOT (newer.report->'reasons' ? 'ghost_storage_unavailable')
-      )
+    SELECT 1 FROM zc_private.record_validation v
+    WHERE v.id_record=r.id AND (
+      (v.validator_version<>$8 AND v.report->'reasons' ?| $7)
+      OR v.report->'reasons' ? 'ghost_storage_unavailable'
+    )
   ))
 ORDER BY r.id LIMIT 100
 "#;
 
 const ADMIN_VALIDATIONS_QUERY: &str = r#"
-SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text) AS data
-FROM zc_private.record_validation v
+SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash) AS data
+FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level
 WHERE v.id>$1
-  AND ($8::boolean OR v.id_record IS NULL OR NOT EXISTS(
-    SELECT 1 FROM zc_private.record_validation newer
-    WHERE newer.id_record=v.id_record AND newer.id>v.id
-      AND coalesce(newer.report->>'comparison','false')=coalesce(v.report->>'comparison','false')
-      AND (newer.level_xx_hash IS NOT DISTINCT FROM v.level_xx_hash OR
-        (coalesce(v.report->>'comparison','false')='false' AND (v.level_xx_hash IS NULL OR newer.level_xx_hash IS NULL)))
-  ))
   AND ($2::integer IS NULL OR v.id_record=$2)
   AND ($3::text IS NULL OR v.status=$3)
   AND ($4::integer IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.id_level=$4))
-  AND ($5::bigint IS NULL OR EXISTS(SELECT 1 FROM public.record r JOIN zc_private.level_version_lineage o ON o.id_level=r.id_level WHERE r.id=v.id_record AND o.workshop_id=$5))
+  AND ($5::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=v.id_level AND o.workshop_id=$5))
   AND ($6::text IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.date_created >= $6::timestamptz))
   AND ($7::text IS NULL OR EXISTS(SELECT 1 FROM public.record r WHERE r.id=v.id_record AND r.date_created < $7::timestamptz))
 ORDER BY v.id LIMIT 100
@@ -122,38 +109,26 @@ struct JsonRow {
     data: Value,
 }
 
-pub async fn observe_level_version(
-    connection: &mut AsyncPgConnection,
-    id_level: i32,
-    workshop_id: i64,
-    uid: &str,
-) -> Result<()> {
-    // Preserve memberships before scanner replaces level_item.id_level for a reused UID.
-    sql_query("INSERT INTO zc_private.level_version_lineage(id_level,workshop_id,file_uid,source) SELECT id_level,workshop_id,file_uid,'current_membership_seed' FROM public.level_item item WHERE workshop_id=$1 AND NOT EXISTS(SELECT 1 FROM zc_private.level_version_lineage known WHERE known.id_level=item.id_level AND known.workshop_id=item.workshop_id AND known.file_uid=item.file_uid) ON CONFLICT DO NOTHING")
-        .bind::<BigInt,_>(workshop_id).execute(connection).await?;
-    sql_query("INSERT INTO zc_private.level_version_lineage(id_level,workshop_id,file_uid,source) VALUES($1,$2,$3,'workshop_scan') ON CONFLICT DO NOTHING")
-        .bind::<Integer,_>(id_level).bind::<BigInt,_>(workshop_id).bind::<Text,_>(uid).execute(connection).await?;
-    Ok(())
-}
 #[derive(Clone, Debug)]
 pub struct AcceptedEvidence<'a> {
     pub ghost_key: &'a str,
     pub ghost_digest: &'a str,
     pub payload_digest: &'a str,
     pub run_uuid: Option<&'a str>,
-    pub snapshot: Option<&'a LevelSnapshot>,
     pub report: &'a ValidationReport,
 }
 pub async fn persist_validation(
     connection: &mut AsyncPgConnection,
-    id_record: Option<i32>,
-    id_user: i32,
-    snapshot: Option<&LevelSnapshot>,
+    id_record: i32,
     digest: Option<&str>,
     report: &ValidationReport,
 ) -> Result<()> {
-    sql_query("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,ghost_digest,level_xx_hash,status,report,validator_version) VALUES($1,$2,$3,$4,$5,$6,$7,$8)")
- .bind::<Nullable<Integer>,_>(id_record).bind::<Integer,_>(id_user).bind::<Nullable<Integer>,_>(snapshot.map(|s|s.id_level)).bind::<Nullable<Text>,_>(digest).bind::<Nullable<Text>,_>(snapshot.map(|s|s.canonical_hash.as_str())).bind::<Text,_>(&report.status).bind::<Jsonb,_>(serde_json::to_value(report)?).bind::<Text,_>(&report.validator_version).execute(connection).await?;
+    ensure!(
+        !report.comparison,
+        "Candidate comparisons must not be persisted"
+    );
+    sql_query("INSERT INTO zc_private.record_validation AS existing(id_record,id_user,id_level,ghost_digest,status,report,validator_version) SELECT r.id,r.id_user,r.id_level,$2,$3,$4,$5 FROM public.record r WHERE r.id=$1 ON CONFLICT(id_record) DO UPDATE SET id_user=EXCLUDED.id_user,id_level=EXCLUDED.id_level,ghost_digest=EXCLUDED.ghost_digest,status=EXCLUDED.status,report=EXCLUDED.report,validator_version=EXCLUDED.validator_version,updated_at=clock_timestamp() WHERE ROW(existing.status,existing.report,existing.validator_version) IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)")
+        .bind::<Integer,_>(id_record).bind::<Nullable<Text>,_>(digest).bind::<Text,_>(&report.status).bind::<Jsonb,_>(serde_json::to_value(report)?).bind::<Text,_>(&report.validator_version).execute(connection).await?;
     Ok(())
 }
 impl Database {
@@ -176,19 +151,17 @@ impl Database {
     }
     pub async fn validation_snapshot(&self, hash: &str) -> Result<Option<LevelSnapshot>> {
         let mut c = self.connection().await?;
-        let rows=sql_query("SELECT l.id::bigint AS id,l.id AS id_level,l.xx_hash AS canonical_hash,m.format,m.blocks,m.environment,m.type_ground,m.type_skybox,ARRAY(SELECT DISTINCT file_uid FROM zc_private.level_version_lineage o WHERE o.id_level=l.id AND o.source='workshop_scan') AS file_uids FROM public.level l JOIN public.level_metadata m ON m.id_level=l.id WHERE l.xx_hash=$1 AND pg_column_size(m.blocks)<=16777216 ORDER BY m.id DESC LIMIT 16").bind::<Text,_>(hash).load::<LevelSnapshot>(&mut c).await?;
+        let rows=sql_query("SELECT l.id::bigint AS id,l.id AS id_level,l.xx_hash AS canonical_hash,m.format,m.blocks,m.environment,m.type_ground,m.type_skybox,ARRAY(SELECT DISTINCT file_uid FROM public.level_item o WHERE o.id_level=l.id) AS file_uids FROM public.level l JOIN public.level_metadata m ON m.id_level=l.id WHERE l.xx_hash=$1 AND pg_column_size(m.blocks)<=16777216 ORDER BY m.id DESC LIMIT 16").bind::<Text,_>(hash).load::<LevelSnapshot>(&mut c).await?;
         Ok(rows.into_iter().find(LevelSnapshot::verified))
     }
     pub async fn save_record_validation(
         &self,
-        record: Option<i32>,
-        user: i32,
-        snapshot: Option<&LevelSnapshot>,
+        record: i32,
         digest: Option<&str>,
         report: &ValidationReport,
     ) -> Result<()> {
         let mut connection = self.connection().await?;
-        persist_validation(&mut connection, record, user, snapshot, digest, report).await
+        persist_validation(&mut connection, record, digest, report).await
     }
     pub async fn audit_record(&self, id: i32) -> Result<Option<AuditRecord>> {
         let mut c = self.connection().await?;
@@ -230,12 +203,12 @@ impl Database {
     }
     pub async fn validation_candidates(&self, id_level: i32) -> Result<Vec<LevelSnapshot>> {
         let mut c = self.connection().await?;
-        Ok(sql_query("SELECT l.id::bigint AS id,l.id AS id_level,l.xx_hash AS canonical_hash,m.format,m.blocks,m.environment,m.type_ground,m.type_skybox,ARRAY(SELECT DISTINCT file_uid FROM zc_private.level_version_lineage verified WHERE verified.id_level=l.id AND verified.source='workshop_scan') AS file_uids FROM public.level l JOIN public.level_metadata m ON m.id_level=l.id WHERE l.xx_hash IS NOT NULL AND pg_column_size(m.blocks)<=4194304 AND (l.id=$1 OR EXISTS(SELECT 1 FROM zc_private.level_version_lineage candidate JOIN zc_private.level_version_lineage origin ON origin.workshop_id=candidate.workshop_id WHERE candidate.id_level=l.id AND origin.id_level=$1)) ORDER BY (l.id=$1) DESC,l.id DESC,m.id DESC LIMIT 16")
+        Ok(sql_query("SELECT l.id::bigint AS id,l.id AS id_level,l.xx_hash AS canonical_hash,m.format,m.blocks,m.environment,m.type_ground,m.type_skybox,ARRAY(SELECT DISTINCT file_uid FROM public.level_item verified WHERE verified.id_level=l.id) AS file_uids FROM public.level l JOIN public.level_metadata m ON m.id_level=l.id WHERE l.xx_hash IS NOT NULL AND pg_column_size(m.blocks)<=4194304 AND (l.id=$1 OR EXISTS(SELECT 1 FROM public.level_item candidate JOIN public.level_item origin ON origin.workshop_id=candidate.workshop_id WHERE candidate.id_level=l.id AND origin.id_level=$1)) ORDER BY (l.id=$1) DESC,l.id DESC,m.id DESC LIMIT 16")
   .bind::<Integer,_>(id_level).load::<LevelSnapshot>(&mut c).await?)
     }
     pub async fn record_validation_attempts(&self, id: i32) -> Result<Vec<Value>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text) AS data FROM zc_private.record_validation v WHERE v.id_record=$1 ORDER BY v.id DESC LIMIT 100").bind::<Integer,_>(id).load::<JsonRow>(&mut connection).await?.into_iter().map(|row|row.data).collect())
+        Ok(sql_query("SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash) AS data FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level WHERE v.id_record=$1").bind::<Integer,_>(id).load::<JsonRow>(&mut connection).await?.into_iter().map(|row|row.data).collect())
     }
     pub async fn admin_validations(
         &self,
@@ -261,7 +234,6 @@ impl Database {
             )
             .bind::<Nullable<Text>, _>(filter["from"].as_str())
             .bind::<Nullable<Text>, _>(filter["to"].as_str())
-            .bind::<Bool, _>(filter["history"].as_bool().unwrap_or(false))
             .load::<JsonRow>(&mut c)
             .await?
             .into_iter()

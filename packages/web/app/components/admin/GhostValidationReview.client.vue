@@ -13,7 +13,6 @@ const auditLevel = shallowRef('')
 const auditWorkshop = shallowRef('')
 const auditFrom = shallowRef('')
 const auditTo = shallowRef('')
-const showHistory = shallowRef(false)
 const formState = computed(() => ({ record: recordFilter.value, status: status.value, level: auditLevel.value, workshop: auditWorkshop.value, from: auditFrom.value, to: auditTo.value }))
 const statusItems = [
 	{ label: 'All statuses', value: 'all' },
@@ -23,11 +22,11 @@ const statusItems = [
 	{ label: 'Uncertain', value: 'uncertain' },
 ]
 const columns: TableColumn<ValidationAttempt>[] = [
-	{ accessorKey: 'id', header: 'Attempt' },
+	{ accessorKey: 'id', header: 'Validation' },
 	{ accessorKey: 'id_record', header: 'Record' },
 	{ accessorKey: 'status', header: 'Status' },
 	{ id: 'reasons', header: 'Reasons' },
-	{ accessorKey: 'created_at', header: 'Observed' },
+	{ accessorKey: 'updated_at', header: 'Observed' },
 	{ accessorKey: 'validator_version', header: 'Validator' },
 	{ id: 'review', header: 'Review' },
 ]
@@ -35,7 +34,7 @@ const columns: TableColumn<ValidationAttempt>[] = [
 async function load(more = false) {
 	busy.value = true; error.value = ''
 	try {
-		const page = await $fetch<{ attempts: ValidationAttempt[] }>('/api/admin/ghost-validation', { query: { after: more ? attempts.value.at(-1)?.id : '0', record: recordFilter.value || undefined, status: status.value === 'all' ? undefined : status.value, idLevel: auditLevel.value || undefined, workshopId: auditWorkshop.value || undefined, from: auditFrom.value ? new Date(auditFrom.value).toISOString() : undefined, to: auditTo.value ? new Date(auditTo.value).toISOString() : undefined, history: String(showHistory.value) } })
+		const page = await $fetch<{ attempts: ValidationAttempt[] }>('/api/admin/ghost-validation', { query: { after: more ? attempts.value.at(-1)?.id : '0', record: recordFilter.value || undefined, status: status.value === 'all' ? undefined : status.value, idLevel: auditLevel.value || undefined, workshopId: auditWorkshop.value || undefined, from: auditFrom.value ? new Date(auditFrom.value).toISOString() : undefined, to: auditTo.value ? new Date(auditTo.value).toISOString() : undefined } })
 		attempts.value = more ? [...attempts.value, ...page.attempts] : page.attempts
 	} catch (e) { error.value = e instanceof Error ? e.message : 'Review unavailable' }
 	finally { busy.value = false }
@@ -50,7 +49,7 @@ async function audit() {
 			...(auditFrom.value ? { from: new Date(auditFrom.value).toISOString() } : {}),
 			...(auditTo.value ? { to: new Date(auditTo.value).toISOString() } : {}),
 		} })
-		auditMessage.value = 'Audit queued. Records remain eligible. Refresh to see attempts.'
+		auditMessage.value = 'Audit queued. Records remain eligible. Refresh to see results.'
 	} catch (e) { error.value = e instanceof Error ? e.message : 'Audit unavailable' }
 	finally { busy.value = false }
 }
@@ -83,31 +82,29 @@ onMounted(() => load())
 				<UFormField label="From" name="from"><UInput v-model="auditFrom" type="datetime-local" class="w-full" /></UFormField>
 				<UFormField label="Before" name="to"><UInput v-model="auditTo" type="datetime-local" class="w-full" /></UFormField>
 				<div class="sm:col-span-2 lg:col-span-3"><UButton type="submit" :loading="busy">Refresh</UButton></div>
-				<USwitch v-model="showHistory" label="Show audit history" description="Include superseded validation attempts." :disabled="busy" class="sm:col-span-2 lg:col-span-3" @update:model-value="load()" />
 			</UForm>
 		</UCard>
 		<UAlert v-if="error" color="error" variant="soft" title="Review unavailable" :description="error" />
 		<UCard class="rounded-xl border-border bg-card/85">
 			<template #header>
 				<div class="flex flex-wrap items-center justify-between gap-3">
-					<h2 class="font-semibold">Validation attempts</h2>
+					<h2 class="font-semibold">Validation results</h2>
 					<div class="flex flex-wrap gap-2">
 						<UButton color="neutral" variant="outline" @click="download('json')">Export loaded JSON</UButton>
 						<UButton color="neutral" variant="outline" @click="download('csv')">Export loaded CSV</UButton>
 					</div>
 				</div>
 			</template>
-			<UTable :data="attempts" :columns="columns" :loading="busy" empty="No validation attempts found.">
+			<UTable :data="attempts" :columns="columns" :loading="busy" empty="No validation results found.">
 				<template #status-cell="{ row }">
 					<div class="flex items-center gap-2">
-						<span class="text-muted">{{ row.original.report.comparison ? 'Candidate' : 'Assigned' }}</span>
 						<UBadge :color="row.original.status === 'pass' ? 'success' : row.original.status === 'fail' ? 'error' : row.original.status === 'uncertain' ? 'warning' : 'neutral'" variant="soft">{{ row.original.status }}</UBadge>
 					</div>
 				</template>
 				<template #reasons-cell="{ row }"><span class="whitespace-normal">{{ row.original.report.reasons.join(', ') || '—' }}</span></template>
 				<template #review-cell="{ row }"><UButton v-if="row.original.id_record" color="neutral" variant="ghost" @click="selectedRecord = row.original.id_record">Compare</UButton></template>
 			</UTable>
-			<template #footer><UButton color="neutral" variant="outline" :loading="busy" @click="load(true)">Load more attempts</UButton></template>
+			<template #footer><UButton color="neutral" variant="outline" :loading="busy" @click="load(true)">Load more results</UButton></template>
 		</UCard>
 		<GhostValidationComparison v-if="selectedRecord" :record-id="selectedRecord" :attempts="attempts" />
 		<UCard class="rounded-xl border-border bg-card/85">

@@ -1,25 +1,15 @@
 diesel::table! {
- zc_private.level_version_lineage (id_level, workshop_id, file_uid, source) {
-  id_level -> Integer,
-  workshop_id -> BigInt,
-  file_uid -> Text,
-  source -> Text,
-  observed_at -> Timestamptz,
- }
-}
-
-diesel::table! {
  zc_private.record_validation (id) {
   id -> BigInt,
-  id_record -> Nullable<Integer>,
+  id_record -> Integer,
   id_user -> Integer,
-  id_level -> Nullable<Integer>,
+  id_level -> Integer,
   ghost_digest -> Nullable<Text>,
-  level_xx_hash -> Nullable<Text>,
   status -> Text,
   report -> Jsonb,
   validator_version -> Text,
   created_at -> Timestamptz,
+  updated_at -> Timestamptz,
  }
 }
 

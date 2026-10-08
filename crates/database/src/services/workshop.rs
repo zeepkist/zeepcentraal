@@ -228,8 +228,6 @@ impl Database {
                     .await?;
 
 
-                    super::ghost_validation::observe_level_version(connection,id_level,input.workshop_id,&input.file_uid).await?;
-
                     let existing_metadata = sql_query(
                         "SELECT id FROM public.level_metadata WHERE id_level=$1 ORDER BY id LIMIT 1 FOR UPDATE",
                     )

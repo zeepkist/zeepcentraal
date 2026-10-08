@@ -2,7 +2,7 @@ use serde_json::json;
 use zc_database::{Database, services::workshop::WorkshopLevelInput};
 
 #[tokio::test]
-#[ignore = "requires fresh local workshop_validation_test database with current migrations"]
+#[ignore = "requires fresh local workshop_mutable_validation_test database with current migrations"]
 async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyhow::Result<()> {
     zc_core::environment::initialize()?;
     let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
@@ -11,7 +11,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         parsed_url
             .host_str()
             .is_some_and(|host| matches!(host, "127.0.0.1" | "localhost"))
-            && parsed_url.path() == "/workshop_validation_test",
+            && parsed_url.path() == "/workshop_mutable_validation_test",
         "Workshop integration test requires local disposable PostgreSQL"
     );
     let database = Database::connect(&url, 2).await?;
@@ -229,7 +229,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         .get(0);
     assert!(!deleted);
 
-    // Reset this disposable database after testing; evidence is intentionally immutable.
+    // Reused UID replaces current membership; no separate lineage is retained.
     // A reused UID moves current membership, but retains both existing metadata versions.
     let mut new_version = input.clone();
     new_version.xx_hash = format!("{:032X}", suffix + 1_000_000);
@@ -246,10 +246,28 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
             .get::<_, String>(0))?,
         input.blocks
     );
-    assert_eq!(client.query_one("SELECT count(DISTINCT id_level) FROM zc_private.level_version_lineage WHERE workshop_id=$1 AND file_uid=$2", &[&workshop_id, &input.file_uid]).await?.get::<_, i64>(0), 2);
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT id_level FROM public.level_item WHERE workshop_id=$1 AND file_uid=$2",
+                &[&workshop_id, &input.file_uid]
+            )
+            .await?
+            .get::<_, i32>(0),
+        changed.id_level
+    );
+    assert!(
+        client
+            .query_one(
+                "SELECT to_regclass('zc_private.level_version_lineage') IS NULL",
+                &[]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
     let membership_count = client
         .query_one(
-            "SELECT count(*) FROM zc_private.level_version_lineage WHERE workshop_id=$1",
+            "SELECT count(*) FROM public.level_item WHERE workshop_id=$1",
             &[&workshop_id],
         )
         .await?
@@ -258,7 +276,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM zc_private.level_version_lineage WHERE workshop_id=$1",
+                "SELECT count(*) FROM public.level_item WHERE workshop_id=$1",
                 &[&workshop_id]
             )
             .await?

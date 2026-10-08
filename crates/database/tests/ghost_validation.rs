@@ -18,11 +18,10 @@ async fn fixture_url(database_name: &str) -> Result<String> {
 }
 
 #[tokio::test]
-#[ignore = "requires empty local ghost_validation_history_test database"]
-async fn corrected_attempts_supersede_failures_without_changing_records() -> Result<()> {
+#[ignore = "requires empty local ghost_validation_mutable_history_test database"]
+async fn mutable_results_preserve_identity_timestamps_and_record_eligibility() -> Result<()> {
     use serde_json::json;
-    use zc_core::ghost_validation::VALIDATOR_VERSION;
-    let url = fixture_url("ghost_validation_history_test").await?;
+    let url = fixture_url("ghost_validation_mutable_history_test").await?;
     let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("fixture connection") });
     client
@@ -33,182 +32,203 @@ async fn corrected_attempts_supersede_failures_without_changing_records() -> Res
             "../migrations/20261006180000_ghost_validation/up.sql"
         ))
         .await?;
-    client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)),(2,repeat('b',32)); INSERT INTO public.record(id,id_user,id_level,time,date_created) VALUES(1276,1,1,10,'2020-01-01'); INSERT INTO public.personal_best_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.world_record_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.level_points(id_level,points) VALUES(1,100);").await?;
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261008020000_mutable_record_validation/up.sql"
+        ))
+        .await?;
+    client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)); INSERT INTO public.record(id,id_user,id_level,time,date_created) VALUES(1276,1,1,10,'2020-01-01'); INSERT INTO public.personal_best_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.world_record_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.level_points(id_level,points) VALUES(1,100); INSERT INTO public.level_item(id_level,workshop_id) VALUES(1,123);").await?;
     let database = Database::connect(&url, 2).await?;
-    let before = client.query_one("SELECT to_jsonb(r)::text, (SELECT jsonb_agg(p)::text FROM public.personal_best_global p), (SELECT jsonb_agg(w)::text FROM public.world_record_global w), (SELECT jsonb_agg(s)::text FROM public.level_points s) FROM public.record r WHERE id=1276", &[]).await?;
-    let snapshot = |id, hash: char| zc_database::services::ghost_validation::LevelSnapshot {
-        id,
-        id_level: id as i32,
-        canonical_hash: hash.to_string().repeat(32),
-        type_ground: 0,
-        type_skybox: 0,
-        file_uids: vec![],
-        format: 1,
-        blocks: json!([]),
-        environment: None,
+    let eligibility = || async {
+        Ok::<_,anyhow::Error>(client.query_one("SELECT jsonb_build_object('record',(SELECT to_jsonb(r) FROM public.record r WHERE id=1276),'pb',(SELECT jsonb_agg(p) FROM public.personal_best_global p),'wr',(SELECT jsonb_agg(w) FROM public.world_record_global w),'points',(SELECT jsonb_agg(s) FROM public.level_points s))::text", &[]).await?.get::<_,String>(0))
     };
-    let assigned = snapshot(1, 'a');
-    let candidate = snapshot(2, 'b');
+    let before = eligibility().await?;
+    let mut previous: Option<serde_json::Value> = None;
+    for status in ["pass", "fail", "uncertain"] {
+        let mut report = ValidationReport::uncertain("test_evidence");
+        report.status = status.into();
+        let (left, right) = tokio::join!(
+            database.save_record_validation(1276, Some("initial"), &report),
+            database.save_record_validation(1276, Some("initial"), &report)
+        );
+        left?;
+        right?;
+        let rows = database.record_validation_attempts(1276).await?;
+        assert_eq!(rows.len(), 1);
+        let current = &rows[0];
+        assert_eq!(
+            current["id_level"], "1",
+            "assigned level required even without geometry"
+        );
+        if let Some(old) = &previous {
+            assert_eq!(old["id"], current["id"]);
+            assert_eq!(old["created_at"], current["created_at"]);
+            assert_ne!(old["updated_at"], current["updated_at"]);
+        }
+        database
+            .save_record_validation(1276, Some("ignored-digest"), &report)
+            .await?;
+        assert_eq!(
+            database.record_validation_attempts(1276).await?,
+            rows,
+            "identical report must not write digest or timestamp"
+        );
+        report.reasons.push("changed_report".into());
+        database
+            .save_record_validation(1276, Some("changed-digest"), &report)
+            .await?;
+        let changed = database.record_validation_attempts(1276).await?.remove(0);
+        assert_eq!(changed["id"], current["id"]);
+        assert_eq!(changed["created_at"], current["created_at"]);
+        assert_ne!(changed["updated_at"], current["updated_at"]);
+        assert_eq!(changed["ghost_digest"], "changed-digest");
+        report.validator_version = "test-next-version".into();
+        database.save_record_validation(1276, None, &report).await?;
+        let version = database.record_validation_attempts(1276).await?.remove(0);
+        assert_eq!(version["id"], current["id"]);
+        assert_ne!(version["updated_at"], changed["updated_at"]);
+        previous = Some(version);
+    }
     let mut old = ValidationReport::failed("invalid_splits");
     old.validator_version = "geometry-6".into();
-    database
-        .save_record_validation(Some(1276), 1, None, None, &old)
-        .await?;
-    old.comparison = true;
-    database
-        .save_record_validation(Some(1276), 1, Some(&assigned), None, &old)
-        .await?;
-    database
-        .save_record_validation(Some(1276), 1, Some(&candidate), None, &old)
-        .await?;
+    database.save_record_validation(1276, None, &old).await?;
     let filter = json!({"reasons":["invalid_splits","missing_ghost"]});
     assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
-    assert!(
-        database
-            .audit_record_ids(&json!({"reasons":["missing_ghost"]}))
-            .await?
-            .is_empty()
-    );
-    assert!(
-        database
-            .audit_record_ids(&json!({"reasons":["invalid_splits"],"afterId":1276}))
-            .await?
-            .is_empty()
-    );
     let corrected = ValidationReport::uncertain("legacy_telemetry_incomplete");
     database
-        .save_record_validation(Some(1276), 1, Some(&assigned), None, &corrected)
-        .await?;
-    // Partial progress does not skip outstanding candidate versions.
-    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
-    let mut comparison = corrected.clone();
-    comparison.comparison = true;
-    database
-        .save_record_validation(Some(1276), 1, Some(&assigned), None, &comparison)
-        .await?;
-    let mut outage = ValidationReport::uncertain("ghost_storage_unavailable");
-    outage.comparison = true;
-    database
-        .save_record_validation(Some(1276), 1, Some(&candidate), None, &outage)
-        .await?;
-    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
-    database
-        .save_record_validation(Some(1276), 1, Some(&candidate), None, &comparison)
+        .save_record_validation(1276, None, &corrected)
         .await?;
     assert!(database.audit_record_ids(&filter).await?.is_empty());
-    let latest = database
-        .admin_validations(0, Some(1276), None, &json!({}))
+    database
+        .save_record_validation(
+            1276,
+            None,
+            &ValidationReport::uncertain("ghost_storage_unavailable"),
+        )
         .await?;
-    assert_eq!(latest.len(), 3);
+    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
+    database
+        .save_record_validation(1276, None, &corrected)
+        .await?;
+    let mut candidate = corrected.clone();
+    candidate.comparison = true;
     assert!(
-        latest
-            .iter()
-            .all(|v| v["status"] == "uncertain" && v["validator_version"] == VALIDATOR_VERSION)
+        database
+            .save_record_validation(1276, None, &candidate)
+            .await
+            .is_err()
     );
     assert!(
         database
-            .admin_validations(0, Some(1276), Some("fail"), &json!({}))
+            .admin_validations(0, Some(1276), Some("fail"), &json!({"history":true}))
             .await?
             .is_empty()
     );
-    let history = database
-        .admin_validations(0, Some(1276), Some("fail"), &json!({"history":true}))
-        .await?;
-    assert_eq!(history.len(), 3);
-    assert_eq!(database.record_validation_attempts(1276).await?.len(), 7);
-    let after = latest[0]["id"].as_str().unwrap().parse()?;
     assert_eq!(
         database
-            .admin_validations(after, Some(1276), None, &json!({}))
+            .admin_validations(0, Some(1276), None, &json!({"workshopId":"123"}))
             .await?
             .len(),
-        2
+        1
     );
-    let after = client.query_one("SELECT to_jsonb(r)::text, (SELECT jsonb_agg(p)::text FROM public.personal_best_global p), (SELECT jsonb_agg(w)::text FROM public.world_record_global w), (SELECT jsonb_agg(s)::text FROM public.level_points s) FROM public.record r WHERE id=1276", &[]).await?;
-    for index in 0..4 {
-        assert_eq!(
-            before.get::<_, String>(index),
-            after.get::<_, String>(index)
-        );
-    }
+    assert!(
+        database
+            .admin_validations(0, Some(1276), None, &json!({"workshopId":"124"}))
+            .await?
+            .is_empty()
+    );
+    let latest = database.record_validation_attempts(1276).await?;
+    let cursor = latest[0]["id"].as_str().unwrap().parse()?;
+    assert!(
+        database
+            .admin_validations(cursor, None, None, &json!({}))
+            .await?
+            .is_empty()
+    );
+    assert_eq!(eligibility().await?, before);
     Ok(())
 }
 
 #[tokio::test]
-#[ignore = "requires empty local ghost_validation_migration_test database"]
-async fn migration_round_trip_and_immutable_lineage() -> Result<()> {
-    let url = fixture_url("ghost_validation_migration_test").await?;
+#[ignore = "requires empty local ghost_validation_mutable_migration_test database"]
+async fn mutable_migration_reset_constraints_and_rollback() -> Result<()> {
+    let url = fixture_url("ghost_validation_mutable_migration_test").await?;
     let (mut client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
-    tokio::spawn(async move { connection.await.expect("test database connection") });
+    tokio::spawn(async move { connection.await.expect("fixture connection") });
     let transaction = client.transaction().await?;
-    transaction.batch_execute("CREATE TABLE public.level(id integer PRIMARY KEY,xx_hash text); CREATE TABLE public.\"user\"(id integer PRIMARY KEY); CREATE TABLE public.record(id integer PRIMARY KEY); CREATE TABLE public.level_metadata(id integer,id_level integer,format integer,blocks jsonb,environment jsonb,type_ground integer,type_skybox integer); CREATE TABLE public.level_item(id_level integer,workshop_id bigint,file_uid text); INSERT INTO public.level VALUES(1,repeat('a',32)); INSERT INTO public.level_metadata VALUES(1,1,1,'[]',NULL,0,0); INSERT INTO public.level_item VALUES(1,123,'uid');").await?;
+    transaction
+        .batch_execute(include_str!("fixtures/ghost_validation.sql"))
+        .await?;
+    transaction.batch_execute("INSERT INTO public.\"user\"(id) VALUES(1); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)); INSERT INTO public.record(id,id_user,id_level) VALUES(1,1,1);").await?;
     transaction
         .batch_execute(include_str!(
             "../migrations/20261006180000_ghost_validation/up.sql"
         ))
         .await?;
-    assert_eq!(
-        transaction
-            .query_one("SELECT count(*) FROM zc_private.level_version_lineage", &[])
-            .await?
-            .get::<_, i64>(0),
-        1
-    );
-    transaction.batch_execute("INSERT INTO zc_private.level_version_lineage(id_level,workshop_id,file_uid,source) VALUES(1,123,'uid','current_membership_seed') ON CONFLICT DO NOTHING;").await?;
-    assert_eq!(
-        transaction
-            .query_one("SELECT count(*) FROM zc_private.level_version_lineage", &[])
-            .await?
-            .get::<_, i64>(0),
-        1
-    );
-    assert!(
-        transaction
-            .query_one(
-                "SELECT to_regclass('zc_private.level_snapshot') IS NULL",
-                &[]
-            )
-            .await?
-            .get::<_, bool>(0)
-    );
-    assert_eq!(transaction.query_one("SELECT count(*) FROM information_schema.columns WHERE table_schema='zc_private' AND table_name='level_version_lineage' AND data_type='jsonb'", &[]).await?.get::<_, i64>(0), 0);
-    transaction
-        .batch_execute("SAVEPOINT immutable_test")
-        .await?;
-    assert!(
-        transaction
-            .execute(
-                "UPDATE zc_private.level_version_lineage SET file_uid='changed'",
-                &[]
-            )
-            .await
-            .is_err()
-    );
-    transaction
-        .batch_execute("ROLLBACK TO SAVEPOINT immutable_test")
-        .await?;
+    transaction.batch_execute("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(1,1,1,'fail','{}','old'),(1,1,1,'pass','{}','old'),(NULL,1,NULL,'fail','{}','old');").await?;
     transaction
         .batch_execute(include_str!(
-            "../migrations/20261006180000_ghost_validation/down.sql"
+            "../migrations/20261008020000_mutable_record_validation/up.sql"
         ))
         .await?;
-    assert!(
+    assert_eq!(
         transaction
-            .query_one(
-                "SELECT to_regclass('zc_private.level_version_lineage') IS NULL",
-                &[]
-            )
+            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
             .await?
-            .get::<_, bool>(0)
+            .get::<_, i64>(0),
+        0
+    );
+    assert!(transaction.query_one("SELECT to_regclass('zc_private.level_version_lineage') IS NULL AND to_regprocedure('zc_private.immutable_validation_evidence()') IS NULL",&[]).await?.get::<_,bool>(0));
+    assert_eq!(transaction.query_one("SELECT count(*) FROM information_schema.columns WHERE table_schema='zc_private' AND table_name='record_validation' AND column_name='level_xx_hash'",&[]).await?.get::<_,i64>(0),0);
+    transaction.batch_execute("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(1,1,1,'pass','{}','new'); UPDATE zc_private.record_validation SET status='uncertain';").await?;
+    for sql in [
+        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(1,1,1,'pass','{}','new')",
+        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(NULL,1,1,'pass','{}','new')",
+        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(999,1,1,'pass','{}','new')",
+        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(2,1,NULL,'pass','{}','new')",
+    ] {
+        transaction
+            .batch_execute("SAVEPOINT constraint_test")
+            .await?;
+        assert!(transaction.batch_execute(sql).await.is_err());
+        transaction
+            .batch_execute("ROLLBACK TO SAVEPOINT constraint_test")
+            .await?;
+    }
+    transaction
+        .batch_execute(include_str!(
+            "../migrations/20261008020000_mutable_record_validation/down.sql"
+        ))
+        .await?;
+    assert!(transaction.query_one("SELECT to_regclass('zc_private.level_version_lineage') IS NOT NULL AND to_regprocedure('zc_private.immutable_validation_evidence()') IS NOT NULL",&[]).await?.get::<_,bool>(0));
+    assert_eq!(
+        transaction
+            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .await?
+            .get::<_, i64>(0),
+        1,
+        "rollback cannot restore deleted evidence"
+    );
+    transaction
+        .batch_execute(include_str!(
+            "../migrations/20261008020000_mutable_record_validation/up.sql"
+        ))
+        .await?;
+    assert_eq!(
+        transaction
+            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .await?
+            .get::<_, i64>(0),
+        0
     );
     transaction.rollback().await?;
     Ok(())
 }
 
 #[tokio::test]
-#[ignore = "requires migrated local zsl_migration_test database"]
+#[ignore = "requires migrated local zsl_mutable_migration_test database"]
 async fn accepted_run_retry_is_atomic_and_changed_payload_fails() -> Result<()> {
-    let url = fixture_url("zsl_migration_test").await?;
+    let url = fixture_url("zsl_mutable_migration_test").await?;
     let database = Database::connect(&url, 2).await?;
     let suffix = i64::from(std::process::id());
     let user = database
@@ -238,7 +258,6 @@ async fn accepted_run_retry_is_atomic_and_changed_payload_fails() -> Result<()> 
             ghost_digest: "digest",
             payload_digest: "original",
             run_uuid: Some(&run_uuid),
-            snapshot: None,
             report: &report,
         }),
     };
@@ -311,16 +330,15 @@ fn second_submission<'a>(
             ghost_digest: "digest",
             payload_digest: "concurrent",
             run_uuid: Some(run),
-            snapshot: None,
             report,
         }),
     }
 }
 
 #[tokio::test]
-#[ignore = "requires migrated local workshop_validation_test fixture DB"]
+#[ignore = "requires migrated local workshop_mutable_validation_test fixture DB"]
 async fn version_candidates_share_workshop_without_trusting_builder_uid() -> Result<()> {
-    let url = fixture_url("workshop_validation_test").await?;
+    let url = fixture_url("workshop_mutable_validation_test").await?;
     let database = Database::connect(&url, 2).await?;
     let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("fixture connection") });
@@ -340,7 +358,16 @@ async fn version_candidates_share_workshop_without_trusting_builder_uid() -> Res
                 &[&level.id, &blocks.to_string()],
             )
             .await?;
-        client.execute("INSERT INTO zc_private.level_version_lineage(id_level,workshop_id,file_uid,source) VALUES($1,$2,$3,'workshop_scan') ON CONFLICT DO NOTHING", &[&level.id,&(900_000_000+suffix),&format!("untrusted-{suffix}-{index}")]).await?;
+        client
+            .execute(
+                "INSERT INTO public.level_item(id_level,workshop_id,file_uid) VALUES($1,$2,$3)",
+                &[
+                    &level.id,
+                    &(900_000_000 + suffix),
+                    &format!("untrusted-{suffix}-{index}"),
+                ],
+            )
+            .await?;
         levels.push(level.id);
     }
     let candidates = database.validation_candidates(levels[0]).await?;

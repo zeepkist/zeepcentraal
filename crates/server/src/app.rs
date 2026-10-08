@@ -64,6 +64,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(crate::ghost_validation_routes::evidence),
         )
         .route(
+            "/admin/ghost-validation/records/{id}/compare",
+            post(crate::ghost_validation_routes::compare),
+        )
+        .route(
             "/admin/ghost-validation/records/{id}/ghost",
             get(crate::ghost_validation_routes::ghost),
         )

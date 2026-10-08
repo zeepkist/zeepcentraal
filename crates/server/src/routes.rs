@@ -522,17 +522,6 @@ pub async fn submit_record(
         return Ok(StatusCode::OK);
     }
     if state.config.validation_enforce && report.status == "fail" {
-        state
-            .database
-            .save_record_validation(
-                None,
-                user.id,
-                snapshot.as_ref(),
-                Some(&ghost_digest),
-                &report,
-            )
-            .await
-            .map_err(Problem::internal)?;
         return Err(Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_FAILED));
     }
 
@@ -582,7 +571,6 @@ pub async fn submit_record(
                 ghost_digest: &ghost_digest,
                 payload_digest: &payload_digest,
                 run_uuid: run_uuid.as_deref(),
-                snapshot: snapshot.as_ref(),
                 report: &report,
             }),
             id_user: user.id,

@@ -11,7 +11,6 @@ use zc_core::{
     ghosts::{MAX_GHOST_COMPRESSED_BYTES, parse_ghost},
 };
 use zc_database::Database;
-use zc_database::services::ghost_validation::{AuditRecord, LevelSnapshot};
 
 pub struct GhostAuditService {
     database: Database,
@@ -25,38 +24,6 @@ impl GhostAuditService {
             queue,
             storage,
         }
-    }
-    async fn save_unavailable_evidence(
-        &self,
-        record: &AuditRecord,
-        snapshot: Option<&LevelSnapshot>,
-        report: &ValidationReport,
-    ) -> Result<()> {
-        self.database
-            .save_record_validation(Some(record.id), record.id_user, snapshot, None, report)
-            .await?;
-        for candidate in self
-            .database
-            .validation_candidates(record.id_level)
-            .await?
-            .iter()
-            .filter(|candidate| candidate.verified())
-        {
-            let comparison = ValidationReport {
-                comparison: true,
-                ..report.clone()
-            };
-            self.database
-                .save_record_validation(
-                    Some(record.id),
-                    record.id_user,
-                    Some(candidate),
-                    None,
-                    &comparison,
-                )
-                .await?;
-        }
-        Ok(())
     }
     pub async fn validate_record_ghost(&self, payload: &serde_json::Value) -> Result<()> {
         static SLOTS: std::sync::OnceLock<tokio::sync::Semaphore> = std::sync::OnceLock::new();
@@ -77,8 +44,8 @@ impl GhostAuditService {
             .as_ref()
             .filter(|url| !url.trim().is_empty())
         else {
-            let report = ValidationReport::failed("missing_ghost");
-            self.save_unavailable_evidence(&record, snapshot.as_ref(), &report)
+            self.database
+                .save_record_validation(id, None, &ValidationReport::failed("missing_ghost"))
                 .await?;
             return Ok(());
         };
@@ -94,95 +61,42 @@ impl GhostAuditService {
             .await
         {
             Ok(bytes) => bytes,
-            // Storage failures retry. An unavailable object is not proof of an invalid run.
             Err(error) => {
-                self.save_unavailable_evidence(
-                    &record,
-                    snapshot.as_ref(),
-                    &ValidationReport::uncertain("ghost_storage_unavailable"),
-                )
-                .await?;
+                self.database
+                    .save_record_validation(
+                        id,
+                        None,
+                        &ValidationReport::uncertain("ghost_storage_unavailable"),
+                    )
+                    .await?;
                 return Err(error);
             }
         };
         let digest = hex::encode(Sha256::digest(&bytes));
         let manifest = ghost_validation::load_manifest_from_env()?;
-        let candidates = self.database.validation_candidates(record.id_level).await?;
-        let audit_snapshot = snapshot.clone();
-        let audit_user = record.id_user;
-        let parsed = tokio::task::spawn_blocking(move || {
+        let report = tokio::task::spawn_blocking(move || {
             let ghost = match parse_ghost(&bytes) {
                 Ok(ghost) => ghost,
-                Err(_) => {
-                    let report = ValidationReport::uncertain("unsupported_or_invalid_ghost");
-                    let comparisons = candidates
-                        .iter()
-                        .filter(|candidate| candidate.verified())
-                        .map(|candidate| {
-                            (
-                                candidate.clone(),
-                                ValidationReport {
-                                    comparison: true,
-                                    ..report.clone()
-                                },
-                            )
-                        })
-                        .collect();
-                    return (report, comparisons);
-                }
+                Err(_) => return ValidationReport::uncertain("unsupported_or_invalid_ghost"),
             };
-            let context = SubmissionContext {
-                steam_id: &record.steam_id,
-                canonical_hash: &record.canonical_hash,
-                game_version: &record.game_version,
-                time: f64::from(record.time),
-                splits: &record.splits,
-                speeds: &record.speeds,
-            };
-            let report = ghost_validation::validate(
+            ghost_validation::validate(
                 &ghost,
-                &context,
+                &SubmissionContext {
+                    steam_id: &record.steam_id,
+                    canonical_hash: &record.canonical_hash,
+                    game_version: &record.game_version,
+                    time: f64::from(record.time),
+                    splits: &record.splits,
+                    speeds: &record.speeds,
+                },
                 snapshot.as_ref().map(|s| &s.blocks),
                 manifest.as_ref(),
-            );
-            let mut comparisons = vec![];
-            for candidate in candidates.iter().filter(|s| s.verified()) {
-                // Compare geometry without claiming this was the original version or update date.
-                let mut result = ghost_validation::validate(
-                    &ghost,
-                    &SubmissionContext {
-                        canonical_hash: context.canonical_hash,
-                        ..context
-                    },
-                    Some(&candidate.blocks),
-                    manifest.as_ref(),
-                );
-                result.comparison = true;
-                comparisons.push((candidate.clone(), result));
-            }
-            (report, comparisons)
+            )
         })
         .await?;
         self.database
-            .save_record_validation(
-                Some(id),
-                audit_user,
-                audit_snapshot.as_ref(),
-                Some(&digest),
-                &parsed.0,
-            )
+            .save_record_validation(id, Some(&digest), &report)
             .await?;
-        for (candidate, report) in parsed.1 {
-            self.database
-                .save_record_validation(
-                    Some(id),
-                    audit_user,
-                    Some(&candidate),
-                    Some(&digest),
-                    &report,
-                )
-                .await?;
-        }
         Ok(())
     }
 

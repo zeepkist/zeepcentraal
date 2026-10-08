@@ -1,4 +1,4 @@
-//! Append corrected reports with current validator. Default: read-only preview.
+//! Upsert corrected reports with current validator. Default: read-only preview.
 //! cargo run -p zc-jobs --example revalidate_legacy_ghosts --release -- [--apply] [--all] [--record ID] [--after-id ID]
 use anyhow::{Context, Result, ensure};
 use serde_json::json;
@@ -16,7 +16,7 @@ async fn main() {
     if run().await.is_err() {
         // Configuration/storage errors can contain private URLs. Keep output sanitized.
         eprintln!(
-            "Correction stopped. Completed attempts remain saved. Retry after checking configuration and storage."
+            "Correction stopped. Completed results remain saved. Retry after checking configuration and storage."
         );
         std::process::exit(1);
     }
@@ -98,7 +98,7 @@ async fn run() -> Result<()> {
                     println!(
                         "Record {id}: {}",
                         if succeeded {
-                            "corrected assigned and candidate reports"
+                            "corrected assigned result"
                         } else {
                             "retry required"
                         }

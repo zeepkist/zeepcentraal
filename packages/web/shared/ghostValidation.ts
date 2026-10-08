@@ -1,18 +1,22 @@
+export type ValidationReport = {
+	status: string
+	comparison?: boolean
+	reasons: string[]
+	matchedGroups: string[][]
+	missingGroups: string[][]
+	validatorVersion: string
+}
 export type ValidationAttempt = {
 	id: string
-	id_record: number | null
-	id_level: string | null
+	id_record: number
+	id_level: string
 	status: string
 	ghost_digest: string | null
 	level_xx_hash: string | null
 	created_at: string
+	updated_at: string
 	validator_version: string
-	report: {
-		comparison?: boolean
-		reasons: string[]
-		matchedGroups: string[][]
-		missingGroups: string[][]
-	}
+	report: ValidationReport
 }
 export type ValidationReview = {
 	attempts?: ValidationAttempt[]
@@ -58,7 +62,7 @@ export function validationCsv(attempts: ValidationAttempt[]): string {
 			a.ghost_digest,
 			a.level_xx_hash,
 			a.validator_version,
-			a.created_at,
+			a.updated_at,
 		]),
 	]
 		.map((row) => row.map(cell).join(','))

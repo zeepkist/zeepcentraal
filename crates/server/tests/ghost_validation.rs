@@ -95,6 +95,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
                     | "/ghost_validation_legacy_http_test"
                     | "/ghost_validation_legacy_http_test_2"
                     | "/ghost_validation_discord_http_test"
+                    | "/ghost_validation_mutable_http_test"
             ),
         "Dedicated local fixture DB required"
     );
@@ -184,6 +185,13 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
             row.get::<_, i64>(2)
         ),
         (1, 1, 1)
+    );
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .await?
+            .get::<_, i64>(0),
+        1
     );
     let record: i32 = client
         .query_one("SELECT id FROM public.record WHERE id_user=$1", &[&user.id])
@@ -287,7 +295,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         Ok::<_,anyhow::Error>(client.query_one("SELECT jsonb_build_object('records',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM public.record r),'personalBests',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM public.personal_best_global p),'worldRecords',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM public.world_record_global w))::text", &[]).await?.get::<_,String>(0))
     };
     let before = eligibility().await?;
-    // Outages supersede old candidate failures too, while keeping repair retryable.
+    // Outages replace assigned results while keeping repair retryable.
     let blocks = json!([]);
     let hash = zc_core::levels::calculate_json_level_xxhash(&json!({"blox":blocks}).to_string())?;
     let candidate = state
@@ -297,17 +305,77 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     let assigned = state.database.audit_record(record).await?.unwrap().id_level;
     client.execute("INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)", &[&candidate.id,&blocks.to_string()]).await?;
     for level in [assigned, candidate.id] {
-        client.execute("INSERT INTO zc_private.level_version_lineage(id_level,workshop_id,file_uid,source) VALUES($1,123,'untrusted-fixture','workshop_scan')", &[&level]).await?;
+        client.execute("INSERT INTO public.level_item(id_level,workshop_id,file_uid) VALUES($1,123,'untrusted-fixture')", &[&level]).await?;
     }
-    let snapshot = state.database.validation_snapshot(&hash).await?.unwrap();
     let mut old_candidate = zc_core::ghost_validation::ValidationReport::failed("invalid_splits");
-    old_candidate.comparison = true;
     old_candidate.validator_version = "geometry-6".into();
     state
         .database
-        .save_record_validation(Some(record), user.id, Some(&snapshot), None, &old_candidate)
+        .save_record_validation(record, None, &old_candidate)
         .await?;
+    let comparison_path = format!("{path}/compare");
+    let unchanged = state.database.record_validation_attempts(record).await?;
+    for level in [assigned, candidate.id] {
+        for credential in [&steam, &discord] {
+            let (status, result) = request(
+                &app,
+                "POST",
+                &comparison_path,
+                credential,
+                json!({"idLevel":level}),
+            )
+            .await?;
+            assert_eq!(status, StatusCode::OK);
+            assert_eq!(result["report"]["comparison"], true);
+        }
+    }
+    assert_eq!(
+        request(
+            &app,
+            "POST",
+            &comparison_path,
+            &steam,
+            json!({"idLevel":i32::MAX})
+        )
+        .await?
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(
+        request(
+            &app,
+            "POST",
+            &comparison_path,
+            &other,
+            json!({"idLevel":candidate.id})
+        )
+        .await?
+        .0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        state.database.record_validation_attempts(record).await?,
+        unchanged,
+        "comparisons must not persist"
+    );
     storage.download_failing.store(true, Ordering::SeqCst);
+    assert_eq!(
+        request(
+            &app,
+            "POST",
+            &comparison_path,
+            &steam,
+            json!({"idLevel":candidate.id})
+        )
+        .await?
+        .0,
+        StatusCode::SERVICE_UNAVAILABLE
+    );
+    assert_eq!(
+        state.database.record_validation_attempts(record).await?,
+        unchanged
+    );
+
     assert!(
         auditor
             .validate_record_ghost(&json!({"idRecord":record}))
@@ -404,7 +472,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     )
     .await?;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(current["attempts"].as_array().unwrap().len(), 2);
+    assert_eq!(current["attempts"].as_array().unwrap().len(), 1);
     let (status, history) = request(
         &app,
         "GET",
@@ -414,6 +482,6 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     )
     .await?;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(history["attempts"].as_array().unwrap().len(), 4);
+    assert_eq!(history, current);
     Ok(())
 }
