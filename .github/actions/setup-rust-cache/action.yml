@@ -1,0 +1,40 @@
+name: Setup Rust compiler cache
+description: Install pinned Kache and restore a bounded compiler cache
+inputs:
+  scope:
+    description: Build profile and runner ABI cache scope
+    required: true
+outputs:
+  key:
+    description: Unique cache key for success-only export
+    value: ${{ steps.cache-key.outputs.key }}
+  path:
+    description: Local compiler store
+    value: /tmp/zc-kache
+runs:
+  using: composite
+  steps:
+    - uses: kunobi-ninja/kache-action@v1
+      with:
+        version: '1.0.0'
+        max-size: 2GiB
+        # Rust jobs use /tmp/zc-target; keep store and outputs on the same mount.
+        cache-dir: /tmp/zc-kache
+        cache-executables: true
+        github-cache: false
+        save-cache: false
+        pr-comment: false
+        job-summary: true
+    - name: Compute compiler cache key
+      id: cache-key
+      shell: bash
+      env:
+        CACHE_PREFIX: kache-1.0.0-${{ runner.os }}-${{ runner.arch }}-${{ inputs.scope }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'vendor/steam-client-rs/Cargo.lock') }}
+      run: |
+        echo "prefix=$CACHE_PREFIX-" >> "$GITHUB_OUTPUT"
+        echo "key=$CACHE_PREFIX-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache/restore@v6
+      with:
+        path: /tmp/zc-kache
+        key: ${{ steps.cache-key.outputs.key }}
+        restore-keys: ${{ steps.cache-key.outputs.prefix }}

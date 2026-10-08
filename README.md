@@ -113,6 +113,35 @@ Expected response:
 
 ## Development Commands
 
+### Rust compiler cache
+
+Install Kache 1.0.0 and run `kache init --no-service` to configure the user Cargo wrapper.
+This machine uses a checksum-verified Windows release in `%USERPROFILE%\.cargo\bin`.
+The `Kache daemon` user scheduled task starts `kache daemon start` at login.
+
+Configure `%USERPROFILE%\.config\kache\config.toml`:
+
+```toml
+[cache]
+local_max_size = "10GiB"
+auto_gc = true
+auto_clean_orphaned_targets = true
+auto_clean_idle_targets_days = 14
+auto_clean_unused_units_days = 14
+windows_hardlink = false
+```
+
+Cargo settings disable incremental compilation and development/test debug info in this repository,
+and limit compilation to two jobs. Windows executable caching stays disabled by default.
+NTFS restores copy outputs. The store budget is soft and does not cap total Cargo target disk usage.
+The daemon cleans inactive targets after 14 days and unused units when filesystem access tracking
+supports it. Active builds keep their targets. Run `kache clean --tracked --stale 14d --dry-run`
+to preview cleanup, `kache stats` to inspect storage, and `kache doctor` to inspect setup.
+
+CI uses Kache 1.0.0 with a 2GiB store per job. Quality and glibc 2.35 release caches use separate
+keys. PR and merge-queue builds restore only; successful `develop` builds export after explicit GC.
+GitHub cache storage includes multiple snapshots; per-job store limits are not repository-wide caps.
+
 Run Rust services from PowerShell on Windows:
 
 ```powershell
