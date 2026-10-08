@@ -10,9 +10,16 @@ export default defineEventHandler(async (event) => {
 		query: Object.fromEntries(
 			Object.entries(query).filter(
 				([key, value]) =>
-					['after', 'record', 'status', 'idLevel', 'workshopId', 'from', 'to'].includes(
-						key,
-					) && typeof value === 'string',
+					[
+						'after',
+						'record',
+						'status',
+						'idLevel',
+						'workshopId',
+						'from',
+						'to',
+						'history',
+					].includes(key) && typeof value === 'string',
 			),
 		) as Record<string, string>,
 	})
