@@ -127,11 +127,25 @@ function createV7ProtobufPayload(
 		.add(new protobuf.Field('version', 1, 'int32'))
 		.add(new protobuf.Field('initialFrame', 4, 'InitialFrame'))
 		.add(new protobuf.Field('deltaFrames', 5, 'DeltaFrame', 'repeated'))
+		.add(new protobuf.Field('evidenceJson', 8, 'string'))
 	root.define('test').add(vector3).add(vector3Int).add(initialFrame).add(deltaFrame).add(ghost)
 	return ghost
 		.encode(
 			ghost.fromObject({
 				version,
+				evidenceJson:
+					version === 8
+						? JSON.stringify({
+								runUuid: 'test-run',
+								levelUid: 'test-level',
+								submissionLevel: '',
+								canonicalHash: '',
+								initialTime: 0,
+								physicsInterval: 0.02,
+								samples: [],
+								events: [],
+							})
+						: undefined,
 				initialFrame: {
 					position: { x: 0, y: 0, z: 0 },
 					surfaceState,
@@ -228,42 +242,48 @@ describe('ghost playback parsing', () => {
 		expect(ghost.frames[1]?.surfaces).toEqual([])
 	})
 
-	test.each([7, 8])('uses native parser and statistics path for V%i material physics telemetry', async (version) => {
-		const compressed = compressSync(createV7ProtobufPayload(version))
-		const ghost = await parseGhost(compressed)
-		const statistics = await parseGhostStatistics(compressed)
+	test.each([7, 8])(
+		'uses native parser and statistics path for V%i material physics telemetry',
+		async (version) => {
+			const compressed = compressSync(createV7ProtobufPayload(version))
+			const ghost = await parseGhost(compressed)
+			const statistics = await parseGhostStatistics(compressed)
 
-		expect(ghost.version).toBe(version)
-		expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'ice2'])
-		expect(statistics.ghostVersion).toBe(version)
-		expect(statistics.hasSurfaceData).toBe(true)
-		expect(statistics.distanceOnWood).toBe(0.5)
-		expect(statistics.distanceOnIce2).toBe(0.5)
-		expect(statistics.timeOnWood).toBe(0.5)
-		expect(statistics.timeOnIce2).toBe(0.5)
-	})
+			expect(ghost.version).toBe(version)
+			expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'ice2'])
+			expect(statistics.ghostVersion).toBe(version)
+			expect(statistics.hasSurfaceData).toBe(true)
+			expect(statistics.distanceOnWood).toBe(0.5)
+			expect(statistics.distanceOnIce2).toBe(0.5)
+			expect(statistics.timeOnWood).toBe(0.5)
+			expect(statistics.timeOnIce2).toBe(0.5)
+		},
+	)
 
-	test.each([5, 6, 7, 8])('distinguishes V%i surface support from detected samples', async (version) => {
-		const payload = createV7ProtobufPayload(version, MaterialPhysicsState.None)
-		const browser = await parseGhostBrowser(new Uint8Array([1]), {
-			decompressLzma: async () => payload,
-		})
-		const compressed = compressSync(payload)
-		const native = await parseGhost(compressed)
-		const statistics = await parseGhostStatistics(compressed)
-		expect(browser.capabilities.surfaces).toBe(version >= 6)
-		expect(native.capabilities.surfaces).toBe(version >= 6)
-		expect(statistics.hasSurfaceData).toBe(version >= 6)
-		if (version >= 7) {
-			expect(browser.frames.every((frame) => frame.surfaces?.length === 0)).toBe(true)
-			expect(native.frames.every((frame) => frame.surfaces?.length === 0)).toBe(true)
-			expect(statistics.distanceOnTarmac).toBe(0)
-			expect(statistics.timeOnTarmac).toBe(0)
-		} else if (version === 5) {
-			expect(statistics.distanceOnTarmac).toBeNull()
-			expect(statistics.timeOnTarmac).toBeNull()
-		}
-	})
+	test.each([5, 6, 7, 8])(
+		'distinguishes V%i surface support from detected samples',
+		async (version) => {
+			const payload = createV7ProtobufPayload(version, MaterialPhysicsState.None)
+			const browser = await parseGhostBrowser(new Uint8Array([1]), {
+				decompressLzma: async () => payload,
+			})
+			const compressed = compressSync(payload)
+			const native = await parseGhost(compressed)
+			const statistics = await parseGhostStatistics(compressed)
+			expect(browser.capabilities.surfaces).toBe(version >= 6)
+			expect(native.capabilities.surfaces).toBe(version >= 6)
+			expect(statistics.hasSurfaceData).toBe(version >= 6)
+			if (version >= 7) {
+				expect(browser.frames.every((frame) => frame.surfaces?.length === 0)).toBe(true)
+				expect(native.frames.every((frame) => frame.surfaces?.length === 0)).toBe(true)
+				expect(statistics.distanceOnTarmac).toBe(0)
+				expect(statistics.timeOnTarmac).toBe(0)
+			} else if (version === 5) {
+				expect(statistics.distanceOnTarmac).toBeNull()
+				expect(statistics.timeOnTarmac).toBeNull()
+			}
+		},
+	)
 
 	test('bounds native browser gzip decompression output', async () => {
 		const compressed = Bun.gzipSync(new Uint8Array(1_024))

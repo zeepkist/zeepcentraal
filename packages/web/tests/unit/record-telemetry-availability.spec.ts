@@ -36,17 +36,18 @@ describe('record surface telemetry availability', () => {
 				expect(chart.unavailable).toBe(false)
 				expect(chart.entries.every((entry) => entry.value === 0)).toBe(true)
 			}
-			expect(model.emptyLabel).toBe('record.telemetry.empty')
+			expect(model.emptyLabel).toBe('pages.recordDetail.telemetry.empty')
 		}
 	})
 
 	it('keeps unsupported V5 surfaces unavailable', () => {
 		const model = modelFor(5).value
-		expect(model.charts.filter((chart) => chart.key.startsWith('surface-')))
-			.toEqual(expect.arrayContaining([
+		expect(model.charts.filter((chart) => chart.key.startsWith('surface-'))).toEqual(
+			expect.arrayContaining([
 				expect.objectContaining({ key: 'surface-distance', unavailable: true }),
 				expect.objectContaining({ key: 'surface-time', unavailable: true }),
-			]))
+			]),
+		)
 	})
 
 	it.each([5, 6, 7, 8])('preserves field-specific V%i availability', (version) => {
@@ -58,7 +59,8 @@ describe('record surface telemetry availability', () => {
 		}).value
 		expect(model.charts.find((chart) => chart.key === 'wheels')?.unavailable).toBe(true)
 		expect(model.driverInputs.unavailable).toBe(true)
-		expect(model.overviewMetrics.find((metric) => metric.key === 'average-speed')?.value)
-			.toBe('common.unavailable')
+		expect(model.overviewMetrics.find((metric) => metric.key === 'average-speed')?.value).toBe(
+			'common.unavailable',
+		)
 	})
 })

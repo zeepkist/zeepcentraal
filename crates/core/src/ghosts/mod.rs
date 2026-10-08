@@ -24,8 +24,71 @@ mod tests {
     use std::io::Write;
 
     use flate2::{Compression, write::GzEncoder};
+    use prost::Message;
 
     use super::*;
+
+    fn protobuf_surface_ghost(version: i32, surface_state: i32) -> Vec<u8> {
+        let ghost = proto::Ghost {
+            version,
+            evidence_json: r#"{"runUuid":"test-run","levelUid":"test-level","submissionLevel":"","canonicalHash":"","initialTime":0,"physicsInterval":0.02,"samples":[],"events":[]}"#.to_owned(),
+            initial_frame: Some(proto::InitialFrame {
+                position: Some(proto::Vector3::default()),
+                surface_state,
+                ..Default::default()
+            }),
+            delta_frames: vec![proto::DeltaFrame {
+                time: 1.0,
+                position: Some(proto::Vector3Int { x: 100_000, y: 0, z: 0 }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let mut compressed = Vec::new();
+        lzma_rs::lzma_compress(
+            &mut std::io::Cursor::new(ghost.encode_to_vec()),
+            &mut compressed,
+        )
+        .expect("compress protobuf ghost");
+        compressed
+    }
+
+    #[test]
+    fn distinguishes_surface_support_from_detected_samples() {
+        for version in [5, 6, 7, 8] {
+            let payload = protobuf_surface_ghost(version, 0);
+            let ghost = parse_ghost(&payload).expect("surface ghost");
+            let statistics = parse_ghost_statistics(&payload).expect("surface statistics");
+            assert_eq!(ghost.capabilities.surfaces, version >= 6);
+            assert_eq!(statistics.has_surface_data, version >= 6);
+            if version >= 7 {
+                assert!(ghost.frames.iter().all(|frame| frame.surfaces.is_empty()));
+                assert_eq!(statistics.distance_on_tarmac, Some(0.0));
+                assert_eq!(statistics.time_on_tarmac, Some(0.0));
+            } else if version == 5 {
+                assert_eq!(statistics.distance_on_tarmac, None);
+                assert_eq!(statistics.time_on_tarmac, None);
+            }
+        }
+    }
+
+    #[test]
+    fn preserves_version_specific_surface_bits_and_statistics() {
+        for version in [6, 7, 8] {
+            let payload = protobuf_surface_ghost(version, 1 << 4);
+            let ghost = parse_ghost(&payload).expect("surface ghost");
+            let statistics = parse_ghost_statistics(&payload).expect("surface statistics");
+            if version == 6 {
+                assert_eq!(ghost.frames[0].surfaces, vec![Surface::Ice1]);
+                assert_eq!(statistics.distance_on_ice1, Some(1.0));
+                assert_eq!(statistics.time_on_ice1, Some(1.0));
+            } else {
+                assert_eq!(ghost.frames[0].surfaces, vec![Surface::Wood]);
+                assert_eq!(statistics.distance_on_wood, Some(1.0));
+                assert_eq!(statistics.time_on_wood, Some(1.0));
+            }
+        }
+    }
 
     fn v1_payload() -> Vec<u8> {
         let mut bytes = Vec::new();

@@ -76,9 +76,7 @@ describe('dashboard statistic aggregates', () => {
 		expect(querySource).toContain('monthStatistics: recordStatistics(')
 		expect(querySource).toContain('v6DayStatistics: recordStatistics(')
 		expect(querySource).toContain('v6MonthStatistics: recordStatistics(')
-		expect(
-			querySource.match(/ghostVersion: \{ greaterThanOrEqualTo: 6 \}/g),
-		).toHaveLength(2)
+		expect(querySource.match(/ghostVersion: \{ greaterThanOrEqualTo: 6 \}/g)).toHaveLength(2)
 		expect(composable).not.toContain('minimumModVersion')
 		expect(composable).toContain('daySince: ssrMetricWindows.value.daySince')
 		expect(composable).toContain('monthSince: ssrMetricWindows.value.monthSince')
