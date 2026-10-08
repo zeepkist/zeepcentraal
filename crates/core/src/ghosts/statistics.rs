@@ -100,7 +100,7 @@ pub fn calculate_ghost_statistics(frames: &[GhostFrame], version: i32) -> GhostS
     let mut has_air = false;
     let mut has_wheels = false;
     let mut has_slip = version >= 6;
-    let mut has_surface = false;
+    let mut has_surface = version >= 6;
     let mut has_parking = false;
     let mut has_monorail = false;
     let mut has_ragdoll = version >= 6;

@@ -103,7 +103,10 @@ function createProtobufMetadataPayload(): Uint8Array {
 		.finish()
 }
 
-function createV7ProtobufPayload(): Uint8Array {
+function createV7ProtobufPayload(
+	version = 7,
+	surfaceState = MaterialPhysicsState.Ice2 | MaterialPhysicsState.Wood,
+): Uint8Array {
 	const root = new protobuf.Root()
 	const vector3 = new protobuf.Type('Vector3')
 		.add(new protobuf.Field('x', 1, 'float'))
@@ -128,10 +131,10 @@ function createV7ProtobufPayload(): Uint8Array {
 	return ghost
 		.encode(
 			ghost.fromObject({
-				version: 7,
+				version,
 				initialFrame: {
 					position: { x: 0, y: 0, z: 0 },
-					surfaceState: MaterialPhysicsState.Ice2 | MaterialPhysicsState.Wood,
+					surfaceState,
 				},
 				deltaFrames: [
 					{
@@ -214,26 +217,52 @@ describe('ghost playback parsing', () => {
 		expect(gzip.frames[0]?.rotation).toEqual({ x: 1, y: 2, z: 3 })
 	})
 
-	test('uses browser parser for V7 material physics telemetry', async () => {
+	test.each([7, 8])('uses browser parser for V%i material physics telemetry', async (version) => {
 		const ghost = await parseGhostBrowser(new Uint8Array([1]), {
-			decompressLzma: async () => createV7ProtobufPayload(),
+			decompressLzma: async () => createV7ProtobufPayload(version),
 		})
 
-		expect(ghost.version).toBe(7)
+		expect(ghost.version).toBe(version)
+		expect(ghost.capabilities.surfaces).toBe(true)
 		expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'ice2'])
 		expect(ghost.frames[1]?.surfaces).toEqual([])
 	})
 
-	test('uses native parser and statistics path for V7 material physics telemetry', async () => {
-		const compressed = compressSync(createV7ProtobufPayload())
+	test.each([7, 8])('uses native parser and statistics path for V%i material physics telemetry', async (version) => {
+		const compressed = compressSync(createV7ProtobufPayload(version))
 		const ghost = await parseGhost(compressed)
 		const statistics = await parseGhostStatistics(compressed)
 
-		expect(ghost.version).toBe(7)
+		expect(ghost.version).toBe(version)
 		expect(ghost.frames[0]?.surfaces).toEqual(['wood', 'ice2'])
-		expect(statistics.ghostVersion).toBe(7)
+		expect(statistics.ghostVersion).toBe(version)
+		expect(statistics.hasSurfaceData).toBe(true)
 		expect(statistics.distanceOnWood).toBe(0.5)
 		expect(statistics.distanceOnIce2).toBe(0.5)
+		expect(statistics.timeOnWood).toBe(0.5)
+		expect(statistics.timeOnIce2).toBe(0.5)
+	})
+
+	test.each([5, 6, 7, 8])('distinguishes V%i surface support from detected samples', async (version) => {
+		const payload = createV7ProtobufPayload(version, MaterialPhysicsState.None)
+		const browser = await parseGhostBrowser(new Uint8Array([1]), {
+			decompressLzma: async () => payload,
+		})
+		const compressed = compressSync(payload)
+		const native = await parseGhost(compressed)
+		const statistics = await parseGhostStatistics(compressed)
+		expect(browser.capabilities.surfaces).toBe(version >= 6)
+		expect(native.capabilities.surfaces).toBe(version >= 6)
+		expect(statistics.hasSurfaceData).toBe(version >= 6)
+		if (version >= 7) {
+			expect(browser.frames.every((frame) => frame.surfaces?.length === 0)).toBe(true)
+			expect(native.frames.every((frame) => frame.surfaces?.length === 0)).toBe(true)
+			expect(statistics.distanceOnTarmac).toBe(0)
+			expect(statistics.timeOnTarmac).toBe(0)
+		} else if (version === 5) {
+			expect(statistics.distanceOnTarmac).toBeNull()
+			expect(statistics.timeOnTarmac).toBeNull()
+		}
 	})
 
 	test('bounds native browser gzip decompression output', async () => {

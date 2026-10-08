@@ -614,7 +614,7 @@ fn detect_capabilities(frames: &[GhostFrame], version: i32) -> GhostCapabilities
                 || frame.parking_block.is_some()
                 || frame.monorail.is_some()
         }),
-        surfaces: frames.iter().any(|frame| !frame.surfaces.is_empty()),
+        surfaces: version >= 6 || frames.iter().any(|frame| !frame.surfaces.is_empty()),
         velocity: frames.iter().any(|frame| {
             frame.local_velocity.is_some()
                 || frame.local_angular_velocity.is_some()

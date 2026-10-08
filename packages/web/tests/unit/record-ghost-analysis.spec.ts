@@ -439,7 +439,7 @@ describe('record ghost analysis', () => {
 			'utf8',
 		)
 
-		expect(modelSource).toContain("'surface-distance': value.hasSurfaceData === true")
+		expect(modelSource).toContain("'surface-distance': hasExtendedEventTelemetry || value.hasSurfaceData === true")
 		expect(modelSource).toContain('value.ghostVersion >= 6')
 		expect(modelSource).toMatch(/hasExtendedEventTelemetry\s*\|\|\s*value\.hasAirData/)
 		expect(modelSource).toContain('wheels: value.hasWheelData === true')
