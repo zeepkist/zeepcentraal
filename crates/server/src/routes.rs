@@ -468,6 +468,11 @@ pub async fn submit_record(
         .await
         .map_err(|error| Problem::internal(error.into()))?
         .map_err(|_| Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_MISSING_PARAMS))?;
+    let checked_at = state
+        .database
+        .validation_check_timestamp_for_hash(&body.hash)
+        .await
+        .map_err(Problem::internal)?;
     let snapshot = state
         .database
         .validation_snapshot(&body.hash)
@@ -572,6 +577,7 @@ pub async fn submit_record(
                 payload_digest: &payload_digest,
                 run_uuid: run_uuid.as_deref(),
                 report: &report,
+                checked_at: &checked_at,
             }),
             id_user: user.id,
             id_level: level.id,

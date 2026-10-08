@@ -58,6 +58,7 @@ diesel::table! {
         record_count -> BigInt,
         publicly_visible -> Bool,
         date_created -> Timestamptz,
+        validation_inputs_updated_at -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
     }
 }

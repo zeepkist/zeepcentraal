@@ -47,13 +47,17 @@ impl ServiceJobHandler {
         }
     }
 
-    async fn validate_record_ghost(&self, payload: &serde_json::Value) -> Result<()> {
+    async fn validate_record_ghost(
+        &self,
+        payload: &serde_json::Value,
+        attempts: i32,
+    ) -> Result<()> {
         crate::ghost_audit::GhostAuditService::new(
             self.database.clone(),
             self.queue.clone(),
             self.storage.clone(),
         )
-        .validate_record_ghost(payload)
+        .validate_record_ghost_attempt(payload, attempts)
         .await
     }
     async fn audit_record_ghosts(&self, payload: &serde_json::Value) -> Result<()> {
@@ -114,24 +118,33 @@ impl ServiceJobHandler {
         Ok(())
     }
 
+    async fn enqueue_level_ghost_audits(&self, ids: &[i32]) -> Result<()> {
+        for chunk in ids.chunks(100) {
+            self.queue
+                .enqueue_many(
+                    chunk
+                        .iter()
+                        .map(|id| EnqueueRequest {
+                            task: TaskIdentifier::AuditRecordGhosts,
+                            payload: serde_json::json!({"idLevel":id}),
+                            lane: JobLane::Bulk,
+                            key: Some(format!("audit-level-ghosts:{id}")),
+                            delay: Duration::ZERO,
+                        })
+                        .collect(),
+                )
+                .await?;
+        }
+        Ok(())
+    }
     async fn scan_item(&self, payload: &serde_json::Value) -> Result<()> {
         let workshop_id = payload["workshopId"]
             .as_str()
             .context("workshopId is missing")?
             .parse::<u64>()?;
         let result = self.scanner().scan_workshop_item(workshop_id).await?;
-        if result.status == zc_workshop::scanner::WorkshopScanStatus::Scanned
-            && !result.changed_level_ids.is_empty()
-        {
-            self.queue
-                .enqueue(
-                    TaskIdentifier::AuditRecordGhosts,
-                    serde_json::json!({"workshopId":workshop_id.to_string()}),
-                    JobLane::Bulk,
-                    Some(&format!("audit-workshop-ghosts:{workshop_id}")),
-                )
-                .await?;
-        }
+        self.enqueue_level_ghost_audits(&result.validation_level_ids)
+            .await?;
         self.database
             .release_level_request(i64::try_from(workshop_id)?)
             .await?;
@@ -157,18 +170,8 @@ impl ServiceJobHandler {
             .await?;
         let mut changed = BTreeSet::new();
         for result in batch.results {
-            if result.status == zc_workshop::scanner::WorkshopScanStatus::Scanned
-                && !result.changed_level_ids.is_empty()
-            {
-                self.queue
-                    .enqueue(
-                        TaskIdentifier::AuditRecordGhosts,
-                        serde_json::json!({"workshopId":result.workshop_id.to_string()}),
-                        JobLane::Bulk,
-                        Some(&format!("audit-workshop-ghosts:{}", result.workshop_id)),
-                    )
-                    .await?;
-            }
+            self.enqueue_level_ghost_audits(&result.validation_level_ids)
+                .await?;
             self.database
                 .release_level_request(i64::try_from(result.workshop_id)?)
                 .await?;
@@ -974,7 +977,9 @@ impl JobHandler for ServiceJobHandler {
             };
         }
         let result = match task {
-            TaskIdentifier::ValidateRecordGhost => self.validate_record_ghost(&payload).await,
+            TaskIdentifier::ValidateRecordGhost => {
+                self.validate_record_ghost(&payload, attempts).await
+            }
             TaskIdentifier::AuditRecordGhosts => self.audit_record_ghosts(&payload).await,
             TaskIdentifier::BackfillLevelSimhash => self.backfill_level_simhash().await,
             TaskIdentifier::BackfillRecordGhostStatistics => {

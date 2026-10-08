@@ -176,6 +176,7 @@ impl WorkshopPersistence for DatabaseWorkshopPersistence {
         Ok(WorkshopLevelUpsertResult {
             id_level: result.id_level,
             score_changed: result.score_changed,
+            validation_level_ids: result.validation_level_ids,
         })
     }
 }

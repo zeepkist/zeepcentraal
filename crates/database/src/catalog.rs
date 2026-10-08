@@ -129,6 +129,21 @@ fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
                 },
             );
     }
+    if versions.iter().any(|version| version == "20261008040000") {
+        snapshot
+            .tables
+            .get_mut("public.level")
+            .unwrap()
+            .columns
+            .insert(
+                "validation_inputs_updated_at".into(),
+                SnapshotColumn {
+                    name: "validation_inputs_updated_at".into(),
+                    data_type: "timestamp with time zone".into(),
+                    not_null: true,
+                },
+            );
+    }
     apply_donations_overlay(snapshot, versions);
     if versions.iter().any(|version| version == "20260927010000") {
         for (table, columns) in [

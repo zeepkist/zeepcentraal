@@ -244,7 +244,7 @@ impl Database {
 
                     if let Some(evidence)=&input.evidence {
                         sql_query("INSERT INTO public.record_media(id_record,ghost_url,date_created,date_updated) VALUES($1,$2,clock_timestamp(),clock_timestamp())").bind::<Integer,_>(created.id).bind::<Text,_>(evidence.ghost_key).execute(connection).await?;
-                        super::ghost_validation::persist_validation(connection,created.id,Some(evidence.ghost_digest),evidence.report).await?;
+                        super::ghost_validation::persist_validation(connection,created.id,Some(evidence.ghost_digest),evidence.report,Some(evidence.checked_at)).await?;
                         if let Some(run_uuid)=evidence.run_uuid {
                             sql_query("INSERT INTO zc_private.record_run(id_user,run_uuid,payload_digest,id_record) VALUES($1,$2,$3,$4)").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).bind::<Text,_>(evidence.payload_digest).bind::<Integer,_>(created.id).execute(connection).await?;
                         }

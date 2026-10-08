@@ -18,10 +18,10 @@ async fn fixture_url(database_name: &str) -> Result<String> {
 }
 
 #[tokio::test]
-#[ignore = "requires empty local ghost_validation_mutable_history_test database"]
+#[ignore = "requires empty local ghost_validation_incremental_history_test database"]
 async fn mutable_results_preserve_identity_timestamps_and_record_eligibility() -> Result<()> {
     use serde_json::json;
-    let url = fixture_url("ghost_validation_mutable_history_test").await?;
+    let url = fixture_url("ghost_validation_incremental_history_test").await?;
     let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("fixture connection") });
     client
@@ -35,6 +35,11 @@ async fn mutable_results_preserve_identity_timestamps_and_record_eligibility() -
     client
         .batch_execute(include_str!(
             "../migrations/20261008020000_mutable_record_validation/up.sql"
+        ))
+        .await?;
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261008040000_incremental_ghost_audits/up.sql"
         ))
         .await?;
     client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)); INSERT INTO public.record(id,id_user,id_level,time,date_created) VALUES(1276,1,1,10,'2020-01-01'); INSERT INTO public.personal_best_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.world_record_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.level_points(id_level,points) VALUES(1,100); INSERT INTO public.level_item(id_level,workshop_id) VALUES(1,123);").await?;
@@ -106,7 +111,7 @@ async fn mutable_results_preserve_identity_timestamps_and_record_eligibility() -
             &ValidationReport::uncertain("ghost_storage_unavailable"),
         )
         .await?;
-    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
+    assert!(database.audit_record_ids(&filter).await?.is_empty());
     database
         .save_record_validation(1276, None, &corrected)
         .await?;
@@ -226,9 +231,9 @@ async fn mutable_migration_reset_constraints_and_rollback() -> Result<()> {
 }
 
 #[tokio::test]
-#[ignore = "requires migrated local zsl_mutable_migration_test database"]
+#[ignore = "requires migrated local zsl_incremental_migration_test database"]
 async fn accepted_run_retry_is_atomic_and_changed_payload_fails() -> Result<()> {
-    let url = fixture_url("zsl_mutable_migration_test").await?;
+    let url = fixture_url("zsl_incremental_migration_test").await?;
     let database = Database::connect(&url, 2).await?;
     let suffix = i64::from(std::process::id());
     let user = database
@@ -259,6 +264,7 @@ async fn accepted_run_retry_is_atomic_and_changed_payload_fails() -> Result<()> 
             payload_digest: "original",
             run_uuid: Some(&run_uuid),
             report: &report,
+            checked_at: "1970-01-01T00:00:00Z",
         }),
     };
     let first = database.submit_record(submission.clone()).await?;
@@ -331,14 +337,15 @@ fn second_submission<'a>(
             payload_digest: "concurrent",
             run_uuid: Some(run),
             report,
+            checked_at: "1970-01-01T00:00:00Z",
         }),
     }
 }
 
 #[tokio::test]
-#[ignore = "requires migrated local workshop_mutable_validation_test fixture DB"]
+#[ignore = "requires migrated local workshop_incremental_validation_test fixture DB"]
 async fn version_candidates_share_workshop_without_trusting_builder_uid() -> Result<()> {
-    let url = fixture_url("workshop_mutable_validation_test").await?;
+    let url = fixture_url("workshop_incremental_validation_test").await?;
     let database = Database::connect(&url, 2).await?;
     let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("fixture connection") });

@@ -2,30 +2,76 @@ use crate::Database;
 use anyhow::{Result, ensure};
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{Array, BigInt, Float, Integer, Jsonb, Nullable, Text},
+    sql_types::{Array, BigInt, Bool, Float, Integer, Jsonb, Nullable, Text},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
 use serde_json::Value;
 use zc_core::ghost_validation::{VALIDATOR_VERSION, ValidationReport};
 
-const AUDIT_RECORD_IDS_QUERY: &str = r#"
-SELECT r.id FROM public.record r
-WHERE r.id>$1
-  AND ($2::integer IS NULL OR r.id=$2)
-  AND ($3::integer IS NULL OR r.id_level=$3)
-  AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
-  AND ($5::text IS NULL OR r.date_created >= $5::timestamptz)
-  AND ($6::text IS NULL OR r.date_created < $6::timestamptz)
-  AND (cardinality($7::text[])=0 OR EXISTS(
-    SELECT 1 FROM zc_private.record_validation v
-    WHERE v.id_record=r.id AND (
-      (v.validator_version<>$8 AND v.report->'reasons' ?| $7)
-      OR v.report->'reasons' ? 'ghost_storage_unavailable'
-    )
-  ))
-ORDER BY r.id LIMIT 100
+pub const AUDIT_WINDOW_SIZE: usize = 1_000;
+
+const AUDIT_WINDOW_QUERY: &str = r#"
+WITH records AS MATERIALIZED (
+ SELECT r.id,r.id_level FROM public.record r
+ WHERE r.id>$1 AND r.id<=$8
+   AND ($2::integer IS NULL OR r.id=$2)
+   AND ($3::integer IS NULL OR r.id_level=$3)
+   AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
+   AND ($5::text IS NULL OR r.date_created >= $5::timestamptz)
+   AND ($6::text IS NULL OR r.date_created < $6::timestamptz)
+ ORDER BY r.id LIMIT 1000
+)
+SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,
+ EXISTS(SELECT 1 FROM public.record_media m WHERE m.id_record=r.id AND nullif(btrim(m.ghost_url),'') IS NOT NULL) AS has_ghost,
+ coalesce(v.status='uncertain' AND v.report->'reasons' ? 'ghost_storage_unavailable',false) AS retryable,
+ (NOT coalesce(v.status='fail' AND v.report->'reasons' ? 'missing_ghost',false)
+  AND (cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
+  AND (v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
+       OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at)) AS needs_check
+FROM records r JOIN public.level l ON l.id=r.id_level
+LEFT JOIN zc_private.record_validation v ON v.id_record=r.id
+ORDER BY r.id
 "#;
+
+const PERSIST_VALIDATIONS_QUERY: &str = r#"
+INSERT INTO zc_private.record_validation AS existing
+ (id_record,id_user,id_level,ghost_digest,status,report,validator_version,checked_at)
+SELECT r.id,r.id_user,r.id_level,$2,$3,$4,$5,$6::text::timestamptz
+FROM public.record r WHERE r.id=ANY($1) ORDER BY r.id
+ON CONFLICT(id_record) DO UPDATE SET
+ id_user=EXCLUDED.id_user,id_level=EXCLUDED.id_level,
+ ghost_digest=CASE WHEN ROW(existing.status,existing.report,existing.validator_version)
+   IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
+   THEN EXCLUDED.ghost_digest ELSE existing.ghost_digest END,
+ status=EXCLUDED.status,report=EXCLUDED.report,validator_version=EXCLUDED.validator_version,
+ updated_at=CASE WHEN ROW(existing.status,existing.report,existing.validator_version)
+   IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
+   THEN clock_timestamp() ELSE existing.updated_at END,
+ checked_at=coalesce(EXCLUDED.checked_at,existing.checked_at)
+WHERE (existing.checked_at IS NULL OR EXCLUDED.checked_at IS NULL OR EXCLUDED.checked_at>=existing.checked_at)
+ AND (ROW(existing.status,existing.report,existing.validator_version)
+   IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
+   OR (EXCLUDED.checked_at IS NOT NULL AND existing.checked_at IS DISTINCT FROM EXCLUDED.checked_at))
+"#;
+
+#[derive(Clone, Debug, QueryableByName)]
+pub struct AuditWindowRecord {
+    #[diesel(sql_type=Integer)]
+    pub id: i32,
+    #[diesel(sql_type=Integer)]
+    pub id_level: i32,
+    #[diesel(sql_type=Text)]
+    pub canonical_hash: String,
+    #[diesel(sql_type=Text)]
+    pub checked_at: String,
+    #[diesel(sql_type=Bool)]
+    pub has_ghost: bool,
+    #[diesel(sql_type=Bool)]
+    pub needs_check: bool,
+    #[diesel(sql_type=Bool)]
+    pub retryable: bool,
+}
 
 const ADMIN_VALIDATIONS_QUERY: &str = r#"
 SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash) AS data
@@ -116,19 +162,41 @@ pub struct AcceptedEvidence<'a> {
     pub payload_digest: &'a str,
     pub run_uuid: Option<&'a str>,
     pub report: &'a ValidationReport,
+    pub checked_at: &'a str,
 }
 pub async fn persist_validation(
     connection: &mut AsyncPgConnection,
     id_record: i32,
     digest: Option<&str>,
     report: &ValidationReport,
+    checked_at: Option<&str>,
+) -> Result<()> {
+    persist_validations(connection, &[id_record], digest, report, checked_at).await
+}
+async fn persist_validations(
+    connection: &mut AsyncPgConnection,
+    ids: &[i32],
+    digest: Option<&str>,
+    report: &ValidationReport,
+    checked_at: Option<&str>,
 ) -> Result<()> {
     ensure!(
         !report.comparison,
         "Candidate comparisons must not be persisted"
     );
-    sql_query("INSERT INTO zc_private.record_validation AS existing(id_record,id_user,id_level,ghost_digest,status,report,validator_version) SELECT r.id,r.id_user,r.id_level,$2,$3,$4,$5 FROM public.record r WHERE r.id=$1 ON CONFLICT(id_record) DO UPDATE SET id_user=EXCLUDED.id_user,id_level=EXCLUDED.id_level,ghost_digest=EXCLUDED.ghost_digest,status=EXCLUDED.status,report=EXCLUDED.report,validator_version=EXCLUDED.validator_version,updated_at=clock_timestamp() WHERE ROW(existing.status,existing.report,existing.validator_version) IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)")
-        .bind::<Integer,_>(id_record).bind::<Nullable<Text>,_>(digest).bind::<Text,_>(&report.status).bind::<Jsonb,_>(serde_json::to_value(report)?).bind::<Text,_>(&report.validator_version).execute(connection).await?;
+    ensure!(
+        ids.len() <= AUDIT_WINDOW_SIZE,
+        "Validation batch exceeds limit"
+    );
+    sql_query(PERSIST_VALIDATIONS_QUERY)
+        .bind::<Array<Integer>, _>(ids)
+        .bind::<Nullable<Text>, _>(digest)
+        .bind::<Text, _>(&report.status)
+        .bind::<Jsonb, _>(serde_json::to_value(report)?)
+        .bind::<Text, _>(&report.validator_version)
+        .bind::<Nullable<Text>, _>(checked_at)
+        .execute(connection)
+        .await?;
     Ok(())
 }
 impl Database {
@@ -161,28 +229,74 @@ impl Database {
         report: &ValidationReport,
     ) -> Result<()> {
         let mut connection = self.connection().await?;
-        persist_validation(&mut connection, record, digest, report).await
+        persist_validation(&mut connection, record, digest, report, None).await
     }
     pub async fn audit_record(&self, id: i32) -> Result<Option<AuditRecord>> {
         let mut c = self.connection().await?;
         Ok(sql_query("SELECT r.id,r.id_user,r.id_level,coalesce(u.steam_id::text,'') AS steam_id,l.hash AS level_uid,l.xx_hash AS canonical_hash,r.game_version::text,r.time,coalesce(r.splits,ARRAY[]::real[]) AS splits,coalesce(r.speeds,ARRAY[]::real[]) AS speeds,(SELECT ghost_url FROM public.record_media WHERE id_record=r.id) AS ghost_url FROM public.record r JOIN public.level l ON l.id=r.id_level JOIN public.\"user\" u ON u.id=r.id_user WHERE r.id=$1")
   .bind::<Integer,_>(id).get_result(&mut c).await.optional()?)
     }
-    pub async fn audit_record_ids(&self, filter: &Value) -> Result<Vec<i32>> {
+    pub async fn validation_check_timestamp_for_hash(&self, hash: &str) -> Result<String> {
+        #[derive(QueryableByName)]
+        struct Stamp {
+            #[diesel(sql_type = Text)]
+            stamp: String,
+        }
+        Ok(sql_query("SELECT coalesce((SELECT validation_inputs_updated_at FROM public.level WHERE xx_hash=$1),'epoch'::timestamptz)::text AS stamp")
+            .bind::<Text,_>(hash)
+            .get_result::<Stamp>(&mut self.connection().await?)
+            .await?.stamp)
+    }
+    pub async fn validation_check_timestamp(&self, id_level: i32) -> Result<String> {
+        #[derive(QueryableByName)]
+        struct Stamp {
+            #[diesel(sql_type=Text)]
+            value: String,
+        }
+        Ok(sql_query(
+            "SELECT validation_inputs_updated_at::text AS value FROM public.level WHERE id=$1",
+        )
+        .bind::<Integer, _>(id_level)
+        .get_result::<Stamp>(&mut self.connection().await?)
+        .await?
+        .value)
+    }
+    pub async fn audit_upper_record_id(&self) -> Result<i32> {
         #[derive(QueryableByName)]
         struct Id {
             #[diesel(sql_type=Integer)]
             id: i32,
         }
+        Ok(
+            sql_query("SELECT coalesce(max(id),0) AS id FROM public.record")
+                .get_result::<Id>(&mut self.connection().await?)
+                .await?
+                .id,
+        )
+    }
+    pub async fn save_checked_record_validations(
+        &self,
+        ids: &[i32],
+        digest: Option<&str>,
+        report: &ValidationReport,
+        checked_at: &str,
+    ) -> Result<()> {
+        let mut connection = self.connection().await?;
+        persist_validations(&mut connection, ids, digest, report, Some(checked_at)).await
+    }
+    pub async fn audit_record_window(
+        &self,
+        filter: &Value,
+        through_id: i32,
+    ) -> Result<Vec<AuditWindowRecord>> {
         let integer = |key: &str| filter[key].as_i64().and_then(|v| i32::try_from(v).ok());
-        let mut c = self.connection().await?;
         let reasons: Vec<String> = filter["reasons"]
             .as_array()
             .into_iter()
             .flatten()
             .filter_map(|v| v.as_str().map(str::to_owned))
             .collect();
-        Ok(sql_query(AUDIT_RECORD_IDS_QUERY)
+        Ok(sql_query(AUDIT_WINDOW_QUERY)
             .bind::<Integer, _>(integer("afterId").unwrap_or(0))
             .bind::<Nullable<Integer>, _>(integer("idRecord"))
             .bind::<Nullable<Integer>, _>(integer("idLevel"))
@@ -194,12 +308,37 @@ impl Database {
             .bind::<Nullable<Text>, _>(filter["from"].as_str())
             .bind::<Nullable<Text>, _>(filter["to"].as_str())
             .bind::<Array<Text>, _>(reasons)
+            .bind::<Integer, _>(through_id)
             .bind::<Text, _>(VALIDATOR_VERSION)
-            .load::<Id>(&mut c)
-            .await?
-            .into_iter()
-            .map(|r| r.id)
-            .collect())
+            .load(&mut self.connection().await?)
+            .await?)
+    }
+    // Retained maintenance interface; skip empty eligible windows without stopping traversal.
+    pub async fn audit_record_ids(&self, filter: &Value) -> Result<Vec<i32>> {
+        let through_id = match filter["throughId"]
+            .as_i64()
+            .and_then(|id| i32::try_from(id).ok())
+        {
+            Some(id) => id,
+            None => self.audit_upper_record_id().await?,
+        };
+        let mut cursor = filter.clone();
+        let mut ids = Vec::new();
+        loop {
+            let window = self.audit_record_window(&cursor, through_id).await?;
+            ids.extend(
+                window
+                    .iter()
+                    .filter(|r| r.needs_check)
+                    .map(|r| r.id)
+                    .take(100 - ids.len()),
+            );
+            if ids.len() == 100 || window.len() < AUDIT_WINDOW_SIZE {
+                break;
+            }
+            cursor["afterId"] = serde_json::json!(window.last().expect("full window").id);
+        }
+        Ok(ids)
     }
     pub async fn validation_candidates(&self, id_level: i32) -> Result<Vec<LevelSnapshot>> {
         let mut c = self.connection().await?;

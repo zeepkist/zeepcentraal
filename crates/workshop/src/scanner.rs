@@ -25,6 +25,7 @@ pub enum WorkshopScanStatus {
 #[serde(rename_all = "camelCase")]
 pub struct WorkshopScanResult {
     pub changed_level_ids: Vec<i32>,
+    pub validation_level_ids: Vec<i32>,
     pub status: WorkshopScanStatus,
     pub workshop_id: u64,
 }
@@ -82,25 +83,29 @@ impl<'a> WorkshopScanner<'a> {
         let mut available = Vec::new();
         for metadata in metadata_items {
             if !metadata.available {
+                let changed_level_ids = self
+                    .persistence
+                    .mark_deleted(
+                        metadata.workshop_id,
+                        zc_core::steam::STEAM_VISIBILITY_HIDDEN,
+                    )
+                    .await?;
                 results.push(WorkshopScanResult {
                     workshop_id: metadata.workshop_id,
                     status: WorkshopScanStatus::PermanentlyUnavailable,
-                    changed_level_ids: self
-                        .persistence
-                        .mark_deleted(
-                            metadata.workshop_id,
-                            zc_core::steam::STEAM_VISIBILITY_HIDDEN,
-                        )
-                        .await?,
+                    validation_level_ids: changed_level_ids.clone(),
+                    changed_level_ids,
                 });
             } else if !zc_core::steam::can_download_workshop_item(metadata.visibility) {
+                let changed_level_ids = self
+                    .persistence
+                    .mark_deleted(metadata.workshop_id, metadata.visibility)
+                    .await?;
                 results.push(WorkshopScanResult {
                     workshop_id: metadata.workshop_id,
                     status: WorkshopScanStatus::Inaccessible,
-                    changed_level_ids: self
-                        .persistence
-                        .mark_deleted(metadata.workshop_id, metadata.visibility)
-                        .await?,
+                    validation_level_ids: changed_level_ids.clone(),
+                    changed_level_ids,
                 });
             } else {
                 available.push(metadata);
@@ -177,6 +182,7 @@ impl<'a> WorkshopScanner<'a> {
                 .with_context(|| format!("Workshop metadata {} is missing", item.workshop_id))?;
             let prepared = prepare_item(&item, metadata.creator_id).await?;
             let mut changed_level_ids = Vec::new();
+            let mut validation_level_ids = Vec::new();
             let mut hashes = Vec::with_capacity(prepared.len());
             for level in prepared {
                 let level_author_id = if metadata.creator_id == ZSL_WORKSHOP_AUTHOR_ID {
@@ -204,19 +210,24 @@ impl<'a> WorkshopScanner<'a> {
                         image_url,
                     })
                     .await?;
+                validation_level_ids.extend(upsert.validation_level_ids);
                 if upsert.score_changed {
                     changed_level_ids.push(upsert.id_level);
                 }
             }
-            changed_level_ids.extend(
-                self.persistence
-                    .mark_missing(item.workshop_id, &hashes)
-                    .await?,
-            );
+            let missing = self
+                .persistence
+                .mark_missing(item.workshop_id, &hashes)
+                .await?;
+            validation_level_ids.extend(missing.iter().copied());
+            changed_level_ids.extend(missing);
+            validation_level_ids.sort_unstable();
+            validation_level_ids.dedup();
             changed_level_ids.sort_unstable();
             changed_level_ids.dedup();
             results.push(WorkshopScanResult {
                 changed_level_ids,
+                validation_level_ids,
                 status: WorkshopScanStatus::Scanned,
                 workshop_id: item.workshop_id,
             });
@@ -361,6 +372,7 @@ mod tests {
             Ok(WorkshopLevelUpsertResult {
                 id_level: 6,
                 score_changed: true,
+                validation_level_ids: vec![6],
             })
         }
     }

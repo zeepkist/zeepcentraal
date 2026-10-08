@@ -24,6 +24,7 @@ use zc_core::{
 struct Storage {
     failing: AtomicBool,
     uploads: AtomicUsize,
+    downloads: AtomicUsize,
     download_failing: AtomicBool,
     bytes: Mutex<Vec<u8>>,
 }
@@ -38,6 +39,7 @@ impl ObjectStorage for Storage {
         Ok(())
     }
     async fn download(&self, _: &str, _: DownloadConstraints<'_>) -> Result<Vec<u8>> {
+        self.downloads.fetch_add(1, Ordering::SeqCst);
         if self.download_failing.load(Ordering::SeqCst) {
             bail!("fixture download unavailable");
         }
@@ -96,6 +98,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
                     | "/ghost_validation_legacy_http_test_2"
                     | "/ghost_validation_discord_http_test"
                     | "/ghost_validation_mutable_http_test"
+                    | "/ghost_validation_incremental_http_test"
             ),
         "Dedicated local fixture DB required"
     );
@@ -294,8 +297,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     let eligibility = || async {
         Ok::<_,anyhow::Error>(client.query_one("SELECT jsonb_build_object('records',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM public.record r),'personalBests',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM public.personal_best_global p),'worldRecords',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM public.world_record_global w))::text", &[]).await?.get::<_,String>(0))
     };
-    let before = eligibility().await?;
-    // Outages replace assigned results while keeping repair retryable.
+    // Missing geometry never downloads ghosts. Real storage outages remain retryable.
     let blocks = json!([]);
     let hash = zc_core::levels::calculate_json_level_xxhash(&json!({"blox":blocks}).to_string())?;
     let candidate = state
@@ -307,6 +309,14 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     for level in [assigned, candidate.id] {
         client.execute("INSERT INTO public.level_item(id_level,workshop_id,file_uid) VALUES($1,123,'untrusted-fixture')", &[&level]).await?;
     }
+    let retry_record: i32 = client.query_one("INSERT INTO public.record(id_user,id_level,time,game_version,mod_version) VALUES($1,$2,2,'test','test') RETURNING id", &[&user.id,&candidate.id]).await?.get(0);
+    client
+        .execute(
+            "INSERT INTO public.record_media(id_record,ghost_url) VALUES($1,'fixture-good')",
+            &[&retry_record],
+        )
+        .await?;
+    let before = eligibility().await?;
     let mut old_candidate = zc_core::ghost_validation::ValidationReport::failed("invalid_splits");
     old_candidate.validator_version = "geometry-6".into();
     state
@@ -376,18 +386,14 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         unchanged
     );
 
-    assert!(
-        auditor
-            .validate_record_ghost(&json!({"idRecord":record}))
-            .await
-            .is_err()
-    );
+    let downloads = storage.downloads.load(Ordering::SeqCst);
+    auditor
+        .validate_record_ghost(&json!({"idRecord":record}))
+        .await?;
+    assert_eq!(storage.downloads.load(Ordering::SeqCst), downloads);
     let attempts = state.database.record_validation_attempts(record).await?;
     assert_eq!(attempts[0]["status"], "uncertain");
-    assert_eq!(
-        attempts[0]["report"]["reasons"][0],
-        "ghost_storage_unavailable"
-    );
+    assert_eq!(attempts[0]["report"]["reasons"][0], "missing_snapshot");
     assert!(
         state
             .database
@@ -400,9 +406,41 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
             .database
             .audit_record_ids(&json!({"idRecord":record,"reasons":["invalid_splits"]}))
             .await?,
-        vec![record]
+        Vec::<i32>::new()
     );
+    assert!(
+        auditor
+            .validate_record_ghost(&json!({"idRecord":retry_record}))
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        state
+            .database
+            .record_validation_attempts(retry_record)
+            .await?[0]["report"]["reasons"][0],
+        "ghost_storage_unavailable"
+    );
+    let downloads = storage.downloads.load(Ordering::SeqCst);
+    auditor
+        .validate_record_ghost(&json!({"idRecord":retry_record}))
+        .await?;
+    assert_eq!(
+        storage.downloads.load(Ordering::SeqCst),
+        downloads,
+        "ordinary audit skips unchanged storage failures"
+    );
+    assert!(
+        auditor
+            .validate_record_ghost_attempt(&json!({"idRecord":retry_record}), 2)
+            .await
+            .is_err()
+    );
+    assert_eq!(storage.downloads.load(Ordering::SeqCst), downloads + 1);
     storage.download_failing.store(false, Ordering::SeqCst);
+    auditor
+        .validate_record_ghost_attempt(&json!({"idRecord":retry_record}), 3)
+        .await?;
     auditor
         .validate_record_ghost(&json!({"idRecord":record}))
         .await?;
@@ -433,7 +471,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         all.extend(page);
         filter["afterId"] = json!(last);
     }
-    assert_eq!(all.len(), 207);
+    assert_eq!(all.len(), 206);
     assert!(
         all.windows(2).all(|pair| pair[0] < pair[1]),
         "continuations cannot duplicate or omit records"

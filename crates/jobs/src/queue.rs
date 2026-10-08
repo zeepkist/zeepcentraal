@@ -120,6 +120,20 @@ impl Queue {
         Ok(())
     }
 
+    pub async fn pending_ghost_checks(&self) -> Result<usize> {
+        #[derive(QueryableByName)]
+        struct Count {
+            #[diesel(sql_type=BigInt)]
+            count: i64,
+        }
+        let mut connection = self.partition.connection().await?;
+        Ok(usize::try_from(
+            sql_query("SELECT count(*) FROM zc_jobs.job WHERE task='validateRecordGhost'")
+                .get_result::<Count>(&mut connection)
+                .await?
+                .count,
+        )?)
+    }
     pub async fn enqueue(
         &self,
         task: TaskIdentifier,
@@ -313,6 +327,9 @@ fn queue_identity(
 ) -> (Option<String>, Option<String>) {
     let id_level = payload.get("idLevel").and_then(serde_json::Value::as_i64);
     let derived_key = match task {
+        TaskIdentifier::ValidateRecordGhost => payload["idRecord"]
+            .as_i64()
+            .map(|id| format!("validate-record-ghost:{id}")),
         TaskIdentifier::UpdateLevelScore => id_level.map(|id| format!("update-level-score:{id}")),
         TaskIdentifier::UpdateLevelContributions => id_level.and_then(|id_level| {
             if payload
@@ -336,7 +353,9 @@ fn queue_identity(
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if task == TaskIdentifier::BackfillLevelSimhash {
+    let group = if task == TaskIdentifier::AuditRecordGhosts {
+        Some("ghost-audit".to_owned())
+    } else if task == TaskIdentifier::BackfillLevelSimhash {
         Some("level-simhash-backfill".to_owned())
     } else if lane == JobLane::Fast
         && matches!(
@@ -378,6 +397,37 @@ mod tests {
     use crate::TaskIdentifier;
     use serde_json::json;
     use std::time::Duration;
+
+    #[test]
+    fn ghost_audits_serialize_and_checks_deduplicate() {
+        for payload in [
+            json!({}),
+            json!({"idLevel":42,"afterId":100,"throughId":200}),
+        ] {
+            assert_eq!(
+                queue_identity(
+                    TaskIdentifier::AuditRecordGhosts,
+                    &payload,
+                    JobLane::Bulk,
+                    None
+                )
+                .1
+                .as_deref(),
+                Some("ghost-audit")
+            );
+        }
+        assert_eq!(
+            queue_identity(
+                TaskIdentifier::ValidateRecordGhost,
+                &json!({"idRecord":42}),
+                JobLane::Bulk,
+                Some("override")
+            )
+            .0
+            .as_deref(),
+            Some("validate-record-ghost:42")
+        );
+    }
 
     #[test]
     fn simhash_backfills_share_one_group() {

@@ -45,6 +45,7 @@ export const recordValidation = zcPrivate.table(
 		status: text('status').notNull(),
 		report: jsonb('report').notNull(),
 		validatorVersion: text('validator_version').notNull(),
+		checkedAt: timestamp('checked_at', { withTimezone: true, mode: 'string' }),
 		updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.default(sql`clock_timestamp()`),
@@ -249,6 +250,12 @@ export const level = pgTable(
 		hasRecords: boolean('has_records').notNull().default(false),
 		recordCount: bigint('record_count', { mode: 'number' }).notNull().default(0),
 		publiclyVisible: boolean('publicly_visible').notNull().default(false),
+		validationInputsUpdatedAt: timestamp('validation_inputs_updated_at', {
+			withTimezone: true,
+			mode: 'string',
+		})
+			.notNull()
+			.default(sql`'epoch'::timestamptz`),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),
@@ -895,6 +902,7 @@ export const record = pgTable(
 			foreignColumns: [user.id],
 			name: 'records_user_foreign',
 		}).onDelete('cascade'),
+		index('IX_records_level_id').on(table.idLevel, table.id),
 		index('IX_records_level_time_id').using(
 			'btree',
 			table.idLevel.asc().nullsLast(),

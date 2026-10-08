@@ -165,6 +165,7 @@ impl TaskIdentifier {
                     matches!(
                         key.as_str(),
                         "afterId"
+                            | "throughId"
                             | "idRecord"
                             | "idLevel"
                             | "workshopId"
@@ -176,6 +177,9 @@ impl TaskIdentifier {
                     object.get(*key).is_none_or(|v| {
                         v.as_i64().is_some_and(|id| id > 0 && id <= i32::MAX.into())
                     })
+                }) && object.get("throughId").is_none_or(|v| {
+                    v.as_i64()
+                        .is_some_and(|id| id >= 0 && id <= i32::MAX.into())
                 }) && object.get("afterId").is_none_or(|v| {
                     v.as_i64()
                         .is_some_and(|id| id >= 0 && id <= i32::MAX.into())
@@ -336,6 +340,12 @@ mod tests {
         assert!(TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":1})));
         assert!(!TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":0})));
         assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({})));
+        assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({"afterId":100,"throughId":200,"idLevel":2,"workshopId":"3","from":"2026-01-01T00:00:00Z","to":"2027-01-01T00:00:00Z"})));
+        for bound in [json!(-1), json!(2147483648_i64), json!("200")] {
+            assert!(
+                !TaskIdentifier::AuditRecordGhosts.validate_payload(&json!({"throughId":bound}))
+            );
+        }
         assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(
             &json!({"idRecord":1276,"reasons":["invalid_splits","missing_ghost"]})
         ));

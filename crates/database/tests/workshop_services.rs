@@ -2,7 +2,7 @@ use serde_json::json;
 use zc_database::{Database, services::workshop::WorkshopLevelInput};
 
 #[tokio::test]
-#[ignore = "requires fresh local workshop_mutable_validation_test database with current migrations"]
+#[ignore = "requires fresh local workshop_incremental_validation_test database with current migrations"]
 async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyhow::Result<()> {
     zc_core::environment::initialize()?;
     let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
@@ -11,7 +11,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         parsed_url
             .host_str()
             .is_some_and(|host| matches!(host, "127.0.0.1" | "localhost"))
-            && parsed_url.path() == "/workshop_mutable_validation_test",
+            && parsed_url.path() == "/workshop_incremental_validation_test",
         "Workshop integration test requires local disposable PostgreSQL"
     );
     let database = Database::connect(&url, 2).await?;
@@ -81,6 +81,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     let second = database.upsert_workshop_level(&input).await?;
     assert_eq!(second.id_level, first.id_level);
     assert!(!second.score_changed);
+    assert!(second.validation_level_ids.is_empty());
     let after = client
         .query_one(
             "SELECT level.xmin::text,metadata.xmin::text,item.xmin::text \
@@ -124,6 +125,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     let lighting_update = database.upsert_workshop_level(&changed_environment).await?;
     assert_eq!(lighting_update.id_level, first.id_level);
     assert!(!lighting_update.score_changed);
+    assert_eq!(lighting_update.validation_level_ids, vec![first.id_level]);
     let saved = client
         .query_one(
             "SELECT metadata.environment::text,metadata.blocks::text,level.hash,level.xx_hash \
@@ -236,6 +238,8 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     new_version.blocks = json!([{"i":22},{"i":2},{"i":22}]);
     let changed = database.upsert_workshop_level(&new_version).await?;
     assert_ne!(changed.id_level, first.id_level);
+    assert!(changed.validation_level_ids.contains(&first.id_level));
+    assert!(changed.validation_level_ids.contains(&changed.id_level));
     assert_eq!(
         serde_json::from_str::<serde_json::Value>(&client
             .query_one(

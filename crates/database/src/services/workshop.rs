@@ -39,10 +39,11 @@ pub struct WorkshopLevelInput {
     pub environment: Option<Value>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkshopLevelUpsertResult {
     pub id_level: i32,
     pub score_changed: bool,
+    pub validation_level_ids: Vec<i32>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -235,7 +236,7 @@ impl Database {
                     .get_result::<IdRow>(connection)
                     .await
                     .optional()?;
-                    if let Some(metadata) = existing_metadata {
+                    let metadata_changed = if let Some(metadata) = existing_metadata {
                         sql_query(
                             "UPDATE public.level_metadata SET amount_checkpoints=$2,amount_finishes=$3, \
                              amount_blocks=$4,type_ground=$5,type_skybox=$6,format=$7,blocks=$8,environment=$9, \
@@ -253,7 +254,7 @@ impl Database {
                         .bind::<Jsonb, _>(&input.blocks)
                         .bind::<Nullable<Jsonb>, _>(&input.environment)
                         .execute(connection)
-                        .await?;
+                        .await? > 0
                     } else {
                         sql_query(
                             "INSERT INTO public.level_metadata \
@@ -271,7 +272,8 @@ impl Database {
                         .bind::<Nullable<Jsonb>, _>(&input.environment)
                         .execute(connection)
                         .await?;
-                    }
+                        true
+                    };
 
                     if needs_simhash {
                         let simhash = match input.format {
@@ -293,7 +295,7 @@ impl Database {
                     let item_changed = existing_item.as_ref().is_none_or(|item| {
                         item.deleted || item.id_level != id_level
                     });
-                    if let Some(item) = existing_item.as_ref() {
+                    let membership_changed = if let Some(item) = existing_item.as_ref() {
                         sql_query(
                             "UPDATE public.level_item SET id_level=$2,author_id=$3,name=$4,image_url=$5, \
                              file_author=$6,file_uid=$7,validation_time_author=$8,validation_time_gold=$9, \
@@ -318,7 +320,7 @@ impl Database {
                         .bind::<Text, _>(&input.created_at)
                         .bind::<Text, _>(&input.updated_at)
                         .execute(connection)
-                        .await?;
+                        .await? > 0
                     } else {
                         sql_query(
                             "INSERT INTO public.level_item \
@@ -342,14 +344,19 @@ impl Database {
                         .bind::<Text, _>(&input.updated_at)
                         .execute(connection)
                         .await?;
-                    }
+                        true
+                    };
 
                     let accessibility_changed = previous_workshop.is_some_and(|previous| {
                         is_accessible(previous.visibility) != is_accessible(input.workshop_visibility)
                     });
+                    let mut validation_level_ids=Vec::new();
+                    if metadata_changed || membership_changed {validation_level_ids.push(id_level);}
+                    if let Some(previous)=existing_item.as_ref().filter(|item|item.id_level!=id_level) {validation_level_ids.push(previous.id_level);}
                     Ok(WorkshopLevelUpsertResult {
                         id_level,
                         score_changed: created || item_changed || accessibility_changed,
+                        validation_level_ids,
                     })
                 })
             .await

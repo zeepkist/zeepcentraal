@@ -10,6 +10,7 @@ diesel::table! {
   validator_version -> Text,
   created_at -> Timestamptz,
   updated_at -> Timestamptz,
+  checked_at -> Nullable<Timestamptz>,
  }
 }
 
