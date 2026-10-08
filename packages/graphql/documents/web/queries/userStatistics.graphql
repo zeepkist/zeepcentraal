@@ -102,9 +102,7 @@ query ZC_UserStatistics(
 		first: 0
 		filter: {
 			ghostVersion: { greaterThanOrEqualTo: 6 }
-			record: {
-				userId: { equalTo: $userId }
-			}
+			record: { userId: { equalTo: $userId } }
 		}
 	) {
 		totalCount

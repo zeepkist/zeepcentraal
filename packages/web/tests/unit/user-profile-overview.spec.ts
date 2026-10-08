@@ -124,7 +124,8 @@ describe('user profile overview', () => {
 	})
 
 	it('queries count-only telemetry for all supported periods', () => {
-		expect(statisticsQuery).toContain('$minimumModVersion: String!')
+		expect(statisticsQuery).toContain('ghostVersion: { greaterThanOrEqualTo: 6 }')
+		expect(statisticsQuery).not.toContain('$minimumModVersion')
 		expect(statisticsQuery).toContain('$daySince: Datetime!')
 		expect(statisticsQuery).toContain('$monthSince: Datetime!')
 		expect(statisticsQuery).toContain('$yearSince: Datetime!')
@@ -140,9 +141,7 @@ describe('user profile overview', () => {
 		]) {
 			expect(statisticsQuery).toMatch(new RegExp(`${alias}: recordStatistics\\(\\s*first: 0`))
 		}
-		expect(statisticsQuery).toContain(
-			'modVersion: { greaterThanOrEqualTo: $minimumModVersion }',
-		)
+		expect(statisticsQuery).not.toContain('modVersion:')
 		expect(statisticsQuery.match(/totalCount/g)?.length).toBe(5)
 	})
 
