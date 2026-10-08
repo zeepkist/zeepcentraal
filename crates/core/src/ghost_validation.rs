@@ -492,6 +492,179 @@ pub fn validate(
     blocks: Option<&Value>,
     manifest: Option<&ValidationManifest>,
 ) -> ValidationReport {
+    let prepared = blocks.map(|blocks| prepare_level(blocks, manifest));
+    validate_prepared(ghost, context, prepared.as_ref(), manifest)
+}
+
+/// Server-owned level geometry, shared across records without ghost-specific state.
+pub struct PreparedLevel {
+    blocks: Value,
+    graph: CheckpointGraph,
+    csv_event_identity_unknown: bool,
+    triggers: Vec<Trigger>,
+    spawns: Vec<[f64; 3]>,
+    geometry_complete: bool,
+    geometry_reasons: Vec<String>,
+    geometry_stop: bool,
+    trigger_index: BTreeMap<(String, String, bool), usize>,
+}
+pub fn prepare_level(blocks: &Value, manifest: Option<&ValidationManifest>) -> PreparedLevel {
+    let csv_event_identity_unknown = blocks
+        .as_array()
+        .and_then(|array| array.first())
+        .is_some_and(|block| block.get("Id").is_some());
+    let blocks = normalize_blocks(blocks);
+    let graph = checkpoint_graph(&blocks);
+    let mut triggers = vec![];
+    let mut spawns = vec![];
+    let mut geometry_complete = graph.reasons.is_empty() && !csv_event_identity_unknown;
+    let mut report = ValidationReport::uncertain("");
+    report.reasons.clear();
+    let geometry_stop = if let Some(manifest) = manifest {
+        (|| {
+            let Some(raw_blocks) = blocks.as_array() else {
+                report.uncertainty("unsupported_level_format");
+                return true;
+            };
+            if raw_blocks.len() > MAX_BLOCKS {
+                report.uncertainty("geometry_budget");
+                return true;
+            }
+
+            let mut vertex_budget = 250_000;
+            for block in raw_blocks {
+                if block
+                    .pointer("/d/n")
+                    .and_then(Value::as_object)
+                    .is_some_and(|n| {
+                        n.iter().any(|(key, value)| {
+                            key.starts_with("id")
+                                && key != "id0"
+                                && value.as_f64().is_some_and(|value| value > 0.)
+                        })
+                    })
+                {
+                    geometry_complete = false;
+                    report.uncertainty("logic_controlled_trigger");
+                }
+                let id = block["i"].as_i64().unwrap_or(-1);
+                let active = CHECKPOINT_IDS.contains(&id)
+                    || GATE_IDS.contains(&id)
+                        && block.pointer("/d/n/ch5").and_then(Value::as_f64) == Some(1.);
+                if !active && !FINISH_IDS.contains(&id) && !START_IDS.contains(&id) {
+                    continue;
+                }
+                let Some(def) = manifest.blocks.get(&id.to_string()) else {
+                    geometry_complete = false;
+                    report.uncertainty("unsupported_geometry");
+                    continue;
+                };
+                if !def.unsupported.is_empty() {
+                    geometry_complete = false;
+                    report.uncertainty("dynamic_or_unsupported_trigger");
+                }
+                if START_IDS.contains(&id) {
+                    for spawn in &def.spawns {
+                        if let Some(spawn) = transform(*spawn, block) {
+                            spawns.push(spawn);
+                        }
+                    }
+                    continue;
+                }
+                let uid = block["u"].as_str().unwrap_or("");
+                let mut included = 0;
+                for collider in &def.colliders {
+                    if !collider.convex {
+                        geometry_complete = false;
+                        report.uncertainty("nonconvex_trigger");
+                        continue;
+                    }
+                    if !collider.attributes.iter().all(|key| {
+                        block
+                            .pointer("/d/n")
+                            .and_then(|n| n.get(key))
+                            .and_then(Value::as_f64)
+                            == Some(1.)
+                    }) {
+                        continue;
+                    }
+                    included += 1;
+                    if collider.vertices.len() > vertex_budget {
+                        report.uncertainty("geometry_budget");
+                        return true;
+                    }
+                    vertex_budget -= collider.vertices.len();
+                    if collider.vertices.len() > 4096 {
+                        geometry_complete = false;
+                        report.uncertainty("geometry_budget");
+                        continue;
+                    }
+                    let points: Option<Vec<_>> = collider
+                        .vertices
+                        .iter()
+                        .map(|p| transform(*p, block).map(|p| Vector::new(p[0], p[1], p[2])))
+                        .collect();
+                    let Some(points) = points else {
+                        geometry_complete = false;
+                        report.uncertainty("invalid_transform");
+                        continue;
+                    };
+                    let Some(hull) = ConvexPolyhedron::from_convex_hull(&points) else {
+                        geometry_complete = false;
+                        report.uncertainty("unsupported_geometry");
+                        continue;
+                    };
+                    let mut min = [f64::INFINITY; 3];
+                    let mut max = [f64::NEG_INFINITY; 3];
+                    for p in &points {
+                        for i in 0..3 {
+                            min[i] = min[i].min(p[i]);
+                            max[i] = max[i].max(p[i]);
+                        }
+                    }
+                    triggers.push(Trigger {
+                        uid: uid.into(),
+                        shape: collider.shape.clone(),
+                        hull,
+                        min,
+                        max,
+                        finish: FINISH_IDS.contains(&id),
+                    });
+                }
+                if included == 0 {
+                    geometry_complete = false;
+                    report.uncertainty("unsupported_shape");
+                }
+            }
+            triggers.sort_by(|a, b| a.min[0].total_cmp(&b.min[0]));
+            false
+        })()
+    } else {
+        false
+    };
+    let trigger_index = triggers
+        .iter()
+        .enumerate()
+        .map(|(index, t)| ((t.uid.clone(), t.shape.clone(), t.finish), index))
+        .collect();
+    PreparedLevel {
+        blocks,
+        graph,
+        csv_event_identity_unknown,
+        triggers,
+        spawns,
+        geometry_complete,
+        geometry_reasons: report.reasons,
+        geometry_stop,
+        trigger_index,
+    }
+}
+pub fn validate_prepared(
+    ghost: &ParsedGhost,
+    context: &SubmissionContext<'_>,
+    prepared: Option<&PreparedLevel>,
+    manifest: Option<&ValidationManifest>,
+) -> ValidationReport {
     let mut report = ValidationReport {
         comparison: false,
         status: "pass".into(),
@@ -558,10 +731,11 @@ pub fn validate(
             return report;
         }
     }
-    let Some(blocks) = blocks else {
+    let Some(prepared) = prepared else {
         report.uncertainty("missing_snapshot");
         return report;
     };
+    let blocks = &prepared.blocks;
     if blocks
         .as_array()
         .is_some_and(|array| array.len() > MAX_BLOCKS)
@@ -569,17 +743,11 @@ pub fn validate(
         report.uncertainty("geometry_budget");
         return report;
     }
-    // CSV has no persisted block UID. Synthetic indices cannot authenticate runtime event UIDs.
-    let csv_event_identity_unknown = blocks
-        .as_array()
-        .and_then(|array| array.first())
-        .is_some_and(|block| block.get("Id").is_some());
+    let csv_event_identity_unknown = prepared.csv_event_identity_unknown;
     if csv_event_identity_unknown {
         report.uncertainty("csv_event_identity_unknown");
     }
-    let normalized = normalize_blocks(blocks);
-    let blocks = &normalized;
-    let graph = checkpoint_graph(blocks);
+    let graph = &prepared.graph;
     for reason in &graph.reasons {
         report.uncertainty(reason);
     }
@@ -676,134 +844,24 @@ pub fn validate(
     if !complete {
         report.uncertainty("incomplete_samples");
     }
-    let Some(raw_blocks) = blocks.as_array() else {
-        report.uncertainty("unsupported_level_format");
-        return report;
-    };
-    if raw_blocks.len() > MAX_BLOCKS {
-        report.uncertainty("geometry_budget");
+    for reason in &prepared.geometry_reasons {
+        report.uncertainty(reason);
+    }
+    if prepared.geometry_stop {
         return report;
     }
-    let mut triggers = vec![];
-    let mut spawns = vec![];
-    let mut geometry_complete = graph.reasons.is_empty() && !csv_event_identity_unknown;
-    let mut vertex_budget = 250_000;
-    for block in raw_blocks {
-        if block
-            .pointer("/d/n")
-            .and_then(Value::as_object)
-            .is_some_and(|n| {
-                n.iter().any(|(key, value)| {
-                    key.starts_with("id")
-                        && key != "id0"
-                        && value.as_f64().is_some_and(|value| value > 0.)
-                })
-            })
-        {
-            geometry_complete = false;
-            report.uncertainty("logic_controlled_trigger");
-        }
-        let id = block["i"].as_i64().unwrap_or(-1);
-        let active = CHECKPOINT_IDS.contains(&id)
-            || GATE_IDS.contains(&id)
-                && block.pointer("/d/n/ch5").and_then(Value::as_f64) == Some(1.);
-        if !active && !FINISH_IDS.contains(&id) && !START_IDS.contains(&id) {
-            continue;
-        }
-        let Some(def) = manifest.blocks.get(&id.to_string()) else {
-            geometry_complete = false;
-            report.uncertainty("unsupported_geometry");
-            continue;
-        };
-        if !def.unsupported.is_empty() {
-            geometry_complete = false;
-            report.uncertainty("dynamic_or_unsupported_trigger");
-        }
-        if START_IDS.contains(&id) {
-            for spawn in &def.spawns {
-                if let Some(spawn) = transform(*spawn, block) {
-                    spawns.push(spawn);
-                }
-            }
-            continue;
-        }
-        let uid = block["u"].as_str().unwrap_or("");
-        let mut included = 0;
-        for collider in &def.colliders {
-            if !collider.convex {
-                geometry_complete = false;
-                report.uncertainty("nonconvex_trigger");
-                continue;
-            }
-            if !collider.attributes.iter().all(|key| {
-                block
-                    .pointer("/d/n")
-                    .and_then(|n| n.get(key))
-                    .and_then(Value::as_f64)
-                    == Some(1.)
-            }) {
-                continue;
-            }
-            included += 1;
-            if collider.vertices.len() > vertex_budget {
-                report.uncertainty("geometry_budget");
-                return report;
-            }
-            vertex_budget -= collider.vertices.len();
-            if collider.vertices.len() > 4096 {
-                geometry_complete = false;
-                report.uncertainty("geometry_budget");
-                continue;
-            }
-            let points: Option<Vec<_>> = collider
-                .vertices
-                .iter()
-                .map(|p| transform(*p, block).map(|p| Vector::new(p[0], p[1], p[2])))
-                .collect();
-            let Some(points) = points else {
-                geometry_complete = false;
-                report.uncertainty("invalid_transform");
-                continue;
-            };
-            let Some(hull) = ConvexPolyhedron::from_convex_hull(&points) else {
-                geometry_complete = false;
-                report.uncertainty("unsupported_geometry");
-                continue;
-            };
-            let mut min = [f64::INFINITY; 3];
-            let mut max = [f64::NEG_INFINITY; 3];
-            for p in &points {
-                for i in 0..3 {
-                    min[i] = min[i].min(p[i]);
-                    max[i] = max[i].max(p[i]);
-                }
-            }
-            triggers.push(Trigger {
-                uid: uid.into(),
-                shape: collider.shape.clone(),
-                hull,
-                min,
-                max,
-                finish: FINISH_IDS.contains(&id),
-            });
-        }
-        if included == 0 {
-            geometry_complete = false;
-            report.uncertainty("unsupported_shape");
-        }
-    }
-    triggers.sort_by(|a, b| a.min[0].total_cmp(&b.min[0]));
-    let trigger_index: BTreeMap<_, _> = triggers
-        .iter()
-        .map(|t| ((t.uid.as_str(), t.shape.as_str(), t.finish), t))
-        .collect();
+    let triggers = &prepared.triggers;
+    let spawns = &prepared.spawns;
+    let geometry_complete = prepared.geometry_complete;
+    let trigger_index = &prepared.trigger_index;
     // A callback contradicting the exported hull can indicate changed trigger geometry.
     // Do not turn that disagreement into a proven absence using the same hull.
     let event_geometry_matches = !legacy
         && !csv_event_identity_unknown
         && e.events.iter().all(|event| {
             trigger_index
-                .get(&(event.block_uid.as_str(), event.shape.as_str(), event.finish))
+                .get(&(event.block_uid.clone(), event.shape.clone(), event.finish))
+                .map(|index| &triggers[*index])
                 .is_some_and(|trigger| {
                     contact(
                         trigger,
@@ -956,7 +1014,8 @@ pub fn validate(
             found
         } else {
             trigger_index
-                .get(&(event.block_uid.as_str(), event.shape.as_str(), event.finish))
+                .get(&(event.block_uid.clone(), event.shape.clone(), event.finish))
+                .map(|index| &triggers[*index])
                 .is_some_and(|trigger| {
                     contact(trigger, &event.sample, &event.sample, radius) == Ok(true)
                 })
@@ -1048,11 +1107,11 @@ pub fn validate(
             miss(&mut report, "missing_checkpoint_group_event");
         }
     }
-    for group in graph.groups {
+    for group in &graph.groups {
         if group.iter().any(|uid| hits.contains(uid)) {
-            report.matched_groups.push(group);
+            report.matched_groups.push(group.clone());
         } else {
-            report.missing_groups.push(group);
+            report.missing_groups.push(group.clone());
         }
     }
     if !report.missing_groups.is_empty() {

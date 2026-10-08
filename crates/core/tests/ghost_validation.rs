@@ -1116,3 +1116,31 @@ fn measure_validation_scaling() {
         );
     }
 }
+
+#[test]
+fn prepared_geometry_reuses_level_without_retaining_ghost_state() {
+    let (template, blocks, manifest) = fixture();
+    let prepared = prepare_level(&blocks, Some(&manifest));
+    for version in 1..=8 {
+        let mut ghost = template.clone();
+        ghost.version = version;
+        if version < 8 {
+            ghost.evidence = None;
+        }
+        for steam_id in ["42", "99"] {
+            let mut context = context();
+            context.steam_id = steam_id;
+            assert_eq!(
+                serde_json::to_value(validate(&ghost, &context, Some(&blocks), Some(&manifest)))
+                    .unwrap(),
+                serde_json::to_value(validate_prepared(
+                    &ghost,
+                    &context,
+                    Some(&prepared),
+                    Some(&manifest)
+                ))
+                .unwrap()
+            );
+        }
+    }
+}

@@ -713,7 +713,7 @@ pub async fn trigger_job(
 ) -> ApiResult<StatusCode> {
     auth::service_token(&headers, &state.config.trigger_job_token)?;
     let task = TaskIdentifier::parse(&body.task)
-        .filter(|task| task.compatible() && task.validate_payload(&body.options))
+        .filter(|task| task.compatible() && task.validate_external_payload(&body.options))
         .ok_or_else(|| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
     state
         .queue

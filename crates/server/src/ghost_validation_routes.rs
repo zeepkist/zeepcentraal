@@ -59,7 +59,7 @@ pub async fn list(
     if let Some(value) = extra["idLevel"].as_str() {
         extra["idLevel"] = json!(value.parse::<i32>().map_err(|_| denied())?);
     }
-    if !zc_jobs::TaskIdentifier::AuditRecordGhosts.validate_payload(&extra) {
+    if !zc_jobs::TaskIdentifier::AuditRecordGhosts.validate_external_payload(&extra) {
         return Err(Problem {
             status: StatusCode::BAD_REQUEST,
             detail: "Invalid review filter".into(),
@@ -219,7 +219,7 @@ pub async fn audit(
         return Err(denied());
     }
     let task = zc_jobs::TaskIdentifier::AuditRecordGhosts;
-    if !task.validate_payload(&payload) {
+    if !task.validate_external_payload(&payload) {
         return Err(Problem {
             status: StatusCode::BAD_REQUEST,
             detail: "Invalid audit filter".into(),

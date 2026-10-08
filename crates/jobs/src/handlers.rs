@@ -119,24 +119,9 @@ impl ServiceJobHandler {
     }
 
     async fn enqueue_level_ghost_audits(&self, ids: &[i32]) -> Result<()> {
-        for chunk in ids.chunks(100) {
-            self.queue
-                .enqueue_many(
-                    chunk
-                        .iter()
-                        .map(|id| EnqueueRequest {
-                            task: TaskIdentifier::AuditRecordGhosts,
-                            payload: serde_json::json!({"idLevel":id}),
-                            lane: JobLane::Bulk,
-                            key: Some(format!("audit-level-ghosts:{id}")),
-                            delay: Duration::ZERO,
-                        })
-                        .collect(),
-                )
-                .await?;
-        }
-        Ok(())
+        self.queue.enqueue_ghost_audit_levels(ids).await
     }
+
     async fn scan_item(&self, payload: &serde_json::Value) -> Result<()> {
         let workshop_id = payload["workshopId"]
             .as_str()
@@ -942,6 +927,24 @@ impl ServiceJobHandler {
 
 #[async_trait]
 impl JobHandler for ServiceJobHandler {
+    async fn handle_claimed(
+        &self,
+        job: &crate::queue::ClaimedJob,
+        lane: JobLane,
+    ) -> Result<JobOutcome> {
+        if job.task == TaskIdentifier::AuditRecordGhosts.as_str() {
+            return crate::ghost_audit::GhostAuditService::new(
+                self.database.clone(),
+                self.queue.clone(),
+                self.storage.clone(),
+            )
+            .audit_claimed(job)
+            .await;
+        }
+        let task = TaskIdentifier::parse(&job.task).context("invalid task")?;
+        self.handle(task, job.payload.clone(), lane, job.attempts)
+            .await
+    }
     async fn handle(
         &self,
         task: TaskIdentifier,

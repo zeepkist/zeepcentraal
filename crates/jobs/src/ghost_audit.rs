@@ -1,13 +1,15 @@
 use crate::{
     TaskIdentifier,
-    queue::{EnqueueRequest, JobLane, Queue},
+    queue::{JobLane, Queue},
 };
 use anyhow::{Context, Result};
 use sha2::{Digest, Sha256};
 use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex, OnceLock},
-    time::{Duration, SystemTime},
+    sync::{
+        Arc, Mutex, OnceLock,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::SystemTime,
 };
 use zc_core::{
     ghost_validation::{self, SubmissionContext, ValidationManifest, ValidationReport},
@@ -18,9 +20,6 @@ use zc_database::{
     Database,
     services::ghost_validation::{AUDIT_WINDOW_SIZE, AuditWindowRecord},
 };
-
-pub const MAX_PENDING_GHOST_CHECKS: usize = 1_000;
-const SATURATION_DELAY: Duration = Duration::from_secs(10);
 
 struct CachedManifest {
     path: String,
@@ -54,10 +53,19 @@ fn cached_manifest() -> Result<Option<Arc<ValidationManifest>>> {
     Ok(value)
 }
 
+static SLOTS: OnceLock<tokio::sync::Semaphore> = OnceLock::new();
+const MAX_SCANNED_RECORDS: usize = 100_000;
+#[derive(Default)]
+pub struct AuditCounters {
+    pub snapshot_loads: AtomicUsize,
+    pub geometry_preparations: AtomicUsize,
+    pub downloads: AtomicUsize,
+}
 pub struct GhostAuditService {
     database: Database,
     queue: Queue,
     storage: Arc<dyn ObjectStorage>,
+    pub counters: Arc<AuditCounters>,
 }
 impl GhostAuditService {
     pub fn new(database: Database, queue: Queue, storage: Arc<dyn ObjectStorage>) -> Self {
@@ -65,6 +73,7 @@ impl GhostAuditService {
             database,
             queue,
             storage,
+            counters: Arc::default(),
         }
     }
     pub async fn validate_record_ghost(&self, payload: &serde_json::Value) -> Result<()> {
@@ -75,52 +84,250 @@ impl GhostAuditService {
         payload: &serde_json::Value,
         attempts: i32,
     ) -> Result<()> {
-        static SLOTS: OnceLock<tokio::sync::Semaphore> = OnceLock::new();
         let _slot = SLOTS
             .get_or_init(|| tokio::sync::Semaphore::new(2))
             .acquire()
             .await?;
         let id = i32::try_from(payload["idRecord"].as_i64().context("idRecord missing")?)?;
+        if self.process_ids(&[id], attempts).await? {
+            anyhow::bail!("ghost storage unavailable")
+        }
+        Ok(())
+    }
+    /// Retained direct maintenance interface. Runtime uses lease-checkpointed entrypoint.
+    pub async fn audit_record_ghosts(&self, payload: &serde_json::Value) -> Result<()> {
+        let _slots = SLOTS
+            .get_or_init(|| tokio::sync::Semaphore::new(2))
+            .acquire_many(2)
+            .await?;
+        let (ids, next) = self.select_batch(payload).await?;
+        if self.process_ids(&ids, 1).await? {
+            anyhow::bail!("ghost storage unavailable")
+        }
+        self.continue_audit(
+            next.as_ref(),
+            payload["auditRunId"].as_str().unwrap_or("manual"),
+        )
+        .await
+    }
+    pub async fn audit_claimed(
+        &self,
+        job: &crate::queue::ClaimedJob,
+    ) -> Result<crate::runtime::JobOutcome> {
+        let Ok(_slots) = SLOTS
+            .get_or_init(|| tokio::sync::Semaphore::new(2))
+            .try_acquire_many(2)
+        else {
+            return Ok(crate::runtime::JobOutcome::Deferred);
+        };
+        let mut payload = job.payload.clone();
+        if payload.get("work").is_none() {
+            payload["auditRunId"] =
+                serde_json::json!(payload["auditRunId"].as_str().unwrap_or(&job.id));
+            let (ids, next) = self.select_batch(&payload).await?;
+            payload["work"] = serde_json::json!({"recordIds":ids,"next":next});
+            anyhow::ensure!(
+                self.queue.checkpoint(job, &payload).await?,
+                "ghost audit lease lost before checkpoint"
+            );
+        }
+        let ids: Vec<_> = payload["work"]["recordIds"]
+            .as_array()
+            .context("invalid audit checkpoint")?
+            .iter()
+            .map(|v| {
+                v.as_i64()
+                    .and_then(|n| i32::try_from(n).ok())
+                    .context("invalid record ID")
+            })
+            .collect::<Result<_>>()?;
+        let storage_failed = self.process_ids(&ids, job.attempts).await?;
+        if storage_failed && job.attempts < TaskIdentifier::AuditRecordGhosts.max_attempts() {
+            anyhow::bail!("ghost storage unavailable")
+        }
+        anyhow::ensure!(
+            self.queue.checkpoint(job, &payload).await?,
+            "ghost audit lease lost before continuation"
+        );
+        let next = &payload["work"]["next"];
+        self.continue_audit(
+            (!next.is_null()).then_some(next),
+            payload["auditRunId"]
+                .as_str()
+                .context("audit run missing")?,
+        )
+        .await?;
+        tracing::info!(
+            records = ids.len(),
+            storage_failed,
+            attempt = job.attempts,
+            "Ghost audit batch completed"
+        );
+        Ok(crate::runtime::JobOutcome::Completed)
+    }
+    async fn continue_audit(&self, next: Option<&serde_json::Value>, run: &str) -> Result<()> {
+        if let Some(next) = next {
+            let key = format!(
+                "ghost-audit:{run}:{}:{}",
+                next["afterLevelId"], next["afterLevelRecordId"]
+            );
+            self.queue
+                .enqueue(
+                    TaskIdentifier::AuditRecordGhosts,
+                    next.clone(),
+                    JobLane::Bulk,
+                    Some(&key),
+                )
+                .await?;
+        }
+        Ok(())
+    }
+    async fn select_batch(
+        &self,
+        payload: &serde_json::Value,
+    ) -> Result<(Vec<i32>, Option<serde_json::Value>)> {
+        let through = match payload["throughId"].as_i64() {
+            Some(id) => i32::try_from(id)?,
+            None => self.database.audit_upper_record_id().await?,
+        };
+        let mut cursor = payload.clone();
+        cursor["throughId"] = serde_json::json!(through);
+        cursor
+            .as_object_mut()
+            .context("invalid audit payload")?
+            .remove("deferCount");
+        let mut ids = vec![];
+        let mut scanned = 0;
+        loop {
+            let rows = self.database.audit_level_window(&cursor, through).await?;
+            if rows.is_empty() {
+                return Ok((ids, None));
+            }
+            for row in &rows {
+                scanned += 1;
+                cursor["afterLevelId"] = serde_json::json!(row.id_level);
+                cursor["afterLevelRecordId"] = serde_json::json!(row.id);
+                if row.needs_check {
+                    ids.push(row.id);
+                }
+                if ids.len() == AUDIT_WINDOW_SIZE || scanned == MAX_SCANNED_RECORDS {
+                    tracing::info!(scanned, selected = ids.len(), "Ghost audit batch selected");
+                    return Ok((ids, Some(cursor)));
+                }
+            }
+            if rows.len() < AUDIT_WINDOW_SIZE {
+                return Ok((ids, None));
+            }
+        }
+    }
+    async fn process_ids(&self, ids: &[i32], attempts: i32) -> Result<bool> {
+        if ids.is_empty() {
+            return Ok(false);
+        }
         let rows = self
             .database
-            .audit_record_window(&serde_json::json!({"idRecord":id}), id)
+            .audit_level_window(
+                &serde_json::json!({"recordIds":ids}),
+                *ids.iter().max().context("empty batch")?,
+            )
             .await?;
-        let Some(input) = rows.first() else {
-            return Ok(());
-        };
-        if !input.needs_check && !(attempts > 1 && input.retryable) {
-            tracing::info!(skipped = 1, "Ghost audit skipped unchanged inputs");
-            return Ok(());
-        }
-        let checked_at = &input.checked_at;
-        if !input.has_ghost {
-            self.database
-                .save_checked_record_validations(
-                    &[id],
-                    None,
-                    &ValidationReport::failed("missing_ghost"),
-                    checked_at,
-                )
+        let mut manifest = None;
+        let mut manifest_loaded = false;
+        let mut storage_failed = false;
+        let mut start = 0;
+        let mut loaded = 0;
+        let mut prepared_count = 0;
+        while start < rows.len() {
+            let end =
+                start + rows[start..].partition_point(|row| row.id_level == rows[start].id_level);
+            let eligible: Vec<_> = rows[start..end]
+                .iter()
+                .filter(|row| row.needs_check || (attempts > 1 && row.retryable))
+                .collect();
+            start = end;
+            let Some(first) = eligible.first().copied() else {
+                continue;
+            };
+            let missing: Vec<_> = eligible
+                .iter()
+                .filter(|row| !row.has_ghost)
+                .map(|row| row.id)
+                .collect();
+            if !missing.is_empty() {
+                self.database
+                    .save_checked_record_validations(
+                        &missing,
+                        None,
+                        &ValidationReport::failed("missing_ghost"),
+                        &first.checked_at,
+                    )
+                    .await?;
+            }
+            let ghosts: Vec<_> = eligible.into_iter().filter(|row| row.has_ghost).collect();
+            if ghosts.is_empty() {
+                continue;
+            }
+            loaded += 1;
+            self.counters.snapshot_loads.fetch_add(1, Ordering::Relaxed);
+            let snapshot = self
+                .database
+                .validation_snapshot(&first.canonical_hash)
                 .await?;
-            return Ok(());
+            let Some(snapshot) = snapshot else {
+                self.database
+                    .save_checked_record_validations(
+                        &ghosts.iter().map(|row| row.id).collect::<Vec<_>>(),
+                        None,
+                        &ValidationReport::uncertain("missing_snapshot"),
+                        &first.checked_at,
+                    )
+                    .await?;
+                continue;
+            };
+            if !manifest_loaded {
+                manifest = tokio::task::spawn_blocking(cached_manifest).await??;
+                manifest_loaded = true;
+            }
+            let profile = manifest.clone();
+            let prepared = Arc::new(
+                tokio::task::spawn_blocking(move || {
+                    ghost_validation::prepare_level(&snapshot.blocks, profile.as_deref())
+                })
+                .await?,
+            );
+            prepared_count += 1;
+            self.counters
+                .geometry_preparations
+                .fetch_add(1, Ordering::Relaxed);
+            for pair in ghosts.chunks(2) {
+                let left = self.validate_one(pair[0], prepared.clone(), manifest.clone());
+                if pair.len() == 2 {
+                    let (left, right) = tokio::join!(
+                        left,
+                        self.validate_one(pair[1], prepared.clone(), manifest.clone())
+                    );
+                    storage_failed |= left? | right?;
+                } else {
+                    storage_failed |= left.await?;
+                }
+            }
         }
-        let Some(snapshot) = self
-            .database
-            .validation_snapshot(&input.canonical_hash)
-            .await?
-        else {
-            self.database
-                .save_checked_record_validations(
-                    &[id],
-                    None,
-                    &ValidationReport::uncertain("missing_snapshot"),
-                    checked_at,
-                )
-                .await?;
-            return Ok(());
-        };
-        let Some(record) = self.database.audit_record(id).await? else {
-            return Ok(());
+        tracing::info!(
+            records = ids.len(),
+            snapshot_loads = loaded,
+            geometry_preparations = prepared_count,
+            "Ghost audit geometry reused"
+        );
+        Ok(storage_failed)
+    }
+    async fn validate_one(
+        &self,
+        input: &AuditWindowRecord,
+        prepared: Arc<ghost_validation::PreparedLevel>,
+        manifest: Option<Arc<ValidationManifest>>,
+    ) -> Result<bool> {
+        let Some(record) = self.database.audit_record(input.id).await? else {
+            return Ok(false);
         };
         let Some(url) = record
             .ghost_url
@@ -129,14 +336,15 @@ impl GhostAuditService {
         else {
             self.database
                 .save_checked_record_validations(
-                    &[id],
+                    &[input.id],
                     None,
                     &ValidationReport::failed("missing_ghost"),
-                    checked_at,
+                    &input.checked_at,
                 )
                 .await?;
-            return Ok(());
+            return Ok(false);
         };
+        self.counters.downloads.fetch_add(1, Ordering::Relaxed);
         let bytes = match self
             .storage
             .download(
@@ -149,27 +357,25 @@ impl GhostAuditService {
             .await
         {
             Ok(bytes) => bytes,
-            Err(error) => {
+            Err(_) => {
                 self.database
                     .save_checked_record_validations(
-                        &[id],
+                        &[input.id],
                         None,
                         &ValidationReport::uncertain("ghost_storage_unavailable"),
-                        checked_at,
+                        &input.checked_at,
                     )
                     .await?;
-                tracing::info!(attempt = attempts, retries = 1, "Ghost audit storage retry");
-                return Err(error);
+                return Ok(true);
             }
         };
         let digest = hex::encode(Sha256::digest(&bytes));
         let report = tokio::task::spawn_blocking(move || {
-            let manifest = cached_manifest()?;
             let ghost = match parse_ghost(&bytes) {
                 Ok(ghost) => ghost,
-                Err(_) => return Ok(ValidationReport::uncertain("unsupported_or_invalid_ghost")),
+                Err(_) => return ValidationReport::uncertain("unsupported_or_invalid_ghost"),
             };
-            Ok::<_, anyhow::Error>(ghost_validation::validate(
+            ghost_validation::validate_prepared(
                 &ghost,
                 &SubmissionContext {
                     steam_id: &record.steam_id,
@@ -179,226 +385,78 @@ impl GhostAuditService {
                     splits: &record.splits,
                     speeds: &record.speeds,
                 },
-                Some(&snapshot.blocks),
+                Some(&prepared),
                 manifest.as_deref(),
-            ))
+            )
         })
-        .await??;
+        .await?;
         self.database
-            .save_checked_record_validations(&[id], Some(&digest), &report, checked_at)
+            .save_checked_record_validations(&[input.id], Some(&digest), &report, &input.checked_at)
             .await?;
-        tracing::info!(checked = 1, "Ghost audit completed");
-        Ok(())
+        Ok(false)
     }
-    pub async fn audit_record_ghosts(&self, payload: &serde_json::Value) -> Result<()> {
-        let through_id = match payload["throughId"].as_i64() {
-            Some(id) => i32::try_from(id)?,
-            None => self.database.audit_upper_record_id().await?,
-        };
-        let window = self
-            .database
-            .audit_record_window(payload, through_id)
-            .await?;
-        let Some(_) = window.first() else {
-            return Ok(());
-        };
-        let capacity =
-            MAX_PENDING_GHOST_CHECKS.saturating_sub(self.queue.pending_ghost_checks().await?);
-        let mut usable = HashMap::new();
-        // Verify each level once per bounded window, without downloading ghosts.
-        let mut geometry_count = 0;
-        for row in window.iter().filter(|row| row.needs_check && row.has_ghost) {
-            if let std::collections::hash_map::Entry::Vacant(entry) = usable.entry(row.id_level) {
-                entry.insert(
-                    self.database
-                        .validation_snapshot(&row.canonical_hash)
-                        .await?
-                        .is_some(),
-                );
-            }
-            if usable[&row.id_level] {
-                if geometry_count == capacity {
-                    break;
-                }
-                geometry_count += 1;
-            }
-        }
-        let plan = plan_window(payload, &window, &usable, capacity);
-        for (ids, report) in [
-            (
-                &plan.missing_ghost,
-                ValidationReport::failed("missing_ghost"),
-            ),
-            (
-                &plan.missing_snapshot,
-                ValidationReport::uncertain("missing_snapshot"),
-            ),
-        ] {
-            if !ids.is_empty() {
-                let mut groups = std::collections::BTreeMap::<&str, Vec<i32>>::new();
-                for row in window
-                    .iter()
-                    .filter(|row| ids.binary_search(&row.id).is_ok())
-                {
-                    groups.entry(&row.checked_at).or_default().push(row.id);
-                }
-                for (stamp, ids) in groups {
-                    self.database
-                        .save_checked_record_validations(&ids, None, &report, stamp)
-                        .await?;
-                }
-            }
-        }
-        for chunk in plan.geometry.chunks(100) {
-            self.queue
-                .enqueue_many(
-                    chunk
-                        .iter()
-                        .map(|id| EnqueueRequest {
-                            task: TaskIdentifier::ValidateRecordGhost,
-                            payload: serde_json::json!({"idRecord":id}),
-                            lane: JobLane::Bulk,
-                            key: Some(format!("validate-record-ghost:{id}")),
-                            delay: Duration::ZERO,
-                        })
-                        .collect(),
-                )
-                .await?;
-        }
-        if plan.continues {
-            let mut next = payload.clone();
-            next["afterId"] = serde_json::json!(plan.after_id);
-            next["throughId"] = serde_json::json!(through_id);
-            self.queue
-                .enqueue_after(
-                    TaskIdentifier::AuditRecordGhosts,
-                    next,
-                    JobLane::Bulk,
-                    None,
-                    if plan.delayed {
-                        SATURATION_DELAY
-                    } else {
-                        Duration::ZERO
-                    },
-                )
-                .await?;
-        }
-        tracing::info!(
-            scanned = window.len(),
-            skipped = plan.skipped,
-            missing_ghost = plan.missing_ghost.len(),
-            missing_snapshot = plan.missing_snapshot.len(),
-            queued = plan.geometry.len(),
-            cursor = plan.after_id,
-            through_id,
-            delayed = plan.delayed,
-            "Ghost audit window completed"
-        );
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-struct WindowPlan {
-    missing_ghost: Vec<i32>,
-    missing_snapshot: Vec<i32>,
-    geometry: Vec<i32>,
-    after_id: i32,
-    continues: bool,
-    delayed: bool,
-    skipped: usize,
-}
-fn plan_window(
-    payload: &serde_json::Value,
-    rows: &[AuditWindowRecord],
-    usable: &HashMap<i32, bool>,
-    capacity: usize,
-) -> WindowPlan {
-    let mut plan = WindowPlan {
-        missing_ghost: vec![],
-        missing_snapshot: vec![],
-        geometry: vec![],
-        after_id: payload["afterId"].as_i64().unwrap_or(0) as i32,
-        continues: rows.len() == AUDIT_WINDOW_SIZE,
-        delayed: false,
-        skipped: 0,
-    };
-    for row in rows {
-        if !row.needs_check {
-            plan.skipped += 1;
-        } else if !row.has_ghost {
-            plan.missing_ghost.push(row.id);
-        } else if !usable.get(&row.id_level).copied().unwrap_or(false) {
-            plan.missing_snapshot.push(row.id);
-        } else if plan.geometry.len() < capacity {
-            plan.geometry.push(row.id);
-        } else {
-            plan.delayed = true;
-            plan.continues = true;
-            break;
-        }
-        plan.after_id = row.id;
-    }
-    plan
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn row(id: i32, needs_check: bool, has_ghost: bool) -> AuditWindowRecord {
-        AuditWindowRecord {
-            id,
-            id_level: 1,
-            canonical_hash: "A".repeat(32),
-            checked_at: "2026-01-01".into(),
-            needs_check,
-            has_ghost,
-            retryable: false,
+    struct NoStorage;
+    #[async_trait::async_trait]
+    impl ObjectStorage for NoStorage {
+        async fn upload(&self, _: &str, _: Vec<u8>, _: &str) -> Result<()> {
+            anyhow::bail!("no storage during selection")
+        }
+        async fn delete(&self, _: &str) -> Result<()> {
+            anyhow::bail!("no storage during selection")
+        }
+        async fn download(&self, _: &str, _: DownloadConstraints<'_>) -> Result<Vec<u8>> {
+            anyhow::bail!("no storage during selection")
         }
     }
-    #[test]
-    fn skipped_windows_continue_and_partial_windows_stop() {
-        let rows: Vec<_> = (1..=1000).map(|id| row(id, false, true)).collect();
-        let plan = plan_window(&serde_json::json!({}), &rows, &HashMap::new(), 0);
-        assert!(plan.continues);
-        assert_eq!(plan.after_id, 1000);
-        assert_eq!(plan.skipped, 1000);
-        assert!(!plan_window(&serde_json::json!({}), &rows[..999], &HashMap::new(), 0).continues);
-    }
-    #[test]
-    fn saturation_never_advances_past_unqueued_work() {
-        let rows = vec![
-            row(1, false, true),
-            row(2, true, false),
-            row(3, true, true),
-            row(4, true, true),
-        ];
-        let plan = plan_window(
-            &serde_json::json!({}),
-            &rows,
-            &HashMap::from([(1, true)]),
-            1,
+    #[tokio::test]
+    #[ignore = "requires existing local ghost_validation_incremental_benchmark_test database"]
+    async fn sparse_selection_yields_at_scan_budget_and_keeps_bounds() -> Result<()> {
+        zc_core::environment::initialize()?;
+        let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
+        anyhow::ensure!(
+            url.contains("@127.0.0.1:55441/ghost_validation_incremental_benchmark_test"),
+            "Dedicated local benchmark required"
         );
-        assert_eq!(plan.geometry, vec![3]);
-        assert_eq!(plan.missing_ghost, vec![2]);
-        assert_eq!(plan.after_id, 3);
-        assert!(plan.delayed && plan.continues);
-        let resumed = plan_window(
-            &serde_json::json!({"afterId":3}),
-            &rows[3..],
-            &HashMap::from([(1, true)]),
-            1,
-        );
-        assert_eq!(resumed.geometry, vec![4]);
-        assert!(!resumed.continues);
-    }
-    #[test]
-    fn cheap_classifications_need_no_queue_capacity() {
-        let rows = vec![row(1, true, false), row(2, true, true)];
-        let plan = plan_window(&serde_json::json!({}), &rows, &HashMap::new(), 0);
-        assert_eq!(plan.missing_ghost, vec![1]);
-        assert_eq!(plan.missing_snapshot, vec![2]);
-        assert_eq!(plan.after_id, 2);
-        assert!(!plan.delayed);
+        let db = Database::connect(&url, 2).await?;
+        let queue = Queue::deferred(db.pool_partition());
+        let storage = NoStorage;
+        let service = GhostAuditService::new(db, queue, Arc::new(storage));
+        let (ids, next) = service
+            .select_batch(&serde_json::json!({"throughId":3000001}))
+            .await?;
+        assert!(ids.is_empty());
+        let next = next.context("skipped windows must continue")?;
+        assert_eq!(next["afterLevelId"], 1);
+        assert_eq!(next["afterLevelRecordId"], 200000);
+        let (ids,next)=service.select_batch(&serde_json::json!({"idLevel":2,"afterId":2500000,"throughId":2500500,"from":"2020-01-01T00:00:00Z","to":"2090-01-01T00:00:00Z"})).await?;
+        assert_eq!(ids, vec![2500001]);
+        assert!(next.is_none());
+        let (ids, next) = service
+            .select_batch(&serde_json::json!({"idRecord":3000001}))
+            .await?;
+        assert_eq!(ids, vec![3000001]);
+        assert!(next.is_none());
+        let _held = SLOTS
+            .get_or_init(|| tokio::sync::Semaphore::new(2))
+            .try_acquire_many(2)?;
+        let job = crate::queue::ClaimedJob {
+            lane: "bulk".into(),
+            id: "9".into(),
+            task: "auditRecordGhosts".into(),
+            payload: serde_json::json!({}),
+            attempts: 1,
+            max_attempts: 3,
+            generation: "0".into(),
+        };
+        assert!(matches!(
+            service.audit_claimed(&job).await?,
+            crate::runtime::JobOutcome::Deferred
+        ));
+        Ok(())
     }
 }

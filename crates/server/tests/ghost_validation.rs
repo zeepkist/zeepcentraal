@@ -99,6 +99,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
                     | "/ghost_validation_discord_http_test"
                     | "/ghost_validation_mutable_http_test"
                     | "/ghost_validation_incremental_http_test"
+                    | "/ghost_validation_batch_http_test"
             ),
         "Dedicated local fixture DB required"
     );

@@ -10,6 +10,11 @@ use tokio::{sync::watch, task::JoinSet, time::MissedTickBehavior};
 
 #[async_trait]
 pub trait JobHandler: Send + Sync {
+    async fn handle_claimed(&self, job: &ClaimedJob, lane: JobLane) -> Result<JobOutcome> {
+        let task = TaskIdentifier::parse(&job.task).ok_or_else(|| anyhow!("invalid job task"))?;
+        self.handle(task, job.payload.clone(), lane, job.attempts)
+            .await
+    }
     async fn handle(
         &self,
         task: TaskIdentifier,
@@ -159,7 +164,7 @@ async fn execute(
                 Duration::from_secs(HEARTBEAT_SECONDS),
             );
             heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
-            let work = handler.handle(task, job.payload.clone(), lane, job.attempts);
+            let work = handler.handle_claimed(&job, lane);
             tokio::pin!(work);
             loop {
                 tokio::select! {

@@ -123,6 +123,26 @@ impl TaskIdentifier {
         }
     }
 
+    pub fn validate_external_payload(self, payload: &serde_json::Value) -> bool {
+        if self == Self::AuditRecordGhosts
+            && payload.as_object().is_some_and(|object| {
+                object.keys().any(|key| {
+                    matches!(
+                        key.as_str(),
+                        "afterLevelId"
+                            | "afterLevelRecordId"
+                            | "idLevels"
+                            | "work"
+                            | "auditRunId"
+                            | "deferCount"
+                    )
+                })
+            })
+        {
+            return false;
+        }
+        self.validate_payload(payload)
+    }
     pub fn validate_payload(self, payload: &serde_json::Value) -> bool {
         let Some(object) = payload.as_object() else {
             return false;
@@ -172,34 +192,74 @@ impl TaskIdentifier {
                             | "from"
                             | "to"
                             | "reasons"
+                            | "afterLevelId"
+                            | "afterLevelRecordId"
+                            | "idLevels"
+                            | "work"
+                            | "auditRunId"
+                            | "deferCount"
                     )
-                }) && ["idRecord", "idLevel"].iter().all(|key| {
-                    object.get(*key).is_none_or(|v| {
-                        v.as_i64().is_some_and(|id| id > 0 && id <= i32::MAX.into())
-                    })
-                }) && object.get("throughId").is_none_or(|v| {
-                    v.as_i64()
-                        .is_some_and(|id| id >= 0 && id <= i32::MAX.into())
-                }) && object.get("afterId").is_none_or(|v| {
-                    v.as_i64()
-                        .is_some_and(|id| id >= 0 && id <= i32::MAX.into())
-                }) && object.get("workshopId").is_none_or(|v| {
+                }) && ["afterLevelId", "afterLevelRecordId"].iter().all(|key| {
+                    object
+                        .get(*key)
+                        .is_none_or(|v| v.as_i64().is_some_and(|n| n >= 0 && n <= i32::MAX.into()))
+                }) && object.get("auditRunId").is_none_or(|v| {
                     v.as_str()
-                        .is_some_and(|s| s.parse::<i64>().is_ok_and(|id| id > 0))
-                }) && object.get("reasons").is_none_or(|value| {
-                    value.as_array().is_some_and(|reasons| {
-                        !reasons.is_empty()
-                            && reasons.len() <= 2
-                            && reasons.iter().all(|reason| {
-                                matches!(reason.as_str(), Some("invalid_splits" | "missing_ghost"))
-                            })
+                        .is_some_and(|s| s.parse::<u64>().is_ok_and(|n| n > 0))
+                }) && object
+                    .get("deferCount")
+                    .is_none_or(|v| v.as_u64().is_some_and(|n| n <= 4))
+                    && object
+                        .get("idLevels")
+                        .is_none_or(|v| valid_audit_ids(v, false))
+                    && object.get("work").is_none_or(|v| {
+                        v.as_object().is_some_and(|w| {
+                            w.len() == 2
+                                && w.get("recordIds")
+                                    .is_some_and(|ids| valid_audit_ids(ids, true))
+                                && w.get("next").is_some_and(|next| {
+                                    next.is_null()
+                                        || (next.get("work").is_none()
+                                            && Self::AuditRecordGhosts.validate_payload(next))
+                                })
+                        })
                     })
-                }) && ["from", "to"].iter().all(|key| {
-                    object.get(*key).is_none_or(|v| {
+                    && ["idRecord", "idLevel"].iter().all(|key| {
+                        object.get(*key).is_none_or(|v| {
+                            v.as_i64().is_some_and(|id| id > 0 && id <= i32::MAX.into())
+                        })
+                    })
+                    && object.get("throughId").is_none_or(|v| {
+                        v.as_i64()
+                            .is_some_and(|id| id >= 0 && id <= i32::MAX.into())
+                    })
+                    && object.get("afterId").is_none_or(|v| {
+                        v.as_i64()
+                            .is_some_and(|id| id >= 0 && id <= i32::MAX.into())
+                    })
+                    && object.get("workshopId").is_none_or(|v| {
                         v.as_str()
-                            .is_some_and(|s| s.len() <= 64 && s.parse::<jiff::Timestamp>().is_ok())
+                            .is_some_and(|s| s.parse::<i64>().is_ok_and(|id| id > 0))
                     })
-                })
+                    && object.get("reasons").is_none_or(|value| {
+                        value.as_array().is_some_and(|reasons| {
+                            !reasons.is_empty()
+                                && reasons.len() <= 2
+                                && reasons.iter().all(|reason| {
+                                    matches!(
+                                        reason.as_str(),
+                                        Some("invalid_splits" | "missing_ghost")
+                                    )
+                                })
+                        })
+                    })
+                    && ["from", "to"].iter().all(|key| {
+                        object.get(*key).is_none_or(|v| {
+                            v.as_str().is_some_and(|s| {
+                                s.len() <= 64 && s.parse::<jiff::Timestamp>().is_ok()
+                            })
+                        })
+                    })
             }
             Self::ScanWorkshopItem => object
                 .get("workshopId")
@@ -321,6 +381,22 @@ fn valid_positive_decimal(value: &str) -> bool {
     !value.is_empty() && !value.starts_with('0') && value.bytes().all(|byte| byte.is_ascii_digit())
 }
 
+fn valid_audit_ids(value: &serde_json::Value, allow_empty: bool) -> bool {
+    value.as_array().is_some_and(|ids| {
+        ids.len() <= 1000
+            && (allow_empty || !ids.is_empty())
+            && ids
+                .iter()
+                .all(|v| v.as_i64().is_some_and(|n| n > 0 && n <= i32::MAX.into()))
+            && ids
+                .iter()
+                .filter_map(|v| v.as_i64())
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                == ids.len()
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::TaskIdentifier;
@@ -333,6 +409,26 @@ mod tests {
         }
     }
 
+    #[test]
+    fn audit_checkpoints_are_bounded_and_private() {
+        use serde_json::json;
+        let payload = json!({"auditRunId":"42","work":{"recordIds":[1,2],"next":{"afterLevelId":1,"afterLevelRecordId":2,"throughId":200}}});
+        assert!(TaskIdentifier::AuditRecordGhosts.validate_payload(&payload));
+        assert!(!TaskIdentifier::AuditRecordGhosts.validate_external_payload(&payload));
+        for ids in [
+            json!([0]),
+            json!([1, 1]),
+            json!((1..=1001).collect::<Vec<_>>()),
+        ] {
+            assert!(
+                !TaskIdentifier::AuditRecordGhosts
+                    .validate_payload(&json!({"work":{"recordIds":ids,"next":null}}))
+            );
+        }
+        assert!(!TaskIdentifier::AuditRecordGhosts.validate_payload(
+            &json!({"work":{"recordIds":[],"next":{"work":{"recordIds":[],"next":null}}}})
+        ));
+    }
     #[test]
     fn payload_validation_matches_allowlist_contract() {
         use serde_json::json;

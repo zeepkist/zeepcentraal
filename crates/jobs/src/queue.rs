@@ -244,6 +244,51 @@ impl Queue {
         Ok(result.ok)
     }
 
+    /// Checkpoint work without changing generation or extending an expired lease.
+    pub async fn checkpoint(&self, job: &ClaimedJob, payload: &serde_json::Value) -> Result<bool> {
+        ensure!(
+            TaskIdentifier::parse(&job.task).is_some_and(|task| task.validate_payload(payload)),
+            "Invalid checkpoint payload"
+        );
+        let mut connection = self.partition.connection().await?;
+        Ok(sql_query("UPDATE zc_jobs.job SET payload=$4 WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint AND running AND lease_until>clock_timestamp()")
+            .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation).bind::<Jsonb,_>(payload)
+            .execute(&mut connection).await? == 1)
+    }
+
+    pub async fn enqueue_ghost_audit_levels(&self, levels: &[i32]) -> Result<()> {
+        let mut remaining: std::collections::BTreeSet<i32> = levels.iter().copied().collect();
+        ensure!(remaining.iter().all(|id| *id > 0), "Invalid audit level");
+        while !remaining.is_empty() {
+            let mut connection = self.partition.connection().await?;
+            let taken = connection.transaction::<Vec<i32>,anyhow::Error,_>(async |connection| {
+                sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
+                #[derive(QueryableByName)]
+                struct Pending {
+                    #[diesel(sql_type=BigInt)] id:i64,
+                    #[diesel(sql_type=Jsonb)] payload:serde_json::Value,
+                }
+                let pending = sql_query("SELECT id,payload FROM zc_jobs.job WHERE task='auditRecordGhosts' AND NOT running AND NOT(payload ? 'work') AND job_key LIKE 'audit-changed-levels:%' AND jsonb_array_length(payload->'idLevels')<1000 ORDER BY id LIMIT 1 FOR UPDATE")
+                    .get_result::<Pending>(connection).await.optional()?;
+                let mut ids: std::collections::BTreeSet<i32> = pending.as_ref().into_iter().flat_map(|p|p.payload["idLevels"].as_array().into_iter().flatten()).filter_map(|v|v.as_i64().and_then(|n|i32::try_from(n).ok())).collect();
+                let taken:Vec<_> = remaining.iter().filter(|id|!ids.contains(id)).take(1000-ids.len()).copied().collect();
+                let already:Vec<_> = remaining.intersection(&ids).copied().collect();
+                ids.extend(taken.iter().copied());
+                let payload=serde_json::json!({"idLevels":ids});
+                if let Some(pending)=pending {
+                    sql_query("UPDATE zc_jobs.job SET payload=$2 WHERE id=$1").bind::<BigInt,_>(pending.id).bind::<Jsonb,_>(payload).execute(connection).await?;
+                } else {
+                    sql_query("SELECT zc_jobs.enqueue('bulk','auditRecordGhosts',$1,$2,'ghost-audit',3,clock_timestamp())")
+                        .bind::<Jsonb,_>(payload).bind::<Text,_>(format!("audit-changed-levels:{}",zc_core::generate_uid())).execute(connection).await?;
+                }
+                Ok(taken.into_iter().chain(already).collect())
+            }).await?;
+            for id in taken {
+                remaining.remove(&id);
+            }
+        }
+        Ok(())
+    }
     pub async fn heartbeat(&self, job: &ClaimedJob) -> Result<bool> {
         self.finish_call(
             "SELECT zc_jobs.heartbeat($1,$2::bigint,$3::bigint,$4) AS ok",

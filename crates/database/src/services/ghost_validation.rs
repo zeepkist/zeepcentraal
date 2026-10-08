@@ -34,6 +34,32 @@ LEFT JOIN zc_private.record_validation v ON v.id_record=r.id
 ORDER BY r.id
 "#;
 
+const AUDIT_LEVEL_WINDOW_QUERY: &str = r#"
+WITH records AS MATERIALIZED (
+ SELECT r.id,r.id_level FROM public.record r
+ WHERE r.id>$1 AND r.id<=$8
+   AND ($2::integer IS NULL OR r.id=$2)
+   AND ($3::integer IS NULL OR r.id_level=$3)
+   AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
+   AND ($5::text IS NULL OR r.date_created >= $5::timestamptz)
+   AND ($6::text IS NULL OR r.date_created < $6::timestamptz)
+ AND (r.id_level,r.id)>($10,$11)
+ AND (cardinality($12::integer[])=0 OR r.id_level=ANY($12))
+ AND (cardinality($13::integer[])=0 OR r.id=ANY($13))
+ ORDER BY r.id_level,r.id LIMIT 1000
+)
+SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,
+ EXISTS(SELECT 1 FROM public.record_media m WHERE m.id_record=r.id AND nullif(btrim(m.ghost_url),'') IS NOT NULL) AS has_ghost,
+ coalesce(v.status='uncertain' AND v.report->'reasons' ? 'ghost_storage_unavailable',false) AS retryable,
+ (NOT coalesce(v.status='fail' AND v.report->'reasons' ? 'missing_ghost',false)
+  AND (cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
+  AND (v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
+       OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at)) AS needs_check
+FROM records r JOIN public.level l ON l.id=r.id_level
+LEFT JOIN zc_private.record_validation v ON v.id_record=r.id
+ORDER BY r.id_level,r.id
+"#;
+
 const PERSIST_VALIDATIONS_QUERY: &str = r#"
 INSERT INTO zc_private.record_validation AS existing
  (id_record,id_user,id_level,ghost_digest,status,report,validator_version,checked_at)
@@ -74,7 +100,7 @@ pub struct AuditWindowRecord {
 }
 
 const ADMIN_VALIDATIONS_QUERY: &str = r#"
-SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash) AS data
+SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash,'report',v.report || jsonb_build_object('status',v.status,'validatorVersion',v.validator_version)) AS data
 FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level
 WHERE v.id>$1
   AND ($2::integer IS NULL OR v.id_record=$2)
@@ -192,12 +218,19 @@ async fn persist_validations(
         .bind::<Array<Integer>, _>(ids)
         .bind::<Nullable<Text>, _>(digest)
         .bind::<Text, _>(&report.status)
-        .bind::<Jsonb, _>(serde_json::to_value(report)?)
+        .bind::<Jsonb, _>(compact_report(report)?)
         .bind::<Text, _>(&report.validator_version)
         .bind::<Nullable<Text>, _>(checked_at)
         .execute(connection)
         .await?;
     Ok(())
+}
+fn compact_report(report: &ValidationReport) -> Result<Value> {
+    let mut value = serde_json::to_value(report)?;
+    let object = value.as_object_mut().expect("validation report object");
+    object.remove("status");
+    object.remove("validatorVersion");
+    Ok(value)
 }
 impl Database {
     pub async fn accepted_run_digest(&self, user: i32, run_uuid: &str) -> Result<Option<String>> {
@@ -313,6 +346,53 @@ impl Database {
             .load(&mut self.connection().await?)
             .await?)
     }
+    pub async fn audit_level_window(
+        &self,
+        filter: &Value,
+        through_id: i32,
+    ) -> Result<Vec<AuditWindowRecord>> {
+        let integer = |key: &str| filter[key].as_i64().and_then(|v| i32::try_from(v).ok());
+        let reasons: Vec<String> = filter["reasons"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|v| v.as_str().map(str::to_owned))
+            .collect();
+        Ok(sql_query(AUDIT_LEVEL_WINDOW_QUERY)
+            .bind::<Integer, _>(integer("afterId").unwrap_or(0))
+            .bind::<Nullable<Integer>, _>(integer("idRecord"))
+            .bind::<Nullable<Integer>, _>(integer("idLevel"))
+            .bind::<Nullable<BigInt>, _>(
+                filter["workshopId"]
+                    .as_str()
+                    .and_then(|v| v.parse::<i64>().ok()),
+            )
+            .bind::<Nullable<Text>, _>(filter["from"].as_str())
+            .bind::<Nullable<Text>, _>(filter["to"].as_str())
+            .bind::<Array<Text>, _>(reasons)
+            .bind::<Integer, _>(through_id)
+            .bind::<Text, _>(VALIDATOR_VERSION)
+            .bind::<Integer, _>(integer("afterLevelId").unwrap_or(0))
+            .bind::<Integer, _>(integer("afterLevelRecordId").unwrap_or(0))
+            .bind::<Array<Integer>, _>(
+                filter["idLevels"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|v| v.as_i64().and_then(|n| i32::try_from(n).ok()))
+                    .collect::<Vec<_>>(),
+            )
+            .bind::<Array<Integer>, _>(
+                filter["recordIds"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|v| v.as_i64().and_then(|n| i32::try_from(n).ok()))
+                    .collect::<Vec<_>>(),
+            )
+            .load(&mut self.connection().await?)
+            .await?)
+    }
     // Retained maintenance interface; skip empty eligible windows without stopping traversal.
     pub async fn audit_record_ids(&self, filter: &Value) -> Result<Vec<i32>> {
         let through_id = match filter["throughId"]
@@ -347,7 +427,7 @@ impl Database {
     }
     pub async fn record_validation_attempts(&self, id: i32) -> Result<Vec<Value>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash) AS data FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level WHERE v.id_record=$1").bind::<Integer,_>(id).load::<JsonRow>(&mut connection).await?.into_iter().map(|row|row.data).collect())
+        Ok(sql_query("SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash,'report',v.report || jsonb_build_object('status',v.status,'validatorVersion',v.validator_version)) AS data FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level WHERE v.id_record=$1").bind::<Integer,_>(id).load::<JsonRow>(&mut connection).await?.into_iter().map(|row|row.data).collect())
     }
     pub async fn admin_validations(
         &self,
