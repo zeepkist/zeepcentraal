@@ -162,7 +162,7 @@ async fn rank_batch_flush_requires_bot_token() -> Result<()> {
 }
 
 #[tokio::test]
-async fn ghost_validation_admin_rejects_non_steam_sessions() -> Result<()> {
+async fn ghost_validation_admin_rejects_game_sessions_and_checks_web_roles() -> Result<()> {
     let app = app("postgres://fixture:fixture@127.0.0.1:1/admin_test")?;
     let issuer = JwtIssuer::new(
         "fake-unit-test-secret-at-least-32-bytes",
@@ -171,7 +171,19 @@ async fn ghost_validation_admin_rejects_non_steam_sessions() -> Result<()> {
         Duration::from_secs(600),
         Duration::from_secs(1200),
     )?;
-    for provider in [zc_core::jwt::Provider::Gtr, zc_core::jwt::Provider::Discord] {
+    // Game sessions cannot access admin routes. Both web providers require a
+    // database role lookup, which fails closed when this fixture DB is offline.
+    for (provider, expected) in [
+        (zc_core::jwt::Provider::Gtr, StatusCode::FORBIDDEN),
+        (
+            zc_core::jwt::Provider::Steam,
+            StatusCode::SERVICE_UNAVAILABLE,
+        ),
+        (
+            zc_core::jwt::Provider::Discord,
+            StatusCode::SERVICE_UNAVAILABLE,
+        ),
+    ] {
         let token = issuer
             .issue(provider, "76561198000000001", Some("123456789"))?
             .access_token;
@@ -189,7 +201,7 @@ async fn ghost_validation_admin_rejects_non_steam_sessions() -> Result<()> {
                         .body(Body::empty())?,
                 )
                 .await?;
-            assert_eq!(response.status(), StatusCode::FORBIDDEN);
+            assert_eq!(response.status(), expected, "{provider:?}: {path}");
         }
     }
     let response = app
