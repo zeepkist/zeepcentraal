@@ -1,6 +1,9 @@
 name: Pull Request Validation
 
 on:
+  # Renovate waits for branch checks before opening PRs (prCreation: not-pending).
+  push:
+    branches: ['renovate/**']
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   merge_group:
