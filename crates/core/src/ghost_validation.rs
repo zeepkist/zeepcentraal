@@ -21,19 +21,29 @@ pub const GATE_IDS: &[i64] = &[
 pub const FINISH_IDS: &[i64] = &[2, 1273, 1274, 1412, 1616];
 
 pub fn load_manifest_from_env() -> anyhow::Result<Option<ValidationManifest>> {
+    let path = crate::environment::var("GHOST_VALIDATION_MANIFEST").ok();
+    load_manifest(path.as_deref())
+}
+
+fn load_manifest(path: Option<&str>) -> anyhow::Result<Option<ValidationManifest>> {
+    use anyhow::Context;
     use std::io::Read;
-    let Ok(path) = crate::environment::var("GHOST_VALIDATION_MANIFEST") else {
+    let Some(path) = path.filter(|path| !path.trim().is_empty()) else {
         return Ok(None);
     };
     let mut bytes = Vec::new();
-    std::fs::File::open(path)?
+    std::fs::File::open(path)
+        .context("open GHOST_VALIDATION_MANIFEST")?
         .take(16 * 1024 * 1024 + 1)
-        .read_to_end(&mut bytes)?;
+        .read_to_end(&mut bytes)
+        .context("read GHOST_VALIDATION_MANIFEST")?;
     anyhow::ensure!(
         bytes.len() <= 16 * 1024 * 1024,
         "validation manifest exceeds 16 MiB"
     );
-    Ok(Some(serde_json::from_slice(&bytes)?))
+    Ok(Some(
+        serde_json::from_slice(&bytes).context("parse GHOST_VALIDATION_MANIFEST")?,
+    ))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -1154,6 +1164,49 @@ pub fn validate_prepared(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn manifest_unset_or_blank_is_optional() {
+        for path in [None, Some(""), Some(" \t\n")] {
+            assert!(load_manifest(path).unwrap().is_none());
+        }
+    }
+
+    #[test]
+    fn manifest_configured_file_must_exist() {
+        let path = std::env::temp_dir().join(format!("zc-manifest-{}", ulid::Ulid::generate()));
+        let error = load_manifest(Some(path.to_str().unwrap())).unwrap_err();
+        assert_eq!(error.to_string(), "open GHOST_VALIDATION_MANIFEST");
+        assert_eq!(
+            error.downcast_ref::<std::io::Error>().unwrap().kind(),
+            std::io::ErrorKind::NotFound
+        );
+    }
+
+    #[test]
+    fn manifest_configured_file_loads_and_rejects_invalid_json() {
+        let path = std::env::temp_dir().join(format!("zc-manifest-{}", ulid::Ulid::generate()));
+        let manifest = json!({
+            "version": 1,
+            "gameVersion": "test",
+            "sourceDigest": "test",
+            "sphereRadius": 0.5,
+            "physicsInterval": 0.02,
+            "positionTolerance": 0.1,
+            "spawnTolerance": 0.1,
+            "blocks": {}
+        });
+        std::fs::write(&path, manifest.to_string()).unwrap();
+        let loaded = load_manifest(Some(path.to_str().unwrap()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(loaded.game_version, "test");
+        std::fs::write(&path, "invalid json").unwrap();
+        let error = load_manifest(Some(path.to_str().unwrap())).unwrap_err();
+        std::fs::remove_file(&path).unwrap();
+        assert_eq!(error.to_string(), "parse GHOST_VALIDATION_MANIFEST");
+    }
+
     fn block(uid: &str, active: bool, targets: &[&str]) -> Value {
         let mut b = json!({"i":1607,"u":uid,"d":{"n":{"ch5":if active{1}else{0},"id0":targets.len()},"t":{}}});
         for (i, target) in targets.iter().enumerate() {
