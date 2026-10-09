@@ -63,6 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-bun-deps
       - uses: actions/setup-node@v7
         with:
           node-version: '26'
