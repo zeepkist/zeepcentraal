@@ -4,6 +4,9 @@ inputs:
   scope:
     description: Build profile and runner ABI cache scope
     required: true
+  max-size:
+    description: Local compiler store budget
+    default: 5GiB
 outputs:
   key:
     description: Unique cache key for success-only export
@@ -14,10 +17,19 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Configure compiler cache budget
+      shell: bash
+      env:
+        CACHE_MAX_SIZE: ${{ inputs.max-size }}
+      run: |
+        # The daemon reads file configuration rather than build-step environment overrides.
+        config_path="$RUNNER_TEMP/zc-kache.toml"
+        printf '[cache]\nlocal_max_size = "%s"\n' "$CACHE_MAX_SIZE" > "$config_path"
+        echo "KACHE_CONFIG=$config_path" >> "$GITHUB_ENV"
     - uses: kunobi-ninja/kache-action@v1
       with:
         version: '1.0.0'
-        max-size: 2GiB
+        max-size: ${{ inputs.max-size }}
         # Rust jobs use /tmp/zc-target; keep store and outputs on the same mount.
         cache-dir: /tmp/zc-kache
         cache-executables: true
@@ -29,12 +41,25 @@ runs:
       id: cache-key
       shell: bash
       env:
-        CACHE_PREFIX: kache-1.0.0-${{ runner.os }}-${{ runner.arch }}-${{ inputs.scope }}-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'vendor/steam-client-rs/Cargo.lock') }}
+        CACHE_FAMILY: kache-1.0.0-${{ runner.os }}-${{ runner.arch }}-${{ inputs.scope }}
+        TOOLCHAIN_HASH: ${{ hashFiles('rust-toolchain.toml') }}
+        DEPENDENCY_HASH: ${{ hashFiles('Cargo.lock', 'vendor/steam-client-rs/Cargo.lock') }}
+        LEGACY_HASH: ${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'vendor/steam-client-rs/Cargo.lock') }}
       run: |
-        echo "prefix=$CACHE_PREFIX-" >> "$GITHUB_OUTPUT"
-        echo "key=$CACHE_PREFIX-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
+        toolchain_prefix="$CACHE_FAMILY-$TOOLCHAIN_HASH"
+        echo "prefix=$toolchain_prefix-$DEPENDENCY_HASH-" >> "$GITHUB_OUTPUT"
+        echo "toolchain-prefix=$toolchain_prefix-" >> "$GITHUB_OUTPUT"
+        echo "legacy-prefix=$CACHE_FAMILY-$LEGACY_HASH-" >> "$GITHUB_OUTPUT"
+        echo "family-prefix=$CACHE_FAMILY-" >> "$GITHUB_OUTPUT"
+        echo "key=$toolchain_prefix-$DEPENDENCY_HASH-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_OUTPUT"
     - uses: actions/cache/restore@v6
       with:
         path: /tmp/zc-kache
         key: ${{ steps.cache-key.outputs.key }}
-        restore-keys: ${{ steps.cache-key.outputs.prefix }}
+        # Prefer matching dependencies, then reuse unchanged crates after lockfile updates.
+        # Older snapshots lack a separate toolchain hash; Kache validates artifact keys.
+        restore-keys: |
+          ${{ steps.cache-key.outputs.prefix }}
+          ${{ steps.cache-key.outputs.legacy-prefix }}
+          ${{ steps.cache-key.outputs.toolchain-prefix }}
+          ${{ steps.cache-key.outputs.family-prefix }}
