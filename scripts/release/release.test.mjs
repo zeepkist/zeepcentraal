@@ -7,7 +7,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { enforceCacheBudget } from './cache-budget.mjs'
 import { checkVersionInfo, highestRequiredGlibc } from './check-rust-abi.mjs'
-import { analyzeCommits } from './impact.mjs'
+import { analyzeCommits, generateNotes } from './impact.mjs'
 import { publishPlan } from './publish.mjs'
 import { affects, rustTargets } from './targets.mjs'
 
@@ -19,6 +19,52 @@ function git(cwd, ...args) {
 	assert.equal(result.status, 0, result.stderr)
 	return result.stdout.trim()
 }
+
+test('release notes render with installed preset and exclude unrelated targets', {
+	timeout: 30_000,
+}, async () => {
+	const root = mkdtempSync(join(tmpdir(), 'zc-release-notes-'))
+	const previousTarget = process.env.RELEASE_TARGET
+	try {
+		git(root, 'init', '-q')
+		git(root, 'config', 'user.name', 'Release Test')
+		git(root, 'config', 'user.email', 'release@example.test')
+		mkdirSync(join(root, 'packages/web'), { recursive: true })
+		writeFileSync(join(root, 'packages/web/feature.ts'), 'export const feature = true\n')
+		git(root, 'add', '.')
+		const message = 'feat(web): add release note coverage'
+		git(root, 'commit', '-qm', message)
+		const feature = { hash: git(root, 'rev-parse', 'HEAD'), message }
+		mkdirSync(join(root, 'crates/server'), { recursive: true })
+		writeFileSync(join(root, 'crates/server/feature.rs'), '// unrelated Rust change\n')
+		git(root, 'add', '.')
+		git(root, 'commit', '-qm', 'fix(server): unrelated server fix')
+		const unrelated = {
+			hash: git(root, 'rev-parse', 'HEAD'),
+			message: 'fix(server): unrelated server fix',
+		}
+		process.env.RELEASE_TARGET = 'ts'
+		const notes = await generateNotes(
+			{},
+			{
+				cwd: root,
+				commits: [feature, unrelated],
+				lastRelease: { version: '1.0.0', gitTag: '1.0.0', gitHead: feature.hash },
+				nextRelease: { version: '1.1.0', gitTag: '1.1.0', gitHead: unrelated.hash },
+				options: { repositoryUrl: 'https://github.com/example/project.git' },
+				logger: { log() {} },
+			},
+		)
+		assert.match(notes, /Features/)
+		assert.match(notes, /add release note coverage/)
+		assert.match(notes, /1\.1\.0/)
+		assert.doesNotMatch(notes, /unrelated server fix/)
+	} finally {
+		if (previousTarget === undefined) delete process.env.RELEASE_TARGET
+		else process.env.RELEASE_TARGET = previousTarget
+		rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+	}
+})
 
 test('cache budget survives shutdown timeout but rejects failed or incomplete GC', () => {
 	const report = {

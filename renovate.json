@@ -8,6 +8,13 @@
 	"prConcurrentLimit": 10,
 	"prHourlyLimit": 5,
 	"timezone": "Europe/London",
+	"packageRules": [
+		{
+			"description": "Preset 9+ requires writer 9; semantic-release plugins use writer 8.",
+			"matchPackageNames": ["conventional-changelog-conventionalcommits"],
+			"allowedVersions": "<9"
+		}
+	],
 	"lockFileMaintenance": {
 		"enabled": true
 	}
