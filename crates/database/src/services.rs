@@ -24,6 +24,7 @@ pub mod record;
 pub mod super_league;
 pub mod workshop;
 pub mod zsl;
+pub mod zsl_tournament;
 
 #[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]
 #[serde(rename_all = "camelCase")]

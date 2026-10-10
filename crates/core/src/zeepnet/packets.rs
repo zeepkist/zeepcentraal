@@ -339,6 +339,53 @@ pub fn skip_to_level_packet(level: &OnlineLevel) -> Result<Vec<u8>> {
     })
 }
 
+/// Synchronize the active level deadline against GameServer's remote clock.
+pub fn change_lobby_game_properties_packet(
+    level: &OnlineLevel,
+    seconds: f64,
+    loaded_at: f64,
+) -> Result<Vec<u8>> {
+    ensure!(
+        seconds.is_finite() && seconds > 0.0 && loaded_at.is_finite(),
+        "Invalid lobby timing"
+    );
+    write_packet(CHANGE_LOBBY_GAME_PROPERTIES, |writer| {
+        writer.write_f64(seconds);
+        writer.write_f64(loaded_at);
+        writer.write_string(&level.uid)?;
+        writer.write_u64(level.workshop_id);
+        Ok(())
+    })
+}
+
+#[cfg(test)]
+mod timing_tests {
+    use super::*;
+    #[test]
+    fn host_timing_round_trips_and_rejects_invalid_deadline() -> Result<()> {
+        let level = OnlineLevel {
+            author: String::new(),
+            collaborators: String::new(),
+            name: "Test".into(),
+            override_author_name: String::new(),
+            uid: "test".into(),
+            workshop_id: 1,
+        };
+        let packet = change_lobby_game_properties_packet(&level, 123.5, 1000.0)?;
+        assert!(matches!(
+            parse_game_host_packet(&packet)?,
+            GameHostPacket::GameProperties {
+                round_time: 123.5,
+                level_loaded_at: 1000.0,
+                ..
+            }
+        ));
+        assert!(change_lobby_game_properties_packet(&level, 0.0, 1000.0).is_err());
+        assert!(change_lobby_game_properties_packet(&level, 420.0, f64::NAN).is_err());
+        Ok(())
+    }
+}
+
 pub fn level_data_packet(
     name: &str,
     uid: &str,

@@ -22,6 +22,11 @@ const batchPayload = z.union([
 	}),
 ])
 export const taskDefinitions = {
+	prepareZslWarmupPlaylist: {
+		schema: z.strictObject({ roundId: z.number().int().positive().max(2147483647) }),
+		compatible: true,
+		maxAttempts: 5,
+	},
 	validateRecordGhost: {
 		schema: z.strictObject({ idRecord: z.number().int().positive().max(2147483647) }),
 		compatible: true,

@@ -10,6 +10,7 @@ import {
 	index,
 	integer,
 	jsonb,
+	numeric,
 	pgPolicy,
 	pgRole,
 	pgSchema,
@@ -27,6 +28,64 @@ import {
 import { DEFAULT_VOTE_RATING } from './config'
 
 export const zcPrivate = pgSchema('zc_private')
+
+export const zslProvisionalLevelResult = zcPrivate.table(
+	'zsl_provisional_level_result',
+	{
+		idLevel: integer('id_level')
+			.notNull()
+			.references((): AnyPgColumn => zslLevel.id),
+		idUser: integer('id_user')
+			.notNull()
+			.references((): AnyPgColumn => user.id),
+		time: numeric('time', { precision: 14, scale: 6 }).notNull(),
+		timeslot: integer('timeslot').notNull(),
+		finalised: boolean('finalised').notNull().default(false),
+		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.default(sql`clock_timestamp()`),
+		dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.default(sql`clock_timestamp()`),
+	},
+	(table) => [
+		primaryKey({ columns: [table.idLevel, table.idUser] }),
+		check('zsl_provisional_level_result_time_check', sql`${table.time} > 0`),
+		check('zsl_provisional_level_result_timeslot_check', sql`${table.timeslot} IN (1,2)`),
+	],
+)
+
+export const zslTournamentState = zcPrivate.table('zsl_tournament_state', {
+	idRound: integer('id_round')
+		.primaryKey()
+		.references((): AnyPgColumn => zslRound.id),
+	owner: text('owner').notNull(),
+	leaseUntil: timestamp('lease_until', { withTimezone: true, mode: 'string' }).notNull(),
+	state: jsonb('state').notNull().default(sql`'{}'::jsonb`),
+	publishedAt: timestamp('published_at', { withTimezone: true, mode: 'string' }),
+	dateUpdated: timestamp('date_updated', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.default(sql`clock_timestamp()`),
+})
+
+export const zslTournamentLevelState = zcPrivate.table(
+	'zsl_tournament_level_state',
+	{
+		idRound: integer('id_round')
+			.notNull()
+			.references((): AnyPgColumn => zslRound.id),
+		timeslot: integer('timeslot').notNull(),
+		playlistIndex: integer('playlist_index').notNull(),
+		idLevel: integer('id_level').references((): AnyPgColumn => zslLevel.id),
+		deadline: timestamp('deadline', { withTimezone: true, mode: 'string' }).notNull(),
+		closed: boolean('closed').notNull().default(false),
+	},
+	(table) => [
+		primaryKey({ columns: [table.idRound, table.timeslot, table.playlistIndex] }),
+		check('zsl_tournament_level_state_timeslot_check', sql`${table.timeslot} IN (1,2)`),
+		check('zsl_tournament_level_state_playlist_index_check', sql`${table.playlistIndex} >= 0`),
+	],
+)
 
 export const recordValidation = zcPrivate.table(
 	'record_validation',

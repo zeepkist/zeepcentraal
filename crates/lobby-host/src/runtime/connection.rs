@@ -206,6 +206,7 @@ impl ConnectedRoom<'_> {
             tracing::warn!(%error, "Could not make retiring room private");
         }
         if scheduled
+            && self.profile.kick_on_close()
             && state.host
             && let Err(error) = self.kick_guests(&state.roster).await
         {
@@ -242,7 +243,7 @@ impl ConnectedRoom<'_> {
                     if let Some(deadline) = self.profile.close_at() {
                         let now = jiff::Timestamp::now();
                         if now >= deadline { return; }
-                        if notices.due(deadline, now) && authority.load(Ordering::Acquire) {
+                        if self.profile.kick_on_close() && notices.due(deadline, now) && authority.load(Ordering::Acquire) {
                             let result = tokio::time::timeout(Duration::from_secs(1), RoomChat::new(self.connection.clone()).target(0, crate::profiles::practice::CLOSURE_MESSAGE, crate::profiles::messages::HOSTNAME)).await;
                             if !matches!(result, Ok(Ok(()))) { tracing::warn!("Practice closure notice failed"); }
                         }
@@ -516,6 +517,7 @@ fn recovery_message(profile: &RoomProfile) -> String {
         } => "Track of the Month",
         RoomProfile::ZslSubmissions { .. } => "ZSL submissions",
         RoomProfile::ZslPractice { .. } => "ZSL practice",
+        RoomProfile::Zsl { .. } => "ZSL tournament",
     };
     format!(
         "ZeepCentraal needs host back to keep this room operating for {label}. Please return host to ZeepCentraal."

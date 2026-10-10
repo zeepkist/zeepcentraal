@@ -73,6 +73,11 @@ impl LevelTransfer {
     pub fn timeout(&self) -> Duration {
         self.timeout
     }
+    pub fn set_round_time(&mut self, seconds: f64) -> Result<()> {
+        ensure!(seconds.is_finite() && seconds > 0.0, "Invalid round time");
+        self.round_time = seconds;
+        Ok(())
+    }
 
     pub async fn update_playlist(
         &mut self,

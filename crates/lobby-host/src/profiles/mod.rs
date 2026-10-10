@@ -3,6 +3,8 @@ pub(crate) mod messages;
 mod notifications;
 pub(crate) mod practice;
 mod track_tournament;
+mod zsl;
+mod zsl_messages;
 mod zsl_submissions;
 
 use crate::{
@@ -25,10 +27,21 @@ pub fn create_profile(
     storage: Arc<dyn ObjectStorage>,
 ) -> Result<Arc<dyn LobbyProfile>> {
     match &config.profile {
+        RoomProfile::Zsl { .. } => Ok(Arc::new(zsl::ZslProfile::new(
+            config, None, database, storage,
+        )?)),
         RoomProfile::TrackTournament { tournament_type } => Ok(Arc::new(
             TrackTournamentProfile::new(config.clone(), database, storage, *tournament_type)?,
         )),
         RoomProfile::ZslPractice { round_id, playlist } => {
+            if let Some(tournament) = config.paired_tournament.clone() {
+                return Ok(Arc::new(zsl::ZslProfile::new(
+                    *tournament,
+                    Some(config),
+                    database,
+                    storage,
+                )?));
+            }
             Ok(Arc::new(ZslSubmissionsProfile::practice(
                 config.clone(),
                 database,

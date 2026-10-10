@@ -490,6 +490,38 @@ diesel::table! {
 }
 
 diesel::table! {
+    zc_private.zsl_provisional_level_result (id_level, id_user) {
+        id_level -> Integer,
+        id_user -> Integer,
+        time -> Numeric,
+        timeslot -> Integer,
+        finalised -> Bool,
+        date_created -> Timestamptz,
+        date_updated -> Timestamptz,
+    }
+}
+diesel::table! {
+    zc_private.zsl_tournament_state (id_round) {
+        id_round -> Integer,
+        owner -> Text,
+        lease_until -> Timestamptz,
+        state -> Jsonb,
+        published_at -> Nullable<Timestamptz>,
+        date_updated -> Timestamptz,
+    }
+}
+diesel::table! {
+    zc_private.zsl_tournament_level_state (id_round, timeslot, playlist_index) {
+        id_round -> Integer,
+        timeslot -> Integer,
+        playlist_index -> Integer,
+        id_level -> Nullable<Integer>,
+        deadline -> Timestamptz,
+        closed -> Bool,
+    }
+}
+
+diesel::table! {
     zsl_level_result (id_level, id_user) {
         id_level -> Integer,
         id_user -> Integer,

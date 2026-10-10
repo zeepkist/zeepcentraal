@@ -56,6 +56,7 @@ impl RoomConnection for FakeConnection {
 
 #[derive(Default)]
 struct ProfileStats {
+    no_kicks: AtomicBool,
     starts: AtomicUsize,
     close_at: StdMutex<Option<jiff::Timestamp>>,
     scheduled_closes: AtomicUsize,
@@ -72,6 +73,9 @@ struct FakeProfile(Arc<ProfileStats>);
 
 #[async_trait::async_trait]
 impl LobbyProfile for FakeProfile {
+    fn kick_on_close(&self) -> bool {
+        !self.0.no_kicks.load(Ordering::Acquire)
+    }
     fn name(&self) -> &str {
         "fake-profile"
     }
@@ -167,6 +171,7 @@ impl Harness {
             let wake = wake.clone();
             tokio::spawn(async move {
                 let config = ManagedRoomConfig {
+                    paired_tournament: None,
                     key: "totw".into(),
                     enabled: true,
                     profile: RoomProfile::TrackTournament {
@@ -687,6 +692,27 @@ async fn ordinary_disable_makes_private_before_leave_without_kicks() -> Result<(
     h.shutdown().await?;
     assert_eq!(h.count(zc_core::zeepnet::KICK_PLAYER), 0);
     assert_eq!(h.stats.scheduled_closes.load(Ordering::Acquire), 0);
+    let sent = h.connection.sent.lock().unwrap();
+    let count = h.connection.packets_at_close.lock().unwrap()[0];
+    assert_eq!(sent[count - 1], change_lobby_visibility_packet(false)?);
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn tournament_retirement_makes_private_and_leaves_without_kicks() -> Result<()> {
+    let mut h = Harness::new();
+    h.stats.no_kicks.store(true, Ordering::Release);
+    h.packet(initial(true));
+    flush().await;
+    advance(4).await;
+    *h.stats.close_at.lock().unwrap() = Some(jiff::Timestamp::from_second(
+        jiff::Timestamp::now().as_second() - 1,
+    )?);
+    advance(1).await;
+    h.result().await?;
+    assert_eq!(h.stats.scheduled_closes.load(Ordering::Acquire), 1);
+    assert_eq!(h.count(zc_core::zeepnet::KICK_PLAYER), 0);
+    assert_eq!(h.connection.closes.load(Ordering::Acquire), 1);
     let sent = h.connection.sent.lock().unwrap();
     let count = h.connection.packets_at_close.lock().unwrap()[0];
     assert_eq!(sent[count - 1], change_lobby_visibility_packet(false)?);

@@ -9,7 +9,7 @@ use zc_workshop::WorkshopDownloader;
 
 pub(crate) async fn prepare_bundle(
     round_id: i32,
-    url: &str,
+    playlist_key: &str,
     playlist: PracticePlaylist,
     downloader: &dyn WorkshopDownloader,
     storage: &dyn ObjectStorage,
@@ -23,6 +23,7 @@ pub(crate) async fn prepare_bundle(
         .collect();
     let download = downloader.download(&ids).await?;
     let result: Result<PracticeBundle> = async {
+        let round_length = playlist.round_length;
         let mut levels = Vec::with_capacity(playlist.levels.len());
         for level in playlist.levels {
             let item = download
@@ -35,6 +36,7 @@ pub(crate) async fn prepare_bundle(
                     .await?
                     .context("Workshop item omitted practice level UID")?;
             let source = selected.content.trim_start_matches('\u{feff}');
+            let parsed = zc_core::levels::parse_level(source, false, 0).ok();
             let bytes = zc_core::zeepnet::encode_zeepkist_level_payload(
                 source,
                 source.trim_start().starts_with('{'),
@@ -54,6 +56,9 @@ pub(crate) async fn prepare_bundle(
                 .upload(&object_key, bytes, "application/gzip")
                 .await?;
             levels.push(PracticePayload {
+                xx_hash: parsed.as_ref().map(|level| level.hash.clone()),
+                legacy_hash: parsed.as_ref().map(|level| level.zeep_hash.clone()),
+                author_time: parsed.as_ref().map(|level| level.validation_time_author),
                 level,
                 object_key,
                 sha256,
@@ -61,8 +66,9 @@ pub(crate) async fn prepare_bundle(
             });
         }
         let bundle = PracticeBundle {
+            round_length,
             round_id,
-            playlist: url.to_owned(),
+            playlist: playlist_key.to_owned(),
             levels,
         };
         bundle.validate()?;
@@ -230,6 +236,13 @@ mod tests {
         let storage = Storage::default();
         let bundle =
             prepare_bundle(50, url, playlist, &InstalledDownloader(directory), &storage).await?;
+        assert_eq!(bundle.round_length, Some(420));
+        assert!(bundle.levels.iter().all(|entry| {
+            entry.xx_hash.as_ref().is_some_and(|hash| hash.len() == 32)
+                && entry
+                    .author_time
+                    .is_some_and(|time| time.is_finite() && time > 0.0)
+        }));
         assert_eq!(
             bundle
                 .levels

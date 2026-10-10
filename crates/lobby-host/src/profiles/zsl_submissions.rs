@@ -691,7 +691,11 @@ impl ProfileSession for ZslSubmissionsSession {
         let mut refresh =
             tokio::time::interval(std::time::Duration::from_millis(self.config.asset_poll_ms));
         let mut message = tokio::time::interval(std::time::Duration::from_millis(
-            self.config.message_refresh_ms,
+            if self.practice.is_some() {
+                60_000
+            } else {
+                self.config.message_refresh_ms
+            },
         ));
         refresh.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         message.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -919,6 +923,7 @@ mod tests {
             })
             .collect();
         Ok(SubmissionAsset {
+            bundle: None,
             digest: digest.into(),
             playlist: PreparedPlaylist::new(
                 levels.iter().map(|level| level.level.clone()).collect(),

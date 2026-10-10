@@ -303,6 +303,18 @@ export const jobPromptDefinitions = {
 			}
 		},
 	},
+	prepareZslWarmupPlaylist: {
+		category: 'Tournament',
+		label: 'Prepare ZSL warm-up playlist',
+		description: 'Select four high-points 20–40 second levels for ZSL warm-up',
+		collectOptions: async (prompt: PromptAdapter): Promise<JobOptions> => {
+			const roundId = await prompt.text({
+				message: 'ZSL round ID',
+				validate: integerValidator('Round ID', { maximum: 2147483647 }),
+			})
+			return { roundId: parseBoundedPositiveSafeInteger(roundId, 2147483647, 'Round ID') }
+		},
+	},
 	backfillLevelSimhash: {
 		category: 'Workshop',
 		label: 'Backfill level SimHash',

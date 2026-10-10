@@ -14,6 +14,8 @@ pub struct LobbyHostFileConfig {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ManagedRoomConfig {
+    #[serde(skip)]
+    pub paired_tournament: Option<Box<ManagedRoomConfig>>,
     pub key: String,
     #[serde(default = "default_enabled")]
     pub enabled: bool,
@@ -28,6 +30,8 @@ pub struct ManagedRoomConfig {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
 #[serde(tag = "type", deny_unknown_fields)]
 pub enum RoomProfile {
+    #[serde(rename = "zsl", rename_all = "camelCase")]
+    Zsl { round_id: i32, playlist: String },
     #[serde(rename = "track-tournament", rename_all = "camelCase")]
     TrackTournament { tournament_type: TournamentType },
     #[serde(rename = "zsl-submissions", rename_all = "camelCase")]
@@ -77,6 +81,7 @@ impl LobbyHostFileConfig {
                 room.key
             );
         }
+        controller_rooms(&self.rooms)?;
         Ok(())
     }
 }
@@ -109,7 +114,9 @@ impl ManagedRoomConfig {
             (60_000..=1_800_000).contains(&self.message_refresh_ms),
             "Invalid message refresh interval"
         );
-        if let RoomProfile::ZslPractice { playlist, .. } = &self.profile {
+        if let RoomProfile::ZslPractice { playlist, .. } | RoomProfile::Zsl { playlist, .. } =
+            &self.profile
+        {
             zc_core::practice::validate_playlist_url(playlist)?;
         }
         if let RoomProfile::ZslSubmissions { round_id }
@@ -117,8 +124,44 @@ impl ManagedRoomConfig {
         {
             ensure!(*round_id > 0, "Invalid ZSL round ID");
         }
+        if let RoomProfile::Zsl { round_id, .. } = &self.profile {
+            ensure!(*round_id > 0, "Invalid ZSL round ID");
+            ensure!(
+                self.round_time_seconds == 420,
+                "ZSL tournament round time must be 420 seconds"
+            );
+        }
         Ok(())
     }
+}
+
+/// One supervisor and one physical room for each enabled practice/tournament pair.
+pub fn controller_rooms(rooms: &[ManagedRoomConfig]) -> Result<Vec<ManagedRoomConfig>> {
+    let mut paired = HashSet::new();
+    let mut result = Vec::new();
+    for room in rooms.iter().filter(|room| room.enabled) {
+        let mut room = room.clone();
+        if let RoomProfile::ZslPractice { round_id, .. } = room.profile {
+            let practice_count = rooms.iter().filter(|candidate| candidate.enabled && matches!(candidate.profile, RoomProfile::ZslPractice { round_id: id, .. } if id == round_id)).count();
+            let tournaments: Vec<_> = rooms.iter().filter(|candidate| candidate.enabled && matches!(candidate.profile, RoomProfile::Zsl { round_id: id, .. } if id == round_id)).collect();
+            ensure!(
+                tournaments.len() <= 1 && (tournaments.is_empty() || practice_count == 1),
+                "Ambiguous ZSL room pairing for round {round_id}"
+            );
+            if let Some(tournament) = tournaments.first() {
+                ensure!(
+                    room.room.max_players == tournament.room.max_players
+                        && room.room.is_public == tournament.room.is_public,
+                    "Paired ZSL room settings must agree"
+                );
+                paired.insert(tournament.key.clone());
+                room.paired_tournament = Some(Box::new((*tournament).clone()));
+            }
+        }
+        result.push(room);
+    }
+    result.retain(|room| !paired.contains(&room.key));
+    Ok(result)
 }
 
 fn validate_key(key: &str) -> Result<()> {
@@ -147,6 +190,42 @@ mod tests {
         format!(
             r#"{{"key":"{key}","profile":{{"type":"track-tournament","tournamentType":"weekly"}},"room":{{"name":"Room","isPublic":true,"maxPlayers":64}},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}}"#
         )
+    }
+    #[test]
+    fn pairs_one_controller_and_rejects_ambiguous_or_incompatible_rooms() -> Result<()> {
+        let tournament = room("zsl")
+            .replace(
+                r#""type":"track-tournament","tournamentType":"weekly""#,
+                r#""type":"zsl","roundId":50,"playlist":"https://example.com/z.zeeplist""#,
+            )
+            .replace("900", "420");
+        let practice = room("practice").replace(
+            r#""type":"track-tournament","tournamentType":"weekly""#,
+            r#""type":"zsl-practice","roundId":50,"playlist":"https://example.com/z.zeeplist""#,
+        );
+        let parse = |rooms: &str| {
+            LobbyHostFileConfig::parse(&format!(r#"{{"version":1,"rooms":[{rooms}]}}"#))
+        };
+        let config = parse(&format!("{practice},{tournament}"))?;
+        let controllers = controller_rooms(&config.rooms)?;
+        assert_eq!(controllers.len(), 1);
+        assert_eq!(controllers[0].key, "practice");
+        assert!(controllers[0].paired_tournament.is_some());
+        assert!(
+            parse(&format!(
+                "{practice},{tournament},{}",
+                practice.replace("practice", "practice-two")
+            ))
+            .is_err()
+        );
+        assert!(
+            parse(&format!(
+                "{practice},{}",
+                tournament.replace("maxPlayers\":64", "maxPlayers\":32")
+            ))
+            .is_err()
+        );
+        Ok(())
     }
 
     #[test]

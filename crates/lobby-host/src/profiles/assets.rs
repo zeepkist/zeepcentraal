@@ -148,6 +148,7 @@ pub(super) enum SubmissionPlaylist {
 
 #[derive(Clone)]
 pub struct SubmissionAsset {
+    pub bundle: Option<Arc<zc_core::practice::PracticeBundle>>,
     pub digest: String,
     pub playlist: PreparedPlaylist,
 }
@@ -226,6 +227,7 @@ impl SubmissionAssets {
         });
         let playlist = PreparedPlaylist::new(levels, loader)?;
         Ok(SubmissionPlaylist::Ready(SubmissionAsset {
+            bundle: None,
             digest: bundle.playlist.digest,
             playlist,
         }))
@@ -310,49 +312,76 @@ pub(super) struct PracticeAssets {
     database: Database,
     storage: Arc<dyn ObjectStorage>,
     round_id: i32,
-    url: String,
+    playlist_key: String,
+    warmup: bool,
     loaded: Arc<Mutex<HashMap<String, Arc<[u8]>>>>,
     requested: Mutex<Option<std::time::Instant>>,
 }
 impl PracticeAssets {
+    pub async fn refresh_for_event(&self) -> Result<SubmissionPlaylist> {
+        self.request_preparation(60).await?;
+        self.refresh().await
+    }
+    async fn request_preparation(&self, interval: u64) -> Result<()> {
+        let mut requested = self.requested.lock().await;
+        if requested.is_some_and(|last| last.elapsed() < std::time::Duration::from_secs(interval)) {
+            return Ok(());
+        }
+        let task = if self.warmup {
+            zc_jobs::TaskIdentifier::PrepareZslWarmupPlaylist
+        } else {
+            zc_jobs::TaskIdentifier::PrepareZslPracticePlaylist
+        };
+        let payload = if self.warmup {
+            serde_json::json!({"roundId":self.round_id})
+        } else {
+            serde_json::json!({"roundId":self.round_id,"playlist":self.playlist_key})
+        };
+        let key = format!(
+            "{}:{}:{}",
+            task.as_str(),
+            self.round_id,
+            zc_core::identifiers::xxh128_hex(self.playlist_key.as_bytes())
+        );
+        zc_jobs::queue::Queue::deferred(self.database.pool_partition())
+            .enqueue(task, payload, zc_jobs::queue::JobLane::Bulk, Some(&key))
+            .await?;
+        *requested = Some(std::time::Instant::now());
+        Ok(())
+    }
     pub fn new(
         database: Database,
         storage: Arc<dyn ObjectStorage>,
         round_id: i32,
-        url: String,
+        playlist_key: String,
     ) -> Self {
         Self {
             database,
             storage,
             round_id,
-            url,
+            playlist_key,
+            warmup: false,
             loaded: Arc::new(Mutex::new(HashMap::new())),
             requested: Mutex::new(None),
         }
     }
+    pub fn warmup(database: Database, storage: Arc<dyn ObjectStorage>, round_id: i32) -> Self {
+        let mut assets = Self::new(
+            database,
+            storage,
+            round_id,
+            zc_core::practice::warmup_playlist_key(round_id),
+        );
+        assets.warmup = true;
+        assets
+    }
     pub async fn refresh(&self) -> Result<SubmissionPlaylist> {
         let Some(metadata) = self
             .database
-            .practice_asset(self.round_id, &self.url)
+            .practice_asset(self.round_id, &self.playlist_key)
             .await?
         else {
-            let mut requested = self.requested.lock().await;
-            if requested.is_none_or(|last| last.elapsed() >= std::time::Duration::from_secs(600)) {
-                let key = format!(
-                    "prepare-zsl-practice:{}:{}",
-                    self.round_id,
-                    zc_core::identifiers::xxh128_hex(self.url.as_bytes())
-                );
-                zc_jobs::queue::Queue::deferred(self.database.pool_partition())
-                    .enqueue(
-                        zc_jobs::TaskIdentifier::PrepareZslPracticePlaylist,
-                        serde_json::json!({"roundId":self.round_id,"playlist":self.url}),
-                        zc_jobs::queue::JobLane::Bulk,
-                        Some(&key),
-                    )
-                    .await?;
-                *requested = Some(std::time::Instant::now());
-            }
+            self.request_preparation(600).await?;
             return Ok(SubmissionPlaylist::Missing);
         };
         let bytes = self
@@ -369,40 +398,62 @@ impl PracticeAssets {
         let bundle: zc_core::practice::PracticeBundle = serde_json::from_slice(&bytes)?;
         bundle.validate()?;
         ensure!(
-            bundle.round_id == self.round_id && bundle.playlist == self.url,
+            bundle.round_id == self.round_id && bundle.playlist == self.playlist_key,
             "Practice bundle identity mismatch"
         );
-        let entries: Vec<_> = bundle
-            .levels
-            .into_iter()
-            .map(|entry| SubmissionEntry {
-                workshop_id: entry.level.workshop_id,
-                payload: SubmissionPayload {
-                    sha256: entry.sha256,
-                    byte_size: entry.byte_size,
-                    uid: entry.level.uid,
-                    name: entry.level.name,
-                    author: entry.level.author,
-                    collaborators: entry.level.collaborators,
-                    override_author_name: entry.level.override_author_name,
-                    object_key: entry.object_key,
-                },
-            })
-            .collect();
-        let levels = entries
-            .iter()
-            .map(|entry| online_level(entry.workshop_id, &entry.payload))
-            .collect();
-        let loader = Arc::new(SubmissionLoader {
-            entries: entries.into(),
-            storage: self.storage.clone(),
-            loaded: self.loaded.clone(),
-        });
-        Ok(SubmissionPlaylist::Ready(SubmissionAsset {
-            digest: metadata.content_sha256,
-            playlist: PreparedPlaylist::new(levels, loader)?,
-        }))
+        practice_asset(bundle, self.storage.clone(), self.loaded.clone())
     }
+}
+
+pub(super) fn pinned_asset(
+    bundle: zc_core::practice::PracticeBundle,
+    storage: Arc<dyn ObjectStorage>,
+) -> Result<SubmissionAsset> {
+    bundle.validate()?;
+    match practice_asset(bundle, storage, Arc::new(Mutex::new(HashMap::new())))? {
+        SubmissionPlaylist::Ready(asset) => Ok(asset),
+        _ => unreachable!("validated bundle always produces an asset"),
+    }
+}
+
+fn practice_asset(
+    bundle: zc_core::practice::PracticeBundle,
+    storage: Arc<dyn ObjectStorage>,
+    loaded: Arc<Mutex<HashMap<String, Arc<[u8]>>>>,
+) -> Result<SubmissionPlaylist> {
+    let entries: Vec<_> = bundle
+        .levels
+        .clone()
+        .into_iter()
+        .map(|entry| SubmissionEntry {
+            workshop_id: entry.level.workshop_id,
+            payload: SubmissionPayload {
+                sha256: entry.sha256,
+                byte_size: entry.byte_size,
+                uid: entry.level.uid,
+                name: entry.level.name,
+                author: entry.level.author,
+                collaborators: entry.level.collaborators,
+                override_author_name: entry.level.override_author_name,
+                object_key: entry.object_key,
+            },
+        })
+        .collect();
+    let levels = entries
+        .iter()
+        .map(|entry| online_level(entry.workshop_id, &entry.payload))
+        .collect();
+    let loader = Arc::new(SubmissionLoader {
+        entries: entries.into(),
+        storage,
+        loaded,
+    });
+    let digest = zc_core::identifiers::xxh128_hex(&serde_json::to_vec(&bundle)?);
+    Ok(SubmissionPlaylist::Ready(SubmissionAsset {
+        bundle: Some(Arc::new(bundle)),
+        digest,
+        playlist: PreparedPlaylist::new(levels, loader)?,
+    }))
 }
 
 #[cfg(test)]

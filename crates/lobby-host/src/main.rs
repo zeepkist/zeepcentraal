@@ -78,6 +78,7 @@ async fn reconcile_rooms(
     storage: &std::sync::Arc<dyn zc_core::object_storage::ObjectStorage>,
     broker: &zc_lobby_host::broker::RoomBrokerClient,
 ) -> anyhow::Result<()> {
+    let next = zc_lobby_host::config::controller_rooms(&next)?;
     let changed = changed_room_keys(running.values().map(|active| &active.config), &next);
     for key in changed {
         if let Some(active) = running.remove(&key) {

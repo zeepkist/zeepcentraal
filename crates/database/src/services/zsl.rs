@@ -226,21 +226,31 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<ZslLevel, anyhow::Error, _>(async move |connection| {
+                sql_query("SELECT pg_advisory_xact_lock(91501,$1)")
+                    .bind::<Integer, _>(id_round)
+                    .execute(connection)
+                    .await?;
                 if let Some(existing) = sql_query(
                     "SELECT id FROM public.zsl_level \
                          WHERE id_round=$1 AND id_level=$2 LIMIT 1 FOR UPDATE",
                 )
                 .bind::<Integer, _>(id_round)
                 .bind::<Integer, _>(id_level)
-                .get_result(connection)
+                .get_result::<ZslLevel>(connection)
                 .await
                 .optional()?
                 {
+                    sql_query(
+                        "UPDATE public.zsl_level SET date_updated=clock_timestamp() WHERE id=$1",
+                    )
+                    .bind::<Integer, _>(existing.id)
+                    .execute(connection)
+                    .await?;
                     return Ok(existing);
                 }
                 Ok(sql_query(
-                    "INSERT INTO public.zsl_level(id_round,id_level,date_created) \
-                         VALUES ($1,$2,clock_timestamp()) RETURNING id",
+                    "INSERT INTO public.zsl_level(id_round,id_level,date_created,date_updated) \
+                         VALUES ($1,$2,clock_timestamp(),clock_timestamp()) RETURNING id",
                 )
                 .bind::<Integer, _>(id_round)
                 .bind::<Integer, _>(id_level)

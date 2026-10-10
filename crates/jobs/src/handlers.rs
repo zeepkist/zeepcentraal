@@ -390,6 +390,36 @@ impl ServiceJobHandler {
             "Practice round does not exist"
         );
         let playlist = zc_core::practice::fetch_playlist(url).await?;
+        if let Some(metadata) = self.database.practice_asset(round_id, url).await? {
+            let bytes = self
+                .storage
+                .download(
+                    &metadata.object_key,
+                    zc_core::object_storage::DownloadConstraints {
+                        max_bytes: zc_core::practice::MAX_PLAYLIST_BYTES,
+                        expected_bytes: Some(usize::try_from(metadata.byte_size)?),
+                        expected_sha256: Some(&metadata.content_sha256),
+                    },
+                )
+                .await?;
+            let current: zc_core::practice::PracticeBundle = serde_json::from_slice(&bytes)?;
+            current.validate()?;
+            if current.round_length == playlist.round_length
+                && current.levels.len() == playlist.levels.len()
+                && current
+                    .levels
+                    .iter()
+                    .zip(&playlist.levels)
+                    .all(|(stored, source)| {
+                        stored.level == *source
+                            && stored.xx_hash.is_some()
+                            && stored.legacy_hash.is_some()
+                            && stored.author_time.is_some()
+                    })
+            {
+                return Ok(());
+            }
+        }
         let bundle = crate::practice::prepare_bundle(
             round_id,
             url,
@@ -410,6 +440,36 @@ impl ServiceJobHandler {
             .await?;
         self.database
             .publish_practice_asset(round_id, url, &key, &digest, i32::try_from(manifest.len())?)
+            .await
+    }
+
+    async fn prepare_zsl_warmup(&self, payload: &serde_json::Value) -> Result<()> {
+        let round_id = i32::try_from(payload["roundId"].as_i64().context("roundId is missing")?)?;
+        self.database.zsl_event(round_id).await?;
+        let playlist_key = zc_core::practice::warmup_playlist_key(round_id);
+        let playlist = crate::zsl_warmup::fetch().await?;
+        let bundle = crate::practice::prepare_bundle(
+            round_id,
+            &playlist_key,
+            playlist,
+            self.downloader.as_ref(),
+            self.storage.as_ref(),
+        )
+        .await?;
+        let manifest = serde_json::to_vec(&bundle)?;
+        let digest = hex::encode(Sha256::digest(&manifest));
+        let key = format!("zsl-practice/manifests/{round_id}/{digest}.json");
+        self.storage
+            .upload(&key, manifest.clone(), "application/json")
+            .await?;
+        self.database
+            .publish_practice_asset(
+                round_id,
+                &playlist_key,
+                &key,
+                &digest,
+                i32::try_from(manifest.len())?,
+            )
             .await
     }
 
@@ -1013,6 +1073,7 @@ impl JobHandler for ServiceJobHandler {
             TaskIdentifier::PrepareZslPracticePlaylist => {
                 self.prepare_practice_playlist(&payload).await
             }
+            TaskIdentifier::PrepareZslWarmupPlaylist => self.prepare_zsl_warmup(&payload).await,
             TaskIdentifier::PrepareTrackTournamentLobbyAsset => {
                 self.prepare_tournament_lobby_asset(&payload).await
             }

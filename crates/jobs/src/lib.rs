@@ -8,6 +8,7 @@ mod practice;
 pub mod queue;
 pub mod retry;
 pub mod runtime;
+mod zsl_warmup;
 
 pub const FAST_CONCURRENCY: usize = 15;
 pub const BULK_CONCURRENCY: usize = 15;
@@ -28,6 +29,7 @@ pub enum TaskIdentifier {
     RecoverLevelRequests,
     PrepareTrackTournamentLobbyAsset,
     PrepareZslPracticePlaylist,
+    PrepareZslWarmupPlaylist,
     ScanWorkshopBatch,
     ScanWorkshopItem,
     RotateTrackTournament,
@@ -45,7 +47,7 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 23] = [
+    pub const ALL: [Self; 24] = [
         Self::ValidateRecordGhost,
         Self::AuditRecordGhosts,
         Self::BackfillLevelSimhash,
@@ -55,6 +57,7 @@ impl TaskIdentifier {
         Self::RecoverLevelRequests,
         Self::PrepareTrackTournamentLobbyAsset,
         Self::PrepareZslPracticePlaylist,
+        Self::PrepareZslWarmupPlaylist,
         Self::ScanWorkshopBatch,
         Self::ScanWorkshopItem,
         Self::RotateTrackTournament,
@@ -82,6 +85,7 @@ impl TaskIdentifier {
             Self::RecoverLevelRequests => "recoverLevelRequests",
             Self::PrepareTrackTournamentLobbyAsset => "prepareTrackTournamentLobbyAsset",
             Self::PrepareZslPracticePlaylist => "prepareZslPracticePlaylist",
+            Self::PrepareZslWarmupPlaylist => "prepareZslWarmupPlaylist",
             Self::ScanWorkshopBatch => "scanWorkshopBatch",
             Self::ScanWorkshopItem => "scanWorkshopItem",
             Self::RotateTrackTournament => "rotateTrackTournament",
@@ -117,6 +121,7 @@ impl TaskIdentifier {
             Self::BackfillRecordGhostStatistics | Self::BackfillRecordGhostStatisticsBatch => 1,
             Self::PrepareTrackTournamentLobbyAsset
             | Self::PrepareZslPracticePlaylist
+            | Self::PrepareZslWarmupPlaylist
             | Self::ScanWorkshopBatch
             | Self::ScanWorkshopItem => 5,
             _ => 3,
@@ -290,6 +295,13 @@ impl TaskIdentifier {
                         .and_then(serde_json::Value::as_str)
                         .is_some_and(|url| zc_core::practice::validate_playlist_url(url).is_ok())
             }
+            Self::PrepareZslWarmupPlaylist => {
+                object.len() == 1
+                    && positive_i64("roundId")
+                    && object["roundId"]
+                        .as_i64()
+                        .is_some_and(|id| id <= i32::MAX as i64)
+            }
             Self::UpdateLevelScore => {
                 positive_i64("idLevel")
                     && object.get("idUser").is_none_or(|_| positive_i64("idUser"))
@@ -402,8 +414,8 @@ mod tests {
     use super::TaskIdentifier;
 
     #[test]
-    fn task_registry_matches_bun_count() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 23);
+    fn task_registry_round_trips_all_identifiers() {
+        assert_eq!(super::TaskIdentifier::ALL.len(), 24);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
@@ -432,6 +444,17 @@ mod tests {
     #[test]
     fn payload_validation_matches_allowlist_contract() {
         use serde_json::json;
+        assert!(
+            TaskIdentifier::PrepareZslWarmupPlaylist
+                .validate_external_payload(&json!({"roundId":50}))
+        );
+        for payload in [
+            json!({"roundId":0}),
+            json!({"roundId":2147483648_i64}),
+            json!({"roundId":50,"extra":true}),
+        ] {
+            assert!(!TaskIdentifier::PrepareZslWarmupPlaylist.validate_external_payload(&payload));
+        }
         assert!(TaskIdentifier::ValidateRecordGhost.compatible());
         assert!(TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":1})));
         assert!(!TaskIdentifier::ValidateRecordGhost.validate_payload(&json!({"idRecord":0})));

@@ -60,11 +60,11 @@ impl PracticeSchedule {
     ) -> String {
         let remaining = (self.close_at(now).as_second() - now.as_second()).max(0);
         format!(
-            "/servermessage yellow {duration} <size=160%><b>{}</b>\nLevel {position} of {entries}\nCloses in {}h {}m {}s</size>",
+            "/servermessage yellow {duration} <size=160%><b>{}</b>\nLevel {position} of {entries}\nCloses in {}d {}h {}m</size>",
             escape_text(&self.title()),
-            remaining / 3600,
+            remaining / 86400,
+            remaining % 86400 / 3600,
             remaining % 3600 / 60,
-            remaining % 60
         )
     }
     pub fn welcome(&self, player: &str, duration: u64, now: Timestamp) -> String {
@@ -225,6 +225,20 @@ mod tests {
             schedule
                 .welcome("<Player>", 900, time(9000))
                 .contains("&lt;Player&gt;")
+        );
+    }
+    #[test]
+    fn countdown_uses_days_hours_minutes_until_next_closure() {
+        let remaining = 4 * 86400 + 8 * 3600 + 34 * 60;
+        let schedule = PracticeSchedule {
+            name: "Test".into(),
+            first: time(1000 + remaining + 600),
+            second: time(1000 + remaining + 86400),
+        };
+        assert!(
+            schedule
+                .overlay(14, 1, 900, time(1000))
+                .contains("Closes in 4d 8h 34m")
         );
     }
     #[tokio::test]

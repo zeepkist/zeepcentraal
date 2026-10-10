@@ -27,6 +27,9 @@ use retry::RetryBackoff;
 
 #[async_trait::async_trait]
 pub trait LobbyProfile: Send + Sync + 'static {
+    fn kick_on_close(&self) -> bool {
+        true
+    }
     fn name(&self) -> &str;
     fn room_name(&self) -> Option<String> {
         None
@@ -162,6 +165,10 @@ impl RoomContext {
 
     pub fn leaderboard(&self) -> PlayerLeaderboard {
         PlayerLeaderboard::new(self.local_steam_id)
+    }
+    pub async fn set_round_time(&self, seconds: f64) -> Result<()> {
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        self.transfer.lock().await.set_round_time(seconds)
     }
 }
 
