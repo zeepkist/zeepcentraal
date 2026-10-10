@@ -1,230 +1,51 @@
-# ZeepCentraal (V3)
+# ZeepCentraal
 
-A Bun workspace monorepo for ZeepCentraal services.
+Zeepkist community tools written in Rust and TypeScript.
 
-## What This Repository Is
+## Repository
 
-- A modular API backend built with Elysia and Bun.
-- A PostgreSQL-backed data layer using Drizzle ORM.
-- A background processing system using pgmq for durable fast/bulk queues and Bun.cron for recurring schedules.
+- [`crates/`](crates/): Rust services and shared libraries.
+- [`packages/web/`](packages/web/): Nuxt website.
+- [`packages/graphql/`](packages/graphql/): Shared GraphQL types and queries.
+- [`packages/`](packages/): TypeScript packages and shared code.
+- [`scripts/`](scripts/): Development and release tools.
 
-## Workspace Layout
+## Contributing
 
-- `packages/core`: shared config, auth, errors, integrations, and utility primitives.
-- `packages/database`: Drizzle schema, migrations, and data services.
-- `packages/server`: HTTP API process (Elysia routes and plugins).
-- `packages/jobs`: background worker process (Bun SQL + pgmq tasks + elected cron scheduler).
-- `packages/workshop`: Steam metadata, SteamCMD downloads, parsing, and workshop reconciliation.
+Include tests for behavior changes. Describe changes and test results in your pull request.
+Use commit prefixes such as `fix:` or `feat:`.
 
-## Prerequisites
+Use Bun's version from [`package.json`](package.json). Rust requirements are in
+[`Cargo.toml`](Cargo.toml).
 
-Before you start, install:
+Install workspace dependencies:
 
-- Bun (latest stable): https://bun.sh
-- PostgreSQL (running locally or remotely and reachable from `DATABASE_URL`)
-- Git
-- Docker (optional, only needed for container builds/runs)
-- SteamCMD (only needed when running workshop jobs outside Docker)
-
-## Quick Start
-
-### 1. Clone and install dependencies
-
-```bash
-git clone <repo-url>
-cd zeepcentraal
-bun install
+```sh
+bun install --frozen-lockfile
 ```
 
-### 2. Create environment file
+Run repository checks:
 
-macOS/Linux:
-
-```bash
-cp .env.example .env
+```sh
+bun run typecheck
+bun run test
+bun run lint
+bun run format
 ```
 
-PowerShell:
+For Rust changes, check formatting and run tests for affected crates:
 
-```powershell
-Copy-Item .env.example .env
+```sh
+cargo fmt --all -- --check
+cargo test --locked -p <crate-name>
 ```
 
-### 3. Configure required environment values
+Keep credentials, private data, and production configuration out of commits and issue reports.
 
-At minimum, set these values in `.env`:
+## License
 
-| Variable | Required | Notes |
-| --- | --- | --- |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `TRIGGER_JOB_TOKEN` | Yes | Token used for protected job trigger endpoints |
-| `JWT_SECRET` | Yes | Must be at least 32 characters |
-| `CORS_ALLOWED_ORIGINS` | No | Comma-separated website origins; defaults to `FRONTEND_URL` |
-| `TRUST_PROXY` | No | Trust forwarded client IP headers for rate limiting |
-| `DATABASE_POOL_MAX` | No | Application database partition; server defaults to `5`, jobs to `8` |
-| `JOBS_QUEUE_POOL_MAX` | No | Reserved queue database partition; defaults to `2` |
-| `DATABASE_CONNECT_TIMEOUT_MS` | No | Pool acquisition/connect timeout; defaults to `5000` |
-| `DATABASE_STATEMENT_TIMEOUT_MS` | No | PostgreSQL statement timeout; server defaults to `15000`, jobs to `300000` |
-| `DATABASE_LOCK_TIMEOUT_MS` | No | PostgreSQL lock timeout; server defaults to `3000`, jobs to `30000` |
-| `DATABASE_IDLE_TRANSACTION_TIMEOUT_MS` | No | Idle transaction timeout; server defaults to `30000`, jobs to `60000` |
+[MIT](LICENSE)
 
-The remaining values in `.env.example` are optional or have defaults, but you should configure them for your environment (Steam, Discord, Wasabi/S3, and OpenTelemetry).
-
-### 4. Apply database migrations
-
-```bash
-bun run db:migrate
-```
-
-If you changed schema and need to generate new migrations first:
-
-```bash
-bun run db:generate
-bun run db:migrate
-```
-
-### 5. Start local development processes
-
-Run API and jobs in separate terminals.
-
-Terminal 1 (API):
-
-```bash
-bun run dev:server
-```
-
-Terminal 2 (jobs):
-
-```bash
-bun run dev:jobs
-```
-
-Health check:
-
-```bash
-curl http://localhost:3000/healthz
-```
-
-Expected response:
-
-```json
-{"status":"ok"}
-```
-
-## Development Commands
-
-### Rust compiler cache
-
-Install Kache 1.0.0 and run `kache init --no-service` to configure the user Cargo wrapper.
-This machine uses a checksum-verified Windows release in `%USERPROFILE%\.cargo\bin`.
-The `Kache daemon` user scheduled task starts `kache daemon start` at login.
-
-Configure `%USERPROFILE%\.config\kache\config.toml`:
-
-```toml
-[cache]
-local_max_size = "10GiB"
-auto_gc = true
-auto_clean_orphaned_targets = true
-auto_clean_idle_targets_days = 14
-auto_clean_unused_units_days = 14
-windows_hardlink = false
-```
-
-Cargo settings disable incremental compilation and development/test debug info in this repository,
-and limit compilation to two jobs. Windows executable caching stays disabled by default.
-NTFS restores copy outputs. The store budget is soft and does not cap total Cargo target disk usage.
-The daemon cleans inactive targets after 14 days and unused units when filesystem access tracking
-supports it. Active builds keep their targets. Run `kache clean --tracked --stale 14d --dry-run`
-to preview cleanup, `kache stats` to inspect storage, and `kache doctor` to inspect setup.
-
-CI uses Kache 1.0.0 with a 2GiB store per job. Quality and glibc 2.35 release caches use separate
-keys. PR and merge-queue builds restore only; successful `develop` builds export after explicit GC.
-GitHub cache storage includes multiple snapshots; per-job store limits are not repository-wide caps.
-
-Run Rust services from PowerShell on Windows:
-
-```powershell
-$env:CARGO_INCREMENTAL = '0'
-$env:CARGO_PROFILE_DEV_DEBUG = '0'
-$env:CARGO_TARGET_DIR = Join-Path $env:TEMP 'zc-rust-target'
-cargo run --locked -p zc-server --bin zeepcentraal-server
-# In another PowerShell session:
-cargo run --locked -p zc-jobs --bin zeepcentraal-jobs
-```
-
-Rust loads local `.env` automatically. Production uses process environment. Remaining Bun commands
-serve PostGraphile and web; older Bun backend commands remain for comparison and rollback.
-
-| Command | What it does |
-| --- | --- |
-| `bun run dev:server` | Starts API in watch mode |
-| `bun run dev:jobs` | Starts jobs worker in watch mode |
-| `bun run db:studio` | Opens Drizzle Studio |
-| `bun run db:generate` | Generates Drizzle migrations |
-| `bun run db:migrate` | Applies pending migrations |
-| `bun run typecheck` | Runs TypeScript type check |
-| `bun run test` | Runs test suite |
-| `bun run lint` | Runs Biome checks |
-| `bun run lint:fix` | Applies Biome autofixes |
-| `bun run lint:staged` | Applies Biome fixes to staged files |
-| `bun run build:server` | Compiles server binary to `dist/` |
-| `bun run build:jobs` | Compiles jobs binary to `dist/` |
-
-## Releases
-
-Pushes to `develop` run Rust and retained TypeScript checks, build service binaries, preflight
-Docker images, then publish independent semantic releases. Rust images start at `3.0.0` and use
-`zc-server`, `zc-jobs`, `zc-migrate`, `zc-lobby-host`, `zc-discord`, `zc-inspector-zeep`, and
-`zc-import-zsl` tags such as `zc-server@3.0.0`. PostGraphile and web share root releases starting
-at `3.0.1` because historical root `3.0.0` is already in use. Their image names remain
-`postgraphile` and `web`. Release versions are stamped into Rust build checkouts; source Cargo
-manifests remain at baseline `3.0.0`.
-
-Release tooling lives in `scripts/release/*.mjs`. `node scripts/release/plan.mjs <output.json>`
-plans tags and images; CI alone runs `publish.mjs`. Conventional `feat`, `fix`, `perf`, and breaking
-commits drive versions for affected crates and retained TypeScript services. Shared Rust crate,
-Cargo lockfile, and migration changes release affected Rust binaries.
-
-## Git Hooks
-
-`bun install` configures native Git hooks from `.githooks` through local `core.hooksPath`. Before
-each commit the pre-commit hook applies Biome fixes to staged files, then runs the full typecheck
-and test suite. Use `git commit --no-verify` only when an emergency bypass is required.
-
-## Build and Docker
-
-Build local Rust binaries from PowerShell:
-
-```powershell
-$env:CARGO_INCREMENTAL = '0'
-$env:CARGO_TARGET_DIR = Join-Path $env:TEMP 'zc-rust-target'
-cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-inspector-zeep -p zc-import-zsl --bins
-New-Item -ItemType Directory -Force dist | Out-Null
-Copy-Item "$env:CARGO_TARGET_DIR/release/zeepcentraal-*.exe" dist/
-```
-
-CI stages Linux Rust binaries in `dist/` before Docker builds. Build images from that output:
-
-```bash
-docker build -f Dockerfile.server -t zc-server .
-docker build -f Dockerfile.jobs -t zc-jobs .
-docker build -f Dockerfile.migrate -t zc-migrate .
-docker build -f Dockerfile.zsl -t zc-import-zsl .
-```
-
-Run Docker images with environment values:
-
-```bash
-docker run --env-file .env -p 3000:3000 zc-server
-docker run --env-file .env zc-jobs
-docker run --env-file .env zc-migrate
-```
-
-Run ZSL import container:
-
-```bash
-git clone --branch data https://github.com/zeepkist/super-league.git super_league_data
-docker build -f Dockerfile.zsl -t zc-import-zsl .
-docker run --env-file .env zc-import-zsl
-```
+Level geometry, geometry extraction and the lobby-host crate are not covered by the MIT license. Permission
+to reproduce or modify them is granted only for [ZeepCentraal](https://zeepki.st). No permission is
+granted for other projects.
