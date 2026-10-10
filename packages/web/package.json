@@ -28,7 +28,7 @@
 		"@nuxtjs/i18n": "~10.6.0",
 		"@nuxtjs/seo": "~5.3.6",
 		"@pinia/nuxt": "~1.0.0",
-		"@tabler/icons-vue": "~3.48.0",
+		"@tabler/icons-vue": "~3.49.0",
 		"@takumi-rs/core": "~2.14.0",
 		"@unhead/vue": "~3.4.0",
 		"@urql/vue": "~2.1.1",
