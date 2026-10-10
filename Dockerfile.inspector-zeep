@@ -1,4 +1,4 @@
-FROM steamcmd/steamcmd:ubuntu-22@sha256:ea800a0a8468683b51f0f55b6d6e9f2dcaef2ef4a22145e66ac856b28e7deb32
+FROM steamcmd/steamcmd:ubuntu-22@sha256:c79bd591e971c0605fcb01a4c4e54d92fe0689548385cc908acc5273020742bc
 
 ARG SERVICE_VERSION=dev
 
