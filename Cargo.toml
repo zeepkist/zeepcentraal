@@ -74,7 +74,7 @@ url = "2"
 utoipa = { version = "6", features = ["axum_extras", "ulid", "uuid"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 xxhash-rust = { version = "0.8.19", features = ["xxh3"] }
-serenity = { git = "https://github.com/serenity-rs/serenity.git", rev = "86866e9a20dc441faac7b38c68a3cf78721ded1c", default-features = false, features = ["builder", "gateway", "http", "model", "rustls_backend", "transport_compression_zlib"] }
+serenity = { git = "https://github.com/serenity-rs/serenity.git", rev = "db6c7e188717c957c7051570dda60d314b6afe2d", default-features = false, features = ["builder", "gateway", "http", "model", "rustls_backend", "transport_compression_zlib"] }
 zc-core = { path = "crates/core" }
 zc-database = { path = "crates/database" }
 zc-jobs = { path = "crates/jobs" }
