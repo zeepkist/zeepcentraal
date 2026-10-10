@@ -21,6 +21,7 @@ pub mod lobby_assets;
 pub mod managed_lobby;
 pub mod practice;
 pub mod record;
+pub mod streamkist;
 pub mod super_league;
 pub mod workshop;
 pub mod zsl;

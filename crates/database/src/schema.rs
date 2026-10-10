@@ -874,3 +874,89 @@ diesel::table! {
         date_updated -> Timestamptz,
     }
 }
+
+// Streamkist tables added by Diesel migration 20261010130000.
+
+pub mod streamkist_guilds {
+    diesel::table! {
+        streamkist.guilds (guild_id) {
+            guild_id -> Text,
+            watch_limit -> Integer,
+            created_at -> Timestamptz,
+        }
+    }
+}
+
+pub mod streamkist_twitch_categories {
+    diesel::table! {
+        streamkist.twitch_categories (game_id) {
+            game_id -> Text,
+            name -> Text,
+            updated_at -> Timestamptz,
+        }
+    }
+}
+
+pub mod streamkist_channels {
+    diesel::table! {
+        streamkist.channels (id) {
+            id -> BigInt,
+            guild_id -> Text,
+            channel_id -> Text,
+            game_id -> Text,
+            created_at -> Timestamptz,
+            deleted_at -> Nullable<Timestamptz>,
+        }
+    }
+}
+
+pub mod streamkist_streams {
+    diesel::table! {
+        streamkist.streams (id) {
+            id -> BigInt,
+            watch_id -> BigInt,
+            stream_id -> Text,
+            user_id -> Text,
+            message_id -> Nullable<Text>,
+            snapshot -> Jsonb,
+            peak_viewers -> Integer,
+            is_live -> Bool,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+        }
+    }
+}
+
+pub mod streamkist_command_usage {
+    diesel::table! {
+        streamkist.command_usage (command_name) {
+            command_name -> Text,
+            usage_count -> BigInt,
+            last_used -> Timestamptz,
+        }
+    }
+}
+
+pub mod streamkist_command_log {
+    diesel::table! {
+        streamkist.command_log (id) {
+            id -> BigInt,
+            command_name -> Text,
+            guild_id -> Nullable<Text>,
+            channel_id -> Nullable<Text>,
+            execution_time -> BigInt,
+            options -> Jsonb,
+            created_at -> Timestamptz,
+        }
+    }
+}
+
+pub mod streamkist_poll_lease {
+    diesel::table! {
+        streamkist.poll_lease (id) {
+            id -> Bool,
+            owner -> Text,
+            expires_at -> Timestamptz,
+        }
+    }
+}

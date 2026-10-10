@@ -34,6 +34,12 @@ const rustTargets = {
 		binary: 'zeepcentraal-discord',
 		dockerfile: 'Dockerfile.discord',
 	},
+	'zc-streamkist': {
+		crate: 'streamkist',
+		dependencies: ['streamkist', 'database', 'core', 'telemetry'],
+		binary: 'zeepcentraal-streamkist',
+		dockerfile: 'Dockerfile.streamkist',
+	},
 	'zc-inspector-zeep': {
 		crate: 'inspector-zeep',
 		dependencies: ['inspector-zeep', 'workshop', 'database', 'core', 'telemetry'],

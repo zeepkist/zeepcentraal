@@ -1,0 +1,15 @@
+FROM gcr.io/distroless/cc-debian12
+
+ARG SERVICE_VERSION=dev
+
+LABEL org.opencontainers.image.description="Streamkist Twitch stream notifications."
+
+WORKDIR /app
+
+COPY --chmod=755 dist/zeepcentraal-streamkist zeepcentraal-streamkist
+
+ENV NODE_ENV=production
+ENV OPENTELEMETRY_SERVICE_NAME=zeepcentraal-streamkist
+ENV OPENTELEMETRY_SERVICE_VERSION=$SERVICE_VERSION
+
+CMD ["./zeepcentraal-streamkist"]

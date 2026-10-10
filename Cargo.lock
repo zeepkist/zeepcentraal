@@ -5098,6 +5098,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "zc-streamkist"
+version = "3.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "jiff",
+ "reqwest 0.13.5",
+ "serde",
+ "serde_json",
+ "serenity",
+ "tokio",
+ "tracing",
+ "uuid",
+ "zc-core",
+ "zc-database",
+ "zc-telemetry",
+]
+
+[[package]]
 name = "zc-telemetry"
 version = "0.1.0"
 dependencies = [

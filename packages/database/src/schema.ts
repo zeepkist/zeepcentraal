@@ -29,6 +29,101 @@ import { DEFAULT_VOTE_RATING } from './config'
 
 export const zcPrivate = pgSchema('zc_private')
 
+// Streamkist schema is managed only by Diesel migration 20261010130000.
+export const streamkist = pgSchema('streamkist')
+export const streamkistGuilds = streamkist.table(
+	'guilds',
+	{
+		guildId: text('guild_id').primaryKey(),
+		watchLimit: integer('watch_limit').notNull().default(1),
+		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [check('guilds_watch_limit_check', sql`${table.watchLimit} IN (1, 3, 5)`)],
+)
+export const streamkistCategories = streamkist.table('twitch_categories', {
+	gameId: text('game_id').primaryKey(),
+	name: text('name').notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+})
+export const streamkistChannels = streamkist.table(
+	'channels',
+	{
+		id: bigint('id', { mode: 'bigint' }).primaryKey().generatedByDefaultAsIdentity(),
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => streamkistGuilds.guildId),
+		channelId: text('channel_id').notNull(),
+		gameId: text('game_id')
+			.notNull()
+			.references(() => streamkistCategories.gameId),
+		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
+	},
+	(table) => [
+		uniqueIndex('streamkist_channels_active')
+			.on(table.guildId, table.channelId, table.gameId)
+			.where(sql`${table.deletedAt} IS NULL`),
+		index('streamkist_channels_guild').on(table.guildId).where(sql`${table.deletedAt} IS NULL`),
+	],
+)
+export const streamkistStreams = streamkist.table(
+	'streams',
+	{
+		id: bigint('id', { mode: 'bigint' }).primaryKey().generatedByDefaultAsIdentity(),
+		watchId: bigint('watch_id', { mode: 'bigint' })
+			.notNull()
+			.references(() => streamkistChannels.id),
+		streamId: text('stream_id').notNull(),
+		userId: text('user_id').notNull(),
+		messageId: text('message_id').unique(),
+		snapshot: jsonb('snapshot').notNull(),
+		peakViewers: integer('peak_viewers').notNull().default(0),
+		isLive: boolean('is_live').notNull().default(true),
+		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		unique('streams_watch_id_stream_id_key').on(table.watchId, table.streamId),
+		check('streams_peak_viewers_check', sql`${table.peakViewers} >= 0`),
+		index('streamkist_streams_live').on(table.watchId).where(sql`${table.isLive}`),
+	],
+)
+export const streamkistCommandUsage = streamkist.table('command_usage', {
+	commandName: text('command_name').primaryKey(),
+	usageCount: bigint('usage_count', { mode: 'bigint' }).notNull().default(0n),
+	lastUsed: timestamp('last_used', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+})
+export const streamkistCommandLog = streamkist.table('command_log', {
+	id: bigint('id', { mode: 'bigint' }).primaryKey().generatedByDefaultAsIdentity(),
+	commandName: text('command_name').notNull(),
+	guildId: text('guild_id'),
+	channelId: text('channel_id'),
+	executionTime: bigint('execution_time', { mode: 'bigint' }).notNull(),
+	options: jsonb('options').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+		.notNull()
+		.defaultNow(),
+})
+export const streamkistPollLease = streamkist.table(
+	'poll_lease',
+	{
+		id: boolean('id').primaryKey().default(true),
+		owner: text('owner').notNull(),
+		expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
+	},
+	(table) => [check('poll_lease_id_check', sql`${table.id}`)],
+)
+
 export const zslProvisionalLevelResult = zcPrivate.table(
 	'zsl_provisional_level_result',
 	{

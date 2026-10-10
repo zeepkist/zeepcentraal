@@ -90,13 +90,13 @@ jobs:
       - name: Verify Rust build glibc baseline
         run: test "$(getconf GNU_LIBC_VERSION)" = 'glibc 2.35'
       - name: Build Rust service binaries
-        run: cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-inspector-zeep -p zc-import-zsl --bins
+        run: cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-streamkist -p zc-inspector-zeep -p zc-import-zsl --bins
       - name: Stage Rust binaries
         run: |
           mkdir -p dist
-          cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,inspector-zeep,import-zsl} dist/
+          cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl} dist/
       - name: Check Rust runtime ABI
-        run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-{server,jobs,migrate,lobby-host,discord,inspector-zeep,import-zsl}
+        run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl}
       - uses: actions/upload-artifact@v7
         with:
           name: rust-binaries
@@ -132,6 +132,7 @@ jobs:
           - { name: zc-migrate, file: Dockerfile.migrate, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-migrate, super_league: false }
           - { name: zc-lobby-host, file: Dockerfile.lobby-host, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-lobby-host, super_league: false }
           - { name: zc-discord, file: Dockerfile.discord, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-discord, super_league: false }
+          - { name: zc-streamkist, file: Dockerfile.streamkist, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-streamkist, super_league: false }
           - { name: zc-inspector-zeep, file: Dockerfile.inspector-zeep, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-inspector-zeep, super_league: false }
           - { name: zc-import-zsl, file: Dockerfile.zsl, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-import-zsl, super_league: true }
           - { name: postgraphile, file: Dockerfile.postgraphile, artifact: package-output-postgraphile, path: dist, expected: dist/zeepcentraal-postgraphile, super_league: false }

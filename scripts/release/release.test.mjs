@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { enforceCacheBudget } from './cache-budget.mjs'
 import { checkVersionInfo, highestRequiredGlibc } from './check-rust-abi.mjs'
 import { analyzeCommits } from './impact.mjs'
 import { publishPlan } from './publish.mjs'
@@ -18,6 +19,60 @@ function git(cwd, ...args) {
 	assert.equal(result.status, 0, result.stderr)
 	return result.stdout.trim()
 }
+
+test('cache budget survives shutdown timeout but rejects failed or incomplete GC', () => {
+	const report = {
+		success: true,
+		skipped: false,
+		disk: { store_bytes: 100, store_limit_bytes: 200 },
+	}
+	const invocations = []
+	const runner = (result) => (command, args, options) => {
+		assert.equal(command, 'kache')
+		invocations.push(args)
+		if (args[0] === 'daemon') {
+			assert.equal(options.timeout, 30_000)
+			return { status: 1, stderr: 'error: daemon connection timed out' }
+		}
+		assert.deepEqual(args, ['gc', '--json'])
+		assert.equal(options.timeout, 120_000)
+		return result
+	}
+	enforceCacheBudget(runner({ status: 0, stdout: JSON.stringify(report) }))
+	assert.deepEqual(invocations, [
+		['daemon', 'stop'],
+		['gc', '--json'],
+	])
+	assert.throws(() => enforceCacheBudget(runner({ status: 1 })), /Kache GC failed/)
+	assert.throws(() => enforceCacheBudget(runner({ status: null })), /Kache GC failed/)
+	assert.throws(
+		() =>
+			enforceCacheBudget(
+				runner({ status: 0, stdout: JSON.stringify({ ...report, skipped: true }) }),
+			),
+		/GC did not complete/,
+	)
+	assert.throws(
+		() =>
+			enforceCacheBudget(
+				runner({
+					status: 0,
+					stdout: JSON.stringify({
+						...report,
+						disk: { store_bytes: 201, store_limit_bytes: 200 },
+					}),
+				}),
+			),
+		/store exceeds budget/,
+	)
+	assert.throws(
+		() =>
+			enforceCacheBudget(
+				runner({ status: 0, stdout: JSON.stringify({ ...report, disk: {} }) }),
+			),
+		/invalid store budget/,
+	)
+})
 
 test('publisher keeps planned tags and notes after develop advances, and retries safely', {
 	timeout: 30_000,
@@ -119,7 +174,11 @@ test('publisher keeps planned tags and notes after develop advances, and retries
 })
 
 test('release paths separate retained TypeScript services from Rust services', () => {
-	assert.equal(Object.keys(rustTargets).length, 7)
+	assert.equal(Object.keys(rustTargets).length, 8)
+	assert.equal(affects('zc-streamkist', 'crates/streamkist/src/runtime.rs'), true)
+	assert.equal(affects('zc-streamkist', 'crates/database/src/services/streamkist.rs'), true)
+	assert.equal(affects('zc-streamkist', 'Dockerfile.streamkist'), true)
+	assert.equal(affects('zc-streamkist', 'crates/discord/src/runtime.rs'), false)
 	assert.equal(affects('ts', 'packages/web/app/app.vue'), true)
 	assert.equal(affects('ts', 'packages/postgraphile/src/index.ts'), true)
 	assert.equal(affects('ts', 'packages/server/src/server.ts'), false)
@@ -378,5 +437,14 @@ test('Rust release stamping changes only planned crate and lock entry', () => {
 		)
 	} finally {
 		rmSync(root, { recursive: true, force: true })
+	}
+})
+
+test('Streamkist binary reaches both workflows and Docker context', () => {
+	assert.match(readFileSync('.dockerignore', 'utf8'), /^!dist\/zeepcentraal-streamkist$/m)
+	for (const workflow of ['pr-validate.yml', 'deploy.yml']) {
+		const content = readFileSync(`.github/workflows/${workflow}`, 'utf8')
+		assert.ok(content.includes('-p zc-streamkist'))
+		assert.ok(content.includes('lobby-host,discord,streamkist,inspector-zeep'))
 	}
 })

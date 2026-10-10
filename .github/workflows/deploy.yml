@@ -42,16 +42,15 @@ jobs:
       - run: cargo test --manifest-path vendor/steam-client-rs/Cargo.toml --frozen --lib ticket_request
 
       - name: Enforce compiler cache budget
+        id: cache-budget
+        continue-on-error: true
         if: ${{ success() && github.ref == 'refs/heads/develop' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         env:
           # Export only the bounded store namespace, even while target files retain blobs.
           KACHE_GC_EVICT_SHARED: '1'
-        run: |
-          # Run GC locally so the export-only override applies to this sweep.
-          kache daemon stop
-          kache gc --json
+        run: node scripts/release/cache-budget.mjs
       - name: Save successful compiler cache
-        if: ${{ success() && github.ref == 'refs/heads/develop' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        if: ${{ success() && steps.cache-budget.outcome == 'success' && github.ref == 'refs/heads/develop' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         uses: actions/cache/save@v6
         with:
           path: ${{ steps.kache.outputs.path }}
@@ -131,13 +130,13 @@ jobs:
         run: node scripts/release/stamp.mjs "$RUNNER_TEMP/release-plan.json"
       - run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
       - name: Build Rust service binaries
-        run: cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-inspector-zeep -p zc-import-zsl --bins
+        run: cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-streamkist -p zc-inspector-zeep -p zc-import-zsl --bins
       - name: Stage Rust binaries
         run: |
           mkdir -p dist
-          cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,inspector-zeep,import-zsl} dist/
+          cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl} dist/
       - name: Check Rust runtime ABI
-        run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-{server,jobs,migrate,lobby-host,discord,inspector-zeep,import-zsl}
+        run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl}
       - uses: actions/upload-artifact@v7
         with:
           name: rust-binaries
@@ -145,16 +144,15 @@ jobs:
           if-no-files-found: error
 
       - name: Enforce compiler cache budget
+        id: cache-budget
+        continue-on-error: true
         if: ${{ success() && github.ref == 'refs/heads/develop' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         env:
           # Export only the bounded store namespace, even while target files retain blobs.
           KACHE_GC_EVICT_SHARED: '1'
-        run: |
-          # Run GC locally so the export-only override applies to this sweep.
-          kache daemon stop
-          kache gc --json
+        run: node scripts/release/cache-budget.mjs
       - name: Save successful compiler cache
-        if: ${{ success() && github.ref == 'refs/heads/develop' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        if: ${{ success() && steps.cache-budget.outcome == 'success' && github.ref == 'refs/heads/develop' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         uses: actions/cache/save@v6
         with:
           path: ${{ steps.kache.outputs.path }}

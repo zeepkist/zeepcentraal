@@ -12,6 +12,7 @@ members = [
     "crates/lobby-host",
     "crates/migrate",
     "crates/server",
+    "crates/streamkist",
     "crates/telemetry",
     "crates/test-support",
     "crates/workshop",

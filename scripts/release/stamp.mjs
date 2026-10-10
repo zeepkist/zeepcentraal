@@ -6,6 +6,7 @@ const crates = {
 	'zc-migrate': 'migrate',
 	'zc-lobby-host': 'lobby-host',
 	'zc-discord': 'discord',
+	'zc-streamkist': 'streamkist',
 	'zc-inspector-zeep': 'inspector-zeep',
 	'zc-import-zsl': 'import-zsl',
 }
