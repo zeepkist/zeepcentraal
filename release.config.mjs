@@ -1,9 +1,8 @@
+import { rustTargets } from './scripts/release/targets.mjs'
+
 const target = process.env.RELEASE_TARGET || 'ts'
 
-if (
-	target !== 'ts' &&
-	!/^zc-(server|jobs|migrate|lobby-host|discord|inspector-zeep|import-zsl)$/.test(target)
-) {
+if (target !== 'ts' && !Object.hasOwn(rustTargets, target)) {
 	throw new Error(`Unknown release target: ${target}`)
 }
 

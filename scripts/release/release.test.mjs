@@ -11,6 +11,33 @@ import { analyzeCommits, generateNotes } from './impact.mjs'
 import { publishPlan } from './publish.mjs'
 import { affects, rustTargets } from './targets.mjs'
 
+test('release config accepts every registered target and rejects unknown targets', () => {
+	const configUrl = new URL('../../release.config.mjs', import.meta.url).href
+	const load = (target) =>
+		spawnSync(
+			process.execPath,
+			[
+				'--input-type=module',
+				'-e',
+				`const { default: config } = await import(${JSON.stringify(configUrl)}); console.log(JSON.stringify(config))`,
+			],
+			{ env: { ...process.env, RELEASE_TARGET: target }, encoding: 'utf8' },
+		)
+	for (const target of ['ts', ...Object.keys(rustTargets)]) {
+		const result = load(target)
+		assert.equal(result.status, 0, result.stderr)
+		const config = JSON.parse(result.stdout)
+		assert.deepEqual(config.branches, ['develop'])
+		// biome-ignore lint/suspicious/noTemplateCurlyInString: semantic-release syntax
+		assert.equal(config.tagFormat, target === 'ts' ? '${version}' : `${target}@\${version}`)
+	}
+	for (const target of ['zc-unknown', 'constructor', '__proto__']) {
+		const result = load(target)
+		assert.notEqual(result.status, 0)
+		assert.ok(result.stderr.includes(`Unknown release target: ${target}`))
+	}
+})
+
 function git(cwd, ...args) {
 	const result = spawnSync('git', ['-c', 'commit.gpgsign=false', ...args], {
 		cwd,
