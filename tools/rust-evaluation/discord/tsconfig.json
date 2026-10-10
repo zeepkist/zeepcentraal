@@ -1,9 +1,0 @@
-{
-	"extends": "../../../tsconfig.json",
-	"compilerOptions": {
-		"types": ["bun"],
-		"paths": { "discord.js": ["../../../packages/discord/node_modules/discord.js"] }
-	},
-	"include": ["*.ts"],
-	"exclude": []
-}

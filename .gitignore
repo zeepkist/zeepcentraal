@@ -1,7 +1,6 @@
 node_modules/
 /target/
 /.bun-cache/
-/artifacts/rust-evaluation/
 /.data/
 benchmarks/
 .env
@@ -19,7 +18,7 @@ packages/web/test-results/
 packages/web/.data/block-meshes/
 zeepcentraal-web/
 
-# Python evaluation caches at any depth.
+# Python caches at any depth.
 __pycache__/
 
 /.local/ghost-validation/

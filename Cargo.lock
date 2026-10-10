@@ -4936,38 +4936,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zc-discord-evaluation"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "reqwest 0.13.5",
- "serde",
- "serde_json",
- "serenity",
- "tokio",
- "zc-core",
-]
-
-[[package]]
-name = "zc-http-benchmark"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "diesel",
- "diesel-async",
- "scalar_api_reference",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "utoipa",
- "zc-core",
-]
-
-[[package]]
 name = "zc-import-zsl"
 version = "3.0.0"
 dependencies = [
