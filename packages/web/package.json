@@ -45,7 +45,7 @@
 		"meshoptimizer": "~1.3.0",
 		"nuxt": "~4.5.0",
 		"nuxt-charts": "~2.2.0",
-		"nuxt-og-image": "~6.9.1",
+		"nuxt-og-image": "~6.10.0",
 		"pinia": "~4.0.0",
 		"sanitize-html": "~2.17.7",
 		"sortablejs": "~1.15.6",
