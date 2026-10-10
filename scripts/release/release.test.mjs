@@ -7,6 +7,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { checkVersionInfo, highestRequiredGlibc } from './check-rust-abi.mjs'
 import { analyzeCommits } from './impact.mjs'
+import { publishPlan } from './publish.mjs'
 import { affects, rustTargets } from './targets.mjs'
 
 function git(cwd, ...args) {
@@ -17,6 +18,105 @@ function git(cwd, ...args) {
 	assert.equal(result.status, 0, result.stderr)
 	return result.stdout.trim()
 }
+
+test('publisher keeps planned tags and notes after develop advances, and retries safely', {
+	timeout: 30_000,
+}, () => {
+	const root = mkdtempSync(join(tmpdir(), 'zc-release-publish-'))
+	const cwd = join(root, 'checkout')
+	const remote = join(root, 'origin.git')
+	try {
+		git(root, 'init', '--bare', '-q', remote)
+		git(root, 'init', '-q', cwd)
+		git(cwd, 'config', 'user.name', 'Release Test')
+		git(cwd, 'config', 'user.email', 'release@example.test')
+		git(cwd, 'remote', 'add', 'origin', remote)
+		writeFileSync(join(cwd, 'source.txt'), 'planned\n')
+		git(cwd, 'add', 'source.txt')
+		git(cwd, 'commit', '-qm', 'feat: planned release')
+		const sha = git(cwd, 'rev-parse', 'HEAD')
+		git(cwd, 'push', 'origin', 'HEAD:refs/heads/develop')
+		writeFileSync(join(cwd, 'source.txt'), 'newer\n')
+		git(cwd, 'commit', '-qam', 'fix: newer change')
+		const newer = git(cwd, 'rev-parse', 'HEAD')
+		git(cwd, 'push', 'origin', 'HEAD:refs/heads/develop')
+		git(cwd, 'checkout', '--detach', sha)
+		const releases = [
+			{
+				target: 'ts',
+				version: '3.14.0',
+				tag: '3.14.0',
+				notes: '## Planned notes\n\nOriginal content.\n',
+			},
+			{
+				target: 'zc-server',
+				version: '3.0.1',
+				tag: 'zc-server@3.0.1',
+				notes: 'Server fix.\n',
+			},
+		]
+		const plan = { sha, releases }
+		const published = new Set()
+		const created = []
+		let failServerOnce = true
+		const run = (command, args, options) => {
+			assert.equal(command, 'gh')
+			if (args[1] === 'view') return { status: published.has(args[2]) ? 0 : 1 }
+			assert.equal(args[1], 'create')
+			assert.deepEqual(args.slice(3), ['--target', sha, '--notes-file', '-'])
+			if (args[2] === 'zc-server@3.0.1' && failServerOnce) {
+				failServerOnce = false
+				return { status: 1 }
+			}
+			created.push({ tag: args[2], notes: options.input })
+			published.add(args[2])
+			return { status: 0 }
+		}
+		assert.throws(
+			() => publishPlan(plan, { cwd, run }),
+			/GitHub release creation failed: zc-server@3\.0\.1/,
+		)
+		assert.equal(created.length, 1)
+		publishPlan(plan, { cwd, run })
+		assert.deepEqual(
+			created,
+			releases.map(({ tag, notes }) => ({ tag, notes })),
+		)
+		for (const release of releases) {
+			assert.equal(git(remote, 'rev-list', '-n', '1', release.tag), sha)
+		}
+		assert.equal(git(remote, 'rev-parse', 'refs/heads/develop'), newer)
+		publishPlan(plan, { cwd, run })
+		assert.equal(created.length, 2)
+
+		// Validate every tag before creating any tag or GitHub release.
+		git(cwd, 'tag', 'zc-jobs@3.0.1', newer)
+		const conflict = {
+			sha,
+			releases: [
+				{ target: 'ts', version: '3.15.0', tag: '3.15.0', notes: 'Unpublished.' },
+				{ target: 'zc-jobs', version: '3.0.1', tag: 'zc-jobs@3.0.1', notes: 'Conflict.' },
+			],
+		}
+		assert.throws(
+			() => publishPlan(conflict, { cwd, run }),
+			/Tag zc-jobs@3\.0\.1 points elsewhere/,
+		)
+		assert.equal(git(cwd, 'tag', '--list', '3.15.0'), '')
+		assert.equal(created.length, 2)
+		assert.throws(() => publishPlan({ ...plan, sha: newer }, { cwd, run }), /SHA differs/)
+		assert.throws(
+			() =>
+				publishPlan(
+					{ sha, releases: [{ ...releases[0], notes: undefined }] },
+					{ cwd, run },
+				),
+			/Release plan has no notes for ts/,
+		)
+	} finally {
+		rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+	}
+})
 
 test('release paths separate retained TypeScript services from Rust services', () => {
 	assert.equal(Object.keys(rustTargets).length, 7)
