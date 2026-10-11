@@ -1,4 +1,4 @@
-use super::messages::escape_text;
+use super::messages::{escape_text, server_message, server_message_body};
 use zc_core::practice::PracticeBundle;
 use zc_database::services::zsl_tournament::ZslEvent;
 
@@ -95,11 +95,14 @@ pub fn progress(bundle: &PracticeBundle, current: usize) -> String {
                 "BREAK".into()
             };
             if index == current {
-                format!("<b><size=150%><color=#00ffff>[{label}]</color></size></b>")
+                format!(
+                    "<b>{}</b>",
+                    server_message_body(&format!("<color=#00ffff>[{label}]</color>"))
+                )
             } else if index < current {
-                format!("<size=95%><color=#00AA00>{label}</color></size>")
+                server_message_body(&format!("<color=#00AA00>{label}</color>"))
             } else {
-                format!("<size=95%><color=#CCCCCCCC>{label}</color></size>")
+                server_message_body(&format!("<color=#CCCCCCCC>{label}</color>"))
             }
         })
         .collect::<Vec<_>>()
@@ -121,14 +124,14 @@ pub fn overlay(
         "<color=#ffd21c>Zeepkist</color> {}",
         gradient("Super League", ["#4ad9ff", "#9833ff"])
     );
-    format!(
-        "/servermessage white {} <align=left><size=20%><b><size=250%>{header}</size></b><br>Season {}: {}<br>State<pos=7em>: <b>{}</b><br>Authortime<pos=7em>: <b><color=#d400b4>{author_time:.3}s</color></b><br>{}</size></align>",
-        duration + 120,
+    let body = format!(
+        "<align=left><b><size=250%>{header}</size></b><br>Season {}: {}<br>State<pos=7em>: <b>{}</b><br>Authortime<pos=7em>: <b><color=#d400b4>{author_time:.3}s</color></b><br>{}</align>",
         event.season,
         escape_text(&event.name),
         escape_text(status),
         progress(bundle, current)
-    )
+    );
+    server_message("white", duration + 120, &body)
 }
 pub fn thanks(event: &ZslEvent, published: bool) -> String {
     let url = format!(

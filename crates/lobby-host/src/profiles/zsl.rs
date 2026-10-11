@@ -1,7 +1,7 @@
 //! One connection owns practice, warm-up, tournament, and retirement.
 use super::{
     assets::{PracticeAssets, SubmissionAsset, SubmissionPlaylist, pinned_asset},
-    messages::{HOSTNAME, escape_text},
+    messages::{HOSTNAME, escape_text, server_message},
     zsl_messages,
 };
 use crate::{
@@ -998,7 +998,22 @@ impl ZslSession {
                 .asset
                 .as_ref()
                 .map_or(0, |asset| asset.playlist.levels.len());
-            self.context.chat().command(&format!("/servermessage yellow {} <size=160%><b>ZSL {} Practice</b>\nLevel {} of {entries}\nTournament handover in {}d {}h {}m</size>",self.shared.practice.as_ref().unwrap().round_time_seconds+120,escape_text(&event.name),state.index+1,remaining/86400,remaining%86400/3600,remaining%3600/60)).await
+            let body = format!(
+                "<b>ZSL {} Practice</b>\nLevel {} of {entries}\nTournament handover in {}d {}h {}m",
+                escape_text(&event.name),
+                state.index + 1,
+                remaining / 86400,
+                remaining % 86400 / 3600,
+                remaining % 3600 / 60
+            );
+            self.context
+                .chat()
+                .command(&server_message(
+                    "yellow",
+                    self.shared.practice.as_ref().unwrap().round_time_seconds + 120,
+                    &body,
+                ))
+                .await
         } else if let Some(bundle) = &state.pinned {
             let status = if state.phase == Phase::Warmup {
                 zsl_messages::warmup_countdown(

@@ -1209,7 +1209,7 @@ mod tests {
     fn submission_overlay_matches_bun_message() {
         assert_eq!(
             submission_message(2, 900),
-            "/servermessage yellow 900 <b>ZSL Level Contest Submissions</b>\n2 valid submissions"
+            "/servermessage yellow 900 <size=150%><b>ZSL Level Contest Submissions</b>\n2 valid submissions</size>"
         );
     }
 

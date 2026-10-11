@@ -7,6 +7,17 @@ use zc_database::services::lobby_assets::{TournamentLobbyPlayerContext, Tourname
 
 pub const HOSTNAME: &str = "<color=#f9cc15>HOST</color>";
 
+pub fn server_message_body(body: &str) -> String {
+    format!("<size=150%>{body}</size>")
+}
+
+pub fn server_message(color: &str, duration: u64, body: &str) -> String {
+    format!(
+        "/servermessage {color} {duration} {}",
+        server_message_body(body)
+    )
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StandingResult {
     pub rank: i32,
@@ -104,10 +115,11 @@ fn tournament_message_at(
             .collect::<Vec<_>>()
             .join("\n"),
     };
-    Ok(format!(
-        "/servermessage yellow {round_time} <size=160%><b>{}</b>\n{entries} Entries {remaining}\n{leaderboard}</size>",
+    let body = format!(
+        "<b>{}</b>\n{entries} Entries {remaining}\n{leaderboard}",
         escape_text(&period)
-    ))
+    );
+    Ok(server_message("yellow", round_time, &body))
 }
 
 pub fn tournament_remaining(end_at: &str, now: Timestamp) -> Result<String> {
@@ -201,8 +213,10 @@ fn improvement(value: &str, improved: bool) -> String {
 }
 
 pub fn submission_message(entries: usize, round_time: u64) -> String {
-    format!(
-        "/servermessage yellow {round_time} <b>ZSL Level Contest Submissions</b>\n{entries} valid submissions"
+    server_message(
+        "yellow",
+        round_time,
+        &format!("<b>ZSL Level Contest Submissions</b>\n{entries} valid submissions"),
     )
 }
 
@@ -227,12 +241,13 @@ pub fn scheduled_submission_message(
         .unwrap_or(submission_end)
         .replace('T', " ");
     let end = vote_end.get(..16).unwrap_or(vote_end).replace('T', " ");
-    Ok(format!(
-        "/servermessage yellow {round_time} <b>ZSL Level Contest</b>\n\
+    let body = format!(
+        "<b>ZSL Level Contest</b>\n\
         {entries} valid submissions · {period} {}\nZSL voting: {start} to {end} UTC\n\
         Vote: https://zeepki.st/super-league/vote",
         remaining.trim_start_matches("Ends in ")
-    ))
+    );
+    Ok(server_message("yellow", round_time, &body))
 }
 
 pub fn format_time(seconds: f32) -> String {
@@ -480,7 +495,7 @@ mod tests {
         )?;
         assert_eq!(
             command,
-            "/servermessage yellow 900 <size=160%><b>Track of the Week: 2026 Week 33</b>\n42 Entries Ends in 6d 3h 38m\n<color=#FFD700>1. &lt;Winner&gt; — 01:01.234</color></size>"
+            "/servermessage yellow 900 <size=150%><b>Track of the Week: 2026 Week 33</b>\n42 Entries Ends in 6d 3h 38m\n<color=#FFD700>1. &lt;Winner&gt; — 01:01.234</color></size>"
         );
         Ok(())
     }

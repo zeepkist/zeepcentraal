@@ -1,4 +1,4 @@
-use super::messages::escape_text;
+use super::messages::{escape_text, server_message};
 use anyhow::{Context, Result, ensure};
 use jiff::Timestamp;
 use std::sync::{
@@ -59,13 +59,14 @@ impl PracticeSchedule {
         now: Timestamp,
     ) -> String {
         let remaining = (self.close_at(now).as_second() - now.as_second()).max(0);
-        format!(
-            "/servermessage yellow {duration} <size=160%><b>{}</b>\nLevel {position} of {entries}\nCloses in {}d {}h {}m</size>",
+        let body = format!(
+            "<b>{}</b>\nLevel {position} of {entries}\nCloses in {}d {}h {}m",
             escape_text(&self.title()),
             remaining / 86400,
             remaining % 86400 / 3600,
             remaining % 3600 / 60,
-        )
+        );
+        server_message("yellow", duration, &body)
     }
     pub fn welcome(&self, player: &str, duration: u64, now: Timestamp) -> String {
         let remaining = (self.close_at(now).as_second() - now.as_second()).max(0);
@@ -218,7 +219,7 @@ mod tests {
     fn practice_messages_and_duration() {
         let schedule = schedule(30000);
         let overlay = schedule.overlay(14, 3, 900, time(9000));
-        assert!(overlay.starts_with("/servermessage yellow 900"));
+        assert!(overlay.starts_with("/servermessage yellow 900 <size=150%>"));
         assert!(overlay.contains("Level 3 of 14"));
         assert!(overlay.contains("Mixed &lt;Surfaces&gt;"));
         assert!(
