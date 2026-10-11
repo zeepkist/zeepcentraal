@@ -68,6 +68,13 @@ struct SavedState {
     announcements: HashSet<String>,
     pending: Vec<PendingFinish>,
 }
+
+impl SavedState {
+    fn room_retired(&self, slot: usize, has_practice: bool) -> bool {
+        self.retired[1]
+            || (!has_practice && self.retired[slot] && (self.completed[slot] || self.failed[slot]))
+    }
+}
 struct Shared {
     tournament: ManagedRoomConfig,
     practice: Option<ManagedRoomConfig>,
@@ -286,7 +293,7 @@ impl LobbyProfile for ZslProfile {
                 .await?;
             return Ok(None);
         }
-        if saved.retired[slot] && (saved.completed[slot] || saved.failed[slot]) {
+        if saved.room_retired(slot, shared.practice.is_some()) {
             return Ok(None);
         }
         if shared.practice.is_none() && now < event.first - 1200 {
@@ -1408,6 +1415,24 @@ mod tests {
         assert!(state.pending.is_empty());
         assert!(!state.completed[1]);
         assert!(!state.retired[1]);
+    }
+
+    #[test]
+    fn first_slot_retirement_allows_paired_practice_but_final_retirement_stays_terminal() {
+        for failed in [false, true] {
+            let mut state = SavedState {
+                completed: [!failed, false],
+                failed: [failed, false],
+                retired: [true, false],
+                ..Default::default()
+            };
+            assert!(!state.room_retired(0, true));
+            assert!(state.room_retired(0, false));
+            assert!(!state.room_retired(1, true));
+            state.retired[1] = true;
+            assert!(state.room_retired(0, true));
+            assert!(state.room_retired(1, true));
+        }
     }
 }
 

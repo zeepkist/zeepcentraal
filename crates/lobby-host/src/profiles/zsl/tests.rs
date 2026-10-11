@@ -633,10 +633,19 @@ async fn recover_phase(
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
     *target.lock().await = previous;
     let recovered = restarted.shared.saved.lock().await.clone();
-    assert_eq!(recovered.phase, snapshot.phase);
+    assert_eq!(
+        recovered.phase,
+        if snapshot.phase == Phase::Retired {
+            Phase::Practice
+        } else {
+            snapshot.phase
+        }
+    );
     assert_eq!(recovered.index, snapshot.index);
     assert_eq!(recovered.progress, snapshot.progress);
-    assert_eq!(recovered.deadline, snapshot.deadline);
+    if snapshot.phase != Phase::Retired {
+        assert_eq!(recovered.deadline, snapshot.deadline);
+    }
     assert_eq!(context.players().await.len(), 1);
     assert_eq!(
         shared
@@ -977,7 +986,17 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     assert!(shared.saved.lock().await.completed[0]);
     assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
     assert!(profile.close_at().is_none());
+    // A previous standalone tournament controller retired Timeslot 1. Reloading
+    // a paired config must reopen practice without replaying that tournament.
+    {
+        let mut saved = shared.saved.lock().await;
+        saved.retired[0] = true;
+        saved.phase = Phase::Retired;
+    }
     recover_phase(&profile, &context, &target).await?;
+    assert!(shared.saved.lock().await.completed[0]);
+    assert!(!shared.saved.lock().await.completed[1]);
+    assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
     assert_eq!(
         database.managed_lobby_join_id("practice").await?.as_deref(),
         Some("unchanged-join-id")
