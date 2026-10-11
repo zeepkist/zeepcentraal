@@ -726,29 +726,19 @@ impl ZslSession {
             *phase == Phase::Practice || jiff::Timestamp::now().as_second() < *deadline,
             TransitionExpired
         );
-        if *phase == Phase::Tournament {
-            self.context
-                .update_playlist(
-                    asset.playlist.clone(),
-                    *index as i32,
-                    (index + 1).min(asset.playlist.levels.len() - 1) as i32,
-                )
-                .await?;
+        if *phase == Phase::Practice {
+            self.context.set_round_time(*seconds).await?;
+        } else {
+            self.context.set_level_deadline(level, *deadline).await?;
         }
-        if let Some(remote_now) = self.context.remote_now() {
-            let remaining = if *phase == Phase::Practice {
-                *seconds
-            } else {
-                (deadline - jiff::Timestamp::now().as_second()).max(1) as f64
-            };
-            self.context
-                .send(zc_core::zeepnet::change_lobby_game_properties_packet(
-                    &level.level,
-                    remaining,
-                    remote_now,
-                )?)
-                .await?;
-        }
+        let next = if *phase == Phase::Tournament {
+            (index + 1).min(asset.playlist.levels.len() - 1)
+        } else {
+            (index + 1) % asset.playlist.levels.len()
+        };
+        self.context
+            .update_playlist(asset.playlist.clone(), *index as i32, next as i32)
+            .await?;
         Ok(())
     }
     async fn tick(&self) -> Result<()> {

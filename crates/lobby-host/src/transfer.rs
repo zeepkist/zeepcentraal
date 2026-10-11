@@ -101,6 +101,15 @@ impl LevelTransfer {
     pub fn timeout(&self) -> Duration {
         self.timeout
     }
+
+    pub(crate) fn level_loaded_at(&self, level: &PreparedLevel) -> Option<f64> {
+        self.timing
+            .as_ref()
+            .filter(|(uid, workshop_id, _)| {
+                *uid == level.level.uid && *workshop_id == level.level.workshop_id
+            })
+            .map(|(_, _, loaded_at)| *loaded_at)
+    }
     pub fn set_round_time(&mut self, seconds: f64) -> Result<()> {
         ensure!(seconds.is_finite() && seconds > 0.0, "Invalid round time");
         self.round_time = seconds;

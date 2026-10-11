@@ -238,6 +238,23 @@ impl RoomContext {
         anyhow::ensure!(self.is_host(), "Room host authority unavailable");
         self.transfer.lock().await.set_round_time(seconds)
     }
+
+    pub(crate) async fn set_level_deadline(
+        &self,
+        level: &PreparedLevel,
+        deadline: i64,
+    ) -> Result<()> {
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        let mut transfer = self.transfer.lock().await;
+        let elapsed = self
+            .remote_now()
+            .zip(transfer.level_loaded_at(level))
+            .map_or(0.0, |(now, loaded_at)| (now - loaded_at).max(0.0));
+        let remaining = (deadline - jiff::Timestamp::now().as_second()).max(1) as f64;
+        // Playlist NewTime is total round duration, measured from the confirmed
+        // server load timestamp. Never send a server game-properties broadcast.
+        transfer.set_round_time(remaining + elapsed)
+    }
 }
 
 pub struct ManagedLobbyHost {

@@ -103,7 +103,8 @@ fn offline_session(sender: Arc<dyn crate::chat::PacketSender>) -> Result<Arc<Zsl
         minimum_points: 1,
         best_of: 4,
     });
-    let context = RoomContext::for_test(sender, 1)?;
+    let mut context = RoomContext::for_test(sender, 1)?;
+    context.test_remote_time(1000.0);
     Ok(Arc::new(ZslSession {
         shared: profile.shared,
         board: Mutex::new(context.leaderboard()),
@@ -220,15 +221,21 @@ async fn wait_for_skip(packets: &mut tokio::sync::mpsc::UnboundedReceiver<Vec<u8
 #[tokio::test]
 async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload() -> Result<()> {
     for (previous, phase, cached) in [
+        (Phase::Retired, Phase::Practice, false),
         (Phase::Practice, Phase::Warmup, false),
         (Phase::Warmup, Phase::Tournament, false),
         (Phase::Practice, Phase::Tournament, false),
         (Phase::Warmup, Phase::Tournament, true),
     ] {
         let (signal, mut packets) = tokio::sync::mpsc::unbounded_channel();
-        let session = offline_session(Arc::new(FnPacketSender(move |packet| {
+        let session = offline_session(Arc::new(FnPacketSender(move |packet: Vec<u8>| {
             let signal = signal.clone();
             async move {
+                ensure!(
+                    u16::from_le_bytes([packet[0], packet[1]])
+                        != zc_core::zeepnet::CHANGE_LOBBY_GAME_PROPERTIES,
+                    "Server-only GameProperties packet sent by host"
+                );
                 signal.send(packet)?;
                 Ok(())
             }
@@ -257,6 +264,7 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
             board.reconcile()?;
         }
         let transition = prepared_transition(&session, phase).await?;
+        let deadline = transition.deadline;
         let level = transition.level.clone();
         let task = tokio::spawn({
             let session = session.clone();
@@ -388,6 +396,24 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
         assert_eq!(session.live.lock().await.active, Some((phase, 0, 0)));
         assert_eq!(session.shared.saved.lock().await.pending.len(), 1);
         assert_eq!(session.context.players().await.len(), 1);
+        let mut timing = None;
+        while let Ok(packet) = packets.try_recv() {
+            if u16::from_le_bytes([packet[0], packet[1]]) == zc_core::zeepnet::CHANGE_LOBBY_PLAYLIST
+                && let GameHostPacket::Playlist(playlist) =
+                    zc_core::zeepnet::parse_game_host_packet(&packet)?
+            {
+                timing = Some(playlist.round_time);
+            }
+        }
+        let round_time = timing.context("Missing host playlist timing update")?;
+        if phase == Phase::Practice {
+            assert_eq!(round_time, 300.0);
+        } else {
+            // Load timestamp 10 and server clock 1000: 990 seconds already elapsed.
+            // Timer's end, not time since activation began, matches fixed deadline.
+            let expected = (deadline - jiff::Timestamp::now().as_second()) as f64 + 990.0;
+            assert!((round_time - expected).abs() < 2.0);
+        }
     }
     Ok(())
 }
