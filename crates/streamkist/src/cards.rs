@@ -76,9 +76,6 @@ impl Snapshot {
                 "Visit channel"
             })]),
         ));
-        children.push(CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new("-# Streamkist"),
-        ));
         vec![CreateComponent::Container(
             CreateContainer::new(children).accent_color(if live { 0x9146ff } else { 0x586570 }),
         )]
@@ -95,7 +92,7 @@ pub fn mentions() -> CreateAllowedMentions<'static> {
 pub fn notice(title: &str, text: &str, error: bool) -> Vec<CreateComponent<'static>> {
     vec![CreateComponent::Container(
         CreateContainer::new(vec![CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new(format!("## {title}\n{text}\n-# Streamkist")),
+            CreateTextDisplay::new(format!("## {title}\n{text}")),
         )])
         .accent_color(if error { 0xed4245 } else { 0x9146ff }),
     )]
@@ -176,7 +173,7 @@ pub(crate) mod tests {
             "https://www.twitch.tv/fixture"
         );
         assert_eq!(children[1]["components"][0]["label"], "Watch stream");
-        assert_eq!(children[2]["content"], "-# Streamkist");
+        assert_eq!(children.as_array().unwrap().len(), 2);
         assert_eq!(
             serde_json::to_value(mentions()).unwrap()["parse"],
             serde_json::json!([])
@@ -198,8 +195,17 @@ pub(crate) mod tests {
                     .contains("Streaming Zeepkist on Twitch")
             );
             assert_eq!(children[1]["components"][0]["label"], "Watch stream");
-            assert_eq!(children[2]["content"], "-# Streamkist");
+            assert_eq!(children.as_array().unwrap().len(), 2);
         }
+    }
+    #[test]
+    fn notices_have_no_brand_footer() {
+        let value =
+            serde_json::to_value(notice("Channel added", "Now tracking Zeepkist", false)).unwrap();
+        assert_eq!(
+            value[0]["components"][0]["content"],
+            "## Channel added\nNow tracking Zeepkist"
+        );
     }
     #[test]
     fn finished_card_freezes_duration_and_peak() {
@@ -215,6 +221,6 @@ pub(crate) mod tests {
             value[0]["components"][1]["components"][0]["label"],
             "Visit channel"
         );
-        assert_eq!(value[0]["components"][2]["content"], "-# Streamkist");
+        assert_eq!(value[0]["components"].as_array().unwrap().len(), 2);
     }
 }
