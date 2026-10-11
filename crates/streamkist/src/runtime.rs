@@ -20,7 +20,7 @@ use std::{
 };
 use zc_database::{
     Database,
-    services::streamkist::{AddWatch, Watch},
+    services::streamkist::{AddWatch, Watch, WatchSettings},
 };
 
 struct Handler {
@@ -178,11 +178,44 @@ impl Handler {
                         .await?;
                     return Ok(());
                 };
-                let (title, text, error) = match self.database.streamkist_add_watch(&guild.to_string(), &channel.to_string(), &game.id, &game.name).await? {
+                let mut settings = WatchSettings::default();
+                for option in &command.data.options {
+                    match (option.name.as_str(), &option.value) {
+                        ("minimum-viewers", CommandDataOptionValue::Integer(value)) => {
+                            let value =
+                                i32::try_from(*value).context("Minimum viewers is too large")?;
+                            ensure!(value >= 0, "Minimum viewers cannot be negative");
+                            settings.minimum_viewers = Some(value);
+                        }
+                        ("allow-category-switches", CommandDataOptionValue::Boolean(value)) => {
+                            settings.allow_category_switches = Some(*value)
+                        }
+                        ("minimum-viewers" | "allow-category-switches", _) => {
+                            anyhow::bail!("Invalid watch option type")
+                        }
+                        _ => {}
+                    }
+                }
+                let (title, mut text, error) = match self.database.streamkist_add_watch(&guild.to_string(), &channel.to_string(), &game.id, &game.name, settings).await? {
                     AddWatch::Added => ("Channel added",format!("Now tracking **{}** Twitch streams in <#{channel}>",cards::escape(&game.name)),false),
-                    AddWatch::Duplicate => ("Channel already exists",format!("Channel already exists for category \"{}\" in <#{channel}>",cards::escape(&game.name)),true),
+                    AddWatch::Updated => ("Channel updated",format!("Now tracking **{}** Twitch streams in <#{channel}>",cards::escape(&game.name)),false),
                     AddWatch::LimitReached => ("Channel limit reached","Your server has reached its watch limit. Free servers support 1 watch; paid plans with 3 or 5 watches are planned.".into(),true),
                 };
+                if !error
+                    && let Some(watch) = self
+                        .database
+                        .streamkist_watches(Some(&guild.to_string()))
+                        .await?
+                        .iter()
+                        .find(|watch| {
+                            watch.channel_id == channel.to_string() && watch.game_id == game.id
+                        })
+                {
+                    text.push_str(&format!(
+                        "\nMinimum viewers: **{}** · Allow category switches: **{}**",
+                        watch.minimum_viewers, watch.allow_category_switches
+                    ));
+                }
                 command
                     .edit_response(&context.http, edit(cards::notice(title, &text, error)))
                     .await?;
@@ -396,9 +429,11 @@ fn watch_list(
         .iter()
         .map(|watch| {
             format!(
-                "**{}** · <#{}>",
+                "**{}** · <#{}>\nMinimum viewers: **{}** · Allow category switches: **{}**",
                 cards::escape(&watch.game_name),
-                watch.channel_id
+                watch.channel_id,
+                watch.minimum_viewers,
+                watch.allow_category_switches
             )
         })
         .collect::<Vec<_>>()

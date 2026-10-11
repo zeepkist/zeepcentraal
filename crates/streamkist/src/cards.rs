@@ -15,6 +15,8 @@ pub struct Snapshot {
     pub peak_viewers: i32,
     pub ended_at: Option<i64>,
     pub thumbnail_revision: i64,
+    #[serde(default)]
+    pub category_stopped: bool,
 }
 
 impl Snapshot {
@@ -24,11 +26,17 @@ impl Snapshot {
             stream,
             ended_at: None,
             thumbnail_revision: now / 300,
+            category_stopped: false,
         }
     }
     pub fn finish(mut self, now: i64) -> Self {
-        self.ended_at = Some(now);
+        self.ended_at.get_or_insert(now);
         self.stream.viewer_count = 0;
+        self
+    }
+    pub fn pause_category(mut self, now: i64) -> Self {
+        self = self.finish(now);
+        self.category_stopped = true;
         self
     }
     pub fn components(&self) -> Vec<CreateComponent<'static>> {
@@ -39,7 +47,13 @@ impl Snapshot {
             .parse::<jiff::Timestamp>()
             .map(|t| t.as_second())
             .unwrap_or(0);
-        let status = if live { "Streaming" } else { "Streamed" };
+        let status = if live {
+            "Streaming"
+        } else if self.category_stopped {
+            "Stopped streaming"
+        } else {
+            "Streamed"
+        };
         let timing = match self.ended_at {
             Some(end) => format!(
                 "**Time live** {} · Finished <t:{end}:R>",
@@ -197,6 +211,29 @@ pub(crate) mod tests {
             assert_eq!(children[1]["components"][0]["label"], "Watch stream");
             assert_eq!(children.as_array().unwrap().len(), 2);
         }
+    }
+    #[test]
+    fn old_snapshots_deserialize_and_category_stop_has_no_thumbnail() {
+        let original = Snapshot::live(stream(), 20, 1791637200);
+        let mut encoded = serde_json::to_value(&original).unwrap();
+        encoded.as_object_mut().unwrap().remove("category_stopped");
+        assert_eq!(
+            serde_json::from_value::<Snapshot>(encoded).unwrap(),
+            original
+        );
+        let stopped = original.pause_category(1791637200);
+        let value = serde_json::to_value(stopped.components()).unwrap();
+        assert!(
+            value[0]["components"][0]["content"]
+                .as_str()
+                .unwrap()
+                .starts_with("-# Stopped streaming Zeepkist on Twitch")
+        );
+        assert_eq!(value[0]["components"][0]["type"], 10);
+        assert_eq!(
+            value[0]["components"][1]["components"][0]["label"],
+            "Visit channel"
+        );
     }
     #[test]
     fn notices_have_no_brand_footer() {

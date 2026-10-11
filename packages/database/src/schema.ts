@@ -29,7 +29,7 @@ import { DEFAULT_VOTE_RATING } from './config'
 
 export const zcPrivate = pgSchema('zc_private')
 
-// Streamkist schema is managed only by Diesel migration 20261010130000.
+// Streamkist schema is managed only by Diesel migrations.
 export const streamkist = pgSchema('streamkist')
 export const streamkistGuilds = streamkist.table(
 	'guilds',
@@ -60,12 +60,15 @@ export const streamkistChannels = streamkist.table(
 		gameId: text('game_id')
 			.notNull()
 			.references(() => streamkistCategories.gameId),
+		minimumViewers: integer('minimum_viewers').notNull().default(0),
+		allowCategorySwitches: boolean('allow_category_switches').notNull().default(false),
 		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),
 		deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
 	},
 	(table) => [
+		check('channels_minimum_viewers_check', sql`${table.minimumViewers} >= 0`),
 		uniqueIndex('streamkist_channels_active')
 			.on(table.guildId, table.channelId, table.gameId)
 			.where(sql`${table.deletedAt} IS NULL`),
@@ -85,6 +88,16 @@ export const streamkistStreams = streamkist.table(
 		snapshot: jsonb('snapshot').notNull(),
 		peakViewers: integer('peak_viewers').notNull().default(0),
 		isLive: boolean('is_live').notNull().default(true),
+		guildId: text('guild_id')
+			.notNull()
+			.references(() => streamkistGuilds.guildId),
+		channelId: text('channel_id').notNull(),
+		policyWatchId: bigint('policy_watch_id', { mode: 'bigint' })
+			.notNull()
+			.references(() => streamkistChannels.id),
+		canonical: boolean('canonical').notNull().default(true),
+		trackingState: text('tracking_state').notNull().default('active'),
+		activationPending: boolean('activation_pending').notNull().default(false),
 		createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),
@@ -96,6 +109,16 @@ export const streamkistStreams = streamkist.table(
 		unique('streams_watch_id_stream_id_key').on(table.watchId, table.streamId),
 		check('streams_peak_viewers_check', sql`${table.peakViewers} >= 0`),
 		index('streamkist_streams_live').on(table.watchId).where(sql`${table.isLive}`),
+		uniqueIndex('streamkist_streams_canonical')
+			.on(table.guildId, table.channelId, table.streamId)
+			.where(sql`${table.canonical}`),
+		index('streamkist_streams_tracking')
+			.on(table.guildId, table.trackingState)
+			.where(sql`${table.trackingState} <> 'finished' OR ${table.activationPending}`),
+		check(
+			'streams_tracking_state_check',
+			sql`${table.trackingState} IN ('active', 'category_paused', 'limit_paused', 'finished')`,
+		),
 	],
 )
 export const streamkistCommandUsage = streamkist.table('command_usage', {

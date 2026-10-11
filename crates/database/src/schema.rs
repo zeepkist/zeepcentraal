@@ -906,6 +906,8 @@ pub mod streamkist_channels {
             game_id -> Text,
             created_at -> Timestamptz,
             deleted_at -> Nullable<Timestamptz>,
+            minimum_viewers -> Int4,
+            allow_category_switches -> Bool,
         }
     }
 }
@@ -923,6 +925,12 @@ pub mod streamkist_streams {
             is_live -> Bool,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
+            guild_id -> Text,
+            channel_id -> Text,
+            policy_watch_id -> Int8,
+            canonical -> Bool,
+            tracking_state -> Text,
+            activation_pending -> Bool,
         }
     }
 }

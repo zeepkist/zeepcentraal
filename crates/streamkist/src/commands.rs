@@ -26,7 +26,21 @@ pub fn definitions() -> Vec<CreateCommand<'static>> {
                 )
                 .required(true)
                 .channel_types(vec![ChannelType::Text, ChannelType::News]),
-            ),
+            )
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "minimum-viewers",
+                    "Minimum viewers before first announcement (default: 0)",
+                )
+                .min_int_value(0)
+                .max_int_value(i64::from(i32::MAX)),
+            )
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::Boolean,
+                "allow-category-switches",
+                "Keep tracking outside watched categories (default: false)",
+            )),
         CreateCommand::new("show-stream-channels")
             .description("Show and delete active Twitch stream channels")
             .default_member_permissions(Permissions::MANAGE_GUILD),
@@ -51,6 +65,16 @@ mod tests {
         assert_eq!(commands[1]["options"][0]["autocomplete"], true);
         assert_eq!(commands[1]["options"][1]["type"], 7);
         assert_eq!(commands[1]["default_member_permissions"], "32");
+        let minimum = &commands[1]["options"][2];
+        assert_eq!(minimum["name"], "minimum-viewers");
+        assert_eq!(minimum["type"], 4);
+        assert_eq!(minimum["min_value"], 0);
+        assert_eq!(minimum["max_value"], i32::MAX);
+        assert_ne!(minimum["required"], true);
+        let switches = &commands[1]["options"][3];
+        assert_eq!(switches["name"], "allow-category-switches");
+        assert_eq!(switches["type"], 5);
+        assert_ne!(switches["required"], true);
     }
     #[test]
     fn requires_server_moderation_permission() {

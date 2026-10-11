@@ -2,7 +2,7 @@ use crate::Database;
 use anyhow::Result;
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{BigInt, Bool, Integer, Jsonb, Nullable, Text},
+    sql_types::{Array, BigInt, Bool, Integer, Jsonb, Nullable, Text},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde_json::Value;
@@ -19,6 +19,12 @@ pub struct Watch {
     pub game_id: String,
     #[diesel(sql_type = Text)]
     pub game_name: String,
+    #[diesel(sql_type = Integer)]
+    pub minimum_viewers: i32,
+    #[diesel(sql_type = Bool)]
+    pub allow_category_switches: bool,
+    #[diesel(sql_type = Integer)]
+    pub stream_limit: i32,
 }
 
 #[derive(Clone, Debug, QueryableByName)]
@@ -37,13 +43,31 @@ pub struct StreamMessage {
     pub peak_viewers: i32,
     #[diesel(sql_type = Bool)]
     pub is_live: bool,
+    #[diesel(sql_type = Text)]
+    pub guild_id: String,
+    #[diesel(sql_type = Text)]
+    pub channel_id: String,
+    #[diesel(sql_type = BigInt)]
+    pub policy_watch_id: i64,
+    #[diesel(sql_type = Bool)]
+    pub canonical: bool,
+    #[diesel(sql_type = Text)]
+    pub tracking_state: String,
+    #[diesel(sql_type = Bool)]
+    pub activation_pending: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum AddWatch {
     Added,
-    Duplicate,
+    Updated,
     LimitReached,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct WatchSettings {
+    pub minimum_viewers: Option<i32>,
+    pub allow_category_switches: Option<bool>,
 }
 
 #[derive(QueryableByName)]
@@ -57,6 +81,8 @@ struct Count {
     count: i64,
 }
 
+const MESSAGE_COLUMNS: &str = "id,stream_id,user_id,message_id,snapshot,peak_viewers,is_live,guild_id,channel_id,policy_watch_id,canonical,tracking_state,activation_pending";
+
 impl Database {
     pub async fn streamkist_add_watch(
         &self,
@@ -64,7 +90,16 @@ impl Database {
         channel: &str,
         game: &str,
         name: &str,
+        settings: WatchSettings,
     ) -> Result<AddWatch> {
+        let WatchSettings {
+            minimum_viewers,
+            allow_category_switches,
+        } = settings;
+        anyhow::ensure!(
+            minimum_viewers.is_none_or(|value| value >= 0),
+            "Minimum viewers cannot be negative"
+        );
         let mut connection = self.connection().await?;
         connection.transaction::<_, anyhow::Error, _>(async move |connection| {
             sql_query("INSERT INTO streamkist.guilds(guild_id) VALUES($1) ON CONFLICT DO NOTHING")
@@ -73,21 +108,27 @@ impl Database {
                 .bind::<Text,_>(guild).get_result(connection).await?;
             let duplicate: Count = sql_query("SELECT count(*) FROM streamkist.channels WHERE guild_id=$1 AND channel_id=$2 AND game_id=$3 AND deleted_at IS NULL")
                 .bind::<Text,_>(guild).bind::<Text,_>(channel).bind::<Text,_>(game).get_result(connection).await?;
-            if duplicate.count > 0 { return Ok(AddWatch::Duplicate); }
+            if duplicate.count > 0 {
+                sql_query("UPDATE streamkist.channels SET minimum_viewers=COALESCE($4,minimum_viewers),allow_category_switches=COALESCE($5,allow_category_switches) WHERE guild_id=$1 AND channel_id=$2 AND game_id=$3 AND deleted_at IS NULL")
+                    .bind::<Text,_>(guild).bind::<Text,_>(channel).bind::<Text,_>(game)
+                    .bind::<Nullable<Integer>,_>(minimum_viewers).bind::<Nullable<Bool>,_>(allow_category_switches).execute(connection).await?;
+                return Ok(AddWatch::Updated);
+            }
             let count: Count = sql_query("SELECT count(*) FROM streamkist.channels WHERE guild_id=$1 AND deleted_at IS NULL")
                 .bind::<Text,_>(guild).get_result(connection).await?;
             if count.count >= i64::from(limit.watch_limit) { return Ok(AddWatch::LimitReached); }
             sql_query("INSERT INTO streamkist.twitch_categories(game_id,name) VALUES($1,$2) ON CONFLICT(game_id) DO UPDATE SET name=EXCLUDED.name,updated_at=now()")
                 .bind::<Text,_>(game).bind::<Text,_>(name).execute(connection).await?;
-            sql_query("INSERT INTO streamkist.channels(guild_id,channel_id,game_id) VALUES($1,$2,$3)")
-                .bind::<Text,_>(guild).bind::<Text,_>(channel).bind::<Text,_>(game).execute(connection).await?;
+            sql_query("INSERT INTO streamkist.channels(guild_id,channel_id,game_id,minimum_viewers,allow_category_switches) VALUES($1,$2,$3,$4,$5)")
+                .bind::<Text,_>(guild).bind::<Text,_>(channel).bind::<Text,_>(game)
+                .bind::<Integer,_>(minimum_viewers.unwrap_or(0)).bind::<Bool,_>(allow_category_switches.unwrap_or(false)).execute(connection).await?;
             Ok(AddWatch::Added)
         }).await
     }
 
     pub async fn streamkist_watches(&self, guild: Option<&str>) -> Result<Vec<Watch>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT c.id,c.guild_id,c.channel_id,c.game_id,t.name AS game_name FROM streamkist.channels c JOIN streamkist.twitch_categories t USING(game_id) WHERE c.deleted_at IS NULL AND ($1::text IS NULL OR c.guild_id=$1) ORDER BY c.id")
+        Ok(sql_query("SELECT c.id,c.guild_id,c.channel_id,c.game_id,t.name AS game_name,c.minimum_viewers,c.allow_category_switches,CASE WHEN g.watch_limit=1 THEN 15 ELSE 30 END AS stream_limit FROM streamkist.channels c JOIN streamkist.twitch_categories t USING(game_id) JOIN streamkist.guilds g USING(guild_id) WHERE c.deleted_at IS NULL AND ($1::text IS NULL OR c.guild_id=$1) ORDER BY c.id")
             .bind::<Nullable<Text>,_>(guild).load(&mut connection).await?)
     }
 
@@ -102,37 +143,68 @@ impl Database {
         }).await
     }
 
-    pub async fn streamkist_messages(&self, watch_id: i64) -> Result<Vec<StreamMessage>> {
+    pub async fn streamkist_messages(&self) -> Result<Vec<StreamMessage>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT id,stream_id,user_id,message_id,snapshot,peak_viewers,is_live FROM streamkist.streams WHERE watch_id=$1 AND is_live ORDER BY id")
-            .bind::<BigInt,_>(watch_id).load(&mut connection).await?)
+        Ok(sql_query(format!("SELECT {MESSAGE_COLUMNS} FROM streamkist.streams s WHERE (tracking_state<>'finished' OR activation_pending) AND EXISTS(SELECT 1 FROM streamkist.channels c WHERE c.guild_id=s.guild_id AND c.channel_id=s.channel_id AND c.deleted_at IS NULL) ORDER BY id"))
+            .load(&mut connection).await?)
+    }
+
+    pub async fn streamkist_terminal_messages(
+        &self,
+        streams: &[String],
+    ) -> Result<Vec<StreamMessage>> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(format!("SELECT {MESSAGE_COLUMNS} FROM streamkist.streams WHERE canonical AND tracking_state='finished' AND stream_id=ANY($1)"))
+            .bind::<Array<Text>,_>(streams).load(&mut connection).await?)
     }
 
     pub async fn streamkist_reserve_message(
         &self,
-        watch_id: i64,
+        watch: &Watch,
         stream: &str,
         user: &str,
         snapshot: &Value,
         viewers: i32,
     ) -> Result<Option<StreamMessage>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("INSERT INTO streamkist.streams(watch_id,stream_id,user_id,snapshot,peak_viewers) SELECT $1,$2,$3,$4,$5 WHERE EXISTS(SELECT 1 FROM streamkist.channels WHERE id=$1 AND deleted_at IS NULL) ON CONFLICT(watch_id,stream_id) DO UPDATE SET stream_id=EXCLUDED.stream_id WHERE streamkist.streams.is_live RETURNING id,stream_id,user_id,message_id,snapshot,peak_viewers,is_live")
-            .bind::<BigInt,_>(watch_id).bind::<Text,_>(stream).bind::<Text,_>(user).bind::<Jsonb,_>(snapshot).bind::<Integer,_>(viewers)
-            .get_result(&mut connection).await.optional()?)
+        connection.transaction::<_, anyhow::Error, _>(async move |connection| {
+            let limit: GuildLimit = sql_query("SELECT watch_limit FROM streamkist.guilds WHERE guild_id=$1 FOR UPDATE")
+                .bind::<Text,_>(&watch.guild_id).get_result(connection).await?;
+            let current: Vec<Watch> = sql_query("SELECT c.id,c.guild_id,c.channel_id,c.game_id,t.name AS game_name,c.minimum_viewers,c.allow_category_switches,0::integer AS stream_limit FROM streamkist.channels c JOIN streamkist.twitch_categories t USING(game_id) WHERE c.id=$1 AND c.deleted_at IS NULL")
+                .bind::<BigInt,_>(watch.id).load(connection).await?;
+            let Some(current) = current.as_slice().first() else { return Ok(None); };
+            if current.guild_id != watch.guild_id || current.channel_id != watch.channel_id { return Ok(None); }
+            let existing: Option<StreamMessage> = sql_query(format!("SELECT {MESSAGE_COLUMNS} FROM streamkist.streams WHERE guild_id=$1 AND channel_id=$2 AND stream_id=$3 AND canonical FOR UPDATE"))
+                .bind::<Text,_>(&watch.guild_id).bind::<Text,_>(&watch.channel_id).bind::<Text,_>(stream).get_result(connection).await.optional()?;
+            if existing.as_ref().is_some_and(|row| row.tracking_state=="finished") { return Ok(None); }
+            if existing.as_ref().is_none_or(|row| row.message_id.is_none()) && viewers < current.minimum_viewers { return Ok(None); }
+            let occupied: Count = sql_query("SELECT count(DISTINCT stream_id) FROM streamkist.streams s WHERE guild_id=$1 AND (tracking_state='active' OR activation_pending) AND EXISTS(SELECT 1 FROM streamkist.channels c WHERE c.guild_id=s.guild_id AND c.channel_id=s.channel_id AND c.deleted_at IS NULL)")
+                .bind::<Text,_>(&watch.guild_id).get_result(connection).await?;
+            let same: Count = sql_query("SELECT count(*) FROM streamkist.streams s WHERE guild_id=$1 AND stream_id=$2 AND (tracking_state='active' OR activation_pending) AND EXISTS(SELECT 1 FROM streamkist.channels c WHERE c.guild_id=s.guild_id AND c.channel_id=s.channel_id AND c.deleted_at IS NULL)")
+                .bind::<Text,_>(&watch.guild_id).bind::<Text,_>(stream).get_result(connection).await?;
+            if same.count==0 && occupied.count>=if limit.watch_limit==1 {15} else {30} {return Ok(None);}
+            let row = match existing {
+                Some(row) => sql_query(format!("UPDATE streamkist.streams SET activation_pending=true WHERE id=$1 RETURNING {MESSAGE_COLUMNS}"))
+                    .bind::<BigInt,_>(row.id).get_result(connection).await?,
+                None => sql_query(format!("INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot,peak_viewers,is_live,tracking_state,activation_pending) VALUES($1,$1,$2,$3,$4,$5,$6,$7,false,'limit_paused',true) RETURNING {MESSAGE_COLUMNS}"))
+                    .bind::<BigInt,_>(watch.id).bind::<Text,_>(&watch.guild_id).bind::<Text,_>(&watch.channel_id).bind::<Text,_>(stream).bind::<Text,_>(user).bind::<Jsonb,_>(snapshot).bind::<Integer,_>(viewers).get_result(connection).await?,
+            };
+            Ok(Some(row))
+        }).await
     }
 
     pub async fn streamkist_save_message(
         &self,
         id: i64,
-        message: &str,
+        message: Option<&str>,
         snapshot: &Value,
         peak: i32,
-        live: bool,
+        state: &str,
+        policy_watch_id: i64,
     ) -> Result<()> {
         let mut connection = self.connection().await?;
-        sql_query("UPDATE streamkist.streams SET message_id=$2,snapshot=$3,peak_viewers=GREATEST(peak_viewers,$4),is_live=$5,updated_at=now() WHERE id=$1")
-            .bind::<BigInt,_>(id).bind::<Text,_>(message).bind::<Jsonb,_>(snapshot).bind::<Integer,_>(peak).bind::<Bool,_>(live)
+        sql_query("UPDATE streamkist.streams SET message_id=$2,snapshot=$3,peak_viewers=GREATEST(peak_viewers,$4),is_live=($5='active'),tracking_state=$5,policy_watch_id=$6,activation_pending=false,updated_at=now() WHERE id=$1")
+            .bind::<BigInt,_>(id).bind::<Nullable<Text>,_>(message).bind::<Jsonb,_>(snapshot).bind::<Integer,_>(peak).bind::<Text,_>(state).bind::<BigInt,_>(policy_watch_id)
             .execute(&mut connection).await?;
         Ok(())
     }
