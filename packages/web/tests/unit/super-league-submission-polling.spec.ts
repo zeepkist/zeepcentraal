@@ -20,6 +20,14 @@ function setup(fetcher: ReturnType<typeof vi.fn>) {
 	vi.stubGlobal('useSessionStore', () => session)
 	vi.stubGlobal('$fetch', fetcher)
 	vi.stubGlobal('computed', computed)
+	const refreshOverview = vi.fn().mockResolvedValue(undefined)
+	vi.stubGlobal('useSuperLeagueSubmissionOverview', () => ({
+		data: ref(null),
+		pending: ref(false),
+		error: ref(null),
+		initial: Promise.resolve(),
+		refresh: refreshOverview,
+	}))
 	vi.stubGlobal('useSuperLeagueRead', () => {
 		const data = shallowRef(null)
 		return {
@@ -48,6 +56,7 @@ function setup(fetcher: ReturnType<typeof vi.fn>) {
 	return {
 		session,
 		flow,
+		refreshOverview,
 		stop: () => {
 			dispose()
 			scope.stop()
@@ -65,7 +74,7 @@ describe('submission polling lifecycle', () => {
 			.mockResolvedValueOnce({ contest: { roundId: 50 }, submission: queued })
 			.mockResolvedValueOnce({ ...queued, status: 'retrying' })
 			.mockResolvedValueOnce({ ...queued, status: 'complete', validation: { valid: true } })
-		const { flow, stop } = setup(fetcher)
+		const { flow, stop, refreshOverview } = setup(fetcher)
 		await flow.refresh()
 		await vi.advanceTimersByTimeAsync(2000)
 		expect(flow.submission.value?.status).toBe('retrying')
@@ -73,6 +82,7 @@ describe('submission polling lifecycle', () => {
 		expect(flow.submission.value?.status).toBe('complete')
 		await vi.advanceTimersByTimeAsync(10000)
 		expect(fetcher).toHaveBeenCalledTimes(3)
+		expect(refreshOverview).toHaveBeenCalledTimes(2)
 		stop()
 	})
 	it('clears shared submission and stops polling on logout', async () => {

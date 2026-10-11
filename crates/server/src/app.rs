@@ -40,6 +40,10 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(crate::super_league::get_vote).post(crate::super_league::post_vote),
         )
         .route(
+            "/super-league/submission-overview",
+            get(crate::super_league::get_submission_overview),
+        )
+        .route(
             "/super-league/submit-level",
             get(crate::super_league::get_submission)
                 .post(crate::super_league::post_submission)

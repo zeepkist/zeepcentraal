@@ -194,6 +194,27 @@ pub async fn get_contests(
         ),
     ))
 }
+#[utoipa::path(get, path="/super-league/submission-overview", params(VoteQuery), responses((status=200, body=zc_database::services::submissions::SubmissionOverview),(status=400)))]
+pub async fn get_submission_overview(
+    State(state): State<Arc<AppState>>,
+    query: Result<Query<VoteQuery>, QueryRejection>,
+) -> ApiResult<impl axum::response::IntoResponse> {
+    let Query(query) =
+        query.map_err(|_| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
+    if query.round_id.is_some_and(|id| id <= 0) {
+        return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
+    }
+    let overview = state
+        .database
+        .submission_overview(query.round_id)
+        .await
+        .map_err(Problem::internal)?;
+    Ok((
+        [(axum::http::header::CACHE_CONTROL, "no-store")],
+        Json(overview),
+    ))
+}
+
 #[utoipa::path(get,path="/super-league/submit-level",params(ContestQuery),responses((status=200),(status=401)))]
 pub async fn get_submission(
     State(state): State<Arc<AppState>>,

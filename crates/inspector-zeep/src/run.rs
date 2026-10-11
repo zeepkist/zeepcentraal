@@ -60,6 +60,24 @@ pub async fn run_inspector(
                 {
                     tracing::warn!(%error,"Validation feed unavailable");
                 }
+                if !options.dry_run {
+                    let rounds = config
+                        .contests
+                        .iter()
+                        .map(|contest| contest.round_id)
+                        .collect::<Vec<_>>();
+                    if let Err(error) = crate::playlist_publication::deliver_playlist_notifications(
+                        runtime.database,
+                        runtime.discord,
+                        runtime.storage,
+                        &config.notification_channel_id,
+                        &rounds,
+                    )
+                    .await
+                    {
+                        tracing::warn!(%error,"Playlist feed unavailable");
+                    }
+                }
                 ensure!(!failed, "Inspector has deferred work");
                 Ok(())
             })

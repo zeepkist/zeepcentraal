@@ -130,6 +130,14 @@ struct Feed {
     uncertain_create: bool,
     rate_limit_edit: bool,
 }
+impl Feed {
+    fn validation_count(&self) -> usize {
+        self.messages
+            .values()
+            .filter(|message| message.to_string().contains("zc-submission:"))
+            .count()
+    }
+}
 async fn discord_mock() -> Result<(DiscordRest, Arc<Mutex<Feed>>, tokio::task::JoinHandle<()>)> {
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let rest = DiscordRest::with_root(
@@ -152,16 +160,18 @@ async fn discord_mock() -> Result<(DiscordRest, Arc<Mutex<Feed>>, tokio::task::J
     let length=header.lines().find_map(|line|line.to_ascii_lowercase().strip_prefix("content-length:").and_then(|n|n.trim().parse::<usize>().ok())).unwrap_or(0);
     while data.len()<header_end+length {let mut buf=[0;4096];let n=socket.read(&mut buf).await?;ensure!(n>0,"mock body incomplete");data.extend_from_slice(&buf[..n]);}
     let first=header.lines().next().context("mock request line")?;let mut fields=first.split_whitespace();let method=fields.next().unwrap_or("");let path=fields.next().unwrap_or("");
-    let payload=if length==0{Value::Null}else{serde_json::from_slice(&data[header_end..header_end+length])?};
+    let payload=if length==0{Value::Null}else if header.to_ascii_lowercase().contains("multipart/form-data") {
+      let text=String::from_utf8_lossy(&data[header_end..header_end+length]);let start=text.find("{\"").context("multipart JSON missing")?;let end=text[start..].find("\r\n--").context("multipart boundary missing")?+start;serde_json::from_str(&text[start..end])?
+    } else {serde_json::from_slice(&data[header_end..header_end+length])?};
     let mut feed=state.lock().await;feed.requests.push((format!("{method} {path}"),payload.clone()));
     let (status,response)=if path=="/users/@me" {(200,json!({"id":"bot"}))}
     else if method=="POST" {
-     let id=format!("m{}",feed.messages.len()+1);let mut message=payload;message["id"]=id.clone().into();message["author"]=json!({"id":"bot","bot":true});feed.messages.insert(id,message.clone());
+     let id=format!("m{}",feed.requests.len()+1);let mut message=payload;message["id"]=id.clone().into();message["author"]=json!({"id":"bot","bot":true});feed.messages.insert(id,message.clone());
      if feed.uncertain_create {feed.uncertain_create=false;(500,json!({"error":"uncertain"}))}else{(200,message)}
     }else if method=="GET" && path.contains('?'){(200,Value::Array(feed.messages.values().cloned().collect()))}
     else {let id=path.rsplit('/').next().unwrap_or("");if !feed.messages.contains_key(id){(404,json!({"code":10008}))}else if method=="PATCH" {
      if feed.rate_limit_edit{feed.rate_limit_edit=false;(429,json!({"retry_after":2.0}))}else{let mut message=payload;message["id"]=id.into();message["author"]=json!({"id":"bot","bot":true});feed.messages.insert(id.into(),message.clone());(200,message)}
-    }else{(200,feed.messages[id].clone())}};
+    }else if method=="DELETE"{feed.messages.remove(id);(204,Value::Null)}else{(200,feed.messages[id].clone())}};
     let response=serde_json::to_vec(&response)?;socket.write_all(format!("HTTP/1.1 {status} Test\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",response.len()).as_bytes()).await?;socket.write_all(&response).await?;Ok(())
    }.await;
                 if let Err(e) = result {
@@ -248,14 +258,14 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     let status = db.submission_status(id, &author).await?.unwrap();
     assert_eq!(status["status"], "complete");
     assert_eq!(status["validation"]["valid"], true);
-    assert_eq!(feed.lock().await.messages.len(), 1);
+    assert_eq!(feed.lock().await.validation_count(), 1);
     let contest = db.get_inspector_contest(round).await?.unwrap();
     let first = db.get_inspector_submissions(contest.id).await?[0].latest_validation_id;
     assert!(!db.get_inspector_submissions(contest.id).await?[0].inspection_due);
     client.execute("UPDATE zc_private.level_submission_notification SET next_attempt_at=now() WHERE id_submission=$1",&[&id]).await?;
     run_inspector(&runtime, &config, options).await?;
     assert_eq!(
-        feed.lock().await.messages.len(),
+        feed.lock().await.validation_count(),
         1,
         "Uncertain create recovered instead of duplicate"
     );
@@ -310,7 +320,7 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     );
     client.execute("UPDATE zc_private.level_submission_notification SET next_attempt_at=now() WHERE id_submission=$1",&[&id]).await?;
     run_inspector(&runtime, &config, options).await?;
-    assert_eq!(feed.lock().await.messages.len(), 1);
+    assert_eq!(feed.lock().await.validation_count(), 1);
     db.withdraw_submission(round, &author).await?;
     run_inspector(&runtime, &config, options).await?;
     assert!(
@@ -318,7 +328,7 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
             .await
             .messages
             .values()
-            .next()
+            .find(|message| message.to_string().contains("zc-submission:"))
             .unwrap()
             .to_string()
             .contains("Withdrawn")
@@ -342,7 +352,7 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     db.submit_level(round, 3810000001, std::slice::from_ref(&author), &author)
         .await?;
     run_inspector(&runtime, &config, options).await?;
-    assert_eq!(feed.lock().await.messages.len(), 1);
+    assert_eq!(feed.lock().await.validation_count(), 1);
     client
         .execute(
             "UPDATE public.zsl_round SET submission_end=now()-interval '1 second' WHERE id=$1",

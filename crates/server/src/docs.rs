@@ -20,6 +20,7 @@ use utoipa::OpenApi;
         crate::super_league::get_vote,
         crate::super_league::get_vote_results,
         crate::super_league::post_vote,
+        crate::super_league::get_submission_overview,
         crate::super_league::get_submission,
         crate::super_league::post_submission,
         crate::super_league::delete_submission,
@@ -103,7 +104,8 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 59);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 60);
+        assert!(schema["paths"]["/super-league/submission-overview"]["get"].is_object());
         assert!(
             schema["paths"]["/discord-bot/rank-batches/flush"]["post"]["responses"]["200"]
                 .is_object()

@@ -1,3 +1,6 @@
+import type { LevelSummary } from '~/types/app'
+import { normalizePlaylistFilename } from './playlist'
+
 export type SubmissionAuthor = { steamId: string; steamName: string }
 export function submissionAuthorChoices(
 	term: string,
@@ -73,4 +76,47 @@ export function submissionRuleLimits(rules: Record<string, unknown>) {
 		maxBlocks: number('maxBlocks', 3000),
 		minCheckpoints: number('minCheckpoints', 3),
 	}
+}
+
+export type PublicSubmission = {
+	id: number
+	workshopId: string
+	fileUid: string
+	name: string
+	authors: string[]
+	authorNames: string[]
+	level: LevelSummary
+}
+export type SubmissionOverview = {
+	contest: SubmissionContest | null
+	validCount: number
+	totalCount: number
+	submissions: PublicSubmission[]
+}
+
+/** Emit decimal Workshop IDs as JSON numbers without converting through JavaScript Number. */
+export function serializeSubmissionPlaylist(name: string, submissions: PublicSubmission[]) {
+	const levels = submissions.map((entry) => {
+		if (!/^[1-9][0-9]{0,18}$/.test(entry.workshopId) || !entry.fileUid)
+			throw new Error('Invalid submission playlist entry')
+		return `{${JSON.stringify('UID')}:${JSON.stringify(entry.fileUid)},"WorkshopID":${entry.workshopId},"Name":${JSON.stringify(entry.name)},"Author":${JSON.stringify(entry.authorNames.join(', '))}}`
+	})
+	return `{"name":${JSON.stringify(name)},"amountOfLevels":${levels.length},"roundLength":480,"shufflePlaylist":false,"UID":${JSON.stringify(submissions.map((entry) => entry.fileUid))},"levels":[${levels.join(',')}]}`
+}
+
+export function downloadSubmissionPlaylist(
+	contest: SubmissionContest,
+	submissions: PublicSubmission[],
+) {
+	const name = `${contest.name} - Submissions`
+	const url = URL.createObjectURL(
+		new Blob([serializeSubmissionPlaylist(name, submissions)], {
+			type: 'application/json;charset=utf-8',
+		}),
+	)
+	const link = document.createElement('a')
+	link.href = url
+	link.download = normalizePlaylistFilename(name)
+	link.click()
+	URL.revokeObjectURL(url)
 }

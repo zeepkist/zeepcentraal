@@ -968,3 +968,17 @@ pub mod streamkist_poll_lease {
         }
     }
 }
+
+diesel::table! {
+    zc_private.level_submission_playlist_notification (id_contest) {
+        id_contest -> BigInt,
+        desired_playlist_id -> BigInt,
+        delivered_playlist_id -> Nullable<BigInt>,
+        message_id -> Nullable<Text>,
+        channel_id -> Nullable<Text>,
+        attempt_playlist_id -> Nullable<BigInt>,
+        attempt_channel_id -> Nullable<Text>,
+        attempt_started_at -> Nullable<Timestamptz>,
+        next_attempt_at -> Timestamptz,
+    }
+}

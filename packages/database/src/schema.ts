@@ -384,6 +384,42 @@ export const levelSubmissionPlaylist = zcPrivate.table(
 	(t) => [unique('submission_playlist_digest').on(t.idContest, t.digest)],
 )
 
+export const levelSubmissionPlaylistNotification = zcPrivate.table(
+	'level_submission_playlist_notification',
+	{
+		idContest: bigint('id_contest', { mode: 'bigint' })
+			.primaryKey()
+			.references(() => levelSubmissionContest.id, { onDelete: 'cascade' }),
+		desiredPlaylistId: bigint('desired_playlist_id', { mode: 'bigint' })
+			.notNull()
+			.references(() => levelSubmissionPlaylist.id),
+		deliveredPlaylistId: bigint('delivered_playlist_id', { mode: 'bigint' }).references(
+			() => levelSubmissionPlaylist.id,
+		),
+		messageId: text('message_id'),
+		channelId: text('channel_id'),
+		attemptPlaylistId: bigint('attempt_playlist_id', { mode: 'bigint' }).references(
+			() => levelSubmissionPlaylist.id,
+		),
+		attemptChannelId: text('attempt_channel_id'),
+		attemptStartedAt: timestamp('attempt_started_at', { withTimezone: true, mode: 'string' }),
+		nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [
+		index('submission_playlist_notification_due').on(t.nextAttemptAt),
+		check(
+			'level_submission_playlist_notification_check',
+			sql`${t.messageId} IS NULL OR ${t.channelId} IS NOT NULL`,
+		),
+		check(
+			'level_submission_playlist_notification_check1',
+			sql`(${t.attemptStartedAt} IS NULL AND ${t.attemptPlaylistId} IS NULL AND ${t.attemptChannelId} IS NULL) OR (${t.attemptStartedAt} IS NOT NULL AND ${t.attemptPlaylistId} IS NOT NULL AND ${t.attemptChannelId} IS NOT NULL)`,
+		),
+	],
+)
+
 export const levelSubmissionPlaylistEntry = zcPrivate.table(
 	'level_submission_playlist_entry',
 	{

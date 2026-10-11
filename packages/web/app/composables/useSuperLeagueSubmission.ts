@@ -3,14 +3,16 @@ import { submissionProcessing } from '~/utils/superLeagueSubmission'
 
 export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) {
 	const config = useRuntimeConfig()
+	const overview = useSuperLeagueSubmissionOverview(roundId)
 	const session = useSessionStore()
+	const viewerRoundId = computed(() => toValue(roundId) ?? overview.data.value?.contest?.roundId)
 	const read = useSuperLeagueRead<{
 		contest: SubmissionContest | null
 		submission: LevelSubmission | null
-	}>('submit-level', roundId)
-	const contest = computed(() => read.data.value?.contest ?? null)
+	}>('submit-level', viewerRoundId)
+	const contest = computed(() => overview.data.value?.contest ?? read.data.value?.contest ?? null)
 	const submission = shallowRef<LevelSubmission | null>(null)
-	const loading = read.pending
+	const loading = computed(() => !contest.value && overview.pending.value)
 	const saving = ref(false)
 	const actionError = ref<string | null>(null)
 	const error = computed(() => actionError.value ?? read.error.value)
@@ -43,7 +45,9 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 				{ credentials: 'include' },
 			)
 			if (current === generation) {
+				const wasProcessing = submissionProcessing(submission.value?.status)
 				submission.value = next
+				if (wasProcessing && !submissionProcessing(next.status)) await overview.refresh()
 				if (pollError) actionError.value = null
 				pollError = false
 			}
@@ -58,7 +62,7 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 	async function refresh() {
 		stop()
 		actionError.value = null
-		await read.refresh()
+		await Promise.all([read.refresh(), overview.refresh()])
 	}
 	watch(
 		read.data,
@@ -134,8 +138,11 @@ export function useSuperLeagueSubmission(roundId: MaybeRef<number | undefined>) 
 		contest,
 		submission,
 		loading,
-		resolved: read.resolved,
-		initial: read.initial,
+		resolved: computed(() => !overview.pending.value),
+		initial: Promise.all([read.initial, overview.initial]),
+		overview: overview.data,
+		overviewError: computed(() => overview.error.value?.message ?? null),
+		refreshOverview: overview.refresh,
 		saving,
 		error,
 		refresh,

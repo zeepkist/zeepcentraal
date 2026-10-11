@@ -427,6 +427,8 @@ impl Database {
                     .bind::<BigInt, _>(id_playlist)
                     .execute(connection)
                     .await?;
+                    sql_query("INSERT INTO zc_private.level_submission_playlist_notification(id_contest,desired_playlist_id) VALUES($1,$2) ON CONFLICT(id_contest) DO UPDATE SET desired_playlist_id=EXCLUDED.desired_playlist_id,next_attempt_at=now() WHERE level_submission_playlist_notification.desired_playlist_id IS DISTINCT FROM EXCLUDED.desired_playlist_id")
+                        .bind::<BigInt,_>(id_contest).bind::<BigInt,_>(id_playlist).execute(connection).await?;
                     Ok(sql_query(
                         "SELECT to_jsonb(level_submission_playlist.*) AS payload FROM \
                          zc_private.level_submission_playlist WHERE id=$1",

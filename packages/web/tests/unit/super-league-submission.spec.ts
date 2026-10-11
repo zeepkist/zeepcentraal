@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+	type PublicSubmission,
+	serializeSubmissionPlaylist,
 	steamContestAnnouncementUrl,
 	submissionAuthorChoices,
 	submissionProcessing,
@@ -63,5 +65,51 @@ describe('contest announcement and rule limits', () => {
 			maxBlocks: 3000,
 			minCheckpoints: 3,
 		})
+	})
+})
+
+describe('submission playlist downloads', () => {
+	const entry: PublicSubmission = {
+		id: 1,
+		workshopId: '9007199254740993',
+		fileUid: 'fixture',
+		name: 'Level "one"',
+		authors: ['1', '2'],
+		authorNames: ['Alice', 'Bob'],
+		level: {} as PublicSubmission['level'],
+	}
+	it('preserves decimal Workshop IDs and exports listed authors and UID values', () => {
+		const output = serializeSubmissionPlaylist('Contest', [entry])
+		expect(output).toContain('"WorkshopID":9007199254740993')
+		const value = JSON.parse(output)
+		expect(value).toMatchObject({
+			name: 'Contest',
+			amountOfLevels: 1,
+			roundLength: 480,
+			shufflePlaylist: false,
+			UID: ['fixture'],
+		})
+		expect(value.levels[0]).toMatchObject({
+			UID: 'fixture',
+			Name: 'Level "one"',
+			Author: 'Alice, Bob',
+		})
+	})
+	it('exports every entry without applying local playlist import limits', () => {
+		const entries = Array.from({ length: 1001 }, (_, index) => ({
+			...entry,
+			id: index,
+			workshopId: String(index + 1),
+			fileUid: `level-${index}`,
+		}))
+		const output = JSON.parse(serializeSubmissionPlaylist('Contest', entries))
+		expect(output.amountOfLevels).toBe(1001)
+		expect(output.levels).toHaveLength(1001)
+		expect(output.UID).toHaveLength(1001)
+	})
+	it('rejects IDs that could inject JSON', () => {
+		expect(() =>
+			serializeSubmissionPlaylist('Contest', [{ ...entry, workshopId: '1,"invalid":true' }]),
+		).toThrow('Invalid submission playlist entry')
 	})
 })

@@ -1,6 +1,6 @@
 # First-party Super League submissions
 
-Inspector version 2 reads durable private submission rows. Discord is an output feed only. Copy `inspector.example.json` into the mounted inspector config and configure public round IDs and rules before opening a contest. Existing frozen contests are immutable and never rescanned or backfilled.
+Inspector version 2 reads durable private submission rows. Discord is an output feed only. Copy `inspector.example.json` into the mounted inspector config and configure public round IDs and rules before opening a contest. Existing frozen contests are immutable and never rescanned. Playlist delivery reconciles existing published artifacts without changing contest data.
 
 `--watch` polls pending work every five seconds. Successful inspections schedule workshop metadata checks 30 minutes later; transient failures retry after 60 seconds. A metadata cache hit reschedules without creating a validation or notification. At submission close, every selected row gets a final uncached inspection. The service freezes only after its immutable playlist and combined archive upload and digest verification succeed. Pending Discord delivery continues independently after freezing.
 
@@ -9,6 +9,20 @@ Each author may belong to one selected submission per contest. Any listed author
 Missing author accounts are created as placeholder user rows within the submission transaction, using the same helper as Steam sign-in. Existing profiles and bans are preserved. The collaborator picker accepts a valid Steam ID even when no account exists yet; name search still returns registered profiles.
 
 Notification delivery uses Components V2 and disabled mentions, with one message per submission and a stable marker and nonce. Successful unchanged validations skip edits; missing messages are recreated. Transient errors and rate limits retry through the durable outbox. Uncertain creates search up to 1,000 recent channel messages; recovery beyond that bound defers for operator review instead of risking duplicate posts. Withdrawal updates an existing message and does not create a withdrawal-only message.
+
+## Submission playlist feed
+
+Inspector posts one playlist message per configured contest in `notificationChannelId`. Published playlist changes delete the previous message and post a Components V2 container with the exact `.zeeplist` attachment, valid count, and a link to `https://zeepki.st/super-league/submit-level`. Empty playlists remove the previous message without posting a replacement. Unchanged playlists stay quiet.
+
+Playlist delivery tracks channel, message, published version, and uncertain sends in `zc_private.level_submission_playlist_notification`. Apply migration `20261011180000_submission_playlist_notifications` before deploying inspector. Delivery retries independently from validation and finalization, including frozen contests. Attachment retrieval succeeds before deletion starts. Channel changes delete the tracked message from its previous channel. Bot needs attachment upload and channel history access for delivery and recovery.
+
+For isolated public overview, migration, and Discord replacement checks, use an empty local database named `zsl_submission_playlist_test` (or that name followed by an underscore and numeric suffix). Tests create fixture SQL directly; they do not replay archived Drizzle migrations. Run in order:
+
+```sh
+cargo test --locked -p zc-database --test submission_overview -- --ignored
+cargo test --locked -p zc-inspector-zeep --test playlist_publication -- --ignored
+cargo test --locked -p zc-server --test submission_overview -- --ignored
+```
 
 ## Coordinated rollout
 

@@ -64,6 +64,52 @@ impl DiscordRest {
         }
         Ok(response.json().await?)
     }
+    pub async fn send_attachment(
+        &self,
+        channel: &str,
+        payload: &Value,
+        filename: &str,
+        bytes: Vec<u8>,
+    ) -> Result<Value> {
+        let form = reqwest::multipart::Form::new()
+            .text("payload_json", serde_json::to_string(payload)?)
+            .part(
+                "files[0]",
+                reqwest::multipart::Part::bytes(bytes)
+                    .file_name(filename.to_owned())
+                    .mime_str("application/json")?,
+            );
+        let response = self
+            .client
+            .post(
+                self.api_root
+                    .join(&format!("channels/{channel}/messages"))?,
+            )
+            .header("Authorization", format!("Bot {}", self.token))
+            .multipart(form)
+            .send()
+            .await?;
+        let status = response.status();
+        if !status.is_success() {
+            let retry_after = if status == StatusCode::TOO_MANY_REQUESTS {
+                response
+                    .json::<Value>()
+                    .await
+                    .ok()
+                    .and_then(|r| r["retry_after"].as_f64())
+                    .unwrap_or(60.0)
+                    .ceil() as i64
+            } else {
+                60
+            };
+            return Err(DeliveryError {
+                status: status.as_u16(),
+                retry_after,
+            }
+            .into());
+        }
+        Ok(response.json().await?)
+    }
     // Bounded history recovery supplements nonce deduplication after uncertain POSTs.
     pub async fn recover_message(&self, channel: &str, marker: &str) -> Result<Option<String>> {
         let bot = self.request("users/@me", Method::GET, None).await?;

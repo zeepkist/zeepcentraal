@@ -5,3 +5,5 @@ pub mod playlist;
 pub mod publication;
 pub mod run;
 pub mod validation;
+
+pub mod playlist_publication;
