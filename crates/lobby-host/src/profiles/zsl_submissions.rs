@@ -4,6 +4,7 @@ use super::{
 };
 use crate::{
     config::ManagedRoomConfig,
+    leaderboard::PlayerLeaderboard,
     runtime::{LobbyProfile, ProfileSession, RoomContext},
     transfer::TransferEvent,
 };
@@ -215,6 +216,7 @@ impl LobbyProfile for ZslSubmissionsProfile {
             practice: self.practice.clone(),
             assets: self.assets.clone(),
             current: self.current.clone(),
+            board: Mutex::new(context.leaderboard()),
             context,
             state: Mutex::new(SessionState {
                 active: current.asset,
@@ -315,6 +317,7 @@ struct ZslSubmissionsSession {
     assets: Arc<dyn SubmissionSource>,
     current: Arc<RwLock<Option<CurrentSubmission>>>,
     context: RoomContext,
+    board: Mutex<PlayerLeaderboard>,
     state: Mutex<SessionState>,
     initial_level: crate::assets::PreparedLevel,
     stopped: AtomicBool,
@@ -718,7 +721,18 @@ impl ProfileSession for ZslSubmissionsSession {
     }
 
     async fn on_packet(&self, packet: &GameHostPacket) -> Result<()> {
-        if self.stopped.load(Ordering::Acquire) || self.transitioning.load(Ordering::Acquire) {
+        if self.stopped.load(Ordering::Acquire) || !self.context.is_host() {
+            return Ok(());
+        }
+        let packets = {
+            let mut board = self.board.lock().await;
+            board.observe(packet);
+            board.reconcile_names()?
+        };
+        for packet in packets {
+            self.context.send(packet).await?;
+        }
+        if self.transitioning.load(Ordering::Acquire) {
             return Ok(());
         }
         {
@@ -976,6 +990,7 @@ mod tests {
             practice: None,
             assets: source,
             current: Arc::new(RwLock::new(None)),
+            board: Mutex::new(context.leaderboard()),
             context,
             state: Mutex::new(SessionState {
                 active,
@@ -991,6 +1006,55 @@ mod tests {
             transitioning: AtomicBool::new(false),
             notice: Mutex::new(RoundNotice::default()),
         })
+    }
+
+    #[tokio::test]
+    async fn submission_names_reconcile_during_playlist_transition() -> Result<()> {
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let session = session(
+            asset("color", &[1])?,
+            0,
+            Arc::new(TestSource::new(vec![])),
+            sent.clone(),
+        )
+        .await?;
+        session.transitioning.store(true, Ordering::Release);
+        let player = zc_core::zeepnet::GameHostPlayer {
+            chat_color: Some([0, 0, 0]),
+            uid: 42,
+            steam_id: 42,
+            username: Some("<Player>".into()),
+            backup_name: "Fallback".into(),
+            player_tag: "[T]".into(),
+        };
+        session
+            .on_packet(&GameHostPacket::PlayerConnected {
+                player,
+                is_host: false,
+                has_host_powers: false,
+            })
+            .await?;
+        let overrides = crate::leaderboard::read_test_overrides(&sent.lock().await[0])?.1;
+        assert_eq!(
+            overrides.name,
+            "<color=#000000><nobr>[T]&lt;Player&gt;</nobr></color>"
+        );
+        assert_eq!(overrides.position, "");
+        assert_eq!(overrides.time, "");
+        let packet = GameHostPacket::PlayerCosmetics {
+            uid: 42,
+            chat_color: None,
+        };
+        session.on_packet(&packet).await?;
+        assert_eq!(
+            crate::leaderboard::read_test_overrides(&sent.lock().await[1])?
+                .1
+                .name,
+            "<color=#FFFFFF><nobr>[T]&lt;Player&gt;</nobr></color>"
+        );
+        session.on_packet(&packet).await?;
+        assert_eq!(sent.lock().await.len(), 2);
+        Ok(())
     }
 
     async fn selected_indices(sent: &Mutex<Vec<Vec<u8>>>) -> Result<(i32, i32, Vec<u64>)> {
@@ -1587,6 +1651,7 @@ mod practice_session_tests {
         )?;
         assert_eq!(sent.lock().await[1], expected);
         let player = zc_core::zeepnet::GameHostPlayer {
+            chat_color: None,
             uid: 42,
             steam_id: 42,
             username: Some("<Player>".into()),
@@ -1601,7 +1666,11 @@ mod practice_session_tests {
             })
             .await?;
         let packets = sent.lock().await;
-        let mut reader = zc_core::zeepnet::BitReader::new(&packets[2]);
+        assert_eq!(
+            crate::leaderboard::read_test_overrides(&packets[2])?.1.name,
+            "<color=#FFFFFF><nobr>&lt;Player&gt;</nobr></color>"
+        );
+        let mut reader = zc_core::zeepnet::BitReader::new(&packets[3]);
         reader.read_u16()?;
         assert_eq!(reader.read_u64()?, 42);
         let message = reader.read_string(4096)?;
@@ -1611,8 +1680,21 @@ mod practice_session_tests {
         assert!(!message.contains("Submission"));
         assert_eq!(reader.read_string(4096)?, HOSTNAME);
         assert_eq!(
-            packets[2],
+            packets[3],
             zc_core::zeepnet::targeted_chat_message_packet(42, &message, HOSTNAME)?
+        );
+        drop(packets);
+        session
+            .on_packet(&GameHostPacket::PlayerCosmetics {
+                uid: 42,
+                chat_color: Some([18, 52, 86]),
+            })
+            .await?;
+        assert_eq!(
+            crate::leaderboard::read_test_overrides(&sent.lock().await[4])?
+                .1
+                .name,
+            "<color=#123456><nobr>&lt;Player&gt;</nobr></color>"
         );
         Ok(())
     }

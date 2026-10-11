@@ -21,6 +21,7 @@ pub const LEVEL_DATA: u16 = 22_792;
 pub const LEVEL_LOADED: u16 = 29_603;
 pub const PLAYER_CONNECTED: u16 = 8_162;
 pub const PLAYER_DISCONNECTED: u16 = 48_658;
+pub const PLAYER_COSMETICS: u16 = 30_749;
 pub const SKIP_TO_LEVEL: u16 = 63_876;
 pub const CHANGE_LOBBY_NAME: u16 = 53675;
 pub const KICK_PLAYER: u16 = 14557;
@@ -61,6 +62,7 @@ pub struct OnlinePlaylist {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameHostPlayer {
+    pub chat_color: Option<[u8; 3]>,
     pub backup_name: String,
     pub player_tag: String,
     pub steam_id: u64,
@@ -138,6 +140,10 @@ pub enum GameHostPacket {
         has_host_powers: bool,
     },
     PlayerDisconnected(u32),
+    PlayerCosmetics {
+        uid: u32,
+        chat_color: Option<[u8; 3]>,
+    },
     Playlist(OnlinePlaylist),
     PlaylistIndex {
         current_index: i32,
@@ -438,6 +444,14 @@ pub fn parse_game_host_packet_for(
         INITIAL_STATE => read_initial(&mut reader, local_steam_id, local_player_uid),
         CHAT_MESSAGE => read_chat(&mut reader),
         PLAYER_CONNECTED => read_player_connected(&mut reader),
+        PLAYER_COSMETICS => {
+            let uid = reader.read_u32()?;
+            reader.read_string(64 * 1_024)?;
+            Ok(GameHostPacket::PlayerCosmetics {
+                uid,
+                chat_color: read_chat_color(&mut reader)?,
+            })
+        }
         CHANGE_LOBBY_PLAYLIST => Ok(GameHostPacket::Playlist(read_playlist(&mut reader)?)),
         CHANGE_LOBBY_PLAYLIST_INDEX => Ok(GameHostPacket::PlaylistIndex {
             current_index: reader.read_i32()?,
@@ -515,15 +529,17 @@ fn read_initial(
         let player_tag = reader.read_string(1_024)?;
         let backup_name = reader.read_string(1_024)?;
         let player_is_host = reader.read_bool()?;
+        reader.read_string(64 * 1_024)?;
+        let chat_color = read_chat_color(reader)?;
         players.push(GameHostPlayer {
+            chat_color,
             backup_name,
             player_tag,
             steam_id,
             uid,
             username: None,
         });
-        reader.read_string(64 * 1_024)?;
-        for _ in 0..10 {
+        for _ in 0..7 {
             reader.read_f32()?;
         }
         reader.read_bool()?;
@@ -591,6 +607,7 @@ fn read_player_connected(reader: &mut BitReader<'_>) -> Result<GameHostPacket> {
     let username = reader.read_string(1_024)?;
     Ok(GameHostPacket::PlayerConnected {
         player: GameHostPlayer {
+            chat_color: None,
             backup_name,
             player_tag,
             steam_id,
@@ -600,6 +617,14 @@ fn read_player_connected(reader: &mut BitReader<'_>) -> Result<GameHostPacket> {
         is_host,
         has_host_powers,
     })
+}
+
+fn read_chat_color(reader: &mut BitReader<'_>) -> Result<Option<[u8; 3]>> {
+    let rgb = [reader.read_f32()?, reader.read_f32()?, reader.read_f32()?];
+    Ok(rgb
+        .iter()
+        .all(|channel| channel.is_finite())
+        .then(|| rgb.map(|channel| (channel * 255.0).round_ties_even().clamp(0.0, 255.0) as u8)))
 }
 
 fn level_data_packet_with_type(
@@ -739,6 +764,10 @@ mod tests {
     #[test]
     fn packet_hashes_match_v18_ids() {
         assert_eq!(
+            packet_id("ZeepkistNetworking.PlayerCosmeticsPacket"),
+            PLAYER_COSMETICS
+        );
+        assert_eq!(
             packet_id("ZeepkistNetworking.ChangeLobbyMasterPacket"),
             CHANGE_LOBBY_MASTER
         );
@@ -824,7 +853,10 @@ mod tests {
         initial.write_string("Player")?;
         initial.write_bool(true);
         initial.write_string("")?;
-        for _ in 0..10 {
+        for channel in [0.0, 0.5, 1.0] {
+            initial.write_f32(channel);
+        }
+        for _ in 0..7 {
             initial.write_f32(0.0);
         }
         initial.write_bool(false);
@@ -857,6 +889,7 @@ mod tests {
                 },
                 is_host: true,
                 players: vec![GameHostPlayer {
+                    chat_color: Some([0, 128, 255]),
                     backup_name: "Player".into(),
                     player_tag: "[ZC]".into(),
                     steam_id: 76_561_198_000_000_000,
@@ -914,6 +947,55 @@ mod tests {
                 }],
             }
         );
+        Ok(())
+    }
+
+    #[test]
+    fn player_cosmetics_retains_color_and_rejects_truncated_payloads() -> Result<()> {
+        let mut packet = BitWriter::new();
+        packet.write_u16(PLAYER_COSMETICS);
+        packet.write_u32(8);
+        packet.write_string("{}")?;
+        for channel in [1.0, 0.5, 0.0] {
+            packet.write_f32(channel);
+        }
+        let bytes = packet.into_bytes();
+        assert_eq!(
+            parse_game_host_packet(&bytes)?,
+            GameHostPacket::PlayerCosmetics {
+                uid: 8,
+                chat_color: Some([255, 128, 0]),
+            }
+        );
+        for length in 2..bytes.len() {
+            assert!(parse_game_host_packet(&bytes[..length]).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn chat_color_matches_unity_conversion_and_consumes_exactly_three_floats() -> Result<()> {
+        for (rgb, expected) in [
+            ([0.0, 0.0, 0.0], Some([0, 0, 0])),
+            ([-1.0, 2.0, 0.5], Some([0, 255, 128])),
+            ([0.5 / 255.0, 1.5 / 255.0, 2.5 / 255.0], Some([0, 2, 2])),
+            ([f32::NAN, 0.0, 1.0], None),
+            ([0.0, f32::INFINITY, 1.0], None),
+            ([0.0, 1.0, f32::NEG_INFINITY], None),
+            ([f32::MAX, -f32::MAX, 1.0], Some([255, 0, 255])),
+        ] {
+            let mut writer = BitWriter::new();
+            writer.write_bool(true);
+            for channel in rgb {
+                writer.write_f32(channel);
+            }
+            writer.write_u32(42);
+            let bytes = writer.into_bytes();
+            let mut reader = BitReader::new(&bytes);
+            assert!(reader.read_bool()?);
+            assert_eq!(read_chat_color(&mut reader)?, expected);
+            assert_eq!(reader.read_u32()?, 42);
+        }
         Ok(())
     }
 

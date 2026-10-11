@@ -1,8 +1,6 @@
 use super::{
     TournamentAsset, TournamentAssets,
-    messages::{
-        HOSTNAME, format_time, join_message, leaderboard_name, standing_message, tournament_message,
-    },
+    messages::{HOSTNAME, format_time, join_message, standing_message, tournament_message},
     notifications::StandingNotifications,
 };
 use crate::{
@@ -374,11 +372,6 @@ fn desired_standing(
     player: &GameHostPlayer,
     row: Option<&TournamentLobbyStanding>,
 ) -> DesiredPlayerStanding {
-    let name = player
-        .username
-        .as_deref()
-        .filter(|name| !name.is_empty())
-        .unwrap_or(&player.backup_name);
     DesiredPlayerStanding {
         steam_id: player.steam_id,
         time: row.map(|row| row.time),
@@ -387,7 +380,7 @@ fn desired_standing(
             position: row
                 .map(|row| row.rank.to_string())
                 .unwrap_or_else(|| "—".into()),
-            name: leaderboard_name(&format!("{}{name}", player.player_tag)),
+            name: String::new(),
             points: format!("{} pts", row.map(|row| row.points).unwrap_or_default()),
             points_won: " ".into(),
         },
@@ -513,6 +506,7 @@ mod tests {
         }));
         let context = RoomContext::for_test(sender, 1)?;
         let player = GameHostPlayer {
+            chat_color: None,
             backup_name: "Player".into(),
             player_tag: "".into(),
             steam_id: 42,
@@ -695,6 +689,7 @@ mod tests {
     #[test]
     fn unranked_player_gets_bun_overrides_without_replacing_native_time() -> Result<()> {
         let player = GameHostPlayer {
+            chat_color: None,
             backup_name: "<b>Player</b>".into(),
             player_tag: "[T]".into(),
             steam_id: 42,
@@ -706,10 +701,6 @@ mod tests {
         assert_eq!(standing.overrides.position, "—");
         assert_eq!(standing.overrides.time, "");
         assert_eq!(standing.overrides.points, "0 pts");
-        assert_eq!(
-            standing.overrides.name,
-            "<nobr>[T]&lt;b&gt;Player&lt;/b&gt;</nobr>"
-        );
         let mut board = PlayerLeaderboard::new(1);
         board.set_scope("tournament", "level");
         board.set_ready(true);
@@ -735,6 +726,10 @@ mod tests {
         board.set_desired(vec![standing]);
         let packets = board.reconcile()?;
         assert_eq!(packets.len(), 1);
+        assert_eq!(
+            crate::leaderboard::read_test_overrides(&packets[0])?.1.name,
+            "<color=#FFFFFF><nobr>[T]&lt;b&gt;Player&lt;/b&gt;</nobr></color>"
+        );
         let mut reader = zc_core::zeepnet::BitReader::new(&packets[0]);
         assert_eq!(reader.read_u16()?, zc_core::zeepnet::CUSTOM_LEADERBOARD);
         assert_eq!(reader.read_u64()?, 42);
@@ -742,8 +737,9 @@ mod tests {
     }
 
     #[test]
-    fn ranked_override_uses_live_roster_name() {
+    fn ranked_override_uses_live_roster_name() -> Result<()> {
         let player = GameHostPlayer {
+            chat_color: Some([18, 52, 86]),
             backup_name: "Player".into(),
             player_tag: "[T]".into(),
             steam_id: 42,
@@ -761,7 +757,23 @@ mod tests {
         };
         let standing = desired_standing(&player, Some(&row));
         assert_eq!(standing.overrides.position, "17");
-        assert_eq!(standing.overrides.name, "<nobr>[T]Current name</nobr>");
         assert_eq!(standing.overrides.points, "400 pts");
+        let mut board = PlayerLeaderboard::new(1);
+        board.observe(&GameHostPacket::PlayerConnected {
+            player,
+            is_host: false,
+            has_host_powers: false,
+        });
+        board.set_ready(true);
+        board.set_desired(vec![standing]);
+        let packets = board.reconcile()?;
+        let overrides = crate::leaderboard::read_test_overrides(&packets[1])?.1;
+        assert_eq!(
+            overrides.name,
+            "<color=#123456><nobr>[T]Current name</nobr></color>"
+        );
+        assert_eq!(overrides.position, "17");
+        assert_eq!(overrides.points, "400 pts");
+        Ok(())
     }
 }

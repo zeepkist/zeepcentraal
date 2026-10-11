@@ -62,6 +62,7 @@ fn config(tournament: bool) -> Result<ManagedRoomConfig> {
 }
 fn player() -> GameHostPlayer {
     GameHostPlayer {
+        chat_color: None,
         uid: 42,
         steam_id: 76561198000000042,
         username: Some("Player".into()),
@@ -111,6 +112,56 @@ fn offline_session(sender: Arc<dyn crate::chat::PacketSender>) -> Result<Arc<Zsl
         stopped: AtomicBool::new(false),
         wake: Notify::new(),
     }))
+}
+
+#[tokio::test]
+async fn names_reconcile_in_every_phase_without_lifecycle_locks() -> Result<()> {
+    for phase in [Phase::Practice, Phase::Warmup, Phase::Tournament] {
+        let sent = Arc::new(Mutex::new(Vec::new()));
+        let sink = sent.clone();
+        let session = offline_session(Arc::new(FnPacketSender(move |packet| {
+            let sink = sink.clone();
+            async move {
+                sink.lock().await.push(packet);
+                Ok(())
+            }
+        })))?;
+        let mut saved = session.shared.saved.lock().await;
+        saved.phase = phase;
+        let _live = session.live.lock().await;
+        let packet = GameHostPacket::Initial {
+            is_host: true,
+            players: vec![player()],
+            timing: zc_core::zeepnet::LobbyTiming {
+                game_state: 0,
+                round_time: 900.0,
+                level_loaded_at: 0.0,
+                uid: String::new(),
+                workshop_id: 0,
+            },
+        };
+        tokio::time::timeout(Duration::from_secs(1), session.on_packet(&packet)).await??;
+        assert_eq!(
+            crate::leaderboard::read_test_overrides(&sent.lock().await[0])?
+                .1
+                .name,
+            "<color=#FFFFFF><nobr>Player</nobr></color>"
+        );
+        let packet = GameHostPacket::PlayerCosmetics {
+            uid: player().uid,
+            chat_color: Some([18, 52, 86]),
+        };
+        tokio::time::timeout(Duration::from_secs(1), session.on_packet(&packet)).await??;
+        assert_eq!(
+            crate::leaderboard::read_test_overrides(&sent.lock().await[1])?
+                .1
+                .name,
+            "<color=#123456><nobr>Player</nobr></color>"
+        );
+        session.on_packet(&packet).await?;
+        assert_eq!(sent.lock().await.len(), 2);
+    }
+    Ok(())
 }
 
 async fn prepared_transition(session: &ZslSession, phase: Phase) -> Result<PreparedTransition> {
@@ -183,6 +234,28 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
             }
         })))?;
         session.live.lock().await.active = Some((previous, 0, 0));
+        let join = GameHostPacket::PlayerConnected {
+            player: player(),
+            is_host: false,
+            has_host_powers: false,
+        };
+        session.context.observe_test_packet(&join).await;
+        {
+            let mut board = session.board.lock().await;
+            board.observe(&join);
+            board.set_ready(true);
+            board.set_desired(vec![DesiredPlayerStanding {
+                steam_id: player().steam_id,
+                time: None,
+                overrides: LeaderboardOverrides {
+                    position: "2".into(),
+                    points: "100".into(),
+                    points_won: "20".into(),
+                    ..Default::default()
+                },
+            }]);
+            board.reconcile()?;
+        }
         let transition = prepared_transition(&session, phase).await?;
         let level = transition.level.clone();
         let task = tokio::spawn({
@@ -190,7 +263,23 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
             async move { run_transition(&session, transition).await }
         });
         tokio::time::timeout(Duration::from_secs(2), async {
-            wait_for_skip(&mut packets).await;
+            let mut cleared = false;
+            loop {
+                let packet = packets.recv().await.context("Missing transition packet")?;
+                match u16::from_le_bytes([packet[0], packet[1]]) {
+                    zc_core::zeepnet::CUSTOM_LEADERBOARD => {
+                        let overrides = crate::leaderboard::read_test_overrides(&packet)?.1;
+                        assert_eq!(overrides.name, "<color=#FFFFFF><nobr>Player</nobr></color>");
+                        assert_eq!(overrides.position, "");
+                        assert_eq!(overrides.points, "");
+                        assert_eq!(overrides.points_won, "");
+                        cleared = true;
+                    }
+                    SKIP_TO_LEVEL => break,
+                    _ => {}
+                }
+            }
+            assert!(cleared);
             for packet in [
                 GameHostPacket::GameState(2),
                 GameHostPacket::PlaylistIndex {
@@ -233,6 +322,14 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
                 session.context.dispatch(session.as_ref(), &packet).await?;
             }
             assert!(session.live.lock().await.ready.is_none());
+            let name = packets
+                .recv()
+                .await
+                .context("Missing player name override")?;
+            assert_eq!(
+                crate::leaderboard::read_test_overrides(&name)?.1.name,
+                "<color=#FFFFFF><nobr>Player</nobr></color>"
+            );
             if phase == Phase::Warmup {
                 let welcome = packets.recv().await.context("Missing warmup welcome")?;
                 let mut reader = BitReader::new(&welcome);

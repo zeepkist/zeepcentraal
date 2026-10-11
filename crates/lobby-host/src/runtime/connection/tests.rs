@@ -247,6 +247,7 @@ fn packet_type(packet: &[u8]) -> u16 {
 }
 fn player(uid: u32) -> GameHostPlayer {
     GameHostPlayer {
+        chat_color: None,
         backup_name: format!("Player {uid}"),
         player_tag: String::new(),
         steam_id: if uid == BOT_UID {
@@ -322,6 +323,10 @@ async fn self_transfer_waits_for_server_and_seeds_latest_roster_and_timing() -> 
         workshop_id: 2,
     });
     h.packet(GameHostPacket::GameState(1));
+    h.packet(GameHostPacket::PlayerCosmetics {
+        uid: 42,
+        chat_color: Some([18, 52, 86]),
+    });
     h.packet(GameHostPacket::PlayerConnected {
         player: player(43),
         is_host: false,
@@ -348,6 +353,7 @@ async fn self_transfer_waits_for_server_and_seeds_latest_roster_and_timing() -> 
         [42, 43, BOT_UID]
     );
     assert_eq!(timing.uid, "latest");
+    assert_eq!(players[0].chat_color, Some([18, 52, 86]));
     assert_eq!(timing.game_state, 1);
     assert_eq!(timing.level_loaded_at, 20.0);
     assert_eq!(timing.round_time, 300.0);

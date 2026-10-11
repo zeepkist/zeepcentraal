@@ -24,10 +24,7 @@ use tokio::sync::{Mutex, MutexGuard, Notify};
 use zc_core::{
     object_storage::ObjectStorage,
     practice::PracticeBundle,
-    zeepnet::{
-        GameHostPacket, LeaderboardOverrides, change_lobby_name_packet,
-        player_leaderboard_overrides_packet,
-    },
+    zeepnet::{GameHostPacket, LeaderboardOverrides, change_lobby_name_packet},
 };
 use zc_database::{
     Database,
@@ -706,15 +703,14 @@ impl ZslSession {
         );
         tracing::info!(generation, phase = ?phase, slot, index, uid = %level.level.uid, "ZSL transition executing");
         self.context.send(change_lobby_name_packet(title)?).await?;
-        for player in self.context.players().await {
-            if player.steam_id != self.context.local_steam_id {
-                self.context
-                    .send(player_leaderboard_overrides_packet(
-                        player.steam_id,
-                        &LeaderboardOverrides::default(),
-                    )?)
-                    .await?;
-            }
+        let packets = {
+            let mut board = self.board.lock().await;
+            board.clear_standings();
+            board.set_ready(false);
+            board.reconcile()?
+        };
+        for packet in packets {
+            self.context.send(packet).await?;
         }
         self.context
             .activate(level.clone(), Some(asset.playlist.clone()))
@@ -1142,6 +1138,11 @@ impl ProfileSession for ZslSession {
             || !self.context.is_host()
         {
             return Ok(());
+        }
+        // Name updates must not replace a fresh native finish with stale DB standings.
+        let packets = self.board.lock().await.reconcile_names()?;
+        for packet in packets {
+            self.context.send(packet).await?;
         }
         // Informational packets never need lifecycle locks. These broadcasts precede
         // LevelRequest during skips and must not block the connection receive loop.
