@@ -343,7 +343,7 @@ impl ConnectedRoom<'_> {
                 .clone()
                 .expect("session requires initial state"),
         };
-        profile.on_packet(&initial).await?;
+        context.dispatch(profile.as_ref(), &initial).await?;
         let is_public = self.config.room.is_public;
         let room_name = self.profile.room_name();
         let task = tokio::spawn(async move {
@@ -482,19 +482,10 @@ impl ConnectedRoom<'_> {
         if state.host
             && let Some(active) = &state.active
         {
-            if matches!(packet, GameHostPacket::LevelRequest { .. }) {
-                let events = {
-                    let mut transfer = active.context.transfer.lock().await;
-                    transfer.request(packet)?;
-                    transfer.process_next().await?
-                };
-                if let Some(events) = events {
-                    for event in &events {
-                        active.profile.on_transfer(event).await?;
-                    }
-                }
-            }
-            active.profile.on_packet(packet).await?;
+            active
+                .context
+                .dispatch(active.profile.as_ref(), packet)
+                .await?;
         }
         Ok(())
     }

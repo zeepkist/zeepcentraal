@@ -70,7 +70,436 @@ fn player() -> GameHostPlayer {
     }
 }
 
-async fn recover_phase(profile: &ZslProfile, context: &RoomContext) -> Result<()> {
+// These tests run without PostgreSQL. DB preparation precedes the tested operation;
+// execute_and_commit is the same lock boundary used by the production lifecycle.
+fn offline_session(sender: Arc<dyn crate::chat::PacketSender>) -> Result<Arc<ZslSession>> {
+    use zc_database::{DatabasePool, PoolBudget, PoolSettings};
+    let pool = DatabasePool::connect_lazy(
+        "postgres://test:test@127.0.0.1:9/test",
+        PoolSettings {
+            application_name: "handover-test".into(),
+            acquire_timeout: Duration::from_millis(1),
+            statement_timeout: Duration::from_secs(1),
+            lock_timeout: Duration::from_secs(1),
+            idle_transaction_timeout: Duration::from_secs(1),
+            idle_timeout: Duration::from_secs(1),
+        },
+        PoolBudget::application(1),
+    )?;
+    let profile = ZslProfile::new(
+        config(true)?,
+        Some(config(false)?),
+        Database::from_partition(pool.application()),
+        Arc::new(TestStorage),
+    )?;
+    *profile.shared.event.write().unwrap() = Some(ZslEvent {
+        name: "Test Round".into(),
+        round: 1,
+        season: 1,
+        first: jiff::Timestamp::now().as_second() + 1200,
+        second: jiff::Timestamp::now().as_second() + 20000,
+        points: vec![100],
+        minimum_points: 1,
+        best_of: 4,
+    });
+    let context = RoomContext::for_test(sender, 1)?;
+    Ok(Arc::new(ZslSession {
+        shared: profile.shared,
+        board: Mutex::new(context.leaderboard()),
+        context,
+        live: Mutex::new(LiveState::default()),
+        stopped: AtomicBool::new(false),
+        wake: Notify::new(),
+    }))
+}
+
+async fn prepared_transition(session: &ZslSession, phase: Phase) -> Result<PreparedTransition> {
+    let asset = pinned_asset(bundle(7, phase == Phase::Warmup), Arc::new(TestStorage))?;
+    let level = asset.first().await?;
+    let generation = session.live.lock().await.generation + 1;
+    Ok(PreparedTransition {
+        phase,
+        slot: 0,
+        index: 0,
+        generation,
+        asset,
+        level,
+        deadline: jiff::Timestamp::now().as_second() + 300,
+        seconds: 300.0,
+        scoring_level: (phase == Phase::Tournament).then_some(42),
+        title: "ZSL Test".into(),
+    })
+}
+
+async fn run_transition(session: &ZslSession, transition: PreparedTransition) -> Result<()> {
+    let mut state = session.shared.saved.lock().await;
+    let mut live = session.live.lock().await;
+    state.phase = transition.phase;
+    state.index = transition.index;
+    state.timeslot = transition.slot;
+    state.deadline = transition.deadline;
+    live.generation = transition.generation;
+    live.ready = None;
+    live.current_level_id = None;
+    live.asset = None;
+    let (state, live) = session.execute_and_commit(state, live, transition).await?;
+    drop(live);
+    drop(state);
+    Ok(())
+}
+
+fn game_properties(level: &crate::assets::PreparedLevel, loaded_at: f64) -> GameHostPacket {
+    GameHostPacket::GameProperties {
+        uid: level.level.uid.clone(),
+        workshop_id: level.level.workshop_id,
+        level_loaded_at: loaded_at,
+        round_time: 300.0,
+    }
+}
+
+async fn wait_for_skip(packets: &mut tokio::sync::mpsc::UnboundedReceiver<Vec<u8>>) {
+    loop {
+        let packet = packets.recv().await.expect("sender closed");
+        if u16::from_le_bytes([packet[0], packet[1]]) == SKIP_TO_LEVEL {
+            return;
+        }
+    }
+}
+
+#[tokio::test]
+async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload() -> Result<()> {
+    for (previous, phase, cached) in [
+        (Phase::Practice, Phase::Warmup, false),
+        (Phase::Warmup, Phase::Tournament, false),
+        (Phase::Practice, Phase::Tournament, false),
+        (Phase::Warmup, Phase::Tournament, true),
+    ] {
+        let (signal, mut packets) = tokio::sync::mpsc::unbounded_channel();
+        let session = offline_session(Arc::new(FnPacketSender(move |packet| {
+            let signal = signal.clone();
+            async move {
+                signal.send(packet)?;
+                Ok(())
+            }
+        })))?;
+        session.live.lock().await.active = Some((previous, 0, 0));
+        let transition = prepared_transition(&session, phase).await?;
+        let level = transition.level.clone();
+        let task = tokio::spawn({
+            let session = session.clone();
+            async move { run_transition(&session, transition).await }
+        });
+        tokio::time::timeout(Duration::from_secs(2), async {
+            wait_for_skip(&mut packets).await;
+            for packet in [
+                GameHostPacket::GameState(2),
+                GameHostPacket::PlaylistIndex {
+                    current_index: 0,
+                    next_index: 1,
+                    select_next: false,
+                },
+                GameHostPacket::Playlist(zc_core::zeepnet::OnlinePlaylist {
+                    levels: vec![],
+                    current_index: 0,
+                    next_index: 0,
+                    is_random: false,
+                    original_playlist_length: 0,
+                    round_time: 300.0,
+                    was_synced: true,
+                }),
+                GameHostPacket::Leaderboard {
+                    packet_type: 0,
+                    times: vec![],
+                    overrides: vec![],
+                },
+                GameHostPacket::Chat {
+                    message: "hello".into(),
+                    sender_uid: player().uid,
+                },
+                GameHostPacket::PlayerConnected {
+                    player: player(),
+                    is_host: false,
+                    has_host_powers: false,
+                },
+                GameHostPacket::PlayerResult {
+                    uid: player().uid,
+                    has_result: true,
+                    level_uid: level.level.uid.clone(),
+                    time: 10.0,
+                    checkpoints: 1,
+                },
+            ] {
+                session.context.observe_test_packet(&packet).await;
+                session.context.dispatch(session.as_ref(), &packet).await?;
+            }
+            assert!(session.live.lock().await.ready.is_none());
+            if phase == Phase::Warmup {
+                let welcome = packets.recv().await.context("Missing warmup welcome")?;
+                let mut reader = BitReader::new(&welcome);
+                assert_eq!(reader.read_u16()?, zc_core::zeepnet::CUSTOM_CHAT_MESSAGE);
+                assert_eq!(reader.read_u64()?, player().steam_id);
+                let text = reader.read_string(4096)?;
+                assert!(text.contains("Zeepkist Super League is starting in"));
+                assert!(text.contains("Stay in this room."));
+                assert!(!text.contains("Good luck"));
+                assert!(!text.contains("has started"));
+            }
+            session
+                .shared
+                .saved
+                .lock()
+                .await
+                .pending
+                .push(PendingFinish {
+                    steam_id: player().steam_id,
+                    name: "retained".into(),
+                    level_id: 7,
+                    timeslot: 1,
+                    microseconds: 1000000,
+                    received_at_ms: 1,
+                });
+            if !cached {
+                session
+                    .context
+                    .dispatch(
+                        session.as_ref(),
+                        &GameHostPacket::LevelRequest {
+                            uid: level.level.uid.clone(),
+                            workshop_id: level.level.workshop_id,
+                            name: level.level.name.clone(),
+                        },
+                    )
+                    .await?;
+                assert!(
+                    !task.is_finished(),
+                    "upload alone must not complete transition"
+                );
+            }
+            session
+                .context
+                .dispatch(session.as_ref(), &game_properties(&level, 10.0))
+                .await?;
+            assert!(!task.is_finished());
+            session
+                .context
+                .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
+                .await?;
+            Ok::<_, anyhow::Error>(())
+        })
+        .await??;
+        task.await??;
+        assert_eq!(session.live.lock().await.active, Some((phase, 0, 0)));
+        assert_eq!(session.shared.saved.lock().await.pending.len(), 1);
+        assert_eq!(session.context.players().await.len(), 1);
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn same_level_phase_change_requires_fresh_server_confirmation() -> Result<()> {
+    let (signal, mut packets) = tokio::sync::mpsc::unbounded_channel();
+    let session = offline_session(Arc::new(FnPacketSender(move |packet| {
+        let signal = signal.clone();
+        async move {
+            signal.send(packet)?;
+            Ok(())
+        }
+    })))?;
+    for (phase, loaded_at) in [(Phase::Practice, 10.0), (Phase::Tournament, 11.0)] {
+        // Practice and tournament deliberately share this level.
+        let transition = prepared_transition(&session, phase).await?;
+        let level = transition.level.clone();
+        let task = tokio::spawn({
+            let session = session.clone();
+            async move { run_transition(&session, transition).await }
+        });
+        tokio::time::timeout(Duration::from_secs(2), async {
+            wait_for_skip(&mut packets).await;
+            session
+                .context
+                .dispatch(session.as_ref(), &GameHostPacket::GameState(2))
+                .await?;
+            if phase == Phase::Tournament {
+                session
+                    .context
+                    .dispatch(session.as_ref(), &game_properties(&level, 10.0))
+                    .await?;
+                session
+                    .context
+                    .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
+                    .await?;
+                assert!(!task.is_finished());
+            }
+            session
+                .context
+                .dispatch(session.as_ref(), &game_properties(&level, loaded_at))
+                .await?;
+            session
+                .context
+                .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
+                .await?;
+            Ok::<_, anyhow::Error>(())
+        })
+        .await??;
+        task.await??;
+    }
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn transition_retries_once_then_propagates_terminal_failure() -> Result<()> {
+    let (signal, mut packets) = tokio::sync::mpsc::unbounded_channel();
+    let session = offline_session(Arc::new(FnPacketSender(move |packet| {
+        let signal = signal.clone();
+        async move {
+            signal.send(packet)?;
+            Ok(())
+        }
+    })))?;
+    for attempt in 1..=2 {
+        let transition = prepared_transition(&session, Phase::Tournament).await?;
+        let task = tokio::spawn({
+            let session = session.clone();
+            async move { run_transition(&session, transition).await }
+        });
+        wait_for_skip(&mut packets).await;
+        tokio::time::advance(Duration::from_secs(30)).await;
+        let error = task.await?.unwrap_err();
+        if attempt == 1 {
+            assert!(error.is::<ActivationTimeout>());
+        } else {
+            assert!(error.is::<TransitionFailed>());
+        }
+        assert!(session.live.lock().await.ready.is_none());
+    }
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn timeout_retry_can_succeed_and_resets_failure_count() -> Result<()> {
+    let (signal, mut packets) = tokio::sync::mpsc::unbounded_channel();
+    let session = offline_session(Arc::new(FnPacketSender(move |packet| {
+        let signal = signal.clone();
+        async move {
+            signal.send(packet)?;
+            Ok(())
+        }
+    })))?;
+    let transition = prepared_transition(&session, Phase::Warmup).await?;
+    let task = tokio::spawn({
+        let session = session.clone();
+        async move { run_transition(&session, transition).await }
+    });
+    wait_for_skip(&mut packets).await;
+    tokio::time::advance(Duration::from_secs(30)).await;
+    assert!(task.await?.unwrap_err().is::<ActivationTimeout>());
+    let transition = prepared_transition(&session, Phase::Warmup).await?;
+    let level = transition.level.clone();
+    let task = tokio::spawn({
+        let session = session.clone();
+        async move { run_transition(&session, transition).await }
+    });
+    wait_for_skip(&mut packets).await;
+    session
+        .context
+        .dispatch(session.as_ref(), &game_properties(&level, 10.0))
+        .await?;
+    session
+        .context
+        .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
+        .await?;
+    task.await??;
+    assert!(session.live.lock().await.failed_activation.is_none());
+    Ok(())
+}
+
+#[tokio::test]
+async fn transition_send_failure_propagates_and_does_not_commit() -> Result<()> {
+    let session = offline_session(Arc::new(FnPacketSender(|_| async {
+        anyhow::bail!("fake send failure")
+    })))?;
+    let transition = prepared_transition(&session, Phase::Warmup).await?;
+    assert!(
+        run_transition(&session, transition)
+            .await
+            .unwrap_err()
+            .is::<TransitionFailed>()
+    );
+    assert!(session.live.lock().await.ready.is_none());
+    assert!(session.live.lock().await.active.is_none());
+    Ok(())
+}
+
+#[tokio::test]
+async fn transition_with_elapsed_deadline_does_not_send_or_commit() -> Result<()> {
+    let sent = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let count = sent.clone();
+    let session = offline_session(Arc::new(FnPacketSender(move |_| {
+        count.fetch_add(1, Ordering::Relaxed);
+        async { Ok(()) }
+    })))?;
+    let mut transition = prepared_transition(&session, Phase::Tournament).await?;
+    transition.deadline = jiff::Timestamp::now().as_second() - 1;
+    assert!(
+        run_transition(&session, transition)
+            .await
+            .unwrap_err()
+            .is::<TransitionExpired>()
+    );
+    assert_eq!(sent.load(Ordering::Relaxed), 0);
+    assert!(session.live.lock().await.ready.is_none());
+    Ok(())
+}
+
+#[tokio::test]
+async fn retired_generation_or_lost_authority_cannot_commit_confirmed_transition() -> Result<()> {
+    for lost_authority in [false, true] {
+        let (signal, mut packets) = tokio::sync::mpsc::unbounded_channel();
+        let session = offline_session(Arc::new(FnPacketSender(move |packet| {
+            let signal = signal.clone();
+            async move {
+                signal.send(packet)?;
+                Ok(())
+            }
+        })))?;
+        let transition = prepared_transition(&session, Phase::Tournament).await?;
+        let level = transition.level.clone();
+        let task = tokio::spawn({
+            let session = session.clone();
+            async move { run_transition(&session, transition).await }
+        });
+        tokio::time::timeout(Duration::from_secs(2), async {
+            wait_for_skip(&mut packets).await;
+            if lost_authority {
+                session.context.test_authority(false);
+            } else {
+                session.live.lock().await.generation += 1;
+            }
+            session
+                .context
+                .dispatch(session.as_ref(), &game_properties(&level, 10.0))
+                .await?;
+            session
+                .context
+                .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
+                .await?;
+            Ok::<_, anyhow::Error>(())
+        })
+        .await??;
+        assert!(task.await?.unwrap_err().is::<TransitionFailed>());
+        assert!(session.live.lock().await.ready.is_none());
+        assert!(session.live.lock().await.active.is_none());
+    }
+    Ok(())
+}
+
+type DispatchTarget = Arc<Mutex<Option<Arc<ZslSession>>>>;
+
+async fn recover_phase(
+    profile: &ZslProfile,
+    context: &RoomContext,
+    target: &DispatchTarget,
+) -> Result<()> {
     let shared = &profile.shared;
     let event = shared.event()?;
     let snapshot = {
@@ -92,7 +521,7 @@ async fn recover_phase(profile: &ZslProfile, context: &RoomContext) -> Result<()
     )?;
     *restarted.shared.practice_asset.lock().await = shared.practice_asset.lock().await.clone();
     assert!(restarted.prepare().await?.is_some());
-    let session = ZslSession {
+    let session = Arc::new(ZslSession {
         shared: restarted.shared.clone(),
         context: context.clone(),
         board: Mutex::new(context.leaderboard()),
@@ -102,8 +531,10 @@ async fn recover_phase(profile: &ZslProfile, context: &RoomContext) -> Result<()
         }),
         stopped: AtomicBool::new(false),
         wake: Notify::new(),
-    };
+    });
+    let previous = target.lock().await.replace(session.clone());
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
+    *target.lock().await = previous;
     let recovered = restarted.shared.saved.lock().await.clone();
     assert_eq!(recovered.phase, snapshot.phase);
     assert_eq!(recovered.index, snapshot.index);
@@ -220,6 +651,8 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         .await;
     let driver_context = context.clone();
     let driver_storage = storage.clone();
+    let target: DispatchTarget = Arc::new(Mutex::new(None));
+    let driver_target = target.clone();
     let driver = tokio::spawn(async move {
         while let Some(packet) = packets.recv().await {
             let mut reader = BitReader::new(&packet);
@@ -238,13 +671,51 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                 .load(&uid, workshop)
                 .await?
                 .context("test level missing")?;
-            driver_context
-                .complete_test_level_request(&prepared)
-                .await?;
+            let session = driver_target
+                .lock()
+                .await
+                .clone()
+                .context("Missing dispatch target")?;
+            // Echoes and unrelated traffic arrive before the upload request in real rooms.
+            for packet in [
+                GameHostPacket::Playlist(zc_core::zeepnet::OnlinePlaylist {
+                    levels: vec![],
+                    current_index: 0,
+                    next_index: 0,
+                    is_random: false,
+                    original_playlist_length: 0,
+                    round_time: 420.0,
+                    was_synced: true,
+                }),
+                GameHostPacket::GameState(2),
+                GameHostPacket::Leaderboard {
+                    packet_type: 0,
+                    times: vec![],
+                    overrides: vec![],
+                },
+                GameHostPacket::Chat {
+                    message: "handover".into(),
+                    sender_uid: player().uid,
+                },
+                GameHostPacket::LevelRequest {
+                    name: prepared.level.name,
+                    uid: uid.clone(),
+                    workshop_id: workshop,
+                },
+                GameHostPacket::GameProperties {
+                    uid,
+                    workshop_id: workshop,
+                    level_loaded_at: driver_context.remote_now().unwrap(),
+                    round_time: 420.0,
+                },
+                GameHostPacket::GameState(0),
+            ] {
+                driver_context.dispatch(session.as_ref(), &packet).await?;
+            }
         }
         Ok::<_, anyhow::Error>(())
     });
-    let session = ZslSession {
+    let session = Arc::new(ZslSession {
         shared: shared.clone(),
         board: Mutex::new(context.leaderboard()),
         context: context.clone(),
@@ -254,7 +725,8 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         }),
         stopped: AtomicBool::new(false),
         wake: Notify::new(),
-    };
+    });
+    *target.lock().await = Some(session.clone());
     session
         .board
         .lock()
@@ -266,7 +738,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         });
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
     assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
-    recover_phase(&profile, &context).await?;
+    recover_phase(&profile, &context, &target).await?;
     shared.event.write().unwrap().as_mut().unwrap().first = now + 1200;
     let missing = {
         let mut saved = shared.saved.lock().await;
@@ -282,7 +754,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     }
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
     assert_eq!(shared.saved.lock().await.phase, Phase::Warmup);
-    recover_phase(&profile, &context).await?;
+    recover_phase(&profile, &context, &target).await?;
     shared.event.write().unwrap().as_mut().unwrap().first = now + 1080;
     session.tick().await?;
     assert!(
@@ -357,7 +829,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
             .copied(),
         normalized_time(25.123456)
     );
-    recover_phase(&profile, &context).await?;
+    recover_phase(&profile, &context, &target).await?;
     shared.saved.lock().await.deadline = now + 40;
     session.tick().await?;
     assert!(
@@ -381,7 +853,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     shared.event.write().unwrap().as_mut().unwrap().first = now - 7 * 420;
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
     assert!(session.live.lock().await.current_level_id.is_none());
-    recover_phase(&profile, &context).await?;
+    recover_phase(&profile, &context, &target).await?;
     assert!(
         shared
             .saved
@@ -408,7 +880,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     assert!(shared.saved.lock().await.completed[0]);
     assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
     assert!(profile.close_at().is_none());
-    recover_phase(&profile, &context).await?;
+    recover_phase(&profile, &context, &target).await?;
     assert_eq!(
         database.managed_lobby_join_id("practice").await?.as_deref(),
         Some("unchanged-join-id")

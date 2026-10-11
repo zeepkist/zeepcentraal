@@ -2,6 +2,14 @@ use super::messages::escape_text;
 use zc_core::practice::PracticeBundle;
 use zc_database::services::zsl_tournament::ZslEvent;
 
+pub fn warmup_countdown(remaining_seconds: u64) -> String {
+    let minutes = remaining_seconds.div_ceil(60);
+    format!(
+        "Zeepkist Super League is starting in {minutes} minute{}. Stay in this room.",
+        if minutes == 1 { "" } else { "s" }
+    )
+}
+
 pub fn practice_welcome(
     round: &str,
     player: &str,
@@ -142,6 +150,16 @@ pub fn thanks(event: &ZslEvent, published: bool) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn warmup_countdown_uses_remaining_time() {
+        assert_eq!(
+            warmup_countdown(1200),
+            "Zeepkist Super League is starting in 20 minutes. Stay in this room."
+        );
+        assert!(warmup_countdown(61).contains("2 minutes"));
+        assert!(warmup_countdown(1).contains("1 minute."));
+        assert!(!warmup_countdown(0).contains("has started"));
+    }
     #[test]
     fn gradients_escape_player_text() {
         assert!(gradient("<>", ["#00aaff", "#88ffff"]).contains("&lt;"));

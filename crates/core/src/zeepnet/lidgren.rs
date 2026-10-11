@@ -66,6 +66,8 @@ pub enum LidgrenError {
     ReliableSendTimeout,
     #[error("Malformed Lidgren message")]
     MalformedMessage,
+    #[error("Lidgren receive queue exceeded capacity")]
+    ReceiveQueueFull,
     #[error("Remote server application identifier mismatch")]
     ApplicationIdentifierMismatch,
     #[error("Lidgren payload exceeds outgoing limit")]
@@ -684,7 +686,7 @@ fn release(
     if !message.fragmented {
         return payloads
             .try_send(message.payload)
-            .map_err(|_| LidgrenError::MalformedMessage);
+            .map_err(receive_queue_error);
     }
     let mut reader = BitReader::new(&message.payload);
     let group_id = reader
@@ -747,9 +749,14 @@ fn release(
             .copy_from_slice(chunk);
         state.fragment_bytes -= chunk.len();
     }
-    payloads
-        .try_send(reassembled)
-        .map_err(|_| LidgrenError::MalformedMessage)
+    payloads.try_send(reassembled).map_err(receive_queue_error)
+}
+
+fn receive_queue_error(error: mpsc::error::TrySendError<Vec<u8>>) -> LidgrenError {
+    match error {
+        mpsc::error::TrySendError::Full(_) => LidgrenError::ReceiveQueueFull,
+        mpsc::error::TrySendError::Closed(_) => LidgrenError::Closed,
+    }
 }
 
 fn expire_fragments(state: &mut State, now: Instant) {
@@ -1296,6 +1303,66 @@ mod tests {
         assert_eq!(
             client.wait_for_close().await,
             Err(LidgrenError::MalformedMessage)
+        );
+    }
+
+    #[tokio::test]
+    async fn full_receive_queue_is_not_malformed_for_normal_or_fragmented_messages() {
+        for fragmented in [false, true] {
+            let mut state = State::new(LidgrenClientOptions::game_server(
+                "127.0.0.1:9".parse().unwrap(),
+                Vec::new(),
+            ));
+            let (payloads, _receiver) = mpsc::channel(1);
+            payloads.try_send(vec![0]).unwrap();
+            let payload = if fragmented {
+                let mut writer = BitWriter::new();
+                writer.variable_uint32(1);
+                writer.variable_uint32(8);
+                writer.variable_uint32(1);
+                writer.variable_uint32(0);
+                writer.bytes(&[42]);
+                writer.into_bytes()
+            } else {
+                vec![42]
+            };
+            let error = release(
+                &mut state,
+                IncomingMessage {
+                    message_type: RELIABLE_ORDERED,
+                    sequence: 0,
+                    fragmented,
+                    payload,
+                },
+                &payloads,
+            )
+            .unwrap_err();
+            assert_eq!(error, LidgrenError::ReceiveQueueFull);
+            assert_eq!(state.fragment_bytes, 0);
+            assert!(state.fragments.is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn closed_receive_queue_reports_closed() {
+        let mut state = State::new(LidgrenClientOptions::game_server(
+            "127.0.0.1:9".parse().unwrap(),
+            Vec::new(),
+        ));
+        let (payloads, receiver) = mpsc::channel(1);
+        drop(receiver);
+        assert_eq!(
+            release(
+                &mut state,
+                IncomingMessage {
+                    message_type: RELIABLE_ORDERED,
+                    sequence: 0,
+                    fragmented: false,
+                    payload: vec![42],
+                },
+                &payloads
+            ),
+            Err(LidgrenError::Closed)
         );
     }
 }
