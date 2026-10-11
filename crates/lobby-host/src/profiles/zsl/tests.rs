@@ -752,7 +752,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         name: "Test Round".into(),
         round: 1,
         season: 1,
-        first: now + 1201,
+        first: now + 3600,
         second: now + 20000,
         points: vec![100, 80, 60],
         minimum_points: 5,

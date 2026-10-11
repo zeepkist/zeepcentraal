@@ -71,6 +71,18 @@ impl GameConnection {
     }
 }
 
+async fn resolve_remote(host: &str, port: u16) -> Result<SocketAddr> {
+    ensure!(
+        !host.is_empty() && host.len() <= 1_024,
+        "Invalid game server host"
+    );
+    lookup_host((host, port))
+        .await
+        .context("resolve game server host")?
+        .next()
+        .context("game server host resolved to no addresses")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -131,16 +143,4 @@ mod tests {
         }
         Ok(())
     }
-}
-
-async fn resolve_remote(host: &str, port: u16) -> Result<SocketAddr> {
-    ensure!(
-        !host.is_empty() && host.len() <= 1_024,
-        "Invalid game server host"
-    );
-    lookup_host((host, port))
-        .await
-        .context("resolve game server host")?
-        .next()
-        .context("game server host resolved to no addresses")
 }
