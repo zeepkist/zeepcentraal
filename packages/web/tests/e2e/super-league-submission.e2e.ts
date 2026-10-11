@@ -30,7 +30,12 @@ const entry = {
 		id: 1,
 		xxHash: 'fixture',
 		name: 'Valid fixture',
-		authorName: 'Alice, Bob',
+		authorName: 'Alice',
+		points: 321,
+		recordCount: 2,
+		personalBestCount: 1,
+		rating: 0.8,
+		voteCount: 5,
 		adventure: false,
 		dateCreated: '2026-10-01T17:00:00Z',
 		favourited: false,
@@ -131,6 +136,12 @@ test('signed-out guidance, prominent rules, valid cards, and exact-ID download',
 	await expect(rules).toHaveClass(/bg-primary/)
 	await expect(rules).toHaveAttribute('target', '_blank')
 	await expect(page.getByRole('heading', { name: 'Valid fixture' })).toBeVisible()
+	const cards = page.locator('section[aria-labelledby="valid-submissions-title"]')
+	await expect(cards.getByRole('link', { name: 'Steam Workshop', exact: true })).toHaveCount(0)
+	await expect(cards.getByText('Alice, Bob', { exact: true })).toHaveCount(1)
+	await expect(cards.locator('article').getByText('Alice, Bob', { exact: true })).toBeVisible()
+	for (const metric of ['321', '2', '1', '80%'])
+		await expect(cards.locator('article').getByText(metric, { exact: true })).toBeVisible()
 	const before = await page.getByRole('link', { name: 'Back to Super League' }).boundingBox()
 	const list = await page.locator('#valid-submissions-title').boundingBox()
 	if (!list || !before) throw new Error('Submission layout missing')
@@ -172,6 +183,12 @@ test('private read failure leaves public requirements and entries visible', asyn
 	await session(page, true)
 	await expect(page.getByRole('heading', { name: 'Contest rules' })).toBeVisible()
 	await expect(page.getByRole('heading', { name: 'Valid fixture' })).toBeVisible()
+	const cards = page.locator('section[aria-labelledby="valid-submissions-title"]')
+	await expect(cards.getByRole('link', { name: 'Steam Workshop', exact: true })).toHaveCount(0)
+	await expect(cards.getByText('Alice, Bob', { exact: true })).toHaveCount(1)
+	await expect(cards.locator('article').getByText('Alice, Bob', { exact: true })).toBeVisible()
+	for (const metric of ['321', '2', '1', '80%'])
+		await expect(cards.locator('article').getByText(metric, { exact: true })).toBeVisible()
 	await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
 })
 test('missing contest has explicit empty state', async ({ page }) => {

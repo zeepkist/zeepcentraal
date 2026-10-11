@@ -134,10 +134,15 @@ WITH contest AS (
         'level',jsonb_build_object('id',l.id,'xxHash',l.xx_hash,'favourited',false,
             'fileUid',v.file_uid,'name',v.payload->>'name','authorName',a.label,
             'workshopId',s.workshop_id::text,'adventure',l.adventure,'dateCreated',s.date_created,
+            'points',p.points,'rating',p.rating,
+            'recordCount',(SELECT count(*) FROM public.record record WHERE record.id_level=l.id),
+            'personalBestCount',(SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_level=l.id),
+            'voteCount',(SELECT count(*) FROM public.vote vote WHERE vote.id_level=l.id),
             'imageUrl',CASE WHEN media.url LIKE 'https://%' THEN media.url WHEN media.url IS NOT NULL THEN 'https://cdn.zeepki.st/' || ltrim(media.url,'/') END)) AS payload
     FROM selected s JOIN zc_private.level_submission_validation v
         ON v.id=s.latest_validation_id AND v.id_submission=s.id AND v.submission_revision=s.revision
     JOIN public.level l ON l.xx_hash=s.level_hash
+    LEFT JOIN public.level_points p ON p.id_level=l.id
     LEFT JOIN public.workshop_item w ON w.workshop_id=s.workshop_id
     LEFT JOIN LATERAL (SELECT image_url FROM public.level_item
         WHERE id_level=l.id AND workshop_id=s.workshop_id ORDER BY id DESC LIMIT 1) i ON true

@@ -4,6 +4,10 @@ import type { SubmissionContest, SubmissionOverview } from '~/utils/superLeagueS
 import { downloadSubmissionPlaylist } from '~/utils/superLeagueSubmission'
 
 const props = defineProps<{ contest: SubmissionContest; overview: SubmissionOverview | null; error: string | null }>()
+const cards = computed(() => props.overview?.submissions.map(submission => ({
+	id: submission.id,
+	level: { ...submission.level, authorName: submission.authorNames.join(', ') },
+})) ?? [])
 const emit = defineEmits<{ refresh: [] }>()
 const { locale } = useI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
@@ -21,11 +25,7 @@ function download() {
 		<UAlert v-if="error" color="error" :title="error" :actions="[{ label: 'Try again', onClick: () => emit('refresh') }]" />
 		<p v-if="overview && !overview.submissions.length" class="text-muted-foreground">No valid submissions yet.</p>
 		<div v-else-if="overview" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-			<div v-for="submission in overview.submissions" :key="submission.id" class="flex flex-col gap-2">
-				<LevelCard :level="submission.level" transition-scope="zsl-submissions" adventure-label="Adventure" points-label="Points" records-label="Records" personal-bests-label="Personal bests" rating-label="Rating" unavailable-label="—" />
-				<p class="text-sm text-muted-foreground">{{ submission.authorNames.join(', ') }}</p>
-				<UButton :to="`https://steamcommunity.com/sharedfiles/filedetails/?id=${submission.workshopId}`" target="_blank" rel="noopener noreferrer" variant="outline" color="neutral" icon="i-tabler-brand-steam">Steam Workshop</UButton>
-			</div>
+			<LevelCard v-for="submission in cards" :key="submission.id" :level="submission.level" transition-scope="zsl-submissions" adventure-label="Adventure" points-label="Points" records-label="Records" personal-bests-label="Personal bests" rating-label="Rating" unavailable-label="—" />
 		</div>
 	</section>
 </template>

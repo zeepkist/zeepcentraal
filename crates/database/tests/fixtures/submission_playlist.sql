@@ -30,3 +30,8 @@ CREATE TABLE zc_private.level_submission_playlist_entry (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, id_playlist bigint NOT NULL REFERENCES zc_private.level_submission_playlist(id),
  position integer NOT NULL, id_validation bigint NOT NULL REFERENCES zc_private.level_submission_validation(id), workshop_id bigint NOT NULL
 );
+
+CREATE TABLE public.level_points (id_level integer PRIMARY KEY REFERENCES public.level(id), points integer, rating real);
+CREATE TABLE public.record (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, id_level integer NOT NULL REFERENCES public.level(id));
+CREATE TABLE public.personal_best_global (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, id_level integer NOT NULL REFERENCES public.level(id));
+CREATE TABLE public.vote (id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY, id_level integer NOT NULL REFERENCES public.level(id));

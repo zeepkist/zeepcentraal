@@ -48,6 +48,10 @@ INSERT INTO public.zsl_round(id,id_season,name,round,event_date,submission_start
  (2,1,'Future',2,now(),now()+interval '1 day',now()+interval '2 days');
 INSERT INTO public."user"(steam_id,steam_name) VALUES(76561198000000001,'Alice'),(76561198000000002,'Bob');
 INSERT INTO public.level(id,hash,xx_hash) VALUES(1,'legacy','fixture-hash');
+INSERT INTO public.level_points(id_level,points,rating) VALUES(1,321,0.8);
+INSERT INTO public.record(id_level) VALUES(1),(1);
+INSERT INTO public.personal_best_global(id_level) VALUES(1);
+INSERT INTO public.vote(id_level) VALUES(1),(1),(1),(1),(1);
 INSERT INTO zc_private.level_submission_contest(id_zsl_round) VALUES(1),(2);
 INSERT INTO zc_private.level_submissions(id_contest,workshop_id,authors,state,revision,latest_validation_id,level_hash) VALUES
  (1,9007199254740993,ARRAY['76561198000000001','76561198000000002'],'selected',1,1,'fixture-hash'),
@@ -70,6 +74,20 @@ INSERT INTO zc_private.level_submission_validation(id_submission,submission_revi
     assert_eq!(snapshot.submissions[0].workshop_id, "9007199254740993");
     assert_eq!(snapshot.submissions[0].author_names, vec!["Alice", "Bob"]);
     assert_eq!(snapshot.submissions[0].level["authorName"], "Alice, Bob");
+    let level = &snapshot.submissions[0].level;
+    assert_eq!(level["points"], 321);
+    assert!((level["rating"].as_f64().unwrap() - 0.8).abs() < 0.001);
+    assert_eq!(level["recordCount"], 2);
+    assert_eq!(level["personalBestCount"], 1);
+    assert_eq!(level["voteCount"], 5);
+    client.batch_execute("DELETE FROM public.level_points; DELETE FROM public.record; DELETE FROM public.personal_best_global; DELETE FROM public.vote").await?;
+    let empty_metrics = db.submission_overview(Some(1)).await?;
+    let level = &empty_metrics.submissions[0].level;
+    assert!(level["points"].is_null());
+    assert!(level["rating"].is_null());
+    assert_eq!(level["recordCount"], 0);
+    assert_eq!(level["personalBestCount"], 0);
+    assert_eq!(level["voteCount"], 0);
     let members = [zc_database::services::inspector::InspectorPlaylistMember {
         id_validation: 1,
         workshop_id: 9007199254740993,
