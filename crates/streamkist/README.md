@@ -38,16 +38,16 @@ paid plans; no paid-plan purchase or user-accessible quota override exists.
 Bot needs View Channel, Send Messages, and Embed Links in chosen channel.
 
 Polling sends one Components V2 message per watch and Twitch stream ID. Cards
-show title, streamer, game, 1280×720 preview, relative start time, current viewers,
-observed peak viewers, and Watch stream button. Existing live streams are posted
+show title, streamer, game, small side thumbnail using a 320×180 preview, relative
+start time, current viewers, observed peak viewers, and Watch stream button. Existing live streams are posted
 on first poll. Updates persist only after successful Discord delivery. Unchanged
 snapshots skip edits; preview refreshes every five minutes. Observed peaks are
 sampled, not exact Twitch analytics peaks.
 
 Tracked broadcasters remain tracked after switching game. Only successful direct
 broadcaster lookup can finish card. Finished cards show fixed observed duration,
-zero current viewers, preserved peak, and Visit channel button. Finished rows
-are excluded from later polls. Removing watch stops its notifications and edits.
+zero current viewers, preserved peak, and Visit channel button, without thumbnail.
+Finished rows are excluded from later polls. Removing watch stops its notifications and edits.
 Twitch failures and rate limits retry next interval, without marking streams offline.
 
 PostgreSQL lease permits one polling replica at a time. Cycle has 120-second
