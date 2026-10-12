@@ -2,14 +2,17 @@ use crate::{
     assets::{PreparedLevel, PreparedPlaylist},
     chat::PacketSender,
 };
-use anyhow::{Context, Result, bail, ensure};
-use std::{collections::VecDeque, sync::Arc, time::Duration};
+use anyhow::{Context, Result, ensure};
+#[cfg(test)]
+use std::collections::VecDeque;
+use std::{sync::Arc, time::Duration};
 use tokio::sync::oneshot;
 use zc_core::zeepnet::{
     GameHostPacket, change_lobby_levels_packet, change_lobby_playlist_packet, level_data_packet,
     skip_to_level_packet,
 };
 
+#[cfg(test)]
 const REQUEST_CAPACITY: usize = 8;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -42,6 +45,35 @@ pub(crate) struct ActivationAttempt {
     pub packets: [Vec<u8>; 2],
 }
 
+pub(crate) struct TransferWork {
+    generation: u64,
+    playlist: Option<PreparedPlaylist>,
+    fallback: Option<PreparedLevel>,
+    uid: String,
+    workshop_id: u64,
+    name: Option<String>,
+}
+
+impl TransferWork {
+    pub(crate) async fn load(&self) -> Result<PreparedLevel> {
+        let level = match &self.playlist {
+            Some(playlist) => playlist.load(&self.uid, self.workshop_id).await?,
+            None => None,
+        };
+        level
+            .or_else(|| self.fallback.clone())
+            .context("GameServer requested unknown level")
+    }
+    pub(crate) fn packet(&self, level: &PreparedLevel) -> Result<Option<Vec<u8>>> {
+        self.name
+            .as_ref()
+            .map(|name| {
+                level_data_packet(name, &self.uid, self.workshop_id, &level.compressed_data)
+            })
+            .transpose()
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct ActivationTimeout;
 
@@ -64,11 +96,14 @@ pub struct LevelTransfer {
     pub pending: Option<PreparedLevel>,
     previous: Option<PreparedLevel>,
     playlist: Option<PreparedPlaylist>,
+    #[cfg(test)]
     requests: VecDeque<(String, u64, String)>,
     activation: Option<Activation>,
     next_activation_id: u64,
+    playlist_revision: u64,
     timing: Option<(String, u64, f64)>,
     game_state: Option<i32>,
+    #[cfg(test)]
     sender: Arc<dyn PacketSender>,
     round_time: f64,
     timeout: Duration,
@@ -77,6 +112,8 @@ pub struct LevelTransfer {
 
 impl LevelTransfer {
     pub fn new(sender: Arc<dyn PacketSender>, round_time: f64, timeout: Duration) -> Result<Self> {
+        #[cfg(not(test))]
+        let _ = sender;
         ensure!(
             round_time.is_finite() && round_time > 0.0,
             "Invalid round time"
@@ -86,11 +123,14 @@ impl LevelTransfer {
             pending: None,
             previous: None,
             playlist: None,
+            #[cfg(test)]
             requests: VecDeque::new(),
             activation: None,
             next_activation_id: 0,
+            playlist_revision: 0,
             timing: None,
             game_state: None,
+            #[cfg(test)]
             sender,
             round_time,
             timeout,
@@ -116,22 +156,16 @@ impl LevelTransfer {
         Ok(())
     }
 
+    #[cfg(test)]
     pub async fn update_playlist(
         &mut self,
         playlist: PreparedPlaylist,
         current: i32,
         next: i32,
     ) -> Result<()> {
-        ensure!(!self.closed, "GameServer connection closed");
-        self.sender
-            .send(change_lobby_levels_packet(
-                &playlist.levels,
-                self.round_time,
-                current,
-                next,
-            )?)
-            .await?;
-        self.playlist = Some(playlist);
+        let (revision, packet) = self.prepare_playlist(&playlist, current, next)?;
+        self.sender.send(packet).await?;
+        self.commit_playlist(revision, playlist);
         Ok(())
     }
 
@@ -175,6 +209,10 @@ impl LevelTransfer {
             .checked_add(1)
             .context("Lobby activation generation exhausted")?;
         let id = self.next_activation_id;
+        self.playlist_revision = self
+            .playlist_revision
+            .checked_add(1)
+            .context("Lobby playlist generation exhausted")?;
         let previous_loaded_at = self
             .timing
             .as_ref()
@@ -231,7 +269,7 @@ impl LevelTransfer {
     }
 
     /// Server broadcasts, not transport ACKs, confirm that clients can leave podium.
-    pub async fn observe(&mut self, packet: &GameHostPacket) -> Result<Vec<TransferEvent>> {
+    pub fn observe_received(&mut self, packet: &GameHostPacket) -> Result<Vec<TransferEvent>> {
         ensure!(!self.closed, "GameServer connection closed");
         if let Some(activation) = &self.activation
             && activation.ready.is_closed()
@@ -260,13 +298,6 @@ impl LevelTransfer {
                         && activation
                             .previous_loaded_at
                             .is_none_or(|previous| *level_loaded_at > previous);
-                } else if self.pending.is_none()
-                    && self.active.as_ref().is_none_or(|active| {
-                        active.level.uid != *uid || active.level.workshop_id != *workshop_id
-                    })
-                    && let Some(playlist) = &self.playlist
-                {
-                    self.pending = playlist.load(uid, *workshop_id).await?;
                 }
             }
             GameHostPacket::GameState(state) => {
@@ -278,6 +309,116 @@ impl LevelTransfer {
             _ => {}
         }
         Ok(self.confirm_pending())
+    }
+
+    pub(crate) fn prepare_work(&self, packet: &GameHostPacket) -> Result<Option<TransferWork>> {
+        ensure!(!self.closed, "GameServer connection closed");
+        let (uid, workshop_id, name) = match packet {
+            GameHostPacket::LevelRequest {
+                uid,
+                workshop_id,
+                name,
+            } => (uid, *workshop_id, Some(name.clone())),
+            GameHostPacket::GameProperties {
+                uid, workshop_id, ..
+            } if self.activation.is_none()
+                && self.pending.is_none()
+                && self.playlist.is_some()
+                && self.active.as_ref().is_none_or(|active| {
+                    active.level.uid != *uid || active.level.workshop_id != *workshop_id
+                }) =>
+            {
+                (uid, *workshop_id, None)
+            }
+            _ => return Ok(None),
+        };
+        let fallback = [&self.pending, &self.active, &self.previous]
+            .into_iter()
+            .flatten()
+            .find(|level| level.level.uid == *uid && level.level.workshop_id == workshop_id)
+            .cloned();
+        Ok(Some(TransferWork {
+            generation: self.next_activation_id,
+            playlist: self.playlist.clone(),
+            fallback,
+            uid: uid.clone(),
+            workshop_id,
+            name,
+        }))
+    }
+
+    pub(crate) fn commit_work(
+        &mut self,
+        work: &TransferWork,
+        level: PreparedLevel,
+    ) -> Vec<TransferEvent> {
+        if self.closed || self.next_activation_id != work.generation {
+            return Vec::new();
+        }
+        let mut events = Vec::new();
+        if work.name.is_some() {
+            events.push(TransferEvent {
+                kind: TransferEventKind::Request,
+                level: level.clone(),
+            });
+            events.push(TransferEvent {
+                kind: TransferEventKind::Uploaded,
+                level: level.clone(),
+            });
+        }
+        if self.activation.is_none() {
+            if self
+                .active
+                .as_ref()
+                .is_some_and(|active| same_level(active, &level))
+            {
+                if work.name.is_some() {
+                    events.push(TransferEvent {
+                        kind: TransferEventKind::Repeat,
+                        level,
+                    });
+                }
+            } else {
+                self.pending = Some(level);
+                events.extend(self.confirm_pending());
+            }
+        }
+        events
+    }
+
+    pub(crate) fn prepare_playlist(
+        &mut self,
+        playlist: &PreparedPlaylist,
+        current: i32,
+        next: i32,
+    ) -> Result<(u64, Vec<u8>)> {
+        ensure!(!self.closed, "GameServer connection closed");
+        let packet = change_lobby_levels_packet(&playlist.levels, self.round_time, current, next)?;
+        self.playlist_revision = self
+            .playlist_revision
+            .checked_add(1)
+            .context("Lobby playlist generation exhausted")?;
+        Ok((self.playlist_revision, packet))
+    }
+    pub(crate) fn work_current(&self, work: &TransferWork) -> bool {
+        !self.closed && self.next_activation_id == work.generation
+    }
+    pub(crate) fn commit_playlist(&mut self, generation: u64, playlist: PreparedPlaylist) {
+        if !self.closed && self.playlist_revision == generation {
+            self.playlist = Some(playlist);
+        }
+    }
+
+    #[cfg(test)]
+    pub async fn observe(&mut self, packet: &GameHostPacket) -> Result<Vec<TransferEvent>> {
+        let mut events = self.observe_received(packet)?;
+        if matches!(packet, GameHostPacket::GameProperties { .. })
+            && let Some(work) = self.prepare_work(packet)?
+        {
+            let level = work.load().await?;
+            events.extend(self.commit_work(&work, level));
+        }
+        Ok(events)
     }
 
     fn confirm_pending(&mut self) -> Vec<TransferEvent> {
@@ -309,6 +450,7 @@ impl LevelTransfer {
         }]
     }
 
+    #[cfg(test)]
     pub fn request(&mut self, packet: &GameHostPacket) -> Result<()> {
         let GameHostPacket::LevelRequest {
             name,
@@ -328,77 +470,28 @@ impl LevelTransfer {
         Ok(())
     }
 
+    #[cfg(test)]
     pub async fn process_next(&mut self) -> Result<Option<Vec<TransferEvent>>> {
         let Some((uid, workshop_id, name)) = self.requests.pop_front() else {
             return Ok(None);
         };
-        ensure!(!self.closed, "GameServer connection closed");
-        let mut level = if let Some(playlist) = &self.playlist {
-            playlist.load(&uid, workshop_id).await?
-        } else {
-            None
-        };
-        let from_playlist = level.is_some();
-        if level.is_none() {
-            level = [&self.pending, &self.active, &self.previous]
-                .into_iter()
-                .flatten()
-                .find(|candidate| {
-                    candidate.level.uid == uid && candidate.level.workshop_id == workshop_id
-                })
-                .cloned();
-        }
-        let Some(level) = level else {
-            bail!("GameServer requested unknown level");
-        };
-        if from_playlist
-            && self.activation.is_none()
-            && self
-                .active
-                .as_ref()
-                .is_none_or(|active| !same_level(active, &level))
-        {
-            self.pending = Some(level.clone());
-        }
-        let mut events = vec![TransferEvent {
-            kind: TransferEventKind::Request,
-            level: level.clone(),
-        }];
-        tracing::info!(uid = %uid, workshop_id, activation = self.activation.as_ref().map(|activation| activation.id), "Lobby level requested");
-        self.sender
-            .send(level_data_packet(
-                &name,
-                &uid,
+        let work = self
+            .prepare_work(&GameHostPacket::LevelRequest {
+                uid,
                 workshop_id,
-                &level.compressed_data,
-            )?)
-            .await?;
-        events.push(TransferEvent {
-            kind: TransferEventKind::Uploaded,
-            level: level.clone(),
-        });
-        tracing::info!(uid = %uid, workshop_id, activation = self.activation.as_ref().map(|activation| activation.id), "Lobby level uploaded; awaiting server confirmation");
-        if self
-            .active
-            .as_ref()
-            .is_some_and(|active| same_level(active, &level))
-            && self
-                .pending
-                .as_ref()
-                .is_none_or(|pending| !same_level(pending, &level))
-        {
-            events.push(TransferEvent {
-                kind: TransferEventKind::Repeat,
-                level,
-            });
-            return Ok(Some(events));
+                name,
+            })?
+            .expect("level request prepares transfer work");
+        let level = work.load().await?;
+        if let Some(packet) = work.packet(&level)? {
+            self.sender.send(packet).await?;
         }
-        events.extend(self.confirm_pending());
-        Ok(Some(events))
+        Ok(Some(self.commit_work(&work, level)))
     }
 
     pub fn close(&mut self) {
         self.closed = true;
+        #[cfg(test)]
         self.requests.clear();
         if let Some(activation) = self.activation.take() {
             let _ = activation
@@ -448,6 +541,27 @@ mod tests {
                 .filter(|level| level.level.uid == uid && level.level.workshop_id == workshop_id)
                 .cloned())
         }
+    }
+
+    #[test]
+    fn obsolete_playlist_commit_cannot_replace_latest_update_or_activation() -> Result<()> {
+        let sender = Arc::new(FnPacketSender(|_| async { Ok(()) }));
+        let mut transfer = LevelTransfer::new(sender, 300.0, Duration::from_secs(1))?;
+        let first = PreparedPlaylist::new(vec![level().level], Arc::new(FixedLoader(None)))?;
+        let mut other = level();
+        other.level.uid = "other".into();
+        let second = PreparedPlaylist::new(vec![other.level.clone()], Arc::new(FixedLoader(None)))?;
+        let (old, _) = transfer.prepare_playlist(&first, 0, 0)?;
+        let (new, _) = transfer.prepare_playlist(&second, 0, 0)?;
+        transfer.commit_playlist(new, second.clone());
+        transfer.commit_playlist(old, first.clone());
+        assert_eq!(transfer.playlist.as_ref().unwrap().levels[0].uid, "other");
+        let (old, _) = transfer.prepare_playlist(&first, 0, 0)?;
+        let attempt = transfer.prepare_activation(other, Some(second))?;
+        transfer.commit_playlist(old, first);
+        assert_eq!(transfer.playlist.as_ref().unwrap().levels[0].uid, "other");
+        transfer.cancel_activation(attempt.id);
+        Ok(())
     }
 
     #[tokio::test]

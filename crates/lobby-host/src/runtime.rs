@@ -12,7 +12,7 @@ use crate::{
 use anyhow::{Context, Result};
 use std::sync::{
     Arc,
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
 };
 #[cfg(test)]
 use std::time::Duration;
@@ -20,7 +20,10 @@ use tokio::sync::{Mutex, Notify};
 use zc_core::zeepnet::GameHostPacket;
 
 mod connection;
+mod publication;
+mod receipt;
 mod retry;
+pub use receipt::ReceivedPacket;
 
 use connection::ConnectedRoom;
 use retry::RetryBackoff;
@@ -54,6 +57,26 @@ pub trait ProfileSession: Send + Sync + 'static {
     async fn on_packet(&self, packet: &GameHostPacket) -> Result<()>;
     async fn on_transfer(&self, event: &TransferEvent) -> Result<()>;
     async fn stop(&self);
+    fn capture_receipt(
+        &self,
+        _packet: &GameHostPacket,
+        _received_at: jiff::Timestamp,
+        _players: &[zc_core::zeepnet::GameHostPlayer],
+    ) -> Option<Arc<dyn std::any::Any + Send + Sync>> {
+        None
+    }
+    fn confirm_receipt(&self, _event: &TransferEvent) {}
+    fn preserve_native_finish(
+        &self,
+        _packet: &GameHostPacket,
+        _steam_id: u64,
+        _received_at: jiff::Timestamp,
+    ) -> bool {
+        true
+    }
+    async fn on_received(&self, received: &ReceivedPacket) -> Result<()> {
+        self.on_packet(&received.packet).await
+    }
 }
 
 #[derive(Clone)]
@@ -62,6 +85,9 @@ pub struct RoomContext {
     transfer: Arc<Mutex<LevelTransfer>>,
     roster: Arc<Mutex<RoomRoster>>,
     authority: Arc<AtomicBool>,
+    generation: Arc<AtomicU64>,
+    session_generation: u64,
+    publisher: Option<Arc<publication::Publisher>>,
     remote_clock: zc_core::zeepnet::RemoteClock,
     pub local_steam_id: u64,
 }
@@ -98,6 +124,9 @@ impl RoomContext {
             sender,
             roster: Arc::new(Mutex::new(RoomRoster::default())),
             authority: Arc::new(AtomicBool::new(true)),
+            generation: Arc::new(AtomicU64::new(0)),
+            session_generation: 0,
+            publisher: None,
             remote_clock: zc_core::zeepnet::RemoteClock::default(),
             local_steam_id,
         })
@@ -110,6 +139,11 @@ impl RoomContext {
     #[cfg(test)]
     pub(crate) fn test_authority(&self, value: bool) {
         self.authority.store(value, Ordering::Release);
+    }
+    #[cfg(test)]
+    pub(crate) async fn test_ownership_loss(&self) {
+        self.authority.store(false, Ordering::Release);
+        self.transfer.lock().await.close();
     }
 
     #[cfg(test)]
@@ -143,7 +177,10 @@ impl RoomContext {
     }
 
     pub fn chat(&self) -> RoomChat {
-        RoomChat::new(self.sender.clone())
+        RoomChat::new(match &self.publisher {
+            Some(publisher) => Arc::new(publication::PublishingSender(publisher.clone())),
+            None => self.sender.clone(),
+        })
     }
 
     pub fn is_host(&self) -> bool {
@@ -159,16 +196,58 @@ impl RoomContext {
         self.sender.send(packet).await
     }
 
+    pub fn generation(&self) -> u64 {
+        self.generation.load(Ordering::Acquire)
+    }
+    pub fn advance_generation(&self) {
+        self.generation.fetch_add(1, Ordering::AcqRel);
+    }
+    pub async fn publish(&self, packets: Vec<Vec<u8>>) -> Result<()> {
+        self.publish_batch(packets, false).await
+    }
+    pub async fn publish_standings(&self, packets: Vec<Vec<u8>>) -> Result<()> {
+        self.publish_batch(packets, true).await
+    }
+    async fn publish_batch(&self, packets: Vec<Vec<u8>>, standings: bool) -> Result<()> {
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        if let Some(publisher) = &self.publisher {
+            publisher.enqueue(packets, standings)
+        } else {
+            for packet in packets {
+                self.send(packet).await?;
+            }
+            Ok(())
+        }
+    }
+
     pub async fn activate(
         &self,
         level: PreparedLevel,
         playlist: Option<PreparedPlaylist>,
+    ) -> Result<()> {
+        self.activate_inner(level, playlist, true).await
+    }
+    pub(crate) async fn activate_current_generation(
+        &self,
+        level: PreparedLevel,
+        playlist: Option<PreparedPlaylist>,
+    ) -> Result<()> {
+        self.activate_inner(level, playlist, false).await
+    }
+    async fn activate_inner(
+        &self,
+        level: PreparedLevel,
+        playlist: Option<PreparedPlaylist>,
+        advance: bool,
     ) -> Result<()> {
         anyhow::ensure!(self.is_host(), "Room host authority unavailable");
         let (timeout, attempt) = {
             let mut transfer = self.transfer.lock().await;
             let timeout = transfer.timeout();
             let attempt = transfer.prepare_activation(level, playlist)?;
+            if advance {
+                self.advance_generation();
+            }
             (timeout, attempt)
         };
         let lease = ActivationLease {
@@ -195,26 +274,74 @@ impl RoomContext {
         result.map_err(|_| anyhow::Error::new(ActivationTimeout))?
     }
 
+    #[cfg(test)]
     pub(crate) async fn dispatch(
         &self,
         profile: &dyn ProfileSession,
         packet: &GameHostPacket,
     ) -> Result<()> {
-        let events = {
-            let mut transfer = self.transfer.lock().await;
-            let mut events = transfer.observe(packet).await?;
-            if matches!(packet, GameHostPacket::LevelRequest { .. }) {
-                transfer.request(packet)?;
-                if let Some(upload) = transfer.process_next().await? {
-                    events.extend(upload);
-                }
+        let mut received = self
+            .receive_for_test(profile, packet.clone(), jiff::Timestamp::now())
+            .await?;
+        self.dispatch_received(profile, &mut received).await
+    }
+    #[cfg(test)]
+    pub(crate) async fn receive_for_test(
+        &self,
+        profile: &dyn ProfileSession,
+        packet: GameHostPacket,
+        received_at: jiff::Timestamp,
+    ) -> Result<ReceivedPacket> {
+        self.roster.lock().await.observe(&packet);
+        let mut received = ReceivedPacket::new(packet, received_at, 1, 1);
+        received.capture(profile, self).await?;
+        Ok(received)
+    }
+
+    async fn observe_received(&self, packet: &GameHostPacket) -> Result<Vec<TransferEvent>> {
+        self.transfer.lock().await.observe_received(packet)
+    }
+    async fn execute_transfer(
+        &self,
+        work: &crate::transfer::TransferWork,
+    ) -> Result<Vec<TransferEvent>> {
+        if !self.transfer.lock().await.work_current(work) {
+            return Ok(Vec::new());
+        }
+        let level = work.load().await?;
+        if !self.transfer.lock().await.work_current(work) {
+            return Ok(Vec::new());
+        }
+        if let Some(packet) = work.packet(&level)? {
+            let started = tokio::time::Instant::now();
+            tracing::info!(generation=self.generation(),uid=%level.level.uid,workshop_id=level.level.workshop_id,"Lobby level upload started");
+            self.send(packet).await?;
+            tracing::info!(generation=self.generation(),uid=%level.level.uid,workshop_id=level.level.workshop_id,elapsed_ms=started.elapsed().as_millis() as u64,"Lobby level uploaded; awaiting server confirmation");
+        }
+        Ok(self.transfer.lock().await.commit_work(work, level))
+    }
+    async fn dispatch_received(
+        &self,
+        profile: &dyn ProfileSession,
+        received: &mut ReceivedPacket,
+    ) -> Result<()> {
+        let events = if let Some(complete) = received.transfer_complete.take() {
+            complete
+                .await
+                .context("Room level transfer worker closed")?
+        } else {
+            match &received.transfer {
+                Some(work) => self.execute_transfer(work).await?,
+                None => Vec::new(),
             }
-            events
         };
-        for event in &events {
+        for event in &received.events {
             profile.on_transfer(event).await?;
         }
-        profile.on_packet(packet).await
+        for event in events {
+            profile.on_transfer(&event).await?;
+        }
+        profile.on_received(received).await
     }
 
     pub async fn update_playlist(
@@ -224,11 +351,17 @@ impl RoomContext {
         next: i32,
     ) -> Result<()> {
         anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        let (generation, packet) = self
+            .transfer
+            .lock()
+            .await
+            .prepare_playlist(&playlist, current, next)?;
+        self.send(packet).await?;
         self.transfer
             .lock()
             .await
-            .update_playlist(playlist, current, next)
-            .await
+            .commit_playlist(generation, playlist);
+        Ok(())
     }
 
     pub fn leaderboard(&self) -> PlayerLeaderboard {
@@ -429,6 +562,94 @@ mod tests {
             }
         }));
         Ok((RoomContext::for_test(sender, 1)?, packets))
+    }
+
+    #[tokio::test]
+    async fn slow_asset_load_releases_transfer_lock_and_obsolete_work_cannot_commit() -> Result<()>
+    {
+        struct SlowLoader {
+            started: Arc<tokio::sync::Semaphore>,
+            release: Arc<tokio::sync::Semaphore>,
+        }
+        #[async_trait::async_trait]
+        impl crate::assets::LevelLoader for SlowLoader {
+            async fn load(&self, _: &str, _: u64) -> Result<Option<PreparedLevel>> {
+                self.started.add_permits(1);
+                self.release.acquire().await?.forget();
+                Ok(Some(level()))
+            }
+        }
+        let (context, mut packets) = activation_context()?;
+        let started = Arc::new(tokio::sync::Semaphore::new(0));
+        let release = Arc::new(tokio::sync::Semaphore::new(0));
+        let playlist = PreparedPlaylist::new(
+            vec![level().level],
+            Arc::new(SlowLoader {
+                started: started.clone(),
+                release: release.clone(),
+            }),
+        )?;
+        let attempt = context
+            .transfer
+            .lock()
+            .await
+            .prepare_activation(level(), Some(playlist))?;
+        let work = context
+            .transfer
+            .lock()
+            .await
+            .prepare_work(&GameHostPacket::LevelRequest {
+                uid: "test".into(),
+                workshop_id: 1,
+                name: "Test".into(),
+            })?
+            .unwrap();
+        let loading = tokio::spawn({
+            let context = context.clone();
+            async move { context.execute_transfer(&work).await }
+        });
+        started.acquire().await?.forget();
+        assert!(context.transfer.try_lock().is_ok());
+        context
+            .observe_received(&GameHostPacket::GameProperties {
+                uid: "test".into(),
+                workshop_id: 1,
+                round_time: 900.0,
+                level_loaded_at: 10.0,
+            })
+            .await?;
+        context
+            .observe_received(&GameHostPacket::GameState(0))
+            .await?;
+        attempt.ready.await??;
+        let mut next = level();
+        next.level.uid = "next".into();
+        let next_attempt = context
+            .transfer
+            .lock()
+            .await
+            .prepare_activation(next.clone(), None)?;
+        release.add_permits(1);
+        assert!(loading.await??.is_empty());
+        assert_eq!(
+            context
+                .transfer
+                .lock()
+                .await
+                .pending
+                .as_ref()
+                .unwrap()
+                .level
+                .uid,
+            "next"
+        );
+        assert!(packets.try_recv().is_err());
+        context
+            .transfer
+            .lock()
+            .await
+            .cancel_activation(next_attempt.id);
+        Ok(())
     }
 
     #[tokio::test(start_paused = true)]

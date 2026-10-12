@@ -33,17 +33,20 @@ impl GameConnection {
     }
 
     pub async fn recv(&self) -> Result<Option<GameHostPacket>> {
+        Ok(self.recv_sized().await?.map(|(packet, _)| packet))
+    }
+
+    pub(crate) async fn recv_sized(&self) -> Result<Option<(GameHostPacket, usize)>> {
         let Some(payload) = self.client.recv().await else {
             // Preserve transport/remote failures instead of replacing every failure
             // with the receive loop's generic "GameServer connection closed".
             self.client.wait_for_close().await?;
             return Ok(None);
         };
-        Ok(Some(parse_game_host_packet_for(
-            &payload,
-            self.steam_id,
-            Some(self.player_uid),
-        )?))
+        Ok(Some((
+            parse_game_host_packet_for(&payload, self.steam_id, Some(self.player_uid))?,
+            payload.len(),
+        )))
     }
 
     pub async fn send(&self, packet: Vec<u8>) -> Result<()> {
@@ -56,7 +59,12 @@ impl GameConnection {
                 ),
             "Cannot send server-only GameProperties packet"
         );
-        self.client.send_reliable_ordered(packet, 0).await?;
+        if let Err(error) = self.client.send_reliable_ordered(packet, 0).await {
+            if matches!(error, zc_core::zeepnet::LidgrenError::Closed) {
+                self.client.wait_for_close().await?;
+            }
+            return Err(error.into());
+        }
         Ok(())
     }
 

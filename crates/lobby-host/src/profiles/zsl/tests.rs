@@ -71,6 +71,218 @@ fn player() -> GameHostPlayer {
     }
 }
 
+#[tokio::test]
+async fn receipt_scope_survives_deadline_transition_and_session_retirement() -> Result<()> {
+    let session = offline_session(Arc::new(FnPacketSender(|_| async { Ok(()) })))?;
+    session
+        .context
+        .observe_test_packet(&GameHostPacket::PlayerConnected {
+            player: player(),
+            is_host: false,
+            has_host_powers: false,
+        })
+        .await;
+    let deadline = jiff::Timestamp::now().as_second() + 10;
+    let mut state = SavedState {
+        phase: Phase::Tournament,
+        timeslot: 0,
+        deadline,
+        ..Default::default()
+    };
+    let live = LiveState {
+        generation: 7,
+        current_level_id: Some(42),
+        ready: Some(("zsl-0".into(), 1)),
+        ..Default::default()
+    };
+    *session.shared.saved.lock().await = state.clone();
+    *session.live.lock().await = live.clone();
+    session.scoring_scope(&state, &live);
+    let result = || GameHostPacket::PlayerResult {
+        uid: 42,
+        has_result: true,
+        level_uid: "zsl-0".into(),
+        time: 12.5,
+        checkpoints: 0,
+    };
+    let accepted = session
+        .context
+        .receive_for_test(
+            session.as_ref(),
+            result(),
+            jiff::Timestamp::from_millisecond(deadline * 1000 - 1)?,
+        )
+        .await?;
+    let captured = accepted
+        .captured
+        .as_ref()
+        .unwrap()
+        .downcast_ref::<ScoringScope>()
+        .unwrap();
+    assert_eq!(captured.generation, 7);
+    assert_eq!(captured.timeslot, 0);
+    assert_eq!(captured.level_id, Some(42));
+    let rejected = session
+        .context
+        .receive_for_test(
+            session.as_ref(),
+            result(),
+            jiff::Timestamp::from_second(deadline)?,
+        )
+        .await?;
+    assert!(rejected.captured.is_none());
+    state.timeslot = 1;
+    state.deadline = deadline + 420;
+    let next = LiveState {
+        generation: 8,
+        current_level_id: Some(43),
+        ready: Some(("zsl-1".into(), 1)),
+        ..Default::default()
+    };
+    *session.shared.saved.lock().await = state.clone();
+    *session.live.lock().await = next.clone();
+    session.scoring_scope(&state, &next);
+    session.on_received(&accepted).await?;
+    let state = session.shared.saved.lock().await;
+    assert_eq!(state.pending.len(), 1);
+    assert_eq!(state.pending[0].level_id, 42);
+    assert_eq!(state.pending[0].timeslot, 1);
+    assert_eq!(state.pending[0].received_at_ms, deadline * 1000 - 1);
+    drop(state);
+    assert!(session.live.lock().await.records.is_empty());
+    session.stop().await;
+    assert_eq!(session.shared.saved.lock().await.pending.len(), 1);
+    assert!(session.scoring.read().unwrap().is_none());
+    Ok(())
+}
+
+#[tokio::test]
+async fn receipt_admission_needs_confirmed_playing_and_preserves_finishes_during_memory_locks()
+-> Result<()> {
+    let session = offline_session(Arc::new(FnPacketSender(|_| async { Ok(()) })))?;
+    let state = SavedState {
+        phase: Phase::Tournament,
+        deadline: jiff::Timestamp::now().as_second() + 60,
+        ..Default::default()
+    };
+    let live = LiveState {
+        generation: 1,
+        current_level_id: Some(42),
+        ready: None,
+        ..Default::default()
+    };
+    session.scoring_scope(&state, &live);
+    let result = GameHostPacket::PlayerResult {
+        uid: 42,
+        has_result: true,
+        level_uid: "zsl-0".into(),
+        time: 12.5,
+        checkpoints: 0,
+    };
+    assert!(
+        session
+            .capture_receipt(&result, jiff::Timestamp::now(), &[player()])
+            .is_none()
+    );
+    let transition = prepared_transition(&session, Phase::Tournament).await?;
+    *session.scoring.write().unwrap() = Some(ScoringScope {
+        phase: Phase::Tournament,
+        timeslot: 0,
+        level_id: Some(42),
+        identity: Some(("zsl-0".into(), 1)),
+        generation: 1,
+        ready: false,
+        deadline: state.deadline,
+        locked_players: HashSet::new(),
+    });
+    session.confirm_receipt(&TransferEvent {
+        kind: TransferEventKind::Uploaded,
+        level: transition.level.clone(),
+    });
+    assert!(
+        session
+            .capture_receipt(&result, jiff::Timestamp::now(), &[player()])
+            .is_none()
+    );
+    session.confirm_receipt(&TransferEvent {
+        kind: TransferEventKind::Ready,
+        level: transition.level,
+    });
+    let _saved = session.shared.saved.lock().await;
+    let _live = session.live.lock().await;
+    assert!(
+        session
+            .capture_receipt(&result, jiff::Timestamp::now(), &[player()])
+            .is_some()
+    );
+    assert_eq!(session.shared.incoming.lock().unwrap().len(), 1);
+    Ok(())
+}
+
+#[tokio::test]
+async fn timeslot_two_rejects_locked_timeslot_one_finish_and_accepts_dnf_player() -> Result<()> {
+    let session = offline_session(Arc::new(FnPacketSender(|_| async { Ok(()) })))?;
+    let mut scope = ScoringScope {
+        phase: Phase::Tournament,
+        timeslot: 1,
+        level_id: Some(42),
+        identity: Some(("zsl-0".into(), 1)),
+        generation: 2,
+        ready: true,
+        deadline: jiff::Timestamp::now().as_second() + 60,
+        locked_players: HashSet::from([player().steam_id]),
+    };
+    *session.scoring.write().unwrap() = Some(scope.clone());
+    let packet = GameHostPacket::PlayerResult {
+        uid: 42,
+        has_result: true,
+        level_uid: "zsl-0".into(),
+        time: 1.0,
+        checkpoints: 0,
+    };
+    assert!(
+        session
+            .capture_receipt(&packet, jiff::Timestamp::now(), &[player()])
+            .is_none()
+    );
+    assert!(!session.preserve_native_finish(&packet, player().steam_id, jiff::Timestamp::now()));
+    scope.locked_players.clear();
+    *session.scoring.write().unwrap() = Some(scope);
+    assert!(
+        session
+            .capture_receipt(&packet, jiff::Timestamp::now(), &[player()])
+            .is_some()
+    );
+    assert!(session.preserve_native_finish(&packet, player().steam_id, jiff::Timestamp::now()));
+    Ok(())
+}
+
+#[tokio::test]
+async fn rejected_result_callbacks_never_wait_for_lifecycle_locks_or_database() -> Result<()> {
+    let session = offline_session(Arc::new(FnPacketSender(|_| async { Ok(()) })))?;
+    for has_result in [false, true] {
+        let received = session
+            .context
+            .receive_for_test(
+                session.as_ref(),
+                GameHostPacket::PlayerResult {
+                    uid: 42,
+                    has_result,
+                    level_uid: "invalid".into(),
+                    time: 12.5,
+                    checkpoints: 0,
+                },
+                jiff::Timestamp::now(),
+            )
+            .await?;
+        assert!(received.captured.is_none());
+        let _saved = session.shared.saved.lock().await;
+        let _live = session.live.lock().await;
+        tokio::time::timeout(Duration::from_millis(100), session.on_received(&received)).await??;
+    }
+    Ok(())
+}
+
 // These tests run without PostgreSQL. DB preparation precedes the tested operation;
 // execute_and_commit is the same lock boundary used by the production lifecycle.
 fn offline_session(sender: Arc<dyn crate::chat::PacketSender>) -> Result<Arc<ZslSession>> {
@@ -108,6 +320,7 @@ fn offline_session(sender: Arc<dyn crate::chat::PacketSender>) -> Result<Arc<Zsl
     Ok(Arc::new(ZslSession {
         shared: profile.shared,
         board: Mutex::new(context.leaderboard()),
+        scoring: RwLock::new(None),
         context,
         live: Mutex::new(LiveState::default()),
         stopped: AtomicBool::new(false),
@@ -194,9 +407,17 @@ async fn run_transition(session: &ZslSession, transition: PreparedTransition) ->
     live.ready = None;
     live.current_level_id = None;
     live.asset = None;
-    let (state, live) = session.execute_and_commit(state, live, transition).await?;
+    let mut saved = state.clone();
+    let mut current = live.clone();
     drop(live);
     drop(state);
+    let outcome = session
+        .execute_and_commit(&mut saved, &mut current, transition)
+        .await;
+    if session.live.lock().await.generation == current.generation {
+        *session.live.lock().await = current;
+    }
+    outcome?;
     Ok(())
 }
 
@@ -594,18 +815,20 @@ async fn retired_generation_or_lost_authority_cannot_commit_confirmed_transition
         tokio::time::timeout(Duration::from_secs(2), async {
             wait_for_skip(&mut packets).await;
             if lost_authority {
-                session.context.test_authority(false);
+                session.context.test_ownership_loss().await;
             } else {
                 session.live.lock().await.generation += 1;
             }
-            session
-                .context
-                .dispatch(session.as_ref(), &game_properties(&level, 10.0))
-                .await?;
-            session
-                .context
-                .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
-                .await?;
+            if !lost_authority {
+                session
+                    .context
+                    .dispatch(session.as_ref(), &game_properties(&level, 10.0))
+                    .await?;
+                session
+                    .context
+                    .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
+                    .await?;
+            }
             Ok::<_, anyhow::Error>(())
         })
         .await??;
@@ -618,6 +841,48 @@ async fn retired_generation_or_lost_authority_cannot_commit_confirmed_transition
 
 type DispatchTarget = Arc<Mutex<Option<Arc<ZslSession>>>>;
 
+async fn delayed_finish_finalisation_barrier(
+    session: Arc<ZslSession>,
+    client: &tokio_postgres::Client,
+    finish: &GameHostPacket,
+) -> Result<()> {
+    client.batch_execute("CREATE FUNCTION zc_private.delay_test_finish() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(0.15); RETURN NEW; END $$; CREATE TRIGGER delay_test_finish BEFORE INSERT ON zc_private.zsl_provisional_level_result FOR EACH ROW EXECUTE FUNCTION zc_private.delay_test_finish();").await?;
+    let received = session
+        .context
+        .receive_for_test(session.as_ref(), finish.clone(), jiff::Timestamp::now())
+        .await?;
+    assert!(received.captured.is_some());
+    let started = Instant::now();
+    let finalising = tokio::spawn({
+        let session = session.clone();
+        async move {
+            let _lifecycle = session.shared.lifecycle.lock().await;
+            let mut state = session.shared.saved.lock().await.clone();
+            let event = session.shared.event()?;
+            // Advance scoring clock to first level deadline; gameplay schedule remains saved.
+            session
+                .close_elapsed(&mut state, &event, 0, event.first + 420)
+                .await
+        }
+    });
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    assert!(session.shared.saved.try_lock().is_ok());
+    assert!(session.live.try_lock().is_ok());
+    assert!(session.board.try_lock().is_ok());
+    assert!(!finalising.is_finished());
+    let rows: i64=client.query_one("SELECT count(*) FROM zc_private.zsl_tournament_level_state WHERE id_round=7 AND timeslot=1 AND playlist_index=0 AND closed",&[]).await?.get(0);
+    assert_eq!(rows, 0);
+    finalising.await??;
+    assert!(started.elapsed() >= Duration::from_millis(150));
+    let finishes = session.shared.database.zsl_finishes(7).await?;
+    assert_eq!(finishes.len(), 1);
+    assert!(finishes[0].finalised);
+    assert!(session.shared.saved.lock().await.pending.is_empty());
+    session.on_received(&received).await?;
+    client.batch_execute("DROP TRIGGER delay_test_finish ON zc_private.zsl_provisional_level_result; DROP FUNCTION zc_private.delay_test_finish();").await?;
+    Ok(())
+}
+
 async fn recover_phase(
     profile: &ZslProfile,
     context: &RoomContext,
@@ -629,8 +894,10 @@ async fn recover_phase(
         let mut saved = shared.saved.lock().await;
         // Test advances scheduled timestamps instead of waiting hours.
         saved.starts = [Some(event.first), Some(event.second)];
-        shared.save(&saved).await?;
-        saved.clone()
+        let snapshot = saved.clone();
+        drop(saved);
+        shared.save(&snapshot).await?;
+        snapshot
     };
     shared
         .database
@@ -648,6 +915,7 @@ async fn recover_phase(
         shared: restarted.shared.clone(),
         context: context.clone(),
         board: Mutex::new(context.leaderboard()),
+        scoring: RwLock::new(None),
         live: Mutex::new(LiveState {
             last_assets: Some(Instant::now()),
             ..Default::default()
@@ -744,7 +1012,9 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         let mut saved = shared.saved.lock().await;
         saved.pinned = Some(tournament.clone());
         saved.warmup = Some(warmup.clone());
-        shared.save(&saved).await?;
+        let snapshot = saved.clone();
+        drop(saved);
+        shared.save(&snapshot).await?;
     }
     *shared.practice_asset.lock().await = Some(pinned_asset(tournament.clone(), storage.clone())?);
     let now = jiff::Timestamp::now().as_second();
@@ -850,6 +1120,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     let session = Arc::new(ZslSession {
         shared: shared.clone(),
         board: Mutex::new(context.leaderboard()),
+        scoring: RwLock::new(None),
         context: context.clone(),
         live: Mutex::new(LiveState {
             last_assets: Some(Instant::now()),
@@ -919,6 +1190,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         })
         .await?;
     assert!(database.zsl_finishes(7).await?.is_empty());
+    delayed_finish_finalisation_barrier(session.clone(), &client, &finish).await?;
     session.on_packet(&finish).await?;
     session
         .on_packet(&GameHostPacket::PlayerResult {
@@ -1084,6 +1356,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         shared: failed_profile.shared.clone(),
         context: context.clone(),
         board: Mutex::new(context.leaderboard()),
+        scoring: RwLock::new(None),
         live: Mutex::new(LiveState {
             last_assets: Some(Instant::now()),
             ..Default::default()

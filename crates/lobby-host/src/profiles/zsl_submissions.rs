@@ -729,9 +729,7 @@ impl ProfileSession for ZslSubmissionsSession {
             board.observe(packet);
             board.reconcile_names()?
         };
-        for packet in packets {
-            self.context.send(packet).await?;
-        }
+        self.context.publish(packets).await?;
         if self.transitioning.load(Ordering::Acquire) {
             return Ok(());
         }

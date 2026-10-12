@@ -6,6 +6,9 @@ use zc_core::zeepnet::{
     CHANGE_LOBBY_MASTER, CHANGE_LOBBY_VISIBILITY, CHAT_MESSAGE, GameHostPlayer,
 };
 
+#[path = "pressure_tests.rs"]
+mod pressure_tests;
+
 const BOT_UID: u32 = 0xfedc_ba98;
 const BOT_STEAM_ID: u64 = 76_561_198_000_000_000;
 const PROFILE_PACKET: u16 = 0xfeac;
@@ -17,6 +20,8 @@ struct FakeConnection {
     packets_at_close: StdMutex<Vec<usize>>,
     fail_chat: AtomicBool,
     stall_controls: AtomicBool,
+    publication_ack: tokio::sync::Semaphore,
+    delay_publication: AtomicBool,
 }
 
 #[async_trait::async_trait]
@@ -24,6 +29,11 @@ impl PacketSender for FakeConnection {
     async fn send(&self, packet: Vec<u8>) -> Result<()> {
         let id = packet_type(&packet);
         self.sent.lock().unwrap().push(packet);
+        if id == zc_core::zeepnet::CUSTOM_LEADERBOARD
+            && self.delay_publication.load(Ordering::Acquire)
+        {
+            self.publication_ack.acquire().await?.forget();
+        }
         if id == CHAT_MESSAGE && self.fail_chat.load(Ordering::Acquire) {
             bail!("fake chat failure");
         }
@@ -67,6 +77,10 @@ struct ProfileStats {
     fail_seed: AtomicBool,
     fail_create: AtomicBool,
     stall_stop_once: AtomicBool,
+    stall_callback: AtomicBool,
+    callback_release: Notify,
+    receipts: AtomicUsize,
+    envelopes: StdMutex<Vec<(u64, u64, i64, usize)>>,
 }
 
 struct FakeProfile(Arc<ProfileStats>);
@@ -111,6 +125,24 @@ struct FakeSession {
 
 #[async_trait::async_trait]
 impl ProfileSession for FakeSession {
+    fn capture_receipt(
+        &self,
+        _: &GameHostPacket,
+        _: jiff::Timestamp,
+        _: &[GameHostPlayer],
+    ) -> Option<Arc<dyn std::any::Any + Send + Sync>> {
+        self.stats.receipts.fetch_add(1, Ordering::AcqRel);
+        None
+    }
+    async fn on_received(&self, received: &ReceivedPacket) -> Result<()> {
+        self.stats.envelopes.lock().unwrap().push((
+            received.sequence,
+            received.session_generation,
+            received.received_at.as_millisecond(),
+            received.payload_bytes,
+        ));
+        self.on_packet(&received.packet).await
+    }
     async fn start(&self) -> Result<()> {
         self.stats.starts.fetch_add(1, Ordering::AcqRel);
         self.context
@@ -123,6 +155,9 @@ impl ProfileSession for FakeSession {
     }
     async fn on_packet(&self, packet: &GameHostPacket) -> Result<()> {
         self.stats.observed.lock().unwrap().push(packet.clone());
+        if self.stats.stall_callback.load(Ordering::Acquire) {
+            self.stats.callback_release.notified().await;
+        }
         // Reading players here also catches holding the roster lock while seeding.
         let _ = self.context.players().await;
         if self.stats.fail_seed.load(Ordering::Acquire) {
@@ -160,6 +195,8 @@ impl Harness {
             packets_at_close: StdMutex::new(Vec::new()),
             fail_chat: AtomicBool::new(false),
             stall_controls: AtomicBool::new(false),
+            publication_ack: tokio::sync::Semaphore::new(0),
+            delay_publication: AtomicBool::new(false),
         });
         let stats = Arc::new(ProfileStats::default());
         let stopped = Arc::new(AtomicBool::new(false));

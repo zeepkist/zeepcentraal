@@ -186,9 +186,7 @@ impl TrackTournamentSession {
             state.snapshot = Some(snapshot);
             state.board.reconcile()?
         };
-        for packet in packets {
-            self.context.send(packet).await?;
-        }
+        self.context.publish(packets).await?;
         Ok(())
     }
 
@@ -305,9 +303,7 @@ impl ProfileSession for TrackTournamentSession {
             }
             packets = state.board.reconcile()?;
         }
-        for packet in packets {
-            self.context.send(packet).await?;
-        }
+        self.context.publish(packets).await?;
         if let Some(player) = welcome {
             let database = self.database.clone();
             let context = self.context.clone();
