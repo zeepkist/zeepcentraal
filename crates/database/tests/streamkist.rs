@@ -1,7 +1,7 @@
 use anyhow::{Result, ensure};
 use zc_database::{
     Database,
-    services::streamkist::{AddWatch, WatchSettings},
+    services::streamkist::{AddWatch, StreamkistStats, WatchSettings},
 };
 
 const UP: &str = include_str!("../migrations/20261010130000_streamkist/up.sql");
@@ -10,6 +10,59 @@ const POLICY_UP: &str =
     include_str!("../migrations/20261011160000_streamkist_tracking_policy/up.sql");
 const POLICY_DOWN: &str =
     include_str!("../migrations/20261011160000_streamkist_tracking_policy/down.sql");
+
+#[tokio::test]
+#[ignore = "requires empty disposable local PostgreSQL named streamkist_stats_test"]
+async fn historical_stats_deduplicate_streams_and_retain_removed_watches() -> Result<()> {
+    zc_core::environment::initialize()?;
+    let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
+    let parsed = url::Url::parse(&url)?;
+    ensure!(
+        parsed.host_str() == Some("127.0.0.1") && parsed.path() == "/streamkist_stats_test",
+        "Dedicated disposable database required"
+    );
+    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move {
+        connection.await.expect("PostgreSQL connection");
+    });
+    client.batch_execute(UP).await?;
+    client.batch_execute(POLICY_UP).await?;
+    let database = Database::connect(&url, 2).await?;
+    assert_eq!(
+        database.streamkist_stats().await?,
+        StreamkistStats {
+            streams: 0,
+            streamers: 0,
+            categories: 0,
+            guilds: 0,
+        }
+    );
+    client.batch_execute(
+        "INSERT INTO streamkist.guilds(guild_id) VALUES('1'),('2');
+         INSERT INTO streamkist.twitch_categories(game_id,name) VALUES('9','Game'),('8','Other'),('7','Old');
+         INSERT INTO streamkist.channels(guild_id,channel_id,game_id) VALUES('1','10','9'),('1','11','8'),('2','20','9');
+         INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot,is_live,tracking_state)
+             SELECT id,id,guild_id,channel_id,'first','user-1','{}',false,'finished' FROM streamkist.channels;
+         INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot)
+             SELECT id,id,guild_id,channel_id,'second','user-1','{}' FROM streamkist.channels WHERE channel_id='11';
+         INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot)
+             SELECT id,id,guild_id,channel_id,'third','user-2','{}' FROM streamkist.channels WHERE channel_id='20';"
+    ).await?;
+    let expected = StreamkistStats {
+        streams: 3,
+        streamers: 2,
+        categories: 3,
+        guilds: 2,
+    };
+    assert_eq!(database.streamkist_stats().await?, expected);
+    client
+        .batch_execute("UPDATE streamkist.channels SET deleted_at=now();")
+        .await?;
+    assert_eq!(database.streamkist_stats().await?, expected);
+    client.batch_execute(POLICY_DOWN).await?;
+    client.batch_execute(DOWN).await?;
+    Ok(())
+}
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "requires empty disposable local PostgreSQL named streamkist_test"]

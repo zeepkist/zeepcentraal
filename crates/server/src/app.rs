@@ -20,6 +20,7 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
         .route("/healthz", get(routes::health).head(routes::health))
         .route("/readyz", get(routes::ready).head(routes::ready))
         .route("/lobby", get(crate::lobby::snapshot))
+        .route("/streamkist/stats", get(crate::streamkist::stats))
         .route("/lobby/events", get(crate::lobby::events))
         .route("/openapi", get(docs::page))
         .route("/openapi/json", get(docs::schema))
@@ -245,11 +246,15 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
 fn cors_layer(origins: &[String]) -> Result<CorsLayer> {
     let origins = origins
         .iter()
-        .map(|origin| origin.parse())
+        .map(|origin| origin.parse::<axum::http::HeaderValue>())
         .collect::<Result<Vec<_>, _>>()
         .context("CORS_ALLOWED_ORIGINS contains an invalid header value")?;
     Ok(CorsLayer::new()
-        .allow_origin(AllowOrigin::list(origins))
+        .allow_origin(AllowOrigin::predicate(move |origin, request| {
+            origins.contains(origin)
+                || (request.uri.path() == "/streamkist/stats"
+                    && origin == "https://streamkist.zeepki.st")
+        }))
         .allow_credentials(true)
         .allow_headers(AllowHeaders::mirror_request())
         .allow_methods(AllowMethods::mirror_request()))

@@ -115,6 +115,7 @@ fn available_while_degraded(path: &str) -> bool {
             | "/readyz"
             | "/lobby"
             | "/lobby/events"
+            | "/streamkist/stats"
             | "/openapi"
             | "/openapi/json"
             | "/openapi/scalar.js"
@@ -140,6 +141,7 @@ mod tests {
         assert!(available_while_degraded("/readyz"));
         assert!(available_while_degraded("/openapi"));
         assert!(available_while_degraded("/lobby/events"));
+        assert!(available_while_degraded("/streamkist/stats"));
         assert!(available_while_degraded("/turnstile/verify"));
         assert!(!available_while_degraded("/record/submit"));
         assert!(!available_while_degraded("/kofi/webhook"));

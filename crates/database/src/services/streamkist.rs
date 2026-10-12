@@ -83,7 +83,33 @@ struct Count {
 
 const MESSAGE_COLUMNS: &str = "id,stream_id,user_id,message_id,snapshot,peak_viewers,is_live,guild_id,channel_id,policy_watch_id,canonical,tracking_state,activation_pending";
 
+/// Historical totals, deduplicated across Discord guilds and channels.
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, utoipa::ToSchema, QueryableByName,
+)]
+pub struct StreamkistStats {
+    #[diesel(sql_type = BigInt)]
+    pub streams: i64,
+    #[diesel(sql_type = BigInt)]
+    pub streamers: i64,
+    #[diesel(sql_type = BigInt)]
+    pub categories: i64,
+    #[diesel(sql_type = BigInt)]
+    pub guilds: i64,
+}
+
 impl Database {
+    pub async fn streamkist_stats(&self) -> Result<StreamkistStats> {
+        let mut connection = self.connection().await?;
+        Ok(sql_query(
+            "SELECT count(DISTINCT stream_id) AS streams, count(DISTINCT user_id) AS streamers, \
+             (SELECT count(*) FROM streamkist.twitch_categories) AS categories, \
+             (SELECT count(*) FROM streamkist.guilds) AS guilds FROM streamkist.streams",
+        )
+        .get_result(&mut connection)
+        .await?)
+    }
+
     pub async fn streamkist_add_watch(
         &self,
         guild: &str,

@@ -93,6 +93,7 @@ pub fn state(url: &str, storage: Arc<dyn ObjectStorage>, enforce: bool) -> Resul
         record_upload_slots: Arc::new(tokio::sync::Semaphore::new(1)),
         record_upload_bytes: Arc::new(tokio::sync::Semaphore::new(2 * 1024 * 1024)),
         lobby: zc_server::lobby::LobbySnapshotStore::default(),
+        streamkist_stats: Default::default(),
     });
     state.database_readiness.set(true);
     Ok(state)

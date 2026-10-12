@@ -12,6 +12,7 @@ pub mod problem;
 pub mod rate_limit;
 pub mod readiness;
 pub mod routes;
+pub mod streamkist;
 pub mod super_league;
 pub mod turnstile;
 
@@ -29,6 +30,7 @@ pub struct AppState {
     pub record_upload_slots: Arc<tokio::sync::Semaphore>,
     pub record_upload_bytes: Arc<tokio::sync::Semaphore>,
     pub lobby: lobby::LobbySnapshotStore,
+    pub streamkist_stats: streamkist::StatsCache,
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -76,6 +78,7 @@ pub async fn run() -> anyhow::Result<()> {
         record_upload_slots: Arc::new(tokio::sync::Semaphore::new(2)),
         record_upload_bytes: Arc::new(tokio::sync::Semaphore::new(64 * 1024 * 1024)),
         lobby: lobby::LobbySnapshotStore::default(),
+        streamkist_stats: streamkist::StatsCache::default(),
     });
     let lobby_runtime = lobby_runtime::LobbyRuntime::start(
         lobby_config,

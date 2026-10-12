@@ -12,6 +12,7 @@ use utoipa::OpenApi;
         crate::routes::health,
         crate::routes::ready,
         crate::lobby::snapshot,
+        crate::streamkist::stats,
         crate::lobby::events,
         crate::routes::add_favourite,
         crate::routes::remove_favourite,
@@ -104,7 +105,13 @@ mod tests {
     #[test]
     fn scalar_and_openapi_are_embedded() {
         let schema = serde_json::to_value(ApiDoc::openapi()).unwrap();
-        assert_eq!(schema["paths"].as_object().unwrap().len(), 60);
+        assert_eq!(schema["paths"].as_object().unwrap().len(), 61);
+        assert!(schema["paths"]["/streamkist/stats"]["get"]["responses"]["200"].is_object());
+        let stats = &schema["components"]["schemas"]["StreamkistStats"];
+        assert_eq!(stats["properties"].as_object().unwrap().len(), 4);
+        for field in ["streams", "streamers", "categories", "guilds"] {
+            assert_eq!(stats["properties"][field]["type"], "integer");
+        }
         assert!(schema["paths"]["/super-league/submission-overview"]["get"].is_object());
         assert!(
             schema["paths"]["/discord-bot/rank-batches/flush"]["post"]["responses"]["200"]
