@@ -136,11 +136,11 @@ impl Queue {
     }
     pub async fn has_pending_score_projections(&self) -> Result<bool> {
         // Verification waits for score refreshes, so it must not block those refreshes.
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelContributions','updatePlayerScore','reconcileRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','reconcileRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
             .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
     }
     pub async fn eligibility_pipeline_pending(&self) -> Result<bool> {
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('reconcileRecordEligibility','updateLevelScore','updateLevelScores','updateLevelContributions','updatePlayerScore','updatePlayerScores')) AS ok")
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('reconcileRecordEligibility','updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','updatePlayerScores')) AS ok")
             .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
     }
     pub async fn enqueue(
@@ -388,6 +388,10 @@ fn queue_identity(
             .as_i64()
             .map(|id| format!("validate-record-ghost:{id}")),
         TaskIdentifier::UpdateLevelScore => id_level.map(|id| format!("update-level-score:{id}")),
+        TaskIdentifier::UpdateLevelRecordCounts => id_level.map(|id| {
+            let after = payload["afterUserId"].as_i64().unwrap_or(0);
+            format!("update-level-record-counts:{id}:{after}")
+        }),
         TaskIdentifier::UpdateLevelContributions => id_level.and_then(|id_level| {
             if payload
                 .get("afterUserId")
@@ -410,7 +414,9 @@ fn queue_identity(
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if task == TaskIdentifier::BackfillRecordEligibility {
+    let group = if task == TaskIdentifier::UpdateLevelRecordCounts {
+        id_level.map(|id| format!("level-record-counts:{id}"))
+    } else if task == TaskIdentifier::BackfillRecordEligibility {
         Some("record-eligibility-backfill".to_owned())
     } else if task == TaskIdentifier::ReconcileRecordEligibility {
         id_level.map(|id| format!("record-eligibility:{id}"))
@@ -458,6 +464,26 @@ mod tests {
     use crate::TaskIdentifier;
     use serde_json::json;
     use std::time::Duration;
+
+    #[test]
+    fn record_count_restart_and_continuation_have_distinct_keys() {
+        let root = queue_identity(
+            TaskIdentifier::UpdateLevelRecordCounts,
+            &json!({"idLevel":17}),
+            JobLane::Bulk,
+            None,
+        );
+        let next = queue_identity(
+            TaskIdentifier::UpdateLevelRecordCounts,
+            &json!({"idLevel":17,"afterUserId":50}),
+            JobLane::Bulk,
+            None,
+        );
+        assert_eq!(root.0.as_deref(), Some("update-level-record-counts:17:0"));
+        assert_eq!(next.0.as_deref(), Some("update-level-record-counts:17:50"));
+        assert_eq!(root.1.as_deref(), Some("level-record-counts:17"));
+        assert_eq!(root.1, next.1);
+    }
 
     #[test]
     fn ghost_audits_serialize_and_checks_deduplicate() {

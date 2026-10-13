@@ -124,14 +124,9 @@ query ZC_DiscordUserLookup($filter: UserFilter!) {
 				rank
 				totalPoints
 				worldRecords
+				personalBests
 			}
 			records(first: 0) {
-				totalCount
-			}
-			personalBestGlobals(first: 0) {
-				totalCount
-			}
-			worldRecordGlobals(first: 0) {
 				totalCount
 			}
 			levelItems(first: 0, filter: { deleted: { equalTo: false } }) {

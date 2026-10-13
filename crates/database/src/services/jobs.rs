@@ -512,18 +512,19 @@ impl Database {
                     .execute(connection)
                     .await?;
                     sql_query(
-                        "INSERT INTO public.user_points(id_user,points,total_points,world_records,date_created,date_updated) \
-                         VALUES($1,$2,$3,(SELECT count(*)::integer FROM (SELECT eligible_source.* FROM public.world_record_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) WHERE id_user=$1),clock_timestamp(),clock_timestamp()) \
+                        "INSERT INTO public.user_points(id_user,points,total_points,date_created,date_updated) \
+                         VALUES($1,$2,$3,clock_timestamp(),clock_timestamp()) \
                          ON CONFLICT(id_user) DO UPDATE SET points=excluded.points,total_points=excluded.total_points, \
-                           world_records=excluded.world_records,date_updated=excluded.date_updated \
-                         WHERE ROW(user_points.points,user_points.total_points,user_points.world_records) \
-                           IS DISTINCT FROM ROW(excluded.points,excluded.total_points,excluded.world_records)",
+                           date_updated=excluded.date_updated \
+                         WHERE ROW(user_points.points,user_points.total_points) \
+                           IS DISTINCT FROM ROW(excluded.points,excluded.total_points)",
                     )
                     .bind::<Integer, _>(id_user)
                     .bind::<Integer, _>(points)
                     .bind::<Integer, _>(total_points)
                     .execute(connection)
                     .await?;
+                    super::record_counts::refresh_user_record_counts(connection, &[id_user]).await?;
                     Ok(MaintenanceOutcome::Applied(()))
                 })
             .await;
@@ -566,14 +567,14 @@ impl Database {
                         WHERE u.id=ANY($1) AND (u.banned OR NOT EXISTS(SELECT 1 FROM public.record r
                           WHERE r.id_user=u.id AND r.date_created>=clock_timestamp()-interval '6 months'
                           AND zc_private.record_is_eligible(r.id))))
-                      INSERT INTO public.user_points(id_user,points,total_points,rank,world_records,date_created,date_updated)
-                      SELECT id,0,total_points,-1,(SELECT count(*)::integer FROM public.world_record_global wr
-                        WHERE wr.id_user=inactive.id AND zc_private.record_is_eligible(wr.id_record)),clock_timestamp(),clock_timestamp()
+                      INSERT INTO public.user_points(id_user,points,total_points,rank,date_created,date_updated)
+                      SELECT id,0,total_points,-1,clock_timestamp(),clock_timestamp()
                       FROM inactive ON CONFLICT(id_user) DO UPDATE SET points=0,total_points=excluded.total_points,
-                        rank=-1,world_records=excluded.world_records,date_updated=excluded.date_updated
-                      WHERE ROW(user_points.points,user_points.total_points,user_points.rank,user_points.world_records)
-                        IS DISTINCT FROM ROW(0,excluded.total_points,-1,excluded.world_records)
+                        rank=-1,date_updated=excluded.date_updated
+                      WHERE ROW(user_points.points,user_points.total_points,user_points.rank)
+                        IS DISTINCT FROM ROW(0,excluded.total_points,-1)
                     "#).bind::<Array<Integer>,_>(&sorted).bind::<Jsonb,_>(totals).execute(connection).await?;
+                    super::record_counts::refresh_user_record_counts(connection, &sorted).await?;
                     Ok(MaintenanceOutcome::Applied(()))
                 })
             .await;
@@ -721,6 +722,37 @@ impl Database {
             Ok(MaintenanceOutcome::Applied(LevelScoreUpdate { points_changed, projection_needed }))
         }).await;
         contention_outcome(result)
+    }
+
+    /// Include every holder, even failed records and levels without score contributions.
+    pub async fn level_record_count_user_page(
+        &self,
+        id_level: i32,
+        after_user_id: i32,
+    ) -> Result<LevelContributionPage> {
+        ensure!(
+            id_level > 0 && after_user_id >= 0,
+            "invalid record count cursor"
+        );
+        let user_ids = sql_query(
+            "SELECT id_user AS id FROM (SELECT id_user FROM public.personal_best_global WHERE id_level=$1 \
+             UNION SELECT id_user FROM public.world_record_global WHERE id_level=$1) holders \
+             WHERE id_user>$2 ORDER BY id_user LIMIT 50",
+        )
+        .bind::<Integer, _>(id_level)
+        .bind::<Integer, _>(after_user_id)
+        .load::<IdRow>(&mut self.connection().await?)
+        .await?
+        .into_iter()
+        .map(|row| row.id)
+        .collect::<Vec<_>>();
+        let next_after_user_id = (user_ids.len() == 50)
+            .then(|| user_ids.last().copied())
+            .flatten();
+        Ok(LevelContributionPage {
+            user_ids,
+            next_after_user_id,
+        })
     }
 
     pub async fn level_contribution_user_page(

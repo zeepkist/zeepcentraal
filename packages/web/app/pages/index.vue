@@ -312,12 +312,12 @@ const hero = computed<DashboardHeroModel>(() => {
 			},
 			{
 				label: t('dashboard.hero.metrics.personalBests'),
-				value: numberFormat.format(viewer.personalBestGlobals.totalCount),
+				value: numberFormat.format(points?.personalBests ?? 0),
 				icon: 'star',
 			},
 			{
 				label: t('dashboard.hero.metrics.worldRecords'),
-				value: numberFormat.format(viewer.worldRecordGlobals.totalCount),
+				value: numberFormat.format(points?.worldRecords ?? 0),
 				icon: 'trophy',
 			},
 			{

@@ -6,17 +6,12 @@ query ZC_DashboardHeroSummary($id: Int!) {
 		records(first: 0) {
 			totalCount
 		}
-		personalBestGlobals(first: 0) {
-			totalCount
-		}
-		worldRecordGlobals(first: 0) {
-			totalCount
-		}
 		userPoints {
 			rank
 			points
 			totalPoints
 			worldRecords
+			personalBests
 		}
 	}
 	zslSeasons(first: 1, orderBy: [START_DATE_DESC]) {

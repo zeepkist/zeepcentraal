@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { arrayParam } from '../arrayParam'
 import type { DatabaseTransaction } from '../client'
-import { userPoints, worldRecordGlobal } from '../schema'
+import { levelItem, userPoints, worldRecordGlobal } from '../schema'
 import { sortedUniqueUserIds } from './userPointContributionHelpers'
 
 export async function refreshUserWorldRecordCounts(
@@ -17,6 +17,11 @@ export async function refreshUserWorldRecordCounts(
 			SELECT COUNT(*)::integer
 			FROM ${worldRecordGlobal}
 			WHERE ${worldRecordGlobal.idUser} = target.id
+				AND EXISTS (
+					SELECT 1 FROM ${levelItem}
+					WHERE ${levelItem.idLevel} = ${worldRecordGlobal.idLevel}
+						AND ${levelItem.deleted} = false
+				)
 		), NOW()
 		FROM UNNEST(${arrayParam(sorted)}::integer[]) AS target(id)
 		ORDER BY target.id

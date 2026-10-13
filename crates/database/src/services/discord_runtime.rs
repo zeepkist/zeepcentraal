@@ -38,9 +38,9 @@ impl Database {
              'id',account.id,'steamId',account.steam_id::text,'steamName',account.steam_name, \
              'discordId',account.discord_id::text,'points',COALESCE(points.points,0), \
              'rank',COALESCE(points.rank,-1),'totalPoints',COALESCE(points.total_points,0), \
-             'worldRecords',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.world_record_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) wr WHERE wr.id_user=account.id), \
+             'worldRecords',COALESCE(points.world_records,0), \
              'records',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record WHERE record.id_user=account.id), \
-             'personalBests',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb WHERE pb.id_user=account.id), \
+             'personalBests',COALESCE(points.personal_bests,0), \
              'publishedLevels',(SELECT count(*) FROM public.level_item item WHERE item.author_id=account.steam_id \
                AND item.deleted=false), \
              'votes',(SELECT count(*) FROM public.vote vote WHERE vote.id_user=account.id)) AS value \
@@ -188,8 +188,10 @@ impl Database {
                'records',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) value WHERE value.id_user=account.id \
                  AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
                'personalBests',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) value WHERE value.id_user=account.id \
+                 AND EXISTS(SELECT 1 FROM public.level_item item WHERE item.id_level=value.id_level AND item.deleted=false) \
                  AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
                'worldRecords',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.world_record_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) value WHERE value.id_user=account.id \
+                 AND EXISTS(SELECT 1 FROM public.level_item item WHERE item.id_level=value.id_level AND item.deleted=false) \
                  AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
                'levels',(SELECT count(*) FROM public.level_item value JOIN public.\"user\" author ON author.steam_id=value.author_id \
                  WHERE author.id=account.id AND value.deleted=false AND value.created_at >= bounds.from_at \

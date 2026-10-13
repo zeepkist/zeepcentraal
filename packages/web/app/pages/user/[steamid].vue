@@ -398,13 +398,13 @@ const metrics = computed<StatisticMetric[]>(() => [
 	{
 		key: 'pbs',
 		label: t('dashboard.metrics.personalBests'),
-		value: number.value.format(user.value?.personalBestGlobals.totalCount ?? 0),
+		value: number.value.format(user.value?.userPoints?.personalBests ?? 0),
 		icon: 'star',
 	},
 	{
 		key: 'wrs',
 		label: t('users.columns.worldRecords'),
-		value: number.value.format(user.value?.worldRecordGlobals.totalCount ?? 0),
+		value: number.value.format(user.value?.userPoints?.worldRecords ?? 0),
 		icon: 'trophy',
 	},
 	{

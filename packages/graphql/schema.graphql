@@ -23795,6 +23795,7 @@ type UserPoint implements Node {
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
+  personalBests: Int!
   points: Int!
   rank: Int!
   totalPoints: Int!
@@ -23854,6 +23855,9 @@ type UserPointAggregates {
 }
 
 type UserPointAverageAggregates {
+  """Mean average of personalBests across the matching connection"""
+  personalBests: BigFloat
+
   """Mean average of points across the matching connection"""
   points: BigFloat
 
@@ -23880,6 +23884,9 @@ input UserPointCondition {
 
   """Checks for equality with the object’s `dateUpdated` field."""
   dateUpdated: Datetime
+
+  """Checks for equality with the object’s `personalBests` field."""
+  personalBests: Int
 
   """Checks for equality with the object’s `points` field."""
   points: Int
@@ -24688,6 +24695,9 @@ type UserPointDistinctCountAggregates {
   """Distinct count of dateUpdated across the matching connection"""
   dateUpdated: BigInt
 
+  """Distinct count of personalBests across the matching connection"""
+  personalBests: BigInt
+
   """Distinct count of points across the matching connection"""
   points: BigInt
 
@@ -24723,6 +24733,9 @@ input UserPointFilter {
   """Checks for any expressions in this list."""
   or: [UserPointFilter!]
 
+  """Filter by the object’s `personalBests` field."""
+  personalBests: IntFilter
+
   """Filter by the object’s `points` field."""
   points: IntFilter
 
@@ -24750,6 +24763,7 @@ enum UserPointGroupBy {
   DATE_UPDATED
   DATE_UPDATED_TRUNCATED_TO_DAY
   DATE_UPDATED_TRUNCATED_TO_HOUR
+  PERSONAL_BESTS
   POINTS
   RANK
   TOTAL_POINTS
@@ -24759,6 +24773,7 @@ enum UserPointGroupBy {
 input UserPointHavingAverageInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24769,6 +24784,7 @@ input UserPointHavingAverageInput {
 input UserPointHavingDistinctCountInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24794,6 +24810,7 @@ input UserPointHavingInput {
 input UserPointHavingMaxInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24804,6 +24821,7 @@ input UserPointHavingMaxInput {
 input UserPointHavingMinInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24814,6 +24832,7 @@ input UserPointHavingMinInput {
 input UserPointHavingStddevPopulationInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24824,6 +24843,7 @@ input UserPointHavingStddevPopulationInput {
 input UserPointHavingStddevSampleInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24834,6 +24854,7 @@ input UserPointHavingStddevSampleInput {
 input UserPointHavingSumInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24844,6 +24865,7 @@ input UserPointHavingSumInput {
 input UserPointHavingVariancePopulationInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24854,6 +24876,7 @@ input UserPointHavingVariancePopulationInput {
 input UserPointHavingVarianceSampleInput {
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  personalBests: HavingIntFilter
   points: HavingIntFilter
   rank: HavingIntFilter
   totalPoints: HavingIntFilter
@@ -24862,6 +24885,9 @@ input UserPointHavingVarianceSampleInput {
 }
 
 type UserPointMaxAggregates {
+  """Maximum of personalBests across the matching connection"""
+  personalBests: Int
+
   """Maximum of points across the matching connection"""
   points: Int
 
@@ -24879,6 +24905,9 @@ type UserPointMaxAggregates {
 }
 
 type UserPointMinAggregates {
+  """Minimum of personalBests across the matching connection"""
+  personalBests: Int
+
   """Minimum of points across the matching connection"""
   points: Int
 
@@ -24896,6 +24925,11 @@ type UserPointMinAggregates {
 }
 
 type UserPointStddevPopulationAggregates {
+  """
+  Population standard deviation of personalBests across the matching connection
+  """
+  personalBests: BigFloat
+
   """Population standard deviation of points across the matching connection"""
   points: BigFloat
 
@@ -24917,6 +24951,11 @@ type UserPointStddevPopulationAggregates {
 }
 
 type UserPointStddevSampleAggregates {
+  """
+  Sample standard deviation of personalBests across the matching connection
+  """
+  personalBests: BigFloat
+
   """Sample standard deviation of points across the matching connection"""
   points: BigFloat
 
@@ -24938,6 +24977,9 @@ type UserPointStddevSampleAggregates {
 }
 
 type UserPointSumAggregates {
+  """Sum of personalBests across the matching connection"""
+  personalBests: BigInt!
+
   """Sum of points across the matching connection"""
   points: BigInt!
 
@@ -24955,6 +24997,9 @@ type UserPointSumAggregates {
 }
 
 type UserPointVariancePopulationAggregates {
+  """Population variance of personalBests across the matching connection"""
+  personalBests: BigFloat
+
   """Population variance of points across the matching connection"""
   points: BigFloat
 
@@ -24972,6 +25017,9 @@ type UserPointVariancePopulationAggregates {
 }
 
 type UserPointVarianceSampleAggregates {
+  """Sample variance of personalBests across the matching connection"""
+  personalBests: BigFloat
+
   """Sample variance of points across the matching connection"""
   points: BigFloat
 
@@ -25693,6 +25741,8 @@ enum UserPointsOrderBy {
   DATE_UPDATED_ASC
   DATE_UPDATED_DESC
   NATURAL
+  PERSONAL_BESTS_ASC
+  PERSONAL_BESTS_DESC
   POINTS_ASC
   POINTS_DESC
   PRIMARY_KEY_ASC

@@ -93,11 +93,14 @@ describe.skipIf(!port)('record world record counts (PostgreSQL)', () => {
 				date_created timestamptz NOT NULL DEFAULT now(), date_updated timestamptz
 			);
 			CREATE TABLE user_point_contribution (id_user integer NOT NULL);
+			CREATE TABLE level_item (id_level integer NOT NULL, deleted boolean NOT NULL DEFAULT false);
 		`)
 	})
 
 	beforeEach(async () => {
 		await client`TRUNCATE personal_best_global, world_record_global, record, user_points, user_point_contribution RESTART IDENTITY`
+		await client`TRUNCATE level_item`
+		await client`INSERT INTO level_item(id_level) SELECT id FROM generate_series(1,100) id`
 	})
 
 	afterAll(async () => {

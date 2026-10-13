@@ -414,6 +414,7 @@ diesel::table! {
         total_points -> Integer,
         rank -> Integer,
         world_records -> Integer,
+        personal_bests -> Integer,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
     }

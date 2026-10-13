@@ -1176,6 +1176,33 @@ impl JobHandler for ServiceJobHandler {
         {
             return Ok(JobOutcome::Deferred);
         }
+        if task == TaskIdentifier::UpdateLevelRecordCounts {
+            ensure!(
+                lane == JobLane::Bulk,
+                "record count cursor requires bulk lane"
+            );
+            let id_level =
+                i32::try_from(payload["idLevel"].as_i64().context("idLevel is missing")?)?;
+            let after = i32::try_from(payload["afterUserId"].as_i64().unwrap_or(0))?;
+            let page = self
+                .database
+                .level_record_count_user_page(id_level, after)
+                .await?;
+            let mut requests = player_score_requests(&page.user_ids);
+            if let Some(next) = page.next_after_user_id {
+                requests.push(EnqueueRequest {
+                    task: TaskIdentifier::UpdateLevelRecordCounts,
+                    payload: serde_json::json!({"idLevel":id_level,"afterUserId":next}),
+                    lane: JobLane::Bulk,
+                    key: None,
+                    delay: Duration::ZERO,
+                });
+            }
+            if !requests.is_empty() {
+                self.queue.enqueue_many(requests).await?;
+            }
+            return Ok(JobOutcome::Completed);
+        }
         if task == TaskIdentifier::UpdateLevelContributions {
             return self
                 .update_level_contributions(&payload, lane, attempts)
@@ -1233,7 +1260,9 @@ impl JobHandler for ServiceJobHandler {
                 .insert_user_point_histories(&integer_ids(&payload, "ids")?)
                 .await
                 .map(|_| ()),
-            TaskIdentifier::UpdatePlayerScore => unreachable!(),
+            TaskIdentifier::UpdatePlayerScore | TaskIdentifier::UpdateLevelRecordCounts => {
+                unreachable!()
+            }
             TaskIdentifier::UpdatePlayerScores => {
                 self.update_player_scores(payload["silent"].as_bool().unwrap_or(false))
                     .await

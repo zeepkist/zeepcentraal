@@ -22,6 +22,14 @@ const batchPayload = z.union([
 	}),
 ])
 export const taskDefinitions = {
+	updateLevelRecordCounts: {
+		schema: z.strictObject({
+			idLevel: z.number().int().positive().max(2147483647),
+			afterUserId: z.number().int().nonnegative().max(2147483647).optional(),
+		}),
+		compatible: false,
+		maxAttempts: 3,
+	},
 	reconcileRecordEligibility: {
 		schema: z.strictObject({ idLevel: z.number().int().positive().max(2147483647) }),
 		compatible: true,

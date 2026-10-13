@@ -884,6 +884,7 @@ export const userPoints = pgTable(
 		totalPoints: integer('total_points').default(0).notNull(),
 		rank: integer().default(-1).notNull(),
 		worldRecords: integer('world_records').default(0).notNull(),
+		personalBests: integer('personal_bests').default(0).notNull(),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),

@@ -32,6 +32,10 @@ struct Cache {
     world_records: i32,
     #[diesel(sql_type=Integer)]
     expected_world_records: i32,
+    #[diesel(sql_type=Integer)]
+    personal_bests: i32,
+    #[diesel(sql_type=Integer)]
+    expected_personal_bests: i32,
 }
 
 impl Database {
@@ -50,7 +54,7 @@ impl Database {
             }
             let ids: Vec<_> = page.iter().map(|u| u.id_user).collect();
             let sources = self.user_score_sources(&ids).await?;
-            let cached=sql_query("SELECT u.id AS id_user,coalesce(p.points,0) AS points,coalesce(p.total_points,0) AS total_points,coalesce(p.world_records,0)::integer AS world_records,(SELECT count(*)::integer FROM public.world_record_global wr WHERE wr.id_user=u.id AND zc_private.record_is_eligible(wr.id_record)) AS expected_world_records FROM public.\"user\" u LEFT JOIN public.user_points p ON p.id_user=u.id WHERE u.id=ANY($1)")
+            let cached=sql_query("SELECT expected.id_user,coalesce(p.points,0) AS points,coalesce(p.total_points,0) AS total_points,coalesce(p.world_records,0)::integer AS world_records,expected.world_records AS expected_world_records,coalesce(p.personal_bests,0)::integer AS personal_bests,expected.personal_bests AS expected_personal_bests FROM zc_private.user_record_counts($1) expected LEFT JOIN public.user_points p ON p.id_user=expected.id_user")
                 .bind::<Array<Integer>,_>(&ids).load::<Cache>(&mut self.connection().await?).await?;
             for row in cached {
                 let active = page.iter().any(|u| u.id_user == row.id_user && u.active);
@@ -72,6 +76,7 @@ impl Database {
                 if row.points != points
                     || row.total_points != total
                     || row.world_records != row.expected_world_records
+                    || row.personal_bests != row.expected_personal_bests
                 {
                     return Ok(false);
                 }

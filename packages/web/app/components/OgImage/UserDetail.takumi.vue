@@ -30,11 +30,11 @@ const metrics = [
 	},
 	{
 		label: t('users.columns.worldRecords'),
-		value: number.format(user?.worldRecordGlobals.totalCount ?? 0),
+		value: number.format(user?.userPoints?.worldRecords ?? 0),
 	},
 	{
 		label: t('dashboard.metrics.personalBests'),
-		value: number.format(user?.personalBestGlobals.totalCount ?? 0),
+		value: number.format(user?.userPoints?.personalBests ?? 0),
 	},
 	{ label: t('common.records'), value: number.format(user?.records.totalCount ?? 0) },
 	{ label: t('common.levels'), value: number.format(user?.levelItems.totalCount ?? 0) },

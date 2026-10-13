@@ -3,6 +3,7 @@ import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { arrayParam } from '../arrayParam'
 import { type DatabaseTransaction, db } from '../client'
 import {
+	levelItem,
 	levelPoints,
 	personalBestGlobal,
 	record,
@@ -206,7 +207,12 @@ export async function persistUserPointScore(input: PersistUserPointScoreInput): 
 				(
 					SELECT COUNT(*)::integer
 					FROM ${worldRecordGlobal}
-					WHERE ${worldRecordGlobal.idUser} = ${input.idUser}
+						WHERE ${worldRecordGlobal.idUser} = ${input.idUser}
+							AND EXISTS (
+								SELECT 1 FROM ${levelItem}
+								WHERE ${levelItem.idLevel} = ${worldRecordGlobal.idLevel}
+									AND ${levelItem.deleted} = false
+							)
 				),
 				NOW()
 			)

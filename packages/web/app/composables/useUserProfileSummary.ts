@@ -21,8 +21,8 @@ export function useUserProfileSummary(steamId: Ref<string>) {
 			rankedPoints: value.userPoints?.points ?? 0,
 			totalPoints: value.userPoints?.totalPoints ?? 0,
 			records: value.records.totalCount,
-			personalBests: value.personalBestGlobals.totalCount,
-			worldRecords: value.worldRecordGlobals.totalCount,
+			personalBests: value.userPoints?.personalBests ?? 0,
+			worldRecords: value.userPoints?.worldRecords ?? 0,
 			levels: value.levelItems.totalCount,
 		}
 	})

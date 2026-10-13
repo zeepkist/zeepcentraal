@@ -40,6 +40,7 @@ pub enum TaskIdentifier {
     UpdateLevelPointsHistory,
     UpdateLevelPointsHistoryBatch,
     UpdateLevelContributions,
+    UpdateLevelRecordCounts,
     UpdateLevelScore,
     UpdateLevelScores,
     UpdatePlayerScore,
@@ -49,7 +50,7 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 26] = [
+    pub const ALL: [Self; 27] = [
         Self::ReconcileRecordEligibility,
         Self::BackfillRecordEligibility,
         Self::ValidateRecordGhost,
@@ -70,6 +71,7 @@ impl TaskIdentifier {
         Self::UpdateLevelPointsHistory,
         Self::UpdateLevelPointsHistoryBatch,
         Self::UpdateLevelContributions,
+        Self::UpdateLevelRecordCounts,
         Self::UpdateLevelScore,
         Self::UpdateLevelScores,
         Self::UpdatePlayerScore,
@@ -100,6 +102,7 @@ impl TaskIdentifier {
             Self::UpdateLevelPointsHistory => "updateLevelPointsHistory",
             Self::UpdateLevelPointsHistoryBatch => "updateLevelPointsHistoryBatch",
             Self::UpdateLevelContributions => "updateLevelContributions",
+            Self::UpdateLevelRecordCounts => "updateLevelRecordCounts",
             Self::UpdateLevelScore => "updateLevelScore",
             Self::UpdateLevelScores => "updateLevelScores",
             Self::UpdatePlayerScore => "updatePlayerScore",
@@ -119,6 +122,7 @@ impl TaskIdentifier {
             Self::RecoverLevelRequests
                 | Self::RotateTrackTournament
                 | Self::UpdateLevelContributions
+                | Self::UpdateLevelRecordCounts
         )
     }
 
@@ -135,6 +139,9 @@ impl TaskIdentifier {
     }
 
     pub fn validate_external_payload(self, payload: &serde_json::Value) -> bool {
+        if self == Self::UpdateLevelRecordCounts {
+            return false;
+        }
         if self == Self::BackfillRecordEligibility && payload.get("verify").is_some() {
             return false;
         }
@@ -197,6 +204,21 @@ impl TaskIdentifier {
                     && optional_defer()
             }
             Self::UpdatePlayerScores => optional_bool("silent") && optional_defer(),
+            Self::UpdateLevelRecordCounts => {
+                object
+                    .keys()
+                    .all(|key| matches!(key.as_str(), "idLevel" | "afterUserId" | "deferCount"))
+                    && positive_i64("idLevel")
+                    && object["idLevel"]
+                        .as_i64()
+                        .is_some_and(|id| id <= i32::MAX.into())
+                    && object.get("afterUserId").is_none_or(|value| {
+                        value
+                            .as_i64()
+                            .is_some_and(|id| (0..=i32::MAX.into()).contains(&id))
+                    })
+                    && optional_defer()
+            }
             Self::BackfillRecordEligibility => {
                 object.keys().all(|k| {
                     matches!(
@@ -448,8 +470,27 @@ mod tests {
     use super::TaskIdentifier;
 
     #[test]
+    fn record_count_cursors_are_bounded_and_internal() {
+        use serde_json::json;
+        let task = TaskIdentifier::UpdateLevelRecordCounts;
+        assert!(task.validate_payload(&json!({"idLevel":1})));
+        assert!(task.validate_payload(&json!({"idLevel":1,"afterUserId":50})));
+        assert!(!task.compatible());
+        assert!(!task.validate_external_payload(&json!({"idLevel":1})));
+        for invalid in [
+            json!({"idLevel":0}),
+            json!({"idLevel":2147483648_i64}),
+            json!({"idLevel":1,"afterUserId":-1}),
+            json!({"idLevel":1,"afterUserId":2147483648_i64}),
+            json!({"idLevel":1,"other":true}),
+        ] {
+            assert!(!task.validate_payload(&invalid));
+        }
+    }
+
+    #[test]
     fn task_registry_round_trips_all_identifiers() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 26);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 27);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }

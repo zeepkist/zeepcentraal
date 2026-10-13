@@ -120,7 +120,8 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
         )
         .await?
         .get(0);
-    assert_eq!(world_records, 1);
+    // Submission-created level has no available level_item, including adventure aliases.
+    assert_eq!(world_records, 0);
 
     let slower = database
         .submit_record(RecordSubmission {
