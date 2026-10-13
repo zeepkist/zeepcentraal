@@ -1,5 +1,8 @@
 use anyhow::{Result, ensure};
-use zc_database::{Database, services::jobs::MaintenanceOutcome};
+use zc_database::{
+    Database,
+    services::{jobs::MaintenanceOutcome, record::RecordSubmission},
+};
 
 const UP: &str = include_str!("../migrations/20261013010000_available_record_counts/up.sql");
 const DOWN: &str = include_str!("../migrations/20261013010000_available_record_counts/down.sql");
@@ -134,6 +137,35 @@ async fn availability_counts_backfill_workshop_refresh_and_rollback() -> Result<
     db.recalculate_player_score(1).await?;
     assert_eq!(counts(&client, 1).await?, (1, 1));
 
+    // Real WR transfer refreshes both holders, independently of score contributions.
+    client
+        .execute(
+            "SELECT setval(pg_get_serial_sequence('public.record','id'),59,true)",
+            &[],
+        )
+        .await?;
+    client.execute("TRUNCATE zc_jobs.job", &[]).await?;
+    let statistics = zc_core::ghosts::GhostStatistics::default();
+    let transferred = db
+        .submit_record(RecordSubmission {
+            evidence: None,
+            id_user: 2,
+            id_level: 1,
+            time: 9.0,
+            game_version: "test",
+            mod_version: "test",
+            splits: &[],
+            speeds: &[],
+            statistics: &statistics,
+        })
+        .await?;
+    assert_eq!(transferred.world_record_user_ids, vec![1, 2]);
+    assert_eq!(client.query_one("SELECT count(*) FROM zc_jobs.job WHERE task='updatePlayerScore' AND payload->>'idUser' IN ('1','2')", &[]).await?.get::<_,i64>(0),2);
+    db.recalculate_player_score(1).await?;
+    db.recalculate_player_score(2).await?;
+    assert_eq!(counts(&client, 1).await?, (1, 0));
+    assert_eq!(counts(&client, 2).await?, (1, 1));
+
     // Metadata-only scans do not restart count work. Reassignment refreshes both levels.
     client.execute("TRUNCATE zc_jobs.job", &[]).await?;
     client
@@ -157,12 +189,21 @@ async fn availability_counts_backfill_workshop_refresh_and_rollback() -> Result<
 
     // Projection changes queue users even when no score contribution exists.
     client.execute("TRUNCATE zc_jobs.job", &[]).await?;
-    client
-        .execute(
-            "UPDATE public.personal_best_global SET id_record=57 WHERE id_user=1 AND id_level=1",
-            &[],
-        )
+    let improved = db
+        .submit_record(RecordSubmission {
+            evidence: None,
+            id_user: 1,
+            id_level: 1,
+            time: 9.0,
+            game_version: "test",
+            mod_version: "test",
+            splits: &[],
+            speeds: &[],
+            statistics: &statistics,
+        })
         .await?;
+    assert!(improved.personal_best_changed);
+    assert!(improved.world_record_user_ids.is_empty());
     assert!(client.query_one("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task='updatePlayerScore' AND payload->>'idUser'='1')",&[]).await?.get::<_,bool>(0));
     client.batch_execute(DOWN).await?;
     assert_eq!(
@@ -173,7 +214,7 @@ async fn availability_counts_backfill_workshop_refresh_and_rollback() -> Result<
             )
             .await?
             .get::<_, i32>(0),
-        2
+        1
     );
     client.batch_execute(UP).await?;
     assert_eq!(counts(&client, 1).await?, (0, 0));
