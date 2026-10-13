@@ -8,6 +8,8 @@ import SubmissionResult from '~/components/super-league/SubmissionResult.vue'
 import ValidSubmissions from '~/components/super-league/ValidSubmissions.vue'
 import { steamContestAnnouncementUrl, submissionRuleLimits } from '~/utils/superLeagueSubmission'
 
+definePageMeta({ middleware: 'super-league-active-round' })
+
 const { locale } = useI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const route = useRoute()
