@@ -24,13 +24,13 @@ const cachedSitemapMaxIds = defineCachedFunction(
 		const now = new Date().toISOString()
 		const data = await fetchGraphql(Zc_SitemapMaxIdsDocument, { now })
 		return {
-			users: data.users?.aggregates?.max?.id ?? 0,
-			levels: data.levels?.aggregates?.max?.id ?? 0,
-			records: data.records?.aggregates?.max?.id ?? 0,
-			tournaments: data.trackTournaments?.aggregates?.max?.id ?? 0,
-			'super-league-seasons': data.zslSeasons?.aggregates?.max?.id ?? 0,
-			'super-league-rounds': data.zslRounds?.aggregates?.max?.id ?? 0,
-			'super-league-levels': data.zslLevels?.aggregates?.max?.id ?? 0,
+			users: data.users?.nodes[0]?.id ?? 0,
+			levels: data.levels?.nodes[0]?.id ?? 0,
+			records: data.records?.nodes[0]?.id ?? 0,
+			tournaments: data.trackTournaments?.nodes[0]?.id ?? 0,
+			'super-league-seasons': data.zslSeasons?.nodes[0]?.id ?? 0,
+			'super-league-rounds': data.zslRounds?.nodes[0]?.id ?? 0,
+			'super-league-levels': data.zslLevels?.nodes[0]?.id ?? 0,
 		}
 	},
 	{

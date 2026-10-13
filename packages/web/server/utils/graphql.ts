@@ -26,7 +26,7 @@ export async function fetchGraphql<TData, TVariables>(
 					timeout: 10_000,
 				},
 			)
-			if (!response.data)
+			if (response.errors?.length || !response.data)
 				throw createError({
 					statusCode: 502,
 					statusMessage: response.errors?.[0]?.message ?? 'GraphQL request failed',

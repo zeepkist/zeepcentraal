@@ -14,6 +14,7 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
     );
     let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("fixture connection") });
+    let persisted_eligibility = client.query_one("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='record' AND column_name='record_eligible')", &[]).await?.get::<_,bool>(0);
     client.batch_execute(r#"
       TRUNCATE public."user",public.level,public.discord_activity_event,zc_jobs.job RESTART IDENTITY CASCADE;
       INSERT INTO public."user"(id,steam_id,banned) OVERRIDING SYSTEM VALUE VALUES(1,42,false),(2,43,false),(3,44,true),(4,45,false);
@@ -39,7 +40,7 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
     let db = Database::connect(&url, 4).await?;
     let original = client
         .query_one(
-            "SELECT to_jsonb(r)::text FROM public.record r WHERE id=1",
+            "SELECT (to_jsonb(r)-'record_eligible')::text FROM public.record r WHERE id=1",
             &[],
         )
         .await?
@@ -212,7 +213,7 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
     assert_eq!(
         client
             .query_one(
-                "SELECT to_jsonb(r)::text FROM public.record r WHERE id=1",
+                "SELECT (to_jsonb(r)-'record_eligible')::text FROM public.record r WHERE id=1",
                 &[]
             )
             .await?
@@ -291,6 +292,13 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
             .await?
             .get::<_, bool>(0)
     );
+    if persisted_eligibility {
+        client
+            .batch_execute(include_str!(
+                "../migrations/20261013020000_persist_record_eligibility/down.sql"
+            ))
+            .await?;
+    }
     client
         .batch_execute(include_str!(
             "../migrations/20261012010000_record_eligibility/down.sql"
@@ -311,6 +319,13 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
             "../migrations/20261012010000_record_eligibility/up.sql"
         ))
         .await?;
+    if persisted_eligibility {
+        client
+            .batch_execute(include_str!(
+                "../migrations/20261013020000_persist_record_eligibility/up.sql"
+            ))
+            .await?;
+    }
     client.batch_execute("INSERT INTO public.level(id,hash,xx_hash) OVERRIDING SYSTEM VALUE SELECT id,'fixture-'||id,md5(id::text) FROM generate_series(10,110) id; INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE SELECT id+990,1,id,10,'test','test' FROM generate_series(10,110) id").await?;
     db.save_checked_record_validations(
         &(1000..=1100).collect::<Vec<_>>(),

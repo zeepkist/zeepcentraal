@@ -216,6 +216,7 @@ diesel::table! {
         id_level -> Integer,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
+        record_eligible -> Bool,
     }
 }
 
@@ -241,6 +242,7 @@ diesel::table! {
         speeds -> Nullable<Array<Float>>,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
+        record_eligible -> Bool,
     }
 }
 
@@ -250,6 +252,7 @@ diesel::table! {
         ghost_url -> Nullable<Text>,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
+        record_eligible -> Bool,
     }
 }
 
@@ -349,6 +352,7 @@ diesel::table! {
         max_gforce -> Nullable<Float>,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
+        record_eligible -> Bool,
     }
 }
 
@@ -404,6 +408,7 @@ diesel::table! {
         level_decayed_points -> Float,
         player_decayed_points -> Float,
         date_calculated -> Timestamptz,
+        record_eligible -> Bool,
     }
 }
 
@@ -477,6 +482,7 @@ diesel::table! {
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
         id_user -> Integer,
+        record_eligible -> Bool,
     }
 }
 
@@ -822,6 +828,7 @@ diesel::table! {
         is_personal_best -> Bool,
         is_world_record -> Bool,
         has_contribution -> Bool,
+        record_eligible -> Bool,
     }
 }
 

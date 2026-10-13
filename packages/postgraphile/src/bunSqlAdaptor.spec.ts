@@ -100,6 +100,7 @@ test('Bun service includes dedicated LISTEN connection within configured budget'
 	})
 	expect(service.adaptorSettings?.pool.options.max).toBe(5)
 	expect(service.adaptorSettings?.pool.options.prepare).toBe(false)
+	expect(service.adaptorSettings?.pool.options.idleTimeout).toBe(0)
 	await service.release?.()
 	await service.release?.()
 })

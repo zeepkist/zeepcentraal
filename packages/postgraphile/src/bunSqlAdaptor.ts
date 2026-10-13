@@ -198,7 +198,8 @@ export function makeBunPgService(
 		max: poolConfig.max - (pubsub ? 1 : 0),
 		// Grafast passes pre-serialized JSON parameters, matching pg text encoding.
 		prepare: false,
-		idleTimeout: 10,
+		// PostgreSQL statement_timeout bounds active work. Do not expire reserved connections.
+		idleTimeout: 0,
 		connectionTimeout: poolConfig.connectionTimeoutMillis / 1000,
 		connection,
 	})

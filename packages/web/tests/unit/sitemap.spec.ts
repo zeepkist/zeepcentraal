@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { Kind, parse } from 'graphql'
 import { describe, expect, test } from 'vitest'
 import {
 	isSitemapGroup,
@@ -14,6 +15,26 @@ import {
 const source = (path: string) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
 
 describe('paginated sitemaps', () => {
+	test('finds maximum IDs using descending bounded connections without aggregates', () => {
+		const document = parse(source('../graphql/documents/web/queries/sitemap.graphql'))
+		const operation = document.definitions.find(
+			(definition) =>
+				definition.kind === Kind.OPERATION_DEFINITION &&
+				definition.name?.value === 'ZC_SitemapMaxIds',
+		)
+		if (operation?.kind !== Kind.OPERATION_DEFINITION) throw new Error('Missing sitemap query')
+		expect(operation.selectionSet.selections).toHaveLength(7)
+		for (const field of operation.selectionSet.selections) {
+			if (field.kind !== Kind.FIELD) throw new Error('Unexpected selection')
+			expect(
+				field.arguments?.find((argument) => argument.name.value === 'first')?.value,
+			).toMatchObject({ value: '1' })
+			expect(
+				field.arguments?.find((argument) => argument.name.value === 'orderBy')?.value,
+			).toMatchObject({ values: [{ value: 'ID_DESC' }] })
+			expect(field.selectionSet?.selections).toMatchObject([{ name: { value: 'nodes' } }])
+		}
+	})
 	test('uses stable 1000-ID windows', () => {
 		expect(sitemapPageCount(0)).toBe(0)
 		expect(sitemapPageCount(1)).toBe(1)

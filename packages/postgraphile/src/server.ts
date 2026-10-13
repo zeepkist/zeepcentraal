@@ -57,11 +57,13 @@ export function buildPostGraphileServer(
 	const readiness =
 		providedReadiness ??
 		createReadinessService(runtime.readinessProbe, postgraphileConfig.readiness)
+	const httpIdleTimeout = Math.ceil(postgraphileConfig.databaseTimeouts.statementMs / 1000) + 5
 
 	return new Elysia({
 		precompile: true,
 		serve: {
 			development: postgraphileConfig.nodeEnv !== 'production',
+			idleTimeout: httpIdleTimeout > 255 ? 0 : httpIdleTimeout,
 			maxRequestBodySize: postgraphileConfig.maxRequestBodySize,
 		},
 	})

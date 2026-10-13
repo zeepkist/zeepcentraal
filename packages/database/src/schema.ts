@@ -826,6 +826,7 @@ export const levelRequest = pgTable(
 export const personalBestGlobal = pgTable(
 	'personal_best_global',
 	{
+		recordEligible: boolean('record_eligible').notNull().default(true),
 		id: integer().primaryKey().generatedByDefaultAsIdentity({
 			name: 'personal_bests_id_seq',
 			startWith: 1,
@@ -845,6 +846,13 @@ export const personalBestGlobal = pgTable(
 		),
 	},
 	(table) => [
+		foreignKey({
+			columns: [table.idRecord, table.recordEligible],
+			foreignColumns: [record.id, record.recordEligible],
+			name: 'personal_best_global_eligibility_fkey',
+		})
+			.onDelete('cascade')
+			.onUpdate('cascade'),
 		foreignKey({
 			columns: [table.idLevel],
 			foreignColumns: [level.id],
@@ -871,7 +879,7 @@ export const personalBestGlobal = pgTable(
 		pgPolicy('record_eligibility', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+			using: sql`${table.recordEligible}`,
 		}),
 	],
 ).enableRLS()
@@ -922,6 +930,7 @@ export const userPoints = pgTable(
 export const userPointContribution = pgTable(
 	'user_point_contribution',
 	{
+		recordEligible: boolean('record_eligible').notNull().default(true),
 		idUser: integer('id_user').notNull(),
 		idLevel: integer('id_level').notNull(),
 		idRecord: integer('id_record').notNull(),
@@ -935,6 +944,13 @@ export const userPointContribution = pgTable(
 			.defaultNow(),
 	},
 	(table) => [
+		foreignKey({
+			columns: [table.idRecord, table.recordEligible],
+			foreignColumns: [record.id, record.recordEligible],
+			name: 'user_point_contribution_eligibility_fkey',
+		})
+			.onDelete('cascade')
+			.onUpdate('cascade'),
 		foreignKey({
 			columns: [table.idUser],
 			foreignColumns: [user.id],
@@ -991,7 +1007,7 @@ export const userPointContribution = pgTable(
 		pgPolicy('record_eligibility', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+			using: sql`${table.recordEligible}`,
 		}),
 	],
 ).enableRLS()
@@ -1096,6 +1112,7 @@ export const auth = pgTable(
 export const record = pgTable(
 	'record',
 	{
+		recordEligible: boolean('record_eligible').notNull().default(true),
 		id: integer().primaryKey().generatedByDefaultAsIdentity({
 			name: 'records_id_seq',
 			startWith: 1,
@@ -1119,6 +1136,11 @@ export const record = pgTable(
 		),
 	},
 	(table) => [
+		unique('record_eligibility_identity').on(table.id, table.recordEligible),
+		index('records_eligible_id').using('btree', table.id).where(sql`${table.recordEligible}`),
+		index('records_eligible_date_level')
+			.using('btree', table.dateCreated.desc().nullsLast(), table.idLevel)
+			.where(sql`${table.recordEligible}`),
 		foreignKey({
 			columns: [table.idLevel],
 			foreignColumns: [level.id],
@@ -1165,7 +1187,7 @@ export const record = pgTable(
 		pgPolicy('record_eligibility', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.id} AND v.status = 'fail')`,
+			using: sql`${table.recordEligible}`,
 		}),
 	],
 )
@@ -1335,6 +1357,7 @@ export const trackTournamentResult = pgTable(
 export const recordMedia = pgTable(
 	'record_media',
 	{
+		recordEligible: boolean('record_eligible').notNull().default(true),
 		idRecord: integer('id_record').primaryKey(),
 		ghostUrl: text('ghost_url'),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
@@ -1346,6 +1369,13 @@ export const recordMedia = pgTable(
 	},
 	(table) => [
 		foreignKey({
+			columns: [table.idRecord, table.recordEligible],
+			foreignColumns: [record.id, record.recordEligible],
+			name: 'record_media_eligibility_fkey',
+		})
+			.onDelete('cascade')
+			.onUpdate('cascade'),
+		foreignKey({
 			columns: [table.idRecord],
 			foreignColumns: [record.id],
 			name: 'media_record_fkey',
@@ -1353,7 +1383,7 @@ export const recordMedia = pgTable(
 		pgPolicy('record_eligibility', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+			using: sql`${table.recordEligible}`,
 		}),
 	],
 ).enableRLS()
@@ -1361,6 +1391,7 @@ export const recordMedia = pgTable(
 export const recordStatistic = pgTable(
 	'record_statistic',
 	{
+		recordEligible: boolean('record_eligible').notNull().default(true),
 		idRecord: integer('id_record').primaryKey(),
 		ghostVersion: integer('ghost_version'),
 		hasInputData: boolean('has_input_data'),
@@ -1447,6 +1478,17 @@ export const recordStatistic = pgTable(
 	},
 	(table) => [
 		foreignKey({
+			columns: [table.idRecord, table.recordEligible],
+			foreignColumns: [record.id, record.recordEligible],
+			name: 'record_statistic_eligibility_fkey',
+		})
+			.onDelete('cascade')
+			.onUpdate('cascade'),
+		// Diesel SQL adds INCLUDE(distance); retained Drizzle API cannot express INCLUDE.
+		index('record_statistics_eligible_distance')
+			.using('btree', table.idRecord)
+			.where(sql`${table.recordEligible}`),
+		foreignKey({
 			columns: [table.idRecord],
 			foreignColumns: [record.id],
 			name: 'record_statistic_record_fkey',
@@ -1454,7 +1496,7 @@ export const recordStatistic = pgTable(
 		pgPolicy('record_eligibility', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+			using: sql`${table.recordEligible}`,
 		}),
 	],
 ).enableRLS()
@@ -1750,6 +1792,7 @@ export const vote = pgTable(
 export const worldRecordGlobal = pgTable(
 	'world_record_global',
 	{
+		recordEligible: boolean('record_eligible').notNull().default(true),
 		id: integer().primaryKey().generatedByDefaultAsIdentity({
 			name: 'world_records_id_seq',
 			startWith: 1,
@@ -1769,6 +1812,13 @@ export const worldRecordGlobal = pgTable(
 		idUser: integer('id_user').notNull(),
 	},
 	(table) => [
+		foreignKey({
+			columns: [table.idRecord, table.recordEligible],
+			foreignColumns: [record.id, record.recordEligible],
+			name: 'world_record_global_eligibility_fkey',
+		})
+			.onDelete('cascade')
+			.onUpdate('cascade'),
 		foreignKey({
 			columns: [table.idLevel],
 			foreignColumns: [level.id],
@@ -1797,7 +1847,7 @@ export const worldRecordGlobal = pgTable(
 		pgPolicy('record_eligibility', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+			using: sql`${table.recordEligible}`,
 		}),
 	],
 ).enableRLS()
@@ -2094,6 +2144,7 @@ export const discordDelivery = zcPrivate.table(
 export const recordHistoryIndex = zcPrivate.table(
 	'record_history_index',
 	{
+		recordEligible: boolean('record_eligible').notNull().default(true),
 		historyView: text('history_view').notNull(),
 		id: integer().notNull(),
 		time: real().notNull(),
@@ -2110,6 +2161,13 @@ export const recordHistoryIndex = zcPrivate.table(
 		hasContribution: boolean('has_contribution').notNull().default(false),
 	},
 	(table) => [
+		foreignKey({
+			columns: [table.id, table.recordEligible],
+			foreignColumns: [record.id, record.recordEligible],
+			name: 'record_history_index_eligibility_fkey',
+		})
+			.onDelete('cascade')
+			.onUpdate('cascade'),
 		primaryKey({ columns: [table.historyView, table.id] }),
 		foreignKey({
 			columns: [table.id],
@@ -2193,7 +2251,7 @@ export const recordHistoryIndex = zcPrivate.table(
 		pgPolicy('record_eligibility', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.id} AND v.status = 'fail')`,
+			using: sql`${table.recordEligible}`,
 		}),
 	],
 )

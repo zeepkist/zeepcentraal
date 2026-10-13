@@ -1,54 +1,45 @@
 query ZC_SitemapMaxIds($now: Datetime!) {
-	users(first: 0, filter: { banned: { equalTo: false } }) {
-		aggregates {
-			max {
-				id
-			}
+	users(first: 1, orderBy: [ID_DESC], filter: { banned: { equalTo: false } }) {
+		nodes {
+			id
 		}
 	}
-	levels(first: 0, filter: { publiclyVisible: { equalTo: true } }) {
-		aggregates {
-			max {
-				id
-			}
+	levels(first: 1, orderBy: [ID_DESC], filter: { publiclyVisible: { equalTo: true } }) {
+		nodes {
+			id
 		}
 	}
-	records(first: 0, filter: { level: { publiclyVisible: { equalTo: true } } }) {
-		aggregates {
-			max {
-				id
-			}
+	records(
+		first: 1
+		orderBy: [ID_DESC]
+		filter: { level: { publiclyVisible: { equalTo: true } } }
+	) {
+		nodes {
+			id
 		}
 	}
 	trackTournaments(
-		first: 0
+		first: 1
+		orderBy: [ID_DESC]
 		filter: { startAt: { lessThanOrEqualTo: $now }, type: { in: [0, 1] } }
 	) {
-		aggregates {
-			max {
-				id
-			}
+		nodes {
+			id
 		}
 	}
-	zslSeasons(first: 0) {
-		aggregates {
-			max {
-				id
-			}
+	zslSeasons(first: 1, orderBy: [ID_DESC]) {
+		nodes {
+			id
 		}
 	}
-	zslRounds(first: 0) {
-		aggregates {
-			max {
-				id
-			}
+	zslRounds(first: 1, orderBy: [ID_DESC]) {
+		nodes {
+			id
 		}
 	}
-	zslLevels(first: 0) {
-		aggregates {
-			max {
-				id
-			}
+	zslLevels(first: 1, orderBy: [ID_DESC]) {
+		nodes {
+			id
 		}
 	}
 }
