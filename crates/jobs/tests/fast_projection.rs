@@ -170,5 +170,32 @@ async fn fast_level_jobs_coalesce_and_submitter_repairs_keep_order() -> Result<(
             .get_result(&mut connection)
             .await?;
     assert_eq!(archived.count, 0);
+    drop(connection);
+    assert!(!queue.has_pending_score_projections().await?);
+    queue
+        .enqueue(
+            TaskIdentifier::BackfillRecordEligibility,
+            json!({"verify": true, "throughLevelId": 100}),
+            JobLane::Bulk,
+            Some("eligibility-verification-test"),
+        )
+        .await?;
+    assert!(!queue.has_pending_score_projections().await?);
+    let verification = queue.claim(JobLane::Bulk, 1).await?;
+    assert!(!queue.has_pending_score_projections().await?);
+    assert!(queue.finish(&verification[0], None).await?);
+    queue
+        .enqueue(
+            TaskIdentifier::BackfillRecordEligibility,
+            json!({"throughLevelId": 100}),
+            JobLane::Bulk,
+            Some("eligibility-backfill-test"),
+        )
+        .await?;
+    assert!(queue.has_pending_score_projections().await?);
+    let backfill = queue.claim(JobLane::Bulk, 1).await?;
+    assert!(queue.has_pending_score_projections().await?);
+    assert!(queue.finish(&backfill[0], None).await?);
+    assert!(!queue.has_pending_score_projections().await?);
     Ok(())
 }

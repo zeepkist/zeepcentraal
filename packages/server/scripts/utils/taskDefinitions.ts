@@ -22,6 +22,19 @@ const batchPayload = z.union([
 	}),
 ])
 export const taskDefinitions = {
+	reconcileRecordEligibility: {
+		schema: z.strictObject({ idLevel: z.number().int().positive().max(2147483647) }),
+		compatible: true,
+		maxAttempts: 3,
+	},
+	backfillRecordEligibility: {
+		schema: z.strictObject({
+			afterLevelId: z.number().int().nonnegative().max(2147483647).optional(),
+			throughLevelId: z.number().int().nonnegative().max(2147483647).optional(),
+		}),
+		compatible: true,
+		maxAttempts: 3,
+	},
 	prepareZslWarmupPlaylist: {
 		schema: z.strictObject({ roundId: z.number().int().positive().max(2147483647) }),
 		compatible: true,
@@ -137,6 +150,7 @@ export const taskDefinitions = {
 	updateLevelScores: {
 		schema: z.looseObject({
 			all: z.boolean().optional(),
+			silent: z.boolean().optional(),
 			reportOnly: z.boolean().optional(),
 		}),
 		compatible: true,
@@ -147,7 +161,11 @@ export const taskDefinitions = {
 		compatible: true,
 		maxAttempts: 3,
 	},
-	updatePlayerScores: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
+	updatePlayerScores: {
+		schema: z.looseObject({ silent: z.boolean().optional() }),
+		compatible: true,
+		maxAttempts: 3,
+	},
 	updateUserPointsHistory: { schema: emptyPayload, compatible: true, maxAttempts: 3 },
 	updateUserPointsHistoryBatch: { schema: batchPayload, compatible: true, maxAttempts: 3 },
 } as const

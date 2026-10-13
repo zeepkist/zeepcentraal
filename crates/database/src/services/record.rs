@@ -195,6 +195,9 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<RecordSubmissionResult, anyhow::Error, _>(async move |connection| {
+                    sql_query("SELECT pg_advisory_xact_lock($1,$2)")
+                        .bind::<Integer,_>(super::record_eligibility::LEVEL_LOCK_NAMESPACE)
+                        .bind::<Integer,_>(input.id_level).execute(connection).await?;
                     if let Some(evidence) = &input.evidence
                         && let Some(run_uuid) = evidence.run_uuid {
                         sql_query("SELECT pg_advisory_xact_lock($1,hashtext($2))").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).execute(connection).await?;
@@ -261,15 +264,21 @@ impl Database {
                     .execute(connection)
                     .await?;
 
+                    if input.evidence.as_ref().is_some_and(|e| e.report.status == "fail") {
+                        return Ok(RecordSubmissionResult { id_record:created.id, personal_best_changed:false,
+                            tournament_result_changed:false, world_record_user_ids:vec![] });
+                    }
                     let personal_best_changed = record_optional_phase(
                         "personal_best",
                         sql_query(
                             "INSERT INTO public.personal_best_global \
                          (id_user,id_level,id_record,date_created,date_updated) \
-                         VALUES($1,$2,$3,clock_timestamp(),clock_timestamp()) \
+                         SELECT $1,$2,$3,clock_timestamp(),clock_timestamp() \
+                         WHERE NOT EXISTS(SELECT 1 FROM public.record r WHERE r.id_user=$1 AND r.id_level=$2 \
+                           AND zc_private.record_is_eligible(r.id) AND (r.time<$4 OR (r.time=$4 AND r.id<$3))) \
                          ON CONFLICT (id_user,id_level) DO UPDATE SET \
                            id_record=excluded.id_record,date_updated=excluded.date_updated \
-                         WHERE (SELECT current_record.time FROM public.record current_record \
+                         WHERE NOT zc_private.record_is_eligible(personal_best_global.id_record) OR (SELECT current_record.time FROM public.record current_record \
                                 WHERE current_record.id=personal_best_global.id_record)>$4 \
                          RETURNING id",
                         )
@@ -288,7 +297,7 @@ impl Database {
                            ON existing.id_tournament=tournament.id AND existing.id_user=$2 \
                          WHERE tournament.id_level=$1 AND tournament.finalized_at IS NULL \
                            AND tournament.start_at<=$3::timestamptz AND tournament.end_at>$3::timestamptz \
-                           AND (existing.time IS NULL OR existing.time>$4) ORDER BY tournament.id",
+                           AND (existing.time IS NULL OR existing.time>$4 OR NOT zc_private.record_is_eligible(existing.id_record)) ORDER BY tournament.id",
                     )
                     .bind::<Integer, _>(input.id_level)
                     .bind::<Integer, _>(input.id_user)
@@ -309,7 +318,7 @@ impl Database {
                              VALUES($1,$2,$3,$4,1,1000,clock_timestamp(),clock_timestamp()) \
                              ON CONFLICT (id_tournament,id_user) DO UPDATE SET \
                                id_record=excluded.id_record,time=excluded.time,date_updated=excluded.date_updated \
-                             WHERE excluded.time<track_tournament_result.time RETURNING id_tournament AS id",
+                             WHERE excluded.time<track_tournament_result.time OR NOT zc_private.record_is_eligible(track_tournament_result.id_record) RETURNING id_tournament AS id",
                         )
                         .bind::<Integer, _>(tournament.id)
                         .bind::<Integer, _>(input.id_user)
@@ -327,10 +336,11 @@ impl Database {
                     }
 
                     let observed = sql_query(
-                        "SELECT wr.id_user,r.time FROM public.world_record_global wr \
-                         JOIN public.record r ON r.id=wr.id_record WHERE wr.id_level=$1",
+                        "SELECT r.id_user,r.time FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user \
+                         WHERE r.id_level=$1 AND r.id<>$2 AND NOT u.banned AND zc_private.record_is_eligible(r.id) ORDER BY r.time,r.id LIMIT 1",
                     )
                     .bind::<Integer, _>(input.id_level)
+                    .bind::<Integer, _>(created.id)
                     .get_result::<WorldRecordRow>(connection)
                     .await
                     .optional()?;
@@ -345,10 +355,11 @@ impl Database {
                         )
                         .await?;
                         let previous = sql_query(
-                            "SELECT wr.id_user,r.time FROM public.world_record_global wr \
-                             JOIN public.record r ON r.id=wr.id_record WHERE wr.id_level=$1",
+                            "SELECT r.id_user,r.time FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user \
+                             WHERE r.id_level=$1 AND r.id<>$2 AND NOT u.banned AND zc_private.record_is_eligible(r.id) ORDER BY r.time,r.id LIMIT 1",
                         )
                         .bind::<Integer, _>(input.id_level)
+                        .bind::<Integer, _>(created.id)
                         .get_result::<WorldRecordRow>(connection)
                         .await
                         .optional()?;
@@ -375,7 +386,7 @@ impl Database {
                              ON CONFLICT (id_level) DO UPDATE SET \
                                id_user=excluded.id_user,id_record=excluded.id_record,date_updated=excluded.date_updated \
                              WHERE (SELECT current_record.time FROM public.record current_record \
-                                    WHERE current_record.id=world_record_global.id_record)>$4 RETURNING id",
+                                    WHERE current_record.id=world_record_global.id_record)>$4 OR NOT zc_private.record_is_eligible(world_record_global.id_record) RETURNING id",
                             )
                             .bind::<Integer, _>(input.id_user)
                             .bind::<Integer, _>(input.id_level)
@@ -464,7 +475,7 @@ async fn lock_level_workshop_items(
     Ok(())
 }
 
-async fn rerank_tournament(
+pub(crate) async fn rerank_tournament(
     connection: &mut diesel_async::AsyncPgConnection,
     id_tournament: i32,
 ) -> Result<()> {

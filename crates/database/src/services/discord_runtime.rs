@@ -38,9 +38,9 @@ impl Database {
              'id',account.id,'steamId',account.steam_id::text,'steamName',account.steam_name, \
              'discordId',account.discord_id::text,'points',COALESCE(points.points,0), \
              'rank',COALESCE(points.rank,-1),'totalPoints',COALESCE(points.total_points,0), \
-             'worldRecords',(SELECT count(*) FROM public.world_record_global wr WHERE wr.id_user=account.id), \
-             'records',(SELECT count(*) FROM public.record record WHERE record.id_user=account.id), \
-             'personalBests',(SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_user=account.id), \
+             'worldRecords',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.world_record_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) wr WHERE wr.id_user=account.id), \
+             'records',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record WHERE record.id_user=account.id), \
+             'personalBests',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb WHERE pb.id_user=account.id), \
              'publishedLevels',(SELECT count(*) FROM public.level_item item WHERE item.author_id=account.steam_id \
                AND item.deleted=false), \
              'votes',(SELECT count(*) FROM public.vote vote WHERE vote.id_user=account.id)) AS value \
@@ -71,23 +71,23 @@ impl Database {
              SELECT jsonb_build_object('id',level.id,'xxHash',level.xx_hash,'name',item.name, \
                'imageUrl',item.image_url,'workshopId',item.workshop_id::text,'authorName',author.steam_name, \
                'authorDiscordId',author.discord_id::text,'points',COALESCE(points.points,0), \
-               'rating',COALESCE(points.rating,0),'records',(SELECT count(*) FROM public.record r WHERE r.id_level=level.id), \
-               'personalBests',(SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_level=level.id), \
+               'rating',COALESCE(points.rating,0),'records',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) r WHERE r.id_level=level.id), \
+               'personalBests',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb WHERE pb.id_level=level.id), \
                'votes',(SELECT count(*) FROM public.vote vote WHERE vote.id_level=level.id), \
                'worldRecord',CASE WHEN wr.id IS NULL THEN NULL ELSE jsonb_build_object('time',wr_record.time, \
                  'steamName',wr_user.steam_name,'discordId',wr_user.discord_id::text) END, \
                'leaderboard',COALESCE((SELECT jsonb_agg(jsonb_build_object('rank',ranked.rank, \
                  'time',ranked.time,'steamName',ranked.steam_name,'discordId',ranked.discord_id::text) \
                  ORDER BY ranked.rank) FROM (SELECT row_number() OVER(ORDER BY record.time,record.id) AS rank, \
-                 record.time,account.steam_name,account.discord_id FROM public.personal_best_global pb \
-                 JOIN public.record record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user \
+                 record.time,account.steam_name,account.discord_id FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb \
+                 JOIN (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user \
                  WHERE pb.id_level=level.id ORDER BY record.time,record.id LIMIT 10) ranked),'[]'::jsonb)) AS value \
              FROM selected JOIN public.level level USING(id) JOIN LATERAL (SELECT source.* FROM public.level_item source \
                WHERE source.id_level=level.id AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
              LEFT JOIN public.\"user\" author ON author.steam_id=item.author_id \
              LEFT JOIN public.level_points points ON points.id_level=level.id \
-             LEFT JOIN public.world_record_global wr ON wr.id_level=level.id \
-             LEFT JOIN public.record wr_record ON wr_record.id=wr.id_record \
+             LEFT JOIN (SELECT eligible_source.* FROM public.world_record_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) wr ON wr.id_level=level.id \
+             LEFT JOIN (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) wr_record ON wr_record.id=wr.id_record \
              LEFT JOIN public.\"user\" wr_user ON wr_user.id=wr.id_user",
         )
         .bind::<Text, _>(query)
@@ -125,8 +125,8 @@ impl Database {
         let mut connection = self.connection().await?;
         let row: JsonRow = sql_query(
             "WITH ranked AS MATERIALIZED (SELECT row_number() OVER(ORDER BY record.time,record.id) AS rank, \
-             record.time,account.steam_name,account.discord_id FROM public.personal_best_global pb \
-             JOIN public.record record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user \
+             record.time,account.steam_name,account.discord_id FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb \
+             JOIN (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user \
              JOIN public.level level ON level.id=pb.id_level AND level.publicly_visible=true \
              WHERE pb.id_level=$1), page AS (SELECT * FROM ranked ORDER BY rank LIMIT $2 OFFSET $3) \
              SELECT jsonb_build_object('totalCount',(SELECT count(*) FROM ranked),'rows',COALESCE(jsonb_agg( \
@@ -185,11 +185,11 @@ impl Database {
              account AS MATERIALIZED (SELECT id,steam_name,discord_id FROM public.\"user\" \
                WHERE discord_id=$1 AND discord_id>0 LIMIT 1) \
              SELECT jsonb_build_object('steamName',account.steam_name,'discordId',account.discord_id::text, \
-               'records',(SELECT count(*) FROM public.record value WHERE value.id_user=account.id \
+               'records',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) value WHERE value.id_user=account.id \
                  AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
-               'personalBests',(SELECT count(*) FROM public.personal_best_global value WHERE value.id_user=account.id \
+               'personalBests',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) value WHERE value.id_user=account.id \
                  AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
-               'worldRecords',(SELECT count(*) FROM public.world_record_global value WHERE value.id_user=account.id \
+               'worldRecords',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.world_record_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) value WHERE value.id_user=account.id \
                  AND value.date_created >= bounds.from_at AND value.date_created < bounds.to_at), \
                'levels',(SELECT count(*) FROM public.level_item value JOIN public.\"user\" author ON author.steam_id=value.author_id \
                  WHERE author.id=account.id AND value.deleted=false AND value.created_at >= bounds.from_at \
@@ -214,7 +214,7 @@ impl Database {
                COALESCE(sum(statistic.distance_on_wood),0) AS wood,COALESCE(sum(statistic.distance_on_mud),0) AS mud, \
                COALESCE(sum(statistic.distance_on_ice1),0) AS ice1,COALESCE(sum(statistic.distance_on_ice2),0) AS ice2, \
                COALESCE(sum(statistic.distance_on_ice3),0) AS ice3,COALESCE(sum(statistic.distance_in_air),0) AS air \
-               FROM public.record_statistic statistic JOIN public.record record ON record.id=statistic.id_record \
+               FROM public.record_statistic statistic JOIN (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record ON record.id=statistic.id_record \
                WHERE record.id_user=account.id AND record.date_created >= bounds.from_at \
                  AND record.date_created < bounds.to_at) statistics",
         )
@@ -242,17 +242,17 @@ impl Database {
         Ok(sql_query(
             "WITH account AS MATERIALIZED (SELECT id FROM public.\"user\" WHERE discord_id=$1 AND discord_id>0), \
              candidates AS MATERIALIZED (SELECT level.id,level.xx_hash,item.workshop_id,item.file_uid,item.name,item.file_author, \
-               COALESCE(points.points,0) AS points,(SELECT count(*) FROM public.record value WHERE value.id_level=level.id) AS records, \
-               (SELECT count(*) FROM public.record value WHERE value.id_level=level.id \
+               COALESCE(points.points,0) AS points,(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) value WHERE value.id_level=level.id) AS records, \
+               (SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) value WHERE value.id_level=level.id \
                  AND value.date_created>=clock_timestamp()-interval '30 days') AS popularity,item.created_at,item.updated_at \
                FROM public.level level JOIN LATERAL (SELECT source.* FROM public.level_item source WHERE source.id_level=level.id \
                  AND source.deleted=false ORDER BY source.updated_at DESC,source.id DESC LIMIT 1) item ON true \
                LEFT JOIN public.level_points points ON points.id_level=level.id \
-               LEFT JOIN public.world_record_global wr ON wr.id_level=level.id LEFT JOIN account ON true \
+               LEFT JOIN (SELECT eligible_source.* FROM public.world_record_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) wr ON wr.id_level=level.id LEFT JOIN account ON true \
                WHERE level.publicly_visible=true AND (NOT $4 OR wr.id_user IS DISTINCT FROM account.id) \
-                 AND (NOT $5 OR NOT EXISTS(SELECT 1 FROM public.personal_best_global pb \
+                 AND (NOT $5 OR NOT EXISTS(SELECT 1 FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb \
                    WHERE pb.id_level=level.id AND pb.id_user=account.id)) \
-                 AND (NOT $6 OR NOT EXISTS(SELECT 1 FROM public.record value WHERE value.id_level=level.id))) \
+                 AND (NOT $6 OR NOT EXISTS(SELECT 1 FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) value WHERE value.id_level=level.id))) \
              SELECT jsonb_build_object('id',id,'xxHash',xx_hash,'workshopId',workshop_id::text, \
                'fileUid',file_uid,'name',name,'fileAuthor',file_author,'points',points,'records',records) AS value \
              FROM candidates ORDER BY CASE $2 WHEN 'points' THEN points WHEN 'records' THEN records \
@@ -281,7 +281,7 @@ impl Database {
         Ok(sql_query(
             "SELECT jsonb_build_object('id',level.id,'xxHash',level.xx_hash,'workshopId',item.workshop_id::text, \
                'fileUid',item.file_uid,'name',item.name,'fileAuthor',item.file_author, \
-               'points',contribution.level_points,'records',(SELECT count(*) FROM public.record value WHERE value.id_level=level.id)) AS value \
+               'points',contribution.level_points,'records',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) value WHERE value.id_level=level.id)) AS value \
              FROM public.\"user\" account JOIN public.user_point_contribution contribution ON contribution.id_user=account.id \
              JOIN public.level level ON level.id=contribution.id_level AND level.publicly_visible=true \
              JOIN LATERAL (SELECT source.* FROM public.level_item source WHERE source.id_level=level.id AND source.deleted=false \
@@ -320,7 +320,7 @@ impl Database {
                      'steamId',author.steam_id::text,'steamName',author.steam_name,'discordId',author.discord_id::text) END)) END), \
                'levelPoints',CASE WHEN points.id_level IS NULL THEN NULL ELSE jsonb_build_object( \
                  'points',points.points,'rating',points.rating) END, \
-               'personalBestGlobals',jsonb_build_object('totalCount',(SELECT count(*) FROM public.personal_best_global pb \
+               'personalBestGlobals',jsonb_build_object('totalCount',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb \
                  WHERE pb.id_level=level.id))) END, \
              'user',CASE WHEN actor.id IS NULL THEN NULL ELSE jsonb_build_object('id',actor.id,'steamId', \
                actor.steam_id::text,'steamName',actor.steam_name,'discordId',actor.discord_id::text) END, \
@@ -339,9 +339,10 @@ impl Database {
              LEFT JOIN public.level_points points ON points.id_level=level.id \
              LEFT JOIN public.\"user\" actor ON actor.id=event.id_user \
              LEFT JOIN public.\"user\" previous_actor ON previous_actor.id=event.id_previous_user \
-             LEFT JOIN public.record record ON record.id=event.id_record \
-             LEFT JOIN public.record previous_record ON previous_record.id=event.id_previous_record \
+             LEFT JOIN (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record ON record.id=event.id_record \
+             LEFT JOIN (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) previous_record ON previous_record.id=event.id_previous_record \
              WHERE event.id>$1 AND (event.id_level IS NULL OR level.id IS NOT NULL) \
+               AND zc_private.record_is_eligible(event.id_record) AND zc_private.record_is_eligible(event.id_previous_record) \
              ORDER BY event.id LIMIT $2",
         )
         .bind::<BigInt, _>(cursor)

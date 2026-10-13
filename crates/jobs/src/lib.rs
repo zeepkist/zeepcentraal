@@ -20,6 +20,8 @@ pub const WORKSHOP_SCAN_BATCH_SIZE: usize = 10;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskIdentifier {
+    ReconcileRecordEligibility,
+    BackfillRecordEligibility,
     ValidateRecordGhost,
     AuditRecordGhosts,
     BackfillLevelSimhash,
@@ -47,7 +49,9 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 24] = [
+    pub const ALL: [Self; 26] = [
+        Self::ReconcileRecordEligibility,
+        Self::BackfillRecordEligibility,
         Self::ValidateRecordGhost,
         Self::AuditRecordGhosts,
         Self::BackfillLevelSimhash,
@@ -76,6 +80,8 @@ impl TaskIdentifier {
 
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::ReconcileRecordEligibility => "reconcileRecordEligibility",
+            Self::BackfillRecordEligibility => "backfillRecordEligibility",
             Self::ValidateRecordGhost => "validateRecordGhost",
             Self::AuditRecordGhosts => "auditRecordGhosts",
             Self::BackfillLevelSimhash => "backfillLevelSimhash",
@@ -129,6 +135,9 @@ impl TaskIdentifier {
     }
 
     pub fn validate_external_payload(self, payload: &serde_json::Value) -> bool {
+        if self == Self::BackfillRecordEligibility && payload.get("verify").is_some() {
+            return false;
+        }
         if self == Self::AuditRecordGhosts
             && payload.as_object().is_some_and(|object| {
                 object.keys().any(|key| {
@@ -177,6 +186,31 @@ impl TaskIdentifier {
                 .is_none_or(|value| value.as_u64().is_some_and(|count| count <= 4))
         };
         match self {
+            Self::ReconcileRecordEligibility => {
+                object
+                    .keys()
+                    .all(|k| matches!(k.as_str(), "idLevel" | "deferCount"))
+                    && positive_i64("idLevel")
+                    && object["idLevel"]
+                        .as_i64()
+                        .is_some_and(|v| v <= i32::MAX.into())
+                    && optional_defer()
+            }
+            Self::UpdatePlayerScores => optional_bool("silent") && optional_defer(),
+            Self::BackfillRecordEligibility => {
+                object.keys().all(|k| {
+                    matches!(
+                        k.as_str(),
+                        "afterLevelId" | "throughLevelId" | "deferCount" | "verify"
+                    )
+                }) && ["afterLevelId", "throughLevelId"].iter().all(|k| {
+                    object.get(*k).is_none_or(|v| {
+                        v.as_i64()
+                            .is_some_and(|v| (0..=i32::MAX.into()).contains(&v))
+                    })
+                }) && optional_bool("verify")
+                    && optional_defer()
+            }
             Self::BackfillLevelSimhash => object.is_empty(),
             Self::ValidateRecordGhost => {
                 object.len() == 1
@@ -415,10 +449,36 @@ mod tests {
 
     #[test]
     fn task_registry_round_trips_all_identifiers() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 24);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 26);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
+    }
+    #[test]
+    fn eligibility_tasks_bound_cursors_and_keep_verification_internal() {
+        use serde_json::json;
+        assert!(TaskIdentifier::ReconcileRecordEligibility.validate_payload(&json!({"idLevel":1})));
+        assert!(
+            !TaskIdentifier::ReconcileRecordEligibility.validate_payload(&json!({"idLevel":0}))
+        );
+        assert!(
+            !TaskIdentifier::ReconcileRecordEligibility
+                .validate_payload(&json!({"idLevel":2147483648_i64}))
+        );
+        assert!(TaskIdentifier::BackfillRecordEligibility.validate_external_payload(&json!({})));
+        assert!(
+            TaskIdentifier::BackfillRecordEligibility
+                .validate_payload(&json!({"verify":true,"afterLevelId":100,"throughLevelId":200}))
+        );
+        assert!(
+            !TaskIdentifier::BackfillRecordEligibility
+                .validate_external_payload(&json!({"verify":true}))
+        );
+        assert!(
+            !TaskIdentifier::BackfillRecordEligibility
+                .validate_payload(&json!({"afterLevelId":-1}))
+        );
+        assert!(!TaskIdentifier::UpdatePlayerScores.validate_payload(&json!({"silent":"yes"})));
     }
 
     #[test]

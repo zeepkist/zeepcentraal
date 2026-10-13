@@ -135,8 +135,8 @@ WITH contest AS (
             'fileUid',v.file_uid,'name',v.payload->>'name','authorName',a.label,
             'workshopId',s.workshop_id::text,'adventure',l.adventure,'dateCreated',s.date_created,
             'points',p.points,'rating',p.rating,
-            'recordCount',(SELECT count(*) FROM public.record record WHERE record.id_level=l.id),
-            'personalBestCount',(SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_level=l.id),
+            'recordCount',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record WHERE record.id_level=l.id),
+            'personalBestCount',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb WHERE pb.id_level=l.id),
             'voteCount',(SELECT count(*) FROM public.vote vote WHERE vote.id_level=l.id),
             'imageUrl',CASE WHEN media.url LIKE 'https://%' THEN media.url WHEN media.url IS NOT NULL THEN 'https://cdn.zeepki.st/' || ltrim(media.url,'/') END)) AS payload
     FROM selected s JOIN zc_private.level_submission_validation v

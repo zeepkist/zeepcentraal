@@ -232,6 +232,9 @@ export const recordValidation = zcPrivate.table(
 	},
 	(table) => [
 		unique('record_validation_id_record_key').on(table.idRecord),
+		index('record_validation_failed_record_idx')
+			.on(table.idRecord)
+			.where(sql`${table.status} = 'fail'`),
 		check(
 			'record_validation_status_check',
 			sql`${table.status} IN ('pending','pass','fail','uncertain')`,
@@ -865,8 +868,13 @@ export const personalBestGlobal = pgTable(
 		),
 		index('IX_personal_bests_record').using('btree', table.idRecord.asc().nullsLast()),
 		index('IX_personal_bests_date_created').using('btree', table.dateCreated.asc().nullsLast()),
+		pgPolicy('record_eligibility', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+		}),
 	],
-)
+).enableRLS()
 
 export const userPoints = pgTable(
 	'user_points',
@@ -979,8 +987,13 @@ export const userPointContribution = pgTable(
 				table.idLevel.asc().nullsLast(),
 			)
 			.where(sql`${table.levelPosition} = 1`),
+		pgPolicy('record_eligibility', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+		}),
 	],
-)
+).enableRLS()
 
 export const userPointsHistory = pgTable(
 	'user_points_history',
@@ -1148,6 +1161,11 @@ export const record = pgTable(
 			table.dateCreated.desc().nullsLast(),
 			table.idLevel.asc().nullsLast(),
 		),
+		pgPolicy('record_eligibility', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.id} AND v.status = 'fail')`,
+		}),
 	],
 )
 
@@ -1308,24 +1326,7 @@ export const trackTournamentResult = pgTable(
 		pgPolicy('graphql_select_visible_track_tournament_result', {
 			for: 'select',
 			to: zeepCentraalGraphqlRole,
-			using: sql`
-				EXISTS (
-					SELECT 1
-					FROM public.track_tournament AS visible_tournament
-					INNER JOIN public.level AS graphql_visible_level
-						ON graphql_visible_level.id = visible_tournament.id_level
-						AND graphql_visible_level.publicly_visible = true
-					WHERE visible_tournament.id = ${table.idTournament}
-				)
-				AND EXISTS (
-					SELECT 1
-					FROM public.record AS graphql_visible_record
-					INNER JOIN public.level AS graphql_record_level
-						ON graphql_record_level.id = graphql_visible_record.id_level
-						AND graphql_record_level.publicly_visible = true
-					WHERE graphql_visible_record.id = ${table.idRecord}
-				)
-			`,
+			using: sql`EXISTS (SELECT 1 FROM public.track_tournament t JOIN public.level l ON l.id = t.id_level WHERE t.id = ${table.idTournament} AND l.publicly_visible AND (t.finalized_at IS NOT NULL OR zc_private.record_is_eligible(${table.idRecord})))`,
 		}),
 	],
 ).enableRLS()
@@ -1348,8 +1349,13 @@ export const recordMedia = pgTable(
 			foreignColumns: [record.id],
 			name: 'media_record_fkey',
 		}).onDelete('cascade'),
+		pgPolicy('record_eligibility', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+		}),
 	],
-)
+).enableRLS()
 
 export const recordStatistic = pgTable(
 	'record_statistic',
@@ -1444,8 +1450,13 @@ export const recordStatistic = pgTable(
 			foreignColumns: [record.id],
 			name: 'record_statistic_record_fkey',
 		}).onDelete('cascade'),
+		pgPolicy('record_eligibility', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+		}),
 	],
-)
+).enableRLS()
 
 export const user = pgTable(
 	'user',
@@ -1782,8 +1793,13 @@ export const worldRecordGlobal = pgTable(
 			table.idLevel.asc().nullsLast(),
 			table.idRecord.asc().nullsLast(),
 		),
+		pgPolicy('record_eligibility', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.idRecord} AND v.status = 'fail')`,
+		}),
 	],
-)
+).enableRLS()
 
 export const discordActivityEvent = pgTable(
 	'discord_activity_event',
@@ -1862,6 +1878,12 @@ export const discordActivityEvent = pgTable(
 				WHERE discord_visible_level.id = ${table.idLevel}
 					AND discord_visible_level.publicly_visible = true
 			)`,
+		}),
+		pgPolicy('record_eligibility', {
+			as: 'restrictive',
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`zc_private.record_is_eligible(${table.idRecord}) AND zc_private.record_is_eligible(${table.idPreviousRecord})`,
 		}),
 	],
 ).enableRLS()
@@ -2167,6 +2189,11 @@ export const recordHistoryIndex = zcPrivate.table(
 			.where(
 				sql`${table.hasContribution} = false AND (${table.isPersonalBest} OR ${table.isWorldRecord})`,
 			),
+		pgPolicy('record_eligibility', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`NOT EXISTS (SELECT 1 FROM zc_private.record_validation v WHERE v.id_record = ${table.id} AND v.status = 'fail')`,
+		}),
 	],
 )
 

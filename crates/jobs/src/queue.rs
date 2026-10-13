@@ -134,6 +134,15 @@ impl Queue {
                 .count,
         )?)
     }
+    pub async fn has_pending_score_projections(&self) -> Result<bool> {
+        // Verification waits for score refreshes, so it must not block those refreshes.
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelContributions','updatePlayerScore','reconcileRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
+            .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
+    }
+    pub async fn eligibility_pipeline_pending(&self) -> Result<bool> {
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('reconcileRecordEligibility','updateLevelScore','updateLevelScores','updateLevelContributions','updatePlayerScore','updatePlayerScores')) AS ok")
+            .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
+    }
     pub async fn enqueue(
         &self,
         task: TaskIdentifier,
@@ -372,6 +381,9 @@ fn queue_identity(
 ) -> (Option<String>, Option<String>) {
     let id_level = payload.get("idLevel").and_then(serde_json::Value::as_i64);
     let derived_key = match task {
+        TaskIdentifier::ReconcileRecordEligibility => {
+            id_level.map(|id| format!("record-eligibility:{id}"))
+        }
         TaskIdentifier::ValidateRecordGhost => payload["idRecord"]
             .as_i64()
             .map(|id| format!("validate-record-ghost:{id}")),
@@ -398,7 +410,11 @@ fn queue_identity(
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if task == TaskIdentifier::AuditRecordGhosts {
+    let group = if task == TaskIdentifier::BackfillRecordEligibility {
+        Some("record-eligibility-backfill".to_owned())
+    } else if task == TaskIdentifier::ReconcileRecordEligibility {
+        id_level.map(|id| format!("record-eligibility:{id}"))
+    } else if task == TaskIdentifier::AuditRecordGhosts {
         Some("ghost-audit".to_owned())
     } else if task == TaskIdentifier::BackfillLevelSimhash {
         Some("level-simhash-backfill".to_owned())

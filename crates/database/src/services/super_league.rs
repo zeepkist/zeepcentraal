@@ -213,8 +213,8 @@ fn candidates_sql() -> String {
     coalesce(nullif(i.image_url,''),nullif(other_image.image_url,''),nullif(wi.image_url,'')) AS image_url, \
     coalesce(u.steam_name,v.payload->>'author') AS author_name, \
     p.points,p.rating, \
-    (SELECT count(*) FROM public.record r WHERE r.id_level=l.id) AS record_count, \
-    (SELECT count(*) FROM public.personal_best_global pb WHERE pb.id_level=l.id) AS personal_best_count, \
+    (SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) r WHERE r.id_level=l.id) AS record_count, \
+    (SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb WHERE pb.id_level=l.id) AS personal_best_count, \
     (SELECT count(*) FROM public.vote vote WHERE vote.id_level=l.id) AS vote_count \
     {CANDIDATES_FROM_SQL} ORDER BY level_id,workshop_id"
     )

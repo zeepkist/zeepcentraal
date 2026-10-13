@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS zc_private.record_validation_failed_record_idx;

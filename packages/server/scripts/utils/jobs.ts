@@ -257,10 +257,33 @@ async function collectHistoryBatchOptions(prompt: PromptAdapter): Promise<JobOpt
 const emptyOptions = async (): Promise<JobOptions> => ({})
 
 export const jobPromptDefinitions = {
+	backfillRecordEligibility: {
+		category: 'Ghosts',
+		label: 'Repair eligibility for historical records',
+		description:
+			'Hide failed records and rebuild affected PB/WR assignments and current scores',
+		collectOptions: emptyOptions,
+	},
+	reconcileRecordEligibility: {
+		category: 'Ghosts',
+		label: 'Repair record eligibility for one level',
+		description: 'Rebuild eligible PB/WR assignments for one level',
+		collectOptions: async (prompt: PromptAdapter): Promise<JobOptions> => ({
+			idLevel: parseBoundedPositiveSafeInteger(
+				await prompt.text({
+					message: 'Level ID',
+					validate: integerValidator('Level ID', { maximum: 2147483647 }),
+				}),
+				2147483647,
+				'Level ID',
+			),
+		}),
+	},
 	auditRecordGhosts: {
 		category: 'Ghosts',
 		label: 'Audit record ghosts',
-		description: 'Report geometry compatibility for all records without changing eligibility',
+		description:
+			'Validate record ghosts; failed results hide records and schedule leaderboard repairs',
 		collectOptions: collectGhostAuditOptions,
 	},
 	validateRecordGhost: {

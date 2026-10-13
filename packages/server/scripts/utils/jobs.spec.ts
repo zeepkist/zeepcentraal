@@ -70,7 +70,7 @@ async function collect(
 test('prompt map exactly covers API-compatible jobs', () => {
 	expect(Object.keys(jobPromptDefinitions).sort()).toEqual([...compatibleTaskIdentifiers].sort())
 	expect(Object.keys(jobPromptDefinitions)).not.toContain('updateLevelScoresBatch')
-	expect(jobChoices).toHaveLength(21)
+	expect(jobChoices).toHaveLength(23)
 })
 
 test('recovered menu matches API-compatible Rust tasks', async () => {
@@ -137,6 +137,8 @@ describe('job option collection', () => {
 				ConstructorParameters<typeof ScriptedPromptAdapter>[0],
 			]
 		> = [
+			['backfillRecordEligibility', {}],
+			['reconcileRecordEligibility', { texts: ['12'] }],
 			['backfillLevelSimhash', {}],
 			['backfillRecordGhostStatistics', { selections: ['incomplete'], texts: ['500'] }],
 			['backfillRecordGhostStatisticsBatch', { texts: ['1, 2'] }],

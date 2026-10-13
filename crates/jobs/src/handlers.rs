@@ -118,6 +118,122 @@ impl ServiceJobHandler {
         Ok(())
     }
 
+    async fn backfill_record_eligibility(&self, payload: &serde_json::Value) -> Result<()> {
+        let after = i32::try_from(payload["afterLevelId"].as_i64().unwrap_or(0))?;
+        let through = match payload["throughLevelId"].as_i64() {
+            Some(v) => i32::try_from(v)?,
+            None => self.database.eligibility_level_upper_bound().await?,
+        };
+        let levels = self
+            .database
+            .failed_record_level_page(after, through)
+            .await?;
+        for id in &levels {
+            if !matches!(
+                self.database.reconcile_record_eligibility(*id).await?,
+                MaintenanceOutcome::Applied(())
+            ) {
+                self.queue
+                    .enqueue(
+                        TaskIdentifier::ReconcileRecordEligibility,
+                        serde_json::json!({"idLevel":id}),
+                        JobLane::Bulk,
+                        None,
+                    )
+                    .await?;
+            }
+        }
+        tracing::info!(
+            after_level_id = after,
+            through_level_id = through,
+            levels = levels.len(),
+            "Record eligibility backfill batch completed"
+        );
+        if let Some(last) = levels.last().filter(|_| levels.len() == 100) {
+            self.queue
+                .enqueue(
+                    TaskIdentifier::BackfillRecordEligibility,
+                    serde_json::json!({"afterLevelId":last,"throughLevelId":through}),
+                    JobLane::Bulk,
+                    Some(&format!("record-eligibility-backfill:{through}:{last}")),
+                )
+                .await?;
+        } else {
+            self.queue
+                .enqueue(
+                    TaskIdentifier::UpdateLevelScores,
+                    serde_json::json!({"all":true,"silent":true}),
+                    JobLane::Bulk,
+                    Some("eligibility-refresh-level-scores"),
+                )
+                .await?;
+            self.queue
+                .enqueue(
+                    TaskIdentifier::BackfillRecordEligibility,
+                    serde_json::json!({"verify":true,"afterLevelId":0,"throughLevelId":through}),
+                    JobLane::Bulk,
+                    Some(&format!("record-eligibility-verify:{through}:0")),
+                )
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn verify_record_eligibility(&self, payload: &serde_json::Value) -> Result<JobOutcome> {
+        if self.queue.eligibility_pipeline_pending().await? {
+            return Ok(JobOutcome::Deferred);
+        }
+        let after = i32::try_from(payload["afterLevelId"].as_i64().unwrap_or(0))?;
+        let through = i32::try_from(
+            payload["throughLevelId"]
+                .as_i64()
+                .context("throughLevelId missing")?,
+        )?;
+        let levels = self
+            .database
+            .failed_record_level_page(after, through)
+            .await?;
+        for id in &levels {
+            if !self.database.record_eligibility_level_current(*id).await? {
+                self.queue
+                    .enqueue(
+                        TaskIdentifier::ReconcileRecordEligibility,
+                        serde_json::json!({"idLevel":id}),
+                        JobLane::Bulk,
+                        None,
+                    )
+                    .await?;
+                return Ok(JobOutcome::Deferred);
+            }
+        }
+        if let Some(last) = levels.last().filter(|_| levels.len() == 100) {
+            self.queue
+                .enqueue(
+                    TaskIdentifier::BackfillRecordEligibility,
+                    serde_json::json!({"verify":true,"afterLevelId":last,"throughLevelId":through}),
+                    JobLane::Bulk,
+                    Some(&format!("record-eligibility-verify:{through}:{last}")),
+                )
+                .await?;
+        } else if !self.database.record_eligibility_scores_current().await? {
+            self.queue
+                .enqueue(
+                    TaskIdentifier::UpdatePlayerScores,
+                    serde_json::json!({"silent":true}),
+                    JobLane::Bulk,
+                    Some("eligibility-refresh-player-scores"),
+                )
+                .await?;
+            return Ok(JobOutcome::Deferred);
+        } else {
+            tracing::info!(
+                through_level_id = through,
+                "Record eligibility backfill verified complete"
+            );
+        }
+        Ok(JobOutcome::Completed)
+    }
+
     async fn enqueue_level_ghost_audits(&self, ids: &[i32]) -> Result<()> {
         self.queue.enqueue_ghost_audit_levels(ids).await
     }
@@ -851,9 +967,13 @@ impl ServiceJobHandler {
             self.queue
                 .enqueue(
                     TaskIdentifier::UpdatePlayerScores,
-                    serde_json::json!({}),
+                    serde_json::json!({"silent":payload["silent"].as_bool().unwrap_or(false)}),
                     JobLane::Bulk,
-                    Some("update-player-scores"),
+                    Some(if payload["silent"].as_bool() == Some(true) {
+                        "eligibility-refresh-player-scores"
+                    } else {
+                        "update-player-scores"
+                    }),
                 )
                 .await?;
         }
@@ -866,7 +986,7 @@ impl ServiceJobHandler {
         Ok(())
     }
 
-    async fn update_player_scores(&self) -> Result<()> {
+    async fn update_player_scores(&self, silent: bool) -> Result<()> {
         const PAGE_SIZE: i64 = 200;
         const READ_BATCH_SIZE: usize = 50;
         const CONCURRENCY: usize = 4;
@@ -950,7 +1070,11 @@ impl ServiceJobHandler {
             let snapshot = self.database.player_rank_snapshot().await?;
             let mut pass_stable = true;
             for batch in snapshot.chunks(RANK_BATCH_SIZE) {
-                match self.database.persist_player_rank_batch(batch).await? {
+                match self
+                    .database
+                    .persist_player_rank_batch_with_notifications(batch, !silent)
+                    .await?
+                {
                     MaintenanceOutcome::Applied(changes) => rank_changes += changes,
                     MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
                         pass_stable = false;
@@ -1002,6 +1126,21 @@ impl JobHandler for ServiceJobHandler {
             .await;
         }
         let task = TaskIdentifier::parse(&job.task).context("invalid task")?;
+        if task == TaskIdentifier::BackfillRecordEligibility {
+            let mut payload = job.payload.clone();
+            if payload.get("throughLevelId").is_none() {
+                payload["throughLevelId"] =
+                    serde_json::json!(self.database.eligibility_level_upper_bound().await?);
+            }
+            if !self.queue.checkpoint(job, &payload).await? {
+                return Ok(JobOutcome::Deferred);
+            }
+            if payload["verify"].as_bool() == Some(true) {
+                return self.verify_record_eligibility(&payload).await;
+            }
+            self.backfill_record_eligibility(&payload).await?;
+            return Ok(JobOutcome::Completed);
+        }
         self.handle(task, job.payload.clone(), lane, job.attempts)
             .await
     }
@@ -1014,6 +1153,28 @@ impl JobHandler for ServiceJobHandler {
     ) -> Result<JobOutcome> {
         if task == TaskIdentifier::UpdateLevelScore {
             return self.update_level_score(&payload, lane).await;
+        }
+        if task == TaskIdentifier::ReconcileRecordEligibility {
+            return Ok(
+                match self
+                    .database
+                    .reconcile_record_eligibility(i32::try_from(
+                        payload["idLevel"].as_i64().context("idLevel is missing")?,
+                    )?)
+                    .await?
+                {
+                    MaintenanceOutcome::Applied(()) => JobOutcome::Completed,
+                    MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
+                        JobOutcome::Deferred
+                    }
+                },
+            );
+        }
+        if task == TaskIdentifier::UpdatePlayerScores
+            && payload["silent"].as_bool() == Some(true)
+            && self.queue.has_pending_score_projections().await?
+        {
+            return Ok(JobOutcome::Deferred);
         }
         if task == TaskIdentifier::UpdateLevelContributions {
             return self
@@ -1040,6 +1201,10 @@ impl JobHandler for ServiceJobHandler {
             };
         }
         let result = match task {
+            TaskIdentifier::ReconcileRecordEligibility => unreachable!(),
+            TaskIdentifier::BackfillRecordEligibility => {
+                self.backfill_record_eligibility(&payload).await
+            }
             TaskIdentifier::ValidateRecordGhost => {
                 self.validate_record_ghost(&payload, attempts).await
             }
@@ -1069,7 +1234,10 @@ impl JobHandler for ServiceJobHandler {
                 .await
                 .map(|_| ()),
             TaskIdentifier::UpdatePlayerScore => unreachable!(),
-            TaskIdentifier::UpdatePlayerScores => self.update_player_scores().await,
+            TaskIdentifier::UpdatePlayerScores => {
+                self.update_player_scores(payload["silent"].as_bool().unwrap_or(false))
+                    .await
+            }
             TaskIdentifier::PrepareZslPracticePlaylist => {
                 self.prepare_practice_playlist(&payload).await
             }

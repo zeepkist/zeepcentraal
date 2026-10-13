@@ -99,7 +99,7 @@ impl Database {
         let row = sql_query(
             "SELECT (SELECT minimum FROM public.version ORDER BY id DESC LIMIT 1) AS minimum_gtr_version, \
              account.id AS user_id, \
-             COALESCE(EXISTS(SELECT 1 FROM public.record record \
+             COALESCE(EXISTS(SELECT 1 FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record \
                  WHERE record.id_user=account.id AND record.date_created>=clock_timestamp()-interval '720 hours'),false) AS recent_record, \
              result.rank,result.time \
              FROM (SELECT 1) seed \
