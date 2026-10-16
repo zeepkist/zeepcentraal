@@ -333,6 +333,15 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
         .await?
         .get(0);
     assert_eq!(converged, 205);
+    assert_level_positions(
+        &client,
+        level.id,
+        &user_ids,
+        &(0..205)
+            .map(|index| if index == 204 { 1 } else { index + 2 })
+            .collect::<Vec<_>>(),
+    )
+    .await?;
     let date_updated: String = client
         .query_one(
             "SELECT date_updated::text FROM public.level_points WHERE id_level=$1",
@@ -364,11 +373,116 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
             .await?,
         MaintenanceOutcome::Applied(Vec::new())
     );
+
+    // Improvements cross cursor pages. Two users share second place after a new WR.
+    for (index, time) in [(150, 9.0), (51, 8.0)] {
+        let improved = database
+            .submit_record(RecordSubmission {
+                evidence: None,
+                id_user: user_ids[index],
+                id_level: level.id,
+                time,
+                game_version: "test",
+                mod_version: "test",
+                splits: &[],
+                speeds: &[],
+                statistics: &statistics,
+            })
+            .await?;
+        assert!(improved.personal_best_changed);
+    }
+    assert!(matches!(
+        database.update_level_scores(&[level.id], false).await?,
+        MaintenanceOutcome::Applied(LevelScoreUpdate {
+            projection_needed: true,
+            ..
+        })
+    ));
+    // A repeated score refresh still detects stale ranks when points stay unchanged.
+    assert!(matches!(
+        database.update_level_scores(&[level.id], false).await?,
+        MaintenanceOutcome::Applied(LevelScoreUpdate {
+            points_changed: false,
+            projection_needed: true,
+        })
+    ));
+    let mut after = 0;
+    let mut pages = 0;
+    loop {
+        let page = database
+            .level_contribution_user_page(level.id, after, 50)
+            .await?;
+        if page.user_ids.is_empty() {
+            break;
+        }
+        assert!(matches!(
+            database
+                .reconcile_level_contribution_users(level.id, &page.user_ids)
+                .await?,
+            MaintenanceOutcome::Applied(_)
+        ));
+        pages += 1;
+        match page.next_after_user_id {
+            Some(next) => after = next,
+            None => break,
+        }
+    }
+    assert_eq!(pages, 5);
+    let expected_positions = (0..205)
+        .map(|index| match index {
+            51 => 1,
+            150 | 204 => 2,
+            0..=50 => index + 4,
+            52..=149 => index + 3,
+            _ => index + 2,
+        })
+        .collect::<Vec<_>>();
+    assert_level_positions(&client, level.id, &user_ids, &expected_positions).await?;
+    assert_eq!(
+        database.update_level_scores(&[level.id], false).await?,
+        MaintenanceOutcome::Applied(LevelScoreUpdate {
+            points_changed: false,
+            projection_needed: false,
+        })
+    );
     client
         .execute("DELETE FROM public.level WHERE id=$1", &[&level.id])
         .await?;
     client
         .execute("DELETE FROM public.\"user\" WHERE id=ANY($1)", &[&user_ids])
         .await?;
+    Ok(())
+}
+
+async fn assert_level_positions(
+    client: &tokio_postgres::Client,
+    id_level: i32,
+    user_ids: &[i32],
+    expected_positions: &[i32],
+) -> Result<()> {
+    let rows = client
+        .query(
+            "SELECT contribution.id_user,contribution.id_record,contribution.level_position, \
+             pb.id_record FROM public.user_point_contribution contribution \
+             JOIN public.personal_best_global pb USING(id_user,id_level) \
+             WHERE contribution.id_level=$1 ORDER BY contribution.id_user",
+            &[&id_level],
+        )
+        .await?;
+    assert_eq!(rows.len(), user_ids.len());
+    assert_eq!(expected_positions.len(), user_ids.len());
+    for ((row, user_id), expected) in rows.iter().zip(user_ids).zip(expected_positions) {
+        assert_eq!(row.get::<_, i32>(0), *user_id);
+        assert_eq!(
+            row.get::<_, i32>(1),
+            row.get::<_, i32>(3),
+            "PB for user {user_id}"
+        );
+        assert_eq!(
+            row.get::<_, i32>(2),
+            *expected,
+            "position for user {user_id}"
+        );
+    }
     Ok(())
 }
