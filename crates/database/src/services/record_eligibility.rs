@@ -155,7 +155,7 @@ impl Database {
                 .bind::<Array<Integer>,_>(&user_ids).bind::<Integer,_>(level).execute(connection).await?;
             sql_query("SELECT zc_jobs.enqueue('bulk','updatePlayerScore',jsonb_build_object('idUser',id),'update-player-score:'||id,'global-scores',3,clock_timestamp()) FROM unnest($1::integer[]) id ORDER BY id")
                 .bind::<Array<Integer>,_>(&user_ids).execute(connection).await?;
-            sql_query("SELECT zc_jobs.enqueue('bulk','updatePlayerScores','{\"silent\":true}'::jsonb,'eligibility-refresh-player-scores','global-scores',3,clock_timestamp())").execute(connection).await?;
+            sql_query("SELECT zc_jobs.enqueue('bulk','updatePlayerScores','{\"silent\":true}'::jsonb,'eligibility-refresh-player-scores','player-score-sweep',3,clock_timestamp())").execute(connection).await?;
             Ok(MaintenanceOutcome::Applied(()))
         }).await;
         contention_outcome(result)

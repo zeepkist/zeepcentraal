@@ -594,6 +594,14 @@ impl Database {
         .await?)
     }
 
+    /// Recheck the whole field, including users outside the most recently written batch.
+    pub async fn player_rank_snapshot_is_current(
+        &self,
+        snapshot: &[PlayerRankSnapshot],
+    ) -> Result<bool> {
+        Ok(self.player_rank_snapshot().await? == snapshot)
+    }
+
     pub async fn persist_player_rank_batch(
         &self,
         snapshot: &[PlayerRankSnapshot],

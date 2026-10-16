@@ -142,6 +142,13 @@ impl TaskIdentifier {
         if self == Self::UpdateLevelRecordCounts {
             return false;
         }
+        if self == Self::UpdatePlayerScores
+            && ["afterUserId", "phase"]
+                .iter()
+                .any(|key| payload.get(*key).is_some())
+        {
+            return false;
+        }
         if self == Self::BackfillRecordEligibility && payload.get("verify").is_some() {
             return false;
         }
@@ -203,7 +210,23 @@ impl TaskIdentifier {
                         .is_some_and(|v| v <= i32::MAX.into())
                     && optional_defer()
             }
-            Self::UpdatePlayerScores => optional_bool("silent") && optional_defer(),
+            Self::UpdatePlayerScores => {
+                object.keys().all(|key| {
+                    matches!(
+                        key.as_str(),
+                        "silent" | "afterUserId" | "phase" | "deferCount"
+                    )
+                }) && optional_bool("silent")
+                    && optional_defer()
+                    && object.get("afterUserId").is_none_or(|value| {
+                        value
+                            .as_i64()
+                            .is_some_and(|id| (0..=i32::MAX.into()).contains(&id))
+                    })
+                    && object.get("phase").is_none_or(|value| {
+                        value.as_str() == Some("ranks") && !object.contains_key("afterUserId")
+                    })
+            }
             Self::UpdateLevelRecordCounts => {
                 object
                     .keys()
@@ -468,6 +491,34 @@ fn valid_audit_ids(value: &serde_json::Value, allow_empty: bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::TaskIdentifier;
+
+    #[test]
+    fn player_score_phases_keep_external_payloads_compatible() {
+        use serde_json::json;
+        let task = TaskIdentifier::UpdatePlayerScores;
+        for payload in [json!({}), json!({"silent":true}), json!({"silent":false})] {
+            assert!(task.validate_external_payload(&payload));
+        }
+        for payload in [
+            json!({"afterUserId":200}),
+            json!({"silent":true,"afterUserId":0,"deferCount":4}),
+            json!({"silent":false,"phase":"ranks","deferCount":2}),
+        ] {
+            assert!(task.validate_payload(&payload));
+            assert!(!task.validate_external_payload(&payload));
+        }
+        for payload in [
+            json!({"afterUserId":-1}),
+            json!({"afterUserId":2147483648_i64}),
+            json!({"afterUserId":1.5}),
+            json!({"phase":"unknown"}),
+            json!({"phase":"ranks","afterUserId":200}),
+            json!({"silent":1}),
+            json!({"phase":"ranks","deferCount":5}),
+        ] {
+            assert!(!task.validate_payload(&payload));
+        }
+    }
 
     #[test]
     fn record_count_cursors_are_bounded_and_internal() {

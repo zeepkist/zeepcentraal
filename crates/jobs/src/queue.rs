@@ -136,7 +136,11 @@ impl Queue {
     }
     pub async fn has_pending_score_projections(&self) -> Result<bool> {
         // Verification waits for score refreshes, so it must not block those refreshes.
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','reconcileRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','reconcileRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
+            .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
+    }
+    pub async fn has_pending_player_score_pages(&self) -> Result<bool> {
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task='updatePlayerScores' AND payload->>'phase' IS DISTINCT FROM 'ranks') AS ok")
             .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
     }
     pub async fn eligibility_pipeline_pending(&self) -> Result<bool> {
@@ -381,6 +385,21 @@ fn queue_identity(
 ) -> (Option<String>, Option<String>) {
     let id_level = payload.get("idLevel").and_then(serde_json::Value::as_i64);
     let derived_key = match task {
+        TaskIdentifier::UpdatePlayerScores => {
+            let root = if payload["silent"].as_bool() == Some(true) {
+                "eligibility-refresh-player-scores"
+            } else {
+                "update-player-scores"
+            };
+            Some(if payload["phase"].as_str() == Some("ranks") {
+                format!("{root}:ranks")
+            } else {
+                match payload["afterUserId"].as_i64().unwrap_or(0) {
+                    0 => root.to_owned(),
+                    after => format!("{root}:after:{after}"),
+                }
+            })
+        }
         TaskIdentifier::ReconcileRecordEligibility => {
             id_level.map(|id| format!("record-eligibility:{id}"))
         }
@@ -414,7 +433,9 @@ fn queue_identity(
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if task == TaskIdentifier::UpdateLevelRecordCounts {
+    let group = if task == TaskIdentifier::UpdatePlayerScores {
+        Some("player-score-sweep".to_owned())
+    } else if task == TaskIdentifier::UpdateLevelRecordCounts {
         id_level.map(|id| format!("level-record-counts:{id}"))
     } else if task == TaskIdentifier::BackfillRecordEligibility {
         Some("record-eligibility-backfill".to_owned())
@@ -441,9 +462,7 @@ fn queue_identity(
     } else if lane == JobLane::Bulk
         && matches!(
             task,
-            TaskIdentifier::UpdateLevelScores
-                | TaskIdentifier::UpdatePlayerScores
-                | TaskIdentifier::UpdatePlayerScore
+            TaskIdentifier::UpdateLevelScores | TaskIdentifier::UpdatePlayerScore
         )
     {
         Some("global-scores".to_owned())
@@ -463,6 +482,42 @@ mod tests {
     use super::{JobLane, defer_delay, queue_identity};
     use crate::TaskIdentifier;
     use serde_json::json;
+
+    #[test]
+    fn player_score_pages_and_rank_retries_have_separate_keys_and_group() {
+        let task = TaskIdentifier::UpdatePlayerScores;
+        for (silent, root) in [
+            (false, "update-player-scores"),
+            (true, "eligibility-refresh-player-scores"),
+        ] {
+            let first = queue_identity(task, &json!({"silent":silent}), JobLane::Bulk, None);
+            let page = queue_identity(
+                task,
+                &json!({"silent":silent,"afterUserId":200}),
+                JobLane::Bulk,
+                None,
+            );
+            let ranks = queue_identity(
+                task,
+                &json!({"silent":silent,"phase":"ranks"}),
+                JobLane::Bulk,
+                None,
+            );
+            assert_eq!(first.0.as_deref(), Some(root));
+            assert_eq!(page.0, Some(format!("{root}:after:200")));
+            assert_eq!(ranks.0, Some(format!("{root}:ranks")));
+            assert_eq!(first.1.as_deref(), Some("player-score-sweep"));
+            assert_eq!(first.1, page.1);
+            assert_eq!(first.1, ranks.1);
+            let individual = queue_identity(
+                TaskIdentifier::UpdatePlayerScore,
+                &json!({"idUser":1}),
+                JobLane::Bulk,
+                None,
+            );
+            assert_ne!(first.1, individual.1);
+        }
+    }
     use std::time::Duration;
 
     #[test]

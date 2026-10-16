@@ -5,7 +5,7 @@ use crate::{
 };
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use std::{sync::Arc, time::Duration};
+use std::{future::Future, sync::Arc, time::Duration};
 use tokio::{
     sync::watch,
     task::{JoinError, JoinHandle, JoinSet},
@@ -214,23 +214,29 @@ async fn execute(
                 Duration::from_secs(HEARTBEAT_SECONDS),
             );
             heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
-            let work = handler.handle_claimed(&job, lane);
-            tokio::pin!(work);
-            loop {
-                tokio::select! {
-                    result = &mut work => break result,
-                    _ = heartbeat.tick() => {
-                        if !queue.heartbeat(&job).await? {
-                            return Err(anyhow!("job lease lost for {}", job.id));
+            let lease_failure = async {
+                loop {
+                    heartbeat.tick().await;
+                    match queue.heartbeat(&job).await {
+                        Ok(true) => {}
+                        Ok(false) => break anyhow!("job lease lost for {}", job.id),
+                        Err(error) => {
+                            break error.context(format!(
+                                "heartbeat failed for job {} ({})",
+                                job.id, job.task
+                            ));
                         }
                     }
                 }
-            }
+            };
+            while_lease_valid(handler.handle_claimed(&job, lane), lease_failure).await?
         }
         _ => Err(anyhow!("invalid job payload")),
     };
+    let database_unavailable = result.as_ref().err().is_some_and(is_unavailable);
     let acknowledged = match result.as_ref() {
         Ok(JobOutcome::Deferred) => queue.defer(&job).await?,
+        Err(_) if database_unavailable => queue.defer(&job).await?,
         _ => {
             queue
                 .finish(&job, result.as_ref().err().map(|_| "handler_failed"))
@@ -244,17 +250,33 @@ async fn execute(
         ));
     }
     if let Err(error) = result {
+        let message = if database_unavailable {
+            "Job database unavailable; deferred without consuming attempt"
+        } else {
+            "Job attempt failed"
+        };
         tracing::warn!(
             lane = %job.lane,
             job_id = %job.id,
             task = %job.task,
             attempt = job.attempts,
             max_attempts = job.max_attempts,
-            error = %error,
-            "Job attempt failed"
+            error = %format!("{error:#}"),
+            "{message}"
         );
     }
     Ok(())
+}
+
+async fn while_lease_valid<T>(
+    work: impl Future<Output = T>,
+    lease_failure: impl Future<Output = anyhow::Error>,
+) -> Result<T> {
+    // Keep polling work while a heartbeat waits for locks held by that work.
+    tokio::select! {
+        result = work => Ok(result),
+        error = lease_failure => Err(error),
+    }
 }
 
 #[cfg(test)]
@@ -271,6 +293,47 @@ mod tests {
                 let _ = sender.send(());
             }
         }
+    }
+
+    #[tokio::test]
+    async fn blocked_heartbeat_does_not_pause_handler() {
+        let (heartbeat_started_tx, heartbeat_started) = oneshot::channel();
+        let (lock_release, lock_released) = oneshot::channel();
+        let work = async {
+            heartbeat_started.await.unwrap();
+            // Handler must resume to commit its transaction and release queue locks.
+            lock_release.send(()).unwrap();
+            JobOutcome::Completed
+        };
+        let heartbeat = async {
+            heartbeat_started_tx.send(()).unwrap();
+            lock_released.await.unwrap();
+            pending::<anyhow::Error>().await
+        };
+        let result =
+            tokio::time::timeout(Duration::from_secs(2), while_lease_valid(work, heartbeat))
+                .await
+                .expect("handler must progress while heartbeat waits")
+                .unwrap();
+        assert_eq!(result, JobOutcome::Completed);
+    }
+
+    #[tokio::test]
+    async fn heartbeat_failure_stops_handler() {
+        let (dropped_tx, mut dropped) = oneshot::channel();
+        let (started_tx, started) = oneshot::channel();
+        let work = async {
+            let _guard = SignalOnDrop(Some(dropped_tx));
+            started_tx.send(()).unwrap();
+            pending::<JobOutcome>().await
+        };
+        let heartbeat = async {
+            started.await.unwrap();
+            anyhow!("heartbeat SQL failure")
+        };
+        let error = while_lease_valid(work, heartbeat).await.unwrap_err();
+        assert_eq!(error.to_string(), "heartbeat SQL failure");
+        assert_eq!(dropped.try_recv(), Ok(()));
     }
 
     async fn assert_failed_lane_stops_sibling(lane: JobLane, panics: bool) {

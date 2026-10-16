@@ -986,86 +986,103 @@ impl ServiceJobHandler {
         Ok(())
     }
 
-    async fn update_player_scores(&self, silent: bool) -> Result<()> {
+    async fn update_player_scores(&self, payload: &serde_json::Value) -> Result<JobOutcome> {
         const PAGE_SIZE: i64 = 200;
         const READ_BATCH_SIZE: usize = 50;
         const CONCURRENCY: usize = 4;
-        const RANK_BATCH_SIZE: usize = 50;
 
+        let silent = payload["silent"].as_bool().unwrap_or(false);
+        if payload["phase"].as_str() == Some("ranks") {
+            return self.update_player_ranks(silent).await;
+        }
         let started = Instant::now();
-        let mut after_id = 0;
+        let after_id = i32::try_from(payload["afterUserId"].as_i64().unwrap_or(0))?;
         let mut processed = 0usize;
         let mut deferred = 0usize;
-        loop {
-            let page = self
-                .database
-                .user_activity_page(after_id, PAGE_SIZE)
-                .await?;
-            if page.is_empty() {
-                break;
-            }
-            let active = page
-                .iter()
-                .filter(|user| user.active)
-                .map(|user| user.id_user)
-                .collect::<Vec<_>>();
-            let inactive = page
-                .iter()
-                .filter(|user| !user.active)
-                .map(|user| user.id_user)
-                .collect::<Vec<_>>();
-            for ids in inactive.chunks(READ_BATCH_SIZE) {
-                if !matches!(
-                    self.database.reset_inactive_user_scores(ids).await?,
-                    MaintenanceOutcome::Applied(())
-                ) {
-                    deferred += ids.len();
-                    self.enqueue_player_repairs(ids).await?;
-                }
-            }
-            for ids in active.chunks(READ_BATCH_SIZE) {
-                let mut sources = self.database.user_score_sources(ids).await?.into_iter();
-                let mut tasks = tokio::task::JoinSet::new();
-                loop {
-                    while tasks.len() < CONCURRENCY {
-                        let Some(source) = sources.next() else { break };
-                        let database = self.database.clone();
-                        tasks.spawn(async move {
-                            let id_user = source.id_user;
-                            (
-                                id_user,
-                                database.recalculate_player_score_from(source).await,
-                            )
-                        });
-                    }
-                    let Some(result) = tasks.join_next().await else {
-                        break;
-                    };
-                    let (id_user, outcome) = result?;
-                    match outcome? {
-                        MaintenanceOutcome::Applied(()) => processed += 1,
-                        MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
-                            deferred += 1;
-                            self.enqueue_player_repairs(&[id_user]).await?;
-                        }
-                    }
-                }
-            }
-            after_id = page.last().context("user activity page is empty")?.id_user;
-            tracing::info!(
-                after_id,
-                processed,
-                deferred,
-                elapsed_ms = started.elapsed().as_millis(),
-                "Player score page completed"
-            );
-            if page.len() < PAGE_SIZE as usize {
-                break;
+        let page = self
+            .database
+            .user_activity_page(after_id, PAGE_SIZE)
+            .await?;
+        let active = page
+            .iter()
+            .filter(|user| user.active)
+            .map(|user| user.id_user)
+            .collect::<Vec<_>>();
+        let inactive = page
+            .iter()
+            .filter(|user| !user.active)
+            .map(|user| user.id_user)
+            .collect::<Vec<_>>();
+        for ids in inactive.chunks(READ_BATCH_SIZE) {
+            if matches!(
+                self.database.reset_inactive_user_scores(ids).await?,
+                MaintenanceOutcome::Applied(())
+            ) {
+                processed += ids.len();
+            } else {
+                deferred += ids.len();
+                self.enqueue_player_repairs(ids).await?;
             }
         }
+        for ids in active.chunks(READ_BATCH_SIZE) {
+            let mut sources = self.database.user_score_sources(ids).await?.into_iter();
+            let mut tasks = tokio::task::JoinSet::new();
+            loop {
+                while tasks.len() < CONCURRENCY {
+                    let Some(source) = sources.next() else { break };
+                    let database = self.database.clone();
+                    tasks.spawn(async move {
+                        let id_user = source.id_user;
+                        (
+                            id_user,
+                            database.recalculate_player_score_from(source).await,
+                        )
+                    });
+                }
+                let Some(result) = tasks.join_next().await else {
+                    break;
+                };
+                let (id_user, outcome) = result?;
+                match outcome? {
+                    MaintenanceOutcome::Applied(()) => processed += 1,
+                    MaintenanceOutcome::Contended | MaintenanceOutcome::SnapshotChanged => {
+                        deferred += 1;
+                        self.enqueue_player_repairs(&[id_user]).await?;
+                    }
+                }
+            }
+        }
+        let next = if page.len() == PAGE_SIZE as usize {
+            serde_json::json!({
+                "silent": silent,
+                "afterUserId": page.last().context("user activity page is empty")?.id_user,
+            })
+        } else {
+            serde_json::json!({"silent": silent, "phase": "ranks"})
+        };
+        // Enqueue before acknowledging this page. A crash retries at most this page.
+        self.queue
+            .enqueue(
+                TaskIdentifier::UpdatePlayerScores,
+                next,
+                JobLane::Bulk,
+                None,
+            )
+            .await?;
+        tracing::info!(
+            after_id,
+            processed,
+            deferred,
+            elapsed_ms = started.elapsed().as_millis(),
+            "Player score page completed"
+        );
+        Ok(JobOutcome::Completed)
+    }
 
+    async fn update_player_ranks(&self, silent: bool) -> Result<JobOutcome> {
+        const RANK_BATCH_SIZE: usize = 50;
+        let started = Instant::now();
         let mut rank_changes = 0usize;
-        let mut rank_stable = false;
         for pass in 1..=3 {
             let snapshot = self.database.player_rank_snapshot().await?;
             let mut pass_stable = true;
@@ -1081,24 +1098,27 @@ impl ServiceJobHandler {
                     }
                 }
             }
-            if pass_stable {
-                rank_stable = true;
-                break;
+            if pass_stable
+                && self
+                    .database
+                    .player_rank_snapshot_is_current(&snapshot)
+                    .await?
+            {
+                tracing::info!(
+                    rank_changes,
+                    elapsed_ms = started.elapsed().as_millis(),
+                    "Player ranks completed"
+                );
+                return Ok(JobOutcome::Completed);
             }
             tracing::warn!(pass, "Player rank snapshot changed; retrying");
         }
-        if !rank_stable {
-            tracing::warn!("Player ranks remained busy; next scheduled run will reconcile");
-        }
-        tracing::info!(
-            processed,
-            deferred,
+        tracing::warn!(
             rank_changes,
-            rank_stable,
             elapsed_ms = started.elapsed().as_millis(),
-            "updatePlayerScores completed"
+            "Player ranks remained busy; deferring rank phase"
         );
-        Ok(())
+        Ok(JobOutcome::Deferred)
     }
 
     async fn enqueue_player_repairs(&self, ids: &[i32]) -> Result<()> {
@@ -1170,11 +1190,17 @@ impl JobHandler for ServiceJobHandler {
                 },
             );
         }
-        if task == TaskIdentifier::UpdatePlayerScores
-            && payload["silent"].as_bool() == Some(true)
-            && self.queue.has_pending_score_projections().await?
-        {
-            return Ok(JobOutcome::Deferred);
+        if task == TaskIdentifier::UpdatePlayerScores {
+            let ranks = payload["phase"].as_str() == Some("ranks");
+            let first_page = payload["afterUserId"].as_i64().unwrap_or(0) == 0;
+            if payload["silent"].as_bool() == Some(true)
+                && (ranks || first_page)
+                && (self.queue.has_pending_score_projections().await?
+                    || (ranks && self.queue.has_pending_player_score_pages().await?))
+            {
+                return Ok(JobOutcome::Deferred);
+            }
+            return self.update_player_scores(&payload).await;
         }
         if task == TaskIdentifier::UpdateLevelRecordCounts {
             ensure!(
@@ -1260,12 +1286,10 @@ impl JobHandler for ServiceJobHandler {
                 .insert_user_point_histories(&integer_ids(&payload, "ids")?)
                 .await
                 .map(|_| ()),
-            TaskIdentifier::UpdatePlayerScore | TaskIdentifier::UpdateLevelRecordCounts => {
+            TaskIdentifier::UpdatePlayerScore
+            | TaskIdentifier::UpdateLevelRecordCounts
+            | TaskIdentifier::UpdatePlayerScores => {
                 unreachable!()
-            }
-            TaskIdentifier::UpdatePlayerScores => {
-                self.update_player_scores(payload["silent"].as_bool().unwrap_or(false))
-                    .await
             }
             TaskIdentifier::PrepareZslPracticePlaylist => {
                 self.prepare_practice_playlist(&payload).await

@@ -197,5 +197,17 @@ async fn fast_level_jobs_coalesce_and_submitter_repairs_keep_order() -> Result<(
     assert!(queue.has_pending_score_projections().await?);
     assert!(queue.finish(&backfill[0], None).await?);
     assert!(!queue.has_pending_score_projections().await?);
+    queue
+        .enqueue(
+            TaskIdentifier::UpdateLevelScores,
+            json!({"all":false}),
+            JobLane::Bulk,
+            None,
+        )
+        .await?;
+    assert!(queue.has_pending_score_projections().await?);
+    let levels = queue.claim(JobLane::Bulk, 1).await?;
+    assert!(queue.finish(&levels[0], None).await?);
+    assert!(!queue.has_pending_score_projections().await?);
     Ok(())
 }
