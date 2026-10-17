@@ -56,6 +56,8 @@ pub fn calculate_ghost_statistics(frames: &[GhostFrame], version: i32) -> GhostS
     let mut distance_on_monorail = 0.0;
     let mut distance_parked = 0.0;
     let mut distance_ragdoll = 0.0;
+    let mut distance_on_unknown = 0.0;
+    let mut time_on_unknown = 0.0;
     let mut surface_distance = SurfaceValues::default();
     let mut surface_time = SurfaceValues::default();
 
@@ -180,6 +182,11 @@ pub fn calculate_ghost_statistics(frames: &[GhostFrame], version: i32) -> GhostS
         let valid_segment = segment_distance.is_finite()
             && implied_speed.is_finite()
             && implied_speed <= SPEED_CAP_KMH;
+        let unknown_surface = version >= 7
+            && previous_frame
+                .grounded_wheel_state
+                .is_some_and(|state| state > 0)
+            && previous_frame.surfaces.is_empty();
         if valid_segment {
             total_distance += segment_distance;
             if previous_frame.grounded_wheel_state == Some(0) {
@@ -209,6 +216,9 @@ pub fn calculate_ghost_statistics(frames: &[GhostFrame], version: i32) -> GhostS
                 distance_parked += segment_distance;
             }
             surface_distance.add(&previous_frame.surfaces, segment_distance);
+            if unknown_surface {
+                distance_on_unknown += segment_distance;
+            }
         }
         if previous_frame.ragdoll == Some(true) {
             let ragdoll_distance = distance(
@@ -314,6 +324,9 @@ pub fn calculate_ghost_statistics(frames: &[GhostFrame], version: i32) -> GhostS
             time_ragdoll += dt;
         }
         surface_time.add(&previous_frame.surfaces, dt);
+        if unknown_surface {
+            time_on_unknown += dt;
+        }
         previous = Some(frame);
     }
 
@@ -372,6 +385,8 @@ pub fn calculate_ghost_statistics(frames: &[GhostFrame], version: i32) -> GhostS
         time_on_monorail: has_monorail.then_some(time_on_monorail),
         time_parked: has_parking.then_some(time_parked),
         time_ragdoll: has_ragdoll.then_some(time_ragdoll),
+        distance_on_unknown: (version >= 7 && has_air).then_some(distance_on_unknown),
+        time_on_unknown: (version >= 7 && has_air).then_some(time_on_unknown),
         distance_on_tarmac: has_surface.then_some(surface_distance.get(Surface::Tarmac)),
         distance_on_grass: has_surface.then_some(surface_distance.get(Surface::Grass)),
         distance_on_sand: has_surface.then_some(surface_distance.get(Surface::Sand)),

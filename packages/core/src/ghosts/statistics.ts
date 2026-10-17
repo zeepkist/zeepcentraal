@@ -60,6 +60,8 @@ export function emptyGhostStatistics(
 		timeOnMonorail: null,
 		timeParked: null,
 		timeRagdoll: null,
+		distanceOnUnknown: null,
+		timeOnUnknown: null,
 		distanceOnTarmac: null,
 		distanceOnGrass: null,
 		distanceOnSand: null,
@@ -111,6 +113,8 @@ export function calculateGhostStatisticsFromIterable(
 	let distanceOnMonorail = 0
 	let distanceParked = 0
 	let distanceRagdoll = 0
+	let distanceOnUnknown = 0
+	let timeOnUnknown = 0
 	const surfaceDistance = emptySurfaceValues()
 	const surfaceTime = emptySurfaceValues()
 
@@ -236,6 +240,12 @@ export function calculateGhostStatisticsFromIterable(
 			Number.isFinite(impliedSpeed) &&
 			impliedSpeed <= SPEED_CAP_KMH
 
+		const surfaces = getFrameSurfaces(previous)
+		const unknownSurface =
+			ghostVersion !== null &&
+			ghostVersion >= 7 &&
+			(previous.groundedWheelState ?? 0) > 0 &&
+			surfaces.length === 0
 		if (validSegment) {
 			totalDistance += segmentDistance
 			if (previous.groundedWheelState === 0) {
@@ -253,7 +263,8 @@ export function calculateGhostStatisticsFromIterable(
 			if (previous.soap) distanceSoapWheels += segmentDistance
 			if (previous.monorail) distanceOnMonorail += segmentDistance
 			if (previous.parkingBlock) distanceParked += segmentDistance
-			addSegmentToSurfaces(surfaceDistance, getFrameSurfaces(previous), segmentDistance)
+			addSegmentToSurfaces(surfaceDistance, surfaces, segmentDistance)
+			if (unknownSurface) distanceOnUnknown += segmentDistance
 		}
 		if (previous.ragdoll) {
 			const ragdollDistance = distance(
@@ -326,7 +337,8 @@ export function calculateGhostStatisticsFromIterable(
 		if (previous.monorail) timeOnMonorail += dt
 		if (previous.parkingBlock) timeParked += dt
 		if (previous.ragdoll) timeRagdoll += dt
-		addSegmentToSurfaces(surfaceTime, getFrameSurfaces(previous), dt)
+		addSegmentToSurfaces(surfaceTime, surfaces, dt)
+		if (unknownSurface) timeOnUnknown += dt
 		previous = frame
 	}
 
@@ -384,6 +396,10 @@ export function calculateGhostStatisticsFromIterable(
 		timeOnMonorail: hasMonorailStats ? timeOnMonorail : null,
 		timeParked: hasParkingStats ? timeParked : null,
 		timeRagdoll: hasRagdollStats ? timeRagdoll : null,
+		distanceOnUnknown:
+			ghostVersion !== null && ghostVersion >= 7 && hasAirStats ? distanceOnUnknown : null,
+		timeOnUnknown:
+			ghostVersion !== null && ghostVersion >= 7 && hasAirStats ? timeOnUnknown : null,
 		distanceOnTarmac: hasSurfaceStats ? surfaceDistance.tarmac : null,
 		distanceOnGrass: hasSurfaceStats ? surfaceDistance.grass : null,
 		distanceOnSand: hasSurfaceStats ? surfaceDistance.sand : null,

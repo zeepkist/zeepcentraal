@@ -21,6 +21,7 @@ fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 		distanceOnIce3
 		distanceOnWood
 		distanceOnMud
+		distanceOnUnknown
 		distanceOnSand
 		distanceOnSoap
 		distanceOnTarmac
@@ -34,6 +35,7 @@ fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 		timeOnIce3
 		timeOnWood
 		timeOnMud
+		timeOnUnknown
 		timeOnSand
 		timeOnSoap
 		timeOnTarmac

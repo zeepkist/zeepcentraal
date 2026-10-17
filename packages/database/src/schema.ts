@@ -1445,6 +1445,8 @@ export const recordStatistic = pgTable(
 		timeOnMonorail: real('time_on_monorail'),
 		timeParked: real('time_parked'),
 		timeRagdoll: real('time_ragdoll'),
+		distanceOnUnknown: real('distance_on_unknown'),
+		timeOnUnknown: real('time_on_unknown'),
 		distanceOnTarmac: real('distance_on_tarmac'),
 		distanceOnGrass: real('distance_on_grass'),
 		distanceOnSand: real('distance_on_sand'),

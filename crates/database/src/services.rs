@@ -25,6 +25,7 @@ pub(crate) mod record_counts;
 pub mod record_eligibility;
 pub mod streamkist;
 pub mod super_league;
+pub mod surface_statistics;
 pub mod workshop;
 pub mod zsl;
 pub mod zsl_tournament;

@@ -446,6 +446,33 @@ impl TaskIdentifier {
                         .get("reparseGhostVersion")
                         .is_none_or(|value| value.as_i64() == Some(5))
                     && !(object.contains_key("ids") && object.contains_key("reparseGhostVersion"))
+                    && object
+                        .get("repairSurfaceStatistics")
+                        .is_none_or(|value| value.as_bool() == Some(true))
+                    && !(object.contains_key("repairSurfaceStatistics")
+                        && (object.contains_key("ids")
+                            || object.contains_key("reparseGhostVersion")))
+                    && object.get("maxRecords").is_none_or(|value| {
+                        object
+                            .get("repairSurfaceStatistics")
+                            .and_then(serde_json::Value::as_bool)
+                            == Some(true)
+                            && value
+                                .as_i64()
+                                .is_some_and(|count| (1..=500).contains(&count))
+                    })
+                    && ["throughRecordId", "beforeRecordId"].iter().all(|key| {
+                        object.get(*key).is_none_or(|value| {
+                            object
+                                .get("repairSurfaceStatistics")
+                                .and_then(serde_json::Value::as_bool)
+                                == Some(true)
+                                && value.as_i64().is_some_and(|id| {
+                                    let minimum = if *key == "beforeRecordId" { 1 } else { 0 };
+                                    id >= minimum && id <= i32::MAX.into()
+                                })
+                        })
+                    })
             }
             Self::SyncWorkshopCatalog => {
                 optional_bool("all")
@@ -517,6 +544,31 @@ mod tests {
             json!({"phase":"ranks","deferCount":5}),
         ] {
             assert!(!task.validate_payload(&payload));
+        }
+    }
+
+    #[test]
+    fn surface_repair_modes_and_cursors_are_validated() {
+        use serde_json::json;
+        let task = TaskIdentifier::BackfillRecordGhostStatistics;
+        for payload in [
+            json!({"repairSurfaceStatistics":true}),
+            json!({"repairSurfaceStatistics":true,"limit":50,"maxRecords":50,"throughRecordId":100,"beforeRecordId":99}),
+        ] {
+            assert!(task.validate_payload(&payload));
+            assert!(task.validate_external_payload(&payload));
+        }
+        for payload in [
+            json!({"repairSurfaceStatistics":false}),
+            json!({"repairSurfaceStatistics":true,"ids":[1]}),
+            json!({"repairSurfaceStatistics":true,"reparseGhostVersion":5}),
+            json!({"repairSurfaceStatistics":true,"throughRecordId":-1}),
+            json!({"repairSurfaceStatistics":true,"beforeRecordId":0}),
+            json!({"repairSurfaceStatistics":true,"maxRecords":501}),
+            json!({"throughRecordId":1}),
+            json!({"maxRecords":50}),
+        ] {
+            assert!(!task.validate_payload(&payload), "{payload}");
         }
     }
 

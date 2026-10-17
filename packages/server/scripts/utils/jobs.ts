@@ -58,6 +58,11 @@ async function collectBackfillOptions(prompt: PromptAdapter): Promise<JobOptions
 				label: 'Reparse V5 statistics',
 				hint: 'Repair V5 rows previously populated with V6-only telemetry',
 			},
+			{
+				value: 'surfaces',
+				label: 'Repair missing surface totals',
+				hint: 'Fill V7/V8 Unknown totals from stored ground totals; no ghost downloads',
+			},
 			{ value: 'ids', label: 'Record IDs', hint: 'Force-process selected records' },
 		],
 		initialValue: 'incomplete',
@@ -76,9 +81,32 @@ async function collectBackfillOptions(prompt: PromptAdapter): Promise<JobOptions
 		initialValue: '500',
 		validate: integerValidator('Limit', { maximum: 500 }),
 	})
+	const surfaceScope =
+		mode === 'surfaces'
+			? await prompt.select({
+					message: 'Choose surface repair scope',
+					options: [
+						{
+							value: 'sample',
+							label: 'One batch',
+							hint: 'Verify changed totals before repairing full history',
+						},
+						{
+							value: 'all',
+							label: 'Full history',
+							hint: 'Repair all eligible V7/V8 rows in bounded batches',
+						},
+					],
+					initialValue: 'sample',
+				})
+			: undefined
 	return {
 		limit: parseBoundedPositiveSafeInteger(limit, 500, 'Limit'),
 		...(mode === 'v5' ? { reparseGhostVersion: 5 } : {}),
+		...(mode === 'surfaces' ? { repairSurfaceStatistics: true } : {}),
+		...(surfaceScope === 'sample'
+			? { maxRecords: parseBoundedPositiveSafeInteger(limit, 500, 'Limit') }
+			: {}),
 	}
 }
 

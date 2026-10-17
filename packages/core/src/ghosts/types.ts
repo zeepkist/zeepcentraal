@@ -120,6 +120,8 @@ export type GhostStatisticValues = {
 	timeOnMonorail: number | null
 	timeParked: number | null
 	timeRagdoll: number | null
+	distanceOnUnknown: number | null
+	timeOnUnknown: number | null
 	distanceOnTarmac: number | null
 	distanceOnGrass: number | null
 	distanceOnSand: number | null

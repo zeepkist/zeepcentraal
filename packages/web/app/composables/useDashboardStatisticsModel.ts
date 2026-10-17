@@ -86,6 +86,13 @@ export function useDashboardStatisticsModel(
 			distanceField: 'distanceOnIce3',
 			timeField: 'timeOnIce3',
 		},
+		{
+			key: 'unknown',
+			label: () => t('dashboard.totals.surfaces.unknown'),
+			color: '#94a3b8',
+			distanceField: 'distanceOnUnknown',
+			timeField: 'timeOnUnknown',
+		},
 	] as const
 
 	const numeric = (value: unknown) => Number(value ?? 0)
@@ -345,7 +352,7 @@ export function useDashboardStatisticsModel(
 				{
 					key: 'surface-distance',
 					title: t('dashboard.totals.surfaceDistance.title'),
-					description: t('dashboard.totals.surfaceDistance.description'),
+					description: `${t('dashboard.totals.surfaceDistance.description')} ${t('dashboard.totals.surfaces.unknownDescription')}`,
 					icon: 'road',
 					data: surfaceDistanceData,
 					total: chartTotal(surfaceDistanceData, formatDistance),
@@ -353,7 +360,7 @@ export function useDashboardStatisticsModel(
 				{
 					key: 'surface-time',
 					title: t('dashboard.totals.surfaceTime.title'),
-					description: t('dashboard.totals.surfaceTime.description'),
+					description: `${t('dashboard.totals.surfaceTime.description')} ${t('dashboard.totals.surfaces.unknownDescription')}`,
 					icon: 'hourglass',
 					data: surfaceTimeData,
 					total: chartTotal(surfaceTimeData, formatDuration),

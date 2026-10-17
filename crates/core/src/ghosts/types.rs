@@ -158,6 +158,8 @@ pub struct GhostStatistics {
     pub time_on_monorail: Option<f64>,
     pub time_parked: Option<f64>,
     pub time_ragdoll: Option<f64>,
+    pub distance_on_unknown: Option<f64>,
+    pub time_on_unknown: Option<f64>,
     pub distance_on_tarmac: Option<f64>,
     pub distance_on_grass: Option<f64>,
     pub distance_on_sand: Option<f64>,

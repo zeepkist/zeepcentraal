@@ -35,6 +35,7 @@ mod tests {
             initial_frame: Some(proto::InitialFrame {
                 position: Some(proto::Vector3::default()),
                 surface_state,
+                grounded_wheel_state: 15,
                 ..Default::default()
             }),
             delta_frames: vec![proto::DeltaFrame {
@@ -65,6 +66,8 @@ mod tests {
                 assert!(ghost.frames.iter().all(|frame| frame.surfaces.is_empty()));
                 assert_eq!(statistics.distance_on_tarmac, Some(0.0));
                 assert_eq!(statistics.time_on_tarmac, Some(0.0));
+                assert_eq!(statistics.distance_on_unknown, Some(1.0));
+                assert_eq!(statistics.time_on_unknown, Some(1.0));
             } else if version == 5 {
                 assert_eq!(statistics.distance_on_tarmac, None);
                 assert_eq!(statistics.time_on_tarmac, None);
@@ -87,6 +90,63 @@ mod tests {
                 assert_eq!(statistics.distance_on_wood, Some(1.0));
                 assert_eq!(statistics.time_on_wood, Some(1.0));
             }
+        }
+    }
+
+    #[test]
+    fn unknown_surfaces_measure_only_grounded_unclassified_segments() {
+        for version in [7, 8] {
+            let frames: Vec<_> = (0..5)
+                .map(|index| GhostFrame {
+                    time: f64::from(index),
+                    position: Vector3 {
+                        x: f64::from(index) * 10.0,
+                        ..Default::default()
+                    },
+                    grounded_wheel_state: Some(if index == 2 { 0 } else { 15 }),
+                    surfaces: if index == 1 {
+                        vec![Surface::Wood, Surface::Mud]
+                    } else {
+                        vec![]
+                    },
+                    ..Default::default()
+                })
+                .collect();
+            let statistics = calculate_ghost_statistics(&frames, version);
+            assert_eq!(statistics.distance_on_unknown, Some(20.0));
+            assert_eq!(statistics.time_on_unknown, Some(2.0));
+            assert_eq!(statistics.distance_on_wood, Some(5.0));
+            assert_eq!(statistics.distance_on_mud, Some(5.0));
+            assert_eq!(statistics.time_on_wood, Some(0.5));
+            assert_eq!(statistics.distance_on_ground, Some(30.0));
+
+            let mut invalid = frames[..2].to_vec();
+            invalid[1].position.x = 1000.0;
+            let statistics = calculate_ghost_statistics(&invalid, version);
+            assert_eq!(statistics.distance_on_unknown, Some(0.0));
+            assert_eq!(statistics.time_on_unknown, Some(1.0));
+        }
+    }
+
+    #[test]
+    fn unknown_surfaces_preserve_unsupported_and_empty_telemetry() {
+        for version in [5, 6, 7, 8] {
+            let frame = GhostFrame {
+                grounded_wheel_state: Some(0),
+                ..Default::default()
+            };
+            let statistics = calculate_ghost_statistics(&[frame], version);
+            assert_eq!(
+                statistics.distance_on_unknown,
+                (version >= 7).then_some(0.0)
+            );
+            assert_eq!(statistics.time_on_unknown, (version >= 7).then_some(0.0));
+            let statistics = calculate_ghost_statistics(&[GhostFrame::default()], version);
+            assert_eq!(statistics.distance_on_unknown, None);
+            assert_eq!(
+                calculate_ghost_statistics(&[], version).time_on_unknown,
+                None
+            );
         }
     }
 

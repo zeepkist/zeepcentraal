@@ -33,6 +33,7 @@ query ZC_LevelStatistics($levelId: Int!) {
 				distanceOnIce3
 				distanceOnWood
 				distanceOnMud
+				distanceOnUnknown
 				distanceOnSand
 				distanceOnSoap
 				distanceOnTarmac
@@ -46,6 +47,7 @@ query ZC_LevelStatistics($levelId: Int!) {
 				timeOnIce3
 				timeOnWood
 				timeOnMud
+				timeOnUnknown
 				timeOnSand
 				timeOnSoap
 				timeOnTarmac

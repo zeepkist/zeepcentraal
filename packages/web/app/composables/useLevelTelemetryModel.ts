@@ -101,6 +101,13 @@ export function useRecordTelemetryModel(
 			distanceField: 'distanceOnIce3',
 			timeField: 'timeOnIce3',
 		},
+		{
+			key: 'unknown',
+			label: () => t('dashboard.totals.surfaces.unknown'),
+			color: '#94a3b8',
+			distanceField: 'distanceOnUnknown',
+			timeField: 'timeOnUnknown',
+		},
 	] as const
 
 	const scopeT = (key: string) => {
@@ -325,7 +332,7 @@ export function useRecordTelemetryModel(
 				chart(
 					'surface-distance',
 					t('dashboard.totals.surfaceDistance.title'),
-					scopeT('surfaceDistance'),
+					`${scopeT('surfaceDistance')} ${t('dashboard.totals.surfaces.unknownDescription')}`,
 					'road',
 					surfaceDistance,
 					formatDistance,
@@ -333,7 +340,7 @@ export function useRecordTelemetryModel(
 				chart(
 					'surface-time',
 					t('dashboard.totals.surfaceTime.title'),
-					scopeT('surfaceTime'),
+					`${scopeT('surfaceTime')} ${t('dashboard.totals.surfaces.unknownDescription')}`,
 					'hourglass',
 					surfaceTime,
 					formatDuration,

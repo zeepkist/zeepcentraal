@@ -968,7 +968,7 @@
 			"empty": "No telemetry is available for this period.",
 			"period": {
 				"title": "Telemetry window",
-				"description": "V6 ghost telemetry from GTR 1.2.0 or newer.",
+				"description": "V6+ ghost telemetry from GTR 1.2.0 or newer.",
 				"minimumVersion": "GTR 1.2.0+",
 				"today": "Today"
 			},
@@ -1025,7 +1025,9 @@
 				"mud": "Mud",
 				"ice1": "Ice 5",
 				"ice2": "Ice 10",
-				"ice3": "Ice 15"
+				"ice3": "Ice 15",
+				"unknown": "Unknown",
+				"unknownDescription": "Surface unknown"
 			},
 			"movement": {
 				"ground": "On ground",

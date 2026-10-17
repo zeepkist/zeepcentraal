@@ -336,6 +336,8 @@ diesel::table! {
     #[sql_name = "record_statistic"]
     record_statistic_part_3 (id_record) {
         id_record -> Integer,
+        distance_on_unknown -> Nullable<Float>,
+        time_on_unknown -> Nullable<Float>,
         time_on_grass -> Nullable<Float>,
         time_on_sand -> Nullable<Float>,
         time_on_ice1 -> Nullable<Float>,

@@ -23,6 +23,7 @@ fragment ZC_RecordStatistic on RecordStatistic {
 	distanceOnIce3
 	distanceOnWood
 	distanceOnMud
+	distanceOnUnknown
 	distanceOnMonorail
 	distanceOnSand
 	distanceOnSoap
@@ -66,6 +67,7 @@ fragment ZC_RecordStatistic on RecordStatistic {
 	timeOnIce3
 	timeOnWood
 	timeOnMud
+	timeOnUnknown
 	timeOnMonorail
 	timeOnSand
 	timeOnSoap

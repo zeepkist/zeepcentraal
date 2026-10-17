@@ -13,6 +13,38 @@ import {
 	isValidTaskPayload,
 } from './taskDefinitions'
 
+describe('surface statistic repair options', () => {
+	for (const scope of ['sample', 'all']) {
+		test(`collects ${scope} repair without ghost downloads`, async () => {
+			const prompt = new ScriptedPromptAdapter({
+				selections: ['surfaces', scope],
+				texts: ['50'],
+			})
+			const payload = await collectJobOptions(prompt, 'backfillRecordGhostStatistics')
+			expect(payload).toEqual({
+				limit: 50,
+				repairSurfaceStatistics: true,
+				...(scope === 'sample' ? { maxRecords: 50 } : {}),
+			})
+			expect(isValidTaskPayload('backfillRecordGhostStatistics', payload)).toBe(true)
+			prompt.assertConsumed()
+		})
+	}
+	test('rejects mixed modes and invalid repair bounds', () => {
+		for (const payload of [
+			{ repairSurfaceStatistics: false },
+			{ repairSurfaceStatistics: true, ids: [1] },
+			{ repairSurfaceStatistics: true, reparseGhostVersion: 5 },
+			{ repairSurfaceStatistics: true, throughRecordId: -1 },
+			{ repairSurfaceStatistics: true, beforeRecordId: 0 },
+			{ repairSurfaceStatistics: true, maxRecords: 501 },
+			{ throughRecordId: 10 },
+			{ maxRecords: 50 },
+		])
+			expect(isValidTaskPayload('backfillRecordGhostStatistics', payload)).toBe(false)
+	})
+})
+
 class ScriptedPromptAdapter implements PromptAdapter {
 	readonly #selections: unknown[]
 	readonly #confirmations: boolean[]

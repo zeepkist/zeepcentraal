@@ -13521,6 +13521,7 @@ type RecordStatistic implements Node {
   distanceOnSand: Float
   distanceOnSoap: Float
   distanceOnTarmac: Float
+  distanceOnUnknown: Float
   distanceOnWood: Float
   distanceParaglider: Float
   distanceParked: Float
@@ -13571,6 +13572,7 @@ type RecordStatistic implements Node {
   timeOnSand: Float
   timeOnSoap: Float
   timeOnTarmac: Float
+  timeOnUnknown: Float
   timeOnWood: Float
   timeParaglider: Float
   timeParked: Float
@@ -13707,6 +13709,9 @@ type RecordStatisticAverageAggregates {
   """Mean average of distanceOnTarmac across the matching connection"""
   distanceOnTarmac: Float
 
+  """Mean average of distanceOnUnknown across the matching connection"""
+  distanceOnUnknown: Float
+
   """Mean average of distanceOnWood across the matching connection"""
   distanceOnWood: Float
 
@@ -13810,6 +13815,9 @@ type RecordStatisticAverageAggregates {
 
   """Mean average of timeOnTarmac across the matching connection"""
   timeOnTarmac: Float
+
+  """Mean average of timeOnUnknown across the matching connection"""
+  timeOnUnknown: Float
 
   """Mean average of timeOnWood across the matching connection"""
   timeOnWood: Float
@@ -13927,6 +13935,9 @@ input RecordStatisticCondition {
 
   """Checks for equality with the object’s `distanceOnTarmac` field."""
   distanceOnTarmac: Float
+
+  """Checks for equality with the object’s `distanceOnUnknown` field."""
+  distanceOnUnknown: Float
 
   """Checks for equality with the object’s `distanceOnWood` field."""
   distanceOnWood: Float
@@ -14056,6 +14067,9 @@ input RecordStatisticCondition {
   """Checks for equality with the object’s `timeOnTarmac` field."""
   timeOnTarmac: Float
 
+  """Checks for equality with the object’s `timeOnUnknown` field."""
+  timeOnUnknown: Float
+
   """Checks for equality with the object’s `timeOnWood` field."""
   timeOnWood: Float
 
@@ -14170,6 +14184,9 @@ type RecordStatisticDistinctCountAggregates {
 
   """Distinct count of distanceOnTarmac across the matching connection"""
   distanceOnTarmac: BigInt
+
+  """Distinct count of distanceOnUnknown across the matching connection"""
+  distanceOnUnknown: BigInt
 
   """Distinct count of distanceOnWood across the matching connection"""
   distanceOnWood: BigInt
@@ -14299,6 +14316,9 @@ type RecordStatisticDistinctCountAggregates {
   """Distinct count of timeOnTarmac across the matching connection"""
   timeOnTarmac: BigInt
 
+  """Distinct count of timeOnUnknown across the matching connection"""
+  timeOnUnknown: BigInt
+
   """Distinct count of timeOnWood across the matching connection"""
   timeOnWood: BigInt
 
@@ -14417,6 +14437,9 @@ input RecordStatisticFilter {
 
   """Filter by the object’s `distanceOnTarmac` field."""
   distanceOnTarmac: FloatFilter
+
+  """Filter by the object’s `distanceOnUnknown` field."""
+  distanceOnUnknown: FloatFilter
 
   """Filter by the object’s `distanceOnWood` field."""
   distanceOnWood: FloatFilter
@@ -14553,6 +14576,9 @@ input RecordStatisticFilter {
   """Filter by the object’s `timeOnTarmac` field."""
   timeOnTarmac: FloatFilter
 
+  """Filter by the object’s `timeOnUnknown` field."""
+  timeOnUnknown: FloatFilter
+
   """Filter by the object’s `timeOnWood` field."""
   timeOnWood: FloatFilter
 
@@ -14617,6 +14643,7 @@ enum RecordStatisticGroupBy {
   DISTANCE_ON_SAND
   DISTANCE_ON_SOAP
   DISTANCE_ON_TARMAC
+  DISTANCE_ON_UNKNOWN
   DISTANCE_ON_WOOD
   DISTANCE_PARAGLIDER
   DISTANCE_PARKED
@@ -14658,6 +14685,7 @@ enum RecordStatisticGroupBy {
   TIME_ON_SAND
   TIME_ON_SOAP
   TIME_ON_TARMAC
+  TIME_ON_UNKNOWN
   TIME_ON_WOOD
   TIME_PARAGLIDER
   TIME_PARKED
@@ -14698,6 +14726,7 @@ input RecordStatisticHavingAverageInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -14732,6 +14761,7 @@ input RecordStatisticHavingAverageInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -14772,6 +14802,7 @@ input RecordStatisticHavingDistinctCountInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -14806,6 +14837,7 @@ input RecordStatisticHavingDistinctCountInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -14861,6 +14893,7 @@ input RecordStatisticHavingMaxInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -14895,6 +14928,7 @@ input RecordStatisticHavingMaxInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -14935,6 +14969,7 @@ input RecordStatisticHavingMinInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -14969,6 +15004,7 @@ input RecordStatisticHavingMinInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -15009,6 +15045,7 @@ input RecordStatisticHavingStddevPopulationInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -15043,6 +15080,7 @@ input RecordStatisticHavingStddevPopulationInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -15083,6 +15121,7 @@ input RecordStatisticHavingStddevSampleInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -15117,6 +15156,7 @@ input RecordStatisticHavingStddevSampleInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -15157,6 +15197,7 @@ input RecordStatisticHavingSumInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -15191,6 +15232,7 @@ input RecordStatisticHavingSumInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -15231,6 +15273,7 @@ input RecordStatisticHavingVariancePopulationInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -15265,6 +15308,7 @@ input RecordStatisticHavingVariancePopulationInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -15305,6 +15349,7 @@ input RecordStatisticHavingVarianceSampleInput {
   distanceOnSand: HavingFloatFilter
   distanceOnSoap: HavingFloatFilter
   distanceOnTarmac: HavingFloatFilter
+  distanceOnUnknown: HavingFloatFilter
   distanceOnWood: HavingFloatFilter
   distanceParaglider: HavingFloatFilter
   distanceParked: HavingFloatFilter
@@ -15339,6 +15384,7 @@ input RecordStatisticHavingVarianceSampleInput {
   timeOnSand: HavingFloatFilter
   timeOnSoap: HavingFloatFilter
   timeOnTarmac: HavingFloatFilter
+  timeOnUnknown: HavingFloatFilter
   timeOnWood: HavingFloatFilter
   timeParaglider: HavingFloatFilter
   timeParked: HavingFloatFilter
@@ -15426,6 +15472,9 @@ type RecordStatisticMaxAggregates {
 
   """Maximum of distanceOnTarmac across the matching connection"""
   distanceOnTarmac: Float
+
+  """Maximum of distanceOnUnknown across the matching connection"""
+  distanceOnUnknown: Float
 
   """Maximum of distanceOnWood across the matching connection"""
   distanceOnWood: Float
@@ -15528,6 +15577,9 @@ type RecordStatisticMaxAggregates {
 
   """Maximum of timeOnTarmac across the matching connection"""
   timeOnTarmac: Float
+
+  """Maximum of timeOnUnknown across the matching connection"""
+  timeOnUnknown: Float
 
   """Maximum of timeOnWood across the matching connection"""
   timeOnWood: Float
@@ -15636,6 +15688,9 @@ type RecordStatisticMinAggregates {
   """Minimum of distanceOnTarmac across the matching connection"""
   distanceOnTarmac: Float
 
+  """Minimum of distanceOnUnknown across the matching connection"""
+  distanceOnUnknown: Float
+
   """Minimum of distanceOnWood across the matching connection"""
   distanceOnWood: Float
 
@@ -15737,6 +15792,9 @@ type RecordStatisticMinAggregates {
 
   """Minimum of timeOnTarmac across the matching connection"""
   timeOnTarmac: Float
+
+  """Minimum of timeOnUnknown across the matching connection"""
+  timeOnUnknown: Float
 
   """Minimum of timeOnWood across the matching connection"""
   timeOnWood: Float
@@ -15894,6 +15952,11 @@ type RecordStatisticStddevPopulationAggregates {
   Population standard deviation of distanceOnTarmac across the matching connection
   """
   distanceOnTarmac: Float
+
+  """
+  Population standard deviation of distanceOnUnknown across the matching connection
+  """
+  distanceOnUnknown: Float
 
   """
   Population standard deviation of distanceOnWood across the matching connection
@@ -16062,6 +16125,11 @@ type RecordStatisticStddevPopulationAggregates {
   Population standard deviation of timeOnTarmac across the matching connection
   """
   timeOnTarmac: Float
+
+  """
+  Population standard deviation of timeOnUnknown across the matching connection
+  """
+  timeOnUnknown: Float
 
   """
   Population standard deviation of timeOnWood across the matching connection
@@ -16233,6 +16301,11 @@ type RecordStatisticStddevSampleAggregates {
   distanceOnTarmac: Float
 
   """
+  Sample standard deviation of distanceOnUnknown across the matching connection
+  """
+  distanceOnUnknown: Float
+
+  """
   Sample standard deviation of distanceOnWood across the matching connection
   """
   distanceOnWood: Float
@@ -16374,6 +16447,11 @@ type RecordStatisticStddevSampleAggregates {
   """
   timeOnTarmac: Float
 
+  """
+  Sample standard deviation of timeOnUnknown across the matching connection
+  """
+  timeOnUnknown: Float
+
   """Sample standard deviation of timeOnWood across the matching connection"""
   timeOnWood: Float
 
@@ -16497,6 +16575,9 @@ type RecordStatisticSumAggregates {
   """Sum of distanceOnTarmac across the matching connection"""
   distanceOnTarmac: Float!
 
+  """Sum of distanceOnUnknown across the matching connection"""
+  distanceOnUnknown: Float!
+
   """Sum of distanceOnWood across the matching connection"""
   distanceOnWood: Float!
 
@@ -16598,6 +16679,9 @@ type RecordStatisticSumAggregates {
 
   """Sum of timeOnTarmac across the matching connection"""
   timeOnTarmac: Float!
+
+  """Sum of timeOnUnknown across the matching connection"""
+  timeOnUnknown: Float!
 
   """Sum of timeOnWood across the matching connection"""
   timeOnWood: Float!
@@ -16718,6 +16802,11 @@ type RecordStatisticVariancePopulationAggregates {
   """Population variance of distanceOnTarmac across the matching connection"""
   distanceOnTarmac: Float
 
+  """
+  Population variance of distanceOnUnknown across the matching connection
+  """
+  distanceOnUnknown: Float
+
   """Population variance of distanceOnWood across the matching connection"""
   distanceOnWood: Float
 
@@ -16832,6 +16921,9 @@ type RecordStatisticVariancePopulationAggregates {
   """Population variance of timeOnTarmac across the matching connection"""
   timeOnTarmac: Float
 
+  """Population variance of timeOnUnknown across the matching connection"""
+  timeOnUnknown: Float
+
   """Population variance of timeOnWood across the matching connection"""
   timeOnWood: Float
 
@@ -16943,6 +17035,9 @@ type RecordStatisticVarianceSampleAggregates {
   """Sample variance of distanceOnTarmac across the matching connection"""
   distanceOnTarmac: Float
 
+  """Sample variance of distanceOnUnknown across the matching connection"""
+  distanceOnUnknown: Float
+
   """Sample variance of distanceOnWood across the matching connection"""
   distanceOnWood: Float
 
@@ -17046,6 +17141,9 @@ type RecordStatisticVarianceSampleAggregates {
 
   """Sample variance of timeOnTarmac across the matching connection"""
   timeOnTarmac: Float
+
+  """Sample variance of timeOnUnknown across the matching connection"""
+  timeOnUnknown: Float
 
   """Sample variance of timeOnWood across the matching connection"""
   timeOnWood: Float
@@ -17180,6 +17278,8 @@ enum RecordStatisticsOrderBy {
   DISTANCE_ON_SOAP_DESC
   DISTANCE_ON_TARMAC_ASC
   DISTANCE_ON_TARMAC_DESC
+  DISTANCE_ON_UNKNOWN_ASC
+  DISTANCE_ON_UNKNOWN_DESC
   DISTANCE_ON_WOOD_ASC
   DISTANCE_ON_WOOD_DESC
   DISTANCE_PARAGLIDER_ASC
@@ -17267,6 +17367,8 @@ enum RecordStatisticsOrderBy {
   TIME_ON_SOAP_DESC
   TIME_ON_TARMAC_ASC
   TIME_ON_TARMAC_DESC
+  TIME_ON_UNKNOWN_ASC
+  TIME_ON_UNKNOWN_DESC
   TIME_ON_WOOD_ASC
   TIME_ON_WOOD_DESC
   TIME_PARAGLIDER_ASC

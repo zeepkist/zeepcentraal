@@ -360,6 +360,10 @@ impl ServiceJobHandler {
     }
 
     async fn backfill_record_statistics(&self, payload: &serde_json::Value) -> Result<()> {
+        if payload["repairSurfaceStatistics"].as_bool() == Some(true) {
+            self.repair_surface_statistics(payload, None).await?;
+            return Ok(());
+        }
         let limit = payload["limit"].as_i64().unwrap_or(500).min(500);
         if let Some(values) = payload["ids"].as_array() {
             let ids = values
@@ -400,6 +404,103 @@ impl ServiceJobHandler {
             }
         }
         Ok(())
+    }
+
+    async fn repair_surface_statistics(
+        &self,
+        payload: &serde_json::Value,
+        job: Option<&crate::queue::ClaimedJob>,
+    ) -> Result<JobOutcome> {
+        let mut payload = payload.clone();
+        if payload.get("throughRecordId").is_none() {
+            payload["throughRecordId"] =
+                serde_json::json!(self.database.surface_statistics_upper_bound().await?);
+        }
+        let through = i32::try_from(
+            payload["throughRecordId"]
+                .as_i64()
+                .context("surface repair upper bound is missing")?,
+        )?;
+        let limit = payload["limit"].as_i64().unwrap_or(500);
+        let mut before = payload["beforeRecordId"]
+            .as_i64()
+            .map(i32::try_from)
+            .transpose()?;
+        let maximum = payload["maxRecords"].as_i64();
+        let mut processed = 0_i64;
+        loop {
+            if let Some(job) = job {
+                if !self.queue.checkpoint(job, &payload).await? {
+                    return Ok(JobOutcome::Deferred);
+                }
+            }
+            let batch_limit = maximum.map_or(limit, |maximum| limit.min(maximum - processed));
+            let batch = match self
+                .database
+                .repair_surface_statistics_batch(through, before, batch_limit)
+                .await
+            {
+                Ok(batch) => batch,
+                Err(error) => {
+                    let remaining = self
+                        .database
+                        .remaining_surface_statistics(through)
+                        .await
+                        .ok();
+                    tracing::warn!(
+                        processed,
+                        failed_batches = 1,
+                        remaining,
+                        through_record_id = through,
+                        before_record_id = before,
+                        "Surface statistic repair failed; committed batches remain resumable"
+                    );
+                    return Err(error);
+                }
+            };
+            processed += batch.processed;
+            tracing::info!(
+                processed,
+                batch_processed = batch.processed,
+                failed = 0,
+                through_record_id = through,
+                before_record_id = batch.before_id,
+                "Surface statistic repair batch completed"
+            );
+            let Some(next_before) = batch.before_id else {
+                break;
+            };
+            before = Some(next_before);
+            payload["beforeRecordId"] = serde_json::json!(next_before);
+            if maximum.is_some_and(|maximum| processed >= maximum) {
+                if let Some(job) = job {
+                    if !self.queue.checkpoint(job, &payload).await? {
+                        return Ok(JobOutcome::Deferred);
+                    }
+                }
+                break;
+            }
+        }
+        let remaining = self.database.remaining_surface_statistics(through).await?;
+        if maximum.is_none() && remaining > 0 {
+            tracing::warn!(
+                processed,
+                remaining,
+                "Surface statistic repair needs another pass from the upper bound"
+            );
+            anyhow::bail!(
+                "Surface statistic repair has {remaining} remaining eligible rows; rerun without a beforeRecordId cursor"
+            );
+        }
+        tracing::info!(
+            processed,
+            failed = 0,
+            remaining,
+            through_record_id = through,
+            before_record_id = before,
+            "Surface statistic repair completed"
+        );
+        Ok(JobOutcome::Completed)
     }
 
     async fn enqueue_statistic_batch(&self, ids: &[i32]) -> Result<()> {
@@ -1148,6 +1249,13 @@ impl JobHandler for ServiceJobHandler {
             .await;
         }
         let task = TaskIdentifier::parse(&job.task).context("invalid task")?;
+        if task == TaskIdentifier::BackfillRecordGhostStatistics
+            && job.payload["repairSurfaceStatistics"].as_bool() == Some(true)
+        {
+            return self
+                .repair_surface_statistics(&job.payload, Some(job))
+                .await;
+        }
         if task == TaskIdentifier::BackfillRecordEligibility {
             let mut payload = job.payload.clone();
             if payload.get("throughLevelId").is_none() {

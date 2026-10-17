@@ -118,6 +118,7 @@ function createV7ProtobufPayload(
 		.add(new protobuf.Field('z', 3, 'int32'))
 	const initialFrame = new protobuf.Type('InitialFrame')
 		.add(new protobuf.Field('position', 1, 'Vector3'))
+		.add(new protobuf.Field('groundedWheelState', 7, 'int32'))
 		.add(new protobuf.Field('surfaceState', 9, 'int32'))
 	const deltaFrame = new protobuf.Type('DeltaFrame')
 		.add(new protobuf.Field('time', 1, 'float'))
@@ -148,6 +149,7 @@ function createV7ProtobufPayload(
 						: undefined,
 				initialFrame: {
 					position: { x: 0, y: 0, z: 0 },
+					groundedWheelState: 15,
 					surfaceState,
 				},
 				deltaFrames: [
@@ -278,6 +280,8 @@ describe('ghost playback parsing', () => {
 				expect(native.frames.every((frame) => frame.surfaces?.length === 0)).toBe(true)
 				expect(statistics.distanceOnTarmac).toBe(0)
 				expect(statistics.timeOnTarmac).toBe(0)
+				expect(statistics.distanceOnUnknown).toBe(1)
+				expect(statistics.timeOnUnknown).toBe(1)
 			} else if (version === 5) {
 				expect(statistics.distanceOnTarmac).toBeNull()
 				expect(statistics.timeOnTarmac).toBeNull()

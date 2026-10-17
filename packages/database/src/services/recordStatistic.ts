@@ -82,6 +82,8 @@ export async function upsertRecordStatistic(input: RecordStatisticInput): Promis
 				timeOnMonorail: input.timeOnMonorail,
 				timeParked: input.timeParked,
 				timeRagdoll: input.timeRagdoll,
+				distanceOnUnknown: input.distanceOnUnknown,
+				timeOnUnknown: input.timeOnUnknown,
 				distanceOnTarmac: input.distanceOnTarmac,
 				distanceOnGrass: input.distanceOnGrass,
 				distanceOnSand: input.distanceOnSand,
