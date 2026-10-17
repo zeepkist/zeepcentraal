@@ -1,5 +1,6 @@
 import type { TrackTournamentFilter } from '@zeepkist/graphql/generated'
 import { Zc_TrackTournamentPlaylistDocument } from '@zeepkist/graphql/generated'
+import { createError, defineEventHandler, getQuery } from 'nuxt/server'
 import {
 	buildTournamentPlaylist,
 	type TournamentPlaylistLevelSource,
@@ -18,8 +19,8 @@ export default defineEventHandler(async (event) => {
 		request = parseTournamentPlaylistQuery(getQuery(event))
 	} catch (error) {
 		throw createError({
-			statusCode: 400,
-			statusMessage:
+			status: 400,
+			statusText:
 				error instanceof Error ? error.message : 'Invalid tournament playlist query',
 		})
 	}
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
 		]
 	})
 	if (levels.length === 0) {
-		throw createError({ statusCode: 404, statusMessage: 'Tournament playlist has no levels' })
+		throw createError({ status: 404, statusText: 'Tournament playlist has no levels' })
 	}
 
 	const identity = tournamentPlaylistIdentity(request)
@@ -66,11 +67,13 @@ export default defineEventHandler(async (event) => {
 		levels,
 		request.slug === undefined ? 'aggregate' : 'single',
 	)
-	setResponseHeaders(event, {
+	for (const [name, value] of Object.entries({
 		'cache-control': 'no-store',
 		'content-disposition': `attachment; filename="${identity.filename}"`,
 		'content-type': 'application/json; charset=utf-8',
 		'x-content-type-options': 'nosniff',
-	})
+	})) {
+		event.res.headers.set(name, value)
+	}
 	return `${JSON.stringify(playlist, null, 2)}\n`
 })

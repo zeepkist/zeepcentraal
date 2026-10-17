@@ -47,7 +47,7 @@ describe('dashboard hero state', () => {
 		expect(hero).toContain('@login="$emit(\'login\', $event)"')
 		expect(loginPrompt).toContain("emit('login', 'steam')")
 		expect(loginPrompt).toContain("emit('login', 'discord')")
-		expect(loginPrompt).toContain("$t('auth.loginPrompt.discordRequirement')")
+		expect(loginPrompt).toContain("t('auth.loginPrompt.discordRequirement')")
 	})
 
 	it('shows the active state for players with records', () => {

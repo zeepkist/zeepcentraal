@@ -1,10 +1,10 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { useSortable } from '@vueuse/integrations/useSortable'
 import type { LocalPlaylistLevel } from '~/types/app'
 
 const store = usePlaylistsStore()
 const toast = useToast()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const list = useTemplateRef<HTMLElement>('list')
 const levels = computed<LocalPlaylistLevel[]>({
 	get: () => store.activePlaylist?.levels ?? [],
@@ -36,9 +36,9 @@ function remove(uid: string) {
 	<UCard class="border-border bg-card/85">
 		<template #header>
 			<div class="flex items-center justify-between gap-3">
-				<h2 class="font-semibold text-highlighted">{{ $t('playlist.levels.title') }}</h2>
+				<h2 class="font-semibold text-highlighted">{{ t('playlist.levels.title') }}</h2>
 				<UBadge color="neutral" variant="soft">
-					{{ $t('playlist.levels.count', { count: levels.length }) }}
+					{{ t('playlist.levels.count', { count: levels.length }) }}
 				</UBadge>
 			</div>
 		</template>
@@ -48,8 +48,8 @@ function remove(uid: string) {
 		>
 			<div>
 				<UIcon name="i-tabler-playlist" class="mx-auto size-9 text-muted-foreground" />
-				<p class="mt-3 font-medium text-highlighted">{{ $t('playlist.levels.emptyTitle') }}</p>
-				<p class="text-sm text-muted-foreground">{{ $t('playlist.levels.emptyDescription') }}</p>
+				<p class="mt-3 font-medium text-highlighted">{{ t('playlist.levels.emptyTitle') }}</p>
+				<p class="text-sm text-muted-foreground">{{ t('playlist.levels.emptyDescription') }}</p>
 			</div>
 		</div>
 		<ul v-else ref="list" class="grid gap-2">

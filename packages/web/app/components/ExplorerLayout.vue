@@ -1,3 +1,6 @@
+<script setup vapor lang="ts">
+</script>
+
 <template>
 	<div class="mx-auto w-full max-w-[100rem] px-4 py-2 sm:px-6 lg:px-8">
 		<div class="2xl:ml-[19.5rem] 2xl:max-w-[80rem]">

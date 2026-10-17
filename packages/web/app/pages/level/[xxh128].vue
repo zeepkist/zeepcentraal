@@ -4,9 +4,9 @@
 			:pending="levelData.detail.fetching.value"
 			:error="levelData.detail.error.value?.message"
 			:empty="!levelData.detail.fetching.value && !summary"
-			:loading-label="$t('common.loading')"
-			:error-title="$t('common.error')"
-			:empty-title="$t('levels.detail.notFound')"
+			:loading-label="t('common.loading')"
+			:error-title="t('common.error')"
+			:empty-title="t('levels.detail.notFound')"
 		>
 			<template #pending>
 				<SharedDetailPreview
@@ -30,15 +30,15 @@
 					/>
 
 					<section v-if="summary.medals" aria-labelledby="medals-heading">
-						<SectionHeader id="medals-heading" :title="$t('levels.detail.medals.title')" :description="$t('levels.detail.medals.description')" />
+						<SectionHeader id="medals-heading" :title="t('levels.detail.medals.title')" :description="t('levels.detail.medals.description')" />
 						<MedalTimes :times="summary.medals" :labels="medalLabels" />
 					</section>
 
 					<section :ref="levelData.pointsHistoryTarget" aria-labelledby="level-points-heading">
 						<SectionHeader
 							id="level-points-heading"
-							:title="$t('levels.detail.pointsHistory.title')"
-							:description="$t('levels.detail.pointsHistory.description')"
+							:title="t('levels.detail.pointsHistory.title')"
+							:description="t('levels.detail.pointsHistory.description')"
 						/>
 						<DataState
 							:pending="
@@ -51,9 +51,9 @@
 								!levelData.pointsHistoryQuery.fetching.value &&
 								levelData.pointsHistory.value.length === 0
 							"
-							:loading-label="$t('common.loading')"
-							:error-title="$t('common.error')"
-							:empty-title="$t('common.empty')"
+							:loading-label="t('common.loading')"
+							:error-title="t('common.error')"
+							:empty-title="t('common.empty')"
 						>
 							<template #pending>
 								<div class="grid min-h-80 gap-4 rounded-2xl border border-border bg-card/40 p-4">
@@ -63,7 +63,7 @@
 							</template>
 							<LazyLevelPointsInsights
 								:history="levelData.pointsHistory.value"
-								:series-label="$t('levels.detail.pointsHistory.series')"
+								:series-label="t('levels.detail.pointsHistory.series')"
 							/>
 						</DataState>
 					</section>
@@ -71,8 +71,8 @@
 					<section :ref="levelData.splitAnalysisTarget" aria-labelledby="split-analysis-heading">
 						<SectionHeader
 							id="split-analysis-heading"
-							:title="$t('levels.detail.splitAnalysis.title')"
-							:description="$t('levels.detail.splitAnalysis.description')"
+							:title="t('levels.detail.splitAnalysis.title')"
+							:description="t('levels.detail.splitAnalysis.description')"
 						>
 							<LevelSplitComparisonToggle
 								v-if="hasViewerSplitComparison"
@@ -92,9 +92,9 @@
 								!levelData.splitAnalysisQuery.fetching.value &&
 								levelData.splitAnalysis.value.series.length === 0
 							"
-							:loading-label="$t('common.loading')"
-							:error-title="$t('common.error')"
-							:empty-title="$t('levels.detail.splitAnalysis.empty')"
+							:loading-label="t('common.loading')"
+							:error-title="t('common.error')"
+							:empty-title="t('levels.detail.splitAnalysis.empty')"
 						>
 							<template #pending>
 								<div class="grid min-h-96 gap-4 rounded-2xl border border-border bg-card/40 p-4">
@@ -113,9 +113,9 @@
 					<AuthorLevelsCta
 						v-if="summary.publiclyVisible"
 						:author-id="summary.authorId"
-						:title="$t('levels.detail.authorCta.title', { author: summary.authorName })"
-						:description="$t('levels.detail.authorCta.description')"
-						:action="$t('levels.detail.authorCta.action')"
+						:title="t('levels.detail.authorCta.title', { author: summary.authorName })"
+						:description="t('levels.detail.authorCta.description')"
+						:action="t('levels.detail.authorCta.action')"
 					/>
 
 					<section
@@ -124,8 +124,8 @@
 					>
 						<SectionHeader
 							id="level-tournaments-heading"
-							:title="$t('tournaments.features.levelTitle')"
-							:description="$t('tournaments.features.levelDescription')"
+							:title="t('tournaments.features.levelTitle')"
+							:description="t('tournaments.features.levelDescription')"
 						/>
 						<div class="grid gap-5 md:grid-cols-2">
 							<TournamentFeatureCard
@@ -140,7 +140,7 @@
 					<DetailSectionTabs
 						v-model="activeDetailTab"
 						:items="detailTabs"
-						:label="$t('levels.detail.tabs.label')"
+						:label="t('levels.detail.tabs.label')"
 					>
 						<template #records>
 							<section
@@ -149,8 +149,8 @@
 							>
 								<SectionHeader
 									id="personal-bests-heading"
-									:title="$t('levels.detail.personalBests.title')"
-									:description="$t('levels.detail.personalBests.description')"
+									:title="t('levels.detail.personalBests.title')"
+									:description="t('levels.detail.personalBests.description')"
 								/>
 								<DataState
 									:pending="
@@ -164,9 +164,9 @@
 									"
 									:error="levelData.personalBests.error.value?.message || levelData.personalBestRanks.error.value?.message || levelData.viewerBest.error.value?.message"
 									:empty="levelData.personalBestRows.value.length === 0"
-									:loading-label="$t('common.loading')"
-									:error-title="$t('common.error')"
-									:empty-title="$t('common.empty')"
+									:loading-label="t('common.loading')"
+									:error-title="t('common.error')"
+									:empty-title="t('common.empty')"
 								>
 									<template #pending>
 										<USkeleton class="min-h-96 w-full rounded-2xl" />
@@ -212,8 +212,8 @@
 							<section :ref="levelData.recentTarget" aria-labelledby="recent-records-heading">
 								<SectionHeader
 									id="recent-records-heading"
-									:title="$t('levels.detail.recent.title')"
-									:description="$t('levels.detail.recent.description')"
+									:title="t('levels.detail.recent.title')"
+									:description="t('levels.detail.recent.description')"
 								/>
 								<DataState
 									:pending="
@@ -225,9 +225,9 @@
 									"
 									:error="levelData.recent.error.value?.message"
 									:empty="levelData.recentRows.value.length === 0"
-									:loading-label="$t('common.loading')"
-									:error-title="$t('common.error')"
-									:empty-title="$t('common.empty')"
+									:loading-label="t('common.loading')"
+									:error-title="t('common.error')"
+									:empty-title="t('common.empty')"
 								>
 									<template #pending>
 										<USkeleton class="min-h-96 w-full rounded-2xl" />
@@ -272,24 +272,24 @@
 							<section :ref="levelData.statisticsTarget" aria-labelledby="level-stats-heading">
 								<SectionHeader
 									id="level-stats-heading"
-									:title="$t('levels.detail.stats.title')"
-									:description="$t('levels.detail.stats.description')"
+									:title="t('levels.detail.stats.title')"
+									:description="t('levels.detail.stats.description')"
 								/>
 								<DataState
 									:pending="
 										!levelData.statisticsActive.value || levelData.statistics.fetching.value
 									"
 									:error="levelData.statistics.error.value?.message"
-									:loading-label="$t('common.loading')"
-									:error-title="$t('common.error')"
-									:empty-title="$t('common.empty')"
+									:loading-label="t('common.loading')"
+									:error-title="t('common.error')"
+									:empty-title="t('common.empty')"
 								>
 									<template #pending>
 										<USkeleton class="min-h-80 w-full rounded-2xl" />
 									</template>
 									<LazyLevelTelemetryPanel
 										:model="telemetryModel"
-										:description="$t('levels.detail.stats.telemetryDescription')"
+										:description="t('levels.detail.stats.telemetryDescription')"
 									/>
 								</DataState>
 							</section>
@@ -297,8 +297,8 @@
 							<section aria-labelledby="score-breakdown-heading">
 								<SectionHeader
 									id="score-breakdown-heading"
-									:title="$t('levels.detail.scoreBreakdown.title')"
-									:description="$t('levels.detail.scoreBreakdown.description')"
+									:title="t('levels.detail.scoreBreakdown.title')"
+									:description="t('levels.detail.scoreBreakdown.description')"
 								/>
 								<LazyLevelScoreBreakdown
 									:model="levelData.scoreInsights.value"
@@ -330,7 +330,7 @@
 
 <script setup vapor lang="ts">
 const route = useRoute()
-const { t, locale } = useI18n()
+const { t, locale } = useAppI18n()
 const session = useSessionStore()
 const user = computed(() => session.user)
 const xxHash = computed(() => String(route.params.xxh128))
@@ -339,7 +339,7 @@ const transitionPreview = computed(() => transition.preview('level', xxHash.valu
 defineOgImage('LevelDetail.takumi', { slug: xxHash })
 const viewerId = computed(() => user.value?.id)
 const levelData = useLevelDetail(xxHash, viewerId)
-await levelData.prefetchCritical()
+
 const summary = levelData.summary
 const workshopUrl = computed(() =>
 	summary.value?.publiclyVisible
@@ -516,4 +516,6 @@ const paginationLabels = computed(() => ({
 }))
 
 const { supporters } = useSupporterBadges()
+
+await levelData.prefetchCritical()
 </script>

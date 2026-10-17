@@ -7,14 +7,15 @@ vi.mock('@zeepkist/telemetry', () => ({
 	withActiveSpan: (_name: string, _options: unknown, callback: () => unknown) => callback(),
 }))
 
+vi.mock('nuxt/server', async (importOriginal) => ({
+	...(await importOriginal<typeof import('nuxt/server')>()),
+	useRuntimeConfig: () => ({ public: { graphqlHttpUrl: 'https://example.test' } }),
+}))
+
 const document = parse('query Probe { __typename }')
 const fetch = vi.fn()
 
 beforeEach(() => {
-	vi.stubGlobal('useRuntimeConfig', () => ({
-		public: { graphqlHttpUrl: 'https://example.test' },
-	}))
-	vi.stubGlobal('createError', (error: object) => Object.assign(new Error(), error))
 	vi.stubGlobal('$fetch', fetch)
 })
 afterEach(() => {

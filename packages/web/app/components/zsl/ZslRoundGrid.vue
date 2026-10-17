@@ -14,7 +14,7 @@
 		>
 			<template #eyebrow>
 				<UBadge color="primary" variant="soft">
-					{{ $t('zsl.roundNumber', { round: round.round }) }}
+					{{ t('zsl.roundNumber', { round: round.round }) }}
 				</UBadge>
 			</template>
 			<template #title>
@@ -31,6 +31,8 @@
 </template>
 
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 defineProps<{
 	rounds: Array<{ id: number; round: number; name: string; eventDate: unknown }>
 	link: (round: { id: number; round: number }) => string

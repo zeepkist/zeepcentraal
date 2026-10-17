@@ -14,7 +14,7 @@
 						class="h-16 w-16 object-contain"
 					/>
 					<div class="text-[30px] font-black tracking-tight text-[#facc15]">
-						{{ $t('common.brand') }}
+						{{ t('common.brand') }}
 					</div>
 				</div>
 				<div
@@ -74,9 +74,12 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
+
 import { computed } from 'vue'
 import { normaliseOgImageUrl } from '~/utils/ogImage'
+
+const { t } = useAppI18n()
 
 const props = defineProps<{
 	dense?: boolean

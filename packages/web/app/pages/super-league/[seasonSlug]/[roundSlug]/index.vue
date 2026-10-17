@@ -20,11 +20,11 @@
 				</div>
 			</template>
 			<template v-if="round">
-				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
+				<ZslBreadcrumbs :label="t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 				<PageHeader
-					:eyebrow="$t('zsl.roundNumber', { round: round.round })"
+					:eyebrow="t('zsl.roundNumber', { round: round.round })"
 					:title="round.name"
-					:description="$t('zsl.roundDescription')"
+					:description="t('zsl.roundDescription')"
 					:title-transition-style="transition.targetStyle('zsl-round', transitionId, 'title')"
 				>
 					<template #actions>
@@ -39,17 +39,17 @@
 				</PageHeader>
 				<ContestLinks :round-ids="[Number(round.id)]" />
 				<section>
-					<SectionHeader :title="$t('zsl.levels')" :description="$t('zsl.levelsDescription')" />
+					<SectionHeader :title="t('zsl.levels')" :description="t('zsl.levelsDescription')" />
 					<ZslLevelGrid
 						:levels="round.zslLevels.nodes"
 						:link="levelLink"
-						:level-label="$t('common.level')"
-						:results-label="$t('zsl.viewResults')"
+						:level-label="t('common.level')"
+						:results-label="t('zsl.viewResults')"
 						:transition-scope="`zsl-levels-${parsedSeasonId}-${parsedRoundNumber}`"
 					/>
 				</section>
 				<section>
-					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.roundStandings')" />
+					<SectionHeader :title="t('zsl.standings')" :description="t('zsl.roundStandings')" />
 					<DataState
 						:pending="
 							pagination.isInitialPending(
@@ -88,7 +88,7 @@
 
 <script setup vapor lang="ts">
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)
 const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
@@ -114,7 +114,7 @@ const {
 	standings,
 	standingsResult,
 } = useZslRound(seasonId, roundNumber, viewerId)
-await prefetch()
+
 watchEffect(() => {
 	if (result.fetching.value || result.data.value === undefined) return
 	if (!round.value) {
@@ -166,4 +166,6 @@ const paginationLabels = computed(() => ({
 }))
 
 const { supporters } = useSupporterBadges()
+
+await prefetch()
 </script>

@@ -54,7 +54,7 @@ describe('record date highlighting', () => {
 		expect(tournament).toContain(
 			'<RecordDate v-if="row.setAt" :datetime="row.setAt" :show-full-date="!active" />',
 		)
-		expect(tournament).toContain("$t('common.unavailable')")
+		expect(tournament).toContain("t('common.unavailable')")
 		expect(history).toContain('<RecordDate :datetime="record.dateCreated" />')
 		expect(history).not.toContain('<NuxtTime')
 	})

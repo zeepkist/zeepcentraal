@@ -137,7 +137,7 @@ const props = defineProps<{
 	createdLabel?: string
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const transition = useSharedViewTransition()
 const numberFormat = computed(() => getNumberFormatter(locale.value))
 const ratingFormat = computed(() => createLevelRatingFormatter(locale.value))

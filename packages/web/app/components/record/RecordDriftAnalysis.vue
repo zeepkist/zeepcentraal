@@ -131,6 +131,7 @@
 </template>
 
 <script setup vapor lang="ts">
+import { Orientation } from '#imports'
 import type { DashboardChartEntry } from '~/types/app'
 import type { GhostSlipEvent, LoadedPlaybackGhost } from '~/types/ghost'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
@@ -148,7 +149,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{ seek: [time: number] }>()
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const integerFormat = computed(() => new Intl.NumberFormat(locale.value))
 const decimalFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }),

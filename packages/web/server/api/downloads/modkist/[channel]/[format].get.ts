@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, getRouterParam, sendRedirect } from 'nuxt/server'
 import {
 	MODKIST_RELEASE_CHANNELS,
 	MODKIST_RELEASE_FORMATS,
@@ -17,13 +18,13 @@ function includes<T extends string>(values: readonly T[], value: string): value 
 
 export default defineEventHandler(async (event) => {
 	assertSameOrigin(event)
-	const channel = getRouterParam(event, 'channel') ?? ''
-	const format = getRouterParam(event, 'format') ?? ''
+	const channel = getRouterParam(event, 'channel', { decode: true }) ?? ''
+	const format = getRouterParam(event, 'format', { decode: true }) ?? ''
 	if (
 		!includes(MODKIST_RELEASE_CHANNELS, channel) ||
 		!includes(MODKIST_RELEASE_FORMATS, format)
 	) {
-		throw createError({ statusCode: 404, statusMessage: 'Modkist download not found' })
+		throw createError({ status: 404, statusText: 'Modkist download not found' })
 	}
 
 	let destination = MODKIST_RELEASES_URL

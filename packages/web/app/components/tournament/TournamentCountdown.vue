@@ -3,16 +3,18 @@
 		<TablerIcon name="calendar-time" class="mx-auto size-12 text-primary" />
 		<h1 class="mt-4 text-3xl font-black text-highlighted">{{ title }}</h1>
 		<p class="mt-2 text-lg text-muted">
-			{{ days > 0 ? $t('tournaments.startingInDays', { days }) : $t('tournaments.startingSoon') }}
+			{{ days > 0 ? t('tournaments.startingInDays', { days }) : t('tournaments.startingSoon') }}
 		</p>
 		<NuxtTime v-if="startAt" :datetime="startAt" class="mt-2 block text-sm text-muted" />
 		<UButton v-if="backTo" :to="backTo" class="mt-6" color="neutral" variant="soft" icon="i-tabler-arrow-left">
-			{{ $t('tournaments.backToActive') }}
+			{{ t('tournaments.backToActive') }}
 		</UButton>
 	</div>
 </template>
 
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 const props = defineProps<{ title: string; startAt: string; backTo?: string }>()
 const now = ref(Date.now())
 let timer: ReturnType<typeof setInterval> | undefined

@@ -1,27 +1,31 @@
+import type { RequestEvent } from 'nuxt/server'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createRequestEvent } from '../support/request-event'
 
 vi.mock('../../server/utils/backend', () => ({
 	getBackendBaseUrl: () => 'https://backend.example.test',
 }))
-let handler: () => Promise<unknown>
+let routeHandler: (event: RequestEvent) => Promise<unknown>
+let event: RequestEvent
+function handler() {
+	const query = new URLSearchParams()
+	if (roundId !== undefined) {
+		for (const value of Array.isArray(roundId) ? roundId : [roundId])
+			query.append('roundId', String(value))
+	}
+	event = createRequestEvent(`/?${query}`)
+	return routeHandler(event)
+}
 let roundId: unknown
 const fetcher = vi.fn()
-const header = vi.fn()
 beforeAll(async () => {
-	vi.stubGlobal('defineEventHandler', (callback: unknown) => callback)
-	handler = (await import('../../server/api/super-league/submission-overview.get'))
-		.default as unknown as () => Promise<unknown>
+	routeHandler = (await import('../../server/api/super-league/submission-overview.get'))
+		.default as unknown as (event: RequestEvent) => Promise<unknown>
 })
 beforeEach(() => {
 	roundId = '50'
 	fetcher.mockReset()
-	header.mockClear()
-	vi.stubGlobal('getQuery', () => ({ roundId }))
-	vi.stubGlobal('setResponseHeader', header)
 	vi.stubGlobal('$fetch', fetcher)
-	vi.stubGlobal('createError', (options: { statusCode: number; statusMessage: string }) =>
-		Object.assign(new Error(options.statusMessage), options),
-	)
 })
 afterEach(() => vi.unstubAllGlobals())
 describe('public submission overview proxy', () => {
@@ -43,7 +47,7 @@ describe('public submission overview proxy', () => {
 					credentials: 'omit',
 				},
 			)
-			expect(header).toHaveBeenCalledWith(undefined, 'cache-control', 'no-store')
+			expect(event.res.headers.get('cache-control')).toBe('no-store')
 		},
 	)
 	it.each(['0', '-1', '01', 'no', '2147483648', ['50', '51']])(

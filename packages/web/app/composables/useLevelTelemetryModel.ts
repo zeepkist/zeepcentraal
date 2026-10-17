@@ -11,7 +11,7 @@ export function useRecordTelemetryModel(
 	statistics: Ref<Zc_LevelStatisticsQuery | undefined>,
 	scope: 'level' | 'user' | 'record' = 'level',
 ) {
-	const { locale, t } = useI18n()
+	const { locale, t } = useAppI18n()
 	const numberFormat = computed(() => getNumberFormatter(locale.value))
 	const oneDecimal = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
 	const twoDecimals = computed(() => getNumberFormatter(locale.value, 'two-decimal'))

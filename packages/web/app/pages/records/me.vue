@@ -1,9 +1,9 @@
 <template>
 	<UContainer class="space-y-8 py-2">
 		<PageHeader
-			:eyebrow="$t('pages.myRecords.eyebrow')"
-			:title="$t('pages.myRecords.title')"
-			:description="$t('pages.myRecords.description')"
+			:eyebrow="t('pages.myRecords.eyebrow')"
+			:title="t('pages.myRecords.title')"
+			:description="t('pages.myRecords.description')"
 		>
 			<template #actions>
 				<RecordLiveControls
@@ -17,10 +17,10 @@
 
 		<RecordHistoryToolbar
 			:view="view"
-			:view-label="$t('pages.records.tabs.label')"
+			:view-label="t('pages.records.tabs.label')"
 			:view-options="tabOptions"
 			:sort="sort"
-			:sort-label="$t('pages.records.sort.label')"
+			:sort-label="t('pages.records.sort.label')"
 			:sort-options="sortOptions"
 			sort-id="my-records-sort"
 			@update:view="data.setView"
@@ -29,9 +29,9 @@
 
 		<RecordSetupPrompt
 			v-if="data.hasNoRecords.value"
-			:title="$t('pages.myRecords.setup.title')"
-			:description="$t('pages.myRecords.setup.description')"
-			:action-label="$t('pages.myRecords.setup.action')"
+			:title="t('pages.myRecords.setup.title')"
+			:description="t('pages.myRecords.setup.description')"
+			:action-label="t('pages.myRecords.setup.action')"
 			href="/wiki/setup-modkist"
 		/>
 
@@ -43,16 +43,16 @@
 				"
 				:error="data.countResult.error.value?.message || data.result.error.value?.message"
 				:empty="data.rows.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('pages.records.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('pages.records.empty')"
 				:skeletons="6"
 			>
 				<RecordHistoryTable :supporters="supporters"
 					:records="data.rows.value"
 					:labels="tableLabels"
 					:highlighted-record-ids="data.highlightedRecordIds.value"
-					:live-update-label="$t('pages.records.liveUpdate')"
+					:live-update-label="t('pages.records.liveUpdate')"
 					transition-scope="records-me"
 					:status-mode="view === 'world-records' ? 'none' : 'world-record-only'"
 				/>
@@ -73,7 +73,7 @@
 	</UContainer>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { TablerIconName } from '~/utils/icons'
 import type { RecordHistoryView } from '~/utils/recordHistory'
 
@@ -83,7 +83,7 @@ if (!session.user) {
 }
 
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const userId = computed(() => session.user?.id)
 const view = computed(() => normalizeRecordHistoryView(route.query.view))
 const sort = computed(() => normalizeRecordHistorySort(route.query.sort))

@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, getQuery } from 'nuxt/server'
 import type { ModListResponse, ModSort, ModSummary } from '../../../app/types/mod'
 import {
 	GTR_MOD_SLUG,
@@ -72,7 +73,7 @@ export default defineEventHandler(async (event): Promise<ModListResponse> => {
 		return availableTag ? [availableTag] : []
 	})
 	if (tags.length !== requestedTags.length) {
-		throw createError({ statusCode: 400, statusMessage: 'Invalid mod tag filter' })
+		throw createError({ status: 400, statusText: 'Invalid mod tag filter' })
 	}
 	const shouldPinGtr = search === '' && sort === 'popular' && !essentialsOnly && tags.length === 0
 	const pinnedMod = shouldPinGtr ? await findModBySlug(GTR_MOD_SLUG) : null

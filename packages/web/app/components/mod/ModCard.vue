@@ -90,7 +90,7 @@ const props = defineProps<{
 	transitionScope: string
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const transition = useSharedViewTransition()
 const compactFormat = computed(
 	() => getNumberFormatter(locale.value, 'compact-one-decimal'),

@@ -1,17 +1,17 @@
 <template>
 	<ExplorerLayout>
 		<template #header>
-			<PageHeader :eyebrow="$t('pages.users.eyebrow')" :title="$t('pages.users.title')" :description="$t('pages.users.description')" />
+			<PageHeader :eyebrow="t('pages.users.eyebrow')" :title="t('pages.users.title')" :description="t('pages.users.description')" />
 		</template>
 		<template #sidebar>
 			<UserFilterPanel
-				:title="$t('users.filters.title')"
-				:result-count-label="$t('users.results', { count: result.data.value?.userPoints?.totalCount ?? 0 })"
+				:title="t('users.filters.title')"
+				:result-count-label="t('users.results', { count: result.data.value?.userPoints?.totalCount ?? 0 })"
 				:search="search"
 				:sort="sort"
-				:search-label="$t('users.filters.search')"
-				:sort-label="$t('users.filters.sort')"
-				:apply-label="$t('users.filters.apply')"
+				:search-label="t('users.filters.search')"
+				:sort-label="t('users.filters.sort')"
+				:apply-label="t('users.filters.apply')"
 				:sort-options="sortOptions"
 				@update:search="search = $event"
 				@update:sort="sort = $event as UserPointsOrderBy"
@@ -19,7 +19,7 @@
 			/>
 		</template>
 		<div class="min-w-0 space-y-6">
-			<DataState :pending="pagination.isInitialPending(result.fetching.value, users.length)" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="$t('common.loading')" :error-title="$t('common.error')" :empty-title="$t('common.empty')">
+			<DataState :pending="pagination.isInitialPending(result.fetching.value, users.length)" :error="result.error.value?.message" :empty="users.length === 0" :loading-label="t('common.loading')" :error-title="t('common.error')" :empty-title="t('common.empty')">
 				<UserLeaderboardTable :supporters="supporters"
 					:users="users"
 					:viewer-user-id="session.user?.id"
@@ -38,7 +38,7 @@ import { USER_SORTS } from '~/composables/usePlayers'
 
 usePageSeo('users')
 defineOgImage('UserRankings.takumi', { slug: 'users' })
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const { applyFilters, page, pagination, result, search, sort, users } = usePlayers()
 const sortOptions = computed(() => [

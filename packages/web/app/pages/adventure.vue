@@ -1,22 +1,22 @@
 <template>
 	<UContainer class="space-y-8 py-2">
 		<PageHeader
-			:eyebrow="$t('pages.adventure.eyebrow')"
-			:title="$t('pages.adventure.title')"
-			:description="$t('pages.adventure.description')"
+			:eyebrow="t('pages.adventure.eyebrow')"
+			:title="t('pages.adventure.title')"
+			:description="t('pages.adventure.description')"
 		/>
 		<AdventureSeriesTabs
 			:series="seriesTabs"
 			:active-slug="seriesSlug"
-			:label="$t('adventure.tabsLabel')"
-			:unavailable-label="$t('levels.card.unavailable')"
+			:label="t('adventure.tabsLabel')"
+			:unavailable-label="t('levels.card.unavailable')"
 		/>
 		<UAlert
 			v-if="adventure.countsQuery.error.value"
 			color="error"
 			variant="soft"
-			:title="$t('common.error')"
-			:description="$t('adventure.countsError')"
+			:title="t('common.error')"
+			:description="t('adventure.countsError')"
 		/>
 		<NuxtPage />
 	</UContainer>
@@ -26,7 +26,7 @@
 usePageSeo('adventure')
 
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const seriesSlug = computed(() =>
 	'series' in route.params && typeof route.params.series === 'string'
@@ -41,5 +41,6 @@ const seriesTabs = computed(() =>
 	})),
 )
 provideAdventureContext(adventure)
+
 await adventure.prefetch()
 </script>

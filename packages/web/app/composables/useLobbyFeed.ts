@@ -6,7 +6,7 @@ export async function useLobbyFeed() {
 	const baseUrl = config.public.backendUrl.replace(/\/$/, '')
 	const snapshot = shallowRef<LobbySnapshot | null>(null)
 	const streamConnected = shallowRef(false)
-	const result = await useFetch<LobbySnapshot>(`${baseUrl}/lobby`, {
+	const result = useFetch<LobbySnapshot>(`${baseUrl}/lobby`, {
 		key: 'lobby-snapshot',
 	})
 
@@ -39,6 +39,9 @@ export async function useLobbyFeed() {
 	})
 
 	onScopeDispose(() => events?.close())
+
+	await result
+	if (result.data.value && isLobbySnapshot(result.data.value)) snapshot.value = result.data.value
 
 	return {
 		snapshot: readonly(snapshot),

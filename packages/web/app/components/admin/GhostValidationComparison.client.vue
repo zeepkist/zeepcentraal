@@ -1,11 +1,11 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { parseGhostInWorker } from '~/composables/useGhostParserWorker.client'
 import type { LoadedPlaybackGhost } from '~/types/ghost'
 import { parseLevelGeometryBlocks } from '~/utils/ghostLevelGeometry'
 import type { ValidationAttempt, ValidationReport, ValidationReview } from '~~/shared/ghostValidation'
 
 const props = defineProps<{ recordId: number; attempts: ValidationAttempt[] }>()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const performance = useGhostPerformancePreferences()
 const performanceLabels = computed(() => ({
 	open: t('pages.recordDetail.performance.open'),

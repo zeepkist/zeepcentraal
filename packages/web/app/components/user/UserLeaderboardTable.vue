@@ -86,7 +86,7 @@ const props = defineProps<{
 		openPlayer: string
 	}
 }>()
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const transition = useSharedViewTransition()
 const formatter = computed(() => new Intl.NumberFormat(locale.value))
 const format = (value?: number | null) => formatter.value.format(value ?? 0)

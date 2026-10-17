@@ -106,7 +106,7 @@ const props = withDefaults(
 	{ showViewerComparison: false },
 )
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const deltaFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
 )

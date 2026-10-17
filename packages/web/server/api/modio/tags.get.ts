@@ -1,3 +1,4 @@
+import { defineEventHandler } from 'nuxt/server'
 import type { ModTagOptionsResponse } from '../../../app/types/mod'
 import { getModioTagOptions } from '../../utils/modio'
 import { assertSameOrigin } from '../../utils/request'

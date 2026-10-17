@@ -1,4 +1,5 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import { test } from '../support/browser'
 
 const author = { steamId: '76561198000000001', steamName: 'Pack Author' }
 const imageUrl = '/android-chrome-512x512.png'
@@ -76,7 +77,9 @@ async function mockGraphql(
 ) {
 	const requests: Array<{ query: string; variables: Record<string, unknown> }> = []
 	await page.route(
-		(url) => url.hostname === 'graphql.zeepki.st',
+		(url) =>
+			url.hostname === 'graphql.zeepki.st' ||
+			(url.hostname === '127.0.0.1' && url.pathname === '/graphql'),
 		async (route) => {
 			const { query, variables = {} } = route.request().postDataJSON() as {
 				query: string

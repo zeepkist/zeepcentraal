@@ -1,3 +1,4 @@
+import { deleteCookie, getRequestURL, type RequestEvent } from 'nuxt/server'
 import { webAuthCookieNames } from '#shared/authCookies'
 
 export { webAuthCookieNames } from '#shared/authCookies'
@@ -6,7 +7,7 @@ export function webAuthCookieDomain(hostname: string) {
 	return hostname === 'zeepki.st' || hostname.endsWith('.zeepki.st') ? '.zeepki.st' : undefined
 }
 
-export function clearWebAuthCookies(event: Parameters<typeof getHeader>[0]) {
+export function clearWebAuthCookies(event: RequestEvent) {
 	const url = getRequestURL(event)
 	const options = {
 		path: '/',

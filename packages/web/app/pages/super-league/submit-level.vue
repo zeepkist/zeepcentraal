@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import LoginPrompt from '~/components/auth/LoginPrompt.vue'
 import BuildingGuidance from '~/components/super-league/BuildingGuidance.vue'
 import ContestLoading from '~/components/super-league/ContestLoading.vue'
@@ -10,7 +10,7 @@ import { steamContestAnnouncementUrl, submissionRuleLimits } from '~/utils/super
 
 definePageMeta({ middleware: 'super-league-active-round' })
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const route = useRoute()
 const session = useSessionStore()
@@ -23,6 +23,7 @@ const { contest, submission, loading, resolved, initial, saving, error, refresh,
 const viewer = computed(() => ({ steamId: session.user?.steamId ?? '', steamName: session.user?.steamName ?? session.user?.steamId ?? '' }))
 const announcement = computed(() => steamContestAnnouncementUrl(contest.value?.steamAnnouncementId))
 const limits = computed(() => submissionRuleLimits(contest.value?.rules ?? {}))
+
 await initial
 </script>
 

@@ -27,7 +27,7 @@
 		<div class="p-4">
 			<div class="flex items-center justify-between gap-3"><h3 class="truncate text-lg font-bold text-highlighted">{{ tournament.level.name }}</h3><UBadge variant="soft">{{ periodLabel }}</UBadge></div>
 			<p class="mt-1 truncate text-sm text-muted">{{ tournament.level.authorName }}</p>
-			<div class="mt-4 flex items-center justify-between text-sm"><span class="text-muted">{{ $t('tournaments.participants', { count: tournament.participantCount }) }}</span><span v-if="winner" class="font-semibold text-primary">#1 {{ winner.steamName ?? winner.steamId }}</span></div>
+			<div class="mt-4 flex items-center justify-between text-sm"><span class="text-muted">{{ t('tournaments.participants', { count: tournament.participantCount }) }}</span><span v-if="winner" class="font-semibold text-primary">#1 {{ winner.steamName ?? winner.steamId }}</span></div>
 		</div>
 	</NuxtLink>
 </template>
@@ -41,7 +41,7 @@ const props = defineProps<{
 	to?: string
 	transitionScope: string
 }>()
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
 const winner = computed(() => props.tournament.podium[0])
 const transitionId = computed(() => `${props.tournament.type}:${props.tournament.slug}`)

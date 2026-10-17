@@ -1,9 +1,11 @@
 import { fileURLToPath } from 'node:url'
-import { ADVENTURE_SERIES } from './app/utils/adventureSeries'
-import { getBuildAssetsDir } from './config/buildAssets'
-import { clientFsStub } from './config/clientFsStub'
-import { createNitroCacheStorageOptions } from './config/nitroCache'
-import { uiIconClientBundle, uiIcons } from './config/uiIcons'
+import { ADVENTURE_SERIES } from './app/utils/adventureSeries.ts'
+import { getBuildAssetsDir } from './config/buildAssets.ts'
+import { clientFsStub } from './config/clientFsStub.ts'
+import { createNitroCacheStorageOptions } from './config/nitroCache.ts'
+import { NUXT_RUNTIME_INLINE } from './config/nuxtRuntime.ts'
+import { uiIconClientBundle, uiIcons } from './config/uiIcons.ts'
+import { guardMdcVdomTransform } from './config/vapor.ts'
 
 const ogImageModuleUrl = import.meta.resolve('nuxt-og-image')
 const ogImageUrlBuilderPath = fileURLToPath(
@@ -17,17 +19,21 @@ const productionBackendUrl = 'https://backend.zeepki.st'
 export default defineNuxtConfig({
 	alias: {
 		'#records-og-image-url-builder': ogImageUrlBuilderPath,
+		// Bun's isolated peer variants must share Pinia's injection symbol and active store.
+		pinia: fileURLToPath(import.meta.resolve('pinia')),
 	},
 	compatibilityDate: '2026-07-25',
 	debug: process.env.NUXT_PROFILE === 'true' ? { perf: true } : process.env.NUXT_DEBUG === 'true',
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
+	vue: { vapor: true },
 	srcDir: 'app',
 	future: {
 		compatibilityVersion: 5,
 		typescriptBundlerResolution: true,
 	},
 	experimental: {
+		early404: true,
 		watcher: 'builder',
 		emitRouteChunkError: 'automatic-immediate',
 		crossOriginPrefetch: true,
@@ -35,6 +41,7 @@ export default defineNuxtConfig({
 		typedPages: true,
 		buildCache: false,
 		viewTransition: true,
+		enforceModuleCompatibility: true,
 	},
 	appConfig: {
 		ui: {
@@ -74,6 +81,8 @@ export default defineNuxtConfig({
 		ready: (nuxt) => {
 			// Register after modules so their dependency entries are already present.
 			nuxt.hook('vite:extendConfig', (config, { isClient }) => {
+				const compilerOptions = config.vue?.template?.compilerOptions
+				if (compilerOptions) guardMdcVdomTransform(compilerOptions)
 				if (!isClient || !config.optimizeDeps?.include) return
 				// Bun isolates transitive dependencies beside their owning package.
 				config.optimizeDeps.include = config.optimizeDeps.include.map((dependency) => {
@@ -148,6 +157,7 @@ export default defineNuxtConfig({
 		'/totd': { sitemap: false },
 	},
 	vite: {
+		resolve: { dedupe: ['vue', 'pinia'] },
 		plugins: [clientFsStub()],
 		optimizeDeps: {
 			include: ['@nuxt/content > slugify', '@unhead/schema-org/vue', '@urql/vue'],
@@ -155,6 +165,7 @@ export default defineNuxtConfig({
 	},
 	nitro: {
 		preset: 'bun',
+		externals: { inline: [NUXT_RUNTIME_INLINE] },
 		compressPublicAssets: true,
 		storage: {
 			cache: createNitroCacheStorageOptions(),

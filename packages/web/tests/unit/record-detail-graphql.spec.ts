@@ -195,8 +195,8 @@ describe('record detail GraphQL', () => {
 		expect(recordPage).toContain('record.value?.user?.steamName')
 		expect(recordPage).toContain('const value = record.value')
 		expect(recordPage).not.toContain('record.value.user')
-		expect(recordPage.indexOf('if (import.meta.server && !record.value')).toBeLessThan(
-			recordPage.indexOf('useSeoMeta({'),
+		expect(recordPage.indexOf('await recordData.prefetchCritical()')).toBeLessThan(
+			recordPage.indexOf('if (import.meta.server && !record.value'),
 		)
 	})
 

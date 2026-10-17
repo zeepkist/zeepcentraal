@@ -1,18 +1,18 @@
 <template>
 	<OgFrame
 		style="font-family: DINish"
-		:eyebrow="$t('pages.users.eyebrow')"
-		:title="$t('pages.users.title')"
-		:description="$t('pages.users.description')"
+		:eyebrow="t('pages.users.eyebrow')"
+		:title="t('pages.users.title')"
+		:description="t('pages.users.description')"
 	>
 		<OgPodium :players="players" />
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{ slug: string }>()
 
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value)
 const rows = await useOgUserRankingsData()
 const players = rows.flatMap(({ node }) =>

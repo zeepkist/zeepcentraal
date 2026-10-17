@@ -212,7 +212,7 @@ const props = withDefaults(
 	},
 )
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const transition = useSharedViewTransition()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const showStatus = computed(() => props.statusMode !== 'none')

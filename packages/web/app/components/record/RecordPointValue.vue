@@ -23,7 +23,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { createDecayPercentageFormatter } from '~/utils/decayPercentage'
 
 defineProps<{
@@ -33,7 +33,7 @@ defineProps<{
 	decayLabel: string
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const percentage = computed(() => createDecayPercentageFormatter(locale.value))
 const precisePercentage = computed(() => createDecayPercentageFormatter(locale.value, 3, 3))

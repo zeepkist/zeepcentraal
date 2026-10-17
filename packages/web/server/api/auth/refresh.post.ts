@@ -1,3 +1,4 @@
+import { defineEventHandler, setResponseStatus } from 'nuxt/server'
 import { refreshWebAuth } from '../../utils/backend'
 import { assertSameOrigin } from '../../utils/request'
 

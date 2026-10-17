@@ -1,9 +1,11 @@
 <script setup vapor lang="ts">
 import { useQuery } from '@urql/vue'
 import { Zc_ZslRoundBySeasonAndNumberDocument } from '@zeepkist/graphql/generated'
+import { superLeagueRoundPath } from '#imports'
 
 const props = defineProps<{ seasonId: number; roundNumber: number }>()
-const { t } = useI18n()
+const { t } = useAppI18n()
+const nuxtApp = useNuxtApp()
 const result = useQuery({
 	query: Zc_ZslRoundBySeasonAndNumberDocument,
 	variables: computed(() => ({ seasonId: props.seasonId, round: props.roundNumber })),
@@ -19,8 +21,10 @@ watchEffect(() => {
 	}
 })
 const roundId = computed(() => round.value?.id)
-const { snapshot, markers, pending, error, refresh, initial } = useSuperLeagueVoteResults(roundId)
-await initial
+// Results need the resolved round; preserve Nuxt context across this dependent await.
+const { snapshot, markers, pending, error, refresh, initial } = await nuxtApp.runWithContext(() =>
+	useSuperLeagueVoteResults(roundId),
+)
 const breadcrumbItems = computed(() => [
 	{ label: t('zsl.seasons'), to: '/super-league' },
 	{ label: round.value?.season?.name ?? t('zsl.season'), to: superLeagueSeasonPath(props.seasonId) },
@@ -30,32 +34,33 @@ const breadcrumbItems = computed(() => [
 const unavailable = computed(() => !!snapshot.value && snapshot.value.categories.every((category) => category.state === 'unavailable'))
 const loadError = computed(() => result.error.value?.message ?? error.value)
 const categoryNames = computed(() => [t('zsl.voting.zsl'), t('zsl.voting.decoration'), t('zsl.voting.layout')])
-useSeoMeta({
+nuxtApp.runWithContext(() => useSeoMeta({
 	title: () => `${t('zsl.voting.resultsTitle')} · ${round.value?.name ?? t('zsl.roundNumber', { round: props.roundNumber })}`,
 	description: () => t('zsl.voting.description'),
-})
+}))
+await initial
 </script>
 
 <template>
 	<UContainer class="space-y-8 py-2">
-		<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
-		<PageHeader :eyebrow="round?.name" :title="$t('zsl.voting.resultsTitle')" :description="$t('zsl.voting.description')">
+		<ZslBreadcrumbs :label="t('zsl.breadcrumbs')" :items="breadcrumbItems" />
+		<PageHeader :eyebrow="round?.name" :title="t('zsl.voting.resultsTitle')" :description="t('zsl.voting.description')">
 			<template #actions>
 				<UButton :to="superLeagueRoundPath(seasonId, roundNumber)" variant="outline" color="neutral" icon="i-tabler-chevron-left">
-					{{ $t('zsl.voting.backToRound') }}
+					{{ t('zsl.voting.backToRound') }}
 				</UButton>
 			</template>
 		</PageHeader>
-		<ContestLoading v-if="result.fetching.value || pending" :label="$t('common.loading')" />
-		<UAlert v-else-if="loadError && !snapshot" color="error" :title="$t('common.error')" :description="loadError"
-			:actions="[{ label: $t('zsl.voting.retry'), onClick: () => { result.executeQuery({ requestPolicy: 'network-only' }); refresh() } }]" />
-		<UAlert v-else-if="unavailable" color="neutral" variant="soft" icon="i-tabler-chart-bar" :title="$t('zsl.voting.unavailable')" />
+		<ContestLoading v-if="result.fetching.value || pending" :label="t('common.loading')" />
+		<UAlert v-else-if="loadError && !snapshot" color="error" :title="t('common.error')" :description="loadError"
+			:actions="[{ label: t('zsl.voting.retry'), onClick: () => { result.executeQuery({ requestPolicy: 'network-only' }); refresh() } }]" />
+		<UAlert v-else-if="unavailable" color="neutral" variant="soft" icon="i-tabler-chart-bar" :title="t('zsl.voting.unavailable')" />
 		<div v-else-if="snapshot" class="space-y-8">
 			<VoteResultsCategory v-for="category in snapshot.categories" :key="category.voteType"
 				:category="category" :title="categoryNames[category.voteType - 1] ?? ''"
 				:voted-levels="markers.voted[category.voteType - 1] ?? new Set<number>()" :own-levels="markers.own" />
 		</div>
-		<UAlert v-if="loadError && snapshot" color="error" :title="$t('common.error')" :description="loadError"
-			:actions="[{ label: $t('zsl.voting.retry'), onClick: () => refresh() }]" />
+		<UAlert v-if="loadError && snapshot" color="error" :title="t('common.error')" :description="loadError"
+			:actions="[{ label: t('zsl.voting.retry'), onClick: () => refresh() }]" />
 	</UContainer>
 </template>

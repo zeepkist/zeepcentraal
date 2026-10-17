@@ -1,12 +1,12 @@
 <template>
 	<ExplorerLayout>
 		<template #header>
-			<PageHeader :eyebrow="$t('pages.levels.eyebrow')" :title="$t('pages.levels.title')" :description="$t('pages.levels.description')" />
+			<PageHeader :eyebrow="t('pages.levels.eyebrow')" :title="t('pages.levels.title')" :description="t('pages.levels.description')" />
 		</template>
 		<template #sidebar>
 			<LevelFilterPanel
-				:title="$t('levels.filters.title')"
-				:result-count-label="$t('levels.results', { count: result.data.value?.levels?.totalCount ?? 0 })"
+				:title="t('levels.filters.title')"
+				:result-count-label="t('levels.results', { count: result.data.value?.levels?.totalCount ?? 0 })"
 				:search="search"
 				:author="author"
 				:author-suggestions="authorSuggestions"
@@ -17,17 +17,17 @@
 				:personal-best="personalBest"
 				:world-record="worldRecord"
 				:sort="sort"
-				:search-label="$t('levels.filters.search')"
-				:author-label="$t('levels.filters.author')"
-				:adventure-label="$t('levels.filters.adventure')"
-				:points-label="$t('levels.filters.points')"
-				:rating-label="$t('levels.filters.rating')"
-				:personal-best-label="$t('levels.filters.personalBest')"
-				:world-record-label="$t('levels.filters.worldRecord')"
+				:search-label="t('levels.filters.search')"
+				:author-label="t('levels.filters.author')"
+				:adventure-label="t('levels.filters.adventure')"
+				:points-label="t('levels.filters.points')"
+				:rating-label="t('levels.filters.rating')"
+				:personal-best-label="t('levels.filters.personalBest')"
+				:world-record-label="t('levels.filters.worldRecord')"
 				:viewer-filters-disabled="!session.user"
-				:viewer-filters-disabled-label="$t('levels.filters.viewerFilterHint')"
-				:sort-label="$t('levels.filters.sort')"
-				:apply-label="$t('levels.filters.apply')"
+				:viewer-filters-disabled-label="t('levels.filters.viewerFilterHint')"
+				:sort-label="t('levels.filters.sort')"
+				:apply-label="t('levels.filters.apply')"
 				:points-minimum="LEVEL_POINTS_MIN"
 				:points-maximum="LEVEL_POINTS_MAX"
 				:rating-minimum="LEVEL_RATING_MIN"
@@ -51,9 +51,9 @@
 				:pending="pagination.isInitialPending(result.fetching.value, levels.length)"
 				:error="result.error.value?.message"
 				:empty="levels.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('common.empty')"
 			>
 				<LevelGrid
 					:levels="levels"
@@ -67,12 +67,12 @@
 				:can-go-previous="pagination.canGoPrevious(page)"
 				:can-go-next="pagination.canGoNext(page)"
 				:pending="result.fetching.value"
-				:label="$t('common.pagination')"
-				:loading-label="$t('common.loading')"
-				:first-label="$t('common.first')"
-				:previous-label="$t('common.previous')"
-				:next-label="$t('common.next')"
-				:last-label="$t('common.last')"
+				:label="t('common.pagination')"
+				:loading-label="t('common.loading')"
+				:first-label="t('common.first')"
+				:previous-label="t('common.previous')"
+				:next-label="t('common.next')"
+				:last-label="t('common.last')"
 				@first="pagination.first()"
 				@previous="pagination.previous(page)"
 				@next="pagination.next(page)"
@@ -96,7 +96,7 @@ import {
 
 usePageSeo('levels')
 defineOgImage('LevelExplorer.takumi', { slug: 'levels' })
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)
 const explorer = useLevels(viewerId)

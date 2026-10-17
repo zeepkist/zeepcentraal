@@ -50,7 +50,7 @@ describe('Steam announcement cards', () => {
 		const section = page.slice(start, end)
 		expect(section).toContain('aria-labelledby="steam-news-heading"')
 		expect(section).toContain('<SectionHeader')
-		expect(section).toContain(':title="$t(\'dashboard.news.title\')"')
+		expect(section).toContain(':title="t(\'dashboard.news.title\')"')
 		expect(section.indexOf('<SectionHeader')).toBeLessThan(section.indexOf('<DataState'))
 		expect(section).toContain('<SteamNewsFeed :items="dashboard.news.data.value" />')
 		expect(component).not.toContain('title: string')

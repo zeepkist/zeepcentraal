@@ -1,6 +1,6 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const emit = defineEmits<{ verified: [] }>()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const config = useRuntimeConfig()
 const widget = useTemplateRef<HTMLDivElement>('widget')
 const status = shallowRef<'loading' | 'ready' | 'verifying' | 'error'>('loading')

@@ -1,4 +1,5 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import { test } from '../support/browser'
 
 const roundPath = '/super-league/season-8/round-1'
 const resultPath = `${roundPath}/votes`
@@ -80,7 +81,9 @@ async function fixture(
 	const queries: string[] = []
 	let viewer = 1
 	await page.route(
-		(url) => url.hostname === 'graphql.zeepki.st',
+		(url) =>
+			url.hostname === 'graphql.zeepki.st' ||
+			(url.hostname === '127.0.0.1' && url.pathname === '/graphql'),
 		async (route) => {
 			const { query } = route.request().postDataJSON() as { query: string }
 			queries.push(query)

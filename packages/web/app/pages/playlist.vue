@@ -1,13 +1,15 @@
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 usePageSeo('playlist')
 </script>
 
 <template>
 	<UContainer class="max-w-none py-4 sm:py-6">
 		<PageHeader
-			:eyebrow="$t('pages.playlist.eyebrow')"
-			:title="$t('pages.playlist.title')"
-			:description="$t('pages.playlist.description')"
+			:eyebrow="t('pages.playlist.eyebrow')"
+			:title="t('pages.playlist.title')"
+			:description="t('pages.playlist.description')"
 		/>
 		<PlaylistWorkspace />
 	</UContainer>

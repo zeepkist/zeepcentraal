@@ -1,4 +1,6 @@
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 const {
 	discordId,
 	generateCode,
@@ -18,12 +20,12 @@ const { login } = useAccountActions()
 		<UAlert
 			v-if="!session.user"
 			color="warning"
-			:title="$t('settings.discord.signIn.title')"
-			:description="$t('settings.discord.signIn.description')"
+			:title="t('settings.discord.signIn.title')"
+			:description="t('settings.discord.signIn.description')"
 		>
 			<template #actions>
 				<UButton
-					:label="$t('settings.discord.signIn.action')"
+					:label="t('settings.discord.signIn.action')"
 					icon="i-tabler-brand-steam"
 					@click="login('steam')"
 				/>
@@ -39,16 +41,16 @@ const { login } = useAccountActions()
 						</div>
 						<div>
 							<h2 class="text-lg font-semibold text-highlighted">
-								{{ $t('settings.discord.account.title') }}
+								{{ t('settings.discord.account.title') }}
 							</h2>
 							<p class="mt-1 text-sm text-muted">
-								{{ $t('settings.discord.account.description') }}
+								{{ t('settings.discord.account.description') }}
 							</p>
 						</div>
 					</div>
 					<UBadge :color="linked ? 'success' : 'neutral'" variant="soft">
 						{{
-							$t(
+							t(
 								linked
 									? 'settings.discord.account.status.linked'
 									: 'settings.discord.account.status.notLinked',
@@ -61,13 +63,13 @@ const { login } = useAccountActions()
 			<div v-if="linked" class="space-y-5">
 				<div class="rounded-xl border border-border bg-muted/25 p-4">
 					<p class="text-xs font-semibold uppercase tracking-wider text-muted">
-						{{ $t('settings.discord.account.userId') }}
+						{{ t('settings.discord.account.userId') }}
 					</p>
 					<p class="mt-1 font-mono text-sm text-highlighted">{{ discordId }}</p>
 				</div>
 				<div class="flex flex-wrap gap-3">
 					<UButton
-						:label="$t('settings.discord.account.unlink')"
+						:label="t('settings.discord.account.unlink')"
 						icon="i-tabler-unlink"
 						color="error"
 						variant="soft"
@@ -75,7 +77,7 @@ const { login } = useAccountActions()
 						@click="unlink"
 					/>
 					<UButton
-						:label="$t('settings.discord.account.addToServer')"
+						:label="t('settings.discord.account.addToServer')"
 						icon="i-tabler-brand-discord"
 						variant="outline"
 						to="https://discord.com/oauth2/authorize?client_id=1398745142260797571"
@@ -90,14 +92,14 @@ const { login } = useAccountActions()
 				<div class="grid gap-4 md:grid-cols-2">
 					<div class="rounded-xl border border-border p-4">
 						<p class="font-medium text-highlighted">
-							{{ $t('settings.discord.automatic.title') }}
+							{{ t('settings.discord.automatic.title') }}
 						</p>
 						<p class="mt-1 text-sm text-muted">
-							{{ $t('settings.discord.automatic.description') }}
+							{{ t('settings.discord.automatic.description') }}
 						</p>
 						<UButton
 							class="mt-4"
-							:label="$t('settings.discord.automatic.action')"
+							:label="t('settings.discord.automatic.action')"
 							icon="i-tabler-brand-discord"
 							:to="oauthLinkUrl"
 							external
@@ -105,7 +107,7 @@ const { login } = useAccountActions()
 					</div>
 					<div class="rounded-xl border border-border p-4">
 						<p class="font-medium text-highlighted">
-							{{ $t('settings.discord.manual.title') }}
+							{{ t('settings.discord.manual.title') }}
 						</p>
 						<I18nT
 							keypath="settings.discord.manual.description"
@@ -116,7 +118,7 @@ const { login } = useAccountActions()
 						</I18nT>
 						<UButton
 							class="mt-4"
-							:label="$t('settings.discord.manual.action')"
+							:label="t('settings.discord.manual.action')"
 							icon="i-tabler-key"
 							color="neutral"
 							variant="soft"

@@ -44,7 +44,7 @@ describe('shared tournament web implementation', () => {
 		const card = source('app/components/tournament/TournamentCard.vue')
 		const query = source('../graphql/documents/web/queries/trackTournaments.graphql')
 		const liveOperation = query.slice(query.indexOf('subscription ZC_TrackTournamentLive'))
-		expect(event).toContain("$t('tournaments.competitors')")
+		expect(event).toContain("t('tournaments.competitors')")
 		expect(event).toContain(':value="numberFormat.format(totalCount)"')
 		expect(event).not.toContain('numberFormat.format(tournament.participantCount)')
 		expect(composable).toContain(
@@ -129,12 +129,12 @@ describe('shared tournament web implementation', () => {
 		expect(table).toContain('`/user/$' + '{row.steamId}`')
 		expect(table).toContain('const recordPath')
 		expect(table).toContain(':datetime="row.setAt"')
-		expect(table).toContain("$t('tournaments.delta')")
+		expect(table).toContain("t('tournaments.delta')")
 		expect(table).toContain('formatTournamentDelta(row.time, fastestTime)')
 		expect(table).toContain(
 			'<RecordDate v-if="row.setAt" :datetime="row.setAt" :show-full-date="!active" />',
 		)
-		expect(table).toContain("$t('common.set')")
+		expect(table).toContain("t('common.set')")
 		expect(event).toContain(':datetime="entry.setAt"')
 		expect(event).toContain('v-if="active" :datetime="entry.setAt" relative')
 		expect(event).toContain(':fastest-time="podium[0]?.time"')
@@ -147,8 +147,8 @@ describe('shared tournament web implementation', () => {
 		expect(ghost).toContain(':active="workspaceActive"')
 		expect(ghost).toContain('workspaceOpen.value = true')
 		expect(ghost).toContain('workspaceOpen.value = !workspaceOpen.value')
-		expect(ghost).toContain("$t('tournaments.ghosts.hide')")
-		expect(ghost).toContain("$t('tournaments.ghosts.show')")
+		expect(ghost).toContain("t('tournaments.ghosts.hide')")
+		expect(ghost).toContain("t('tournaments.ghosts.show')")
 	})
 
 	test('queries and renders rich same-format tournament navigation on detail pages', () => {

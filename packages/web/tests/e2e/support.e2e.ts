@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
+import { test } from '../support/browser'
 
 test('support page distinguishes recipients and remains usable in both themes', async ({
 	page,

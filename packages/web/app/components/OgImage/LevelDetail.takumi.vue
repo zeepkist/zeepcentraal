@@ -1,7 +1,7 @@
 <template>
 	<OgFrame
 		style="font-family: DINish"
-		:eyebrow="$t('common.level')"
+		:eyebrow="t('common.level')"
 		:title="levelName"
 		:description="description"
 		:image-url="imageUrl"
@@ -10,13 +10,13 @@
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { formatTournamentTime } from '~/utils/tournament'
 
 const props = defineProps<{ slug: string }>()
 
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value)
 const level = await useOgLevelDetailData(props.slug)
 const item = level?.publiclyVisible ? level.levelItems.nodes[0] : undefined

@@ -16,7 +16,7 @@ const props = defineProps<{
 	}
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => getNumberFormatter(locale.value))
 const format = (value: number | null) =>
 	value === null ? props.labels.unavailable : number.value.format(value)

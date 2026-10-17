@@ -36,6 +36,7 @@
 </template>
 
 <script setup vapor lang="ts">
+import { NuxtLink } from '#components'
 import type { TablerIconName } from '~/utils/icons'
 
 const props = defineProps<{
@@ -47,5 +48,5 @@ const props = defineProps<{
 	to?: string
 }>()
 
-const wrapper = computed(() => (props.to ? resolveComponent('NuxtLink') : 'div'))
+const wrapper = computed(() => (props.to ? NuxtLink : 'div'))
 </script>

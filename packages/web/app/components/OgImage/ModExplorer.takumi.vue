@@ -2,9 +2,9 @@
 	<OgFrame
 		dense
 		style="font-family: DINish"
-		:eyebrow="$t('pages.mods.eyebrow')"
-		:title="$t('pages.mods.title')"
-		:description="$t('pages.mods.description')"
+		:eyebrow="t('pages.mods.eyebrow')"
+		:title="t('pages.mods.title')"
+		:description="t('pages.mods.description')"
 	>
 		<div class="flex min-h-0 flex-col gap-3 overflow-hidden">
 			<OgMetrics compact :items="metrics" />
@@ -35,13 +35,13 @@
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { ModListResponse } from '~/types/mod'
 import { normaliseOgImageUrl } from '~/utils/ogImage'
 
 const props = defineProps<{ slug: string }>()
 
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value)
 const { data } = await useFetch<ModListResponse>('/api/modio/mods', {
 	key: `og-mod-explorer:${props.slug}`,

@@ -2,7 +2,7 @@
 import type { SupporterStatus } from '~/utils/supporters'
 
 const props = defineProps<{ supporter?: SupporterStatus }>()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const label = computed(() => {
 	const supporter = t(props.supporter?.isSubscriptionPayment ? 'support.badge.monthly' : 'support.badge.supporter')
 	return props.supporter?.tierName ? t('support.badge.tier', { supporter, tier: props.supporter.tierName }) : supporter

@@ -31,7 +31,7 @@ const props = defineProps<{
 	seriesLabel: string
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const dateFormat = computed(
 	() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeZone: 'Europe/London' }),
 )

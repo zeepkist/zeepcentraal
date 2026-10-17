@@ -1,5 +1,8 @@
 <script setup vapor lang="ts">
+
 import { useClipboard, useIntervalFn, useNow } from '@vueuse/core'
+
+const { t } = useAppI18n()
 
 const props = defineProps<{ code: string; expiresAt: string }>()
 const emit = defineEmits<{ refresh: [] }>()
@@ -23,15 +26,15 @@ const expiresLabel = computed(() => {
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<div>
 				<p class="text-xs font-semibold uppercase tracking-wider text-muted">
-					{{ $t('settings.discord.code.title') }}
+					{{ t('settings.discord.code.title') }}
 				</p>
 				<p class="mt-1 font-mono text-3xl font-bold tracking-[0.24em] text-highlighted">{{ code }}</p>
 			</div>
 			<UButton
 				:label="
 					copied
-						? $t('settings.discord.code.copied')
-						: $t('settings.discord.code.copy')
+						? t('settings.discord.code.copied')
+						: t('settings.discord.code.copy')
 				"
 				:icon="copied ? 'i-tabler-check' : 'i-tabler-copy'"
 				color="neutral"
@@ -41,12 +44,12 @@ const expiresLabel = computed(() => {
 		</div>
 		<div class="mt-3 flex items-center justify-between gap-3 text-sm text-muted">
 			<span v-if="secondsLeft > 0">
-				{{ $t('settings.discord.code.expiresIn', { time: expiresLabel }) }}
+				{{ t('settings.discord.code.expiresIn', { time: expiresLabel }) }}
 			</span>
-			<span v-else class="text-error">{{ $t('settings.discord.code.expired') }}</span>
+			<span v-else class="text-error">{{ t('settings.discord.code.expired') }}</span>
 			<UButton
 				v-if="secondsLeft === 0"
-				:label="$t('settings.discord.code.regenerate')"
+				:label="t('settings.discord.code.regenerate')"
 				variant="link"
 				@click="emit('refresh')"
 			/>

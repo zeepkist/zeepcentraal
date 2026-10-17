@@ -10,16 +10,16 @@
 
 		<section class="space-y-5">
 			<SectionHeader
-				:title="$t('tournaments.history')"
-				:description="$t('tournaments.historyDescription')"
+				:title="t('tournaments.history')"
+				:description="t('tournaments.historyDescription')"
 			/>
 			<DataState
 				:pending="pagination.isInitialPending(result.fetching.value, history.length)"
 				:error="result.error.value?.message"
 				:empty="history.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('tournaments.noHistory')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('tournaments.noHistory')"
 			>
 				<div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
 					<TournamentCard
@@ -50,10 +50,10 @@ import type { TrackTournamentType } from '~/types/tournament'
 import { nextTournamentBoundary } from '~/utils/tournament'
 
 const props = defineProps<{ type: TrackTournamentType; title: string }>()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const { active, future, history, page, pagination, prefetch, result } =
 	useTrackTournamentIndex(props.type)
-await prefetch()
+
 const countdownStart = computed(
 	() => future.value?.startAt ?? nextTournamentBoundary(props.type, new Date()).toISOString(),
 )
@@ -71,4 +71,6 @@ useSeoMeta({
 	description: () => t('tournaments.seoDescription', { title: props.title }),
 	robots: 'index, follow',
 })
+
+await prefetch()
 </script>

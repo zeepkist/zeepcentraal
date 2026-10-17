@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const emit = defineEmits<{ token: [token: string | null] }>()
 const config = useRuntimeConfig()
 const widget = useTemplateRef<HTMLDivElement>('widget')

@@ -68,14 +68,14 @@ describe('playlist integration contracts', () => {
 		])
 		expect(page).toContain('class="max-w-none')
 		expect(toolbar).toContain('border-dashed border-border bg-muted/25')
-		expect(toolbar).toContain("$t('playlist.import.drop')")
+		expect(toolbar).toContain("t('playlist.import.drop')")
 		expect(toolbar).toContain('sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2')
 		expect(workspace.match(/<PlaylistLibraryToolbar/g)).toHaveLength(1)
 		expect(workspace.indexOf('<PlaylistLibraryToolbar')).toBeLessThan(
 			workspace.indexOf('<PlaylistSettingsForm'),
 		)
 		expect(settings).not.toContain('levelCount')
-		expect(levels).toContain("$t('playlist.levels.count'")
+		expect(levels).toContain("t('playlist.levels.count'")
 	})
 
 	it('toggles shared level actions between add and remove', async () => {

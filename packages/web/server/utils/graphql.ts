@@ -1,6 +1,7 @@
 import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { injectTraceHeaders, withActiveSpan } from '@zeepkist/telemetry'
 import { getOperationAST, print } from 'graphql'
+import { createError, useRuntimeConfig } from 'nuxt/server'
 
 export async function fetchGraphql<TData, TVariables>(
 	document: TypedDocumentNode<TData, TVariables>,
@@ -28,8 +29,8 @@ export async function fetchGraphql<TData, TVariables>(
 			)
 			if (response.errors?.length || !response.data)
 				throw createError({
-					statusCode: 502,
-					statusMessage: response.errors?.[0]?.message ?? 'GraphQL request failed',
+					status: 502,
+					statusText: response.errors?.[0]?.message ?? 'GraphQL request failed',
 				})
 			return response.data
 		},

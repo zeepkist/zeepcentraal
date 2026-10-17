@@ -274,7 +274,7 @@ const hoveredStage = ref<StageKey | null>(null)
 const inspectorId = useId()
 let observer: IntersectionObserver | undefined
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }))
 const factorFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 2, maximumFractionDigits: 3 }),

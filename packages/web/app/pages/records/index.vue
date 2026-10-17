@@ -1,9 +1,9 @@
 <template>
 	<UContainer class="space-y-8 py-2">
 		<PageHeader
-			:eyebrow="$t('pages.records.eyebrow')"
-			:title="$t('pages.records.title')"
-			:description="$t('pages.records.description')"
+			:eyebrow="t('pages.records.eyebrow')"
+			:title="t('pages.records.title')"
+			:description="t('pages.records.description')"
 		>
 			<template #actions>
 				<div class="flex flex-wrap items-center justify-end gap-2">
@@ -18,7 +18,7 @@
 					/>
 					<UButton v-if="session.user" to="/records/me" color="primary" variant="soft">
 						<TablerIcon name="user-circle" class="size-4" />
-						{{ $t('pages.records.myRecordsAction') }}
+						{{ t('pages.records.myRecordsAction') }}
 					</UButton>
 				</div>
 			</template>
@@ -26,10 +26,10 @@
 
 		<RecordHistoryToolbar
 			:view="view"
-			:view-label="$t('pages.records.tabs.label')"
+			:view-label="t('pages.records.tabs.label')"
 			:view-options="tabOptions"
 			:sort="sort"
-			:sort-label="$t('pages.records.sort.label')"
+			:sort-label="t('pages.records.sort.label')"
 			:sort-options="sortOptions"
 			sort-id="records-sort"
 			@update:view="data.setView"
@@ -40,16 +40,16 @@
 			:pending="data.pagination.isInitialPending(data.result.fetching.value, data.rows.value.length)"
 			:error="data.result.error.value?.message"
 			:empty="data.rows.value.length === 0"
-			:loading-label="$t('common.loading')"
-			:error-title="$t('common.error')"
-			:empty-title="$t('pages.records.empty')"
+			:loading-label="t('common.loading')"
+			:error-title="t('common.error')"
+			:empty-title="t('pages.records.empty')"
 			:skeletons="6"
 		>
 			<RecordHistoryTable :supporters="supporters"
 				:records="data.rows.value"
 				:labels="tableLabels"
 				:highlighted-record-ids="data.highlightedRecordIds.value"
-				:live-update-label="$t('pages.records.liveUpdate')"
+				:live-update-label="t('pages.records.liveUpdate')"
 				:viewer-user-id="session.user?.id"
 				transition-scope="records-index"
 				status-mode="all"
@@ -77,7 +77,7 @@ import type { RecordHistoryView } from '~/utils/recordHistory'
 
 const session = useSessionStore()
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const view = computed(() => normalizeRecordHistoryView(route.query.view))
 const sort = computed(() => normalizeRecordHistorySort(route.query.sort))
 const data = useRecordHistory({ view, sort, namespace: 'records' })

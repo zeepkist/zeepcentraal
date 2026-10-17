@@ -8,6 +8,12 @@ import {
 	readSessionCookies,
 } from '../../server/utils/backend'
 import { isCrossOriginRequest } from '../../server/utils/request'
+import { createRequestEvent } from '../support/request-event'
+
+vi.mock('nuxt/server', async (importOriginal) => ({
+	...(await importOriginal<typeof import('nuxt/server')>()),
+	useRuntimeConfig: () => ({ public: { backendUrl: 'https://backend.example/' } }),
+}))
 
 afterEach(() => {
 	vi.unstubAllGlobals()
@@ -99,19 +105,17 @@ describe('web server auth and request guards', () => {
 			)
 			.mockResolvedValueOnce(response(204))
 		vi.stubGlobal('$fetch', { raw })
-		vi.stubGlobal('useRuntimeConfig', () => ({
-			public: { backendUrl: 'https://backend.example/' },
-		}))
-		vi.stubGlobal('getHeader', (_event: unknown, name: string) =>
-			name === 'cookie'
-				? 'zeepcentral_steam_id=76561198000000000; zeepcentral_access_token=old; zeepcentral_refresh_token=refresh'
-				: undefined,
-		)
-		vi.stubGlobal('appendResponseHeader', vi.fn())
-		vi.stubGlobal('createError', (input: object) => Object.assign(new Error(), input))
 		const body = { hash: '0123456789ABCDEF0123456789ABCDEF' }
 
-		await fetchAuthenticatedBackend({}, '/favourite/add', { method: 'POST', body })
+		await fetchAuthenticatedBackend(
+			createRequestEvent('/', {
+				headers: {
+					cookie: 'zeepcentral_steam_id=76561198000000000; zeepcentral_access_token=old; zeepcentral_refresh_token=refresh',
+				},
+			}),
+			'/favourite/add',
+			{ method: 'POST', body },
+		)
 
 		expect(raw).toHaveBeenCalledTimes(3)
 		expect(raw.mock.calls[0]?.[1]).toMatchObject({ method: 'POST', body })
@@ -124,15 +128,8 @@ describe('web server auth and request guards', () => {
 	test('propagates authenticated backend errors with response data', async () => {
 		const data = { code: 123, message: 'nope' }
 		vi.stubGlobal('$fetch', { raw: vi.fn().mockResolvedValue(response(422, data)) })
-		vi.stubGlobal('useRuntimeConfig', () => ({
-			public: { backendUrl: 'https://backend.example/' },
-		}))
-		vi.stubGlobal('getHeader', () => undefined)
-		vi.stubGlobal('appendResponseHeader', vi.fn())
-		vi.stubGlobal('createError', (input: object) => Object.assign(new Error(), input))
-
 		await expect(
-			fetchAuthenticatedBackend({}, '/favourite/remove', {
+			fetchAuthenticatedBackend(createRequestEvent(), '/favourite/remove', {
 				method: 'POST',
 				body: { hash: '0123456789ABCDEF0123456789ABCDEF' },
 			}),
@@ -151,19 +148,18 @@ describe('web server auth and request guards', () => {
 			)
 			.mockResolvedValueOnce(response(200, { votes: [[42], [], []] }))
 		vi.stubGlobal('$fetch', { raw })
-		vi.stubGlobal('useRuntimeConfig', () => ({
-			public: { backendUrl: 'https://backend.example/' },
-		}))
-		vi.stubGlobal(
-			'getHeader',
-			() =>
-				'zeepcentral_steam_id=76561198000000000; zeepcentral_refresh_token=old; zeepcentral_access_token=old',
+		const result = await fetchAuthenticatedBackend(
+			createRequestEvent('/', {
+				headers: {
+					cookie: 'zeepcentral_steam_id=76561198000000000; zeepcentral_access_token=old; zeepcentral_refresh_token=refresh',
+				},
+			}),
+			'/super-league/vote',
+			{
+				method: 'GET',
+				query: { roundId: '50' },
+			},
 		)
-		vi.stubGlobal('appendResponseHeader', vi.fn())
-		const result = await fetchAuthenticatedBackend({}, '/super-league/vote', {
-			method: 'GET',
-			query: { roundId: '50' },
-		})
 		expect(result).toEqual({ votes: [[42], [], []] })
 		expect(raw.mock.calls[2]?.[1]).toMatchObject({
 			method: 'GET',

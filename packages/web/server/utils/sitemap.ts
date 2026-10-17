@@ -9,6 +9,8 @@ import {
 	Zc_SitemapUsersPageDocument,
 } from '@zeepkist/graphql/generated'
 import type { H3Event } from 'h3'
+import { getRequestURL } from 'h3'
+import { defineCachedFunction } from 'nitropack/runtime'
 import {
 	superLeagueLevelPath,
 	superLeagueRoundPath,

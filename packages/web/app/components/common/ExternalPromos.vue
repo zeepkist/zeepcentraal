@@ -12,11 +12,15 @@
 			class="justify-start rounded-lg"
 		>
 			<TablerIcon :name="link.icon" />
-			<span>{{ $t(`external.${link.key}.label`) }}</span>
+			<span>{{ t(`external.${link.key}.label`) }}</span>
 		</UButton>
 	</div>
 </template>
 
 <script setup vapor lang="ts">
+
 import { externalLinks } from '~/utils/navigation'
+
+const { t } = useAppI18n()
+
 </script>

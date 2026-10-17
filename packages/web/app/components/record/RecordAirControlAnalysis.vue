@@ -256,7 +256,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import type {
 	RecordAirControlEventSummary,
@@ -268,7 +268,7 @@ const props = defineProps<{
 	labels: RecordAnalysisLabels['airControl']
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const integerFormat = computed(() => new Intl.NumberFormat(locale.value))
 const decimalFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }),

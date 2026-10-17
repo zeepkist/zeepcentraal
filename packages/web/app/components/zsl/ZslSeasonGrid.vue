@@ -40,6 +40,8 @@
 </template>
 
 <script setup vapor lang="ts">
+import { superLeagueSeasonPath } from '#imports'
+
 defineProps<{
 	seasons: Array<{
 		id: number

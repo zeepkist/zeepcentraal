@@ -65,7 +65,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ seek: [time: number] }>()
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const decimalFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
 )

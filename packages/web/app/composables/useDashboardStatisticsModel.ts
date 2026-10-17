@@ -14,7 +14,7 @@ export function useDashboardStatisticsModel(
 	statistics: Ref<Zc_DashboardStatisticsQuery | undefined>,
 	currentMonth: Ref<string>,
 ) {
-	const { t, locale } = useI18n()
+	const { t, locale } = useAppI18n()
 	const numberFormat = computed(() => getNumberFormatter(locale.value))
 	const oneDecimal = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
 	const twoDecimals = computed(() => getNumberFormatter(locale.value, 'two-decimal'))

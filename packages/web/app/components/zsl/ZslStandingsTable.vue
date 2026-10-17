@@ -137,7 +137,7 @@ const props = withDefaults(
 	{ roundLabels: () => [], showDelta: false, showLevelsPlayed: false, showTime: false },
 )
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 const showDeltaColumn = computed(
 	() => props.showDelta && props.fastestTime !== undefined,

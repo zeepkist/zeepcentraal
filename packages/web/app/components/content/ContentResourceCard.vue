@@ -27,6 +27,7 @@
 </template>
 
 <script setup vapor lang="ts">
+import { NuxtLink } from '#components'
 import type { TablerIconName } from '~/utils/icons'
 
 const props = defineProps<{
@@ -37,8 +38,7 @@ const props = defineProps<{
 	to: string
 }>()
 
-const nuxtLink = resolveComponent('NuxtLink')
-const component = computed(() => (props.external ? 'a' : nuxtLink))
+const component = computed(() => (props.external ? 'a' : NuxtLink))
 const linkProps = computed(() =>
 	props.external
 		? { href: props.to, rel: 'noopener', target: '_blank' }

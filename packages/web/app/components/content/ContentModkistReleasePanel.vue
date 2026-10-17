@@ -36,7 +36,7 @@
 				}"
 			>
 				<TablerIcon name="download" class="size-4" />
-				<span class="truncate">{{ $t(`wikiContent.modkist.formats.${format}`) }}</span>
+				<span class="truncate">{{ t(`wikiContent.modkist.formats.${format}`) }}</span>
 				<span v-if="release?.assets[format]" class="ml-auto text-xs opacity-70" :class="{
 					'font-black': format === 'msi',
 				}">
@@ -58,7 +58,7 @@ const props = defineProps<{
 	title: string
 }>()
 
-const { locale } = useI18n()
+const { t, locale } = useAppI18n()
 const formats = ['msi', 'appimage', 'deb', 'dmg'] as const
 const visibleFormats = computed(() =>
 	props.release ? formats.filter((format) => props.release?.assets[format]) : formats,

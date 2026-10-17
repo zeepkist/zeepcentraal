@@ -53,7 +53,7 @@ const props = defineProps<{
 	workshopUrl?: string
 	labels: { eyebrow: string; joined: string; globalRank: string; rankedPoints: string; totalPoints: string; unranked: string; steamProfile: string; steamWorkshop: string }
 }>()
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const transition = useSharedViewTransition()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 const rank = computed(() => props.user.rank && props.user.rank > 0 ? `#${number.value.format(props.user.rank)}` : props.labels.unranked)

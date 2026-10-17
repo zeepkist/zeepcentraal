@@ -11,7 +11,7 @@ const store = usePlaylistsStore()
 const { activePlaylist, activePlaylistId, persistenceError, persistenceStatus, playlists } =
 	storeToRefs(store)
 const toast = useToast()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput')
 const deleteOpen = shallowRef(false)
 const importing = shallowRef(false)
@@ -137,19 +137,19 @@ function dropFile(event: DragEvent) {
 		@drop.prevent="dropFile"
 	>
 		<div class="space-y-4">
-			<UFormField :label="$t('playlist.library.current')">
+			<UFormField :label="t('playlist.library.current')">
 				<USelect
 					:model-value="activePlaylistId ?? undefined"
 					:items="items"
 					value-key="value"
 					class="w-full"
-					:placeholder="$t('playlist.library.none')"
+					:placeholder="t('playlist.library.none')"
 					@update:model-value="store.setActivePlaylist(String($event))"
 				/>
 			</UFormField>
 			<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
 				<UButton icon="i-tabler-plus" color="primary" variant="soft" block @click="store.createPlaylist()">
-					{{ $t('playlist.actions.new') }}
+					{{ t('playlist.actions.new') }}
 				</UButton>
 				<UButton
 					icon="i-tabler-copy"
@@ -159,10 +159,10 @@ function dropFile(event: DragEvent) {
 					:disabled="!activePlaylist"
 					@click="duplicate"
 				>
-					{{ $t('playlist.actions.duplicate') }}
+					{{ t('playlist.actions.duplicate') }}
 				</UButton>
 				<UButton icon="i-tabler-download" block :disabled="!downloadable" @click="download">
-					{{ $t('playlist.actions.download') }}
+					{{ t('playlist.actions.download') }}
 				</UButton>
 				<UButton
 					icon="i-tabler-trash"
@@ -172,7 +172,7 @@ function dropFile(event: DragEvent) {
 					:disabled="!activePlaylist"
 					@click="deleteOpen = true"
 				>
-					{{ $t('playlist.actions.delete') }}
+					{{ t('playlist.actions.delete') }}
 				</UButton>
 			</div>
 			<div
@@ -188,9 +188,9 @@ function dropFile(event: DragEvent) {
 						:loading="importing"
 						@click="fileInput?.click()"
 					>
-						{{ $t('playlist.actions.import') }}
+						{{ t('playlist.actions.import') }}
 					</UButton>
-					<span class="text-sm text-muted-foreground">{{ $t('playlist.import.drop') }}</span>
+					<span class="text-sm text-muted-foreground">{{ t('playlist.import.drop') }}</span>
 				</div>
 				<input
 					ref="fileInput"
@@ -212,7 +212,7 @@ function dropFile(event: DragEvent) {
 				<div class="grid gap-1 text-muted-foreground">
 					<div class="flex min-w-0 items-center gap-1">
 						<span class="min-w-0 flex-1 truncate">
-							{{ $t('playlist.download.guidance') }}
+							{{ t('playlist.download.guidance') }}
 							<code class="pl-1">%AppData%\Zeepkist\Playlists</code>
 						</span>
 						<UButton
@@ -220,7 +220,7 @@ function dropFile(event: DragEvent) {
 							color="neutral"
 							variant="ghost"
 							square
-							:aria-label="$t('playlist.actions.copyPath')"
+							:aria-label="t('playlist.actions.copyPath')"
 							@click="copyPath"
 						/>
 					</div>
@@ -231,16 +231,16 @@ function dropFile(event: DragEvent) {
 
 	<UModal
 		v-model:open="deleteOpen"
-		:title="$t('playlist.delete.title')"
-		:description="$t('playlist.delete.description')"
+		:title="t('playlist.delete.title')"
+		:description="t('playlist.delete.description')"
 	>
 		<template #footer>
 			<div class="flex w-full justify-end gap-2">
 				<UButton color="neutral" variant="ghost" @click="deleteOpen = false">
-					{{ $t('playlist.actions.cancel') }}
+					{{ t('playlist.actions.cancel') }}
 				</UButton>
 				<UButton color="error" @click="removePlaylist">
-					{{ $t('playlist.actions.delete') }}
+					{{ t('playlist.actions.delete') }}
 				</UButton>
 			</div>
 		</template>

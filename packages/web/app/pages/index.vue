@@ -5,14 +5,14 @@
 			data-testid="auth-verification-error"
 			color="error"
 			icon="i-tabler-alert-circle"
-			:title="$t('auth.verificationFailed.title')"
-			:description="$t('auth.verificationFailed.description')"
+			:title="t('auth.verificationFailed.title')"
+			:description="t('auth.verificationFailed.description')"
 		/>
 
 		<DashboardHero v-bind="hero" @login="login" />
 
 		<section aria-labelledby="live-stats-heading">
-			<SectionHeader id="live-stats-heading" :title="$t('dashboard.liveStats.title')" :description="$t('dashboard.liveStats.description')" />
+			<SectionHeader id="live-stats-heading" :title="t('dashboard.liveStats.title')" :description="t('dashboard.liveStats.description')" />
 			<MetricGrid :metrics="liveMetrics" :columns="3" />
 		</section>
 
@@ -22,8 +22,8 @@
 		>
 			<SectionHeader
 				id="active-tournaments-heading"
-				:title="$t('tournaments.features.activeTitle')"
-				:description="$t('tournaments.features.activeDescription')"
+				:title="t('tournaments.features.activeTitle')"
+				:description="t('tournaments.features.activeDescription')"
 			/>
 			<div class="grid gap-5 md:grid-cols-2">
 				<TournamentFeatureCard
@@ -36,14 +36,14 @@
 		</section>
 
 		<section aria-labelledby="trending-levels-heading">
-			<SectionHeader id="trending-levels-heading" :title="$t('dashboard.trendingLevels.title')" :description="$t('dashboard.trendingLevels.description')" />
+			<SectionHeader id="trending-levels-heading" :title="t('dashboard.trendingLevels.title')" :description="t('dashboard.trendingLevels.description')" />
 			<DataState
 				:pending="dashboard.criticalQuery.fetching.value"
 				:error="dashboard.criticalQuery.error.value?.message"
 				:empty="dashboard.trendingLevels.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('common.empty')"
 			>
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<LevelGrid
@@ -57,16 +57,16 @@
 		<section :ref="dashboard.newsTarget" aria-labelledby="steam-news-heading">
 			<SectionHeader
 				id="steam-news-heading"
-				:title="$t('dashboard.news.title')"
-				:description="$t('dashboard.news.description')"
+				:title="t('dashboard.news.title')"
+				:description="t('dashboard.news.description')"
 			/>
 			<DataState
 				:pending="!dashboard.newsActive.value || dashboard.news.pending.value"
 				:error="dashboard.news.error.value?.message"
 				:empty="dashboard.news.data.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('common.empty')"
 			>
 				<template #pending>
 					<div class="grid gap-4 md:grid-cols-2">
@@ -87,14 +87,14 @@
 		</section>
 
 		<section :ref="dashboard.popularLevelsTarget" aria-labelledby="popular-levels-heading">
-			<SectionHeader id="popular-levels-heading" :title="$t('dashboard.popular.title')" :description="$t('dashboard.popular.description')" />
+			<SectionHeader id="popular-levels-heading" :title="t('dashboard.popular.title')" :description="t('dashboard.popular.description')" />
 			<DataState
 				:pending="!dashboard.popularLevelsActive.value || dashboard.popularLevelsQuery.fetching.value"
 				:error="dashboard.popularLevelsQuery.error.value?.message"
 				:empty="dashboard.popularLevels.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('common.empty')"
 			>
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<LevelGrid
@@ -110,14 +110,14 @@
 			aria-labelledby="distance-heading"
 			data-prefetch="dashboard-statistics"
 		>
-			<SectionHeader id="distance-heading" :title="$t('dashboard.totals.title')" :description="$t('dashboard.totals.description')" />
+			<SectionHeader id="distance-heading" :title="t('dashboard.totals.title')" :description="t('dashboard.totals.description')" />
 			<DataState
 				:pending="!dashboard.statisticsActive.value || dashboard.statisticsQuery.fetching.value"
 				:error="dashboard.statisticsQuery.error.value?.message"
 				:empty="!dashboard.statistics.value?.allTimeStatistics"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('common.empty')"
 			>
 				<template #pending><DashboardStatisticsSkeleton /></template>
 				<DashboardStatisticsPanel :model="statisticsModel" />
@@ -125,14 +125,14 @@
 		</section>
 
 		<section :ref="dashboard.hotLevelsTarget" aria-labelledby="hot-levels-heading">
-			<SectionHeader id="hot-levels-heading" :title="$t('dashboard.hotLevels.title')" :description="$t('dashboard.hotLevels.description')" />
+			<SectionHeader id="hot-levels-heading" :title="t('dashboard.hotLevels.title')" :description="t('dashboard.hotLevels.description')" />
 			<DataState
 				:pending="!dashboard.hotLevelsActive.value || dashboard.hotLevelsQuery.fetching.value"
 				:error="dashboard.hotLevelsQuery.error.value?.message"
 				:empty="dashboard.hotLevels.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('common.empty')"
 			>
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<LevelGrid
@@ -148,14 +148,14 @@
 				:pending="!dashboard.viewerActive.value || dashboard.viewerLevelsQuery.fetching.value"
 				:error="dashboard.viewerLevelsQuery.error.value?.message"
 				:empty="dashboard.viewerLevels.value.length === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('common.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('common.empty')"
 				class="space-y-8"
 			>
 				<template #pending><LevelGridSkeleton :columns="3" /></template>
 				<section v-if="dashboard.viewerLevels.value.length" aria-labelledby="viewer-levels-heading">
-					<SectionHeader id="viewer-levels-heading" :title="$t('dashboard.viewerLevels.title')" :description="$t('dashboard.viewerLevels.description')" />
+					<SectionHeader id="viewer-levels-heading" :title="t('dashboard.viewerLevels.title')" :description="t('dashboard.viewerLevels.description')" />
 					<LevelGrid
 						:levels="dashboard.viewerLevels.value"
 						transition-scope="dashboard-viewer"
@@ -193,7 +193,7 @@ type DashboardHeroModel = {
 usePageSeo('home')
 defineOgImage('Dashboard.takumi', { slug: 'home' })
 
-const { t, locale } = useI18n()
+const { t, locale } = useAppI18n()
 const route = useRoute()
 const session = useSessionStore()
 const { login } = useAccountActions()
@@ -202,7 +202,7 @@ const authCallback = route.query.auth === 'callback'
 const { verificationFailed: authVerificationFailed } = useAuthCallbackVerification(authCallback)
 const viewerId = computed(() => user.value?.id)
 const dashboard = useDashboard(viewerId)
-await dashboard.prefetchCritical()
+
 const numberFormat = new Intl.NumberFormat()
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })
 const currentMonth = computed(() =>
@@ -466,4 +466,6 @@ const dashboardLevelLabels = computed(() => ({
 	authorTimeLabel: t('levels.card.authorTime'),
 	byLabel: t('levels.card.by'),
 }))
+
+await dashboard.prefetchCritical()
 </script>

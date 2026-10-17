@@ -2,11 +2,13 @@
 	<ContentPage
 		v-if="document"
 		:document="document"
-		:table-of-contents-title="$t('common.tableOfContents')"
+		:table-of-contents-title="t('common.tableOfContents')"
 		show-table-of-contents
 	/>
 </template>
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 usePageSeo('wiki')
 defineOgImage('WikiIndex.takumi', { slug: 'wiki' })
 const { data: document } = await useAsyncData('wiki-index', () =>

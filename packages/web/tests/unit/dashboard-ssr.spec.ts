@@ -17,10 +17,10 @@ describe('dashboard critical SSR', () => {
 		expect(app).toContain('await useCurrentUser()')
 	})
 
-	it('awaits critical data before creating rendered dashboard models', () => {
+	it('registers composables before awaiting critical data for SSR', () => {
 		expect(page).toContain('await dashboard.prefetchCritical()')
-		expect(page.indexOf('await dashboard.prefetchCritical()')).toBeLessThan(
-			page.indexOf('const hero = computed'),
+		expect(page.indexOf('useDashboardStatisticsModel(')).toBeLessThan(
+			page.indexOf('await dashboard.prefetchCritical()'),
 		)
 		expect(page).toContain('dashboard.criticalQuery.fetching.value')
 		expect(page).toContain('dashboard.metrics.value')

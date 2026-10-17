@@ -1,4 +1,6 @@
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 defineProps<{
 	title: string
 	description?: string
@@ -41,9 +43,9 @@ const emit = defineEmits<{
 				@click="emit('login', 'steam')"
 			>
 				<TablerIcon name="brand-steam" class="size-4" />
-				{{ steamLabel ?? $t('auth.steam') }}
+				{{ steamLabel ?? t('auth.steam') }}
 			</UButton>
-			<span class="mt-2 text-sm text-muted-foreground">{{ orLabel ?? $t('auth.loginPrompt.or') }}</span>
+			<span class="mt-2 text-sm text-muted-foreground">{{ orLabel ?? t('auth.loginPrompt.or') }}</span>
 			<div class="max-w-sm space-y-2">
 				<UButton
 					color="primary"
@@ -52,10 +54,10 @@ const emit = defineEmits<{
 					@click="emit('login', 'discord')"
 				>
 					<TablerIcon name="brand-discord" class="size-4" />
-					{{ discordLabel ?? $t('auth.discord') }}
+					{{ discordLabel ?? t('auth.discord') }}
 				</UButton>
 				<p class="text-xs leading-relaxed text-muted-foreground">
-					{{ $t('auth.loginPrompt.discordRequirement') }}
+					{{ t('auth.loginPrompt.discordRequirement') }}
 				</p>
 			</div>
 		</div>

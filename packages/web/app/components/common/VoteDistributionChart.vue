@@ -31,7 +31,7 @@ const props = defineProps<{
 	}
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const total = computed(() => voteDistributionTotal(props.counts))
 const definitions = {

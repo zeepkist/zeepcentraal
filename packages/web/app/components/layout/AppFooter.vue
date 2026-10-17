@@ -7,7 +7,7 @@
 						<div class="max-w-sm">
 							<AppLogo large />
 							<p class="mt-4 text-sm leading-6 text-muted-foreground">
-								{{ $t('footer.description') }}
+								{{ t('footer.description') }}
 							</p>
 						</div>
 					</template>
@@ -21,14 +21,14 @@
 
 		<template #left>
 			<div class="text-center text-xs leading-5 text-muted-foreground lg:text-left">
-				<p>{{ $t('footer.copyrightZeepCentraal') }}</p>
-				<p>{{ $t('footer.copyrightZeepkist') }}</p>
+				<p>{{ t('footer.copyrightZeepCentraal') }}</p>
+				<p>{{ t('footer.copyrightZeepkist') }}</p>
 			</div>
 		</template>
 
 		<template #right>
 			<p class="max-w-2xl text-center text-xs leading-5 text-muted-foreground lg:text-right">
-				{{ $t('footer.disclaimer') }}
+				{{ t('footer.disclaimer') }}
 			</p>
 		</template>
 	</UFooter>
@@ -48,7 +48,7 @@ type FooterLink = {
 	prefetchOn?: 'interaction'
 }
 
-const { t } = useI18n()
+const { t } = useAppI18n()
 const route = useRoute()
 const external = (label: string, to: string, tablerIcon: TablerIconName): FooterLink => ({
 	label,

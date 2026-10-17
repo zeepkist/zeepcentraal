@@ -138,7 +138,7 @@ describe('OG image component contracts', () => {
 		const css = source('assets/css/tailwind.css')
 
 		expect(frame).toContain('src="/android-chrome-192x192.png"')
-		expect(frame).toContain("$t('common.brand')")
+		expect(frame).toContain("t('common.brand')")
 		expect(frame).toContain('font-family: DINish')
 		expect(frame).toContain('font-variant-numeric: tabular-nums')
 		expect(frame).toContain("font-feature-settings: 'tnum' 1")

@@ -12,7 +12,7 @@
 	<span v-else>{{ label }}</span>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{
 	label: string
 	help?: string

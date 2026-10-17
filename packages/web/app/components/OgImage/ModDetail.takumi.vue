@@ -2,8 +2,8 @@
 	<OgFrame
 		dense
 		style="font-family: DINish"
-		:eyebrow="$t('pages.mods.eyebrow')"
-		:title="mod?.name ?? $t('mods.detail.notFound')"
+		:eyebrow="t('pages.mods.eyebrow')"
+		:title="mod?.name ?? t('mods.detail.notFound')"
 		:description="description"
 		:image-url="mod?.imageUrl ?? undefined"
 	>
@@ -11,13 +11,13 @@
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { ModDetailResponse } from '~/types/mod'
 import { normalizeModSlug } from '~/utils/modExplorer'
 
 const props = defineProps<{ slug: string }>()
 
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value)
 const modSlug = normalizeModSlug(props.slug)
 const { data } = await useFetch<ModDetailResponse>(

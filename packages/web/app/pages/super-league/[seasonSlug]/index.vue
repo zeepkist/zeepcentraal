@@ -20,11 +20,11 @@
 				</div>
 			</template>
 			<template v-if="season">
-				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
+				<ZslBreadcrumbs :label="t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 				<PageHeader
-					:eyebrow="$t('zsl.season')"
+					:eyebrow="t('zsl.season')"
 					:title="season.name"
-					:description="$t('zsl.seasonDescription')"
+					:description="t('zsl.seasonDescription')"
 					:title-transition-style="transition.targetStyle('zsl-season', parsedSeasonId, 'title')"
 				>
 					<template #actions>
@@ -38,7 +38,7 @@
 				</PageHeader>
 				<ContestLinks :round-ids="season.zslRounds.nodes.map(round => Number(round.id))" />
 				<section>
-					<SectionHeader :title="$t('zsl.rounds')" :description="$t('zsl.roundsDescription')" />
+					<SectionHeader :title="t('zsl.rounds')" :description="t('zsl.roundsDescription')" />
 					<ZslRoundGrid
 						:rounds="season.zslRounds.nodes"
 						:link="roundLink"
@@ -47,7 +47,7 @@
 					/>
 				</section>
 				<section>
-					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.seasonStandings')" />
+					<SectionHeader :title="t('zsl.standings')" :description="t('zsl.seasonStandings')" />
 					<DataState
 						:pending="
 							pagination.isInitialPending(
@@ -86,7 +86,7 @@
 
 <script setup vapor lang="ts">
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)
 const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
@@ -107,7 +107,7 @@ const {
 	standings,
 	standingsResult,
 } = useZslSeason(id, viewerId)
-await prefetch()
+
 watchEffect(() => {
 	if (result.fetching.value || result.data.value === undefined) return
 	if (!season.value) {
@@ -157,4 +157,6 @@ const paginationLabels = computed(() => ({
 }))
 
 const { supporters } = useSupporterBadges()
+
+await prefetch()
 </script>

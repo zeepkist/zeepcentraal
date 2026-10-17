@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, getQuery, getRouterParam } from 'nuxt/server'
 import type { ModDetailResponse } from '../../../../app/types/mod'
 import { normalizeModSlug } from '../../../../app/utils/modExplorer'
 import {
@@ -13,11 +14,11 @@ import { assertSameOrigin } from '../../../utils/request'
 
 export default defineEventHandler(async (event): Promise<ModDetailResponse> => {
 	assertSameOrigin(event)
-	const slug = normalizeModSlug(getRouterParam(event, 'slug'))
-	if (!slug) throw createError({ statusCode: 404, statusMessage: 'Mod not found' })
+	const slug = normalizeModSlug(getRouterParam(event, 'slug', { decode: true }))
+	if (!slug) throw createError({ status: 404, statusText: 'Mod not found' })
 
 	const mod = await findModBySlug(slug)
-	if (!mod) throw createError({ statusCode: 404, statusMessage: 'Mod not found' })
+	if (!mod) throw createError({ status: 404, statusText: 'Mod not found' })
 
 	const query = getQuery(event)
 	const dependencies =

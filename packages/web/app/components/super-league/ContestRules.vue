@@ -2,7 +2,7 @@
 import type { SubmissionContest } from '~/utils/superLeagueSubmission'
 import { submissionRuleLimits } from '~/utils/superLeagueSubmission'
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const props = defineProps<{ contest: SubmissionContest }>()
 const limits = computed(() => submissionRuleLimits(props.contest.rules))

@@ -8,7 +8,7 @@ export function useDiscordSettings() {
 	const route = useRoute()
 	const session = useSessionStore()
 	const toast = useToast()
-	const { t } = useI18n()
+	const { t } = useAppI18n()
 	const pendingCode = ref(false)
 	const pendingUnlink = ref(false)
 	const linkCode = ref<DiscordLinkCode | null>(null)

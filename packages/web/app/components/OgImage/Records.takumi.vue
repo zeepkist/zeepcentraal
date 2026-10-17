@@ -1,18 +1,18 @@
 <template>
 	<OgFrame
 		style="font-family: DINish"
-		:eyebrow="$t('pages.records.live.active')"
-		:title="$t('pages.records.title')"
-		:description="$t('pages.records.description')"
+		:eyebrow="t('pages.records.live.active')"
+		:title="t('pages.records.title')"
+		:description="t('pages.records.description')"
 	>
 		<OgMetrics :items="metrics" />
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{ slug: string }>()
 
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value, 'compact-one-decimal')
 const data = await useOgRecordCountsData()
 const recentLabel = (label: string) =>

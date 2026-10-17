@@ -44,7 +44,7 @@ const props = withDefaults(
 	{ total: 0, title: '', showPercentage: true },
 )
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const percentageFormat = computed(
 	() =>
 		new Intl.NumberFormat(locale.value, {

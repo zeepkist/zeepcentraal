@@ -6,7 +6,7 @@
 	</UDropdownMenu>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LocaleOption } from '~/types/app'
 
 const props = defineProps<{

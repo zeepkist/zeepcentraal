@@ -1,5 +1,8 @@
 <script setup vapor lang="ts">
+
 import type { LocalPlaylistLevel } from '~/types/app'
+
+const { t } = useAppI18n()
 
 defineProps<{ level: LocalPlaylistLevel; index: number; total: number }>()
 defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
@@ -13,7 +16,7 @@ defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
 		<button
 			class="playlist-drag-handle cursor-grab touch-none text-muted-foreground hover:text-highlighted"
 			type="button"
-			:aria-label="$t('playlist.levels.drag')"
+			:aria-label="t('playlist.levels.drag')"
 		>
 			<UIcon name="i-tabler-grip-vertical" class="size-5" />
 		</button>
@@ -50,7 +53,7 @@ defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
 				variant="ghost"
 				square
 				:disabled="index === 0"
-				:aria-label="$t('playlist.levels.moveUp')"
+				:aria-label="t('playlist.levels.moveUp')"
 				@click="$emit('move', index, index - 1)"
 			/>
 			<UButton
@@ -59,7 +62,7 @@ defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
 				variant="ghost"
 				square
 				:disabled="index === total - 1"
-				:aria-label="$t('playlist.levels.moveDown')"
+				:aria-label="t('playlist.levels.moveDown')"
 				@click="$emit('move', index, index + 1)"
 			/>
 			<UButton
@@ -67,7 +70,7 @@ defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
 				color="error"
 				variant="ghost"
 				square
-				:aria-label="$t('playlist.levels.remove')"
+				:aria-label="t('playlist.levels.remove')"
 				@click="$emit('remove', level.UID)"
 			/>
 		</div>

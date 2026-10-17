@@ -1,18 +1,18 @@
 <template>
 	<OgFrame
 		style="font-family: DINish"
-		:eyebrow="$t('nav.home')"
-		:title="$t('pages.home.seo.title')"
-		:description="$t('dashboard.liveStats.description')"
+		:eyebrow="t('nav.home')"
+		:title="t('pages.home.seo.title')"
+		:description="t('dashboard.liveStats.description')"
 	>
 		<OgMetrics :items="metrics" />
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{ slug: string }>()
 
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value, 'compact-one-decimal')
 const oneDecimal = getNumberFormatter(locale.value, 'one-decimal')
 const data = await useOgDashboardData()

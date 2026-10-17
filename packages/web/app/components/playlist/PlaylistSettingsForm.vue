@@ -1,10 +1,13 @@
 <script setup vapor lang="ts">
+
 import type { LocalPlaylist } from '~/types/app'
 import {
 	PLAYLIST_MAX_ROUND_LENGTH,
 	PLAYLIST_MIN_ROUND_LENGTH,
 	PLAYLIST_ROUND_LENGTH_STEP,
 } from '~/utils/playlist'
+
+const { t } = useAppI18n()
 
 const props = defineProps<{ playlist: LocalPlaylist }>()
 const store = usePlaylistsStore()
@@ -27,15 +30,15 @@ function setRoundLength(value: number | undefined) {
 <template>
 	<UCard class="border-border bg-card/85">
 		<template #header>
-			<h2 class="font-semibold text-highlighted">{{ $t('playlist.settings.title') }}</h2>
+			<h2 class="font-semibold text-highlighted">{{ t('playlist.settings.title') }}</h2>
 		</template>
 		<div class="grid gap-5">
-			<UFormField :label="$t('playlist.settings.name')">
+			<UFormField :label="t('playlist.settings.name')">
 				<UInput :model-value="playlist.name" class="w-full" @change="rename" />
 			</UFormField>
 			<UFormField
-				:label="$t('playlist.settings.roundLength')"
-				:hint="$t('playlist.settings.roundLengthHint')"
+				:label="t('playlist.settings.roundLength')"
+				:hint="t('playlist.settings.roundLengthHint')"
 			>
 				<UInputNumber
 					:model-value="playlist.roundLength"
@@ -50,17 +53,17 @@ function setRoundLength(value: number | undefined) {
 				class="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/35 p-4"
 			>
 				<div>
-					<p class="font-medium text-highlighted">{{ $t('playlist.settings.shuffle') }}</p>
-					<p class="text-sm text-muted-foreground">{{ $t('playlist.settings.shuffleHint') }}</p>
+					<p class="font-medium text-highlighted">{{ t('playlist.settings.shuffle') }}</p>
+					<p class="text-sm text-muted-foreground">{{ t('playlist.settings.shuffleHint') }}</p>
 				</div>
 				<USwitch
 					:model-value="playlist.shufflePlaylist"
-					:aria-label="$t('playlist.settings.shuffle')"
+					:aria-label="t('playlist.settings.shuffle')"
 					@update:model-value="store.setShuffle(playlist.id, $event)"
 				/>
 			</div>
 			<p class="text-sm text-muted-foreground">
-				{{ $t('playlist.settings.estimatedDuration', { duration: estimatedDuration }) }}
+				{{ t('playlist.settings.estimatedDuration', { duration: estimatedDuration }) }}
 			</p>
 		</div>
 	</UCard>

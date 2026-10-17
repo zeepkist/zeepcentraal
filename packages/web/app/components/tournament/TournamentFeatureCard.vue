@@ -30,21 +30,21 @@
 				<UBadge color="primary" variant="soft">{{ formatName }}</UBadge>
 				<UBadge color="neutral" variant="soft">{{ periodLabel }}</UBadge>
 				<UBadge :color="active ? 'success' : 'neutral'" variant="soft">
-					{{ active ? $t('tournaments.live') : $t('tournaments.finalized') }}
+					{{ active ? t('tournaments.live') : t('tournaments.finalized') }}
 				</UBadge>
 			</div>
 			<h3 class="mt-3 truncate text-xl font-black text-highlighted">
 				{{ tournament.level.name }}
 			</h3>
 			<p v-if="tournament.level.authorName" class="mt-1 truncate text-sm text-muted">
-				{{ $t('tournaments.byAuthor', { author: tournament.level.authorName }) }}
+				{{ t('tournaments.byAuthor', { author: tournament.level.authorName }) }}
 			</p>
 			<div class="mt-auto flex items-center justify-between gap-4 pt-5 text-sm">
 				<span class="text-muted">
-					{{ $t('tournaments.participants', { count: tournament.participantCount }) }}
+					{{ t('tournaments.participants', { count: tournament.participantCount }) }}
 				</span>
 				<span class="flex items-center gap-1 font-bold text-primary">
-					{{ $t('tournaments.viewTournament') }}
+					{{ t('tournaments.viewTournament') }}
 					<TablerIcon name="arrow-right" class="size-4 transition group-hover:translate-x-0.5" />
 				</span>
 			</div>
@@ -64,7 +64,7 @@ const props = defineProps<{
 	tournament: TournamentFeature
 	transitionScope: string
 }>()
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
 const active = computed(() => isTrackTournamentActive(props.tournament))
 const transitionId = computed(() => `${props.tournament.type}:${props.tournament.slug}`)

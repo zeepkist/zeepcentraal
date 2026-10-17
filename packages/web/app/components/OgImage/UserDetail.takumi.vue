@@ -1,18 +1,18 @@
 <template>
 	<OgFrame
 		style="font-family: DINish"
-		:eyebrow="$t('users.profile.eyebrow')"
+		:eyebrow="t('users.profile.eyebrow')"
 		:title="user?.steamName ?? profileSlug"
-		:description="$t('users.profile.seoDescription', { name: user?.steamName ?? profileSlug })"
+		:description="t('users.profile.seoDescription', { name: user?.steamName ?? profileSlug })"
 	>
 		<OgMetrics :items="metrics" />
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const props = defineProps<{ slug: string }>()
 
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value)
 const user = await useOgUserDetailData(props.slug)
 const profileSlug = props.slug

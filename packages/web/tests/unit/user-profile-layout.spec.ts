@@ -19,7 +19,7 @@ describe('user profile layout', () => {
 		expect(page).toContain('<DetailSectionTabs')
 		expect(page).toContain('v-model="activeTab"')
 		expect(page).toContain(':items="profileTabs"')
-		expect(page).toContain(':label="$t(\'users.profile.tabs.label\')"')
+		expect(page).toContain(':label="t(\'users.profile.tabs.label\')"')
 		expect(page).toContain("const activeTab = ref<UserProfileTab>('career')")
 
 		expect(page).toContain(

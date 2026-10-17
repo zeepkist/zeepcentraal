@@ -4,9 +4,9 @@
 			:pending="recordData.detail.fetching.value"
 			:error="recordData.detail.error.value?.message"
 			:empty="!recordData.detail.fetching.value && !record"
-			:loading-label="$t('common.loading')"
-			:error-title="$t('common.error')"
-			:empty-title="$t('pages.recordDetail.notFound')"
+			:loading-label="t('common.loading')"
+			:error-title="t('common.error')"
+			:empty-title="t('pages.recordDetail.notFound')"
 		>
 			<template #pending>
 				<SharedDetailPreview
@@ -49,13 +49,13 @@
 					>
 						<SectionHeader
 							id="replay-heading"
-							:title="$t('pages.recordDetail.replay.title')"
-							:description="$t('pages.recordDetail.replay.description')"
+							:title="t('pages.recordDetail.replay.title')"
+							:description="t('pages.recordDetail.replay.description')"
 						/>
 						<div
 							class="grid aspect-video min-h-80 place-items-center rounded-2xl border border-border bg-card/60"
 							role="status"
-							:aria-label="$t('common.loading')"
+							:aria-label="t('common.loading')"
 						>
 							<USkeleton class="size-full rounded-2xl" />
 						</div>
@@ -72,7 +72,7 @@ import { getLevelDisplayName } from '~/utils/levelDisplay'
 definePageMeta({ key: (route) => route.path })
 
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const rawRecordId = route.params.recordId
 const parsedRecordId =
 	typeof rawRecordId === 'string' && /^\d+$/.test(rawRecordId) ? Number(rawRecordId) : null
@@ -82,15 +82,13 @@ if (parsedRecordId === null || !Number.isSafeInteger(parsedRecordId) || parsedRe
 const recordId = parsedRecordId
 useRecordsOgImage()
 const recordData = useRecordDetailSummary(computed(() => recordId))
-await recordData.prefetchCritical()
+
 const transition = useSharedViewTransition()
 const transitionPreview = computed(() => transition.preview('record', recordId))
 const record = recordData.record
 const source = recordData.hero
 const levelItem = recordData.levelItem
-if (import.meta.server && !record.value && !recordData.detail.error.value) {
-	throw createError({ statusCode: 404, statusMessage: t('pages.recordDetail.notFound') })
-}
+
 
 const contribution = computed(() => record.value?.userPointContributions.nodes[0] ?? null)
 const publicLevelItem = computed(() =>
@@ -160,4 +158,9 @@ const heroLabels = computed(() => ({
 	rankedPoints: t('common.rankedPoints'),
 	unavailable: t('common.unavailable'),
 }))
+
+await recordData.prefetchCritical()
+if (import.meta.server && !record.value && !recordData.detail.error.value) {
+	throw createError({ statusCode: 404, statusMessage: t('pages.recordDetail.notFound') })
+}
 </script>

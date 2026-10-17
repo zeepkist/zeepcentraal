@@ -6,7 +6,7 @@
 	</UApp>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { resolveInitialColourMode } from '~/utils/colourMode'
 
 const colourMode = useColorMode()

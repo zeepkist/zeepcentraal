@@ -1,5 +1,5 @@
 export function usePageSeo(pageKey: string) {
-	const { t } = useI18n()
+	const { t } = useAppI18n()
 	const title = computed(() => t(`pages.${pageKey}.seo.title`))
 	const description = computed(() => t(`pages.${pageKey}.seo.description`))
 

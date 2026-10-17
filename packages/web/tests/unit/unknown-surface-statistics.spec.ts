@@ -12,7 +12,7 @@ import { useSingleRecordTelemetryModel } from '../../app/composables/useSingleRe
 beforeEach(() => {
 	vi.stubGlobal('computed', computed)
 	vi.stubGlobal('useRecordTelemetryModel', useRecordTelemetryModel)
-	vi.stubGlobal('useI18n', () => ({ locale: ref('en'), t: (key: string) => key }))
+	vi.stubGlobal('useAppI18n', () => ({ locale: ref('en'), t: (key: string) => key }))
 })
 afterEach(() => vi.unstubAllGlobals())
 

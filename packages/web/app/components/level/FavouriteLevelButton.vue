@@ -12,7 +12,7 @@ const props = withDefaults(
 const session = useSessionStore()
 const favouriteState = useLevelFavouriteState()
 const toast = useToast()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const target = computed(() =>
 	session.user
 		? {

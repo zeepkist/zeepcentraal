@@ -83,7 +83,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { GhostEventKind, GhostTimelineEvent } from '~/types/ghost'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import type { RecordTimelineLane } from '~/utils/recordGhostAnalysis'
@@ -96,7 +96,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ seek: [time: number] }>()
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const decimalFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),

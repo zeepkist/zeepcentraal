@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import LevelCard from '~/components/level/LevelCard.vue'
 import type { SubmissionContest, SubmissionOverview } from '~/utils/superLeagueSubmission'
 import { downloadSubmissionPlaylist } from '~/utils/superLeagueSubmission'
@@ -9,7 +9,7 @@ const cards = computed(() => props.overview?.submissions.map(submission => ({
 	level: { ...submission.level, authorName: submission.authorNames.join(', ') },
 })) ?? [])
 const emit = defineEmits<{ refresh: [] }>()
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 function download() {
 	if (props.overview?.submissions.length) downloadSubmissionPlaylist(props.contest, props.overview.submissions)

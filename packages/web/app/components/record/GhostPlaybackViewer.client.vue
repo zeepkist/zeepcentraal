@@ -42,7 +42,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { useElementVisibility } from '@vueuse/core'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'

@@ -6,16 +6,16 @@
 	>
 		<SectionHeader
 			:id="`adventure-series-${series.slug}-heading`"
-			:title="$t('adventure.series', { series: series.key })"
-			:description="$t('adventure.count', { count: formattedCount })"
+			:title="t('adventure.series', { series: series.key })"
+			:description="t('adventure.count', { count: formattedCount })"
 		/>
 		<DataState
 			:pending="adventure.selectedPending.value"
 			:error="adventure.selectedError.value?.message"
 			:empty="adventure.levels.value.length === 0"
-			:loading-label="$t('common.loading')"
-			:error-title="$t('common.error')"
-			:empty-title="$t('common.empty')"
+			:loading-label="t('common.loading')"
+			:error-title="t('common.error')"
+			:empty-title="t('common.empty')"
 		>
 			<LevelGrid
 				:levels="adventure.levels.value"
@@ -27,11 +27,11 @@
 	</section>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import { findAdventureSeries } from '~/utils/adventureSeries'
 
 const route = useRoute()
-const { t, locale } = useI18n()
+const { t, locale } = useAppI18n()
 const adventure = useAdventureContext()
 const initialSeries = findAdventureSeries(route.params.series)
 

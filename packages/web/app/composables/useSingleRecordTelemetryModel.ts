@@ -26,7 +26,7 @@ export function useSingleRecordTelemetryModel(
 		} as Zc_LevelStatisticsQuery
 	})
 	const baseModel = useRecordTelemetryModel(aggregateShape, 'record')
-	const { t } = useI18n()
+	const { t } = useAppI18n()
 	return computed(() => {
 		const value = statistic.value
 		const base = baseModel.value

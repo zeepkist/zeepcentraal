@@ -3,20 +3,22 @@
 		<UContainer class="grid min-h-dvh place-items-center py-10">
 			<UCard class="w-full max-w-xl rounded-lg border-border bg-card/80">
 				<h1 class="text-3xl font-bold">
-					{{ $t('error.title') }}
+					{{ t('error.title') }}
 				</h1>
 				<p class="mt-3 text-muted-foreground">
-					{{ $t('error.description') }}
+					{{ t('error.description') }}
 				</p>
 				<UButton class="mt-6" to="/">
-					{{ $t('error.action') }}
+					{{ t('error.action') }}
 				</UButton>
 			</UCard>
 		</UContainer>
 	</UApp>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
+const { t } = useAppI18n()
+
 defineProps<{
 	error: {
 		statusCode?: number

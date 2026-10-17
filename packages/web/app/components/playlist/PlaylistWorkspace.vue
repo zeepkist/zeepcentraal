@@ -1,4 +1,6 @@
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 const store = usePlaylistsStore()
 const { activePlaylist, hydrated } = storeToRefs(store)
 const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
@@ -9,7 +11,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 		<UCard v-if="!hydrated" class="border-border bg-card/85">
 			<div class="flex min-h-24 items-center justify-center gap-3 text-muted-foreground">
 				<UIcon name="i-tabler-loader-2" class="size-5 animate-spin" />
-				<span>{{ $t('playlist.persistence.loading') }}</span>
+				<span>{{ t('playlist.persistence.loading') }}</span>
 			</div>
 		</UCard>
 		<div v-if="hydrated" class="grid grid-cols-2 gap-2 lg:hidden">
@@ -19,7 +21,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 				block
 				@click="mobilePane = 'playlist'"
 			>
-				{{ $t('playlist.tabs.playlist') }}
+				{{ t('playlist.tabs.playlist') }}
 			</UButton>
 			<UButton
 				:variant="mobilePane === 'browser' ? 'solid' : 'soft'"
@@ -27,7 +29,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 				block
 				@click="mobilePane = 'browser'"
 			>
-				{{ $t('playlist.tabs.browser') }}
+				{{ t('playlist.tabs.browser') }}
 			</UButton>
 		</div>
 		<div
@@ -44,10 +46,10 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 					<div class="grid min-h-72 place-items-center text-center">
 						<div>
 							<UIcon name="i-tabler-playlist" class="mx-auto size-12 text-muted-foreground" />
-							<h2 class="mt-4 text-xl font-bold text-highlighted">{{ $t('playlist.empty.title') }}</h2>
-							<p class="mt-1 text-muted-foreground">{{ $t('playlist.empty.description') }}</p>
+							<h2 class="mt-4 text-xl font-bold text-highlighted">{{ t('playlist.empty.title') }}</h2>
+							<p class="mt-1 text-muted-foreground">{{ t('playlist.empty.description') }}</p>
 							<UButton class="mt-5" icon="i-tabler-plus" @click="store.createPlaylist()">
-								{{ $t('playlist.actions.new') }}
+								{{ t('playlist.actions.new') }}
 							</UButton>
 						</div>
 					</div>

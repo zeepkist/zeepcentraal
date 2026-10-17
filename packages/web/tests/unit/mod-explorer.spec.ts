@@ -109,7 +109,7 @@ describe('GTR pinning and pagination', () => {
 		expect(explorerPage).toContain(':tag-options="tagOptions"')
 		expect(explorerPage).toContain('@update:tags="tags = $event"')
 		expect(listEndpoint).toContain('...tags].join')
-		expect(listEndpoint).toContain("statusMessage: 'Invalid mod tag filter'")
+		expect(listEndpoint).toContain("statusText: 'Invalid mod tag filter'")
 	})
 })
 

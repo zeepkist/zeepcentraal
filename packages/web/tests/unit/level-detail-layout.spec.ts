@@ -120,7 +120,7 @@ describe('compact level detail layout', () => {
 	it('uses local Records, Telemetry, and Ghosts Explorer tabs with Records selected by default', () => {
 		expect(page).toContain('v-model="activeDetailTab"')
 		expect(page).toContain(':items="detailTabs"')
-		expect(page).toContain(':label="$t(\'levels.detail.tabs.label\')"')
+		expect(page).toContain(':label="t(\'levels.detail.tabs.label\')"')
 		expect(page).toContain('<template #records>')
 		expect(page).toContain('<template #telemetry>')
 		expect(page).toContain('<template #ghosts>')

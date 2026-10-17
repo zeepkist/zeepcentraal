@@ -1,3 +1,4 @@
+import { createError, getRequestHeader, getRequestURL, type RequestEvent } from 'nuxt/server'
 export function isCrossOriginRequest(
 	origin: string | undefined,
 	fetchSite: string | undefined,
@@ -6,17 +7,17 @@ export function isCrossOriginRequest(
 	return fetchSite === 'cross-site' || Boolean(origin && origin !== requestOrigin)
 }
 
-export function assertSameOrigin(event: Parameters<typeof getHeader>[0]) {
+export function assertSameOrigin(event: RequestEvent) {
 	if (
 		isCrossOriginRequest(
-			getHeader(event, 'origin'),
-			getHeader(event, 'sec-fetch-site'),
+			getRequestHeader(event, 'origin'),
+			getRequestHeader(event, 'sec-fetch-site'),
 			getRequestURL(event).origin,
 		)
 	) {
 		throw createError({
-			statusCode: 403,
-			statusMessage: 'Cross-origin API requests are not allowed',
+			status: 403,
+			statusText: 'Cross-origin API requests are not allowed',
 		})
 	}
 }

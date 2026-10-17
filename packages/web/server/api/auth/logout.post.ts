@@ -1,3 +1,4 @@
+import { defineEventHandler } from 'nuxt/server'
 import { clearWebAuthCookies } from '../../utils/auth-cookies'
 import { assertSameOrigin } from '../../utils/request'
 

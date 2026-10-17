@@ -7,8 +7,8 @@
 		>
 			<SectionHeader
 				id="replay-heading"
-				:title="$t('pages.recordDetail.replay.title')"
-				:description="$t('pages.recordDetail.replay.description')"
+				:title="t('pages.recordDetail.replay.title')"
+				:description="t('pages.recordDetail.replay.description')"
 			/>
 			<ClientOnly>
 				<LazyRecordReplayWorkspace
@@ -61,8 +61,8 @@
 		<section aria-labelledby="comparison-heading">
 			<SectionHeader
 				id="comparison-heading"
-				:title="$t('pages.recordDetail.comparisons.title')"
-				:description="$t('pages.recordDetail.comparisons.description')"
+				:title="t('pages.recordDetail.comparisons.title')"
+				:description="t('pages.recordDetail.comparisons.description')"
 			/>
 			<RecordComparisonPicker
 				:world-record="recordData.worldRecord.value"
@@ -92,12 +92,12 @@
 				<section v-if="record.recordStatistic" aria-labelledby="record-statistics-heading">
 					<SectionHeader
 						id="record-statistics-heading"
-						:title="$t('pages.recordDetail.telemetry.title')"
-						:description="$t('pages.recordDetail.telemetry.description')"
+						:title="t('pages.recordDetail.telemetry.title')"
+						:description="t('pages.recordDetail.telemetry.description')"
 					/>
 					<RecordTelemetryPanel
 						:model="statisticTelemetry"
-						:description="$t('pages.recordDetail.telemetry.versionDescription')"
+						:description="t('pages.recordDetail.telemetry.versionDescription')"
 					/>
 				</section>
 			</template>
@@ -114,7 +114,7 @@
 					v-else
 					class="grid min-h-40 place-items-center rounded-2xl border border-dashed border-border bg-card/40 px-6 text-center text-sm text-muted-foreground"
 				>
-					{{ $t('pages.recordDetail.analysis.tabs.unavailable') }}
+					{{ t('pages.recordDetail.analysis.tabs.unavailable') }}
 				</div>
 			</template>
 
@@ -125,8 +125,8 @@
 				>
 					<SectionHeader
 						id="checkpoint-analysis-heading"
-						:title="$t('pages.recordDetail.checkpoints.title')"
-						:description="$t('pages.recordDetail.checkpoints.description')"
+						:title="t('pages.recordDetail.checkpoints.title')"
+						:description="t('pages.recordDetail.checkpoints.description')"
 					/>
 					<LazyLevelSplitAnalysis :analysis="checkpointAnalysis" :labels="checkpointLabels" />
 				</section>
@@ -176,14 +176,14 @@
 					v-else
 					class="grid min-h-40 place-items-center rounded-2xl border border-dashed border-border bg-card/40 px-6 text-center text-sm text-muted-foreground"
 				>
-					{{ $t('pages.recordDetail.analysis.tabs.unavailable') }}
+					{{ t('pages.recordDetail.analysis.tabs.unavailable') }}
 				</div>
 			</template>
 		</RecordAnalysisTabs>
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { GhostRecordSource, RecordReplayWorkspaceHandle } from '~/types/ghost'
 import { buildGhostSlipEvents, buildGhostTimelineEvents } from '~/utils/ghostAnalysis'
 import { buildLevelSplitAnalysis, resolveGhostFinishSpeed } from '~/utils/levelSplitAnalysis'
@@ -191,12 +191,12 @@ import { buildRecordAirControlRuns, buildRecordDriftRuns } from '~/utils/recordG
 
 const props = defineProps<{ recordId: number }>()
 const route = useRoute()
-const { t, locale } = useI18n()
+const { t, locale } = useAppI18n()
 const session = useSessionStore()
 const recordId = props.recordId
 const recordIdRef = computed(() => recordId)
 const recordData = useRecordDetail(recordIdRef)
-await recordData.prefetchCritical()
+
 const record = recordData.record
 const source = recordData.source
 
@@ -420,4 +420,6 @@ const checkpointLabels = computed(() => ({
 	secondsUnit: t('dashboard.totals.units.seconds'),
 	speedUnit: t('dashboard.totals.units.kilometresPerHour'),
 }))
+
+await recordData.prefetchCritical()
 </script>

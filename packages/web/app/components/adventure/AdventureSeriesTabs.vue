@@ -37,6 +37,6 @@ defineProps<{
 	unavailableLabel: string
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 </script>

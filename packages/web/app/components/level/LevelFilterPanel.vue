@@ -143,7 +143,7 @@ defineEmits<{
 	apply: []
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const formatRange = (range: [number, number]) =>
 	`${numberFormat.value.format(range[0])}–${numberFormat.value.format(range[1])}`

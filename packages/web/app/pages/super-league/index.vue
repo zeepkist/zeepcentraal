@@ -1,9 +1,9 @@
 <template>
 	<UContainer class="space-y-8 py-2">
 		<PageHeader
-			:eyebrow="$t('pages.zsl.eyebrow')"
-			:title="$t('pages.zsl.title')"
-			:description="$t('pages.zsl.description')"
+			:eyebrow="t('pages.zsl.eyebrow')"
+			:title="t('pages.zsl.title')"
+			:description="t('pages.zsl.description')"
 		/>
 		<ContestLinks />
 		<DataState
@@ -35,7 +35,7 @@
 <script setup vapor lang="ts">
 usePageSeo('zsl')
 defineOgImage('SuperLeague.takumi', { slug: 'super-league' })
-const { t } = useI18n()
+const { t } = useAppI18n()
 const { page, pagination, result, seasons } = useZslSeasons()
 const roundsLabel = (count: number) => t('zsl.roundCount', { count })
 const competitorsLabel = (count: number) => t('zsl.competitorCount', { count })

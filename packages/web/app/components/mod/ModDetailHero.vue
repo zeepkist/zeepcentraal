@@ -97,7 +97,7 @@ const props = defineProps<{
 	}
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const transition = useSharedViewTransition()
 const numberFormat = computed(() => getNumberFormatter(locale.value))
 const sizeFormat = computed(() => getNumberFormatter(locale.value, 'megabyte-one-decimal'))

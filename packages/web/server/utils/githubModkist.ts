@@ -1,4 +1,5 @@
 import { injectTraceHeaders, withActiveSpan } from '@zeepkist/telemetry'
+import { createError, useRuntimeConfig } from 'nuxt/server'
 import type {
 	ModkistRelease,
 	ModkistReleaseAsset,
@@ -166,8 +167,8 @@ async function requestModkistReleases(): Promise<ModkistReleases> {
 			const token = String(useRuntimeConfig().githubToken || '').trim()
 			if (!token) {
 				throw createError({
-					statusCode: 503,
-					statusMessage: 'GitHub releases are not configured',
+					status: 503,
+					statusText: 'GitHub releases are not configured',
 				})
 			}
 
@@ -188,8 +189,8 @@ async function requestModkistReleases(): Promise<ModkistReleases> {
 
 			if (response.errors?.length || !response.data?.repository) {
 				throw createError({
-					statusCode: 502,
-					statusMessage: 'GitHub releases request failed',
+					status: 502,
+					statusText: 'GitHub releases request failed',
 				})
 			}
 			return mapGitHubModkistReleases(response.data)

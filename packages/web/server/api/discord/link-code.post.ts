@@ -1,3 +1,4 @@
+import { defineEventHandler } from 'nuxt/server'
 import { fetchAuthenticatedBackend } from '../../utils/backend'
 import { assertSameOrigin } from '../../utils/request'
 

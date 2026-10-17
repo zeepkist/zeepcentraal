@@ -1,4 +1,5 @@
 import { injectTraceCarrier, withActiveSpan } from '@zeepkist/telemetry'
+import { createError, getRequestHeader, type RequestEvent, useRuntimeConfig } from 'nuxt/server'
 import { webAuthCookieNames } from '#shared/authCookies'
 import { authRefreshUrl } from '../../app/utils/auth'
 import { mergeRequestCookies } from '../../app/utils/requestCookies'
@@ -17,8 +18,8 @@ export function getBackendBaseUrl() {
 	return config.public.backendUrl
 }
 
-export function getForwardedCookieHeaders(event: Parameters<typeof getHeader>[0]) {
-	const cookie = getHeader(event, 'cookie')
+export function getForwardedCookieHeaders(event: RequestEvent) {
+	const cookie = getRequestHeader(event, 'cookie')
 	return cookie ? { cookie } : undefined
 }
 
@@ -87,15 +88,15 @@ export function readSessionCookies(cookieHeader?: string | null): SessionCookies
 	return steamId && accessToken && refreshToken ? { steamId, accessToken, refreshToken } : null
 }
 
-export function forwardBackendCookies(event: Parameters<typeof getHeader>[0], headers: Headers) {
+export function forwardBackendCookies(event: RequestEvent, headers: Headers) {
 	const setCookies =
 		(headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.() ??
 		(headers.get('set-cookie') ? [headers.get('set-cookie') as string] : [])
-	for (const cookie of setCookies) appendResponseHeader(event, 'set-cookie', cookie)
+	for (const cookie of setCookies) event.res.headers.append('set-cookie', cookie)
 	return setCookies
 }
 
-export async function refreshWebAuth(event: Parameters<typeof getHeader>[0]) {
+export async function refreshWebAuth(event: RequestEvent) {
 	return withActiveSpan('web.backend.refresh-auth', async () => {
 		const response = await $fetch.raw(authRefreshUrl(getBackendBaseUrl()), {
 			method: 'POST',
@@ -111,7 +112,7 @@ export async function refreshWebAuth(event: Parameters<typeof getHeader>[0]) {
 }
 
 export async function fetchAuthenticatedBackend<T>(
-	event: Parameters<typeof getHeader>[0],
+	event: RequestEvent,
 	path: string,
 	options: {
 		method: 'GET' | 'POST' | 'DELETE'
@@ -120,12 +121,14 @@ export async function fetchAuthenticatedBackend<T>(
 	},
 ) {
 	return withActiveSpan(`web.backend ${options.method}`, async () => {
-		let cookie = getHeader(event, 'cookie')
+		let cookie = getRequestHeader(event, 'cookie')
 		let response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
 			...options,
 			headers: {
 				...(cookie ? { cookie } : {}),
-				...(getHeader(event, 'origin') ? { origin: getHeader(event, 'origin') } : {}),
+				...(getRequestHeader(event, 'origin')
+					? { origin: getRequestHeader(event, 'origin') }
+					: {}),
 				...injectTraceCarrier(),
 			},
 			credentials: 'include',
@@ -138,7 +141,9 @@ export async function fetchAuthenticatedBackend<T>(
 				...options,
 				headers: {
 					...(cookie ? { cookie } : {}),
-					...(getHeader(event, 'origin') ? { origin: getHeader(event, 'origin') } : {}),
+					...(getRequestHeader(event, 'origin')
+						? { origin: getRequestHeader(event, 'origin') }
+						: {}),
 					...injectTraceCarrier(),
 				},
 				credentials: 'include',
@@ -148,8 +153,8 @@ export async function fetchAuthenticatedBackend<T>(
 		forwardBackendCookies(event, response.headers)
 		if (response.status >= 400) {
 			throw createError({
-				statusCode: response.status,
-				statusMessage: 'Authenticated backend request failed',
+				status: response.status,
+				statusText: 'Authenticated backend request failed',
 				data: response._data,
 			})
 		}

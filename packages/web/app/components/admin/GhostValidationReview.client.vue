@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import { type ValidationAttempt, validationCsv } from '~~/shared/ghostValidation'
 

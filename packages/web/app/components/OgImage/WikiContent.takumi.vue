@@ -9,7 +9,7 @@
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const props = defineProps<{
 	slug: string
 }>()

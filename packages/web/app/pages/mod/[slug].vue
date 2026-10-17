@@ -6,9 +6,9 @@
 			:pending="pending"
 			:error="error"
 			:empty="!pending && !data?.mod"
-			:loading-label="$t('common.loading')"
-			:error-title="$t('common.error')"
-			:empty-title="$t('mods.detail.notFound')"
+			:loading-label="t('common.loading')"
+			:error-title="t('common.error')"
+			:empty-title="t('mods.detail.notFound')"
 			:skeletons="4"
 		>
 			<template #pending>
@@ -25,14 +25,14 @@
 		</DataState>
 		<template v-if="data?.mod">
 			<ModDescription
-				:title="$t('mods.detail.description')"
-				:empty-label="$t('mods.detail.descriptionEmpty')"
+				:title="t('mods.detail.description')"
+				:empty-label="t('mods.detail.descriptionEmpty')"
 				:description-html="data.mod.descriptionHtml"
 			/>
 			<section>
 				<SectionHeader
-					:title="$t('mods.detail.dependencies')"
-					:description="$t('mods.detail.dependenciesDescription')"
+					:title="t('mods.detail.dependencies')"
+					:description="t('mods.detail.dependenciesDescription')"
 				/>
 				<ModGrid
 					v-if="data.dependencies.length"
@@ -41,7 +41,7 @@
 					:transition-scope="`mod-dependencies-${slug}`"
 				/>
 				<div v-else class="rounded-xl border border-border bg-card/60 p-8 text-center text-muted-foreground">
-					{{ $t('mods.detail.noDependencies') }}
+					{{ t('mods.detail.noDependencies') }}
 				</div>
 			</section>
 		</template>
@@ -53,7 +53,7 @@ import type { ModDetailResponse } from '~/types/mod'
 import { normalizeModSlug } from '~/utils/modExplorer'
 
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const slug = normalizeModSlug(route.params.slug)
 if (!slug) throw createError({ statusCode: 404, statusMessage: t('mods.detail.notFound') })
 
@@ -61,15 +61,13 @@ const request = useFetch<ModDetailResponse>(`/api/modio/mods/${slug}`, {
 	query: { dependencies: 'true' },
 	key: `mod-detail:${slug}`,
 })
-if (import.meta.server) await request
+
 const data = request.data
 const pending = computed(() => request.status.value === 'pending')
 const error = computed(() => request.error.value?.message ?? null)
 const transition = useSharedViewTransition()
 const transitionPreview = computed(() => transition.preview('mod', slug))
-if (request.error.value?.statusCode === 404) {
-	throw createError({ statusCode: 404, statusMessage: t('mods.detail.notFound') })
-}
+
 
 const byLabel = computed(() => t('mods.detail.by', { author: data.value?.mod.authorName ?? '' }))
 const heroLabels = computed(() => ({
@@ -107,4 +105,9 @@ useSeoMeta({
 })
 useSchemaOrg([defineWebPage({ name: title, description })])
 defineOgImage('ModDetail.takumi', { slug })
+
+if (import.meta.server) await request
+if (request.error.value?.statusCode === 404) {
+	throw createError({ statusCode: 404, statusMessage: t('mods.detail.notFound') })
+}
 </script>

@@ -1,3 +1,4 @@
+import { defineNitroPlugin } from 'nitropack/runtime'
 export default defineNitroPlugin((nitroApp) => {
 	nitroApp.hooks.hook('sitemap:index-resolved', async ({ event, sitemaps }) => {
 		const maxIds = await getSitemapMaxIds(event)

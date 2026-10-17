@@ -4,9 +4,9 @@
 			:pending="profilePending"
 			:error="data.profile.error.value?.message"
 			:empty="!data.profile.fetching.value && !user"
-			:loading-label="$t('common.loading')"
-			:error-title="$t('common.error')"
-			:empty-title="$t('users.profile.notFound')"
+			:loading-label="t('common.loading')"
+			:error-title="t('common.error')"
+			:empty-title="t('users.profile.notFound')"
 		>
 			<template #pending>
 				<SharedDetailPreview
@@ -31,7 +31,7 @@
 					<DetailSectionTabs
 						v-model="activeTab"
 						:items="profileTabs"
-						:label="$t('users.profile.tabs.label')"
+						:label="t('users.profile.tabs.label')"
 					>
 						<template #career>
 							<div
@@ -42,8 +42,8 @@
 									<section aria-labelledby="profile-history">
 										<SectionHeader
 											id="profile-history"
-											:title="$t('users.profile.history.title')"
-											:description="$t('users.profile.history.description')"
+											:title="t('users.profile.history.title')"
+											:description="t('users.profile.history.description')"
 										/>
 										<DataState
 											:pending="pointsHistoryPending"
@@ -80,12 +80,12 @@
 									>
 										<SectionHeader
 											id="profile-telemetry"
-											:title="$t('users.profile.telemetry.title')"
-											:description="$t('users.profile.telemetry.description')"
+											:title="t('users.profile.telemetry.title')"
+											:description="t('users.profile.telemetry.description')"
 										>
 											<RecordTelemetryPeriodSelect
 												v-model="data.telemetryPeriod.value"
-												:label="$t('users.profile.telemetry.period')"
+												:label="t('users.profile.telemetry.period')"
 												:items="telemetryPeriodOptions"
 											/>
 										</SectionHeader>
@@ -99,7 +99,7 @@
 											</template>
 											<LazyRecordTelemetryPanel
 												:model="telemetryModel"
-												:description="$t('users.profile.telemetry.telemetryDescription')"
+												:description="t('users.profile.telemetry.telemetryDescription')"
 											/>
 										</DataState>
 									</section>
@@ -109,8 +109,8 @@
 									<section aria-labelledby="profile-summary">
 										<SectionHeader
 											id="profile-summary"
-											:title="$t('users.profile.summary.title')"
-											:description="$t('users.profile.summary.description')"
+											:title="t('users.profile.summary.title')"
+											:description="t('users.profile.summary.description')"
 										/>
 										<MetricGrid :metrics="metrics" :columns="2" />
 									</section>
@@ -129,8 +129,8 @@
 
 									<UserTrackTournamentPanel
 										id="profile-totw"
-										:title="$t('nav.totw')"
-										:description="$t('users.profile.trackTournaments.weeklyDescription')"
+										:title="t('nav.totw')"
+										:description="t('users.profile.trackTournaments.weeklyDescription')"
 										:results="data.weeklyTournaments.results.value"
 										:pending="data.weeklyTournaments.pending.value"
 										:error="data.weeklyTournaments.error.value"
@@ -142,8 +142,8 @@
 
 									<UserTrackTournamentPanel
 										id="profile-totm"
-										:title="$t('nav.totm')"
-										:description="$t('users.profile.trackTournaments.monthlyDescription')"
+										:title="t('nav.totm')"
+										:description="t('users.profile.trackTournaments.monthlyDescription')"
 										:results="data.monthlyTournaments.results.value"
 										:pending="data.monthlyTournaments.pending.value"
 										:error="data.monthlyTournaments.error.value"
@@ -168,8 +168,8 @@
 									<section aria-labelledby="profile-voting-distribution">
 										<SectionHeader
 											id="profile-voting-distribution"
-											:title="$t('users.profile.votingDistribution.title')"
-											:description="$t('users.profile.votingDistribution.description')"
+											:title="t('users.profile.votingDistribution.title')"
+											:description="t('users.profile.votingDistribution.description')"
 										/>
 										<div class="rounded-xl border border-border bg-card/70 p-4">
 											<VoteDistributionChart
@@ -187,8 +187,8 @@
 								<LazyUserResultsSection
 									id="profile-world-records"
 									transition-scope="user-world-records"
-									:title="$t('users.profile.worldRecords.title')"
-									:description="$t('users.profile.worldRecords.description')"
+									:title="t('users.profile.worldRecords.title')"
+									:description="t('users.profile.worldRecords.description')"
 									:records="data.wrRows.value"
 									:supporters="supporters"
 									:sort="data.wrSort.value"
@@ -198,7 +198,7 @@
 									:can-go-previous="data.wrPagination.canGoPrevious(data.wrPage.value)"
 									:can-go-next="data.wrPagination.canGoNext(data.wrPage.value)"
 									:labels="resultLabels"
-									:sort-label="$t('levels.filters.sort')"
+									:sort-label="t('levels.filters.sort')"
 									:sort-options="resultSortOptions"
 									:pagination-labels="paginationLabels"
 									status-mode="none"
@@ -213,12 +213,12 @@
 									<LazyUserResultsSection
 										id="profile-personal-bests"
 										transition-scope="user-personal-bests"
-										:title="$t('users.profile.personalBests.title')"
-										:description="$t('users.profile.personalBests.description')"
+										:title="t('users.profile.personalBests.title')"
+										:description="t('users.profile.personalBests.description')"
 										:records="data.pbRows.value"
 										:supporters="supporters"
 										:sort="data.pbSort.value"
-										:sort-label="$t('levels.filters.sort')"
+										:sort-label="t('levels.filters.sort')"
 										:pending="pbPending"
 										:error="data.pbResult.value.error.value?.message"
 										:page="data.pbPage.value"
@@ -240,8 +240,8 @@
 									<LazyUserResultsSection
 										id="profile-recent"
 										transition-scope="user-recent-records"
-										:title="$t('users.profile.recent.title')"
-										:description="$t('users.profile.recent.description')"
+										:title="t('users.profile.recent.title')"
+										:description="t('users.profile.recent.description')"
 										:records="data.recentRows.value"
 										:supporters="supporters"
 										:pending="recentPending"
@@ -266,11 +266,11 @@
 								<div :ref="data.levelsTarget">
 									<LazyUserLevelCollection
 										id="profile-popular-levels"
-										:title="$t('users.profile.levels.popularTitle')"
-										:description="$t('users.profile.levels.popularDescription')"
-										:action-label="$t('users.profile.levels.viewAll')"
+										:title="t('users.profile.levels.popularTitle')"
+										:description="t('users.profile.levels.popularDescription')"
+										:action-label="t('users.profile.levels.viewAll')"
 										:action-to="levelsUrl"
-										:records-label="$t('common.records')"
+										:records-label="t('common.records')"
 										:levels="data.popularLevels.value"
 										:pending="levelsPending"
 										:error="data.levelsQuery.error.value?.message"
@@ -281,11 +281,11 @@
 
 								<LazyUserLevelCollection
 									id="profile-recent-levels"
-									:title="$t('users.profile.levels.recentTitle')"
-									:description="$t('users.profile.levels.recentDescription')"
-									:action-label="$t('users.profile.levels.viewAll')"
+									:title="t('users.profile.levels.recentTitle')"
+									:description="t('users.profile.levels.recentDescription')"
+									:action-label="t('users.profile.levels.viewAll')"
 									:action-to="recentLevelsUrl"
-									:records-label="$t('common.records')"
+									:records-label="t('common.records')"
 									:levels="data.recentLevels.value"
 									:pending="levelsPending"
 									:error="data.levelsQuery.error.value?.message"
@@ -298,8 +298,8 @@
 						<template #favourites>
 							<LazyUserFavouriteLevelsSection
 								id="profile-favourite-levels"
-								:title="$t('users.profile.favourites.title')"
-								:description="$t('users.profile.favourites.description')"
+								:title="t('users.profile.favourites.title')"
+								:description="t('users.profile.favourites.description')"
 								:levels="data.favouriteLevels.value"
 								:pending="favouritesPending"
 								:pagination-pending="data.favouritesQuery.fetching.value"
@@ -332,7 +332,7 @@ import { getDateTimeFormatter, getNumberFormatter } from '~/utils/intlFormatters
 import { preserveOgStringProp } from '~/utils/ogImage'
 
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)
 const steamId = computed(() => String(route.params.steamid))
@@ -349,7 +349,7 @@ const data = useUserProfile(steamId, {
 	workshopActive: computed(() => activeTab.value === 'workshop'),
 })
 const user = data.user
-if (import.meta.server) await summaryData.prefetchCritical()
+
 const summary = data.summary
 const transition = useSharedViewTransition()
 const transitionPreview = computed(() => transition.preview('user', steamId.value))
@@ -362,7 +362,7 @@ const pointsHistoryPending = computed(
 		(data.pointsHistoryQuery.fetching.value &&
 			data.pointsHistoryQuery.data.value === undefined),
 )
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => getNumberFormatter(locale.value, 'one-decimal'))
 const profileUrl = computed(() => steamProfileUrl(steamId.value))
 const workshopProfileUrl = computed(() => steamWorkshopProfileUrl(steamId.value))
@@ -626,4 +626,6 @@ const pbPending = computed(
 const recentPending = computed(() => !data.recentActive.value || data.recent.fetching.value)
 
 const { supporters } = useSupporterBadges()
+
+if (import.meta.server) await summaryData.prefetchCritical()
 </script>

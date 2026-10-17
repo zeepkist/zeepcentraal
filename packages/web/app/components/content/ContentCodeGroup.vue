@@ -43,7 +43,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const props = defineProps<{
 	title: string
 	curlLabel: string

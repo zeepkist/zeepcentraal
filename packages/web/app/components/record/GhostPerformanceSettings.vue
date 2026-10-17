@@ -74,7 +74,7 @@
 	</UPopover>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type {
 	GhostFrameRate,
 	GhostPaintMode,
@@ -118,7 +118,7 @@ defineEmits<{
 	clearCache: []
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 const bytes = computed(
 	() =>

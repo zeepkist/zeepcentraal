@@ -74,7 +74,7 @@ const props = defineProps<{
 	}
 }>()
 const emit = defineEmits<{ 'activate-secondary': [] }>()
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => getNumberFormatter(locale.value))
 const compactNumber = computed(() => createUserCareerAxisFormatter(locale.value))
 const date = computed(() => getDateTimeFormatter(locale.value, 'medium-london'))

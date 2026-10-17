@@ -2,29 +2,29 @@
 	<ExplorerLayout>
 		<template #header>
 			<PageHeader
-				:eyebrow="$t('pages.mods.eyebrow')"
-				:title="$t('pages.mods.title')"
-				:description="$t('pages.mods.description')"
+				:eyebrow="t('pages.mods.eyebrow')"
+				:title="t('pages.mods.title')"
+				:description="t('pages.mods.description')"
 			/>
 		</template>
 		<template #sidebar>
 			<div class="space-y-4">
 				<ModFilterPanel
-					:title="$t('mods.filters.title')"
-					:result-count-label="$t('mods.results', { count: data?.total ?? 0 })"
+					:title="t('mods.filters.title')"
+					:result-count-label="t('mods.results', { count: data?.total ?? 0 })"
 					:search="search"
 					:sort="sort"
 					:essentials-only="essentialsOnly"
 					:tags="tags"
 					:tag-options="tagOptions"
 					:tag-options-pending="tagOptionsPending"
-					:search-label="$t('mods.filters.search')"
-					:search-placeholder="$t('mods.filters.searchPlaceholder')"
-					:sort-label="$t('mods.filters.sort')"
-					:essentials-only-label="$t('mods.filters.essentialsOnly')"
-					:tags-label="$t('mods.filters.tags')"
-					:tags-placeholder="$t('mods.filters.tagsPlaceholder')"
-					:apply-label="$t('mods.filters.apply')"
+					:search-label="t('mods.filters.search')"
+					:search-placeholder="t('mods.filters.searchPlaceholder')"
+					:sort-label="t('mods.filters.sort')"
+					:essentials-only-label="t('mods.filters.essentialsOnly')"
+					:tags-label="t('mods.filters.tags')"
+					:tags-placeholder="t('mods.filters.tagsPlaceholder')"
+					:apply-label="t('mods.filters.apply')"
 					:sort-options="sortOptions"
 					@update:search="search = $event"
 					@update:sort="sort = $event as ModSort"
@@ -34,12 +34,12 @@
 				/>
 				<ModkistPromoCard
 					v-if="showModkistPromo"
-					:eyebrow="$t('mods.modkistPromo.eyebrow')"
-					:title="$t('mods.modkistPromo.title')"
-					:description="$t('mods.modkistPromo.description')"
-					:download-label="$t('mods.modkistPromo.download')"
+					:eyebrow="t('mods.modkistPromo.eyebrow')"
+					:title="t('mods.modkistPromo.title')"
+					:description="t('mods.modkistPromo.description')"
+					:download-label="t('mods.modkistPromo.download')"
 					download-href="/api/downloads/modkist/stable/msi"
-					:guide-label="$t('mods.modkistPromo.guide')"
+					:guide-label="t('mods.modkistPromo.guide')"
 					guide-href="/wiki/setup-modkist"
 				/>
 			</div>
@@ -49,9 +49,9 @@
 				:pending="pending && !data"
 				:error="error"
 				:empty="(data?.items.length ?? 0) === 0"
-				:loading-label="$t('common.loading')"
-				:error-title="$t('common.error')"
-				:empty-title="$t('mods.empty')"
+				:loading-label="t('common.loading')"
+				:error-title="t('common.error')"
+				:empty-title="t('mods.empty')"
 				:skeletons="8"
 			>
 				<ModGrid
@@ -65,12 +65,12 @@
 				:can-go-previous="page.hasPreviousPage"
 				:can-go-next="page.hasNextPage"
 				:pending="pending"
-				:label="$t('common.pagination')"
-				:loading-label="$t('common.loading')"
-				:first-label="$t('common.first')"
-				:previous-label="$t('common.previous')"
-				:next-label="$t('common.next')"
-				:last-label="$t('common.last')"
+				:label="t('common.pagination')"
+				:loading-label="t('common.loading')"
+				:first-label="t('common.first')"
+				:previous-label="t('common.previous')"
+				:next-label="t('common.next')"
+				:last-label="t('common.last')"
 				@first="first"
 				@previous="previous"
 				@next="next"
@@ -88,7 +88,7 @@ import { shouldShowModkistPromo } from '~/utils/modkistPromo'
 
 usePageSeo('mods')
 defineOgImage('ModExplorer.takumi', { slug: 'mods' })
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)
 const recordCountQuery = useQuery({
@@ -97,7 +97,7 @@ const recordCountQuery = useQuery({
 	pause: computed(() => viewerId.value === undefined),
 })
 
-if (viewerId.value !== undefined) await recordCountQuery
+
 
 const showModkistPromo = computed(() =>
 	shouldShowModkistPromo(
@@ -143,4 +143,6 @@ const cardLabels = computed(() => ({
 	openModioLabel: t('mods.card.openModio'),
 	unavailableLabel: t('mods.card.unavailable'),
 }))
+
+if (viewerId.value !== undefined) await recordCountQuery
 </script>

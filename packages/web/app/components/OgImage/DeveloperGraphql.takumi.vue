@@ -1,7 +1,7 @@
 <template>
 	<OgFrame
 		style="font-family: DINish"
-		:eyebrow="$t('nav.developer')"
+		:eyebrow="t('nav.developer')"
 		:title="title"
 		:description="description"
 	>
@@ -9,10 +9,10 @@
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const props = defineProps<{ slug: string }>()
 
-const { t } = useI18n()
+const { t } = useAppI18n()
 const { data: document } = await useAsyncData(`og-developer-graphql:${props.slug}`, () =>
 	queryCollection('developer').path('/developer/graphql').first(),
 )

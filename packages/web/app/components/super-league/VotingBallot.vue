@@ -1,8 +1,11 @@
 <script setup vapor lang="ts">
+
 import LoginPrompt from '~/components/auth/LoginPrompt.vue'
 import type { LevelSummary } from '~/types/app'
 import { voteCandidateLevel } from '~/utils/superLeagueVote'
 import ContestLoading from './ContestLoading.vue'
+
+const { t } = useAppI18n()
 
 const config = useRuntimeConfig()
 const session = useSessionStore()
@@ -93,6 +96,7 @@ async function submit() {
 		challengeKey.value++
 	}
 }
+
 await initial
 </script>
 
@@ -101,8 +105,8 @@ await initial
 		<PageHeader eyebrow="Zeepkist Super League" title="Vote for contest levels" />
 		<LoginPrompt
 			v-if="session.resolved && !session.pending && !session.user"
-			:title="$t('auth.loginPrompt.voteTitle')"
-			:description="$t('auth.loginPrompt.voteDescription')"
+			:title="t('auth.loginPrompt.voteTitle')"
+			:description="t('auth.loginPrompt.voteDescription')"
 			@login="login"
 		/>
 		<ContestLoading v-else-if="pending" label="Loading vote categories" />

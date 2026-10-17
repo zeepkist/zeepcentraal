@@ -2,9 +2,9 @@
 	<ContentPage
 		v-if="document"
 		:breadcrumbs="breadcrumbs"
-		:breadcrumb-label="$t('common.breadcrumbs')"
+		:breadcrumb-label="t('common.breadcrumbs')"
 		:document="document"
-		:table-of-contents-title="$t('common.tableOfContents')"
+		:table-of-contents-title="t('common.tableOfContents')"
 		show-table-of-contents
 	/>
 </template>
@@ -14,7 +14,7 @@ import { modkistReleasesKey } from '~/composables/useModkistReleasesContext'
 import type { ModkistReleases } from '~/types/modkist'
 
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const slugSegments = computed(() => {
 	const slug = route.params.slug
 	return Array.isArray(slug) ? slug : [String(slug)]
@@ -25,13 +25,14 @@ const breadcrumbs = computed(() =>
 const path = computed(
 	() => `/wiki/${slugSegments.value.join('/')}`,
 )
-const { data: document } = await useAsyncData(
+const documentRequest = useAsyncData(
 	() => `wiki-${path.value}`,
 	() => queryCollection('wiki').path(path.value).first(),
 )
+const { data: document } = documentRequest
 
 const isSetupPage = computed(() => path.value === '/wiki/setup-modkist')
-const releaseQuery = await useFetch<ModkistReleases>('/api/modkist/releases', {
+const releaseQuery = useFetch<ModkistReleases>('/api/modkist/releases', {
 	key: 'modkist-releases',
 	immediate: isSetupPage.value,
 	server: isSetupPage.value,
@@ -45,9 +46,11 @@ if (import.meta.client) {
 		}
 	})
 }
+useSeoMeta({ title: () => document.value?.title, description: () => document.value?.description })
+defineOgImage('WikiContent.takumi', { slug: path })
+
+await Promise.all([documentRequest, releaseQuery])
 if (!document.value) {
 	throw createError({ statusCode: 404, statusMessage: t('pages.wiki.notFound') })
 }
-useSeoMeta({ title: () => document.value?.title, description: () => document.value?.description })
-defineOgImage('WikiContent.takumi', { slug: path })
 </script>

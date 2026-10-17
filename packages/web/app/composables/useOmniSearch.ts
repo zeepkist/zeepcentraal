@@ -10,7 +10,7 @@ import {
 } from '~/utils/omniSearch'
 
 export function useOmniSearch() {
-	const { locale } = useI18n()
+	const { locale } = useAppI18n()
 	const search = ref('')
 	const debouncedSearch = ref('')
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined

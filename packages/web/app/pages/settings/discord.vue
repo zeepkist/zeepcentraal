@@ -1,4 +1,6 @@
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 usePageSeo('settings')
 defineOgImage('Settings.takumi', { slug: 'settings' })
 </script>
@@ -6,9 +8,9 @@ defineOgImage('Settings.takumi', { slug: 'settings' })
 <template>
 	<UContainer class="space-y-8 py-2">
 		<PageHeader
-			:eyebrow="$t('settings.discord.page.eyebrow')"
-			:title="$t('settings.discord.page.title')"
-			:description="$t('settings.discord.page.description')"
+			:eyebrow="t('settings.discord.page.eyebrow')"
+			:title="t('settings.discord.page.title')"
+			:description="t('settings.discord.page.description')"
 		/>
 		<DiscordSettingsPanel />
 	</UContainer>

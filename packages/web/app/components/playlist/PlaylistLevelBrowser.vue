@@ -10,7 +10,7 @@ import {
 	type ViewerLevelFilter,
 } from '~/utils/levelExplorer'
 
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const explorer = useLevels(computed(() => session.user?.id))
 const {
@@ -68,8 +68,8 @@ const levelLabels = computed(() => ({
 	<section aria-labelledby="playlist-browser-heading" class="space-y-5">
 		<div class="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)]">
 			<LevelFilterPanel
-				:title="$t('levels.filters.title')"
-				:result-count-label="$t('levels.results', { count: result.data.value?.levels?.totalCount ?? 0 })"
+				:title="t('levels.filters.title')"
+				:result-count-label="t('levels.results', { count: result.data.value?.levels?.totalCount ?? 0 })"
 				:search="search"
 				:author="author"
 				:author-suggestions="authorSuggestions"
@@ -80,17 +80,17 @@ const levelLabels = computed(() => ({
 				:personal-best="personalBest"
 				:world-record="worldRecord"
 				:sort="sort"
-				:search-label="$t('levels.filters.search')"
-				:author-label="$t('levels.filters.author')"
-				:adventure-label="$t('levels.filters.adventure')"
-				:points-label="$t('levels.filters.points')"
-				:rating-label="$t('levels.filters.rating')"
-				:personal-best-label="$t('levels.filters.personalBest')"
-				:world-record-label="$t('levels.filters.worldRecord')"
+				:search-label="t('levels.filters.search')"
+				:author-label="t('levels.filters.author')"
+				:adventure-label="t('levels.filters.adventure')"
+				:points-label="t('levels.filters.points')"
+				:rating-label="t('levels.filters.rating')"
+				:personal-best-label="t('levels.filters.personalBest')"
+				:world-record-label="t('levels.filters.worldRecord')"
 				:viewer-filters-disabled="!session.user"
-				:viewer-filters-disabled-label="$t('levels.filters.viewerFilterHint')"
-				:sort-label="$t('levels.filters.sort')"
-				:apply-label="$t('levels.filters.apply')"
+				:viewer-filters-disabled-label="t('levels.filters.viewerFilterHint')"
+				:sort-label="t('levels.filters.sort')"
+				:apply-label="t('levels.filters.apply')"
 				:points-minimum="LEVEL_POINTS_MIN"
 				:points-maximum="LEVEL_POINTS_MAX"
 				:rating-minimum="LEVEL_RATING_MIN"
@@ -113,9 +113,9 @@ const levelLabels = computed(() => ({
 					:pending="pagination.isInitialPending(result.fetching.value, levels.length)"
 					:error="result.error.value?.message"
 					:empty="levels.length === 0"
-					:loading-label="$t('common.loading')"
-					:error-title="$t('common.error')"
-					:empty-title="$t('common.empty')"
+					:loading-label="t('common.loading')"
+					:error-title="t('common.error')"
+					:empty-title="t('common.empty')"
 				>
 					<LevelGrid :levels="levels" :columns="4" transition-scope="playlist-browser" v-bind="levelLabels" />
 				</DataState>
@@ -124,12 +124,12 @@ const levelLabels = computed(() => ({
 					:can-go-previous="pagination.canGoPrevious(page)"
 					:can-go-next="pagination.canGoNext(page)"
 					:pending="result.fetching.value"
-					:label="$t('common.pagination')"
-					:loading-label="$t('common.loading')"
-					:first-label="$t('common.first')"
-					:previous-label="$t('common.previous')"
-					:next-label="$t('common.next')"
-					:last-label="$t('common.last')"
+					:label="t('common.pagination')"
+					:loading-label="t('common.loading')"
+					:first-label="t('common.first')"
+					:previous-label="t('common.previous')"
+					:next-label="t('common.next')"
+					:last-label="t('common.last')"
 					@first="pagination.first()"
 					@previous="pagination.previous(page)"
 					@next="pagination.next(page)"

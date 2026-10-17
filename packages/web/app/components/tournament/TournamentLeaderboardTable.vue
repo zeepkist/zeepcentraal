@@ -3,16 +3,16 @@
 		<table class="w-full min-w-[54rem] table-fixed text-left text-sm">
 			<colgroup><col class="w-20" /><col /><col class="w-32" /><col class="w-28" /><col class="w-28" /><col class="w-48" /></colgroup>
 			<thead class="bg-muted/70 text-muted-foreground">
-				<tr><th class="px-4 py-3">{{ $t('tournaments.rank') }}</th><th class="px-4 py-3">{{ $t('tournaments.player') }}</th><th class="px-4 py-3">{{ $t('tournaments.time') }}</th><th class="px-4 py-3">{{ $t('tournaments.delta') }}</th><th class="px-4 py-3">{{ $t('tournaments.points') }}</th><th class="px-4 py-3 text-right">{{ $t('common.set') }}</th></tr>
+				<tr><th class="px-4 py-3">{{ t('tournaments.rank') }}</th><th class="px-4 py-3">{{ t('tournaments.player') }}</th><th class="px-4 py-3">{{ t('tournaments.time') }}</th><th class="px-4 py-3">{{ t('tournaments.delta') }}</th><th class="px-4 py-3">{{ t('tournaments.points') }}</th><th class="px-4 py-3 text-right">{{ t('common.set') }}</th></tr>
 			</thead>
 			<tbody>
 				<DataTableRow v-for="row in standings" :key="row.userId" :viewer="viewerUserId === row.userId" :pinned="row.pinned" interactive>
 					<td class="p-0 font-black tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">#{{ row.rank }}</DataTableCellLink></td>
-					<td class="p-0"><DataTableCellLink :to="playerPath(row)" focusable class="truncate px-4 py-3 font-semibold group-hover:text-primary"><span :style="transition.sourceStyle(transitionScope, 'record', row.recordId, 'title')" data-shared-transition-source="title">{{ row.steamName ?? row.steamId ?? $t('tournaments.unknownPlayer') }}</span> <SupporterBadge :supporter="supporters?.[row.userId]" /> <UBadge v-if="row.pinned" class="ml-2" size="sm" variant="soft">{{ $t('tournaments.yourStanding') }}</UBadge></DataTableCellLink></td>
+					<td class="p-0"><DataTableCellLink :to="playerPath(row)" focusable class="truncate px-4 py-3 font-semibold group-hover:text-primary"><span :style="transition.sourceStyle(transitionScope, 'record', row.recordId, 'title')" data-shared-transition-source="title">{{ row.steamName ?? row.steamId ?? t('tournaments.unknownPlayer') }}</span> <SupporterBadge :supporter="supporters?.[row.userId]" /> <UBadge v-if="row.pinned" class="ml-2" size="sm" variant="soft">{{ t('tournaments.yourStanding') }}</UBadge></DataTableCellLink></td>
 					<td class="p-0 font-semibold tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3" @click.capture="beginTransition($event, row)"><span :style="transition.sourceStyle(transitionScope, 'record', row.recordId, 'metric')" data-shared-transition-source="metric">{{ formatTournamentTime(row.time) }}</span></DataTableCellLink></td>
 					<td class="p-0 tabular-nums text-muted"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">{{ fastestTime === undefined ? '—' : (formatTournamentDelta(row.time, fastestTime) ?? '—') }}</DataTableCellLink></td>
 					<td class="p-0 font-bold tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3">{{ number.format(row.points) }}</DataTableCellLink></td>
-					<td class="p-0 tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3 text-right"><RecordDate v-if="row.setAt" :datetime="row.setAt" :show-full-date="!active" /><template v-else>{{ $t('common.unavailable') }}</template></DataTableCellLink></td>
+					<td class="p-0 tabular-nums"><DataTableCellLink :to="recordPath(row)" class="px-4 py-3 text-right"><RecordDate v-if="row.setAt" :datetime="row.setAt" :show-full-date="!active" /><template v-else>{{ t('common.unavailable') }}</template></DataTableCellLink></td>
 				</DataTableRow>
 			</tbody>
 		</table>
@@ -32,7 +32,7 @@ const props = defineProps<{
 	active: boolean
 	transitionScope: string
 }>()
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 const recordPath = (row: TournamentStanding) => `/record/${row.recordId}`

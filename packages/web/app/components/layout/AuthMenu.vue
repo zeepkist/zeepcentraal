@@ -19,7 +19,7 @@
 	</UDropdownMenu>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LocaleOption, SessionUser } from '~/types/app'
 import { type AccountMenuLabels, buildAccountMenuItems } from '~/utils/account-menu'
 

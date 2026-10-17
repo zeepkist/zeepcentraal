@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { createError } from 'nuxt/server'
 import * as THREE from 'three'
 import type { GhostLevelBlock, GhostVector3 } from '../../app/types/ghost'
 import {
@@ -235,8 +236,7 @@ export async function protectedMeshCorpusDigest(corpusLocation: string, corpusTo
 }
 
 async function loadCorpus(location: string, token: string) {
-	if (!location)
-		throw createError({ statusCode: 503, statusMessage: 'Protected mesh corpus missing' })
+	if (!location) throw createError({ status: 503, statusText: 'Protected mesh corpus missing' })
 	const cacheKey = corpusSourceCacheKey(location, token)
 	let promise = corpusPromises.get(cacheKey)
 	if (!promise) {
@@ -264,8 +264,8 @@ async function loadCorpus(location: string, token: string) {
 	} catch (error) {
 		corpusPromises.delete(cacheKey)
 		throw createError({
-			statusCode: 503,
-			statusMessage:
+			status: 503,
+			statusText:
 				error instanceof Error && error.message === CORPUS_VERSION_ERROR
 					? CORPUS_VERSION_ERROR
 					: 'Protected mesh corpus unavailable',
@@ -394,7 +394,7 @@ function serializeBundle(
 		common.reduce((total, entry) => total + 8 + entry.payload.byteLength, 0) +
 		(trailer ? 4 + trailer.byteLength : 0)
 	if (byteLength > MAXIMUM_BUNDLE_BYTES) {
-		throw createError({ statusCode: 413, statusMessage: 'Protected mesh bundle too large' })
+		throw createError({ status: 413, statusText: 'Protected mesh bundle too large' })
 	}
 	const bytes = new Uint8Array(byteLength)
 	const view = new DataView(bytes.buffer)

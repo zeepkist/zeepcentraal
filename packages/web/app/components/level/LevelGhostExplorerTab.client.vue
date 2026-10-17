@@ -3,8 +3,8 @@
 		<section aria-labelledby="ghost-explorer-heading">
 			<SectionHeader
 				id="ghost-explorer-heading"
-				:title="$t('levels.detail.ghostExplorer.title')"
-				:description="$t('levels.detail.ghostExplorer.description')"
+				:title="t('levels.detail.ghostExplorer.title')"
+				:description="t('levels.detail.ghostExplorer.description')"
 			/>
 			<LevelGhostExplorerPicker
 				:world-record="ghostExplorer.worldRecord.value"
@@ -33,7 +33,7 @@
 				color="error"
 				variant="subtle"
 				icon="i-tabler-alert-circle"
-				:title="$t('common.error')"
+				:title="t('common.error')"
 				:description="ghostExplorerError"
 			/>
 		</section>
@@ -41,8 +41,8 @@
 		<section aria-labelledby="ghost-replay-heading">
 			<SectionHeader
 				id="ghost-replay-heading"
-				:title="$t('pages.recordDetail.replay.title')"
-				:description="$t('pages.recordDetail.replay.description')"
+				:title="t('pages.recordDetail.replay.title')"
+				:description="t('pages.recordDetail.replay.description')"
 			/>
 			<LazyRecordReplayWorkspace
 				:ghosts="ghostPlayback.loaded.value"
@@ -82,7 +82,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LevelGhostPresetCount, LevelGhostPresetKind } from '~/types/levelGhostExplorer'
 import {
 	buildLevelGhostFollowRecordIds,
@@ -94,7 +94,7 @@ const props = defineProps<{
 	levelId: number
 	viewerId?: number
 }>()
-const { t, locale } = useI18n()
+const { t, locale } = useAppI18n()
 const active = computed(() => props.active)
 const levelId = computed(() => props.levelId)
 const viewerId = computed(() => props.viewerId)

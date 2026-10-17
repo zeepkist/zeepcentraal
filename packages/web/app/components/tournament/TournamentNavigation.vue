@@ -1,8 +1,8 @@
 <template>
-	<nav :aria-label="$t('tournaments.navigation.title')" class="space-y-4">
+	<nav :aria-label="t('tournaments.navigation.title')" class="space-y-4">
 		<SectionHeader
-			:title="$t('tournaments.navigation.title')"
-			:description="$t('tournaments.navigation.description')"
+			:title="t('tournaments.navigation.title')"
+			:description="t('tournaments.navigation.description')"
 		/>
 		<div class="grid gap-5 md:grid-cols-3">
 			<div v-for="item in items" :key="item.key" class="flex min-w-0 flex-col gap-2">
@@ -23,10 +23,10 @@
 				>
 					<TablerIcon name="hourglass" class="size-8 text-primary" />
 					<p class="mt-3 font-bold text-highlighted">
-						{{ $t('tournaments.navigation.noCurrent') }}
+						{{ t('tournaments.navigation.noCurrent') }}
 					</p>
 					<p class="mt-1 text-sm text-muted">
-						{{ $t('tournaments.navigation.viewCountdown') }}
+						{{ t('tournaments.navigation.viewCountdown') }}
 					</p>
 				</NuxtLink>
 				<div
@@ -37,8 +37,8 @@
 					<p class="mt-3 font-semibold">
 						{{
 							item.key === 'previous'
-								? $t('tournaments.navigation.noPrevious')
-								: $t('tournaments.navigation.noNext')
+								? t('tournaments.navigation.noPrevious')
+								: t('tournaments.navigation.noNext')
 						}}
 					</p>
 				</div>
@@ -56,7 +56,7 @@ const props = defineProps<{
 	type: TrackTournamentType
 	navigation: TournamentNavigation
 }>()
-const { t } = useI18n()
+const { t } = useAppI18n()
 
 const items = computed<
 	Array<{

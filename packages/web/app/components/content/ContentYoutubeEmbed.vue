@@ -20,13 +20,15 @@
 				rel="noopener noreferrer"
 				class="font-medium text-primary underline underline-offset-4"
 			>
-				{{ $t('wikiContent.youtube.open') }}
+				{{ t('wikiContent.youtube.open') }}
 			</NuxtLink>
 		</figcaption>
 	</figure>
 </template>
 
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 const props = defineProps<{
 	title: string
 	videoId: string

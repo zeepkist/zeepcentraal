@@ -96,7 +96,7 @@ describe('user profile overview', () => {
 	})
 
 	it('supports linked metrics without changing static cards', () => {
-		expect(statCard).toContain("props.to ? resolveComponent('NuxtLink') : 'div'")
+		expect(statCard).toContain("props.to ? NuxtLink : 'div'")
 		expect(statCard).toContain('focus-visible:outline-primary')
 		expect(statCard).toContain('motion-safe:group-hover:-translate-y-1')
 	})

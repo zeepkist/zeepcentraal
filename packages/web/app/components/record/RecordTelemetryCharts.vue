@@ -97,7 +97,7 @@ const props = withDefaults(
 	{ primaryColor: '#facc15' },
 )
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const chartDuration = ref(0)
 const focusedSeriesKey = ref<string | null>('primary')
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }

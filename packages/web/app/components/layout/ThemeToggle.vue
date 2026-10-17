@@ -1,3 +1,8 @@
+<script setup vapor lang="ts">
+const { t } = useAppI18n()
+
+</script>
+
 <template>
-	<UColorModeButton :aria-label="$t('actions.theme')" />
+	<UColorModeButton :aria-label="t('actions.theme')" />
 </template>

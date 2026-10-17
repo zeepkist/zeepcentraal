@@ -3,9 +3,9 @@
 		:pending="result.fetching.value && !tournament"
 		:error="result.error.value?.message"
 		:empty="!result.fetching.value && !tournament"
-		:loading-label="$t('common.loading')"
-		:error-title="$t('common.error')"
-		:empty-title="$t('tournaments.notFound')"
+		:loading-label="t('common.loading')"
+		:error-title="t('common.error')"
+		:empty-title="t('tournaments.notFound')"
 		class="space-y-10"
 	>
 		<template #pending>
@@ -37,17 +37,17 @@
 									<UBadge color="primary" variant="soft">{{ title }}</UBadge>
 									<UBadge color="neutral" variant="soft">{{ periodLabel }}</UBadge>
 									<UBadge v-if="active" color="success" variant="soft">
-										{{ $t('tournaments.live') }}
+										{{ t('tournaments.live') }}
 									</UBadge>
 									<UBadge v-else color="neutral" variant="soft">
-										{{ $t('tournaments.finalized') }}
+										{{ t('tournaments.finalized') }}
 									</UBadge>
 								</div>
 								<h1 class="mt-4 text-balance text-4xl font-black tracking-tight text-highlighted sm:text-5xl">
 									{{ tournament.level.name }}
 								</h1>
 								<p v-if="tournament.level.authorName" class="mt-2 text-lg text-muted">
-									{{ $t('tournaments.byAuthor', { author: tournament.level.authorName }) }}
+									{{ t('tournaments.byAuthor', { author: tournament.level.authorName }) }}
 								</p>
 								<div class="mt-7 flex flex-wrap items-center gap-3">
 									<UButton
@@ -55,7 +55,7 @@
 										icon="i-tabler-external-link"
 										size="lg"
 									>
-										{{ $t('tournaments.openLevel') }}
+										{{ t('tournaments.openLevel') }}
 									</UButton>
 									<TournamentPlaylistActions :type="type" :slug="tournament.slug" :format-name="title" />
 								</div>
@@ -87,11 +87,11 @@
 
 						<div class="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 							<StatCard
-								:label="$t('tournaments.competitors')"
+								:label="t('tournaments.competitors')"
 								:value="numberFormat.format(totalCount)"
 								icon="users-group"
 							/>
-							<StatCard :label="$t('tournaments.startDate')" icon="calendar-event">
+							<StatCard :label="t('tournaments.startDate')" icon="calendar-event">
 								<template #value>
 									<NuxtTime
 										:datetime="tournament.startAt"
@@ -101,7 +101,7 @@
 									/>
 								</template>
 							</StatCard>
-							<StatCard :label="$t('tournaments.endDate')" icon="calendar-check">
+							<StatCard :label="t('tournaments.endDate')" icon="calendar-check">
 								<template #value>
 									<NuxtTime
 										:datetime="tournament.endAt"
@@ -112,7 +112,7 @@
 								</template>
 							</StatCard>
 							<StatCard
-								:label="active ? $t('tournaments.timeRemaining') : $t('tournaments.endedAt')"
+								:label="active ? t('tournaments.timeRemaining') : t('tournaments.endedAt')"
 								icon="hourglass"
 							>
 								<template #value>
@@ -131,8 +131,8 @@
 
 				<section v-if="podium.length" class="space-y-4">
 					<SectionHeader
-						:title="$t('tournaments.podium')"
-						:description="$t('tournaments.podiumDescription')"
+						:title="t('tournaments.podium')"
+						:description="t('tournaments.podiumDescription')"
 					/>
 					<div class="grid gap-4 md:grid-cols-3">
 						<NuxtLink
@@ -146,13 +146,13 @@
 								<span class="font-black tabular-nums">{{ formatTournamentTime(entry.time) }}</span>
 							</div>
 							<p class="mt-3 truncate font-bold text-highlighted">
-								{{ entry.steamName ?? entry.steamId ?? $t('tournaments.unknownPlayer') }} <SupporterBadge :supporter="supporters[entry.userId]" />
+								{{ entry.steamName ?? entry.steamId ?? t('tournaments.unknownPlayer') }} <SupporterBadge :supporter="supporters[entry.userId]" />
 							</p>
 							<div class="mt-3 flex items-end justify-between gap-3 text-sm text-muted">
-								<span>{{ $t('tournaments.pointsValue', { points: entry.points }) }}</span>
+								<span>{{ t('tournaments.pointsValue', { points: entry.points }) }}</span>
 								<span class="text-right text-xs">
 									<template v-if="entry.setAt">
-										{{ $t('common.set') }}
+										{{ t('common.set') }}
 										<NuxtTime v-if="active" :datetime="entry.setAt" relative />
 										<NuxtTime
 											v-else
@@ -161,7 +161,7 @@
 											time-style="short"
 										/>
 									</template>
-									<template v-else>{{ $t('common.unavailable') }}</template>
+									<template v-else>{{ t('common.unavailable') }}</template>
 								</span>
 							</div>
 						</NuxtLink>
@@ -171,12 +171,12 @@
 				<section class="space-y-4">
 					<div class="flex flex-wrap items-end justify-between gap-4">
 						<SectionHeader
-							:title="$t('tournaments.leaderboard')"
-							:description="$t('tournaments.leaderboardDescription')"
+							:title="t('tournaments.leaderboard')"
+							:description="t('tournaments.leaderboardDescription')"
 						/>
 						<div v-if="active" class="flex items-center gap-2">
 							<UBadge :color="liveEnabled ? 'success' : 'neutral'" variant="soft">
-								{{ liveEnabled ? $t('tournaments.liveUpdates') : $t('tournaments.livePaused') }}
+								{{ liveEnabled ? t('tournaments.liveUpdates') : t('tournaments.livePaused') }}
 							</UBadge>
 							<UButton
 								color="neutral"
@@ -184,7 +184,7 @@
 								:icon="sounds.enabled.value ? 'i-tabler-volume' : 'i-tabler-volume-off'"
 								@click="sounds.setEnabled(!sounds.enabled.value)"
 							>
-								{{ sounds.enabled.value ? $t('tournaments.soundOn') : $t('tournaments.soundOff') }}
+								{{ sounds.enabled.value ? t('tournaments.soundOn') : t('tournaments.soundOff') }}
 							</UButton>
 						</div>
 					</div>
@@ -192,9 +192,9 @@
 						:pending="pagination.isInitialPending(result.fetching.value, standings.length)"
 						:error="result.error.value?.message"
 						:empty="standings.length === 0"
-						:loading-label="$t('common.loading')"
-						:error-title="$t('common.error')"
-						:empty-title="$t('tournaments.noResults')"
+						:loading-label="t('common.loading')"
+						:error-title="t('common.error')"
+						:empty-title="t('tournaments.noResults')"
 					>
 						<TournamentLeaderboardTable :supporters="supporters"
 							:standings="standings"
@@ -247,7 +247,7 @@ const props = defineProps<{
 	title: string
 	detailPage?: boolean
 }>()
-const { locale, t } = useI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
 const transitionId = computed(() => `${props.type}:${props.slug}`)
 const transitionPreview = computed(() =>
@@ -274,11 +274,9 @@ const {
 	tournament,
 	updateFeed,
 } = useTrackTournamentDetail(props.type, slug, viewerId, props.detailPage ?? false)
-await prefetch()
 
-if (props.detailPage && !result.fetching.value && !tournament.value) {
-	throw createError({ statusCode: 404, statusMessage: t('tournaments.notFound') })
-}
+
+
 
 watchEffect(() => {
 	if (!props.detailPage || result.fetching.value || result.data.value === undefined) return
@@ -319,4 +317,9 @@ useSeoMeta({
 })
 
 const { supporters } = useSupporterBadges()
+
+await prefetch()
+if (props.detailPage && !result.fetching.value && !tournament.value) {
+	throw createError({ statusCode: 404, statusMessage: t('tournaments.notFound') })
+}
 </script>

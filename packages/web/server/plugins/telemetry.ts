@@ -1,4 +1,6 @@
 import { SpanKind, withActiveSpan, withExtractedTraceContext } from '@zeepkist/telemetry'
+import { getRequestHeaders, getRequestURL } from 'h3'
+import { defineNitroPlugin } from 'nitropack/runtime'
 import { resolveTelemetryRoute } from '../utils/telemetryRoute'
 
 const STATIC_PATH =

@@ -3,7 +3,7 @@ import type { WorkshopSummary } from '~/types/app'
 import { formatWorkshopFileSize } from '~/utils/workshop'
 
 const props = defineProps<{ workshop: WorkshopSummary }>()
-const { locale } = useI18n()
+const { t, locale } = useAppI18n()
 const fileSize = computed(() => formatWorkshopFileSize(props.workshop.fileSize, locale.value))
 </script>
 
@@ -17,21 +17,21 @@ const fileSize = computed(() => formatWorkshopFileSize(props.workshop.fileSize, 
 			<div class="mt-4 flex items-start justify-between gap-3">
 				<div class="min-w-0">
 					<h3 class="truncate text-lg font-semibold text-highlighted" :title="workshop.name">{{ workshop.name }}</h3>
-					<p class="truncate text-sm text-muted-foreground">{{ workshop.authorName || $t('common.unknownAuthor') }}</p>
+					<p class="truncate text-sm text-muted-foreground">{{ workshop.authorName || t('common.unknownAuthor') }}</p>
 				</div>
 				<TablerIcon name="chevron-right" class="size-5 shrink-0 text-muted-foreground" />
 			</div>
 			<dl class="mt-4 space-y-2 text-sm">
 				<div class="flex flex-wrap justify-between gap-x-3">
-					<dt class="text-muted-foreground">{{ $t('workshop.published') }}</dt>
+					<dt class="text-muted-foreground">{{ t('workshop.published') }}</dt>
 					<dd><NuxtTime :datetime="workshop.createdAt" :locale="locale" day="numeric" month="short" year="numeric" /></dd>
 				</div>
 				<div class="flex flex-wrap justify-between gap-x-3">
-					<dt class="text-muted-foreground">{{ $t('workshop.updated') }}</dt>
+					<dt class="text-muted-foreground">{{ t('workshop.updated') }}</dt>
 					<dd><NuxtTime :datetime="workshop.updatedAt" :locale="locale" day="numeric" month="short" year="numeric" /></dd>
 				</div>
 				<div class="flex flex-wrap justify-between gap-x-3">
-					<dt class="text-muted-foreground">{{ $t('workshop.fileSize') }}</dt>
+					<dt class="text-muted-foreground">{{ t('workshop.fileSize') }}</dt>
 					<dd class="tabular-nums">{{ fileSize }}</dd>
 				</div>
 			</dl>

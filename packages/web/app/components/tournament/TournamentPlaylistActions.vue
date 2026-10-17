@@ -16,13 +16,13 @@
 				variant="solid"
 				icon="i-tabler-chevron-down"
 				square
-				:aria-label="$t('tournaments.playlists.moreDownloads')"
+				:aria-label="t('tournaments.playlists.moreDownloads')"
 			/>
 		</UDropdownMenu>
 	</UFieldGroup>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { TrackTournamentType } from '~/types/tournament'
 import { tournamentPlaylistPath } from '~/utils/tournamentPlaylist'
 
@@ -31,7 +31,7 @@ const props = defineProps<{
 	formatName: string
 	slug?: string
 }>()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const primaryPath = computed(() =>
 	props.slug ? tournamentPlaylistPath(props.type, props.slug) : tournamentPlaylistPath(props.type),
 )

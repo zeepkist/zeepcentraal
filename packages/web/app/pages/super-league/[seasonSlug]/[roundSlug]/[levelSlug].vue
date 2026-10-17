@@ -19,7 +19,7 @@
 				</div>
 			</template>
 			<template v-if="level">
-				<ZslBreadcrumbs :label="$t('zsl.breadcrumbs')" :items="breadcrumbItems" />
+				<ZslBreadcrumbs :label="t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 				<ZslLevelHero
 					:title="levelTitle"
 					:context="levelContext"
@@ -32,7 +32,7 @@
 					:labels="heroLabels"
 				/>
 				<section>
-					<SectionHeader :title="$t('zsl.standings')" :description="$t('zsl.levelStandings')" />
+					<SectionHeader :title="t('zsl.standings')" :description="t('zsl.levelStandings')" />
 					<DataState
 						:pending="
 							pagination.isInitialPending(
@@ -73,7 +73,7 @@
 
 <script setup vapor lang="ts">
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const session = useSessionStore()
 const viewerId = computed(() => session.user?.id)
 const parsedSeasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
@@ -99,7 +99,7 @@ const {
 	standings,
 	standingsResult,
 } = useZslLevel(id, viewerId)
-await prefetch()
+
 watchEffect(() => {
 	if (result.fetching.value || result.data.value === undefined) return
 	const entry = level.value
@@ -176,4 +176,6 @@ const paginationLabels = computed(() => ({
 }))
 
 const { supporters } = useSupporterBadges()
+
+await prefetch()
 </script>

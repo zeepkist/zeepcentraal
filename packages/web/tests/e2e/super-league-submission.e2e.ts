@@ -1,4 +1,5 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import { test } from '../support/browser'
 
 // Nuxt compiles initial routes on demand before browser assertions begin.
 test.setTimeout(90_000)

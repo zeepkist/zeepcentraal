@@ -8,12 +8,14 @@
 		variant="soft"
 	>
 		<TablerIcon name="edit" class="size-4" />
-		{{ $t('wikiContent.edit') }}
+		{{ t('wikiContent.edit') }}
 		<TablerIcon name="external-link" class="size-4 opacity-70" />
 	</UButton>
 </template>
 
 <script setup vapor lang="ts">
+const { t } = useAppI18n()
+
 const CONTENT_SOURCE_BASE_URL =
 	'https://github.com/zeepkist/zeepcentraal/blob/develop/packages/web/content/'
 const SAFE_CONTENT_PATH = /^wiki\/(?:[a-z0-9]+(?:-[a-z0-9]+)*\/)*[a-z0-9]+(?:-[a-z0-9]+)*\.md$/

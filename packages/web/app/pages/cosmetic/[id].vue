@@ -1,8 +1,8 @@
 <template>
 	<RoutePlaceholder
-		:title="$t('pages.cosmeticDetail.title')"
-		:description="$t('pages.cosmeticDetail.description', { id: cosmeticId })"
-		:back-label="$t('pages.cosmeticDetail.back')"
+		:title="t('pages.cosmeticDetail.title')"
+		:description="t('pages.cosmeticDetail.description', { id: cosmeticId })"
+		:back-label="t('pages.cosmeticDetail.back')"
 		back-to="/cosmetics"
 		icon="palette"
 	/>
@@ -10,7 +10,7 @@
 
 <script setup vapor lang="ts">
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const rawCosmeticId = route.params.id
 const cosmeticId =
 	typeof rawCosmeticId === 'string' && /^\d+$/.test(rawCosmeticId)

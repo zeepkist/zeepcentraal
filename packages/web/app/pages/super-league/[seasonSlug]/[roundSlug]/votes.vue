@@ -1,6 +1,6 @@
 <script setup vapor lang="ts">
 const route = useRoute()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const seasonId = parseSuperLeagueSlug(route.params.seasonSlug, 'season')
 const roundNumber = parseSuperLeagueSlug(route.params.roundSlug, 'round')
 if (seasonId === null || roundNumber === null) {

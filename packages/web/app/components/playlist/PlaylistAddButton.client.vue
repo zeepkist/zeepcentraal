@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { AddPlaylistLevelResult } from '~/stores/playlists'
 import type { LevelSummary } from '~/types/app'
 import { parseSafeWorkshopId } from '~/utils/playlist'
@@ -6,7 +6,7 @@ import { parseSafeWorkshopId } from '~/utils/playlist'
 const props = defineProps<{ level: LevelSummary }>()
 const store = usePlaylistsStore()
 const toast = useToast()
-const { t } = useI18n()
+const { t } = useAppI18n()
 const added = computed(() => store.hasLevel(props.level.fileUid))
 const canAdd = computed(
 	() => Boolean(props.level.fileUid && parseSafeWorkshopId(props.level.workshopId) !== null),
@@ -71,6 +71,6 @@ function toggle() {
 		:title="accessibleLabel"
 		@click.prevent.stop="toggle"
 	>
-		{{ added ? $t('playlist.actions.remove') : $t('playlist.actions.add') }}
+		{{ added ? t('playlist.actions.remove') : t('playlist.actions.add') }}
 	</UButton>
 </template>

@@ -1,4 +1,5 @@
 import { injectTraceHeaders, withActiveSpan } from '@zeepkist/telemetry'
+import { createError, useRuntimeConfig } from 'nuxt/server'
 import type { ModDetail, ModSummary } from '../../app/types/mod'
 import { sanitizeModDescription } from './sanitizeModDescription'
 import { getSharedCached } from './sharedCache'
@@ -64,7 +65,7 @@ function runtimeConfig() {
 	const endpoint = String(config.modioApiEndpoint || '').trim()
 	const apiKey = String(config.modioApiKey || '').trim()
 	if (!endpoint || !apiKey) {
-		throw createError({ statusCode: 503, statusMessage: 'Mod explorer is not configured' })
+		throw createError({ status: 503, statusText: 'Mod explorer is not configured' })
 	}
 	return { endpoint: endpoint.endsWith('/') ? endpoint : `${endpoint}/`, apiKey }
 }
@@ -101,9 +102,8 @@ export async function requestModio<T>(
 					(error as { status?: number; statusCode?: number }).statusCode ??
 						(error as { status?: number }).status,
 				)
-				if (status === 404)
-					throw createError({ statusCode: 404, statusMessage: 'Mod not found' })
-				throw createError({ statusCode: 502, statusMessage: 'mod.io request failed' })
+				if (status === 404) throw createError({ status: 404, statusText: 'Mod not found' })
+				throw createError({ status: 502, statusText: 'mod.io request failed' })
 			}
 		})
 	})

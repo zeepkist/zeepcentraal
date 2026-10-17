@@ -1,4 +1,5 @@
-<script setup lang="ts">
+<script setup vapor lang="ts">
+import { Orientation } from '#imports'
 import type { VoteResultCategory } from '~/utils/superLeagueVoteResults'
 import { voteResultChartData } from '~/utils/superLeagueVoteResults'
 
@@ -30,7 +31,7 @@ function moveTooltip(event: PointerEvent) {
 		levelId: level.levelId,
 	}
 }
-const { t, locale } = useI18n()
+const { t, locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 0 }))
 const formatNumber = (value: number) => numberFormat.value.format(value)
 const reducedMotion = shallowRef(false)
@@ -75,26 +76,26 @@ const tooltipLevel = computed(() => levels.value.find((level) => level.levelId =
 		<SectionHeader :id="`vote-category-${category.voteType}`" :title="title">
 			<div v-if="category.state === 'published'" class="flex items-baseline gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2">
 				<span class="text-2xl font-bold tabular-nums text-primary" :data-category-total="category.voteType">{{ formatNumber(category.totalVotes ?? 0) }}</span>
-				<span class="text-sm text-muted-foreground">{{ $t('zsl.voting.totalVotes') }}</span>
+				<span class="text-sm text-muted-foreground">{{ t('zsl.voting.totalVotes') }}</span>
 			</div>
 		</SectionHeader>
 		<UCard class="overflow-hidden rounded-2xl border-border/80 bg-card shadow-sm" :ui="{ body: 'p-0 sm:p-0' }">
 			<div v-if="category.state === 'pending'" class="flex items-start gap-3 p-4 text-muted-foreground sm:p-6">
 				<TablerIcon name="clock" class="mt-0.5 size-5 shrink-0 text-primary" />
 				<div class="space-y-1">
-					<p class="font-medium text-highlighted">{{ $t('zsl.voting.pending') }}</p>
-					<p v-if="category.deadline">{{ $t('zsl.voting.availableAfter') }} <NuxtTime :datetime="category.deadline" date-style="medium" time-style="short" />.</p>
+					<p class="font-medium text-highlighted">{{ t('zsl.voting.pending') }}</p>
+					<p v-if="category.deadline">{{ t('zsl.voting.availableAfter') }} <NuxtTime :datetime="category.deadline" date-style="medium" time-style="short" />.</p>
 				</div>
 			</div>
-			<p v-else-if="category.state === 'unavailable'" class="p-4 text-muted-foreground sm:p-6">{{ $t('zsl.voting.unavailable') }}</p>
+			<p v-else-if="category.state === 'unavailable'" class="p-4 text-muted-foreground sm:p-6">{{ t('zsl.voting.unavailable') }}</p>
 			<div v-else>
 				<div v-if="category.totalVotes && levels.length" class="border-b border-border p-4 sm:p-6">
 					<div class="mb-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground" aria-hidden="true">
-						<span class="flex items-center gap-2"><span class="size-2 rounded-full bg-chart-1" />{{ $t('zsl.voting.votes') }}</span>
-						<span v-if="hasVoted" class="flex items-center gap-2"><span class="size-2 rounded-full bg-chart-3" />{{ $t('zsl.voting.youVoted') }}</span>
+						<span class="flex items-center gap-2"><span class="size-2 rounded-full bg-chart-1" />{{ t('zsl.voting.votes') }}</span>
+						<span v-if="hasVoted" class="flex items-center gap-2"><span class="size-2 rounded-full bg-chart-3" />{{ t('zsl.voting.youVoted') }}</span>
 					</div>
 					<ClientOnly>
-						<div class="vote-results-chart max-h-128 overflow-y-auto" style="--vis-font-family: var(--font-sans)" role="img" :aria-label="`${title}: ${$t('zsl.voting.chartDescription')}`"
+						<div class="vote-results-chart max-h-128 overflow-y-auto" style="--vis-font-family: var(--font-sans)" role="img" :aria-label="`${title}: ${t('zsl.voting.chartDescription')}`"
 							@pointermove.passive="moveTooltip" @pointerdown.passive="moveTooltip" @pointerleave="hover = null" @scroll.passive="hover = null">
 							<BarChart :data="chartData" :categories="chartCategories" :y-axis="['votes', 'votedVotes']"
 								:height="height" :orientation="Orientation.Horizontal" stacked hide-legend
@@ -106,14 +107,14 @@ const tooltipLevel = computed(() => levels.value.find((level) => level.levelId =
 								<div v-if="hover && tooltipLevel" role="tooltip" class="pointer-events-none fixed z-50 max-w-72 wrap-break-word rounded-xl border border-border bg-card p-3 font-sans text-sm shadow-xl"
 									:style="{ left: `${hover.x}px`, top: `${hover.y}px` }">
 									<p class="font-semibold text-highlighted">{{ tooltipLevel.name }}</p>
-									<p class="mt-1 tabular-nums text-muted-foreground">{{ formatNumber(tooltipLevel.votes) }} {{ $t('zsl.voting.votes') }}</p>
+									<p class="mt-1 tabular-nums text-muted-foreground">{{ formatNumber(tooltipLevel.votes) }} {{ t('zsl.voting.votes') }}</p>
 								</div>
 							</Teleport>
 						</div>
 						<template #fallback><USkeleton class="h-52 rounded-xl" /></template>
 					</ClientOnly>
 				</div>
-				<p v-else class="p-4 text-sm text-muted-foreground sm:p-6">{{ levels.length ? $t('zsl.voting.noVotes') : $t('zsl.voting.noLevels') }}</p>
+				<p v-else class="p-4 text-sm text-muted-foreground sm:p-6">{{ levels.length ? t('zsl.voting.noVotes') : t('zsl.voting.noLevels') }}</p>
 				<ol v-if="levels.length" class="divide-y divide-border" :aria-label="title">
 					<li v-for="level in levels" :key="level.levelId" :data-result-level="level.levelId"
 						class="px-4 py-3 transition-colors sm:px-6" :class="{ 'bg-info/10': level.voted }">
@@ -126,13 +127,13 @@ const tooltipLevel = computed(() => levels.value.find((level) => level.levelId =
 							<div class="min-w-0 flex-1">
 								<p class="break-words font-semibold text-highlighted">{{ level.name }}</p>
 								<div v-if="level.voted || level.own" class="mt-1 flex flex-wrap gap-2">
-									<UBadge v-if="level.voted" color="info" variant="soft" size="sm">{{ $t('zsl.voting.youVoted') }}</UBadge>
-									<UBadge v-if="level.own" color="primary" variant="outline" size="sm">{{ $t('zsl.voting.yourLevel') }}</UBadge>
+									<UBadge v-if="level.voted" color="info" variant="soft" size="sm">{{ t('zsl.voting.youVoted') }}</UBadge>
+									<UBadge v-if="level.own" color="primary" variant="outline" size="sm">{{ t('zsl.voting.yourLevel') }}</UBadge>
 								</div>
 							</div>
 							<div class="shrink-0 text-right">
 								<p class="text-lg font-bold tabular-nums text-highlighted">{{ formatNumber(level.votes) }}</p>
-								<p class="text-xs text-muted-foreground">{{ $t('zsl.voting.votes') }}</p>
+								<p class="text-xs text-muted-foreground">{{ t('zsl.voting.votes') }}</p>
 							</div>
 						</NuxtLink>
 					</li>

@@ -50,6 +50,6 @@ defineProps<{
 	labels: { room: string; host: string; players: string; privateLobby: string }
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const number = computed(() => getNumberFormatter(locale.value))
 </script>

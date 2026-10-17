@@ -43,12 +43,12 @@ describe('Discord settings', () => {
 	})
 
 	test('keeps the full settings flow in English i18n', () => {
-		expect(settingsIndex).toContain("$t('settings.discord.overview.description')")
-		expect(discordPage).toContain("$t('settings.discord.page.description')")
-		expect(settingsPanel).toContain("$t('settings.discord.account.description')")
+		expect(settingsIndex).toContain("t('settings.discord.overview.description')")
+		expect(discordPage).toContain("t('settings.discord.page.description')")
+		expect(settingsPanel).toContain("t('settings.discord.account.description')")
 		expect(settingsPanel).toContain('keypath="settings.discord.manual.description"')
-		expect(linkCode).toContain("$t('settings.discord.code.expiresIn'")
-		expect(settingsComposable).toContain('const { t } = useI18n()')
+		expect(linkCode).toContain("t('settings.discord.code.expiresIn'")
+		expect(settingsComposable).toContain('const { t } = useAppI18n()')
 		expect(settingsComposable).toContain("t('settings.discord.toasts.linked.description')")
 	})
 

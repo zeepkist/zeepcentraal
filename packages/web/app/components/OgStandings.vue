@@ -5,7 +5,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{
 	metrics: Array<{
 		label: string

@@ -40,6 +40,6 @@ defineProps<{
 	labels: { competitors: string; playedOn: string }
 }>()
 
-const { locale } = useI18n()
+const { locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 </script>

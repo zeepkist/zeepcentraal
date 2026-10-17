@@ -1,5 +1,6 @@
-import { expect, type Page, type Route, test } from '@playwright/test'
+import { expect, type Page, type Route } from '@playwright/test'
 import { AUTH_RETURN_PATH_STORAGE_KEY } from '../../app/utils/auth-return-path'
+import { test } from '../support/browser'
 
 const themeTokenNames = [
 	'--color-warm-neutral-50',
@@ -177,7 +178,13 @@ async function themeSnapshot(page: Page, mode: 'dark' | 'light') {
 		({ expectedMode, tokenNames }) => {
 			const root = getComputedStyle(document.documentElement)
 			const tokens = Object.fromEntries(
-				tokenNames.map((token) => [token, root.getPropertyValue(token).trim()]),
+				tokenNames.map((token) => [
+					token,
+					root
+						.getPropertyValue(token)
+						.trim()
+						.replace(/^#([\da-f])([\da-f])([\da-f])$/i, '#$1$1$2$2$3$3'),
+				]),
 			) as Record<ThemeTokenName, string>
 			const utilityClasses = {
 				applicationBackground: 'bg-background',
@@ -218,7 +225,7 @@ async function themeSnapshot(page: Page, mode: 'dark' | 'light') {
 
 test('home shell renders', async ({ page }) => {
 	await page.goto('/')
-	await expect(page.getByRole('heading', { name: 'Zeepkist stats hub' })).toBeVisible()
+	await expect(page.getByRole('heading', { name: 'Race, improve, climb.' })).toBeVisible()
 	await expect(page.getByRole('link', { name: /Steam/ })).toBeVisible()
 })
 
@@ -396,18 +403,23 @@ test('collapsed sidebar remains stable through hydration', async ({ context, pag
 	])
 
 	await page.goto('/')
-	await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible()
+	if ((page.viewportSize()?.width ?? 0) >= 1024) {
+		await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible()
+	} else {
+		await expect(page.getByTestId('app-header').locator('a[href="/"]')).toBeVisible()
+		await expect(page.getByRole('button', { name: 'Open menu', exact: true })).toBeVisible()
+	}
 	expect(hydrationWarnings).toEqual([])
 })
 
 for (const [path, heading] of [
-	['/levels', 'Levels and leaderboards'],
-	['/users', 'Users and stats'],
+	['/levels', 'Levels'],
+	['/users', 'Global Player Leaderboard'],
 	['/adventure/a', 'Adventure leaderboards'],
-	['/wiki', 'Zeepkist wiki'],
-	['/developer', 'Developer portal'],
-	['/developer/graphql', 'GraphQL guide'],
-	['/super-league', 'ZSL results'],
+	['/wiki', 'Zeepkist Wiki'],
+	['/developer', 'Developer Portal'],
+	['/developer/graphql', 'ZeepCentraal GraphQL API'],
+	['/super-league', 'Zeepkist Super League Results'],
 ] as const) {
 	test(`${path} route renders`, async ({ page }) => {
 		await page.goto(path)
@@ -443,15 +455,10 @@ test('personal records redirects logged-out players', async ({ page }) => {
 	await expect(page).toHaveURL('/records')
 })
 
-test('record detail placeholder is noindex', async ({ page }) => {
-	await page.goto('/record/123')
-	await expect(
-		page.getByRole('heading', { name: 'Record details are coming next' }),
-	).toBeVisible()
-	await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-		'content',
-		'noindex, nofollow',
-	)
+test('unknown record renders the custom 404 page', async ({ page }) => {
+	const response = await page.goto('/record/123')
+	expect(response?.status()).toBe(404)
+	await expect(page.getByRole('heading', { name: 'Page error' })).toBeVisible()
 })
 
 for (const [path, heading] of [
@@ -504,32 +511,61 @@ test('global record history renders', async ({ page }) => {
 })
 test('dashboard prefetches deferred GraphQL before its section is visible', async ({ page }) => {
 	const requests: Array<{ method: string; operation: string }> = []
+	let prefetchedTop: number | undefined
+	let releaseAbove = () => {}
+	const aboveReleased = new Promise<void>((resolve) => {
+		releaseAbove = resolve
+	})
+	// Empty upstream fixtures must not collapse earlier sections while measuring the threshold.
+	await page.route('**/api/steam-news', async (route) => {
+		await aboveReleased
+		await route.continue()
+	})
+	await page.route(
+		(url) => url.hostname === 'graphql.zeepki.st' || url.pathname === '/graphql',
+		async (route) => {
+			const body = route.request().postData() ?? ''
+			if (/\bquery\s+ZC_DashboardStatistics\b/.test(body)) {
+				// Capture before the response changes skeleton heights and browser scroll anchoring.
+				prefetchedTop = (
+					await page.locator('[data-prefetch="dashboard-statistics"]').boundingBox()
+				)?.y
+				releaseAbove()
+			} else if (/\bquery\s+ZC_DashboardHotLevels\b/.test(body)) {
+				await aboveReleased
+			}
+			await route.continue()
+		},
+	)
 	page.on('request', (request) => {
 		if (request.method() !== 'POST') return
 		const operation = /\bquery\s+(ZC_\w+)/.exec(request.postData() ?? '')?.[1]
 		if (operation) requests.push({ method: request.method(), operation })
 	})
 
-	await page.goto('/')
-	const target = page.locator('[data-prefetch="dashboard-statistics"]')
-	await expect(target).toBeAttached()
-	const targetTop = await target.evaluate(
-		(element) => element.getBoundingClientRect().top + window.scrollY,
-	)
-	const viewportHeight = page.viewportSize()?.height ?? 720
-	if (!requests.some(({ operation }) => operation === 'ZC_DashboardStatistics')) {
-		await page.evaluate(
-			({ top, height }) => window.scrollTo(0, Math.max(0, top - height * 1.5)),
-			{ top: targetTop, height: viewportHeight },
+	try {
+		await page.goto('/')
+		const target = page.locator('[data-prefetch="dashboard-statistics"]')
+		await expect(target).toBeAttached()
+		const targetTop = await target.evaluate(
+			(element) => element.getBoundingClientRect().top + window.scrollY,
 		)
-	}
+		const viewportHeight = page.viewportSize()?.height ?? 720
+		if (!requests.some(({ operation }) => operation === 'ZC_DashboardStatistics')) {
+			await page.evaluate(
+				({ top, height }) => window.scrollTo(0, Math.max(0, top - height * 1.5)),
+				{ top: targetTop, height: viewportHeight },
+			)
+		}
 
-	await expect
-		.poll(() => requests.some(({ operation }) => operation === 'ZC_DashboardStatistics'))
-		.toBe(true)
-	const prefetchedBox = await target.boundingBox()
-	expect(prefetchedBox?.y ?? 0).toBeGreaterThanOrEqual(viewportHeight)
-	expect(requests.find(({ operation }) => operation === 'ZC_DashboardStatistics')?.method).toBe(
-		'POST',
-	)
+		await expect
+			.poll(() => requests.some(({ operation }) => operation === 'ZC_DashboardStatistics'))
+			.toBe(true)
+		await expect.poll(() => prefetchedTop ?? -1).toBeGreaterThanOrEqual(viewportHeight)
+		expect(
+			requests.find(({ operation }) => operation === 'ZC_DashboardStatistics')?.method,
+		).toBe('POST')
+	} finally {
+		releaseAbove()
+	}
 })

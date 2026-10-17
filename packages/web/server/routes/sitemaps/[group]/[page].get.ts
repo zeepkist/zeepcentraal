@@ -1,3 +1,4 @@
+import { createError, defineEventHandler, getRouterParam, setResponseHeader } from 'h3'
 export default defineEventHandler(async (event) => {
 	const group = getRouterParam(event, 'group')
 	const page = parseSitemapPageFilename(getRouterParam(event, 'page'))

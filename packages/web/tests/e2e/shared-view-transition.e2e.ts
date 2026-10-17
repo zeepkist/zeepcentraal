@@ -1,4 +1,5 @@
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import { test } from '../support/browser'
 
 const imageUrl = '/android-chrome-512x512.png'
 
@@ -67,7 +68,9 @@ const levelDetail = {
 
 async function mockLevelGraphql(page: Page, detailDelay = 1_200) {
 	await page.route(
-		(url) => url.hostname === 'graphql.zeepki.st',
+		(url) =>
+			url.hostname === 'graphql.zeepki.st' ||
+			(url.hostname === '127.0.0.1' && url.pathname === '/graphql'),
 		async (route) => {
 			const query = String(route.request().postDataJSON()?.query ?? '')
 			let data: object
@@ -111,8 +114,9 @@ async function openLevelsFromShell(page: Page) {
 
 test('level media morphs forward, previews immediately, and returns to exact source', async ({
 	page,
+	browserName,
 }) => {
-	test.skip(({ browserName }) => browserName !== 'chromium', 'View Transition API needs Chromium')
+	test.skip(browserName !== 'chromium', 'View Transition API needs Chromium')
 	await page.addInitScript(() => {
 		const original = document.startViewTransition?.bind(document)
 		const state = window as typeof window & {
@@ -140,7 +144,9 @@ test('level media morphs forward, previews immediately, and returns to exact sou
 
 	await page.getByRole('heading', { name: 'Transition Preview Level' }).click()
 	await expect(page).toHaveURL('/level/transition-level')
-	await expect(page.locator('[aria-busy="true"]')).toContainText('Transition Preview Level')
+	await expect(page.locator('section[aria-busy="true"]')).toContainText(
+		'Transition Preview Level',
+	)
 	await expect(page.locator('[data-shared-transition-target="media"]')).toHaveCSS(
 		'view-transition-name',
 		'shared-media',

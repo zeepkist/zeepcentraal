@@ -26,7 +26,7 @@ describe('protected mesh access', () => {
 		expect(access).toContain('resolveVerifiedSession(')
 		expect(access).toContain("await import('@zeepkist/database/services')")
 		expect(access).not.toContain("from '@zeepkist/database/services'")
-		expect(access).toContain("statusMessage: 'Authentication required'")
+		expect(access).toContain("statusText: 'Authentication required'")
 		expect(access).not.toContain('CheckAppOwnership')
 		expect(access).not.toContain('steamPublisherApiKey')
 	})

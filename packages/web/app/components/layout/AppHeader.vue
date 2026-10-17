@@ -83,7 +83,7 @@
 import type { LocaleOption } from '~/types/app'
 import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 
-const { t, locale, locales, setLocale } = useI18n()
+const { t, locale, locales, setLocale } = useAppI18n()
 const route = useRoute()
 const session = useSessionStore()
 const mobileDrawerOpen = ref(false)

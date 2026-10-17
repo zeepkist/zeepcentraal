@@ -1,15 +1,15 @@
 <template>
 	<RoutePlaceholder
-		:title="$t('pages.cosmetics.title')"
-		:description="$t('pages.cosmetics.description')"
-		:back-label="$t('pages.cosmetics.back')"
+		:title="t('pages.cosmetics.title')"
+		:description="t('pages.cosmetics.description')"
+		:back-label="t('pages.cosmetics.back')"
 		back-to="/"
 		icon="palette"
 	/>
 </template>
 
 <script setup vapor lang="ts">
-const { t } = useI18n()
+const { t } = useAppI18n()
 
 useSeoMeta({
 	title: () => t('pages.cosmetics.seo.title'),

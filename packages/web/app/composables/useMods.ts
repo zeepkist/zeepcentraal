@@ -49,7 +49,8 @@ export async function useMods() {
 	const tagOptionsPromise = useFetch<ModTagOptionsResponse>('/api/modio/tags', {
 		key: 'mod-tag-options',
 	})
-	const [request, tagOptionsRequest] = await Promise.all([requestPromise, tagOptionsPromise])
+	const request = requestPromise
+	const tagOptionsRequest = tagOptionsPromise
 	const retained = shallowRef<ModListResponse | null>(request.data.value ?? null)
 	watch(request.data, (value) => {
 		if (value) retained.value = value
@@ -81,6 +82,8 @@ export async function useMods() {
 		})
 	}
 
+	await Promise.all([requestPromise, tagOptionsPromise])
+	retained.value = request.data.value ?? retained.value
 	return {
 		applyFilters,
 		data: readonly(retained),

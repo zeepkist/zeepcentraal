@@ -1,3 +1,4 @@
+import { createError, getRequestHeader, type RequestEvent } from 'nuxt/server'
 import { cookieHeaderFromSetCookies, refreshWebAuth } from './backend'
 import { resolveVerifiedSession } from './session'
 
@@ -7,9 +8,9 @@ type RateWindow = { count: number; resetAt: number }
 
 const rateWindows = new Map<string, RateWindow>()
 
-export async function requireProtectedMeshAccess(event: Parameters<typeof getHeader>[0]) {
+export async function requireProtectedMeshAccess(event: RequestEvent) {
 	const { getRefreshableWebSession, getWebSession } = await import('@zeepkist/database/services')
-	const cookieHeader = getHeader(event, 'cookie')
+	const cookieHeader = getRequestHeader(event, 'cookie')
 	const resolution = await resolveVerifiedSession(
 		cookieHeader,
 		getWebSession,
@@ -20,7 +21,7 @@ export async function requireProtectedMeshAccess(event: Parameters<typeof getHea
 		},
 	)
 	if (!resolution.session) {
-		throw createError({ statusCode: 401, statusMessage: 'Authentication required' })
+		throw createError({ status: 401, statusText: 'Authentication required' })
 	}
 	const steamId = String(resolution.session.steamId)
 	assertRateLimit(`account-minute:${steamId}`, 30, 60_000)
@@ -62,16 +63,16 @@ function assertRateLimit(key: string, limit: number, duration: number) {
 	const result = consumeRateLimit(key, limit, duration)
 	if (result.allowed) return
 	throw createError({
-		statusCode: 429,
-		statusMessage: 'Protected asset rate limit exceeded',
+		status: 429,
+		statusText: 'Protected asset rate limit exceeded',
 		data: { retryAfter: result.retryAfter },
 	})
 }
 
-function requestIp(event: Parameters<typeof getHeader>[0]) {
+function requestIp(event: RequestEvent) {
 	return (
-		getHeader(event, 'cf-connecting-ip') ??
-		getHeader(event, 'x-forwarded-for')?.split(',', 1)[0]?.trim() ??
+		getRequestHeader(event, 'cf-connecting-ip') ??
+		getRequestHeader(event, 'x-forwarded-for')?.split(',', 1)[0]?.trim() ??
 		'unknown'
 	)
 }

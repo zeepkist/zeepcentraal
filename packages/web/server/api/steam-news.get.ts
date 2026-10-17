@@ -1,3 +1,4 @@
+import { defineEventHandler } from 'nuxt/server'
 import type { SteamNewsItem } from '../../app/types/app'
 import { assertSameOrigin } from '../utils/request'
 import { getSharedCached } from '../utils/sharedCache'

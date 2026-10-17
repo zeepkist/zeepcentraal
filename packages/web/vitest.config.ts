@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
 	resolve: {
+		dedupe: ['vue', 'pinia'],
 		alias: {
 			'~': fileURLToPath(new URL('./app', import.meta.url)),
 		},

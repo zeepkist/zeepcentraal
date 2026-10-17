@@ -1,20 +1,20 @@
 <template>
 	<section class="space-y-4">
 		<div class="flex flex-wrap items-center justify-between gap-3">
-			<div><h2 class="text-2xl font-black text-highlighted">{{ $t('tournaments.ghosts.title') }}</h2><p class="mt-1 text-muted-foreground">{{ $t('tournaments.ghosts.description') }}</p></div>
+			<div><h2 class="text-2xl font-black text-highlighted">{{ t('tournaments.ghosts.title') }}</h2><p class="mt-1 text-muted-foreground">{{ t('tournaments.ghosts.description') }}</p></div>
 			<UButton
 				:icon="loaded ? (workspaceOpen ? 'i-tabler-chevron-up' : 'i-tabler-chevron-down') : 'i-tabler-ghost'"
 				:disabled="!loaded && available.length === 0"
 				@click="toggleWorkspace"
 			>
 				<template v-if="!loaded">
-					{{ $t('tournaments.ghosts.load', { count: available.length }) }}
+					{{ t('tournaments.ghosts.load', { count: available.length }) }}
 				</template>
-				<template v-else-if="workspaceOpen">{{ $t('tournaments.ghosts.hide') }}</template>
-				<template v-else>{{ $t('tournaments.ghosts.show') }}</template>
+				<template v-else-if="workspaceOpen">{{ t('tournaments.ghosts.hide') }}</template>
+				<template v-else>{{ t('tournaments.ghosts.show') }}</template>
 			</UButton>
 		</div>
-		<p v-if="missingCount" class="text-sm text-warning">{{ $t('tournaments.ghosts.missing', { count: missingCount }) }}</p>
+		<p v-if="missingCount" class="text-sm text-warning">{{ t('tournaments.ghosts.missing', { count: missingCount }) }}</p>
 		<div v-if="loaded" v-show="workspaceOpen">
 			<ClientOnly>
 				<LazyRecordReplayWorkspace
@@ -65,7 +65,7 @@ const props = defineProps<{
 	levelId: number
 	missingCount: number
 }>()
-const { t, locale } = useI18n()
+const { t, locale } = useAppI18n()
 const sources = shallowRef<GhostRecordSource[]>([])
 const workspaceOpen = ref(false)
 const available = computed(() => orderTournamentGhostSources(props.standings))

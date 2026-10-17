@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LevelSubmission } from '~/utils/superLeagueSubmission'
 import { submissionProcessing } from '~/utils/superLeagueSubmission'
 

@@ -12,11 +12,11 @@
 	>
 		<template #header="{ state }">
 			<AppLogo v-if="state === 'expanded'" />
-			<UTooltip :text="$t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')" :content="{ side: 'right' }">
+			<UTooltip :text="t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')" :content="{ side: 'right' }">
 				<button
 					type="button"
 					class="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
-					:aria-label="$t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')"
+					:aria-label="t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')"
 					@click="toggleSidebar"
 				>
 					<TablerIcon
@@ -31,7 +31,7 @@
 			<UTooltip
 				v-for="item in mainNav"
 				:key="item.to"
-				:text="$t(item.labelKey)"
+				:text="t(item.labelKey)"
 				:disabled="state === 'expanded'"
 				:content="{ side: 'right' }"
 			>
@@ -47,7 +47,7 @@
 				>
 					<TablerIcon :name="item.icon ?? 'dashboard'" class="size-5 shrink-0" />
 					<span v-if="state === 'expanded'" class="min-w-0">
-						<span class="block truncate font-medium">{{ $t(item.labelKey) }}</span>
+						<span class="block truncate font-medium">{{ t(item.labelKey) }}</span>
 					</span>
 				</NuxtLink>
 			</UTooltip>
@@ -55,9 +55,12 @@
 	</USidebar>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
+
 import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 import { parseSidebarOpenPreference } from '~/utils/sidebarPreference'
+
+const { t } = useAppI18n()
 
 const route = useRoute()
 const sidebarPreference = useCookie<boolean | null>('sidebar-open', {

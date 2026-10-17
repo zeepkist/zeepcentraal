@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import type { LevelSubmission, SubmissionAuthor, SubmissionContest } from '~/utils/superLeagueSubmission'
 import { submissionWorkshopId } from '~/utils/superLeagueSubmission'
 import CollaboratorPicker from './CollaboratorPicker.vue'

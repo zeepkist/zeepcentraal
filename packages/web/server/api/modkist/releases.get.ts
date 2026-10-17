@@ -1,3 +1,4 @@
+import { defineEventHandler } from 'nuxt/server'
 import type { ModkistReleases } from '../../../app/types/modkist'
 import { getModkistReleases } from '../../utils/githubModkist'
 import { assertSameOrigin } from '../../utils/request'

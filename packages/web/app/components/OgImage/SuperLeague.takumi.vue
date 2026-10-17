@@ -26,7 +26,7 @@
 	</OgFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{ slug: string }>()
 
 const { data, prefetch } = useOgSuperLeagueData()
