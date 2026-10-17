@@ -404,5 +404,73 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
         .await?,
         0
     );
+
+    // Simulate contribution commits followed by a lost player-score enqueue.
+    let page_users: Vec<_> = (1..=50).collect();
+    assert!(matches!(
+        database
+            .reconcile_level_contribution_users(1, &page_users)
+            .await?,
+        MaintenanceOutcome::Applied(_)
+    ));
+    assert_eq!(
+        database
+            .reconcile_level_contribution_users(1, &page_users)
+            .await?,
+        MaintenanceOutcome::Applied(Vec::new())
+    );
+    for defer_count in [0, 1] {
+        assert_eq!(
+            service
+                .handle(
+                    TaskIdentifier::UpdateLevelContributions,
+                    json!({"idLevel":1,"afterUserId":0,"deferCount":defer_count}),
+                    JobLane::Bulk,
+                    1,
+                )
+                .await?,
+            JobOutcome::Completed
+        );
+        assert_eq!(
+            count(
+                &database,
+                "SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='updatePlayerScore'"
+            )
+            .await?,
+            if defer_count == 0 { 0 } else { 50 }
+        );
+        for _ in 0..55 {
+            for followup in queue.claim(JobLane::Bulk, 10).await? {
+                assert!(queue.finish(&followup, None).await?);
+            }
+        }
+        assert_eq!(
+            count(
+                &database,
+                "SELECT count(*)::bigint AS count FROM zc_jobs.job"
+            )
+            .await?,
+            0
+        );
+    }
+    assert_eq!(
+        service
+            .handle(
+                TaskIdentifier::UpdateLevelContributions,
+                json!({"idLevel":1,"idUser":1,"projectionToken":"bulk:1:1","deferCount":1}),
+                JobLane::Bulk,
+                1,
+            )
+            .await?,
+        JobOutcome::Completed
+    );
+    let player_repair = queue
+        .claim(JobLane::Bulk, 1)
+        .await?
+        .pop()
+        .expect("unchanged contribution still repairs player total");
+    assert_eq!(player_repair.task, "updatePlayerScore");
+    assert_eq!(player_repair.payload["idUser"], 1);
+    assert!(queue.finish(&player_repair, None).await?);
     Ok(())
 }

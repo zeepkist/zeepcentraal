@@ -20,6 +20,12 @@ struct Lock {
     #[diesel(sql_type=Bool)]
     value: bool,
 }
+
+struct RepairStats {
+    affected_users: usize,
+    changed_skill_users: usize,
+    level_score_requests: usize,
+}
 #[derive(QueryableByName)]
 struct Cache {
     #[diesel(sql_type=Integer)]
@@ -103,7 +109,7 @@ impl Database {
 
     pub async fn reconcile_record_eligibility(&self, level: i32) -> Result<MaintenanceOutcome<()>> {
         let mut connection = self.connection().await?;
-        let result=connection.transaction::<MaintenanceOutcome<()>, anyhow::Error,_>(async move |connection| {
+        let result=connection.transaction::<MaintenanceOutcome<RepairStats>, anyhow::Error,_>(async move |connection| {
             sql_query("SELECT set_config('zc.validation_correction','on',true)").execute(connection).await?;
             sql_query("SELECT set_config('lock_timeout','100ms',true)").execute(connection).await?;
             if !sql_query("SELECT pg_try_advisory_xact_lock($1,$2) AS value").bind::<Integer,_>(LEVEL_LOCK_NAMESPACE).bind::<Integer,_>(level).get_result::<Lock>(connection).await?.value { return Ok(MaintenanceOutcome::Contended); }
@@ -144,20 +150,40 @@ impl Database {
                 .bind::<Integer,_>(level).execute(connection).await?;
             // Recompute affected players from current eligible PBs. Delta updates
             // cannot safely infer whether a concurrent full refresh saw a failure.
-            sql_query("WITH levels AS MATERIALIZED(SELECT DISTINCT id_level FROM public.personal_best_global WHERE id_user=ANY($1)), ranked AS MATERIALIZED(SELECT pb.id_user,RANK() OVER(PARTITION BY pb.id_level ORDER BY r.time) AS place,COUNT(*) OVER(PARTITION BY pb.id_level) AS field FROM public.personal_best_global pb JOIN levels USING(id_level) JOIN public.record r ON r.id=pb.id_record JOIN public.\"user\" u ON u.id=pb.id_user WHERE NOT u.banned AND r.time>0 AND zc_private.record_is_eligible(r.id)), totals AS(SELECT id_user,sum(1-(place-1)::double precision/(field-1)) AS placement_sum,count(*)::integer AS eligible_level_count FROM ranked WHERE field>=20 AND id_user=ANY($1) GROUP BY id_user) INSERT INTO public.player_skill_aggregate(id_user,placement_sum,eligible_level_count,skill,date_updated) SELECT id,coalesce(t.placement_sum,0),coalesce(t.eligible_level_count,0),(5.0+coalesce(t.placement_sum,0))/(10+coalesce(t.eligible_level_count,0)),clock_timestamp() FROM unnest($1::integer[]) id LEFT JOIN totals t ON t.id_user=id ON CONFLICT(id_user) DO UPDATE SET placement_sum=excluded.placement_sum,eligible_level_count=excluded.eligible_level_count,skill=excluded.skill,date_updated=excluded.date_updated WHERE ROW(player_skill_aggregate.placement_sum,player_skill_aggregate.eligible_level_count,player_skill_aggregate.skill) IS DISTINCT FROM ROW(excluded.placement_sum,excluded.eligible_level_count,excluded.skill)")
-                .bind::<Array<Integer>,_>(&user_ids).execute(connection).await?;
+            let changed_skills = sql_query("WITH levels AS MATERIALIZED(SELECT DISTINCT id_level FROM public.personal_best_global WHERE id_user=ANY($1)), ranked AS MATERIALIZED(SELECT pb.id_user,RANK() OVER(PARTITION BY pb.id_level ORDER BY r.time) AS place,COUNT(*) OVER(PARTITION BY pb.id_level) AS field FROM public.personal_best_global pb JOIN levels USING(id_level) JOIN public.record r ON r.id=pb.id_record JOIN public.\"user\" u ON u.id=pb.id_user WHERE NOT u.banned AND r.time>0 AND zc_private.record_is_eligible(r.id)), totals AS(SELECT id_user,sum(1-(place-1)::double precision/(field-1)) AS placement_sum,count(*)::integer AS eligible_level_count FROM ranked WHERE field>=20 AND id_user=ANY($1) GROUP BY id_user) INSERT INTO public.player_skill_aggregate(id_user,placement_sum,eligible_level_count,skill,date_updated) SELECT id,coalesce(t.placement_sum,0),coalesce(t.eligible_level_count,0),(5.0+coalesce(t.placement_sum,0))/(10+coalesce(t.eligible_level_count,0)),clock_timestamp() FROM unnest($1::integer[]) id LEFT JOIN totals t ON t.id_user=id ON CONFLICT(id_user) DO UPDATE SET placement_sum=excluded.placement_sum,eligible_level_count=excluded.eligible_level_count,skill=excluded.skill,date_updated=excluded.date_updated WHERE ROW(player_skill_aggregate.placement_sum,player_skill_aggregate.eligible_level_count,player_skill_aggregate.skill) IS DISTINCT FROM ROW(excluded.placement_sum,excluded.eligible_level_count,excluded.skill) RETURNING id_user AS id")
+                .bind::<Array<Integer>,_>(&user_ids).load::<Id>(connection).await?;
+            let changed_skill_users: Vec<_> = changed_skills.into_iter().map(|user| user.id).collect();
             // Use the queue in this same transaction: crashes cannot lose scoring.
             sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelScore',jsonb_build_object('idLevel',$1::integer),'update-level-score:'||$1,'level-maintenance-shard:'||($1%4),3,clock_timestamp())")
                 .bind::<Integer,_>(level).execute(connection).await?;
             sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelContributions',jsonb_build_object('idLevel',$1::integer,'afterUserId',0),'update-level-contributions:'||$1,'level-maintenance-shard:'||($1%4),3,clock_timestamp())")
                 .bind::<Integer,_>(level).execute(connection).await?;
-            sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelScore',jsonb_build_object('idLevel',id_level),'update-level-score:'||id_level,'level-maintenance-shard:'||(id_level%4),3,clock_timestamp()) FROM (SELECT DISTINCT id_level FROM public.personal_best_global WHERE id_user=ANY($1) AND id_level<>$2 ORDER BY id_level) levels")
-                .bind::<Array<Integer>,_>(&user_ids).bind::<Integer,_>(level).execute(connection).await?;
+            // Other levels depend on these users' skill inputs, not every user who
+            // has ever played the repaired level. No-op repairs must not fan out.
+            let other_levels = sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelScore',jsonb_build_object('idLevel',id_level),'update-level-score:'||id_level,'level-maintenance-shard:'||(id_level%4),3,clock_timestamp()) FROM (SELECT DISTINCT id_level FROM public.personal_best_global WHERE id_user=ANY($1) AND id_level<>$2 ORDER BY id_level) levels")
+                .bind::<Array<Integer>,_>(&changed_skill_users).bind::<Integer,_>(level).execute(connection).await?;
             sql_query("SELECT zc_jobs.enqueue('bulk','updatePlayerScore',jsonb_build_object('idUser',id),'update-player-score:'||id,'global-scores',3,clock_timestamp()) FROM unnest($1::integer[]) id ORDER BY id")
                 .bind::<Array<Integer>,_>(&user_ids).execute(connection).await?;
             sql_query("SELECT zc_jobs.enqueue('bulk','updatePlayerScores','{\"silent\":true}'::jsonb,'eligibility-refresh-player-scores','player-score-sweep',3,clock_timestamp())").execute(connection).await?;
-            Ok(MaintenanceOutcome::Applied(()))
+            Ok(MaintenanceOutcome::Applied(RepairStats {
+                affected_users: user_ids.len(),
+                changed_skill_users: changed_skill_users.len(),
+                level_score_requests: 1 + other_levels,
+            }))
         }).await;
-        contention_outcome(result)
+        Ok(match contention_outcome(result)? {
+            MaintenanceOutcome::Applied(stats) => {
+                tracing::info!(
+                    id_level = level,
+                    affected_users = stats.affected_users,
+                    changed_skill_users = stats.changed_skill_users,
+                    level_score_requests = stats.level_score_requests,
+                    "Record eligibility reconciliation completed"
+                );
+                MaintenanceOutcome::Applied(())
+            }
+            MaintenanceOutcome::Contended => MaintenanceOutcome::Contended,
+            MaintenanceOutcome::SnapshotChanged => MaintenanceOutcome::SnapshotChanged,
+        })
     }
 }

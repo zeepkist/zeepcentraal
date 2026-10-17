@@ -790,7 +790,9 @@ impl ServiceJobHandler {
         let (mut applied, busy) = self
             .reconcile_level_contribution_batch(id_level, page_users.clone())
             .await?;
-        if attempts > 1 {
+        // Infrastructure deferrals preserve attempts, but prior batches may already
+        // have committed before their player-score jobs were enqueued.
+        if attempts > 1 || payload["deferCount"].as_u64().unwrap_or(0) > 0 {
             applied.extend(
                 page_users
                     .into_iter()
@@ -847,7 +849,7 @@ impl ServiceJobHandler {
             .reconcile_level_contribution_users(id_level, &[id_user])
             .await?
         {
-            MaintenanceOutcome::Applied(users) => {
+            MaintenanceOutcome::Applied(_) => {
                 if lane == JobLane::Fast {
                     self.queue
                         .enqueue(
@@ -870,7 +872,7 @@ impl ServiceJobHandler {
                     );
                     Ok(JobOutcome::Completed)
                 } else {
-                    self.enqueue_player_repairs(&users).await?;
+                    self.enqueue_player_repairs(&[id_user]).await?;
                     Ok(JobOutcome::Completed)
                 }
             }
