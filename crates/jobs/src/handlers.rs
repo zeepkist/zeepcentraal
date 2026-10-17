@@ -429,10 +429,10 @@ impl ServiceJobHandler {
         let maximum = payload["maxRecords"].as_i64();
         let mut processed = 0_i64;
         loop {
-            if let Some(job) = job {
-                if !self.queue.checkpoint(job, &payload).await? {
-                    return Ok(JobOutcome::Deferred);
-                }
+            if let Some(job) = job
+                && !self.queue.checkpoint(job, &payload).await?
+            {
+                return Ok(JobOutcome::Deferred);
             }
             let batch_limit = maximum.map_or(limit, |maximum| limit.min(maximum - processed));
             let batch = match self
@@ -473,10 +473,10 @@ impl ServiceJobHandler {
             before = Some(next_before);
             payload["beforeRecordId"] = serde_json::json!(next_before);
             if maximum.is_some_and(|maximum| processed >= maximum) {
-                if let Some(job) = job {
-                    if !self.queue.checkpoint(job, &payload).await? {
-                        return Ok(JobOutcome::Deferred);
-                    }
+                if let Some(job) = job
+                    && !self.queue.checkpoint(job, &payload).await?
+                {
+                    return Ok(JobOutcome::Deferred);
                 }
                 break;
             }
