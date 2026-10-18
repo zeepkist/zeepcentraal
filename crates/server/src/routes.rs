@@ -577,7 +577,7 @@ pub async fn submit_record(
                 payload_digest: &payload_digest,
                 run_uuid: run_uuid.as_deref(),
                 report: &report,
-                checked_at: &checked_at,
+                checked_at,
             }),
             id_user: user.id,
             id_level: level.id,

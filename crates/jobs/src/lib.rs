@@ -21,6 +21,7 @@ pub const WORKSHOP_SCAN_BATCH_SIZE: usize = 10;
 #[serde(rename_all = "camelCase")]
 pub enum TaskIdentifier {
     ReconcileRecordEligibility,
+    FanOutRecordEligibility,
     BackfillRecordEligibility,
     ValidateRecordGhost,
     AuditRecordGhosts,
@@ -50,8 +51,9 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 27] = [
+    pub const ALL: [Self; 28] = [
         Self::ReconcileRecordEligibility,
+        Self::FanOutRecordEligibility,
         Self::BackfillRecordEligibility,
         Self::ValidateRecordGhost,
         Self::AuditRecordGhosts,
@@ -83,6 +85,7 @@ impl TaskIdentifier {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::ReconcileRecordEligibility => "reconcileRecordEligibility",
+            Self::FanOutRecordEligibility => "fanOutRecordEligibility",
             Self::BackfillRecordEligibility => "backfillRecordEligibility",
             Self::ValidateRecordGhost => "validateRecordGhost",
             Self::AuditRecordGhosts => "auditRecordGhosts",
@@ -119,7 +122,8 @@ impl TaskIdentifier {
     pub const fn compatible(self) -> bool {
         !matches!(
             self,
-            Self::RecoverLevelRequests
+            Self::FanOutRecordEligibility
+                | Self::RecoverLevelRequests
                 | Self::RotateTrackTournament
                 | Self::UpdateLevelContributions
                 | Self::UpdateLevelRecordCounts
@@ -139,7 +143,10 @@ impl TaskIdentifier {
     }
 
     pub fn validate_external_payload(self, payload: &serde_json::Value) -> bool {
-        if self == Self::UpdateLevelRecordCounts {
+        if matches!(
+            self,
+            Self::UpdateLevelRecordCounts | Self::FanOutRecordEligibility
+        ) {
             return false;
         }
         if self == Self::UpdatePlayerScores
@@ -200,6 +207,10 @@ impl TaskIdentifier {
                 .is_none_or(|value| value.as_u64().is_some_and(|count| count <= 4))
         };
         match self {
+            Self::FanOutRecordEligibility => serde_json::from_value::<
+                zc_database::services::record_eligibility::EligibilityFanOut,
+            >(payload.clone())
+            .is_ok_and(|page| page.valid()),
             Self::ReconcileRecordEligibility => {
                 object
                     .keys()
@@ -593,11 +604,36 @@ mod tests {
 
     #[test]
     fn task_registry_round_trips_all_identifiers() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 27);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 28);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
     }
+    #[test]
+    fn eligibility_fan_out_is_internal_and_bounds_pages() {
+        use serde_json::json;
+        let payload =
+            json!({"operationId":"123","userIds":(1..=250).collect::<Vec<i32>>(),"afterUserId":0});
+        assert!(TaskIdentifier::FanOutRecordEligibility.validate_payload(&payload));
+        assert!(!TaskIdentifier::FanOutRecordEligibility.validate_external_payload(&payload));
+        assert!(!TaskIdentifier::FanOutRecordEligibility.compatible());
+        let mut page: zc_database::services::record_eligibility::EligibilityFanOut =
+            serde_json::from_value(payload).unwrap();
+        assert_eq!(page.page(), (1..=100).collect::<Vec<_>>());
+        assert!(page.has_next());
+        page.after_user_id = 200;
+        assert_eq!(page.page(), (201..=250).collect::<Vec<_>>());
+        assert!(!page.has_next());
+        for payload in [
+            json!({"operationId":"bad:key","userIds":[1],"afterUserId":0}),
+            json!({"operationId":"123","userIds":[2,1],"afterUserId":0}),
+            json!({"operationId":"123","userIds":[1,1],"afterUserId":0}),
+            json!({"operationId":"123","userIds":[0],"afterUserId":0}),
+        ] {
+            assert!(!TaskIdentifier::FanOutRecordEligibility.validate_payload(&payload));
+        }
+    }
+
     #[test]
     fn eligibility_tasks_bound_cursors_and_keep_verification_internal() {
         use serde_json::json;

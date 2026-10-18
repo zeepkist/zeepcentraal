@@ -113,6 +113,7 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         include_str!("../../../packages/database/drizzle/0083_pgmq_queue.sql"),
         include_str!("../../database/migrations/20261008040000_incremental_ghost_audits/up.sql"),
         include_str!("../../database/migrations/20261008050000_compact_validation_reports/up.sql"),
+        include_str!("../../database/migrations/20261018010000_validation_metadata_guards/up.sql"),
     ] {
         connection.batch_execute(sql).await?;
     }
@@ -159,7 +160,10 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         .pop()
         .context("claim")?;
     let started = std::time::Instant::now();
-    assert!(auditor.audit_claimed(&job).await.is_err());
+    assert!(matches!(
+        auditor.audit_claimed(&job).await?,
+        JobOutcome::Completed
+    ));
     println!(
         "Batch 1,000 records: {} ms; snapshots {}; preparations {}",
         started.elapsed().as_millis(),
@@ -188,10 +192,13 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
     assert!(!queue.checkpoint(&stale, &stale.payload).await?);
     storage.recover_failing.store(false, Ordering::SeqCst);
     job = retry(&db, &queue, &job).await?;
-    assert!(auditor.audit_claimed(&job).await.is_err());
+    assert!(matches!(
+        auditor.audit_claimed(&job).await?,
+        JobOutcome::Completed
+    ));
     assert_eq!(
         AtomicUsize::load(&storage.downloads, Ordering::SeqCst),
-        1002
+        1000
     );
     job = retry(&db, &queue, &job).await?;
     assert!(matches!(
@@ -200,7 +207,7 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
     ));
     assert_eq!(
         AtomicUsize::load(&storage.downloads, Ordering::SeqCst),
-        1003
+        1000
     );
     // Replaying completed work cannot duplicate continuation or successful downloads.
     assert!(matches!(
@@ -301,28 +308,32 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         )
         .await?;
     drop(connection);
+    let expected = db
+        .audit_record_window(&json!({}), 1000)
+        .await?
+        .iter()
+        .filter(|row| row.needs_check)
+        .count();
     let loads = AtomicUsize::load(&auditor.counters.snapshot_loads, Ordering::SeqCst);
     let prepared = AtomicUsize::load(&auditor.counters.geometry_preparations, Ordering::SeqCst);
     let started = std::time::Instant::now();
     for id in 1..=1000 {
-        let result = auditor.validate_record_ghost(&json!({"idRecord":id})).await;
-        if id == 20 {
-            assert!(result.is_err())
-        } else {
-            result?;
-        }
+        auditor
+            .validate_record_ghost(&json!({"idRecord":id}))
+            .await?;
     }
     assert_eq!(
         AtomicUsize::load(&auditor.counters.snapshot_loads, Ordering::SeqCst) - loads,
-        1000
+        expected
     );
     assert_eq!(
         AtomicUsize::load(&auditor.counters.geometry_preparations, Ordering::SeqCst) - prepared,
-        1000
+        expected
     );
     println!(
-        "Legacy 1,000 singleton jobs: {} ms; snapshots 1000; preparations 1000",
-        started.elapsed().as_millis()
+        "Singleton audit requests: {} ms; eligible {}",
+        started.elapsed().as_millis(),
+        expected
     );
     queue
         .enqueue_ghost_audit_levels(&(1..=2001).collect::<Vec<_>>())
@@ -355,12 +366,16 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         "Changed metadata requires validation"
     );
     assert!(
-        !inputs[1].needs_check,
-        "Missing ghost stays terminal after source/version changes"
+        inputs.iter().all(|row| row.id != 2001),
+        "Failed record excluded before limit"
     );
     assert!(
-        inputs[2].needs_check,
-        "New membership changes source watermark"
+        !inputs
+            .iter()
+            .find(|row| row.id == 2002)
+            .unwrap()
+            .needs_check,
+        "Membership never invalidates uncertainty"
     );
     queue
         .enqueue(

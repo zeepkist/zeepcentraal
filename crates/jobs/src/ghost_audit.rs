@@ -89,9 +89,7 @@ impl GhostAuditService {
             .acquire()
             .await?;
         let id = i32::try_from(payload["idRecord"].as_i64().context("idRecord missing")?)?;
-        if self.process_ids(&[id], attempts).await? {
-            anyhow::bail!("ghost storage unavailable")
-        }
+        self.process_ids(&[id], attempts).await?;
         Ok(())
     }
     /// Retained direct maintenance interface. Runtime uses lease-checkpointed entrypoint.
@@ -101,9 +99,7 @@ impl GhostAuditService {
             .acquire_many(2)
             .await?;
         let (ids, next) = self.select_batch(payload).await?;
-        if self.process_ids(&ids, 1).await? {
-            anyhow::bail!("ghost storage unavailable")
-        }
+        self.process_ids(&ids, 1).await?;
         self.continue_audit(
             next.as_ref(),
             payload["auditRunId"].as_str().unwrap_or("manual"),
@@ -142,9 +138,6 @@ impl GhostAuditService {
             })
             .collect::<Result<_>>()?;
         let storage_failed = self.process_ids(&ids, job.attempts).await?;
-        if storage_failed && job.attempts < TaskIdentifier::AuditRecordGhosts.max_attempts() {
-            anyhow::bail!("ghost storage unavailable")
-        }
         anyhow::ensure!(
             self.queue.checkpoint(job, &payload).await?,
             "ghost audit lease lost before continuation"
@@ -220,7 +213,7 @@ impl GhostAuditService {
             }
         }
     }
-    async fn process_ids(&self, ids: &[i32], attempts: i32) -> Result<bool> {
+    async fn process_ids(&self, ids: &[i32], _attempts: i32) -> Result<bool> {
         if ids.is_empty() {
             return Ok(false);
         }
@@ -242,7 +235,7 @@ impl GhostAuditService {
                 start + rows[start..].partition_point(|row| row.id_level == rows[start].id_level);
             let eligible: Vec<_> = rows[start..end]
                 .iter()
-                .filter(|row| row.needs_check || (attempts > 1 && row.retryable))
+                .filter(|row| row.needs_check)
                 .collect();
             start = end;
             let Some(first) = eligible.first().copied() else {
@@ -259,7 +252,7 @@ impl GhostAuditService {
                         &missing,
                         None,
                         &ValidationReport::failed("missing_ghost"),
-                        &first.checked_at,
+                        &first.timestamp(),
                     )
                     .await?;
             }
@@ -279,7 +272,7 @@ impl GhostAuditService {
                         &ghosts.iter().map(|row| row.id).collect::<Vec<_>>(),
                         None,
                         &ValidationReport::uncertain("missing_snapshot"),
-                        &first.checked_at,
+                        &first.timestamp(),
                     )
                     .await?;
                 continue;
@@ -326,7 +319,7 @@ impl GhostAuditService {
         prepared: Arc<ghost_validation::PreparedLevel>,
         manifest: Option<Arc<ValidationManifest>>,
     ) -> Result<bool> {
-        let Some(record) = self.database.audit_record(input.id).await? else {
+        let Some(record) = self.database.audit_record_for_validation(input.id).await? else {
             return Ok(false);
         };
         let Some(url) = record
@@ -339,7 +332,7 @@ impl GhostAuditService {
                     &[input.id],
                     None,
                     &ValidationReport::failed("missing_ghost"),
-                    &input.checked_at,
+                    &input.timestamp(),
                 )
                 .await?;
             return Ok(false);
@@ -363,7 +356,7 @@ impl GhostAuditService {
                         &[input.id],
                         None,
                         &ValidationReport::uncertain("ghost_storage_unavailable"),
-                        &input.checked_at,
+                        &input.timestamp(),
                     )
                     .await?;
                 return Ok(true);
@@ -391,7 +384,12 @@ impl GhostAuditService {
         })
         .await?;
         self.database
-            .save_checked_record_validations(&[input.id], Some(&digest), &report, &input.checked_at)
+            .save_checked_record_validations(
+                &[input.id],
+                Some(&digest),
+                &report,
+                &input.timestamp(),
+            )
             .await?;
         Ok(false)
     }

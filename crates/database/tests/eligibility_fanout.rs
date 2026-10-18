@@ -22,7 +22,7 @@ async fn clear_queue(client: &tokio_postgres::Client) -> Result<()> {
 
 #[tokio::test]
 #[ignore = "requires isolated record_eligibility_fanout_test with scoring schema and pgmq 1.12.0"]
-async fn only_changed_skill_inputs_fan_out_to_other_levels() -> Result<()> {
+async fn skill_changes_never_fan_out_to_other_levels() -> Result<()> {
     zc_core::environment::initialize()?;
     let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
     let parsed = url::Url::parse(&url)?;
@@ -56,47 +56,134 @@ async fn only_changed_skill_inputs_fan_out_to_other_levels() -> Result<()> {
     clear_queue(&client).await?;
     let database = Database::connect(&url, 4).await?;
 
-    // Creating skill inputs invalidates both dependent levels.
+    // Representative producer volume: 50,000 other PB levels never become score jobs.
+    let started = std::time::Instant::now();
+    client.batch_execute(r#"
+      BEGIN;
+      SELECT set_config('zc.validation_correction','on',true);
+      INSERT INTO public.level(id,hash,xx_hash) OVERRIDING SYSTEM VALUE
+        SELECT id,'other-'||id,lpad(to_hex(id),32,'0') FROM generate_series(4,50003) id;
+      INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE
+        SELECT id+19,1,id,7,'test','test' FROM generate_series(4,50003) id;
+      INSERT INTO public.personal_best_global(id_user,id_level,id_record)
+        SELECT 1,id,id+19 FROM generate_series(4,50003) id;
+      COMMIT;
+    "#).await?;
+    println!(
+        "50,000-PB fixture prepared in {} ms",
+        started.elapsed().as_millis()
+    );
+    let started = std::time::Instant::now();
+    // Creating skill inputs refreshes only the repaired level.
     assert_eq!(
         database.reconcile_record_eligibility(1).await?,
         MaintenanceOutcome::Applied(())
     );
-    assert_eq!(queued_levels(&client).await?, vec![1, 2, 3]);
+    assert_eq!(queued_levels(&client).await?, vec![1]);
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM zc_jobs.job", &[])
+            .await?
+            .get::<_, i64>(0),
+        3,
+        "repair publishes only its level work and durable player seed"
+    );
     clear_queue(&client).await?;
 
+    println!(
+        "50,000 dependent levels: repair publishes three requests in {} ms",
+        started.elapsed().as_millis()
+    );
     // Replaying an already repaired level must not invalidate unrelated levels.
     assert_eq!(
         database.reconcile_record_eligibility(1).await?,
         MaintenanceOutcome::Applied(())
     );
     assert_eq!(queued_levels(&client).await?, vec![1]);
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM zc_jobs.job", &[])
+            .await?
+            .get::<_, i64>(0),
+        3,
+        "repair publishes only its level work and durable player seed"
+    );
     clear_queue(&client).await?;
 
-    // Only user 1's dependent level needs refreshing when its inputs are repaired.
+    // Repairing user 1's skill inputs must not refresh dependent levels.
     client.batch_execute("UPDATE public.player_skill_aggregate SET placement_sum=placement_sum+0.25 WHERE id_user=1").await?;
     assert_eq!(
         database.reconcile_record_eligibility(1).await?,
         MaintenanceOutcome::Applied(())
     );
-    assert_eq!(queued_levels(&client).await?, vec![1, 2]);
+    assert_eq!(queued_levels(&client).await?, vec![1]);
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM zc_jobs.job", &[])
+            .await?
+            .get::<_, i64>(0),
+        3,
+        "repair publishes only its level work and durable player seed"
+    );
     clear_queue(&client).await?;
 
-    // Invalidating one PB drops the field below 20. Every affected player's skill
-    // inputs change, so other players' dependent levels must still refresh.
+    // Invalidating one PB changes every skill input. No other level refreshes.
     database
         .save_record_validation(1, None, &ValidationReport::failed("missing_checkpoint"))
         .await?;
-    assert_eq!(
-        database.reconcile_record_eligibility(1).await?,
-        MaintenanceOutcome::Applied(())
-    );
-    assert_eq!(queued_levels(&client).await?, vec![1, 2, 3]);
     clear_queue(&client).await?;
     assert_eq!(
         database.reconcile_record_eligibility(1).await?,
         MaintenanceOutcome::Applied(())
     );
     assert_eq!(queued_levels(&client).await?, vec![1]);
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM zc_jobs.job", &[])
+            .await?
+            .get::<_, i64>(0),
+        3,
+        "repair publishes only its level work and durable player seed"
+    );
     clear_queue(&client).await?;
+    assert_eq!(
+        database.reconcile_record_eligibility(1).await?,
+        MaintenanceOutcome::Applied(())
+    );
+    assert_eq!(queued_levels(&client).await?, vec![1]);
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM zc_jobs.job", &[])
+            .await?
+            .get::<_, i64>(0),
+        3,
+        "repair publishes only its level work and durable player seed"
+    );
+    clear_queue(&client).await?;
+    // If seed publication fails, projections and all queue effects roll back together.
+    client.batch_execute(r#"
+      INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE VALUES(60000,2,1,0.01,'test','test');
+      CREATE FUNCTION public.reject_eligibility_seed_fixture() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='fanOutRecordEligibility' THEN RAISE EXCEPTION 'fixture rollback'; END IF; RETURN NEW; END $$;
+      CREATE TRIGGER reject_eligibility_seed_fixture BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_eligibility_seed_fixture();
+    "#).await?;
+    assert!(database.reconcile_record_eligibility(1).await.is_err());
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT id_record FROM public.personal_best_global WHERE id_user=2 AND id_level=1",
+                &[]
+            )
+            .await?
+            .get::<_, i32>(0),
+        2
+    );
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM zc_jobs.job", &[])
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
+    client.batch_execute("DROP TRIGGER reject_eligibility_seed_fixture ON zc_jobs.job; DROP FUNCTION public.reject_eligibility_seed_fixture()").await?;
     Ok(())
 }

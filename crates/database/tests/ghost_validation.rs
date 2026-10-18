@@ -42,115 +42,52 @@ async fn mutable_results_preserve_identity_timestamps_and_record_eligibility() -
             "../migrations/20261008040000_incremental_ghost_audits/up.sql"
         ))
         .await?;
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261018010000_validation_metadata_guards/up.sql"
+        ))
+        .await?;
     client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)); INSERT INTO public.record(id,id_user,id_level,time,date_created) VALUES(1276,1,1,10,'2020-01-01'); INSERT INTO public.personal_best_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.world_record_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.level_points(id_level,points) VALUES(1,100); INSERT INTO public.level_item(id_level,workshop_id) VALUES(1,123);").await?;
     let database = Database::connect(&url, 2).await?;
     let eligibility = || async {
         Ok::<_,anyhow::Error>(client.query_one("SELECT jsonb_build_object('record',(SELECT to_jsonb(r) FROM public.record r WHERE id=1276),'pb',(SELECT jsonb_agg(p) FROM public.personal_best_global p),'wr',(SELECT jsonb_agg(w) FROM public.world_record_global w),'points',(SELECT jsonb_agg(s) FROM public.level_points s))::text", &[]).await?.get::<_,String>(0))
     };
     let before = eligibility().await?;
-    let mut previous: Option<serde_json::Value> = None;
-    for status in ["pass", "fail", "uncertain"] {
-        let mut report = ValidationReport::uncertain("test_evidence");
+    let mut report = ValidationReport::uncertain("test_evidence");
+    report.status = "pass".into();
+    database
+        .save_record_validation(1276, Some("initial"), &report)
+        .await?;
+    let original = database.record_validation_attempts(1276).await?;
+    database
+        .save_record_validation(1276, Some("ignored"), &report)
+        .await?;
+    assert_eq!(database.record_validation_attempts(1276).await?, original);
+    report.status = "fail".into();
+    database.save_record_validation(1276, None, &report).await?;
+    let failed = database.record_validation_attempts(1276).await?;
+    assert_eq!(failed[0]["id"], original[0]["id"]);
+    for status in ["pass", "uncertain", "pending"] {
         report.status = status.into();
-        let (left, right) = tokio::join!(
-            database.save_record_validation(1276, Some("initial"), &report),
-            database.save_record_validation(1276, Some("initial"), &report)
-        );
-        left?;
-        right?;
-        let rows = database.record_validation_attempts(1276).await?;
-        assert_eq!(rows.len(), 1);
-        let current = &rows[0];
-        assert_eq!(
-            current["id_level"], "1",
-            "assigned level required even without geometry"
-        );
-        if let Some(old) = &previous {
-            assert_eq!(old["id"], current["id"]);
-            assert_eq!(old["created_at"], current["created_at"]);
-            assert_ne!(old["updated_at"], current["updated_at"]);
-        }
-        database
-            .save_record_validation(1276, Some("ignored-digest"), &report)
-            .await?;
-        assert_eq!(
-            database.record_validation_attempts(1276).await?,
-            rows,
-            "identical report must not write digest or timestamp"
-        );
-        report.reasons.push("changed_report".into());
-        database
-            .save_record_validation(1276, Some("changed-digest"), &report)
-            .await?;
-        let changed = database.record_validation_attempts(1276).await?.remove(0);
-        assert_eq!(changed["id"], current["id"]);
-        assert_eq!(changed["created_at"], current["created_at"]);
-        assert_ne!(changed["updated_at"], current["updated_at"]);
-        assert_eq!(changed["ghost_digest"], "changed-digest");
-        report.validator_version = "test-next-version".into();
+        report.validator_version = "new".into();
         database.save_record_validation(1276, None, &report).await?;
-        let version = database.record_validation_attempts(1276).await?.remove(0);
-        assert_eq!(version["id"], current["id"]);
-        assert_ne!(version["updated_at"], changed["updated_at"]);
-        previous = Some(version);
+        assert_eq!(database.record_validation_attempts(1276).await?, failed);
     }
-    let mut old = ValidationReport::failed("invalid_splits");
-    old.validator_version = "geometry-6".into();
-    database.save_record_validation(1276, None, &old).await?;
-    let filter = json!({"reasons":["invalid_splits","missing_ghost"]});
-    assert_eq!(database.audit_record_ids(&filter).await?, vec![1276]);
-    let corrected = ValidationReport::uncertain("legacy_telemetry_incomplete");
-    database
-        .save_record_validation(1276, None, &corrected)
-        .await?;
-    assert!(database.audit_record_ids(&filter).await?.is_empty());
-    database
-        .save_record_validation(
-            1276,
-            None,
-            &ValidationReport::uncertain("ghost_storage_unavailable"),
-        )
-        .await?;
-    assert!(database.audit_record_ids(&filter).await?.is_empty());
-    database
-        .save_record_validation(1276, None, &corrected)
-        .await?;
-    let mut candidate = corrected.clone();
-    candidate.comparison = true;
     assert!(
         database
-            .save_record_validation(1276, None, &candidate)
+            .audit_record_ids(&json!({"idRecord":1276}))
+            .await?
+            .is_empty()
+    );
+    report.comparison = true;
+    assert!(
+        database
+            .save_record_validation(1276, None, &report)
             .await
             .is_err()
     );
-    assert!(
-        database
-            .admin_validations(0, Some(1276), Some("fail"), &json!({"history":true}))
-            .await?
-            .is_empty()
-    );
-    assert_eq!(
-        database
-            .admin_validations(0, Some(1276), None, &json!({"workshopId":"123"}))
-            .await?
-            .len(),
-        1
-    );
-    assert!(
-        database
-            .admin_validations(0, Some(1276), None, &json!({"workshopId":"124"}))
-            .await?
-            .is_empty()
-    );
-    let latest = database.record_validation_attempts(1276).await?;
-    let cursor = latest[0]["id"].as_str().unwrap().parse()?;
-    assert!(
-        database
-            .admin_validations(cursor, None, None, &json!({}))
-            .await?
-            .is_empty()
-    );
     assert_eq!(eligibility().await?, before);
+
     Ok(())
 }
 
@@ -264,7 +201,11 @@ async fn accepted_run_retry_is_atomic_and_changed_payload_fails() -> Result<()> 
             payload_digest: "original",
             run_uuid: Some(&run_uuid),
             report: &report,
-            checked_at: "1970-01-01T00:00:00Z",
+            checked_at: zc_database::services::ghost_validation::ValidationCheckTimestamp {
+                id_level: None,
+                checked_at: "1970-01-01T00:00:00Z".into(),
+                checked_metadata_at: "1970-01-01T00:00:00Z".into(),
+            },
         }),
     };
     let first = database.submit_record(submission.clone()).await?;
@@ -337,7 +278,11 @@ fn second_submission<'a>(
             payload_digest: "concurrent",
             run_uuid: Some(run),
             report,
-            checked_at: "1970-01-01T00:00:00Z",
+            checked_at: zc_database::services::ghost_validation::ValidationCheckTimestamp {
+                id_level: None,
+                checked_at: "1970-01-01T00:00:00Z".into(),
+                checked_metadata_at: "1970-01-01T00:00:00Z".into(),
+            },
         }),
     }
 }

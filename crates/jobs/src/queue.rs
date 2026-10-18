@@ -136,7 +136,7 @@ impl Queue {
     }
     pub async fn has_pending_score_projections(&self) -> Result<bool> {
         // Verification waits for score refreshes, so it must not block those refreshes.
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','reconcileRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','reconcileRecordEligibility','fanOutRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
             .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
     }
     pub async fn has_pending_player_score_pages(&self) -> Result<bool> {
@@ -144,7 +144,7 @@ impl Queue {
             .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
     }
     pub async fn eligibility_pipeline_pending(&self) -> Result<bool> {
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('reconcileRecordEligibility','updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','updatePlayerScores')) AS ok")
+        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('reconcileRecordEligibility','fanOutRecordEligibility','updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','updatePlayerScores')) AS ok")
             .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
     }
     pub async fn enqueue(
@@ -211,6 +211,57 @@ impl Queue {
             jobs.push(job);
         }
         Ok(jobs)
+    }
+
+    /// Children and continuation commit together. A stale parent cannot publish work.
+    pub async fn enqueue_fenced_page(
+        &self,
+        parent: &ClaimedJob,
+        requests: Vec<EnqueueRequest>,
+    ) -> Result<bool> {
+        ensure!(parent.lane == "bulk", "fan-out parent requires bulk lane");
+        ensure!(
+            !requests.is_empty() && requests.len() <= MAX_ENQUEUE_BATCH + 1,
+            "invalid fan-out page size"
+        );
+        let requests = requests
+            .into_iter()
+            .map(|request| {
+                ensure!(
+                    request.lane == JobLane::Bulk
+                        && request.task.validate_payload(&request.payload),
+                    "invalid fan-out request"
+                );
+                let (key, group) = queue_identity(
+                    request.task,
+                    &request.payload,
+                    request.lane,
+                    request.key.as_deref(),
+                );
+                Ok((request, key, group))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let id = parent.id.parse::<i64>()?;
+        let generation = parent.generation.parse::<i64>()?;
+        let started = std::time::Instant::now();
+        let mut connection = self.partition.connection().await?;
+        connection.transaction::<bool,anyhow::Error,_>(async move |connection| {
+            sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
+            let acquired=std::time::Instant::now();
+            let live=sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane='bulk' AND id=$1 AND generation=$2 AND running AND lease_until>clock_timestamp()) AS ok")
+                .bind::<BigInt,_>(id).bind::<BigInt,_>(generation).get_result::<BooleanResult>(connection).await?.ok;
+            if !live { return Ok(false); }
+            let count=requests.len();
+            for (request,key,group) in requests {
+                sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp()+$6*interval '1 millisecond')")
+                    .bind::<Text,_>(request.task.as_str()).bind::<Jsonb,_>(request.payload)
+                    .bind::<Nullable<Text>,_>(key).bind::<Nullable<Text>,_>(group)
+                    .bind::<Integer,_>(request.task.max_attempts())
+                    .bind::<BigInt,_>(i64::try_from(request.delay.as_millis())?).execute(connection).await?;
+            }
+            tracing::info!(requests=count, queue_lock_wait_ms=acquired.duration_since(started).as_millis(),queue_lock_held_ms=acquired.elapsed().as_millis(),"Eligibility fan-out page enqueued");
+            Ok(true)
+        }).await
     }
 
     pub async fn enqueue_level_projection(
@@ -400,6 +451,11 @@ fn queue_identity(
                 }
             })
         }
+        TaskIdentifier::FanOutRecordEligibility => Some(format!(
+            "eligibility-fanout:{}:{}",
+            payload["operationId"].as_str().unwrap_or_default(),
+            payload["afterUserId"].as_i64().unwrap_or(0)
+        )),
         TaskIdentifier::ReconcileRecordEligibility => {
             id_level.map(|id| format!("record-eligibility:{id}"))
         }
@@ -433,7 +489,9 @@ fn queue_identity(
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if task == TaskIdentifier::UpdatePlayerScores {
+    let group = if task == TaskIdentifier::FanOutRecordEligibility {
+        Some("eligibility-player-fanout".to_owned())
+    } else if task == TaskIdentifier::UpdatePlayerScores {
         Some("player-score-sweep".to_owned())
     } else if task == TaskIdentifier::UpdateLevelRecordCounts {
         id_level.map(|id| format!("level-record-counts:{id}"))

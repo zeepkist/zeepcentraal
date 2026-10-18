@@ -93,7 +93,7 @@ impl<'a> WorkshopScanner<'a> {
                 results.push(WorkshopScanResult {
                     workshop_id: metadata.workshop_id,
                     status: WorkshopScanStatus::PermanentlyUnavailable,
-                    validation_level_ids: changed_level_ids.clone(),
+                    validation_level_ids: Vec::new(),
                     changed_level_ids,
                 });
             } else if !zc_core::steam::can_download_workshop_item(metadata.visibility) {
@@ -104,7 +104,7 @@ impl<'a> WorkshopScanner<'a> {
                 results.push(WorkshopScanResult {
                     workshop_id: metadata.workshop_id,
                     status: WorkshopScanStatus::Inaccessible,
-                    validation_level_ids: changed_level_ids.clone(),
+                    validation_level_ids: Vec::new(),
                     changed_level_ids,
                 });
             } else {
@@ -219,7 +219,6 @@ impl<'a> WorkshopScanner<'a> {
                 .persistence
                 .mark_missing(item.workshop_id, &hashes)
                 .await?;
-            validation_level_ids.extend(missing.iter().copied());
             changed_level_ids.extend(missing);
             validation_level_ids.sort_unstable();
             validation_level_ids.dedup();
@@ -414,6 +413,7 @@ mod tests {
         let result = scanner.scan_workshop_item(123).await?;
         assert_eq!(result.status, WorkshopScanStatus::Scanned);
         assert_eq!(result.changed_level_ids, vec![6, 7]);
+        assert_eq!(result.validation_level_ids, vec![6]);
         assert!(!tokio::fs::try_exists(&root).await?);
         let upserts = persistence.upserts.lock().unwrap();
         assert_eq!(upserts.len(), 1);
@@ -436,6 +436,7 @@ mod tests {
         let result = scanner.scan_workshop_item(123).await?;
         assert_eq!(result.status, WorkshopScanStatus::Inaccessible);
         assert_eq!(result.changed_level_ids, vec![9]);
+        assert!(result.validation_level_ids.is_empty());
         assert!(persistence.upserts.lock().unwrap().is_empty());
         Ok(())
     }

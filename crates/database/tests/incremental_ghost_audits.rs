@@ -32,6 +32,11 @@ async fn fixture(name: &str) -> Result<(Database, tokio_postgres::Client)> {
             "../migrations/20261008040000_incremental_ghost_audits/up.sql"
         ))
         .await?;
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261018010000_validation_metadata_guards/up.sql"
+        ))
+        .await?;
     client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)),(2,repeat('b',32)); CREATE INDEX ON public.level_metadata(id_level); CREATE INDEX ON public.level_item(id_level,workshop_id);").await?;
     Ok((Database::connect(&url, 2).await?, client))
 }
@@ -80,10 +85,11 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     client.batch_execute("INSERT INTO public.level_metadata(id_level,format,blocks) VALUES(1,1,'[]'); INSERT INTO public.level_item(id_level,workshop_id) VALUES(1,123)").await?;
     let rows = db.audit_record_window(&json!({}), 2001).await?;
     assert!(
-        !rows[0].needs_check,
-        "missing_ghost stays terminal across source/version changes"
+        rows.iter()
+            .all(|r| r.id != 1 && !(668..=1334).contains(&r.id)),
+        "all failures stay terminal"
     );
-    assert!(rows[1..].iter().all(|r| r.needs_check));
+    assert!(rows.iter().all(|r| r.needs_check));
     let mut pass = ValidationReport::uncertain("test_evidence");
     pass.status = "pass".into();
     let before = db.record_validation_attempts(2).await?.remove(0);
@@ -124,8 +130,8 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
         .batch_execute("UPDATE public.level_item SET id_level=2 WHERE id_level=1")
         .await?;
     assert!(
-        db.audit_record_window(&json!({"idRecord":2}), 2001).await?[0].needs_check,
-        "moved membership invalidates old level inputs"
+        !db.audit_record_window(&json!({"idRecord":2}), 2001).await?[0].needs_check,
+        "moved membership never invalidates inputs"
     );
     let latest = db.validation_check_timestamp(1).await?;
     db.save_checked_record_validations(&[2], None, &pass, &latest)
@@ -148,6 +154,11 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     assert!(db.audit_record_window(&json!({"idRecord":2}), 2001).await?[0].needs_check);
     let v = db.record_validation_attempts(1).await?.remove(0);
     assert_eq!(v["report"]["reasons"][0], "missing_ghost");
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261018010000_validation_metadata_guards/down.sql"
+        ))
+        .await?;
     client
         .batch_execute(include_str!(
             "../migrations/20261008040000_incremental_ghost_audits/down.sql"

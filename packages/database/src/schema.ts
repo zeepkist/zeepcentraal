@@ -223,6 +223,9 @@ export const recordValidation = zcPrivate.table(
 		report: jsonb('report').notNull(),
 		validatorVersion: text('validator_version').notNull(),
 		checkedAt: timestamp('checked_at', { withTimezone: true, mode: 'string' }),
+		checkedMetadataAt: timestamp('checked_metadata_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.default(sql`'epoch'::timestamptz`),
 		updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.default(sql`clock_timestamp()`),
@@ -466,6 +469,12 @@ export const level = pgTable(
 		hasRecords: boolean('has_records').notNull().default(false),
 		recordCount: bigint('record_count', { mode: 'number' }).notNull().default(0),
 		publiclyVisible: boolean('publicly_visible').notNull().default(false),
+		validationMetadataUpdatedAt: timestamp('validation_metadata_updated_at', {
+			withTimezone: true,
+			mode: 'string',
+		})
+			.notNull()
+			.default(sql`'epoch'::timestamptz`),
 		validationInputsUpdatedAt: timestamp('validation_inputs_updated_at', {
 			withTimezone: true,
 			mode: 'string',

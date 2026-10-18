@@ -146,7 +146,7 @@ async fn cached_queries_preserve_activity_ranks_repairs_and_score_inputs() -> Re
     );
     assert_eq!(client.query_one("SELECT count(*) FROM public.personal_best_global WHERE id_level=1 AND id_user IN(1,60)",&[]).await?.get::<_,i64>(0),0);
 
-    // Restoration repairs PB/WR and counts without reviving unavailable level counts.
+    // Failed evidence cannot be restored; unavailable levels still count as zero.
     client
         .batch_execute("UPDATE zc_private.record_validation SET status='pass' WHERE id_record=1")
         .await?;
@@ -160,6 +160,6 @@ async fn cached_queries_preserve_activity_ranks_repairs_and_score_inputs() -> Re
             &[],
         )
         .await?;
-    assert_eq!((counts.get::<_, i32>(0), counts.get::<_, i32>(1)), (1, 0));
+    assert_eq!((counts.get::<_, i32>(0), counts.get::<_, i32>(1)), (0, 0));
     Ok(())
 }

@@ -10,6 +10,36 @@ use diesel_async::{AsyncConnection, RunQueryDsl};
 
 pub const LEVEL_LOCK_NAMESPACE: i32 = 1_869_000_001;
 
+/// Immutable repair snapshot. Only the cursor changes between durable pages.
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EligibilityFanOut {
+    pub operation_id: String,
+    pub user_ids: Vec<i32>,
+    pub after_user_id: i32,
+}
+impl EligibilityFanOut {
+    pub fn valid(&self) -> bool {
+        !self.operation_id.is_empty()
+            && self.operation_id.len() <= 40
+            && self.operation_id.bytes().all(|c| c.is_ascii_digit())
+            && self.after_user_id >= 0
+            && self.user_ids.iter().all(|id| *id > 0)
+            && self.user_ids.windows(2).all(|pair| pair[0] < pair[1])
+    }
+    pub fn page(&self) -> &[i32] {
+        let start = self
+            .user_ids
+            .partition_point(|id| *id <= self.after_user_id);
+        &self.user_ids[start..(start + 100).min(self.user_ids.len())]
+    }
+    pub fn has_next(&self) -> bool {
+        self.page()
+            .last()
+            .is_some_and(|last| self.user_ids.last() > Some(last))
+    }
+}
+
 #[derive(QueryableByName)]
 struct Id {
     #[diesel(sql_type=Integer)]
@@ -158,17 +188,14 @@ impl Database {
                 .bind::<Integer,_>(level).execute(connection).await?;
             sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelContributions',jsonb_build_object('idLevel',$1::integer,'afterUserId',0),'update-level-contributions:'||$1,'level-maintenance-shard:'||($1%4),3,clock_timestamp())")
                 .bind::<Integer,_>(level).execute(connection).await?;
-            // Other levels depend on these users' skill inputs, not every user who
-            // has ever played the repaired level. No-op repairs must not fan out.
-            let other_levels = sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelScore',jsonb_build_object('idLevel',id_level),'update-level-score:'||id_level,'level-maintenance-shard:'||(id_level%4),3,clock_timestamp()) FROM (SELECT DISTINCT id_level FROM public.personal_best_global WHERE id_user=ANY($1) AND id_level<>$2 ORDER BY id_level) levels")
-                .bind::<Array<Integer>,_>(&changed_skill_users).bind::<Integer,_>(level).execute(connection).await?;
-            sql_query("SELECT zc_jobs.enqueue('bulk','updatePlayerScore',jsonb_build_object('idUser',id),'update-player-score:'||id,'global-scores',3,clock_timestamp()) FROM unnest($1::integer[]) id ORDER BY id")
+            // Skill changes never invalidate other levels. Player repairs are paged
+            // outside this transaction so the lane lock covers only three requests.
+            sql_query("SELECT zc_jobs.enqueue('bulk','fanOutRecordEligibility',jsonb_build_object('operationId',pg_current_xact_id()::text,'userIds',$1::integer[],'afterUserId',0),'eligibility-fanout:'||pg_current_xact_id()::text||':0','eligibility-player-fanout',3,clock_timestamp())")
                 .bind::<Array<Integer>,_>(&user_ids).execute(connection).await?;
-            sql_query("SELECT zc_jobs.enqueue('bulk','updatePlayerScores','{\"silent\":true}'::jsonb,'eligibility-refresh-player-scores','player-score-sweep',3,clock_timestamp())").execute(connection).await?;
             Ok(MaintenanceOutcome::Applied(RepairStats {
                 affected_users: user_ids.len(),
                 changed_skill_users: changed_skill_users.len(),
-                level_score_requests: 1 + other_levels,
+                level_score_requests: 1,
             }))
         }).await;
         Ok(match contention_outcome(result)? {

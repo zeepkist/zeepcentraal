@@ -15,6 +15,7 @@ const AUDIT_WINDOW_QUERY: &str = r#"
 WITH records AS MATERIALIZED (
  SELECT r.id,r.id_level FROM public.record r
  WHERE r.id>$1 AND r.id<=$8
+   AND NOT EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND terminal.status='fail')
    AND ($2::integer IS NULL OR r.id=$2)
    AND ($3::integer IS NULL OR r.id_level=$3)
    AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
@@ -22,13 +23,14 @@ WITH records AS MATERIALIZED (
    AND ($6::text IS NULL OR r.date_created < $6::timestamptz)
  ORDER BY r.id LIMIT 1000
 )
-SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,
+SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,l.validation_metadata_updated_at::text AS checked_metadata_at,
  EXISTS(SELECT 1 FROM public.record_media m WHERE m.id_record=r.id AND nullif(btrim(m.ghost_url),'') IS NOT NULL) AS has_ghost,
- coalesce(v.status='uncertain' AND v.report->'reasons' ? 'ghost_storage_unavailable',false) AS retryable,
- (NOT coalesce(v.status='fail' AND v.report->'reasons' ? 'missing_ghost',false)
-  AND (cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
-  AND (v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
-       OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at)) AS needs_check
+ ((cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
+  AND CASE WHEN v.status='fail' THEN false
+       WHEN v.status='uncertain' THEN l.validation_metadata_updated_at>v.checked_metadata_at
+       ELSE v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
+         OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at
+       END) AS needs_check
 FROM records r JOIN public.level l ON l.id=r.id_level
 LEFT JOIN zc_private.record_validation v ON v.id_record=r.id
 ORDER BY r.id
@@ -38,6 +40,7 @@ const AUDIT_LEVEL_WINDOW_QUERY: &str = r#"
 WITH records AS MATERIALIZED (
  SELECT r.id,r.id_level FROM public.record r
  WHERE r.id>$1 AND r.id<=$8
+   AND NOT EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND terminal.status='fail')
    AND ($2::integer IS NULL OR r.id=$2)
    AND ($3::integer IS NULL OR r.id_level=$3)
    AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
@@ -48,13 +51,14 @@ WITH records AS MATERIALIZED (
  AND (cardinality($13::integer[])=0 OR r.id=ANY($13))
  ORDER BY r.id_level,r.id LIMIT 1000
 )
-SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,
+SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,l.validation_metadata_updated_at::text AS checked_metadata_at,
  EXISTS(SELECT 1 FROM public.record_media m WHERE m.id_record=r.id AND nullif(btrim(m.ghost_url),'') IS NOT NULL) AS has_ghost,
- coalesce(v.status='uncertain' AND v.report->'reasons' ? 'ghost_storage_unavailable',false) AS retryable,
- (NOT coalesce(v.status='fail' AND v.report->'reasons' ? 'missing_ghost',false)
-  AND (cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
-  AND (v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
-       OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at)) AS needs_check
+ ((cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
+  AND CASE WHEN v.status='fail' THEN false
+       WHEN v.status='uncertain' THEN l.validation_metadata_updated_at>v.checked_metadata_at
+       ELSE v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
+         OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at
+       END) AS needs_check
 FROM records r JOIN public.level l ON l.id=r.id_level
 LEFT JOIN zc_private.record_validation v ON v.id_record=r.id
 ORDER BY r.id_level,r.id
@@ -62,9 +66,9 @@ ORDER BY r.id_level,r.id
 
 const PERSIST_VALIDATIONS_QUERY: &str = r#"
 INSERT INTO zc_private.record_validation AS existing
- (id_record,id_user,id_level,ghost_digest,status,report,validator_version,checked_at)
-SELECT r.id,r.id_user,r.id_level,$2,$3,$4,$5,$6::text::timestamptz
-FROM public.record r WHERE r.id=ANY($1) ORDER BY r.id
+ (id_record,id_user,id_level,ghost_digest,status,report,validator_version,checked_at,checked_metadata_at)
+SELECT r.id,r.id_user,r.id_level,$2,$3,$4,$5,$6::text::timestamptz,coalesce($7::text::timestamptz,'epoch')
+FROM public.record r WHERE r.id=ANY($1) AND ($8::integer IS NULL OR r.id_level=$8) ORDER BY r.id
 ON CONFLICT(id_record) DO UPDATE SET
  id_user=EXCLUDED.id_user,id_level=EXCLUDED.id_level,
  ghost_digest=CASE WHEN ROW(existing.status,existing.report,existing.validator_version)
@@ -74,11 +78,14 @@ ON CONFLICT(id_record) DO UPDATE SET
  updated_at=CASE WHEN ROW(existing.status,existing.report,existing.validator_version)
    IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
    THEN clock_timestamp() ELSE existing.updated_at END,
- checked_at=coalesce(EXCLUDED.checked_at,existing.checked_at)
-WHERE (existing.checked_at IS NULL OR EXCLUDED.checked_at IS NULL OR EXCLUDED.checked_at>=existing.checked_at)
+ checked_at=coalesce(EXCLUDED.checked_at,existing.checked_at),checked_metadata_at=EXCLUDED.checked_metadata_at
+WHERE existing.status<>'fail'
+ AND (existing.status<>'uncertain' OR EXCLUDED.checked_metadata_at>existing.checked_metadata_at)
+ AND (existing.checked_at IS NULL OR EXCLUDED.checked_at IS NULL OR EXCLUDED.checked_at>=existing.checked_at)
  AND (ROW(existing.status,existing.report,existing.validator_version)
    IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
-   OR (EXCLUDED.checked_at IS NOT NULL AND existing.checked_at IS DISTINCT FROM EXCLUDED.checked_at))
+   OR (EXCLUDED.checked_at IS NOT NULL AND existing.checked_at IS DISTINCT FROM EXCLUDED.checked_at)
+   OR existing.checked_metadata_at IS DISTINCT FROM EXCLUDED.checked_metadata_at)
 "#;
 
 #[derive(Clone, Debug, QueryableByName)]
@@ -91,16 +98,36 @@ pub struct AuditWindowRecord {
     pub canonical_hash: String,
     #[diesel(sql_type=Text)]
     pub checked_at: String,
+    #[diesel(sql_type=Text)]
+    pub checked_metadata_at: String,
     #[diesel(sql_type=Bool)]
     pub has_ghost: bool,
     #[diesel(sql_type=Bool)]
     pub needs_check: bool,
-    #[diesel(sql_type=Bool)]
-    pub retryable: bool,
+}
+
+/// Input markers captured before validation; never refresh these after computing evidence.
+#[derive(Clone, Debug, Eq, PartialEq, QueryableByName)]
+pub struct ValidationCheckTimestamp {
+    #[diesel(sql_type=Nullable<Integer>)]
+    pub id_level: Option<i32>,
+    #[diesel(sql_type=Text)]
+    pub checked_at: String,
+    #[diesel(sql_type=Text)]
+    pub checked_metadata_at: String,
+}
+impl AuditWindowRecord {
+    pub fn timestamp(&self) -> ValidationCheckTimestamp {
+        ValidationCheckTimestamp {
+            id_level: Some(self.id_level),
+            checked_at: self.checked_at.clone(),
+            checked_metadata_at: self.checked_metadata_at.clone(),
+        }
+    }
 }
 
 const ADMIN_VALIDATIONS_QUERY: &str = r#"
-SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash,'report',v.report || jsonb_build_object('status',v.status,'validatorVersion',v.validator_version)) AS data
+SELECT (to_jsonb(v)-'checked_metadata_at') || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash,'report',v.report || jsonb_build_object('status',v.status,'validatorVersion',v.validator_version)) AS data
 FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level
 WHERE v.id>$1
   AND ($2::integer IS NULL OR v.id_record=$2)
@@ -188,14 +215,14 @@ pub struct AcceptedEvidence<'a> {
     pub payload_digest: &'a str,
     pub run_uuid: Option<&'a str>,
     pub report: &'a ValidationReport,
-    pub checked_at: &'a str,
+    pub checked_at: ValidationCheckTimestamp,
 }
 pub async fn persist_validation(
     connection: &mut AsyncPgConnection,
     id_record: i32,
     digest: Option<&str>,
     report: &ValidationReport,
-    checked_at: Option<&str>,
+    checked_at: Option<&ValidationCheckTimestamp>,
 ) -> Result<()> {
     persist_validations(connection, &[id_record], digest, report, checked_at).await
 }
@@ -204,7 +231,7 @@ async fn persist_validations(
     ids: &[i32],
     digest: Option<&str>,
     report: &ValidationReport,
-    checked_at: Option<&str>,
+    checked_at: Option<&ValidationCheckTimestamp>,
 ) -> Result<()> {
     ensure!(
         !report.comparison,
@@ -220,7 +247,9 @@ async fn persist_validations(
         .bind::<Text, _>(&report.status)
         .bind::<Jsonb, _>(compact_report(report)?)
         .bind::<Text, _>(&report.validator_version)
-        .bind::<Nullable<Text>, _>(checked_at)
+        .bind::<Nullable<Text>, _>(checked_at.map(|stamp| stamp.checked_at.as_str()))
+        .bind::<Nullable<Text>, _>(checked_at.map(|stamp| stamp.checked_metadata_at.as_str()))
+        .bind::<Nullable<Integer>, _>(checked_at.and_then(|stamp| stamp.id_level))
         .execute(connection)
         .await?;
     Ok(())
@@ -265,34 +294,32 @@ impl Database {
         persist_validation(&mut connection, record, digest, report, None).await
     }
     pub async fn audit_record(&self, id: i32) -> Result<Option<AuditRecord>> {
+        self.load_audit_record(id, false).await
+    }
+    /// Evidence remains readable; only validators apply the terminal/metadata gate.
+    pub async fn audit_record_for_validation(&self, id: i32) -> Result<Option<AuditRecord>> {
+        self.load_audit_record(id, true).await
+    }
+    async fn load_audit_record(&self, id: i32, validation: bool) -> Result<Option<AuditRecord>> {
         let mut c = self.connection().await?;
-        Ok(sql_query("SELECT r.id,r.id_user,r.id_level,coalesce(u.steam_id::text,'') AS steam_id,l.hash AS level_uid,l.xx_hash AS canonical_hash,r.game_version::text,r.time,coalesce(r.splits,ARRAY[]::real[]) AS splits,coalesce(r.speeds,ARRAY[]::real[]) AS speeds,(SELECT ghost_url FROM public.record_media WHERE id_record=r.id) AS ghost_url FROM public.record r JOIN public.level l ON l.id=r.id_level JOIN public.\"user\" u ON u.id=r.id_user WHERE r.id=$1")
-  .bind::<Integer,_>(id).get_result(&mut c).await.optional()?)
+        Ok(sql_query("SELECT r.id,r.id_user,r.id_level,coalesce(u.steam_id::text,'') AS steam_id,l.hash AS level_uid,l.xx_hash AS canonical_hash,r.game_version::text,r.time,coalesce(r.splits,ARRAY[]::real[]) AS splits,coalesce(r.speeds,ARRAY[]::real[]) AS speeds,(SELECT ghost_url FROM public.record_media WHERE id_record=r.id) AS ghost_url FROM public.record r JOIN public.level l ON l.id=r.id_level JOIN public.\"user\" u ON u.id=r.id_user WHERE r.id=$1 AND (NOT $2 OR NOT EXISTS(SELECT 1 FROM zc_private.record_validation v WHERE v.id_record=r.id AND (v.status='fail' OR (v.status='uncertain' AND v.checked_metadata_at>=l.validation_metadata_updated_at))))")
+  .bind::<Integer,_>(id).bind::<Bool,_>(validation).get_result(&mut c).await.optional()?)
     }
-    pub async fn validation_check_timestamp_for_hash(&self, hash: &str) -> Result<String> {
-        #[derive(QueryableByName)]
-        struct Stamp {
-            #[diesel(sql_type = Text)]
-            stamp: String,
-        }
-        Ok(sql_query("SELECT coalesce((SELECT validation_inputs_updated_at FROM public.level WHERE xx_hash=$1),'epoch'::timestamptz)::text AS stamp")
+    pub async fn validation_check_timestamp_for_hash(
+        &self,
+        hash: &str,
+    ) -> Result<ValidationCheckTimestamp> {
+        Ok(sql_query("SELECT l.id AS id_level,coalesce(l.validation_inputs_updated_at,'epoch'::timestamptz)::text AS checked_at,coalesce(l.validation_metadata_updated_at,'epoch'::timestamptz)::text AS checked_metadata_at FROM (SELECT 1) seed LEFT JOIN public.level l ON l.xx_hash=$1")
             .bind::<Text,_>(hash)
-            .get_result::<Stamp>(&mut self.connection().await?)
-            .await?.stamp)
+            .get_result(&mut self.connection().await?).await?)
     }
-    pub async fn validation_check_timestamp(&self, id_level: i32) -> Result<String> {
-        #[derive(QueryableByName)]
-        struct Stamp {
-            #[diesel(sql_type=Text)]
-            value: String,
-        }
-        Ok(sql_query(
-            "SELECT validation_inputs_updated_at::text AS value FROM public.level WHERE id=$1",
-        )
-        .bind::<Integer, _>(id_level)
-        .get_result::<Stamp>(&mut self.connection().await?)
-        .await?
-        .value)
+    pub async fn validation_check_timestamp(
+        &self,
+        id_level: i32,
+    ) -> Result<ValidationCheckTimestamp> {
+        Ok(sql_query("SELECT id AS id_level,validation_inputs_updated_at::text AS checked_at,validation_metadata_updated_at::text AS checked_metadata_at FROM public.level WHERE id=$1")
+            .bind::<Integer,_>(id_level)
+            .get_result(&mut self.connection().await?).await?)
     }
     pub async fn audit_upper_record_id(&self) -> Result<i32> {
         #[derive(QueryableByName)]
@@ -312,7 +339,7 @@ impl Database {
         ids: &[i32],
         digest: Option<&str>,
         report: &ValidationReport,
-        checked_at: &str,
+        checked_at: &ValidationCheckTimestamp,
     ) -> Result<()> {
         let mut connection = self.connection().await?;
         persist_validations(&mut connection, ids, digest, report, Some(checked_at)).await
@@ -427,7 +454,7 @@ impl Database {
     }
     pub async fn record_validation_attempts(&self, id: i32) -> Result<Vec<Value>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT to_jsonb(v) || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash,'report',v.report || jsonb_build_object('status',v.status,'validatorVersion',v.validator_version)) AS data FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level WHERE v.id_record=$1").bind::<Integer,_>(id).load::<JsonRow>(&mut connection).await?.into_iter().map(|row|row.data).collect())
+        Ok(sql_query("SELECT (to_jsonb(v)-'checked_metadata_at') || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash,'report',v.report || jsonb_build_object('status',v.status,'validatorVersion',v.validator_version)) AS data FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level WHERE v.id_record=$1").bind::<Integer,_>(id).load::<JsonRow>(&mut connection).await?.into_iter().map(|row|row.data).collect())
     }
     pub async fn admin_validations(
         &self,

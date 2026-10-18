@@ -100,6 +100,16 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         "unchanged workshop reconciliation must not rewrite rows"
     );
 
+    let stamp = database.validation_check_timestamp(first.id_level).await?;
+    let mut renamed = input.clone();
+    renamed.name = "Renamed item".into();
+    renamed.image_url = "thumbnails/changed.jpg".into();
+    let renamed = database.upsert_workshop_level(&renamed).await?;
+    assert!(renamed.validation_level_ids.is_empty());
+    assert_eq!(
+        database.validation_check_timestamp(first.id_level).await?,
+        stamp
+    );
     client
         .execute(
             "UPDATE public.level SET simhash=NULL WHERE id=$1",
@@ -238,7 +248,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     new_version.blocks = json!([{"i":22},{"i":2},{"i":22}]);
     let changed = database.upsert_workshop_level(&new_version).await?;
     assert_ne!(changed.id_level, first.id_level);
-    assert!(changed.validation_level_ids.contains(&first.id_level));
+    assert!(!changed.validation_level_ids.contains(&first.id_level));
     assert!(changed.validation_level_ids.contains(&changed.id_level));
     assert_eq!(
         serde_json::from_str::<serde_json::Value>(&client

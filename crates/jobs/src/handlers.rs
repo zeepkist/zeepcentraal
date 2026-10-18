@@ -1249,6 +1249,42 @@ impl JobHandler for ServiceJobHandler {
             .await;
         }
         let task = TaskIdentifier::parse(&job.task).context("invalid task")?;
+        if task == TaskIdentifier::FanOutRecordEligibility {
+            ensure!(
+                lane == JobLane::Bulk,
+                "eligibility fan-out requires bulk lane"
+            );
+            let started = Instant::now();
+            let mut page: zc_database::services::record_eligibility::EligibilityFanOut =
+                serde_json::from_value(job.payload.clone())?;
+            ensure!(page.valid(), "invalid eligibility fan-out cursor");
+            let users = page.page();
+            let selected = users.len();
+            let last = users.last().copied();
+            let more = page.has_next();
+            let mut requests = player_score_requests(users);
+            if more {
+                page.after_user_id = last.context("missing fan-out cursor")?;
+                requests.push(EnqueueRequest {
+                    task: TaskIdentifier::FanOutRecordEligibility,
+                    payload: serde_json::to_value(&page)?,
+                    lane: JobLane::Bulk,
+                    key: None,
+                    delay: Duration::ZERO,
+                });
+            } else {
+                requests.push(EnqueueRequest {
+                    task: TaskIdentifier::UpdatePlayerScores,
+                    payload: serde_json::json!({"silent":true}),
+                    lane: JobLane::Bulk,
+                    key: Some("eligibility-refresh-player-scores".into()),
+                    delay: Duration::ZERO,
+                });
+            }
+            let published = self.queue.enqueue_fenced_page(job, requests).await?;
+            tracing::info!(operation_id=%page.operation_id,after_user_id=job.payload["afterUserId"].as_i64().unwrap_or(0),selected,has_next=more,published,elapsed_ms=started.elapsed().as_millis(),"Eligibility player fan-out page completed");
+            return Ok(JobOutcome::Completed);
+        }
         if task == TaskIdentifier::BackfillRecordGhostStatistics
             && job.payload["repairSurfaceStatistics"].as_bool() == Some(true)
         {
@@ -1396,7 +1432,8 @@ impl JobHandler for ServiceJobHandler {
                 .insert_user_point_histories(&integer_ids(&payload, "ids")?)
                 .await
                 .map(|_| ()),
-            TaskIdentifier::UpdatePlayerScore
+            TaskIdentifier::FanOutRecordEligibility
+            | TaskIdentifier::UpdatePlayerScore
             | TaskIdentifier::UpdateLevelRecordCounts
             | TaskIdentifier::UpdatePlayerScores => {
                 unreachable!()

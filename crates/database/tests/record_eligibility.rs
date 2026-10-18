@@ -3,7 +3,7 @@ use zc_core::ghost_validation::ValidationReport;
 use zc_database::Database;
 
 #[tokio::test]
-#[ignore = "requires isolated record_eligibility_test with current schema and eligibility migrations"]
+#[ignore = "requires isolated record_eligibility_test with persisted eligibility and current scoring schema"]
 async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()> {
     zc_core::environment::initialize()?;
     let url = zc_core::environment::var("ZC_TEST_DATABASE_URL")?;
@@ -15,6 +15,13 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
     let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("fixture connection") });
     let persisted_eligibility = client.query_one("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='record' AND column_name='record_eligible')", &[]).await?.get::<_,bool>(0);
+    ensure!(
+        persisted_eligibility,
+        "Persisted eligibility fixture required"
+    );
+    if !client.query_one("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='level' AND column_name='validation_metadata_updated_at')",&[]).await?.get::<_,bool>(0) {
+        client.batch_execute(include_str!("../migrations/20261018010000_validation_metadata_guards/up.sql")).await?;
+    }
     client.batch_execute(r#"
       TRUNCATE public."user",public.level,public.discord_activity_event,zc_jobs.job RESTART IDENTITY CASCADE;
       INSERT INTO public."user"(id,steam_id,banned) OVERRIDING SYSTEM VALUE VALUES(1,42,false),(2,43,false),(3,44,true),(4,45,false);
@@ -234,8 +241,8 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
             )
             .await?
             .get::<_, i32>(0),
-        1,
-        "automatic restoration"
+        3,
+        "failed evidence never restores eligibility"
     );
     db.save_record_validation(7, None, &ValidationReport::failed("missing_ghost"))
         .await?;
@@ -277,21 +284,26 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
     assert_eq!(
         client
             .query_one(
-                "SELECT id_record FROM public.world_record_global WHERE id_level=2",
+                "SELECT count(*) FROM public.world_record_global WHERE id_level=2",
                 &[]
             )
             .await?
-            .get::<_, i32>(0),
-        7,
-        "validation deletion restores eligibility"
+            .get::<_, i64>(0),
+        0,
+        "failed evidence cannot be deleted to restore eligibility"
     );
     client.batch_execute("BEGIN; UPDATE zc_private.record_validation SET status='fail' WHERE id_record=1; ROLLBACK").await?;
     assert!(
-        client
+        !client
             .query_one("SELECT zc_private.record_is_eligible(1)", &[])
             .await?
             .get::<_, bool>(0)
     );
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261018010000_validation_metadata_guards/down.sql"
+        ))
+        .await?;
     if persisted_eligibility {
         client
             .batch_execute(include_str!(
@@ -326,12 +338,21 @@ async fn repairs_visibility_assignments_tournaments_and_rollback() -> Result<()>
             ))
             .await?;
     }
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261018010000_validation_metadata_guards/up.sql"
+        ))
+        .await?;
     client.batch_execute("INSERT INTO public.level(id,hash,xx_hash) OVERRIDING SYSTEM VALUE SELECT id,'fixture-'||id,md5(id::text) FROM generate_series(10,110) id; INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE SELECT id+990,1,id,10,'test','test' FROM generate_series(10,110) id").await?;
     db.save_checked_record_validations(
         &(1000..=1100).collect::<Vec<_>>(),
         None,
         &ValidationReport::failed("missing_ghost"),
-        "epoch",
+        &zc_database::services::ghost_validation::ValidationCheckTimestamp {
+            id_level: None,
+            checked_at: "epoch".into(),
+            checked_metadata_at: "epoch".into(),
+        },
     )
     .await?;
     assert_eq!(db.failed_record_level_page(0, 110).await?.len(), 100);

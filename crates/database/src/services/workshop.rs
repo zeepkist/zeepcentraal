@@ -295,7 +295,7 @@ impl Database {
                     let item_changed = existing_item.as_ref().is_none_or(|item| {
                         item.deleted || item.id_level != id_level
                     });
-                    let membership_changed = if let Some(item) = existing_item.as_ref() {
+                    if let Some(item) = existing_item.as_ref() {
                         sql_query(
                             "UPDATE public.level_item SET id_level=$2,author_id=$3,name=$4,image_url=$5, \
                              file_author=$6,file_uid=$7,validation_time_author=$8,validation_time_gold=$9, \
@@ -320,7 +320,7 @@ impl Database {
                         .bind::<Text, _>(&input.created_at)
                         .bind::<Text, _>(&input.updated_at)
                         .execute(connection)
-                        .await? > 0
+                        .await?;
                     } else {
                         sql_query(
                             "INSERT INTO public.level_item \
@@ -344,15 +344,13 @@ impl Database {
                         .bind::<Text, _>(&input.updated_at)
                         .execute(connection)
                         .await?;
-                        true
                     };
 
                     let accessibility_changed = previous_workshop.is_some_and(|previous| {
                         is_accessible(previous.visibility) != is_accessible(input.workshop_visibility)
                     });
                     let mut validation_level_ids=Vec::new();
-                    if metadata_changed || membership_changed {validation_level_ids.push(id_level);}
-                    if let Some(previous)=existing_item.as_ref().filter(|item|item.id_level!=id_level) {validation_level_ids.push(previous.id_level);}
+                    if metadata_changed {validation_level_ids.push(id_level);}
                     Ok(WorkshopLevelUpsertResult {
                         id_level,
                         score_changed: created || item_changed || accessibility_changed,
