@@ -14,6 +14,7 @@
         "conventional-changelog-conventionalcommits": "~8.0.0",
         "golar": "~0.1.10",
         "lint-staged": "~17.6.0",
+        "pele": "^1.3.0",
         "semantic-release": "~25.0.8",
         "skills": "~1.7.0",
         "typescript": "~7.0.2",
@@ -3425,6 +3426,8 @@
     "pathe": ["pathe@2.0.3", "", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
 
     "pbf": ["pbf@3.3.0", "", { "dependencies": { "ieee754": "^1.1.12", "resolve-protobuf-schema": "^2.1.0" }, "bin": { "pbf": "bin/pbf" } }, "sha512-XDF38WCH3z5OV/OVa8GKUNtLAyneuzbCisx7QUCF8Q6Nutx0WnJrQe5O+kOtBlLfRNUws98Y58Lblp+NJG5T4Q=="],
+
+    "pele": ["pele@1.3.0", "", {}, "sha512-Jz3SW2OYo4yLkrrNuQwfg93el1SEGsFVTd7c/XVvZEry6UfR8ncvxoZqAefEpXOFpJRwhmXwWq17aGHg8W0vuA=="],
 
     "perfect-debounce": ["perfect-debounce@2.1.0", "", {}, "sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g=="],
 

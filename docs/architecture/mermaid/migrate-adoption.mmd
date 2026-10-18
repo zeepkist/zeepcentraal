@@ -1,0 +1,19 @@
+sequenceDiagram
+  participant CLI
+  participant Config
+  participant Adoption as Migration adoption
+  participant DB as PostgreSQL
+  participant Diesel
+  CLI->>Config: Load database URL and migration folder
+  CLI->>Adoption: Verify Drizzle migration history
+  Adoption->>DB: Compare expected history and baseline
+  DB-->>Adoption: Existing migration state
+  Adoption-->>CLI: Adoption report
+  alt Adopt mode
+    CLI->>Diesel: Apply pending Diesel migrations
+    Diesel->>DB: Run migrations
+    DB-->>Diesel: Applied versions
+    Diesel-->>CLI: Migration result
+  else Verify mode
+    CLI-->>CLI: Skip migration writes
+  end

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 1069 389" width="1069" height="389" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(97.79,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="App" d="M0,44V329"/><path class="pele-lifeline" data-id="Plugin" d="M241.75,44V329"/><path class="pele-lifeline" data-id="Logger" d="M502.18,44V329"/><path class="pele-lifeline" data-id="OTel" d="M672.89,44V329"/><path class="pele-lifeline" data-id="Collector" d="M915.42,44V329"/></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H234.75"/><path class="pele-marker" d="M241.75,87L233.75,90.36L233.75,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M241.75,124H495.18"/><path class="pele-marker" d="M502.18,124L494.18,127.36L494.18,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M241.75,161H665.89"/><path class="pele-marker" d="M672.89,161L664.89,164.36L664.89,157.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M0,198H234.75"/><path class="pele-marker" d="M241.75,198L233.75,201.36L233.75,194.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M241.75,235H495.18"/><path class="pele-marker" d="M502.18,235L494.18,238.36L494.18,231.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M241.75,272H665.89"/><path class="pele-marker" d="M672.89,272L664.89,275.36L664.89,268.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M672.89,309H908.42"/><path class="pele-marker" d="M915.42,309L907.42,312.36L907.42,305.64Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="120.87" y="77.4" text-anchor="middle">Bootstrap service instrumentation</text></g><g class="pele-edge-label" data-id="i1"><text x="371.96" y="114.4" text-anchor="middle">Configure structured request logging</text></g><g class="pele-edge-label" data-id="i2"><rect x="292.08" y="138" width="330.46" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="457.32" y="151.4" text-anchor="middle">Configure tracing, metrics, and fetch instrumentation</text></g><g class="pele-edge-label" data-id="i3"><text x="120.87" y="188.4" text-anchor="middle">Handle request</text></g><g class="pele-edge-label" data-id="i4"><text x="371.96" y="225.4" text-anchor="middle">Record safe request outcome</text></g><g class="pele-edge-label" data-id="i5"><rect x="351.23" y="249" width="212.18" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="457.32" y="262.4" text-anchor="middle">Record span and runtime metrics</text></g><g class="pele-edge-label" data-id="i6"><text x="794.15" y="299.4" text-anchor="middle">Export telemetry when configured</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="App"><rect x="-89.79" y="329" width="179.58" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="356.6" text-anchor="middle">Elysia or Nuxt server</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Plugin"><rect x="166.62" y="329" width="150.26" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="241.75" y="356.6" text-anchor="middle">Telemetry plugin</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Logger"><rect x="461.28" y="329" width="81.81" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="502.18" y="356.6" text-anchor="middle">Logger</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="OTel"><rect x="583.09" y="329" width="179.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="672.89" y="356.6" text-anchor="middle">OpenTelemetry SDK</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Collector"><rect x="867.86" y="329" width="95.12" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="915.42" y="356.6" text-anchor="middle">Collector</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="App"><rect x="-89.79" y="0" width="179.58" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">Elysia or Nuxt server</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Plugin"><rect x="166.62" y="0" width="150.26" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="241.75" y="27.6" text-anchor="middle">Telemetry plugin</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Logger"><rect x="461.28" y="0" width="81.81" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="502.18" y="27.6" text-anchor="middle">Logger</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="OTel"><rect x="583.09" y="0" width="179.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="672.89" y="27.6" text-anchor="middle">OpenTelemetry SDK</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Collector"><rect x="867.86" y="0" width="95.12" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="915.42" y="27.6" text-anchor="middle">Collector</text></g></g></g></svg>

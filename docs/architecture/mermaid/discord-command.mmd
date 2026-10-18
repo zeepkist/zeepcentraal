@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant User
+  participant Discord
+  participant Bot as zc-discord
+  participant API as ZeepCentraal server
+  participant DB as Database services
+  User->>Discord: Slash command or component
+  Discord->>Bot: Interaction event
+  Bot->>Bot: Check command and permission
+  Bot->>API: Fetch or mutate requested data
+  API->>DB: Read or persist state
+  DB-->>API: Result
+  API-->>Bot: Backend response
+  Bot-->>Discord: Interaction response
+  Discord-->>User: Message or updated component

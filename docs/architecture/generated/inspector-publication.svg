@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 1109 426" width="1109" height="426" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(56.9,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="Inspector" d="M0,44V366"/><path class="pele-lifeline" data-id="Steam" d="M274.44,44V366"/><path class="pele-lifeline" data-id="Rules" d="M530.96,44V366"/><path class="pele-lifeline" data-id="DB" d="M691,44V366"/><path class="pele-lifeline" data-id="Store" d="M849.27,44V366"/><path class="pele-lifeline" data-id="Discord" d="M1000.4,44V366"/></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H267.44"/><path class="pele-marker" d="M274.44,87L266.44,90.36L266.44,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M274.44,124H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,124L8,120.64L8,127.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M0,161H523.96"/><path class="pele-marker" d="M530.96,161L522.96,164.36L522.96,157.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M530.96,198H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,198L8,194.64L8,201.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M0,235H684"/><path class="pele-marker" d="M691,235L683,238.36L683,231.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M0,272H842.27"/><path class="pele-marker" d="M849.27,272L841.27,275.36L841.27,268.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M0,309H993.4"/><path class="pele-marker" d="M1000.4,309L992.4,312.36L992.4,305.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i7"><path d="M0,346H684"/><path class="pele-marker" d="M691,346L683,349.36L683,342.64Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="137.22" y="77.4" text-anchor="middle">Load submissions and download items</text></g><g class="pele-edge-label" data-id="i1"><text x="137.22" y="114.4" text-anchor="middle">Archive files</text></g><g class="pele-edge-label" data-id="i2"><rect x="150.43" y="138" width="230.1" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="265.48" y="151.4" text-anchor="middle">Parse levels and apply contest rules</text></g><g class="pele-edge-label" data-id="i3"><rect x="151.6" y="175" width="227.76" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="265.48" y="188.4" text-anchor="middle">Valid, invalid, and diagnostic results</text></g><g class="pele-edge-label" data-id="i4"><rect x="240.95" y="212" width="209.1" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="345.5" y="225.4" text-anchor="middle">Save validation and playlist state</text></g><g class="pele-edge-label" data-id="i5"><rect x="310.75" y="249" width="227.77" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="424.63" y="262.4" text-anchor="middle">Save generated archive and playlist</text></g><g class="pele-edge-label" data-id="i6"><rect x="368.04" y="286" width="264.31" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="500.2" y="299.4" text-anchor="middle">Deliver validation and playlist notifications</text></g><g class="pele-edge-label" data-id="i7"><rect x="217.64" y="323" width="255.73" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="345.5" y="336.4" text-anchor="middle">Record delivery for restart-safe recovery</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Inspector"><rect x="-48.9" y="366" width="97.81" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="393.6" text-anchor="middle">Inspector</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Steam"><rect x="127.71" y="366" width="293.46" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="274.44" y="393.6" text-anchor="middle">Workshop metadata and downloader</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Rules"><rect x="461.16" y="366" width="139.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="530.96" y="393.6" text-anchor="middle">Level inspector</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="640.76" y="366" width="100.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="691" y="393.6" text-anchor="middle">Database</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Store"><rect x="781.24" y="366" width="136.05" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="849.27" y="393.6" text-anchor="middle">Object storage</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Discord"><rect x="957.29" y="366" width="86.22" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1000.4" y="393.6" text-anchor="middle">Discord</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Inspector"><rect x="-48.9" y="0" width="97.81" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">Inspector</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Steam"><rect x="127.71" y="0" width="293.46" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="274.44" y="27.6" text-anchor="middle">Workshop metadata and downloader</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Rules"><rect x="461.16" y="0" width="139.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="530.96" y="27.6" text-anchor="middle">Level inspector</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="640.76" y="0" width="100.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="691" y="27.6" text-anchor="middle">Database</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Store"><rect x="781.24" y="0" width="136.05" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="849.27" y="27.6" text-anchor="middle">Object storage</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Discord"><rect x="957.29" y="0" width="86.22" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1000.4" y="27.6" text-anchor="middle">Discord</text></g></g></g></svg>

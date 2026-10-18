@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 1342 252" width="1342" height="252" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Client_Middleware_0"><path d="M127.57,151.19L140.57,151.19C151.57,151.19 151.57,107.19 162.57,107.19L168.57,107.19"/><path class="pele-marker" d="M175.57,107.19L167.57,110.55L167.57,103.83Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Middleware_Routes_0"><path d="M396.5,107.19L437.5,107.19"/><path class="pele-marker" d="M444.5,107.19L436.5,110.55L436.5,103.83Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Routes_Auth_0"><path d="M620.11,95.19L666.88,95.19"/><path class="pele-marker" d="M673.88,95.19L665.88,98.55L665.88,91.83Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Auth_Service_0"><path d="M874.39,95.19L921.16,95.19"/><path class="pele-marker" d="M928.16,95.19L920.16,98.55L920.16,91.83Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Service_DB_0"><path d="M1074.4,87.19C1091.9,87.19 1091.9,40.8 1109.4,40.8L1115.4,40.8"/><path class="pele-marker" d="M1122.4,40.8L1114.4,44.16L1114.4,37.44Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Service_Queue_0"><path d="M1074.4,103.19C1091.9,103.19 1091.9,149.59 1109.4,149.59L1115.4,149.59"/><path class="pele-marker" d="M1122.4,149.59L1114.4,152.95L1114.4,146.23Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Routes_Response_0"><path d="M620.11,111.19C637.61,111.19 637.61,203.19 655.11,203.19L661.11,203.19"/><path class="pele-marker" d="M668.11,203.19L660.11,206.55L660.11,199.83Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Response_Client_0"><path d="M668.11,219.19L175.57,219.19C158.07,219.19 158.07,167.19 140.57,167.19L134.57,167.19"/><path class="pele-marker" d="M127.57,167.19L135.57,163.83L135.57,170.55Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Client" transform="translate(67.78,159.19)"><rect x="-59.78" y="-24" width="119.57" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">HTTP client</text></g><g class="pele-node pele-shape-rect" data-id="Middleware" transform="translate(286.03,107.19)"><rect x="-110.46" y="-36" width="220.93" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Request ID, limits, CORS,</tspan><tspan x="0" y="17.6">tracing</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Routes" transform="translate(532.3,107.19)"><rect x="-87.81" y="-24" width="175.62" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Axum route handler</text></g><g class="pele-node pele-shape-rect" data-id="Auth" transform="translate(774.14,95.19)"><rect x="-100.26" y="-36" width="200.51" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Bearer token or access</tspan><tspan x="0" y="17.6">cookie</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Service" transform="translate(1001.28,95.19)"><rect x="-73.12" y="-24" width="146.24" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Domain service</text></g><g class="pele-node pele-shape-cyl" data-id="DB" transform="translate(1183.98,40.8)"><path d="M-61.58,-24A61.58,8.8 0 0 1 61.58,-24V24A61.58,8.8 0 0 1 -61.58,24Z" fill="var(--_s)" stroke="var(--_b)"/><path d="M-61.58,-24A61.58,8.8 0 0 0 61.58,-24" fill="none" stroke="var(--_b)"/><text class="pele-label" x="0" y="10" text-anchor="middle">PostgreSQL</text></g><g class="pele-node pele-shape-rect" data-id="Queue" transform="translate(1228,149.59)"><rect x="-105.6" y="-36" width="211.2" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Jobs queue when task is</tspan><tspan x="0" y="17.6">asynchronous</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Response" transform="translate(774.14,207.19)"><rect x="-106.02" y="-36" width="212.05" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">JSON, redirect, or empty</tspan><tspan x="0" y="17.6">response</tspan></text></g></g></svg>

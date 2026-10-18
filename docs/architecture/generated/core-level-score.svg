@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 1330 316" width="1330" height="316" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Source_Parse_0"><path d="M180.03,132L221.03,132"/><path class="pele-marker" d="M228.03,132L220.03,135.36L220.03,128.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Parse_Canonical_0"><path d="M457.9,120C487.85,120 487.85,44 517.79,44L523.79,44"/><path class="pele-marker" d="M530.79,44L522.79,47.36L522.79,40.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Canonical_Hash_0"><path d="M715.3,44L847.65,44"/><path class="pele-marker" d="M854.65,44L846.65,47.36L846.65,40.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Parse_Legacy_0"><path d="M457.9,132L498.9,132"/><path class="pele-marker" d="M505.9,132L497.9,135.36L497.9,128.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Parse_Eligibility_0"><path d="M457.9,144C477.19,144 477.19,234 496.47,234L502.47,234"/><path class="pele-marker" d="M509.47,234L501.47,237.36L501.47,230.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Eligibility_Points_0"><path d="M736.62,226C748.66,226 748.66,184 760.69,184L848.1,184"/><path class="pele-marker" d="M855.1,184L847.1,187.36L847.1,180.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Eligibility_Excluded_0"><path d="M736.62,242C748.66,242 748.66,284 760.69,284L871.23,284"/><path class="pele-marker" d="M878.23,284L870.23,287.36L870.23,280.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Hash_Shared_0"><path d="M1074.73,44L1115.73,44"/><path class="pele-marker" d="M1122.73,44L1114.73,47.36L1114.73,40.64Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Eligibility_Points_0"><rect x="768.14" y="173.5" width="51.57" height="21" rx="3" fill="var(--_bg)"/><text x="793.92" y="188.9" text-anchor="middle">eligible</text></g><g class="pele-edge-label" data-id="L_Eligibility_Excluded_0"><rect x="762.69" y="273.5" width="62.46" height="21" rx="3" fill="var(--_bg)"/><text x="793.92" y="288.9" text-anchor="middle">ineligible</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Source" transform="translate(94.02,132)"><rect x="-86.02" y="-24" width="172.03" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">CSV or JSON level</text></g><g class="pele-node pele-shape-rect" data-id="Parse" transform="translate(342.97,132)"><rect x="-114.94" y="-24" width="229.87" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Parse format and metadata</text></g><g class="pele-node pele-shape-rect" data-id="Canonical" transform="translate(623.05,44)"><rect x="-92.26" y="-24" width="184.51" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Canonicalize content</text></g><g class="pele-node pele-shape-rect" data-id="Hash" transform="translate(964.69,44)"><rect x="-110.04" y="-36" width="220.08" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Calculate trusted XXH128</tspan><tspan x="0" y="17.6">identity</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Legacy" transform="translate(623.05,132)"><rect x="-117.14" y="-24" width="234.29" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Calculate compatibility hash</text></g><g class="pele-node pele-shape-rect" data-id="Eligibility" transform="translate(623.05,234)"><rect x="-113.58" y="-24" width="227.15" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Check level score eligibility</text></g><g class="pele-node pele-shape-rect" data-id="Points" transform="translate(964.69,184)"><rect x="-109.59" y="-36" width="219.18" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Calculate level and player</tspan><tspan x="0" y="17.6">points</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Excluded" transform="translate(964.69,284)"><rect x="-86.46" y="-24" width="172.93" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Exclude from score</text></g><g class="pele-node pele-shape-rect" data-id="Shared" transform="translate(1222.1,44)"><rect x="-99.37" y="-36" width="198.74" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Shared identity for</tspan><tspan x="0" y="17.6">persistence and clients</tspan></text></g></g></svg>

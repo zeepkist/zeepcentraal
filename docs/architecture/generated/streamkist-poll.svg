@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 584 851" width="584" height="851" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Timer_Twitch_0"><path d="M453.99,56L453.99,69C453.99,76.61 199.44,83.39 199.44,91L199.44,97"/><path class="pele-marker" d="M199.44,104L196.08,96L202.8,96Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Twitch_Candidates_0"><path d="M191.28,176L191.28,242"/><path class="pele-marker" d="M191.28,249L187.92,241L194.64,241Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Candidates_Select_0"><path d="M191.28,321L191.28,362"/><path class="pele-marker" d="M191.28,369L187.92,361L194.64,361Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Select_Changed_0"><path d="M191.28,441L191.28,482"/><path class="pele-marker" d="M191.28,489L187.92,481L194.64,481Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Changed_Discord_0"><path d="M177.49,592.43C177.49,606.99 116.26,606.99 116.26,621.55L116.26,667.05"/><path class="pele-marker" d="M116.26,674.05L112.9,666.05L119.62,666.05Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Changed_Persist_0"><path d="M205.06,592.43C205.06,633.24 369.24,633.24 369.24,674.05L369.24,763.05"/><path class="pele-marker" d="M369.24,770.05L365.88,762.05L372.6,762.05Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Discord_Persist_0"><path d="M116.26,722.05C116.26,739.55 330.77,739.55 330.77,757.05L330.77,763.05"/><path class="pele-marker" d="M330.77,770.05L327.41,762.05L334.13,762.05Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Persist_Timer_0"><path d="M407.7,770.05L407.7,757.05C407.7,739.55 575.64,739.55 575.64,722.05L575.64,104C575.64,86.5 511.74,86.5 511.74,69L511.74,63"/><path class="pele-marker" d="M511.74,56L515.1,64L508.38,64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Twitch_Retry_0"><path d="M249.91,176C249.91,185.91 419.48,186.59 419.48,196.5L419.48,242"/><path class="pele-marker" d="M419.48,249L416.12,241L422.84,241Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Retry_Timer_0"><path d="M448.26,249L448.26,104C448.26,86.5 469.99,86.5 469.99,69L469.99,63"/><path class="pele-marker" d="M469.99,56L473.35,64L466.63,64Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Changed_Discord_0"><rect x="101.36" y="623.55" width="29.78" height="21" rx="3" fill="var(--_bg)"/><text x="116.26" y="638.95" text-anchor="middle">yes</text></g><g class="pele-edge-label" data-id="L_Changed_Persist_0"><rect x="357.45" y="687.55" width="23.57" height="21" rx="3" fill="var(--_bg)"/><text x="369.24" y="702.95" text-anchor="middle">no</text></g><g class="pele-edge-label" data-id="L_Twitch_Retry_0"><rect x="400.71" y="198.5" width="37.55" height="21" rx="3" fill="var(--_bg)"/><text x="419.48" y="213.9" text-anchor="middle">error</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Timer" transform="translate(493.73,32)"><rect x="-70.02" y="-24" width="140.03" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Polling interval</text></g><g class="pele-node pele-shape-rect" data-id="Twitch" transform="translate(199.44,140)"><rect x="-102.47" y="-36" width="204.94" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Fetch stream state from</tspan><tspan x="0" y="17.6">Twitch</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Candidates" transform="translate(191.28,285)"><rect x="-101.6" y="-36" width="203.2" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Load tracked users and</tspan><tspan x="0" y="17.6">prior snapshots</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Select" transform="translate(191.28,405)"><rect x="-104.7" y="-36" width="209.39" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Match streams to</tspan><tspan x="0" y="17.6">configured tracking rows</tspan></text></g><g class="pele-node pele-shape-diam" data-id="Changed" transform="translate(191.28,545.03)"><polygon points="0,-56.02 89.64,0 0,56.02 -89.64,0" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">State changed?</text></g><g class="pele-node pele-shape-rect" data-id="Discord" transform="translate(116.26,698.05)"><rect x="-108.26" y="-24" width="216.51" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Send or edit Discord card</text></g><g class="pele-node pele-shape-rect" data-id="Persist" transform="translate(369.24,806.05)"><rect x="-90.46" y="-36" width="180.93" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Persist latest stream</tspan><tspan x="0" y="17.6">snapshot</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Retry" transform="translate(440.26,285)"><rect x="-107.38" y="-36" width="214.77" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Log failure and poll again</tspan><tspan x="0" y="17.6">later</tspan></text></g></g></svg>

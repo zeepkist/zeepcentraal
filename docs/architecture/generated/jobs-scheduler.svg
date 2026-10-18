@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 712 762" width="712" height="762" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Start_Prepare_0"><path d="M114.48,56L114.48,97"/><path class="pele-marker" d="M114.48,104L111.12,96L117.84,96Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Prepare_Retry_0"><path d="M57.45,176L57.45,633.5C57.45,651 159.97,651 159.97,668.5L159.97,674.5"/><path class="pele-marker" d="M159.97,681.5L156.61,673.5L163.33,673.5Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Prepare_Lock_0"><path d="M168.96,176C168.96,193.5 293.97,193.5 293.97,211L293.97,217"/><path class="pele-marker" d="M293.97,224L290.61,216L297.33,216Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Lock_Wait_0"><path d="M255.05,296L255.05,304.97C255.05,310.05 150.38,311.42 150.38,316.5L150.38,374"/><path class="pele-marker" d="M150.38,381L147.02,373L153.74,373Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Wait_Lock_0"><path d="M174.17,381L174.17,368C174.17,351.63 293.97,351.63 293.97,335.25L293.97,303"/><path class="pele-marker" d="M293.97,296L297.33,304L290.61,304Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Lock_Tick_0"><path d="M332.89,296L332.89,304.97C332.89,310.73 419.17,310.73 419.17,316.5L419.17,362"/><path class="pele-marker" d="M419.17,369L415.81,361L422.53,361Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Tick_Enqueue_0"><path d="M354.02,441L354.02,453.25C354.02,463.02 321.03,469 267.2,469C213.38,469 180.38,486.58 180.38,515.25L180.38,554.5"/><path class="pele-marker" d="M180.38,561.5L177.02,553.5L183.74,553.5Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Enqueue_Tick_0"><path d="M196.38,561.5L196.38,515.25C196.38,494.02 229.38,481 283.2,481C337.03,481 370.02,470.74 370.02,454L370.02,448"/><path class="pele-marker" d="M370.02,441L373.38,449L366.66,449Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Tick_Release_0"><path d="M426.24,441L426.24,554.5"/><path class="pele-marker" d="M426.24,561.5L422.88,553.5L429.6,553.5Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Release_Retry_0"><path d="M426.24,633.5C426.24,651 285.85,651 285.85,668.5L285.85,674.5"/><path class="pele-marker" d="M285.85,681.5L282.49,673.5L289.21,673.5Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Tick_Stop_0"><path d="M476.31,441L476.31,454C476.31,481.5 632.52,481.5 632.52,509L632.52,566.5"/><path class="pele-marker" d="M632.52,573.5L629.16,565.5L635.88,565.5Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Lock_Wait_0"><rect x="99.3" y="318.5" width="102.15" height="21" rx="3" fill="var(--_bg)"/><text x="150.38" y="333.9" text-anchor="middle">held elsewhere</text></g><g class="pele-edge-label" data-id="L_Lock_Tick_0"><rect x="395.71" y="318.5" width="46.91" height="21" rx="3" fill="var(--_bg)"/><text x="419.17" y="333.9" text-anchor="middle">leader</text></g><g class="pele-edge-label" data-id="L_Tick_Release_0"><rect x="356.09" y="511" width="140.3" height="21" rx="3" fill="var(--_bg)"/><text x="426.24" y="526.4" text-anchor="middle">database unavailable</text></g><g class="pele-edge-label" data-id="L_Tick_Stop_0"><rect x="598.56" y="511" width="67.92" height="21" rx="3" fill="var(--_bg)"/><text x="632.52" y="526.4" text-anchor="middle">shutdown</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Start" transform="translate(114.48,32)"><rect x="-63.79" y="-24" width="127.58" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Start runtime</text></g><g class="pele-node pele-shape-rect" data-id="Prepare" transform="translate(114.48,140)"><rect x="-106.48" y="-36" width="212.96" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Connect pools and warm</tspan><tspan x="0" y="17.6">queue</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Retry" transform="translate(222.91,717.5)"><rect x="-114.94" y="-36" width="229.87" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Retry unavailable database</tspan><tspan x="0" y="17.6">with backoff</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Lock" transform="translate(293.97,260)"><rect x="-90.92" y="-36" width="181.84" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Acquire PostgreSQL</tspan><tspan x="0" y="17.6">advisory lock</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Wait" transform="translate(158.38,405)"><rect x="-67.79" y="-24" width="135.58" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Wait and retry</text></g><g class="pele-node pele-shape-rect" data-id="Tick" transform="translate(419.17,405)"><rect x="-109.14" y="-36" width="218.29" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Check schedule and UTC</tspan><tspan x="0" y="17.6">metrics slot</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Enqueue" transform="translate(188.38,597.5)"><rect x="-102.94" y="-36" width="205.87" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Enqueue due tasks with</tspan><tspan x="0" y="17.6">stable keys</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Release" transform="translate(426.24,597.5)"><rect x="-94.92" y="-36" width="189.84" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Session ends and</tspan><tspan x="0" y="17.6">leadership reacquired</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Stop" transform="translate(632.52,597.5)"><rect x="-71.36" y="-24" width="142.72" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Stop scheduler</text></g></g></svg>

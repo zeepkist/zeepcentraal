@@ -1,0 +1,10 @@
+flowchart LR
+  DatabaseSchema[(PostgreSQL schema)] --> Introspect[PostGraphile introspection]
+  Introspect --> Schema[packages/graphql/schema.graphql]
+  Documents[Authored GraphQL documents] --> Codegen[GraphQL code generation]
+  Schema --> Codegen
+  Codegen --> Generated[Typed documents and result types]
+  Generated --> Web[Nuxt web client]
+  Generated --> Services[Other TypeScript consumers]
+  Web --> PostGraphile[GraphQL endpoint]
+  Services --> PostGraphile

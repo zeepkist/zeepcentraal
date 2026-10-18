@@ -1,0 +1,9 @@
+flowchart LR
+  Source[CSV or JSON level] --> Parse[Parse format and metadata]
+  Parse --> Canonical[Canonicalize content]
+  Canonical --> Hash[Calculate trusted XXH128 identity]
+  Parse --> Legacy[Calculate compatibility hash]
+  Parse --> Eligibility[Check level score eligibility]
+  Eligibility -->|eligible| Points[Calculate level and player points]
+  Eligibility -->|ineligible| Excluded[Exclude from score]
+  Hash --> Shared[Shared identity for persistence and clients]

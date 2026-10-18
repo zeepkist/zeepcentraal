@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 854 613" width="854" height="613" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_hw:var(--pele-heading-weight,bold);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(48.02,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="Queue" d="M0,44V553"/><path class="pele-lifeline" data-id="Lane" d="M221.5,44V553"/><path class="pele-lifeline" data-id="Handler" d="M457.83,44V553"/><path class="pele-lifeline" data-id="DB" d="M669.89,44V553"/></g><g class="pele-frames" font-size="14" stroke="var(--_b)"><g class="pele-frame pele-frame-alt"><rect x="-20" y="247" width="497.83" height="249" fill="none" style="rx:var(--_r)"/><path d="M-20,319H477.83" stroke-dasharray="4 4"/><rect x="-15" y="323" width="68.24" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text class="pele-frame-label" fill="var(--_m)" stroke="none" x="19.12" y="336.4" text-anchor="middle">[Deferred]</text><path d="M-20,389H477.83" stroke-dasharray="4 4"/><rect x="-15" y="393" width="51.91" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text class="pele-frame-label" fill="var(--_m)" stroke="none" x="10.95" y="406.4" text-anchor="middle">[Failed]</text><rect x="-20" y="247" width="28" height="20" fill="var(--_s)" style="rx:var(--_r)"/><text class="pele-frame-kind" x="-6" y="261.2" text-anchor="middle" font-size="12" font-weight="var(--_hw)" fill="var(--_m)" stroke="none">alt</text><text class="pele-frame-label" fill="var(--_m)" stroke="none" x="53.74" y="262.4" text-anchor="middle">[Completed]</text></g></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M221.5,87H7"/><path class="pele-marker" d="M0,87L8,83.64L8,90.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M0,124H214.5" stroke-dasharray="4 4"/><path class="pele-marker" d="M221.5,124L213.5,127.36L213.5,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M221.5,161H450.83"/><path class="pele-marker" d="M457.83,161L449.83,164.36L449.83,157.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M457.83,198H662.89"/><path class="pele-marker" d="M669.89,198L661.89,201.36L661.89,194.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M669.89,235H464.83" stroke-dasharray="4 4"/><path class="pele-marker" d="M457.83,235L465.83,231.64L465.83,238.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M457.83,307H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,307L8,303.64L8,310.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i8"><path d="M457.83,377H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,377L8,373.64L8,380.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i10"><path d="M457.83,447H228.5" stroke-dasharray="4 4"/><path class="pele-marker" d="M221.5,447L229.5,443.64L229.5,450.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i11"><path d="M221.5,484H7"/><path class="pele-marker" d="M0,484L8,480.64L8,487.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i13"><path d="M221.5,533H7"/><path class="pele-marker" d="M0,533L8,529.64L8,536.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="110.75" y="77.4" text-anchor="middle">Claim jobs up to lane capacity</text></g><g class="pele-edge-label" data-id="i1"><text x="110.75" y="114.4" text-anchor="middle">Claimed jobs</text></g><g class="pele-edge-label" data-id="i2"><text x="339.67" y="151.4" text-anchor="middle">Dispatch typed task and payload</text></g><g class="pele-edge-label" data-id="i3"><text x="563.86" y="188.4" text-anchor="middle">Execute task effects</text></g><g class="pele-edge-label" data-id="i4"><text x="563.86" y="225.4" text-anchor="middle">Result</text></g><g class="pele-edge-label" data-id="i6"><rect x="177.69" y="284" width="102.46" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="228.92" y="297.4" text-anchor="middle">Complete claim</text></g><g class="pele-edge-label" data-id="i8"><rect x="147.33" y="354" width="163.16" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="228.92" y="367.4" text-anchor="middle">Defer for later processing</text></g><g class="pele-edge-label" data-id="i10"><text x="339.67" y="437.4" text-anchor="middle">Return error</text></g><g class="pele-edge-label" data-id="i11"><text x="110.75" y="474.4" text-anchor="middle">Let claim lease expire for retry</text></g><g class="pele-edge-label" data-id="i13"><text x="110.75" y="523.4" text-anchor="middle">Heartbeat active claims</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Queue"><rect x="-40.02" y="553" width="80.03" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="580.6" text-anchor="middle">Queue</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Lane"><rect x="146.37" y="553" width="150.27" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="221.5" y="580.6" text-anchor="middle">Fast or bulk lane</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Handler"><rect x="413.82" y="553" width="88.02" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="457.83" y="580.6" text-anchor="middle">Handler</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="541.84" y="553" width="256.1" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="669.89" y="580.6" text-anchor="middle">Database and external services</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Queue"><rect x="-40.02" y="0" width="80.03" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">Queue</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Lane"><rect x="146.37" y="0" width="150.27" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="221.5" y="27.6" text-anchor="middle">Fast or bulk lane</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Handler"><rect x="413.82" y="0" width="88.02" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="457.83" y="27.6" text-anchor="middle">Handler</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="541.84" y="0" width="256.1" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="669.89" y="27.6" text-anchor="middle">Database and external services</text></g></g></g></svg>

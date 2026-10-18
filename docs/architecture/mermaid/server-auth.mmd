@@ -1,0 +1,14 @@
+sequenceDiagram
+  participant Browser
+  participant API as zc-server
+  participant Provider as OAuth provider
+  participant DB as Database
+  Browser->>API: Start provider login
+  API->>Provider: Redirect for authorization
+  Provider-->>API: Callback with authorization code
+  API->>Provider: Exchange code and fetch identity
+  API->>DB: Resolve or create linked user
+  API-->>Browser: Set access and refresh cookies
+  Browser->>API: Refresh request with cookie
+  API->>DB: Validate refresh session
+  API-->>Browser: Rotate session cookies

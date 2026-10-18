@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 512 665" width="512" height="665" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Input_Detect_0"><path d="M253.62,56L253.62,97"/><path class="pele-marker" d="M253.62,104L250.26,96L256.98,96Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Detect_Decode_0"><path d="M253.62,176L253.62,217"/><path class="pele-marker" d="M253.62,224L250.26,216L256.98,216Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Decode_Bounds_0"><path d="M253.62,272L253.62,313"/><path class="pele-marker" d="M253.62,320L250.26,312L256.98,312Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Bounds_Stats_0"><path d="M204.92,392C204.92,402.25 119.81,402.25 119.81,412.5L119.81,458"/><path class="pele-marker" d="M119.81,465L116.45,457L123.17,457Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Bounds_Reject_0"><path d="M302.33,392C302.33,402.25 387.44,402.25 387.44,412.5L387.44,458"/><path class="pele-marker" d="M387.44,465L384.08,457L390.8,457Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Stats_Consumer_0"><path d="M119.81,537L119.81,578"/><path class="pele-marker" d="M119.81,585L116.45,577L123.17,577Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Bounds_Stats_0"><rect x="101.42" y="414.5" width="36.78" height="21" rx="3" fill="var(--_bg)"/><text x="119.81" y="429.9" text-anchor="middle">valid</text></g><g class="pele-edge-label" data-id="L_Bounds_Reject_0"><rect x="363.6" y="414.5" width="47.68" height="21" rx="3" fill="var(--_bg)"/><text x="387.44" y="429.9" text-anchor="middle">invalid</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Input" transform="translate(253.62,32)"><rect x="-106.48" y="-24" width="212.96" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Compressed ghost bytes</text></g><g class="pele-node pele-shape-rect" data-id="Detect" transform="translate(253.62,140)"><rect x="-104.26" y="-36" width="208.51" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Detect compression and</tspan><tspan x="0" y="17.6">version</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Decode" transform="translate(253.62,248)"><rect x="-109.14" y="-24" width="218.29" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Decode versioned frames</text></g><g class="pele-node pele-shape-rect" data-id="Bounds" transform="translate(253.62,356)"><rect x="-100.7" y="-36" width="201.41" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Check byte, frame, and</tspan><tspan x="0" y="17.6">time limits</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Stats" transform="translate(119.81,501)"><rect x="-111.81" y="-36" width="223.62" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Derive positions, surfaces,</tspan><tspan x="0" y="17.6">and statistics</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Reject" transform="translate(387.44,501)"><rect x="-115.82" y="-36" width="231.65" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Return decode or validation</tspan><tspan x="0" y="17.6">error</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Consumer" transform="translate(119.81,621)"><rect x="-84.24" y="-36" width="168.48" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Playback or server</tspan><tspan x="0" y="17.6">validation</tspan></text></g></g></svg>

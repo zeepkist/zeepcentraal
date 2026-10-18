@@ -1,0 +1,9 @@
+flowchart TD
+  Page[Level or record page] --> Select[Select record and ghost URL]
+  Select --> Fetch[Fetch compressed ghost and level assets]
+  Fetch --> Cache[Reuse bounded browser cache when available]
+  Cache --> Decode[Decode supported ghost version, up to 3 concurrent loads]
+  Decode --> Schedule[Schedule frames against playback clock]
+  Schedule --> Scene[Render car, level, and analysis overlays]
+  Decode -->|unsupported or corrupt| Error[Show playback error]
+  Fetch -->|unavailable| Error

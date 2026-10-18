@@ -1,0 +1,14 @@
+sequenceDiagram
+  participant Client
+  participant Elysia
+  participant Middleware as Logging, CORS, telemetry
+  participant Handler as Grafserv handler
+  participant Cost as Query cost and admission controls
+  participant PG as PostgreSQL via Bun SQL
+  Client->>Elysia: POST / with GraphQL payload
+  Elysia->>Middleware: Apply request plugins
+  Middleware->>Handler: Dispatch GraphQL request
+  Handler->>Cost: Validate and admit operation
+  Cost->>PG: Execute with role and query limits
+  PG-->>Handler: Data or execution errors
+  Handler-->>Client: GraphQL response

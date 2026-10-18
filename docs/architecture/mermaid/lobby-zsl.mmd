@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> Practice
+  Practice --> Warmup: scheduled tournament begins
+  Warmup --> Tournament: confirmed level transition
+  Tournament --> NextRound: round deadline and results finalized
+  NextRound --> Warmup: next round has warmup
+  NextRound --> Tournament: next round starts directly
+  Tournament --> Completed: final round ends
+  Practice --> Retired: event cancelled or room closes
+  Warmup --> Retired: event cancelled or room closes
+  Tournament --> Retired: event cancelled or room closes
+  Completed --> [*]
+  Retired --> [*]

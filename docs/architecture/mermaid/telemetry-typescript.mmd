@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant App as Elysia or Nuxt server
+  participant Plugin as Telemetry plugin
+  participant Logger
+  participant OTel as OpenTelemetry SDK
+  participant Collector
+  App->>Plugin: Bootstrap service instrumentation
+  Plugin->>Logger: Configure structured request logging
+  Plugin->>OTel: Configure tracing, metrics, and fetch instrumentation
+  App->>Plugin: Handle request
+  Plugin->>Logger: Record safe request outcome
+  Plugin->>OTel: Record span and runtime metrics
+  OTel->>Collector: Export telemetry when configured

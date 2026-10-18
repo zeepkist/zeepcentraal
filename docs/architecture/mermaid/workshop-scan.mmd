@@ -1,0 +1,17 @@
+flowchart TD
+  Request[Workshop IDs] --> Metadata[Fetch Steam metadata]
+  Metadata --> Available{Available and downloadable?}
+  Available -->|permanently unavailable| Delete[Mark associated items deleted]
+  Available -->|inaccessible| Inaccessible[Mark items deleted for visibility]
+  Available -->|yes| Batch[Split IDs into download batches]
+  Batch --> Download[Download with SteamCMD]
+  Download --> Parse[Discover and parse level files]
+  Parse --> Persist[Upsert levels, items, metadata, and thumbnails]
+  Persist --> Missing[Mark no-longer-downloaded files deleted]
+  Download -->|batch failure| Split{More than one item?}
+  Split -->|yes| Batch
+  Split -->|one item| Failure[Return transient failure without deleting]
+  Delete --> Result[Return scan status and changed IDs]
+  Inaccessible --> Result
+  Missing --> Result
+  Failure --> Result

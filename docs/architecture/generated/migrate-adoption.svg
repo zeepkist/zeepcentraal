@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 952 579" width="952" height="579" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_hw:var(--pele-heading-weight,bold);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(40,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="CLI" d="M0,44V519"/><path class="pele-lifeline" data-id="Config" d="M286.13,44V519"/><path class="pele-lifeline" data-id="Adoption" d="M447.05,44V519"/><path class="pele-lifeline" data-id="DB" d="M727.72,44V519"/><path class="pele-lifeline" data-id="Diesel" d="M865.52,44V519"/></g><g class="pele-frames" font-size="14" stroke="var(--_b)"><g class="pele-frame pele-frame-alt"><rect x="-20" y="247" width="905.52" height="252" fill="none" style="rx:var(--_r)"/><path d="M-20,430H885.52" stroke-dasharray="4 4"/><rect x="-15" y="434" width="88.47" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text class="pele-frame-label" fill="var(--_m)" stroke="none" x="29.24" y="447.4" text-anchor="middle">[Verify mode]</text><rect x="-20" y="247" width="28" height="20" fill="var(--_s)" style="rx:var(--_r)"/><text class="pele-frame-kind" x="-6" y="261.2" text-anchor="middle" font-size="12" font-weight="var(--_hw)" fill="var(--_m)" stroke="none">alt</text><text class="pele-frame-label" fill="var(--_m)" stroke="none" x="57.64" y="262.4" text-anchor="middle">[Adopt mode]</text></g></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H279.13"/><path class="pele-marker" d="M286.13,87L278.13,90.36L278.13,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M0,124H440.05"/><path class="pele-marker" d="M447.05,124L439.05,127.36L439.05,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M447.05,161H720.72"/><path class="pele-marker" d="M727.72,161L719.72,164.36L719.72,157.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M727.72,198H454.05" stroke-dasharray="4 4"/><path class="pele-marker" d="M447.05,198L455.05,194.64L455.05,201.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M447.05,235H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,235L8,231.64L8,238.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M0,307H858.52"/><path class="pele-marker" d="M865.52,307L857.52,310.36L857.52,303.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i7"><path d="M865.52,344H734.72"/><path class="pele-marker" d="M727.72,344L735.72,340.64L735.72,347.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i8"><path d="M727.72,381H858.52" stroke-dasharray="4 4"/><path class="pele-marker" d="M865.52,381L857.52,384.36L857.52,377.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i9"><path d="M865.52,418H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,418L8,414.64L8,421.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i11"><path d="M0,465H22A6,6 0 0 1 28,471V481A6,6 0 0 1 22,487H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,487L8,483.64L8,490.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="143.06" y="77.4" text-anchor="middle">Load database URL and migration folder</text></g><g class="pele-edge-label" data-id="i1"><rect x="126.01" y="101" width="195.03" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="223.53" y="114.4" text-anchor="middle">Verify Drizzle migration history</text></g><g class="pele-edge-label" data-id="i2"><text x="587.39" y="151.4" text-anchor="middle">Compare expected history and baseline</text></g><g class="pele-edge-label" data-id="i3"><text x="587.39" y="188.4" text-anchor="middle">Existing migration state</text></g><g class="pele-edge-label" data-id="i4"><text x="223.53" y="225.4" text-anchor="middle">Adoption report</text></g><g class="pele-edge-label" data-id="i6"><rect x="329.78" y="284" width="205.96" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="432.76" y="297.4" text-anchor="middle">Apply pending Diesel migrations</text></g><g class="pele-edge-label" data-id="i7"><text x="796.62" y="334.4" text-anchor="middle">Run migrations</text></g><g class="pele-edge-label" data-id="i8"><text x="796.62" y="371.4" text-anchor="middle">Applied versions</text></g><g class="pele-edge-label" data-id="i9"><rect x="381.92" y="395" width="101.69" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="432.76" y="408.4" text-anchor="middle">Migration result</text></g><g class="pele-edge-label" data-id="i11"><text x="100.57" y="480.9" text-anchor="middle">Skip migration writes</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="CLI"><rect x="-32" y="519" width="64" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="546.6" text-anchor="middle">CLI</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Config"><rect x="247.01" y="519" width="78.24" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="286.13" y="546.6" text-anchor="middle">Config</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Adoption"><rect x="365.25" y="519" width="163.62" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="447.05" y="546.6" text-anchor="middle">Migration adoption</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="668.14" y="519" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="727.72" y="546.6" text-anchor="middle">PostgreSQL</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Diesel"><rect x="827.3" y="519" width="76.45" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="865.52" y="546.6" text-anchor="middle">Diesel</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="CLI"><rect x="-32" y="0" width="64" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">CLI</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Config"><rect x="247.01" y="0" width="78.24" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="286.13" y="27.6" text-anchor="middle">Config</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Adoption"><rect x="365.25" y="0" width="163.62" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="447.05" y="27.6" text-anchor="middle">Migration adoption</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="668.14" y="0" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="727.72" y="27.6" text-anchor="middle">PostgreSQL</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Diesel"><rect x="827.3" y="0" width="76.45" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="865.52" y="27.6" text-anchor="middle">Diesel</text></g></g></g></svg>

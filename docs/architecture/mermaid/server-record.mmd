@@ -1,0 +1,17 @@
+sequenceDiagram
+  participant Mod as GTR mod
+  participant API as zc-server
+  participant Core as zc-core validation
+  participant DB as zc-database
+  participant Store as Object storage
+  participant Jobs as zc-jobs queue
+  Mod->>API: Submit record with bearer JWT
+  API->>API: Verify GTR provider and mod version
+  API->>Core: Decode and validate ghost evidence
+  Core-->>API: Validation result
+  API->>Store: Upload accepted ghost bytes
+  API->>DB: Persist record, evidence, and statistics
+  opt Follow-up work required
+    API->>Jobs: Enqueue allowlisted task
+  end
+  API-->>Mod: Contract response

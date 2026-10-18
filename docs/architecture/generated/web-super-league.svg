@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 1155 611" width="1155" height="611" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(40.89,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="User" d="M0,44V551"/><path class="pele-lifeline" data-id="Page" d="M195.07,44V551"/><path class="pele-lifeline" data-id="Route" d="M476.49,44V551"/><path class="pele-lifeline" data-id="API" d="M752.48,44V551"/><path class="pele-lifeline" data-id="DB" d="M1054.95,44V551"/></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H188.07"/><path class="pele-marker" d="M195.07,87L187.07,90.36L187.07,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M195.07,124H469.49"/><path class="pele-marker" d="M476.49,124L468.49,127.36L468.49,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M476.49,161H745.48"/><path class="pele-marker" d="M752.48,161L744.48,164.36L744.48,157.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M752.48,198H1047.95"/><path class="pele-marker" d="M1054.95,198L1046.95,201.36L1046.95,194.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M1054.95,235H759.48" stroke-dasharray="4 4"/><path class="pele-marker" d="M752.48,235L760.48,231.64L760.48,238.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M752.48,272H483.49" stroke-dasharray="4 4"/><path class="pele-marker" d="M476.49,272L484.49,268.64L484.49,275.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M476.49,309H202.07" stroke-dasharray="4 4"/><path class="pele-marker" d="M195.07,309L203.07,305.64L203.07,312.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i7"><path d="M195.07,346H469.49"/><path class="pele-marker" d="M476.49,346L468.49,349.36L468.49,342.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i8"><path d="M476.49,383H745.48"/><path class="pele-marker" d="M752.48,383L744.48,386.36L744.48,379.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i9"><path d="M752.48,420H1047.95"/><path class="pele-marker" d="M1054.95,420L1046.95,423.36L1046.95,416.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i10"><path d="M1054.95,457H759.48" stroke-dasharray="4 4"/><path class="pele-marker" d="M752.48,457L760.48,453.64L760.48,460.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i11"><path d="M752.48,494H202.07" stroke-dasharray="4 4"/><path class="pele-marker" d="M195.07,494L203.07,490.64L203.07,497.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i12"><path d="M195.07,531H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,531L8,527.64L8,534.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="97.54" y="77.4" text-anchor="middle">Select level and submit</text></g><g class="pele-edge-label" data-id="i1"><text x="335.78" y="114.4" text-anchor="middle">Send submission request</text></g><g class="pele-edge-label" data-id="i2"><text x="614.49" y="151.4" text-anchor="middle">Forward session-authenticated request</text></g><g class="pele-edge-label" data-id="i3"><text x="903.71" y="188.4" text-anchor="middle">Validate contest state and save submission</text></g><g class="pele-edge-label" data-id="i4"><text x="903.71" y="225.4" text-anchor="middle">Submission ID and state</text></g><g class="pele-edge-label" data-id="i5"><text x="614.49" y="262.4" text-anchor="middle">Submission status</text></g><g class="pele-edge-label" data-id="i6"><text x="335.78" y="299.4" text-anchor="middle">Return status</text></g><g class="pele-edge-label" data-id="i7"><text x="335.78" y="336.4" text-anchor="middle">Poll submission status when processing</text></g><g class="pele-edge-label" data-id="i8"><text x="614.49" y="373.4" text-anchor="middle">Read submission state</text></g><g class="pele-edge-label" data-id="i9"><text x="903.71" y="410.4" text-anchor="middle">Load current status</text></g><g class="pele-edge-label" data-id="i10"><text x="903.71" y="447.4" text-anchor="middle">Validation and publication status</text></g><g class="pele-edge-label" data-id="i11"><rect x="423.69" y="471" width="100.16" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="473.78" y="484.4" text-anchor="middle">Updated status</text></g><g class="pele-edge-label" data-id="i12"><text x="97.54" y="521.4" text-anchor="middle">Show result or next action</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="User"><rect x="-32.89" y="551" width="65.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="578.6" text-anchor="middle">User</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Page"><rect x="142.61" y="551" width="104.93" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="195.07" y="578.6" text-anchor="middle">Nuxt page</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Route"><rect x="408.47" y="551" width="136.05" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="476.49" y="578.6" text-anchor="middle">Nuxt API route</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="API"><rect x="695.59" y="551" width="113.79" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="752.48" y="578.6" text-anchor="middle">Rust server</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="1004.71" y="551" width="100.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1054.95" y="578.6" text-anchor="middle">Database</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="User"><rect x="-32.89" y="0" width="65.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">User</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Page"><rect x="142.61" y="0" width="104.93" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="195.07" y="27.6" text-anchor="middle">Nuxt page</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Route"><rect x="408.47" y="0" width="136.05" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="476.49" y="27.6" text-anchor="middle">Nuxt API route</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="API"><rect x="695.59" y="0" width="113.79" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="752.48" y="27.6" text-anchor="middle">Rust server</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="1004.71" y="0" width="100.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1054.95" y="27.6" text-anchor="middle">Database</text></g></g></g></svg>

@@ -1,0 +1,13 @@
+sequenceDiagram
+  participant Feature as Web feature
+  participant Document as Generated document
+  participant Client as GraphQL client
+  participant API as PostGraphile
+  participant DB as PostgreSQL
+  Feature->>Document: Select typed query or mutation
+  Feature->>Client: Execute operation with variables
+  Client->>API: Send GraphQL request
+  API->>DB: Resolve operation under database role and limits
+  DB-->>API: Result data or errors
+  API-->>Client: GraphQL response
+  Client-->>Feature: Typed result state

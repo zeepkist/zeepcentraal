@@ -1,0 +1,12 @@
+sequenceDiagram
+  participant User
+  participant Discord
+  participant Bot as Streamkist
+  participant DB as Database
+  User->>Discord: Run tracking command
+  Discord->>Bot: Slash command or component interaction
+  Bot->>Bot: Check permissions and parse control
+  Bot->>DB: Read or update tracking configuration
+  DB-->>Bot: Current or updated state
+  Bot-->>Discord: Respond with controls or status card
+  Discord-->>User: Interaction response

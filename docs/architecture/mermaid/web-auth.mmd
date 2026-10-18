@@ -1,0 +1,18 @@
+sequenceDiagram
+  participant Browser
+  participant Nuxt as Nuxt server route
+  participant API as Rust server
+  participant Store as Session cookie
+  Browser->>Nuxt: Request protected page
+  Nuxt->>Store: Read access and refresh cookies
+  Nuxt->>API: Fetch authenticated data
+  alt Access token valid
+    API-->>Nuxt: Return user data
+  else Access token expired
+    Nuxt->>API: POST auth/web/refresh
+    API-->>Nuxt: Rotated access and refresh cookies
+    Nuxt->>Store: Update cookies on response
+    Nuxt->>API: Retry authenticated request
+    API-->>Nuxt: Return user data
+  end
+  Nuxt-->>Browser: Render protected page

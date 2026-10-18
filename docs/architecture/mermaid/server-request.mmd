@@ -1,0 +1,9 @@
+flowchart LR
+  Client[HTTP client] --> Middleware[Request ID, limits, CORS, tracing]
+  Middleware --> Routes[Axum route handler]
+  Routes --> Auth[Bearer token or access cookie]
+  Auth --> Service[Domain service]
+  Service --> DB[(PostgreSQL)]
+  Service --> Queue[Jobs queue when task is asynchronous]
+  Routes --> Response[JSON, redirect, or empty response]
+  Response --> Client

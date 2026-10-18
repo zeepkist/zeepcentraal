@@ -1,0 +1,15 @@
+stateDiagram-v2
+  [*] --> Locked
+  Locked --> Preview: dry run
+  Locked --> Configured: configure rules and digest
+  Configured --> Frozen: contest already frozen
+  Configured --> Scheduled: schedule is due
+  Scheduled --> Downloading: fetch submission metadata and workshop items
+  Downloading --> Validating: inspect downloaded archives
+  Downloading --> Deferred: transient failure
+  Validating --> Finalizing: persist validation outcomes
+  Finalizing --> Published: build final archive and playlist
+  Finalizing --> Deferred: processing error
+  Published --> [*]
+  Preview --> [*]
+  Frozen --> [*]

@@ -1,0 +1,7 @@
+flowchart TD
+  Input[Compressed ghost bytes] --> Detect[Detect compression and version]
+  Detect --> Decode[Decode versioned frames]
+  Decode --> Bounds[Check byte, frame, and time limits]
+  Bounds -->|valid| Stats[Derive positions, surfaces, and statistics]
+  Bounds -->|invalid| Reject[Return decode or validation error]
+  Stats --> Consumer[Playback or server validation]

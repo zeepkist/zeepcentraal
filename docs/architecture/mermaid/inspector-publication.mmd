@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant Inspector
+  participant Steam as Workshop metadata and downloader
+  participant Rules as Level inspector
+  participant DB as Database
+  participant Store as Object storage
+  participant Discord
+  Inspector->>Steam: Load submissions and download items
+  Steam-->>Inspector: Archive files
+  Inspector->>Rules: Parse levels and apply contest rules
+  Rules-->>Inspector: Valid, invalid, and diagnostic results
+  Inspector->>DB: Save validation and playlist state
+  Inspector->>Store: Save generated archive and playlist
+  Inspector->>Discord: Deliver validation and playlist notifications
+  Inspector->>DB: Record delivery for restart-safe recovery

@@ -1,0 +1,12 @@
+flowchart TD
+  Start[Start runtime] --> Prepare[Connect pools and warm queue]
+  Prepare --> Retry[Retry unavailable database with backoff]
+  Prepare --> Lock[Acquire PostgreSQL advisory lock]
+  Lock -->|held elsewhere| Wait[Wait and retry]
+  Wait --> Lock
+  Lock -->|leader| Tick[Check schedule and UTC metrics slot]
+  Tick --> Enqueue[Enqueue due tasks with stable keys]
+  Enqueue --> Tick
+  Tick -->|database unavailable| Release[Session ends and leadership reacquired]
+  Release --> Retry
+  Tick -->|shutdown| Stop[Stop scheduler]

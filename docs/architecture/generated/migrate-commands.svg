@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 823 980" width="823" height="980" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Args_Adventure_0"><path d="M226.76,56L226.76,97"/><path class="pele-marker" d="M226.76,104L223.4,96L230.12,96Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Adventure_Generate_0"><path d="M174.03,264.23C174.03,290.95 109.15,290.95 109.15,317.68L109.15,385.97"/><path class="pele-marker" d="M109.15,392.97L105.79,384.97L112.51,384.97Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Adventure_Optimize_0"><path d="M279.48,264.23C279.48,290.95 344.36,290.95 344.36,317.68L344.36,363.18"/><path class="pele-marker" d="M344.36,370.18L341,362.18L347.72,362.18Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Optimize_OptimizeDB_0"><path d="M327.93,477.48C327.93,492.86 231.42,492.86 231.42,508.25L231.42,573.76"/><path class="pele-marker" d="M231.42,580.76L228.06,572.76L234.78,572.76Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Optimize_History_0"><path d="M360.79,477.48C360.79,492.86 457.3,492.86 457.3,508.25L457.3,553.75"/><path class="pele-marker" d="M457.3,560.75L453.94,552.75L460.66,552.75Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_History_Inspect_0"><path d="M443.53,664.16C443.53,678.72 336.8,678.72 336.8,693.27L336.8,755.45"/><path class="pele-marker" d="M336.8,762.45L333.44,754.45L340.16,754.45Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_History_Mode_0"><path d="M471.07,664.16C471.07,678.72 577.8,678.72 577.8,693.27L577.8,738.77"/><path class="pele-marker" d="M577.8,745.77L574.44,737.77L581.16,737.77Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Mode_Verify_0"><path d="M567.22,844.52C567.22,865.33 451.76,865.33 451.76,886.13L451.76,892.13"/><path class="pele-marker" d="M451.76,899.13L448.4,891.13L455.12,891.13Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Mode_Adopt_0"><path d="M588.37,844.52C588.37,865.33 703.83,865.33 703.83,886.13L703.83,892.13"/><path class="pele-marker" d="M703.83,899.13L700.47,891.13L707.19,891.13Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Adventure_Generate_0"><rect x="94.26" y="319.68" width="29.78" height="21" rx="3" fill="var(--_bg)"/><text x="109.15" y="335.08" text-anchor="middle">yes</text></g><g class="pele-edge-label" data-id="L_Adventure_Optimize_0"><rect x="332.58" y="319.68" width="23.57" height="21" rx="3" fill="var(--_bg)"/><text x="344.36" y="335.08" text-anchor="middle">no</text></g><g class="pele-edge-label" data-id="L_Optimize_OptimizeDB_0"><rect x="216.53" y="510.25" width="29.78" height="21" rx="3" fill="var(--_bg)"/><text x="231.42" y="525.65" text-anchor="middle">yes</text></g><g class="pele-edge-label" data-id="L_Optimize_History_0"><rect x="445.51" y="510.25" width="23.57" height="21" rx="3" fill="var(--_bg)"/><text x="457.3" y="525.65" text-anchor="middle">no</text></g><g class="pele-edge-label" data-id="L_History_Inspect_0"><rect x="321.9" y="695.27" width="29.78" height="21" rx="3" fill="var(--_bg)"/><text x="336.8" y="710.67" text-anchor="middle">yes</text></g><g class="pele-edge-label" data-id="L_History_Mode_0"><rect x="566.01" y="695.27" width="23.57" height="21" rx="3" fill="var(--_bg)"/><text x="577.8" y="710.67" text-anchor="middle">no</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Args" transform="translate(226.76,32)"><rect x="-70.46" y="-24" width="140.93" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">CLI arguments</text></g><g class="pele-node pele-shape-diam" data-id="Adventure" transform="translate(226.76,200.59)"><polygon points="0,-96.59 154.54,0 0,96.59 -154.54,0" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">generate-adventure-environment?</text></g><g class="pele-node pele-shape-rect" data-id="Generate" transform="translate(109.15,428.97)"><rect x="-101.15" y="-36" width="202.3" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Read source folder and</tspan><tspan x="0" y="17.6">write SQL</tspan></text></g><g class="pele-node pele-shape-diam" data-id="Optimize" transform="translate(344.36,428.97)"><polygon points="0,-58.78 94.06,0 0,58.79 -94.06,0" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">optimize-history?</text></g><g class="pele-node pele-shape-rect" data-id="OptimizeDB" transform="translate(231.42,616.76)"><rect x="-96.26" y="-36" width="192.51" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Run requested history</tspan><tspan x="0" y="17.6">operation</tspan></text></g><g class="pele-node pele-shape-diam" data-id="History" transform="translate(457.3,616.76)"><polygon points="0,-56.01 89.62,0 0,56.01 -89.62,0" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">inspect-history?</text></g><g class="pele-node pele-shape-rect" data-id="Inspect" transform="translate(336.8,798.45)"><rect x="-116.71" y="-36" width="233.42" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Inspect migration folder and</tspan><tspan x="0" y="17.6">print report</tspan></text></g><g class="pele-node pele-shape-diam" data-id="Mode" transform="translate(577.8,798.45)"><polygon points="0,-52.68 84.29,0 0,52.68 -84.29,0" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">verify or adopt</text></g><g class="pele-node pele-shape-rect" data-id="Verify" transform="translate(451.76,935.13)"><rect x="-101.58" y="-36" width="203.15" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Check migration history</tspan><tspan x="0" y="17.6">only</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Adopt" transform="translate(703.83,935.13)"><rect x="-110.5" y="-36" width="220.99" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Verify adoption then apply</tspan><tspan x="0" y="17.6">pending Diesel migrations</tspan></text></g></g></svg>

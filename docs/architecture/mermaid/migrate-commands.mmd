@@ -1,0 +1,10 @@
+flowchart TD
+  Args[CLI arguments] --> Adventure{generate-adventure-environment?}
+  Adventure -->|yes| Generate[Read source folder and write SQL]
+  Adventure -->|no| Optimize{optimize-history?}
+  Optimize -->|yes| OptimizeDB[Run requested history operation]
+  Optimize -->|no| History{inspect-history?}
+  History -->|yes| Inspect[Inspect migration folder and print report]
+  History -->|no| Mode{verify or adopt}
+  Mode --> Verify[Check migration history only]
+  Mode --> Adopt[Verify adoption then apply pending Diesel migrations]

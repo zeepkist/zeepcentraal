@@ -1,0 +1,8 @@
+flowchart TD
+  Start[Service startup] --> Config[Read service name and OTLP configuration]
+  Config --> Enabled{Exporter configured?}
+  Enabled -->|yes| Providers[Build trace, metric, and log providers]
+  Enabled -->|no| Noop[Use disabled or no-op providers]
+  Providers --> Runtime[Instrument operations and HTTP requests]
+  Noop --> Runtime
+  Runtime --> Shutdown[Flush providers on shutdown]

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 458 833" width="458" height="833" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Page_Select_0"><path d="M247.73,56L247.73,97"/><path class="pele-marker" d="M247.73,104L244.37,96L251.09,96Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Select_Fetch_0"><path d="M247.73,176L247.73,217"/><path class="pele-marker" d="M247.73,224L244.37,216L251.09,216Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Fetch_Cache_0"><path d="M160.45,296L160.45,337"/><path class="pele-marker" d="M160.45,344L157.09,336L163.81,336Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Cache_Decode_0"><path d="M160.45,416L160.45,457"/><path class="pele-marker" d="M160.45,464L157.09,456L163.81,456Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Decode_Schedule_0"><path d="M114.04,560L114.04,626"/><path class="pele-marker" d="M114.04,633L110.68,625L117.4,625Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Schedule_Scene_0"><path d="M114.04,705L114.04,746"/><path class="pele-marker" d="M114.04,753L110.68,745L117.4,745Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Decode_Error_0"><path d="M221.16,560C221.16,570.25 281.39,570.25 281.39,580.5L281.39,638"/><path class="pele-marker" d="M281.39,645L278.03,637L284.75,637Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Fetch_Error_0"><path d="M301.32,296C301.32,320 366.2,320 366.2,344L366.2,638"/><path class="pele-marker" d="M366.2,645L362.84,637L369.56,637Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Decode_Error_0"><rect x="206.58" y="582.5" width="149.62" height="21" rx="3" fill="var(--_bg)"/><text x="281.39" y="597.9" text-anchor="middle">unsupported or corrupt</text></g><g class="pele-edge-label" data-id="L_Fetch_Error_0"><rect x="326.8" y="369.5" width="78.81" height="21" rx="3" fill="var(--_bg)"/><text x="366.2" y="384.9" text-anchor="middle">unavailable</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Page" transform="translate(247.73,32)"><rect x="-91.37" y="-24" width="182.74" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Level or record page</text></g><g class="pele-node pele-shape-rect" data-id="Select" transform="translate(247.73,140)"><rect x="-102.49" y="-36" width="204.98" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Select record and ghost</tspan><tspan x="0" y="17.6">URL</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Fetch" transform="translate(247.73,260)"><rect x="-105.59" y="-36" width="211.18" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Fetch compressed ghost</tspan><tspan x="0" y="17.6">and level assets</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Cache" transform="translate(160.45,380)"><rect x="-105.15" y="-36" width="210.3" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Reuse bounded browser</tspan><tspan x="0" y="17.6">cache when available</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Decode" transform="translate(160.45,512)"><rect x="-112.71" y="-48" width="225.42" height="96" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-18.4">Decode supported ghost</tspan><tspan x="0" y="5.6">version, up to 3 concurrent</tspan><tspan x="0" y="29.6">loads</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Schedule" transform="translate(114.04,669)"><rect x="-106.04" y="-36" width="212.08" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Schedule frames against</tspan><tspan x="0" y="17.6">playback clock</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Scene" transform="translate(114.04,789)"><rect x="-96.26" y="-36" width="192.51" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Render car, level, and</tspan><tspan x="0" y="17.6">analysis overlays</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Error" transform="translate(358.2,669)"><rect x="-90.91" y="-24" width="181.82" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Show playback error</text></g></g></svg>

@@ -1,0 +1,17 @@
+sequenceDiagram
+  participant Jobs
+  participant Scanner
+  participant Steam
+  participant Files as Level parser
+  participant DB as Database persistence
+  participant Store as Object storage
+  Jobs->>Scanner: Scan requested workshop items
+  Scanner->>Steam: Download accessible items
+  Steam-->>Scanner: Downloaded directories and cleanup handle
+  Scanner->>Files: Discover and parse .zeeplevel files
+  Files-->>Scanner: Parsed levels and thumbnails
+  Scanner->>DB: Upsert level and workshop item metadata
+  Scanner->>Store: Upload thumbnail assets
+  Scanner->>DB: Mark missing files deleted after successful scan
+  Scanner->>Steam: Clean temporary download
+  Scanner-->>Jobs: Changed IDs and transient failures

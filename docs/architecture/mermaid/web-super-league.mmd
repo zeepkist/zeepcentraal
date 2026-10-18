@@ -1,0 +1,19 @@
+sequenceDiagram
+  participant User
+  participant Page as Nuxt page
+  participant Route as Nuxt API route
+  participant API as Rust server
+  participant DB as Database
+  User->>Page: Select level and submit
+  Page->>Route: Send submission request
+  Route->>API: Forward session-authenticated request
+  API->>DB: Validate contest state and save submission
+  DB-->>API: Submission ID and state
+  API-->>Route: Submission status
+  Route-->>Page: Return status
+  Page->>Route: Poll submission status when processing
+  Route->>API: Read submission state
+  API->>DB: Load current status
+  DB-->>API: Validation and publication status
+  API-->>Page: Updated status
+  Page-->>User: Show result or next action

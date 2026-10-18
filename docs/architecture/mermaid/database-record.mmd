@@ -1,0 +1,10 @@
+flowchart TD
+  Request[Record submission] --> Find[Resolve user and level]
+  Find --> Save[Persist submitted record]
+  Save --> Validate[Record validation service]
+  Validate --> Eligibility[Update record eligibility]
+  Eligibility -->|eligible| Project[Update record statistics and score projections]
+  Eligibility -->|failed validation| Keep[Retain record as ineligible evidence]
+  Project --> History[Update history and counts as required]
+  Keep --> Read[Read services filter by eligibility]
+  History --> Read

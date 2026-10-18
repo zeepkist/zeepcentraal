@@ -1,0 +1,11 @@
+flowchart TD
+  Timer[Polling interval] --> Twitch[Fetch stream state from Twitch]
+  Twitch --> Candidates[Load tracked users and prior snapshots]
+  Candidates --> Select[Match streams to configured tracking rows]
+  Select --> Changed{State changed?}
+  Changed -->|yes| Discord[Send or edit Discord card]
+  Changed -->|no| Persist[Keep current snapshot]
+  Discord --> Persist[Persist latest stream snapshot]
+  Persist --> Timer
+  Twitch -->|error| Retry[Log failure and poll again later]
+  Retry --> Timer

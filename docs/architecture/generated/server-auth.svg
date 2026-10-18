@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 741 463" width="741" height="463" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(53.34,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="Browser" d="M0,44V403"/><path class="pele-lifeline" data-id="API" d="M228.53,44V403"/><path class="pele-lifeline" data-id="Provider" d="M468.76,44V403"/><path class="pele-lifeline" data-id="DB" d="M628.8,44V403"/></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H221.53"/><path class="pele-marker" d="M228.53,87L220.53,90.36L220.53,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M228.53,124H461.76"/><path class="pele-marker" d="M468.76,124L460.76,127.36L460.76,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M468.76,161H235.53" stroke-dasharray="4 4"/><path class="pele-marker" d="M228.53,161L236.53,157.64L236.53,164.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M228.53,198H461.76"/><path class="pele-marker" d="M468.76,198L460.76,201.36L460.76,194.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M228.53,235H621.8"/><path class="pele-marker" d="M628.8,235L620.8,238.36L620.8,231.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M228.53,272H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,272L8,268.64L8,275.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M0,309H221.53"/><path class="pele-marker" d="M228.53,309L220.53,312.36L220.53,305.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i7"><path d="M228.53,346H621.8"/><path class="pele-marker" d="M628.8,346L620.8,349.36L620.8,342.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i8"><path d="M228.53,383H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,383L8,379.64L8,386.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="114.27" y="77.4" text-anchor="middle">Start provider login</text></g><g class="pele-edge-label" data-id="i1"><text x="348.65" y="114.4" text-anchor="middle">Redirect for authorization</text></g><g class="pele-edge-label" data-id="i2"><text x="348.65" y="151.4" text-anchor="middle">Callback with authorization code</text></g><g class="pele-edge-label" data-id="i3"><text x="348.65" y="188.4" text-anchor="middle">Exchange code and fetch identity</text></g><g class="pele-edge-label" data-id="i4"><rect x="335.02" y="212" width="187.29" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="428.67" y="225.4" text-anchor="middle">Resolve or create linked user</text></g><g class="pele-edge-label" data-id="i5"><text x="114.27" y="262.4" text-anchor="middle">Set access and refresh cookies</text></g><g class="pele-edge-label" data-id="i6"><text x="114.27" y="299.4" text-anchor="middle">Refresh request with cookie</text></g><g class="pele-edge-label" data-id="i7"><rect x="350.97" y="323" width="155.39" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="428.67" y="336.4" text-anchor="middle">Validate refresh session</text></g><g class="pele-edge-label" data-id="i8"><text x="114.27" y="373.4" text-anchor="middle">Rotate session cookies</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Browser"><rect x="-45.34" y="403" width="90.67" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="430.6" text-anchor="middle">Browser</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="API"><rect x="179.64" y="403" width="97.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="228.53" y="430.6" text-anchor="middle">zc-server</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Provider"><rect x="398.96" y="403" width="139.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="468.76" y="430.6" text-anchor="middle">OAuth provider</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="578.56" y="403" width="100.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="628.8" y="430.6" text-anchor="middle">Database</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Browser"><rect x="-45.34" y="0" width="90.67" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">Browser</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="API"><rect x="179.64" y="0" width="97.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="228.53" y="27.6" text-anchor="middle">zc-server</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Provider"><rect x="398.96" y="0" width="139.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="468.76" y="27.6" text-anchor="middle">OAuth provider</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="578.56" y="0" width="100.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="628.8" y="27.6" text-anchor="middle">Database</text></g></g></g></svg>

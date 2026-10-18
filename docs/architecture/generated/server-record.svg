@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 1172 472" width="1172" height="472" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_hw:var(--pele-heading-weight,bold);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(58.67,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="Mod" d="M0,44V412"/><path class="pele-lifeline" data-id="API" d="M226.93,44V412"/><path class="pele-lifeline" data-id="Core" d="M520,44V412"/><path class="pele-lifeline" data-id="DB" d="M697.82,44V412"/><path class="pele-lifeline" data-id="Store" d="M865.42,44V412"/><path class="pele-lifeline" data-id="Jobs" d="M1039.24,44V412"/></g><g class="pele-frames" font-size="14" stroke="var(--_b)"><g class="pele-frame pele-frame-opt"><rect x="206.93" y="283" width="852.31" height="72" fill="none" style="rx:var(--_r)"/><rect x="206.93" y="283" width="32.66" height="20" fill="var(--_s)" style="rx:var(--_r)"/><text class="pele-frame-kind" x="223.26" y="297.2" text-anchor="middle" font-size="12" font-weight="var(--_hw)" fill="var(--_m)" stroke="none">opt</text><text class="pele-frame-label" fill="var(--_m)" stroke="none" x="326.17" y="298.4" text-anchor="middle">[Follow-up work required]</text></g></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H219.93"/><path class="pele-marker" d="M226.93,87L218.93,90.36L218.93,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M226.93,101H248.93A6,6 0 0 1 254.93,107V117A6,6 0 0 1 248.93,123H233.93"/><path class="pele-marker" d="M226.93,123L234.93,119.64L234.93,126.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M226.93,160H513"/><path class="pele-marker" d="M520,160L512,163.36L512,156.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M520,197H233.93" stroke-dasharray="4 4"/><path class="pele-marker" d="M226.93,197L234.93,193.64L234.93,200.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M226.93,234H858.42"/><path class="pele-marker" d="M865.42,234L857.42,237.36L857.42,230.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M226.93,271H690.82"/><path class="pele-marker" d="M697.82,271L689.82,274.36L689.82,267.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i7"><path d="M226.93,343H1032.24"/><path class="pele-marker" d="M1039.24,343L1031.24,346.36L1031.24,339.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i9"><path d="M226.93,392H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,392L8,388.64L8,395.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="113.47" y="77.4" text-anchor="middle">Submit record with bearer JWT</text></g><g class="pele-edge-label" data-id="i1"><text x="378.47" y="116.9" text-anchor="middle">Verify GTR provider and mod version</text></g><g class="pele-edge-label" data-id="i2"><text x="373.47" y="150.4" text-anchor="middle">Decode and validate ghost evidence</text></g><g class="pele-edge-label" data-id="i3"><text x="373.47" y="187.4" text-anchor="middle">Validation result</text></g><g class="pele-edge-label" data-id="i4"><rect x="452.91" y="211" width="186.54" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="546.18" y="224.4" text-anchor="middle">Upload accepted ghost bytes</text></g><g class="pele-edge-label" data-id="i5"><rect x="339.94" y="248" width="244.87" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="462.38" y="261.4" text-anchor="middle">Persist record, evidence, and statistics</text></g><g class="pele-edge-label" data-id="i7"><rect x="553.05" y="320" width="160.07" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="633.09" y="333.4" text-anchor="middle">Enqueue allowlisted task</text></g><g class="pele-edge-label" data-id="i9"><text x="113.47" y="382.4" text-anchor="middle">Contract response</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Mod"><rect x="-50.67" y="412" width="101.34" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="439.6" text-anchor="middle">GTR mod</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="API"><rect x="178.05" y="412" width="97.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="226.93" y="439.6" text-anchor="middle">zc-server</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Core"><rect x="441.76" y="412" width="156.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="520" y="439.6" text-anchor="middle">zc-core validation</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="638.24" y="412" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="697.82" y="439.6" text-anchor="middle">zc-database</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Store"><rect x="797.4" y="412" width="136.05" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="865.42" y="439.6" text-anchor="middle">Object storage</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Jobs"><rect x="973.44" y="412" width="131.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1039.24" y="439.6" text-anchor="middle">zc-jobs queue</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Mod"><rect x="-50.67" y="0" width="101.34" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">GTR mod</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="API"><rect x="178.05" y="0" width="97.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="226.93" y="27.6" text-anchor="middle">zc-server</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Core"><rect x="441.76" y="0" width="156.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="520" y="27.6" text-anchor="middle">zc-core validation</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="638.24" y="0" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="697.82" y="27.6" text-anchor="middle">zc-database</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Store"><rect x="797.4" y="0" width="136.05" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="865.42" y="27.6" text-anchor="middle">Object storage</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Jobs"><rect x="973.44" y="0" width="131.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1039.24" y="27.6" text-anchor="middle">zc-jobs queue</text></g></g></g></svg>

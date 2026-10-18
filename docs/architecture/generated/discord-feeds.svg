@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 552 689" width="552" height="689" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Timer_API_0"><path d="M291.07,56L291.07,69C291.07,80 118.92,80 118.92,91L118.92,97"/><path class="pele-marker" d="M118.92,104L115.56,96L122.28,96Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_API_Events_0"><path d="M118.92,176L118.92,217"/><path class="pele-marker" d="M118.92,224L115.56,216L122.28,216Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Events_Render_0"><path d="M118.92,296L118.92,337"/><path class="pele-marker" d="M118.92,344L115.56,336L122.28,336Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Render_Send_0"><path d="M118.92,416L118.92,457"/><path class="pele-marker" d="M118.92,464L115.56,456L122.28,456Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Send_Cursor_0"><path d="M110.92,536L110.92,602"/><path class="pele-marker" d="M110.92,609L107.56,601L114.28,601Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Send_Retry_0"><path d="M183.27,536L183.27,581.5C183.27,586.11 388.2,592.26 388.2,596.88L388.2,602"/><path class="pele-marker" d="M388.2,609L384.84,601L391.56,601Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Cursor_Timer_0"><path d="M244.2,609L244.2,596C244.2,566 316.2,566 316.2,536L316.2,63"/><path class="pele-marker" d="M316.2,56L319.56,64L312.84,64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Retry_Timer_0"><path d="M448.02,609L448.02,104C448.02,86.5 341.33,86.5 341.33,69L341.33,63"/><path class="pele-marker" d="M341.33,56L344.69,64L337.97,64Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Send_Cursor_0"><rect x="81.64" y="558.5" width="58.57" height="21" rx="3" fill="var(--_bg)"/><text x="110.92" y="573.9" text-anchor="middle">success</text></g><g class="pele-edge-label" data-id="L_Send_Retry_0"><rect x="160.2" y="558.5" width="46.12" height="21" rx="3" fill="var(--_bg)"/><text x="183.27" y="573.9" text-anchor="middle">failure</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Timer" transform="translate(316.2,32)"><rect x="-77.13" y="-24" width="154.26" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Feed worker poll</text></g><g class="pele-node pele-shape-rect" data-id="API" transform="translate(118.92,140)"><rect x="-105.17" y="-36" width="210.34" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Read enabled feeds and</tspan><tspan x="0" y="17.6">cursor</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Events" transform="translate(118.92,260)"><rect x="-98.03" y="-36" width="196.06" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Fetch activity and rank</tspan><tspan x="0" y="17.6">events</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Render" transform="translate(118.92,380)"><rect x="-110.92" y="-36" width="221.84" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Build Discord components</tspan><tspan x="0" y="17.6">and attachments</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Send" transform="translate(118.92,500)"><rect x="-102.04" y="-36" width="204.08" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Send or update Discord</tspan><tspan x="0" y="17.6">message</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Cursor" transform="translate(184.38,645)"><rect x="-111.82" y="-36" width="223.63" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Advance durable cursor or</tspan><tspan x="0" y="17.6">delivery state</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Retry" transform="translate(440.02,645)"><rect x="-103.82" y="-36" width="207.65" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Keep event available for</tspan><tspan x="0" y="17.6">later delivery</tspan></text></g></g></svg>

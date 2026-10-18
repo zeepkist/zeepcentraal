@@ -1,0 +1,11 @@
+sequenceDiagram
+  participant Client as Lobby client
+  participant Transport as Lidgren actor
+  participant UDP as UDP socket
+  participant Codec as Packet codec
+  Client->>Transport: Connect or send message
+  Transport->>Codec: Encode reliable or unreliable message
+  Codec->>UDP: Send datagram
+  UDP-->>Transport: Receive datagram or acknowledgement
+  Transport->>Transport: Order, retry, reassemble, or expire fragments
+  Transport-->>Client: Decoded game-host packet

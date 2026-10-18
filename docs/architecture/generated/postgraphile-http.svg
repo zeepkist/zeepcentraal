@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 1334 389" width="1334" height="389" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(44.45,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="Client" d="M0,44V329"/><path class="pele-lifeline" data-id="Elysia" d="M223.08,44V329"/><path class="pele-lifeline" data-id="Middleware" d="M409.79,44V329"/><path class="pele-lifeline" data-id="Handler" d="M634.73,44V329"/><path class="pele-lifeline" data-id="Cost" d="M889.02,44V329"/><path class="pele-lifeline" data-id="PG" d="M1174.44,44V329"/></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H216.08"/><path class="pele-marker" d="M223.08,87L215.08,90.36L215.08,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M223.08,124H402.79"/><path class="pele-marker" d="M409.79,124L401.79,127.36L401.79,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M409.79,161H627.73"/><path class="pele-marker" d="M634.73,161L626.73,164.36L626.73,157.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M634.73,198H882.02"/><path class="pele-marker" d="M889.02,198L881.02,201.36L881.02,194.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M889.02,235H1167.44"/><path class="pele-marker" d="M1174.44,235L1166.44,238.36L1166.44,231.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M1174.44,272H641.73" stroke-dasharray="4 4"/><path class="pele-marker" d="M634.73,272L642.73,268.64L642.73,275.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M634.73,309H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,309L8,305.64L8,312.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="111.54" y="77.4" text-anchor="middle">POST / with GraphQL payload</text></g><g class="pele-edge-label" data-id="i1"><text x="316.44" y="114.4" text-anchor="middle">Apply request plugins</text></g><g class="pele-edge-label" data-id="i2"><text x="522.26" y="151.4" text-anchor="middle">Dispatch GraphQL request</text></g><g class="pele-edge-label" data-id="i3"><text x="761.88" y="188.4" text-anchor="middle">Validate and admit operation</text></g><g class="pele-edge-label" data-id="i4"><text x="1031.73" y="225.4" text-anchor="middle">Execute with role and query limits</text></g><g class="pele-edge-label" data-id="i5"><rect x="826.51" y="249" width="156.16" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="904.59" y="262.4" text-anchor="middle">Data or execution errors</text></g><g class="pele-edge-label" data-id="i6"><text x="317.37" y="299.4" text-anchor="middle">GraphQL response</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Client"><rect x="-36.45" y="329" width="72.9" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="356.6" text-anchor="middle">Client</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Elysia"><rect x="185.75" y="329" width="74.67" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="223.08" y="356.6" text-anchor="middle">Elysia</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Middleware"><rect x="300.42" y="329" width="218.74" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="409.79" y="356.6" text-anchor="middle">Logging, CORS, telemetry</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Handler"><rect x="559.16" y="329" width="151.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="634.73" y="356.6" text-anchor="middle">Grafserv handler</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Cost"><rect x="750.31" y="329" width="277.42" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="889.02" y="356.6" text-anchor="middle">Query cost and admission controls</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="PG"><rect x="1067.73" y="329" width="213.42" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1174.44" y="356.6" text-anchor="middle">PostgreSQL via Bun SQL</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Client"><rect x="-36.45" y="0" width="72.9" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">Client</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Elysia"><rect x="185.75" y="0" width="74.67" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="223.08" y="27.6" text-anchor="middle">Elysia</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Middleware"><rect x="300.42" y="0" width="218.74" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="409.79" y="27.6" text-anchor="middle">Logging, CORS, telemetry</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Handler"><rect x="559.16" y="0" width="151.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="634.73" y="27.6" text-anchor="middle">Grafserv handler</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Cost"><rect x="750.31" y="0" width="277.42" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="889.02" y="27.6" text-anchor="middle">Query cost and admission controls</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="PG"><rect x="1067.73" y="0" width="213.42" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="1174.44" y="27.6" text-anchor="middle">PostgreSQL via Bun SQL</text></g></g></g></svg>

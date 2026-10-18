@@ -1,0 +1,12 @@
+stateDiagram-v2
+  [*] --> Prepared: profile prepares assets
+  Prepared --> Connecting: connect to game host
+  Connecting --> Active: lobby handshake succeeds
+  Connecting --> Recovering: connection fails
+  Recovering --> Connecting: retry with backoff
+  Active --> Transferring: level request observed
+  Transferring --> Active: game confirms level and state
+  Transferring --> Recovering: timeout or transport error
+  Active --> Retiring: shutdown or ownership lost
+  Recovering --> Retiring: retry exhausted or shutdown
+  Retiring --> [*]: stop session and release resources

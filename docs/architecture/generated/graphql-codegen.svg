@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 1732 188" width="1732" height="188" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_DatabaseSchema_Introspect_0"><path d="M191.62,44L232.62,44"/><path class="pele-marker" d="M239.62,44L231.62,47.36L231.62,40.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Introspect_Schema_0"><path d="M463.25,44L504.25,44"/><path class="pele-marker" d="M511.25,44L503.25,47.36L503.25,40.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Documents_Codegen_0"><path d="M737.12,144C781.96,144 781.96,102 826.81,102L832.81,102"/><path class="pele-marker" d="M839.81,102L831.81,105.36L831.81,98.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Schema_Codegen_0"><path d="M791.81,44C809.31,44 809.31,86 826.81,86L832.81,86"/><path class="pele-marker" d="M839.81,86L831.81,89.36L831.81,82.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Codegen_Generated_0"><path d="M1060.8,94L1101.8,94"/><path class="pele-marker" d="M1108.8,94L1100.8,97.36L1100.8,90.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Generated_Web_0"><path d="M1303.1,86C1323.72,86 1323.72,44 1344.33,44L1350.33,44"/><path class="pele-marker" d="M1357.33,44L1349.33,47.36L1349.33,40.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Generated_Services_0"><path d="M1303.1,102C1320.6,102 1320.6,144 1338.1,144L1344.1,144"/><path class="pele-marker" d="M1351.1,144L1343.1,147.36L1343.1,140.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Web_PostGraphile_0"><path d="M1501.81,44C1522.42,44 1522.42,86 1543.03,86L1549.03,86"/><path class="pele-marker" d="M1556.03,86L1548.03,89.36L1548.03,82.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Services_PostGraphile_0"><path d="M1508.03,144C1525.53,144 1525.53,102 1543.03,102L1549.03,102"/><path class="pele-marker" d="M1556.03,102L1548.03,105.36L1548.03,98.64Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-nodes"><g class="pele-node pele-shape-cyl" data-id="DatabaseSchema" transform="translate(99.81,44)"><path d="M-91.81,-24A91.81,12 0 0 1 91.81,-24V24A91.81,12 0 0 1 -91.81,24Z" fill="var(--_s)" stroke="var(--_b)"/><path d="M-91.81,-24A91.81,12 0 0 0 91.81,-24" fill="none" stroke="var(--_b)"/><text class="pele-label" x="0" y="11.6" text-anchor="middle">PostgreSQL schema</text></g><g class="pele-node pele-shape-rect" data-id="Introspect" transform="translate(351.43,44)"><rect x="-111.82" y="-24" width="223.63" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">PostGraphile introspection</text></g><g class="pele-node pele-shape-rect" data-id="Schema" transform="translate(651.53,44)"><rect x="-140.28" y="-24" width="280.56" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">packages/graphql/schema.graphql</text></g><g class="pele-node pele-shape-rect" data-id="Documents" transform="translate(651.53,144)"><rect x="-85.59" y="-36" width="171.18" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Authored GraphQL</tspan><tspan x="0" y="17.6">documents</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Codegen" transform="translate(950.3,94)"><rect x="-110.5" y="-24" width="220.99" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">GraphQL code generation</text></g><g class="pele-node pele-shape-rect" data-id="Generated" transform="translate(1205.95,94)"><rect x="-97.15" y="-36" width="194.3" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Typed documents and</tspan><tspan x="0" y="17.6">result types</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Web" transform="translate(1429.57,44)"><rect x="-72.24" y="-24" width="144.48" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Nuxt web client</text></g><g class="pele-node pele-shape-rect" data-id="Services" transform="translate(1429.57,144)"><rect x="-78.46" y="-36" width="156.93" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Other TypeScript</tspan><tspan x="0" y="17.6">consumers</tspan></text></g><g class="pele-node pele-shape-rect" data-id="PostGraphile" transform="translate(1639.85,94)"><rect x="-83.82" y="-24" width="167.63" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">GraphQL endpoint</text></g></g></svg>

@@ -1,0 +1,13 @@
+flowchart LR
+  Browser[Browser route] --> Nuxt[Nuxt page and composables]
+  Nuxt --> SSR{Server render?}
+  SSR -->|yes| ServerUtils[Nuxt server utilities]
+  ServerUtils --> GraphQL[PostGraphile GraphQL]
+  ServerUtils --> API[Rust API]
+  SSR -->|no| BrowserClient[Browser GraphQL or API client]
+  GraphQL --> Postgres[(PostgreSQL)]
+  API --> Postgres
+  GraphQL --> View[Typed page data]
+  API --> View
+  BrowserClient --> View
+  View --> HTML[Rendered page and hydrated state]

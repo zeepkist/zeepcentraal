@@ -1,0 +1,19 @@
+sequenceDiagram
+  participant Queue
+  participant Lane as Fast or bulk lane
+  participant Handler
+  participant DB as Database and external services
+  Lane->>Queue: Claim jobs up to lane capacity
+  Queue-->>Lane: Claimed jobs
+  Lane->>Handler: Dispatch typed task and payload
+  Handler->>DB: Execute task effects
+  DB-->>Handler: Result
+  alt Completed
+    Handler-->>Queue: Complete claim
+  else Deferred
+    Handler-->>Queue: Defer for later processing
+  else Failed
+    Handler-->>Lane: Return error
+    Lane->>Queue: Let claim lease expire for retry
+  end
+  Lane->>Queue: Heartbeat active claims

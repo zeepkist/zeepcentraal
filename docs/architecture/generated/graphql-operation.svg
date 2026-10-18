@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 1077 389" width="1077" height="389" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(67.58,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="Feature" d="M0,44V329"/><path class="pele-lifeline" data-id="Document" d="M223.87,44V329"/><path class="pele-lifeline" data-id="Client" d="M424.82,44V329"/><path class="pele-lifeline" data-id="API" d="M603.57,44V329"/><path class="pele-lifeline" data-id="DB" d="M941.81,44V329"/></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H216.87"/><path class="pele-marker" d="M223.87,87L215.87,90.36L215.87,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M0,124H417.82"/><path class="pele-marker" d="M424.82,124L416.82,127.36L416.82,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M424.82,161H596.57"/><path class="pele-marker" d="M603.57,161L595.57,164.36L595.57,157.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M603.57,198H934.81"/><path class="pele-marker" d="M941.81,198L933.81,201.36L933.81,194.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M941.81,235H610.57" stroke-dasharray="4 4"/><path class="pele-marker" d="M603.57,235L611.57,231.64L611.57,238.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M603.57,272H431.82" stroke-dasharray="4 4"/><path class="pele-marker" d="M424.82,272L432.82,268.64L432.82,275.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M424.82,309H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,309L8,305.64L8,312.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="111.93" y="77.4" text-anchor="middle">Select typed query or mutation</text></g><g class="pele-edge-label" data-id="i1"><rect x="108.65" y="101" width="207.53" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="212.41" y="114.4" text-anchor="middle">Execute operation with variables</text></g><g class="pele-edge-label" data-id="i2"><text x="514.19" y="151.4" text-anchor="middle">Send GraphQL request</text></g><g class="pele-edge-label" data-id="i3"><text x="772.69" y="188.4" text-anchor="middle">Resolve operation under database role and limits</text></g><g class="pele-edge-label" data-id="i4"><text x="772.69" y="225.4" text-anchor="middle">Result data or errors</text></g><g class="pele-edge-label" data-id="i5"><text x="514.19" y="262.4" text-anchor="middle">GraphQL response</text></g><g class="pele-edge-label" data-id="i6"><rect x="153.77" y="286" width="117.27" height="17" rx="3" fill="var(--_bg)" stroke="none"/><text x="212.41" y="299.4" text-anchor="middle">Typed result state</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Feature"><rect x="-59.58" y="329" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="356.6" text-anchor="middle">Web feature</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Document"><rect x="132.72" y="329" width="182.3" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="223.87" y="356.6" text-anchor="middle">Generated document</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Client"><rect x="355.02" y="329" width="139.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="424.82" y="356.6" text-anchor="middle">GraphQL client</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="API"><rect x="541.33" y="329" width="124.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="603.57" y="356.6" text-anchor="middle">PostGraphile</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="882.24" y="329" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="941.81" y="356.6" text-anchor="middle">PostgreSQL</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Feature"><rect x="-59.58" y="0" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">Web feature</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Document"><rect x="132.72" y="0" width="182.3" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="223.87" y="27.6" text-anchor="middle">Generated document</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Client"><rect x="355.02" y="0" width="139.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="424.82" y="27.6" text-anchor="middle">GraphQL client</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="API"><rect x="541.33" y="0" width="124.48" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="603.57" y="27.6" text-anchor="middle">PostGraphile</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="882.24" y="0" width="119.15" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="941.81" y="27.6" text-anchor="middle">PostgreSQL</text></g></g></g></svg>

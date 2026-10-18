@@ -1,0 +1,8 @@
+flowchart LR
+  Runtime[Server, jobs, lobby, and bots] --> Services[Domain service methods]
+  Services --> Adapter[Diesel async adapter]
+  Adapter --> Pool[Bounded connection pool]
+  Pool --> Postgres[(PostgreSQL)]
+  Migrate[Migrate command] --> Adoption[Drizzle history adoption check]
+  Adoption --> Diesel[Apply pending Diesel migrations]
+  Diesel --> Postgres

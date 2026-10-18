@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-state" viewBox="0 0 1149 586" width="1149" height="586" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="state"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-transition" data-id="edge0"><path d="M888.1,22L888.1,59"/><path class="pele-marker" d="M888.1,66L884.74,58L891.46,58Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge1"><path d="M880.1,110C880.1,119.12 730.05,119.38 730.05,128.5L730.05,172"/><path class="pele-marker" d="M730.05,179L726.69,171L733.41,171Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge2"><path d="M714.05,223L714.05,231.09C714.05,233.7 360.26,238.9 360.26,241.5L360.26,285"/><path class="pele-marker" d="M360.26,292L356.9,284L363.62,284Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge3"><path d="M336.26,336L336.26,348.25C336.26,358.02 290.7,364 216.37,364C142.04,364 96.49,379.2 96.49,404L96.49,450C96.49,453.4 245.22,457.85 245.22,461.25L245.22,465"/><path class="pele-marker" d="M245.22,472L241.86,464L248.58,464Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge4"><path d="M277.22,472L277.22,459C277.22,453.88 730.05,443.63 730.05,438.5L730.05,230"/><path class="pele-marker" d="M730.05,223L733.41,231L726.69,231Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge5"><path d="M261.22,472L261.22,462.38C261.22,456.19 283.23,456.19 283.23,450L283.23,404C283.23,386.64 296.34,376 317.74,376C339.14,376 352.26,365.74 352.26,349L352.26,343"/><path class="pele-marker" d="M352.26,336L355.62,344L348.9,344Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge6"><path d="M368.26,336L368.26,349C368.26,365.74 381.37,376 402.77,376C424.17,376 437.28,386.64 437.28,404L437.28,465"/><path class="pele-marker" d="M437.28,472L433.92,464L440.64,464Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge7"><path d="M896.1,110C896.1,144.5 1038.16,144.5 1038.16,179L1038.16,336C1038.16,397.5 929.6,397.5 929.6,459L929.6,465"/><path class="pele-marker" d="M929.6,472L926.24,464L932.96,464Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge8"><path d="M746.05,223L746.05,236C746.05,264 927.67,264 927.67,292L927.67,336C927.67,397.5 913.6,397.5 913.6,459L913.6,465"/><path class="pele-marker" d="M913.6,472L910.24,464L916.96,464Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge9"><path d="M384.26,336L384.26,348.25C384.26,358.02 428.96,364 501.91,364C574.86,364 619.57,379.2 619.57,404L619.57,450C619.57,452.81 897.6,458.44 897.6,461.25L897.6,465"/><path class="pele-marker" d="M897.6,472L894.24,464L900.96,464Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge10"><path d="M437.28,516C437.28,531.5 661.37,531.5 661.37,547L661.37,553"/><path class="pele-marker" d="M661.37,560L658.01,552L664.73,552Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-transition" data-id="edge11"><path d="M906.56,516C906.56,531.5 661.37,531.5 661.37,547L661.37,553"/><path class="pele-marker" d="M661.37,560L658.01,552L664.73,552Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="edge1"><rect x="634.22" y="130.5" width="191.65" height="21" rx="3" fill="var(--_bg)"/><text x="730.05" y="145.9" text-anchor="middle">scheduled tournament begins</text></g><g class="pele-edge-label" data-id="edge2"><rect x="278.84" y="243.5" width="162.83" height="21" rx="3" fill="var(--_bg)"/><text x="360.26" y="258.9" text-anchor="middle">confirmed level transition</text></g><g class="pele-edge-label" data-id="edge3"><rect x="10" y="406" width="172.98" height="42" rx="3" fill="var(--_bg)"/><text text-anchor="middle" xml:space="preserve"><tspan x="96.49" y="421.4">round deadline and results</tspan><tspan x="96.49" y="442.4">finalized</tspan></text></g><g class="pele-edge-label" data-id="edge4"><rect x="652.91" y="303.5" width="154.29" height="21" rx="3" fill="var(--_bg)"/><text x="730.05" y="318.9" text-anchor="middle">next round has warmup</text></g><g class="pele-edge-label" data-id="edge5"><rect x="202.98" y="416.5" width="160.5" height="21" rx="3" fill="var(--_bg)"/><text x="283.23" y="431.9" text-anchor="middle">next round starts directly</text></g><g class="pele-edge-label" data-id="edge6"><rect x="383.48" y="416.5" width="107.61" height="21" rx="3" fill="var(--_bg)"/><text x="437.28" y="431.9" text-anchor="middle">final round ends</text></g><g class="pele-edge-label" data-id="edge7"><rect x="937.67" y="190.5" width="200.96" height="21" rx="3" fill="var(--_bg)"/><text x="1038.16" y="205.9" text-anchor="middle">event cancelled or room closes</text></g><g class="pele-edge-label" data-id="edge8"><rect x="827.19" y="303.5" width="200.96" height="21" rx="3" fill="var(--_bg)"/><text x="927.67" y="318.9" text-anchor="middle">event cancelled or room closes</text></g><g class="pele-edge-label" data-id="edge9"><rect x="519.09" y="416.5" width="200.96" height="21" rx="3" fill="var(--_bg)"/><text x="619.57" y="431.9" text-anchor="middle">event cancelled or room closes</text></g></g><g class="pele-nodes"><g class="pele-node pele-state-start" data-id="root_start" transform="translate(888.1,15)"><circle r="7" fill="var(--_l)"/></g><g class="pele-node pele-state" data-id="Practice" transform="translate(888.1,88)"><rect x="-44.9" y="-22" width="89.79" height="44" rx="10" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Practice</text></g><g class="pele-node pele-state" data-id="Warmup" transform="translate(730.05,201)"><rect x="-46.22" y="-22" width="92.45" height="44" rx="10" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Warmup</text></g><g class="pele-node pele-state" data-id="Tournament" transform="translate(360.26,314)"><rect x="-59.13" y="-22" width="118.26" height="44" rx="10" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Tournament</text></g><g class="pele-node pele-state" data-id="NextRound" transform="translate(250.22,494)"><rect x="-56.02" y="-22" width="112.03" height="44" rx="10" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">NextRound</text></g><g class="pele-node pele-state" data-id="Completed" transform="translate(437.28,494)"><rect x="-54.68" y="-22" width="109.36" height="44" rx="10" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Completed</text></g><g class="pele-node pele-state" data-id="Retired" transform="translate(906.56,494)"><rect x="-41.78" y="-22" width="83.57" height="44" rx="10" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Retired</text></g><g class="pele-node pele-state-end" data-id="root_end" transform="translate(661.37,569)"><circle r="8.5" fill="var(--_bg)" stroke="var(--_l)"/><circle r="5" fill="var(--_l)"/></g></g></svg>

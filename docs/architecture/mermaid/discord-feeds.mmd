@@ -1,0 +1,9 @@
+flowchart TD
+  Timer[Feed worker poll] --> API[Read enabled feeds and cursor]
+  API --> Events[Fetch activity and rank events]
+  Events --> Render[Build Discord components and attachments]
+  Render --> Send[Send or update Discord message]
+  Send -->|success| Cursor[Advance durable cursor or delivery state]
+  Send -->|failure| Retry[Keep event available for later delivery]
+  Cursor --> Timer
+  Retry --> Timer

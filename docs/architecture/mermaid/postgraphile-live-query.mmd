@@ -1,0 +1,11 @@
+stateDiagram-v2
+  [*] --> Connected: WebSocket opens
+  Connected --> Preparing: receive subscription payload
+  Preparing --> Rejected: parse, operation, or schema validation fails
+  Preparing --> Active: rewrite subscription as query
+  Active --> Refreshing: invalidation signal observed
+  Refreshing --> Active: query result sent
+  Active --> Active: ping, pong, or duplicate signal
+  Active --> Closed: unsubscribe or socket closes
+  Rejected --> Closed
+  Closed --> [*]

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-sequence" viewBox="0 0 1003 462" width="1003" height="462" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="sequence"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g transform="translate(40.89,8)"><g class="pele-lifelines" fill="none" stroke="var(--_b)"><path class="pele-lifeline" data-id="User" d="M0,44V402"/><path class="pele-lifeline" data-id="Discord" d="M234.77,44V402"/><path class="pele-lifeline" data-id="Bot" d="M395.61,44V402"/><path class="pele-lifeline" data-id="API" d="M661.45,44V402"/><path class="pele-lifeline" data-id="DB" d="M872.17,44V402"/></g><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge pele-message" data-id="i0"><path d="M0,87H227.77"/><path class="pele-marker" d="M234.77,87L226.77,90.36L226.77,83.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i1"><path d="M234.77,124H388.61"/><path class="pele-marker" d="M395.61,124L387.61,127.36L387.61,120.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i2"><path d="M395.61,138H417.61A6,6 0 0 1 423.61,144V154A6,6 0 0 1 417.61,160H402.61"/><path class="pele-marker" d="M395.61,160L403.61,156.64L403.61,163.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i3"><path d="M395.61,197H654.45"/><path class="pele-marker" d="M661.45,197L653.45,200.36L653.45,193.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i4"><path d="M661.45,234H865.17"/><path class="pele-marker" d="M872.17,234L864.17,237.36L864.17,230.64Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i5"><path d="M872.17,271H668.45" stroke-dasharray="4 4"/><path class="pele-marker" d="M661.45,271L669.45,267.64L669.45,274.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i6"><path d="M661.45,308H402.61" stroke-dasharray="4 4"/><path class="pele-marker" d="M395.61,308L403.61,304.64L403.61,311.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i7"><path d="M395.61,345H241.77" stroke-dasharray="4 4"/><path class="pele-marker" d="M234.77,345L242.77,341.64L242.77,348.36Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge pele-message" data-id="i8"><path d="M234.77,382H7" stroke-dasharray="4 4"/><path class="pele-marker" d="M0,382L8,378.64L8,385.36Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="i0"><text x="117.39" y="77.4" text-anchor="middle">Slash command or component</text></g><g class="pele-edge-label" data-id="i1"><text x="315.19" y="114.4" text-anchor="middle">Interaction event</text></g><g class="pele-edge-label" data-id="i2"><text x="533.53" y="153.9" text-anchor="middle">Check command and permission</text></g><g class="pele-edge-label" data-id="i3"><text x="528.53" y="187.4" text-anchor="middle">Fetch or mutate requested data</text></g><g class="pele-edge-label" data-id="i4"><text x="766.81" y="224.4" text-anchor="middle">Read or persist state</text></g><g class="pele-edge-label" data-id="i5"><text x="766.81" y="261.4" text-anchor="middle">Result</text></g><g class="pele-edge-label" data-id="i6"><text x="528.53" y="298.4" text-anchor="middle">Backend response</text></g><g class="pele-edge-label" data-id="i7"><text x="315.19" y="335.4" text-anchor="middle">Interaction response</text></g><g class="pele-edge-label" data-id="i8"><text x="117.39" y="372.4" text-anchor="middle">Message or updated component</text></g></g><g class="pele-nodes"><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="User"><rect x="-32.89" y="402" width="65.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="429.6" text-anchor="middle">User</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Discord"><rect x="191.66" y="402" width="86.22" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="234.77" y="429.6" text-anchor="middle">Discord</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="Bot"><rect x="343.17" y="402" width="104.9" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="395.61" y="429.6" text-anchor="middle">zc-discord</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="API"><rect x="572.54" y="402" width="177.82" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="661.45" y="429.6" text-anchor="middle">ZeepCentraal server</text></g><g class="pele-node pele-actor pele-actor-participant pele-actor-footer" data-id="DB"><rect x="790.37" y="402" width="163.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="872.17" y="429.6" text-anchor="middle">Database services</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="User"><rect x="-32.89" y="0" width="65.78" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="27.6" text-anchor="middle">User</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Discord"><rect x="191.66" y="0" width="86.22" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="234.77" y="27.6" text-anchor="middle">Discord</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="Bot"><rect x="343.17" y="0" width="104.9" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="395.61" y="27.6" text-anchor="middle">zc-discord</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="API"><rect x="572.54" y="0" width="177.82" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="661.45" y="27.6" text-anchor="middle">ZeepCentraal server</text></g><g class="pele-node pele-actor pele-actor-participant" data-id="DB"><rect x="790.37" y="0" width="163.6" height="44" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="872.17" y="27.6" text-anchor="middle">Database services</text></g></g></g></svg>

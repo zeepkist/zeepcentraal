@@ -1,0 +1,15 @@
+sequenceDiagram
+  participant Game
+  participant Connection
+  participant Runtime as Room runtime
+  participant Profile
+  participant DB as Database
+  participant Publisher
+  Game->>Connection: Game-host packet
+  Connection->>Runtime: Packet plus receive timestamp
+  Runtime->>Profile: Capture receipt context
+  Runtime->>Runtime: Update roster and transfer state
+  Runtime->>Profile: Deliver confirmed packet or transfer event
+  Profile->>DB: Persist result or tournament event
+  Profile-->>Publisher: Publish accepted standings or status
+  Publisher-->>Game: Send bounded packet updates

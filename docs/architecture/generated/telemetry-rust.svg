@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pele pele-flowchart" viewBox="0 0 474 752" width="474" height="752" style="max-width:100%;height:auto;--_bg:var(--pele-bg,#fff);--_fg:var(--pele-fg,#1f1f1f);--_m:var(--pele-muted,#6e6e6e);--_l:var(--pele-line,#1f1f1f);--_s:var(--pele-surface,#f3f3f3);--_a:var(--pele-surface-alt,#e6e6e6);--_b:var(--pele-border,#8a8a8a);--_c:var(--pele-accent,#5b7bd5);color:var(--_fg);--_r:var(--pele-radius,4px);--_fm:var(--pele-font-mono,monospace);font:16px sans-serif;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;font-family:var(--pele-font,sans-serif)" fill="var(--_fg)" role="graphics-document document" aria-roledescription="flowchart"><style>
+.pele {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-muted: #6f6e69;
+	--pele-line: #100f0f;
+	--pele-surface: #f2f0e5;
+	--pele-surface-alt: #e6e4d9;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+	--pele-critical: #af3029;
+	--pele-error: #af3029;
+	--pele-series-1: #205ea6;
+	--pele-series-2: #af5b13;
+	--pele-series-3: #3f6f2e;
+	--pele-series-4: #af3029;
+	--pele-series-5: #176d68;
+	--pele-series-6: #806000;
+	--pele-series-7: #80527b;
+	--pele-series-8: #76513d;
+	--pele-title-weight: bold;
+	--pele-heading-weight: bold;
+	--pele-bold-weight: bold;
+	--pele-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.pele {
+		--pele-bg: #100f0f;
+		--pele-fg: #cecdc3;
+		--pele-muted: #878580;
+		--pele-line: #cecdc3;
+		--pele-surface: #1c1b1a;
+		--pele-surface-alt: #282726;
+		--pele-border: #403e3c;
+		--pele-accent: #75a7d2;
+		--pele-critical: #f07870;
+		--pele-error: #f07870;
+		--pele-series-1: #75a7d2;
+		--pele-series-2: #f0a45c;
+		--pele-series-3: #91c879;
+		--pele-series-4: #f07870;
+		--pele-series-5: #72c5bd;
+		--pele-series-6: #e9cf62;
+		--pele-series-7: #c69ac2;
+		--pele-series-8: #c49a7b;
+	}
+}
+</style><g class="pele-edges" fill="none" stroke="var(--_l)" stroke-linecap="round"><g class="pele-edge" data-id="L_Start_Config_0"><path d="M245.18,56L245.18,97"/><path class="pele-marker" d="M245.18,104L241.82,96L248.54,96Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Config_Enabled_0"><path d="M245.18,176L245.18,217"/><path class="pele-marker" d="M245.18,224L241.82,216L248.54,216Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Enabled_Providers_0"><path d="M220.47,343.37C220.47,361.35 120.7,361.35 120.7,379.32L120.7,424.82"/><path class="pele-marker" d="M120.7,431.82L117.34,423.82L124.06,423.82Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Enabled_Noop_0"><path d="M269.9,343.37C269.9,361.35 369.66,361.35 369.66,379.32L369.66,424.82"/><path class="pele-marker" d="M369.66,431.82L366.3,423.82L373.02,423.82Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Providers_Runtime_0"><path d="M120.7,503.82C120.7,521.32 186.25,521.32 186.25,538.82L186.25,544.82"/><path class="pele-marker" d="M186.25,551.82L182.89,543.82L189.61,543.82Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Noop_Runtime_0"><path d="M369.66,503.82C369.66,521.32 304.12,521.32 304.12,538.82L304.12,544.82"/><path class="pele-marker" d="M304.12,551.82L300.76,543.82L307.48,543.82Z" fill="var(--_l)" stroke="none"/></g><g class="pele-edge" data-id="L_Runtime_Shutdown_0"><path d="M245.18,623.82L245.18,664.82"/><path class="pele-marker" d="M245.18,671.82L241.82,663.82L248.54,663.82Z" fill="var(--_l)" stroke="none"/></g></g><g class="pele-edge-labels" font-size="14"><g class="pele-edge-label" data-id="L_Enabled_Providers_0"><rect x="105.81" y="381.32" width="29.78" height="21" rx="3" fill="var(--_bg)"/><text x="120.7" y="396.72" text-anchor="middle">yes</text></g><g class="pele-edge-label" data-id="L_Enabled_Noop_0"><rect x="357.88" y="381.32" width="23.57" height="21" rx="3" fill="var(--_bg)"/><text x="369.66" y="396.72" text-anchor="middle">no</text></g></g><g class="pele-nodes"><g class="pele-node pele-shape-rect" data-id="Start" transform="translate(245.18,32)"><rect x="-71.35" y="-24" width="142.7" height="48" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Service startup</text></g><g class="pele-node pele-shape-rect" data-id="Config" transform="translate(245.18,140)"><rect x="-102.48" y="-36" width="204.96" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Read service name and</tspan><tspan x="0" y="17.6">OTLP configuration</tspan></text></g><g class="pele-node pele-shape-diam" data-id="Enabled" transform="translate(245.18,291.41)"><polygon points="0,-67.41 107.86,0 0,67.41 -107.86,0" fill="var(--_s)" stroke="var(--_b)"/><text class="pele-label" x="0" y="5.6" text-anchor="middle">Exporter configured?</text></g><g class="pele-node pele-shape-rect" data-id="Providers" transform="translate(120.7,467.82)"><rect x="-112.7" y="-36" width="225.41" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Build trace, metric, and log</tspan><tspan x="0" y="17.6">providers</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Noop" transform="translate(369.66,467.82)"><rect x="-96.26" y="-36" width="192.51" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Use disabled or no-op</tspan><tspan x="0" y="17.6">providers</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Runtime" transform="translate(245.18,587.82)"><rect x="-110.94" y="-36" width="221.87" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Instrument operations and</tspan><tspan x="0" y="17.6">HTTP requests</tspan></text></g><g class="pele-node pele-shape-rect" data-id="Shutdown" transform="translate(245.18,707.82)"><rect x="-83.8" y="-36" width="167.6" height="72" fill="var(--_s)" stroke="var(--_b)" style="rx:var(--_r)"/><text class="pele-label" text-anchor="middle" xml:space="preserve"><tspan x="0" y="-6.4">Flush providers on</tspan><tspan x="0" y="17.6">shutdown</tspan></text></g></g></svg>
