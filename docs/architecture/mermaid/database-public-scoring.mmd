@@ -1,0 +1,18 @@
+flowchart LR
+  records["record + record_validation"] --> projections["personal_best_global · world_record_global"]
+  records --> stats["record_statistic · player_skill_aggregate"]
+  records --> contribution["user_point_contribution"]
+  contribution --> userTotals["user_points"]
+  contribution --> levelTotals["level_points"]
+  userTotals --> userHistory["user_points_history"]
+  levelTotals --> levelHistory["level_points_history"]
+  records --> historyIndex["zc_private.record_history_index"]
+  historyIndex --> historyView["public.record_history_entry"]
+  historyIndex -. prepared mirror .-> facts["zc_private.record_history_fact"]
+  facts --> rollout["history_fact_rollout · history_fact_dirty"]
+  points["user_points + level_points"] --> prune["points_history_prune_state"]
+  source["public row changes"] --> invalidations["live_query_invalidations"]
+  invalidations --> poller["PostGraphile invalidation poller"]
+  poller --> clients["live-query subscribers"]
+  metrics["global_metrics_snapshot"] --> fn["public.global_metrics()"]
+  fn --> clients

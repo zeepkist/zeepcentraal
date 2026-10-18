@@ -1,0 +1,23 @@
+flowchart LR
+  app["server · jobs · worker producers"] --> enqueue["zc_jobs.enqueue(lane, task, payload)"]
+  enqueue --> meta["zc_jobs.job: lane + id PK · task + payload · attempts + max_attempts · generation · running + lease_until · job_key + lock_group"]
+  enqueue --> fast["pgmq.q_zeepcentraal_fast: msg_id PK · message · headers · read_ct · vt · timestamps"]
+  enqueue --> bulk["pgmq.q_zeepcentraal_bulk: msg_id PK · message · headers · read_ct · vt · timestamps"]
+  meta --> claim["zc_jobs.claim"]
+  fast --> claim
+  bulk --> claim
+  claim --> handler["task handler"]
+  handler --> heartbeat["zc_jobs.heartbeat"]
+  heartbeat --> meta
+  heartbeat --> queue["pgmq q-table visibility timeout"]
+  handler --> finish["zc_jobs.finish"]
+  finish -->|success or superseded| delete["delete queue message and job metadata"]
+  finish -->|retry| retry["clear running lease and delay q-table message"]
+  finish -->|invalid or exhausted| archive["pgmq archive tables"]
+  fast --> fastArchive["pgmq.a_zeepcentraal_fast: msg_id · message · archived_at"]
+  bulk --> bulkArchive["pgmq.a_zeepcentraal_bulk: msg_id · message · archived_at"]
+  pgmeta["pgmq.meta"] --> fast
+  pgmeta --> bulk
+  throttle["pgmq.notify_insert_throttle"] --> pgmeta
+  topics["pgmq.topic_bindings"] --> pgmeta
+  transfer["zc_jobs.transfer: source_id PK · message_id · transferred_at · no current runtime references found"]

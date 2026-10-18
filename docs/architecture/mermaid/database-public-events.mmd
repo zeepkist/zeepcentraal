@@ -1,0 +1,51 @@
+erDiagram
+  user ||--o{ lobby : hosts
+  lobby ||--o{ lobby_history : records
+  level ||--o{ track_tournament : hosts
+  track_tournament ||--o{ track_tournament_result : yields
+  record ||--o{ track_tournament_result : proves
+  user ||--o{ track_tournament_result : earns
+  zsl_season ||--o{ zsl_round : contains
+  zsl_season ||--o{ zsl_season_result : totals
+  zsl_round ||--o{ zsl_level : schedules
+  zsl_round ||--o{ zsl_round_result : totals
+  zsl_level ||--o{ zsl_level_result : scores
+  zsl_points_structure ||--o{ zsl_season : scores_with
+  user ||--o{ zsl_level_result : earns
+  user ||--o{ zsl_round_result : earns
+  user ||--o{ zsl_season_result : earns
+  user ||--o{ discord_activity_event : generates
+  level ||--o{ discord_activity_event : context
+  discord_activity_event {
+    bigint id PK
+    int id_user FK
+    int id_level FK
+    text event_type
+  }
+  lobby_stats {
+    bigint id PK
+    int players
+    int rooms
+    timestamptz date_created
+  }
+  track_tournament {
+    int id PK
+    int id_level FK
+  }
+  track_tournament_result {
+    int id PK
+    int id_tournament FK
+    int id_record FK
+  }
+  zsl_season {
+    int id PK
+  }
+  zsl_round {
+    int id PK
+    int id_season FK
+  }
+  zsl_level {
+    int id PK
+    int id_round FK
+    int id_level FK
+  }

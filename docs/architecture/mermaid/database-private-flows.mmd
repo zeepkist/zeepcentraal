@@ -1,0 +1,29 @@
+flowchart LR
+  user["public.user"] --> link["discord_link_code · discord_oauth_link_state"]
+  user --> prefs["discord_user_preference · discord_watch"]
+  event["public.discord_activity_event"] --> delivery["discord_delivery · discord_digest"]
+  config["discord_guild_config · discord_guild_feed"] --> delivery
+  delivery --> worker["discord_worker_state · discord_rank_batch_state"]
+  event --> tournamentMsg["discord_tournament_message"]
+  submitter["public.user"] --> submissions["level_submissions"]
+  submissions --> validation["level_submission_validation"]
+  submissions --> contest["level_submission_contest · level_submission_vote"]
+  submissions --> playlist["level_submission_playlist · level_submission_playlist_entry"]
+  playlist --> notifications["level_submission_notification · level_submission_playlist_notification"]
+  contest --> level["public.level"]
+  managed["managed_lobby · managed room join identifiers"]
+  assets["track_tournament_lobby_asset"]
+  assets --> tournament["public.track_tournament"]
+  practice["zsl_practice_playlist"] --> round["public.zsl_round"]
+  state["zsl_tournament_state · zsl_tournament_level_state"] --> provisional["zsl_provisional_level_result"]
+  provisional --> zsl["public.zsl_level_result · public.zsl_round_result"]
+  record["public.record"] --> validationRecord["record_validation · record_run"]
+  lineage["level_version_lineage"] --> level
+  visibility["level_record_count · visible_level · visible_level_item · visible_workshop_item"] --> publicData["public.level · level_item · workshop_item"]
+  history["record_history_index"] --> publicHistory["public.record_history_entry"]
+  fact["record_history_fact"] -. prepared sync .-> history
+  rollout["history_fact_rollout · history_fact_dirty"] --> fact
+  metrics["global_metrics_snapshot"] --> publicMetrics["public.global_metrics()"]
+  donation["donations"] --> donationView["public.donations view"]
+  donationView --> userDonation["public.user_donation(user)"]
+  prune["points_history_prune_state"] --> points["public.user_points_history · level_points_history"]

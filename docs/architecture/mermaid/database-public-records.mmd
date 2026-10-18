@@ -1,0 +1,50 @@
+erDiagram
+  user ||--o{ auth : owns
+  user ||--o{ record : submits
+  level ||--o{ record : receives
+  level ||--o{ level_item : has
+  workshop_item ||--o{ level_item : contains
+  level ||--o| level_metadata : describes
+  level ||--o{ favourite : favorited
+  user ||--o{ favourite : creates
+  level ||--o{ vote : receives
+  user ||--o{ vote : casts
+  record ||--o{ record_media : includes
+  record ||--o{ record_statistic : measures
+  level ||--o{ personal_best_global : ranks
+  user ||--o{ personal_best_global : owns
+  record ||--o{ personal_best_global : supports
+  level ||--o| world_record_global : ranks
+  record ||--o| world_record_global : supports
+  user ||--o{ user_point_contribution : earns
+  level ||--o{ user_point_contribution : awards
+  record ||--o{ user_point_contribution : proves
+  user ||--o| user_points : total
+  user ||--o{ user_points_history : history
+  level ||--o{ level_points : total
+  level ||--o{ level_points_history : history
+  user ||--o{ level_request : requests
+  user {
+    int id PK
+    bigint steam_id
+    bigint discord_id
+  }
+  level {
+    int id PK
+    text xx_hash UK
+    text hash
+  }
+  level_item {
+    int id PK
+    int id_level FK
+    bigint workshop_id FK
+  }
+  workshop_item {
+    bigint workshop_id PK
+  }
+  record {
+    int id PK
+    int id_level FK
+    int id_user FK
+    int time
+  }

@@ -1,0 +1,33 @@
+flowchart LR
+  subgraph public["public application data"]
+    user["user"]
+    level["level + level_item + workshop_item"]
+    record["record + scoring projections"]
+    event["discord_activity_event"]
+    lobby["lobby + tournament + ZSL"]
+  end
+  subgraph private["zc_private owned state"]
+    validation["record_validation · record_run"]
+    discord["delivery · watch · config state"]
+    submissions["submission · contest · playlist state"]
+    managed["managed_lobby · tournament assets"]
+    history["record_history_index → record_history_entry view"]
+  end
+  subgraph queue["zc_jobs + pgmq"]
+    job["job metadata"]
+    queueRows["lane queue rows"]
+    archive["archived failures"]
+  end
+  user --> record
+  level --> record
+  record --> validation
+  record --> event
+  event --> discord
+  user --> submissions
+  submissions --> level
+  lobby -->|service enqueues| job
+  submissions -->|service enqueues| job
+  record -->|service enqueues| job
+  job <--> queueRows
+  queueRows --> archive
+  record --> history
