@@ -55,6 +55,8 @@
 			"!packages/web/.nuxt",
 			"!packages/web/.output",
 			"!packages/graphql/src/generated",
+			"!docs/architecture/generated/**/*.svg",
+			"!docs/architecture/mermaid/generated/**/*.svg",
 			"!packages/web/public/assets/block-meshes",
 			"!packages/web/test-results"
 		]
