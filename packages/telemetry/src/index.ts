@@ -1,5 +1,6 @@
 export * from './config'
 export * from './fetch'
+export * from './httpError'
 export * from './logger'
 export * from './requestLogging'
 export * from './runtimeMetrics'

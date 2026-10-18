@@ -22,16 +22,21 @@ import {
 	type TelemetryConfigInput,
 	type TelemetryPackageName,
 } from './config'
-import { installTelemetryConsoleBridge, uninstallTelemetryConsoleBridge } from './logger'
+import {
+	installTelemetryConsoleBridge,
+	type TelemetryConsoleOptions,
+	uninstallTelemetryConsoleBridge,
+} from './logger'
 import { registerRuntimeMemoryMetrics } from './runtimeMetrics'
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.WARN)
 
 let sdk: NodeSDK | undefined
 
-export type NodeTelemetryOptions = TelemetryConfigInput & {
-	autoInstrumentations?: readonly string[]
-}
+export type NodeTelemetryOptions = TelemetryConfigInput &
+	TelemetryConsoleOptions & {
+		autoInstrumentations?: readonly string[]
+	}
 
 export function createTraceExporter(collectorUrl: string) {
 	return new OTLPTraceExporter({ url: collectorUrl })
@@ -129,7 +134,7 @@ export function startNodeTelemetry(input: NodeTelemetryOptions) {
 	try {
 		sdk.start()
 		registerRuntimeMemoryMetrics()
-		installTelemetryConsoleBridge()
+		installTelemetryConsoleBridge({ shouldExportLog: input.shouldExportLog })
 		return true
 	} catch (error) {
 		sdk = undefined
@@ -140,7 +145,7 @@ export function startNodeTelemetry(input: NodeTelemetryOptions) {
 
 export function startNodeTelemetryFromEnvironment(
 	packageName: TelemetryPackageName,
-	options: { autoInstrumentations?: readonly string[] } = {},
+	options: Pick<NodeTelemetryOptions, 'autoInstrumentations' | 'shouldExportLog'> = {},
 ) {
 	return startNodeTelemetry({
 		packageName,
@@ -153,6 +158,7 @@ export function startNodeTelemetryFromEnvironment(
 		serviceVersion:
 			process.env.OTEL_SERVICE_VERSION ?? process.env.OPENTELEMETRY_SERVICE_VERSION,
 		autoInstrumentations: options.autoInstrumentations,
+		shouldExportLog: options.shouldExportLog,
 	})
 }
 

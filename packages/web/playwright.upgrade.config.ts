@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const development = process.env.PLAYWRIGHT_HYDRATION_RUNTIME === 'development'
+const channel =
+	process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === 'win32' ? 'chrome' : undefined)
+
 export default defineConfig({
 	testDir: 'tests',
 	testMatch: ['upgrade/*.e2e.ts', 'e2e/*.e2e.ts'],
@@ -12,12 +16,15 @@ export default defineConfig({
 			reuseExistingServer: false,
 		},
 		{
-			command:
-				'bun --no-env-file --preload ./tests/upgrade/fetch.ts --bun .output/server/telemetry.mjs',
+			command: development
+				? 'bun --no-env-file --preload ./tests/upgrade/fetch.ts --bun nuxt dev --host 127.0.0.1 --port 4173'
+				: 'bun --no-env-file --preload ./tests/upgrade/fetch.ts --bun .output/server/telemetry.mjs',
 			url: 'http://127.0.0.1:4173/healthz',
 			reuseExistingServer: false,
+			timeout: 180_000,
 			env: {
-				NODE_ENV: 'production',
+				NODE_ENV: development ? 'development' : 'production',
+				NUXT_ENABLE_DEVTOOLS: 'false',
 				NITRO_HOST: '127.0.0.1',
 				NITRO_PORT: '4173',
 				NUXT_PUBLIC_BACKEND_URL: 'http://127.0.0.1:4198',
@@ -34,11 +41,14 @@ export default defineConfig({
 		screenshot: 'only-on-failure',
 		trace: 'retain-on-failure',
 		baseURL: 'http://127.0.0.1:4173',
-		channel:
-			process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === 'win32' ? 'chrome' : undefined),
 	},
 	projects: [
-		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-		{ name: 'mobile', use: { ...devices['Pixel 7'] } },
+		{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel } },
+		{
+			name: 'firefox',
+			testMatch: '**/upgrade/hydration.e2e.ts',
+			use: { ...devices['Desktop Firefox'] },
+		},
+		{ name: 'mobile', use: { ...devices['Pixel 7'], channel } },
 	],
 })

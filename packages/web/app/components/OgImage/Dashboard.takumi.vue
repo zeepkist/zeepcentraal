@@ -23,21 +23,21 @@ const metrics = [
 		label: t('dashboard.totals.distance.total'),
 		value: `${oneDecimal.format(distance / 1000)} ${t('dashboard.totals.units.kilometres')}`,
 	},
-	{ label: t('dashboard.metrics.levels'), value: number.format(critical?.levels?.totalCount ?? 0) },
+	{ label: t('dashboard.metrics.levels'), value: number.format(critical?.levels ?? 0) },
 	{
 		label: t('dashboard.metrics.rankedAndTotalPlayers'),
-		value: `${number.format(critical?.rankedUsers?.totalCount ?? 0)} / ${number.format(
-			critical?.totalUsers?.totalCount ?? 0,
+		value: `${number.format(critical?.rankedPlayers ?? 0)} / ${number.format(
+			critical?.players ?? 0,
 		)}`,
 	},
-	{ label: t('dashboard.metrics.records'), value: number.format(critical?.records?.totalCount ?? 0) },
+	{ label: t('dashboard.metrics.records'), value: number.format(critical?.records ?? 0) },
 	{
 		label: t('dashboard.metrics.worldRecords'),
-		value: number.format(critical?.worldRecordGlobals?.totalCount ?? 0),
+		value: number.format(critical?.worldRecords ?? 0),
 	},
 	{
 		label: t('dashboard.metrics.personalBests'),
-		value: number.format(critical?.personalBestGlobals?.totalCount ?? 0),
+		value: number.format(critical?.personalBests ?? 0),
 	},
 ]
 </script>

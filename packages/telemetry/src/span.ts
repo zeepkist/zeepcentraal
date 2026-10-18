@@ -9,6 +9,7 @@ import {
 	SpanStatusCode,
 	trace,
 } from '@opentelemetry/api'
+import { getHttpErrorStatus } from './httpError'
 
 export { SpanKind }
 
@@ -17,6 +18,7 @@ export type TelemetryAttributes = Attributes
 export type TelemetrySpanOptions = {
 	attributes?: TelemetryAttributes
 	kind?: SpanKind
+	shouldRecordError?: (error: unknown) => boolean
 }
 
 export type TelemetryHttpServerSpanInput = {
@@ -184,7 +186,11 @@ export async function withActiveSpan<T>(
 			if (!span.hasErrorStatus()) span.setOkStatus()
 			return value
 		} catch (error) {
-			recordSpanError(error, undefined, span)
+			if (options.shouldRecordError?.(error) === false) {
+				const status = getHttpErrorStatus(error)
+				if (status !== undefined) span.setAttribute('http.response.status_code', status)
+				if (!span.hasErrorStatus()) span.setOkStatus()
+			} else recordSpanError(error, undefined, span)
 			throw error
 		} finally {
 			span.end()

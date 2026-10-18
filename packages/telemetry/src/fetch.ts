@@ -24,6 +24,8 @@ export type TracedFetchOptions = {
 	fetch?: typeof fetch
 	operationName?: string
 	attributes?: Record<string, string | number | boolean>
+	shouldRecordError?: (error: unknown) => boolean
+	isErrorResponse?: (response: Response) => boolean
 }
 
 export async function tracedFetch(
@@ -42,6 +44,7 @@ export async function tracedFetch(
 			options.operationName ?? `${method} ${url.host}`,
 			{
 				kind: SpanKind.CLIENT,
+				shouldRecordError: options.shouldRecordError,
 				attributes: {
 					'http.request.method': method,
 					'server.address': url.hostname,
@@ -60,7 +63,7 @@ export async function tracedFetch(
 					'http.response.status_code': response.status,
 					'http.response.body.size': Number(response.headers.get('content-length') ?? 0),
 				})
-				if (!response.ok) {
+				if (options.isErrorResponse?.(response) ?? !response.ok) {
 					span.addEvent('error', {
 						'error.type': 'http.response',
 						'http.response.status_code': response.status,

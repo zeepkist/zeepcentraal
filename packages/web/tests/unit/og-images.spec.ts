@@ -269,12 +269,12 @@ describe('OG image data-source contracts', () => {
 		const dashboard = source('components/OgImage/Dashboard.takumi.vue')
 		const records = source('components/OgImage/Records.takumi.vue')
 
-		expect(dashboard).toContain('critical?.rankedUsers?.totalCount')
-		expect(dashboard).toContain('critical?.totalUsers?.totalCount')
-		expect(records).toContain('data?.recordsDay?.totalCount')
-		expect(records).toContain('data?.personalBestGlobalsDay?.totalCount')
-		expect(records).toContain('data?.worldRecordGlobalsDay?.totalCount')
-		expect(records).toContain("t('dashboard.metrics.past24Hours')")
+		expect(dashboard).toContain('critical?.rankedPlayers')
+		expect(dashboard).toContain('critical?.players')
+		expect(records).toContain('data?.recordsToday')
+		expect(records).toContain('data?.personalBestsToday')
+		expect(records).toContain('data?.worldRecordsToday')
+		expect(records).toContain("t('dashboard.metrics.today')")
 	})
 
 	test('uses bounded dense standings layouts for stacked leaderboard renderers', () => {

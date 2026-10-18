@@ -22,9 +22,9 @@ describe('private level metadata presentation', () => {
 		const visibilityFilter = 'publiclyVisible: { equalTo: true }'
 		const expectedFilterCounts = {
 			adventure: 18,
-			dashboard: 5,
+			dashboard: 2,
 			dashboardViewer: 1,
-			homeStats: 1,
+			homeStats: 0,
 			search: 1,
 			sitemap: 4,
 			userLevels: 3,

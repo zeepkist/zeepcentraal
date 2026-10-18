@@ -1,6 +1,7 @@
 import { SpanKind, withActiveSpan, withExtractedTraceContext } from '@zeepkist/telemetry'
 import { getRequestHeaders, getRequestURL } from 'h3'
 import { defineNitroPlugin } from 'nitropack/runtime'
+import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { resolveTelemetryRoute } from '../utils/telemetryRoute'
 
 const STATIC_PATH =
@@ -17,6 +18,7 @@ export default defineNitroPlugin((nitroApp) => {
 				`${method} ${url.pathname}`,
 				{
 					kind: SpanKind.SERVER,
+					shouldRecordError: shouldRecordWebError,
 					attributes: {
 						'http.request.method': method,
 						'url.path': url.pathname,

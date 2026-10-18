@@ -65,8 +65,9 @@ function toggle() {
 	<UButton
 		:color="added ? 'error' : 'primary'"
 		variant="solid"
+		autocomplete="off"
 		:icon="added ? 'i-tabler-playlist-x' : 'i-tabler-playlist-add'"
-		:disabled="!added && !canAdd"
+		:disabled="!store.hydrated || (!added && !canAdd)"
 		:aria-label="accessibleLabel"
 		:title="accessibleLabel"
 		@click.prevent.stop="toggle"

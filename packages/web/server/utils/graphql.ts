@@ -2,6 +2,7 @@ import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { injectTraceHeaders, withActiveSpan } from '@zeepkist/telemetry'
 import { getOperationAST, print } from 'graphql'
 import { createError, useRuntimeConfig } from 'nuxt/server'
+import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 
 export async function fetchGraphql<TData, TVariables>(
 	document: TypedDocumentNode<TData, TVariables>,
@@ -11,6 +12,7 @@ export async function fetchGraphql<TData, TVariables>(
 	return withActiveSpan(
 		`${operation?.operation ?? 'query'} ${operation?.name?.value ?? 'anonymous'}`,
 		{
+			shouldRecordError: shouldRecordWebError,
 			attributes: {
 				'graphql.operation.type': operation?.operation ?? 'query',
 				'graphql.operation.name': operation?.name?.value ?? 'anonymous',

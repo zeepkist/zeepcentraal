@@ -16,19 +16,19 @@ const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value, 'compact-one-decimal')
 const data = await useOgRecordCountsData()
 const recentLabel = (label: string) =>
-	`${label} · ${t('dashboard.metrics.past24Hours')}`
+	`${label} · ${t('dashboard.metrics.today')}`
 const metrics = [
 	{
 		label: recentLabel(t('pages.records.tabs.recent')),
-		value: number.format(data?.recordsDay?.totalCount ?? 0),
+		value: number.format(data?.recordsToday ?? 0),
 	},
 	{
 		label: recentLabel(t('pages.records.tabs.personalBests')),
-		value: number.format(data?.personalBestGlobalsDay?.totalCount ?? 0),
+		value: number.format(data?.personalBestsToday ?? 0),
 	},
 	{
 		label: recentLabel(t('pages.records.tabs.worldRecords')),
-		value: number.format(data?.worldRecordGlobalsDay?.totalCount ?? 0),
+		value: number.format(data?.worldRecordsToday ?? 0),
 	},
 ]
 </script>

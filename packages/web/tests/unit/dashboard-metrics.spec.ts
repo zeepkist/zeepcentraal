@@ -11,13 +11,6 @@ const querySource = readFileSync(
 	new URL('../../../graphql/documents/web/queries/dashboard.graphql', import.meta.url),
 	'utf8',
 )
-const subscriptionSource = readFileSync(
-	new URL(
-		'../../../graphql/documents/web/subscriptions/dashboardMetrics.graphql',
-		import.meta.url,
-	),
-	'utf8',
-)
 const dashboardMetricCopy = (
 	JSON.parse(readFileSync(new URL('../../i18n/locales/en.json', import.meta.url), 'utf8')) as {
 		dashboard: { metrics: Record<string, string> }
@@ -74,26 +67,6 @@ it('formats the London metric month using the active locale', () => {
 describe('dashboard metric GraphQL', () => {
 	it('uses count-only metrics and exactly six levels for every activity window', () => {
 		const document = parse(querySource)
-		const metricFragment = document.definitions.find(
-			(definition) =>
-				definition.kind === Kind.FRAGMENT_DEFINITION &&
-				definition.name.value === 'ZC_DashboardMetricCounts',
-		)
-		expect(metricFragment?.kind).toBe(Kind.FRAGMENT_DEFINITION)
-		if (metricFragment?.kind !== Kind.FRAGMENT_DEFINITION) return
-
-		for (const field of metricFragment.selectionSet.selections) {
-			if (field.kind !== Kind.FIELD) continue
-			expect(
-				field.arguments?.find((argument) => argument.name.value === 'first'),
-			).toMatchObject({
-				value: { kind: Kind.INT, value: '0' },
-			})
-			expect(field.arguments?.some((argument) => argument.name.value === 'offset')).toBe(
-				false,
-			)
-		}
-
 		const criticalQuery = document.definitions.find(
 			(definition) =>
 				definition.kind === Kind.OPERATION_DEFINITION &&
@@ -165,45 +138,6 @@ describe('dashboard metric GraphQL', () => {
 		expect(
 			periodRecords.arguments?.find((argument) => argument.name.value === 'first'),
 		).toMatchObject({ value: { kind: Kind.INT, value: '0' } })
-
-		const subscription = parse(subscriptionSource).definitions[0]
-		expect(subscription).toMatchObject({
-			kind: Kind.OPERATION_DEFINITION,
-			operation: 'subscription',
-		})
-		if (subscription?.kind !== Kind.OPERATION_DEFINITION) return
-		expect(subscription.selectionSet.selections).toHaveLength(1)
-		expect(subscription.selectionSet.selections[0]).toMatchObject({
-			kind: Kind.FIELD,
-			name: { value: 'query' },
-			selectionSet: {
-				selections: [
-					{
-						kind: Kind.FRAGMENT_SPREAD,
-						name: { value: 'ZC_DashboardMetricCounts' },
-					},
-				],
-			},
-		})
-	})
-
-	it('deduplicates active users across records, workshop levels, and Super League only', () => {
-		const dayStart = querySource.indexOf('activeUsersDay: users(')
-		const monthStart = querySource.indexOf('activeUsersMonth: users(')
-		const dayFilter = querySource.slice(dayStart, monthStart)
-		const monthFilter = querySource.slice(
-			monthStart,
-			querySource.indexOf('\n}\n\nquery ZC_DashboardCritical'),
-		)
-
-		for (const filter of [dayFilter, monthFilter]) {
-			expect(filter).toContain('records:')
-			expect(filter).toContain('levelItems:')
-			expect(filter).toContain('deleted: { equalTo: false }')
-			expect(filter).toContain('zslLevelResults:')
-			expect(filter).toContain('eventDate:')
-			expect(filter).not.toContain('votes:')
-		}
 	})
 })
 
@@ -223,12 +157,12 @@ describe('dashboard metric presentation', () => {
 		expect(card).toContain(':aria-label="valueLabel"')
 	})
 
-	it('maps ranked players, 24-hour activity, total players, and monthly activity', () => {
+	it('maps ranked players, today activity, total players, and monthly activity', () => {
 		const page = readFileSync(new URL('../../app/pages/index.vue', import.meta.url), 'utf8')
-		expect(page).toContain('data?.rankedUsers?.totalCount')
-		expect(page).toContain('data?.activeUsersDay?.totalCount')
-		expect(page).toContain('data?.totalUsers?.totalCount')
-		expect(page).toContain('data?.activeUsersMonth?.totalCount')
+		expect(page).toContain('data?.rankedPlayers')
+		expect(page).toContain('data?.activePlayersToday')
+		expect(page).toContain('data?.players')
+		expect(page).toContain('data?.activePlayersMonth')
 		expect(page).toContain('value: `')
 		expect(page).toContain('label: currentMonth.value')
 		expect(page).toContain(

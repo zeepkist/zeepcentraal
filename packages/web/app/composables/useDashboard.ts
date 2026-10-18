@@ -1,9 +1,8 @@
-import { useQuery, useSubscription } from '@urql/vue'
+import { useQuery } from '@urql/vue'
 import {
 	Zc_DashboardCriticalDocument,
 	Zc_DashboardHeroSummaryDocument,
 	Zc_DashboardHotLevelsDocument,
-	Zc_DashboardMetricsLiveDocument,
 	Zc_DashboardStatisticsDocument,
 	Zc_DashboardViewerLevelsDocument,
 } from '@zeepkist/graphql/generated'
@@ -85,23 +84,12 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 export function useDashboard(viewerId: Ref<number | undefined>) {
 	const ssrMetricWindows = useState('dashboard-metric-windows', () => getDashboardMetricWindows())
 	const tournamentNow = useState('dashboard-tournament-now', () => new Date().toISOString())
-	const liveMetricWindows = ref({ ...ssrMetricWindows.value })
+	const metricsQuery = useGlobalMetrics()
 	const levelWindows = useState('dashboard-level-windows', () => getDashboardLevelWindows())
-	const metricsSubscriptionActive = ref(false)
-	const pageVisible = usePageVisibility()
-	let metricWindowTimer: ReturnType<typeof setInterval> | undefined
 	onMounted(() => {
-		const refreshWindows = () => {
-			liveMetricWindows.value = getDashboardMetricWindows()
-		}
-		refreshWindows()
 		levelWindows.value = getDashboardLevelWindows()
-		metricsSubscriptionActive.value = true
-		metricWindowTimer = setInterval(refreshWindows, 60_000)
 	})
-	onScopeDispose(() => {
-		if (metricWindowTimer) clearInterval(metricWindowTimer)
-	})
+
 	const hotLevelsPrefetch = useViewportPrefetch()
 	const popularLevelsPrefetch = useViewportPrefetch()
 	const viewerPrefetch = useViewportPrefetch()
@@ -111,16 +99,11 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	const criticalQuery = useQuery({
 		query: Zc_DashboardCriticalDocument,
 		variables: computed(() => ({
-			...ssrMetricWindows.value,
+			daySince: ssrMetricWindows.value.daySince,
 			now: tournamentNow.value,
 			viewerId: viewerId.value ?? 0,
 			includeViewer: viewerId.value !== undefined,
 		})),
-	})
-	const metricsLive = useSubscription({
-		query: Zc_DashboardMetricsLiveDocument,
-		variables: liveMetricWindows,
-		pause: computed(() => !metricsSubscriptionActive.value || !pageVisible.value),
 	})
 	const hotLevelsQuery = useQuery({
 		query: Zc_DashboardHotLevelsDocument,
@@ -179,12 +162,11 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		{ immediate: true },
 	)
 
-	const metrics = computed(() => metricsLive.data.value?.query ?? criticalQuery.data.value)
-	const metricMonthSince = computed(() =>
-		metricsLive.data.value?.query
-			? liveMetricWindows.value.monthSince
-			: ssrMetricWindows.value.monthSince,
+	const metrics = metricsQuery.data
+	const metricMonthSince = computed(
+		() => metrics.value?.monthStart ?? ssrMetricWindows.value.monthSince,
 	)
+
 	const viewer = computed(() => viewerQuery.data.value?.user)
 	const viewerStanding = computed(() => latestSeason.value?.zslSeasonResults.nodes[0])
 	const activeTournaments = computed(() =>
@@ -226,10 +208,10 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	async function prefetchCritical() {
 		if (!import.meta.server) return
 		if (viewerId.value === undefined) {
-			await criticalQuery
+			await Promise.all([criticalQuery, metricsQuery])
 			return
 		}
-		await Promise.all([criticalQuery, viewerQuery])
+		await Promise.all([criticalQuery, viewerQuery, metricsQuery])
 	}
 
 	return {
@@ -241,7 +223,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		hotLevelsTarget: hotLevelsPrefetch.target,
 		metricMonthSince,
 		metrics,
-		metricsLive,
+		metricsError: metricsQuery.error,
 		hotLevels,
 		news,
 		newsActive: newsPrefetch.active,

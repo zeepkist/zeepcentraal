@@ -15,6 +15,7 @@ export type DashboardLevelWindows = {
 	rollingMonthSince: string
 }
 
+// Secondary statistics and trending queries retain rolling windows. Headline periods come from globalMetrics.
 export function getDashboardMetricWindows(now = new Date()): DashboardMetricWindows {
 	return {
 		daySince: new Date(now.getTime() - DAY_MS).toISOString(),

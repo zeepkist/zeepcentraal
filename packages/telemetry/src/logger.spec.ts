@@ -6,6 +6,7 @@ const consoleInfo = console.info
 const infoSink = mock(() => {})
 console.info = infoSink
 const { installTelemetryConsoleBridge, uninstallTelemetryConsoleBridge } = await import('./logger')
+const { shouldExportWebLog } = await import('../../web/runtime/telemetryPolicy')
 console.info = consoleInfo
 
 const exporter = new InMemoryLogRecordExporter()
@@ -30,6 +31,37 @@ async function lastLogBody() {
 }
 
 describe('telemetry console bridge', () => {
+	test('filters raw web 404 arguments while preserving console output', async () => {
+		installTelemetryConsoleBridge({ shouldExportLog: shouldExportWebLog })
+		const count = exporter.getFinishedLogRecords().length
+		const error = Object.assign(new Error('Page not found: /missing'), { statusCode: 404 })
+		console.info('[request error]', error)
+		await processor.forceFlush()
+		expect(exporter.getFinishedLogRecords()).toHaveLength(count)
+		expect(infoSink).toHaveBeenLastCalledWith('[request error]', error)
+	})
+
+	test.each([
+		new Error('Page not found'),
+		Object.assign(new Error('Page not found'), { status: 500 }),
+	])('exports web errors without confirmed 404 status: %p', async (error) => {
+		installTelemetryConsoleBridge({ shouldExportLog: shouldExportWebLog })
+		console.info('[request error]', error)
+		const record = await lastLogBody()
+		expect(String(record?.body)).toContain('Page not found')
+	})
+
+	test('exports 404 arguments by default for other packages', async () => {
+		installTelemetryConsoleBridge()
+		console.info('[request error]', { status: 404 })
+		expect(String((await lastLogBody())?.body)).toContain('404')
+	})
+
+	test('keeps a real failure logged alongside a not-found error', async () => {
+		installTelemetryConsoleBridge({ shouldExportLog: shouldExportWebLog })
+		console.info('[request error]', { status: 404 }, new Error('Database failed'))
+		expect(String((await lastLogBody())?.body)).toContain('Database failed')
+	})
 	test('renders printf-style Graphile Worker logs before export', async () => {
 		installTelemetryConsoleBridge()
 		console.info(

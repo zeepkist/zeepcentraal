@@ -8,6 +8,7 @@ import type {
 	ModkistReleases,
 } from '../../app/types/modkist'
 import { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL } from '../../app/types/modkist'
+import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { getSharedCached } from './sharedCache'
 
 export { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL }
@@ -158,6 +159,7 @@ async function requestModkistReleases(): Promise<ModkistReleases> {
 	return withActiveSpan(
 		'query ZeepCentraal_ModkistReleases',
 		{
+			shouldRecordError: shouldRecordWebError,
 			attributes: {
 				'graphql.operation.name': 'ZeepCentraal_ModkistReleases',
 				'graphql.operation.type': 'query',

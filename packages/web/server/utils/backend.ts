@@ -3,6 +3,7 @@ import { createError, getRequestHeader, type RequestEvent, useRuntimeConfig } fr
 import { webAuthCookieNames } from '#shared/authCookies'
 import { authRefreshUrl } from '../../app/utils/auth'
 import { mergeRequestCookies } from '../../app/utils/requestCookies'
+import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 
 export type RefreshableSessionCookies = {
 	steamId: string
@@ -97,18 +98,22 @@ export function forwardBackendCookies(event: RequestEvent, headers: Headers) {
 }
 
 export async function refreshWebAuth(event: RequestEvent) {
-	return withActiveSpan('web.backend.refresh-auth', async () => {
-		const response = await $fetch.raw(authRefreshUrl(getBackendBaseUrl()), {
-			method: 'POST',
-			headers: {
-				...getForwardedCookieHeaders(event),
-				...injectTraceCarrier(),
-			},
-			credentials: 'include',
-		})
-		const cookies = forwardBackendCookies(event, response.headers)
-		return { cookies, refreshAt: accessTokenRefreshAt(cookieHeaderFromSetCookies(cookies)) }
-	})
+	return withActiveSpan(
+		'web.backend.refresh-auth',
+		{ shouldRecordError: shouldRecordWebError },
+		async () => {
+			const response = await $fetch.raw(authRefreshUrl(getBackendBaseUrl()), {
+				method: 'POST',
+				headers: {
+					...getForwardedCookieHeaders(event),
+					...injectTraceCarrier(),
+				},
+				credentials: 'include',
+			})
+			const cookies = forwardBackendCookies(event, response.headers)
+			return { cookies, refreshAt: accessTokenRefreshAt(cookieHeaderFromSetCookies(cookies)) }
+		},
+	)
 }
 
 export async function fetchAuthenticatedBackend<T>(
@@ -120,24 +125,12 @@ export async function fetchAuthenticatedBackend<T>(
 		query?: Record<string, string>
 	},
 ) {
-	return withActiveSpan(`web.backend ${options.method}`, async () => {
-		let cookie = getRequestHeader(event, 'cookie')
-		let response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
-			...options,
-			headers: {
-				...(cookie ? { cookie } : {}),
-				...(getRequestHeader(event, 'origin')
-					? { origin: getRequestHeader(event, 'origin') }
-					: {}),
-				...injectTraceCarrier(),
-			},
-			credentials: 'include',
-			ignoreResponseError: true,
-		})
-		if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
-			const refreshed = await refreshWebAuth(event)
-			cookie = mergeRequestCookies(cookie, refreshed.cookies)
-			response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
+	return withActiveSpan(
+		`web.backend ${options.method}`,
+		{ shouldRecordError: shouldRecordWebError },
+		async () => {
+			let cookie = getRequestHeader(event, 'cookie')
+			let response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
 				...options,
 				headers: {
 					...(cookie ? { cookie } : {}),
@@ -149,15 +142,31 @@ export async function fetchAuthenticatedBackend<T>(
 				credentials: 'include',
 				ignoreResponseError: true,
 			})
-		}
-		forwardBackendCookies(event, response.headers)
-		if (response.status >= 400) {
-			throw createError({
-				status: response.status,
-				statusText: 'Authenticated backend request failed',
-				data: response._data,
-			})
-		}
-		return response._data as T
-	})
+			if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
+				const refreshed = await refreshWebAuth(event)
+				cookie = mergeRequestCookies(cookie, refreshed.cookies)
+				response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
+					...options,
+					headers: {
+						...(cookie ? { cookie } : {}),
+						...(getRequestHeader(event, 'origin')
+							? { origin: getRequestHeader(event, 'origin') }
+							: {}),
+						...injectTraceCarrier(),
+					},
+					credentials: 'include',
+					ignoreResponseError: true,
+				})
+			}
+			forwardBackendCookies(event, response.headers)
+			if (response.status >= 400) {
+				throw createError({
+					status: response.status,
+					statusText: 'Authenticated backend request failed',
+					data: response._data,
+				})
+			}
+			return response._data as T
+		},
+	)
 }

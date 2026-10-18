@@ -1065,7 +1065,8 @@
 			"votes": "Votes",
 			"rankedAndTotalPlayers": "Ranked players / Total players",
 			"rankedAndTotalPlayersValueLabel": "{rankedPlayers} ranked players out of {totalPlayers} total players",
-			"past24Hours": "Past 24 hours",
+			"today": "Today",
+			"unavailable": "Statistics unavailable. Refresh to try again.",
 			"activeToday": "Active today",
 			"activeInMonth": "Active in {month}"
 		}

@@ -80,13 +80,13 @@ describe('playlist integration contracts', () => {
 
 	it('toggles shared level actions between add and remove', async () => {
 		const [action, translations] = await Promise.all([
-			appSource('components/playlist/PlaylistAddButton.client.vue'),
+			appSource('components/playlist/PlaylistAddButton.vue'),
 			readFile(resolve(repoRoot, 'packages/web/i18n/locales/en.json'), 'utf8'),
 		])
 		expect(action).toContain('if (added.value)')
 		expect(action).toContain('store.removeLevel')
 		expect(action).toContain("t('playlist.actions.remove')")
-		expect(action).toContain(':disabled="!added && !canAdd"')
+		expect(action).toContain(':disabled="!store.hydrated || (!added && !canAdd)"')
 		expect(action).toContain(":color=\"added ? 'error' : 'primary'\"")
 		expect(action).toContain('variant="solid"')
 		expect(action).toContain("'i-tabler-playlist-x'")

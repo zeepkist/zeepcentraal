@@ -1,7 +1,6 @@
 import { useQuery } from '@urql/vue'
 import {
 	Zc_AdventureSeriesCountsDocument,
-	Zc_DashboardCriticalDocument,
 	Zc_DashboardStatisticsDocument,
 	Zc_LevelDetailDocument,
 	Zc_LevelsDocument,
@@ -13,15 +12,7 @@ import { getDashboardMetricWindows } from '~/utils/dashboardMetrics'
 
 export async function useOgDashboardData() {
 	const windows = getDashboardMetricWindows()
-	const criticalQuery = useQuery({
-		query: Zc_DashboardCriticalDocument,
-		variables: {
-			...windows,
-			now: new Date().toISOString(),
-			viewerId: 0,
-			includeViewer: false,
-		},
-	})
+	const metrics = useGlobalMetrics()
 	const statisticsQuery = useQuery({
 		query: Zc_DashboardStatisticsDocument,
 		variables: {
@@ -29,27 +20,22 @@ export async function useOgDashboardData() {
 		},
 	})
 
-	await Promise.all([criticalQuery, statisticsQuery])
+	await Promise.all([metrics, statisticsQuery])
+	if (!metrics.data.value)
+		throw createError({ statusCode: 503, statusMessage: 'Global metrics unavailable' })
 
 	return {
-		critical: criticalQuery.data.value,
+		critical: metrics.data.value,
 		statistics: statisticsQuery.data.value,
 	}
 }
 
 export async function useOgRecordCountsData() {
-	const query = useQuery({
-		query: Zc_DashboardCriticalDocument,
-		variables: {
-			...getDashboardMetricWindows(),
-			now: new Date().toISOString(),
-			viewerId: 0,
-			includeViewer: false,
-		},
-	})
-
-	await query
-	return query.data.value
+	const metrics = useGlobalMetrics()
+	await metrics
+	if (!metrics.data.value)
+		throw createError({ statusCode: 503, statusMessage: 'Global metrics unavailable' })
+	return metrics.data.value
 }
 
 export async function useOgUserRankingsData() {

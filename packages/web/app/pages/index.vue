@@ -11,9 +11,10 @@
 
 		<DashboardHero v-bind="hero" @login="login" />
 
-		<section aria-labelledby="live-stats-heading">
+		<section aria-labelledby="live-stats-heading" data-testid="homepage-metrics">
 			<SectionHeader id="live-stats-heading" :title="t('dashboard.liveStats.title')" :description="t('dashboard.liveStats.description')" />
-			<MetricGrid :metrics="liveMetrics" :columns="3" />
+			<MetricGrid v-if="dashboard.metrics.value" :metrics="liveMetrics" :columns="3" />
+			<UAlert v-else-if="dashboard.metricsError.value" color="error" :title="t('dashboard.metrics.unavailable')" />
 		</section>
 
 		<section
@@ -371,9 +372,9 @@ const hero = computed<DashboardHeroModel>(() => {
 
 const liveMetrics = computed<StatisticMetric[]>(() => {
 	const data = dashboard.metrics.value
-	const details = (day: number | undefined, month: number | undefined) => [
+	const details = (day: bigint | undefined, month: bigint | undefined) => [
 		{
-			label: t('dashboard.metrics.past24Hours'),
+			label: t('dashboard.metrics.today'),
 			value: numberFormat.format(day ?? 0),
 		},
 		{
@@ -381,51 +382,51 @@ const liveMetrics = computed<StatisticMetric[]>(() => {
 			value: numberFormat.format(month ?? 0),
 		},
 	]
-	const rankedPlayers = numberFormat.format(data?.rankedUsers?.totalCount ?? 0)
-	const totalPlayers = numberFormat.format(data?.totalUsers?.totalCount ?? 0)
-	const activePlayersDay = numberFormat.format(data?.activeUsersDay?.totalCount ?? 0)
+	const rankedPlayers = numberFormat.format(data?.rankedPlayers ?? 0)
+	const totalPlayers = numberFormat.format(data?.players ?? 0)
+	const activePlayersDay = numberFormat.format(data?.activePlayersToday ?? 0)
 
 	return [
 		{
 			key: 'records',
 			label: t('dashboard.metrics.records'),
-			value: numberFormat.format(data?.records?.totalCount ?? 0),
+			value: numberFormat.format(data?.records ?? 0),
 			icon: 'clock-bolt',
-			details: details(data?.recordsDay?.totalCount, data?.recordsMonth?.totalCount),
+			details: details(data?.recordsToday, data?.recordsMonth),
 		},
 		{
 			key: 'pbs',
 			label: t('dashboard.metrics.personalBests'),
-			value: numberFormat.format(data?.personalBestGlobals?.totalCount ?? 0),
+			value: numberFormat.format(data?.personalBests ?? 0),
 			icon: 'star',
 			details: details(
-				data?.personalBestGlobalsDay?.totalCount,
-				data?.personalBestGlobalsMonth?.totalCount,
+				data?.personalBestsToday,
+				data?.personalBestsMonth,
 			),
 		},
 		{
 			key: 'wrs',
 			label: t('dashboard.metrics.worldRecords'),
-			value: numberFormat.format(data?.worldRecordGlobals?.totalCount ?? 0),
+			value: numberFormat.format(data?.worldRecords ?? 0),
 			icon: 'trophy',
 			details: details(
-				data?.worldRecordGlobalsDay?.totalCount,
-				data?.worldRecordGlobalsMonth?.totalCount,
+				data?.worldRecordsToday,
+				data?.worldRecordsMonth,
 			),
 		},
 		{
 			key: 'levels',
 			label: t('dashboard.metrics.levels'),
-			value: numberFormat.format(data?.levels?.totalCount ?? 0),
+			value: numberFormat.format(data?.levels ?? 0),
 			icon: 'map',
-			details: details(data?.levelsDay?.totalCount, data?.levelsMonth?.totalCount),
+			details: details(data?.levelsToday, data?.levelsMonth),
 		},
 		{
 			key: 'votes',
 			label: t('dashboard.metrics.votes'),
-			value: numberFormat.format(data?.votes?.totalCount ?? 0),
+			value: numberFormat.format(data?.votes ?? 0),
 			icon: 'trending-up',
-			details: details(data?.votesDay?.totalCount, data?.votesMonth?.totalCount),
+			details: details(data?.votesToday, data?.votesMonth),
 		},
 		{
 			key: 'players',
@@ -443,7 +444,7 @@ const liveMetrics = computed<StatisticMetric[]>(() => {
 				},
 				{
 					label: t('dashboard.metrics.activeInMonth', { month: currentMonth.value }),
-					value: numberFormat.format(data?.activeUsersMonth?.totalCount ?? 0),
+					value: numberFormat.format(data?.activePlayersMonth ?? 0),
 				},
 			],
 		},

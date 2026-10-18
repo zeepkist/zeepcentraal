@@ -19,6 +19,40 @@ const connection = {
 	},
 }
 
+const fixtureLevel = {
+	id: 9001,
+	xxHash: 'fixture-hydration-level',
+	publiclyVisible: true,
+	adventure: false,
+	dateCreated: '2026-10-01T00:00:00Z',
+	levelItems: {
+		nodes: [
+			{
+				name: 'Fixture hydration level',
+				imageUrl: '',
+				fileUid: 'fixture-hydration-uid',
+				fileAuthor: 'Fixture author',
+				authorId: '76561198000000000',
+				workshopId: '123',
+				validationTimeAuthor: 42,
+				validationTimeGold: 45,
+				validationTimeSilver: 50,
+				validationTimeBronze: 60,
+				author: { id: 1, steamId: '76561198000000000', steamName: 'Fixture author' },
+			},
+		],
+	},
+	levelPoints: null,
+	records: { ...connection },
+	periodRecords: { ...connection },
+	personalBestGlobals: { ...connection },
+	votes: { ...connection, groupedAggregates: [] },
+	favourites: { ...connection },
+	viewerFavourites: { ...connection },
+	trackTournaments: { ...connection },
+	worldRecordGlobal: null,
+}
+
 // Local upstreams keep SSR, sitemap, and authentication checks independent of production services.
 Bun.serve({
 	hostname: '127.0.0.1',
@@ -36,7 +70,7 @@ Bun.serve({
 		if (url.pathname === '/graphql') {
 			const { query, variables } = (await request.json()) as {
 				query: string
-				variables?: { recordId?: number }
+				variables?: { recordId?: number; xxHash?: string }
 			}
 			const document = parse(query)
 			const data: Record<string, unknown> = {}
@@ -74,6 +108,12 @@ Bun.serve({
 				for (const key of Object.keys(data))
 					data[key] = { ...connection, nodes: [{ id: 1 }] }
 			}
+			if (query.includes('ZC_DashboardCritical'))
+				data.trendingLevels = { ...connection, nodes: [fixtureLevel] }
+			if (query.includes('ZC_DashboardHotLevels'))
+				data.levels = { ...connection, nodes: [fixtureLevel] }
+			if (query.includes('ZC_LevelDetail') && variables?.xxHash === fixtureLevel.xxHash)
+				data.levelByXxHash = fixtureLevel
 			if (query.includes('ZC_TrackTournamentPlaylist')) {
 				data.trackTournaments = {
 					...connection,

@@ -45,8 +45,8 @@ describe('dashboard critical SSR', () => {
 		const prefetch = composable.slice(start, end)
 		expect(prefetch).toContain('if (!import.meta.server) return')
 		expect(prefetch).toContain('if (viewerId.value === undefined)')
-		expect(prefetch).toContain('await criticalQuery')
-		expect(prefetch).toContain('Promise.all([criticalQuery, viewerQuery])')
+		expect(prefetch).toContain('Promise.all([criticalQuery, metricsQuery])')
+		expect(prefetch).toContain('Promise.all([criticalQuery, viewerQuery, metricsQuery])')
 	})
 
 	it('loads latest-season standing within the hero summary request', () => {
@@ -62,19 +62,15 @@ describe('dashboard critical SSR', () => {
 			composable.indexOf('const metricsLive = useSubscription'),
 		)
 		expect(composable).toContain("const ssrMetricWindows = useState('dashboard-metric-windows'")
-		expect(composable).toContain('const liveMetricWindows = ref({ ...ssrMetricWindows.value })')
-		expect(criticalQuery).toContain('...ssrMetricWindows.value')
+		expect(composable).toContain('const metricsQuery = useGlobalMetrics()')
+		expect(criticalQuery).toContain('daySince: ssrMetricWindows.value.daySince')
 		expect(criticalQuery).toContain('now: tournamentNow.value')
 		expect(criticalQuery).toContain('viewerId: viewerId.value ?? 0')
 		expect(criticalQuery).toContain('includeViewer: viewerId.value !== undefined')
-		expect(composable).toContain('variables: liveMetricWindows')
-		expect(composable).toContain('const metricsSubscriptionActive = ref(false)')
-		expect(composable.indexOf('metricsSubscriptionActive.value = true')).toBeGreaterThan(
-			composable.indexOf('onMounted(() => {'),
-		)
-		expect(composable).toContain('metricsLive.data.value?.query ?? criticalQuery.data.value')
-		expect(composable).toContain('? liveMetricWindows.value.monthSince')
-		expect(composable).toContain(': ssrMetricWindows.value.monthSince')
+		expect(composable).not.toContain('useSubscription')
+		expect(composable).not.toContain('setInterval')
+		expect(composable).toContain('metrics.value?.monthStart')
+
 		expect(page).toContain(
 			'formatDashboardMonth(dashboard.metricMonthSince.value, locale.value)',
 		)

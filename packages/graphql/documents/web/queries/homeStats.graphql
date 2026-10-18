@@ -1,11 +1,7 @@
 query ZC_HomeStats {
-	levels(first: 0, filter: { publiclyVisible: { equalTo: true } }) {
-		totalCount
-	}
-	users(first: 0) {
-		totalCount
-	}
-	records(first: 0) {
-		totalCount
+	globalMetrics {
+		levels
+		playersAll
+		records
 	}
 }

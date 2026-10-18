@@ -1800,6 +1800,166 @@ export const vote = pgTable(
 	],
 )
 
+export const globalMetricsSnapshot = zcPrivate.table(
+	'global_metrics_snapshot',
+	{
+		singleton: boolean().primaryKey().default(true),
+		semanticsVersion: integer('semantics_version').notNull(),
+		records: bigint('records', { mode: 'bigint' }).notNull(),
+		recordsToday: bigint('records_today', { mode: 'bigint' }).notNull(),
+		recordsMonth: bigint('records_month', { mode: 'bigint' }).notNull(),
+		personalBests: bigint('personal_bests', { mode: 'bigint' }).notNull(),
+		personalBestsToday: bigint('personal_bests_today', { mode: 'bigint' }).notNull(),
+		personalBestsMonth: bigint('personal_bests_month', { mode: 'bigint' }).notNull(),
+		worldRecords: bigint('world_records', { mode: 'bigint' }).notNull(),
+		worldRecordsToday: bigint('world_records_today', { mode: 'bigint' }).notNull(),
+		worldRecordsMonth: bigint('world_records_month', { mode: 'bigint' }).notNull(),
+		levels: bigint('levels', { mode: 'bigint' }).notNull(),
+		levelsToday: bigint('levels_today', { mode: 'bigint' }).notNull(),
+		levelsMonth: bigint('levels_month', { mode: 'bigint' }).notNull(),
+		votes: bigint('votes', { mode: 'bigint' }).notNull(),
+		votesToday: bigint('votes_today', { mode: 'bigint' }).notNull(),
+		votesMonth: bigint('votes_month', { mode: 'bigint' }).notNull(),
+		players: bigint('players', { mode: 'bigint' }).notNull(),
+		playersAll: bigint('players_all', { mode: 'bigint' }).notNull(),
+		rankedPlayers: bigint('ranked_players', { mode: 'bigint' }).notNull(),
+		activePlayersToday: bigint('active_players_today', { mode: 'bigint' }).notNull(),
+		activePlayersMonth: bigint('active_players_month', { mode: 'bigint' }).notNull(),
+		asOf: timestamp('as_of', { withTimezone: true, mode: 'string' }).notNull(),
+		dayStart: timestamp('day_start', { withTimezone: true, mode: 'string' }).notNull(),
+		monthStart: timestamp('month_start', { withTimezone: true, mode: 'string' }).notNull(),
+		timeZone: text('time_zone').notNull(),
+	},
+	(table) => [check('global_metrics_snapshot_singleton_check', sql`${table.singleton}`)],
+)
+
+export const recordHistoryFact = zcPrivate
+	.table(
+		'record_history_fact',
+		{
+			id: integer('id').notNull().primaryKey(),
+			time: real('time').notNull(),
+			dateCreated: timestamp('date_created', {
+				withTimezone: true,
+				mode: 'string',
+			}).notNull(),
+			levelId: integer('level_id').notNull(),
+			userId: integer('user_id').notNull(),
+			levelPosition: integer('level_position'),
+			contributionRank: integer('contribution_rank'),
+			levelPoints: integer('level_points'),
+			levelDecayedPoints: real('level_decayed_points'),
+			playerDecayedPoints: real('player_decayed_points'),
+			isPersonalBest: boolean('is_personal_best').notNull(),
+			isWorldRecord: boolean('is_world_record').notNull(),
+			hasContribution: boolean('has_contribution').notNull(),
+			recordEligible: boolean('record_eligible').notNull(),
+		},
+		(table) => [
+			index('history_fact_latest').on(
+				table.dateCreated.desc().nullsFirst(),
+				table.id.desc().nullsFirst(),
+			),
+			index('history_fact_user_latest').on(
+				table.userId,
+				table.dateCreated.desc().nullsFirst(),
+				table.id.desc().nullsFirst(),
+			),
+			index('history_fact_level_latest')
+				.on(table.levelId, table.id.desc().nullsFirst())
+				.where(sql`${table.isPersonalBest} OR ${table.isWorldRecord}`),
+			index('history_fact_level_user_latest')
+				.on(table.levelId, table.userId, table.id.desc().nullsFirst())
+				.where(sql`${table.isPersonalBest}`),
+			index('history_fact_player_decayed_points')
+				.on(
+					table.playerDecayedPoints.desc().nullsFirst(),
+					table.dateCreated.desc().nullsFirst(),
+					table.id.desc().nullsFirst(),
+				)
+				.where(sql`${table.hasContribution}`),
+			index('history_fact_user_player_decayed_points')
+				.on(
+					table.userId,
+					table.playerDecayedPoints.desc().nullsFirst(),
+					table.dateCreated.desc().nullsFirst(),
+					table.id.desc().nullsFirst(),
+				)
+				.where(sql`${table.hasContribution}`),
+			index('history_fact_level_points')
+				.on(
+					table.levelPoints.desc().nullsFirst(),
+					table.dateCreated.desc().nullsFirst(),
+					table.id.desc().nullsFirst(),
+				)
+				.where(sql`${table.hasContribution}`),
+			index('history_fact_user_level_points')
+				.on(
+					table.userId,
+					table.levelPoints.desc().nullsFirst(),
+					table.dateCreated.desc().nullsFirst(),
+					table.id.desc().nullsFirst(),
+				)
+				.where(sql`${table.hasContribution}`),
+			index('history_fact_is_personal_best')
+				.on(table.dateCreated.desc().nullsFirst(), table.id.desc().nullsFirst())
+				.where(sql`${table.isPersonalBest}`),
+			index('history_fact_user_is_personal_best')
+				.on(
+					table.userId,
+					table.dateCreated.desc().nullsFirst(),
+					table.id.desc().nullsFirst(),
+				)
+				.where(sql`${table.isPersonalBest}`),
+			index('history_fact_is_world_record')
+				.on(table.dateCreated.desc().nullsFirst(), table.id.desc().nullsFirst())
+				.where(sql`${table.isWorldRecord}`),
+			index('history_fact_user_is_world_record')
+				.on(
+					table.userId,
+					table.dateCreated.desc().nullsFirst(),
+					table.id.desc().nullsFirst(),
+				)
+				.where(sql`${table.isWorldRecord}`),
+			foreignKey({
+				columns: [table.id],
+				foreignColumns: [record.id],
+				name: 'record_history_fact_id_fkey',
+			}).onDelete('cascade'),
+			foreignKey({
+				columns: [table.id, table.recordEligible],
+				foreignColumns: [record.id, record.recordEligible],
+				name: 'record_history_fact_id_record_eligible_fkey',
+			})
+				.onDelete('cascade')
+				.onUpdate('cascade'),
+			pgPolicy('record_eligibility', {
+				for: 'select',
+				to: zeepCentraalGraphqlRole,
+				using: sql`${table.recordEligible}`,
+			}),
+		],
+	)
+	.enableRLS()
+
+export const historyFactRollout = zcPrivate.table(
+	'history_fact_rollout',
+	{
+		singleton: boolean().primaryKey().default(true),
+		backfillAfter: integer('backfill_after').notNull().default(0),
+		backfillDone: boolean('backfill_done').notNull().default(false),
+		verifyAfter: integer('verify_after').notNull().default(0),
+		verified: boolean().notNull().default(false),
+		originalView: text('original_view').notNull(),
+		switchedAt: timestamp('switched_at', { withTimezone: true, mode: 'string' }),
+	},
+	(table) => [check('history_fact_rollout_singleton_check', sql`${table.singleton}`)],
+)
+
+export const historyFactDirty = zcPrivate.table('history_fact_dirty', {
+	id: integer().primaryKey(),
+})
+
 export const worldRecordGlobal = pgTable(
 	'world_record_global',
 	{
@@ -2254,6 +2414,44 @@ export const recordHistoryIndex = zcPrivate.table(
 			table.dateCreated.desc().nullsFirst(),
 			table.id.desc().nullsFirst(),
 		),
+		index('IX_record_history_player_value_contributing')
+			.using(
+				'btree',
+				table.historyView.asc().nullsLast(),
+				table.playerDecayedPoints.desc().nullsFirst(),
+				table.dateCreated.desc().nullsFirst(),
+				table.id.desc().nullsFirst(),
+			)
+			.where(sql`${table.hasContribution}`),
+		index('IX_record_history_user_player_value_contributing')
+			.using(
+				'btree',
+				table.historyView.asc().nullsLast(),
+				table.userId.asc().nullsLast(),
+				table.playerDecayedPoints.desc().nullsFirst(),
+				table.dateCreated.desc().nullsFirst(),
+				table.id.desc().nullsFirst(),
+			)
+			.where(sql`${table.hasContribution}`),
+		index('IX_record_history_level_value_contributing')
+			.using(
+				'btree',
+				table.historyView.asc().nullsLast(),
+				table.levelPoints.desc().nullsFirst(),
+				table.dateCreated.desc().nullsFirst(),
+				table.id.desc().nullsFirst(),
+			)
+			.where(sql`${table.hasContribution}`),
+		index('IX_record_history_user_level_value_contributing')
+			.using(
+				'btree',
+				table.historyView.asc().nullsLast(),
+				table.userId.asc().nullsLast(),
+				table.levelPoints.desc().nullsFirst(),
+				table.dateCreated.desc().nullsFirst(),
+				table.id.desc().nullsFirst(),
+			)
+			.where(sql`${table.hasContribution}`),
 		index('IX_record_history_index_level_projection')
 			.using('btree', table.levelId.asc().nullsLast())
 			.where(

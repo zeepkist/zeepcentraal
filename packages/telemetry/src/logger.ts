@@ -14,6 +14,10 @@ let restoreConsole: (() => void) | undefined
 
 export type TelemetryLogLevel = 'debug' | 'info' | 'warn' | 'error'
 
+export type TelemetryConsoleOptions = {
+	shouldExportLog?: (level: TelemetryLogLevel, values: readonly unknown[]) => boolean
+}
+
 const severity = {
 	debug: SeverityNumber.DEBUG,
 	info: SeverityNumber.INFO,
@@ -64,7 +68,7 @@ function logBody(values: unknown[]) {
 	return redactLogMessage(format(...values))
 }
 
-export function installTelemetryConsoleBridge() {
+export function installTelemetryConsoleBridge(options: TelemetryConsoleOptions = {}) {
 	if (restoreConsole) return
 	const previous = {
 		debug: console.debug,
@@ -77,6 +81,7 @@ export function installTelemetryConsoleBridge() {
 		(level: TelemetryLogLevel, sink: (...values: unknown[]) => void) =>
 		(...values: unknown[]) => {
 			sink(...values)
+			if (options.shouldExportLog?.(level, values) === false) return
 			logger.emit({
 				severityNumber: severity[level],
 				severityText: level.toUpperCase(),

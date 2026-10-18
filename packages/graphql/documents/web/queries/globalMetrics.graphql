@@ -1,0 +1,32 @@
+fragment ZC_GlobalMetrics on GlobalMetricSummary {
+	records
+	recordsToday
+	recordsMonth
+	personalBests
+	personalBestsToday
+	personalBestsMonth
+	worldRecords
+	worldRecordsToday
+	worldRecordsMonth
+	levels
+	levelsToday
+	levelsMonth
+	votes
+	votesToday
+	votesMonth
+	players
+	playersAll
+	rankedPlayers
+	activePlayersToday
+	activePlayersMonth
+	asOf
+	dayStart
+	monthStart
+	timeZone
+}
+
+query ZC_GlobalMetrics {
+	globalMetrics {
+		...ZC_GlobalMetrics
+	}
+}

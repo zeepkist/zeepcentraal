@@ -1718,6 +1718,33 @@ input FloatListFilter {
   overlaps: [Float]
 }
 
+type GlobalMetricSummary {
+  activePlayersMonth: BigInt
+  activePlayersToday: BigInt
+  asOf: Datetime
+  dayStart: Datetime
+  levels: BigInt
+  levelsMonth: BigInt
+  levelsToday: BigInt
+  monthStart: Datetime
+  personalBests: BigInt
+  personalBestsMonth: BigInt
+  personalBestsToday: BigInt
+  players: BigInt
+  playersAll: BigInt
+  rankedPlayers: BigInt
+  records: BigInt
+  recordsMonth: BigInt
+  recordsToday: BigInt
+  timeZone: String
+  votes: BigInt
+  votesMonth: BigInt
+  votesToday: BigInt
+  worldRecords: BigInt
+  worldRecordsMonth: BigInt
+  worldRecordsToday: BigInt
+}
+
 input HavingBigintFilter {
   equalTo: BigInt
   greaterThan: BigInt
@@ -9963,6 +9990,8 @@ input PlayerSkillAggregateFilter {
 
 """The root query type which gives access points into the data universe."""
 type Query implements Node {
+  globalMetrics: GlobalMetricSummary
+
   """Get a single `DiscordActivityEvent`."""
   discordActivityEvent(id: BigInt!): DiscordActivityEvent
 
@@ -19171,6 +19200,8 @@ input StringFilter {
 The root subscription type: contains realtime events you can subscribe to with the `subscription` operation.
 """
 type Subscription {
+  globalMetrics: GlobalMetricSummary
+
   """Get a single `DiscordActivityEvent`."""
   discordActivityEvent(id: BigInt!): DiscordActivityEvent
 
