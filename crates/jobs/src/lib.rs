@@ -22,6 +22,7 @@ pub const WORKSHOP_SCAN_BATCH_SIZE: usize = 10;
 pub enum TaskIdentifier {
     ReconcileRecordEligibility,
     FanOutRecordEligibility,
+    RefreshGlobalMetrics,
     BackfillRecordEligibility,
     ValidateRecordGhost,
     AuditRecordGhosts,
@@ -51,9 +52,10 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 28] = [
+    pub const ALL: [Self; 29] = [
         Self::ReconcileRecordEligibility,
         Self::FanOutRecordEligibility,
+        Self::RefreshGlobalMetrics,
         Self::BackfillRecordEligibility,
         Self::ValidateRecordGhost,
         Self::AuditRecordGhosts,
@@ -86,6 +88,7 @@ impl TaskIdentifier {
         match self {
             Self::ReconcileRecordEligibility => "reconcileRecordEligibility",
             Self::FanOutRecordEligibility => "fanOutRecordEligibility",
+            Self::RefreshGlobalMetrics => "refreshGlobalMetrics",
             Self::BackfillRecordEligibility => "backfillRecordEligibility",
             Self::ValidateRecordGhost => "validateRecordGhost",
             Self::AuditRecordGhosts => "auditRecordGhosts",
@@ -123,6 +126,7 @@ impl TaskIdentifier {
         !matches!(
             self,
             Self::FanOutRecordEligibility
+                | Self::RefreshGlobalMetrics
                 | Self::RecoverLevelRequests
                 | Self::RotateTrackTournament
                 | Self::UpdateLevelContributions
@@ -145,7 +149,9 @@ impl TaskIdentifier {
     pub fn validate_external_payload(self, payload: &serde_json::Value) -> bool {
         if matches!(
             self,
-            Self::UpdateLevelRecordCounts | Self::FanOutRecordEligibility
+            Self::UpdateLevelRecordCounts
+                | Self::FanOutRecordEligibility
+                | Self::RefreshGlobalMetrics
         ) {
             return false;
         }
@@ -207,6 +213,7 @@ impl TaskIdentifier {
                 .is_none_or(|value| value.as_u64().is_some_and(|count| count <= 4))
         };
         match self {
+            Self::RefreshGlobalMetrics => object.is_empty(),
             Self::FanOutRecordEligibility => serde_json::from_value::<
                 zc_database::services::record_eligibility::EligibilityFanOut,
             >(payload.clone())
@@ -604,7 +611,7 @@ mod tests {
 
     #[test]
     fn task_registry_round_trips_all_identifiers() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 28);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 29);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }

@@ -24,6 +24,8 @@ struct LockRow {
 struct ScheduleRow {
     #[diesel(sql_type = Text)]
     minute_key: String,
+    #[diesel(sql_type = Text)]
+    metrics_slot: String,
     #[diesel(sql_type = Bool)]
     recover: bool,
     #[diesel(sql_type = Bool)]
@@ -122,6 +124,7 @@ async fn run_session(
     retry.reset();
     tracing::info!("Jobs scheduler leadership acquired");
     let mut last_minute = String::new();
+    let mut last_metrics_slot = String::new();
     loop {
         if *shutdown.borrow() {
             break;
@@ -129,6 +132,7 @@ async fn run_session(
         let schedule: ScheduleRow = sql_query(
             "WITH times AS (SELECT timezone('Europe/London',clock_timestamp()) local_time,timezone('UTC',clock_timestamp()) utc_time) SELECT \
              to_char(utc_time,'YYYY-MM-DD HH24:MI') AS minute_key, \
+             floor(extract(epoch FROM utc_time)/30)::bigint::text AS metrics_slot, \
              extract(minute FROM local_time)=0 AS recover, \
              extract(isodow FROM utc_time)=1 AND extract(hour FROM utc_time)=6 AND extract(minute FROM utc_time)=0 AS rotate_weekly, \
              extract(day FROM utc_time)=1 AND extract(hour FROM utc_time)=6 AND extract(minute FROM utc_time)=0 AS rotate_monthly, \
@@ -140,6 +144,17 @@ async fn run_session(
              extract(hour FROM local_time) IN (0,12) AND extract(minute FROM local_time)=0 AS user_history, \
              extract(hour FROM local_time)=2 AND extract(minute FROM local_time)=30 AS prune FROM times",
         ).get_result(&mut connection).await?;
+        if schedule.metrics_slot != last_metrics_slot {
+            enqueue(
+                queue,
+                TaskIdentifier::RefreshGlobalMetrics,
+                serde_json::json!({}),
+                JobLane::Fast,
+                "refresh-global-metrics",
+            )
+            .await?;
+            last_metrics_slot = schedule.metrics_slot.clone();
+        }
         if schedule.minute_key != last_minute {
             enqueue_due(queue, &schedule).await?;
             last_minute = schedule.minute_key;

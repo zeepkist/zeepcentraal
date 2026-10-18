@@ -114,6 +114,7 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
 }
 
 fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
+    apply_optimization_overlay(snapshot, versions);
     if versions.iter().any(|version| version == "20260928030000") {
         snapshot
             .tables
@@ -338,6 +339,143 @@ fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
         "zc_private.level_submission_notification".into(),
         Object { columns },
     );
+}
+
+fn apply_optimization_overlay(snapshot: &mut Snapshot, versions: &[String]) {
+    if versions.iter().any(|version| version == "20261019000000") {
+        let columns = [
+            ("singleton", "boolean", true),
+            ("semantics_version", "integer", true),
+            ("records", "bigint", true),
+            ("records_today", "bigint", true),
+            ("records_month", "bigint", true),
+            ("personal_bests", "bigint", true),
+            ("personal_bests_today", "bigint", true),
+            ("personal_bests_month", "bigint", true),
+            ("world_records", "bigint", true),
+            ("world_records_today", "bigint", true),
+            ("world_records_month", "bigint", true),
+            ("levels", "bigint", true),
+            ("levels_today", "bigint", true),
+            ("levels_month", "bigint", true),
+            ("votes", "bigint", true),
+            ("votes_today", "bigint", true),
+            ("votes_month", "bigint", true),
+            ("players", "bigint", true),
+            ("players_all", "bigint", true),
+            ("ranked_players", "bigint", true),
+            ("active_players_today", "bigint", true),
+            ("active_players_month", "bigint", true),
+            ("as_of", "timestamp with time zone", true),
+            ("day_start", "timestamp with time zone", true),
+            ("month_start", "timestamp with time zone", true),
+            ("time_zone", "text", true),
+        ];
+        snapshot.tables.insert(
+            "zc_private.global_metrics_snapshot".into(),
+            Object {
+                columns: columns
+                    .into_iter()
+                    .map(|(name, data_type, not_null)| {
+                        (
+                            name.into(),
+                            SnapshotColumn {
+                                name: name.into(),
+                                data_type: data_type.into(),
+                                not_null,
+                            },
+                        )
+                    })
+                    .collect(),
+            },
+        );
+    }
+    if versions.iter().any(|version| version == "20261019000600") {
+        let columns = [
+            ("id", "integer", true),
+            ("time", "real", true),
+            ("date_created", "timestamp with time zone", true),
+            ("level_id", "integer", true),
+            ("user_id", "integer", true),
+            ("level_position", "integer", false),
+            ("contribution_rank", "integer", false),
+            ("level_points", "integer", false),
+            ("level_decayed_points", "real", false),
+            ("player_decayed_points", "real", false),
+            ("is_personal_best", "boolean", true),
+            ("is_world_record", "boolean", true),
+            ("has_contribution", "boolean", true),
+            ("record_eligible", "boolean", true),
+        ];
+        snapshot.tables.insert(
+            "zc_private.record_history_fact".into(),
+            Object {
+                columns: columns
+                    .into_iter()
+                    .map(|(name, data_type, not_null)| {
+                        (
+                            name.into(),
+                            SnapshotColumn {
+                                name: name.into(),
+                                data_type: data_type.into(),
+                                not_null,
+                            },
+                        )
+                    })
+                    .collect(),
+            },
+        );
+    }
+    if versions.iter().any(|version| version == "20261019000600") {
+        let columns = [("id", "integer", true)];
+        snapshot.tables.insert(
+            "zc_private.history_fact_dirty".into(),
+            Object {
+                columns: columns
+                    .into_iter()
+                    .map(|(name, data_type, not_null)| {
+                        (
+                            name.into(),
+                            SnapshotColumn {
+                                name: name.into(),
+                                data_type: data_type.into(),
+                                not_null,
+                            },
+                        )
+                    })
+                    .collect(),
+            },
+        );
+    }
+    if versions.iter().any(|version| version == "20261019000600") {
+        let columns = [
+            ("singleton", "boolean", true),
+            ("backfill_after", "integer", true),
+            ("backfill_done", "boolean", true),
+            ("verify_after", "integer", true),
+            ("verified", "boolean", true),
+            ("original_view", "text", true),
+            ("switched_at", "timestamp with time zone", false),
+        ];
+        snapshot.tables.insert(
+            "zc_private.history_fact_rollout".into(),
+            Object {
+                columns: columns
+                    .into_iter()
+                    .map(|(name, data_type, not_null)| {
+                        (
+                            name.into(),
+                            SnapshotColumn {
+                                name: name.into(),
+                                data_type: data_type.into(),
+                                not_null,
+                            },
+                        )
+                    })
+                    .collect(),
+            },
+        );
+    }
 }
 
 fn apply_donations_overlay(snapshot: &mut Snapshot, versions: &[String]) {

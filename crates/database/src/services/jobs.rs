@@ -294,23 +294,11 @@ impl Database {
     ) -> Result<()> {
         let value = serde_json::to_value(statistics)?;
         let mut connection = self.connection().await?;
-        sql_query(
-            "WITH previous AS ( \
-                 DELETE FROM public.record_statistic WHERE id_record=$1 \
-                 RETURNING date_created \
-             ) \
-             INSERT INTO public.record_statistic \
-             SELECT populated.* FROM jsonb_populate_record( \
-                 NULL::public.record_statistic, \
-                 $2 || jsonb_build_object( \
-                     'id_record',$1, \
-                     'date_created',COALESCE((SELECT date_created FROM previous),clock_timestamp()), \
-                     'date_updated',clock_timestamp())) AS populated",
-        )
-        .bind::<Integer, _>(id_record)
-        .bind::<Jsonb, _>(value)
-        .execute(&mut connection)
-        .await?;
+        sql_query(include_str!("../queries/upsert_record_statistics.sql"))
+            .bind::<Integer, _>(id_record)
+            .bind::<Jsonb, _>(value)
+            .execute(&mut connection)
+            .await?;
         Ok(())
     }
 

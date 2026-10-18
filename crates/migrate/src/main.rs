@@ -19,6 +19,30 @@ async fn main() -> anyhow::Result<()> {
     zc_core::environment::initialize()?;
     if arguments
         .first()
+        .is_some_and(|arg| arg == "optimize-history")
+    {
+        anyhow::ensure!(
+            (2..=3).contains(&arguments.len()),
+            "Usage: zeepcentraal-migrate optimize-history backfill|verify|status|cutover|rollback [--writers-paused-and-qualified]"
+        );
+        let qualified = arguments
+            .get(2)
+            .is_some_and(|arg| arg == "--writers-paused-and-qualified");
+        anyhow::ensure!(arguments.len() == 2 || qualified, "Unknown history option");
+        let config = zc_core::DatabaseConfig::from_env(1)?;
+        let database = zc_database::Database::connect(&config.url, 1).await?;
+        println!(
+            "{}",
+            serde_json::to_string_pretty(
+                &database
+                    .history_optimization(&arguments[1], qualified)
+                    .await?
+            )?
+        );
+        return Ok(());
+    }
+    if arguments
+        .first()
         .is_some_and(|arg| arg == "inspect-history")
     {
         anyhow::ensure!(

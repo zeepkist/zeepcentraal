@@ -10,6 +10,24 @@ use std::time::Duration;
 
 const MAX_ENQUEUE_BATCH: usize = 100;
 
+#[cfg(test)]
+mod global_metrics_tests {
+    use super::*;
+
+    #[test]
+    fn refresh_is_internal_deduplicated_and_independent_of_scoring() {
+        let task = TaskIdentifier::RefreshGlobalMetrics;
+        assert!(!task.compatible());
+        assert!(!task.validate_external_payload(&serde_json::json!({})));
+        assert!(task.validate_payload(&serde_json::json!({})));
+        assert!(!task.validate_payload(&serde_json::json!({"idUser":1})));
+        assert_eq!(task.max_attempts(), 3);
+        let (key, group) = queue_identity(task, &serde_json::json!({}), JobLane::Fast, None);
+        assert_eq!(key.as_deref(), Some("refresh-global-metrics"));
+        assert_eq!(group.as_deref(), Some("global-metrics"));
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum JobLane {
     Fast,
@@ -436,6 +454,7 @@ fn queue_identity(
 ) -> (Option<String>, Option<String>) {
     let id_level = payload.get("idLevel").and_then(serde_json::Value::as_i64);
     let derived_key = match task {
+        TaskIdentifier::RefreshGlobalMetrics => Some("refresh-global-metrics".to_owned()),
         TaskIdentifier::UpdatePlayerScores => {
             let root = if payload["silent"].as_bool() == Some(true) {
                 "eligibility-refresh-player-scores"
@@ -489,7 +508,9 @@ fn queue_identity(
         _ => None,
     };
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
-    let group = if task == TaskIdentifier::FanOutRecordEligibility {
+    let group = if task == TaskIdentifier::RefreshGlobalMetrics {
+        Some("global-metrics".to_owned())
+    } else if task == TaskIdentifier::FanOutRecordEligibility {
         Some("eligibility-player-fanout".to_owned())
     } else if task == TaskIdentifier::UpdatePlayerScores {
         Some("player-score-sweep".to_owned())

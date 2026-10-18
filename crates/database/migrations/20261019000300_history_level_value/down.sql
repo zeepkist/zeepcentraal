@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY zc_private."IX_record_history_level_value_contributing";

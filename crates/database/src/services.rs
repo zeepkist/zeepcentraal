@@ -13,6 +13,8 @@ pub mod discord_rank;
 pub mod discord_runtime;
 pub mod donations;
 pub mod ghost_validation;
+pub mod global_metrics;
+pub mod history_optimization;
 pub mod inspector;
 pub mod jobs;
 pub mod level_simhash;

@@ -1400,6 +1400,10 @@ impl JobHandler for ServiceJobHandler {
             };
         }
         let result = match task {
+            TaskIdentifier::RefreshGlobalMetrics => {
+                ensure!(lane == JobLane::Fast, "global metrics require fast lane");
+                self.database.refresh_global_metrics().await
+            }
             TaskIdentifier::ReconcileRecordEligibility => unreachable!(),
             TaskIdentifier::BackfillRecordEligibility => {
                 self.backfill_record_eligibility(&payload).await
