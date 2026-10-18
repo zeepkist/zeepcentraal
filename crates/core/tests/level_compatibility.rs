@@ -1,25 +1,54 @@
 use sha2::{Digest, Sha256};
-use std::{fs, path::PathBuf};
 use zc_core::levels::{LevelFormat, parse_level};
+
+macro_rules! hash_fixtures {
+    ($($file:literal),+ $(,)?) => {
+        [$(($file, include_bytes!(concat!(
+            "../../../packages/core/testdata/legacy-hash/", $file
+        )).as_slice())),+]
+    };
+}
 
 #[test]
 fn matches_typescript_level_hash_vectors() {
-    let fixtures =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../packages/core/testdata/legacy-hash");
-    let vectors = fs::read_to_string(fixtures.join("vectors.csv")).unwrap();
+    // Keep cached test binaries independent of their original checkout at runtime.
+    let vectors = include_str!("../../../packages/core/testdata/legacy-hash/vectors.csv");
+    let fixtures = hash_fixtures![
+        "duplicate-blocks.zeeplevel",
+        "invalid-json-parse-unexpected-nan.zeeplevel",
+        "invalid-metadata-row-column-count.zeeplevel",
+        "invalid-metadata-row-column-count-2.zeeplevel",
+        "invalid-position-x-nan.zeeplevel",
+        "invalid-validation-row-column-count.zeeplevel",
+        "large.zeeplevel",
+        "small.zeeplevel",
+        "zsl-2025-03-3-wide-super-league.zeeplevel",
+        "zsl-2025-03-3x3x3.zeeplevel",
+        "wpn-06.zeeplevel",
+        "zsl-airborne-embers.zeeplevel",
+        "zsl-2026-02-a-colorful-valley.zeeplevel",
+        "zsl-2026-02-aerotaro.zeeplevel",
+        "skull-island.zeeplevel",
+        "json-exponents.zeeplevel",
+        "csv-exponents.zeeplevel",
+    ];
+    assert_eq!(vectors.lines().skip(1).count(), fixtures.len());
     let mut failures = Vec::new();
     for row in vectors.lines().skip(1) {
         let values: Vec<_> = row.split(',').collect();
         assert_eq!(values.len(), 5, "invalid vector: {row}");
-        let bytes = fs::read(fixtures.join(values[0])).unwrap();
+        let bytes = fixtures
+            .iter()
+            .find_map(|(file, bytes)| (*file == values[0]).then_some(*bytes))
+            .unwrap_or_else(|| panic!("missing embedded hash fixture: {}", values[0]));
         assert_eq!(
-            hex::encode_upper(Sha256::digest(&bytes)),
+            hex::encode_upper(Sha256::digest(bytes)),
             values[3],
             "{}",
             values[0]
         );
-        let content = String::from_utf8(bytes).unwrap();
-        let parsed = parse_level(&content, false, 0).unwrap();
+        let content = std::str::from_utf8(bytes).unwrap();
+        let parsed = parse_level(content, false, 0).unwrap();
         assert_eq!(
             parsed.format,
             if values[1] == "csv" {
