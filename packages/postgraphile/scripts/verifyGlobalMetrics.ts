@@ -6,6 +6,7 @@ import { postgraphile } from 'postgraphile'
 import { printType } from 'postgraphile/graphql'
 import { elysiaGrafserv } from '../src/elysiaGrafserv'
 import { createPostGraphilePreset } from '../src/postgraphileOptions'
+import { verifyHistoryFactMigration } from './historyFactMigrationChecks'
 
 const databaseUrl = process.env.ZC_TEST_DATABASE_URL
 if (!databaseUrl) throw new Error('ZC_TEST_DATABASE_URL required')
@@ -311,6 +312,27 @@ try {
 			}
 		}
 	}
+	// Keep nullable value cursors compatible even without the UI contribution filter.
+	const nullableHistoryCases = []
+	for (const view of ['recent', 'personal-bests', 'world-records']) {
+		for (const sort of ['LEVEL_POINTS_DESC', 'PLAYER_DECAYED_POINTS_DESC']) {
+			const variables = {
+				filter: { historyView: { equalTo: view } },
+				order: [sort, 'DATE_CREATED_DESC', 'ID_DESC'],
+			}
+			const first = await history({ ...variables, first: 1 })
+			const last = await history({ ...variables, last: 1 })
+			for (const page of [
+				{ first: 100 },
+				{ first: 100, after: first.pageInfo.endCursor },
+				{ last: 100 },
+				{ last: 100, before: last.pageInfo.startCursor },
+			]) {
+				const request = { ...variables, ...page }
+				nullableHistoryCases.push({ request, response: await history(request) })
+			}
+		}
+	}
 	// Simulate existing rows before mirroring starts, then resume one-row batches.
 	await sql`truncate zc_private.record_history_fact`
 	let pendingBackfill: Promise<unknown> | undefined
@@ -346,6 +368,7 @@ try {
 	)
 	const before =
 		await sql`select * from public.record_history_entry order by history_view,date_created desc,id desc`
+	await verifyHistoryFactMigration(sql)
 	await sql.begin(async (tx) => {
 		await tx.unsafe("SET LOCAL statement_timeout='60s'; SET LOCAL lock_timeout='5s'")
 		await tx`select zc_private.cutover_history_fact(true,true)`
@@ -354,6 +377,8 @@ try {
 		await sql`select * from public.record_history_entry order by history_view,date_created desc,id desc`,
 		before,
 	)
+	for (const test of nullableHistoryCases)
+		assert.deepEqual(await history(test.request), test.response)
 	for (const test of historyCases) {
 		assert.deepEqual(await history({ ...test.variables, first: 100 }), test.all)
 		if (test.first.nodes.length) {
@@ -374,6 +399,27 @@ try {
 		}
 	}
 	await sql`update public.record set time=9 where id=1`
+	const eligibilityRollback = new Error('rollback history eligibility check')
+	await assert.rejects(
+		sql.begin(async (tx) => {
+			await tx`update zc_private.record_validation set status='fail' where id_record=1`
+			await tx`set local role zeepcentraal_graphql`
+			assert.equal(
+				Number(
+					(await tx`select count(*) as n from public.record_history_entry where id=1`)[0]
+						.n,
+				),
+				0,
+			)
+			await tx`reset role`
+			assert.equal(
+				(await tx`select zc_private.history_fact_mismatch(ARRAY[1]) as bad`)[0].bad,
+				false,
+			)
+			throw eligibilityRollback
+		}),
+		(error: unknown) => error === eligibilityRollback,
+	)
 	assert.equal(
 		(await sql`select zc_private.history_fact_mismatch(ARRAY[1,2,3,4,5]) as bad`)[0].bad,
 		false,
