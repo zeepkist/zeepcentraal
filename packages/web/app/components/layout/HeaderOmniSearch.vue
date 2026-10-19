@@ -147,7 +147,9 @@ const menuUi = computed(() => ({
 			: 'lg:p-2',
 	],
 	label: 'px-2.5 py-1.5 text-xs',
-	item: 'p-0',
+	item: 'p-0 transition-none before:transition-none',
+	itemLeadingIcon: 'transition-none',
+	itemTrailingIcon: 'transition-none',
 }))
 const items = computed<SearchMenuItem[][]>(() => {
 	if (props.query.trim().length < OMNI_SEARCH_MINIMUM_LENGTH) return []

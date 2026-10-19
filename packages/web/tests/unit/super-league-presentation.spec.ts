@@ -69,7 +69,7 @@ describe('Super League card presentation', () => {
 			expect(grid).not.toContain('useQuery(')
 			expect(grid).not.toContain('useFetch(')
 		}
-		expect(card).toContain('bg-gradient-to-br from-card to-primary/5')
+		expect(card).toMatch(/bg-(?:gradient|linear)-to-br from-card to-primary\/5/)
 		expect(card).toContain('hover:border-primary/50')
 		expect(card).toContain('hover:shadow-primary/5')
 		expect(card).toContain('motion-safe:hover:-translate-y-1')

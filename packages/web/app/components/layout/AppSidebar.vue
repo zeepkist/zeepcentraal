@@ -15,7 +15,7 @@
 			<UTooltip :text="t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')" :content="{ side: 'right' }">
 				<button
 					type="button"
-					class="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+					class="grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground transition motion-feedback hover:bg-muted hover:text-foreground"
 					:aria-label="t(open ? 'actions.sidebarCollapse' : 'actions.sidebarExpand')"
 					@click="toggleSidebar"
 				>
@@ -38,7 +38,7 @@
 				<NuxtLink
 					:to="item.to"
 					:prefetch-on="item.prefetchOn"
-					class="group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+					class="group flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition motion-feedback hover:bg-muted hover:text-foreground"
 					:class="{
 						'justify-center px-2': state === 'collapsed',
 						'bg-muted text-primary': isNavigationTargetActive(route.path, item.to),

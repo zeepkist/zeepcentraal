@@ -161,7 +161,7 @@ function dropFile(event: DragEvent) {
 				>
 					{{ t('playlist.actions.duplicate') }}
 				</UButton>
-				<UButton icon="i-tabler-download" block :disabled="!downloadable" @click="download">
+				<UButton class="motion-press motion-feedback" icon="i-tabler-download" block :disabled="!downloadable" @click="download">
 					{{ t('playlist.actions.download') }}
 				</UButton>
 				<UButton

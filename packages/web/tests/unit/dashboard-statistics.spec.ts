@@ -160,10 +160,8 @@ describe('dashboard statistic presentation', () => {
 	it('supports period switching, reduced motion, and derived zero-wheel distance', () => {
 		expect(panel).toContain("period = 'today'")
 		expect(panel).toContain("period = 'month'")
-		expect(chartCard).toContain("matchMedia('(prefers-reduced-motion: reduce)')")
-		expect(donutChart).toContain("matchMedia('(prefers-reduced-motion: reduce)')")
-		expect(chartCard).toContain('reducedMotion.value ? 0 : 650')
-		expect(donutChart).toContain('reducedMotion.value ? 0 : 650')
+		expect(chartCard).toContain('useMotionDuration(650)')
+		expect(donutChart).toContain('useMotionDuration(650)')
 		expect(model).toContain('Math.max(')
 		expect(model).toContain('distanceOn4Wheels')
 		expect(model).toContain('distanceOn1Wheel')

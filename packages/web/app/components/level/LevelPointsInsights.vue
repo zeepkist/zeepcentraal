@@ -39,11 +39,8 @@ const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 const categories = computed(() => ({
 	points: { name: props.seriesLabel, color: '#facc15' },
 }))
-const chartDuration = ref(0)
+const chartDuration = useMotionDuration(500)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
-onMounted(() => {
-	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) chartDuration.value = 500
-})
 
 function formatDateAtIndex(index: number) {
 	const value = props.history[index]?.date

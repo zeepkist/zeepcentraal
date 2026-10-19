@@ -1,6 +1,6 @@
 <template>
 	<article
-		class="group relative h-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-within:border-primary/50 focus-within:shadow-lg focus-within:shadow-primary/5"
+		class="group relative h-full overflow-hidden rounded-xl border border-border bg-linear-to-br from-card to-primary/5 transition motion-hover motion-feedback hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-within:border-primary/50 focus-within:shadow-lg focus-within:shadow-primary/5"
 	>
 		<NuxtLink
 			:to="`/mod/${mod.slug}`"
@@ -22,7 +22,7 @@
 					width="1600"
 					height="900"
 					sizes="100vw sm:50vw xl:33vw 2xl:25vw"
-					class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
+					class="size-full object-cover transition motion-hover motion-feedback motion-safe:group-hover:scale-105"
 					loading="lazy"
 				/>
 				<div v-else class="grid size-full place-items-center">
@@ -47,7 +47,7 @@
 					external
 					target="_blank"
 					rel="noopener noreferrer"
-					class="relative z-20 grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:scale-105 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:hover:-translate-y-0.5"
+					class="relative z-20 grid size-8 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition motion-hover motion-feedback motion-safe:hover:scale-105 hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-safe:hover:-translate-y-0.5"
 					:aria-label="`${openModioLabel}: ${mod.name}`"
 				>
 					<TablerIcon name="download" class="size-5" />

@@ -1,7 +1,7 @@
 <template>
 	<NuxtLink
 		:to="to"
-		class="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+		class="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-linear-to-br from-card to-primary/5 transition motion-hover motion-feedback hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 		@click.capture="beginTransition"
 	>
 		<div
@@ -17,7 +17,7 @@
 				width="1600"
 				height="900"
 				sizes="100vw sm:50vw md:33vw xl:20vw"
-				class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
+				class="size-full object-cover transition motion-hover motion-feedback motion-safe:group-hover:scale-105"
 				loading="lazy"
 			/>
 		</div>
@@ -40,7 +40,7 @@
 				<div class="min-w-0 text-sm"><slot name="footer" /></div>
 				<TablerIcon
 					name="chevron-right"
-					class="size-5 shrink-0 text-muted-foreground transition-transform motion-safe:group-hover:translate-x-1"
+					class="size-5 shrink-0 text-muted-foreground transition-transform motion-hover motion-feedback motion-safe:group-hover:translate-x-1"
 				/>
 			</div>
 		</div>

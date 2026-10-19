@@ -6,7 +6,7 @@
 	>
 	<UCard
 		:ui="{ root: 'rounded-lg border-border bg-card/80' }"
-		:class="to ? 'transition group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/5 motion-safe:group-hover:-translate-y-1' : undefined"
+		:class="to ? 'transition motion-hover motion-feedback group-hover:border-primary/50 group-hover:shadow-lg group-hover:shadow-primary/5 motion-safe:group-hover:-translate-y-1' : undefined"
 	>
 		<div class="flex items-start justify-between gap-4">
 			<div class="min-w-0 flex-1">

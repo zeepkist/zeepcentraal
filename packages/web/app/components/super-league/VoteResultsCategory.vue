@@ -34,15 +34,7 @@ function moveTooltip(event: PointerEvent) {
 const { t, locale } = useAppI18n()
 const numberFormat = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 0 }))
 const formatNumber = (value: number) => numberFormat.value.format(value)
-const reducedMotion = shallowRef(false)
-let motionQuery: MediaQueryList | undefined
-const updateMotion = () => { reducedMotion.value = motionQuery?.matches ?? false }
-onMounted(() => {
-	motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-	updateMotion()
-	motionQuery.addEventListener('change', updateMotion)
-})
-onScopeDispose(() => motionQuery?.removeEventListener('change', updateMotion))
+const chartDuration = useMotionDuration(450)
 const failedImages = shallowRef(new Set<number>())
 function imageFailed(id: number) { failedImages.value = new Set([...failedImages.value, id]) }
 const levels = computed(() => props.category.levels.map((level) => ({
@@ -101,7 +93,7 @@ const tooltipLevel = computed(() => levels.value.find((level) => level.levelId =
 							@pointermove.passive="moveTooltip" @pointerdown.passive="moveTooltip" @pointerleave="hover = null" @scroll.passive="hover = null">
 							<BarChart :data="chartData" :categories="chartCategories" :y-axis="['votes', 'votedVotes']"
 								:height="height" :orientation="Orientation.Horizontal" stacked hide-legend
-								:duration="reducedMotion ? 0 : 450" :radius="5" :bar-padding="0.3"
+								:duration="chartDuration" :radius="5" :bar-padding="0.3"
 								:y-axis-config="yAxisConfig"
 								:x-formatter="xFormatter" :y-formatter="yFormatter" :x-num-ticks="5" x-grid-line
 								hide-tooltip />

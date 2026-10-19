@@ -71,12 +71,7 @@ const props = withDefaults(
 	{ half: false, totalLabel: '' },
 )
 
-const reducedMotion = ref(false)
-onMounted(() => {
-	reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-})
-
-const chartDuration = computed(() => (reducedMotion.value ? 0 : 650))
+const chartDuration = useMotionDuration(650)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const total = computed(() => props.entries.reduce((sum, entry) => sum + entry.value, 0))
 const barData = computed(() => [

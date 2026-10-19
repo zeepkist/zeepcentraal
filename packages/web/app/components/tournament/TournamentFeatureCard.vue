@@ -1,7 +1,7 @@
 <template>
 	<NuxtLink
 		:to="targetRoute"
-		class="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/70 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+		class="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/70 transition motion-hover motion-feedback hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 		@click.capture="beginTransition"
 	>
 		<div
@@ -45,7 +45,7 @@
 				</span>
 				<span class="flex items-center gap-1 font-bold text-primary">
 					{{ t('tournaments.viewTournament') }}
-					<TablerIcon name="arrow-right" class="size-4 transition group-hover:translate-x-0.5" />
+					<TablerIcon name="arrow-right" class="size-4 transition motion-hover motion-feedback motion-safe:group-hover:translate-x-0.5" />
 				</span>
 			</div>
 		</div>

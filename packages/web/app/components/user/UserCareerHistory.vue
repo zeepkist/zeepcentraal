@@ -78,7 +78,7 @@ const { locale } = useAppI18n()
 const number = computed(() => getNumberFormatter(locale.value))
 const compactNumber = computed(() => createUserCareerAxisFormatter(locale.value))
 const date = computed(() => getDateTimeFormatter(locale.value, 'medium-london'))
-const duration = ref(0)
+const duration = useMotionDuration(500)
 const hydrated = ref(false)
 const pointsSeries = ref<PointsSeries>('rankedPoints')
 const standingSeries = ref<StandingSeries>('rank')
@@ -86,7 +86,6 @@ const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 
 onMounted(() => {
 	hydrated.value = true
-	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) duration.value = 500
 })
 
 const pointsOptions = computed<

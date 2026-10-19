@@ -157,7 +157,7 @@ const decimalFormat = computed(
 const percentageFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { style: 'percent', maximumFractionDigits: 1 }),
 )
-const chartDuration = ref(0)
+const chartDuration = useMotionDuration(500)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const runAxisConfig = {
 	tickTextAlign: 'right' as const,
@@ -203,9 +203,6 @@ const comparisonCategories = computed(() =>
 	),
 )
 
-onMounted(() => {
-	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) chartDuration.value = 500
-})
 
 function formatElapsed(seconds: number) {
 	const minutes = Math.floor(seconds / 60)

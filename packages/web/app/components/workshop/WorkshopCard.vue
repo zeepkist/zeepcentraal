@@ -8,10 +8,10 @@ const fileSize = computed(() => formatWorkshopFileSize(props.workshop.fileSize, 
 </script>
 
 <template>
-	<article class="group h-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 p-4 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1" :data-workshop-id="workshop.workshopId">
+	<article class="group h-full overflow-hidden rounded-xl border border-border bg-linear-to-br from-card to-primary/5 p-4 transition motion-hover motion-feedback hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1" :data-workshop-id="workshop.workshopId">
 		<NuxtLink :to="`/workshop/${workshop.workshopId}`" class="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
 			<div class="grid aspect-video place-items-center overflow-hidden rounded-lg bg-muted">
-				<NuxtImg v-if="workshop.imageUrl" :src="workshop.imageUrl" :alt="workshop.name" width="1600" height="900" sizes="100vw sm:50vw xl:33vw 2xl:25vw" class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105" loading="lazy" />
+				<NuxtImg v-if="workshop.imageUrl" :src="workshop.imageUrl" :alt="workshop.name" width="1600" height="900" sizes="100vw sm:50vw xl:33vw 2xl:25vw" class="size-full object-cover transition motion-hover motion-feedback motion-safe:group-hover:scale-105" loading="lazy" />
 				<TablerIcon v-else name="map" class="size-10 text-muted-foreground" />
 			</div>
 			<div class="mt-4 flex items-start justify-between gap-3">

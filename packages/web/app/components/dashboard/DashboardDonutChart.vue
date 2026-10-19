@@ -60,11 +60,6 @@ const props = withDefaults(
 	{ half: false, compact: false },
 )
 
-const reducedMotion = ref(false)
-onMounted(() => {
-	reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-})
-
 const layoutClass = computed(() =>
 	props.compact
 		? 'grid items-center gap-3 sm:grid-cols-[minmax(8rem,0.8fr)_minmax(8rem,1.2fr)]'
@@ -74,7 +69,7 @@ const chartHeight = computed(() => (props.compact ? 160 : 224))
 const chartRadius = computed(() => (props.compact ? (props.half ? 70 : 62) : props.half ? 96 : 88))
 const arcWidth = computed(() => (props.compact ? (props.half ? 26 : 22) : props.half ? 34 : 30))
 const donutType = computed(() => (props.half ? 'half' : 'full') as DonutType)
-const chartDuration = computed(() => (reducedMotion.value ? 0 : 650))
+const chartDuration = useMotionDuration(650)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const total = computed(() => props.entries.reduce((sum, entry) => sum + entry.value, 0))
 const chartValues = computed(() => props.entries.map((entry) => entry.value))

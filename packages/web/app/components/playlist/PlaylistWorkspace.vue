@@ -1,9 +1,49 @@
 <script setup vapor lang="ts">
+import { useMediaQuery, usePreferredReducedMotion } from '@vueuse/core'
+import { cssTimeToMilliseconds } from '~/utils/motion'
+
 const { t } = useAppI18n()
 
 const store = usePlaylistsStore()
 const { activePlaylist, hydrated } = storeToRefs(store)
 const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
+const playlistPane = useTemplateRef<HTMLElement>('playlistPane')
+const browserPane = useTemplateRef<HTMLElement>('browserPane')
+const desktop = useMediaQuery('(min-width: 1024px)')
+const preferredMotion = usePreferredReducedMotion()
+let reveal: Animation | undefined
+let generation = 0
+
+function canReveal() {
+	return !desktop.value && preferredMotion.value !== 'reduce'
+}
+
+function cancelReveal() {
+	generation++
+	reveal?.cancel()
+	reveal = undefined
+}
+
+async function selectPane(pane: 'playlist' | 'browser', event: MouseEvent) {
+	if (mobilePane.value === pane) return
+	cancelReveal()
+	if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus({ preventScroll: true })
+	mobilePane.value = pane
+	if (event.detail === 0 || !canReveal()) return
+	const pendingGeneration = generation
+	await nextTick()
+	if (pendingGeneration !== generation || !canReveal()) return
+	const element = pane === 'playlist' ? playlistPane.value : browserPane.value
+	if (!element?.animate) return
+	const style = getComputedStyle(element)
+	reveal = element.animate([{ opacity: 0 }, { opacity: 1 }], {
+		duration: cssTimeToMilliseconds(style.getPropertyValue('--duration-feedback')),
+		easing: style.getPropertyValue('--ease-out').trim(),
+	})
+}
+
+watch([desktop, preferredMotion], cancelReveal, { flush: 'sync' })
+onScopeDispose(cancelReveal)
 </script>
 
 <template>
@@ -19,7 +59,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 				:variant="mobilePane === 'playlist' ? 'solid' : 'soft'"
 				icon="i-tabler-layout-list"
 				block
-				@click="mobilePane = 'playlist'"
+				@click="selectPane('playlist', $event)"
 			>
 				{{ t('playlist.tabs.playlist') }}
 			</UButton>
@@ -27,7 +67,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 				:variant="mobilePane === 'browser' ? 'solid' : 'soft'"
 				icon="i-tabler-search"
 				block
-				@click="mobilePane = 'browser'"
+				@click="selectPane('browser', $event)"
 			>
 				{{ t('playlist.tabs.browser') }}
 			</UButton>
@@ -36,7 +76,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 			v-if="hydrated"
 			class="grid min-w-0 gap-6 lg:grid-cols-[minmax(21rem,25rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(30rem,30rem)_minmax(0,1fr)]"
 		>
-			<div :class="{ 'hidden lg:block': mobilePane !== 'playlist' }" class="min-w-0 space-y-6">
+			<div ref="playlistPane" data-testid="playlist-pane" :class="{ 'hidden lg:block': mobilePane !== 'playlist' }" class="min-w-0 space-y-6">
 				<PlaylistLibraryToolbar />
 				<template v-if="activePlaylist">
 					<PlaylistSettingsForm :playlist="activePlaylist" />
@@ -55,7 +95,7 @@ const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 					</div>
 				</UCard>
 			</div>
-			<div :class="{ 'hidden lg:block': mobilePane !== 'browser' }" class="min-w-0">
+			<div ref="browserPane" data-testid="browser-pane" :class="{ 'hidden lg:block': mobilePane !== 'browser' }" class="min-w-0">
 				<PlaylistLevelBrowser />
 			</div>
 		</div>

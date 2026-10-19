@@ -3,6 +3,11 @@
 
 @theme static {
 	--font-sans: "DINish", sans-serif;
+	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--duration-feedback: 125ms;
+	--duration-hover: 160ms;
+	--duration-press: 160ms;
+	--duration-release: 100ms;
 
 	--breakpoint-3xl: 120rem;
 
@@ -17,6 +22,34 @@
 	--color-warm-neutral-800: #292524;
 	--color-warm-neutral-900: #171513;
 	--color-warm-neutral-950: #0c0a09;
+}
+
+@utility motion-hover {
+	transition-duration: var(--duration-hover);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.motion-press {
+		transition:
+			color var(--duration-feedback) ease,
+			background-color var(--duration-feedback) ease,
+			border-color var(--duration-feedback) ease,
+			opacity var(--duration-feedback) ease,
+			translate var(--duration-hover) var(--ease-out),
+			transform var(--duration-hover) var(--ease-out),
+			scale var(--duration-release) var(--ease-out);
+	}
+
+	.motion-press:active:not(
+		:focus-visible,
+		:disabled,
+		[aria-disabled="true"],
+		[aria-busy="true"],
+		[data-loading="true"]
+	) {
+		scale: 0.97;
+		transition-duration: var(--duration-press);
+	}
 }
 
 @theme inline {
@@ -175,15 +208,15 @@
 
 ::view-transition-group(page-content) {
 	animation-duration: 240ms;
-	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+	animation-timing-function: var(--ease-out);
 }
 
 ::view-transition-old(page-content) {
-	animation: page-content-out 180ms cubic-bezier(0.2, 0, 0, 1) both;
+	animation: page-content-out 180ms var(--ease-out) both;
 }
 
 ::view-transition-new(page-content) {
-	animation: page-content-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+	animation: page-content-in 240ms var(--ease-out) both;
 }
 
 html:active-view-transition-type(detail-back)::view-transition-old(page-content) {
@@ -196,7 +229,7 @@ html:active-view-transition-type(detail-back)::view-transition-new(page-content)
 
 ::view-transition-group(shared-media) {
 	animation-duration: 360ms;
-	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+	animation-timing-function: var(--ease-out);
 }
 
 ::view-transition-image-pair(shared-media) {
@@ -206,7 +239,7 @@ html:active-view-transition-type(detail-back)::view-transition-new(page-content)
 ::view-transition-old(shared-media),
 ::view-transition-new(shared-media) {
 	animation-duration: 360ms;
-	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+	animation-timing-function: var(--ease-out);
 	height: 100%;
 	mix-blend-mode: normal;
 	object-fit: cover;
@@ -215,7 +248,7 @@ html:active-view-transition-type(detail-back)::view-transition-new(page-content)
 ::view-transition-group(shared-title),
 ::view-transition-group(shared-metric) {
 	animation-duration: 280ms;
-	animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+	animation-timing-function: var(--ease-out);
 }
 
 @keyframes page-content-out {
@@ -303,5 +336,12 @@ html:active-view-transition-type(detail-back)::view-transition-new(page-content)
 		animation-duration: 0.01ms;
 		animation-iteration-count: 1;
 		transition-duration: 0.01ms;
+	}
+
+	/* Opt in only after movement endpoints are gated with motion-safe. */
+	.motion-feedback {
+		transition-property: color, background-color, border-color, opacity;
+		transition-duration: var(--duration-feedback);
+		transition-timing-function: ease;
 	}
 }

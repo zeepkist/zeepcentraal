@@ -107,6 +107,12 @@ async function mockLevelGraphql(page: Page, detailDelay = 1_200) {
 
 async function openLevelsFromShell(page: Page) {
 	await page.goto('/wiki')
+	await page.waitForFunction(() => {
+		const root = document.querySelector('#__nuxt') as Element & {
+			__vue_app__?: { config: { globalProperties: { $nuxt?: { isHydrating: boolean } } } }
+		}
+		return root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false
+	})
 	await page.locator('a[href="/levels"]:visible').first().click()
 	await expect(page).toHaveURL('/levels')
 	await expect(page.getByRole('heading', { name: 'Transition Preview Level' })).toBeVisible()

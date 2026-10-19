@@ -30,7 +30,7 @@ const adventure = readFileSync(
 describe('level card presentation', () => {
 	it('uses shared Super League interaction treatment', () => {
 		for (const source of [card, zslCard]) {
-			expect(source).toContain('bg-gradient-to-br from-card to-primary/5')
+			expect(source).toMatch(/bg-(?:gradient|linear)-to-br from-card to-primary\/5/)
 			expect(source).toContain('hover:border-primary/50')
 			expect(source).toContain('motion-safe:hover:-translate-y-1')
 			expect(source).toContain('motion-safe:group-hover:scale-105')

@@ -1,6 +1,6 @@
 <template>
 	<article
-		class="group h-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 p-4 transition hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1"
+		class="group h-full overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 p-4 transition motion-hover motion-feedback hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1"
 	>
 		<NuxtLink
 			:to="`/level/${level.xxHash}`"
@@ -20,7 +20,7 @@
 					width="1600"
 					height="900"
 					sizes="100vw sm:50vw xl:33vw 2xl:25vw"
-					class="size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
+					class="size-full object-cover transition motion-hover motion-feedback motion-safe:group-hover:scale-105"
 					loading="lazy"
 				/>
 			</div>
@@ -39,7 +39,7 @@
 					<UBadge v-if="level.adventure" color="primary" variant="soft">{{ adventureLabel }}</UBadge>
 					<TablerIcon
 						name="chevron-right"
-						class="size-5 text-muted-foreground transition-transform motion-safe:group-hover:translate-x-1"
+						class="size-5 text-muted-foreground transition-transform motion-hover motion-feedback motion-safe:group-hover:translate-x-1"
 					/>
 				</div>
 			</div>

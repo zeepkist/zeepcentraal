@@ -98,7 +98,7 @@ const props = withDefaults(
 )
 
 const { locale } = useAppI18n()
-const chartDuration = ref(0)
+const chartDuration = useMotionDuration(500)
 const focusedSeriesKey = ref<string | null>('primary')
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
@@ -143,9 +143,6 @@ watch(charts, (nextCharts) => {
 	}
 })
 
-onMounted(() => {
-	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) chartDuration.value = 500
-})
 
 function categories(chart: VisibleChart) {
 	return Object.fromEntries(

@@ -3,10 +3,10 @@
 		:to="action.href"
 		:external="action.external"
 		:target="action.external ? '_blank' : undefined"
-		class="group flex items-center gap-3 rounded-xl border p-3 transition duration-300 hover:-translate-y-0.5"
+		class="group flex items-center gap-3 rounded-xl border p-3 transition motion-hover motion-feedback motion-safe:hover:-translate-y-0.5"
 		:class="
 			action.primary
-				? 'border-primary/50 bg-primary text-primary-foreground shadow-lg shadow-primary/15 hover:bg-primary/90'
+				? 'motion-press border-primary/50 bg-primary text-primary-foreground shadow-lg shadow-primary/15 hover:bg-primary/90'
 				: 'border-border bg-background/55 hover:border-primary/45 hover:bg-primary/10'
 		"
 	>
@@ -24,7 +24,7 @@
 		</span>
 		<TablerIcon
 			:name="action.external ? 'external-link' : 'chevron-right'"
-			class="size-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+			class="size-4 shrink-0 transition-transform motion-hover motion-feedback motion-safe:group-hover:translate-x-0.5"
 		/>
 	</NuxtLink>
 </template>

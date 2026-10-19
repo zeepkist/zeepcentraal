@@ -11,7 +11,7 @@
 					enter-active-class="transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none"
 					enter-from-class="-translate-x-2 opacity-0"
 					enter-to-class="translate-x-0 opacity-100"
-					leave-active-class="transition-[transform,opacity] duration-75 ease-in motion-reduce:transition-none"
+					leave-active-class="transition-[transform,opacity] duration-75 ease-out motion-reduce:transition-none"
 					leave-from-class="translate-x-0 opacity-100"
 					leave-to-class="-translate-x-2 opacity-0"
 				>

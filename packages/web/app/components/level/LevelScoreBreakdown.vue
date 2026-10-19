@@ -53,7 +53,7 @@
 					:aria-label="stageAriaLabel(gauge)"
 					@click="selectStage(gauge.key)"
 					@focus="selectStage(gauge.key)"
-					@pointerenter="hoveredStage = gauge.key"
+					@pointerenter="hoverStage($event, gauge.key)"
 					@pointerleave="hoveredStage = null"
 				>
 					<span class="reactor-gauge-visual">
@@ -118,7 +118,7 @@
 						:aria-label="stageAriaLabel(stage)"
 						@click="selectStage(stage.key)"
 						@focus="selectStage(stage.key)"
-						@pointerenter="hoveredStage = stage.key"
+						@pointerenter="hoverStage($event, stage.key)"
 						@pointerleave="hoveredStage = null"
 					>
 						<span class="reactor-node-orb">
@@ -411,6 +411,12 @@ onMounted(() => {
 
 onBeforeUnmount(() => observer?.disconnect())
 
+function hoverStage(event: PointerEvent, stage: StageKey) {
+	if (event.pointerType === 'mouse' && window.matchMedia('(hover: hover)').matches) {
+		hoveredStage.value = stage
+	}
+}
+
 function selectStage(stage: StageKey) {
 	activeStage.value = stage
 }
@@ -520,11 +526,11 @@ function formatMetric(metric: MetricDefinition) {
 	border-radius: 9999px;
 	padding: 0.35rem;
 	transition:
-		transform 180ms ease,
+		transform var(--duration-hover) ease,
 		filter 180ms ease;
 }
 
-.reactor-gauge:is(:hover, :focus-visible, .is-active, .is-hovered) {
+.reactor-gauge:is(:focus-visible, .is-active, .is-hovered) {
 	transform: translateY(-0.2rem);
 	outline: none;
 }
@@ -597,7 +603,7 @@ function formatMetric(metric: MetricDefinition) {
 		inset 0 0 1.5rem color-mix(in oklab, var(--ui-primary) 8%, transparent),
 		0 0 0 1px color-mix(in oklab, var(--ui-bg) 70%, transparent);
 	transition:
-		transform 180ms ease,
+		transform var(--duration-hover) ease,
 		border-color 180ms ease,
 		box-shadow 180ms ease;
 }
@@ -607,11 +613,11 @@ function formatMetric(metric: MetricDefinition) {
 	border-radius: 1rem;
 }
 
-.reactor-factor:is(:hover, :focus-visible, .is-active, .is-hovered) {
+.reactor-factor:is(:focus-visible, .is-active, .is-hovered) {
 	outline: none;
 }
 
-.reactor-factor:is(:hover, :focus-visible, .is-active, .is-hovered) .reactor-node-orb {
+.reactor-factor:is(:focus-visible, .is-active, .is-hovered) .reactor-node-orb {
 	transform: translateY(-0.2rem) scale(1.035);
 	border-color: var(--ui-primary);
 	box-shadow:
@@ -748,6 +754,11 @@ function formatMetric(metric: MetricDefinition) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+	.reactor-gauge:is(:focus-visible, .is-active, .is-hovered),
+	.reactor-factor:is(:focus-visible, .is-active, .is-hovered) .reactor-node-orb {
+		transform: none;
+	}
+
 	.gauge-score,
 	.gauge-confidence,
 	.reactor-path,

@@ -133,11 +133,8 @@ const lineDashArray = computed(() =>
 const visibleDeltaData = computed(() => selectVisibleData(props.analysis.deltaData))
 const visibleSpeedData = computed(() => selectVisibleData(props.analysis.speedData))
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
-const chartDuration = ref(0)
+const chartDuration = useMotionDuration(500)
 const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
-onMounted(() => {
-	if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) chartDuration.value = 500
-})
 
 function formatCheckpoint(index: number) {
 	return index >= props.analysis.checkpointCount

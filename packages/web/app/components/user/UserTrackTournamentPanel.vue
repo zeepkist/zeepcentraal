@@ -49,10 +49,10 @@ function next() {
 				<li v-for="row in rows" :key="row.id">
 					<NuxtLink
 						:to="row.to"
-						class="group block min-w-0 overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card to-primary/5 transition duration-200 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+						class="group block min-w-0 overflow-hidden rounded-xl border border-border bg-linear-to-br from-card to-primary/5 transition motion-hover motion-feedback hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
 					>
 						<div class="flex items-start gap-3 p-3">
-							<div class="relative aspect-[4/3] w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+							<div class="relative aspect-4/3 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
 								<NuxtImg
 									v-if="row.imageUrl"
 									:src="row.imageUrl"
@@ -61,10 +61,10 @@ function next() {
 									width="320"
 									height="240"
 									sizes="80px"
-									class="absolute inset-0 size-full object-cover transition duration-300 motion-safe:group-hover:scale-105"
+									class="absolute inset-0 size-full object-cover transition motion-hover motion-feedback motion-safe:group-hover:scale-105"
 									loading="lazy"
 								/>
-								<div v-else class="absolute inset-0 grid place-items-center bg-gradient-to-br from-muted to-primary/10">
+								<div v-else class="absolute inset-0 grid place-items-center bg-linear-to-br from-muted to-primary/10">
 									<TablerIcon name="photo-off" class="size-6 text-muted-foreground" />
 								</div>
 							</div>

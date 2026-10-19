@@ -63,6 +63,7 @@ function toggle() {
 
 <template>
 	<UButton
+		class="motion-press motion-feedback"
 		:color="added ? 'error' : 'primary'"
 		variant="solid"
 		autocomplete="off"

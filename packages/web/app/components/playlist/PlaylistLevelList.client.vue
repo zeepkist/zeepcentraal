@@ -11,10 +11,17 @@ const levels = computed<LocalPlaylistLevel[]>({
 	set: (value) => store.setLevelOrder(value),
 })
 
-useSortable(list, levels, {
+const sortDuration = useMotionDuration(150)
+const { option } = useSortable(list, levels, {
 	handle: '.playlist-drag-handle',
-	animation: 150,
+	animation: 0,
 	watchElement: true,
+})
+
+// useSortable recreates its instance when the empty list becomes populated.
+watch([list, sortDuration], () => option('animation', sortDuration.value), {
+	flush: 'post',
+	immediate: true,
 })
 
 function remove(uid: string) {

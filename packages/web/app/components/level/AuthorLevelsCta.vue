@@ -14,7 +14,7 @@
 				variant="soft"
 				size="lg"
 				trailing-icon="i-tabler-arrow-right"
-				class="shrink-0 transition-transform motion-safe:group-hover:translate-x-1"
+				class="shrink-0 transition-transform motion-hover motion-feedback motion-safe:group-hover:translate-x-1"
 			>
 				{{ action }}
 			</UButton>
