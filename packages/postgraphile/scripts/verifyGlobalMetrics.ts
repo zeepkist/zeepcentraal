@@ -7,6 +7,7 @@ import { printType } from 'postgraphile/graphql'
 import { elysiaGrafserv } from '../src/elysiaGrafserv'
 import { createPostGraphilePreset } from '../src/postgraphileOptions'
 import { verifyHistoryFactMigration } from './historyFactMigrationChecks'
+import { restoreHistoryPreparation, retireHistoryFixture } from './historyRetirementFixture'
 
 const databaseUrl = process.env.ZC_TEST_DATABASE_URL
 if (!databaseUrl) throw new Error('ZC_TEST_DATABASE_URL required')
@@ -14,6 +15,7 @@ const parsed = new URL(databaseUrl)
 assert.equal(parsed.hostname, '127.0.0.1')
 assert.equal(parsed.pathname, '/zc_optimization_test')
 const sql = new SQL(databaseUrl, { prepare: false })
+const restoreRetired = await restoreHistoryPreparation(sql)
 const instance = postgraphile(
 	createPostGraphilePreset({
 		databaseUrl,
@@ -480,6 +482,7 @@ try {
 			.record_eligible,
 		false,
 	)
+	if (restoreRetired) await retireHistoryFixture(sql)
 	console.log(
 		'20 metrics, DST, freshness, no-scan warm reads, roles, GraphQL, history cutover/rollback, and guarded writes passed',
 	)

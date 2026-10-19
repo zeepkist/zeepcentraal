@@ -115,6 +115,11 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
 
 fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
     apply_optimization_overlay(snapshot, versions);
+    if versions.iter().any(|version| version == "20261019000800") {
+        snapshot.tables.remove("zc_private.record_history_index");
+        snapshot.tables.remove("zc_private.history_fact_rollout");
+        snapshot.tables.remove("zc_private.history_fact_dirty");
+    }
     if versions.iter().any(|version| version == "20260928030000") {
         snapshot
             .tables

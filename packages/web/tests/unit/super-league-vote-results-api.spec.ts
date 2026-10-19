@@ -38,7 +38,13 @@ describe('anonymous vote result proxy', () => {
 				{
 					voteType: 1,
 					state: 'published',
-					levels: [{ levelId: 1, authorNames: ['justMaki', 'maou'] }],
+					levels: [
+						{
+							levelId: 1,
+							authorNames: ['justMaki', 'maou'],
+							authorIds: ['76561198000000001', '76561198000000003'],
+						},
+					],
 				},
 			],
 		}

@@ -5,6 +5,7 @@ export type VoteResultLevel = {
 	xxHash: string
 	name: string | null
 	authorNames: string[]
+	authorIds: string[]
 	imageUrl: string | null
 	votes: number
 }

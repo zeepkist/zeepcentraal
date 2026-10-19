@@ -7,6 +7,7 @@ import type { PgClientQuery, PgClientResult } from 'postgraphile/@dataplan/pg'
 import { BunPgClient } from '../src/bunSqlAdaptor'
 import { elysiaGrafserv } from '../src/elysiaGrafserv'
 import { createPostGraphilePreset } from '../src/postgraphileOptions'
+import { restoreHistoryPreparation, retireHistoryFixture } from './historyRetirementFixture'
 
 const databaseUrl = process.env.ZC_TEST_DATABASE_URL
 assert.ok(databaseUrl, 'ZC_TEST_DATABASE_URL required')
@@ -16,6 +17,7 @@ assert.equal(parsed.pathname, '/zc_optimization_test')
 assert.ok(process.argv.includes('--large'), 'Pass --large to replace synthetic fixture')
 const enforceP95 = process.argv.includes('--enforce-p95')
 const sql = new SQL(databaseUrl, { prepare: false })
+const restoreRetired = await restoreHistoryPreparation(sql)
 const originalQuery = BunPgClient.prototype.query
 let captured: PgClientQuery | undefined
 BunPgClient.prototype.query = function <TData>(query: PgClientQuery) {
@@ -322,6 +324,7 @@ try {
 			'Write p95 regression exceeds 10%',
 		)
 	}
+	if (restoreRetired) await retireHistoryFixture(sql)
 } finally {
 	BunPgClient.prototype.query = originalQuery
 	await instance?.release()

@@ -11,6 +11,14 @@ const levels = Array.from({ length: 19 }, (_, index) => ({
 			? 'A very long submitted level name that stays readable on a narrow mobile screen without hiding vote counts'
 			: `Level ${index + 1}`,
 	imageUrl: index === 0 ? '/android-chrome-512x512.png' : null,
+	authorIds:
+		index === 0
+			? ['76561198000000001', '76561198000000002', '76561198000000003']
+			: index === 1
+				? ['76561198000000001', '76561198000000003']
+				: index === 2
+					? ['76561198000000001']
+					: [],
 	authorNames:
 		index === 0
 			? ['justMaki', 'Jakie', 'maou']
@@ -106,7 +114,9 @@ async function fixture(
 							},
 							viewerStanding: { nodes: [] },
 						}
-					: {}
+					: query.includes('ZC_UserProfile')
+						? { users: { nodes: [] } }
+						: {}
 			await route.fulfill({ json: { data } })
 		},
 	)
@@ -222,6 +232,21 @@ for (const theme of ['dark', 'light']) {
 		await expect(
 			page.locator('[data-result-level="4"]').first().locator('p').first(),
 		).toHaveText('Level 4')
+		const firstRow = page.locator('[data-result-level="1"]').first()
+		for (const [name, steamId] of [
+			['justMaki', '76561198000000001'],
+			['Jakie', '76561198000000002'],
+			['maou', '76561198000000003'],
+		]) {
+			await expect(firstRow.getByRole('link', { name, exact: true })).toHaveAttribute(
+				'href',
+				`/user/${steamId}`,
+			)
+		}
+		await expect(firstRow.locator('a a')).toHaveCount(0)
+		await expect(
+			firstRow.getByRole('link', { name: levels[0]?.name, exact: true }),
+		).toHaveCount(2)
 		await expect(page.getByRole('img', { name: /Votes per level/ })).toHaveCount(3)
 		await expect
 			.poll(() =>
@@ -305,6 +330,19 @@ for (const theme of ['dark', 'light']) {
 		expect(pageErrors).toEqual([])
 	})
 }
+
+test('opens author Steam ID profile through keyboard navigation', async ({ page }) => {
+	await fixture(page, { zero: true })
+	await hydrate(page)
+	await navigate(page, resultPath)
+	const author = page
+		.locator('[data-result-level="1"]')
+		.first()
+		.getByRole('link', { name: 'maou', exact: true })
+	await author.focus()
+	await author.press('Enter')
+	await expect(page).toHaveURL('/user/76561198000000003')
+})
 
 test('publishes ZSL without leaking pending category counts', async ({ page }) => {
 	const options = { partial: true }

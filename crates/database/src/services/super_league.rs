@@ -131,6 +131,7 @@ pub struct VoteResultLevel {
     pub xx_hash: String,
     pub name: Option<String>,
     pub author_names: Vec<String>,
+    pub author_ids: Vec<String>,
     pub image_url: Option<String>,
     pub votes: i64,
 }
@@ -162,6 +163,8 @@ struct VoteResultRow {
     name: Option<String>,
     #[diesel(sql_type = Array<Text>)]
     author_names: Vec<String>,
+    #[diesel(sql_type = Array<Text>)]
+    author_ids: Vec<String>,
     #[diesel(sql_type = Nullable<Text>)]
     image_url: Option<String>,
     #[diesel(sql_type = SmallInt)]
@@ -290,6 +293,7 @@ impl Database {
             "WITH candidates AS (\
             SELECT DISTINCT ON (l.id) l.id AS level_id,l.xx_hash,\
             coalesce(i.name,v.payload->>'name') AS name,\
+            s.authors AS author_ids,\
             ARRAY(SELECT coalesce(author_user.steam_name,author.id) \
                 FROM unnest(s.authors) WITH ORDINALITY author(id,n) \
                 LEFT JOIN public.\"user\" author_user ON author_user.steam_id::text=author.id \
@@ -319,6 +323,7 @@ impl Database {
                 xx_hash: row.xx_hash,
                 name: row.name,
                 author_names: row.author_names,
+                author_ids: row.author_ids,
                 image_url: row.image_url,
                 votes: row.votes,
             });
@@ -505,6 +510,7 @@ mod tests {
             xx_hash: "hash".into(),
             name: Some("Level".into()),
             author_names: vec!["justMaki".into(), "maou".into()],
+            author_ids: vec!["76561198000000001".into(), "76561198000000002".into()],
             image_url: None,
             votes: 4,
         });
@@ -516,12 +522,17 @@ mod tests {
             level["authorNames"],
             serde_json::json!(["justMaki", "maou"])
         );
-        assert_eq!(level.len(), 6);
+        assert_eq!(
+            level["authorIds"],
+            serde_json::json!(["76561198000000001", "76561198000000002"])
+        );
+        assert_eq!(level.len(), 7);
         for key in [
             "levelId",
             "xxHash",
             "name",
             "authorNames",
+            "authorIds",
             "imageUrl",
             "votes",
         ] {

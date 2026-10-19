@@ -362,6 +362,10 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     assert!(!levels.is_empty());
     for level in levels {
         assert!(!level["authorNames"].as_array().unwrap().is_empty());
+        assert_eq!(
+            level["authorIds"].as_array().unwrap().len(),
+            level["authorNames"].as_array().unwrap().len()
+        );
     }
     Ok(())
 }

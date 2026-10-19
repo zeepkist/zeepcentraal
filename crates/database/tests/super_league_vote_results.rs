@@ -99,6 +99,14 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     assert_eq!(partial.categories[0].state, VoteResultState::Published);
     assert_eq!(partial.categories[0].total_votes, Some(6));
     assert_eq!(
+        partial.categories[0].levels[0].author_ids,
+        vec![
+            author.clone(),
+            (steam_id + 1_000_000).to_string(),
+            co_author.clone()
+        ]
+    );
+    assert_eq!(
         partial.categories[0].levels[0].author_names,
         vec![
             "Voter fixture".to_owned(),

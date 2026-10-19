@@ -48,6 +48,8 @@ function imageFailed(id: number) { failedImages.value = new Set([...failedImages
 const levels = computed(() => props.category.levels.map((level) => ({
 	...level,
 	name: `${level.name ?? level.xxHash}${level.authorNames.length ? ` ${t('tournaments.byAuthor', { author: level.authorNames.join(' + ') })}` : ''}`,
+	levelName: level.name ?? level.xxHash,
+	authors: level.authorIds.map((steamId, index) => ({ steamId, name: level.authorNames[index] ?? steamId })),
 	imageUrl: failedImages.value.has(level.levelId) ? null : normaliseOgImageUrl(level.imageUrl),
 	voted: props.votedLevels.has(level.levelId),
 	own: props.ownLevels.has(level.levelId),
@@ -118,14 +120,21 @@ const tooltipLevel = computed(() => levels.value.find((level) => level.levelId =
 				<ol v-if="levels.length" class="divide-y divide-border" :aria-label="title">
 					<li v-for="level in levels" :key="level.levelId" :data-result-level="level.levelId"
 						class="px-4 py-3 transition-colors sm:px-6" :class="{ 'bg-info/10': level.voted }">
-						<NuxtLink :to="`/level/${level.xxHash}`" class="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
-							<div class="flex aspect-video w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted sm:w-24">
+						<div class="flex items-center gap-3">
+							<NuxtLink :to="`/level/${level.xxHash}`" :aria-label="level.levelName" class="flex aspect-video w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:w-24">
 								<NuxtImg v-if="level.imageUrl" :src="level.imageUrl" alt="" width="192" height="108" loading="lazy"
 									class="size-full object-cover" @error="imageFailed(level.levelId)" />
 								<TablerIcon v-else name="photo-off" class="size-5 text-muted-foreground" />
-							</div>
+							</NuxtLink>
 							<div class="min-w-0 flex-1">
-								<p class="break-words font-semibold text-highlighted">{{ level.name }}</p>
+								<p class="break-words font-semibold text-highlighted">
+									<NuxtLink :to="`/level/${level.xxHash}`" class="hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">{{ level.levelName }}</NuxtLink>
+									<template v-if="level.authors.length">{{ ' ' }}<I18nT keypath="tournaments.byAuthor" tag="span">
+										<template #author>
+											<template v-for="(author, index) in level.authors" :key="author.steamId">{{ index ? ' + ' : '' }}<NuxtLink :to="`/user/${author.steamId}`" class="hover:text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">{{ author.name }}</NuxtLink></template>
+										</template>
+									</I18nT></template>
+								</p>
 								<div v-if="level.voted || level.own" class="mt-1 flex flex-wrap gap-2">
 									<UBadge v-if="level.voted" color="info" variant="soft" size="sm">{{ t('zsl.voting.youVoted') }}</UBadge>
 									<UBadge v-if="level.own" color="primary" variant="outline" size="sm">{{ t('zsl.voting.yourLevel') }}</UBadge>
@@ -135,7 +144,7 @@ const tooltipLevel = computed(() => levels.value.find((level) => level.levelId =
 								<p class="text-lg font-bold tabular-nums text-highlighted">{{ formatNumber(level.votes) }}</p>
 								<p class="text-xs text-muted-foreground">{{ t('zsl.voting.votes') }}</p>
 							</div>
-						</NuxtLink>
+						</div>
 					</li>
 				</ol>
 			</div>

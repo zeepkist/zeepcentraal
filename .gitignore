@@ -6,6 +6,7 @@ benchmarks/
 .env
 .env.*
 .notes/
+.local/
 !.env.example
 coverage/
 dist/

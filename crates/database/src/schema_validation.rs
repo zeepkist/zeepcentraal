@@ -18,24 +18,6 @@ diesel::table! {
 }
 
 diesel::table! {
- zc_private.history_fact_rollout (singleton) {
-  singleton -> Bool,
-  backfill_after -> Integer,
-  backfill_done -> Bool,
-  verify_after -> Integer,
-  verified -> Bool,
-  original_view -> Text,
-  switched_at -> Nullable<Timestamptz>,
- }
-}
-
-diesel::table! {
- zc_private.history_fact_dirty (id) {
-  id -> Integer,
- }
-}
-
-diesel::table! {
  zc_private.global_metrics_snapshot (singleton) {
   singleton -> Bool,
   semantics_version -> Integer,

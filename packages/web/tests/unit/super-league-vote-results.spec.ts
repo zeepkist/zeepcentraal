@@ -15,6 +15,7 @@ const level = (id: number, votes: number): VoteResultLevel => ({
 	xxHash: `hash-${id}`,
 	name: `Level ${id}`,
 	authorNames: ['justMaki', 'maou'],
+	authorIds: ['76561198000000001', '76561198000000002'],
 	imageUrl: null,
 	votes,
 })

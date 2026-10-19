@@ -30,6 +30,9 @@ async fn main() -> anyhow::Result<()> {
             .is_some_and(|arg| arg == "--writers-paused-and-qualified");
         anyhow::ensure!(arguments.len() == 2 || qualified, "Unknown history option");
         let config = zc_core::DatabaseConfig::from_env(1)?;
+        if arguments[1] == "rollback" && qualified {
+            zc_database::migrations::restore_history_index(&config.url).await?;
+        }
         let database = zc_database::Database::connect(&config.url, 1).await?;
         println!(
             "{}",

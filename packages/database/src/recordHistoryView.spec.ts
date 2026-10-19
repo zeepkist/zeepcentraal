@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import { getTableConfig, getViewConfig, PgDialect } from 'drizzle-orm/pg-core'
-import { recordHistoryEntry, recordHistoryIndex } from './schema'
+import { recordHistoryIndex } from './legacyRecordHistoryFixture'
+import { recordHistoryEntry } from './schema'
 
 const migration = readFileSync(
 	new URL('../drizzle/0059_lethal_lila_cheney.sql', import.meta.url),
@@ -30,10 +31,13 @@ describe('record history read model', () => {
 		const query = new PgDialect().sqlToQuery(config.query).sql
 
 		expect(config.with).toEqual({ securityInvoker: true })
-		expect(query).toContain('FROM zc_private.record_history_index AS history_entry')
+		expect(query).toContain('FROM zc_private.record_history_fact f')
 		expect(query).toContain('record_user.steam_name AS user_name')
 		expect(query).toContain('record_level.xx_hash AS level_xx_hash')
-		expect(query).not.toContain('UNION ALL')
+		expect(query.match(/UNION ALL/g)).toHaveLength(2)
+		expect(query).toContain(
+			"history_entry.history_view = 'personal-bests' AND history_entry.is_personal_best",
+		)
 		expect(query).not.toContain('personal_best_global')
 		expect(query).not.toContain('world_record_global')
 		expect(query).not.toContain('user_point_contribution')

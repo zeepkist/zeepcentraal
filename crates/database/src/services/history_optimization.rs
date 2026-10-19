@@ -2,43 +2,42 @@ use crate::Database;
 use anyhow::{Result, ensure};
 use diesel::{
     QueryableByName, sql_query,
-    sql_types::{Integer, Jsonb},
+    sql_types::{Bool, Jsonb},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl, SimpleAsyncConnection};
 use serde_json::Value;
 
-#[derive(QueryableByName)]
-struct Batch {
-    #[diesel(sql_type=Integer)]
-    processed: i32,
-}
 #[derive(QueryableByName)]
 struct Status {
     #[diesel(sql_type=Jsonb)]
     value: Value,
 }
 
+#[derive(QueryableByName)]
+struct Retired {
+    #[diesel(sql_type = Bool)]
+    retired: bool,
+}
+
 impl Database {
     pub async fn history_optimization(&self, operation: &str, qualified: bool) -> Result<Value> {
         let mut connection = self.connection().await?;
+        let retired: Retired = sql_query("SELECT to_regclass('zc_private.history_fact_rollout') IS NULL AND to_regclass('zc_private.record_history_fact') IS NOT NULL AS retired")
+            .get_result(&mut connection).await?;
+        if retired.retired {
+            ensure!(
+                operation != "rollback",
+                "History index retired; revert migration 20261019000800 to rebuild legacy storage before rollback"
+            );
+            ensure!(
+                ["status", "backfill", "verify", "cutover"].contains(&operation),
+                "Unknown history operation"
+            );
+            return Ok(serde_json::json!({"retired": true, "source": "record_history_fact"}));
+        }
         match operation {
             "backfill" | "verify" => {
-                let statement = if operation == "backfill" {
-                    "SELECT zc_private.backfill_history_fact(1000) AS processed"
-                } else {
-                    "SELECT zc_private.verify_history_fact(1000) AS processed"
-                };
-                loop {
-                    let batch: Batch = sql_query(statement).get_result(&mut connection).await?;
-                    if batch.processed == 0 {
-                        break;
-                    }
-                    tracing::info!(
-                        operation,
-                        processed = batch.processed,
-                        "History optimization batch committed"
-                    );
-                }
+                crate::migrations::history_batches(&mut connection, operation).await?;
             }
             "cutover" | "rollback" => {
                 ensure!(

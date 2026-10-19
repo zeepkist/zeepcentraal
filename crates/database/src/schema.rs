@@ -816,26 +816,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    zc_private.record_history_index (history_view, id) {
-        history_view -> Text,
-        id -> Integer,
-        time -> Float,
-        date_created -> Timestamptz,
-        level_id -> Integer,
-        user_id -> Integer,
-        level_position -> Nullable<Integer>,
-        contribution_rank -> Nullable<Integer>,
-        level_points -> Nullable<Integer>,
-        level_decayed_points -> Nullable<Float>,
-        player_decayed_points -> Nullable<Float>,
-        is_personal_best -> Bool,
-        is_world_record -> Bool,
-        has_contribution -> Bool,
-        record_eligible -> Bool,
-    }
-}
-
-diesel::table! {
     zc_private.track_tournament_lobby_asset (id_tournament) {
         id_tournament -> Integer,
         workshop_id -> BigInt,

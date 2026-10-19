@@ -11,11 +11,17 @@ async fn async_harness_applies_concurrent_indexes_outside_transactions() -> Resu
         "Dedicated local zc_optimization_test database required"
     );
     let applied = zc_database::migrations::run_pending(&url).await?;
-    assert_eq!(applied.len(), 8);
+    assert_eq!(applied.len(), 9);
     assert!(
         applied
             .iter()
             .all(|version| version.starts_with("2026101900"))
     );
+    let database = zc_database::Database::connect(&url, 1).await?;
+    assert_eq!(
+        database.history_optimization("status", false).await?["retired"],
+        true
+    );
+    assert!(zc_database::migrations::run_pending(&url).await?.is_empty());
     Ok(())
 }
