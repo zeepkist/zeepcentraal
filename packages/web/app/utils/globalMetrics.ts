@@ -36,7 +36,6 @@ export function normalizeGlobalMetrics(value: Zc_GlobalMetricsFragment): GlobalM
 		votesToday: count(value.votesToday),
 		votesMonth: count(value.votesMonth),
 		players: count(value.players),
-		playersAll: count(value.playersAll),
 		rankedPlayers: count(value.rankedPlayers),
 		activePlayersToday: count(value.activePlayersToday),
 		activePlayersMonth: count(value.activePlayersMonth),

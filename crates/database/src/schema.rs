@@ -973,3 +973,33 @@ diesel::table! {
         next_attempt_at -> Timestamptz,
     }
 }
+
+diesel::table! {
+ public.statistics (singleton) {
+  singleton -> Bool,
+  semantics_version -> Integer,
+  records -> BigInt,
+  records_today -> BigInt,
+  records_month -> BigInt,
+  personal_bests -> BigInt,
+  personal_bests_today -> BigInt,
+  personal_bests_month -> BigInt,
+  world_records -> BigInt,
+  world_records_today -> BigInt,
+  world_records_month -> BigInt,
+  levels -> BigInt,
+  levels_today -> BigInt,
+  levels_month -> BigInt,
+  votes -> BigInt,
+  votes_today -> BigInt,
+  votes_month -> BigInt,
+  players -> BigInt,
+  ranked_players -> BigInt,
+  active_players_today -> BigInt,
+  active_players_month -> BigInt,
+  as_of -> Timestamptz,
+  day_start -> Timestamptz,
+  month_start -> Timestamptz,
+  time_zone -> Text,
+ }
+}

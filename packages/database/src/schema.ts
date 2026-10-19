@@ -1800,8 +1800,8 @@ export const vote = pgTable(
 	],
 )
 
-export const globalMetricsSnapshot = zcPrivate.table(
-	'global_metrics_snapshot',
+export const statistics = pgTable(
+	'statistics',
 	{
 		singleton: boolean().primaryKey().default(true),
 		semanticsVersion: integer('semantics_version').notNull(),
@@ -1821,7 +1821,6 @@ export const globalMetricsSnapshot = zcPrivate.table(
 		votesToday: bigint('votes_today', { mode: 'bigint' }).notNull(),
 		votesMonth: bigint('votes_month', { mode: 'bigint' }).notNull(),
 		players: bigint('players', { mode: 'bigint' }).notNull(),
-		playersAll: bigint('players_all', { mode: 'bigint' }).notNull(),
 		rankedPlayers: bigint('ranked_players', { mode: 'bigint' }).notNull(),
 		activePlayersToday: bigint('active_players_today', { mode: 'bigint' }).notNull(),
 		activePlayersMonth: bigint('active_players_month', { mode: 'bigint' }).notNull(),
@@ -1830,7 +1829,7 @@ export const globalMetricsSnapshot = zcPrivate.table(
 		monthStart: timestamp('month_start', { withTimezone: true, mode: 'string' }).notNull(),
 		timeZone: text('time_zone').notNull(),
 	},
-	(table) => [check('global_metrics_snapshot_singleton_check', sql`${table.singleton}`)],
+	(table) => [check('statistics_singleton_check', sql`${table.singleton}`)],
 )
 
 export const recordHistoryFact = zcPrivate

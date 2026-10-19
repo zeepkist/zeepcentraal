@@ -19,7 +19,6 @@ const fields = [
 	'votesToday',
 	'votesMonth',
 	'players',
-	'playersAll',
 	'rankedPlayers',
 	'activePlayersToday',
 	'activePlayersMonth',
@@ -34,10 +33,10 @@ const snapshot = () =>
 	}) as Zc_GlobalMetricsFragment
 
 describe('global metric normalization', () => {
-	it('keeps all 20 counts exact beyond Number precision and preserves period labels', () => {
+	it('keeps all 19 counts exact beyond Number precision and preserves period labels', () => {
 		const normalized = normalizeGlobalMetrics(snapshot())
 		expect(Object.values(normalized).filter((value) => typeof value === 'bigint')).toHaveLength(
-			20,
+			19,
 		)
 		expect(normalized.records).toBe(9007199254740993n)
 		expect(new Intl.NumberFormat('en-GB').format(normalized.records)).toBe(

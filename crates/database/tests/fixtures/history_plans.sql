@@ -9,7 +9,7 @@ SELECT zc_private.rollback_history_fact();
 -- Bulk fixture loading skips triggers. All measured writes run with triggers on.
 SET LOCAL session_replication_role=replica;
 TRUNCATE public."user",public.level,public.zsl_points_structure,
- zc_private.global_metrics_snapshot,zc_private.history_fact_dirty RESTART IDENTITY CASCADE;
+ public.statistics,zc_private.history_fact_dirty RESTART IDENTITY CASCADE;
 INSERT INTO public."user"(id,steam_id,banned) OVERRIDING SYSTEM VALUE
 SELECT n,1000000+n,false FROM generate_series(1,20) n;
 INSERT INTO public.level(id,hash,xx_hash,date_created,publicly_visible) OVERRIDING SYSTEM VALUE

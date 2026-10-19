@@ -11,7 +11,7 @@ async fn async_harness_applies_concurrent_indexes_outside_transactions() -> Resu
         "Dedicated local zc_optimization_test database required"
     );
     let applied = zc_database::migrations::run_pending(&url).await?;
-    assert_eq!(applied.len(), 9);
+    assert_eq!(applied.len(), 11);
     assert!(
         applied
             .iter()

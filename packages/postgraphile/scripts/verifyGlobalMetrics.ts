@@ -60,9 +60,9 @@ try {
 			'utf8',
 		),
 	)
-	const expected = [4, 2, 3, 4, 2, 3, 1, 1, 1, 2, 1, 1, 2, 1, 2, 3, 4, 1, 3, 3]
+	const expected = [4, 2, 3, 4, 2, 3, 1, 1, 1, 2, 1, 1, 2, 1, 2, 3, 1, 3, 3]
 	const counts = await sql`select * from zc_private.compute_global_metrics('2026-10-18 12:00Z')`
-	assert.deepEqual(Object.values(counts[0]).slice(0, 20).map(Number), expected)
+	assert.deepEqual(Object.values(counts[0]).slice(0, 19).map(Number), expected)
 	await sql
 		.begin(async (tx) => {
 			await tx`update public.level_item set deleted=true where workshop_id=901`
@@ -102,13 +102,8 @@ try {
 				await tx`select * from zc_private.compute_global_metrics('2026-10-18 12:00Z')`
 			)[0]
 			assert.deepEqual(
-				[
-					banned.players,
-					banned.players_all,
-					banned.ranked_players,
-					banned.active_players_today,
-				].map(Number),
-				[2, 4, 0, 2],
+				[banned.players, banned.ranked_players, banned.active_players_today].map(Number),
+				[2, 0, 2],
 			)
 			throw new Error('rollback ban fixture')
 		})
@@ -178,7 +173,7 @@ try {
 	assert.equal(String(cold[0].time_zone), 'Europe/London')
 	await sql`select zc_private.refresh_global_metrics()`
 	const warm = await sql`select * from public.global_metrics()`
-	const stored = await sql`select as_of from zc_private.global_metrics_snapshot`
+	const stored = await sql`select as_of from public.statistics`
 	assert.equal(String(warm[0].as_of), String(stored[0].as_of))
 	await assert.rejects(
 		sql.begin(async (tx) => {
@@ -186,7 +181,7 @@ try {
 				`CREATE OR REPLACE FUNCTION zc_private.compute_global_metrics(p_as_of timestamptz) RETURNS public.global_metric_summary LANGUAGE plpgsql STABLE AS $$ BEGIN RAISE EXCEPTION 'compute called'; END $$`,
 			)
 			assert.equal(Number((await tx`select * from public.global_metrics()`)[0].records), 4)
-			await tx`update zc_private.global_metrics_snapshot set as_of=statement_timestamp()-interval '61 seconds'`
+			await tx`update public.statistics set as_of=statement_timestamp()-interval '61 seconds'`
 			await tx`select * from public.global_metrics()`
 		}),
 		/compute called/,
@@ -194,37 +189,32 @@ try {
 	for (const change of [
 		"as_of=statement_timestamp()-interval '61 seconds'",
 		"day_start=day_start-interval '1 day'",
-		'semantics_version=2',
+		'semantics_version=3',
 		"time_zone='UTC'",
 		"as_of=statement_timestamp()+interval '1 hour'",
 	]) {
 		await sql.begin(async (tx) => {
-			await tx.unsafe(`update zc_private.global_metrics_snapshot set ${change}`)
+			await tx.unsafe(`update public.statistics set ${change}`)
 			assert.equal(Number((await tx`select * from public.global_metrics()`)[0].records), 4)
 		})
-		await sql`truncate zc_private.global_metrics_snapshot`
+		await sql`truncate public.statistics`
 		await sql`select zc_private.refresh_global_metrics()`
 	}
 	await sql.begin(async (tx) => {
-		await tx`update zc_private.global_metrics_snapshot set as_of=statement_timestamp()+interval '1 hour',records=987654`
+		await tx`update public.statistics set as_of=statement_timestamp()+interval '1 hour',records=987654`
 		await tx`select zc_private.refresh_global_metrics()`
-		assert.equal(
-			Number((await tx`select records from zc_private.global_metrics_snapshot`)[0].records),
-			987654,
-		)
+		assert.equal(Number((await tx`select records from public.statistics`)[0].records), 987654)
 	})
-	await sql`truncate zc_private.global_metrics_snapshot`
+	await sql`truncate public.statistics`
 	await sql.begin(async (tx) => {
-		await tx`insert into zc_private.global_metrics_snapshot select true,2,m.* from zc_private.compute_global_metrics(statement_timestamp()-interval '1 minute') m`
-		await tx`update zc_private.global_metrics_snapshot set records=987654`
+		await tx`insert into public.statistics select true,3,m.* from zc_private.compute_global_metrics(statement_timestamp()-interval '1 minute') m`
+		await tx`update public.statistics set records=987654`
 		await tx`select zc_private.refresh_global_metrics()`
-		const snapshot = (
-			await tx`select records,semantics_version from zc_private.global_metrics_snapshot`
-		)[0]
+		const snapshot = (await tx`select records,semantics_version from public.statistics`)[0]
 		assert.equal(Number(snapshot.records), 987654)
-		assert.equal(Number(snapshot.semantics_version), 2)
+		assert.equal(Number(snapshot.semantics_version), 3)
 	})
-	await sql`truncate zc_private.global_metrics_snapshot`
+	await sql`truncate public.statistics`
 	await Promise.all(
 		Array.from({ length: 4 }, () => sql`select zc_private.refresh_global_metrics()`),
 	)
@@ -233,10 +223,18 @@ try {
 		assert.equal(Number((await tx`select * from public.global_metrics()`)[0].records), 4)
 		assert.equal(
 			(
-				await tx`select has_table_privilege(current_user,'zc_private.global_metrics_snapshot','SELECT') as allowed`
+				await tx`select has_table_privilege(current_user,'public.statistics','SELECT') as allowed`
 			)[0].allowed,
-			false,
+			true,
 		)
+		for (const privilege of ['INSERT', 'UPDATE', 'DELETE']) {
+			assert.equal(
+				(
+					await tx`select has_table_privilege(current_user,'public.statistics',${privilege}) as allowed`
+				)[0].allowed,
+				false,
+			)
+		}
 	})
 	const server = instance.createServ(elysiaGrafserv)
 	const response = await server.handleGraphQLRequest(
@@ -244,7 +242,7 @@ try {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({
-				query: '{ globalMetrics { records personalBests worldRecords players playersAll rankedPlayers activePlayersToday timeZone } }',
+				query: '{ globalMetrics { records personalBests worldRecords players rankedPlayers activePlayersToday timeZone } }',
 			}),
 		}),
 	)
@@ -484,7 +482,7 @@ try {
 	)
 	if (restoreRetired) await retireHistoryFixture(sql)
 	console.log(
-		'20 metrics, DST, freshness, no-scan warm reads, roles, GraphQL, history cutover/rollback, and guarded writes passed',
+		'19 metrics, DST, freshness, no-scan warm reads, roles, GraphQL, history cutover/rollback, and guarded writes passed',
 	)
 	if (process.argv.includes('--serve')) {
 		let metricRequests = 0

@@ -15,7 +15,6 @@ fragment ZC_GlobalMetrics on GlobalMetricSummary {
 	votesToday
 	votesMonth
 	players
-	playersAll
 	rankedPlayers
 	activePlayersToday
 	activePlayersMonth

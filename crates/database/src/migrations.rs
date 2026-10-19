@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use diesel::migration::MigrationSource;
 use diesel::sql_query;
 use diesel_async::{
     AsyncConnection, AsyncMigrationHarness, AsyncPgConnection, RunQueryDsl, SimpleAsyncConnection,
@@ -99,13 +100,28 @@ pub async fn restore_history_index(database_url: &str) -> Result<()> {
         .map_err(|error| anyhow::anyhow!(error.to_string()))?;
     anyhow::ensure!(
         versions
-            .as_slice()
-            .first()
-            .is_some_and(|version| version.to_string() == "20261019000800"),
+            .iter()
+            .any(|version| version.to_string() == "20261019000800"),
+        "History retirement migration is absent"
+    );
+    anyhow::ensure!(
+        versions.iter().all(|version| {
+            let version = version.to_string();
+            // Public statistics does not depend on the history storage layout.
+            version.as_str() <= "20261019000800"
+                || matches!(version.as_str(), "20261019000900" | "20261019001000")
+        }),
         "Revert later migrations before rebuilding legacy history storage"
     );
+    let migrations = MIGRATIONS
+        .migrations()
+        .map_err(|error| anyhow::anyhow!(error.to_string()))?;
+    let retirement = migrations
+        .iter()
+        .find(|migration| migration.name().version().to_string() == "20261019000800")
+        .context("History retirement migration is missing from this binary")?;
     harness
-        .revert_last_migration(MIGRATIONS)
+        .revert_migration(retirement.as_ref())
         .map_err(|error| anyhow::anyhow!(error.to_string()))?;
     Ok(())
 }

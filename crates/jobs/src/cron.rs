@@ -123,6 +123,21 @@ async fn run_session(
     }
     retry.reset();
     tracing::info!("Jobs scheduler leadership acquired");
+    // Queue acquisition can fail while this dedicated connection stays healthy.
+    // Release leadership before returning it to the shared physical pool on errors too.
+    let result = run_leader(&mut connection, queue, shutdown).await;
+    sql_query("SELECT pg_advisory_unlock($1,0)")
+        .bind::<diesel::sql_types::Integer, _>(SCHEDULER_LOCK_NAMESPACE)
+        .execute(&mut connection)
+        .await?;
+    result
+}
+
+async fn run_leader(
+    connection: &mut zc_database::PoolConnection,
+    queue: &Queue,
+    shutdown: &mut watch::Receiver<bool>,
+) -> Result<()> {
     let mut last_minute = String::new();
     let mut last_metrics_slot = String::new();
     loop {
@@ -143,7 +158,7 @@ async fn run_session(
              extract(minute FROM local_time)=0 AS level_history, \
              extract(hour FROM local_time) IN (0,12) AND extract(minute FROM local_time)=0 AS user_history, \
              extract(hour FROM local_time)=2 AND extract(minute FROM local_time)=30 AS prune FROM times",
-        ).get_result(&mut connection).await?;
+        ).get_result(&mut **connection).await?;
         if schedule.metrics_slot != last_metrics_slot {
             enqueue(
                 queue,
@@ -164,10 +179,6 @@ async fn run_session(
             _ = tokio::time::sleep(Duration::from_secs(5)) => {}
         }
     }
-    let _ = sql_query("SELECT pg_advisory_unlock($1,0)")
-        .bind::<diesel::sql_types::Integer, _>(SCHEDULER_LOCK_NAMESPACE)
-        .execute(&mut connection)
-        .await;
     Ok(())
 }
 

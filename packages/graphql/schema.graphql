@@ -1731,7 +1731,6 @@ type GlobalMetricSummary {
   personalBestsMonth: BigInt
   personalBestsToday: BigInt
   players: BigInt
-  playersAll: BigInt
   rankedPlayers: BigInt
   records: BigInt
   recordsMonth: BigInt
@@ -11238,6 +11237,35 @@ type Query implements Node {
     """The method to use when ordering `ZslSeason`."""
     orderBy: [ZslSeasonsOrderBy!] = [PRIMARY_KEY_ASC]
   ): ZslSeasonsConnection
+  """Get a single `Statistic`."""
+  statistic(singleton: Boolean!): Statistic
+
+  """Reads and enables pagination through a set of `Statistic`."""
+  statistics(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StatisticCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StatisticFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `Statistic`."""
+    orderBy: [StatisticsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StatisticsConnection
 }
 
 type Record implements Node {
@@ -19197,6 +19225,1049 @@ input StringFilter {
 }
 
 """
+Global headline statistics refreshed every 30 seconds.
+@behavior -insert -update -delete
+"""
+type Statistic implements Node {
+  activePlayersMonth: BigInt!
+  activePlayersToday: BigInt!
+  asOf: Datetime!
+  dayStart: Datetime!
+  levels: BigInt!
+  levelsMonth: BigInt!
+  levelsToday: BigInt!
+  monthStart: Datetime!
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  personalBests: BigInt!
+  personalBestsMonth: BigInt!
+  personalBestsToday: BigInt!
+  players: BigInt!
+  rankedPlayers: BigInt!
+  records: BigInt!
+  recordsMonth: BigInt!
+  recordsToday: BigInt!
+  semanticsVersion: Int!
+  singleton: Boolean!
+  timeZone: String!
+  votes: BigInt!
+  votesMonth: BigInt!
+  votesToday: BigInt!
+  worldRecords: BigInt!
+  worldRecordsMonth: BigInt!
+  worldRecordsToday: BigInt!
+}
+
+type StatisticAggregates {
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: StatisticAverageAggregates
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: StatisticDistinctCountAggregates
+  keys: [String]
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: StatisticMaxAggregates
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: StatisticMinAggregates
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: StatisticStddevPopulationAggregates
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: StatisticStddevSampleAggregates
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: StatisticSumAggregates
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: StatisticVariancePopulationAggregates
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: StatisticVarianceSampleAggregates
+}
+
+type StatisticAverageAggregates {
+  """Mean average of activePlayersMonth across the matching connection"""
+  activePlayersMonth: BigFloat
+  """Mean average of activePlayersToday across the matching connection"""
+  activePlayersToday: BigFloat
+  """Mean average of levels across the matching connection"""
+  levels: BigFloat
+  """Mean average of levelsMonth across the matching connection"""
+  levelsMonth: BigFloat
+  """Mean average of levelsToday across the matching connection"""
+  levelsToday: BigFloat
+  """Mean average of personalBests across the matching connection"""
+  personalBests: BigFloat
+  """Mean average of personalBestsMonth across the matching connection"""
+  personalBestsMonth: BigFloat
+  """Mean average of personalBestsToday across the matching connection"""
+  personalBestsToday: BigFloat
+  """Mean average of players across the matching connection"""
+  players: BigFloat
+  """Mean average of rankedPlayers across the matching connection"""
+  rankedPlayers: BigFloat
+  """Mean average of records across the matching connection"""
+  records: BigFloat
+  """Mean average of recordsMonth across the matching connection"""
+  recordsMonth: BigFloat
+  """Mean average of recordsToday across the matching connection"""
+  recordsToday: BigFloat
+  """Mean average of semanticsVersion across the matching connection"""
+  semanticsVersion: BigFloat
+  """Mean average of votes across the matching connection"""
+  votes: BigFloat
+  """Mean average of votesMonth across the matching connection"""
+  votesMonth: BigFloat
+  """Mean average of votesToday across the matching connection"""
+  votesToday: BigFloat
+  """Mean average of worldRecords across the matching connection"""
+  worldRecords: BigFloat
+  """Mean average of worldRecordsMonth across the matching connection"""
+  worldRecordsMonth: BigFloat
+  """Mean average of worldRecordsToday across the matching connection"""
+  worldRecordsToday: BigFloat
+}
+
+"""
+A condition to be used against `Statistic` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input StatisticCondition {
+  """Checks for equality with the object’s `activePlayersMonth` field."""
+  activePlayersMonth: BigInt
+  """Checks for equality with the object’s `activePlayersToday` field."""
+  activePlayersToday: BigInt
+  """Checks for equality with the object’s `asOf` field."""
+  asOf: Datetime
+  """Checks for equality with the object’s `dayStart` field."""
+  dayStart: Datetime
+  """Checks for equality with the object’s `levels` field."""
+  levels: BigInt
+  """Checks for equality with the object’s `levelsMonth` field."""
+  levelsMonth: BigInt
+  """Checks for equality with the object’s `levelsToday` field."""
+  levelsToday: BigInt
+  """Checks for equality with the object’s `monthStart` field."""
+  monthStart: Datetime
+  """Checks for equality with the object’s `personalBests` field."""
+  personalBests: BigInt
+  """Checks for equality with the object’s `personalBestsMonth` field."""
+  personalBestsMonth: BigInt
+  """Checks for equality with the object’s `personalBestsToday` field."""
+  personalBestsToday: BigInt
+  """Checks for equality with the object’s `players` field."""
+  players: BigInt
+  """Checks for equality with the object’s `rankedPlayers` field."""
+  rankedPlayers: BigInt
+  """Checks for equality with the object’s `records` field."""
+  records: BigInt
+  """Checks for equality with the object’s `recordsMonth` field."""
+  recordsMonth: BigInt
+  """Checks for equality with the object’s `recordsToday` field."""
+  recordsToday: BigInt
+  """Checks for equality with the object’s `semanticsVersion` field."""
+  semanticsVersion: Int
+  """Checks for equality with the object’s `singleton` field."""
+  singleton: Boolean
+  """Checks for equality with the object’s `timeZone` field."""
+  timeZone: String
+  """Checks for equality with the object’s `votes` field."""
+  votes: BigInt
+  """Checks for equality with the object’s `votesMonth` field."""
+  votesMonth: BigInt
+  """Checks for equality with the object’s `votesToday` field."""
+  votesToday: BigInt
+  """Checks for equality with the object’s `worldRecords` field."""
+  worldRecords: BigInt
+  """Checks for equality with the object’s `worldRecordsMonth` field."""
+  worldRecordsMonth: BigInt
+  """Checks for equality with the object’s `worldRecordsToday` field."""
+  worldRecordsToday: BigInt
+}
+
+type StatisticDistinctCountAggregates {
+  """Distinct count of activePlayersMonth across the matching connection"""
+  activePlayersMonth: BigInt
+  """Distinct count of activePlayersToday across the matching connection"""
+  activePlayersToday: BigInt
+  """Distinct count of asOf across the matching connection"""
+  asOf: BigInt
+  """Distinct count of dayStart across the matching connection"""
+  dayStart: BigInt
+  """Distinct count of levels across the matching connection"""
+  levels: BigInt
+  """Distinct count of levelsMonth across the matching connection"""
+  levelsMonth: BigInt
+  """Distinct count of levelsToday across the matching connection"""
+  levelsToday: BigInt
+  """Distinct count of monthStart across the matching connection"""
+  monthStart: BigInt
+  """Distinct count of personalBests across the matching connection"""
+  personalBests: BigInt
+  """Distinct count of personalBestsMonth across the matching connection"""
+  personalBestsMonth: BigInt
+  """Distinct count of personalBestsToday across the matching connection"""
+  personalBestsToday: BigInt
+  """Distinct count of players across the matching connection"""
+  players: BigInt
+  """Distinct count of rankedPlayers across the matching connection"""
+  rankedPlayers: BigInt
+  """Distinct count of records across the matching connection"""
+  records: BigInt
+  """Distinct count of recordsMonth across the matching connection"""
+  recordsMonth: BigInt
+  """Distinct count of recordsToday across the matching connection"""
+  recordsToday: BigInt
+  """Distinct count of semanticsVersion across the matching connection"""
+  semanticsVersion: BigInt
+  """Distinct count of singleton across the matching connection"""
+  singleton: BigInt
+  """Distinct count of timeZone across the matching connection"""
+  timeZone: BigInt
+  """Distinct count of votes across the matching connection"""
+  votes: BigInt
+  """Distinct count of votesMonth across the matching connection"""
+  votesMonth: BigInt
+  """Distinct count of votesToday across the matching connection"""
+  votesToday: BigInt
+  """Distinct count of worldRecords across the matching connection"""
+  worldRecords: BigInt
+  """Distinct count of worldRecordsMonth across the matching connection"""
+  worldRecordsMonth: BigInt
+  """Distinct count of worldRecordsToday across the matching connection"""
+  worldRecordsToday: BigInt
+}
+
+"""
+A filter to be used against `Statistic` object types. All fields are combined with a logical ‘and.’
+"""
+input StatisticFilter {
+  """Filter by the object’s `activePlayersMonth` field."""
+  activePlayersMonth: BigIntFilter
+  """Filter by the object’s `activePlayersToday` field."""
+  activePlayersToday: BigIntFilter
+  """Checks for all expressions in this list."""
+  and: [StatisticFilter!]
+  """Filter by the object’s `asOf` field."""
+  asOf: DatetimeFilter
+  """Filter by the object’s `dayStart` field."""
+  dayStart: DatetimeFilter
+  """Filter by the object’s `levels` field."""
+  levels: BigIntFilter
+  """Filter by the object’s `levelsMonth` field."""
+  levelsMonth: BigIntFilter
+  """Filter by the object’s `levelsToday` field."""
+  levelsToday: BigIntFilter
+  """Filter by the object’s `monthStart` field."""
+  monthStart: DatetimeFilter
+  """Negates the expression."""
+  not: StatisticFilter
+  """Checks for any expressions in this list."""
+  or: [StatisticFilter!]
+  """Filter by the object’s `personalBests` field."""
+  personalBests: BigIntFilter
+  """Filter by the object’s `personalBestsMonth` field."""
+  personalBestsMonth: BigIntFilter
+  """Filter by the object’s `personalBestsToday` field."""
+  personalBestsToday: BigIntFilter
+  """Filter by the object’s `players` field."""
+  players: BigIntFilter
+  """Filter by the object’s `rankedPlayers` field."""
+  rankedPlayers: BigIntFilter
+  """Filter by the object’s `records` field."""
+  records: BigIntFilter
+  """Filter by the object’s `recordsMonth` field."""
+  recordsMonth: BigIntFilter
+  """Filter by the object’s `recordsToday` field."""
+  recordsToday: BigIntFilter
+  """Filter by the object’s `semanticsVersion` field."""
+  semanticsVersion: IntFilter
+  """Filter by the object’s `singleton` field."""
+  singleton: BooleanFilter
+  """Filter by the object’s `timeZone` field."""
+  timeZone: StringFilter
+  """Filter by the object’s `votes` field."""
+  votes: BigIntFilter
+  """Filter by the object’s `votesMonth` field."""
+  votesMonth: BigIntFilter
+  """Filter by the object’s `votesToday` field."""
+  votesToday: BigIntFilter
+  """Filter by the object’s `worldRecords` field."""
+  worldRecords: BigIntFilter
+  """Filter by the object’s `worldRecordsMonth` field."""
+  worldRecordsMonth: BigIntFilter
+  """Filter by the object’s `worldRecordsToday` field."""
+  worldRecordsToday: BigIntFilter
+}
+
+"""Grouping methods for `Statistic` for usage during aggregation."""
+enum StatisticGroupBy {
+  ACTIVE_PLAYERS_MONTH
+  ACTIVE_PLAYERS_TODAY
+  AS_OF
+  AS_OF_TRUNCATED_TO_DAY
+  AS_OF_TRUNCATED_TO_HOUR
+  DAY_START
+  DAY_START_TRUNCATED_TO_DAY
+  DAY_START_TRUNCATED_TO_HOUR
+  LEVELS
+  LEVELS_MONTH
+  LEVELS_TODAY
+  MONTH_START
+  MONTH_START_TRUNCATED_TO_DAY
+  MONTH_START_TRUNCATED_TO_HOUR
+  PERSONAL_BESTS
+  PERSONAL_BESTS_MONTH
+  PERSONAL_BESTS_TODAY
+  PLAYERS
+  RANKED_PLAYERS
+  RECORDS
+  RECORDS_MONTH
+  RECORDS_TODAY
+  SEMANTICS_VERSION
+  TIME_ZONE
+  VOTES
+  VOTES_MONTH
+  VOTES_TODAY
+  WORLD_RECORDS
+  WORLD_RECORDS_MONTH
+  WORLD_RECORDS_TODAY
+}
+
+input StatisticHavingAverageInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+input StatisticHavingDistinctCountInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+"""Conditions for `Statistic` aggregates."""
+input StatisticHavingInput {
+  AND: [StatisticHavingInput!]
+  OR: [StatisticHavingInput!]
+  average: StatisticHavingAverageInput
+  distinctCount: StatisticHavingDistinctCountInput
+  max: StatisticHavingMaxInput
+  min: StatisticHavingMinInput
+  stddevPopulation: StatisticHavingStddevPopulationInput
+  stddevSample: StatisticHavingStddevSampleInput
+  sum: StatisticHavingSumInput
+  variancePopulation: StatisticHavingVariancePopulationInput
+  varianceSample: StatisticHavingVarianceSampleInput
+}
+
+input StatisticHavingMaxInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+input StatisticHavingMinInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+input StatisticHavingStddevPopulationInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+input StatisticHavingStddevSampleInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+input StatisticHavingSumInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+input StatisticHavingVariancePopulationInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+input StatisticHavingVarianceSampleInput {
+  activePlayersMonth: HavingBigintFilter
+  activePlayersToday: HavingBigintFilter
+  asOf: HavingDatetimeFilter
+  dayStart: HavingDatetimeFilter
+  levels: HavingBigintFilter
+  levelsMonth: HavingBigintFilter
+  levelsToday: HavingBigintFilter
+  monthStart: HavingDatetimeFilter
+  personalBests: HavingBigintFilter
+  personalBestsMonth: HavingBigintFilter
+  personalBestsToday: HavingBigintFilter
+  players: HavingBigintFilter
+  rankedPlayers: HavingBigintFilter
+  records: HavingBigintFilter
+  recordsMonth: HavingBigintFilter
+  recordsToday: HavingBigintFilter
+  semanticsVersion: HavingIntFilter
+  votes: HavingBigintFilter
+  votesMonth: HavingBigintFilter
+  votesToday: HavingBigintFilter
+  worldRecords: HavingBigintFilter
+  worldRecordsMonth: HavingBigintFilter
+  worldRecordsToday: HavingBigintFilter
+}
+
+type StatisticMaxAggregates {
+  """Maximum of activePlayersMonth across the matching connection"""
+  activePlayersMonth: BigInt
+  """Maximum of activePlayersToday across the matching connection"""
+  activePlayersToday: BigInt
+  """Maximum of levels across the matching connection"""
+  levels: BigInt
+  """Maximum of levelsMonth across the matching connection"""
+  levelsMonth: BigInt
+  """Maximum of levelsToday across the matching connection"""
+  levelsToday: BigInt
+  """Maximum of personalBests across the matching connection"""
+  personalBests: BigInt
+  """Maximum of personalBestsMonth across the matching connection"""
+  personalBestsMonth: BigInt
+  """Maximum of personalBestsToday across the matching connection"""
+  personalBestsToday: BigInt
+  """Maximum of players across the matching connection"""
+  players: BigInt
+  """Maximum of rankedPlayers across the matching connection"""
+  rankedPlayers: BigInt
+  """Maximum of records across the matching connection"""
+  records: BigInt
+  """Maximum of recordsMonth across the matching connection"""
+  recordsMonth: BigInt
+  """Maximum of recordsToday across the matching connection"""
+  recordsToday: BigInt
+  """Maximum of semanticsVersion across the matching connection"""
+  semanticsVersion: Int
+  """Maximum of votes across the matching connection"""
+  votes: BigInt
+  """Maximum of votesMonth across the matching connection"""
+  votesMonth: BigInt
+  """Maximum of votesToday across the matching connection"""
+  votesToday: BigInt
+  """Maximum of worldRecords across the matching connection"""
+  worldRecords: BigInt
+  """Maximum of worldRecordsMonth across the matching connection"""
+  worldRecordsMonth: BigInt
+  """Maximum of worldRecordsToday across the matching connection"""
+  worldRecordsToday: BigInt
+}
+
+type StatisticMinAggregates {
+  """Minimum of activePlayersMonth across the matching connection"""
+  activePlayersMonth: BigInt
+  """Minimum of activePlayersToday across the matching connection"""
+  activePlayersToday: BigInt
+  """Minimum of levels across the matching connection"""
+  levels: BigInt
+  """Minimum of levelsMonth across the matching connection"""
+  levelsMonth: BigInt
+  """Minimum of levelsToday across the matching connection"""
+  levelsToday: BigInt
+  """Minimum of personalBests across the matching connection"""
+  personalBests: BigInt
+  """Minimum of personalBestsMonth across the matching connection"""
+  personalBestsMonth: BigInt
+  """Minimum of personalBestsToday across the matching connection"""
+  personalBestsToday: BigInt
+  """Minimum of players across the matching connection"""
+  players: BigInt
+  """Minimum of rankedPlayers across the matching connection"""
+  rankedPlayers: BigInt
+  """Minimum of records across the matching connection"""
+  records: BigInt
+  """Minimum of recordsMonth across the matching connection"""
+  recordsMonth: BigInt
+  """Minimum of recordsToday across the matching connection"""
+  recordsToday: BigInt
+  """Minimum of semanticsVersion across the matching connection"""
+  semanticsVersion: Int
+  """Minimum of votes across the matching connection"""
+  votes: BigInt
+  """Minimum of votesMonth across the matching connection"""
+  votesMonth: BigInt
+  """Minimum of votesToday across the matching connection"""
+  votesToday: BigInt
+  """Minimum of worldRecords across the matching connection"""
+  worldRecords: BigInt
+  """Minimum of worldRecordsMonth across the matching connection"""
+  worldRecordsMonth: BigInt
+  """Minimum of worldRecordsToday across the matching connection"""
+  worldRecordsToday: BigInt
+}
+
+type StatisticStddevPopulationAggregates {
+  """
+  Population standard deviation of activePlayersMonth across the matching connection
+  """
+  activePlayersMonth: BigFloat
+  """
+  Population standard deviation of activePlayersToday across the matching connection
+  """
+  activePlayersToday: BigFloat
+  """Population standard deviation of levels across the matching connection"""
+  levels: BigFloat
+  """
+  Population standard deviation of levelsMonth across the matching connection
+  """
+  levelsMonth: BigFloat
+  """
+  Population standard deviation of levelsToday across the matching connection
+  """
+  levelsToday: BigFloat
+  """
+  Population standard deviation of personalBests across the matching connection
+  """
+  personalBests: BigFloat
+  """
+  Population standard deviation of personalBestsMonth across the matching connection
+  """
+  personalBestsMonth: BigFloat
+  """
+  Population standard deviation of personalBestsToday across the matching connection
+  """
+  personalBestsToday: BigFloat
+  """
+  Population standard deviation of players across the matching connection
+  """
+  players: BigFloat
+  """
+  Population standard deviation of rankedPlayers across the matching connection
+  """
+  rankedPlayers: BigFloat
+  """
+  Population standard deviation of records across the matching connection
+  """
+  records: BigFloat
+  """
+  Population standard deviation of recordsMonth across the matching connection
+  """
+  recordsMonth: BigFloat
+  """
+  Population standard deviation of recordsToday across the matching connection
+  """
+  recordsToday: BigFloat
+  """
+  Population standard deviation of semanticsVersion across the matching connection
+  """
+  semanticsVersion: BigFloat
+  """Population standard deviation of votes across the matching connection"""
+  votes: BigFloat
+  """
+  Population standard deviation of votesMonth across the matching connection
+  """
+  votesMonth: BigFloat
+  """
+  Population standard deviation of votesToday across the matching connection
+  """
+  votesToday: BigFloat
+  """
+  Population standard deviation of worldRecords across the matching connection
+  """
+  worldRecords: BigFloat
+  """
+  Population standard deviation of worldRecordsMonth across the matching connection
+  """
+  worldRecordsMonth: BigFloat
+  """
+  Population standard deviation of worldRecordsToday across the matching connection
+  """
+  worldRecordsToday: BigFloat
+}
+
+type StatisticStddevSampleAggregates {
+  """
+  Sample standard deviation of activePlayersMonth across the matching connection
+  """
+  activePlayersMonth: BigFloat
+  """
+  Sample standard deviation of activePlayersToday across the matching connection
+  """
+  activePlayersToday: BigFloat
+  """Sample standard deviation of levels across the matching connection"""
+  levels: BigFloat
+  """
+  Sample standard deviation of levelsMonth across the matching connection
+  """
+  levelsMonth: BigFloat
+  """
+  Sample standard deviation of levelsToday across the matching connection
+  """
+  levelsToday: BigFloat
+  """
+  Sample standard deviation of personalBests across the matching connection
+  """
+  personalBests: BigFloat
+  """
+  Sample standard deviation of personalBestsMonth across the matching connection
+  """
+  personalBestsMonth: BigFloat
+  """
+  Sample standard deviation of personalBestsToday across the matching connection
+  """
+  personalBestsToday: BigFloat
+  """Sample standard deviation of players across the matching connection"""
+  players: BigFloat
+  """
+  Sample standard deviation of rankedPlayers across the matching connection
+  """
+  rankedPlayers: BigFloat
+  """Sample standard deviation of records across the matching connection"""
+  records: BigFloat
+  """
+  Sample standard deviation of recordsMonth across the matching connection
+  """
+  recordsMonth: BigFloat
+  """
+  Sample standard deviation of recordsToday across the matching connection
+  """
+  recordsToday: BigFloat
+  """
+  Sample standard deviation of semanticsVersion across the matching connection
+  """
+  semanticsVersion: BigFloat
+  """Sample standard deviation of votes across the matching connection"""
+  votes: BigFloat
+  """Sample standard deviation of votesMonth across the matching connection"""
+  votesMonth: BigFloat
+  """Sample standard deviation of votesToday across the matching connection"""
+  votesToday: BigFloat
+  """
+  Sample standard deviation of worldRecords across the matching connection
+  """
+  worldRecords: BigFloat
+  """
+  Sample standard deviation of worldRecordsMonth across the matching connection
+  """
+  worldRecordsMonth: BigFloat
+  """
+  Sample standard deviation of worldRecordsToday across the matching connection
+  """
+  worldRecordsToday: BigFloat
+}
+
+type StatisticSumAggregates {
+  """Sum of activePlayersMonth across the matching connection"""
+  activePlayersMonth: BigFloat!
+  """Sum of activePlayersToday across the matching connection"""
+  activePlayersToday: BigFloat!
+  """Sum of levels across the matching connection"""
+  levels: BigFloat!
+  """Sum of levelsMonth across the matching connection"""
+  levelsMonth: BigFloat!
+  """Sum of levelsToday across the matching connection"""
+  levelsToday: BigFloat!
+  """Sum of personalBests across the matching connection"""
+  personalBests: BigFloat!
+  """Sum of personalBestsMonth across the matching connection"""
+  personalBestsMonth: BigFloat!
+  """Sum of personalBestsToday across the matching connection"""
+  personalBestsToday: BigFloat!
+  """Sum of players across the matching connection"""
+  players: BigFloat!
+  """Sum of rankedPlayers across the matching connection"""
+  rankedPlayers: BigFloat!
+  """Sum of records across the matching connection"""
+  records: BigFloat!
+  """Sum of recordsMonth across the matching connection"""
+  recordsMonth: BigFloat!
+  """Sum of recordsToday across the matching connection"""
+  recordsToday: BigFloat!
+  """Sum of semanticsVersion across the matching connection"""
+  semanticsVersion: BigInt!
+  """Sum of votes across the matching connection"""
+  votes: BigFloat!
+  """Sum of votesMonth across the matching connection"""
+  votesMonth: BigFloat!
+  """Sum of votesToday across the matching connection"""
+  votesToday: BigFloat!
+  """Sum of worldRecords across the matching connection"""
+  worldRecords: BigFloat!
+  """Sum of worldRecordsMonth across the matching connection"""
+  worldRecordsMonth: BigFloat!
+  """Sum of worldRecordsToday across the matching connection"""
+  worldRecordsToday: BigFloat!
+}
+
+type StatisticVariancePopulationAggregates {
+  """
+  Population variance of activePlayersMonth across the matching connection
+  """
+  activePlayersMonth: BigFloat
+  """
+  Population variance of activePlayersToday across the matching connection
+  """
+  activePlayersToday: BigFloat
+  """Population variance of levels across the matching connection"""
+  levels: BigFloat
+  """Population variance of levelsMonth across the matching connection"""
+  levelsMonth: BigFloat
+  """Population variance of levelsToday across the matching connection"""
+  levelsToday: BigFloat
+  """Population variance of personalBests across the matching connection"""
+  personalBests: BigFloat
+  """
+  Population variance of personalBestsMonth across the matching connection
+  """
+  personalBestsMonth: BigFloat
+  """
+  Population variance of personalBestsToday across the matching connection
+  """
+  personalBestsToday: BigFloat
+  """Population variance of players across the matching connection"""
+  players: BigFloat
+  """Population variance of rankedPlayers across the matching connection"""
+  rankedPlayers: BigFloat
+  """Population variance of records across the matching connection"""
+  records: BigFloat
+  """Population variance of recordsMonth across the matching connection"""
+  recordsMonth: BigFloat
+  """Population variance of recordsToday across the matching connection"""
+  recordsToday: BigFloat
+  """Population variance of semanticsVersion across the matching connection"""
+  semanticsVersion: BigFloat
+  """Population variance of votes across the matching connection"""
+  votes: BigFloat
+  """Population variance of votesMonth across the matching connection"""
+  votesMonth: BigFloat
+  """Population variance of votesToday across the matching connection"""
+  votesToday: BigFloat
+  """Population variance of worldRecords across the matching connection"""
+  worldRecords: BigFloat
+  """
+  Population variance of worldRecordsMonth across the matching connection
+  """
+  worldRecordsMonth: BigFloat
+  """
+  Population variance of worldRecordsToday across the matching connection
+  """
+  worldRecordsToday: BigFloat
+}
+
+type StatisticVarianceSampleAggregates {
+  """Sample variance of activePlayersMonth across the matching connection"""
+  activePlayersMonth: BigFloat
+  """Sample variance of activePlayersToday across the matching connection"""
+  activePlayersToday: BigFloat
+  """Sample variance of levels across the matching connection"""
+  levels: BigFloat
+  """Sample variance of levelsMonth across the matching connection"""
+  levelsMonth: BigFloat
+  """Sample variance of levelsToday across the matching connection"""
+  levelsToday: BigFloat
+  """Sample variance of personalBests across the matching connection"""
+  personalBests: BigFloat
+  """Sample variance of personalBestsMonth across the matching connection"""
+  personalBestsMonth: BigFloat
+  """Sample variance of personalBestsToday across the matching connection"""
+  personalBestsToday: BigFloat
+  """Sample variance of players across the matching connection"""
+  players: BigFloat
+  """Sample variance of rankedPlayers across the matching connection"""
+  rankedPlayers: BigFloat
+  """Sample variance of records across the matching connection"""
+  records: BigFloat
+  """Sample variance of recordsMonth across the matching connection"""
+  recordsMonth: BigFloat
+  """Sample variance of recordsToday across the matching connection"""
+  recordsToday: BigFloat
+  """Sample variance of semanticsVersion across the matching connection"""
+  semanticsVersion: BigFloat
+  """Sample variance of votes across the matching connection"""
+  votes: BigFloat
+  """Sample variance of votesMonth across the matching connection"""
+  votesMonth: BigFloat
+  """Sample variance of votesToday across the matching connection"""
+  votesToday: BigFloat
+  """Sample variance of worldRecords across the matching connection"""
+  worldRecords: BigFloat
+  """Sample variance of worldRecordsMonth across the matching connection"""
+  worldRecordsMonth: BigFloat
+  """Sample variance of worldRecordsToday across the matching connection"""
+  worldRecordsToday: BigFloat
+}
+
+"""A connection to a list of `Statistic` values."""
+type StatisticsConnection {
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: StatisticAggregates
+  """
+  A list of edges which contains the `Statistic` and cursor to aid in pagination.
+  """
+  edges: [StatisticsEdge!]!
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `Statistic` for these aggregates."""
+    groupBy: [StatisticGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: StatisticHavingInput
+  ): [StatisticAggregates!]
+  """A list of `Statistic` objects."""
+  nodes: [Statistic!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `Statistic` you could get from the connection."""
+  totalCount: Int!
+}
+
+"""A `Statistic` edge in the connection."""
+type StatisticsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `Statistic` at the end of the edge."""
+  node: Statistic!
+}
+
+"""Methods to use when ordering `Statistic`."""
+enum StatisticsOrderBy {
+  ACTIVE_PLAYERS_MONTH_ASC
+  ACTIVE_PLAYERS_MONTH_DESC
+  ACTIVE_PLAYERS_TODAY_ASC
+  ACTIVE_PLAYERS_TODAY_DESC
+  AS_OF_ASC
+  AS_OF_DESC
+  DAY_START_ASC
+  DAY_START_DESC
+  LEVELS_ASC
+  LEVELS_DESC
+  LEVELS_MONTH_ASC
+  LEVELS_MONTH_DESC
+  LEVELS_TODAY_ASC
+  LEVELS_TODAY_DESC
+  MONTH_START_ASC
+  MONTH_START_DESC
+  NATURAL
+  PERSONAL_BESTS_ASC
+  PERSONAL_BESTS_DESC
+  PERSONAL_BESTS_MONTH_ASC
+  PERSONAL_BESTS_MONTH_DESC
+  PERSONAL_BESTS_TODAY_ASC
+  PERSONAL_BESTS_TODAY_DESC
+  PLAYERS_ASC
+  PLAYERS_DESC
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  RANKED_PLAYERS_ASC
+  RANKED_PLAYERS_DESC
+  RECORDS_ASC
+  RECORDS_DESC
+  RECORDS_MONTH_ASC
+  RECORDS_MONTH_DESC
+  RECORDS_TODAY_ASC
+  RECORDS_TODAY_DESC
+  SEMANTICS_VERSION_ASC
+  SEMANTICS_VERSION_DESC
+  SINGLETON_ASC
+  SINGLETON_DESC
+  TIME_ZONE_ASC
+  TIME_ZONE_DESC
+  VOTES_ASC
+  VOTES_DESC
+  VOTES_MONTH_ASC
+  VOTES_MONTH_DESC
+  VOTES_TODAY_ASC
+  VOTES_TODAY_DESC
+  WORLD_RECORDS_ASC
+  WORLD_RECORDS_DESC
+  WORLD_RECORDS_MONTH_ASC
+  WORLD_RECORDS_MONTH_DESC
+  WORLD_RECORDS_TODAY_ASC
+  WORLD_RECORDS_TODAY_DESC
+}
+
+"""
 The root subscription type: contains realtime events you can subscribe to with the `subscription` operation.
 """
 type Subscription {
@@ -20448,6 +21519,35 @@ type Subscription {
     """The method to use when ordering `ZslSeason`."""
     orderBy: [ZslSeasonsOrderBy!] = [PRIMARY_KEY_ASC]
   ): ZslSeasonsConnection
+  """Get a single `Statistic`."""
+  statistic(singleton: Boolean!): Statistic
+
+  """Reads and enables pagination through a set of `Statistic`."""
+  statistics(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: StatisticCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: StatisticFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """The method to use when ordering `Statistic`."""
+    orderBy: [StatisticsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): StatisticsConnection
 }
 
 type TrackTournament implements Node {

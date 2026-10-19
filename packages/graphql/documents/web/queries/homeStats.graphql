@@ -1,7 +1,7 @@
 query ZC_HomeStats {
 	globalMetrics {
 		levels
-		playersAll
+		players
 		records
 	}
 }

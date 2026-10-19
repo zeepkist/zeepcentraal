@@ -1,6 +1,6 @@
 -- Dedicated zc_optimization_test database only. Schema includes pending migrations.
 SELECT zc_private.rollback_history_fact();
-TRUNCATE public."user",public.level,public.zsl_points_structure,zc_private.global_metrics_snapshot,zc_private.history_fact_dirty RESTART IDENTITY CASCADE;
+TRUNCATE public."user",public.level,public.zsl_points_structure,public.statistics,zc_private.history_fact_dirty RESTART IDENTITY CASCADE;
 UPDATE zc_private.history_fact_rollout SET backfill_after=0,backfill_done=false,verify_after=0,verified=false;
 INSERT INTO public."user"(id,steam_id,banned) OVERRIDING SYSTEM VALUE VALUES
  (1,101,false),(2,102,true),(3,103,false),(4,104,false);

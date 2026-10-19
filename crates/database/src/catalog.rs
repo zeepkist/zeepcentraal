@@ -115,6 +115,23 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
 
 fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
     apply_optimization_overlay(snapshot, versions);
+    if versions.iter().any(|version| version == "20261019000900") {
+        let statistics = snapshot
+            .tables
+            .remove("zc_private.global_metrics_snapshot")
+            .unwrap();
+        snapshot
+            .tables
+            .insert("public.statistics".into(), statistics);
+    }
+    if versions.iter().any(|version| version == "20261019001000") {
+        snapshot
+            .tables
+            .get_mut("public.statistics")
+            .unwrap()
+            .columns
+            .remove("players_all");
+    }
     if versions.iter().any(|version| version == "20261019000800") {
         snapshot.tables.remove("zc_private.record_history_index");
         snapshot.tables.remove("zc_private.history_fact_rollout");
