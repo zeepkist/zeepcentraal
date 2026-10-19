@@ -43,6 +43,19 @@
 
 :root,
 .dark {
+	/* OG compilation cannot read Nuxt UI's runtime palette or Tailwind's property initial value. */
+	--tw-border-style: solid;
+	--ui-color-neutral-50: var(--color-warm-neutral-50);
+	--ui-color-neutral-100: var(--color-warm-neutral-100);
+	--ui-color-neutral-200: var(--color-warm-neutral-200);
+	--ui-color-neutral-300: var(--color-warm-neutral-300);
+	--ui-color-neutral-400: var(--color-warm-neutral-400);
+	--ui-color-neutral-500: var(--color-warm-neutral-500);
+	--ui-color-neutral-600: var(--color-warm-neutral-600);
+	--ui-color-neutral-700: var(--color-warm-neutral-700);
+	--ui-color-neutral-800: var(--color-warm-neutral-800);
+	--ui-color-neutral-900: var(--color-warm-neutral-900);
+	--ui-color-neutral-950: var(--color-warm-neutral-950);
 	--background: #0c0a09;
 	--foreground: oklch(96% 0 0);
 	--card: #171513;

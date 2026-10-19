@@ -57,10 +57,14 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     .enumerate()
     {
         let workshop = 8_000_000_000_i64 + i64::from(round) * 100 + position as i64;
-        let authors = if position == 4 {
-            vec![author.clone(), co_author.clone()]
-        } else {
-            vec![author.clone()]
+        let authors = match position {
+            1 => vec![
+                author.clone(),
+                (steam_id + 1_000_000).to_string(),
+                co_author.clone(),
+            ],
+            4 => vec![author.clone(), co_author.clone()],
+            _ => vec![author.clone()],
         };
         let submission: i64 = client.query_one("INSERT INTO zc_private.level_submissions(id_contest,workshop_id,authors,state,level_hash) VALUES($1,$2,$3,'selected',$4) RETURNING id", &[&contest.id, &workshop, &authors, &hashes[index]]).await?.get(0);
         let payload = json!({"name":name,"author":"Private author fixture"}).to_string();
@@ -94,6 +98,19 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     let partial = db.super_league_vote_results(round).await?.unwrap();
     assert_eq!(partial.categories[0].state, VoteResultState::Published);
     assert_eq!(partial.categories[0].total_votes, Some(6));
+    assert_eq!(
+        partial.categories[0].levels[0].author_names,
+        vec![
+            "Voter fixture".to_owned(),
+            "Second voter fixture".to_owned(),
+            co_author.clone()
+        ]
+    );
+    // Duplicate candidate keeps authors from the same submission used for its name.
+    assert_eq!(
+        partial.categories[0].levels[2].author_names,
+        vec!["Voter fixture"]
+    );
     assert_eq!(
         partial.categories[0]
             .levels
@@ -157,7 +174,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
             .filter(|candidate| candidate.self_authored)
             .map(|candidate| candidate.level_id)
             .collect::<Vec<_>>(),
-        vec![levels[0]]
+        vec![levels[0], levels[1]]
     );
     let old = db.super_league_vote_results(historical).await?.unwrap();
     assert!(

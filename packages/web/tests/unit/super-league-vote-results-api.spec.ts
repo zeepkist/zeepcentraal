@@ -32,7 +32,16 @@ afterEach(() => vi.unstubAllGlobals())
 
 describe('anonymous vote result proxy', () => {
 	it('requires positive explicit round without forwarding session cookies', async () => {
-		const snapshot = { roundId: 50, categories: [] }
+		const snapshot = {
+			roundId: 50,
+			categories: [
+				{
+					voteType: 1,
+					state: 'published',
+					levels: [{ levelId: 1, authorNames: ['justMaki', 'maou'] }],
+				},
+			],
+		}
 		fetcher.mockResolvedValue(snapshot)
 		expect(await handler()).toEqual(snapshot)
 		expect(event.res.headers.get('cache-control')).toBe('no-store')

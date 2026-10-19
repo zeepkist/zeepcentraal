@@ -2,6 +2,11 @@ import { fileURLToPath } from 'node:url'
 import { ADVENTURE_SERIES } from './app/utils/adventureSeries.ts'
 import { getBuildAssetsDir } from './config/buildAssets.ts'
 import { clientFsStub } from './config/clientFsStub.ts'
+import {
+	filterDependencySourceWarnings,
+	isUnusedNitroCookieWarning,
+	nuxtComponentsOptimizerPlugin,
+} from './config/devDiagnostics.ts'
 import { createNitroCacheStorageOptions } from './config/nitroCache.ts'
 import { NUXT_RUNTIME_INLINE } from './config/nuxtRuntime.ts'
 import { uiIconClientBundle, uiIcons } from './config/uiIcons.ts'
@@ -158,12 +163,36 @@ export default defineNuxtConfig({
 	},
 	vite: {
 		resolve: { dedupe: ['vue', 'pinia'] },
-		plugins: [clientFsStub()],
+		plugins: [
+			clientFsStub(),
+			{
+				name: 'zeepcentraal-dependency-diagnostics',
+				configResolved(config) {
+					config.logger.warn = filterDependencySourceWarnings(
+						config.logger.warn.bind(config.logger),
+					)
+					config.logger.warnOnce = filterDependencySourceWarnings(
+						config.logger.warnOnce.bind(config.logger),
+					)
+				},
+			},
+		],
 		optimizeDeps: {
 			include: ['@nuxt/content > slugify', '@unhead/schema-org/vue', '@urql/vue'],
+			rolldownOptions: { plugins: [nuxtComponentsOptimizerPlugin()] },
 		},
 	},
 	nitro: {
+		hooks: {
+			'rollup:before': (_nitro, config) => {
+				const onwarn = config.onwarn
+				config.onwarn = (warning, warn) => {
+					if (isUnusedNitroCookieWarning(warning)) return
+					if (onwarn) onwarn(warning, warn)
+					else warn(warning)
+				}
+			},
+		},
 		preset: 'bun',
 		externals: { inline: [NUXT_RUNTIME_INLINE] },
 		compressPublicAssets: true,

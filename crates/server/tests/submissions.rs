@@ -345,5 +345,23 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
             .0,
         StatusCode::BAD_REQUEST
     );
+    // Public results expose author names without authentication after publication.
+    client.execute("UPDATE public.zsl_round SET submission_start=now()-interval '4 days',submission_end=now()-interval '3 days',zsl_vote_end=now()-interval '2 days',cosmetic_vote_end=now()-interval '1 day' WHERE id=9000", &[]).await?;
+    let published = request(
+        &app,
+        Method::GET,
+        "/super-league/vote-results?roundId=9000",
+        None,
+        None,
+    )
+    .await?;
+    assert_eq!(published.0, StatusCode::OK);
+    let category = &published.1["categories"][0];
+    assert_eq!(category["state"], "published");
+    let levels = category["levels"].as_array().unwrap();
+    assert!(!levels.is_empty());
+    for level in levels {
+        assert!(!level["authorNames"].as_array().unwrap().is_empty());
+    }
     Ok(())
 }

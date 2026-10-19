@@ -11,6 +11,14 @@ const levels = Array.from({ length: 19 }, (_, index) => ({
 			? 'A very long submitted level name that stays readable on a narrow mobile screen without hiding vote counts'
 			: `Level ${index + 1}`,
 	imageUrl: index === 0 ? '/android-chrome-512x512.png' : null,
+	authorNames:
+		index === 0
+			? ['justMaki', 'Jakie', 'maou']
+			: index === 1
+				? ['justMaki', 'maou']
+				: index === 2
+					? ['justMaki']
+					: [],
 	votes: 18 - index,
 }))
 const round = {
@@ -187,7 +195,11 @@ for (const theme of ['dark', 'light']) {
 		context,
 	}, testInfo) => {
 		await context.addCookies([
-			{ name: 'colour_mode', value: theme, url: 'http://127.0.0.1:4173' },
+			{
+				name: 'colour_mode',
+				value: theme,
+				url: testInfo.project.use.baseURL ?? 'http://127.0.0.1:4173',
+			},
 		])
 		const mocks = await fixture(page)
 		const pageErrors: string[] = []
@@ -198,6 +210,18 @@ for (const theme of ['dark', 'light']) {
 		await expect(page.getByRole('heading', { level: 1, name: 'Voting results' })).toBeVisible()
 		await expect(page.locator('[data-category-total]')).toHaveCount(3)
 		await expect(page.locator('[data-result-level]')).toHaveCount(57)
+		await expect(
+			page.locator('[data-result-level="1"]').first().locator('p').first(),
+		).toHaveText(`${levels[0]?.name} by justMaki + Jakie + maou`)
+		await expect(
+			page.locator('[data-result-level="2"]').first().locator('p').first(),
+		).toHaveText('Level 2 by justMaki + maou')
+		await expect(
+			page.locator('[data-result-level="3"]').first().locator('p').first(),
+		).toHaveText('Level 3 by justMaki')
+		await expect(
+			page.locator('[data-result-level="4"]').first().locator('p').first(),
+		).toHaveText('Level 4')
 		await expect(page.getByRole('img', { name: /Votes per level/ })).toHaveCount(3)
 		await expect
 			.poll(() =>
@@ -236,6 +260,14 @@ for (const theme of ['dark', 'light']) {
 		await votedBar.hover()
 		await expect(page.getByRole('tooltip')).toContainText('18 Votes')
 		await expect(page.getByRole('tooltip')).toContainText('A very long submitted level name')
+		await expect(page.getByRole('tooltip')).toContainText('by justMaki + Jakie + maou')
+		await expect(
+			page
+				.getByRole('img', { name: /Votes per level/ })
+				.first()
+				.locator('svg text')
+				.filter({ hasText: /justMaki|Jakie|maou/ }),
+		).toHaveCount(0)
 		const regularBars = page
 			.getByRole('img', { name: /Votes per level/ })
 			.first()
@@ -243,6 +275,7 @@ for (const theme of ['dark', 'light']) {
 		await expect(regularBars).toHaveCount(17)
 		await regularBars.last().hover()
 		await expect(page.getByRole('tooltip')).toContainText('Level 2')
+		await expect(page.getByRole('tooltip')).toContainText('by justMaki + maou')
 		await expect(page.getByRole('tooltip')).toContainText('17 Votes')
 		await page.mouse.move(0, 0)
 		await page.screenshot({ path: testInfo.outputPath(`votes-${theme}.png`), fullPage: true })

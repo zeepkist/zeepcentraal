@@ -14,6 +14,7 @@ const level = (id: number, votes: number): VoteResultLevel => ({
 	levelId: id,
 	xxHash: `hash-${id}`,
 	name: `Level ${id}`,
+	authorNames: ['justMaki', 'maou'],
 	imageUrl: null,
 	votes,
 })
@@ -83,6 +84,7 @@ describe('vote results presentation', () => {
 		]
 		const data = voteResultChartData(rows, new Set([1]))
 		expect(data.map((row) => row.votes + row.votedVotes)).toEqual([8, 0, 2])
+		expect(data.map((row) => row.name)).toEqual(['Level 1', 'Level 1', 'hash-3'])
 		expect(data[0]).toMatchObject({ votes: 0, votedVotes: 8, totalVotes: 8 })
 		expect(data[2]?.name).toBe('hash-3')
 		expect(rows[0]?.votes).toBe(8)

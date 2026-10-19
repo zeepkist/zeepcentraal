@@ -47,7 +47,7 @@ const failedImages = shallowRef(new Set<number>())
 function imageFailed(id: number) { failedImages.value = new Set([...failedImages.value, id]) }
 const levels = computed(() => props.category.levels.map((level) => ({
 	...level,
-	name: level.name ?? level.xxHash,
+	name: `${level.name ?? level.xxHash}${level.authorNames.length ? ` ${t('tournaments.byAuthor', { author: level.authorNames.join(' + ') })}` : ''}`,
 	imageUrl: failedImages.value.has(level.levelId) ? null : normaliseOgImageUrl(level.imageUrl),
 	voted: props.votedLevels.has(level.levelId),
 	own: props.ownLevels.has(level.levelId),

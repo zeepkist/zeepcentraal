@@ -130,6 +130,7 @@ pub struct VoteResultLevel {
     pub level_id: i32,
     pub xx_hash: String,
     pub name: Option<String>,
+    pub author_names: Vec<String>,
     pub image_url: Option<String>,
     pub votes: i64,
 }
@@ -159,6 +160,8 @@ struct VoteResultRow {
     xx_hash: String,
     #[diesel(sql_type = Nullable<Text>)]
     name: Option<String>,
+    #[diesel(sql_type = Array<Text>)]
+    author_names: Vec<String>,
     #[diesel(sql_type = Nullable<Text>)]
     image_url: Option<String>,
     #[diesel(sql_type = SmallInt)]
@@ -287,6 +290,10 @@ impl Database {
             "WITH candidates AS (\
             SELECT DISTINCT ON (l.id) l.id AS level_id,l.xx_hash,\
             coalesce(i.name,v.payload->>'name') AS name,\
+            ARRAY(SELECT coalesce(author_user.steam_name,author.id) \
+                FROM unnest(s.authors) WITH ORDINALITY author(id,n) \
+                LEFT JOIN public.\"user\" author_user ON author_user.steam_id::text=author.id \
+                ORDER BY author.n) AS author_names,\
             coalesce(nullif(i.image_url,''),nullif(other_image.image_url,''),nullif(wi.image_url,'')) AS image_url \
             {CANDIDATES_FROM_SQL} ORDER BY l.id,s.workshop_id,e.position), \
             tallies AS (SELECT id_level,vote_type,count(*) AS votes \
@@ -311,6 +318,7 @@ impl Database {
                 level_id: row.level_id,
                 xx_hash: row.xx_hash,
                 name: row.name,
+                author_names: row.author_names,
                 image_url: row.image_url,
                 votes: row.votes,
             });
@@ -489,23 +497,40 @@ mod tests {
     }
 
     #[test]
-    fn public_result_serialization_contains_only_level_counts() {
+    fn public_result_serialization_contains_level_counts_and_author_names() {
         let mut category = vote_result_category(1, Some("deadline".into()), true, true, true);
         category.total_votes = Some(4);
         category.levels.push(VoteResultLevel {
             level_id: 7,
             xx_hash: "hash".into(),
             name: Some("Level".into()),
+            author_names: vec!["justMaki".into(), "maou".into()],
             image_url: None,
             votes: 4,
         });
-        let value = serde_json::to_value(category).unwrap();
+        let value = serde_json::to_value(&category).unwrap();
         assert_eq!(value["state"], "published");
         assert_eq!(value["totalVotes"], 4);
         let level = value["levels"][0].as_object().unwrap();
-        assert_eq!(level.len(), 5);
-        for key in ["levelId", "xxHash", "name", "imageUrl", "votes"] {
+        assert_eq!(
+            level["authorNames"],
+            serde_json::json!(["justMaki", "maou"])
+        );
+        assert_eq!(level.len(), 6);
+        for key in [
+            "levelId",
+            "xxHash",
+            "name",
+            "authorNames",
+            "imageUrl",
+            "votes",
+        ] {
             assert!(level.contains_key(key));
         }
+        category.levels[0].author_names.clear();
+        assert_eq!(
+            serde_json::to_value(category).unwrap()["levels"][0]["authorNames"],
+            serde_json::json!([])
+        );
     }
 }
