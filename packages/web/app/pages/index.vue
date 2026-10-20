@@ -62,6 +62,7 @@
 				:description="t('dashboard.news.description')"
 			/>
 			<DataState
+				initial-reveal
 				:pending="!dashboard.newsActive.value || dashboard.news.pending.value"
 				:error="dashboard.news.error.value?.message"
 				:empty="dashboard.news.data.value.length === 0"
