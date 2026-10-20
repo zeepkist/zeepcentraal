@@ -20,7 +20,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import treeTrickOne from '~/assets/wiki/tree-trick-1.jpg'
 import treeTrickTwo from '~/assets/wiki/tree-trick-2.jpg'
 import treeTrickThree from '~/assets/wiki/tree-trick-3.jpg'

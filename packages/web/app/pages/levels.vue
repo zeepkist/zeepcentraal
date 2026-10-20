@@ -82,7 +82,7 @@
 	</ExplorerLayout>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { LEVEL_SORTS, type LevelSort } from '~/composables/useLevels'
 import type { SortOption } from '~/types/app'
 import {

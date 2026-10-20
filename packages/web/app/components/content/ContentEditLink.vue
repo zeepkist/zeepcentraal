@@ -13,7 +13,7 @@
 	</UButton>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const { t } = useAppI18n()
 
 const CONTENT_SOURCE_BASE_URL =

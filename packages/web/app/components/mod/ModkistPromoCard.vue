@@ -41,7 +41,7 @@
 	</UCard>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{
 	eyebrow: string
 	title: string

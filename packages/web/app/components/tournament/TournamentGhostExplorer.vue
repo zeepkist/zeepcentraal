@@ -55,7 +55,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
 import type { TournamentStanding } from '~/types/tournament'
 import { orderTournamentGhostSources } from '~/utils/tournament'

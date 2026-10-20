@@ -44,7 +44,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { TablerIconName } from '~/utils/icons'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import type { RecordCoachingSignal } from '~/utils/recordGhostAnalysis'

@@ -21,7 +21,7 @@
 	</NuxtLink>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const { large } = defineProps<{
 	large?: boolean
 }>()

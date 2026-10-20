@@ -2,7 +2,7 @@
 	<MetricGrid :metrics="metrics" :columns="3" />
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LobbySnapshot } from '@zeepkist/core'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 

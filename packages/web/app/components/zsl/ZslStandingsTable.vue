@@ -106,7 +106,7 @@
 	</DataTableFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { ZslStanding } from '~/types/app'
 import type { SupporterMap } from '~/utils/supporters'
 import { formatTournamentDelta } from '~/utils/tournament'

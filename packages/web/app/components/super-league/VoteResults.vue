@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { useQuery } from '@urql/vue'
 import { Zc_ZslRoundBySeasonAndNumberDocument } from '@zeepkist/graphql/generated'
 import { superLeagueRoundPath } from '#imports'

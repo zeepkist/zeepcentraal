@@ -35,7 +35,7 @@
 	</component>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { NuxtLink } from '#components'
 import type { TablerIconName } from '~/utils/icons'
 

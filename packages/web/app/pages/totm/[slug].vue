@@ -2,7 +2,7 @@
 	<TournamentDetailPage :type="1" :title="t('pages.totm.title')" />
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const { t } = useAppI18n()
 
 const route = useRoute()

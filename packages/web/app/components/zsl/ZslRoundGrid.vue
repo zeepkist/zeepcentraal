@@ -30,7 +30,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const { t } = useAppI18n()
 
 defineProps<{

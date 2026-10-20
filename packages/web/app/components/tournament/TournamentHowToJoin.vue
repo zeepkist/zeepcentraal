@@ -100,7 +100,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 
 import type { TrackTournamentType } from '~/types/tournament'
 import { tournamentPlaylistPath } from '~/utils/tournamentPlaylist'

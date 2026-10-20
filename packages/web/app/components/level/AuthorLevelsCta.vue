@@ -22,7 +22,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{
 	authorId?: string | null
 	title: string

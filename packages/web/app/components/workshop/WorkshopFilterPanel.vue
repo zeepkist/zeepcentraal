@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { SortOption } from '~/types/app'
 import { WORKSHOP_SORTS, type WorkshopSort } from '~/utils/workshop'
 

@@ -10,7 +10,6 @@ import {
 import { createNitroCacheStorageOptions } from './config/nitroCache.ts'
 import { NUXT_RUNTIME_INLINE } from './config/nuxtRuntime.ts'
 import { uiIconClientBundle, uiIcons } from './config/uiIcons.ts'
-import { guardMdcVdomTransform } from './config/vapor.ts'
 
 const ogImageModuleUrl = import.meta.resolve('nuxt-og-image')
 const ogImageUrlBuilderPath = fileURLToPath(
@@ -31,7 +30,6 @@ export default defineNuxtConfig({
 	debug: process.env.NUXT_PROFILE === 'true' ? { perf: true } : process.env.NUXT_DEBUG === 'true',
 	devtools: { enabled: process.env.NUXT_ENABLE_DEVTOOLS === 'true' },
 	ssr: true,
-	vue: { vapor: true },
 	srcDir: 'app',
 	future: {
 		compatibilityVersion: 5,
@@ -86,8 +84,6 @@ export default defineNuxtConfig({
 		ready: (nuxt) => {
 			// Register after modules so their dependency entries are already present.
 			nuxt.hook('vite:extendConfig', (config, { isClient }) => {
-				const compilerOptions = config.vue?.template?.compilerOptions
-				if (compilerOptions) guardMdcVdomTransform(compilerOptions)
 				if (!isClient || !config.optimizeDeps?.include) return
 				// Bun isolates transitive dependencies beside their owning package.
 				config.optimizeDeps.include = config.optimizeDeps.include.map((dependency) => {

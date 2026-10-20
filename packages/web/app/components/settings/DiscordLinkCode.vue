@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 
 import { useClipboard, useIntervalFn, useNow } from '@vueuse/core'
 

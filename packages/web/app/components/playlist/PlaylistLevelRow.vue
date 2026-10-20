@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 
 import type { LocalPlaylistLevel } from '~/types/app'
 

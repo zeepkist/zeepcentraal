@@ -16,7 +16,7 @@
 	</ul>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 
 const props = defineProps<{

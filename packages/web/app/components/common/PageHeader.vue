@@ -26,7 +26,7 @@
 	</header>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { StyleValue } from 'vue'
 import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
 

@@ -12,7 +12,7 @@
 	</tr>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{
 	viewer?: boolean
 	pinned?: boolean

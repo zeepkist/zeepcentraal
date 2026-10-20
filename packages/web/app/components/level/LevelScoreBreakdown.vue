@@ -206,7 +206,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { MAX_LEVEL_POINTS } from '@zeepkist/core/score'
 import type { LevelScoreInsights } from '~/types/app'
 import type { TablerIconName } from '~/utils/icons'

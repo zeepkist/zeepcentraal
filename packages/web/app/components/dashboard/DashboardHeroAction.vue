@@ -29,7 +29,7 @@
 	</NuxtLink>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { HeroAction } from '~/types/app'
 
 defineProps<{ action: HeroAction }>()

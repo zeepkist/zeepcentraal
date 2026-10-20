@@ -159,7 +159,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { GhostRecordSource } from '~/types/ghost'
 import {
 	LEVEL_GHOST_PRESET_COUNTS,

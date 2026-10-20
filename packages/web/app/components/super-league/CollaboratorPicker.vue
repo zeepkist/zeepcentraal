@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { watchDebounced } from '@vueuse/core'
 import type { SubmissionAuthor } from '~/utils/superLeagueSubmission'
 import { submissionAuthorChoices } from '~/utils/superLeagueSubmission'

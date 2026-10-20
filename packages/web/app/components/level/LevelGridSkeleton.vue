@@ -23,7 +23,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 withDefaults(defineProps<{ columns?: 2 | 3 | 4; count?: number }>(), {
 	columns: 3,
 	count: 6,

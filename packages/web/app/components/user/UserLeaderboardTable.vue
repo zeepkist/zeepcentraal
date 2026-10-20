@@ -68,7 +68,7 @@
 	</DataTableFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { UserSummary } from '~/types/app'
 import type { SupporterMap } from '~/utils/supporters'
 

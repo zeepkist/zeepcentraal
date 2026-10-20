@@ -52,7 +52,7 @@
 	</NuxtLink>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { TournamentFeature } from '~/types/tournament'
 import {
 	formatTournamentPeriod,

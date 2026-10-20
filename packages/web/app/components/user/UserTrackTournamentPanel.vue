@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { UserTrackTournamentResult } from '~/types/tournament'
 import { formatTournamentPeriod, formatTournamentTime, tournamentPath } from '~/utils/tournament'
 

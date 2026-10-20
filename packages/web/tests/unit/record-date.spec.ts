@@ -31,7 +31,7 @@ describe('record date highlighting', () => {
 	it('renders compact relative and full date modes with age colour', () => {
 		const component = read('../../app/components/record/RecordDate.vue')
 		const clock = read('../../app/composables/useRecordDateNow.ts')
-		expect(component).toContain('<script setup vapor lang="ts">')
+		expect(component).toContain('<script setup lang="ts">')
 		expect(component).toContain('showFullDate?: boolean')
 		expect(component).toContain('showFullDate: false')
 		expect(component).toContain('v-if="showFullDate"')

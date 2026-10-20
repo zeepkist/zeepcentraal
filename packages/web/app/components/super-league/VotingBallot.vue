@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 
 import LoginPrompt from '~/components/auth/LoginPrompt.vue'
 import type { LevelSummary } from '~/types/app'

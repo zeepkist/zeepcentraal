@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const route = useRoute()
 const pending = shallowRef(route.query.mode !== 'ready')
 const initialReveal = shallowRef(route.query.mode !== 'default')

@@ -55,7 +55,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LobbySnapshot } from '@zeepkist/core'
 
 usePageSeo('lobby')

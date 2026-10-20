@@ -97,7 +97,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { GhostCameraMode } from '~/types/ghost'
 
 const props = defineProps<{

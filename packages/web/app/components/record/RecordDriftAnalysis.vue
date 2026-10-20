@@ -130,7 +130,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { Orientation } from '#imports'
 import type { DashboardChartEntry } from '~/types/app'
 import type { GhostSlipEvent, LoadedPlaybackGhost } from '~/types/ghost'

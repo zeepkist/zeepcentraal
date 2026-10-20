@@ -26,7 +26,7 @@
 	</figure>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const { t } = useAppI18n()
 
 const props = defineProps<{

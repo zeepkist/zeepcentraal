@@ -82,7 +82,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type {
 	GhostCameraMode,
 	GhostLevelBlock,
@@ -118,7 +118,7 @@ const props = withDefaults(defineProps<{
 		failedDescription: (count: number) => string
 		retry: string
 		viewer: {
-			frameRate: (value: number) => string
+			frameRate: (current: number, target: number) => string
 			approximateGeometry: string
 			emptyTitle: string
 			emptyDescription: string

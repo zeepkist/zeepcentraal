@@ -17,7 +17,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts" generic="T extends string">
+<script setup lang="ts" generic="T extends string">
 import type { TablerIconName } from '~/utils/icons'
 
 const props = defineProps<{

@@ -57,7 +57,7 @@
 	</nav>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { CursorPage } from '~/types/app'
 
 const props = defineProps<{

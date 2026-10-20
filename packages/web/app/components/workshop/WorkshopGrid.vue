@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { WorkshopSummary } from '~/types/app'
 
 withDefaults(defineProps<{ workshops: WorkshopSummary[]; columns?: 3 | 4 }>(), { columns: 3 })

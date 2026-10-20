@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { useRecordDateNow } from '~/composables/useRecordDateNow'
 import { getRecordDatePrimaryPercentage } from '~/utils/recordDate'
 

@@ -328,7 +328,7 @@
 	</UContainer>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const route = useRoute()
 const { t, locale } = useAppI18n()
 const session = useSessionStore()

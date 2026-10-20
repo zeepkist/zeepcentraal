@@ -47,7 +47,7 @@
 	</UCard>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { ModkistRelease, ModkistReleaseChannel } from '~/types/modkist'
 
 const props = defineProps<{

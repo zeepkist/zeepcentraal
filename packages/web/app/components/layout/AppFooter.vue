@@ -34,7 +34,7 @@
 	</UFooter>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { TablerIconName } from '~/utils/icons'
 import { isNavigationTargetActive } from '~/utils/navigation'
 

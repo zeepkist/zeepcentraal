@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { SubmissionContest } from '~/utils/superLeagueSubmission'
 import { submissionRuleLimits } from '~/utils/superLeagueSubmission'
 

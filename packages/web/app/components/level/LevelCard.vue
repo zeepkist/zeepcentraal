@@ -117,7 +117,7 @@
 	</article>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 import { createLevelRatingFormatter, isLevelRatingAvailable } from '~/utils/levelRating'

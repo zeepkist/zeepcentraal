@@ -29,7 +29,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{
 	levels: Array<{
 		id: number

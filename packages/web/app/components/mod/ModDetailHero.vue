@@ -78,7 +78,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { ModDetail } from '~/types/mod'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 

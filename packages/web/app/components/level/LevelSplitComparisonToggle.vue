@@ -11,7 +11,7 @@
 	</UButton>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{
 	modelValue: boolean
 	showLabel: string

@@ -18,7 +18,7 @@
 	</nav>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
 
 defineProps<{

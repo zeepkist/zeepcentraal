@@ -43,6 +43,11 @@ runs:
         ELYSIA_AOT_VERBOSE: 1
       run: bun run ${{ inputs.build-script }}
 
+    - name: Verify production SSR memory retention
+      if: ${{ inputs.name == 'web' }}
+      shell: bash
+      run: bun --cwd=packages/web run test:memory
+
     - name: Upload ${{ inputs.name }} output
       if: ${{ inputs.upload-artifact == 'true' }}
       uses: actions/upload-artifact@v7

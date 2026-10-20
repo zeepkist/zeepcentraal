@@ -79,7 +79,7 @@
 	</UHeader>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LocaleOption } from '~/types/app'
 import { isNavigationTargetActive, mainNav } from '~/utils/navigation'
 

@@ -85,7 +85,7 @@
 	</UInputMenu>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { InputMenuItem } from '@nuxt/ui'
 import type { OmniSearchLevelResult, OmniSearchResult, OmniSearchUserResult } from '~/types/app'
 import { getNumberFormatter } from '~/utils/intlFormatters'

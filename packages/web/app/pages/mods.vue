@@ -80,7 +80,7 @@
 	</ExplorerLayout>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { useQuery } from '@urql/vue'
 import { Zc_MyRecordCountDocument } from '@zeepkist/graphql/generated'
 import { MOD_SORTS, type ModSort } from '~/types/mod'

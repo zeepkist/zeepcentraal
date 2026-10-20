@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import LevelCard from '~/components/level/LevelCard.vue'
 import type { SubmissionContest, SubmissionOverview } from '~/utils/superLeagueSubmission'
 import { downloadSubmissionPlaylist } from '~/utils/superLeagueSubmission'

@@ -79,7 +79,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LevelTelemetryModel } from '~/types/app'
 
 defineProps<{

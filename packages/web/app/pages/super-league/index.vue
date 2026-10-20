@@ -32,7 +32,7 @@
 		/>
 	</UContainer>
 </template>
-<script setup vapor lang="ts">
+<script setup lang="ts">
 usePageSeo('zsl')
 defineOgImage('SuperLeague.takumi', { slug: 'super-league' })
 const { t } = useAppI18n()

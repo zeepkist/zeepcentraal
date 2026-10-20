@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 definePageMeta({ middleware: 'super-league-active-round' })
 </script>
 

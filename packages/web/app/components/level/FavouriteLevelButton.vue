@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
 
 const props = withDefaults(

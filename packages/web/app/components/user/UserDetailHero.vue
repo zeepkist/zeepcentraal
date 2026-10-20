@@ -42,7 +42,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { UserProfileSummary } from '~/types/app'
 import type { SupporterStatus } from '~/utils/supporters'
 

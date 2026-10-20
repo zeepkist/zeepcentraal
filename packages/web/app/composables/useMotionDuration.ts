@@ -3,7 +3,6 @@ import { computed, onMounted, shallowRef } from 'vue'
 
 /** Keep SSR and first render still; track preference changes after mount. */
 export function useMotionDuration(duration: number) {
-	// VueUse useMounted relies on getCurrentInstance(), which is null in Vapor.
 	const mounted = shallowRef(false)
 	const preferredMotion = usePreferredReducedMotion()
 	onMounted(() => {

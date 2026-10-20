@@ -18,7 +18,7 @@
 	</UContainer>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { TocLink } from '@nuxt/content'
 import type { ContentBreadcrumb } from '~/utils/contentBreadcrumbs'
 

@@ -51,7 +51,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { CursorPage, RecordHistoryRow, SortOption } from '~/types/app'
 import type { RecordHistorySort } from '~/utils/recordHistory'
 import type { SupporterMap } from '~/utils/supporters'

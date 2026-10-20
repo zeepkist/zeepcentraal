@@ -12,7 +12,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { SortOption } from '~/types/app'
 import type { UserTelemetryPeriod } from '~/utils/userTelemetry'
 

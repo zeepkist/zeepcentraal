@@ -35,7 +35,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LevelSummary } from '~/types/app'
 
 withDefaults(defineProps<{

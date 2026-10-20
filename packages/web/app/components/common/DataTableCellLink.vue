@@ -14,7 +14,7 @@
 	</span>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineOptions({ inheritAttrs: false })
 
 defineProps<{

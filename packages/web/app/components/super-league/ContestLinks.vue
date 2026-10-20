@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 
 import { superLeagueVotesPath } from '#imports'
 import type { SubmissionContest } from '~/utils/superLeagueSubmission'

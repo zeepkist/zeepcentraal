@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { SupporterStatus } from '~/utils/supporters'
 
 const props = defineProps<{ supporter?: SupporterStatus }>()

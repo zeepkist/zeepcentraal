@@ -19,7 +19,8 @@
 		"typecheck": "nuxt typecheck",
 		"test": "bun --bun vitest run --silent=passed-only",
 		"test:e2e": "bun --bun playwright test",
-		"test:upgrade": "bun --bun playwright test --config playwright.upgrade.config.ts"
+		"test:upgrade": "bun --bun playwright test --config playwright.upgrade.config.ts",
+		"test:memory": "bun --no-env-file tests/memory/run.ts"
 	},
 	"dependencies": {
 		"@graphql-typed-document-node/core": "~3.2.0",
@@ -52,7 +53,7 @@
 		"sortablejs": "~1.15.6",
 		"tailwindcss": "~4.3.3",
 		"three": "~0.186.0",
-		"vue": "3.6.0-rc.11",
+		"vue": "3.5.43",
 		"vue-i18n": "~11.4.8",
 		"vue-router": "~5.4.0",
 		"zod": "~4.6.0"

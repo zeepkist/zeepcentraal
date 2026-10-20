@@ -93,7 +93,7 @@
 	</UCard>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LevelSort } from '~/composables/useLevels'
 import type { SortOption } from '~/types/app'
 import type { LevelTypeFilter, ViewerLevelFilter } from '~/utils/levelExplorer'

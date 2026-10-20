@@ -34,7 +34,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const props = defineProps<{
 	labels: {
 		label: string

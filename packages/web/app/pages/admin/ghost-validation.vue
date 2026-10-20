@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 useSeoMeta({ title: 'Ghost validation review', robots: 'noindex, nofollow' })
 </script>
 

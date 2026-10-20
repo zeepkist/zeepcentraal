@@ -86,7 +86,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { RecordHeroSource } from '~/types/recordDetail'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 

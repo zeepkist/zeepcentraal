@@ -57,7 +57,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { UserCosmeticProgressPreview } from '~/types/app'
 
 const props = defineProps<{

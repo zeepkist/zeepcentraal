@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const items = [
 	{ label: 'Building for Super League', icon: 'i-tabler-steering-wheel', slot: 'building' as const },
 	{ label: 'Community voting', icon: 'i-tabler-notes', slot: 'voting' as const },

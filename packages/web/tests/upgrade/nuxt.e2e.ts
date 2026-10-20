@@ -1,5 +1,14 @@
-import { expect } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 import { test } from '../support/browser'
+
+async function waitForHydration(page: Page) {
+	await page.waitForFunction(() => {
+		const root = document.querySelector('#__nuxt') as Element & {
+			__vue_app__?: { config: { globalProperties: { $nuxt?: { isHydrating: boolean } } } }
+		}
+		return root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false
+	})
+}
 
 test('portable handlers preserve statuses, cookies, and origin checks over HTTP', async ({
 	request,
@@ -80,9 +89,7 @@ test('early 404, canonical redirects, and sitemap routes survive production buil
 	expect(sitemap.headers()['cache-control']).toBe('s-maxage=600, stale-while-revalidate')
 })
 
-test('Vapor pages hydrate with translated controls and working Nuxt UI events', async ({
-	page,
-}) => {
+test('Pages hydrate with translated controls and working Nuxt UI events', async ({ page }) => {
 	test.setTimeout(90_000)
 	await page.route('https://ko-fi.com/**', (route) =>
 		route.fulfill({ contentType: 'text/html', body: '<p>Fixture</p>' }),
@@ -105,31 +112,13 @@ test('Vapor pages hydrate with translated controls and working Nuxt UI events', 
 		}
 		return root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false
 	})
-	// Read the loaded route definition: source attributes alone do not prove Vapor compilation.
-	expect(
-		await page.evaluate(() => {
-			const root = document.querySelector('#__nuxt') as Element & {
-				__vue_app__?: {
-					config: {
-						globalProperties: {
-							$router: {
-								currentRoute: {
-									value: {
-										matched: {
-											components?: { default?: { __vapor?: boolean } }
-										}[]
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			return root.__vue_app__?.config.globalProperties.$router.currentRoute.value.matched.at(
-				-1,
-			)?.components?.default?.__vapor
-		}),
-	).toBe(true)
+	const runtimeVersion = await page.evaluate(() => {
+		const root = document.querySelector('#__nuxt') as Element & {
+			__vue_app__?: { version: string }
+		}
+		return root.__vue_app__?.version
+	})
+	expect(runtimeVersion).toBe('3.5.43')
 	const theme = page.getByTestId('app-header').getByRole('button', { name: /theme/i })
 	const before = (await page.locator('html').getAttribute('class')) ?? ''
 	await theme.click()
@@ -154,6 +143,7 @@ test('Vapor pages hydrate with translated controls and working Nuxt UI events', 
 		).toBeVisible()
 	}
 	await page.goto('/wiki')
+	await waitForHydration(page)
 	const wikiError = await page.evaluate(() => {
 		const root = document.querySelector('#__nuxt') as Element & {
 			__vue_app__?: {
@@ -170,6 +160,8 @@ test('Vapor pages hydrate with translated controls and working Nuxt UI events', 
 	await page.locator('a[href="/wiki/getting-started"]').first().click()
 	await expect(page).toHaveURL('/wiki/getting-started')
 	await expect(page.getByRole('heading', { level: 1, name: 'Getting Started' })).toBeVisible()
+	// SSR headings can appear before entry imports finish after a full navigation.
+	await waitForHydration(page)
 	await page.goto('/developer/graphql')
 	await expect(
 		page.getByRole('heading', { level: 1, name: 'ZeepCentraal GraphQL API' }),
@@ -189,9 +181,7 @@ test('Vapor pages hydrate with translated controls and working Nuxt UI events', 
 	expect(errors).toEqual([])
 })
 
-test('Vapor replay activates after verification and handles missing ghost data', async ({
-	page,
-}) => {
+test('Replay activates after verification and handles missing ghost data', async ({ page }) => {
 	const errors: string[] = []
 	page.on('pageerror', (error) => errors.push(error.message))
 	await page.route('https://challenges.cloudflare.com/turnstile/**', (route) =>
@@ -221,7 +211,8 @@ test('Vapor replay activates after verification and handles missing ghost data',
 	})
 	await expect(page.locator('.ghost-replay-workspace')).toHaveCount(0)
 	await page.getByRole('button', { name: 'Verify fixture replay' }).click()
-	await expect(page.locator('.ghost-replay-workspace')).toBeVisible()
+	// Development may optimize the lazy Three.js viewer on first verification.
+	await expect(page.locator('.ghost-replay-workspace')).toBeVisible({ timeout: 15_000 })
 	await expect(page.getByText('No playable ghost', { exact: true })).toBeVisible()
 	expect(errors).toEqual([])
 })

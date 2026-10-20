@@ -8,6 +8,6 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{ id?: string; title: string; description?: string }>()
 </script>

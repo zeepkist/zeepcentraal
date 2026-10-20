@@ -146,7 +146,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LevelSummary, LevelWorldRecordSummary } from '~/types/app'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 import { isLevelRatingAvailable } from '~/utils/levelRating'

@@ -56,7 +56,7 @@ const fixtureLevel = {
 // Local upstreams keep SSR, sitemap, and authentication checks independent of production services.
 Bun.serve({
 	hostname: '127.0.0.1',
-	port: 4198,
+	port: Number(process.env.WEB_TEST_UPSTREAM_PORT ?? 4198),
 	async fetch(request, server) {
 		const url = new URL(request.url)
 		if (request.headers.get('upgrade') === 'websocket' && server.upgrade(request)) return

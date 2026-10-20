@@ -73,7 +73,7 @@
 	</article>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { ModSummary } from '~/types/mod'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 import { getVisibleModTags, isEssentialsModTag } from '~/utils/modExplorer'

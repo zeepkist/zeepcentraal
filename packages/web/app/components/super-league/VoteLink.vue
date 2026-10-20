@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 const props = defineProps<{ roundIds?: number[] }>()
 const { snapshot } = useSuperLeagueVote()
 const visible = computed(() => !!snapshot.value?.openTypes.length

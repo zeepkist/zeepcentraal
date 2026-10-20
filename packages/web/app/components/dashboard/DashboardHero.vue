@@ -83,7 +83,7 @@
 	</UCard>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import LoginPrompt from '~/components/auth/LoginPrompt.vue'
 import type { HeroAction, HeroMetric, HeroPanel } from '~/types/app'
 

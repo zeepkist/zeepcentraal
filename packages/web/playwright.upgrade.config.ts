@@ -17,9 +17,10 @@ export default defineConfig({
 		},
 		{
 			command: development
-				? 'bun --no-env-file --preload ./tests/upgrade/fetch.ts --bun nuxt dev --host 127.0.0.1 --port 4173'
+				? 'bun --no-env-file --preload ./tests/upgrade/fetch.ts --bun nuxt dev --extends ./tests/motion-layer --host 127.0.0.1 --port 4173'
 				: 'bun --no-env-file --preload ./tests/upgrade/fetch.ts --bun .output/server/telemetry.mjs',
-			url: 'http://127.0.0.1:4173/healthz',
+			// Health can respond before Vite finishes the first SSR transform in development.
+			url: development ? 'http://127.0.0.1:4173/' : 'http://127.0.0.1:4173/healthz',
 			reuseExistingServer: false,
 			timeout: 180_000,
 			env: {
@@ -46,7 +47,7 @@ export default defineConfig({
 		{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel } },
 		{
 			name: 'firefox',
-			testMatch: '**/upgrade/hydration.e2e.ts',
+			testMatch: ['**/upgrade/*.e2e.ts', '**/e2e/motion*.e2e.ts'],
 			use: { ...devices['Desktop Firefox'] },
 		},
 		{ name: 'mobile', use: { ...devices['Pixel 7'], channel } },

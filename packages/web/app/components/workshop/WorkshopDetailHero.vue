@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { WorkshopSummary } from '~/types/app'
 import { formatWorkshopFileSize } from '~/utils/workshop'
 

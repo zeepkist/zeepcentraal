@@ -69,7 +69,7 @@
 	</UCard>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { DashboardChartEntry, DashboardStatisticsMetric } from '~/types/app'
 import type { TablerIconName } from '~/utils/icons'
 

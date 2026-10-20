@@ -21,7 +21,7 @@
 	</UCard>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { SortOption } from '~/types/app'
 
 defineProps<{

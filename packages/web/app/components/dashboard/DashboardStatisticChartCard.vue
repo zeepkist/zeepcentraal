@@ -52,7 +52,7 @@
 	</UCard>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { Orientation } from '#imports'
 import type { DashboardChartEntry } from '~/types/app'
 import type { TablerIconName } from '~/utils/icons'

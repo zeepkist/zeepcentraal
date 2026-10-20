@@ -45,7 +45,7 @@
 	</div>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { DonutType } from '#imports'
 import type { DashboardChartEntry } from '~/types/app'
 

@@ -6,7 +6,7 @@
 		</div>
 	</UContainer>
 </template>
-<script setup vapor lang="ts">
+<script setup lang="ts">
 usePageSeo('developer')
 defineOgImage('Developer.takumi', { slug: 'developer' })
 const { t } = useAppI18n()

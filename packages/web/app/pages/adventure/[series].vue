@@ -27,7 +27,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { findAdventureSeries } from '~/utils/adventureSeries'
 
 const route = useRoute()

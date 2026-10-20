@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{ voteType: number }>()
 
 const zslCriteria = [

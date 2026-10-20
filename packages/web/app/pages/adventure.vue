@@ -22,7 +22,7 @@
 	</UContainer>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 usePageSeo('adventure')
 
 const route = useRoute()

@@ -9,7 +9,7 @@
 	/>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { modkistReleasesKey } from '~/composables/useModkistReleasesContext'
 import type { ModkistReleases } from '~/types/modkist'
 

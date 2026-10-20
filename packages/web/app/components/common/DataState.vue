@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { usePreferredReducedMotion } from '@vueuse/core'
 import { cssTimeToMilliseconds } from '~/utils/motion'
 
@@ -81,7 +81,8 @@ watch(
 		consumed = true
 		if (canReveal()) void revealContent()
 	},
-	{ flush: 'sync' },
+	// VDOM updates props individually. Observe the settled pending/error/empty state together.
+	{ flush: 'post' },
 )
 watch(preferredMotion, cancelReveal, { flush: 'sync' })
 onScopeDispose(() => {

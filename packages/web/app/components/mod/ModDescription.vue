@@ -12,7 +12,7 @@
 	</section>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 defineProps<{ title: string; emptyLabel: string; descriptionHtml: string }>()
 </script>
 

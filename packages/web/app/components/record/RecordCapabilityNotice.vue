@@ -28,7 +28,7 @@
 	</UAlert>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 export type RecordCapabilityFeature = {
 	key: string
 	label: string

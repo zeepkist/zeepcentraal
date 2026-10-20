@@ -66,7 +66,7 @@
 	</UContainer>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 
 definePageMeta({ key: (route) => route.path })

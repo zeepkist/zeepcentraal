@@ -41,7 +41,7 @@
 	</DataTableFrame>
 </template>
 
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { LobbyListing } from '@zeepkist/core'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 
