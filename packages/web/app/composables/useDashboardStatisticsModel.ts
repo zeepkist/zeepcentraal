@@ -68,7 +68,7 @@ export function useDashboardStatisticsModel(
 		{
 			key: 'ice1',
 			label: () => t('dashboard.totals.surfaces.ice1'),
-			color: '#7dd3fc',
+			color: '#0284c7',
 			distanceField: 'distanceOnIce1',
 			timeField: 'timeOnIce1',
 		},
@@ -82,7 +82,7 @@ export function useDashboardStatisticsModel(
 		{
 			key: 'ice3',
 			label: () => t('dashboard.totals.surfaces.ice3'),
-			color: '#0284c7',
+			color: '#7dd3fc',
 			distanceField: 'distanceOnIce3',
 			timeField: 'timeOnIce3',
 		},
