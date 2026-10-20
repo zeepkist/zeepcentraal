@@ -24,7 +24,7 @@ struct Column {
 }
 
 #[test]
-fn generated_schema_covers_latest_drizzle_snapshot() -> anyhow::Result<()> {
+fn generated_schema_covers_retained_drizzle_snapshot_tables() -> anyhow::Result<()> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let snapshot_bytes =
         std::fs::read(root.join("packages/database/drizzle/meta/0086_snapshot.json"))?;
@@ -59,6 +59,11 @@ fn generated_schema_covers_latest_drizzle_snapshot() -> anyhow::Result<()> {
     );
 
     for (qualified_name, table) in snapshot.tables {
+        // Diesel migration 20261019000800_retire_history_index replaces this
+        // archived table with record_history_fact. Keep checking every other table.
+        if qualified_name == "zc_private.record_history_index" {
+            continue;
+        }
         let table_name = qualified_name.rsplit('.').next().unwrap();
         assert!(
             generated.contains(&format!(".{table_name} ("))
