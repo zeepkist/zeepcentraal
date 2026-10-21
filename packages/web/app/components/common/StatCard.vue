@@ -16,21 +16,25 @@
 				<p :aria-label="valueLabel" class="tabular mt-2 text-3xl font-bold">
 					<slot name="value">{{ value }}</slot>
 				</p>
-				<dl v-if="details?.length" class="mt-4 grid grid-cols-2 gap-2 border-t border-border/70 pt-3">
-					<div v-for="detail in details" :key="detail.label" class="min-w-0">
-						<dt class="truncate text-xs text-muted-foreground">
-							{{ detail.label }}
-						</dt>
-						<dd class="tabular mt-1 font-semibold">
-							{{ detail.value }}
-						</dd>
-					</div>
-				</dl>
 			</div>
 			<div class="rounded-md bg-primary/10 p-2 text-primary">
 				<TablerIcon :name="icon" />
 			</div>
 		</div>
+		<dl
+			v-if="details?.length"
+			class="mt-4 grid gap-2 border-t border-border/70 pt-3"
+			:class="details.length === 4 ? 'grid-cols-4' : 'grid-cols-2'"
+		>
+			<div v-for="detail in details" :key="detail.label" class="min-w-0">
+				<dt :title="detail.label" class="truncate text-xs text-muted-foreground">
+					{{ detail.label }}
+				</dt>
+				<dd :title="detail.value" class="tabular mt-1 truncate font-semibold">
+					{{ detail.value }}
+				</dd>
+			</div>
+		</dl>
 	</UCard>
 	</component>
 </template>

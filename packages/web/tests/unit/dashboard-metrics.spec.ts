@@ -62,6 +62,9 @@ it('formats the London metric month using the active locale', () => {
 	const monthSince = '2026-05-31T23:00:00.000Z'
 	expect(formatDashboardMonth(monthSince, 'en-GB')).toBe('June')
 	expect(formatDashboardMonth(monthSince, 'fr-FR')).toBe('juin')
+	expect(formatDashboardMonth('2026-08-31T23:00:00Z', 'en-GB')).toBe('September')
+	expect(formatDashboardMonth('2026-08-31T23:00:00Z', 'fr-FR')).toBe('septembre')
+	expect(formatDashboardMonth('2026-12-01T00:00:00Z', 'en-GB')).toBe('December')
 })
 
 describe('dashboard metric GraphQL', () => {
@@ -165,19 +168,21 @@ describe('dashboard metric presentation', () => {
 		expect(page).toContain('data?.activePlayersMonth')
 		expect(page).toContain('value: `')
 		expect(page).toContain('label: currentMonth.value')
-		expect(page).toContain(
-			"t('dashboard.metrics.activeInMonth', { month: currentMonth.value })",
-		)
+		expect(page).toContain('label: previousMonth.value')
+		expect(page).toContain('data?.activePlayersYesterday')
+		expect(page).toContain('data?.activePlayersLastMonth')
 		expect(page).not.toContain('dashboard.metrics.thisMonth')
 		expect(page).not.toContain('dashboard.metrics.activeThisMonth')
 		expect(page).toContain('dashboard.metrics.rankedAndTotalPlayers')
 		expect(page).toContain('dashboard.metrics.rankedAndTotalPlayersValueLabel')
-		expect(page).toContain('dashboard.metrics.activeToday')
+		expect(page).not.toContain('dashboard.metrics.activeToday')
+		expect(page).not.toContain('dashboard.metrics.activeInMonth')
+		expect(page).toContain('dashboard.metrics.yesterday')
 		expect(page).toMatch(/value: `\$\{rankedPlayers\} \/ \$\{totalPlayers\}`/)
 		expect(page).not.toMatch(/value: `\$\{rankedPlayers\} \(\$\{activePlayersDay\}\)`/)
 		expect(dashboardMetricCopy).toMatchObject({
 			rankedAndTotalPlayers: 'Ranked players / Total players',
-			activeToday: 'Active today',
+			yesterday: 'Yesterday',
 		})
 		expect(dashboardMetricCopy).not.toHaveProperty('rankedPlayers')
 		expect(dashboardMetricCopy).not.toHaveProperty('rankedPlayersValueLabel')

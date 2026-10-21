@@ -211,6 +211,13 @@ const currentMonth = computed(() =>
 	formatDashboardMonth(dashboard.metricMonthSince.value, locale.value),
 )
 
+const previousMonth = computed(() =>
+	formatDashboardMonth(
+		dashboard.metrics.value?.lastMonthStart ?? dashboard.metricMonthSince.value,
+		locale.value,
+	),
+)
+
 const hero = computed<DashboardHeroModel>(() => {
 	const viewer = dashboard.viewer.value
 	const latestSeason = dashboard.latestSeason.value
@@ -373,19 +380,19 @@ const hero = computed<DashboardHeroModel>(() => {
 
 const liveMetrics = computed<StatisticMetric[]>(() => {
 	const data = dashboard.metrics.value
-	const details = (day: bigint | undefined, month: bigint | undefined) => [
-		{
-			label: t('dashboard.metrics.today'),
-			value: numberFormat.format(day ?? 0),
-		},
-		{
-			label: currentMonth.value,
-			value: numberFormat.format(month ?? 0),
-		},
+	const details = (
+		today: bigint | undefined,
+		yesterday: bigint | undefined,
+		month: bigint | undefined,
+		lastMonth: bigint | undefined,
+	) => [
+		{ label: t('dashboard.metrics.today'), value: numberFormat.format(today ?? 0) },
+		{ label: t('dashboard.metrics.yesterday'), value: numberFormat.format(yesterday ?? 0) },
+		{ label: currentMonth.value, value: numberFormat.format(month ?? 0) },
+		{ label: previousMonth.value, value: numberFormat.format(lastMonth ?? 0) },
 	]
 	const rankedPlayers = numberFormat.format(data?.rankedPlayers ?? 0)
 	const totalPlayers = numberFormat.format(data?.players ?? 0)
-	const activePlayersDay = numberFormat.format(data?.activePlayersToday ?? 0)
 
 	return [
 		{
@@ -393,7 +400,12 @@ const liveMetrics = computed<StatisticMetric[]>(() => {
 			label: t('dashboard.metrics.records'),
 			value: numberFormat.format(data?.records ?? 0),
 			icon: 'clock-bolt',
-			details: details(data?.recordsToday, data?.recordsMonth),
+			details: details(
+				data?.recordsToday,
+				data?.recordsYesterday,
+				data?.recordsMonth,
+				data?.recordsLastMonth,
+			),
 		},
 		{
 			key: 'pbs',
@@ -402,7 +414,9 @@ const liveMetrics = computed<StatisticMetric[]>(() => {
 			icon: 'star',
 			details: details(
 				data?.personalBestsToday,
+				data?.personalBestsYesterday,
 				data?.personalBestsMonth,
+				data?.personalBestsLastMonth,
 			),
 		},
 		{
@@ -412,7 +426,9 @@ const liveMetrics = computed<StatisticMetric[]>(() => {
 			icon: 'trophy',
 			details: details(
 				data?.worldRecordsToday,
+				data?.worldRecordsYesterday,
 				data?.worldRecordsMonth,
+				data?.worldRecordsLastMonth,
 			),
 		},
 		{
@@ -420,14 +436,24 @@ const liveMetrics = computed<StatisticMetric[]>(() => {
 			label: t('dashboard.metrics.levels'),
 			value: numberFormat.format(data?.levels ?? 0),
 			icon: 'map',
-			details: details(data?.levelsToday, data?.levelsMonth),
+			details: details(
+				data?.levelsToday,
+				data?.levelsYesterday,
+				data?.levelsMonth,
+				data?.levelsLastMonth,
+			),
 		},
 		{
 			key: 'votes',
 			label: t('dashboard.metrics.votes'),
 			value: numberFormat.format(data?.votes ?? 0),
 			icon: 'trending-up',
-			details: details(data?.votesToday, data?.votesMonth),
+			details: details(
+				data?.votesToday,
+				data?.votesYesterday,
+				data?.votesMonth,
+				data?.votesLastMonth,
+			),
 		},
 		{
 			key: 'players',
@@ -438,16 +464,12 @@ const liveMetrics = computed<StatisticMetric[]>(() => {
 				totalPlayers,
 			}),
 			icon: 'users',
-			details: [
-				{
-					label: t('dashboard.metrics.activeToday'),
-					value: activePlayersDay,
-				},
-				{
-					label: t('dashboard.metrics.activeInMonth', { month: currentMonth.value }),
-					value: numberFormat.format(data?.activePlayersMonth ?? 0),
-				},
-			],
+			details: details(
+				data?.activePlayersToday,
+				data?.activePlayersYesterday,
+				data?.activePlayersMonth,
+				data?.activePlayersLastMonth,
+			),
 		},
 	]
 })

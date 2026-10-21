@@ -44,6 +44,39 @@ test('SSR metrics stay fixed through writes, focus, reconnect, and midnight unti
 	).toBe(2)
 })
 
+for (const width of [375, 1440]) {
+	test(`headline cards show four matching periods at ${width}px`, async ({ page, request }) => {
+		await page.setViewportSize({ width, height: 1000 })
+		await page.goto('/')
+		const metrics = page.getByTestId('homepage-metrics')
+		const response = await request.post('http://127.0.0.1:55440/', {
+			data: { query: '{ globalMetrics { monthStart lastMonthStart } }' },
+		})
+		const snapshot = (await response.json()).data.globalMetrics
+		const month = new Intl.DateTimeFormat('en', { month: 'long', timeZone: 'Europe/London' })
+		const expected = [
+			'Today',
+			'Yesterday',
+			month.format(new Date(snapshot.monthStart)),
+			month.format(new Date(snapshot.lastMonthStart)),
+		]
+		const cards = metrics.locator('dl')
+		await expect(cards).toHaveCount(6)
+		for (const card of await cards.all()) {
+			const labels = await card.locator('dt').allTextContents()
+			expect(labels.map((label) => label.trim())).toEqual(expected)
+			await expect(card.locator('dd')).toHaveCount(4)
+			expect(
+				await card.evaluate((element) => element.scrollWidth <= element.clientWidth),
+			).toBe(true)
+		}
+		expect(
+			await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+		).toBe(true)
+		await metrics.screenshot({ path: test.info().outputPath(`headline-${width}.png`) })
+	})
+}
+
 test('homepage OG image renders cached metrics', async ({ page, request }) => {
 	await page.goto('/')
 	const image = await page.locator('meta[property="og:image"]').getAttribute('content')

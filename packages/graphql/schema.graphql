@@ -1742,6 +1742,33 @@ type GlobalMetricSummary {
   worldRecords: BigInt
   worldRecordsMonth: BigInt
   worldRecordsToday: BigInt
+  recordsYesterday: BigInt
+
+  recordsLastMonth: BigInt
+
+  personalBestsYesterday: BigInt
+
+  personalBestsLastMonth: BigInt
+
+  worldRecordsYesterday: BigInt
+
+  worldRecordsLastMonth: BigInt
+
+  levelsYesterday: BigInt
+
+  levelsLastMonth: BigInt
+
+  votesYesterday: BigInt
+
+  votesLastMonth: BigInt
+
+  activePlayersYesterday: BigInt
+
+  activePlayersLastMonth: BigInt
+
+  yesterdayStart: Datetime
+
+  lastMonthStart: Datetime
 }
 
 input HavingBigintFilter {
@@ -19258,6 +19285,33 @@ type Statistic implements Node {
   worldRecords: BigInt!
   worldRecordsMonth: BigInt!
   worldRecordsToday: BigInt!
+  recordsYesterday: BigInt!
+
+  recordsLastMonth: BigInt!
+
+  personalBestsYesterday: BigInt!
+
+  personalBestsLastMonth: BigInt!
+
+  worldRecordsYesterday: BigInt!
+
+  worldRecordsLastMonth: BigInt!
+
+  levelsYesterday: BigInt!
+
+  levelsLastMonth: BigInt!
+
+  votesYesterday: BigInt!
+
+  votesLastMonth: BigInt!
+
+  activePlayersYesterday: BigInt!
+
+  activePlayersLastMonth: BigInt!
+
+  yesterdayStart: Datetime!
+
+  lastMonthStart: Datetime!
 }
 
 type StatisticAggregates {
@@ -19341,6 +19395,41 @@ type StatisticAverageAggregates {
   worldRecordsMonth: BigFloat
   """Mean average of worldRecordsToday across the matching connection"""
   worldRecordsToday: BigFloat
+  """Mean average of recordsYesterday across the matching connection"""
+  recordsYesterday: BigFloat
+
+  """Mean average of recordsLastMonth across the matching connection"""
+  recordsLastMonth: BigFloat
+
+  """Mean average of personalBestsYesterday across the matching connection"""
+  personalBestsYesterday: BigFloat
+
+  """Mean average of personalBestsLastMonth across the matching connection"""
+  personalBestsLastMonth: BigFloat
+
+  """Mean average of worldRecordsYesterday across the matching connection"""
+  worldRecordsYesterday: BigFloat
+
+  """Mean average of worldRecordsLastMonth across the matching connection"""
+  worldRecordsLastMonth: BigFloat
+
+  """Mean average of levelsYesterday across the matching connection"""
+  levelsYesterday: BigFloat
+
+  """Mean average of levelsLastMonth across the matching connection"""
+  levelsLastMonth: BigFloat
+
+  """Mean average of votesYesterday across the matching connection"""
+  votesYesterday: BigFloat
+
+  """Mean average of votesLastMonth across the matching connection"""
+  votesLastMonth: BigFloat
+
+  """Mean average of activePlayersYesterday across the matching connection"""
+  activePlayersYesterday: BigFloat
+
+  """Mean average of activePlayersLastMonth across the matching connection"""
+  activePlayersLastMonth: BigFloat
 }
 
 """
@@ -19398,6 +19487,47 @@ input StatisticCondition {
   worldRecordsMonth: BigInt
   """Checks for equality with the object’s `worldRecordsToday` field."""
   worldRecordsToday: BigInt
+  """Checks for equality with the object’s `recordsYesterday` field."""
+  recordsYesterday: BigInt
+
+  """Checks for equality with the object’s `recordsLastMonth` field."""
+  recordsLastMonth: BigInt
+
+  """Checks for equality with the object’s `personalBestsYesterday` field."""
+  personalBestsYesterday: BigInt
+
+  """Checks for equality with the object’s `personalBestsLastMonth` field."""
+  personalBestsLastMonth: BigInt
+
+  """Checks for equality with the object’s `worldRecordsYesterday` field."""
+  worldRecordsYesterday: BigInt
+
+  """Checks for equality with the object’s `worldRecordsLastMonth` field."""
+  worldRecordsLastMonth: BigInt
+
+  """Checks for equality with the object’s `levelsYesterday` field."""
+  levelsYesterday: BigInt
+
+  """Checks for equality with the object’s `levelsLastMonth` field."""
+  levelsLastMonth: BigInt
+
+  """Checks for equality with the object’s `votesYesterday` field."""
+  votesYesterday: BigInt
+
+  """Checks for equality with the object’s `votesLastMonth` field."""
+  votesLastMonth: BigInt
+
+  """Checks for equality with the object’s `activePlayersYesterday` field."""
+  activePlayersYesterday: BigInt
+
+  """Checks for equality with the object’s `activePlayersLastMonth` field."""
+  activePlayersLastMonth: BigInt
+
+  """Checks for equality with the object’s `yesterdayStart` field."""
+  yesterdayStart: Datetime
+
+  """Checks for equality with the object’s `lastMonthStart` field."""
+  lastMonthStart: Datetime
 }
 
 type StatisticDistinctCountAggregates {
@@ -19451,6 +19581,55 @@ type StatisticDistinctCountAggregates {
   worldRecordsMonth: BigInt
   """Distinct count of worldRecordsToday across the matching connection"""
   worldRecordsToday: BigInt
+  """Distinct count of recordsYesterday across the matching connection"""
+  recordsYesterday: BigInt
+
+  """Distinct count of recordsLastMonth across the matching connection"""
+  recordsLastMonth: BigInt
+
+  """
+  Distinct count of personalBestsYesterday across the matching connection
+  """
+  personalBestsYesterday: BigInt
+
+  """
+  Distinct count of personalBestsLastMonth across the matching connection
+  """
+  personalBestsLastMonth: BigInt
+
+  """Distinct count of worldRecordsYesterday across the matching connection"""
+  worldRecordsYesterday: BigInt
+
+  """Distinct count of worldRecordsLastMonth across the matching connection"""
+  worldRecordsLastMonth: BigInt
+
+  """Distinct count of levelsYesterday across the matching connection"""
+  levelsYesterday: BigInt
+
+  """Distinct count of levelsLastMonth across the matching connection"""
+  levelsLastMonth: BigInt
+
+  """Distinct count of votesYesterday across the matching connection"""
+  votesYesterday: BigInt
+
+  """Distinct count of votesLastMonth across the matching connection"""
+  votesLastMonth: BigInt
+
+  """
+  Distinct count of activePlayersYesterday across the matching connection
+  """
+  activePlayersYesterday: BigInt
+
+  """
+  Distinct count of activePlayersLastMonth across the matching connection
+  """
+  activePlayersLastMonth: BigInt
+
+  """Distinct count of yesterdayStart across the matching connection"""
+  yesterdayStart: BigInt
+
+  """Distinct count of lastMonthStart across the matching connection"""
+  lastMonthStart: BigInt
 }
 
 """
@@ -19513,6 +19692,47 @@ input StatisticFilter {
   worldRecordsMonth: BigIntFilter
   """Filter by the object’s `worldRecordsToday` field."""
   worldRecordsToday: BigIntFilter
+  """Filter by the object’s `recordsYesterday` field."""
+  recordsYesterday: BigIntFilter
+
+  """Filter by the object’s `recordsLastMonth` field."""
+  recordsLastMonth: BigIntFilter
+
+  """Filter by the object’s `personalBestsYesterday` field."""
+  personalBestsYesterday: BigIntFilter
+
+  """Filter by the object’s `personalBestsLastMonth` field."""
+  personalBestsLastMonth: BigIntFilter
+
+  """Filter by the object’s `worldRecordsYesterday` field."""
+  worldRecordsYesterday: BigIntFilter
+
+  """Filter by the object’s `worldRecordsLastMonth` field."""
+  worldRecordsLastMonth: BigIntFilter
+
+  """Filter by the object’s `levelsYesterday` field."""
+  levelsYesterday: BigIntFilter
+
+  """Filter by the object’s `levelsLastMonth` field."""
+  levelsLastMonth: BigIntFilter
+
+  """Filter by the object’s `votesYesterday` field."""
+  votesYesterday: BigIntFilter
+
+  """Filter by the object’s `votesLastMonth` field."""
+  votesLastMonth: BigIntFilter
+
+  """Filter by the object’s `activePlayersYesterday` field."""
+  activePlayersYesterday: BigIntFilter
+
+  """Filter by the object’s `activePlayersLastMonth` field."""
+  activePlayersLastMonth: BigIntFilter
+
+  """Filter by the object’s `yesterdayStart` field."""
+  yesterdayStart: DatetimeFilter
+
+  """Filter by the object’s `lastMonthStart` field."""
+  lastMonthStart: DatetimeFilter
 }
 
 """Grouping methods for `Statistic` for usage during aggregation."""
@@ -19547,6 +19767,41 @@ enum StatisticGroupBy {
   WORLD_RECORDS
   WORLD_RECORDS_MONTH
   WORLD_RECORDS_TODAY
+  RECORDS_YESTERDAY
+
+  RECORDS_LAST_MONTH
+
+  PERSONAL_BESTS_YESTERDAY
+
+  PERSONAL_BESTS_LAST_MONTH
+
+  WORLD_RECORDS_YESTERDAY
+
+  WORLD_RECORDS_LAST_MONTH
+
+  LEVELS_YESTERDAY
+
+  LEVELS_LAST_MONTH
+
+  VOTES_YESTERDAY
+
+  VOTES_LAST_MONTH
+
+  ACTIVE_PLAYERS_YESTERDAY
+
+  ACTIVE_PLAYERS_LAST_MONTH
+
+  YESTERDAY_START
+
+  YESTERDAY_START_TRUNCATED_TO_HOUR
+
+  YESTERDAY_START_TRUNCATED_TO_DAY
+
+  LAST_MONTH_START
+
+  LAST_MONTH_START_TRUNCATED_TO_HOUR
+
+  LAST_MONTH_START_TRUNCATED_TO_DAY
 }
 
 input StatisticHavingAverageInput {
@@ -19573,6 +19828,33 @@ input StatisticHavingAverageInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 input StatisticHavingDistinctCountInput {
@@ -19599,6 +19881,33 @@ input StatisticHavingDistinctCountInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 """Conditions for `Statistic` aggregates."""
@@ -19640,6 +19949,33 @@ input StatisticHavingMaxInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 input StatisticHavingMinInput {
@@ -19666,6 +20002,33 @@ input StatisticHavingMinInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 input StatisticHavingStddevPopulationInput {
@@ -19692,6 +20055,33 @@ input StatisticHavingStddevPopulationInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 input StatisticHavingStddevSampleInput {
@@ -19718,6 +20108,33 @@ input StatisticHavingStddevSampleInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 input StatisticHavingSumInput {
@@ -19744,6 +20161,33 @@ input StatisticHavingSumInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 input StatisticHavingVariancePopulationInput {
@@ -19770,6 +20214,33 @@ input StatisticHavingVariancePopulationInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 input StatisticHavingVarianceSampleInput {
@@ -19796,6 +20267,33 @@ input StatisticHavingVarianceSampleInput {
   worldRecords: HavingBigintFilter
   worldRecordsMonth: HavingBigintFilter
   worldRecordsToday: HavingBigintFilter
+  recordsYesterday: HavingBigintFilter
+
+  recordsLastMonth: HavingBigintFilter
+
+  personalBestsYesterday: HavingBigintFilter
+
+  personalBestsLastMonth: HavingBigintFilter
+
+  worldRecordsYesterday: HavingBigintFilter
+
+  worldRecordsLastMonth: HavingBigintFilter
+
+  levelsYesterday: HavingBigintFilter
+
+  levelsLastMonth: HavingBigintFilter
+
+  votesYesterday: HavingBigintFilter
+
+  votesLastMonth: HavingBigintFilter
+
+  activePlayersYesterday: HavingBigintFilter
+
+  activePlayersLastMonth: HavingBigintFilter
+
+  yesterdayStart: HavingDatetimeFilter
+
+  lastMonthStart: HavingDatetimeFilter
 }
 
 type StatisticMaxAggregates {
@@ -19839,6 +20337,41 @@ type StatisticMaxAggregates {
   worldRecordsMonth: BigInt
   """Maximum of worldRecordsToday across the matching connection"""
   worldRecordsToday: BigInt
+  """Maximum of recordsYesterday across the matching connection"""
+  recordsYesterday: BigInt
+
+  """Maximum of recordsLastMonth across the matching connection"""
+  recordsLastMonth: BigInt
+
+  """Maximum of personalBestsYesterday across the matching connection"""
+  personalBestsYesterday: BigInt
+
+  """Maximum of personalBestsLastMonth across the matching connection"""
+  personalBestsLastMonth: BigInt
+
+  """Maximum of worldRecordsYesterday across the matching connection"""
+  worldRecordsYesterday: BigInt
+
+  """Maximum of worldRecordsLastMonth across the matching connection"""
+  worldRecordsLastMonth: BigInt
+
+  """Maximum of levelsYesterday across the matching connection"""
+  levelsYesterday: BigInt
+
+  """Maximum of levelsLastMonth across the matching connection"""
+  levelsLastMonth: BigInt
+
+  """Maximum of votesYesterday across the matching connection"""
+  votesYesterday: BigInt
+
+  """Maximum of votesLastMonth across the matching connection"""
+  votesLastMonth: BigInt
+
+  """Maximum of activePlayersYesterday across the matching connection"""
+  activePlayersYesterday: BigInt
+
+  """Maximum of activePlayersLastMonth across the matching connection"""
+  activePlayersLastMonth: BigInt
 }
 
 type StatisticMinAggregates {
@@ -19882,6 +20415,41 @@ type StatisticMinAggregates {
   worldRecordsMonth: BigInt
   """Minimum of worldRecordsToday across the matching connection"""
   worldRecordsToday: BigInt
+  """Minimum of recordsYesterday across the matching connection"""
+  recordsYesterday: BigInt
+
+  """Minimum of recordsLastMonth across the matching connection"""
+  recordsLastMonth: BigInt
+
+  """Minimum of personalBestsYesterday across the matching connection"""
+  personalBestsYesterday: BigInt
+
+  """Minimum of personalBestsLastMonth across the matching connection"""
+  personalBestsLastMonth: BigInt
+
+  """Minimum of worldRecordsYesterday across the matching connection"""
+  worldRecordsYesterday: BigInt
+
+  """Minimum of worldRecordsLastMonth across the matching connection"""
+  worldRecordsLastMonth: BigInt
+
+  """Minimum of levelsYesterday across the matching connection"""
+  levelsYesterday: BigInt
+
+  """Minimum of levelsLastMonth across the matching connection"""
+  levelsLastMonth: BigInt
+
+  """Minimum of votesYesterday across the matching connection"""
+  votesYesterday: BigInt
+
+  """Minimum of votesLastMonth across the matching connection"""
+  votesLastMonth: BigInt
+
+  """Minimum of activePlayersYesterday across the matching connection"""
+  activePlayersYesterday: BigInt
+
+  """Minimum of activePlayersLastMonth across the matching connection"""
+  activePlayersLastMonth: BigInt
 }
 
 type StatisticStddevPopulationAggregates {
@@ -19961,6 +20529,65 @@ type StatisticStddevPopulationAggregates {
   Population standard deviation of worldRecordsToday across the matching connection
   """
   worldRecordsToday: BigFloat
+  """
+  Population standard deviation of recordsYesterday across the matching connection
+  """
+  recordsYesterday: BigFloat
+
+  """
+  Population standard deviation of recordsLastMonth across the matching connection
+  """
+  recordsLastMonth: BigFloat
+
+  """
+  Population standard deviation of personalBestsYesterday across the matching connection
+  """
+  personalBestsYesterday: BigFloat
+
+  """
+  Population standard deviation of personalBestsLastMonth across the matching connection
+  """
+  personalBestsLastMonth: BigFloat
+
+  """
+  Population standard deviation of worldRecordsYesterday across the matching connection
+  """
+  worldRecordsYesterday: BigFloat
+
+  """
+  Population standard deviation of worldRecordsLastMonth across the matching connection
+  """
+  worldRecordsLastMonth: BigFloat
+
+  """
+  Population standard deviation of levelsYesterday across the matching connection
+  """
+  levelsYesterday: BigFloat
+
+  """
+  Population standard deviation of levelsLastMonth across the matching connection
+  """
+  levelsLastMonth: BigFloat
+
+  """
+  Population standard deviation of votesYesterday across the matching connection
+  """
+  votesYesterday: BigFloat
+
+  """
+  Population standard deviation of votesLastMonth across the matching connection
+  """
+  votesLastMonth: BigFloat
+
+  """
+  Population standard deviation of activePlayersYesterday across the matching connection
+  """
+  activePlayersYesterday: BigFloat
+
+  """
+  Population standard deviation of activePlayersLastMonth across the matching connection
+  """
+  activePlayersLastMonth: BigFloat
 }
 
 type StatisticStddevSampleAggregates {
@@ -20032,6 +20659,65 @@ type StatisticStddevSampleAggregates {
   Sample standard deviation of worldRecordsToday across the matching connection
   """
   worldRecordsToday: BigFloat
+  """
+  Sample standard deviation of recordsYesterday across the matching connection
+  """
+  recordsYesterday: BigFloat
+
+  """
+  Sample standard deviation of recordsLastMonth across the matching connection
+  """
+  recordsLastMonth: BigFloat
+
+  """
+  Sample standard deviation of personalBestsYesterday across the matching connection
+  """
+  personalBestsYesterday: BigFloat
+
+  """
+  Sample standard deviation of personalBestsLastMonth across the matching connection
+  """
+  personalBestsLastMonth: BigFloat
+
+  """
+  Sample standard deviation of worldRecordsYesterday across the matching connection
+  """
+  worldRecordsYesterday: BigFloat
+
+  """
+  Sample standard deviation of worldRecordsLastMonth across the matching connection
+  """
+  worldRecordsLastMonth: BigFloat
+
+  """
+  Sample standard deviation of levelsYesterday across the matching connection
+  """
+  levelsYesterday: BigFloat
+
+  """
+  Sample standard deviation of levelsLastMonth across the matching connection
+  """
+  levelsLastMonth: BigFloat
+
+  """
+  Sample standard deviation of votesYesterday across the matching connection
+  """
+  votesYesterday: BigFloat
+
+  """
+  Sample standard deviation of votesLastMonth across the matching connection
+  """
+  votesLastMonth: BigFloat
+
+  """
+  Sample standard deviation of activePlayersYesterday across the matching connection
+  """
+  activePlayersYesterday: BigFloat
+
+  """
+  Sample standard deviation of activePlayersLastMonth across the matching connection
+  """
+  activePlayersLastMonth: BigFloat
 }
 
 type StatisticSumAggregates {
@@ -20075,6 +20761,41 @@ type StatisticSumAggregates {
   worldRecordsMonth: BigFloat!
   """Sum of worldRecordsToday across the matching connection"""
   worldRecordsToday: BigFloat!
+  """Sum of recordsYesterday across the matching connection"""
+  recordsYesterday: BigFloat!
+
+  """Sum of recordsLastMonth across the matching connection"""
+  recordsLastMonth: BigFloat!
+
+  """Sum of personalBestsYesterday across the matching connection"""
+  personalBestsYesterday: BigFloat!
+
+  """Sum of personalBestsLastMonth across the matching connection"""
+  personalBestsLastMonth: BigFloat!
+
+  """Sum of worldRecordsYesterday across the matching connection"""
+  worldRecordsYesterday: BigFloat!
+
+  """Sum of worldRecordsLastMonth across the matching connection"""
+  worldRecordsLastMonth: BigFloat!
+
+  """Sum of levelsYesterday across the matching connection"""
+  levelsYesterday: BigFloat!
+
+  """Sum of levelsLastMonth across the matching connection"""
+  levelsLastMonth: BigFloat!
+
+  """Sum of votesYesterday across the matching connection"""
+  votesYesterday: BigFloat!
+
+  """Sum of votesLastMonth across the matching connection"""
+  votesLastMonth: BigFloat!
+
+  """Sum of activePlayersYesterday across the matching connection"""
+  activePlayersYesterday: BigFloat!
+
+  """Sum of activePlayersLastMonth across the matching connection"""
+  activePlayersLastMonth: BigFloat!
 }
 
 type StatisticVariancePopulationAggregates {
@@ -20130,6 +20851,53 @@ type StatisticVariancePopulationAggregates {
   Population variance of worldRecordsToday across the matching connection
   """
   worldRecordsToday: BigFloat
+  """Population variance of recordsYesterday across the matching connection"""
+  recordsYesterday: BigFloat
+
+  """Population variance of recordsLastMonth across the matching connection"""
+  recordsLastMonth: BigFloat
+
+  """
+  Population variance of personalBestsYesterday across the matching connection
+  """
+  personalBestsYesterday: BigFloat
+
+  """
+  Population variance of personalBestsLastMonth across the matching connection
+  """
+  personalBestsLastMonth: BigFloat
+
+  """
+  Population variance of worldRecordsYesterday across the matching connection
+  """
+  worldRecordsYesterday: BigFloat
+
+  """
+  Population variance of worldRecordsLastMonth across the matching connection
+  """
+  worldRecordsLastMonth: BigFloat
+
+  """Population variance of levelsYesterday across the matching connection"""
+  levelsYesterday: BigFloat
+
+  """Population variance of levelsLastMonth across the matching connection"""
+  levelsLastMonth: BigFloat
+
+  """Population variance of votesYesterday across the matching connection"""
+  votesYesterday: BigFloat
+
+  """Population variance of votesLastMonth across the matching connection"""
+  votesLastMonth: BigFloat
+
+  """
+  Population variance of activePlayersYesterday across the matching connection
+  """
+  activePlayersYesterday: BigFloat
+
+  """
+  Population variance of activePlayersLastMonth across the matching connection
+  """
+  activePlayersLastMonth: BigFloat
 }
 
 type StatisticVarianceSampleAggregates {
@@ -20173,6 +20941,53 @@ type StatisticVarianceSampleAggregates {
   worldRecordsMonth: BigFloat
   """Sample variance of worldRecordsToday across the matching connection"""
   worldRecordsToday: BigFloat
+  """Sample variance of recordsYesterday across the matching connection"""
+  recordsYesterday: BigFloat
+
+  """Sample variance of recordsLastMonth across the matching connection"""
+  recordsLastMonth: BigFloat
+
+  """
+  Sample variance of personalBestsYesterday across the matching connection
+  """
+  personalBestsYesterday: BigFloat
+
+  """
+  Sample variance of personalBestsLastMonth across the matching connection
+  """
+  personalBestsLastMonth: BigFloat
+
+  """
+  Sample variance of worldRecordsYesterday across the matching connection
+  """
+  worldRecordsYesterday: BigFloat
+
+  """
+  Sample variance of worldRecordsLastMonth across the matching connection
+  """
+  worldRecordsLastMonth: BigFloat
+
+  """Sample variance of levelsYesterday across the matching connection"""
+  levelsYesterday: BigFloat
+
+  """Sample variance of levelsLastMonth across the matching connection"""
+  levelsLastMonth: BigFloat
+
+  """Sample variance of votesYesterday across the matching connection"""
+  votesYesterday: BigFloat
+
+  """Sample variance of votesLastMonth across the matching connection"""
+  votesLastMonth: BigFloat
+
+  """
+  Sample variance of activePlayersYesterday across the matching connection
+  """
+  activePlayersYesterday: BigFloat
+
+  """
+  Sample variance of activePlayersLastMonth across the matching connection
+  """
+  activePlayersLastMonth: BigFloat
 }
 
 """A connection to a list of `Statistic` values."""
@@ -20265,6 +21080,61 @@ enum StatisticsOrderBy {
   WORLD_RECORDS_MONTH_DESC
   WORLD_RECORDS_TODAY_ASC
   WORLD_RECORDS_TODAY_DESC
+  RECORDS_YESTERDAY_ASC
+
+  RECORDS_YESTERDAY_DESC
+
+  RECORDS_LAST_MONTH_ASC
+
+  RECORDS_LAST_MONTH_DESC
+
+  PERSONAL_BESTS_YESTERDAY_ASC
+
+  PERSONAL_BESTS_YESTERDAY_DESC
+
+  PERSONAL_BESTS_LAST_MONTH_ASC
+
+  PERSONAL_BESTS_LAST_MONTH_DESC
+
+  WORLD_RECORDS_YESTERDAY_ASC
+
+  WORLD_RECORDS_YESTERDAY_DESC
+
+  WORLD_RECORDS_LAST_MONTH_ASC
+
+  WORLD_RECORDS_LAST_MONTH_DESC
+
+  LEVELS_YESTERDAY_ASC
+
+  LEVELS_YESTERDAY_DESC
+
+  LEVELS_LAST_MONTH_ASC
+
+  LEVELS_LAST_MONTH_DESC
+
+  VOTES_YESTERDAY_ASC
+
+  VOTES_YESTERDAY_DESC
+
+  VOTES_LAST_MONTH_ASC
+
+  VOTES_LAST_MONTH_DESC
+
+  ACTIVE_PLAYERS_YESTERDAY_ASC
+
+  ACTIVE_PLAYERS_YESTERDAY_DESC
+
+  ACTIVE_PLAYERS_LAST_MONTH_ASC
+
+  ACTIVE_PLAYERS_LAST_MONTH_DESC
+
+  YESTERDAY_START_ASC
+
+  YESTERDAY_START_DESC
+
+  LAST_MONTH_START_ASC
+
+  LAST_MONTH_START_DESC
 }
 
 """

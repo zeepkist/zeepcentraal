@@ -1001,5 +1001,20 @@ diesel::table! {
   day_start -> Timestamptz,
   month_start -> Timestamptz,
   time_zone -> Text,
+  records_yesterday -> BigInt,
+  records_last_month -> BigInt,
+  personal_bests_yesterday -> BigInt,
+  personal_bests_last_month -> BigInt,
+  world_records_yesterday -> BigInt,
+  world_records_last_month -> BigInt,
+  levels_yesterday -> BigInt,
+  levels_last_month -> BigInt,
+  votes_yesterday -> BigInt,
+  votes_last_month -> BigInt,
+  active_players_yesterday -> BigInt,
+  active_players_last_month -> BigInt,
+  yesterday_start -> Timestamptz,
+  last_month_start -> Timestamptz,
+
  }
 }

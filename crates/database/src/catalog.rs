@@ -132,6 +132,38 @@ fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
             .columns
             .remove("players_all");
     }
+    if versions.iter().any(|version| version == "20261021000000") {
+        let columns = &mut snapshot
+            .tables
+            .get_mut("public.statistics")
+            .unwrap()
+            .columns;
+        for (name, data_type) in [
+            ("records_yesterday", "bigint"),
+            ("records_last_month", "bigint"),
+            ("personal_bests_yesterday", "bigint"),
+            ("personal_bests_last_month", "bigint"),
+            ("world_records_yesterday", "bigint"),
+            ("world_records_last_month", "bigint"),
+            ("levels_yesterday", "bigint"),
+            ("levels_last_month", "bigint"),
+            ("votes_yesterday", "bigint"),
+            ("votes_last_month", "bigint"),
+            ("active_players_yesterday", "bigint"),
+            ("active_players_last_month", "bigint"),
+            ("yesterday_start", "timestamp with time zone"),
+            ("last_month_start", "timestamp with time zone"),
+        ] {
+            columns.insert(
+                name.into(),
+                SnapshotColumn {
+                    name: name.into(),
+                    data_type: data_type.into(),
+                    not_null: true,
+                },
+            );
+        }
+    }
     if versions.iter().any(|version| version == "20261019000800") {
         snapshot.tables.remove("zc_private.record_history_index");
         snapshot.tables.remove("zc_private.history_fact_rollout");

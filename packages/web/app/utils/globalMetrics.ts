@@ -2,13 +2,21 @@ import type { Zc_GlobalMetricsFragment } from '@zeepkist/graphql/generated'
 
 type MetricCounts = Omit<
 	Zc_GlobalMetricsFragment,
-	'__typename' | 'asOf' | 'dayStart' | 'monthStart' | 'timeZone'
+	| '__typename'
+	| 'asOf'
+	| 'dayStart'
+	| 'monthStart'
+	| 'timeZone'
+	| 'yesterdayStart'
+	| 'lastMonthStart'
 >
 export type GlobalMetrics = { [K in keyof MetricCounts]: bigint } & {
 	asOf: string
 	dayStart: string
 	monthStart: string
 	timeZone: string
+	yesterdayStart: string
+	lastMonthStart: string
 }
 
 function count(value: unknown): bigint {
@@ -39,6 +47,20 @@ export function normalizeGlobalMetrics(value: Zc_GlobalMetricsFragment): GlobalM
 		rankedPlayers: count(value.rankedPlayers),
 		activePlayersToday: count(value.activePlayersToday),
 		activePlayersMonth: count(value.activePlayersMonth),
+		recordsYesterday: count(value.recordsYesterday),
+		recordsLastMonth: count(value.recordsLastMonth),
+		personalBestsYesterday: count(value.personalBestsYesterday),
+		personalBestsLastMonth: count(value.personalBestsLastMonth),
+		worldRecordsYesterday: count(value.worldRecordsYesterday),
+		worldRecordsLastMonth: count(value.worldRecordsLastMonth),
+		levelsYesterday: count(value.levelsYesterday),
+		levelsLastMonth: count(value.levelsLastMonth),
+		votesYesterday: count(value.votesYesterday),
+		votesLastMonth: count(value.votesLastMonth),
+		activePlayersYesterday: count(value.activePlayersYesterday),
+		activePlayersLastMonth: count(value.activePlayersLastMonth),
+		yesterdayStart: String(value.yesterdayStart),
+		lastMonthStart: String(value.lastMonthStart),
 		asOf: String(value.asOf),
 		dayStart: String(value.dayStart),
 		monthStart: String(value.monthStart),

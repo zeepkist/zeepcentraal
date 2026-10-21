@@ -22,6 +22,20 @@ fragment ZC_GlobalMetrics on GlobalMetricSummary {
 	dayStart
 	monthStart
 	timeZone
+	recordsYesterday
+	recordsLastMonth
+	personalBestsYesterday
+	personalBestsLastMonth
+	worldRecordsYesterday
+	worldRecordsLastMonth
+	levelsYesterday
+	levelsLastMonth
+	votesYesterday
+	votesLastMonth
+	activePlayersYesterday
+	activePlayersLastMonth
+	yesterdayStart
+	lastMonthStart
 }
 
 query ZC_GlobalMetrics {

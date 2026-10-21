@@ -109,7 +109,10 @@ pub async fn restore_history_index(database_url: &str) -> Result<()> {
             let version = version.to_string();
             // Public statistics does not depend on the history storage layout.
             version.as_str() <= "20261019000800"
-                || matches!(version.as_str(), "20261019000900" | "20261019001000")
+                || matches!(
+                    version.as_str(),
+                    "20261019000900" | "20261019001000" | "20261021000000"
+                )
         }),
         "Revert later migrations before rebuilding legacy history storage"
     );

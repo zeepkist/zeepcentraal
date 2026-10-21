@@ -189,7 +189,7 @@ try {
 	for (const change of [
 		"as_of=statement_timestamp()-interval '61 seconds'",
 		"day_start=day_start-interval '1 day'",
-		'semantics_version=3',
+		'semantics_version=4',
 		"time_zone='UTC'",
 		"as_of=statement_timestamp()+interval '1 hour'",
 	]) {
@@ -207,12 +207,12 @@ try {
 	})
 	await sql`truncate public.statistics`
 	await sql.begin(async (tx) => {
-		await tx`insert into public.statistics select true,3,m.* from zc_private.compute_global_metrics(statement_timestamp()-interval '1 minute') m`
+		await tx`insert into public.statistics select true,4,m.* from zc_private.compute_global_metrics(statement_timestamp()-interval '1 minute') m`
 		await tx`update public.statistics set records=987654`
 		await tx`select zc_private.refresh_global_metrics()`
 		const snapshot = (await tx`select records,semantics_version from public.statistics`)[0]
 		assert.equal(Number(snapshot.records), 987654)
-		assert.equal(Number(snapshot.semantics_version), 3)
+		assert.equal(Number(snapshot.semantics_version), 4)
 	})
 	await sql`truncate public.statistics`
 	await Promise.all(
@@ -242,7 +242,7 @@ try {
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify({
-				query: '{ globalMetrics { records personalBests worldRecords players rankedPlayers activePlayersToday timeZone } }',
+				query: '{ globalMetrics { records personalBests worldRecords players rankedPlayers activePlayersToday recordsYesterday recordsLastMonth personalBestsYesterday personalBestsLastMonth worldRecordsYesterday worldRecordsLastMonth levelsYesterday levelsLastMonth votesYesterday votesLastMonth activePlayersYesterday activePlayersLastMonth yesterdayStart lastMonthStart timeZone } }',
 			}),
 		}),
 	)
@@ -254,6 +254,20 @@ try {
 	assert.equal(result.errors, undefined, JSON.stringify(result.errors))
 	assert.equal(Number(result.data.globalMetrics.records), 4)
 	assert.equal(Number(result.data.globalMetrics.worldRecords), 1)
+	for (const metric of [
+		'records',
+		'personalBests',
+		'worldRecords',
+		'levels',
+		'votes',
+		'activePlayers',
+	]) {
+		for (const period of ['Yesterday', 'LastMonth']) {
+			assert.ok(BigInt(String(result.data.globalMetrics[`${metric}${period}`])) >= 0n)
+		}
+	}
+	assert.ok(result.data.globalMetrics.yesterdayStart)
+	assert.ok(result.data.globalMetrics.lastMonthStart)
 	type HistoryPage = {
 		nodes: Array<{
 			id: number
@@ -482,7 +496,7 @@ try {
 	)
 	if (restoreRetired) await retireHistoryFixture(sql)
 	console.log(
-		'19 metrics, DST, freshness, no-scan warm reads, roles, GraphQL, history cutover/rollback, and guarded writes passed',
+		'31 metrics, DST, freshness, no-scan warm reads, roles, GraphQL, history cutover/rollback, and guarded writes passed',
 	)
 	if (process.argv.includes('--serve')) {
 		let metricRequests = 0

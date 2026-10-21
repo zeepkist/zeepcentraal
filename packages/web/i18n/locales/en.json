@@ -1066,9 +1066,8 @@
 			"rankedAndTotalPlayers": "Ranked players / Total players",
 			"rankedAndTotalPlayersValueLabel": "{rankedPlayers} ranked players out of {totalPlayers} total players",
 			"today": "Today",
-			"unavailable": "Statistics unavailable. Refresh to try again.",
-			"activeToday": "Active today",
-			"activeInMonth": "Active in {month}"
+			"yesterday": "Yesterday",
+			"unavailable": "Statistics unavailable. Refresh to try again."
 		}
 	},
 	"settings": {
