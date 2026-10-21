@@ -58,6 +58,7 @@ const slug = normalizeModSlug(route.params.slug)
 if (!slug) throw createError({ statusCode: 404, statusMessage: t('mods.detail.notFound') })
 
 const request = useFetch<ModDetailResponse>(`/api/modio/mods/${slug}`, {
+	$fetch: import.meta.server ? globalThis.$fetch : undefined,
 	query: { dependencies: 'true' },
 	key: `mod-detail:${slug}`,
 })

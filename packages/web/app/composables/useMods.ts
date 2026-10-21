@@ -36,7 +36,9 @@ export async function useMods() {
 		},
 	)
 
+	// Public SSR requests must not inherit cross-site navigation headers.
 	const requestPromise = useFetch<ModListResponse>('/api/modio/mods', {
+		$fetch: import.meta.server ? globalThis.$fetch : undefined,
 		query: computed(() => ({
 			q: appliedSearch.value || undefined,
 			sort: appliedSort.value === MOD_SORTS.popular ? undefined : appliedSort.value,
@@ -47,6 +49,7 @@ export async function useMods() {
 		key: 'mod-explorer',
 	})
 	const tagOptionsPromise = useFetch<ModTagOptionsResponse>('/api/modio/tags', {
+		$fetch: import.meta.server ? globalThis.$fetch : undefined,
 		key: 'mod-tag-options',
 	})
 	const request = requestPromise

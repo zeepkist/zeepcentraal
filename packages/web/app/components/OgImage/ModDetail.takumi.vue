@@ -23,6 +23,7 @@ const modSlug = normalizeModSlug(props.slug)
 const { data } = await useFetch<ModDetailResponse>(
 	`/api/modio/mods/${modSlug || '__invalid__'}`,
 	{
+		$fetch: import.meta.server ? globalThis.$fetch : undefined,
 		key: `og-mod-detail:${modSlug || 'invalid'}`,
 	},
 )

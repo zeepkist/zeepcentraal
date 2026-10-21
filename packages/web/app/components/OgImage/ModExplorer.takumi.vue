@@ -44,6 +44,7 @@ const props = defineProps<{ slug: string }>()
 const { locale, t } = useAppI18n()
 const number = getNumberFormatter(locale.value)
 const { data } = await useFetch<ModListResponse>('/api/modio/mods', {
+	$fetch: import.meta.server ? globalThis.$fetch : undefined,
 	key: `og-mod-explorer:${props.slug}`,
 })
 const metrics = [

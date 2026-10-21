@@ -53,6 +53,28 @@ const fixtureLevel = {
 	worldRecordGlobal: null,
 }
 
+const fixtureMods = [
+	{
+		id: 9101,
+		name: 'Fixture GTR',
+		name_id: 'zeepkist-gtr',
+		summary: 'Fixture ghost racing',
+		description: '<p>Fixture GTR description</p>',
+		status: 1,
+		visible: 1,
+		tags: [{ name: 'Plugin' }, { name: 'Racing' }],
+	},
+	{
+		id: 9102,
+		name: 'Fixture Timer',
+		name_id: 'fixture-timer',
+		summary: 'Fixture timing plugin',
+		status: 1,
+		visible: 1,
+		tags: [{ name: 'Plugin' }, { name: 'Timing' }],
+	},
+]
+
 // Local upstreams keep SSR, sitemap, and authentication checks independent of production services.
 Bun.serve({
 	hostname: '127.0.0.1',
@@ -62,11 +84,51 @@ Bun.serve({
 		if (request.headers.get('upgrade') === 'websocket' && server.upgrade(request)) return
 		if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers })
 		if (url.pathname === '/healthz') return new Response('OK')
-		if (url.pathname.startsWith('/modio/'))
+		if (url.pathname.startsWith('/modio/')) {
+			if (url.pathname.endsWith('/tags'))
+				return Response.json(
+					{ data: [{ tags: ['Plugin', 'Racing', 'Timing', 'Utility'] }] },
+					{ headers },
+				)
+			if (url.pathname.endsWith('/dependencies'))
+				return Response.json(
+					{
+						data: [
+							{
+								id: 9103,
+								name: 'Fixture SDK',
+								name_id: 'fixture-sdk',
+								status: 1,
+								visible: 1,
+							},
+						],
+					},
+					{ headers },
+				)
+			const slug = url.searchParams.get('name_id')
+			const search = url.searchParams.get('name-lk')?.toLowerCase() ?? ''
+			const tags = url.searchParams.get('tags')?.split(',') ?? []
+			const mods = fixtureMods.filter(
+				(mod) =>
+					(!slug || mod.name_id === slug) &&
+					mod.name.toLowerCase().includes(search) &&
+					tags.every((tag) => mod.tags.some((item) => item.name === tag)) &&
+					String(mod.id) !== url.searchParams.get('id-not-in'),
+			)
+			const limit = Number(url.searchParams.get('_limit') ?? 24)
+			const offset = Number(url.searchParams.get('_offset') ?? 0)
+			const data = mods.slice(offset, offset + limit)
 			return Response.json(
-				{ data: [], result_count: 0, result_total: 0, result_limit: 24, result_offset: 0 },
+				{
+					data,
+					result_count: data.length,
+					result_total: mods.length,
+					result_limit: limit,
+					result_offset: offset,
+				},
 				{ headers },
 			)
+		}
 		if (url.pathname === '/graphql') {
 			const { query, variables } = (await request.json()) as {
 				query: string
