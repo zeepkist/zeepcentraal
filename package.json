@@ -7,16 +7,16 @@
 		"packages/*"
 	],
 	"overrides": {
-		"vue": "3.5.43",
-		"@vue/shared": "3.5.43",
-		"@vue/reactivity": "3.5.43",
-		"@vue/runtime-core": "3.5.43",
-		"@vue/runtime-dom": "3.5.43",
-		"@vue/compiler-core": "3.5.43",
-		"@vue/compiler-dom": "3.5.43",
-		"@vue/compiler-sfc": "3.5.43",
-		"@vue/compiler-ssr": "3.5.43",
-		"@vue/server-renderer": "3.5.43"
+		"vue": "3.5.44",
+		"@vue/shared": "3.5.44",
+		"@vue/reactivity": "3.5.44",
+		"@vue/runtime-core": "3.5.44",
+		"@vue/runtime-dom": "3.5.44",
+		"@vue/compiler-core": "3.5.44",
+		"@vue/compiler-dom": "3.5.44",
+		"@vue/compiler-sfc": "3.5.44",
+		"@vue/compiler-ssr": "3.5.44",
+		"@vue/server-renderer": "3.5.44"
 	},
 	"scripts": {
 		"build:inspector-zeep": "bun --cwd=packages/inspector-zeep run build",
