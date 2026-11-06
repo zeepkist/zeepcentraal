@@ -34,6 +34,6 @@ const captureHandler = {
 	},
 }
 
-export const app = Manifest.isCapturing()
+export const app = Manifest.isAotBuildEnv()
 	? buildPostGraphileServer(captureHandler as never, captureReadiness)
 	: buildPostGraphileServer()

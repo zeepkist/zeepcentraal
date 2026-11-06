@@ -85,7 +85,7 @@ export function buildPostGraphileServer(
 		.all('/ruru-static/*', ({ request }) => runtime.serveRuruStatic(request))
 		.post('/', runtime.graphqlRoute)
 		.options('/', runtime.graphqlRoute)
-		.cleanup(async () => {
+		.onStop(async () => {
 			await readiness.dispose()
 			await runtime.stop()
 		})

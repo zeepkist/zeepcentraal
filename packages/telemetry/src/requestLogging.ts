@@ -63,10 +63,10 @@ export function createElysiaRequestLoggingPlugin(options: ElysiaRequestLoggingOp
 	const sink = options.sink ?? defaultSink
 
 	return plugin
-		.request(({ request }) => {
+		.onRequest(({ request }) => {
 			starts.set(request, performance.now())
 		})
-		.afterResponse(({ request, server, set }) => {
+		.onAfterResponse(({ request, server, set }) => {
 			const durationMs = Math.max(
 				0,
 				performance.now() - (starts.get(request) ?? performance.now()),

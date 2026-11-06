@@ -34,7 +34,7 @@ function createReadiness(ok = true): ReadinessService {
 	}
 }
 
-function createApp(readiness = createReadiness()) {
+function createApp(readiness = createReadiness(), release?: () => Promise<void>) {
 	const server = {
 		async handleGraphQLRequest() {
 			return Response.json(
@@ -47,6 +47,7 @@ function createApp(readiness = createReadiness()) {
 		},
 	}
 	const handler = {
+		release,
 		createServ() {
 			return server
 		},
@@ -67,6 +68,28 @@ function createApp(readiness = createReadiness()) {
 }
 
 describe('buildPostGraphileServer', () => {
+	test('disposes readiness and runtime once when stopped', async () => {
+		const disposed: string[] = []
+		const app = createApp(
+			{
+				...createReadiness(),
+				async dispose() {
+					disposed.push('readiness')
+				},
+			},
+			async () => {
+				disposed.push('runtime')
+			},
+		).listen({ hostname: '127.0.0.1', port: 0 })
+		try {
+			await app.stop()
+			await app.stop(true)
+			expect(disposed).toEqual(['readiness', 'runtime'])
+		} finally {
+			await app.stop(true)
+		}
+	})
+
 	test('respects database grants and never configures a production superuser pool', () => {
 		expect(createPostGraphileV4Options(postgraphileRuntimeConfig).ignoreRBAC).toBe(false)
 		expect(createPostGraphilePgServiceOptions(postgraphileRuntimeConfig)).toEqual({
