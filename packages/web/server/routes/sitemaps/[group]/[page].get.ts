@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, getRouterParam, setResponseHeader } from 'h3'
+import { createError, defineEventHandler, getRouterParam } from 'nuxt/server'
 export default defineEventHandler(async (event) => {
 	const group = getRouterParam(event, 'group')
 	const page = parseSitemapPageFilename(getRouterParam(event, 'page'))
@@ -6,12 +6,12 @@ export default defineEventHandler(async (event) => {
 		throw createError({ statusCode: 404, statusMessage: 'Sitemap page not found' })
 	}
 
-	const maxIds = await getSitemapMaxIds(event)
+	const maxIds = await getSitemapMaxIds()
 	if (page >= sitemapPageCount(maxIds[group])) {
 		throw createError({ statusCode: 404, statusMessage: 'Sitemap page not found' })
 	}
 
 	const entries = await fetchSitemapPage(group, page)
-	setResponseHeader(event, 'content-type', 'application/xml; charset=UTF-8')
+	event.res.headers.set('content-type', 'application/xml; charset=UTF-8')
 	return renderSitemapXml(entries, (path) => resolveSitemapUrl(event, path))
 })

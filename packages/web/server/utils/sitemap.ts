@@ -8,9 +8,8 @@ import {
 	Zc_SitemapTrackTournamentsPageDocument,
 	Zc_SitemapUsersPageDocument,
 } from '@zeepkist/graphql/generated'
-import type { H3Event } from 'h3'
-import { getRequestURL } from 'h3'
 import { defineCachedFunction } from 'nitropack/runtime'
+import { getRequestURL, type RequestEvent } from 'nuxt/server'
 import {
 	superLeagueLevelPath,
 	superLeagueRoundPath,
@@ -22,7 +21,7 @@ import type { SitemapEntry, SitemapGroup, SitemapMaxIds } from './sitemap-pure'
 import { sitemapPageRange } from './sitemap-pure'
 
 const cachedSitemapMaxIds = defineCachedFunction(
-	async (_event: H3Event): Promise<SitemapMaxIds> => {
+	async (): Promise<SitemapMaxIds> => {
 		const now = new Date().toISOString()
 		const data = await fetchGraphql(Zc_SitemapMaxIdsDocument, { now })
 		return {
@@ -43,11 +42,11 @@ const cachedSitemapMaxIds = defineCachedFunction(
 	},
 )
 
-export function getSitemapMaxIds(event: H3Event): Promise<SitemapMaxIds> {
-	return cachedSitemapMaxIds(event)
+export function getSitemapMaxIds(): Promise<SitemapMaxIds> {
+	return cachedSitemapMaxIds()
 }
 
-export function resolveSitemapUrl(event: H3Event, path: string): string {
+export function resolveSitemapUrl(event: RequestEvent, path: string): string {
 	const siteUrl = getSiteConfig(event).url || getRequestURL(event).origin
 	return new URL(path, siteUrl).toString()
 }

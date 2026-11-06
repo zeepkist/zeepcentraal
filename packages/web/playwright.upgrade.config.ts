@@ -22,9 +22,10 @@ export default defineConfig({
 			// Health can respond before Vite finishes the first SSR transform in development.
 			url: development ? 'http://127.0.0.1:4173/' : 'http://127.0.0.1:4173/healthz',
 			reuseExistingServer: false,
-			timeout: 180_000,
+			timeout: development && process.platform === 'win32' ? 300_000 : 180_000,
 			env: {
 				NODE_ENV: development ? 'development' : 'production',
+				NUXT_APP_SECRET: 'fake-seo-upgrade-secret-at-least-32-characters',
 				NUXT_ENABLE_DEVTOOLS: 'false',
 				NITRO_HOST: '127.0.0.1',
 				NITRO_PORT: '4173',

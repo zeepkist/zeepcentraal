@@ -21,6 +21,7 @@ export default defineConfig({
 			url: 'http://127.0.0.1:4174/healthz',
 			timeout: 180_000,
 			env: {
+				NUXT_APP_SECRET: 'fake-seo-upgrade-secret-at-least-32-characters',
 				NITRO_HOST: '127.0.0.1',
 				NITRO_PORT: '4174',
 				OTEL_SDK_DISABLED: 'true',

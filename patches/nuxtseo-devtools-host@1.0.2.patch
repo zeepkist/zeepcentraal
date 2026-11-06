@@ -1,0 +1,48 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -1,7 +1,8 @@
+ import { spawn } from 'node:child_process';
+ import { createHash } from 'node:crypto';
+ import { existsSync, readFileSync, readdirSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+-import { findPackageJSON, createRequire } from 'node:module';
++import { createRequire } from 'node:module';
++import { findPackageJSON } from './findPackageJSON.mjs';
+ import { join, dirname } from 'node:path';
+ import process from 'node:process';
+ import { pathToFileURL } from 'node:url';
+diff --git a/dist/findPackageJSON.mjs b/dist/findPackageJSON.mjs
+new file mode 100644
+--- /dev/null
++++ b/dist/findPackageJSON.mjs
+@@ -0,0 +1,30 @@
++import * as module from 'node:module';
++import { existsSync } from 'node:fs';
++import { dirname, join } from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++// Bun 1.4 does not export Node's findPackageJSON yet.
++export const findPackageJSON = module.findPackageJSON ?? ((specifier, base) => {
++  const baseDirectory = base ? dirname(fileURLToPath(base)) : process.cwd();
++  let directory = baseDirectory;
++  if (specifier instanceof URL || String(specifier).startsWith('file:')) {
++    directory = dirname(fileURLToPath(specifier));
++  } else if (specifier !== './') {
++    try {
++      directory = dirname(Bun.resolveSync(specifier, baseDirectory));
++    } catch (error) {
++      if (error?.code === 'MODULE_NOT_FOUND')
++        error.code = 'ERR_MODULE_NOT_FOUND';
++      throw error;
++    }
++  }
++  for (;;) {
++    const manifest = join(directory, 'package.json');
++    if (existsSync(manifest))
++      return manifest;
++    const parent = dirname(directory);
++    if (parent === directory)
++      return undefined;
++    directory = parent;
++  }
++});

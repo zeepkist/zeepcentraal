@@ -1,0 +1,47 @@
+diff --git a/dist/shared/nuxt-og-image.CS4ArVpM.mjs b/dist/shared/nuxt-og-image.CS4ArVpM.mjs
+--- a/dist/shared/nuxt-og-image.CS4ArVpM.mjs
++++ b/dist/shared/nuxt-og-image.CS4ArVpM.mjs
+@@ -1,7 +1,7 @@
+ import * as fs from 'node:fs';
+ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, rmSync } from 'node:fs';
+ import { readFile, mkdir, writeFile, readdir } from 'node:fs/promises';
+-import { findPackageJSON } from 'node:module';
++import { findPackageJSON } from '../findPackageJSON.mjs';
+ import { pathToFileURL, fileURLToPath } from 'node:url';
+ import { resolvePath, useNuxt, getNuxtVersion, addTemplate, updateTemplates, directoryToURL, tryResolveModule, addTypeTemplate, defineNuxtModule, createResolver, addImports, hasNuxtModule, hasNuxtModuleCompatibility, getNuxtModuleVersion, addVitePlugin, addServerHandler, addServerImports, addPlugin, getLayerDirectories, addComponentsDir, addServerPlugin, getNitroVersion } from '@nuxt/kit';
+ import { defu } from 'defu';
+diff --git a/dist/findPackageJSON.mjs b/dist/findPackageJSON.mjs
+new file mode 100644
+--- /dev/null
++++ b/dist/findPackageJSON.mjs
+@@ -0,0 +1,30 @@
++import * as module from 'node:module';
++import { existsSync } from 'node:fs';
++import { dirname, join } from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++// Bun 1.4 does not export Node's findPackageJSON yet.
++export const findPackageJSON = module.findPackageJSON ?? ((specifier, base) => {
++  const baseDirectory = base ? dirname(fileURLToPath(base)) : process.cwd();
++  let directory = baseDirectory;
++  if (specifier instanceof URL || String(specifier).startsWith('file:')) {
++    directory = dirname(fileURLToPath(specifier));
++  } else if (specifier !== './') {
++    try {
++      directory = dirname(Bun.resolveSync(specifier, baseDirectory));
++    } catch (error) {
++      if (error?.code === 'MODULE_NOT_FOUND')
++        error.code = 'ERR_MODULE_NOT_FOUND';
++      throw error;
++    }
++  }
++  for (;;) {
++    const manifest = join(directory, 'package.json');
++    if (existsSync(manifest))
++      return manifest;
++    const parent = dirname(directory);
++    if (parent === directory)
++      return undefined;
++    directory = parent;
++  }
++});

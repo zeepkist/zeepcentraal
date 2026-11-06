@@ -80,6 +80,7 @@ async function workload(telemetry: boolean, concurrency: number) {
 			env: {
 				...process.env,
 				NODE_ENV: 'production',
+				NUXT_APP_SECRET: 'fake-seo-upgrade-secret-at-least-32-characters',
 				NITRO_HOST: '127.0.0.1',
 				NITRO_PORT: new URL(url).port,
 				DATABASE_URL: 'postgresql://fixture:fixture@127.0.0.1:1/fixture',

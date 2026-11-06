@@ -1,7 +1,7 @@
 import { defineNitroPlugin } from 'nitropack/runtime'
 export default defineNitroPlugin((nitroApp) => {
 	nitroApp.hooks.hook('sitemap:index-resolved', async ({ event, sitemaps }) => {
-		const maxIds = await getSitemapMaxIds(event)
+		const maxIds = await getSitemapMaxIds()
 		for (const group of SITEMAP_GROUPS) {
 			const pageCount = sitemapPageCount(maxIds[group])
 			for (let page = 0; page < pageCount; page++) {

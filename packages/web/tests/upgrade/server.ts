@@ -170,6 +170,24 @@ Bun.serve({
 				for (const key of Object.keys(data))
 					data[key] = { ...connection, nodes: [{ id: 1 }] }
 			}
+			if (query.includes('ZC_GlobalMetrics')) {
+				const dates: Record<string, string> = {
+					asOf: '2026-11-06T12:00:00Z',
+					dayStart: '2026-11-06T00:00:00Z',
+					yesterdayStart: '2026-11-05T00:00:00Z',
+					monthStart: '2026-11-01T00:00:00Z',
+					lastMonthStart: '2026-10-01T00:00:00Z',
+					timeZone: 'Europe/London',
+				}
+				data.globalMetrics = Object.fromEntries(
+					(fragments.get('ZC_GlobalMetrics')?.selectionSet.selections ?? []).flatMap(
+						(field) =>
+							field.kind === Kind.FIELD
+								? [[field.name.value, dates[field.name.value] ?? '1']]
+								: [],
+					),
+				)
+			}
 			if (query.includes('ZC_DashboardCritical'))
 				data.trendingLevels = { ...connection, nodes: [fixtureLevel] }
 			if (query.includes('ZC_DashboardHotLevels'))

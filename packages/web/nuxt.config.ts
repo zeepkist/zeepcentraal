@@ -36,6 +36,8 @@ export default defineNuxtConfig({
 		typescriptBundlerResolution: true,
 	},
 	experimental: {
+		// AI Ready's i18n integration still imports runtime config through Nitro auto-imports.
+		nitroAutoImports: true,
 		early404: true,
 		watcher: 'builder',
 		emitRouteChunkError: 'automatic-immediate',
@@ -68,6 +70,7 @@ export default defineNuxtConfig({
 		},
 	],
 	modules: [
+		'@nuxt/fonts',
 		'@nuxt/ui',
 		'@nuxtjs/i18n',
 		'@nuxtjs/seo',
@@ -267,6 +270,10 @@ export default defineNuxtConfig({
 	seo: {
 		enabled: true,
 	},
+	aiReady: {
+		enabled: true,
+	},
+	skewProtection: false,
 	schemaOrg: {
 		enabled: true,
 		identity: {
@@ -277,6 +284,10 @@ export default defineNuxtConfig({
 	},
 	ogImage: {
 		enabled: true,
+		defaults: {
+			width: 1200,
+			height: 630,
+		},
 		security: {
 			//restrictRuntimeImagesToOrigin: true,
 		},

@@ -75,8 +75,8 @@
 </template>
 
 <script setup lang="ts">
-
 import { computed } from 'vue'
+import { useAppI18n } from '~/composables/useAppI18n'
 import { normaliseOgImageUrl } from '~/utils/ogImage'
 
 const { t } = useAppI18n()
