@@ -38,6 +38,16 @@
 	"html": {
 		"experimentalFullSupportEnabled": true
 	},
+	"markdown": {
+		"formatter": {
+			"enabled": false
+		}
+	},
+	"yaml": {
+		"formatter": {
+			"enabled": false
+		}
+	},
 	"files": {
 		"includes": [
 			"**",
@@ -74,6 +84,19 @@
 						"useConst": "off",
 						"useImportType": "off",
 						"useVueMultiWordComponentNames": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"packages/web/app/components/OgFrame.vue",
+				"packages/web/app/components/OgImage/*.takumi.vue"
+			],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"useGenericFontNames": "off"
 					}
 				}
 			}
