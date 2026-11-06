@@ -130,22 +130,9 @@ export async function fetchAuthenticatedBackend<T>(
 		{ shouldRecordError: shouldRecordWebError },
 		async () => {
 			let cookie = getRequestHeader(event, 'cookie')
-			let response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
-				...options,
-				headers: {
-					...(cookie ? { cookie } : {}),
-					...(getRequestHeader(event, 'origin')
-						? { origin: getRequestHeader(event, 'origin') }
-						: {}),
-					...injectTraceCarrier(),
-				},
-				credentials: 'include',
-				ignoreResponseError: true,
-			})
-			if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
-				const refreshed = await refreshWebAuth(event)
-				cookie = mergeRequestCookies(cookie, refreshed.cookies)
-				response = await $fetch.raw<T>(new URL(path, getBackendBaseUrl()).toString(), {
+			let response = await $fetch.raw<T, string, typeof options.method>(
+				new URL(path, getBackendBaseUrl()).toString(),
+				{
 					...options,
 					headers: {
 						...(cookie ? { cookie } : {}),
@@ -156,7 +143,26 @@ export async function fetchAuthenticatedBackend<T>(
 					},
 					credentials: 'include',
 					ignoreResponseError: true,
-				})
+				},
+			)
+			if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
+				const refreshed = await refreshWebAuth(event)
+				cookie = mergeRequestCookies(cookie, refreshed.cookies)
+				response = await $fetch.raw<T, string, typeof options.method>(
+					new URL(path, getBackendBaseUrl()).toString(),
+					{
+						...options,
+						headers: {
+							...(cookie ? { cookie } : {}),
+							...(getRequestHeader(event, 'origin')
+								? { origin: getRequestHeader(event, 'origin') }
+								: {}),
+							...injectTraceCarrier(),
+						},
+						credentials: 'include',
+						ignoreResponseError: true,
+					},
+				)
 			}
 			forwardBackendCookies(event, response.headers)
 			if (response.status >= 400) {

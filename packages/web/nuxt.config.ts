@@ -79,7 +79,7 @@ export default defineNuxtConfig({
 		'@pinia/nuxt',
 		'nuxt-charts',
 	],
-	nuxtCharts: {
+	nuxtChartsLegacy: {
 		global: false,
 		include: ['LineChart', 'BarChart', 'DonutChart'],
 	},
