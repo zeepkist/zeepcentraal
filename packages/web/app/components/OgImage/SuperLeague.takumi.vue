@@ -4,7 +4,7 @@
 		eyebrow="Competition archive"
 		title="Super League"
 		description="Seasons, rounds and standings from Zeepkist Super League."
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 	>
 		<div v-if="data.seasons.length" class="flex gap-3">
 			<div

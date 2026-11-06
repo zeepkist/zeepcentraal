@@ -4,7 +4,7 @@
 		:eyebrow="`Super League · ${data.seasonName}`"
 		:title="`Round ${data.roundNumber}: ${data.roundName}`"
 		description="Round standings"
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 	>
 		<OgStandings
 			:metrics="[

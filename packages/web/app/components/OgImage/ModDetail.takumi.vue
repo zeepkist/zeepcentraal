@@ -1,7 +1,7 @@
 <template>
 	<OgFrame
 		dense
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 		:eyebrow="t('pages.mods.eyebrow')"
 		:title="mod?.name ?? t('mods.detail.notFound')"
 		:description="description"

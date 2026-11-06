@@ -1,6 +1,6 @@
 <template>
 	<OgFrame
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 		:eyebrow="t('users.profile.eyebrow')"
 		:title="user?.steamName ?? profileSlug"
 		:description="t('users.profile.seoDescription', { name: user?.steamName ?? profileSlug })"

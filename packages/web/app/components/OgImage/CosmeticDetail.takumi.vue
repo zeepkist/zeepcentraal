@@ -1,6 +1,6 @@
 <template>
 	<OgFrame
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 		:eyebrow="t('nav.cosmetics')"
 		:title="t('pages.cosmeticDetail.seo.title', { id: cosmeticSlug })"
 		:description="t('pages.cosmeticDetail.description', { id: cosmeticSlug })"

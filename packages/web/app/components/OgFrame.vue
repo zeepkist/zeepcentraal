@@ -1,7 +1,7 @@
 <template>
 	<div
 		class="relative flex size-full overflow-hidden bg-warm-neutral-950 text-warm-neutral-50"
-		style="font-family: DINish; font-style: normal; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1"
+		style="font-family: DINish, sans-serif; font-style: normal; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1"
 	>
 		<div class="absolute inset-x-0 top-0 h-2 bg-[#facc15]" />
 

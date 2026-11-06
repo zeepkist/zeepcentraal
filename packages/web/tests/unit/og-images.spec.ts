@@ -127,7 +127,9 @@ describe('OG image component contracts', () => {
 			expect(componentSource, component).not.toMatch(/\buseRoute\s*\(/)
 			expect(componentSource, component).not.toMatch(/\bconst\s+slug\s*=/)
 			expect(componentSource, component).toContain('<OgFrame')
-			expect(componentSource, component).toMatch(/style="[^"]*\bfont-family:\s*DINish(?:;|")/)
+			expect(componentSource, component).toMatch(
+				/style="[^"]*\bfont-family:\s*DINish, sans-serif(?:;|")/,
+			)
 		}
 	})
 
@@ -139,7 +141,7 @@ describe('OG image component contracts', () => {
 
 		expect(frame).toContain('src="/android-chrome-192x192.png"')
 		expect(frame).toContain("t('common.brand')")
-		expect(frame).toContain('font-family: DINish')
+		expect(frame).toContain('font-family: DINish, sans-serif')
 		expect(frame).toContain('font-variant-numeric: tabular-nums')
 		expect(frame).toContain("font-feature-settings: 'tnum' 1")
 		expect(frame).toContain("import { normaliseOgImageUrl } from '~/utils/ogImage'")

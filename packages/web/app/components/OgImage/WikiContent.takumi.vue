@@ -3,7 +3,7 @@
 		eyebrow="Wiki"
 		:title="content.title"
 		:description="content.description"
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 	>
 		<OgBreadcrumbs :items="content.breadcrumbs" />
 	</OgFrame>

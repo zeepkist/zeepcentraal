@@ -1,6 +1,6 @@
 <template>
 	<OgFrame
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 		:eyebrow="t('nav.developer')"
 		:title="t('pages.developer.title')"
 		:description="t('pages.developer.description')"

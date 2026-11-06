@@ -4,7 +4,7 @@
 		eyebrow="Super League"
 		:title="data.seasonName"
 		description="Season standings"
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 	>
 		<OgStandings
 			:metrics="[

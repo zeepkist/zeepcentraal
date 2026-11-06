@@ -5,7 +5,7 @@
 		:title="data.title"
 		:description="data.description"
 		:image-url="data.imageUrl ?? undefined"
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 	>
 		<OgStandings
 			v-if="data.metrics.length > 0"

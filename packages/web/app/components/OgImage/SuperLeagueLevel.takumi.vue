@@ -5,7 +5,7 @@
 		:title="data.levelName"
 		:description="`Round ${data.roundNumber}: ${data.roundName}`"
 		:image-url="data.imageUrl ?? undefined"
-		style="font-family: DINish"
+		style="font-family: DINish, sans-serif"
 	>
 		<OgStandings :metrics="metrics" :players="data.players" />
 	</OgFrame>
