@@ -99,7 +99,11 @@ impl GhostAuditService {
             .acquire_many(2)
             .await?;
         let (ids, next) = self.select_batch(payload).await?;
-        self.process_ids(&ids, 1).await?;
+        self.process_ids_mode(
+            &ids,
+            payload["recoverTimingFailures"].as_bool().unwrap_or(false),
+        )
+        .await?;
         self.continue_audit(
             next.as_ref(),
             payload["auditRunId"].as_str().unwrap_or("manual"),
@@ -137,7 +141,12 @@ impl GhostAuditService {
                     .context("invalid record ID")
             })
             .collect::<Result<_>>()?;
-        let storage_failed = self.process_ids(&ids, job.attempts).await?;
+        let storage_failed = self
+            .process_ids_mode(
+                &ids,
+                payload["recoverTimingFailures"].as_bool().unwrap_or(false),
+            )
+            .await?;
         anyhow::ensure!(
             self.queue.checkpoint(job, &payload).await?,
             "ghost audit lease lost before continuation"
@@ -214,13 +223,16 @@ impl GhostAuditService {
         }
     }
     async fn process_ids(&self, ids: &[i32], _attempts: i32) -> Result<bool> {
+        self.process_ids_mode(ids, false).await
+    }
+    async fn process_ids_mode(&self, ids: &[i32], recovery: bool) -> Result<bool> {
         if ids.is_empty() {
             return Ok(false);
         }
         let rows = self
             .database
             .audit_level_window(
-                &serde_json::json!({"recordIds":ids}),
+                &serde_json::json!({"recordIds":ids,"recoverTimingFailures":recovery}),
                 *ids.iter().max().context("empty batch")?,
             )
             .await?;
@@ -246,7 +258,7 @@ impl GhostAuditService {
                 .filter(|row| !row.has_ghost)
                 .map(|row| row.id)
                 .collect();
-            if !missing.is_empty() {
+            if !recovery && !missing.is_empty() {
                 self.database
                     .save_checked_record_validations(
                         &missing,
@@ -267,6 +279,9 @@ impl GhostAuditService {
                 .validation_snapshot(&first.canonical_hash)
                 .await?;
             let Some(snapshot) = snapshot else {
+                if recovery {
+                    continue;
+                }
                 self.database
                     .save_checked_record_validations(
                         &ghosts.iter().map(|row| row.id).collect::<Vec<_>>(),
@@ -293,11 +308,11 @@ impl GhostAuditService {
                 .geometry_preparations
                 .fetch_add(1, Ordering::Relaxed);
             for pair in ghosts.chunks(2) {
-                let left = self.validate_one(pair[0], prepared.clone(), manifest.clone());
+                let left = self.validate_one(pair[0], prepared.clone(), manifest.clone(), recovery);
                 if pair.len() == 2 {
                     let (left, right) = tokio::join!(
                         left,
-                        self.validate_one(pair[1], prepared.clone(), manifest.clone())
+                        self.validate_one(pair[1], prepared.clone(), manifest.clone(), recovery)
                     );
                     storage_failed |= left? | right?;
                 } else {
@@ -318,8 +333,22 @@ impl GhostAuditService {
         input: &AuditWindowRecord,
         prepared: Arc<ghost_validation::PreparedLevel>,
         manifest: Option<Arc<ValidationManifest>>,
+        recovery: bool,
     ) -> Result<bool> {
-        let Some(record) = self.database.audit_record_for_validation(input.id).await? else {
+        let expected = if recovery {
+            self.database.timing_failure_evidence(input.id).await?
+        } else {
+            None
+        };
+        if recovery && expected.is_none() {
+            return Ok(false);
+        }
+        let record = if recovery {
+            self.database.audit_record(input.id).await?
+        } else {
+            self.database.audit_record_for_validation(input.id).await?
+        };
+        let Some(record) = record else {
             return Ok(false);
         };
         let Some(url) = record
@@ -327,6 +356,9 @@ impl GhostAuditService {
             .as_ref()
             .filter(|url| !url.trim().is_empty())
         else {
+            if recovery {
+                return Ok(false);
+            }
             self.database
                 .save_checked_record_validations(
                     &[input.id],
@@ -351,6 +383,9 @@ impl GhostAuditService {
         {
             Ok(bytes) => bytes,
             Err(_) => {
+                if recovery {
+                    return Ok(true);
+                }
                 self.database
                     .save_checked_record_validations(
                         &[input.id],
@@ -383,6 +418,12 @@ impl GhostAuditService {
             )
         })
         .await?;
+        if let Some(expected) = expected {
+            self.database
+                .recover_timing_failure(input.id, &expected, &digest, &report, &input.timestamp())
+                .await?;
+            return Ok(false);
+        }
         self.database
             .save_checked_record_validations(
                 &[input.id],

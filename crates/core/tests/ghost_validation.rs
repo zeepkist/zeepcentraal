@@ -141,6 +141,7 @@ fn fixture() -> (ParsedGhost, Value, ValidationManifest) {
         game_version: "18.2".into(),
         source_digest: "fixture".into(),
         calibrated: true,
+        trajectory_calibrated: false,
         sphere_radius: 0.9,
         ragdoll_sphere_radius: None,
         physics_interval: 0.02,
@@ -1143,4 +1144,206 @@ fn prepared_geometry_reuses_level_without_retaining_ghost_state() {
             );
         }
     }
+}
+
+#[test]
+fn supplied_timing_capture_identifies_checkpoint_instead_of_finish() {
+    let capture: Value = serde_json::from_str(include_str!(
+        "fixtures/ghost-validation/timing-4107620.json"
+    ))
+    .unwrap();
+    let (mut ghost, _, mut manifest) = fixture();
+    let decode = |v: &Value| SphereSample {
+        time: v[0].as_f64().unwrap(),
+        position: [
+            v[1].as_f64().unwrap(),
+            v[2].as_f64().unwrap(),
+            v[3].as_f64().unwrap(),
+        ],
+        radius: v[4].as_f64().unwrap(),
+    };
+    let samples: Vec<_> = capture["samples"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(decode)
+        .collect();
+    let mut blocks = vec![json!({"i":1,"u":"start"})];
+    let events: Vec<_> = capture["events"].as_array().unwrap().iter().enumerate().map(|(i,v)| {
+        let sample=decode(&v["sample"]); let finish=v["finish"].as_bool().unwrap();
+        let uid=format!("event-{i}");
+        blocks.push(json!({"i":if finish {2} else {22},"u":uid,"p":{"x":sample.position[0],"y":sample.position[1],"z":sample.position[2]}}));
+        TriggerEvent { block_uid:uid, shape:"trigger".into(),finish,
+            raw_time:v["rawTime"].as_f64().unwrap(),adjusted_time:v["adjustedTime"].as_f64().unwrap(),
+            velocity_kmh:v["velocityKmh"].as_f64().unwrap(),sample }
+    }).collect();
+    let splits: Vec<_> = events
+        .iter()
+        .filter(|e| !e.finish)
+        .map(|e| e.adjusted_time as f32)
+        .collect();
+    let speeds: Vec<_> = events
+        .iter()
+        .filter(|e| !e.finish)
+        .map(|e| e.velocity_kmh as f32)
+        .collect();
+    let context = SubmissionContext {
+        time: events.last().unwrap().adjusted_time,
+        splits: &splits,
+        speeds: &speeds,
+        ..context()
+    };
+    ghost.frames = samples
+        .iter()
+        .map(|s| GhostFrame {
+            time: s.time,
+            ..Default::default()
+        })
+        .collect();
+    let evidence = ghost.evidence.as_mut().unwrap();
+    evidence.initial_time = samples[0].time;
+    evidence.physics_interval = capture["physicsInterval"].as_f64().unwrap();
+    evidence.samples = samples;
+    evidence.events = events;
+    manifest.physics_interval = evidence.physics_interval;
+    manifest.sphere_radius = 0.27;
+    let blocks = Value::Array(blocks);
+    let report = validate(&ghost, &context, Some(&blocks), Some(&manifest));
+    assert_eq!(report.status, "uncertain", "{:?}", report.reasons);
+    assert_eq!(report.reasons, vec!["event_trajectory_mismatch"]);
+    let checkpoint = &report.event_diagnostics[2];
+    assert!(!checkpoint.finish);
+    assert!((checkpoint.trajectory_distance.unwrap() - 0.0246400481).abs() < 0.000001);
+    assert_eq!(
+        report.event_diagnostics.last().unwrap().trajectory_distance,
+        Some(0.)
+    );
+    // Same evidence must still fail a separately calibrated revision-4 contradiction.
+    ghost.evidence.as_mut().unwrap().sphere_sampling_version = 4;
+    manifest.trajectory_calibrated = true;
+    assert_eq!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+        "fail"
+    );
+    manifest.trajectory_calibrated = false;
+    assert_eq!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+        "uncertain"
+    );
+    ghost.metadata.steam_id = Some("43".into());
+    assert_eq!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+        "fail"
+    );
+    ghost.metadata.steam_id = Some("42".into());
+    let mut missing = blocks.clone();
+    missing
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"i":22,"u":"missing","p":{"x":10000}}));
+    assert_eq!(
+        validate(&ghost, &context, Some(&missing), Some(&manifest)).status,
+        "fail"
+    );
+}
+
+#[test]
+fn independent_game_corrections_do_not_order_adjusted_splits() {
+    let (mut ghost, mut blocks, manifest) = fixture();
+    // Two callbacks in order can have reversed adjusted times.
+    let evidence = ghost.evidence.as_mut().unwrap();
+    let mut second = evidence.events[0].clone();
+    second.block_uid = "cp-2".into();
+    second.raw_time = 0.52;
+    second.sample = sample(0.52, 5.2);
+    evidence.events[0].adjusted_time = 0.75;
+    second.adjusted_time = 0.27;
+    evidence.events.insert(1, second);
+    blocks
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"i":22,"u":"cp-2","p":{"x":5.2}}));
+    let context = SubmissionContext {
+        splits: &[0.75, 0.27],
+        speeds: &[36., 36.],
+        ..context()
+    };
+    assert_eq!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+        "pass"
+    );
+    ghost.evidence.as_mut().unwrap().events.swap(0, 1);
+    assert!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest))
+            .reasons
+            .contains(&"invalid_run_evidence".into())
+    );
+}
+
+#[test]
+fn checkpoint_correction_can_exceed_finish_by_almost_half_second() {
+    let (mut ghost, mut blocks, manifest) = fixture();
+    let evidence = ghost.evidence.as_mut().unwrap();
+    evidence.events[0].raw_time = 0.98;
+    evidence.events[0].sample = sample(0.98, 9.8);
+    evidence.events[0].adjusted_time = 1.23;
+    evidence.events[1].adjusted_time = 0.75;
+    blocks[1]["p"]["x"] = json!(9.8);
+    let context = SubmissionContext {
+        time: 0.75,
+        splits: &[1.23],
+        ..context()
+    };
+    assert_eq!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+        "pass"
+    );
+    ghost.evidence.as_mut().unwrap().events[0].adjusted_time = 1.231;
+    assert!(
+        validate(&ghost, &context, Some(&blocks), Some(&manifest))
+            .reasons
+            .contains(&"invalid_run_evidence".into())
+    );
+}
+
+#[test]
+fn correction_limits_zero_clamp_and_duplicate_timestamps_preserve_contacts() {
+    for adjusted in [0.75, 1.25] {
+        let (mut ghost, blocks, manifest) = fixture();
+        ghost.evidence.as_mut().unwrap().events[1].adjusted_time = adjusted;
+        let context = SubmissionContext {
+            time: adjusted,
+            ..context()
+        };
+        assert_eq!(
+            validate(&ghost, &context, Some(&blocks), Some(&manifest)).status,
+            "pass"
+        );
+    }
+    let (mut ghost, blocks, manifest) = fixture();
+    let evidence = ghost.evidence.as_mut().unwrap();
+    // A long same-timestamp group must not hide the matching final endpoint.
+    let mut duplicate = evidence.samples[25].clone();
+    duplicate.position[1] = 1.;
+    for _ in 0..8 {
+        evidence.samples.insert(25, duplicate.clone());
+    }
+    assert!(
+        !validate(&ghost, &context(), Some(&blocks), Some(&manifest))
+            .reasons
+            .contains(&"event_trajectory_mismatch".into())
+    );
+    let evidence = ghost.evidence.as_mut().unwrap();
+    evidence.events[0].adjusted_time = 0.;
+    evidence.events[0].raw_time = 0.1;
+    evidence.events[0].sample.time = 0.1;
+    let context = SubmissionContext {
+        splits: &[0.],
+        ..context()
+    };
+    assert!(
+        !validate(&ghost, &context, Some(&blocks), Some(&manifest))
+            .reasons
+            .contains(&"invalid_run_evidence".into())
+    );
 }

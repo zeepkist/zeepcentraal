@@ -84,6 +84,36 @@ async fn request(
 }
 
 #[tokio::test]
+async fn service_token_cannot_recover_timing_failures() -> Result<()> {
+    zc_core::environment::initialize()?;
+    let state = support::state(
+        "postgres://fake:fake@127.0.0.1:1/unused",
+        Arc::new(Storage::default()),
+        false,
+    )?;
+    let gtr = state
+        .config
+        .jwt
+        .issue(Provider::Gtr, "42", None)?
+        .access_token;
+    let app = zc_server::app::router(state)?;
+    assert_eq!(request(&app,"POST","/job/trigger","fake",json!({"Task":"auditRecordGhosts","Options":{"recoverTimingFailures":true,"idRecord":4107620}})).await?.0,StatusCode::BAD_REQUEST);
+    assert_eq!(
+        request(
+            &app,
+            "POST",
+            "/admin/ghost-validation/audit",
+            &gtr,
+            json!({"recoverTimingFailures":true})
+        )
+        .await?
+        .0,
+        StatusCode::FORBIDDEN
+    );
+    Ok(())
+}
+
+#[tokio::test]
 #[ignore = "requires fresh isolated ghost_validation_http_test with fixture, validation migration, and user-role migration"]
 async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Result<()> {
     zc_core::environment::initialize()?;
@@ -141,6 +171,20 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
             .0,
         StatusCode::FORBIDDEN
     );
+    for unauthorized in [&token, &steam, &discord] {
+        assert_eq!(
+            request(
+                &app,
+                "POST",
+                "/admin/ghost-validation/audit",
+                unauthorized,
+                json!({"recoverTimingFailures":true,"idRecord":4107620})
+            )
+            .await?
+            .0,
+            StatusCode::FORBIDDEN
+        );
+    }
     client
         .execute(
             "UPDATE public.\"user\" SET role='admin' WHERE id=$1",

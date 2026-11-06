@@ -286,7 +286,8 @@ impl TaskIdentifier {
                 object.keys().all(|key| {
                     matches!(
                         key.as_str(),
-                        "afterId"
+                        "recoverTimingFailures"
+                            | "afterId"
                             | "throughId"
                             | "idRecord"
                             | "idLevel"
@@ -301,16 +302,21 @@ impl TaskIdentifier {
                             | "auditRunId"
                             | "deferCount"
                     )
-                }) && ["afterLevelId", "afterLevelRecordId"].iter().all(|key| {
-                    object
-                        .get(*key)
-                        .is_none_or(|v| v.as_i64().is_some_and(|n| n >= 0 && n <= i32::MAX.into()))
-                }) && object.get("auditRunId").is_none_or(|v| {
-                    v.as_str()
-                        .is_some_and(|s| s.parse::<u64>().is_ok_and(|n| n > 0))
                 }) && object
-                    .get("deferCount")
-                    .is_none_or(|v| v.as_u64().is_some_and(|n| n <= 4))
+                    .get("recoverTimingFailures")
+                    .is_none_or(|v| v.is_boolean())
+                    && ["afterLevelId", "afterLevelRecordId"].iter().all(|key| {
+                        object.get(*key).is_none_or(|v| {
+                            v.as_i64().is_some_and(|n| n >= 0 && n <= i32::MAX.into())
+                        })
+                    })
+                    && object.get("auditRunId").is_none_or(|v| {
+                        v.as_str()
+                            .is_some_and(|s| s.parse::<u64>().is_ok_and(|n| n > 0))
+                    })
+                    && object
+                        .get("deferCount")
+                        .is_none_or(|v| v.as_u64().is_some_and(|n| n <= 4))
                     && object
                         .get("idLevels")
                         .is_none_or(|v| valid_audit_ids(v, false))
@@ -537,6 +543,21 @@ fn valid_audit_ids(value: &serde_json::Value, allow_empty: bool) -> bool {
 mod tests {
     use super::TaskIdentifier;
 
+    #[test]
+    fn timing_recovery_is_an_explicit_boolean_and_survives_continuation() {
+        use serde_json::json;
+        let task = TaskIdentifier::AuditRecordGhosts;
+        assert!(
+            task.validate_external_payload(
+                &json!({"recoverTimingFailures":true,"idRecord":4107620})
+            )
+        );
+        assert!(task.validate_external_payload(&json!({"recoverTimingFailures":false})));
+        assert!(!task.validate_external_payload(&json!({"recoverTimingFailures":"true"})));
+        let checkpoint = json!({"recoverTimingFailures":true,"work":{"recordIds":[4107620],"next":{"recoverTimingFailures":true,"afterLevelId":1,"afterLevelRecordId":4107620,"throughId":4107621}}});
+        assert!(task.validate_payload(&checkpoint));
+        assert!(!task.validate_external_payload(&checkpoint));
+    }
     #[test]
     fn player_score_phases_keep_external_payloads_compatible() {
         use serde_json::json;

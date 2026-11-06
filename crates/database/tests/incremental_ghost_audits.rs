@@ -37,6 +37,11 @@ async fn fixture(name: &str) -> Result<(Database, tokio_postgres::Client)> {
             "../migrations/20261018010000_validation_metadata_guards/up.sql"
         ))
         .await?;
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261106010000_timing_failure_recovery/up.sql"
+        ))
+        .await?;
     client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)),(2,repeat('b',32)); CREATE INDEX ON public.level_metadata(id_level); CREATE INDEX ON public.level_item(id_level,workshop_id);").await?;
     Ok((Database::connect(&url, 2).await?, client))
 }
@@ -154,6 +159,11 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     assert!(db.audit_record_window(&json!({"idRecord":2}), 2001).await?[0].needs_check);
     let v = db.record_validation_attempts(1).await?.remove(0);
     assert_eq!(v["report"]["reasons"][0], "missing_ghost");
+    client
+        .batch_execute(include_str!(
+            "../migrations/20261106010000_timing_failure_recovery/down.sql"
+        ))
+        .await?;
     client
         .batch_execute(include_str!(
             "../migrations/20261018010000_validation_metadata_guards/down.sql"

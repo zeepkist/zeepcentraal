@@ -714,6 +714,11 @@ pub async fn trigger_job(
     auth::service_token(&headers, &state.config.trigger_job_token)?;
     let task = TaskIdentifier::parse(&body.task)
         .filter(|task| task.compatible() && task.validate_external_payload(&body.options))
+        // Reopening failures requires the administrator route, not the jobs service token.
+        .filter(|task| {
+            !(*task == TaskIdentifier::AuditRecordGhosts
+                && body.options["recoverTimingFailures"].as_bool() == Some(true))
+        })
         .ok_or_else(|| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
     state
         .queue

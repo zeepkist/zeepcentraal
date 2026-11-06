@@ -15,7 +15,7 @@ const AUDIT_WINDOW_QUERY: &str = r#"
 WITH records AS MATERIALIZED (
  SELECT r.id,r.id_level FROM public.record r
  WHERE r.id>$1 AND r.id<=$8
-   AND NOT EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND terminal.status='fail')
+   AND CASE WHEN $10 THEN EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND zc_private.is_timing_failure(terminal.status,terminal.validator_version,terminal.report)) ELSE NOT EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND terminal.status='fail') END
    AND ($2::integer IS NULL OR r.id=$2)
    AND ($3::integer IS NULL OR r.id_level=$3)
    AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
@@ -26,7 +26,7 @@ WITH records AS MATERIALIZED (
 SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,l.validation_metadata_updated_at::text AS checked_metadata_at,
  EXISTS(SELECT 1 FROM public.record_media m WHERE m.id_record=r.id AND nullif(btrim(m.ghost_url),'') IS NOT NULL) AS has_ghost,
  ((cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
-  AND CASE WHEN v.status='fail' THEN false
+  AND CASE WHEN $10 THEN zc_private.is_timing_failure(v.status,v.validator_version,v.report) WHEN v.status='fail' THEN false
        WHEN v.status='uncertain' THEN l.validation_metadata_updated_at>v.checked_metadata_at
        ELSE v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
          OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at
@@ -40,7 +40,7 @@ const AUDIT_LEVEL_WINDOW_QUERY: &str = r#"
 WITH records AS MATERIALIZED (
  SELECT r.id,r.id_level FROM public.record r
  WHERE r.id>$1 AND r.id<=$8
-   AND NOT EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND terminal.status='fail')
+   AND CASE WHEN $14 THEN EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND zc_private.is_timing_failure(terminal.status,terminal.validator_version,terminal.report)) ELSE NOT EXISTS(SELECT 1 FROM zc_private.record_validation terminal WHERE terminal.id_record=r.id AND terminal.status='fail') END
    AND ($2::integer IS NULL OR r.id=$2)
    AND ($3::integer IS NULL OR r.id_level=$3)
    AND ($4::bigint IS NULL OR EXISTS(SELECT 1 FROM public.level_item o WHERE o.id_level=r.id_level AND o.workshop_id=$4))
@@ -54,7 +54,7 @@ WITH records AS MATERIALIZED (
 SELECT r.id,r.id_level,l.xx_hash AS canonical_hash,l.validation_inputs_updated_at::text AS checked_at,l.validation_metadata_updated_at::text AS checked_metadata_at,
  EXISTS(SELECT 1 FROM public.record_media m WHERE m.id_record=r.id AND nullif(btrim(m.ghost_url),'') IS NOT NULL) AS has_ghost,
  ((cardinality($7::text[])=0 OR coalesce(v.report->'reasons' ?| $7,false))
-  AND CASE WHEN v.status='fail' THEN false
+  AND CASE WHEN $14 THEN zc_private.is_timing_failure(v.status,v.validator_version,v.report) WHEN v.status='fail' THEN false
        WHEN v.status='uncertain' THEN l.validation_metadata_updated_at>v.checked_metadata_at
        ELSE v.id IS NULL OR v.checked_at IS NULL OR v.validator_version<>$9
          OR v.id_level<>r.id_level OR l.validation_inputs_updated_at IS DISTINCT FROM v.checked_at
@@ -71,18 +71,18 @@ SELECT r.id,r.id_user,r.id_level,$2,$3,$4,$5,$6::text::timestamptz,coalesce($7::
 FROM public.record r WHERE r.id=ANY($1) AND ($8::integer IS NULL OR r.id_level=$8) ORDER BY r.id
 ON CONFLICT(id_record) DO UPDATE SET
  id_user=EXCLUDED.id_user,id_level=EXCLUDED.id_level,
- ghost_digest=CASE WHEN ROW(existing.status,existing.report,existing.validator_version)
+ ghost_digest=CASE WHEN ROW(existing.status,existing.report-'timingRecovery',existing.validator_version)
    IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
    THEN EXCLUDED.ghost_digest ELSE existing.ghost_digest END,
- status=EXCLUDED.status,report=EXCLUDED.report,validator_version=EXCLUDED.validator_version,
- updated_at=CASE WHEN ROW(existing.status,existing.report,existing.validator_version)
+ status=EXCLUDED.status,report=EXCLUDED.report || CASE WHEN existing.report ? 'timingRecovery' THEN jsonb_build_object('timingRecovery',existing.report->'timingRecovery') ELSE '{}'::jsonb END,validator_version=EXCLUDED.validator_version,
+ updated_at=CASE WHEN ROW(existing.status,existing.report-'timingRecovery',existing.validator_version)
    IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
    THEN clock_timestamp() ELSE existing.updated_at END,
  checked_at=coalesce(EXCLUDED.checked_at,existing.checked_at),checked_metadata_at=EXCLUDED.checked_metadata_at
 WHERE existing.status<>'fail'
  AND (existing.status<>'uncertain' OR EXCLUDED.checked_metadata_at>existing.checked_metadata_at)
  AND (existing.checked_at IS NULL OR EXCLUDED.checked_at IS NULL OR EXCLUDED.checked_at>=existing.checked_at)
- AND (ROW(existing.status,existing.report,existing.validator_version)
+ AND (ROW(existing.status,existing.report-'timingRecovery',existing.validator_version)
    IS DISTINCT FROM ROW(EXCLUDED.status,EXCLUDED.report,EXCLUDED.validator_version)
    OR (EXCLUDED.checked_at IS NOT NULL AND existing.checked_at IS DISTINCT FROM EXCLUDED.checked_at)
    OR existing.checked_metadata_at IS DISTINCT FROM EXCLUDED.checked_metadata_at)
@@ -305,6 +305,37 @@ impl Database {
         Ok(sql_query("SELECT r.id,r.id_user,r.id_level,coalesce(u.steam_id::text,'') AS steam_id,l.hash AS level_uid,l.xx_hash AS canonical_hash,r.game_version::text,r.time,coalesce(r.splits,ARRAY[]::real[]) AS splits,coalesce(r.speeds,ARRAY[]::real[]) AS speeds,(SELECT ghost_url FROM public.record_media WHERE id_record=r.id) AS ghost_url FROM public.record r JOIN public.level l ON l.id=r.id_level JOIN public.\"user\" u ON u.id=r.id_user WHERE r.id=$1 AND (NOT $2 OR NOT EXISTS(SELECT 1 FROM zc_private.record_validation v WHERE v.id_record=r.id AND (v.status='fail' OR (v.status='uncertain' AND v.checked_metadata_at>=l.validation_metadata_updated_at))))")
   .bind::<Integer,_>(id).bind::<Bool,_>(validation).get_result(&mut c).await.optional()?)
     }
+    /// Recovery snapshots retain the complete original failure for compare-and-swap.
+    pub async fn timing_failure_evidence(&self, id: i32) -> Result<Option<Value>> {
+        Ok(sql_query("SELECT jsonb_build_object('validation',to_jsonb(v),'record',to_jsonb(r),'steamId',u.steam_id::text,'hash',l.xx_hash) AS data FROM zc_private.record_validation v JOIN public.record r ON r.id=v.id_record JOIN public.level l ON l.id=r.id_level JOIN public.\"user\" u ON u.id=r.id_user WHERE v.id_record=$1 AND zc_private.is_timing_failure(v.status,v.validator_version,v.report)")
+            .bind::<Integer,_>(id).get_result::<JsonRow>(&mut self.connection().await?).await.optional()?.map(|row|row.data))
+    }
+    pub async fn recover_timing_failure(
+        &self,
+        id: i32,
+        expected: &Value,
+        digest: &str,
+        report: &ValidationReport,
+        checked: &ValidationCheckTimestamp,
+    ) -> Result<bool> {
+        #[derive(QueryableByName)]
+        struct Recovered {
+            #[diesel(sql_type=Bool)]
+            ok: bool,
+        }
+        Ok(
+            sql_query("SELECT zc_private.recover_timing_failure($1,$2,$3,$4,$5,$6) AS ok")
+                .bind::<Integer, _>(id)
+                .bind::<Jsonb, _>(expected)
+                .bind::<Text, _>(digest)
+                .bind::<Jsonb, _>(serde_json::to_value(report)?)
+                .bind::<Text, _>(&checked.checked_at)
+                .bind::<Text, _>(&checked.checked_metadata_at)
+                .get_result::<Recovered>(&mut self.connection().await?)
+                .await?
+                .ok,
+        )
+    }
     pub async fn validation_check_timestamp_for_hash(
         &self,
         hash: &str,
@@ -370,6 +401,7 @@ impl Database {
             .bind::<Array<Text>, _>(reasons)
             .bind::<Integer, _>(through_id)
             .bind::<Text, _>(VALIDATOR_VERSION)
+            .bind::<Bool, _>(filter["recoverTimingFailures"].as_bool().unwrap_or(false))
             .load(&mut self.connection().await?)
             .await?)
     }
@@ -417,6 +449,7 @@ impl Database {
                     .filter_map(|v| v.as_i64().and_then(|n| i32::try_from(n).ok()))
                     .collect::<Vec<_>>(),
             )
+            .bind::<Bool, _>(filter["recoverTimingFailures"].as_bool().unwrap_or(false))
             .load(&mut self.connection().await?)
             .await?)
     }

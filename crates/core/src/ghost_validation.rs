@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const VALIDATOR_VERSION: &str = "geometry-8";
+pub const VALIDATOR_VERSION: &str = "geometry-9";
 pub const MAX_BLOCKS: usize = 20_000;
 pub const MAX_QUERY_WORK: usize = 2_000_000;
 pub const START_IDS: &[i64] = &[1, 1363, 2256, 2259];
@@ -91,6 +91,18 @@ pub struct ValidationReport {
     pub matched_groups: Vec<Vec<String>>,
     pub missing_groups: Vec<Vec<String>>,
     pub validator_version: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub event_diagnostics: Vec<EventDiagnostic>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventDiagnostic {
+    pub event_index: usize,
+    pub finish: bool,
+    pub raw_time: f64,
+    pub adjusted_time: f64,
+    pub trajectory_distance: Option<f64>,
+    pub threshold: f64,
 }
 impl ValidationReport {
     pub fn failed(reason: &str) -> Self {
@@ -107,6 +119,7 @@ impl ValidationReport {
             matched_groups: vec![],
             missing_groups: vec![],
             validator_version: VALIDATOR_VERSION.into(),
+            event_diagnostics: vec![],
         }
     }
     fn fail(&mut self, reason: &str) {
@@ -146,11 +159,13 @@ fn validate_checkpoint_telemetry(
     if legacy && splits_supported.is_none() && context.splits.is_empty() {
         report.uncertainty("legacy_telemetry_capabilities_unknown");
     }
-    let invalid_values = context
-        .splits
-        .iter()
-        .any(|v| !v.is_finite() || *v < 0. || f64::from(*v) > context.time + 0.25)
-        || context.splits.windows(2).any(|pair| pair[1] < pair[0])
+    let invalid_values = context.splits.iter().any(|v| !v.is_finite() || *v < 0.)
+        || (legacy
+            && (context
+                .splits
+                .iter()
+                .any(|v| f64::from(*v) > context.time + 0.25)
+                || context.splits.windows(2).any(|pair| pair[1] < pair[0])))
         || context.speeds.iter().any(|v| !v.is_finite() || *v < 0.);
     let mismatch = context.splits.len() != context.speeds.len();
     if !legacy {
@@ -346,6 +361,9 @@ pub struct ValidationManifest {
     /// Calibration is an operator-owned artifact. Never trust a client radius/tolerance.
     #[serde(default)]
     pub calibrated: bool,
+    /// Separate live calibration for revision-4 post-physics trajectory samples.
+    #[serde(default)]
+    pub trajectory_calibrated: bool,
     pub sphere_radius: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ragdoll_sphere_radius: Option<f64>,
@@ -682,6 +700,7 @@ pub fn validate_prepared(
         matched_groups: vec![],
         missing_groups: vec![],
         validator_version: VALIDATOR_VERSION.into(),
+        event_diagnostics: vec![],
     };
     if ghost
         .metadata
@@ -702,11 +721,11 @@ pub fn validate_prepared(
     }
     let evidence = ghost.evidence.as_ref();
     if let Some(e) = evidence {
-        if e.sphere_sampling_version != 3 {
+        if !matches!(e.sphere_sampling_version, 3 | 4) {
             report.uncertainty("unsupported_trigger_sphere_sampling");
         }
         if ghost.frames.iter().any(|frame| frame.ragdoll == Some(true))
-            && e.sphere_sampling_version != 3
+            && !matches!(e.sphere_sampling_version, 3 | 4)
         {
             report.uncertainty("unsupported_ragdoll_sphere_sampling");
         }
@@ -731,11 +750,16 @@ pub fn validate_prepared(
                 !finite_sample(&event.sample)
                     || !event.raw_time.is_finite()
                     || !event.adjusted_time.is_finite()
+                    || event.raw_time < 0.
+                    || event.adjusted_time < 0.
                     || !event.velocity_kmh.is_finite()
                     || event.velocity_kmh < 0.
                     || (event.sample.time - event.raw_time).abs() > 0.001
                     || (event.raw_time - event.adjusted_time).abs() > 0.25001
             })
+            || e.events
+                .windows(2)
+                .any(|pair| pair[1].raw_time < pair[0].raw_time)
         {
             report.fail("invalid_run_evidence");
             return report;
@@ -890,7 +914,7 @@ pub fn validate_prepared(
                     (sample.time - event.raw_time).abs() <= e.physics_interval * 1.5
                 })
             });
-    let sphere_sampling_supported = e.sphere_sampling_version == 3;
+    let sphere_sampling_supported = matches!(e.sphere_sampling_version, 3 | 4);
     let proven = complete
         && finish_samples_complete
         && geometry_complete
@@ -997,7 +1021,7 @@ pub fn validate_prepared(
             finish_hit = true;
         }
     }
-    for event in &e.events {
+    for (event_index, event) in e.events.iter().enumerate() {
         let radius = trusted_radius(event.sample.time) + radius_margin;
         if event.raw_time > finish.raw_time {
             miss(&mut report, "event_after_finish");
@@ -1033,43 +1057,74 @@ pub fn validate_prepared(
         if !event_contact {
             miss(&mut report, "event_geometry_mismatch");
         }
-        let sample_index = e
+        let first = e
             .samples
-            .partition_point(|sample| sample.time < event.raw_time);
-        let on_trajectory = e.samples
-            [sample_index.saturating_sub(2)..(sample_index + 2).min(e.samples.len())]
-            .windows(2)
-            .any(|pair| {
-                if event.raw_time < pair[0].time - e.physics_interval
-                    || event.raw_time > pair[1].time + e.physics_interval
-                {
-                    return false;
-                }
-                let start = Vector::new(
-                    pair[0].position[0],
-                    pair[0].position[1],
-                    pair[0].position[2],
-                );
-                let end = Vector::new(
-                    pair[1].position[0],
-                    pair[1].position[1],
-                    pair[1].position[2],
-                );
-                let point = Vector::new(
-                    event.sample.position[0],
-                    event.sample.position[1],
-                    event.sample.position[2],
-                );
+            .partition_point(|sample| sample.time < event.raw_time - e.physics_interval);
+        let last = e
+            .samples
+            .partition_point(|sample| sample.time <= event.raw_time + e.physics_interval);
+        let mut distance = f64::INFINITY;
+        for pair in e.samples[first.saturating_sub(1)..(last + 1).min(e.samples.len())].windows(2) {
+            work += 1;
+            if work > MAX_QUERY_WORK {
+                report.uncertainty("geometry_budget");
+                return report;
+            }
+            if event.raw_time < pair[0].time - e.physics_interval
+                || event.raw_time > pair[1].time + e.physics_interval
+            {
+                continue;
+            }
+            let mut start = Vector::new(
+                pair[0].position[0],
+                pair[0].position[1],
+                pair[0].position[2],
+            );
+            let mut end = Vector::new(
+                pair[1].position[0],
+                pair[1].position[1],
+                pair[1].position[2],
+            );
+            let point = Vector::new(
+                event.sample.position[0],
+                event.sample.position[1],
+                event.sample.position[2],
+            );
+            let duration = pair[1].time - pair[0].time;
+            if duration > 0. {
                 let delta = end - start;
-                let fraction = if delta.length_squared() > 0. {
-                    ((point - start).dot(delta) / delta.length_squared()).clamp(0., 1.)
-                } else {
-                    0.
-                };
-                (point - (start + delta * fraction)).length() <= manifest.position_tolerance + 0.001
-            });
-        if !on_trajectory {
-            miss(&mut report, "event_trajectory_mismatch");
+                let lower =
+                    ((event.raw_time - e.physics_interval - pair[0].time) / duration).clamp(0., 1.);
+                let upper =
+                    ((event.raw_time + e.physics_interval - pair[0].time) / duration).clamp(0., 1.);
+                end = start + delta * upper;
+                start += delta * lower;
+            }
+            let delta = end - start;
+            let fraction = if delta.length_squared() > 0. {
+                ((point - start).dot(delta) / delta.length_squared()).clamp(0., 1.)
+            } else {
+                0.
+            };
+            distance = distance.min((point - (start + delta * fraction)).length());
+        }
+        let threshold = manifest.position_tolerance + 0.001;
+        report.event_diagnostics.push(EventDiagnostic {
+            event_index,
+            finish: event.finish,
+            raw_time: event.raw_time,
+            adjusted_time: event.adjusted_time,
+            trajectory_distance: distance.is_finite().then_some(distance),
+            threshold,
+        });
+        if distance > threshold {
+            if e.sphere_sampling_version == 4 && manifest.trajectory_calibrated {
+                miss(&mut report, "event_trajectory_mismatch");
+            } else {
+                // Revision 3 mixes pre-physics samples with trigger callback poses.
+                // Geometry calibration cannot prove agreement between those phases.
+                report.uncertainty("event_trajectory_mismatch");
+            }
         }
     }
     if !legacy {
