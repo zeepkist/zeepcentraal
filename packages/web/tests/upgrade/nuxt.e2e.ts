@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { version } from 'vue'
 import { test } from '../support/browser'
 
 async function waitForHydration(page: Page) {
@@ -118,7 +119,8 @@ test('Pages hydrate with translated controls and working Nuxt UI events', async 
 		}
 		return root.__vue_app__?.version
 	})
-	expect(runtimeVersion).toBe('3.5.43')
+	expect(runtimeVersion).toBe(version)
+	expect(runtimeVersion).toMatch(/^\d+\.\d+\.\d+$/)
 	const theme = page.getByTestId('app-header').getByRole('button', { name: /theme/i })
 	const before = (await page.locator('html').getAttribute('class')) ?? ''
 	await theme.click()

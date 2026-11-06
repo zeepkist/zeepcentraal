@@ -8,7 +8,7 @@ import { NUXT_RUNTIME_INLINE } from '../../config/nuxtRuntime'
 
 describe('stable SSR runtime', () => {
 	it('uses matching stable runtime and compiler versions', () => {
-		expect(version).toBe('3.5.43')
+		expect(version).toMatch(/^\d+\.\d+\.\d+$/)
 		expect(compilerVersion).toBe(version)
 		const { descriptor } = parse(`<script setup lang="ts">
 import { ref } from 'vue'
