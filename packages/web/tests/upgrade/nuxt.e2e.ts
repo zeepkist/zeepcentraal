@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 import { version } from 'vue'
+import { ghostPlaybackLzma } from '../fixtures/ghostPlayback'
 import { test } from '../support/browser'
 
 async function waitForHydration(page: Page) {
@@ -183,9 +184,7 @@ test('Pages hydrate with translated controls and working Nuxt UI events', async 
 	expect(errors).toEqual([])
 })
 
-test('Replay activates after verification and handles missing ghost data', async ({ page }) => {
-	const errors: string[] = []
-	page.on('pageerror', (error) => errors.push(error.message))
+async function mockReplayVerification(page: Page) {
 	await page.route('https://challenges.cloudflare.com/turnstile/**', (route) =>
 		route.fulfill({
 			contentType: 'application/javascript',
@@ -198,6 +197,12 @@ test('Replay activates after verification and handles missing ghost data', async
 }, remove() {}, reset() {} }`,
 		}),
 	)
+}
+
+test('Replay activates after verification and handles missing ghost data', async ({ page }) => {
+	const errors: string[] = []
+	page.on('pageerror', (error) => errors.push(error.message))
+	await mockReplayVerification(page)
 	await page.goto('/record/9001')
 	await page.waitForFunction(() => {
 		const root = document.querySelector('#__nuxt') as Element & {
@@ -217,4 +222,43 @@ test('Replay activates after verification and handles missing ghost data', async
 	await expect(page.locator('.ghost-replay-workspace')).toBeVisible({ timeout: 15_000 })
 	await expect(page.getByText('No playable ghost', { exact: true })).toBeVisible()
 	expect(errors).toEqual([])
+})
+
+test('Replay renders worker-transferred protobuf defaults without NaN geometry', async ({
+	page,
+}) => {
+	const geometryErrors: string[] = []
+	page.on('console', (message) => {
+		if (message.type() === 'error' && message.text().startsWith('THREE.'))
+			geometryErrors.push(message.text())
+	})
+	await mockReplayVerification(page)
+	await page.route('https://cdn.zeepki.st/fixtures/worker-zeros.ghost', (route) =>
+		route.fulfill({ contentType: 'application/octet-stream', body: ghostPlaybackLzma }),
+	)
+	await page.goto('/record/9002')
+	await waitForHydration(page)
+	await page.getByRole('button', { name: 'Verify fixture replay' }).click()
+	const viewer = page.locator('.ghost-viewer')
+	await expect(viewer.locator('canvas')).toBeVisible({ timeout: 15_000 })
+	const timeline = page.getByRole('slider', { name: 'Replay position' })
+	await expect(timeline).toHaveAttribute('max', '42')
+	await page.getByRole('button', { name: 'Play replay', exact: true }).click()
+	await expect.poll(async () => Number(await timeline.inputValue())).toBeGreaterThan(0)
+	await page.getByRole('button', { name: 'Pause replay', exact: true }).click()
+	await timeline.fill('21')
+	await expect(timeline).toHaveValue('21')
+	await page.getByRole('button', { name: 'Isometric', exact: true }).click()
+	await page.getByRole('button', { name: 'Orbit', exact: true }).click()
+	await page.getByRole('button', { name: 'Ghost playback settings', exact: true }).click()
+	const trails = page.getByRole('switch', { name: 'Ghost trails', exact: true })
+	await expect(trails).toBeChecked()
+	await trails.click()
+	await expect(trails).not.toBeChecked()
+	await trails.click()
+	await expect(trails).toBeChecked()
+	await page.keyboard.press('Escape')
+	await page.getByRole('button', { name: 'Frame full route', exact: true }).click()
+	await expect(viewer.locator('canvas')).toBeVisible()
+	expect(geometryErrors).toEqual([])
 })

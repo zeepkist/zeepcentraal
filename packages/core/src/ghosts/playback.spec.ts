@@ -4,7 +4,7 @@ import protobuf from 'protobufjs'
 import { decompressGzipBrowser, parseGhostBrowser } from './browser'
 import { MaterialPhysicsState } from './enums'
 import { parseGhost, parseGhostStatistics } from './index'
-import { decodeProtobufGhostPayload, readProtobufMetadata } from './protobuf'
+import { decodeProtobufGhostPayload, readProtobufFrames, readProtobufMetadata } from './protobuf'
 import { parseV1 } from './v1'
 import { parseV4 } from './v4'
 
@@ -106,6 +106,7 @@ function createProtobufMetadataPayload(): Uint8Array {
 function createV7ProtobufPayload(
 	version = 7,
 	surfaceState = MaterialPhysicsState.Ice2 | MaterialPhysicsState.Wood,
+	sparseVectors = false,
 ): Uint8Array {
 	const root = new protobuf.Root()
 	const vector3 = new protobuf.Type('Vector3')
@@ -118,6 +119,7 @@ function createV7ProtobufPayload(
 		.add(new protobuf.Field('z', 3, 'int32'))
 	const initialFrame = new protobuf.Type('InitialFrame')
 		.add(new protobuf.Field('position', 1, 'Vector3'))
+		.add(new protobuf.Field('rotation', 2, 'Vector3'))
 		.add(new protobuf.Field('groundedWheelState', 7, 'int32'))
 		.add(new protobuf.Field('surfaceState', 9, 'int32'))
 	const deltaFrame = new protobuf.Type('DeltaFrame')
@@ -148,7 +150,8 @@ function createV7ProtobufPayload(
 							})
 						: undefined,
 				initialFrame: {
-					position: { x: 0, y: 0, z: 0 },
+					position: sparseVectors ? { y: 2 } : { x: 0, y: 0, z: 0 },
+					rotation: sparseVectors ? { y: 90 } : undefined,
 					groundedWheelState: 15,
 					surfaceState,
 				},
@@ -165,6 +168,52 @@ function createV7ProtobufPayload(
 }
 
 describe('ghost playback parsing', () => {
+	test.each([5, 6, 7, 8])(
+		'preserves V%i vector defaults across worker transfer',
+		async (version) => {
+			const payload = createV7ProtobufPayload(version, MaterialPhysicsState.None, true)
+			const decoded = decodeProtobufGhostPayload(payload)
+			// Protobuf supplies omitted zero coordinates through its message prototype.
+			expect(Object.hasOwn(decoded.initialFrame?.position ?? {}, 'x')).toBe(false)
+			expect(Object.hasOwn(decoded.initialFrame?.rotation ?? {}, 'z')).toBe(false)
+			const ghost = await parseGhostBrowser(new Uint8Array([1]), {
+				decompressLzma: async () => payload,
+			})
+			const transferred = structuredClone(ghost)
+			const native = await parseGhost(compressSync(payload))
+			for (const parsed of [ghost, transferred, structuredClone(native)]) {
+				expect(parsed.frames[0]?.position).toEqual({ x: 0, y: 2, z: 0 })
+				expect(parsed.frames[1]?.position).toEqual({ x: 1, y: 2, z: 0 })
+				for (const frame of parsed.frames) {
+					expect(frame.rotation).toEqual({ x: 0, y: 90, z: 0 })
+					for (const vector of [frame.position, frame.rotation]) {
+						expect(Object.getPrototypeOf(vector)).toBe(Object.prototype)
+						for (const axis of ['x', 'y', 'z'] as const) {
+							expect(Object.hasOwn(vector ?? {}, axis)).toBe(true)
+						}
+					}
+				}
+			}
+			expect(transferred).toEqual(ghost)
+			expect(native).toEqual(ghost)
+		},
+	)
+
+	test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+		'rejects invalid protobuf coordinates %s before worker transfer',
+		(value) => {
+			const position = { x: 0, y: 2, z: 0 }
+			for (const initialFrame of [
+				{ position: { ...position, x: value } },
+				{ position, rotation: { x: 0, y: value, z: 0 } },
+			]) {
+				expect(() =>
+					readProtobufFrames({ version: 7, initialFrame, deltaFrames: [] }),
+				).toThrow('Invalid protobuf ghost frame')
+			}
+		},
+	)
+
 	test('preserves legacy Euler rotation and exposes normalized orientation', () => {
 		const ghost = parseV1(createV1Ghost([0, 90, 0]))
 

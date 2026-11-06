@@ -217,9 +217,12 @@ Bun.serve({
 					],
 				}
 			}
-			if (query.includes('ZC_RecordDetail') && variables?.recordId === 9001) {
+			if (
+				query.includes('ZC_RecordDetail') &&
+				[9001, 9002].includes(variables?.recordId ?? 0)
+			) {
 				data.record = {
-					id: 9001,
+					id: variables?.recordId,
 					levelId: 9001,
 					userId: 1,
 					time: 42,
@@ -228,7 +231,14 @@ Bun.serve({
 					modVersion: 'fixture',
 					splits: [],
 					speeds: [],
-					recordMedia: null,
+					recordMedia:
+						variables?.recordId === 9002
+							? {
+									ghostUrl: 'https://cdn.zeepki.st/fixtures/worker-zeros.ghost',
+									dateCreated: '2026-10-01T00:00:00Z',
+									dateUpdated: null,
+								}
+							: null,
 					recordStatistic: null,
 					user: { id: 1, steamId: '76561198000000000', steamName: 'Fixture player' },
 					worldRecordGlobals: { totalCount: 0 },

@@ -187,8 +187,11 @@ export function* iterateProtobufFrames(decoded: DecodedProtobufGhost): Generator
 	assertGhostFrameCount(decoded.deltaFrames.length + 1)
 	const version = decoded.version as 5 | 6 | 7 | 8
 	const hasExtendedTelemetry = version >= 6
-	let position = decoded.initialFrame.position
+	// Materialize protobuf defaults before worker transfer drops message prototypes.
+	let position = copyVector3(decoded.initialFrame.position)
 	let rotation = decoded.initialFrame.rotation
+		? copyVector3(decoded.initialFrame.rotation)
+		: undefined
 	let ragdollActive = hasExtendedTelemetry && decoded.initialFrame.ragdollState === true
 	let ragdollPosition = ragdollActive
 		? requireUnscaledVector3(decoded.initialFrame.ragdollPosition, POSITION_MULTIPLIER)
@@ -205,6 +208,7 @@ export function* iterateProtobufFrames(decoded: DecodedProtobufGhost): Generator
 			ragdollRotation,
 		},
 		version,
+		rotation,
 	)
 	for (const deltaFrame of decoded.deltaFrames) {
 		const delta = deltaFrame.position
@@ -359,6 +363,10 @@ function frameFromProtobuf(
 		ragdollPosition: hasExtendedTelemetry ? source.ragdollPosition : undefined,
 		ragdollRotation: hasExtendedTelemetry ? source.ragdollRotation : undefined,
 	}
+}
+
+function copyVector3(value: Vector3): Vector3 {
+	return { x: value.x, y: value.y, z: value.z }
 }
 
 function requireUnscaledVector3(value: Vector3 | undefined, multiplier: number): Vector3 {
