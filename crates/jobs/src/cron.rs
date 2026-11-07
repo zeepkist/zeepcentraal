@@ -29,10 +29,6 @@ struct ScheduleRow {
     #[diesel(sql_type = Bool)]
     recover: bool,
     #[diesel(sql_type = Bool)]
-    rotate_weekly: bool,
-    #[diesel(sql_type = Bool)]
-    rotate_monthly: bool,
-    #[diesel(sql_type = Bool)]
     workshop: bool,
     #[diesel(sql_type = Bool)]
     level_full: bool,
@@ -149,8 +145,6 @@ async fn run_leader(
              to_char(utc_time,'YYYY-MM-DD HH24:MI') AS minute_key, \
              floor(extract(epoch FROM utc_time)/30)::bigint::text AS metrics_slot, \
              extract(minute FROM local_time)=0 AS recover, \
-             extract(isodow FROM utc_time)=1 AND extract(hour FROM utc_time)=6 AND extract(minute FROM utc_time)=0 AS rotate_weekly, \
-             extract(day FROM utc_time)=1 AND extract(hour FROM utc_time)=6 AND extract(minute FROM utc_time)=0 AS rotate_monthly, \
              extract(dow FROM local_time)=0 AND extract(hour FROM local_time)=1 AND extract(minute FROM local_time)=0 AS workshop, \
              extract(isodow FROM local_time)=1 AND extract(hour FROM local_time)=1 AND extract(minute FROM local_time)=0 AS level_full, \
              extract(minute FROM local_time) IN (0,30) AS level_incremental, \
@@ -193,23 +187,17 @@ async fn enqueue_due(queue: &Queue, schedule: &ScheduleRow) -> Result<()> {
         )
         .await?;
     }
-    if schedule.rotate_weekly {
+    // Reconcile on startup and each minute. Stable keys coalesce replicas/retries.
+    for (kind, key) in [
+        (0, "cron:rotateTrackTournament:weekly"),
+        (1, "cron:rotateTrackTournament:monthly"),
+    ] {
         enqueue(
             queue,
             TaskIdentifier::RotateTrackTournament,
-            serde_json::json!({"type":0}),
+            serde_json::json!({"type":kind}),
             JobLane::Bulk,
-            "cron:rotateTrackTournament:weekly",
-        )
-        .await?;
-    }
-    if schedule.rotate_monthly {
-        enqueue(
-            queue,
-            TaskIdentifier::RotateTrackTournament,
-            serde_json::json!({"type":1}),
-            JobLane::Bulk,
-            "cron:rotateTrackTournament:monthly",
+            key,
         )
         .await?;
     }

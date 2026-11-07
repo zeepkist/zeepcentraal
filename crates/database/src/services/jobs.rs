@@ -19,8 +19,8 @@ const MAINTENANCE_LOCK_TIMEOUT: &str = "100ms";
 const TRACK_TOURNAMENT_SELECTION_SQL: &str = r#"
 WITH period_start AS MATERIALIZED (
     SELECT CASE WHEN $1=0
-        THEN date_trunc('week', timezone('UTC', $2::text::timestamptz))
-        ELSE date_trunc('month', timezone('UTC', $2::text::timestamptz))
+        THEN date_trunc('week', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
+        ELSE date_trunc('month', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
     END AS utc_start
 ), period AS (
     SELECT (utc_start AT TIME ZONE 'UTC') + interval '6 hours' AS start_at,
@@ -895,35 +895,10 @@ async fn rotate_track_tournament_at(
             .get_result(connection)
             .await?;
             let at = &clock.observed_at;
-            let boundary: BooleanRow = sql_query(
-                "WITH observed AS (SELECT timezone('UTC',$2::text::timestamptz) AS utc_time) \
-                 SELECT CASE WHEN $1=0 THEN extract(isodow FROM utc_time)=1 \
-                 AND extract(hour FROM utc_time)=6 ELSE extract(day FROM utc_time)=1 \
-                 AND extract(hour FROM utc_time)=6 END AS value FROM observed",
-            )
-            .bind::<Integer, _>(tournament_type)
-            .bind::<Text, _>(at)
-            .get_result(connection)
-            .await?;
-            if !boundary.value {
-                return Ok(TournamentRotation {
-                    created: false,
-                    id_tournament: None,
-                });
-            }
-            sql_query(
-                "UPDATE public.track_tournament SET finalized_at=$2::text::timestamptz, \
-                 date_updated=$2::text::timestamptz WHERE type=$1 AND finalized_at IS NULL \
-                 AND end_at<=$2::text::timestamptz",
-            )
-            .bind::<Integer, _>(tournament_type)
-            .bind::<Text, _>(at)
-            .execute(connection)
-            .await?;
             let existing = sql_query(
                 "SELECT id FROM public.track_tournament WHERE type=$1 AND start_at= \
-                 (CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',$2::text::timestamptz)) \
-                 ELSE date_trunc('month',timezone('UTC',$2::text::timestamptz)) END \
+                 (CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',$2::text::timestamptz)-interval '6 hours') \
+                 ELSE date_trunc('month',timezone('UTC',$2::text::timestamptz)-interval '6 hours') END \
                  AT TIME ZONE 'UTC')+interval '6 hours' LIMIT 1",
             )
             .bind::<Integer, _>(tournament_type)
@@ -931,22 +906,45 @@ async fn rotate_track_tournament_at(
             .get_result::<IdRow>(connection)
             .await
             .optional()?;
-            if let Some(row) = existing {
-                return Ok(TournamentRotation {
-                    created: false,
-                    id_tournament: Some(row.id),
-                });
+            let (id_tournament, created) = if let Some(row) = existing {
+                (Some(row.id), false)
+            } else {
+                let row = sql_query(TRACK_TOURNAMENT_SELECTION_SQL)
+                    .bind::<Integer, _>(tournament_type)
+                    .bind::<Text, _>(at)
+                    .get_result::<IdRow>(connection).await.optional()?;
+                (row.as_ref().map(|row| row.id), row.is_some())
+            };
+            #[derive(QueryableByName)]
+            struct LockedTournament {
+                #[diesel(sql_type=Integer)] id: i32,
+                #[diesel(sql_type=Integer)] id_level: i32,
             }
-            let created = sql_query(TRACK_TOURNAMENT_SELECTION_SQL)
-                .bind::<Integer, _>(tournament_type)
-                .bind::<Text, _>(at)
-                .get_result::<IdRow>(connection)
-                .await
-                .optional()?;
-            Ok(TournamentRotation {
-                created: created.is_some(),
-                id_tournament: created.map(|row| row.id),
-            })
+            let affected = sql_query("SELECT id,id_level FROM public.track_tournament WHERE type=$1 AND finalized_at IS NULL AND (end_at<=$2::text::timestamptz OR ($3 AND id=$4)) ORDER BY id")
+                .bind::<Integer,_>(tournament_type).bind::<Text,_>(at)
+                .bind::<Bool,_>(created).bind::<Nullable<Integer>,_>(id_tournament)
+                .load::<LockedTournament>(connection).await?;
+            let levels: std::collections::BTreeSet<_> = affected.iter().map(|row|row.id_level).collect();
+            // Submissions and eligibility repair hold shared counterparts. Acquire
+            // every level in order before result/row locks, including across types.
+            for level in levels {
+                sql_query("SELECT pg_advisory_xact_lock(0,$1)").bind::<Integer,_>(level).execute(connection).await?;
+            }
+            for tournament in affected {
+                sql_query("SELECT id FROM public.track_tournament WHERE id=$1 FOR UPDATE")
+                    .bind::<Integer,_>(tournament.id).execute(connection).await?;
+                sql_query("SELECT pg_advisory_xact_lock(1953744432,$1)")
+                    .bind::<Integer,_>(tournament.id).execute(connection).await?;
+                if created && Some(tournament.id)==id_tournament {
+                    // Acceptance before recovery still belongs to original period.
+                    sql_query("INSERT INTO public.track_tournament_result(id_tournament,id_user,id_record,time,rank,points,date_created,date_updated) SELECT $1,winner.id_user,winner.id,winner.time,1,1000,clock_timestamp(),clock_timestamp() FROM (SELECT DISTINCT ON(r.id_user) r.id_user,r.id,r.time FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user JOIN public.track_tournament t ON t.id=$1 WHERE r.id_level=t.id_level AND r.date_created>=t.start_at AND r.date_created<t.end_at AND r.record_eligible AND NOT u.banned ORDER BY r.id_user,r.time,r.id) winner ON CONFLICT(id_tournament,id_user) DO NOTHING")
+                        .bind::<Integer,_>(tournament.id).execute(connection).await?;
+                    super::record::rerank_tournament(connection,tournament.id).await?;
+                }
+            }
+            sql_query("UPDATE public.track_tournament SET finalized_at=$2::text::timestamptz,date_updated=$2::text::timestamptz WHERE type=$1 AND finalized_at IS NULL AND end_at<=$2::text::timestamptz")
+                .bind::<Integer,_>(tournament_type).bind::<Text,_>(at).execute(connection).await?;
+            Ok(TournamentRotation {created, id_tournament})
         })
         .await
 }

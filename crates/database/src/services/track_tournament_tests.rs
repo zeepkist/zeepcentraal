@@ -33,6 +33,9 @@ CREATE TABLE public.level (
     date_created timestamptz NOT NULL
 );
 CREATE TABLE public.level_points (id_level integer PRIMARY KEY, points integer NOT NULL);
+CREATE TABLE public."user" (id integer PRIMARY KEY, banned boolean NOT NULL DEFAULT false);
+CREATE TABLE public.record (id integer PRIMARY KEY, id_user integer NOT NULL, id_level integer NOT NULL,
+    time real NOT NULL, record_eligible boolean NOT NULL DEFAULT true, date_created timestamptz NOT NULL);
 CREATE TABLE public.level_item (
     id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     id_level integer NOT NULL, publicly_visible boolean NOT NULL, deleted boolean NOT NULL
@@ -49,6 +52,7 @@ CREATE TABLE public.track_tournament (
 CREATE TABLE public.track_tournament_result (
     id_tournament integer NOT NULL, id_user integer NOT NULL, id_record integer NOT NULL,
     time real NOT NULL, rank integer NOT NULL, points integer NOT NULL,
+    date_created timestamptz NOT NULL DEFAULT now(), date_updated timestamptz,
     PRIMARY KEY(id_tournament, id_user)
 );
 "#,
@@ -61,7 +65,7 @@ async fn clear_fixture(connection: &mut AsyncPgConnection) -> Result<()> {
     connection
         .batch_execute(
             "TRUNCATE public.track_tournament_result, public.track_tournament, \
-             public.level_item, public.level_points, public.level RESTART IDENTITY",
+             public.level_item, public.level_points, public.level, public.record, public.\"user\" RESTART IDENTITY",
         )
         .await?;
     Ok(())
@@ -247,11 +251,6 @@ async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
                      INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false)",
                 )
                 .await?;
-            let midnight = at.replace("T06:", "T00:");
-            let rejected =
-                rotate_track_tournament_at(&mut connection, kind, Some(&midnight)).await?;
-            assert!(!rejected.created);
-            assert_eq!(rejected.id_tournament, None);
             let created = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
             assert!(created.created, "{zone}: {at}");
             let id = created.id_tournament.unwrap();
@@ -364,5 +363,147 @@ async fn repair_moves_only_active_canonical_midnight_periods_and_preserves_resul
     connection
         .batch_execute("ROLLBACK TO SAVEPOINT before_down")
         .await?;
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn delayed_rotation_recovers_original_period_and_eligible_records() -> Result<()> {
+    let mut connection = fixture().await?;
+    #[derive(QueryableByName)]
+    struct Snapshot {
+        #[diesel(sql_type=Jsonb)]
+        value: serde_json::Value,
+    }
+    for (kind, at, start, end, slug) in [
+        (
+            0,
+            "2026-09-28T07:15:00Z",
+            "2026-09-28T06:00:00Z",
+            "2026-10-05T06:00:00Z",
+            "2026-w40",
+        ),
+        (
+            0,
+            "2026-09-29T12:00:00Z",
+            "2026-09-28T06:00:00Z",
+            "2026-10-05T06:00:00Z",
+            "2026-w40",
+        ),
+        (
+            0,
+            "2026-10-05T05:59:00Z",
+            "2026-09-28T06:00:00Z",
+            "2026-10-05T06:00:00Z",
+            "2026-w40",
+        ),
+        (
+            1,
+            "2026-11-02T12:00:00Z",
+            "2026-11-01T06:00:00Z",
+            "2026-12-01T06:00:00Z",
+            "2026-11",
+        ),
+        (
+            1,
+            "2026-11-01T05:59:00Z",
+            "2026-10-01T06:00:00Z",
+            "2026-11-01T06:00:00Z",
+            "2026-10",
+        ),
+        (
+            0,
+            "2025-12-30T12:00:00Z",
+            "2025-12-29T06:00:00Z",
+            "2026-01-05T06:00:00Z",
+            "2026-w01",
+        ),
+    ] {
+        clear_fixture(&mut connection).await?;
+        sql_query("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,$1::text::timestamptz-interval '1 day')")
+            .bind::<Text,_>(start).execute(&mut connection).await?;
+        connection.batch_execute("INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false); INSERT INTO public.\"user\"(id,banned) VALUES(1,false),(2,false),(3,true),(4,false)").await?;
+        sql_query("INSERT INTO public.record(id,id_user,id_level,time,date_created,record_eligible) VALUES (1,1,1,10,$1::text::timestamptz,true),(2,1,1,9,$1::text::timestamptz+interval '1 second',true),(3,1,1,9,$1::text::timestamptz+interval '2 seconds',true),(4,2,1,9,$1::text::timestamptz,true),(5,3,1,1,$1::text::timestamptz,true),(6,4,1,2,$1::text::timestamptz,false),(7,4,1,11,$1::text::timestamptz,true),(8,4,1,0.5,$1::text::timestamptz-interval '1 second',true),(9,4,1,0.1,$2::text::timestamptz,true)")
+            .bind::<Text,_>(start).bind::<Text,_>(end).execute(&mut connection).await?;
+        let created = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
+        assert!(created.created, "{at}");
+        let id = created.id_tournament.unwrap();
+        let period = sql_query("SELECT slug,to_char(start_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS start_at,to_char(end_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS end_at FROM public.track_tournament WHERE id=$1")
+            .bind::<Integer,_>(id).get_result::<PeriodRow>(&mut connection).await?;
+        assert_eq!(
+            (
+                period.slug.as_str(),
+                period.start_at.as_str(),
+                period.end_at.as_str()
+            ),
+            (slug, start, end)
+        );
+        let winners = sql_query(
+            "SELECT id_record AS id FROM public.track_tournament_result ORDER BY id_user",
+        )
+        .load::<IdRow>(&mut connection)
+        .await?;
+        assert_eq!(
+            winners.into_iter().map(|r| r.id).collect::<Vec<_>>(),
+            vec![2, 4, 7]
+        );
+        let ranks =
+            sql_query("SELECT rank AS id FROM public.track_tournament_result ORDER BY id_user")
+                .load::<IdRow>(&mut connection)
+                .await?;
+        assert_eq!(
+            ranks.into_iter().map(|r| r.id).collect::<Vec<_>>(),
+            vec![1, 1, 3]
+        );
+        let before = sql_query("SELECT jsonb_agg(to_jsonb(r) ORDER BY id_user) AS value FROM public.track_tournament_result r").get_result::<Snapshot>(&mut connection).await?.value;
+        let repeated = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
+        assert!(!repeated.created);
+        assert_eq!(repeated.id_tournament, Some(id));
+        assert_eq!(sql_query("SELECT jsonb_agg(to_jsonb(r) ORDER BY id_user) AS value FROM public.track_tournament_result r").get_result::<Snapshot>(&mut connection).await?.value, before);
+        rotate_track_tournament_at(&mut connection, kind, Some(end)).await?;
+        assert!(
+            sql_query(
+                "SELECT finalized_at IS NOT NULL AS value FROM public.track_tournament WHERE id=$1"
+            )
+            .bind::<Integer, _>(id)
+            .get_result::<BooleanRow>(&mut connection)
+            .await?
+            .value
+        );
+    }
+    clear_fixture(&mut connection).await?;
+    let empty =
+        rotate_track_tournament_at(&mut connection, 0, Some("2026-10-06T12:00:00Z")).await?;
+    assert!(!empty.created);
+    assert_eq!(empty.id_tournament, None);
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn rotation_waits_for_shared_submission_level_lock() -> Result<()> {
+    use std::time::Duration;
+    let mut connection = fixture().await?;
+    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2026-09-27'); INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false)").await?;
+    let mut submitter =
+        AsyncPgConnection::establish(&std::env::var("ZC_TEST_DATABASE_URL")?).await?;
+    sql_query("SELECT pg_advisory_lock_shared(0,1)")
+        .execute(&mut submitter)
+        .await?;
+    let mut rotation = tokio::spawn(async move {
+        let result =
+            rotate_track_tournament_at(&mut connection, 0, Some("2026-09-29T12:00:00Z")).await;
+        (result, connection)
+    });
+    assert!(
+        tokio::time::timeout(Duration::from_millis(100), &mut rotation)
+            .await
+            .is_err()
+    );
+    sql_query("SELECT pg_advisory_unlock_shared(0,1)")
+        .execute(&mut submitter)
+        .await?;
+    let (result, _connection) = tokio::time::timeout(Duration::from_secs(5), rotation).await??;
+    assert!(result?.created);
     Ok(())
 }
