@@ -75,7 +75,7 @@
         "elysia": "~2.0.0-beta.9",
         "exact-mirror": "^1.2.4",
         "openapi-types": "^12.1.3",
-        "postgraphile": "~5.1.0",
+        "postgraphile": "~5.2.0",
         "postgraphile-plugin-connection-filter": "~4.0.0",
         "ruru": "~2.0.1",
         "typebox": "^1.3.19",
@@ -3271,7 +3271,7 @@
 
     "postcss-value-parser": ["postcss-value-parser@4.2.0", "", {}, "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ=="],
 
-    "postgraphile": ["postgraphile@5.1.5", "", { "dependencies": { "@dataplan/json": "^1.0.1", "@dataplan/pg": "^1.1.2", "@graphile/lru": "^5.0.0", "@types/node": "^22.19.1", "@types/pg": "^8.15.6", "debug": "^4.4.3", "grafast": "^1.1.3", "grafserv": "^1.0.2", "graphile-build": "^5.1.1", "graphile-build-pg": "^5.1.4", "graphile-config": "^1.1.1", "graphile-utils": "^5.0.3", "graphql": "^16.9.0", "iterall": "^1.3.0", "jsonwebtoken": "^9.0.2", "pg": "^8.16.3", "pg-sql2": "^5.0.1", "tamedevil": "^0.1.1", "tslib": "^2.8.1", "ws": "^8.18.3" }, "peerDependencies": { "@envelop/core": "^5.0.0" }, "optionalPeers": ["@envelop/core"], "bin": { "postgraphile": "dist/cli-run.js" } }, "sha512-2sT6pyzlkJJURcrGbVng4hEDVDHq2YuySbJVnEFABs6Nr6WGLOtxsNZs1i8iYroPkI2+OL3jArEt7A6tu+b0MA=="],
+    "postgraphile": ["postgraphile@5.2.1", "", { "dependencies": { "@dataplan/json": "^1.0.2", "@dataplan/pg": "^1.2.1", "@graphile/lru": "^5.0.1", "@types/node": "^22.19.1", "@types/pg": "^8.15.6", "debug": "^4.4.3", "grafast": "^1.2.0", "grafserv": "^1.0.3", "graphile-build": "^5.2.0", "graphile-build-pg": "^5.2.0", "graphile-config": "^1.1.2", "graphile-utils": "^5.1.0", "graphql": "^16.9.0", "iterall": "^1.3.0", "jsonwebtoken": "^9.0.2", "pg": "^8.16.3", "pg-sql2": "^5.0.2", "tamedevil": "^0.1.2", "tslib": "^2.8.1", "ws": "^8.21.1" }, "peerDependencies": { "@envelop/core": "^5.0.0" }, "optionalPeers": ["@envelop/core"], "bin": { "postgraphile": "dist/cli-run.js" } }, "sha512-jYcZMd7pNnM3fdn5YcAWO/IyVWADaZOX6icuo5ViCGih7O3FgzY7Y2H6VzP9Vr8ioUfXuI2dnsB6S96+ifavHg=="],
 
     "postgraphile-plugin-connection-filter": ["postgraphile-plugin-connection-filter@4.0.1", "", { "dependencies": { "@tsconfig/node20": "^20.1.4", "tslib": "^2.5.0" }, "peerDependencies": { "postgraphile": "^5.1.4" }, "optionalPeers": ["postgraphile"] }, "sha512-LpJU+YiCaG6mPQvzhqKEfINDjnlAUiBoQ6/TshFNPAtktqx7vLtHwPKgTNXQzrCZ4rsQAjkVVFZR1reVU7qSJA=="],
 
@@ -4899,6 +4899,8 @@
 
     "postgraphile/graphql": ["graphql@16.14.2", "", {}, "sha512-Chq1s4CY7jmh8gO2qvLIJyfCDIN+EHLFW/9iShnp1z8FjBQMoodWP1kDC36VAMXXIvAjj4ARa7ntfAV2BrjsbA=="],
 
+    "postgraphile/tslib": ["tslib@2.9.1", "", {}, "sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA=="],
+
     "proper-lockfile/retry": ["retry@0.12.0", "", {}, "sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow=="],
 
     "proper-lockfile/signal-exit": ["signal-exit@3.0.7", "", {}, "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="],
@@ -5728,6 +5730,14 @@
     "password-prompt/ansi-escapes/type-fest": ["type-fest@0.21.3", "", {}, "sha512-t0rzBq87m3fVcduHDUFhKmyyX+9eo6WQjZvf51Ea/M0Q7+T374Jp1aUiyUl0GKxp8M/OETVHSDvmkyPgvX+X2w=="],
 
     "postgraphile/@dataplan/pg/chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
+
+    "postgraphile/@dataplan/pg/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "postgraphile/grafserv/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "postgraphile/graphile-build-pg/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "postgraphile/graphile-utils/tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
     "reka-ui/@vueuse/core/@vueuse/metadata": ["@vueuse/metadata@14.4.0", "", {}, "sha512-swx/255R6JyHZFJhx845iz5CRWDZdCfvkZOpACWc5+c5WHcG24mv8gUT1WIdFQaHt6dq79rvILd9QnCWiyVm9g=="],
 
