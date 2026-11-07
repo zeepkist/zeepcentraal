@@ -339,35 +339,23 @@ impl Queue {
     }
 
     pub async fn enqueue_ghost_audit_levels(&self, levels: &[i32]) -> Result<()> {
-        let mut remaining: std::collections::BTreeSet<i32> = levels.iter().copied().collect();
-        ensure!(remaining.iter().all(|id| *id > 0), "Invalid audit level");
-        while !remaining.is_empty() {
+        ensure!(levels.iter().all(|id| *id > 0), "Invalid audit level");
+        let levels: Vec<_> = levels
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        for chunk in levels.chunks(1000) {
             let mut connection = self.partition.connection().await?;
-            let taken = connection.transaction::<Vec<i32>,anyhow::Error,_>(async |connection| {
-                sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
-                #[derive(QueryableByName)]
-                struct Pending {
-                    #[diesel(sql_type=BigInt)] id:i64,
-                    #[diesel(sql_type=Jsonb)] payload:serde_json::Value,
-                }
-                let pending = sql_query("SELECT id,payload FROM zc_jobs.job WHERE task='auditRecordGhosts' AND NOT running AND NOT(payload ? 'work') AND job_key LIKE 'audit-changed-levels:%' AND jsonb_array_length(payload->'idLevels')<1000 ORDER BY id LIMIT 1 FOR UPDATE")
-                    .get_result::<Pending>(connection).await.optional()?;
-                let mut ids: std::collections::BTreeSet<i32> = pending.as_ref().into_iter().flat_map(|p|p.payload["idLevels"].as_array().into_iter().flatten()).filter_map(|v|v.as_i64().and_then(|n|i32::try_from(n).ok())).collect();
-                let taken:Vec<_> = remaining.iter().filter(|id|!ids.contains(id)).take(1000-ids.len()).copied().collect();
-                let already:Vec<_> = remaining.intersection(&ids).copied().collect();
-                ids.extend(taken.iter().copied());
-                let payload=serde_json::json!({"idLevels":ids});
-                if let Some(pending)=pending {
-                    sql_query("UPDATE zc_jobs.job SET payload=$2 WHERE id=$1").bind::<BigInt,_>(pending.id).bind::<Jsonb,_>(payload).execute(connection).await?;
-                } else {
-                    sql_query("SELECT zc_jobs.enqueue('bulk','auditRecordGhosts',$1,$2,'ghost-audit',3,clock_timestamp())")
-                        .bind::<Jsonb,_>(payload).bind::<Text,_>(format!("audit-changed-levels:{}",zc_core::generate_uid())).execute(connection).await?;
-                }
-                Ok(taken.into_iter().chain(already).collect())
-            }).await?;
-            for id in taken {
-                remaining.remove(&id);
-            }
+            connection
+                .transaction::<(), anyhow::Error, _>(async |connection| {
+                    zc_database::services::workshop_queue::enqueue_ghost_audit_levels(
+                        connection, chunk,
+                    )
+                    .await
+                })
+                .await?;
         }
         Ok(())
     }

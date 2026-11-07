@@ -1,3 +1,4 @@
+use super::workshop_queue::{enqueue_ghost_audit_levels, enqueue_level_scores};
 use crate::Database;
 use anyhow::{Result, ensure};
 use diesel::{
@@ -351,9 +352,12 @@ impl Database {
                     });
                     let mut validation_level_ids=Vec::new();
                     if metadata_changed {validation_level_ids.push(id_level);}
+                    let score_changed = created || item_changed || accessibility_changed;
+                    if score_changed { enqueue_level_scores(connection, &[id_level]).await?; }
+                    enqueue_ghost_audit_levels(connection, &validation_level_ids).await?;
                     Ok(WorkshopLevelUpsertResult {
                         id_level,
-                        score_changed: created || item_changed || accessibility_changed,
+                        score_changed,
                         validation_level_ids,
                     })
                 })
@@ -384,7 +388,9 @@ impl Database {
                 .bind::<Array<Text>, _>(active_xx_hashes)
                 .load::<ChangedLevel>(connection)
                 .await?;
-                Ok(unique_ids(changed))
+                let ids = unique_ids(changed);
+                enqueue_level_scores(connection, &ids).await?;
+                Ok(ids)
             })
             .await
     }
@@ -413,7 +419,9 @@ impl Database {
                 .bind::<BigInt, _>(workshop_id)
                 .load::<ChangedLevel>(connection)
                 .await?;
-                Ok(unique_ids(changed))
+                let ids = unique_ids(changed);
+                enqueue_level_scores(connection, &ids).await?;
+                Ok(ids)
             })
             .await
     }
@@ -502,7 +510,9 @@ impl Database {
                     .into_iter()
                     .map(|row| row.id_level),
                 );
-                Ok((refresh.into_iter().collect::<Vec<_>>(), deleted, zeroed))
+                let ids: Vec<_> = refresh.into_iter().collect();
+                enqueue_level_scores(connection, &ids).await?;
+                Ok((ids, deleted, zeroed))
             })
             .await?;
         tracing::info!(

@@ -317,3 +317,5 @@ pub mod submission_notifications;
 pub mod submissions;
 
 pub mod playlist_notifications;
+
+pub mod workshop_queue;

@@ -9,7 +9,7 @@ use anyhow::{Context, Result, ensure};
 use async_trait::async_trait;
 use sha2::{Digest, Sha256};
 use std::{
-    collections::{BTreeSet, VecDeque},
+    collections::VecDeque,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -234,22 +234,21 @@ impl ServiceJobHandler {
         Ok(JobOutcome::Completed)
     }
 
-    async fn enqueue_level_ghost_audits(&self, ids: &[i32]) -> Result<()> {
-        self.queue.enqueue_ghost_audit_levels(ids).await
-    }
-
     async fn scan_item(&self, payload: &serde_json::Value) -> Result<()> {
         let workshop_id = payload["workshopId"]
             .as_str()
             .context("workshopId is missing")?
             .parse::<u64>()?;
         let result = self.scanner().scan_workshop_item(workshop_id).await?;
-        self.enqueue_level_ghost_audits(&result.validation_level_ids)
-            .await?;
         self.database
             .release_level_request(i64::try_from(workshop_id)?)
             .await?;
-        self.enqueue_level_scores(&result.changed_level_ids).await
+        tracing::info!(
+            workshop_id,
+            changed_levels = result.changed_level_ids.len(),
+            "Workshop scan committed with durable follow-ups"
+        );
+        Ok(())
     }
 
     async fn scan_batch(&self, payload: &serde_json::Value) -> Result<()> {
@@ -269,17 +268,16 @@ impl ServiceJobHandler {
             .scanner()
             .scan_workshop_items(&workshop_ids, 10)
             .await?;
-        let mut changed = BTreeSet::new();
         for result in batch.results {
-            self.enqueue_level_ghost_audits(&result.validation_level_ids)
-                .await?;
             self.database
                 .release_level_request(i64::try_from(result.workshop_id)?)
                 .await?;
-            changed.extend(result.changed_level_ids);
+            tracing::info!(
+                workshop_id = result.workshop_id,
+                changed_levels = result.changed_level_ids.len(),
+                "Workshop scan committed with durable follow-ups"
+            );
         }
-        self.enqueue_level_scores(&changed.into_iter().collect::<Vec<_>>())
-            .await?;
         for failure in batch.transient_failures {
             self.queue
                 .enqueue(
@@ -287,20 +285,6 @@ impl ServiceJobHandler {
                     serde_json::json!({"workshopId": failure.workshop_id.to_string()}),
                     JobLane::Bulk,
                     Some(&format!("scan-workshop-item:{}", failure.workshop_id)),
-                )
-                .await?;
-        }
-        Ok(())
-    }
-
-    async fn enqueue_level_scores(&self, ids: &[i32]) -> Result<()> {
-        for id_level in ids {
-            self.queue
-                .enqueue(
-                    TaskIdentifier::UpdateLevelScore,
-                    serde_json::json!({"idLevel": id_level}),
-                    JobLane::Bulk,
-                    Some(&format!("update-level-score:{id_level}")),
                 )
                 .await?;
         }
@@ -328,11 +312,9 @@ impl ServiceJobHandler {
         let discovery =
             discover_catalog(self.metadata.as_ref(), &stored, force_all, repair_zsl).await?;
         for missing in discovery.missing.chunks(100) {
-            let changed = self
-                .database
+            self.database
                 .reconcile_missing_workshop_items(missing)
                 .await?;
-            self.enqueue_level_scores(&changed).await?;
         }
         for chunk in discovery.queued.chunks(WORKSHOP_SCAN_BATCH_SIZE) {
             let first = chunk.first().context("empty workshop chunk")?;
