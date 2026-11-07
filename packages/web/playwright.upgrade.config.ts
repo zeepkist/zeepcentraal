@@ -48,7 +48,7 @@ export default defineConfig({
 		{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel } },
 		{
 			name: 'firefox',
-			testMatch: ['**/upgrade/*.e2e.ts', '**/e2e/motion*.e2e.ts'],
+			testMatch: ['**/upgrade/*.e2e.ts', '**/e2e/motion*.e2e.ts', '**/e2e/playlist.e2e.ts'],
 			use: { ...devices['Desktop Firefox'] },
 		},
 		{ name: 'mobile', use: { ...devices['Pixel 7'], channel } },

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref, shallowRef, toRaw } from 'vue'
+import { computed, onScopeDispose, ref, shallowRef, toRaw } from 'vue'
 
 import type { LevelSummary, LocalPlaylist, LocalPlaylistLevel } from '~/types/app'
 import {
@@ -26,6 +26,26 @@ export const usePlaylistsStore = defineStore('playlists', () => {
 	let database: PlaylistDatabase | undefined
 	let saveTimer: ReturnType<typeof setTimeout> | undefined
 	let saveQueue = Promise.resolve()
+	let unsubscribe: (() => void) | undefined
+	onScopeDispose(() => {
+		unsubscribe?.()
+		if (saveTimer) clearTimeout(saveTimer)
+	})
+
+	function synchronize() {
+		saveQueue = saveQueue
+			.catch(() => undefined)
+			.then(async () => {
+				if (!database || persistenceStatus.value === 'error') return
+				const stored = await database.refresh(snapshot)
+				playlists.value = stored.playlists
+				activePlaylistId.value = stored.activePlaylistId
+			})
+			.catch((error: unknown) => {
+				persistenceStatus.value = 'error'
+				persistenceError.value = error instanceof Error ? error.message : String(error)
+			})
+	}
 
 	function snapshot(): PlaylistDatabaseSnapshot {
 		return {
@@ -50,6 +70,9 @@ export const usePlaylistsStore = defineStore('playlists', () => {
 				? stored.activePlaylistId
 				: (stored.playlists[0]?.id ?? null)
 			persistenceStatus.value = 'saved'
+			if (typeof BroadcastChannel !== 'undefined' && database.subscribe) {
+				unsubscribe = database.subscribe(synchronize)
+			}
 		} catch (error) {
 			persistenceStatus.value = 'error'
 			persistenceError.value = error instanceof Error ? error.message : String(error)
@@ -69,8 +92,7 @@ export const usePlaylistsStore = defineStore('playlists', () => {
 		if (!database) return
 		if (saveTimer) clearTimeout(saveTimer)
 		saveTimer = undefined
-		const pending = snapshot()
-		saveQueue = saveQueue.catch(() => undefined).then(() => database?.save(pending))
+		saveQueue = saveQueue.catch(() => undefined).then(() => database?.save(snapshot()))
 		try {
 			await saveQueue
 			persistenceStatus.value = 'saved'
