@@ -39,7 +39,6 @@
 					:line-dash-array="lineDashArray"
 					:duration="chartDuration"
 					:hide-legend="true"
-					:tooltip="tooltipOptions"
 				>
 					<template #tooltip="{ values }">
 						<DashboardChartTooltip
@@ -69,7 +68,6 @@
 					:line-dash-array="lineDashArray"
 					:duration="chartDuration"
 					:hide-legend="true"
-					:tooltip="tooltipOptions"
 				>
 					<template #tooltip="{ values }">
 						<DashboardChartTooltip
@@ -134,7 +132,6 @@ const visibleDeltaData = computed(() => selectVisibleData(props.analysis.deltaDa
 const visibleSpeedData = computed(() => selectVisibleData(props.analysis.speedData))
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const chartDuration = useMotionDuration(500)
-const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 
 function formatCheckpoint(index: number) {
 	return index >= props.analysis.checkpointCount

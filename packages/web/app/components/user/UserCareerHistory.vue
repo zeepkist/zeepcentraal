@@ -31,7 +31,7 @@
 					<TablerIcon name="loader-2" class="size-7 motion-safe:animate-spin" />
 					<span class="sr-only">{{ labels.loading }}</span>
 				</div>
-				<LineChart v-else :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :y-formatter="series.inverted ? formatRankTick : formatCompactTick" :line-width="3" :hide-legend="true" :duration="duration" :tooltip="tooltipOptions">
+				<LineChart v-else :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :y-formatter="series.inverted ? formatRankTick : formatCompactTick" :line-width="3" :hide-legend="true" :duration="duration">
 					<template #tooltip="{ values }">
 						<DashboardChartTooltip :entries="tooltipEntries(values, series)" :title="tooltipTitle(values)" :show-percentage="false" />
 					</template>
@@ -82,7 +82,6 @@ const duration = useMotionDuration(500)
 const hydrated = ref(false)
 const pointsSeries = ref<PointsSeries>('rankedPoints')
 const standingSeries = ref<StandingSeries>('rank')
-const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 
 onMounted(() => {
 	hydrated.value = true

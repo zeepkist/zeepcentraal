@@ -279,24 +279,17 @@ html:active-view-transition-type(detail-back)::view-transition-new(page-content)
 	}
 }
 
-:root {
-	--vis-color0: var(--color-chart-1);
-	--vis-color1: var(--color-chart-2);
-	--vis-color2: var(--color-chart-3);
-	--vis-color3: var(--color-chart-4);
-	--vis-color4: var(--color-chart-5);
-	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
-	--vis-tooltip-background-color: transparent !important;
-	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
-	--vis-tooltip-border-color: transparent !important;
-	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
-	--vis-tooltip-text-color: var(--ui-text) !important;
-	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
-	--vis-axis-grid-color: var(--ui-border) !important;
-	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
-	--vis-axis-tick-label-color: var(--ui-text) !important;
-	/* biome-ignore lint/complexity/noImportantStyles: Using !important for tooltip styles */
-	--vis-legend-label-color: var(--ui-text) !important;
+.vue-chrts {
+	--vc-series-0: var(--color-chart-1);
+	--vc-series-1: var(--color-chart-2);
+	--vc-series-2: var(--color-chart-3);
+	--vc-series-3: var(--color-chart-4);
+	--vc-series-4: var(--color-chart-5);
+	--vc-font-family: var(--font-sans);
+	--vc-tooltip-fg: var(--ui-text);
+	--vc-grid-color: var(--ui-border);
+	--vc-tick-color: var(--ui-text);
+	--vc-legend-color: var(--ui-text);
 }
 
 @font-face {

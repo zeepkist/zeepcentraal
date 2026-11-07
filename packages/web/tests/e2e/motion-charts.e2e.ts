@@ -76,4 +76,33 @@ test('mounted charts follow live reduced motion while period data changes', asyn
 	const reducedAgain = await paths()
 	await page.waitForTimeout(700)
 	expect(await paths()).toEqual(reducedAgain)
+	await chart.scrollIntoViewIfNeeded()
+	const point = await chart
+		.locator('path.v-charts-sector')
+		.first()
+		.evaluate((element) => {
+			const path = element as SVGPathElement
+			const bounds = path.getBBox()
+			const matrix = path.getScreenCTM()
+			if (!matrix) throw new Error('Donut sector has no screen transform')
+			for (let y = 0.1; y < 1; y += 0.2) {
+				for (let x = 0.1; x < 1; x += 0.2) {
+					const local = new DOMPoint(
+						bounds.x + bounds.width * x,
+						bounds.y + bounds.height * y,
+					)
+					if (!path.isPointInFill(local)) continue
+					const screen = local.matrixTransform(matrix)
+					const point = { x: Math.round(screen.x), y: Math.round(screen.y) }
+					if (document.elementFromPoint(point.x, point.y) !== path) continue
+					return point
+				}
+			}
+			throw new Error('Donut sector has no hoverable interior')
+		})
+	await page.mouse.move(point.x, point.y)
+	await expect(page.getByRole('tooltip')).toBeVisible()
+	await expect(page.getByRole('tooltip')).toContainText(/20%|80%/)
+	await page.mouse.move(0, 0)
+	await expect(page.getByRole('tooltip')).toHaveCount(0)
 })

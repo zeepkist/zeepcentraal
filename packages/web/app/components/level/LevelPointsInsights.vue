@@ -9,7 +9,6 @@
 			:line-width="3"
 			:hide-legend="true"
 			:duration="chartDuration"
-			:tooltip="tooltipOptions"
 		>
 			<template #tooltip="{ values }">
 				<DashboardChartTooltip
@@ -40,7 +39,6 @@ const categories = computed(() => ({
 	points: { name: props.seriesLabel, color: '#facc15' },
 }))
 const chartDuration = useMotionDuration(500)
-const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 
 function formatDateAtIndex(index: number) {
 	const value = props.history[index]?.date

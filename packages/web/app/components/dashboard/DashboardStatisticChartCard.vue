@@ -33,7 +33,6 @@
 						:radius="10"
 						:bar-padding="0.22"
 						:padding="{ top: 8, right: 8, bottom: 8, left: 8 }"
-						:tooltip="tooltipOptions"
 						hide-legend
 						hide-x-axis
 						hide-y-axis
@@ -72,7 +71,6 @@ const props = withDefaults(
 )
 
 const chartDuration = useMotionDuration(650)
-const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const total = computed(() => props.entries.reduce((sum, entry) => sum + entry.value, 0))
 const barData = computed(() => [
 	Object.fromEntries(props.entries.map((entry) => [entry.key, entry.value])),

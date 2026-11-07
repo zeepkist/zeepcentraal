@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Orientation } from '#imports'
+import * as Chart from 'vccs'
 import type { VoteResultCategory } from '~/utils/superLeagueVoteResults'
 import { voteResultChartData } from '~/utils/superLeagueVoteResults'
 
@@ -9,26 +9,11 @@ const props = defineProps<{
 	votedLevels: Set<number>
 	ownLevels: Set<number>
 }>()
-// Nuxt Charts 2.2.0 clears tooltip slot values during reactive updates.
-const hover = shallowRef<{ x: number; y: number; levelId: number } | null>(null)
+const tooltipPosition = shallowRef<{ x: number; y: number } | null>(null)
 function moveTooltip(event: PointerEvent) {
-	const target = event.target
-	if (!(target instanceof SVGPathElement) || !target.style.fill.startsWith('var(--chart-')) {
-		hover.value = null
-		return
-	}
-	// Each positive row has one nonzero stack. Nuxt Charts renders paths in data order.
-	const chart = event.currentTarget as HTMLElement
-	const bars = Array.from(chart.querySelectorAll('path[style*="--chart-"]'))
-	const level = chartData.value.filter((row) => row.totalVotes > 0)[bars.indexOf(target)]
-	if (!level) {
-		hover.value = null
-		return
-	}
-	hover.value = {
+	tooltipPosition.value = {
 		x: Math.max(16, Math.min(event.clientX + 12, window.innerWidth - 304)),
 		y: Math.max(16, Math.min(event.clientY + 12, window.innerHeight - 170)),
-		levelId: level.levelId,
 	}
 }
 const { t, locale } = useAppI18n()
@@ -46,23 +31,14 @@ const levels = computed(() => props.category.levels.map((level) => ({
 	voted: props.votedLevels.has(level.levelId),
 	own: props.ownLevels.has(level.levelId),
 })))
-// Horizontal chart index increases from bottom to top.
-const chartData = computed(() => voteResultChartData([...props.category.levels].reverse(), props.votedLevels))
-const chartCategories = computed(() => ({
-	votes: { name: t('zsl.voting.votes'), color: 'var(--chart-1)' },
-	votedVotes: { name: t('zsl.voting.youVoted'), color: 'var(--chart-3)' },
-}))
+const chartData = computed(() => voteResultChartData(props.category.levels, props.votedLevels))
 const height = computed(() => Math.max(200, levels.value.length * 36 + 40))
 const axisLabels = computed(() => chartData.value.map((level) => level.name.length > 26 ? `${level.name.slice(0, 25)}…` : level.name))
-const yFormatter = (index: number | Date) => axisLabels.value[Number(index)] ?? ''
+const yFormatter = (levelId: number) => axisLabels.value[chartData.value.findIndex((level) => level.levelId === Number(levelId))] ?? ''
 const xFormatter = (value: number | Date) => Number.isInteger(Number(value)) ? formatNumber(Number(value)) : ''
-const yAxisConfig = computed(() => ({
-	tickValues: chartData.value.map((_level, index) => index),
-	tickTextFitMode: 'trim' as const,
-	tickTextTrimType: 'end' as const,
-}))
+const axisStyle = { fill: 'var(--ui-text)', fontFamily: 'var(--font-sans)', fontSize: 12 }
 const hasVoted = computed(() => levels.value.some((level) => level.voted))
-const tooltipLevel = computed(() => levels.value.find((level) => level.levelId === hover.value?.levelId))
+const tooltipName = (levelId: number) => levels.value.find((level) => level.levelId === levelId)?.name
 </script>
 
 <template>
@@ -89,21 +65,29 @@ const tooltipLevel = computed(() => levels.value.find((level) => level.levelId =
 						<span v-if="hasVoted" class="flex items-center gap-2"><span class="size-2 rounded-full bg-chart-3" />{{ t('zsl.voting.youVoted') }}</span>
 					</div>
 					<ClientOnly>
-						<div class="vote-results-chart max-h-128 overflow-y-auto" style="--vis-font-family: var(--font-sans)" role="img" :aria-label="`${title}: ${t('zsl.voting.chartDescription')}`"
-							@pointermove.passive="moveTooltip" @pointerdown.passive="moveTooltip" @pointerleave="hover = null" @scroll.passive="hover = null">
-							<BarChart :data="chartData" :categories="chartCategories" :y-axis="['votes', 'votedVotes']"
-								:height="height" :orientation="Orientation.Horizontal" stacked hide-legend
-								:duration="chartDuration" :radius="5" :bar-padding="0.3"
-								:y-axis-config="yAxisConfig"
-								:x-formatter="xFormatter" :y-formatter="yFormatter" :x-num-ticks="5" x-grid-line
-								hide-tooltip />
-							<Teleport to="body">
-								<div v-if="hover && tooltipLevel" role="tooltip" class="pointer-events-none fixed z-50 max-w-72 wrap-break-word rounded-xl border border-border bg-card p-3 font-sans text-sm shadow-xl"
-									:style="{ left: `${hover.x}px`, top: `${hover.y}px` }">
-									<p class="font-semibold text-highlighted">{{ tooltipLevel.name }}</p>
-									<p class="mt-1 tabular-nums text-muted-foreground">{{ formatNumber(tooltipLevel.votes) }} {{ t('zsl.voting.votes') }}</p>
-								</div>
-							</Teleport>
+						<div class="vote-results-chart vue-chrts max-h-128 overflow-y-auto" role="img" :aria-label="`${title}: ${t('zsl.voting.chartDescription')}`"
+							@pointermove.passive="moveTooltip" @pointerdown.passive="moveTooltip" @pointerleave="tooltipPosition = null" @scroll.passive="tooltipPosition = null">
+							<Chart.ResponsiveContainer width="100%" :height="height">
+								<Chart.BarChart :data="chartData" layout="vertical" bar-category-gap="30%" :margin="{ top: 8, right: 16, bottom: 8, left: 0 }">
+									<Chart.CartesianGrid :horizontal="false" stroke="var(--ui-border)" stroke-dasharray="3 3" />
+									<Chart.XAxis type="number" :tick-formatter="xFormatter" :tick-count="5" :allow-decimals="false" :tick-text-props="axisStyle" :tick-line="false" :axis-line="false" />
+									<Chart.YAxis data-key="levelId" type="category" :width="190" :tick-formatter="yFormatter" :interval="0" :tick-text-props="axisStyle" :tick-line="false" :axis-line="false" />
+									<Chart.Bar data-key="votes" stack-id="votes" fill="var(--chart-1)" :radius="[0, 5, 5, 0]" :is-animation-active="chartDuration !== 0" :transition="{ duration: chartDuration / 1000, ease: 'easeOut' }" />
+									<Chart.Bar data-key="votedVotes" stack-id="votes" fill="var(--chart-3)" :radius="[0, 5, 5, 0]" :is-animation-active="chartDuration !== 0" :transition="{ duration: chartDuration / 1000, ease: 'easeOut' }" />
+									<!-- Custom portal escapes scrolling; hide the empty native tooltip wrapper. -->
+									<Chart.Tooltip :cursor="false" :is-animation-active="false" :style="{ display: 'none' }">
+										<template #content="{ payload, active }">
+											<Teleport to="body">
+												<div v-if="active && tooltipPosition && payload[0]?.payload" role="tooltip" class="pointer-events-none fixed z-50 max-w-72 wrap-break-word rounded-xl border border-border bg-card p-3 font-sans text-sm shadow-xl"
+													:style="{ left: `${tooltipPosition.x}px`, top: `${tooltipPosition.y}px` }">
+													<p class="font-semibold text-highlighted">{{ tooltipName(payload[0].payload.levelId) }}</p>
+													<p class="mt-1 tabular-nums text-muted-foreground">{{ formatNumber(payload[0].payload.totalVotes) }} {{ t('zsl.voting.votes') }}</p>
+												</div>
+											</Teleport>
+										</template>
+									</Chart.Tooltip>
+								</Chart.BarChart>
+							</Chart.ResponsiveContainer>
 						</div>
 						<template #fallback><USkeleton class="h-52 rounded-xl" /></template>
 					</ClientOnly>

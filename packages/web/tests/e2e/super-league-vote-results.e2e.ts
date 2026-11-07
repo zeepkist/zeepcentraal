@@ -279,7 +279,7 @@ for (const theme of ['dark', 'light']) {
 		const votedBar = page
 			.getByRole('img', { name: /Votes per level/ })
 			.first()
-			.locator('path[style*="--chart-3"]')
+			.locator('path[fill="var(--chart-3)"]')
 			.first()
 		await expect(votedBar).toBeVisible()
 		await votedBar.hover()
@@ -296,9 +296,9 @@ for (const theme of ['dark', 'light']) {
 		const regularBars = page
 			.getByRole('img', { name: /Votes per level/ })
 			.first()
-			.locator('path[style*="--chart-1"]')
+			.locator('path[fill="var(--chart-1)"]')
 		await expect(regularBars).toHaveCount(17)
-		await regularBars.last().hover()
+		await regularBars.first().hover()
 		await expect(page.getByRole('tooltip')).toContainText('Level 2')
 		await expect(page.getByRole('tooltip')).toContainText('by justMaki + maou')
 		await expect(page.getByRole('tooltip')).toContainText('17 Votes')

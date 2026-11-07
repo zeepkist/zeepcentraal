@@ -79,7 +79,7 @@ export default defineNuxtConfig({
 		'@pinia/nuxt',
 		'nuxt-charts',
 	],
-	nuxtChartsLegacy: {
+	nuxtCharts: {
 		global: false,
 		include: ['LineChart', 'BarChart', 'DonutChart'],
 	},
@@ -90,7 +90,13 @@ export default defineNuxtConfig({
 				if (!isClient || !config.optimizeDeps?.include) return
 				// Bun isolates transitive dependencies beside their owning package.
 				config.optimizeDeps.include = config.optimizeDeps.include.map((dependency) => {
-					if (dependency === 'vue-chrts') return 'nuxt-charts > vue-chrts'
+					if (
+						dependency === 'vccs' ||
+						dependency === 'motion-v' ||
+						dependency.startsWith('vccs > ')
+					) {
+						return `nuxt-charts > ${dependency}`
+					}
 					if (dependency.startsWith('@nuxtjs/mdc > ')) {
 						return `@nuxt/content > ${dependency}`
 					}

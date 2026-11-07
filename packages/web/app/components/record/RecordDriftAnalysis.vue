@@ -18,7 +18,6 @@
 						:radius="7"
 						:bar-padding="0.28"
 						:padding="{ top: 4, right: 12, bottom: 4, left: 156 }"
-						:tooltip="tooltipOptions"
 						hide-legend
 						hide-x-axis
 					>
@@ -158,7 +157,6 @@ const percentageFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { style: 'percent', maximumFractionDigits: 1 }),
 )
 const chartDuration = useMotionDuration(500)
-const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const runAxisConfig = {
 	tickTextAlign: 'right' as const,
 	tickTextFitMode: 'trim' as const,

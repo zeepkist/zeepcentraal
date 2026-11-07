@@ -31,7 +31,6 @@
 				:line-dash-array="chart.series.map((series) => (series.dashed ? [3, 5] : []))"
 				:duration="chartDuration"
 				:hide-legend="true"
-				:tooltip="tooltipOptions"
 			>
 				<template #tooltip="{ values }">
 					<DashboardChartTooltip
@@ -101,7 +100,6 @@ const { locale } = useAppI18n()
 const chartDuration = useMotionDuration(500)
 const focusedSeriesKey = ref<string | null>('primary')
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
-const tooltipOptions = { followCursor: true, showDelay: 80, hideDelay: 40 }
 const chartHeight = 240
 const charts = computed(() =>
 	buildRecordTelemetryChartsFromSources([
