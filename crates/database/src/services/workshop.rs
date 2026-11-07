@@ -43,7 +43,7 @@ pub struct WorkshopLevelInput {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkshopLevelUpsertResult {
     pub id_level: i32,
-    pub score_changed: bool,
+    pub changed_level_ids: Vec<i32>,
     pub validation_level_ids: Vec<i32>,
 }
 
@@ -170,12 +170,11 @@ impl Database {
                     let existing_item = sql_query(
                         "SELECT li.id,li.id_level,li.deleted,l.xx_hash \
                          FROM public.level_item li JOIN public.level l ON l.id=li.id_level \
-                         WHERE li.workshop_id=$1 AND (l.xx_hash=$2 OR li.file_uid=$3) \
-                         ORDER BY CASE WHEN l.xx_hash=$2 THEN 0 ELSE 1 END,li.id LIMIT 1 FOR UPDATE OF li",
+                         WHERE li.workshop_id=$1 AND l.xx_hash=$2 \
+                         ORDER BY li.deleted,li.id LIMIT 1 FOR UPDATE OF li",
                     )
                     .bind::<BigInt, _>(input.workshop_id)
                     .bind::<Text, _>(&input.xx_hash)
-                    .bind::<Text, _>(&input.file_uid)
                     .get_result::<ExistingItem>(connection)
                     .await
                     .optional()?;
@@ -293,6 +292,11 @@ impl Database {
                         }
                     }
 
+                    // Reused UIDs retire old uploads; never detach historical levels.
+                    let retired = sql_query("UPDATE public.level_item SET deleted=true,date_updated=clock_timestamp() WHERE workshop_id=$1 AND file_uid=$2 AND id_level<>$3 AND NOT deleted RETURNING id_level")
+                        .bind::<BigInt,_>(input.workshop_id).bind::<Text,_>(&input.file_uid).bind::<Integer,_>(id_level)
+                        .load::<ChangedLevel>(connection).await?;
+                    let mut changed_level_ids = unique_ids(retired);
                     let item_changed = existing_item.as_ref().is_none_or(|item| {
                         item.deleted || item.id_level != id_level
                     });
@@ -352,12 +356,18 @@ impl Database {
                     });
                     let mut validation_level_ids=Vec::new();
                     if metadata_changed {validation_level_ids.push(id_level);}
-                    let score_changed = created || item_changed || accessibility_changed;
-                    if score_changed { enqueue_level_scores(connection, &[id_level]).await?; }
+                    if created || item_changed || accessibility_changed { changed_level_ids.push(id_level); }
+                    if accessibility_changed {
+                        changed_level_ids.extend(sql_query("SELECT DISTINCT id_level FROM public.level_item WHERE workshop_id=$1")
+                            .bind::<BigInt,_>(input.workshop_id).load::<ChangedLevel>(connection).await?.into_iter().map(|row|row.id_level));
+                    }
+                    changed_level_ids.sort_unstable();
+                    changed_level_ids.dedup();
+                    enqueue_level_scores(connection, &changed_level_ids).await?;
                     enqueue_ghost_audit_levels(connection, &validation_level_ids).await?;
                     Ok(WorkshopLevelUpsertResult {
                         id_level,
-                        score_changed,
+                        changed_level_ids,
                         validation_level_ids,
                     })
                 })

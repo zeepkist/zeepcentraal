@@ -175,7 +175,7 @@ impl WorkshopPersistence for DatabaseWorkshopPersistence {
         let result = self.database.upsert_workshop_level(&database_input).await?;
         Ok(WorkshopLevelUpsertResult {
             id_level: result.id_level,
-            score_changed: result.score_changed,
+            changed_level_ids: result.changed_level_ids,
             validation_level_ids: result.validation_level_ids,
         })
     }

@@ -50,7 +50,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         blocks: json!([{"i": 22}, {"i": 2}]),
     };
     let first = database.upsert_workshop_level(&input).await?;
-    assert!(first.score_changed);
+    assert!(first.changed_level_ids.contains(&first.id_level));
     let fingerprint = client
         .query_one(
             "SELECT simhash FROM public.level WHERE id=$1",
@@ -80,7 +80,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     );
     let second = database.upsert_workshop_level(&input).await?;
     assert_eq!(second.id_level, first.id_level);
-    assert!(!second.score_changed);
+    assert!(second.changed_level_ids.is_empty());
     assert!(second.validation_level_ids.is_empty());
     let after = client
         .query_one(
@@ -117,7 +117,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         )
         .await?;
     let repaired = database.upsert_workshop_level(&input).await?;
-    assert!(!repaired.score_changed);
+    assert!(repaired.changed_level_ids.is_empty());
     assert_eq!(
         client
             .query_one(
@@ -134,7 +134,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         Some(json!({"skybox": 1, "skyboxOverride": {"sun": {"i": 0.125}}}));
     let lighting_update = database.upsert_workshop_level(&changed_environment).await?;
     assert_eq!(lighting_update.id_level, first.id_level);
-    assert!(!lighting_update.score_changed);
+    assert!(lighting_update.changed_level_ids.is_empty());
     assert_eq!(lighting_update.validation_level_ids, vec![first.id_level]);
     let saved = client
         .query_one(
@@ -168,7 +168,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         vec![first.id_level]
     );
     let restored = database.upsert_workshop_level(&input).await?;
-    assert!(restored.score_changed);
+    assert!(restored.changed_level_ids.contains(&restored.id_level));
 
     assert_eq!(
         database
@@ -187,7 +187,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         0
     );
     let restored = database.upsert_workshop_level(&input).await?;
-    assert!(restored.score_changed);
+    assert!(restored.changed_level_ids.contains(&restored.id_level));
     assert!(
         !client
             .query_one(
@@ -241,13 +241,44 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         .get(0);
     assert!(!deleted);
 
-    // Reused UID replaces current membership; no separate lineage is retained.
-    // A reused UID moves current membership, but retains both existing metadata versions.
+    client
+        .execute(
+            "UPDATE public.level SET adventure=false WHERE id=$1",
+            &[&first.id_level],
+        )
+        .await?;
+    let player = database.get_user(steam_id).await?.expect("workshop author");
+    let record = database
+        .submit_record(zc_database::services::record::RecordSubmission {
+            evidence: None,
+            id_user: player.id,
+            id_level: first.id_level,
+            time: 30.0,
+            game_version: "test",
+            mod_version: "test",
+            splits: &[],
+            speeds: &[],
+            statistics: &zc_core::ghosts::GhostStatistics::default(),
+        })
+        .await?;
+    client.execute("INSERT INTO public.user_point_contribution(id_user,id_level,id_record,contribution_rank,level_position,level_points,level_decayed_points,player_decayed_points,date_calculated) VALUES($1,$2,$3,1,1,900,900,900,now())", &[&player.id,&first.id_level,&record.id_record]).await?;
+    // Reused UID retires old membership and preserves both metadata versions.
     let mut new_version = input.clone();
     new_version.xx_hash = format!("{:032X}", suffix + 1_000_000);
     new_version.blocks = json!([{"i":22},{"i":2},{"i":22}]);
     let changed = database.upsert_workshop_level(&new_version).await?;
     assert_ne!(changed.id_level, first.id_level);
+    assert!(changed.changed_level_ids.contains(&first.id_level));
+    assert!(changed.changed_level_ids.contains(&changed.id_level));
+    assert!(
+        client
+            .query_one(
+                "SELECT deleted FROM public.level_item WHERE workshop_id=$1 AND id_level=$2",
+                &[&workshop_id, &first.id_level]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
     assert!(!changed.validation_level_ids.contains(&first.id_level));
     assert!(changed.validation_level_ids.contains(&changed.id_level));
     assert_eq!(
@@ -263,7 +294,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert_eq!(
         client
             .query_one(
-                "SELECT id_level FROM public.level_item WHERE workshop_id=$1 AND file_uid=$2",
+                "SELECT id_level FROM public.level_item WHERE workshop_id=$1 AND file_uid=$2 AND NOT deleted",
                 &[&workshop_id, &input.file_uid]
             )
             .await?
@@ -296,6 +327,112 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
             .await?
             .get::<_, i64>(0),
         membership_count
+    );
+    database
+        .update_level_scores(&[first.id_level], false)
+        .await?;
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT points FROM public.level_points WHERE id_level=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, i32>(0),
+        0
+    );
+    database
+        .reconcile_level_contribution_users(first.id_level, &[player.id])
+        .await?;
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM public.user_point_contribution WHERE id_level=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM public.record WHERE id=$1",
+                &[&record.id_record]
+            )
+            .await?
+            .get::<_, i64>(0),
+        1
+    );
+
+    let restored = database.upsert_workshop_level(&input).await?;
+    assert_eq!(restored.id_level, first.id_level);
+    assert!(restored.changed_level_ids.contains(&changed.id_level));
+    let (left, right) = tokio::join!(
+        database.upsert_workshop_level(&input),
+        database.upsert_workshop_level(&input)
+    );
+    assert!(left?.changed_level_ids.is_empty());
+    assert!(right?.changed_level_ids.is_empty());
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM public.level_item WHERE workshop_id=$1",
+                &[&workshop_id]
+            )
+            .await?
+            .get::<_, i64>(0),
+        membership_count
+    );
+    assert_eq!(
+        client
+            .query_one(
+                "SELECT count(*) FROM public.level_item WHERE workshop_id=$1 AND NOT deleted",
+                &[&workshop_id]
+            )
+            .await?
+            .get::<_, i64>(0),
+        1
+    );
+
+    let mut alias = input.clone();
+    alias.workshop_id += 10_000;
+    database.upsert_workshop_level(&alias).await?;
+    database.upsert_workshop_level(&new_version).await?;
+    database
+        .update_level_scores(&[first.id_level], false)
+        .await?;
+    assert!(
+        client
+            .query_one(
+                "SELECT points FROM public.level_points WHERE id_level=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, i32>(0)
+            > 0,
+        "surviving upload keeps level score eligible"
+    );
+    database.mark_workshop_deleted(alias.workshop_id, 2).await?;
+    client
+        .execute(
+            "UPDATE public.level SET adventure=true WHERE id=$1",
+            &[&first.id_level],
+        )
+        .await?;
+    database
+        .update_level_scores(&[first.id_level], false)
+        .await?;
+    assert!(
+        client
+            .query_one(
+                "SELECT points FROM public.level_points WHERE id_level=$1",
+                &[&first.id_level]
+            )
+            .await?
+            .get::<_, i32>(0)
+            > 0,
+        "adventure remains eligible without workshop uploads"
     );
     Ok(())
 }

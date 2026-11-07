@@ -211,9 +211,7 @@ impl<'a> WorkshopScanner<'a> {
                     })
                     .await?;
                 validation_level_ids.extend(upsert.validation_level_ids);
-                if upsert.score_changed {
-                    changed_level_ids.push(upsert.id_level);
-                }
+                changed_level_ids.extend(upsert.changed_level_ids);
             }
             let missing = self
                 .persistence
@@ -370,7 +368,7 @@ mod tests {
             self.upserts.lock().unwrap().push(input);
             Ok(WorkshopLevelUpsertResult {
                 id_level: 6,
-                score_changed: true,
+                changed_level_ids: vec![6],
                 validation_level_ids: vec![6],
             })
         }

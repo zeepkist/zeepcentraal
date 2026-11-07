@@ -71,7 +71,7 @@ pub struct WorkshopLevelInput {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkshopLevelUpsertResult {
     pub id_level: i32,
-    pub score_changed: bool,
+    pub changed_level_ids: Vec<i32>,
     pub validation_level_ids: Vec<i32>,
 }
 
