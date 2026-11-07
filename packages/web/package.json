@@ -71,6 +71,6 @@
 		"fake-indexeddb": "~6.2.4",
 		"nuxtseo-devtools-host": "~1.0.0",
 		"unstorage": "~1.17.5",
-		"vitest": "~5.0.0"
+		"vitest": "~5.1.0"
 	}
 }
