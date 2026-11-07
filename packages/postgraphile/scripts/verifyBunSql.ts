@@ -313,7 +313,7 @@ try {
 		databaseTimeouts: timeouts,
 	})
 	try {
-		assert.equal(typeof (await store.getMaxId()), 'bigint')
+		assert.ok((await store.getIds(10)).every((id) => typeof id === 'bigint'))
 		await store.prune(60)
 	} finally {
 		await store.close()

@@ -13,7 +13,7 @@ type LiveQueryInvalidationPollerConfig = {
 }
 
 export type LiveQueryInvalidationStore = {
-	getMaxId(): Promise<bigint>
+	getIds(limit: number): Promise<bigint[]>
 	prune(retentionMinutes: number): Promise<void>
 	close(): Promise<void>
 }
@@ -25,6 +25,8 @@ export type LiveQueryInvalidationPoller = {
 }
 
 const PRUNE_EVERY_POLLS = 240
+const MAX_TRACKED_INVALIDATIONS = 10_000
+const OVERFLOW_REFRESH_MS = 5_000
 
 export function createLiveQueryInvalidationStore({
 	databaseTimeouts,
@@ -46,13 +48,15 @@ export function createLiveQueryInvalidationStore({
 	})
 
 	return {
-		async getMaxId() {
+		async getIds(limit) {
 			const rows = await client<{ id: string }[]>`
-				select coalesce(max(id), 0)::text as id
+				select id::text as id
 				from public.live_query_invalidations
+				order by live_query_invalidations.id desc
+				limit ${limit}
 			`
 
-			return BigInt(rows[0]?.id ?? '0')
+			return rows.map((row) => BigInt(row.id))
 		},
 		async prune(retentionMinutes) {
 			await client`
@@ -73,7 +77,9 @@ export function createLiveQueryInvalidationPoller(
 	let store = providedStore
 	let interval: Timer | undefined
 	let onInvalidate: (() => void) | undefined
-	let lastSeenId: bigint | undefined
+	let seenIds: Set<bigint> | undefined
+	let lastRefreshAt = 0
+	let generation = 0
 	let activePoll: Promise<void> | undefined
 	let pruneCounter = 0
 	let warned = false
@@ -83,18 +89,24 @@ export function createLiveQueryInvalidationPoller(
 		return store
 	}
 
-	async function poll() {
+	async function poll(currentGeneration: number) {
 		try {
-			const maxId = await getStore().getMaxId()
-			if (lastSeenId === undefined) {
-				lastSeenId = maxId
-				return
-			}
-
-			if (maxId > lastSeenId) {
-				lastSeenId = maxId
+			const ids = await getStore().getIds(MAX_TRACKED_INVALIDATIONS + 1)
+			if (generation !== currentGeneration) return
+			const overflow = ids.length > MAX_TRACKED_INVALIDATIONS
+			const nextSeenIds = new Set(ids.slice(0, MAX_TRACKED_INVALIDATIONS))
+			// Sequence allocation order is not commit order. Keep the visible set, not a watermark.
+			// Overflow falls back to a bounded refresh interval for commits outside the tracked set.
+			if (
+				!seenIds ||
+				[...nextSeenIds].some((id) => !seenIds?.has(id)) ||
+				(overflow && Date.now() - lastRefreshAt >= OVERFLOW_REFRESH_MS)
+			) {
+				lastRefreshAt = Date.now()
 				onInvalidate?.()
 			}
+			seenIds = nextSeenIds
+			warned = false
 
 			pruneCounter += 1
 			if (pruneCounter >= PRUNE_EVERY_POLLS) {
@@ -114,7 +126,7 @@ export function createLiveQueryInvalidationPoller(
 			return
 		}
 
-		activePoll = poll().finally(() => {
+		activePoll = poll(generation).finally(() => {
 			activePoll = undefined
 		})
 	}
@@ -125,6 +137,7 @@ export function createLiveQueryInvalidationPoller(
 			if (interval) {
 				return
 			}
+			generation += 1
 
 			runPoll()
 			interval = setInterval(runPoll, config.pollMs)
@@ -136,7 +149,8 @@ export function createLiveQueryInvalidationPoller(
 
 			clearInterval(interval)
 			interval = undefined
-			lastSeenId = undefined
+			generation += 1
+			seenIds = undefined
 		},
 		async dispose() {
 			this.stop()
