@@ -156,6 +156,46 @@ function isCollectionField(fieldName: string, args: readonly ArgumentNode[]) {
 	return hasPaginationArgs || isPlural || isManyToMany(fieldName)
 }
 
+// Bound expanded work before either recursive pass, including fragment-only DAGs.
+// The depth limit also keeps deeply nested, otherwise cheap documents off the JS stack.
+function withinTraversalBudget(document: DocumentNode) {
+	let remaining = 10_000
+	const fragments = new Map(
+		document.definitions.flatMap((definition) =>
+			definition.kind === 'FragmentDefinition'
+				? [[definition.name.value, definition] as const]
+				: [],
+		),
+	)
+	const active = new Set<string>()
+	function visit(selections: readonly SelectionNode[], depth: number): boolean {
+		if (depth > 128) return false
+		for (const selection of selections) {
+			if (--remaining < 0) return false
+			if (selection.kind === 'FragmentSpread') {
+				const name = selection.name.value
+				const fragment = fragments.get(name)
+				if (fragment && !active.has(name)) {
+					active.add(name)
+					if (!visit(fragment.selectionSet.selections, depth + 1)) return false
+					active.delete(name)
+				}
+			} else if (
+				selection.selectionSet &&
+				!visit(selection.selectionSet.selections, depth + 1)
+			) {
+				return false
+			}
+		}
+		return true
+	}
+	return document.definitions.every(
+		(definition) =>
+			definition.kind !== 'OperationDefinition' ||
+			visit(definition.selectionSet.selections, 0),
+	)
+}
+
 function containsIntrospectionField(
 	selections: readonly SelectionNode[],
 	fragments: Record<string, FragmentDefinitionNode>,
@@ -288,6 +328,7 @@ export function estimateQueryCost(
 	operationName?: string,
 	defaultCollectionSize = 1000,
 ) {
+	if (!withinTraversalBudget(document)) return Number.POSITIVE_INFINITY
 	const fragments: Record<string, FragmentDefinitionNode> = Object.create(null)
 	for (const definition of document.definitions) {
 		if (definition.kind === 'FragmentDefinition') {
@@ -389,15 +430,18 @@ export function createQueryCostEvaluator({
 							fragments[definition.name.value] = definition
 						}
 					}
-					const isIntrospection = document.definitions.some(
-						(definition) =>
-							definition.kind === 'OperationDefinition' &&
-							(!operationName || definition.name?.value === operationName) &&
-							containsIntrospectionField(
-								definition.selectionSet.selections,
-								fragments,
-							),
-					)
+					const bounded = withinTraversalBudget(document)
+					const isIntrospection =
+						bounded &&
+						document.definitions.some(
+							(definition) =>
+								definition.kind === 'OperationDefinition' &&
+								(!operationName || definition.name?.value === operationName) &&
+								containsIntrospectionField(
+									definition.selectionSet.selections,
+									fragments,
+								),
+						)
 
 					if (isIntrospection) {
 						result = { kind: 'introspection' }

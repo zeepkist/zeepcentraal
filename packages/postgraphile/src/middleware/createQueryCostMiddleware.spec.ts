@@ -1,7 +1,34 @@
 import { describe, expect, test } from 'bun:test'
-import { createQueryCostEvaluator, evaluateQueryCost } from './createQueryCostMiddleware'
+import { parse } from 'postgraphile/graphql'
+import {
+	createQueryCostEvaluator,
+	estimateQueryCost,
+	evaluateQueryCost,
+} from './createQueryCostMiddleware'
 
 describe('evaluateQueryCost', () => {
+	test('bounds repeated fragment DAGs before introspection scanning and costing', async () => {
+		const query = `query { ...F0 } ${Array.from(
+			{ length: 40 },
+			(_, index) => `fragment F${index} on Query { ...F${index + 1} ...F${index + 1} }`,
+		).join(' ')} fragment F40 on Query { __typename }`
+		expect(estimateQueryCost(parse(query))).toBe(Number.POSITIVE_INFINITY)
+		expect((await evaluateQueryCost({ query })).kind).toBe('rejected')
+	})
+
+	test('bounds deep documents and tolerates cycles for downstream validation', async () => {
+		const query = `{ ${'level { '.repeat(200)} id ${'}'.repeat(200)} }`
+		expect((await evaluateQueryCost({ query })).kind).toBe('rejected')
+		expect(
+			(await evaluateQueryCost({ query: 'query { ...F } fragment F on Query { ...F id }' }))
+				.kind,
+		).toBe('accepted')
+	})
+
+	test('preserves ordinary shared fragment costs at different depths', () => {
+		const shared = parse('query { ...F level { ...F } } fragment F on Query { id }')
+		expect(estimateQueryCost(shared)).toBe(estimateQueryCost(parse('{ id level { id } }')))
+	})
 	test('accepts cheap query and returns query cost', async () => {
 		const result = await evaluateQueryCost({ query: '{ level { id } }' }, 5000, 100)
 
