@@ -1,7 +1,7 @@
 #[path = "support/ghost_validation.rs"]
 mod support;
 
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use async_trait::async_trait;
 use axum::{
     Router,
@@ -194,6 +194,36 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     let counts = || async {
         Ok::<_,anyhow::Error>(client.query_one("SELECT (SELECT count(*) FROM public.record),(SELECT count(*) FROM public.personal_best_global),(SELECT count(*) FROM zc_private.record_run)", &[]).await?)
     };
+    // Classification comes from trusted catalog, never from missing WorkshopId.
+    let rejected = request(&app, "POST", "/record/submit", &token, body.clone()).await?;
+    assert_eq!(rejected.0, StatusCode::BAD_REQUEST);
+    assert_eq!(rejected.1["errorCode"], zc_server::problem::LEVEL_NOT_FOUND);
+    assert_eq!(storage.uploads.load(Ordering::SeqCst), 0);
+    let trusted: i32 = client.query_one(
+        "INSERT INTO public.level(hash,xx_hash,adventure) VALUES('fixture-legacy',$1,false) RETURNING id",
+        &[&"A".repeat(32)],
+    ).await?.get(0);
+    assert_eq!(
+        request(&app, "POST", "/record/submit", &token, body.clone())
+            .await?
+            .0,
+        StatusCode::BAD_REQUEST
+    );
+    assert!(
+        !client
+            .query_one(
+                "SELECT adventure FROM public.level WHERE id=$1",
+                &[&trusted]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
+    client
+        .execute(
+            "UPDATE public.level SET adventure=true WHERE id=$1",
+            &[&trusted],
+        )
+        .await?;
     let failed = request(&app, "POST", "/record/submit", &token, body.clone()).await?;
     assert_eq!(failed.0, StatusCode::SERVICE_UNAVAILABLE);
     let row = counts().await?;
@@ -347,8 +377,9 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     let hash = zc_core::levels::calculate_json_level_xxhash(&json!({"blox":blocks}).to_string())?;
     let candidate = state
         .database
-        .resolve_submission_level("fixture-candidate", &hash, true)
-        .await?;
+        .resolve_submission_level("fixture-candidate", &hash, false)
+        .await?
+        .context("fixture level")?;
     let assigned = state.database.audit_record(record).await?.unwrap().id_level;
     client.execute("INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)", &[&candidate.id,&blocks.to_string()]).await?;
     for level in [assigned, candidate.id] {
@@ -566,5 +597,108 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     .await?;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(history, current);
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires empty current schema in local submission_classification_http_test"]
+async fn adventure_classification_rejects_before_upload_and_survives_storage_failure() -> Result<()>
+{
+    let url = std::env::var("ZC_TEST_DATABASE_URL")?;
+    let parsed = url::Url::parse(&url)?;
+    ensure!(
+        parsed.host_str() == Some("127.0.0.1")
+            && parsed.path() == "/submission_classification_http_test",
+        "Dedicated isolated database required"
+    );
+    let storage = Arc::new(Storage::default());
+    let state = support::state(&url, storage.clone(), false)?;
+    state.database.get_or_insert_user(42).await?;
+    let token = state
+        .config
+        .jwt
+        .issue(Provider::Gtr, "42", None)?
+        .access_token;
+    let app = zc_server::app::router(state.clone())?;
+    let fixture: Value =
+        serde_json::from_str(include_str!("../../../test/fixtures/ghost-v8.json"))?;
+    let bytes = hex::decode(fixture["lzmaHex"].as_str().unwrap())?;
+    let hash = "A".repeat(32);
+    let body = json!({"Level":"classification","Hash":hash,"Time":1.22,"Splits":[],"Speeds":[],"GameVersion":"18.2","ModVersion":"99.0.0","GhostData":base64::engine::general_purpose::STANDARD.encode(bytes)});
+    let rejected = request(&app, "POST", "/record/submit", &token, body.clone()).await?;
+    assert_eq!(rejected.0, StatusCode::BAD_REQUEST);
+    assert_eq!(rejected.1["errorCode"], zc_server::problem::LEVEL_NOT_FOUND);
+    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move { connection.await.expect("fixture connection") });
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM public.level", &[])
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
+    let level = state
+        .database
+        .resolve_submission_level("classification", &hash, false)
+        .await?
+        .context("workshop level")?;
+    assert_eq!(
+        request(&app, "POST", "/record/submit", &token, body.clone())
+            .await?
+            .0,
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(storage.uploads.load(Ordering::SeqCst), 0);
+    assert!(
+        !state
+            .database
+            .get_level_by_xx_hash(&hash)
+            .await?
+            .unwrap()
+            .adventure
+    );
+    client
+        .execute(
+            "UPDATE public.level SET adventure=true WHERE id=$1",
+            &[&level.id],
+        )
+        .await?;
+    storage.failing.store(true, Ordering::SeqCst);
+    assert_eq!(
+        request(&app, "POST", "/record/submit", &token, body.clone())
+            .await?
+            .0,
+        StatusCode::SERVICE_UNAVAILABLE
+    );
+    assert!(
+        state
+            .database
+            .get_level_by_xx_hash(&hash)
+            .await?
+            .unwrap()
+            .adventure
+    );
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM public.record", &[])
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
+    storage.failing.store(false, Ordering::SeqCst);
+    assert_eq!(
+        request(&app, "POST", "/record/submit", &token, body)
+            .await?
+            .0,
+        StatusCode::OK
+    );
+    assert!(
+        state
+            .database
+            .resolve_submission_level("classification", &hash, false)
+            .await?
+            .unwrap()
+            .adventure
+    );
     Ok(())
 }

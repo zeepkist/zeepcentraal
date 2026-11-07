@@ -529,7 +529,8 @@ impl ZslSession {
                     .context("ZSL canonical hash unavailable")?,
                 false,
             )
-            .await?;
+            .await?
+            .context("ZSL scoring level unavailable")?;
         Ok(Some(
             self.shared
                 .database

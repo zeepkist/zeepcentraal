@@ -29,9 +29,10 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
         .resolve_submission_level(
             &format!("record-contention-{suffix}"),
             &format!("{suffix:032X}"),
-            true,
+            false,
         )
-        .await?;
+        .await?
+        .context("fixture level")?;
     let (mut client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("PostgreSQL connection") });
     client
@@ -184,9 +185,10 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
         .resolve_submission_level(
             &format!("popular-projection-{nonce}"),
             &format!("{nonce:032X}"),
-            true,
+            false,
         )
-        .await?;
+        .await?
+        .context("fixture level")?;
     let (mut client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("PostgreSQL connection") });
     let statistics = zc_core::ghosts::GhostStatistics::default();

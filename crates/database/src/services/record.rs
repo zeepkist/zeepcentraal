@@ -90,7 +90,7 @@ impl Database {
         hash: &str,
         xx_hash: &str,
         adventure: bool,
-    ) -> Result<Level> {
+    ) -> Result<Option<Level>> {
         ensure!(!hash.is_empty(), "legacy level hash is empty");
         ensure!(
             xx_hash.len() == 32 && xx_hash.bytes().all(|byte| byte.is_ascii_hexdigit()),
@@ -98,7 +98,7 @@ impl Database {
         );
         let mut connection = self.connection().await?;
         connection
-            .transaction::<Level, anyhow::Error, _>(async move |connection| {
+            .transaction::<Option<Level>, anyhow::Error, _>(async move |connection| {
                     let by_xx = level_by_xx(connection, xx_hash).await?;
                     let level = if let Some(level) = by_xx {
                         level
@@ -111,7 +111,7 @@ impl Database {
                         .get_result::<Level>(connection)
                         .await
                         .optional()?;
-                        let verified_legacy = if let Some(level) = legacy.filter(|level| level.xx_hash.is_empty()) {
+                        let verified_legacy = if let Some(level) = legacy.filter(|level| level.xx_hash.is_empty() && (!adventure || level.adventure)) {
                             #[derive(QueryableByName)]
                             struct Blocks {
                                 #[diesel(sql_type=Jsonb)] blocks: serde_json::Value,
@@ -129,25 +129,25 @@ impl Database {
                         if let Some(level) = verified_legacy {
                             lock_level_workshop_items(connection, level.id).await?;
                             sql_query(
-                                "UPDATE public.level SET xx_hash=$2,adventure=adventure OR $3,date_updated=clock_timestamp() \
+                                "UPDATE public.level SET xx_hash=$2,date_updated=clock_timestamp() \
                                  WHERE id=$1",
                             )
                             .bind::<Integer, _>(level.id)
                             .bind::<Text, _>(xx_hash)
-                            .bind::<Bool, _>(adventure)
                             .execute(connection)
                             .await?;
                             level_by_xx(connection, xx_hash)
                                 .await?
                                 .expect("updated canonical level")
                         } else {
+                            if adventure { return Ok(None); }
                             let created = sql_query(
                                 "INSERT INTO public.level(hash,xx_hash,adventure) VALUES($1,$2,$3) \
                                  ON CONFLICT (xx_hash) DO NOTHING RETURNING id",
                             )
                             .bind::<Text, _>(hash)
                             .bind::<Text, _>(xx_hash)
-                            .bind::<Bool, _>(adventure)
+                            .bind::<Bool, _>(false)
                             .get_result::<IdRow>(connection)
                             .await
                             .optional()?;
@@ -157,19 +157,7 @@ impl Database {
                                 .ok_or_else(|| anyhow::anyhow!("failed to resolve canonical level"))?
                         }
                     };
-                    if adventure && !level.adventure {
-                        lock_level_workshop_items(connection, level.id).await?;
-                        sql_query(
-                            "UPDATE public.level SET adventure=true,date_updated=clock_timestamp() WHERE id=$1",
-                        )
-                        .bind::<Integer, _>(level.id)
-                        .execute(connection)
-                        .await?;
-                        return level_by_xx(connection, xx_hash)
-                            .await?
-                            .ok_or_else(|| anyhow::anyhow!("promoted level disappeared"));
-                    }
-                    Ok(level)
+                    Ok((!adventure || level.adventure).then_some(level))
                 })
             .await
     }

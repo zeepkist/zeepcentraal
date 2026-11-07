@@ -535,7 +535,8 @@ pub async fn submit_record(
         .database
         .resolve_submission_level(&body.level, &body.hash, adventure)
         .await
-        .map_err(Problem::internal)?;
+        .map_err(Problem::internal)?
+        .ok_or_else(|| Problem::code(StatusCode::BAD_REQUEST, LEVEL_NOT_FOUND))?;
     if adventure && !level.adventure {
         return Err(Problem::code(StatusCode::BAD_REQUEST, LEVEL_NOT_FOUND));
     }

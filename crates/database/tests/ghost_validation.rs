@@ -180,9 +180,10 @@ async fn accepted_run_retry_is_atomic_and_changed_payload_fails() -> Result<()> 
         .resolve_submission_level(
             &format!("validation-{suffix}"),
             &format!("{suffix:032X}"),
-            true,
+            false,
         )
-        .await?;
+        .await?
+        .context("fixture level")?;
     let report = ValidationReport::uncertain("missing_snapshot");
     let statistics = GhostStatistics::default();
     let run_uuid = format!("00000000-0000-4000-8000-{suffix:012x}");
@@ -302,8 +303,9 @@ async fn version_candidates_share_workshop_without_trusting_builder_uid() -> Res
             &serde_json::json!({"blox":blocks}).to_string(),
         )?;
         let level = database
-            .resolve_submission_level(&format!("alias-{suffix}-{index}"), &hash, true)
-            .await?;
+            .resolve_submission_level(&format!("alias-{suffix}-{index}"), &hash, false)
+            .await?
+            .context("fixture level")?;
         client
             .execute(
                 "INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)",
@@ -330,5 +332,103 @@ async fn version_candidates_share_workshop_without_trusting_builder_uid() -> Res
                 .any(|candidate| candidate.id_level == id && candidate.verified())
         );
     }
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires empty local submission_classification_test database"]
+async fn submission_classification_uses_catalog_and_verified_legacy_metadata() -> Result<()> {
+    let url = fixture_url("submission_classification_test").await?;
+    let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
+    tokio::spawn(async move { connection.await.expect("fixture connection") });
+    client
+        .batch_execute(include_str!("fixtures/ghost_validation.sql"))
+        .await?;
+    client
+        .batch_execute("CREATE UNIQUE INDEX canonical_hash ON public.level(xx_hash)")
+        .await?;
+    let database = Database::connect(&url, 2).await?;
+    let hash = "A".repeat(32);
+    assert!(
+        database
+            .resolve_submission_level("unknown", &hash, true)
+            .await?
+            .is_none()
+    );
+    assert_eq!(
+        client
+            .query_one("SELECT count(*) FROM public.level", &[])
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
+    let workshop = database
+        .resolve_submission_level("workshop", &hash, false)
+        .await?
+        .context("workshop level")?;
+    assert!(
+        database
+            .resolve_submission_level("workshop", &hash, true)
+            .await?
+            .is_none()
+    );
+    assert!(
+        !client
+            .query_one(
+                "SELECT adventure FROM public.level WHERE id=$1",
+                &[&workshop.id]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
+    client
+        .execute(
+            "UPDATE public.level SET adventure=true WHERE id=$1",
+            &[&workshop.id],
+        )
+        .await?;
+    assert!(
+        database
+            .resolve_submission_level("workshop", &hash, true)
+            .await?
+            .context("adventure")?
+            .adventure
+    );
+    assert!(
+        database
+            .resolve_submission_level("workshop", &hash, false)
+            .await?
+            .context("adventure alias")?
+            .adventure
+    );
+    let blocks = serde_json::json!([{"i":22}]);
+    let canonical = zc_core::levels::calculate_json_level_xxhash(
+        &serde_json::json!({"blox":blocks}).to_string(),
+    )?;
+    let legacy: i32 = client
+        .query_one(
+            "INSERT INTO public.level(hash,adventure) VALUES('legacy-adventure',true) RETURNING id",
+            &[],
+        )
+        .await?
+        .get(0);
+    client
+        .execute(
+            "INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)",
+            &[&legacy, &blocks.to_string()],
+        )
+        .await?;
+    assert!(
+        database
+            .resolve_submission_level("legacy-adventure", &"B".repeat(32), true)
+            .await?
+            .is_none()
+    );
+    let adopted = database
+        .resolve_submission_level("legacy-adventure", &canonical, true)
+        .await?
+        .context("verified adventure")?;
+    assert_eq!(adopted.id, legacy);
+    assert!(adopted.adventure);
     Ok(())
 }
