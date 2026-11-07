@@ -990,7 +990,16 @@ describe('createLiveQueryWebSocketHandlers', () => {
 			type: 'error',
 			payload: [{ message: 'Live query websocket does not accept introspection operations' }],
 		})
-		expect(rejections).toEqual(['cost', 'introspection'])
+		handlers.message(
+			socket.ws,
+			subscribe(
+				'mixed',
+				'subscription { query { __schema { queryType { name } } records(first: 100) { nodes { id } } } }',
+			),
+		)
+		await Bun.sleep(2)
+		expect(executions).toBe(0)
+		expect(rejections).toEqual(['cost', 'introspection', 'cost'])
 	})
 
 	test('malformed JSON closes websocket without throwing', () => {

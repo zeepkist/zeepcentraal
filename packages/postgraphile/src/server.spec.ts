@@ -328,4 +328,23 @@ describe('buildPostGraphileServer', () => {
 			],
 		})
 	})
+
+	test('enforces cost for mixed introspection in JSON and application/graphql bodies', async () => {
+		const fields = Array.from(
+			{ length: 300 },
+			(_, index) => `u${index}: users(first: 1000) { nodes { id } }`,
+		).join(' ')
+		const query = `{ __schema { queryType { name } } ${fields} }`
+		for (const contentType of ['application/json', 'application/graphql']) {
+			const response = await createApp().handle(
+				new Request('http://localhost/', {
+					method: 'POST',
+					headers: { 'content-type': contentType },
+					body: contentType === 'application/json' ? JSON.stringify({ query }) : query,
+				}),
+			)
+			expect(response.status).toBe(400)
+			expect(await response.text()).toContain('Query Cost Exceeded')
+		}
+	})
 })

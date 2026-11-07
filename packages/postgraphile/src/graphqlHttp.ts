@@ -110,7 +110,11 @@ export function createGraphqlHttpHandler(
 		enrichGraphqlSpan(graphqlBody)
 		const queryCost =
 			request.method === 'POST'
-				? await evaluateQueryCost(graphqlBody as never)
+				? await evaluateQueryCost(
+						typeof graphqlBody === 'string'
+							? { query: graphqlBody }
+							: (graphqlBody as never),
+					)
 				: { kind: 'empty' as const }
 
 		const queryCostResponse = createQueryCostResponse(queryCost)

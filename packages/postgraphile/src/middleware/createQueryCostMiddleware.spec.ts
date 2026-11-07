@@ -7,6 +7,28 @@ import {
 } from './createQueryCostMiddleware'
 
 describe('evaluateQueryCost', () => {
+	test('costs mixed introspection across aliases, fragments, and subscription wrappers', async () => {
+		const application =
+			'levels(first: 1000) { nodes { records(first: 1000) { nodes { id } } } }'
+		for (const query of [
+			`{ info: __schema { queryType { name } } ${application} }`,
+			`query { ...F } fragment F on Query { __type(name: "Query") { name } ${application} }`,
+			`subscription { query { __schema { queryType { name } } ${application} } }`,
+			`{ ${application} __schema { queryType { name } } }`,
+		]) {
+			expect((await evaluateQueryCost({ query }, 10)).kind).toBe('rejected')
+		}
+	})
+
+	test('keeps pure introspection and selected operation classification isolated', async () => {
+		const evaluate = createQueryCostEvaluator({ maxCost: 1 })
+		const query =
+			'query Schema { ...F } fragment F on Query { ... on Query { alias: __schema { queryType { name } } __typename } } query Data { levels { nodes { id } } }'
+		expect((await evaluate({ query, operationName: 'Schema' })).kind).toBe('introspection')
+		expect((await evaluate({ query, operationName: 'Data' })).kind).toBe('rejected')
+		expect((await evaluate({ query })).kind).toBe('rejected')
+		expect((await evaluateQueryCost({ query: '{ __typename }' })).kind).toBe('accepted')
+	})
 	test('bounds repeated fragment DAGs before introspection scanning and costing', async () => {
 		const query = `query { ...F0 } ${Array.from(
 			{ length: 40 },

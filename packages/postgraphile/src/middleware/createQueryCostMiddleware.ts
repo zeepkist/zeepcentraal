@@ -196,57 +196,56 @@ function withinTraversalBudget(document: DocumentNode) {
 	)
 }
 
-function containsIntrospectionField(
+function classifyIntrospectionSelections(
 	selections: readonly SelectionNode[],
 	fragments: Record<string, FragmentDefinitionNode>,
+	allowQueryWrapper = false,
 	visitedFragments = new Set<string>(),
-): boolean {
+): { pure: boolean; hasIntrospection: boolean } {
+	let hasIntrospection = false
 	for (const selection of selections) {
 		if (selection.kind === 'Field') {
 			const name = selection.name.value
 			if (name === '__schema' || name === '__type') {
-				return true
+				hasIntrospection = true
+				continue
 			}
-
-			if (
-				selection.selectionSet &&
-				containsIntrospectionField(
-					selection.selectionSet.selections,
-					fragments,
-					visitedFragments,
-				)
-			) {
-				return true
+			if (name === '__typename') continue
+			if (!allowQueryWrapper || name !== 'query' || !selection.selectionSet) {
+				return { pure: false, hasIntrospection }
 			}
+			const nested = classifyIntrospectionSelections(
+				selection.selectionSet.selections,
+				fragments,
+			)
+			if (!nested.pure) return nested
+			hasIntrospection ||= nested.hasIntrospection
 		} else if (selection.kind === 'InlineFragment') {
-			if (
-				containsIntrospectionField(
-					selection.selectionSet.selections,
-					fragments,
-					visitedFragments,
-				)
-			) {
-				return true
-			}
-		} else if (!visitedFragments.has(selection.name.value)) {
-			const fragmentName = selection.name.value
-			const fragment = fragments[fragmentName]
-			if (fragment) {
-				visitedFragments.add(fragmentName)
-				const containsIntrospection = containsIntrospectionField(
-					fragment.selectionSet.selections,
-					fragments,
-					visitedFragments,
-				)
-				visitedFragments.delete(fragmentName)
-				if (containsIntrospection) {
-					return true
-				}
-			}
+			const nested = classifyIntrospectionSelections(
+				selection.selectionSet.selections,
+				fragments,
+				allowQueryWrapper,
+				visitedFragments,
+			)
+			if (!nested.pure) return nested
+			hasIntrospection ||= nested.hasIntrospection
+		} else {
+			const name = selection.name.value
+			const fragment = fragments[name]
+			if (!fragment || visitedFragments.has(name)) return { pure: false, hasIntrospection }
+			visitedFragments.add(name)
+			const nested = classifyIntrospectionSelections(
+				fragment.selectionSet.selections,
+				fragments,
+				allowQueryWrapper,
+				visitedFragments,
+			)
+			visitedFragments.delete(name)
+			if (!nested.pure) return nested
+			hasIntrospection ||= nested.hasIntrospection
 		}
 	}
-
-	return false
+	return { pure: true, hasIntrospection }
 }
 
 function estimateSelectionsCost(
@@ -431,17 +430,21 @@ export function createQueryCostEvaluator({
 						}
 					}
 					const bounded = withinTraversalBudget(document)
-					const isIntrospection =
-						bounded &&
-						document.definitions.some(
-							(definition) =>
-								definition.kind === 'OperationDefinition' &&
-								(!operationName || definition.name?.value === operationName) &&
-								containsIntrospectionField(
-									definition.selectionSet.selections,
+					const operations = document.definitions.filter(
+						(definition) =>
+							definition.kind === 'OperationDefinition' &&
+							(!operationName || definition.name?.value === operationName),
+					)
+					const operation = operations.length === 1 ? operations[0] : undefined
+					const classification =
+						bounded && operation?.kind === 'OperationDefinition'
+							? classifyIntrospectionSelections(
+									operation.selectionSet.selections,
 									fragments,
-								),
-						)
+									operation.operation === 'subscription',
+								)
+							: undefined
+					const isIntrospection = classification?.pure && classification.hasIntrospection
 
 					if (isIntrospection) {
 						result = { kind: 'introspection' }
