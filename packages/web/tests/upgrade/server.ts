@@ -132,7 +132,16 @@ Bun.serve({
 		if (url.pathname === '/graphql') {
 			const { query, variables } = (await request.json()) as {
 				query: string
-				variables?: { recordId?: number; xxHash?: string }
+				variables?: {
+					recordId?: number
+					xxHash?: string
+					type?: number
+					after?: string
+					before?: string
+					last?: number
+					viewerId?: number
+					includeViewer?: boolean
+				}
 			}
 			const document = parse(query)
 			const data: Record<string, unknown> = {}
@@ -165,6 +174,39 @@ Bun.serve({
 			for (const definition of document.definitions) {
 				if (definition.kind === Kind.OPERATION_DEFINITION)
 					fields(definition.selectionSet.selections)
+			}
+			if (query.includes('ZC_TrackTournamentOverall')) {
+				const monthly = variables?.type === 1
+				const rows = Array.from({ length: 51 }, (_, index) => ({
+					userId: index + 1,
+					rank: index < 2 ? 1 : index + 1,
+					totalPoints: index < 2 ? 1000 : 1000 - index * 2,
+					eventsPlayed: 1,
+					user: {
+						steamId: String(76561198000000000n + BigInt(index)),
+						steamName: `${monthly ? 'Monthly' : 'Weekly'} player ${index + 1}`,
+					},
+				}))
+				const lastPage = Boolean(variables?.after || variables?.last)
+				data.standings = {
+					...connection,
+					totalCount: 51,
+					nodes: lastPage ? rows.slice(50) : rows.slice(0, 50),
+					pageInfo: {
+						startCursor: lastPage ? 'overall-51' : 'overall-1',
+						endCursor: lastPage ? 'overall-51' : 'overall-50',
+						hasNextPage: !lastPage,
+						hasPreviousPage: lastPage,
+					},
+				}
+				data.period = {
+					eligibleEventCount: monthly ? 6 : 12,
+					periodStart: '2026-08-01T06:00:00Z',
+					periodEnd: '2026-11-01T06:00:00Z',
+					lastUpdatedAt: '2026-11-01T06:02:00Z',
+				}
+				if (variables?.includeViewer)
+					data.viewer = rows.find((row) => row.userId === variables.viewerId) ?? null
 			}
 			if (query.includes('ZC_SitemapMaxIds')) {
 				for (const key of Object.keys(data))

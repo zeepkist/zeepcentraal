@@ -11,6 +11,17 @@ function normalizeSchema(schema: string) {
 }
 
 describe('PostGraphile schema lock', () => {
+	test('overall leaderboard schema stays read-only and exposes ranked cursor connections', async () => {
+		const schema = buildSchema(
+			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),
+		)
+		const fields = schema.getQueryType()?.getFields()
+		expect(fields?.trackTournamentOverallStandings).toBeDefined()
+		expect(fields?.trackTournamentOverallPeriods).toBeDefined()
+		expect(schema.getMutationType()).toBeUndefined()
+		expect(schema.getType('TrackTournamentOverallStanding')).toBeDefined()
+		expect(schema.getType('TrackTournamentOverallPeriod')).toBeDefined()
+	})
 	test('published schema excludes private level requests and retains public level routines', async () => {
 		const publishedSchema = await readFile(
 			join(import.meta.dir, '../../graphql/schema.graphql'),

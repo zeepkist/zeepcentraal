@@ -1,0 +1,51 @@
+fragment ZC_TrackTournamentOverallStanding on TrackTournamentOverallStanding {
+	userId
+	rank
+	totalPoints
+	eventsPlayed
+	user {
+		steamId
+		steamName
+	}
+}
+
+query ZC_TrackTournamentOverall(
+	$type: Int!
+	$viewerId: Int!
+	$includeViewer: Boolean!
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+) {
+	period: trackTournamentOverallPeriod(type: $type) {
+		eligibleEventCount
+		periodStart
+		periodEnd
+		lastUpdatedAt
+	}
+	standings: trackTournamentOverallStandings(
+		condition: { type: $type }
+		orderBy: [TOTAL_POINTS_DESC, USER_ID_ASC]
+		first: $first
+		after: $after
+		last: $last
+		before: $before
+	) {
+		nodes {
+			...ZC_TrackTournamentOverallStanding
+		}
+		totalCount
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+	}
+	viewer: trackTournamentOverallStanding(type: $type, userId: $viewerId)
+		@include(if: $includeViewer)
+	{
+		...ZC_TrackTournamentOverallStanding
+	}
+}

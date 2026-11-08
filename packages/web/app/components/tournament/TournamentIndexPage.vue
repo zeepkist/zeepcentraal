@@ -1,5 +1,6 @@
 <template>
 	<UContainer class="space-y-12 py-2">
+		<TournamentFormatNavigation :type="type" />
 		<TournamentEvent v-if="active" :type="type" :slug="active.slug" :title="title" />
 		<TournamentCountdown v-else :title="title" :start-at="countdownStart" />
 		<TournamentPlaylistActions

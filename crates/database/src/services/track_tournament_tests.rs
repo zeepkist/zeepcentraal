@@ -15,7 +15,10 @@ async fn fixture() -> Result<AsyncPgConnection> {
     let parsed = url::Url::parse(&url)?;
     ensure!(
         matches!(parsed.host_str(), Some("127.0.0.1" | "localhost"))
-            && parsed.path() == "/track_tournament_test",
+            && matches!(
+                parsed.path(),
+                "/track_tournament_test" | "/track_tournament_overall_test"
+            ),
         "Dedicated empty local track_tournament_test database required"
     );
     let mut connection = AsyncPgConnection::establish(&url).await?;
@@ -505,5 +508,37 @@ async fn rotation_waits_for_shared_submission_level_lock() -> Result<()> {
         .await?;
     let (result, _connection) = tokio::time::timeout(Duration::from_secs(5), rotation).await??;
     assert!(result?.created);
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn rotation_finalization_publishes_overall_cache_atomically() -> Result<()> {
+    let mut connection = fixture().await?;
+    connection
+        .batch_execute("CREATE SCHEMA IF NOT EXISTS zc_private")
+        .await?;
+    connection
+        .batch_execute(include_str!(
+            "../../migrations/20261108010000_track_tournament_overall/up.sql"
+        ))
+        .await?;
+    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2026-09-27'); INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false); INSERT INTO public.\"user\" VALUES(1,false); INSERT INTO public.record VALUES(1,1,1,10,true,'2026-09-29T07:00Z')").await?;
+    let active =
+        rotate_track_tournament_at(&mut connection, 0, Some("2026-09-29T12:00:00Z")).await?;
+    assert!(active.created);
+    let before =
+        sql_query("SELECT count(*)::integer AS id FROM public.track_tournament_overall_standing")
+            .get_result::<IdRow>(&mut connection)
+            .await?;
+    assert_eq!(before.id, 0);
+    rotate_track_tournament_at(&mut connection, 0, Some("2026-10-05T06:00:00Z")).await?;
+    let points = sql_query("SELECT total_points AS id FROM public.track_tournament_overall_standing WHERE type=0 AND id_user=1").get_result::<IdRow>(&mut connection).await?;
+    assert_eq!(points.id, 1000);
+    let count = sql_query("SELECT eligible_event_count AS id FROM public.track_tournament_overall_period WHERE type=0").get_result::<IdRow>(&mut connection).await?;
+    assert_eq!(count.id, 1);
+    rotate_track_tournament_at(&mut connection, 0, Some("2026-10-05T06:00:00Z")).await?;
+    let repeated = sql_query("SELECT total_points AS id FROM public.track_tournament_overall_standing WHERE type=0 AND id_user=1").get_result::<IdRow>(&mut connection).await?;
+    assert_eq!(repeated.id, 1000);
     Ok(())
 }

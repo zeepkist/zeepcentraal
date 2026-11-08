@@ -1219,6 +1219,7 @@ export const trackTournament = pgTable(
 		startAt: timestamp('start_at', { withTimezone: true, mode: 'string' }).notNull(),
 		endAt: timestamp('end_at', { withTimezone: true, mode: 'string' }).notNull(),
 		finalizedAt: timestamp('finalized_at', { withTimezone: true, mode: 'string' }),
+		overallCompetitive: boolean('overall_competitive'),
 		pointsVersion: integer('points_version').notNull().default(1),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
@@ -1236,6 +1237,13 @@ export const trackTournament = pgTable(
 		check('CK_track_tournament_type', sql`${table.type} IN (0, 1)`),
 		check('CK_track_tournament_period', sql`${table.endAt} > ${table.startAt}`),
 		check('CK_track_tournament_points_version', sql`${table.pointsVersion} = 1`),
+		check(
+			'track_tournament_completed_competitive',
+			sql`${table.finalizedAt} IS NULL OR ${table.overallCompetitive} IS NOT NULL`,
+		),
+		index('track_tournament_overall_eligible')
+			.on(table.type, table.endAt.desc(), table.id.desc())
+			.where(sql`${table.finalizedAt} IS NOT NULL AND ${table.overallCompetitive}`),
 		unique('UQ_track_tournament_type_level').on(table.type, table.idLevel),
 		unique('UQ_track_tournament_type_start').on(table.type, table.startAt),
 		unique('UQ_track_tournament_type_slug').on(table.type, table.slug),
@@ -1258,6 +1266,72 @@ export const trackTournament = pgTable(
 				WHERE graphql_visible_level.id = ${table.idLevel}
 					AND graphql_visible_level.publicly_visible = true
 			)`,
+		}),
+	],
+).enableRLS()
+
+export const trackTournamentOverallPeriod = pgTable(
+	'track_tournament_overall_period',
+	{
+		type: integer().primaryKey(),
+		eligibleEventCount: integer('eligible_event_count').notNull(),
+		periodStart: timestamp('period_start', { withTimezone: true, mode: 'string' }),
+		periodEnd: timestamp('period_end', { withTimezone: true, mode: 'string' }),
+		lastUpdatedAt: timestamp('last_updated_at', {
+			withTimezone: true,
+			mode: 'string',
+		}).notNull(),
+	},
+	(table) => [
+		check('track_tournament_overall_period_type_check', sql`${table.type} IN (0,1)`),
+		check(
+			'track_tournament_overall_period_eligible_event_count_check',
+			sql`${table.eligibleEventCount} BETWEEN 0 AND CASE WHEN ${table.type}=0 THEN 12 ELSE 6 END`,
+		),
+		pgPolicy('graphql_select_overall_period', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`true`,
+		}),
+	],
+).enableRLS()
+
+export const trackTournamentOverallStanding = pgTable(
+	'track_tournament_overall_standing',
+	{
+		type: integer().notNull(),
+		idUser: integer('id_user').notNull(),
+		totalPoints: integer('total_points').notNull(),
+		eventsPlayed: integer('events_played').notNull(),
+		rank: integer().notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.type, table.idUser] }),
+		foreignKey({
+			columns: [table.type],
+			foreignColumns: [trackTournamentOverallPeriod.type],
+			name: 'track_tournament_overall_standing_type_fkey',
+		}),
+		foreignKey({
+			columns: [table.idUser],
+			foreignColumns: [user.id],
+			name: 'track_tournament_overall_standing_user_fkey',
+		}).onDelete('cascade'),
+		check('track_tournament_overall_standing_total_points_check', sql`${table.totalPoints}>0`),
+		check(
+			'track_tournament_overall_standing_events_played_check',
+			sql`${table.eventsPlayed}>0`,
+		),
+		check('track_tournament_overall_standing_rank_check', sql`${table.rank}>0`),
+		index('track_tournament_overall_order').on(
+			table.type,
+			table.totalPoints.desc(),
+			table.idUser,
+		),
+		pgPolicy('graphql_select_overall_standing', {
+			for: 'select',
+			to: zeepCentraalGraphqlRole,
+			using: sql`true`,
 		}),
 	],
 ).enableRLS()

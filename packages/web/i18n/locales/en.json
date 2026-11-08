@@ -250,6 +250,21 @@
 		"typeMore": "Type at least two characters"
 	},
 	"tournaments": {
+		"overall": {
+			"title": "Overall Leaderboard",
+			"currentEvent": "Current Event",
+			"navigation": "Tournament leaderboards",
+			"description": "Rolling overall standings for {title}, using points awarded in completed events.",
+			"events": "Events",
+			"weeklyWindow": "Last 12 completed competitive weekly events. Only completed events count.",
+			"monthlyWindow": "Last 6 completed competitive monthly events. Only completed events count.",
+			"weeklySchedule": "Weekly rotation: Monday, 06:00 UTC. Standings update when the event completes.",
+			"monthlySchedule": "Monthly rotation: 1st of the month, 06:00 UTC. Standings update when the event completes.",
+			"frozen": "Points awarded in completed events stay fixed after record validation changes.",
+			"eventCount": "{count} eligible events",
+			"updated": "Last updated: {date}",
+			"empty": "No completed competitive results yet."
+		},
 		"backToActive": "Back to active tournament",
 		"byAuthor": "by {author}",
 		"competitors": "Competitors",

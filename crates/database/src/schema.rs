@@ -368,9 +368,30 @@ diesel::table! {
         start_at -> Timestamptz,
         end_at -> Timestamptz,
         finalized_at -> Nullable<Timestamptz>,
+        overall_competitive -> Nullable<Bool>,
         points_version -> Integer,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    track_tournament_overall_period (r#type) {
+        r#type -> Integer,
+        eligible_event_count -> Integer,
+        period_start -> Nullable<Timestamptz>,
+        period_end -> Nullable<Timestamptz>,
+        last_updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    track_tournament_overall_standing (r#type, id_user) {
+        r#type -> Integer,
+        id_user -> Integer,
+        total_points -> Integer,
+        events_played -> Integer,
+        rank -> Integer,
     }
 }
 
