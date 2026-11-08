@@ -9,6 +9,7 @@
 			:series="seriesTabs"
 			:active-slug="seriesSlug"
 			:label="t('adventure.tabsLabel')"
+			:global-label="t('adventure.leaderboard.global')"
 			:unavailable-label="t('levels.card.unavailable')"
 		/>
 		<UAlert

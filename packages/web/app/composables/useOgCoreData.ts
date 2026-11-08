@@ -107,6 +107,10 @@ export async function useOgAdventureSeriesData(slug: string) {
 
 	return {
 		series,
-		count: series ? (query.data.value?.[series.countField]?.totalCount ?? 0) : 0,
+		count: series
+			? (query.data.value?.adventureLeaderboardScopes?.nodes.find(
+					(scope) => scope.series === series.slug,
+				)?.totalLevels ?? 0)
+			: 0,
 	}
 }

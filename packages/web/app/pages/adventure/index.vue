@@ -1,3 +1,5 @@
-<script setup lang="ts">
-await navigateTo('/adventure/a', { redirectCode: 301, replace: true })
-</script>
+<template>
+	<section id="adventure-series-panel" role="tabpanel" aria-labelledby="adventure-series-global">
+		<AdventureLeaderboard />
+	</section>
+</template>

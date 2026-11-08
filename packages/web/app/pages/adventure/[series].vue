@@ -4,6 +4,7 @@
 		role="tabpanel"
 		:aria-labelledby="`adventure-series-${series.slug}`"
 	>
+		<AdventureLeaderboard :key="series.slug" :series="series.slug" class="mb-8" />
 		<SectionHeader
 			:id="`adventure-series-${series.slug}-heading`"
 			:title="t('adventure.series', { series: series.key })"

@@ -64,12 +64,12 @@ export function useAdventure(
 	const countsQuery = useQuery({
 		query: Zc_AdventureSeriesCountsDocument,
 		variables: {},
-		pause: computed(() => selectedSeries.value === undefined),
 		requestPolicy: 'cache-first',
 	})
 	const seriesQuery = useQuery({
 		query: Zc_AdventureSeriesDocument,
 		variables: computed(() => ({
+			series: selectedSeries.value?.slug ?? '',
 			prefix: selectedSeries.value?.prefix ?? '',
 			viewerId: viewerId.value ?? 0,
 			includeViewer: viewerId.value !== undefined,
@@ -80,12 +80,14 @@ export function useAdventure(
 
 	function cacheResolvedSeries() {
 		if (seriesQuery.fetching.value || seriesQuery.error.value) return
-		const levelsConnection = seriesQuery.data.value?.levels
+		const levelsConnection = seriesQuery.data.value?.adventureLevelMemberships
 		if (!levelsConnection) return
-		const prefix = seriesQuery.operation.value?.variables.prefix
-		const series = ADVENTURE_SERIES.find((entry) => entry.prefix === prefix)
+		const slug = seriesQuery.operation.value?.variables.series
+		const series = ADVENTURE_SERIES.find((entry) => entry.slug === slug)
 		if (!series) return
-		const levels = levelsConnection.nodes.map(mapLevel)
+		const levels = levelsConnection.nodes.flatMap((entry) =>
+			entry.level ? [mapLevel(entry.level)] : [],
+		)
 		cache.set(series.slug, sortAdventureLevels(levels, series))
 	}
 
@@ -96,9 +98,12 @@ export function useAdventure(
 	)
 
 	const seriesCounts = computed(() => {
-		const data = countsQuery.data.value
+		const data = countsQuery.data.value?.adventureLeaderboardScopes?.nodes
 		return Object.fromEntries(
-			ADVENTURE_SERIES.map((series) => [series.slug, data?.[series.countField]?.totalCount]),
+			ADVENTURE_SERIES.map((series) => [
+				series.slug,
+				data?.find((scope) => scope.series === series.slug)?.totalLevels ?? undefined,
+			]),
 		) as Record<AdventureSeriesSlug, number | undefined>
 	})
 	const tabs = computed(() =>
@@ -110,7 +115,7 @@ export function useAdventure(
 	})
 	const selectedPending = computed(() => {
 		const series = selectedSeries.value
-		const operationMatches = seriesQuery.operation.value?.variables.prefix === series?.prefix
+		const operationMatches = seriesQuery.operation.value?.variables.series === series?.slug
 		return Boolean(
 			series &&
 				!cache.has(series.slug) &&
@@ -122,14 +127,14 @@ export function useAdventure(
 	const selectedError = computed(() => {
 		const series = selectedSeries.value
 		if (!series || cache.has(series.slug)) return undefined
-		return seriesQuery.operation.value?.variables.prefix === series.prefix
+		return seriesQuery.operation.value?.variables.series === series.slug
 			? seriesQuery.error.value
 			: undefined
 	})
 
 	async function prefetch() {
-		if (!import.meta.server || !selectedSeries.value) return
-		await Promise.all([countsQuery, seriesQuery])
+		if (!import.meta.server) return
+		await Promise.all([countsQuery, ...(selectedSeries.value ? [seriesQuery] : [])])
 		cacheResolvedSeries()
 	}
 

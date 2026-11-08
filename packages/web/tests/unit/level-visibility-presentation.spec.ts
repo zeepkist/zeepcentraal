@@ -21,7 +21,7 @@ describe('private level metadata presentation', () => {
 	it('filters every public level discovery surface', () => {
 		const visibilityFilter = 'publiclyVisible: { equalTo: true }'
 		const expectedFilterCounts = {
-			adventure: 18,
+			adventure: 0,
 			dashboard: 2,
 			dashboardViewer: 1,
 			homeStats: 0,
@@ -33,6 +33,8 @@ describe('private level metadata presentation', () => {
 		for (const [document, expectedCount] of Object.entries(expectedFilterCounts)) {
 			expect(query(document).split(visibilityFilter)).toHaveLength(expectedCount + 1)
 		}
+		// Adventure discovery uses the shared, visibility-filtered SQL membership.
+		expect(query('adventure')).toContain('adventureLevelMemberships')
 		expect(query('levels')).toContain('filter: $filter')
 		expect(source('utils/levelExplorer.ts')).toContain('{ publiclyVisible: { equalTo: true } }')
 	})

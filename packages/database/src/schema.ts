@@ -27,6 +27,27 @@ import {
 } from 'drizzle-orm/pg-core'
 import { DEFAULT_VOTE_RATING } from './config'
 
+// Read-only views managed by the Adventure Diesel migration.
+export const adventureLevelMembership = pgView('adventure_level_membership', {
+	series: text().notNull(),
+	idLevel: integer('id_level').notNull(),
+}).existing()
+export const adventureLeaderboardScope = pgView('adventure_leaderboard_scope', {
+	series: text().notNull(),
+	totalLevels: integer('total_levels').notNull(),
+}).existing()
+export const adventureLeaderboardEntry = pgView('adventure_leaderboard_entry', {
+	series: text().notNull(),
+	idUser: integer('id_user').notNull(),
+	completedLevels: integer('completed_levels').notNull(),
+	totalLevels: integer('total_levels').notNull(),
+	remainingLevels: integer('remaining_levels').notNull(),
+	totalTimeMs: bigint('total_time_ms', { mode: 'bigint' }).notNull(),
+	isComplete: boolean('is_complete').notNull(),
+	completedLevelIds: integer('completed_level_ids').array().notNull(),
+	rank: integer().notNull(),
+}).existing()
+
 export const zcPrivate = pgSchema('zc_private')
 
 // Streamkist schema is managed only by Diesel migrations.

@@ -73,20 +73,17 @@ describe('Adventure GraphQL loading', () => {
 			query.indexOf('query ZC_AdventureSeriesCounts'),
 			query.indexOf('query ZC_AdventureSeries('),
 		)
-		expect(countsOperation.match(/first: 0/g)).toHaveLength(17)
-		expect(countsOperation.match(/totalCount/g)).toHaveLength(17)
-		expect(countsOperation).not.toContain('nodes')
-		for (const series of ADVENTURE_SERIES) {
-			expect(countsOperation).toContain(`startsWithInsensitive: "${series.prefix}"`)
-		}
+		expect(countsOperation).toContain('adventureLeaderboardScopes(first: 18)')
+		expect(countsOperation).toContain('totalLevels')
+		expect(countsOperation).not.toContain('levelItems')
 	})
 
 	it('loads only requested series nodes with complete card data', () => {
 		const seriesOperation = query.slice(query.indexOf('query ZC_AdventureSeries('))
 		expect(seriesOperation).toContain('$prefix: String!')
 		expect(seriesOperation).toContain('first: 1000')
-		expect(seriesOperation).toContain('adventure: { equalTo: true }')
-		expect(seriesOperation).toContain('startsWithInsensitive: $prefix')
+		expect(seriesOperation).toContain('adventureLevelMemberships')
+		expect(seriesOperation).toContain('equalTo: $series')
 		expect(seriesOperation).toContain('...ZC_AdventureLevelCard')
 		expect(query).toContain('validationTimeAuthor')
 		expect(query).toContain('worldRecordGlobal')
@@ -124,10 +121,10 @@ describe('Adventure nested routes', () => {
 		expect(tabs).toContain('item.count')
 	})
 
-	it('redirects root, rejects unknown series, and links navigation directly to A', () => {
-		expect(index).toContain("navigateTo('/adventure/a'")
-		expect(index).toContain('redirectCode: 301')
+	it('renders global leaderboard, rejects unknown series, and links global navigation', () => {
+		expect(index).toContain('<AdventureLeaderboard')
+		expect(index).not.toContain('navigateTo')
 		expect(child).toContain('statusCode: 404')
-		expect(navigation).toContain("to: '/adventure/a'")
+		expect(navigation).toContain("to: '/adventure'")
 	})
 })

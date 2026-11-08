@@ -2655,6 +2655,34 @@ type Level implements Node {
     """The method to use when ordering `ZslRound`."""
     orderBy: [ZslRoundsOrderBy!] = [PRIMARY_KEY_ASC]
   ): LevelZslRoundsByZslLevelManyToManyConnection!
+  """
+  Reads and enables pagination through a set of `AdventureLevelMembership`.
+  """
+  adventureLevelMemberships(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLevelMembershipCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLevelMembershipFilter
+    """The method to use when ordering `AdventureLevelMembership`."""
+    orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLevelMembershipsConnection!
 }
 
 type LevelAggregates {
@@ -11357,6 +11385,97 @@ type Query implements Node {
     """The method to use when ordering `TrackTournamentOverallStanding`."""
     orderBy: [TrackTournamentOverallStandingsOrderBy!] = [PRIMARY_KEY_ASC]
   ): TrackTournamentOverallStandingsConnection
+  """Get a single `AdventureLeaderboardEntry`."""
+  adventureLeaderboardEntry(series: String!, userId: Int!): AdventureLeaderboardEntry
+  """Get a single `AdventureLeaderboardScope`."""
+  adventureLeaderboardScope(series: String!): AdventureLeaderboardScope
+  """Get a single `AdventureLevelMembership`."""
+  adventureLevelMembership(series: String!, levelId: Int!): AdventureLevelMembership
+  adventureLeaderboard(series: String): AdventureLeaderboardScope
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
+  """
+  adventureLeaderboardEntries(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLeaderboardEntryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLeaderboardEntryFilter
+    """The method to use when ordering `AdventureLeaderboardEntry`."""
+    orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardEntriesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardScope`.
+  """
+  adventureLeaderboardScopes(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLeaderboardScopeCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLeaderboardScopeFilter
+    """The method to use when ordering `AdventureLeaderboardScope`."""
+    orderBy: [AdventureLeaderboardScopesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardScopesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLevelMembership`.
+  """
+  adventureLevelMemberships(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLevelMembershipCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLevelMembershipFilter
+    """The method to use when ordering `AdventureLevelMembership`."""
+    orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLevelMembershipsConnection
 }
 
 type Record implements Node {
@@ -22546,6 +22665,97 @@ type Subscription {
     """The method to use when ordering `TrackTournamentOverallStanding`."""
     orderBy: [TrackTournamentOverallStandingsOrderBy!] = [PRIMARY_KEY_ASC]
   ): TrackTournamentOverallStandingsConnection
+  """Get a single `AdventureLeaderboardEntry`."""
+  adventureLeaderboardEntry(series: String!, userId: Int!): AdventureLeaderboardEntry
+  """Get a single `AdventureLeaderboardScope`."""
+  adventureLeaderboardScope(series: String!): AdventureLeaderboardScope
+  """Get a single `AdventureLevelMembership`."""
+  adventureLevelMembership(series: String!, levelId: Int!): AdventureLevelMembership
+  adventureLeaderboard(series: String): AdventureLeaderboardScope
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
+  """
+  adventureLeaderboardEntries(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLeaderboardEntryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLeaderboardEntryFilter
+    """The method to use when ordering `AdventureLeaderboardEntry`."""
+    orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardEntriesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardScope`.
+  """
+  adventureLeaderboardScopes(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLeaderboardScopeCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLeaderboardScopeFilter
+    """The method to use when ordering `AdventureLeaderboardScope`."""
+    orderBy: [AdventureLeaderboardScopesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardScopesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLevelMembership`.
+  """
+  adventureLevelMemberships(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLevelMembershipCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLevelMembershipFilter
+    """The method to use when ordering `AdventureLevelMembership`."""
+    orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLevelMembershipsConnection
 }
 
 type TrackTournament implements Node {
@@ -25364,6 +25574,34 @@ type User implements Node {
     """The method to use when ordering `TrackTournamentOverallStanding`."""
     orderBy: [TrackTournamentOverallStandingsOrderBy!] = [PRIMARY_KEY_ASC]
   ): TrackTournamentOverallStandingsConnection!
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
+  """
+  adventureLeaderboardEntries(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLeaderboardEntryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLeaderboardEntryFilter
+    """The method to use when ordering `AdventureLeaderboardEntry`."""
+    orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardEntriesConnection!
 }
 
 type UserAggregates {
@@ -39325,4 +39563,1404 @@ type UserTrackTournamentOverallPeriodsByTrackTournamentOverallStandingManyToMany
   node: TrackTournamentOverallPeriod!
   rank: Int!
   totalPoints: Int!
+}
+
+type AdventureLeaderboardEntry implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  gapMs: BigInt
+  nextEntry: AdventureLeaderboardEntry
+  series: String!
+  userId: Int!
+  completedLevels: Int
+  totalLevels: Int
+  remainingLevels: Int
+  totalTimeMs: BigInt
+  isComplete: Boolean
+  rank: Int
+
+  """
+  Reads a single `User` that is related to this `AdventureLeaderboardEntry`.
+  """
+  user: User
+}
+
+"""
+A filter to be used against `AdventureLevelMembership` object types. All fields are combined with a logical ‘and.’
+"""
+input AdventureLevelMembershipFilter {
+  """Filter by the object’s `series` field."""
+  series: StringFilter
+
+  """Filter by the object’s `levelId` field."""
+  levelId: IntFilter
+
+  """Filter by the object’s `level` relation."""
+  level: LevelFilter
+
+  """Checks for all expressions in this list."""
+  and: [AdventureLevelMembershipFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [AdventureLevelMembershipFilter!]
+
+  """Negates the expression."""
+  not: AdventureLevelMembershipFilter
+}
+
+"""
+A filter to be used against aggregates of `AdventureLevelMembership` object types.
+"""
+input AdventureLevelMembershipAggregatesFilter {
+  """
+  A filter that must pass for the relevant `AdventureLevelMembership` object to be included within the aggregate.
+  """
+  filter: AdventureLevelMembershipFilter
+
+  """Sum aggregate over matching `AdventureLevelMembership` objects."""
+  sum: AdventureLevelMembershipSumAggregateFilter
+
+  """
+  Distinct count aggregate over matching `AdventureLevelMembership` objects.
+  """
+  distinctCount: AdventureLevelMembershipDistinctCountAggregateFilter
+
+  """Minimum aggregate over matching `AdventureLevelMembership` objects."""
+  min: AdventureLevelMembershipMinAggregateFilter
+
+  """Maximum aggregate over matching `AdventureLevelMembership` objects."""
+  max: AdventureLevelMembershipMaxAggregateFilter
+
+  """
+  Mean average aggregate over matching `AdventureLevelMembership` objects.
+  """
+  average: AdventureLevelMembershipAverageAggregateFilter
+
+  """
+  Sample standard deviation aggregate over matching `AdventureLevelMembership` objects.
+  """
+  stddevSample: AdventureLevelMembershipStddevSampleAggregateFilter
+
+  """
+  Population standard deviation aggregate over matching `AdventureLevelMembership` objects.
+  """
+  stddevPopulation: AdventureLevelMembershipStddevPopulationAggregateFilter
+
+  """
+  Sample variance aggregate over matching `AdventureLevelMembership` objects.
+  """
+  varianceSample: AdventureLevelMembershipVarianceSampleAggregateFilter
+
+  """
+  Population variance aggregate over matching `AdventureLevelMembership` objects.
+  """
+  variancePopulation: AdventureLevelMembershipVariancePopulationAggregateFilter
+}
+
+input AdventureLevelMembershipSumAggregateFilter {
+  levelId: BigIntFilter
+}
+
+input AdventureLevelMembershipDistinctCountAggregateFilter {
+  series: BigIntFilter
+  levelId: BigIntFilter
+}
+
+input AdventureLevelMembershipMinAggregateFilter {
+  levelId: IntFilter
+}
+
+input AdventureLevelMembershipMaxAggregateFilter {
+  levelId: IntFilter
+}
+
+input AdventureLevelMembershipAverageAggregateFilter {
+  levelId: BigFloatFilter
+}
+
+input AdventureLevelMembershipStddevSampleAggregateFilter {
+  levelId: BigFloatFilter
+}
+
+input AdventureLevelMembershipStddevPopulationAggregateFilter {
+  levelId: BigFloatFilter
+}
+
+input AdventureLevelMembershipVarianceSampleAggregateFilter {
+  levelId: BigFloatFilter
+}
+
+input AdventureLevelMembershipVariancePopulationAggregateFilter {
+  levelId: BigFloatFilter
+}
+
+"""
+A filter to be used against `AdventureLeaderboardEntry` object types. All fields are combined with a logical ‘and.’
+"""
+input AdventureLeaderboardEntryFilter {
+  """Filter by the object’s `series` field."""
+  series: StringFilter
+
+  """Filter by the object’s `userId` field."""
+  userId: IntFilter
+
+  """Filter by the object’s `completedLevels` field."""
+  completedLevels: IntFilter
+
+  """Filter by the object’s `totalLevels` field."""
+  totalLevels: IntFilter
+
+  """Filter by the object’s `remainingLevels` field."""
+  remainingLevels: IntFilter
+
+  """Filter by the object’s `totalTimeMs` field."""
+  totalTimeMs: BigIntFilter
+
+  """Filter by the object’s `isComplete` field."""
+  isComplete: BooleanFilter
+
+  """Filter by the object’s `rank` field."""
+  rank: IntFilter
+
+  """Filter by the object’s `gapMs` field."""
+  gapMs: BigIntFilter
+
+  """Filter by the object’s `user` relation."""
+  user: UserFilter
+
+  """Checks for all expressions in this list."""
+  and: [AdventureLeaderboardEntryFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [AdventureLeaderboardEntryFilter!]
+
+  """Negates the expression."""
+  not: AdventureLeaderboardEntryFilter
+}
+
+"""
+A filter to be used against aggregates of `AdventureLeaderboardEntry` object types.
+"""
+input AdventureLeaderboardEntryAggregatesFilter {
+  """
+  A filter that must pass for the relevant `AdventureLeaderboardEntry` object to be included within the aggregate.
+  """
+  filter: AdventureLeaderboardEntryFilter
+
+  """Sum aggregate over matching `AdventureLeaderboardEntry` objects."""
+  sum: AdventureLeaderboardEntrySumAggregateFilter
+
+  """
+  Distinct count aggregate over matching `AdventureLeaderboardEntry` objects.
+  """
+  distinctCount: AdventureLeaderboardEntryDistinctCountAggregateFilter
+
+  """Minimum aggregate over matching `AdventureLeaderboardEntry` objects."""
+  min: AdventureLeaderboardEntryMinAggregateFilter
+
+  """Maximum aggregate over matching `AdventureLeaderboardEntry` objects."""
+  max: AdventureLeaderboardEntryMaxAggregateFilter
+
+  """
+  Mean average aggregate over matching `AdventureLeaderboardEntry` objects.
+  """
+  average: AdventureLeaderboardEntryAverageAggregateFilter
+
+  """
+  Sample standard deviation aggregate over matching `AdventureLeaderboardEntry` objects.
+  """
+  stddevSample: AdventureLeaderboardEntryStddevSampleAggregateFilter
+
+  """
+  Population standard deviation aggregate over matching `AdventureLeaderboardEntry` objects.
+  """
+  stddevPopulation: AdventureLeaderboardEntryStddevPopulationAggregateFilter
+
+  """
+  Sample variance aggregate over matching `AdventureLeaderboardEntry` objects.
+  """
+  varianceSample: AdventureLeaderboardEntryVarianceSampleAggregateFilter
+
+  """
+  Population variance aggregate over matching `AdventureLeaderboardEntry` objects.
+  """
+  variancePopulation: AdventureLeaderboardEntryVariancePopulationAggregateFilter
+}
+
+input AdventureLeaderboardEntrySumAggregateFilter {
+  userId: BigIntFilter
+  completedLevels: BigIntFilter
+  totalLevels: BigIntFilter
+  remainingLevels: BigIntFilter
+  totalTimeMs: BigFloatFilter
+  rank: BigIntFilter
+  gapMs: BigFloatFilter
+}
+
+input AdventureLeaderboardEntryDistinctCountAggregateFilter {
+  series: BigIntFilter
+  userId: BigIntFilter
+  completedLevels: BigIntFilter
+  totalLevels: BigIntFilter
+  remainingLevels: BigIntFilter
+  totalTimeMs: BigIntFilter
+  isComplete: BigIntFilter
+  rank: BigIntFilter
+  gapMs: BigIntFilter
+}
+
+input AdventureLeaderboardEntryMinAggregateFilter {
+  userId: IntFilter
+  completedLevels: IntFilter
+  totalLevels: IntFilter
+  remainingLevels: IntFilter
+  totalTimeMs: BigIntFilter
+  rank: IntFilter
+  gapMs: BigIntFilter
+}
+
+input AdventureLeaderboardEntryMaxAggregateFilter {
+  userId: IntFilter
+  completedLevels: IntFilter
+  totalLevels: IntFilter
+  remainingLevels: IntFilter
+  totalTimeMs: BigIntFilter
+  rank: IntFilter
+  gapMs: BigIntFilter
+}
+
+input AdventureLeaderboardEntryAverageAggregateFilter {
+  userId: BigFloatFilter
+  completedLevels: BigFloatFilter
+  totalLevels: BigFloatFilter
+  remainingLevels: BigFloatFilter
+  totalTimeMs: BigFloatFilter
+  rank: BigFloatFilter
+  gapMs: BigFloatFilter
+}
+
+input AdventureLeaderboardEntryStddevSampleAggregateFilter {
+  userId: BigFloatFilter
+  completedLevels: BigFloatFilter
+  totalLevels: BigFloatFilter
+  remainingLevels: BigFloatFilter
+  totalTimeMs: BigFloatFilter
+  rank: BigFloatFilter
+  gapMs: BigFloatFilter
+}
+
+input AdventureLeaderboardEntryStddevPopulationAggregateFilter {
+  userId: BigFloatFilter
+  completedLevels: BigFloatFilter
+  totalLevels: BigFloatFilter
+  remainingLevels: BigFloatFilter
+  totalTimeMs: BigFloatFilter
+  rank: BigFloatFilter
+  gapMs: BigFloatFilter
+}
+
+input AdventureLeaderboardEntryVarianceSampleAggregateFilter {
+  userId: BigFloatFilter
+  completedLevels: BigFloatFilter
+  totalLevels: BigFloatFilter
+  remainingLevels: BigFloatFilter
+  totalTimeMs: BigFloatFilter
+  rank: BigFloatFilter
+  gapMs: BigFloatFilter
+}
+
+input AdventureLeaderboardEntryVariancePopulationAggregateFilter {
+  userId: BigFloatFilter
+  completedLevels: BigFloatFilter
+  totalLevels: BigFloatFilter
+  remainingLevels: BigFloatFilter
+  totalTimeMs: BigFloatFilter
+  rank: BigFloatFilter
+  gapMs: BigFloatFilter
+}
+
+"""A connection to a list of `AdventureLevelMembership` values."""
+type AdventureLevelMembershipsConnection {
+  """A list of `AdventureLevelMembership` objects."""
+  nodes: [AdventureLevelMembership!]!
+
+  """
+  A list of edges which contains the `AdventureLevelMembership` and cursor to aid in pagination.
+  """
+  edges: [AdventureLevelMembershipsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `AdventureLevelMembership` you could get from the connection.
+  """
+  totalCount: Int!
+
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: AdventureLevelMembershipAggregates
+
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `AdventureLevelMembership` for these aggregates.
+    """
+    groupBy: [AdventureLevelMembershipGroupBy!]!
+
+    """Conditions on the grouped aggregates."""
+    having: AdventureLevelMembershipHavingInput
+  ): [AdventureLevelMembershipAggregates!]
+}
+
+type AdventureLevelMembership implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  series: String!
+  levelId: Int!
+
+  """
+  Reads a single `Level` that is related to this `AdventureLevelMembership`.
+  """
+  level: Level
+}
+
+"""A `AdventureLevelMembership` edge in the connection."""
+type AdventureLevelMembershipsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `AdventureLevelMembership` at the end of the edge."""
+  node: AdventureLevelMembership!
+}
+
+type AdventureLevelMembershipAggregates {
+  keys: [String]
+
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: AdventureLevelMembershipSumAggregates
+
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: AdventureLevelMembershipDistinctCountAggregates
+
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: AdventureLevelMembershipMinAggregates
+
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: AdventureLevelMembershipMaxAggregates
+
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: AdventureLevelMembershipAverageAggregates
+
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: AdventureLevelMembershipStddevSampleAggregates
+
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: AdventureLevelMembershipStddevPopulationAggregates
+
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: AdventureLevelMembershipVarianceSampleAggregates
+
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: AdventureLevelMembershipVariancePopulationAggregates
+}
+
+type AdventureLevelMembershipSumAggregates {
+  """Sum of levelId across the matching connection"""
+  levelId: BigInt!
+}
+
+type AdventureLevelMembershipDistinctCountAggregates {
+  """Distinct count of series across the matching connection"""
+  series: BigInt
+
+  """Distinct count of levelId across the matching connection"""
+  levelId: BigInt
+}
+
+type AdventureLevelMembershipMinAggregates {
+  """Minimum of levelId across the matching connection"""
+  levelId: Int
+}
+
+type AdventureLevelMembershipMaxAggregates {
+  """Maximum of levelId across the matching connection"""
+  levelId: Int
+}
+
+type AdventureLevelMembershipAverageAggregates {
+  """Mean average of levelId across the matching connection"""
+  levelId: BigFloat
+}
+
+type AdventureLevelMembershipStddevSampleAggregates {
+  """Sample standard deviation of levelId across the matching connection"""
+  levelId: BigFloat
+}
+
+type AdventureLevelMembershipStddevPopulationAggregates {
+  """
+  Population standard deviation of levelId across the matching connection
+  """
+  levelId: BigFloat
+}
+
+type AdventureLevelMembershipVarianceSampleAggregates {
+  """Sample variance of levelId across the matching connection"""
+  levelId: BigFloat
+}
+
+type AdventureLevelMembershipVariancePopulationAggregates {
+  """Population variance of levelId across the matching connection"""
+  levelId: BigFloat
+}
+
+"""
+Grouping methods for `AdventureLevelMembership` for usage during aggregation.
+"""
+enum AdventureLevelMembershipGroupBy {
+  SERIES
+  LEVEL_ID
+}
+
+"""Conditions for `AdventureLevelMembership` aggregates."""
+input AdventureLevelMembershipHavingInput {
+  AND: [AdventureLevelMembershipHavingInput!]
+  OR: [AdventureLevelMembershipHavingInput!]
+  sum: AdventureLevelMembershipHavingSumInput
+  distinctCount: AdventureLevelMembershipHavingDistinctCountInput
+  min: AdventureLevelMembershipHavingMinInput
+  max: AdventureLevelMembershipHavingMaxInput
+  average: AdventureLevelMembershipHavingAverageInput
+  stddevSample: AdventureLevelMembershipHavingStddevSampleInput
+  stddevPopulation: AdventureLevelMembershipHavingStddevPopulationInput
+  varianceSample: AdventureLevelMembershipHavingVarianceSampleInput
+  variancePopulation: AdventureLevelMembershipHavingVariancePopulationInput
+}
+
+input AdventureLevelMembershipHavingSumInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingDistinctCountInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingMinInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingMaxInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingAverageInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingStddevSampleInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingStddevPopulationInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingVarianceSampleInput {
+  levelId: HavingIntFilter
+}
+
+input AdventureLevelMembershipHavingVariancePopulationInput {
+  levelId: HavingIntFilter
+}
+
+"""
+A condition to be used against `AdventureLevelMembership` object types. All
+fields are tested for equality and combined with a logical ‘and.’
+"""
+input AdventureLevelMembershipCondition {
+  """Checks for equality with the object’s `series` field."""
+  series: String
+
+  """Checks for equality with the object’s `levelId` field."""
+  levelId: Int
+}
+
+"""Methods to use when ordering `AdventureLevelMembership`."""
+enum AdventureLevelMembershipsOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  SERIES_ASC
+  SERIES_DESC
+  LEVEL_ID_ASC
+  LEVEL_ID_DESC
+}
+
+"""A connection to a list of `AdventureLeaderboardEntry` values."""
+type AdventureLeaderboardEntriesConnection {
+  """A list of `AdventureLeaderboardEntry` objects."""
+  nodes: [AdventureLeaderboardEntry!]!
+
+  """
+  A list of edges which contains the `AdventureLeaderboardEntry` and cursor to aid in pagination.
+  """
+  edges: [AdventureLeaderboardEntriesEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `AdventureLeaderboardEntry` you could get from the connection.
+  """
+  totalCount: Int!
+
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: AdventureLeaderboardEntryAggregates
+
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `AdventureLeaderboardEntry` for these aggregates.
+    """
+    groupBy: [AdventureLeaderboardEntryGroupBy!]!
+
+    """Conditions on the grouped aggregates."""
+    having: AdventureLeaderboardEntryHavingInput
+  ): [AdventureLeaderboardEntryAggregates!]
+}
+
+"""A `AdventureLeaderboardEntry` edge in the connection."""
+type AdventureLeaderboardEntriesEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `AdventureLeaderboardEntry` at the end of the edge."""
+  node: AdventureLeaderboardEntry!
+}
+
+type AdventureLeaderboardEntryAggregates {
+  keys: [String]
+
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: AdventureLeaderboardEntrySumAggregates
+
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: AdventureLeaderboardEntryDistinctCountAggregates
+
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: AdventureLeaderboardEntryMinAggregates
+
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: AdventureLeaderboardEntryMaxAggregates
+
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: AdventureLeaderboardEntryAverageAggregates
+
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: AdventureLeaderboardEntryStddevSampleAggregates
+
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: AdventureLeaderboardEntryStddevPopulationAggregates
+
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: AdventureLeaderboardEntryVarianceSampleAggregates
+
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: AdventureLeaderboardEntryVariancePopulationAggregates
+}
+
+type AdventureLeaderboardEntrySumAggregates {
+  """Sum of userId across the matching connection"""
+  userId: BigInt!
+
+  """Sum of completedLevels across the matching connection"""
+  completedLevels: BigInt!
+
+  """Sum of totalLevels across the matching connection"""
+  totalLevels: BigInt!
+
+  """Sum of remainingLevels across the matching connection"""
+  remainingLevels: BigInt!
+
+  """Sum of totalTimeMs across the matching connection"""
+  totalTimeMs: BigFloat!
+
+  """Sum of rank across the matching connection"""
+  rank: BigInt!
+
+  """Sum of this field across the matching connection."""
+  gapMs: BigFloat
+}
+
+type AdventureLeaderboardEntryDistinctCountAggregates {
+  """Distinct count of series across the matching connection"""
+  series: BigInt
+
+  """Distinct count of userId across the matching connection"""
+  userId: BigInt
+
+  """Distinct count of completedLevels across the matching connection"""
+  completedLevels: BigInt
+
+  """Distinct count of totalLevels across the matching connection"""
+  totalLevels: BigInt
+
+  """Distinct count of remainingLevels across the matching connection"""
+  remainingLevels: BigInt
+
+  """Distinct count of totalTimeMs across the matching connection"""
+  totalTimeMs: BigInt
+
+  """Distinct count of isComplete across the matching connection"""
+  isComplete: BigInt
+
+  """Distinct count of completedLevelIds across the matching connection"""
+  completedLevelIds: BigInt
+
+  """Distinct count of rank across the matching connection"""
+  rank: BigInt
+
+  """Distinct count of this field across the matching connection."""
+  gapMs: BigInt
+}
+
+type AdventureLeaderboardEntryMinAggregates {
+  """Minimum of userId across the matching connection"""
+  userId: Int
+
+  """Minimum of completedLevels across the matching connection"""
+  completedLevels: Int
+
+  """Minimum of totalLevels across the matching connection"""
+  totalLevels: Int
+
+  """Minimum of remainingLevels across the matching connection"""
+  remainingLevels: Int
+
+  """Minimum of totalTimeMs across the matching connection"""
+  totalTimeMs: BigInt
+
+  """Minimum of rank across the matching connection"""
+  rank: Int
+
+  """Minimum of this field across the matching connection."""
+  gapMs: BigInt
+}
+
+type AdventureLeaderboardEntryMaxAggregates {
+  """Maximum of userId across the matching connection"""
+  userId: Int
+
+  """Maximum of completedLevels across the matching connection"""
+  completedLevels: Int
+
+  """Maximum of totalLevels across the matching connection"""
+  totalLevels: Int
+
+  """Maximum of remainingLevels across the matching connection"""
+  remainingLevels: Int
+
+  """Maximum of totalTimeMs across the matching connection"""
+  totalTimeMs: BigInt
+
+  """Maximum of rank across the matching connection"""
+  rank: Int
+
+  """Maximum of this field across the matching connection."""
+  gapMs: BigInt
+}
+
+type AdventureLeaderboardEntryAverageAggregates {
+  """Mean average of userId across the matching connection"""
+  userId: BigFloat
+
+  """Mean average of completedLevels across the matching connection"""
+  completedLevels: BigFloat
+
+  """Mean average of totalLevels across the matching connection"""
+  totalLevels: BigFloat
+
+  """Mean average of remainingLevels across the matching connection"""
+  remainingLevels: BigFloat
+
+  """Mean average of totalTimeMs across the matching connection"""
+  totalTimeMs: BigFloat
+
+  """Mean average of rank across the matching connection"""
+  rank: BigFloat
+
+  """Mean average of this field across the matching connection."""
+  gapMs: BigFloat
+}
+
+type AdventureLeaderboardEntryStddevSampleAggregates {
+  """Sample standard deviation of userId across the matching connection"""
+  userId: BigFloat
+
+  """
+  Sample standard deviation of completedLevels across the matching connection
+  """
+  completedLevels: BigFloat
+
+  """
+  Sample standard deviation of totalLevels across the matching connection
+  """
+  totalLevels: BigFloat
+
+  """
+  Sample standard deviation of remainingLevels across the matching connection
+  """
+  remainingLevels: BigFloat
+
+  """
+  Sample standard deviation of totalTimeMs across the matching connection
+  """
+  totalTimeMs: BigFloat
+
+  """Sample standard deviation of rank across the matching connection"""
+  rank: BigFloat
+
+  """
+  Sample standard deviation of this field across the matching connection.
+  """
+  gapMs: BigFloat
+}
+
+type AdventureLeaderboardEntryStddevPopulationAggregates {
+  """Population standard deviation of userId across the matching connection"""
+  userId: BigFloat
+
+  """
+  Population standard deviation of completedLevels across the matching connection
+  """
+  completedLevels: BigFloat
+
+  """
+  Population standard deviation of totalLevels across the matching connection
+  """
+  totalLevels: BigFloat
+
+  """
+  Population standard deviation of remainingLevels across the matching connection
+  """
+  remainingLevels: BigFloat
+
+  """
+  Population standard deviation of totalTimeMs across the matching connection
+  """
+  totalTimeMs: BigFloat
+
+  """Population standard deviation of rank across the matching connection"""
+  rank: BigFloat
+
+  """
+  Population standard deviation of this field across the matching connection.
+  """
+  gapMs: BigFloat
+}
+
+type AdventureLeaderboardEntryVarianceSampleAggregates {
+  """Sample variance of userId across the matching connection"""
+  userId: BigFloat
+
+  """Sample variance of completedLevels across the matching connection"""
+  completedLevels: BigFloat
+
+  """Sample variance of totalLevels across the matching connection"""
+  totalLevels: BigFloat
+
+  """Sample variance of remainingLevels across the matching connection"""
+  remainingLevels: BigFloat
+
+  """Sample variance of totalTimeMs across the matching connection"""
+  totalTimeMs: BigFloat
+
+  """Sample variance of rank across the matching connection"""
+  rank: BigFloat
+
+  """Sample variance of this field across the matching connection."""
+  gapMs: BigFloat
+}
+
+type AdventureLeaderboardEntryVariancePopulationAggregates {
+  """Population variance of userId across the matching connection"""
+  userId: BigFloat
+
+  """Population variance of completedLevels across the matching connection"""
+  completedLevels: BigFloat
+
+  """Population variance of totalLevels across the matching connection"""
+  totalLevels: BigFloat
+
+  """Population variance of remainingLevels across the matching connection"""
+  remainingLevels: BigFloat
+
+  """Population variance of totalTimeMs across the matching connection"""
+  totalTimeMs: BigFloat
+
+  """Population variance of rank across the matching connection"""
+  rank: BigFloat
+
+  """Population variance of this field across the matching connection."""
+  gapMs: BigFloat
+}
+
+"""
+Grouping methods for `AdventureLeaderboardEntry` for usage during aggregation.
+"""
+enum AdventureLeaderboardEntryGroupBy {
+  SERIES
+  USER_ID
+  COMPLETED_LEVELS
+  TOTAL_LEVELS
+  REMAINING_LEVELS
+  TOTAL_TIME_MS
+  IS_COMPLETE
+  RANK
+}
+
+"""Conditions for `AdventureLeaderboardEntry` aggregates."""
+input AdventureLeaderboardEntryHavingInput {
+  AND: [AdventureLeaderboardEntryHavingInput!]
+  OR: [AdventureLeaderboardEntryHavingInput!]
+  sum: AdventureLeaderboardEntryHavingSumInput
+  distinctCount: AdventureLeaderboardEntryHavingDistinctCountInput
+  min: AdventureLeaderboardEntryHavingMinInput
+  max: AdventureLeaderboardEntryHavingMaxInput
+  average: AdventureLeaderboardEntryHavingAverageInput
+  stddevSample: AdventureLeaderboardEntryHavingStddevSampleInput
+  stddevPopulation: AdventureLeaderboardEntryHavingStddevPopulationInput
+  varianceSample: AdventureLeaderboardEntryHavingVarianceSampleInput
+  variancePopulation: AdventureLeaderboardEntryHavingVariancePopulationInput
+}
+
+input AdventureLeaderboardEntryHavingSumInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingDistinctCountInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingMinInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingMaxInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingAverageInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingStddevSampleInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingStddevPopulationInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingVarianceSampleInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+input AdventureLeaderboardEntryHavingVariancePopulationInput {
+  userId: HavingIntFilter
+  completedLevels: HavingIntFilter
+  totalLevels: HavingIntFilter
+  remainingLevels: HavingIntFilter
+  totalTimeMs: HavingBigintFilter
+  rank: HavingIntFilter
+}
+
+"""
+A condition to be used against `AdventureLeaderboardEntry` object types. All
+fields are tested for equality and combined with a logical ‘and.’
+"""
+input AdventureLeaderboardEntryCondition {
+  """Checks for equality with the object’s `series` field."""
+  series: String
+
+  """Checks for equality with the object’s `userId` field."""
+  userId: Int
+
+  """Checks for equality with the object’s `completedLevels` field."""
+  completedLevels: Int
+
+  """Checks for equality with the object’s `totalLevels` field."""
+  totalLevels: Int
+
+  """Checks for equality with the object’s `remainingLevels` field."""
+  remainingLevels: Int
+
+  """Checks for equality with the object’s `totalTimeMs` field."""
+  totalTimeMs: BigInt
+
+  """Checks for equality with the object’s `isComplete` field."""
+  isComplete: Boolean
+
+  """Checks for equality with the object’s `rank` field."""
+  rank: Int
+}
+
+"""Methods to use when ordering `AdventureLeaderboardEntry`."""
+enum AdventureLeaderboardEntriesOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  SERIES_ASC
+  SERIES_DESC
+  USER_ID_ASC
+  USER_ID_DESC
+  COMPLETED_LEVELS_ASC
+  COMPLETED_LEVELS_DESC
+  TOTAL_LEVELS_ASC
+  TOTAL_LEVELS_DESC
+  REMAINING_LEVELS_ASC
+  REMAINING_LEVELS_DESC
+  TOTAL_TIME_MS_ASC
+  TOTAL_TIME_MS_DESC
+  IS_COMPLETE_ASC
+  IS_COMPLETE_DESC
+  RANK_ASC
+  RANK_DESC
+}
+
+type AdventureLeaderboardScope implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
+  """
+  entries(
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLeaderboardEntryFilter
+  ): AdventureLeaderboardEntriesConnection!
+
+  """Reads and enables pagination through a set of `Level`."""
+  missingLevels(
+    userId: Int
+
+    """Only read the first `n` values of the set."""
+    first: Int
+
+    """Only read the last `n` values of the set."""
+    last: Int
+
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LevelFilter
+  ): LevelsConnection!
+  playerEntry(userId: Int): AdventureLeaderboardEntry
+  totalPlayers: Int
+  series: String!
+  totalLevels: Int
+}
+
+"""A connection to a list of `AdventureLeaderboardScope` values."""
+type AdventureLeaderboardScopesConnection {
+  """A list of `AdventureLeaderboardScope` objects."""
+  nodes: [AdventureLeaderboardScope!]!
+
+  """
+  A list of edges which contains the `AdventureLeaderboardScope` and cursor to aid in pagination.
+  """
+  edges: [AdventureLeaderboardScopesEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `AdventureLeaderboardScope` you could get from the connection.
+  """
+  totalCount: Int!
+
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: AdventureLeaderboardScopeAggregates
+
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `AdventureLeaderboardScope` for these aggregates.
+    """
+    groupBy: [AdventureLeaderboardScopeGroupBy!]!
+
+    """Conditions on the grouped aggregates."""
+    having: AdventureLeaderboardScopeHavingInput
+  ): [AdventureLeaderboardScopeAggregates!]
+}
+
+"""A `AdventureLeaderboardScope` edge in the connection."""
+type AdventureLeaderboardScopesEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `AdventureLeaderboardScope` at the end of the edge."""
+  node: AdventureLeaderboardScope!
+}
+
+type AdventureLeaderboardScopeAggregates {
+  keys: [String]
+
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: AdventureLeaderboardScopeSumAggregates
+
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: AdventureLeaderboardScopeDistinctCountAggregates
+
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: AdventureLeaderboardScopeMinAggregates
+
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: AdventureLeaderboardScopeMaxAggregates
+
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: AdventureLeaderboardScopeAverageAggregates
+
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: AdventureLeaderboardScopeStddevSampleAggregates
+
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: AdventureLeaderboardScopeStddevPopulationAggregates
+
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: AdventureLeaderboardScopeVarianceSampleAggregates
+
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: AdventureLeaderboardScopeVariancePopulationAggregates
+}
+
+type AdventureLeaderboardScopeSumAggregates {
+  """Sum of totalLevels across the matching connection"""
+  totalLevels: BigInt!
+
+  """Sum of this field across the matching connection."""
+  totalPlayers: BigInt
+}
+
+type AdventureLeaderboardScopeDistinctCountAggregates {
+  """Distinct count of series across the matching connection"""
+  series: BigInt
+
+  """Distinct count of totalLevels across the matching connection"""
+  totalLevels: BigInt
+
+  """Distinct count of this field across the matching connection."""
+  totalPlayers: BigInt
+}
+
+type AdventureLeaderboardScopeMinAggregates {
+  """Minimum of totalLevels across the matching connection"""
+  totalLevels: Int
+
+  """Minimum of this field across the matching connection."""
+  totalPlayers: Int
+}
+
+type AdventureLeaderboardScopeMaxAggregates {
+  """Maximum of totalLevels across the matching connection"""
+  totalLevels: Int
+
+  """Maximum of this field across the matching connection."""
+  totalPlayers: Int
+}
+
+type AdventureLeaderboardScopeAverageAggregates {
+  """Mean average of totalLevels across the matching connection"""
+  totalLevels: BigFloat
+
+  """Mean average of this field across the matching connection."""
+  totalPlayers: BigFloat
+}
+
+type AdventureLeaderboardScopeStddevSampleAggregates {
+  """
+  Sample standard deviation of totalLevels across the matching connection
+  """
+  totalLevels: BigFloat
+
+  """
+  Sample standard deviation of this field across the matching connection.
+  """
+  totalPlayers: BigFloat
+}
+
+type AdventureLeaderboardScopeStddevPopulationAggregates {
+  """
+  Population standard deviation of totalLevels across the matching connection
+  """
+  totalLevels: BigFloat
+
+  """
+  Population standard deviation of this field across the matching connection.
+  """
+  totalPlayers: BigFloat
+}
+
+type AdventureLeaderboardScopeVarianceSampleAggregates {
+  """Sample variance of totalLevels across the matching connection"""
+  totalLevels: BigFloat
+
+  """Sample variance of this field across the matching connection."""
+  totalPlayers: BigFloat
+}
+
+type AdventureLeaderboardScopeVariancePopulationAggregates {
+  """Population variance of totalLevels across the matching connection"""
+  totalLevels: BigFloat
+
+  """Population variance of this field across the matching connection."""
+  totalPlayers: BigFloat
+}
+
+"""
+Grouping methods for `AdventureLeaderboardScope` for usage during aggregation.
+"""
+enum AdventureLeaderboardScopeGroupBy {
+  TOTAL_LEVELS
+}
+
+"""Conditions for `AdventureLeaderboardScope` aggregates."""
+input AdventureLeaderboardScopeHavingInput {
+  AND: [AdventureLeaderboardScopeHavingInput!]
+  OR: [AdventureLeaderboardScopeHavingInput!]
+  sum: AdventureLeaderboardScopeHavingSumInput
+  distinctCount: AdventureLeaderboardScopeHavingDistinctCountInput
+  min: AdventureLeaderboardScopeHavingMinInput
+  max: AdventureLeaderboardScopeHavingMaxInput
+  average: AdventureLeaderboardScopeHavingAverageInput
+  stddevSample: AdventureLeaderboardScopeHavingStddevSampleInput
+  stddevPopulation: AdventureLeaderboardScopeHavingStddevPopulationInput
+  varianceSample: AdventureLeaderboardScopeHavingVarianceSampleInput
+  variancePopulation: AdventureLeaderboardScopeHavingVariancePopulationInput
+}
+
+input AdventureLeaderboardScopeHavingSumInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingDistinctCountInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingMinInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingMaxInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingAverageInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingStddevSampleInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingStddevPopulationInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingVarianceSampleInput {
+  totalLevels: HavingIntFilter
+}
+
+input AdventureLeaderboardScopeHavingVariancePopulationInput {
+  totalLevels: HavingIntFilter
+}
+
+"""
+A condition to be used against `AdventureLeaderboardScope` object types. All
+fields are tested for equality and combined with a logical ‘and.’
+"""
+input AdventureLeaderboardScopeCondition {
+  """Checks for equality with the object’s `series` field."""
+  series: String
+
+  """Checks for equality with the object’s `totalLevels` field."""
+  totalLevels: Int
+}
+
+"""
+A filter to be used against `AdventureLeaderboardScope` object types. All fields are combined with a logical ‘and.’
+"""
+input AdventureLeaderboardScopeFilter {
+  """Filter by the object’s `series` field."""
+  series: StringFilter
+
+  """Filter by the object’s `totalLevels` field."""
+  totalLevels: IntFilter
+
+  """Filter by the object’s `totalPlayers` field."""
+  totalPlayers: IntFilter
+
+  """Checks for all expressions in this list."""
+  and: [AdventureLeaderboardScopeFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [AdventureLeaderboardScopeFilter!]
+
+  """Negates the expression."""
+  not: AdventureLeaderboardScopeFilter
+}
+
+"""Methods to use when ordering `AdventureLeaderboardScope`."""
+enum AdventureLeaderboardScopesOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  SERIES_ASC
+  SERIES_DESC
+  TOTAL_LEVELS_ASC
+  TOTAL_LEVELS_DESC
 }

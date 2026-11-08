@@ -114,7 +114,20 @@ export async function runWebGraphqlSmoke({
 		minimumModVersion: '1.2.0',
 	})
 	await execute('ZC_AdventureSeriesCounts')
-	await execute('ZC_AdventureSeries', { prefix: 'A-' })
+	await execute('ZC_AdventureSeries', {
+		series: 'a',
+		prefix: 'A-',
+		viewerId: 0,
+		includeViewer: false,
+	})
+	for (const series of [null, 'a', 'xg']) {
+		await execute('ZC_AdventureLeaderboard', {
+			series,
+			first: 50,
+			viewerId: record.userId,
+			includeViewer: true,
+		})
+	}
 
 	const levelDetail = await execute('ZC_LevelDetail', { xxHash: record.xxHash })
 	requireObjectAtPath(levelDetail, ['levelByXxHash'])

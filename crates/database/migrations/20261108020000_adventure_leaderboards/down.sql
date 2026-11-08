@@ -1,0 +1,10 @@
+DROP FUNCTION public.adventure_leaderboard_entry_gap_ms(public.adventure_leaderboard_entry);
+DROP FUNCTION public.adventure_leaderboard_entry_next_entry(public.adventure_leaderboard_entry);
+DROP FUNCTION public.adventure_leaderboard_scope_missing_levels(public.adventure_leaderboard_scope,integer);
+DROP FUNCTION public.adventure_leaderboard_scope_player_entry(public.adventure_leaderboard_scope,integer);
+DROP FUNCTION public.adventure_leaderboard_scope_total_players(public.adventure_leaderboard_scope);
+DROP FUNCTION public.adventure_leaderboard_scope_entries(public.adventure_leaderboard_scope);
+DROP FUNCTION public.adventure_leaderboard(text);
+DROP VIEW public.adventure_leaderboard_entry;
+DROP VIEW public.adventure_leaderboard_scope;
+DROP VIEW public.adventure_level_membership;

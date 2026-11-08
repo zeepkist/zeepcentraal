@@ -1039,3 +1039,28 @@ diesel::table! {
 
  }
 }
+diesel::table! {
+    adventure_level_membership (series, id_level) {
+        series -> Text,
+        id_level -> Int4,
+    }
+}
+diesel::table! {
+    adventure_leaderboard_scope (series) {
+        series -> Text,
+        total_levels -> Int4,
+    }
+}
+diesel::table! {
+    adventure_leaderboard_entry (series, id_user) {
+        series -> Text,
+        id_user -> Int4,
+        completed_levels -> Int4,
+        total_levels -> Int4,
+        remaining_levels -> Int4,
+        total_time_ms -> Int8,
+        is_complete -> Bool,
+        completed_level_ids -> Array<Int4>,
+        rank -> Int4,
+    }
+}

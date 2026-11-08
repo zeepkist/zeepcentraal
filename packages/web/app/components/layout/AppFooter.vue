@@ -79,7 +79,7 @@ const footerColumns = computed(() => [
 	{
 		label: t('footer.columns.discover'),
 		children: [
-			internal(t('nav.adventure'), '/adventure/a', 'route'),
+			internal(t('nav.adventure'), '/adventure', 'route'),
 			internal(t('nav.cosmetics'), '/cosmetics', 'palette'),
 			internal(t('nav.totw'), '/totw', 'calendar-event'),
 			internal(t('nav.totm'), '/totm', 'calendar-stats'),

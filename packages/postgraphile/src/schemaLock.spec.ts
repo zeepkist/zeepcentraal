@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { buildSchema, lexicographicSortSchema, printSchema } from 'postgraphile/graphql'
+import {
+	buildSchema,
+	isObjectType,
+	lexicographicSortSchema,
+	printSchema,
+} from 'postgraphile/graphql'
 import { createPostGraphileHandler } from './postgraphileOptions'
 
 function normalizeSchema(schema: string) {
@@ -11,6 +16,30 @@ function normalizeSchema(schema: string) {
 }
 
 describe('PostGraphile schema lock', () => {
+	test('Adventure exposes ranked connections and viewer progress without internal completed sets', async () => {
+		const schema = buildSchema(
+			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),
+		)
+		for (const root of [schema.getQueryType(), schema.getSubscriptionType()]) {
+			expect(
+				root?.getFields().adventureLeaderboard?.args.map((argument) => argument.name),
+			).toEqual(['series'])
+		}
+		const scope = schema.getType('AdventureLeaderboardScope')
+		const entry = schema.getType('AdventureLeaderboardEntry')
+		expect(
+			scope && isObjectType(scope)
+				? scope.getFields().entries?.args.map((argument) => argument.name)
+				: [],
+		).toEqual(expect.arrayContaining(['first', 'after', 'last', 'before']))
+		expect(scope && 'getFields' in scope ? Object.keys(scope.getFields()) : []).toEqual(
+			expect.arrayContaining(['playerEntry', 'missingLevels', 'totalLevels', 'totalPlayers']),
+		)
+		expect(entry && 'getFields' in entry ? Object.keys(entry.getFields()) : []).not.toContain(
+			'completedLevelIds',
+		)
+		expect(schema.getMutationType()).toBeUndefined()
+	})
 	test('overall leaderboard schema stays read-only and exposes ranked cursor connections', async () => {
 		const schema = buildSchema(
 			await readFile(join(import.meta.dir, '../../graphql/schema.graphql'), 'utf8'),

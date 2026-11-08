@@ -1,0 +1,84 @@
+fragment ZC_AdventureStanding on AdventureLeaderboardEntry {
+	userId
+	rank
+	completedLevels
+	totalLevels
+	remainingLevels
+	totalTimeMs
+	isComplete
+	user {
+		id
+		steamId
+		steamName
+	}
+}
+
+fragment ZC_AdventureLeaderboard on AdventureLeaderboardScope {
+	series
+	totalLevels
+	totalPlayers
+	entries(first: $first, after: $after, last: $last, before: $before) {
+		edges {
+			cursor
+			node {
+				...ZC_AdventureStanding
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+		totalCount
+	}
+	playerEntry(userId: $viewerId) @include(if: $includeViewer) {
+		...ZC_AdventureStanding
+		gapMs
+		nextEntry {
+			...ZC_AdventureStanding
+		}
+	}
+	missingLevels(userId: $viewerId, first: 1000) @include(if: $includeViewer) {
+		nodes {
+			id
+			xxHash
+			levelItems(
+				first: 1
+				filter: { deleted: { equalTo: false } }
+				orderBy: [UPDATED_AT_DESC]
+			) {
+				nodes {
+					name
+				}
+			}
+		}
+	}
+}
+
+query ZC_AdventureLeaderboard(
+	$series: String
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
+	adventureLeaderboard(series: $series) {
+		...ZC_AdventureLeaderboard
+	}
+}
+subscription ZC_AdventureLeaderboardLive(
+	$series: String
+	$first: Int
+	$after: Cursor
+	$last: Int
+	$before: Cursor
+	$viewerId: Int!
+	$includeViewer: Boolean!
+) {
+	adventureLeaderboard(series: $series) {
+		...ZC_AdventureLeaderboard
+	}
+}

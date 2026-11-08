@@ -76,7 +76,7 @@ describe('navigation model', () => {
 		['/wiki/setup-modkist', '/wiki'],
 		['/developer/graphql', '/developer'],
 		['/mod/zeepkist-gtr', '/mods'],
-		['/adventure/xg', '/adventure/a'],
+		['/adventure/xg', '/adventure'],
 		['/cosmetic/42', '/cosmetics'],
 	])('activates %s through parent target %s', (path, target) => {
 		expect(isNavigationTargetActive(path, target)).toBe(true)

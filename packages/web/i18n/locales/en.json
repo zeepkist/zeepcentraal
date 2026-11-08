@@ -1319,6 +1319,25 @@
 		}
 	},
 	"adventure": {
+		"leaderboard": {
+			"title": "Cumulative leaderboard",
+			"global": "All Adventure",
+			"rules": "More completed levels rank first, then lower combined PB time. Incomplete totals are partial.",
+			"rank": "Rank",
+			"player": "Player",
+			"completed": "Completed",
+			"totalTime": "Total Time",
+			"remaining": "Remaining",
+			"partial": "Partial",
+			"yourProgress": "Your progress",
+			"unranked": "Unranked",
+			"timeGap": "{time} behind the next higher rank on the same completed levels.",
+			"completionGap": "{count} more completed levels needed to match the next higher rank.",
+			"missingLevels": "Missing levels ({count})",
+			"participants": "{count} participants",
+			"empty": "No eligible Adventure PBs yet.",
+			"liveError": "Live updates unavailable. Refresh to load current standings."
+		},
 		"series": "Series {series}",
 		"count": "{count} official Adventure Mode levels",
 		"tabsLabel": "Adventure series",

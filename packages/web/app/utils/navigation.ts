@@ -11,7 +11,7 @@ export const navigationRouteFamilies: Readonly<Record<string, readonly string[]>
 	'/lobby': ['/lobby'],
 	'/super-league': ['/super-league'],
 	'/mods': ['/mods', '/mod'],
-	'/adventure/a': ['/adventure'],
+	'/adventure': ['/adventure'],
 	'/cosmetics': ['/cosmetics', '/cosmetic'],
 	'/totw': ['/totw'],
 	'/totm': ['/totm'],
@@ -77,7 +77,7 @@ const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 		icon: 'layout-list',
 	},
 	{
-		to: '/adventure/a',
+		to: '/adventure',
 		labelKey: 'nav.adventure',
 		icon: 'route',
 	},
