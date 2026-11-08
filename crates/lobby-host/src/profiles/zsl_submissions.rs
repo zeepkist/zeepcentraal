@@ -1035,7 +1035,7 @@ mod tests {
         let overrides = crate::leaderboard::read_test_overrides(&sent.lock().await[0])?.1;
         assert_eq!(
             overrides.name,
-            "<color=#000000><nobr>[T]&lt;Player&gt;</nobr></color>"
+            "<color=#000000><nobr>[T]<noparse><</noparse>Player></nobr></color>"
         );
         assert_eq!(overrides.position, "");
         assert_eq!(overrides.time, "");
@@ -1048,7 +1048,7 @@ mod tests {
             crate::leaderboard::read_test_overrides(&sent.lock().await[1])?
                 .1
                 .name,
-            "<color=#FFFFFF><nobr>[T]&lt;Player&gt;</nobr></color>"
+            "<color=#FFFFFF><nobr>[T]<noparse><</noparse>Player></nobr></color>"
         );
         session.on_packet(&packet).await?;
         assert_eq!(sent.lock().await.len(), 2);
@@ -1144,9 +1144,15 @@ mod tests {
         named.name = "<size=200%>Bad & name".into();
         named.override_author_name = "<color=red>A</color>".into();
         let message = next_level_message(&named);
-        assert!(message.contains("&lt;size=200%&gt;"));
-        assert!(message.contains("Bad &amp; name"));
+        assert!(message.contains("<noparse><</noparse>size=200%>"));
+        assert!(message.contains("Bad & name"));
         assert!(!message.contains("<color=red>"));
+        named.name = "Rock & Roll </noparse><size=200%>雪".into();
+        named.override_author_name = "Alice & Bob <color=red>".into();
+        assert_eq!(
+            next_level_message(&named),
+            "<color=#f9cc15>Next submission:</color> <b>Rock & Roll <noparse><</noparse>/noparse><noparse><</noparse>size=200%>雪</b> by Alice & Bob <noparse><</noparse>color=red>"
+        );
         Ok(())
     }
     #[tokio::test]
@@ -1622,7 +1628,7 @@ mod practice_session_tests {
         session.overlay().await?;
         let command = zc_core::zeepnet::parse_game_host_packet_for(&sent.lock().await[0], 0, None)?;
         assert!(
-            matches!(command, GameHostPacket::Chat { message, .. } if message.contains("Level 3 of 3") && message.contains("Mixed &lt;Surfaces&gt;") && !message.contains("Submission"))
+            matches!(command, GameHostPacket::Chat { message, .. } if message.contains("Level 3 of 3") && message.contains("Mixed <noparse><</noparse>Surfaces>") && !message.contains("Submission"))
         );
         let current = session.state.lock().await.active.playlist.levels[2].clone();
         session
@@ -1666,14 +1672,14 @@ mod practice_session_tests {
         let packets = sent.lock().await;
         assert_eq!(
             crate::leaderboard::read_test_overrides(&packets[2])?.1.name,
-            "<color=#FFFFFF><nobr>&lt;Player&gt;</nobr></color>"
+            "<color=#FFFFFF><nobr><noparse><</noparse>Player></nobr></color>"
         );
         let mut reader = zc_core::zeepnet::BitReader::new(&packets[3]);
         reader.read_u16()?;
         assert_eq!(reader.read_u64()?, 42);
         let message = reader.read_string(4096)?;
-        assert!(message.contains("&lt;Player&gt;"));
-        assert!(message.contains("Mixed &lt;Surfaces&gt;"));
+        assert!(message.contains("<noparse><</noparse>Player>"));
+        assert!(message.contains("Mixed <noparse><</noparse>Surfaces>"));
         assert!(message.contains("playlist"));
         assert!(!message.contains("Submission"));
         assert_eq!(reader.read_string(4096)?, HOSTNAME);
@@ -1692,7 +1698,7 @@ mod practice_session_tests {
             crate::leaderboard::read_test_overrides(&sent.lock().await[4])?
                 .1
                 .name,
-            "<color=#123456><nobr>&lt;Player&gt;</nobr></color>"
+            "<color=#123456><nobr><noparse><</noparse>Player></nobr></color>"
         );
         Ok(())
     }

@@ -280,7 +280,7 @@ mod tests {
         assert_eq!(id, 10);
         assert_eq!(
             overrides.name,
-            "<color=#FFFFFF><nobr>[T]&lt;b&gt;Fallback&lt;/b&gt;</nobr></color>"
+            "<color=#FFFFFF><nobr>[T]<noparse><</noparse>b>Fallback<noparse><</noparse>/b></nobr></color>"
         );
         assert_eq!(overrides.position, "");
         assert!(board.reconcile()?.is_empty());
@@ -312,14 +312,14 @@ mod tests {
         assert_eq!(
             player_leaderboard_name(&player),
             format!(
-                "<color=#010203><nobr>&lt;T&gt;Current&amp;{}</nobr></color>",
+                "<color=#010203><nobr><noparse><</noparse>T>Current&{}</nobr></color>",
                 "x".repeat(69)
             )
         );
         player.username = Some(" \t ".into());
         assert_eq!(
             player_leaderboard_name(&player),
-            "<color=#010203><nobr>&lt;T&gt;p</nobr></color>"
+            "<color=#010203><nobr><noparse><</noparse>T>p</nobr></color>"
         );
     }
 

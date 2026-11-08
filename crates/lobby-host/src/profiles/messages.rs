@@ -26,10 +26,9 @@ pub struct StandingResult {
 }
 
 pub fn escape_text(value: &str) -> String {
-    value
-        .replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
+    // TextMeshPro does not decode HTML entities. Shield each tag opening separately
+    // so literal </noparse> text cannot end protection for the rest of the value.
+    value.replace('<', "<noparse><</noparse>")
 }
 
 pub fn join_message(
@@ -350,6 +349,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn literal_text_preserves_punctuation_unicode_and_entity_looking_names() {
+        for value in [
+            "",
+            "Rock & Roll",
+            "\"Alice's\" > café 雪 🏁",
+            "&amp; &lt; &#60; &#x3C;",
+        ] {
+            assert_eq!(escape_text(value), value);
+        }
+    }
+
+    #[test]
+    fn literal_text_shields_rich_text_tags_and_noparse_delimiters() {
+        for (value, expected) in [
+            ("<>", "<noparse><</noparse>>"),
+            ("<size=200%>", "<noparse><</noparse>size=200%>"),
+            ("<color=red>", "<noparse><</noparse>color=red>"),
+            ("<noparse>", "<noparse><</noparse>noparse>"),
+            (
+                "</noparse><b>X</b>",
+                "<noparse><</noparse>/noparse><noparse><</noparse>b>X<noparse><</noparse>/b>",
+            ),
+            ("<<", "<noparse><</noparse><noparse><</noparse>"),
+        ] {
+            assert_eq!(escape_text(value), expected);
+        }
+    }
+
+    #[test]
     fn submission_overlay_switches_to_vote_countdown() -> Result<()> {
         let close = "2026-09-27T17:00:00Z";
         let vote_end = "2026-10-04T17:00:00Z";
@@ -413,11 +441,11 @@ mod tests {
                 standing: Some((12, 34.234)),
             },
         );
-        assert!(message.contains("Welcome to Track of the Month, &lt;b&gt;Alice&lt;/b&gt; Second"));
+        assert!(message.contains("Welcome to Track of the Month, <noparse><</noparse>b>Alice<noparse><</noparse>/b> Second"));
         assert!(message.contains("a unique level each month."));
         assert!(message.contains("<u>zeepki.st/totm</u>!"));
         assert!(message.contains(
-            "You need GTR &lt;1.17&amp;&gt;+ installed to join the tournament leaderboard."
+            "You need GTR <noparse><</noparse>1.17&>+ installed to join the tournament leaderboard."
         ));
         assert!(
             message.contains("You are currently #12 on the tournament leaderboard with 00:34.234.")
@@ -495,7 +523,7 @@ mod tests {
         )?;
         assert_eq!(
             command,
-            "/servermessage yellow 900 <size=150%><b>Track of the Week: 2026 Week 33</b>\n42 Entries Ends in 6d 3h 38m\n<color=#FFD700>1. &lt;Winner&gt; — 01:01.234</color></size>"
+            "/servermessage yellow 900 <size=150%><b>Track of the Week: 2026 Week 33</b>\n42 Entries Ends in 6d 3h 38m\n<color=#FFD700>1. <noparse><</noparse>Winner> — 01:01.234</color></size>"
         );
         Ok(())
     }

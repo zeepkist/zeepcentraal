@@ -724,7 +724,7 @@ mod tests {
         assert_eq!(packets.len(), 1);
         assert_eq!(
             crate::leaderboard::read_test_overrides(&packets[0])?.1.name,
-            "<color=#FFFFFF><nobr>[T]&lt;b&gt;Player&lt;/b&gt;</nobr></color>"
+            "<color=#FFFFFF><nobr>[T]<noparse><</noparse>b>Player<noparse><</noparse>/b></nobr></color>"
         );
         let mut reader = zc_core::zeepnet::BitReader::new(&packets[0]);
         assert_eq!(reader.read_u16()?, zc_core::zeepnet::CUSTOM_LEADERBOARD);

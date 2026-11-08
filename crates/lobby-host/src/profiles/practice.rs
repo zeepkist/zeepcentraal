@@ -221,11 +221,11 @@ mod tests {
         let overlay = schedule.overlay(14, 3, 900, time(9000));
         assert!(overlay.starts_with("/servermessage yellow 900 <size=150%>"));
         assert!(overlay.contains("Level 3 of 14"));
-        assert!(overlay.contains("Mixed &lt;Surfaces&gt;"));
+        assert!(overlay.contains("Mixed <noparse><</noparse>Surfaces>"));
         assert!(
             schedule
                 .welcome("<Player>", 900, time(9000))
-                .contains("&lt;Player&gt;")
+                .contains("<noparse><</noparse>Player>")
         );
     }
     #[test]

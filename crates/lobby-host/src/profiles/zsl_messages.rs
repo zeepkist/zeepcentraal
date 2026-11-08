@@ -165,7 +165,10 @@ mod tests {
     }
     #[test]
     fn gradients_escape_player_text() {
-        assert!(gradient("<>", ["#00aaff", "#88ffff"]).contains("&lt;"));
+        assert_eq!(
+            gradient("<&", ["#00aaff", "#88ffff"]),
+            "<color=#00aaff><noparse><</noparse></color><color=#88ffff>&</color>"
+        );
     }
     #[test]
     fn results_use_canonical_domain() {
