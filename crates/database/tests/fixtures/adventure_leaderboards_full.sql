@@ -18,3 +18,16 @@ INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVE
 INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE
  VALUES(66,1,2,60,'test','test'),(67,2,2,60,'test','test');
 INSERT INTO public.personal_best_global(id_user,id_level,id_record) SELECT id_user,id_level,id FROM public.record;
+INSERT INTO public.world_record_global(id_user,id_level,id_record) VALUES(3,1,3),(1,2,66);
+-- Fake web session exercises the real verified-session playlist route.
+INSERT INTO public.auth(id_user,access_token,access_token_expiry,refresh_token_hash,refresh_token_expiry,provider)
+ VALUES(65,'fake-adventure-access',extract(epoch FROM now())::bigint+3600,
+ encode(sha256('fake-adventure-refresh'::bytea),'hex'),extract(epoch FROM now())::bigint+7200,'steam');
+INSERT INTO public."user"(id,steam_id,steam_name,banned) OVERRIDING SYSTEM VALUE VALUES(66,76561198000000066,'New Adventure Player',false);
+INSERT INTO public.auth(id_user,access_token,access_token_expiry,refresh_token_hash,refresh_token_expiry,provider)
+ VALUES(66,'fake-adventure-zero-access',extract(epoch FROM now())::bigint+3600,
+ encode(sha256('fake-adventure-zero-refresh'::bytea),'hex'),extract(epoch FROM now())::bigint+7200,'steam');
+-- Replace only this disposable view; never read external supporter sources.
+CREATE OR REPLACE VIEW public.donations AS SELECT true AS is_subscription_payment,'Fixture supporter'::text AS tier_name,900000000000000065::bigint AS discord_userid;
+GRANT SELECT ON public.donations TO zeepcentraal_graphql;
+UPDATE public."user" SET discord_id=900000000000000065 WHERE id=65;

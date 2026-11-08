@@ -1,0 +1,151 @@
+import type {
+	Zc_AdventurePlayerLevelFragment,
+	Zc_AdventureStandingFragment,
+} from '@zeepkist/graphql/generated'
+import { describe, expect, it } from 'vitest'
+import {
+	adventureRecordMilliseconds,
+	formatAdventureDelta,
+	pinAdventureViewer,
+} from '../../app/utils/adventureLeaderboard'
+import {
+	adventurePlaylistPath,
+	groupAdventurePlayerLevels,
+	mapAdventurePlayerLevels,
+} from '../../app/utils/adventurePlayerLevels'
+import {
+	collectAdventurePlaylist,
+	parseAdventurePlaylistQuery,
+} from '../../server/utils/adventurePlaylist'
+
+function membership(
+	series: string,
+	id: number,
+	name: string,
+	pb: number | null = null,
+	wr: number | null = null,
+): Zc_AdventurePlayerLevelFragment {
+	return {
+		series,
+		levelId: id,
+		levelItem: { id, name, fileUid: `file-${id}`, workshopId: '123', fileAuthor: 'Author' },
+		level: {
+			id,
+			xxHash: String(id).padStart(32, '0'),
+			personalBestGlobals: { nodes: pb === null ? [] : [{ record: { id, time: pb } }] },
+			worldRecordGlobal: wr === null ? null : { record: { id: id + 100, time: wr } },
+		},
+	}
+}
+
+describe('Adventure player rows and level comparisons', () => {
+	it('pins viewer once and preserves ranks and input rows', () => {
+		const row = (userId: number): Zc_AdventureStandingFragment => ({
+			userId,
+			rank: userId,
+			completedLevels: 1,
+			totalLevels: 2,
+			remainingLevels: 1,
+			totalTimeMs: 1000,
+			isComplete: false,
+			user: { id: userId, steamId: String(userId), steamName: 'Player' },
+		})
+		const entries = [row(1), row(2)]
+		expect(pinAdventureViewer(entries, row(2))).toBe(entries)
+		expect(pinAdventureViewer(entries, row(65))).toEqual([
+			...entries,
+			{ ...row(65), pinned: true },
+		])
+		expect(entries).toHaveLength(2)
+		expect(pinAdventureViewer([], null)).toEqual([])
+	})
+	it('matches real-precision PB rounding and signed WR deltas', () => {
+		expect(adventureRecordMilliseconds(60.0005)).toBe(60000)
+		expect(adventureRecordMilliseconds(60.0006)).toBe(60001)
+		expect(formatAdventureDelta(4)).toBe('+00:00.004')
+		expect(formatAdventureDelta(-4)).toBe('−00:00.004')
+		expect(formatAdventureDelta(0)).toBe('00:00.000')
+	})
+	it('deduplicates shared levels into first matching series and sorts naturally', () => {
+		const levels = mapAdventurePlayerLevels([
+			membership('b', 2, 'B-01'),
+			membership('a', 10, 'A-10', 12, 10),
+			membership('a', 2, 'A-02', 10, 9),
+			membership('xg', 3, 'XG-01'),
+		])
+		const groups = groupAdventurePlayerLevels(levels, 'level')
+		expect(groups.map((group) => group.series.key)).toEqual(['A', 'XG'])
+		expect(groups[0]?.levels.map((level) => level.name)).toEqual(['A-02', 'A-10'])
+		expect(groups[0]?.levels[0]?.delta).toBe(1000)
+		expect(groups[1]?.levels[0]?.delta).toBeNull()
+	})
+	it('places missing PBs first, largest WR gaps next, and unknown WRs last', () => {
+		const levels = mapAdventurePlayerLevels([
+			membership('a', 1, 'A-01', 11, 10),
+			membership('a', 2, 'A-02', null, 10),
+			membership('a', 3, 'A-03', 15, 10),
+			membership('a', 4, 'A-04', 12),
+		])
+		expect(
+			groupAdventurePlayerLevels(levels, 'gap')[0]?.levels.map((level) => level.id),
+		).toEqual([2, 3, 1, 4])
+	})
+})
+
+describe('Adventure playlist exports', () => {
+	it('validates multi-character scopes and rejects malformed input', () => {
+		expect(parseAdventurePlaylistQuery({ series: 'xg', missing: 'true' })).toEqual({
+			series: 'xg',
+			missing: true,
+		})
+		for (const query of [{ series: ['a'] }, { series: 'unknown' }, { missing: 'yes' }])
+			expect(() => parseAdventurePlaylistQuery(query)).toThrow()
+		expect(adventurePlaylistPath('cl', true)).toBe(
+			'/api/adventure/playlist?series=cl&missing=true',
+		)
+	})
+	it('collects cursor pages, deduplicates canonical levels, and exports complete ordered files', async () => {
+		const exported = await collectAdventurePlaylist(async (after) =>
+			after
+				? {
+						nodes: [membership('b', 2, 'B-01'), membership('a', 2, 'A-02')],
+						pageInfo: { hasNextPage: false },
+					}
+				: {
+						nodes: [membership('a', 10, 'A-10')],
+						pageInfo: { hasNextPage: true, endCursor: 'next' },
+					},
+		)
+		const playlist = JSON.parse(exported.body.replace(/^\uFEFF/, ''))
+		expect(playlist.levels.map((level: { Name: string }) => level.Name)).toEqual([
+			'A-02',
+			'A-10',
+		])
+		expect(playlist).toMatchObject({
+			amountOfLevels: 2,
+			roundLength: 480,
+			shufflePlaylist: false,
+		})
+		expect(exported.filename).toBe('zeepcentraal-adventure-all.zeeplist')
+	})
+	it('exports only missing PBs and fails explicitly for unavailable mappings', async () => {
+		const page = (nodes: Zc_AdventurePlayerLevelFragment[]) => async () => ({
+			nodes,
+			pageInfo: { hasNextPage: false },
+		})
+		const exported = await collectAdventurePlaylist(
+			page([membership('a', 1, 'A-01', 10), membership('a', 2, 'A-02')]),
+			'a',
+			true,
+		)
+		expect(
+			JSON.parse(exported.body.replace(/^\uFEFF/, '')).levels.map(
+				(level: { UID: string }) => level.UID,
+			),
+		).toEqual(['file-2'])
+		await expect(collectAdventurePlaylist(page([]))).rejects.toMatchObject({ status: 404 })
+		await expect(
+			collectAdventurePlaylist(page([{ ...membership('a', 1, 'A-01'), levelItem: null }])),
+		).rejects.toMatchObject({ status: 422 })
+	})
+})

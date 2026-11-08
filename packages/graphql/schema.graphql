@@ -39923,6 +39923,7 @@ type AdventureLevelMembership implements Node {
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
   """
   nodeId: ID!
+  levelItem: LevelItem
   series: String!
   levelId: Int!
 

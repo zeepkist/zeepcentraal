@@ -24,6 +24,7 @@ export default defineConfig({
 			reuseExistingServer: false,
 			timeout: 300_000,
 			env: {
+				DATABASE_URL: process.env.ZC_TEST_DATABASE_URL ?? '',
 				NUXT_ENABLE_DEVTOOLS: 'false',
 				NODE_ENV: development ? 'development' : 'production',
 				NUXT_APP_SECRET: 'fake-adventure-browser-secret-at-least-32-characters',

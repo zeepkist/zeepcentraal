@@ -175,6 +175,28 @@ Bun.serve({
 				if (definition.kind === Kind.OPERATION_DEFINITION)
 					fields(definition.selectionSet.selections)
 			}
+			if (query.includes('ZC_SupporterBadges')) {
+				data.donations = {
+					...connection,
+					nodes: [
+						{
+							discordUserid: '99001',
+							isSubscriptionPayment: true,
+							tierName: 'Fixture tier',
+						},
+						{ discordUserid: '99051', isSubscriptionPayment: false, tierName: null },
+					],
+				}
+			}
+			if (query.includes('ZC_SupporterUsers')) {
+				data.users = {
+					...connection,
+					nodes: [
+						{ id: 1, discordId: '99001' },
+						{ id: 51, discordId: '99051' },
+					],
+				}
+			}
 			if (query.includes('ZC_TrackTournamentOverall')) {
 				const monthly = variables?.type === 1
 				const rows = Array.from({ length: 51 }, (_, index) => ({
@@ -183,8 +205,11 @@ Bun.serve({
 					totalPoints: index < 2 ? 1000 : 1000 - index * 2,
 					eventsPlayed: 1,
 					user: {
-						steamId: String(76561198000000000n + BigInt(index)),
-						steamName: `${monthly ? 'Monthly' : 'Weekly'} player ${index + 1}`,
+						steamId: index === 4 ? null : String(76561198000000000n + BigInt(index)),
+						steamName:
+							index === 4
+								? 'Player without profile'
+								: `${monthly ? 'Monthly' : 'Weekly'} player ${index + 1}${index === 3 ? ' VeryLongUnbrokenPlayerName'.repeat(8) : ''}`,
 					},
 				}))
 				const lastPage = Boolean(variables?.after || variables?.last)

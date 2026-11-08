@@ -1,33 +1,50 @@
 <script setup lang="ts">
-import type { Zc_AdventureStandingFragment } from '@zeepkist/graphql/generated'
+import type { AdventureStanding } from '~/utils/adventureLeaderboard'
 import { formatAdventureTime } from '~/utils/adventureLeaderboard'
+import type { SupporterMap } from '~/utils/supporters'
 
-defineProps<{ entries: Zc_AdventureStandingFragment[]; viewerId?: number }>()
-const { t } = useAppI18n()
-const columns = computed(() => [t('adventure.leaderboard.rank'), t('adventure.leaderboard.player'), t('adventure.leaderboard.completed'), t('adventure.leaderboard.totalTime'), t('adventure.leaderboard.remaining')])
+defineProps<{ entries: AdventureStanding[]; viewerId?: number; supporters?: SupporterMap; expandedUserId?: number; series?: string }>()
+defineEmits<{ toggle: [userId: number] }>()
+const { t, locale } = useAppI18n()
+const number = computed(() => getNumberFormatter(locale.value))
 </script>
 
 <template>
 	<DataTableFrame>
-		<table class="w-full min-w-[36rem] text-left text-sm">
+		<table class="w-full min-w-[42rem] table-fixed text-left text-sm">
+			<colgroup><col class="w-10" /><col class="w-20" /><col /><col class="w-24" /><col class="w-40" /><col class="w-24" /></colgroup>
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
-					<th v-for="column in columns" :key="column" scope="col" class="px-4 py-3">{{ column }}</th>
+					<th scope="col"><span class="sr-only">{{ t('adventure.leaderboard.levelTimes') }}</span></th>
+					<th scope="col" class="px-4 py-3">{{ t('adventure.leaderboard.rank') }}</th>
+					<th scope="col" class="px-4 py-3">{{ t('adventure.leaderboard.player') }}</th>
+					<th scope="col" class="px-4 py-3 text-right">{{ t('adventure.leaderboard.completed') }}</th>
+					<th scope="col" class="px-4 py-3 text-right">{{ t('adventure.leaderboard.totalTime') }}</th>
+					<th scope="col" class="px-4 py-3 text-right">{{ t('adventure.leaderboard.remaining') }}</th>
 				</tr>
 			</thead>
 			<tbody>
-				<DataTableRow v-for="entry in entries" :key="entry.userId" :viewer="entry.userId === viewerId">
-					<td class="px-4 py-3 font-bold tabular-nums">#{{ entry.rank }}</td>
-					<td class="max-w-64 px-4 py-3">
-						<NuxtLink v-if="entry.user" :to="`/user/${entry.user.steamId}`" class="flex items-center gap-2 font-semibold hover:text-primary">
-							<UAvatar :alt="entry.user.steamName ?? String(entry.user.steamId)" size="xs" />
-							<span class="truncate">{{ entry.user.steamName ?? entry.user.steamId }}</span>
-						</NuxtLink>
-					</td>
-					<td class="px-4 py-3 tabular-nums"><UBadge :color="entry.isComplete ? 'success' : 'neutral'" variant="soft">{{ entry.completedLevels }}/{{ entry.totalLevels }}</UBadge></td>
-					<td class="px-4 py-3 tabular-nums">{{ formatAdventureTime(entry.totalTimeMs) }} <span v-if="!entry.isComplete" class="text-xs text-muted">{{ t('adventure.leaderboard.partial') }}</span></td>
-					<td class="px-4 py-3 tabular-nums">{{ entry.remainingLevels }}</td>
-				</DataTableRow>
+				<template v-for="entry in entries" :key="entry.userId">
+					<DataTableRow :viewer="entry.userId === viewerId" :pinned="entry.pinned" :data-adventure-player="entry.userId">
+						<td class="pl-2"><UButton color="neutral" variant="ghost" size="sm" :aria-expanded="expandedUserId === entry.userId" :aria-controls="`adventure-player-${entry.userId}-levels`" :aria-label="t(expandedUserId === entry.userId ? 'adventure.leaderboard.hideLevels' : 'adventure.leaderboard.showLevels', { player: entry.user?.steamName ?? entry.user?.steamId })" @click="$emit('toggle', entry.userId)"><TablerIcon name="chevron-right" class="size-4" :class="expandedUserId === entry.userId ? 'rotate-90' : undefined" /></UButton></td>
+						<td class="px-4 py-3 font-bold tabular-nums">#{{ number.format(entry.rank ?? 0) }}</td>
+						<td class="p-0">
+							<DataTableCellLink :to="entry.user ? `/user/${entry.user.steamId}` : undefined" focusable class="px-4 py-3 font-semibold hover:text-primary">
+								<span class="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
+									<span class="min-w-0 truncate">{{ entry.user?.steamName ?? entry.user?.steamId }}</span>
+									<SupporterBadge :supporter="supporters?.[entry.userId]" class="ml-0" />
+									<UBadge v-if="entry.userId === viewerId" class="shrink-0" size="sm" variant="soft">{{ t('adventure.leaderboard.you') }}</UBadge>
+								</span>
+							</DataTableCellLink>
+						</td>
+						<td class="px-4 py-3 text-right tabular-nums" :class="entry.isComplete ? 'font-semibold text-foreground' : 'text-muted-foreground'">{{ entry.completedLevels }}/{{ entry.totalLevels }}</td>
+						<td class="px-4 py-3 text-right tabular-nums"><span class="font-semibold">{{ formatAdventureTime(entry.totalTimeMs) }}</span><span v-if="!entry.isComplete" class="ml-1 text-xs text-muted-foreground">{{ t('adventure.leaderboard.partial') }}</span></td>
+						<td class="px-4 py-3 text-right tabular-nums text-muted-foreground">{{ number.format(entry.remainingLevels ?? 0) }}</td>
+					</DataTableRow>
+					<tr v-if="expandedUserId === entry.userId" :id="`adventure-player-${entry.userId}-levels`" class="border-t border-border bg-muted/20">
+						<td colspan="6"><AdventurePlayerLevels :key="`${series ?? 'all'}:${entry.userId}`" :series="series" :player-id="entry.userId" /></td>
+					</tr>
+				</template>
 			</tbody>
 		</table>
 	</DataTableFrame>

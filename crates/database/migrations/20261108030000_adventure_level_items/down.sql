@@ -1,0 +1,1 @@
+DROP FUNCTION public.adventure_level_membership_level_item(public.adventure_level_membership);

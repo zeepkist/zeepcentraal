@@ -22,6 +22,25 @@ for (const [root, label, count] of [
 		await waitForHydration(page)
 		expect(response?.status()).toBe(200)
 		await expect(page.getByText(`${count} eligible events`, { exact: true })).toBeVisible()
+		const title = `Track of the ${root === 'totw' ? 'Week' : 'Month'} Overall Leaderboard`
+		await expect(
+			page.getByRole('heading', { level: 1, name: title, exact: true }),
+		).toBeVisible()
+		await expect(page).toHaveTitle(new RegExp(title))
+		await expect(
+			page.getByText('Standings update after the current tournament ends', { exact: true }),
+		).toHaveCount(1)
+		await expect(page.getByText(/Points awarded in completed events stay fixed/)).toHaveCount(0)
+		await expect(page.locator('dl dt')).toHaveText(
+			[/Eligible period/, /^Rotation$/, /^Last updated$/],
+			{ useInnerText: true },
+		)
+		await expect(page.locator('dl dd').first()).not.toContainText(/6:00|06:00|UTC/)
+		await expect(page.locator('dl dd').last()).toContainText('UTC')
+		const firstCell = page.locator('tbody tr').first().locator('td').nth(1)
+		await expect(firstCell.getByRole('img')).toBeVisible()
+		await expect(page.locator('tbody tr').nth(4).getByRole('link')).toHaveCount(0)
+		await expect(page.locator('tbody tr').nth(4)).toContainText('Player without profile')
 		await expect(
 			page.getByRole('link', { name: `${label} player 1`, exact: true }),
 		).toHaveAttribute('href', '/user/76561198000000000')
@@ -92,7 +111,7 @@ test('overall displays empty and error states', async ({ page }) => {
 
 test('overall pins authenticated viewer outside page and removes duplicate on viewer page', async ({
 	page,
-}) => {
+}, testInfo) => {
 	await page.route('**/api/session', (route) =>
 		route.fulfill({
 			json: {
@@ -110,6 +129,41 @@ test('overall pins authenticated viewer outside page and removes duplicate on vi
 	await waitForHydration(page)
 	await expect(page.getByText('You', { exact: true })).toBeVisible()
 	await expect(page.locator('tbody tr')).toHaveCount(51)
+	const playerCell = page.locator('tbody tr').last().locator('td').nth(1)
+	await expect(playerCell.getByRole('img')).toBeVisible()
+	const alignment = await playerCell.evaluate((cell) => {
+		const name = cell.querySelector('.truncate')?.getBoundingClientRect()
+		const icon = cell.querySelector('[role="img"]')?.getBoundingClientRect()
+		const badge = Array.from(cell.querySelectorAll('span'))
+			.find((span) => span.textContent === 'You')
+			?.getBoundingClientRect()
+		if (!name || !icon || !badge)
+			throw new Error('Player name, supporter icon, and viewer badge required')
+		return {
+			name: name.y + name.height / 2,
+			icon: icon.y + icon.height / 2,
+			badge: badge.y + badge.height / 2,
+		}
+	})
+	expect(Math.abs(alignment.name - alignment.icon)).toBeLessThan(2)
+	expect(Math.abs(alignment.name - alignment.badge)).toBeLessThan(2)
+	await page.locator('tbody tr').nth(3).scrollIntoViewIfNeeded()
+	const truncates = await page
+		.locator('tbody tr')
+		.nth(3)
+		.locator('.truncate')
+		.evaluate((name) => name.scrollWidth > name.clientWidth)
+	expect(truncates).toBe(true)
+	for (const theme of ['dark', 'light']) {
+		await page.evaluate((value) => {
+			document.documentElement.classList.remove('dark', 'light')
+			document.documentElement.classList.add(value)
+		}, theme)
+		await page.evaluate(() => window.scrollTo(0, 0))
+		await page.screenshot({ path: testInfo.outputPath(`overall-${theme}.png`) })
+		await playerCell.scrollIntoViewIfNeeded()
+		await playerCell.screenshot({ path: testInfo.outputPath(`player-${theme}.png`) })
+	}
 	await page.getByRole('button', { name: 'Next', exact: true }).click()
 	await expect(page.locator('tbody tr')).toHaveCount(1)
 	await expect(page.getByText('You', { exact: true })).toHaveCount(0)

@@ -1,0 +1,75 @@
+fragment ZC_AdventurePlayerLevel on AdventureLevelMembership {
+	series
+	levelId
+	levelItem {
+		id
+		name
+		fileUid
+		workshopId
+		fileAuthor
+	}
+	level {
+		id
+		xxHash
+		personalBestGlobals(first: 1, filter: { userId: { equalTo: $playerId } })
+			@include(if: $includePlayer)
+		{
+			nodes {
+				record {
+					id
+					time
+				}
+			}
+		}
+		worldRecordGlobal {
+			record {
+				id
+				time
+			}
+		}
+	}
+}
+
+query ZC_AdventurePlayerLevels(
+	$after: Cursor
+	$filter: AdventureLevelMembershipFilter
+	$playerId: Int!
+	$includePlayer: Boolean!
+) {
+	adventureLevelMemberships(
+		first: 100
+		after: $after
+		filter: $filter
+		orderBy: [SERIES_ASC, LEVEL_ID_ASC]
+	) {
+		nodes {
+			...ZC_AdventurePlayerLevel
+		}
+		pageInfo {
+			endCursor
+			hasNextPage
+		}
+	}
+}
+
+subscription ZC_AdventurePlayerLevelsLive(
+	$after: Cursor
+	$filter: AdventureLevelMembershipFilter
+	$playerId: Int!
+	$includePlayer: Boolean!
+) {
+	adventureLevelMemberships(
+		first: 100
+		after: $after
+		filter: $filter
+		orderBy: [SERIES_ASC, LEVEL_ID_ASC]
+	) {
+		nodes {
+			...ZC_AdventurePlayerLevel
+		}
+		pageInfo {
+			endCursor
+			hasNextPage
+		}
+	}
+}

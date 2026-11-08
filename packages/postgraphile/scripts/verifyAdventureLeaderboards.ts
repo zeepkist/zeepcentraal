@@ -21,15 +21,31 @@ const sql = new SQL(databaseUrl, { prepare: false })
 try {
 	if (process.argv.includes('--migrate')) {
 		await sql.begin(async (tx) => {
-			await tx.unsafe(
-				await readFile(
-					new URL(
-						'../../../crates/database/migrations/20261108020000_adventure_leaderboards/up.sql',
-						import.meta.url,
-					),
-					'utf8',
-				),
-			)
+			for (const [name, present] of [
+				[
+					'20261108020000_adventure_leaderboards',
+					(
+						await tx`select to_regclass('public.adventure_level_membership') is not null as present`
+					)[0].present,
+				],
+				[
+					'20261108030000_adventure_level_items',
+					(
+						await tx`select to_regprocedure('public.adventure_level_membership_level_item(public.adventure_level_membership)') is not null as present`
+					)[0].present,
+				],
+			] as const) {
+				if (!present)
+					await tx.unsafe(
+						await readFile(
+							new URL(
+								`../../../crates/database/migrations/${name}/up.sql`,
+								import.meta.url,
+							),
+							'utf8',
+						),
+					)
+			}
 		})
 	}
 	if (process.argv.includes('--seed')) {
@@ -79,12 +95,11 @@ try {
 			for (const type of Object.values(schema.getTypeMap())) {
 				if (type.name.startsWith('Adventure')) {
 					const definition = printType(type)
-					const pattern = new RegExp(
-						`(?:type|input|enum) ${type.name}(?: [^{]+)? \\{[\\s\\S]*?\\n\\}`,
-						'm',
+					const existing = parse(source).definitions.find(
+						(node) => 'name' in node && node.name?.value === type.name,
 					)
-					source = pattern.test(source)
-						? source.replace(pattern, definition)
+					source = existing?.loc
+						? `${source.slice(0, existing.loc.start)}${definition}${source.slice(existing.loc.end)}`
 						: `${source}\n${definition}\n`
 				} else if ('getFields' in type && !type.name.startsWith('__')) {
 					const fields = Object.values(type.getFields()).filter((field) =>
@@ -248,6 +263,18 @@ try {
 						await tx`insert into public.record(id,id_user,id_level,time,game_version,mod_version) overriding system value values(68,1,2,50,'test','test')`
 						await tx`update public.personal_best_global set id_record=68 where id_user=1 and id_level=2`
 					})
+					return 'ok'
+				})
+				.post('/__test/advance-wr', async () => {
+					await sql.begin(async (tx) => {
+						await tx`insert into public.record(id,id_user,id_level,time,game_version,mod_version) overriding system value values(69,3,1,1,'test','test')`
+						await tx`update public.personal_best_global set id_record=69 where id_user=3 and id_level=1`
+						await tx`update public.world_record_global set id_record=69 where id_level=1`
+					})
+					return 'ok'
+				})
+				.post('/__test/long-player', async () => {
+					await sql`update public."user" set steam_name=repeat(case when id=65 then 'W' else 'X' end,120) where id in(64,65)`
 					return 'ok'
 				})
 				.post('/__test/reset', async () => {
