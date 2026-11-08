@@ -22,13 +22,14 @@ float visibility(vec3 p){
 #ifdef SPOT_SHADOW
  vec4 projected=shadowMatrix*vec4(p,1.);vec3 uv=projected.xyz/projected.w;
  if(any(lessThan(uv,vec3(0.)))||any(greaterThan(uv,vec3(1.))))return 1.;
- return texture(spotShadow,vec3(uv.xy,uv.z+shadowBias));
+ // Shadow maps have one mip level. Explicit gradients avoid derivatives inside the ray-march loop.
+ return textureGrad(spotShadow,vec3(uv.xy,uv.z+shadowBias),vec2(0.),vec2(0.));
 #endif
 #ifdef POINT_SHADOW
  vec3 direction=p-lightPosition;float z=max(max(abs(direction.x),abs(direction.y)),abs(direction.z));
  if(z<shadowNear||z>shadowFar)return 1.;
  float depth=shadowFar*(z-shadowNear)/(z*(shadowFar-shadowNear));
- return texture(pointShadow,vec4(normalize(direction),depth+shadowBias));
+ return textureGrad(pointShadow,vec4(normalize(direction),depth+shadowBias),vec3(0.),vec3(0.));
 #endif
  return 1.;
 }

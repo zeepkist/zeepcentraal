@@ -229,7 +229,15 @@ test('Replay renders worker-transferred protobuf defaults without NaN geometry',
 }) => {
 	const geometryErrors: string[] = []
 	page.on('console', (message) => {
-		if (message.type() === 'error' && message.text().startsWith('THREE.'))
+		// Three.js PMREM remains unmodified; permit its ANGLE precision warnings.
+		const precisionOnly = message
+			.text()
+			.split('\n')
+			.every((line) => !line.trim() || line.includes('warning X4122:'))
+		if (
+			(message.type() === 'error' && message.text().startsWith('THREE.')) ||
+			(message.text().startsWith('THREE.WebGLProgram:') && !precisionOnly)
+		)
 			geometryErrors.push(message.text())
 	})
 	await mockReplayVerification(page)

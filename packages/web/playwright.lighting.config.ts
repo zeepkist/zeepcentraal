@@ -13,15 +13,35 @@ export default defineConfig({
 	},
 	use: {
 		baseURL: 'http://127.0.0.1:4185',
-		...devices['Desktop Chrome'],
-		channel:
-			process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === 'win32' ? 'chrome' : undefined),
 		viewport: { width: 640, height: 360 },
-		launchOptions: {
-			args:
-				process.env.GHOST_LIGHTING_GPU === '1'
-					? ['--enable-webgl']
-					: ['--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
-		},
 	},
+	projects: [
+		{
+			name: 'chromium',
+			use: {
+				...devices['Desktop Chrome'],
+				viewport: { width: 640, height: 360 },
+				channel:
+					process.env.PLAYWRIGHT_CHANNEL ??
+					(process.platform === 'win32' ? 'chrome' : undefined),
+				launchOptions: {
+					args:
+						process.env.GHOST_LIGHTING_GPU === '1'
+							? ['--enable-webgl']
+							: [
+									'--enable-webgl',
+									'--use-angle=swiftshader',
+									'--enable-unsafe-swiftshader',
+								],
+				},
+			},
+		},
+		{
+			name: 'firefox',
+			use: {
+				...devices['Desktop Firefox'],
+				viewport: { width: 640, height: 360 },
+			},
+		},
+	],
 })

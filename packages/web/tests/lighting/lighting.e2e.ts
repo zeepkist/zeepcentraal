@@ -61,7 +61,16 @@ for (const quality of ['performance', 'balanced', 'quality'] as const)
 			const errors: string[] = []
 			page.on('pageerror', (error) => errors.push(error.message))
 			page.on('console', (message) => {
-				if (message.type() === 'error') errors.push(message.text())
+				// Three.js PMREM emits harmless cardinal-angle precision warnings on ANGLE.
+				const precisionOnly = message
+					.text()
+					.split('\n')
+					.every((line) => !line.trim() || line.includes('warning X4122:'))
+				if (
+					message.type() === 'error' ||
+					(message.text().startsWith('THREE.WebGLProgram:') && !precisionOnly)
+				)
+					errors.push(message.text())
 			})
 			await page.goto('/')
 			await page.waitForFunction(() => 'ghostLightingHarness' in window)
