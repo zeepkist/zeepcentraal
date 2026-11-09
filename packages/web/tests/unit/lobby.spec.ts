@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 import { isLobbySnapshot } from '../../app/composables/useLobbyFeed'
 
-const page = readFileSync(new URL('../../app/pages/lobby.vue', import.meta.url), 'utf8')
+const page = readFileSync(new URL('../../app/pages/lobby/index.vue', import.meta.url), 'utf8')
 const table = readFileSync(
 	new URL('../../app/components/lobby/LobbyTable.vue', import.meta.url),
 	'utf8',

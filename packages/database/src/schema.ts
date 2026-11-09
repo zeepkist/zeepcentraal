@@ -27,6 +27,24 @@ import {
 } from 'drizzle-orm/pg-core'
 import { DEFAULT_VOTE_RATING } from './config'
 
+// Read-only projection for computed lobby filtering and sorting. Diesel owns SQL.
+export const lobbyListing = pgView('lobby_listing', {
+	id: bigint({ mode: 'bigint' }).notNull(),
+	roomName: text('room_name').notNull(),
+	hostId: bigint('host_id', { mode: 'bigint' }).notNull(),
+	players: integer().notNull(),
+	playerLimit: integer('player_limit').notNull(),
+	isPublic: boolean('is_public').notNull(),
+	peakPlayers: integer('peak_players').notNull(),
+	peakTime: timestamp('peak_time', { withTimezone: true, mode: 'string' }).notNull(),
+	firstSeen: timestamp('first_seen', { withTimezone: true, mode: 'string' }).notNull(),
+	lastSeen: timestamp('last_seen', { withTimezone: true, mode: 'string' }).notNull(),
+	closedAt: timestamp('closed_at', { withTimezone: true, mode: 'string' }),
+	durationSeconds: doublePrecision('duration_seconds').notNull(),
+	occupancy: doublePrecision(),
+	availableCapacity: boolean('available_capacity').notNull(),
+}).existing()
+
 // Read-only views managed by the Adventure Diesel migration.
 export const adventureLevelMembership = pgView('adventure_level_membership', {
 	series: text().notNull(),

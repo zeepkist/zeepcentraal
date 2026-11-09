@@ -1,0 +1,33 @@
+subscription ZC_LobbyRoomsLive(
+	$first: Int
+	$last: Int
+	$after: Cursor
+	$before: Cursor
+	$filter: LobbyListingFilter!
+	$orderBy: [LobbyListingsOrderBy!]!
+) {
+	query {
+		...ZC_LobbyRooms
+	}
+}
+subscription ZC_LobbyStatisticsLive(
+	$filter: LobbyStatFilter!
+	$previousFilter: LobbyStatFilter!
+	$peakFilter: LobbyStatFilter!
+	$groupBy: [LobbyStatGroupBy!]!
+) {
+	query {
+		...ZC_LobbyStatistics
+	}
+}
+subscription ZC_LobbyDetailLive(
+	$id: BigInt!
+	$first: Int
+	$last: Int
+	$after: Cursor
+	$before: Cursor
+) {
+	query {
+		...ZC_LobbyDetail
+	}
+}

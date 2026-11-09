@@ -11476,6 +11476,142 @@ type Query implements Node {
     """The method to use when ordering `AdventureLevelMembership`."""
     orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
   ): AdventureLevelMembershipsConnection
+  """Get a single `Lobby`."""
+  lobby(id: BigInt!): Lobby
+  """Get a single `LobbyHistory`."""
+  lobbyHistory(id: BigInt!): LobbyHistory
+  """Get a single `LobbyListing`."""
+  lobbyListing(id: BigInt!): LobbyListing
+  """Get a single `LobbyStat`."""
+  lobbyStat(id: BigInt!): LobbyStat
+  """
+  Bounded last-observed room occupancy. At most 201 buckets. Gaps do not prove downtime.
+  """
+  lobbyOccupancyTimeline(
+    pLobbyId: BigInt
+    pBuckets: Int
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyOccupancyTimelineRecordFilter
+  ): LobbyOccupancyTimelineConnection
+  """Reads and enables pagination through a set of `Lobby`."""
+  lobbies(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyFilter
+    """The method to use when ordering `Lobby`."""
+    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbiesConnection
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  lobbyHistories(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection
+  """Reads and enables pagination through a set of `LobbyListing`."""
+  lobbyListings(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyListingCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyListingFilter
+    """The method to use when ordering `LobbyListing`."""
+    orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyListingsConnection
+  """Reads and enables pagination through a set of `LobbyStat`."""
+  lobbyStats(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyStatCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyStatFilter
+    """The method to use when ordering `LobbyStat`."""
+    orderBy: [LobbyStatsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyStatsConnection
 }
 
 type Record implements Node {
@@ -22756,6 +22892,142 @@ type Subscription {
     """The method to use when ordering `AdventureLevelMembership`."""
     orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
   ): AdventureLevelMembershipsConnection
+  """Get a single `Lobby`."""
+  lobby(id: BigInt!): Lobby
+  """Get a single `LobbyHistory`."""
+  lobbyHistory(id: BigInt!): LobbyHistory
+  """Get a single `LobbyListing`."""
+  lobbyListing(id: BigInt!): LobbyListing
+  """Get a single `LobbyStat`."""
+  lobbyStat(id: BigInt!): LobbyStat
+  """
+  Bounded last-observed room occupancy. At most 201 buckets. Gaps do not prove downtime.
+  """
+  lobbyOccupancyTimeline(
+    pLobbyId: BigInt
+    pBuckets: Int
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyOccupancyTimelineRecordFilter
+  ): LobbyOccupancyTimelineConnection
+  """Reads and enables pagination through a set of `Lobby`."""
+  lobbies(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyFilter
+    """The method to use when ordering `Lobby`."""
+    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbiesConnection
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  lobbyHistories(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection
+  """Reads and enables pagination through a set of `LobbyListing`."""
+  lobbyListings(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyListingCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyListingFilter
+    """The method to use when ordering `LobbyListing`."""
+    orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyListingsConnection
+  """Reads and enables pagination through a set of `LobbyStat`."""
+  lobbyStats(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyStatCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyStatFilter
+    """The method to use when ordering `LobbyStat`."""
+    orderBy: [LobbyStatsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyStatsConnection
 }
 
 type TrackTournament implements Node {
@@ -25602,6 +25874,110 @@ type User implements Node {
     """The method to use when ordering `AdventureLeaderboardEntry`."""
     orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
   ): AdventureLeaderboardEntriesConnection!
+  """Reads and enables pagination through a set of `Lobby`."""
+  lobbiesByLobbyHistory(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyFilter
+    """The method to use when ordering `Lobby`."""
+    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): UserLobbiesByLobbyHistoryManyToManyConnection!
+  """Reads and enables pagination through a set of `Lobby`."""
+  hostedLobbies(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyFilter
+    """The method to use when ordering `Lobby`."""
+    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbiesConnection!
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  lobbyHistoryEntries(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection!
+  """Reads and enables pagination through a set of `LobbyListing`."""
+  lobbyListings(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyListingCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyListingFilter
+    """The method to use when ordering `LobbyListing`."""
+    orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyListingsConnection!
 }
 
 type UserAggregates {
@@ -40964,4 +41340,2683 @@ enum AdventureLeaderboardScopesOrderBy {
   SERIES_DESC
   TOTAL_LEVELS_ASC
   TOTAL_LEVELS_DESC
+}
+
+type Lobby implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: BigInt!
+  roomName: String!
+  hostId: BigInt!
+  players: Int!
+  playerLimit: Int!
+  isPublic: Boolean!
+  peakPlayers: Int!
+  peakTime: Datetime!
+  firstSeen: Datetime!
+  lastSeen: Datetime!
+  closedAt: Datetime
+  dateCreated: Datetime!
+  dateUpdated: Datetime!
+  """Reads and enables pagination through a set of `User`."""
+  usersByLobbyHistory(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: UserCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: UserFilter
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyUsersByLobbyHistoryManyToManyConnection!
+  """Reads a single `User` that is related to this `Lobby`."""
+  host: User
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  history(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection!
+}
+
+"""
+A connection to a list of `User` values, with data from `LobbyHistory`.
+"""
+type LobbyUsersByLobbyHistoryManyToManyConnection {
+  """A list of `User` objects."""
+  nodes: [User!]!
+  """
+  A list of edges which contains the `User`, info from the `LobbyHistory`, and the cursor to aid in pagination.
+  """
+  edges: [LobbyUsersByLobbyHistoryManyToManyEdge!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `User` you could get from the connection."""
+  totalCount: Int!
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: UserAggregates
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `User` for these aggregates."""
+    groupBy: [UserGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: UserHavingInput
+  ): [UserAggregates!]
+}
+
+"""
+A connection to a list of `Lobby` values, with data from `LobbyHistory`.
+"""
+type UserLobbiesByLobbyHistoryManyToManyConnection {
+  """A list of `Lobby` objects."""
+  nodes: [Lobby!]!
+  """
+  A list of edges which contains the `Lobby`, info from the `LobbyHistory`, and the cursor to aid in pagination.
+  """
+  edges: [UserLobbiesByLobbyHistoryManyToManyEdge!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `Lobby` you could get from the connection."""
+  totalCount: Int!
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: LobbyAggregates
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `Lobby` for these aggregates."""
+    groupBy: [LobbyGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: LobbyHavingInput
+  ): [LobbyAggregates!]
+}
+
+"""A `Lobby` edge in the connection, with data from `LobbyHistory`."""
+type UserLobbiesByLobbyHistoryManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `Lobby` at the end of the edge."""
+  node: Lobby!
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  lobbyHistoryEntries(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection!
+}
+
+"""A connection to a list of `LobbyHistory` values."""
+type LobbyHistoriesConnection {
+  """A list of `LobbyHistory` objects."""
+  nodes: [LobbyHistory!]!
+  """
+  A list of edges which contains the `LobbyHistory` and cursor to aid in pagination.
+  """
+  edges: [LobbyHistoriesEdge!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `LobbyHistory` you could get from the connection."""
+  totalCount: Int!
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: LobbyHistoryAggregates
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `LobbyHistory` for these aggregates."""
+    groupBy: [LobbyHistoryGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: LobbyHistoryHavingInput
+  ): [LobbyHistoryAggregates!]
+}
+
+type LobbyHistory implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: BigInt!
+  lobbyId: BigInt!
+  hostId: BigInt!
+  changeType: String!
+  roomName: String!
+  players: Int!
+  playerLimit: Int!
+  isPublic: Boolean!
+  observedAt: Datetime!
+  dateCreated: Datetime!
+  """Reads a single `User` that is related to this `LobbyHistory`."""
+  host: User
+  """Reads a single `Lobby` that is related to this `LobbyHistory`."""
+  lobby: Lobby
+}
+
+"""A `LobbyHistory` edge in the connection."""
+type LobbyHistoriesEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `LobbyHistory` at the end of the edge."""
+  node: LobbyHistory!
+}
+
+type LobbyHistoryAggregates {
+  keys: [String]
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: LobbyHistorySumAggregates
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: LobbyHistoryDistinctCountAggregates
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: LobbyHistoryMinAggregates
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: LobbyHistoryMaxAggregates
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: LobbyHistoryAverageAggregates
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: LobbyHistoryStddevSampleAggregates
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: LobbyHistoryStddevPopulationAggregates
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: LobbyHistoryVarianceSampleAggregates
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: LobbyHistoryVariancePopulationAggregates
+}
+
+type LobbyHistorySumAggregates {
+  """Sum of id across the matching connection"""
+  id: BigFloat!
+  """Sum of lobbyId across the matching connection"""
+  lobbyId: BigFloat!
+  """Sum of hostId across the matching connection"""
+  hostId: BigFloat!
+  """Sum of players across the matching connection"""
+  players: BigInt!
+  """Sum of playerLimit across the matching connection"""
+  playerLimit: BigInt!
+}
+
+type LobbyHistoryDistinctCountAggregates {
+  """Distinct count of id across the matching connection"""
+  id: BigInt
+  """Distinct count of lobbyId across the matching connection"""
+  lobbyId: BigInt
+  """Distinct count of hostId across the matching connection"""
+  hostId: BigInt
+  """Distinct count of changeType across the matching connection"""
+  changeType: BigInt
+  """Distinct count of roomName across the matching connection"""
+  roomName: BigInt
+  """Distinct count of players across the matching connection"""
+  players: BigInt
+  """Distinct count of playerLimit across the matching connection"""
+  playerLimit: BigInt
+  """Distinct count of isPublic across the matching connection"""
+  isPublic: BigInt
+  """Distinct count of observedAt across the matching connection"""
+  observedAt: BigInt
+  """Distinct count of dateCreated across the matching connection"""
+  dateCreated: BigInt
+}
+
+type LobbyHistoryMinAggregates {
+  """Minimum of id across the matching connection"""
+  id: BigInt
+  """Minimum of lobbyId across the matching connection"""
+  lobbyId: BigInt
+  """Minimum of hostId across the matching connection"""
+  hostId: BigInt
+  """Minimum of players across the matching connection"""
+  players: Int
+  """Minimum of playerLimit across the matching connection"""
+  playerLimit: Int
+}
+
+type LobbyHistoryMaxAggregates {
+  """Maximum of id across the matching connection"""
+  id: BigInt
+  """Maximum of lobbyId across the matching connection"""
+  lobbyId: BigInt
+  """Maximum of hostId across the matching connection"""
+  hostId: BigInt
+  """Maximum of players across the matching connection"""
+  players: Int
+  """Maximum of playerLimit across the matching connection"""
+  playerLimit: Int
+}
+
+type LobbyHistoryAverageAggregates {
+  """Mean average of id across the matching connection"""
+  id: BigFloat
+  """Mean average of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+  """Mean average of hostId across the matching connection"""
+  hostId: BigFloat
+  """Mean average of players across the matching connection"""
+  players: BigFloat
+  """Mean average of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+}
+
+type LobbyHistoryStddevSampleAggregates {
+  """Sample standard deviation of id across the matching connection"""
+  id: BigFloat
+  """Sample standard deviation of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+  """Sample standard deviation of hostId across the matching connection"""
+  hostId: BigFloat
+  """Sample standard deviation of players across the matching connection"""
+  players: BigFloat
+  """
+  Sample standard deviation of playerLimit across the matching connection
+  """
+  playerLimit: BigFloat
+}
+
+type LobbyHistoryStddevPopulationAggregates {
+  """Population standard deviation of id across the matching connection"""
+  id: BigFloat
+  """
+  Population standard deviation of lobbyId across the matching connection
+  """
+  lobbyId: BigFloat
+  """Population standard deviation of hostId across the matching connection"""
+  hostId: BigFloat
+  """
+  Population standard deviation of players across the matching connection
+  """
+  players: BigFloat
+  """
+  Population standard deviation of playerLimit across the matching connection
+  """
+  playerLimit: BigFloat
+}
+
+type LobbyHistoryVarianceSampleAggregates {
+  """Sample variance of id across the matching connection"""
+  id: BigFloat
+  """Sample variance of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+  """Sample variance of hostId across the matching connection"""
+  hostId: BigFloat
+  """Sample variance of players across the matching connection"""
+  players: BigFloat
+  """Sample variance of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+}
+
+type LobbyHistoryVariancePopulationAggregates {
+  """Population variance of id across the matching connection"""
+  id: BigFloat
+  """Population variance of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+  """Population variance of hostId across the matching connection"""
+  hostId: BigFloat
+  """Population variance of players across the matching connection"""
+  players: BigFloat
+  """Population variance of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+}
+
+"""Grouping methods for `LobbyHistory` for usage during aggregation."""
+enum LobbyHistoryGroupBy {
+  LOBBY_ID
+  HOST_ID
+  CHANGE_TYPE
+  ROOM_NAME
+  PLAYERS
+  PLAYER_LIMIT
+  IS_PUBLIC
+  OBSERVED_AT
+  OBSERVED_AT_TRUNCATED_TO_HOUR
+  OBSERVED_AT_TRUNCATED_TO_DAY
+  DATE_CREATED
+  DATE_CREATED_TRUNCATED_TO_HOUR
+  DATE_CREATED_TRUNCATED_TO_DAY
+}
+
+"""Conditions for `LobbyHistory` aggregates."""
+input LobbyHistoryHavingInput {
+  AND: [LobbyHistoryHavingInput!]
+  OR: [LobbyHistoryHavingInput!]
+  sum: LobbyHistoryHavingSumInput
+  distinctCount: LobbyHistoryHavingDistinctCountInput
+  min: LobbyHistoryHavingMinInput
+  max: LobbyHistoryHavingMaxInput
+  average: LobbyHistoryHavingAverageInput
+  stddevSample: LobbyHistoryHavingStddevSampleInput
+  stddevPopulation: LobbyHistoryHavingStddevPopulationInput
+  varianceSample: LobbyHistoryHavingVarianceSampleInput
+  variancePopulation: LobbyHistoryHavingVariancePopulationInput
+}
+
+input LobbyHistoryHavingSumInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingDistinctCountInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingMinInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingMaxInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingAverageInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingStddevSampleInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingStddevPopulationInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingVarianceSampleInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+input LobbyHistoryHavingVariancePopulationInput {
+  id: HavingBigintFilter
+  lobbyId: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  observedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+}
+
+"""
+A condition to be used against `LobbyHistory` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input LobbyHistoryCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: BigInt
+  """Checks for equality with the object’s `lobbyId` field."""
+  lobbyId: BigInt
+  """Checks for equality with the object’s `hostId` field."""
+  hostId: BigInt
+  """Checks for equality with the object’s `changeType` field."""
+  changeType: String
+  """Checks for equality with the object’s `roomName` field."""
+  roomName: String
+  """Checks for equality with the object’s `players` field."""
+  players: Int
+  """Checks for equality with the object’s `playerLimit` field."""
+  playerLimit: Int
+  """Checks for equality with the object’s `isPublic` field."""
+  isPublic: Boolean
+  """Checks for equality with the object’s `observedAt` field."""
+  observedAt: Datetime
+  """Checks for equality with the object’s `dateCreated` field."""
+  dateCreated: Datetime
+}
+
+"""
+A filter to be used against `LobbyHistory` object types. All fields are combined with a logical ‘and.’
+"""
+input LobbyHistoryFilter {
+  """Filter by the object’s `id` field."""
+  id: BigIntFilter
+  """Filter by the object’s `lobbyId` field."""
+  lobbyId: BigIntFilter
+  """Filter by the object’s `hostId` field."""
+  hostId: BigIntFilter
+  """Filter by the object’s `changeType` field."""
+  changeType: StringFilter
+  """Filter by the object’s `roomName` field."""
+  roomName: StringFilter
+  """Filter by the object’s `players` field."""
+  players: IntFilter
+  """Filter by the object’s `playerLimit` field."""
+  playerLimit: IntFilter
+  """Filter by the object’s `isPublic` field."""
+  isPublic: BooleanFilter
+  """Filter by the object’s `observedAt` field."""
+  observedAt: DatetimeFilter
+  """Filter by the object’s `dateCreated` field."""
+  dateCreated: DatetimeFilter
+  """Filter by the object’s `host` relation."""
+  host: UserFilter
+  """Filter by the object’s `lobby` relation."""
+  lobby: LobbyFilter
+  """Checks for all expressions in this list."""
+  and: [LobbyHistoryFilter!]
+  """Checks for any expressions in this list."""
+  or: [LobbyHistoryFilter!]
+  """Negates the expression."""
+  not: LobbyHistoryFilter
+}
+
+"""
+A filter to be used against many `Lobby` object types. All fields are combined with a logical ‘and.’
+"""
+input UserToManyLobbyFilter {
+  """
+  Every related `Lobby` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: LobbyFilter
+  """
+  Some related `Lobby` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: LobbyFilter
+  """
+  No related `Lobby` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: LobbyFilter
+  """Aggregates across related `Lobby` match the filter criteria."""
+  aggregates: LobbyAggregatesFilter
+}
+
+"""
+A filter to be used against `Lobby` object types. All fields are combined with a logical ‘and.’
+"""
+input LobbyFilter {
+  """Filter by the object’s `id` field."""
+  id: BigIntFilter
+  """Filter by the object’s `roomName` field."""
+  roomName: StringFilter
+  """Filter by the object’s `hostId` field."""
+  hostId: BigIntFilter
+  """Filter by the object’s `players` field."""
+  players: IntFilter
+  """Filter by the object’s `playerLimit` field."""
+  playerLimit: IntFilter
+  """Filter by the object’s `isPublic` field."""
+  isPublic: BooleanFilter
+  """Filter by the object’s `peakPlayers` field."""
+  peakPlayers: IntFilter
+  """Filter by the object’s `peakTime` field."""
+  peakTime: DatetimeFilter
+  """Filter by the object’s `firstSeen` field."""
+  firstSeen: DatetimeFilter
+  """Filter by the object’s `lastSeen` field."""
+  lastSeen: DatetimeFilter
+  """Filter by the object’s `closedAt` field."""
+  closedAt: DatetimeFilter
+  """Filter by the object’s `dateCreated` field."""
+  dateCreated: DatetimeFilter
+  """Filter by the object’s `dateUpdated` field."""
+  dateUpdated: DatetimeFilter
+  """Filter by the object’s `history` relation."""
+  history: LobbyToManyLobbyHistoryFilter
+  """Some related `history` exist."""
+  historyExist: Boolean
+  """Filter by the object’s `host` relation."""
+  host: UserFilter
+  """Checks for all expressions in this list."""
+  and: [LobbyFilter!]
+  """Checks for any expressions in this list."""
+  or: [LobbyFilter!]
+  """Negates the expression."""
+  not: LobbyFilter
+}
+
+"""
+A filter to be used against many `LobbyHistory` object types. All fields are combined with a logical ‘and.’
+"""
+input LobbyToManyLobbyHistoryFilter {
+  """
+  Every related `LobbyHistory` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: LobbyHistoryFilter
+  """
+  Some related `LobbyHistory` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: LobbyHistoryFilter
+  """
+  No related `LobbyHistory` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: LobbyHistoryFilter
+  """Aggregates across related `LobbyHistory` match the filter criteria."""
+  aggregates: LobbyHistoryAggregatesFilter
+}
+
+"""A filter to be used against aggregates of `LobbyHistory` object types."""
+input LobbyHistoryAggregatesFilter {
+  """
+  A filter that must pass for the relevant `LobbyHistory` object to be included within the aggregate.
+  """
+  filter: LobbyHistoryFilter
+  """Sum aggregate over matching `LobbyHistory` objects."""
+  sum: LobbyHistorySumAggregateFilter
+  """Distinct count aggregate over matching `LobbyHistory` objects."""
+  distinctCount: LobbyHistoryDistinctCountAggregateFilter
+  """Minimum aggregate over matching `LobbyHistory` objects."""
+  min: LobbyHistoryMinAggregateFilter
+  """Maximum aggregate over matching `LobbyHistory` objects."""
+  max: LobbyHistoryMaxAggregateFilter
+  """Mean average aggregate over matching `LobbyHistory` objects."""
+  average: LobbyHistoryAverageAggregateFilter
+  """
+  Sample standard deviation aggregate over matching `LobbyHistory` objects.
+  """
+  stddevSample: LobbyHistoryStddevSampleAggregateFilter
+  """
+  Population standard deviation aggregate over matching `LobbyHistory` objects.
+  """
+  stddevPopulation: LobbyHistoryStddevPopulationAggregateFilter
+  """Sample variance aggregate over matching `LobbyHistory` objects."""
+  varianceSample: LobbyHistoryVarianceSampleAggregateFilter
+  """Population variance aggregate over matching `LobbyHistory` objects."""
+  variancePopulation: LobbyHistoryVariancePopulationAggregateFilter
+}
+
+input LobbyHistorySumAggregateFilter {
+  id: BigFloatFilter
+  lobbyId: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigIntFilter
+  playerLimit: BigIntFilter
+}
+
+input LobbyHistoryDistinctCountAggregateFilter {
+  id: BigIntFilter
+  lobbyId: BigIntFilter
+  hostId: BigIntFilter
+  changeType: BigIntFilter
+  roomName: BigIntFilter
+  players: BigIntFilter
+  playerLimit: BigIntFilter
+  isPublic: BigIntFilter
+  observedAt: BigIntFilter
+  dateCreated: BigIntFilter
+}
+
+input LobbyHistoryMinAggregateFilter {
+  id: BigIntFilter
+  lobbyId: BigIntFilter
+  hostId: BigIntFilter
+  players: IntFilter
+  playerLimit: IntFilter
+}
+
+input LobbyHistoryMaxAggregateFilter {
+  id: BigIntFilter
+  lobbyId: BigIntFilter
+  hostId: BigIntFilter
+  players: IntFilter
+  playerLimit: IntFilter
+}
+
+input LobbyHistoryAverageAggregateFilter {
+  id: BigFloatFilter
+  lobbyId: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+}
+
+input LobbyHistoryStddevSampleAggregateFilter {
+  id: BigFloatFilter
+  lobbyId: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+}
+
+input LobbyHistoryStddevPopulationAggregateFilter {
+  id: BigFloatFilter
+  lobbyId: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+}
+
+input LobbyHistoryVarianceSampleAggregateFilter {
+  id: BigFloatFilter
+  lobbyId: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+}
+
+input LobbyHistoryVariancePopulationAggregateFilter {
+  id: BigFloatFilter
+  lobbyId: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+}
+
+"""A filter to be used against aggregates of `Lobby` object types."""
+input LobbyAggregatesFilter {
+  """
+  A filter that must pass for the relevant `Lobby` object to be included within the aggregate.
+  """
+  filter: LobbyFilter
+  """Sum aggregate over matching `Lobby` objects."""
+  sum: LobbySumAggregateFilter
+  """Distinct count aggregate over matching `Lobby` objects."""
+  distinctCount: LobbyDistinctCountAggregateFilter
+  """Minimum aggregate over matching `Lobby` objects."""
+  min: LobbyMinAggregateFilter
+  """Maximum aggregate over matching `Lobby` objects."""
+  max: LobbyMaxAggregateFilter
+  """Mean average aggregate over matching `Lobby` objects."""
+  average: LobbyAverageAggregateFilter
+  """Sample standard deviation aggregate over matching `Lobby` objects."""
+  stddevSample: LobbyStddevSampleAggregateFilter
+  """Population standard deviation aggregate over matching `Lobby` objects."""
+  stddevPopulation: LobbyStddevPopulationAggregateFilter
+  """Sample variance aggregate over matching `Lobby` objects."""
+  varianceSample: LobbyVarianceSampleAggregateFilter
+  """Population variance aggregate over matching `Lobby` objects."""
+  variancePopulation: LobbyVariancePopulationAggregateFilter
+}
+
+input LobbySumAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigIntFilter
+  playerLimit: BigIntFilter
+  peakPlayers: BigIntFilter
+}
+
+input LobbyDistinctCountAggregateFilter {
+  id: BigIntFilter
+  roomName: BigIntFilter
+  hostId: BigIntFilter
+  players: BigIntFilter
+  playerLimit: BigIntFilter
+  isPublic: BigIntFilter
+  peakPlayers: BigIntFilter
+  peakTime: BigIntFilter
+  firstSeen: BigIntFilter
+  lastSeen: BigIntFilter
+  closedAt: BigIntFilter
+  dateCreated: BigIntFilter
+  dateUpdated: BigIntFilter
+}
+
+input LobbyMinAggregateFilter {
+  id: BigIntFilter
+  hostId: BigIntFilter
+  players: IntFilter
+  playerLimit: IntFilter
+  peakPlayers: IntFilter
+}
+
+input LobbyMaxAggregateFilter {
+  id: BigIntFilter
+  hostId: BigIntFilter
+  players: IntFilter
+  playerLimit: IntFilter
+  peakPlayers: IntFilter
+}
+
+input LobbyAverageAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+}
+
+input LobbyStddevSampleAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+}
+
+input LobbyStddevPopulationAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+}
+
+input LobbyVarianceSampleAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+}
+
+input LobbyVariancePopulationAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+}
+
+"""
+A filter to be used against many `LobbyHistory` object types. All fields are combined with a logical ‘and.’
+"""
+input UserToManyLobbyHistoryFilter {
+  """
+  Every related `LobbyHistory` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: LobbyHistoryFilter
+  """
+  Some related `LobbyHistory` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: LobbyHistoryFilter
+  """
+  No related `LobbyHistory` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: LobbyHistoryFilter
+  """Aggregates across related `LobbyHistory` match the filter criteria."""
+  aggregates: LobbyHistoryAggregatesFilter
+}
+
+"""
+A filter to be used against many `LobbyListing` object types. All fields are combined with a logical ‘and.’
+"""
+input UserToManyLobbyListingFilter {
+  """
+  Every related `LobbyListing` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: LobbyListingFilter
+  """
+  Some related `LobbyListing` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: LobbyListingFilter
+  """
+  No related `LobbyListing` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: LobbyListingFilter
+  """Aggregates across related `LobbyListing` match the filter criteria."""
+  aggregates: LobbyListingAggregatesFilter
+}
+
+"""
+A filter to be used against `LobbyListing` object types. All fields are combined with a logical ‘and.’
+"""
+input LobbyListingFilter {
+  """Filter by the object’s `id` field."""
+  id: BigIntFilter
+  """Filter by the object’s `roomName` field."""
+  roomName: StringFilter
+  """Filter by the object’s `hostId` field."""
+  hostId: BigIntFilter
+  """Filter by the object’s `players` field."""
+  players: IntFilter
+  """Filter by the object’s `playerLimit` field."""
+  playerLimit: IntFilter
+  """Filter by the object’s `isPublic` field."""
+  isPublic: BooleanFilter
+  """Filter by the object’s `peakPlayers` field."""
+  peakPlayers: IntFilter
+  """Filter by the object’s `peakTime` field."""
+  peakTime: DatetimeFilter
+  """Filter by the object’s `firstSeen` field."""
+  firstSeen: DatetimeFilter
+  """Filter by the object’s `lastSeen` field."""
+  lastSeen: DatetimeFilter
+  """Filter by the object’s `closedAt` field."""
+  closedAt: DatetimeFilter
+  """Filter by the object’s `durationSeconds` field."""
+  durationSeconds: FloatFilter
+  """Filter by the object’s `occupancy` field."""
+  occupancy: FloatFilter
+  """Filter by the object’s `availableCapacity` field."""
+  availableCapacity: BooleanFilter
+  """Filter by the object’s `host` relation."""
+  host: UserFilter
+  """A related `host` exists."""
+  hostExists: Boolean
+  """Checks for all expressions in this list."""
+  and: [LobbyListingFilter!]
+  """Checks for any expressions in this list."""
+  or: [LobbyListingFilter!]
+  """Negates the expression."""
+  not: LobbyListingFilter
+}
+
+"""A filter to be used against aggregates of `LobbyListing` object types."""
+input LobbyListingAggregatesFilter {
+  """
+  A filter that must pass for the relevant `LobbyListing` object to be included within the aggregate.
+  """
+  filter: LobbyListingFilter
+  """Sum aggregate over matching `LobbyListing` objects."""
+  sum: LobbyListingSumAggregateFilter
+  """Distinct count aggregate over matching `LobbyListing` objects."""
+  distinctCount: LobbyListingDistinctCountAggregateFilter
+  """Minimum aggregate over matching `LobbyListing` objects."""
+  min: LobbyListingMinAggregateFilter
+  """Maximum aggregate over matching `LobbyListing` objects."""
+  max: LobbyListingMaxAggregateFilter
+  """Mean average aggregate over matching `LobbyListing` objects."""
+  average: LobbyListingAverageAggregateFilter
+  """
+  Sample standard deviation aggregate over matching `LobbyListing` objects.
+  """
+  stddevSample: LobbyListingStddevSampleAggregateFilter
+  """
+  Population standard deviation aggregate over matching `LobbyListing` objects.
+  """
+  stddevPopulation: LobbyListingStddevPopulationAggregateFilter
+  """Sample variance aggregate over matching `LobbyListing` objects."""
+  varianceSample: LobbyListingVarianceSampleAggregateFilter
+  """Population variance aggregate over matching `LobbyListing` objects."""
+  variancePopulation: LobbyListingVariancePopulationAggregateFilter
+}
+
+input LobbyListingSumAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigIntFilter
+  playerLimit: BigIntFilter
+  peakPlayers: BigIntFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+input LobbyListingDistinctCountAggregateFilter {
+  id: BigIntFilter
+  roomName: BigIntFilter
+  hostId: BigIntFilter
+  players: BigIntFilter
+  playerLimit: BigIntFilter
+  isPublic: BigIntFilter
+  peakPlayers: BigIntFilter
+  peakTime: BigIntFilter
+  firstSeen: BigIntFilter
+  lastSeen: BigIntFilter
+  closedAt: BigIntFilter
+  durationSeconds: BigIntFilter
+  occupancy: BigIntFilter
+  availableCapacity: BigIntFilter
+}
+
+input LobbyListingMinAggregateFilter {
+  id: BigIntFilter
+  hostId: BigIntFilter
+  players: IntFilter
+  playerLimit: IntFilter
+  peakPlayers: IntFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+input LobbyListingMaxAggregateFilter {
+  id: BigIntFilter
+  hostId: BigIntFilter
+  players: IntFilter
+  playerLimit: IntFilter
+  peakPlayers: IntFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+input LobbyListingAverageAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+input LobbyListingStddevSampleAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+input LobbyListingStddevPopulationAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+input LobbyListingVarianceSampleAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+input LobbyListingVariancePopulationAggregateFilter {
+  id: BigFloatFilter
+  hostId: BigFloatFilter
+  players: BigFloatFilter
+  playerLimit: BigFloatFilter
+  peakPlayers: BigFloatFilter
+  durationSeconds: FloatFilter
+  occupancy: FloatFilter
+}
+
+"""Methods to use when ordering `LobbyHistory`."""
+enum LobbyHistoriesOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  ID_ASC
+  ID_DESC
+  LOBBY_ID_ASC
+  LOBBY_ID_DESC
+  HOST_ID_ASC
+  HOST_ID_DESC
+  CHANGE_TYPE_ASC
+  CHANGE_TYPE_DESC
+  ROOM_NAME_ASC
+  ROOM_NAME_DESC
+  PLAYERS_ASC
+  PLAYERS_DESC
+  PLAYER_LIMIT_ASC
+  PLAYER_LIMIT_DESC
+  IS_PUBLIC_ASC
+  IS_PUBLIC_DESC
+  OBSERVED_AT_ASC
+  OBSERVED_AT_DESC
+  DATE_CREATED_ASC
+  DATE_CREATED_DESC
+}
+
+type LobbyAggregates {
+  keys: [String]
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: LobbySumAggregates
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: LobbyDistinctCountAggregates
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: LobbyMinAggregates
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: LobbyMaxAggregates
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: LobbyAverageAggregates
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: LobbyStddevSampleAggregates
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: LobbyStddevPopulationAggregates
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: LobbyVarianceSampleAggregates
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: LobbyVariancePopulationAggregates
+}
+
+type LobbySumAggregates {
+  """Sum of id across the matching connection"""
+  id: BigFloat!
+  """Sum of hostId across the matching connection"""
+  hostId: BigFloat!
+  """Sum of players across the matching connection"""
+  players: BigInt!
+  """Sum of playerLimit across the matching connection"""
+  playerLimit: BigInt!
+  """Sum of peakPlayers across the matching connection"""
+  peakPlayers: BigInt!
+}
+
+type LobbyDistinctCountAggregates {
+  """Distinct count of id across the matching connection"""
+  id: BigInt
+  """Distinct count of roomName across the matching connection"""
+  roomName: BigInt
+  """Distinct count of hostId across the matching connection"""
+  hostId: BigInt
+  """Distinct count of players across the matching connection"""
+  players: BigInt
+  """Distinct count of playerLimit across the matching connection"""
+  playerLimit: BigInt
+  """Distinct count of isPublic across the matching connection"""
+  isPublic: BigInt
+  """Distinct count of peakPlayers across the matching connection"""
+  peakPlayers: BigInt
+  """Distinct count of peakTime across the matching connection"""
+  peakTime: BigInt
+  """Distinct count of firstSeen across the matching connection"""
+  firstSeen: BigInt
+  """Distinct count of lastSeen across the matching connection"""
+  lastSeen: BigInt
+  """Distinct count of closedAt across the matching connection"""
+  closedAt: BigInt
+  """Distinct count of dateCreated across the matching connection"""
+  dateCreated: BigInt
+  """Distinct count of dateUpdated across the matching connection"""
+  dateUpdated: BigInt
+}
+
+type LobbyMinAggregates {
+  """Minimum of id across the matching connection"""
+  id: BigInt
+  """Minimum of hostId across the matching connection"""
+  hostId: BigInt
+  """Minimum of players across the matching connection"""
+  players: Int
+  """Minimum of playerLimit across the matching connection"""
+  playerLimit: Int
+  """Minimum of peakPlayers across the matching connection"""
+  peakPlayers: Int
+}
+
+type LobbyMaxAggregates {
+  """Maximum of id across the matching connection"""
+  id: BigInt
+  """Maximum of hostId across the matching connection"""
+  hostId: BigInt
+  """Maximum of players across the matching connection"""
+  players: Int
+  """Maximum of playerLimit across the matching connection"""
+  playerLimit: Int
+  """Maximum of peakPlayers across the matching connection"""
+  peakPlayers: Int
+}
+
+type LobbyAverageAggregates {
+  """Mean average of id across the matching connection"""
+  id: BigFloat
+  """Mean average of hostId across the matching connection"""
+  hostId: BigFloat
+  """Mean average of players across the matching connection"""
+  players: BigFloat
+  """Mean average of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+  """Mean average of peakPlayers across the matching connection"""
+  peakPlayers: BigFloat
+}
+
+type LobbyStddevSampleAggregates {
+  """Sample standard deviation of id across the matching connection"""
+  id: BigFloat
+  """Sample standard deviation of hostId across the matching connection"""
+  hostId: BigFloat
+  """Sample standard deviation of players across the matching connection"""
+  players: BigFloat
+  """
+  Sample standard deviation of playerLimit across the matching connection
+  """
+  playerLimit: BigFloat
+  """
+  Sample standard deviation of peakPlayers across the matching connection
+  """
+  peakPlayers: BigFloat
+}
+
+type LobbyStddevPopulationAggregates {
+  """Population standard deviation of id across the matching connection"""
+  id: BigFloat
+  """Population standard deviation of hostId across the matching connection"""
+  hostId: BigFloat
+  """
+  Population standard deviation of players across the matching connection
+  """
+  players: BigFloat
+  """
+  Population standard deviation of playerLimit across the matching connection
+  """
+  playerLimit: BigFloat
+  """
+  Population standard deviation of peakPlayers across the matching connection
+  """
+  peakPlayers: BigFloat
+}
+
+type LobbyVarianceSampleAggregates {
+  """Sample variance of id across the matching connection"""
+  id: BigFloat
+  """Sample variance of hostId across the matching connection"""
+  hostId: BigFloat
+  """Sample variance of players across the matching connection"""
+  players: BigFloat
+  """Sample variance of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+  """Sample variance of peakPlayers across the matching connection"""
+  peakPlayers: BigFloat
+}
+
+type LobbyVariancePopulationAggregates {
+  """Population variance of id across the matching connection"""
+  id: BigFloat
+  """Population variance of hostId across the matching connection"""
+  hostId: BigFloat
+  """Population variance of players across the matching connection"""
+  players: BigFloat
+  """Population variance of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+  """Population variance of peakPlayers across the matching connection"""
+  peakPlayers: BigFloat
+}
+
+"""Grouping methods for `Lobby` for usage during aggregation."""
+enum LobbyGroupBy {
+  ROOM_NAME
+  HOST_ID
+  PLAYERS
+  PLAYER_LIMIT
+  IS_PUBLIC
+  PEAK_PLAYERS
+  PEAK_TIME
+  PEAK_TIME_TRUNCATED_TO_HOUR
+  PEAK_TIME_TRUNCATED_TO_DAY
+  FIRST_SEEN
+  FIRST_SEEN_TRUNCATED_TO_HOUR
+  FIRST_SEEN_TRUNCATED_TO_DAY
+  LAST_SEEN
+  LAST_SEEN_TRUNCATED_TO_HOUR
+  LAST_SEEN_TRUNCATED_TO_DAY
+  CLOSED_AT
+  CLOSED_AT_TRUNCATED_TO_HOUR
+  CLOSED_AT_TRUNCATED_TO_DAY
+  DATE_CREATED
+  DATE_CREATED_TRUNCATED_TO_HOUR
+  DATE_CREATED_TRUNCATED_TO_DAY
+  DATE_UPDATED
+  DATE_UPDATED_TRUNCATED_TO_HOUR
+  DATE_UPDATED_TRUNCATED_TO_DAY
+}
+
+"""Conditions for `Lobby` aggregates."""
+input LobbyHavingInput {
+  AND: [LobbyHavingInput!]
+  OR: [LobbyHavingInput!]
+  sum: LobbyHavingSumInput
+  distinctCount: LobbyHavingDistinctCountInput
+  min: LobbyHavingMinInput
+  max: LobbyHavingMaxInput
+  average: LobbyHavingAverageInput
+  stddevSample: LobbyHavingStddevSampleInput
+  stddevPopulation: LobbyHavingStddevPopulationInput
+  varianceSample: LobbyHavingVarianceSampleInput
+  variancePopulation: LobbyHavingVariancePopulationInput
+}
+
+input LobbyHavingSumInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingDistinctCountInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingMinInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingMaxInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingAverageInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingStddevSampleInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingStddevPopulationInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingVarianceSampleInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyHavingVariancePopulationInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+"""
+A condition to be used against `Lobby` object types. All fields are tested for equality and combined with a logical ‘and.’
+"""
+input LobbyCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: BigInt
+  """Checks for equality with the object’s `roomName` field."""
+  roomName: String
+  """Checks for equality with the object’s `hostId` field."""
+  hostId: BigInt
+  """Checks for equality with the object’s `players` field."""
+  players: Int
+  """Checks for equality with the object’s `playerLimit` field."""
+  playerLimit: Int
+  """Checks for equality with the object’s `isPublic` field."""
+  isPublic: Boolean
+  """Checks for equality with the object’s `peakPlayers` field."""
+  peakPlayers: Int
+  """Checks for equality with the object’s `peakTime` field."""
+  peakTime: Datetime
+  """Checks for equality with the object’s `firstSeen` field."""
+  firstSeen: Datetime
+  """Checks for equality with the object’s `lastSeen` field."""
+  lastSeen: Datetime
+  """Checks for equality with the object’s `closedAt` field."""
+  closedAt: Datetime
+  """Checks for equality with the object’s `dateCreated` field."""
+  dateCreated: Datetime
+  """Checks for equality with the object’s `dateUpdated` field."""
+  dateUpdated: Datetime
+}
+
+"""Methods to use when ordering `Lobby`."""
+enum LobbiesOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  ID_ASC
+  ID_DESC
+  ROOM_NAME_ASC
+  ROOM_NAME_DESC
+  HOST_ID_ASC
+  HOST_ID_DESC
+  PLAYERS_ASC
+  PLAYERS_DESC
+  PLAYER_LIMIT_ASC
+  PLAYER_LIMIT_DESC
+  IS_PUBLIC_ASC
+  IS_PUBLIC_DESC
+  PEAK_PLAYERS_ASC
+  PEAK_PLAYERS_DESC
+  PEAK_TIME_ASC
+  PEAK_TIME_DESC
+  FIRST_SEEN_ASC
+  FIRST_SEEN_DESC
+  LAST_SEEN_ASC
+  LAST_SEEN_DESC
+  CLOSED_AT_ASC
+  CLOSED_AT_DESC
+  DATE_CREATED_ASC
+  DATE_CREATED_DESC
+  DATE_UPDATED_ASC
+  DATE_UPDATED_DESC
+  HISTORY_COUNT_ASC
+  HISTORY_COUNT_DESC
+  HISTORY_SUM_ID_ASC
+  HISTORY_SUM_ID_DESC
+  HISTORY_SUM_LOBBY_ID_ASC
+  HISTORY_SUM_LOBBY_ID_DESC
+  HISTORY_SUM_HOST_ID_ASC
+  HISTORY_SUM_HOST_ID_DESC
+  HISTORY_SUM_PLAYERS_ASC
+  HISTORY_SUM_PLAYERS_DESC
+  HISTORY_SUM_PLAYER_LIMIT_ASC
+  HISTORY_SUM_PLAYER_LIMIT_DESC
+  HISTORY_DISTINCT_COUNT_ID_ASC
+  HISTORY_DISTINCT_COUNT_ID_DESC
+  HISTORY_DISTINCT_COUNT_LOBBY_ID_ASC
+  HISTORY_DISTINCT_COUNT_LOBBY_ID_DESC
+  HISTORY_DISTINCT_COUNT_HOST_ID_ASC
+  HISTORY_DISTINCT_COUNT_HOST_ID_DESC
+  HISTORY_DISTINCT_COUNT_CHANGE_TYPE_ASC
+  HISTORY_DISTINCT_COUNT_CHANGE_TYPE_DESC
+  HISTORY_DISTINCT_COUNT_ROOM_NAME_ASC
+  HISTORY_DISTINCT_COUNT_ROOM_NAME_DESC
+  HISTORY_DISTINCT_COUNT_PLAYERS_ASC
+  HISTORY_DISTINCT_COUNT_PLAYERS_DESC
+  HISTORY_DISTINCT_COUNT_PLAYER_LIMIT_ASC
+  HISTORY_DISTINCT_COUNT_PLAYER_LIMIT_DESC
+  HISTORY_DISTINCT_COUNT_IS_PUBLIC_ASC
+  HISTORY_DISTINCT_COUNT_IS_PUBLIC_DESC
+  HISTORY_DISTINCT_COUNT_OBSERVED_AT_ASC
+  HISTORY_DISTINCT_COUNT_OBSERVED_AT_DESC
+  HISTORY_DISTINCT_COUNT_DATE_CREATED_ASC
+  HISTORY_DISTINCT_COUNT_DATE_CREATED_DESC
+  HISTORY_MIN_ID_ASC
+  HISTORY_MIN_ID_DESC
+  HISTORY_MIN_LOBBY_ID_ASC
+  HISTORY_MIN_LOBBY_ID_DESC
+  HISTORY_MIN_HOST_ID_ASC
+  HISTORY_MIN_HOST_ID_DESC
+  HISTORY_MIN_PLAYERS_ASC
+  HISTORY_MIN_PLAYERS_DESC
+  HISTORY_MIN_PLAYER_LIMIT_ASC
+  HISTORY_MIN_PLAYER_LIMIT_DESC
+  HISTORY_MAX_ID_ASC
+  HISTORY_MAX_ID_DESC
+  HISTORY_MAX_LOBBY_ID_ASC
+  HISTORY_MAX_LOBBY_ID_DESC
+  HISTORY_MAX_HOST_ID_ASC
+  HISTORY_MAX_HOST_ID_DESC
+  HISTORY_MAX_PLAYERS_ASC
+  HISTORY_MAX_PLAYERS_DESC
+  HISTORY_MAX_PLAYER_LIMIT_ASC
+  HISTORY_MAX_PLAYER_LIMIT_DESC
+  HISTORY_AVERAGE_ID_ASC
+  HISTORY_AVERAGE_ID_DESC
+  HISTORY_AVERAGE_LOBBY_ID_ASC
+  HISTORY_AVERAGE_LOBBY_ID_DESC
+  HISTORY_AVERAGE_HOST_ID_ASC
+  HISTORY_AVERAGE_HOST_ID_DESC
+  HISTORY_AVERAGE_PLAYERS_ASC
+  HISTORY_AVERAGE_PLAYERS_DESC
+  HISTORY_AVERAGE_PLAYER_LIMIT_ASC
+  HISTORY_AVERAGE_PLAYER_LIMIT_DESC
+  HISTORY_STDDEV_SAMPLE_ID_ASC
+  HISTORY_STDDEV_SAMPLE_ID_DESC
+  HISTORY_STDDEV_SAMPLE_LOBBY_ID_ASC
+  HISTORY_STDDEV_SAMPLE_LOBBY_ID_DESC
+  HISTORY_STDDEV_SAMPLE_HOST_ID_ASC
+  HISTORY_STDDEV_SAMPLE_HOST_ID_DESC
+  HISTORY_STDDEV_SAMPLE_PLAYERS_ASC
+  HISTORY_STDDEV_SAMPLE_PLAYERS_DESC
+  HISTORY_STDDEV_SAMPLE_PLAYER_LIMIT_ASC
+  HISTORY_STDDEV_SAMPLE_PLAYER_LIMIT_DESC
+  HISTORY_STDDEV_POPULATION_ID_ASC
+  HISTORY_STDDEV_POPULATION_ID_DESC
+  HISTORY_STDDEV_POPULATION_LOBBY_ID_ASC
+  HISTORY_STDDEV_POPULATION_LOBBY_ID_DESC
+  HISTORY_STDDEV_POPULATION_HOST_ID_ASC
+  HISTORY_STDDEV_POPULATION_HOST_ID_DESC
+  HISTORY_STDDEV_POPULATION_PLAYERS_ASC
+  HISTORY_STDDEV_POPULATION_PLAYERS_DESC
+  HISTORY_STDDEV_POPULATION_PLAYER_LIMIT_ASC
+  HISTORY_STDDEV_POPULATION_PLAYER_LIMIT_DESC
+  HISTORY_VARIANCE_SAMPLE_ID_ASC
+  HISTORY_VARIANCE_SAMPLE_ID_DESC
+  HISTORY_VARIANCE_SAMPLE_LOBBY_ID_ASC
+  HISTORY_VARIANCE_SAMPLE_LOBBY_ID_DESC
+  HISTORY_VARIANCE_SAMPLE_HOST_ID_ASC
+  HISTORY_VARIANCE_SAMPLE_HOST_ID_DESC
+  HISTORY_VARIANCE_SAMPLE_PLAYERS_ASC
+  HISTORY_VARIANCE_SAMPLE_PLAYERS_DESC
+  HISTORY_VARIANCE_SAMPLE_PLAYER_LIMIT_ASC
+  HISTORY_VARIANCE_SAMPLE_PLAYER_LIMIT_DESC
+  HISTORY_VARIANCE_POPULATION_ID_ASC
+  HISTORY_VARIANCE_POPULATION_ID_DESC
+  HISTORY_VARIANCE_POPULATION_LOBBY_ID_ASC
+  HISTORY_VARIANCE_POPULATION_LOBBY_ID_DESC
+  HISTORY_VARIANCE_POPULATION_HOST_ID_ASC
+  HISTORY_VARIANCE_POPULATION_HOST_ID_DESC
+  HISTORY_VARIANCE_POPULATION_PLAYERS_ASC
+  HISTORY_VARIANCE_POPULATION_PLAYERS_DESC
+  HISTORY_VARIANCE_POPULATION_PLAYER_LIMIT_ASC
+  HISTORY_VARIANCE_POPULATION_PLAYER_LIMIT_DESC
+}
+
+"""A connection to a list of `Lobby` values."""
+type LobbiesConnection {
+  """A list of `Lobby` objects."""
+  nodes: [Lobby!]!
+  """
+  A list of edges which contains the `Lobby` and cursor to aid in pagination.
+  """
+  edges: [LobbiesEdge!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `Lobby` you could get from the connection."""
+  totalCount: Int!
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: LobbyAggregates
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `Lobby` for these aggregates."""
+    groupBy: [LobbyGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: LobbyHavingInput
+  ): [LobbyAggregates!]
+}
+
+"""A `Lobby` edge in the connection."""
+type LobbiesEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `Lobby` at the end of the edge."""
+  node: Lobby!
+}
+
+"""A connection to a list of `LobbyListing` values."""
+type LobbyListingsConnection {
+  """A list of `LobbyListing` objects."""
+  nodes: [LobbyListing!]!
+  """
+  A list of edges which contains the `LobbyListing` and cursor to aid in pagination.
+  """
+  edges: [LobbyListingsEdge!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `LobbyListing` you could get from the connection."""
+  totalCount: Int!
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: LobbyListingAggregates
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `LobbyListing` for these aggregates."""
+    groupBy: [LobbyListingGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: LobbyListingHavingInput
+  ): [LobbyListingAggregates!]
+}
+
+type LobbyListing implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: BigInt!
+  roomName: String
+  hostId: BigInt
+  players: Int
+  playerLimit: Int
+  isPublic: Boolean
+  peakPlayers: Int
+  peakTime: Datetime
+  firstSeen: Datetime
+  lastSeen: Datetime
+  closedAt: Datetime
+  durationSeconds: Float
+  occupancy: Float
+  availableCapacity: Boolean
+  """Reads a single `User` that is related to this `LobbyListing`."""
+  host: User
+}
+
+"""A `LobbyListing` edge in the connection."""
+type LobbyListingsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `LobbyListing` at the end of the edge."""
+  node: LobbyListing!
+}
+
+type LobbyListingAggregates {
+  keys: [String]
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: LobbyListingSumAggregates
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: LobbyListingDistinctCountAggregates
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: LobbyListingMinAggregates
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: LobbyListingMaxAggregates
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: LobbyListingAverageAggregates
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: LobbyListingStddevSampleAggregates
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: LobbyListingStddevPopulationAggregates
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: LobbyListingVarianceSampleAggregates
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: LobbyListingVariancePopulationAggregates
+}
+
+type LobbyListingSumAggregates {
+  """Sum of id across the matching connection"""
+  id: BigFloat!
+  """Sum of hostId across the matching connection"""
+  hostId: BigFloat!
+  """Sum of players across the matching connection"""
+  players: BigInt!
+  """Sum of playerLimit across the matching connection"""
+  playerLimit: BigInt!
+  """Sum of peakPlayers across the matching connection"""
+  peakPlayers: BigInt!
+  """Sum of durationSeconds across the matching connection"""
+  durationSeconds: Float!
+  """Sum of occupancy across the matching connection"""
+  occupancy: Float!
+}
+
+type LobbyListingDistinctCountAggregates {
+  """Distinct count of id across the matching connection"""
+  id: BigInt
+  """Distinct count of roomName across the matching connection"""
+  roomName: BigInt
+  """Distinct count of hostId across the matching connection"""
+  hostId: BigInt
+  """Distinct count of players across the matching connection"""
+  players: BigInt
+  """Distinct count of playerLimit across the matching connection"""
+  playerLimit: BigInt
+  """Distinct count of isPublic across the matching connection"""
+  isPublic: BigInt
+  """Distinct count of peakPlayers across the matching connection"""
+  peakPlayers: BigInt
+  """Distinct count of peakTime across the matching connection"""
+  peakTime: BigInt
+  """Distinct count of firstSeen across the matching connection"""
+  firstSeen: BigInt
+  """Distinct count of lastSeen across the matching connection"""
+  lastSeen: BigInt
+  """Distinct count of closedAt across the matching connection"""
+  closedAt: BigInt
+  """Distinct count of durationSeconds across the matching connection"""
+  durationSeconds: BigInt
+  """Distinct count of occupancy across the matching connection"""
+  occupancy: BigInt
+  """Distinct count of availableCapacity across the matching connection"""
+  availableCapacity: BigInt
+}
+
+type LobbyListingMinAggregates {
+  """Minimum of id across the matching connection"""
+  id: BigInt
+  """Minimum of hostId across the matching connection"""
+  hostId: BigInt
+  """Minimum of players across the matching connection"""
+  players: Int
+  """Minimum of playerLimit across the matching connection"""
+  playerLimit: Int
+  """Minimum of peakPlayers across the matching connection"""
+  peakPlayers: Int
+  """Minimum of durationSeconds across the matching connection"""
+  durationSeconds: Float
+  """Minimum of occupancy across the matching connection"""
+  occupancy: Float
+}
+
+type LobbyListingMaxAggregates {
+  """Maximum of id across the matching connection"""
+  id: BigInt
+  """Maximum of hostId across the matching connection"""
+  hostId: BigInt
+  """Maximum of players across the matching connection"""
+  players: Int
+  """Maximum of playerLimit across the matching connection"""
+  playerLimit: Int
+  """Maximum of peakPlayers across the matching connection"""
+  peakPlayers: Int
+  """Maximum of durationSeconds across the matching connection"""
+  durationSeconds: Float
+  """Maximum of occupancy across the matching connection"""
+  occupancy: Float
+}
+
+type LobbyListingAverageAggregates {
+  """Mean average of id across the matching connection"""
+  id: BigFloat
+  """Mean average of hostId across the matching connection"""
+  hostId: BigFloat
+  """Mean average of players across the matching connection"""
+  players: BigFloat
+  """Mean average of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+  """Mean average of peakPlayers across the matching connection"""
+  peakPlayers: BigFloat
+  """Mean average of durationSeconds across the matching connection"""
+  durationSeconds: Float
+  """Mean average of occupancy across the matching connection"""
+  occupancy: Float
+}
+
+type LobbyListingStddevSampleAggregates {
+  """Sample standard deviation of id across the matching connection"""
+  id: BigFloat
+  """Sample standard deviation of hostId across the matching connection"""
+  hostId: BigFloat
+  """Sample standard deviation of players across the matching connection"""
+  players: BigFloat
+  """
+  Sample standard deviation of playerLimit across the matching connection
+  """
+  playerLimit: BigFloat
+  """
+  Sample standard deviation of peakPlayers across the matching connection
+  """
+  peakPlayers: BigFloat
+  """
+  Sample standard deviation of durationSeconds across the matching connection
+  """
+  durationSeconds: Float
+  """Sample standard deviation of occupancy across the matching connection"""
+  occupancy: Float
+}
+
+type LobbyListingStddevPopulationAggregates {
+  """Population standard deviation of id across the matching connection"""
+  id: BigFloat
+  """Population standard deviation of hostId across the matching connection"""
+  hostId: BigFloat
+  """
+  Population standard deviation of players across the matching connection
+  """
+  players: BigFloat
+  """
+  Population standard deviation of playerLimit across the matching connection
+  """
+  playerLimit: BigFloat
+  """
+  Population standard deviation of peakPlayers across the matching connection
+  """
+  peakPlayers: BigFloat
+  """
+  Population standard deviation of durationSeconds across the matching connection
+  """
+  durationSeconds: Float
+  """
+  Population standard deviation of occupancy across the matching connection
+  """
+  occupancy: Float
+}
+
+type LobbyListingVarianceSampleAggregates {
+  """Sample variance of id across the matching connection"""
+  id: BigFloat
+  """Sample variance of hostId across the matching connection"""
+  hostId: BigFloat
+  """Sample variance of players across the matching connection"""
+  players: BigFloat
+  """Sample variance of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+  """Sample variance of peakPlayers across the matching connection"""
+  peakPlayers: BigFloat
+  """Sample variance of durationSeconds across the matching connection"""
+  durationSeconds: Float
+  """Sample variance of occupancy across the matching connection"""
+  occupancy: Float
+}
+
+type LobbyListingVariancePopulationAggregates {
+  """Population variance of id across the matching connection"""
+  id: BigFloat
+  """Population variance of hostId across the matching connection"""
+  hostId: BigFloat
+  """Population variance of players across the matching connection"""
+  players: BigFloat
+  """Population variance of playerLimit across the matching connection"""
+  playerLimit: BigFloat
+  """Population variance of peakPlayers across the matching connection"""
+  peakPlayers: BigFloat
+  """Population variance of durationSeconds across the matching connection"""
+  durationSeconds: Float
+  """Population variance of occupancy across the matching connection"""
+  occupancy: Float
+}
+
+"""Grouping methods for `LobbyListing` for usage during aggregation."""
+enum LobbyListingGroupBy {
+  ROOM_NAME
+  HOST_ID
+  PLAYERS
+  PLAYER_LIMIT
+  IS_PUBLIC
+  PEAK_PLAYERS
+  PEAK_TIME
+  PEAK_TIME_TRUNCATED_TO_HOUR
+  PEAK_TIME_TRUNCATED_TO_DAY
+  FIRST_SEEN
+  FIRST_SEEN_TRUNCATED_TO_HOUR
+  FIRST_SEEN_TRUNCATED_TO_DAY
+  LAST_SEEN
+  LAST_SEEN_TRUNCATED_TO_HOUR
+  LAST_SEEN_TRUNCATED_TO_DAY
+  CLOSED_AT
+  CLOSED_AT_TRUNCATED_TO_HOUR
+  CLOSED_AT_TRUNCATED_TO_DAY
+  DURATION_SECONDS
+  OCCUPANCY
+  AVAILABLE_CAPACITY
+}
+
+"""Conditions for `LobbyListing` aggregates."""
+input LobbyListingHavingInput {
+  AND: [LobbyListingHavingInput!]
+  OR: [LobbyListingHavingInput!]
+  sum: LobbyListingHavingSumInput
+  distinctCount: LobbyListingHavingDistinctCountInput
+  min: LobbyListingHavingMinInput
+  max: LobbyListingHavingMaxInput
+  average: LobbyListingHavingAverageInput
+  stddevSample: LobbyListingHavingStddevSampleInput
+  stddevPopulation: LobbyListingHavingStddevPopulationInput
+  varianceSample: LobbyListingHavingVarianceSampleInput
+  variancePopulation: LobbyListingHavingVariancePopulationInput
+}
+
+input LobbyListingHavingSumInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingDistinctCountInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingMinInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingMaxInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingAverageInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingStddevSampleInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingStddevPopulationInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingVarianceSampleInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+input LobbyListingHavingVariancePopulationInput {
+  id: HavingBigintFilter
+  hostId: HavingBigintFilter
+  players: HavingIntFilter
+  playerLimit: HavingIntFilter
+  peakPlayers: HavingIntFilter
+  peakTime: HavingDatetimeFilter
+  firstSeen: HavingDatetimeFilter
+  lastSeen: HavingDatetimeFilter
+  closedAt: HavingDatetimeFilter
+  durationSeconds: HavingFloatFilter
+  occupancy: HavingFloatFilter
+}
+
+"""
+A condition to be used against `LobbyListing` object types. All fields are
+tested for equality and combined with a logical ‘and.’
+"""
+input LobbyListingCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: BigInt
+  """Checks for equality with the object’s `roomName` field."""
+  roomName: String
+  """Checks for equality with the object’s `hostId` field."""
+  hostId: BigInt
+  """Checks for equality with the object’s `players` field."""
+  players: Int
+  """Checks for equality with the object’s `playerLimit` field."""
+  playerLimit: Int
+  """Checks for equality with the object’s `isPublic` field."""
+  isPublic: Boolean
+  """Checks for equality with the object’s `peakPlayers` field."""
+  peakPlayers: Int
+  """Checks for equality with the object’s `peakTime` field."""
+  peakTime: Datetime
+  """Checks for equality with the object’s `firstSeen` field."""
+  firstSeen: Datetime
+  """Checks for equality with the object’s `lastSeen` field."""
+  lastSeen: Datetime
+  """Checks for equality with the object’s `closedAt` field."""
+  closedAt: Datetime
+  """Checks for equality with the object’s `durationSeconds` field."""
+  durationSeconds: Float
+  """Checks for equality with the object’s `occupancy` field."""
+  occupancy: Float
+  """Checks for equality with the object’s `availableCapacity` field."""
+  availableCapacity: Boolean
+}
+
+"""Methods to use when ordering `LobbyListing`."""
+enum LobbyListingsOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  ID_ASC
+  ID_DESC
+  ROOM_NAME_ASC
+  ROOM_NAME_DESC
+  HOST_ID_ASC
+  HOST_ID_DESC
+  PLAYERS_ASC
+  PLAYERS_DESC
+  PLAYER_LIMIT_ASC
+  PLAYER_LIMIT_DESC
+  IS_PUBLIC_ASC
+  IS_PUBLIC_DESC
+  PEAK_PLAYERS_ASC
+  PEAK_PLAYERS_DESC
+  PEAK_TIME_ASC
+  PEAK_TIME_DESC
+  FIRST_SEEN_ASC
+  FIRST_SEEN_DESC
+  LAST_SEEN_ASC
+  LAST_SEEN_DESC
+  CLOSED_AT_ASC
+  CLOSED_AT_DESC
+  DURATION_SECONDS_ASC
+  DURATION_SECONDS_DESC
+  OCCUPANCY_ASC
+  OCCUPANCY_DESC
+  AVAILABLE_CAPACITY_ASC
+  AVAILABLE_CAPACITY_DESC
+}
+
+"""A `User` edge in the connection, with data from `LobbyHistory`."""
+type LobbyUsersByLobbyHistoryManyToManyEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `User` at the end of the edge."""
+  node: User!
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  history(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection!
+}
+
+type LobbyStat implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  id: BigInt!
+  players: Int!
+  rooms: Int!
+  playersInRooms: Int!
+  dateCreated: Datetime!
+  dateUpdated: Datetime!
+}
+
+"""A connection to a list of `LobbyOccupancyTimelineRecord` values."""
+type LobbyOccupancyTimelineConnection {
+  """A list of `LobbyOccupancyTimelineRecord` objects."""
+  nodes: [LobbyOccupancyTimelineRecord!]!
+  """
+  A list of edges which contains the `LobbyOccupancyTimelineRecord` and cursor to aid in pagination.
+  """
+  edges: [LobbyOccupancyTimelineEdge!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """
+  The count of *all* `LobbyOccupancyTimelineRecord` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+type LobbyOccupancyTimelineRecord {
+  bucketStart: Datetime
+  firstObservedAt: Datetime
+  lastObservedAt: Datetime
+  firstPlayers: Int
+  lastPlayers: Int
+  minPlayers: Int
+  maxPlayers: Int
+  firstCapacity: Int
+  lastCapacity: Int
+  minCapacity: Int
+  maxCapacity: Int
+  observationCount: BigInt
+  hasGap: Boolean
+  hasClosure: Boolean
+  hasReopening: Boolean
+}
+
+"""A `LobbyOccupancyTimelineRecord` edge in the connection."""
+type LobbyOccupancyTimelineEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `LobbyOccupancyTimelineRecord` at the end of the edge."""
+  node: LobbyOccupancyTimelineRecord!
+}
+
+"""
+A filter to be used against `LobbyOccupancyTimelineRecord` object types. All fields are combined with a logical ‘and.’
+"""
+input LobbyOccupancyTimelineRecordFilter {
+  """Filter by the object’s `bucketStart` field."""
+  bucketStart: DatetimeFilter
+  """Filter by the object’s `firstObservedAt` field."""
+  firstObservedAt: DatetimeFilter
+  """Filter by the object’s `lastObservedAt` field."""
+  lastObservedAt: DatetimeFilter
+  """Filter by the object’s `firstPlayers` field."""
+  firstPlayers: IntFilter
+  """Filter by the object’s `lastPlayers` field."""
+  lastPlayers: IntFilter
+  """Filter by the object’s `minPlayers` field."""
+  minPlayers: IntFilter
+  """Filter by the object’s `maxPlayers` field."""
+  maxPlayers: IntFilter
+  """Filter by the object’s `firstCapacity` field."""
+  firstCapacity: IntFilter
+  """Filter by the object’s `lastCapacity` field."""
+  lastCapacity: IntFilter
+  """Filter by the object’s `minCapacity` field."""
+  minCapacity: IntFilter
+  """Filter by the object’s `maxCapacity` field."""
+  maxCapacity: IntFilter
+  """Filter by the object’s `observationCount` field."""
+  observationCount: BigIntFilter
+  """Filter by the object’s `hasGap` field."""
+  hasGap: BooleanFilter
+  """Filter by the object’s `hasClosure` field."""
+  hasClosure: BooleanFilter
+  """Filter by the object’s `hasReopening` field."""
+  hasReopening: BooleanFilter
+  """Checks for all expressions in this list."""
+  and: [LobbyOccupancyTimelineRecordFilter!]
+  """Checks for any expressions in this list."""
+  or: [LobbyOccupancyTimelineRecordFilter!]
+  """Negates the expression."""
+  not: LobbyOccupancyTimelineRecordFilter
+}
+
+"""A connection to a list of `LobbyStat` values."""
+type LobbyStatsConnection {
+  """A list of `LobbyStat` objects."""
+  nodes: [LobbyStat!]!
+  """
+  A list of edges which contains the `LobbyStat` and cursor to aid in pagination.
+  """
+  edges: [LobbyStatsEdge!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """The count of *all* `LobbyStat` you could get from the connection."""
+  totalCount: Int!
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: LobbyStatAggregates
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """The method to use when grouping `LobbyStat` for these aggregates."""
+    groupBy: [LobbyStatGroupBy!]!
+    """Conditions on the grouped aggregates."""
+    having: LobbyStatHavingInput
+  ): [LobbyStatAggregates!]
+}
+
+"""A `LobbyStat` edge in the connection."""
+type LobbyStatsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `LobbyStat` at the end of the edge."""
+  node: LobbyStat!
+}
+
+type LobbyStatAggregates {
+  keys: [String]
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: LobbyStatSumAggregates
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: LobbyStatDistinctCountAggregates
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: LobbyStatMinAggregates
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: LobbyStatMaxAggregates
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: LobbyStatAverageAggregates
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: LobbyStatStddevSampleAggregates
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: LobbyStatStddevPopulationAggregates
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: LobbyStatVarianceSampleAggregates
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: LobbyStatVariancePopulationAggregates
+}
+
+type LobbyStatSumAggregates {
+  """Sum of id across the matching connection"""
+  id: BigFloat!
+  """Sum of players across the matching connection"""
+  players: BigInt!
+  """Sum of rooms across the matching connection"""
+  rooms: BigInt!
+  """Sum of playersInRooms across the matching connection"""
+  playersInRooms: BigInt!
+}
+
+type LobbyStatDistinctCountAggregates {
+  """Distinct count of id across the matching connection"""
+  id: BigInt
+  """Distinct count of players across the matching connection"""
+  players: BigInt
+  """Distinct count of rooms across the matching connection"""
+  rooms: BigInt
+  """Distinct count of playersInRooms across the matching connection"""
+  playersInRooms: BigInt
+  """Distinct count of dateCreated across the matching connection"""
+  dateCreated: BigInt
+  """Distinct count of dateUpdated across the matching connection"""
+  dateUpdated: BigInt
+}
+
+type LobbyStatMinAggregates {
+  """Minimum of id across the matching connection"""
+  id: BigInt
+  """Minimum of players across the matching connection"""
+  players: Int
+  """Minimum of rooms across the matching connection"""
+  rooms: Int
+  """Minimum of playersInRooms across the matching connection"""
+  playersInRooms: Int
+}
+
+type LobbyStatMaxAggregates {
+  """Maximum of id across the matching connection"""
+  id: BigInt
+  """Maximum of players across the matching connection"""
+  players: Int
+  """Maximum of rooms across the matching connection"""
+  rooms: Int
+  """Maximum of playersInRooms across the matching connection"""
+  playersInRooms: Int
+}
+
+type LobbyStatAverageAggregates {
+  """Mean average of id across the matching connection"""
+  id: BigFloat
+  """Mean average of players across the matching connection"""
+  players: BigFloat
+  """Mean average of rooms across the matching connection"""
+  rooms: BigFloat
+  """Mean average of playersInRooms across the matching connection"""
+  playersInRooms: BigFloat
+}
+
+type LobbyStatStddevSampleAggregates {
+  """Sample standard deviation of id across the matching connection"""
+  id: BigFloat
+  """Sample standard deviation of players across the matching connection"""
+  players: BigFloat
+  """Sample standard deviation of rooms across the matching connection"""
+  rooms: BigFloat
+  """
+  Sample standard deviation of playersInRooms across the matching connection
+  """
+  playersInRooms: BigFloat
+}
+
+type LobbyStatStddevPopulationAggregates {
+  """Population standard deviation of id across the matching connection"""
+  id: BigFloat
+  """
+  Population standard deviation of players across the matching connection
+  """
+  players: BigFloat
+  """Population standard deviation of rooms across the matching connection"""
+  rooms: BigFloat
+  """
+  Population standard deviation of playersInRooms across the matching connection
+  """
+  playersInRooms: BigFloat
+}
+
+type LobbyStatVarianceSampleAggregates {
+  """Sample variance of id across the matching connection"""
+  id: BigFloat
+  """Sample variance of players across the matching connection"""
+  players: BigFloat
+  """Sample variance of rooms across the matching connection"""
+  rooms: BigFloat
+  """Sample variance of playersInRooms across the matching connection"""
+  playersInRooms: BigFloat
+}
+
+type LobbyStatVariancePopulationAggregates {
+  """Population variance of id across the matching connection"""
+  id: BigFloat
+  """Population variance of players across the matching connection"""
+  players: BigFloat
+  """Population variance of rooms across the matching connection"""
+  rooms: BigFloat
+  """Population variance of playersInRooms across the matching connection"""
+  playersInRooms: BigFloat
+}
+
+"""Grouping methods for `LobbyStat` for usage during aggregation."""
+enum LobbyStatGroupBy {
+  PLAYERS
+  ROOMS
+  PLAYERS_IN_ROOMS
+  DATE_CREATED
+  DATE_CREATED_TRUNCATED_TO_HOUR
+  DATE_CREATED_TRUNCATED_TO_DAY
+  DATE_CREATED_TRUNCATED_TO_FIVE_MINUTES
+  DATE_CREATED_TRUNCATED_TO_SIX_HOURS
+  DATE_CREATED_TRUNCATED_TO_UTC_HOUR
+  DATE_CREATED_TRUNCATED_TO_UTC_DAY
+  DATE_CREATED_TRUNCATED_TO_MONTH
+  DATE_UPDATED
+  DATE_UPDATED_TRUNCATED_TO_HOUR
+  DATE_UPDATED_TRUNCATED_TO_DAY
+}
+
+"""Conditions for `LobbyStat` aggregates."""
+input LobbyStatHavingInput {
+  AND: [LobbyStatHavingInput!]
+  OR: [LobbyStatHavingInput!]
+  sum: LobbyStatHavingSumInput
+  distinctCount: LobbyStatHavingDistinctCountInput
+  min: LobbyStatHavingMinInput
+  max: LobbyStatHavingMaxInput
+  average: LobbyStatHavingAverageInput
+  stddevSample: LobbyStatHavingStddevSampleInput
+  stddevPopulation: LobbyStatHavingStddevPopulationInput
+  varianceSample: LobbyStatHavingVarianceSampleInput
+  variancePopulation: LobbyStatHavingVariancePopulationInput
+}
+
+input LobbyStatHavingSumInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingDistinctCountInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingMinInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingMaxInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingAverageInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingStddevSampleInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingStddevPopulationInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingVarianceSampleInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+input LobbyStatHavingVariancePopulationInput {
+  id: HavingBigintFilter
+  players: HavingIntFilter
+  rooms: HavingIntFilter
+  playersInRooms: HavingIntFilter
+  dateCreated: HavingDatetimeFilter
+  dateUpdated: HavingDatetimeFilter
+}
+
+"""
+A condition to be used against `LobbyStat` object types. All fields are tested
+for equality and combined with a logical ‘and.’
+"""
+input LobbyStatCondition {
+  """Checks for equality with the object’s `id` field."""
+  id: BigInt
+  """Checks for equality with the object’s `players` field."""
+  players: Int
+  """Checks for equality with the object’s `rooms` field."""
+  rooms: Int
+  """Checks for equality with the object’s `playersInRooms` field."""
+  playersInRooms: Int
+  """Checks for equality with the object’s `dateCreated` field."""
+  dateCreated: Datetime
+  """Checks for equality with the object’s `dateUpdated` field."""
+  dateUpdated: Datetime
+}
+
+"""
+A filter to be used against `LobbyStat` object types. All fields are combined with a logical ‘and.’
+"""
+input LobbyStatFilter {
+  """Filter by the object’s `id` field."""
+  id: BigIntFilter
+  """Filter by the object’s `players` field."""
+  players: IntFilter
+  """Filter by the object’s `rooms` field."""
+  rooms: IntFilter
+  """Filter by the object’s `playersInRooms` field."""
+  playersInRooms: IntFilter
+  """Filter by the object’s `dateCreated` field."""
+  dateCreated: DatetimeFilter
+  """Filter by the object’s `dateUpdated` field."""
+  dateUpdated: DatetimeFilter
+  """Checks for all expressions in this list."""
+  and: [LobbyStatFilter!]
+  """Checks for any expressions in this list."""
+  or: [LobbyStatFilter!]
+  """Negates the expression."""
+  not: LobbyStatFilter
+}
+
+"""Methods to use when ordering `LobbyStat`."""
+enum LobbyStatsOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  ID_ASC
+  ID_DESC
+  PLAYERS_ASC
+  PLAYERS_DESC
+  ROOMS_ASC
+  ROOMS_DESC
+  PLAYERS_IN_ROOMS_ASC
+  PLAYERS_IN_ROOMS_DESC
+  DATE_CREATED_ASC
+  DATE_CREATED_DESC
+  DATE_UPDATED_ASC
+  DATE_UPDATED_DESC
 }

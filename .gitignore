@@ -10,6 +10,7 @@ benchmarks/
 !.env.example
 coverage/
 dist/
+test-results/
 *.log
 packages/graphql/schema.local.graphql
 packages/web/.data/

@@ -16,6 +16,14 @@ const level = {
 }
 
 describe('Zeepkist tournament playlists', () => {
+	test('preserves zero Workshop ID and exact UID for built-in Adventure levels', () => {
+		const playlist = buildTournamentPlaylist(
+			'Adventure tournament',
+			[{ ...level, fileUid: 'ea1', workshopId: '0' }],
+			'single',
+		)
+		expect(playlist.levels[0]).toMatchObject({ UID: 'ea1', WorkshopID: '0' })
+	})
 	test('maps exact playlist fields and disables shuffle for one tournament', () => {
 		expect(buildTournamentPlaylist('Track of the Week', [level], 'single')).toEqual({
 			name: 'Track of the Week',

@@ -1,3 +1,17 @@
+import type { ExecutableStep } from 'postgraphile/grafast'
+
+const DEFAULT_LIMIT = 100
+const MAXIMUM_LIMIT = 1000
+
+type PaginationTarget = {
+	setFirst(value: unknown): void
+	setLast(value: unknown): void
+}
+type FieldArgs = {
+	getRaw(name: string): ExecutableStep<number | null | undefined>
+	autoApply(target: unknown): void
+}
+
 export const PaginationLimitsPlugin: GraphileConfig.Plugin = {
 	name: 'PaginationLimitsPlugin',
 	version: '1.0.0',
@@ -6,167 +20,84 @@ export const PaginationLimitsPlugin: GraphileConfig.Plugin = {
 		hooks: {
 			GraphQLObjectType_fields_field(field, build, context) {
 				const { isPgFieldConnection, isPgFieldSimpleCollection } = context.scope
-
-				if (!(isPgFieldConnection || isPgFieldSimpleCollection) || !field.plan) {
-					return field
-				}
-
-				const { ConstantStep, isStep } = build.grafast
-				const { EXPORTABLE } = build
+				if (!(isPgFieldConnection || isPgFieldSimpleCollection) || !field.plan) return field
 				const previousPlan = field.plan
-
 				return {
 					...field,
-					plan: EXPORTABLE(
-						(ConstantStep, isStep, previousPlan) =>
-							function planWithDefaultLimit(this: unknown, ...planParams: unknown[]) {
-								const [, fieldArgs] = planParams
+					plan: build.EXPORTABLE(
+						(previousPlan, isStep, lambda, defaultLimit, maximumLimit) =>
+							function planWithPaginationLimits(
+								this: unknown,
+								...parameters: unknown[]
+							) {
 								const result = previousPlan.call(
 									this,
-									planParams[0] as never,
-									planParams[1] as never,
-									planParams[2] as never,
+									parameters[0] as never,
+									parameters[1] as never,
+									parameters[2] as never,
 								)
-
-								if (!isStep(result)) {
+								if (
+									!isStep(result) ||
+									!('setFirst' in result) ||
+									!('setLast' in result)
+								)
 									return result
-								}
-
-								const args = fieldArgs as FieldArgs
+								const args = parameters[1] as FieldArgs
 								args.autoApply(result)
-
+								const target = result as unknown as PaginationTarget
 								const first = args.getRaw('first')
 								const last = args.getRaw('last')
-								const firstOmitted =
-									first instanceof ConstantStep && first.data === undefined
-								const lastOmitted =
-									last instanceof ConstantStep && last.data === undefined
-
-								if (firstOmitted && lastOmitted && hasSetFirst(result)) {
-									result.setFirst(DEFAULT_LIMIT)
-								}
-
+								target.setFirst(
+									lambda(
+										[first, last],
+										([first, last]) => {
+											if (first != null && first > maximumLimit)
+												throw new Error(
+													`Requested 'first' value of ${first} exceeds the limit of ${maximumLimit}`,
+												)
+											return (
+												first ?? (last == null ? defaultLimit : undefined)
+											)
+										},
+										true,
+									),
+								)
+								target.setLast(
+									lambda(
+										last,
+										(value) => {
+											if (value != null && value > maximumLimit)
+												throw new Error(
+													`Requested 'last' value of ${value} exceeds the limit of ${maximumLimit}`,
+												)
+											return value
+										},
+										true,
+									),
+								)
 								return result
 							},
-						[ConstantStep, isStep, previousPlan],
-						'planWithDefaultLimit',
+						[
+							previousPlan,
+							build.grafast.isStep,
+							build.grafast.lambda,
+							DEFAULT_LIMIT,
+							MAXIMUM_LIMIT,
+						],
 					),
 				}
 			},
 			GraphQLObjectType_fields_field_args(args, build, context) {
 				const { isPgFieldConnection, isPgFieldSimpleCollection } = context.scope
-
-				if (!(isPgFieldConnection || isPgFieldSimpleCollection)) {
-					return args
-				}
-
-				const { EXPORTABLE } = build
-				const { lambda } = build.grafast
-
+				if (!(isPgFieldConnection || isPgFieldSimpleCollection)) return args
+				// Apply both pagination arguments together in the field plan, including omitted/null values.
+				const applyPlan = build.EXPORTABLE(() => () => {}, [])
 				return {
 					...args,
-					...(args.first
-						? {
-								first: {
-									...args.first,
-									applyPlan: EXPORTABLE(
-										(lambda, maximumLimit) =>
-											function applyFirstLimit(
-												_: unknown,
-												target: PaginationTarget,
-												arg: FieldArg,
-											) {
-												target.setFirst(
-													(lambda as LambdaFn)(
-														arg.getRaw(),
-														(value: number | null | undefined) =>
-															validateLimit(
-																'first',
-																value,
-																maximumLimit,
-															),
-														true,
-													),
-												)
-											},
-										[lambda, MAXIMUM_LIMIT],
-										'applyFirstLimit',
-									),
-								},
-							}
-						: null),
-					...(args.last
-						? {
-								last: {
-									...args.last,
-									applyPlan: EXPORTABLE(
-										(lambda, maximumLimit) =>
-											function applyLastLimit(
-												_: unknown,
-												target: PaginationTarget,
-												arg: FieldArg,
-											) {
-												target.setLast(
-													(lambda as LambdaFn)(
-														arg.getRaw(),
-														(value: number | null | undefined) =>
-															validateLimit(
-																'last',
-																value,
-																maximumLimit,
-															),
-														true,
-													),
-												)
-											},
-										[lambda, MAXIMUM_LIMIT],
-										'applyLastLimit',
-									),
-								},
-							}
-						: null),
+					...(args.first ? { first: { ...args.first, applyPlan } } : {}),
+					...(args.last ? { last: { ...args.last, applyPlan } } : {}),
 				}
 			},
 		},
 	},
-}
-
-const DEFAULT_LIMIT = 100
-const MAXIMUM_LIMIT = 1000
-
-type FieldArg = {
-	getRaw(): unknown
-}
-
-type LambdaFn = (
-	step: unknown,
-	callback: (value: number | null | undefined) => number | null | undefined,
-	isSyncAndSafe: boolean,
-) => unknown
-
-type FieldArgs = {
-	getRaw(name: string): unknown
-	autoApply(target: unknown): void
-}
-
-type PaginationTarget = {
-	setFirst(first: unknown): void
-	setLast(last: unknown): void
-}
-
-function hasSetFirst(value: unknown): value is { setFirst(first: number): void } {
-	return (
-		typeof value === 'object' &&
-		value !== null &&
-		'setFirst' in value &&
-		typeof value.setFirst === 'function'
-	)
-}
-
-function validateLimit(name: 'first' | 'last', value: number | null | undefined, maximum: number) {
-	if (value != null && value > maximum) {
-		throw new Error(`Requested '${name}' value of ${value} exceeds the limit of ${maximum}`)
-	}
-
-	return value
 }

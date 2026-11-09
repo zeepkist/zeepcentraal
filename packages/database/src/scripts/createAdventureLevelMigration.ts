@@ -4,7 +4,7 @@ import { basename, dirname, join, relative } from 'node:path'
 import { parseJsonLevelV2 } from '@zeepkist/core/levels'
 
 const adventureAuthorId = '76561198041027402'
-const adventureWorkshopId = '-1'
+const adventureWorkshopId = '0'
 
 export interface AdventureMapEntry {
 	levelName: string

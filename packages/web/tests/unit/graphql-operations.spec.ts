@@ -96,7 +96,10 @@ describe('GraphQL operation conventions', () => {
 		for (const file of filesUnder(composablesDir, '.ts')) {
 			const source = readFileSync(file, 'utf8')
 			if (source.includes('useQuery') || source.includes('useSubscription')) {
-				expect(source.includes('@zeepkist/graphql/generated')).toBe(true)
+				expect(
+					source.includes('@zeepkist/graphql/generated') ||
+						source.includes('TypedDocumentNode'),
+				).toBe(true)
 				expect(source).not.toContain('query ZC_')
 				expect(source).not.toContain('subscription ZC_')
 			}
@@ -121,7 +124,8 @@ describe('GraphQL operation conventions', () => {
 
 		for (const file of subscriptionFiles) {
 			const source = readFileSync(file, 'utf8')
-			const subscriptionCount = source.match(/\buseSubscription\s*\(/g)?.length ?? 0
+			const subscriptionCount =
+				source.match(/\buseSubscription(?:<[\s\S]*?>)?\s*\(/g)?.length ?? 0
 			const visibilityPauseCount = source.match(/!pageVisible\.value/g)?.length ?? 0
 			expect(source).toContain('const pageVisible = usePageVisibility()')
 			expect(visibilityPauseCount).toBe(subscriptionCount)

@@ -11,9 +11,29 @@ export default defineNuxtPlugin((nuxtApp) => {
 	const config = useRuntimeConfig()
 	const ssr = ssrExchange({ isClient: true, initialState: nuxtApp.payload.data.urql })
 	let wsClientPromise: Promise<GraphqlWsClient> | undefined
+	const websocketStatus = useState<'idle' | 'connecting' | 'connected' | 'disconnected'>(
+		'graphql-ws-status',
+		() => 'idle',
+	)
 	const getWsClient = () => {
 		wsClientPromise ??= import('graphql-ws').then(({ createClient: createWsClient }) =>
-			createWsClient({ url: config.public.graphqlWsUrl }),
+			createWsClient({
+				url: config.public.graphqlWsUrl,
+				on: {
+					connecting: () => {
+						websocketStatus.value = 'connecting'
+					},
+					connected: () => {
+						websocketStatus.value = 'connected'
+					},
+					closed: () => {
+						websocketStatus.value = 'disconnected'
+					},
+					error: () => {
+						websocketStatus.value = 'disconnected'
+					},
+				},
+			}),
 		)
 		return wsClientPromise
 	}

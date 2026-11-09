@@ -210,6 +210,25 @@ diesel::table! {
 }
 
 diesel::table! {
+    lobby_listing (id) {
+        id -> BigInt,
+        room_name -> Text,
+        host_id -> BigInt,
+        players -> Integer,
+        player_limit -> Integer,
+        is_public -> Bool,
+        peak_players -> Integer,
+        peak_time -> Timestamptz,
+        first_seen -> Timestamptz,
+        last_seen -> Timestamptz,
+        closed_at -> Nullable<Timestamptz>,
+        duration_seconds -> Double,
+        occupancy -> Nullable<Double>,
+        available_capacity -> Bool,
+    }
+}
+
+diesel::table! {
     personal_best_global (id) {
         id -> Integer,
         id_record -> Integer,

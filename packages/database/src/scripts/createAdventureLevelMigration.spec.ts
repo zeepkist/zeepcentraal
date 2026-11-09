@@ -55,7 +55,8 @@ test('generated SQL resolves canonical xxHash levels and safely falls back to le
 	expect(sql).toContain(`candidate_level."id" ASC`)
 	expect(sql).toContain(`LIMIT 1`)
 	expect(sql).not.toContain(`WHERE "level"."xx_hash" IS NULL`)
-	expect(sql).toContain(`-1::bigint`)
+	expect(sql).toContain(`0::bigint`)
+	expect(sql).not.toContain(`-1::bigint`)
 	expect(sql).toContain(`"quoted '' block"`)
 })
 

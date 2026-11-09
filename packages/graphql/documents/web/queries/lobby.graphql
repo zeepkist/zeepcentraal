@@ -1,0 +1,224 @@
+fragment ZC_LobbyRoom on LobbyListing {
+	id
+	roomName
+	hostId
+	players
+	playerLimit
+	isPublic
+	peakPlayers
+	peakTime
+	firstSeen
+	lastSeen
+	closedAt
+	durationSeconds
+	occupancy
+	availableCapacity
+	host {
+		steamId
+		steamName
+	}
+}
+
+fragment ZC_LobbyRooms on Query {
+	lobbyListings(
+		first: $first
+		last: $last
+		after: $after
+		before: $before
+		filter: $filter
+		orderBy: $orderBy
+	) {
+		nodes {
+			...ZC_LobbyRoom
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+	}
+}
+
+query ZC_LobbyRooms(
+	$first: Int
+	$last: Int
+	$after: Cursor
+	$before: Cursor
+	$filter: LobbyListingFilter!
+	$orderBy: [LobbyListingsOrderBy!]!
+) {
+	...ZC_LobbyRooms
+}
+
+fragment ZC_LobbyStatisticsValues on LobbyStatAggregates {
+	average {
+		players
+		playersInRooms
+		rooms
+	}
+	sum {
+		players
+		playersInRooms
+		rooms
+	}
+	max {
+		players
+		playersInRooms
+		rooms
+	}
+
+	distinctCount {
+		id
+	}
+}
+
+fragment ZC_LobbyStatistics on Query {
+	latest: lobbyStats(first: 1, orderBy: [DATE_CREATED_DESC, ID_DESC]) {
+		nodes {
+			players
+			rooms
+			playersInRooms
+			dateCreated
+		}
+	}
+	coverage: lobbyStats(first: 1, orderBy: [DATE_CREATED_ASC, ID_ASC]) {
+		nodes {
+			dateCreated
+		}
+	}
+	period: lobbyStats(first: 1, filter: $filter, orderBy: [DATE_CREATED_ASC, ID_ASC]) {
+		nodes {
+			dateCreated
+		}
+		aggregates {
+			...ZC_LobbyStatisticsValues
+		}
+		groupedAggregates(groupBy: $groupBy) {
+			keys
+			...ZC_LobbyStatisticsValues
+		}
+	}
+	previous: lobbyStats(first: 1, filter: $previousFilter, orderBy: [DATE_CREATED_ASC, ID_ASC]) {
+		nodes {
+			dateCreated
+		}
+		aggregates {
+			...ZC_LobbyStatisticsValues
+		}
+	}
+	previousEnd: lobbyStats(
+		first: 1
+		filter: $previousFilter
+		orderBy: [DATE_CREATED_DESC, ID_DESC]
+	) {
+		nodes {
+			dateCreated
+		}
+	}
+	onlinePeak: lobbyStats(
+		first: 1
+		filter: $peakFilter
+		orderBy: [PLAYERS_DESC, DATE_CREATED_ASC, ID_ASC]
+	) {
+		nodes {
+			players
+			dateCreated
+		}
+	}
+	participationPeak: lobbyStats(
+		first: 1
+		filter: $peakFilter
+		orderBy: [PLAYERS_IN_ROOMS_DESC, DATE_CREATED_ASC, ID_ASC]
+	) {
+		nodes {
+			playersInRooms
+			dateCreated
+		}
+	}
+	roomsPeak: lobbyStats(
+		first: 1
+		filter: $peakFilter
+		orderBy: [ROOMS_DESC, DATE_CREATED_ASC, ID_ASC]
+	) {
+		nodes {
+			rooms
+			dateCreated
+		}
+	}
+	roomPeak: lobbyListings(first: 1, orderBy: [PEAK_PLAYERS_DESC, PEAK_TIME_ASC, ID_ASC]) {
+		nodes {
+			id
+			roomName
+			peakPlayers
+			peakTime
+		}
+	}
+}
+
+query ZC_LobbyStatistics(
+	$filter: LobbyStatFilter!
+	$previousFilter: LobbyStatFilter!
+	$peakFilter: LobbyStatFilter!
+	$groupBy: [LobbyStatGroupBy!]!
+) {
+	...ZC_LobbyStatistics
+}
+
+fragment ZC_LobbyDetail on Query {
+	lobbyListing(id: $id) {
+		...ZC_LobbyRoom
+	}
+	lobbyOccupancyTimeline(pLobbyId: $id, pBuckets: 200, first: 201) {
+		nodes {
+			bucketStart
+			firstObservedAt
+			lastObservedAt
+			firstPlayers
+			lastPlayers
+			minPlayers
+			maxPlayers
+			firstCapacity
+			lastCapacity
+			minCapacity
+			maxCapacity
+			observationCount
+			hasGap
+			hasClosure
+			hasReopening
+		}
+	}
+	lobbyHistories(
+		first: $first
+		last: $last
+		after: $after
+		before: $before
+		filter: { lobbyId: { equalTo: $id } }
+		orderBy: [OBSERVED_AT_ASC, ID_ASC]
+	) {
+		nodes {
+			id
+			observedAt
+			changeType
+			roomName
+			players
+			playerLimit
+			isPublic
+			hostId
+			host {
+				steamId
+				steamName
+			}
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+	}
+}
+
+query ZC_LobbyDetail($id: BigInt!, $first: Int, $last: Int, $after: Cursor, $before: Cursor) {
+	...ZC_LobbyDetail
+}

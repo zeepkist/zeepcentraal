@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePlaylistsStore } from '~/stores/playlists'
 import type { LevelSummary, LocalPlaylist } from '~/types/app'
+import { serializePlaylist } from '~/utils/playlist'
 import type { PlaylistDatabase } from '~/utils/playlistDatabase.client'
 
 function summary(overrides: Partial<LevelSummary> = {}): LevelSummary {
@@ -79,6 +80,20 @@ describe('playlist Pinia store', () => {
 		expect(store.hasLevel('uid-one')).toBe(true)
 	})
 
+	it('exports Adventure levels with zero Workshop ID through playlist builder', () => {
+		const store = usePlaylistsStore()
+		expect(store.addLevel(summary({ adventure: true, workshopId: '0', fileUid: 'ea1' }))).toBe(
+			'added',
+		)
+		const playlist = store.activePlaylist
+		if (!playlist) throw new Error('Playlist missing')
+		expect(
+			JSON.parse(serializePlaylist(playlist).replace(/^\uFEFF/, '')).levels[0],
+		).toMatchObject({
+			UID: 'ea1',
+			WorkshopID: 0,
+		})
+	})
 	it('rejects unsafe Workshop IDs and playlist overflow', () => {
 		const store = usePlaylistsStore()
 		expect(store.addLevel(summary({ workshopId: '9007199254740992' }))).toBe('invalid')

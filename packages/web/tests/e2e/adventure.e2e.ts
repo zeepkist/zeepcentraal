@@ -27,7 +27,11 @@ async function login(context: BrowserContext, zero = false) {
 
 async function playlistDownload(page: Page, label: string) {
 	const download = page.waitForEvent('download')
+	const response = page.waitForResponse((response) =>
+		response.url().includes('/api/adventure/playlist'),
+	)
 	await page.getByRole('button', { name: label, exact: true }).click()
+	expect((await response).status()).toBe(200)
 	const file = await download
 	const path = await file.path()
 	if (!path) throw new Error('Playlist download missing')
@@ -39,6 +43,32 @@ async function playlistDownload(page: Page, label: string) {
 
 test.beforeEach(async ({ request }) => {
 	await request.post('http://127.0.0.1:55440/__test/reset')
+})
+
+test('playlist endpoints export official mappings for public and authenticated scopes', async ({
+	context,
+	request,
+}) => {
+	for (const query of ['', '?series=a']) {
+		const response = await request.get(`/api/adventure/playlist${query}`)
+		expect(response.status()).toBe(200)
+		expect(response.headers()['content-disposition']).toContain('.zeeplist')
+		const playlist = JSON.parse((await response.text()).replace(/^\uFEFF/, ''))
+		expect(playlist.levels.slice(0, 2)).toMatchObject([
+			{ UID: 'ea1', WorkshopID: 0 },
+			{ UID: 'ea2', WorkshopID: 0 },
+		])
+		expect(playlist.amountOfLevels).toBe(query ? 2 : 18)
+	}
+	await login(context)
+	for (const query of ['?missing=true', '?series=a&missing=true']) {
+		const response = await context.request.get(`/api/adventure/playlist${query}`)
+		expect(response.status()).toBe(200)
+		expect(response.headers()['cache-control']).toContain('no-store')
+		const playlist = JSON.parse((await response.text()).replace(/^\uFEFF/, ''))
+		expect(playlist.levels[0]).toMatchObject({ UID: 'ea2', WorkshopID: 0 })
+		expect(playlist.amountOfLevels).toBe(query.includes('series=') ? 1 : 17)
+	}
 })
 
 test('global and series standings preserve completion-first order, ties, pagination and level grids', async ({
@@ -175,6 +205,10 @@ test('downloads full series, global and authenticated missing-level playlists', 
 	await page.goto('/adventure/a')
 	await hydrated(page)
 	const series = await playlistDownload(page, 'Download Series A')
+	expect(series.playlist.levels).toMatchObject([
+		{ UID: 'ea1', WorkshopID: 0 },
+		{ UID: 'ea2', WorkshopID: 0 },
+	])
 	expect(series.playlist.levels.map((level: { Name: string }) => level.Name)).toEqual([
 		'A-01',
 		'A-02',
@@ -186,12 +220,17 @@ test('downloads full series, global and authenticated missing-level playlists', 
 	})
 	const all = await playlistDownload(page, 'Download all Adventure')
 	expect(all.playlist.amountOfLevels).toBe(18)
+	expect(
+		all.playlist.levels.every((level: { WorkshopID: number }) => level.WorkshopID === 0),
+	).toBe(true)
 	const missing = await playlistDownload(page, 'Download missing levels (1)')
 	expect(missing.name).toBe('zeepcentraal-adventure-a-missing.zeeplist')
 	expect(missing.playlist.levels.map((level: { Name: string }) => level.Name)).toEqual(['A-02'])
+	expect(missing.playlist.levels).toMatchObject([{ UID: 'ea2', WorkshopID: 0 }])
 	const verified = await context.request.get(
 		'/api/adventure/playlist?series=a&missing=true&userId=1',
 	)
+	expect(verified.status()).toBe(200)
 	expect(verified.headers()['cache-control']).toContain('no-store')
 	expect(JSON.parse((await verified.text()).replace(/^\uFEFF/, '')).levels).toHaveLength(1)
 })

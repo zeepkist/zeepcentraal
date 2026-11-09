@@ -13,6 +13,7 @@ import {
 	groupAdventurePlayerLevels,
 	mapAdventurePlayerLevels,
 } from '../../app/utils/adventurePlayerLevels'
+import { parseSafeWorkshopId } from '../../app/utils/playlist'
 import {
 	collectAdventurePlaylist,
 	parseAdventurePlaylistQuery,
@@ -24,11 +25,13 @@ function membership(
 	name: string,
 	pb: number | null = null,
 	wr: number | null = null,
-): Zc_AdventurePlayerLevelFragment {
+): Zc_AdventurePlayerLevelFragment & {
+	levelItem: NonNullable<Zc_AdventurePlayerLevelFragment['levelItem']>
+} {
 	return {
 		series,
 		levelId: id,
-		levelItem: { id, name, fileUid: `file-${id}`, workshopId: '123', fileAuthor: 'Author' },
+		levelItem: { id, name, fileUid: `file-${id}`, workshopId: '0', fileAuthor: 'Author' },
 		level: {
 			id,
 			xxHash: String(id).padStart(32, '0'),
@@ -93,6 +96,36 @@ describe('Adventure player rows and level comparisons', () => {
 })
 
 describe('Adventure playlist exports', () => {
+	it('exports official UIDs with zero Workshop ID without weakening shared validation', async () => {
+		const official = membership('a', 1, 'A-01')
+		official.levelItem = { ...official.levelItem, fileUid: 'ea1' }
+		const workshop = membership('a', 2, 'A-02')
+		workshop.levelItem = { ...workshop.levelItem, workshopId: '123' }
+		const exported = await collectAdventurePlaylist(async () => ({
+			nodes: [workshop, official],
+			pageInfo: { hasNextPage: false },
+		}))
+		expect(JSON.parse(exported.body.replace(/^\uFEFF/, '')).levels).toMatchObject([
+			{ UID: 'ea1', WorkshopID: 0, Name: 'A-01' },
+			{ UID: 'file-2', WorkshopID: 123, Name: 'A-02' },
+		])
+		expect(parseSafeWorkshopId('-1')).toBeNull()
+	})
+	it.each([
+		{ workshopId: '-1', fileUid: 'ea1' },
+		{ workshopId: '-2', fileUid: 'ea1' },
+		{ workshopId: 'invalid', fileUid: 'ea1' },
+		{ workshopId: '0', fileUid: '' },
+	])('rejects unavailable file mapping %j', async (mapping) => {
+		const level = membership('a', 1, 'A-01')
+		level.levelItem = { ...level.levelItem, ...mapping }
+		await expect(
+			collectAdventurePlaylist(async () => ({
+				nodes: [level],
+				pageInfo: { hasNextPage: false },
+			})),
+		).rejects.toMatchObject({ status: 422 })
+	})
 	it('validates multi-character scopes and rejects malformed input', () => {
 		expect(parseAdventurePlaylistQuery({ series: 'xg', missing: 'true' })).toEqual({
 			series: 'xg',
@@ -143,6 +176,7 @@ describe('Adventure playlist exports', () => {
 				(level: { UID: string }) => level.UID,
 			),
 		).toEqual(['file-2'])
+		expect(JSON.parse(exported.body.replace(/^\uFEFF/, '')).levels[0].WorkshopID).toBe(0)
 		await expect(collectAdventurePlaylist(page([]))).rejects.toMatchObject({ status: 404 })
 		await expect(
 			collectAdventurePlaylist(page([{ ...membership('a', 1, 'A-01'), levelItem: null }])),

@@ -12,6 +12,7 @@ import { createBoundedGrafastCachesPlugin } from './plugins/BoundedGrafastCaches
 import PgFixForeignKeyNamesPlugin from './plugins/FixForeignKeyNamesPlugin'
 import { HideAuthOrderByEnumsPlugin } from './plugins/HideAuthOrderByEnumsPlugin'
 import { LiveQueryCompatPlugin } from './plugins/LiveQueryCompatPlugin'
+import { LobbyAggregatesPlugin } from './plugins/LobbyAggregatesPlugin'
 import PgManyToManyInflectorsPlugin from './plugins/ManyToManyInflectorsPlugin'
 import OrderByRelatedInflectorsPlugin from './plugins/OrderByRelatedInflectorsPlugin'
 import { PaginationLimitsPlugin } from './plugins/PaginationLimitsPlugin'
@@ -96,6 +97,7 @@ const plugins: GraphileConfig.Plugin[] = [
 	SkipByNodeIdFieldsPlugin,
 	HideAuthOrderByEnumsPlugin,
 	LiveQueryCompatPlugin,
+	LobbyAggregatesPlugin,
 ]
 
 export function createPostGraphilePreset(
