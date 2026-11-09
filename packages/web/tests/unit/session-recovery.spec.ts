@@ -8,21 +8,27 @@ import { useSessionStore } from '../../app/stores/session'
 const user = { id: 1, steamId: '76561198000000000', steamName: 'Auth fixture' }
 const scopes: ReturnType<typeof effectScope>[] = []
 
-function setup() {
+function setup(channelClass?: unknown) {
 	vi.useFakeTimers()
 	vi.setSystemTime(2_000_000_000_000)
 	vi.stubGlobal('ref', ref)
+	vi.stubGlobal('BroadcastChannel', channelClass)
+	vi.stubGlobal('navigator', {})
 	setActivePinia(createPinia())
 	const session = useSessionStore()
 	session.setUser(user)
 	session.resolved = true
 	const refreshAt = ref<number | null>(Date.now() + 60_000)
+	let serverRefreshAt = refreshAt.value
 	const load = vi.fn().mockImplementation(async () => ({
 		user,
 		isAdmin: false,
-		refreshAt: Date.now() + 600_000,
+		refreshAt: serverRefreshAt,
 	}))
-	const fetcher = vi.fn().mockResolvedValue({ refreshAt: Date.now() + 600_000 })
+	const fetcher = vi.fn().mockImplementation(async () => {
+		serverRefreshAt = Date.now() + 600_000
+		return { refreshAt: serverRefreshAt }
+	})
 	const windowTarget = new EventTarget()
 	const documentTarget = Object.assign(new EventTarget(), { visibilityState: 'visible' })
 	vi.stubGlobal('window', windowTarget)
@@ -46,11 +52,86 @@ afterEach(() => {
 })
 
 describe('session recovery', () => {
+	it('rechecks shared cookies after waiting for another tab instead of rotating again', async () => {
+		const flow = setup()
+		let grant!: () => void
+		vi.stubGlobal('navigator', {
+			locks: {
+				request: (_name: string, operation: () => Promise<unknown>) =>
+					new Promise((resolve) => {
+						grant = () => resolve(operation())
+					}),
+			},
+		})
+		const refreshing = flow.recovery.refresh(true)
+		await Promise.resolve()
+		flow.load.mockResolvedValueOnce({ user, isAdmin: false, refreshAt: Date.now() + 600_000 })
+		grant()
+		await refreshing
+		expect(flow.fetcher).not.toHaveBeenCalled()
+		expect(flow.refreshAt.value).toBe(Date.now() + 600_000)
+	})
+
+	it('waits for in-flight verification before applying another tab update, without rebroadcasting', async () => {
+		const channels: { onmessage?: (event: { data: string }) => void }[] = []
+		const postMessage = vi.fn()
+		class Channel {
+			onmessage?: (event: { data: string }) => void
+			constructor() {
+				channels.push(this)
+			}
+			postMessage = postMessage
+			close() {}
+		}
+		const flow = setup(Channel)
+		let finish!: (value: unknown) => void
+		flow.load.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					finish = resolve
+				}),
+		)
+		const refreshing = flow.recovery.refresh()
+		await Promise.resolve()
+		channels[0]?.onmessage?.({ data: 'updated' })
+		finish({ user: null, isAdmin: false, refreshAt: null })
+		await refreshing
+		await Promise.resolve()
+		await flow.session.waitForSessionRefresh()
+		expect(flow.session.user).toEqual(user)
+		expect(postMessage).not.toHaveBeenCalled()
+	})
+
+	it('invalidates delayed session response when another tab logs out', async () => {
+		let receive: ((event: { data: string }) => void) | undefined
+		class Channel {
+			set onmessage(handler: (event: { data: string }) => void) {
+				receive = handler
+			}
+			postMessage() {}
+			close() {}
+		}
+		const flow = setup(Channel)
+		let finish!: (value: unknown) => void
+		flow.load.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					finish = resolve
+				}),
+		)
+		const refreshing = flow.recovery.refresh()
+		await Promise.resolve()
+		receive?.({ data: 'logout' })
+		finish({ user, isAdmin: false, refreshAt: Date.now() + 600_000 })
+		await refreshing
+		expect(flow.session.user).toBeNull()
+		expect(flow.refreshAt.value).toBeNull()
+	})
 	it('refreshes before expiry and installs the next timer', async () => {
 		const flow = setup()
 		await vi.advanceTimersByTimeAsync(60_000)
 		expect(flow.fetcher).toHaveBeenCalledOnce()
-		expect(flow.load).toHaveBeenCalledOnce()
+		expect(flow.load).toHaveBeenCalledTimes(2)
 		expect(flow.session.user).toEqual(user)
 		expect(flow.session.pending).toBe(false)
 		await vi.advanceTimersByTimeAsync(600_000)
@@ -66,7 +147,7 @@ describe('session recovery', () => {
 			target.dispatchEvent(new Event(event))
 			await flow.session.waitForSessionRefresh()
 			expect(flow.fetcher).toHaveBeenCalledOnce()
-			expect(flow.load).toHaveBeenCalledOnce()
+			expect(flow.load).toHaveBeenCalledTimes(2)
 			expect(flow.refreshAt.value).toBeGreaterThan(Date.now())
 		},
 	)
@@ -87,7 +168,7 @@ describe('session recovery', () => {
 		expect(flow.fetcher).toHaveBeenCalledOnce()
 		finish()
 		await manual
-		expect(flow.load).toHaveBeenCalledOnce()
+		expect(flow.load).toHaveBeenCalledTimes(2)
 	})
 
 	it('does not refresh fresh sessions or hidden tabs on focus', async () => {
@@ -110,7 +191,7 @@ describe('session recovery', () => {
 		await flow.session.waitForSessionRefresh()
 		expect(flow.session.user).toEqual(user)
 		expect(flow.fetcher).toHaveBeenCalledOnce()
-		expect(flow.load).toHaveBeenCalledOnce()
+		expect(flow.load).toHaveBeenCalledTimes(2)
 	})
 
 	it('clears user on failed verification and manual refresh still works', async () => {

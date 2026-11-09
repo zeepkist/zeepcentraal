@@ -21,7 +21,10 @@ export function useAccountActions() {
 		try {
 			// Let rotation responses settle before clearing cookies, so logout wins.
 			await session.waitForSessionRefresh()
-			await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+			await withWebAuthLock(async () => {
+				await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+				notifyWebAuthChange('logout')
+			})
 			await navigateTo('/')
 		} finally {
 			session.loggingOut = false
@@ -30,3 +33,5 @@ export function useAccountActions() {
 
 	return { login, logout }
 }
+
+import { notifyWebAuthChange, withWebAuthLock } from '~/utils/authCoordination'

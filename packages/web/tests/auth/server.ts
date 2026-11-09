@@ -32,6 +32,7 @@ let attempts = 0
 let rotations = 0
 let failRefresh = false
 let delayRefresh = 0
+let responseDelay = 0
 function hash(token: string) {
 	return new Bun.CryptoHasher('sha256').update(token).digest('hex')
 }
@@ -72,6 +73,7 @@ Bun.serve({
 				invalid?: string
 				fail?: boolean
 				delay?: number
+				responseDelay?: number
 			}
 			await sql`TRUNCATE public.auth, public."user" RESTART IDENTITY`
 			await sql`INSERT INTO public."user" VALUES (1, ${steamId}, 'Auth fixture', NULL, 'admin', ${options.invalid === 'banned'})`
@@ -84,6 +86,7 @@ Bun.serve({
 			rotations = 0
 			failRefresh = options.fail ?? false
 			delayRefresh = options.delay ?? 0
+			responseDelay = options.responseDelay ?? 0
 			return response(tokens, !options.missing)
 		}
 		if (url.pathname === '/__test/state') return Response.json({ attempts, rotations })
@@ -111,6 +114,7 @@ Bun.serve({
 			})
 			if (!rotated) return new Response(null, { status: 401 })
 			rotations++
+			if (responseDelay) await Bun.sleep(responseDelay)
 			return response(tokens)
 		}
 		return fetch(new URL(url.pathname + url.search, 'http://127.0.0.1:4198'), request)

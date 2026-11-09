@@ -20,7 +20,10 @@ export async function useCurrentUser() {
 		{ flush: 'sync' },
 	)
 	const recovery = useSessionRecovery(session, refreshAt, load)
-	if (import.meta.client) recovery.listen()
+	if (import.meta.client) {
+		recovery.listen()
+		onMounted(recovery.synchronize)
+	}
 	const shouldResolve = import.meta.server
 		? hasRefreshableWebAuthCookieTuple(useRequestHeaders(['cookie']).cookie)
 		: !session.resolved

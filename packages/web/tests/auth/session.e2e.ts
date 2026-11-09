@@ -167,3 +167,88 @@ test('logout waits for delayed rotation, then clears all auth cookies', async ({
 	await hydrated(page)
 	await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible()
 })
+
+test('two tabs share one refresh rotation and both remain signed in', async ({ page, context }) => {
+	await seed(context, { ttl: 120, delay: 1500 })
+	const peer = await context.newPage()
+	try {
+		for (const tab of [page, peer]) {
+			await tab.goto('/terms')
+			await signedIn(tab)
+			await tab.clock.install()
+			await tab.clock.setSystemTime(Date.now() + 180_000)
+		}
+		for (const tab of [page, peer]) {
+			await tab.bringToFront()
+			await tab.evaluate(() => window.dispatchEvent(new Event('online')))
+		}
+		for (const tab of [page, peer]) {
+			await tab.waitForFunction(
+				(minimum) => {
+					const root = document.querySelector('#__nuxt') as Element & {
+						__vue_app__?: {
+							config: {
+								globalProperties: {
+									$nuxt?: { payload: { state: Record<string, unknown> } }
+								}
+							}
+						}
+					}
+					const deadline =
+						root?.__vue_app__?.config.globalProperties.$nuxt?.payload.state[
+							'$ssession-refresh-at'
+						]
+					return typeof deadline === 'number' && deadline > minimum
+				},
+				Date.now() + 300_000,
+				{ timeout: 10_000 },
+			)
+			await signedIn(tab)
+		}
+		expect(await state(context)).toEqual({ attempts: 1, rotations: 1 })
+	} finally {
+		await peer.close()
+	}
+})
+
+test('concurrent tab reloads recover after single-use SSR rotation', async ({ page, context }) => {
+	await seed(context, { missing: true, delay: 1500, responseDelay: 750 })
+	const peer = await context.newPage()
+	try {
+		await Promise.all([page.goto('/terms'), peer.goto('/terms')])
+		await Promise.all([signedIn(page), signedIn(peer)])
+		expect((await state(context)).rotations).toBe(1)
+	} finally {
+		await peer.close()
+	}
+})
+
+test('logout in one tab waits for another tab rotation and signs both out', async ({
+	page,
+	context,
+}) => {
+	await seed(context, { ttl: 120, delay: 1500 })
+	const peer = await context.newPage()
+	try {
+		await page.goto('/terms')
+		await peer.goto('/terms')
+		await Promise.all([signedIn(page), signedIn(peer)])
+		await page.getByRole('button', { name: 'Account', exact: true }).click()
+		await peer.clock.install()
+		await peer.clock.setSystemTime(Date.now() + 180_000)
+		const rotating = peer.waitForRequest('**/api/auth/refresh')
+		await peer.bringToFront()
+		await peer.evaluate(() => window.dispatchEvent(new Event('online')))
+		await rotating
+		const logout = page.waitForResponse('**/api/auth/logout')
+		await page.getByRole('menuitem', { name: 'Log out', exact: true }).click()
+		await logout
+		for (const tab of [page, peer]) {
+			await expect(tab.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible()
+		}
+		await reloadPage(peer)
+		await expect(peer.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible()
+	} finally {
+		await peer.close()
+	}
+})
