@@ -11,6 +11,7 @@ use zc_core::zeepnet::{LobbyOperation, LobbyPacket, WireLobby};
 
 const STATS_LOCK_KEY: &str = "zeepcentraal:lobby:stats";
 const LOBBY_LOCK_KEY: &str = "zeepcentraal:lobby:rooms";
+const PRIVATE_ROOM_NAME: &str = "Private room";
 
 #[derive(QueryableByName)]
 struct ExistingLobby {
@@ -230,7 +231,7 @@ impl Database {
                             lobby_id: row.id,
                             host_id: row.host_id,
                             change_type: "closed",
-                            room_name: &row.room_name,
+                            room_name: if row.is_public { &row.room_name } else { PRIVATE_ROOM_NAME },
                             players: row.players,
                             player_limit: row.player_limit,
                             is_public: row.is_public,
@@ -251,6 +252,16 @@ impl Database {
     }
 
     async fn persist_closed_lobby(&self, entry: &WireLobby, observed_at: &str) -> Result<()> {
+        let redacted;
+        let entry = if entry.is_public {
+            entry
+        } else {
+            redacted = WireLobby {
+                title: PRIVATE_ROOM_NAME.to_owned(),
+                ..entry.clone()
+            };
+            &redacted
+        };
         let values = lobby_values(std::slice::from_ref(entry))?;
         let ids = serde_json::json!([entry.id]);
         let mut connection = self.connection().await?;

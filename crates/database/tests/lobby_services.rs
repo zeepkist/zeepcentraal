@@ -93,6 +93,80 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
         .get(0);
     assert_eq!(stats, 1);
 
+    let mut private = WireLobby {
+        id: format!("{master_id}-private"),
+        title: "Private removal fixture".into(),
+        is_public: false,
+        ..lobby.clone()
+    };
+    let public = WireLobby {
+        id: format!("{master_id}-public"),
+        ..lobby.clone()
+    };
+    let inferred = WireLobby {
+        id: format!("{master_id}-inferred"),
+        title: "Inferred closure fixture".into(),
+        ..private.clone()
+    };
+    database
+        .persist_lobby_packet(
+            &LobbyPacket::List(vec![inferred.clone()]),
+            "2026-09-20T12:05:00Z",
+        )
+        .await?;
+    for entry in [&private, &public] {
+        database
+            .persist_lobby_packet(
+                &LobbyPacket::Update {
+                    operation: LobbyOperation::Removed,
+                    lobby: entry.clone(),
+                },
+                "2026-09-20T12:06:00Z",
+            )
+            .await?;
+    }
+    private.title = "Duplicate removal fixture".into();
+    database
+        .persist_lobby_packet(
+            &LobbyPacket::Update {
+                operation: LobbyOperation::Removed,
+                lobby: private.clone(),
+            },
+            "2026-09-20T12:07:00Z",
+        )
+        .await?;
+    database
+        .persist_lobby_packet(&LobbyPacket::List(Vec::new()), "2026-09-20T12:08:00Z")
+        .await?;
+
+    for (entry, summary_name, history_names) in [
+        (&private, "Private room", vec!["Private room"]),
+        (&public, "Rust Lobby", vec!["Rust Lobby"]),
+        (
+            &inferred,
+            "Inferred closure fixture",
+            vec!["Inferred closure fixture", "Private room"],
+        ),
+    ] {
+        let rows = client
+            .query(
+                "SELECT l.room_name, h.room_name, l.host_id, h.host_id, u.steam_name \
+                 FROM public.lobby l JOIN public.lobby_history h ON h.lobby_id=l.id \
+                 JOIN public.\"user\" u ON u.steam_id=h.host_id \
+                 WHERE l.master_id=$1 ORDER BY h.id",
+                &[&entry.id],
+            )
+            .await?;
+        assert_eq!(rows.len(), history_names.len());
+        for (row, history_name) in rows.iter().zip(history_names) {
+            assert_eq!(row.get::<_, &str>(0), summary_name);
+            assert_eq!(row.get::<_, &str>(1), history_name);
+            assert_eq!(row.get::<_, i64>(2), steam_id);
+            assert_eq!(row.get::<_, i64>(3), steam_id);
+            assert_eq!(row.get::<_, &str>(4), "Rust Host");
+        }
+    }
+
     client
         .execute(
             "DELETE FROM public.lobby_stats WHERE players=5 AND rooms=1 AND players_in_rooms=3",
@@ -100,7 +174,10 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
         )
         .await?;
     client
-        .execute("DELETE FROM public.lobby WHERE master_id=$1", &[&master_id])
+        .execute(
+            "DELETE FROM public.lobby WHERE master_id=ANY($1)",
+            &[&vec![master_id, private.id, public.id, inferred.id]],
+        )
         .await?;
     client
         .execute(
