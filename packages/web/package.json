@@ -17,7 +17,8 @@
 		"generate:block-meshes": "bun scripts/generate-block-mesh-manifest.ts",
 		"codegen": "bun --cwd=../graphql run codegen",
 		"typecheck": "nuxt typecheck",
-		"test": "bun --bun vitest run --silent=passed-only",
+		"test": "bun --bun vitest run --silent=passed-only && bun --bun vitest run --config vitest.ssr.config.ts --silent=passed-only",
+		"test:auth": "bun --no-env-file tests/auth/run.ts",
 		"test:e2e": "bun --bun playwright test",
 		"test:upgrade": "bun --bun playwright test --config playwright.upgrade.config.ts",
 		"test:memory": "bun --no-env-file tests/memory/run.ts"

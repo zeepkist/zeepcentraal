@@ -1,4 +1,4 @@
-import { mergeRequestCookies } from '~/utils/requestCookies'
+import { useAuthRequestCookies } from './useAuthRequestCookies'
 
 /** Private, request-scoped SSR data. The envelope distinguishes an empty response from unresolved data. */
 export function useSuperLeagueRead<T>(
@@ -7,8 +7,7 @@ export function useSuperLeagueRead<T>(
 	enabled: MaybeRef<boolean> = true,
 ) {
 	const session = useSessionStore()
-	const requestHeaders = import.meta.server ? useRequestHeaders(['cookie']) : undefined
-	const responseCookies = import.meta.server ? useResponseHeader('set-cookie') : undefined
+	const cookies = useAuthRequestCookies()
 	if (import.meta.server) useResponseHeader('cache-control').value = 'private, no-store'
 	const identity = computed(
 		() =>
@@ -19,39 +18,13 @@ export function useSuperLeagueRead<T>(
 		async (_app, { signal }) => {
 			const owner = identity.value
 			if (!session.user || !toValue(enabled)) return { owner, result: null as T | null }
-			const issued = responseCookies?.value
-			const headers = import.meta.server
-				? {
-						cookie: mergeRequestCookies(
-							requestHeaders?.cookie,
-							Array.isArray(issued)
-								? issued.map(String)
-								: issued
-									? [String(issued)]
-									: [],
-						),
-					}
-				: undefined
 			const response = await $fetch.raw<T>(`/api/super-league/${kind}`, {
 				credentials: 'include',
 				query: { roundId: toValue(roundId) },
-				headers,
+				headers: cookies.headers(),
 				signal,
 			})
-			if (responseCookies) {
-				const cookies = response.headers.getSetCookie()
-				if (cookies.length) {
-					const current = responseCookies.value
-					responseCookies.value = [
-						...(Array.isArray(current)
-							? current.map(String)
-							: current
-								? [String(current)]
-								: []),
-						...cookies,
-					]
-				}
-			}
+			cookies.forward(response.headers)
 			return { owner, result: response._data ?? null }
 		},
 		{ server: true, lazy: true },

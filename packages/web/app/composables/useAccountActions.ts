@@ -15,10 +15,17 @@ export function useAccountActions() {
 	}
 
 	async function logout() {
-		await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-		session.setUser(null)
+		session.loggingOut = true
+		session.invalidate()
 		refreshAt.value = null
-		await navigateTo('/')
+		try {
+			// Let rotation responses settle before clearing cookies, so logout wins.
+			await session.waitForSessionRefresh()
+			await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+			await navigateTo('/')
+		} finally {
+			session.loggingOut = false
+		}
 	}
 
 	return { login, logout }

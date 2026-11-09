@@ -23,7 +23,9 @@ beforeEach(async () => {
 	vi.stubGlobal('$fetch', { raw: lookup })
 	vi.stubGlobal('navigateTo', redirect)
 	vi.stubGlobal('useRequestHeaders', () => requestHeaders)
-	vi.stubGlobal('useResponseHeader', () => responseCookies)
+	vi.stubGlobal('useResponseHeader', (name: string) =>
+		name === 'set-cookie' ? responseCookies : { value: '' },
+	)
 	guard = (await import('../../app/middleware/admin.global')).default as unknown as Guard
 })
 
@@ -45,8 +47,9 @@ describe('admin route access', () => {
 		lookup.mockResolvedValue(sessionResponse({ isAdmin: true }))
 		await guard({ path: '/admin/ghost-validation' })
 		expect(lookup).toHaveBeenCalledWith('/api/session', {
-			headers: undefined,
+			headers: import.meta.server ? { cookie: '' } : undefined,
 			credentials: 'include',
+			retry: 0,
 		})
 		expect(redirect).not.toHaveBeenCalled()
 	})
@@ -83,8 +86,9 @@ describe('admin route access', () => {
 			)
 			await guard({ path: '/admin/ghost-validation' })
 			expect(lookup).toHaveBeenCalledWith('/api/session', {
-				headers: { cookie: 'access_token=fake' },
+				headers: { cookie: 'access_token=fake; existing=fake' },
 				credentials: 'include',
+				retry: 0,
 			})
 			expect(responseCookies.value).toEqual([
 				'existing=fake',
