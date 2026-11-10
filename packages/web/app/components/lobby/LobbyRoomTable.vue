@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useIntervalFn, useNow } from '@vueuse/core'
 import { type LobbyRoom, lobbyDuration } from '~/utils/lobbyAnalytics'
 
-defineProps<{ rooms: LobbyRoom[]; history?: boolean }>()
+const props = defineProps<{ rooms: LobbyRoom[]; history?: boolean }>()
 const { t, locale } = useAppI18n()
-const now = useNow({ scheduler: callback => useIntervalFn(callback, 1000) })
+const now = useLobbyClock(() => props.rooms.some(room => !room.closedAt))
 const mounted = shallowRef(false)
 onMounted(() => { mounted.value = true })
 const number = computed(() => new Intl.NumberFormat(locale.value))
-const date = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'short', ...(!mounted.value ? { timeZone: 'UTC' } : {}) }).format(new Date(value)) : t('common.unavailable')
+const dateFormatter = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'short', ...(!mounted.value ? { timeZone: 'UTC' } : {}) }))
+const date = (value: string | null | undefined) => value ? dateFormatter.value.format(new Date(value)) : t('common.unavailable')
 function duration(room: LobbyRoom) {
 	const value = lobbyDuration(room.firstSeen, room.closedAt ?? (!mounted.value ? room.lastSeen : null), now.value.getTime())
 	return t('lobby.analytics.durationValue', value)

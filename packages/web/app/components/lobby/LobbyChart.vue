@@ -2,7 +2,7 @@
 import { CartesianGrid, Line, ResponsiveContainer, LineChart as TimeLineChart, Tooltip, XAxis, YAxis } from 'vccs'
 import { h } from 'vue'
 import { DashboardChartTooltip } from '#components'
-import { type LobbyChartPoint, lobbyGapSegments } from '~/utils/lobbyAnalytics'
+import type { LobbyChartPoint } from '~/utils/lobbyAnalytics'
 
 const props = defineProps<{ title: string; points: LobbyChartPoint[]; series: Array<{ key: string; label: string; color: string }>; step?: boolean }>()
 const { t, locale } = useAppI18n()
@@ -11,19 +11,27 @@ const mounted = shallowRef(false)
 onMounted(() => { mounted.value = true })
 const active = computed(() => props.series.filter(series => !hidden.value.includes(series.key)))
 const keys = computed(() => active.value.map(series => series.key))
-const gaps = computed(() => active.value.flatMap(series => lobbyGapSegments(props.points, series.key).map((points, index) => ({ key: `${series.key}-${index}`, series, points }))))
-const formatTime = (time: number) => new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'medium', ...(!mounted.value ? { timeZone: 'UTC' } : {}) }).format(new Date(time))
+const margin = { top: 10, right: 20, bottom: 15, left: 0 }
+const timeDomain: ['dataMin', 'dataMax'] = ['dataMin', 'dataMax']
+const axisTick = { fill: 'currentColor', fontSize: 11 }
+const stepDot = { r: 1.5 }
+const timeFormatter = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'medium', ...(!mounted.value ? { timeZone: 'UTC' } : {}) }))
+const numberFormatter = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }))
+const axisNumberFormatter = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
+const formatTime = (time: number) => timeFormatter.value.format(new Date(time))
+const formatNumber = (value: number) => axisNumberFormatter.value.format(value)
 function toggle(key: string) { hidden.value = hidden.value.includes(key) ? hidden.value.filter(item => item !== key) : [...hidden.value,key] }
 function tooltip(values: unknown) {
 	const row = values as LobbyChartPoint | undefined
-	return active.value.flatMap(series => typeof row?.[series.key] === 'number' ? [{ key: series.key, label: series.label, value: row[series.key] as number, formattedValue: new Intl.NumberFormat(locale.value, { maximumFractionDigits: 2 }).format(row[series.key] as number), color: series.color }] : [])
+	return active.value.flatMap(series => typeof row?.[series.key] === 'number' ? [{ key: series.key, label: series.label, value: row[series.key] as number, formattedValue: numberFormatter.value.format(row[series.key] as number), color: series.color }] : [])
 }
 function tooltipTime(values: unknown) { const time = (values as LobbyChartPoint | undefined)?.time; return typeof time === 'number' ? formatTime(time) : '' }
 function renderTooltip(value: { active?: boolean; payload?: readonly { payload?: unknown }[] }) {
 	if (!value.active) return null
 	const row=value.payload?.[0]?.payload
-	if (!tooltip(row).length) return null
-	return h(DashboardChartTooltip,{ entries:tooltip(row),title:tooltipTime(row),showPercentage:false })
+	const entries = tooltip(row)
+	if (!entries.length) return null
+	return h(DashboardChartTooltip,{ entries,title:tooltipTime(row),showPercentage:false })
 }
 </script>
 
@@ -35,13 +43,14 @@ function renderTooltip(value: { active?: boolean; payload?: readonly { payload?:
 		</fieldset>
 		<ClientOnly>
 			<div v-if="points.length && keys.length" class="h-64 w-full text-xs text-muted-foreground" role="img" :aria-label="title">
-				<ResponsiveContainer width="100%" :height="260"><TimeLineChart :data="points" :margin="{top:10,right:20,bottom:15,left:0}">
+				<ResponsiveContainer width="100%" :height="260"><TimeLineChart :data="points" :margin="margin">
 					<CartesianGrid stroke="currentColor" :stroke-opacity="0.12" :vertical="false" />
-					<XAxis data-key="time" type="number" scale="time" :domain="['dataMin','dataMax']" :tick-formatter="formatTime" :tick-count="4" :tick="{fill:'currentColor',fontSize:11}" :min-tick-gap="35" />
-					<YAxis :tick="{fill:'currentColor',fontSize:11}" :tick-formatter="(value: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)" />
+					<XAxis data-key="time" type="number" scale="time" :domain="timeDomain" :tick-formatter="formatTime" :tick-count="4" :tick="axisTick" :min-tick-gap="35" />
+					<YAxis :tick="axisTick" :tick-formatter="formatNumber" />
 					<Tooltip :content="renderTooltip" :is-animation-active="false" />
-					<Line v-for="gap in gaps" :key="gap.key" class="lobby-chart-gap pointer-events-none" :data="gap.points" :data-key="gap.series.key" :stroke="gap.series.color" :stroke-width="2" stroke-dasharray="2 4" type="linear" :dot="false" :active-dot="false" tooltip-type="none" legend-type="none" :is-animation-active="false" />
-					<Line v-for="series in active" :key="series.key" :data-key="series.key" :name="series.label" :stroke="series.color" :stroke-width="2" :type="step ? 'stepAfter' : 'linear'" :connect-nulls="false" :dot="step ? {r:1.5} : points.length === 1" :is-animation-active="false" />
+					<Line v-for="series in active" :key="series.key" :data-key="series.key" :name="series.label" :stroke="series.color" :stroke-width="2" :type="step ? 'stepAfter' : 'linear'" :connect-nulls="false" :dot="step ? stepDot : points.length === 1" :is-animation-active="false">
+						<template #shape="shape"><LobbyChartLineShape :points="shape.points" :stroke="series.color" :step="step" /></template>
+					</Line>
 				</TimeLineChart></ResponsiveContainer>
 			</div>
 			<p v-else class="py-12 text-center text-muted-foreground">{{ t('lobby.analytics.noObservations') }}</p>

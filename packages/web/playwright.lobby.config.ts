@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
 	testDir: 'tests/e2e',
-	testMatch: 'lobby.e2e.ts',
+	testMatch: ['lobby.e2e.ts', 'lobby-performance.e2e.ts'],
 	outputDir: '../../.data/lobby-playwright',
 	workers: 3,
 	timeout: 90_000,

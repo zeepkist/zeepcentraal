@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { StatisticMetric } from '~/types/app'
-import { hasLobbyPeriodCoverage, type LobbyChartPoint, lobbyChange, lobbyNumber, lobbyRatio, rangeDuration, withLobbyChartGaps } from '~/utils/lobbyAnalytics'
+import { hasLobbyPeriodCoverage, type LobbyChartPoint, lobbyChange, lobbyRatio, rangeDuration, withLobbyChartGaps } from '~/utils/lobbyAnalytics'
 import { lobbyLabel } from '~/utils/lobbyLabels'
 
 const props = defineProps<{ live?: boolean }>()
@@ -51,27 +51,18 @@ const summary = computed<StatisticMetric[]>(() => {
 })
 const points = computed<LobbyChartPoint[]>(() => {
 	const rows = (displayed.value?.period?.groupedAggregates ?? []).map(bucket => ({
-		time: Date.parse(bucket.keys?.[0] ?? ''), online: lobbyNumber(bucket.average?.players), inRooms: lobbyNumber(bucket.average?.playersInRooms),
-		outside: bucket.average?.players != null && bucket.average?.playersInRooms != null ? Number(bucket.average.players)-Number(bucket.average.playersInRooms) : null,
-		rooms: lobbyNumber(bucket.average?.rooms), onlineMax: bucket.max?.players ?? null, inRoomsMax: bucket.max?.playersInRooms ?? null,
-		roomsMax: bucket.max?.rooms ?? null, perRoom: lobbyRatio(bucket.sum?.playersInRooms,bucket.sum?.rooms), samples: Number(bucket.distinctCount?.id ?? 0),
+		time: Date.parse(bucket.keys?.[0] ?? ''),
+		onlineMax: bucket.max?.players ?? null, inRoomsMax: bucket.max?.playersInRooms ?? null,
+		roomsMax: bucket.max?.rooms ?? null, perRoom: lobbyRatio(bucket.sum?.playersInRooms,bucket.sum?.rooms),
 	})).filter(point => Number.isFinite(point.time)).sort((a,b) => a.time-b.time)
 	const interval = ({ '24h': 300_000, '7d': 3_600_000, '30d': 21_600_000, '90d': 86_400_000, '1y': 86_400_000, all: 2_764_800_000 })[range.value]
 	return withLobbyChartGaps(rows,interval)
 })
-const daily = computed<LobbyChartPoint[]>(() => {
-	const days = new Map<number,{ count: number; online: number; rooms: number; onlineMax: number; roomsMax: number }>()
-	for (const point of points.value) {
-		const count = point.samples ?? 0
-		if (!count) continue
-		const day = Math.floor(point.time/86_400_000)*86_400_000
-		const previous = days.get(day) ?? { count: 0, online: 0, rooms: 0, onlineMax: 0, roomsMax: 0 }
-		days.set(day,{ count: previous.count+count, online: previous.online+(point.online ?? 0)*count, rooms: previous.rooms+(point.rooms ?? 0)*count, onlineMax: Math.max(previous.onlineMax,point.onlineMax ?? 0), roomsMax: Math.max(previous.roomsMax,point.roomsMax ?? 0) })
-	}
-	return withLobbyChartGaps([...days].map(([time,value]) => ({ time, online: value.online/value.count, rooms: value.rooms/value.count, onlineMax: value.onlineMax, roomsMax: value.roomsMax })),range.value === 'all' ? 31*86_400_000 : 86_400_000)
-})
 const series = (key: string, color: string, label = key) => ({ key, color, label: t(lobbyLabel(label)) })
-const playerSeries = computed(() => [series('online','var(--color-chart-1)'),series('inRooms','var(--color-chart-3)'),series('onlineMax','var(--color-chart-2)'),series('inRoomsMax','var(--color-chart-4)'),...(!props.live ? [series('outside','var(--color-chart-5)')] : [])])
+const playerSeries = computed(() => [series('onlineMax','var(--color-chart-2)'),series('inRoomsMax','var(--color-chart-4)')])
+const roomSeries = computed(() => [series('roomsMax','var(--color-chart-2)')])
+const perRoomSeries = computed(() => [series('perRoom','var(--color-chart-1)','averagePerRoom')])
+
 </script>
 
 <template>
@@ -91,10 +82,8 @@ const playerSeries = computed(() => [series('online','var(--color-chart-1)'),ser
 				<LobbyChart :title="t('lobby.analytics.playerActivity')" :points="points" :series="playerSeries" />
 				<template v-if="!live">
 					<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><StatCard v-for="card in summary" :key="card.key" :label="card.label" :value="card.value" :details="card.details" :to="card.to" icon="chart-line" /></div>
-					<LobbyChart :title="t('lobby.analytics.roomActivity')" :points="points" :series="[series('rooms','var(--color-chart-3)'),series('roomsMax','var(--color-chart-2)')]" />
-					<LobbyChart :title="t('lobby.analytics.averagePerRoom')" :points="points" :series="[series('perRoom','var(--color-chart-1)','averagePerRoom')]" />
-					<LobbyChart :title="t(range === 'all' ? 'lobby.analytics.monthlyPlayers' : 'lobby.analytics.dailyPlayers')" :points="daily" :series="[series('online','var(--color-chart-1)'),series('onlineMax','var(--color-chart-2)')]" />
-					<LobbyChart :title="t(range === 'all' ? 'lobby.analytics.monthlyRooms' : 'lobby.analytics.dailyRooms')" :points="daily" :series="[series('rooms','var(--color-chart-3)'),series('roomsMax','var(--color-chart-2)')]" />
+					<LobbyChart :title="t('lobby.analytics.roomActivity')" :points="points" :series="roomSeries" />
+					<LobbyChart :title="t('lobby.analytics.averagePerRoom')" :points="points" :series="perRoomSeries" />
 				</template>
 			</div>
 	</div>

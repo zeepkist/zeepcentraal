@@ -88,6 +88,9 @@ test('history filters, stable details, timeline and event pagination render', as
 	const errors: string[] = []
 	page.on('pageerror', (error) => errors.push(error.message))
 	await page.goto('/lobby/history')
+	await expect(
+		page.getByRole('checkbox', { name: 'Include Active Rooms', exact: true }),
+	).toBeChecked()
 	await expect(page.getByRole('combobox', { name: 'Visibility', exact: true })).toHaveValue(
 		'public',
 	)
@@ -169,9 +172,7 @@ test('cards and legends persist while selections load; gaps and themes render', 
 		element.setAttribute('data-retained', 'true')
 	})
 	const before = await cards.innerText()
-	const legend = page
-		.getByRole('button', { name: 'Online players (sample average)', exact: true })
-		.first()
+	const legend = page.getByRole('button', { name: 'Peak online players', exact: true }).first()
 	await legend.click()
 	held = true
 	try {
@@ -243,15 +244,10 @@ test('statistics and live charts render with local timestamps and responsive lay
 	await expect(page.getByRole('heading', { name: 'Player activity', exact: true })).toBeVisible()
 	await page.getByLabel('Activity range', { exact: true }).selectOption('7d')
 	await expect(page).toHaveURL(/range=7d/)
+	await expect(page.getByRole('heading', { name: 'Room activity', exact: true })).toBeVisible()
+	await page.getByRole('button', { name: 'Peak online players', exact: true }).first().click()
 	await expect(
-		page.getByRole('heading', { name: 'Daily player trends (UTC days)', exact: true }),
-	).toBeVisible()
-	await page
-		.getByRole('button', { name: 'Online players (sample average)', exact: true })
-		.first()
-		.click()
-	await expect(
-		page.getByRole('button', { name: 'Online players (sample average)', exact: true }).first(),
+		page.getByRole('button', { name: 'Peak online players', exact: true }).first(),
 	).toHaveAttribute('aria-pressed', 'false')
 	await page.screenshot({
 		path: info.outputPath('stats.png'),

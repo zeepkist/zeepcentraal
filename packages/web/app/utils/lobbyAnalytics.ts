@@ -68,25 +68,6 @@ export function lobbyObservationIsStale(observedAt: unknown, now: number): boole
 	return typeof observedAt === 'string' && now - Date.parse(observedAt) > LOBBY_STALE_MS
 }
 
-/** Connect missing observations only. Lifecycle breaks never connect separate sessions. */
-export function lobbyGapSegments(points: LobbyChartPoint[], key: string): LobbyChartPoint[][] {
-	const segments: LobbyChartPoint[][] = []
-	let previous: LobbyChartPoint | undefined
-	let gap = false
-	for (const point of points) {
-		if (point.break === 1) {
-			previous = undefined
-			gap = false
-		} else if (typeof point[key] !== 'number') {
-			gap = true
-		} else {
-			if (previous && gap) segments.push([previous, point])
-			previous = point
-			gap = false
-		}
-	}
-	return segments
-}
 export function withLobbyChartGaps(points: LobbyChartPoint[], interval: number): LobbyChartPoint[] {
 	const ordered = points
 		.filter((point) => Number.isFinite(point.time))
@@ -193,7 +174,7 @@ export function buildLobbyFilter(
 ): LobbyListingFilter {
 	const and: LobbyListingFilter[] = []
 	if (!history) and.push({ closedAt: { isNull: true } })
-	else if (query.active !== '1') and.push({ closedAt: { isNull: false } })
+	else if (query.active === '0') and.push({ closedAt: { isNull: false } })
 	if (typeof query.q === 'string' && query.q.trim())
 		and.push({ roomName: { includesInsensitive: query.q.trim() } })
 	if (

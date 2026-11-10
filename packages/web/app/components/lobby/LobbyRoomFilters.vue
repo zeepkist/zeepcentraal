@@ -22,6 +22,7 @@ async function apply(event: Event) {
 	const query = { ...route.query }
 	for (const key of ['after','before','last','q','host','visibility','capacity','populated','minPeak','maxPeak','duration','from','to','active','sort']) delete query[key]
 	for (const [key,value] of form.entries()) if (typeof value === 'string' && value.trim()) query[key] = value.trim()
+	if (props.history && !form.has('active')) query.active = '0'
 	await router.push({ query })
 }
 function clearValidation(event:Event) {
@@ -40,7 +41,7 @@ function clearValidation(event:Event) {
 		<template v-if="history">
 			<label v-for="field in ['from','to']" :key="field" class="grid gap-1 text-sm">{{ t(lobbyLabel(field)) }}<input :name="field" type="date" :value="route.query[field]" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" /></label>
 			<label v-for="field in ['minPeak','maxPeak','duration']" :key="field" class="grid gap-1 text-sm">{{ t(lobbyLabel(field)) }}<input :name="field" type="number" min="0" step="1" :value="route.query[field]" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" /></label>
-			<label class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="active" value="1" :checked="route.query.active === '1'" />{{ t('lobby.analytics.includeActive') }}</label>
+			<label class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="active" value="1" :checked="route.query.active !== '0'" />{{ t('lobby.analytics.includeActive') }}</label>
 		</template>
 		<template v-else><label v-for="field in ['capacity','populated']" :key="field" class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" :name="field" value="1" :checked="route.query[field] === '1'" />{{ t(lobbyLabel(field)) }}</label></template>
 		<p v-if="history" class="text-xs text-muted-foreground">{{ t('lobby.analytics.datePolicy') }}</p>

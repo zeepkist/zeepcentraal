@@ -4,7 +4,6 @@ import {
 	hasLobbyPeriodCoverage,
 	lobbyChange,
 	lobbyDuration,
-	lobbyGapSegments,
 	lobbyGrouping,
 	lobbyNumber,
 	lobbyObservationIsStale,
@@ -26,23 +25,6 @@ describe('lobby analytics semantics', () => {
 			expect(lobbyObservationIsStale(value, now)).toBe(false)
 		}
 		expect(lobbyObservationIsStale(observed, now - 1)).toBe(false)
-	})
-	it('connects missing samples with known endpoints, never across lifecycle boundaries', () => {
-		const first = { time: 1, players: 8 }
-		const last = { time: 3, players: 0 }
-		expect(lobbyGapSegments([first, { time: 2, players: null }, last], 'players')).toEqual([
-			[first, last],
-		])
-		expect(lobbyGapSegments([first, last], 'players')).toEqual([])
-		expect(
-			lobbyGapSegments([first, { time: 2, players: null, break: 1 }, last], 'players'),
-		).toEqual([])
-		expect(
-			lobbyGapSegments(
-				[{ time: 0, players: null }, first, { time: 2, players: null }],
-				'players',
-			),
-		).toEqual([])
 	})
 	it('defaults history to public rooms while preserving explicit all/private visibility', () => {
 		expect(buildLobbyFilter({}, true).and).toContainEqual({ isPublic: { equalTo: true } })
@@ -105,8 +87,14 @@ describe('lobby analytics semantics', () => {
 			],
 		})
 	})
-	it('keeps closed-only history and open-only live defaults', () => {
-		expect(buildLobbyFilter({}, true).and).toContainEqual({ closedAt: { isNull: false } })
+	it('includes active history by default, supports explicit closed-only history and keeps live open-only', () => {
+		expect(buildLobbyFilter({}, true).and).not.toContainEqual({ closedAt: { isNull: false } })
+		expect(buildLobbyFilter({ active: '1' }, true).and).not.toContainEqual({
+			closedAt: { isNull: false },
+		})
+		expect(buildLobbyFilter({ active: '0', after: 'cursor' }, true).and).toContainEqual({
+			closedAt: { isNull: false },
+		})
 		expect(buildLobbyFilter({}, false).and).toContainEqual({ closedAt: { isNull: true } })
 		expect(buildLobbyFilter({ capacity: '1', populated: '1' }, false).and).toContainEqual({
 			availableCapacity: { equalTo: true },

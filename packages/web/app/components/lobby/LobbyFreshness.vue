@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { useIntervalFn, useNow } from '@vueuse/core'
 import { lobbyObservationIsStale } from '~/utils/lobbyAnalytics'
 
 const props = defineProps<{ observedAt?: unknown; error?: string }>()
 const { t } = useAppI18n()
-const now = useNow({ scheduler: callback => useIntervalFn(callback, 1000) })
+const now = useLobbyClock(() => typeof props.observedAt === 'string' && Number.isFinite(Date.parse(props.observedAt)))
 const mounted = shallowRef(false)
 onMounted(() => { mounted.value = true })
 const stale = computed(() => mounted.value && lobbyObservationIsStale(props.observedAt, now.value.getTime()))

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useIntervalFn, useNow } from '@vueuse/core'
 import { Zc_LobbyDetailDocument, Zc_LobbyDetailLiveDocument } from '@zeepkist/graphql/generated'
 import { LOBBY_STALE_MS, type LobbyChartPoint, mapLobbyPage, mapLobbyRoom } from '~/utils/lobbyAnalytics'
 import { lobbyLabel } from '~/utils/lobbyLabels'
@@ -17,7 +16,7 @@ const { number, duration, mounted } = useLobbyFormat()
 const room = computed(() => data.value?.lobbyListing ? mapLobbyRoom(data.value.lobbyListing) : null)
 const events = computed(() => data.value?.lobbyHistories?.nodes ?? [])
 const page = computed(() => mapLobbyPage(data.value?.lobbyHistories?.pageInfo))
-const now = useNow({ scheduler: callback => useIntervalFn(callback, 1000) })
+const now = useLobbyClock(() => !!room.value && !room.value.closedAt)
 const dateFields = new Set(['firstSeen', 'lastSeen', 'closedAt', 'peakTime'])
 const fields = computed<Array<[string,string]>>(() => room.value ? [
 	['status',t(room.value.closedAt ? 'lobby.analytics.closed' : mounted.value && now.value.getTime()-Date.parse(room.value.lastSeen)>LOBBY_STALE_MS ? 'lobby.analytics.staleRoom' : 'lobby.analytics.active')],
@@ -31,13 +30,12 @@ const points = computed<LobbyChartPoint[]>(() => {
 	for (const bucket of data.value?.lobbyOccupancyTimeline?.nodes ?? []) {
 		const first = Date.parse(String(bucket.firstObservedAt ?? '')), last = Date.parse(String(bucket.lastObservedAt ?? ''))
 		if (!Number.isFinite(first) || !Number.isFinite(last)) continue
-		const empty = (time: number, lifecycle = false): LobbyChartPoint => ({ time, break: lifecycle ? 1 : null,players:null,capacity:null,min:null,max:null,minCapacity:null,maxCapacity:null })
+		const empty = (time: number, lifecycle = false): LobbyChartPoint => ({ time, break: lifecycle ? 1 : null,players:null,capacity:null })
 		if (bucket.hasGap || bucket.hasReopening) result.push(empty(first-1, !!bucket.hasReopening))
-		const values = { min: bucket.minPlayers ?? null,max: bucket.maxPlayers ?? null,minCapacity: bucket.minCapacity ?? null,maxCapacity: bucket.maxCapacity ?? null }
-		result.push({ time:first,players:bucket.firstPlayers ?? null,capacity:bucket.firstCapacity ?? null,...values })
+		result.push({ time:first,players:bucket.firstPlayers ?? null,capacity:bucket.firstCapacity ?? null })
 		if (last>first) {
 			if (bucket.hasGap || bucket.hasClosure || bucket.hasReopening) result.push(empty(last-1, !!(bucket.hasClosure || bucket.hasReopening)))
-			result.push({ time:last,players:bucket.lastPlayers ?? null,capacity:bucket.lastCapacity ?? null,...values })
+			result.push({ time:last,players:bucket.lastPlayers ?? null,capacity:bucket.lastCapacity ?? null })
 		}
 		if (bucket.hasClosure) result.push(empty(last+1, true))
 	}
@@ -45,8 +43,6 @@ const points = computed<LobbyChartPoint[]>(() => {
 })
 const series = computed(() => [
 	{ key:'players',label:t('lobby.analytics.players'),color:'var(--color-chart-1)' },{ key:'capacity',label:t('lobby.analytics.playerLimit'),color:'var(--color-chart-3)' },
-	{ key:'min',label:t('lobby.analytics.bucketMin'),color:'var(--color-chart-2)' },{ key:'max',label:t('lobby.analytics.bucketMax'),color:'var(--color-chart-5)' },
-	{ key:'minCapacity',label:t('lobby.analytics.capacityMin'),color:'var(--color-chart-4)' },{ key:'maxCapacity',label:t('lobby.analytics.capacityMax'),color:'var(--foreground)' },
 ])
 const names = computed(() => [...new Set(events.value.map(event => event.roomName))])
 const hosts = computed(() => [...new Map(events.value.map(event => [String(event.hostId),event.host])).entries()])
