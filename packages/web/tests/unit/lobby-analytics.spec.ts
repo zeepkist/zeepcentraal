@@ -4,8 +4,10 @@ import {
 	hasLobbyPeriodCoverage,
 	lobbyChange,
 	lobbyDuration,
+	lobbyGapSegments,
 	lobbyGrouping,
 	lobbyNumber,
+	lobbyObservationIsStale,
 	lobbyOrderBy,
 	lobbyRatio,
 	lobbyStatisticsFilters,
@@ -15,6 +17,43 @@ import {
 } from '../../app/utils/lobbyAnalytics'
 
 describe('lobby analytics semantics', () => {
+	it('warns only beyond one hour with a valid observation timestamp', () => {
+		const observed = '2026-11-10T20:00:00Z'
+		const now = Date.parse(observed)
+		expect(lobbyObservationIsStale(observed, now + 3_600_000)).toBe(false)
+		expect(lobbyObservationIsStale(observed, now + 3_600_001)).toBe(true)
+		for (const value of [undefined, null, '', 'invalid']) {
+			expect(lobbyObservationIsStale(value, now)).toBe(false)
+		}
+		expect(lobbyObservationIsStale(observed, now - 1)).toBe(false)
+	})
+	it('connects missing samples with known endpoints, never across lifecycle boundaries', () => {
+		const first = { time: 1, players: 8 }
+		const last = { time: 3, players: 0 }
+		expect(lobbyGapSegments([first, { time: 2, players: null }, last], 'players')).toEqual([
+			[first, last],
+		])
+		expect(lobbyGapSegments([first, last], 'players')).toEqual([])
+		expect(
+			lobbyGapSegments([first, { time: 2, players: null, break: 1 }, last], 'players'),
+		).toEqual([])
+		expect(
+			lobbyGapSegments(
+				[{ time: 0, players: null }, first, { time: 2, players: null }],
+				'players',
+			),
+		).toEqual([])
+	})
+	it('defaults history to public rooms while preserving explicit all/private visibility', () => {
+		expect(buildLobbyFilter({}, true).and).toContainEqual({ isPublic: { equalTo: true } })
+		expect(
+			buildLobbyFilter({ visibility: 'private', after: 'cursor' }, true).and,
+		).toContainEqual({ isPublic: { equalTo: false } })
+		expect(buildLobbyFilter({ visibility: 'all' }, true).and).not.toContainEqual({
+			isPublic: { equalTo: true },
+		})
+		expect(buildLobbyFilter({}, false).and).not.toContainEqual({ isPublic: { equalTo: true } })
+	})
 	it('leaves gaps instead of zeroes and suppresses comparisons without boundary observations', () => {
 		expect(
 			withLobbyChartGaps(

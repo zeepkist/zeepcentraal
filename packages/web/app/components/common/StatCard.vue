@@ -21,6 +21,7 @@
 				<TablerIcon :name="icon" />
 			</div>
 		</div>
+		<slot name="details">
 		<dl
 			v-if="details?.length"
 			class="mt-4 grid gap-2 border-t border-border/70 pt-3"
@@ -35,6 +36,7 @@
 				</dd>
 			</div>
 		</dl>
+		</slot>
 	</UCard>
 	</component>
 </template>

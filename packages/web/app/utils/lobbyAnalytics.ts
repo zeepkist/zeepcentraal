@@ -6,7 +6,7 @@ import type {
 	Zc_LobbyRoomFragment,
 } from '@zeepkist/graphql/generated'
 
-export const LOBBY_STALE_MS = 120_000
+export const LOBBY_STALE_MS = 3_600_000
 export const LOBBY_GAP_MS = 300_000
 export const LOBBY_RANGES = ['24h', '7d', '30d', '90d', '1y', 'all'] as const
 export type LobbyRange = (typeof LOBBY_RANGES)[number]
@@ -64,6 +64,29 @@ export function lobbyNumber(value: unknown): number | null {
 	return value == null || !Number.isFinite(Number(value)) ? null : Number(value)
 }
 export type LobbyChartPoint = { time: number; [key: string]: number | null }
+export function lobbyObservationIsStale(observedAt: unknown, now: number): boolean {
+	return typeof observedAt === 'string' && now - Date.parse(observedAt) > LOBBY_STALE_MS
+}
+
+/** Connect missing observations only. Lifecycle breaks never connect separate sessions. */
+export function lobbyGapSegments(points: LobbyChartPoint[], key: string): LobbyChartPoint[][] {
+	const segments: LobbyChartPoint[][] = []
+	let previous: LobbyChartPoint | undefined
+	let gap = false
+	for (const point of points) {
+		if (point.break === 1) {
+			previous = undefined
+			gap = false
+		} else if (typeof point[key] !== 'number') {
+			gap = true
+		} else {
+			if (previous && gap) segments.push([previous, point])
+			previous = point
+			gap = false
+		}
+	}
+	return segments
+}
 export function withLobbyChartGaps(points: LobbyChartPoint[], interval: number): LobbyChartPoint[] {
 	const ordered = points
 		.filter((point) => Number.isFinite(point.time))
@@ -179,8 +202,9 @@ export function buildLobbyFilter(
 		BigInt(query.host) <= 9223372036854775807n
 	)
 		and.push({ hostId: { equalTo: query.host } })
-	if (query.visibility === 'public' || query.visibility === 'private')
-		and.push({ isPublic: { equalTo: query.visibility === 'public' } })
+	const visibility = query.visibility ?? (history ? 'public' : 'all')
+	if (visibility === 'public' || visibility === 'private')
+		and.push({ isPublic: { equalTo: visibility === 'public' } })
 	if (query.capacity === '1') and.push({ availableCapacity: { equalTo: true } })
 	if (query.populated === '1') and.push({ players: { greaterThan: 0 } })
 	for (const [key, field] of [

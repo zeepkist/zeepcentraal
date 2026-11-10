@@ -9,6 +9,7 @@ const labels = [
 	{ key: 'capacity', labelKey: 'lobby.analytics.capacity' },
 	{ key: 'duration', labelKey: 'lobby.analytics.duration' },
 	{ key: 'event', labelKey: 'lobby.analytics.event' },
+	{ key: 'timestamp', labelKey: 'lobby.analytics.timestamp' },
 	{ key: 'from', labelKey: 'lobby.analytics.from' },
 	{ key: 'host', labelKey: 'lobby.analytics.host' },
 	{ key: 'inRooms', labelKey: 'lobby.analytics.inRooms' },
