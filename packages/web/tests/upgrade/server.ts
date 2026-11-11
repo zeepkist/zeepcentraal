@@ -263,6 +263,55 @@ Bun.serve({
 				data.levels = { ...connection, nodes: [fixtureLevel] }
 			if (query.includes('ZC_LevelDetail') && variables?.xxHash === fixtureLevel.xxHash)
 				data.levelByXxHash = fixtureLevel
+			if (query.includes('ZC_LevelDetail')) {
+				const previewLevel = [
+					{
+						hash: 'fixture-adventure-a',
+						name: 'A-01',
+						adventure: true,
+						workshopId: '123',
+					},
+					{
+						hash: 'fixture-adventure-cl',
+						name: 'CL-01',
+						adventure: true,
+						workshopId: '123',
+					},
+					{
+						hash: 'fixture-adventure-unknown',
+						name: 'Unknown series',
+						adventure: true,
+						workshopId: '123',
+					},
+					{
+						hash: 'fixture-adventure-no-workshop',
+						name: 'A-01',
+						adventure: true,
+						workshopId: null,
+					},
+					{
+						hash: 'fixture-non-adventure-a',
+						name: 'A-01',
+						adventure: false,
+						workshopId: '123',
+					},
+				].find((entry) => entry.hash === variables?.xxHash)
+				if (previewLevel)
+					data.levelByXxHash = {
+						...fixtureLevel,
+						xxHash: previewLevel.hash,
+						adventure: previewLevel.adventure,
+						levelItems: {
+							nodes: [
+								{
+									...fixtureLevel.levelItems.nodes[0],
+									name: previewLevel.name,
+									workshopId: previewLevel.workshopId,
+								},
+							],
+						},
+					}
+			}
 			if (query.includes('ZC_TrackTournamentPlaylist')) {
 				data.trackTournaments = {
 					...connection,

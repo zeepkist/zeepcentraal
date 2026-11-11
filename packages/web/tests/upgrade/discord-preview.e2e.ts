@@ -97,6 +97,40 @@ test('detail previews include native placements and relevant links without viewe
 	}
 })
 
+test('level previews replace Workshop with adventure series leaderboard links', async ({
+	request,
+}) => {
+	for (const [hash, target] of [
+		['fixture-adventure-a', '/adventure/a'],
+		['fixture-adventure-cl', '/adventure/cl'],
+		['fixture-adventure-unknown', '/adventure'],
+		['fixture-adventure-no-workshop', '/adventure/a'],
+		['fixture-non-adventure-a', '/workshop/123'],
+		['fixture-hydration-level', '/workshop/123'],
+	]) {
+		const response = await request.get(`/level/${hash}`, { headers: crawlerHeaders })
+		expect(response.status(), hash).toBe(200)
+		const payload = payloadFromHtml(await response.text())
+		const buttons = payload.component.components
+			.filter((component: { type: number }) => component.type === 1)
+			.flatMap(
+				(component: { components: Array<{ label: string; url: string }> }) =>
+					component.components,
+			)
+		const adventure = target?.startsWith('/adventure')
+		expect(buttons, hash).toContainEqual(
+			expect.objectContaining({
+				label: adventure ? 'Adventure leaderboard' : 'Workshop',
+				url: `https://zeepki.st${target}`,
+			}),
+		)
+		expect(
+			buttons.map((button: { label: string }) => button.label),
+			hash,
+		).not.toContain(adventure ? 'Workshop' : 'Adventure leaderboard')
+	}
+})
+
 test('overall previews preserve ties, filters and pagination in SSR', async ({ request }) => {
 	for (const root of ['totd', 'totw', 'totm']) {
 		const first = payloadFromHtml(

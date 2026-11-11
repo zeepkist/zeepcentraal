@@ -21,6 +21,7 @@ import type {
 	LevelWorldRecordSummary,
 	RecordHistoryRow,
 } from '~/types/app'
+import { ADVENTURE_SERIES, adventureLevelNumber } from '~/utils/adventureSeries'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { buildLevelPointsHistory, getLevelPointsHistoryWindow } from '~/utils/levelPointsHistory'
 import {
@@ -283,6 +284,11 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			.map(mapTournamentFeature)
 			.filter((tournament) => tournament !== null),
 	)
+	const adventureSeries = computed(() =>
+		ADVENTURE_SERIES.find(
+			(series) => adventureLevelNumber(summary.value?.name ?? '', series) !== null,
+		),
+	)
 	useDiscordComponentEmbed(() =>
 		summary.value
 			? {
@@ -292,9 +298,23 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 					rows: previewRows.value[route.fullPath],
 					resultLabel: 'Personal bests',
 					links: [
-						...(summary.value.workshopId
-							? [{ label: 'Workshop', url: `/workshop/${summary.value.workshopId}` }]
-							: []),
+						...(summary.value.adventure
+							? [
+									{
+										label: 'Adventure leaderboard',
+										url: adventureSeries.value
+											? `/adventure/${adventureSeries.value.slug}`
+											: '/adventure',
+									},
+								]
+							: summary.value.workshopId
+								? [
+										{
+											label: 'Workshop',
+											url: `/workshop/${summary.value.workshopId}`,
+										},
+									]
+								: []),
 						...tournamentFeatures.value.map((event) => ({
 							label:
 								event.type === 0
