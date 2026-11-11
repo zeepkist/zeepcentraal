@@ -204,6 +204,11 @@ const authCallback = route.query.auth === 'callback'
 const { verificationFailed: authVerificationFailed } = useAuthCallbackVerification(authCallback)
 const viewerId = computed(() => user.value?.id)
 const dashboard = useDashboard(viewerId)
+useDiscordComponentEmbed(() => ({
+	title: 'ZeepCentraal',
+	description: dashboard.metrics.value ? `${dashboard.metrics.value.players} players | ${dashboard.metrics.value.levels} levels | ${dashboard.metrics.value.records} records` : t('pages.home.seo.description'),
+	links: [{ label: 'Levels', url: '/levels' }, { label: 'Player rankings', url: '/users' }, { label: 'Competitions', url: '/super-league' }],
+}))
 
 const numberFormat = new Intl.NumberFormat()
 const oneDecimal = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 })

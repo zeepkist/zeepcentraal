@@ -58,6 +58,15 @@ const { active, future, history, page, pagination, prefetch, result } =
 const countdownStart = computed(
 	() => future.value?.startAt ?? nextTournamentBoundary(props.type, new Date()).toISOString(),
 )
+useDiscordComponentEmbed(() => ({
+	title: pagination.isFirstPage.value && active.value ? `${active.value.level.name} | ${props.title}` : `${props.title} | Events`,
+	description: pagination.isFirstPage.value && active.value ? `${active.value.participantCount} competitors` : t('tournaments.historyDescription'),
+	image: pagination.isFirstPage.value ? active.value?.level.imageUrl ?? future.value?.level.imageUrl : history.value[0]?.level.imageUrl,
+	rows: result.error.value ? undefined : pagination.isFirstPage.value && active.value
+		? active.value.podium.slice(0, 3).map(discordStandingRow)
+		: history.value.slice(0, 3).map((event) => ({ name: `${event.slug} | ${event.level.name}`, url: `/${props.type === 0 ? 'totw' : 'totm'}/${event.slug}`, value: `${event.participantCount} competitors` })),
+	links: [{ label: 'Overall standings', url: props.type === 0 ? '/totw/overall' : '/totm/overall' }],
+}))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),
 	loadingLabel: t('common.loading'),

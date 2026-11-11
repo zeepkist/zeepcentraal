@@ -122,6 +122,12 @@ const {
 	tagOptionsPending,
 	tags,
 } = await useMods()
+useDiscordComponentEmbed(() => ({
+	title: t('pages.mods.seo.title'),
+	description: data.value ? `${data.value.total} mods` : undefined,
+	image: data.value?.items[0]?.imageUrl,
+	rows: error.value ? undefined : data.value?.items.slice(0, 3).map((mod) => ({ name: mod.name, url: `/mod/${mod.slug}`, value: `${mod.downloads} downloads` })),
+}))
 
 const sortOptions = computed(() => [
 	{ label: t('mods.sort.popular'), value: MOD_SORTS.popular },

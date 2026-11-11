@@ -6,7 +6,10 @@ const query = vi.hoisted(() => ({ result: {} as { data: unknown } }))
 vi.mock('@urql/vue', () => ({ useQuery: () => query.result }))
 
 describe('user profile available-level counts', () => {
-	beforeEach(() => vi.stubGlobal('computed', computed))
+	beforeEach(() => {
+		vi.stubGlobal('computed', computed)
+		vi.stubGlobal('useDiscordComponentEmbed', vi.fn())
+	})
 	afterEach(() => vi.unstubAllGlobals())
 
 	it('uses cached totals, reacts to workshop refresh, and handles missing cache rows', () => {

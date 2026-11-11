@@ -106,6 +106,12 @@ useSeoMeta({
 })
 useSchemaOrg([defineWebPage({ name: title, description })])
 defineOgImage('ModDetail.takumi', { slug })
+useDiscordComponentEmbed(() => data.value ? {
+	title: data.value.mod.name,
+	description: data.value.mod.summary,
+	image: data.value.mod.imageUrl,
+	links: [{ label: 'View on mod.io', url: data.value.mod.profileUrl }, { label: 'Browse mods', url: '/mods' }],
+} : undefined)
 
 if (import.meta.server) await request
 if (request.error.value?.statusCode === 404) {

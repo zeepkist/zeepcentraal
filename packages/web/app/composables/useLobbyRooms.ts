@@ -18,5 +18,22 @@ export function useLobbyRooms(history = false) {
 	const operation = useLobbyOperation(Zc_LobbyRoomsDocument, Zc_LobbyRoomsLiveDocument, variables)
 	const rooms = computed(() => operation.data.value?.lobbyListings?.nodes.map(mapLobbyRoom) ?? [])
 	const page = computed(() => mapLobbyPage(operation.data.value?.lobbyListings?.pageInfo))
+	useDiscordComponentEmbed(() => ({
+		title: history ? 'Lobby history' : 'Lobbies',
+		rows: operation.error.value
+			? undefined
+			: rooms.value.slice(0, 3).map((room) => ({
+					name: room.roomName ?? 'Unnamed room',
+					url: `/lobby/${room.id}`,
+					value: `${room.players ?? '?'}/${room.playerLimit ?? '?'} players | Observed ${room.lastSeen}`,
+				})),
+		links: [
+			{ label: 'Lobby statistics', url: '/lobby/stats' },
+			{
+				label: history ? 'Current rooms' : 'Room history',
+				url: history ? '/lobby' : '/lobby/history',
+			},
+		],
+	}))
 	return { ...operation, rooms, page, pagination }
 }

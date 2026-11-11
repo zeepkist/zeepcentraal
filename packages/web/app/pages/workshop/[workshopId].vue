@@ -17,6 +17,13 @@ useSeoMeta({
 	twitterImage: () => workshop.value?.imageUrl ?? undefined,
 	twitterCard: 'summary_large_image',
 })
+useDiscordComponentEmbed(() => workshop.value ? {
+	title: workshop.value.name,
+	description: workshop.value.authorName ? `By ${workshop.value.authorName}` : undefined,
+	image: workshop.value.imageUrl,
+	rows: result.error.value ? undefined : levels.value.slice(0, 3).map((level) => ({ name: level.name, url: `/level/${level.xxHash}` })),
+	links: [{ label: 'Steam Workshop', url: `https://steamcommunity.com/sharedfiles/filedetails/?id=${workshop.value.workshopId}` }],
+} : undefined)
 const levelLabels = computed(() => ({
 	adventureLabel: t('common.adventure'),
 	pointsLabel: t('common.points'),

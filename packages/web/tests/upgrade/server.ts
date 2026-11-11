@@ -1,4 +1,5 @@
 import { Kind, parse } from 'graphql'
+import { applyDiscordFixtures, previewContest } from './discord-fixtures'
 
 const headers = {
 	'access-control-allow-origin': 'http://127.0.0.1:4173',
@@ -212,7 +213,7 @@ Bun.serve({
 								: `${monthly ? 'Monthly' : 'Weekly'} player ${index + 1}${index === 3 ? ' VeryLongUnbrokenPlayerName'.repeat(8) : ''}`,
 					},
 				}))
-				const lastPage = Boolean(variables?.after || variables?.last)
+				const lastPage = Boolean(variables?.after || (variables?.last && !variables.before))
 				data.standings = {
 					...connection,
 					totalCount: 51,
@@ -329,6 +330,7 @@ Bun.serve({
 					},
 				}
 			}
+			applyDiscordFixtures(data, query, variables, fixtureLevel)
 			return Response.json({ data }, { headers })
 		}
 		if (url.pathname === '/auth/web/refresh') {
@@ -342,6 +344,43 @@ Bun.serve({
 			return response
 		}
 		if (url.pathname === '/super-league/contests') return Response.json([], { headers })
+		if (
+			url.pathname === '/super-league/submission-overview' &&
+			url.searchParams.get('roundId') === '777'
+		)
+			return Response.json(
+				{ contest: previewContest, submissions: [], validCount: 0, totalCount: 0 },
+				{ headers },
+			)
+		if (
+			url.pathname === '/super-league/vote-results' &&
+			url.searchParams.get('roundId') === '777'
+		)
+			return Response.json(
+				{
+					roundId: 777,
+					categories: [
+						{
+							voteType: 1,
+							state: 'published',
+							deadline: null,
+							totalVotes: 42,
+							levels: [
+								{
+									levelId: 777,
+									xxHash: fixtureLevel.xxHash,
+									name: 'Preview voted level',
+									authorNames: ['Preview author'],
+									authorIds: [],
+									imageUrl: null,
+									votes: 42,
+								},
+							],
+						},
+					],
+				},
+				{ headers },
+			)
 		if (url.pathname === '/turnstile/verify')
 			return Response.json({ success: true }, { headers })
 		if (url.pathname === '/user/discord/link-code') {

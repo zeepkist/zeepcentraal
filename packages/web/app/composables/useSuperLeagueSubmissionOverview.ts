@@ -1,6 +1,9 @@
 import type { SubmissionOverview } from '~/utils/superLeagueSubmission'
 
-export function useSuperLeagueSubmissionOverview(roundId: MaybeRef<number | undefined>) {
+export function useSuperLeagueSubmissionOverview(
+	roundId: MaybeRef<number | undefined>,
+	timeout?: number,
+) {
 	const identity = computed(() => `zsl-submission-overview:${toValue(roundId) ?? 'current'}`)
 	const read = useAsyncData(
 		identity,
@@ -11,6 +14,7 @@ export function useSuperLeagueSubmissionOverview(roundId: MaybeRef<number | unde
 				{
 					query: { roundId: toValue(roundId) },
 					signal,
+					...(timeout === undefined ? {} : { timeout, retry: 0 }),
 				},
 			)
 			return { owner, result }

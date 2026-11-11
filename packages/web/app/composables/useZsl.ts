@@ -77,6 +77,20 @@ export function useZslSeason(id: Ref<number>, viewerId: Ref<number | undefined>)
 		})),
 	})
 	const season = computed(() => result.data.value?.zslSeason)
+	useDiscordComponentEmbed(() =>
+		season.value
+			? {
+					title: season.value.name,
+					description: 'Super League season standings',
+					rows: standingsResult.error.value
+						? undefined
+						: standingsResult.data.value?.zslSeasonResults?.edges
+								.slice(0, 3)
+								.map(({ node }) => discordStandingRow(node)),
+					links: [{ label: 'Seasons', url: '/super-league' }],
+				}
+			: undefined,
+	)
 	const incomingStandings = computed(() =>
 		mergeViewerStanding(
 			standingsResult.data.value?.zslSeasonResults?.edges.map(({ node }) =>
@@ -141,6 +155,25 @@ export function useZslRound(
 			standingsResult.data.value?.viewerStanding?.nodes[0],
 		),
 	)
+	useDiscordComponentEmbed(() =>
+		round.value
+			? {
+					title: `${round.value.name} | ${round.value.season?.name ?? 'Super League'}`,
+					rows: standingsResult.error.value
+						? undefined
+						: standingsResult.data.value?.zslRoundResults?.edges
+								.slice(0, 3)
+								.map(({ node }) => discordStandingRow(node)),
+					links: [
+						{ label: 'Season standings', url: superLeagueSeasonPath(seasonId.value) },
+						{
+							label: 'Vote results',
+							url: `${superLeagueRoundPath(seasonId.value, roundNumber.value)}/votes`,
+						},
+					],
+				}
+			: undefined,
+	)
 	const standings = stageStandings(
 		incomingStandings,
 		standingsResult.fetching,
@@ -180,6 +213,37 @@ export function useZslLevel(id: Ref<number>, viewerId: Ref<number | undefined>) 
 		})),
 	})
 	const level = computed(() => result.data.value?.zslLevel)
+	useDiscordComponentEmbed(() => {
+		const entry = level.value
+		if (!entry) return
+		const item = entry.level?.levelItems.nodes[0]
+		return {
+			title: `${item?.name ?? 'Level'} | ${entry.round?.name ?? 'Super League'}`,
+			image: item?.imageUrl,
+			rows: standingsResult.error.value
+				? undefined
+				: standingsResult.data.value?.zslLevelResults?.edges
+						.slice(0, 3)
+						.map(({ node }) => discordStandingRow(node)),
+			links: [
+				...(entry.level
+					? [{ label: 'View level', url: `/level/${entry.level.xxHash}` }]
+					: []),
+				...(entry.round
+					? [
+							{
+								label: 'Round standings',
+								url: superLeagueRoundPath(entry.round.seasonId, entry.round.round),
+							},
+							{
+								label: 'Season standings',
+								url: superLeagueSeasonPath(entry.round.seasonId),
+							},
+						]
+					: []),
+			],
+		}
+	})
 	const fastestTime = computed(
 		() => level.value?.zslLevelResults.aggregates?.min?.time ?? undefined,
 	)

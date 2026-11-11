@@ -14,6 +14,11 @@ const variables = computed(() => ({ id: id.value, ...pagination.variables.value 
 const { data, error, fetching } = useLobbyOperation(Zc_LobbyDetailDocument, Zc_LobbyDetailLiveDocument, variables)
 const { number, duration, mounted } = useLobbyFormat()
 const room = computed(() => data.value?.lobbyListing ? mapLobbyRoom(data.value.lobbyListing) : null)
+useDiscordComponentEmbed(() => room.value ? {
+	title: room.value.roomName ?? 'Unnamed room',
+	description: `${room.value.players}/${room.value.playerLimit} players | ${room.value.closedAt ? 'Closed' : 'Open'} | Observed ${room.value.lastSeen}`,
+	links: [{ label: 'Current rooms', url: '/lobby' }, { label: 'Room history', url: '/lobby/history' }],
+} : undefined)
 const events = computed(() => data.value?.lobbyHistories?.nodes ?? [])
 const page = computed(() => mapLobbyPage(data.value?.lobbyHistories?.pageInfo))
 const now = useLobbyClock(() => !!room.value && !room.value.closedAt)

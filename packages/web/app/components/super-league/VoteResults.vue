@@ -39,6 +39,12 @@ nuxtApp.runWithContext(() => useSeoMeta({
 	description: () => t('zsl.voting.description'),
 }))
 await initial
+useDiscordComponentEmbed(() => ({
+	title: `Vote results | ${round.value?.name ?? 'Super League'}`,
+	description: snapshot.value?.categories.map((category) => `${categoryNames.value[category.voteType - 1]}: ${category.state}`).join(' | '),
+	rows: snapshot.value?.categories.find((category) => category.voteType === 1 && category.state === 'published')?.levels.slice(0, 3).map((level) => ({ name: level.name ?? level.xxHash, url: `/level/${level.xxHash}`, value: `${level.votes} votes` })),
+	links: [{ label: 'Round standings', url: superLeagueRoundPath(props.seasonId, props.roundNumber) }],
+}))
 </script>
 
 <template>

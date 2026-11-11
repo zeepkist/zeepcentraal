@@ -32,6 +32,18 @@ export function useUserProfileSummary(steamId: Ref<string>) {
 			user.value?.votes.totalCount ?? 0,
 		),
 	)
+	useDiscordComponentEmbed(() =>
+		summary.value
+			? {
+					title: summary.value.steamName ?? summary.value.steamId,
+					description: `Rank ${summary.value.rank ?? 'unavailable'} | ${summary.value.rankedPoints.toLocaleString('en-GB')} points | ${summary.value.personalBests} personal bests | ${summary.value.worldRecords} world records`,
+					links: [
+						{ label: 'Created levels', url: `/levels?author=${summary.value.steamId}` },
+						{ label: 'Player rankings', url: '/users' },
+					],
+				}
+			: undefined,
+	)
 
 	async function prefetchCritical() {
 		await profile

@@ -24,6 +24,25 @@ export function useRecordDetailSummary(recordId: Ref<number>) {
 		}
 	})
 	const levelItem = computed(() => record.value?.level?.levelItems.nodes[0] ?? null)
+	useDiscordComponentEmbed(() => {
+		const value = record.value
+		if (!value) return
+		const item = value.level?.publiclyVisible ? levelItem.value : null
+		return {
+			title: `${formatOgTime(value.time)} | ${item?.name ?? value.level?.xxHash ?? 'Record'}`,
+			description: `${value.user?.steamName ?? value.user?.steamId ?? 'Unknown player'} | ${String(value.dateCreated)}`,
+			image: item?.imageUrl,
+			rows: [
+				{
+					...discordStandingRow(value),
+					rank: value.userPointContributions.nodes[0]?.levelPosition,
+				},
+			],
+			links: value.level
+				? [{ label: 'Level standings', url: `/level/${value.level.xxHash}` }]
+				: [],
+		}
+	})
 
 	async function prefetchCritical() {
 		if (import.meta.server) await detail

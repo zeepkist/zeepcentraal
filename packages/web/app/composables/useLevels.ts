@@ -1,4 +1,4 @@
-import { useQuery } from '@urql/vue'
+import { useClientHandle, useQuery } from '@urql/vue'
 import {
 	type LevelsOrderBy,
 	Zc_HotLevelsDocument,
@@ -37,6 +37,7 @@ export const LEVEL_SORTS = {
 export type LevelSort = (typeof LEVEL_SORTS)[keyof typeof LEVEL_SORTS]
 
 export function useLevels(viewerId: Ref<number | undefined>) {
+	const { client } = useClientHandle()
 	const route = useRoute()
 	const pagination = useCursorPagination(24)
 	const hotWindows = useState('level-explorer-hot-windows', () => getLevelHotWindows())
@@ -162,6 +163,102 @@ export function useLevels(viewerId: Ref<number | undefined>) {
 	const levels = computed<LevelSummary[]>(() =>
 		(connection.value?.edges ?? []).map(({ node }) => mapLevelSummary(node)),
 	)
+	const publicPreview = useState<
+		| {
+				path: string
+				rows: import('~/utils/discordPreview').DiscordPreviewRow[]
+				total: number
+				image?: string | null
+		  }
+		| undefined
+	>(`discord-levels:${route.fullPath}`)
+	const hasPrivateFilter = computed(
+		() => appliedPersonalBest.value !== 'all' || appliedWorldRecord.value !== 'all',
+	)
+	useDiscordComponentEmbed(() => {
+		const items =
+			hasPrivateFilter.value && publicPreview.value?.path === route.fullPath
+				? publicPreview.value
+				: undefined
+		return {
+			title: 'Levels',
+			description: items
+				? `${items.total} levels`
+				: !hasPrivateFilter.value && connection.value
+					? `${connection.value.totalCount} levels`
+					: undefined,
+			image:
+				items?.image ?? (!hasPrivateFilter.value ? levels.value[0]?.imageUrl : undefined),
+			rows: hasPrivateFilter.value
+				? items?.rows
+				: result.error.value
+					? undefined
+					: levels.value.slice(0, 3).map((level) => ({
+							name: level.name,
+							url: `/level/${level.xxHash}`,
+							value: level.points == null ? undefined : `${level.points} points`,
+						})),
+		}
+	})
+	onServerPrefetch(async () => {
+		if (!hasPrivateFilter.value) {
+			await (hotSort.value ? hotResult : normalResult)
+			return
+		}
+		const publicFilter = buildLevelFilter({
+			type: appliedAdventure.value,
+			sort: appliedSort.value,
+			search: appliedSearch.value,
+			author: appliedAuthor.value,
+			points: appliedPoints.value,
+			rating: appliedRating.value,
+			personalBest: 'all',
+			worldRecord: 'all',
+		})
+		const variables = {
+			...pagination.variables.value,
+			filter: publicFilter,
+			viewerId: 0,
+			includeViewer: false,
+		}
+		const context = {
+			fetchOptions: { credentials: 'omit' as const, signal: AbortSignal.timeout(2000) },
+		}
+		const response = hotSort.value
+			? await client
+					.query(
+						Zc_HotLevelsDocument,
+						{
+							...variables,
+							since:
+								getHotLevelSince(appliedSort.value, hotWindows.value) ??
+								hotWindows.value.todaySince,
+						},
+						context,
+					)
+					.toPromise()
+			: await client
+					.query(
+						Zc_LevelsDocument,
+						{ ...variables, orderBy: [appliedSort.value as LevelsOrderBy] },
+						context,
+					)
+					.toPromise()
+		if (response.error || !response.data?.levels) return
+		const nodes = response.data.levels.edges
+			.slice(0, 3)
+			.map(({ node }) => mapLevelSummary(node))
+		publicPreview.value = {
+			path: route.fullPath,
+			total: response.data.levels.totalCount,
+			image: nodes[0]?.imageUrl,
+			rows: nodes.map((level) => ({
+				name: level.name,
+				url: `/level/${level.xxHash}`,
+				value: level.points == null ? undefined : `${level.points} points`,
+			})),
+		}
+	})
 	const page = computed<CursorPage>(() =>
 		connection.value?.pageInfo
 			? {

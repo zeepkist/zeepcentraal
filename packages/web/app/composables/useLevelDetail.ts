@@ -1,4 +1,4 @@
-import { useQuery } from '@urql/vue'
+import { useClientHandle, useQuery } from '@urql/vue'
 import {
 	calculateDecayMultiplier,
 	GLOBAL_DECAY_FACTOR,
@@ -93,6 +93,11 @@ function mapRecord(
 }
 
 export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undefined>) {
+	const { client } = useClientHandle()
+	const route = useRoute()
+	const previewRows = useState<
+		Record<string, import('~/utils/discordPreview').DiscordPreviewRow[] | undefined>
+	>('discord-level-rows', () => ({}))
 	const recentPagination = useCursorPagination(25, 'records')
 	const pbPagination = useCursorPagination(25, 'pbs')
 	const pointsHistoryPrefetch = useViewportPrefetch()
@@ -278,6 +283,50 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			.map(mapTournamentFeature)
 			.filter((tournament) => tournament !== null),
 	)
+	useDiscordComponentEmbed(() =>
+		summary.value
+			? {
+					title: summary.value.name,
+					description: `${summary.value.authorName ? `By ${summary.value.authorName} | ` : ''}${summary.value.personalBestCount} personal bests | ${summary.value.recordCount} records`,
+					image: summary.value.imageUrl,
+					rows: previewRows.value[route.fullPath],
+					resultLabel: 'Personal bests',
+					links: [
+						...(summary.value.workshopId
+							? [{ label: 'Workshop', url: `/workshop/${summary.value.workshopId}` }]
+							: []),
+						...tournamentFeatures.value.map((event) => ({
+							label: event.type === 0 ? 'Track of the Week' : 'Track of the Month',
+							url: `/${event.type === 0 ? 'totw' : 'totm'}/${event.slug}`,
+						})),
+					],
+				}
+			: undefined,
+	)
+	onServerPrefetch(async () => {
+		await detail
+		if (!levelId.value) return
+		const response = await client
+			.query(
+				Zc_LevelRecordsDocument,
+				{
+					...pbPagination.variables.value,
+					filter: { levelId: { equalTo: levelId.value }, personalBestGlobalsExist: true },
+					orderBy: ['TIME_ASC', 'ID_ASC'],
+					includeStatus: false,
+				},
+				{ fetchOptions: { credentials: 'omit', signal: AbortSignal.timeout(2000) } },
+			)
+			.toPromise()
+		if (response.error) return
+		previewRows.value[route.fullPath] = response.data?.records?.edges
+			.slice(0, 3)
+			.map(({ node }) => ({
+				...discordStandingRow(node),
+				rank: node.userPointContributions.nodes[0]?.levelPosition,
+				url: `/record/${node.id}`,
+			}))
+	})
 	const worldRecord = computed<LevelWorldRecordSummary | null>(() => {
 		const value = level.value?.worldRecordGlobal
 		if (!value?.record) return null

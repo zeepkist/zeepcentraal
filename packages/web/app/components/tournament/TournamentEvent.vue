@@ -316,6 +316,17 @@ useSeoMeta({
 	robots: () => (future.value ? 'noindex, nofollow' : 'index, follow'),
 })
 
+useDiscordComponentEmbed(() => props.detailPage && tournament.value ? {
+	title: `${tournament.value.level.name} | ${props.title}`,
+	description: `${periodLabel.value} | ${totalCount.value} competitors`,
+	image: tournament.value.level.imageUrl,
+	rows: result.error.value ? undefined : standings.value.filter((row) => !row.pinned).slice(0, 3).map(discordStandingRow),
+	links: [
+		{ label: 'Overall standings', url: props.type === 0 ? '/totw/overall' : '/totm/overall' },
+		{ label: 'View level', url: `/level/${tournament.value.level.xxHash}` },
+		{ label: 'Events', url: props.type === 0 ? '/totw' : '/totm' },
+	],
+} : undefined)
 const { supporters } = useSupporterBadges()
 
 await prefetch()

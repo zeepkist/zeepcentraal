@@ -37,6 +37,16 @@ usePageSeo('zsl')
 defineOgImage('SuperLeague.takumi', { slug: 'super-league' })
 const { t } = useAppI18n()
 const { page, pagination, result, seasons } = useZslSeasons()
+useDiscordComponentEmbed(() => ({
+	title: t('pages.zsl.seo.title'),
+	rows: result.error.value ? undefined : seasons.value.slice(0, 3).map((season) => ({
+		name: season.name,
+		url: superLeagueSeasonPath(season.id),
+		value: `${season.zslSeasonResults.totalCount} competitors`,
+	})),
+	links: [{ label: 'Vote', url: '/super-league/vote' }, { label: 'Submit level', url: '/super-league/submit-level' }],
+}))
+onServerPrefetch(async () => { await result })
 const roundsLabel = (count: number) => t('zsl.roundCount', { count })
 const competitorsLabel = (count: number) => t('zsl.competitorCount', { count })
 const stateLabels = computed(() => ({

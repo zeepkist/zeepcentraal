@@ -21,6 +21,12 @@ const paginationLabels = computed(() => ({
 	firstLabel: t('common.first'), previousLabel: t('common.previous'),
 	nextLabel: t('common.next'), lastLabel: t('common.last'),
 }))
+useDiscordComponentEmbed(() => ({
+	title: props.series ? `Adventure | ${props.series}` : 'Adventure leaderboard',
+	description: scope.value ? `${scope.value.totalPlayers} players | ${scope.value.totalLevels} levels` : undefined,
+	rows: result.error.value ? undefined : entries.value.slice(0, 3).map(discordStandingRow),
+	links: [{ label: 'Global standings', url: '/adventure' }],
+}))
 await prefetch()
 </script>
 

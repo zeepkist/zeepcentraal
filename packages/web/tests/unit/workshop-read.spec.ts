@@ -59,6 +59,7 @@ beforeEach(() => {
 	vi.stubGlobal('useRoute', () => route)
 	vi.stubGlobal('useRouter', () => ({ push }))
 	vi.stubGlobal('onServerPrefetch', vi.fn())
+	vi.stubGlobal('useDiscordComponentEmbed', vi.fn())
 	vi.stubGlobal('useViewportPrefetch', () => ({ active, target: ref(null) }))
 })
 afterEach(() => {

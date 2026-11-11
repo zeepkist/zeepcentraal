@@ -90,6 +90,15 @@ const sounds = useRecordNotificationSounds({
 
 usePageSeo('records')
 useRecordsOgImage()
+useDiscordComponentEmbed(() => ({
+	title: t('pages.records.seo.title'),
+	rows: data.result.error.value ? undefined : data.rows.value.slice(0, 3).map((row) => ({
+		name: `${row.userName ?? row.userSteamId ?? 'Unknown player'} | ${row.levelName}`,
+		url: `/record/${row.id}`,
+		rank: row.levelPosition,
+		value: formatOgTime(row.time),
+	})),
+}))
 
 const tabOptions = computed<
 	Array<{ value: RecordHistoryView; label: string; icon: TablerIconName }>

@@ -22,6 +22,22 @@ const roundId = computed(() => {
 const { contest, submission, loading, resolved, initial, saving, error, refresh, save, withdraw, overview, overviewError, refreshOverview } = useSuperLeagueSubmission(roundId)
 const viewer = computed(() => ({ steamId: session.user?.steamId ?? '', steamName: session.user?.steamName ?? session.user?.steamId ?? '' }))
 const announcement = computed(() => steamContestAnnouncementUrl(contest.value?.steamAnnouncementId))
+useSeoMeta({
+	title: () => `${overview.value?.contest?.name ?? 'Super League'} | Submit your level`,
+	description: 'Submit community levels for Zeepkist Super League.',
+})
+useDiscordComponentEmbed(() => {
+	const publicContest = overview.value?.contest
+	const rules = steamContestAnnouncementUrl(publicContest?.steamAnnouncementId)
+	return publicContest ? {
+		title: `${publicContest.name} | Submit your level`,
+		description: `${publicContest.submissionsOpen ? 'Submissions open' : 'Submissions closed'}${publicContest.submissionEnd ? ` | Deadline ${publicContest.submissionEnd}` : ''}`,
+		links: [
+			{ label: 'Round standings', url: superLeagueRoundPath(publicContest.seasonId, publicContest.round) },
+			...(rules ? [{ label: 'Submission rules', url: rules }] : []),
+		],
+	} : undefined
+})
 const limits = computed(() => submissionRuleLimits(contest.value?.rules ?? {}))
 
 await initial

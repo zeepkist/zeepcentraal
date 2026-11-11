@@ -13,6 +13,11 @@ const { number, mounted } = useLobbyFormat()
 const displayed = computed<typeof data.value>(previous => data.value ?? previous)
 const pending = computed(() => fetching.value || (!data.value && !error.value))
 const latest = computed(() => displayed.value?.latest?.nodes[0])
+if (!props.live) useDiscordComponentEmbed(() => ({
+	title: 'Lobby statistics',
+	description: latest.value ? `${latest.value.players} online | ${latest.value.playersInRooms} in rooms | ${latest.value.rooms} rooms | Observed ${String(latest.value.dateCreated)}` : undefined,
+	links: [{ label: 'Current rooms', url: '/lobby' }, { label: 'Room history', url: '/lobby/history' }],
+}))
 const cards = computed<StatisticMetric[]>(() => [
 	{ key: 'online', label: t('lobby.summary.onlinePlayers'), value: number(latest.value?.players), icon: 'users' },
 	{ key: 'rooms', label: t('lobby.summary.playersInLobbies'), value: number(latest.value?.playersInRooms), icon: 'users-group' },

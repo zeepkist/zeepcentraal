@@ -20,6 +20,12 @@ const paginationLabels = computed(() => ({
 	firstLabel: t('common.first'), previousLabel: t('common.previous'),
 	nextLabel: t('common.next'), lastLabel: t('common.last'),
 }))
+useDiscordComponentEmbed(() => ({
+	title: `Track of the ${props.type === 0 ? 'Week' : 'Month'} | Overall standings`,
+	description: period.value ? `${period.value.eligibleEventCount} eligible events | ${periodLabel.value} | Updated ${updatedLabel.value}` : undefined,
+	rows: result.error.value ? undefined : result.data.value?.standings?.nodes.slice(0, 3).map(discordStandingRow),
+	links: [{ label: 'Current event', url: props.type === 0 ? '/totw' : '/totm' }],
+}))
 await prefetch()
 </script>
 

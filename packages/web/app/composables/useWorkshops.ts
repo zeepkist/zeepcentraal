@@ -41,6 +41,20 @@ export function useWorkshops() {
 	)
 	const page = computed(() => mapWorkshopPage(result.data.value?.workshopItems?.pageInfo))
 	const authorSuggestions = useAuthorSuggestions(author)
+	useDiscordComponentEmbed(() => ({
+		title: 'Workshop',
+		description: result.data.value?.workshopItems
+			? `${result.data.value.workshopItems.totalCount} workshop items`
+			: undefined,
+		rows: result.error.value
+			? undefined
+			: workshops.value.slice(0, 3).map((workshop) => ({
+					name: workshop.name,
+					url: `/workshop/${workshop.workshopId}`,
+					value: workshop.authorName,
+				})),
+		image: workshops.value[0]?.imageUrl,
+	}))
 	onServerPrefetch(async () => {
 		await result
 	})

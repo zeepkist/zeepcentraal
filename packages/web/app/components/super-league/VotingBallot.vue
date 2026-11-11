@@ -16,6 +16,20 @@ const requestedRound = computed(() => {
 	return Number.isInteger(id) && id > 0 ? id : undefined
 })
 const { snapshot, pending, resolved, error, refresh, initial } = useSuperLeagueVote(requestedRound)
+const previewOverview = useSuperLeagueSubmissionOverview(requestedRound, 2000)
+useSeoMeta({
+	title: () => `${previewOverview.data.value?.contest?.name ?? 'Super League'} | Vote`,
+	description: 'Vote for community levels in Zeepkist Super League.',
+})
+useDiscordComponentEmbed(() => {
+	const contest = previewOverview.data.value?.contest
+	return contest ? {
+		title: `${contest.name} | Vote`,
+		description: `${contest.openTypes.length ? 'Voting open' : 'Voting closed'}${contest.zslVoteEnd ? ` | ZSL deadline ${contest.zslVoteEnd}` : ''}`,
+		links: [{ label: 'Round standings', url: superLeagueRoundPath(contest.seasonId, contest.round) }, { label: 'Submit level', url: `/super-league/submit-level?roundId=${contest.roundId}` }],
+	} : undefined
+})
+onServerPrefetch(async () => { await previewOverview.initial })
 const voteType = shallowRef(1)
 const selected = ref<number[]>([])
 const token = shallowRef<string | null>(null)

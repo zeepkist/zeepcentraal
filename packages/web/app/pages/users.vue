@@ -41,6 +41,15 @@ defineOgImage('UserRankings.takumi', { slug: 'users' })
 const { t } = useAppI18n()
 const session = useSessionStore()
 const { applyFilters, page, pagination, result, search, sort, users } = usePlayers()
+useDiscordComponentEmbed(() => ({
+	title: t('pages.users.seo.title'),
+	description: result.data.value?.userPoints ? `${result.data.value.userPoints.totalCount} players` : undefined,
+	rows: result.error.value ? undefined : users.value.slice(0, 3).map((user) => ({
+		...discordStandingRow(user),
+		value: sort.value === USER_SORTS.worldRecords ? `${user.worldRecords} world records` : `${sort.value === USER_SORTS.totalPoints ? user.totalPoints : user.points} points`,
+	})),
+}))
+onServerPrefetch(async () => { await result })
 const sortOptions = computed(() => [
 	{ label: t('users.sort.rank'), value: USER_SORTS.rank },
 	{ label: t('users.sort.points'), value: USER_SORTS.points },
