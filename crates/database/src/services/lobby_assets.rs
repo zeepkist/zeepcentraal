@@ -126,10 +126,7 @@ impl Database {
         &self,
         tournament_type: i32,
     ) -> Result<Option<TournamentLobbyAsset>> {
-        ensure!(
-            matches!(tournament_type, 0 | 1 | 2),
-            "Invalid tournament type"
-        );
+        ensure!(matches!(tournament_type, 0..=2), "Invalid tournament type");
         let mut connection = self.connection().await?;
         Ok(sql_query(
             "SELECT asset.id_tournament,asset.workshop_id,asset.file_uid,asset.level_name, \

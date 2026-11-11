@@ -874,10 +874,7 @@ impl Database {
         &self,
         tournament_type: i32,
     ) -> Result<TournamentRotation> {
-        ensure!(
-            matches!(tournament_type, 0 | 1 | 2),
-            "invalid tournament type"
-        );
+        ensure!(matches!(tournament_type, 0..=2), "invalid tournament type");
         let mut connection = self.connection().await?;
         rotate_track_tournament_at(&mut connection, tournament_type, None).await
     }
@@ -894,10 +891,7 @@ async fn rotate_track_tournament_at(
     tournament_type: i32,
     observed_at: Option<&str>,
 ) -> Result<TournamentRotation> {
-    ensure!(
-        matches!(tournament_type, 0 | 1 | 2),
-        "invalid tournament type"
-    );
+    ensure!(matches!(tournament_type, 0..=2), "invalid tournament type");
     connection
         .transaction::<TournamentRotation, anyhow::Error, _>(async move |connection| {
             sql_query("SELECT pg_advisory_xact_lock(1953744431,$1)")
