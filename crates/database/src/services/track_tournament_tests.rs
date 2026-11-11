@@ -24,7 +24,7 @@ async fn fixture() -> Result<AsyncPgConnection> {
     let mut connection = AsyncPgConnection::establish(&url).await?;
     connection.begin_test_transaction().await?;
     // Serialize fixture DDL; every test rolls back its tables on disconnect.
-    sql_query("SELECT pg_advisory_xact_lock(1953744431,2)")
+    sql_query("SELECT pg_advisory_xact_lock(1953744431,99)")
         .execute(&mut connection)
         .await?;
     connection
@@ -237,6 +237,24 @@ async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
                 "2026-w43",
                 "2026-10-26T06:00:00Z",
             ),
+            (
+                2,
+                "2028-02-29T06:00:00Z",
+                "2028-02-29",
+                "2028-03-01T06:00:00Z",
+            ),
+            (
+                2,
+                "2026-12-31T06:00:00Z",
+                "2026-12-31",
+                "2027-01-01T06:00:00Z",
+            ),
+            (
+                2,
+                "2026-03-29T06:00:00Z",
+                "2026-03-29",
+                "2026-03-30T06:00:00Z",
+            ),
             (1, "2028-02-01T06:00:00Z", "2028-02", "2028-03-01T06:00:00Z"),
             (1, "2026-10-01T06:00:00Z", "2026-10", "2026-11-01T06:00:00Z"),
         ] {
@@ -379,6 +397,13 @@ async fn delayed_rotation_recovers_original_period_and_eligible_records() -> Res
         value: serde_json::Value,
     }
     for (kind, at, start, end, slug) in [
+        (
+            2,
+            "2026-11-02T12:00:00Z",
+            "2026-11-02T06:00:00Z",
+            "2026-11-03T06:00:00Z",
+            "2026-11-02",
+        ),
         (
             0,
             "2026-09-28T07:15:00Z",
@@ -540,5 +565,127 @@ async fn rotation_finalization_publishes_overall_cache_atomically() -> Result<()
     rotate_track_tournament_at(&mut connection, 0, Some("2026-10-05T06:00:00Z")).await?;
     let repeated = sql_query("SELECT total_points AS id FROM public.track_tournament_overall_standing WHERE type=0 AND id_user=1").get_result::<IdRow>(&mut connection).await?;
     assert_eq!(repeated.id, 1000);
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn daily_selection_filters_before_percentile_and_uses_event_date() -> Result<()> {
+    let mut connection = fixture().await?;
+    for (at, extra, expected) in [
+        // Even day includes old levels. Before 06:00 still uses previous day's parity.
+        ("2026-11-02T06:00:00Z", "", Some(1)),
+        ("2026-11-03T05:59:59Z", "", Some(1)),
+        // Odd day includes exact two-calendar-month cutoff, excludes older level.
+        ("2026-11-03T06:00:00Z", "", Some(2)),
+        // Missing recent levels falls back to all-time unused levels.
+        (
+            "2026-11-03T06:00:00Z",
+            "UPDATE public.level SET date_created='2020-01-01'",
+            Some(1),
+        ),
+        // Removing used top score before percentile lets next-best level qualify.
+        (
+            "2026-11-02T06:00:00Z",
+            "INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at) VALUES(2,'2026-01-01',1,'2026-01-01T06:00Z','2026-01-02T06:00Z')",
+            Some(2),
+        ),
+        // Weekly appearances do not exclude daily candidates.
+        (
+            "2026-11-02T06:00:00Z",
+            "INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at) VALUES(0,'2026-w01',1,'2026-01-01T06:00Z','2026-01-08T06:00Z')",
+            Some(1),
+        ),
+        (
+            "2026-11-02T06:00:00Z",
+            "UPDATE public.level_item SET deleted=true WHERE id_level=1",
+            Some(2),
+        ),
+        (
+            "2026-11-02T06:00:00Z",
+            "UPDATE public.level_item SET publicly_visible=false WHERE id_level=1",
+            Some(2),
+        ),
+        (
+            "2026-11-02T06:00:00Z",
+            "UPDATE public.level SET publicly_visible=false WHERE id=1",
+            Some(2),
+        ),
+        (
+            "2026-11-02T06:00:00Z",
+            "UPDATE public.level_points SET points=0 WHERE id_level=1",
+            Some(2),
+        ),
+        (
+            "2026-11-02T06:00:00Z",
+            "UPDATE public.level SET date_created='2026-11-02T06:00Z' WHERE id=1",
+            Some(2),
+        ),
+        (
+            "2026-11-02T06:00:00Z",
+            "UPDATE public.level_item SET deleted=true",
+            None,
+        ),
+    ] {
+        clear_fixture(&mut connection).await?;
+        connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2020-01-01'),(true,'2026-09-03T06:00Z'),(true,'2026-09-03T05:59:59Z'); INSERT INTO public.level_points VALUES(1,1000000),(2,1000),(3,10); INSERT INTO public.level_item(id_level,publicly_visible,deleted) SELECT id,true,false FROM public.level").await?;
+        connection.batch_execute(extra).await?;
+        let rotation = rotate_track_tournament_at(&mut connection, 2, Some(at)).await?;
+        assert_eq!(rotation.created, expected.is_some(), "{at}: {extra}");
+        if let Some(expected) = expected {
+            let level = sql_query("SELECT id_level AS id FROM public.track_tournament WHERE id=$1")
+                .bind::<Integer, _>(rotation.id_tournament.unwrap())
+                .get_result::<IdRow>(&mut connection)
+                .await?;
+            assert_eq!(level.id, expected, "{at}: {extra}");
+            let repeated = rotate_track_tournament_at(&mut connection, 2, Some(at)).await?;
+            assert!(!repeated.created);
+            assert_eq!(repeated.id_tournament, rotation.id_tournament);
+        }
+    }
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn daily_recovery_scores_only_eligible_records_inside_period() -> Result<()> {
+    let mut connection = fixture().await?;
+    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2026-11-01'); INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false); INSERT INTO public.\"user\" VALUES(1,false),(2,false),(3,true),(4,false); INSERT INTO public.record VALUES(1,1,1,10,true,'2026-11-02T06:00Z'),(2,2,1,10,true,'2026-11-02T07:00Z'),(3,3,1,9,true,'2026-11-02T07:00Z'),(4,4,1,8,false,'2026-11-02T07:00Z'),(5,1,1,7,true,'2026-11-02T05:59:59Z'),(6,1,1,6,true,'2026-11-03T06:00Z')").await?;
+    let rotation =
+        rotate_track_tournament_at(&mut connection, 2, Some("2026-11-02T12:00Z")).await?;
+    let rows=sql_query("SELECT id_record AS id FROM public.track_tournament_result WHERE id_tournament=$1 ORDER BY id_record")
+        .bind::<Integer,_>(rotation.id_tournament.unwrap()).load::<IdRow>(&mut connection).await?;
+    assert_eq!(rows.iter().map(|r| r.id).collect::<Vec<_>>(), vec![1, 2]);
+    let valid = sql_query(
+        "SELECT bool_and(rank=1 AND points=1000) AS value FROM public.track_tournament_result",
+    )
+    .get_result::<BooleanRow>(&mut connection)
+    .await?;
+    assert!(valid.value);
+    rotate_track_tournament_at(&mut connection, 2, Some("2026-11-03T06:00Z")).await?;
+    let valid=sql_query("SELECT finalized_at='2026-11-03T06:00Z'::timestamptz AS value FROM public.track_tournament WHERE id=$1")
+        .bind::<Integer,_>(rotation.id_tournament.unwrap()).get_result::<BooleanRow>(&mut connection).await?;
+    assert!(valid.value);
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn daily_percentile_includes_all_cutoff_ties() -> Result<()> {
+    let mut connection = fixture().await?;
+    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) SELECT true,'2026-11-01' FROM generate_series(1,20); INSERT INTO public.level_points SELECT id,CASE WHEN id>=18 THEN 1000 ELSE id END FROM public.level; INSERT INTO public.level_item(id_level,publicly_visible,deleted) SELECT id,true,false FROM public.level").await?;
+    let prefix = TRACK_TOURNAMENT_SELECTION_SQL
+        .split("INSERT INTO public.track_tournament")
+        .next()
+        .unwrap();
+    let query = format!(
+        "{prefix} SELECT count(*)::integer AS id FROM eligible CROSS JOIN threshold WHERE eligible.points>=threshold.points"
+    );
+    let count = sql_query(query)
+        .bind::<Integer, _>(2)
+        .bind::<Text, _>("2026-11-02T06:00Z")
+        .get_result::<IdRow>(&mut connection)
+        .await?;
+    assert_eq!(count.id, 3, "ties can exceed top 10 percent");
     Ok(())
 }

@@ -1273,7 +1273,7 @@ export const trackTournament = pgTable(
 			foreignColumns: [level.id],
 			name: 'track_tournament_level_fkey',
 		}),
-		check('CK_track_tournament_type', sql`${table.type} IN (0, 1)`),
+		check('CK_track_tournament_type', sql`${table.type} IN (0, 1, 2)`),
 		check('CK_track_tournament_period', sql`${table.endAt} > ${table.startAt}`),
 		check('CK_track_tournament_points_version', sql`${table.pointsVersion} = 1`),
 		check(
@@ -1322,10 +1322,10 @@ export const trackTournamentOverallPeriod = pgTable(
 		}).notNull(),
 	},
 	(table) => [
-		check('track_tournament_overall_period_type_check', sql`${table.type} IN (0,1)`),
+		check('track_tournament_overall_period_type_check', sql`${table.type} IN (0,1,2)`),
 		check(
 			'track_tournament_overall_period_eligible_event_count_check',
-			sql`${table.eligibleEventCount} BETWEEN 0 AND CASE WHEN ${table.type}=0 THEN 12 ELSE 6 END`,
+			sql`${table.eligibleEventCount} BETWEEN 0 AND CASE WHEN ${table.type}=0 THEN 12 WHEN ${table.type}=2 THEN 30 ELSE 6 END`,
 		),
 		pgPolicy('graphql_select_overall_period', {
 			for: 'select',
@@ -2254,7 +2254,7 @@ export const discordGuildFeed = zcPrivate.table(
 		primaryKey({ columns: [table.guildId, table.kind] }),
 		check(
 			'CK_discord_guild_feed_kind',
-			sql`${table.kind} IN ('workshop', 'world_record', 'rank', 'totw', 'totm')`,
+			sql`${table.kind} IN ('workshop', 'world_record', 'rank', 'totw', 'totm', 'totd')`,
 		),
 		index('IX_discord_guild_feed_enabled').using(
 			'btree',

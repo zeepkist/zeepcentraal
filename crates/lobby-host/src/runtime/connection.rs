@@ -726,6 +726,9 @@ async fn sleep_until(deadline: Option<Instant>) {
 fn recovery_message(profile: &RoomProfile) -> String {
     let label = match profile {
         RoomProfile::TrackTournament {
+            tournament_type: TournamentType::Daily,
+        } => "Track of the Day",
+        RoomProfile::TrackTournament {
             tournament_type: TournamentType::Weekly,
         } => "Track of the Week",
         RoomProfile::TrackTournament {

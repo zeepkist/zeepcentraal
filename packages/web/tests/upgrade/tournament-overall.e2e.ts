@@ -12,6 +12,7 @@ async function waitForHydration(page: Page) {
 }
 
 for (const [root, label, count] of [
+	['totd', 'Daily', 30],
 	['totw', 'Weekly', 12],
 	['totm', 'Monthly', 6],
 ] as const) {
@@ -22,7 +23,7 @@ for (const [root, label, count] of [
 		await waitForHydration(page)
 		expect(response?.status()).toBe(200)
 		await expect(page.getByText(`${count} eligible events`, { exact: true })).toBeVisible()
-		const title = `Track of the ${root === 'totw' ? 'Week' : 'Month'} Overall Leaderboard`
+		const title = `Track of the ${root === 'totw' ? 'Week' : root === 'totd' ? 'Day' : 'Month'} Overall Leaderboard`
 		await expect(
 			page.getByRole('heading', { level: 1, name: title, exact: true }),
 		).toBeVisible()
@@ -168,4 +169,31 @@ test('overall pins authenticated viewer outside page and removes duplicate on vi
 	await expect(page.locator('tbody tr')).toHaveCount(1)
 	await expect(page.getByText('You', { exact: true })).toHaveCount(0)
 	await expect(page.getByRole('link', { name: 'Weekly player 51', exact: true })).toBeVisible()
+})
+
+test('totd index keeps daily route', async ({ page }) => {
+	const index = await page.goto('/totd')
+	await waitForHydration(page)
+	expect(index?.status()).toBe(200)
+	await expect(page).toHaveURL('/totd')
+	await expect(page).toHaveTitle(/Track of the Day/)
+})
+
+test('totd event, metadata, and playlist use daily routes', async ({ page, request }) => {
+	const detail = await page.goto('/totd/2026-11-11')
+	await waitForHydration(page)
+	expect(detail?.status()).toBe(200)
+	const preview = page.locator('script[id="discord:component-embed"]')
+	await expect(preview).toHaveCount(1)
+	await expect.poll(() => preview.textContent()).toContain('/totd/overall')
+	await expect.poll(() => preview.textContent()).toContain('Preview player 1')
+	const playlist = await request.get('/api/tournaments/playlist?type=2&slug=2026-11-11')
+	expect(playlist.status()).toBe(200)
+	expect(playlist.headers()['content-disposition']).toContain(
+		'zeepcentraal-totd-2026-11-11.zeeplist',
+	)
+	const invalidPlaylist = await request.get('/api/tournaments/playlist?type=2&slug=2026-02-29')
+	expect(invalidPlaylist.status()).toBe(400)
+	const invalidEvent = await request.get('/totd/2026-02-29')
+	expect(invalidEvent.status()).toBe(404)
 })

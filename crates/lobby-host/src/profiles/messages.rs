@@ -37,6 +37,7 @@ pub fn join_message(
     context: &TournamentLobbyPlayerContext,
 ) -> String {
     let (event, cadence, route) = match kind {
+        TournamentType::Daily => ("Track of the Day", "day", "totd"),
         TournamentType::Weekly => ("Track of the Week", "week", "totw"),
         TournamentType::Monthly => ("Track of the Month", "month", "totm"),
     };
@@ -139,6 +140,7 @@ pub fn standing_message(
     current: StandingResult,
 ) -> String {
     let label = match kind {
+        TournamentType::Daily => "Track of the Day",
         TournamentType::Weekly => "Track of the Week",
         TournamentType::Monthly => "Track of the Month",
     };
@@ -262,6 +264,7 @@ pub fn format_time(seconds: f32) -> String {
 
 fn tournament_period(kind: TournamentType, slug: &str) -> String {
     let fallback = || match kind {
+        TournamentType::Daily => format!("Track of the Day: {slug}"),
         TournamentType::Weekly => format!("Track of the Week: {slug}"),
         TournamentType::Monthly => format!("Track of the Month: {slug}"),
     };
@@ -347,6 +350,17 @@ fn gtr_version(value: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn daily_messages_use_daily_label_period_and_route() {
+        assert_eq!(
+            tournament_period(TournamentType::Daily, "2026-11-11"),
+            "Track of the Day: 2026-11-11"
+        );
+        let message = join_message(TournamentType::Daily, "Player One", &context());
+        assert!(message.contains("Track of the Day"));
+        assert!(message.contains("/totd"));
+    }
 
     #[test]
     fn literal_text_preserves_punctuation_unicode_and_entity_looking_names() {

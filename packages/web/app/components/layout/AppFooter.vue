@@ -81,6 +81,7 @@ const footerColumns = computed(() => [
 		children: [
 			internal(t('nav.adventure'), '/adventure', 'route'),
 			internal(t('nav.cosmetics'), '/cosmetics', 'palette'),
+			internal(t('nav.totd'), '/totd', 'calendar-event'),
 			internal(t('nav.totw'), '/totw', 'calendar-event'),
 			internal(t('nav.totm'), '/totm', 'calendar-stats'),
 			internal(t('nav.wiki'), '/wiki', 'book'),

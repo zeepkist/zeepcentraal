@@ -7,6 +7,12 @@ const ROTATION_PENDING_GRACE_MS = 5 * 60_000
 const TOURNAMENT_GHOST_LIMIT = 200
 
 export function nextTournamentBoundary(type: TrackTournamentType, at: Date): Date {
+	if (type === 2) {
+		const next = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), 6))
+		if (at.getTime() >= next.getTime() + ROTATION_PENDING_GRACE_MS)
+			next.setUTCDate(next.getUTCDate() + 1)
+		return next
+	}
 	if (type === 0) {
 		const next = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate(), 6))
 		if (
@@ -34,7 +40,7 @@ export function nextTournamentBoundary(type: TrackTournamentType, at: Date): Dat
 }
 
 export function tournamentPath(type: TrackTournamentType, slug?: string): string {
-	const root = type === 0 ? '/totw' : '/totm'
+	const root = type === 0 ? '/totw' : type === 2 ? '/totd' : '/totm'
 	return slug ? `${root}/${slug}` : root
 }
 
@@ -103,6 +109,13 @@ export function formatTournamentPeriod(
 	locale: string,
 	formatWeekly: (period: { year: number; week: number }) => string,
 ): string {
+	if (type === 2) {
+		return validTournamentSlug(type, slug)
+			? new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(
+					new Date(`${slug}T06:00:00Z`),
+				)
+			: slug
+	}
 	if (type === 0) {
 		const match = /^(\d{4})-w(\d{2})$/.exec(slug)
 		if (!match) return slug
@@ -132,4 +145,12 @@ export function formatTournamentDelta(time: number, fastestTime: number): string
 	const delta = Math.max(0, time - fastestTime)
 	if (delta < 0.0005) return null
 	return delta < 60 ? `+${delta.toFixed(3)}` : `+${formatTournamentTime(delta)}`
+}
+
+export function validTournamentSlug(type: TrackTournamentType, slug: string): boolean {
+	if (type === 0) return /^\d{4}-w(?:0[1-9]|[1-4]\d|5[0-3])$/.test(slug)
+	if (type === 1) return /^\d{4}-(?:0[1-9]|1[0-2])$/.test(slug)
+	if (!/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/.test(slug)) return false
+	const date = new Date(`${slug}T06:00:00Z`)
+	return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === slug
 }

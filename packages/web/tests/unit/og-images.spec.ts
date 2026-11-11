@@ -56,6 +56,8 @@ const routeEntries = [
 	['pages/terms.vue', 'Terms'],
 	['pages/totm/[slug].vue', 'TrackTournament', 1],
 	['pages/totm/index.vue', 'TrackTournament', 1],
+	['pages/totd/[slug].vue', 'TrackTournament', 2],
+	['pages/totd/index.vue', 'TrackTournament', 2],
 	['pages/totw/[slug].vue', 'TrackTournament', 0],
 	['pages/totw/index.vue', 'TrackTournament', 0],
 	['pages/user/[steamid].vue', 'UserDetail'],
@@ -122,7 +124,7 @@ describe('OG image component contracts', () => {
 			)
 
 			expect(componentPropContract(componentSource), component).toBe(
-				component === 'TrackTournament' ? 'slug:stringtype:0|1' : 'slug:string',
+				component === 'TrackTournament' ? 'slug:stringtype:0|1|2' : 'slug:string',
 			)
 			expect(componentSource, component).not.toMatch(/\buseRoute\s*\(/)
 			expect(componentSource, component).not.toMatch(/\bconst\s+slug\s*=/)

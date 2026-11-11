@@ -14,7 +14,7 @@ import {
 import { computed } from 'vue'
 import type { TrackTournamentType } from '~/types/tournament'
 import { getOgTournamentStatus } from '~/utils/ogImage'
-import { formatTournamentPeriod } from '~/utils/tournament'
+import { formatTournamentPeriod, validTournamentSlug } from '~/utils/tournament'
 
 export interface OgEventPlayer {
 	name: string
@@ -68,10 +68,6 @@ function parseCompositeSlug(slug: string, prefixes: readonly string[]): Array<nu
 	if (parts.length !== prefixes.length) return null
 	const values = parts.map((part, index) => parseSuperLeagueSlug(part, prefixes[index] ?? ''))
 	return values.every((value): value is number => value !== null) ? values : null
-}
-
-function validTournamentSlug(type: TrackTournamentType, slug: string): boolean {
-	return type === 0 ? /^\d{4}-w\d{2}$/.test(slug) : /^\d{4}-\d{2}$/.test(slug)
 }
 
 function mapTournament(node: Zc_TrackTournamentSummaryFragment | null | undefined) {
@@ -240,7 +236,7 @@ export function useOgSuperLeagueLevelData(slug: string) {
 }
 
 function trackTournamentLabel(type: TrackTournamentType): string {
-	return type === 0 ? 'Track of the Week' : 'Track of the Month'
+	return type === 0 ? 'Track of the Week' : type === 2 ? 'Track of the Day' : 'Track of the Month'
 }
 
 function trackTournamentView(
@@ -252,7 +248,11 @@ function trackTournamentView(
 	if (!tournament) {
 		return {
 			description:
-				type === 0 ? 'Weekly community competition' : 'Monthly community competition',
+				type === 0
+					? 'Weekly community competition'
+					: type === 2
+						? 'Daily community competition'
+						: 'Monthly community competition',
 			eyebrow: `${label} · No event`,
 			imageUrl: null,
 			metrics: [],
@@ -286,7 +286,7 @@ function trackTournamentView(
 
 export function useOgTrackTournamentData(type: TrackTournamentType, slug: string) {
 	const now = new Date()
-	const rootSlug = type === 0 ? 'totw' : 'totm'
+	const rootSlug = type === 0 ? 'totw' : type === 2 ? 'totd' : 'totm'
 	if (slug === rootSlug) {
 		const result = useQuery({
 			query: Zc_TrackTournamentIndexDocument,

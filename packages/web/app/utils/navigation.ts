@@ -13,6 +13,7 @@ export const navigationRouteFamilies: Readonly<Record<string, readonly string[]>
 	'/mods': ['/mods', '/mod'],
 	'/adventure': ['/adventure'],
 	'/cosmetics': ['/cosmetics', '/cosmetic'],
+	'/totd': ['/totd'],
 	'/totw': ['/totw'],
 	'/totm': ['/totm'],
 	'/wiki': ['/wiki'],
@@ -82,6 +83,11 @@ const mainNavItems: Omit<NavItem, 'prefetchOn'>[] = [
 		icon: 'route',
 	},
 	{
+		to: '/totd',
+		labelKey: 'nav.totd',
+		icon: 'calendar-event',
+	},
+	{
 		to: '/totw',
 		labelKey: 'nav.totw',
 		icon: 'calendar-event',
@@ -125,6 +131,7 @@ export const mainNav: NavItem[] = mainNavItems.map((item) => ({
 
 export const secondaryPages: PlaceholderPage[] = [
 	{ to: '/cosmetics', key: 'cosmetics', icon: 'palette' },
+	{ to: '/totd', key: 'totd', icon: 'calendar-event' },
 	{ to: '/totw', key: 'totw', icon: 'calendar-event' },
 	{ to: '/totm', key: 'totm', icon: 'calendar-stats' },
 	{ to: '/wiki/guides', key: 'guides', icon: 'book' },

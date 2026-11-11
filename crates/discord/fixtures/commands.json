@@ -51,6 +51,10 @@
 						"value": "rank"
 					},
 					{
+						"name": "Track of the Day",
+						"value": "totd"
+					},
+					{
 						"name": "Track of the Week",
 						"value": "totw"
 					},
@@ -176,6 +180,12 @@
 		],
 		"name": "user",
 		"description": "Get ZeepCentraal player information",
+		"type": 1
+	},
+	{
+		"options": [],
+		"name": "totd",
+		"description": "Show latest Track of the Day tournament",
 		"type": 1
 	},
 	{

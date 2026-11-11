@@ -142,7 +142,7 @@ test('lobby host config requires broker token only when enabled', () => {
 })
 
 test('lobby host file config validates multiple unique managed rooms', () => {
-	const room = (key: string, tournamentType: 'monthly' | 'weekly') => ({
+	const room = (key: string, tournamentType: 'monthly' | 'weekly' | 'daily') => ({
 		key,
 		profile: { type: 'track-tournament' as const, tournamentType },
 		room: { name: key, isPublic: true, maxPlayers: 64 },
@@ -154,9 +154,9 @@ test('lobby host file config validates multiple unique managed rooms', () => {
 	expect(
 		parseLobbyHostFileConfig({
 			version: 1,
-			rooms: [room('totw', 'weekly'), room('totm', 'monthly')],
+			rooms: [room('totd', 'daily'), room('totw', 'weekly'), room('totm', 'monthly')],
 		}).rooms,
-	).toHaveLength(2)
+	).toHaveLength(3)
 	expect(() =>
 		parseLobbyHostFileConfig({
 			version: 1,

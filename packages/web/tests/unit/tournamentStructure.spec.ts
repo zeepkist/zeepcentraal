@@ -8,6 +8,7 @@ function source(path: string) {
 describe('shared tournament web implementation', () => {
 	test('keeps weekly and monthly routes as parameter-only wrappers', () => {
 		for (const [root, type] of [
+			['totd', 2],
 			['totw', 0],
 			['totm', 1],
 		] as const) {
@@ -75,6 +76,7 @@ describe('shared tournament web implementation', () => {
 
 		expect(query).toContain('fragment ZC_TrackTournamentFeature')
 		expect(query).toContain('trackTournamentResults(first: 0)')
+		expect(dashboardQuery).toContain('activeDailyTournament: trackTournaments(')
 		expect(dashboardQuery).toContain('activeWeeklyTournament: trackTournaments(')
 		expect(dashboardQuery).toContain('activeMonthlyTournament: trackTournaments(')
 		expect(dashboardQuery).toMatch(/activeWeeklyTournament: trackTournaments\(\s*first: 1/)
@@ -163,7 +165,7 @@ describe('shared tournament web implementation', () => {
 		expect(query).toContain('orderBy: [START_AT_ASC, ID_ASC]')
 		expect(query).toContain('endAt: { greaterThan: $now }')
 		expect(composable).toContain('!includeNavigation || !tournament.value')
-		expect(event).toContain('v-if="detailPage && !navigationResult.fetching.value"')
+		expect(event).toContain('v-if="detailPage && navigationResult.data.value"')
 		expect(navigation).toContain('<TournamentCard')
 		expect(navigation).toContain(':to="tournamentPath(type)"')
 		expect(navigation).toContain('tournamentPath(props.type, props.navigation.next.slug)')

@@ -54,6 +54,20 @@ query ZC_DashboardCritical(
 	$viewerId: Int!
 	$includeViewer: Boolean!
 ) {
+	activeDailyTournament: trackTournaments(
+		first: 1
+		filter: {
+			type: { equalTo: 2 }
+			startAt: { lessThanOrEqualTo: $now }
+			endAt: { greaterThan: $now }
+			finalizedAt: { isNull: true }
+		}
+		orderBy: [START_AT_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_TrackTournamentFeature
+		}
+	}
 	activeWeeklyTournament: trackTournaments(
 		first: 1
 		filter: {

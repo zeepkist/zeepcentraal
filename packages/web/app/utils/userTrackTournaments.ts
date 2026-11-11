@@ -9,7 +9,7 @@ export function mapUserTrackTournamentResults(
 ): UserTrackTournamentResult[] {
 	return (connection?.edges ?? []).flatMap(({ node }) => {
 		const result = node.trackTournamentResults.nodes.find((row) => row.userId === userId)
-		if (!result || (node.type !== 0 && node.type !== 1)) return []
+		if (!result || (node.type !== 0 && node.type !== 1 && node.type !== 2)) return []
 		const item = node.level?.levelItems.nodes[0]
 		return [
 			{

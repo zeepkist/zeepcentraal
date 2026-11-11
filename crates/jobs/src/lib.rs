@@ -447,7 +447,7 @@ impl TaskIdentifier {
             Self::RotateTrackTournament => object
                 .get("type")
                 .and_then(serde_json::Value::as_i64)
-                .is_some_and(|value| matches!(value, 0 | 1)),
+                .is_some_and(|value| matches!(value, 0 | 1 | 2)),
             Self::BackfillRecordGhostStatisticsBatch => positive_ids("ids", 500),
             Self::UpdateLevelPointsHistoryBatch | Self::UpdateUserPointsHistoryBatch => {
                 positive_ids("ids", usize::MAX)
@@ -542,6 +542,22 @@ fn valid_audit_ids(value: &serde_json::Value, allow_empty: bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::TaskIdentifier;
+
+    #[test]
+    fn tournament_rotation_accepts_daily_type_without_other_payload_changes() {
+        let task = TaskIdentifier::RotateTrackTournament;
+        for kind in [0, 1, 2] {
+            assert!(task.validate_payload(&serde_json::json!({"type":kind})));
+        }
+        for payload in [
+            serde_json::json!({"type":3}),
+            serde_json::json!({"type":-1}),
+            serde_json::json!({"type":"2"}),
+            serde_json::json!({}),
+        ] {
+            assert!(!task.validate_payload(&payload));
+        }
+    }
 
     #[test]
     fn timing_recovery_is_an_explicit_boolean_and_survives_continuation() {

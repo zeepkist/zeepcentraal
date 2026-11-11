@@ -171,6 +171,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 	const viewerStanding = computed(() => latestSeason.value?.zslSeasonResults.nodes[0])
 	const activeTournaments = computed(() =>
 		[
+			criticalQuery.data.value?.activeDailyTournament?.nodes[0],
 			criticalQuery.data.value?.activeWeeklyTournament?.nodes[0],
 			criticalQuery.data.value?.activeMonthlyTournament?.nodes[0],
 		]

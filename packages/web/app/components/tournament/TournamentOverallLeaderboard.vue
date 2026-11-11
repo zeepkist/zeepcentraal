@@ -21,10 +21,10 @@ const paginationLabels = computed(() => ({
 	nextLabel: t('common.next'), lastLabel: t('common.last'),
 }))
 useDiscordComponentEmbed(() => ({
-	title: `Track of the ${props.type === 0 ? 'Week' : 'Month'} | Overall standings`,
+	title: `Track of the ${props.type === 0 ? 'Week' : props.type === 2 ? 'Day' : 'Month'} | Overall standings`,
 	description: period.value ? `${period.value.eligibleEventCount} eligible events | ${periodLabel.value} | Updated ${updatedLabel.value}` : undefined,
 	rows: result.error.value ? undefined : result.data.value?.standings?.nodes.slice(0, 3).map(discordStandingRow),
-	links: [{ label: 'Current event', url: props.type === 0 ? '/totw' : '/totm' }],
+	links: [{ label: 'Current event', url: props.type === 0 ? '/totw' : props.type === 2 ? '/totd' : '/totm' }],
 }))
 await prefetch()
 </script>
@@ -43,7 +43,7 @@ await prefetch()
 				</div>
 				<div class="min-w-0">
 					<dt class="flex items-center gap-2 text-muted-foreground"><TablerIcon name="clock" class="size-4 shrink-0" aria-hidden="true" />{{ t('tournaments.overall.rotation') }}</dt>
-					<dd class="mt-2 font-medium text-foreground">{{ t(type === 0 ? 'tournaments.overall.weeklySchedule' : 'tournaments.overall.monthlySchedule') }}</dd>
+					<dd class="mt-2 font-medium text-foreground">{{ t(type === 0 ? 'tournaments.overall.weeklySchedule' : type === 2 ? 'tournaments.overall.dailySchedule' : 'tournaments.overall.monthlySchedule') }}</dd>
 				</div>
 				<div class="min-w-0">
 					<dt class="flex items-center gap-2 text-muted-foreground"><TablerIcon name="rotate-clockwise-2" class="size-4 shrink-0" aria-hidden="true" />{{ t('tournaments.overall.updated') }}</dt>

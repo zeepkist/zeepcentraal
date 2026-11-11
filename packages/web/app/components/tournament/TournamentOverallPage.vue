@@ -4,7 +4,7 @@ import type { TrackTournamentType } from '~/types/tournament'
 const props = defineProps<{ type: TrackTournamentType; title: string }>()
 const { t } = useAppI18n()
 const pageTitle = computed(() => t('tournaments.overall.pageTitle', { title: props.title }))
-const description = computed(() => t(props.type === 0 ? 'tournaments.overall.weeklyWindow' : 'tournaments.overall.monthlyWindow'))
+const description = computed(() => t(props.type === 0 ? 'tournaments.overall.weeklyWindow' : props.type === 2 ? 'tournaments.overall.dailyWindow' : 'tournaments.overall.monthlyWindow'))
 useSeoMeta({
 	title: () => pageTitle.value,
 	description: () => description.value,

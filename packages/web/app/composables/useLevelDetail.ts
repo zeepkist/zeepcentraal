@@ -296,8 +296,13 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 							? [{ label: 'Workshop', url: `/workshop/${summary.value.workshopId}` }]
 							: []),
 						...tournamentFeatures.value.map((event) => ({
-							label: event.type === 0 ? 'Track of the Week' : 'Track of the Month',
-							url: `/${event.type === 0 ? 'totw' : 'totm'}/${event.slug}`,
+							label:
+								event.type === 0
+									? 'Track of the Week'
+									: event.type === 2
+										? 'Track of the Day'
+										: 'Track of the Month',
+							url: `/${event.type === 0 ? 'totw' : event.type === 2 ? 'totd' : 'totm'}/${event.slug}`,
 						})),
 					],
 				}

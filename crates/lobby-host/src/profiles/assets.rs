@@ -35,7 +35,10 @@ impl TournamentAssets {
         storage: Arc<dyn ObjectStorage>,
         tournament_type: i32,
     ) -> Result<Self> {
-        ensure!(matches!(tournament_type, 0 | 1), "Invalid tournament type");
+        ensure!(
+            matches!(tournament_type, 0 | 1 | 2),
+            "Invalid tournament type"
+        );
         Ok(Self {
             database,
             storage,

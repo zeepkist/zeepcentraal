@@ -64,8 +64,8 @@ useDiscordComponentEmbed(() => ({
 	image: pagination.isFirstPage.value ? active.value?.level.imageUrl ?? future.value?.level.imageUrl : history.value[0]?.level.imageUrl,
 	rows: result.error.value ? undefined : pagination.isFirstPage.value && active.value
 		? active.value.podium.slice(0, 3).map(discordStandingRow)
-		: history.value.slice(0, 3).map((event) => ({ name: `${event.slug} | ${event.level.name}`, url: `/${props.type === 0 ? 'totw' : 'totm'}/${event.slug}`, value: `${event.participantCount} competitors` })),
-	links: [{ label: 'Overall standings', url: props.type === 0 ? '/totw/overall' : '/totm/overall' }],
+		: history.value.slice(0, 3).map((event) => ({ name: `${event.slug} | ${event.level.name}`, url: `/${props.type === 0 ? 'totw' : props.type === 2 ? 'totd' : 'totm'}/${event.slug}`, value: `${event.participantCount} competitors` })),
+	links: [{ label: 'Overall standings', url: props.type === 0 ? '/totw/overall' : props.type === 2 ? '/totd/overall' : '/totm/overall' }],
 }))
 const paginationLabels = computed(() => ({
 	label: t('common.pagination'),

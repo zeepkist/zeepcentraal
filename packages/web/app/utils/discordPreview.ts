@@ -69,7 +69,7 @@ export const DISCORD_EMBED_LIMIT = 3000
 
 export function discordNavigation(path: string): NonNullable<DiscordPreview['links']> {
 	const root = path.split('/')[1]
-	if (root === 'totw' || root === 'totm')
+	if (root === 'totw' || root === 'totm' || root === 'totd')
 		return [
 			{ label: 'Overall standings', url: `/${root}/overall` },
 			{ label: 'Current event', url: `/${root}` },

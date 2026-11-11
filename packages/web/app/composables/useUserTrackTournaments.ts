@@ -26,7 +26,10 @@ export function useUserTrackTournaments(
 ) {
 	const { client } = useClientHandle()
 	const loading = new Set<string>()
-	const pagination = useCursorPagination(6, type === 0 ? 'userTotw' : 'userTotm')
+	const pagination = useCursorPagination(
+		6,
+		type === 0 ? 'userTotw' : type === 2 ? 'userTotd' : 'userTotm',
+	)
 	const now = useState('user-track-tournament-now', () => new Date().toISOString())
 	const snapshots = useState<Record<string, TournamentSnapshot>>(
 		'user-track-tournament-snapshots',

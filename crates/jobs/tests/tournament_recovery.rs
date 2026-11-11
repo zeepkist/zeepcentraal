@@ -82,6 +82,15 @@ async fn scheduler_startup_and_concurrent_rotation_recover_current_period() -> R
     assert_eq!(winner.id, record);
     drop(connection);
 
+    let (daily_first, daily_second) = tokio::join!(
+        database.rotate_track_tournament(2),
+        database.rotate_track_tournament(2)
+    );
+    let (daily_first, daily_second) = (daily_first?, daily_second?);
+    assert_ne!(daily_first.created, daily_second.created);
+    assert_eq!(daily_first.id_tournament, daily_second.id_tournament);
+    assert_ne!(daily_first.id_tournament, first.id_tournament);
+
     // Restart leadership within the same minute: stable keys must coalesce.
     for _ in 0..2 {
         let before = sql_query("SELECT coalesce(max(xmin::text::bigint),0)::bigint AS count FROM zc_jobs.job WHERE task='rotateTrackTournament'")
@@ -105,7 +114,7 @@ async fn scheduler_startup_and_concurrent_rotation_recover_current_period() -> R
                 }
                 let progress = sql_query("SELECT count(*)::bigint AS count,coalesce(min(xmin::text::bigint),0)::bigint AS version FROM zc_jobs.job WHERE task='rotateTrackTournament'")
                     .get_result::<Progress>(&mut connection).await?;
-                if progress.count == 2 && progress.version > before { return Ok::<_,anyhow::Error>(()); }
+                if progress.count == 3 && progress.version > before { return Ok::<_,anyhow::Error>(()); }
                 drop(connection);
                 tokio::time::sleep(Duration::from_millis(20)).await;
             }

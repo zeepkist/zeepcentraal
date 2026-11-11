@@ -1,6 +1,6 @@
 import type { GhostRecordSource } from './ghost'
 
-export type TrackTournamentType = 0 | 1
+export type TrackTournamentType = 0 | 1 | 2
 
 export type UserTrackTournamentResult = {
 	id: number

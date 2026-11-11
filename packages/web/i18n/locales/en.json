@@ -110,6 +110,7 @@
 		"playlist": "Playlist Builder",
 		"mods": "Mods",
 		"records": "Live Records",
+		"totd": "Track of the Day",
 		"totm": "Track of the Month",
 		"totw": "Track of the Week",
 		"users": "Player Rankings",
@@ -347,6 +348,8 @@
 			"navigation": "Tournament leaderboards",
 			"pageTitle": "{title} Overall Leaderboard",
 			"events": "Events",
+			"dailyWindow": "Points from the last 30 completed daily tournaments.",
+			"dailySchedule": "Daily, 06:00 UTC",
 			"weeklyWindow": "Points from the last 12 completed weekly tournaments.",
 			"monthlyWindow": "Points from the last 6 completed monthly tournaments.",
 			"weeklySchedule": "Monday, 06:00 UTC",
@@ -366,9 +369,9 @@
 		"endDate": "End Date",
 		"finalized": "Final Results",
 		"features": {
-			"activeDescription": "Race the current weekly and monthly tournament levels and submit your best time to appear on the live leaderboard.",
+			"activeDescription": "Race the current daily, weekly and monthly tournament levels and submit your best time to appear on the live leaderboard.",
 			"activeTitle": "Active Time Attack Tournaments",
-			"levelDescription": "Explore this level’s Track of the Week and Track of the Month appearances.",
+			"levelDescription": "Explore this level’s Track of the Day, Track of the Week and Track of the Month appearances.",
 			"levelTitle": "Tournament appearances"
 		},
 		"ghosts": {
@@ -637,6 +640,9 @@
 				"title": "Terms & Conditions"
 			},
 			"title": "Terms & Conditions"
+		},
+		"totd": {
+			"title": "Track of the Day"
 		},
 		"totw": {
 			"title": "Track of the Week"
@@ -1304,6 +1310,7 @@
 				"noResults": "This player did not enter this season."
 			},
 			"trackTournaments": {
+				"dailyDescription": "Daily tournament standings and results.",
 				"weeklyDescription": "Weekly tournament standings and results.",
 				"monthlyDescription": "Monthly tournament standings and results.",
 				"noResults": "This player has not entered any tournaments yet.",

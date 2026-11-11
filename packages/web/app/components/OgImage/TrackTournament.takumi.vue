@@ -18,7 +18,7 @@
 <script setup lang="ts">
 const props = defineProps<{
 	slug: string
-	type: 0 | 1
+	type: 0 | 1 | 2
 }>()
 
 const { data, prefetch } = useOgTrackTournamentData(props.type, props.slug)

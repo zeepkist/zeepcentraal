@@ -26,7 +26,7 @@ const managedRoomSchema = z.strictObject({
 	profile: z.discriminatedUnion('type', [
 		z.strictObject({
 			type: z.literal('track-tournament'),
-			tournamentType: z.enum(['weekly', 'monthly']),
+			tournamentType: z.enum(['weekly', 'monthly', 'daily']),
 		}),
 		z.strictObject({
 			type: z.literal('zsl-submissions'),

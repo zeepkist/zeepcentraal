@@ -109,7 +109,7 @@ export function applyDiscordFixtures(
 	}
 	if (
 		query.includes('query ZC_TrackTournamentDetail(') &&
-		['2026-w01', '2026-01'].includes(String(variables.slug))
+		['2026-w01', '2026-01', '2026-11-11'].includes(String(variables.slug))
 	)
 		data.tournament = {
 			id: 777,

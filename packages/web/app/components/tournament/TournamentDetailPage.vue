@@ -6,12 +6,13 @@
 
 <script setup lang="ts">
 import type { TrackTournamentType } from '~/types/tournament'
+import { validTournamentSlug } from '~/utils/tournament'
 
-defineProps<{ type: TrackTournamentType; title: string }>()
-const route = useRoute<'totm-slug' | 'totw-slug'>()
+const props = defineProps<{ type: TrackTournamentType; title: string }>()
+const route = useRoute<'totm-slug' | 'totw-slug' | 'totd-slug'>()
 const rawSlug = route.params.slug
 const slug =
-	typeof rawSlug === 'string' && /^[0-9]{4}-(?:w[0-9]{2}|[0-9]{2})$/.test(rawSlug)
+	typeof rawSlug === 'string' && validTournamentSlug(props.type, rawSlug)
 		? rawSlug
 		: null
 if (!slug) throw createError({ statusCode: 404, statusMessage: 'Tournament not found' })

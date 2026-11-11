@@ -98,14 +98,16 @@ describe('paginated sitemaps', () => {
 		expect(config).toContain("'/settings': { robots: false, sitemap: false }")
 		expect(config).toContain("disallow: ['/records/me', '/settings']")
 		expect(config).toContain("'/adventure': { sitemap: false }")
-		expect(config).toContain("'/totd': { sitemap: false }")
+		expect(config).not.toContain("'/totd': { sitemap: false }")
 		expect(config).toContain('urls: ADVENTURE_SERIES.map')
 	})
 
-	test('maps tournaments only to TOTW and TOTM route helper', () => {
+	test('maps daily, weekly and monthly tournaments route helper', () => {
 		const implementation = source('server/utils/sitemap.ts')
 		expect(implementation).toContain("case 'tournaments'")
-		expect(implementation).toContain('tournament.type !== 0 && tournament.type !== 1')
+		expect(implementation).toContain(
+			'tournament.type !== 0 && tournament.type !== 1 && tournament.type !== 2',
+		)
 		expect(implementation).toContain('tournamentPath(tournament.type, tournament.slug)')
 	})
 })

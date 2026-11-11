@@ -15,7 +15,14 @@ import {
 	user,
 } from '../schema'
 
-export const DISCORD_FEED_KINDS = ['workshop', 'world_record', 'rank', 'totw', 'totm'] as const
+export const DISCORD_FEED_KINDS = [
+	'workshop',
+	'world_record',
+	'rank',
+	'totw',
+	'totm',
+	'totd',
+] as const
 export type DiscordFeedKind = (typeof DISCORD_FEED_KINDS)[number]
 export const DISCORD_WATCH_KINDS = ['player', 'level', 'author', 'tournament'] as const
 export type DiscordWatchKind = (typeof DISCORD_WATCH_KINDS)[number]

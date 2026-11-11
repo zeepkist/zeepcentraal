@@ -15,6 +15,8 @@ pub(crate) fn container_components(
 ) -> Vec<CreateContainerComponent<'static>> {
     let (name, route, label) = if snapshot.tournament_type == 0 {
         ("Track of the Week", "totw", "TOTW")
+    } else if snapshot.tournament_type == 2 {
+        ("Track of the Day", "totd", "TOTD")
     } else {
         ("Track of the Month", "totm", "TOTM")
     };
@@ -109,6 +111,29 @@ pub(crate) mod tests {
             "-# ZeepCentraal",
         ))
         .unwrap()
+    }
+
+    #[test]
+    fn daily_render_links_to_daily_event_and_playlist() {
+        let mut snapshot = snapshot();
+        snapshot.tournament_type = 2;
+        snapshot.tournament_slug = "2026-11-11".into();
+        let value = render(&snapshot);
+        assert!(
+            value[0]["components"][0]["content"]
+                .as_str()
+                .unwrap()
+                .contains("Track of the Day • 2026-11-11")
+        );
+        assert_eq!(
+            value[2]["components"][0]["url"],
+            "https://zeepki.st/totd/2026-11-11"
+        );
+        assert_eq!(value[2]["components"][0]["label"], "Open TOTD");
+        assert_eq!(
+            value[2]["components"][1]["url"],
+            "https://zeepki.st/api/tournaments/playlist?type=2&slug=2026-11-11"
+        );
     }
 
     #[test]

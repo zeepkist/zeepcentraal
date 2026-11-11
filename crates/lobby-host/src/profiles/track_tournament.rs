@@ -45,6 +45,7 @@ impl TrackTournamentProfile {
         tournament_type: TournamentType,
     ) -> Result<Self> {
         let kind = match tournament_type {
+            TournamentType::Daily => 2,
             TournamentType::Weekly => 0,
             TournamentType::Monthly => 1,
         };
@@ -62,6 +63,7 @@ impl TrackTournamentProfile {
 impl LobbyProfile for TrackTournamentProfile {
     fn name(&self) -> &str {
         match self.tournament_type {
+            TournamentType::Daily => "track-tournament.daily",
             TournamentType::Weekly => "track-tournament.weekly",
             TournamentType::Monthly => "track-tournament.monthly",
         }

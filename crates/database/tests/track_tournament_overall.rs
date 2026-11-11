@@ -226,3 +226,111 @@ async fn refresh_serializes_and_committed_cache_survives_new_connections() -> Re
     client.batch_execute("DROP TABLE public.track_tournament_result,public.track_tournament,public.record,public.level,public.\"user\"; DROP SCHEMA zc_private").await?;
     result
 }
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local track_tournament_overall_test database"]
+async fn daily_migration_window_permissions_and_destructive_rollback() -> Result<()> {
+    let _guard = TEST_LOCK.lock().await;
+    let mut client = connect().await?;
+    let tx = client.transaction().await?;
+    tx.batch_execute(FIXTURE).await?;
+    tx.batch_execute(UP).await?;
+    tx.batch_execute("ALTER TABLE public.track_tournament ADD COLUMN slug text; ALTER TABLE public.track_tournament ADD CONSTRAINT \"CK_track_tournament_type\" CHECK(type IN(0,1)); CREATE TABLE zc_private.discord_guild_feed(kind text CONSTRAINT \"CK_discord_guild_feed_kind\" CHECK(kind IN('workshop','world_record','rank','totw','totm'))); CREATE TABLE zc_private.discord_watch(kind text,target_id text)").await?;
+    tx.batch_execute(include_str!(
+        "../migrations/20261111010000_track_of_the_day/up.sql"
+    ))
+    .await?;
+    assert_eq!(
+        tx.query_one(
+            "SELECT eligible_event_count FROM public.track_tournament_overall_period WHERE type=2",
+            &[]
+        )
+        .await?
+        .get::<_, i32>(0),
+        0
+    );
+    tx.batch_execute("INSERT INTO public.track_tournament(id,type,id_level,start_at,end_at,slug) SELECT 100+i,2,i+1,'2026-01-01T06:00Z'::timestamptz+i*interval '1 day','2026-01-02T06:00Z'::timestamptz+i*interval '1 day',to_char('2026-01-01'::date+i,'YYYY-MM-DD') FROM generate_series(0,31) i; INSERT INTO public.track_tournament_result SELECT id,1,1,1000 FROM public.track_tournament WHERE type=2; UPDATE public.track_tournament SET finalized_at=end_at WHERE type=2; INSERT INTO public.track_tournament(id,type,id_level,start_at,end_at,finalized_at) VALUES(132,2,33,'2026-02-02T06:00Z','2026-02-03T06:00Z','2026-02-03T06:00Z')").await?;
+    assert_eq!(
+        tx.query_one(
+            "SELECT eligible_event_count FROM public.track_tournament_overall_period WHERE type=2",
+            &[]
+        )
+        .await?
+        .get::<_, i32>(0),
+        30
+    );
+    assert_eq!(tx.query_one("SELECT total_points FROM public.track_tournament_overall_standing WHERE type=2 AND id_user=1",&[]).await?.get::<_,i32>(0),30000);
+    // Visibility changes remove points without restoring an older event.
+    tx.batch_execute("UPDATE public.level SET publicly_visible=false WHERE id=32")
+        .await?;
+    assert_eq!(tx.query_one("SELECT total_points FROM public.track_tournament_overall_standing WHERE type=2 AND id_user=1",&[]).await?.get::<_,i32>(0),29000);
+    tx.batch_execute("UPDATE public.level SET publicly_visible=true WHERE id=32; DELETE FROM public.track_tournament_result WHERE id_tournament=131").await?;
+    assert!(
+        tx.query_one(
+            "SELECT overall_competitive FROM public.track_tournament WHERE id=131",
+            &[]
+        )
+        .await?
+        .get::<_, bool>(0)
+    );
+    assert_eq!(tx.query_one("SELECT total_points FROM public.track_tournament_overall_standing WHERE type=2 AND id_user=1",&[]).await?.get::<_,i32>(0),29000);
+    for (kind, points) in [(0, 12000), (1, 6000)] {
+        assert_eq!(tx.query_one("SELECT total_points FROM public.track_tournament_overall_standing WHERE type=$1 AND id_user=1",&[&kind]).await?.get::<_,i32>(0),points);
+    }
+    tx.batch_execute("SET LOCAL ROLE zeepcentraal_graphql")
+        .await?;
+    assert_eq!(
+        tx.query_one(
+            "SELECT count(*) FROM public.track_tournament_overall_period WHERE type=2",
+            &[]
+        )
+        .await?
+        .get::<_, i64>(0),
+        1
+    );
+    assert!(!tx.query_one("SELECT has_function_privilege(current_user,'zc_private.refresh_track_tournament_overall(integer)','EXECUTE')",&[]).await?.get::<_,bool>(0));
+    assert!(!tx.query_one("SELECT has_table_privilege(current_user,'public.track_tournament_overall_standing','UPDATE')",&[]).await?.get::<_,bool>(0));
+    tx.batch_execute("RESET ROLE; INSERT INTO zc_private.discord_guild_feed VALUES('totd'),('totw'); INSERT INTO zc_private.discord_watch VALUES('tournament','totd'),('tournament','100'),('tournament','2026-01-01'),('tournament','totw')").await?;
+    tx.batch_execute(include_str!(
+        "../migrations/20261111010000_track_of_the_day/down.sql"
+    ))
+    .await?;
+    assert_eq!(
+        tx.query_one(
+            "SELECT count(*) FROM public.track_tournament WHERE type=2",
+            &[]
+        )
+        .await?
+        .get::<_, i64>(0),
+        0
+    );
+    assert_eq!(
+        tx.query_one("SELECT count(*) FROM zc_private.discord_guild_feed", &[])
+            .await?
+            .get::<_, i64>(0),
+        1
+    );
+    assert_eq!(
+        tx.query_one("SELECT count(*) FROM zc_private.discord_watch", &[])
+            .await?
+            .get::<_, i64>(0),
+        1
+    );
+    assert_eq!(
+        tx.query_one(
+            "SELECT count(*) FROM public.track_tournament_overall_period",
+            &[]
+        )
+        .await?
+        .get::<_, i64>(0),
+        2
+    );
+    tx.batch_execute("SAVEPOINT reject_daily").await?;
+    assert!(
+        tx.batch_execute("INSERT INTO zc_private.discord_guild_feed VALUES('totd')")
+            .await
+            .is_err()
+    );
+    tx.batch_execute("ROLLBACK TO reject_daily").await?;
+    Ok(())
+}

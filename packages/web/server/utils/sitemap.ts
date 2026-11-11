@@ -88,7 +88,8 @@ export async function fetchSitemapPage(group: SitemapGroup, page: number): Promi
 			})
 			return (
 				data.trackTournaments?.nodes.flatMap((tournament) => {
-					if (tournament.type !== 0 && tournament.type !== 1) return []
+					if (tournament.type !== 0 && tournament.type !== 1 && tournament.type !== 2)
+						return []
 					return [
 						{
 							loc: tournamentPath(tournament.type, tournament.slug),

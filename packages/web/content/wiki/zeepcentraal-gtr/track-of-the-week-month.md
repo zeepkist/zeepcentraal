@@ -1,23 +1,40 @@
 ---
-title: Track of the Week/Month
-description: When featured tracks change and how ZeepCentraal chooses them.
+title: Track of the Day/Week/Month
+description: Featured tracks, selection rules and overall leaderboards.
 editPath: wiki/zeepcentraal-gtr/track-of-the-week-month.md
 ---
 
-[Track of the Week](/totw) and [Track of the Month](/totm) each feature one community level for players to race. ZeepCentraal chooses a new track at these times:
+Race a featured community level each day, week or month. Set your best time during the event to earn leaderboard points.
 
-| Feature | Starts | How recently the level must have been added to ZeepCentraal |
-| --- | --- | --- |
-| Track of the Week | Monday, 06:00 UTC | Previous 12 weeks (84 days) |
-| Track of the Month | First day of each month, 06:00 UTC | Previous six calendar months |
+All tracks change at **06:00 UTC**. Levels must be public on ZeepCentraal and Steam Workshop, still available and have more than zero [Level Points](/wiki/zeepcentraal-gtr/level-points).
 
-## How a level enters the draw
+Picks are random from the highest-scoring eligible levels. A level can appear once in each format, but never twice in the same format.
 
-1. **Check the level's age.** Weekly tracks must have been added to ZeepCentraal in the previous 12 weeks; monthly tracks in the previous six calendar months. Age is measured from when ZeepCentraal first saved that version of the level. Uploading it to Steam Workshop does not start this clock. Levels added at or after the event's start wait for a later selection.
-2. **Check that players can find it.** The level must be visible on ZeepCentraal, have a Workshop listing that is still available and visible on ZeepCentraal, and have more than zero [Level Points](/wiki/zeepcentraal-gtr/level-points).
-3. **Keep the highest-scoring levels.** ZeepCentraal sets a points cutoff for the **top 5%** of levels that passed the first two checks. Levels at or above that cutoff enter the draw. Tied scores are included, so sometimes more than 5% qualify.
-4. **Remove tracks already featured, then pick at random.** A track cannot be Track of the Week twice or Track of the Month twice. It can be featured once in each. Every remaining track in the draw has a chance; the track with the most points does not automatically win.
+## Track of the Day
 
-The points cutoff is worked out **before** previously featured tracks are removed. If no track remains after these checks, no new event is created for that week or month.
+[Play TOTD](/totd) or view [Overall standings](/totd/overall)
 
-See the [FAQ](/wiki/zeepcentraal-gtr/faq) for how ZeepCentraal finds Workshop levels and when players can see them.
+A new track **every day**, picked from the **top 10% of levels not previously featured in TOTD**:
+
+- **Even dates** (2nd, 4th, 6th, etc.): levels of any age.
+- **Odd dates** (1st, 3rd, 5th, etc.): levels discovered in the past **two months**. If none qualify, older levels can be picked.
+
+Overall standings cover the last **30 completed events**.
+
+## Track of the Week
+
+[Play TOTW](/totw) or view [Overall standings](/totw/overall)
+
+A new track **every Monday**, picked from the **top 5%** of levels discovered in the past **12 weeks**.
+
+Overall standings cover the last **12 completed events**.
+
+## Track of the Month
+
+[Play TOTM](/totm) or view [Overall standings](/totm/overall)
+
+A new track on the **first day of each month**, picked from the **top 5%** of levels discovered in the past **six months**.
+
+Overall standings cover the last **six completed events**.
+
+Level age starts when ZeepCentraal first discovers it. Events with no entries do not count toward overall standings. All three formats use the same points system.

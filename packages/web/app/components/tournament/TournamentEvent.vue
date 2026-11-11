@@ -224,7 +224,7 @@
 				/>
 			</template>
 			<TournamentNavigation
-				v-if="detailPage && !navigationResult.fetching.value"
+				v-if="detailPage && navigationResult.data.value"
 				:type="type"
 				:navigation="navigation"
 			/>
@@ -322,9 +322,9 @@ useDiscordComponentEmbed(() => props.detailPage && tournament.value ? {
 	image: tournament.value.level.imageUrl,
 	rows: result.error.value ? undefined : standings.value.filter((row) => !row.pinned).slice(0, 3).map(discordStandingRow),
 	links: [
-		{ label: 'Overall standings', url: props.type === 0 ? '/totw/overall' : '/totm/overall' },
+		{ label: 'Overall standings', url: props.type === 0 ? '/totw/overall' : props.type === 2 ? '/totd/overall' : '/totm/overall' },
 		{ label: 'View level', url: `/level/${tournament.value.level.xxHash}` },
-		{ label: 'Events', url: props.type === 0 ? '/totw' : '/totm' },
+		{ label: 'Events', url: props.type === 0 ? '/totw' : props.type === 2 ? '/totd' : '/totm' },
 	],
 } : undefined)
 const { supporters } = useSupporterBadges()

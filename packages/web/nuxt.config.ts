@@ -164,7 +164,6 @@ export default defineNuxtConfig({
 		'/settings': { robots: false, sitemap: false },
 		'/settings/**': { robots: false, sitemap: false },
 		'/sitemaps/**': { swr: 600 },
-		'/totd': { sitemap: false },
 	},
 	vite: {
 		resolve: { dedupe: ['vue', 'pinia'] },

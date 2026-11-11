@@ -38,6 +38,7 @@ describe('user profile layout', () => {
 		const sidebarIds = [
 			'profile-summary',
 			'profile-super-league',
+			'profile-totd',
 			'profile-totw',
 			'profile-totm',
 			'profile-achievements',

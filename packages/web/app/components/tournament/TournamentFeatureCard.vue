@@ -72,7 +72,7 @@ const targetRoute = computed(() =>
 	tournamentPath(props.tournament.type, props.tournament.slug),
 )
 const formatName = computed(() =>
-	t(props.tournament.type === 0 ? 'pages.totw.title' : 'pages.totm.title'),
+	t(props.tournament.type === 0 ? 'pages.totw.title' : props.tournament.type === 2 ? 'pages.totd.title' : 'pages.totm.title'),
 )
 const periodLabel = computed(() =>
 	formatTournamentPeriod(

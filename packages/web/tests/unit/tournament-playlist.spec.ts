@@ -104,7 +104,7 @@ describe('tournament playlist request handling', () => {
 
 	test('rejects ambiguous or non-canonical scopes', () => {
 		expect(() => parseTournamentPlaylistQuery({ slug: '2026-w30' })).toThrow()
-		expect(() => parseTournamentPlaylistQuery({ type: '2' })).toThrow()
+		expect(() => parseTournamentPlaylistQuery({ type: '3' })).toThrow()
 		expect(() => parseTournamentPlaylistQuery({ type: '0', slug: '2026-07' })).toThrow()
 		expect(() => parseTournamentPlaylistQuery({ type: '1', slug: '2026-13' })).toThrow()
 	})
@@ -120,4 +120,18 @@ describe('tournament playlist request handling', () => {
 		expect(afterValues).toEqual([undefined, 'next'])
 		expect(nodes).toEqual(['same', 'same'])
 	})
+})
+
+test('daily playlists preserve date scope and reject impossible dates', () => {
+	expect(parseTournamentPlaylistQuery({ type: '2', slug: '2028-02-29' })).toEqual({
+		type: 2,
+		slug: '2028-02-29',
+	})
+	expect(tournamentPlaylistIdentity({ type: 2, slug: '2026-11-11' })).toEqual({
+		filename: 'zeepcentraal-totd-2026-11-11.zeeplist',
+		name: 'ZeepCentraal Track of the Day November 11, 2026',
+	})
+	expect(() => parseTournamentPlaylistQuery({ type: '2', slug: '2026-02-29' })).toThrow(
+		'Invalid tournament slug',
+	)
 })

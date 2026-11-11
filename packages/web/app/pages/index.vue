@@ -26,7 +26,7 @@
 				:title="t('tournaments.features.activeTitle')"
 				:description="t('tournaments.features.activeDescription')"
 			/>
-			<div class="grid gap-5 md:grid-cols-2">
+			<div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 				<TournamentFeatureCard
 					v-for="tournament in dashboard.activeTournaments.value"
 					:key="tournament.id"

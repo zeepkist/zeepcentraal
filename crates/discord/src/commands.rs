@@ -341,7 +341,8 @@ mod tests {
     #[test]
     fn embedded_registry_matches_active_typescript_registry() {
         let specs = command_specs().unwrap();
-        assert_eq!(specs.len(), 20);
+        assert_eq!(specs.len(), 21);
+        assert!(specs.iter().any(|spec| spec.name == "totd"));
         assert_eq!(specs.last().unwrap().name, "ZeepCentraal profile");
         assert_eq!(
             specs

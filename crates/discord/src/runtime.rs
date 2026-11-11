@@ -58,7 +58,7 @@ impl Handler {
             command.data.name
         );
         let user_id = command.user.id.get();
-        if matches!(command.data.name.as_str(), "totw" | "totm") {
+        if matches!(command.data.name.as_str(), "totw" | "totm" | "totd") {
             return self.tournament_command(context, command).await;
         }
         if matches!(command.data.name.as_str(), "user" | "ZeepCentraal profile") {
@@ -109,7 +109,7 @@ impl Handler {
                 Some(("Feed updated", format!("**{}** feed {} in <#{channel_id}>.", kind.replace('_', " "), if enabled { "enabled" } else { "disabled" })))
             }
             "watch" => Some(self.watch(command).await?),
-            "help" => Some(("ZeepCentraal bot", "Use `/level`, `/user`, `/stats`, `/playlist`, `/watch`, `/feed`, `/totw`, or `/totm`. Link account with `/link`.".to_owned())),
+            "help" => Some(("ZeepCentraal bot", "Use `/level`, `/user`, `/stats`, `/playlist`, `/watch`, `/feed`, `/totw`, `/totm`, or `/totd`. Link account with `/link`.".to_owned())),
             "modkist" | "gtr" => Some(("Modkist + GTR", "Install Modkist and Zeepkist.GTR.Mod from https://zeepki.st/mods.".to_owned())),
             "bot-status" => {
                 let backend = self.backend.ready().await.is_ok();
@@ -140,7 +140,11 @@ impl Handler {
         context: &Context,
         command: &CommandInteraction,
     ) -> Result<()> {
-        let tournament_type = i32::from(command.data.name == "totm");
+        let tournament_type = match command.data.name.as_str() {
+            "totd" => 2,
+            "totm" => 1,
+            _ => 0,
+        };
         let snapshot = self
             .backend
             .current_tournaments()
@@ -1100,6 +1104,7 @@ fn supports_command(name: &str) -> bool {
             | "user"
             | "totw"
             | "totm"
+            | "totd"
             | "playlist"
             | "playlist-recommend"
             | "stats"
@@ -1130,7 +1135,7 @@ mod tests {
     #[test]
     fn every_registered_command_has_a_dispatch_path() {
         let commands = commands::command_specs().unwrap();
-        assert_eq!(commands.len(), 20);
+        assert_eq!(commands.len(), 21);
         assert!(
             commands
                 .iter()
@@ -1153,7 +1158,11 @@ mod tests {
 
     #[test]
     fn tournament_pages_preserve_navigation_and_correct_details_and_links() {
-        for (tournament_type, slug, route) in [(0, "2026-W39", "totw"), (1, "2026-10", "totm")] {
+        for (tournament_type, slug, route) in [
+            (0, "2026-W39", "totw"),
+            (1, "2026-10", "totm"),
+            (2, "2026-11-11", "totd"),
+        ] {
             let mut snapshot = crate::tournament::tests::snapshot();
             snapshot.tournament_type = tournament_type;
             snapshot.tournament_slug = slug.into();

@@ -832,7 +832,7 @@ fn watch_kind(value: &str) -> bool {
 fn feed_kind(value: &str) -> bool {
     matches!(
         value,
-        "workshop" | "world_record" | "rank" | "totw" | "totm"
+        "workshop" | "world_record" | "rank" | "totw" | "totm" | "totd"
     )
 }
 
@@ -874,6 +874,7 @@ mod tests {
         assert!(watch_kind("tournament"));
         assert!(!watch_kind("other"));
         assert!(feed_kind("world_record"));
+        assert!(feed_kind("totd"));
         assert!(!feed_kind("personal_best"));
         assert!(validate_worker_key("activity-watches").is_ok());
         assert!(validate_worker_key("Activity").is_err());

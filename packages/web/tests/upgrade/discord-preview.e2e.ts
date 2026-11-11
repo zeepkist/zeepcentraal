@@ -40,12 +40,15 @@ test('crawler receives component previews across public page families', async ({
 		'/super-league/season-777/round-1/votes',
 		'/super-league/vote?roundId=777',
 		'/super-league/submit-level?roundId=777',
+		'/totd/2026-11-11',
 		'/totw/2026-w01',
 		'/totm/2026-01',
 		'/workshop/777',
 		'/user/76561198000000777',
+		'/totd',
 		'/totw',
 		'/totm',
+		'/totd/overall',
 		'/totw/overall',
 		'/totm/overall',
 		'/lobby',
@@ -78,6 +81,7 @@ test('detail previews include native placements and relevant links without viewe
 		'/super-league/season-777',
 		'/super-league/season-777/round-1',
 		'/super-league/season-777/round-1/level-777',
+		'/totd/2026-11-11',
 		'/totw/2026-w01',
 		'/totm/2026-01',
 		'/adventure',
@@ -94,7 +98,7 @@ test('detail previews include native placements and relevant links without viewe
 })
 
 test('overall previews preserve ties, filters and pagination in SSR', async ({ request }) => {
-	for (const root of ['totw', 'totm']) {
+	for (const root of ['totd', 'totw', 'totm']) {
 		const first = payloadFromHtml(
 			await (await request.get(`/${root}/overall`, { headers: crawlerHeaders })).text(),
 		)

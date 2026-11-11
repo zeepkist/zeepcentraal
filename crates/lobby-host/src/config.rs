@@ -43,6 +43,7 @@ pub enum RoomProfile {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum TournamentType {
+    Daily,
     Weekly,
     Monthly,
 }
@@ -232,6 +233,7 @@ mod tests {
     fn accepts_current_file_contract_and_rejects_duplicate_keys() {
         let source = format!(r#"{{"version":1,"rooms":[{}]}}"#, room("totw"));
         assert!(LobbyHostFileConfig::parse(&source).is_ok());
+        assert!(LobbyHostFileConfig::parse(&source.replace("weekly", "daily")).is_ok());
         let duplicate = format!(
             r#"{{"version":1,"rooms":[{},{}]}}"#,
             room("totw"),

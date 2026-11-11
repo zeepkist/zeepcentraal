@@ -361,7 +361,7 @@ impl Database {
         let mut connection = self.connection().await?;
         Ok(sql_query(
             "WITH selected AS (SELECT DISTINCT ON (tournament.type) tournament.* \
-             FROM public.track_tournament tournament WHERE tournament.type IN (0,1) \
+             FROM public.track_tournament tournament WHERE tournament.type IN (0,1,2) \
              AND tournament.start_at<=clock_timestamp() ORDER BY tournament.type, \
              (tournament.end_at>clock_timestamp()) DESC,tournament.start_at DESC,tournament.id DESC) \
              SELECT jsonb_build_object('tournamentId',selected.id,'tournamentType',selected.type, \

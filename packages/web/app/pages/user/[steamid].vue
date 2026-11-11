@@ -128,6 +128,19 @@
 									/>
 
 									<UserTrackTournamentPanel
+										id="profile-totd"
+										:title="t('nav.totd')"
+										:description="t('users.profile.trackTournaments.dailyDescription')"
+										:results="data.dailyTournaments.results.value"
+										:pending="data.dailyTournaments.pending.value"
+										:error="data.dailyTournaments.error.value"
+										:can-go-previous="data.dailyTournaments.pagination.canGoPrevious(data.dailyTournaments.page.value)"
+										:can-go-next="data.dailyTournaments.pagination.canGoNext(data.dailyTournaments.page.value)"
+										@previous="data.dailyTournaments.pagination.previous(data.dailyTournaments.page.value)"
+										@next="data.dailyTournaments.pagination.next(data.dailyTournaments.page.value)"
+									/>
+
+									<UserTrackTournamentPanel
 										id="profile-totw"
 										:title="t('nav.totw')"
 										:description="t('users.profile.trackTournaments.weeklyDescription')"

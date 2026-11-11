@@ -7,6 +7,8 @@ import {
 	nextTournamentBoundary,
 	orderTournamentGhostSources,
 	shouldShowTournamentHowTo,
+	tournamentPath,
+	validTournamentSlug,
 } from '../../app/utils/tournament'
 import { selectTournamentNotificationKind } from '../../app/utils/tournamentNotification'
 
@@ -159,4 +161,32 @@ test('plays only highest tournament placement chime in a batch', () => {
 	expect(selectTournamentNotificationKind([8, 3])).toBe('third')
 	expect(selectTournamentNotificationKind([3, 2])).toBe('second')
 	expect(selectTournamentNotificationKind([3, 1, 2])).toBe('first')
+})
+
+describe('daily tournaments', () => {
+	test.each([
+		['2026-11-11T05:59:59Z', '2026-11-11T06:00:00.000Z'],
+		['2026-11-11T06:00:00Z', '2026-11-11T06:00:00.000Z'],
+		['2026-11-11T06:04:59Z', '2026-11-11T06:00:00.000Z'],
+		['2026-11-11T06:05:00Z', '2026-11-12T06:00:00.000Z'],
+		['2028-02-29T12:00:00Z', '2028-03-01T06:00:00.000Z'],
+		['2026-12-31T12:00:00Z', '2027-01-01T06:00:00.000Z'],
+	])('next boundary at %s', (at, expected) => {
+		expect(nextTournamentBoundary(2, new Date(at)).toISOString()).toBe(expected)
+	})
+	test('validates real calendar dates and formats daily routes and periods', () => {
+		for (const slug of ['2026-11-11', '2028-02-29'])
+			expect(validTournamentSlug(2, slug)).toBe(true)
+		for (const slug of [
+			'2026-02-29',
+			'2026-04-31',
+			'2026-13-01',
+			'2026-01-00',
+			'2026-1-01',
+			'2026-w01',
+		])
+			expect(validTournamentSlug(2, slug)).toBe(false)
+		expect(tournamentPath(2, '2026-11-11')).toBe('/totd/2026-11-11')
+		expect(formatTournamentPeriod(2, '2026-11-11', 'en-GB', () => '')).toBe('11 November 2026')
+	})
 })

@@ -18,33 +18,44 @@ const MAINTENANCE_LOCK_TIMEOUT: &str = "100ms";
 
 const TRACK_TOURNAMENT_SELECTION_SQL: &str = r#"
 WITH period_start AS MATERIALIZED (
-    SELECT CASE WHEN $1=0
-        THEN date_trunc('week', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
+    SELECT CASE WHEN $1=2
+        THEN date_trunc('day', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
+        WHEN $1=0 THEN date_trunc('week', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
         ELSE date_trunc('month', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
     END AS utc_start
 ), period AS (
     SELECT (utc_start AT TIME ZONE 'UTC') + interval '6 hours' AS start_at,
-           ((utc_start - CASE WHEN $1=0 THEN interval '84 days' ELSE interval '6 months' END)
+           ((utc_start - CASE WHEN $1=0 THEN interval '84 days' WHEN $1=2 THEN interval '2 months' ELSE interval '6 months' END)
                AT TIME ZONE 'UTC') + interval '6 hours' AS window_start_at,
-           ((utc_start + CASE WHEN $1=0 THEN interval '1 week' ELSE interval '1 month' END)
+           ((utc_start + CASE WHEN $1=0 THEN interval '1 week' WHEN $1=2 THEN interval '1 day' ELSE interval '1 month' END)
                AT TIME ZONE 'UTC') + interval '6 hours' AS end_at,
            CASE WHEN $1=0 THEN to_char(utc_start, 'IYYY-"w"IW')
+                WHEN $1=2 THEN to_char(utc_start, 'YYYY-MM-DD')
                 ELSE to_char(utc_start, 'YYYY-MM') END AS slug
     FROM period_start
-), eligible AS MATERIALIZED (
-    SELECT points.id_level, points.points
+), available AS MATERIALIZED (
+    SELECT points.id_level, points.points, level.date_created
     FROM public.level_points points
     JOIN public.level level ON level.id=points.id_level AND level.publicly_visible=true
     CROSS JOIN period
-    WHERE level.date_created >= period.window_start_at
+    WHERE ($1=2 OR level.date_created >= period.window_start_at)
       AND level.date_created < period.start_at
       AND points.points > 0
       AND EXISTS (
           SELECT 1 FROM public.level_item item
           WHERE item.id_level=level.id AND item.publicly_visible=true AND item.deleted=false
       )
+      AND ($1<>2 OR NOT EXISTS (
+          SELECT 1 FROM public.track_tournament used
+          WHERE used.type=2 AND used.id_level=level.id
+      ))
+), eligible AS MATERIALIZED (
+    SELECT available.* FROM available CROSS JOIN period
+    WHERE $1<>2 OR extract(day FROM period.start_at AT TIME ZONE 'UTC')::integer % 2=0
+      OR available.date_created >= period.window_start_at
+      OR NOT EXISTS (SELECT 1 FROM available recent WHERE recent.date_created >= period.window_start_at)
 ), threshold AS (
-    SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY points) AS points FROM eligible
+    SELECT percentile_cont(CASE WHEN $1=2 THEN 0.90 ELSE 0.95 END) WITHIN GROUP (ORDER BY points) AS points FROM eligible
 ), selected AS (
     SELECT eligible.id_level
     FROM eligible CROSS JOIN threshold
@@ -863,7 +874,10 @@ impl Database {
         &self,
         tournament_type: i32,
     ) -> Result<TournamentRotation> {
-        ensure!(matches!(tournament_type, 0 | 1), "invalid tournament type");
+        ensure!(
+            matches!(tournament_type, 0 | 1 | 2),
+            "invalid tournament type"
+        );
         let mut connection = self.connection().await?;
         rotate_track_tournament_at(&mut connection, tournament_type, None).await
     }
@@ -880,7 +894,10 @@ async fn rotate_track_tournament_at(
     tournament_type: i32,
     observed_at: Option<&str>,
 ) -> Result<TournamentRotation> {
-    ensure!(matches!(tournament_type, 0 | 1), "invalid tournament type");
+    ensure!(
+        matches!(tournament_type, 0 | 1 | 2),
+        "invalid tournament type"
+    );
     connection
         .transaction::<TournamentRotation, anyhow::Error, _>(async move |connection| {
             sql_query("SELECT pg_advisory_xact_lock(1953744431,$1)")
@@ -897,7 +914,8 @@ async fn rotate_track_tournament_at(
             let at = &clock.observed_at;
             let existing = sql_query(
                 "SELECT id FROM public.track_tournament WHERE type=$1 AND start_at= \
-                 (CASE WHEN $1=0 THEN date_trunc('week',timezone('UTC',$2::text::timestamptz)-interval '6 hours') \
+                 (CASE WHEN $1=2 THEN date_trunc('day',timezone('UTC',$2::text::timestamptz)-interval '6 hours') \
+                 WHEN $1=0 THEN date_trunc('week',timezone('UTC',$2::text::timestamptz)-interval '6 hours') \
                  ELSE date_trunc('month',timezone('UTC',$2::text::timestamptz)-interval '6 hours') END \
                  AT TIME ZONE 'UTC')+interval '6 hours' LIMIT 1",
             )

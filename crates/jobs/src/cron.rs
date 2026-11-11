@@ -191,6 +191,7 @@ async fn enqueue_due(queue: &Queue, schedule: &ScheduleRow) -> Result<()> {
     for (kind, key) in [
         (0, "cron:rotateTrackTournament:weekly"),
         (1, "cron:rotateTrackTournament:monthly"),
+        (2, "cron:rotateTrackTournament:daily"),
     ] {
         enqueue(
             queue,

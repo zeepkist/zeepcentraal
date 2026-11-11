@@ -266,6 +266,7 @@ async fn poll_tournaments(
         let kind = match snapshot.tournament_type {
             0 => "totw",
             1 => "totm",
+            2 => "totd",
             _ => continue,
         };
         let watch_hash = tournament_hash(&snapshot)?;
@@ -878,3 +879,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "feeds/tournament_tests.rs"]
+mod tournament_tests;

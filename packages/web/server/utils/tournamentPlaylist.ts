@@ -1,5 +1,5 @@
 import type { TrackTournamentType } from '../../app/types/tournament'
-import { formatTournamentPeriod } from '../../app/utils/tournament'
+import { formatTournamentPeriod, validTournamentSlug } from '../../app/utils/tournament'
 
 export type TournamentPlaylistRequest = {
 	type?: TrackTournamentType
@@ -16,8 +16,13 @@ export function tournamentPlaylistIdentity(request: TournamentPlaylistRequest): 
 			name: 'ZeepCentraal Track Tournaments',
 		}
 	}
-	const shortName = request.type === 0 ? 'totw' : 'totm'
-	const formatName = request.type === 0 ? 'Track of the Week' : 'Track of the Month'
+	const shortName = request.type === 0 ? 'totw' : request.type === 2 ? 'totd' : 'totm'
+	const formatName =
+		request.type === 0
+			? 'Track of the Week'
+			: request.type === 2
+				? 'Track of the Day'
+				: 'Track of the Month'
 	if (!request.slug) {
 		return {
 			filename: `zeepcentraal-${shortName}-all.zeeplist`,
@@ -48,18 +53,14 @@ export function parseTournamentPlaylistQuery(
 	if (query.type !== undefined && rawType === undefined)
 		throw new Error('Invalid tournament type')
 	if (query.slug !== undefined && slug === undefined) throw new Error('Invalid tournament slug')
-	if (rawType !== undefined && rawType !== '0' && rawType !== '1') {
+	if (rawType !== undefined && rawType !== '0' && rawType !== '1' && rawType !== '2') {
 		throw new Error('Invalid tournament type')
 	}
 	if (slug !== undefined && rawType === undefined) throw new Error('Tournament type is required')
 
 	const type = rawType === undefined ? undefined : (Number(rawType) as TrackTournamentType)
-	if (slug !== undefined) {
-		const valid =
-			type === 0
-				? /^\d{4}-w(?:0[1-9]|[1-4]\d|5[0-3])$/.test(slug)
-				: /^\d{4}-(?:0[1-9]|1[0-2])$/.test(slug)
-		if (!valid) throw new Error('Invalid tournament slug')
+	if (slug !== undefined && type !== undefined && !validTournamentSlug(type, slug)) {
+		throw new Error('Invalid tournament slug')
 	}
 	return { type, slug }
 }

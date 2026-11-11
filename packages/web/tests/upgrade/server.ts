@@ -200,6 +200,7 @@ Bun.serve({
 			}
 			if (query.includes('ZC_TrackTournamentOverall')) {
 				const monthly = variables?.type === 1
+				const daily = variables?.type === 2
 				const rows = Array.from({ length: 51 }, (_, index) => ({
 					userId: index + 1,
 					rank: index < 2 ? 1 : index + 1,
@@ -210,7 +211,7 @@ Bun.serve({
 						steamName:
 							index === 4
 								? 'Player without profile'
-								: `${monthly ? 'Monthly' : 'Weekly'} player ${index + 1}${index === 3 ? ' VeryLongUnbrokenPlayerName'.repeat(8) : ''}`,
+								: `${daily ? 'Daily' : monthly ? 'Monthly' : 'Weekly'} player ${index + 1}${index === 3 ? ' VeryLongUnbrokenPlayerName'.repeat(8) : ''}`,
 					},
 				}))
 				const lastPage = Boolean(variables?.after || (variables?.last && !variables.before))
@@ -226,7 +227,7 @@ Bun.serve({
 					},
 				}
 				data.period = {
-					eligibleEventCount: monthly ? 6 : 12,
+					eligibleEventCount: daily ? 30 : monthly ? 6 : 12,
 					periodStart: '2026-08-01T06:00:00Z',
 					periodEnd: '2026-11-01T06:00:00Z',
 					lastUpdatedAt: '2026-11-01T06:02:00Z',

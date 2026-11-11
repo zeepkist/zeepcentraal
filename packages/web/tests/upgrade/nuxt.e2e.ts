@@ -76,10 +76,7 @@ test('early 404, canonical redirects, and sitemap routes survive production buil
 		expect(html).toContain('Page error')
 		expect(html).toContain('Return home')
 	}
-	for (const [path, target] of [
-		['/totd', '/totw'],
-		['/adventure', '/adventure/a'],
-	] as const) {
+	for (const [path, target] of [['/adventure', '/adventure/a']] as const) {
 		const response = await request.get(path, { maxRedirects: 0 })
 		expect(response.status()).toBe(301)
 		expect(response.headers().location).toBe(target)

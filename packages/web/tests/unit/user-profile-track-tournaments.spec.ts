@@ -106,7 +106,7 @@ function setup(activeInitially = true) {
 	}))
 	const scope = effectScope()
 	scopes.push(scope)
-	const create = (type: 0 | 1) => {
+	const create = (type: 0 | 1 | 2) => {
 		const panel = scope.run(() =>
 			useUserTrackTournaments(
 				steamId,
@@ -145,44 +145,47 @@ describe('profile tournament query', () => {
 		expect(validate(schema, document)).toEqual([])
 	})
 
-	it.each([0, 1])('filters type %i, started tournaments, and owner before pagination', (type) => {
-		const variables = { userId: 7, type, now: '2026-09-30T12:00:00Z', first: 6 }
-		const fields: Array<{ name: string; arguments: Record<string, unknown> }> = []
-		visit(document, {
-			Field(node) {
-				if (
-					node.name.value !== 'trackTournaments' &&
-					node.name.value !== 'trackTournamentResults'
-				)
-					return
-				fields.push({
-					name: node.name.value,
-					arguments: Object.fromEntries(
-						(node.arguments ?? []).map((argument) => [
-							argument.name.value,
-							valueFromASTUntyped(argument.value, variables),
-						]),
-					),
-				})
-			},
-		})
-		expect(fields[0]?.arguments).toMatchObject({
-			first: 6,
-			filter: {
-				type: { equalTo: type },
-				startAt: { lessThanOrEqualTo: variables.now },
-				trackTournamentResults: { some: { userId: { equalTo: 7 } } },
-			},
-			orderBy: ['START_AT_DESC', 'ID_DESC'],
-		})
-		expect(fields[1]?.arguments).toEqual({ first: 1, filter: { userId: { equalTo: 7 } } })
-		expect(Object.keys(fields[0]?.arguments.filter as object)).toEqual([
-			'type',
-			'startAt',
-			'trackTournamentResults',
-		])
-		expect(document.definitions[0]?.kind).toBe(Kind.OPERATION_DEFINITION)
-	})
+	it.each([0, 1, 2])(
+		'filters type %i, started tournaments, and owner before pagination',
+		(type) => {
+			const variables = { userId: 7, type, now: '2026-09-30T12:00:00Z', first: 6 }
+			const fields: Array<{ name: string; arguments: Record<string, unknown> }> = []
+			visit(document, {
+				Field(node) {
+					if (
+						node.name.value !== 'trackTournaments' &&
+						node.name.value !== 'trackTournamentResults'
+					)
+						return
+					fields.push({
+						name: node.name.value,
+						arguments: Object.fromEntries(
+							(node.arguments ?? []).map((argument) => [
+								argument.name.value,
+								valueFromASTUntyped(argument.value, variables),
+							]),
+						),
+					})
+				},
+			})
+			expect(fields[0]?.arguments).toMatchObject({
+				first: 6,
+				filter: {
+					type: { equalTo: type },
+					startAt: { lessThanOrEqualTo: variables.now },
+					trackTournamentResults: { some: { userId: { equalTo: 7 } } },
+				},
+				orderBy: ['START_AT_DESC', 'ID_DESC'],
+			})
+			expect(fields[1]?.arguments).toEqual({ first: 1, filter: { userId: { equalTo: 7 } } })
+			expect(Object.keys(fields[0]?.arguments.filter as object)).toEqual([
+				'type',
+				'startAt',
+				'trackTournamentResults',
+			])
+			expect(document.definitions[0]?.kind).toBe(Kind.OPERATION_DEFINITION)
+		},
+	)
 })
 
 describe('profile tournament mapping', () => {
@@ -194,6 +197,15 @@ describe('profile tournament mapping', () => {
 		expect(rows[0]).toMatchObject({ imageUrl: '/weekly-track.png', authorName: 'Track author' })
 		expect(rows[1]?.finalizedAt).toBe(final.finalizedAt)
 		expect(formatTournamentTime(rows[0]?.time ?? 0)).toBe('1:01.125')
+	})
+
+	it('maps daily tournament results and links independently', () => {
+		const rows = mapUserTrackTournamentResults(
+			connection([tournament({ type: 2, slug: '2026-11-11' })]),
+			7,
+		)
+		expect(rows[0]?.type).toBe(2)
+		expect(tournamentPath(2, rows[0]?.slug)).toBe('/totd/2026-11-11')
 	})
 
 	it('handles empty results and rejects results belonging to another owner', () => {
@@ -248,6 +260,23 @@ describe('profile tournament snapshots', () => {
 		state.active.value = true
 		await settle()
 		expect(mocks.query).toHaveBeenCalledOnce()
+	})
+
+	it('keeps daily profile cursor separate from weekly and monthly cursors', async () => {
+		const state = setup()
+		const daily = state.create(2)
+		await settle()
+		await daily.pagination.next(daily.page.value)
+		await settle()
+		expect(state.route.query.userTotdAfter).toBe('end')
+		expect(state.route.query.userTotwAfter).toBeUndefined()
+		expect(state.route.query.userTotmAfter).toBeUndefined()
+		const weekly = state.create(0)
+		const monthly = state.create(1)
+		await settle()
+		expect(daily.results.value[0]?.type).toBe(2)
+		expect(weekly.results.value[0]?.type).toBe(0)
+		expect(monthly.results.value[0]?.type).toBe(1)
 	})
 
 	it('paginates panels independently and reuses visited pages without refetching', async () => {
