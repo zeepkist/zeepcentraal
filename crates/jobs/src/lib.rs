@@ -447,7 +447,7 @@ impl TaskIdentifier {
             Self::RotateTrackTournament => object
                 .get("type")
                 .and_then(serde_json::Value::as_i64)
-                .is_some_and(|value| matches!(value, 0 | 1 | 2)),
+                .is_some_and(|value| matches!(value, 0..=2)),
             Self::BackfillRecordGhostStatisticsBatch => positive_ids("ids", 500),
             Self::UpdateLevelPointsHistoryBatch | Self::UpdateUserPointsHistoryBatch => {
                 positive_ids("ids", usize::MAX)
