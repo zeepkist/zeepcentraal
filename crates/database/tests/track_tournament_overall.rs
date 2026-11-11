@@ -235,6 +235,14 @@ async fn daily_migration_window_permissions_and_destructive_rollback() -> Result
     let tx = client.transaction().await?;
     tx.batch_execute(FIXTURE).await?;
     tx.batch_execute(UP).await?;
+    let original_constraint: String = tx
+        .query_one(
+            "SELECT conname::text FROM pg_constraint WHERE conrelid='public.track_tournament_overall_period'::regclass AND contype='c' AND cardinality(conkey)=2",
+            &[],
+        )
+        .await?
+        .get(0);
+    assert_eq!(original_constraint, "track_tournament_overall_period_check");
     tx.batch_execute("ALTER TABLE public.track_tournament ADD COLUMN slug text; ALTER TABLE public.track_tournament ADD CONSTRAINT \"CK_track_tournament_type\" CHECK(type IN(0,1)); CREATE TABLE zc_private.discord_guild_feed(kind text CONSTRAINT \"CK_discord_guild_feed_kind\" CHECK(kind IN('workshop','world_record','rank','totw','totm'))); CREATE TABLE zc_private.discord_watch(kind text,target_id text)").await?;
     tx.batch_execute(include_str!(
         "../migrations/20261111010000_track_of_the_day/up.sql"
@@ -332,5 +340,27 @@ async fn daily_migration_window_permissions_and_destructive_rollback() -> Result
             .is_err()
     );
     tx.batch_execute("ROLLBACK TO reject_daily").await?;
+    let restored_constraint: String = tx
+        .query_one(
+            "SELECT conname::text FROM pg_constraint WHERE conrelid='public.track_tournament_overall_period'::regclass AND contype='c' AND cardinality(conkey)=2",
+            &[],
+        )
+        .await?
+        .get(0);
+    assert_eq!(restored_constraint, original_constraint);
+    tx.batch_execute(include_str!(
+        "../migrations/20261111010000_track_of_the_day/up.sql"
+    ))
+    .await?;
+    assert_eq!(
+        tx.query_one(
+            "SELECT eligible_event_count FROM public.track_tournament_overall_period WHERE type=2",
+            &[],
+        )
+        .await?
+        .get::<_, i32>(0),
+        0
+    );
+    tx.rollback().await?;
     Ok(())
 }

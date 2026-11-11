@@ -8,7 +8,8 @@ ALTER TABLE public.track_tournament DROP CONSTRAINT "CK_track_tournament_type";
 ALTER TABLE public.track_tournament ADD CONSTRAINT "CK_track_tournament_type" CHECK(type IN (0,1,2));
 ALTER TABLE public.track_tournament_overall_period DROP CONSTRAINT track_tournament_overall_period_type_check;
 ALTER TABLE public.track_tournament_overall_period ADD CONSTRAINT track_tournament_overall_period_type_check CHECK(type IN (0,1,2));
-ALTER TABLE public.track_tournament_overall_period DROP CONSTRAINT track_tournament_overall_period_eligible_event_count_check;
+-- The original CHECK references two columns, so PostgreSQL names it after the table.
+ALTER TABLE public.track_tournament_overall_period DROP CONSTRAINT track_tournament_overall_period_check;
 ALTER TABLE public.track_tournament_overall_period ADD CONSTRAINT track_tournament_overall_period_eligible_event_count_check CHECK(eligible_event_count BETWEEN 0 AND CASE WHEN type=0 THEN 12 WHEN type=2 THEN 30 ELSE 6 END);
 ALTER TABLE zc_private.discord_guild_feed DROP CONSTRAINT "CK_discord_guild_feed_kind";
 ALTER TABLE zc_private.discord_guild_feed ADD CONSTRAINT "CK_discord_guild_feed_kind" CHECK(kind IN ('workshop','world_record','rank','totw','totm','totd'));
